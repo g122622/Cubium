@@ -70,19 +70,51 @@ void LootableContainerBlockEntity::setLootTable(const ResourceLocation& lootTabl
     setChanged();
 }
 
+// ========== 延迟填充战利品表 ==========
+
+void LootableContainerBlockEntity::_unpackLootTable(Player* player) const
+{
+    // 仅在战利品表尚未填充时触发
+    if (!m_hasLootTable || m_lootFilled) {
+        return;
+    }
+
+    // 需要有世界引用来获取 LootTableManager
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取战利品表管理器
+    const loot::LootTableManager* lootTableManager = m_world->lootTableManager();
+    if (lootTableManager == nullptr) {
+        // 在客户端或未初始化的服务端，无法填充
+        return;
+    }
+
+    // const_cast 是安全的：填充战利品是缓存初始化行为，而非逻辑状态变更。
+    // MC Java 的 RandomizableContainer.unpackLootTable 同样从 const/默认接口方法中修改内部状态。
+    // m_lootFilled 已声明为 mutable，m_hasLootTable 和 m_lootTable 在填充后仅被清除，
+    // 不会影响对象的逻辑一致性。
+    auto& self = const_cast<LootableContainerBlockEntity&>(*this);
+    self.fillWithLootFromTable(const_cast<loot::LootTableManager&>(*lootTableManager), player);
+}
+
 // ========== 容器访问重写 ==========
 
 bool LootableContainerBlockEntity::isEmpty() const
 {
-    // 在检查前检查战利品表填充状态
-    // 注意：这里需要 const_cast 因为 fillWithLoot 不是 const 方法
-    if (m_hasLootTable && !m_lootFilled) {
-        // 标记为需要填充，等待下次非 const 访问时填充
-        // 在实际实现中，isEmpty 会在 fillWithLoot 后立即检查
-        // 这里简化处理：返回 false 表示可能有物品
-        return false;
-    }
+    // 在检查物品之前，先触发战利品表填充
+    // 参考: net.minecraft.RandomizableContainerBlockEntity.isEmpty()
+    _unpackLootTable(nullptr);
     return LockableBlockEntity::isEmpty();
+}
+
+void LootableContainerBlockEntity::clearContainer()
+{
+    // 在清空容器之前，先触发战利品表填充
+    // 参考: net.minecraft.RandomizableContainerBlockEntity.clearContent()
+    _unpackLootTable(nullptr);
+    LockableBlockEntity::clearContainer();
 }
 
 void LootableContainerBlockEntity::openContainer(Player* player)
@@ -92,8 +124,9 @@ void LootableContainerBlockEntity::openContainer(Player* player)
         return;
     }
 
-    // 触发战利品表填充
-    fillWithLoot(player);
+    // 触发战利品表填充（带玩家上下文，包含幸运值等信息）
+    // 参考: net.minecraft.RandomizableContainerBlockEntity.createMenu() 中 unpackLootTable(player)
+    _unpackLootTable(player);
 
     LockableBlockEntity::openContainer(player);
 }

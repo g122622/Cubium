@@ -202,10 +202,54 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RAW_COPPER_BLOCK, "raw_copper_block");
     registerSimpleBlock(VanillaBlocks::RAW_GOLD_BLOCK, "raw_gold_block");
 
+    // 铜块（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_BLOCK, "copper_block");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER, "exposed_copper");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER, "weathered_copper");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER, "oxidized_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_BLOCK, "waxed_copper_block");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER, "waxed_exposed_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER, "waxed_weathered_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER, "waxed_oxidized_copper");
+
+    // 切制铜（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CUT_COPPER, "cut_copper");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CUT_COPPER, "exposed_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CUT_COPPER, "weathered_cut_copper");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CUT_COPPER, "oxidized_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_CUT_COPPER, "waxed_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CUT_COPPER, "waxed_exposed_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CUT_COPPER, "waxed_weathered_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER, "waxed_oxidized_cut_copper");
+
+    // 凿制铜（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CHISELED_COPPER, "chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CHISELED_COPPER, "exposed_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CHISELED_COPPER, "weathered_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CHISELED_COPPER, "oxidized_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_CHISELED_COPPER, "waxed_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CHISELED_COPPER, "waxed_exposed_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CHISELED_COPPER, "waxed_weathered_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER, "waxed_oxidized_chiseled_copper");
+
     // 建筑方块
     registerSimpleBlock(VanillaBlocks::BRICKS, "bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE, "mossy_cobblestone");
     registerSimpleBlock(VanillaBlocks::BOOKSHELF, "bookshelf");
+
+    // 木质书架变体（1.21.4+）
+    registerSimpleBlock(VanillaBlocks::OAK_SHELF, "oak_shelf");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_SHELF, "spruce_shelf");
+    registerSimpleBlock(VanillaBlocks::BIRCH_SHELF, "birch_shelf");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_SHELF, "jungle_shelf");
+    registerSimpleBlock(VanillaBlocks::ACACIA_SHELF, "acacia_shelf");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_SHELF, "dark_oak_shelf");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_SHELF, "mangrove_shelf");
+    registerSimpleBlock(VanillaBlocks::CHERRY_SHELF, "cherry_shelf");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_SHELF, "pale_oak_shelf");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_SHELF, "bamboo_shelf");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_SHELF, "crimson_shelf");
+    registerSimpleBlock(VanillaBlocks::WARPED_SHELF, "warped_shelf");
     registerSimpleBlock(VanillaBlocks::OBSIDIAN, "obsidian");
 
     // 木板变种
@@ -700,6 +744,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::TORCHFLOWER, "torchflower");
     registerSimpleBlock(VanillaBlocks::PITCHER_PLANT, "pitcher_plant");
     registerSimpleBlock(VanillaBlocks::PINK_PETALS, "pink_petals");
+    registerSimpleBlock(VanillaBlocks::CACTUS_FLOWER, "cactus_flower");
+    registerSimpleBlock(VanillaBlocks::WILDFLOWERS, "wildflowers");
     registerSimpleBlock(VanillaBlocks::SUNFLOWER, "sunflower");
     registerSimpleBlock(VanillaBlocks::LILAC, "lilac");
     registerSimpleBlock(VanillaBlocks::ROSE_BUSH, "rose_bush");
@@ -724,11 +770,76 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BREWING_STAND, "brewing_stand");
     registerSimpleBlock(VanillaBlocks::ENDER_CHEST, "ender_chest");
     registerSimpleBlock(VanillaBlocks::SHULKER_BOX, "shulker_box");
+    // 潜影盒 (16色)
+    registerSimpleBlock(VanillaBlocks::WHITE_SHULKER_BOX, "white_shulker_box");
+    registerSimpleBlock(VanillaBlocks::ORANGE_SHULKER_BOX, "orange_shulker_box");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_SHULKER_BOX, "magenta_shulker_box");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_SHULKER_BOX, "light_blue_shulker_box");
+    registerSimpleBlock(VanillaBlocks::YELLOW_SHULKER_BOX, "yellow_shulker_box");
+    registerSimpleBlock(VanillaBlocks::LIME_SHULKER_BOX, "lime_shulker_box");
+    registerSimpleBlock(VanillaBlocks::PINK_SHULKER_BOX, "pink_shulker_box");
+    registerSimpleBlock(VanillaBlocks::GRAY_SHULKER_BOX, "gray_shulker_box");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_SHULKER_BOX, "light_gray_shulker_box");
+    registerSimpleBlock(VanillaBlocks::CYAN_SHULKER_BOX, "cyan_shulker_box");
+    registerSimpleBlock(VanillaBlocks::PURPLE_SHULKER_BOX, "purple_shulker_box");
+    registerSimpleBlock(VanillaBlocks::BLUE_SHULKER_BOX, "blue_shulker_box");
+    registerSimpleBlock(VanillaBlocks::BROWN_SHULKER_BOX, "brown_shulker_box");
+    registerSimpleBlock(VanillaBlocks::GREEN_SHULKER_BOX, "green_shulker_box");
+    registerSimpleBlock(VanillaBlocks::RED_SHULKER_BOX, "red_shulker_box");
+    registerSimpleBlock(VanillaBlocks::BLACK_SHULKER_BOX, "black_shulker_box");
     registerSimpleBlock(VanillaBlocks::LANTERN, "lantern");
     registerSimpleBlock(VanillaBlocks::SOUL_LANTERN, "soul_lantern");
+
+    // 铜灯笼（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_LANTERN, "copper_lantern");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_LANTERN, "exposed_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_LANTERN, "weathered_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_LANTERN, "oxidized_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_LANTERN, "waxed_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_LANTERN, "waxed_exposed_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_LANTERN, "waxed_weathered_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN, "waxed_oxidized_copper_lantern");
     registerSimpleBlock(VanillaBlocks::CAMPFIRE, "campfire");
     registerSimpleBlock(VanillaBlocks::SOUL_CAMPFIRE, "soul_campfire");
     registerSimpleBlock(VanillaBlocks::JACK_O_LANTERN, "jack_o_lantern");
+
+    // 蜡烛
+    registerSimpleBlock(VanillaBlocks::CANDLE, "candle");
+    registerSimpleBlock(VanillaBlocks::WHITE_CANDLE, "white_candle");
+    registerSimpleBlock(VanillaBlocks::ORANGE_CANDLE, "orange_candle");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_CANDLE, "magenta_candle");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_CANDLE, "light_blue_candle");
+    registerSimpleBlock(VanillaBlocks::YELLOW_CANDLE, "yellow_candle");
+    registerSimpleBlock(VanillaBlocks::LIME_CANDLE, "lime_candle");
+    registerSimpleBlock(VanillaBlocks::PINK_CANDLE, "pink_candle");
+    registerSimpleBlock(VanillaBlocks::GRAY_CANDLE, "gray_candle");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_CANDLE, "light_gray_candle");
+    registerSimpleBlock(VanillaBlocks::CYAN_CANDLE, "cyan_candle");
+    registerSimpleBlock(VanillaBlocks::PURPLE_CANDLE, "purple_candle");
+    registerSimpleBlock(VanillaBlocks::BLUE_CANDLE, "blue_candle");
+    registerSimpleBlock(VanillaBlocks::BROWN_CANDLE, "brown_candle");
+    registerSimpleBlock(VanillaBlocks::GREEN_CANDLE, "green_candle");
+    registerSimpleBlock(VanillaBlocks::RED_CANDLE, "red_candle");
+    registerSimpleBlock(VanillaBlocks::BLACK_CANDLE, "black_candle");
+
+    // 蜡烛蛋糕
+    registerSimpleBlock(VanillaBlocks::CANDLE_CAKE, "candle_cake");
+    registerSimpleBlock(VanillaBlocks::WHITE_CANDLE_CAKE, "white_candle_cake");
+    registerSimpleBlock(VanillaBlocks::ORANGE_CANDLE_CAKE, "orange_candle_cake");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_CANDLE_CAKE, "magenta_candle_cake");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_CANDLE_CAKE, "light_blue_candle_cake");
+    registerSimpleBlock(VanillaBlocks::YELLOW_CANDLE_CAKE, "yellow_candle_cake");
+    registerSimpleBlock(VanillaBlocks::LIME_CANDLE_CAKE, "lime_candle_cake");
+    registerSimpleBlock(VanillaBlocks::PINK_CANDLE_CAKE, "pink_candle_cake");
+    registerSimpleBlock(VanillaBlocks::GRAY_CANDLE_CAKE, "gray_candle_cake");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_CANDLE_CAKE, "light_gray_candle_cake");
+    registerSimpleBlock(VanillaBlocks::CYAN_CANDLE_CAKE, "cyan_candle_cake");
+    registerSimpleBlock(VanillaBlocks::PURPLE_CANDLE_CAKE, "purple_candle_cake");
+    registerSimpleBlock(VanillaBlocks::BLUE_CANDLE_CAKE, "blue_candle_cake");
+    registerSimpleBlock(VanillaBlocks::BROWN_CANDLE_CAKE, "brown_candle_cake");
+    registerSimpleBlock(VanillaBlocks::GREEN_CANDLE_CAKE, "green_candle_cake");
+    registerSimpleBlock(VanillaBlocks::RED_CANDLE_CAKE, "red_candle_cake");
+    registerSimpleBlock(VanillaBlocks::BLACK_CANDLE_CAKE, "black_candle_cake");
     registerSimpleBlock(VanillaBlocks::TARGET, "target");
     registerSimpleBlock(VanillaBlocks::NOTE_BLOCK, "note_block");
     registerSimpleBlock(VanillaBlocks::DRAGON_EGG, "dragon_egg");
@@ -752,6 +863,36 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::LADDER, "ladder");
     registerSimpleBlock(VanillaBlocks::SCAFFOLDING, "scaffolding");
     registerSimpleBlock(VanillaBlocks::IRON_BARS, "iron_bars");
+
+    // 铜栏杆（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_BARS, "copper_bars");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_BARS, "exposed_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_BARS, "weathered_copper_bars");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_BARS, "oxidized_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_BARS, "waxed_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_BARS, "waxed_exposed_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_BARS, "waxed_weathered_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS, "waxed_oxidized_copper_bars");
+
+    // 铜格栅（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_GRATE, "copper_grate");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_GRATE, "exposed_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_GRATE, "weathered_copper_grate");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_GRATE, "oxidized_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_GRATE, "waxed_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_GRATE, "waxed_exposed_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_GRATE, "waxed_weathered_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_GRATE, "waxed_oxidized_copper_grate");
+
+    // 铜灯（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_BULB, "copper_bulb");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_BULB, "exposed_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_BULB, "weathered_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_BULB, "oxidized_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_BULB, "waxed_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_BULB, "waxed_exposed_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_BULB, "waxed_weathered_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_BULB, "waxed_oxidized_copper_bulb");
 
     // 楼梯
     registerSimpleBlock(VanillaBlocks::OAK_STAIRS, "oak_stairs");
@@ -790,6 +931,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PURPUR_STAIRS, "purpur_stairs");
     registerSimpleBlock(VanillaBlocks::RED_SANDSTONE_STAIRS, "red_sandstone_stairs");
     registerSimpleBlock(VanillaBlocks::SMOOTH_RED_SANDSTONE_STAIRS, "smooth_red_sandstone_stairs");
+
+    // 切制铜楼梯（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CUT_COPPER_STAIRS, "cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS, "exposed_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS, "weathered_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CUT_COPPER_STAIRS, "oxidized_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_CUT_COPPER_STAIRS, "waxed_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS, "waxed_exposed_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS, "waxed_weathered_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS, "waxed_oxidized_cut_copper_stairs");
 
     // 台阶
     registerSimpleBlock(VanillaBlocks::OAK_SLAB, "oak_slab");
@@ -832,6 +983,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CUT_RED_SANDSTONE_SLAB, "cut_red_sandstone_slab");
     registerSimpleBlock(VanillaBlocks::SMOOTH_STONE_SLAB, "smooth_stone_slab");
     registerSimpleBlock(VanillaBlocks::PETRIFIED_OAK_SLAB, "petrified_oak_slab");
+
+    // 切制铜台阶（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CUT_COPPER_SLAB, "cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CUT_COPPER_SLAB, "exposed_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CUT_COPPER_SLAB, "weathered_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CUT_COPPER_SLAB, "oxidized_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_CUT_COPPER_SLAB, "waxed_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB, "waxed_exposed_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB, "waxed_weathered_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB, "waxed_oxidized_cut_copper_slab");
 
     // 墙
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_WALL, "cobblestone_wall");
@@ -1012,16 +1173,33 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 耕地
     registerSimpleBlock(VanillaBlocks::FARMLAND, "farmland");
 
-    // 农作物方块不需要注册 BlockItem：
-    // - 小麦 (minecraft:wheat) 与普通物品 Items::WHEAT 同名，registerSimpleBlock 会因
-    //   Items::WHEAT 已存在且非 BlockItem 而跳过注册并打印警告。
-    // - 胡萝卜/马铃薯/甜菜根方块名与物品名不同（carrots/carrot, potatoes/potato, beetroots/beetroot），
-    //   虽然能注册成功但创建的 BlockItem 无实际用途——作物方块不能由物品直接放置，
-    //   它们只能通过种子（WheatSeedsItem、BeetrootSeedsItem 等）种植。
-    //   种子到作物方块的映射由 FarmerWorkGoal::_getCropBlockForSeed() 通过 VanillaBlocks
-    //   直接引用实现，不依赖 BlockItemRegistry。
+    // 农作物方块的 BlockItem 注册：
+    // 种子物品现在注册为 SeedsItem（BlockItem 子类），关联到对应的作物方块。
+    // 例如 WHEAT_SEEDS 关联到 minecraft:wheat 方块，PUMPKIN_SEEDS 关联到 minecraft:pumpkin_stem 方块。
+    // SeedsItem 在 Items::_registerSeeds() 中通过 registerItem<SeedsItem>() 注册，
+    // 此处需要建立作物方块到种子物品的映射，以便通过方块查找对应的物品。
     //
-    // 因此不调用 registerSimpleBlock，避免 WHEAT 同名冲突警告和无用 BlockItem 注册。
+    // 注意：Items::WHEAT 是普通物品（minecraft:wheat），不是 BlockItem，与 WHEAT_SEEDS 无关。
+    // Items::WHEAT 的注册在 _registerCrops() 中，其物品 ID 与小麦方块 ID 同名但类型不同。
+    // registerSimpleBlock 会检测到 Items::WHEAT 已存在且非 BlockItem 而跳过注册，这是正确行为。
+    // 胡萝卜/马铃薯的物品注册同理——它们是食物，不是 BlockItem。
+    {
+        auto registerSeedBlockItem = [this](Block* cropBlock, Item* seedItem) {
+            if (cropBlock == nullptr || seedItem == nullptr) {
+                return;
+            }
+            auto* seedBlockItem = dynamic_cast<BlockItem*>(seedItem);
+            if (seedBlockItem != nullptr) {
+                registerBlockItem(*cropBlock, *seedBlockItem);
+            }
+        };
+        registerSeedBlockItem(VanillaBlocks::WHEAT, Items::WHEAT_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::PUMPKIN_STEM, Items::PUMPKIN_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::MELON_STEM, Items::MELON_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::BEETROOTS, Items::BEETROOT_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::TORCHFLOWER_CROP, Items::TORCHFLOWER_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::PITCHER_CROP, Items::PITCHER_POD);
+    }
 
     // 可可豆方块：minecraft:cocoa 方块与 minecraft:cocoa_beans 物品名称不同，
     // Items::COCOA_BEANS 已在 Items.cpp 中通过 registerBlockBackedItem 注册为 BlockItem

@@ -330,6 +330,15 @@ bool Block::useShapeForLightOcclusion(const BlockState& state) const
     return false;
 }
 
+bool Block::skipRendering(const BlockState& selfState, const BlockState& neighborState, Direction direction) const
+{
+    MC_UNUSED(selfState);
+    MC_UNUSED(neighborState);
+    MC_UNUSED(direction);
+    // 默认不跳过渲染，子类可重写此方法实现特殊的面剔除逻辑
+    return false;
+}
+
 const CollisionShape& Block::getEntityInsideCollisionShape(const BlockState& state) const
 {
     // 默认返回完整方块形状，即只要实体 AABB 与方块网格重叠就认为实体在方块内部。
@@ -357,6 +366,16 @@ bool Block::isOpaque(const BlockState& state) const
 {
     (void)state;
     return m_material->isOpaque();
+}
+
+f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 默认实现与 MC 原版一致：
+    // 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影），否则返回 1.0F。
+    // 子类可重写以实现特殊行为（如 MudBlock 碰撞形状不完整但仍需阴影）。
+    return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 }
 
 i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const
@@ -600,7 +619,7 @@ bool Block::isValidPosition(const BlockState& state, IBlockReader& world, const 
     return true;
 }
 
-bool Block::isReplaceable(const BlockState& state, BlockItemUseContext& context) const
+bool Block::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
     // 默认实现：使用 BlockProperties 的 isReplaceable 值
     (void)context;

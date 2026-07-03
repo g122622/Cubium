@@ -59,6 +59,13 @@ public:
 
     // ========== IInventory 接口 ==========
 
+    // TODO: getInventory() 返回 SimpleInventory* 而非战利品感知的包装器，通过此路径访问容器
+    // 内容（如 getInventory()->getItem(slot)）会绕过 _unpackLootTable 延迟填充机制。
+    // MC Java 中 RandomizableContainerBlockEntity 的 getItem/setItem/removeItem 均会触发
+    // unpackLootTable，但当前架构下 LootableContainerBlockEntity 不继承 IInventory，
+    // 无法在基类层面覆盖这些方法。ShulkerBoxEntity 因多重继承 IInventory 已正确处理。
+    // 未来应考虑让 LootableContainerBlockEntity 实现 IInventory 接口，或在 SimpleInventory
+    // 上添加战利品表感知回调，以确保所有容器访问路径都触发延迟填充。
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
     [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
 

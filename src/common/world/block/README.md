@@ -37,7 +37,7 @@
 │   ├── BaseBlocks.hpp / cpp #基础方块、矿石、矿物、原木、木板
 │   ├── BuildingBlocks.hpp / cpp #建筑、功能方块、石砖、石英、海晶
 │   ├── BuildingVariantBlocks.hpp / cpp #楼梯 / 台阶 / 墙 / 门 / 栅栏门 / 活板门
-│   ├── ColoredBlocks.hpp / cpp #染色方块（羊毛、地毯、玻璃、混凝土）
+│   ├── ColoredBlocks.hpp / cpp #染色方块（羊毛、地毯、玻璃、混凝土、床）
 │   ├── NaturalBlocks.hpp / cpp #自然方块（冰变种、珊瑚、海洋方块）
 │   ├── NetherBlocks.hpp / cpp #下界方块、末地方块
 │   ├── RedstoneBlocks.hpp / cpp #红石方块、铁轨方块
@@ -58,7 +58,7 @@
     ├── EnchantingTableBlock.hpp / cpp #附魔台方块
     ├── SignBlock.hpp / cpp #告示牌方块
     ├── HangingSignBlock.hpp / cpp #悬挂告示牌
-    ├── ShulkerBoxBlock.hpp / cpp #潜影盒方块
+    ├── ShulkerBoxBlock.hpp / cpp #潜影盒方块（16色+无色变体，27格存储，防递归嵌套）
     ├── LightningRodBlock.hpp / cpp #避雷针方块
     ├── DirectionalBlock.hpp / cpp #有朝向的方块基类
     ├── HorizontalBlock.hpp / cpp #水平朝向方块基类
@@ -662,7 +662,10 @@ Block& block = state->getBlockMutable();
                     ## #33. BlockTags 新增标签说明
 
 ### BARS 标签
-`BlockTags::BARS()` 包含铁栏杆（`iron_bars`），用于 WallBlock 的 `_getWallHeight()` 判断——铁栏杆与墙连接时返回 `WallHeight::Low`（低连接）。
+`BlockTags::BARS()` 包含铁栏杆（`iron_bars`）和铜栏杆变体，用于：
+- WallBlock 的 `_getWallHeight()` 判断——铁栏杆与墙连接时返回 `WallHeight::Low`（低连接）
+- PaneBlock / WeatheringCopperBarsBlock / WaxedCopperBarsBlock 的 `shouldConnectTo()` 连接判定
+- 上述三个类的 `skipRendering()` 面剔除——BARS 标签方块之间水平双向连接时跳过内侧面渲染
 
 ### SHULKER_BOXES 标签
 `BlockTags::SHULKER_BOXES()` 包含所有潜影盒变体（无色 + 16色），用于 `Block::isExceptionForConnection()` 判断——潜影盒虽然是固体，但不应与栅栏、墙、玻璃板建立连接。
@@ -728,3 +731,46 @@ Block& block = state->getBlockMutable();
 - 非流体方块只需实现 `pickupItem()` 和 `getPickupSound()`，`pickupFluid()` 返回 nullptr
 - `BucketItem::onItemUse` 的空桶路径先尝试 `pickupFluid()`，失败后再尝试 `pickupItem()`
 - `EmptyBucketDispenseBehavior` 同样遵循此双路径逻辑
+
+## #36. getShadeBrightness 遮光亮度与 AO 阴影
+
+`Block::getShadeBrightness(const BlockState&, IWorld*, const BlockPos*)` 是虚方法，返回方块的遮光亮度值（0.0~1.0），决定方块在环境光遮蔽（Ambient Occlusion）渲染中的阴影程度。对应 MC Java 的 `BlockBehaviour.getShadeBrightness()`。
+
+**默认行为**：
+```cpp
+// Block::getShadeBrightness 默认实现
+return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
+```
+- `0.2f`（有AO阴影）：碰撞形状完整且不透明的方块（如石头、泥土）
+- `1.0f`（无AO阴影）：碰撞形状不完整或透明的方块（如玻璃、楼梯、台阶）
+
+**便捷方法**：`BlockState::getShadeBrightness()` 委托到 `Block::getShadeBrightness()`，`BlockState::getAmbientOcclusionLightValue()` 进一步委托到 `getShadeBrightness()`。
+
+**与 AmbientOcclusionCalculator 的集成**：渲染管线中 `AmbientOcclusionCalculator` 调用 `state->getAmbientOcclusionLightValue()` 获取每个方块的遮光亮度，用于计算 AO 顶点颜色。遮光亮度越低（接近0.2），方块边缘阴影越深；遮光亮度为1.0时，方块不产生AO阴影。
+
+**已重写的方块**：
+
+| 方块 | 返回值 | 原因 |
+|------|--------|------|
+| MudBlock | 0.2f | 碰撞形状不完整（14/16格高），但视觉上应产生AO阴影 |
+| SnowBlock | 8层→0.2f, 其他→1.0f | 满层(8层)视觉等价于完整方块产生阴影，低层不产生阴影 |
+| BarrierBlock | 1.0f | 不可见方块，不应影响AO计算 |
+
+**添加新重写的注意事项**：
+- 如果方块碰撞形状不完整但视觉上应产生阴影（如 MudBlock），需要显式重写返回 0.2f
+- 如果方块有完整碰撞形状但不应产生阴影（如 BarrierBlock），需要显式重写返回 1.0f
+- 默认行为基于 `hasOpaqueCollisionShape()`（即 `isOpaque && material().blocksMovement()`），大部分方块无需重写
+
+## #37. ColoredBlocks 床方块注册
+
+16色床方块在 `ColoredBlocks.hpp/.cpp` 中注册，使用 `blocks::BedBlock` 类并传入 `DyeColor` 参数。每种颜色对应一个独立的 `BedBlock` 实例（white_bed、orange_bed、...、black_bed）。
+
+**注册方式**：`registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:xxx_bed"), DyeColor::Xxx, bedProps)`
+
+**方块属性**：`Material::WOOL`，硬度 0.2，`notSolid()`（不阻挡光线），`ignitedByLava()`（可被岩浆点燃）
+
+**状态属性**：`HORIZONTAL_FACING`（朝向）、`BED_PART`（HEAD/FOOT 部分）、`OCCUPIED`（占用状态）
+
+**物品注册**：床物品使用自定义 `BedItem` 子类（非 `registerSimpleBlock`），在 `Items::_registerBeds()` 中通过 `registerItem<BedItem>()` 注册，最大堆叠数为 1。`BedItem` 重写 `getStateForPlacement()` 检查头部位置可替换性，`BedBlock::onBlockPlacedBy()` 在脚部放置后自动放置头部方块。
+
+**注意**：床的双方块结构（HEAD/FOOT）要求放置和破坏时同时处理两个方块位置，详见 `functional/README.md` 中的 BedBlock 文档。

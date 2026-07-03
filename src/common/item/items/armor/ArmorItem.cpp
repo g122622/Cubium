@@ -101,17 +101,20 @@ ArmorItem::ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot
     , m_material(material)
     , m_slot(slot)
 {
-    _buildAttributeModifiers();
+    _buildAttributeModifiers(getDefense());
 }
 
-void ArmorItem::_buildAttributeModifiers()
+void ArmorItem::_buildAttributeModifiers(i32 defense)
 {
+    // 清空已有修饰符（供子类重建时使用）
+    m_attributeModifiers = ItemAttributeModifiers();
+
     i32 equipmentSlot = armorSlotToEquipmentSlot(m_slot);
     std::string uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
 
     // 1. 护甲值修饰符 (generic.armor)
     auto armorModifier = entity::attribute::AttributeModifier(
-        uuid, "Armor modifier", static_cast<f64>(getDefense()), entity::attribute::Operation::Addition);
+        uuid, "Armor modifier", static_cast<f64>(defense), entity::attribute::Operation::Addition);
     m_attributeModifiers.add(entity::attribute::Attributes::ARMOR, armorModifier, equipmentSlot);
 
     // 2. 护甲韧性修饰符 (generic.armor_toughness)

@@ -111,6 +111,22 @@ public:
      */
     [[nodiscard]] static bool canSurviveAt(const IWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 获取遮光亮度
+     *
+     * 满层(8层)雪返回 0.2F（产生AO阴影，因为视觉上等价于完整方块），
+     * 其他层数返回 1.0F（不产生阴影，因为层数较低时视觉上不完整）。
+     *
+     * 参考: net.minecraft.block.SnowLayerBlock#getShadeBrightness
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return state.get(LAYERS()) == 8 ? 0.2f : 1.0f;
+    }
+
 private:
     /**
      * @brief 检查雪层是否可以在指定位置存活（IWorld版本）

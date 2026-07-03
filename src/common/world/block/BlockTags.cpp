@@ -235,6 +235,24 @@ BlockTag& BlockTags::CAMPFIRES()
     return *tag;
 }
 
+BlockTag& BlockTags::CANDLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "candles"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CANDLE_CAKES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "candle_cakes"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOOL()
 {
     static BlockTag* tag = nullptr;
@@ -249,6 +267,15 @@ BlockTag& BlockTags::WOOL_CARPETS()
     static BlockTag* tag = nullptr;
     if (tag == nullptr) {
         tag = getTag(ResourceLocation("minecraft", "wool_carpets"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BEDS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "beds"));
     }
     return *tag;
 }
@@ -375,6 +402,24 @@ BlockTag& BlockTags::TALL_FLOWERS()
     static BlockTag* tag = nullptr;
     if (tag == nullptr) {
         tag = getTag(ResourceLocation("minecraft", "tall_flowers"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FLOWERS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "flowers"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SAPLINGS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "saplings"));
     }
     return *tag;
 }
@@ -1080,15 +1125,14 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "grass_block"),
         ResourceLocation("minecraft", "podzol"),
         ResourceLocation("minecraft", "coarse_dirt"),
-        ResourceLocation("minecraft", "mycelium"),
-        ResourceLocation("minecraft", "farmland")});
+        ResourceLocation("minecraft", "mycelium")});
     tags[dirt->getId()] = std::move(dirt);
 
     // 创建 SAND 标签
     auto sand = std::make_unique<BlockTag>(ResourceLocation("minecraft", "sand"));
     sand->addAll({ResourceLocation("minecraft", "sand"),
         ResourceLocation("minecraft", "red_sand"),
-        ResourceLocation("minecraft", "soul_sand")});
+        ResourceLocation("minecraft", "suspicious_sand")});
     tags[sand->getId()] = std::move(sand);
 
     // 创建 STONE 标签
@@ -1117,6 +1161,48 @@ void BlockTags::initialize()
     auto campfires = std::make_unique<BlockTag>(ResourceLocation("minecraft", "campfires"));
     campfires->addAll({ResourceLocation("minecraft", "campfire"), ResourceLocation("minecraft", "soul_campfire")});
     tags[campfires->getId()] = std::move(campfires);
+
+    // 创建 CANDLES 标签（所有蜡烛方块）
+    auto candles = std::make_unique<BlockTag>(ResourceLocation("minecraft", "candles"));
+    candles->addAll({ResourceLocation("minecraft", "candle"),
+        ResourceLocation("minecraft", "white_candle"),
+        ResourceLocation("minecraft", "orange_candle"),
+        ResourceLocation("minecraft", "magenta_candle"),
+        ResourceLocation("minecraft", "light_blue_candle"),
+        ResourceLocation("minecraft", "yellow_candle"),
+        ResourceLocation("minecraft", "lime_candle"),
+        ResourceLocation("minecraft", "pink_candle"),
+        ResourceLocation("minecraft", "gray_candle"),
+        ResourceLocation("minecraft", "light_gray_candle"),
+        ResourceLocation("minecraft", "cyan_candle"),
+        ResourceLocation("minecraft", "purple_candle"),
+        ResourceLocation("minecraft", "blue_candle"),
+        ResourceLocation("minecraft", "brown_candle"),
+        ResourceLocation("minecraft", "green_candle"),
+        ResourceLocation("minecraft", "red_candle"),
+        ResourceLocation("minecraft", "black_candle")});
+    tags[candles->getId()] = std::move(candles);
+
+    // 创建 CANDLE_CAKES 标签（所有蜡烛蛋糕方块）
+    auto candleCakes = std::make_unique<BlockTag>(ResourceLocation("minecraft", "candle_cakes"));
+    candleCakes->addAll({ResourceLocation("minecraft", "candle_cake"),
+        ResourceLocation("minecraft", "white_candle_cake"),
+        ResourceLocation("minecraft", "orange_candle_cake"),
+        ResourceLocation("minecraft", "magenta_candle_cake"),
+        ResourceLocation("minecraft", "light_blue_candle_cake"),
+        ResourceLocation("minecraft", "yellow_candle_cake"),
+        ResourceLocation("minecraft", "lime_candle_cake"),
+        ResourceLocation("minecraft", "pink_candle_cake"),
+        ResourceLocation("minecraft", "gray_candle_cake"),
+        ResourceLocation("minecraft", "light_gray_candle_cake"),
+        ResourceLocation("minecraft", "cyan_candle_cake"),
+        ResourceLocation("minecraft", "purple_candle_cake"),
+        ResourceLocation("minecraft", "blue_candle_cake"),
+        ResourceLocation("minecraft", "brown_candle_cake"),
+        ResourceLocation("minecraft", "green_candle_cake"),
+        ResourceLocation("minecraft", "red_candle_cake"),
+        ResourceLocation("minecraft", "black_candle_cake")});
+    tags[candleCakes->getId()] = std::move(candleCakes);
 
     // 创建 WOOL 标签
     auto wool = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool"));
@@ -1158,6 +1244,26 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "red_carpet"),
         ResourceLocation("minecraft", "black_carpet")});
     tags[woolCarpets->getId()] = std::move(woolCarpets);
+
+    // 创建 BEDS 标签（所有颜色的床方块）
+    auto beds = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beds"));
+    beds->addAll({ResourceLocation("minecraft", "white_bed"),
+        ResourceLocation("minecraft", "orange_bed"),
+        ResourceLocation("minecraft", "magenta_bed"),
+        ResourceLocation("minecraft", "light_blue_bed"),
+        ResourceLocation("minecraft", "yellow_bed"),
+        ResourceLocation("minecraft", "lime_bed"),
+        ResourceLocation("minecraft", "pink_bed"),
+        ResourceLocation("minecraft", "gray_bed"),
+        ResourceLocation("minecraft", "light_gray_bed"),
+        ResourceLocation("minecraft", "cyan_bed"),
+        ResourceLocation("minecraft", "purple_bed"),
+        ResourceLocation("minecraft", "blue_bed"),
+        ResourceLocation("minecraft", "brown_bed"),
+        ResourceLocation("minecraft", "green_bed"),
+        ResourceLocation("minecraft", "red_bed"),
+        ResourceLocation("minecraft", "black_bed")});
+    tags[beds->getId()] = std::move(beds);
 
     // 创建 WOODEN_FENCES 标签（所有木质栅栏，不含下界砖栅栏）
     auto woodenFences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_fences"));
@@ -1297,12 +1403,11 @@ void BlockTags::initialize()
     // 创建 HOGLIN_REPELLENTS 标签（疣猪兽排斥物）
     // MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
     // 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
-    // 包含: 诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)
+    // 包含: 诡异菌(warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
     // TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到此标签
     //       （MC 1.21.11 中 Blocks.POTTED_WARPED_FUNGUS 包含在 HOGLIN_REPELLENTS 中）
     auto hoglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "hoglin_repellents"));
     hoglinRepellents->addAll({ResourceLocation("minecraft", "warped_fungus"),
-        ResourceLocation("minecraft", "warped_nylium"),
         ResourceLocation("minecraft", "nether_portal"),
         ResourceLocation("minecraft", "respawn_anchor")});
     tags[hoglinRepellents->getId()] = std::move(hoglinRepellents);
@@ -1311,17 +1416,17 @@ void BlockTags::initialize()
     // MC 1.21.11: BlockTags.PIGLIN_REPELLENTS
     // 猪灵在这些方块附近会逃跑
     // 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
-    //       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
+    //       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)
     // 注意: 灵魂营火的点燃状态检查已在 PiglinEntity::getPathWeight 和 AvoidBlockGoal 中实现
     //       （对应 MC 原版 PiglinSpecificSensor.isValidRepellent 逻辑）
     // 注意: MC 1.21.11 中 potted_warped_fungus 不在 PIGLIN_REPELLENTS 中，无需添加
+    // 注意: MC 1.21.11 中 warped_fungus 不在 PIGLIN_REPELLENTS 中，仅存在于 HOGLIN_REPELLENTS
     auto piglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "piglin_repellents"));
     piglinRepellents->addAll({ResourceLocation("minecraft", "soul_fire"),
         ResourceLocation("minecraft", "soul_torch"),
         ResourceLocation("minecraft", "soul_wall_torch"),
         ResourceLocation("minecraft", "soul_lantern"),
-        ResourceLocation("minecraft", "soul_campfire"),
-        ResourceLocation("minecraft", "warped_fungus")});
+        ResourceLocation("minecraft", "soul_campfire")});
     tags[piglinRepellents->getId()] = std::move(piglinRepellents);
 
     // 创建 SMALL_FLOWERS 标签（小花朵）
@@ -1342,12 +1447,70 @@ void BlockTags::initialize()
     tags[smallFlowers->getId()] = std::move(smallFlowers);
 
     // 创建 TALL_FLOWERS 标签（高花朵）
+    // 注意: MC 1.21.2+ 已移除 tall_flowers 标签，高花朵直接包含在 flowers 标签中
+    // 此处保留以兼容旧代码
     auto tallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "tall_flowers"));
     tallFlowers->addAll({ResourceLocation("minecraft", "sunflower"),
         ResourceLocation("minecraft", "lilac"),
         ResourceLocation("minecraft", "rose_bush"),
-        ResourceLocation("minecraft", "peony")});
+        ResourceLocation("minecraft", "peony"),
+        ResourceLocation("minecraft", "pitcher_plant")});
     tags[tallFlowers->getId()] = std::move(tallFlowers);
+
+    // 创建 FLOWERS 标签（所有花朵）
+    // MC 1.21.11: BlockTags.FLOWERS
+    // 包含小花朵标签引用 + 高花朵 + 其他花类方块
+    auto flowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "flowers"));
+    flowers->addAll({// 小花朵（内联展开 #minecraft:small_flowers）
+        ResourceLocation("minecraft", "dandelion"),
+        ResourceLocation("minecraft", "poppy"),
+        ResourceLocation("minecraft", "blue_orchid"),
+        ResourceLocation("minecraft", "allium"),
+        ResourceLocation("minecraft", "azure_bluet"),
+        ResourceLocation("minecraft", "red_tulip"),
+        ResourceLocation("minecraft", "orange_tulip"),
+        ResourceLocation("minecraft", "white_tulip"),
+        ResourceLocation("minecraft", "pink_tulip"),
+        ResourceLocation("minecraft", "oxeye_daisy"),
+        ResourceLocation("minecraft", "cornflower"),
+        ResourceLocation("minecraft", "lily_of_the_valley"),
+        ResourceLocation("minecraft", "wither_rose"),
+        ResourceLocation("minecraft", "torchflower"),
+        ResourceLocation("minecraft", "open_eyeblossom"),
+        ResourceLocation("minecraft", "closed_eyeblossom"),
+        ResourceLocation("minecraft", "cactus_flower"),
+        ResourceLocation("minecraft", "wildflowers"),
+        // 高花朵
+        ResourceLocation("minecraft", "sunflower"),
+        ResourceLocation("minecraft", "lilac"),
+        ResourceLocation("minecraft", "peony"),
+        ResourceLocation("minecraft", "rose_bush"),
+        ResourceLocation("minecraft", "pitcher_plant"),
+        // 其他花类方块
+        ResourceLocation("minecraft", "flowering_azalea_leaves"),
+        ResourceLocation("minecraft", "flowering_azalea"),
+        ResourceLocation("minecraft", "mangrove_propagule"),
+        ResourceLocation("minecraft", "cherry_leaves"),
+        ResourceLocation("minecraft", "pink_petals"),
+        ResourceLocation("minecraft", "chorus_flower"),
+        ResourceLocation("minecraft", "spore_blossom")});
+    tags[flowers->getId()] = std::move(flowers);
+
+    // 创建 SAPLINGS 标签（所有树苗）
+    // MC 1.21.11: BlockTags.SAPLINGS
+    auto saplings = std::make_unique<BlockTag>(ResourceLocation("minecraft", "saplings"));
+    saplings->addAll({ResourceLocation("minecraft", "oak_sapling"),
+        ResourceLocation("minecraft", "spruce_sapling"),
+        ResourceLocation("minecraft", "birch_sapling"),
+        ResourceLocation("minecraft", "jungle_sapling"),
+        ResourceLocation("minecraft", "acacia_sapling"),
+        ResourceLocation("minecraft", "dark_oak_sapling"),
+        ResourceLocation("minecraft", "pale_oak_sapling"),
+        ResourceLocation("minecraft", "azalea"),
+        ResourceLocation("minecraft", "flowering_azalea"),
+        ResourceLocation("minecraft", "mangrove_propagule"),
+        ResourceLocation("minecraft", "cherry_sapling")});
+    tags[saplings->getId()] = std::move(saplings);
 
     // 创建 BEEHIVES 标签（蜂巢/蜂箱）
     auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));
@@ -1566,7 +1729,9 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "glow_lichen"),
         // 1.21.2 苍白苔藓
         ResourceLocation("minecraft", "pale_moss_block"),
-        ResourceLocation("minecraft", "pale_moss_carpet")});
+        ResourceLocation("minecraft", "pale_moss_carpet"),
+        // 1.21.4 仙人掌花
+        ResourceLocation("minecraft", "cactus_flower")});
 
     // 更新 SMALL_FLOWERS 标签，添加 1.17+ 新花
     BlockTag& smallFlowersTag = *tags.at(ResourceLocation("minecraft", "small_flowers"));
@@ -1574,7 +1739,10 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "torchflower"),
         // 1.21.2 睁眼花和闭眼花
         ResourceLocation("minecraft", "open_eyeblossom"),
-        ResourceLocation("minecraft", "closed_eyeblossom")});
+        ResourceLocation("minecraft", "closed_eyeblossom"),
+        // 1.21.4 仙人掌花和野花
+        ResourceLocation("minecraft", "cactus_flower"),
+        ResourceLocation("minecraft", "wildflowers")});
 
     // 更新 BEE_GROWABLES 标签，添加 1.20 火把花
     BlockTag& beeGrowablesTag = *tags.at(ResourceLocation("minecraft", "bee_growables"));
@@ -1824,9 +1992,16 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor")});
     tags[copper->getId()] = std::move(copper);
 
-    // 避雷针标签
+    // 避雷针标签（包含所有氧化和涂蜡变种）
     auto lightningRods = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lightning_rods"));
-    lightningRods->addAll({ResourceLocation("minecraft", "lightning_rod")});
+    lightningRods->addAll({ResourceLocation("minecraft", "lightning_rod"),
+        ResourceLocation("minecraft", "exposed_lightning_rod"),
+        ResourceLocation("minecraft", "weathered_lightning_rod"),
+        ResourceLocation("minecraft", "oxidized_lightning_rod"),
+        ResourceLocation("minecraft", "waxed_lightning_rod"),
+        ResourceLocation("minecraft", "waxed_exposed_lightning_rod"),
+        ResourceLocation("minecraft", "waxed_weathered_lightning_rod"),
+        ResourceLocation("minecraft", "waxed_oxidized_lightning_rod")});
     tags[lightningRods->getId()] = std::move(lightningRods);
 
     // 减振方块标签（羊毛和地毯）
@@ -2189,6 +2364,8 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "torchflower"),
         ResourceLocation("minecraft", "open_eyeblossom"),
         ResourceLocation("minecraft", "closed_eyeblossom"),
+        ResourceLocation("minecraft", "cactus_flower"),
+        ResourceLocation("minecraft", "wildflowers"),
         // 苍白苔藓地毯
         ResourceLocation("minecraft", "pale_moss_carpet"),
         // 植物

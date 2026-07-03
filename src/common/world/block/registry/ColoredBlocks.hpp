@@ -28,7 +28,7 @@ namespace mc {
 namespace block_registry {
 
 /**
- * @brief 染色方块（羊毛、地毯、染色玻璃、混凝土、陶瓦）的静态引用
+ * @brief 染色方块（羊毛、地毯、染色玻璃、混凝土、陶瓦、潜影盒）的静态引用
  */
 struct ColoredBlocks {
     // 羊毛 (16色)
@@ -139,6 +139,42 @@ struct ColoredBlocks {
     static Block* RED_TERRACOTTA;
     static Block* BLACK_TERRACOTTA;
     static Block* TERRACOTTA;
+
+    // 床 (16色)
+    static Block* WHITE_BED;
+    static Block* ORANGE_BED;
+    static Block* MAGENTA_BED;
+    static Block* LIGHT_BLUE_BED;
+    static Block* YELLOW_BED;
+    static Block* LIME_BED;
+    static Block* PINK_BED;
+    static Block* GRAY_BED;
+    static Block* LIGHT_GRAY_BED;
+    static Block* CYAN_BED;
+    static Block* PURPLE_BED;
+    static Block* BLUE_BED;
+    static Block* BROWN_BED;
+    static Block* GREEN_BED;
+    static Block* RED_BED;
+    static Block* BLACK_BED;
+
+    // 潜影盒 (16色)
+    static Block* WHITE_SHULKER_BOX;
+    static Block* ORANGE_SHULKER_BOX;
+    static Block* MAGENTA_SHULKER_BOX;
+    static Block* LIGHT_BLUE_SHULKER_BOX;
+    static Block* YELLOW_SHULKER_BOX;
+    static Block* LIME_SHULKER_BOX;
+    static Block* PINK_SHULKER_BOX;
+    static Block* GRAY_SHULKER_BOX;
+    static Block* LIGHT_GRAY_SHULKER_BOX;
+    static Block* CYAN_SHULKER_BOX;
+    static Block* PURPLE_SHULKER_BOX;
+    static Block* BLUE_SHULKER_BOX;
+    static Block* BROWN_SHULKER_BOX;
+    static Block* GREEN_SHULKER_BOX;
+    static Block* RED_SHULKER_BOX;
+    static Block* BLACK_SHULKER_BOX;
 };
 
 void registerColoredBlocks();

@@ -25,6 +25,8 @@
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/garden/CactusFlowerBlock.hpp"
+#include "world/block/blocks/garden/FlowerBedBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -56,14 +58,19 @@ void registerGardenBlocks()
     // 野花和枯叶
     // ============================================================================
 
-    // 野花 - 地面装饰花
-    GardenBlocks::WILDFLOWERS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:wildflowers"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+    // 野花 - 地面装饰花，可堆叠放置（1-4朵），骨粉催熟
+    // 使用 FlowerBedBlock 实现：FACING 属性（水平朝向）+ AMOUNT 属性（1-4 花朵数量）
+    // 与粉红色花瓣（PINK_PETALS）共享同一方块类型 FlowerBedBlock
+    // replaceable 标志允许同类型物品堆叠放置（isReplaceable 重写会检查物品类型）
+    GardenBlocks::WILDFLOWERS =
+        &registry.registerBlock<blocks::FlowerBedBlock>(ResourceLocation("minecraft:wildflowers"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .replaceable()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::PINK_PETALS));
 
     // 枯叶 - 地面装饰
     GardenBlocks::LEAF_LITTER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:leaf_litter"),
@@ -100,14 +107,15 @@ void registerGardenBlocks()
     // 仙人掌花
     // ============================================================================
 
-    // 仙人掌花 - 生长在仙人掌上的花
-    GardenBlocks::CACTUS_FLOWER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cactus_flower"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+    // 仙人掌花 - 生长在仙人掌上的花，可放置在仙人掌/耕地/实心顶面上
+    GardenBlocks::CACTUS_FLOWER =
+        &registry.registerBlock<blocks::CactusFlowerBlock>(ResourceLocation("minecraft:cactus_flower"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::CACTUS_FLOWER));
 
     // ============================================================================
     // 萤火虫灌木

@@ -84,7 +84,7 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 
 ### 4. ShulkerBoxEntity 防递归嵌套
 
-`canInsertItem()` 会检查物品是否为潜影盒，防止潜影盒放入另一个潜影盒。这是通过检查物品类型实现的。
+`canInsertItem()` 会检查物品是否为潜影盒，防止潜影盒放入另一个潜影盒。这是通过检查物品类型实现的。16色潜影盒物品和无色潜影盒物品均属于 `ItemTags::SHULKER_BOXES()` 标签，`canInsertItem()` 通过该标签统一判断，确保所有颜色变体均被阻止嵌套。
 
 ### 5. ShulkerBoxEntity 动画状态
 
@@ -94,9 +94,9 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 
 木桶不能像箱子一样合并为双箱，每个木桶都是独立的 27 格容器。
 
-### 7. 战利品表填充时机
+### 7. 战利品表延迟填充机制
 
-继承自 `LootableContainerBlockEntity`，`isEmpty()` 和 `openContainer()` 会自动触发填充。只有 ServerWorld 的 `lootTableManager()` 返回有效指针。
+继承自 `LootableContainerBlockEntity`，`isEmpty()`、`clearContainer()` 和 `openContainer()` 会自动触发 `_unpackLootTable()`。ShulkerBoxEntity 的 IInventory 方法（`getItem`/`setItem`/`removeItem`/`removeItemNoUpdate`/`clear`）也会在操作前调用 `_unpackLootTable(nullptr)`。只有 ServerWorld 的 `lootTableManager()` 返回有效指针。
 
 ### 8. DoubleSidedInventory 非拥有指针
 

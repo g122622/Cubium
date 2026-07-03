@@ -278,3 +278,184 @@ TEST_F(PaneBlockTestFixture, PaneConnectsToWall)
 
     EXPECT_TRUE(state.get(BlockStateProperties::EAST()));
 }
+
+// ============================================================================
+// PaneBlock skipRendering Tests
+// 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
+// ============================================================================
+
+TEST_F(PaneBlockTestFixture, SkipRendering_SameBlock_VerticalDirection)
+{
+    // 同类方块垂直相邻时，始终跳过面渲染
+    PaneBlock pane(BlockProperties(Material::IRON).notSolid());
+
+    const BlockState selfState = pane.defaultState()
+                                     .with(BlockStateProperties::NORTH(), true)
+                                     .with(BlockStateProperties::EAST(), false)
+                                     .with(BlockStateProperties::SOUTH(), false)
+                                     .with(BlockStateProperties::WEST(), false)
+                                     .with(BlockStateProperties::WATERLOGGED(), false);
+
+    const BlockState neighborState = pane.defaultState()
+                                         .with(BlockStateProperties::NORTH(), false)
+                                         .with(BlockStateProperties::EAST(), true)
+                                         .with(BlockStateProperties::SOUTH(), false)
+                                         .with(BlockStateProperties::WEST(), false)
+                                         .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 垂直方向（上/下）— 同类方块始终跳过
+    EXPECT_TRUE(pane.skipRendering(selfState, neighborState, Direction::Up));
+    EXPECT_TRUE(pane.skipRendering(selfState, neighborState, Direction::Down));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_SameBlock_HorizontalBothConnected)
+{
+    // 同类方块水平相邻，双方都连接时跳过面渲染
+    PaneBlock pane(BlockProperties(Material::IRON).notSolid());
+
+    // 自身朝北连接，邻居朝南连接
+    const BlockState selfState = pane.defaultState()
+                                     .with(BlockStateProperties::NORTH(), true)
+                                     .with(BlockStateProperties::EAST(), false)
+                                     .with(BlockStateProperties::SOUTH(), false)
+                                     .with(BlockStateProperties::WEST(), false)
+                                     .with(BlockStateProperties::WATERLOGGED(), false);
+
+    const BlockState neighborState = pane.defaultState()
+                                         .with(BlockStateProperties::NORTH(), false)
+                                         .with(BlockStateProperties::EAST(), false)
+                                         .with(BlockStateProperties::SOUTH(), true)
+                                         .with(BlockStateProperties::WEST(), false)
+                                         .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 北面 — 自身连接，邻居反向也连接 → 跳过
+    EXPECT_TRUE(pane.skipRendering(selfState, neighborState, Direction::North));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_SameBlock_HorizontalOneSidedNotSkipped)
+{
+    // 同类方块水平相邻，但仅单方连接时不跳过面渲染
+    PaneBlock pane(BlockProperties(Material::IRON).notSolid());
+
+    // 自身朝北不连接，邻居朝南连接
+    const BlockState selfState = pane.defaultState()
+                                     .with(BlockStateProperties::NORTH(), false)
+                                     .with(BlockStateProperties::EAST(), false)
+                                     .with(BlockStateProperties::SOUTH(), false)
+                                     .with(BlockStateProperties::WEST(), false)
+                                     .with(BlockStateProperties::WATERLOGGED(), false);
+
+    const BlockState neighborState = pane.defaultState()
+                                         .with(BlockStateProperties::NORTH(), false)
+                                         .with(BlockStateProperties::EAST(), false)
+                                         .with(BlockStateProperties::SOUTH(), true)
+                                         .with(BlockStateProperties::WEST(), false)
+                                         .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 北面 — 自身不连接 → 不跳过
+    EXPECT_FALSE(pane.skipRendering(selfState, neighborState, Direction::North));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_BarsTag_VerticalDirection)
+{
+    // BARS 标签方块（铁栏杆↔铜栏杆）垂直相邻时不跳过面渲染
+    // 因为铁栏杆/铜栏杆只有 NSEW 属性，没有 UP/DOWN 属性，
+    // 所以垂直方向的 BARS 标签检查不会满足 hasProperty 条件
+    if (!VanillaBlocks::IRON_BARS || !VanillaBlocks::COPPER_BARS) {
+        GTEST_SKIP() << "IRON_BARS or COPPER_BARS not registered";
+    }
+
+    const BlockState ironBarsState = VanillaBlocks::IRON_BARS->defaultState();
+    const BlockState copperBarsState = VanillaBlocks::COPPER_BARS->defaultState();
+
+    // 垂直方向 — 不同 BARS 方块之间不跳过（因为没有反向属性）
+    EXPECT_FALSE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, copperBarsState, Direction::Up));
+    EXPECT_FALSE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, copperBarsState, Direction::Down));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_SameBlock_Vertical_VanillaBars)
+{
+    // 同类方块（同一 Block 实例）垂直相邻时，始终跳过面渲染
+    if (!VanillaBlocks::IRON_BARS) {
+        GTEST_SKIP() << "IRON_BARS not registered";
+    }
+
+    const BlockState ironBarsState = VanillaBlocks::IRON_BARS->defaultState();
+
+    // 同类方块垂直相邻 — 始终跳过
+    EXPECT_TRUE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, ironBarsState, Direction::Up));
+    EXPECT_TRUE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, ironBarsState, Direction::Down));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_BarsTag_HorizontalBothConnected)
+{
+    // BARS 标签方块水平相邻且双方都连接时跳过面渲染
+    if (!VanillaBlocks::IRON_BARS || !VanillaBlocks::COPPER_BARS) {
+        GTEST_SKIP() << "IRON_BARS or COPPER_BARS not registered";
+    }
+
+    // 铁栏杆朝北连接
+    const BlockState ironBarsState = VanillaBlocks::IRON_BARS->defaultState()
+                                         .with(BlockStateProperties::NORTH(), true)
+                                         .with(BlockStateProperties::EAST(), false)
+                                         .with(BlockStateProperties::SOUTH(), false)
+                                         .with(BlockStateProperties::WEST(), false)
+                                         .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 铜栏杆朝南连接
+    const BlockState copperBarsState =
+        VanillaBlocks::COPPER_BARS->defaultState()
+            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected)
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::SOUTH(), true)
+            .with(BlockStateProperties::WEST(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 北面 — 铁栏杆连接，铜栏杆反向也连接 → 跳过
+    EXPECT_TRUE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, copperBarsState, Direction::North));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_BarsTag_HorizontalOneSidedNotSkipped)
+{
+    // BARS 标签方块水平相邻，但仅单方连接时不跳过
+    if (!VanillaBlocks::IRON_BARS || !VanillaBlocks::COPPER_BARS) {
+        GTEST_SKIP() << "IRON_BARS or COPPER_BARS not registered";
+    }
+
+    // 铁栏杆朝北不连接
+    const BlockState ironBarsState = VanillaBlocks::IRON_BARS->defaultState()
+                                         .with(BlockStateProperties::NORTH(), false)
+                                         .with(BlockStateProperties::EAST(), false)
+                                         .with(BlockStateProperties::SOUTH(), false)
+                                         .with(BlockStateProperties::WEST(), false)
+                                         .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 铜栏杆朝南连接
+    const BlockState copperBarsState =
+        VanillaBlocks::COPPER_BARS->defaultState()
+            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected)
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::SOUTH(), true)
+            .with(BlockStateProperties::WEST(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false);
+
+    // 北面 — 铁栏杆自身不连接 → 不跳过
+    EXPECT_FALSE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, copperBarsState, Direction::North));
+}
+
+TEST_F(PaneBlockTestFixture, SkipRendering_NonBarsBlock_NotSkipped)
+{
+    // 非 BARS 标签方块与铁栏杆相邻时不跳过
+    if (!VanillaBlocks::IRON_BARS || !VanillaBlocks::STONE) {
+        GTEST_SKIP() << "IRON_BARS or STONE not registered";
+    }
+
+    const BlockState ironBarsState = VanillaBlocks::IRON_BARS->defaultState();
+    const BlockState stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 石头不是 BARS 标签方块 → 不跳过
+    EXPECT_FALSE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, stoneState, Direction::North));
+    EXPECT_FALSE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, stoneState, Direction::Up));
+}

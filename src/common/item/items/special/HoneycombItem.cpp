@@ -231,6 +231,16 @@ std::unordered_map<const Block*, const Block*> HoneycombItem::_buildWaxablesMap(
     if (VanillaBlocks::OXIDIZED_CHISELED_COPPER && VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER)
         m[VanillaBlocks::OXIDIZED_CHISELED_COPPER] = VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER;
 
+    // 铜栏杆
+    if (VanillaBlocks::COPPER_BARS && VanillaBlocks::WAXED_COPPER_BARS)
+        m[VanillaBlocks::COPPER_BARS] = VanillaBlocks::WAXED_COPPER_BARS;
+    if (VanillaBlocks::EXPOSED_COPPER_BARS && VanillaBlocks::WAXED_EXPOSED_COPPER_BARS)
+        m[VanillaBlocks::EXPOSED_COPPER_BARS] = VanillaBlocks::WAXED_EXPOSED_COPPER_BARS;
+    if (VanillaBlocks::WEATHERED_COPPER_BARS && VanillaBlocks::WAXED_WEATHERED_COPPER_BARS)
+        m[VanillaBlocks::WEATHERED_COPPER_BARS] = VanillaBlocks::WAXED_WEATHERED_COPPER_BARS;
+    if (VanillaBlocks::OXIDIZED_COPPER_BARS && VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS)
+        m[VanillaBlocks::OXIDIZED_COPPER_BARS] = VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS;
+
     // 铜链
     if (VanillaBlocks::COPPER_CHAIN && VanillaBlocks::WAXED_COPPER_CHAIN)
         m[VanillaBlocks::COPPER_CHAIN] = VanillaBlocks::WAXED_COPPER_CHAIN;

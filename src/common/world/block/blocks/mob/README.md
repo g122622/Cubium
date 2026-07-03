@@ -71,6 +71,7 @@ Block (基类)
 
 ### SpawnerBlock
 - **方块实体**：`hasBlockEntity()` 返回 `true`，`createBlockEntity()` 创建 `MobSpawnerBlockEntity`
+- **刷怪蛋交互**：`onBlockActivated()` 实现刷怪蛋与刷怪笼的交互逻辑。玩家手持刷怪蛋右键刷怪笼时，通过 `dynamic_cast` 检测手持物品是否为 `SpawnEggItem`，若是则将刷怪笼的实体类型设置为刷怪蛋对应的实体类型。非创造模式下消耗 1 个刷怪蛋，创造模式下不消耗。客户端直接返回 `Success` 预测成功。空手或持有非刷怪蛋物品时返回 `Pass`。此逻辑与 `SpawnEggItem::onItemUse()` 中的刷怪笼分支配合，确保无论交互入口如何，刷怪蛋都能正确设置刷怪笼实体类型
 - **刷怪笼生成逻辑**：`MobSpawnerBlockEntity` 实现 `tick()` 周期性生成实体，支持加权候选列表、自定义光照规则、NBT 持久化
 - **结构集成**：要塞传送门房间通过 `setEntityId()` 配置蠹虫刷怪笼
 - **客户端动画**：`animateTick()` 每客户端 tick 在方块内随机位置生成 1 个烟雾粒子（Smoke）和 1 个火焰粒子（Flame），两者共享同一随机坐标。参考 MC Java `BaseSpawner.clientTick()` 中的持续粒子逻辑。这与成功生成实体时的爆发粒子效果（`WorldEvents::MOB_SPAWNER_PARTICLES`）是独立的

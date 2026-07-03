@@ -253,11 +253,24 @@ public:
     /**
      * @brief 获取环境光遮蔽亮度值
      *
+     * 委托到方块的 getShadeBrightness 方法。
      * 返回值用于AO计算：
      * - 0.2f: 方块有不透明碰撞形状（实心方块），产生阴影
      * - 1.0f: 方块无碰撞或透明（玻璃、树叶等），不产生阴影
+     *
+     * 子类可通过重写 getShadeBrightness 改变此行为。
      */
     [[nodiscard]] f32 getAmbientOcclusionLightValue() const;
+
+    /**
+     * @brief 获取方块的遮光亮度
+     *
+     * 委托到方块的 getShadeBrightness 虚方法。
+     * 环境光遮蔽（AO）计算使用此值确定方块对周围顶点亮度的贡献。
+     *
+     * @return 遮光亮度 (0.0F-1.0F)
+     */
+    [[nodiscard]] f32 getShadeBrightness() const;
 
     /**
      * @brief 检查指定面是否为实体面

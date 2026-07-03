@@ -29,6 +29,7 @@
 ├── SmithingTableBlock.hpp / cpp #锻造台（装备升级）
 ├── TrailsBlocks.hpp / cpp #考古方块（雕纹书架、饰纹陶罐、可疑沙 /
             砾、嗅探兽蛋）
+├── CandleCakeBlock.hpp / cpp #蜡烛蛋糕（蜡烛插在蛋糕上，点燃/熄灭，食用后掉落蜡烛）
 └── README.md
 ```
 
@@ -94,6 +95,13 @@
 │   │   └── 摇晃动画(Positive=放入/Negative=空手)触发
 │   ├── BrushableBlock(FallingBlock子类)
 │   └── SnifferEggBlock(randomTick孵化)
+├── CandleCakeBlock(→ AbstractCandleBlock)
+│   ├── 关联蜡烛方块（m_candleBlock，食用蛋糕后放置对应蜡烛）
+│   ├── LIT 属性（仅点燃状态，无 CANDLES/BUITES）
+│   ├── onBlockActivated: 空手点击上半部熄灭 / 其他情况吃蛋糕→转为 CakeBlock + 掉落蜡烛物品
+│   ├── 食用蛋糕增加饥饿值（foodStats().addStats(2, 0.1f)），与 MC Java 一致
+│   ├── 比较器输出固定14（hasComparatorInputOverride）
+│   └── 亮度固定3（单根蜡烛）
 └── 其他工作站方块
 ```
 
@@ -114,13 +122,44 @@
 
     ##容易踩的坑
 
-        ## #1. BedBlock 双方块结构
+        ## #1. BedBlock 双方块结构与关键方法
 
-        床头和床脚是两个独立的方块，放置时需要正确处理 `BED_PART` 属性。睡眠前需要检查：
-        - 床是否被占用（`OCCUPIED` 属性） - 玩家距离床是否超过3格（水平） / 2格（垂直） - 床上方空间是否被阻挡
-        - 周围是否有怪物（非创造模式） -
-        在下界 /
-            末地使用会爆炸（爆炸强度5.0）
+床头和床脚是两个独立的方块，放置时需要正确处理 `BED_PART` 属性。构造函数接收 `DyeColor` 参数，16色床在 `ColoredBlocks` 中注册。
+
+### onBlockPlacedBy（自动放置 HEAD 半部）
+
+玩家放置床时，`BedItem.getStateForPlacement()` 返回 FOOT 部分的状态，然后 `BedBlock::onBlockPlacedBy()` 在脚部前方自动放置 HEAD 部分方块：
+
+```cpp
+void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    BlockPos headPos = pos.offset(facing);
+    BlockState headState = state.with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockState(headPos, &headState, 3);
+}
+```
+
+### playerWillDestroy（创造模式移除 HEAD）
+
+创造模式玩家破坏 FOOT 部分时，`playerWillDestroy()` 同时移除 HEAD 部分方块（防止产生掉落物）。生存模式下 HEAD 部分的移除和掉落物由 `onBlockRemoved` 处理。
+
+### getStateForPlacement（检查头部位置可替换性）
+
+`BedBlock::getStateForPlacement()` 检查头部位置是否可替换（`canBeReplaced()`），如果头部位置不可替换则返回默认状态（放置将失败）。`BedItem::getStateForPlacement()` 做同样的检查，但如果头部不可替换则返回 `nullptr`（直接阻止放置）。
+
+### DyeColor 参数
+
+每种颜色的床是独立的 `BedBlock` 实例，构造时传入 `DyeColor` 枚举值。颜色存储在 `m_color` 成员中，可通过 `getColor()` 获取。16色床在 `ColoredBlocks` 中注册，物品在 `Items::_registerBeds()` 中使用 `BedItem` 注册。
+
+### 其他注意事项
+
+睡眠前需要检查：
+- 床是否被占用（`OCCUPIED` 属性）
+- 玩家距离床是否超过3格（水平）/2格（垂直）
+- 床上方空间是否被阻挡
+- 周围是否有怪物（非创造模式）
+- 在下界/末地使用会爆炸（爆炸强度5.0）
 
             ## #2. ComposterBlock 堆肥延迟、碰撞形状与漏斗交互
 
@@ -231,3 +270,20 @@
           1. 在 `onBlockActivated` 成功打开容器/交互后调用 `player.awardCustomStat(ResourceLocation(stats::XXX), 1)`
           2. 包含头文件 `#include "common/stats/Stats.hpp"`
           3. 对应的统计常量已在 `common/stats/Stats.hpp` 和 `StatRegistry` 中注册
+
+          ## #12. CandleCakeBlock 蜡烛蛋糕交互逻辑
+
+          CandleCakeBlock 继承自 AbstractCandleBlock（装饰性模块），但放置在功能模块中，因为它具有蛋糕食用交互功能。
+
+          关键行为：
+          - **不继承 CakeBlock**：CandleCakeBlock 没有 BITES 属性，只有 LIT 属性。食用后不是逐步减少咬数，而是直接替换为 CakeBlock（7片完整蛋糕）+ 掉落蜡烛物品
+          - **关联蜡烛方块**：构造时传入 `candleBlock` 参数（`m_candleBlock`），食用蛋糕后在该位置放置对应颜色的蜡烛方块
+          - **交互判定**：`onBlockActivated` 通过命中位置 Y 坐标判断点击区域——上半部为蜡烛区域（空手熄灭），下半部为蛋糕区域（食用）
+          - **比较器信号**：固定输出14（`hasComparatorInputOverride` 返回 true，`getComparatorInputOverride` 返回14）
+          - **亮度**：点燃时固定为3（单根蜡烛），与 CandleBlock 的 `3 * CANDLES` 公式不同
+          - **标签**：属于 `CANDLE_CAKES` 标签而非 `CANDLES` 标签
+
+          与 CakeBlock 的关系：
+          - CandleCakeBlock 食用后 → 替换为 CakeBlock（BITES=0，完整7片） + 掉落蜡烛物品
+          - 对 CandleCakeBlock 使用蜡烛物品 → 无效（不支持堆叠，这是 CandleBlock 的功能）
+          - 对 CakeBlock 使用蜡烛物品 → 替换为对应颜色的 CandleCakeBlock

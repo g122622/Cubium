@@ -459,6 +459,8 @@ add_library(mc_common STATIC
     item/items/armor/DyeableArmorItem.cpp
     item/items/armor/ElytraItem.cpp
     item/items/armor/HorseArmorItem.cpp
+    item/items/armor/NautilusArmorItem.cpp
+    item/items/armor/WolfArmorItem.cpp
 
     # Item System - Attributes
     item/attribute/ItemAttributeModifiers.cpp
@@ -469,9 +471,11 @@ add_library(mc_common STATIC
     item/tag/ItemTags.cpp
 
     # Item System - Block Items
+    item/items/block/BedItem.cpp
     item/items/block/BlockItem.cpp
     item/items/block/BlockItemRegistry.cpp
     item/items/block/GameMasterBlockItem.cpp
+    item/items/block/SeedsItem.cpp
     item/items/block/WallOrFloorItem.cpp
     item/items/block/BannerItem.cpp
 
@@ -667,6 +671,7 @@ add_library(mc_common STATIC
     world/block/registry/PaleGardenBlocks.cpp
     world/block/registry/GardenBlocks.cpp
     world/block/registry/ShelfBlocks.cpp
+    world/block/registry/CandleBlocks.cpp
     world/block/IWaterLoggable.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
@@ -716,6 +721,7 @@ add_library(mc_common STATIC
     world/block/blocks/agricultural/MelonPumpkinBlocks.cpp
     world/block/blocks/agricultural/StemBlock.cpp
     world/block/blocks/agricultural/TorchflowerCropBlock.cpp
+    world/block/blocks/agricultural/PitcherCropBlock.cpp
 
     # World - Block - Functional
     world/block/blocks/functional/BedBlock.cpp
@@ -723,6 +729,7 @@ add_library(mc_common STATIC
     world/block/blocks/functional/ComposterBlock.cpp
     world/block/blocks/functional/CompostableItems.cpp
     world/block/blocks/functional/CakeBlock.cpp
+    world/block/blocks/functional/CandleCakeBlock.cpp
     world/block/blocks/functional/BeaconBlock.cpp
     world/block/blocks/functional/BarrelBlock.cpp
     world/block/blocks/functional/LecternBlock.cpp
@@ -750,6 +757,8 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/FlowerPotBlock.cpp
     world/block/blocks/decorative/ScaffoldingBlock.cpp
     world/block/blocks/decorative/CampfireBlock.cpp
+    world/block/blocks/decorative/AbstractCandleBlock.cpp
+    world/block/blocks/decorative/CandleBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
     world/block/blocks/decorative/BannerBlock.cpp
     world/block/blocks/decorative/TorchBlock.cpp
@@ -773,6 +782,10 @@ add_library(mc_common STATIC
     # World - Block - Mangrove
     world/block/blocks/mangrove/MangrovePropaguleBlock.cpp
     world/block/blocks/mangrove/MangroveRootsBlock.cpp
+
+    # World - Block - Garden Awakening
+    world/block/blocks/garden/CactusFlowerBlock.cpp
+    world/block/blocks/garden/FlowerBedBlock.cpp
 
     # World - Block - Pale Garden
     world/block/blocks/pale_garden/CreakingHeartBlock.cpp
@@ -824,6 +837,7 @@ add_library(mc_common STATIC
     world/block/blocks/copper/CopperBulbBlock.cpp
     world/block/blocks/copper/IOxidizableBlock.cpp
     world/block/blocks/copper/WeatheringCopperBlock.cpp
+    world/block/blocks/copper/WeatheringCopperBarsBlock.cpp
     world/block/blocks/copper/WeatheringCopperChainBlock.cpp
     world/block/blocks/copper/WeatheringCopperDoorBlock.cpp
     world/block/blocks/copper/WeatheringCopperGrateBlock.cpp

@@ -213,7 +213,7 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
 
     // 获取当前方块
     const BlockState* currentState = context.getBlockStateAtPlacementPos();
-    if (currentState != nullptr && !currentState->canBeReplaced()) {
+    if (currentState != nullptr && !currentState->getBlock().isReplaceable(*currentState, context)) {
         return false;
     }
 

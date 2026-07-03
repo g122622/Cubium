@@ -83,19 +83,54 @@ public:
 
     // ========== IInventory 委托方法 ==========
 
-    [[nodiscard]] bool isEmpty() const override { return m_inventory.isEmpty(); }
+    // 注：isEmpty 必须重写（IInventory 纯虚方法），委托给基类以触发战利品表填充。
+    // clearContainer 继承自 LootableContainerBlockEntity，会自动触发 _unpackLootTable。
+    // 以下 IInventory 方法需要在 m_inventory 操作前调用 _unpackLootTable(nullptr)，
+    // 确保战利品表在首次容器内容访问时被正确填充。
+    // 参考: net.minecraft.RandomizableContainerBlockEntity 中的 getItem/setItem/removeItem/removeItemNoUpdate
+
+    // isEmpty 委托给基类（会触发 _unpackLootTable）
+    [[nodiscard]] bool isEmpty() const override { return LootableContainerBlockEntity::isEmpty(); }
+
     [[nodiscard]] i32 getMaxStackSize() const override { return m_inventory.getMaxStackSize(); }
-    [[nodiscard]] ItemStack getItem(i32 slot) const override { return m_inventory.getItem(slot); }
-    void setItem(i32 slot, const ItemStack& stack) override { m_inventory.setItem(slot, stack); }
-    ItemStack removeItem(i32 slot, i32 count) override { return m_inventory.removeItem(slot, count); }
-    ItemStack removeItemNoUpdate(i32 slot) override { return m_inventory.removeItemNoUpdate(slot); }
-    void clear() override { m_inventory.clear(); }
-    void setChanged() override { LootableContainerBlockEntity::setChanged(); }
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override
     {
         return m_inventory.canPlaceItem(slot, stack);
     }
+    void setChanged() override { LootableContainerBlockEntity::setChanged(); }
     void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
+
+    // ========== IInventory 接口实现（带战利品表延迟填充）==========
+
+    [[nodiscard]] ItemStack getItem(i32 slot) const override
+    {
+        _unpackLootTable(nullptr);
+        return m_inventory.getItem(slot);
+    }
+
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
+        _unpackLootTable(nullptr);
+        m_inventory.setItem(slot, stack);
+    }
+
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
+        _unpackLootTable(nullptr);
+        return m_inventory.removeItem(slot, count);
+    }
+
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
+        _unpackLootTable(nullptr);
+        return m_inventory.removeItemNoUpdate(slot);
+    }
+
+    void clear() override
+    {
+        _unpackLootTable(nullptr);
+        m_inventory.clear();
+    }
 
     // ========== ISidedInventory 接口实现 ==========
 

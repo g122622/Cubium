@@ -56,7 +56,7 @@ struct ShelfBlocks {
     // 竹木书架
     static Block* BAMBOO_SHELF;
 
-    // 下界木质书架（不可燃）
+    // 下界木质书架（不可燃，但可被岩浆点燃）
     static Block* CRIMSON_SHELF;
     static Block* WARPED_SHELF;
 };

@@ -68,6 +68,24 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    /**
+     * @brief 屏障方块不产生AO阴影
+     *
+     * 屏障是不可见方块，不应影响环境光遮蔽计算。
+     * 虽然默认实现基于碰撞形状判断（屏障有完整碰撞形状），
+     * 但 MC 原版明确重写此方法返回 1.0F。
+     *
+     * 参考: net.minecraft.block.BarrierBlock#getShadeBrightness
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return 1.0f;
+    }
 };
 
 /**

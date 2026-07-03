@@ -125,6 +125,16 @@ struct CopperBlocks {
     static Block* WAXED_WEATHERED_CHISELED_COPPER;
     static Block* WAXED_OXIDIZED_CHISELED_COPPER;
 
+    // ========== 1.21 铜扩展：铜栏杆（8个）==========
+    static Block* COPPER_BARS;
+    static Block* EXPOSED_COPPER_BARS;
+    static Block* WEATHERED_COPPER_BARS;
+    static Block* OXIDIZED_COPPER_BARS;
+    static Block* WAXED_COPPER_BARS;
+    static Block* WAXED_EXPOSED_COPPER_BARS;
+    static Block* WAXED_WEATHERED_COPPER_BARS;
+    static Block* WAXED_OXIDIZED_COPPER_BARS;
+
     // ========== 1.21 铜扩展：铜链（8个）==========
     static Block* COPPER_CHAIN;
     static Block* EXPOSED_COPPER_CHAIN;

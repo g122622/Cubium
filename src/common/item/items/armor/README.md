@@ -10,12 +10,14 @@ armor/
 ├── DyeableArmorItem.hpp/cpp # 可染色盔甲：display.color 读写
 ├── ElytraItem.hpp/cpp       # 鞘翅：滑翔功能、耐久消耗
 ├── HorseArmorItem.hpp/cpp   # 马铠：护甲值、材质路径
+├── WolfArmorItem.hpp/cpp    # 狼铠：可染色、犰狳鳞甲修复、64点耐久
+├── NautilusArmorItem.hpp/cpp# 鹦鹉螺铠甲：不可损坏、5种材质护甲值
 └── README.md                # 本文件
 ```
 
 ## 内部模块关系
 
-`ArmorItem` 是所有玩家盔甲的基类，依赖 `armor/ArmorMaterial.hpp` 提供材质数值（防御、韧性、耐久、修复材料等）。`DyeableArmorItem` 继承 `ArmorItem`，额外依赖 `ItemStack` 的自定义标签能力实现染色。`ElytraItem` 直接继承 `Item`，占用胸甲槽位但不提供护甲值。`HorseArmorItem` 独立于玩家盔甲体系，仅供马类实体使用。
+`ArmorItem` 是所有玩家盔甲的基类，依赖 `armor/ArmorMaterial.hpp` 提供材质数值（防御、韧性、耐久、修复材料等）。`DyeableArmorItem` 继承 `ArmorItem`，额外依赖 `ItemStack` 的自定义标签能力实现染色。`ElytraItem` 直接继承 `Item`，占用胸甲槽位但不提供护甲值。`HorseArmorItem` 独立于玩家盔甲体系，仅供马类实体使用，通过构造参数直接指定护甲值和材质纹理路径。`WolfArmorItem` 继承 `DyeableArmorItem`，使用 `ArmadilloScuteArmorMaterial`，可染色（默认颜色 0xA06540），64 点耐久，Body 槽位防御值 11，支持使用犰狳鳞甲修复。`NautilusArmorItem` 独立于玩家盔甲体系（继承 `Item` 而非 `ArmorItem`），仅供鹦鹉螺类实体使用，不可损坏（无耐久度），通过构造参数直接指定护甲值（铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19），装备音效和修复材料从 `ArmorMaterial` 获取。
 
 ## 上下游外部依赖关系
 
@@ -40,10 +42,13 @@ armor/
 - **马铠装备判断**：`HorseArmorItem` 仅对 `HorseEntity` 有效，其他实体（如驴、骡）使用不同的装备槽逻辑。
 - **铜马铠护甲值**：MC 1.21.11 中铜马铠的护甲值为 4（不是 5），与铁马铠（5）不同。其他马铠护甲值：皮革(3)、金(7)、钻石(11)、下界合金(19)。
 - **下界合金马铠防火**：下界合金马铠通过 `ItemTags::FIRE_RESISTANT` 标签实现防火效果（免疫火焰/岩浆伤害），与 MC Java 通过 `Item.Properties.fireResistant()` 机制不同。
+- **鹦鹉螺铠甲护甲值**：鹦鹉螺铠甲使用独立的护甲值（通过构造函数显式传入），不从 `ArmorMaterial::getDefense()` 推导，因为当前 `ArmorSlot` 枚举缺少 Body 槽位。各材质护甲值为：铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19，与马铠护甲值一致。
+- **狼铠默认颜色**：`WolfArmorItem::getDefaultColor()` 返回 0xA06540（犰狳鳞甲棕色），对应 MC Java 中 `DyeableArmorItem.getDefaultColor()` 的狼铠默认色。
+- **狼铠防御值重写**：`WolfArmorItem` 重写了 `ArmorItem::getDefense()`（已改为 virtual），返回 Body 槽位防御值 11 而非材质 Chest 槽位防御值 6。同时，`WolfArmorItem` 在构造函数中调用 `_rebuildAttributeModifiers()` 重建属性修饰符，确保属性修饰符也使用正确的防御值 11。待 `ArmorSlot::Body` 槽位添加后，可统一从材质防御表获取。
 
 ## ArmorItem 属性修饰符系统
 
-`ArmorItem` 在构造时通过 `_buildAttributeModifiers()` 预构建属性修饰符，存储在 `m_attributeModifiers` 成员中。
+`ArmorItem` 在构造时通过 `_buildAttributeModifiers(i32 defense)` 预构建属性修饰符，存储在 `m_attributeModifiers` 成员中。该方法为 `protected`，子类可在构造函数中调用以重建属性修饰符（如 `WolfArmorItem` 使用非标准防御值时）。
 
 ### 新增方法
 

@@ -652,9 +652,31 @@ public:
     }
 
     /**
-     * @brief 获取光照透明度 (0-15)
+     * @brief 获取方块光照透明度 (0-15)
      */
     [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
+
+    /**
+     * @brief 获取方块的遮光亮度
+     *
+     * 返回方块在环境光遮蔽计算中的亮度贡献。默认实现基于碰撞形状：
+     * - 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影）
+     * - 否则返回 1.0F（不产生额外阴影）
+     *
+     * 子类可重写以实现特殊的遮光行为：
+     * - MudBlock/SoulSandBlock: 碰撞形状不完整但仍需阴影，返回 0.2F
+     * - SnowLayerBlock: 满层(8)返回 0.2F，其他返回 1.0F
+     * - BarrierBlock/StructureVoidBlock: 不可见方块，返回 1.0F
+     *
+     * @param state 方块状态
+     * @param world 世界（可选，用于上下文感知）
+     * @param pos 位置（可选）
+     * @return 遮光亮度 (0.0F-1.0F)
+     *
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getShadeBrightness
+     */
+    [[nodiscard]] virtual f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
 
     /**
      * @brief 获取地图颜色
@@ -878,6 +900,23 @@ public:
      * @return 是否使用形状进行光照遮挡
      */
     [[nodiscard]] virtual bool useShapeForLightOcclusion(const BlockState& state) const;
+
+    /**
+     * @brief 判断当前方块与邻居方块之间的面是否应该跳过渲染
+     *
+     * 当两个相邻方块之间的面不需要渲染时返回 true（面被剔除），
+     * 返回 false 时该面需要正常渲染。
+     *
+     * 默认实现返回 false（始终渲染面），子类可以重写此方法实现
+     * 特殊的渲染剔除逻辑（如铁栏杆、铜栏杆之间的连接面剔除）。
+     *
+     * @param selfState 当前方块的方块状态
+     * @param neighborState 邻居方块的方块状态
+     * @param direction 从当前方块指向邻居方块的方向
+     * @return 如果应该跳过渲染返回 true，否则返回 false
+     */
+    [[nodiscard]] virtual bool skipRendering(
+        const BlockState& selfState, const BlockState& neighborState, Direction direction) const;
 
     /**
      * @brief 是否为空气
@@ -1449,13 +1488,14 @@ public:
      * 当玩家使用物品点击方块时调用，判断是否可以替换该方块。
      * 默认实现返回 BlockProperties::isReplaceable() 的值。
      *
-     * 子类可重写此方法实现特殊替换逻辑，如台阶可被同类型台阶替换形成双层台阶。
+     * 子类可重写此方法实现特殊替换逻辑，如台阶可被同类型台阶替换形成双层台阶，
+     * 花瓣床可被同类型花瓣床堆叠（AMOUNT+1）。
      *
      * @param state 当前方块状态
-     * @param context 物品使用上下文
+     * @param context 物品使用上下文（只读）
      * @return 如果方块可被替换返回true
      */
-    [[nodiscard]] virtual bool isReplaceable(const BlockState& state, BlockItemUseContext& context) const;
+    [[nodiscard]] virtual bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const;
 
     /**
      * @brief 检查方块是否可以支撑植物

@@ -261,6 +261,20 @@ public:
     static Item* NETHERITE_HORSE_ARMOR; // 下界合金马铠 - +19 护甲，防火
 
     // ========================================================================
+    // 狼铠 - 用于装备狼提供护甲，可染色、可修复
+    // ========================================================================
+    static Item* WOLF_ARMOR; // 狼铠 - 犰狳鳞甲材质，可染色，64点耐久
+
+    // ========================================================================
+    // 鹦鹉螺铠甲 - 用于装备鹦鹉螺类实体，不可损坏
+    // ========================================================================
+    static Item* COPPER_NAUTILUS_ARMOR;    // 铜鹦鹉螺铠甲 - +4 护甲
+    static Item* IRON_NAUTILUS_ARMOR;      // 铁鹦鹉螺铠甲 - +5 护甲
+    static Item* GOLDEN_NAUTILUS_ARMOR;    // 金鹦鹉螺铠甲 - +7 护甲
+    static Item* DIAMOND_NAUTILUS_ARMOR;   // 钻石鹦鹉螺铠甲 - +11 护甲
+    static Item* NETHERITE_NAUTILUS_ARMOR; // 下界合金鹦鹉螺铠甲 - +19 护甲
+
+    // ========================================================================
     // 食物
     // ========================================================================
     static Item* APPLE;
@@ -330,6 +344,13 @@ public:
     // 竹木木板和马赛克（1.20 竹木系列）
     static Item* BAMBOO_PLANKS; // 竹木板
     static Item* BAMBOO_MOSAIC; // 竹木马赛克
+
+    // 其他木板变体
+    static Item* CRIMSON_PLANKS;  // 绯红木板
+    static Item* WARPED_PLANKS;   // 诡异木板
+    static Item* MANGROVE_PLANKS; // 红树木板
+    static Item* CHERRY_PLANKS;   // 樱花木板
+    static Item* PALE_OAK_PLANKS; // 苍白橡木木板
 
     // ========================================================================
     // 木棍、骨头和碗
@@ -648,6 +669,21 @@ public:
     static Item* TERRACOTTA;  // 陶瓦
     static Item* BRICKS;      // 砖块
     static Item* BOOKSHELF;   // 书架
+
+    // 木质书架变体（1.21.4+）
+    static Item* OAK_SHELF;      // 橡木书架
+    static Item* SPRUCE_SHELF;   // 云杉木书架
+    static Item* BIRCH_SHELF;    // 白桦木书架
+    static Item* JUNGLE_SHELF;   // 丛林木书架
+    static Item* ACACIA_SHELF;   // 金合欢木书架
+    static Item* DARK_OAK_SHELF; // 深色橡木书架
+    static Item* MANGROVE_SHELF; // 红树木书架
+    static Item* CHERRY_SHELF;   // 樱花木书架
+    static Item* PALE_OAK_SHELF; // 苍白橡木书架
+    static Item* BAMBOO_SHELF;   // 竹木书架
+    static Item* CRIMSON_SHELF;  // 绯红木书架
+    static Item* WARPED_SHELF;   // 诡异木书架
+
     static Item* BONE_BLOCK;  // 骨块
     static Item* SLIME_BLOCK; // 史莱姆块
     static Item* HONEY_BLOCK; // 蜂蜜块
@@ -797,6 +833,10 @@ public:
     static Item* WITHER_ROSE;          // 凋零玫瑰
     static Item* TORCHFLOWER;          // 火把花
     static Item* PITCHER_PLANT;        // 瓶草
+    static Item* CACTUS_FLOWER;        // 仙人掌花
+    static Item* WILDFLOWERS;          // 野花
+    static Item* OPEN_EYEBLOSSOM;      // 开放的眼眸花
+    static Item* CLOSED_EYEBLOSSOM;    // 闭合的眼眸花
     static Item* BROWN_MUSHROOM;       // 棕色蘑菇
     static Item* RED_MUSHROOM;         // 红色蘑菇
     static Item* BROWN_MUSHROOM_BLOCK; // 棕色蘑菇方块
@@ -822,6 +862,26 @@ public:
     static Item* GREEN_WOOL;
     static Item* RED_WOOL;
     static Item* BLACK_WOOL;
+
+    // ========================================================================
+    // 床 (16色)
+    // ========================================================================
+    static Item* WHITE_BED;
+    static Item* ORANGE_BED;
+    static Item* MAGENTA_BED;
+    static Item* LIGHT_BLUE_BED;
+    static Item* YELLOW_BED;
+    static Item* LIME_BED;
+    static Item* PINK_BED;
+    static Item* GRAY_BED;
+    static Item* LIGHT_GRAY_BED;
+    static Item* CYAN_BED;
+    static Item* PURPLE_BED;
+    static Item* BLUE_BED;
+    static Item* BROWN_BED;
+    static Item* GREEN_BED;
+    static Item* RED_BED;
+    static Item* BLACK_BED;
 
     // ========================================================================
     // 地毯 (16色)
@@ -926,20 +986,54 @@ public:
     // ========================================================================
     // 功能方块
     // ========================================================================
-    static Item* CRAFTING_TABLE;    // 合成台
-    static Item* CHEST;             // 箱子
-    static Item* TRAPPED_CHEST;     // 陷阱箱
-    static Item* BREWING_STAND;     // 酿造台
-    static Item* ENCHANTING_TABLE;  // 附魔台
-    static Item* CAULDRON;          // 炼药锅
-    static Item* ENDER_CHEST;       // 末影箱
-    static Item* SHULKER_BOX;       // 潜影盒
+    static Item* CRAFTING_TABLE;   // 合成台
+    static Item* CHEST;            // 箱子
+    static Item* TRAPPED_CHEST;    // 陷阱箱
+    static Item* BREWING_STAND;    // 酿造台
+    static Item* ENCHANTING_TABLE; // 附魔台
+    static Item* CAULDRON;         // 炼药锅
+    static Item* ENDER_CHEST;      // 末影箱
+    static Item* SHULKER_BOX;      // 潜影盒
+    // 潜影盒 (16色)
+    static Item* WHITE_SHULKER_BOX;
+    static Item* ORANGE_SHULKER_BOX;
+    static Item* MAGENTA_SHULKER_BOX;
+    static Item* LIGHT_BLUE_SHULKER_BOX;
+    static Item* YELLOW_SHULKER_BOX;
+    static Item* LIME_SHULKER_BOX;
+    static Item* PINK_SHULKER_BOX;
+    static Item* GRAY_SHULKER_BOX;
+    static Item* LIGHT_GRAY_SHULKER_BOX;
+    static Item* CYAN_SHULKER_BOX;
+    static Item* PURPLE_SHULKER_BOX;
+    static Item* BLUE_SHULKER_BOX;
+    static Item* BROWN_SHULKER_BOX;
+    static Item* GREEN_SHULKER_BOX;
+    static Item* RED_SHULKER_BOX;
+    static Item* BLACK_SHULKER_BOX;
     static Item* BEACON;            // 信标
     static Item* LANTERN;           // 灯笼
     static Item* SOUL_LANTERN;      // 灵魂灯笼
     static Item* CAMPFIRE;          // 营火
     static Item* SOUL_CAMPFIRE;     // 灵魂营火
     static Item* JACK_O_LANTERN;    // 南瓜灯
+    static Item* CANDLE;            // 蜡烛
+    static Item* WHITE_CANDLE;      // 白色蜡烛
+    static Item* ORANGE_CANDLE;     // 橙色蜡烛
+    static Item* MAGENTA_CANDLE;    // 品红色蜡烛
+    static Item* LIGHT_BLUE_CANDLE; // 淡蓝色蜡烛
+    static Item* YELLOW_CANDLE;     // 黄色蜡烛
+    static Item* LIME_CANDLE;       // 黄绿色蜡烛
+    static Item* PINK_CANDLE;       // 粉色蜡烛
+    static Item* GRAY_CANDLE;       // 灰色蜡烛
+    static Item* LIGHT_GRAY_CANDLE; // 淡灰色蜡烛
+    static Item* CYAN_CANDLE;       // 青色蜡烛
+    static Item* PURPLE_CANDLE;     // 紫色蜡烛
+    static Item* BLUE_CANDLE;       // 蓝色蜡烛
+    static Item* BROWN_CANDLE;      // 棕色蜡烛
+    static Item* GREEN_CANDLE;      // 绿色蜡烛
+    static Item* RED_CANDLE;        // 红色蜡烛
+    static Item* BLACK_CANDLE;      // 黑色蜡烛
     static Item* CONDUIT;           // 潮涌核心
     static Item* LOOM;              // 织布机
     static Item* BARREL;            // 木桶
@@ -1331,6 +1425,8 @@ private:
     static void _registerSigns();
     static void _registerBanners();
     static void _registerBuildingBlocks();
+    static void _registerBeds();
+    static void _registerShulkerBoxes();
     static void _registerWool();
     static void _registerCarpets();
     static void _registerStainedGlass();

@@ -175,6 +175,19 @@ public:
     /// 2. CampfireBlock::isSmokeyPos() — 判断蜂巢下方是否有营火（烟雾信号）
     static BlockTag& CAMPFIRES();
 
+    /// 蜡烛标签
+    /// 包含所有蜡烛方块（普通蜡烛 + 16种染色蜡烛）
+    /// 运行时消费场景：
+    /// 1. AbstractCandleBlock::isLit() — 判断是否为点燃的蜡烛
+    /// 2. CandleBlock::canLight() — 判断是否可点燃
+    static BlockTag& CANDLES();
+
+    /// 蜡烛蛋糕标签
+    /// 包含所有蜡烛蛋糕方块（普通蜡烛蛋糕 + 16种染色蜡烛蛋糕）
+    /// 运行时消费场景：
+    /// 1. AbstractCandleBlock::isLit() — 判断是否为点燃的蜡烛蛋糕
+    static BlockTag& CANDLE_CAKES();
+
     /// 羊毛标签
     static BlockTag& WOOL();
 
@@ -184,6 +197,12 @@ public:
     /// 2. COMBINATION_STEP_SOUND_BLOCKS 标签的组成项（组合脚步声）— 已在 Entity/Player 步声逻辑中消费
     /// 3. 羊驼装备判定（MC 1.21+ 使用 Equippable 数据组件，非标签判断）— 已在 LlamaEntity::isValidArmorForSlot 中使用
     static BlockTag& WOOL_CARPETS();
+
+    /// 床标签（所有颜色的床方块）
+    /// 运行时消费场景：
+    /// 1. 村民睡眠目标判定 — 已在 VillagerEntity/GoToBedGoal 中消费
+    /// 2. 猫咪坐上方块判定 — 已在 CatGoals 中消费
+    static BlockTag& BEDS();
 
     /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）
     static BlockTag& WOODEN_FENCES();
@@ -229,7 +248,7 @@ public:
 
     /// 疣猪兽排斥物标签
     /// 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
-    /// 包含: 诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)
+    /// 包含: 诡异菌(warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
     /// TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到本标签
     /// MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
     static BlockTag& HOGLIN_REPELLENTS();
@@ -237,8 +256,8 @@ public:
     /// 猪灵排斥物标签
     /// 猪灵在这些方块附近会逃跑
     /// 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
-    ///       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
-    /// 注意：MC 1.21.11 中 potted_warped_fungus 不在 PIGLIN_REPELLENTS 中，无需添加
+    ///       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)
+    /// 注意: MC 1.21.11 中 warped_fungus 不在 PIGLIN_REPELLENTS 中，仅存在于 HOGLIN_REPELLENTS
     /// MC 1.21.11: BlockTags.PIGLIN_REPELLENTS
     static BlockTag& PIGLIN_REPELLENTS();
 
@@ -259,7 +278,16 @@ public:
 
     /// 高花朵标签（向日葵、丁香等）
     /// 蜜蜂可以采集这些花朵
+    /// 注意: MC 1.21.2+ 已移除 tall_flowers 标签，高花朵直接包含在 FLOWERS 标签中
     static BlockTag& TALL_FLOWERS();
+
+    /// 花朵标签（所有花朵，包含小花朵、高花朵和其他花类方块）
+    /// MC 1.21.11: BlockTags.FLOWERS
+    static BlockTag& FLOWERS();
+
+    /// 树苗标签（所有树苗，包含杜鹃花丛和红树胎生苗）
+    /// MC 1.21.11: BlockTags.SAPLINGS
+    static BlockTag& SAPLINGS();
 
     /// 蜂巢/蜂箱标签
     /// 蜜蜂可以进入的方块

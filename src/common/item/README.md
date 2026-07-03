@@ -34,7 +34,7 @@ item/
 │   └── README.md
 ├── tag/                          # 物品标签
 │   ├── ItemTag.hpp/cpp           # 物品标签类
-│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS等）
+│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS、BARS、WOODEN_SHELVES、SHULKER_BOXES等）
 │   ├── ItemTagLoader.hpp/cpp     # 物品标签数据包加载器（从JSON加载标签）
 │   └── README.md
 ├── items/                        # 具体物品实现
@@ -47,7 +47,9 @@ item/
 │   │   ├── ArmorItem.hpp/cpp     # 盔甲基类
 │   │   ├── DyeableArmorItem.hpp/cpp  # 可染色盔甲
 │   │   ├── ElytraItem.hpp/cpp    # 鞘翅
-│   │   └── HorseArmorItem.hpp/cpp  # 马铠
+│   │   ├── HorseArmorItem.hpp/cpp  # 马铠
+│   │   ├── WolfArmorItem.hpp/cpp # 狼铠（MC 1.20.5+）
+│   │   └── NautilusArmorItem.hpp/cpp # 鹦鹉螺铠甲（MC 1.21.11）
 │   ├── tool/                     # 工具物品
 │   │   ├── ToolItem.hpp/cpp      # 工具基类
 │   │   ├── TieredItem.hpp/cpp    # 层级物品基类
@@ -62,6 +64,7 @@ item/
 │   │   ├── BlockItem.hpp/cpp     # 方块物品基类
 │   │   ├── WallOrFloorItem.hpp/cpp  # 墙壁/地板物品（告示牌、旗帜等）
 │   │   ├── BannerItem.hpp/cpp    # 旗帜物品
+│   │   ├── BedItem.hpp/cpp       # 床物品（重写 getStateForPlacement 检查头部位置可替换性）
 │   │   ├── GameMasterBlockItem.hpp/cpp  # 管理员方块物品（命令方块、结构方块等）
 │   │   └── BlockItemRegistry.hpp/cpp  # 方块物品注册表
 │   ├── weapon/                   # 武器物品
@@ -414,3 +417,18 @@ MC 1.21+ 将原 `minecraft:chain` 重命名为 `minecraft:iron_chain`，与铜�
 - `WeatheringCopperChainBlock` 继承 `IOxidizableBlock`，支持斧头刮蜡/除锈
 - `HoneycombItem::WAXABLES_MAP` 包含铜锁链的涂蜡映射（未涂蜡→涂蜡）
 - 与其他铜方块（铜块、铜栏杆、铜门等）使用相同的铜氧化机制
+
+### 20. 床物品注册
+
+16色床物品使用自定义 `BedItem` 子类注册，而非普通的 `BlockItem`。`BedItem` 继承 `BlockItem` 并重写 `getStateForPlacement()`，以检查床头位置的可替换性。
+
+**注册方式**：`Items::_registerBeds()` 中通过 `registry.registerItem<BedItem>()` 注册，每种颜色关联对应的 `VanillaBlocks::XXX_BED` 方块，最大堆叠数为 1。
+
+**BedItem 核心职责**：
+- 重写 `getStateForPlacement()`：根据玩家朝向设置 `HORIZONTAL_FACING` 属性，检查头部位置（`placementPos.offset(facing)`）是否可替换（`canBeReplaced()`），不可替换时返回 `nullptr` 阻止放置
+- 放置后由 `BedBlock::onBlockPlacedBy()` 自动在脚部前方放置头部方块
+- 返回脚部（FOOT）状态的默认朝向，头部由 `onBlockPlacedBy` 自动创建
+
+**与普通 BlockItem 的区别**：普通 `BlockItem` 的 `getStateForPlacement()` 直接委托给方块的 `getStateForPlacement()`，而 `BedItem` 自行实现检查逻辑，确保双格结构（头部+脚部）的完整性。
+
+**16色床物品**：WHITE_BED、ORANGE_BED、MAGENTA_BED、LIGHT_BLUE_BED、YELLOW_BED、LIME_BED、PINK_BED、GRAY_BED、LIGHT_GRAY_BED、CYAN_BED、PURPLE_BED、BLUE_BED、BROWN_BED、GREEN_BED、RED_BED、BLACK_BED

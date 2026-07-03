@@ -32,6 +32,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -43,7 +44,7 @@ namespace blocks {
 
 // ========== BedBlock 实现 ==========
 
-BedBlock::BedBlock(u32 color, const BlockProperties& properties)
+BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     : Block(properties)
     , m_color(color)
 {
@@ -109,13 +110,13 @@ BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
     BlockPos pos = context.blockPos();
     BlockPos headPos(pos.x + Directions::xOffset(facing), pos.y, pos.z + Directions::zOffset(facing));
 
-    // 检查头部位置是否可放置
+    // 检查头部位置是否可替换（空气、花草等 canBeReplaced=true 的方块）
     const BlockState* headState = context.getWorld().getBlockState(headPos);
-    if (headState != nullptr && headState->isAir()) {
+    if (headState != nullptr && headState->canBeReplaced()) {
         return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
     }
 
-    // 无法放置完整的床
+    // 无法放置完整的床，返回默认状态（放置将失败）
     return defaultState();
 }
 
@@ -408,6 +409,38 @@ ActionResultType BedBlock::onBlockActivated(const BlockState& state,
         }
         return ActionResultType::Success;
     }
+}
+
+void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    BlockPos headPos = pos.offset(facing);
+
+    // 在脚部前方放置头部方块
+    BlockState headState = state.with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockState(headPos, &headState, 3);
+}
+
+void BedBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
+
+    // 创造模式玩家破坏脚部时，同时移除头部方块（防止产生掉落物）
+    // 参考 MC Java: BedBlock.playerWillDestroy — player.preventsBlockDrops() 对应创造模式
+    if (part == BlockStateProperties::BedPart::Foot && player.isCreative()) {
+        Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+        BlockPos headPos = pos.offset(facing);
+        const BlockState* headState = world.getBlockState(headPos);
+        if (headState != nullptr && headState->hasProperty(BlockStateProperties::BED_PART()) &&
+            headState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Head) {
+            // 创造模式：销毁头部方块但不产生掉落物
+            if (auto* airState = BlockRegistry::instance().airState()) {
+                world.setBlockState(headPos, airState, 35);
+            }
+        }
+    }
+
+    Block::playerWillDestroy(world, pos, state, player);
 }
 
 } // namespace blocks

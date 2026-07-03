@@ -79,9 +79,18 @@ m_inventory(27)
 
 钥匙匹配使用物品的**显示名**而非物品ID。`canOpen()` 检查的是 `heldItem.getCustomName() == m_lockKey`。
 
-### 3. 战利品表填充时机
+### 3. 战利品表延迟填充机制（_unpackLootTable）
 
-`LootableContainerBlockEntity::fillWithLoot()` 已在基类实现，子类无需重写。填充通过 `IWorld::lootTableManager()` 获取战利品表管理器，只有 ServerWorld 返回有效指针。`isEmpty()` 和 `openContainer()` 会自动触发填充。
+`LootableContainerBlockEntity` 实现了 MC 的延迟填充机制（参考 `RandomizableContainerBlockEntity`）：
+
+- **结构生成时**：调用 `setLootTable()` 设置战利品表 ID 和种子
+- **首次访问时**：通过 `_unpackLootTable(player)` 自动触发填充，填充后清除标记（幂等性）
+- **自动触发的方法**：`isEmpty()`、`clearContainer()`、`openContainer(player)`
+- **ShulkerBoxEntity 的 IInventory 方法**：`getItem()`、`setItem()`、`removeItem()`、`removeItemNoUpdate()`、`clear()` 也调用 `_unpackLootTable(nullptr)`
+
+`_unpackLootTable` 使用 `const_cast` 从 const 方法中修改 `m_hasLootTable`/`m_lootFilled`（`m_lootFilled` 已声明为 `mutable`），这是安全的，因为填充战利品是缓存初始化而非逻辑状态变更。子类在实现 `IInventory` 接口方法时，应在操作前调用 `_unpackLootTable(nullptr)`。
+
+填充通过 `IWorld::lootTableManager()` 获取战利品表管理器，只有 ServerWorld 返回有效指针。`fillWithLoot()` 和 `fillWithLootFromTable()` 是内部实现，子类无需重写。
 
 ### 4. 注册时序
 

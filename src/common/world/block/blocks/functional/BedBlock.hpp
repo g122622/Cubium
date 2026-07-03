@@ -27,6 +27,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
@@ -57,10 +58,10 @@ class BedBlock : public Block {
 public:
     /**
      * @brief 构造函数
-     * @param color 颜色ID (0-15)
+     * @param color 染料颜色
      * @param properties 方块属性
      */
-    BedBlock(u32 color, const BlockProperties& properties);
+    BedBlock(DyeColor color, const BlockProperties& properties);
     ~BedBlock() override = default;
 
     // ========== 状态属性 ==========
@@ -100,7 +101,7 @@ public:
     /**
      * @brief 获取床的颜色
      */
-    [[nodiscard]] u32 getColor() const { return m_color; }
+    [[nodiscard]] DyeColor getColor() const { return m_color; }
 
     /**
      * @brief 设置床被占用状态
@@ -165,9 +166,23 @@ public:
         Hand hand,
         const BlockRaycastResult& hit) override;
 
+    /**
+     * @brief 方块放置后处理
+     *
+     * 在脚部放置后，自动放置头部方块。
+     */
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 玩家破坏方块前的处理
+     *
+     * 当脚部被创造模式玩家破坏时，同时移除头部方块。
+     */
+    void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
+
 protected:
-    /// 床颜色 (0-15, 对应16种染料颜色)
-    u32 m_color;
+    /// 床颜色
+    DyeColor m_color;
 
     /// 各朝向的形状缓存
     std::array<CollisionShape, 6> m_shapesByFacing;

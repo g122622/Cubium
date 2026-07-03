@@ -305,7 +305,7 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
     std::shared_ptr<std::promise<ChunkData*>> promise)
 {
     MC_TRACE_EVENT(
-        "server.chunk", "ServerChunkManager::submitChunkRequest", "x", x, "z", z, "targetStatus", targetStatus.name());
+        "server.chunk", "ServerChunkManager::_submitChunkRequest", "x", x, "z", z, "targetStatus", targetStatus.name());
 
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         std::vector<SingleChunkLifecycleManager::Waiter> waiters;

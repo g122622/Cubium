@@ -15,6 +15,7 @@ agricultural/
 ├── PotatoBlock.hpp/cpp        # 马铃薯作物
 ├── BeetrootBlock.hpp/cpp      # 甜菜根作物（4阶段生长）
 ├── TorchflowerCropBlock.hpp/cpp # 火把花作物（2阶段，成熟后变为火把花方块）
+├── PitcherCropBlock.hpp/cpp  # 瓶草作物（5阶段，AGE>=3变双格，继承DoublePlantBlock+IGrowable）
 ├── FarmlandBlock.hpp/cpp      # 耕地方块
 ├── StemBlock.hpp/cpp          # 茎类作物基类 + StemGrownBlock + AttachedStemBlock
 ├── CocoaBlock.hpp/cpp         # 可可豆方块（丛林原木附着）
@@ -36,6 +37,8 @@ Block
 │   └── AttachedStemBlock  # 连接茎基类（抽象）
 │       ├── MelonAttachedStemBlock   # 连接西瓜茎
 │       └── PumpkinAttachedStemBlock # 连接南瓜茎
+│   └── DoublePlantBlock   # 双格植物基类
+│       └── PitcherCropBlock # 瓶草作物（5阶段，AGE>=3变双格，IGrowable）
 ├── HorizontalBlock        # 水平方向方块基类
 │   ├── CocoaBlock         # 可可豆（附着丛林原木）
 │   ├── CarvedPumpkinBlock # 雕刻南瓜（可生成傀儡）

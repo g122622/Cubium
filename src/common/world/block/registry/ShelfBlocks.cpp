@@ -193,7 +193,8 @@ void registerShelfBlocks()
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
-                .soundType(BlockSoundTypes::STEM));
+                .soundType(BlockSoundTypes::SHELF)
+                .ignitedByLava());
 
     // 诡异菌书架 - 下界木质不可燃
     ShelfBlocks::WARPED_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:warped_shelf"),
@@ -201,7 +202,8 @@ void registerShelfBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
-            .soundType(BlockSoundTypes::STEM));
+            .soundType(BlockSoundTypes::SHELF)
+            .ignitedByLava());
 }
 
 } // namespace block_registry

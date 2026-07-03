@@ -699,6 +699,13 @@ bool ChunkMesher::_shouldRenderFace(const BlockState* block, const BlockState* n
         if (block->isTransparent() && block->blockId() == neighbor->blockId()) {
             return false;
         }
+
+        // 方块自定义面剔除逻辑（如铁栏杆/铜栏杆之间的连接面剔除）
+        const Direction dir = faceToDirection(face);
+        if (block->getBlock().skipRendering(*block, *neighbor, dir)) {
+            return false;
+        }
+
         return true;
     }
 

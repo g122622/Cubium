@@ -618,6 +618,138 @@ TEST_F(ItemTagsTest, DoorsTagIdIsCorrect)
     EXPECT_EQ(item::tag::ItemTags::DOORS().getId(), ResourceLocation("minecraft", "doors"));
 }
 
+// ========== 铜门在 DOORS 标签中 ==========
+
+TEST_F(ItemTagsTest, DoorsContainsCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsExposedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWeatheredCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsOxidizedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedExposedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedWeatheredCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedOxidizedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, CopperDoorsNotInWoodenDoors)
+{
+    // 铜门不应属于 WOODEN_DOORS 标签
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_DOORS()));
+}
+
+// ========== 铜活板门在 TRAPDOORS 标签中 ==========
+
+TEST_F(ItemTagsTest, TrapdoorsContainsCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsExposedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWeatheredCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsOxidizedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedExposedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedWeatheredCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedOxidizedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, CopperTrapdoorsNotInWoodenTrapdoors)
+{
+    // 铜活板门不应属于 WOODEN_TRAPDOORS 标签
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_TRAPDOORS()));
+}
+
 // ============================================================================
 // WOODEN_TRAPDOORS 标签测试
 // 参考: net.minecraft.tags.ItemTags.WOODEN_TRAPDOORS
@@ -758,4 +890,196 @@ TEST_F(ItemTagsTest, NonFlammableWoodDoesNotContainIronDoor)
 TEST_F(ItemTagsTest, NonFlammableWoodTagIdIsCorrect)
 {
     EXPECT_EQ(item::tag::ItemTags::NON_FLAMMABLE_WOOD().getId(), ResourceLocation("minecraft", "non_flammable_wood"));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsCrimsonShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsWarpedShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodDoesNotContainOakShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+// ============================================================================
+// WOODEN_SHELVES 标签测试
+// 参考: net.minecraft.tags.ItemTags.WOODEN_SHELVES
+// ============================================================================
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsOakShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsCrimsonShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsWarpedShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesDoesNotContainBookshelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bookshelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::WOODEN_SHELVES().getId(), ResourceLocation("minecraft", "wooden_shelves"));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsAll12Shelves)
+{
+    const auto& items = item::tag::ItemTags::WOODEN_SHELVES().getItems();
+    EXPECT_EQ(items.size(), 12u);
+}
+
+// ============================================================================
+// BEDS 标签测试
+// ============================================================================
+
+TEST_F(ItemTagsTest, BedsContainsWhiteBed)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_bed"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::BEDS()));
+}
+
+TEST_F(ItemTagsTest, BedsContainsAll16Colors)
+{
+    // minecraft:beds 标签应包含全部 16 色床物品
+    const char* bedNames[] = {"white_bed",
+        "orange_bed",
+        "magenta_bed",
+        "light_blue_bed",
+        "yellow_bed",
+        "lime_bed",
+        "pink_bed",
+        "gray_bed",
+        "light_gray_bed",
+        "cyan_bed",
+        "purple_bed",
+        "blue_bed",
+        "brown_bed",
+        "green_bed",
+        "red_bed",
+        "black_bed"};
+
+    for (const char* name : bedNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item minecraft:" << name << " should be registered";
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::BEDS())) << "minecraft:" << name << " should be in beds tag";
+    }
+}
+
+TEST_F(ItemTagsTest, BedsDoesNotContainNonBedItems)
+{
+    // 床标签不应包含非床物品
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_FALSE(stone->isIn(item::tag::ItemTags::BEDS()));
+
+    Item* whiteWool = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_wool"));
+    if (whiteWool != nullptr) {
+        EXPECT_FALSE(whiteWool->isIn(item::tag::ItemTags::BEDS()));
+    }
+}
+
+TEST_F(ItemTagsTest, BedsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::BEDS().getId(), ResourceLocation("minecraft", "beds"));
+}
+
+TEST_F(ItemTagsTest, BedsTagContains16Items)
+{
+    const auto& items = item::tag::ItemTags::BEDS().getItems();
+    EXPECT_EQ(items.size(), 16u);
+}
+
+// ============================================================================
+// SHULKER_BOXES 标签测试
+// 参考: net.minecraft.tags.ItemTags.SHULKER_BOXES
+// ============================================================================
+
+TEST_F(ItemTagsTest, ShulkerBoxesContainsUncoloredShulkerBox)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "shulker_box"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::SHULKER_BOXES()));
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesContainsAll16ColoredVariants)
+{
+    // minecraft:shulker_boxes 标签应包含全部 16 色潜影盒物品
+    const char* shulkerBoxNames[] = {"white_shulker_box",
+        "orange_shulker_box",
+        "magenta_shulker_box",
+        "light_blue_shulker_box",
+        "yellow_shulker_box",
+        "lime_shulker_box",
+        "pink_shulker_box",
+        "gray_shulker_box",
+        "light_gray_shulker_box",
+        "cyan_shulker_box",
+        "purple_shulker_box",
+        "blue_shulker_box",
+        "brown_shulker_box",
+        "green_shulker_box",
+        "red_shulker_box",
+        "black_shulker_box"};
+
+    for (const char* name : shulkerBoxNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item minecraft:" << name << " should be registered";
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::SHULKER_BOXES()))
+            << "minecraft:" << name << " should be in shulker_boxes tag";
+    }
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesDoesNotContainNonShulkerBoxItems)
+{
+    // 潜影盒标签不应包含非潜影盒物品
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_FALSE(stone->isIn(item::tag::ItemTags::SHULKER_BOXES()));
+
+    Item* chest = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "chest"));
+    if (chest != nullptr) {
+        EXPECT_FALSE(chest->isIn(item::tag::ItemTags::SHULKER_BOXES()));
+    }
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::SHULKER_BOXES().getId(), ResourceLocation("minecraft", "shulker_boxes"));
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesTagContains17Items)
+{
+    // 无色潜影盒 + 16 色潜影盒 = 17 个物品
+    const auto& items = item::tag::ItemTags::SHULKER_BOXES().getItems();
+    EXPECT_EQ(items.size(), 17u);
 }

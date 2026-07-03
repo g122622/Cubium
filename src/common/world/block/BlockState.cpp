@@ -110,9 +110,14 @@ bool BlockState::hasOpaqueCollisionShape() const
 
 f32 BlockState::getAmbientOcclusionLightValue() const
 {
-    // 如果方块有不透明碰撞形状，返回0.2（产生阴影）
-    // 否则返回1.0（透明方块如玻璃、树叶不产生阴影）
-    return hasOpaqueCollisionShape() ? 0.2f : 1.0f;
+    // 委托到方块的 getShadeBrightness 虚方法，
+    // 子类可重写以实现特殊遮光行为（如 MudBlock 碰撞形状不完整但仍需阴影）。
+    return getShadeBrightness();
+}
+
+f32 BlockState::getShadeBrightness() const
+{
+    return m_owner->getShadeBrightness(*this);
 }
 
 bool BlockState::isSolidSide(IWorld& world, const BlockPos& pos, Direction side) const

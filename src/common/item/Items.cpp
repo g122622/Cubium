@@ -30,8 +30,12 @@
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/item/items/armor/NautilusArmorItem.hpp"
+#include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/items/block/BannerItem.hpp"
+#include "common/item/items/block/BedItem.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/item/items/block/SeedsItem.hpp"
 #include "common/item/items/block/WallOrFloorItem.hpp"
 #include "common/item/items/food/ChorusFruitItem.hpp"
 #include "common/item/items/food/FoodItem.hpp"
@@ -134,6 +138,13 @@ Item* Items::ACACIA_PLANKS = nullptr;
 Item* Items::DARK_OAK_PLANKS = nullptr;
 Item* Items::BAMBOO_PLANKS = nullptr;
 Item* Items::BAMBOO_MOSAIC = nullptr;
+
+// 其他木板变体
+Item* Items::CRIMSON_PLANKS = nullptr;
+Item* Items::WARPED_PLANKS = nullptr;
+Item* Items::MANGROVE_PLANKS = nullptr;
+Item* Items::CHERRY_PLANKS = nullptr;
+Item* Items::PALE_OAK_PLANKS = nullptr;
 
 // 石头
 Item* Items::STONE = nullptr;
@@ -300,6 +311,16 @@ Item* Items::IRON_HORSE_ARMOR = nullptr;
 Item* Items::GOLDEN_HORSE_ARMOR = nullptr;
 Item* Items::DIAMOND_HORSE_ARMOR = nullptr;
 Item* Items::NETHERITE_HORSE_ARMOR = nullptr;
+
+// 狼铠
+Item* Items::WOLF_ARMOR = nullptr;
+
+// 鹦鹉螺铠甲
+Item* Items::COPPER_NAUTILUS_ARMOR = nullptr;
+Item* Items::IRON_NAUTILUS_ARMOR = nullptr;
+Item* Items::GOLDEN_NAUTILUS_ARMOR = nullptr;
+Item* Items::DIAMOND_NAUTILUS_ARMOR = nullptr;
+Item* Items::NETHERITE_NAUTILUS_ARMOR = nullptr;
 
 // 食物
 Item* Items::APPLE = nullptr;
@@ -610,6 +631,21 @@ Item* Items::SNOW_BLOCK = nullptr;
 Item* Items::TERRACOTTA = nullptr;
 Item* Items::BRICKS = nullptr;
 Item* Items::BOOKSHELF = nullptr;
+
+// 木质书架变体（1.21.4+）
+Item* Items::OAK_SHELF = nullptr;
+Item* Items::SPRUCE_SHELF = nullptr;
+Item* Items::BIRCH_SHELF = nullptr;
+Item* Items::JUNGLE_SHELF = nullptr;
+Item* Items::ACACIA_SHELF = nullptr;
+Item* Items::DARK_OAK_SHELF = nullptr;
+Item* Items::MANGROVE_SHELF = nullptr;
+Item* Items::CHERRY_SHELF = nullptr;
+Item* Items::PALE_OAK_SHELF = nullptr;
+Item* Items::BAMBOO_SHELF = nullptr;
+Item* Items::CRIMSON_SHELF = nullptr;
+Item* Items::WARPED_SHELF = nullptr;
+
 Item* Items::BONE_BLOCK = nullptr;
 Item* Items::SLIME_BLOCK = nullptr;
 Item* Items::HONEY_BLOCK = nullptr;
@@ -743,6 +779,10 @@ Item* Items::CORNFLOWER = nullptr;
 Item* Items::WITHER_ROSE = nullptr;
 Item* Items::TORCHFLOWER = nullptr;
 Item* Items::PITCHER_PLANT = nullptr;
+Item* Items::CACTUS_FLOWER = nullptr;
+Item* Items::WILDFLOWERS = nullptr;
+Item* Items::OPEN_EYEBLOSSOM = nullptr;
+Item* Items::CLOSED_EYEBLOSSOM = nullptr;
 Item* Items::BROWN_MUSHROOM = nullptr;
 Item* Items::RED_MUSHROOM = nullptr;
 Item* Items::BROWN_MUSHROOM_BLOCK = nullptr;
@@ -766,6 +806,24 @@ Item* Items::BROWN_WOOL = nullptr;
 Item* Items::GREEN_WOOL = nullptr;
 Item* Items::RED_WOOL = nullptr;
 Item* Items::BLACK_WOOL = nullptr;
+
+// 床 (16色)
+Item* Items::WHITE_BED = nullptr;
+Item* Items::ORANGE_BED = nullptr;
+Item* Items::MAGENTA_BED = nullptr;
+Item* Items::LIGHT_BLUE_BED = nullptr;
+Item* Items::YELLOW_BED = nullptr;
+Item* Items::LIME_BED = nullptr;
+Item* Items::PINK_BED = nullptr;
+Item* Items::GRAY_BED = nullptr;
+Item* Items::LIGHT_GRAY_BED = nullptr;
+Item* Items::CYAN_BED = nullptr;
+Item* Items::PURPLE_BED = nullptr;
+Item* Items::BLUE_BED = nullptr;
+Item* Items::BROWN_BED = nullptr;
+Item* Items::GREEN_BED = nullptr;
+Item* Items::RED_BED = nullptr;
+Item* Items::BLACK_BED = nullptr;
 
 // 地毯 (16色)
 Item* Items::WHITE_CARPET = nullptr;
@@ -866,12 +924,45 @@ Item* Items::ENCHANTING_TABLE = nullptr;
 Item* Items::CAULDRON = nullptr;
 Item* Items::ENDER_CHEST = nullptr;
 Item* Items::SHULKER_BOX = nullptr;
+Item* Items::WHITE_SHULKER_BOX = nullptr;
+Item* Items::ORANGE_SHULKER_BOX = nullptr;
+Item* Items::MAGENTA_SHULKER_BOX = nullptr;
+Item* Items::LIGHT_BLUE_SHULKER_BOX = nullptr;
+Item* Items::YELLOW_SHULKER_BOX = nullptr;
+Item* Items::LIME_SHULKER_BOX = nullptr;
+Item* Items::PINK_SHULKER_BOX = nullptr;
+Item* Items::GRAY_SHULKER_BOX = nullptr;
+Item* Items::LIGHT_GRAY_SHULKER_BOX = nullptr;
+Item* Items::CYAN_SHULKER_BOX = nullptr;
+Item* Items::PURPLE_SHULKER_BOX = nullptr;
+Item* Items::BLUE_SHULKER_BOX = nullptr;
+Item* Items::BROWN_SHULKER_BOX = nullptr;
+Item* Items::GREEN_SHULKER_BOX = nullptr;
+Item* Items::RED_SHULKER_BOX = nullptr;
+Item* Items::BLACK_SHULKER_BOX = nullptr;
 Item* Items::BEACON = nullptr;
 Item* Items::LANTERN = nullptr;
 Item* Items::SOUL_LANTERN = nullptr;
 Item* Items::CAMPFIRE = nullptr;
 Item* Items::SOUL_CAMPFIRE = nullptr;
 Item* Items::JACK_O_LANTERN = nullptr;
+Item* Items::CANDLE = nullptr;
+Item* Items::WHITE_CANDLE = nullptr;
+Item* Items::ORANGE_CANDLE = nullptr;
+Item* Items::MAGENTA_CANDLE = nullptr;
+Item* Items::LIGHT_BLUE_CANDLE = nullptr;
+Item* Items::YELLOW_CANDLE = nullptr;
+Item* Items::LIME_CANDLE = nullptr;
+Item* Items::PINK_CANDLE = nullptr;
+Item* Items::GRAY_CANDLE = nullptr;
+Item* Items::LIGHT_GRAY_CANDLE = nullptr;
+Item* Items::CYAN_CANDLE = nullptr;
+Item* Items::PURPLE_CANDLE = nullptr;
+Item* Items::BLUE_CANDLE = nullptr;
+Item* Items::BROWN_CANDLE = nullptr;
+Item* Items::GREEN_CANDLE = nullptr;
+Item* Items::RED_CANDLE = nullptr;
+Item* Items::BLACK_CANDLE = nullptr;
 Item* Items::CONDUIT = nullptr;
 Item* Items::LOOM = nullptr;
 Item* Items::BARREL = nullptr;
@@ -1273,6 +1364,8 @@ void Items::initialize()
     _registerSigns();        // 告示牌物品
     _registerBanners();      // 旗帜和图案物品
     _registerBuildingBlocks();
+    _registerBeds();
+    _registerShulkerBoxes();
     _registerWool();
     _registerCarpets();
     _registerStainedGlass();
@@ -1865,6 +1958,53 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
             19,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_netherite.png"));
+
+    // ========================================================================
+    // 狼铠 - MC 1.20.5+ 新增
+    // 使用犰狳鳞甲材质，可染色，64点耐久，防御值11
+    // 参考: net.minecraft.item.WolfArmorItem
+    // ========================================================================
+    WOLF_ARMOR = &registry.registerItem<item::items::WolfArmorItem>(ResourceLocation("minecraft:wolf_armor"),
+        ArmorMaterials::ARMADILLO_SCUTE,
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::ARMADILLO_SCUTE.getDurability(item::armor::ArmorSlot::Chest)));
+
+    // ========================================================================
+    // 鹦鹉螺铠甲 - MC 1.21.11 新增
+    // 用于装备鹦鹉螺类实体，不可损坏，无耐久度
+    // 护甲值与马铠一致：铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19
+    // TODO: 当前 ArmorSlot 枚举缺少 Body 槽位，鹦鹉螺铠甲护甲值通过构造函数显式传入，
+    //       待 ArmorSlot::Body 添加后可从材质防御表中统一获取
+    // 参考: net.minecraft.item.NautilusArmorItem
+    // ========================================================================
+    // 铜鹦鹉螺铠甲 - +4 护甲
+    COPPER_NAUTILUS_ARMOR =
+        &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:copper_nautilus_armor"),
+            ItemProperties().maxStackSize(1),
+            ArmorMaterials::COPPER,
+            4);
+
+    // 铁鹦鹉螺铠甲 - +5 护甲
+    IRON_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
+        ResourceLocation("minecraft:iron_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::IRON, 5);
+
+    // 金鹦鹉螺铠甲 - +7 护甲
+    GOLDEN_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
+        ResourceLocation("minecraft:golden_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::GOLD, 7);
+
+    // 钻石鹦鹉螺铠甲 - +11 护甲
+    DIAMOND_NAUTILUS_ARMOR =
+        &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:diamond_nautilus_armor"),
+            ItemProperties().maxStackSize(1),
+            ArmorMaterials::DIAMOND,
+            11);
+
+    // 下界合金鹦鹉螺铠甲 - +19 护甲，防火
+    NETHERITE_NAUTILUS_ARMOR =
+        &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:netherite_nautilus_armor"),
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
+            ArmorMaterials::NETHERITE,
+            19);
 }
 
 void Items::_registerFood()
@@ -2055,6 +2195,18 @@ void Items::_registerMisc()
     BAMBOO_MOSAIC = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_MOSAIC, "bamboo_mosaic", ItemProperties().maxStackSize(64));
 
+    // 其他木板变体
+    CRIMSON_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_PLANKS, "crimson_planks", ItemProperties().maxStackSize(64));
+    WARPED_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_PLANKS, "warped_planks", ItemProperties().maxStackSize(64));
+    MANGROVE_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_PLANKS, "mangrove_planks", ItemProperties().maxStackSize(64));
+    CHERRY_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_PLANKS, "cherry_planks", ItemProperties().maxStackSize(64));
+    PALE_OAK_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_PLANKS, "pale_oak_planks", ItemProperties().maxStackSize(64));
+
     // 石头
     STONE = &registerBlockBackedItem(registry, VanillaBlocks::STONE, "stone", ItemProperties().maxStackSize(64));
     COBBLESTONE = &registerBlockBackedItem(
@@ -2217,33 +2369,38 @@ void Items::_registerSeeds()
 {
     auto& registry = ItemRegistry::instance();
 
-    // TODO: 所有种子物品当前注册为普通Item，缺少在耕地上右键种植作物方块的交互行为。
-    // 需要创建 SeedsItem 子类，重写 onItemUse() 在耕地上放置对应作物方块。
-    // MC Java 中种子物品继承 ItemNameBlockItem（BlockItem 子类），右键使用时放置作物方块。
-    // 种子与作物的映射关系：
-    //   WHEAT_SEEDS -> WheatBlock (minecraft:wheat)
-    //   PUMPKIN_SEEDS -> PumpkinStemBlock (minecraft:pumpkin_stem)
-    //   MELON_SEEDS -> MelonStemBlock (minecraft:melon_stem)
-    //   BEETROOT_SEEDS -> BeetrootBlock (minecraft:beetroots)
+    // 种子物品注册为 SeedsItem（BlockItem 子类），右键耕地时通过 BlockItem::tryPlace()
+    // 放置对应的作物方块。作物方块的 isValidPosition() 会检查耕地和光照条件，
+    // 因此种子只能在合法位置种植。
+    //
+    // 种子与作物方块的映射关系：
+    //   WHEAT_SEEDS       -> WheatBlock (minecraft:wheat)
+    //   PUMPKIN_SEEDS     -> PumpkinStemBlock (minecraft:pumpkin_stem)
+    //   MELON_SEEDS       -> MelonStemBlock (minecraft:melon_stem)
+    //   BEETROOT_SEEDS    -> BeetrootBlock (minecraft:beetroots)
     //   TORCHFLOWER_SEEDS -> TorchflowerCropBlock (minecraft:torchflower_crop)
-    //   PITCHER_POD -> PitcherCropBlock (minecraft:pitcher_crop)
+    //   PITCHER_POD       -> PitcherCropBlock (minecraft:pitcher_crop)
 
-    WHEAT_SEEDS = &registry.registerItem(ResourceLocation("minecraft:wheat_seeds"), ItemProperties().maxStackSize(64));
+    WHEAT_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:wheat_seeds"), *VanillaBlocks::WHEAT, ItemProperties().maxStackSize(64));
 
-    PUMPKIN_SEEDS =
-        &registry.registerItem(ResourceLocation("minecraft:pumpkin_seeds"), ItemProperties().maxStackSize(64));
+    PUMPKIN_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:pumpkin_seeds"), *VanillaBlocks::PUMPKIN_STEM, ItemProperties().maxStackSize(64));
 
-    MELON_SEEDS = &registry.registerItem(ResourceLocation("minecraft:melon_seeds"), ItemProperties().maxStackSize(64));
+    MELON_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:melon_seeds"), *VanillaBlocks::MELON_STEM, ItemProperties().maxStackSize(64));
 
-    BEETROOT_SEEDS =
-        &registry.registerItem(ResourceLocation("minecraft:beetroot_seeds"), ItemProperties().maxStackSize(64));
+    BEETROOT_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:beetroot_seeds"), *VanillaBlocks::BEETROOTS, ItemProperties().maxStackSize(64));
 
     // 火把花种子 - 嗅探兽挖掘获得，右键耕地种植火把花作物
-    TORCHFLOWER_SEEDS =
-        &registry.registerItem(ResourceLocation("minecraft:torchflower_seeds"), ItemProperties().maxStackSize(64));
+    TORCHFLOWER_SEEDS = &registry.registerItem<item::items::SeedsItem>(ResourceLocation("minecraft:torchflower_seeds"),
+        *VanillaBlocks::TORCHFLOWER_CROP,
+        ItemProperties().maxStackSize(64));
 
     // 瓶草荚果 - 嗅探兽挖掘获得，右键耕地种植瓶草作物
-    PITCHER_POD = &registry.registerItem(ResourceLocation("minecraft:pitcher_pod"), ItemProperties().maxStackSize(64));
+    PITCHER_POD = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:pitcher_pod"), *VanillaBlocks::PITCHER_CROP, ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerCrops()
@@ -3089,6 +3246,32 @@ void Items::_registerBuildingBlocks()
     BRICKS = &registerBlockBackedItem(registry, VanillaBlocks::BRICKS, "bricks", ItemProperties().maxStackSize(64));
     BOOKSHELF =
         &registerBlockBackedItem(registry, VanillaBlocks::BOOKSHELF, "bookshelf", ItemProperties().maxStackSize(64));
+
+    // 木质书架变体（1.21.4+）
+    OAK_SHELF =
+        &registerBlockBackedItem(registry, VanillaBlocks::OAK_SHELF, "oak_shelf", ItemProperties().maxStackSize(64));
+    SPRUCE_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_SHELF, "spruce_shelf", ItemProperties().maxStackSize(64));
+    BIRCH_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_SHELF, "birch_shelf", ItemProperties().maxStackSize(64));
+    JUNGLE_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_SHELF, "jungle_shelf", ItemProperties().maxStackSize(64));
+    ACACIA_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_SHELF, "acacia_shelf", ItemProperties().maxStackSize(64));
+    DARK_OAK_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_SHELF, "dark_oak_shelf", ItemProperties().maxStackSize(64));
+    MANGROVE_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_SHELF, "mangrove_shelf", ItemProperties().maxStackSize(64));
+    CHERRY_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_SHELF, "cherry_shelf", ItemProperties().maxStackSize(64));
+    PALE_OAK_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_SHELF, "pale_oak_shelf", ItemProperties().maxStackSize(64));
+    BAMBOO_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_SHELF, "bamboo_shelf", ItemProperties().maxStackSize(64));
+    CRIMSON_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_SHELF, "crimson_shelf", ItemProperties().maxStackSize(64));
+    WARPED_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_SHELF, "warped_shelf", ItemProperties().maxStackSize(64));
     BONE_BLOCK =
         &registerBlockBackedItem(registry, VanillaBlocks::BONE_BLOCK, "bone_block", ItemProperties().maxStackSize(64));
     SLIME_BLOCK = &registerBlockBackedItem(
@@ -3305,8 +3488,8 @@ void Items::_registerBuildingBlocks()
         &registerBlockBackedItem(registry, VanillaBlocks::CAULDRON, "cauldron", ItemProperties().maxStackSize(64));
     ENDER_CHEST = &registerBlockBackedItem(
         registry, VanillaBlocks::ENDER_CHEST, "ender_chest", ItemProperties().maxStackSize(64));
-    SHULKER_BOX = &registerBlockBackedItem(
-        registry, VanillaBlocks::SHULKER_BOX, "shulker_box", ItemProperties().maxStackSize(64));
+    SHULKER_BOX =
+        &registerBlockBackedItem(registry, VanillaBlocks::SHULKER_BOX, "shulker_box", ItemProperties().maxStackSize(1));
     BEACON = &registerBlockBackedItem(registry, VanillaBlocks::BEACON, "beacon", ItemProperties().maxStackSize(64));
     LANTERN = &registerBlockBackedItem(registry, VanillaBlocks::LANTERN, "lantern", ItemProperties().maxStackSize(64));
     SOUL_LANTERN = &registerBlockBackedItem(
@@ -3421,6 +3604,85 @@ void Items::_registerBuildingBlocks()
         registry, VanillaBlocks::CHISELED_QUARTZ_BLOCK, "chiseled_quartz_block", ItemProperties().maxStackSize(64));
     QUARTZ_PILLAR = &registerBlockBackedItem(
         registry, VanillaBlocks::QUARTZ_PILLAR, "quartz_pillar", ItemProperties().maxStackSize(64));
+}
+
+void Items::_registerBeds()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // 床使用 BedItem（自定义 BlockItem 子类），以支持根据朝向放置脚部方块
+    // BedBlock::onBlockPlacedBy 会在脚部放置后自动放置头部方块
+    WHITE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:white_bed"), *VanillaBlocks::WHITE_BED, ItemProperties().maxStackSize(1));
+    ORANGE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:orange_bed"), *VanillaBlocks::ORANGE_BED, ItemProperties().maxStackSize(1));
+    MAGENTA_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:magenta_bed"), *VanillaBlocks::MAGENTA_BED, ItemProperties().maxStackSize(1));
+    LIGHT_BLUE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:light_blue_bed"), *VanillaBlocks::LIGHT_BLUE_BED, ItemProperties().maxStackSize(1));
+    YELLOW_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:yellow_bed"), *VanillaBlocks::YELLOW_BED, ItemProperties().maxStackSize(1));
+    LIME_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:lime_bed"), *VanillaBlocks::LIME_BED, ItemProperties().maxStackSize(1));
+    PINK_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:pink_bed"), *VanillaBlocks::PINK_BED, ItemProperties().maxStackSize(1));
+    GRAY_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:gray_bed"), *VanillaBlocks::GRAY_BED, ItemProperties().maxStackSize(1));
+    LIGHT_GRAY_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:light_gray_bed"), *VanillaBlocks::LIGHT_GRAY_BED, ItemProperties().maxStackSize(1));
+    CYAN_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:cyan_bed"), *VanillaBlocks::CYAN_BED, ItemProperties().maxStackSize(1));
+    PURPLE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:purple_bed"), *VanillaBlocks::PURPLE_BED, ItemProperties().maxStackSize(1));
+    BLUE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:blue_bed"), *VanillaBlocks::BLUE_BED, ItemProperties().maxStackSize(1));
+    BROWN_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:brown_bed"), *VanillaBlocks::BROWN_BED, ItemProperties().maxStackSize(1));
+    GREEN_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:green_bed"), *VanillaBlocks::GREEN_BED, ItemProperties().maxStackSize(1));
+    RED_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:red_bed"), *VanillaBlocks::RED_BED, ItemProperties().maxStackSize(1));
+    BLACK_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:black_bed"), *VanillaBlocks::BLACK_BED, ItemProperties().maxStackSize(1));
+}
+
+void Items::_registerShulkerBoxes()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // 潜影盒使用普通 BlockItem，堆叠上限为1（包含物品时不能堆叠）
+    WHITE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::WHITE_SHULKER_BOX, "white_shulker_box", ItemProperties().maxStackSize(1));
+    ORANGE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::ORANGE_SHULKER_BOX, "orange_shulker_box", ItemProperties().maxStackSize(1));
+    MAGENTA_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::MAGENTA_SHULKER_BOX, "magenta_shulker_box", ItemProperties().maxStackSize(1));
+    LIGHT_BLUE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::LIGHT_BLUE_SHULKER_BOX, "light_blue_shulker_box", ItemProperties().maxStackSize(1));
+    YELLOW_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::YELLOW_SHULKER_BOX, "yellow_shulker_box", ItemProperties().maxStackSize(1));
+    LIME_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::LIME_SHULKER_BOX, "lime_shulker_box", ItemProperties().maxStackSize(1));
+    PINK_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::PINK_SHULKER_BOX, "pink_shulker_box", ItemProperties().maxStackSize(1));
+    GRAY_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::GRAY_SHULKER_BOX, "gray_shulker_box", ItemProperties().maxStackSize(1));
+    LIGHT_GRAY_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::LIGHT_GRAY_SHULKER_BOX, "light_gray_shulker_box", ItemProperties().maxStackSize(1));
+    CYAN_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::CYAN_SHULKER_BOX, "cyan_shulker_box", ItemProperties().maxStackSize(1));
+    PURPLE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::PURPLE_SHULKER_BOX, "purple_shulker_box", ItemProperties().maxStackSize(1));
+    BLUE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::BLUE_SHULKER_BOX, "blue_shulker_box", ItemProperties().maxStackSize(1));
+    BROWN_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::BROWN_SHULKER_BOX, "brown_shulker_box", ItemProperties().maxStackSize(1));
+    GREEN_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::GREEN_SHULKER_BOX, "green_shulker_box", ItemProperties().maxStackSize(1));
+    RED_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::RED_SHULKER_BOX, "red_shulker_box", ItemProperties().maxStackSize(1));
+    BLACK_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::BLACK_SHULKER_BOX, "black_shulker_box", ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerWool()
@@ -3706,6 +3968,22 @@ void Items::_registerVegetation()
     // 瓶草 - 嗅探兽挖掘荚果种植后长成的双层花朵
     PITCHER_PLANT = &registerBlockBackedItem(
         registry, VanillaBlocks::PITCHER_PLANT, "pitcher_plant", ItemProperties().maxStackSize(64));
+
+    // 仙人掌花 - 生长在仙人掌上的花
+    CACTUS_FLOWER = &registerBlockBackedItem(
+        registry, VanillaBlocks::CACTUS_FLOWER, "cactus_flower", ItemProperties().maxStackSize(64));
+
+    // 野花 - 地面装饰花，可堆叠放置
+    WILDFLOWERS = &registerBlockBackedItem(
+        registry, VanillaBlocks::WILDFLOWERS, "wildflowers", ItemProperties().maxStackSize(64));
+
+    // 开放的眼眸花 - 苍白花园发光花朵
+    OPEN_EYEBLOSSOM = &registerBlockBackedItem(
+        registry, VanillaBlocks::OPEN_EYEBLOSSOM, "open_eyeblossom", ItemProperties().maxStackSize(64));
+
+    // 闭合的眼眸花 - 苍白花园花朵
+    CLOSED_EYEBLOSSOM = &registerBlockBackedItem(
+        registry, VanillaBlocks::CLOSED_EYEBLOSSOM, "closed_eyeblossom", ItemProperties().maxStackSize(64));
 
     BROWN_MUSHROOM = &registerBlockBackedItem(
         registry, VanillaBlocks::BROWN_MUSHROOM, "brown_mushroom", ItemProperties().maxStackSize(64));

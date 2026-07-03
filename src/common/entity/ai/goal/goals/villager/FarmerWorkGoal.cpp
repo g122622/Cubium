@@ -30,6 +30,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -394,24 +395,19 @@ const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
 {
     if (!seedItem) return nullptr;
 
-    // 种子物品到作物方块的直接映射
-    // MC 原版中，种子放置后变为对应的作物方块：
-    //   小麦种子 → minecraft:wheat
-    //   胡萝卜   → minecraft:carrots
-    //   马铃薯   → minecraft:potatoes
-    //   甜菜种子 → minecraft:beetroots
-    //   火把花种子 → minecraft:torchflower_crop
-    // 使用 VanillaBlocks 静态引用直接映射，避免运行时 ResourceLocation 查找
-    if (seedItem == Items::WHEAT_SEEDS) {
-        return VanillaBlocks::WHEAT;
-    } else if (seedItem == Items::CARROT) {
+    // 种子物品现在注册为 SeedsItem（BlockItem 子类），关联到对应的作物方块。
+    // 对于 SeedsItem 类型的种子，直接通过 BlockItem 获取关联的作物方块；
+    // 对于胡萝卜/马铃薯（普通食物物品），仍使用硬编码映射。
+    const auto* blockItem = dynamic_cast<const BlockItem*>(seedItem);
+    if (blockItem != nullptr) {
+        return &blockItem->block();
+    }
+
+    // 胡萝卜和马铃薯是食物物品而非 BlockItem，需要直接映射
+    if (seedItem == Items::CARROT) {
         return VanillaBlocks::CARROTS;
     } else if (seedItem == Items::POTATO) {
         return VanillaBlocks::POTATOES;
-    } else if (seedItem == Items::BEETROOT_SEEDS) {
-        return VanillaBlocks::BEETROOTS;
-    } else if (seedItem == Items::TORCHFLOWER_SEEDS) {
-        return VanillaBlocks::TORCHFLOWER_CROP;
     }
 
     return nullptr;

@@ -32,6 +32,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/copper/CopperBulbBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperBarsBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperChainBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperDoorBlock.hpp"
@@ -152,6 +153,18 @@ Block* CopperBlocks::WAXED_CHISELED_COPPER = nullptr;
 Block* CopperBlocks::WAXED_EXPOSED_CHISELED_COPPER = nullptr;
 Block* CopperBlocks::WAXED_WEATHERED_CHISELED_COPPER = nullptr;
 Block* CopperBlocks::WAXED_OXIDIZED_CHISELED_COPPER = nullptr;
+
+// ============================================================================
+// 1.21 铜扩展：铜栏杆（8个）
+// ============================================================================
+Block* CopperBlocks::COPPER_BARS = nullptr;
+Block* CopperBlocks::EXPOSED_COPPER_BARS = nullptr;
+Block* CopperBlocks::WEATHERED_COPPER_BARS = nullptr;
+Block* CopperBlocks::OXIDIZED_COPPER_BARS = nullptr;
+Block* CopperBlocks::WAXED_COPPER_BARS = nullptr;
+Block* CopperBlocks::WAXED_EXPOSED_COPPER_BARS = nullptr;
+Block* CopperBlocks::WAXED_WEATHERED_COPPER_BARS = nullptr;
+Block* CopperBlocks::WAXED_OXIDIZED_COPPER_BARS = nullptr;
 
 // ============================================================================
 // 1.21 铜扩展：铜链（8个）
@@ -705,6 +718,53 @@ void registerCopperBlocks()
 
     CopperBlocks::WAXED_OXIDIZED_CHISELED_COPPER = &registry.registerBlock<blocks::WaxedCopperBlock>(
         ResourceLocation("minecraft:waxed_oxidized_chiseled_copper"), chiseledCopperProps);
+
+    // ============================================================================
+    // 1.21 铜扩展：铜栏杆（8个）
+    // ============================================================================
+    auto copperBarsProps =
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::COPPER);
+
+    auto* copperBars = &registry.registerBlock<blocks::WeatheringCopperBarsBlock>(
+        ResourceLocation("minecraft:copper_bars"), copperBarsProps, BlockStateProperties::OxidationLevel::Unaffected);
+    auto* exposedCopperBars =
+        &registry.registerBlock<blocks::WeatheringCopperBarsBlock>(ResourceLocation("minecraft:exposed_copper_bars"),
+            copperBarsProps,
+            BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperBars =
+        &registry.registerBlock<blocks::WeatheringCopperBarsBlock>(ResourceLocation("minecraft:weathered_copper_bars"),
+            copperBarsProps,
+            BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperBars =
+        &registry.registerBlock<blocks::WeatheringCopperBarsBlock>(ResourceLocation("minecraft:oxidized_copper_bars"),
+            copperBarsProps,
+            BlockStateProperties::OxidationLevel::Oxidized);
+
+    copperBars->setNextOxidationBlock(exposedCopperBars);
+    exposedCopperBars->setNextOxidationBlock(weatheredCopperBars);
+    weatheredCopperBars->setNextOxidationBlock(oxidizedCopperBars);
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCopperBars->setPreviousOxidationBlock(copperBars);
+    weatheredCopperBars->setPreviousOxidationBlock(exposedCopperBars);
+    oxidizedCopperBars->setPreviousOxidationBlock(weatheredCopperBars);
+
+    CopperBlocks::COPPER_BARS = copperBars;
+    CopperBlocks::EXPOSED_COPPER_BARS = exposedCopperBars;
+    CopperBlocks::WEATHERED_COPPER_BARS = weatheredCopperBars;
+    CopperBlocks::OXIDIZED_COPPER_BARS = oxidizedCopperBars;
+
+    CopperBlocks::WAXED_COPPER_BARS = &registry.registerBlock<blocks::WaxedCopperBarsBlock>(
+        ResourceLocation("minecraft:waxed_copper_bars"), copperBarsProps);
+
+    CopperBlocks::WAXED_EXPOSED_COPPER_BARS = &registry.registerBlock<blocks::WaxedCopperBarsBlock>(
+        ResourceLocation("minecraft:waxed_exposed_copper_bars"), copperBarsProps);
+
+    CopperBlocks::WAXED_WEATHERED_COPPER_BARS = &registry.registerBlock<blocks::WaxedCopperBarsBlock>(
+        ResourceLocation("minecraft:waxed_weathered_copper_bars"), copperBarsProps);
+
+    CopperBlocks::WAXED_OXIDIZED_COPPER_BARS = &registry.registerBlock<blocks::WaxedCopperBarsBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_copper_bars"), copperBarsProps);
 
     // ============================================================================
     // 1.21 铜扩展：铜链（8个）

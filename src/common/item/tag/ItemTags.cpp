@@ -92,6 +92,15 @@ ItemTag& ItemTags::CARPETS()
     return *tag;
 }
 
+ItemTag& ItemTags::BEDS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "beds"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::DAMPENS_VIBRATIONS()
 {
     static ItemTag* tag = nullptr;
@@ -200,6 +209,15 @@ ItemTag& ItemTags::CHAINS()
     return *tag;
 }
 
+ItemTag& ItemTags::BARS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bars"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::WOODEN_DOORS()
 {
     static ItemTag* tag = nullptr;
@@ -241,6 +259,60 @@ ItemTag& ItemTags::NON_FLAMMABLE_WOOD()
     static ItemTag* tag = nullptr;
     if (tag == nullptr) {
         tag = getTag(ResourceLocation("minecraft", "non_flammable_wood"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::SHULKER_BOXES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "shulker_boxes"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::REPAIRS_WOLF_ARMOR()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "repairs_wolf_armor"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::DYEABLE()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dyeable"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::GOLD_ORES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "gold_ores"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::PIGLIN_LOVED()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "piglin_loved"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::WOODEN_SHELVES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_shelves"));
     }
     return *tag;
 }
@@ -288,6 +360,10 @@ void ItemTags::initialize()
     // 其他花朵（非传统小型/大型）
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spore_blossom")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_petals")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cactus_flower")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wildflowers")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "open_eyeblossom")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "closed_eyeblossom")));
 
     allTags[flowers->getId()] = std::move(flowers);
 
@@ -314,6 +390,26 @@ void ItemTags::initialize()
     carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet")));
 
     allTags[carpets->getId()] = std::move(carpets);
+
+    // 创建 BEDS 标签（所有颜色的床物品）
+    auto beds = std::make_unique<ItemTag>(ResourceLocation("minecraft", "beds"), false);
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_bed")));
+    allTags[beds->getId()] = std::move(beds);
 
     // 创建 DAMPENS_VIBRATIONS 标签
     // 包含所有羊毛物品和地毯物品
@@ -574,6 +670,21 @@ void ItemTags::initialize()
     chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chain")));
     allTags[chains->getId()] = std::move(chains);
 
+    // 创建 BARS 标签
+    // 包含铁栏杆和所有铜栏杆物品（含氧化和涂蜡变种）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/bars.json
+    auto bars = std::make_unique<ItemTag>(ResourceLocation("minecraft", "bars"), false);
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_bars")));
+    allTags[bars->getId()] = std::move(bars);
+
     // 创建 WOODEN_DOORS 标签
     // 包含所有木门物品（绯红木和诡异木门为不可燃木材门）
     auto woodenDoors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "wooden_doors"), false);
@@ -643,7 +754,6 @@ void ItemTags::initialize()
     // 创建 NON_FLAMMABLE_WOOD 标签
     // 包含所有不可燃烧的木材物品（绯红木和诡异木系列）
     // 绯红木和诡异木系列物品不会燃烧，对应 MC 原版标签 minecraft:non_flammable_wood
-    // TODO: 绯红/诡异木书架注册后需添加到此标签
     auto nonFlammableWood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "non_flammable_wood"), false);
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_stem")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_crimson_stem")));
@@ -675,7 +785,122 @@ void ItemTags::initialize()
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_sign")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_hanging_sign")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_hanging_sign")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf")));
     allTags[nonFlammableWood->getId()] = std::move(nonFlammableWood);
+
+    // 创建 WOODEN_SHELVES 标签
+    // 包含所有木质书架物品，对应 MC 原版标签 minecraft:wooden_shelves
+    auto woodenShelves = std::make_unique<ItemTag>(ResourceLocation("minecraft", "wooden_shelves"), false);
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "birch_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "jungle_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "acacia_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dark_oak_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mangrove_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cherry_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pale_oak_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bamboo_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf")));
+    allTags[woodenShelves->getId()] = std::move(woodenShelves);
+
+    // 创建 SHULKER_BOXES 标签
+    // 包含无色潜影盒和 16 色潜影盒物品
+    // 用于判断物品是否为潜影盒（防止嵌套放置）
+    // 对应 MC 原版标签 minecraft:shulker_boxes
+    auto shulkerBoxes = std::make_unique<ItemTag>(ResourceLocation("minecraft", "shulker_boxes"), false);
+
+    // 无色潜影盒
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "shulker_box")));
+
+    // 16 色潜影盒
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_shulker_box")));
+
+    allTags[shulkerBoxes->getId()] = std::move(shulkerBoxes);
+
+    // 创建 REPAIRS_WOLF_ARMOR 标签
+    // 包含可用于修复狼铠的物品（犰狳鳞甲）。
+    // 对应 MC 原版标签 minecraft:repairs_wolf_armor。
+    auto repairsWolfArmor = std::make_unique<ItemTag>(ResourceLocation("minecraft", "repairs_wolf_armor"), false);
+    repairsWolfArmor->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "armadillo_scute")));
+    allTags[repairsWolfArmor->getId()] = std::move(repairsWolfArmor);
+
+    // 创建 DYEABLE 标签
+    // 包含所有可以使用染料染色的物品。
+    // 皮革盔甲、皮革马铠和狼铠可通过染色配方改变颜色。
+    // 对应 MC 原版标签 minecraft:dyeable。
+    auto dyeable = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dyeable"), false);
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_helmet")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_chestplate")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_leggings")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_boots")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_horse_armor")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wolf_armor")));
+    allTags[dyeable->getId()] = std::move(dyeable);
+
+    // 创建 GOLD_ORES 标签
+    // 包含所有金矿石物品。
+    // 对应 MC 原版标签 minecraft:gold_ores。
+    auto goldOres = std::make_unique<ItemTag>(ResourceLocation("minecraft", "gold_ores"), false);
+    goldOres->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_ore")));
+    goldOres->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_gold_ore")));
+    goldOres->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "deepslate_gold_ore")));
+    allTags[goldOres->getId()] = std::move(goldOres);
+
+    // 创建 PIGLIN_LOVED 标签
+    // 包含猪灵会捡起和欣赏的所有物品。
+    // 对应 MC 原版标签 minecraft:piglin_loved。
+    auto piglinLoved = std::make_unique<ItemTag>(ResourceLocation("minecraft", "piglin_loved"), false);
+    // 金相关物品
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_block")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_weighted_pressure_plate")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_ingot")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bell")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "clock")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_carrot")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "glistering_melon_slice")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_apple")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "enchanted_golden_apple")));
+    // 金盔甲
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_helmet")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_chestplate")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_leggings")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_boots")));
+    // 金马铠
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_horse_armor")));
+    // 金鹦鹉螺铠甲
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_nautilus_armor")));
+    // 金工具和武器
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_sword")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_pickaxe")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_shovel")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_axe")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_hoe")));
+    // 粗金
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold_block")));
+    // 金矿石（通过 gold_ores 标签引入）
+    piglinLoved->addAll(GOLD_ORES().getItemsList());
+    // 镶金黑石
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gilded_blackstone")));
+    allTags[piglinLoved->getId()] = std::move(piglinLoved);
 
     s_initialized = true;
 }

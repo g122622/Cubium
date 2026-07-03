@@ -27,8 +27,10 @@
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/agricultural/PitcherCropBlock.hpp"
 #include "world/block/blocks/agricultural/TorchflowerCropBlock.hpp"
 #include "world/block/blocks/functional/TrailsBlocks.hpp"
+#include "world/block/blocks/garden/FlowerBedBlock.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 
@@ -125,9 +127,16 @@ void registerTrailsBlocks()
     // 粉红色花瓣
     // ============================================================================
 
-    // 粉红色花瓣 - 樱花林生物群系的装饰植物
-    TrailsBlocks::PINK_PETALS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_petals"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::PINK_PETALS));
+    // 粉红色花瓣 - 樱花林生物群系的装饰花，可堆叠放置（1-4朵），骨粉催熟
+    // 使用 FlowerBedBlock 实现，与野花（WILDFLOWERS）共享同一方块类型
+    // replaceable 标志允许同类型物品堆叠放置（isReplaceable 重写会检查物品类型）
+    TrailsBlocks::PINK_PETALS =
+        &registry.registerBlock<blocks::FlowerBedBlock>(ResourceLocation("minecraft:pink_petals"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .replaceable()
+                .soundType(BlockSoundTypes::PINK_PETALS));
 
     // ============================================================================
     // 火把花
@@ -161,16 +170,12 @@ void registerTrailsBlocks()
         &registry.registerBlock<blocks::TorchflowerCropBlock>(ResourceLocation("minecraft:torchflower_crop"),
             BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
 
-    // TODO: 瓶草作物当前注册为SimpleBlock占位，需要升级为专用的PitcherCropBlock。
-    // PitcherCropBlock需实现：1) AGE_0_4整数属性（5个生长阶段）和HALF属性（上半/下半）；
-    // 2) AGE>=3时方块变为双层（上半+下半），需要DoublePlantBlock类似的半块管理；
-    // 3) 随机刻生长逻辑（与普通作物不同，需要更长时间）；
-    // 4) 骨粉可催熟；5) 掉落：未成熟时掉落瓶草荚果，成熟时可能额外掉落瓶草荚果；
-    // 6) 只能放置在耕地上；7) 形状随AGE变化（AGE<3为单层作物，AGE>=3为双层）；
-    // 8) 瓶草荚果(pitcher_pod)为种子物品，右键耕地放置此作物方块。
-    // MC Java中PitcherCropBlock有完整实现可参考。
-    TrailsBlocks::PITCHER_CROP = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pitcher_crop"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
+    // 瓶草作物 - 5个生长阶段（AGE_0_4），AGE>=3时变为双格植物
+    // 随机刻生长；骨粉每次增加1个阶段；只能放置在耕地上；掉落瓶草荚果
+    // 形状随AGE变化：AGE 0为鳞茎（窄柱），AGE 1-2为单层作物，AGE 3-4为双层作物
+    TrailsBlocks::PITCHER_CROP =
+        &registry.registerBlock<blocks::PitcherCropBlock>(ResourceLocation("minecraft:pitcher_crop"),
+            BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
 }
 
 } // namespace block_registry

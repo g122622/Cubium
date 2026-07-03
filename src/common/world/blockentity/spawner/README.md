@@ -50,9 +50,18 @@ SpawnerLogic 包含：
 
 ## 容易踩的坑
 
-### 1. setEntityId 会自动添加默认生成候选
+### 1. setEntityId 行为（对齐 MC Java BaseSpawner.setEntityId）
 
-调用 `setEntityId()` 时，如果 `m_spawnPotentials` 为空，会自动添加一个权重为 1 的条目。这是为了让只设置单一实体类型的刷怪笼（如要塞蠹虫刷怪笼）无需手动添加候选列表。
+调用 `setEntityId()` 时：
+- 直接设置 `m_nextEntityId` 为指定实体类型
+- 如果 `m_spawnPotentials` 为空，自动添加一个权重为 1 的条目
+- 重置生成延迟（在 `[minSpawnDelay, maxSpawnDelay]` 范围内随机），但**不会**从 `m_spawnPotentials` 中重新随机选择实体类型
+- 注意：旧的实现调用了 `_delay()`，而 `_delay()` 内部会调用 `_selectNextEntity()` 从候选列表中随机选择，导致 `setEntityId` 刚设置的 `m_nextEntityId` 被覆盖。现已修复为直接重置延迟而不调用 `_delay()`，与 MC Java `BaseSpawner.setEntityId()` 行为一致（MC Java 只修改 nextSpawnData 的 entity id，不重选候选）
+
+此方法由以下路径调用：
+- `SpawnerBlock::onBlockActivated()` — 玩家手持刷怪蛋右键刷怪笼
+- `SpawnEggItem::onItemUse()` — 刷怪蛋使用时检测到刷怪笼方块实体
+- 要塞结构生成时配置蠹虫刷怪笼
 
 ### 2. NBT 格式兼容 MC Java 1.21+
 

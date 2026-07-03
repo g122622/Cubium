@@ -15,7 +15,7 @@ blocks/
 ├── ChestBlock.hpp/cpp           # 箱子方块（27格存储，支持双箱合并）
 ├── TrappedChestBlock.hpp/cpp    # 陷阱箱方块（红石信号输出，重写createBlockEntity返回TrappedChestEntity）
 ├── HopperBlock.hpp/cpp          # 漏斗方块（物品自动传输）
-├── ShulkerBoxBlock.hpp/cpp      # 潜影盒方块（27格存储，防递归嵌套）
+├── ShulkerBoxBlock.hpp/cpp      # 潜影盒方块（16色+无色变体，27格存储，防递归嵌套，DyeColor参数化）
 ├── AbstractFurnaceBlock.hpp     # 熔炉方块基类（FACING + LIT 属性）
 ├── FurnaceBlock.hpp/cpp         # 普通熔炉方块
 ├── BlastFurnaceBlock.hpp/cpp    # 高炉方块（冶炼速度2x）
@@ -38,9 +38,14 @@ blocks/
 ├── building/                    # 建筑方块子目录（楼梯、台阶、墙、栅栏等）
 │   └── README.md
 ├── agricultural/                # 农业方块子目录（农作物、农田等）
+├── cave/                        # 洞穴方块子目录
+├── copper/                      # 铜方块子目录
 ├── coral/                       # 珊瑚方块子目录
 ├── decorative/                  # 装饰方块子目录
+├── dirt/                        # 泥土方块子目录
 ├── functional/                  # 功能方块子目录
+├── garden/                      # 花园觉醒方块子目录（仙人掌花等）
+├── growing_plant/               # 生长植物子目录
 ├── ice/                         # 冰方块子目录
 ├── mob/                         # 生物相关方块子目录
 ├── nether/                      # 下界方块子目录
@@ -55,6 +60,7 @@ blocks/
 - 末地方块详情请参阅 [end/README.md](end/README.md)
 - 建筑方块详情请参阅 [building/README.md](building/README.md)
 - 特殊方块详情请参阅 [special/README.md](special/README.md)
+- 花园觉醒方块详情请参阅 [garden/README.md](garden/README.md)
 
 ## 内部模块关系
 

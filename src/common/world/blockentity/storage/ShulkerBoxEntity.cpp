@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
+#include "common/world/block/blocks/ShulkerBoxBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -397,11 +398,11 @@ bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction
         return false;
     }
 
-    // 检查物品是否为潜影盒方块
+    // 检查物品是否为潜影盒方块（包括所有染色变体）
     const Item* item = stack.getItem();
     if (item != nullptr) {
         const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
-        if (block != nullptr && block == VanillaBlocks::SHULKER_BOX) {
+        if (block != nullptr && blocks::ShulkerBoxBlock::isShulkerBox(*block)) {
             return false;
         }
     }

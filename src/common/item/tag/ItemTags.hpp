@@ -58,6 +58,13 @@ public:
     static ItemTag& CARPETS();
 
     /**
+     * @brief 床物品标签
+     *
+     * 包含所有颜色的床物品。
+     */
+    static ItemTag& BEDS();
+
+    /**
      * @brief 减振物品标签
      *
      * 包含所有羊毛物品和地毯物品。
@@ -160,6 +167,14 @@ public:
     static ItemTag& CHAINS();
 
     /**
+     * @brief 栏杆物品标签
+     *
+     * 包含铁栏杆和所有铜栏杆物品（含氧化和涂蜡变种）。
+     * 对应 MC 原版标签 minecraft:bars。
+     */
+    static ItemTag& BARS();
+
+    /**
      * @brief 木门物品标签
      *
      * 包含所有木门物品（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
@@ -197,10 +212,62 @@ public:
      * @brief 不可燃木材物品标签
      *
      * 包含所有不可燃烧的木材物品（绯红木和诡异木系列的木板、台阶、楼梯、
-     * 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌等）。
+     * 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌、书架等）。
      * 对应 MC 原版标签 minecraft:non_flammable_wood。
      */
     static ItemTag& NON_FLAMMABLE_WOOD();
+
+    /**
+     * @brief 木质书架物品标签
+     *
+     * 包含所有木质书架物品（橡木、云杉、白桦、丛林、金合欢、深色橡木、
+     * 红树木、樱花木、苍白橡木、竹木、绯红木、诡异木）。
+     * 对应 MC 原版标签 minecraft:wooden_shelves。
+     */
+    static ItemTag& WOODEN_SHELVES();
+
+    /**
+     * @brief 潜影盒物品标签
+     *
+     * 包含无色潜影盒和 16 色潜影盒物品。
+     * 用于判断物品是否为潜影盒（防止嵌套放置）。
+     * 对应 MC 原版标签 minecraft:shulker_boxes。
+     */
+    static ItemTag& SHULKER_BOXES();
+
+    /**
+     * @brief 修复狼铠材料标签
+     *
+     * 包含可用于修复狼铠的物品（犰狳鳞甲）。
+     * 对应 MC 原版标签 minecraft:repairs_wolf_armor。
+     */
+    static ItemTag& REPAIRS_WOLF_ARMOR();
+
+    /**
+     * @brief 可染色物品标签
+     *
+     * 包含所有可以使用染料染色的物品。
+     * 皮革盔甲、皮革马铠和狼铠可通过染色配方改变颜色。
+     * 对应 MC 原版标签 minecraft:dyeable。
+     */
+    static ItemTag& DYEABLE();
+
+    /**
+     * @brief 金矿石物品标签
+     *
+     * 包含所有金矿石物品（金矿石、下界金矿石、深板岩金矿石）。
+     * 对应 MC 原版标签 minecraft:gold_ores。
+     */
+    static ItemTag& GOLD_ORES();
+
+    /**
+     * @brief 猪灵喜爱物品标签
+     *
+     * 包含猪灵会捡起和欣赏的所有物品。
+     * 金相关物品、钟、金鹦鹉螺铠甲等。
+     * 对应 MC 原版标签 minecraft:piglin_loved。
+     */
+    static ItemTag& PIGLIN_LOVED();
 
     /**
      * @brief 初始化所有内置物品标签

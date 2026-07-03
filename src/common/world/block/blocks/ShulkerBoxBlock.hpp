@@ -23,12 +23,14 @@
 
 #pragma once
 
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
@@ -55,15 +57,44 @@ namespace blocks {
 class ShulkerBoxBlock : public Block {
 public:
     /**
-     * @brief 构造函数
+     * @brief 构造函数（无色潜影盒）
      * @param properties 方块属性
      */
     explicit ShulkerBoxBlock(const BlockProperties& properties);
 
     /**
+     * @brief 构造函数（染色潜影盒）
+     * @param color 染料颜色
+     * @param properties 方块属性
+     */
+    ShulkerBoxBlock(DyeColor color, const BlockProperties& properties);
+
+    /**
+     * @brief 构造函数（可选颜色潜影盒）
+     * @param color 染料颜色（std::nullopt 表示无色）
+     * @param properties 方块属性
+     */
+    ShulkerBoxBlock(std::optional<DyeColor> color, const BlockProperties& properties);
+
+    /**
      * @brief 析构函数
      */
     ~ShulkerBoxBlock() override = default;
+
+    // ========== 颜色 ==========
+
+    /**
+     * @brief 获取潜影盒的颜色
+     * @return 染料颜色，无色潜影盒返回 std::nullopt
+     */
+    [[nodiscard]] const std::optional<DyeColor>& getColor() const { return m_color; }
+
+    /**
+     * @brief 检查方块是否为潜影盒（包括所有染色变体）
+     * @param block 方块引用
+     * @return 如果是潜影盒返回 true
+     */
+    [[nodiscard]] static bool isShulkerBox(const Block& block);
 
     // ========== 方块状态 ==========
 
@@ -173,6 +204,9 @@ public:
     [[nodiscard]] static bool canOpen(IWorld& world, const BlockPos& pos, Direction facing);
 
 private:
+    /// 潜影盒颜色，std::nullopt 表示无色潜影盒
+    std::optional<DyeColor> m_color;
+
     /**
      * @brief 获取打开方向的碰撞检测区域
      * @param pos 方块位置

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include <memory>
@@ -43,12 +44,20 @@ namespace blockentity {
  * @brief 可填充战利品表的容器方块实体基类
  *
  * 继承自 LockableBlockEntity，为容器提供战利品表自动填充功能。
- * 当玩家首次访问容器内容时，自动从战利品表生成物品。
+ * 当首次访问容器内容时，自动从战利品表生成物品（延迟填充）。
  *
  * 工作原理:
- * 1. 结构生成时设置 lootTable 和 lootTableSeed
- * 2. 玩家首次访问容器（isEmpty/getItem/setItem等）时自动填充
- * 3. 填充后清除 lootTable 标记，避免重复填充
+ * 1. 结构生成时调用 setLootTable() 设置 lootTable 和 lootTableSeed
+ * 2. 首次访问容器内容（isEmpty/getItem/setItem/openContainer等）时自动填充
+ * 3. 填充后清除 lootTable 标记，避免重复填充（幂等性）
+ *
+ * 延迟填充机制（_unpackLootTable）:
+ * - 所有容器内容访问方法在操作前调用 _unpackLootTable(nullptr)
+ * - openContainer 调用 _unpackLootTable(player)，传入玩家上下文（幸运值等）
+ * - _unpackLootTable 使用 const_cast 实现逻辑上的 const 语义，
+ *   因为填充战利品是缓存初始化而非逻辑状态变更
+ *
+ * 参考: net.minecraft.RandomizableContainerBlockEntity
  *
  * 子类:
  * - ChestEntity（箱子）
@@ -111,20 +120,31 @@ public:
      */
     [[nodiscard]] bool canOpen(const Player* player, const ItemStack& heldItem) const override;
 
-    // ========== 容器访问重写（自动触发 fillWithLoot）==========
+    // ========== 容器访问重写（自动触发 _unpackLootTable）==========
 
     /**
      * @brief 检查容器是否为空
      *
-     * 在检查前会检查战利品表填充状态。
+     * 在检查物品之前会先触发战利品表填充（_unpackLootTable），
+     * 确保未填充的战利品表不会被误判为空容器。
+     * 参考: net.minecraft.RandomizableContainerBlockEntity.isEmpty()
      */
     [[nodiscard]] bool isEmpty() const override;
+
+    /**
+     * @brief 清空容器
+     *
+     * 在清空之前会先触发战利品表填充（_unpackLootTable），
+     * 确保清空时战利品已被正确生成（而非丢失）。
+     * 参考: net.minecraft.RandomizableContainerBlockEntity.clearContent()
+     */
+    void clearContainer() override;
 
     /**
      * @brief 玩家打开容器
      *
      * 当战利品表尚未填充时，观察者模式玩家不能打开容器。
-     * 打开容器时会触发战利品表自动填充。
+     * 打开容器时会触发战利品表自动填充（带玩家上下文，包含幸运值等信息）。
      */
     void openContainer(Player* player) override;
 
@@ -140,6 +160,22 @@ protected:
      * @param pos 方块位置
      */
     LootableContainerBlockEntity(BlockEntityType type, const BlockPos& pos);
+
+    /**
+     * @brief 延迟填充战利品表
+     *
+     * 如果战利品表尚未填充，则触发填充。此方法可从 const 方法中调用，
+     * 通过 const_cast 实现逻辑上的 const 语义（填充战利品是缓存初始化，
+     * 而非逻辑状态变更）。
+     *
+     * 子类在实现 IInventory 接口方法（getItem/setItem/removeItem 等）时，
+     * 应在操作前调用此方法，以确保战利品表已被填充。
+     *
+     * 参考: net.minecraft.RandomizableContainer.unpackLootTable(@Nullable Player)
+     *
+     * @param player 触发填充的玩家（可为nullptr，isEmpty/getItem等容器访问时传nullptr）
+     */
+    void _unpackLootTable(Player* player) const;
 
     /**
      * @brief 填充战利品

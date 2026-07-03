@@ -22,8 +22,15 @@
  */
 
 #include "SpawnerBlock.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/SpawnEggItem.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 
 namespace mc {
@@ -42,16 +49,45 @@ ActionResultType SpawnerBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
     MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // TODO: 实现创造模式下打开刷怪笼编辑界面
-    return ActionResultType::Pass;
+    // 客户端直接预测成功
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // 检查玩家手中是否持有刷怪蛋
+    ItemStack& heldItem = player.getHeldItem(hand);
+    if (heldItem.isEmpty() || heldItem.getItem() == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    const auto* spawnEgg = dynamic_cast<const item::SpawnEggItem*>(heldItem.getItem());
+    if (spawnEgg == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 获取刷怪笼方块实体
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::MobSpawner) {
+        return ActionResultType::Pass;
+    }
+
+    auto* spawner = static_cast<blockentity::MobSpawnerBlockEntity*>(entity);
+
+    // 设置刷怪笼的实体类型
+    const entity::EntityType& entityType = spawnEgg->getEntityType();
+    ResourceLocation entityId(entityType.name());
+    math::Random& rng = world.getRandom();
+    spawner->setEntityId(entityId, rng);
+
+    // 非创造模式下消耗刷怪蛋
+    if (!player.isCreative()) {
+        heldItem.shrink(1);
+    }
+
+    return ActionResultType::Consume;
 }
 
 std::unique_ptr<BlockEntity> SpawnerBlock::createBlockEntity(const BlockPos& pos)
@@ -64,7 +100,7 @@ void SpawnerBlock::animateTick(
 {
     MC_UNUSED(state);
 
-    // 参考 MC: BaseSpawner.clientTick()，在刷怪笼方块内随机位置生成烟雾和火焰粒子
+    // 在刷怪笼方块内随机位置生成烟雾和火焰粒子
     f32 x = static_cast<f32>(pos.x) + random.nextFloat();
     f32 y = static_cast<f32>(pos.y) + random.nextFloat();
     f32 z = static_cast<f32>(pos.z) + random.nextFloat();

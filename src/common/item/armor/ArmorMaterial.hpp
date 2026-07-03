@@ -49,7 +49,11 @@ enum class ArmorSlot : u8 {
     Head = 0,  ///< 头盔
     Chest = 1, ///< 胸甲
     Legs = 2,  ///< 护腿
-    Feet = 3   ///< 靴子
+    Feet = 3,  ///< 靴子
+    // TODO: 添加 Body 槽位（用于狼铠和鹦鹉螺铠甲的实体护甲装备槽）
+    // MC Java 中 Body 槽位用于非玩家实体（马铠、狼铠、鹦鹉螺铠甲）的装备，
+    // 狼铠 Body 槽位防御值 11，鹦鹉螺铠甲 Body 槽位防御值随材质变化。
+    // 添加后需同步更新各 ArmorMaterial 的 getDefense() 和 getDurability() 实现。
 };
 
 /**
@@ -347,6 +351,28 @@ public:
     [[nodiscard]] f32 getKnockbackResistance() const override { return 0.1f; }
 };
 
+/**
+ * @brief 犰狳鳞甲材质
+ *
+ * 用于狼铠（WolfArmor），MC 1.20.5+ 新增。
+ * - 耐久度因子: 4
+ * - BODY槽位防御值: 11（仅用于狼铠，其他槽位无实际意义）
+ * - 附魔能力: 10
+ * - 韧性: 0
+ * - 击退抗性: 0
+ * - 修复材料: ARMADILLO_SCUTE（犰狳鳞甲）
+ */
+class ArmadilloScuteArmorMaterial : public ArmorMaterial {
+public:
+    [[nodiscard]] std::string getName() const override { return "armadillo_scute"; }
+    [[nodiscard]] std::string getAssetId() const override { return "armadillo_scute"; }
+    [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
+    [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
+    [[nodiscard]] i32 getEnchantability() const override { return 10; }
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
+    [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
+};
+
 // ============================================================================
 // 材质访问器
 // ============================================================================
@@ -360,6 +386,7 @@ extern const GoldArmorMaterial GOLD;
 extern const DiamondArmorMaterial DIAMOND;
 extern const TurtleArmorMaterial TURTLE;
 extern const NetheriteArmorMaterial NETHERITE;
+extern const ArmadilloScuteArmorMaterial ARMADILLO_SCUTE;
 
 /**
  * @brief 初始化所有材质

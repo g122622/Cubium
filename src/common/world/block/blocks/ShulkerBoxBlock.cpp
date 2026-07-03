@@ -42,7 +42,16 @@ namespace blocks {
 // ========== 构造函数 ==========
 
 ShulkerBoxBlock::ShulkerBoxBlock(const BlockProperties& properties)
+    : ShulkerBoxBlock(std::nullopt, properties)
+{}
+
+ShulkerBoxBlock::ShulkerBoxBlock(DyeColor color, const BlockProperties& properties)
+    : ShulkerBoxBlock(std::optional<DyeColor>(color), properties)
+{}
+
+ShulkerBoxBlock::ShulkerBoxBlock(std::optional<DyeColor> color, const BlockProperties& properties)
     : Block(properties)
+    , m_color(color)
 {
     // 潜影盒使用 FACING 属性（6 个方向）
     auto container =
@@ -228,6 +237,13 @@ AxisAlignedBB ShulkerBoxBlock::getOpenBoundingBox(const BlockPos& pos, Direction
     }
 
     return AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
+}
+
+// ========== 静态类型检查 ==========
+
+bool ShulkerBoxBlock::isShulkerBox(const Block& block)
+{
+    return dynamic_cast<const ShulkerBoxBlock*>(&block) != nullptr;
 }
 
 } // namespace blocks

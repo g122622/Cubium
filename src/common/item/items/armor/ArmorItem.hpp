@@ -130,7 +130,7 @@ public:
     /**
      * @brief 获取防御值
      */
-    [[nodiscard]] i32 getDefense() const noexcept { return m_material.getDefense(m_slot); }
+    [[nodiscard]] virtual i32 getDefense() const noexcept { return m_material.getDefense(m_slot); }
 
     /**
      * @brief 获取韧性
@@ -214,13 +214,15 @@ protected:
     armor::ArmorSlot m_slot;
     ItemAttributeModifiers m_attributeModifiers; ///< 属性修饰符
 
-private:
     /**
      * @brief 构建属性修饰符
      *
-     * 在构造函数中调用，根据盔甲材质和槽位构建护甲值、韧性和击退抗性修饰符。
+     * 根据盔甲材质和槽位构建护甲值、韧性和击退抗性修饰符。
+     * 子类可在构造函数中调用此方法重建属性修饰符（如需使用非标准防御值）。
+     *
+     * @param defense 护甲值修饰符使用的防御值
      */
-    void _buildAttributeModifiers();
+    void _buildAttributeModifiers(i32 defense);
 };
 
 } // namespace item::items

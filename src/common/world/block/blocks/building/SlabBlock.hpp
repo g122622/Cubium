@@ -79,7 +79,7 @@ public:
      *
      * 参考: net.minecraft.block.SlabBlock#isReplaceable
      */
-    [[nodiscard]] bool isReplaceable(const BlockState& state, BlockItemUseContext& context) const override;
+    [[nodiscard]] bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,

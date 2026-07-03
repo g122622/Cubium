@@ -38,9 +38,9 @@
 | --- | --- |
 | `minecraft:anvil` | 3 ✅ 已完成 |
 | `minecraft:bamboo_blocks` | 2 |
-| `minecraft:beds` | 16 |
+| `minecraft:beds` | 16 ✅ 已完成 |
 | `minecraft:bundles` | 17 |
-| `minecraft:candles` | 17 |
+| `minecraft:candles` | 17 ✅ 已完成 |
 | `minecraft:chains` | 9 ✅ 已完成 |
 | `minecraft:cherry_logs` | 4 |
 | `minecraft:copper` | 8 |
@@ -56,14 +56,14 @@
 | `minecraft:repairs_wolf_armor` | 1 |
 | `minecraft:sniffer_food` | 1 ✅ 已完成 |
 | `minecraft:spears` | 7 |
-| `minecraft:wooden_shelves` | 12 |
+| `minecraft:wooden_shelves` | 12 ✅ 已完成 |
 
 ## 部分缺失的标签（至少一个叶子物品未实现）
 
 
 | 标签 | 未实现叶子物品数 |
 | --- | --- |
-| `minecraft:bars` | 8 |
+| `minecraft:bars` | 8 ✅ 已完成 |
 | `minecraft:bee_food` | 11 |
 | `minecraft:bookshelf_books` | 1 |
 | `minecraft:chicken_food` | 2 |
@@ -82,11 +82,11 @@
 | `minecraft:lanterns` | 8 |
 | `minecraft:lapis_ores` | 1 |
 | `minecraft:leaves` | 5 |
-| `minecraft:non_flammable_wood` | 14 |
+| `minecraft:non_flammable_wood` | 14 ✅ 已完成 |
 | `minecraft:parrot_food` | 2 |
 | `minecraft:piglin_loved` | 6 |
 | `minecraft:piglin_preferred_weapons` | 1 |
-| `minecraft:planks` | 6 |
+| `minecraft:planks` | 6 ✅ 已完成 |
 | `minecraft:redstone_ores` | 1 |
 | `minecraft:sand` | 1 |
 | `minecraft:saplings` | 5 |
@@ -113,111 +113,111 @@
 ### Armor（2）
 
 
-- `minecraft:golden_nautilus_armor`
-- `minecraft:wolf_armor`### Beds（16）
+- `minecraft:golden_nautilus_armor ✅ 已完成`
+- `minecraft:wolf_armor ✅ 已完成`### Beds（16）
 
 
-- `minecraft:black_bed`
-- `minecraft:blue_bed`
-- `minecraft:brown_bed`
-- `minecraft:cyan_bed`
-- `minecraft:gray_bed`
-- `minecraft:green_bed`
-- `minecraft:light_blue_bed`
-- `minecraft:light_gray_bed`
-- `minecraft:lime_bed`
-- `minecraft:magenta_bed`
-- `minecraft:orange_bed`
-- `minecraft:pink_bed`
-- `minecraft:purple_bed`
-- `minecraft:red_bed`
-- `minecraft:white_bed`
-- `minecraft:yellow_bed`
+- `minecraft:black_bed ✅ 已完成`
+- `minecraft:blue_bed ✅ 已完成`
+- `minecraft:brown_bed ✅ 已完成`
+- `minecraft:cyan_bed ✅ 已完成`
+- `minecraft:gray_bed ✅ 已完成`
+- `minecraft:green_bed ✅ 已完成`
+- `minecraft:light_blue_bed ✅ 已完成`
+- `minecraft:light_gray_bed ✅ 已完成`
+- `minecraft:lime_bed ✅ 已完成`
+- `minecraft:magenta_bed ✅ 已完成`
+- `minecraft:orange_bed ✅ 已完成`
+- `minecraft:pink_bed ✅ 已完成`
+- `minecraft:purple_bed ✅ 已完成`
+- `minecraft:red_bed ✅ 已完成`
+- `minecraft:white_bed ✅ 已完成`
+- `minecraft:yellow_bed ✅ 已完成`
 
 ### Buttons（1）
 
 
 - `minecraft:polished_blackstone_button ✅ 已完成`
 
-### Candles（17）
+### Candles（17） ✅ 已完成
 
 
-- `minecraft:black_candle`
-- `minecraft:blue_candle`
-- `minecraft:brown_candle`
-- `minecraft:candle`
-- `minecraft:cyan_candle`
-- `minecraft:gray_candle`
-- `minecraft:green_candle`
-- `minecraft:light_blue_candle`
-- `minecraft:light_gray_candle`
-- `minecraft:lime_candle`
-- `minecraft:magenta_candle`
-- `minecraft:orange_candle`
-- `minecraft:pink_candle`
-- `minecraft:purple_candle`
-- `minecraft:red_candle`
-- `minecraft:white_candle`
-- `minecraft:yellow_candle`
+- `minecraft:black_candle ✅ 已完成`
+- `minecraft:blue_candle ✅ 已完成`
+- `minecraft:brown_candle ✅ 已完成`
+- `minecraft:candle ✅ 已完成`
+- `minecraft:cyan_candle ✅ 已完成`
+- `minecraft:gray_candle ✅ 已完成`
+- `minecraft:green_candle ✅ 已完成`
+- `minecraft:light_blue_candle ✅ 已完成`
+- `minecraft:light_gray_candle ✅ 已完成`
+- `minecraft:lime_candle ✅ 已完成`
+- `minecraft:magenta_candle ✅ 已完成`
+- `minecraft:orange_candle ✅ 已完成`
+- `minecraft:pink_candle ✅ 已完成`
+- `minecraft:purple_candle ✅ 已完成`
+- `minecraft:red_candle ✅ 已完成`
+- `minecraft:white_candle ✅ 已完成`
+- `minecraft:yellow_candle ✅ 已完成`
 
 ### Copper（50）
 
 
 - `minecraft:copper_axe ✅ 已完成`
-- `minecraft:copper_bars`
-- `minecraft:copper_block`
+- `minecraft:copper_bars ✅ 已完成`
+- `minecraft:copper_block ✅ 已完成`
 - `minecraft:copper_chain ✅ 已完成`
 - `minecraft:copper_chest`
 - `minecraft:copper_golem_statue`
 - `minecraft:copper_hoe ✅ 已完成`
-- `minecraft:copper_lantern`
+- `minecraft:copper_lantern ✅ 已完成`
 - `minecraft:copper_pickaxe ✅ 已完成`
 - `minecraft:copper_shovel ✅ 已完成`
 - `minecraft:copper_spear`
 - `minecraft:copper_sword ✅ 已完成`
 - `minecraft:deepslate_copper_ore ✅ 已完成`
-- `minecraft:exposed_copper`
-- `minecraft:exposed_copper_bars`
+- `minecraft:exposed_copper ✅ 已完成`
+- `minecraft:exposed_copper_bars ✅ 已完成`
 - `minecraft:exposed_copper_chain ✅ 已完成`
 - `minecraft:exposed_copper_chest`
 - `minecraft:exposed_copper_golem_statue`
-- `minecraft:exposed_copper_lantern`
-- `minecraft:oxidized_copper`
-- `minecraft:oxidized_copper_bars`
+- `minecraft:exposed_copper_lantern ✅ 已完成`
+- `minecraft:oxidized_copper ✅ 已完成`
+- `minecraft:oxidized_copper_bars ✅ 已完成`
 - `minecraft:oxidized_copper_chain ✅ 已完成`
 - `minecraft:oxidized_copper_chest`
 - `minecraft:oxidized_copper_golem_statue`
-- `minecraft:oxidized_copper_lantern`
-- `minecraft:waxed_copper_bars`
-- `minecraft:waxed_copper_block`
+- `minecraft:oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_copper_bars ✅ 已完成`
+- `minecraft:waxed_copper_block ✅ 已完成`
 - `minecraft:waxed_copper_chain ✅ 已完成`
 - `minecraft:waxed_copper_chest`
 - `minecraft:waxed_copper_golem_statue`
-- `minecraft:waxed_copper_lantern`
-- `minecraft:waxed_exposed_copper`
-- `minecraft:waxed_exposed_copper_bars`
+- `minecraft:waxed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_exposed_copper ✅ 已完成`
+- `minecraft:waxed_exposed_copper_bars ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chain ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chest`
 - `minecraft:waxed_exposed_copper_golem_statue`
-- `minecraft:waxed_exposed_copper_lantern`
-- `minecraft:waxed_oxidized_copper`
-- `minecraft:waxed_oxidized_copper_bars`
+- `minecraft:waxed_exposed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_oxidized_copper ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_bars ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chain ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chest`
 - `minecraft:waxed_oxidized_copper_golem_statue`
-- `minecraft:waxed_oxidized_copper_lantern`
-- `minecraft:waxed_weathered_copper`
-- `minecraft:waxed_weathered_copper_bars`
+- `minecraft:waxed_oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_weathered_copper ✅ 已完成`
+- `minecraft:waxed_weathered_copper_bars ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chain ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chest`
 - `minecraft:waxed_weathered_copper_golem_statue`
-- `minecraft:waxed_weathered_copper_lantern`
-- `minecraft:weathered_copper`
-- `minecraft:weathered_copper_bars`
+- `minecraft:waxed_weathered_copper_lantern ✅ 已完成`
+- `minecraft:weathered_copper ✅ 已完成`
+- `minecraft:weathered_copper_bars ✅ 已完成`
 - `minecraft:weathered_copper_chain ✅ 已完成`
 - `minecraft:weathered_copper_chest`
 - `minecraft:weathered_copper_golem_statue`
-- `minecraft:weathered_copper_lantern`
+- `minecraft:weathered_copper_lantern ✅ 已完成`
 
 ### Doors（10）
 
@@ -243,9 +243,9 @@
 ### Flowers / Small Flowers（5）
 
 
-- `minecraft:cactus_flower`
-- `minecraft:closed_eyeblossom`
-- `minecraft:open_eyeblossom`
+- `minecraft:cactus_flower ✅ 已完成`
+- `minecraft:closed_eyeblossom ✅ 已完成`
+- `minecraft:open_eyeblossom ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
 
@@ -280,7 +280,7 @@
 - `minecraft:bamboo_planks ✅ 已完成`
 - `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
-- `minecraft:mangrove_planks`
+- `minecraft:mangrove_planks ✅ 已完成`
 - `minecraft:pale_oak_planks ✅ 已完成`
 - `minecraft:warped_planks ✅ 已完成`
 
@@ -290,25 +290,25 @@
 - `minecraft:cherry_sapling ✅ 已完成`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 
-### Shulker Boxes（16）
+### Shulker Boxes（16） ✅ 已完成
 
 
-- `minecraft:black_shulker_box`
-- `minecraft:blue_shulker_box`
-- `minecraft:brown_shulker_box`
-- `minecraft:cyan_shulker_box`
-- `minecraft:gray_shulker_box`
-- `minecraft:green_shulker_box`
-- `minecraft:light_blue_shulker_box`
-- `minecraft:light_gray_shulker_box`
-- `minecraft:lime_shulker_box`
-- `minecraft:magenta_shulker_box`
-- `minecraft:orange_shulker_box`
-- `minecraft:pink_shulker_box`
-- `minecraft:purple_shulker_box`
-- `minecraft:red_shulker_box`
-- `minecraft:white_shulker_box`
-- `minecraft:yellow_shulker_box`
+- `minecraft:black_shulker_box ✅ 已完成`
+- `minecraft:blue_shulker_box ✅ 已完成`
+- `minecraft:brown_shulker_box ✅ 已完成`
+- `minecraft:cyan_shulker_box ✅ 已完成`
+- `minecraft:gray_shulker_box ✅ 已完成`
+- `minecraft:green_shulker_box ✅ 已完成`
+- `minecraft:light_blue_shulker_box ✅ 已完成`
+- `minecraft:light_gray_shulker_box ✅ 已完成`
+- `minecraft:lime_shulker_box ✅ 已完成`
+- `minecraft:magenta_shulker_box ✅ 已完成`
+- `minecraft:orange_shulker_box ✅ 已完成`
+- `minecraft:pink_shulker_box ✅ 已完成`
+- `minecraft:purple_shulker_box ✅ 已完成`
+- `minecraft:red_shulker_box ✅ 已完成`
+- `minecraft:white_shulker_box ✅ 已完成`
+- `minecraft:yellow_shulker_box ✅ 已完成`
 
 ### Slabs（42）
 
@@ -452,15 +452,15 @@
 ### Other（95）
 
 
-- `minecraft:acacia_shelf`
+- `minecraft:acacia_shelf ✅ 已完成`
 - `minecraft:amethyst_shard ✅ 已完成`
-- `minecraft:anvil`
+- `minecraft:anvil ✅ 已完成`
 - `minecraft:armadillo_scute ✅ 已完成`
 - `minecraft:azalea ✅ 已完成`
 - `minecraft:bamboo_block ✅ 已完成`
-- `minecraft:bamboo_shelf`
+- `minecraft:bamboo_shelf ✅ 已完成`
 - `minecraft:bell ✅ 已完成`
-- `minecraft:birch_shelf`
+- `minecraft:birch_shelf ✅ 已完成`
 - `minecraft:black_bundle`
 - `minecraft:black_harness`
 - `minecraft:blue_bundle`
@@ -471,14 +471,14 @@
 - `minecraft:brown_harness`
 - `minecraft:brush ✅ 已完成`
 - `minecraft:bundle`
-- `minecraft:cherry_shelf`
-- `minecraft:chipped_anvil`
+- `minecraft:cherry_shelf ✅ 已完成`
+- `minecraft:chipped_anvil ✅ 已完成`
 - `minecraft:cobbled_deepslate ✅ 已完成`
-- `minecraft:crimson_shelf`
+- `minecraft:crimson_shelf ✅ 已完成`
 - `minecraft:cyan_bundle`
 - `minecraft:cyan_harness`
-- `minecraft:damaged_anvil`
-- `minecraft:dark_oak_shelf`
+- `minecraft:damaged_anvil ✅ 已完成`
+- `minecraft:dark_oak_shelf ✅ 已完成`
 - `minecraft:deepslate_coal_ore ✅ 已完成`
 - `minecraft:deepslate_diamond_ore ✅ 已完成`
 - `minecraft:deepslate_emerald_ore ✅ 已完成`
@@ -486,7 +486,7 @@
 - `minecraft:deepslate_iron_ore ✅ 已完成`
 - `minecraft:deepslate_lapis_ore ✅ 已完成`
 - `minecraft:deepslate_redstone_ore ✅ 已完成`
-- `minecraft:exposed_lightning_rod`
+- `minecraft:exposed_lightning_rod ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:gray_bundle`
@@ -494,28 +494,27 @@
 - `minecraft:green_bundle`
 - `minecraft:green_harness`
 - `minecraft:iron_chain ✅ 已完成`
-- `minecraft:jungle_shelf`
+- `minecraft:jungle_shelf ✅ 已完成`
 - `minecraft:knowledge_book ✅ 已完成`
 - `minecraft:light_blue_bundle`
 - `minecraft:light_blue_harness`
 - `minecraft:light_gray_bundle`
 - `minecraft:light_gray_harness`
-- `minecraft:lightning_rod`
+- `minecraft:lightning_rod ✅ 已完成`
 - `minecraft:lime_bundle`
 - `minecraft:lime_harness`
 - `minecraft:magenta_bundle`
 - `minecraft:magenta_harness`
 - `minecraft:mangrove_propagule ✅ 已完成`
-- `minecraft:mangrove_shelf`
+- `minecraft:mangrove_shelf ✅ 已完成`
 - `minecraft:moss_block ✅ 已完成`
 - `minecraft:mud ✅ 已完成`
 - `minecraft:muddy_mangrove_roots ✅ 已完成`
-- `minecraft:oak_shelf`
+- `minecraft:oak_shelf ✅ 已完成`
 - `minecraft:orange_bundle`
 - `minecraft:orange_harness`
-- `minecraft:oxidized_lightning_rod`
-- `minecraft:pale_moss_block ✅ 已完成`
-- `minecraft:pale_oak_shelf`
+- `minecraft:oxidized_lightning_rod ✅ 已完成`- `minecraft:pale_moss_block ✅ 已完成`
+- `minecraft:pale_oak_shelf ✅ 已完成`
 - `minecraft:pink_bundle`
 - `minecraft:pink_harness`
 - `minecraft:pink_petals ✅ 已完成`
@@ -530,20 +529,20 @@
 - `minecraft:resin_brick ✅ 已完成`
 - `minecraft:rooted_dirt ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
-- `minecraft:spruce_shelf`
+- `minecraft:spruce_shelf ✅ 已完成`
 - `minecraft:stripped_bamboo_block ✅ 已完成`
 - `minecraft:suspicious_sand ✅ 已完成`
 - `minecraft:torchflower_seeds ✅ 已完成`
 - `minecraft:turtle_scute ✅ 已完成`
-- `minecraft:warped_shelf`
-- `minecraft:waxed_exposed_lightning_rod`
-- `minecraft:waxed_lightning_rod`
-- `minecraft:waxed_oxidized_lightning_rod`
-- `minecraft:waxed_weathered_lightning_rod`
-- `minecraft:weathered_lightning_rod`
+- `minecraft:warped_shelf ✅ 已完成`
+- `minecraft:waxed_exposed_lightning_rod ✅ 已完成`
+- `minecraft:waxed_lightning_rod ✅ 已完成`
+- `minecraft:waxed_oxidized_lightning_rod ✅ 已完成`
+- `minecraft:waxed_weathered_lightning_rod ✅ 已完成`
+- `minecraft:weathered_lightning_rod ✅ 已完成`
 - `minecraft:white_bundle`
 - `minecraft:white_harness`
-- `minecraft:wildflowers`
+- `minecraft:wildflowers ✅ 已完成`
 - `minecraft:yellow_bundle`
 - `minecraft:yellow_harness`
 
@@ -566,25 +565,25 @@
 - `minecraft:bamboo_block ✅ 已完成`
 - `minecraft:stripped_bamboo_block ✅ 已完成`
 
-### `minecraft:beds`
+### `minecraft:beds` ✅ 已完成
 
 
-- `minecraft:black_bed`
-- `minecraft:blue_bed`
-- `minecraft:brown_bed`
-- `minecraft:cyan_bed`
-- `minecraft:gray_bed`
-- `minecraft:green_bed`
-- `minecraft:light_blue_bed`
-- `minecraft:light_gray_bed`
-- `minecraft:lime_bed`
-- `minecraft:magenta_bed`
-- `minecraft:orange_bed`
-- `minecraft:pink_bed`
-- `minecraft:purple_bed`
-- `minecraft:red_bed`
-- `minecraft:white_bed`
-- `minecraft:yellow_bed`
+- `minecraft:black_bed ✅ 已完成`
+- `minecraft:blue_bed ✅ 已完成`
+- `minecraft:brown_bed ✅ 已完成`
+- `minecraft:cyan_bed ✅ 已完成`
+- `minecraft:gray_bed ✅ 已完成`
+- `minecraft:green_bed ✅ 已完成`
+- `minecraft:light_blue_bed ✅ 已完成`
+- `minecraft:light_gray_bed ✅ 已完成`
+- `minecraft:lime_bed ✅ 已完成`
+- `minecraft:magenta_bed ✅ 已完成`
+- `minecraft:orange_bed ✅ 已完成`
+- `minecraft:pink_bed ✅ 已完成`
+- `minecraft:purple_bed ✅ 已完成`
+- `minecraft:red_bed ✅ 已完成`
+- `minecraft:white_bed ✅ 已完成`
+- `minecraft:yellow_bed ✅ 已完成`
 
 ### `minecraft:bundles`
 
@@ -652,14 +651,14 @@
 ### `minecraft:copper`
 
 
-- `minecraft:copper_block`
-- `minecraft:exposed_copper`
-- `minecraft:oxidized_copper`
-- `minecraft:waxed_copper_block`
-- `minecraft:waxed_exposed_copper`
-- `minecraft:waxed_oxidized_copper`
-- `minecraft:waxed_weathered_copper`
-- `minecraft:weathered_copper`
+- `minecraft:copper_block ✅ 已完成`
+- `minecraft:exposed_copper ✅ 已完成`
+- `minecraft:oxidized_copper ✅ 已完成`
+- `minecraft:waxed_copper_block ✅ 已完成`
+- `minecraft:waxed_exposed_copper ✅ 已完成`
+- `minecraft:waxed_oxidized_copper ✅ 已完成`
+- `minecraft:waxed_weathered_copper ✅ 已完成`
+- `minecraft:weathered_copper ✅ 已完成`
 
 ### `minecraft:copper_chests`
 
@@ -777,18 +776,18 @@
 ### `minecraft:wooden_shelves`
 
 
-- `minecraft:acacia_shelf`
-- `minecraft:bamboo_shelf`
-- `minecraft:birch_shelf`
-- `minecraft:cherry_shelf`
-- `minecraft:crimson_shelf`
-- `minecraft:dark_oak_shelf`
-- `minecraft:jungle_shelf`
-- `minecraft:mangrove_shelf`
-- `minecraft:oak_shelf`
-- `minecraft:pale_oak_shelf`
-- `minecraft:spruce_shelf`
-- `minecraft:warped_shelf`
+- `minecraft:acacia_shelf ✅ 已完成`
+- `minecraft:bamboo_shelf ✅ 已完成`
+- `minecraft:birch_shelf ✅ 已完成`
+- `minecraft:cherry_shelf ✅ 已完成`
+- `minecraft:crimson_shelf ✅ 已完成`
+- `minecraft:dark_oak_shelf ✅ 已完成`
+- `minecraft:jungle_shelf ✅ 已完成`
+- `minecraft:mangrove_shelf ✅ 已完成`
+- `minecraft:oak_shelf ✅ 已完成`
+- `minecraft:pale_oak_shelf ✅ 已完成`
+- `minecraft:spruce_shelf ✅ 已完成`
+- `minecraft:warped_shelf ✅ 已完成`
 
 ## 附录：部分缺失标签的逐项明细
 
@@ -799,14 +798,14 @@
 未实现项：
 
 
-- `minecraft:copper_bars`
-- `minecraft:exposed_copper_bars`
-- `minecraft:oxidized_copper_bars`
-- `minecraft:waxed_copper_bars`
-- `minecraft:waxed_exposed_copper_bars`
-- `minecraft:waxed_oxidized_copper_bars`
-- `minecraft:waxed_weathered_copper_bars`
-- `minecraft:weathered_copper_bars`
+- `minecraft:copper_bars ✅ 已完成`
+- `minecraft:exposed_copper_bars ✅ 已完成`
+- `minecraft:oxidized_copper_bars ✅ 已完成`
+- `minecraft:waxed_copper_bars ✅ 已完成`
+- `minecraft:waxed_exposed_copper_bars ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_bars ✅ 已完成`
+- `minecraft:waxed_weathered_copper_bars ✅ 已完成`
+- `minecraft:weathered_copper_bars ✅ 已完成`
 
 ### `minecraft:bee_food`
 
@@ -814,17 +813,17 @@
 未实现项：
 
 
-- `minecraft:cactus_flower`
+- `minecraft:cactus_flower ✅ 已完成`
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule ✅ 已完成`
-- `minecraft:open_eyeblossom`
+- `minecraft:open_eyeblossom ✅ 已完成`
 - `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
-- `minecraft:wildflowers`
+- `minecraft:wildflowers ✅ 已完成`
 
 ### `minecraft:bookshelf_books`
 
@@ -908,7 +907,7 @@
 未实现项：
 
 
-- `minecraft:wolf_armor`
+- `minecraft:wolf_armor ✅ 已完成`
 
 ### `minecraft:eggs`
 
@@ -933,7 +932,7 @@
 未实现项：
 
 
-- `minecraft:cactus_flower`
+- `minecraft:cactus_flower ✅ 已完成`
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
@@ -941,7 +940,7 @@
 - `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
-- `minecraft:wildflowers`
+- `minecraft:wildflowers ✅ 已完成`
 
 ### `minecraft:gold_ores`
 
@@ -965,14 +964,14 @@
 未实现项：
 
 
-- `minecraft:copper_lantern`
-- `minecraft:exposed_copper_lantern`
-- `minecraft:oxidized_copper_lantern`
-- `minecraft:waxed_copper_lantern`
-- `minecraft:waxed_exposed_copper_lantern`
-- `minecraft:waxed_oxidized_copper_lantern`
-- `minecraft:waxed_weathered_copper_lantern`
-- `minecraft:weathered_copper_lantern`
+- `minecraft:copper_lantern ✅ 已完成`
+- `minecraft:exposed_copper_lantern ✅ 已完成`
+- `minecraft:oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_exposed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_weathered_copper_lantern ✅ 已完成`
+- `minecraft:weathered_copper_lantern ✅ 已完成`
 
 ### `minecraft:lapis_ores`
 
@@ -1003,14 +1002,14 @@
 - `minecraft:crimson_door ✅ 已完成`
 - `minecraft:crimson_fence ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
-- `minecraft:crimson_shelf`
+- `minecraft:crimson_shelf ✅ 已完成`
 - `minecraft:crimson_slab ✅ 已完成`
 - `minecraft:crimson_stairs ✅ 已完成`
 - `minecraft:crimson_trapdoor ✅ 已完成`
 - `minecraft:warped_door ✅ 已完成`
 - `minecraft:warped_fence ✅ 已完成`
 - `minecraft:warped_planks ✅ 已完成`
-- `minecraft:warped_shelf`
+- `minecraft:warped_shelf ✅ 已完成`
 - `minecraft:warped_slab ✅ 已完成`
 - `minecraft:warped_stairs ✅ 已完成`
 - `minecraft:warped_trapdoor ✅ 已完成`
@@ -1032,7 +1031,7 @@
 
 - `minecraft:bell`
 - `minecraft:gilded_blackstone ✅ 已完成`
-- `minecraft:golden_nautilus_armor`
+- `minecraft:golden_nautilus_armor ✅ 已完成`
 - `minecraft:golden_spear`
 - `minecraft:raw_gold ✅ 已完成`
 - `minecraft:raw_gold_block ✅ 已完成`
@@ -1051,7 +1050,7 @@
 未实现项：
 
 
-- `minecraft:bamboo_planks`
+- `minecraft:bamboo_planks ✅ 已完成`
 - `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
 - `minecraft:mangrove_planks ✅ 已完成`
@@ -1066,13 +1065,13 @@
 
 - `minecraft:deepslate_redstone_ore ✅ 已完成`
 
-### `minecraft:sand`
+### `minecraft:sand` ✅ 已完成
 
 
 未实现项：
 
 
-- `minecraft:suspicious_sand`
+- `minecraft:suspicious_sand ✅ 已完成`
 
 ### `minecraft:saplings`
 
@@ -1086,28 +1085,28 @@
 - `minecraft:mangrove_propagule ✅ 已完成`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 
-### `minecraft:shulker_boxes`
+### `minecraft:shulker_boxes` ✅ 已完成
 
 
 未实现项：
 
 
-- `minecraft:black_shulker_box`
-- `minecraft:blue_shulker_box`
-- `minecraft:brown_shulker_box`
-- `minecraft:cyan_shulker_box`
-- `minecraft:gray_shulker_box`
-- `minecraft:green_shulker_box`
-- `minecraft:light_blue_shulker_box`
-- `minecraft:light_gray_shulker_box`
-- `minecraft:lime_shulker_box`
-- `minecraft:magenta_shulker_box`
-- `minecraft:orange_shulker_box`
-- `minecraft:pink_shulker_box`
-- `minecraft:purple_shulker_box`
-- `minecraft:red_shulker_box`
-- `minecraft:white_shulker_box`
-- `minecraft:yellow_shulker_box`
+- `minecraft:black_shulker_box ✅ 已完成`
+- `minecraft:blue_shulker_box ✅ 已完成`
+- `minecraft:brown_shulker_box ✅ 已完成`
+- `minecraft:cyan_shulker_box ✅ 已完成`
+- `minecraft:gray_shulker_box ✅ 已完成`
+- `minecraft:green_shulker_box ✅ 已完成`
+- `minecraft:light_blue_shulker_box ✅ 已完成`
+- `minecraft:light_gray_shulker_box ✅ 已完成`
+- `minecraft:lime_shulker_box ✅ 已完成`
+- `minecraft:magenta_shulker_box ✅ 已完成`
+- `minecraft:orange_shulker_box ✅ 已完成`
+- `minecraft:pink_shulker_box ✅ 已完成`
+- `minecraft:purple_shulker_box ✅ 已完成`
+- `minecraft:red_shulker_box ✅ 已完成`
+- `minecraft:white_shulker_box ✅ 已完成`
+- `minecraft:yellow_shulker_box ✅ 已完成`
 
 ### `minecraft:slabs`
 
@@ -1162,8 +1161,8 @@
 未实现项：
 
 
-- `minecraft:closed_eyeblossom`
-- `minecraft:open_eyeblossom`
+- `minecraft:closed_eyeblossom ✅ 已完成`
+- `minecraft:open_eyeblossom ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
 
 ### `minecraft:stairs`

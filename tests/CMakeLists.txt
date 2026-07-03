@@ -79,14 +79,19 @@ add_executable(mc_tests
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试
     common/item/tag/ItemTagsTest.cpp
+    # BedItem 床物品放置测试
+    common/item/BedItemTest.cpp
     # ItemTagLoader 数据包标签加载测试
     common/item/tag/ItemTagLoaderTest.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/potion/PotionUtilsTest.cpp
+    common/item/weapon/FireChargeItemTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
     # WindChargeItem 风弹物品测试（投掷、冷却、消耗）
     common/item/WindChargeItemTest.cpp
+    # WolfArmorItem / NautilusArmorItem / ArmadilloScuteArmorMaterial 测试
+    common/item/WolfAndNautilusArmorTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
@@ -118,7 +123,10 @@ add_executable(mc_tests
     common/item/AnvilLightningRodItemRegistrationTest.cpp
     common/item/CaveAndNetherItemRegistrationTest.cpp
     common/item/ChainItemRegistrationTest.cpp
+    common/item/CopperDoorTrapdoorItemRegistrationTest.cpp
+    common/item/MiscBlockItemRegistrationTest.cpp
     common/item/MudCaveMangroveItemRegistrationTest.cpp
+    common/item/ShelfItemRegistrationTest.cpp
     common/item/TrailsItemsRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
@@ -429,6 +437,8 @@ add_executable(mc_tests
     common/world/blockentity/CampfireBlockEntityTest.cpp
     # ShulkerBoxEntity 潜影盒测试（动画状态、比较器信号、防递归嵌套）
     common/world/blockentity/ShulkerBoxEntityTest.cpp
+    # ShulkerBoxBlock 16色潜影盒方块测试（注册、颜色、isShulkerBox、标签）
+    common/world/block/blocks/ShulkerBoxBlockTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
     common/world/blockentity/CommandBlockEntityTest.cpp
     # BannerEntity 旗帜方块实体测试（图案存储、底色、自定义名称、NBT序列化）
@@ -447,6 +457,8 @@ add_executable(mc_tests
     common/world/blockentity/ShelfBlockEntityTest.cpp
     # MobSpawnerBlockEntity 刷怪笼方块实体测试（生成逻辑、玩家检测、延迟重置、序列化、克隆）
     common/world/blockentity/MobSpawnerBlockEntityTest.cpp
+    # SpawnerBlock + SpawnEggItem 刷怪笼与刷怪蛋交互测试
+    common/world/block/blocks/mob/SpawnerBlockSpawnEggTest.cpp
     # DecoratedPotBlockEntity 饰纹陶罐方块实体测试
     common/world/blockentity/DecoratedPotBlockEntityTest.cpp
     # SculkBlockEntity 幽匿方块实体测试
@@ -478,10 +490,14 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     # CampfireBlock 营火方块测试
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
+    # CandleBlock 蜡烛方块测试
+    common/world/block/blocks/decorative/CandleBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
     common/world/block/blocks/functional/ComposterBlockTest.cpp
+    # CandleCakeBlock 蜡烛蛋糕方块测试
+    common/world/block/blocks/functional/CandleCakeBlockTest.cpp
     common/world/block/blocks/functional/AnvilBlockTest.cpp
     common/world/block/blocks/functional/CraftingTableBlockTest.cpp
     common/world/block/blocks/functional/StonecutterBlockTest.cpp
@@ -523,6 +539,8 @@ add_executable(mc_tests
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
     common/world/block/blocks/cave/PointedDripstoneBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp
+    common/world/block/blocks/garden/GardenFlowerTest.cpp
+    common/world/block/blocks/garden/FlowerBedBlockTest.cpp
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
@@ -537,6 +555,7 @@ add_executable(mc_tests
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/TorchflowerCropTest.cpp
+    common/world/block/blocks/PitcherCropBlockTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
     common/world/block/blocks/StemGrowthLogicTest.cpp
     common/world/block/blocks/TryGrowFruitTest.cpp
@@ -545,6 +564,7 @@ add_executable(mc_tests
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
     common/world/block/blocks/SpongeBlockTest.cpp
     common/world/block/blocks/OxidizableBlockTest.cpp
+    common/world/block/blocks/copper/CopperBarsBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/block/BlockStateMutableTest.cpp
     common/world/block/BuildingVariantRegistrationTest.cpp
