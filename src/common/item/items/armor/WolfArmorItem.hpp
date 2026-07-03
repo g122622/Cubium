@@ -65,7 +65,7 @@ public:
      *
      * @return 默认颜色值
      */
-    [[nodiscard]] u32 getDefaultColor() const { return DEFAULT_COLOR; }
+    [[nodiscard]] u32 getDefaultColor() const override { return DEFAULT_COLOR; }
 
     /**
      * @brief 获取防御值
@@ -84,16 +84,6 @@ private:
 
     /// 狼铠 Body 槽位防御值（MC 1.21.11: wolf_armor defense = 11）
     static constexpr i32 BODY_DEFENSE = 11;
-
-    /**
-     * @brief 重建属性修饰符
-     *
-     * ArmorItem 基类构造函数中 _buildAttributeModifiers() 使用的是
-     * ArmorItem::getDefense()（返回材质 Chest 槽位防御值 6），
-     * 但狼铠的 Body 槽位防御值应为 11。
-     * 此方法在构造函数中调用，使用正确的防御值重建属性修饰符。
-     */
-    void _rebuildAttributeModifiers();
 };
 
 } // namespace item::items

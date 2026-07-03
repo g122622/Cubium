@@ -48,7 +48,7 @@ armor/
 
 ## ArmorItem 属性修饰符系统
 
-`ArmorItem` 在构造时通过 `_buildAttributeModifiers()` 预构建属性修饰符，存储在 `m_attributeModifiers` 成员中。
+`ArmorItem` 在构造时通过 `_buildAttributeModifiers(i32 defense)` 预构建属性修饰符，存储在 `m_attributeModifiers` 成员中。该方法为 `protected`，子类可在构造函数中调用以重建属性修饰符（如 `WolfArmorItem` 使用非标准防御值时）。
 
 ### 新增方法
 

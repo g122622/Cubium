@@ -41,7 +41,7 @@ u32 DyeableArmorItem::getColor(const ItemStack& stack) const noexcept
         }
     }
 
-    return DEFAULT_COLOR;
+    return getDefaultColor();
 }
 
 void DyeableArmorItem::setColor(ItemStack& stack, u32 color) noexcept
