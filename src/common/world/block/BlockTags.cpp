@@ -415,6 +415,15 @@ BlockTag& BlockTags::FLOWERS()
     return *tag;
 }
 
+BlockTag& BlockTags::FLOWER_POTS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "flower_pots"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::SAPLINGS()
 {
     static BlockTag* tag = nullptr;
@@ -1403,11 +1412,10 @@ void BlockTags::initialize()
     // 创建 HOGLIN_REPELLENTS 标签（疣猪兽排斥物）
     // MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
     // 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
-    // 包含: 诡异菌(warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
-    // TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到此标签
-    //       （MC 1.21.11 中 Blocks.POTTED_WARPED_FUNGUS 包含在 HOGLIN_REPELLENTS 中）
+    // 包含: 诡异菌(warped_fungus)、盆栽诡异菌(potted_warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
     auto hoglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "hoglin_repellents"));
     hoglinRepellents->addAll({ResourceLocation("minecraft", "warped_fungus"),
+        ResourceLocation("minecraft", "potted_warped_fungus"),
         ResourceLocation("minecraft", "nether_portal"),
         ResourceLocation("minecraft", "respawn_anchor")});
     tags[hoglinRepellents->getId()] = std::move(hoglinRepellents);
@@ -1511,6 +1519,57 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "mangrove_propagule"),
         ResourceLocation("minecraft", "cherry_sapling")});
     tags[saplings->getId()] = std::move(saplings);
+
+    // 创建 FLOWER_POTS 标签（花盆）
+    // MC 1.21.11: BlockTags.FLOWER_POTS
+    // 包含空花盆 + 所有 potted_* 盆栽方块
+    auto flowerPots = std::make_unique<BlockTag>(ResourceLocation("minecraft", "flower_pots"));
+    flowerPots->addAll({ResourceLocation("minecraft", "flower_pot"),
+        // 树苗系列
+        ResourceLocation("minecraft", "potted_oak_sapling"),
+        ResourceLocation("minecraft", "potted_spruce_sapling"),
+        ResourceLocation("minecraft", "potted_birch_sapling"),
+        ResourceLocation("minecraft", "potted_jungle_sapling"),
+        ResourceLocation("minecraft", "potted_acacia_sapling"),
+        ResourceLocation("minecraft", "potted_dark_oak_sapling"),
+        ResourceLocation("minecraft", "potted_cherry_sapling"),
+        ResourceLocation("minecraft", "potted_pale_oak_sapling"),
+        ResourceLocation("minecraft", "potted_mangrove_propagule"),
+        // 花卉系列
+        ResourceLocation("minecraft", "potted_dandelion"),
+        ResourceLocation("minecraft", "potted_poppy"),
+        ResourceLocation("minecraft", "potted_blue_orchid"),
+        ResourceLocation("minecraft", "potted_allium"),
+        ResourceLocation("minecraft", "potted_azure_bluet"),
+        ResourceLocation("minecraft", "potted_red_tulip"),
+        ResourceLocation("minecraft", "potted_orange_tulip"),
+        ResourceLocation("minecraft", "potted_white_tulip"),
+        ResourceLocation("minecraft", "potted_pink_tulip"),
+        ResourceLocation("minecraft", "potted_oxeye_daisy"),
+        ResourceLocation("minecraft", "potted_cornflower"),
+        ResourceLocation("minecraft", "potted_lily_of_the_valley"),
+        ResourceLocation("minecraft", "potted_wither_rose"),
+        ResourceLocation("minecraft", "potted_torchflower"),
+        ResourceLocation("minecraft", "potted_open_eyeblossom"),
+        ResourceLocation("minecraft", "potted_closed_eyeblossom"),
+        // 蕨/枯草
+        ResourceLocation("minecraft", "potted_fern"),
+        ResourceLocation("minecraft", "potted_dead_bush"),
+        // 蘑菇
+        ResourceLocation("minecraft", "potted_red_mushroom"),
+        ResourceLocation("minecraft", "potted_brown_mushroom"),
+        // 仙人掌/竹子
+        ResourceLocation("minecraft", "potted_cactus"),
+        ResourceLocation("minecraft", "potted_bamboo"),
+        // 下界菌/菌索
+        ResourceLocation("minecraft", "potted_crimson_fungus"),
+        ResourceLocation("minecraft", "potted_warped_fungus"),
+        ResourceLocation("minecraft", "potted_crimson_roots"),
+        ResourceLocation("minecraft", "potted_warped_roots"),
+        // 杜鹃花
+        ResourceLocation("minecraft", "potted_azalea_bush"),
+        ResourceLocation("minecraft", "potted_flowering_azalea_bush")});
+    tags[flowerPots->getId()] = std::move(flowerPots);
 
     // 创建 BEEHIVES 标签（蜂巢/蜂箱）
     auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));

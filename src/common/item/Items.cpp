@@ -789,6 +789,9 @@ Item* Items::BROWN_MUSHROOM_BLOCK = nullptr;
 Item* Items::RED_MUSHROOM_BLOCK = nullptr;
 Item* Items::MUSHROOM_STEM = nullptr;
 
+// 花盆
+Item* Items::FLOWER_POT = nullptr;
+
 // 羊毛 (16色)
 Item* Items::WHITE_WOOL = nullptr;
 Item* Items::ORANGE_WOOL = nullptr;
@@ -3990,6 +3993,10 @@ void Items::_registerVegetation()
         registry, VanillaBlocks::RED_MUSHROOM_BLOCK, "red_mushroom_block", ItemProperties().maxStackSize(64));
     MUSHROOM_STEM = &registerBlockBackedItem(
         registry, VanillaBlocks::MUSHROOM_STEM, "mushroom_stem", ItemProperties().maxStackSize(64));
+
+    // 花盆（所有 potted_* 方块共用此物品，匹配 MC Java 设计）
+    FLOWER_POT =
+        &registerBlockBackedItem(registry, VanillaBlocks::FLOWER_POT, "flower_pot", ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerRedstone()

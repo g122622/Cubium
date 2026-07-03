@@ -33,6 +33,7 @@
 #include "world/block/registry/ColoredBlocks.hpp"
 #include "world/block/registry/CopperBlocks.hpp"
 #include "world/block/registry/DeepslateBlocks.hpp"
+#include "world/block/registry/FlowerPotBlocks.hpp"
 #include "world/block/registry/GardenBlocks.hpp"
 #include "world/block/registry/MangroveBlocks.hpp"
 #include "world/block/registry/MudBlocks.hpp"
@@ -70,6 +71,7 @@ class VanillaBlocks : public block_registry::AgriculturalBlocks,
                       public block_registry::ColoredBlocks,
                       public block_registry::CopperBlocks,
                       public block_registry::DeepslateBlocks,
+                      public block_registry::FlowerPotBlocks,
                       public block_registry::GardenBlocks,
                       public block_registry::MangroveBlocks,
                       public block_registry::MudBlocks,

@@ -32,9 +32,9 @@
  * - 邻居更新
  */
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/decorative/FlowerPotBlock.hpp"
 #include "world/block/blocks/decorative/LadderBlock.hpp"
@@ -145,11 +145,9 @@ class FlowerPotBlockTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 创建空花盆
-        flowerPot_ =
-            std::make_unique<FlowerPotBlock>(BlockProperties(Material::DECORATION).hardness(0.0f).resistance(0.0f),
-                0 // content = 0 (空花盆)
-            );
+        // 创建空花盆（content 为 nullptr）
+        flowerPot_ = std::make_unique<FlowerPotBlock>(
+            BlockProperties(Material::DECORATION).hardness(0.0f).resistance(0.0f), nullptr);
     }
 
     std::unique_ptr<FlowerPotBlock> flowerPot_;
@@ -160,9 +158,9 @@ TEST_F(FlowerPotBlockTest, Create_HasCorrectProperties)
     EXPECT_NE(flowerPot_, nullptr);
 }
 
-TEST_F(FlowerPotBlockTest, GetContent_ReturnsZeroForEmptyPot)
+TEST_F(FlowerPotBlockTest, GetPotted_ReturnsNullForEmptyPot)
 {
-    EXPECT_EQ(flowerPot_->getContent(), 0u);
+    EXPECT_EQ(flowerPot_->getPotted(), nullptr);
 }
 
 TEST_F(FlowerPotBlockTest, IsEmpty_ReturnsTrueForEmptyPot)

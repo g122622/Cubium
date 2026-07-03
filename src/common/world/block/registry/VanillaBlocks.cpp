@@ -142,6 +142,11 @@ void VanillaBlocks::initialize()
         MC_TRACE_EVENT("client.initialization", "registerCandleBlocks");
         block_registry::registerCandleBlocks();
     }
+    {
+        // 花盆方块必须在所有内容物方块（花卉、树苗、蘑菇、仙人掌、下界菌、杜鹃花等）注册之后
+        MC_TRACE_EVENT("client.initialization", "registerFlowerPotBlocks");
+        block_registry::registerFlowerPotBlocks();
+    }
 
     // 初始化方块标签（必须在所有方块注册后）
     {

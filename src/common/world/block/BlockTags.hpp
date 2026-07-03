@@ -248,8 +248,7 @@ public:
 
     /// 疣猪兽排斥物标签
     /// 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
-    /// 包含: 诡异菌(warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
-    /// TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到本标签
+    /// 包含: 诡异菌(warped_fungus)、盆栽诡异菌(potted_warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
     /// MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
     static BlockTag& HOGLIN_REPELLENTS();
 
@@ -284,6 +283,10 @@ public:
     /// 花朵标签（所有花朵，包含小花朵、高花朵和其他花类方块）
     /// MC 1.21.11: BlockTags.FLOWERS
     static BlockTag& FLOWERS();
+
+    /// 花盆标签（空花盆 + 所有 potted_* 盆栽方块）
+    /// MC 1.21.11: BlockTags.FLOWER_POTS
+    static BlockTag& FLOWER_POTS();
 
     /// 树苗标签（所有树苗，包含杜鹃花丛和红树胎生苗）
     /// MC 1.21.11: BlockTags.SAPLINGS

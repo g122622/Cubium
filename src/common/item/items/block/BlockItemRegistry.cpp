@@ -1388,6 +1388,50 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         registerGameMasterBlock(VanillaBlocks::CHAIN_COMMAND_BLOCK, "chain_command_block");
     }
 
+    // 花盆方块
+    // MC Java 设计：所有 potted_* 方块共用一个 minecraft:flower_pot 物品。
+    // 空花盆放置后得到 minecraft:flower_pot 方块；
+    // 玩家右键空花盆并手持可盆栽植物时，方块变为对应的 potted_* 方块（无新物品产生）。
+    // 因此这里将所有 potted_* 方块都映射到同一个 flower_pot 物品。
+    registerSimpleBlock(VanillaBlocks::FLOWER_POT, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_OAK_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_SPRUCE_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_BIRCH_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_JUNGLE_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_ACACIA_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_DARK_OAK_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_CHERRY_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_PALE_OAK_SAPLING, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_MANGROVE_PROPAGULE, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_DANDELION, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_POPPY, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_BLUE_ORCHID, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_ALLIUM, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_AZURE_BLUET, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_RED_TULIP, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_ORANGE_TULIP, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_WHITE_TULIP, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_PINK_TULIP, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_OXEYE_DAISY, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_CORNFLOWER, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_LILY_OF_THE_VALLEY, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_WITHER_ROSE, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_TORCHFLOWER, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_OPEN_EYEBLOSSOM, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_CLOSED_EYEBLOSSOM, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_FERN, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_DEAD_BUSH, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_RED_MUSHROOM, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_BROWN_MUSHROOM, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_CACTUS, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_BAMBOO, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_CRIMSON_FUNGUS, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_WARPED_FUNGUS, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_CRIMSON_ROOTS, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_WARPED_ROOTS, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_AZALEA_BUSH, "flower_pot");
+    registerSimpleBlock(VanillaBlocks::POTTED_FLOWERING_AZALEA_BUSH, "flower_pot");
+
     m_initialized = true;
     spdlog::info("Registered {} block items", m_itemToBlock.size());
 }

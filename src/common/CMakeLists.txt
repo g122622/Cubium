@@ -676,6 +676,7 @@ add_library(mc_common STATIC
     world/block/registry/GardenBlocks.cpp
     world/block/registry/ShelfBlocks.cpp
     world/block/registry/CandleBlocks.cpp
+    world/block/registry/FlowerPotBlocks.cpp
     world/block/IWaterLoggable.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
