@@ -10,7 +10,7 @@ decorative/
 ├── StainedGlassBlock.hpp/cpp   # 染色玻璃（信标光束颜色提供者）
 ├── CarpetBlock.hpp/cpp         # 地毯（单层高度、需支撑）
 ├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦（可旋转、不可被活塞拉动）
-├── FlowerPotBlock.hpp/cpp      # 花盆（可容纳植物内容）
+├── FlowerPotBlock.hpp/cpp      # 花盆（空花盆 + 37 种 potted_* 盆栽变体，反查映射表，眼眸花随机刻 TODO）
 ├── LanternBlock.hpp/cpp        # 灯笼（悬挂/站立、含水支持）
 ├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持，MC 1.21+ 注册为 iron_chain）
 ├── LadderBlock.hpp/cpp         # 梯子（攀爬、需背面支撑）
@@ -132,3 +132,19 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 - **坑**: `getParticleOffsets` 返回的偏移位置列表必须与蜡烛数量对应（1-4个偏移位置），否则点燃粒子位置错误
 - **坑**: CandleBlock 亮度公式 `3 * CANDLES`（1根=3, 2根=6, 3根=9, 4根=12），不是固定亮度
 - **参考**: MC 1.17 `CandleBlock`
+
+### FlowerPotBlock 花盆交互与反查映射表
+
+- **架构**: 空花盆（`minecraft:flower_pot`）和 37 种 `potted_*` 盆栽变体都是独立的 `FlowerPotBlock` 实例，通过构造时传入"内容物方块"指针区分；空花盆的内容物为 `nullptr`（MC Java 中为 `Blocks.AIR`）
+- **反查映射表**: `FlowerPotBlock::s_pottedByContent` 是 `unordered_map<const Block*, const FlowerPotBlock*>` 静态映射表，在每个非空 `FlowerPotBlock` 构造时自动填充，用于交互时由"内容物方块"反查"对应花盆方块"
+- **交互分支**（`onBlockActivated`）:
+  - 空花盆 + 手持可盆栽植物 BlockItem → 替换为 `potted_*` 方块，消耗 1 个物品（服务端）；客户端返回 Success 不修改世界
+  - 已盆栽花盆 + 手持可盆栽植物 → 返回 Consume，不修改方块（匹配 MC Java `useItemOn`）
+  - 已盆栽花盆 + 空手 → 取出内容物，方块变回空花盆，内容物物品优先放入背包放不下则丢弃（服务端）；客户端返回 Success
+  - 空花盆 + 空手 → 返回 Consume（匹配 MC Java `useWithoutItem`）
+  - 手持非 BlockItem 或不可盆栽 BlockItem → 返回 Pass，交给其他处理器
+- **中键选取**: `getCloneItemStack` 已盆栽花盆返回内容物对应的物品（通过 `BlockItemRegistry` 反查），空花盆返回默认 `flower_pot` 物品
+- **canSurvive / updateShape**: 匹配 MC Java 1.21.11，`FlowerPotBlock` 不重写 `canSurvive`（默认 true），`updateShape` 检查 `DOWN && !canSurvive` 由于 `canSurvive` 始终为 true 实际为空操作——花盆可放置在任何位置（包括悬空），不会因下方方块移除而破坏
+- **眼眸花随机刻 TODO**: `potted_open_eyeblossom` / `potted_closed_eyeblossom` 在 MC Java 中响应随机刻，根据 `EnvironmentAttributes.EYEBLOSSOM_OPEN` 环境属性在开/合状态间切换，并生成 `TrailParticleOption` 转换粒子、播放音效、连锁触发周围 3×2×3 范围内同种眼眸花。本项目 `EnvironmentAttributes` 系统尚未实现，`randomTick` 暂留显式 TODO 注释，`ticksRandomly` 已正确实现（仅眼眸花返回 true）
+- **物品映射**: 38 个花盆方块共享同一个 `minecraft:flower_pot` 物品（通过 `BlockItemRegistry::registerSimpleBlock` 自动派生物品名）
+- **参考**: MC 1.21.11 `net.minecraft.world.level.block.FlowerPotBlock`

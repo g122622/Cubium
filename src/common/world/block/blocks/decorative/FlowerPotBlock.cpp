@@ -73,7 +73,8 @@ bool FlowerPotBlock::isValidPosition(const BlockState& state, IBlockReader& worl
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    // 花盆可以放置在任何完整方块上
+    // 匹配 MC Java 1.21.11: FlowerPotBlock 不重写 canSurvive，默认返回 true。
+    // 花盆可以放置在任何位置（包括悬空）。
     return true;
 }
 
@@ -84,16 +85,14 @@ BlockState FlowerPotBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(facing);
     MC_UNUSED(facingState);
+    MC_UNUSED(world);
+    MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
-    // 如果下方方块被移除，则移除花盆
-    if (facing == Direction::Down) {
-        const BlockPos belowPos = currentPos.down();
-        const BlockState* belowState = world.getBlockState(belowPos);
-        if (belowState == nullptr || belowState->isAir()) {
-            return VanillaBlocks::AIR->defaultState();
-        }
-    }
+    // 匹配 MC Java 1.21.11: updateShape 检查 DOWN && !canSurvive。
+    // 由于 canSurvive 默认返回 true，花盆不会因下方方块变化而自动破坏。
+    // 花盆的破坏由玩家破坏或活塞推动等外力完成。
     return state;
 }
 
@@ -108,7 +107,7 @@ ActionResultType FlowerPotBlock::onBlockActivated(const BlockState& state,
 
     const ItemStack& heldStack = player.getHeldItem(hand);
 
-    // 分支1：玩家手持物品右键花盆
+    // 分支1：玩家手持物品右键花盆（对应 MC Java useItemOn）
     if (!heldStack.isEmpty()) {
         const Item* heldItem = heldStack.getItem();
 
@@ -118,7 +117,7 @@ ActionResultType FlowerPotBlock::onBlockActivated(const BlockState& state,
         const FlowerPotBlock* targetPot = (contentBlock != nullptr) ? getByContent(*contentBlock) : nullptr;
 
         if (targetPot == nullptr) {
-            // 手持物品不是可盆栽植物，交给其他处理器（如空手交互）
+            // 手持物品不是可盆栽植物，交给空手交互处理器
             return ActionResultType::Pass;
         }
 
@@ -143,9 +142,9 @@ ActionResultType FlowerPotBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Success;
     }
 
-    // 分支2：玩家空手右键花盆
+    // 分支2：玩家空手右键花盆（对应 MC Java useWithoutItem）
     if (isEmpty()) {
-        // 空花盆：无操作
+        // 空花盆：消费动作（无操作）
         return ActionResultType::Consume;
     }
 
@@ -172,7 +171,7 @@ ActionResultType FlowerPotBlock::onBlockActivated(const BlockState& state,
     }
 
     // 花盆变回空花盆
-    if (VanillaBlocks::AIR != nullptr) {
+    {
         // 查找空花盆方块（minecraft:flower_pot）
         Block* emptyPot = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:flower_pot"));
         if (emptyPot != nullptr) {
@@ -182,6 +181,49 @@ ActionResultType FlowerPotBlock::onBlockActivated(const BlockState& state,
         }
     }
     return ActionResultType::Success;
+}
+
+ItemStack FlowerPotBlock::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 已盆栽的花盆返回内容物对应的物品（匹配 MC Java getCloneItemStack）
+    if (!isEmpty() && m_potted != nullptr) {
+        const BlockItem* contentBlockItem = BlockItemRegistry::instance().getBlockItem(*m_potted);
+        if (contentBlockItem != nullptr) {
+            return ItemStack(*contentBlockItem, 1);
+        }
+    }
+    // 空花盆返回默认（flower_pot 物品）
+    return Block::getCloneItemStack(state, world, pos);
+}
+
+bool FlowerPotBlock::ticksRandomly() const noexcept
+{
+    // 仅 potted_open_eyeblossom / potted_closed_eyeblossom 响应随机刻
+    // 匹配 MC Java 1.21.11: isRandomlyTicking
+    if (m_potted == nullptr) {
+        return false;
+    }
+    const ResourceLocation& contentId = m_potted->blockLocation();
+    return contentId == ResourceLocation("minecraft", "open_eyeblossom") ||
+        contentId == ResourceLocation("minecraft", "closed_eyeblossom");
+}
+
+void FlowerPotBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(random);
+    // TODO: EnvironmentAttributes 系统实现后，补全眼眸花状态切换逻辑：
+    // 1. 读取 EnvironmentAttributes.EYEBLOSSOM_OPEN 环境属性（开/合偏好）
+    // 2. 若与当前状态不一致，则切换为对应的眼眸花盆栽方块
+    //    （potted_open_eyeblossom <-> potted_closed_eyeblossom）
+    // 3. 生成 TrailParticleOption 转换粒子
+    // 4. 播放 EYEBLOSSOM_OPEN_LONG / EYEBLOSSOM_CLOSE_LONG 音效
+    // 5. 连锁触发周围 3×2×3 范围内同种眼眸花方块的延迟 tick
+    // 参考: net.minecraft.world.level.block.FlowerPotBlock#randomTick
 }
 
 const FlowerPotBlock* FlowerPotBlock::getByContent(const Block& content)

@@ -39,10 +39,23 @@ namespace blocks {
  * 花盆是一种装饰性方块，可容纳一种植物内容物：
  * - 空花盆：玩家右键点击可放入手持的可盆栽植物（花、树苗、蕨、蘑菇、仙人掌等）
  * - 已有内容物的花盆：玩家空手右键可取出内容物，花盆变回空花盆
- * - 下方方块被移除时自动掉落
  *
  * 每个具体的盆栽植物（如 potted_poppy、potted_oak_sapling）都是独立的 FlowerPotBlock 实例，
  * 通过构造时传入不同的"内容物方块"来区分。空花盆的内容物为 nullptr。
+ *
+ * 参考: net.minecraft.world.level.block.FlowerPotBlock
+ *
+ * 与 MC Java 1.21.11 的差异：
+ * - MC 中空花盆的 potted 字段为 Blocks.AIR；本项目使用 nullptr 表示空花盆
+ * - MC 中 canSurvive 默认返回 true，花盆可以在任何位置存在（包括悬空）；
+ *   本项目 isValidPosition 同样默认返回 true，行为一致
+ * - MC 中 updateShape 检查 DOWN && !canSurvive，由于 canSurvive 始终为 true，
+ *   花盆不会因下方方块移除而自动掉落；本项目 updatePostPlacement 保持同样行为
+ *
+ * 眼眸花（potted_open_eyeblossom / potted_closed_eyeblossom）特殊逻辑：
+ * - MC 中眼眸花方块会响应随机刻，根据 EnvironmentAttributes.EYEBLOSSOM_OPEN
+ *   环境属性在开/合状态间切换，并播放声音/生成粒子
+ * - 本项目尚未实现 EnvironmentAttributes 系统，故 randomTick 暂留 TODO
  */
 class FlowerPotBlock : public Block {
 public:
@@ -69,12 +82,18 @@ public:
 
     /**
      * @brief 检查是否可以放置
+     *
+     * 匹配 MC Java 1.21.11: FlowerPotBlock 不重写 canSurvive，
+     * 默认返回 true，花盆可以放置在任何位置（包括悬空）。
      */
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     /**
      * @brief 邻居更新
+     *
+     * 匹配 MC Java 1.21.11: updateShape 检查 DOWN && !canSurvive。
+     * 由于 canSurvive 默认返回 true，花盆不会因下方方块变化而破坏。
      */
     BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -90,6 +109,8 @@ public:
      *
      * - 空花盆 + 玩家手持可盆栽植物的 BlockItem → 放入植物，花盆变为对应 potted_* 方块
      * - 已有内容物的花盆 + 空手 → 取出内容物，花盆变回空花盆，物品掉落或入背包
+     * - 已有内容物的花盆 + 玩家手持可盆栽植物 → 消费物品但不执行动作（与 MC Java 一致）
+     * - 空花盆 + 空手 → 消费动作（无操作）
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -97,6 +118,36 @@ public:
         Player& player,
         Hand hand,
         const BlockRaycastResult& hit) override;
+
+    // ========== 中键选取 ==========
+
+    /**
+     * @brief 获取中键选取物品
+     *
+     * 已盆栽的花盆返回内容物对应的物品（匹配 MC Java getCloneItemStack）；
+     * 空花盆返回默认（flower_pot 物品）。
+     */
+    [[nodiscard]] ItemStack getCloneItemStack(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
+    // ========== 随机刻（眼眸花特殊逻辑） ==========
+
+    /**
+     * @brief 是否响应随机刻
+     *
+     * 仅 potted_open_eyeblossom / potted_closed_eyeblossom 返回 true。
+     * 匹配 MC Java 1.21.11: isRandomlyTicking
+     */
+    [[nodiscard]] bool ticksRandomly() const noexcept override;
+
+    /**
+     * @brief 随机刻处理
+     *
+     * 眼眸花根据 EnvironmentAttributes.EYEBLOSSOM_OPEN 在开/合状态间切换。
+     * TODO: EnvironmentAttributes 系统实现后，补全眼眸花状态切换逻辑
+     *       （含粒子生成、声音播放、连锁触发周围眼眸花方块）
+     */
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     // ========== 内容物 ==========
 

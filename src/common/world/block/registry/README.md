@@ -18,6 +18,7 @@ registry/
 ├── ColoredBlocks.hpp/.cpp       # 染色方块：羊毛、地毯、染色玻璃、混凝土、陶瓦、床（16色BedBlock）、潜影盒（16色ShulkerBoxBlock+无色）
 ├── CopperBlocks.hpp/.cpp        # 铜方块系列（含氧化阶段）
 ├── DeepslateBlocks.hpp/.cpp     # 深板岩系列
+├── FlowerPotBlocks.hpp/.cpp     # 花盆方块系列（空花盆 + 37 种 potted_* 盆栽变体，FlowerPotBlock）
 ├── GardenBlocks.hpp/.cpp        # 花园方块
 ├── MangroveBlocks.hpp/.cpp      # 红树林系列
 ├── MudBlocks.hpp/.cpp           # 泥土系列
@@ -139,3 +140,13 @@ WHITE_CANDLE → WHITE_CANDLE_CAKE
 蜡烛蛋糕属性：`Material::CAKE, notSolid, BlockSoundTypes::CLOTH, hardness=0.5, resistance=0.5`
 
 标签：蜡烛属于 `CANDLES` 标签，蜡烛蛋糕属于 `CANDLE_CAKES` 标签。
+
+### 7. FlowerPotBlocks 注册顺序与内容物依赖
+
+`registerFlowerPotBlocks()` 注册空花盆（`minecraft:flower_pot`）和 37 种 `potted_*` 盆栽变体。每个 `potted_*` 方块在构造时传入对应的"内容物方块"指针（如 `potted_poppy` 传入 `VanillaBlocks::POPPY`），并自动注册到 `FlowerPotBlock::s_pottedByContent` 反查映射表中。
+
+**依赖关系**：所有内容物方块（树苗、花、蘑菇、蕨、仙人掌、竹子、下界菌、根等）必须先于 `registerFlowerPotBlocks()` 注册。当前调用顺序为 `registerFlowerPotBlocks()` 位于 `registerCandleBlocks()` 之后，此时 VegetationBlocks、NaturalBlocks、NetherBlocks、CaveBlocks 等内容物来源分类已全部就绪。
+
+**物品映射**：38 个花盆方块共享同一个 `minecraft:flower_pot` 物品（通过 `BlockItemRegistry::registerSimpleBlock` 重用机制自动派生物品名），中键选取已盆栽花盆时返回内容物对应的物品（见 `FlowerPotBlock::getCloneItemStack`）。
+
+**标签**：所有花盆方块属于 `FLOWER_POTS` 标签；`potted_warped_fungus` 额外属于 `HOGLIN_REPELLENTS` 标签。
