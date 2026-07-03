@@ -446,6 +446,16 @@ public:
     [[nodiscard]] std::shared_ptr<std::atomic<bool>> abortSignal() const;
 
     /**
+     * @brief 获取当前请求优先级（i32，越小越高，INT_MAX 表示未设置/已取消）
+     *
+     * m_requestPriority 由 submitRequest 单调收敛到更小值（更高优先级），
+     * cancelActiveWork/markLoadedFromStorageReady 重置为 INT_MAX。
+     * 用于磁盘加载优先级传播：_resolveChunkSourceSync 读取后映射到 TaskPriority，
+     * 透传到 ServerIO/ServerCompute 线程池，使玩家附近区块优先加载。
+     */
+    [[nodiscard]] i32 requestPriority() const;
+
+    /**
      * @brief 复活一个已被取消（abortSignal==true）的 holder，使其可被重新调度生成。
      *
      * checkNeighbour 遇到邻居 holder 处于取消态（cancelActiveWork 置位 abortSignal 但未移除 holder）
