@@ -555,6 +555,7 @@ add_executable(mc_tests
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
+    common/world/block/SupportTypeTest.cpp
     common/world/block/IGrowableTest.cpp
     common/world/gameevent/VibrationSystemTest.cpp
     # VibrationSystem 序列化测试

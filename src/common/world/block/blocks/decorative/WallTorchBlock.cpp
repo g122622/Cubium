@@ -28,6 +28,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -85,24 +87,27 @@ const BlockState& WallTorchBlock::withFacing(const BlockState& state, Direction 
 
 bool WallTorchBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    Direction facing = getFacing(state);
-    Direction attachDir = Directions::opposite(facing);
-    BlockPos attachPos = pos.offset(attachDir);
+    // 与 MC 1.21.11 WallTorchBlock.canSurvive 一致：
+    //   blockstate.isFaceSturdy(world, blockpos, facing)（默认 SupportType.FULL）
+    const Direction facing = getFacing(state);
+    const Direction attachDir = Directions::opposite(facing);
+    const BlockPos attachPos = pos.offset(attachDir);
     const BlockState* attachState = world.getBlockState(attachPos);
     if (!attachState || attachState->isAir()) {
         return false;
     }
-    return attachState->isSolidSide(world, attachPos, facing);
+    return attachState->isFaceSturdy(world, attachPos, facing, SupportType::Full);
 }
 
 bool WallTorchBlock::_canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const
 {
-    BlockPos attachPos = pos.offset(Directions::opposite(facing));
+    const Direction attachDir = Directions::opposite(facing);
+    const BlockPos attachPos = pos.offset(attachDir);
     const BlockState* attachState = world.getBlockState(attachPos);
     if (!attachState || attachState->isAir()) {
         return false;
     }
-    return attachState->getBlock().isSolidSide(*attachState, world, attachPos, facing);
+    return attachState->isFaceSturdy(world, attachPos, facing, SupportType::Full);
 }
 
 BlockState WallTorchBlock::updatePostPlacement(const BlockState& state,
@@ -113,15 +118,14 @@ BlockState WallTorchBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& facingPos)
 {
     MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
+    MC_UNUSED(currentPos);
 
-    // 当附着面方向有变化时检查支撑是否还在
-    Direction torchFacing = getFacing(state);
+    // 与 MC 1.21.11 一致：附着方向邻居变化且 canSurvive 失败时变为空气
+    const Direction torchFacing = getFacing(state);
     if (facing == Directions::opposite(torchFacing)) {
-        if (!facingState.isAir() && facingState.getBlock().isSolidSide(facingState, world, facingPos, torchFacing)) {
+        if (!facingState.isAir() && facingState.isFaceSturdy(world, facingPos, torchFacing, SupportType::Full)) {
             return state;
         }
-        // 支撑丢失，变为空气
         if (auto* airBlock = VanillaBlocks::AIR) {
             return airBlock->defaultState();
         }
@@ -133,29 +137,22 @@ BlockState WallTorchBlock::updatePostPlacement(const BlockState& state,
 
 BlockState WallTorchBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 首先尝试点击面方向
-    Direction hitFace = context.face();
-    if (Directions::isHorizontal(hitFace)) {
-        BlockPos pos = context.placementPos();
-        // 附着面是点击的方块，位于放置位置的反方向
-        Direction attachDir = Directions::opposite(hitFace);
-        BlockPos attachPos = pos.offset(attachDir);
-        IWorld& world = context.getWorld();
-        const BlockState* attachState = world.getBlockState(attachPos);
-        if (attachState && attachState->getBlock().isSolidSide(*attachState, world, attachPos, hitFace)) {
-            return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), attachDir);
-        }
-    }
+    // 与 MC 1.21.11 一致：遍历玩家视线方向，仅水平方向有效
+    BlockState blockstate = defaultState();
+    IWorld& world = context.getWorld();
+    const BlockPos pos = context.placementPos();
 
-    // 尝试其他水平方向
-    for (Direction dir : {Direction::North, Direction::South, Direction::West, Direction::East}) {
-        BlockPos pos = context.placementPos();
-        BlockPos attachPos = pos.offset(dir);
-        IWorld& world = context.getWorld();
+    for (const Direction direction : context.getNearestLookingDirections()) {
+        if (!Directions::isHorizontal(direction)) {
+            continue;
+        }
+        const Direction attachDir = Directions::opposite(direction);
+        blockstate = blockstate.with(BlockStateProperties::HORIZONTAL_FACING(), attachDir);
+        const BlockPos attachPos = pos.offset(attachDir);
         const BlockState* attachState = world.getBlockState(attachPos);
-        if (attachState &&
-            attachState->getBlock().isSolidSide(*attachState, world, attachPos, Directions::opposite(dir))) {
-            return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(dir));
+        if (attachState && !attachState->isAir() &&
+            attachState->isFaceSturdy(world, attachPos, direction, SupportType::Full)) {
+            return blockstate;
         }
     }
 

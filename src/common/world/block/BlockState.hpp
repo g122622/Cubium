@@ -85,6 +85,9 @@ class BlockSoundType;
 // Forward declaration for IProperty (used in StateHolder base class)
 class IProperty;
 
+// Forward declaration for SupportType (used in isFaceSturdy parameter)
+class SupportType;
+
 /**
  * @brief 方块状态
  *
@@ -296,6 +299,28 @@ public:
      * @return 如果面的投影覆盖整个 1x1 区域返回 true
      */
     [[nodiscard]] bool isFaceFull(Direction direction) const;
+
+    /**
+     * @brief 检查方块的支撑形状在指定方向是否提供指定类型的支撑
+     *
+     * 对应 MC 1.21.11 net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase#isFaceSturdy。
+     * 判定基于方块的 BlockSupportShape（支撑形状），而非碰撞形状。
+     *
+     * 三种支撑类型：
+     * - SupportType::Full：方块面投影必须覆盖整个 1×1 面
+     * - SupportType::Center：方块面投影必须包含中心 2×2 像素到 10×10 像素的"中心柱"区域
+     * - SupportType::Rigid：方块面投影必须覆盖 1×1 面除中心 12×12 像素柱以外的外环区域
+     *
+     * 参考: net.minecraft.block.BlockStateBase#isFaceSturdy(BlockGetter, BlockPos, Direction, SupportType)
+     *
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @param direction 要检查的面方向
+     * @param supportType 支撑类型
+     * @return 如果提供指定类型的支撑返回 true
+     */
+    [[nodiscard]] bool isFaceSturdy(
+        IWorld& world, const BlockPos& pos, Direction direction, const SupportType& supportType) const;
 
     /**
      * @brief 检查是否为不透明完整方块

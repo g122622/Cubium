@@ -24,7 +24,9 @@
 #include "AbstractPressurePlateBlock.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -84,13 +86,20 @@ void AbstractPressurePlateBlock::neighborChanged(
         return;
     }
 
-    // 检查下方支撑是否还在
-    BlockPos supportPos = pos.down();
-    const BlockState* supportState = world.getBlockState(supportPos);
-    if (!supportState || supportState->isAir()) {
-        // 压力板掉落 - 设置为空气方块
+    // 与 MC 1.21.11 BasePressurePlateBlock.canSurvive 一致：
+    //   canSupportRigidBlock(world, pos.below()) || canSupportCenter(world, pos.below(), Direction.UP)
+    // 下方支撑失效时移除压力板
+    if (!_canSurvive(world, pos)) {
         world.setBlockState(pos, nullptr, 2);
     }
+}
+
+bool AbstractPressurePlateBlock::_canSurvive(IWorld& world, const BlockPos& pos) const
+{
+    // 与 MC 1.21.11 BasePressurePlateBlock.canSurvive 一致：
+    //   canSupportRigidBlock(world, pos.below()) || canSupportCenter(world, pos.below(), Direction.UP)
+    const BlockPos belowPos = pos.down();
+    return Block::canSupportRigidBlock(world, belowPos) || Block::canSupportCenter(world, belowPos, Direction::Up);
 }
 
 void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)

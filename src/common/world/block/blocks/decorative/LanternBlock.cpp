@@ -27,8 +27,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -62,21 +62,28 @@ LanternBlock::LanternBlock(BlockProperties properties, u8 lightValue)
 
 BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    Direction clickedFace = context.getClickedFace();
-    const IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
+    // 与 MC 1.21.11 一致：遍历玩家视线方向，优先尝试悬挂（UP）或站立（DOWN）
+    IWorld& world = context.getWorld();
+    const BlockPos pos = context.placementPos();
+    const bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
-    // 检查是否含水
-    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
-
-    // 如果点击的是天花板，尝试悬挂
-    if (clickedFace == Direction::Down) {
-        return defaultState()
-            .with(BlockStateProperties::HANGING(), true)
-            .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    // 先尝试玩家视线方向中可用的 Y 轴方向
+    for (const Direction direction : context.getNearestLookingDirections()) {
+        if (Directions::getAxis(direction) != Axis::Y) {
+            continue;
+        }
+        const bool hanging = (direction == Direction::Up);
+        BlockState candidate = defaultState()
+                                   .with(BlockStateProperties::HANGING(), hanging)
+                                   .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+        // canSurvive: canSupportCenter(world, pos.relative(supportDir), opposite(supportDir))
+        const Direction supportDir = hanging ? Direction::Up : Direction::Down;
+        if (Block::canSupportCenter(world, pos.offset(supportDir), Directions::opposite(supportDir))) {
+            return candidate;
+        }
     }
 
-    // 默认站立
+    // 默认状态（站立）——与 MC 返回 null 不同，本项目返回默认状态以避免放置时崩溃
     return defaultState()
         .with(BlockStateProperties::HANGING(), false)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
@@ -84,19 +91,15 @@ BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool LanternBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 根据悬挂状态检查支撑方块
-    bool hanging = state.get(BlockStateProperties::HANGING());
-    // 悬挂时检查上方方块，站立时检查下方方块
-    Direction supportDir = hanging ? Direction::Up : Direction::Down;
-    BlockPos supportPos = pos.offset(supportDir);
-    const BlockState* supportState = world.getBlockState(supportPos);
-
-    if (supportState == nullptr || supportState->isAir()) {
-        return false;
-    }
-
-    // 检查支撑面是否为足够坚固的实体面
-    return supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir));
+    // 与 MC 1.21.11 LanternBlock.canSurvive 一致：
+    //   Block.canSupportCenter(world, pos.relative(direction), direction.getOpposite())
+    // 其中 direction = getConnectedDirection(state).opposite()
+    // - HANGING=true: direction=UP，检查 pos.above() 的 DOWN 面
+    // - HANGING=false: direction=DOWN，检查 pos.below() 的 UP 面
+    const bool hanging = state.get(BlockStateProperties::HANGING());
+    const Direction supportDir = hanging ? Direction::Up : Direction::Down;
+    const BlockPos supportPos = pos.offset(supportDir);
+    return Block::canSupportCenter(world, supportPos, Directions::opposite(supportDir));
 }
 
 BlockState LanternBlock::updatePostPlacement(const BlockState& state,
@@ -114,17 +117,12 @@ BlockState LanternBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 如果支撑方块被移除，则移除灯笼
-    bool hanging = state.get(BlockStateProperties::HANGING());
-    Direction supportDir = hanging ? Direction::Up : Direction::Down;
+    // 与 MC 1.21.11 一致：支撑方向邻居变化且 canSurvive 失败时掉落为空气
+    const bool hanging = state.get(BlockStateProperties::HANGING());
+    const Direction supportDir = hanging ? Direction::Up : Direction::Down;
 
     if (facing == supportDir) {
-        // 支撑方块发生变化，检查是否仍然有效
-        BlockPos supportPos = currentPos.offset(supportDir);
-        const BlockState* supportState = world.getBlockState(supportPos);
-
-        if (supportState == nullptr || supportState->isAir() ||
-            !supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir))) {
+        if (!Block::canSupportCenter(world, currentPos.offset(supportDir), Directions::opposite(supportDir))) {
             return VanillaBlocks::AIR->defaultState();
         }
     }

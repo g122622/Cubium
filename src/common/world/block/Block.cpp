@@ -52,6 +52,7 @@
 #include "FireInfoRegistry.hpp"
 #include "Material.hpp"
 #include "PlantType.hpp"
+#include "SupportType.hpp"
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -775,6 +776,33 @@ bool Block::hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction dir
     }
 
     return doesSideFillSquare(state->getCollisionShape(), direction);
+}
+
+bool Block::canSupportCenter(IWorld& world, const BlockPos& pos, Direction direction)
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return false;
+    }
+
+    // MC 1.21.11: 仅当 direction == DOWN 且方块属于 UNSTABLE_BOTTOM_CENTER 标签（栅栏门）时拒绝
+    if (direction == Direction::Down && BlockTags::UNSTABLE_BOTTOM_CENTER().contains(*state)) {
+        return false;
+    }
+
+    // 委托到 BlockState.isFaceSturdy，使用 SupportType::Center 判定
+    return state->isFaceSturdy(world, pos, direction, SupportType::Center);
+}
+
+bool Block::canSupportRigidBlock(IWorld& world, const BlockPos& pos)
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return false;
+    }
+
+    // MC 1.21.11: BlockState.isFaceSturdy(Direction.UP, SupportType.RIGID)
+    return state->isFaceSturdy(world, pos, Direction::Up, SupportType::Rigid);
 }
 
 bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)

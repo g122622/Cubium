@@ -25,6 +25,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -44,19 +45,11 @@ const CollisionShape& SporeBlossomBlock::getShape(const BlockState& state) const
 bool SporeBlossomBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-
-    // MC 1.21.11: canSupportCenter(world, above, DOWN) && !isWaterAt(pos)
-    // 上方方块必须有向下的坚固面，且当前位置不在水中
-    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
-    if (!aboveState) {
+    // 与 MC 1.21.11 SporeBlossomBlock.canSurvive 一致：
+    //   Block.canSupportCenter(world, pos.above(), Direction.DOWN) && !world.isWaterAt(pos)
+    if (!Block::canSupportCenter(world, pos.offset(Direction::Up), Direction::Down)) {
         return false;
     }
-
-    if (!aboveState->isSolidSide(world, abovePos, Direction::Down)) {
-        return false;
-    }
-
     return !world.isWaterAt(pos);
 }
 

@@ -244,13 +244,11 @@ size_t BellBlock::_shapeIndex(const BlockState& state)
 BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 参考: net.minecraft.world.level.block.BellBlock#getStateForPlacement
-    // TODO: CEILING 附着检测简化——MC 原版在 canSurvive 中对 CEILING（direction==UP）
-    //       使用 Block.canSupportCenter(world, pos.above(), DOWN) 检查上方方块是否
-    //       提供"中心支撑"（用于活塞、钟等悬挂方块的特殊判定），本项目尚未实现
-    //       canSupportCenter 等价方法，此处统一使用 hasEnoughSolidSide（对应 MC 的
-    //       isFaceSturdy）近似。两者在大多数固体方块上结果一致，但对栅栏、玻璃板等
-    //       非完整方块的判定可能存在差异。待 Block::canSupportCenter 实现后需替换
-    //       CEILING 路径的 hasEnoughSolidSide 调用，并移除本 TODO。
+    // 与 MC 1.21.11 一致：
+    // - Y 轴点击：FLOOR（顶面）或 CEILING（底面），通过 canSurvive 判定
+    //   canSurvive 中 CEILING 走 Block.canSupportCenter(world, pos.above(), DOWN) 中心支撑判定
+    //   FLOOR 与 WALL 走 FaceAttachedHorizontalDirectionalBlock.canAttach（基于 isFaceSturdy(FULL)）
+    // - 侧面点击：优先双面墙，回退到单面墙；若仍不可存活则尝试 FLOOR，再回退 CEILING
     const Direction clickedFace = context.getClickedFace();
     const BlockPos clickedPos = context.placementPos();
     IWorld& world = context.getWorld();
@@ -265,9 +263,14 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
                                    isFloor ? BlockStateProperties::BellAttachment::Floor
                                            : BlockStateProperties::BellAttachment::Ceiling)
                                .with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection());
-        if (Block::hasEnoughSolidSide(world,
-                clickedPos.offset(isFloor ? Direction::Down : Direction::Up),
-                isFloor ? Direction::Up : Direction::Down)) {
+        // canSurvive 判定：
+        // - FLOOR: canAttach(world, pos, DOWN) = isFaceSturdy(world, pos.below(), UP, FULL)
+        // - CEILING: canSupportCenter(world, pos.above(), DOWN)
+        const BlockPos supportPos = clickedPos.offset(isFloor ? Direction::Down : Direction::Up);
+        const Direction supportDir = isFloor ? Direction::Up : Direction::Down;
+        const bool canSurvive = isFloor ? Block::hasEnoughSolidSide(world, supportPos, supportDir)
+                                        : Block::canSupportCenter(world, supportPos, supportDir);
+        if (canSurvive) {
             return state;
         }
     } else {
@@ -298,9 +301,12 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
         const bool floorOk = Block::hasEnoughSolidSide(world, clickedPos.offset(Direction::Down), Direction::Up);
         state = state.with(BlockStateProperties::BELL_ATTACHMENT(),
             floorOk ? BlockStateProperties::BellAttachment::Floor : BlockStateProperties::BellAttachment::Ceiling);
-        if (Block::hasEnoughSolidSide(world,
-                clickedPos.offset(floorOk ? Direction::Down : Direction::Up),
-                floorOk ? Direction::Up : Direction::Down)) {
+        // canSurvive 判定（FLOOR 走 hasEnoughSolidSide，CEILING 走 canSupportCenter）
+        const BlockPos fallbackPos = clickedPos.offset(floorOk ? Direction::Down : Direction::Up);
+        const Direction fallbackDir = floorOk ? Direction::Up : Direction::Down;
+        const bool fallbackOk = floorOk ? Block::hasEnoughSolidSide(world, fallbackPos, fallbackDir)
+                                        : Block::canSupportCenter(world, fallbackPos, fallbackDir);
+        if (fallbackOk) {
             return state;
         }
     }
@@ -345,8 +351,13 @@ BlockState BellBlock::updatePostPlacement(const BlockState& state,
     // 支撑失效且不是双面墙：变为空气
     // 参考: direction == p_49745_ && !canSurvive && bellattachtype != DOUBLE_WALL
     if (facing == supportDir && attachment != BlockStateProperties::BellAttachment::DoubleWall) {
-        // canSurvive 检查 supportDir 方向的方块在 connectedDir 方向上是否有足够固体面
-        if (!Block::hasEnoughSolidSide(world, facingPos, connectedDir)) {
+        // canSurvive 判定：
+        // - CEILING: canSupportCenter(world, facingPos, DOWN)
+        // - FLOOR/WALL: hasEnoughSolidSide(world, facingPos, connectedDir)（等价 isFaceSturdy(FULL)）
+        const bool canSurvive = (attachment == BlockStateProperties::BellAttachment::Ceiling)
+            ? Block::canSupportCenter(world, facingPos, connectedDir)
+            : Block::hasEnoughSolidSide(world, facingPos, connectedDir);
+        if (!canSurvive) {
             return VanillaBlocks::AIR->defaultState();
         }
     }

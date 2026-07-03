@@ -32,6 +32,7 @@
 #include "../../../IWorld.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
@@ -105,14 +106,9 @@ BlockState CandleBlock::getStateForPlacement(BlockItemUseContext& context)
 bool CandleBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-
-    // 下方方块必须有坚固的上表面
-    BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos);
-    if (belowState == nullptr) {
-        return false;
-    }
-    return belowState->isSolidSide(world, belowPos, Direction::Up);
+    // 与 MC 1.21.11 CandleBlock.canSurvive 一致：
+    //   Block.canSupportCenter(world, pos.below(), Direction.UP)
+    return Block::canSupportCenter(world, pos.down(), Direction::Up);
 }
 
 BlockState CandleBlock::updatePostPlacement(const BlockState& state,

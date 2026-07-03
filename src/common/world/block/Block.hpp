@@ -49,8 +49,9 @@ class BlockItemUseContext;
 class Player;
 class BlockEntity;
 class Entity;
-class IPlantable; // 前向声明植物接口
-class ItemStack;  // 前向声明物品堆
+class IPlantable;  // 前向声明植物接口
+class ItemStack;   // 前向声明物品堆
+class SupportType; // 前向声明支撑类型
 
 namespace world::explosion {
 class Explosion;
@@ -1953,6 +1954,45 @@ public:
      * @return 如果有足够固体面返回 true
      */
     [[nodiscard]] static bool hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction direction);
+
+    /**
+     * @brief 检查方块是否在指定方向的面上提供 Center 支撑
+     *
+     * 对应 MC 1.21.11 net.minecraft.world.level.block.Block#canSupportCenter。
+     * 用于钟、灯笼、火把、孢子花、蜡烛等悬挂类方块的支撑判定。
+     *
+     * 判定逻辑：
+     * 1. 获取 pos 处方块的 BlockState
+     * 2. 如果该方块属于 #minecraft:unstable_bottom_center 标签（栅栏门），返回 false
+     * 3. 否则返回 BlockState.isFaceSturdy(direction, SupportType.CENTER)
+     *
+     * 与 hasEnoughSolidSide 不同，本方法基于"支撑形状"而非"固体面"判定，
+     * 允许非完整方块（如铁砧、楼梯）在中心柱区域提供支撑。
+     *
+     * 参考: net.minecraft.world.level.block.Block#canSupportCenter
+     *
+     * @param world 世界只读接口
+     * @param pos 方块位置
+     * @param direction 检查的面方向（方块贴在该方向的面上）
+     * @return 如果提供 Center 支撑返回 true
+     */
+    [[nodiscard]] static bool canSupportCenter(IWorld& world, const BlockPos& pos, Direction direction);
+
+    /**
+     * @brief 检查方块是否在顶面提供 Rigid 支撑
+     *
+     * 对应 MC 1.21.11 net.minecraft.world.level.block.Block#canSupportRigidBlock。
+     * 用于铁轨、压力板等需要外环刚性支撑的方块。
+     *
+     * 判定逻辑：BlockState.isFaceSturdy(Direction.UP, SupportType.RIGID)
+     *
+     * 参考: net.minecraft.world.level.block.Block#canSupportRigidBlock
+     *
+     * @param world 世界只读接口
+     * @param pos 方块位置
+     * @return 如果顶面提供 Rigid 支撑返回 true
+     */
+    [[nodiscard]] static bool canSupportRigidBlock(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 判断方块面是否填充方形区域

@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -47,15 +48,9 @@ const CollisionShape& TorchBlock::getShape(const BlockState& state) const
 bool TorchBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-
-    // 下方方块必须有坚固的上表面
-    const BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos);
-    if (!belowState) {
-        return false;
-    }
-
-    return belowState->isSolidSide(world, belowPos, Direction::Up);
+    // 与 MC 1.21.11 BaseTorchBlock.canSurvive 一致：
+    //   Block.canSupportCenter(world, pos.below(), Direction.UP)
+    return Block::canSupportCenter(world, pos.down(), Direction::Up);
 }
 
 BlockState TorchBlock::updatePostPlacement(const BlockState& state,
@@ -81,14 +76,9 @@ BlockState TorchBlock::updatePostPlacement(const BlockState& state,
 
 bool TorchBlock::_canSurvive(IWorld& world, const BlockPos& pos) const
 {
-    // 下方方块必须有坚固的上表面
-    const BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos);
-    if (!belowState) {
-        return false;
-    }
-
-    return belowState->isSolidSide(world, belowPos, Direction::Up);
+    // 与 MC 1.21.11 BaseTorchBlock.canSurvive 一致：
+    //   Block.canSupportCenter(world, pos.below(), Direction.UP)
+    return Block::canSupportCenter(world, pos.down(), Direction::Up);
 }
 
 void TorchBlock::animateTick(

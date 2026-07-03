@@ -165,6 +165,18 @@ protected:
      * @param state 当前方块状态
      */
     void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 检查压力板是否可以存活
+     *
+     * 与 MC 1.21.11 BasePressurePlateBlock.canSurvive 一致：
+     *   canSupportRigidBlock(world, pos.below()) || canSupportCenter(world, pos.below(), Direction.UP)
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @return 如果有支撑返回 true
+     */
+    [[nodiscard]] bool _canSurvive(IWorld& world, const BlockPos& pos) const;
 };
 
 } // namespace blocks

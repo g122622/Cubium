@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 
@@ -189,17 +190,9 @@ void AbstractRailBlock::neighborChanged(
 bool AbstractRailBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-
-    // 检查下方是否有固体方块
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos);
-
-    if (belowState == nullptr) {
-        return false;
-    }
-
-    // 铁轨需要放在固体方块上
-    return belowState->isSolid();
+    // 与 MC 1.21.11 BaseRailBlock.canSurvive 一致：
+    //   Block.canSupportRigidBlock(world, pos.below())
+    return Block::canSupportRigidBlock(world, pos.down());
 }
 
 const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
@@ -238,36 +231,30 @@ void AbstractRailBlock::updateState(IWorld& world, const BlockPos& pos, const Bl
 
 bool AbstractRailBlock::shouldBeRemoved(const BlockState& state, IBlockReader& world, const BlockPos& pos)
 {
+    // 与 MC 1.21.11 BaseRailBlock.shouldBeRemoved 一致：
+    // - 下方方块不再提供 Rigid 支撑 → 移除
+    // - 斜坡铁轨在上升方向的相邻方块不再提供 Rigid 支撑 → 移除
+    if (!Block::canSupportRigidBlock(world, pos.down())) {
+        return true;
+    }
+
     // 获取铁轨方块并查询形状
     const Block* block = &state.owner();
     const AbstractRailBlock* rail = dynamic_cast<const AbstractRailBlock*>(block);
     if (rail == nullptr) {
         return false;
     }
-    RailShape shape = rail->getRailShape(state);
+    const RailShape shape = rail->getRailShape(state);
 
-    // 斜坡铁轨需要在其上升方向上方有支撑方块
     switch (shape) {
-        case RailShape::AscendingNorth: {
-            BlockPos supportPos = pos.north().up();
-            const BlockState* supportState = world.getBlockState(supportPos);
-            return supportState == nullptr || !supportState->isSolid();
-        }
-        case RailShape::AscendingSouth: {
-            BlockPos supportPos = pos.south().up();
-            const BlockState* supportState = world.getBlockState(supportPos);
-            return supportState == nullptr || !supportState->isSolid();
-        }
-        case RailShape::AscendingEast: {
-            BlockPos supportPos = pos.east().up();
-            const BlockState* supportState = world.getBlockState(supportPos);
-            return supportState == nullptr || !supportState->isSolid();
-        }
-        case RailShape::AscendingWest: {
-            BlockPos supportPos = pos.west().up();
-            const BlockState* supportState = world.getBlockState(supportPos);
-            return supportState == nullptr || !supportState->isSolid();
-        }
+        case RailShape::AscendingEast:
+            return !Block::canSupportRigidBlock(world, pos.east());
+        case RailShape::AscendingWest:
+            return !Block::canSupportRigidBlock(world, pos.west());
+        case RailShape::AscendingNorth:
+            return !Block::canSupportRigidBlock(world, pos.north());
+        case RailShape::AscendingSouth:
+            return !Block::canSupportRigidBlock(world, pos.south());
         default:
             return false;
     }

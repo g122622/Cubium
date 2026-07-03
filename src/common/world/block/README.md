@@ -25,6 +25,7 @@
 ├── ILiquidContainer.hpp #液体容器接口
 ├── IWaterLoggable.hpp / cpp #含水方块接口
 ├── Material.hpp / cpp #材质系统（物理属性）
+├── SupportType.hpp / cpp #方块支撑类型（Full / Center / Rigid），用于 isFaceSturdy / canSupportCenter / canSupportRigidBlock 判定
 ├── PlantType.hpp #植物类型定义
 ├── WaterLoggableHelpers.hpp #含水方块工具函数
 ├── FenceGateHelpers.hpp #栅栏门连接检测工具函数
@@ -774,3 +775,28 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 **物品注册**：床物品使用自定义 `BedItem` 子类（非 `registerSimpleBlock`），在 `Items::_registerBeds()` 中通过 `registerItem<BedItem>()` 注册，最大堆叠数为 1。`BedItem` 重写 `getStateForPlacement()` 检查头部位置可替换性，`BedBlock::onBlockPlacedBy()` 在脚部放置后自动放置头部方块。
 
 **注意**：床的双方块结构（HEAD/FOOT）要求放置和破坏时同时处理两个方块位置，详见 `functional/README.md` 中的 BedBlock 文档。
+
+## #38. SupportType 支撑类型与 canSupportCenter / canSupportRigidBlock
+
+`SupportType` 对应 MC 1.21.11 `net.minecraft.world.level.block.SupportType`，用于判断方块面是否足够坚固以支撑其他方块（火把、灯笼、钟、压力板、铁轨等）。三种支撑类型：
+
+| 类型 | 判定 | 典型用途 |
+|------|------|----------|
+| `Full` | 方块面投影必须覆盖整个 1×1 面 | 墙面附着（WallTorchBlock、BellBlock 墙面路径） |
+| `Center` | 方块面投影必须包含中心 2×2 像素到 10×10 像素的"中心柱" | 悬挂方块（BellBlock 天花板、LanternBlock、TorchBlock、CandleBlock、SporeBlossomBlock） |
+| `Rigid` | 方块面投影必须覆盖 1×1 面除中心 12×12 像素柱以外的外环 | 铁轨、压力板 |
+
+**判定基于方块的 BlockSupportShape（支撑形状）**，默认等于碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，但支撑形状是完整方块。
+
+**关键 API**：
+- `BlockState::isFaceSturdy(world, pos, direction, supportType)`：委托到 `supportType.isSupporting(*this, world, pos, direction)`
+- `Block::canSupportCenter(world, pos, direction)`：CEILING 路径专用，对 `UNSTABLE_BOTTOM_CENTER` 标签方块（栅栏门）在 `Direction::Down` 方向返回 false
+- `Block::canSupportRigidBlock(world, pos)`：等价于 `state.isFaceSturdy(world, pos, Direction::Up, SupportType::Rigid)`，用于铁轨、压力板
+
+**与 hasEnoughSolidSide 的区别**：
+- `hasEnoughSolidSide`：Cubium 遗留方法，检查 `isSolidSide && doesSideFillSquare(collisionShape)`，无 MC 1.21.11 对应（MC 中 `hasEnoughSolidSide` 已移除）
+- `isFaceSturdy(Full)`：基于 `blockSupportShape` 判定，与 MC 1.21.11 一致
+
+**迁移指南**：悬挂类方块（BellBlock CEILING、LanternBlock、TorchBlock、CandleBlock、SporeBlossomBlock）应使用 `canSupportCenter`；墙面附着类（WallTorchBlock、BellBlock 墙面路径）应使用 `isFaceSturdy(Full)`；铁轨、压力板使用 `canSupportRigidBlock`（压力板还需 `|| canSupportCenter`）。
+
+**注意**：`UNSTABLE_BOTTOM_CENTER` 标签数据包内容为 `#minecraft:fence_gates`（12 种栅栏门），项目当前未实现标签到标签的引用，因此直接内联栅栏门列表。未来若实现标签引用系统，可改为 `addAll({TagReference("minecraft:fence_gates")})`。

@@ -307,6 +307,15 @@ BlockTag& BlockTags::FENCE_GATES()
     return *tag;
 }
 
+BlockTag& BlockTags::UNSTABLE_BOTTOM_CENTER()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "unstable_bottom_center"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOODEN_SHELVES()
 {
     static BlockTag* tag = nullptr;
@@ -1331,6 +1340,24 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "crimson_fence_gate"),
         ResourceLocation("minecraft", "warped_fence_gate")});
     tags[fenceGates->getId()] = std::move(fenceGates);
+
+    // 创建 UNSTABLE_BOTTOM_CENTER 标签
+    // MC 1.21.11 数据包中本标签内容为 #minecraft:fence_gates
+    // 由于项目当前未实现标签到标签的引用，这里直接内联栅栏门列表
+    auto unstableBottomCenter = std::make_unique<BlockTag>(ResourceLocation("minecraft", "unstable_bottom_center"));
+    unstableBottomCenter->addAll({ResourceLocation("minecraft", "oak_fence_gate"),
+        ResourceLocation("minecraft", "spruce_fence_gate"),
+        ResourceLocation("minecraft", "birch_fence_gate"),
+        ResourceLocation("minecraft", "jungle_fence_gate"),
+        ResourceLocation("minecraft", "acacia_fence_gate"),
+        ResourceLocation("minecraft", "dark_oak_fence_gate"),
+        ResourceLocation("minecraft", "mangrove_fence_gate"),
+        ResourceLocation("minecraft", "cherry_fence_gate"),
+        ResourceLocation("minecraft", "bamboo_fence_gate"),
+        ResourceLocation("minecraft", "pale_oak_fence_gate"),
+        ResourceLocation("minecraft", "crimson_fence_gate"),
+        ResourceLocation("minecraft", "warped_fence_gate")});
+    tags[unstableBottomCenter->getId()] = std::move(unstableBottomCenter);
 
     // 创建 WOODEN_SHELVES 标签
     auto woodenShelves = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_shelves"));

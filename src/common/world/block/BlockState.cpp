@@ -27,6 +27,7 @@
 #include "BlockPos.hpp"
 #include "BlockSoundType.hpp"
 #include "Material.hpp"
+#include "SupportType.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -128,6 +129,12 @@ bool BlockState::isSolidSide(IWorld& world, const BlockPos& pos, Direction side)
 bool BlockState::isFaceFull(Direction direction) const
 {
     return Block::isFaceFull(getCollisionShape(), direction);
+}
+
+bool BlockState::isFaceSturdy(
+    IWorld& world, const BlockPos& pos, Direction direction, const SupportType& supportType) const
+{
+    return supportType.isSupporting(*this, world, pos, direction);
 }
 
 bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const

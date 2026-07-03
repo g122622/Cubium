@@ -22,7 +22,9 @@
 
 #include "CactusFlowerBlock.hpp"
 #include "../../../IWorld.hpp"
+#include "../../Block.hpp"
 #include "../../BlockTags.hpp"
+#include "../../SupportType.hpp"
 #include "../../registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -37,22 +39,16 @@ CactusFlowerBlock::CactusFlowerBlock(const BlockProperties& properties)
 
 bool CactusFlowerBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
-    // 仙人掌花可放置在仙人掌上方
+    // 与 MC 1.21.11 CactusFlowerBlock.mayPlaceOn 一致：
+    //   groundState.is(CACTUS) || groundState.is(FARMLAND)
+    //   || groundState.isFaceSturdy(world, pos, Direction.UP, SupportType.CENTER)
     if (VanillaBlocks::CACTUS != nullptr && groundState.is(VanillaBlocks::CACTUS)) {
         return true;
     }
-
-    // 仙人掌花可放置在耕地上
     if (VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND)) {
         return true;
     }
-
-    // 仙人掌花可放置在具有实心顶面（CENTER支撑类型）的方块上
-    if (groundState.isSolidSide(world, groundPos, Direction::Up)) {
-        return true;
-    }
-
-    return false;
+    return groundState.isFaceSturdy(world, groundPos, Direction::Up, SupportType::Center);
 }
 
 } // namespace blocks

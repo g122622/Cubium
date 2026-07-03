@@ -213,6 +213,13 @@ public:
     /// 栅栏门标签
     static BlockTag& FENCE_GATES();
 
+    /// 不稳定底部中心标签（栅栏门等）
+    /// 运行时消费场景：
+    /// 1. Block.canSupportCenter 判定 — 栅栏门虽占完整方块，但顶部无法提供 Center 支撑
+    ///    用于钟、灯笼、火把、孢子花、蜡烛等悬挂类方块的支撑判定
+    /// 对应 MC 1.21.11 #minecraft:unstable_bottom_center，数据包内容为 #minecraft:fence_gates
+    static BlockTag& UNSTABLE_BOTTOM_CENTER();
+
     /// 木质书架标签（所有12种木质/下界木质书架变体）
     /// 运行时消费场景：
     /// 1. ShelfBlock 侧链连接判定 — 判断相邻书架是否可连接
