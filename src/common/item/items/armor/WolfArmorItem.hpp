@@ -67,9 +67,33 @@ public:
      */
     [[nodiscard]] u32 getDefaultColor() const { return DEFAULT_COLOR; }
 
+    /**
+     * @brief 获取防御值
+     *
+     * 狼铠使用 Body 槽位防御值 11，而非材质 Chest 槽位防御值 6。
+     * 重写 ArmorItem::getDefense() 以返回正确的狼铠防御值。
+     * TODO: 待 ArmorSlot::Body 槽位添加后，可通过材质防御表统一获取。
+     *
+     * @return 狼铠防御值 11
+     */
+    [[nodiscard]] i32 getDefense() const noexcept override { return BODY_DEFENSE; }
+
 private:
     /// 狼铠默认颜色（犰狳鳞甲棕色）
     static constexpr u32 DEFAULT_COLOR = 0xA06540;
+
+    /// 狼铠 Body 槽位防御值（MC 1.21.11: wolf_armor defense = 11）
+    static constexpr i32 BODY_DEFENSE = 11;
+
+    /**
+     * @brief 重建属性修饰符
+     *
+     * ArmorItem 基类构造函数中 _buildAttributeModifiers() 使用的是
+     * ArmorItem::getDefense()（返回材质 Chest 槽位防御值 6），
+     * 但狼铠的 Body 槽位防御值应为 11。
+     * 此方法在构造函数中调用，使用正确的防御值重建属性修饰符。
+     */
+    void _rebuildAttributeModifiers();
 };
 
 } // namespace item::items

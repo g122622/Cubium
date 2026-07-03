@@ -44,6 +44,7 @@ armor/
 - **下界合金马铠防火**：下界合金马铠通过 `ItemTags::FIRE_RESISTANT` 标签实现防火效果（免疫火焰/岩浆伤害），与 MC Java 通过 `Item.Properties.fireResistant()` 机制不同。
 - **鹦鹉螺铠甲护甲值**：鹦鹉螺铠甲使用独立的护甲值（通过构造函数显式传入），不从 `ArmorMaterial::getDefense()` 推导，因为当前 `ArmorSlot` 枚举缺少 Body 槽位。各材质护甲值为：铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19，与马铠护甲值一致。
 - **狼铠默认颜色**：`WolfArmorItem::getDefaultColor()` 返回 0xA06540（犰狳鳞甲棕色），对应 MC Java 中 `DyeableArmorItem.getDefaultColor()` 的狼铠默认色。
+- **狼铠防御值重写**：`WolfArmorItem` 重写了 `ArmorItem::getDefense()`（已改为 virtual），返回 Body 槽位防御值 11 而非材质 Chest 槽位防御值 6。同时，`WolfArmorItem` 在构造函数中调用 `_rebuildAttributeModifiers()` 重建属性修饰符，确保属性修饰符也使用正确的防御值 11。待 `ArmorSlot::Body` 槽位添加后，可统一从材质防御表获取。
 
 ## ArmorItem 属性修饰符系统
 

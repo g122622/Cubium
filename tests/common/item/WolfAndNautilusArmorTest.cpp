@@ -151,6 +151,15 @@ TEST_F(WolfAndNautilusArmorTest, WolfArmorItem_GetRepairMaterial)
     EXPECT_TRUE(Items::WOLF_ARMOR->getIsRepairable(wolfArmorStack, repairStack));
 }
 
+TEST_F(WolfAndNautilusArmorTest, WolfArmorItem_GetDefense_ReturnsBodyValue)
+{
+    // 狼铠防御值应为 11（Body 槽位），而非材质 Chest 槽位的 6
+    ASSERT_NE(Items::WOLF_ARMOR, nullptr);
+    auto* wolfArmor = dynamic_cast<ArmorItem*>(Items::WOLF_ARMOR);
+    ASSERT_NE(wolfArmor, nullptr);
+    EXPECT_EQ(wolfArmor->getDefense(), 11);
+}
+
 // ============================================================================
 // NautilusArmorItem 测试
 // ============================================================================

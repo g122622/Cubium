@@ -130,7 +130,7 @@ public:
     /**
      * @brief 获取防御值
      */
-    [[nodiscard]] i32 getDefense() const noexcept { return m_material.getDefense(m_slot); }
+    [[nodiscard]] virtual i32 getDefense() const noexcept { return m_material.getDefense(m_slot); }
 
     /**
      * @brief 获取韧性
