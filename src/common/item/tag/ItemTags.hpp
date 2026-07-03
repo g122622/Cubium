@@ -253,6 +253,14 @@ public:
     static ItemTag& DYEABLE();
 
     /**
+     * @brief 金矿石物品标签
+     *
+     * 包含所有金矿石物品（金矿石、下界金矿石、深板岩金矿石）。
+     * 对应 MC 原版标签 minecraft:gold_ores。
+     */
+    static ItemTag& GOLD_ORES();
+
+    /**
      * @brief 猪灵喜爱物品标签
      *
      * 包含猪灵会捡起和欣赏的所有物品。

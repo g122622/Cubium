@@ -47,7 +47,9 @@ item/
 │   │   ├── ArmorItem.hpp/cpp     # 盔甲基类
 │   │   ├── DyeableArmorItem.hpp/cpp  # 可染色盔甲
 │   │   ├── ElytraItem.hpp/cpp    # 鞘翅
-│   │   └── HorseArmorItem.hpp/cpp  # 马铠
+│   │   ├── HorseArmorItem.hpp/cpp  # 马铠
+│   │   ├── WolfArmorItem.hpp/cpp # 狼铠（MC 1.20.5+）
+│   │   └── NautilusArmorItem.hpp/cpp # 鹦鹉螺铠甲（MC 1.21.11）
 │   ├── tool/                     # 工具物品
 │   │   ├── ToolItem.hpp/cpp      # 工具基类
 │   │   ├── TieredItem.hpp/cpp    # 层级物品基类

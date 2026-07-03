@@ -49,7 +49,11 @@ enum class ArmorSlot : u8 {
     Head = 0,  ///< 头盔
     Chest = 1, ///< 胸甲
     Legs = 2,  ///< 护腿
-    Feet = 3   ///< 靴子
+    Feet = 3,  ///< 靴子
+    // TODO: 添加 Body 槽位（用于狼铠和鹦鹉螺铠甲的实体护甲装备槽）
+    // MC Java 中 Body 槽位用于非玩家实体（马铠、狼铠、鹦鹉螺铠甲）的装备，
+    // 狼铠 Body 槽位防御值 11，鹦鹉螺铠甲 Body 槽位防御值随材质变化。
+    // 添加后需同步更新各 ArmorMaterial 的 getDefense() 和 getDurability() 实现。
 };
 
 /**

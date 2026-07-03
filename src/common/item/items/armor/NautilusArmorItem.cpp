@@ -26,9 +26,10 @@
 namespace mc {
 namespace item::items {
 
-NautilusArmorItem::NautilusArmorItem(const ItemProperties& properties, const armor::ArmorMaterial& material)
+NautilusArmorItem::NautilusArmorItem(
+    const ItemProperties& properties, const armor::ArmorMaterial& material, i32 armorValue)
     : Item(properties)
-    , m_armorValue(material.getDefense(armor::ArmorSlot::Chest))
+    , m_armorValue(armorValue)
     , m_equipSound(material.getEquipSound())
     , m_material(material)
 {}

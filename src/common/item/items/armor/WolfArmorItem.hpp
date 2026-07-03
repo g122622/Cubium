@@ -37,6 +37,15 @@ namespace item::items {
  * 狼铠的装备和修复交互逻辑在狼实体侧处理，
  * 此类仅负责物品本身的基础属性和染色功能。
  *
+ * TODO: 实体侧集成 - 需要在 WolfEntity 中添加：
+ * - Body 装备槽位（用于装备狼铠）
+ * - 右键对狼使用狼铠的装备交互逻辑
+ * - 犰狳鳞甲右键修复狼铠的交互逻辑
+ * - 狼铠耐久消耗逻辑（狼受伤时消耗耐久）
+ * - 狼铠染色/清除颜色的交互逻辑
+ * - 狼铠被破坏时的掉落逻辑
+ * - 狼铠渲染层（显示狼铠模型和颜色）
+ *
  * 参考: net.minecraft.item.WolfArmorItem (MC 1.21.11)
  */
 class WolfArmorItem : public DyeableArmorItem {

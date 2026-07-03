@@ -290,6 +290,15 @@ ItemTag& ItemTags::DYEABLE()
     return *tag;
 }
 
+ItemTag& ItemTags::GOLD_ORES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "gold_ores"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::PIGLIN_LOVED()
 {
     static ItemTag* tag = nullptr;
@@ -846,13 +855,21 @@ void ItemTags::initialize()
     dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wolf_armor")));
     allTags[dyeable->getId()] = std::move(dyeable);
 
+    // 创建 GOLD_ORES 标签
+    // 包含所有金矿石物品。
+    // 对应 MC 原版标签 minecraft:gold_ores。
+    auto goldOres = std::make_unique<ItemTag>(ResourceLocation("minecraft", "gold_ores"), false);
+    goldOres->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_ore")));
+    goldOres->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_gold_ore")));
+    goldOres->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "deepslate_gold_ore")));
+    allTags[goldOres->getId()] = std::move(goldOres);
+
     // 创建 PIGLIN_LOVED 标签
     // 包含猪灵会捡起和欣赏的所有物品。
     // 对应 MC 原版标签 minecraft:piglin_loved。
     auto piglinLoved = std::make_unique<ItemTag>(ResourceLocation("minecraft", "piglin_loved"), false);
     // 金相关物品
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_block")));
-    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gilded_blackstone")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_weighted_pressure_plate")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_ingot")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bell")));
@@ -879,6 +896,10 @@ void ItemTags::initialize()
     // 粗金
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold_block")));
+    // 金矿石（通过 gold_ores 标签引入）
+    piglinLoved->addAll(GOLD_ORES().getItemsList());
+    // 镶金黑石
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gilded_blackstone")));
     allTags[piglinLoved->getId()] = std::move(piglinLoved);
 
     s_initialized = true;
