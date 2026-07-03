@@ -43,7 +43,7 @@ namespace mc::world::chunk {
 // ============================================================================
 
 ChunkSection::ChunkSection()
-    : m_blockStates(VOLUME, 0)            // 默认所有方块为空气 (stateId = 0)
+    : m_blockStates()                     // PalettedContainer 默认 SingleValue(0=空气)
     , m_skyLight(NibbleArray::filled(15)) // 默认天空光照全亮
     , m_blockLight()                      // 默认方块光照无光（空数组，返回0）
 {}
@@ -88,18 +88,17 @@ u32 ChunkSection::getBlockStateId(i32 x, i32 y, i32 z) const
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 0; // 空气
     }
-    return m_blockStates[blockIndex(x, y, z)];
+    return m_blockStates.get(blockIndex(x, y, z));
 }
 
 void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId)
 {
-    if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
+    if (index < 0 || index >= VOLUME) {
         return;
     }
 
-    u32 oldStateId = m_blockStates[static_cast<size_t>(index)];
+    u32 oldStateId = m_blockStates.getAndSet(index, stateId);
     _updateCounters(oldStateId, stateId);
-    m_blockStates[static_cast<size_t>(index)] = stateId;
 }
 
 void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
@@ -108,11 +107,8 @@ void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
         return;
     }
     i32 index = blockIndex(x, y, z);
-    u32 oldStateId = m_blockStates[index];
-
+    u32 oldStateId = m_blockStates.getAndSet(index, stateId);
     _updateCounters(oldStateId, stateId);
-
-    m_blockStates[index] = stateId;
     m_needsRecalculate = true;
 }
 
@@ -131,21 +127,19 @@ void ChunkSection::rebuildTickCounters()
     m_blockTickRefCount = 0;
     m_fluidRefCount = 0;
 
-    for (u32 stateId : m_blockStates) {
+    m_blockStates.forEach([this](i32 /*index*/, u32 stateId) {
         const BlockState* state = Block::getBlockState(stateId);
         if (state == nullptr) {
-            continue;
+            return;
         }
-
         if (!state->isAir() && state->getBlock().ticksRandomly()) {
             ++m_blockTickRefCount;
         }
-
         const fluid::FluidState* fluidState = state->getFluidState();
         if (fluidState != nullptr && !fluidState->isEmpty()) {
             ++m_fluidRefCount;
         }
-    }
+    });
 }
 
 void ChunkSection::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
@@ -199,12 +193,13 @@ std::vector<u8> ChunkSection::serialize() const
     *out++ = static_cast<u8>(m_blockCount >> 8);
     *out++ = static_cast<u8>(m_blockCount & 0xFF);
 
-    // 方块状态ID (u32) - 以小端序写入，与网络同步格式保持一致
+    // 方块状态ID (u32) — 通过 toFlat() 从调色板导出为扁平 u32 数组
+    auto flat = m_blockStates.toFlat();
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-    std::memcpy(out, m_blockStates.data(), m_blockStates.size() * sizeof(u32));
-    out += m_blockStates.size() * sizeof(u32);
+    std::memcpy(out, flat.data(), VOLUME * sizeof(u32));
+    out += VOLUME * sizeof(u32);
 #else
-    for (u32 stateId : m_blockStates) {
+    for (u32 stateId : flat) {
         *out++ = static_cast<u8>(stateId & 0xFF);
         *out++ = static_cast<u8>((stateId >> 8) & 0xFF);
         *out++ = static_cast<u8>((stateId >> 16) & 0xFF);
@@ -251,18 +246,20 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     section->m_blockCount = (static_cast<u16>(data[offset]) << 8) | data[offset + 1];
     offset += 2;
 
-    // 方块状态ID - 使用小端序与 ChunkSerializer::serializeSection 保持一致
+    // 方块状态ID — 从扁平 u32 数组加载到调色板容器
+    std::vector<u32> blockStates(VOLUME);
     const size_t blockStateBytes = VOLUME * sizeof(u32);
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-    std::memcpy(section->m_blockStates.data(), data + offset, blockStateBytes);
-    offset += blockStateBytes;
+    std::memcpy(blockStates.data(), data + offset, blockStateBytes);
 #else
     for (size_t i = 0; i < VOLUME; ++i) {
-        section->m_blockStates[i] = static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
+        blockStates[i] = static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
             (static_cast<u32>(data[offset + 2]) << 16) | (static_cast<u32>(data[offset + 3]) << 24);
         offset += 4;
     }
 #endif
+    section->m_blockStates.fromFlat(blockStates.data(), VOLUME);
+    offset += blockStateBytes;
 
     // 天空光照
     auto& skyLightData = section->m_skyLight.data();
@@ -281,9 +278,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
 
 void ChunkSection::fill(u32 stateId)
 {
-    for (size_t i = 0; i < VOLUME; ++i) {
-        m_blockStates[i] = stateId;
-    }
+    m_blockStates.fill(stateId);
 
     const BlockState* state = Block::getBlockState(stateId);
     m_blockCount = (state && !state->isAir()) ? VOLUME : 0;

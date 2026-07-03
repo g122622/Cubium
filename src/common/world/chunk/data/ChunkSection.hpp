@@ -36,6 +36,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/chunk/data/PalettedContainer.hpp"
 
 #include <vector>
 
@@ -64,10 +65,10 @@ public:
     // 快速访问 (无边界检查)
     [[nodiscard]] u32 getBlockStateIdFast(i32 index) const
     {
-        if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
+        if (index < 0 || index >= VOLUME) {
             return 0;
         }
-        return m_blockStates[static_cast<size_t>(index)];
+        return m_blockStates.get(index);
     }
     void setBlockStateIdFast(i32 index, u32 stateId);
 
@@ -134,11 +135,12 @@ public:
     void fillBlockLight(u8 light) { m_blockLight.fill(light); }
 
 private:
-    // 使用状态ID存储 (紧凑格式，后续可改为调色板)
-    std::vector<u32> m_blockStates; // BlockState::stateId()
-    NibbleArray m_skyLight;         // 天空光照 (4位/方块)
-    NibbleArray m_blockLight;       // 方块光照 (4位/方块)
-    u16 m_blockCount = 0;           // 非空气方块数量
+    // 调色板压缩存储方块状态 ID（SingleValue/Linear/HashMap/Flat 自适应）
+    // 替代原扁平 std::vector<u32> (16 KB/段)，典型段内存降至 2-4 KB
+    PalettedContainer m_blockStates;
+    NibbleArray m_skyLight;   // 天空光照 (4位/方块)
+    NibbleArray m_blockLight; // 方块光照 (4位/方块)
+    u16 m_blockCount = 0;     // 非空气方块数量
     bool m_needsRecalculate = false;
 
     // 随机刻计数器（用于性能优化）

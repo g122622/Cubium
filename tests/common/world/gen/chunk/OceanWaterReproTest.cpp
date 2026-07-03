@@ -40,6 +40,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
@@ -82,9 +83,11 @@ protected:
         GeneratedChunk result;
         const i32 diameter = radius * 2 + 1;
 
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         result.generator =
-            std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld(), std::move(biomeSource));
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         std::vector<IChunk*> chunkPtrs;
         for (i32 dz = -radius; dz <= radius; ++dz) {

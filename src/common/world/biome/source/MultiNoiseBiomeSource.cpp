@@ -23,6 +23,7 @@
 #include "MultiNoiseBiomeSource.hpp"
 #include "NetherBiomeBuilder.hpp"
 #include "OverworldBiomeBuilder.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/NoiseRouterData.hpp"
 #include <algorithm>
 
@@ -31,9 +32,10 @@ namespace world {
 namespace biome {
 namespace source {
 
-MultiNoiseBiomeSource::MultiNoiseBiomeSource(
-    u64 seed, climate::ParameterList<BiomeId> parameters, std::unique_ptr<gen::density::NoiseRouter> router)
-    : IBiomeSource(seed)
+MultiNoiseBiomeSource::MultiNoiseBiomeSource(const gen::RandomState& rs,
+    climate::ParameterList<BiomeId> parameters,
+    std::unique_ptr<gen::density::NoiseRouter> router)
+    : IBiomeSource(rs.worldSeed())
     , m_parameters(std::move(parameters))
     , m_router(std::move(router))
     , m_sampler(m_router->createClimateSampler())
@@ -65,29 +67,31 @@ const std::vector<BiomeId>& MultiNoiseBiomeSource::possibleBiomes() const
     return m_possibleBiomes;
 }
 
-std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createOverworld(u64 seed, bool largeBiomes)
+std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createOverworld(
+    const gen::RandomState& rs, bool largeBiomes)
 {
-    // 创建主世界噪声路由器
-    auto router =
-        std::make_unique<gen::density::NoiseRouter>(gen::density::NoiseRouterData::overworld(seed, largeBiomes));
+    // 创建主世界噪声路由器：从 rs 的派生种子缓存获取 NormalNoise，与生成器共享
+    auto router = std::make_unique<gen::density::NoiseRouter>(
+        gen::density::NoiseRouterData::overworld(rs, rs.worldSeed(), largeBiomes));
 
     // 构建主世界生物群系参数列表
     OverworldBiomeBuilder builder;
     climate::ParameterList<BiomeId> parameters = builder.buildParameterList();
 
     // NoiseRouter 由 MultiNoiseBiomeSource 持有，Sampler 引用 Router 中的 DensityFunction
-    return std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), std::move(router));
+    return std::make_unique<MultiNoiseBiomeSource>(rs, std::move(parameters), std::move(router));
 }
 
-std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createNether(u64 seed)
+std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createNether(const gen::RandomState& rs)
 {
-    // 创建下界噪声路由器
-    auto router = std::make_unique<gen::density::NoiseRouter>(gen::density::NoiseRouterData::nether(seed));
+    // 创建下界噪声路由器：从 rs 的派生种子缓存获取 NormalNoise，与生成器共享
+    auto router =
+        std::make_unique<gen::density::NoiseRouter>(gen::density::NoiseRouterData::nether(rs, rs.worldSeed()));
 
     // 构建下界生物群系参数列表
     auto parameters = NetherBiomeBuilder::buildParameterList();
 
-    return std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), std::move(router));
+    return std::make_unique<MultiNoiseBiomeSource>(rs, std::move(parameters), std::move(router));
 }
 
 } // namespace source

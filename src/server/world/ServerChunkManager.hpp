@@ -375,6 +375,21 @@ public:
     void setViewDistance(i32 distance);
 
     /**
+     * @brief 设置加载区块软上限（0 = 不限制）
+     *
+     * 当加载区块数超过此值时，_checkChunkUnloading 会优先卸载票级最高（最远）的区块，
+     * 防止极端视距或强制加载导致内存无界增长。对齐 Moonrise maxLoaded 配置项。
+     *
+     * @param maxLoadedChunks 加载区块软上限，0 表示不限制
+     */
+    void setMaxLoadedChunks(i32 maxLoadedChunks) { m_maxLoadedChunks = maxLoadedChunks; }
+
+    /**
+     * @brief 获取当前加载区块软上限
+     */
+    [[nodiscard]] i32 maxLoadedChunks() const noexcept { return m_maxLoadedChunks; }
+
+    /**
      * @brief 设置票据级别变化回调
      *
      * @param callback 票据级别变化回调
@@ -997,6 +1012,14 @@ private:
     u64 m_lastUnloadCheckTick = 0;
 
     static constexpr u32 UNLOAD_CHECK_INTERVAL_TICKS = 20;
+
+    /// 每 tick 卸载预算上限（对齐 Moonrise ChunkHolderManager.processUnloads）
+    /// 防止单 tick 卸载过多区块造成卡顿
+    static constexpr i32 MAX_UNLOADS_PER_TICK = 200;
+
+    /// 加载区块软上限（0 = 不限制）
+    /// 当 m_chunks + m_lifecycleManagers 总数超过此值时，按最远票级强制卸载
+    i32 m_maxLoadedChunks = 0;
 
     friend class ServerChunkManagerPostProcessTest;
 };

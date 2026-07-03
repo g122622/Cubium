@@ -101,7 +101,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         // 初始化性能追踪
         mc::perfetto::TraceConfig traceConfig;
         traceConfig.outputPath = "client_trace.perfetto-trace";
-        traceConfig.bufferSizeKb = 65536; // 64MB
+        traceConfig.bufferSizeKb = 65536 * 8;
         mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
         mc::perfetto::PerfettoManager::instance().startTracing();
 

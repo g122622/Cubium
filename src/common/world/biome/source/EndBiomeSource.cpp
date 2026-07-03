@@ -21,6 +21,7 @@
  */
 
 #include "EndBiomeSource.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 
 namespace mc {
@@ -28,9 +29,9 @@ namespace world {
 namespace biome {
 namespace source {
 
-EndBiomeSource::EndBiomeSource(u64 seed)
-    : IBiomeSource(seed)
-    , m_islandNoise(std::make_unique<gen::density::EndIslands>(seed))
+EndBiomeSource::EndBiomeSource(const gen::RandomState& rs)
+    : IBiomeSource(rs.worldSeed())
+    , m_islandNoise(std::make_unique<gen::density::EndIslands>(rs.worldSeed()))
 {
     m_possibleBiomes = {
         Biomes::TheEnd, Biomes::EndHighlands, Biomes::EndMidlands, Biomes::SmallEndIslands, Biomes::EndBarrens};

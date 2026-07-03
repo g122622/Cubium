@@ -381,6 +381,12 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
     // 将后处理位置从 ProtoChunk 传输到 LevelChunk
     m_data->addPackedPostProcessing(m_postProcessingSections);
 
+    // 数据已复制到 ChunkData，释放 primer 中的后处理位置向量
+    for (auto& section : m_postProcessingSections) {
+        section.clear();
+        section.shrink_to_fit();
+    }
+
     // 设置状态
     m_status = ChunkLoadStatus::Generated;
     m_chunkStatus = &ChunkStatuses::FULL;
@@ -392,6 +398,39 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
     // 对齐 Moonrise：FULL 完成后 currentChunk（ChunkPrimer）仍存活供邻居引用，
     // 直到 holder 卸载；同一份 ChunkData 发布到内存缓存供游戏逻辑访问。
     return m_data;
+}
+
+void ChunkPrimer::releaseGenOnlyData(const ChunkStatus& afterStatus)
+{
+    // CARVERS（含）之后释放 m_noiseChunk 和 m_carvingMask
+    // 审计结论（NoiseChunkGenerator.cpp）：
+    //   - m_noiseChunk 最后在 applyCarvers（CARVERS）中读取（aquifer/CarvingContext）
+    //   - m_carvingMask 仅在 applyCarvers 中使用（WorldCarver::carve 读写 isCarved/setCarved）
+    //   FEATURES/LIGHT/SPAWN/FULL 阶段无任何读取，可安全释放
+    if (afterStatus.ordinal() >= ChunkStatuses::CARVERS_ORDINAL) {
+        m_noiseChunk.reset();
+        m_carvingMask.reset();
+    }
+
+    // FEATURES（含）之后释放 m_structureReferences
+    // 审计结论：
+    //   - m_structureReferences 最后在 placeFeatures（FEATURES）中读取（查找要放置的结构）
+    //     _buildBeardifier 在 BIOMES/NOISE 阶段读取，早于 FEATURES
+    //   - INITIALIZE_LIGHT/LIGHT/SPAWN/FULL 阶段无任何读取
+    if (afterStatus.ordinal() >= ChunkStatuses::FEATURES_ORDINAL) {
+        m_structureReferences.clear();
+        m_structureReferences.rehash(0); // 释放桶内存
+    }
+
+    // m_postProcessingSections：在 toChunkData（FULL 阶段）复制到 ChunkData 后释放
+    //   FEATURES 阶段后 markPosForPostprocessing 不再写入，但数据需要在 toChunkData 时转移
+    //   因此不在此处释放，而是在 toChunkData 中清空
+
+    // m_structureStarts：不能释放——邻居在 STRUCTURE_REFERENCES（半径8）、FEATURES、
+    //   _buildBeardifier（BIOMES/NOISE）中通过 getIntersectingStructures/getStructureStart 读取。
+    //   必须存活到 holder 卸载。
+
+    // m_lightPositions：恒为空（addLightPosition 在生产代码中无调用），无需处理
 }
 
 // ============================================================================

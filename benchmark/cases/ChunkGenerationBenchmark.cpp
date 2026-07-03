@@ -31,6 +31,7 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -70,9 +71,11 @@ public:
         m_chunkX = config.parameters.at("chunkX").get<i32>();
         m_chunkZ = config.parameters.at("chunkZ").get<i32>();
 
-        m_generator = std::make_unique<NoiseChunkGenerator>(seed,
-            DimensionSettings::overworld(),
-            world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        m_generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
         m_random = std::make_unique<math::Random>(seed);
         return Result<void>::ok();
     }

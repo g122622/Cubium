@@ -25,6 +25,15 @@
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/biome/climate/Climate.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
+#include <memory>
+
+namespace mc {
+namespace world {
+namespace gen {
+class RandomState;
+} // namespace gen
+} // namespace world
+} // namespace mc
 
 namespace mc {
 namespace world {
@@ -38,6 +47,9 @@ namespace source {
  * 在三维空间中采样，通过最近邻匹配确定生物群系。
  * 支持主世界和下界。
  *
+ * 与 NoiseChunkGenerator 共享同一个 RandomState，气候密度函数的 NormalNoise
+ * 叶子跨区块复用，避免重复重建 PerlinNoise 倍频置换表。
+ *
  * 注意：此类拥有 NoiseRouter，Climate::Sampler 引用的 DensityFunction
  * 由 router 管理，确保生命周期正确。
  */
@@ -45,12 +57,13 @@ class MultiNoiseBiomeSource : public IBiomeSource {
 public:
     /**
      * @brief 构造多噪声生物群系源
-     * @param seed 世界种子
+     * @param rs 世界随机状态（提供噪声缓存，与生成器共享）
      * @param parameters 气候参数到生物群系的映射
-     * @param router 噪声路由器（拥有权转移）
+     * @param router 噪声路由器（拥有权转移，内部 NormalNoise 叶子共享 rs 缓存）
      */
-    MultiNoiseBiomeSource(
-        u64 seed, climate::ParameterList<BiomeId> parameters, std::unique_ptr<gen::density::NoiseRouter> router);
+    MultiNoiseBiomeSource(const gen::RandomState& rs,
+        climate::ParameterList<BiomeId> parameters,
+        std::unique_ptr<gen::density::NoiseRouter> router);
 
     [[nodiscard]] BiomeId getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const override;
     [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override;
@@ -79,18 +92,19 @@ public:
 
     /**
      * @brief 创建主世界生物群系源
-     * @param seed 世界种子
+     * @param rs 世界随机状态（与生成器共享同一缓存）
      * @param largeBiomes 是否使用大型生物群系
      * @return 配置好的 MultiNoiseBiomeSource
      */
-    [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createOverworld(u64 seed, bool largeBiomes);
+    [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createOverworld(
+        const gen::RandomState& rs, bool largeBiomes);
 
     /**
      * @brief 创建下界生物群系源
-     * @param seed 世界种子
+     * @param rs 世界随机状态（与生成器共享同一缓存）
      * @return 配置好的 MultiNoiseBiomeSource
      */
-    [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createNether(u64 seed);
+    [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createNether(const gen::RandomState& rs);
 
 private:
     climate::ParameterList<BiomeId> m_parameters;

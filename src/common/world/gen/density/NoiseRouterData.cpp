@@ -22,6 +22,7 @@
 
 #include "common/world/gen/density/NoiseRouterData.hpp"
 #include "common/core/Constants.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/CaveDensityFunctions.hpp"
 #include "common/world/gen/density/TerrainProvider.hpp"
 
@@ -41,20 +42,18 @@ static std::vector<f64> toVector(const f64 (&arr)[N])
 // NoiseRouterData 实现
 // ============================================================================
 
-NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 seed, bool largeBiomes)
+NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(
+    const RandomState& rs, u64 seed, bool largeBiomes)
 {
     ClimateFunctions climate;
 
-    // MC 1.21: SHIFT_X = flatCache(cache2D(shiftA(SHIFT)))
-    // MC 1.21: SHIFT_Z = flatCache(cache2D(shiftB(SHIFT)))
-    // 使用 Marker 包装器而非具体缓存实现，NoiseChunk 构造时会替换为区块特定实现
+    // 共享版：shiftA/shiftB/shiftedNoise2d 均从 RandomState 缓存获取 NormalNoise
     const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
     auto shiftX = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    // 根据是否大型生物群系选择参数
     const i32 tempOctave = largeBiomes ? TEMPERATURE_LARGE_FIRST_OCTAVE : TEMPERATURE_FIRST_OCTAVE;
     const auto tempAmps = largeBiomes ? toVector(TEMPERATURE_LARGE_AMPLITUDES) : toVector(TEMPERATURE_AMPLITUDES);
 
@@ -68,59 +67,42 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     const i32 eroOctave = largeBiomes ? EROSION_LARGE_FIRST_OCTAVE : EROSION_FIRST_OCTAVE;
     const auto eroAmps = largeBiomes ? toVector(EROSION_LARGE_AMPLITUDES) : toVector(EROSION_AMPLITUDES);
 
-    // MC 1.21: 气候噪声使用 shiftedNoise2d（带 SHIFT_X 和 SHIFT_Z 偏移）
-    // shiftedNoise2d(shiftX, shiftZ, xzScale=0.25, seed, firstOctave, amplitudes)
-    // 这确保相邻区块的气候参数平滑过渡
+    climate.temperature = factory::shiftedNoise2d(
+        rs, std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, tempOctave, tempAmps);
 
-    climate.temperature =
-        factory::shiftedNoise2d(std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, tempOctave, tempAmps);
-
-    // 需要重新创建 shift 噪声实例用于后续参数
-    // MC 中每个 shiftedNoise2d 有自己的 shift 噪声副本，所以需要新建
-    // 但由于 SHIFT_X 和 SHIFT_Z 已经被 move，这里需要重新创建
-    // 实际上 MC 的做法是先创建 densityfunction (shiftX) 和 densityfunction1 (shiftZ)
-    // 然后多次引用它们——我们的 shiftedNoise2d 内部持有 shift 噪声的副本
-    // 所以需要重新创建用于后续的 climate 参数
-
-    // 为后续气候参数重新创建偏移
     auto shiftX2 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ2 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.vegetation =
-        factory::shiftedNoise2d(std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, vegOctave, vegAmps);
+    climate.vegetation = factory::shiftedNoise2d(
+        rs, std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, vegOctave, vegAmps);
 
     auto shiftX3 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ3 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
     climate.continents = factory::flatCacheMarker(factory::shiftedNoise2d(
-        std::move(shiftX3), std::move(shiftZ3), 0.25, seed ^ 0x33333333ULL, contOctave, contAmps));
+        rs, std::move(shiftX3), std::move(shiftZ3), 0.25, seed ^ 0x33333333ULL, contOctave, contAmps));
 
     auto shiftX4 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ4 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
     climate.erosion = factory::flatCacheMarker(factory::shiftedNoise2d(
-        std::move(shiftX4), std::move(shiftZ4), 0.25, seed ^ 0x44444444ULL, eroOctave, eroAmps));
+        rs, std::move(shiftX4), std::move(shiftZ4), 0.25, seed ^ 0x44444444ULL, eroOctave, eroAmps));
 
-    // depth 使用 YClampedGradient（Y 轴线性映射）
-    // MC 1.21: fromY=-64, toY=320, fromValue=1.5, toValue=-1.5
-    // 这意味着表面 depth≈1.5，高空 depth≈-1.5
-    // 注意: NoiseRouter 的 depth 字段需要包含 offset（MC 的 offsetToDepth 函数），
-    // 但 createOverworldClimate 仅创建基础 yClampedGradient，offset 在 overworld() 管线中通过 add 添加
     climate.depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
 
-    // ridges（奇异度）使用 shiftedNoise2d
     auto shiftX5 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ5 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.ridges = factory::flatCacheMarker(factory::shiftedNoise2d(std::move(shiftX5),
+    climate.ridges = factory::flatCacheMarker(factory::shiftedNoise2d(rs,
+        std::move(shiftX5),
         std::move(shiftZ5),
         0.25,
         seed ^ 0x55555555ULL,
@@ -216,26 +198,18 @@ std::unique_ptr<DensityFunction> NoiseRouterData::postProcess(std::unique_ptr<De
     return factory::squeeze(std::move(scaled));
 }
 
-NoiseRouter NoiseRouterData::noNewCaves(u64 seed, std::unique_ptr<DensityFunction> finalDensity)
+NoiseRouter NoiseRouterData::noNewCaves(const RandomState& rs, u64 seed, std::unique_ptr<DensityFunction> finalDensity)
 {
-    // MC 1.21: noNewCaves 路由器
-    // temperature/vegetation 使用 shiftedNoise2d
-    // 其余通道为 constant(0.0)
-    // finalDensity 经过 postProcess
-
     auto processedDensity = postProcess(std::move(finalDensity));
 
-    // 偏移噪声（与主世界共享 SHIFT 参数）
     const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
     auto shiftX = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    // MC 1.21: noNewCaves 使用与主世界相同的 TEMPERATURE 和 VEGETATION 噪声参数
-    // TEMPERATURE: firstOctave=-10, amplitudes={1.5, 0.0, 1.0, 0.0, 0.0, 0.0}
-    // VEGETATION: firstOctave=-8, amplitudes={1.0, 1.0, 0.0, 0.0, 0.0, 0.0}
-    auto temperature = factory::cache2DMarker(factory::shiftedNoise2d(std::move(shiftX),
+    auto temperature = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        std::move(shiftX),
         std::move(shiftZ),
         0.25,
         seed ^ 0x11111111ULL,
@@ -243,11 +217,12 @@ NoiseRouter NoiseRouterData::noNewCaves(u64 seed, std::unique_ptr<DensityFunctio
         toVector(TEMPERATURE_AMPLITUDES)));
 
     auto shiftX2 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ2 = factory::flatCacheMarker(
-        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+        factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    auto vegetation = factory::cache2DMarker(factory::shiftedNoise2d(std::move(shiftX2),
+    auto vegetation = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        std::move(shiftX2),
         std::move(shiftZ2),
         0.25,
         seed ^ 0x22222222ULL,
@@ -271,64 +246,30 @@ NoiseRouter NoiseRouterData::noNewCaves(u64 seed, std::unique_ptr<DensityFunctio
         factory::constant(0.0));               // veinGap
 }
 
-NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
+NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool largeBiomes)
 {
-    auto climate = createOverworldClimate(seed, largeBiomes);
+    // 共享版：所有 NormalNoise 叶子从 RandomState 缓存获取，跨区块复用。
+    // 树拓扑与 overworld(seed) 完全一致，仅 m_noise 由 clone 变为 shared_ptr 共享。
+    auto climate = createOverworldClimate(rs, seed, largeBiomes);
 
     // ========== 含水层噪声 ==========
-    // MC 1.21: AQUIFER_BARRIER, AQUIFER_FLUID_LEVEL_FLOODEDNESS,
-    //          AQUIFER_FLUID_LEVEL_SPREAD, AQUIFER_LAVA
-    // MC 1.21: AQUIFER_BARRIER: firstOctave=-3, amplitudes={1.0}, xzScale=1.0, yScale=0.5
-    // MC 的 noise(holder, 0.5) 表示 xzScale=1.0, yScale=0.5
-    auto barrierNoise = factory::noise(seed ^ 0xA5100001ULL, -3, {1.0}, 1.0, 0.5);
-    // MC 1.21: AQUIFER_FLUID_LEVEL_FLOODEDNESS: firstOctave=-7, amplitudes={1.0}, xzScale=1.0, yScale=0.67
-    auto fluidLevelFloodednessNoise = factory::noise(seed ^ 0xA5100002ULL, -7, {1.0}, 1.0, 0.67);
-    // MC 1.21: AQUIFER_FLUID_LEVEL_SPREAD: firstOctave=-5, amplitudes={1.0}, xzScale=1.0, yScale=0.714...
-    auto fluidLevelSpreadNoise = factory::noise(seed ^ 0xA5100003ULL, -5, {1.0}, 1.0, 0.7142857142857143);
-    // MC 1.21: AQUIFER_LAVA: firstOctave=-1, amplitudes={1.0}, xzScale=1.0, yScale=1.0
-    auto lavaNoise = factory::noise(seed ^ 0xA5100004ULL, -1, {1.0}, 1.0, 1.0);
+    auto barrierNoise = factory::noise(rs, seed ^ 0xA5100001ULL, -3, {1.0}, 1.0, 0.5);
+    auto fluidLevelFloodednessNoise = factory::noise(rs, seed ^ 0xA5100002ULL, -7, {1.0}, 1.0, 0.67);
+    auto fluidLevelSpreadNoise = factory::noise(rs, seed ^ 0xA5100003ULL, -5, {1.0}, 1.0, 0.7142857142857143);
+    auto lavaNoise = factory::noise(rs, seed ^ 0xA5100004ULL, -1, {1.0}, 1.0, 1.0);
 
-    // 为 NoiseRouter 的气候字段创建独立副本
-    auto climateForRouter = createOverworldClimate(seed, largeBiomes);
+    auto climateForRouter = createOverworldClimate(rs, seed, largeBiomes);
 
-    // ========== MC 1.21 完整 finalDensity 管线 ==========
-    //
-    // MC 1.21 finalDensity 构建流程:
-    // 1. depth = YClampedGradient(-64, 320, 1.5, -1.5)
-    // 2. offset = splineWithBlending(add(constant(-0.50375), spline(overworldOffset)), blendOffset)
-    // 3. factor = splineWithBlending(spline(overworldFactor), BLENDING_FACTOR=10.0)
-    // 4. jaggedness = splineWithBlending(spline(overworldJaggedness), BLENDING_JAGGEDNESS=0.0)
-    // 5. slopedCheese = noiseGradientDensity(factor, add(depth, jaggedness * noise(JAGGED).halfNegative()))
-    //                   + BASE_3D_NOISE_OVERWORLD
-    // 6. caveDensity = underground(...)
-    // 7. cheeseAndCave = min(slopedCheese + BASE_3D_NOISE, caveDensity)
-    //    其中 BASE_3D_NOISE 是一个小的 3D 噪声偏移
-    // 8. noCavesOrNoodle = rangeChoice(slopedCheese, -1e6, 1.5625,
-    //                       min(slopedCheese + 5.0 * entrances, caveDensity),
-    //                       underground)
-    // 9. finalDensity = min(postProcess(slideOverworld(noCavesOrNoodle)), noodle)
-
-    // peaksAndValleys 变换: -(||ridges| - 2/3| - 1/3|) * 3
     auto ridgesPV = peaksAndValleys(std::move(climate.ridges));
 
-    // --- offset: splineWithBlending(add(constant(GLOBAL_OFFSET), spline(overworldOffset)), blendOffset) ---
-    // 创建共享的 climate 密度函数用于样条树
-    // 注意: TerrainProvider 需要 shared_ptr 输入，因此从 climate 的 unique_ptr 转换
-    // continents 和 erosion 用于样条树的多个子样条，需要 shared_ptr
     auto continentsShared = std::shared_ptr<DensityFunction>(std::move(climate.continents));
     auto erosionShared = std::shared_ptr<DensityFunction>(std::move(climate.erosion));
     auto ridgesPVShared = std::shared_ptr<DensityFunction>(std::move(ridgesPV));
 
     auto offsetSpline = TerrainProvider::overworldOffset(continentsShared, erosionShared, ridgesPVShared);
     auto offsetWithGlobal = factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET), std::move(offsetSpline));
-    // MC 1.21: offset = splineWithBlending(add(GLOBAL_OFFSET, overworldOffset), blendOffset)
-    // blendOffset 在无旧区块混合时返回 0.0，有旧区块时返回实际偏移值
     auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal), factory::blendOffset());
 
-    // MC 1.21: NoiseRouter 的 depth 字段 = offsetToDepth = yClampedGradient + offset
-    // 为 climateForRouter.depth 创建独立的 offset 副本（使用 climateForRouter 的 continents/erosion）
-    // 注意：climateForRouter 的 continents 和 erosion 需要在 NoiseRouter 构造时使用，不能被 move
-    // 因此使用 shared_ptr 方式引用
     auto continentsForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.continents));
     auto erosionForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.erosion));
     auto offsetForDepth = TerrainProvider::splineWithBlending(
@@ -337,76 +278,63 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         factory::blendOffset());
     climateForRouter.depth = factory::add(std::move(climateForRouter.depth), std::move(offsetForDepth));
 
-    // --- factor: splineWithBlending(spline(overworldFactor), BLENDING_FACTOR=10.0) ---
-    // MC 1.21: BLENDING_FACTOR = constant(10.0)，当旧区块混合时，factor 向 10.0 过渡
-    // MC 1.21: splineWithBlending 内部使用 lerp(blendAlpha, blendTarget, splineFunc)
-    // overworldFactor 需要 weirdness，即 ridges（原始值，非 peaksAndValleys）
-    // 需要重新创建 ridges 用于 factor/jaggedness
-    // 注意: climate.ridges 已被 move，需要创建新的 ridges 密度函数
     const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
-    auto ridgesForFactor = factory::cache2DMarker(
-        factory::shiftedNoise2d(factory::flatCacheMarker(factory::cache2DMarker(
-                                    factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            factory::flatCacheMarker(
-                factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            0.25,
-            seed ^ 0x55555555ULL,
-            RIDGE_FIRST_OCTAVE,
-            toVector(RIDGE_AMPLITUDES)));
+    auto ridgesForFactor = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        0.25,
+        seed ^ 0x55555555ULL,
+        RIDGE_FIRST_OCTAVE,
+        toVector(RIDGE_AMPLITUDES)));
 
-    // weirdness 用于 factor 和 jaggedness 的深层嵌套
-    // MC 1.21: weirdness = peaksAndValleys(ridges)，但这里用原始 ridges 值
-    // 实际上 MC 的 factor 样条中的 weirdness 就是原始 ridges 参数
     auto weirdnessShared = std::shared_ptr<DensityFunction>(std::move(ridgesForFactor));
 
-    // 创建 erosion 的共享引用用于 factor
-    // 由于 erosionShared 已经被 overworldOffset 使用，需要创建新的
-    auto erosionForFactor = factory::cache2DMarker(
-        factory::shiftedNoise2d(factory::flatCacheMarker(factory::cache2DMarker(
-                                    factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            factory::flatCacheMarker(
-                factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            0.25,
-            seed ^ 0x44444444ULL,
-            largeBiomes ? EROSION_LARGE_FIRST_OCTAVE : EROSION_FIRST_OCTAVE,
-            largeBiomes ? toVector(EROSION_LARGE_AMPLITUDES) : toVector(EROSION_AMPLITUDES)));
+    auto erosionForFactor = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        0.25,
+        seed ^ 0x44444444ULL,
+        largeBiomes ? EROSION_LARGE_FIRST_OCTAVE : EROSION_FIRST_OCTAVE,
+        largeBiomes ? toVector(EROSION_LARGE_AMPLITUDES) : toVector(EROSION_AMPLITUDES)));
     auto erosionForFactorShared = std::shared_ptr<DensityFunction>(std::move(erosionForFactor));
 
-    // continents for factor (new shared copy)
-    auto continentsForFactor = factory::cache2DMarker(
-        factory::shiftedNoise2d(factory::flatCacheMarker(factory::cache2DMarker(
-                                    factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            factory::flatCacheMarker(
-                factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            0.25,
-            seed ^ 0x33333333ULL,
-            largeBiomes ? CONTINENTALNESS_LARGE_FIRST_OCTAVE : CONTINENTALNESS_FIRST_OCTAVE,
-            largeBiomes ? toVector(CONTINENTALNESS_LARGE_AMPLITUDES) : toVector(CONTINENTALNESS_AMPLITUDES)));
+    auto continentsForFactor = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        0.25,
+        seed ^ 0x33333333ULL,
+        largeBiomes ? CONTINENTALNESS_LARGE_FIRST_OCTAVE : CONTINENTALNESS_FIRST_OCTAVE,
+        largeBiomes ? toVector(CONTINENTALNESS_LARGE_AMPLITUDES) : toVector(CONTINENTALNESS_AMPLITUDES)));
     auto continentsForFactorShared = std::shared_ptr<DensityFunction>(std::move(continentsForFactor));
 
     auto factorSpline = TerrainProvider::overworldFactor(
         continentsForFactorShared, erosionForFactorShared, weirdnessShared, ridgesPVShared);
     auto factor = TerrainProvider::splineWithBlending(std::move(factorSpline), factory::constant(10.0));
 
-    // --- jaggedness: splineWithBlending(spline(overworldJaggedness), BLENDING_JAGGEDNESS=0.0) ---
-    auto continentsForJagged = factory::cache2DMarker(
-        factory::shiftedNoise2d(factory::flatCacheMarker(factory::cache2DMarker(
-                                    factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            factory::flatCacheMarker(
-                factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            0.25,
-            seed ^ 0x33333333ULL,
-            largeBiomes ? CONTINENTALNESS_LARGE_FIRST_OCTAVE : CONTINENTALNESS_FIRST_OCTAVE,
-            largeBiomes ? toVector(CONTINENTALNESS_LARGE_AMPLITUDES) : toVector(CONTINENTALNESS_AMPLITUDES)));
-    auto erosionForJagged = factory::cache2DMarker(
-        factory::shiftedNoise2d(factory::flatCacheMarker(factory::cache2DMarker(
-                                    factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            factory::flatCacheMarker(
-                factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
-            0.25,
-            seed ^ 0x44444444ULL,
-            largeBiomes ? EROSION_LARGE_FIRST_OCTAVE : EROSION_FIRST_OCTAVE,
-            largeBiomes ? toVector(EROSION_LARGE_AMPLITUDES) : toVector(EROSION_AMPLITUDES)));
+    auto continentsForJagged = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        0.25,
+        seed ^ 0x33333333ULL,
+        largeBiomes ? CONTINENTALNESS_LARGE_FIRST_OCTAVE : CONTINENTALNESS_FIRST_OCTAVE,
+        largeBiomes ? toVector(CONTINENTALNESS_LARGE_AMPLITUDES) : toVector(CONTINENTALNESS_AMPLITUDES)));
+    auto erosionForJagged = factory::cache2DMarker(factory::shiftedNoise2d(rs,
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftA(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        factory::flatCacheMarker(
+            factory::cache2DMarker(factory::shiftB(rs, shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES)))),
+        0.25,
+        seed ^ 0x44444444ULL,
+        largeBiomes ? EROSION_LARGE_FIRST_OCTAVE : EROSION_FIRST_OCTAVE,
+        largeBiomes ? toVector(EROSION_LARGE_AMPLITUDES) : toVector(EROSION_AMPLITUDES)));
 
     auto continentsForJaggedShared = std::shared_ptr<DensityFunction>(std::move(continentsForJagged));
     auto erosionForJaggedShared = std::shared_ptr<DensityFunction>(std::move(erosionForJagged));
@@ -415,15 +343,11 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         continentsForJaggedShared, erosionForJaggedShared, weirdnessShared, ridgesPVShared);
     auto jaggedness = TerrainProvider::splineWithBlending(std::move(jaggednessSpline), factory::constant(0.0));
 
-    // --- slopedCheese: noiseGradientDensity(factor, depth + offset + jaggedness * noise(JAGGED).halfNegative()) +
-    // base3dNoise --- depth = YClampedGradient(-64, 320, 1.5, -1.5) offsetToDepth = yClampedGradient(-64, 320, 1.5,
-    // -1.5) + offset
     auto depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
     auto depthPlusOffset = factory::add(std::move(depth), std::move(offset));
 
-    // jaggedNoise = noise(JAGGED, 1500.0, 0.0) — MC 1.21
-    // MC 1.21: firstOctave=-16, amplitudes={1.0}×17
-    auto jaggedNoise = factory::noise(seed ^ 0x77777777ULL,
+    auto jaggedNoise = factory::noise(rs,
+        seed ^ 0x77777777ULL,
         -16,
         {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
         1500.0,
@@ -432,45 +356,35 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 
     auto depthPlusOffsetPlusJagged = factory::add(std::move(depthPlusOffset), std::move(jaggedContribution));
 
-    // noiseGradientDensity(factor, depthPlusOffsetPlusJagged) = 4 * (factor *
-    // depthPlusOffsetPlusJagged).quarterNegative()
     auto slopedCheeseDensity =
         TerrainProvider::noiseGradientDensity(std::move(factor), std::move(depthPlusOffsetPlusJagged));
 
-    // base3dNoise (overworld)
     auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.125, 80.0, 160.0, 8.0);
 
     auto slopedCheese = factory::add(std::move(slopedCheeseDensity), std::move(base3dNoise));
 
-    // MC 1.21: slopedCheese 需要被 caveCheeseFactor 和 rangeChoice 同时引用。
-    // 使用 SharedHolder（类似 MC 的 Holder 机制）实现引用共享。
-    // 先用 cacheAllInCellMarker(interpolated(...)) 包裹，确保在同一 cell 内只计算一次。
     auto slopedCheeseShared =
         std::shared_ptr<DensityFunction>(factory::cacheAllInCellMarker(factory::interpolated(std::move(slopedCheese))));
 
     // --- 洞穴密度 ---
-    auto entrancesFunc = CaveDensityFunctions::entrances(seed);
-    auto pillarsFunc = CaveDensityFunctions::pillars(seed);
+    auto entrancesFunc = CaveDensityFunctions::entrances(rs, seed);
+    auto pillarsFunc = CaveDensityFunctions::pillars(rs, seed);
 
-    // caveLayer = 4.0 * square(noise(CAVE_LAYER, 8.0))
-    // MC 1.21: noise(CAVE_LAYER, 8.0) 表示 xzScale=1.0, yScale=8.0
     auto caveLayer = factory::mul(factory::constant(4.0),
-        factory::square(factory::noise(seed ^ 0xB0000013ULL,
+        factory::square(factory::noise(rs,
+            seed ^ 0xB0000013ULL,
             CaveDensityFunctions::CAVE_LAYER_OCTAVE,
             toVector(CaveDensityFunctions::CAVE_LAYER_AMPS),
             1.0,
             8.0)));
 
-    // caveCheese = noise(CAVE_CHEESE, 2/3)
-    // MC 1.21: noise(CAVE_CHEESE, 0.666...) 表示 xzScale=1.0, yScale=0.666...
-    auto caveCheese = factory::noise(seed ^ 0xB0000014ULL,
+    auto caveCheese = factory::noise(rs,
+        seed ^ 0xB0000014ULL,
         CaveDensityFunctions::CAVE_CHEESE_OCTAVE,
         toVector(CaveDensityFunctions::CAVE_CHEESE_AMPS),
         1.0,
         0.6666666666666666);
 
-    // caveCheeseFactor = clamp(0.27 + caveCheese, -1, 1) + clamp(1.5 - 0.64*slopedCheese, 0, 0.5)
-    // slopedCheese 通过 SharedHolder 引用，与 rangeChoice 共享
     auto caveCheeseFactor =
         factory::add(factory::clamp(factory::add(factory::constant(0.27), std::move(caveCheese)), -1.0, 1.0),
             factory::clamp(factory::add(factory::constant(1.5),
@@ -478,33 +392,27 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
                 0.0,
                 0.5));
 
-    // caveDensity = caveLayer + caveCheeseFactor
     auto caveDensity = factory::add(std::move(caveLayer), std::move(caveCheeseFactor));
 
-    // underground = max(min(min(caveDensity, entrances), add(spaghetti2d, roughness)), rangeChoice(pillars, ...))
-    auto spag2d = CaveDensityFunctions::spaghetti2d(seed);
-    auto spagRoughness = CaveDensityFunctions::spaghettiRoughness(seed);
+    auto spag2d = CaveDensityFunctions::spaghetti2d(rs, seed);
+    auto spagRoughness = CaveDensityFunctions::spaghettiRoughness(rs, seed);
 
     auto minCaveDensityEntrances = factory::min(std::move(caveDensity), std::move(entrancesFunc));
     auto minSpaghettiRoughness =
         factory::min(std::move(minCaveDensityEntrances), factory::add(std::move(spag2d), std::move(spagRoughness)));
-    auto pillarCheck = factory::rangeChoice(
-        std::move(pillarsFunc), -1000000.0, 0.03, factory::constant(-1000000.0), CaveDensityFunctions::pillars(seed));
+    auto pillarCheck = factory::rangeChoice(std::move(pillarsFunc),
+        -1000000.0,
+        0.03,
+        factory::constant(-1000000.0),
+        CaveDensityFunctions::pillars(rs, seed));
     auto underground = factory::max(std::move(minSpaghettiRoughness), std::move(pillarCheck));
 
-    // underground 也需要被 whenInRange 和 whenOutOfRange 同时引用
-    // 使用 SharedHolder 实现共享
     auto undergroundShared = std::shared_ptr<DensityFunction>(std::move(underground));
 
     // --- noodle ---
-    auto noodle = CaveDensityFunctions::noodle(seed, world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
+    auto noodle = CaveDensityFunctions::noodle(rs, seed, world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
 
-    // --- noCavesOrNoodle = rangeChoice(slopedCheese, -1e6, 1.5625, min(slopedCheese + 5*entrances, underground),
-    // underground) ---
-    // MC 1.21: 当 slopedCheese < 1.5625 时（地表附近），密度由 min(slopedCheese, 5*entrances) 与 underground
-    // 的较小值决定；当 slopedCheese >= 1.5625 时（深层），直接使用 underground
-    // 注意: MC 使用 min(slopedCheese, 5*entrances)，而非 add(slopedCheese, 5*entrances)
-    auto entrancesForRange = CaveDensityFunctions::entrances(seed);
+    auto entrancesForRange = CaveDensityFunctions::entrances(rs, seed);
     auto minSlopedCheese5Entrances = factory::min(
         factory::sharedHolder(slopedCheeseShared), factory::mul(factory::constant(5.0), std::move(entrancesForRange)));
     auto whenInRange = factory::min(std::move(minSlopedCheese5Entrances), factory::sharedHolder(undergroundShared));
@@ -515,20 +423,18 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         std::move(whenInRange),
         factory::sharedHolder(undergroundShared));
 
-    // 应用主世界 slide 和 postProcess
     auto slid = slideOverworld(std::move(noCavesOrNoodle));
     auto processedDensity = postProcess(std::move(slid));
 
-    // finalDensity = min(processedDensity, noodle)
     auto finalDensity = factory::min(std::move(processedDensity), std::move(noodle));
 
     // ========== 矿脉噪声 ==========
-    // MC 1.21: yLimitedInterpolatable(Y, noise(ORE_VEININESS, 1.5, 1.5), -60, 50, 0)
     auto veinToggle = TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
                                                                   world::MAX_BUILD_HEIGHT * 2,
                                                                   static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
                                                                   static_cast<f64>(world::MAX_BUILD_HEIGHT * 2)),
-        factory::noise(seed ^ 0xC0000001ULL,
+        factory::noise(rs,
+            seed ^ 0xC0000001ULL,
             CaveDensityFunctions::ORE_VEININESS_OCTAVE,
             toVector(CaveDensityFunctions::ORE_VEININESS_AMPS),
             1.5,
@@ -537,15 +443,12 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         50,
         0.0);
 
-    // MC 1.21: veinRidged = add(constant(-0.08), max(abs(yLimitedInterpolatable(Y, noise(ORE_VEIN_A, 4.0, 4.0), -60,
-    // 50, 0)),
-    //                                            abs(yLimitedInterpolatable(Y, noise(ORE_VEIN_B, 4.0, 4.0), -60, 50,
-    //                                            0))))
     auto veinAYLimited = TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
                                                                      world::MAX_BUILD_HEIGHT * 2,
                                                                      static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
                                                                      static_cast<f64>(world::MAX_BUILD_HEIGHT * 2)),
-        factory::noise(seed ^ 0xC0000002ULL,
+        factory::noise(rs,
+            seed ^ 0xC0000002ULL,
             CaveDensityFunctions::ORE_VEIN_A_OCTAVE,
             toVector(CaveDensityFunctions::ORE_VEIN_A_AMPS),
             4.0,
@@ -558,7 +461,8 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
                                                                      world::MAX_BUILD_HEIGHT * 2,
                                                                      static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
                                                                      static_cast<f64>(world::MAX_BUILD_HEIGHT * 2)),
-        factory::noise(seed ^ 0xC0000003ULL,
+        factory::noise(rs,
+            seed ^ 0xC0000003ULL,
             CaveDensityFunctions::ORE_VEIN_B_OCTAVE,
             toVector(CaveDensityFunctions::ORE_VEIN_B_AMPS),
             4.0,
@@ -570,18 +474,13 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto veinRidged = factory::add(factory::constant(-0.08),
         factory::max(factory::abs(std::move(veinAYLimited)), factory::abs(std::move(veinBYLimited))));
 
-    // MC 1.21: veinGap = noise(ORE_GAP)
-    auto veinGap = factory::noise(seed ^ 0xC0000004ULL,
+    auto veinGap = factory::noise(rs,
+        seed ^ 0xC0000004ULL,
         CaveDensityFunctions::ORE_GAP_OCTAVE,
         toVector(CaveDensityFunctions::ORE_GAP_AMPS),
         1.0,
         1.0);
 
-    // ========== 预备表面高度 ==========
-    // MC 1.21: preliminarySurfaceLevel 使用 findTopSurface 密度函数计算实际表面高度
-    // 完整实现需要 FindTopSurface 密度函数（从 upperBound 向下搜索 density > 0 的 Y 坐标）
-    // 以及 remap、offsetToDepth 等辅助函数
-    // TODO: 实现 FindTopSurface 密度函数后替换 constant(0.0)
     auto preliminarySurfaceLevel = factory::constant(0.0);
 
     return NoiseRouter(std::move(barrierNoise),          // barrierNoise
@@ -601,17 +500,18 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         std::move(veinGap));                             // veinGap
 }
 
-NoiseRouter NoiseRouterData::nether(u64 seed)
+NoiseRouter NoiseRouterData::nether(const RandomState& rs, u64 seed)
 {
-    // MC 1.21: nether finalDensity = noNewCaves(slideNetherLike(BASE_3D_NOISE_NETHER, 0, 128))
-    // 没有 yClampedGradient！下界的深度为 constant(0.0)
+    // 共享版：仅 temperature/vegetation 的 shift 叶子从缓存获取，BlendedNoise 仍按 seed 重建
     auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.375, 80.0, 60.0, 8.0);
     auto slid = slideNetherLike(std::move(base3dNoise), 0, 128);
-    return noNewCaves(seed, std::move(slid));
+    return noNewCaves(rs, seed, std::move(slid));
 }
 
-NoiseRouter NoiseRouterData::end(u64 seed)
+NoiseRouter NoiseRouterData::end(const RandomState& rs, u64 seed)
 {
+    // 末地路径仅使用 BlendedNoise 和 EndIslands，无 NormalNoise 叶子，rs 仅用于 API 统一。
+    (void)rs;
     // MC 1.21: end finalDensity = postProcess(slideEndLike(add(endIslands(0L), blendedNoise_end)))
     // 注意: endIslands 使用固定种子 0，不受世界种子影响
     // erosion 槽位使用 cache2d(endIslands(0L))，用于 EndBiomeSource 选择生物群系

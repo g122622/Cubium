@@ -29,9 +29,10 @@
 namespace mc {
 namespace world {
 namespace gen {
+class RandomState;
 namespace density {
 class EndIslands;
-}
+} // namespace density
 } // namespace gen
 } // namespace world
 } // namespace mc
@@ -47,10 +48,13 @@ namespace source {
  * 末地使用专用的生物群系选择算法，不同于 MultiNoiseBiomeSource。
  * 中央岛屿（距原点64格内）固定为 THE_END 生物群系，
  * 外围岛屿使用 EndIslands 密度函数判断生物群系类型。
+ *
+ * 接收 RandomState 以与 NoiseChunkGenerator 统一构造来源（末地无 NormalNoise 叶子，
+ * rs 仅用于 API 统一及获取世界种子）。
  */
 class EndBiomeSource : public IBiomeSource {
 public:
-    explicit EndBiomeSource(u64 seed);
+    explicit EndBiomeSource(const gen::RandomState& rs);
     ~EndBiomeSource() override;
 
     EndBiomeSource(const EndBiomeSource&) = delete;

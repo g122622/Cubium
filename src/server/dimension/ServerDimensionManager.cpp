@@ -36,6 +36,7 @@
 #include "common/util/crypto/Sha256.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -405,20 +406,28 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
 
             const bool isLargeBiomes = (m_overworldType == WorldType::LargeBiomes);
 
-            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, isLargeBiomes);
-            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
+            // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
+            auto randomState = mc::world::gen::RandomState::create(settings, seed);
+            auto biomeSource =
+                mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, isLargeBiomes);
+            generator = std::make_unique<NoiseChunkGenerator>(
+                std::move(settings), std::move(biomeSource), std::move(randomState));
             break;
         }
         case NETHER: {
             auto settings = DimensionSettings::nether();
-            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createNether(seed);
-            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
+            auto randomState = mc::world::gen::RandomState::create(settings, seed);
+            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
+            generator = std::make_unique<NoiseChunkGenerator>(
+                std::move(settings), std::move(biomeSource), std::move(randomState));
             break;
         }
         case THE_END: {
             auto settings = DimensionSettings::end();
-            auto biomeSource = std::make_unique<mc::world::biome::source::EndBiomeSource>(seed);
-            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
+            auto randomState = mc::world::gen::RandomState::create(settings, seed);
+            auto biomeSource = std::make_unique<mc::world::biome::source::EndBiomeSource>(*randomState);
+            generator = std::make_unique<NoiseChunkGenerator>(
+                std::move(settings), std::move(biomeSource), std::move(randomState));
             break;
         }
         default:

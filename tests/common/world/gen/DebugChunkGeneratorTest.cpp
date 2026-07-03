@@ -26,6 +26,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
@@ -277,16 +278,20 @@ TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_VirtualDispatch)
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_ReturnsFalse)
 {
-    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
-    NoiseChunkGenerator generator(12345ULL, DimensionSettings::overworld(), std::move(biomeSource));
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, 12345ULL);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch)
 {
     // 通过基类指针调用，验证虚函数分派
-    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
-    NoiseChunkGenerator noiseGen(12345ULL, DimensionSettings::overworld(), std::move(biomeSource));
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, 12345ULL);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    NoiseChunkGenerator noiseGen(std::move(settings), std::move(biomeSource), std::move(randomState));
     IChunkGenerator* basePtr = &noiseGen;
     EXPECT_FALSE(basePtr->isDebugGenerator());
 }
@@ -294,16 +299,20 @@ TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch)
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_FlatSettings)
 {
     // 使用 flat 设置也应该返回 false
-    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
-    NoiseChunkGenerator generator(12345ULL, DimensionSettings::flat(), std::move(biomeSource));
+    auto settings = DimensionSettings::flat();
+    auto randomState = world::gen::RandomState::create(settings, 12345ULL);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_AmplifiedSettings)
 {
     // 使用 nether 设置也应该返回 false（amplified 已移除，用 nether 替代测试）
-    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
-    NoiseChunkGenerator generator(12345ULL, DimensionSettings::nether(), std::move(biomeSource));
+    auto settings = DimensionSettings::nether();
+    auto randomState = world::gen::RandomState::create(settings, 12345ULL);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
