@@ -217,7 +217,12 @@ public:
     void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
 
     /**
-     * @brief 实体进入方块碰撞区域时的回调（掠夺者破坏逻辑）
+     * @brief 实体进入方块碰撞区域时的回调（掠夺者破坏作物逻辑）
+     *
+     * 当 Ravager 实体进入瓶草作物方块且 mobGriefing 游戏规则开启时，
+     * 方块会被破坏并掉落物品。仅在服务端执行。
+     *
+     * 参考: net.minecraft.world.level.block.PitcherCropBlock#entityInside
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 

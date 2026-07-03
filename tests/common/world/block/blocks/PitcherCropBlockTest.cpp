@@ -23,6 +23,11 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/monster/illager/RavagerEntity.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -33,6 +38,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 
@@ -158,6 +164,9 @@ public:
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
     void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
 private:
@@ -165,6 +174,7 @@ private:
     std::map<BlockPos, BlockState> m_ownedStates;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     world::border::WorldBorder m_worldBorder;
+    world::gamerule::GameRules m_gameRules;
     math::Random m_random{12345};
 };
 
@@ -252,8 +262,7 @@ TEST_F(PitcherCropBlockTest, DefaultState_Age0Lower)
 
     const BlockState& state = block->defaultState();
     EXPECT_EQ(state.get(BlockStateProperties::AGE_0_4()), 0) << "Default age should be 0";
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Lower)
+    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower)
         << "Default half should be Lower";
 }
 
@@ -263,10 +272,10 @@ TEST_F(PitcherCropBlockTest, GetAge_ReturnsCorrectValue)
     ASSERT_NE(block, nullptr);
 
     for (i32 age = 0; age <= 4; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Lower);
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
         EXPECT_EQ(block->getAge(state), age) << "getAge should return " << age;
     }
 }
@@ -277,17 +286,17 @@ TEST_F(PitcherCropBlockTest, IsMaxAge_True_OnlyAtAge4)
     ASSERT_NE(block, nullptr);
 
     for (i32 age = 0; age <= 3; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Lower);
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
         EXPECT_FALSE(block->isMaxAge(state)) << "Age " << age << " should not be max age";
     }
 
-    const BlockState& state4 = block->defaultState()
-                                    .with(BlockStateProperties::AGE_0_4(), 4)
-                                    .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                        BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state4 =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     EXPECT_TRUE(block->isMaxAge(state4)) << "Age 4 should be max age";
 }
 
@@ -301,8 +310,7 @@ TEST_F(PitcherCropBlockTest, WithAge_ReturnsLowerHalf)
         const BlockState& state = block->withAge(age);
         EXPECT_EQ(state.get(BlockStateProperties::AGE_0_4()), age)
             << "withAge(" << age << ") should set age to " << age;
-        EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-            BlockStateProperties::DoubleBlockHalf::Lower)
+        EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower)
             << "withAge should always return Lower half";
     }
 }
@@ -331,12 +339,11 @@ TEST_F(PitcherCropBlockTest, Age0Through2_AreSingleBlock)
     ASSERT_NE(block, nullptr);
 
     for (i32 age = 0; age <= 2; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Lower);
-        EXPECT_FALSE(PitcherCropBlock::isDouble(block->getAge(state)))
-            << "AGE " << age << " should be single block";
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+        EXPECT_FALSE(PitcherCropBlock::isDouble(block->getAge(state))) << "AGE " << age << " should be single block";
     }
 }
 
@@ -346,12 +353,11 @@ TEST_F(PitcherCropBlockTest, Age3And4_AreDoubleBlock)
     ASSERT_NE(block, nullptr);
 
     for (i32 age = 3; age <= 4; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Lower);
-        EXPECT_TRUE(PitcherCropBlock::isDouble(block->getAge(state)))
-            << "AGE " << age << " should be double block";
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+        EXPECT_TRUE(PitcherCropBlock::isDouble(block->getAge(state))) << "AGE " << age << " should be double block";
     }
 }
 
@@ -366,8 +372,7 @@ TEST_F(PitcherCropBlockTest, StateSpace_HasAllStates)
 
     // 验证所有 5*2=10 种状态都可访问
     for (i32 age = 0; age <= 4; ++age) {
-        for (auto half : {BlockStateProperties::DoubleBlockHalf::Lower,
-                 BlockStateProperties::DoubleBlockHalf::Upper}) {
+        for (auto half : {BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::DoubleBlockHalf::Upper}) {
             const BlockState& state = block->defaultState()
                                           .with(BlockStateProperties::AGE_0_4(), age)
                                           .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), half);
@@ -387,16 +392,14 @@ TEST_F(PitcherCropBlockTest, ShapeExists_ForAllAgesAndHalves)
     ASSERT_NE(block, nullptr);
 
     for (i32 age = 0; age <= 4; ++age) {
-        for (auto half : {BlockStateProperties::DoubleBlockHalf::Lower,
-                 BlockStateProperties::DoubleBlockHalf::Upper}) {
+        for (auto half : {BlockStateProperties::DoubleBlockHalf::Lower, BlockStateProperties::DoubleBlockHalf::Upper}) {
             const BlockState& state = block->defaultState()
                                           .with(BlockStateProperties::AGE_0_4(), age)
                                           .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), half);
             const CollisionShape& shape = block->getShape(state);
             // 下半部分形状应该始终非空
             if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
-                EXPECT_FALSE(shape.isEmpty())
-                    << "Lower half shape should not be empty for age=" << age;
+                EXPECT_FALSE(shape.isEmpty()) << "Lower half shape should not be empty for age=" << age;
             }
             // 上半部分形状在 AGE 3-4 时应该非空（双格植物的上半部分有可视形状）
             if (half == BlockStateProperties::DoubleBlockHalf::Upper && age >= 3) {
@@ -414,10 +417,10 @@ TEST_F(PitcherCropBlockTest, CollisionShape_UpperHalfIsEmpty)
 
     // 上半部分无碰撞
     for (i32 age = 0; age <= 4; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Upper);
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
         const CollisionShape& shape = block->getCollisionShape(state);
         EXPECT_TRUE(shape.isEmpty()) << "Upper half collision shape should be empty for age " << age;
     }
@@ -430,10 +433,10 @@ TEST_F(PitcherCropBlockTest, CollisionShape_LowerHalfIsNotEmpty)
 
     // 下半部分有碰撞
     for (i32 age = 0; age <= 4; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Lower);
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
         const CollisionShape& shape = block->getCollisionShape(state);
         EXPECT_FALSE(shape.isEmpty()) << "Lower half collision shape should not be empty for age " << age;
     }
@@ -457,10 +460,10 @@ TEST_F(PitcherCropBlockTest, CanGrow_Precondition_MaxAgeNotReached)
     ASSERT_NE(block, nullptr);
 
     for (i32 age = 0; age <= 3; ++age) {
-        const BlockState& state = block->defaultState()
-                                      .with(BlockStateProperties::AGE_0_4(), age)
-                                      .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                          BlockStateProperties::DoubleBlockHalf::Lower);
+        const BlockState& state =
+            block->defaultState()
+                .with(BlockStateProperties::AGE_0_4(), age)
+                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
         EXPECT_FALSE(block->isMaxAge(state)) << "Age " << age << " should not be max age";
     }
 }
@@ -476,8 +479,7 @@ TEST_F(PitcherCropBlockTest, GetCropItem_ReturnsPitcherPlantItemId)
 
     ASSERT_NE(Items::PITCHER_PLANT, nullptr) << "Items::PITCHER_PLANT should be initialized";
     u32 cropItemId = block->getCropItem();
-    EXPECT_EQ(cropItemId, Items::PITCHER_PLANT->itemId())
-        << "getCropItem() should return PITCHER_PLANT item ID";
+    EXPECT_EQ(cropItemId, Items::PITCHER_PLANT->itemId()) << "getCropItem() should return PITCHER_PLANT item ID";
 }
 
 TEST_F(PitcherCropBlockTest, GetSeedItem_ReturnsPitcherPodItemId)
@@ -487,8 +489,7 @@ TEST_F(PitcherCropBlockTest, GetSeedItem_ReturnsPitcherPodItemId)
 
     ASSERT_NE(Items::PITCHER_POD, nullptr) << "Items::PITCHER_POD should be initialized";
     u32 seedItemId = block->getSeedItem();
-    EXPECT_EQ(seedItemId, Items::PITCHER_POD->itemId())
-        << "getSeedItem() should return PITCHER_POD item ID";
+    EXPECT_EQ(seedItemId, Items::PITCHER_POD->itemId()) << "getSeedItem() should return PITCHER_POD item ID";
 }
 
 TEST_F(PitcherCropBlockTest, CropAndSeedItemsAreDifferent)
@@ -498,8 +499,7 @@ TEST_F(PitcherCropBlockTest, CropAndSeedItemsAreDifferent)
 
     u32 cropItemId = block->getCropItem();
     u32 seedItemId = block->getSeedItem();
-    EXPECT_NE(cropItemId, seedItemId)
-        << "Crop item (pitcher_plant) and seed item (pitcher_pod) should be different";
+    EXPECT_NE(cropItemId, seedItemId) << "Crop item (pitcher_plant) and seed item (pitcher_pod) should be different";
 }
 
 // ============================================================================
@@ -577,10 +577,10 @@ TEST_F(PitcherCropIntegrationTest, IsValidPosition_LowerOnFarmlandWithLight_Retu
     // 放置耕地
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
-    const BlockState& lowerState = block->defaultState()
-                                       .with(BlockStateProperties::AGE_0_4(), 0)
-                                       .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                           BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& lowerState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 0)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
 
     bool valid = block->isValidPosition(lowerState, static_cast<IBlockReader&>(world), cropPos);
     EXPECT_TRUE(valid) << "Lower half on farmland with sufficient light should be valid";
@@ -598,10 +598,10 @@ TEST_F(PitcherCropIntegrationTest, IsValidPosition_LowerOnDirt_ReturnsFalse)
     // 放置泥土
     world.setBlockAt(dirtPos, &VanillaBlocks::DIRT->defaultState());
 
-    const BlockState& lowerState = block->defaultState()
-                                       .with(BlockStateProperties::AGE_0_4(), 0)
-                                       .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                           BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& lowerState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 0)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
 
     bool valid = block->isValidPosition(lowerState, static_cast<IBlockReader&>(world), cropPos);
     EXPECT_FALSE(valid) << "Lower half on dirt should be invalid (needs farmland)";
@@ -617,16 +617,16 @@ TEST_F(PitcherCropIntegrationTest, IsValidPosition_UpperAboveLower_ReturnsTrue)
     const BlockPos upperPos = lowerPos.up();
 
     // 在下方放置下半部分（AGE=3，双格状态）
-    const BlockState& lowerState = block->defaultState()
-                                       .with(BlockStateProperties::AGE_0_4(), 3)
-                                       .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                           BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& lowerState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 3)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     world.setBlockAt(lowerPos, &lowerState);
 
-    const BlockState& upperState = block->defaultState()
-                                       .with(BlockStateProperties::AGE_0_4(), 3)
-                                       .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                           BlockStateProperties::DoubleBlockHalf::Upper);
+    const BlockState& upperState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 3)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
 
     bool valid = block->isValidPosition(upperState, static_cast<IBlockReader&>(world), upperPos);
     EXPECT_TRUE(valid) << "Upper half above matching lower half should be valid";
@@ -640,10 +640,10 @@ TEST_F(PitcherCropIntegrationTest, IsValidPosition_UpperWithoutLower_ReturnsFals
 
     const BlockPos upperPos(5, 10, 5);
 
-    const BlockState& upperState = block->defaultState()
-                                       .with(BlockStateProperties::AGE_0_4(), 3)
-                                       .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                           BlockStateProperties::DoubleBlockHalf::Upper);
+    const BlockState& upperState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 3)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
 
     // 下方为空
     bool valid = block->isValidPosition(upperState, static_cast<IBlockReader&>(world), upperPos);
@@ -671,8 +671,7 @@ TEST_F(PitcherCropIntegrationTest, PlaceAt_Age0_SingleBlock)
     ASSERT_NE(lowerState, nullptr);
     EXPECT_TRUE(lowerState->is(TrailsBlocks::PITCHER_CROP)) << "Block at pos should be pitcher crop";
     EXPECT_EQ(lowerState->get(BlockStateProperties::AGE_0_4()), 0) << "Age should be 0";
-    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Lower)
+    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower)
         << "Should be lower half";
 
     // 验证上方没有上半部分
@@ -697,16 +696,14 @@ TEST_F(PitcherCropIntegrationTest, PlaceAt_Age3_DoubleBlock)
     ASSERT_NE(lowerState, nullptr);
     EXPECT_TRUE(lowerState->is(TrailsBlocks::PITCHER_CROP));
     EXPECT_EQ(lowerState->get(BlockStateProperties::AGE_0_4()), 3);
-    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
 
     // 验证上半部分
     const BlockState* upperState = world.getBlockState(pos.up());
     ASSERT_NE(upperState, nullptr) << "Upper half should exist for AGE=3";
     EXPECT_TRUE(upperState->is(TrailsBlocks::PITCHER_CROP));
     EXPECT_EQ(upperState->get(BlockStateProperties::AGE_0_4()), 3);
-    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
 }
 
 TEST_F(PitcherCropIntegrationTest, PlaceAt_Age4_DoubleBlock)
@@ -736,8 +733,7 @@ TEST_F(PitcherCropIntegrationTest, PlaceAt_Age4_DoubleBlock)
 TEST_F(PitcherCropIntegrationTest, Grow_Age0To1_SingleBlock)
 {
     // 骨粉催熟 AGE 0→1，仍为单格
-    auto* block = const_cast<PitcherCropBlock*>(
-        dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
+    auto* block = const_cast<PitcherCropBlock*>(dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
     ASSERT_NE(block, nullptr);
 
     const BlockPos pos(5, 10, 5);
@@ -746,10 +742,10 @@ TEST_F(PitcherCropIntegrationTest, Grow_Age0To1_SingleBlock)
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
     // 放置 AGE=0 的作物
-    const BlockState& state0 = block->defaultState()
-                                   .with(BlockStateProperties::AGE_0_4(), 0)
-                                   .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                       BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state0 =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 0)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     world.setBlockAt(pos, &state0);
 
     math::Random rng(42);
@@ -759,8 +755,7 @@ TEST_F(PitcherCropIntegrationTest, Grow_Age0To1_SingleBlock)
     const BlockState* newState = world.getBlockState(pos);
     ASSERT_NE(newState, nullptr);
     EXPECT_EQ(newState->get(BlockStateProperties::AGE_0_4()), 1) << "Age should grow from 0 to 1";
-    EXPECT_EQ(newState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Lower)
+    EXPECT_EQ(newState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower)
         << "Should still be lower half";
 
     // AGE 1 仍为单格，上方不应有方块
@@ -771,8 +766,7 @@ TEST_F(PitcherCropIntegrationTest, Grow_Age0To1_SingleBlock)
 TEST_F(PitcherCropIntegrationTest, Grow_Age2To3_CreatesDoubleBlock)
 {
     // 骨粉催熟 AGE 2→3，变为双格植物
-    auto* block = const_cast<PitcherCropBlock*>(
-        dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
+    auto* block = const_cast<PitcherCropBlock*>(dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
     ASSERT_NE(block, nullptr);
 
     const BlockPos pos(5, 10, 5);
@@ -781,10 +775,10 @@ TEST_F(PitcherCropIntegrationTest, Grow_Age2To3_CreatesDoubleBlock)
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
     // 放置 AGE=2 的作物
-    const BlockState& state2 = block->defaultState()
-                                   .with(BlockStateProperties::AGE_0_4(), 2)
-                                   .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                       BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state2 =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 2)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     world.setBlockAt(pos, &state2);
 
     math::Random rng(42);
@@ -794,22 +788,19 @@ TEST_F(PitcherCropIntegrationTest, Grow_Age2To3_CreatesDoubleBlock)
     const BlockState* lowerState = world.getBlockState(pos);
     ASSERT_NE(lowerState, nullptr);
     EXPECT_EQ(lowerState->get(BlockStateProperties::AGE_0_4()), 3) << "Age should grow from 2 to 3";
-    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(lowerState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
 
     // 验证上半部分被放置
     const BlockState* upperState = world.getBlockState(pos.up());
     ASSERT_NE(upperState, nullptr) << "Upper half should be created when AGE reaches 3";
     EXPECT_EQ(upperState->get(BlockStateProperties::AGE_0_4()), 3);
-    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
-        BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(upperState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
 }
 
 TEST_F(PitcherCropIntegrationTest, Grow_AtMaxAge_NoGrowth)
 {
     // AGE=4 时骨粉不应再生长
-    auto* block = const_cast<PitcherCropBlock*>(
-        dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
+    auto* block = const_cast<PitcherCropBlock*>(dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
     ASSERT_NE(block, nullptr);
 
     const BlockPos pos(5, 10, 5);
@@ -818,17 +809,17 @@ TEST_F(PitcherCropIntegrationTest, Grow_AtMaxAge_NoGrowth)
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
     // 放置 AGE=4 的下半部分
-    const BlockState& state4Lower = block->defaultState()
-                                        .with(BlockStateProperties::AGE_0_4(), 4)
-                                        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                            BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state4Lower =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     world.setBlockAt(pos, &state4Lower);
 
     // 放置上半部分
-    const BlockState& state4Upper = block->defaultState()
-                                        .with(BlockStateProperties::AGE_0_4(), 4)
-                                        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                            BlockStateProperties::DoubleBlockHalf::Upper);
+    const BlockState& state4Upper =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
     world.setBlockAt(pos.up(), &state4Upper);
 
     math::Random rng(42);
@@ -843,8 +834,7 @@ TEST_F(PitcherCropIntegrationTest, Grow_AtMaxAge_NoGrowth)
 TEST_F(PitcherCropIntegrationTest, Grow_FromUpperHalf_FindsLowerAndGrows)
 {
     // 对上半部分使用骨粉，应找到下半部分并催熟
-    auto* block = const_cast<PitcherCropBlock*>(
-        dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
+    auto* block = const_cast<PitcherCropBlock*>(dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP));
     ASSERT_NE(block, nullptr);
 
     const BlockPos lowerPos(5, 10, 5);
@@ -854,14 +844,14 @@ TEST_F(PitcherCropIntegrationTest, Grow_FromUpperHalf_FindsLowerAndGrows)
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
     // 放置 AGE=3 的双格作物
-    const BlockState& state3Lower = block->defaultState()
-                                        .with(BlockStateProperties::AGE_0_4(), 3)
-                                        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                            BlockStateProperties::DoubleBlockHalf::Lower);
-    const BlockState& state3Upper = block->defaultState()
-                                        .with(BlockStateProperties::AGE_0_4(), 3)
-                                        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                            BlockStateProperties::DoubleBlockHalf::Upper);
+    const BlockState& state3Lower =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 3)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state3Upper =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 3)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
     world.setBlockAt(lowerPos, &state3Lower);
     world.setBlockAt(upperPos, &state3Upper);
 
@@ -890,10 +880,10 @@ TEST_F(PitcherCropIntegrationTest, CanGrow_WhenNotMaxAge_ReturnsTrue)
 
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
-    const BlockState& state = block->defaultState()
-                                  .with(BlockStateProperties::AGE_0_4(), 1)
-                                  .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                      BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 1)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     world.setBlockAt(pos, &state);
 
     bool canGrow = block->canGrow(static_cast<IBlockReader&>(world), pos, state, false);
@@ -910,10 +900,10 @@ TEST_F(PitcherCropIntegrationTest, CanGrow_WhenMaxAge_ReturnsFalse)
 
     world.setBlockAt(farmlandPos, &VanillaBlocks::FARMLAND->defaultState());
 
-    const BlockState& state = block->defaultState()
-                                  .with(BlockStateProperties::AGE_0_4(), 4)
-                                  .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                                      BlockStateProperties::DoubleBlockHalf::Lower);
+    const BlockState& state =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
     world.setBlockAt(pos, &state);
 
     bool canGrow = block->canGrow(static_cast<IBlockReader&>(world), pos, state, false);
@@ -982,6 +972,204 @@ TEST_F(PitcherCropBlockTest, PitcherCropBlock_DoesNotInheritCropBlock)
 
     const auto* cropBlock = dynamic_cast<const CropBlock*>(block);
     EXPECT_EQ(cropBlock, nullptr) << "PitcherCropBlock should NOT inherit from CropBlock";
+}
+
+// ============================================================================
+// onEntityCollision 集成测试（Ravager 破坏作物逻辑）
+// ============================================================================
+//
+// 测试场景：参考 MC Java PitcherCropBlock.entityInside
+// - Ravager 进入瓶草作物方块 + mobGriefing=true → 方块被破坏
+// - Ravager 进入瓶草作物方块 + mobGriefing=false → 方块保留
+// - 非 Ravager 实体（如 Pig）进入 → 方块保留
+// - 客户端世界 → 不执行破坏（PitcherCropTestWorld 默认 isClientSide=false，
+//   通过 isClientSide=false 模拟服务端，本测试主要验证服务端逻辑）
+
+class PitcherCropOnEntityCollisionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+        Items::initialize();
+        // 注册所有原版实体类型，确保 RavagerEntity 的 typeId 可查询
+        entity::VanillaEntities::registerAll();
+    }
+
+    PitcherCropTestWorld world;
+};
+
+// 辅助：在指定位置放置一个 AGE=4 的双格瓶草作物（下半部分 + 上半部分）
+const BlockState placeMaturePitcherCrop(PitcherCropTestWorld& world, const BlockPos& lowerPos)
+{
+    const auto* block = dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP);
+    EXPECT_NE(block, nullptr);
+
+    // 放置耕地
+    world.setBlockAt(lowerPos.down(), &VanillaBlocks::FARMLAND->defaultState());
+
+    // 下半部分 AGE=4
+    const BlockState lowerState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    world.setBlockAt(lowerPos, &lowerState);
+
+    // 上半部分 AGE=4
+    const BlockState upperState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    world.setBlockAt(lowerPos.up(), &upperState);
+
+    return lowerState;
+}
+
+// 辅助：构造 RavagerEntity 并设置 typeId
+std::unique_ptr<RavagerEntity> createRavager(PitcherCropTestWorld& world)
+{
+    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    ravager->setWorld(&world);
+    // 显式设置 typeId 字符串，使 entity.typeId() 返回 RAVAGER
+    // （RavagerEntity 构造函数不会自动设置 typeId，需通过 EntityType::create 或显式 setTypeId）
+    ravager->setTypeId("minecraft:ravager");
+    return ravager;
+}
+
+// 辅助：构造 PigEntity 作为非 Ravager 对照
+std::unique_ptr<PigEntity> createPig(PitcherCropTestWorld& world)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(2));
+    pig->setWorld(&world);
+    pig->setTypeId("minecraft:pig");
+    return pig;
+}
+
+// ---------- Ravager + mobGriefing=true → 方块被破坏 ----------
+
+TEST_F(PitcherCropOnEntityCollisionTest, Ravager_WithMobGriefing_BreaksLowerHalf)
+{
+    // 默认 mobGriefing=true（GameRules 默认值）
+    const BlockPos lowerPos(5, 10, 5);
+
+    // 放置成熟的双格瓶草作物
+    const BlockState lowerState = placeMaturePitcherCrop(world, lowerPos);
+
+    // 创建 Ravager
+    auto ravager = createRavager(world);
+
+    // 对下半部分调用 onEntityCollision
+    const auto* block = dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP);
+    ASSERT_NE(block, nullptr);
+    block->onEntityCollision(lowerState, world, lowerPos, *ravager);
+
+    // 验证下半部分被设为空气（破坏成功）
+    const BlockState* afterState = world.getBlockState(lowerPos);
+    if (afterState != nullptr) {
+        EXPECT_TRUE(afterState->isAir()) << "Lower half should be air after Ravager collision";
+    }
+    // 注：afterState 可能为 nullptr（PitcherCropTestWorld 在 setBlockState 设为 air 时 erase）
+}
+
+TEST_F(PitcherCropOnEntityCollisionTest, Ravager_WithMobGriefing_BreaksUpperHalf)
+{
+    const BlockPos lowerPos(5, 10, 5);
+    const BlockPos upperPos = lowerPos.up();
+
+    placeMaturePitcherCrop(world, lowerPos);
+
+    // 重新获取上半部分状态副本（避免 setBlockState 后引用失效）
+    const auto* block = dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP);
+    ASSERT_NE(block, nullptr);
+    const BlockState upperState =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 4)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+
+    auto ravager = createRavager(world);
+
+    // 对上半部分调用 onEntityCollision
+    block->onEntityCollision(upperState, world, upperPos, *ravager);
+
+    // 验证上半部分被设为空气
+    const BlockState* afterState = world.getBlockState(upperPos);
+    if (afterState != nullptr) {
+        EXPECT_TRUE(afterState->isAir()) << "Upper half should be air after Ravager collision";
+    }
+}
+
+// ---------- Ravager + mobGriefing=false → 方块保留 ----------
+
+TEST_F(PitcherCropOnEntityCollisionTest, Ravager_WithoutMobGriefing_KeepsBlock)
+{
+    // 关闭 mobGriefing
+    world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+
+    const BlockPos lowerPos(5, 10, 5);
+    const BlockState lowerState = placeMaturePitcherCrop(world, lowerPos);
+
+    auto ravager = createRavager(world);
+
+    const auto* block = dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP);
+    ASSERT_NE(block, nullptr);
+    block->onEntityCollision(lowerState, world, lowerPos, *ravager);
+
+    // 验证方块保留（仍是瓶草作物，AGE 仍为 4）
+    const BlockState* afterState = world.getBlockState(lowerPos);
+    ASSERT_NE(afterState, nullptr) << "Block should not be destroyed when mobGriefing is false";
+    EXPECT_TRUE(afterState->is(TrailsBlocks::PITCHER_CROP))
+        << "Block should still be pitcher crop when mobGriefing is false";
+    EXPECT_EQ(afterState->get(BlockStateProperties::AGE_0_4()), 4);
+}
+
+// ---------- 非 Ravager 实体（如 Pig）→ 方块保留 ----------
+
+TEST_F(PitcherCropOnEntityCollisionTest, NonRavagerEntity_KeepsBlock)
+{
+    const BlockPos lowerPos(5, 10, 5);
+    const BlockState lowerState = placeMaturePitcherCrop(world, lowerPos);
+
+    auto pig = createPig(world);
+
+    const auto* block = dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP);
+    ASSERT_NE(block, nullptr);
+    block->onEntityCollision(lowerState, world, lowerPos, *pig);
+
+    // 验证方块保留
+    const BlockState* afterState = world.getBlockState(lowerPos);
+    ASSERT_NE(afterState, nullptr) << "Block should not be destroyed by non-Ravager entity";
+    EXPECT_TRUE(afterState->is(TrailsBlocks::PITCHER_CROP)) << "Block should still be pitcher crop after Pig collision";
+    EXPECT_EQ(afterState->get(BlockStateProperties::AGE_0_4()), 4);
+}
+
+// ---------- 未成熟作物（AGE=0）也会被 Ravager 破坏 ----------
+
+TEST_F(PitcherCropOnEntityCollisionTest, Ravager_BreaksImmatureCrop)
+{
+    // 瓶草作物无论成熟度都会被 Ravager 破坏（与 MC Java 行为一致）
+    const BlockPos lowerPos(5, 10, 5);
+
+    // 放置耕地
+    world.setBlockAt(lowerPos.down(), &VanillaBlocks::FARMLAND->defaultState());
+
+    const auto* block = dynamic_cast<const PitcherCropBlock*>(TrailsBlocks::PITCHER_CROP);
+    ASSERT_NE(block, nullptr);
+
+    // 放置 AGE=0 的单格作物
+    const BlockState state0 =
+        block->defaultState()
+            .with(BlockStateProperties::AGE_0_4(), 0)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    world.setBlockAt(lowerPos, &state0);
+
+    auto ravager = createRavager(world);
+    block->onEntityCollision(state0, world, lowerPos, *ravager);
+
+    // 验证方块被破坏
+    const BlockState* afterState = world.getBlockState(lowerPos);
+    if (afterState != nullptr) {
+        EXPECT_TRUE(afterState->isAir()) << "Immature crop should be broken by Ravager";
+    }
 }
 
 } // namespace

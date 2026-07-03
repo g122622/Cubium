@@ -23,6 +23,8 @@
 
 #include "PitcherCropBlock.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -32,6 +34,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/TrailsBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 namespace mc {
 namespace blocks {
@@ -392,15 +395,36 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
 void PitcherCropBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 掠夺者会破坏作物
-    // TODO: 当 RavagerEntity 集成后，检查 entity 是否为 Ravager 并判断游戏规则
-    // MC Java: if (entity instanceof Ravager && world.getGameRules().getBoolean(GameRuleKeys::MOB_GRIEFING)) {
-    //     world.destroyBlock(pos, true, entity);
-    // }
-    MC_UNUSED(state);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(entity);
+    // 仅服务端执行（对应 MC Java: world instanceof ServerLevel）
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 仅 Ravager 触发破坏（对应 MC Java: entity instanceof Ravager）
+    if (entity.typeId() != entity::EntityTypeIdNumber::RAVAGER) {
+        return;
+    }
+
+    // 检查 mobGriefing 游戏规则（对应 MC Java: serverLevel.getGameRules().getBoolean(MOB_GRIEFING)）
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return;
+    }
+
+    // 破坏方块（对应 MC Java: serverLevel.destroyBlock(pos, true, entity)）
+    // 项目无 IWorld::destroyBlock，采用 setBlockState(air) + spawnAfterBreak 的等价模式，
+    // 与 RavagerEntity::_breakLeavesOnCollision / EnderDragonEntity::_destroyBlocksInAABB 一致：
+    // - setBlockState(pos, air, 3)：将方块设为空气并触发邻居更新
+    // - spawnAfterBreak：触发方块掉落物（由战利品表控制），第二个参数 true 表示掉落物品
+    const BlockState* airState = BlockRegistry::instance().airState();
+    if (airState == nullptr) {
+        return;
+    }
+
+    // 保存方块对象引用，因为 setBlockState 后 state 可能失效
+    const Block& brokenBlock = state.getBlock();
+
+    world.setBlockState(pos, airState, 3);
+    brokenBlock.spawnAfterBreak(world, pos, state, nullptr, true);
 }
 
 bool PitcherCropBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
