@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/thread/ITask.hpp"
 #include "world/storage/backend/IStorageBackend.hpp"
 #include "world/storage/blockentity/BlockEntityStorageManager.hpp"
 #include "world/storage/core/SaveFormat.hpp"
@@ -190,10 +191,14 @@ public:
      * @param z 区块 Z 坐标
      * @param dimension 目标维度
      * @param abortSignal 取消令牌，传入后任务执行前/执行中可取消
+     * @param priority 任务优先级，传播到 ServerIO/ServerCompute 线程池任务（玩家附近区块 High，远处 Low）
      * @return 未来的区块数据，若区块不存在返回空 optional
      */
-    std::future<Result<std::optional<ChunkData>>> loadChunkAsync(
-        ChunkCoord x, ChunkCoord z, DimensionId dimension, std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
+    std::future<Result<std::optional<ChunkData>>> loadChunkAsync(ChunkCoord x,
+        ChunkCoord z,
+        DimensionId dimension,
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr,
+        util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**
      * @brief 异步读取完整区块（回调版本）
@@ -214,12 +219,14 @@ public:
      * @param dimension 目标维度
      * @param callback 完成回调（Native: ServerCompute 线程；外来格式: ServerIO 线程；无池降级: 调用线程）
      * @param abortSignal 取消令牌，传播到 ServerIO StorageTask 与 ServerCompute FunctionTask
+     * @param priority 任务优先级，传播到 ServerIO/ServerCompute 线程池任务（玩家附近区块 High，远处 Low）
      */
     void loadChunkAsyncCallback(ChunkCoord x,
         ChunkCoord z,
         DimensionId dimension,
         std::function<void(ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>>)> callback,
-        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr,
+        util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**
      * @brief 读取玩家存档数据
@@ -496,11 +503,14 @@ private:
 
     /// loadChunkAsync 的核心实现：完成回调在 ServerIO worker 线程调用。
     /// future 版与 callback 版均委托到此。
+    /// priority 传播到 ServerIO/ServerCompute 的 4 个 submit 站点（外来格式加载、section 加载、
+    /// blockEntity 加载、Compute 组装）。
     void _loadChunkAsyncCore(ChunkCoord x,
         ChunkCoord z,
         DimensionId dimension,
         std::shared_ptr<std::atomic<bool>> abortSignal,
-        std::function<void(Result<std::optional<ChunkData>>)> completion);
+        std::function<void(Result<std::optional<ChunkData>>)> completion,
+        util::TaskPriority priority = util::TaskPriority::Normal);
 
 private:
     std::unique_ptr<RocksDBDatabase> m_db;

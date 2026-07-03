@@ -453,6 +453,12 @@ std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::abortSignal() co
     return m_abortSignal;
 }
 
+i32 SingleChunkLifecycleManager::requestPriority() const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return m_requestPriority;
+}
+
 bool SingleChunkLifecycleManager::reviveForScheduling()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);

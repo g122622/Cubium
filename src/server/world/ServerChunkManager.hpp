@@ -613,6 +613,25 @@ private:
         const mc::world::chunk::SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
+     * @brief 进行中的异步存档加载追踪表条目（去重合并）
+     *
+     * ownerLifecycle：发起 loadChunkAsyncCallback 的所有者 SCLM（其 Result 在 _onChunkLoadComplete 被 move）。
+     * attachedWaiters：加载期间因 cancel-revive 重建的附加等待者 SCLM。所有者完成加载后，
+     *   _onChunkLoadComplete 遍历 attachedWaiters 推进其状态机（命中→markLoadedFromStorageReady，
+     *   缺失→noteStorageResolved(false) 走生成），避免对同一区块重复发起 RocksDB 读取。
+     *   见 SCM 层加载去重设计（对齐 Moonrise chunkTasks 合并）。
+     *
+     * 定义前置：_fanOutAttachedWaiters 声明引用 PendingLoadEntry::AttachedWaiter，需先于其定义。
+     */
+    struct PendingLoadEntry {
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> ownerLifecycle;
+        struct AttachedWaiter {
+            std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycle;
+        };
+        std::vector<AttachedWaiter> attachedWaiters;
+    };
+
+    /**
      * @brief 执行一次存档来源解析（异步）
      *
      * 把存档读取（loadChunkAsyncCallback）投递到存储层（ServerIO 读盘 + ServerCompute 反序列化），
@@ -635,7 +654,8 @@ private:
      * - 存档命中：_storeChunkInMemorySync + markLoadedFromStorageReady(FULL) + _completeReadyWaiters
      *   + _enqueuePostProcess（onChunkLoaded/callback 延迟到主线程，needsPostProcess=false）
      * - 存档缺失：noteStorageResolved(false) + _advanceChunkState（走 StorageMissing→生成链路）
-     * - 从 m_pendingLoadTasks 移除追踪条目
+     * - 从 m_pendingLoadTasks 移除追踪条目（owner 校验），扇出 attachedWaiters（命中→Ready，缺失→生成）
+     * - owner 已 unload（ownerAlive=false）：跳过 owner 推进，扇出 attachedWaiters 走生成路径
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
@@ -648,6 +668,20 @@ private:
         mc::DimensionId dimension,
         mc::Result<std::optional<mc::ChunkData>> result,
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder);
+
+    /**
+     * @brief 扇出存档加载结果到附加等待者（SCM 层去重合并的等待者）
+     *
+     * owner 完成加载后调用。对每个仍在 m_lifecycleManagers 中的等待者 SCLM：
+     *   - hit=true（存档命中）：noteStorageResolved(true) + markLoadedFromStorageReady(FULL) +
+     *     _completeReadyWaiters（区块已在 m_chunks，不重复存储）。
+     *   - hit=false（存档缺失/失败/owner 已卸载）：noteStorageResolved(false) + _advanceChunkState 走生成。
+     *
+     * 实例校验：等待者可能已被 unload 重建（_findLifecycleManager != waiter.lifecycle.get()），跳过。
+     * 等待者 SCLM 被附加时其 sourceState 已是 ResolvingStorage（submitRequest 设置），noteStorageResolved 合法。
+     */
+    void _fanOutAttachedWaiters(
+        ChunkCoord x, ChunkCoord z, std::vector<PendingLoadEntry::AttachedWaiter>& waiters, bool hit);
 
     /**
      * @brief 出队并执行异步存档加载完成回调（仅主线程调用）
@@ -694,6 +728,16 @@ private:
      */
     [[nodiscard]] i32 _computeSchedulePriority(
         ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const;
+
+    /**
+     * @brief 将 SCLM 请求优先级（i32，越小越优先，INT_MAX=未设置/已取消）映射到线程池任务优先级
+     *
+     * _computeSchedulePriority 返回 normalizedLevel*1024 + statusPenalty*32 + spatialPenalty(0..255)，
+     * 故 sclmPriority/1024 可无损恢复 normalizedLevel（票据级别，越小越靠近玩家）。
+     * ≤ MAX_LOADED_LEVEL（玩家视距内 FULL 区块）→ High；附近过渡 → Normal；远处 → Low。
+     * Critical/Background 保留给系统级任务，不在此使用。
+     */
+    [[nodiscard]] static util::TaskPriority mapSclmPriorityToTaskPriority(i32 sclmPriority);
 
     /**
      * @brief 处理票据级别变化
@@ -908,12 +952,15 @@ private:
     std::vector<PendingLoadComplete> m_pendingLoadCompletes;
 
     /**
-     * @brief 进行中的异步存档加载追踪表
+     * @brief 进行中的异步存档加载追踪表（含 SCM 层去重合并）
      *
-     * key = posToKey(x, z)，value = 异步加载发起时持有的 SCLM 共享指针。
+     * key = posToKey(x, z)，value = PendingLoadEntry（ownerLifecycle + attachedWaiters）。
      * 用途：
-     * - _onChunkLoadComplete 通过实例一致性校验防止异步期间 SCLM 被 unload 重建后的误用
-     * - unloadChunkSync 取消进行中的异步加载（置 abortSignal；条目在 _onChunkLoadComplete 中移除）
+     * - _resolveChunkSourceSync 检查 key 是否已存在在途加载：若存在，附加当前 SCLM 为等待者
+     *   （不重新发起 loadChunkAsyncCallback），实现 SCM 层去重（对齐 Moonrise chunkTasks 合并）。
+     * - _onChunkLoadComplete 通过 ownerLifecycle 实例一致性校验防止 SCLM 被 unload 重建后的误用，
+     *   完成后遍历 attachedWaiters 推进其状态机。
+     * - unloadChunkSync 从 attachedWaiters 移除已卸载的 SCLM（owner 条目由 _onChunkLoadComplete 移除）。
      *
      * 线程安全：由 m_pendingLoadTasksMutex 保护（_resolveChunkSourceSync 主线程写、
      * _onChunkLoadComplete 主线程读写、unloadChunkSync 主线程读写）。
@@ -921,7 +968,7 @@ private:
      * 故追踪表的读写实际上单线程；abortSignal 由 SCLM 持有，unloadChunkSync→cancelActiveWork 置位。
      */
     std::mutex m_pendingLoadTasksMutex;
-    std::unordered_map<u64, std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_pendingLoadTasks;
+    std::unordered_map<u64, PendingLoadEntry> m_pendingLoadTasks;
 
     /**
      * @brief 区块生成调度核心

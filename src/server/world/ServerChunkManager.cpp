@@ -368,9 +368,23 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
     }
 
     // 追踪进行中的异步加载，供 unloadChunkSync 取消与 _onChunkLoadComplete 移除。
+    // SCM 层去重：若该区块已有在途加载（cancel-revive 重建场景），附加当前 SCLM 为等待者，
+    // 不重新发起 loadChunkAsyncCallback。所有者完成后 _onChunkLoadComplete 遍历 attachedWaiters
+    // 推进其状态机（命中→markLoadedFromStorageReady，缺失→生成），避免重复 RocksDB 读取。
     {
         std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
-        m_pendingLoadTasks[posToKey(x, z)] = lifecycleHolder;
+        auto it = m_pendingLoadTasks.find(posToKey(x, z));
+        if (it != m_pendingLoadTasks.end()) {
+            // 已有在途加载：附加当前 SCLM 为等待者，不重新发起加载。
+            // 所有者的 abortSignal 独立于本 SCLM；本 SCLM 的 sourceState 已是 ResolvingStorage
+            // （submitRequest 设置），所有者完成后 noteStorageResolved 推进。
+            it->second.attachedWaiters.push_back({lifecycleHolder});
+            return;
+        }
+        // 无在途加载：插入 owner 条目，下方继续发起 loadChunkAsyncCallback。
+        PendingLoadEntry entry;
+        entry.ownerLifecycle = lifecycleHolder;
+        m_pendingLoadTasks[posToKey(x, z)] = std::move(entry);
     }
 
     const auto dimension = m_world->dimension();
@@ -378,7 +392,9 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
     // 异步发起：ServerIO 读盘（section+blockEntity 两路并行）→ ServerCompute 反序列化组装。
     // 完成回调在 ServerCompute 线程执行，仅把结果入队 m_pendingLoadCompletes，不触及主线程独占状态。
     // abortSignal 来自 SCLM，unloadChunkSync→cancelActiveWork 会置位，使 ServerIO/ServerCompute 任务协作取消。
+    // priority 来自 SCLM 请求优先级（玩家附近 High、远处 Low），传播到 ServerIO/ServerCompute 任务队列。
     auto abortSignal = lifecycleManager.abortSignal();
+    const util::TaskPriority taskPriority = mapSclmPriorityToTaskPriority(lifecycleManager.requestPriority());
     auto* self = this;
     m_world->storage().loadChunkAsyncCallback(
         x,
@@ -403,7 +419,8 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
                 self->m_pendingLoadCompletes.push_back(std::move(item));
             }
         },
-        abortSignal);
+        abortSignal,
+        taskPriority);
 }
 
 void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
@@ -414,64 +431,108 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
 {
     const u64 key = posToKey(x, z);
 
-    // 从追踪表移除（无论命中/缺失/错误/取消）。
+    // 取出条目（owner + attachedWaiters），从追踪表移除。
+    // 仅当 lifecycleHolder 仍是本条目的 owner 时才处理并扇出（防止 owner 已被 unload 重建后
+    // 新 owner 的条目被旧回调误消费）。
+    PendingLoadEntry entry;
+    bool wasOwner = false;
     {
         std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
-        m_pendingLoadTasks.erase(key);
-    }
-
-    // 实例一致性校验：异步期间 SCLM 可能被 unload 重建。
-    // 仅当当前 m_lifecycleManagers 中的实例仍是 lifecycleHolder 指向的同一实例时才推进。
-    auto currentHolder = _findLifecycleManagerShared(x, z);
-    if (currentHolder == nullptr || currentHolder.get() != lifecycleHolder.get()) {
-        // SCLM 已被卸载或重建，丢弃本次加载结果（避免在错误实例上 noteStorageResolved）。
-        return;
-    }
-
-    SingleChunkLifecycleManager& lifecycleManager = *lifecycleHolder;
-
-    // 加载失败：视同存档缺失，走生成链路（与同步路径 loadChunk 失败行为一致）。
-    if (result.failed()) {
-        spdlog::warn("Async load chunk failed ({}, {}): {}", x, z, result.error().message());
-        auto decision = lifecycleManager.noteStorageResolved(false);
-        _advanceChunkState(lifecycleManager, decision);
-        return;
-    }
-
-    std::optional<ChunkData> chunkOpt = std::move(result).value();
-    if (chunkOpt.has_value()) {
-        // 存档命中：存入内存缓存。_storeChunkInMemorySync 内部 markLoadedFromStorageReady(FULL) +
-        // _completeReadyWaiters 唤醒等待者。noteStorageResolved(true) 推进 SourceState→LoadedFromStorage。
-        auto decision = lifecycleManager.noteStorageResolved(true);
-        std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
-        ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
-        if (stored && m_world) {
-            // onChunkLoaded/m_chunkLoadedCallback 触及主线程独占状态，本方法在主线程 tick() 调用，
-            // 可直接内联。去重通过 m_postProcessedChunks（与 _resolveChunkSourceSync 同步路径、
-            // _drainPendingPostProcess 共享同一集合，避免 worker 存档加载路径重复执行）。
-            bool alreadyProcessed;
-            {
-                std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
-                alreadyProcessed = !m_postProcessedChunks.insert(key).second;
+        auto it = m_pendingLoadTasks.find(key);
+        if (it != m_pendingLoadTasks.end()) {
+            if (it->second.ownerLifecycle.get() == lifecycleHolder.get()) {
+                wasOwner = true;
+                entry = std::move(it->second);
+                m_pendingLoadTasks.erase(it);
             }
-            if (!alreadyProcessed) {
-                m_world->onChunkLoaded(x, z);
-                if (m_chunkLoadedCallback) {
-                    m_chunkLoadedCallback(x, z);
+        }
+    }
+    if (!wasOwner) {
+        // lifecycleHolder 不是 owner（owner 已被 unload 重建且新 owner 发起了新加载，
+        // 或回调对应的加载从未入表）。丢弃本次结果。新 owner 的加载独立完成。
+        return;
+    }
+
+    // 实例一致性校验：owner SCLM 可能已被 unloadChunkSync 从 m_lifecycleManagers 移除。
+    // 若已移除，跳过 owner 自身的状态推进（noteStorageResolved 会在已析构/复用的 SCLM 上调用，
+    // 但 lifecycleHolder shared_ptr 仍存活，持有旧实例）。附加等待者仍需扇出。
+    auto currentHolder = _findLifecycleManagerShared(x, z);
+    const bool ownerAlive = (currentHolder != nullptr && currentHolder.get() == lifecycleHolder.get());
+
+    // owner 结果处理（仅在 owner 仍存活时推进 owner SCLM 状态）。
+    bool hit = false;
+    if (ownerAlive) {
+        SingleChunkLifecycleManager& lifecycleManager = *lifecycleHolder;
+
+        if (result.failed()) {
+            spdlog::warn("Async load chunk failed ({}, {}): {}", x, z, result.error().message());
+            auto decision = lifecycleManager.noteStorageResolved(false);
+            _advanceChunkState(lifecycleManager, decision);
+            // 扇出附加等待者（同样走生成路径）
+            _fanOutAttachedWaiters(x, z, entry.attachedWaiters, false);
+            return;
+        }
+
+        std::optional<ChunkData> chunkOpt = std::move(result).value();
+        hit = chunkOpt.has_value();
+        if (hit) {
+            auto decision = lifecycleManager.noteStorageResolved(true);
+            std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
+            ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
+            if (stored && m_world) {
+                bool alreadyProcessed;
+                {
+                    std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+                    alreadyProcessed = !m_postProcessedChunks.insert(key).second;
+                }
+                if (!alreadyProcessed) {
+                    m_world->onChunkLoaded(x, z);
+                    if (m_chunkLoadedCallback) {
+                        m_chunkLoadedCallback(x, z);
+                    }
                 }
             }
+            if (decision.shouldWakeReadyWaiters) {
+                _completeReadyWaiters(lifecycleManager);
+            }
+        } else {
+            // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）。
+            auto decision = lifecycleManager.noteStorageResolved(false);
+            _advanceChunkState(lifecycleManager, decision);
         }
-        // noteStorageResolved(true) 后 decision 通常 shouldWakeReadyWaiters（LoadedFromStorage→Ready
-        // 由 _storeChunkInMemorySync 的 markLoadedFromStorageReady 完成）。若有等待者未唤醒则补唤醒。
-        if (decision.shouldWakeReadyWaiters) {
-            _completeReadyWaiters(lifecycleManager);
-        }
-        return;
     }
 
-    // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）。
-    auto decision = lifecycleManager.noteStorageResolved(false);
-    _advanceChunkState(lifecycleManager, decision);
+    // 扇出附加等待者（cancel-revive 重建的 SCLM）。
+    // hit 为 owner 结果的存档命中标志（owner 已 unload 时 hit=false，等待者走生成路径——
+    //   owner 卸载意味着其加载被 abort，存档结果不可信，等待者应自行重新解析来源）。
+    _fanOutAttachedWaiters(x, z, entry.attachedWaiters, hit);
+}
+
+void ServerChunkManager::_fanOutAttachedWaiters(
+    ChunkCoord x, ChunkCoord z, std::vector<PendingLoadEntry::AttachedWaiter>& waiters, bool hit)
+{
+    for (auto& waiter : waiters) {
+        if (waiter.lifecycle == nullptr) {
+            continue;
+        }
+        // 实例校验：等待者可能已被 unload 重建（m_lifecycleManagers 中无此实例或已替换）。
+        if (_findLifecycleManager(x, z) != waiter.lifecycle.get()) {
+            continue;
+        }
+        SingleChunkLifecycleManager& waiterSclm = *waiter.lifecycle;
+        // 等待者 SCLM 仍是 ResolvingStorage（被附加时 submitRequest 设置，未推进）。
+        // noteStorageResolved 推进状态机，与 owner 的处理对称。
+        auto decision = waiterSclm.noteStorageResolved(hit);
+        if (hit) {
+            // 命中：区块已在 m_chunks（owner 存入）。推进 SCLM 到 Ready 并唤醒等待者。
+            // 不重复 _storeChunkInMemorySync（区块已在 m_chunks）。
+            waiterSclm.markLoadedFromStorageReady(ChunkStatuses::FULL);
+            _completeReadyWaiters(waiterSclm);
+        } else {
+            // 缺失/失败：走生成链路。
+            _advanceChunkState(waiterSclm, decision);
+        }
+    }
 }
 
 void ServerChunkManager::_drainPendingLoadCompletes()
@@ -730,6 +791,27 @@ i32 ServerChunkManager::_computeSchedulePriority(
     const i32 statusPenalty = std::max(0, ChunkStatuses::FULL.ordinal() - targetStatus.ordinal());
     const i32 spatialPenalty = static_cast<i32>((std::abs(x) + std::abs(z)) & 0xFF);
     return normalizedLevel * 1024 + statusPenalty * 32 + spatialPenalty;
+}
+
+util::TaskPriority ServerChunkManager::mapSclmPriorityToTaskPriority(i32 sclmPriority)
+{
+    // 无优先级（INT_MAX = cancelActiveWork 重置后未重新调度）→ 最低
+    if (sclmPriority == std::numeric_limits<i32>::max()) {
+        return util::TaskPriority::Low;
+    }
+    // 恢复 normalizedLevel（票据级别，越小越靠近玩家）。
+    // _computeSchedulePriority = normalizedLevel*1024 + statusPenalty*32 + spatialPenalty(0..255)，
+    // statusPenalty*32+spatialPenalty < 1024，故 /1024 无损恢复 normalizedLevel。
+    const i32 normalizedLevel = sclmPriority / 1024;
+    // MAX_LOADED_LEVEL（玩家视距内 FULL 区块）→ High，优先于仍在生成流水线的远处区块。
+    if (normalizedLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+        return util::TaskPriority::High;
+    }
+    // 过渡区（刚超出加载边界）→ Normal
+    if (normalizedLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL + 2) {
+        return util::TaskPriority::Normal;
+    }
+    return util::TaskPriority::Low;
 }
 
 // ============================================================================
@@ -1030,6 +1112,23 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
     {
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_postProcessedChunks.erase(key);
+    }
+
+    // 从在途加载的 attachedWaiters 移除已卸载的 SCLM（若作为附加等待者存在）。
+    // owner 条目不移除：owner 的加载结果仍会到达 _onChunkLoadComplete（ownerAlive=false 时
+    // 跳过 owner 推进、扇出 attachedWaiters 后由 wasOwner 移除条目）。
+    {
+        std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
+        auto it = m_pendingLoadTasks.find(key);
+        if (it != m_pendingLoadTasks.end()) {
+            auto& waiters = it->second.attachedWaiters;
+            waiters.erase(std::remove_if(waiters.begin(),
+                              waiters.end(),
+                              [&lifecycleManager](const PendingLoadEntry::AttachedWaiter& w) {
+                                  return w.lifecycle.get() == lifecycleManager.get();
+                              }),
+                waiters.end());
+        }
     }
 }
 

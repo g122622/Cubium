@@ -510,14 +510,21 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     return std::optional<ChunkData>(std::move(chunk));
 }
 
-std::future<Result<std::optional<ChunkData>>> SingleLevelStorageManager::loadChunkAsync(
-    ChunkCoord x, ChunkCoord z, DimensionId dimension, std::shared_ptr<std::atomic<bool>> abortSignal)
+std::future<Result<std::optional<ChunkData>>> SingleLevelStorageManager::loadChunkAsync(ChunkCoord x,
+    ChunkCoord z,
+    DimensionId dimension,
+    std::shared_ptr<std::atomic<bool>> abortSignal,
+    util::TaskPriority priority)
 {
     auto promise = std::make_shared<std::promise<Result<std::optional<ChunkData>>>>();
     auto future = promise->get_future();
-    _loadChunkAsyncCore(x, z, dimension, std::move(abortSignal), [promise](Result<std::optional<ChunkData>> result) {
-        promise->set_value(std::move(result));
-    });
+    _loadChunkAsyncCore(
+        x,
+        z,
+        dimension,
+        std::move(abortSignal),
+        [promise](Result<std::optional<ChunkData>> result) { promise->set_value(std::move(result)); },
+        priority);
     return future;
 }
 
@@ -525,9 +532,11 @@ void SingleLevelStorageManager::loadChunkAsyncCallback(ChunkCoord x,
     ChunkCoord z,
     DimensionId dimension,
     std::function<void(ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>>)> callback,
-    std::shared_ptr<std::atomic<bool>> abortSignal)
+    std::shared_ptr<std::atomic<bool>> abortSignal,
+    util::TaskPriority priority)
 {
-    _loadChunkAsyncCore(x,
+    _loadChunkAsyncCore(
+        x,
         z,
         dimension,
         std::move(abortSignal),
@@ -535,14 +544,16 @@ void SingleLevelStorageManager::loadChunkAsyncCallback(ChunkCoord x,
             if (cb) {
                 cb(x, z, dimension, std::move(result));
             }
-        });
+        },
+        priority);
 }
 
 void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     ChunkCoord z,
     DimensionId dimension,
     std::shared_ptr<std::atomic<bool>> abortSignal,
-    std::function<void(Result<std::optional<ChunkData>>)> completion)
+    std::function<void(Result<std::optional<ChunkData>>)> completion,
+    util::TaskPriority priority)
 {
     if (!completion) {
         return;
@@ -573,7 +584,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
         SectionKey descKey{x, z, 0, dimension};
         auto task = StorageTask::createLoadTask(descKey, std::move(executor));
         auto signal = abortSignal ? std::move(abortSignal) : std::make_shared<std::atomic<bool>>(false);
-        m_taskManager->submit(std::move(task), util::TaskPriority::Normal, nullptr, std::move(signal));
+        m_taskManager->submit(std::move(task), priority, nullptr, std::move(signal));
         return;
     }
 
@@ -710,7 +721,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     // 与 ServerIO 读盘分离（对齐 Moonrise ProcessOffMainTask 跑在 loadExecutor）。
     // 无 Compute 池（测试/独立模式）时降级为在 ServerIO worker 内联组装。
     // abortSignal 透传给 Compute 任务，使 SCLM 取消能中断组装阶段。
-    auto checkComplete = [this, state, _assemble, abortSignal]() {
+    auto checkComplete = [this, state, _assemble, abortSignal, priority]() {
         if (state->pending.fetch_sub(1, std::memory_order::acq_rel) != 1) {
             return;
         }
@@ -727,7 +738,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
                 "server.chunk");
             m_computeWorkerPool->submit(std::move(computeTask),
                 /*callback=*/nullptr,
-                util::TaskPriority::Normal,
+                priority,
                 abortSignal);
         } else {
             // 降级：无 Compute 池，在当前线程（ServerIO worker 或测试线程）内联组装。
@@ -759,7 +770,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     SectionKey sectionDescKey{x, z, 0, dimension};
     auto sectionTask = StorageTask::createLoadTask(sectionDescKey, std::move(sectionExecutor));
     auto sectionSignal = abortSignal ? abortSignal : std::make_shared<std::atomic<bool>>(false);
-    m_taskManager->submit(std::move(sectionTask), util::TaskPriority::Normal, nullptr, sectionSignal);
+    m_taskManager->submit(std::move(sectionTask), priority, nullptr, sectionSignal);
 
     // 路径 B：方块实体（仅有 blockEntityStorage 时）。
     if (m_blockEntityStorage) {
@@ -785,7 +796,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
         SectionKey beDescKey{x, z, 0, dimension};
         auto beTask = StorageTask::createLoadTask(beDescKey, std::move(beExecutor));
         // 路径 B 共享同一 abortSignal（共享 ptr）
-        m_taskManager->submit(std::move(beTask), util::TaskPriority::Normal, nullptr, abortSignal);
+        m_taskManager->submit(std::move(beTask), priority, nullptr, abortSignal);
     }
 }
 
