@@ -169,3 +169,15 @@ Block
 **问题**：原版 `StemBlock.randomTick` 中，AGE=7 时尝试结果仍需通过 `getRawBrightness >= 9` 和 `nextInt(25/f + 1) == 0` 的概率检查，而非直接调用 `tryGrowFruit`。同样，骨粉催熟至 AGE=7 后调用 `blockstate.randomTick()`，而非直接结果。
 
 **解决方案**：`randomTick` 采用统一流程（光照→概率→年龄分支），`grow` 方法在 `newAge == maxAge` 时调用 `randomTick` 而非 `tryGrowFruit`。
+
+### 12. PitcherCropBlock Ravager 破坏作物逻辑
+
+**行为**：`PitcherCropBlock::onEntityCollision` 实现 MC Java `PitcherCropBlock#entityInside` 的 Ravager 破坏作物逻辑。当满足以下全部条件时，方块会被破坏并掉落物品：
+
+1. 服务端执行（`world.isClientSide() == false`，对应 MC Java `world instanceof ServerLevel`）
+2. 实体为 Ravager（`entity.typeId() == EntityTypeIdNumber::RAVAGER`，对应 `entity instanceof Ravager`）
+3. `mobGriefing` 游戏规则为 `true`
+
+**实现要点**：项目无 `IWorld::destroyBlock` 方法，采用 `setBlockState(pos, air, 3) + spawnAfterBreak(...)` 的等价模式，与 `RavagerEntity::_breakLeavesOnCollision` / `EnderDragonEntity::_destroyBlocksInAABB` 一致。破坏前需保存 `state.getBlock()` 引用，因为 `setBlockState` 后 `state` 引用可能失效。
+
+**注意**：无论作物是否成熟（AGE 0-4 均可）、是单格还是双格状态，Ravager 都会破坏。双格状态下，破坏下半部分不会自动清除上半部分（与 MC Java 一致，`destroyBlock` 只破坏指定位置）。
