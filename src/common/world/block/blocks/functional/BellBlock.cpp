@@ -244,6 +244,13 @@ size_t BellBlock::_shapeIndex(const BlockState& state)
 BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 参考: net.minecraft.world.level.block.BellBlock#getStateForPlacement
+    // TODO: CEILING 附着检测简化——MC 原版在 canSurvive 中对 CEILING（direction==UP）
+    //       使用 Block.canSupportCenter(world, pos.above(), DOWN) 检查上方方块是否
+    //       提供"中心支撑"（用于活塞、钟等悬挂方块的特殊判定），本项目尚未实现
+    //       canSupportCenter 等价方法，此处统一使用 hasEnoughSolidSide（对应 MC 的
+    //       isFaceSturdy）近似。两者在大多数固体方块上结果一致，但对栅栏、玻璃板等
+    //       非完整方块的判定可能存在差异。待 Block::canSupportCenter 实现后需替换
+    //       CEILING 路径的 hasEnoughSolidSide 调用，并移除本 TODO。
     const Direction clickedFace = context.getClickedFace();
     const BlockPos clickedPos = context.placementPos();
     IWorld& world = context.getWorld();

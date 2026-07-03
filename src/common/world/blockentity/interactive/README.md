@@ -10,6 +10,7 @@
 ├── DecoratedPotPattern.hpp / cpp #饰纹陶罐图案类型定义（24种图案：Blank+20考古学+3试炼密室）
 ├── DecoratedPotBlockEntity.hpp / cpp #饰纹陶罐方块实体（四面图案PotDecorations、1格物品容器、摇晃动画、比较器信号）
 ├── BeehiveBlockEntity.hpp / cpp #蜂巢方块实体（蜜蜂存储、蜂蜜等级管理）
+├── BellBlockEntity.hpp / cpp #钟方块实体（摇晃动画、共振机制、灾厄村民发光、村民HEARD_BELL_TIME记忆）
 ├── DispenserBlockEntity.hpp / cpp #发射器方块实体基类（9格存储、战利品表填充）
 ├── DropperBlockEntity.hpp / cpp #投掷器方块实体（继承DispenserBlockEntity）
 ├── EnchantingTableEntity.hpp / cpp #附魔台方块实体（附魔力量计算、书本动画）
@@ -180,3 +181,36 @@
     ## #13. BeehiveBlockEntity 天气/夜间释放阻止
 
 `_releaseOccupant()` 在非紧急释放时检查天气和时间条件：雨天 (`isRaining()`)、雷暴 (`isThundering()`) 或夜间 (`!isDaytime()`) 不会放出蜜蜂。紧急释放（火灾等 `BeeReleaseStatus::Emergency`）不受此限制，蜜蜂会被强制放出。当天气/夜间阻止释放时，`_releaseOccupant()` 返回 `false`，蜜蜂保留在蜂巢中等待下次重试。
+
+## #14. BellBlockEntity 摇晃/共振状态机与客户端-服务端职责合并
+
+BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `tick(IWorld&)`，根据 `world.isClientSide()` 在共振到期时分支：服务端调用 `_makeRaidersGlow` 对 48 格内 RAIDERS 施加 60 tick 发光效果，客户端调用 `_showBellParticles` 发射粒子。
+
+关键常量（与 MC 1.21.11 BellBlockEntity.java 对齐）：
+- `DURATION = 50`：摇晃动画持续 tick
+- `TICKS_BEFORE_RESONATION = 5`：摇晃开始后多久开始检测共振
+- `MAX_RESONATION_TICKS = 40`：共振持续 tick
+- `GLOW_DURATION = 60`：发光效果持续 tick
+- `MIN_TICKS_BETWEEN_SEARCHES = 60`：两次实体搜索最小间隔（节流）
+- `SEARCH_RADIUS = 48.0f`：实体搜索 AABB 半径
+- `HEAR_BELL_RADIUS = 32.0f`：听到钟声的半径（村民记忆写入 + 灾厄村民检测）
+- `HIGHLIGHT_RAIDERS_RADIUS = 48.0f`：发光效果施加半径
+
+敲击触发流程：
+1. `BellBlock::attemptToRing` 调用 `BellBlockEntity::onHit(world, direction)`
+2. `onHit` 设置敲击方向、启动摇晃，并通过 `world.blockEvent(pos, block, 1, dir.get3DDataValue())` 同步到客户端
+3. 服务端与客户端的 `triggerEvent(1, type)` 被调用：重新搜索附近实体（`_updateEntities`）、重置共振、设置敲击方向、启动摇晃
+4. `tick` 推进摇晃计时；`ticks >= 5` 且 `resonationTicks == 0` 且 `_areRaidersNearby` 时进入共振（播放 BELL_RESONATE 音效）
+5. 共振到期（`resonationTicks >= 40`）：服务端施加发光，客户端发射粒子
+
+## #15. BellBlockEntity 实体搜索节流与村民记忆写入
+
+`_updateEntities(IWorld&)` 在以下条件重新搜索 48 格 AABB 内的 LivingEntity：
+- 距离上次搜索超过 `MIN_TICKS_BETWEEN_SEARCHES = 60` tick
+- 或 `m_nearbyEntities` 为空（首次或加载后）
+
+搜索后，仅服务端对 32 格内的村民（`VillagerEntity`）写入 `HEARD_BELL_TIME` 记忆（值为当前 `getGameTime()`），触发村民"躲藏"行为。村民通过 `dynamic_cast` 筛选，非村民实体忽略。
+
+## #16. BellBlockEntity 粒子系统的简化
+
+`_showBellParticles` 当前使用 `ParticleTypeId::Witch` 粒子近似 MC 原版的 `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)`。这是因为本项目目前不支持带颜色的粒子选项（`ColorParticleOption` 等价物尚未实现）。粒子数量公式 `clamp((nearbyCount - 21) / -2, 3, 15)` 与 MC 原版一致，其中 `nearbyCount` 是 48 格内的所有附近实体数量（而非仅灾厄村民）。待带颜色粒子系统实现后需替换此处实现（见代码中的 TODO 注释）。

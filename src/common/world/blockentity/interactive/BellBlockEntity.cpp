@@ -319,9 +319,13 @@ void BellBlockEntity::_makeRaidersGlow(IWorld& world)
 
 void BellBlockEntity::_showBellParticles(IWorld& world)
 {
-    // 简化的粒子发射：对每个灾厄村民发射 ENTITY_EFFECT 粒子
-    // MC 原版实现使用 ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)
-    // 本项目目前不支持带颜色的粒子，使用 Witch 粒子近似
+    // TODO: 粒子系统简化——当前使用 Witch 粒子近似 MC 原版的
+    // ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)。
+    // MC 原版在共振到期时对每个范围内的灾厄村民发射带颜色（16700985 起始，
+    // 每个粒子颜色递增 5）的 ENTITY_EFFECT 粒子。本项目目前不支持带颜色的
+    // 粒子选项（ColorParticleOption 等价物尚未实现），故用 Witch 粒子近似。
+    // 待 ColorParticleOption / 带颜色粒子系统实现后，需替换此处为
+    // ParticleTypeId::EntityEffect 并附加颜色数据，同时移除本 TODO。
     const Vector3 center = m_pos.center();
     const f32 highlightRadiusSq = HIGHLIGHT_RAIDERS_RADIUS * HIGHLIGHT_RAIDERS_RADIUS;
 

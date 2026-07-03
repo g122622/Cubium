@@ -19,7 +19,7 @@
 ├── GrindstoneBlock.hpp / cpp #砂轮（修复 / 祛魔，3种附着面）
 ├── StonecutterBlock.hpp / cpp #切石机（石材切割配方）
 ├── LoomBlock.hpp / cpp #织布机（旗帜图案制作）
-├── BellBlock.hpp / cpp #钟（声音 / 动画，多方向附着）
+├── BellBlock.hpp / cpp #钟（声音/动画，4种附着方式，摇晃动画+共振机制+灾厄村民发光，方块实体驱动）
 ├── JukeboxBlock.hpp / cpp #唱片机（音乐播放）
 ├── RespawnAnchorBlock.hpp / cpp #重生锚（下界重生点，4级充能）
 ├── LodestoneBlock.hpp / cpp #磁石（指南针绑定）
@@ -76,8 +76,12 @@
 ├── GrindstoneBlock
 │   └── 附着检测
 ├── BellBlock
-│   ├── 多方向附着
-│   └── 支撑检测
+│   ├── 4种附着方式（Floor/Ceiling/SingleWall/DoubleWall）
+│   ├── 状态属性 HORIZONTAL_FACING + BELL_ATTACHMENT + POWERED
+│   ├── 16种状态碰撞箱（4朝向×4附着）
+│   ├── onBlockActivated/onProjectileHit/neighborChanged 敲钟入口
+│   ├── attemptToRing/onHit/_isProperHit 敲击判定
+│   └── 关联 BellBlockEntity（摇晃动画+共振+发光）
 ├── JukeboxBlock
 │   └── 音乐播放
 ├── RespawnAnchorBlock
@@ -291,3 +295,37 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
           - CandleCakeBlock 食用后 → 替换为 CakeBlock（BITES=0，完整7片） + 掉落蜡烛物品
           - 对 CandleCakeBlock 使用蜡烛物品 → 无效（不支持堆叠，这是 CandleBlock 的功能）
           - 对 CakeBlock 使用蜡烛物品 → 替换为对应颜色的 CandleCakeBlock
+
+          ## #13. BellBlock 附着方式、敲击判定与红石触发
+
+          BellBlock 是方块实体驱动型方块（`hasBlockEntity` 返回 true），关联 `BellBlockEntity` 实现摇晃动画、共振机制与灾厄村民发光。详见 `world/blockentity/interactive/README.md` 第 #14-#16 条。
+
+          **状态属性**：`HORIZONTAL_FACING`（North/South/East/West）+ `BELL_ATTACHMENT`（Floor/Ceiling/SingleWall/DoubleWall）+ `POWERED`（红石充能状态）。共 4×4×2 = 32 种状态，碰撞箱按 4 朝向 × 4 附着 = 16 种组合预计算。
+
+          **4 种附着方式**（`getStateForPlacement`）：
+          - 点击顶面 → Floor（地面附着），朝向 = 玩家水平朝向
+          - 点击底面 → Ceiling（天花板附着）
+          - 点击侧面 → 检测同轴两侧是否都有固体面（双面墙条件），满足则 DoubleWall，否则 SingleWall；若墙附着不可用则回退 Floor/Ceiling
+          - 所有路径检查 `Block::hasEnoughSolidSide` 支撑（对应 MC Java 的 `isFaceSturdy`）
+
+          **支撑更新**（`updatePostPlacement`）：
+          - 支撑失效（非 DoubleWall）→ AIR
+          - DoubleWall 一侧失效 → SingleWall，朝向翻转
+          - SingleWall 对侧出现支撑 → DoubleWall
+          - 方向条件需严格对齐 MC Java：SingleWall→DoubleWall 检查 `FACING.opposite == facing`（即对侧更新），不是 `FACING == facing`
+
+          **敲击判定**（`_isProperHit`）：
+          - Y 轴点击或 `hitY > 0.8124` → 无效
+          - Floor 附着：点击方向轴 == 朝向轴 → 有效
+          - SingleWall/DoubleWall：点击方向轴 != 朝向轴 → 有效
+          - Ceiling：任意水平方向 → 有效
+
+          **敲钟入口**：
+          - 玩家右键：`onBlockActivated` → `onHit(hit, player, isProjectile=false)`
+          - 投射物击中：`onProjectileHit` → 从 `ProjectileEntity::getShooter()` 提取 Player → `onHit(hit, player, isProjectile=true)`
+          - 红石上升沿：`neighborChanged` 检测 `RedstonePower::isPowered` 从 false→true → `attemptToRing(world, pos, FACING)`
+          - `onHit` 判定 isProperHit 后调用 `attemptToRing`，成功则 `awardCustomStat(BELL_RING, 1)`
+
+          **attemptToRing**（仅服务端）：获取 `BellBlockEntity` → `onHit(world, direction)` → 播放 `BLOCK_BELL_USE`（音量 2.0）→ 触发 `GameEvents::BLOCK_ACTIVATE` 游戏事件（通知附近幽匿感测体）
+
+          **统计集成**：`onHit` 成功敲响后调用 `player.awardCustomStat(ResourceLocation(stats::BELL_RING), 1)`，常量定义于 `common/stats/Stats.hpp`。
