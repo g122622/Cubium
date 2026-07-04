@@ -25,6 +25,7 @@
 #include "../src/common/util/property/StateContainer.hpp"
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
+#include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -32,96 +33,71 @@ using namespace mc::blocks;
 
 // ============================================================================
 // PointedDripstoneBlock 静态方法测试
+//
+// isStalactite/isStalagmite/isTip/isPointedDripstoneWithDirection/canDrip 等
+// 静态方法内部用 state->is(VanillaBlocks::POINTED_DRIPSTONE) 校验方块身份
+// （按指针比较），因此必须使用 VanillaBlocks::POINTED_DRIPSTONE 的状态，
+// 而非临时构造的 PointedDripstoneBlock 实例的状态，否则 is() 恒为 false。
 // ============================================================================
 
-TEST(PointedDripstoneBlockTest, IsStalactite_DownDirection_ReturnsTrue)
-{
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& downState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+class PointedDripstoneStaticMethodTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
 
+    // 从注册的 POINTED_DRIPSTONE 默认状态派生一个指定方向/厚度/含水状态的状态
+    static const BlockState& makeState(
+        Direction dir, BlockStateProperties::DripstoneThickness thickness, bool waterlogged = false)
+    {
+        return VanillaBlocks::POINTED_DRIPSTONE->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), dir)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), thickness)
+            .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    }
+};
+
+TEST_F(PointedDripstoneStaticMethodTest, IsStalactite_DownDirection_ReturnsTrue)
+{
+    const BlockState& downState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_TRUE(PointedDripstoneBlock::isStalactite(downState));
 }
 
-TEST(PointedDripstoneBlockTest, IsStalactite_UpDirection_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalactite_UpDirection_ReturnsFalse)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& upState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
-
+    const BlockState& upState = makeState(Direction::Up, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_FALSE(PointedDripstoneBlock::isStalactite(upState));
 }
 
-TEST(PointedDripstoneBlockTest, IsStalagmite_UpDirection_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalagmite_UpDirection_ReturnsTrue)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& upState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
-
+    const BlockState& upState = makeState(Direction::Up, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_TRUE(PointedDripstoneBlock::isStalagmite(upState));
 }
 
-TEST(PointedDripstoneBlockTest, IsStalagmite_DownDirection_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalagmite_DownDirection_ReturnsFalse)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& downState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
-
+    const BlockState& downState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_FALSE(PointedDripstoneBlock::isStalagmite(downState));
 }
 
-TEST(PointedDripstoneBlockTest, CanDrip_TipDownNotWaterlogged_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, CanDrip_TipDownNotWaterlogged_ReturnsTrue)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& state =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
-            .with(BlockStateProperties::WATERLOGGED(), false);
-
+    const BlockState& state = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip, false);
     EXPECT_TRUE(PointedDripstoneBlock::canDrip(state));
 }
 
-TEST(PointedDripstoneBlockTest, CanDrip_TipDownWaterlogged_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, CanDrip_TipDownWaterlogged_ReturnsFalse)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& state =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
-            .with(BlockStateProperties::WATERLOGGED(), true);
-
+    const BlockState& state = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip, true);
     EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
-TEST(PointedDripstoneBlockTest, CanDrip_BaseDown_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, CanDrip_BaseDown_ReturnsFalse)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& state =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Base)
-            .with(BlockStateProperties::WATERLOGGED(), false);
-
+    const BlockState& state = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Base, false);
     EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
-TEST(PointedDripstoneBlockTest, GetDripParticlePosition_CalculatesCorrectOffset)
+TEST_F(PointedDripstoneStaticMethodTest, GetDripParticlePosition_CalculatesCorrectOffset)
 {
     // Y = blockPos.y + 0.25, X = blockPos.x + 0.5, Z = blockPos.z + 0.5
     BlockPos pos(10, 20, 30);
@@ -132,7 +108,7 @@ TEST(PointedDripstoneBlockTest, GetDripParticlePosition_CalculatesCorrectOffset)
     EXPECT_FLOAT_EQ(result.z, 30.5f);
 }
 
-TEST(PointedDripstoneBlockTest, GetDripParticlePosition_OriginPosition)
+TEST_F(PointedDripstoneStaticMethodTest, GetDripParticlePosition_OriginPosition)
 {
     BlockPos pos(0, 0, 0);
     Vector3 result = PointedDripstoneBlock::getDripParticlePosition(pos);
@@ -142,7 +118,7 @@ TEST(PointedDripstoneBlockTest, GetDripParticlePosition_OriginPosition)
     EXPECT_FLOAT_EQ(result.z, 0.5f);
 }
 
-TEST(PointedDripstoneBlockTest, GetDripParticlePosition_NegativeCoordinates)
+TEST_F(PointedDripstoneStaticMethodTest, GetDripParticlePosition_NegativeCoordinates)
 {
     BlockPos pos(-5, -10, -15);
     Vector3 result = PointedDripstoneBlock::getDripParticlePosition(pos);
@@ -152,52 +128,37 @@ TEST(PointedDripstoneBlockTest, GetDripParticlePosition_NegativeCoordinates)
     EXPECT_FLOAT_EQ(result.z, -14.5f);
 }
 
-TEST(PointedDripstoneBlockTest, IsTip_TipAllowMergeTrue_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsTip_TipAllowMergeTrue_ReturnsTrue)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& tipState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+    const BlockState& tipState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
 
     EXPECT_TRUE(PointedDripstoneBlock::isTip(&tipState, true));
     EXPECT_TRUE(PointedDripstoneBlock::isTip(&tipState, false));
 }
 
-TEST(PointedDripstoneBlockTest, IsTip_TipMergeAllowMergeTrue_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsTip_TipMergeAllowMergeTrue_ReturnsTrue)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& mergeState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::TipMerge);
+    const BlockState& mergeState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::TipMerge);
 
     EXPECT_TRUE(PointedDripstoneBlock::isTip(&mergeState, true));
     EXPECT_FALSE(PointedDripstoneBlock::isTip(&mergeState, false));
 }
 
-TEST(PointedDripstoneBlockTest, IsTip_NullPtr_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsTip_NullPtr_ReturnsFalse)
 {
     EXPECT_FALSE(PointedDripstoneBlock::isTip(nullptr, true));
     EXPECT_FALSE(PointedDripstoneBlock::isTip(nullptr, false));
 }
 
-TEST(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_MatchingDirection_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsPointedDripstoneWithDirection_MatchingDirection_ReturnsTrue)
 {
-    BlockProperties props(Material::ROCK);
-    PointedDripstoneBlock block(props);
-    const BlockState& downState =
-        block.defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+    const BlockState& downState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
 
     EXPECT_TRUE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Down));
     EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Up));
 }
 
-TEST(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_NullPtr_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsPointedDripstoneWithDirection_NullPtr_ReturnsFalse)
 {
     EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(nullptr, Direction::Down));
 }
