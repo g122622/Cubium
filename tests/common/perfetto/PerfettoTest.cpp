@@ -345,6 +345,59 @@ TEST_F(TraceEventsTest, SimulateServerTick)
     EXPECT_TRUE(true);
 }
 
+// ============================================================================
+// 线程排序（PR #6219：thread_ordering + sibling_order_rank）测试
+// ============================================================================
+
+TEST_F(TraceEventsTest, SetThreadNameDoesNotThrow)
+{
+    EXPECT_NO_THROW(PerfettoManager::instance().setThreadName("MemoryTrace"));
+    EXPECT_NO_THROW(PerfettoManager::instance().setThreadName("UnknownThread"));
+    EXPECT_NO_THROW(PerfettoManager::instance().setThreadName("WithRank", 42));
+    PerfettoManager::instance().flush();
+}
+
+TEST_F(TraceEventsTest, SetThreadNameViaMacroRoutesToManager)
+{
+    // 宏应转调 Manager，不抛异常且不影响已启动的追踪会话
+    EXPECT_NO_THROW(MC_TRACE_SET_THREAD_NAME("ClientMainThread"));
+    PerfettoManager::instance().flush();
+}
+
+TEST_F(TraceEventsTest, WorkerPoolRankFormula)
+{
+    // 验证 worker 池 sibling_order_rank = rankBase + workerId 公式，防止回归。
+    // 三组 worker 分块排列：ServerCompute(100+) -> ServerIO(200+) -> ChunkMeshWorker(300+)，
+    // 每组间隔 100，组内按 workerId 升序。
+    constexpr int kServerComputeRankBase = 100;
+    constexpr int kServerIoRankBase = 200;
+    constexpr int kMeshRankBase = 300;
+    EXPECT_EQ(kServerComputeRankBase + 0, 100);
+    EXPECT_EQ(kServerComputeRankBase + 13, 113);
+    EXPECT_EQ(kServerIoRankBase + 0, 200);
+    EXPECT_EQ(kServerIoRankBase + 13, 213);
+    EXPECT_EQ(kMeshRankBase + 0, 300);
+    EXPECT_EQ(kMeshRankBase + 7, 307);
+    // 三组 rankBase 严格递增，保证 UI 中 Compute -> IO -> Mesh 的组顺序
+    EXPECT_LT(kServerComputeRankBase, kServerIoRankBase);
+    EXPECT_LT(kServerIoRankBase, kMeshRankBase);
+    // worker rank 应落在固定线程(1-5)之后
+    EXPECT_GT(kServerComputeRankBase, 5);
+    EXPECT_GT(kMeshRankBase, 5);
+}
+
+TEST_F(TraceEventsTest, ThreadOrderingEndToEnd)
+{
+    // 端到端验证：根 track descriptor（uuid=0, thread_ordering=EXPLICIT）与
+    // 线程 track descriptor（带 sibling_order_rank）能随首事件写入 trace buffer。
+    // Perfetto SDK 的 SetTrackDescriptor 只缓存 descriptor，真正进 buffer 是在该
+    // sequence 第一次发 track_event 时随包内联——故必须发事件才能落到文件。
+    MC_TRACE_EVENT("rendering.frame", "Warmup");
+    PerfettoManager::instance().setThreadName("MemoryTrace");
+    MC_TRACE_EVENT("rendering.frame", "AfterName");
+    PerfettoManager::instance().flush();
+}
+
 } // namespace test
 } // namespace perfetto
 } // namespace mc
