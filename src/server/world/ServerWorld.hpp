@@ -198,6 +198,7 @@ public:
     [[nodiscard]] ChunkData* getChunk(ChunkCoord x, ChunkCoord z);
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
     [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override;
+    [[nodiscard]] const ChunkData* getOrLoadChunk(ChunkCoord x, ChunkCoord z) override;
 
     // ========== 方块操作 ==========
 

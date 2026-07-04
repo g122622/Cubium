@@ -550,6 +550,12 @@ bool ServerWorld::hasChunk(ChunkCoord x, ChunkCoord z) const
     return m_chunkManager->hasChunkInMem(x, z);
 }
 
+const ChunkData* ServerWorld::getOrLoadChunk(ChunkCoord x, ChunkCoord z)
+{
+    // 同步加载区块：如果已加载则直接返回，否则在主线程上同步触发加载/生成
+    return m_chunkManager->requestFullChunkSync(x, z);
+}
+
 // ============================================================================
 // 方块操作
 // ============================================================================

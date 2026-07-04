@@ -363,3 +363,17 @@ world/
 - 事件参数 `paramA`/`paramB` 含义因方块类型而异
 - 区块未加载的事件会重新入队等待下次处理
 - `Block::triggerEvent()` 默认委托给 `BlockEntity::triggerEvent()`，子类可覆写
+
+### 16. IWorld::getOrLoadChunk() 同步区块加载
+
+**问题**：common 层代码需要在判断区块是否为空时触发区块加载（如末地折跃门出口生成扫描外岛区块），但 common 不能依赖 server 层的 `ServerChunkManager::requestFullChunkSync`。
+
+**解决**：`IWorld` 提供虚方法 `getOrLoadChunk(ChunkCoord x, ChunkCoord z)`，对应 MC Java 的 `Level.getChunk(x, z, require=true)`：
+- 默认实现委托给 `getChunk(x, z)`（仅查内存缓存，不触发加载）
+- `ServerWorld` 覆写为调用 `m_chunkManager->requestFullChunkSync(x, z)`，同步触发区块加载/生成
+- `WorldGenRegion` 等只读快照实现继承默认行为（仅查内存）
+- `BaseTestWorld`/`BaseChunkBackedTestWorld` 测试桩继承默认行为
+
+**线程安全**：与 `requestFullChunkSync` 相同，仅在服务端主线程调用安全。
+
+**使用场景**：`EndGatewayEntity::_generateExitPortal` 通过 `world.getOrLoadChunk()` 扫描外岛区块判空，完整复刻 MC Java 的 `findExitPortalXZPosTentative` 行为。需要仅查询内存时（不触发加载）仍使用 `getChunk()`。
