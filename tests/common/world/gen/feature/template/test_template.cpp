@@ -370,6 +370,162 @@ TEST_F(TemplateTest, TransformBlockPos_WithCenter)
     EXPECT_EQ(result.z, 10);
 }
 
+// ============================================================================
+// Template transformEntityPos 测试
+// ============================================================================
+// 对应 MC 1.21.11 StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)
+// 实体位置使用 f64 精度，镜像 `1.0 - coord`，旋转含 +1 偏移（block-corner 坐标系）
+// 注：pivot 为 BlockPos(0,0,0) 时公式简化，与 MC Java 默认行为一致
+
+TEST_F(TemplateTest, TransformEntityPos_NoRotationNoMirror)
+{
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::None, Rotation::None, pivot);
+
+    EXPECT_DOUBLE_EQ(result.x, 0.3);
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_DOUBLE_EQ(result.z, 0.7);
+}
+
+TEST_F(TemplateTest, TransformEntityPos_MirrorLeftRight)
+{
+    // LeftRight 镜像: d2 = 1.0 - d2
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::LeftRight, Rotation::None, pivot);
+
+    EXPECT_DOUBLE_EQ(result.x, 0.3);
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_DOUBLE_EQ(result.z, 0.3); // 1.0 - 0.7 = 0.3
+}
+
+TEST_F(TemplateTest, TransformEntityPos_MirrorFrontBack)
+{
+    // FrontBack 镜像: d0 = 1.0 - d0
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::FrontBack, Rotation::None, pivot);
+
+    EXPECT_DOUBLE_EQ(result.x, 0.7); // 1.0 - 0.3 = 0.7
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_DOUBLE_EQ(result.z, 0.7);
+}
+
+TEST_F(TemplateTest, TransformEntityPos_RotationClockwise90)
+{
+    // pivot=(0,0,0): i=0, j=0
+    // CLOCKWISE_90: (i + j + 1 - d2, d1, j - i + d0) = (1 - d2, d1, d0)
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::None, Rotation::Clockwise90, pivot);
+
+    EXPECT_NEAR(result.x, 0.3, 1e-10); // 1 - 0.7 = 0.3
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_NEAR(result.z, 0.3, 1e-10); // 0.3
+}
+
+TEST_F(TemplateTest, TransformEntityPos_Rotation180)
+{
+    // pivot=(0,0,0): i=0, j=0
+    // CLOCKWISE_180: (i + i + 1 - d0, d1, j + j + 1 - d2) = (1 - d0, d1, 1 - d2)
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::None, Rotation::Clockwise180, pivot);
+
+    EXPECT_NEAR(result.x, 0.7, 1e-10); // 1 - 0.3 = 0.7
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_NEAR(result.z, 0.3, 1e-10); // 1 - 0.7 = 0.3
+}
+
+TEST_F(TemplateTest, TransformEntityPos_RotationCounterClockwise90)
+{
+    // pivot=(0,0,0): i=0, j=0
+    // COUNTERCLOCKWISE_90: (i - j + d2, d1, i + j + 1 - d0) = (d2, d1, 1 - d0)
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::None, Rotation::CounterClockwise90, pivot);
+
+    EXPECT_NEAR(result.x, 0.7, 1e-10); // d2 = 0.7
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_NEAR(result.z, 0.7, 1e-10); // 1 - 0.3 = 0.7
+}
+
+TEST_F(TemplateTest, TransformEntityPos_MirrorAndRotation)
+{
+    // 先镜像 (LeftRight): d2 = 1.0 - 0.7 = 0.3, d0 = 0.3
+    // 再旋转 (Clockwise90): (1 - d2, d1, d0) = (1 - 0.3, 0.5, 0.3) = (0.7, 0.5, 0.3)
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(0, 0, 0);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::LeftRight, Rotation::Clockwise90, pivot);
+
+    EXPECT_NEAR(result.x, 0.7, 1e-10);
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_NEAR(result.z, 0.3, 1e-10);
+}
+
+TEST_F(TemplateTest, TransformEntityPos_WithPivot)
+{
+    // pivot=(2,0,3): i=2, j=3
+    // 无镜像无旋转 -> 返回原 pos
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(2, 0, 3);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::None, Rotation::None, pivot);
+
+    EXPECT_DOUBLE_EQ(result.x, 0.3);
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_DOUBLE_EQ(result.z, 0.7);
+}
+
+TEST_F(TemplateTest, TransformEntityPos_WithPivotRotation)
+{
+    // pivot=(2,0,3): i=2, j=3
+    // FrontBack 镜像: d0 = 1.0 - 0.3 = 0.7
+    // CounterClockwise90: (i - j + d2, d1, i + j + 1 - d0)
+    //   = (2 - 3 + 0.7, 0.5, 2 + 3 + 1 - 0.7) = (-0.3, 0.5, 5.3)
+    math::Vector3d pos(0.3, 0.5, 0.7);
+    BlockPos pivot(2, 0, 3);
+
+    math::Vector3d result = Template::transformEntityPos(pos, Mirror::FrontBack, Rotation::CounterClockwise90, pivot);
+
+    EXPECT_NEAR(result.x, -0.3, 1e-10);
+    EXPECT_DOUBLE_EQ(result.y, 0.5);
+    EXPECT_NEAR(result.z, 5.3, 1e-10);
+}
+
+TEST_F(TemplateTest, TransformEntityPos_EntityVsBlockComparison)
+{
+    // 同一个输入位置（用方块坐标 5,10,15），变换应该不同：
+    // - transformBlockPos 用 -coord（整数镜像）
+    // - transformEntityPos 用 1.0 - coord（block-corner 镜像）
+    // 这测试确认两者不混淆
+    BlockPos blockPos(5, 10, 15);
+    math::Vector3d entityPos(5.0, 10.0, 15.0);
+    BlockPos pivot(0, 0, 0);
+
+    // LeftRight 镜像
+    BlockPos blockResult = Template::transformBlockPos(blockPos, Mirror::LeftRight, Rotation::None, pivot);
+    math::Vector3d entityResult = Template::transformEntityPos(entityPos, Mirror::LeftRight, Rotation::None, pivot);
+
+    // 方块: (5, 10, -15)（z 取负）
+    EXPECT_EQ(blockResult.x, 5);
+    EXPECT_EQ(blockResult.y, 10);
+    EXPECT_EQ(blockResult.z, -15);
+
+    // 实体: (5.0, 10.0, 1.0 - 15.0 = -14.0)（z 用 1 - coord）
+    EXPECT_DOUBLE_EQ(entityResult.x, 5.0);
+    EXPECT_DOUBLE_EQ(entityResult.y, 10.0);
+    EXPECT_DOUBLE_EQ(entityResult.z, -14.0);
+}
+
 TEST_F(TemplateTest, GetTransformedPosition_NoRotation)
 {
     BlockPos pos(5, 10, 15);

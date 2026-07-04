@@ -26,6 +26,7 @@
 #include "RuleTest.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -474,6 +475,26 @@ public:
 
     [[nodiscard]] static BlockPos transformBlockPos(
         const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center);
+
+    /**
+     * @brief 变换实体精确位置（f64）
+     *
+     * 对应 MC 1.21.11 StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)。
+     * 实体位置使用浮点坐标，因此镜像使用 `1.0 - coord`（而非方块位置的 `-coord`），
+     * 旋转公式也包含 `+1` 偏移以保持子方块对齐（block-corner 坐标系）。
+     *
+     * 与 transformBlockPos 的区别：
+     * - transformBlockPos：方块坐标（整数），镜像 `-coord`，旋转无 +1 偏移
+     * - transformEntityPos：实体坐标（f64），镜像 `1.0 - coord`，旋转含 +1 偏移
+     *
+     * @param pos 模板内实体精确位置（f64）
+     * @param mirror 镜像
+     * @param rotation 旋转
+     * @param pivot 旋转中心（通常为 BlockPos(0,0,0)）
+     * @return 变换后的精确位置（f64，尚未加上世界偏移）
+     */
+    [[nodiscard]] static math::Vector3d transformEntityPos(
+        const math::Vector3d& pos, Mirror mirror, Rotation rotation, const BlockPos& pivot);
 
     [[nodiscard]] static BlockPos getTransformedPosition(const BlockPos& pos, Rotation rotation, const BlockPos& size);
 
