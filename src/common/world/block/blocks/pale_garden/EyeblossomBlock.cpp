@@ -25,6 +25,9 @@
 
 #include <cmath>
 
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -134,14 +137,37 @@ void EyeblossomBlock::animateTick(
 void EyeblossomBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    MC_UNUSED(state);
-    MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(entity);
 
-    // TODO: 蜜蜂实体（BeeEntity）接触开放眼眸花时获得 25 tick 中毒效果（仅非和平难度）。
-    //       待 BeeEntity 子系统完整实现 EffectInstance 应用接口后补全此处的中毒逻辑。
-    //       参考: net.minecraft.world.level.block.EyeblossomBlock#entityInside
+    // 1. 客户端世界不处理状态变更
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 2. 和平难度不施加中毒效果
+    if (world.difficulty() == Difficulty::Peaceful) {
+        return;
+    }
+
+    // 3. 仅蜜蜂被眼眸花中毒影响（其他实体不触发）
+    auto* bee = dynamic_cast<BeeEntity*>(&entity);
+    if (bee == nullptr) {
+        return;
+    }
+
+    // 4. 仅吸引蜜蜂的花朵触发（开放眼眸花在 BEE_ATTRACTIVE 标签中，闭合眼眸花不在）
+    //    含水花与向日葵下半部分由 attractsBees 排除
+    if (!BeeEntity::attractsBees(state)) {
+        return;
+    }
+
+    // 5. 蜜蜂已中毒则跳过，避免重复施加刷新剩余时间
+    if (bee->hasEffect(entity::effect::EffectType::Poison)) {
+        return;
+    }
+
+    // 6. 施加 25 tick 中毒效果（Poison I，amplifier=0）
+    bee->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 25, 0));
 }
 
 // ============================================================================

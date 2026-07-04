@@ -42,8 +42,12 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "common/world/block/registry/VegetationBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include <spdlog/spdlog.h>
@@ -74,6 +78,31 @@ BeeEntity::BeeEntity(EntityId id)
 std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/)
 {
     return std::make_unique<BeeEntity>(0);
+}
+
+// ============================================================================
+// 花朵吸引判定
+// ============================================================================
+
+bool BeeEntity::attractsBees(const BlockState& state)
+{
+    // 1. 必须在 BEE_ATTRACTIVE 标签中（闭合眼眸花不在标签中，因此不吸引蜜蜂）
+    if (!BlockTags::BEE_ATTRACTIVE().contains(state)) {
+        return false;
+    }
+
+    // 2. 含水的可水合花朵不吸引蜜蜂
+    if (state.getOptional(BlockStateProperties::WATERLOGGED()).value_or(false)) {
+        return false;
+    }
+
+    // 3. 向日葵仅上半部分吸引蜜蜂
+    if (state.is(block_registry::VegetationBlocks::SUNFLOWER)) {
+        const auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+        return half == blocks::DoublePlantBlock::DoubleBlockHalf::Upper;
+    }
+
+    return true;
 }
 
 void BeeEntity::registerData()

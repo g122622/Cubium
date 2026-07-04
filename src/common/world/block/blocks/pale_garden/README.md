@@ -44,6 +44,8 @@ PaleHangingMossBlock 直接继承 Block。
 - `SoundEvents::BLOCK_EYEBLOSSOM_*`: 眼眸花切换音效
 - `gameevent::GameEvents::BLOCK_CHANGE`: 切换时触发的游戏事件
 - `FlowerPotBlock`: 复用 `EyeblossomEnvironment` 与 `EyeblossomBlock::spawnTransformParticle`
+- `BeeEntity::attractsBees()` + `BlockTags::BEE_ATTRACTIVE`: 眼眸花蜜蜂中毒判定
+- `LivingEntity::addEffect()` / `EffectType::Poison`: 中毒效果施加
 
 ## 容易踩的坑
 
@@ -60,4 +62,6 @@ PaleHangingMossBlock 直接继承 Block。
 6. **连锁触发范围是 3×2×3**：`tryChangingState` 中 `BlockPos.forEachBetween` 遍历的范围是 `pos + [-3,-2,-3] .. pos + [3,2,3]`（含两端），与 MC 1.21.11 一致。注意是闭区间，半径分别为 3/2/3，不要误写为 3/3/3。
 
 7. **花盆版眼眸花不连锁触发**：`FlowerPotBlock::randomTick` 仅切换自身并播放长音效，不调用 `tryChangingState`、不调度周围 tick、不触发 `BLOCK_CHANGE` 游戏事件。这与 MC 1.21.11 行为一致。
+
+8. **眼眸花蜜蜂中毒仅对开放状态生效**：`EyeblossomBlock::onEntityCollision` 通过 `BeeEntity::attractsBees(state)` 判定，开放眼眸花在 `BlockTags::BEE_ATTRACTIVE` 标签中（闭合眼眸花不在）。中毒参数为 25 tick Poison I，受 `world.difficulty() != Peaceful` 与 `!bee->hasEffect(Poison)` 双重守卫。
 

@@ -35,6 +35,7 @@ namespace mc {
 
 // Forward declarations
 class LivingEntity;
+class BlockState;
 
 namespace blockentity {
 class BeehiveBlockEntity;
@@ -81,6 +82,27 @@ public:
      * @return 新的蜜蜂实体
      */
     static std::unique_ptr<Entity> create(IWorld* world);
+
+    // ========== 花朵吸引判定 ==========
+
+    /**
+     * @brief 判定给定方块状态是否吸引蜜蜂
+     *
+     * 用于眼眸花等方块在 onEntityCollision 中判定蜜蜂是否应被施加效果，
+     * 也用于蜜蜂 AI 寻找授粉目标时过滤候选方块。
+     *
+     * 判定规则（与 MC 1.21.11 Bee.attractsBees 一致）：
+     * 1. 方块必须在 BlockTags::BEE_ATTRACTIVE 标签中
+     *    （闭合眼眸花不在该标签中，因此不吸引蜜蜂）
+     * 2. 含水（waterlogged=true）的花朵不吸引蜜蜂
+     * 3. 向日葵仅上半部分（DoubleBlockHalf::Upper）吸引蜜蜂
+     *
+     * 参考: net.minecraft.world.entity.animal.bee.Bee#attractsBees
+     *
+     * @param state 待判定的方块状态
+     * @return 是否吸引蜜蜂
+     */
+    [[nodiscard]] static bool attractsBees(const BlockState& state);
 
     // ========== 花粉状态 ==========
 

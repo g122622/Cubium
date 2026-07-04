@@ -451,6 +451,15 @@ BlockTag& BlockTags::BEEHIVES()
     return *tag;
 }
 
+BlockTag& BlockTags::BEE_ATTRACTIVE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bee_attractive"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::DOES_NOT_BLOCK_HOPPERS()
 {
     static BlockTag* tag = nullptr;
@@ -1620,6 +1629,45 @@ void BlockTags::initialize()
     auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));
     beehives->addAll({ResourceLocation("minecraft", "beehive"), ResourceLocation("minecraft", "bee_nest")});
     tags[beehives->getId()] = std::move(beehives);
+
+    // 创建 BEE_ATTRACTIVE 标签（蜜蜂吸引物）
+    // MC 1.21.11: BlockTags.BEE_ATTRACTIVE
+    // 蜜蜂被这些方块吸引（用于授粉目标判定、眼眸花中毒触发等）。
+    // 含水的水合花朵与向日葵下半部分由 BeeEntity::attractsBees 工具函数特判排除。
+    // 注意：闭合眼眸花 (closed_eyeblossom) 不在此标签中，与 MC 1.21.11 数据包一致。
+    auto beeAttractive = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bee_attractive"));
+    beeAttractive->addAll({// 小花朵（与 BlockItemTagsProvider.ablock 一致）
+        ResourceLocation("minecraft", "dandelion"),
+        ResourceLocation("minecraft", "open_eyeblossom"),
+        ResourceLocation("minecraft", "poppy"),
+        ResourceLocation("minecraft", "blue_orchid"),
+        ResourceLocation("minecraft", "allium"),
+        ResourceLocation("minecraft", "azure_bluet"),
+        ResourceLocation("minecraft", "red_tulip"),
+        ResourceLocation("minecraft", "orange_tulip"),
+        ResourceLocation("minecraft", "white_tulip"),
+        ResourceLocation("minecraft", "pink_tulip"),
+        ResourceLocation("minecraft", "oxeye_daisy"),
+        ResourceLocation("minecraft", "cornflower"),
+        ResourceLocation("minecraft", "lily_of_the_valley"),
+        ResourceLocation("minecraft", "wither_rose"),
+        ResourceLocation("minecraft", "torchflower"),
+        // 高花朵与其他花类方块（与 BlockItemTagsProvider.ablock1 一致）
+        ResourceLocation("minecraft", "sunflower"),
+        ResourceLocation("minecraft", "lilac"),
+        ResourceLocation("minecraft", "peony"),
+        ResourceLocation("minecraft", "rose_bush"),
+        ResourceLocation("minecraft", "pitcher_plant"),
+        ResourceLocation("minecraft", "flowering_azalea_leaves"),
+        ResourceLocation("minecraft", "flowering_azalea"),
+        ResourceLocation("minecraft", "mangrove_propagule"),
+        ResourceLocation("minecraft", "cherry_leaves"),
+        ResourceLocation("minecraft", "pink_petals"),
+        ResourceLocation("minecraft", "wildflowers"),
+        ResourceLocation("minecraft", "chorus_flower"),
+        ResourceLocation("minecraft", "spore_blossom"),
+        ResourceLocation("minecraft", "cactus_flower")});
+    tags[beeAttractive->getId()] = std::move(beeAttractive);
 
     // 创建 DOES_NOT_BLOCK_HOPPERS 标签（漏斗不阻挡方块）
     // MC 1.21.11: BlockTags.DOES_NOT_BLOCK_HOPPERS

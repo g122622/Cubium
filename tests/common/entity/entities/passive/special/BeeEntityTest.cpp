@@ -31,8 +31,12 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -1810,6 +1814,58 @@ TEST_F(BeeNavigationTest, PathfindRandomlyTowards_NearTarget)
 
     // 目标较近，曼哈顿距离 < 15，搜索范围应缩小
     (void)bee.pathfindRandomlyTowards(BlockPos(55, 66, 53));
+}
+
+// ============================================================================
+// BeeEntity::attractsBees 测试
+// ============================================================================
+
+TEST_F(BeeEntityTest, AttractsBees_OpenEyeblossom_ReturnsTrue)
+{
+    // 开放眼眸花在 BEE_ATTRACTIVE 标签中，吸引蜜蜂
+    Block* openEyeblossom = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "open_eyeblossom"));
+    ASSERT_NE(openEyeblossom, nullptr);
+    EXPECT_TRUE(BeeEntity::attractsBees(openEyeblossom->defaultState()));
+}
+
+TEST_F(BeeEntityTest, AttractsBees_ClosedEyeblossom_ReturnsFalse)
+{
+    // 闭合眼眸花不在 BEE_ATTRACTIVE 标签中，不吸引蜜蜂
+    Block* closedEyeblossom = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "closed_eyeblossom"));
+    ASSERT_NE(closedEyeblossom, nullptr);
+    EXPECT_FALSE(BeeEntity::attractsBees(closedEyeblossom->defaultState()));
+}
+
+TEST_F(BeeEntityTest, AttractsBees_Dandelion_ReturnsTrue)
+{
+    // 蒲公英在 BEE_ATTRACTIVE 标签中
+    ASSERT_NE(VanillaBlocks::DANDELION, nullptr);
+    EXPECT_TRUE(BeeEntity::attractsBees(VanillaBlocks::DANDELION->defaultState()));
+}
+
+TEST_F(BeeEntityTest, AttractsBees_Stone_ReturnsFalse)
+{
+    // 石头不在 BEE_ATTRACTIVE 标签中
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    EXPECT_FALSE(BeeEntity::attractsBees(VanillaBlocks::STONE->defaultState()));
+}
+
+TEST_F(BeeEntityTest, AttractsBees_SunflowerUpperHalf_ReturnsTrue)
+{
+    // 向日葵上半部分吸引蜜蜂
+    ASSERT_NE(VanillaBlocks::SUNFLOWER, nullptr);
+    const BlockState& upperState = VanillaBlocks::SUNFLOWER->defaultState().with(
+        BlockStateProperties::DOUBLE_BLOCK_HALF(), blocks::DoublePlantBlock::DoubleBlockHalf::Upper);
+    EXPECT_TRUE(BeeEntity::attractsBees(upperState));
+}
+
+TEST_F(BeeEntityTest, AttractsBees_SunflowerLowerHalf_ReturnsFalse)
+{
+    // 向日葵下半部分不吸引蜜蜂
+    ASSERT_NE(VanillaBlocks::SUNFLOWER, nullptr);
+    const BlockState& lowerState = VanillaBlocks::SUNFLOWER->defaultState().with(
+        BlockStateProperties::DOUBLE_BLOCK_HALF(), blocks::DoublePlantBlock::DoubleBlockHalf::Lower);
+    EXPECT_FALSE(BeeEntity::attractsBees(lowerState));
 }
 
 } // namespace mc

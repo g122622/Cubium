@@ -36,7 +36,7 @@ namespace blocks {
  * - 开放状态发光等级为 1，闭合状态不发光
  * - 响应随机刻：主世界昼夜节律下在开/合状态间切换
  * - 切换时生成 TrailParticle 转换粒子、播放长/短音效，并连锁触发周围 3×2×3 范围内同种眼眸花
- * - 蜜蜂接触开放眼眸花会获得中毒效果（暂未实现，见 onEntityCollision 中的 TODO）
+ * - 蜜蜂接触开放眼眸花会获得 25 tick 中毒效果（仅非和平难度，闭合眼眸花不触发）
  *
  * 状态切换由 EnvironmentAttributes.EYEBLOSSOM_OPEN 环境属性驱动：
  * - 主世界夜晚（dayTimeOfDay ∈ [12600, 23401)）→ 应开放
@@ -144,10 +144,9 @@ public:
     /**
      * @brief 实体与方块碰撞时调用
      *
-     * MC 1.21.11 中：蜜蜂接触开放眼眸花时获得 25 tick 中毒效果（仅非和平难度）。
-     *
-     * TODO: 蜜蜂实体（BeeEntity）尚未在本项目中完整实现状态效果应用接口，
-     *       待蜜蜂子系统完善后补全此处的中毒逻辑。当前为占位空实现。
+     * 蜜蜂接触吸引蜜蜂的花朵（开放眼眸花等）时获得 25 tick 中毒效果（仅非和平难度）。
+     * 闭合眼眸花不在 BlockTags::BEE_ATTRACTIVE 标签中，因此不会触发中毒。
+     * 已中毒的蜜蜂不会被重复施加效果。
      *
      * 参考: net.minecraft.world.level.block.EyeblossomBlock#entityInside
      */

@@ -303,6 +303,14 @@ public:
     /// 蜜蜂可以进入的方块
     static BlockTag& BEEHIVES();
 
+    /// 蜜蜂吸引物标签
+    /// 蜜蜂被这些方块吸引（用于授粉目标判定、眼眸花中毒触发等）。
+    /// 包含蒲公英、开放眼眸花、虞美人、郁金香、向日葵、丁香、牡丹等 29 个方块，
+    /// 闭合眼眸花不在此标签中（蜜蜂不被闭合眼眸花吸引）。
+    /// 含水的可水合花朵会被排除（由 attractsBees 工具函数处理），向日葵仅上半部分生效。
+    /// MC 1.21.11: BlockTags.BEE_ATTRACTIVE
+    static BlockTag& BEE_ATTRACTIVE();
+
     /// 蜜蜂可授粉作物标签
     /// 小麦、胡萝卜、马铃薯、甜菜根、西瓜茎、南瓜茎、甜浆果丛
     static BlockTag& BEE_GROWABLES();
