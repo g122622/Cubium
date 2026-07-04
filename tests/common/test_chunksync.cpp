@@ -418,8 +418,12 @@ TEST_F(ChunkSerializerTest, DeserializeChunkPreservesBiomeData)
     ChunkData original(3, 7);
 
     BiomeContainer biomes;
-    biomes.setBiome(0, 0, 0, 0, Biomes::Forest);
-    biomes.setBiome(0, 3, 3, 3, Biomes::Badlands);
+    // setBiome 的 x/y/z 是 section 内的 4x4x4 采样坐标(0-3)，sectionIndex 是区块段索引。
+    // getBiomeAtBlock 接受世界方块坐标，会自行映射到 section 与采样点：
+    //   block (0,0,0)   -> section 4 (yOffset=64), 采样 (0,0,0)
+    //   block (15,63,15)-> section 7 (yOffset=127), 采样 (3,3,3)
+    biomes.setBiome(4, 0, 0, 0, Biomes::Forest);
+    biomes.setBiome(7, 3, 3, 3, Biomes::Badlands);
     original.setBiomes(std::move(biomes));
 
     auto serializeResult = ChunkSerializer::serializeChunk(original);
