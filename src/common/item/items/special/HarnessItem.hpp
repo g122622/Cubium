@@ -40,6 +40,10 @@ namespace item::items {
  * - 可通过合成（皮革+玻璃+对应颜色羊毛）或染色配方获得
  * - 装备交互（itemInteractionForEntity）与剪刀剪下逻辑由 HappyGhastEntity 实现后集成
  *
+ * TODO: 实现 itemInteractionForEntity —— 右键 HappyGhast 装备 harness 并消耗物品，
+ *       需待 HappyGhastEntity 实现后集成。装备音效（HARNESS_EQUIP）、剪刀剪下
+ *       （HARNESS_UNEQUIP）、EntityTypeTags::CAN_EQUIP_HARNESS 标签也需同步实现。
+ *
  * 参考: net.minecraft.world.item.equipment.Equippable#harness(DyeColor)
  */
 class HarnessItem : public Item {
@@ -56,6 +60,9 @@ public:
      * @return 染料颜色
      */
     [[nodiscard]] DyeColor getColor() const { return m_color; }
+
+    // TODO: 重写 itemInteractionForEntity 以支持右键 HappyGhast 装备 harness，
+    //       需待 HappyGhastEntity 实现后集成（参考 SaddleItem::itemInteractionForEntity）。
 
 private:
     DyeColor m_color;
