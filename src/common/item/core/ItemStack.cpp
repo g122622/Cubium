@@ -448,6 +448,29 @@ ItemStack ItemStack::copy() const
     return result;
 }
 
+ItemStack ItemStack::transmuteCopy(const Item& newItem, i32 newCount) const
+{
+    // 对应 MC 1.21.11 ItemStack#transmuteCopy(Item, int)
+    // 创建新物品堆，保留原物品堆的所有额外数据
+    if (newCount <= 0) {
+        return EMPTY;
+    }
+    ItemStack result(newItem, newCount);
+    // 保留原物品堆的额外数据（不保留耐久度，因为新物品可能是满耐久）
+    result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
+    result.m_lore.clear();
+    for (const auto& line : m_lore) {
+        result.m_lore.push_back(line->deepCopy());
+    }
+    result.m_potionId = m_potionId;
+    result.m_customData = m_customData;
+    result.m_enchantments = m_enchantments;
+    result.m_canPlaceOn = m_canPlaceOn;
+    result.m_canDestroy = m_canDestroy;
+    result.m_repairCost = m_repairCost;
+    return result;
+}
+
 // ============================================================================
 // 物品功能
 // ============================================================================

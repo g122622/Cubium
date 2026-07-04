@@ -98,6 +98,20 @@ enum class ClickAction : u8 {
 };
 
 /**
+ * @brief 槽位覆写协议点击动作
+ *
+ * 用于 Item::overrideStackedOnOther 和 Item::overrideOtherStackedOnMe
+ * 区分左键（Primary）和右键（Secondary）点击。
+ *
+ * 对应 MC 1.21.11 net.minecraft.world.inventory.ClickAction。
+ * 注意：此枚举与 ClickAction（网络包用）语义不同，不可混用。
+ */
+enum class SlotClickAction : u8 {
+    Primary = 0,  ///< 左键
+    Secondary = 1 ///< 右键
+};
+
+/**
  * @brief 容器动作类型
  *
  * 定义玩家与容器交互的操作类型

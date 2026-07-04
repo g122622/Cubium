@@ -1426,6 +1426,13 @@ const ResourceLocation ITEM_CROP_PLANT("minecraft:item.crop.plant");
 const ResourceLocation ITEM_NETHER_WART_PLANT("minecraft:item.nether_wart.plant");
 const ResourceLocation ITEM_LODESTONE_COMPASS_LOCK("minecraft:item.lodestone_compass.lock");
 
+// 收纳袋（Bundle）音效
+// 对应 MC 1.21.11 SoundEvents.ITEM_BUNDLE_DROP_CONTENTS / INSERT / INSERT_FAIL / REMOVE_ONE
+const ResourceLocation ITEM_BUNDLE_DROP_CONTENTS("minecraft:item.bundle.drop_contents");
+const ResourceLocation ITEM_BUNDLE_INSERT("minecraft:item.bundle.insert");
+const ResourceLocation ITEM_BUNDLE_INSERT_FAIL("minecraft:item.bundle.insert_fail");
+const ResourceLocation ITEM_BUNDLE_REMOVE_ONE("minecraft:item.bundle.remove_one");
+
 // ============================================================================
 // 武器声音
 // ============================================================================

@@ -44,6 +44,7 @@ enum class UseAction : u8 {
     Spyglass = 7,       ///< 望远镜动作
     TotemOfUndying = 8, ///< 不死图腾动作
     Brush = 9,          ///< 刷扫动作（刷子）
+    Bundle = 10,        ///< 收纳袋动作（右键使用收纳袋）
     Trident = Spear     ///< 别名，与Spear相同
 };
 
@@ -75,6 +76,8 @@ enum class UseAction : u8 {
             return "totem_of_undying";
         case UseAction::Brush:
             return "brush";
+        case UseAction::Bundle:
+            return "bundle";
         default:
             return "unknown";
     }

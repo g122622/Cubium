@@ -220,7 +220,11 @@ Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id
         return id;
     }
 
-    // 合成配方（有序/无序）
+    // 转化配方（crafting_transmute，如收纳袋染色）
+    // 通过 fromJson 解析并使用 registerRecipe 注册到合成配方管理器
+    // （TransmuteRecipe 继承 CraftingRecipe，使用统一的注册接口）
+
+    // 合成配方（有序/无序/转化）
     auto recipeResult = crafting::RecipeSerializers::fromJson(id, json);
     if (recipeResult.failed()) {
         return recipeResult.error();

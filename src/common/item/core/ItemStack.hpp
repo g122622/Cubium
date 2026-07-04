@@ -382,6 +382,22 @@ public:
      */
     [[nodiscard]] ItemStack copy() const;
 
+    /**
+     * @brief 转化物品堆类型（保留 NBT/组件）
+     *
+     * 对应 MC 1.21.11 ItemStack#transmuteCopy(Item, int)。
+     * 创建新的物品堆，使用指定的物品类型和数量，但保留原物品堆的所有
+     * 额外数据（自定义名称、Lore、附魔、自定义 NBT 数据、冒险模式谓词等）。
+     *
+     * 用于转化配方（crafting_transmute），如收纳袋染色：将无色收纳袋
+     * 转化为有色收纳袋时，保留 BundleContents 内容物。
+     *
+     * @param newItem 新物品类型
+     * @param newCount 新数量（默认 1）
+     * @return 转化后的物品堆
+     */
+    [[nodiscard]] ItemStack transmuteCopy(const Item& newItem, i32 newCount = 1) const;
+
     // ========== 物品功能 ==========
 
     /**

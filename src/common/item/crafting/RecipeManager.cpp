@@ -353,6 +353,16 @@ const CraftingRecipe* RecipeManager::findMatchingRecipe(const CraftingInventory&
         }
     }
 
+    // 检查转化配方（crafting_transmute，如收纳袋染色）
+    auto transmuteIt = m_recipesByType.find(RecipeType::Transmute);
+    if (transmuteIt != m_recipesByType.end()) {
+        for (const CraftingRecipe* recipe : transmuteIt->second) {
+            if (recipe->matches(inventory)) {
+                return recipe;
+            }
+        }
+    }
+
     return nullptr;
 }
 

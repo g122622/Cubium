@@ -97,6 +97,10 @@ add_executable(mc_tests
     common/item/ArmorMaterialTest.cpp
     # HarnessItem 欢乐诡鬼装备测试（16色注册、颜色映射、HARNESSES 标签集成）
     common/item/HarnessItemTest.cpp
+    # BundleItem 收纳袋测试（17色变体注册、BundleContents 权重系统、槽位覆写协议、染色转化）
+    common/item/special/BundleContentsTest.cpp
+    common/item/special/BundleItemTest.cpp
+    common/item/special/TransmuteRecipeTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
@@ -1768,6 +1772,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ShovelItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/HoeItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/SwordItem.cpp
+        # 收纳袋
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/special/bundle/BundleContents.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/items/special/bundle/BundleItem.cpp
         # 背包系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/Slot.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerInventory.cpp
@@ -1785,6 +1792,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeSerializers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeBook.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/TransmuteRecipe.cpp
         # 鏂瑰潡瀹炰綋绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntityType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntity.cpp

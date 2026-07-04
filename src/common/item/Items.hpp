@@ -295,6 +295,27 @@ public:
     static Item* BLACK_HARNESS;
 
     // ========================================================================
+    // 收纳袋 (Bundle) - 1 无色 + 16 色，可收纳多组物品的容器
+    // ========================================================================
+    static Item* BUNDLE;            // 收纳袋（无色）
+    static Item* WHITE_BUNDLE;      // 白色收纳袋
+    static Item* ORANGE_BUNDLE;     // 橙色收纳袋
+    static Item* MAGENTA_BUNDLE;    // 品红色收纳袋
+    static Item* LIGHT_BLUE_BUNDLE; // 淡蓝色收纳袋
+    static Item* YELLOW_BUNDLE;     // 黄色收纳袋
+    static Item* LIME_BUNDLE;       // 黄绿色收纳袋
+    static Item* PINK_BUNDLE;       // 粉色收纳袋
+    static Item* GRAY_BUNDLE;       // 灰色收纳袋
+    static Item* LIGHT_GRAY_BUNDLE; // 淡灰色收纳袋
+    static Item* CYAN_BUNDLE;       // 青色收纳袋
+    static Item* PURPLE_BUNDLE;     // 紫色收纳袋
+    static Item* BLUE_BUNDLE;       // 蓝色收纳袋
+    static Item* BROWN_BUNDLE;      // 棕色收纳袋
+    static Item* GREEN_BUNDLE;      // 绿色收纳袋
+    static Item* RED_BUNDLE;        // 红色收纳袋
+    static Item* BLACK_BUNDLE;      // 黑色收纳袋
+
+    // ========================================================================
     // 食物
     // ========================================================================
     static Item* APPLE;
@@ -1476,6 +1497,7 @@ private:
     static void _registerMusicDiscs();
     static void _registerSkulls();
     static void _registerHarnesses();
+    static void _registerBundles();
 };
 
 } // namespace mc

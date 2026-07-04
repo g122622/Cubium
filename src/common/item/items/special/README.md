@@ -10,6 +10,9 @@ special/
 ├── BoneMealItem.hpp/cpp         # 骨粉（加速植物生长、海草生成）
 ├── BrushItem.hpp/cpp            # 刷子（考古学工具，刷可疑方块和犰狳）
 ├── BucketItem.hpp/cpp           # 桶（空桶、水桶、岩浆桶）
+├── bundle/                      # 收纳袋子模块（1 无色 + 16 色 = 17 变体）
+│   ├── BundleContents.hpp/cpp   #   收纳袋内容物数据结构（重量系统、序列化）
+│   └── BundleItem.hpp/cpp       #   收纳袋物品（插槽覆盖协议、内容物管理）
 ├── EnchantedBookItem.hpp/cpp    # 附魔书（存储附魔）
 ├── FishBucketItem.hpp/cpp       # 鱼桶（放置水并生成鱼）
 ├── FlintAndSteelItem.hpp/cpp    # 打火石（点火、点燃下界传送门）

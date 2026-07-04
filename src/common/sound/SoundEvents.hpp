@@ -1566,6 +1566,14 @@ extern const ResourceLocation ITEM_CROP_PLANT;
 extern const ResourceLocation ITEM_NETHER_WART_PLANT;
 extern const ResourceLocation ITEM_LODESTONE_COMPASS_LOCK;
 
+/// 收纳袋（Bundle）音效
+/// 对应 MC 1.21.11 SoundEvents.ITEM_BUNDLE_DROP_CONTENTS / INSERT / INSERT_FAIL / REMOVE_ONE
+/// 用于 BundleItem 的插入、取出、丢出和失败反馈
+extern const ResourceLocation ITEM_BUNDLE_DROP_CONTENTS;
+extern const ResourceLocation ITEM_BUNDLE_INSERT;
+extern const ResourceLocation ITEM_BUNDLE_INSERT_FAIL;
+extern const ResourceLocation ITEM_BUNDLE_REMOVE_ONE;
+
 // ============================================================================
 // 武器声音
 // ============================================================================

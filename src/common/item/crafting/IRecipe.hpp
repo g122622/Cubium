@@ -46,6 +46,7 @@ enum class RecipeType : u8 {
     CampfireCooking,   ///< 营火烹饪
     Stonecutting,      ///< 切石机
     Smithing,          ///< 锻造台
+    Transmute,         ///< 物品转化（MC 1.21+，如收纳袋染色）
     Special            ///< 特殊配方（如地图扩展）
 };
 

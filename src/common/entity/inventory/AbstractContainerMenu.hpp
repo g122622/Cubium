@@ -554,6 +554,21 @@ private:
     ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
 
     /**
+     * @brief 尝试槽位覆写协议（收纳袋等特殊物品）
+     *
+     * 对应 MC 1.21.11 AbstractContainerMenu#tryItemClickBehaviourOverride。
+     * 在常规拾取/放置逻辑之前调用，给物品机会自定义交互行为：
+     * - 若光标物品（carried）重写了 overrideStackedOnOther 且返回 true，则跳过默认逻辑
+     * - 否则若槽位物品重写了 overrideOtherStackedOnMe 且返回 true，则跳过默认逻辑
+     *
+     * @param slot 被点击的槽位
+     * @param clickAction 点击动作（Primary=左键，Secondary=右键）
+     * @param player 玩家
+     * @return 是否处理了此次点击（true 表示跳过默认逻辑）
+     */
+    bool _tryItemClickBehaviourOverride(Slot& slot, SlotClickAction clickAction, Player& player);
+
+    /**
      * @brief 处理拖拽分发的 START/END 事件（使用 -999 槽位）
      *
      * 拖拽分发协议中，START 和 END 事件发送到 -999 槽位。

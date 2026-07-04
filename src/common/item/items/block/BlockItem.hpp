@@ -74,6 +74,16 @@ public:
      */
     ActionResultType onItemUse(ItemUseContext& context) override;
 
+    /**
+     * @brief 是否可放入容器物品（如收纳袋）
+     *
+     * 重写以禁止潜影盒放入收纳袋（防止递归存储）。
+     * 对应 MC 1.21.11 的 BlockItem#canFitInsideContainerItems。
+     *
+     * @return 若关联方块为潜影盒返回 false，否则返回 true
+     */
+    [[nodiscard]] bool canFitInsideContainerItems() const override;
+
     // ========== 放置逻辑 ==========
 
     /**

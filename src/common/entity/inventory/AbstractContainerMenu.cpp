@@ -29,6 +29,7 @@
 #include "entity/inventory/IInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "item/core/Item.hpp"
 #include "world/block/BlockPos.hpp"
 #include <cmath>
 
@@ -412,6 +413,17 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
 {
     Player* player = m_playerInventory->getPlayer();
+
+    // 槽位覆写协议（对应 MC 1.21.11 AbstractContainerMenu#tryItemClickBehaviourOverride）
+    // 在常规拾取/放置逻辑之前调用，给物品机会自定义交互行为（如收纳袋）
+    // - 左键（button == 0）→ SlotClickAction::Primary
+    // - 右键（button == 1）→ SlotClickAction::Secondary
+    SlotClickAction clickAction = (button == 0) ? SlotClickAction::Primary : SlotClickAction::Secondary;
+    if (_tryItemClickBehaviourOverride(slot, clickAction, *player)) {
+        // 物品已处理此次点击，跳过默认逻辑
+        notifySlotChanged(slotIndex, slot.getItem());
+        return m_carried;
+    }
 
     // 左键
     if (button == 0) {
@@ -1015,6 +1027,42 @@ void AbstractContainerMenu::dropItem(const ItemStack& stack, Player& player, boo
     if (m_itemDropCallback) {
         m_itemDropCallback(stack, player, retainOwnership);
     }
+}
+
+bool AbstractContainerMenu::_tryItemClickBehaviourOverride(Slot& slot, SlotClickAction clickAction, Player& player)
+{
+    // 对应 MC 1.21.11 AbstractContainerMenu#tryItemClickBehaviourOverride
+    // 给光标物品和槽位物品各一次机会自定义交互行为：
+    // 1. 若光标物品（m_carried）非空且其 Item.overrideStackedOnOther 返回 true → 处理完毕
+    // 2. 否则若槽位物品（slotStack）非空且其 Item.overrideOtherStackedOnMe 返回 true → 处理完毕
+    // 3. 否则返回 false，走默认拾取/放置逻辑
+    //
+    // 收纳袋（BundleItem）重写了这两个方法以实现：
+    // - 手持收纳袋点击其他槽位：插入/取出（overrideStackedOnOther）
+    // - 手持其他物品点击收纳袋槽位：插入/取出（overrideOtherStackedOnMe）
+
+    if (!m_carried.isEmpty()) {
+        // 光标物品非空：先尝试 overrideStackedOnOther
+        // 使用 Item::getItem(itemId) 获取非 const Item* 以调用非 const 虚方法
+        Item* carriedItem = const_cast<Item*>(m_carried.getItem());
+        if (carriedItem != nullptr && carriedItem->overrideStackedOnOther(m_carried, slot, clickAction, player)) {
+            return true;
+        }
+    }
+
+    ItemStack slotStack = slot.getItem();
+    if (!slotStack.isEmpty()) {
+        // 槽位物品非空：尝试 overrideOtherStackedOnMe
+        Item* slotItem = const_cast<Item*>(slotStack.getItem());
+        if (slotItem != nullptr &&
+            slotItem->overrideOtherStackedOnMe(slotStack, m_carried, slot, clickAction, player)) {
+            // 槽位物品可能已被修改（如收纳袋内容变化），同步槽位状态
+            slot.setChanged();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace mc
