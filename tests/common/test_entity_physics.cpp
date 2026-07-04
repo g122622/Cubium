@@ -216,7 +216,7 @@ TEST(BlockSlipperiness, CustomSlipperiness)
 
 TEST(BlockSlipperiness, HoneyBlockSlipperiness)
 {
-    // 蜂蜜块滑度为 0.5
+    // 任意自定义滑度(0.5)透传验证（注意：真实蜂蜜块滑度为默认值 0.6，由 speedFactor/jumpFactor 减速）
     TestBlock honeyBlock{BlockProperties(Material::ROCK).slipperiness(0.5f)};
 
     EXPECT_FLOAT_EQ(honeyBlock.getSlipperiness(honeyBlock.defaultState()), 0.5f);
