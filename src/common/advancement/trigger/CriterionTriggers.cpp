@@ -95,6 +95,8 @@ void CriterionTriggers::registerBuiltinTriggers()
 
     // 注册实体相关触发器
     registerTrigger(std::make_unique<TameAnimalTrigger>());
+    registerTrigger(std::make_unique<BredAnimalsTrigger>());
+    registerTrigger(std::make_unique<SummonedEntityTrigger>());
     registerTrigger(std::make_unique<PlayerKilledEntityTrigger>());
     registerTrigger(std::make_unique<EntityKilledPlayerTrigger>());
     registerTrigger(std::make_unique<CuredZombieVillagerTrigger>());

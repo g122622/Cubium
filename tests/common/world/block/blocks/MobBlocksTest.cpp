@@ -23,6 +23,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
@@ -1300,16 +1301,23 @@ class CampfireBlockStaticTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        campfire_ = std::make_unique<mc::blocks::CampfireBlock>(
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).lightLevel(15));
-        soulCampfire_ = std::make_unique<mc::blocks::SoulCampfireBlock>(
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).lightLevel(10));
+        // isLitCampfire 依赖 BlockTags::CAMPFIRES()，必须使用已注册的 campfire 方块
+        // （裸构造的 CampfireBlock 没有 blockLocation，无法命中标签）。
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+
+        campfire_ =
+            VanillaBlocks::CAMPFIRE ? static_cast<mc::blocks::CampfireBlock*>(VanillaBlocks::CAMPFIRE) : nullptr;
+        soulCampfire_ = VanillaBlocks::SOUL_CAMPFIRE
+            ? static_cast<mc::blocks::SoulCampfireBlock*>(VanillaBlocks::SOUL_CAMPFIRE)
+            : nullptr;
+        // 蜂巢仅用于“非营火方块”用例，不需要注册到标签
         beehiveBlock_ =
             std::make_unique<mc::blocks::BeehiveBlock>(BlockProperties(Material::WOOD).hardness(0.6f).resistance(0.6f));
     }
 
-    std::unique_ptr<mc::blocks::CampfireBlock> campfire_;
-    std::unique_ptr<mc::blocks::SoulCampfireBlock> soulCampfire_;
+    mc::blocks::CampfireBlock* campfire_ = nullptr;
+    mc::blocks::SoulCampfireBlock* soulCampfire_ = nullptr;
     std::unique_ptr<mc::blocks::BeehiveBlock> beehiveBlock_;
 };
 

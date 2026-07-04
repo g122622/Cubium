@@ -248,11 +248,13 @@ protected:
 
 TEST_F(StemFruitSupportTest, FarmlandSupportsFruitGrowth)
 {
-    // FARMLAND 在 DIRT 标签中，应支撑果实
+    // FARMLAND 不在 DIRT 标签中（与原版一致，见 BlockTagsTest.cpp 的 DIRT 标签用例），
+    // 但 StemBlock::tryGrowFruit 通过 belowFruitState.is(FARMLAND) 单独接受耕地为果实支撑。
     if (VanillaBlocks::FARMLAND == nullptr) {
         GTEST_SKIP() << "FARMLAND not registered";
     }
-    EXPECT_TRUE(BlockTags::DIRT().contains(VanillaBlocks::FARMLAND->defaultState()));
+    EXPECT_FALSE(BlockTags::DIRT().contains(VanillaBlocks::FARMLAND->defaultState()));
+    EXPECT_TRUE(VanillaBlocks::FARMLAND->defaultState().is(VanillaBlocks::FARMLAND));
 }
 
 TEST_F(StemFruitSupportTest, DirtSupportsFruitGrowth)

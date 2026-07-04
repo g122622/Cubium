@@ -214,9 +214,11 @@ TEST_F(MapDecorationTest, DecorationTypeValues)
 
 TEST_F(MapDecorationTest, RenderedOnFrame)
 {
-    // FRAME和PLAYER_OFF_MAP只在展示框中渲染
+    // 对齐 MC 1.16.5 MapDecoration.Type：FRAME/TARGET_*/MANSION/MONUMENT/BANNER_*/RED_X
+    // 在展示框上渲染（renderedOnFrame=true），PLAYER/RED_MARKER/PLAYER_OFF_MAP/
+    // PLAYER_OFF_LIMITS 不在展示框上渲染。
     EXPECT_TRUE(isRenderedOnFrame(DecorationType::FRAME));
-    EXPECT_TRUE(isRenderedOnFrame(DecorationType::PLAYER_OFF_MAP));
+    EXPECT_FALSE(isRenderedOnFrame(DecorationType::PLAYER_OFF_MAP));
     EXPECT_FALSE(isRenderedOnFrame(DecorationType::PLAYER));
     EXPECT_FALSE(isRenderedOnFrame(DecorationType::RED_MARKER));
 }

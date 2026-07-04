@@ -23,8 +23,61 @@
 
 #include "BlockItemUseContext.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/MathUtils.hpp"
+
+#include <array>
+#include <cmath>
 
 namespace mc {
+
+namespace {
+
+// 与 MC 1.21.11 Direction.orderedByNearest(Entity) 一致：
+// 依据玩家视线俯仰角(pitch)与偏航角(yaw)对 6 个方向按"与视线夹角"由小到大排序。
+// 返回的数组长度恒为 6，且第 i 个与第 5-i 个互为相反方向。
+//
+// 参数：
+//   yawDeg   玩家偏航角（度）。MC 约定：0=南, 90=西, 180=北, 270=东。
+//   pitchDeg 玩家俯仰角（度）。0=水平，正=仰视，负=俯视。
+std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
+{
+    // MC 1.21.11: f = viewXRot*(π/180)；f1 = -viewYRot*(π/180)
+    const f32 f = pitchDeg * math::DEG_TO_RAD;
+    const f32 f1 = -yawDeg * math::DEG_TO_RAD;
+    const f32 f2 = std::sin(f);   // sin(pitch)
+    const f32 f3 = std::cos(f);   // cos(pitch)
+    const f32 f4 = std::sin(f1);  // sin(-yaw)
+    const f32 f5 = std::cos(f1);  // cos(-yaw)
+    const bool flag = f4 > 0.0f;  // 东向分量>0
+    const bool flag1 = f2 < 0.0f; // 俯视（pitch<0）
+    const bool flag2 = f5 > 0.0f; // 南向分量>0
+    const f32 f6 = flag ? f4 : -f4;
+    const f32 f7 = flag1 ? -f2 : f2;
+    const f32 f8 = flag2 ? f5 : -f5;
+    const f32 f9 = f6 * f3;
+    const f32 f10 = f8 * f3;
+    const Direction direction = flag ? Direction::East : Direction::West;
+    const Direction direction1 = flag1 ? Direction::Up : Direction::Down;
+    const Direction direction2 = flag2 ? Direction::South : Direction::North;
+
+    // makeDirectionArray(a, b, c) = {a, b, c, opposite(c), opposite(b), opposite(a)}
+    const auto makeArray = [](Direction a, Direction b, Direction c) -> std::array<Direction, 6> {
+        return {a, b, c, Directions::opposite(c), Directions::opposite(b), Directions::opposite(a)};
+    };
+
+    if (f6 > f8) {
+        if (f7 > f9) {
+            return makeArray(direction1, direction, direction2);
+        }
+        return f10 > f7 ? makeArray(direction, direction2, direction1) : makeArray(direction, direction1, direction2);
+    }
+    if (f7 > f10) {
+        return makeArray(direction1, direction2, direction);
+    }
+    return f9 > f7 ? makeArray(direction2, direction, direction1) : makeArray(direction2, direction1, direction);
+}
+
+} // namespace
 
 BlockItemUseContext::BlockItemUseContext(IWorld& world,
     Player* player,
@@ -125,29 +178,56 @@ const BlockState* BlockItemUseContext::getBlockStateAtPlacementPos() const
 
 std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
 {
-    // 返回按玩家视线方向排序的方向列表
+    // 与 MC 1.21.11 BlockPlaceContext.getNearestLookingDirections 对齐：
+    //   Direction[] adirection = Direction.orderedByNearest(player);
+    //   if (replaceClicked) return adirection;
+    //   Direction direction = getClickedFace();
+    //   找到 direction.getOpposite() 在 adirection 中的下标 i；
+    //   若 i > 0，将 adirection[0..i-1] 整体后移一位到 [1..i]，并把 adirection[0] 置为
+    //   direction.getOpposite()（即把"点击面的反向"提到首位）。
+    //   return adirection;
 
-    // 首先添加玩家面向的方向（反方向）
-    Direction oppositeDir = Directions::opposite(m_horizontalDirection);
-
-    std::vector<Direction> directions;
-
-    // 添加水平方向（按优先级）
-    // 第一优先：玩家面向的反方向
-    directions.push_back(oppositeDir);
-
-    // 添加其他水平方向
-    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
-        if (dir != oppositeDir) {
-            directions.push_back(dir);
-        }
+    // 获取玩家视线 yaw/pitch。优先使用真实玩家实体；测试上下文可能 player==nullptr，
+    // 此时回退到构造时传入的 m_playerYaw（默认 0=朝南），pitch 取 0（水平视线）。
+    // TODO(pitch-precision): 当 player==nullptr 时无法获知俯仰角，统一按 pitch=0 处理；
+    //   若未来需要测试用例覆盖仰视/俯视放置（如楼梯半板朝向），应扩展
+    //   BlockItemUseContext 构造参数显式传入 pitch，或改用真实 Player 实体。
+    f32 yawDeg = m_playerYaw;
+    f32 pitchDeg = 0.0f;
+    if (m_player != nullptr) {
+        yawDeg = m_player->yaw();
+        pitchDeg = m_player->pitch();
     }
 
-    // 最后添加上和下
-    directions.push_back(Direction::Down);
-    directions.push_back(Direction::Up);
+    std::array<Direction, 6> ordered = orderedByNearest(yawDeg, pitchDeg);
 
-    return directions;
+    if (m_replacingClickedBlock) {
+        return std::vector<Direction>(ordered.begin(), ordered.end());
+    }
+
+    const Direction clickedFace = m_face;
+    const Direction priority = Directions::opposite(clickedFace);
+
+    // 在 ordered 中定位 priority 的下标
+    std::size_t i = 0;
+    while (i < ordered.size() && ordered[i] != priority) {
+        ++i;
+    }
+
+    if (i > 0) {
+        // 将 ordered[0..i-1] 后移到 [1..i]，ordered[0] = priority
+        std::vector<Direction> result(ordered.size());
+        result[0] = priority;
+        for (std::size_t k = 0; k < i; ++k) {
+            result[k + 1] = ordered[k];
+        }
+        for (std::size_t k = i + 1; k < ordered.size(); ++k) {
+            result[k] = ordered[k];
+        }
+        return result;
+    }
+
+    return std::vector<Direction>(ordered.begin(), ordered.end());
 }
 
 } // namespace mc

@@ -1040,13 +1040,24 @@ TEST_F(MerchantOffersTest, RestockFullWorkflow_SimulateDailyRestockCycle)
     EXPECT_EQ(offers.getOffer(0)->getRestocksToday(), 2);
     EXPECT_EQ(offers.getOffer(1)->getRestocksToday(), 2);
 
+    // 捕获重置前的需求值与特殊价格
+    // offer1 第二次 updateDemand：demand = 4 + 2 - (8-2) = 4 + 2 - 6 = 0
+    // offer2 第二次 updateDemand：demand = 2 + 0 - (4-0) = 2 - 4 = -2
+    const i32 demand0Before = offers.getOffer(0)->getDemand();
+    const i32 demand1Before = offers.getOffer(1)->getDemand();
+    const i32 special0Before = offers.getOffer(0)->getSpecialPrice();
+    const i32 special1Before = offers.getOffer(1)->getSpecialPrice();
+
     // Step 4: 新的一天，重置每日补货计数
     offers.resetDailyRestockAll();
     EXPECT_EQ(offers.getOffer(0)->getRestocksToday(), 0);
     EXPECT_EQ(offers.getOffer(1)->getRestocksToday(), 0);
 
-    // 需求值和特殊价格不受重置影响
-    EXPECT_NE(offers.getOffer(0)->getDemand(), 0);
+    // 需求值和特殊价格不受每日补货重置影响
+    EXPECT_EQ(offers.getOffer(0)->getDemand(), demand0Before);
+    EXPECT_EQ(offers.getOffer(1)->getDemand(), demand1Before);
+    EXPECT_EQ(offers.getOffer(0)->getSpecialPrice(), special0Before);
+    EXPECT_EQ(offers.getOffer(1)->getSpecialPrice(), special1Before);
 }
 
 } // namespace

@@ -146,12 +146,16 @@ BlockState WallTorchBlock::getStateForPlacement(BlockItemUseContext& context)
         if (!Directions::isHorizontal(direction)) {
             continue;
         }
-        const Direction attachDir = Directions::opposite(direction);
-        blockstate = blockstate.with(BlockStateProperties::HORIZONTAL_FACING(), attachDir);
-        const BlockPos attachPos = pos.offset(attachDir);
+        // 与 MC 1.21.11 WallTorchBlock.getStateForPlacement 一致：
+        //   direction1 = direction.getOpposite()（火把朝向 FACING）
+        //   canSurvive: attachPos = torchPos.relative(direction)（注意是 direction，而非 direction1）
+        //               isFaceSturdy(world, attachPos, facing=direction1)
+        const Direction facing = Directions::opposite(direction);
+        blockstate = blockstate.with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+        const BlockPos attachPos = pos.offset(direction);
         const BlockState* attachState = world.getBlockState(attachPos);
         if (attachState && !attachState->isAir() &&
-            attachState->isFaceSturdy(world, attachPos, direction, SupportType::Full)) {
+            attachState->isFaceSturdy(world, attachPos, facing, SupportType::Full)) {
             return blockstate;
         }
     }

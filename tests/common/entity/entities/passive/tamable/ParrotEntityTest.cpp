@@ -459,6 +459,7 @@ TEST_F(ParrotEntityTestFixture, ShoulderRiding_DefaultNotOnShoulder)
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_CanSitOnShoulder_WhenTamed)
 {
     ParrotEntity parrot(EntityId(0));
+    parrot.setWorld(&m_world);
 
     // 未驯服时不能坐在肩膀上
     EXPECT_FALSE(parrot.canSitOnShoulder());
@@ -488,6 +489,7 @@ TEST_F(ParrotEntityTestFixture, ShoulderRiding_CanSitOnShoulder_WhenTamed)
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_CannotSitOnShoulder_WhenSitting)
 {
     ParrotEntity parrot(EntityId(0));
+    parrot.setWorld(&m_world);
     parrot.setTamed(true);
     parrot.setSitting(true);
 
@@ -504,6 +506,7 @@ TEST_F(ParrotEntityTestFixture, ShoulderRiding_CannotSitOnShoulder_WhenSitting)
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_DismountShoulder_ResetsState)
 {
     ParrotEntity parrot(EntityId(0));
+    parrot.setWorld(&m_world);
     parrot.setTamed(true);
 
     // 模拟 tick 增加冷却

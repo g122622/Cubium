@@ -524,7 +524,7 @@ TEST(TradeXpGossipTypeHelperTest, IsNegativeIsPositive)
 // 测试 MerchantOffers 的核心操作：添加、查询、补货、价格更新。
 // 这些操作是 _increaseMerchantCareer 追加交易和 restock 的基础。
 
-class MerchantOffersTest : public ::testing::Test {
+class MerchantOffersOpsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -550,7 +550,7 @@ protected:
     MerchantOffers offers;
 };
 
-TEST_F(MerchantOffersTest, AddOffer_IncreasesSize)
+TEST_F(MerchantOffersOpsTest, AddOffer_IncreasesSize)
 {
     EXPECT_EQ(offers.size(), 0u);
     EXPECT_TRUE(offers.empty());
@@ -562,7 +562,7 @@ TEST_F(MerchantOffersTest, AddOffer_IncreasesSize)
     EXPECT_FALSE(offers.empty());
 }
 
-TEST_F(MerchantOffersTest, GetOffer_ValidIndex)
+TEST_F(MerchantOffersOpsTest, GetOffer_ValidIndex)
 {
     auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
     offers.addOffer(std::move(offer));
@@ -573,7 +573,7 @@ TEST_F(MerchantOffersTest, GetOffer_ValidIndex)
     EXPECT_EQ(retrieved->getXp(), 2);
 }
 
-TEST_F(MerchantOffersTest, GetOffer_OutOfBounds_ReturnsNull)
+TEST_F(MerchantOffersOpsTest, GetOffer_OutOfBounds_ReturnsNull)
 {
     auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 16, 2, 0.05f);
     offers.addOffer(std::move(offer));
@@ -582,7 +582,7 @@ TEST_F(MerchantOffersTest, GetOffer_OutOfBounds_ReturnsNull)
     EXPECT_EQ(offers.getOffer(100), nullptr);
 }
 
-TEST_F(MerchantOffersTest, RemoveOffer_DecreasesSize)
+TEST_F(MerchantOffersOpsTest, RemoveOffer_DecreasesSize)
 {
     for (int i = 0; i < 3; ++i) {
         auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, i + 1), ItemStack(bread_, 1), 12, 1, 0.05f);
@@ -603,7 +603,7 @@ TEST_F(MerchantOffersTest, RemoveOffer_DecreasesSize)
     EXPECT_EQ(second->getBuyA().getCount(), 3); // 原来的第三笔变成了第二笔
 }
 
-TEST_F(MerchantOffersTest, RestockAll_ResetsUseCounts)
+TEST_F(MerchantOffersOpsTest, RestockAll_ResetsUseCounts)
 {
     auto offer1 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 1), ItemStack(bread_, 6), 4, 2, 0.05f);
     auto offer2 = std::make_unique<MerchantOffer>(ItemStack(emerald_, 2), ItemStack(diamond_, 1), 8, 5, 0.05f);
@@ -629,7 +629,7 @@ TEST_F(MerchantOffersTest, RestockAll_ResetsUseCounts)
     EXPECT_EQ(offers.getOffer(1)->getRestocksToday(), 1);
 }
 
-TEST_F(MerchantOffersTest, UpdatePrices_AppliesModifier)
+TEST_F(MerchantOffersOpsTest, UpdatePrices_AppliesModifier)
 {
     auto offer = std::make_unique<MerchantOffer>(ItemStack(emerald_, 10), ItemStack(bread_, 6), 16, 2, 0.05f);
     offers.addOffer(std::move(offer));
@@ -645,7 +645,7 @@ TEST_F(MerchantOffersTest, UpdatePrices_AppliesModifier)
     EXPECT_EQ(offers.getOffer(0)->getAdjustedBuyPrice(), 9);
 }
 
-TEST_F(MerchantOffersTest, AppendOffers_MultipleLevels)
+TEST_F(MerchantOffersOpsTest, AppendOffers_MultipleLevels)
 {
     // 模拟 _increaseMerchantCareer 为多个等级追加交易
     // 先添加等级1的交易
