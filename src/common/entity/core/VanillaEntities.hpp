@@ -78,6 +78,7 @@
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
+#include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/GolemEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/SnowGolemEntity.hpp"
@@ -402,6 +403,16 @@ private:
         registry.registerType(EntityTypes::SNOW_GOLEM,
             EntityType::Builder(&SnowGolemEntity::create, EntityClassification::Misc)
                 .size(0.7f, 1.9f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 铜傀儡
+        // MC 1.21.11: 宽 0.49，高 0.98，trackingRange 10，updateInterval 3
+        registry.registerType(EntityTypes::COPPER_GOLEM,
+            EntityType::Builder(&CopperGolemEntity::create, EntityClassification::Misc)
+                .size(0.49f, 0.98f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)

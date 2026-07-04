@@ -265,4 +265,12 @@ constexpr const char* ITEM_ID = "id";
 constexpr const char* ITEM_COUNT = "Count";
 constexpr const char* ITEM_TAG = "tag";
 
+// ========== CopperGolemEntity 键 ==========
+// 对应 MC 1.21.11 CopperGolem.addAdditionalSaveData/readAdditionalSaveData
+// 注意：MC 仅持久化 weatherState 与 nextWeatheringTick，behaviorState 为运行时动画状态不持久化
+
+constexpr const char* NEXT_WEATHER_AGE =
+    "next_weather_age";                                ///< 下次氧化 tick（i64，-2=涂蜡，-1=未设置，>=0=绝对 tick）
+constexpr const char* WEATHER_STATE = "weather_state"; ///< 氧化等级（字符串：unaffected/exposed/weathered/oxidized）
+
 } // namespace mc::entity::serialization::nbt_keys

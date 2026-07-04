@@ -1093,6 +1093,38 @@ extern const ResourceLocation ENTITY_SNOW_GOLEM_HURT;
 extern const ResourceLocation ENTITY_SNOW_GOLEM_SHOOT;
 extern const ResourceLocation ENTITY_SNOW_GOLEM_SHEAR;
 
+/// 铜傀儡（MC 1.21.11）
+/// 完整对齐 MC 1.21.11 SoundEvents 中所有 COPPER_GOLEM_* 与铜傀儡雕像相关事件。
+/// 参考: net.minecraft.sounds.SoundEvents
+// 基础（Unaffected 等级）铜傀儡音效
+extern const ResourceLocation ENTITY_COPPER_GOLEM_STEP;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_HURT;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_DEATH;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_SPIN;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_SPAWN;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_SHEAR;
+// 锈蚀（Weathered）等级铜傀儡音效
+extern const ResourceLocation ENTITY_COPPER_GOLEM_WEATHERED_STEP;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_WEATHERED_HURT;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_WEATHERED_DEATH;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_WEATHERED_SPIN;
+// 氧化（Oxidized）等级铜傀儡音效
+extern const ResourceLocation ENTITY_COPPER_GOLEM_OXIDIZED_STEP;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_OXIDIZED_HURT;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_OXIDIZED_DEATH;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_OXIDIZED_SPIN;
+// 铜傀儡物品交互音效（暂未使用，预留以保持与原版对齐）
+extern const ResourceLocation ENTITY_COPPER_GOLEM_ITEM_GET;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_ITEM_NO_GET;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_ITEM_DROP;
+extern const ResourceLocation ENTITY_COPPER_GOLEM_ITEM_NO_DROP;
+// 铜傀儡雕像方块音效
+extern const ResourceLocation BLOCK_COPPER_GOLEM_STATUE_BREAK;
+extern const ResourceLocation BLOCK_COPPER_GOLEM_STATUE_PLACE;
+extern const ResourceLocation BLOCK_COPPER_GOLEM_STATUE_HIT;
+extern const ResourceLocation BLOCK_COPPER_GOLEM_STATUE_STEP;
+extern const ResourceLocation BLOCK_COPPER_GOLEM_STATUE_FALL;
+
 /// 哞菇
 extern const ResourceLocation ENTITY_MOOSHROOM_CONVERT;
 extern const ResourceLocation ENTITY_MOOSHROOM_EAT;

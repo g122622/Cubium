@@ -1,18 +1,21 @@
 # 傀儡实体模块
 
-本目录包含傀儡实体的实现，包括铁傀儡和雪傀儡。
+本目录包含傀儡实体的实现，包括铁傀儡、雪傀儡和铜傀儡。
 
 ## 目录结构
 
 ```
 golem/
-├── GolemEntity.hpp       # 傀儡基类（实现 IAngerable 接口）
-├── GolemEntity.cpp       # 傀儡基类实现
-├── SnowGolemEntity.hpp   # 雪傀儡实体（IShearable, IRangedAttackMob）
-├── SnowGolemEntity.cpp   # 雪傀儡实现
-├── IronGolemEntity.hpp   # 铁傀儡实体
-├── IronGolemEntity.cpp   # 铁傀儡实现
-└── README.md             # 本文件
+├── GolemEntity.hpp         # 傀儡基类（实现 IAngerable 接口）
+├── GolemEntity.cpp         # 傀儡基类实现
+├── SnowGolemEntity.hpp     # 雪傀儡实体（IShearable, IRangedAttackMob）
+├── SnowGolemEntity.cpp     # 雪傀儡实现
+├── IronGolemEntity.hpp     # 铁傀儡实体
+├── IronGolemEntity.cpp     # 铁傀儡实现
+├── CopperGolemTypes.hpp    # 铜傀儡类型定义（氧化等级、行为状态、工具集）
+├── CopperGolemEntity.hpp   # 铜傀儡实体（IShearable，氧化与转雕像）
+├── CopperGolemEntity.cpp   # 铜傀儡实现
+└── README.md               # 本文件
 ```
 
 ## 内部模块关系
@@ -30,15 +33,16 @@ golem/
        ┌─────────────────┼─────────────────┐
        │                 │                 │
 ┌──────▼──────┐   ┌──────▼──────┐   ┌──────▼──────┐
-│SnowGolemEntity│  │IronGolemEntity│  │ (其他傀儡) │
-│(IShearable)  │   │              │   │             │
-│(IRangedAttack)│  │              │   │             │
-└──────────────┘   └──────────────┘   └─────────────┘
+│SnowGolemEntity│  │IronGolemEntity│  │CopperGolemEntity│
+│(IShearable)  │   │              │   │(IShearable)     │
+│(IRangedAttack)│  │              │   │(氧化/转雕像)     │
+└──────────────┘   └──────────────┘   └─────────────────┘
 ```
 
 - **GolemEntity**：傀儡基类，继承 `CreatureEntity` 并实现 `IAngerable` 接口，提供愤怒系统
 - **SnowGolemEntity**：雪傀儡，实现远程攻击（雪球）和剪切（南瓜头）功能
 - **IronGolemEntity**：铁傀儡，实现近战攻击和村民保护功能
+- **CopperGolemEntity**：铜傀儡，实现氧化等级系统、斧头敲击雕像生成、涂蜡阻止氧化、剪刀剪切天线、氧化到顶后转化为雕像
 
 ## 上下游外部依赖关系
 
@@ -87,3 +91,13 @@ golem/
 9. **ATTACK_DAMAGE 属性注册**：铁傀儡的攻击伤害属性值为 15.0（MC 1.21.11 原版），需要在 `registerAttributes()` 中先调用 `registerAttribute(*Attributes::attackDamage())` 再 `setBaseValue()`，因为 `GolemEntity` 继承链（不同于 `MonsterEntity`）未注册此属性。
 
 10. **伤害随机化**：`attackEntityAsMob()` 中的伤害计算 `damage/2.0f + nextInt((int)damage)` 对应 MC 原版 `f/2.0F + this.random.nextInt((int)f)`，其中 `(int)f` 是截断取整。
+
+11. **铜傀儡氧化时序**：`m_nextWeatheringTick` 使用三个特殊值：`-2`（IGNORE_WEATHERING_TICK，已涂蜡）、`-1`（UNSET_WEATHERING_TICK，未设置）、`>=0`（绝对 tick）。涂蜡后永远不氧化，刮削后不重置 `m_nextWeatheringTick`（与 MC 一致）。
+
+12. **铜傀儡转雕像条件**：`canTurnToStatue()` 同时检查脚下为空气且随机数 `<= 0.0058F`，对应 MC `level.getBlockState(blockPosition()).isAir() && random.nextFloat() <= 0.0058F`。`turnToStatue()` 在 `Oxidized` 等级且满足条件时由 `updateWeathering()` 调用。
+
+13. **铜傀儡 NBT 持久化**：仅持久化 `next_weather_age`（i64）与 `weather_state`（string），`behaviorState` 为运行时动画状态不持久化（与 MC 1.21.11 一致）。NBT 键名常量定义在 `EntityNbtKeys.hpp` 的 `NEXT_WEATHER_AGE` 与 `WEATHER_STATE`。
+
+14. **铜傀儡雕像架构差异**：本项目基础 `copper_golem_statue` 注册为 `CopperGolemStatueBlock`（不实现 `IOxidizableBlock`），与 MC 原版使用 `WeatheringCopperGolemStatueBlock(UNAFFECTED)` 不同。因此斧头生成铜傀儡的逻辑在 `CopperGolemStatueBlock::onBlockActivated` 中实现，并通过 `HoneycombItem::getWaxedOff(state)` 区分涂蜡变体（返回 Pass 交由 AxeItem 除蜡）与基础变体（生成铜傀儡）。
+
+15. **Direction 转 yaw**：MC 的 `Direction.toYRot()` 在本项目无对应工具函数，`CopperGolemStatueBlockEntity::removeStatue` 与 `CopperGolemEntity::turnToStatue` 中手写转换：South=0, West=90, North=180, East=270。

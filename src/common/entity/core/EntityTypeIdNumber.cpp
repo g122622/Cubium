@@ -97,6 +97,7 @@ EntityTypeId BAT = 0;
 // 傀儡
 EntityTypeId IRON_GOLEM = 0;
 EntityTypeId SNOW_GOLEM = 0;
+EntityTypeId COPPER_GOLEM = 0;
 
 // ============================================================================
 // 敌对生物
@@ -281,6 +282,7 @@ void initialize()
     // 被动生物 - 傀儡
     IRON_GOLEM = safeGetId(registry, EntityTypes::IRON_GOLEM);
     SNOW_GOLEM = safeGetId(registry, EntityTypes::SNOW_GOLEM);
+    COPPER_GOLEM = safeGetId(registry, EntityTypes::COPPER_GOLEM);
 
     // 敌对生物 - 基础怪物
     ZOMBIE = safeGetId(registry, EntityTypes::ZOMBIE);

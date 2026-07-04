@@ -1,0 +1,463 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "CopperGolemEntity.hpp"
+
+#include "CopperGolemTypes.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include <memory>
+
+namespace mc {
+
+// ============================================================================
+// CopperGolemEntity 实现
+// ============================================================================
+
+CopperGolemEntity::CopperGolemEntity(EntityId id)
+    : GolemEntity(id)
+{
+    // MC 1.21.11 CopperGolem 构造函数：
+    //   setPersistenceRequired();
+    //   setState(IDLE);
+    //   setPathfindingMalus(DANGER_FIRE, 16.0F);
+    //   setPathfindingMalus(DAMAGE_FIRE, -1.0F);
+    // 本项目暂未实现 setPathfindingMalus，留作 TODO
+
+    // 铜傀儡可以走上1格高的方块（MC: STEP_HEIGHT=1.0）
+    setStepHeight(1.0f);
+
+    // 标记为持久化（生成后不会自然消失）
+    enablePersistence();
+
+    // 注册 AI 目标
+    registerGoals();
+
+    // 注册属性
+    registerAttributes();
+}
+
+std::unique_ptr<Entity> CopperGolemEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<CopperGolemEntity>(0);
+}
+
+void CopperGolemEntity::spawnFromStatue(entity::CopperGolemWeatherState weatherState)
+{
+    // 对应 MC Java: CopperGolem.spawn(WeatherState) - 设置氧化等级并播放生成音效
+    setWeatherState(weatherState);
+    playSpawnSound();
+}
+
+void CopperGolemEntity::playSpawnSound()
+{
+    // 对应 MC Java: CopperGolem.playSpawnSound() -> playSound(SoundEvents.COPPER_GOLEM_SPAWN)
+    playSound(SoundEvents::ENTITY_COPPER_GOLEM_SPAWN, 1.0f, 1.0f);
+}
+
+std::vector<ItemStack> CopperGolemEntity::shear(Player* /*player*/)
+{
+    // 对应 MC Java: CopperGolem.shear(ServerLevel, SoundSource, ItemStack)
+    //   - 播放 COPPER_GOLEM_SHEAR 音效
+    //   - 获取 EQUIPMENT_SLOT_ANTENNA（天线槽）物品
+    //   - 清空天线槽
+    //   - 掉落天线物品
+    // 本项目当前未实现装备槽与铜傀儡天线物品，仅播放音效
+    // TODO: 实现 EQUIPMENT_SLOT_ANTENNA 装备槽与铜傀儡天线物品后，补充掉落逻辑
+
+    IWorld* w = world();
+    if (w != nullptr) {
+        // 在实体位置播放剪切音效
+        Vector3 soundPos(x(), y(), z());
+        w->playSound(SoundEvents::ENTITY_COPPER_GOLEM_SHEAR, sound::SoundCategory::Neutral, soundPos, 1.0f, 1.0f);
+    }
+
+    // 触发 SHEAR 游戏事件
+    if (w != nullptr) {
+        BlockPos soundBlockPos(
+            static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+        w->gameEvent(gameevent::GameEvents::SHEAR, soundBlockPos, nullptr);
+    }
+
+    // 当前未实现天线物品，返回空列表
+    return {};
+}
+
+std::optional<ResourceLocation> CopperGolemEntity::getHurtSound(DamageSource& /*source*/) const
+{
+    // 对应 MC Java: CopperGolem.getHurtSound() -> CopperGolemOxidationLevels.getOxidationLevel(...).hurtSound()
+    // Unaffected/Exposed 等级使用基础音效，Weathered 使用锈蚀音效，Oxidized 使用氧化音效
+    switch (m_weatherState) {
+        case entity::CopperGolemWeatherState::Unaffected:
+        case entity::CopperGolemWeatherState::Exposed:
+            return SoundEvents::ENTITY_COPPER_GOLEM_HURT;
+        case entity::CopperGolemWeatherState::Weathered:
+            return SoundEvents::ENTITY_COPPER_GOLEM_WEATHERED_HURT;
+        case entity::CopperGolemWeatherState::Oxidized:
+            return SoundEvents::ENTITY_COPPER_GOLEM_OXIDIZED_HURT;
+    }
+    return SoundEvents::ENTITY_COPPER_GOLEM_HURT;
+}
+
+std::optional<ResourceLocation> CopperGolemEntity::getDeathSound() const
+{
+    // 对应 MC Java: CopperGolem.getDeathSound() -> CopperGolemOxidationLevels.getOxidationLevel(...).deathSound()
+    switch (m_weatherState) {
+        case entity::CopperGolemWeatherState::Unaffected:
+        case entity::CopperGolemWeatherState::Exposed:
+            return SoundEvents::ENTITY_COPPER_GOLEM_DEATH;
+        case entity::CopperGolemWeatherState::Weathered:
+            return SoundEvents::ENTITY_COPPER_GOLEM_WEATHERED_DEATH;
+        case entity::CopperGolemWeatherState::Oxidized:
+            return SoundEvents::ENTITY_COPPER_GOLEM_OXIDIZED_DEATH;
+    }
+    return SoundEvents::ENTITY_COPPER_GOLEM_DEATH;
+}
+
+void CopperGolemEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
+{
+    // 对应 MC Java: CopperGolem.playStepSound() -> CopperGolemOxidationLevels.getOxidationLevel(...).stepSound()
+    ResourceLocation sound = SoundEvents::ENTITY_COPPER_GOLEM_STEP;
+    switch (m_weatherState) {
+        case entity::CopperGolemWeatherState::Unaffected:
+        case entity::CopperGolemWeatherState::Exposed:
+            sound = SoundEvents::ENTITY_COPPER_GOLEM_STEP;
+            break;
+        case entity::CopperGolemWeatherState::Weathered:
+            sound = SoundEvents::ENTITY_COPPER_GOLEM_WEATHERED_STEP;
+            break;
+        case entity::CopperGolemWeatherState::Oxidized:
+            sound = SoundEvents::ENTITY_COPPER_GOLEM_OXIDIZED_STEP;
+            break;
+    }
+    playSound(sound, 1.0f, 1.0f);
+}
+
+void CopperGolemEntity::tick()
+{
+    GolemEntity::tick();
+
+    IWorld* w = world();
+    if (w == nullptr) {
+        return;
+    }
+
+    if (w->isClientSide()) {
+        // 客户端：动画状态机更新（setupAnimationStates）
+        // TODO: 实现客户端动画状态机（idleAnimationState、interactionGetItemAnimationState 等）
+        // 当前仅服务端逻辑实现完整，客户端动画留作后续渲染系统补充
+        return;
+    }
+
+    // 服务端：更新氧化状态
+    // 对应 MC Java: CopperGolem.tick() -> updateWeathering(serverLevel, random, gameTime)
+    updateWeathering(static_cast<i64>(w->getGameTime()));
+}
+
+void CopperGolemEntity::registerGoals()
+{
+    // 调用父类方法
+    GolemEntity::registerGoals();
+
+    // ========== AI 目标注册 ==========
+    //
+    // MC 1.21.11 原版 CopperGolem 使用 Brain 系统（CopperGolemAi）实现：
+    //   - AnimalPanic（恐慌逃跑）
+    //   - LookAtTargetSink / MoveToTargetSink（核心 AI 流程）
+    //   - InteractWithDoor（开门）
+    //   - TransportItemsBetweenContainers（在铜箱子与普通箱子间运输物品，核心行为）
+    //   - SetEntityLookTargetSometimes<Player>（偶尔看向玩家）
+    //   - RandomStroll（随机漫步）
+    //   - DoNothing（偶尔发呆）
+    //
+    // 本项目使用 GoalSelector AI 系统，且 ContainerUser / ContainerOpenersCounter /
+    // TransportItemsBetweenContainers 行为子系统尚未完整实现。
+    // 当前使用基础 GoalSelector 实现基础行为，物品运输行为留作 TODO。
+    //
+    // TODO: 实现 ContainerUser 接口与 TransportItemsBetweenContainers 行为后，
+    //       在此注册物品运输目标，完整复刻 MC 原版铜傀儡行为。
+
+    // 优先级 0: 游泳目标（在水中时上浮）
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
+
+    // 优先级 1: 随机漫步
+    // 对应 MC RandomStroll.stroll(1.0F, 2, 2)
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 60));
+
+    // 优先级 6: 看向玩家（对应 MC SetEntityLookTargetSometimes<Player, 6.0F>）
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f));
+
+    // 优先级 7: 随机看向（对应 MC 默认 LookRandomlyGoal）
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
+}
+
+void CopperGolemEntity::registerAttributes()
+{
+    // 调用父类方法
+    GolemEntity::registerAttributes();
+
+    // 对应 MC 1.21.11 CopperGolem.createAttributes():
+    //   Mob.createMobAttributes()
+    //       .add(Attributes.MOVEMENT_SPEED, 0.2F)
+    //       .add(Attributes.STEP_HEIGHT, 1.0)
+    //       .add(Attributes.MAX_HEALTH, 12.0)
+    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
+    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    // STEP_HEIGHT 在构造函数中通过 setStepHeight(1.0f) 设置
+}
+
+void CopperGolemEntity::updateWeathering(i64 currentGameTime)
+{
+    // 对应 MC Java: CopperGolem.updateWeathering(ServerLevel, RandomSource, long)
+    //
+    // 氧化逻辑：
+    // - m_nextWeatheringTick == -2 表示已涂蜡，不氧化
+    // - m_nextWeatheringTick == -1 表示需要初始化下一次氧化时间
+    // - 否则：达到时间后氧化到下一等级，达到 Oxidized 后有概率转化为雕像
+    if (m_nextWeatheringTick == IGNORE_WEATHERING_TICK) {
+        // 已涂蜡，不氧化
+        return;
+    }
+
+    if (m_nextWeatheringTick == UNSET_WEATHERING_TICK) {
+        // 初始化下一次氧化时间
+        // 对应 MC: this.nextWeatheringTick = gameTime + random.nextIntBetweenInclusive(504000, 552000)
+        math::IRandom& rng = getRandom();
+        m_nextWeatheringTick =
+            currentGameTime + static_cast<i64>(rng.nextInt(WEATHERING_TICK_FROM, WEATHERING_TICK_TO));
+        return;
+    }
+
+    // 检查是否达到氧化时间
+    bool isOxidized = (m_weatherState == entity::CopperGolemWeatherState::Oxidized);
+    if (currentGameTime >= m_nextWeatheringTick && !isOxidized) {
+        // 氧化到下一等级
+        auto next = entity::CopperGolemOxidationUtils::next(m_weatherState);
+        if (next.has_value()) {
+            setWeatherState(next.value());
+            // 重新计算下一次氧化时间
+            bool nextIsOxidized = (next.value() == entity::CopperGolemWeatherState::Oxidized);
+            math::IRandom& rng = getRandom();
+            m_nextWeatheringTick = nextIsOxidized
+                ? 0L
+                : m_nextWeatheringTick + static_cast<i64>(rng.nextInt(WEATHERING_TICK_FROM, WEATHERING_TICK_TO));
+        }
+    }
+
+    // 已氧化且满足条件时转化为雕像
+    if (isOxidized && canTurnToStatue()) {
+        turnToStatue();
+    }
+}
+
+bool CopperGolemEntity::canTurnToStatue() const
+{
+    // 对应 MC Java: CopperGolem.canTurnToStatue(Level)
+    //   return level.getBlockState(this.blockPosition()).isAir() && level.random.nextFloat() <= 0.0058F
+    const IWorld* w = world();
+    if (w == nullptr) {
+        return false;
+    }
+    // MC 的 blockPosition() = BlockPos(floor(x), floor(y), floor(z))
+    BlockPos currentPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+    const BlockState* state = w->getBlockState(currentPos);
+    if (state == nullptr || !state->isAir()) {
+        return false;
+    }
+    math::IRandom& rng = const_cast<CopperGolemEntity*>(this)->getRandom();
+    return rng.nextFloat() <= TURN_TO_STATUE_CHANCE;
+}
+
+void CopperGolemEntity::turnToStatue()
+{
+    // 对应 MC Java: CopperGolem.turnToStatue(ServerLevel)
+    //   BlockPos blockpos = this.blockPosition();
+    //   level.setBlock(blockpos, Blocks.OXIDIZED_COPPER_GOLEM_STATUE.defaultBlockState()
+    //       .setValue(POSE, Pose.values()[random.nextInt(0, Pose.values().length)])
+    //       .setValue(FACING, Direction.fromYRot(this.getYRot())), 3);
+    //   if (level.getBlockEntity(blockpos) instanceof CopperGolemStatueBlockEntity be) {
+    //       be.createStatue(this);
+    //       this.dropPreservedEquipment(level);
+    //       this.discard();
+    //       this.playSound(SoundEvents.COPPER_GOLEM_BECOME_STATUE);
+    //       if (this.isLeashed()) { ... }
+    //   }
+    IWorld* w = world();
+    if (w == nullptr) {
+        return;
+    }
+
+    BlockPos blockPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+
+    // 获取 Oxidized 铜傀儡雕像方块
+    Block* statueBlock = VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE;
+    if (statueBlock == nullptr) {
+        // 方块未注册（理论上不应发生，CopperBlocks::initialize 已注册）
+        return;
+    }
+
+    // 随机选择姿态
+    // 对应 MC: Pose.values()[random.nextInt(0, Pose.values().length)]
+    math::IRandom& rng = getRandom();
+    i32 poseIndex = rng.nextInt(0, 3); // [0, 3] 共 4 种姿态
+    using Pose = BlockStateProperties::CopperGolemPose;
+    Pose pose = Pose::Standing;
+    switch (poseIndex) {
+        case 0:
+            pose = Pose::Standing;
+            break;
+        case 1:
+            pose = Pose::Sitting;
+            break;
+        case 2:
+            pose = Pose::Running;
+            break;
+        case 3:
+            pose = Pose::Star;
+            break;
+        default:
+            pose = Pose::Standing;
+            break;
+    }
+
+    // 根据当前 Y 旋转计算朝向
+    // MC: Direction.fromYRot(this.getYRot()) - 0=South, 90=West, 180=North, 270=East
+    f32 yawValue = yaw();
+    Direction facing = Direction::North; // 默认北
+    // 将 yaw 规范化到 [0, 360)
+    while (yawValue < 0.0f)
+        yawValue += 360.0f;
+    while (yawValue >= 360.0f)
+        yawValue -= 360.0f;
+    if (yawValue >= 45.0f && yawValue < 135.0f) {
+        facing = Direction::West;
+    } else if (yawValue >= 135.0f && yawValue < 225.0f) {
+        facing = Direction::North;
+    } else if (yawValue >= 225.0f && yawValue < 315.0f) {
+        facing = Direction::East;
+    } else {
+        facing = Direction::South;
+    }
+
+    // 构造新状态：默认状态 + POSE + FACING
+    const BlockState& newState = statueBlock->defaultState()
+                                     .with(BlockStateProperties::COPPER_GOLEM_POSE(), pose)
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+
+    // 放置方块
+    w->setBlockState(blockPos, &newState, 3);
+
+    // 获取方块实体并保存自定义名称
+    BlockEntity* be = w->getBlockEntity(blockPos);
+    if (be != nullptr) {
+        auto* statueBe = dynamic_cast<blockentity::CopperGolemStatueBlockEntity*>(be);
+        if (statueBe != nullptr) {
+            // 转移自定义名称到雕像方块实体
+            // 对应 MC Java: CopperGolemStatueBlockEntity.createStatue(CopperGolem)
+            //   - 保存 CUSTOM_NAME 组件
+            if (hasCustomName()) {
+                statueBe->setCustomName(customNameText());
+            }
+        }
+    }
+
+    // 丢弃保存的装备
+    // 对应 MC Java: this.dropPreservedEquipment(serverLevel)
+    // TODO: 实现 dropPreservedEquipment（需要 preserved equipment 槽位系统）
+    // 当前铜傀儡未实现装备槽，无装备可掉落
+
+    // 播放变雕像音效
+    // 对应 MC Java: this.playSound(SoundEvents.COPPER_GOLEM_BECOME_STATUE)
+    playSound(SoundEvents::BLOCK_COPPER_GOLEM_BECOME_STATUE, 1.0f, 1.0f);
+
+    // 处理拴绳掉落
+    // 对应 MC Java: if (this.isLeashed()) { if (gameRules.ENTITY_DROPS) dropLeash(); else removeLeash(); }
+    // TODO: 实现拴绳掉落逻辑（需要 isLeashed/dropLeash/removeLeash 方法）
+    //       MobEntity 已有拴绳系统，待后续集成
+
+    // 移除实体
+    // 对应 MC Java: this.discard()
+    discard();
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void CopperGolemEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 对应 MC Java: CopperGolem.addAdditionalSaveData(ValueOutput)
+    //   super.addAdditionalSaveData(p_480213_);
+    //   p_480213_.putLong("next_weather_age", this.nextWeatheringTick);
+    //   p_480213_.store("weather_state", WeatheringCopper.WeatherState.CODEC, this.getWeatherState());
+    GolemEntity::addAdditionalSaveData(tag);
+    using namespace mc::entity::serialization;
+    tag.put(nbt_keys::NEXT_WEATHER_AGE, static_cast<i64>(m_nextWeatheringTick));
+    tag.put(nbt_keys::WEATHER_STATE, entity::CopperGolemOxidationUtils::toString(m_weatherState));
+}
+
+Result<void> CopperGolemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 对应 MC Java: CopperGolem.readAdditionalSaveData(ValueInput)
+    //   super.readAdditionalSaveData(p_481630_);
+    //   this.nextWeatheringTick = p_481630_.getLongOr("next_weather_age", -1L);
+    //   this.setWeatherState(p_481630_.read("weather_state", WeatheringCopper.WeatherState.CODEC)
+    //       .orElse(WeatheringCopper.WeatherState.UNAFFECTED));
+    MC_TRY(GolemEntity::readAdditionalSaveData(tag));
+    using namespace mc::entity::serialization;
+
+    if (auto val = nbt_helper::tryGetLong(tag, nbt_keys::NEXT_WEATHER_AGE)) {
+        m_nextWeatheringTick = *val;
+    } else {
+        m_nextWeatheringTick = UNSET_WEATHERING_TICK; // -1，MC 默认值
+    }
+
+    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::WEATHER_STATE)) {
+        m_weatherState = entity::CopperGolemOxidationUtils::fromString(*val);
+    } else {
+        m_weatherState = entity::CopperGolemWeatherState::Unaffected; // MC 默认值
+    }
+
+    // behaviorState 不持久化，重置为 Idle（与 MC 一致）
+    m_behaviorState = entity::CopperGolemState::Idle;
+
+    return Result<void>::ok();
+}
+
+} // namespace mc

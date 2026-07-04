@@ -126,12 +126,12 @@ MC 1.21 为避雷针新增了氧化变种。避雷针的氧化架构与其他铜
 - `OXIDATION`：氧化等级（仅 `WeatheringCopperGolemStatueBlock`）
 
 **核心行为：**
-- 右键点击：持有斧头时返回 PASS（委托 `AxeItem::onItemUse` 处理刮削/除蜡）；否则循环切换 POSE 并播放 `BLOCK_COPPER_GOLEM_BECOME_STATUE` 音效
+- 右键点击：持有斧头敲击基础（未涂蜡）`copper_golem_statue` 时生成铜傀儡（调用 `CopperGolemStatueBlockEntity::removeStatue()`）；持有斧头敲击涂蜡变体时返回 PASS（委托 `AxeItem::onItemUse` 处理除蜡）；否则循环切换 POSE 并播放 `BLOCK_COPPER_GOLEM_BECOME_STATUE` 音效
 - 比较器输出：`POSE.ordinal() + 1`（范围 1-4）
 - 碰撞形状：圆柱形 `box(3, 0, 3, 13, 14, 13)`（直径 10 像素，高度 14 像素），对应 MC Java `Block.column(10.0, 0.0, 14.0)`
-- 方块实体：`CopperGolemStatueBlockEntity`，保存 `CUSTOM_NAME` 组件（用于铜傀儡转化时保留名称）
+- 方块实体：`CopperGolemStatueBlockEntity`，保存 `CUSTOM_NAME` 组件（用于铜傀儡转化时保留名称），并提供 `removeStatue()` 接口生成铜傀儡实体
 
-**TODO：** 斧头敲击 Unaffected 等级雕像生成铜傀儡的逻辑尚未实现，因为本项目当前没有 `CopperGolem` 实体。待实体实现后，在 `CopperGolemStatueBlockEntity::removeStatue()` 中完成生成逻辑，并在 `WeatheringCopperGolemStatueBlock::onBlockActivated` 中调用。
+**斧头生成铜傀儡：** 玩家用斧头右键敲击基础 `copper_golem_statue`（Unaffected 等级、未涂蜡）时，`CopperGolemStatueBlock::onBlockActivated` 调用 `CopperGolemStatueBlockEntity::removeStatue(state)` 生成铜傀儡实体（转移 `CUSTOM_NAME`、设置位置与朝向、播放生成音效），然后损坏斧头、将实体加入世界、移除方块。涂蜡变体返回 PASS 由 `AxeItem` 处理除蜡，Exposed+ 变体由 `WeatheringCopperGolemStatueBlock` 继承父类逻辑（涂蜡检测返回 PASS，由 `AxeItem` 处理刮削）。
 
 氧化链：`copper_golem_statue → exposed_copper_golem_statue → weathered_copper_golem_statue → oxidized_copper_golem_statue`
 

@@ -250,6 +250,7 @@ constexpr const char* BAT = "minecraft:bat";
 // 傀儡
 constexpr const char* IRON_GOLEM = "minecraft:iron_golem";
 constexpr const char* SNOW_GOLEM = "minecraft:snow_golem";
+constexpr const char* COPPER_GOLEM = "minecraft:copper_golem";
 
 // 怪物
 constexpr const char* ZOMBIE = "minecraft:zombie";
