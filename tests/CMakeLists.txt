@@ -855,6 +855,8 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelTranslateHandTest.cpp
     # PlayerModel 手臂渲染测试
     client/renderer/entity/PlayerModelTest.cpp
+    # PlayerArmPoseResolver 手臂姿态解析器测试
+    client/renderer/entity/PlayerArmPoseResolverTest.cpp
     client/renderer/entity/ArmorLayerVisibilityTest.cpp
     client/renderer/entity/LlamaModelTest.cpp
     client/renderer/entity/LlamaRendererTest.cpp
@@ -1918,6 +1920,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/WitchModel.cpp
         # PlayerModel 手臂渲染测试
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
+        # PlayerArmPoseResolver 手臂姿态解析器（测试依赖）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/player/PlayerArmPoseResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
         # HeldBlockLayer 测试只测试 EndermanEntity 的方法，不需要 Vulkan 渲染层代码
         # 方块实体模型
