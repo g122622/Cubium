@@ -417,6 +417,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BLACKSTONE, "blackstone");
     registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone");
     registerSimpleBlock(VanillaBlocks::GILDED_BLACKSTONE, "gilded_blackstone");
+    // 黑石衍生方块（楼梯/台阶/墙）
+    registerSimpleBlock(VanillaBlocks::BLACKSTONE_STAIRS, "blackstone_stairs");
+    registerSimpleBlock(VanillaBlocks::BLACKSTONE_SLAB, "blackstone_slab");
+    registerSimpleBlock(VanillaBlocks::BLACKSTONE_WALL, "blackstone_wall");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_STAIRS, "polished_blackstone_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_SLAB, "polished_blackstone_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_WALL, "polished_blackstone_wall");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_BRICK_STAIRS, "polished_blackstone_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_BRICK_SLAB, "polished_blackstone_brick_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_BRICK_WALL, "polished_blackstone_brick_wall");
     registerSimpleBlock(VanillaBlocks::CRYING_OBSIDIAN, "crying_obsidian");
     registerSimpleBlock(VanillaBlocks::MAGMA, "magma_block");
     registerSimpleBlock(VanillaBlocks::NETHER_WART_BLOCK, "nether_wart_block");
