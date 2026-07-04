@@ -191,8 +191,12 @@ struct AnimationContext {
      * 对应 MC 1.21.11 Wolf.interestedAngle（已插值）。
      * WolfModel 将此值加到头部 Z 旋转上。
      *
-     * TODO: isInterested 状态目前未通过元数据同步到客户端，
-     * 此值暂时始终为 0。待实现 WolfEntity 元数据同步后由 ClientEntity 推进。
+     * 数据流：服务端 WolfEntity::setInterested 写入 DATA_INTERESTED_PARAM
+     * → EntityTracker 广播 EntityMetadataPacket
+     * → ClientEntity::syncMetadataFromDataManager 调用 setWolfIsInterested
+     * → ClientEntity::tick 推进 wolfInterestedAngle 向 1.0/0.0 插值
+     * → EntityRendererManager::updateAnimationContext 写入此字段
+     * → WolfModel::setAnimState 读取并应用到头部 Z 旋转。
      */
     f32 wolfInterestedAngle = 0.0f;
 

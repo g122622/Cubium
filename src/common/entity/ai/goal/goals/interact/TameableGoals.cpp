@@ -25,6 +25,7 @@
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -305,11 +306,27 @@ bool BegGoal::shouldContinueExecuting()
 void BegGoal::startExecuting()
 {
     m_begAngle = 0.0f;
+
+    // 狼特有：标记为感兴趣状态，触发乞求头部倾斜动画
+    // 对应 MC 1.21.11 BegGoal.start(): this.wolf.setIsInterested(true)
+    // setInterested 通过 DataParameter 同步到客户端，客户端 ClientEntity::tick
+    // 推进 wolfInterestedAngle 插值，WolfModel 读取渲染头部 Z 轴旋转。
+    auto* wolf = dynamic_cast<WolfEntity*>(m_entity);
+    if (wolf != nullptr) {
+        wolf->setInterested(true);
+    }
 }
 
 void BegGoal::resetTask()
 {
     m_targetPlayer = nullptr;
+
+    // 狼特有：取消感兴趣状态
+    // 对应 MC 1.21.11 BegGoal.stop(): this.wolf.setIsInterested(false)
+    auto* wolf = dynamic_cast<WolfEntity*>(m_entity);
+    if (wolf != nullptr) {
+        wolf->setInterested(false);
+    }
 }
 
 void BegGoal::tick()

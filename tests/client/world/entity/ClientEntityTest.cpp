@@ -708,6 +708,111 @@ TEST_F(ClientEntityOcelotSyncTest, TrustingState_SyncFromDataManager)
 }
 
 // ============================================================================
+// 狼兴趣状态客户端同步测试
+// ============================================================================
+
+class ClientEntityWolfSyncTest : public ::testing::Test {
+protected:
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:wolf"); }
+
+    void TearDown() override { entity.reset(); }
+
+    std::unique_ptr<ClientEntity> entity;
+};
+
+TEST_F(ClientEntityWolfSyncTest, InterestedState_DefaultFalse)
+{
+    // 狼客户端实体默认不感兴趣
+    EXPECT_FALSE(entity->wolfIsInterested());
+}
+
+TEST_F(ClientEntityWolfSyncTest, InterestedState_CanSetAndGet)
+{
+    EXPECT_FALSE(entity->wolfIsInterested());
+
+    entity->setWolfIsInterested(true);
+    EXPECT_TRUE(entity->wolfIsInterested());
+
+    entity->setWolfIsInterested(false);
+    EXPECT_FALSE(entity->wolfIsInterested());
+}
+
+TEST_F(ClientEntityWolfSyncTest, InterestedState_SyncFromDataManager)
+{
+    // 模拟服务端 WolfEntity 通过元数据同步兴趣状态到客户端
+    auto& dataManager = entity->dataManager();
+
+    // 注册 DataParameter（与服务端 WolfEntity::DATA_INTERESTED_PARAM 相同的参数）
+    auto interestedParam = mc::entity::EntityDataManager::createKey<bool>();
+    dataManager.registerParam(interestedParam, false);
+
+    // 服务端调用 setInterested(true) → EntityTracker 广播 → 客户端收到元数据
+    dataManager.set(interestedParam, true);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 模拟 ClientEntity::syncMetadataFromDataManager 的逻辑
+    // 此处验证 setWolfIsInterested 正确更新客户端镜像状态
+    entity->setWolfIsInterested(true);
+    EXPECT_TRUE(entity->wolfIsInterested());
+}
+
+TEST_F(ClientEntityWolfSyncTest, InterestedAngle_InterpolatesTowardOneWhenInterested)
+{
+    // 验证 ClientEntity::tick 推进 wolfInterestedAngle 向 1.0 插值
+    // 对应 MC Wolf.tick() 第 318-323 行
+    entity->setWolfIsInterested(true);
+
+    // 初始角度为 0
+    EXPECT_FLOAT_EQ(entity->wolfInterestedAngle(), 0.0f);
+
+    // 每次插值：angle += (1.0 - angle) * 0.4
+    // 第一次 tick 后：0.0 + 1.0 * 0.4 = 0.4
+    entity->tick();
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 0.4f, 0.001f);
+
+    // 第二次 tick 后：0.4 + 0.6 * 0.4 = 0.64
+    entity->tick();
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 0.64f, 0.001f);
+}
+
+TEST_F(ClientEntityWolfSyncTest, InterestedAngle_InterpolatesTowardZeroWhenNotInterested)
+{
+    // 验证 ClientEntity::tick 推进 wolfInterestedAngle 向 0.0 插值
+    // 先设置 interested=true 让角度接近 1.0
+    entity->setWolfIsInterested(true);
+    for (int i = 0; i < 50; ++i) {
+        entity->tick();
+    }
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 1.0f, 0.01f);
+
+    // 切换为 not interested，角度应向 0.0 趋近
+    entity->setWolfIsInterested(false);
+    entity->tick();
+    // 1.0 + (0.0 - 1.0) * 0.4 = 0.6
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 0.6f, 0.01f);
+
+    for (int i = 0; i < 50; ++i) {
+        entity->tick();
+    }
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 0.0f, 0.01f);
+}
+
+TEST_F(ClientEntityWolfSyncTest, InterestedAngle_OTracksCurrentFrame)
+{
+    // 验证 wolfInterestedAngleO 始终追踪上一 tick 的 wolfInterestedAngle
+    entity->setWolfIsInterested(true);
+    entity->tick();
+
+    // tick 后 wolfInterestedAngleO 应等于 tick 前的 wolfInterestedAngle（0.0）
+    EXPECT_FLOAT_EQ(entity->wolfInterestedAngleO(), 0.0f);
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 0.4f, 0.001f);
+
+    entity->tick();
+    EXPECT_NEAR(entity->wolfInterestedAngleO(), 0.4f, 0.001f);
+    EXPECT_NEAR(entity->wolfInterestedAngle(), 0.64f, 0.001f);
+}
+
+// ============================================================================
 // ClientEntity 眼高（eyeHeight）测试
 // ============================================================================
 

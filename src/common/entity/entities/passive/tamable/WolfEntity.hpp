@@ -26,6 +26,7 @@
 #include "TameableEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Crackiness.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include <memory>
 
@@ -227,15 +228,30 @@ public:
 
     /**
      * @brief 检查是否感兴趣（乞求食物）
+     *
+     * 通过 DataParameter 从 EntityDataManager 读取，服务端调用 setInterested 修改后
+     * 会自动通过元数据同步到客户端。
+     *
      * @return 如果正在乞求食物返回true
      */
-    [[nodiscard]] bool isInterested() const { return m_interested; }
+    [[nodiscard]] bool isInterested() const { return m_dataManager.get<bool>(DATA_INTERESTED_PARAM); }
 
     /**
      * @brief 设置感兴趣状态
+     *
+     * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
+     * EntityMetadataPacket 到所有观察者客户端。
+     *
      * @param interested 是否感兴趣
      */
-    void setInterested(bool interested) { m_interested = interested; }
+    void setInterested(bool interested) { m_dataManager.set(DATA_INTERESTED_PARAM, interested); }
+
+    /**
+     * @brief 获取兴趣状态数据参数 ID
+     *
+     * 用于客户端从元数据中读取兴趣状态（ClientEntity::syncMetadataFromDataManager）。
+     */
+    [[nodiscard]] static u16 getInterestedParamId() { return DATA_INTERESTED_PARAM.id(); }
 
     // ========== 颈圈颜色 ==========
 
@@ -327,6 +343,19 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 数据同步 ==========
+    /**
+     * @brief 注册同步数据参数
+     *
+     * 注册 DATA_INTERESTED_PARAM（兴趣状态）到 EntityDataManager。
+     * 客户端通过 getInterestedParamId() 读取此参数 ID 并在元数据同步时
+     * 调用 setWolfIsInterested 更新客户端镜像状态。
+     *
+     * 注意：由于 C++ 虚函数在基类构造函数中不会派发到派生类，
+     * WolfEntity 构造函数必须显式调用此方法（参考 ZombieVillagerEntity 模式）。
+     */
+    void registerData() override;
+
     // ========== 尺寸 ==========
 
     [[nodiscard]] f32 getBaseWidth() const override { return 0.6f; }
@@ -394,8 +423,15 @@ protected:
     }
 
 private:
-    // 兴趣状态（乞求食物）
-    bool m_interested = false;
+    // ========== 数据同步 ==========
+    /**
+     * @brief 兴趣状态同步参数
+     *
+     * 对应 MC 1.21.11 Wolf.DATA_INTERESTED_ID。
+     * 由 BegGoal 在 startExecuting/resetTask 时通过 setInterested 写入，
+     * 由 EntityTracker 自动广播到所有观察者客户端。
+     */
+    static entity::DataParameter<bool> DATA_INTERESTED_PARAM;
 
     // 颈圈颜色（默认红色，对应 DyeColor::Red = 14）
     DyeColor m_collarColor = DyeColor::Red;
