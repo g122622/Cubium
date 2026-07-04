@@ -23,10 +23,12 @@
 
 #include "CopperGolemStatueBlock.hpp"
 
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/HoneycombItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -35,6 +37,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
@@ -141,17 +144,66 @@ BlockActionResult CopperGolemStatueBlock::onBlockActivated(const BlockState& sta
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 检查玩家手持物品是否为斧头
-    // 若为斧头，返回 PASS 让 AxeItem::onItemUse 处理氧化刮削/涂蜡去除逻辑
-    // 在 MC Java 中 useItemOn 直接检查 ItemTags.AXES
-    ItemStack heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = player.getHeldItem(hand);
     if (!heldItem.isEmpty()) {
         const Item* item = heldItem.getItem();
         if (item != nullptr && item->isIn(item::tag::ItemTags::AXES())) {
-            return ActionResultType::Pass;
+            // 斧头交互分支
+            // 对应 MC 1.21.11 WeatheringCopperGolemStatueBlock.useItemOn 中的斧头逻辑
+            //
+            // MC 架构：基础 copper_golem_statue 是 WeatheringCopperGolemStatueBlock(UNAFFECTED)，
+            //          useItemOn 中检查 getAge() == UNAFFECTED 后调用 removeStatue 生成铜傀儡。
+            //
+            // 本项目架构：基础 copper_golem_statue 是 CopperGolemStatueBlock（不实现 IOxidizableBlock），
+            //             涂蜡变体也使用 CopperGolemStatueBlock。
+            //             因此在此处需要区分：
+            //             1. 基础 copper_golem_statue（未涂蜡）：斧头敲击 → 生成铜傀儡
+            //             2. 涂蜡变体（waxed_*）：返回 Pass，让 AxeItem 处理 wax_off
+            //
+            // 检查方式：HoneycombItem::getWaxedOff(state) 对涂蜡变体返回非空，对基础变体返回空。
+
+            const bool isWaxed = item::items::HoneycombItem::getWaxedOff(state).has_value();
+            if (isWaxed) {
+                // 涂蜡变体：返回 Pass，让 AxeItem 处理 wax_off
+                return BlockActionResult::pass();
+            }
+
+            // 基础 copper_golem_statue（未涂蜡、Unaffected 等级）
+            // 对应 MC: this.getAge().equals(WeatherState.UNAFFECTED)
+            // 获取方块实体并调用 removeStatue 生成铜傀儡
+            BlockEntity* be = world.getBlockEntity(pos);
+            if (be == nullptr) {
+                return BlockActionResult::pass();
+            }
+
+            auto* statueBe = dynamic_cast<blockentity::CopperGolemStatueBlockEntity*>(be);
+            if (statueBe == nullptr) {
+                return BlockActionResult::pass();
+            }
+
+            // 生成铜傀儡（对应 MC: coppergolemstatueblockentity.removeStatue(state)）
+            std::unique_ptr<Entity> golem = statueBe->removeStatue(state);
+
+            // 损坏斧头（对应 MC: p_433666_.hurtAndBreak(1, p_434811_, p_434251_.asEquipmentSlot())）
+            LivingEntity::hurtAndBreak(heldItem, 1, &player, LivingEntity::handToEquipmentSlot(hand));
+
+            if (golem != nullptr) {
+                // 将铜傀儡加入世界（对应 MC: p_435157_.addFreshEntity(coppergolem)）
+                world.spawnEntity(std::move(golem));
+
+                // 移除方块（对应 MC: p_435157_.removeBlock(p_435733_, false)）
+                const BlockState& airState = VanillaBlocks::AIR->defaultState();
+                world.setBlockState(pos, &airState, 3);
+
+                // 返回 Success 并携带损坏后的斧头，同步到客户端物品栏
+                return BlockActionResult::success(heldItem);
+            }
+
+            // 生成失败：仍消耗斧头耐久
+            return BlockActionResult::consume(heldItem);
         }
     }
 

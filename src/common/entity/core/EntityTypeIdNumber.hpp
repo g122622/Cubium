@@ -94,6 +94,7 @@ extern EntityTypeId BAT;
 // 傀儡
 extern EntityTypeId IRON_GOLEM;
 extern EntityTypeId SNOW_GOLEM;
+extern EntityTypeId COPPER_GOLEM;
 
 // ============================================================================
 // 敌对生物

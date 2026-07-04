@@ -35,6 +35,8 @@ namespace mc {
 
 class BlockState;
 class IWorld;
+class Entity;
+class CopperGolemEntity;
 
 namespace blockentity {
 
@@ -50,10 +52,6 @@ namespace blockentity {
  * - 铜傀儡变雕像时（createStatue）将铜傀儡的自定义名称保存到方块实体的 CUSTOM_NAME 组件
  * - 玩家用斧头敲击 Unaffected 等级雕像时（removeStatue）生成铜傀儡并转移 CUSTOM_NAME
  * - 物品拾取（getCloneItemStack）通过方块实体将 CUSTOM_NAME 和 POSE 状态写入物品
- *
- * 注意：本项目当前尚未实现 CopperGolem 实体，因此 removeStatue() 暂时为空实现，
- * 相关斧头敲击生成铜傀儡的逻辑留作 TODO。CUSTOM_NAME 的存储和序列化已完整实现，
- * 以保证存档兼容性和未来的扩展性。
  *
  * 参考: net.minecraft.world.level.block.entity.CopperGolemStatueBlockEntity (MC 1.21.11)
  */
@@ -91,7 +89,7 @@ public:
         setChanged();
     }
 
-    // ========== 铜傀儡生成（TODO） ==========
+    // ========== 铜傀儡生成 ==========
 
     /**
      * @brief 移除雕像并生成铜傀儡
@@ -99,34 +97,16 @@ public:
      * 对应 MC Java: CopperGolemStatueBlockEntity.removeStatue(BlockState)
      *
      * 在 MC Java 中，当玩家用斧头敲击 Unaffected 等级的铜傀儡雕像时：
-     * 1. 创建 CopperGolem 实体
+     * 1. 创建 CopperGolem 实体（EntityType.COPPER_GOLEM.create(...)）
      * 2. 转移 CUSTOM_NAME 到新生成的铜傀儡
-     * 3. 设置铜傀儡的位置和朝向（与雕像的 FACING 一致）
-     * 4. 播放生成音效
-     * 5. 调用方负责移除方块并将实体加入世界
+     * 3. 设置铜傀儡的位置（pos.getCenter()）和朝向（与雕像的 FACING 一致）
+     * 4. 播放生成音效（coppergolem.playSpawnSound()）
+     * 5. 由调用方负责将实体加入世界并移除方块
      *
      * @param state 当前方块状态（用于获取 FACING）
-     * @return 是否成功生成铜傀儡（false 表示失败或未实现）
-     *
-     * TODO: 本项目尚未实现 CopperGolem 实体，因此本方法当前返回 false。
-     *       待 CopperGolem 实体实现后，需在此处实现完整的生成逻辑，
-     *       并在 WeatheringCopperGolemStatueBlock::onBlockActivated 中调用此方法
-     *       以替代当前的 PASS 行为。同时需要在 CopperGolemStatueBlock::onBlockActivated
-     *       中为 Unaffected 等级（即基础 copper_golem_statue）添加斧头敲击生成铜傀儡
-     *       的逻辑分支。
+     * @return 生成的铜傀儡实体（所有权转移给调用方），失败返回 nullptr
      */
-    bool removeStatue(const BlockState& state)
-    {
-        MC_UNUSED(state);
-        // TODO: 待 CopperGolem 实体实现后，在此处实现完整的生成逻辑：
-        //   1. 创建 CopperGolem 实体（EntityType.COPPER_GOLEM.create(...)）
-        //   2. 转移 CUSTOM_NAME 到新生成的铜傀儡
-        //   3. 设置铜傀儡的位置（pos.getCenter()）和朝向（与雕像的 FACING 一致）
-        //   4. 播放生成音效（coppergolem.playSpawnSound()）
-        //   5. 由调用方将实体加入世界并移除方块
-        // 当前返回 false 表示未实现，调用方将回退到 PASS 行为
-        return false;
-    }
+    [[nodiscard]] std::unique_ptr<Entity> removeStatue(const BlockState& state);
 
     // ========== 序列化 ==========
 

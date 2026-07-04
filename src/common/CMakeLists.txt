@@ -148,6 +148,7 @@ add_library(mc_common STATIC
     entity/entities/passive/golem/GolemEntity.cpp
     entity/entities/passive/golem/IronGolemEntity.cpp
     entity/entities/passive/golem/SnowGolemEntity.cpp
+    entity/entities/passive/golem/CopperGolemEntity.cpp
 
     # Entity - Passive - Horse
     entity/entities/passive/horse/AbstractHorseEntity.cpp
@@ -958,6 +959,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
     world/blockentity/interactive/ShelfBlockEntity.cpp
+    world/blockentity/interactive/CopperGolemStatueBlockEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp
     world/blockentity/storage/DoubleSidedInventory.cpp

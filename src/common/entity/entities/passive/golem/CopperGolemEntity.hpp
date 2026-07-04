@@ -1,0 +1,300 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "CopperGolemTypes.hpp"
+#include "GolemEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <memory>
+
+namespace mc {
+
+// Forward declarations
+class IWorld;
+
+/**
+ * @brief 铜傀儡实体（MC 1.21.11）
+ *
+ * 铜傀儡是一种友好型傀儡，由玩家用斧头敲击铜傀儡雕像（Unaffected 等级）生成。
+ *
+ * 特性：
+ * - 友好：不主动攻击任何生物
+ * - 持久化：生成后标记为 PersistenceRequired，不会自然消失
+ * - 氧化：随时间氧化到下一等级（Unaffected → Exposed → Weathered → Oxidized）
+ * - 转雕像：达到 Oxidized 等级后，有概率在空气中转化为 Oxidized 铜傀儡雕像
+ * - 可剪切：可用剪刀剪下天线（掉落铜傀儡天线物品）
+ * - 蜜脾涂蜡：可用蜜脾阻止氧化
+ * - 斧头刮削：可用斧头刮削回上一氧化等级
+ *
+ * 与 MC 原版的差异：
+ * - MC 原版使用 Brain 系统（CopperGolemAi）实现物品运输行为，本项目使用 GoalSelector
+ *   实现。当前实现只包含基础的随机漫步、看向玩家、随机看向等基础 AI，
+ *   物品运输行为留作 TODO（需要 ChestBlock 容器接口、ContainerOpenersCounter 等子系统）。
+ * - 氧化与转雕像逻辑完整实现（对应 MC 1.21.11 CopperGolem.updateWeathering/turnToStatue）。
+ *
+ * 参考: net.minecraft.world.entity.animal.golem.CopperGolem (MC 1.21.11)
+ */
+class CopperGolemEntity : public GolemEntity, public entity::IShearable {
+public:
+    /**
+     * @brief 构造函数
+     * @param id 实体ID
+     */
+    explicit CopperGolemEntity(EntityId id);
+
+    ~CopperGolemEntity() override = default;
+
+    // 禁止拷贝
+    CopperGolemEntity(const CopperGolemEntity&) = delete;
+    CopperGolemEntity& operator=(const CopperGolemEntity&) = delete;
+
+    // 允许移动
+    CopperGolemEntity(CopperGolemEntity&&) = delete;
+    CopperGolemEntity& operator=(CopperGolemEntity&&) = delete;
+
+    /**
+     * @brief 创建铜傀儡实体
+     * @param world 世界实例
+     * @return 新的铜傀儡实体
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
+    // ========== 氧化状态 ==========
+
+    /**
+     * @brief 获取氧化等级
+     * @return 当前氧化等级
+     *
+     * 对应 MC Java: CopperGolem.getWeatherState()
+     */
+    [[nodiscard]] entity::CopperGolemWeatherState getWeatherState() const noexcept { return m_weatherState; }
+
+    /**
+     * @brief 设置氧化等级
+     * @param state 新的氧化等级
+     *
+     * 对应 MC Java: CopperGolem.setWeatherState(WeatherState)
+     */
+    void setWeatherState(entity::CopperGolemWeatherState state) noexcept { m_weatherState = state; }
+
+    // ========== 行为状态 ==========
+
+    /**
+     * @brief 获取行为状态（动画状态机标识）
+     * @return 当前行为状态
+     *
+     * 对应 MC Java: CopperGolem.getState()
+     */
+    [[nodiscard]] entity::CopperGolemState getBehaviorState() const noexcept { return m_behaviorState; }
+
+    /**
+     * @brief 设置行为状态
+     * @param state 新的行为状态
+     *
+     * 对应 MC Java: CopperGolem.setState(CopperGolemState)
+     */
+    void setBehaviorState(entity::CopperGolemState state) noexcept { m_behaviorState = state; }
+
+    // ========== 生成 ==========
+
+    /**
+     * @brief 由雕像转化生成时调用
+     *
+     * 设置氧化等级为 Unaffected 并播放生成音效。
+     * 对应 MC Java: CopperGolem.spawn(WeatherState.UNAFFECTED)
+     *
+     * @param weatherState 初始氧化等级
+     */
+    void spawnFromStatue(entity::CopperGolemWeatherState weatherState);
+
+    /**
+     * @brief 播放生成音效
+     *
+     * 对应 MC Java: CopperGolem.playSpawnSound()
+     */
+    void playSpawnSound();
+
+    // ========== IShearable 接口实现 ==========
+
+    /**
+     * @brief 检查是否可以被剪切
+     * @return 铜傀儡永远可被剪切（活着即可，对应 MC 原版 readyForShearing 检查天线物品，
+     *         本项目未实现装备槽，简化为活着即可）
+     *
+     * TODO: 实现 EQUIPMENT_SLOT_ANTENNA 装备槽后，按 MC 原版逻辑检查天线物品标签。
+     */
+    [[nodiscard]] bool isShearable() const override { return isAlive(); }
+
+    /**
+     * @brief 剪切铜傀儡
+     *
+     * 对应 MC Java: CopperGolem.shear() - 播放剪切音效并掉落天线物品。
+     * 本项目当前未实现铜傀儡天线物品，仅播放音效，留 TODO 待物品系统补充后集成。
+     *
+     * @param player 执行剪切的玩家（可为 nullptr）
+     * @return 获得的物品列表（当前为空）
+     */
+    std::vector<ItemStack> shear(Player* player = nullptr) override;
+
+    // ========== 属性 ==========
+
+    /**
+     * @brief 获取眼睛高度
+     *
+     * MC 1.21.11 CopperGolem 默认尺寸：宽 0.49，高 0.98
+     * 眼睛高度按比例取约 0.45（接近高度的一半）。
+     */
+    [[nodiscard]] f32 eyeHeight() const override { return 0.45f; }
+
+    /**
+     * @brief 获取实体宽度
+     * MC 1.21.11 CopperGolem.createAttributes() 中的尺寸为 0.49f。
+     */
+    [[nodiscard]] f32 width() const override { return 0.49f; }
+
+    /**
+     * @brief 获取实体高度
+     * MC 1.21.11 CopperGolem.createAttributes() 中的尺寸为 0.98f。
+     */
+    [[nodiscard]] f32 height() const override { return 0.98f; }
+
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取受伤声音
+     *
+     * 根据氧化等级返回对应的 hurt 声音（基础/锈蚀/氧化）。
+     * 对应 MC Java: CopperGolem.getHurtSound() -> CopperGolemOxidationLevels.getOxidationLevel(...).hurtSound()
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡声音
+     *
+     * 根据氧化等级返回对应的 death 声音。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 播放脚步声
+     *
+     * 根据氧化等级返回对应的 step 声音。
+     * 对应 MC Java: CopperGolem.playStepSound()
+     */
+    void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
+
+    // ========== 生命周期 ==========
+
+    /**
+     * @brief 每tick更新
+     *
+     * 服务端：更新氧化状态（updateWeathering）
+     * 客户端：留作动画状态机更新的 TODO
+     */
+    void tick() override;
+
+protected:
+    // ========== AI 目标注册 ==========
+    void registerGoals() override;
+
+    // ========== 属性注册 ==========
+    void registerAttributes() override;
+
+    // ========== NBT 序列化 ==========
+    /**
+     * @brief 写入额外 NBT 数据
+     *
+     * 对应 MC Java: CopperGolem.addAdditionalSaveData
+     * 持久化字段：next_weather_age (i64)、weather_state (string)
+     * 注意：behaviorState 为运行时动画状态，不持久化（与 MC 一致）
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 读取额外 NBT 数据
+     *
+     * 对应 MC Java: CopperGolem.readAdditionalSaveData
+     * 缺失字段时使用默认值：next_weather_age=-1（未设置），weather_state=unaffected
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
+private:
+    // ========== 私有方法 ==========
+
+    /**
+     * @brief 更新氧化状态
+     *
+     * 对应 MC Java: CopperGolem.updateWeathering(ServerLevel, RandomSource, long)
+     *
+     * 氧化逻辑：
+     * - m_nextWeatheringTick == -2 表示已涂蜡，不氧化
+     * - m_nextWeatheringTick == -1 表示需要初始化下一次氧化时间
+     * - 否则：达到时间后氧化到下一等级，达到 Oxidized 后有概率转化为雕像
+     */
+    void updateWeathering(i64 currentGameTime);
+
+    /**
+     * @brief 检查是否可以转化为雕像
+     *
+     * 对应 MC Java: CopperGolem.canTurnToStatue(Level)
+     * 条件：脚下位置为空气，且随机数 <= 0.0058F
+     */
+    [[nodiscard]] bool canTurnToStatue() const;
+
+    /**
+     * @brief 转化为氧化铜傀儡雕像
+     *
+     * 对应 MC Java: CopperGolem.turnToStatue(ServerLevel)
+     * - 在当前位置放置 oxidized_copper_golem_statue（随机姿态、当前朝向）
+     * - 创建方块实体并保存自定义名称
+     * - 丢弃保存的装备（如有）
+     * - 移除实体
+     * - 播放变雕像音效
+     * - 处理拴绳掉落
+     */
+    void turnToStatue();
+
+    // ========== 私有成员 ==========
+
+    /// 当前氧化等级（默认 Unaffected）
+    entity::CopperGolemWeatherState m_weatherState = entity::CopperGolemWeatherState::Unaffected;
+
+    /// 当前行为状态（默认 Idle）
+    entity::CopperGolemState m_behaviorState = entity::CopperGolemState::Idle;
+
+    /// 下次氧化 tick（-2 表示已涂蜡不氧化，-1 表示需初始化，>=0 表示具体 tick）
+    i64 m_nextWeatheringTick = -1;
+
+    // 常量（对应 MC 1.21.11 CopperGolem 中的私有常量）
+    static constexpr i64 IGNORE_WEATHERING_TICK = -2;     ///< 已涂蜡标记
+    static constexpr i64 UNSET_WEATHERING_TICK = -1;      ///< 未设置标记
+    static constexpr i32 WEATHERING_TICK_FROM = 504000;   ///< 氧化最小 tick
+    static constexpr i32 WEATHERING_TICK_TO = 552000;     ///< 氧化最大 tick
+    static constexpr f32 TURN_TO_STATUE_CHANCE = 0.0058F; ///< 转雕像概率
+};
+
+} // namespace mc
