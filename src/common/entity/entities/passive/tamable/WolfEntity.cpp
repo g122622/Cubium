@@ -37,6 +37,7 @@
 #include "common/entity/ai/goal/goals/interact/TameableGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Crackiness.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -58,11 +59,15 @@
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 
 #include <unordered_map>
 
@@ -558,11 +563,84 @@ void WolfEntity::tick()
         }
     }
 
-    const bool inWater = isInWater();
-    if (m_wasInWater && !inWater && onGround()) {
-        playShakingSound();
+    // ========== 甩水动画状态机（参考 MC 1.21.11 Wolf.tick() / Wolf.aiStep()） ==========
+
+    // 1. interestedAngle 插值（向 1.0 或 0.0 趋近）
+    //    对应 MC Wolf.tick() 第 318-323 行
+    m_interestedAngleO = m_interestedAngle;
+    if (m_interested) {
+        m_interestedAngle += (1.0f - m_interestedAngle) * 0.4f;
+    } else {
+        m_interestedAngle += (0.0f - m_interestedAngle) * 0.4f;
     }
-    m_wasInWater = inWater;
+
+    // 2. 甩水触发（对应 MC Wolf.aiStep() 第 300-307 行）
+    //    条件：服务端 + 已湿 + 未在甩水 + 未在寻路 + 在地面
+    //    注：isInWaterOrRain() 包含水中和雨中
+    if (m_world != nullptr && !m_world->isClientSide() && m_isWet && !m_isShaking && onGround()) {
+        // 检查是否在寻路（导航未完成时不触发甩水）
+        const auto* nav = navigator();
+        const bool isPathFinding = (nav != nullptr && nav->isInProgress());
+        if (!isPathFinding) {
+            m_isShaking = true;
+            m_shakeAnim = 0.0f;
+            m_shakeAnimO = 0.0f;
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::ShakeOffWater));
+        }
+    }
+
+    // 3. isWet / 甩水进度更新（对应 MC Wolf.tick() 第 325-358 行）
+    const bool inWaterOrRain = isInWaterOrRain();
+    if (inWaterOrRain) {
+        m_isWet = true;
+        // 已在甩水时再次接触水：取消甩水并广播 byte 56
+        if (m_isShaking && m_world != nullptr && !m_world->isClientSide()) {
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::WolfStopShaking));
+            _cancelShake();
+        }
+    } else if ((m_isWet || m_isShaking) && m_isShaking) {
+        // 甩水动画开始时播放一次甩水音效并触发 ENTITY_ACTION 游戏事件
+        // 对应 MC Wolf.tick() 第 332-335 行
+        if (m_shakeAnim == 0.0f) {
+            playShakingSound();
+            if (m_world != nullptr) {
+                m_world->gameEvent(gameevent::GameEvents::ENTITY_ACTION,
+                    BlockPos(static_cast<i32>(std::floor(x())),
+                        static_cast<i32>(std::floor(y())),
+                        static_cast<i32>(std::floor(z()))),
+                    gameevent::GameEvent::Context::of(this));
+            }
+        }
+
+        // 甩水进度推进（每 tick +0.05）
+        m_shakeAnimO = m_shakeAnim;
+        m_shakeAnim += 0.05f;
+
+        // 甩水完成（shakeAnimO >= 2.0）
+        // 对应 MC Wolf.tick() 第 339-344 行
+        if (m_shakeAnimO >= 2.0f) {
+            m_isWet = false;
+            m_isShaking = false;
+            m_shakeAnimO = 0.0f;
+            m_shakeAnim = 0.0f;
+        }
+
+        // SPLASH 粒子发射（shakeAnim > 0.4 时）
+        // 对应 MC Wolf.tick() 第 346-356 行
+        if (m_shakeAnim > 0.4f && m_world != nullptr) {
+            const f32 particleY = static_cast<f32>(y());
+            const i32 particleCount = static_cast<i32>(std::sin((m_shakeAnim - 0.4f) * math::PI) * 7.0f);
+            const f32 bbWidth = width();
+            const Vector3 delta = velocity();
+            for (i32 j = 0; j < particleCount; ++j) {
+                const f32 f1 = (getRandom().nextFloat() * 2.0f - 1.0f) * bbWidth * 0.5f;
+                const f32 f2 = (getRandom().nextFloat() * 2.0f - 1.0f) * bbWidth * 0.5f;
+                m_world->addParticle(particle::ParticleTypeId::Splash,
+                    Vector3(x() + f1, particleY + 0.8f, z() + f2),
+                    Vector3(static_cast<f32>(delta.x), static_cast<f32>(delta.y), static_cast<f32>(delta.z)));
+            }
+        }
+    }
 }
 
 std::optional<ResourceLocation> WolfEntity::getAmbientSound() const
@@ -685,17 +763,6 @@ void WolfEntity::playStepSound()
     playStepSound(stepPos, blockState);
 }
 
-void WolfEntity::playShakingSound()
-{
-    auto soundEvent = makeSoundEventId("shake");
-    if (!soundEvent.has_value()) {
-        return;
-    }
-
-    math::Random& random = getRandom();
-    playSound(*soundEvent, getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
-}
-
 f32 WolfEntity::getTailAngle() const
 {
     // 根据生命值计算尾巴角度
@@ -713,6 +780,69 @@ bool WolfEntity::isInWater() const
 {
     // 调用父类实现检查是否在水中
     return TameableEntity::isInWater();
+}
+
+bool WolfEntity::isInWaterOrRain() const
+{
+    // 对应 MC Wolf 中使用的 Entity.isInWaterOrRain()
+    // 用于判断狼是否接触水（水中或雨中），驱动甩水状态机
+    return isInWater() || isInRain();
+}
+
+f32 WolfEntity::getShakeAnim(f32 partialTick) const
+{
+    // 对应 MC Wolf.getShakeAnim(): Mth.lerp(partialTick, shakeAnimO, shakeAnim)
+    return m_shakeAnimO + (m_shakeAnim - m_shakeAnimO) * partialTick;
+}
+
+f32 WolfEntity::getWetShade(f32 partialTick) const
+{
+    // 对应 MC Wolf.getWetShade():
+    //   !isWet ? 1.0F : min(0.75F + lerp(partialTick, shakeAnimO, shakeAnim) / 2.0F * 0.25F, 1.0F)
+    if (!m_isWet) {
+        return 1.0f;
+    }
+    const f32 shake = getShakeAnim(partialTick);
+    return std::min(0.75f + shake / 2.0f * 0.25f, 1.0f);
+}
+
+f32 WolfEntity::getHeadRollAngle(f32 partialTick) const
+{
+    // 对应 MC Wolf.getHeadRollAngle():
+    //   Mth.lerp(partialTick, interestedAngleO, interestedAngle) * 0.15F * PI
+    const f32 interested = m_interestedAngleO + (m_interestedAngle - m_interestedAngleO) * partialTick;
+    return interested * 0.15f * math::PI;
+}
+
+void WolfEntity::_cancelShake()
+{
+    // 对应 MC Wolf.cancelShake():
+    //   isShaking = false; shakeAnim = 0; shakeAnimO = 0;
+    m_isShaking = false;
+    m_shakeAnim = 0.0f;
+    m_shakeAnimO = 0.0f;
+}
+
+void WolfEntity::playShakingSound()
+{
+    // 对应 MC Wolf.playShakingSound():
+    //   playSound(SoundEvents.WOLF_SHAKE, getSoundVolume(),
+    //             (random.nextFloat() - random.nextFloat()) * 0.2F + 1.0F);
+    math::Random& random = getRandom();
+    playSound(
+        SoundEvents::ENTITY_WOLF_SHAKE, getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
+}
+
+void WolfEntity::die(DamageSource& cause)
+{
+    // 对应 MC Wolf.die():
+    //   isWet = false; isShaking = false; shakeAnimO = 0; shakeAnim = 0;
+    //   super.die(cause);
+    m_isWet = false;
+    m_isShaking = false;
+    m_shakeAnimO = 0.0f;
+    m_shakeAnim = 0.0f;
+    TameableEntity::die(cause);
 }
 
 void WolfEntity::registerGoals()

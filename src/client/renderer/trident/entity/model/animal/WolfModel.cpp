@@ -184,10 +184,15 @@ void WolfModel::setLivingAnimations(f64 limbSwing, f64 limbSwingAmount, f64 /*pa
     }
 
     // 摇晃动画（湿状态抖水）
-    m_headChild->setRotateAngleZ(m_interestedAngle + m_shakeAngle);
-    m_mane->setRotateAngleZ(m_shakeAngle * -0.08f);
-    m_body->setRotateAngleZ(m_shakeAngle * -0.16f);
-    m_tailChild->setRotateAngleZ(m_shakeAngle * -0.2f);
+    // 对应 MC 1.21.11 WolfModel.setupAnim() 第 132-135 行：
+    //   realHead.zRot = headRollAngle + getBodyRollAngle(0.0F);
+    //   upperBody.zRot = getBodyRollAngle(-0.08F);
+    //   body.zRot = getBodyRollAngle(-0.16F);
+    //   realTail.zRot = getBodyRollAngle(-0.2F);
+    m_headChild->setRotateAngleZ(m_interestedAngle + _getBodyRollAngle(0.0f));
+    m_mane->setRotateAngleZ(_getBodyRollAngle(-0.08f));
+    m_body->setRotateAngleZ(_getBodyRollAngle(-0.16f));
+    m_tailChild->setRotateAngleZ(_getBodyRollAngle(-0.2f));
 }
 
 void WolfModel::setAngles(
@@ -204,14 +209,28 @@ void WolfModel::setAngles(
 }
 
 void WolfModel::setAnimState(
-    bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAngle, f32 interestedAngle)
+    bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAnim, f32 interestedAngle)
 {
     m_isSitting = isSitting;
     m_isAngry = isAngry;
     m_isWet = isWet;
     m_tailRotation = tailRotation;
-    m_shakeAngle = shakeAngle;
+    m_shakeAnim = shakeAnim;
     m_interestedAngle = interestedAngle;
+}
+
+f32 WolfModel::_getBodyRollAngle(f32 offset) const
+{
+    // 对应 MC 1.21.11 WolfRenderState.getBodyRollAngle():
+    //   f = clamp((shakeAnim + offset) / 1.8F, 0, 1)
+    //   return Mth.sin(f * PI) * Mth.sin(f * PI * 11) * 0.15F * PI
+    f32 f = (m_shakeAnim + offset) / 1.8f;
+    if (f < 0.0f) {
+        f = 0.0f;
+    } else if (f > 1.0f) {
+        f = 1.0f;
+    }
+    return std::sin(f * math::PI) * std::sin(f * math::PI * 11.0f) * 0.15f * math::PI;
 }
 
 } // namespace mc::client::renderer::entity::model::animal

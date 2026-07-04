@@ -877,6 +877,89 @@ public:
      */
     void setFlingAnimationTicks(i32 ticks) { m_flingAnimationTicks = ticks; }
 
+    // ========== 狼甩水动画状态 ==========
+
+    /**
+     * @brief 是否正在甩水（狼特有）
+     *
+     * 收到 ShakeOffWater(8) 状态包时设为 true，
+     * 收到 WolfStopShaking(56) 状态包或甩水完成时设为 false。
+     *
+     * 数据流：ClientApplicationNetwork.onEntityStatus(ShakeOffWater)
+     * → setWolfShaking(true) → ClientEntity.tick() 推进 shakeAnim
+     * → AnimationContext.wolfShakeAnim → WolfModel::setAnimState
+     */
+    [[nodiscard]] bool wolfShaking() const { return m_wolfIsShaking; }
+
+    /**
+     * @brief 设置狼甩水状态
+     * @param shaking 是否正在甩水
+     */
+    void setWolfShaking(bool shaking) { m_wolfIsShaking = shaking; }
+
+    /**
+     * @brief 获取狼甩水动画进度（当前 tick）
+     *
+     * 范围 [0, 2]，每 tick +0.05，达到 2.0 时甩水完成。
+     * 对应 MC Wolf.shakeAnim。
+     */
+    [[nodiscard]] f32 wolfShakeAnim() const { return m_wolfShakeAnim; }
+
+    /**
+     * @brief 设置狼甩水动画进度
+     * @param anim 甩水进度（0.0-2.0）
+     */
+    void setWolfShakeAnim(f32 anim) { m_wolfShakeAnim = anim; }
+
+    /**
+     * @brief 获取上一 tick 的狼甩水进度（用于插值）
+     */
+    [[nodiscard]] f32 wolfShakeAnimO() const { return m_wolfShakeAnimO; }
+
+    /**
+     * @brief 设置上一 tick 的狼甩水进度
+     * @param anim 上一 tick 的甩水进度
+     */
+    void setWolfShakeAnimO(f32 anim) { m_wolfShakeAnimO = anim; }
+
+    /**
+     * @brief 获取狼湿润状态
+     *
+     * 收到 ShakeOffWater 时设为 true，甩水完成时设为 false。
+     * 用于渲染湿润着色（变暗）。
+     */
+    [[nodiscard]] bool wolfIsWet() const { return m_wolfIsWet; }
+
+    /**
+     * @brief 设置狼湿润状态
+     * @param wet 是否湿润
+     */
+    void setWolfIsWet(bool wet) { m_wolfIsWet = wet; }
+
+    /**
+     * @brief 获取狼乞求食物头部角度（当前 tick）
+     *
+     * 对应 MC Wolf.interestedAngle。范围 [0, 1]。
+     */
+    [[nodiscard]] f32 wolfInterestedAngle() const { return m_wolfInterestedAngle; }
+
+    /**
+     * @brief 设置狼乞求食物头部角度
+     * @param angle 乞求角度（0.0-1.0）
+     */
+    void setWolfInterestedAngle(f32 angle) { m_wolfInterestedAngle = angle; }
+
+    /**
+     * @brief 获取上一 tick 的狼乞求角度（用于插值）
+     */
+    [[nodiscard]] f32 wolfInterestedAngleO() const { return m_wolfInterestedAngleO; }
+
+    /**
+     * @brief 设置上一 tick 的狼乞求角度
+     * @param angle 上一 tick 的乞求角度
+     */
+    void setWolfInterestedAngleO(f32 angle) { m_wolfInterestedAngleO = angle; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -1004,6 +1087,14 @@ private:
 
     // 疣猪兽/僵尸疣兽攻击动画
     i32 m_flingAnimationTicks = 0; // 撞飞攻击动画计时器（收到 HoglinAttack 时设为 10）
+
+    // 狼甩水动画状态（对应 MC Wolf.isWet/isShaking/shakeAnim/shakeAnimO/interestedAngle/interestedAngleO）
+    bool m_wolfIsShaking = false;      ///< 是否正在甩水（收到 ShakeOffWater(8) 时设 true）
+    bool m_wolfIsWet = false;          ///< 是否湿润（收到 ShakeOffWater 时设 true，甩水完成时设 false）
+    f32 m_wolfShakeAnim = 0.0f;        ///< 甩水动画进度（每 tick +0.05，达到 2.0 时完成）
+    f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
+    f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）
+    f32 m_wolfInterestedAngleO = 0.0f; ///< 上一 tick 的乞求角度（用于插值）
 
     // 追踪位置系统（用于披风摆动）
     f64 m_chasingPosX = 0.0;

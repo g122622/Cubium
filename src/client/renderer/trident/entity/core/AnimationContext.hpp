@@ -171,6 +171,40 @@ struct AnimationContext {
      */
     i32 attackAnimationTicks = 0;
 
+    /**
+     * @brief 狼甩水动画进度（插值后）
+     *
+     * 对应 MC 1.21.11 Wolf.shakeAnim（已插值）。
+     * 范围 [0, 2]，由 EntityRendererManager 从 ClientEntity 读取并插值。
+     * WolfModel 通过 _getBodyRollAngle(offset) 使用此值计算各部件 Z 旋转。
+     *
+     * 数据流：服务端 WolfEntity.tick() 推进 shakeAnim
+     * → broadcastEntityStatus(ShakeOffWater=8) → ClientEntity.setWolfShaking(true)
+     * → ClientEntity::tick() 推进 wolfShakeAnim → AnimationContext.wolfShakeAnim
+     * → WolfModel::setAnimState → _getBodyRollAngle
+     */
+    f32 wolfShakeAnim = 0.0f;
+
+    /**
+     * @brief 狼乞求食物头部角度（插值后）
+     *
+     * 对应 MC 1.21.11 Wolf.interestedAngle（已插值）。
+     * WolfModel 将此值加到头部 Z 旋转上。
+     *
+     * TODO: isInterested 状态目前未通过元数据同步到客户端，
+     * 此值暂时始终为 0。待实现 WolfEntity 元数据同步后由 ClientEntity 推进。
+     */
+    f32 wolfInterestedAngle = 0.0f;
+
+    /**
+     * @brief 狼湿润着色值
+     *
+     * 对应 MC 1.21.11 Wolf.getWetShade()。范围 [0.75, 1.0]。
+     * 1.0 表示完全干燥，0.75 表示刚接触水（最暗）。
+     * WolfRenderer 用于设置模型 tint。
+     */
+    f32 wolfWetShade = 1.0f;
+
     // ========== 方法 ==========
 
     /**

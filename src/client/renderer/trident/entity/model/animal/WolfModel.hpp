@@ -56,10 +56,14 @@ public:
      * @param isAngry 是否愤怒
      * @param isWet 是否湿润（用于动画，非着色）
      * @param tailRotation 尾巴旋转角度（对应 ageInTicks）
-     * @param shakeAngle 摇晃角度
-     * @param interestedAngle 感兴趣角度
+     * @param shakeAnim 甩水动画进度（0.0-2.0，对应 MC Wolf.shakeAnim）
+     * @param interestedAngle 感兴趣角度（已插值的 interestedAngle）
+     *
+     * @note shakeAnim 替代了旧的 shakeAngle，由 WolfModel 内部根据
+     *       getBodyRollAngle(offset) 公式计算各部件的 Z 旋转。
+     *       参考 MC 1.21.11 WolfRenderState.getBodyRollAngle()。
      */
-    void setAnimState(bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAngle, f32 interestedAngle);
+    void setAnimState(bool isSitting, bool isAngry, bool isWet, f32 tailRotation, f32 shakeAnim, f32 interestedAngle);
 
     /**
      * @brief 设置着色颜色（湿状态）
@@ -83,6 +87,17 @@ protected:
     std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
 private:
+    /**
+     * @brief 计算身体滚动角度（甩水动画的 Z 轴旋转）
+     * @param offset 偏移量（头部 0.0，鬃毛 -0.08，身体 -0.16，尾巴 -0.2）
+     * @return Z 轴旋转角度（弧度）
+     *
+     * 对应 MC 1.21.11 WolfRenderState.getBodyRollAngle():
+     *   f = clamp((shakeAnim + offset) / 1.8, 0, 1)
+     *   return sin(f * PI) * sin(f * PI * 11) * 0.15 * PI
+     */
+    [[nodiscard]] f32 _getBodyRollAngle(f32 offset) const;
+
     // 头部部件
     std::shared_ptr<ModelRenderer> m_head;      // 头部旋转点
     std::shared_ptr<ModelRenderer> m_headChild; // 头部实际盒子
@@ -104,10 +119,10 @@ private:
     // 动画状态
     bool m_isSitting = false;
     bool m_isAngry = false;
-    bool m_isWet = false;      // TODO: 湿润状态暂未用于动画逻辑，待实现抖水动画细节
-    f32 m_tailRotation = 0.0f; // 尾巴旋转角度，由 WolfRenderer 通过 getTailAngle() 传入
-    f32 m_shakeAngle = 0.0f;
-    f32 m_interestedAngle = 0.0f;
+    bool m_isWet = false;         ///< 湿润状态（用于着色，由 WolfRenderer 通过 getWetShade() 传入）
+    f32 m_tailRotation = 0.0f;    // 尾巴旋转角度，由 WolfRenderer 通过 getTailAngle() 传入
+    f32 m_shakeAnim = 0.0f;       ///< 甩水动画进度（0.0-2.0，对应 MC Wolf.shakeAnim）
+    f32 m_interestedAngle = 0.0f; ///< 乞求食物头部角度（已插值）
 
     // 着色
     // TODO: 着色值暂未用于渲染逻辑，待接入 TintedAgeableModel 着色管线

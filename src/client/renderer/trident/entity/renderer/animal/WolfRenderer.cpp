@@ -43,16 +43,18 @@ void WolfRenderer::render(Entity& entity, f64 partialTicks)
     // 设置模型动画状态
     bool isSitting = wolf.isSitting();
     bool isAngry = wolf.isAngry();
-    bool isWet = wolf.isInWater();
+    bool isWet = wolf.isWet(); // 使用 isWet 而非 isInWater()，对应 MC Wolf.isWet
     f32 tailRotation = wolf.getTailAngle();
-    f32 shakeAngle = 0.0f; // TODO: 甩水动画角度 - 需要实体状态追踪
-    f32 interestedAngle = wolf.isInterested() ? 0.5f : 0.0f;
+    // 甩水动画进度（插值后）：对应 MC WolfRenderState.shakeAnim
+    f32 shakeAnim = wolf.getShakeAnim(static_cast<f32>(partialTicks));
+    // 乞求食物头部角度（插值后）：对应 MC Wolf.getHeadRollAngle()
+    f32 interestedAngle = wolf.getHeadRollAngle(static_cast<f32>(partialTicks));
 
     // 选择模型（幼体或成体）
     bool isChild = wolf.isChild();
     auto& model = isChild ? m_modelBaby : m_model;
 
-    model.setAnimState(isSitting, isAngry, isWet, tailRotation, shakeAngle, interestedAngle);
+    model.setAnimState(isSitting, isAngry, isWet, tailRotation, shakeAnim, interestedAngle);
 
     // 在设置状态之后、设置角度之前，调用 setLivingAnimations 来根据状态调整模型部件位置
     // WolfModel::setLivingAnimations 处理坐下/站立姿态、步态动画和抖水动画
@@ -62,14 +64,9 @@ void WolfRenderer::render(Entity& entity, f64 partialTicks)
         (static_cast<f64>(wolf.limbSwingAmount()) - static_cast<f64>(wolf.prevLimbSwingAmount())) * partialTicks;
     model.setLivingAnimations(limbSwingForAnim, limbSwingAmountForAnim, partialTicks);
 
-    // 设置湿状态着色
-    if (isWet) {
-        // 湿润时稍微变暗
-        f32 shading = 0.75f;
-        model.setTint(shading, shading, shading);
-    } else {
-        model.setTint(1.0f, 1.0f, 1.0f);
-    }
+    // 设置湿状态着色（对应 MC Wolf.getWetShade()）
+    f32 wetShade = wolf.getWetShade(static_cast<f32>(partialTicks));
+    model.setTint(wetShade, wetShade, wetShade);
 
     // 计算动画参数（从LivingEntity获取）
     f64 limbSwing = static_cast<f64>(wolf.prevLimbSwing()) +

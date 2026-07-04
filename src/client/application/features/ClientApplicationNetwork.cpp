@@ -938,6 +938,36 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
+            case static_cast<u8>(EntityStatusPacket::Status::ShakeOffWater): {
+                // 状态 8: 狼开始甩水（ShakeOffWater）
+                // 对应 MC Wolf.aiStep() 第 300-307 行：服务端检测到 isWet && !isShaking && onGround
+                // 时广播 byte 8，客户端收到后开始甩水动画。
+                // 客户端甩水进度由 ClientEntity::tick() 推进（每 tick +0.05）。
+                if (entity != nullptr) {
+                    const std::string& typeId = entity->typeId();
+                    if (typeId == "minecraft:wolf" || typeId == "wolf") {
+                        entity->setWolfShaking(true);
+                        entity->setWolfIsWet(true);
+                        entity->setWolfShakeAnim(0.0f);
+                        entity->setWolfShakeAnimO(0.0f);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::WolfStopShaking): {
+                // 状态 56: 狼取消甩水（WolfStopShaking）
+                // 对应 MC Wolf.tick() 第 327-330 行：甩水中再次接触水时广播 byte 56，
+                // 客户端收到后立即取消甩水动画。
+                if (entity != nullptr) {
+                    const std::string& typeId = entity->typeId();
+                    if (typeId == "minecraft:wolf" || typeId == "wolf") {
+                        entity->setWolfShaking(false);
+                        entity->setWolfShakeAnim(0.0f);
+                        entity->setWolfShakeAnimO(0.0f);
+                    }
+                }
+                break;
+            }
             case static_cast<u8>(EntityStatusPacket::Status::OcelotTrustSucceeded): {
                 // 状态 41: 豹猫信任成功 - 生成 7 个爱心粒子
                 // MC 原版: Ocelot.spawnTrustingParticles(true) — 与 TamableAnimal.spawnTamingParticles 逻辑相同

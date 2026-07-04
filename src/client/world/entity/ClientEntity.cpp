@@ -449,6 +449,26 @@ void ClientEntity::tick()
     if (m_flingAnimationTicks > 0) {
         --m_flingAnimationTicks;
     }
+
+    // 更新狼甩水动画进度（客户端镜像 MC Wolf.tick() 的甩水进度逻辑）
+    // 对应 MC Wolf.tick() 第 337-344 行
+    if (m_wolfIsShaking) {
+        m_wolfShakeAnimO = m_wolfShakeAnim;
+        m_wolfShakeAnim += 0.05f;
+        if (m_wolfShakeAnimO >= 2.0f) {
+            // 甩水完成：重置状态
+            m_wolfIsWet = false;
+            m_wolfIsShaking = false;
+            m_wolfShakeAnimO = 0.0f;
+            m_wolfShakeAnim = 0.0f;
+        }
+    }
+
+    // 更新狼乞求食物头部角度插值（对应 MC Wolf.tick() 第 318-323 行）
+    // interestedAngleO 始终追踪 interestedAngle，渲染时由 WolfModel 通过插值读取
+    // TODO: isInterested 状态目前未通过元数据同步到客户端，待后续实现 WolfEntity
+    // 的元数据同步后，由 onMetadataRefresh 驱动 m_wolfInterestedAngle 向 1.0/0.0 插值
+    m_wolfInterestedAngleO = m_wolfInterestedAngle;
 }
 
 void ClientEntity::updateStandingAnimation()

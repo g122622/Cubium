@@ -190,8 +190,28 @@ public:
 
     /**
      * @brief 刻更新
+     *
+     * 实现 MC 1.21.11 Wolf.tick() 的甩水状态机：
+     * 1. interestedAngle 插值（向 1.0 或 0.0 趋近）
+     * 2. isWet 标记（在水中/雨中时为 true）
+     * 3. 甩水动画进度（shakeAnim 每 tick +0.05，shakeAnimO >= 2.0 时结束）
+     * 4. SPLASH 粒子发射（shakeAnim > 0.4 时）
+     *
+     * 甩水动画触发（对应 MC Wolf.aiStep()）在 TameableEntity::tick() 内部
+     * 调用 LivingEntity::tick() → aiStep() 时已执行，本方法处理触发后的进度。
      */
     void tick() override;
+
+    // ========== 死亡 ==========
+
+    /**
+     * @brief 死亡回调
+     *
+     * 重置甩水状态（isWet, isShaking, shakeAnim, shakeAnimO），
+     * 防止死亡过程中残留甩水动画。
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.die()
+     */
+    void die(DamageSource& cause) override;
 
     // ========== 愤怒系统 ==========
 
@@ -239,6 +259,60 @@ public:
      */
     [[nodiscard]] bool isInWater() const override;
 
+    /**
+     * @brief 检查是否在水中或雨中
+     *
+     * 用于驱动甩水状态机：狼接触水或雨时 isWet 设为 true。
+     * 对应 MC Entity.isInWaterOrRain()。
+     */
+    [[nodiscard]] virtual bool isInWaterOrRain() const;
+
+    // ========== 甩水动画状态 ==========
+
+    /**
+     * @brief 检查是否处于湿润状态
+     *
+     * isWet 在狼接触水/雨时设为 true，在甩水动画完成后设为 false。
+     * 与 isInWater() 不同：isInWater() 表示当前帧是否在水中，
+     * isWet 表示自上次甩水以来是否曾接触水。
+     *
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.isWet
+     */
+    [[nodiscard]] bool isWet() const { return m_isWet; }
+
+    /**
+     * @brief 检查是否正在甩水
+     * @return 如果甩水动画正在进行返回 true
+     */
+    [[nodiscard]] bool isShaking() const { return m_isShaking; }
+
+    /**
+     * @brief 获取甩水动画进度（插值）
+     * @param partialTick 部分 tick（0.0-1.0）
+     * @return 插值后的甩水动画进度（0.0-2.0）
+     *
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.getShakeAnim()
+     */
+    [[nodiscard]] f32 getShakeAnim(f32 partialTick) const;
+
+    /**
+     * @brief 获取湿润着色值（用于渲染变暗）
+     * @param partialTick 部分 tick（0.0-1.0）
+     * @return 着色值（0.75-1.0），1.0 表示完全干燥
+     *
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.getWetShade()
+     */
+    [[nodiscard]] f32 getWetShade(f32 partialTick) const;
+
+    /**
+     * @brief 获取头部转动角度（乞求食物时的头部倾斜）
+     * @param partialTick 部分 tick（0.0-1.0）
+     * @return 头部 Z 轴旋转角度（弧度）
+     *
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.getHeadRollAngle()
+     */
+    [[nodiscard]] f32 getHeadRollAngle(f32 partialTick) const;
+
     // ========== 属性 ==========
 
     /**
@@ -282,10 +356,42 @@ protected:
     void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
     void playStepSound();
 
+    // ========== 甩水动画状态机（参考 MC 1.21.11 Wolf） ==========
+
     /**
-     * @brief 播放甩水声音
+     * @brief 播放甩水音效
+     *
+     * 在甩水动画开始时调用（m_shakeAnim == 0.0f 时）。
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.playShakingSound()
      */
     void playShakingSound();
+
+    /**
+     * @brief 取消甩水动画
+     *
+     * 重置 isShaking、shakeAnim、shakeAnimO。
+     * 当狼在甩水过程中再次接触水时调用。
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.cancelShake()
+     */
+    void _cancelShake();
+
+protected:
+    // ========== 测试用辅助方法（仅供测试子类访问甩水状态） ==========
+    // 这些方法暴露私有状态字段，用于单元测试中直接设置甩水状态。
+    // 不应在生产代码中调用。
+
+    /// 设置 isWet 标志（测试用）
+    void _setWetForTest(bool value) { m_isWet = value; }
+
+    /// 设置 isShaking 标志（测试用）
+    void _setShakingForTest(bool value) { m_isShaking = value; }
+
+    /// 设置 shakeAnim 和 shakeAnimO（测试用）
+    void _setShakeAnimForTest(f32 anim, f32 animO)
+    {
+        m_shakeAnim = anim;
+        m_shakeAnimO = animO;
+    }
 
 private:
     // 兴趣状态（乞求食物）
@@ -300,9 +406,16 @@ private:
     static constexpr f32 ARMOR_REPAIR_UNIT = 0.125F;     // 狼铠修复单位（12.5%最大耐久）
 
     // 声音状态
-    bool m_wasInWater = false;
     f32 m_stepSoundDistance = 0.0f;
     f32 m_nextStepSoundDistance = 1.0f;
+
+    // 甩水动画状态（参考 MC 1.21.11 Wolf.tick() / Wolf.aiStep()）
+    bool m_isWet = false;          ///< 自上次甩水以来是否曾接触水
+    bool m_isShaking = false;      ///< 是否正在甩水
+    f32 m_shakeAnim = 0.0f;        ///< 甩水动画进度（每 tick +0.05，达到 2.0 时结束）
+    f32 m_shakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
+    f32 m_interestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）
+    f32 m_interestedAngleO = 0.0f; ///< 上一 tick 的乞求角度（用于插值）
 
     // ========== 私有辅助方法 ==========
 

@@ -27,6 +27,7 @@
 #include "client/renderer/trident/entity/model/ModelRegistration.hpp"
 #include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
+#include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
@@ -47,6 +48,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
@@ -928,6 +930,31 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         context.attackAnimationTicks = 0;
     }
 
+    // 狼甩水动画状态（对应 MC Wolf.tick() 的甩水状态机）
+    if (typeId == "minecraft:wolf" || typeId == "wolf") {
+        // 插值甩水进度：lerp(partialTicks, shakeAnimO, shakeAnim)
+        const f32 shakeAnimO = entity.wolfShakeAnimO();
+        const f32 shakeAnim = entity.wolfShakeAnim();
+        context.wolfShakeAnim = shakeAnimO + (shakeAnim - shakeAnimO) * static_cast<f32>(context.partialTicks);
+
+        // 插值乞求角度：lerp(partialTicks, interestedAngleO, interestedAngle)
+        const f32 interestedO = entity.wolfInterestedAngleO();
+        const f32 interested = entity.wolfInterestedAngle();
+        context.wolfInterestedAngle = interestedO + (interested - interestedO) * static_cast<f32>(context.partialTicks);
+
+        // 计算湿润着色值（对应 MC Wolf.getWetShade()）
+        // !isWet ? 1.0 : min(0.75 + shakeAnim / 2.0 * 0.25, 1.0)
+        if (!entity.wolfIsWet()) {
+            context.wolfWetShade = 1.0f;
+        } else {
+            context.wolfWetShade = std::min(0.75f + context.wolfShakeAnim / 2.0f * 0.25f, 1.0f);
+        }
+    } else {
+        context.wolfShakeAnim = 0.0f;
+        context.wolfInterestedAngle = 0.0f;
+        context.wolfWetShade = 1.0f;
+    }
+
     // 计算哈希
     context.computeHash();
 
@@ -964,6 +991,32 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             auto* boarModel = dynamic_cast<model::nether::BoarModel*>(model.get());
             if (boarModel != nullptr) {
                 boarModel->setAttackAnimationTicks(context.attackAnimationTicks);
+            }
+        }
+
+        // 狼甩水动画（对应 MC WolfModel.setupAnim + WolfRenderState）
+        if (normalizedId == "wolf" || normalizedId == "minecraft:wolf") {
+            auto* wolfModel = dynamic_cast<model::animal::WolfModel*>(model.get());
+            if (wolfModel != nullptr) {
+                // isSitting/isAngry 来自 ClientEntity 元数据状态
+                // isWet 使用 wolfIsWet（对应 MC Wolf.isWet）
+                // tailRotation 使用默认值（MC 原版 WolfRenderState.tailAngle = PI/5），
+                //   驯服后根据生命值变化，但客户端无 health 数据，使用默认值
+                //   TODO: 待元数据同步 health 后实现动态 tailAngle
+                // shakeAnim 使用插值后的 context.wolfShakeAnim
+                // interestedAngle 使用 context.wolfInterestedAngle * 0.15 * PI（对应 MC getHeadRollAngle）
+                const f32 tailAngle = static_cast<f32>(math::PI / 5.0);
+                const f32 interestedHeadRoll = context.wolfInterestedAngle * 0.15f * static_cast<f32>(math::PI);
+                wolfModel->setAnimState(static_cast<bool>(context.isSitting),
+                    false, // isAngry: TODO 待元数据同步
+                    entity.wolfIsWet(),
+                    tailAngle,
+                    context.wolfShakeAnim,
+                    interestedHeadRoll);
+                // setLivingAnimations 处理坐下/站立姿态、步态动画和抖水 Z 旋转
+                wolfModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
+                // 设置湿润着色（对应 MC WolfRenderer 中的 getWetShade tint）
+                wolfModel->setTint(context.wolfWetShade, context.wolfWetShade, context.wolfWetShade);
             }
         }
 

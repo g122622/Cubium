@@ -39,6 +39,7 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -83,6 +84,26 @@ public:
     {
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+    }
+
+    /// 覆写 hasBlockCollision：可配置是否提供地面碰撞
+    /// 测试世界无物理引擎，狼会因重力下落。默认提供虚拟地面使 onGround=true，
+    /// 从而允许甩水状态机正常触发（MC 中狼需站在方块上方能甩水）。
+    /// 通过 setGroundCollisionEnabled(false) 可禁用地面，测试不在地面的场景。
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
+        (void)box;
+        return m_groundCollisionEnabled;
+    }
+
+    void setGroundCollisionEnabled(bool enabled) { m_groundCollisionEnabled = enabled; }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
+        if (hasBlockCollision(box)) {
+            return {AxisAlignedBB(-1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 1.0f)};
+        }
+        return {};
     }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override
@@ -179,6 +200,9 @@ private:
     bool m_tameAnimalCalled = false;
     PlayerId m_lastTamePlayerId = 0;
     Entity* m_lastTameAnimal = nullptr;
+
+    // 地面碰撞开关（默认启用，使狼在测试中视为在地面）
+    bool m_groundCollisionEnabled = true;
 };
 
 class WolfEntityTestFixture : public ::testing::Test {
@@ -2249,6 +2273,393 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NoArmor_DyeChangesCollarOnly
     EXPECT_EQ(result, ActionResultType::Success);
     // 颈圈变为蓝色
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
+}
+
+// ============================================================================
+// 甩水动画状态机测试（WolfEntity::tick / die / getShakeAnim / getWetShade / getHeadRollAngle）
+//
+// 参考: net.minecraft.world.entity.animal.wolf.Wolf (MC 1.21.11)
+// - Wolf.tick(): interestedAngle 插值 + isWet/shakeAnim 状态机
+// - Wolf.aiStep(): 甩水触发（isWet && !isShaking && !isPathFinding && onGround）
+// - Wolf.die(): 重置 isWet/isShaking/shakeAnim/shakeAnimO
+// - Wolf.getShakeAnim(partialTick): lerp(partialTick, shakeAnimO, shakeAnim)
+// - Wolf.getWetShade(partialTick): !isWet ? 1.0 : min(0.75 + shakeAnim/2*0.25, 1.0)
+// - Wolf.getHeadRollAngle(partialTick): lerp(partialTick, interestedAngleO, interestedAngle) * 0.15 * PI
+// ============================================================================
+
+namespace {
+/// 测试用狼实体子类：允许覆写 isInWaterOrRain 以驱动甩水状态机
+class TestWolfEntity : public WolfEntity {
+public:
+    explicit TestWolfEntity(EntityId id)
+        : WolfEntity(id)
+    {}
+
+    [[nodiscard]] bool isInWaterOrRain() const override { return m_forceInWaterOrRain; }
+
+    void setForceInWaterOrRain(bool value) { m_forceInWaterOrRain = value; }
+
+    /// 直接设置 isWet 状态（绕过 isInWaterOrRain）用于测试已湿润场景
+    void setWetForTest(bool value) { _setWetForTest(value); }
+
+    /// 直接设置 isShaking 状态（绕过触发条件）用于测试甩水进度
+    void setShakingForTest(bool value) { _setShakingForTest(value); }
+
+    /// 直接设置 interested 状态用于测试 interestedAngle 插值
+    void setInterestedForTest(bool value) { setInterested(value); }
+
+    /// 直接设置 shakeAnim 用于测试数学方法
+    void setShakeAnimForTest(f32 anim, f32 animO) { _setShakeAnimForTest(anim, animO); }
+
+private:
+    bool m_forceInWaterOrRain = false;
+};
+} // namespace
+
+TEST_F(WolfEntityTestFixture, Shake_DefaultState_AllZero)
+{
+    // 默认状态：isWet=false, isShaking=false, shakeAnim=0
+    WolfEntity wolf(EntityId(1));
+    EXPECT_FALSE(wolf.isWet());
+    EXPECT_FALSE(wolf.isShaking());
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.5f), 0.0f);
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(1.0f), 0.0f);
+    EXPECT_FLOAT_EQ(wolf.getWetShade(0.0f), 1.0f);
+    EXPECT_FLOAT_EQ(wolf.getWetShade(1.0f), 1.0f);
+    EXPECT_FLOAT_EQ(wolf.getHeadRollAngle(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(wolf.getHeadRollAngle(1.0f), 0.0f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_GetShakeAnim_Interpolation)
+{
+    // getShakeAnim(partialTick) = lerp(partialTick, shakeAnimO, shakeAnim)
+    TestWolfEntity wolf(EntityId(1));
+    wolf.setShakeAnimForTest(1.0f, 0.5f); // shakeAnim=1.0, shakeAnimO=0.5
+
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.5f);  // partialTick=0 → shakeAnimO
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.5f), 0.75f); // 中点
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(1.0f), 1.0f);  // partialTick=1 → shakeAnim
+}
+
+TEST_F(WolfEntityTestFixture, Shake_GetWetShade_DryWolf)
+{
+    // 干燥狼：getWetShade 始终返回 1.0
+    TestWolfEntity wolf(EntityId(1));
+    wolf.setWetForTest(false);
+    wolf.setShakeAnimForTest(0.0f, 0.0f);
+
+    EXPECT_FLOAT_EQ(wolf.getWetShade(0.0f), 1.0f);
+    EXPECT_FLOAT_EQ(wolf.getWetShade(0.5f), 1.0f);
+    EXPECT_FLOAT_EQ(wolf.getWetShade(1.0f), 1.0f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_GetWetShade_WetWolf)
+{
+    // 湿润狼：getWetShade = min(0.75 + shakeAnim/2*0.25, 1.0)
+    TestWolfEntity wolf(EntityId(1));
+    wolf.setWetForTest(true);
+    wolf.setShakeAnimForTest(0.0f, 0.0f); // 刚开始甩水
+
+    // shakeAnim=0 → 0.75 + 0 = 0.75
+    EXPECT_FLOAT_EQ(wolf.getWetShade(0.0f), 0.75f);
+
+    // shakeAnim=2.0 → 0.75 + 2.0/2*0.25 = 0.75 + 0.25 = 1.0
+    wolf.setShakeAnimForTest(2.0f, 2.0f);
+    EXPECT_FLOAT_EQ(wolf.getWetShade(1.0f), 1.0f);
+
+    // shakeAnim=1.0 → 0.75 + 0.125 = 0.875
+    wolf.setShakeAnimForTest(1.0f, 1.0f);
+    EXPECT_FLOAT_EQ(wolf.getWetShade(1.0f), 0.875f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_GetHeadRollAngle_Interpolation)
+{
+    // getHeadRollAngle(partialTick) = lerp(partialTick, interestedAngleO, interestedAngle) * 0.15 * PI
+    // 注：interestedAngle 由 tick() 内部插值，此处测试数学公式
+    TestWolfEntity wolf(EntityId(1));
+    wolf.setInterestedForTest(true);
+
+    // 触发多次 tick 让 interestedAngle 趋近 1.0
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    for (int i = 0; i < 50; ++i) {
+        wolf.tick();
+    }
+
+    // interestedAngle 应该趋近 1.0，getHeadRollAngle 应该趋近 0.15 * PI
+    const f32 expected = 0.15f * math::PI;
+    EXPECT_NEAR(wolf.getHeadRollAngle(0.0f), expected, 0.01f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_InterestedAngleInterpolation)
+{
+    // tick() 应该让 interestedAngle 向 1.0 或 0.0 插值
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // interested=true → interestedAngle 应该向 1.0 趋近
+    wolf.setInterestedForTest(true);
+    wolf.tick();
+
+    // 每次插值：interestedAngle += (1.0 - interestedAngle) * 0.4
+    // 初始 0.0 → 0.0 + 1.0 * 0.4 = 0.4
+    // 注：getHeadRollAngle 返回的是 * 0.15 * PI，所以需要除以这个系数得到 interestedAngle
+    // partialTick=1.0 取当前帧值（m_interestedAngle），partialTick=0.0 取上一帧值（m_interestedAngleO）
+    const f32 headRoll = wolf.getHeadRollAngle(1.0f);
+    const f32 interestedAngle = headRoll / (0.15f * math::PI);
+    EXPECT_NEAR(interestedAngle, 0.4f, 0.01f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_WetFlagSetWhenInWaterOrRain)
+{
+    // isInWaterOrRain()=true 时，tick() 应该设置 isWet=true
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    EXPECT_FALSE(wolf.isWet());
+
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick();
+
+    EXPECT_TRUE(wolf.isWet());
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_TriggersShakeWhenWetAndOnGround)
+{
+    // 已湿润 + 在地面 + 未在寻路 → 触发甩水（广播 ShakeOffWater=8）
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 先让狼湿润（在水中）
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick();
+    EXPECT_TRUE(wolf.isWet());
+    EXPECT_FALSE(wolf.isShaking());
+
+    world.resetBroadcastTracking();
+
+    // 离开水但在地面 → 触发甩水
+    wolf.setForceInWaterOrRain(false);
+    wolf.tick();
+
+    // 应该广播 ShakeOffWater (8)
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::ShakeOffWater));
+    EXPECT_TRUE(wolf.isShaking());
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.0f); // shakeAnimO=0
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_ShakeProgression)
+{
+    // 甩水开始后，每 tick shakeAnim += 0.05
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 触发甩水
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick(); // isWet=true (第1次tick)
+    wolf.setForceInWaterOrRain(false);
+    wolf.tick(); // 触发甩水(第2次tick) → shakeAnim=0.05, shakeAnimO=0
+
+    EXPECT_TRUE(wolf.isShaking());
+    // 触发 tick 内已经推进一次：shakeAnim=0.05, shakeAnimO=0
+    EXPECT_NEAR(wolf.getShakeAnim(1.0f), 0.05f, 0.001f);
+    EXPECT_NEAR(wolf.getShakeAnim(0.0f), 0.0f, 0.001f);
+
+    // 第二次进度推进：shakeAnimO=0.05 → shakeAnim=0.10
+    wolf.tick();
+    EXPECT_NEAR(wolf.getShakeAnim(1.0f), 0.10f, 0.001f);
+    EXPECT_NEAR(wolf.getShakeAnim(0.0f), 0.05f, 0.001f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_ShakeCompletion)
+{
+    // shakeAnimO >= 2.0 时甩水完成，状态重置
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 直接设置接近完成的甩水进度
+    wolf.setWetForTest(true);
+    wolf.setShakingForTest(true);
+    wolf.setShakeAnimForTest(2.0f, 1.95f); // shakeAnim=2.0, shakeAnimO=1.95
+
+    EXPECT_TRUE(wolf.isShaking());
+
+    wolf.tick();
+
+    // 甩水完成：isShaking=false, isWet=false, shakeAnim=0
+    EXPECT_FALSE(wolf.isShaking());
+    EXPECT_FALSE(wolf.isWet());
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.0f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_CancelWhenReenteringWater)
+{
+    // 甩水中再次接触水 → 取消甩水并广播 WolfStopShaking(56)
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 先触发甩水
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick();
+    wolf.setForceInWaterOrRain(false);
+    wolf.tick();
+    EXPECT_TRUE(wolf.isShaking());
+
+    // 推进几 tick
+    wolf.tick();
+    wolf.tick();
+    EXPECT_TRUE(wolf.isShaking());
+
+    world.resetBroadcastTracking();
+
+    // 再次接触水 → 取消甩水
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick();
+
+    EXPECT_FALSE(wolf.isShaking());
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::WolfStopShaking));
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Die_ResetsShakeState)
+{
+    // die() 应该重置 isWet/isShaking/shakeAnim/shakeAnimO
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    // 设置甩水状态
+    wolf.setWetForTest(true);
+    wolf.setShakingForTest(true);
+    wolf.setShakeAnimForTest(1.5f, 1.0f);
+    EXPECT_TRUE(wolf.isWet());
+    EXPECT_TRUE(wolf.isShaking());
+
+    // 创建伤害源并杀死狼
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+    wolf.die(damageSource);
+
+    // 状态应被重置
+    EXPECT_FALSE(wolf.isWet());
+    EXPECT_FALSE(wolf.isShaking());
+    EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.0f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_ShakeSoundPlayedOnce)
+{
+    // 甩水开始时（shakeAnim==0.0）应该播放一次 ENTITY_WOLF_SHAKE 声音
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 触发甩水
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick();
+    wolf.setForceInWaterOrRain(false);
+
+    world.resetSoundTracking();
+    wolf.tick(); // 触发甩水，下一 tick 播放声音
+
+    // 应该播放了 ENTITY_WOLF_SHAKE 声音
+    EXPECT_GE(world.getSoundPlayCount(), 1);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_SplashParticlesAfter04)
+{
+    // shakeAnim > 0.4 时应该发射 SPLASH 粒子
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 直接设置甩水中期状态
+    wolf.setWetForTest(true);
+    wolf.setShakingForTest(true);
+    wolf.setShakeAnimForTest(1.0f, 0.95f); // shakeAnim=1.0, shakeAnimO=0.95
+
+    // 注：WolfTestWorld 的 addParticle 是默认空实现（BaseTestWorld 未覆写）
+    // 此测试主要验证 tick() 不会崩溃，并推进 shakeAnim
+    wolf.tick();
+
+    // tick 后：shakeAnimO=1.0（旧 shakeAnim），shakeAnim=1.05（+0.05）
+    // getShakeAnim(1.0) = shakeAnimO + (shakeAnim - shakeAnimO) * 1.0 = 1.0 + 0.05 = 1.05
+    EXPECT_NEAR(wolf.getShakeAnim(1.0f), 1.05f, 0.001f);
+    // getShakeAnim(0.0) = shakeAnimO = 1.0
+    EXPECT_NEAR(wolf.getShakeAnim(0.0f), 1.0f, 0.001f);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_NoTriggerWhenNotOnGround)
+{
+    // 在水中但不在地面 → 不会触发甩水
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    world.setGroundCollisionEnabled(false); // 禁用虚拟地面，使 onGround=false
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(false); // 不在地面
+
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick(); // isWet=true
+
+    world.resetBroadcastTracking();
+    wolf.setForceInWaterOrRain(false);
+    wolf.tick();
+
+    // 不应该触发甩水（因为不在地面）
+    EXPECT_FALSE(wolf.isShaking());
+    EXPECT_EQ(world.getBroadcastCount(), 0);
+}
+
+TEST_F(WolfEntityTestFixture, Shake_Tick_NoReTriggerWhileShaking)
+{
+    // 已经在甩水时，不会重复触发 ShakeOffWater
+    TestWolfEntity wolf(EntityId(1));
+    WolfTestWorld world;
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setOnGround(true);
+
+    // 触发甩水
+    wolf.setForceInWaterOrRain(true);
+    wolf.tick();
+    wolf.setForceInWaterOrRain(false);
+    wolf.tick();
+    EXPECT_TRUE(wolf.isShaking());
+
+    world.resetBroadcastTracking();
+
+    // 继续推进 tick（不在水中），不应该重复广播
+    wolf.tick();
+    wolf.tick();
+    wolf.tick();
+
+    EXPECT_EQ(world.getBroadcastCount(), 0);
+    EXPECT_TRUE(wolf.isShaking());
 }
 
 } // namespace

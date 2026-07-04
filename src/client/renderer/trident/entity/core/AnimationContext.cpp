@@ -49,6 +49,9 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, static_cast<f64>(puffState));
     hash = hashCombine(hash, static_cast<f64>(eatAnimationTimer));
     hash = hashCombine(hash, static_cast<f64>(attackAnimationTicks));
+    hash = hashCombine(hash, static_cast<f64>(wolfShakeAnim));
+    hash = hashCombine(hash, static_cast<f64>(wolfInterestedAngle));
+    hash = hashCombine(hash, static_cast<f64>(wolfWetShade));
 
     // 组合布尔状态（转换为 0.0 或 1.0）
     hash = hashCombine(hash, isSitting ? 1.0 : 0.0);
@@ -95,6 +98,17 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
 
     // 撞飞攻击动画计时器变化（立即更新网格）
     if (attackAnimationTicks != other.attackAnimationTicks) return true;
+
+    // 狼甩水动画进度变化（立即更新网格）
+    if (checkDiff(static_cast<f64>(wolfShakeAnim), static_cast<f64>(other.wolfShakeAnim))) return true;
+
+    // 狼湿润着色变化（立即更新网格）
+    if (checkDiff(static_cast<f64>(wolfWetShade), static_cast<f64>(other.wolfWetShade))) return true;
+
+    // 狼乞求角度变化
+    if (checkDiff(static_cast<f64>(wolfInterestedAngle), static_cast<f64>(other.wolfInterestedAngle))) {
+        return true;
+    }
 
     // 布尔状态变化（立即更新）
     if (isSitting != other.isSitting) return true;

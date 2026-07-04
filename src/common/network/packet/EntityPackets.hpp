@@ -464,7 +464,11 @@ public:
         Death = 3,           // 死亡效果
         TamingFailed = 6,    // 驯服失败（烟雾粒子）
         TamingSucceeded = 7, // 驯服成功（爱心粒子）
-        ShakeOffWater = 8,   // 抖落水分（狼）
+        ShakeOffWater = 8,   // 抖落水分（狼）- 开始甩水动画
+
+        // 狼甩水取消（MC 1.21.11 Wolf.tick() 中再次入水时广播 byte 56）
+        // 客户端收到后立即取消甩水动画，重置 shakeAnim
+        WolfStopShaking = 56,
 
         // 实体特定状态
         EatBlock = 10, // 吃草/方块动画（羊、 TNT 矿车引燃）
