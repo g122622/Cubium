@@ -912,6 +912,9 @@ protected:
         m_entity->setWorld(m_world.get());
         m_entity->setOnGround(true);
         m_entity->setPosition(0.5, 65.0, 0.5); // 站在 y=64 方块上方
+        // 固定随机种子，使依赖 entity.getRandom() 的概率性用例（如耐久消耗）
+        // 在各次运行/各测试顺序下行为确定、可复现，消除 flake。
+        m_entity->getRandom().setSeed(0x5EEDULL);
     }
 
     void TearDown() override
@@ -1658,7 +1661,9 @@ TEST_F(SoulSpeedIntegrationTest, DurabilityConsumedOverMultipleTicks)
 
     // 灵魂疾行每次位置变化有4%概率消耗1点耐久
     // 多次触发 onChangedBlock，期望至少有一次耐久消耗
-    i32 totalTicks = 200; // 足够多次以确保至少触发一次
+    // 注：SetUp 中已对 entity.getRandom() 设置固定种子，结果确定；试验次数取 1000
+    // 使 4% 概率在统计上必触发（0.96^1000 ≈ 1.6e-18，几乎不可能为 0）。
+    i32 totalTicks = 1000;
     for (i32 i = 0; i < totalTicks; ++i) {
         // 微小位置变化以触发 onChangedBlock
         m_entity->setPosition(0.5 + static_cast<f32>(i) * 0.01f, 65.0, 0.5);
@@ -1667,11 +1672,11 @@ TEST_F(SoulSpeedIntegrationTest, DurabilityConsumedOverMultipleTicks)
 
     // 验证耐久消耗发生了（伤害值 > 0）
     i32 finalDamage = m_entity->getEquipment(EquipmentSlot::Feet).getDamage();
-    // 4%概率 × 200次 ≈ 8次消耗期望值，至少应该 > 0
+    // 4%概率 × 1000次 ≈ 40次消耗期望值，至少应该 > 0
     EXPECT_GT(finalDamage, 0);
 
-    // 验证消耗量合理：200次 × 4% ≈ 8次，但允许范围在1-30之间（宽泛容差）
-    EXPECT_LT(finalDamage, 50);
+    // 验证消耗量合理：1000次 × 4% ≈ 40次，允许范围在1-100之间（宽泛容差）
+    EXPECT_LT(finalDamage, 100);
 }
 
 TEST_F(SoulSpeedIntegrationTest, NoDurabilityConsumptionWhenNotOnSoulSand)
