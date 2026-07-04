@@ -22,10 +22,13 @@
 
 #include "world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "world/WorldConstants.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
+#include "world/chunk/data/ChunkData.hpp"
+#include "world/chunk/data/ChunkSection.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -645,4 +648,276 @@ TEST_F(EndGatewayStructureTest, CreateGatewayStructure_StructureSymmetry)
             }
         }
     }
+}
+
+// ========== _isChunkEmpty / _generateExitPortal 测试 ==========
+//
+// 对应 MC Java 的 TheEndGatewayBlockEntity.isChunkEmpty 与
+// findExitPortalXZPosTentative：测试抽取的 _isChunkEmpty 静态助手
+// 与 _generateExitPortal 的区块扫描行为。
+
+// 测试子类：暴露 EndGatewayEntity 的私有方法供测试调用
+namespace mc::blockentity {
+class TestEndGatewayEntity : public EndGatewayEntity {
+public:
+    explicit TestEndGatewayEntity(const BlockPos& pos)
+        : EndGatewayEntity(pos)
+    {}
+
+    [[nodiscard]] static bool testIsChunkEmpty(const world::chunk::ChunkData* chunk) { return _isChunkEmpty(chunk); }
+
+    void testGenerateExitPortal(IWorld& world) { _generateExitPortal(world); }
+};
+} // namespace mc::blockentity
+
+// 测试用的区块支撑世界：基于 BaseChunkBackedTestWorld，支持 getOrLoadChunk
+// （通过 IWorld 默认实现委托 getChunk）、方块读写、方块实体注入
+class EndGatewayChunkTestWorld : public mc::test::BaseChunkBackedTestWorld {
+public:
+    EndGatewayChunkTestWorld() { mc::VanillaBlocks::initialize(); }
+
+    [[nodiscard]] const mc::BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const mc::world::chunk::ChunkData* chunk = getChunk(x >> 4, z >> 4);
+        if (chunk == nullptr) {
+            return getAirState();
+        }
+        const mc::BlockState* state = chunk->getBlockState(x & 15, y, z & 15);
+        return state != nullptr ? state : getAirState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const mc::BlockState* state) override
+    {
+        mc::world::chunk::ChunkData& chunk = ensureChunk(x >> 4, z >> 4);
+        chunk.setBlockState(x & 15, y, z & 15, state);
+        return true;
+    }
+
+    [[nodiscard]] mc::BlockEntity* getBlockEntity(const mc::BlockPos& pos) override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second : nullptr;
+    }
+
+    void setBlockEntity(const mc::BlockPos& pos, mc::BlockEntity* entity) { m_blockEntities[pos] = entity; }
+
+    [[nodiscard]] bool isClientSide() const override { return false; }
+
+private:
+    [[nodiscard]] const mc::BlockState* getAirState() const { return &mc::VanillaBlocks::AIR->defaultState(); }
+
+    std::unordered_map<mc::BlockPos, mc::BlockEntity*> m_blockEntities;
+};
+
+// ---------- _isChunkEmpty 单元测试 ----------
+
+TEST(EndGatewayIsChunkEmptyTest, NullChunk_ReturnsTrue)
+{
+    // 未加载区块（nullptr）视为空区块
+    EXPECT_TRUE(mc::blockentity::TestEndGatewayEntity::testIsChunkEmpty(nullptr));
+}
+
+TEST(EndGatewayIsChunkEmptyTest, FreshChunkWithNoSections_ReturnsTrue)
+{
+    // 新构造的 ChunkData 所有区段均为 nullptr，视为空区块
+    mc::world::chunk::ChunkData chunk(0, 0);
+    EXPECT_TRUE(mc::blockentity::TestEndGatewayEntity::testIsChunkEmpty(&chunk));
+}
+
+TEST(EndGatewayIsChunkEmptyTest, ChunkWithOnlyEmptySections_ReturnsTrue)
+{
+    // 创建了区段但未放置任何方块，区段 isEmpty() 仍为 true
+    mc::world::chunk::ChunkData chunk(0, 0);
+    chunk.createSection(0);
+    chunk.createSection(5);
+    chunk.createSection(mc::world::CHUNK_SECTIONS - 1);
+    EXPECT_TRUE(mc::blockentity::TestEndGatewayEntity::testIsChunkEmpty(&chunk));
+}
+
+TEST(EndGatewayIsChunkEmptyTest, ChunkWithNonEmptySection_ReturnsFalse)
+{
+    // 任一区段非空即视为非空区块
+    mc::world::chunk::ChunkData chunk(0, 0);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+    ASSERT_NE(stoneState, nullptr);
+
+    auto* section = chunk.createSection(3);
+    ASSERT_NE(section, nullptr);
+    section->setBlockState(0, 0, 0, stoneState);
+
+    EXPECT_FALSE(mc::blockentity::TestEndGatewayEntity::testIsChunkEmpty(&chunk));
+}
+
+TEST(EndGatewayIsChunkEmptyTest, ChunkWithNonEmptySectionAtHighestIndex_ReturnsFalse)
+{
+    // 最高索引区段非空也视为非空区块（验证遍历覆盖全部 CHUNK_SECTIONS）
+    mc::world::chunk::ChunkData chunk(0, 0);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+    ASSERT_NE(stoneState, nullptr);
+
+    const i32 lastIndex = mc::world::CHUNK_SECTIONS - 1;
+    auto* section = chunk.createSection(lastIndex);
+    ASSERT_NE(section, nullptr);
+    section->setBlockState(8, 8, 8, stoneState);
+
+    EXPECT_FALSE(mc::blockentity::TestEndGatewayEntity::testIsChunkEmpty(&chunk));
+}
+
+TEST(EndGatewayIsChunkEmptyTest, ChunkWithNonEmptySectionAtLowestIndex_ReturnsFalse)
+{
+    // 最低索引区段非空也视为非空区块
+    mc::world::chunk::ChunkData chunk(0, 0);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+    ASSERT_NE(stoneState, nullptr);
+
+    auto* section = chunk.createSection(0);
+    ASSERT_NE(section, nullptr);
+    section->setBlockState(0, 0, 0, stoneState);
+
+    EXPECT_FALSE(mc::blockentity::TestEndGatewayEntity::testIsChunkEmpty(&chunk));
+}
+
+// ---------- _generateExitPortal 集成测试 ----------
+
+class EndGatewayGenerateExitPortalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+        BlockEntityRegistry::instance().registerBuiltinTypes();
+        m_world = std::make_unique<EndGatewayChunkTestWorld>();
+    }
+
+    std::unique_ptr<EndGatewayChunkTestWorld> m_world;
+};
+
+TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_NoChunksLoaded_SetsExitPortal)
+{
+    // 当所有目标区块均未加载（getOrLoadChunk 返回 nullptr）时，
+    // _generateExitPortal 仍应完成扫描并设置出口位置
+    // 折跃门位于正 X 方向，1024 格外的外岛方向
+    BlockPos gatewayPos(1000, 75, 0);
+    auto gateway = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+
+    ASSERT_FALSE(gateway->getExitPortal().has_value());
+
+    gateway->testGenerateExitPortal(*m_world);
+
+    // 出口传送门应已设置
+    EXPECT_TRUE(gateway->getExitPortal().has_value());
+    // 出口位置应在 1024 格外的方向上（远离原点）
+    const BlockPos& exit = gateway->getExitPortal().value();
+    EXPECT_GT(exit.x, gatewayPos.x - 16 * 16);
+}
+
+TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_CreatesGatewayStructureAtExit)
+{
+    // _generateExitPortal 应在出口位置创建折跃门结构（中心方块为 END_GATEWAY）
+    BlockPos gatewayPos(1000, 75, 0);
+    auto gateway = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+
+    gateway->testGenerateExitPortal(*m_world);
+
+    ASSERT_TRUE(gateway->getExitPortal().has_value());
+    const BlockPos& exit = gateway->getExitPortal().value();
+
+    // 出口位置中心应为末地折跃门方块
+    const mc::BlockState* exitState = m_world->getBlockState(exit.x, exit.y, exit.z);
+    ASSERT_NE(exitState, nullptr);
+    EXPECT_EQ(&exitState->getBlock(), mc::VanillaBlocks::END_GATEWAY);
+}
+
+TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_ScansPastNonEmptyChunks)
+{
+    // 在 1024 格附近的扫描路径上放置一个非空区块，
+    // 验证 _generateExitPortal 会回退跳过该非空区块，并在其边缘停止
+    BlockPos gatewayPos(1000, 75, 0);
+    auto gateway = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+
+    // 方向向量约 (1, 0, 0)，1024 格外约为 (1024, 0)
+    // 在 (1024, 0) 附近放置一个非空区块
+    const i32 targetChunkX = 1024 >> 4; // 64
+    const i32 targetChunkZ = 0 >> 4;    // 0
+    mc::world::chunk::ChunkData& chunk = m_world->ensureChunk(targetChunkX, targetChunkZ);
+    const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
+    auto* section = chunk.createSection(10); // 中间区段
+    ASSERT_NE(section, nullptr);
+    section->setBlockState(0, 0, 0, stoneState);
+
+    gateway->testGenerateExitPortal(*m_world);
+
+    // 出口传送门应已设置
+    EXPECT_TRUE(gateway->getExitPortal().has_value());
+    const BlockPos& exit = gateway->getExitPortal().value();
+    // 非空区块阻止了前进扫描，出口应在其附近（1024 ± 16 范围内）。
+    // 对比 AdvancePastEmptyChunks 测试（无非空区块时 exit.x ≈ 1280），
+    // 此处非空区块使出口远小于 1280，证明回退/前进逻辑生效
+    EXPECT_LT(exit.x, 1280);
+    // 出口应在非空区块附近（1024 ± 16），而非继续前进到 1280
+    EXPECT_GE(exit.x, 1024 - 16);
+    EXPECT_LE(exit.x, 1024 + 16);
+}
+
+TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_AdvancesPastEmptyChunks)
+{
+    // 验证前进扫描逻辑：当 1024 格处为空区块时，会继续前进寻找非空区块
+    // 这里所有区块都未加载（视为空），应一直前进 16 次后停止
+    BlockPos gatewayPos(1000, 75, 0);
+    auto gateway = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+
+    gateway->testGenerateExitPortal(*m_world);
+
+    ASSERT_TRUE(gateway->getExitPortal().has_value());
+    const BlockPos& exit = gateway->getExitPortal().value();
+    // 前进 16 次每次 16 格 = 256 格，出口应大于 1024
+    EXPECT_GT(exit.x, 1024);
+}
+
+TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_MarksEntityChanged)
+{
+    // _generateExitPortal 完成后应标记实体已修改
+    BlockPos gatewayPos(1000, 75, 0);
+    auto gateway = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+
+    // 新构造的实体不应处于已修改状态
+    // （构造后未调用 load/save，isChanged 应为 false）
+    gateway->testGenerateExitPortal(*m_world);
+
+    // 出口生成后应标记已修改（setChanged）
+    EXPECT_TRUE(gateway->isChanged());
+}
+
+TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_SetsReturnPortalOnExitGateway)
+{
+    // 出口折跃门方块实体应设置返回位置指向原折跃门
+    // _generateExitPortal 的双向链接逻辑：在出口位置查找 EndGatewayEntity 并调用 setExitPortal
+    // 由于 createGatewayStructure 只放置方块状态、不创建方块实体，
+    // 此测试在出口位置预先注入 EndGatewayEntity 以验证双向链接
+    BlockPos gatewayPos(1000, 75, 0);
+    auto gateway = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+
+    // 先运行一次以确定出口位置（所有区块未加载，exit.x ≈ 1280）
+    gateway->testGenerateExitPortal(*m_world);
+    ASSERT_TRUE(gateway->getExitPortal().has_value());
+    BlockPos exitPos = gateway->getExitPortal().value();
+
+    // 创建全新的世界，避免第一次运行放置的方块影响扫描
+    auto world2 = std::make_unique<EndGatewayChunkTestWorld>();
+
+    // 在出口位置预先放置 EndGatewayEntity 和 END_GATEWAY 方块状态
+    // （_generateExitPortal 会检查 getBlockState == END_GATEWAY 再查 getBlockEntity）
+    const mc::BlockState* endGatewayState = &mc::VanillaBlocks::END_GATEWAY->defaultState();
+    world2->setBlockState(exitPos.x, exitPos.y, exitPos.z, endGatewayState);
+    auto exitEntity = std::make_unique<EndGatewayEntity>(exitPos);
+    EndGatewayEntity* exitEntityPtr = exitEntity.get();
+    world2->setBlockEntity(exitPos, exitEntityPtr);
+    exitEntity.release();
+
+    // 在新世界上运行 _generateExitPortal
+    auto gateway2 = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);
+    gateway2->testGenerateExitPortal(*world2);
+
+    // 出口折跃门应设置返回位置（exitPortal）指向原折跃门位置
+    EXPECT_TRUE(exitEntityPtr->getExitPortal().has_value());
+    EXPECT_EQ(exitEntityPtr->getExitPortal().value(), gatewayPos);
 }

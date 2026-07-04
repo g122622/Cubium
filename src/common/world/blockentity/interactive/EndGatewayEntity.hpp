@@ -271,6 +271,9 @@ private:
 
     /// 是否精确传送（传送到精确位置而非附近安全位置）
     bool m_exactTeleport = false;
+
+    // 测试子类需要访问私有方法
+    friend class TestEndGatewayEntity;
 };
 
 } // namespace blockentity

@@ -6,7 +6,7 @@
 
 ```
 src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历）
+├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/getOrLoadChunk同步区块加载）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
 ├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（NewChunkHolder 等价物：请求聚合/状态推进/等待者/双向邻居依赖）
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
@@ -253,3 +253,11 @@ data/end_dragon_fight.json
 **注意事项**：
 - 方块实体在 tick 期间可能修改所在区块的方块实体映射（如活塞移动方块实体），因此必须使用 `getAllBlockEntities()` 的快照而非直接引用 `m_blockEntities`。
 - 如果 tick 中的方块实体被移除（`isRemoved() == true`），应跳过其 tick。
+
+### getOrLoadChunk 同步区块加载
+
+`ServerWorld` 覆写 `IWorld::getOrLoadChunk(ChunkCoord x, ChunkCoord z)`，委托给 `m_chunkManager->requestFullChunkSync(x, z)`，对应 MC Java 的 `Level.getChunk(x, z, require=true)`：区块已加载则直接返回，否则在主线程上同步触发加载/生成。
+
+**线程安全**：与 `requestFullChunkSync` 相同，仅在服务端主线程调用安全（内部通过 `_drainPendingLoadCompletes` 泵送避免死锁）。
+
+**使用场景**：`EndGatewayEntity::_generateExitPortal` 在末地外岛扫描区块判空时调用 `world.getOrLoadChunk()`，完整复刻 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative` 行为。其他 common 层代码需要按需加载区块时也应使用此接口，而非直接调用 `ServerChunkManager`（common 层无法依赖 server 层）。
