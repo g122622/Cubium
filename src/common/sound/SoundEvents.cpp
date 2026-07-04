@@ -513,10 +513,28 @@ const ResourceLocation BLOCK_SCULK_SHRIEKER_SHRIEK("minecraft:block.sculk_shriek
 const ResourceLocation BLOCK_COPPER_GOLEM_BECOME_STATUE("minecraft:block.copper_golem.become_statue");
 
 // 监守者
+// 完整对齐 MC 1.21.11 SoundEvents 中所有 WARDEN_* 事件（共 21 个）。
+// 参考: net.minecraft.sounds.SoundEvents
+const ResourceLocation ENTITY_WARDEN_AGITATED("minecraft:entity.warden.agitated");
+const ResourceLocation ENTITY_WARDEN_AMBIENT("minecraft:entity.warden.ambient");
+const ResourceLocation ENTITY_WARDEN_ANGRY("minecraft:entity.warden.angry");
+const ResourceLocation ENTITY_WARDEN_ATTACK_IMPACT("minecraft:entity.warden.attack_impact");
+const ResourceLocation ENTITY_WARDEN_DEATH("minecraft:entity.warden.death");
+const ResourceLocation ENTITY_WARDEN_DIG("minecraft:entity.warden.dig");
+const ResourceLocation ENTITY_WARDEN_EMERGE("minecraft:entity.warden.emerge");
+const ResourceLocation ENTITY_WARDEN_HEARTBEAT("minecraft:entity.warden.heartbeat");
+const ResourceLocation ENTITY_WARDEN_HURT("minecraft:entity.warden.hurt");
+const ResourceLocation ENTITY_WARDEN_LISTENING("minecraft:entity.warden.listening");
+const ResourceLocation ENTITY_WARDEN_LISTENING_ANGRY("minecraft:entity.warden.listening_angry");
 const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSE("minecraft:entity.warden.nearby_close");
 const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSER("minecraft:entity.warden.nearby_closer");
 const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSEST("minecraft:entity.warden.nearby_closest");
-const ResourceLocation ENTITY_WARDEN_LISTENING_ANGRY("minecraft:entity.warden.listening_angry");
+const ResourceLocation ENTITY_WARDEN_ROAR("minecraft:entity.warden.roar");
+const ResourceLocation ENTITY_WARDEN_SNIFF("minecraft:entity.warden.sniff");
+const ResourceLocation ENTITY_WARDEN_SONIC_BOOM("minecraft:entity.warden.sonic_boom");
+const ResourceLocation ENTITY_WARDEN_SONIC_CHARGE("minecraft:entity.warden.sonic_charge");
+const ResourceLocation ENTITY_WARDEN_STEP("minecraft:entity.warden.step");
+const ResourceLocation ENTITY_WARDEN_TENDRIL_CLICKS("minecraft:entity.warden.tendril_clicks");
 
 // ============================================================================
 // 实体通用声音
