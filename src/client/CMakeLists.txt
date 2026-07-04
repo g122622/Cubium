@@ -238,6 +238,7 @@ add_executable(minecraft-client
     renderer/trident/entity/renderer/animal/LlamaRenderer.cpp
     renderer/trident/entity/renderer/animal/VillagerRenderer.cpp
     renderer/trident/entity/renderer/player/PlayerRenderer.cpp
+    renderer/trident/entity/renderer/player/PlayerArmPoseResolver.cpp
     renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp
     # 层渲染器
     renderer/trident/entity/layer/equipment/ArmorLayer.cpp

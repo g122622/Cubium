@@ -6,9 +6,11 @@
 
 ```
 player/
-├── PlayerRenderer.hpp   # 玩家渲染器头文件
-├── PlayerRenderer.cpp   # 玩家渲染器实现
-└── README.md            # 本文档
+├── PlayerRenderer.hpp           # 玩家渲染器头文件
+├── PlayerRenderer.cpp           # 玩家渲染器实现
+├── PlayerArmPoseResolver.hpp    # 手臂姿态解析器（纯逻辑，可独立测试）
+├── PlayerArmPoseResolver.cpp    # 手臂姿态解析器实现
+└── README.md                    # 本文档
 ```
 
 ## 内部模块关系
@@ -20,7 +22,8 @@ PlayerRenderer
 │   └── IEntityRenderer<Player, PlayerModel> (接口：模型访问、纹理获取)
 ├── 核心组件
 │   ├── PlayerModel m_model (玩家模型，支持标准/纤细手臂)
-│   └── LayerRenderer[] m_layers (层渲染器列表)
+│   ├── LayerRenderer[] m_layers (层渲染器列表)
+│   └── PlayerArmPoseResolver (手臂姿态解析器，纯逻辑工具类)
 └── 层渲染器（按顺序添加）
     ├── HeldItemLayer (手持物品层)
     ├── HeadLayer (头部物品层：头盔、南瓜等)
@@ -62,6 +65,7 @@ PlayerRenderer
 ```cpp
 namespace mc::client::renderer::entity::renderer::player {
     class PlayerRenderer;
+    class PlayerArmPoseResolver;
 }
 ```
 
@@ -79,8 +83,10 @@ namespace mc::client::renderer::entity::renderer::player {
 
 `setModelVisibilities()` 必须在渲染前调用，它会：
 1. 设置所有部件可见
-2. 根据 `playerModelParts()` 设置外层皮肤可见性
-3. 设置蹲伏/游泳状态
+2. 通过 `PlayerArmPoseResolver::resolveArmPoses()` 解析双手姿态并映射到模型左右臂
+3. 设置 `mainHand`/`swingingHand` 供 `BipedModel::setAngles` 双臂协调逻辑使用
+4. 根据 `playerModelParts()` 设置外层皮肤可见性
+5. 设置蹲伏/游泳状态
 
 **注意**：披风可见性由 `CapeLayer` 单独控制，不在 `setModelVisibilitiesFromFlags` 中。
 
@@ -105,6 +111,10 @@ namespace mc::client::renderer::entity::renderer::player {
 
 `setModelVisibilities()` 中还会执行双手姿态协调：若主手姿态为 `BowAndArrow`/`CrossbowCharge`/`CrossbowHold`，副手姿态降级为 `Empty`（副手空）或 `Item`（副手非空）。随后根据 `player.isRightHanded()` 将主/副手姿态映射到模型右臂/左臂。
 
-### 6. ArmPose 枚举复用基类
+### 6. PlayerArmPoseResolver 工具类
+
+`PlayerArmPoseResolver` 是纯逻辑工具类，不依赖任何渲染层（Vulkan/管线/层渲染器），仅依赖 `Player`/`ItemStack`/`Item`/`Items`/`CrossbowItem`/`ItemTags`/`UseAction`。`PlayerRenderer::determineArmPose` 与 `setModelVisibilities` 中的姿态解析逻辑均委托给该类，便于在单元测试中直接验证各分支逻辑与双手协调映射，无需构造完整 `PlayerRenderer`（其构造会拉起 `HeldItemLayer`/`HeadLayer`/`CapeLayer`/`ElytraLayer` 等渲染层依赖）。对应测试见 `tests/client/renderer/entity/PlayerArmPoseResolverTest.cpp`。
+
+### 7. ArmPose 枚举复用基类
 
 `PlayerModel` 不再自定义 `ArmPose` 枚举，而是通过 `using ArmPose = mc::client::renderer::entity::model::ArmPose;` 复用基类 `BipedModel` 的枚举。`setArmPose`/`setLeftArmPose`/`setRightArmPose` 直接写入基类字段 `m_leftArmPose`/`m_rightArmPose`，由 `BipedModel::setAngles → handleRightArmPose/handleLeftArmPose` 消费。这避免了字段隐藏导致姿态永远为 `Empty` 的问题。
