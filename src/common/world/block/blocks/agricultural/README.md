@@ -181,3 +181,11 @@ Block
 **实现要点**：项目无 `IWorld::destroyBlock` 方法，采用 `setBlockState(pos, air, 3) + spawnAfterBreak(...)` 的等价模式，与 `RavagerEntity::_breakLeavesOnCollision` / `EnderDragonEntity::_destroyBlocksInAABB` 一致。破坏前需保存 `state.getBlock()` 引用，因为 `setBlockState` 后 `state` 引用可能失效。
 
 **注意**：无论作物是否成熟（AGE 0-4 均可）、是单格还是双格状态，Ravager 都会破坏。双格状态下，破坏下半部分不会自动清除上半部分（与 MC Java 一致，`destroyBlock` 只破坏指定位置）。
+
+### 13. 农民村民对作物的种植与收获行为（MC 1.21.11 HarvestFarmland）
+
+**种植**：农民村民通过 `ItemTags::VILLAGER_PLANTABLE_SEEDS` 标签判断可种植物品，包含 6 种种子：小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果。种植路径通过 `BlockItem::block()` 获取对应作物方块并放置默认状态（age=0），不要求方块继承 `CropBlock`，因此瓶草作物（`PitcherCropBlock : DoublePlantBlock`）也可被种植。
+
+**收获**：`FarmerWorkGoal::_isCropMatureAt()` 通过 `dynamic_cast<CropBlock*>` 判断可收获方块，因此村民**仅收获 `CropBlock` 子类的作物**（小麦、胡萝卜、马铃薯、甜菜根、火把花作物）。瓶草作物继承自 `DoublePlantBlock` 而非 `CropBlock`，村民**不会收获**——这与 MC 1.21.11 原版行为一致（`HarvestFarmland` 通过 `instanceof CropBlock` 判断）。
+
+**设计说明**：`PitcherCropBlock::getCropItem()` / `getSeedItem()` 当前未被 `FarmerWorkGoal` 调用，保留供未来扩展使用（例如其他 AI 或统计需要查询作物产物）。瓶草作物的掉落由战利品表驱动（`minecraft:blocks/pitcher_crop`）。

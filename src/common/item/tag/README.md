@@ -10,7 +10,7 @@ tag/
 ├── ItemTag.cpp           # 物品标签实现
 ├── ItemTagLoader.hpp     # 物品标签 JSON 加载器（数据包加载）
 ├── ItemTagLoader.cpp     # 物品标签加载器实现
-├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、SWORDS、AXES、PICKAXES、SHOVELS、HOES、BREAKS_DECORATED_POTS、CHAINS、BARS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD、WOODEN_SHELVES、SHULKER_BOXES 等）
+├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、SWORDS、AXES、PICKAXES、SHOVELS、HOES、BREAKS_DECORATED_POTS、CHAINS、BARS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD、WOODEN_SHELVES、SHULKER_BOXES、VILLAGER_PLANTABLE_SEEDS 等）
 ├── ItemTags.cpp          # 内置标签初始化（硬编码默认值）
 └── README.md             # 本文件
 ```
@@ -30,6 +30,8 @@ tag/
 │  WOODEN_TRAPDOORS()  │
 │  TRAPDOORS()         │
 │  NON_FLAMMABLE_WOOD()│
+│  VILLAGER_PLANTABLE  │
+│   _SEEDS()           │
 │  registerTag()       │
 └────────┬─────────────┘
          │ 管理
@@ -140,6 +142,7 @@ tag/
 | ItemEntity 振动阻尼 | `DAMPENS_VIBRATIONS` 标签判断羊毛物品是否阻尼振动 |
 | ItemEntity 伤害处理 | `FIRE_RESISTANT` 标签判断防火物品是否免疫火焰伤害 |
 | ItemStack::canBeHurtBy | `FIRE_RESISTANT` 标签检查物品是否可被火焰伤害源伤害 |
+| 农民村民种植 | `VILLAGER_PLANTABLE_SEEDS` 标签判断农民可在耕地上种植的种子（小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果），对应 MC 1.21.11 `HarvestFarmland.plantCrop` |
 | 配方系统（未来） | `Ingredient` 将支持标签匹配 |
 | 服务端初始化 | `MinecraftServer::initializeRegistries()` 调用 `ItemTagLoader` |
 
