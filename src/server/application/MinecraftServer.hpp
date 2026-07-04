@@ -341,6 +341,17 @@ protected:
     void shutdownSharedStorage();
 
     /**
+     * @brief 解析玩家在命令分发时使用的权限等级。
+     *
+     * 默认实现直接返回 OP 列表中的等级；集成服务器可 override 在此之上叠加
+     * 单机主机作弊提升（运行时判定，不写 ops.json）。
+     *
+     * @param uuid 玩家 UUID。
+     * @return 命令分发所用的权限等级 (0-4)。
+     */
+    [[nodiscard]] virtual i32 resolveOpLevel(const std::string& uuid) const noexcept;
+
+    /**
      * @brief 初始化核心管理器
      */
     void initializeCoreManagers();

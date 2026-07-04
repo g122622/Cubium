@@ -423,7 +423,24 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 
         auto tryChild = [&](const std::string& childName) {
             auto child = currentNode->getChild(childName);
-            if (!child || !child->canUse(currentContext->getSource())) {
+            if (!child) {
+                return;
+            }
+            if (!child->canUse(currentContext->getSource())) {
+                // 权限不足但输入精确匹配该字面量节点时，记录友好失败候选。
+                // 否则该节点被静默跳过，bestFailure 会落到其它字面量在当前 token 上抛出的
+                // 误导性 Expected literal 'X'（如 /tp 无权限时报 Expected literal 'help'）。
+                // 仅 Literal + 精确匹配才触发；参数节点或不匹配的输入仍走 Unknown command。
+                if (child->getType() == NodeType::Literal) {
+                    StringReader probe = currentReader; // 拷贝，不推进原 reader
+                    std::string token = probe.readUnquotedString();
+                    if (token == childName) {
+                        const i32 deniedCursor = probe.getCursor();
+                        CommandException denied(
+                            CommandErrorType::PermissionDenied, "commands.permission.denied", deniedCursor);
+                        considerResult(ParseResults<S>(denied.withInput(currentContext->getInput()), deniedCursor));
+                    }
+                }
                 return;
             }
 

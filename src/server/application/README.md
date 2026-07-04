@@ -87,6 +87,9 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 6. `ServerDimension::initialize()` - 创建同步管理器和刷怪管理器
 7. `setupWorldCallbacks()` - 世界事件回调
 
+### 3.1 单机主机权限与作弊开关
+单机主机的命令权限由 `IntegratedServer::resolveOpLevel` 在 OP 列表之上叠加「主机 + `IntegratedServerParams::allowCommands` → Owner(4)」运行时判定（不写 `ops.json`）。`allowCommands` 由客户端 `WorldLaunchConfig.allowCommands` 透传（`ClientApplicationSession::initializeGameSession`）；未透传或未开作弊时主机权限为 0，`/tp`、`/gamemode` 等权限 2 命令会因节点被跳过而误报成其它字面量的 `Expected literal`。命令分发（`handleChatMessagePacket`）与登录（`handleLoginRequestPacket`）权限解析统一走 `resolveOpLevel`。
+
 ### 4. 线程池职责分离
 计算池和IO池职责不同，不能复用同一个 `ServerWorkerPool`。`ServerChunkManager` 只接受外部注入的池指针。
 

@@ -203,6 +203,10 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             config.seed = 42;
             config.isNewWorld = true;
             config.defaultGameMode = GameMode::Creative;
+            // 原版语义：创造模式新世界默认允许作弊（对齐 LevelDatCodec 中
+            // allowCommands = (gameMode == Creative) 的默认值），否则主机权限为 0、
+            // /tp 等权限 2 命令不可用。
+            config.allowCommands = true;
         } else {
             config.levelId = *params.quickPlayLevelId;
             auto summaryResult = storageManager.listWorlds();
@@ -212,6 +216,10 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                         config.displayName = entry.displayName;
                         config.seed = static_cast<i64>(entry.seed);
                         config.worldType = entry.worldType;
+                        config.defaultGameMode = entry.gameMode;
+                        config.difficulty = entry.difficulty;
+                        config.hardcore = entry.hardcore;
+                        config.allowCommands = entry.allowCommands;
                         break;
                     }
                 }

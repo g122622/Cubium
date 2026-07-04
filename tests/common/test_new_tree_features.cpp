@@ -1016,21 +1016,23 @@ TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets)
     // FlowerFeatureIds::Offset should equal TreeFeatureIds::Count
     EXPECT_EQ(FlowerFeatureIds::Offset, 17u);
 
-    // GrassFeatureIds::Offset should equal Tree + Flower counts
-    EXPECT_EQ(GrassFeatureIds::Offset, 17u + 6u);
+    // FlowerFeatureIds::Count = 8: PlainsFlowers, ForestFlowers, FlowerForestFlowers,
+    // SwampFlowers, Sunflower, CherryGrovePetals, WildflowersBirchForest, WildflowersMeadow
+    // GrassFeatureIds::Offset should equal Tree + Flower counts (17 + 8 = 25)
+    EXPECT_EQ(GrassFeatureIds::Offset, 17u + 8u);
 
-    // MushroomFeatureIds::Offset should equal Tree + Flower + Grass counts
-    EXPECT_EQ(MushroomFeatureIds::Offset, 17u + 6u + 7u);
+    // MushroomFeatureIds::Offset should equal Tree + Flower + Grass counts (17 + 8 + 7 = 32)
+    EXPECT_EQ(MushroomFeatureIds::Offset, 17u + 8u + 7u);
 
-    // CactusFeatureIds::Offset
-    EXPECT_EQ(CactusFeatureIds::Offset, 17u + 6u + 7u + 2u);
+    // CactusFeatureIds::Offset (17 + 8 + 7 + 2 = 34)
+    EXPECT_EQ(CactusFeatureIds::Offset, 17u + 8u + 7u + 2u);
 
-    // SugarCaneFeatureIds::Offset
-    EXPECT_EQ(SugarCaneFeatureIds::Offset, 17u + 6u + 7u + 2u + 2u);
+    // SugarCaneFeatureIds::Offset (17 + 8 + 7 + 2 + 2 = 36)
+    EXPECT_EQ(SugarCaneFeatureIds::Offset, 17u + 8u + 7u + 2u + 2u);
 
-    // Total
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 17u + 6u + 7u + 2u + 2u + 2u + 2u);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 38u);
+    // Total (Tree 17 + Flower 8 + Grass 7 + Mushroom 2 + Cactus 2 + SugarCane 2 + Bamboo 2 = 40)
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 17u + 8u + 7u + 2u + 2u + 2u + 2u);
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 40u);
 }
 
 // ============================================================================

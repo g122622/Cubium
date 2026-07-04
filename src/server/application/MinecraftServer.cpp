@@ -1945,7 +1945,7 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
             commandDimension,
             Vector3d(player->x, player->y, player->z),
             Vector2f(player->yaw, player->pitch),
-            static_cast<i32>(m_opListManager->getLevel(player->uuid)),
+            static_cast<i32>(resolveOpLevel(player->uuid)),
             playerId,
             player->username,
             commandEntity);
@@ -2239,6 +2239,11 @@ void MinecraftServer::sendPermissionLevelChange(PlayerId playerId, i32 permissio
 
     // 同步更新后的命令树到客户端，以便刷新可用命令列表
     sendCommandTreePacket(playerId);
+}
+
+i32 MinecraftServer::resolveOpLevel(const std::string& uuid) const noexcept
+{
+    return static_cast<i32>(m_opListManager->getLevel(uuid));
 }
 
 void MinecraftServer::stopCore()

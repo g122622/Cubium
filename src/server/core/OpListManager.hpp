@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <mutex>
 #include <optional>
@@ -51,6 +52,25 @@ enum class OpLevel : u8 {
     Admin = 3,      ///< 服务器管理员（可使用服务器管理命令）
     Owner = 4       ///< 服务器所有者（控制台级别权限）
 };
+
+/**
+ * @brief 在 OP 列表等级之上叠加单机主机作弊提升。
+ *
+ * 单机主机在开启作弊时，运行时视为 OP（与原版 PlayerList.isOp 中
+ * isSingleplayerOwner && isAllowCommands 的判定一致，不写 ops.json）。
+ *
+ * @param opListLevel 来自 OP 列表的基础权限等级。
+ * @param isOwner 是否为单机世界主机。
+ * @param cheatsEnabled 单机世界是否开启作弊（allowCommands）。
+ * @return 提升后的权限等级；非主机或未开作弊时原样返回。
+ */
+[[nodiscard]] inline i32 applyOwnerCheatsBoost(i32 opListLevel, bool isOwner, bool cheatsEnabled) noexcept
+{
+    if (isOwner && cheatsEnabled) {
+        return std::max(opListLevel, static_cast<i32>(OpLevel::Owner));
+    }
+    return opListLevel;
+}
 
 /**
  * @brief OP 列表条目

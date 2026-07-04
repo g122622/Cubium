@@ -174,6 +174,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     serverParams.viewDistance = config.viewDistance;
     serverParams.defaultGameMode = config.defaultGameMode;
     serverParams.worldName = config.levelId;
+    serverParams.allowCommands = config.allowCommands;
 
     auto serverResult = m_integratedServer->initialize(serverParams);
     if (serverResult.failed()) {
