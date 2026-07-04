@@ -40,7 +40,7 @@ using namespace mc::blocks;
 // 而非临时构造的 PointedDripstoneBlock 实例的状态，否则 is() 恒为 false。
 // ============================================================================
 
-class PointedDripstoneBlockTest : public ::testing::Test {
+class PointedDripstoneStaticMethodTest : public ::testing::Test {
 protected:
     void SetUp() override { VanillaBlocks::initialize(); }
 
@@ -55,49 +55,49 @@ protected:
     }
 };
 
-TEST_F(PointedDripstoneBlockTest, IsStalactite_DownDirection_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalactite_DownDirection_ReturnsTrue)
 {
     const BlockState& downState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_TRUE(PointedDripstoneBlock::isStalactite(downState));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsStalactite_UpDirection_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalactite_UpDirection_ReturnsFalse)
 {
     const BlockState& upState = makeState(Direction::Up, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_FALSE(PointedDripstoneBlock::isStalactite(upState));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsStalagmite_UpDirection_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalagmite_UpDirection_ReturnsTrue)
 {
     const BlockState& upState = makeState(Direction::Up, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_TRUE(PointedDripstoneBlock::isStalagmite(upState));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsStalagmite_DownDirection_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsStalagmite_DownDirection_ReturnsFalse)
 {
     const BlockState& downState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_FALSE(PointedDripstoneBlock::isStalagmite(downState));
 }
 
-TEST_F(PointedDripstoneBlockTest, CanDrip_TipDownNotWaterlogged_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, CanDrip_TipDownNotWaterlogged_ReturnsTrue)
 {
     const BlockState& state = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip, false);
     EXPECT_TRUE(PointedDripstoneBlock::canDrip(state));
 }
 
-TEST_F(PointedDripstoneBlockTest, CanDrip_TipDownWaterlogged_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, CanDrip_TipDownWaterlogged_ReturnsFalse)
 {
     const BlockState& state = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip, true);
     EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
-TEST_F(PointedDripstoneBlockTest, CanDrip_BaseDown_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, CanDrip_BaseDown_ReturnsFalse)
 {
     const BlockState& state = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Base, false);
     EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
-TEST_F(PointedDripstoneBlockTest, GetDripParticlePosition_CalculatesCorrectOffset)
+TEST_F(PointedDripstoneStaticMethodTest, GetDripParticlePosition_CalculatesCorrectOffset)
 {
     // Y = blockPos.y + 0.25, X = blockPos.x + 0.5, Z = blockPos.z + 0.5
     BlockPos pos(10, 20, 30);
@@ -108,7 +108,7 @@ TEST_F(PointedDripstoneBlockTest, GetDripParticlePosition_CalculatesCorrectOffse
     EXPECT_FLOAT_EQ(result.z, 30.5f);
 }
 
-TEST_F(PointedDripstoneBlockTest, GetDripParticlePosition_OriginPosition)
+TEST_F(PointedDripstoneStaticMethodTest, GetDripParticlePosition_OriginPosition)
 {
     BlockPos pos(0, 0, 0);
     Vector3 result = PointedDripstoneBlock::getDripParticlePosition(pos);
@@ -118,7 +118,7 @@ TEST_F(PointedDripstoneBlockTest, GetDripParticlePosition_OriginPosition)
     EXPECT_FLOAT_EQ(result.z, 0.5f);
 }
 
-TEST_F(PointedDripstoneBlockTest, GetDripParticlePosition_NegativeCoordinates)
+TEST_F(PointedDripstoneStaticMethodTest, GetDripParticlePosition_NegativeCoordinates)
 {
     BlockPos pos(-5, -10, -15);
     Vector3 result = PointedDripstoneBlock::getDripParticlePosition(pos);
@@ -128,7 +128,7 @@ TEST_F(PointedDripstoneBlockTest, GetDripParticlePosition_NegativeCoordinates)
     EXPECT_FLOAT_EQ(result.z, -14.5f);
 }
 
-TEST_F(PointedDripstoneBlockTest, IsTip_TipAllowMergeTrue_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsTip_TipAllowMergeTrue_ReturnsTrue)
 {
     const BlockState& tipState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
 
@@ -136,7 +136,7 @@ TEST_F(PointedDripstoneBlockTest, IsTip_TipAllowMergeTrue_ReturnsTrue)
     EXPECT_TRUE(PointedDripstoneBlock::isTip(&tipState, false));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsTip_TipMergeAllowMergeTrue_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsTip_TipMergeAllowMergeTrue_ReturnsTrue)
 {
     const BlockState& mergeState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::TipMerge);
 
@@ -144,13 +144,13 @@ TEST_F(PointedDripstoneBlockTest, IsTip_TipMergeAllowMergeTrue_ReturnsTrue)
     EXPECT_FALSE(PointedDripstoneBlock::isTip(&mergeState, false));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsTip_NullPtr_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsTip_NullPtr_ReturnsFalse)
 {
     EXPECT_FALSE(PointedDripstoneBlock::isTip(nullptr, true));
     EXPECT_FALSE(PointedDripstoneBlock::isTip(nullptr, false));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_MatchingDirection_ReturnsTrue)
+TEST_F(PointedDripstoneStaticMethodTest, IsPointedDripstoneWithDirection_MatchingDirection_ReturnsTrue)
 {
     const BlockState& downState = makeState(Direction::Down, BlockStateProperties::DripstoneThickness::Tip);
 
@@ -158,7 +158,7 @@ TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_MatchingDirect
     EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Up));
 }
 
-TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_NullPtr_ReturnsFalse)
+TEST_F(PointedDripstoneStaticMethodTest, IsPointedDripstoneWithDirection_NullPtr_ReturnsFalse)
 {
     EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(nullptr, Direction::Down));
 }
