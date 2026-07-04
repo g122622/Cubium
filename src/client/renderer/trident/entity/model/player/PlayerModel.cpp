@@ -207,12 +207,6 @@ void PlayerModel::setAngles(
     (void)ageInTicks; // 玩家不使用 ageInTicks 进行额外动画
 }
 
-void PlayerModel::setArmPose(ArmPose leftArmPose, ArmPose rightArmPose)
-{
-    m_leftArmPose = leftArmPose;
-    m_rightArmPose = rightArmPose;
-}
-
 void PlayerModel::setVisible(bool visible)
 {
     BipedModel::setVisible(visible);
@@ -345,44 +339,6 @@ void PlayerModel::_animateArms(f64 limbSwing, f64 limbSwingAmount)
     (void)limbSwingAmount;
 }
 
-void PlayerModel::_animateBow(f64 limbSwing)
-{
-    // 右手持弓，左手拉弦
-    if (m_rightArm) {
-        m_rightArm->setRotateAngleY(-0.1f);
-        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
-    }
-    if (m_leftArm) {
-        m_leftArm->setRotateAngleY(0.1f + 0.4f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
-    }
-    (void)limbSwing; // 弓姿态不依赖 limbSwing
-}
-
-void PlayerModel::_animateCrossbowCharge()
-{
-    if (m_rightArm) {
-        m_rightArm->setRotateAngleY(-0.8f);
-        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
-    }
-    if (m_leftArm) {
-        m_leftArm->setRotateAngleY(0.8f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
-    }
-}
-
-void PlayerModel::_animateCrossbowHold()
-{
-    if (m_rightArm) {
-        m_rightArm->setRotateAngleY(-0.3f);
-        m_rightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
-    }
-    if (m_leftArm) {
-        m_leftArm->setRotateAngleY(0.6f);
-        m_leftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
-    }
-}
-
 void PlayerModel::renderCape(f64 scale)
 {
     if (m_cape) {
@@ -398,28 +354,6 @@ void PlayerModel::renderEars(f64 scale)
         m_ears->setRotationPointX(0.0f);
         m_ears->setRotationPointY(0.0f);
         m_ears->render(scale);
-    }
-}
-
-void PlayerModel::_updateCapePosition(bool wearingChestplate, bool crouching)
-{
-    // 根据胸甲和蹲伏状态调整斗篷位置
-    if (m_cape) {
-        if (!wearingChestplate) {
-            if (crouching) {
-                m_cape->setRotationPointZ(1.4f);
-                m_cape->setRotationPointY(1.85f);
-            } else {
-                m_cape->setRotationPointZ(0.0f);
-                m_cape->setRotationPointY(0.0f);
-            }
-        } else if (crouching) {
-            m_cape->setRotationPointZ(0.3f);
-            m_cape->setRotationPointY(0.8f);
-        } else {
-            m_cape->setRotationPointZ(-1.1f);
-            m_cape->setRotationPointY(-0.85f);
-        }
     }
 }
 

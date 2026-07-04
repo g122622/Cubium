@@ -30,27 +30,28 @@
 namespace mc::client::renderer::entity::model::player {
 
 /**
- * @brief 手部侧边
+ * @brief 手的边（左/右）
+ *
+ * 与基类 BipedModel::HandSide 等价，此处保留以便旧代码兼容
  */
-enum class HandSide { Right = 0, Left = 1 };
+using HandSide = mc::client::renderer::entity::model::HandSide;
 
 /**
- * @brief 手臂姿态
+ * @brief 手臂姿态枚举别名
+ *
+ * 直接复用基类 BipedModel 的 ArmPose 枚举，避免命名空间分裂和字段隐藏问题。
+ * 7 种姿态：Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold
  */
-enum class ArmPose {
-    Empty,          // 空手
-    Item,           // 持有物品
-    Block,          // 格挡
-    BowAndArrow,    // 拉弓
-    ThrowSpear,     // 投掷三叉戟
-    CrossbowCharge, // 装填弩
-    CrossbowHold    // 持有弩
-};
+using ArmPose = mc::client::renderer::entity::model::ArmPose;
 
 /**
  * @brief 玩家模型
  *
  * 支持标准手臂和纤细手臂两种模式。
+ *
+ * 手臂姿态直接由基类 BipedModel 的 m_leftArmPose/m_rightArmPose 字段驱动，
+ * 子类不再重新定义同名字段，避免 setArmPose 与 handleRightArmPose/handleLeftArmPose
+ * 之间出现字段隐藏问题。
  */
 class PlayerModel : public model::BipedModel {
 public:
@@ -70,9 +71,16 @@ public:
     // ========== 手臂姿态 ==========
 
     /**
-     * @brief 设置手臂姿态
+     * @brief 设置双手姿态
+     *
+     * 直接转发到基类 BipedModel 的 m_leftArmPose/m_rightArmPose 字段，
+     * 由 BipedModel::setAngles → handleRightArmPose/handleLeftArmPose 消费。
      */
-    void setArmPose(ArmPose leftArmPose, ArmPose rightArmPose);
+    void setArmPose(ArmPose leftArmPose, ArmPose rightArmPose)
+    {
+        m_leftArmPose = leftArmPose;
+        m_rightArmPose = rightArmPose;
+    }
 
     /**
      * @brief 设置左手姿态
@@ -214,14 +222,6 @@ private:
     void _setupCape();
     void _setupEars();
     void _animateArms(f64 limbSwing, f64 limbSwingAmount);
-    // TODO: animateBow 尚未被调用，等待手臂姿态动画系统集成
-    void _animateBow(f64 limbSwing);
-    // TODO: animateCrossbowCharge 尚未被调用，等待弩装填动画集成
-    void _animateCrossbowCharge();
-    // TODO: animateCrossbowHold 尚未被调用，等待弩持有动画集成
-    void _animateCrossbowHold();
-    // TODO: updateCapePosition 尚未被调用，等待斗篷动画系统集成
-    void _updateCapePosition(bool wearingChestplate, bool crouching);
 
     // 外观层部件
     std::shared_ptr<model::ModelRenderer> m_leftArmwear;  // 左袖外层
@@ -233,10 +233,6 @@ private:
     // 斗篷和耳朵
     std::shared_ptr<model::ModelRenderer> m_cape; // 斗篷
     std::shared_ptr<model::ModelRenderer> m_ears; // 耳朵（Deadmau5）
-
-    // 手臂姿态
-    ArmPose m_leftArmPose = ArmPose::Empty;
-    ArmPose m_rightArmPose = ArmPose::Empty;
 
     // 状态
     bool m_slimArms = false;  // 纤细手臂

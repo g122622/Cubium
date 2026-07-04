@@ -25,9 +25,9 @@
 
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 
-// 注意：不使用 using namespace 以避免 ArmPose 命名冲突
-// BipedModel 有 model::ArmPose
-// PlayerModel 有 player::ArmPose
+// 注意：PlayerModel 现在直接复用基类 BipedModel 的 ArmPose 枚举，
+// 通过 using ArmPose = mc::client::renderer::entity::model::ArmPose 别名暴露，
+// 不再存在命名空间分裂问题。
 
 namespace mc::client::renderer {
 namespace {
