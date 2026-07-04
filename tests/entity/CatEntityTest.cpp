@@ -1298,13 +1298,16 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_OwnerNonFoodNonDyeItem_Toggles
 
 TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwner_CannotInteract)
 {
-    // 已驯服的猫 + 非主人 → 交给父类处理（返回 Pass）
+    // 已驯服的猫 + 非主人 + 生鱼（繁殖物品）：与 MC 原版一致，繁殖/成长由
+    // AnimalEntity 基类处理且不检查所有权（任何玩家均可喂食动物繁殖），
+    // 因此非主人喂食仍会进入求爱状态并消耗物品。本用例验证该原版行为。
     CatTestWorld world;
     CatEntity cat(EntityId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
+    cat.setHealth(cat.maxHealth()); // 满血，跳过治疗分支
 
     Player player(EntityId(2), "OtherPlayer");
     player.setPlayerId(99999ULL); // 非主人
@@ -1317,12 +1320,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwner_CannotInteract)
 
     ActionResultType result = cat.interactMob(player, Hand::MainHand);
 
-    // 非主人不能与猫交互，交给父类处理
-    EXPECT_EQ(result, ActionResultType::Pass);
+    // 非主人喂食繁殖物品：交给 AnimalEntity 基类处理，进入求爱状态（Success）
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(cat.isInLove());
 
-    // 物品不应该消耗
+    // 物品被消耗 1 个
     i32 countAfter = player.inventory().getItem(0).getCount();
-    EXPECT_EQ(countAfter, 10);
+    EXPECT_EQ(countAfter, 9);
 }
 
 TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwnerDye_NoCollarChange)

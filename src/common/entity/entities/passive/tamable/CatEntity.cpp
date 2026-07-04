@@ -291,6 +291,12 @@ void CatEntity::registerAttributes()
     // 猫的属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+
+    // 与 MC 原版 LivingEntity 构造逻辑一致：构造完成后生命值应等于 maxHealth。
+    // 由于 C++ 基类构造函数中虚函数 registerAttributes 不会派发到子类，MAX_HEALTH
+    // 的覆盖在此处才生效，因此需在此显式同步生命值，否则 m_health 会停留在
+    // 成员默认值 20.0f（与 maxHealth=10 不一致）。
+    setHealth(maxHealth());
 }
 
 void CatEntity::registerData()

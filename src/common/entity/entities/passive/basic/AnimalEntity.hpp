@@ -68,6 +68,25 @@ public:
     [[nodiscard]] virtual bool isBreedingItem(const ItemStack& itemStack) const;
 
     /**
+     * @brief 玩家交互入口（喂食繁殖/加速成长）
+     *
+     * 与 MC 1.16.5 AnimalEntity.func_230254_b_(mobInteract) 对齐：
+     *   - 手持繁殖物品(isBreedingItem) 且为成体(getGrowingAge==0) 且可繁殖：
+     *     消耗物品并进入求爱状态(setInLove)；
+     *   - 手持繁殖物品 且为幼体(isChild)：消耗物品并加速成长(ageUp)；
+     *   - 否则交由父类 MobEntity::interactMob 处理（默认 Pass）。
+     *
+     * 注意：本方法只负责“喂食→繁殖/成长”这一通用动物交互。子类（CatEntity、
+     * WolfEntity 等）若需要额外的交互（驯服、染色、挤奶等），应在自身 interactMob
+     * 中先处理特化逻辑，再回落到本基类方法。
+     *
+     * @param player 交互的玩家
+     * @param hand 使用的手
+     * @return 交互结果（Success=已处理并消耗，Pass=未处理）
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    /**
      * @brief 检查是否可以与另一动物交配
      * @param other 另一个动物
      * @return 是否可以交配

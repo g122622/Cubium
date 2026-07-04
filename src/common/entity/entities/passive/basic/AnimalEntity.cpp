@@ -39,6 +39,7 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -64,6 +65,59 @@ bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const
     // 默认检查是否为小麦
     // 子类应该重写此方法来定义特定的繁殖物品
     return !itemStack.isEmpty() && itemStack.getItem() == Items::WHEAT;
+}
+
+ActionResultType AnimalEntity::interactMob(Player& player, Hand hand)
+{
+    // 与 MC 1.16.5 AnimalEntity.func_230254_b_(mobInteract) 对齐：
+    //   手持繁殖物品(isBreedingItem) 时：
+    //     - 成体(getGrowingAge==0) 且可繁殖：消耗物品 + setInLove 进入求爱
+    //     - 幼体(isChild)：消耗物品 + ageUp 加速成长
+    //   否则交由父类 MobEntity::interactMob 处理（默认 Pass）
+    //
+    // 注：原版 AnimalEntity.mobInteract 不播放进食音效；本项目沿用 WolfEntity
+    // 的约定，在喂食繁殖/成长时播放一次通用进食音效，与既有测试用例断言一致。
+    ItemStack& itemStack = player.getHeldItem(hand);
+
+    if (isBreedingItem(itemStack)) {
+        const i32 growingAge = getGrowingAge();
+
+        if (growingAge == 0 && canBreed()) {
+            // 成体喂食 → 进入求爱状态
+            if (!player.abilities().creativeMode) {
+                itemStack.shrink(1);
+            }
+            setInLove(player.playerId());
+
+            if (!isSilent()) {
+                auto soundEvent = makeSoundEventId("eat");
+                if (soundEvent.has_value()) {
+                    playSound(*soundEvent, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+                }
+            }
+            return ActionResultType::Success;
+        }
+
+        if (isChild()) {
+            // 幼体喂食 → 加速成长（与 MC 1.16.5 ageUp((int)((-i/20)*0.1F)) 一致）
+            if (!player.abilities().creativeMode) {
+                itemStack.shrink(1);
+            }
+            const i32 remainingTicks = -growingAge;
+            const i32 accelerateSeconds = static_cast<i32>(remainingTicks * 0.1f) / 20;
+            ageUp(accelerateSeconds);
+
+            if (!isSilent()) {
+                auto soundEvent = makeSoundEventId("eat");
+                if (soundEvent.has_value()) {
+                    playSound(*soundEvent, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+                }
+            }
+            return ActionResultType::Success;
+        }
+    }
+
+    return MobEntity::interactMob(player, hand);
 }
 
 bool AnimalEntity::canMateWith(const AnimalEntity& other) const
