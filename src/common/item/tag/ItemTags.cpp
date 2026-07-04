@@ -281,6 +281,15 @@ ItemTag& ItemTags::SHULKER_BOXES()
     return *tag;
 }
 
+ItemTag& ItemTags::HARNESSES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "harnesses"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::REPAIRS_WOLF_ARMOR()
 {
     static ItemTag* tag = nullptr;
@@ -958,6 +967,29 @@ void ItemTags::initialize()
     copperGolemStatues->add(
         ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")));
     allTags[copperGolemStatues->getId()] = std::move(copperGolemStatues);
+
+    // 创建 HARNESSES 标签
+    // 包含所有 16 色马铠物品（white_harness..black_harness）。
+    // 用于装备 HappyGhast 实体。
+    // 对应 MC 原版标签 minecraft:harnesses (MC 1.21.11)。
+    auto harnesses = std::make_unique<ItemTag>(ResourceLocation("minecraft", "harnesses"), false);
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_harness")));
+    harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_harness")));
+    allTags[harnesses->getId()] = std::move(harnesses);
 
     s_initialized = true;
 }

@@ -95,6 +95,8 @@ add_executable(mc_tests
     common/item/WolfAndNautilusArmorTest.cpp
     # ArmorSlot::Body / ArmorMaterial / ArmorItem::isBodyArmor 测试
     common/item/ArmorMaterialTest.cpp
+    # HarnessItem 欢乐诡鬼装备测试（16色注册、颜色映射、HARNESSES 标签集成）
+    common/item/HarnessItemTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp

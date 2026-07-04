@@ -244,6 +244,15 @@ public:
     static ItemTag& SHULKER_BOXES();
 
     /**
+     * @brief 欢乐诡鬼装备物品标签
+     *
+     * 包含所有 16 色马铠物品（white_harness..black_harness）。
+     * 用于装备 HappyGhast 实体。
+     * 对应 MC 原版标签 minecraft:harnesses (MC 1.21.11)。
+     */
+    static ItemTag& HARNESSES();
+
+    /**
      * @brief 修复狼铠材料标签
      *
      * 包含可用于修复狼铠的物品（犰狳鳞甲）。

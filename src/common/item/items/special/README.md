@@ -13,6 +13,7 @@ special/
 ├── EnchantedBookItem.hpp/cpp    # 附魔书（存储附魔）
 ├── FishBucketItem.hpp/cpp       # 鱼桶（放置水并生成鱼）
 ├── FlintAndSteelItem.hpp/cpp    # 打火石（点火、点燃下界传送门）
+├── HarnessItem.hpp/cpp          # 欢乐诡鬼装备（16色变体，装备 HappyGhast，无护甲值无耐久）
 ├── HoneycombItem.hpp/cpp        # 蜜脾（涂蜡铜方块、涂蜡告示牌阻止文字修改）
 ├── MilkBucketItem.hpp/cpp       # 牛奶桶（清除药水效果）
 ├── MusicDiscItem.hpp/cpp        # 音乐唱片（放入唱片机播放，比较器信号1-15）
@@ -46,6 +47,7 @@ special/
 │                                                             │
 │ OnAStickItem 控制 IRideable 实体（猪、炽足兽）              │
 │ SaddleItem 装备 IEquipable 实体（猪、炽足兽、马等）          │
+│ HarnessItem 持有 DyeColor，装备交互待 HappyGhastEntity 集成 │
 │ HoneycombItem 维护 WAXABLES/WAX_OFF_MAP 铜块涂蜡/除蜡映射，也支持告示牌涂蜡 │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -88,3 +90,4 @@ special/
 14. **SmithingTemplateItem tooltip 通过 LanguageManager 翻译**：appliesTo/ingredients/baseSlotDescription/additionsSlotDescription 字段存储翻译键，addInformation() 通过 LanguageManager::get() 翻译后显示。tooltip 格式完整复刻 MC Java（后缀标题、空行、标题+描述）。baseSlotDescription/additionsSlotDescription 用于锻造台界面，尚未集成
 15. **SmithingTemplateItem 与锻造台配方系统**：此类当前仅提供物品标识和提示信息，待 TrimPattern 注册表和 SmithingTrimRecipe/SmithingTransformRecipe 实现后需进行集成。空槽位图标路径（baseSlotEmptyIcons/additionalSlotEmptyIcons）尚未添加
 16. **LeadItem 拴绳交互流程**：`onItemUse()` 只对栅栏方块生效（`BlockTags::FENCES()`），搜索半径16格内被当前玩家拴住的生物（`mob->leashHolderUuid() == player->uuid()`），通过 `LeashKnotEntity::getOrCreateKnot()` 创建/复用拴绳结，调用 `mob->setLeashedToFence()` 转移绑定。玩家右键生物拴住/解除拴绳的逻辑在 `MobEntity::processInitialInteract()` 中
+17. **HarnessItem 装备交互待集成**：当前 HarnessItem 仅作为普通物品注册（含 DyeColor 成员），右键装备 HappyGhast、剪刀剪下、装备音效等逻辑待 HappyGhastEntity 实现后在实体侧或 `itemInteractionForEntity` 中集成。颜色为物品固有属性（非 NBT 染色），与 HorseArmorItem 多实例模式一致，不要误用 DyeableArmorItem 的 NBT 染色机制

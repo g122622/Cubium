@@ -48,7 +48,7 @@
 | `minecraft:copper_golem_statues` | 8 |
 | `minecraft:decorated_pot_ingredients` | 1 |
 | `minecraft:duplicates_allays` | 1 |
-| `minecraft:harnesses` | 16 |
+| `minecraft:harnesses` | 16 ✅ 已完成 |
 | `minecraft:lightning_rods` | 8 ✅ 已完成 |
 | `minecraft:mangrove_logs` | 4 |
 | `minecraft:pale_oak_logs` | 4 |
@@ -462,13 +462,13 @@
 - `minecraft:bell ✅ 已完成`
 - `minecraft:birch_shelf ✅ 已完成`
 - `minecraft:black_bundle`
-- `minecraft:black_harness`
+- `minecraft:black_harness ✅ 已完成`
 - `minecraft:blue_bundle`
 - `minecraft:blue_egg ✅ 已完成`
 - `minecraft:brick ✅ 已完成`
 - `minecraft:brown_bundle`
 - `minecraft:brown_egg ✅ 已完成`
-- `minecraft:brown_harness`
+- `minecraft:brown_harness ✅ 已完成`
 - `minecraft:brush ✅ 已完成`
 - `minecraft:bundle`
 - `minecraft:cherry_shelf ✅ 已完成`
@@ -476,7 +476,7 @@
 - `minecraft:cobbled_deepslate ✅ 已完成`
 - `minecraft:crimson_shelf ✅ 已完成`
 - `minecraft:cyan_bundle`
-- `minecraft:cyan_harness`
+- `minecraft:cyan_harness ✅ 已完成`
 - `minecraft:damaged_anvil ✅ 已完成`
 - `minecraft:dark_oak_shelf ✅ 已完成`
 - `minecraft:deepslate_coal_ore ✅ 已完成`
@@ -490,21 +490,21 @@
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:gray_bundle`
-- `minecraft:gray_harness`
+- `minecraft:gray_harness ✅ 已完成`
 - `minecraft:green_bundle`
-- `minecraft:green_harness`
+- `minecraft:green_harness ✅ 已完成`
 - `minecraft:iron_chain ✅ 已完成`
 - `minecraft:jungle_shelf ✅ 已完成`
 - `minecraft:knowledge_book ✅ 已完成`
 - `minecraft:light_blue_bundle`
-- `minecraft:light_blue_harness`
+- `minecraft:light_blue_harness ✅ 已完成`
 - `minecraft:light_gray_bundle`
-- `minecraft:light_gray_harness`
+- `minecraft:light_gray_harness ✅ 已完成`
 - `minecraft:lightning_rod ✅ 已完成`
 - `minecraft:lime_bundle`
-- `minecraft:lime_harness`
+- `minecraft:lime_harness ✅ 已完成`
 - `minecraft:magenta_bundle`
-- `minecraft:magenta_harness`
+- `minecraft:magenta_harness ✅ 已完成`
 - `minecraft:mangrove_propagule ✅ 已完成`
 - `minecraft:mangrove_shelf ✅ 已完成`
 - `minecraft:moss_block ✅ 已完成`
@@ -512,20 +512,20 @@
 - `minecraft:muddy_mangrove_roots ✅ 已完成`
 - `minecraft:oak_shelf ✅ 已完成`
 - `minecraft:orange_bundle`
-- `minecraft:orange_harness`
+- `minecraft:orange_harness ✅ 已完成`
 - `minecraft:oxidized_lightning_rod ✅ 已完成`- `minecraft:pale_moss_block ✅ 已完成`
 - `minecraft:pale_oak_shelf ✅ 已完成`
 - `minecraft:pink_bundle`
-- `minecraft:pink_harness`
+- `minecraft:pink_harness ✅ 已完成`
 - `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_pod ✅ 已完成`
 - `minecraft:purple_bundle`
-- `minecraft:purple_harness`
+- `minecraft:purple_harness ✅ 已完成`
 - `minecraft:raw_gold ✅ 已完成`
 - `minecraft:raw_gold_block ✅ 已完成`
 - `minecraft:recovery_compass ✅ 已完成`
 - `minecraft:red_bundle`
-- `minecraft:red_harness`
+- `minecraft:red_harness ✅ 已完成`
 - `minecraft:resin_brick ✅ 已完成`
 - `minecraft:rooted_dirt ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
@@ -541,10 +541,10 @@
 - `minecraft:waxed_weathered_lightning_rod ✅ 已完成`
 - `minecraft:weathered_lightning_rod ✅ 已完成`
 - `minecraft:white_bundle`
-- `minecraft:white_harness`
+- `minecraft:white_harness ✅ 已完成`
 - `minecraft:wildflowers ✅ 已完成`
 - `minecraft:yellow_bundle`
-- `minecraft:yellow_harness`
+- `minecraft:yellow_harness ✅ 已完成`
 
 ## 附录：完全无法解析标签的逐项明细
 
@@ -699,25 +699,25 @@
 
 - `minecraft:nether_brick_fence ✅ 已完成`
 
-### `minecraft:harnesses`
+### `minecraft:harnesses` ✅ 已完成
 
 
-- `minecraft:black_harness`
-- `minecraft:blue_harness`
-- `minecraft:brown_harness`
-- `minecraft:cyan_harness`
-- `minecraft:gray_harness`
-- `minecraft:green_harness`
-- `minecraft:light_blue_harness`
-- `minecraft:light_gray_harness`
-- `minecraft:lime_harness`
-- `minecraft:magenta_harness`
-- `minecraft:orange_harness`
-- `minecraft:pink_harness`
-- `minecraft:purple_harness`
-- `minecraft:red_harness`
-- `minecraft:white_harness`
-- `minecraft:yellow_harness`
+- `minecraft:white_harness ✅ 已完成`
+- `minecraft:orange_harness ✅ 已完成`
+- `minecraft:magenta_harness ✅ 已完成`
+- `minecraft:light_blue_harness ✅ 已完成`
+- `minecraft:yellow_harness ✅ 已完成`
+- `minecraft:lime_harness ✅ 已完成`
+- `minecraft:pink_harness ✅ 已完成`
+- `minecraft:gray_harness ✅ 已完成`
+- `minecraft:light_gray_harness ✅ 已完成`
+- `minecraft:cyan_harness ✅ 已完成`
+- `minecraft:purple_harness ✅ 已完成`
+- `minecraft:blue_harness ✅ 已完成`
+- `minecraft:brown_harness ✅ 已完成`
+- `minecraft:green_harness ✅ 已完成`
+- `minecraft:red_harness ✅ 已完成`
+- `minecraft:black_harness ✅ 已完成`
 
 ### `minecraft:lightning_rods`
 

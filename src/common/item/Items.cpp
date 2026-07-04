@@ -52,6 +52,7 @@
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/item/items/special/HarnessItem.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
 #include "common/item/items/special/KnowledgeBookItem.hpp"
 #include "common/item/items/special/LeadItem.hpp"
@@ -92,6 +93,7 @@
 #include "common/item/items/weapon/TridentItem.hpp"
 #include "common/item/tier/ItemTiers.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -840,6 +842,24 @@ Item* Items::GREEN_BED = nullptr;
 Item* Items::RED_BED = nullptr;
 Item* Items::BLACK_BED = nullptr;
 
+// 欢乐诡鬼装备 (Harness, 16色)
+Item* Items::WHITE_HARNESS = nullptr;
+Item* Items::ORANGE_HARNESS = nullptr;
+Item* Items::MAGENTA_HARNESS = nullptr;
+Item* Items::LIGHT_BLUE_HARNESS = nullptr;
+Item* Items::YELLOW_HARNESS = nullptr;
+Item* Items::LIME_HARNESS = nullptr;
+Item* Items::PINK_HARNESS = nullptr;
+Item* Items::GRAY_HARNESS = nullptr;
+Item* Items::LIGHT_GRAY_HARNESS = nullptr;
+Item* Items::CYAN_HARNESS = nullptr;
+Item* Items::PURPLE_HARNESS = nullptr;
+Item* Items::BLUE_HARNESS = nullptr;
+Item* Items::BROWN_HARNESS = nullptr;
+Item* Items::GREEN_HARNESS = nullptr;
+Item* Items::RED_HARNESS = nullptr;
+Item* Items::BLACK_HARNESS = nullptr;
+
 // 地毯 (16色)
 Item* Items::WHITE_CARPET = nullptr;
 Item* Items::ORANGE_CARPET = nullptr;
@@ -1393,6 +1413,7 @@ void Items::initialize()
     _registerTrialChamberItems(); // 试炼密室物品
     _registerMusicDiscs();        // 音乐唱片
     _registerSkulls();            // 头颅物品
+    _registerHarnesses();         // 欢乐诡鬼装备 (16色)
 
     // 初始化堆肥物品注册表（必须在 Items 注册完成后）
     blocks::CompostableItems::initialize();
@@ -4988,6 +5009,62 @@ void Items::_registerSkulls()
     DRAGON_HEAD = &registry.registerItem(ResourceLocation("minecraft:dragon_head"), ItemProperties().maxStackSize(64));
 
     PIGLIN_HEAD = &registry.registerItem(ResourceLocation("minecraft:piglin_head"), ItemProperties().maxStackSize(64));
+}
+
+void Items::_registerHarnesses()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // 欢乐诡鬼装备 (Harness) - MC 1.21.11 新增
+    // 用于装备 HappyGhast 实体，无护甲值、无耐久、可染色合成
+    // 每种颜色对应一个独立 Item 实例（颜色为物品固有属性，非 NBT 染色）
+    WHITE_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:white_harness"), ItemProperties().maxStackSize(1), DyeColor::White);
+
+    ORANGE_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:orange_harness"), ItemProperties().maxStackSize(1), DyeColor::Orange);
+
+    MAGENTA_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:magenta_harness"), ItemProperties().maxStackSize(1), DyeColor::Magenta);
+
+    LIGHT_BLUE_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:light_blue_harness"), ItemProperties().maxStackSize(1), DyeColor::LightBlue);
+
+    YELLOW_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:yellow_harness"), ItemProperties().maxStackSize(1), DyeColor::Yellow);
+
+    LIME_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:lime_harness"), ItemProperties().maxStackSize(1), DyeColor::Lime);
+
+    PINK_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:pink_harness"), ItemProperties().maxStackSize(1), DyeColor::Pink);
+
+    GRAY_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:gray_harness"), ItemProperties().maxStackSize(1), DyeColor::Gray);
+
+    LIGHT_GRAY_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:light_gray_harness"), ItemProperties().maxStackSize(1), DyeColor::LightGray);
+
+    CYAN_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:cyan_harness"), ItemProperties().maxStackSize(1), DyeColor::Cyan);
+
+    PURPLE_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:purple_harness"), ItemProperties().maxStackSize(1), DyeColor::Purple);
+
+    BLUE_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:blue_harness"), ItemProperties().maxStackSize(1), DyeColor::Blue);
+
+    BROWN_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:brown_harness"), ItemProperties().maxStackSize(1), DyeColor::Brown);
+
+    GREEN_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:green_harness"), ItemProperties().maxStackSize(1), DyeColor::Green);
+
+    RED_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:red_harness"), ItemProperties().maxStackSize(1), DyeColor::Red);
+
+    BLACK_HARNESS = &registry.registerItem<item::items::HarnessItem>(
+        ResourceLocation("minecraft:black_harness"), ItemProperties().maxStackSize(1), DyeColor::Black);
 }
 
 } // namespace mc

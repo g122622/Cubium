@@ -275,6 +275,26 @@ public:
     static Item* NETHERITE_NAUTILUS_ARMOR; // 下界合金鹦鹉螺铠甲 - +19 护甲
 
     // ========================================================================
+    // 欢乐诡鬼装备 (Harness) - 16色，用于装备 HappyGhast 实体，无护甲值、无耐久
+    // ========================================================================
+    static Item* WHITE_HARNESS;
+    static Item* ORANGE_HARNESS;
+    static Item* MAGENTA_HARNESS;
+    static Item* LIGHT_BLUE_HARNESS;
+    static Item* YELLOW_HARNESS;
+    static Item* LIME_HARNESS;
+    static Item* PINK_HARNESS;
+    static Item* GRAY_HARNESS;
+    static Item* LIGHT_GRAY_HARNESS;
+    static Item* CYAN_HARNESS;
+    static Item* PURPLE_HARNESS;
+    static Item* BLUE_HARNESS;
+    static Item* BROWN_HARNESS;
+    static Item* GREEN_HARNESS;
+    static Item* RED_HARNESS;
+    static Item* BLACK_HARNESS;
+
+    // ========================================================================
     // 食物
     // ========================================================================
     static Item* APPLE;
@@ -1455,6 +1475,7 @@ private:
     static void _registerTrialChamberItems();
     static void _registerMusicDiscs();
     static void _registerSkulls();
+    static void _registerHarnesses();
 };
 
 } // namespace mc
