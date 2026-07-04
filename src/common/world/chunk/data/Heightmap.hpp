@@ -45,8 +45,12 @@ enum class HeightmapType : u8 {
     MotionBlockingNoLeaves, // 最高阻挡运动方块（不含树叶）
     WorldSurfaceWG,         // 世界表面（生成时）
     OceanFloorWG,           // 海底（生成时）
-    LightBlocking           // 最高阻挡光照方块
+    LightBlocking,          // 最高阻挡光照方块
+    COUNT                   // 高度图类型总数（用于数组索引上界）
 };
+
+// 高度图类型数量（编译期常量，用于 std::array 索引）
+constexpr size_t HEIGHTMAP_TYPE_COUNT = static_cast<size_t>(HeightmapType::COUNT);
 
 // ============================================================================
 // 高度图
@@ -77,6 +81,14 @@ public:
      * @brief 获取高度
      */
     [[nodiscard]] BlockCoord getHeight(BlockCoord x, BlockCoord z) const;
+
+    /**
+     * @brief 直接设置指定 XZ 位置的高度（绕过 _isOpaque 判定，用于整列重算或从存档恢复）
+     * @param x 区块内 X 坐标 (0-15)
+     * @param z 区块内 Z 坐标 (0-15)
+     * @param height 高度值（Heightmap 内部存储语义，即最高方块 Y+1，0 表示无方块）
+     */
+    void setHeight(BlockCoord x, BlockCoord z, BlockCoord height);
 
     /**
      * @brief 设置高度数据（从存档加载）

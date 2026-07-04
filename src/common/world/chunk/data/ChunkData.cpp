@@ -46,7 +46,7 @@ namespace mc::world::chunk {
 
 ChunkData::ChunkData()
 {
-    m_heightMap.fill(0);
+    _initHeightmaps();
     initLightData();
 }
 
@@ -54,11 +54,23 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
     : m_x(x)
     , m_z(z)
 {
-    m_heightMap.fill(0);
+    _initHeightmaps();
     initLightData();
 }
 
 ChunkData::~ChunkData() = default;
+
+void ChunkData::_initHeightmaps()
+{
+    // 按枚举顺序为每个槽位设置正确的类型，使 m_heightmaps[type] 直接可用
+    for (size_t i = 0; i < m_heightmaps.size(); ++i) {
+        m_heightmaps[i] = Heightmap(static_cast<HeightmapType>(i));
+    }
+    // WorldSurface 槽位始终视为已填充：构造后即为空高度图(全 0)，
+    // 且 setBlockState/updateHeightMap 会持续维护它。
+    m_heightmapInitialized.fill(false);
+    m_heightmapInitialized[static_cast<size_t>(HeightmapType::WorldSurface)] = true;
+}
 
 const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
@@ -99,8 +111,11 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
     section->setBlockState(x, localY, z, state);
     m_dirty = true;
 
-    // 更新高度图
-    if (y >= m_heightMap[x * mc::world::CHUNK_WIDTH + z]) {
+    // 更新高度图（WorldSurface 槽位作为快速查询缓存）
+    // currentTop 为最高方块 Y（Heightmap 存储 Y+1，故 getHeight-1；无方块时为 0）
+    const BlockCoord rawHeight = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)].getHeight(x, z);
+    const BlockCoord currentTop = rawHeight > 0 ? rawHeight - 1 : 0;
+    if (y >= currentTop) {
         updateHeightMap(x, z);
     }
 }
@@ -144,8 +159,11 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
     section->setBlockStateId(x, localY, z, stateId);
     m_dirty = true;
 
-    // 更新高度图
-    if (y >= m_heightMap[x * mc::world::CHUNK_WIDTH + z]) {
+    // 更新高度图（WorldSurface 槽位作为快速查询缓存）
+    // currentTop 为最高方块 Y（Heightmap 存储 Y+1，故 getHeight-1；无方块时为 0）
+    const BlockCoord rawHeight = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)].getHeight(x, z);
+    const BlockCoord currentTop = rawHeight > 0 ? rawHeight - 1 : 0;
+    if (y >= currentTop) {
         updateHeightMap(x, z);
     }
 }
@@ -155,7 +173,9 @@ BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return -1;
     }
-    return m_heightMap[x * mc::world::CHUNK_WIDTH + z];
+    // WorldSurface 高度图存储 Y+1，最高方块 Y = getHeight - 1（getHeight 为 0 表示无方块，回退为 0）
+    const BlockCoord height = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)].getHeight(x, z);
+    return height > 0 ? height - 1 : 0;
 }
 
 BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
@@ -164,14 +184,14 @@ BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord 
         return mc::world::MIN_BUILD_HEIGHT;
     }
 
-    // 检查是否有特定类型的高度图
-    auto it = m_heightmaps.find(type);
-    if (it != m_heightmaps.end()) {
-        return it->second.getHeight(x, z) - 1;
-    }
+    const size_t typeIndex = static_cast<size_t>(type);
+    // 未被显式填充的类型回退到 WorldSurface 槽位
+    const Heightmap& heightmap = m_heightmapInitialized[typeIndex]
+        ? m_heightmaps[typeIndex]
+        : m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];
 
-    // 默认使用基本高度图
-    return m_heightMap[x * mc::world::CHUNK_WIDTH + z];
+    const BlockCoord height = heightmap.getHeight(x, z);
+    return height > 0 ? height - 1 : mc::world::MIN_BUILD_HEIGHT;
 }
 
 void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
@@ -180,19 +200,10 @@ void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, 
         return;
     }
 
-    // 获取或创建高度图
-    auto& heightmap = m_heightmaps[type];
-    if (heightmap.getType() != type) {
-        heightmap = Heightmap(type);
-    }
-
+    const size_t typeIndex = static_cast<size_t>(type);
+    Heightmap& heightmap = m_heightmaps[typeIndex];
     heightmap.update(x, y, z, state);
-
-    // 同时更新基本高度图（WorldSurface 类型）
-    if (type == HeightmapType::WorldSurface || type == HeightmapType::WorldSurfaceWG) {
-        const BlockCoord height = heightmap.getHeight(x, z);
-        m_heightMap[x * mc::world::CHUNK_WIDTH + z] = height > 0 ? height - 1 : 0;
-    }
+    m_heightmapInitialized[typeIndex] = true;
 }
 
 BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
@@ -207,15 +218,18 @@ BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) con
 
 void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z)
 {
-    // 从上向下查找最高的非空气方块
+    // 从上向下查找最高的非空气方块，写入 WorldSurface 高度图槽位
+    Heightmap& worldSurface = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];
     for (BlockCoord y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = getBlockState(x, y, z);
         if (state && !state->isAir()) {
-            m_heightMap[x * mc::world::CHUNK_WIDTH + z] = y;
+            // Heightmap 内部存储 Y+1（上方空气方块位置）
+            worldSurface.setHeight(x, z, y + 1);
             return;
         }
     }
-    m_heightMap[x * mc::world::CHUNK_WIDTH + z] = mc::world::MIN_BUILD_HEIGHT;
+    // 无方块：高度为 0（getHighestBlock 据此回退为 0）
+    worldSurface.setHeight(x, z, 0);
 }
 
 ChunkSection* ChunkData::getSection(i32 index)
@@ -317,10 +331,16 @@ std::vector<u8> ChunkData::serialize() const
         }
     }
 
-    // 高度图
-    for (BlockCoord h : m_heightMap) {
-        data.push_back(static_cast<u8>(h >> 8));
-        data.push_back(static_cast<u8>(h & 0xFF));
+    // 高度图（WorldSurface 槽位，磁盘格式：按 x*W+z 顺序，每列最高方块 Y，i16 大端）
+    const Heightmap& worldSurface = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];
+    for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
+        for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
+            const BlockCoord rawHeight = worldSurface.getHeight(x, z);
+            // Heightmap 存储 Y+1，回写为最高方块 Y；无方块为 0
+            const BlockCoord highest = rawHeight > 0 ? rawHeight - 1 : 0;
+            data.push_back(static_cast<u8>(highest >> 8));
+            data.push_back(static_cast<u8>(highest & 0xFF));
+        }
     }
 
     // 居住时间（8字节，大端序）
@@ -402,14 +422,22 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
         }
     }
 
-    // 高度图
+    // 高度图（WorldSurface 槽位，磁盘格式：按 x*W+z 顺序，每列最高方块 Y，i16 大端）
     if (offset + mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH * 2 > size) {
         return Error(ErrorCode::InvalidArgument, "Height map data missing");
     }
-    for (size_t i = 0; i < mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH; ++i) {
-        chunk->m_heightMap[i] =
-            (static_cast<BlockCoord>(data[offset]) << 8) | static_cast<BlockCoord>(data[offset + 1]);
-        offset += 2;
+    {
+        Heightmap& worldSurface = chunk->m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];
+        for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
+            for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
+                // 磁盘存的是最高方块 Y，Heightmap 内部存储 Y+1；无方块(Y=0)保持 0
+                const BlockCoord highest =
+                    (static_cast<BlockCoord>(data[offset]) << 8) | static_cast<BlockCoord>(data[offset + 1]);
+                offset += 2;
+                worldSurface.setHeight(x, z, highest > 0 ? highest + 1 : 0);
+            }
+        }
+        chunk->m_heightmapInitialized[static_cast<size_t>(HeightmapType::WorldSurface)] = true;
     }
 
     // 居住时间（8字节，大端序）

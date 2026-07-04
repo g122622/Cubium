@@ -667,7 +667,8 @@ private:
      * 在 _drainPendingLoadCompletes 中出队调用。处理：
      * - 校验 SCLM 仍存活且为同一实例（异步期间可能被 unload 重建）
      * - 存档命中：_storeChunkInMemorySync + markLoadedFromStorageReady(FULL) + _completeReadyWaiters
-     *   + _enqueuePostProcess（onChunkLoaded/callback 延迟到主线程，needsPostProcess=false）
+     *   + 直接调用 onChunkLoaded/m_chunkLoadedCallback（主线程路径，不走 _enqueuePostProcess；
+     *     由 m_postProcessedChunks 去重，防止重复执行）
      * - 存档缺失：noteStorageResolved(false) + _advanceChunkState（走 StorageMissing→生成链路）
      * - 从 m_pendingLoadTasks 移除追踪条目（owner 校验），扇出 attachedWaiters（命中→Ready，缺失→生成）
      * - owner 已 unload（ownerAlive=false）：跳过 owner 推进，扇出 attachedWaiters 走生成路径
@@ -844,16 +845,47 @@ private:
     [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::shared_ptr<ChunkData> data);
 
     /**
-     * @brief 保存一个脏区块的所有 section
+     * @brief 触发区块卸载对外的通知（实体保存+移除、卸载发送、callback）
      *
-     * @param chunk 要保存的区块
+     * 仅在确定移除区块时调用，确保每次卸载仅通知一次（重试路径不触发）。
      */
-    void _saveChunkSectionsSync(const ChunkData& chunk);
+    void _notifyChunkUnload(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 检查并卸载无需求区块
      */
     void _checkChunkUnloading();
+
+    /**
+     * @brief 异步卸载保存完成后，主线程完成卸载收尾（stage3，对齐 Moonrise unloadStage3）
+     *
+     * 在 _drainPendingUnloadFinishes 中出队调用（非脏路径由 unloadChunkSync 直接调用）。处理：
+     * - 复检区块是否被重新请求（shouldLoad=true）：是则中止卸载，保留区块与 holder
+     *   （区块数据已保存，若再次变脏会重新保存）。
+     * - 否则完成卸载：持调度锁 cancelGeneration + isSafeToUnload 复检 → 通过后
+     *   _notifyChunkUnload（实体保存+移除/卸载发送/callback，仅触发一次）→
+     *   移除 holder 与 m_chunks 条目、清理后处理去重标记。
+     * - isSafeToUnload 为 false（保存期间邻居开始引用本 holder）：保留条目，下一 tick 重试。
+     *   重试路径不触发卸载通知，避免重复通知客户端/移除实体。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param dimension 维度
+     * @param lifecycleHolder 异步发起时持有的 SCLM 共享指针
+     * @return true 已完成卸载（或中止卸载），条目可丢弃；false 需下一 tick 重试
+     */
+    bool _finalizeUnloadAfterSave(ChunkCoord x,
+        ChunkCoord z,
+        mc::DimensionId dimension,
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder);
+
+    /**
+     * @brief 出队并执行异步卸载保存完成回调（仅主线程调用）
+     *
+     * 在 tick() 中调用，把 ServerIO 线程入队的 m_pendingUnloadFinishes 逐个交给
+     * _finalizeUnloadAfterSave。未完成（isSafeToUnload=false）的条目保留至下一 tick 重试。
+     */
+    void _drainPendingUnloadFinishes();
 
     /**
      * @brief 增加有玩家附近的区块的居住时间
@@ -986,6 +1018,35 @@ private:
     std::unordered_map<u64, PendingLoadEntry> m_pendingLoadTasks;
 
     /**
+     * @brief 异步卸载保存完成队列（ServerIO→主线程回传，stage2→stage3 衔接）
+     *
+     * unloadChunkSync（stage1）提交 saveChunkAsyncCallback 后，ServerIO 线程完成保存时把
+     * （x, z, dimension, lifecycleHolder）入队此队列。主线程 tick() 的 _drainPendingUnloadFinishes
+     * 出队交给 _finalizeUnloadAfterSave（stage3）完成卸载收尾。
+     *
+     * 线程安全：由 m_pendingUnloadFinishesMutex 保护（ServerIO 线程入队、主线程出队）。
+     */
+    struct PendingUnloadFinish {
+        ChunkCoord x = 0;
+        ChunkCoord z = 0;
+        mc::DimensionId dimension{};
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
+    };
+    std::mutex m_pendingUnloadFinishesMutex;
+    std::vector<PendingUnloadFinish> m_pendingUnloadFinishes;
+
+    /**
+     * @brief 进行中异步卸载保存的区块 key 集合
+     *
+     * unloadChunkSync（stage1）置位，_finalizeUnloadAfterSave（stage3）完成或中止后清除。
+     * _checkChunkUnloading 跳过此集合中的区块，避免重复发起卸载保存。
+     *
+     * 线程安全：由 m_pendingUnloadFinishesMutex 保护（与 m_pendingUnloadFinishes 共用锁，
+     * _checkChunkUnloading / unloadChunkSync / _drainPendingUnloadFinishes 均持锁访问）。
+     */
+    std::unordered_set<u64> m_unloadSaveInProgress;
+
+    /**
      * @brief 区块生成调度核心
      *
      * 持有 ReentrantAreaLock 保证 schedule/checkNeighbour/onChunkGenComplete 的原子性。
@@ -1016,6 +1077,21 @@ private:
     /// 每 tick 卸载预算上限（对齐 Moonrise ChunkHolderManager.processUnloads）
     /// 防止单 tick 卸载过多区块造成卡顿
     static constexpr i32 MAX_UNLOADS_PER_TICK = 200;
+
+    /// 主线程后处理队列软上限。
+    ///
+    /// 该队列每 tick 由 _drainPendingPostProcess 完全排空（强上界保证），且每个区块每生命周期最多
+    /// 入队一次（m_postProcessedChunks 去重）。正常情况下队列长度 ≤ worker 池并发完成的区块数，
+    /// 远低于此上限。当主 tick 卡顿导致 worker 在两次排空之间堆积时，超过阈值仅记录警告日志，
+    /// 不拒绝入队（拒绝会丢失已生成区块的实体/后处理，导致状态机停滞），排空语义不变。
+    static constexpr size_t PENDING_POST_PROCESS_WARN_THRESHOLD = 256;
+
+    /// 异步存档加载完成队列软上限。
+    ///
+    /// 每项持有完整 ChunkData（~600KB）与 lifecycleHolder，每 tick 由 _drainPendingLoadCompletes
+    /// 完全排空。每区块最多一个在途加载（m_pendingLoadTasks 去重），正常积压受限于视距内待加载
+    /// 区块数。超过阈值记录警告（暴露主 tick 跟不上加载速率的病态积压），不拒绝入队，排空语义不变。
+    static constexpr size_t PENDING_LOAD_COMPLETES_WARN_THRESHOLD = 256;
 
     /// 加载区块软上限（0 = 不限制）
     /// 当 m_chunks + m_lifecycleManagers 总数超过此值时，按最远票级强制卸载

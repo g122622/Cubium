@@ -998,7 +998,6 @@ add_library(mc_common STATIC
     world/chunk/data/ChunkSection.cpp
     world/chunk/data/PalettedContainer.cpp
     world/chunk/data/Heightmap.cpp
-    world/chunk/data/IChunk.cpp
     world/chunk/gen/ChunkDependencies.cpp
     world/chunk/gen/ChunkPyramid.cpp
     world/chunk/gen/ChunkStatus.cpp

@@ -28,9 +28,9 @@
 #include "../../../world/biome/BiomeRegistry.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 #include <optional>
 
@@ -188,9 +188,9 @@ private:
 
             case HeightmapType::LightBlocking:
                 return block.isSolid(*state) && state->getOpacity() > 0;
+            default:
+                return false;
         }
-
-        return false;
     }
 };
 

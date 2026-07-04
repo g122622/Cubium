@@ -548,6 +548,192 @@ void SingleLevelStorageManager::loadChunkAsyncCallback(ChunkCoord x,
         priority);
 }
 
+void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const ChunkData> chunk,
+    DimensionId dimension,
+    std::function<void(ChunkCoord, ChunkCoord, Result<void>)> callback,
+    util::TaskPriority priority)
+{
+    if (!chunk) {
+        if (callback) {
+            callback(0, 0, Error(ErrorCode::InvalidArgument, "saveChunkAsyncCallback: null chunk"));
+        }
+        return;
+    }
+
+    const ChunkCoord x = chunk->x();
+    const ChunkCoord z = chunk->z();
+
+    if (!isOpen() || m_config.readonly || m_backend) {
+        // 未打开 / 只读 / 外来格式：外来后端 saveChunk 为只读空操作，等价于 ok。
+        // 与 saveChunk 的外来格式语义一致（外来格式不保存区块 section）。
+        Result<void> result =
+            (!isOpen()) ? Result<void>(Error(ErrorCode::InvalidState, "Storage not open")) : Result<void>::ok();
+        if (callback) {
+            callback(x, z, std::move(result));
+        }
+        return;
+    }
+
+    // 同步降级：无 taskManager（测试/独立模式）在当前线程直接执行。
+    if (!m_taskManager) {
+        auto result = saveChunk(*chunk, dimension);
+        if (callback) {
+            callback(x, z, std::move(result));
+        }
+        return;
+    }
+
+    // stage1（调用线程，主线程）：序列化区块为快照（vector<SectionData> + biomes + 方块实体副本）。
+    // 序列化读取 ChunkData，与 setBlockState 等 chunk 修改者均在主线程串行执行，无数据竞争。
+    // 快照脱离 ChunkData 后，后续 chunk 修改不影响已捕获的保存数据。
+    std::vector<SectionData> sectionSnapshot;
+    sectionSnapshot.reserve(world::CHUNK_SECTIONS);
+
+    std::vector<BiomeId> biomes;
+    const auto biomeBytes = chunk->getBiomes().serialize();
+    biomes.reserve(biomeBytes.size() / 2);
+    for (size_t i = 0; i + 1 < biomeBytes.size(); i += 2) {
+        const u16 low = static_cast<u16>(biomeBytes[i]);
+        const u16 high = static_cast<u16>(biomeBytes[i + 1]);
+        biomes.push_back(static_cast<BiomeId>(low | (high << 8)));
+    }
+
+    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk->getSection(sectionY);
+        if (!section) {
+            continue;
+        }
+        SectionKey key(x, z, static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
+        auto sectionDataResult = SectionCodec::fromChunkSection(*section, key, biomes);
+        if (sectionDataResult.failed()) {
+            if (callback) {
+                callback(x, z, sectionDataResult.error());
+            }
+            return;
+        }
+        sectionSnapshot.push_back(std::move(sectionDataResult.value()));
+    }
+
+    // 方块实体：在主线程同步保存。方块实体数量少（每区块通常 < 50），NBT 序列化 + 单条 RocksDB put
+    // 开销远小于 24 section 的 ZSTD+WriteBatch；同步保存避免在 ServerIO 读取 ChunkData 的方块实体表
+    // 与 setBlockState 修改方块实体表的数据竞争。
+    Result<void> blockEntityResult = Result<void>::ok();
+    if (m_blockEntityStorage) {
+        auto blockEntities = chunk->getAllBlockEntities();
+        for (const auto* blockEntity : blockEntities) {
+            auto beResult = m_blockEntityStorage->saveBlockEntity(*blockEntity, dimension);
+            if (beResult.failed()) {
+                blockEntityResult = beResult;
+                break;
+            }
+        }
+    }
+    if (blockEntityResult.failed()) {
+        if (callback) {
+            callback(x, z, blockEntityResult.error());
+        }
+        return;
+    }
+
+    // 注册进行中保存：后续对同一区块的 loadChunkAsync 在读盘前等待此 promise，
+    // 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
+    auto savePromise = _registerPendingChunkSave(x, z, dimension);
+
+    // stage2（ServerIO）：对快照执行 saveSectionSync × 24（ZSTD 压缩 + RocksDB WriteBatch）。
+    // 仅触及快照与 SectionManager，不触及 ChunkData，与主线程 chunk 修改无数据竞争。
+    auto& sectionManager = _sectionManager(dimension);
+    auto executor = [sectionSnapshot = std::move(sectionSnapshot),
+                        dimension,
+                        &sectionManager,
+                        x,
+                        z,
+                        cb = std::move(callback),
+                        savePromise](const std::atomic<bool>& abortSig) -> bool {
+        // savePromise 在任务结束（含取消）时 set_value，确保等待此保存的加载能继续；
+        // set_value 后 shared_future 变就绪，loadChunkAsync 的 _waitPendingChunkSave 返回。
+        auto fulfill = [&] {
+            try {
+                savePromise->set_value();
+            }
+            catch (...) {
+                // 重复 set_value 抛异常（不应发生），忽略。
+            }
+        };
+
+        if (abortSig.load(std::memory_order::acquire)) {
+            fulfill();
+            if (cb) {
+                cb(x, z, Error(ErrorCode::InvalidState, "Save chunk task cancelled"));
+            }
+            return false;
+        }
+
+        Result<void> result = Result<void>::ok();
+        for (auto& sectionData : sectionSnapshot) {
+            if (abortSig.load(std::memory_order::acquire)) {
+                result = Error(ErrorCode::InvalidState, "Save chunk task cancelled");
+                break;
+            }
+            SectionKey key(x, z, sectionData.key.sectionY, dimension);
+            auto saveResult = sectionManager.saveSectionSync(key, sectionData);
+            if (saveResult.failed()) {
+                result = saveResult;
+                break;
+            }
+        }
+
+        fulfill();
+        if (cb) {
+            cb(x, z, std::move(result));
+        }
+        return true;
+    };
+
+    SectionKey descKey{x, z, 0, dimension};
+    auto task = StorageTask::createSaveTask(descKey, false, std::move(executor));
+    m_taskManager->submit(std::move(task), priority, nullptr, std::make_shared<std::atomic<bool>>(false));
+}
+
+std::shared_ptr<std::promise<void>> SingleLevelStorageManager::_registerPendingChunkSave(
+    ChunkCoord x, ChunkCoord z, DimensionId dimension)
+{
+    auto promise = std::make_shared<std::promise<void>>();
+    std::shared_future<void> future = promise->get_future().share();
+    SectionKey descKey{x, z, 0, dimension};
+    {
+        std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
+        // 覆盖旧条目：ServerChunkManager 保证同一区块同一时刻仅有一个进行中卸载保存
+        // （unloadChunkSync stage1 检查 m_unloadSaveInProgress，stage3 才完成移除）。
+        m_pendingChunkSaves[descKey] = future;
+    }
+    return promise;
+}
+
+void SingleLevelStorageManager::_waitPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+{
+    std::shared_future<void> future;
+    {
+        SectionKey descKey{x, z, 0, dimension};
+        std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
+        auto it = m_pendingChunkSaves.find(descKey);
+        if (it == m_pendingChunkSaves.end()) {
+            return; // 无进行中保存，直接读盘
+        }
+        future = it->second; // 拷贝 shared_future（引用计数 +1），锁外等待
+    }
+    // 在 ServerIO 线程等待保存完成，不阻塞主线程。
+    // 保存任务的 savePromise->set_value() 使 future 就绪；future 拷贝脱离 map，
+    // 即使保存完成覆盖/移除 map 条目，本 future 仍可安全 wait（promise 共享状态存活至所有 future 释放）。
+    future.wait();
+}
+
+void SingleLevelStorageManager::_removePendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+{
+    SectionKey descKey{x, z, 0, dimension};
+    std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
+    m_pendingChunkSaves.erase(descKey);
+}
+
 void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     ChunkCoord z,
     DimensionId dimension,
@@ -748,7 +934,8 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     };
 
     // 路径 A：section 数据。提交 StorageTask 到 ServerIO，内部同步调 loadSectionsSync。
-    auto sectionExecutor = [state, keys = std::move(keys), checkComplete](const std::atomic<bool>& abortSig) {
+    auto sectionExecutor = [this, state, keys = std::move(keys), checkComplete, x, z, dimension](
+                               const std::atomic<bool>& abortSig) {
         if (abortSig.load(std::memory_order::acquire)) {
             {
                 std::lock_guard<std::mutex> lock(state->mutex);
@@ -758,6 +945,9 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
             checkComplete();
             return false;
         }
+        // 等待该区块进行中的卸载保存完成，确保读到保存后的新数据（对齐 Moonrise
+        // GenericDataLoadTask 等待 chunkDataUnload）。在 ServerIO 线程等待，不阻塞主线程。
+        _waitPendingChunkSave(x, z, dimension);
         auto secResult = state->sectionManager->loadSectionsSync(keys);
         {
             std::lock_guard<std::mutex> lock(state->mutex);

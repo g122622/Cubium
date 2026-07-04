@@ -57,6 +57,21 @@ public:
     /** 最大值 (4位最大值 = 15) */
     static constexpr u8 MAX_VALUE = 15;
 
+    /**
+     * @brief 每线程对象池容量上限。
+     *
+     * s_bytePool 为 thread_local，分配/释放在调用线程本地完成（无锁热路径）。但 SWMRNibbleArray
+     * 会随 ChunkData 跨线程交接（worker 生成、主线程卸载销毁）：销毁线程的池会积累来自其他线程的
+     * 缓冲区而无上界，导致单线程池无限膨胀（每个 ChunkData 析构释放 52 个 2KB 缓冲区，多区块转移
+     * 后目标线程池可达数 MB 且永不回收，直到线程退出）。
+     *
+     * 上限取一个既能覆盖单区块光照工作集（LIGHT_SECTIONS=52）又限制病态增长的值：保留 64 个
+     * 2KB 缓冲区（128KB），超出直接归还堆。原分配线程的池因缓冲区被转移走而变小，会重新向堆申请，
+     * 这是 thread_local 池跨线程交接的固有代价（无法把缓冲区归还到原线程），但容量上限把最坏情况
+     * 的每线程驻留控制在 128KB。
+     */
+    static constexpr size_t POOL_CAPACITY_PER_THREAD = 64;
+
     /** 状态枚举 */
     enum class State : u8 {
         Null = 0,   // 不存在

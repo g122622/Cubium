@@ -90,6 +90,8 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 
         // 重新计算该区块的最优级别：
         // min(自身源级别, 八邻居级别 + 1)
+        // getSourceLevel 与邻居传播结果均已被 clamp 至 [0, MAX_LEVEL]（propagatedLevel 对
+        // MAX_LEVEL 邻居取 MAX_LEVEL 而非 +1，避免溢出），故 recomputedLevel ≤ MAX_LEVEL 恒成立。
         i32 recomputedLevel = getSourceLevel(x, z);
 
         for (i32 dz = -1; dz <= 1; ++dz) {
@@ -103,14 +105,12 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
             }
         }
 
-        if (recomputedLevel > MAX_LEVEL) {
-            recomputedLevel = MAX_LEVEL;
-        }
-
         if (recomputedLevel == currentLevel) {
             continue;
         }
 
+        // 到达 MAX_LEVEL（无源且无更近邻居）的条目从 m_levels 剪枝，保持映射有界：
+        // 未加载区块统一由 getLevel 返回 MAX_LEVEL，无需存储。
         if (recomputedLevel >= MAX_LEVEL) {
             m_levels.erase(key);
         } else {
@@ -120,7 +120,7 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
         onLevelChanged(x, z, currentLevel, recomputedLevel);
 
         // 当前节点级别变化后，邻居的最优值可能也会变化。
-        _propagateToNeighbors(x, z, recomputedLevel, recomputedLevel < currentLevel);
+        _propagateToNeighbors(x, z);
     }
 
     return processed;
@@ -174,27 +174,16 @@ void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel
     }
 }
 
-void ChunkDistanceGraph::_propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
+void ChunkDistanceGraph::_propagateToNeighbors(ChunkCoord x, ChunkCoord z)
 {
-    // 八方向传播（棋盘距离/Chebyshev），与 MC 一致
+    // 八方向传播（棋盘距离/Chebyshev），与 MC 一致。
+    // 无论升/降级，邻居的最优级别都可能依赖当前节点，统一触发重计算。
     for (i32 dz = -1; dz <= 1; ++dz) {
         for (i32 dx = -1; dx <= 1; ++dx) {
             if (dx == 0 && dz == 0) continue;
-
-            ChunkCoord nx = x + dx;
-            ChunkCoord nz = z + dz;
-
-            // 无论升/降级，邻居都可能依赖当前节点，统一触发重计算。
-            _enqueueUpdate(nx, nz);
+            _enqueueUpdate(x + dx, z + dz);
         }
     }
-
-    // 当前节点级别变化后，邻居的最优值可能也会变化。
-    // isDecreasing 和 propagatedLevel 参数保留供后续优化：
-    // 当 isDecreasing=true 时，只需传播到当前级别 +1 以上的邻居。
-    // 当 isDecreasing=false 时，只需传播到当前级别以下的邻居。
-    (void)level;
-    (void)isDecreasing;
 }
 
 void ChunkDistanceGraph::_enqueueUpdate(ChunkCoord x, ChunkCoord z)

@@ -1516,7 +1516,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkLoadTicketManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/gen/ChunkStatus.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkPrimer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/IChunk.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/Heightmap.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         # 存储系统
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/GlobalStorageManager.cpp

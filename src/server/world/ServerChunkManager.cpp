@@ -417,6 +417,11 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
             {
                 std::lock_guard<std::mutex> lock(self->m_pendingLoadCompletesMutex);
                 self->m_pendingLoadCompletes.push_back(std::move(item));
+                if (self->m_pendingLoadCompletes.size() > PENDING_LOAD_COMPLETES_WARN_THRESHOLD) {
+                    spdlog::warn("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
+                        self->m_pendingLoadCompletes.size(),
+                        PENDING_LOAD_COMPLETES_WARN_THRESHOLD);
+                }
             }
         },
         abortSignal,
@@ -977,27 +982,34 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
     }
 }
 
-void ServerChunkManager::_saveChunkSectionsSync(const ChunkData& chunk)
-{
-    if (!m_world || !m_world->isStorageOpen()) {
-        return;
-    }
-
-    auto saveResult = m_world->storage().saveChunk(chunk, m_world->dimension());
-    if (saveResult.failed()) {
-        spdlog::error("Save chunk failed ({}, {}): {}", chunk.x(), chunk.z(), saveResult.error().message());
-    }
-}
-
 // ============================================================================
 // 卸载
 // ============================================================================
+
+void ServerChunkManager::_notifyChunkUnload(ChunkCoord x, ChunkCoord z)
+{
+    if (m_world) {
+        m_world->onChunkUnloading(x, z);
+    }
+    if (m_chunkSendManager) {
+        m_chunkSendManager->onChunkPreUnload(x, z);
+    }
+    if (m_chunkUnloadedCallback) {
+        m_chunkUnloadedCallback(x, z);
+    }
+}
 
 void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
 
-    if (m_world && m_world->isStorageOpen()) {
+    // stage1（对齐 Moonrise unloadStage1）：捕获脏区块快照并提交异步保存，不阻塞主 tick。
+    // 保存完成（stage2，ServerIO）后回调入队 m_pendingUnloadFinishes，由 stage3 完成卸载收尾。
+    // 非脏区块（无存储或未修改）无需异步保存，直接进入 stage3 收尾。
+    std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder = _findLifecycleManagerShared(x, z);
+
+    bool asyncSaveStarted = false;
+    if (m_world && m_world->isStorageOpen() && lifecycleHolder != nullptr) {
         std::shared_ptr<ChunkData> chunkToSave;
         {
             std::lock_guard<std::mutex> lock(m_chunksMutex);
@@ -1008,91 +1020,119 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         }
 
         if (chunkToSave) {
-            _saveChunkSectionsSync(*chunkToSave);
+            // 标记异步卸载保存进行中，使 _checkChunkUnloading 跳过本区块，避免重复发起保存。
+            // 持有 m_pendingUnloadFinishesMutex 与现有注释一致（m_unloadSaveInProgress 共用此锁）。
+            {
+                std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+                m_unloadSaveInProgress.insert(key);
+            }
+
+            // 立即清除脏标记：保存快照已捕获（saveChunkAsyncCallback 在主线程序列化），后续修改会重新置脏
+            // 并在下次卸载时重新保存。避免 stage3 完成前重复保存。
             chunkToSave->setDirty(false);
+
+            const auto dimension = m_world->dimension();
+            auto* self = this;
+            auto holderCopy = lifecycleHolder;
+            // shared_ptr<const ChunkData> 共享所有权，避免 600KB 深拷贝；保存期间区块数据不可变
+            // （卸载候选 isSafeToUnload，且序列化在主线程与 setBlockState 串行无数据竞争）。
+            std::shared_ptr<const ChunkData> constChunk = std::move(chunkToSave);
+            m_world->storage().saveChunkAsyncCallback(std::move(constChunk),
+                dimension,
+                [self, x, z, dimension, holderCopy = std::move(holderCopy)](
+                    ChunkCoord /*cbX*/, ChunkCoord /*cbZ*/, mc::Result<void> result) {
+                    // shutdown 后不再入队：ServerChunkManager 可能已析构或正在析构。
+                    if (self->m_shuttingDown.load(std::memory_order::acquire)) {
+                        return;
+                    }
+                    if (result.failed()) {
+                        spdlog::error("Async save chunk failed ({}, {}): {}", x, z, result.error().message());
+                    }
+                    PendingUnloadFinish item;
+                    item.x = x;
+                    item.z = z;
+                    item.dimension = dimension;
+                    item.lifecycleHolder = std::move(holderCopy);
+                    {
+                        std::lock_guard<std::mutex> lock(self->m_pendingUnloadFinishesMutex);
+                        self->m_pendingUnloadFinishes.push_back(std::move(item));
+                    }
+                });
+            asyncSaveStarted = true;
         }
     }
 
-    if (m_world) {
-        m_world->onChunkUnloading(x, z);
+    if (asyncSaveStarted) {
+        // stage3 由 _drainPendingUnloadFinishes 在保存完成回调入队后执行。
+        return;
     }
 
-    if (m_chunkSendManager) {
-        m_chunkSendManager->onChunkPreUnload(x, z);
-    }
-    if (m_chunkUnloadedCallback) {
-        m_chunkUnloadedCallback(x, z);
+    // 非脏路径：直接进入 stage3 收尾（无异步保存等待）。
+    _finalizeUnloadAfterSave(x, z, m_world ? m_world->dimension() : mc::DimensionId{}, std::move(lifecycleHolder));
+}
+
+bool ServerChunkManager::_finalizeUnloadAfterSave(
+    ChunkCoord x, ChunkCoord z, mc::DimensionId dimension, std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder)
+{
+    const u64 key = posToKey(x, z);
+
+    // 清理存储层进行中保存追踪条目（保存已完成，对齐 Moonrise unloadStage3 清空 chunkDataUnload）。
+    if (m_world && m_world->isStorageOpen()) {
+        m_world->storage()._removePendingChunkSave(x, z, dimension);
     }
 
-    // 持有调度区域锁（覆盖 2 * maxAccessRadius，与 onChunkGenComplete/schedule 一致）后移除 holder。
-    // 这把锁与 worker 线程的 onChunkGenComplete/schedule/checkNeighbour 互斥：
-    //   - worker 持锁期间修改依赖图（m_waitingNeighbours/m_blockingNeighbours/m_generationTask/
-    //     m_neighboursUsingThisChunk），isSafeToUnload() 必然返回 false（依赖图非空或有进行中任务），
-    //     unloadChunkSync 不会在此窗口销毁 holder。
-    //   - 若 worker 刚 clearGenerationTask 且 notifyWaitingNeighbours 未完成，m_waitingNeighbours 非空，
-    //     isSafeToUnload() 仍为 false。
-    //   - 锁保证 unloadChunkSync 读取 isSafeToUnload 与 worker 的依赖图修改不会交错。
-    // 若 isSafeToUnload() 为 false（仍有进行中生成或邻居引用），先 cancelGeneration 清理依赖图
-    // （取消任务、释放邻居引用、解除双向依赖、通知等待者），使 holder 可安全卸载。
-    std::shared_ptr<SingleChunkLifecycleManager> lifecycleManager;
-    {
-        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
-        auto it = m_lifecycleManagers.find(key);
-        if (it != m_lifecycleManagers.end()) {
-            lifecycleManager = it->second;
-        }
+    // 复检是否被重新请求（对齐 Moonrise unloadStage3 复检 currentChunk/entityChunk/poiChunk）：
+    // 异步保存期间票据可能返回（玩家重新靠近），此时中止卸载，保留区块与 holder。
+    // 区块数据已在 m_chunks（异步保存未移除它），重新加载经 _waitPendingChunkSave 读到保存后数据。
+    if (lifecycleHolder != nullptr && lifecycleHolder->shouldLoad()) {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        m_unloadSaveInProgress.erase(key);
+        return true; // 中止卸载，条目丢弃
     }
+
+    std::shared_ptr<SingleChunkLifecycleManager> lifecycleManager = std::move(lifecycleHolder);
 
     if (lifecycleManager == nullptr) {
-        // holder 已不存在（可能被并发 unload 或从未创建），仅清理 m_chunks
+        // holder 已不存在（可能被并发 unload 或从未创建），仅清理 m_chunks。
+        // 通知客户端卸载、移除实体（与有 holder 路径一致：仅在确定移除时触发）。
+        _notifyChunkUnload(x, z);
         std::lock_guard<std::mutex> lock(m_chunksMutex);
         m_chunks.erase(key);
-        // 清理后处理去重标记，使重新加载可重新执行 onChunkLoaded/callback/postProcess
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_postProcessedChunks.erase(key);
-        return;
+        std::lock_guard<std::mutex> uLock(m_pendingUnloadFinishesMutex);
+        m_unloadSaveInProgress.erase(key);
+        return true;
     }
 
     if (m_taskScheduler != nullptr) {
         const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
         auto schedLock = m_taskScheduler->schedulingLockArea().lock(x, z, lockRadius);
 
-        // cancelGeneration 清理依赖图：取消生成任务（abortSignal 由 cancelActiveWork 设置）、
-        // 补偿释放邻居引用计数、解除双向依赖（m_blockingNeighbours/m_waitingNeighbours）、
-        // 重新调度被解除阻塞的邻居、通知请求等待者失败。
-        // 清理后 isSafeToUnload 应返回 true（依赖图空、无生成任务）。
-        // 唯一例外：m_neighboursUsingThisChunk > 0（其他 holder 的任务正在使用本 holder 作为邻居），
-        // 此时跳过卸载，下个 tick 重试（isSafeToUnload 的 neighbours_generating 检查）。
         m_taskScheduler->cancelGeneration(*lifecycleManager);
         lifecycleManager->cancelActiveWork();
 
         if (!lifecycleManager->isSafeToUnload()) {
-            // 仍有邻居引用（其他 holder 的任务正在使用本 holder）：跳过本次卸载，下个 tick 重试。
-            // cancelGeneration 已清理依赖图与生成任务，下个 tick 的 cancelGeneration 多为空操作。
-            // holder 保留在 m_lifecycleManagers 中，shared_ptr 在此作用域释放。
-            return;
+            // 仍有邻居引用（其他 holder 的任务正在使用本 holder）：保留条目，下一 tick stage3 重试。
+            // 区块已保存（落盘），holder 与 m_chunks 保留，下个 tick 重试时不再重复保存
+            // （_finalizeUnloadAfterSave 不触发保存，仅完成移除）。m_unloadSaveInProgress 保留以阻止
+            // _checkChunkUnloading 重复选中。未触发卸载通知，重试时不会重复通知客户端/移除实体。
+            return false;
         }
 
-        // 持锁下安全：从 m_lifecycleManagers 移除（释放 map 的引用），lifecycleManager shared_ptr 仍持有。
-        // 注意：cancelGeneration 可能已重新调度被解除阻塞的邻居，邻居的 checkNeighbour→getOrCreateHolder
-        // 可能重建本 holder（若邻居仍需要它）。此处移除的是"旧的、已取消的"holder 实例；
-        // 若被重建，getOrCreateHolder 会创建新实例，与旧实例无关。
         {
             std::lock_guard<std::mutex> lmLock(m_lifecycleManagersMutex);
-            // 重新检查：cancelGeneration 重新调度的邻居可能已通过 getOrCreateHolder 重建了同坐标 holder。
-            // 若已重建（map 中的实例不再是 lifecycleManager），只移除与 lifecycleManager 匹配的实例。
             auto it = m_lifecycleManagers.find(key);
             if (it != m_lifecycleManagers.end() && it->second.get() == lifecycleManager.get()) {
                 m_lifecycleManagers.erase(it);
             }
         }
         _failWaiters(lifecycleManager->takeAllWaiters());
-        // schedLock 释放时释放调度锁
     } else {
         // 无调度器（独立/测试模式）：直接检查并移除
         lifecycleManager->cancelActiveWork();
         if (!lifecycleManager->isSafeToUnload()) {
-            return;
+            return false;
         }
         {
             std::lock_guard<std::mutex> lmLock(m_lifecycleManagersMutex);
@@ -1104,25 +1144,18 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         _failWaiters(lifecycleManager->takeAllWaiters());
     }
 
-    // lifecycleManager（shared_ptr）在此作用域结束时释放。
-    // 若仍有 ChunkProgressionTask 持有该 holder 的 shared_ptr（worker 线程正在执行 onChunkGenComplete），
-    // holder 不会被销毁，直到任务完成回调释放 shared_ptr。这消除了 worker 线程访问已释放 holder 的
-    // use-after-free 竞态（unloadChunkSync 与 onChunkGenComplete 并发）。
+    // 卸载通知（实体保存+移除、卸载发送、callback）。在 isSafeToUnload 通过、确定移除后触发：
+    // 确保保存落盘后再通知客户端卸载、移除实体，且每次卸载仅触发一次（重试路径不触发）。
+    _notifyChunkUnload(x, z);
 
     {
         std::lock_guard<std::mutex> lock(m_chunksMutex);
         m_chunks.erase(key);
     }
-
-    // 清理后处理去重标记，使重新加载可重新执行 onChunkLoaded/callback/postProcess
     {
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_postProcessedChunks.erase(key);
     }
-
-    // 从在途加载的 attachedWaiters 移除已卸载的 SCLM（若作为附加等待者存在）。
-    // owner 条目不移除：owner 的加载结果仍会到达 _onChunkLoadComplete（ownerAlive=false 时
-    // 跳过 owner 推进、扇出 attachedWaiters 后由 wasOwner 移除条目）。
     {
         std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
         auto it = m_pendingLoadTasks.find(key);
@@ -1134,6 +1167,45 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
                                   return w.lifecycle.get() == lifecycleManager.get();
                               }),
                 waiters.end());
+        }
+    }
+    {
+        std::lock_guard<std::mutex> uLock(m_pendingUnloadFinishesMutex);
+        m_unloadSaveInProgress.erase(key);
+    }
+    return true;
+}
+
+void ServerChunkManager::_drainPendingUnloadFinishes()
+{
+    std::vector<PendingUnloadFinish> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        pending.swap(m_pendingUnloadFinishes);
+    }
+
+    std::vector<PendingUnloadFinish> retry;
+    for (auto& item : pending) {
+        // 持有 holder 副本：_finalizeUnloadAfterSave 返回 false（重试）时 item.lifecycleHolder
+        // 已被 move 置空，需用 holderForRetry 重新填入重试条目。
+        std::shared_ptr<SingleChunkLifecycleManager> holderForRetry = item.lifecycleHolder;
+        const bool done = _finalizeUnloadAfterSave(item.x, item.z, item.dimension, std::move(item.lifecycleHolder));
+        if (!done) {
+            // isSafeToUnload=false：保留至下一 tick 重试。holder 仍在 m_lifecycleManagers（未移除）。
+            PendingUnloadFinish retryItem;
+            retryItem.x = item.x;
+            retryItem.z = item.z;
+            retryItem.dimension = item.dimension;
+            retryItem.lifecycleHolder = std::move(holderForRetry);
+            retry.push_back(std::move(retryItem));
+        }
+    }
+
+    if (!retry.empty()) {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        // 重试条目插回队尾，下一 tick 继续处理。
+        for (auto& item : retry) {
+            m_pendingUnloadFinishes.push_back(std::move(item));
         }
     }
 }
@@ -1151,10 +1223,24 @@ void ServerChunkManager::_checkChunkUnloading()
     const bool enforceSoftCap = m_maxLoadedChunks > 0;
     size_t loadedCount = 0;
 
+    // 复制一份进行中的卸载保存集合，避免在持锁遍历 m_lifecycleManagers 时
+    // 再去加 m_pendingUnloadFinishesMutex（与 m_lifecycleManagersMutex 无固定次序，防死锁）。
+    std::unordered_set<u64> saveInProgress;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        saveInProgress = m_unloadSaveInProgress;
+    }
+
     {
         std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
         for (const auto& [key, lifecycleManager] : m_lifecycleManagers) {
             if (!lifecycleManager) {
+                continue;
+            }
+
+            // 已有异步卸载保存进行中（stage1 已发起、stage3 未完成）：跳过。
+            // 由 _drainPendingUnloadFinishes 负责其 stage3 收尾，避免重复发起保存。
+            if (saveInProgress.count(key) > 0) {
                 continue;
             }
 
@@ -1246,6 +1332,11 @@ void ServerChunkManager::tick()
     // （ServerTickList、EntityManager、setBlockState、POI、光照），必须在主线程执行。
     _drainPendingPostProcess();
 
+    // 出队并执行异步卸载保存完成回调（ServerIO 线程入队的 stage3 收尾）。
+    // 必须在 _checkChunkUnloading 之前：先消化进行中的卸载收尾，避免与新发起的卸载相互干扰，
+    // 也确保 shouldLoad() 复检（玩家重新靠近）能及时中止卸载。
+    _drainPendingUnloadFinishes();
+
     // 增加有玩家附近的区块的居住时间（每 tick +1）
     _incrementInhabitedTime();
 
@@ -1278,6 +1369,11 @@ void ServerChunkManager::_enqueuePostProcess(
     {
         std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
         m_pendingPostProcess.push_back(std::move(item));
+        if (m_pendingPostProcess.size() > PENDING_POST_PROCESS_WARN_THRESHOLD) {
+            spdlog::warn("Pending post-process backlog reached {} (threshold {}); main tick may be lagging",
+                m_pendingPostProcess.size(),
+                PENDING_POST_PROCESS_WARN_THRESHOLD);
+        }
     }
 }
 

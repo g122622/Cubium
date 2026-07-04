@@ -95,6 +95,12 @@ namespace {
     return {};
 }
 
+// 反序列化解压暂存缓冲区（thread_local 复用）。
+// decompressInto 仅在 SectionData::deserialize 内部调用，结果在同一函数内立即 memcpy 到
+// result.blockStates 后即弃用，不会跨另一次 decompress 调用存活，故 thread_local 安全。
+// 复用避免每区块 24 次 16KB 堆分配（ServerCompute 反序列化热路径）。
+thread_local std::vector<u8> g_decompressScratch;
+
 } // namespace
 
 // ============================================================================
@@ -345,19 +351,20 @@ Result<SectionData> SectionData::deserialize(const u8* data, size_t size)
             return Error(ErrorCode::InvalidData, "Section data truncated at compressed data");
         }
 
-        // 解压缩
-        auto decompressResult =
-            SectionCodec::decompress(data + offset, compressedSize, SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE);
+        // 解压缩到 thread_local 暂存缓冲区（复用，避免 16KB 堆分配）
+        if (g_decompressScratch.size() < SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE) {
+            g_decompressScratch.resize(SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE);
+        }
+        auto decompressResult = SectionCodec::decompressInto(
+            data + offset, compressedSize, g_decompressScratch.data(), SectionCodec::UNCOMPRESSED_BLOCK_STATES_SIZE);
 
         if (!decompressResult.success()) {
             return decompressResult.error();
         }
 
-        const auto& decompressed = decompressResult.value();
-
         // 复制方块状态
         result.blockStates.resize(VOLUME);
-        std::memcpy(result.blockStates.data(), decompressed.data(), VOLUME * sizeof(u32));
+        std::memcpy(result.blockStates.data(), g_decompressScratch.data(), VOLUME * sizeof(u32));
 
         offset += compressedSize;
     } else {
@@ -576,15 +583,12 @@ Result<std::vector<u8>> SectionCodec::compress(const u8* data, size_t size, i32 
     return compressed;
 }
 
-Result<std::vector<u8>> SectionCodec::decompress(const u8* compressedData, size_t compressedSize, size_t expectedSize)
+Result<void> SectionCodec::decompressInto(const u8* compressedData, size_t compressedSize, u8* out, size_t expectedSize)
 {
-    // TODO rocksdb 已经内置压缩，考虑未来通过宏禁用掉这个函数。
     MC_TRACE_EVENT(
-        "storage.db", "SectionCodec::decompress", "compressedSize", compressedSize, "expectedSize", expectedSize);
+        "storage.db", "SectionCodec::decompressInto", "compressedSize", compressedSize, "expectedSize", expectedSize);
 
-    std::vector<u8> decompressed(expectedSize);
-
-    size_t result = ZSTD_decompress(decompressed.data(), decompressed.size(), compressedData, compressedSize);
+    size_t result = ZSTD_decompress(out, expectedSize, compressedData, compressedSize);
 
     if (ZSTD_isError(result)) {
         return Error(
@@ -596,7 +600,7 @@ Result<std::vector<u8>> SectionCodec::decompress(const u8* compressedData, size_
             fmt::format("Decompressed size mismatch: expected {}, got {}", expectedSize, result));
     }
 
-    return decompressed;
+    return Result<void>::ok();
 }
 
 } // namespace mc::world::storage
