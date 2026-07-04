@@ -30,17 +30,26 @@ namespace nbt_helper = mc::entity::serialization::nbt_helper;
 
 i32 MapIdTracker::getNextId() noexcept
 {
+    // 对齐 MC 1.16.5 MapIdTracker#getNextId：返回 usedIds["map"]+1 并写入。
+    // 本项目用 m_nextMapId 表示“下一个待分配的ID”（等价于原版 usedIds["map"]+1），
+    // 因此先返回再自增即可。
     return m_nextMapId++;
 }
 
 void MapIdTracker::readFromNbt(const nbt::tags::compound_tag& tag)
 {
+    // 原版磁盘格式：tag["map"] 存储的是“最后已分配的ID”（默认 -1，见
+    // MC 1.16.5 MapIdTracker.usedIds.defaultReturnValue(-1) /
+    // MC 1.21.11 MapIndex CODEC optionalFieldOf("map", -1)）。
+    // 转换为本项目的 m_nextMapId（下一个待分配ID）需 +1。
     m_nextMapId = nbt_helper::tryGetInt(tag, "map").value_or(-1) + 1;
 }
 
 void MapIdTracker::writeToNbt(nbt::tags::compound_tag& tag) const
 {
-    tag.put("map", m_nextMapId);
+    // 写入“最后已分配的ID”以与原版 idcounts.dat 格式兼容：
+    // m_nextMapId（下一个待分配ID）- 1 = 最后已分配的ID。
+    tag.put("map", m_nextMapId - 1);
 }
 
 } // namespace mc::world::map
