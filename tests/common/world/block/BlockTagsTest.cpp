@@ -1483,3 +1483,52 @@ TEST_F(BlockTagsTest, BedsTagId)
 {
     EXPECT_EQ(BlockTags::BEDS().getId(), ResourceLocation("minecraft", "beds"));
 }
+
+// ============================================================================
+// BEE_ATTRACTIVE 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, BeeAttractiveTagId)
+{
+    EXPECT_EQ(BlockTags::BEE_ATTRACTIVE().getId(), ResourceLocation("minecraft", "bee_attractive"));
+}
+
+TEST_F(BlockTagsTest, BeeAttractiveContainsOpenEyeblossom)
+{
+    // 开放眼眸花吸引蜜蜂
+    Block* openEyeblossom = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "open_eyeblossom"));
+    ASSERT_NE(openEyeblossom, nullptr);
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(*openEyeblossom));
+}
+
+TEST_F(BlockTagsTest, BeeAttractiveDoesNotContainClosedEyeblossom)
+{
+    // 闭合眼眸花不吸引蜜蜂（与 MC 1.21.11 数据包一致）
+    Block* closedEyeblossom = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "closed_eyeblossom"));
+    ASSERT_NE(closedEyeblossom, nullptr);
+    EXPECT_FALSE(BlockTags::BEE_ATTRACTIVE().contains(*closedEyeblossom));
+}
+
+TEST_F(BlockTagsTest, BeeAttractiveContainsVanillaFlowers)
+{
+    // 验证 BEE_ATTRACTIVE 标签包含原版花朵（蒲公英、虞美人、向日葵等）
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "dandelion")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "poppy")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "blue_orchid")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "allium")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "azure_bluet")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "sunflower")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "lilac")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "wither_rose")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "torchflower")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "chorus_flower")));
+    EXPECT_TRUE(BlockTags::BEE_ATTRACTIVE().contains(ResourceLocation("minecraft", "spore_blossom")));
+}
+
+TEST_F(BlockTagsTest, BeeAttractiveDoesNotContainNonFlowerBlocks)
+{
+    // 非花朵方块不应在 BEE_ATTRACTIVE 标签中
+    EXPECT_FALSE(BlockTags::BEE_ATTRACTIVE().contains(*VanillaBlocks::STONE));
+    EXPECT_FALSE(BlockTags::BEE_ATTRACTIVE().contains(*VanillaBlocks::GRASS_BLOCK));
+    EXPECT_FALSE(BlockTags::BEE_ATTRACTIVE().contains(*VanillaBlocks::DIRT));
+}

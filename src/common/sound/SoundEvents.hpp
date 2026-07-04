@@ -1713,6 +1713,21 @@ extern const ResourceLocation ENCHANT_THORNS_HIT;
 extern const ResourceLocation PARTICLE_SOUL_ESCAPE;
 
 // ============================================================================
+// 眼眸花音效 (BLOCK_EYEBLOSSOM_)
+// ============================================================================
+
+/// 眼眸花开放长音（昼夜节律触发）
+extern const ResourceLocation BLOCK_EYEBLOSSOM_OPEN_LONG;
+/// 眼眸花闭合长音（昼夜节律触发）
+extern const ResourceLocation BLOCK_EYEBLOSSOM_CLOSE_LONG;
+/// 眼眸花开放短音（连锁触发）
+extern const ResourceLocation BLOCK_EYEBLOSSOM_OPEN;
+/// 眼眸花闭合短音（连锁触发）
+extern const ResourceLocation BLOCK_EYEBLOSSOM_CLOSE;
+/// 眼眸花环境空闲音
+extern const ResourceLocation BLOCK_EYEBLOSSOM_IDLE;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 

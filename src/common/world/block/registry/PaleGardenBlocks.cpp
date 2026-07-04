@@ -309,7 +309,7 @@ void registerPaleGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::EYEBLOSSOM),
-            true,
+            blocks::EyeblossomBlock::Type::Open,
             static_cast<u32>(entity::effect::EffectType::Blindness),
             11);
 
@@ -322,7 +322,7 @@ void registerPaleGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::EYEBLOSSOM),
-            false,
+            blocks::EyeblossomBlock::Type::Closed,
             static_cast<u32>(entity::effect::EffectType::Nausea),
             7);
 

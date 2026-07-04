@@ -2291,6 +2291,14 @@ void ServerWorld::addVibrationParticle(const Vector3& pos, const Vector3d& targe
     }
 }
 
+void ServerWorld::addTrailParticle(const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks)
+{
+    // 服务端不生成粒子，而是广播轨迹粒子给附近玩家
+    if (m_onBroadcastTrailParticle) {
+        m_onBroadcastTrailParticle(pos, targetPosition, color, durationInTicks);
+    }
+}
+
 void ServerWorld::addEntityEffectParticle(
     const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color)
 {

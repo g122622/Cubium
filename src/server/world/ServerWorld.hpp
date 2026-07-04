@@ -533,6 +533,21 @@ public:
     }
 
     /**
+     * @brief 轨迹粒子广播回调类型
+     *
+     * 当服务端需要广播轨迹粒子（TrailParticle）给玩家时调用。
+     * 轨迹粒子需要额外的目标位置、ARGB 颜色和飞行持续时间。
+     * 参数：粒子起始位置、目标位置、ARGB 颜色、飞行 tick 数
+     */
+    using TrailParticleBroadcastCallback =
+        std::function<void(const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks)>;
+
+    void setOnBroadcastTrailParticle(TrailParticleBroadcastCallback callback)
+    {
+        m_onBroadcastTrailParticle = std::move(callback);
+    }
+
+    /**
      * @brief 实体效果粒子广播回调类型
      *
      * 当服务端需要广播带颜色的 EntityEffect 粒子给玩家时调用。
@@ -692,6 +707,22 @@ public:
      * @param arrivalInTicks 到达目标的 tick 数
      */
     void addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+
+    /**
+     * @brief 添加轨迹粒子（带目标位置、颜色和持续时间）
+     *
+     * 轨迹粒子从 pos 飞向 targetPosition，飞行持续 durationInTicks 个 tick。
+     * 与普通 addParticle 不同，轨迹粒子需要携带目标位置/颜色/持续时间信息。
+     * 主要用于眼眸花状态切换的转换粒子效果。
+     *
+     * 重写 IWorld::addTrailParticle，通过回调将粒子广播给附近玩家。
+     *
+     * @param pos 粒子起始位置
+     * @param targetPosition 粒子飞向的目标位置
+     * @param color 粒子颜色（ARGB 格式）
+     * @param durationInTicks 飞行持续时间（tick 数）
+     */
+    void addTrailParticle(const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks) override;
 
     /**
      * @brief 添加带颜色的实体效果粒子
@@ -1323,6 +1354,7 @@ private:
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
     VibrationParticleBroadcastCallback m_onBroadcastVibrationParticle;
+    TrailParticleBroadcastCallback m_onBroadcastTrailParticle;
     EntityEffectParticleBroadcastCallback m_onBroadcastEntityEffectParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
