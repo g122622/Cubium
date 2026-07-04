@@ -74,7 +74,7 @@ PumpkinBlock::PumpkinBlock(
 // 南瓜雕刻功能
 // ============================================================================
 
-ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
+BlockActionResult PumpkinBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

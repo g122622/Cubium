@@ -206,7 +206,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSucce
     // 执行交互
     const auto& state = stonecutter_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -229,7 +229,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_ServerSide_OpensContain
     // 执行交互
     const auto& state = stonecutter_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 服务端应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -255,7 +255,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     // 使用副手执行交互
     const auto& state = stonecutter_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::OffHand, hit);
+    auto result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::OffHand, hit);
 
     // 副手交互应与主手行为一致
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -291,7 +291,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_OpenContainerFails_Retu
     // 执行交互
     const auto& state = stonecutter_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = stonecutter_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // openContainer 返回 false 时应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);

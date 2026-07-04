@@ -253,7 +253,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    ActionResultType result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 }
@@ -351,7 +351,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ClientSide_NoDropNoSound
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(30.5f, 64.5f, 30.5f), pos, Direction::Up, 1.0f);
-    ActionResultType result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     // 客户端仍应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -373,7 +373,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(40.5f, 64.5f, 40.5f), pos, Direction::Up, 1.0f);
-    ActionResultType result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
 
@@ -444,7 +444,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    ActionResultType result = m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 }
@@ -520,7 +520,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(40.5f, 64.5f, 40.5f), pos, Direction::Up, 1.0f);
-    ActionResultType result = m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
     EXPECT_EQ(world.spawnedEntityCount(), 0u);

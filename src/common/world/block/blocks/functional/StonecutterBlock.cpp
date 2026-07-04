@@ -91,7 +91,7 @@ const CollisionShape& StonecutterBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-ActionResultType StonecutterBlock::onBlockActivated(const BlockState& state,
+BlockActionResult StonecutterBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

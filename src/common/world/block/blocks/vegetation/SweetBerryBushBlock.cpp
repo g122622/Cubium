@@ -201,7 +201,7 @@ void SweetBerryBushBlock::onEntityCollision(
     }
 }
 
-ActionResultType SweetBerryBushBlock::onBlockActivated(const BlockState& state,
+BlockActionResult SweetBerryBushBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

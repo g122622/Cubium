@@ -24,6 +24,7 @@
 #pragma once
 
 #include "HorizontalBlock.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
@@ -233,7 +234,7 @@ public:
      * @param hit 射线追踪结果
      * @return 交互结果
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

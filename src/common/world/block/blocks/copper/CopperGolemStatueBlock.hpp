@@ -133,7 +133,7 @@ public:
      * 持有斧头时返回 PASS（委托给 WeatheringCopperGolemStatueBlock 处理刮削/生成逻辑）；
      * 否则循环切换 POSE 并播放铜傀儡变雕像音效。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

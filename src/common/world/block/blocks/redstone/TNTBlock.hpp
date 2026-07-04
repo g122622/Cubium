@@ -72,7 +72,7 @@ public:
      * 如果 tntExplodes 游戏规则为 false，则显示 action bar 消息。
      * 对应 MC Java 的 TntBlock.useItemOn()。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

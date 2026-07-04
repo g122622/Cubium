@@ -121,7 +121,7 @@ public:
      *
      * 右键点击中继器可以在 1-4 档延迟之间循环切换。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

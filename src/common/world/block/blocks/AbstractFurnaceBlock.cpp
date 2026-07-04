@@ -70,7 +70,7 @@ BlockState AbstractFurnaceBlock::getStateForPlacement(BlockItemUseContext& conte
 
 // ========== 交互 ==========
 
-ActionResultType AbstractFurnaceBlock::onBlockActivated(const BlockState& state,
+BlockActionResult AbstractFurnaceBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

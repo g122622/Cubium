@@ -134,7 +134,7 @@ const BlockState& BeehiveBlock::mirror(const BlockState& state, Mirror mirror) c
 // 交互
 // ============================================================================
 
-ActionResultType BeehiveBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BeehiveBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

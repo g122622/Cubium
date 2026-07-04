@@ -176,7 +176,7 @@ std::unique_ptr<BlockEntity> ChestBlock::createBlockEntity(const BlockPos& pos)
 
 // ========== 交互 ==========
 
-ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
+BlockActionResult ChestBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -277,7 +277,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass)
 
     // 执行交互（空手）
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -307,7 +307,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithNonShearsItem_ReturnsPass)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -332,7 +332,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -371,7 +371,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -417,7 +417,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -453,7 +453,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -486,7 +486,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -520,7 +520,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_BottomClick_UsesPlayerFacing)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -562,7 +562,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass)
 
     // 执行交互
     const auto& state = pumpkinWithoutCarved->defaultState();
-    ActionResultType result = pumpkinWithoutCarved->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkinWithoutCarved->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     // 应该返回 Pass（因为没有雕刻南瓜）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -592,7 +592,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works)
 
     // 使用副手交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::OffHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::OffHand, hit);
 
     // 应该成功
     EXPECT_EQ(result, ActionResultType::Success);
@@ -626,7 +626,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 
@@ -667,7 +667,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_PlaysCorrectSound)
 
     // 执行交互
     const auto& state = pumpkin_->defaultState();
-    ActionResultType result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
+    auto result = pumpkin_->onBlockActivated(state, *world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 

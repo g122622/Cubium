@@ -167,7 +167,7 @@ public:
      * 空手右键点燃的蜡烛可熄灭。
      * 点燃（打火石/火焰弹）由物品自身处理，不在此覆写中处理。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

@@ -13,7 +13,8 @@ core/
 ├── ItemGroup.hpp/cpp         # 创造模式物品组（标签页）
 ├── ProjectileItem.hpp/cpp    # 弹射物物品接口，提供 asProjectile()/getDispenseConfig()/shoot() 三个核心方法
 ├── UseAction.hpp             # 物品使用动作枚举（EAT、DRINK、BLOCK等）
-├── ActionResult.hpp          # 物品使用结果枚举
+├── ActionResult.hpp          # 物品使用结果枚举（ActionResultType）与模板类 ActionResult<T>（别名 ItemActionResult）
+├── BlockActionResult.hpp     # 方块交互结果类，封装 ActionResultType + std::optional<ItemStack>，支持 heldItemTransformedTo 语义
 └── README.md
 ```
 
@@ -130,3 +131,27 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 - `windCharge()`：power=1.0, uncertainty=6.6666665（风弹）
 
 ThrowablePotionItem 和 ExperienceBottleItem 覆写 `getDispenseConfig()` 返回 `potion()` 配置。WindChargeItem 覆写返回 `windCharge()` 配置。
+
+### 11. BlockActionResult 与 heldItemTransformedTo 语义
+
+`BlockActionResult` 是方块交互结果的专用类型，封装 `ActionResultType + std::optional<ItemStack>`，参考 MC 1.21.11 `InteractionResult.Success.heldItemTransformedTo(ItemStack)`。
+
+**设计动机**：
+- `ActionResultType` 仅表示结果类型（Success/Consume/Fail/Pass），无法携带"转换后的手持物品"
+- MC 1.21.11 的 `InteractionResult.Success` 通过 `heldItemTransformedTo(ItemStack)` 工厂方法携带转换后的物品
+- 消费方（如 `BlockInteractionManager`）据此决定是否同步物品栏到客户端
+
+**核心 API**：
+- 隐式转换构造：`BlockActionResult(ActionResultType)` —— 向后兼容已有 52 个 `Block::onBlockActivated` override 直接返回 `ActionResultType`
+- 工厂方法：`success() / success(ItemStack) / consume() / consume(ItemStack) / fail() / pass()`
+- 链式方法：`heldItemTransformedTo(ItemStack)` —— 返回携带物品的新结果
+- 访问器：`getType() / heldItemTransformedTo() / hasHeldItemTransformed() / isSuccess() / isConsume() / ...`
+- 比较运算符：`operator==/!=` 与 `ActionResultType` 比较（仅比较 type，便于测试 `EXPECT_EQ(result, ActionResultType::Success)`）
+
+**使用场景**：
+- 方块交互修改了玩家手持物品时（如 `ShelfBlock` 放入/取出/交换物品），应通过 `BlockActionResult::success(ItemStack)` 或 `success().heldItemTransformedTo(stack)` 携带转换后的物品
+- 方块交互未修改手持物品时，返回 `ActionResultType` 即可（通过隐式转换构造包装为 `BlockActionResult`，`heldItemTransformedTo` 为 `std::nullopt`）
+
+**与 ActionResult<T> 的区别**：
+- `ActionResult<T>` 是通用模板（别名 `ItemActionResult = ActionResult<ItemStack>`），用于 `Item::use()` 等物品使用场景
+- `BlockActionResult` 是方块交互专用类型，`heldItemTransformedTo` 使用 `std::optional<ItemStack>`（区分"未转换"与"转换为空"）

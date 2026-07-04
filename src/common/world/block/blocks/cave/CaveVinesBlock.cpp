@@ -129,7 +129,7 @@ void CaveVinesBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& 
     }
 }
 
-ActionResultType CaveVinesBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CaveVinesBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -108,7 +108,7 @@ std::unique_ptr<BlockEntity> BrewingStandBlock::createBlockEntity(const BlockPos
     return std::make_unique<blockentity::BrewingStandEntity>(pos);
 }
 
-ActionResultType BrewingStandBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BrewingStandBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

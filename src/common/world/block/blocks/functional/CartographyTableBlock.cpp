@@ -61,7 +61,7 @@ const CollisionShape& CartographyTableBlock::getShape(const BlockState& state) c
     return m_shape;
 }
 
-ActionResultType CartographyTableBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CartographyTableBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

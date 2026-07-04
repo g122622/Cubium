@@ -100,7 +100,7 @@ public:
      * 打开切石机GUI并记录交互统计。
      * 参考: MC Java StonecutterBlock.useWithoutItem()
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

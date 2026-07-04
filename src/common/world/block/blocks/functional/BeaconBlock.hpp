@@ -110,7 +110,7 @@ public:
      * 打开信标GUI并记录交互统计。
      * 参考: MC Java BeaconBlock.useWithoutItem()
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

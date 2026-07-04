@@ -80,7 +80,7 @@ i32 BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     return 0;
 }
 
-ActionResultType BeaconBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BeaconBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

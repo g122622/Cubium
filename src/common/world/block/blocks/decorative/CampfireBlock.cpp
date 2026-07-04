@@ -167,7 +167,7 @@ u8 CampfireBlock::getLightLevel(const BlockState& state, IWorld* world, const Bl
     return 0;
 }
 
-ActionResultType CampfireBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CampfireBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

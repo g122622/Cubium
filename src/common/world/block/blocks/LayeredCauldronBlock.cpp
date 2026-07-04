@@ -172,7 +172,7 @@ void LayeredCauldronBlock::handlePrecipitation(
 
 // ========== 交互 ==========
 
-ActionResultType LayeredCauldronBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LayeredCauldronBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

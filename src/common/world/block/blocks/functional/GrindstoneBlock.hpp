@@ -99,7 +99,7 @@ public:
      * 打开砂轮GUI并记录交互统计。
      * 参考: MC Java GrindstoneBlock.useWithoutItem()
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

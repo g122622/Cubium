@@ -211,7 +211,7 @@ i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorl
     return 0;
 }
 
-ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
+BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

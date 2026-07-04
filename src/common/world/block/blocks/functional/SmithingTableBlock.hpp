@@ -67,7 +67,7 @@ public:
      * 打开锻造台GUI并记录交互统计。
      * 参考: MC Java SmithingTableBlock.useWithoutItem()
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

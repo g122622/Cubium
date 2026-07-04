@@ -430,7 +430,7 @@ std::unique_ptr<BlockEntity> BellBlock::createBlockEntity(const BlockPos& pos)
 // 交互
 // ============================================================================
 
-ActionResultType BellBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BellBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -105,7 +105,7 @@ public:
      * - 如果玩家手持可堆肥物品，尝试堆肥
      * - 否则不执行任何操作
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

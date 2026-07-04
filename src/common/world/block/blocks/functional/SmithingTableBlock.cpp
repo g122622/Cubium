@@ -63,7 +63,7 @@ const CollisionShape& SmithingTableBlock::getShape(const BlockState& state) cons
     return m_shape;
 }
 
-ActionResultType SmithingTableBlock::onBlockActivated(const BlockState& state,
+BlockActionResult SmithingTableBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

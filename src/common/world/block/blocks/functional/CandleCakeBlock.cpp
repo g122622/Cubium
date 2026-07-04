@@ -142,7 +142,7 @@ i32 CandleCakeBlock::getComparatorInputOverride(const BlockState& state, IWorld&
 
 // ========== 交互 ==========
 
-ActionResultType CandleCakeBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CandleCakeBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -129,7 +129,7 @@ public:
      *
      * 有书时打开GUI，无书时尝试放置书。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

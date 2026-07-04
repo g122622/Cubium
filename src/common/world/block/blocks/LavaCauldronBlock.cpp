@@ -78,7 +78,7 @@ LavaCauldronBlock::LavaCauldronBlock(const BlockProperties& properties)
 
 // ========== 交互 ==========
 
-ActionResultType LavaCauldronBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LavaCauldronBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

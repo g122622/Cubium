@@ -265,7 +265,7 @@ void CrafterBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
     Block::onBlockRemoved(world, pos, state);
 }
 
-ActionResultType CrafterBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CrafterBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

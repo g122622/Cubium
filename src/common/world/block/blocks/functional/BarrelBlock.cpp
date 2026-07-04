@@ -118,7 +118,7 @@ int BarrelBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     return 0;
 }
 
-ActionResultType BarrelBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BarrelBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

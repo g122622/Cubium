@@ -282,7 +282,7 @@ i32 RedstoneComparatorBlock::_calculateInputStrength(IWorld& world, const BlockP
     return input;
 }
 
-ActionResultType RedstoneComparatorBlock::onBlockActivated(const BlockState& state,
+BlockActionResult RedstoneComparatorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

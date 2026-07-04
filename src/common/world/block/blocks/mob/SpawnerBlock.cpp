@@ -42,7 +42,7 @@ SpawnerBlock::SpawnerBlock(const BlockProperties& properties)
     // 刷怪笼没有特殊状态
 }
 
-ActionResultType SpawnerBlock::onBlockActivated(const BlockState& state,
+BlockActionResult SpawnerBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

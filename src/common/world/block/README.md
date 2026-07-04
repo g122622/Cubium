@@ -800,3 +800,32 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 **迁移指南**：悬挂类方块（BellBlock CEILING、LanternBlock、TorchBlock、CandleBlock、SporeBlossomBlock）应使用 `canSupportCenter`；墙面附着类（WallTorchBlock、BellBlock 墙面路径）应使用 `isFaceSturdy(Full)`；铁轨、压力板使用 `canSupportRigidBlock`（压力板还需 `|| canSupportCenter`）。
 
 **注意**：`UNSTABLE_BOTTOM_CENTER` 标签数据包内容为 `#minecraft:fence_gates`（12 种栅栏门），项目当前未实现标签到标签的引用，因此直接内联栅栏门列表。未来若实现标签引用系统，可改为 `addAll({TagReference("minecraft:fence_gates")})`。
+
+## #39. Block::onBlockActivated 返回类型与 heldItemTransformedTo 语义
+
+`Block::onBlockActivated` 的返回类型为 `BlockActionResult`（定义在 `common/item/core/BlockActionResult.hpp`），封装 `ActionResultType + std::optional<ItemStack>`，参考 MC 1.21.11 `InteractionResult.Success.heldItemTransformedTo(ItemStack)`。
+
+**签名**：
+```cpp
+virtual BlockActionResult onBlockActivated(
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit);
+```
+
+**返回值语义**：
+- 仅返回 `ActionResultType`（Success/Consume/Fail/Pass）：表示方块交互未修改玩家手持物品，`heldItemTransformedTo` 为 `std::nullopt`
+- 返回 `BlockActionResult::success(ItemStack)` 或 `success().heldItemTransformedTo(stack)`：表示方块交互修改了玩家手持物品，携带转换后的物品堆
+
+**向后兼容**：
+`BlockActionResult` 提供从 `ActionResultType` 的隐式转换构造函数，已有的 52 个 `onBlockActivated` override 直接返回 `ActionResultType` 无需修改即可工作（自动包装为 `BlockActionResult`，`heldItemTransformedTo` 为 `std::nullopt`）。只有需要传递 `heldItemTransformedTo` 的方块（如 `ShelfBlock`）才使用新的工厂方法。
+
+**使用场景**：
+- 方块交互修改了玩家手持物品时（如 `ShelfBlock` 放入/取出/交换物品），应通过 `BlockActionResult::success(ItemStack)` 携带转换后的物品，消费方（`BlockInteractionManager`）据此同步物品栏到客户端
+- `BlockInteractionManager::handleBlockUse` 在调用 `onBlockActivated` 后，会消费 `heldItemTransformedTo`（若存在）或检测 `Player::m_inventory` 变更，回写到 `InventoryManager` 并 `syncToClient`
+
+**C++ 引用语义注意**：
+MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中 `player.getHeldItem(hand)` 返回 `ItemStack&`（引用 `m_items[selectedSlot]`），`inventory.setItem()` 会修改该引用指向的值。因此若需要在 `setItem` 后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::onBlockActivated` 实现）。

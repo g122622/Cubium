@@ -794,7 +794,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_IncreasesFoodLevel)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    ActionResultType result =
+    auto result =
         cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 应该成功吃蛋糕
@@ -827,7 +827,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_FullHunger_ReturnsPass)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    ActionResultType result =
+    auto result =
         cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 满饥饿值 → Pass
@@ -859,7 +859,7 @@ TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
         BlockRaycastResult::hit(Vector3(5.5f, 10.7f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState().with(BlockStateProperties::LIT(), true);
-    ActionResultType result =
+    auto result =
         cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 应该成功熄灭
@@ -893,7 +893,7 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    ActionResultType result =
+    auto result =
         cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 创造模式不能吃蛋糕 → Pass

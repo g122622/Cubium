@@ -122,7 +122,7 @@ public:
      *
      * 点燃（打火石/火焰弹）由物品自身处理，返回 Pass 让物品处理。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

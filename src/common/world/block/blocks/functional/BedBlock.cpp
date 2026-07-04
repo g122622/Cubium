@@ -317,7 +317,7 @@ bool BedBlock::_hasStandingSpaceForStandUp(const IWorld& world, const BlockPos& 
     return canStand1 && canStand2;
 }
 
-ActionResultType BedBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BedBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

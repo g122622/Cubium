@@ -94,7 +94,7 @@ public:
      *
      * 当玩家使用剪刀右键点击南瓜时，将南瓜雕刻成刻过的南瓜。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
