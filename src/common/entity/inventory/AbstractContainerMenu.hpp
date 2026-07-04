@@ -520,8 +520,17 @@ private:
 
     /**
      * @brief 处理拖拽分发
+     *
+     * 处理 ADD_SLOT 事件以及发送到实际槽位的 END 事件。当 END 事件触发且仅有一个
+     * 拖拽槽位时，会降级为普通 PICKUP 点击，从而触发槽位覆写协议
+     * （对应 MC 1.21.11 AbstractContainerMenu#doClick 中 quickcraftSlots.size()==1 的降级路径）。
+     *
+     * @param slot 当前点击的槽位
+     * @param slotIndex 当前槽位索引
+     * @param button 编码后的按钮值（低2位=事件状态，高位=拖拽模式）
+     * @param player 玩家引用（用于单槽降级时递归调用 clicked）
      */
-    ItemStack _handleQuickCraft(Slot& slot, i32 slotIndex, i32 button);
+    ItemStack _handleQuickCraft(Slot& slot, i32 slotIndex, i32 button, Player& player);
 
     /**
      * @brief 重置拖拽状态
@@ -573,10 +582,14 @@ private:
      *
      * 拖拽分发协议中，START 和 END 事件发送到 -999 槽位。
      * START 初始化拖拽状态，END 分发物品到所有目标槽位。
+     * 当 END 事件触发且仅有一个拖拽槽位时，会降级为普通 PICKUP 点击，
+     * 从而触发槽位覆写协议（对应 MC 1.21.11 AbstractContainerMenu#doClick 中
+     * quickcraftSlots.size()==1 的降级路径）。
      *
      * @param button 编码后的按钮值（低2位=事件状态，高位=拖拽模式）
+     * @param player 玩家引用（用于单槽降级时递归调用 clicked）
      */
-    void _handleQuickCraftStartEnd(i32 button);
+    void _handleQuickCraftStartEnd(i32 button, Player& player);
 
     /**
      * @brief 分发物品到单个拖拽槽位
