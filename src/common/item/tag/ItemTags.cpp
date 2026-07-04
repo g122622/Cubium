@@ -335,6 +335,15 @@ ItemTag& ItemTags::PIGLIN_LOVED()
     return *tag;
 }
 
+ItemTag& ItemTags::VILLAGER_PLANTABLE_SEEDS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "villager_plantable_seeds"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::WOODEN_SHELVES()
 {
     static ItemTag* tag = nullptr;
@@ -990,6 +999,22 @@ void ItemTags::initialize()
     harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_harness")));
     harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_harness")));
     allTags[harnesses->getId()] = std::move(harnesses);
+
+    // 创建 VILLAGER_PLANTABLE_SEEDS 标签
+    // 包含农民村民可以在耕地上种植的所有种子物品。
+    // 对应 MC 原版标签 minecraft:villager_plantable_seeds。
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/villager_plantable_seeds.json
+    // MC 1.21.11 HarvestFarmland.plantCrop 通过 ItemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) 判断
+    // 可种植物品，并通过 BlockItem.placeBlock 植入对应方块（不要求方块继承 CropBlock）。
+    auto villagerPlantableSeeds =
+        std::make_unique<ItemTag>(ResourceLocation("minecraft", "villager_plantable_seeds"), false);
+    villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wheat_seeds")));
+    villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "carrot")));
+    villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "potato")));
+    villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "beetroot_seeds")));
+    villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
+    villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
+    allTags[villagerPlantableSeeds->getId()] = std::move(villagerPlantableSeeds);
 
     s_initialized = true;
 }

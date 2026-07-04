@@ -295,6 +295,19 @@ public:
     static ItemTag& PIGLIN_LOVED();
 
     /**
+     * @brief 村民可种植种子标签
+     *
+     * 包含农民村民可以在耕地上种植的所有种子物品。
+     * 对应 MC 原版标签 minecraft:villager_plantable_seeds。
+     *
+     * 包含：小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果
+     *
+     * 参考: net.minecraft.world.entity.ai.behavior.HarvestFarmland#plantCrop
+     * （MC 1.21.11 通过 ItemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) 判断）
+     */
+    static ItemTag& VILLAGER_PLANTABLE_SEEDS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

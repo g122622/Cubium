@@ -31,8 +31,10 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -41,6 +43,7 @@
 #include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/functional/ComposterBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
@@ -134,6 +137,15 @@ void FarmerWorkGoal::_tryPlant()
     if (!_canPlantAt(pos)) return;
 
     // 找到可种植位置，尝试从背包中获取种子并种植
+    // 参考 MC 1.21.11 HarvestFarmland.plantCrop：
+    //   - 通过 ItemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) 判断可种植物品
+    //   - 通过 BlockItem.placeBlock 植入对应方块（不要求方块继承 CropBlock）
+    //   - 播放 SoundEvents.ITEM_CROP_PLANT
+    //   - 触发 GameEvent.BLOCK_PLACE
+    //
+    // 本项目中胡萝卜/马铃薯是食物物品（非 BlockItem），需要通过
+    // _getCropBlockForSeed 的硬编码映射处理；其他种子（小麦、甜菜、火把花、瓶草）
+    // 均为 SeedsItem（BlockItem 子类），通过 BlockItem::block() 直接获取作物方块。
     IInventory& inventory = m_villager->inventory();
     for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
         ItemStack stack = inventory.getItem(slot);
@@ -142,25 +154,29 @@ void FarmerWorkGoal::_tryPlant()
         const Item* item = stack.getItem();
         if (!item) continue;
 
-        // 获取种子对应的作物方块
-        // 种子物品与作物方块名称不同（如 wheat_seeds → wheat），故使用直接映射
-        const Block* block = _getCropBlockForSeed(item);
-        if (!block) continue;
+        // 仅 VILLAGER_PLANTABLE_SEEDS 标签中的物品才能被农民种植
+        if (!item->isIn(item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS())) continue;
 
-        // 检查方块是否是作物（继承自 CropBlock）
-        auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(block);
-        if (!cropBlock) continue;
+        // 获取种子对应的作物方块
+        const Block* block = _getCropBlockForSeed(item);
+        if (block == nullptr) continue;
 
         // 种植作物：放置默认状态（age=0）
-        const BlockState& plantState = cropBlock->defaultState();
-        world->setBlockState(pos, &plantState, 2);
+        // 对应 MC: level.setBlock(pos, block.defaultBlockState(), Block.UPDATE_ALL)
+        // flags=3 等价于 Block.UPDATE_ALL（更新邻居 + 通知客户端）
+        const BlockState& plantState = block->defaultState();
+        world->setBlockState(pos, &plantState, 3);
 
-        // 播放种植音效
-        world->playSound(ResourceLocation("minecraft:block.crop_planted"),
+        // 播放种植音效（对应 MC: level.playSound(null, pos, SoundEvents.ITEM_CROP_PLANT, ...)）
+        world->playSound(SoundEvents::ITEM_CROP_PLANT,
             sound::SoundCategory::Blocks,
             Vector3(static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y), static_cast<f64>(pos.z) + 0.5),
             1.0f,
             1.0f);
+
+        // 触发 BLOCK_PLACE 游戏事件（对应 MC: level.gameEvent(GameEvent.BLOCK_PLACE, pos, ...)）
+        world->gameEvent(
+            gameevent::GameEvents::BLOCK_PLACE, pos, gameevent::GameEvent::Context::of(m_villager, &plantState));
 
         // 消耗一个种子
         inventory.removeItem(slot, 1);
@@ -365,17 +381,13 @@ bool FarmerWorkGoal::_hasFarmSeeds() const
 {
     if (!m_villager) return false;
 
+    // 参考 MC 1.21.11 HarvestFarmland.validPos()：
+    //   villager.getInventory().hasItem(stack -> stack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS))
+    // 标签包含 6 种物品：小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果。
+    // 数据包（datapacks/Vanilla/.../villager_plantable_seeds.json）载入后会替换硬编码默认值。
+    const item::tag::ItemTag& plantableSeeds = item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS();
+
     IInventory& inventory = m_villager->inventory();
-
-    // MC 原版 VILLAGER_PLANTABLE_SEEDS 标签包含的物品：
-    // 小麦种子、胡萝卜、马铃薯、甜菜种子
-    static const Item* plantableSeeds[] = {
-        Items::WHEAT_SEEDS,
-        Items::CARROT,
-        Items::POTATO,
-        Items::BEETROOT_SEEDS,
-    };
-
     for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
         ItemStack stack = inventory.getItem(slot);
         if (stack.isEmpty()) continue;
@@ -383,9 +395,7 @@ bool FarmerWorkGoal::_hasFarmSeeds() const
         const Item* item = stack.getItem();
         if (!item) continue;
 
-        for (const Item* seed : plantableSeeds) {
-            if (item == seed) return true;
-        }
+        if (plantableSeeds.contains(item)) return true;
     }
 
     return false;
@@ -395,18 +405,20 @@ const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
 {
     if (!seedItem) return nullptr;
 
-    // 种子物品现在注册为 SeedsItem（BlockItem 子类），关联到对应的作物方块。
-    // 对于 SeedsItem 类型的种子，直接通过 BlockItem 获取关联的作物方块；
-    // 对于胡萝卜/马铃薯（普通食物物品），仍使用硬编码映射。
+    // 大部分种子（小麦种子、甜菜种子、火把花种子、瓶草荚果）注册为 SeedsItem
+    // （BlockItem 子类），直接通过 BlockItem::block() 获取关联的作物方块。
     const auto* blockItem = dynamic_cast<const BlockItem*>(seedItem);
     if (blockItem != nullptr) {
         return &blockItem->block();
     }
 
-    // 胡萝卜和马铃薯是食物物品而非 BlockItem，需要直接映射
+    // 胡萝卜和马铃薯在本项目中是普通食物物品（非 BlockItem），但 MC 原版中
+    // 它们属于 VILLAGER_PLANTABLE_SEEDS 标签，村民可以种植。需要直接映射到
+    // 对应的作物方块（VanillaBlocks::CARROTS / POTATOES）。
     if (seedItem == Items::CARROT) {
         return VanillaBlocks::CARROTS;
-    } else if (seedItem == Items::POTATO) {
+    }
+    if (seedItem == Items::POTATO) {
         return VanillaBlocks::POTATOES;
     }
 

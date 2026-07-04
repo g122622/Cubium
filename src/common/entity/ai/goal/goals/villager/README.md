@@ -81,7 +81,7 @@ Goal (基类)
 
 6. **FarmerWorkGoal 收获逻辑**：收获作物时不使用 `destroyBlock`（需要 `ServerWorld`），而是手动生成掉落物（通过 `CropBlock::getCropItem()/getSeedItem()` 获取物品ID，放入背包或丢在地上），然后调用 `onBlockRemoved()` 通知方块移除回调，最后将方块设为空气。
 
-7. **FarmerWorkGoal 种植逻辑**：种植时通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→`VanillaBlocks::WHEAT`，胡萝卜→`VanillaBlocks::CARROTS`，马铃薯→`VanillaBlocks::POTATOES`，甜菜种子→`VanillaBlocks::BEETROOTS`），然后放置默认状态（age=0）。
+7. **FarmerWorkGoal 种植逻辑**：种植时通过 `ItemTags::VILLAGER_PLANTABLE_SEEDS` 标签判断可种植物品（小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果），再通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→`VanillaBlocks::WHEAT`，胡萝卜→`VanillaBlocks::CARROTS`，马铃薯→`VanillaBlocks::POTATOES`，甜菜种子→`VanillaBlocks::BEETROOTS`，火把花种子→`VanillaBlocks::TORCHFLOWER_CROP`，瓶草荚果→`VanillaBlocks::PITCHER_CROP`），然后放置默认状态（age=0）。种植后播放 `SoundEvents::ITEM_CROP_PLANT` 音效并触发 `GameEvent::BLOCK_PLACE` 事件。注意：瓶草作物（PitcherCropBlock）继承自 DoublePlantBlock 而非 CropBlock，村民可以种植但不能收获（与 MC 1.21.11 原版行为一致）。
 
 8. **FarmerWorkGoal 堆肥逻辑**：堆肥只处理小麦种子和甜菜种子（保留10个，多余的最多20个用于堆肥）。使用 `ComposterBlock::attemptCompost()` 逐个尝试堆肥。满桶时使用 `ComposterBlock::empty()` 取出骨粉。
 

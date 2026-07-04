@@ -189,17 +189,23 @@ public:
     /**
      * @brief 获取作物物品（成熟时掉落瓶草植物）
      *
-     * TODO: 目前此方法未被任何代码路径调用。PitcherCropBlock 继承自 DoublePlantBlock
-     * 而非 CropBlock，FarmerWorkGoal 通过 dynamic_cast<CropBlock*> 访问 getCropItem/getSeedItem，
-     * 无法识别 PitcherCropBlock。掉落由战利品表驱动（minecraft:blocks/pitcher_crop），
-     * 但村民收获场景需要后续在 FarmerWorkGoal 中添加对 PitcherCropBlock 的支持。
+     * 注意：瓶草作物（PitcherCropBlock）继承自 DoublePlantBlock 而非 CropBlock，
+     * 这是与 MC 1.21.11 原版一致的设计。FarmerWorkGoal 的收获逻辑通过
+     * dynamic_cast<CropBlock*> 判断可收获方块，因此村民不会收获瓶草作物
+     * （这也与原版行为一致：MC 中 HarvestFarmland 仅处理 CropBlock 类型）。
+     *
+     * 瓶草作物的掉落由战利品表驱动（minecraft:blocks/pitcher_crop），
+     * getCropItem/getSeedItem 当前未被 FarmerWorkGoal 调用，保留供未来扩展使用
+     * （例如其他 AI 或统计需要查询作物产物）。
      */
     [[nodiscard]] u32 getCropItem() const;
 
     /**
      * @brief 获取种子物品（瓶草荚果）
      *
-     * TODO: 同 getCropItem 的说明，当前未被调用，需要 FarmerWorkGoal 支持。
+     * 同 getCropItem 的说明：当前未被 FarmerWorkGoal 调用。
+     * 村民种植瓶草荚果通过 VILLAGER_PLANTABLE_SEEDS 标签 + BlockItem 路径，
+     * 不依赖此方法。
      */
     [[nodiscard]] u32 getSeedItem() const;
 

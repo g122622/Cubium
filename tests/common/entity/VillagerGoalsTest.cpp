@@ -45,9 +45,11 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
 #include "common/world/block/blocks/functional/ComposterBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -834,6 +836,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<TestVillagerWorld>();
         m_villager = std::make_unique<VillagerEntity>(EntityId(1));
@@ -984,6 +987,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerTestWorld>();
         m_villager = std::make_unique<VillagerEntity>(EntityId(1));
@@ -1367,6 +1371,325 @@ TEST_F(FarmerBlockTest, GetCropBlockForSeedMapping)
     EXPECT_EQ(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:beetroots")), VanillaBlocks::BEETROOTS);
 }
 
+// ============================================================================
+// VILLAGER_PLANTABLE_SEEDS 标签测试（MC 1.21.11 HarvestFarmland.plantCrop）
+// 验证农民可以种植 6 种种子：小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果
+// ============================================================================
+
+TEST_F(FarmerBlockTest, VillagerPlantableSeedsTagContainsAllSixSeeds)
+{
+    // 验证 VILLAGER_PLANTABLE_SEEDS 标签包含 MC 1.21.11 原版的全部 6 种种子
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/villager_plantable_seeds.json
+    const item::tag::ItemTag& tag = item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS();
+    EXPECT_TRUE(tag.contains(Items::WHEAT_SEEDS));
+    EXPECT_TRUE(tag.contains(Items::CARROT));
+    EXPECT_TRUE(tag.contains(Items::POTATO));
+    EXPECT_TRUE(tag.contains(Items::BEETROOT_SEEDS));
+    EXPECT_TRUE(tag.contains(Items::TORCHFLOWER_SEEDS));
+    EXPECT_TRUE(tag.contains(Items::PITCHER_POD));
+}
+
+TEST_F(FarmerBlockTest, VillagerPlantableSeedsTagExcludesNonSeeds)
+{
+    // 验证非种植物品不在 VILLAGER_PLANTABLE_SEEDS 标签中
+    const item::tag::ItemTag& tag = item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS();
+    EXPECT_FALSE(tag.contains(Items::BREAD));
+    EXPECT_FALSE(tag.contains(Items::WHEAT));
+    EXPECT_FALSE(tag.contains(Items::STICK));
+}
+
+TEST_F(FarmerWorkGoalTest, HasFarmSeedsWithTorchflowerSeeds)
+{
+    // 火把花种子是 MC 1.21.11 新增的可种植物品，应被识别为可种植种子
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::TORCHFLOWER_SEEDS, 16));
+
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerWorkGoalTest, HasFarmSeedsWithPitcherPod)
+{
+    // 瓶草荚果是 MC 1.21.11 新增的可种植物品，应被识别为可种植种子
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::PITCHER_POD, 16));
+
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerBlockTest, PlantTorchflowerSeedsOnEmptyFarmland)
+{
+    // 验证：农民可以在空耕地上种植火把花种子
+    // 参考 MC 1.21.11 HarvestFarmland.plantCrop：
+    //   - 火把花种子通过 VILLAGER_PLANTABLE_SEEDS 标签判断
+    //   - 通过 BlockItem 获取 TORCHFLOWER_CROP 方块并放置默认状态
+    ASSERT_TRUE(VanillaBlocks::TORCHFLOWER_CROP != nullptr) << "TORCHFLOWER_CROP block must be registered";
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+    const BlockState* airState = BlockRegistry::instance().airState();
+    ASSERT_TRUE(airState != nullptr);
+
+    // 在村民周围设置空耕地
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, airState);
+        }
+    }
+
+    // 给村民火把花种子
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+    const i32 initialSeedCount = 16;
+    inv.setItem(0, mc::ItemStack(mc::Items::TORCHFLOWER_SEEDS, initialSeedCount));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次以触发种植行为
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // 火把花种子数量应该减少（至少种了一颗）
+    i32 remainingSeeds = 0;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty() && stack.getItem() == mc::Items::TORCHFLOWER_SEEDS) {
+            remainingSeeds += stack.getCount();
+        }
+    }
+    EXPECT_LT(remainingSeeds, initialSeedCount)
+        << "Torchflower seed count should decrease after planting on empty farmland";
+
+    // 至少有一个位置应该被种植上火把花作物
+    bool anyTorchflowerPlanted = false;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            const BlockState* state = m_world->getBlockState(dx, 64, dz);
+            if (state && state->getBlock().blockLocation() == ResourceLocation("minecraft:torchflower_crop")) {
+                anyTorchflowerPlanted = true;
+                break;
+            }
+        }
+        if (anyTorchflowerPlanted) break;
+    }
+    EXPECT_TRUE(anyTorchflowerPlanted) << "At least one torchflower crop should be planted";
+}
+
+TEST_F(FarmerBlockTest, PlantPitcherPodOnEmptyFarmland)
+{
+    // 验证：农民可以在空耕地上种植瓶草荚果
+    // 注意：瓶草作物（PitcherCropBlock）继承自 DoublePlantBlock 而非 CropBlock，
+    // 但农民仍应能种植（通过 VILLAGER_PLANTABLE_SEEDS 标签 + BlockItem 路径）。
+    ASSERT_TRUE(VanillaBlocks::PITCHER_CROP != nullptr) << "PITCHER_CROP block must be registered";
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+    const BlockState* airState = BlockRegistry::instance().airState();
+    ASSERT_TRUE(airState != nullptr);
+
+    // 在村民周围设置空耕地
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, airState);
+        }
+    }
+
+    // 给村民瓶草荚果
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+    const i32 initialSeedCount = 16;
+    inv.setItem(0, mc::ItemStack(mc::Items::PITCHER_POD, initialSeedCount));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次以触发种植行为
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // 瓶草荚果数量应该减少（至少种了一颗）
+    i32 remainingSeeds = 0;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty() && stack.getItem() == mc::Items::PITCHER_POD) {
+            remainingSeeds += stack.getCount();
+        }
+    }
+    EXPECT_LT(remainingSeeds, initialSeedCount) << "Pitcher pod count should decrease after planting on empty farmland";
+
+    // 至少有一个位置应该被种植上瓶草作物
+    bool anyPitcherPlanted = false;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            const BlockState* state = m_world->getBlockState(dx, 64, dz);
+            if (state && state->getBlock().blockLocation() == ResourceLocation("minecraft:pitcher_crop")) {
+                anyPitcherPlanted = true;
+                break;
+            }
+        }
+        if (anyPitcherPlanted) break;
+    }
+    EXPECT_TRUE(anyPitcherPlanted) << "At least one pitcher crop should be planted";
+}
+
+TEST_F(FarmerBlockTest, DoesNotHarvestPitcherCrop)
+{
+    // 验证：农民不会收获瓶草作物（PitcherCropBlock 继承自 DoublePlantBlock 而非 CropBlock）
+    // 这是 MC 1.21.11 原版行为：HarvestFarmland 仅通过 instanceof CropBlock 判断可收获方块。
+    // 瓶草作物只能由玩家破坏或掠夺者踩踏等方式破坏，村民不会收获。
+    ASSERT_TRUE(VanillaBlocks::PITCHER_CROP != nullptr) << "PITCHER_CROP block must be registered";
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+
+    // 验证 PitcherCropBlock 不是 CropBlock 类型
+    auto* pitcherAsCrop = dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::PITCHER_CROP);
+    EXPECT_EQ(pitcherAsCrop, nullptr) << "PitcherCropBlock should NOT be a CropBlock (matches MC 1.21.11 design)";
+
+    // 在村民周围设置成熟瓶草作物（使用默认状态，因为 PitcherCropBlock 的 isMaxAge 需要 AGE=4）
+    // 这里通过设置 defaultState 来模拟存在瓶草作物（即便未成熟，村民也不应收获）
+    const BlockState& pitcherState = VanillaBlocks::PITCHER_CROP->defaultState();
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, &pitcherState);
+        }
+    }
+
+    // 清空背包以便观察
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次以触发收获尝试
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+
+    // 验证：所有瓶草作物仍然存在（未被收获）
+    // 由于 _isCropMatureAt 使用 dynamic_cast<CropBlock*>，而 PitcherCropBlock 不是 CropBlock，
+    // 所以 _isCropMatureAt 返回 false，_tryHarvest 不会执行收获。
+    bool anyPitcherRemoved = false;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            const BlockState* state = m_world->getBlockState(dx, 64, dz);
+            if (!state || state->isAir() ||
+                state->getBlock().blockLocation() != ResourceLocation("minecraft:pitcher_crop")) {
+                anyPitcherRemoved = true;
+                break;
+            }
+        }
+        if (anyPitcherRemoved) break;
+    }
+    EXPECT_FALSE(anyPitcherRemoved) << "Farmer should NOT harvest pitcher crops (vanilla behavior)";
+}
+
+TEST_F(FarmerBlockTest, HarvestTorchflowerCrop)
+{
+    // 验证：农民可以收获成熟的火把花作物（TorchflowerCropBlock 继承自 CropBlock）
+    // 这是 MC 1.21.11 原版行为：TorchflowerCropBlock 继承自 CropBlock，
+    // 因此 HarvestFarmland 的 dynamic_cast<CropBlock*> 可以识别它。
+    ASSERT_TRUE(VanillaBlocks::TORCHFLOWER_CROP != nullptr) << "TORCHFLOWER_CROP block must be registered";
+
+    // 验证 TorchflowerCropBlock 是 CropBlock 类型
+    auto* torchflowerAsCrop = dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::TORCHFLOWER_CROP);
+    ASSERT_TRUE(torchflowerAsCrop != nullptr) << "TorchflowerCropBlock should be a CropBlock";
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+
+    // 在村民周围设置成熟火把花作物
+    const BlockState& maxAgeState = torchflowerAsCrop->withAge(torchflowerAsCrop->getMaxAge());
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
+        }
+    }
+
+    // 清空背包
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次以触发收获行为
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // 验证：至少有一个火把花作物被收获（变为空气或非成熟状态）
+    bool anyTorchflowerHarvested = false;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            const BlockState* state = m_world->getBlockState(dx, 64, dz);
+            if (!state || state->isAir()) {
+                anyTorchflowerHarvested = true;
+                break;
+            }
+            // 或者不再是成熟作物
+            if (state) {
+                auto* currentCrop = dynamic_cast<const blocks::CropBlock*>(&state->getBlock());
+                if (!currentCrop || !currentCrop->isMaxAge(*state)) {
+                    anyTorchflowerHarvested = true;
+                    break;
+                }
+            }
+        }
+        if (anyTorchflowerHarvested) break;
+    }
+    EXPECT_TRUE(anyTorchflowerHarvested) << "Farmer should harvest mature torchflower crops";
+}
+
 TEST_F(FarmerBlockTest, HasFarmSeedsWithVariousItems)
 {
     // 验证：_hasFarmSeeds 间接测试 - 有可种植种子时tick不崩溃
@@ -1505,6 +1828,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerCompostTestWorld>();
 
@@ -2955,6 +3279,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerTestWorld>();
         m_villager = std::make_unique<VillagerEntity>(EntityId(1));
@@ -3202,6 +3527,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerCompostTestWorld>();
 
