@@ -10,7 +10,7 @@ decorative/
 ├── StainedGlassBlock.hpp/cpp   # 染色玻璃（信标光束颜色提供者）
 ├── CarpetBlock.hpp/cpp         # 地毯（单层高度、需支撑）
 ├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦（可旋转、不可被活塞拉动）
-├── FlowerPotBlock.hpp/cpp      # 花盆（空花盆 + 37 种 potted_* 盆栽变体，反查映射表，眼眸花随机刻 TODO）
+├── FlowerPotBlock.hpp/cpp      # 花盆（空花盆 + 37 种 potted_* 盆栽变体，反查映射表，眼眸花昼夜切换）
 ├── LanternBlock.hpp/cpp        # 灯笼（悬挂/站立、含水支持）
 ├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持，MC 1.21+ 注册为 iron_chain）
 ├── LadderBlock.hpp/cpp         # 梯子（攀爬、需背面支撑）
@@ -145,6 +145,12 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
   - 手持非 BlockItem 或不可盆栽 BlockItem → 返回 Pass，交给其他处理器
 - **中键选取**: `getCloneItemStack` 已盆栽花盆返回内容物对应的物品（通过 `BlockItemRegistry` 反查），空花盆返回默认 `flower_pot` 物品
 - **canSurvive / updateShape**: 匹配 MC Java 1.21.11，`FlowerPotBlock` 不重写 `canSurvive`（默认 true），`updateShape` 检查 `DOWN && !canSurvive` 由于 `canSurvive` 始终为 true 实际为空操作——花盆可放置在任何位置（包括悬空），不会因下方方块移除而破坏
-- **眼眸花随机刻 TODO**: `potted_open_eyeblossom` / `potted_closed_eyeblossom` 在 MC Java 中响应随机刻，根据 `EnvironmentAttributes.EYEBLOSSOM_OPEN` 环境属性在开/合状态间切换，并生成 `TrailParticleOption` 转换粒子、播放音效、连锁触发周围 3×2×3 范围内同种眼眸花。本项目 `EnvironmentAttributes` 系统尚未实现，`randomTick` 暂留显式 TODO 注释，`ticksRandomly` 已正确实现（仅眼眸花返回 true）
+- **眼眸花昼夜切换**: `potted_open_eyeblossom` / `potted_closed_eyeblossom` 响应随机刻，根据 `EyeblossomEnvironment::getEyeblossomOpen`（近似 MC 1.21.11 `EnvironmentAttributes.EYEBLOSSOM_OPEN`）在开/合状态间切换：
+  - `ticksRandomly()` 仅对眼眸花盆栽返回 true（基于 `m_potted->blockLocation()` 判断，不依赖 `BlockProperties::m_ticksRandomly` 标志位）；其他花盆与空花盆返回 false。这保证 `ChunkSection` 的 `m_blockTickRefCount` 正确维护，随机刻调度链路完整
+  - 主世界夜晚（`dayTimeOfDay ∈ [12600, 23401)`）→ Open 切换为 Closed；白天 → Closed 切换为 Open
+  - 下界/末地（`DimensionType::hasFixedTime()` 为 true）→ 环境属性为 `TriState::Default`，回退到当前状态，不切换
+  - 切换时：替换为对应盆栽方块、生成 `TrailParticle` 转换粒子（复用 `EyeblossomBlock::spawnTransformParticle`）、播放 `longSwitchSound` 长音效
+  - **与地栽眼眸花不同**：盆栽版不连锁触发周围 3×2×3 范围内的同种方块，也不触发 `BLOCK_CHANGE` 游戏事件
+  - 复用工具：`EyeblossomEnvironment`、`EyeblossomBlock::spawnTransformParticle` / `longSwitchSoundOf` / `particleColorOf`（详见 `pale_garden/README.md`）
 - **物品映射**: 38 个花盆方块共享同一个 `minecraft:flower_pot` 物品（通过 `BlockItemRegistry::registerSimpleBlock` 自动派生物品名）
 - **参考**: MC 1.21.11 `net.minecraft.world.level.block.FlowerPotBlock`
