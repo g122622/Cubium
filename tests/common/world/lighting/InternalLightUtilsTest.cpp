@@ -61,33 +61,39 @@ TEST_F(InternalLightUtilsTest, GetCelestialAngleMC_Midnight_ReturnsHalf)
 
 TEST_F(InternalLightUtilsTest, GetCelestialAngleMC_Sunrise_Around075)
 {
-    // 日出 (dayTime = 0) 时天体角度应约为 0.75
+    // 日出 (dayTime = 0) 时天体角度应约为 0.78
+    // 公式: d0 = frac(0/24000 - 0.25) = 0.75
+    //       d1 = 0.5 - cos(0.75π)/2 ≈ 0.8536
+    //       result = (0.75*2 + 0.8536)/3 ≈ 0.7845
     f32 angle = InternalLightUtils::getCelestialAngleMC(0);
-    EXPECT_NEAR(angle, 0.75f, 0.01f);
+    EXPECT_NEAR(angle, 0.7845f, 0.01f);
 }
 
 TEST_F(InternalLightUtilsTest, GetCelestialAngleMC_Sunset_Around025)
 {
-    // 日落 (dayTime = 12000) 时天体角度应约为 0.25
+    // 日落 (dayTime = 12000) 时天体角度应约为 0.22
+    // 公式: d0 = frac(12000/24000 - 0.25) = 0.25
+    //       d1 = 0.5 - cos(0.25π)/2 ≈ 0.1464
+    //       result = (0.25*2 + 0.1464)/3 ≈ 0.2155
     f32 angle = InternalLightUtils::getCelestialAngleMC(12000);
-    EXPECT_NEAR(angle, 0.25f, 0.01f);
+    EXPECT_NEAR(angle, 0.2155f, 0.01f);
 }
 
 TEST_F(InternalLightUtilsTest, GetCelestialAngleMC_Dawn_065to069)
 {
     // 黎明时分 (dayTime ≈ 22000-22600)
     // 这是海龟蛋孵化的最佳时间
-    // 天体角度应在 0.65-0.69 范围内
+    // 天体角度应在 0.65-0.74 范围内（与 TurtleEggBlock 的 0.65-0.69 检查窗口相近）
 
-    // dayTime = 22000 对应天体角度约 0.67
+    // dayTime = 22000 → d0=0.6667, d1=0.75, result≈0.6944
     f32 angle22000 = InternalLightUtils::getCelestialAngleMC(22000);
     EXPECT_GT(angle22000, 0.65f);
-    EXPECT_LT(angle22000, 0.69f);
+    EXPECT_LT(angle22000, 0.70f);
 
-    // dayTime = 22600 对应天体角度约 0.69
+    // dayTime = 22600 → d0=0.6917, d1≈0.7823, result≈0.7219
     f32 angle22600 = InternalLightUtils::getCelestialAngleMC(22600);
-    EXPECT_GT(angle22600, 0.65f);
-    EXPECT_LT(angle22600, 0.70f);
+    EXPECT_GT(angle22600, 0.70f);
+    EXPECT_LT(angle22600, 0.74f);
 }
 
 TEST_F(InternalLightUtilsTest, GetCelestialAngleMC_MatchesMCFormula)

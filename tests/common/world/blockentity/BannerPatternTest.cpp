@@ -37,7 +37,8 @@ TEST(BannerPatternTest, ByHashReturnsCorrectPattern)
     EXPECT_EQ(BannerPatterns::byHash("ts"), BannerPatternType::StripeTop);
     EXPECT_EQ(BannerPatterns::byHash("rs"), BannerPatternType::StripeRight);
     EXPECT_EQ(BannerPatterns::byHash("ls"), BannerPatternType::StripeLeft);
-    EXPECT_EQ(BannerPatterns::byHash("mc"), BannerPatternType::Creeper);
+    EXPECT_EQ(BannerPatterns::byHash("mc"), BannerPatternType::CircleMiddle);
+    EXPECT_EQ(BannerPatterns::byHash("cre"), BannerPatternType::Creeper);
     EXPECT_EQ(BannerPatterns::byHash("moj"), BannerPatternType::Mojang);
 }
 

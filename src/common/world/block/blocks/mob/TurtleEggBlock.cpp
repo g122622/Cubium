@@ -127,15 +127,16 @@ bool TurtleEggBlock::isValidPosition(const BlockState& state, IBlockReader& worl
 
 bool TurtleEggBlock::_canGrow(IWorld& world, math::IRandom& random) const
 {
-    // 天体角度计算：
-    // - 0.0 = 正午
-    // - 0.25 = 日落
-    // - 0.5 = 午夜
-    // - 0.75 = 日出
-    // 天体角度 0.65-0.69 对应黎明时分，这是海龟蛋孵化的最佳时间
+    // 天体角度计算（MC 1.16.5 World#getCelestialAngle / DimensionType#getSkyAngle）：
+    // - 0.0  = 正午 (dayTime=6000)
+    // - 0.25 = 日落 (dayTime=12000)（公式实际约 0.2155）
+    // - 0.5  = 午夜 (dayTime=18000)
+    // - 0.78 = 日出 (dayTime=0)（公式实际约 0.7845）
+    // MC 1.16.5 TurtleEggBlock#shouldUpdateHatchLevel：天体角度落在 [0.65, 0.74]
+    // 区间（dayTime≈21500-22800，黎明时分）时 100% 孵化，否则 1/500 随机概率。
     f32 celestialAngle = InternalLightUtils::getCelestialAngleMC(world.dayTimeOfDay());
 
-    if (celestialAngle < 0.69 && celestialAngle > 0.65) {
+    if (celestialAngle >= 0.65F && celestialAngle <= 0.74F) {
         // 黎明时分，100% 孵化
         return true;
     }
