@@ -107,7 +107,7 @@ std::unique_ptr<BlockEntity> EnderChestBlock::createBlockEntity(const BlockPos& 
     return std::make_unique<blockentity::EnderChestEntity>(pos);
 }
 
-ActionResultType EnderChestBlock::onBlockActivated(const BlockState& state,
+BlockActionResult EnderChestBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -124,7 +124,7 @@ void CauldronBlock::handlePrecipitation(
 
 // ========== 交互 ==========
 
-ActionResultType CauldronBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CauldronBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

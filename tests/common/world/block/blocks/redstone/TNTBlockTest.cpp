@@ -656,7 +656,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_EmptyHand_ReturnsPass)
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-    ActionResultType result =
+    auto result =
         tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
     // 空手应该返回 Pass
@@ -684,7 +684,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_PrimesAndRemovesBlock)
 
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-        ActionResultType result =
+        auto result =
             tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // 应该返回 Success
@@ -742,7 +742,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FireCharge_PrimesAndRemovesBlock)
 
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-        ActionResultType result =
+        auto result =
             tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         EXPECT_EQ(result, ActionResultType::Success);
@@ -765,7 +765,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_NonIgnitionItem_ReturnsPass)
     // Player 的 getHeldItem 默认为空物品堆，空手应返回 Pass
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-    ActionResultType result =
+    auto result =
         tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -792,7 +792,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_TntExplodesFalse_ShowsMessageAndReturnsPas
 
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-        ActionResultType result =
+        auto result =
             tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // tntExplodes=false 时应该返回 Pass（不消耗物品）

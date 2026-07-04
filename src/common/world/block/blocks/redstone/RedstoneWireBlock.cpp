@@ -495,7 +495,7 @@ void RedstoneWireBlock::_notifyWireNeighbors(IWorld& world, const BlockPos& pos)
     updatePower(world, pos);
 }
 
-ActionResultType RedstoneWireBlock::onBlockActivated(const BlockState& state,
+BlockActionResult RedstoneWireBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

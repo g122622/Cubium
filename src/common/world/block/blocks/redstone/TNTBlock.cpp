@@ -118,7 +118,7 @@ void TNTBlock::neighborChanged(
     }
 }
 
-ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
+BlockActionResult TNTBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

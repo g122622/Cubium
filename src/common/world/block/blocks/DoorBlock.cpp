@@ -204,7 +204,7 @@ bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
         belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
 }
 
-ActionResultType DoorBlock::onBlockActivated(const BlockState& state,
+BlockActionResult DoorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

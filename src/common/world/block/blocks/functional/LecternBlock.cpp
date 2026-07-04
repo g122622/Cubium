@@ -197,7 +197,7 @@ std::unique_ptr<BlockEntity> LecternBlock::createBlockEntity(const BlockPos& pos
     return std::make_unique<blockentity::LecternEntity>(pos);
 }
 
-ActionResultType LecternBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LecternBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -181,7 +181,7 @@ void TrapDoorBlock::neighborChanged(
     }
 }
 
-ActionResultType TrapDoorBlock::onBlockActivated(const BlockState& state,
+BlockActionResult TrapDoorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

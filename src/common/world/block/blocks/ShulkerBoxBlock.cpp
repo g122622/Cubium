@@ -90,7 +90,7 @@ std::unique_ptr<BlockEntity> ShulkerBoxBlock::createBlockEntity(const BlockPos& 
 
 // ========== 交互 ==========
 
-ActionResultType ShulkerBoxBlock::onBlockActivated(const BlockState& state,
+BlockActionResult ShulkerBoxBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

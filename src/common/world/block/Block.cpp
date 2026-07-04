@@ -678,7 +678,7 @@ bool Block::canSustainPlant(
     }
 }
 
-ActionResultType Block::onBlockActivated(const BlockState& state,
+BlockActionResult Block::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

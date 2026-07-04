@@ -1083,7 +1083,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
     m_world.resetTrackedState();
-    ActionResultType result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(m_world.wasSoundPlayed());
@@ -1113,7 +1113,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_InsertItem_PositiveWobbleAndSound
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
     m_world.resetTrackedState();
-    ActionResultType result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(m_world.wasSoundPlayed());
@@ -1147,7 +1147,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_OffHand_Pass)
 
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
-    ActionResultType result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::OffHand, hitResult);
+    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::OffHand, hitResult);
     EXPECT_EQ(result, ActionResultType::Pass);
 }
 

@@ -210,7 +210,7 @@ const CollisionShape& AnvilBlock::getCollisionShape(const BlockState& state) con
     return getShape(state);
 }
 
-ActionResultType AnvilBlock::onBlockActivated(const BlockState& /*state*/,
+BlockActionResult AnvilBlock::onBlockActivated(const BlockState& /*state*/,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -92,7 +92,7 @@ int JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& wo
     return 0;
 }
 
-ActionResultType JukeboxBlock::onBlockActivated(const BlockState& state,
+BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -96,7 +96,7 @@ BlockState FlowerPotBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-ActionResultType FlowerPotBlock::onBlockActivated(const BlockState& state,
+BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

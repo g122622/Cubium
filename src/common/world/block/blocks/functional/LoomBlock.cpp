@@ -100,7 +100,7 @@ const CollisionShape& LoomBlock::getShape(const BlockState& state) const
     return m_shapesByFacing[index];
 }
 
-ActionResultType LoomBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LoomBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

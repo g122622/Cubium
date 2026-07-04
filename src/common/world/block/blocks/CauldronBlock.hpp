@@ -110,7 +110,7 @@ public:
      * - 岩浆桶 → 替换为 LavaCauldronBlock
      * - 水瓶 → 替换为 WaterCauldronBlock（水位1）
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

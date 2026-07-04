@@ -134,7 +134,7 @@ const CollisionShape& CopperGolemStatueBlock::getShape(const BlockState& state) 
     return m_shape;
 }
 
-ActionResultType CopperGolemStatueBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CopperGolemStatueBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

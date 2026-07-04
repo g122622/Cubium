@@ -25,6 +25,7 @@
 
 #include "../../core/BlockRaycastResult.hpp"
 #include "../../item/core/ActionResult.hpp"
+#include "../../item/core/BlockActionResult.hpp"
 #include "../../util/Direction.hpp"
 #include "../../util/assert/AssertAll.hpp"
 #include "../../util/property/StateContainer.hpp"
@@ -1533,15 +1534,25 @@ public:
      * 当玩家右键点击方块时调用。
      * 默认实现返回 Pass。
      *
+     * 返回 `BlockActionResult` 而非裸 `ActionResultType`，以支持携带
+     * `heldItemTransformedTo` 信息（参考 MC 1.21.11
+     * `InteractionResult.Success.heldItemTransformedTo(ItemStack)`）。
+     *
+     * 为了向后兼容，`BlockActionResult` 可从 `ActionResultType` 隐式构造，
+     * 因此旧 override 直接 `return ActionResultType::Success;` 仍然有效。
+     * 需要传递物品转换信息的方块（如 `ShelfBlock`）应使用
+     * `BlockActionResult::success(stack)` 或
+     * `BlockActionResult::success().heldItemTransformedTo(stack)`。
+     *
      * @param state 方块状态
      * @param world 世界
      * @param pos 方块位置
      * @param player 玩家
      * @param hand 手
      * @param hit 射线检测结果
-     * @return 交互结果类型
+     * @return 交互结果（可能携带转换后的手持物品）
      */
-    [[nodiscard]] virtual ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] virtual BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

@@ -145,7 +145,7 @@ public:
     /**
      * @brief 右键交互 - 充能或设置重生点
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

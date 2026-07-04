@@ -95,7 +95,7 @@ public:
      *
      * 有唱片时取出唱片，无唱片且玩家手持唱片时放入唱片。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

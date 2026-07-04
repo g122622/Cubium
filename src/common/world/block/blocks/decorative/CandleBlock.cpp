@@ -220,7 +220,7 @@ std::vector<Vector3f> CandleBlock::getParticleOffsets(const BlockState& state) c
 
 // ========== 交互 ==========
 
-ActionResultType CandleBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CandleBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

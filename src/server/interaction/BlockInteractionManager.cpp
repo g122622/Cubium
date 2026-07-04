@@ -28,6 +28,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
@@ -396,10 +397,35 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
     }
 
-    Player interactionPlayer(playerId, playerData->username);
+    // 获取真实的玩家实体（携带 m_inventory、m_gameMode 等状态）
+    // 之前的实现使用临时 Player，其 m_inventory 为空且 m_gameMode 为默认值，
+    // 导致 ShelfBlock 等方块的 onBlockActivated 修改无法生效到真实玩家。
+    Player* realPlayer = _getPlayerEntity(playerId, *world);
     const BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, face, 0.0f);
 
-    ActionResultType result = block->onBlockActivated(*state, *world, pos, interactionPlayer, hand, hitResult);
+    // 在调用 onBlockActivated 之前，需要保证 Player::m_inventory 与
+    // InventoryManager::m_inventories 中的手持物品一致（双数据源同步）。
+    // InventoryManager 是服务端权威数据源，因此先将其手持物品同步到 Player。
+    if (realPlayer != nullptr && m_inventoryManager != nullptr) {
+        PlayerInventory* mgrInventory = m_inventoryManager->getInventory(playerId);
+        if (mgrInventory != nullptr) {
+            // 同步选中槽位和手持物品
+            realPlayer->inventory().setSelectedSlot(mgrInventory->getSelectedSlot());
+            ItemStack heldItem = mgrInventory->getSelectedStack();
+            realPlayer->inventory().setItem(mgrInventory->getSelectedSlot(), heldItem);
+            // 同步游戏模式
+            realPlayer->setGameMode(playerData->gameMode);
+        }
+    }
+
+    BlockActionResult result = [&]() -> BlockActionResult {
+        if (realPlayer != nullptr) {
+            return block->onBlockActivated(*state, *world, pos, *realPlayer, hand, hitResult);
+        }
+        // 回退路径：无法获取真实玩家实体时使用临时 Player（保持向后兼容）
+        Player interactionPlayer(playerId, playerData->username);
+        return block->onBlockActivated(*state, *world, pos, interactionPlayer, hand, hitResult);
+    }();
 
     // 派发自定义方块组件回调 - onPlayerInteract
     auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
@@ -460,6 +486,39 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
                     // 执行告示牌命令
                     _handleSignCommand(*world, pos, *serverPlayer);
                 }
+            }
+        }
+    }
+
+    // 消费 heldItemTransformedTo：将方块交互后的手持物品变更同步回 InventoryManager
+    // 参考 MC 1.21.11 ServerPlayerGameMode.useItem 中处理 heldItemTransformedTo 的逻辑：
+    // - 如果交互结果携带了 heldItemTransformedTo，使用该值更新玩家物品栏
+    // - 否则使用玩家当前手持物品（方块可能通过 player.getHeldItem(hand) 引用直接修改了）
+    if (handled && realPlayer != nullptr && m_inventoryManager != nullptr) {
+        PlayerInventory* mgrInventory = m_inventoryManager->getInventory(playerId);
+        if (mgrInventory != nullptr) {
+            i32 selectedSlot = mgrInventory->getSelectedSlot();
+            ItemStack newHeldItem;
+            bool needUpdate = false;
+
+            if (result.heldItemTransformedTo().has_value()) {
+                // 方块显式返回了转换后的手持物品
+                newHeldItem = result.heldItemTransformedTo().value();
+                needUpdate = true;
+            } else {
+                // 方块未显式返回转换后物品，检查 Player::m_inventory 是否被修改
+                // （方块可能通过 player.getHeldItem(hand) 引用直接修改了手持物品）
+                ItemStack playerHeld = realPlayer->inventory().getSelectedStack();
+                ItemStack mgrHeld = mgrInventory->getSelectedStack();
+                if (!(playerHeld == mgrHeld)) {
+                    newHeldItem = playerHeld;
+                    needUpdate = true;
+                }
+            }
+
+            if (needUpdate) {
+                mgrInventory->setItem(selectedSlot, newHeldItem);
+                m_inventoryManager->syncToClient(playerId);
             }
         }
     }

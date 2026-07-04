@@ -322,7 +322,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSucces
     // 执行交互
     const auto& state = enderChest_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -348,7 +348,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_ServerSide_WithEntity_Re
     // 执行交互
     const auto& state = enderChest_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 服务端有正确方块实体时应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -368,7 +368,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_NoBlockEntity_ReturnsPas
     // 执行交互
     const auto& state = enderChest_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 没有方块实体时应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -392,7 +392,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_WrongBlockEntityType_Ret
     // 执行交互
     const auto& state = enderChest_->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 错误类型的方块实体应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -426,7 +426,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_AboveBlocked_ReturnsSucc
     player.setPosition(10.5f, 64.5f, 20.5f);
     player.setWorld(&world);
 
-    ActionResultType result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = enderChest_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
 
     // 上方无阻挡时应正常打开
     EXPECT_EQ(result, ActionResultType::Consume);

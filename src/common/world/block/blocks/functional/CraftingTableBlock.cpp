@@ -61,7 +61,7 @@ const CollisionShape& CraftingTableBlock::getShape(const BlockState& state) cons
     return m_shape;
 }
 
-ActionResultType CraftingTableBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CraftingTableBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

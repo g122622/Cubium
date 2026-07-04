@@ -874,7 +874,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
 
     // 空手应返回 Success
@@ -915,7 +915,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeReturnsPass)
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
 
     // 持斧头应返回 Pass（委托给 AxeItem 处理刮削/去蜡）

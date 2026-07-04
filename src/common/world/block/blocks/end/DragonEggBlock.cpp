@@ -46,7 +46,7 @@ BlockState DragonEggBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-ActionResultType DragonEggBlock::onBlockActivated(const BlockState& state,
+BlockActionResult DragonEggBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -60,7 +60,7 @@ std::unique_ptr<BlockEntity> EnchantingTableBlock::createBlockEntity(const Block
 
 // ========== 交互 ==========
 
-ActionResultType EnchantingTableBlock::onBlockActivated(const BlockState& state,
+BlockActionResult EnchantingTableBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

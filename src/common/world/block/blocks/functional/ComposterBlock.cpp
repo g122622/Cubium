@@ -245,7 +245,7 @@ f32 ComposterBlock::getCompostChance(u32 itemId)
     return CompostableItems::getCompostChance(item);
 }
 
-ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
+BlockActionResult ComposterBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

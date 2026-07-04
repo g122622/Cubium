@@ -136,7 +136,7 @@ public:
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
 
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

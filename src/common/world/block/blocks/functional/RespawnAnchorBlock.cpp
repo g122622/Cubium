@@ -136,7 +136,7 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
-ActionResultType RespawnAnchorBlock::onBlockActivated(const BlockState& state,
+BlockActionResult RespawnAnchorBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

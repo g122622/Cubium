@@ -798,7 +798,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
     // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 应该成功
@@ -832,7 +832,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_CreativeModeDoesNotConsume
     // 调用 onBlockActivated
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 应该成功
@@ -858,7 +858,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_AlreadyWaxedReturnsConsume
     // 调用 onBlockActivated
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 已涂蜡告示牌应返回 Consume（防止蜜脾被放置）
@@ -884,7 +884,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NoBlockEntityReturnsPass)
     // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 没有 BlockEntity，应返回 Pass
@@ -908,7 +908,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NonHoneycombItemExecutesCo
     // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result =
+    auto result =
         VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 空手交互告示牌应返回 Success（执行命令交互）

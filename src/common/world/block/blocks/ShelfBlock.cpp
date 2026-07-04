@@ -294,7 +294,7 @@ const fluid::FluidState* ShelfBlock::getFluidState(const BlockState& state) cons
 // 交互
 // ============================================================================
 
-ActionResultType ShelfBlock::onBlockActivated(const BlockState& state,
+BlockActionResult ShelfBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -332,24 +332,46 @@ ActionResultType ShelfBlock::onBlockActivated(const BlockState& state,
 
     if (!state.get(BlockStateProperties::POWERED())) {
         // 未充能模式：单物品交换
+        // 注意：MC 1.21.11 中 p_433583_ 是引用，但 Java 的引用语义与 C++ 不同——
+        // inventory.setItem() 会替换数组槽位的引用，而 p_433583_ 仍指向原对象。
+        // C++ 中 heldItem 是对 m_items[selectedSlot] 的引用，setItem 后 heldItem
+        // 反映新值。因此这里先记录原手持物品是否为空，用于后续音效与 Pass 判断。
+        const bool heldItemWasEmpty = heldItem.isEmpty();
+
         bool wasSwapOrTake = swapSingleItem(heldItem, player, *shelfEntity, hitSlot, inventory);
 
         if (wasSwapOrTake) {
             // 取出或交换了物品
+            // 取出（原手持为空）→ TAKE_ITEM；交换（原手持非空）→ SINGLE_SWAP
             playSound(world,
                 pos,
-                heldItem.isEmpty() ? SoundEvents::BLOCK_SHELF_TAKE_ITEM : SoundEvents::BLOCK_SHELF_SINGLE_SWAP);
+                heldItemWasEmpty ? SoundEvents::BLOCK_SHELF_TAKE_ITEM : SoundEvents::BLOCK_SHELF_SINGLE_SWAP);
         } else {
-            // 放入了物品
-            if (heldItem.isEmpty()) {
+            // 放入了物品（书架原为空）
+            // 若原手持为空 → 无操作 → Pass；否则 → PLACE_ITEM
+            if (heldItemWasEmpty) {
                 return ActionResultType::Pass;
             }
             playSound(world, pos, SoundEvents::BLOCK_SHELF_PLACE_ITEM);
         }
 
-        return ActionResultType::Success;
+        // 参考 MC 1.21.11 ShelfBlock.useItemOn 第 179 行：
+        // return InteractionResult.SUCCESS.heldItemTransformedTo(p_433583_);
+        // swapSingleItem 通过 inventory.setItem 已更新手持物品，heldItem 引用反映最新值。
+        // 携带转换后的手持物品，供 BlockInteractionManager 同步到 InventoryManager 与客户端。
+        return BlockActionResult::success(ItemStack(heldItem));
     } else {
         // 充能模式：热栏整体交换
+        // 参考 MC 1.21.11 ShelfBlock.useItemOn 第 181-189 行：
+        //   ItemStack itemstack = inventory.getSelectedItem();
+        //   boolean flag = this.swapHotbar(...);
+        //   if (!flag) return InteractionResult.CONSUME;
+        //   this.playSound(...);
+        //   return itemstack == inventory.getSelectedItem()
+        //       ? InteractionResult.SUCCESS
+        //       : InteractionResult.SUCCESS.heldItemTransformedTo(inventory.getSelectedItem());
+        // MC 使用引用比较（==）判断选中物品是否变化，我们用值比较语义一致：
+        // 若交换前后选中槽位物品相同则不携带 heldItemTransformedTo，否则携带新物品。
         ItemStack oldSelectedItem = inventory.getSelectedStack();
         bool swapped = swapHotbar(world, pos, inventory);
 
@@ -360,10 +382,12 @@ ActionResultType ShelfBlock::onBlockActivated(const BlockState& state,
         playSound(world, pos, SoundEvents::BLOCK_SHELF_MULTI_SWAP);
 
         ItemStack newSelectedItem = inventory.getSelectedStack();
-        // TODO: 当 ActionResult 支持 heldItemTransformed 时，传递新选中物品
-        (void)oldSelectedItem;
-        (void)newSelectedItem;
-        return ActionResultType::Success;
+        if (oldSelectedItem == newSelectedItem) {
+            // 交换前后选中物品相同（值比较），无需携带 heldItemTransformedTo
+            return BlockActionResult::success();
+        }
+        // 选中槽位物品已变化，携带转换后的新物品
+        return BlockActionResult::success(ItemStack(newSelectedItem));
     }
 }
 

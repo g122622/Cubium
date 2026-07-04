@@ -127,7 +127,7 @@ bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos, const B
     return getPowerOnSides(world, pos, state) > 0;
 }
 
-ActionResultType RedstoneRepeaterBlock::onBlockActivated(const BlockState& state,
+BlockActionResult RedstoneRepeaterBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

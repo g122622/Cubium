@@ -494,6 +494,8 @@ add_executable(mc_tests
     common/world/block/blocks/ChestBlockTest.cpp
     # ShelfBlock 书架方块测试（侧链连接、红石充能、比较器信号、旋转镜像）
     common/world/block/blocks/ShelfBlockTest.cpp
+    # ShelfBlock 书架方块交互测试（onBlockActivated、heldItemTransformedTo）
+    common/world/block/blocks/ShelfBlockInteractionTest.cpp
     common/world/block/blocks/decorative/PaneBlockTest.cpp
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp

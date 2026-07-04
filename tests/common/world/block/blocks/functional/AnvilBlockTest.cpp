@@ -535,7 +535,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ClientSide_ReturnsSuccess)
 
     const auto& state = anvilBlock->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = anvilBlock->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = anvilBlock->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -560,7 +560,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ServerSide_OpensAnvilContainer)
 
     const auto& state = anvilBlock->defaultState();
     BlockRaycastResult hit;
-    ActionResultType result = anvilBlock->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = anvilBlock->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
 
     // 服务端应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);

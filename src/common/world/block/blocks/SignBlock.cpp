@@ -77,7 +77,7 @@ std::unique_ptr<BlockEntity> AbstractSignBlock::createBlockEntity(const BlockPos
     return blockentity::BlockEntityRegistry::instance().create(BlockEntityType::Sign, pos);
 }
 
-ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
+BlockActionResult AbstractSignBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

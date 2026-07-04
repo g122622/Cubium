@@ -180,7 +180,7 @@ public:
      *
      * 右键点击比较器可以在比较模式和减法模式之间切换。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

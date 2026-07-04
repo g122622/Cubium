@@ -125,7 +125,7 @@ BlockState StructureBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-ActionResultType StructureBlock::onBlockActivated(const BlockState& state,
+BlockActionResult StructureBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -186,7 +186,7 @@ const BlockState& JigsawBlock::mirror(const BlockState& state, Mirror mirror) co
     return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
 }
 
-ActionResultType JigsawBlock::onBlockActivated(const BlockState& state,
+BlockActionResult JigsawBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -375,7 +375,7 @@ const BlockState& CommandBlock::mirror(const BlockState& state, Mirror mirror) c
     return state.with(BlockStateProperties::FACING(), newFacing);
 }
 
-ActionResultType CommandBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CommandBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

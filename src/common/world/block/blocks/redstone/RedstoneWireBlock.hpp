@@ -199,7 +199,7 @@ public:
      * 右键点击红石线可以在十字和点状连接之间切换。
      * 这个功能用于控制红石信号的传播方向。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

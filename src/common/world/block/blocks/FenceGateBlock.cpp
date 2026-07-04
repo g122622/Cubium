@@ -147,7 +147,7 @@ BlockState FenceGateBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-ActionResultType FenceGateBlock::onBlockActivated(const BlockState& state,
+BlockActionResult FenceGateBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

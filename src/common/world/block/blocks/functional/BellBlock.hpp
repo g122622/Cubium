@@ -128,7 +128,7 @@ public:
      *
      * 参考: net.minecraft.world.level.block.BellBlock#useWithoutItem, onHit, isProperHit
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

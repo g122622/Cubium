@@ -132,7 +132,7 @@ public:
      * - 皮革盔甲：清洗（水位-1）
      * - 旗帜/盾牌：清洗（水位-1）
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

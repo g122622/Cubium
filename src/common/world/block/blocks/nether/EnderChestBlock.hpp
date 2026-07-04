@@ -94,7 +94,7 @@ public:
      *
      * 检查方块上方是否有红石导体阻挡，然后打开末影箱容器界面。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

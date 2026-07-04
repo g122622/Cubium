@@ -383,7 +383,7 @@ const CollisionShape& GrindstoneBlock::getCollisionShape(const BlockState& state
     return getShape(state);
 }
 
-ActionResultType GrindstoneBlock::onBlockActivated(const BlockState& state,
+BlockActionResult GrindstoneBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,

@@ -129,7 +129,7 @@ public:
      * 触发正摇晃(Positive wobble)动画和插入音效。
      * 空手时：触发负摇晃(Negative wobble)动画和插入失败音效。
      */
-    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,

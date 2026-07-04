@@ -107,7 +107,7 @@ std::unique_ptr<BlockEntity> HopperBlock::createBlockEntity(const BlockPos& pos)
     return std::make_unique<blockentity::HopperEntity>(pos);
 }
 
-ActionResultType HopperBlock::onBlockActivated(const BlockState& state,
+BlockActionResult HopperBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
