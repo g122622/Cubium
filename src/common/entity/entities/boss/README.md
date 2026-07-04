@@ -7,6 +7,7 @@
 ```
 boss/
 ├── EnderDragonEntity.hpp/cpp  # 末影龙 + EnderDragonPartEntity + BossEntity基类
+├── WardenAngerLevel.hpp       # 监守者怒气等级枚举与工具函数
 ├── WardenEntity.hpp/cpp       # 监守者（来自1.19荒野更新，由SculkShrieker召唤）
 ├── WitherEntity.hpp/cpp       # 凋灵 + WitherDoNothingGoal + WitherRandomFlyGoal
 └── README.md                  # 本文档
@@ -194,22 +195,27 @@ MC 原版中末影龙只接受两种伤害：
 | AI: HurtByTargetGoal / NearestAttackableTargetGoal\<Player\> | 基础敌对行为 |
 | 经验值 5 | MC 1.21.11 `Warden.xpReward = 5` |
 | 不在阳光下燃烧 | `setBurnsInDaylight(false)` |
+| **WardenAngerLevel 枚举（Calmed/Agitated/Angry）** | MC 1.21.11 `AngerLevel` |
+| **简化怒气系统（m_anger 聚合值 + increaseAnger/clearAnger）** | MC 1.21.11 `AngerManagement` 简化版 |
+| **CLIENT_ANGER_LEVEL 数据参数同步** | MC 1.21.11 `Warden.CLIENT_ANGER_LEVEL` |
+| **怒气等级驱动的环境音效切换** | MC 1.21.11 `Warden.getAmbientSound` |
+| **怒气每 20 tick 衰减** | MC 1.21.11 `Warden.customServerAiStep` 简化 |
+| **完整 WARDEN_* SoundEvents（21 个）** | MC 1.21.11 `SoundEvents` |
 
 ### 未实现（已留有显式 TODO 注释）
 
 | 子系统 | 阻塞原因 |
 |--------|----------|
 | `VibrationSystem`（振动感知）| 需先实现 `game_event` 总线与 `VibrationSystem.User/Data/Listener` |
-| `AngerManagement`（怒气管理）| 需 Brain 系统与 `MemoryModuleType` |
+| `AngerManagement`（按目标怒气管理）| 需 Brain 系统与 `MemoryModuleType`；当前使用简化版单一聚合怒气代替 |
 | `SonicBoom`（音爆远程攻击）| 需远程攻击目标 + 音爆粒子/伤害实现 |
 | `Pose::EMERGING` / `Pose::DIGGING`（钻地动画与姿态免疫）| 需 Pose 系统扩展 |
 | `Roar` / `Sniff` 动画 | 需 AnimationState 系统 |
 | `Darkness` 周期性效果（每 6 秒给附近玩家施加黑暗）| 需 `MobEffectUtil.addEffectToPlayersAround` |
-| 心跳音效（根据怒气调整频率）| 需 AngerLevel 概念 |
+| 心跳音效（根据怒气调整频率）| 需心跳动画系统 |
 | 触碰怒气（实体触碰监守者增加怒气，20 tick 冷却）| 需 Brain 记忆模块 |
 | `WardenAi` 完整行为系统 | 需 Brain + Behavior 系统全套基建 |
-| 怒气等级环境音效切换 | 需 AngerLevel 概念 |
-| 脚步声音效 `WARDEN_STEP` | 当前 `SoundEvents.hpp` 未预定义 |
+| 怒气触发的 `listeningSound` 播放 | 需 VibrationSystem 接入后由 increaseAngerAt 调用 |
 
 ### 召唤入口
 
@@ -222,3 +228,37 @@ MC 原版中末影龙只接受两种伤害：
 
 召唤成功后，监守者位置设为 `(checkPos.x + 0.5, checkPos.y, checkPos.z + 0.5)`，
 旋转角为随机方向（0–360°），跳过生成规则检查（监守者为特殊召唤）。
+
+### 16. 监守者怒气等级（WardenAngerLevel）
+
+监守者根据当前怒气值（`m_anger`）分为三个等级，对应不同的环境音效与倾听音效：
+
+| 等级 | 怒气范围 | 环境音效 | 倾听音效 |
+|------|----------|----------|----------|
+| Calmed | [0, 40) | `ENTITY_WARDEN_AMBIENT` | `ENTITY_WARDEN_LISTENING` |
+| Agitated | [40, 80) | `ENTITY_WARDEN_AGITATED` | `ENTITY_WARDEN_LISTENING_ANGRY` |
+| Angry | [80, 150] | `ENTITY_WARDEN_ANGRY` | `ENTITY_WARDEN_LISTENING_ANGRY` |
+
+**实现要点**：
+
+- `WardenAngerLevel` 是 `enum class : u8`，定义于 `WardenAngerLevel.hpp`，
+  与 MC 1.21.11 `net.minecraft.world.entity.monster.warden.AngerLevel` 对齐。
+- 工具函数 `wardenAngerLevelByAnger(int)` / `wardenAngerLevelMinimumAnger(level)` /
+  `wardenAngerLevelIsAngry(level)` / `wardenAngerLevelAmbientSound(level)` /
+  `wardenAngerLevelListeningSound(level)` 提供等级查询与音效映射。
+- `WardenEntity` 持有 `m_anger`（i32）作为服务端权威怒气值，通过
+  `CLIENT_ANGER_LEVEL` 数据参数同步到客户端。
+- `WardenEntity::getAngerLevel()` 返回当前等级，`getAmbientSound()` 据此返回
+  对应音效（与 MC 1.21.11 `Warden.getAmbientSound` 行为一致，姿态判断待
+  Pose 系统扩展后补充）。
+- `WardenEntity::updateAITasks()` 每 20 tick 衰减 1 点怒气，对应 MC 1.21.11
+  `Warden.customServerAiStep` 中 `angerManagement.tick` 调用。
+- 怒气上限 `ANGER_LIMIT = 150`，防止无限增长。
+
+**与 MC 原版的差异**：
+
+MC 原版 `AngerManagement` 按**每个目标实体**分别跟踪怒气值，
+`getActiveAnger(target)` 返回当前目标对应的怒气。项目当前使用**单一聚合怒气**
+`m_anger` 代替，所有来源的怒气累加到同一字段。这一简化足以支撑环境音效切换、
+客户端同步、心跳频率调整等表现，但无法实现"对不同目标有不同怒气等级"的语义。
+完整 `AngerManagement` 实现（依赖 Brain 系统与 `MemoryModuleType`）后可平滑迁移。

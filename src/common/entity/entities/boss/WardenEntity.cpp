@@ -22,19 +22,29 @@
  */
 
 #include "WardenEntity.hpp"
-#include "../../attribute/Attributes.hpp"
-#include "../../damage/DamageSource.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../attribute/Attributes.hpp"
 #include "../../core/Entity.hpp"
+#include "../../core/EntityDataManager.hpp"
 #include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/MobEntity.hpp"
+#include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace entity {
+
+// ============================================================================
+// 静态数据参数定义
+// ============================================================================
+
+/// 客户端同步怒气值数据参数（对应 MC 1.21.11 Warden.CLIENT_ANGER_LEVEL）
+DataParameter<i32> WardenEntity::CLIENT_ANGER_LEVEL = EntityDataManager::createKey<i32>();
 
 // ============================================================================
 // 工厂方法
@@ -58,6 +68,9 @@ WardenEntity::WardenEntity(EntityId id)
     // MC 1.21.11 Warden 不会在阳光下燃烧（其本体不继承 BurnsInDaylight 行为）
     setBurnsInDaylight(false);
 
+    // 注册数据参数（CLIENT_ANGER_LEVEL）
+    registerData();
+
     // 注册 AI 目标
     registerGoals();
 
@@ -66,33 +79,92 @@ WardenEntity::WardenEntity(EntityId id)
 }
 
 // ============================================================================
+// 数据参数注册
+// ============================================================================
+
+void WardenEntity::registerData()
+{
+    // 调用父类注册数据参数（LivingEntity 注册 HEALTH/FLAGS 等基础参数）
+    MonsterEntity::registerData();
+
+    // 注册客户端同步怒气值，初始值为 0（对应 MC define(CLIENT_ANGER_LEVEL, 0)）
+    m_dataManager.registerParam(CLIENT_ANGER_LEVEL, static_cast<i32>(0));
+}
+
+// ============================================================================
 // 声音
 // ============================================================================
 
 std::optional<ResourceLocation> WardenEntity::getAmbientSound() const
 {
-    // MC 1.21.11 Warden.getAmbientSound() 根据 AngerLevel 返回不同声音：
-    // - Calmed:  SoundEvents.WARDEN_AMBIENT
-    // - Agitated: SoundEvents.WARDEN_AGITATED
-    // - Angry:    SoundEvents.WARDEN_LISTENING_ANGRY
-    // 当前实现尚未引入 AngerLevel，统一使用 "ambient" 通用 ID。
+    // MC 1.21.11 Warden.getAmbientSound():
+    //   return !this.hasPose(Pose.ROARING) && !this.isDiggingOrEmerging()
+    //       ? this.getAngerLevel().getAmbientSound()
+    //       : null;
     //
-    // TODO: 引入 AngerLevel 后根据怒气等级返回不同声音。
-    return makeSoundEventId("ambient");
+    // 当前项目尚未引入 Pose::ROARING/DIGGING/EMERGING，姿态判断暂时省略，
+    // 直接根据怒气等级返回对应的环境音效。
+    //
+    // 怒气等级 → 环境音效：
+    // - Calmed   → SoundEvents::ENTITY_WARDEN_AMBIENT
+    // - Agitated → SoundEvents::ENTITY_WARDEN_AGITATED
+    // - Angry    → SoundEvents::ENTITY_WARDEN_ANGRY
+    return wardenAngerLevelAmbientSound(getAngerLevel());
 }
 
 std::optional<ResourceLocation> WardenEntity::getHurtSound(DamageSource& /*source*/) const
 {
     // MC 1.21.11 Warden.getHurtSound() 返回 SoundEvents.WARDEN_HURT
-    // 当前项目 SoundEvents.hpp 未预定义该事件，使用通用 "hurt" ID。
-    return makeSoundEventId("hurt");
+    return SoundEvents::ENTITY_WARDEN_HURT;
 }
 
 std::optional<ResourceLocation> WardenEntity::getDeathSound() const
 {
     // MC 1.21.11 Warden.getDeathSound() 返回 SoundEvents.WARDEN_DEATH
-    // 当前项目 SoundEvents.hpp 未预定义该事件，使用通用 "death" ID。
-    return makeSoundEventId("death");
+    return SoundEvents::ENTITY_WARDEN_DEATH;
+}
+
+// ============================================================================
+// 怒气等级（AngerLevel）
+// ============================================================================
+
+WardenAngerLevel WardenEntity::getAngerLevel() const noexcept
+{
+    // 对应 MC 1.21.11 Warden.getAngerLevel() = AngerLevel.byAnger(getActiveAnger())
+    // 简化版：直接使用单一聚合怒气值 m_anger，不按目标分别查询
+    return wardenAngerLevelByAnger(m_anger);
+}
+
+i32 WardenEntity::getClientAngerLevel() const noexcept
+{
+    // 对应 MC 1.21.11 Warden.getClientAngerLevel() = entityData.get(CLIENT_ANGER_LEVEL)
+    return m_dataManager.get<i32>(CLIENT_ANGER_LEVEL);
+}
+
+i32 WardenEntity::increaseAnger(i32 amount) noexcept
+{
+    // 对应 MC 1.21.11 Warden.increaseAngerAt() 简化版：
+    //   int i = angerManagement.increaseAnger(entity, amount);
+    //   ...
+    //   this.syncClientAngerLevel();
+    //
+    // 项目当前未引入 AngerManagement，直接累加 m_anger 并夹紧到 [0, ANGER_LIMIT]。
+    if (amount <= 0) {
+        return m_anger;
+    }
+    m_anger = std::min(m_anger + amount, ANGER_LIMIT);
+
+    // 同步到客户端（对应 MC syncClientAngerLevel）
+    m_dataManager.set(CLIENT_ANGER_LEVEL, m_anger);
+
+    return m_anger;
+}
+
+void WardenEntity::clearAnger() noexcept
+{
+    // 对应 MC 1.21.11 Warden.clearAnger(entity)
+    m_anger = 0;
+    m_dataManager.set(CLIENT_ANGER_LEVEL, m_anger);
 }
 
 // ============================================================================
@@ -179,7 +251,9 @@ void WardenEntity::registerGoals()
 
     // TODO: 完整的监守者行为系统包括以下未实现的子系统：
     // - VibrationSystem: 振动感知系统（监听 game_event 并 increaseAngerAt）
-    // - AngerManagement: 怒气管理（跟踪每个实体的怒气值，按等级切换行为）
+    // - AngerManagement: 怒气管理（按目标跟踪怒气值，按等级切换行为）
+    //   ※ 当前已实现简化版单一聚合怒气（m_anger + WardenAngerLevel），
+    //     足以支撑环境音效切换与客户端表现，完整 AngerManagement 后续接入
     // - SonicBoom: 音爆远程攻击（生命值低于一半或目标过远时使用）
     // - Emerging: 从地面钻出动画（生成时 7 秒，期间免疫伤害）
     // - Digging: 钻入地面动画（消失前 4 秒，期间免疫伤害）
@@ -190,6 +264,33 @@ void WardenEntity::registerGoals()
     // - 触碰怒气：实体触碰监守者时增加怒气（20 tick 冷却）
     // 这些子系统依赖 Brain 系统、MemoryModuleType、Pose 系统等尚未实现的基建，
     // 后续逐项收敛。
+}
+
+// ============================================================================
+// AI 任务更新（怒气衰减与同步）
+// ============================================================================
+
+void WardenEntity::updateAITasks()
+{
+    // 调用父类方法（MobEntity::updateAITasks 默认空实现，保留以兼容未来扩展）
+    MonsterEntity::updateAITasks();
+
+    // MC 1.21.11 Warden.customServerAiStep():
+    //   if (this.tickCount % 20 == 0) {
+    //       this.angerManagement.tick(serverLevel, this::canTargetEntity);
+    //       this.syncClientAngerLevel();
+    //   }
+    //
+    // 简化版：每 ANGERMANAGEMENT_TICK_DELAY (20) tick 衰减怒气并同步客户端。
+    // 衰减率对应 MC AngerManagement.tick 中对每条怒气记录的 -1 衰减。
+    const u32 currentTick = ticksExisted();
+    if (currentTick > 0 && currentTick % static_cast<u32>(ANGERMANAGEMENT_TICK_DELAY) == 0) {
+        if (m_anger > 0) {
+            m_anger = std::max(m_anger - ANGER_DECAY_PER_TICK_INTERVAL, 0);
+            // 同步到客户端（对应 MC syncClientAngerLevel）
+            m_dataManager.set(CLIENT_ANGER_LEVEL, m_anger);
+        }
+    }
 }
 
 // ============================================================================

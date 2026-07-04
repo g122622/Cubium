@@ -567,10 +567,28 @@ extern const ResourceLocation BLOCK_SCULK_SHRIEKER_SHRIEK;
 extern const ResourceLocation BLOCK_COPPER_GOLEM_BECOME_STATUE;
 
 /// 监守者
+/// 完整对齐 MC 1.21.11 SoundEvents 中所有 WARDEN_* 事件（共 21 个）。
+/// 参考: net.minecraft.sounds.SoundEvents
+extern const ResourceLocation ENTITY_WARDEN_AGITATED;
+extern const ResourceLocation ENTITY_WARDEN_AMBIENT;
+extern const ResourceLocation ENTITY_WARDEN_ANGRY;
+extern const ResourceLocation ENTITY_WARDEN_ATTACK_IMPACT;
+extern const ResourceLocation ENTITY_WARDEN_DEATH;
+extern const ResourceLocation ENTITY_WARDEN_DIG;
+extern const ResourceLocation ENTITY_WARDEN_EMERGE;
+extern const ResourceLocation ENTITY_WARDEN_HEARTBEAT;
+extern const ResourceLocation ENTITY_WARDEN_HURT;
+extern const ResourceLocation ENTITY_WARDEN_LISTENING;
+extern const ResourceLocation ENTITY_WARDEN_LISTENING_ANGRY;
 extern const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSE;
 extern const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSER;
 extern const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSEST;
-extern const ResourceLocation ENTITY_WARDEN_LISTENING_ANGRY;
+extern const ResourceLocation ENTITY_WARDEN_ROAR;
+extern const ResourceLocation ENTITY_WARDEN_SNIFF;
+extern const ResourceLocation ENTITY_WARDEN_SONIC_BOOM;
+extern const ResourceLocation ENTITY_WARDEN_SONIC_CHARGE;
+extern const ResourceLocation ENTITY_WARDEN_STEP;
+extern const ResourceLocation ENTITY_WARDEN_TENDRIL_CLICKS;
 
 // ============================================================================
 // 实体通用声音
