@@ -80,23 +80,37 @@ TEST_F(MapDataTest, InitializeWithCenter)
 
 TEST_F(MapDataTest, CalculateMapCenter)
 {
-    // scale=0: 128像素，每像素1方块，中心对齐到128
+    // 对齐 MC 1.16.5 MapData#calculateMapCenter:
+    //   i = 128 * (1 << scale)
+    //   j = floor((x + 64) / i)
+    //   center = j * i + i / 2 - 64
+    // scale=0: i=128，center = j*128（对齐到 128 的整数倍）
+
+    // scale=0, 原点
     i32 centerX = 0;
     i32 centerZ = 0;
     MapData::calculateMapCenter(0.0, 0.0, 0, centerX, centerZ);
     EXPECT_EQ(centerX, 0);
     EXPECT_EQ(centerZ, 0);
 
-    // scale=0, 非零坐标
+    // scale=0, x=64 落在网格边界 (64+64=128=1*128)，center 对齐到 128
     MapData::calculateMapCenter(64.0, 64.0, 0, centerX, centerZ);
+    EXPECT_EQ(centerX, 128);
+    EXPECT_EQ(centerZ, 128);
+
+    // scale=0, 中心对齐到 128 的整数倍
+    MapData::calculateMapCenter(100.0, 100.0, 0, centerX, centerZ);
+    EXPECT_EQ(centerX % 128, 0);
+    EXPECT_EQ(centerZ % 128, 0);
+    EXPECT_EQ(centerX, 128);
+
+    // scale=1: i=256, center = j*256 + 128 - 64 = j*256 + 64
+    // 中心恒满足 center ≡ 64 (mod 256)
+    MapData::calculateMapCenter(100.0, 100.0, 1, centerX, centerZ);
+    EXPECT_EQ(centerX % 256, 64);
+    EXPECT_EQ(centerZ % 256, 64);
     EXPECT_EQ(centerX, 64);
     EXPECT_EQ(centerZ, 64);
-
-    // scale=1: 每像素2方块，对齐到256
-    MapData::calculateMapCenter(100.0, 100.0, 1, centerX, centerZ);
-    // 128 * 2 = 256, 对齐到256的整数倍
-    EXPECT_EQ(centerX % 256, 0);
-    EXPECT_EQ(centerZ % 256, 0);
 }
 
 TEST_F(MapDataTest, SetAndGetColor)
