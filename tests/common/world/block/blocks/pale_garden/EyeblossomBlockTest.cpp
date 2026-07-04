@@ -23,6 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/TriState.hpp"
@@ -32,6 +35,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/decorative/FlowerPotBlock.hpp"
 #include "common/world/block/blocks/pale_garden/EyeblossomBlock.hpp"
@@ -138,8 +142,8 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -163,6 +167,8 @@ public:
     void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
     void setDimension(DimensionId dim) { m_dimension = dim; }
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
 
     // ========== 捕获接口 ==========
 
@@ -238,6 +244,8 @@ private:
     i64 m_dayTime = 0;
     DimensionId m_dimension = DimensionId(0); // 主世界
     u64 m_currentTick = 0;
+    Difficulty m_difficulty = Difficulty::Easy;
+    bool m_clientSide = false;
 };
 
 // ============================================================================
@@ -902,4 +910,187 @@ TEST_F(FlowerPotEyeblossomTest, RandomTick_NormalPot_NoOp)
     EXPECT_EQ(&newState->getBlock(), emptyPotBlock);
     EXPECT_TRUE(world_.playSoundCalls.empty());
     EXPECT_TRUE(world_.trailParticleCalls.empty());
+}
+
+// ============================================================================
+// EyeblossomBlock::onEntityCollision 实体碰撞集成测试
+//
+// 端到端覆盖 MC 1.21.11 EyeblossomBlock#entityInside 行为：
+// - 蜜蜂接触开放眼眸花 → 25 tick Poison I
+// - 蜜蜂接触闭合眼眸花 → 不中毒（不在 BEE_ATTRACTIVE 标签中）
+// - 和平难度跳过
+// - 客户端世界跳过
+// - 已中毒蜜蜂不重复施加
+// - 非蜜蜂实体不中毒
+// ============================================================================
+
+class EyeblossomBeeCollisionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+        openBlock_ = getOpenEyeblossomBlock();
+        closedBlock_ = getClosedEyeblossomBlock();
+
+        // 默认服务端 + 简单难度（非和平）
+        world_.setClientSide(false);
+        world_.setDifficulty(Difficulty::Easy);
+    }
+
+    /// 创建一只蜜蜂并绑定到世界
+    std::unique_ptr<BeeEntity> makeBee()
+    {
+        auto bee = std::make_unique<BeeEntity>(EntityId(1));
+        bee->setWorld(&world_);
+        return bee;
+    }
+
+    const EyeblossomBlock* openBlock_ = nullptr;
+    const EyeblossomBlock* closedBlock_ = nullptr;
+    EyeblossomTestWorld world_;
+};
+
+TEST_F(EyeblossomBeeCollisionTest, OpenEyeblossom_AppliesPoisonToBee)
+{
+    // 蜜蜂接触开放眼眸花：应获得 25 tick Poison I (amplifier=0)
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+    auto bee = makeBee();
+
+    EXPECT_FALSE(bee->hasEffect(entity::effect::EffectType::Poison));
+
+    openBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    // 验证中毒效果已施加
+    EXPECT_TRUE(bee->hasEffect(entity::effect::EffectType::Poison));
+    const auto* effect = bee->getEffect(entity::effect::EffectType::Poison);
+    ASSERT_NE(effect, nullptr);
+    EXPECT_EQ(effect->type(), entity::effect::EffectType::Poison);
+    EXPECT_EQ(effect->duration(), 25);
+    EXPECT_EQ(effect->amplifier(), 0);
+}
+
+TEST_F(EyeblossomBeeCollisionTest, ClosedEyeblossom_DoesNotApplyPoison)
+{
+    // 闭合眼眸花不在 BEE_ATTRACTIVE 标签中，蜜蜂接触不中毒
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = closedBlock_->defaultState();
+    auto bee = makeBee();
+
+    EXPECT_FALSE(bee->hasEffect(entity::effect::EffectType::Poison));
+
+    closedBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    EXPECT_FALSE(bee->hasEffect(entity::effect::EffectType::Poison));
+}
+
+TEST_F(EyeblossomBeeCollisionTest, PeacefulDifficulty_SkipsPoison)
+{
+    // 和平难度下，开放眼眸花也不对蜜蜂施加中毒
+    world_.setDifficulty(Difficulty::Peaceful);
+
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+    auto bee = makeBee();
+
+    openBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    EXPECT_FALSE(bee->hasEffect(entity::effect::EffectType::Poison));
+}
+
+TEST_F(EyeblossomBeeCollisionTest, ClientSide_SkipsPoison)
+{
+    // 客户端世界不处理状态变更，不施加中毒
+    world_.setClientSide(true);
+
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+    auto bee = makeBee();
+
+    openBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    EXPECT_FALSE(bee->hasEffect(entity::effect::EffectType::Poison));
+}
+
+TEST_F(EyeblossomBeeCollisionTest, AlreadyPoisoned_DoesNotRefresh)
+{
+    // 已中毒的蜜蜂再次接触开放眼眸花，不应刷新剩余时间或等级
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+    auto bee = makeBee();
+
+    // 先施加一个 100 tick Poison II 的中毒效果
+    ASSERT_TRUE(bee->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 1)));
+    ASSERT_TRUE(bee->hasEffect(entity::effect::EffectType::Poison));
+    const auto* before = bee->getEffect(entity::effect::EffectType::Poison);
+    ASSERT_NE(before, nullptr);
+    EXPECT_EQ(before->duration(), 100);
+    EXPECT_EQ(before->amplifier(), 1);
+
+    // 触发碰撞
+    openBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    // 中毒效果不应被覆盖为 25 tick Poison I
+    const auto* after = bee->getEffect(entity::effect::EffectType::Poison);
+    ASSERT_NE(after, nullptr);
+    EXPECT_EQ(after->duration(), 100);
+    EXPECT_EQ(after->amplifier(), 1);
+}
+
+TEST_F(EyeblossomBeeCollisionTest, NonBeeEntity_DoesNotApplyPoison)
+{
+    // 非蜜蜂实体接触开放眼眸花不中毒
+    // 使用一个最小的 AnimalEntity 子类作为非蜜蜂实体，验证 dynamic_cast<BeeEntity*> 失败时的早返回
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+
+    struct NonBeeAnimal : public AnimalEntity {
+        explicit NonBeeAnimal(EntityId id)
+            : AnimalEntity(id)
+        {}
+        // AnimalEntity::spawnBaby 是纯虚，必须实现
+        std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
+    };
+
+    NonBeeAnimal animal(EntityId(2));
+    animal.setWorld(&world_);
+
+    EXPECT_FALSE(animal.hasEffect(entity::effect::EffectType::Poison));
+
+    openBlock_->onEntityCollision(state, world_, pos, animal);
+
+    EXPECT_FALSE(animal.hasEffect(entity::effect::EffectType::Poison));
+}
+
+TEST_F(EyeblossomBeeCollisionTest, HardDifficulty_AppliesPoison)
+{
+    // 困难难度同样施加中毒（仅和平跳过）
+    world_.setDifficulty(Difficulty::Hard);
+
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+    auto bee = makeBee();
+
+    openBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    EXPECT_TRUE(bee->hasEffect(entity::effect::EffectType::Poison));
+    const auto* effect = bee->getEffect(entity::effect::EffectType::Poison);
+    ASSERT_NE(effect, nullptr);
+    EXPECT_EQ(effect->duration(), 25);
+    EXPECT_EQ(effect->amplifier(), 0);
+}
+
+TEST_F(EyeblossomBeeCollisionTest, NormalDifficulty_AppliesPoison)
+{
+    // 普通难度同样施加中毒
+    world_.setDifficulty(Difficulty::Normal);
+
+    const BlockPos pos(0, 64, 0);
+    const BlockState& state = openBlock_->defaultState();
+    auto bee = makeBee();
+
+    openBlock_->onEntityCollision(state, world_, pos, *bee);
+
+    EXPECT_TRUE(bee->hasEffect(entity::effect::EffectType::Poison));
 }

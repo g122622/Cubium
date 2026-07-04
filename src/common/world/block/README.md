@@ -12,7 +12,7 @@
 ├── BlockRegistry.hpp / cpp #方块注册表（单例）
 ├── BlockSoundType.hpp / cpp #方块声音类型定义
 ├── BlockTags.hpp /
-    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS、CHAINS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD
+    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS、CHAINS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD、BEE_ATTRACTIVE
         等）
 ├── FireInfoRegistry.hpp /
     cpp #火焰信息注册表（燃烧 / 蔓延属性）
@@ -696,6 +696,15 @@ Block& block = state->getBlockMutable();
 
 ### NON_FLAMMABLE_WOOD 标签
 `BlockTags::NON_FLAMMABLE_WOOD()` 包含所有不可燃烧的木材方块（绯红木和诡异木系列），包括原木/菌柄、去皮原木/去皮菌柄、菌丝体/去皮菌丝体、木板、台阶、楼梯、栅栏、栅栏门、门、活板门、按钮、压力板、告示牌、墙面告示牌、悬挂告示牌、墙面悬挂告示牌、书架等，共34种方块。对应 MC 原版标签 `minecraft:non_flammable_wood`。用于火灾蔓延判定——标签内的方块不会被火焰点燃或烧毁。
+
+### BEE_ATTRACTIVE 标签
+`BlockTags::BEE_ATTRACTIVE()` 包含 29 种吸引蜜蜂的花朵方块：蒲公英、开放眼眸花、虞美人、蓝花美耳草、绒球葱、蓝色滨菊、郁金香（红/橙/白/粉）、滨菊、矢车菊、铃兰、凋零玫瑰、火把花、向日葵、丁香、牡丹、玫瑰丛、瓶子草、开花杜鹃树叶、开花杜鹃、红树胎生苗、樱花树叶、粉瓣花、野花、紫颂花、孢子花、仙人掌花。对应 MC 原版标签 `minecraft:bee_attractive`。
+
+**关键点**：
+- 闭合眼眸花**不在**此标签中（与 MC 1.21.11 数据包一致），因此蜜蜂不被闭合眼眸花吸引
+- 含水（`waterlogged=true`）的可水合花朵由 `BeeEntity::attractsBees()` 工具函数排除
+- 向日葵仅上半部分（`DoubleBlockHalf::Upper`）吸引蜜蜂，由 `BeeEntity::attractsBees()` 处理
+- 该标签被 `EyeblossomBlock::onEntityCollision` 通过 `BeeEntity::attractsBees(state)` 间接使用，决定蜜蜂接触眼眸花时是否中毒
 
                     ## #34. getEntityInsideCollisionShape 实体内部碰撞形状
 

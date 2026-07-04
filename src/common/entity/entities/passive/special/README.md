@@ -42,10 +42,11 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 - `entity/interfaces/` - IAngerable, IRideable, IEquipable, IFlyingAnimal 接口
 - `entity/ai/` - Goal 系统（SwimGoal, PanicGoal, BreedGoal, TemptGoal, FollowParentGoal 等）
 - `entity/attributes/` - 属性系统（MAX_HEALTH, MOVEMENT_SPEED, FOLLOW_RANGE 等）
+- `entity/effect/` - 状态效果系统（`EffectType::Poison`、`EffectInstance`，被 `EyeblossomBlock::onEntityCollision` 通过 `BeeEntity` 施加）
 - `entity/utils/ItemDropHelper.hpp` - 物品掉落工具
 - `world/IWorld.hpp` - 世界接口
 - `world/block/BlockPos.hpp` - 方块位置
-- `block/BlockTags.hpp` - 方块标签（如 BlockTags::SAND 海龟产卵检测）
+- `block/BlockTags.hpp` - 方块标签（`BlockTags::SAND` 海龟产卵检测、`BlockTags::BEE_ATTRACTIVE` 蜜蜂吸引物判定、`BlockTags::BEEHIVES` 蜂巢验证）
 - `item/Items.hpp` - 物品定义
 - `item/ItemTags.hpp` - 物品标签（如 ItemTags::FLOWERS 蜜蜂繁殖）
 
@@ -71,6 +72,12 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
    - `pathfindRandomlyTowards()` 对应 MC 的 `Bee.pathfindRandomlyTowards()`，在目标方向 18 度锥形内生成随机空中航点（使用 `findAirPositionTowards`），近距离时自动缩小搜索范围，产生蜜蜂漂移飞行效果。被 `BeeFindHiveGoal`（远距离）和 `BeeFindFlowerGoal` 调用。
    - `pathfindDirectlyTowards()` 对应 MC 的 `BeeGoToHiveGoal.pathfindDirectlyTowards()`，近距离（16 格内）精确导航到蜂巢，3 格内用 1 倍速度否则 2 倍速度。被 `BeeFindHiveGoal` 调用。
    - **注意**：`PathNavigator` 已实现 `setMaxVisitedNodesMultiplier()` / `resetMaxVisitedNodesMultiplier()`，蜜蜂导航方法已正确使用：`pathfindRandomlyTowards()` 设置 0.5F（降低寻路开销），`pathfindDirectlyTowards()` 设置 10.0F（提高寻路精度），Goal 的 resetTask() 中重置为 1.0F。
+9. **花朵吸引判定（attractsBees）**：`BeeEntity::attractsBees(const BlockState&)` 是 MC 1.21.11 `Bee.attractsBees` 的对应实现，用于判定方块是否吸引蜜蜂：
+   - 依赖 `BlockTags::BEE_ATTRACTIVE` 标签（包含蒲公英、开放眼眸花、向日葵等 29 种花朵，闭合眼眸花**不在**此标签中）
+   - 含水（`waterlogged=true`）的可水合花朵不吸引蜜蜂
+   - 向日葵仅上半部分（`DoubleBlockHalf::Upper`）吸引蜜蜂
+   - 被 `EyeblossomBlock::onEntityCollision` 用于判定蜜蜂是否在接触眼眸花时中毒（开放眼眸花 → 25 tick Poison I，闭合眼眸花不触发）
+   - 后续蜜蜂 AI 的授粉目标过滤、繁殖物品判定等也可复用此方法，避免重复实现标签 + 含水 + 向日葵半身的过滤逻辑
 
 ### FoxEntity 狐狸
 1. **信任机制非 TameableEntity**：狐狸使用独立的信任系统（最多信任 2 个玩家），不继承 TameableEntity。
