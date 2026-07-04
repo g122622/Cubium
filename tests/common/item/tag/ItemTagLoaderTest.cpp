@@ -502,6 +502,13 @@ TEST_F(ItemTagLoaderTest, DatapackAppendToBuiltinTag)
     auto* flowersTag = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "flowers"));
     ASSERT_NE(flowersTag, nullptr);
 
+    // FLOWERS 是全局共享的内置标签（ItemTags::FLOWERS() 返回同一引用，
+    // BeeEntity::isBreedingItem 等游戏逻辑直接读取它）。本测试为验证数据包
+    // 追加语义会向其 add(diamond)，必须在测试结束后恢复原始内容，否则 diamond
+    // 会永久残留于 FLOWERS 标签中，污染后续 BeeEntityTest.IsBreedingItem_RejectsDiamond
+    // 等用例（实际触发过：bee.isBreedingItem(diamondStack) 误返回 true）。
+    const std::unordered_set<const Item*> savedItems = flowersTag->getItems();
+
     // 模拟追加操作
     auto parsedTag = result.value();
     for (const auto* item : parsedTag->getItems()) {
@@ -517,6 +524,12 @@ TEST_F(ItemTagLoaderTest, DatapackAppendToBuiltinTag)
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
     EXPECT_TRUE(flowersTag->contains(diamond));
+
+    // 恢复 FLOWERS 标签到测试前状态，避免污染后续测试
+    flowersTag->clear();
+    for (const auto* item : savedItems) {
+        flowersTag->add(item);
+    }
 }
 
 // ============================================================================
