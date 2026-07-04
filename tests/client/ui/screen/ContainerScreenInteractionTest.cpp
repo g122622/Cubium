@@ -843,6 +843,93 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_MultiSlotStillDistri
     EXPECT_TRUE(menu.getCarriedItem().isEmpty());
 }
 
+TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_EndOnRealSlot_DegradesToPickup)
+{
+    // 验证 _handleQuickCraft（slotIndex >= 0）路径的单槽降级：
+    // 当 END 事件发送到实际槽位（而非 -999）时，也应触发单槽降级到 PICKUP。
+    // 对应 MC 1.21.11 AbstractContainerMenu#doClick 中 quickcraftSlots.size()==1
+    // 的降级路径——MC Java 不区分 END 事件槽位是 -999 还是实际槽位，统一处理。
+    ASSERT_NE(m_diamond, nullptr);
+
+    Player player(1, "TestPlayer");
+    PlayerInventory inventory(&player);
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv)
+            : AbstractContainerMenu(0, inv)
+        {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    menu.setCarriedItem(ItemStack(*m_diamond, 32));
+
+    // 单槽拖拽协议（MODE_EVEN）：
+    // START(-999) → ADD_SLOT(slot 0) → END(slot 0)
+    // 注意：END 事件发送到实际槽位 0，而非 -999，触发 _handleQuickCraft 中的 END 分支
+    const i32 startButton = DragConstants::EVENT_START | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT);
+    const i32 addButton = DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT);
+    const i32 endButton = DragConstants::EVENT_END | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT);
+
+    menu.clicked(-999, startButton, ClickType::QuickCraft, player);
+    menu.clicked(0, addButton, ClickType::QuickCraft, player);
+    // END 发送到实际槽位 0（而非 -999）
+    menu.clicked(0, endButton, ClickType::QuickCraft, player);
+
+    // 单槽降级为 PICKUP 左键：32 个钻石应整体放入槽位 0
+    EXPECT_EQ(menu.getSlot(0)->getItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getSlot(0)->getItem().getCount(), 32);
+    EXPECT_TRUE(menu.getCarriedItem().isEmpty());
+}
+
+TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_EndOnRealSlot_DegradesToPickup)
+{
+    // 验证 _handleQuickCraft（slotIndex >= 0）路径的单槽降级（MODE_SINGLE）：
+    // END 事件发送到实际槽位时，MODE_SINGLE 应降级为 PICKUP 右键。
+    ASSERT_NE(m_diamond, nullptr);
+
+    Player player(1, "TestPlayer");
+    PlayerInventory inventory(&player);
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv)
+            : AbstractContainerMenu(0, inv)
+        {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    menu.setCarriedItem(ItemStack(*m_diamond, 32));
+
+    // 单槽拖拽协议（MODE_SINGLE）：START(-999) → ADD_SLOT(slot 0) → END(slot 0)
+    const i32 startButton = DragConstants::EVENT_START | (DragConstants::MODE_SINGLE << DragConstants::MODE_SHIFT);
+    const i32 addButton = DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_SINGLE << DragConstants::MODE_SHIFT);
+    const i32 endButton = DragConstants::EVENT_END | (DragConstants::MODE_SINGLE << DragConstants::MODE_SHIFT);
+
+    menu.clicked(-999, startButton, ClickType::QuickCraft, player);
+    menu.clicked(0, addButton, ClickType::QuickCraft, player);
+    // END 发送到实际槽位 0
+    menu.clicked(0, endButton, ClickType::QuickCraft, player);
+
+    // 单槽降级为 PICKUP 右键：仅放入 1 个钻石
+    EXPECT_EQ(menu.getSlot(0)->getItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getSlot(0)->getItem().getCount(), 1);
+    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 31);
+}
+
 TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_BundleOverride_NotTriggeredForDifferentItem)
 {
     // 反向验证：当光标物品与槽位物品不同时（如光标=钻石、槽位=收纳袋），
