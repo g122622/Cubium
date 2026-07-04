@@ -232,15 +232,32 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(c
 
 size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
 {
-    const size_t biomeDataSize = BiomeContainer::TOTAL_SIZE * sizeof(BiomeId);
+    // 必须与 serializeChunk 的实际写入严格一致，逐字段镜像：
+    //   i32 chunkX(4) + i32 chunkZ(4) + u32 sectionMask(4) + 高度图(256)
+    //   + u32 生物群系长度(4) + 生物群系数据 + 每个非空 section: u16 长度前缀(2) + sectionData
+    //   + i64 inhabitedTime(8)
+    // 注意 section 的纳入条件是“存在且非空”（与 calculateSectionMask/serializeChunk 一致），
+    // 否则空 section 会被位掩码排除，这里却计入，导致预测偏大。
+    const size_t biomeDataSize = chunk.getBiomes().serialize().size();
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-    size_t size = 4 + 4 + 2 + heightmapSize + 4 + biomeDataSize; // 坐标 + 位掩码 + 高度图 + u32生物群系长度 + 生物群系
+    const u32 sectionMask = calculateSectionMask(chunk);
+
+    size_t size = 4 + 4 + 4 + heightmapSize + 4 + biomeDataSize + 8;
+    //       ^   ^   ^                ^               ^   ^            ^-- inhabitedTime(i64)
+    //       |   |   |                |               |   +-- 生物群系数据
+    //       |   |   |                |               +-- u32 生物群系长度
+    //       |   |   |                +-- 高度图(256 字节)
+    //       |   |   +-- u32 sectionMask
+    //       |   +-- i32 chunkZ
+    //       +-- i32 chunkX
 
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
+        if ((sectionMask & (1U << i)) == 0) continue;
+
         const ChunkSection* section = chunk.getSection(i);
-        if (section) {
-            size += 2 + calculateSectionSize(*section);
-        }
+        if (!section) continue;
+
+        size += 2 + calculateSectionSize(*section); // u16 长度前缀 + sectionData
     }
 
     return size;
