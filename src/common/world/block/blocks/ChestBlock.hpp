@@ -228,6 +228,22 @@ public:
      */
     [[nodiscard]] virtual BlockEntityType getBlockEntityType() const { return BlockEntityType::Chest; }
 
+    // ========== 双箱连接 ==========
+
+    /**
+     * @brief 检查相邻方块是否可以与当前箱子连接为双箱
+     *
+     * 默认实现：邻居方块类型与当前方块一致时返回 true。
+     * 铜箱子重写此方法：邻居在 COPPER_CHESTS 标签中且拥有 CHEST_TYPE 属性时返回 true，
+     * 允许跨氧化等级与涂蜡状态的双箱合并。
+     *
+     * 参考: net.minecraft.world.level.block.ChestBlock#chestCanConnectTo (MC 1.21.11)
+     *
+     * @param neighborState 相邻方块状态
+     * @return 如果可以连接返回 true
+     */
+    [[nodiscard]] virtual bool chestCanConnectTo(const BlockState& neighborState) const;
+
     // ========== IWaterLoggable 接口实现 ==========
 
     /**

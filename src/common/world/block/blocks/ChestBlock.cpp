@@ -93,7 +93,7 @@ BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context)
         BlockPos neighborPos = context.placementPos().offset(dir);
         const BlockState* neighborStatePtr = context.getWorld().getBlockState(neighborPos);
 
-        if (neighborStatePtr != nullptr && &neighborStatePtr->getBlock() == this) {
+        if (neighborStatePtr != nullptr && chestCanConnectTo(*neighborStatePtr)) {
             const BlockState& neighborState = *neighborStatePtr;
             Direction neighborFacing = neighborState.get(BlockStateProperties::HORIZONTAL_FACING());
             BlockStateProperties::ChestType neighborType = neighborState.get(BlockStateProperties::CHEST_TYPE());
@@ -138,7 +138,7 @@ BlockState ChestBlock::updatePostPlacement(const BlockState& state,
     if (Directions::isHorizontal(facing)) {
         BlockStateProperties::ChestType currentType = state.get(BlockStateProperties::CHEST_TYPE());
 
-        if (&neighborState.getBlock() == this) {
+        if (chestCanConnectTo(neighborState)) {
             Direction currentFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
             Direction neighborFacing = neighborState.get(BlockStateProperties::HORIZONTAL_FACING());
             BlockStateProperties::ChestType neighborType = neighborState.get(BlockStateProperties::CHEST_TYPE());
@@ -395,6 +395,14 @@ bool ChestBlock::isCatSittingOn(IWorld& world, const BlockPos& pos)
     return false;
 }
 
+// ========== 双箱连接 ==========
+
+bool ChestBlock::chestCanConnectTo(const BlockState& neighborState) const
+{
+    // 默认实现：邻居方块类型与当前方块一致时可以连接
+    return &neighborState.getBlock() == this;
+}
+
 // ========== 受保护方法 ==========
 
 void ChestBlock::combineChests(const BlockState& state, IWorld& world, const BlockPos& pos, Direction facing)
@@ -414,7 +422,7 @@ void ChestBlock::combineChests(const BlockState& state, IWorld& world, const Blo
     // 更新相邻箱子的类型
     BlockPos neighborPos = pos.offset(facing);
     const BlockState* neighborStatePtr = world.getBlockState(neighborPos);
-    if (neighborStatePtr != nullptr && &neighborStatePtr->getBlock() == this) {
+    if (neighborStatePtr != nullptr && chestCanConnectTo(*neighborStatePtr)) {
         BlockState neighborState = *neighborStatePtr;
         BlockStateProperties::ChestType neighborType = newType == BlockStateProperties::ChestType::Left
             ? BlockStateProperties::ChestType::Right
@@ -429,7 +437,7 @@ bool ChestBlock::canCombineWithChestAt(
     BlockPos neighborPos = pos.offset(facing);
     const BlockState* neighborStatePtr = world.getBlockState(neighborPos);
 
-    if (neighborStatePtr == nullptr || &neighborStatePtr->getBlock() != this) {
+    if (neighborStatePtr == nullptr || !chestCanConnectTo(*neighborStatePtr)) {
         return false;
     }
 

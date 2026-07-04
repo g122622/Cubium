@@ -723,7 +723,24 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         // 新方块有方块实体时创建
         if (!newIsAir && newState->getBlock().hasBlockEntity()) {
             Block& newBlock = newState->getBlockMutable();
-            auto blockEntity = newBlock.createBlockEntity(changedPos);
+
+            // 检查旧方块是否要求保留方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）
+            // 参考: net.minecraft.world.level.block.state.BlockBehaviour#shouldChangedStateKeepBlockEntity
+            std::unique_ptr<BlockEntity> migratedEntity;
+            if (!oldIsAir && blockTypeChanged && oldState->getBlock().shouldChangedStateKeepBlockEntity(*oldState)) {
+                // 取出旧方块实体（不销毁），用于迁移到新方块
+                // 旧方块的 shouldChangedStateKeepBlockEntity 返回 true 表示新方块语义上兼容旧实体
+                migratedEntity = chunk->removeBlockEntity(changedPos);
+            }
+
+            std::unique_ptr<BlockEntity> blockEntity;
+            if (migratedEntity != nullptr) {
+                // 直接复用旧方块实体（shouldChangedStateKeepBlockEntity 已保证语义兼容）
+                blockEntity = std::move(migratedEntity);
+            } else {
+                blockEntity = newBlock.createBlockEntity(changedPos);
+            }
+
             if (blockEntity != nullptr) {
                 setBlockEntity(changedPos, blockEntity.release());
             }

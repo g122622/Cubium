@@ -98,6 +98,7 @@ Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 | `CopperBulbBlock.hpp/cpp` | 铜灯（红石控制，LIT/POWERED 状态） |
 | `WeatheringLightningRodBlock.hpp/cpp` | 可氧化避雷针（方向性，红石信号输出，闪电吸引，含水支持） |
 | `CopperGolemStatueBlock.hpp/cpp` | 铜傀儡雕像（1.21.11，4 种姿态，比较器输出 1-4，方块实体保存 CUSTOM_NAME） |
+| `CopperChestBlock.hpp/cpp` | 铜箱子（1.21.11，27 格容器，双箱合并跨氧化等级/涂蜡状态，方块实体保留） |
 
 ### 避雷针氧化系统（MC 1.21+）
 
@@ -134,5 +135,40 @@ MC 1.21 为避雷针新增了氧化变种。避雷针的氧化架构与其他铜
 **斧头生成铜傀儡：** 玩家用斧头右键敲击基础 `copper_golem_statue`（Unaffected 等级、未涂蜡）时，`CopperGolemStatueBlock::onBlockActivated` 调用 `CopperGolemStatueBlockEntity::removeStatue(state)` 生成铜傀儡实体（转移 `CUSTOM_NAME`、设置位置与朝向、播放生成音效），然后损坏斧头、将实体加入世界、移除方块。涂蜡变体返回 PASS 由 `AxeItem` 处理除蜡，Exposed+ 变体由 `WeatheringCopperGolemStatueBlock` 继承父类逻辑（涂蜡检测返回 PASS，由 `AxeItem` 处理刮削）。
 
 氧化链：`copper_golem_statue → exposed_copper_golem_statue → weathered_copper_golem_statue → oxidized_copper_golem_statue`
+
+涂蜡映射（4 组）通过 `HoneycombItem::_buildWaxablesMap()` 注册，斧头除蜡通过 `HoneycombItem::getWaxedOff()` 自动反向查找。
+
+### 铜箱子系统（MC 1.21.11）
+
+铜箱子（`copper_chest`）是 1.21.11 引入的容器方块，共 8 个变体（4 氧化等级 + 4 涂蜡）。它的架构与铜傀儡雕像类似但更复杂，因为需要保留方块实体中的物品：
+
+- **基础 `copper_chest`**：使用 `CopperChestBlock`（不实现 `IOxidizableBlock`），处于氧化链的 Unaffected 位置但不参与氧化 tick
+- **`exposed_copper_chest` / `weathered_copper_chest` / `oxidized_copper_chest`**：使用 `WeatheringCopperChestBlock`（继承 `CopperChestBlock` + `IOxidizableBlock`），可随机 tick 氧化
+- **涂蜡变种**：使用 `WaxedCopperChestBlock`（继承 `CopperChestBlock`，重写 `isWaxed()` 返回 true），不氧化
+
+**与铜傀儡雕像的关键差异：**
+
+1. **方块状态属性**：铜箱子不使用 `OXIDATION` 方块状态属性，每个氧化等级是独立的方块类型（与 MC Java 1.21.11 一致）。`m_oxidationLevel` 成员变量仅用于双箱合并时比较氧化等级。
+
+2. **方块实体保留**：铜箱子复用 `BlockEntityType::Chest` 与 `ChestEntity`（27 格物品存储）。氧化/涂蜡/除蜡/刮削导致方块类型变化时，通过 `shouldChangedStateKeepBlockEntity()` 返回 true 保留旧方块实体，避免物品丢失。`ServerWorld::setBlockState` 在检测到此方法返回 true 时，会迁移旧方块实体到新方块而非创建空实体。
+
+3. **双箱合并跨氧化等级**：`chestCanConnectTo()` 检查 `COPPER_CHESTS` 标签，允许不同氧化等级与涂蜡状态的铜箱子合并为双箱。`getStateForPlacement()` 调用 `getLeastOxidizedChestOfConnectedBlocks`，在合并时取较低氧化等级（且优先未涂蜡）的方块类型作为合并后方块类型。`updatePostPlacement()` 在连接建立时同步方块类型。
+
+4. **随机 tick 氧化条件**：`WeatheringCopperChestBlock.randomTick` 在以下情况不氧化：
+   - 当前箱子是双箱的 RIGHT 部分（避免双箱两侧同时氧化导致不同步）
+   - 箱子正在被玩家打开（`ChestEntity::getOpenCount() > 0`）
+
+**状态属性：**
+- `HORIZONTAL_FACING`：朝向（北南东西，与玩家朝向相反）
+- `CHEST_TYPE`：箱子类型（SINGLE/LEFT/RIGHT）
+- `WATERLOGGED`：是否含水
+
+**核心行为：**
+- 容量 27 格（单箱）/ 54 格（双箱），与普通箱子一致
+- 玩家右键打开 GUI（`Generic9x3` 单箱 / `Generic9x6` 双箱），复用 `ChestEntity` 与 `StandaloneServer` 菜单工厂
+- 红石比较器输出（与普通箱子一致，按物品占用率计算）
+- 双箱合并时跨氧化等级与涂蜡状态连接（`COPPER_CHESTS` 标签）
+
+氧化链：`copper_chest → exposed_copper_chest → weathered_copper_chest → oxidized_copper_chest`
 
 涂蜡映射（4 组）通过 `HoneycombItem::_buildWaxablesMap()` 注册，斧头除蜡通过 `HoneycombItem::getWaxedOff()` 自动反向查找。
