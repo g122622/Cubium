@@ -631,31 +631,39 @@ TEST_F(WallTorchBlockTest, UpdatePostPlacement_UnrelatedDirection_DelegatesToPar
 
 // --- getStateForPlacement ---
 
-TEST_F(WallTorchBlockTest, GetStateForPlacement_ClickSouthFace_ReturnsNorthFacing)
+TEST_F(WallTorchBlockTest, GetStateForPlacement_ClickSouthFace_ReturnsSouthFacing)
 {
     TorchTestWorld world;
     TestSolidBlock solidBlock{BlockProperties(Material::ROCK).hardness(1.5f)};
     const BlockState& solidState = solidBlock.defaultState();
     world.setBlockStateCopy(BlockPos(0, 10, 0), solidState);
 
-    // Click South face of solid block at (0,10,0): torch at (0,10,1) facing North
+    // Click South face of solid block at (0,10,0): torch placed at (0,10,1), attached to the
+    // block on its North side, so the torch head points South (FACING=South).
+    // 与 MC 1.21.11 WallTorchBlock.getStateForPlacement 一致：
+    //   getNearestLookingDirections 首位 = clickedFace.getOpposite() = North，
+    //   attachPos = torchPos + direction(North) = (0,10,0)（实心），facing = opposite(North) = South。
     auto context = makePlacementContext(world, BlockPos(0, 10, 0), Direction::South);
     BlockState result = wallTorch_->getStateForPlacement(context);
 
-    EXPECT_EQ(WallTorchBlock::getFacing(result), Direction::North);
+    EXPECT_EQ(WallTorchBlock::getFacing(result), Direction::South);
 }
 
-TEST_F(WallTorchBlockTest, GetStateForPlacement_ClickEastFace_ReturnsWestFacing)
+TEST_F(WallTorchBlockTest, GetStateForPlacement_ClickEastFace_ReturnsEastFacing)
 {
     TorchTestWorld world;
     TestSolidBlock solidBlock{BlockProperties(Material::ROCK).hardness(1.5f)};
     const BlockState& solidState = solidBlock.defaultState();
     world.setBlockStateCopy(BlockPos(5, 10, 5), solidState);
 
+    // Click East face of solid block at (5,10,5): torch placed at (6,10,5), attached to the
+    // block on its West side, so the torch head points East (FACING=East).
+    // 与 MC 1.21.11 一致：getNearestLookingDirections 首位 = East.getOpposite() = West，
+    //   attachPos = torchPos + West = (5,10,5)（实心），facing = opposite(West) = East。
     auto context = makePlacementContext(world, BlockPos(5, 10, 5), Direction::East);
     BlockState result = wallTorch_->getStateForPlacement(context);
 
-    EXPECT_EQ(WallTorchBlock::getFacing(result), Direction::West);
+    EXPECT_EQ(WallTorchBlock::getFacing(result), Direction::East);
 }
 
 TEST_F(WallTorchBlockTest, GetStateForPlacement_ClickUpFace_TriesAlternatives)
