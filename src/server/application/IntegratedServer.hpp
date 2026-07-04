@@ -51,6 +51,7 @@ struct IntegratedServerParams {
     i32 viewDistance = defaults::integratedServer::viewDistance;
     i32 tickRate = defaults::integratedServer::tickRate;
     WorldType worldType = WorldType::Default;
+    bool allowCommands; ///< 单机作弊开关，对应原版 WorldData.isAllowCommands()
 };
 
 /**
@@ -78,6 +79,11 @@ public:
 
     [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
     [[nodiscard]] bool isDedicated() const noexcept override { return false; }
+
+    /**
+     * @brief 单机主机作弊提升：主机在开启作弊时运行时视为 OP（Owner 级），不写 ops.json。
+     */
+    [[nodiscard]] i32 resolveOpLevel(const std::string& uuid) const noexcept override;
 
 protected:
     void pollNetwork() override;

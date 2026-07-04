@@ -840,7 +840,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     m_playerEntityIds[playerId] = entityId;
 
     // 从 OP 列表设置玩家权限等级
-    i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
+    i32 playerPermissionLevel = resolveOpLevel(playerData->uuid);
     playerEntity->setPermissionLevel(playerPermissionLevel);
 
     // 从存档加载玩家数据并恢复到实体

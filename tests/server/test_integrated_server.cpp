@@ -51,6 +51,7 @@ TEST(IntegratedServerTest, InitializeServer)
     config.worldName = "test_world";
     config.seed = 12345;
     config.viewDistance = 8;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     EXPECT_TRUE(result.success());
@@ -65,6 +66,7 @@ TEST(IntegratedServerTest, GetClientEndpoint)
     IntegratedServer server;
     IntegratedServerParams config;
     config.seed = 1;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -80,6 +82,7 @@ TEST(IntegratedServerTest, DoubleInitializeFails)
 {
     IntegratedServer server;
     IntegratedServerParams config;
+    config.allowCommands = false;
 
     auto result1 = server.initialize(config);
     EXPECT_TRUE(result1.success());
@@ -107,6 +110,7 @@ TEST(IntegratedServerTest, ConfigValues)
     config.seed = 42;
     config.viewDistance = 16;
     config.tickRate = 30;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -127,6 +131,7 @@ TEST(IntegratedServerTest, OverworldWorldMatchesServerWorldShortcut)
     config.worldName = "test_world_runtime_binding";
     config.seed = 12345;
     config.viewDistance = 8;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -146,6 +151,7 @@ TEST(IntegratedServerTest, DimensionsShareStorage)
     config.worldName = "test_world_shared_storage";
     config.seed = 67890;
     config.viewDistance = 8;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -170,6 +176,7 @@ TEST(IntegratedServerTest, TickCountIncreases)
     IntegratedServer server;
     IntegratedServerParams config;
     config.tickRate = 100; // 100 TPS for faster testing
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -190,6 +197,7 @@ TEST(IntegratedServerTest, RequestStopDisconnectsClientEndpoint)
     IntegratedServer server;
     IntegratedServerParams config;
     config.tickRate = 100;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -218,6 +226,7 @@ protected:
         config.seed = 12345;
         config.viewDistance = 3;
         config.tickRate = 100; // Faster ticks for testing
+        config.allowCommands = false;
 
         auto result = server.initialize(config);
         ASSERT_TRUE(result.success());
@@ -325,6 +334,7 @@ TEST(IntegratedServerDisconnectTest, ClientDisconnect)
 {
     IntegratedServer server;
     IntegratedServerParams config;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());
@@ -351,6 +361,7 @@ TEST(IntegratedServerDisconnectTest, ServerStopClosesEndpoint)
     {
         IntegratedServer server;
         IntegratedServerParams config;
+        config.allowCommands = false;
 
         auto result = server.initialize(config);
         ASSERT_TRUE(result.success());
@@ -395,6 +406,7 @@ TEST(IntegratedServerTypeTest, TypeMethodsWorkAfterInitialization)
     IntegratedServer server;
     IntegratedServerParams config;
     config.seed = 1;
+    config.allowCommands = false;
 
     auto result = server.initialize(config);
     ASSERT_TRUE(result.success());

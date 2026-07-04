@@ -794,6 +794,7 @@ add_executable(mc_tests
     server/core/BannedPlayerListTest.cpp
     server/core/BannedIpListTest.cpp
     server/core/OpListManagerTest.cpp
+    server/core/PermissionResolverTest.cpp
     # PacketHandler 测试（载具输入、位置验证、实体交互、实体动作）
     server/core/PacketHandlerTest.cpp
     # ServerPlayer 消息发送测试
@@ -2271,6 +2272,7 @@ add_executable(mc_command_tests
     server/command/ReplaceItemCommandTest.cpp
     server/command/BlockDataAccessorTest.cpp
     server/command/WardenSpawnTrackerCommandTest.cpp
+    server/command/TeleportPermissionParseTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
     common/command/arguments/FunctionArgumentTest.cpp

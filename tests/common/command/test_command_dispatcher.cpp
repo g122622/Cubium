@@ -540,6 +540,72 @@ TEST_F(CommandDispatcherTest, ExecuteFailsOnUnknownExtraArgument)
     EXPECT_TRUE(result.failed());
 }
 
+// 权限不足但输入精确匹配某字面量节点时，应报 PermissionDenied 友好提示，
+// 而非落到其它字面量在当前 token 上抛出的误导性 Expected literal 'X'。
+TEST_F(CommandDispatcherTest, PermissionDeniedWhenLiteralMatchesButNoPermission)
+{
+    CommandDispatcher<int> dispatcher;
+
+    auto tpNode = std::make_shared<LiteralCommandNode<int>>("tp");
+    tpNode->setRequirement([](const int& s) { return s >= 2; });
+    tpNode->setCommand([](CommandContext<int>&) { return 1; });
+    dispatcher.registerCommand(tpNode);
+
+    // 另一个根字面量，模拟真实命令树里 help/gamemode 等共存节点。
+    // 旧逻辑下它会在 "tp" token 上抛 Expected literal 'help' 并成为 bestFailure。
+    auto helpNode = std::make_shared<LiteralCommandNode<int>>("help");
+    helpNode->setCommand([](CommandContext<int>&) { return 1; });
+    dispatcher.registerCommand(helpNode);
+
+    int source = 0; // 权限 0 < 2，tp 节点被跳过
+    auto result = dispatcher.parse("tp 100 1000 1000", source);
+
+    EXPECT_FALSE(result.isSuccess());
+    const auto ex = result.getException();
+    ASSERT_TRUE(ex.has_value());
+    EXPECT_EQ(ex->type(), CommandErrorType::PermissionDenied);
+    EXPECT_EQ(ex->message(), "commands.permission.denied");
+}
+
+// 输入不匹配任何命令时不应误报为权限不足，仍走 Unknown command 路径。
+TEST_F(CommandDispatcherTest, UnknownCommandWhenNoLiteralMatches)
+{
+    CommandDispatcher<int> dispatcher;
+
+    auto tpNode = std::make_shared<LiteralCommandNode<int>>("tp");
+    tpNode->setRequirement([](const int& s) { return s >= 2; });
+    tpNode->setCommand([](CommandContext<int>&) { return 1; });
+    dispatcher.registerCommand(tpNode);
+
+    int source = 0;
+    auto result = dispatcher.parse("nonexistent", source);
+
+    EXPECT_FALSE(result.isSuccess());
+    const auto ex = result.getException();
+    ASSERT_TRUE(ex.has_value());
+    EXPECT_NE(ex->type(), CommandErrorType::PermissionDenied);
+}
+
+// 权限满足时正常解析，确认友好提示改动不影响正常路径。
+TEST_F(CommandDispatcherTest, SucceedsWithPermission)
+{
+    CommandDispatcher<int> dispatcher;
+
+    auto tpNode = std::make_shared<LiteralCommandNode<int>>("tp");
+    tpNode->setRequirement([](const int& s) { return s >= 2; });
+    tpNode->setCommand([](CommandContext<int>&) { return 1; });
+    dispatcher.registerCommand(tpNode);
+
+    auto helpNode = std::make_shared<LiteralCommandNode<int>>("help");
+    helpNode->setCommand([](CommandContext<int>&) { return 1; });
+    dispatcher.registerCommand(helpNode);
+
+    int source = 2; // 权限满足
+    auto result = dispatcher.parse("tp 100 1000 1000", source);
+
+    EXPECT_TRUE(result.isSuccess());
+}
+
 TEST_F(CommandDispatcherTest, ExecuteRedirectAlias)
 {
     CommandDispatcher<int> dispatcher;

@@ -93,7 +93,9 @@ IntegratedServer::~IntegratedServer()
 
 Result<void> IntegratedServer::initialize()
 {
-    return initialize(IntegratedServerParams{});
+    IntegratedServerParams params;
+    params.allowCommands = false;
+    return initialize(params);
 }
 
 Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
@@ -492,7 +494,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     // 从 OP 列表设置玩家权限等级（集成服务器中单机玩家默认拥有完整权限）
-    i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
+    i32 playerPermissionLevel = resolveOpLevel(playerData->uuid);
     {
         auto* world = getPlayerWorld(m_clientPlayerId);
         if (world != nullptr) {
@@ -763,6 +765,20 @@ void IntegratedServer::_sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockBreakAnim, result.value());
     _sendToClient(fullPacket.data(), fullPacket.size());
+}
+
+i32 IntegratedServer::resolveOpLevel(const std::string& uuid) const noexcept
+{
+    const i32 base = static_cast<i32>(m_opListManager->getLevel(uuid));
+
+    // 主机身份动态判定：m_clientPlayerId 登录后非 0，playerManager 持有其 UUID
+    bool isOwner = false;
+    if (m_clientPlayerId != 0 && m_playerManager != nullptr) {
+        const auto* host = m_playerManager->getPlayer(m_clientPlayerId);
+        isOwner = (host != nullptr && host->uuid == uuid);
+    }
+
+    return core::applyOwnerCheatsBoost(base, isOwner, m_params.allowCommands);
 }
 
 bool IntegratedServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
