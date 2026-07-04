@@ -329,6 +329,18 @@ const ResourceLocation BLOCK_ENDER_CHEST_CLOSE("minecraft:block.ender_chest.clos
 const ResourceLocation BLOCK_SHULKER_BOX_OPEN("minecraft:block.shulker_box.open");
 const ResourceLocation BLOCK_SHULKER_BOX_CLOSE("minecraft:block.shulker_box.close");
 
+// 铜箱子开合音效（MC 1.21.11）
+// Unaffected 与 Exposed 等级共用 block.copper_chest.open/close
+// Weathered 等级使用 block.copper_chest_weathered.open/close
+// Oxidized 等级使用 block.copper_chest_oxidized.open/close
+// 涂蜡变体复用对应氧化等级的声音事件
+const ResourceLocation BLOCK_COPPER_CHEST_OPEN("minecraft:block.copper_chest.open");
+const ResourceLocation BLOCK_COPPER_CHEST_CLOSE("minecraft:block.copper_chest.close");
+const ResourceLocation BLOCK_COPPER_CHEST_WEATHERED_OPEN("minecraft:block.copper_chest_weathered.open");
+const ResourceLocation BLOCK_COPPER_CHEST_WEATHERED_CLOSE("minecraft:block.copper_chest_weathered.close");
+const ResourceLocation BLOCK_COPPER_CHEST_OXIDIZED_OPEN("minecraft:block.copper_chest_oxidized.open");
+const ResourceLocation BLOCK_COPPER_CHEST_OXIDIZED_CLOSE("minecraft:block.copper_chest_oxidized.close");
+
 const ResourceLocation BLOCK_PISTON_EXTEND("minecraft:block.piston.extend");
 const ResourceLocation BLOCK_PISTON_CONTRACT("minecraft:block.piston.contract");
 

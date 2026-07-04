@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -227,6 +229,28 @@ public:
      * @return 方块实体类型
      */
     [[nodiscard]] virtual BlockEntityType getBlockEntityType() const { return BlockEntityType::Chest; }
+
+    // ========== 开合音效 ==========
+
+    /**
+     * @brief 获取箱子打开音效
+     *
+     * 默认返回普通箱子的 BLOCK_CHEST_OPEN。
+     * 铜箱子子类（CopperChestBlock）重写此方法，根据氧化等级返回对应的声音事件。
+     *
+     * 参考: net.minecraft.world.level.block.ChestBlock#getOpenChestSound (MC 1.21.11)
+     */
+    [[nodiscard]] virtual const ResourceLocation& getOpenSound() const;
+
+    /**
+     * @brief 获取箱子关闭音效
+     *
+     * 默认返回普通箱子的 BLOCK_CHEST_CLOSE。
+     * 铜箱子子类（CopperChestBlock）重写此方法，根据氧化等级返回对应的声音事件。
+     *
+     * 参考: net.minecraft.world.level.block.ChestBlock#getCloseChestSound (MC 1.21.11)
+     */
+    [[nodiscard]] virtual const ResourceLocation& getCloseSound() const;
 
     // ========== 双箱连接 ==========
 

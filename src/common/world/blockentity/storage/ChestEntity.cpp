@@ -482,7 +482,16 @@ void ChestEntity::_playSound(IWorld& world, bool open)
     static thread_local math::Random sSoundRng(0);
     f32 pitch = sSoundRng.nextFloat() * 0.1f + 0.9f;
 
-    const ResourceLocation& soundEvent = open ? SoundEvents::BLOCK_CHEST_OPEN : SoundEvents::BLOCK_CHEST_CLOSE;
+    // 从方块实例取得开合音效（普通箱子返回 BLOCK_CHEST_OPEN/CLOSE，
+    // 铜箱子按氧化等级返回对应声音事件）
+    // 对应 MC Java ChestBlockEntity.onOpen/onClose:
+    //   if (state.getBlock() instanceof ChestBlock chestblock)
+    //       playSound(level, pos, state, chestblock.getOpenChestSound());
+    const Block& block = state->getBlock();
+    const auto* chestBlock = dynamic_cast<const blocks::ChestBlock*>(&block);
+    const ResourceLocation& soundEvent = (chestBlock != nullptr)
+        ? (open ? chestBlock->getOpenSound() : chestBlock->getCloseSound())
+        : (open ? SoundEvents::BLOCK_CHEST_OPEN : SoundEvents::BLOCK_CHEST_CLOSE);
     world.playSound(
         soundEvent, sound::SoundCategory::Blocks, Vector3(soundX, soundY, soundZ), CHEST_SOUND_VOLUME, pitch);
 }

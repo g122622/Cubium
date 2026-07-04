@@ -403,6 +403,20 @@ bool ChestBlock::chestCanConnectTo(const BlockState& neighborState) const
     return &neighborState.getBlock() == this;
 }
 
+// ========== 开合音效 ==========
+
+const ResourceLocation& ChestBlock::getOpenSound() const
+{
+    // 默认返回普通箱子的开箱音效；铜箱子子类重写此方法返回对应氧化等级的声音事件
+    return SoundEvents::BLOCK_CHEST_OPEN;
+}
+
+const ResourceLocation& ChestBlock::getCloseSound() const
+{
+    // 默认返回普通箱子的关箱音效；铜箱子子类重写此方法返回对应氧化等级的声音事件
+    return SoundEvents::BLOCK_CHEST_CLOSE;
+}
+
 // ========== 受保护方法 ==========
 
 void ChestBlock::combineChests(const BlockState& state, IWorld& world, const BlockPos& pos, Direction facing)

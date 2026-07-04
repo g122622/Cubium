@@ -173,6 +173,23 @@ public:
      */
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
+    /**
+     * @brief 是否在状态变更时保留方块实体
+     *
+     * 铜傀儡雕像在氧化/涂蜡/除蜡/刮削导致方块类型变化时需要保留方块实体
+     * （CUSTOM_NAME 自定义名称等不丢失）。返回 true 让 ServerWorld::setBlockState
+     * 迁移旧 BlockEntity 至新方块而非创建空实体。
+     *
+     * 注意：基础 CopperGolemStatueBlock（Unaffected 等级）实际不会发生氧化导致的
+     * 方块类型变化（不实现 IOxidizableBlock），但涂蜡变体被斧头除蜡时会变为
+     * 基础变体，此时需要保留 CUSTOM_NAME。返回 true 覆盖所有铜傀儡雕像变体。
+     */
+    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     // ========== IWaterLoggable 接口实现 ==========
 
     /**

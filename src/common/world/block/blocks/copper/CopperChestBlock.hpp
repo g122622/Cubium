@@ -25,6 +25,7 @@
 
 #include "../ChestBlock.hpp"
 #include "WeatheringCopperBlock.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 
@@ -66,8 +67,20 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      * @param oxidationLevel 当前氧化等级（涂蜡变体也记录对应氧化等级，用于除蜡后恢复）
+     * @param openSound 开箱音效事件（不同氧化等级映射不同声音，涂蜡变体复用对应等级声音）
+     * @param closeSound 关箱音效事件（不同氧化等级映射不同声音，涂蜡变体复用对应等级声音）
+     *
+     * 参考 MC Java 1.21.11 CopperChestBlock 构造函数：
+     *   CopperChestBlock(WeatherState, SoundEvent openSound, SoundEvent closeSound, Properties)
+     * 声音映射表：
+     *   - Unaffected/Exposed + 涂蜡变体 -> block.copper_chest.open/close
+     *   - Weathered + 涂蜡变体 -> block.copper_chest_weathered.open/close
+     *   - Oxidized + 涂蜡变体 -> block.copper_chest_oxidized.open/close
      */
-    CopperChestBlock(const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel);
+    CopperChestBlock(const BlockProperties& properties,
+        BlockStateProperties::OxidationLevel oxidationLevel,
+        const ResourceLocation& openSound,
+        const ResourceLocation& closeSound);
 
     ~CopperChestBlock() override = default;
 
@@ -162,9 +175,39 @@ public:
      */
     [[nodiscard]] virtual bool isWaxed() const noexcept { return false; }
 
+    // ========== 开合音效 ==========
+
+    /**
+     * @brief 获取开箱音效
+     *
+     * 铜箱子根据氧化等级返回不同的开箱音效事件：
+     * - Unaffected/Exposed: BLOCK_COPPER_CHEST_OPEN
+     * - Weathered: BLOCK_COPPER_CHEST_WEATHERED_OPEN
+     * - Oxidized: BLOCK_COPPER_CHEST_OXIDIZED_OPEN
+     * 涂蜡变体复用对应氧化等级的声音（在构造时传入相同的声音引用）。
+     */
+    [[nodiscard]] const ResourceLocation& getOpenSound() const override { return m_openSound; }
+
+    /**
+     * @brief 获取关箱音效
+     *
+     * 铜箱子根据氧化等级返回不同的关箱音效事件：
+     * - Unaffected/Exposed: BLOCK_COPPER_CHEST_CLOSE
+     * - Weathered: BLOCK_COPPER_CHEST_WEATHERED_CLOSE
+     * - Oxidized: BLOCK_COPPER_CHEST_OXIDIZED_CLOSE
+     * 涂蜡变体复用对应氧化等级的声音（在构造时传入相同的声音引用）。
+     */
+    [[nodiscard]] const ResourceLocation& getCloseSound() const override { return m_closeSound; }
+
 protected:
     /// 当前氧化等级（涂蜡变体也记录对应氧化等级）
     BlockStateProperties::OxidationLevel m_oxidationLevel;
+
+    /// 开箱音效（不同氧化等级映射不同声音，涂蜡变体复用对应等级声音）
+    const ResourceLocation& m_openSound;
+
+    /// 关箱音效（不同氧化等级映射不同声音，涂蜡变体复用对应等级声音）
+    const ResourceLocation& m_closeSound;
 };
 
 /**
@@ -186,8 +229,13 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      * @param oxidationLevel 初始氧化等级（Exposed/Weathered/Oxidized）
+     * @param openSound 开箱音效事件（按氧化等级映射）
+     * @param closeSound 关箱音效事件（按氧化等级映射）
      */
-    WeatheringCopperChestBlock(const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel);
+    WeatheringCopperChestBlock(const BlockProperties& properties,
+        BlockStateProperties::OxidationLevel oxidationLevel,
+        const ResourceLocation& openSound,
+        const ResourceLocation& closeSound);
 
     ~WeatheringCopperChestBlock() override = default;
 
@@ -261,9 +309,14 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      * @param oxidationLevel 对应的氧化等级（涂蜡变体记录氧化等级，用于除蜡后恢复）
+     * @param openSound 开箱音效事件（涂蜡变体复用对应氧化等级的声音）
+     * @param closeSound 关箱音效事件（涂蜡变体复用对应氧化等级的声音）
      */
-    WaxedCopperChestBlock(const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel)
-        : CopperChestBlock(properties, oxidationLevel)
+    WaxedCopperChestBlock(const BlockProperties& properties,
+        BlockStateProperties::OxidationLevel oxidationLevel,
+        const ResourceLocation& openSound,
+        const ResourceLocation& closeSound)
+        : CopperChestBlock(properties, oxidationLevel, openSound, closeSound)
     {}
 
     ~WaxedCopperChestBlock() override = default;

@@ -353,6 +353,18 @@ extern const ResourceLocation BLOCK_ENDER_CHEST_CLOSE;
 extern const ResourceLocation BLOCK_SHULKER_BOX_OPEN;
 extern const ResourceLocation BLOCK_SHULKER_BOX_CLOSE;
 
+/// 铜箱子开合音效（MC 1.21.11）
+// Unaffected 与 Exposed 等级共用 block.copper_chest.open/close
+// Weathered 等级使用 block.copper_chest_weathered.open/close
+// Oxidized 等级使用 block.copper_chest_oxidized.open/close
+// 涂蜡变体复用对应氧化等级的声音事件
+extern const ResourceLocation BLOCK_COPPER_CHEST_OPEN;
+extern const ResourceLocation BLOCK_COPPER_CHEST_CLOSE;
+extern const ResourceLocation BLOCK_COPPER_CHEST_WEATHERED_OPEN;
+extern const ResourceLocation BLOCK_COPPER_CHEST_WEATHERED_CLOSE;
+extern const ResourceLocation BLOCK_COPPER_CHEST_OXIDIZED_OPEN;
+extern const ResourceLocation BLOCK_COPPER_CHEST_OXIDIZED_CLOSE;
+
 /// 活塞
 extern const ResourceLocation BLOCK_PISTON_EXTEND;
 extern const ResourceLocation BLOCK_PISTON_CONTRACT;

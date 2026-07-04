@@ -169,6 +169,22 @@ MC 1.21 为避雷针新增了氧化变种。避雷针的氧化架构与其他铜
 - 红石比较器输出（与普通箱子一致，按物品占用率计算）
 - 双箱合并时跨氧化等级与涂蜡状态连接（`COPPER_CHESTS` 标签）
 
+**开合音效系统（MC 1.21.11）：**
+
+铜箱子按氧化等级映射 6 种开合音效事件，涂蜡变体复用对应氧化等级的音效：
+
+| 方块变体 | openSound | closeSound |
+|---------|-----------|------------|
+| `copper_chest` / `exposed_copper_chest` 及其涂蜡版本 | `block.copper_chest.open` | `block.copper_chest.close` |
+| `weathered_copper_chest` 及其涂蜡版本 | `block.copper_chest_weathered.open` | `block.copper_chest_weathered.close` |
+| `oxidized_copper_chest` 及其涂蜡版本 | `block.copper_chest_oxidized.open` | `block.copper_chest_oxidized.close` |
+
+实现机制：
+- `ChestBlock` 基类提供虚方法 `getOpenSound()` / `getCloseSound()`，默认返回 `BLOCK_CHEST_OPEN` / `BLOCK_CHEST_CLOSE`（普通箱子/陷阱箱使用默认值）
+- `CopperChestBlock` 重写这两个方法，返回构造时传入的音效引用
+- `ChestEntity::_playSound` 通过 `dynamic_cast<const ChestBlock*>(&block)` 从方块实例获取音效，无需在方块实体层维护音效映射
+- 音效位置偏移与双箱中心对齐逻辑与普通箱子一致（LEFT 箱子不播放，RIGHT 箱子向连接方向偏移 0.5 格）
+
 氧化链：`copper_chest → exposed_copper_chest → weathered_copper_chest → oxidized_copper_chest`
 
 涂蜡映射（4 组）通过 `HoneycombItem::_buildWaxablesMap()` 注册，斧头除蜡通过 `HoneycombItem::getWaxedOff()` 自动反向查找。

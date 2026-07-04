@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/CopperBlocks.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
@@ -1088,23 +1089,39 @@ void registerCopperBlocks()
     BlockProperties copperChestProps =
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().soundType(BlockSoundTypes::COPPER);
 
+    // 开合音效按氧化等级映射（与 MC Java 1.21.11 一致）：
+    // - Unaffected/Exposed + 涂蜡变体 -> block.copper_chest.open/close
+    // - Weathered + 涂蜡变体 -> block.copper_chest_weathered.open/close
+    // - Oxidized + 涂蜡变体 -> block.copper_chest_oxidized.open/close
+    // 涂蜡变体复用对应氧化等级的声音（在构造时传入相同的声音引用）。
+
     // 基础铜箱子（Unaffected 等级，不氧化但处于氧化链最低位）
-    auto* copperChest = &registry.registerBlock<blocks::CopperChestBlock>(
-        ResourceLocation("minecraft:copper_chest"), copperChestProps, BlockStateProperties::OxidationLevel::Unaffected);
+    auto* copperChest = &registry.registerBlock<blocks::CopperChestBlock>(ResourceLocation("minecraft:copper_chest"),
+        copperChestProps,
+        BlockStateProperties::OxidationLevel::Unaffected,
+        SoundEvents::BLOCK_COPPER_CHEST_OPEN,
+        SoundEvents::BLOCK_COPPER_CHEST_CLOSE);
 
     // 可氧化铜箱子变种（Exposed/Weathered/Oxidized）
+    // Exposed 复用 Unaffected 的 block.copper_chest.open/close 声音（与 MC Java 一致）
     auto* exposedCopperChest =
         &registry.registerBlock<blocks::WeatheringCopperChestBlock>(ResourceLocation("minecraft:exposed_copper_chest"),
             copperChestProps,
-            BlockStateProperties::OxidationLevel::Exposed);
+            BlockStateProperties::OxidationLevel::Exposed,
+            SoundEvents::BLOCK_COPPER_CHEST_OPEN,
+            SoundEvents::BLOCK_COPPER_CHEST_CLOSE);
     auto* weatheredCopperChest = &registry.registerBlock<blocks::WeatheringCopperChestBlock>(
         ResourceLocation("minecraft:weathered_copper_chest"),
         copperChestProps,
-        BlockStateProperties::OxidationLevel::Weathered);
+        BlockStateProperties::OxidationLevel::Weathered,
+        SoundEvents::BLOCK_COPPER_CHEST_WEATHERED_OPEN,
+        SoundEvents::BLOCK_COPPER_CHEST_WEATHERED_CLOSE);
     auto* oxidizedCopperChest =
         &registry.registerBlock<blocks::WeatheringCopperChestBlock>(ResourceLocation("minecraft:oxidized_copper_chest"),
             copperChestProps,
-            BlockStateProperties::OxidationLevel::Oxidized);
+            BlockStateProperties::OxidationLevel::Oxidized,
+            SoundEvents::BLOCK_COPPER_CHEST_OXIDIZED_OPEN,
+            SoundEvents::BLOCK_COPPER_CHEST_OXIDIZED_CLOSE);
 
     // 设置氧化链：copper_chest -> exposed_copper_chest -> weathered_copper_chest -> oxidized_copper_chest
     // 注意：基础 copper_chest 是 CopperChestBlock（不实现 IOxidizableBlock），
@@ -1125,25 +1142,34 @@ void registerCopperBlocks()
     CopperBlocks::OXIDIZED_COPPER_CHEST = oxidizedCopperChest;
 
     // 涂蜡铜箱子变种（不氧化，使用 WaxedCopperChestBlock）
+    // 涂蜡变体复用对应氧化等级的声音事件（与 MC Java 一致）
     CopperBlocks::WAXED_COPPER_CHEST =
         &registry.registerBlock<blocks::WaxedCopperChestBlock>(ResourceLocation("minecraft:waxed_copper_chest"),
             copperChestProps,
-            BlockStateProperties::OxidationLevel::Unaffected);
+            BlockStateProperties::OxidationLevel::Unaffected,
+            SoundEvents::BLOCK_COPPER_CHEST_OPEN,
+            SoundEvents::BLOCK_COPPER_CHEST_CLOSE);
 
     CopperBlocks::WAXED_EXPOSED_COPPER_CHEST =
         &registry.registerBlock<blocks::WaxedCopperChestBlock>(ResourceLocation("minecraft:waxed_exposed_copper_chest"),
             copperChestProps,
-            BlockStateProperties::OxidationLevel::Exposed);
+            BlockStateProperties::OxidationLevel::Exposed,
+            SoundEvents::BLOCK_COPPER_CHEST_OPEN,
+            SoundEvents::BLOCK_COPPER_CHEST_CLOSE);
 
     CopperBlocks::WAXED_WEATHERED_COPPER_CHEST = &registry.registerBlock<blocks::WaxedCopperChestBlock>(
         ResourceLocation("minecraft:waxed_weathered_copper_chest"),
         copperChestProps,
-        BlockStateProperties::OxidationLevel::Weathered);
+        BlockStateProperties::OxidationLevel::Weathered,
+        SoundEvents::BLOCK_COPPER_CHEST_WEATHERED_OPEN,
+        SoundEvents::BLOCK_COPPER_CHEST_WEATHERED_CLOSE);
 
     CopperBlocks::WAXED_OXIDIZED_COPPER_CHEST = &registry.registerBlock<blocks::WaxedCopperChestBlock>(
         ResourceLocation("minecraft:waxed_oxidized_copper_chest"),
         copperChestProps,
-        BlockStateProperties::OxidationLevel::Oxidized);
+        BlockStateProperties::OxidationLevel::Oxidized,
+        SoundEvents::BLOCK_COPPER_CHEST_OXIDIZED_OPEN,
+        SoundEvents::BLOCK_COPPER_CHEST_OXIDIZED_CLOSE);
 }
 
 } // namespace block_registry

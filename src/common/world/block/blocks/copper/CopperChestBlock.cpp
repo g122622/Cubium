@@ -38,10 +38,14 @@ namespace blocks {
 // CopperChestBlock 实现
 // ============================================================================
 
-CopperChestBlock::CopperChestBlock(
-    const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel)
+CopperChestBlock::CopperChestBlock(const BlockProperties& properties,
+    BlockStateProperties::OxidationLevel oxidationLevel,
+    const ResourceLocation& openSound,
+    const ResourceLocation& closeSound)
     : ChestBlock(properties)
     , m_oxidationLevel(oxidationLevel)
+    , m_openSound(openSound)
+    , m_closeSound(closeSound)
 {
     // 父类 ChestBlock 已经创建 HORIZONTAL_FACING + CHEST_TYPE + WATERLOGGED 状态容器
     // 铜箱子不额外添加 OXIDATION 属性到方块状态：
@@ -49,6 +53,10 @@ CopperChestBlock::CopperChestBlock(
     //     而非 OXIDATION 方块状态属性，每个氧化等级是独立的方块类型
     //   - 这与铜傀儡雕像不同（雕像使用 OXIDATION 属性）
     //   - m_oxidationLevel 成员变量仅用于双箱合并时比较氧化等级
+    // 开合音效按氧化等级映射（涂蜡变体复用对应氧化等级的声音）：
+    //   - Unaffected/Exposed -> block.copper_chest.open/close
+    //   - Weathered -> block.copper_chest_weathered.open/close
+    //   - Oxidized -> block.copper_chest_oxidized.open/close
 }
 
 BlockState CopperChestBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -157,12 +165,15 @@ std::unique_ptr<BlockEntity> CopperChestBlock::createBlockEntity(const BlockPos&
 // WeatheringCopperChestBlock 实现
 // ============================================================================
 
-WeatheringCopperChestBlock::WeatheringCopperChestBlock(
-    const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel)
-    : CopperChestBlock(properties, oxidationLevel)
+WeatheringCopperChestBlock::WeatheringCopperChestBlock(const BlockProperties& properties,
+    BlockStateProperties::OxidationLevel oxidationLevel,
+    const ResourceLocation& openSound,
+    const ResourceLocation& closeSound)
+    : CopperChestBlock(properties, oxidationLevel, openSound, closeSound)
 {
     // 可氧化铜箱子同样不添加 OXIDATION 方块状态属性（氧化等级通过方块 ID 区分）
     // ticksRandomly 由 ticksRandomly() 虚方法动态返回，不修改 m_ticksRandomly 标志
+    // 开合音效由父类 CopperChestBlock 存储，按氧化等级映射
 }
 
 void WeatheringCopperChestBlock::randomTick(
