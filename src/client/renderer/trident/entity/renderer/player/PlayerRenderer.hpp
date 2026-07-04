@@ -170,9 +170,16 @@ protected:
     void setModelVisibilities(::mc::Player& player);
 
     /**
-     * @brief 确定手臂姿态
+     * @brief 确定指定手的手臂姿态
+     *
+     * 根据玩家手持物品和使用状态返回对应的手臂姿态。
+     * 参考 MC 1.21.11 AvatarRenderer.getArmPose。
+     *
+     * @param player 玩家实体
+     * @param hand 要查询的手（主手或副手）
+     * @return 对应的 ArmPose
      */
-    model::player::ArmPose determineArmPose(::mc::Player& player, bool mainHand);
+    [[nodiscard]] model::player::ArmPose determineArmPose(::mc::Player& player, ::mc::Hand hand);
 
     /**
      * @brief 计算动画上下文

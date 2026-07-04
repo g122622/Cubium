@@ -27,6 +27,11 @@
 #include "client/renderer/trident/entity/layer/equipment/HeadLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <spdlog/spdlog.h>
 
@@ -166,10 +171,37 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player)
     // 默认显示所有部件
     m_model.setAllVisible(true);
 
-    // 设置手臂姿态
-    auto rightArmPose = determineArmPose(player, true);
-    auto leftArmPose = determineArmPose(player, false);
-    m_model.setArmPose(leftArmPose, rightArmPose);
+    // 计算主手和副手的手臂姿态
+    // 参考 MC 1.21.11 AvatarRenderer.getArmPose(Avatar, HumanoidArm)
+    const ::mc::Hand mainHandSlot = ::mc::Hand::MainHand;
+    const ::mc::Hand offHandSlot = ::mc::Hand::OffHand;
+    auto mainArmPose = determineArmPose(player, mainHandSlot);
+    auto offArmPose = determineArmPose(player, offHandSlot);
+
+    // 双手姿态协调：若主手姿态为双手动作（弓、弩装填、弩持握），
+    // 副手姿态降级为 Empty（副手空）或 Item（副手非空）
+    if (mainArmPose == model::player::ArmPose::BowAndArrow || mainArmPose == model::player::ArmPose::CrossbowCharge ||
+        mainArmPose == model::player::ArmPose::CrossbowHold) {
+        const ::mc::ItemStack& offHandStack = player.getHeldItem(offHandSlot);
+        offArmPose = offHandStack.isEmpty() ? model::player::ArmPose::Empty : model::player::ArmPose::Item;
+    }
+
+    // 根据玩家主手偏好映射到模型右臂/左臂
+    // 右撇子：主手姿态 → 右臂，副手姿态 → 左臂
+    // 左撇子：主手姿态 → 左臂，副手姿态 → 右臂
+    if (player.isRightHanded()) {
+        m_model.setArmPose(offArmPose, mainArmPose); // (left, right)
+    } else {
+        m_model.setArmPose(mainArmPose, offArmPose); // (left, right)
+    }
+
+    // 设置主手和挥动手，供 BipedModel::setAngles 双臂协调逻辑使用
+    m_model.setMainHand(player.isRightHanded() ? model::HandSide::Right : model::HandSide::Left);
+    if (player.isSwingInProgress()) {
+        m_model.setSwingingHand(player.swingingHand() == ::mc::Hand::MainHand
+                ? (player.isRightHanded() ? model::HandSide::Right : model::HandSide::Left)
+                : (player.isRightHanded() ? model::HandSide::Left : model::HandSide::Right));
+    }
 
     // 根据 PlayerModelPart 设置外层皮肤部件可见性
     // 注意：Cape 由 CapeLayer 单独处理
@@ -184,14 +216,64 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player)
     m_model.setSwimming(player.isSwimming());
 }
 
-model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bool mainHand)
+model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, ::mc::Hand hand)
 {
-    // TODO: 从玩家获取手持物品和使用状态，目前返回默认值，等待物品系统完善后实现
-    (void)player;
-    (void)mainHand;
+    // 参考 MC 1.21.11 AvatarRenderer.getArmPose(Avatar, ItemStack, InteractionHand)
 
-    // 默认返回空手
-    return model::player::ArmPose::Empty;
+    // 获取手持物品
+    const ::mc::ItemStack& heldStack = player.getHeldItem(hand);
+    if (heldStack.isEmpty()) {
+        return model::player::ArmPose::Empty;
+    }
+
+    const ::mc::Item* item = heldStack.getItem();
+    if (item == nullptr) {
+        return model::player::ArmPose::Item;
+    }
+
+    // 1) 已装填的弩：未挥动时返回 CrossbowHold
+    //    匹配 MC: !swinging && stack.is(Items.CROSSBOW) && CrossbowItem.isCharged(stack)
+    if (!player.isSwingInProgress() && item == ::mc::Items::CROSSBOW) {
+        if (::mc::item::CrossbowItem::isCharged(heldStack)) {
+            return model::player::ArmPose::CrossbowHold;
+        }
+    }
+
+    // 2) 正在使用物品且使用的手就是当前判断的手
+    //    匹配 MC: entity.getUsedItemHand() == hand && entity.getUseItemRemainingTicks() > 0
+    if (player.isUsingItem() && player.getActiveHand() == hand && player.getItemInUseCount() > 0) {
+        const ::mc::UseAction useAction = item->getUseAction(heldStack);
+        switch (useAction) {
+            case ::mc::UseAction::Block:
+                return model::player::ArmPose::Block;
+            case ::mc::UseAction::Bow:
+                return model::player::ArmPose::BowAndArrow;
+            case ::mc::UseAction::Spear:
+                // Trident 是 Spear 的别名（同枚举值），三叉戟与长矛共用 ThrowSpear 姿态
+                return model::player::ArmPose::ThrowSpear;
+            case ::mc::UseAction::Crossbow:
+                return model::player::ArmPose::CrossbowCharge;
+            case ::mc::UseAction::Spyglass:
+                // TODO: 望远镜暂无第三人称特殊姿态枚举，临时降级为 Item
+                return model::player::ArmPose::Item;
+            case ::mc::UseAction::Brush:
+                // TODO: 刷子暂无第三人称特殊姿态枚举，临时降级为 Item
+                return model::player::ArmPose::Item;
+            default:
+                break;
+        }
+    }
+
+    // 3) 长矛类物品（通过 ItemTags::SPEARS 标签判断）返回 ThrowSpear
+    //    匹配 MC: stack.is(ItemTags.SPEARS) ? SPEAR : ITEM
+    if (::mc::item::tag::ItemTags::isInitialized()) {
+        if (item->isIn(::mc::item::tag::ItemTags::SPEARS())) {
+            return model::player::ArmPose::ThrowSpear;
+        }
+    }
+
+    // 4) 默认持有物品姿态
+    return model::player::ArmPose::Item;
 }
 
 f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const

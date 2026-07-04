@@ -88,6 +88,23 @@ namespace mc::client::renderer::entity::renderer::player {
 
 `renderRightArm()` / `renderLeftArm()` 会重置动画状态（setAngles 参数全为 0、swingProgress 为 0、crouching/swimming 为 false），仅渲染手臂部件，用于第一人称视角。
 
-### 5. determineArmPose 未完成
+### 5. determineArmPose 实现说明
 
-当前 `determineArmPose()` 返回固定值 `ArmPose::Empty`，等待物品系统完善后实现手持物品姿态判定（弓、弩、盾牌等）。
+`determineArmPose(player, hand)` 参考 MC 1.21.11 `AvatarRenderer.getArmPose` 实现，根据手持物品与使用状态返回对应 `ArmPose`：
+
+1. 空手 → `Empty`
+2. 已装填的弩（且未挥动）→ `CrossbowHold`
+3. 正在使用物品且使用的手就是当前判断的手：
+   - `Block`（盾牌）→ `Block`
+   - `Bow`（弓）→ `BowAndArrow`
+   - `Spear`/`Trident`（三叉戟/长矛）→ `ThrowSpear`
+   - `Crossbow`（弩装填）→ `CrossbowCharge`
+   - `Spyglass`/`Brush` → 暂降级为 `Item`（TODO：第三人称特殊姿态枚举待补）
+4. 长矛类物品（`ItemTags::SPEARS`）→ `ThrowSpear`
+5. 默认持有物品 → `Item`
+
+`setModelVisibilities()` 中还会执行双手姿态协调：若主手姿态为 `BowAndArrow`/`CrossbowCharge`/`CrossbowHold`，副手姿态降级为 `Empty`（副手空）或 `Item`（副手非空）。随后根据 `player.isRightHanded()` 将主/副手姿态映射到模型右臂/左臂。
+
+### 6. ArmPose 枚举复用基类
+
+`PlayerModel` 不再自定义 `ArmPose` 枚举，而是通过 `using ArmPose = mc::client::renderer::entity::model::ArmPose;` 复用基类 `BipedModel` 的枚举。`setArmPose`/`setLeftArmPose`/`setRightArmPose` 直接写入基类字段 `m_leftArmPose`/`m_rightArmPose`，由 `BipedModel::setAngles → handleRightArmPose/handleLeftArmPose` 消费。这避免了字段隐藏导致姿态永远为 `Empty` 的问题。

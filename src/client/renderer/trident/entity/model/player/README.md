@@ -45,8 +45,9 @@ PlayerModel
 ```cpp
 namespace mc::client::renderer::entity::model::player {
     class PlayerModel;
-    enum class ArmPose;
-    enum class HandSide;
+    // ArmPose 与 HandSide 复用基类 BipedModel 的枚举，通过 using 引入：
+    //   using ArmPose  = mc::client::renderer::entity::model::ArmPose;
+    //   using HandSide = mc::client::renderer::entity::model::HandSide;
 }
 ```
 
@@ -72,16 +73,14 @@ namespace mc::client::renderer::entity::model::player {
 
 `renderRightArm()` / `renderLeftArm()` 会临时修改可见性状态，渲染后自动恢复。但它们会重置手臂 X 轴旋转为 0（水平伸出），适用于皮肤预览等场景。
 
+### ArmPose 枚举复用基类
+
+`PlayerModel` 不再自定义 `ArmPose` 与 `HandSide` 枚举，而是通过 `using` 声明复用基类 `BipedModel` 的同名枚举。`setArmPose`/`setLeftArmPose`/`setRightArmPose` 直接写入基类字段 `m_leftArmPose`/`m_rightArmPose`，由 `BipedModel::setAngles → handleRightArmPose/handleLeftArmPose` 消费。这避免了字段隐藏导致姿态永远为 `Empty` 的问题。
+
 ### translateHand 签名问题
 
 当前 `translateHand(i32 side)` 的签名与基类 `BipedModel::translateHand(HandSide, array<f64,16>&)` 不一致，需要后续统一。
 
-### 未完成的动画实现
+### 手臂姿态动画进度
 
-以下私有方法已定义但尚未被调用：
-- `_animateBow()` - 弓箭姿态动画
-- `_animateCrossbowCharge()` - 弩装填动画
-- `_animateCrossbowHold()` - 弩持有动画
-- `_updateCapePosition()` - 斗篷位置动态调整
-
-这些功能需要等待手臂姿态动画系统和斗篷动画系统集成后才能启用。
+基类 `BipedModel::handleRightArmPose/handleLeftArmPose` 已对 BowAndArrow/CrossbowCharge/CrossbowHold 等姿态做了基础处理（固定角度）。若后续需要更精细的动画进度（如弩装填进度 0~1、弓拉弦进度），可在 `PlayerModel::_animateArms` 中扩展实现，并通过 override `handleRightArmPose/handleLeftArmPose` 或新增钩子集成。
