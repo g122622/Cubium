@@ -322,9 +322,10 @@ TEST_F(HoneycombItemTest, WaxablesMapHasExpectedSize)
 {
     auto& map = item::items::HoneycombItem::getWaxablesMap();
 
-    // 11种铜方块类型 × 4个氧化等级 = 44个映射
-    // 铜块、切制铜、楼梯、台阶、门、活板门、格栅、灯、凿制铜、链、灯笼
-    EXPECT_EQ(map.size(), 44u) << "Waxables map should contain 44 entries (11 types × 4 oxidation levels)";
+    // 14种铜方块类型 × 4个氧化等级 = 56个映射
+    // 铜块、切制铜、楼梯、台阶、门、活板门、格栅、灯、凿制铜、链、灯笼、
+    // 铜栏杆、避雷针、铜傀儡雕像
+    EXPECT_EQ(map.size(), 56u) << "Waxables map should contain 56 entries (14 types × 4 oxidation levels)";
 }
 
 TEST_F(HoneycombItemTest, WaxOffMapHasSameSizeAsWaxablesMap)
