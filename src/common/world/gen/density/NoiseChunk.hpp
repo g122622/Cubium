@@ -611,6 +611,16 @@ public:
     [[nodiscard]] i32 firstCellY() const { return m_firstCellY; }
     [[nodiscard]] i32 firstCellZ() const { return m_firstCellZ; }
 
+    // ========== FlatCache 区块级预计算几何（对齐原版 NoiseChunk.java:155-160）==========
+    /// MC 1.21: firstNoiseX = QuartPos.fromBlock(firstNoiseBlockX) = floorDiv(startBlockX, 4)
+    /// 区块首个 quart X，作为 FlatCache 数组索引基准
+    [[nodiscard]] i32 firstNoiseX() const { return math::floorDiv(m_startBlockX, 4); }
+    /// 区块首个 quart Z
+    [[nodiscard]] i32 firstNoiseZ() const { return math::floorDiv(m_startBlockZ, 4); }
+    /// MC 1.21: noiseSizeXZ = cellCountXZ * cellWidth / 4，quart XZ 网格边长
+    /// 区块生成 cellCountXZ=4,cellWidth=4 → 4；单列查询 cellCountXZ=1 → 1
+    [[nodiscard]] i32 noiseSizeXZ() const { return m_cellConfig.cellCountXZ * m_cellConfig.cellWidth / 4; }
+
     /**
      * @brief 获取插值计数器（用于 CacheOnce）
      */
