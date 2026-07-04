@@ -179,11 +179,14 @@ public:
      * @brief 平移手部用于手持物品渲染
      *
      * 将矩阵变换到手臂的局部坐标系，使手持物品跟随手臂动画。
+     * 变换顺序：平移到旋转点 → Z轴旋转 → Y轴旋转 → X轴旋转
+     *
+     * 子类（如 PlayerModel）可 override 此方法以扩展纤细手臂等特殊偏移逻辑。
      *
      * @param handSide 手侧（左手或右手）
      * @param outMatrix 输出变换矩阵（4x4，行主序）
      */
-    void translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const;
+    virtual void translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const;
 
 protected:
     /**

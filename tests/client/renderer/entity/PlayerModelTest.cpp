@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 
 // 注意：PlayerModel 现在直接复用基类 BipedModel 的 ArmPose 枚举，
@@ -35,6 +37,7 @@ namespace {
 // 使用完整命名空间别名简化代码
 using PlayerModel = entity::model::player::PlayerModel;
 using PlayerArmPose = entity::model::player::ArmPose;
+using PlayerHandSide = entity::model::player::HandSide;
 
 /**
  * @brief PlayerModel 基础测试夹具
@@ -473,16 +476,78 @@ TEST_F(EntityPlayerModelTest, RenderEars_DoesNotThrow)
 // translateHand 测试
 // ============================================================================
 
-TEST_F(EntityPlayerModelTest, TranslateHand_DoesNotThrow)
+TEST_F(EntityPlayerModelTest, TranslateHand_StandardArmsReturnsValidMatrix)
 {
-    EXPECT_NO_THROW(m_standardModel->translateHand(0)); // Right
-    EXPECT_NO_THROW(m_standardModel->translateHand(1)); // Left
+    // 标准手臂：translateHand 应返回有效矩阵（不抛异常）
+    std::array<f64, 16> rightMatrix = {0};
+    std::array<f64, 16> leftMatrix = {0};
+    EXPECT_NO_THROW(m_standardModel->translateHand(PlayerHandSide::Right, rightMatrix));
+    EXPECT_NO_THROW(m_standardModel->translateHand(PlayerHandSide::Left, leftMatrix));
+
+    // 验证矩阵对角线元素为 1（行主序 4x4）
+    EXPECT_DOUBLE_EQ(rightMatrix[0], 1.0);
+    EXPECT_DOUBLE_EQ(rightMatrix[5], 1.0);
+    EXPECT_DOUBLE_EQ(rightMatrix[10], 1.0);
+    EXPECT_DOUBLE_EQ(rightMatrix[15], 1.0);
+    EXPECT_DOUBLE_EQ(leftMatrix[15], 1.0);
 }
 
-TEST_F(EntityPlayerModelTest, SlimModel_TranslateHandDoesNotThrow)
+TEST_F(EntityPlayerModelTest, TranslateHand_StandardArmsRotationPoint)
 {
-    EXPECT_NO_THROW(m_slimModel->translateHand(0)); // Right
-    EXPECT_NO_THROW(m_slimModel->translateHand(1)); // Left
+    // 标准手臂：右臂旋转点 X=-5，左臂旋转点 X=5
+    std::array<f64, 16> rightMatrix = {0};
+    std::array<f64, 16> leftMatrix = {0};
+    m_standardModel->translateHand(PlayerHandSide::Right, rightMatrix);
+    m_standardModel->translateHand(PlayerHandSide::Left, leftMatrix);
+
+    EXPECT_DOUBLE_EQ(rightMatrix[3], -5.0);
+    EXPECT_DOUBLE_EQ(leftMatrix[3], 5.0);
+}
+
+TEST_F(EntityPlayerModelTest, TranslateHand_SlimArmsAppliesCenterOffset)
+{
+    // 纤细手臂：右臂 X=-5+0.5=-4.5，左臂 X=5-0.5=4.5
+    // 偏移方向：向身体中线靠近 0.5（参考 MC 1.21.11 PlayerModel.translateToHand）
+    std::array<f64, 16> rightMatrix = {0};
+    std::array<f64, 16> leftMatrix = {0};
+    m_slimModel->translateHand(PlayerHandSide::Right, rightMatrix);
+    m_slimModel->translateHand(PlayerHandSide::Left, leftMatrix);
+
+    EXPECT_DOUBLE_EQ(rightMatrix[3], -4.5);
+    EXPECT_DOUBLE_EQ(leftMatrix[3], 4.5);
+}
+
+TEST_F(EntityPlayerModelTest, TranslateHand_HasNoSideEffects)
+{
+    // translateHand 是 const 方法，不应修改模型状态
+    // 调用前后手臂旋转点应保持不变
+    const f32 rightXBefore = m_slimModel->getRightArm()->rotationPointX();
+    const f32 leftXBefore = m_slimModel->getLeftArm()->rotationPointX();
+
+    std::array<f64, 16> rightMatrix = {0};
+    std::array<f64, 16> leftMatrix = {0};
+    m_slimModel->translateHand(PlayerHandSide::Right, rightMatrix);
+    m_slimModel->translateHand(PlayerHandSide::Left, leftMatrix);
+    m_slimModel->translateHand(PlayerHandSide::Right, rightMatrix);
+    m_slimModel->translateHand(PlayerHandSide::Left, leftMatrix);
+
+    EXPECT_FLOAT_EQ(m_slimModel->getRightArm()->rotationPointX(), rightXBefore);
+    EXPECT_FLOAT_EQ(m_slimModel->getLeftArm()->rotationPointX(), leftXBefore);
+}
+
+TEST_F(EntityPlayerModelTest, TranslateHand_PolymorphismDispatchesToPlayerModel)
+{
+    // 通过基类指针调用 translateHand，应多态分派到 PlayerModel::translateHand
+    // 验证：纤细模型与标准模型的矩阵在 X 平移上不同（纤细模式应用了 ±0.5 偏移）
+    std::array<f64, 16> standardRight = {0};
+    std::array<f64, 16> slimRight = {0};
+    m_standardModel->translateHand(PlayerHandSide::Right, standardRight);
+    m_slimModel->translateHand(PlayerHandSide::Right, slimRight);
+
+    // 标准右臂 X=-5，纤细右臂 X=-4.5，相差 0.5
+    EXPECT_DOUBLE_EQ(standardRight[3], -5.0);
+    EXPECT_DOUBLE_EQ(slimRight[3], -4.5);
+    EXPECT_DOUBLE_EQ(slimRight[3] - standardRight[3], 0.5);
 }
 
 // ============================================================================

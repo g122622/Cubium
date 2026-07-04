@@ -280,7 +280,9 @@ void PlayerRenderer::_setupLayers()
     // 添加层渲染器
 
     // 创建手持物品层渲染器（主手和副手）
-    m_layers.push_back(std::make_unique<equipment::HeldItemLayer<::mc::Player>>());
+    // 传入 *this 让 HeldItemLayer 通过 IEntityRenderer::getModel() 获取 PlayerModel，
+    // 使 PlayerModel::translateHand 的多态 override 生效（纤细手臂偏移等）。
+    m_layers.push_back(std::make_unique<equipment::HeldItemLayer<::mc::Player, model::player::PlayerModel>>(*this));
 
     // 头部物品层（头盔等）
     m_layers.push_back(std::make_unique<equipment::HeadLayer<::mc::Player, model::player::PlayerModel>>(*this));

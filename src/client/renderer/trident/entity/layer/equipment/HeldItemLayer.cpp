@@ -23,6 +23,7 @@
 
 #include "HeldItemLayer.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -257,5 +258,6 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransform(
 // 显式实例化常用类型
 template class HeldItemLayer<::mc::LivingEntity, model::BipedModel>;
 template class HeldItemLayer<::mc::Player, model::BipedModel>;
+template class HeldItemLayer<::mc::Player, model::player::PlayerModel>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

@@ -206,14 +206,21 @@ public:
     void renderLeftArm(f64 scale = 1.0f / 16.0f);
 
     /**
-     * @brief 平移手部用于第一人称渲染
+     * @brief 平移手部用于手持物品渲染
      *
-     * 纤细手臂模式下需要偏移手臂位置
-     * @param side 手部侧边（0=右，1=左）
+     * 重写基类 BipedModel::translateHand 以支持纤细手臂偏移。
+     *
+     * 纤细手臂模式下，手臂宽度由 4 缩减为 3，手臂中心需要向身体中线方向
+     * 偏移 0.5 个模型单位（右手 X+0.5、左手 X-0.5），以保持手持物品
+     * 视觉上仍位于手臂中心。
+     *
+     * 实现采用无副作用模式：临时修改手臂 rotationPointX 获取变换矩阵后
+     * 立即恢复原值，参考 MC 1.21.11 PlayerModel.translateToHand。
+     *
+     * @param handSide 手侧（左手或右手）
+     * @param outMatrix 输出变换矩阵（4x4，行主序）
      */
-    // TODO: translateHand 签名与基类 BipedModel::translateHand(HandSide, array<f64,16>&) 不一致，
-    // 应改为使用 HandSide 枚举参数，与基类统一
-    void translateHand(i32 side);
+    void translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const override;
 
 private:
     void _setupSlimArms();

@@ -77,9 +77,13 @@ namespace mc::client::renderer::entity::model::player {
 
 `PlayerModel` 不再自定义 `ArmPose` 与 `HandSide` 枚举，而是通过 `using` 声明复用基类 `BipedModel` 的同名枚举。`setArmPose`/`setLeftArmPose`/`setRightArmPose` 直接写入基类字段 `m_leftArmPose`/`m_rightArmPose`，由 `BipedModel::setAngles → handleRightArmPose/handleLeftArmPose` 消费。这避免了字段隐藏导致姿态永远为 `Empty` 的问题。
 
-### translateHand 签名问题
+### translateHand 多态与纤细手臂偏移
 
-当前 `translateHand(i32 side)` 的签名与基类 `BipedModel::translateHand(HandSide, array<f64,16>&)` 不一致，需要后续统一。
+`PlayerModel::translateHand(HandSide, std::array<f64,16>&) const override` 重写基类 `BipedModel::translateHand`（基类方法已声明为 `virtual`），以支持纤细手臂偏移：
+
+- **纤细手臂**：手臂宽度由 4 缩减为 3，手臂中心需向身体中线方向偏移 0.5 个模型单位（右手 X+0.5、左手 X-0.5），保持手持物品视觉上仍位于手臂中心。
+- **无副作用实现**：临时修改手臂 `rotationPointX` 获取变换矩阵后立即恢复原值，参考 MC 1.21.11 `PlayerModel.translateToHand`。
+- **多态调用**：`HeldItemLayer` 通过 `IEntityRenderer::getModel()` 获取模型并调用 `translateHand`，需要 `PlayerRenderer` 在注册 `HeldItemLayer` 时传入 `*this` 并显式指定 `TModel = PlayerModel`，多态分派才会生效。
 
 ### 手臂姿态动画进度
 

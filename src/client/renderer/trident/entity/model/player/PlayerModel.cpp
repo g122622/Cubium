@@ -285,28 +285,42 @@ void PlayerModel::setModelVisibilitiesFromFlags(u8 playerModelParts)
     // Cape 由 CapeLayer 单独处理，这里不设置
 }
 
-void PlayerModel::translateHand(i32 side)
+void PlayerModel::translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const
 {
-    // 纤细手臂模式下需要偏移手臂位置
-    ModelRenderer* arm = nullptr;
-    f32 offset = 0.0f;
+    // 参考 MC 1.21.11 PlayerModel.translateToHand：
+    //   super.translateToHand(state, arm, poseStack);
+    //   if (this.slim) {
+    //       float f = 0.5F * (arm == HumanoidArm.RIGHT ? 1 : -1);
+    //       modelpart.x += f;
+    //       modelpart.translateAndRotate(poseStack);
+    //       modelpart.x -= f;
+    //   } else {
+    //       modelpart.translateAndRotate(poseStack);
+    //   }
+    //
+    // 纤细手臂宽度由 4 缩减为 3，手臂中心向身体中线方向偏移 0.5：
+    //   右手（X=-5）→ X+0.5 → X=-4.5（向中线靠近）
+    //   左手（X=+5）→ X-0.5 → X=+4.5（向中线靠近）
+    //
+    // 采用无副作用模式：临时修改 rotationPointX 获取矩阵后立即恢复。
 
-    if (side == static_cast<i32>(HandSide::Right)) {
-        arm = m_rightArm.get();
-        if (m_slimArms) {
-            offset = -0.5f; // 纤细右手向左偏移
-        }
-    } else {
-        arm = m_leftArm.get();
-        if (m_slimArms) {
-            offset = 0.5f; // 纤细左手向右偏移
-        }
+    const auto& arm = (handSide == HandSide::Left) ? m_bipedLeftArm : m_bipedRightArm;
+    if (!arm) {
+        // 手臂不存在，返回单位矩阵
+        outMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+        return;
     }
 
-    if (arm) {
-        // 应用偏移
-        arm->setRotationPointX(arm->rotationPointX() + offset);
-        // 调用渲染后需要恢复偏移（调用者负责）
+    if (m_slimArms) {
+        // 纤细手臂：临时偏移 rotationPointX，获取矩阵后恢复
+        const f32 offsetX = (handSide == HandSide::Right) ? 0.5f : -0.5f;
+        const f32 originalX = arm->rotationPointX();
+        arm->setRotationPointX(originalX + offsetX);
+        arm->getTransformMatrix(outMatrix);
+        arm->setRotationPointX(originalX);
+    } else {
+        // 标准手臂：直接获取变换矩阵
+        arm->getTransformMatrix(outMatrix);
     }
 }
 
