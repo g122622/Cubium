@@ -249,15 +249,16 @@ TEST(OverworldBiomeBuilderTest, PlainsAtWarmAridInland)
     // m_middleBiomes[3][0] = Savanna (warm, arid)
     // m_middleBiomes[1][0] = Plains (cold, arid)
     // m_middleBiomes[1][1] = Plains (cold, dry)
-    // Let's target warm+arid mid-inland with mid weirdness
+    // 目标 warm+arid 的中内陆，使用 mid slice 负奇异度（weirdness ∈ [-0.26666, -0.05]）
     // temperature[3]=warm [0.2,0.55], humidity[0]=arid [-1.0,-0.35]
     // mid-inland continentalness [0.03, 0.3], erosion[2] mid [-0.375, -0.2225]
-    // weirdness near 0 (mid slice negative)
+    // 注意：weirdness=0 落在 Valleys 切片 [-0.05,0.05]（河流），无法命中陆地生物群系，
+    // 必须使用非零的 mid/high/low 切片奇异度。
     OverworldBiomeBuilder builder;
     auto list = builder.buildParameterList();
 
-    // Savanna at warm+arid inland
-    auto target = TargetPoint::fromFloats(0.375f, -0.675f, 0.15f, -0.3f, 0.0f, 0.0f);
+    // Savanna at warm+arid inland（mid slice 负奇异度）
+    auto target = TargetPoint::fromFloats(0.375f, -0.675f, 0.15f, -0.3f, 0.0f, -0.2f);
     BiomeId result = list.findValue(target);
     EXPECT_EQ(result, B::Savanna);
 }
@@ -266,10 +267,14 @@ TEST(OverworldBiomeBuilderTest, DesertAtHotAnyHumidityInland)
 {
     // m_middleBiomes[4][*] = Desert for all humidity levels
     // temperature[4]=hot [0.55,1.0], humidity neutral, mid-inland
+    // 注意：hot 温度在内陆会走 pickMiddleBiomeOrBadlandsIfHot → pickBadlandsBiome，
+    // 在低侵蚀（erosions[2]）的中内陆会命中 Badlands 而非 Desert。
+    // Desert 在 hot 温度的中内陆仅出现在较高侵蚀（erosions[3]/erosions[4]）。
+    // 因此这里使用 erosion=0.1（erosions[4]=[0.05,0.45]）+ mid slice 负奇异度。
     OverworldBiomeBuilder builder;
     auto list = builder.buildParameterList();
 
-    auto target = TargetPoint::fromFloats(0.775f, 0.0f, 0.15f, -0.3f, 0.0f, 0.0f);
+    auto target = TargetPoint::fromFloats(0.775f, 0.0f, 0.15f, 0.1f, 0.0f, -0.2f);
     BiomeId result = list.findValue(target);
     EXPECT_EQ(result, B::Desert);
 }
@@ -281,7 +286,8 @@ TEST(OverworldBiomeBuilderTest, SnowyPlainsAtFrozenAridInland)
     auto list = builder.buildParameterList();
 
     // frozen temperature [-1.0, -0.45], arid humidity [-1.0, -0.35]
-    auto target = TargetPoint::fromFloats(-0.725f, -0.675f, 0.15f, -0.3f, 0.0f, 0.0f);
+    // 使用 mid slice 负奇异度（weirdness ∈ [-0.26666, -0.05]），避免落入 Valleys 切片
+    auto target = TargetPoint::fromFloats(-0.725f, -0.675f, 0.15f, -0.3f, 0.0f, -0.2f);
     BiomeId result = list.findValue(target);
     EXPECT_EQ(result, B::SnowyPlains);
 }
@@ -293,7 +299,8 @@ TEST(OverworldBiomeBuilderTest, TaigaAtFrozenHumidInland)
     auto list = builder.buildParameterList();
 
     // frozen temperature [-1.0, -0.45], humid humidity [0.3, 1.0]
-    auto target = TargetPoint::fromFloats(-0.725f, 0.65f, 0.15f, -0.3f, 0.0f, 0.0f);
+    // 使用 mid slice 负奇异度，避免落入 Valleys 切片
+    auto target = TargetPoint::fromFloats(-0.725f, 0.65f, 0.15f, -0.3f, 0.0f, -0.2f);
     BiomeId result = list.findValue(target);
     EXPECT_EQ(result, B::Taiga);
 }
@@ -318,7 +325,8 @@ TEST(OverworldBiomeBuilderTest, JungleAtWarmHumidInland)
     OverworldBiomeBuilder builder;
     auto list = builder.buildParameterList();
 
-    auto target = TargetPoint::fromFloats(0.375f, 0.65f, 0.15f, -0.3f, 0.0f, 0.0f);
+    // 使用 mid slice 负奇异度，避免落入 Valleys 切片
+    auto target = TargetPoint::fromFloats(0.375f, 0.65f, 0.15f, -0.3f, 0.0f, -0.2f);
     BiomeId result = list.findValue(target);
     EXPECT_EQ(result, B::Jungle);
 }
