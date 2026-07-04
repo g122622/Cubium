@@ -26,6 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/Slot.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -127,7 +128,7 @@ UseAction BundleItem::getUseAction(const ItemStack& /*stack*/) const
 void BundleItem::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity)
 {
     // 对应 MC 1.21.11 BundleItem#onDestroyed(ItemEntity)
-    // 清空内容物并在原位置生成物品实体
+    // 清空内容物并在被销毁实体位置生成物品实体
     BundleContents contents = getContents(stack);
     if (contents.isEmpty()) {
         Item::onDestroyed(stack, world, entity);
@@ -137,22 +138,17 @@ void BundleItem::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity)
     // 清空内容物
     setContents(stack, BundleContents::EMPTY);
 
-    // 在实体位置生成内容物物品实体
-    // 对应 MC 的 ItemUtils.onContainerDestroyed
+    // 在被销毁实体位置生成内容物物品实体
+    // 对应 MC 1.21.11 ItemUtils.onContainerDestroyed(ItemEntity, Iterable<ItemStack>)
+    // MC 原版在被销毁的 ItemEntity 精确位置生成新物品实体（无随机速度）
+    // 本项目使用 ItemDropHelper::spawnItemAtEntity 复刻此行为
+    // 注意：调用方 entity 永远是 ItemEntity（见 ItemEntity::hurt），而非 Player
+    math::Random& rng = entity.getRandom();
     for (const auto& item : contents.itemsCopy()) {
         if (item.isEmpty()) {
             continue;
         }
-        // 使用 ItemDropHelper 生成物品实体
-        // 由于此处是 Item 基类上下文，委托给 Item::onDestroyed 处理基础行为，
-        // 并通过 ItemDropHelper 生成物品实体。
-        // 为避免循环依赖，此处通过 world 接口丢弃。
-        // 简化：将内容物作为物品实体生成在实体位置
-        // TODO: 若 ItemDropHelper 可用，应使用其 spawnItemEntity 方法
-        if (auto* player = dynamic_cast<Player*>(&entity); player != nullptr) {
-            ItemStack copy = item;
-            player->dropItem(copy, false, false);
-        }
+        ItemDropHelper::spawnItemAtEntity(&entity, item, 0.0f, rng);
     }
 
     Item::onDestroyed(stack, world, entity);

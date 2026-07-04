@@ -629,6 +629,13 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
         }
     } else if (m_dragEvent == DragConstants::EVENT_END) {
         // 结束拖拽 - 分发物品
+        // TODO: QuickCraft 单槽降级未实现
+        // MC 1.21.11 AbstractContainerMenu.doClick 在 QUICK_CRAFT 结束且 quickcraftSlots.size()==1 时，
+        // 会 resetQuickCraft() 后递归调用 doClick(slot, quickcraftType, PICKUP, player)，
+        // 让单槽拖拽降级为普通 PICKUP 点击，从而触发 _tryItemClickBehaviourOverride
+        // （收纳袋的 overrideStackedOnOther/overrideOtherStackedOnMe）。
+        // 本项目当前未实现此降级路径，玩家用拖拽方式将物品滑入收纳袋单槽时不会触发覆写协议。
+        // 影响：仅影响"拖拽单槽"这一非常规操作，常规左/右键点击已正确触发覆写协议。
         if (!m_dragSlots.empty()) {
             ItemStack toDistribute = m_carried.copy();
 

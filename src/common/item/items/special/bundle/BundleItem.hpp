@@ -42,7 +42,8 @@ namespace item::items {
  * 功能：
  * - 右键使用（onItemRightClick）：触发使用动作，开始按住使用
  * - onUseTick：周期性丢出内容物（首次满时长 + 每 2 tick 一次）
- * - onItemUseFinish：使用结束时最后一次丢出
+ * - 使用结束：由 LivingEntity 自动停止，无需 onItemUseFinish（与 MC 1.21.11 一致，
+ *   MC 原版 BundleItem 也未重写 finishUsingItem；最后一次丢出在 onUseTick 中完成）
  * - overrideStackedOnOther：玩家手持收纳袋点击槽位时插入/取出
  * - overrideOtherStackedOnMe：玩家手持其他物品点击收纳袋槽位时插入/取出
  * - 染色变体（16 色 + 1 无色）：颜色为物品固有属性，与 HarnessItem 模式一致
@@ -181,6 +182,13 @@ public:
      * @brief 获取满度（0.0~1.0，用于 GUI 进度条）
      */
     [[nodiscard]] static f32 getFullnessDisplay(const ItemStack& stack);
+
+    // TODO: BundleTooltip 渲染未实现
+    // MC 1.21.11 中收纳袋在物品栏悬停时显示专门的 tooltip：内容物网格 + 满度进度条。
+    // 本项目当前没有"物品自定义 tooltip 渲染"架构（Item::addInformation 已定义但客户端
+    // 未调用），需先在 AbstractContainerScreen::renderItemTooltip 中接通 addInformation
+    // 调用链，再为 BundleItem 实现 tooltip 渲染。
+    // 上述 getNumberOfItemsToShow / getFullnessDisplay 已为此预留，待渲染层接入。
 
     /**
      * @brief 判断物品堆是否为收纳袋（任意颜色变体）
