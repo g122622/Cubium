@@ -67,6 +67,7 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
                                       ├── BlockAgeProcessor ──依赖──> BlockTags（STAIRS/SLABS/WALLS）
                                       ├── BlackstoneReplacementProcessor
                                       ├── CopperBulbDegradationProcessor
+                                      ├── ProtectedBlocksProcessor ──依赖──> BlockTags（FEATURES_CANNOT_REPLACE 等保护标签）
                                       └── CappedStructureProcessor ──包装──> StructureProcessor（delegate）
                                                             └──使用──> IntProvider（limit 采样）
 ```
