@@ -30,6 +30,7 @@
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/monster/WitchModel.hpp"
 #include "common/entity/entities/monster/illager/WitchEntity.hpp"
+#include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
 
@@ -395,6 +396,56 @@ public:
     {
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/snow_golem.png");
+    }
+};
+
+/**
+ * @brief 铜傀儡渲染器
+ *
+ * 对应 MC 1.21.11: net.minecraft.client.renderer.entity.CopperGolemRenderer
+ * 阴影大小 0.5F。纹理根据氧化等级选择：
+ *   Unaffected → copper_golem.png
+ *   Exposed    → exposed_copper_golem.png
+ *   Weathered  → weathered_copper_golem.png
+ *   Oxidized   → oxidized_copper_golem.png
+ *
+ * 注意：MC 原版还添加了发光眼睛层、手持物品层、天线方块装饰层、自定义头层，
+ * 本项目当前未实现这些 Layer 子系统，仅渲染主体纹理。
+ * TODO: 实现 LivingEntityEmissiveLayer / BlockDecorationLayer 后补充对应层。
+ */
+class CopperGolemRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::CopperGolemModel> {
+public:
+    CopperGolemRenderer() { m_shadowSize = 0.5f; }
+    ~CopperGolemRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
+        return getCopperGolemTexture(entity);
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
+        return getCopperGolemTexture(entity);
+    }
+
+private:
+    [[nodiscard]] static ResourceLocation getCopperGolemTexture(const ::mc::LivingEntity& entity)
+    {
+        // 通过 dynamic_cast 获取 CopperGolemEntity 的氧化等级
+        const auto* golem = dynamic_cast<const ::mc::CopperGolemEntity*>(&entity);
+        if (golem != nullptr) {
+            switch (golem->getWeatherState()) {
+                case ::mc::entity::CopperGolemWeatherState::Unaffected:
+                    return ResourceLocation("minecraft", "textures/entity/copper_golem/copper_golem.png");
+                case ::mc::entity::CopperGolemWeatherState::Exposed:
+                    return ResourceLocation("minecraft", "textures/entity/copper_golem/exposed_copper_golem.png");
+                case ::mc::entity::CopperGolemWeatherState::Weathered:
+                    return ResourceLocation("minecraft", "textures/entity/copper_golem/weathered_copper_golem.png");
+                case ::mc::entity::CopperGolemWeatherState::Oxidized:
+                    return ResourceLocation("minecraft", "textures/entity/copper_golem/oxidized_copper_golem.png");
+            }
+        }
+        // 兜底：未识别实体类型时使用 Unaffected 纹理
+        return ResourceLocation("minecraft", "textures/entity/copper_golem/copper_golem.png");
     }
 };
 

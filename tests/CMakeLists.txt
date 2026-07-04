@@ -184,6 +184,8 @@ add_executable(mc_tests
     common/entity/BeeGoalsTest.cpp
     # SnowGolemEntity 雪傀儡测试
     common/entity/entities/passive/golem/SnowGolemEntityTest.cpp
+    # CopperGolemEntity 铜傀儡测试
+    common/entity/entities/passive/golem/CopperGolemEntityTest.cpp
     common/entity/DolphinEntityTest.cpp
     # 鱿鱼 AI 目标测试
     common/entity/SquidGoalsTest.cpp
@@ -456,6 +458,8 @@ add_executable(mc_tests
     common/world/blockentity/JukeboxEntityTest.cpp
     # BellBlockEntity 钟方块实体测试（敲击触发、摇晃/共振状态机、方向、序列化、克隆）
     common/world/blockentity/BellBlockEntityTest.cpp
+    # CopperGolemStatueBlockEntity 铜傀儡雕像方块实体测试（removeStatue、自定义名称、序列化、克隆）
+    common/world/blockentity/CopperGolemStatueBlockEntityTest.cpp
     # BannerPattern 旗帜图案工具类测试（hashname、文件名、图案物品判断）
     common/world/blockentity/BannerPatternTest.cpp
     # VaultBlockEntity 宝库方块实体测试（状态机、钥匙插入、战利品弹出、玩家检测）

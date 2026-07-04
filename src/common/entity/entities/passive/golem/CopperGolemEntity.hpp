@@ -217,13 +217,6 @@ public:
      */
     void tick() override;
 
-protected:
-    // ========== AI 目标注册 ==========
-    void registerGoals() override;
-
-    // ========== 属性注册 ==========
-    void registerAttributes() override;
-
     // ========== NBT 序列化 ==========
     /**
      * @brief 写入额外 NBT 数据
@@ -241,6 +234,13 @@ protected:
      * 缺失字段时使用默认值：next_weather_age=-1（未设置），weather_state=unaffected
      */
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
+protected:
+    // ========== AI 目标注册 ==========
+    void registerGoals() override;
+
+    // ========== 属性注册 ==========
+    void registerAttributes() override;
 
 private:
     // ========== 私有方法 ==========

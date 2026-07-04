@@ -123,6 +123,7 @@ void initializeModelRegistration()
     factory.registerModel(ET::PARROT, []() { return std::make_unique<monster::ParrotModel>(); });
     factory.registerModel(ET::IRON_GOLEM, []() { return std::make_unique<monster::IronGolemModel>(); });
     factory.registerModel(ET::SNOW_GOLEM, []() { return std::make_unique<monster::SnowGolemModel>(); });
+    factory.registerModel(ET::COPPER_GOLEM, []() { return std::make_unique<monster::CopperGolemModel>(); });
 
     // ==================== 水生生物 ====================
     factory.registerModel(ET::COD, []() { return std::make_unique<aquatic::CodModel>(); });

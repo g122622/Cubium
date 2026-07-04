@@ -27,10 +27,13 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -136,6 +139,7 @@ public:
     void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
     {
         if (entity != nullptr) {
+            entity->setWorld(this);
             m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
         } else {
             m_blockEntities.erase(pos);
@@ -159,9 +163,11 @@ public:
 
     [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        (void)entity;
-        return ++m_lastEntityId;
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
     }
+
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManagerPtr; }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManagerPtr; }
@@ -197,6 +203,7 @@ private:
     std::vector<SoundRecord> m_sounds;
     std::vector<GameEventRecord> m_gameEvents;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     EntityId m_lastEntityId = 0;
     u64 m_seed = 0;
 };
@@ -227,6 +234,9 @@ protected:
         Items::initialize();
         item::tag::ItemTags::initialize();
         BlockTags::initialize();
+        // 注册实体类型，使 CopperGolemStatueBlockEntity::removeStatue 能通过
+        // EntityRegistry 查找到 copper_golem 实体工厂
+        entity::VanillaEntities::registerAll();
     }
 };
 
@@ -874,8 +884,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    auto result =
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
 
     // 空手应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -895,16 +904,29 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
     EXPECT_EQ(newState->get(BlockStateProperties::COPPER_GOLEM_POSE()), BlockStateProperties::CopperGolemPose::Sitting);
 }
 
-TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeReturnsPass)
+// ============================================================================
+// 斧头交互测试（基础雕像 → 生成铜傀儡）
+// ============================================================================
+//
+// 对应 MC 1.21.11 WeatheringCopperGolemStatueBlock.useItemOn 中的斧头逻辑：
+// - 基础 copper_golem_statue（Unaffected，未涂蜡）：斧头敲击 → removeStatue 生成铜傀儡
+// - 涂蜡变体（waxed_*）：返回 Pass，交由 AxeItem 处理 wax_off
+// - 氧化变体（exposed/weathered/oxidized）：返回 Pass，交由 AxeItem 处理 scrape_off
+//
+// 本项目架构：基础 copper_golem_statue 是 CopperGolemStatueBlock（不实现 IOxidizableBlock），
+// 涂蜡变体也使用 CopperGolemStatueBlock。因此 onBlockActivated 中通过
+// HoneycombItem::getWaxedOff(state) 区分涂蜡（Pass）与基础（生成铜傀儡）。
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnWaxedStatueReturnsPass)
 {
-    if (!VanillaBlocks::COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
-        GTEST_SKIP() << "COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    if (!VanillaBlocks::WAXED_COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "WAXED_COPPER_GOLEM_STATUE or IRON_AXE not registered";
     }
 
     CopperGolemStatueTestWorld world;
     const BlockPos pos(52, 64, 52);
 
-    world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
+    world.setBlockState(pos, &VanillaBlocks::WAXED_COPPER_GOLEM_STATUE->defaultState());
 
     // 创建玩家并设置手持铁斧
     Player player(EntityId(1), "TestPlayer");
@@ -916,9 +938,9 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeReturnsPass)
 
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        VanillaBlocks::WAXED_COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
 
-    // 持斧头应返回 Pass（委托给 AxeItem 处理刮削/去蜡）
+    // 涂蜡变体：斧头应返回 Pass（委托给 AxeItem 处理 wax_off）
     EXPECT_EQ(result, ActionResultType::Pass);
 
     // 不应播放音效（PASS 不执行任何动作）
@@ -929,6 +951,293 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeReturnsPass)
     ASSERT_NE(newState, nullptr);
     EXPECT_EQ(
         newState->get(BlockStateProperties::COPPER_GOLEM_POSE()), BlockStateProperties::CopperGolemPose::Standing);
+}
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnExposedStatueReturnsPass)
+{
+    // 氧化变体（Exposed/Weathered/Oxidized）不是涂蜡，应返回 Pass 交由 AxeItem 处理 scrape_off
+    if (!VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "EXPOSED_COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    }
+
+    CopperGolemStatueTestWorld world;
+    const BlockPos pos(53, 64, 53);
+
+    world.setBlockState(pos, &VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE->defaultState());
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&world);
+    player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
+
+    const BlockState* state = world.getBlockState(pos);
+    ASSERT_NE(state, nullptr);
+
+    BlockRaycastResult hit;
+    auto result =
+        VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+    // 氧化变体：斧头应返回 Pass（委托给 AxeItem 处理 scrape_off）
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 不应播放音效
+    EXPECT_TRUE(world.sounds().empty());
+
+    // 方块不应被移除
+    const BlockState* newState = world.getBlockState(pos);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_NE(newState->owner().blockLocation(), VanillaBlocks::AIR->blockLocation());
+}
+
+// ============================================================================
+// 斧头敲击基础雕像生成铜傀儡的核心测试
+// ============================================================================
+//
+// 对应 MC 1.21.11: WeatheringCopperGolemStatueBlock.useItemOn 中
+//   if (this.getAge().equals(WeatherState.UNAFFECTED) && axe) {
+//     CopperGolemStatueBlockEntity.removeStatue(state);
+//     hurtAndBreak(1, player, slot);
+//     addFreshEntity(coppergolem);
+//     removeBlock(pos, false);
+//   }
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueSpawnsGolem)
+{
+    if (!VanillaBlocks::COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    }
+
+    CopperGolemStatueTestWorld world;
+    const BlockPos pos(70, 64, 70);
+
+    // 放置基础（未涂蜡、Unaffected）铜傀儡雕像
+    const BlockState placedState = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
+        BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+    world.setBlockState(pos, &placedState);
+
+    // 创建方块实体并设置自定义名称
+    auto be = std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos);
+    be->setCustomName("TestGolem");
+    world.setBlockEntity(pos, be.release());
+
+    // 创建玩家并设置手持铁斧
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&world);
+    player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
+
+    const BlockState* state = world.getBlockState(pos);
+    ASSERT_NE(state, nullptr);
+
+    BlockRaycastResult hit;
+    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+    // 应返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应生成 1 个实体（铜傀儡）
+    ASSERT_EQ(world.spawnedEntities().size(), 1u);
+    auto* golem = dynamic_cast<CopperGolemEntity*>(world.spawnedEntities()[0].get());
+    EXPECT_NE(golem, nullptr);
+
+    // 铜傀儡应继承自定义名称
+    EXPECT_EQ(golem->customNameText(), "TestGolem");
+
+    // 铜傀儡应位于雕像位置中心
+    EXPECT_FLOAT_EQ(golem->x(), static_cast<f32>(pos.x) + 0.5f);
+    EXPECT_FLOAT_EQ(golem->y(), static_cast<f32>(pos.y));
+    EXPECT_FLOAT_EQ(golem->z(), static_cast<f32>(pos.z) + 0.5f);
+
+    // 铜傀儡朝向应与雕像 FACING 一致（South=0°）
+    EXPECT_FLOAT_EQ(golem->yaw(), 0.0f);
+
+    // 应播放生成音效
+    EXPECT_FALSE(world.sounds().empty());
+    bool foundSpawnSound = false;
+    for (const auto& s : world.sounds()) {
+        if (s.sound == SoundEvents::ENTITY_COPPER_GOLEM_SPAWN) {
+            foundSpawnSound = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundSpawnSound);
+
+    // 方块应被移除（变为空气）
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr);
+    EXPECT_EQ(finalState->owner().blockLocation(), VanillaBlocks::AIR->blockLocation());
+}
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueDamagesAxe)
+{
+    // 验证斧头耐久损耗：每次敲击基础雕像生成铜傀儡时，斧头耐久 -1
+    if (!VanillaBlocks::COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    }
+
+    CopperGolemStatueTestWorld world;
+    const BlockPos pos(71, 64, 71);
+
+    world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
+    world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&world);
+    player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
+
+    const i32 initialDamage = player.inventory().getSelectedStackRef().getDamage();
+    const i32 maxDamage = player.inventory().getSelectedStackRef().getMaxDamage();
+
+    const BlockState* state = world.getBlockState(pos);
+    ASSERT_NE(state, nullptr);
+
+    BlockRaycastResult hit;
+    VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+    // 斧头耐久应 +1
+    const i32 newDamage = player.inventory().getSelectedStackRef().getDamage();
+    EXPECT_EQ(newDamage, initialDamage + 1);
+
+    // 应小于最大耐久
+    EXPECT_LT(newDamage, maxDamage);
+}
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueNoBlockEntityReturnsPass)
+{
+    // 边界场景：基础雕像但没有方块实体（理论上不应发生，但代码有防御性处理）
+    if (!VanillaBlocks::COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    }
+
+    CopperGolemStatueTestWorld world;
+    const BlockPos pos(72, 64, 72);
+
+    // 放置方块但不创建方块实体
+    world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&world);
+    player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
+
+    const BlockState* state = world.getBlockState(pos);
+    ASSERT_NE(state, nullptr);
+
+    BlockRaycastResult hit;
+    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+    // 没有方块实体时返回 Pass（防御性处理）
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 不应生成实体
+    EXPECT_EQ(world.spawnedEntities().size(), 0u);
+
+    // 不应播放音效
+    EXPECT_TRUE(world.sounds().empty());
+}
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeFacingDirectionsCorrectlyMapped)
+{
+    // 验证所有 4 个 FACING 方向都能正确映射到 yaw
+    if (!VanillaBlocks::COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    }
+
+    const struct {
+        Direction facing;
+        f32 expectedYaw;
+    } cases[] = {
+        {Direction::South, 0.0f},
+        {Direction::West, 90.0f},
+        {Direction::North, 180.0f},
+        {Direction::East, 270.0f},
+    };
+
+    for (const auto& c : cases) {
+        CopperGolemStatueTestWorld world;
+        const BlockPos pos(73, 64, 73);
+
+        const BlockState placedState = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
+            BlockStateProperties::HORIZONTAL_FACING(), c.facing);
+        world.setBlockState(pos, &placedState);
+        world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
+
+        Player player(EntityId(1), "TestPlayer");
+        player.setWorld(&world);
+        player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
+
+        const BlockState* state = world.getBlockState(pos);
+        ASSERT_NE(state, nullptr);
+
+        BlockRaycastResult hit;
+        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+        ASSERT_EQ(world.spawnedEntities().size(), 1u);
+        auto* golem = dynamic_cast<CopperGolemEntity*>(world.spawnedEntities()[0].get());
+        ASSERT_NE(golem, nullptr);
+        EXPECT_FLOAT_EQ(golem->yaw(), c.expectedYaw)
+            << "Facing " << static_cast<i32>(c.facing) << " should map to yaw " << c.expectedYaw;
+    }
+}
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueGolemIsUnaffected)
+{
+    // 验证生成的铜傀儡初始氧化等级为 Unaffected
+    if (!VanillaBlocks::COPPER_GOLEM_STATUE || !Items::IRON_AXE) {
+        GTEST_SKIP() << "COPPER_GOLEM_STATUE or IRON_AXE not registered";
+    }
+
+    CopperGolemStatueTestWorld world;
+    const BlockPos pos(74, 64, 74);
+
+    world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
+    world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&world);
+    player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
+
+    const BlockState* state = world.getBlockState(pos);
+    ASSERT_NE(state, nullptr);
+
+    BlockRaycastResult hit;
+    VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+    ASSERT_EQ(world.spawnedEntities().size(), 1u);
+    auto* golem = dynamic_cast<CopperGolemEntity*>(world.spawnedEntities()[0].get());
+    ASSERT_NE(golem, nullptr);
+    EXPECT_EQ(golem->getWeatherState(), entity::CopperGolemWeatherState::Unaffected);
+}
+
+TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHandOnBaseStatueCyclesPose)
+{
+    // 空手敲击基础雕像应循环姿态（不生成铜傀儡）
+    if (!VanillaBlocks::COPPER_GOLEM_STATUE) {
+        GTEST_SKIP() << "COPPER_GOLEM_STATUE not registered";
+    }
+
+    CopperGolemStatueTestWorld world;
+    const BlockPos pos(75, 64, 75);
+
+    world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
+
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&world);
+
+    const BlockState* state = world.getBlockState(pos);
+    ASSERT_NE(state, nullptr);
+    ASSERT_EQ(state->get(BlockStateProperties::COPPER_GOLEM_POSE()), BlockStateProperties::CopperGolemPose::Standing);
+
+    BlockRaycastResult hit;
+    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+
+    // 空手应返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 不应生成实体
+    EXPECT_EQ(world.spawnedEntities().size(), 0u);
+
+    // 姿态应循环到 Sitting
+    const BlockState* newState = world.getBlockState(pos);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(newState->get(BlockStateProperties::COPPER_GOLEM_POSE()), BlockStateProperties::CopperGolemPose::Sitting);
 }
 
 TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses)
