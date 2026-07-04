@@ -53,4 +53,4 @@ Block
 
 4. **FlowerBedBlock 的形状计算**: 形状由 FACING 和 AMOUNT 共同决定（4x4=16种），每个花瓣段为 8x3x8 像素盒子，逆时针旋转叠加。
 
-5. **野花地物生成未实现**: MC Java 中野花通过 `WildflowerFeature` 在世界生成时放置（初始 AMOUNT 为1-4随机），此功能尚未实现，需在 feature 模块中添加。
+5. **野花地物生成**: MC Java 中野花通过 `WildflowerFeature` 在世界生成时放置（初始 AMOUNT 为1-4随机，4 朝向 × 4 数量共 16 种状态等权重）。本项目复用 `FlowerFeature` 实现，通过 `FlowerFeatures::createWildflowersBirchForest()`（tries=64）和 `FlowerFeatures::createWildflowersMeadow()`（tries=8，稀疏分布）两个预设配置，分别在白桦森林和草甸生物群系中生成。

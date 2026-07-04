@@ -283,6 +283,44 @@ BiomeGenerationSettings BiomeGenerationSettings::createForest()
     return settings;
 }
 
+BiomeGenerationSettings BiomeGenerationSettings::createBirchForest()
+{
+    // 白桦森林：基础矿石 + 白桦树为主 + 野花 + 森林草丛
+    // 参考 MC Java: BiomeDefaultFeatures.addBirchForestFlowers() 添加 WILDFLOWERS_BIRCH_FOREST
+    BiomeGenerationSettings settings = createDefault();
+
+    // 白桦树为主，附加少量橡树
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::OakTree);
+
+    // 添加白桦森林野花（野花床，16 种状态等权重，tries=64）
+    settings.addFlowerFeature(FlowerFeatureIds::WildflowersBirchForest);
+
+    // 添加森林草丛
+    settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::ForestGrass);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createMeadow()
+{
+    // 草甸：基础矿石 + 稀疏橡树 + 稀疏野花 + 平原草丛
+    // 参考 MC Java: BiomeDefaultFeatures.addMeadowVegetation() 添加 WILDFLOWERS_MEADOW
+    BiomeGenerationSettings settings = createDefault();
+
+    // 稀疏橡树
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SparseOakTree);
+
+    // 添加草甸野花（野花床，16 种状态等权重，tries=8，稀疏分布）
+    settings.addFlowerFeature(FlowerFeatureIds::WildflowersMeadow);
+
+    // 添加平原草丛
+    settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::PlainsGrass);
+
+    return settings;
+}
+
 BiomeGenerationSettings BiomeGenerationSettings::createTaiga()
 {
     // 针叶林：基础矿石 + 云杉树 + 针叶林草丛

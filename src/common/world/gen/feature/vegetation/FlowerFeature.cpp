@@ -24,6 +24,8 @@
 #include "FlowerFeature.hpp"
 
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/blocks/garden/FlowerBedBlock.hpp"
+#include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -189,6 +191,8 @@ void FlowerFeatures::initialize()
     s_features.push_back(createSwampFlowers());
     s_features.push_back(createSunflower());
     s_features.push_back(createCherryGrovePetals());
+    s_features.push_back(createWildflowersBirchForest());
+    s_features.push_back(createWildflowersMeadow());
 }
 
 const std::vector<std::unique_ptr<ConfiguredFlowerFeature>>& FlowerFeatures::getAllFeatures()
@@ -343,6 +347,63 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createCherryGrovePetals
     }
 
     return std::make_unique<ConfiguredFlowerFeature>(std::move(config), "cherry_grove_petals");
+}
+
+std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createWildflowersBirchForest()
+{
+    // WILDFLOWERS_BIRCH_FOREST: tries=64, xz_spread=6, y_spread=2
+    // 参考 MC Java: net.minecraft.data.worldgen.features.VegetationFeatures.WILDFLOWERS_BIRCH_FOREST
+    auto config = std::make_unique<FlowerFeatureConfig>();
+    config->tries = 64;
+    config->xzSpread = 6;
+    config->ySpread = 2;
+
+    // 野花使用 FlowerBedBlock，具有 FACING（4方向）+ AMOUNT（1-4）共 16 种状态
+    // MC Java 通过 flowerBedPatchBuilder 将 16 种状态等权重添加到 RandomPatch
+    // 配置中，世界生成时随机选择一种状态放置
+    _addWildflowersAllStates(*config);
+
+    return std::make_unique<ConfiguredFlowerFeature>(std::move(config), "wildflowers_birch_forest");
+}
+
+std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createWildflowersMeadow()
+{
+    // WILDFLOWERS_MEADOW: tries=8, xz_spread=6, y_spread=2（稀疏分布）
+    // 参考 MC Java: net.minecraft.data.worldgen.features.VegetationFeatures.WILDFLOWERS_MEADOW
+    auto config = std::make_unique<FlowerFeatureConfig>();
+    config->tries = 8;
+    config->xzSpread = 6;
+    config->ySpread = 2;
+
+    // 与白桦森林野花相同的状态集合，但 tries 更低以实现草甸的稀疏分布
+    _addWildflowersAllStates(*config);
+
+    return std::make_unique<ConfiguredFlowerFeature>(std::move(config), "wildflowers_meadow");
+}
+
+void FlowerFeatures::_addWildflowersAllStates(FlowerFeatureConfig& config)
+{
+    // 野花（wildflowers）方块使用 FlowerBedBlock，具有 FACING + AMOUNT 两个属性
+    // 共 16 种状态（4 个水平朝向 × 4 个数量），与 MC Java 的 flowerBedPatchBuilder
+    // 行为一致：每种状态等权重加入花卉列表，生成时随机选择
+    using namespace blocks;
+
+    if (!block_registry::GardenBlocks::WILDFLOWERS) {
+        return;
+    }
+
+    const BlockState& base = block_registry::GardenBlocks::WILDFLOWERS->defaultState();
+
+    // 4 个水平朝向
+    static constexpr Direction FACINGS[4] = {Direction::North, Direction::East, Direction::South, Direction::West};
+
+    for (Direction facing : FACINGS) {
+        for (i32 amount = 1; amount <= 4; ++amount) {
+            const BlockState& state =
+                base.with(FlowerBedBlock::FACING(), facing).with(FlowerBedBlock::AMOUNT(), amount);
+            config.addFlower(&state);
+        }
+    }
 }
 
 } // namespace mc

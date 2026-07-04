@@ -176,7 +176,26 @@ struct FlowerFeatures {
     /// 创建樱花树林粉色花瓣
     static std::unique_ptr<ConfiguredFlowerFeature> createCherryGrovePetals();
 
+    /// 创建白桦森林野花（野花床，tries=64）
+    /// 参考 MC Java: WILDFLOWERS_BIRCH_FOREST 配置
+    static std::unique_ptr<ConfiguredFlowerFeature> createWildflowersBirchForest();
+
+    /// 创建草甸野花（野花床，tries=8，稀疏分布）
+    /// 参考 MC Java: WILDFLOWERS_MEADOW 配置
+    static std::unique_ptr<ConfiguredFlowerFeature> createWildflowersMeadow();
+
 private:
+    /**
+     * @brief 将野花（wildflowers）方块的 16 种状态等权重添加到配置
+     *
+     * FlowerBedBlock 具有 FACING（4 水平朝向）+ AMOUNT（1-4 数量）共 16 种状态，
+     * 与 MC Java 的 flowerBedPatchBuilder 行为一致：每种状态等权重加入花卉列表，
+     * 世界生成时随机选择一种放置。
+     *
+     * @param config 花卉配置
+     */
+    static void _addWildflowersAllStates(FlowerFeatureConfig& config);
+
     static std::vector<std::unique_ptr<ConfiguredFlowerFeature>> s_features;
 };
 

@@ -99,13 +99,15 @@ namespace FlowerFeatureIds {
 // 花卉特征 (5-9)
 // 基础偏移量 = TreeFeatureIds::Count = 5
 constexpr u32 Offset = TreeFeatureIds::Count;
-constexpr u32 PlainsFlowers = 0 + Offset;       // 平原花卉
-constexpr u32 ForestFlowers = 1 + Offset;       // 森林花卉
-constexpr u32 FlowerForestFlowers = 2 + Offset; // 繁花森林花卉
-constexpr u32 SwampFlowers = 3 + Offset;        // 沼泽花卉
-constexpr u32 Sunflower = 4 + Offset;           // 向日葵
-constexpr u32 CherryGrovePetals = 5 + Offset;   // 樱花树林粉色花瓣
-constexpr u32 Count = 6;                        // 花卉特征总数
+constexpr u32 PlainsFlowers = 0 + Offset;          // 平原花卉
+constexpr u32 ForestFlowers = 1 + Offset;          // 森林花卉
+constexpr u32 FlowerForestFlowers = 2 + Offset;    // 繁花森林花卉
+constexpr u32 SwampFlowers = 3 + Offset;           // 沼泽花卉
+constexpr u32 Sunflower = 4 + Offset;              // 向日葵
+constexpr u32 CherryGrovePetals = 5 + Offset;      // 樱花树林粉色花瓣
+constexpr u32 WildflowersBirchForest = 6 + Offset; // 白桦森林野花
+constexpr u32 WildflowersMeadow = 7 + Offset;      // 草甸野花
+constexpr u32 Count = 8;                           // 花卉特征总数
 } // namespace FlowerFeatureIds
 
 namespace GrassFeatureIds {

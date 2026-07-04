@@ -472,7 +472,7 @@ Biome createBirchForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -876,7 +876,7 @@ Biome createBirchForestHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -907,7 +907,7 @@ Biome createTallBirchForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -922,7 +922,7 @@ Biome createTallBirchHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }

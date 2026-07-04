@@ -127,7 +127,9 @@ TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset)
     EXPECT_EQ(FlowerFeatureIds::SwampFlowers, TreeFeatureIds::Count + 3);
     EXPECT_EQ(FlowerFeatureIds::Sunflower, TreeFeatureIds::Count + 4);
     EXPECT_EQ(FlowerFeatureIds::CherryGrovePetals, TreeFeatureIds::Count + 5);
-    EXPECT_EQ(FlowerFeatureIds::Count, 6u);
+    EXPECT_EQ(FlowerFeatureIds::WildflowersBirchForest, TreeFeatureIds::Count + 6);
+    EXPECT_EQ(FlowerFeatureIds::WildflowersMeadow, TreeFeatureIds::Count + 7);
+    EXPECT_EQ(FlowerFeatureIds::Count, 8u);
 }
 
 TEST_F(VegetationFeatureTest, GrassFeatureIdsHaveCorrectOffset)
@@ -201,7 +203,7 @@ TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount)
         MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count + BambooFeatureIds::Count;
 
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, expectedTotal);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 38u); // 17+6+7+2+2+2+2
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 40u); // 17+8+7+2+2+2+2
 }
 
 TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation)
@@ -367,6 +369,13 @@ TEST_F(VegetationFeatureTest, FlowerFeatureNames)
 
     EXPECT_NE(vegetalFeatures[FlowerFeatureIds::FlowerForestFlowers], nullptr);
     EXPECT_STREQ(vegetalFeatures[FlowerFeatureIds::FlowerForestFlowers]->name(), "flower_forest_flowers");
+
+    // 野花特征（WildflowerFeature）
+    EXPECT_NE(vegetalFeatures[FlowerFeatureIds::WildflowersBirchForest], nullptr);
+    EXPECT_STREQ(vegetalFeatures[FlowerFeatureIds::WildflowersBirchForest]->name(), "wildflowers_birch_forest");
+
+    EXPECT_NE(vegetalFeatures[FlowerFeatureIds::WildflowersMeadow], nullptr);
+    EXPECT_STREQ(vegetalFeatures[FlowerFeatureIds::WildflowersMeadow]->name(), "wildflowers_meadow");
 }
 
 TEST_F(VegetationFeatureTest, GrassFeatureNames)
@@ -1094,6 +1103,93 @@ TEST_F(VegetationFeatureTest, FlowerFeaturePresetsHaveYSpread)
     EXPECT_EQ(cherry->getConfig().ySpread, 2);
     EXPECT_EQ(cherry->getConfig().xzSpread, 6);
     EXPECT_EQ(cherry->getConfig().tries, 96);
+}
+
+TEST_F(VegetationFeatureTest, WildflowersFeaturePresets)
+{
+    // 验证白桦森林野花配置：tries=64, xz_spread=6, y_spread=2，16 种状态
+    auto birchForest = FlowerFeatures::createWildflowersBirchForest();
+    ASSERT_NE(birchForest, nullptr);
+    EXPECT_EQ(birchForest->getConfig().tries, 64);
+    EXPECT_EQ(birchForest->getConfig().xzSpread, 6);
+    EXPECT_EQ(birchForest->getConfig().ySpread, 2);
+    // 16 种状态 = 4 朝向 × 4 数量
+    EXPECT_EQ(birchForest->getConfig().flowers.size(), 16u);
+
+    // 验证草甸野花配置：tries=8, xz_spread=6, y_spread=2，16 种状态
+    auto meadow = FlowerFeatures::createWildflowersMeadow();
+    ASSERT_NE(meadow, nullptr);
+    EXPECT_EQ(meadow->getConfig().tries, 8);
+    EXPECT_EQ(meadow->getConfig().xzSpread, 6);
+    EXPECT_EQ(meadow->getConfig().ySpread, 2);
+    EXPECT_EQ(meadow->getConfig().flowers.size(), 16u);
+}
+
+TEST_F(VegetationFeatureTest, BirchForestBiomeSettings)
+{
+    // 白桦森林应该有白桦树、橡树、野花和森林草丛
+    auto settings = BiomeGenerationSettings::createBirchForest();
+
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasBirchTree = false;
+    bool hasOakTree = false;
+    bool hasWildflowersBirchForest = false;
+    bool hasForestGrass = false;
+
+    for (u32 id : vegetal) {
+        if (id == TreeFeatureIds::BirchTree) hasBirchTree = true;
+        if (id == TreeFeatureIds::OakTree) hasOakTree = true;
+        if (id == FlowerFeatureIds::WildflowersBirchForest) hasWildflowersBirchForest = true;
+        if (id == GrassFeatureIds::ForestGrass) hasForestGrass = true;
+    }
+
+    EXPECT_TRUE(hasBirchTree);
+    EXPECT_TRUE(hasOakTree);
+    EXPECT_TRUE(hasWildflowersBirchForest);
+    EXPECT_TRUE(hasForestGrass);
+
+    // 野花特征应该出现在花卉特征列表中（用于骨粉催熟）
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+    bool hasWildflowersInFlowerList = false;
+    for (u32 id : flowerIds) {
+        if (id == FlowerFeatureIds::WildflowersBirchForest) {
+            hasWildflowersInFlowerList = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasWildflowersInFlowerList);
+}
+
+TEST_F(VegetationFeatureTest, MeadowBiomeSettings)
+{
+    // 草甸应该有稀疏橡树、野花和平原草丛
+    auto settings = BiomeGenerationSettings::createMeadow();
+
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasSparseOakTree = false;
+    bool hasWildflowersMeadow = false;
+    bool hasPlainsGrass = false;
+
+    for (u32 id : vegetal) {
+        if (id == TreeFeatureIds::SparseOakTree) hasSparseOakTree = true;
+        if (id == FlowerFeatureIds::WildflowersMeadow) hasWildflowersMeadow = true;
+        if (id == GrassFeatureIds::PlainsGrass) hasPlainsGrass = true;
+    }
+
+    EXPECT_TRUE(hasSparseOakTree);
+    EXPECT_TRUE(hasWildflowersMeadow);
+    EXPECT_TRUE(hasPlainsGrass);
+
+    // 野花特征应该出现在花卉特征列表中（用于骨粉催熟）
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+    bool hasWildflowersInFlowerList = false;
+    for (u32 id : flowerIds) {
+        if (id == FlowerFeatureIds::WildflowersMeadow) {
+            hasWildflowersInFlowerList = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasWildflowersInFlowerList);
 }
 
 TEST_F(VegetationFeatureTest, GrassFeatureConfigHasYSpread)

@@ -153,6 +153,24 @@ public:
     static BiomeGenerationSettings createForest();
 
     /**
+     * @brief 创建白桦森林生物群系的生成设置
+     *
+     * 与普通森林相比，白桦森林使用白桦树为主、加入野花（WildflowerFeature）特征。
+     * 参考 MC Java: BiomeDefaultFeatures.addBirchForestFlowers() 添加 WILDFLOWERS_BIRCH_FOREST
+     * @return 白桦森林设置
+     */
+    static BiomeGenerationSettings createBirchForest();
+
+    /**
+     * @brief 创建草甸生物群系的生成设置
+     *
+     * 草甸是 1.18+ 引入的山地生物群系，使用稀疏橡树和稀疏野花（WildflowerFeature）。
+     * 参考 MC Java: BiomeDefaultFeatures.addMeadowVegetation() 添加 WILDFLOWERS_MEADOW
+     * @return 草甸设置
+     */
+    static BiomeGenerationSettings createMeadow();
+
+    /**
      * @brief 创建针叶林生物群系的生成设置
      * @return 针叶林设置
      */

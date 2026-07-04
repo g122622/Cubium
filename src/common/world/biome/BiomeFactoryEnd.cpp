@@ -187,7 +187,7 @@ Biome createMeadow()
             .skyColor(0x78A7FF)
             .grassColor(0x63A948)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings::createMeadow());
     return biome;
 }
 
