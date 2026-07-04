@@ -185,11 +185,11 @@ TEST(TrapDoorBlockLadderLogicTest, OpenStateCheck)
 
 TEST_F(TrapDoorBlockLadderTest, HalfProperty_Exists)
 {
-    // 验证DOUBLE_BLOCK_HALF属性存在
+    // 验证HALF属性存在（活板门使用 Half::Top/Bottom，非 DoubleBlockHalf）
     const BlockState& state = woodenTrapdoor_->defaultState();
-    auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    auto half = state.get(BlockStateProperties::HALF());
     // 默认应该是下半部分
-    EXPECT_EQ(half, BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(half, BlockStateProperties::Half::Bottom);
 }
 
 TEST_F(TrapDoorBlockLadderTest, FacingProperty_Exists)

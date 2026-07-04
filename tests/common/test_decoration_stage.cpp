@@ -56,8 +56,9 @@ TEST_F(DecorationStageTest, GetAllReturnsCorrectOrder)
     EXPECT_EQ(stages[5], DecorationStage::Strongholds);
     EXPECT_EQ(stages[6], DecorationStage::UndergroundOres);
     EXPECT_EQ(stages[7], DecorationStage::UndergroundDecoration);
-    EXPECT_EQ(stages[8], DecorationStage::VegetalDecoration);
-    EXPECT_EQ(stages[9], DecorationStage::TopLayerModification);
+    EXPECT_EQ(stages[8], DecorationStage::FluidSprings);
+    EXPECT_EQ(stages[9], DecorationStage::VegetalDecoration);
+    EXPECT_EQ(stages[10], DecorationStage::TopLayerModification);
 }
 
 TEST_F(DecorationStageTest, GetNameReturnsCorrectStrings)
@@ -70,6 +71,7 @@ TEST_F(DecorationStageTest, GetNameReturnsCorrectStrings)
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::Strongholds), "strongholds");
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::UndergroundOres), "underground_ores");
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::UndergroundDecoration), "underground_decoration");
+    EXPECT_STREQ(DecorationStages::getName(DecorationStage::FluidSprings), "fluid_springs");
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::VegetalDecoration), "vegetal_decoration");
     EXPECT_STREQ(DecorationStages::getName(DecorationStage::TopLayerModification), "top_layer_modification");
 }
@@ -79,15 +81,17 @@ TEST_F(DecorationStageTest, GetIndexReturnsCorrectValues)
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::RawGeneration), 0);
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::Lakes), 1);
     EXPECT_EQ(DecorationStages::getIndex(DecorationStage::UndergroundOres), 6);
-    EXPECT_EQ(DecorationStages::getIndex(DecorationStage::VegetalDecoration), 8);
-    EXPECT_EQ(DecorationStages::getIndex(DecorationStage::TopLayerModification), 9);
+    EXPECT_EQ(DecorationStages::getIndex(DecorationStage::FluidSprings), 8);
+    EXPECT_EQ(DecorationStages::getIndex(DecorationStage::VegetalDecoration), 9);
+    EXPECT_EQ(DecorationStages::getIndex(DecorationStage::TopLayerModification), 10);
 }
 
 TEST_F(DecorationStageTest, FromIndexReturnsCorrectStage)
 {
     EXPECT_EQ(DecorationStages::fromIndex(0), DecorationStage::RawGeneration);
     EXPECT_EQ(DecorationStages::fromIndex(6), DecorationStage::UndergroundOres);
-    EXPECT_EQ(DecorationStages::fromIndex(9), DecorationStage::TopLayerModification);
+    EXPECT_EQ(DecorationStages::fromIndex(8), DecorationStage::FluidSprings);
+    EXPECT_EQ(DecorationStages::fromIndex(10), DecorationStage::TopLayerModification);
 }
 
 TEST_F(DecorationStageTest, FromIndexInvalidReturnsRawGeneration)
