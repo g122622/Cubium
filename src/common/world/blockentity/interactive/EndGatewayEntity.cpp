@@ -249,6 +249,23 @@ BlockPos EndGatewayEntity::_findExitPosition(IWorld& world) const
     return highestBlock.up();
 }
 
+bool EndGatewayEntity::_isChunkEmpty(const world::chunk::ChunkData* chunk)
+{
+    // 对应 MC Java 的 TheEndGatewayBlockEntity.isChunkEmpty：
+    // 区块中所有区段均为空（getHighestFilledSectionIndex == -1）时视为空区块
+    if (chunk == nullptr) {
+        return true;
+    }
+
+    for (i32 sectionIdx = 0; sectionIdx < world::CHUNK_SECTIONS; ++sectionIdx) {
+        const world::chunk::ChunkSection* section = chunk->getSection(sectionIdx);
+        if (section != nullptr && !section->isEmpty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void EndGatewayEntity::_generateExitPortal(IWorld& world)
 {
     // 从主岛向外约 1024 格生成出口传送门
@@ -265,10 +282,7 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     // 沿方向搜索合适的区块
     // 先沿方向前进 1024 格，然后跳过非空区块（回退），再跳过空区块（前进）
     // 与 MC Java 的 TheEndGatewayBlockEntity.findExitPortalXZPosTentative 一致
-    // TODO: MC 原版在区块未加载时会触发区块加载/生成来判断是否为空，
-    // 当前实现将未加载区块（getChunk 返回 nullptr）视为空区块继续前进，
-    // 可能导致出口传送门定位到未生成区域。后续应在 ServerWorld 层面
-    // 支持按需加载区块以完整复刻原版行为。
+    // 使用 getOrLoadChunk 同步加载区块以判断是否为空，完整复刻原版行为
     f64 vecX = dirX * 1024.0;
     f64 vecZ = dirZ * 1024.0;
 
@@ -276,21 +290,9 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     for (i32 i = 0; i < 16; ++i) {
         i32 chunkX = world::toChunkCoord(static_cast<i32>(std::floor(vecX)));
         i32 chunkZ = world::toChunkCoord(static_cast<i32>(std::floor(vecZ)));
-        const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+        const world::chunk::ChunkData* chunk = world.getOrLoadChunk(chunkX, chunkZ);
 
-        // 检查区块是否非空（有内容）
-        bool chunkHasContent = false;
-        if (chunk != nullptr) {
-            for (i32 sectionIdx = 0; sectionIdx < world::CHUNK_SECTIONS; ++sectionIdx) {
-                const ChunkSection* section = chunk->getSection(sectionIdx);
-                if (section != nullptr && !section->isEmpty()) {
-                    chunkHasContent = true;
-                    break;
-                }
-            }
-        }
-
-        if (chunkHasContent) {
+        if (!_isChunkEmpty(chunk)) {
             // 非空区块，继续回退
             vecX -= dirX * static_cast<f64>(world::CHUNK_WIDTH);
             vecZ -= dirZ * static_cast<f64>(world::CHUNK_WIDTH);
@@ -303,21 +305,9 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     for (i32 i = 0; i < 16; ++i) {
         i32 chunkX = world::toChunkCoord(static_cast<i32>(std::floor(vecX)));
         i32 chunkZ = world::toChunkCoord(static_cast<i32>(std::floor(vecZ)));
-        const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+        const world::chunk::ChunkData* chunk = world.getOrLoadChunk(chunkX, chunkZ);
 
-        // 检查区块是否为空
-        bool chunkHasContent = false;
-        if (chunk != nullptr) {
-            for (i32 sectionIdx = 0; sectionIdx < world::CHUNK_SECTIONS; ++sectionIdx) {
-                const ChunkSection* section = chunk->getSection(sectionIdx);
-                if (section != nullptr && !section->isEmpty()) {
-                    chunkHasContent = true;
-                    break;
-                }
-            }
-        }
-
-        if (!chunkHasContent) {
+        if (_isChunkEmpty(chunk)) {
             // 空区块，继续前进
             vecX += dirX * static_cast<f64>(world::CHUNK_WIDTH);
             vecZ += dirZ * static_cast<f64>(world::CHUNK_WIDTH);

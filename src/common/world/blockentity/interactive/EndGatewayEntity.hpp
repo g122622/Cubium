@@ -33,6 +33,10 @@ namespace mc {
 class IWorld;
 class Entity;
 
+namespace world::chunk {
+class ChunkData;
+}
+
 namespace blockentity {
 
 /**
@@ -244,6 +248,17 @@ private:
      */
     [[nodiscard]] static BlockPos _findHighestBlock(
         IWorld& world, const BlockPos& center, i32 radius, bool allowBedrock);
+
+    /**
+     * @brief 检查区块是否为空（所有区段均无方块）
+     *
+     * 对应 MC Java 的 TheEndGatewayBlockEntity.isChunkEmpty：
+     * 判断区块中是否存在非空区段（getHighestFilledSectionIndex == -1 表示空区块）。
+     *
+     * @param chunk 区块数据，nullptr 视为空区块
+     * @return 区块为空返回 true，否则 false
+     */
+    [[nodiscard]] static bool _isChunkEmpty(const world::chunk::ChunkData* chunk);
 
     /// 年龄（tick）- 用于生成动画
     i64 m_age = 0;

@@ -349,6 +349,20 @@ public:
      */
     [[nodiscard]] virtual bool hasChunk(ChunkCoord x, ChunkCoord z) const = 0;
 
+    /**
+     * @brief 同步获取或加载区块
+     *
+     * 对应 MC Java 的 Level.getChunk(x, z, require=true)：
+     * 如果区块已加载则直接返回，否则同步触发区块加载/生成。
+     *
+     * 仅在服务端主线程调用安全（与 requestFullChunkSync 同样的约束）。
+     * 客户端和其他不支持的实现返回 nullptr。
+     *
+     * @param x, z 区块坐标
+     * @return 区块数据指针，如果无法加载返回 nullptr
+     */
+    [[nodiscard]] virtual const ChunkData* getOrLoadChunk(ChunkCoord x, ChunkCoord z) { return getChunk(x, z); }
+
     // ========== 声音播放 ==========
 
     /**
