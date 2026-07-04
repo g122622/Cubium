@@ -167,6 +167,40 @@ private:
 };
 
 /**
+ * @brief 铜傀儡模型
+ *
+ * 对应 MC 1.21.11: net.minecraft.client.model.animal.golem.CopperGolemModel
+ * 铜傀儡由 body（含 head 与双臂）与 left/right_leg 组成，纹理尺寸 64×64。
+ *
+ * 注意：MC 原版使用 KeyframeAnimation 系统驱动行走、空闲、宝箱交互等动画，
+ * 本项目当前未实现关键帧动画系统，仅实现基础骨骼与 setAngles 中的简易动画。
+ * TODO: 接入关键帧动画系统后，补充 CopperGolemAnimation 中定义的动画。
+ */
+class CopperGolemModel : public EntityModel {
+public:
+    CopperGolemModel();
+    ~CopperGolemModel() override = default;
+
+    void render(f64 scale = 1.0f / 16.0f) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
+
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getHead() const { return m_head; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getRightArm() const { return m_rightArm; }
+    [[nodiscard]] std::shared_ptr<ModelRenderer> getLeftArm() const { return m_leftArm; }
+
+private:
+    void _setupParts();
+
+    std::shared_ptr<ModelRenderer> m_body;
+    std::shared_ptr<ModelRenderer> m_head;
+    std::shared_ptr<ModelRenderer> m_rightArm;
+    std::shared_ptr<ModelRenderer> m_leftArm;
+    std::shared_ptr<ModelRenderer> m_rightLeg;
+    std::shared_ptr<ModelRenderer> m_leftLeg;
+};
+
+/**
  * @brief 蜜蜂模型
  */
 class BeeModel : public EntityModel {

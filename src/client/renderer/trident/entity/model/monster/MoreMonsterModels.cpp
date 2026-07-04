@@ -465,6 +465,115 @@ void SnowGolemModel::setAngles(
     (void)scale;
 }
 
+// ==================== CopperGolemModel ====================
+//
+// 对应 MC 1.21.11: net.minecraft.client.model.animal.golem.CopperGolemModel.createBodyLayer()
+// 铜傀儡纹理尺寸 64×64，骨骼层级：
+//   root
+//     body (offset 0, -5, 0)
+//       head (offset 0, -6, 0)
+//       right_arm (offset -4, -6, 0)
+//       left_arm (offset 4, -6, 0)
+//     right_leg (offset 0, -5, 0)
+//     left_leg (offset 0, -5, 0)
+//
+// 注意：本项目 ModelRenderer 不支持父子层级，因此将子部件的世界坐标展开计算。
+// head 实际位置 = body(0,-5,0) + head(0,-6,0) = (0,-11,0)
+// right_arm 实际位置 = body(0,-5,0) + right_arm(-4,-6,0) = (-4,-11,0)
+// left_arm 实际位置 = body(0,-5,0) + left_arm(4,-6,0) = (4,-11,0)
+
+CopperGolemModel::CopperGolemModel()
+    : EntityModel()
+{
+    setTextureSize(64, 64);
+    _setupParts();
+}
+
+void CopperGolemModel::_setupParts()
+{
+    // body: 8×6×6 立方体，纹理偏移 (0, 15)
+    m_body = std::make_shared<ModelRenderer>("body");
+    m_body->setRotationPoint(0.0f, -5.0f, 0.0f);
+    m_body->setTextureOffset(0, 15);
+    m_body->addBox(-4.0f, -6.0f, -3.0f, 8.0f, 6.0f, 6.0f);
+    m_parts.push_back(m_body);
+
+    // head: 主体 8×5×10 + 鼻子 2×3×2 + 天线杆 2×4×2 + 天线顶 4×4×4
+    // 纹理偏移分别 (0,0) (56,0) (37,8) (37,0)
+    m_head = std::make_shared<ModelRenderer>("head");
+    m_head->setRotationPoint(0.0f, -11.0f, 0.0f); // body(-5) + head(-6)
+    m_head->setTextureOffset(0, 0);
+    m_head->addBox(-4.0f, -5.0f, -5.0f, 8.0f, 5.0f, 10.0f, 0.015f);
+    m_head->setTextureOffset(56, 0);
+    m_head->addBox(-1.0f, -2.0f, -6.0f, 2.0f, 3.0f, 2.0f);
+    m_head->setTextureOffset(37, 8);
+    m_head->addBox(-1.0f, -9.0f, -1.0f, 2.0f, 4.0f, 2.0f, -0.015f);
+    m_head->setTextureOffset(37, 0);
+    m_head->addBox(-2.0f, -13.0f, -2.0f, 4.0f, 4.0f, 4.0f, -0.015f);
+    m_parts.push_back(m_head);
+
+    // right_arm: 3×10×4，纹理偏移 (36, 16)
+    m_rightArm = std::make_shared<ModelRenderer>("rightArm");
+    m_rightArm->setRotationPoint(-4.0f, -11.0f, 0.0f); // body(-5) + right_arm(-6)
+    m_rightArm->setTextureOffset(36, 16);
+    m_rightArm->addBox(-3.0f, -1.0f, -2.0f, 3.0f, 10.0f, 4.0f);
+    m_parts.push_back(m_rightArm);
+
+    // left_arm: 3×10×4，纹理偏移 (50, 16)
+    m_leftArm = std::make_shared<ModelRenderer>("leftArm");
+    m_leftArm->setRotationPoint(4.0f, -11.0f, 0.0f); // body(-5) + left_arm(-6)
+    m_leftArm->setTextureOffset(50, 16);
+    m_leftArm->addBox(0.0f, -1.0f, -2.0f, 3.0f, 10.0f, 4.0f);
+    m_parts.push_back(m_leftArm);
+
+    // right_leg: 4×5×4，纹理偏移 (0, 27)
+    m_rightLeg = std::make_shared<ModelRenderer>("rightLeg");
+    m_rightLeg->setRotationPoint(0.0f, -5.0f, 0.0f);
+    m_rightLeg->setTextureOffset(0, 27);
+    m_rightLeg->addBox(-4.0f, 0.0f, -2.0f, 4.0f, 5.0f, 4.0f);
+    m_parts.push_back(m_rightLeg);
+
+    // left_leg: 4×5×4，纹理偏移 (16, 27)
+    m_leftLeg = std::make_shared<ModelRenderer>("leftLeg");
+    m_leftLeg->setRotationPoint(0.0f, -5.0f, 0.0f);
+    m_leftLeg->setTextureOffset(16, 27);
+    m_leftLeg->addBox(0.0f, 0.0f, -2.0f, 4.0f, 5.0f, 4.0f);
+    m_parts.push_back(m_leftLeg);
+}
+
+void CopperGolemModel::render(f64 scale)
+{
+    EntityModel::render(scale);
+}
+
+void CopperGolemModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
+    // 头部跟随玩家视角旋转
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * math::PI / 180.0));
+    m_head->setRotateAngleX(static_cast<f32>(headPitch * math::PI / 180.0));
+
+    // 三角波行走动画（参考 IronGolemModel）
+    auto triangleWave = [](f64 x, f64 period) -> f64 {
+        f64 halfPeriod = period / 2.0;
+        f64 quarterPeriod = period / 4.0;
+        return (std::abs(std::fmod(x, period) - halfPeriod) - quarterPeriod) / quarterPeriod;
+    };
+
+    f32 legSwing = static_cast<f32>(triangleWave(limbSwing, 13.0));
+    m_rightLeg->setRotateAngleX(-1.5f * legSwing * static_cast<f32>(limbSwingAmount));
+    m_leftLeg->setRotateAngleX(1.5f * legSwing * static_cast<f32>(limbSwingAmount));
+    m_rightLeg->setRotateAngleY(0.0f);
+    m_leftLeg->setRotateAngleY(0.0f);
+
+    // 手臂动画
+    m_rightArm->setRotateAngleX(static_cast<f32>((-0.2 + 1.5 * triangleWave(limbSwing, 13.0)) * limbSwingAmount));
+    m_leftArm->setRotateAngleX(static_cast<f32>((-0.2 - 1.5 * triangleWave(limbSwing, 13.0)) * limbSwingAmount));
+
+    (void)ageInTicks;
+    (void)scale;
+}
+
 // ==================== BeeModel ====================
 
 BeeModel::BeeModel()

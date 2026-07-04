@@ -169,6 +169,8 @@ void initializeRendererRegistration()
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::IronGolemRenderer>(); });
     f.registerRenderer(ET::SNOW_GOLEM,
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::SnowGolemRenderer>(); });
+    f.registerRenderer(ET::COPPER_GOLEM,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::CopperGolemRenderer>(); });
 
     // ==================== 村民渲染器 ====================
     f.registerRenderer(ET::VILLAGER,
