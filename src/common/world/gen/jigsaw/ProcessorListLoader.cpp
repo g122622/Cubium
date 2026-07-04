@@ -31,6 +31,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
+#include "common/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
@@ -57,6 +58,7 @@ using feature::template_::JigsawReplacementStructureProcessor;
 using feature::template_::LavaSubmergingProcessor;
 using feature::template_::LinearPosRuleTest;
 using feature::template_::NopStructureProcessor;
+using feature::template_::ProtectedBlocksProcessor;
 using feature::template_::RandomBlockMatchRuleTest;
 using feature::template_::RandomBlockStateMatchRuleTest;
 using feature::template_::RuleEntry;
@@ -696,12 +698,42 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProtectedBlocksPr
 {
     // protected_blocks 处理器：保护指定标签的方块不被结构覆盖
     // JSON: { "processor_type": "minecraft:protected_blocks", "value": "#minecraft:features_cannot_replace" }
-    // TODO(jigsaw-refactor): 标签系统尚未完全支持 protected_blocks 逻辑。
-    //   原版中此处理器用于防止结构替换被保护的方块（如刷怪笼、基岩等），此处使用 Nop 占位
-    //   （生成结果功能完整，只是不保护方块）。后续接入 BlockTag 系统后补全。
-    //   参考: MC 1.21 net.minecraft.world.level.levelgen.structure.processor.ProtectedBlocksProcessor
-    spdlog::warn("protected_blocks processor: tag-based protection not yet implemented, using nop processor");
-    return std::make_unique<NopStructureProcessor>();
+    //
+    // 对应 MC Java 1.21.11 net.minecraft.world.level.levelgen.structure.templatesystem.ProtectedBlockProcessor
+    // value 字段为标签 ID 字符串，必须以 '#' 前缀标识（MC codec 使用 TagKey.hashedCodec 解析）
+    //
+    // 处理逻辑：
+    // - 读取 world->getBlockState(pos) 当前世界方块状态
+    // - 若世界方块在保护标签内 → 跳过放置（保留世界方块）
+    // - 否则 → 正常放置模板方块
+    //
+    // 边界情况：
+    // - 缺少 value 字段 → 使用 Nop 占位（无法构造有意义的处理器）
+    // - value 不是字符串 → 使用 Nop 占位
+    // - value 不以 '#' 开头 → 仍尝试解析为 ResourceLocation（向后兼容）
+    // - 标签不存在 → ProtectedBlocksProcessor 在 process() 时透传（视为空标签）
+
+    if (!processorObj.contains("value") || !processorObj["value"].is_string()) {
+        spdlog::warn("protected_blocks processor: missing or invalid 'value' field, using nop processor");
+        return std::make_unique<NopStructureProcessor>();
+    }
+
+    std::string valueStr = processorObj["value"].get<std::string>();
+
+    // value 字段为标签 ID，格式为 "#<namespace>:<path>" 或 "#<path>"
+    // MC 原版 codec 要求 '#' 前缀，此处剥离 '#' 后解析为 ResourceLocation
+    if (!valueStr.empty() && valueStr[0] == '#') {
+        valueStr = valueStr.substr(1);
+    }
+
+    ResourceLocation tagId(valueStr);
+    if (tagId.namespace_().empty()) {
+        spdlog::warn("protected_blocks processor: invalid tag id '{}', using nop processor",
+            processorObj["value"].get<std::string>());
+        return std::make_unique<NopStructureProcessor>();
+    }
+
+    return std::make_unique<ProtectedBlocksProcessor>(tagId);
 }
 
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(const nlohmann::json& processorObj)
