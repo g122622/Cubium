@@ -427,7 +427,9 @@ std::unique_ptr<DensityFunction> cache2D(std::unique_ptr<DensityFunction> input)
 
 std::unique_ptr<DensityFunction> flatCache(std::unique_ptr<DensityFunction> input)
 {
-    return std::make_unique<FlatCache>(std::move(input));
+    // 非 Marker 直接构造路径：无区块几何，退化为单值 lastPos 缓存
+    // （对齐原版 FlatCache 在 precompute=false 时的行为）
+    return std::make_unique<FlatCache>(std::move(input), 0, 0, 0, false);
 }
 
 std::unique_ptr<DensityFunction> cacheAllInCell(std::unique_ptr<DensityFunction> input)

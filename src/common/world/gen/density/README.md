@@ -140,6 +140,20 @@ MC 1.21 中各密度的缓存层不同：
 - `continents`/`erosion`/`ridges`: flatCache（非 cache2D）
 - `endIslands`: 种子参数始终为 0（非世界种子）
 
+**FlatCache 区块级预计算**：`FlatCache` 对齐原版 `NoiseChunk.FlatCache`（NoiseChunk.java:619-665），
+在 `NoiseChunk::apply()` 替换 Marker 时注入区块几何（`firstNoiseX/Z`、`noiseSizeXZ`）并
+`precompute=true`，构造期双 for 预计算整张 quart XZ 网格到 `values[(sizeXZ+1)²]` 数组，
+之后 `compute()` 退化为 O(1) 数组查表（越界回退 `m_input->compute`）。主世界区块
+`cellCountXZ=4,cellWidth=4` → `noiseSizeXZ=4`，数组 25 项。
+
+此优化的收益点：`GenerateBiomes_MultiNoiseBiomeSource` 的 1536 点气候采样循环中，
+continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓存 0 命中）
+变为 25 点预计算 + 1536 次 O(1) 查表。temperature/vegetation 虽然本身不缓存，
+但其 shiftX/shiftZ 子函数命中同一 FlatCache 数组，省掉 shiftA/shiftB 重算。
+
+非 NoiseChunk 上下文（如 `factory::flatCache` 非 Marker 直接构造、零散 getHeight 查询）
+无区块几何，`precompute=false` 退化为单值 lastPos 缓存，保证正确性。
+
 ### 10. BlendAlpha / BlendOffset / BeardifierMarker
 
 - `BlendAlpha`：默认返回 1.0（无旧区块混合）。在 `splineWithBlending` 中用作 `lerp(blendAlpha, blendTarget, splineFunc)` 的 alpha 参数。当 NoiseChunk 构造时有 Blender 数据时，会被替换为实际的混合 alpha 值（0.0~1.0 的 smoothstep 过渡）
@@ -163,8 +177,10 @@ MC 1.21 中各密度的缓存层不同：
 3. **YClampedGradient 范围**：主世界使用 [-64, 320]，下界/末地使用 [0, 128]
 4. **ShiftA vs ShiftB**：ShiftA 使用 (x, 0, z)，ShiftB 使用 (z, x, 0)，坐标顺序不同
 5. **peaksAndValleys 公式**：`mul(-3, add(abs(add(abs(ridges), -2/3)), -1/3))` 需要精确实现
-6. **缓存线程安全**：Cache2D/FlatCache/CacheAllInCell 使用 mutable 缓存，线程不安全，
-   每个区块生成任务应有独立实例
+6. **缓存线程安全**：Cache2D/CacheAllInCell 使用 mutable 缓存，线程不安全，
+   每个区块生成任务应有独立实例。FlatCache 在 `precompute=true` 时构造期单线程
+   预计算完成后 `compute()` 只读查表（`m_values` 不再变更），故 per-NoiseChunk
+   实例只读安全；仅 `precompute=false` 的单值回退路径仍含 mutable 缓存
 7. **NoiseChunk 插值顺序**：三线性插值必须按 Y → X → Z 顺序调用 updateForY/updateForX/updateForZ，
    否则结果错误
 8. **NoiseChunk slice 交换**：advanceCellX 后必须调用 swapSlices() 切换缓冲区

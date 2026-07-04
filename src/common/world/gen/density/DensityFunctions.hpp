@@ -998,33 +998,70 @@ private:
 // ============================================================================
 
 /**
- * @brief 区块级扁平缓存密度函数
+ * @brief 区块级扁平缓存密度函数 — MC 1.21 NoiseChunk.FlatCache
  *
- * 对每个区块位置（XZ），在 Y=0 处计算一次并缓存。
- * 适用于仅需要表面高度的密度函数。
- * 线程不安全，每个区块生成任务应有独立实例。
+ * 对仅依赖 XZ 的密度函数（如 continents/erosion/ridges），在 NoiseChunk 构造时
+ * 一次性预计算整个区块 quart XZ 网格的值到一维数组 values[(sizeXZ+1)²]，
+ * 之后 compute() 退化为 O(1) 数组查表。对齐原版 NoiseChunk.FlatCache
+ * （NoiseChunk.java:619-665）的区块级预计算语义。
+ *
+ * 当未注入区块几何（非 NoiseChunk 上下文，如零散getHeight 查询走非mapAll路径）
+ * 时，退化为单值 lastPos 缓存，保证正确性。线程不安全，每个区块生成任务应有独立实例。
  */
 class FlatCache final : public DensityFunction {
 public:
-    explicit FlatCache(std::unique_ptr<DensityFunction> input)
+    /**
+     * @brief 构造区块级扁平缓存
+     * @param input 被包装的 XZ-only 密度函数
+     * @param firstQuartX 区块首个 quart X（= floorDiv(startBlockX, 4)）
+     * @param firstQuartZ 区块首个 quart Z（= floorDiv(startBlockZ, 4)）
+     * @param sizeXZ quart XZ 网格边长（= cellCountXZ * cellWidth / 4），数组维度为 (sizeXZ+1)²
+     * @param precompute true 时构造期双 for 预计算整张表（NoiseChunk::apply 替换时传 true）
+     */
+    FlatCache(std::unique_ptr<DensityFunction> input, i32 firstQuartX, i32 firstQuartZ, i32 sizeXZ, bool precompute)
         : m_input(std::move(input))
-        , m_cachedQuartX(0)
-        , m_cachedQuartZ(0)
-        , m_cachedValue(0.0)
-        , m_valid(false)
-    {}
+        , m_firstQuartX(firstQuartX)
+        , m_firstQuartZ(firstQuartZ)
+        , m_sizeXZ(sizeXZ)
+        , m_precomputed(precompute)
+    {
+        if (precompute) {
+            // 对齐原版 NoiseChunk.FlatCache 构造期预计算：
+            // values[i + l*sizeXZ] = noiseFiller.compute((firstQuartX+i)<<2, 0, (firstQuartZ+l)<<2)
+            // Y 传 0（XZ-only 函数忽略 Y），与原版 SinglePointContext(k, 0, j1) 一致
+            m_values.resize(static_cast<size_t>(sizeXZ + 1) * static_cast<size_t>(sizeXZ + 1));
+            for (i32 l = 0; l <= sizeXZ; ++l) {
+                const i32 blockZ = (firstQuartZ + l) << 2;
+                for (i32 i = 0; i <= sizeXZ; ++i) {
+                    const i32 blockX = (firstQuartX + i) << 2;
+                    m_values[static_cast<size_t>(i) + static_cast<size_t>(l) * static_cast<size_t>(sizeXZ + 1)] =
+                        m_input->compute(blockX, 0, blockZ);
+                }
+            }
+        }
+    }
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
     {
-        // quart 坐标 = floorDiv(block 坐标, 4)，负坐标下 >> 2 不是向下取整
-        const i32 quartX = math::floorDiv(blockX, 4);
-        const i32 quartZ = math::floorDiv(blockZ, 4);
-        if (m_valid && quartX == m_cachedQuartX && quartZ == m_cachedQuartZ) {
+        if (m_precomputed) {
+            // quart 坐标 = floorDiv(block 坐标, 4)，负坐标下 >> 2 不是向下取整
+            const i32 quartX = math::floorDiv(blockX, 4);
+            const i32 quartZ = math::floorDiv(blockZ, 4);
+            const i32 k = quartX - m_firstQuartX;
+            const i32 l = quartZ - m_firstQuartZ;
+            if (k >= 0 && l >= 0 && k <= m_sizeXZ && l <= m_sizeXZ) {
+                return m_values[static_cast<size_t>(k) + static_cast<size_t>(l) * static_cast<size_t>(m_sizeXZ + 1)];
+            }
+            // 越界回退（对齐原版 NoiseChunk.FlatCache.compute 的越界分支）
+            return m_input->compute(blockX, blockY, blockZ);
+        }
+        // 非 NoiseChunk 上下文：退化为单值 lastPos 缓存
+        if (m_valid && blockX == m_cachedBlockX && blockZ == m_cachedBlockZ) {
             return m_cachedValue;
         }
-        m_cachedQuartX = quartX;
-        m_cachedQuartZ = quartZ;
-        m_cachedValue = m_input->compute(quartX << 2, 0, quartZ << 2);
+        m_cachedBlockX = blockX;
+        m_cachedBlockZ = blockZ;
+        m_cachedValue = m_input->compute(blockX, blockY, blockZ);
         m_valid = true;
         return m_cachedValue;
     }
@@ -1037,15 +1074,26 @@ public:
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         auto newInput = m_input->mapAll(visitor);
-        return visitor.apply(std::make_unique<FlatCache>(std::move(newInput)));
+        // mapAll 递归替换子节点后，预计算数组需重新生成（子节点指针已变）。
+        // 保留几何参数与 precompute 标志，由上层 NoiseChunk 上下文重新触发预计算。
+        // 注意：NoiseChunk::apply 在 mapAll 之后替换 Marker，构造的新 FlatCache 自带预计算；
+        // 此处 mapAll 用于非 NoiseChunk 路径（如 NoiseRouter 独立 mapAll），退化为单值缓存即可。
+        return visitor.apply(std::make_unique<FlatCache>(std::move(newInput), 0, 0, 0, false));
     }
 
 private:
     std::unique_ptr<DensityFunction> m_input;
-    mutable i32 m_cachedQuartX;
-    mutable i32 m_cachedQuartZ;
-    mutable f64 m_cachedValue;
-    mutable bool m_valid;
+    i32 m_firstQuartX = 0;
+    i32 m_firstQuartZ = 0;
+    i32 m_sizeXZ = 0;
+    bool m_precomputed = false;
+    std::vector<f64> m_values;
+
+    // 单值回退路径（非预计算模式）使用
+    mutable i32 m_cachedBlockX = 0;
+    mutable i32 m_cachedBlockZ = 0;
+    mutable f64 m_cachedValue = 0.0;
+    mutable bool m_valid = false;
 };
 
 // ============================================================================

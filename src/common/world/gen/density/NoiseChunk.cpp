@@ -417,9 +417,13 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
                 return cacheOnce;
             }
             case MarkerType::FlatCache: {
-                // FlatCache → 替换为区块级扁平缓存实例
+                // FlatCache → 替换为区块级扁平缓存实例，构造期预计算整张 quart XZ 表
+                // 对齐原版 NoiseChunk.FlatCache（NoiseChunk.java:619-665）：构造时传 precompute=true，
+                // 双 for 预计算 values[(noiseSizeXZ+1)²]，之后 compute() O(1) 查表。
+                // 几何参数：firstNoiseX/Z = floorDiv(startBlockX/Z, 4)，noiseSizeXZ = cellCountXZ*cellWidth/4。
                 auto filler = marker->releaseWrapped();
-                return std::make_unique<FlatCache>(std::move(filler));
+                return std::make_unique<FlatCache>(
+                    std::move(filler), firstNoiseX(), firstNoiseZ(), noiseSizeXZ(), true);
             }
             case MarkerType::Cache2D: {
                 // Cache2D → 替换为 XZ 位置缓存实例
