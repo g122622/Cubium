@@ -45,6 +45,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -935,7 +936,7 @@ bool Template::placeInWorld(
     // 处理实体
     if (!settings.ignoreEntities() && !m_entities.empty()) {
         for (const auto& entityInfo : m_entities) {
-            // 变换实体位置
+            // 变换实体方块位置（用于边界框检查）
             BlockPos transformedBlockPos =
                 transformBlockPos(entityInfo.blockPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
             BlockPos entityBlockPos = pos + transformedBlockPos;
@@ -949,31 +950,16 @@ bool Template::placeInWorld(
                 }
             }
 
-            // 计算精确位置
-            // 精确位置也需要变换
-            f64 entityX = entityInfo.posx;
-            f64 entityY = entityInfo.posy;
-            f64 entityZ = entityInfo.posz;
-
-            // 应用镜像到精确位置
-            switch (settings.getMirror()) {
-                case Mirror::LeftRight: // Z轴镜像
-                    entityZ = 1.0 - entityZ;
-                    break;
-                case Mirror::FrontBack: // X轴镜像
-                    entityX = 1.0 - entityX;
-                    break;
-                default:
-                    break;
-            }
-
-            // 应用旋转到精确位置（相对于中心偏移）
-            // TODO: 完整实现需要类似 Vector3d 变换，当前简化实现只对方块位置应用变换，精确位置跟随方块位置偏移
+            // 变换实体精确位置（f64），对应 MC 1.21.11 StructureTemplate#transform(Vec3, ...)
+            // 实体使用 block-corner 坐标系：镜像用 1.0 - coord，旋转含 +1 偏移
+            math::Vector3d templatePos(entityInfo.posx, entityInfo.posy, entityInfo.posz);
+            math::Vector3d transformedPos =
+                transformEntityPos(templatePos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
 
             // 加上世界偏移
-            entityX += pos.x;
-            entityY += pos.y;
-            entityZ += pos.z;
+            f64 entityX = transformedPos.x + static_cast<f64>(pos.x);
+            f64 entityY = transformedPos.y + static_cast<f64>(pos.y);
+            f64 entityZ = transformedPos.z + static_cast<f64>(pos.z);
 
             // 创建实体
             if (!entityInfo.typeId.empty()) {
@@ -982,64 +968,94 @@ bool Template::placeInWorld(
                 if (entityType) {
                     auto entity = entityType->create(&world);
                     if (entity) {
-                        // 设置位置
-                        entity->setPosition(
-                            static_cast<f32>(entityX), static_cast<f32>(entityY), static_cast<f32>(entityZ));
+                        // 加载 NBT 数据到实体（对应 MC 1.21.11 EntityType.create(NBT)）
+                        // NBT 包含实体的完整状态（健康、装备、年龄、自定义数据等），
+                        // 随后我们用变换后的位置/朝向覆盖 NBT 中的 Pos/Rotation。
+                        bool nbtLoaded = false;
+                        if (entityInfo.nbt) {
+                            auto result = entity->readFromNBT(*entityInfo.nbt);
+                            if (result.failed()) {
+                                spdlog::warn("[Template] Failed to load entity NBT for type '{}': {}",
+                                    entityInfo.typeId,
+                                    result.error().toString());
+                            } else {
+                                nbtLoaded = true;
+                            }
+                        }
 
-                        // 应用镜像和旋转到实体朝向
-                        f32 yaw = entity->yaw();
+                        // 计算变换后的朝向（对应 MC 1.21.11 Entity#rotate + Entity#mirror）
+                        // f = rotate(yaw, rotation) + (mirror(yaw, mirror) - yaw)
+                        // 其中 rotate(yaw) = yaw + 90/180/270/0
+                        // mirror(yaw) = -yaw（FrontBack）或 180 - yaw（LeftRight）或 yaw（None）
+                        // 因此 mirror(yaw) - yaw 在 FrontBack 下为 -2*yaw，LeftRight 下为 180 - 2*yaw
+                        f32 yaw = math::wrapDegrees(entity->yaw());
                         f32 pitch = entity->pitch();
 
-                        // 应用镜像
+                        // mirror(yaw)
+                        f32 mirroredYaw = yaw;
                         switch (settings.getMirror()) {
-                            case Mirror::LeftRight:
-                                yaw = -yaw;
-                                break;
                             case Mirror::FrontBack:
-                                yaw = 180.0f - yaw;
+                                mirroredYaw = -yaw;
+                                break;
+                            case Mirror::LeftRight:
+                                mirroredYaw = 180.0f - yaw;
                                 break;
                             default:
                                 break;
                         }
 
-                        // 应用旋转
+                        // rotate(yaw)
+                        f32 rotatedYaw = yaw;
                         switch (settings.getRotation()) {
                             case Rotation::Clockwise90:
-                                yaw += 90.0f;
+                                rotatedYaw = yaw + 90.0f;
                                 break;
                             case Rotation::Clockwise180:
-                                yaw += 180.0f;
+                                rotatedYaw = yaw + 180.0f;
                                 break;
                             case Rotation::CounterClockwise90:
-                                yaw += 270.0f;
+                                rotatedYaw = yaw + 270.0f;
                                 break;
                             default:
                                 break;
                         }
 
-                        // 规范化到 [-180, 180]
-                        yaw = math::wrapDegrees(yaw);
-                        entity->setRotation(yaw, pitch);
+                        // f = rotate(yaw) + (mirror(yaw) - yaw)
+                        f32 finalYaw = math::wrapDegrees(rotatedYaw + (mirroredYaw - yaw));
 
-                        // TODO: 如果 entityInfo.nbt 存在，应加载 NBT 数据到实体
-                        // 当前 Entity 系统暂不支持 NBT 加载，完整实现需要：
-                        // 1. Entity::loadFromNBT(nbt) 方法
-                        // 2. 实体数据参数的 NBT 反序列化
+                        // 用变换后的位置和朝向覆盖 NBT 中读取的值
+                        // 对应 MC 1.21.11 Entity#snapTo(vec31.x, vec31.y, vec31.z, f, getXRot())
+                        entity->setPosition(
+                            static_cast<f32>(entityX), static_cast<f32>(entityY), static_cast<f32>(entityZ));
+                        entity->setRotation(finalYaw, pitch);
 
-                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
+                        // TODO: body/head rotation 未同步。MC 1.21.11 在此处还会调用
+                        // setYBodyRot(f) / setYHeadRot(f)（让生物身体与头部朝向跟随结构旋转），
+                        // 但当前项目 Entity 没有 yBodyRot/yHeadRot 字段（参见
+                        // src/common/entity/ai/controller/README.md：bodyRotation 仅由
+                        // 个别实体如 Phantom/ArmorStand 在客户端 tick 中手动同步）。
+                        // 待项目引入通用 body/head rotation 字段后，应在此处补上：
+                        //   entity->setYBodyRot(finalYaw);
+                        //   entity->setYHeadRot(finalYaw);
+
+                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                        // 对应 MC 1.21.11 Mob#finalizeSpawn(ServerLevelAccessor, DifficultyInstance, SpawnReason)
                         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
                         if (mobEntity != nullptr) {
-                            BlockPos entityBlockPos(static_cast<i32>(std::floor(entityX)),
+                            BlockPos difficultyPos(static_cast<i32>(std::floor(entityX)),
                                 static_cast<i32>(entityY),
                                 static_cast<i32>(std::floor(entityZ)));
                             entity::combat::DifficultyInstance difficultyInstance =
-                                entity::combat::DifficultyInstance::at(world, entityBlockPos);
+                                entity::combat::DifficultyInstance::at(world, difficultyPos);
                             mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Structure);
                         }
 
                         // 生成实体
                         world.spawnEntity(std::move(entity));
+                        (void)nbtLoaded; // 避免未使用变量警告
                     }
+                } else {
+                    spdlog::warn("[Template] Unknown entity type '{}' in structure template", entityInfo.typeId);
                 }
             }
         }
@@ -1086,6 +1102,45 @@ BlockPos Template::transformBlockPos(const BlockPos& pos, Mirror mirror, Rotatio
     result = BlockPos(result.x + center.x, result.y, result.z + center.z);
 
     return result;
+}
+
+math::Vector3d Template::transformEntityPos(
+    const math::Vector3d& pos, Mirror mirror, Rotation rotation, const BlockPos& pivot)
+{
+    // 对应 MC 1.21.11 StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)
+    // 实体使用浮点坐标，镜像使用 `1.0 - coord`（block-corner 坐标系），
+    // 旋转公式包含 +1 偏移以保持子方块对齐。
+    f64 d0 = pos.x;
+    f64 d1 = pos.y;
+    f64 d2 = pos.z;
+    bool flag = true;
+
+    switch (mirror) {
+        case Mirror::LeftRight:
+            d2 = 1.0 - d2;
+            break;
+        case Mirror::FrontBack:
+            d0 = 1.0 - d0;
+            break;
+        default:
+            flag = false;
+            break;
+    }
+
+    const i32 i = pivot.x;
+    const i32 j = pivot.z;
+
+    switch (rotation) {
+        case Rotation::CounterClockwise90:
+            return math::Vector3d(static_cast<f64>(i - j) + d2, d1, static_cast<f64>(i + j + 1) - d0);
+        case Rotation::Clockwise90:
+            return math::Vector3d(static_cast<f64>(i + j + 1) - d2, d1, static_cast<f64>(j - i) + d0);
+        case Rotation::Clockwise180:
+            return math::Vector3d(static_cast<f64>(i + i + 1) - d0, d1, static_cast<f64>(j + j + 1) - d2);
+        case Rotation::None:
+        default:
+            return flag ? math::Vector3d(d0, d1, d2) : pos;
+    }
 }
 
 BlockPos Template::getTransformedPosition(const BlockPos& pos, Rotation rotation, const BlockPos& size)

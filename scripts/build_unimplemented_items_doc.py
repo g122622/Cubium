@@ -8,6 +8,7 @@ Sources of registered items:
                             registerBlockBackedItem(registry, VanillaBlocks::X, "name", ...)
   2. BlockItemRegistry.cpp-> registerSimpleBlock(..., "name")  (name is the item id path)
                             registerItem<...>(ResourceLocation("minecraft:X"), ...)
+                            registerAnvilBlock(VanillaBlocks::X, "name")  (local lambda; name is the item id path)
 
 Datapack tag JSON files: every leaf entry (non-# references) under "values" across
 all tag files is a referenced item id. # tag references are expanded recursively
@@ -21,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path("E:/dev/Cubium/branch-1")
+REPO = Path("E:/dev/minecraft-reborn-branch-1")
 DATAPACK = Path("C:/Users/Administrator/minecraft_reborn/datapacks/Vanilla")
 
 ITEMS_CPP = REPO / "src/common/item/Items.cpp"
@@ -55,6 +56,13 @@ for m in re.finditer(r'registerSimpleBlock\s*\(\s*[^,]+,\s*"([a-z0-9_/]+)"', tex
 
 for m in re.finditer(r'registerItem(?:<[^>]*>)?\s*\(\s*ResourceLocation\s*\(\s*"((?:[a-z0-9_]+:)?[a-z0-9_/]+)"\s*\)', text2):
     registered.add(m.group(1))
+
+# BlockItemRegistry.cpp: registerAnvilBlock(VanillaBlocks::X, "name") -> id minecraft:name
+#  registerAnvilBlock 是一个本地 lambda（行 343-371），物品 id 来自方块的 blockLocation()，
+#  与传入的 name 参数一致。其他类似的本地 lambda（registerWallBanner / registerWallSign 等）
+#  同样以 name 参数作为物品 id 路径。
+for m in re.finditer(r'registerAnvilBlock\s*\(\s*[^,]+,\s*"([a-z0-9_/]+)"', text2):
+    registered.add("minecraft:" + m.group(1))
 
 # Normalize: ensure every id has a namespace. Bare paths become minecraft:path.
 registered = {("minecraft:" + i) if ":" not in i else i for i in registered}
@@ -331,6 +339,7 @@ out.append("| `src/common/item/Items.cpp` | `registerItem(ResourceLocation(\"min
 out.append("| `src/common/item/Items.cpp` | `registerBlockBackedItem(registry, VanillaBlocks::X, \"name\", ...)` | 以方块为底注册 BlockItem，物品 id 为 `minecraft:name` |")
 out.append("| `src/common/item/items/block/BlockItemRegistry.cpp` | `registerSimpleBlock(VanillaBlocks::X, \"name\")` | 注册简单方块物品，物品 id 取自方块的 `blockLocation()`（与 `name` 一致） |")
 out.append("| `src/common/item/items/block/BlockItemRegistry.cpp` | `registerItem<...>(ResourceLocation(\"minecraft:X\"), ...)` | 显式注册特殊 BlockItem |")
+out.append("| `src/common/item/items/block/BlockItemRegistry.cpp` | `registerAnvilBlock(VanillaBlocks::X, \"name\")` | 铁砧专用本地 lambda，物品 id 取自 `blockLocation()`（与 `name` 一致），仅 maxStackSize 不同（=1） |")
 out.append("")
 out.append("## 完全无法解析的标签（所有叶子物品均未实现）\n")
 out.append("")

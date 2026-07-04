@@ -342,5 +342,75 @@ TEST_F(BegGoalTestFixture, Parrot_TameItem_Only_NoBreeding)
     EXPECT_FALSE(parrot.isBreedingItem(seedsStack)); // 鹦鹉不能繁殖
 }
 
+// ============================================================================
+// BegGoal 兴趣状态同步测试
+// ============================================================================
+
+TEST_F(BegGoalTestFixture, BegGoal_StartExecuting_SetsWolfInterested)
+{
+    // 对应 MC 1.21.11 BegGoal.start(): this.wolf.setIsInterested(true)
+    // BegGoal 在 startExecuting 时应调用 wolf.setInterested(true)，
+    // 通过 DataParameter 同步到客户端，触发乞求头部倾斜动画。
+    WolfEntity wolf(EntityId(0));
+    entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
+
+    EXPECT_FALSE(wolf.isInterested());
+
+    begGoal.startExecuting();
+
+    EXPECT_TRUE(wolf.isInterested());
+}
+
+TEST_F(BegGoalTestFixture, BegGoal_ResetTask_ClearsWolfInterested)
+{
+    // 对应 MC 1.21.11 BegGoal.stop(): this.wolf.setIsInterested(false)
+    // BegGoal 在 resetTask 时应调用 wolf.setInterested(false)。
+    WolfEntity wolf(EntityId(0));
+    entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
+
+    // 先设置为感兴趣
+    wolf.setInterested(true);
+    EXPECT_TRUE(wolf.isInterested());
+
+    // resetTask 应清除兴趣状态
+    begGoal.resetTask();
+
+    EXPECT_FALSE(wolf.isInterested());
+}
+
+TEST_F(BegGoalTestFixture, BegGoal_StartExecuting_DataParameterDirty)
+{
+    // 验证 startExecuting 修改兴趣状态后，DataManager 标记为脏数据，
+    // 以便 EntityTracker 在下一 tick 广播元数据到客户端。
+    WolfEntity wolf(EntityId(0));
+    entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
+    auto& dataManager = wolf.dataManager();
+
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    begGoal.startExecuting();
+
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(BegGoalTestFixture, BegGoal_ResetTask_DataParameterDirty)
+{
+    // 验证 resetTask 修改兴趣状态后，DataManager 标记为脏数据
+    WolfEntity wolf(EntityId(0));
+    entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
+
+    // 先 start 让 interested=true
+    begGoal.startExecuting();
+
+    auto& dataManager = wolf.dataManager();
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // reset 改变状态 → 应标记为脏
+    begGoal.resetTask();
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
 } // namespace
 } // namespace mc

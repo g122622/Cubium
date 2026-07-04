@@ -32,6 +32,7 @@
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -296,6 +297,20 @@ void ClientEntity::syncMetadataFromDataManager()
             }
         }
     }
+
+    // 狼兴趣状态同步（乞求食物头部倾斜动画）
+    // 服务端 WolfEntity::setInterested 通过 DataParameter 写入，
+    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 客户端在此处读取并调用 setWolfIsInterested 更新镜像状态。
+    // ClientEntity::tick 根据 m_wolfIsInterested 推进 m_wolfInterestedAngle 插值。
+    if (m_typeId == "minecraft:wolf" || m_typeId == "wolf") {
+        if (m_dataManager.hasParam(::mc::WolfEntity::getInterestedParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getInterestedParamId()); value != nullptr) {
+                const bool interested = value->get<bool>();
+                setWolfIsInterested(interested);
+            }
+        }
+    }
 }
 
 void ClientEntity::setItemStack(const ItemStack& stack)
@@ -465,10 +480,15 @@ void ClientEntity::tick()
     }
 
     // 更新狼乞求食物头部角度插值（对应 MC Wolf.tick() 第 318-323 行）
-    // interestedAngleO 始终追踪 interestedAngle，渲染时由 WolfModel 通过插值读取
-    // TODO: isInterested 状态目前未通过元数据同步到客户端，待后续实现 WolfEntity
-    // 的元数据同步后，由 onMetadataRefresh 驱动 m_wolfInterestedAngle 向 1.0/0.0 插值
+    // m_wolfIsInterested 由 syncMetadataFromDataManager 在收到元数据更新时设置，
+    // 此处每 tick 推进 m_wolfInterestedAngle 向 1.0（感兴趣）或 0.0（不感兴趣）插值，
+    // 渲染时 WolfModel 通过 lerp(partialTick, wolfInterestedAngleO, wolfInterestedAngle) 读取。
     m_wolfInterestedAngleO = m_wolfInterestedAngle;
+    if (m_wolfIsInterested) {
+        m_wolfInterestedAngle += (1.0f - m_wolfInterestedAngle) * 0.4f;
+    } else {
+        m_wolfInterestedAngle += (0.0f - m_wolfInterestedAngle) * 0.4f;
+    }
 }
 
 void ClientEntity::updateStandingAnimation()

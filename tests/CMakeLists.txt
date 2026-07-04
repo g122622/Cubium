@@ -128,6 +128,7 @@ add_executable(mc_tests
     common/item/WoodVariantBlockItemTest.cpp
     common/item/DeepslateItemRegistrationTest.cpp
     common/item/PolishedBlackstoneItemRegistrationTest.cpp
+    common/item/BlackstoneVariantItemRegistrationTest.cpp
     common/item/RawOreItemRegistrationTest.cpp
     common/item/AnvilLightningRodItemRegistrationTest.cpp
     common/item/CaveAndNetherItemRegistrationTest.cpp

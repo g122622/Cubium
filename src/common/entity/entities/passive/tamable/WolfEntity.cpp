@@ -75,6 +75,9 @@
 
 namespace mc {
 
+// ==================== 静态成员初始化 ====================
+entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDataManager::createKey<bool>();
+
 WolfEntity::WolfEntity(EntityId id)
     : TameableEntity(id)
 {
@@ -83,6 +86,12 @@ WolfEntity::WolfEntity(EntityId id)
 
     // 注册属性
     registerAttributes();
+
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 WolfEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 ZombieVillagerEntity 模式。
+    registerData();
 }
 
 std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/)
@@ -568,7 +577,7 @@ void WolfEntity::tick()
     // 1. interestedAngle 插值（向 1.0 或 0.0 趋近）
     //    对应 MC Wolf.tick() 第 318-323 行
     m_interestedAngleO = m_interestedAngle;
-    if (m_interested) {
+    if (isInterested()) {
         m_interestedAngle += (1.0f - m_interestedAngle) * 0.4f;
     } else {
         m_interestedAngle += (0.0f - m_interestedAngle) * 0.4f;
@@ -972,6 +981,16 @@ void WolfEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
 
     // 驯服后会增加到20血，由 onTamed 处理
+}
+
+void WolfEntity::registerData()
+{
+    // 调用父类方法，确保基类数据参数已注册
+    TameableEntity::registerData();
+
+    // 注册兴趣状态数据参数，用于客户端-服务端同步
+    // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_INTERESTED_ID
+    m_dataManager.registerParam(DATA_INTERESTED_PARAM, false);
 }
 
 void WolfEntity::onTamed(bool tamed)

@@ -134,6 +134,17 @@ settings.setBoundingBox(&chunkBounds);
 
 不要只读取整数坐标。
 
+**位置与朝向变换**：`placeInWorld` 中实体放置时，精确位置（f64）通过 `Template::transformEntityPos` 变换，对应 MC 1.21.11 `StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)`。注意实体位置变换与方块位置变换（`transformBlockPos`）公式不同：
+
+| 变换           | `transformBlockPos`（整数） | `transformEntityPos`（f64）     |
+|----------------|-----------------------------|----------------------------------|
+| 镜像（LeftRight/FrontBack） | `-coord`                    | `1.0 - coord`（block-corner 坐标系） |
+| 旋转（90/180/270）          | 无 +1 偏移                  | 含 +1 偏移（保持子方块对齐）     |
+
+朝向变换公式为 `f = rotate(yaw) + (mirror(yaw) - yaw)`，对应 MC 1.21.11 `Entity#rotate` + `Entity#mirror`。
+
+**已知限制**：当前未同步 `setYBodyRot` / `setYHeadRot`（项目 `Entity` 类暂无这两个字段，详见 `Template.cpp` 中对应 TODO 注释）。待通用 body/head rotation 字段引入后补齐。
+
 ### 6. 调色板格式兼容性
 
 MC 1.16.5 支持单调色板（`palette`）和多调色板（`palettes`）两种格式。加载器同时支持，默认使用第一个调色板。

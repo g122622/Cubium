@@ -960,6 +960,25 @@ public:
      */
     void setWolfInterestedAngleO(f32 angle) { m_wolfInterestedAngleO = angle; }
 
+    /**
+     * @brief 获取狼是否感兴趣（乞求食物）
+     *
+     * 通过元数据同步自服务端 WolfEntity::DATA_INTERESTED_PARAM。
+     * 由 BegGoal.startExecuting/resetTask 在服务端调用 setInterested 修改。
+     * ClientEntity::tick 根据 m_wolfIsInterested 推进 m_wolfInterestedAngle 插值。
+     */
+    [[nodiscard]] bool wolfIsInterested() const { return m_wolfIsInterested; }
+
+    /**
+     * @brief 设置狼是否感兴趣
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     * 修改后，ClientEntity::tick 会推进 m_wolfInterestedAngle 向 1.0 或 0.0 插值。
+     *
+     * @param interested 是否感兴趣
+     */
+    void setWolfIsInterested(bool interested) { m_wolfIsInterested = interested; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -1091,6 +1110,7 @@ private:
     // 狼甩水动画状态（对应 MC Wolf.isWet/isShaking/shakeAnim/shakeAnimO/interestedAngle/interestedAngleO）
     bool m_wolfIsShaking = false;      ///< 是否正在甩水（收到 ShakeOffWater(8) 时设 true）
     bool m_wolfIsWet = false;          ///< 是否湿润（收到 ShakeOffWater 时设 true，甩水完成时设 false）
+    bool m_wolfIsInterested = false;   ///< 是否感兴趣（乞求食物，通过元数据同步自服务端）
     f32 m_wolfShakeAnim = 0.0f;        ///< 甩水动画进度（每 tick +0.05，达到 2.0 时完成）
     f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
     f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）

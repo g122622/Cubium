@@ -81,20 +81,34 @@ ClientEntity
 7. **元数据同步**：
    - 接收到 `EntityMetadataPacket` 后，调用 `setMetadata()` 设置原始字节
    - 然后调用 `syncMetadataFromDataManager()` 更新本地状态（如 puffState, axolotlVariant）
+   - 各实体类型的同步分支在 `syncMetadataFromDataManager()` 中按 `typeId` 分发：
+     - `minecraft:item` → 物品数量
+     - `minecraft:polar_bear` → 站立状态
+     - `minecraft:pufferfish` → 膨胀状态
+     - `minecraft:ocelot` → 信任状态（`isTrusting`）
+     - `minecraft:cat` → 躺下/放松状态
+     - `minecraft:wolf` → 兴趣状态（`wolfIsInterested`，由 `BegGoal` 驱动）
 
-8. **铁傀儡状态不走元数据同步**：
+8. **狼兴趣状态（乞求食物）动画**：
+   - 服务端 `WolfEntity::setInterested` 写入 `DATA_INTERESTED_PARAM`
+   - `syncMetadataFromDataManager` 读取后调用 `setWolfIsInterested`
+   - `ClientEntity::tick` 推进 `m_wolfInterestedAngle` 向 1.0/0.0 插值（系数 0.4）
+   - 渲染时由 `EntityRendererManager` 写入 `AnimationContext::wolfInterestedAngle`
+   - 对应 MC 1.21.11 `Wolf.tick()` 第 318-323 行的 `interestedAngle` 插值逻辑
+
+9. **铁傀儡状态不走元数据同步**：
    - 铁傀儡的攻击动画和持花状态通过 `EntityStatusPacket` 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
    - 客户端在 `onEntityStatus` 回调中直接设置 `ClientEntity` 的 `ironGolemAttackTimer` / `ironGolemArmsRaised` / `ironGolemHoldingRose`
    - `ClientEntity::tick()` 中递减 `ironGolemAttackTimer`
    - 新增铁傀儡动画状态时不要误走 metadata 路径
 
-9. **TNT矿车引信计时器不走元数据同步**：
-   - TNT矿车的 `fuseTimer` 通过 `EntityStatusPacket::Status::EatBlock` (status code 10) 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
-   - 客户端在 `onEntityStatus` 回调中根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
-   - `ClientEntity::tick()` 中递减 `m_fuseTimer`
-   - 与铁傀儡状态同步模式一致：服务端 `broadcastEntityStatus()` → 网络包 → 客户端回调设置字段
+10. **TNT矿车引信计时器不走元数据同步**：
+    - TNT矿车的 `fuseTimer` 通过 `EntityStatusPacket::Status::EatBlock` (status code 10) 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
+    - 客户端在 `onEntityStatus` 回调中根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+    - `ClientEntity::tick()` 中递减 `m_fuseTimer`
+    - 与铁傀儡状态同步模式一致：服务端 `broadcastEntityStatus()` → 网络包 → 客户端回调设置字段
 
-10. **眼高计算依赖注册表和姿态**：
+11. **眼高计算依赖注册表和姿态**：
     - `ClientEntity::eyeHeight()` 返回实体的眼睛高度，用于旁观者相机定位等场景
     - 实体创建时从 `EntityRegistry` 查找 `EntitySize` 初始化 `width`/`height`/`eyeHeight`
     - 玩家实体根据姿态动态调整：蹲伏=1.27，游泳/鞘翅飞行=0.4，睡眠=0.2，站立=1.62

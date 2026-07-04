@@ -146,6 +146,17 @@ CatEntity::CatEntity(EntityId id)
 
     // 注册属性
     registerAttributes();
+
+    // TODO: 此处应显式调用 registerData() 以注册 DATA_LYING_PARAM/DATA_RELAX_STATE_ONE_PARAM
+    // 到 EntityDataManager。由于 C++ 虚函数在基类构造函数中不会派发到派生类
+    // （Entity::Entity() 内部调用 registerData() 时调用的是 Entity::registerData
+    // 而非 CatEntity::registerData），当前的 registerData() override 成为死代码，
+    // 导致猫的躺下/放松状态从未通过元数据同步到客户端。
+    // 已有的 4 个测试失败（CatEntityTestFixture.OnTamed_SetsHealthAndGiftTimer、
+    // CatEntityTestFixture.InteractMob_TamedCat_FoodFullHealth_AdultBreedable_* 等）
+    // 与此问题相关。修复方式：参考 WolfEntity / ZombieVillagerEntity 模式，
+    // 取消下方注释并验证相关测试通过。
+    // registerData();
 }
 
 std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)

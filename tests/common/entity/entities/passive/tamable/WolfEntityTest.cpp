@@ -616,6 +616,105 @@ TEST_F(WolfEntityTestFixture, Interested_CanBeSet)
 }
 
 // ============================================================================
+// 兴趣状态 DataParameter 同步测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, DataParameter_InterestedParamId_IsValid)
+{
+    // DATA_INTERESTED_PARAM 的 ID 应该是有效的（>0，由 createKey 自动分配）
+    u16 paramId = WolfEntity::getInterestedParamId();
+    EXPECT_GT(paramId, 0u);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_IsInterested_ReadsFromDataManager)
+{
+    // isInterested() 应该从 DataManager 读取而非成员变量
+    WolfEntity wolf(EntityId(0));
+    EXPECT_FALSE(wolf.isInterested());
+
+    wolf.setInterested(true);
+    EXPECT_TRUE(wolf.isInterested());
+
+    // 通过 DataManager 直接读取验证
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getInterestedParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_SetInterested_WritesToDataManager)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getInterestedParamId();
+
+    // 设置兴趣状态
+    wolf.setInterested(true);
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+
+    // 设置为不感兴趣
+    wolf.setInterested(false);
+    storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_FALSE(storedValue);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnInterestedChange)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+
+    // 初始状态不应有脏数据
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置兴趣状态应该标记为脏数据
+    wolf.setInterested(true);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记后设置相同值不应标记为脏
+    dataManager.clearDirty();
+    wolf.setInterested(true);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同值应该标记为脏
+    wolf.setInterested(false);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_SyncsStateChanges)
+{
+    // 验证多次状态变更正确同步
+    WolfEntity wolf(EntityId(0));
+
+    EXPECT_FALSE(wolf.isInterested());
+
+    wolf.setInterested(true);
+    EXPECT_TRUE(wolf.isInterested());
+
+    wolf.setInterested(false);
+    EXPECT_FALSE(wolf.isInterested());
+
+    wolf.setInterested(true);
+    EXPECT_TRUE(wolf.isInterested());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_RegisteredOnConstruction)
+{
+    // 验证 WolfEntity 构造后 DATA_INTERESTED_PARAM 已注册到 DataManager
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getInterestedParamId();
+
+    // 参数应该已注册
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+
+    // 默认值应为 false
+    EXPECT_FALSE(wolf.isInterested());
+}
+
+// ============================================================================
 // interactMob 测试 - 未驯服狼 + 骨头 → 驯服尝试
 // ============================================================================
 

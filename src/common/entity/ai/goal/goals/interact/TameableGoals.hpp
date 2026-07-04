@@ -119,6 +119,12 @@ private:
  * 行为逻辑：
  * - 已驯服的动物：对驯服物品（如骨头）和繁殖物品（如肉类）乞求
  * - 未驯服的动物：仅对繁殖物品乞求
+ *
+ * 狼特有：startExecuting 时调用 wolf.setInterested(true) 触发头部倾斜动画，
+ * resetTask 时调用 wolf.setInterested(false)。通过元数据同步到客户端，
+ * 客户端 ClientEntity 推进 wolfInterestedAngle 插值，WolfModel 读取此值
+ * 渲染头部 Z 轴旋转。
+ * 对应 MC 1.21.11 BegGoal.start()/stop() 中的 wolf.setIsInterested 调用。
  */
 class BegGoal : public Goal {
 public:
