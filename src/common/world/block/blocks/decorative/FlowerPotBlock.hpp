@@ -53,9 +53,11 @@ namespace blocks {
  *   花盆不会因下方方块移除而自动掉落；本项目 updatePostPlacement 保持同样行为
  *
  * 眼眸花（potted_open_eyeblossom / potted_closed_eyeblossom）特殊逻辑：
- * - MC 中眼眸花方块会响应随机刻，根据 EnvironmentAttributes.EYEBLOSSOM_OPEN
- *   环境属性在开/合状态间切换，并播放声音/生成粒子
- * - 本项目尚未实现 EnvironmentAttributes 系统，故 randomTick 暂留 TODO
+ * - 响应随机刻，根据 EnvironmentAttributes.EYEBLOSSOM_OPEN 环境属性在开/合状态间切换，
+ *   生成 TrailParticle 转换粒子并播放长切换音效
+ * - 本项目 EnvironmentAttributes 系统尚未完整实现，使用 EyeblossomEnvironment
+ *   工具函数近似查询 EYEBLOSSOM_OPEN（详见 EyeblossomEnvironment.hpp）
+ * - 与地栽眼眸花不同，花盆版不连锁触发周围 3×2×3 范围内的同种方块
  */
 class FlowerPotBlock : public Block {
 public:
@@ -143,9 +145,15 @@ public:
     /**
      * @brief 随机刻处理
      *
-     * 眼眸花根据 EnvironmentAttributes.EYEBLOSSOM_OPEN 在开/合状态间切换。
-     * TODO: EnvironmentAttributes 系统实现后，补全眼眸花状态切换逻辑
-     *       （含粒子生成、声音播放、连锁触发周围眼眸花方块）
+     * 眼眸花盆栽根据 EnvironmentAttributes.EYEBLOSSOM_OPEN 环境属性在开/合状态间切换。
+     * 切换时：
+     * 1. 替换为对应的眼眸花盆栽方块（potted_open_eyeblossom <-> potted_closed_eyeblossom）
+     * 2. 生成 TrailParticle 转换粒子（复用 EyeblossomBlock::spawnTransformParticle）
+     * 3. 播放 longSwitchSound 长切换音效
+     *
+     * 与地栽眼眸花不同，花盆版不连锁触发周围 3×2×3 范围内的同种方块。
+     *
+     * 参考: net.minecraft.world.level.block.FlowerPotBlock#randomTick
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 

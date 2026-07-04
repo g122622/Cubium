@@ -1569,6 +1569,16 @@ const ResourceLocation ENCHANT_THORNS_HIT("minecraft:enchant.thorns.hit");
 const ResourceLocation PARTICLE_SOUL_ESCAPE("minecraft:particle.soul_escape");
 
 // ============================================================================
+// 眼眸花音效 (BLOCK_EYEBLOSSOM_)
+// ============================================================================
+
+const ResourceLocation BLOCK_EYEBLOSSOM_OPEN_LONG("minecraft:block.eyeblossom.open_long");
+const ResourceLocation BLOCK_EYEBLOSSOM_CLOSE_LONG("minecraft:block.eyeblossom.close_long");
+const ResourceLocation BLOCK_EYEBLOSSOM_OPEN("minecraft:block.eyeblossom.open");
+const ResourceLocation BLOCK_EYEBLOSSOM_CLOSE("minecraft:block.eyeblossom.close");
+const ResourceLocation BLOCK_EYEBLOSSOM_IDLE("minecraft:block.eyeblossom.idle");
+
+// ============================================================================
 // 初始化
 // ============================================================================
 

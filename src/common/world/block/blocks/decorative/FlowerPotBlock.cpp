@@ -28,8 +28,12 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItem.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
+#include "../../../../util/TriState.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../pale_garden/EyeblossomBlock.hpp"
+#include "../pale_garden/EyeblossomEnvironment.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 
@@ -212,18 +216,53 @@ bool FlowerPotBlock::ticksRandomly() const noexcept
 
 void FlowerPotBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(random);
-    // TODO: EnvironmentAttributes 系统实现后，补全眼眸花状态切换逻辑：
-    // 1. 读取 EnvironmentAttributes.EYEBLOSSOM_OPEN 环境属性（开/合偏好）
-    // 2. 若与当前状态不一致，则切换为对应的眼眸花盆栽方块
-    //    （potted_open_eyeblossom <-> potted_closed_eyeblossom）
-    // 3. 生成 TrailParticleOption 转换粒子
-    // 4. 播放 EYEBLOSSOM_OPEN_LONG / EYEBLOSSOM_CLOSE_LONG 音效
-    // 5. 连锁触发周围 3×2×3 范围内同种眼眸花方块的延迟 tick
-    // 参考: net.minecraft.world.level.block.FlowerPotBlock#randomTick
+    // 客户端世界不处理状态切换
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 仅 potted_open_eyeblossom / potted_closed_eyeblossom 响应随机刻
+    if (!ticksRandomly()) {
+        return;
+    }
+
+    // 当前盆栽的内容物是否为开放眼眸花
+    const ResourceLocation& contentId = m_potted->blockLocation();
+    const bool currentOpen = (contentId == ResourceLocation("minecraft", "open_eyeblossom"));
+
+    // 读取 EYEBLOSSOM_OPEN 环境属性
+    // TriState::Default 时回退到当前盆栽状态（即不切换）
+    const util::TriState envOpen = eyeblossom_environment::getEyeblossomOpen(world, pos);
+    const bool targetOpen = util::triStateToBoolean(envOpen, currentOpen);
+
+    // 与当前状态一致则不切换
+    if (targetOpen == currentOpen) {
+        return;
+    }
+
+    // 切换为反状态盆栽方块
+    // potted_open_eyeblossom <-> potted_closed_eyeblossom
+    Block* oppositePot = nullptr;
+    if (currentOpen) {
+        oppositePot = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "potted_closed_eyeblossom"));
+    } else {
+        oppositePot = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "potted_open_eyeblossom"));
+    }
+    if (oppositePot == nullptr) {
+        return;
+    }
+    const BlockState& oppositeState = oppositePot->defaultState();
+    world.setBlockState(pos, &oppositeState, 3);
+
+    // 生成转换粒子（粒子颜色由新状态决定，复用 EyeblossomBlock 的实现）
+    // 切换后的新类型 = 当前类型的反状态
+    const blocks::EyeblossomBlock::Type newType =
+        currentOpen ? blocks::EyeblossomBlock::Type::Closed : blocks::EyeblossomBlock::Type::Open;
+    blocks::EyeblossomBlock::spawnTransformParticle(world, pos, random, newType);
+
+    // 播放长切换音效（花盆版仅用 longSwitchSound，不连锁触发）
+    world.playSound(
+        blocks::EyeblossomBlock::longSwitchSoundOf(newType), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 
 const FlowerPotBlock* FlowerPotBlock::getByContent(const Block& content)

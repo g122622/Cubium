@@ -510,6 +510,10 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
         [this](const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks) {
             broadcastVibrationParticleInRange(pos, targetPosition, arrivalInTicks);
         });
+    world.setOnBroadcastTrailParticle(
+        [this](const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks) {
+            broadcastTrailParticleInRange(pos, targetPosition, color, durationInTicks);
+        });
     world.setOnBroadcastEntityEffectParticle(
         [this](const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color) {
             broadcastEntityEffectParticleInRange(pos, velocity, offset, count, color);
@@ -2562,6 +2566,37 @@ void MinecraftServer::broadcastVibrationParticleInRange(
     auto result = packet.serialize();
     if (result.failed()) {
         spdlog::error("Failed to serialize VibrationParticlePacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+
+    // 只发送给范围内的玩家
+    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 dx = player.x - pos.x;
+        f32 dy = player.y - pos.y;
+        f32 dz = player.z - pos.z;
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+        f32 rangeSq = range * range;
+
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastTrailParticleInRange(
+    const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks, f32 range)
+{
+    network::ParticlePacket packet = network::ParticlePacket::createTrail(pos, targetPosition, color, durationInTicks);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize TrailParticlePacket: {}", result.error().message());
         return;
     }
 

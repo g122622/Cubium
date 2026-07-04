@@ -893,6 +893,21 @@ protected:
         const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks, f32 range = 256.0f);
 
     /**
+     * @brief 广播轨迹粒子给指定范围内的玩家
+     *
+     * 轨迹粒子需要携带目标位置、ARGB 颜色和飞行持续时间。
+     * 主要用于眼眸花状态切换的转换粒子效果。
+     *
+     * @param pos 粒子起始位置
+     * @param targetPosition 粒子飞向的目标位置
+     * @param color 粒子颜色（ARGB 格式）
+     * @param durationInTicks 飞行持续时间（tick 数）
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastTrailParticleInRange(
+        const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks, f32 range = 256.0f);
+
+    /**
      * @brief 广播带颜色的 EntityEffect 粒子给范围内玩家
      *
      * 用于 BellBlockEntity 共振等需要携带 ARGB 颜色的场景。

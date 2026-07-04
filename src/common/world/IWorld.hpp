@@ -1231,6 +1231,28 @@ public:
     }
 
     /**
+     * @brief 生成轨迹粒子（Trail Particle）
+     *
+     * 用于眼眸花状态切换等场景。Trail 粒子会从 pos 飞向 targetPosition，
+     * 颜色与持续时间由调用方指定。
+     *
+     * 服务端：广播给附近玩家（携带目标位置、颜色、持续时间）
+     * 客户端：默认无操作（客户端粒子由 animateTick 自行处理）
+     *
+     * @param pos 粒子起始位置
+     * @param targetPosition 粒子飞向的目标位置
+     * @param color 粒子颜色（ARGB 格式）
+     * @param durationInTicks 飞行持续时间（tick 数）
+     */
+    virtual void addTrailParticle(const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks)
+    {
+        (void)pos;
+        (void)targetPosition;
+        (void)color;
+        (void)durationInTicks;
+    }
+
+    /**
      * @brief 检查是否应在指定位置生成粒子
      *
      * 用于距离裁剪，避免在玩家视野外生成粒子。
