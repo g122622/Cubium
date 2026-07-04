@@ -329,6 +329,18 @@ const ResourceLocation BLOCK_ENDER_CHEST_CLOSE("minecraft:block.ender_chest.clos
 const ResourceLocation BLOCK_SHULKER_BOX_OPEN("minecraft:block.shulker_box.open");
 const ResourceLocation BLOCK_SHULKER_BOX_CLOSE("minecraft:block.shulker_box.close");
 
+// 铜箱子开合音效（MC 1.21.11）
+// Unaffected 与 Exposed 等级共用 block.copper_chest.open/close
+// Weathered 等级使用 block.copper_chest_weathered.open/close
+// Oxidized 等级使用 block.copper_chest_oxidized.open/close
+// 涂蜡变体复用对应氧化等级的声音事件
+const ResourceLocation BLOCK_COPPER_CHEST_OPEN("minecraft:block.copper_chest.open");
+const ResourceLocation BLOCK_COPPER_CHEST_CLOSE("minecraft:block.copper_chest.close");
+const ResourceLocation BLOCK_COPPER_CHEST_WEATHERED_OPEN("minecraft:block.copper_chest_weathered.open");
+const ResourceLocation BLOCK_COPPER_CHEST_WEATHERED_CLOSE("minecraft:block.copper_chest_weathered.close");
+const ResourceLocation BLOCK_COPPER_CHEST_OXIDIZED_OPEN("minecraft:block.copper_chest_oxidized.open");
+const ResourceLocation BLOCK_COPPER_CHEST_OXIDIZED_CLOSE("minecraft:block.copper_chest_oxidized.close");
+
 const ResourceLocation BLOCK_PISTON_EXTEND("minecraft:block.piston.extend");
 const ResourceLocation BLOCK_PISTON_CONTRACT("minecraft:block.piston.contract");
 
@@ -1425,6 +1437,13 @@ const ResourceLocation ITEM_SWEET_BERRIES_PICK_FROM_BUSH("minecraft:item.sweet_b
 const ResourceLocation ITEM_CROP_PLANT("minecraft:item.crop.plant");
 const ResourceLocation ITEM_NETHER_WART_PLANT("minecraft:item.nether_wart.plant");
 const ResourceLocation ITEM_LODESTONE_COMPASS_LOCK("minecraft:item.lodestone_compass.lock");
+
+// 收纳袋（Bundle）音效
+// 对应 MC 1.21.11 SoundEvents.ITEM_BUNDLE_DROP_CONTENTS / INSERT / INSERT_FAIL / REMOVE_ONE
+const ResourceLocation ITEM_BUNDLE_DROP_CONTENTS("minecraft:item.bundle.drop_contents");
+const ResourceLocation ITEM_BUNDLE_INSERT("minecraft:item.bundle.insert");
+const ResourceLocation ITEM_BUNDLE_INSERT_FAIL("minecraft:item.bundle.insert_fail");
+const ResourceLocation ITEM_BUNDLE_REMOVE_ONE("minecraft:item.bundle.remove_one");
 
 // ============================================================================
 // 武器声音

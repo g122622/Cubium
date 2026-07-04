@@ -46,8 +46,13 @@ class IWorld;
 class Player;
 class LivingEntity;
 class BlockRaycastResult;
+class Slot;
 struct Vec3;
 class BlockPos;
+
+// Forward declaration for SlotClickAction enum (defined in entity/inventory/ContainerTypes.hpp)
+// 用于槽位覆写协议（overrideStackedOnOther / overrideOtherStackedOnMe）
+enum class SlotClickAction : u8;
 
 // Forward declaration for Direction enum (defined in util/Direction.hpp)
 // Note: We cannot forward declare an enum class across namespaces,
@@ -397,12 +402,24 @@ public:
     [[nodiscard]] virtual bool isFood() const { return m_food != nullptr; }
 
     /**
-     * @brief 物品是否为音乐唱片
+     * @brief 是否为音乐唱片
      *
      * 音乐唱片可以放入唱片机播放音乐。
      * MusicDiscItem 重写此方法返回 true。
      */
     [[nodiscard]] virtual bool isMusicDisc() const { return false; }
+
+    /**
+     * @brief 物品是否可以放入容器物品（如收纳袋）内
+     *
+     * 默认返回 true。BlockItem 重写此方法：若其方块为潜影盒则返回 false
+     * （防止潜影盒放入收纳袋以避免递归存储）。
+     *
+     * 对应 MC 1.21.11 的 Item#canFitInsideContainerItems。
+     *
+     * @return 是否可放入容器物品
+     */
+    [[nodiscard]] virtual bool canFitInsideContainerItems() const { return true; }
 
     /**
      * @brief 获取使用时间（如食物食用时间）
@@ -503,6 +520,52 @@ public:
      * @return 使用动作类型
      */
     [[nodiscard]] virtual UseAction getUseAction(const ItemStack& /*stack*/) const { return UseAction::None; }
+
+    // ========================================================================
+    // 容器槽位覆写协议（MC 1.20+）
+    // ========================================================================
+
+    /**
+     * @brief 玩家手持此物品点击其他槽位时的覆写行为
+     *
+     * 对应 MC 1.21.11 的 Item#overrideStackedOnOther。
+     * 默认返回 false（不处理，走默认逻辑）。
+     * BundleItem 重写以实现手持收纳袋点击槽位时的插入/取出。
+     *
+     * @param heldStack 玩家手持的物品堆
+     * @param slot 被点击的槽位
+     * @param clickAction 点击动作（Primary=左键，Secondary=右键）
+     * @param player 玩家
+     * @return 是否处理了此次点击（true 阻止默认行为）
+     */
+    virtual bool overrideStackedOnOther(
+        ItemStack& /*heldStack*/, Slot& /*slot*/, SlotClickAction /*clickAction*/, Player& /*player*/)
+    {
+        return false;
+    }
+
+    /**
+     * @brief 玩家手持其他物品点击此物品所在槽位时的覆写行为
+     *
+     * 对应 MC 1.21.11 的 Item#overrideOtherStackedOnMe。
+     * 默认返回 false（不处理，走默认逻辑）。
+     * BundleItem 重写以实现手持其他物品点击收纳袋槽位时的插入/取出。
+     *
+     * @param selfStack 此物品所在槽位的物品堆
+     * @param cursorStack 玩家光标上的物品堆
+     * @param slot 此物品所在槽位
+     * @param clickAction 点击动作
+     * @param player 玩家
+     * @return 是否处理了此次点击
+     */
+    virtual bool overrideOtherStackedOnMe(ItemStack& /*selfStack*/,
+        ItemStack& /*cursorStack*/,
+        Slot& /*slot*/,
+        SlotClickAction /*clickAction*/,
+        Player& /*player*/)
+    {
+        return false;
+    }
 
     // ========================================================================
     // 物品Tick与提示

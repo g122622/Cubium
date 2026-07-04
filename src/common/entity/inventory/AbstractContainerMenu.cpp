@@ -29,6 +29,7 @@
 #include "entity/inventory/IInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "item/core/Item.hpp"
 #include "world/block/BlockPos.hpp"
 #include <cmath>
 
@@ -356,7 +357,8 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
                 // 拖拽分发的 START 和 END 事件使用 -999 槽位
                 // START：初始化拖拽状态（不需要槽位引用）
                 // END：分发物品到所有目标槽位（不需要当前槽位引用）
-                _handleQuickCraftStartEnd(button);
+                // 单槽降级时需要 player 进行递归调用
+                _handleQuickCraftStartEnd(button, player);
                 break;
 
             default:
@@ -398,7 +400,7 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 
         case ClickType::QuickCraft:
             // 拖拽分发
-            return _handleQuickCraft(*slot, slotIndex, button);
+            return _handleQuickCraft(*slot, slotIndex, button, player);
 
         case ClickType::PickAll:
             // 双击拾取全部
@@ -412,6 +414,17 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
 {
     Player* player = m_playerInventory->getPlayer();
+
+    // 槽位覆写协议（对应 MC 1.21.11 AbstractContainerMenu#tryItemClickBehaviourOverride）
+    // 在常规拾取/放置逻辑之前调用，给物品机会自定义交互行为（如收纳袋）
+    // - 左键（button == 0）→ SlotClickAction::Primary
+    // - 右键（button == 1）→ SlotClickAction::Secondary
+    SlotClickAction clickAction = (button == 0) ? SlotClickAction::Primary : SlotClickAction::Secondary;
+    if (_tryItemClickBehaviourOverride(slot, clickAction, *player)) {
+        // 物品已处理此次点击，跳过默认逻辑
+        notifySlotChanged(slotIndex, slot.getItem());
+        return m_carried;
+    }
 
     // 左键
     if (button == 0) {
@@ -584,7 +597,7 @@ ItemStack AbstractContainerMenu::_handleThrow(Slot& slot, i32 slotIndex, const I
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i32 button)
+ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i32 button, Player& player)
 {
     // 拖拽分发状态机
     // m_dragMode: 0=均匀分发(左键), 1=逐个分发(右键), 2=全部分发(中键)
@@ -616,7 +629,25 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
             }
         }
     } else if (m_dragEvent == DragConstants::EVENT_END) {
-        // 结束拖拽 - 分发物品
+        // 结束拖拽 - 单槽降级或多槽分发
+        // 对应 MC 1.21.11 AbstractContainerMenu#doClick 中 quickcraftSlots.size()==1 的降级路径：
+        // 当仅有一个拖拽槽位时，重置拖拽状态后递归调用 clicked(slotIndex, dragMode, Pick, player)，
+        // 让单槽拖拽降级为普通 PICKUP 点击，从而触发 _tryItemClickBehaviourOverride
+        // （收纳袋的 overrideStackedOnOther/overrideOtherStackedOnMe）。
+        if (m_dragSlots.size() == 1) {
+            const i32 singleSlotIndex = m_dragSlots[0];
+            const i32 dragMode = m_dragMode;
+            _resetDrag();
+            // MODE_EVEN(0)/MODE_SINGLE(1) 分别对应 PICKUP 的左/右键（button==0/1），
+            // 与 MC Java 行为一致；MODE_FILL(2) 不进入 PICKUP 分支（创造模式专属，
+            // 单槽时无意义，直接返回）。
+            if (dragMode == DragConstants::MODE_EVEN || dragMode == DragConstants::MODE_SINGLE) {
+                return clicked(singleSlotIndex, dragMode, ClickType::Pick, player);
+            }
+            return m_carried;
+        }
+
+        // 多槽分发
         if (!m_dragSlots.empty()) {
             ItemStack toDistribute = m_carried.copy();
 
@@ -674,7 +705,7 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
     return m_carried;
 }
 
-void AbstractContainerMenu::_handleQuickCraftStartEnd(i32 button)
+void AbstractContainerMenu::_handleQuickCraftStartEnd(i32 button, Player& player)
 {
     // 拖拽分发的 START 和 END 事件使用 -999 槽位
     // 这部分逻辑不需要访问具体槽位
@@ -704,7 +735,26 @@ void AbstractContainerMenu::_handleQuickCraftStartEnd(i32 button)
             _resetDrag();
         }
     } else if (m_dragEvent == DragConstants::EVENT_END) {
-        // 结束拖拽 - 分发物品到所有目标槽位
+        // 结束拖拽 - 单槽降级或多槽分发
+        // 对应 MC 1.21.11 AbstractContainerMenu#doClick 中 quickcraftSlots.size()==1 的降级路径：
+        // 当仅有一个拖拽槽位时，重置拖拽状态后递归调用 clicked(slotIndex, dragMode, Pick, player)，
+        // 让单槽拖拽降级为普通 PICKUP 点击，从而触发 _tryItemClickBehaviourOverride
+        // （收纳袋的 overrideStackedOnOther/overrideOtherStackedOnMe）。
+        if (m_dragSlots.size() == 1) {
+            const i32 singleSlotIndex = m_dragSlots[0];
+            const i32 dragMode = m_dragMode;
+            _resetDrag();
+            // MODE_EVEN(0)/MODE_SINGLE(1) 分别对应 PICKUP 的左/右键（button==0/1），
+            // 与 MC Java 行为一致；MODE_FILL(2) 不进入 PICKUP 分支（创造模式专属，
+            // 单槽时无意义，直接返回）。
+            if (dragMode == DragConstants::MODE_EVEN || dragMode == DragConstants::MODE_SINGLE) {
+                // 递归调用 clicked 会更新 m_carried，调用方在 clicked 中已 return m_carried
+                m_carried = clicked(singleSlotIndex, dragMode, ClickType::Pick, player);
+            }
+            return;
+        }
+
+        // 多槽分发
         if (!m_dragSlots.empty()) {
             ItemStack toDistribute = m_carried.copy();
 
@@ -1015,6 +1065,43 @@ void AbstractContainerMenu::dropItem(const ItemStack& stack, Player& player, boo
     if (m_itemDropCallback) {
         m_itemDropCallback(stack, player, retainOwnership);
     }
+}
+
+bool AbstractContainerMenu::_tryItemClickBehaviourOverride(Slot& slot, SlotClickAction clickAction, Player& player)
+{
+    // 对应 MC 1.21.11 AbstractContainerMenu#tryItemClickBehaviourOverride
+    // 给光标物品和槽位物品各一次机会自定义交互行为：
+    // 1. 若光标物品（m_carried）非空且其 Item.overrideStackedOnOther 返回 true → 处理完毕
+    // 2. 否则若槽位物品（slotStack）非空且其 Item.overrideOtherStackedOnMe 返回 true → 处理完毕
+    // 3. 否则返回 false，走默认拾取/放置逻辑
+    //
+    // 收纳袋（BundleItem）重写了这两个方法以实现：
+    // - 手持收纳袋点击其他槽位：插入/取出（overrideStackedOnOther）
+    // - 手持其他物品点击收纳袋槽位：插入/取出（overrideOtherStackedOnMe）
+
+    if (!m_carried.isEmpty()) {
+        // 光标物品非空：先尝试 overrideStackedOnOther
+        // 使用 Item::getItem(itemId) 获取非 const Item* 以调用非 const 虚方法
+        Item* carriedItem = const_cast<Item*>(m_carried.getItem());
+        if (carriedItem != nullptr && carriedItem->overrideStackedOnOther(m_carried, slot, clickAction, player)) {
+            return true;
+        }
+    }
+
+    ItemStack slotStack = slot.getItem();
+    if (!slotStack.isEmpty()) {
+        // 槽位物品非空：尝试 overrideOtherStackedOnMe
+        Item* slotItem = const_cast<Item*>(slotStack.getItem());
+        if (slotItem != nullptr &&
+            slotItem->overrideOtherStackedOnMe(slotStack, m_carried, slot, clickAction, player)) {
+            // overrideOtherStackedOnMe 修改的是 slotStack（slot.getItem() 的拷贝），
+            // 需要写回槽位才能让修改生效（如收纳袋内容物 NBT 变化）。
+            slot.set(slotStack);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace mc

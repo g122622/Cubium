@@ -1091,6 +1091,27 @@ public:
     virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 状态变更时是否保留方块实体
+     *
+     * 当方块因氧化/涂蜡/除蜡/刮削等原因导致方块 ID 变化但语义上"仍是同一个方块"时，
+     * 应返回 true 以保留旧方块实体（物品内容物、自定义名称等不丢失）。
+     *
+     * 默认实现返回 false：方块 ID 变化时旧方块实体会被销毁，新方块实体会被创建。
+     * 铜箱子等容器类铜方块应重写此方法返回 true，避免物品在氧化/涂蜡/除蜡/刮削时丢失。
+     *
+     * 参考: net.minecraft.world.level.block.state.BlockBehaviour#shouldChangedStateKeepBlockEntity
+     * (MC 1.21.11)
+     *
+     * @param state 当前方块状态
+     * @return 如果状态变更时应保留方块实体返回 true
+     */
+    [[nodiscard]] virtual bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept
+    {
+        MC_UNUSED(state);
+        return false;
+    }
+
+    /**
      * @brief 玩家即将破坏方块时调用
      *
      * 在方块被破坏之前调用，允许方块在破坏前执行逻辑（如级联销毁关联方块）。

@@ -75,6 +75,62 @@ ItemStack Slot::remove(i32 amount)
     return m_inventory->removeItem(m_slotIndex, amount);
 }
 
+ItemStack Slot::safeTake(i32 amount, i32 maxAmount, Player& player)
+{
+    // 对应 MC 1.21.11 的 Slot#tryRemove + Slot#safeTake
+    if (!mayPickup(player)) {
+        return ItemStack::EMPTY;
+    }
+    // allowModification 为 false 时，不允许取出小于当前数量的物品
+    if (!allowModification(player) && maxAmount < getItem().getCount()) {
+        return ItemStack::EMPTY;
+    }
+    i32 toTake = std::min(amount, maxAmount);
+    if (toTake <= 0) {
+        return ItemStack::EMPTY;
+    }
+    ItemStack taken = remove(toTake);
+    if (taken.isEmpty()) {
+        return ItemStack::EMPTY;
+    }
+    onTake(player, taken);
+    return taken;
+}
+
+ItemStack Slot::safeInsert(ItemStack stack)
+{
+    return safeInsert(std::move(stack), stack.getCount());
+}
+
+ItemStack Slot::safeInsert(ItemStack stack, i32 amount)
+{
+    // 对应 MC 1.21.11 的 Slot#safeInsert
+    if (stack.isEmpty() || !mayPlace(stack)) {
+        return stack;
+    }
+    ItemStack existing = getItem();
+    i32 maxAdd = std::min(std::min(amount, stack.getCount()), getMaxStackSize(stack) - existing.getCount());
+    if (maxAdd <= 0) {
+        return stack;
+    }
+    if (existing.isEmpty()) {
+        // 槽位为空：分出 maxAdd 个放入
+        set(stack.split(maxAdd));
+    } else if (existing.canMergeWith(stack)) {
+        // 槽位非空且可合并：累加数量
+        stack.shrink(maxAdd);
+        existing.grow(maxAdd);
+        set(existing);
+    }
+    return stack;
+}
+
+bool Slot::allowModification(Player& player) const
+{
+    // 对应 MC 1.21.11 的 Slot#allowModification
+    return mayPickup(player) && mayPlace(getItem());
+}
+
 bool Slot::mayPlace(const ItemStack& stack) const
 {
     if (m_inventory == nullptr) {

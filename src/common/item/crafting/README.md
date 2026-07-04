@@ -19,6 +19,8 @@ src/common/item/crafting/
 ├── StonecuttingRecipe.cpp
 ├── SmithingRecipe.hpp            # 锻造台配方
 ├── SmithingRecipe.cpp
+├── TransmuteRecipe.hpp           # 物品转化配方（MC 1.21+，收纳袋染色等）
+├── TransmuteRecipe.cpp
 ├── SpecialRecipe.hpp             # 特殊配方基类
 ├── RecipeManager.hpp             # 配方管理器（单例）
 ├── RecipeManager.cpp
@@ -198,3 +200,12 @@ src/common/item/crafting/
     - MC 1.21+ 数据包使用单数目录名 `recipe/`，旧版使用复数 `recipes/`。
     - `RecipeLoader` 的路径过滤和 `pathToRecipeId()` 同时支持两种目录名，确保兼容性。
     - 测试用例覆盖：`RecipeFormatTest` 测试了所有 MC 1.21+ 格式的解析正确性。
+
+17. **MC 1.21+ 物品转化配方（TransmuteRecipe）**
+    - 转化配方接受两个输入（input + material），输出指定物品，并保留 input 的 NBT 数据。
+    - 典型用例：收纳袋染色（bundle + dye → colored_bundle，保留 BundleContents）。
+    - JSON 格式：`"type": "minecraft:crafting_transmute"`，包含 `input`、`material`、`result` 字段。
+    - `input` 和 `material` 字段支持字符串形式（含 `#` 前缀的标签引用，如 `"#minecraft:bundles"`）。
+    - 匹配规则：网格中恰好 2 个非空物品，一个匹配 input，一个匹配 material，且转化结果不能与原物品相同。
+    - NBT 保留：`ItemStack::transmuteCopy()` 替换物品类型，保留 customName、lore、customData（含 BundleContents）、enchantments 等。
+    - 转化配方为特殊配方（`isSpecial = true`，不出现在配方书）和动态配方（`isDynamic = true`，结果依赖 input NBT）。

@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/ShulkerBoxBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 
@@ -65,6 +66,13 @@ ActionResultType BlockItem::onItemUse(ItemUseContext& context)
     }
 
     return result;
+}
+
+bool BlockItem::canFitInsideContainerItems() const
+{
+    // 潜影盒不能放入收纳袋（防止递归存储）
+    // 对应 MC 1.21.11 的 BlockItem#canFitInsideContainerItems
+    return !blocks::ShulkerBoxBlock::isShulkerBox(*m_block);
 }
 
 ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const

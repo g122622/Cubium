@@ -115,6 +115,25 @@ inventory/
 
 `AbstractContainerMenu` 内部管理玩家背包槽位范围，Shift+点击快速移动会自动处理。子类只需调用 `addPlayerInventorySlots()` 和 `addPlayerHotbarSlots()`。
 
+### QuickCraft（拖拽分发）协议
+
+拖拽分发使用 `-999` 槽位发送 START/END 事件，ADD_SLOT 事件发送到实际槽位。协议流程：`START(-999)` → `ADD_SLOT(slot) × N` → `END(-999)`。
+
+- **拖拽模式**（按钮高 2 位）：`MODE_EVEN`（左键均匀分发）、`MODE_SINGLE`（右键逐个分发）、`MODE_FILL`（中键全部分发，仅创造模式）
+- **事件状态**（按钮低 2 位）：`EVENT_START`(0)、`EVENT_ADD_SLOT`(1)、`EVENT_END`(2)
+- **单槽降级**：当 END 事件触发且 `m_dragSlots.size()==1` 时（对应 MC 1.21.11 `AbstractContainerMenu#doClick` 中 `quickcraftSlots.size()==1` 的降级路径），重置拖拽状态后递归调用 `clicked(slot, dragMode, Pick, player)`，让单槽拖拽降级为普通 PICKUP 点击，从而触发 `_tryItemClickBehaviourOverride` 槽位覆写协议（收纳袋的 `overrideStackedOnOther`/`overrideOtherStackedOnMe`）。`MODE_EVEN`/`MODE_SINGLE` 分别对应 PICKUP 左/右键；`MODE_FILL` 不降级（创造模式专属，单槽无意义）。
+- **多槽分发**：`m_dragSlots.size()>=2` 时走 `_distributeToDragSlot` 分发路径，不触发槽位覆写协议。
+- **拖拽槽位过滤**：`_canDragIntoSlot` 检查槽位是否可拖入（空槽位或同物品可合并），不同物品的槽位不会被加入拖拽列表，因此单槽降级也不会触发——这与 MC Java `canItemQuickReplace` 行为一致。收纳袋的覆写协议通过直接 PICKUP 点击触发，而非拖拽降级。
+
+### 槽位覆写协议（Slot Override Protocol）
+
+`_tryItemClickBehaviourOverride` 在 `_handleClickPick` 中于常规拾取/放置逻辑之前调用，给光标物品和槽位物品各一次机会自定义交互行为：
+
+1. 光标物品非空 → 调用 `Item::overrideStackedOnOther(cursor, slot, action, player)`，返回 true 则跳过默认逻辑
+2. 槽位物品非空 → 调用 `Item::overrideOtherStackedOnMe(slotStack, cursor, slot, action, player)`，返回 true 则跳过默认逻辑
+
+`overrideOtherStackedOnMe` 接收 `slotStack`（槽位物品的拷贝）和 `cursor`（光标引用，可被修改）。修改后的 `slotStack` 会被写回槽位（`slot.set(slotStack)`）。该协议是 MC 1.20+ 引入的，主要用于收纳袋（`BundleItem`）。
+
 ### 物品丢弃回调
 
 上层（ServerWorld/IntegratedServer）需注入物品丢弃回调到 `AbstractContainerMenu`，用于 Q 键丢弃、点击屏幕外部丢弃、容器关闭时丢弃无法放入背包的物品。

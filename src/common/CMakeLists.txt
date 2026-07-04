@@ -535,6 +535,8 @@ add_library(mc_common STATIC
 
     # Item - Special Items
     item/items/special/BoneMealItem.cpp
+    item/items/special/bundle/BundleContents.cpp
+    item/items/special/bundle/BundleItem.cpp
     item/items/special/BucketItem.cpp
     item/items/special/FishBucketItem.cpp
     item/items/special/FlintAndSteelItem.cpp
@@ -584,6 +586,7 @@ add_library(mc_common STATIC
     item/crafting/SmeltingRecipe.cpp
     item/crafting/StonecuttingRecipe.cpp
     item/crafting/SmithingRecipe.cpp
+    item/crafting/TransmuteRecipe.cpp
     item/crafting/RecipeNetworkSerializer.cpp
     item/crafting/special/RepairItemRecipe.cpp
     item/crafting/special/ArmorDyeRecipe.cpp
@@ -846,6 +849,7 @@ add_library(mc_common STATIC
 
     # World - Block - Copper
     world/block/blocks/copper/CopperBulbBlock.cpp
+    world/block/blocks/copper/CopperChestBlock.cpp
     world/block/blocks/copper/CopperGolemStatueBlock.cpp
     world/block/blocks/copper/IOxidizableBlock.cpp
     world/block/blocks/copper/WeatheringCopperBlock.cpp

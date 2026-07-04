@@ -30,6 +30,7 @@
 #include "item/crafting/SmeltingRecipe.hpp"
 #include "item/crafting/SmithingRecipe.hpp"
 #include "item/crafting/StonecuttingRecipe.hpp"
+#include "item/crafting/TransmuteRecipe.hpp"
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -104,6 +105,7 @@ public:
         static constexpr const char* CAMPFIRE_COOKING = "minecraft:campfire_cooking";
         static constexpr const char* STONECUTTING = "minecraft:stonecutting";
         static constexpr const char* SMITHING = "minecraft:smithing";
+        static constexpr const char* CRAFTING_TRANSMUTE = "minecraft:crafting_transmute";
     };
 
     /**
@@ -198,6 +200,29 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmeltingRecipe>> parseCampfireCookingRecipe(
+        const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 解析转化配方（crafting_transmute）
+     * @param id 配方ID
+     * @param json JSON数据
+     * @return 解析的配方，或错误
+     *
+     * JSON 格式：
+     * @code
+     * {
+     *   "type": "minecraft:crafting_transmute",
+     *   "category": "equipment",        // 可选，目前未使用
+     *   "group": "bundle_dye",          // 可选
+     *   "input": "#minecraft:bundles",  // 被转化的物品（物品ID/标签/对象）
+     *   "material": "minecraft:white_dye", // 材料（物品ID/标签/对象）
+     *   "result": {                      // 转化结果（仅物品类型和数量）
+     *     "id": "minecraft:white_bundle"
+     *   }
+     * }
+     * @endcode
+     */
+    static Result<std::unique_ptr<TransmuteRecipe>> parseTransmuteRecipe(
         const ResourceLocation& id, const nlohmann::json& json);
 
     /**

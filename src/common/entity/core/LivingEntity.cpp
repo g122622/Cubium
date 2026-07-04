@@ -700,6 +700,11 @@ void LivingEntity::tick()
 {
     Entity::tick();
 
+    // 更新使用中的物品
+    // 对应 MC 1.21.11 LivingEntity.tick() 中的 this.updatingUsingItem()
+    // 递减使用计时器、调用 Item::onUseTick、使用完成时调用 Item::onItemUseFinish
+    updateActiveItem();
+
     // 保存上一帧渲染属性
     m_prevLimbSwing = m_limbSwing;
     m_prevLimbSwingAmount = m_limbSwingAmount;

@@ -64,6 +64,7 @@
 #include "common/item/items/special/SaddleItem.hpp"
 #include "common/item/items/special/SmithingTemplateItem.hpp"
 #include "common/item/items/special/StickItems.hpp"
+#include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/item/items/tool/AxeItem.hpp"
 #include "common/item/items/tool/HoeItem.hpp"
 #include "common/item/items/tool/PickaxeItem.hpp"
@@ -1351,6 +1352,25 @@ Item* Items::MOJANG_BANNER_PATTERN = nullptr;
 Item* Items::GLOBE_BANNER_PATTERN = nullptr;
 Item* Items::PIGLIN_BANNER_PATTERN = nullptr;
 
+// 收纳袋（1 无色 + 16 色）
+Item* Items::BUNDLE = nullptr;
+Item* Items::WHITE_BUNDLE = nullptr;
+Item* Items::ORANGE_BUNDLE = nullptr;
+Item* Items::MAGENTA_BUNDLE = nullptr;
+Item* Items::LIGHT_BLUE_BUNDLE = nullptr;
+Item* Items::YELLOW_BUNDLE = nullptr;
+Item* Items::LIME_BUNDLE = nullptr;
+Item* Items::PINK_BUNDLE = nullptr;
+Item* Items::GRAY_BUNDLE = nullptr;
+Item* Items::LIGHT_GRAY_BUNDLE = nullptr;
+Item* Items::CYAN_BUNDLE = nullptr;
+Item* Items::PURPLE_BUNDLE = nullptr;
+Item* Items::BLUE_BUNDLE = nullptr;
+Item* Items::BROWN_BUNDLE = nullptr;
+Item* Items::GREEN_BUNDLE = nullptr;
+Item* Items::RED_BUNDLE = nullptr;
+Item* Items::BLACK_BUNDLE = nullptr;
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -1414,6 +1434,7 @@ void Items::initialize()
     _registerMusicDiscs();        // 音乐唱片
     _registerSkulls();            // 头颅物品
     _registerHarnesses();         // 欢乐诡鬼装备 (16色)
+    _registerBundles();           // 收纳袋 (1 无色 + 16 色)
 
     // 初始化堆肥物品注册表（必须在 Items 注册完成后）
     blocks::CompostableItems::initialize();
@@ -5065,6 +5086,66 @@ void Items::_registerHarnesses()
 
     BLACK_HARNESS = &registry.registerItem<item::items::HarnessItem>(
         ResourceLocation("minecraft:black_harness"), ItemProperties().maxStackSize(1), DyeColor::Black);
+}
+
+void Items::_registerBundles()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // 收纳袋 (Bundle) - MC 1.21.11 实验性物品
+    // 17 个变体：1 无色 + 16 色，颜色为物品固有属性
+    // 通过 BundleContents 存储多个物品堆，权重系统限制总容量（MAX_WEIGHT=64）
+    // 用法：右键开始使用 → 周期性丢出内容物；或在物品栏点击槽位插入/取出
+    BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:bundle"), ItemProperties().maxStackSize(1), DyeColor::Count);
+
+    WHITE_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:white_bundle"), ItemProperties().maxStackSize(1), DyeColor::White);
+
+    ORANGE_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:orange_bundle"), ItemProperties().maxStackSize(1), DyeColor::Orange);
+
+    MAGENTA_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:magenta_bundle"), ItemProperties().maxStackSize(1), DyeColor::Magenta);
+
+    LIGHT_BLUE_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:light_blue_bundle"), ItemProperties().maxStackSize(1), DyeColor::LightBlue);
+
+    YELLOW_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:yellow_bundle"), ItemProperties().maxStackSize(1), DyeColor::Yellow);
+
+    LIME_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:lime_bundle"), ItemProperties().maxStackSize(1), DyeColor::Lime);
+
+    PINK_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:pink_bundle"), ItemProperties().maxStackSize(1), DyeColor::Pink);
+
+    GRAY_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:gray_bundle"), ItemProperties().maxStackSize(1), DyeColor::Gray);
+
+    LIGHT_GRAY_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:light_gray_bundle"), ItemProperties().maxStackSize(1), DyeColor::LightGray);
+
+    CYAN_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:cyan_bundle"), ItemProperties().maxStackSize(1), DyeColor::Cyan);
+
+    PURPLE_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:purple_bundle"), ItemProperties().maxStackSize(1), DyeColor::Purple);
+
+    BLUE_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:blue_bundle"), ItemProperties().maxStackSize(1), DyeColor::Blue);
+
+    BROWN_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:brown_bundle"), ItemProperties().maxStackSize(1), DyeColor::Brown);
+
+    GREEN_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:green_bundle"), ItemProperties().maxStackSize(1), DyeColor::Green);
+
+    RED_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:red_bundle"), ItemProperties().maxStackSize(1), DyeColor::Red);
+
+    BLACK_BUNDLE = &registry.registerItem<item::items::BundleItem>(
+        ResourceLocation("minecraft:black_bundle"), ItemProperties().maxStackSize(1), DyeColor::Black);
 }
 
 } // namespace mc

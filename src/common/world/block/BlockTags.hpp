@@ -371,6 +371,12 @@ public:
     /// 用于 shouldChangedStateKeepBlockEntity 判断：斧头刮削/去蜡时保留方块实体
     static BlockTag& COPPER_GOLEM_STATUES();
 
+    /// 铜箱子标签（所有 8 个变体：未涂蜡/涂蜡 × 4 个氧化等级）
+    /// 参考: net.minecraft.tags.BlockTags.COPPER_CHESTS (MC 1.21.11)
+    /// 用于 chestCanConnectTo 判断：双箱合并允许跨氧化等级与涂蜡状态连接
+    /// 以及 shouldChangedStateKeepBlockEntity 判断：斧头刮削/去蜡时保留方块实体
+    static BlockTag& COPPER_CHESTS();
+
     /// 避雷针标签
     static BlockTag& LIGHTNING_RODS();
 

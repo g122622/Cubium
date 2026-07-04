@@ -445,7 +445,19 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
         }
 
         MatrixStack itemStack = baseStack;
-        _renderItemInHand(itemStack, player, heldItem, handSide, equipProgress, swingProgress);
+        // 传入真实的 isUsingItem/useCount/partialTicks，让 UseAction 变换（进食、拉弓、收纳袋等）生效
+        // 对应 MC 1.21.11 HeldItemRenderer.renderItem 中对 useItem 状态的判断
+        const bool handIsUsingItem = player->isUsingItem() && player->getActiveHand() == hand;
+        const i32 handUseCount = handIsUsingItem ? player->getItemInUseCount() : 0;
+        _renderItemInHand(itemStack,
+            player,
+            heldItem,
+            handSide,
+            equipProgress,
+            swingProgress,
+            handIsUsingItem,
+            handUseCount,
+            static_cast<f32>(context.partialTick));
 
         m_itemPipeline->bind(cmd);
         vkCmdBindDescriptorSets(cmd,
@@ -586,6 +598,11 @@ void FirstPersonRenderer::_renderItemInHand(MatrixStack& stack,
             case UseAction::Crossbow:
                 // 弩：装填动画
                 _transformCrossbow(stack, partialTicks, side, useCount, false, itemStack);
+                break;
+
+            case UseAction::Bundle:
+                // 收纳袋：使用动作类似饮用，复用 EatOrDrink 变换
+                _transformEatOrDrink(stack, partialTicks, side, itemStack, useCount);
                 break;
 
             default:
@@ -1099,6 +1116,10 @@ ArmPose FirstPersonRenderer::_determineArmPose(Player* player, Hand hand) const
             case UseAction::Spyglass:
                 // TODO: 望远镜暂未实现特殊姿态，后续应添加望远镜第一人称动画
                 return ArmPose::Item;
+
+            case UseAction::Bundle:
+                // 收纳袋：使用动作类似饮用，复用 EatOrDrink 姿态
+                return ArmPose::EatOrDrink;
 
             default:
                 break;

@@ -181,6 +181,19 @@ struct CopperBlocks {
     static Block* WAXED_WEATHERED_COPPER_GOLEM_STATUE;
     static Block* WAXED_OXIDIZED_COPPER_GOLEM_STATUE;
 
+    // ========== 1.21.11 铜箱子（8个）==========
+    // 基础版（Unaffected 等级，处于氧化链最低位但本身不氧化）
+    static Block* COPPER_CHEST;
+    // 可氧化变种（Exposed/Weathered/Oxidized）
+    static Block* EXPOSED_COPPER_CHEST;
+    static Block* WEATHERED_COPPER_CHEST;
+    static Block* OXIDIZED_COPPER_CHEST;
+    // 涂蜡变种（不氧化）
+    static Block* WAXED_COPPER_CHEST;
+    static Block* WAXED_EXPOSED_COPPER_CHEST;
+    static Block* WAXED_WEATHERED_COPPER_CHEST;
+    static Block* WAXED_OXIDIZED_COPPER_CHEST;
+
     // ========== 粗矿块（1.17）==========
     static Block* RAW_IRON_BLOCK;
     static Block* RAW_COPPER_BLOCK;

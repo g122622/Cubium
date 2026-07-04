@@ -621,6 +621,15 @@ BlockTag& BlockTags::COPPER_GOLEM_STATUES()
     return *tag;
 }
 
+BlockTag& BlockTags::COPPER_CHESTS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "copper_chests"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::LIGHTNING_RODS()
 {
     static BlockTag* tag = nullptr;
@@ -2093,7 +2102,16 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "waxed_copper_golem_statue"),
         ResourceLocation("minecraft", "waxed_exposed_copper_golem_statue"),
         ResourceLocation("minecraft", "waxed_weathered_copper_golem_statue"),
-        ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")});
+        ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue"),
+        // 铜箱子（8 个变体）：MC 1.21.11 中通过 #copper_chests 标签加入 #copper
+        ResourceLocation("minecraft", "copper_chest"),
+        ResourceLocation("minecraft", "exposed_copper_chest"),
+        ResourceLocation("minecraft", "weathered_copper_chest"),
+        ResourceLocation("minecraft", "oxidized_copper_chest"),
+        ResourceLocation("minecraft", "waxed_copper_chest"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_chest"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_chest"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_chest")});
     tags[copper->getId()] = std::move(copper);
 
     // 铜傀儡雕像标签（8 个变体）
@@ -2110,6 +2128,21 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "waxed_weathered_copper_golem_statue"),
         ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")});
     tags[copperGolemStatues->getId()] = std::move(copperGolemStatues);
+
+    // 铜箱子标签（8 个变体）
+    // 参考: net.minecraft.tags.BlockTags.COPPER_CHESTS (MC 1.21.11)
+    // 用于 CopperChestBlock.chestCanConnectTo 判断：双箱合并允许跨氧化等级与涂蜡状态连接
+    // 以及 shouldChangedStateKeepBlockEntity 判断：斧头刮削/去蜡时保留方块实体（物品不丢失）
+    auto copperChests = std::make_unique<BlockTag>(ResourceLocation("minecraft", "copper_chests"));
+    copperChests->addAll({ResourceLocation("minecraft", "copper_chest"),
+        ResourceLocation("minecraft", "exposed_copper_chest"),
+        ResourceLocation("minecraft", "weathered_copper_chest"),
+        ResourceLocation("minecraft", "oxidized_copper_chest"),
+        ResourceLocation("minecraft", "waxed_copper_chest"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_chest"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_chest"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_chest")});
+    tags[copperChests->getId()] = std::move(copperChests);
 
     // 避雷针标签（包含所有氧化和涂蜡变种）
     auto lightningRods = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lightning_rods"));

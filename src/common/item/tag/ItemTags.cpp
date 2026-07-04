@@ -290,6 +290,15 @@ ItemTag& ItemTags::HARNESSES()
     return *tag;
 }
 
+ItemTag& ItemTags::BUNDLES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bundles"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::REPAIRS_WOLF_ARMOR()
 {
     static ItemTag* tag = nullptr;
@@ -322,6 +331,15 @@ ItemTag& ItemTags::COPPER_GOLEM_STATUES()
     static ItemTag* tag = nullptr;
     if (tag == nullptr) {
         tag = getTag(ResourceLocation("minecraft", "copper_golem_statues"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::COPPER_CHESTS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "copper_chests"));
     }
     return *tag;
 }
@@ -977,6 +995,20 @@ void ItemTags::initialize()
         ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")));
     allTags[copperGolemStatues->getId()] = std::move(copperGolemStatues);
 
+    // 创建 COPPER_CHESTS 标签
+    // 包含所有 8 个铜箱子物品变体（未涂蜡/涂蜡 × 4 个氧化等级）。
+    // 对应 MC 原版标签 minecraft:copper_chests (MC 1.21.11)。
+    auto copperChests = std::make_unique<ItemTag>(ResourceLocation("minecraft", "copper_chests"), false);
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_chest")));
+    copperChests->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chest")));
+    allTags[copperChests->getId()] = std::move(copperChests);
+
     // 创建 HARNESSES 标签
     // 包含所有 16 色马铠物品（white_harness..black_harness）。
     // 用于装备 HappyGhast 实体。
@@ -999,6 +1031,30 @@ void ItemTags::initialize()
     harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_harness")));
     harnesses->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_harness")));
     allTags[harnesses->getId()] = std::move(harnesses);
+
+    // 创建 BUNDLES 标签
+    // 包含无色收纳袋和 16 色收纳袋物品（共 17 个变体）。
+    // 用于判断物品是否为收纳袋（嵌套权重计算、内容物限制等）。
+    // 对应 MC 原版标签 minecraft:bundles (MC 1.21.11)。
+    auto bundles = std::make_unique<ItemTag>(ResourceLocation("minecraft", "bundles"), false);
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_bundle")));
+    bundles->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_bundle")));
+    allTags[bundles->getId()] = std::move(bundles);
 
     // 创建 VILLAGER_PLANTABLE_SEEDS 标签
     // 包含农民村民可以在耕地上种植的所有种子物品。

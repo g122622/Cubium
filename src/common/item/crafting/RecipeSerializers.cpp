@@ -169,6 +169,15 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
         }
         return result.error();
     }
+    // 转化配方（crafting_transmute）
+    else if (type == "minecraft:crafting_transmute") {
+        auto result = parseTransmuteRecipe(id, json);
+        if (result.success()) {
+            std::unique_ptr<CraftingRecipe> recipe(result.value().release());
+            return recipe;
+        }
+        return result.error();
+    }
     // 切石机 - 返回错误提示使用专门的方法
     else if (type == "minecraft:stonecutting") {
         return Error(ErrorCode::ResourceParseError,
@@ -460,9 +469,15 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
         return Ingredient::merge(ingredients);
     }
 
-    // MC 1.21+ 字符串形式：直接物品ID（如 "minecraft:raw_iron"）
+    // MC 1.21+ 字符串形式：直接物品ID（如 "minecraft:raw_iron"）或标签引用（如 "#minecraft:bundles"）
     if (json.is_string()) {
         std::string itemId = json.get<std::string>();
+
+        // 标签引用：以 '#' 开头
+        if (!itemId.empty() && itemId[0] == '#') {
+            return Ingredient::fromTag(itemId.substr(1));
+        }
+
         ResourceLocation loc(itemId);
 
         Item* item = ItemRegistry::instance().getItem(loc);
@@ -846,6 +861,53 @@ Result<std::unique_ptr<SmithingRecipe>> RecipeSerializers::parseSmithingRecipe(
     }
 
     return std::make_unique<SmithingRecipe>(id, baseResult.value(), additionResult.value(), resultStack.value());
+}
+
+// ============================================================================
+// 转化配方解析（crafting_transmute）
+// ============================================================================
+
+Result<std::unique_ptr<TransmuteRecipe>> RecipeSerializers::parseTransmuteRecipe(
+    const ResourceLocation& id, const nlohmann::json& json)
+{
+    // 解析group（可选）
+    std::string group;
+    if (json.contains("group") && json["group"].is_string()) {
+        group = json["group"].get<std::string>();
+    }
+
+    // 解析input（被转化的物品）
+    if (!json.contains("input")) {
+        return Error(ErrorCode::ResourceParseError, "Transmute recipe missing 'input'");
+    }
+
+    auto inputResult = parseIngredient(json["input"]);
+    if (!inputResult.success()) {
+        return inputResult.error();
+    }
+
+    // 解析material（材料）
+    if (!json.contains("material")) {
+        return Error(ErrorCode::ResourceParseError, "Transmute recipe missing 'material'");
+    }
+
+    auto materialResult = parseIngredient(json["material"]);
+    if (!materialResult.success()) {
+        return materialResult.error();
+    }
+
+    // 解析result
+    if (!json.contains("result")) {
+        return Error(ErrorCode::ResourceParseError, "Transmute recipe missing 'result'");
+    }
+
+    auto resultStack = parseResult(json["result"]);
+    if (!resultStack.success()) {
+        return resultStack.error();
+    }
+
+    return std::make_unique<TransmuteRecipe>(
+        id, inputResult.value(), materialResult.value(), resultStack.value(), group);
 }
 
 } // namespace crafting

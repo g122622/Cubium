@@ -281,6 +281,16 @@ std::unordered_map<const Block*, const Block*> HoneycombItem::_buildWaxablesMap(
     if (VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE)
         m[VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE;
 
+    // 铜箱子（MC 1.21.11）
+    if (VanillaBlocks::COPPER_CHEST && VanillaBlocks::WAXED_COPPER_CHEST)
+        m[VanillaBlocks::COPPER_CHEST] = VanillaBlocks::WAXED_COPPER_CHEST;
+    if (VanillaBlocks::EXPOSED_COPPER_CHEST && VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST)
+        m[VanillaBlocks::EXPOSED_COPPER_CHEST] = VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST;
+    if (VanillaBlocks::WEATHERED_COPPER_CHEST && VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST)
+        m[VanillaBlocks::WEATHERED_COPPER_CHEST] = VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST;
+    if (VanillaBlocks::OXIDIZED_COPPER_CHEST && VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST)
+        m[VanillaBlocks::OXIDIZED_COPPER_CHEST] = VanillaBlocks::WAXED_OXIDIZED_COPPER_CHEST;
+
     return m;
 }
 

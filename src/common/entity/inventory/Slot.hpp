@@ -253,6 +253,50 @@ public:
      */
     virtual ItemStack remove(i32 amount);
 
+    /**
+     * @brief 安全取出物品（带权限检查）
+     *
+     * 对应 MC 1.21.11 的 Slot#safeTake。
+     * 调用 tryRemove 检查权限后调用 remove，并触发 onTake 回调。
+     *
+     * @param amount 期望取出的数量
+     * @param maxAmount 当前槽位物品数量上限（用于夹紧）
+     * @param player 操作玩家
+     * @return 实际取出的物品堆（空堆表示未取出）
+     */
+    ItemStack safeTake(i32 amount, i32 maxAmount, Player& player);
+
+    /**
+     * @brief 安全插入物品（全部数量）
+     *
+     * 对应 MC 1.21.11 的 Slot#safeInsert(ItemStack)。
+     *
+     * @param stack 要插入的物品堆（会被修改，返回剩余部分）
+     * @return 剩余未插入的物品堆
+     */
+    ItemStack safeInsert(ItemStack stack);
+
+    /**
+     * @brief 安全插入物品（指定数量上限）
+     *
+     * 对应 MC 1.21.11 的 Slot#safeInsert(ItemStack, int)。
+     *
+     * @param stack 要插入的物品堆（会被修改，返回剩余部分）
+     * @param amount 最大插入数量
+     * @return 剩余未插入的物品堆
+     */
+    ItemStack safeInsert(ItemStack stack, i32 amount);
+
+    /**
+     * @brief 检查玩家是否可以修改此槽位（拾取 + 放置）
+     *
+     * 对应 MC 1.21.11 的 Slot#allowModification。
+     *
+     * @param player 玩家
+     * @return 如果 mayPickup && mayPlace(getItem()) 返回 true
+     */
+    [[nodiscard]] bool allowModification(Player& player) const;
+
     // ========== 可放置性检查 ==========
 
     /**

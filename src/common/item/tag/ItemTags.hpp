@@ -253,6 +253,15 @@ public:
     static ItemTag& HARNESSES();
 
     /**
+     * @brief 收纳袋物品标签
+     *
+     * 包含无色收纳袋和 16 色收纳袋物品（共 17 个变体）。
+     * 用于判断物品是否为收纳袋（嵌套权重计算、内容物限制等）。
+     * 对应 MC 原版标签 minecraft:bundles (MC 1.21.11)。
+     */
+    static ItemTag& BUNDLES();
+
+    /**
      * @brief 修复狼铠材料标签
      *
      * 包含可用于修复狼铠的物品（犰狳鳞甲）。
@@ -276,6 +285,14 @@ public:
      * 对应 MC 原版标签 minecraft:copper_golem_statues (MC 1.21.11)。
      */
     static ItemTag& COPPER_GOLEM_STATUES();
+
+    /**
+     * @brief 铜箱子物品标签
+     *
+     * 包含所有 8 个铜箱子物品变体（未涂蜡/涂蜡 × 4 个氧化等级）。
+     * 对应 MC 原版标签 minecraft:copper_chests (MC 1.21.11)。
+     */
+    static ItemTag& COPPER_CHESTS();
 
     /**
      * @brief 金矿石物品标签
