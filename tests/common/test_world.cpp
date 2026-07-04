@@ -241,13 +241,16 @@ TEST_F(ChunkTest, ChunkData_SectionManagement)
     EXPECT_FALSE(chunk.hasSection(0));
     EXPECT_FALSE(chunk.hasSection(10));
 
-    // 设置方块会创建段
-    // Y=50, sectionIndex = 50 / CHUNK_SECTION_HEIGHT(16) = 3
-    chunk.setBlockState(5, 50, 7, &VanillaBlocks::DIRT->defaultState());
+    // 设置方块会创建段。段索引由 toSectionIndex(y) = (y - MIN_BUILD_HEIGHT) / 16 计算，
+    // MIN_BUILD_HEIGHT=-64，故 Y=50 落在段 7（覆盖 Y∈[48,64)）。
+    constexpr BlockCoord blockY = 50;
+    const i32 expectedSection = toSectionIndex(blockY); // = (50-(-64))/16 = 7
+    ASSERT_EQ(expectedSection, 7);                       // 防止高度模型再次迁移时静默回归
+    chunk.setBlockState(5, blockY, 7, &VanillaBlocks::DIRT->defaultState());
 
-    // 段3应该被创建
-    EXPECT_TRUE(chunk.hasSection(3));
-    EXPECT_FALSE(chunk.hasSection(0)); // 段0不应该被创建
+    // 目标段应被创建，其它段（含段 0）不应被创建
+    EXPECT_TRUE(chunk.hasSection(expectedSection));
+    EXPECT_FALSE(chunk.hasSection(0)); // 段0(Y∈[-64,-48))不应被创建
 }
 
 TEST_F(ChunkTest, ChunkData_HeightMap)
