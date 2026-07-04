@@ -325,9 +325,11 @@ TEST_F(CactusFlowerSustainTest, CannotSustainOnNonSolidBlock)
     EXPECT_FALSE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
 }
 
-TEST_F(CactusFlowerSustainTest, CannotSustainOnGlass)
+TEST_F(CactusFlowerSustainTest, CanSustainOnGlass)
 {
-    // 玻璃是固体但没有碰撞（isSolidSide 返回 false），仙人掌花不能放置
+    // 玻璃在原版中具有完整立方体的碰撞/支撑形状（仅 notSolid，并非 noCollision），
+    // 因此 isFaceSturdy(Up, CENTER) 返回 true，仙人掌花可以放置在玻璃上。
+    // 参考 MC 1.21.11 CactusFlowerBlock.mayPlaceOn：CACTUS || FARMLAND || isFaceSturdy(CENTER)。
     if (VanillaBlocks::GLASS == nullptr) {
         GTEST_SKIP() << "GLASS not registered";
     }
@@ -335,8 +337,8 @@ TEST_F(CactusFlowerSustainTest, CannotSustainOnGlass)
     m_world.setBlockAt(groundPos, &VanillaBlocks::GLASS->defaultState());
     const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
     ASSERT_NE(groundState, nullptr);
-    // 玻璃没有碰撞形状，isSolidSide(Direction::Up) 应返回 false
-    EXPECT_FALSE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+    // 玻璃顶面是完整方块，isFaceSturdy(Up, Center) 应返回 true
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
 }
 
 // ============================================================================
