@@ -383,7 +383,12 @@ void ServerWorkerPool::workerThread(i32 workerId)
 {
     // 设置线程名称
     std::string threadName = m_poolName + "-" + std::to_string(workerId);
-    mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
+    // sibling_order_rank = rankBase + workerId，让 worker-0 排最前（根 track thread_ordering=EXPLICIT 生效）。
+    // 按 pool 名区分 rankBase，使 UI 中三组 worker 分块排列、组内按 workerId 升序：
+    //   ServerCompute(100+) -> ServerIO(200+) -> ChunkMeshWorker(300+，见 MeshWorkerPool)。
+    // 每组间隔 100，避免线程数 >10 时跨组相交。
+    const int rankBase = (m_poolName == "ServerCompute") ? 100 : 200;
+    mc::perfetto::PerfettoManager::instance().setThreadName(threadName, rankBase + workerId);
 
     while (true) {
         std::shared_ptr<InternalTask> taskCopy;

@@ -177,7 +177,6 @@ find_package(zstd CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
 find_package(leveldb CONFIG REQUIRED)
-find_package(unofficial-perfetto CONFIG REQUIRED)
 
 # ============================================================
 # QuickJS-NG - JavaScript 引擎，用于基岩版Addon脚本系统

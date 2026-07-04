@@ -177,7 +177,11 @@ bool MeshWorkerPool::_isCancelled(const MeshWorkerTask& task)
 void MeshWorkerPool::_workerLoop(i32 workerId)
 {
     const std::string threadName = "ChunkMeshWorker-" + std::to_string(workerId);
-    mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
+    // sibling_order_rank = 300 + workerId，让 worker-0 排最前（根 track thread_ordering=EXPLICIT 生效）。
+    // rankBase=300 排在 ServerCompute(100+)/ServerIO(200+) 之后，组内按 workerId 升序；
+    // 每组间隔 100，避免线程数 >10 时跨组相交。
+    constexpr int kWorkerRankBase = 300;
+    mc::perfetto::PerfettoManager::instance().setThreadName(threadName, kWorkerRankBase + workerId);
 
     while (true) {
         MeshWorkerTask task;

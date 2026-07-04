@@ -59,9 +59,46 @@ TraceCategories.cpp            │
 
 | 依赖 | 用途 |
 |------|------|
-| **Perfetto SDK** | 第三方追踪库（`third_party/perfetto/`） |
+| **Perfetto SDK** | 第三方单文件 SDK（`third_party/perfetto/perfetto.{h,cc}`，官方 releases，含 PR #6219 thread_ordering 支持） |
 | **spdlog** | 日志输出（追踪系统状态信息） |
 | **ws2_32**（Windows） | WinSock2 库，Perfetto 网络功能需要 |
+
+## 线程排序机制
+
+基于 PR #6219（release v57.1+），可在 Perfetto UI 中固定线程显示顺序：
+
+- **根 track descriptor（uuid=0）** 上设 `thread_ordering = THREAD_ORDERING_EXPLICIT`，由 `PerfettoManager::startTracing` 用 `Track::Global(0)` 发出。**禁止用 `Track(0)`**——它会与 per-process 随机 cookie 异或得到非 0 uuid，根 track 失效。
+- 每个线程 track descriptor 上设 `sibling_order_rank`（`PerfettoManager::setThreadName` 内部完成），值越小越靠前；未设默认 0（排最前），故命名线程显式给 1-100 避免意外排前。
+- 固定线程 rank：`MemoryTrace=1`、`ClientMainThread=2`、`IntegratedServerThread=3`、`AudioEngineWorker=4`、`ServerMainThread=5`。
+- worker 池用 `rankBase + workerId` 精确排序，三组分块排列、组内按 workerId 升序：`ServerCompute-N` = 100+N，`ServerIO-N` = 200+N，`ChunkMeshWorker-N` = 300+N。每组间隔 100，避免线程数 >10 时跨组相交。UI 顺序为 ServerCompute → ServerIO → ChunkMeshWorker。`ServerWorkerPool::workerThread` 按 `m_poolName`（`"ServerCompute"`/`"ServerIO"`）选 rankBase；`MeshWorkerPool` 固定 300。
+- trace processor 对同 uuid descriptor 是 first-proto-wins，重复发无副作用，但根 track 只在 startTracing 发一次。
+
+### 根 track descriptor 必须直接写 packet（不能只用 SetTrackDescriptor）
+
+这是本机制最隐蔽的坑，务必注意：
+
+SDK 的 `TrackEvent::SetTrackDescriptor` 对"从未发过事件的 track"会 **defer**——见 `track_event_data_source.h` 中 `SetTrackDescriptor` 的实现，它在 `incr_state->seen_tracks.count(track.uuid) == 0` 时直接 return，不写 buffer。而 `seen_tracks` 只在 `WriteTrackDescriptorIfNeeded`（发事件时）插入，且对 `uuid==0` 因 `if (uuid)` 守卫**永远不会**插入 0。
+
+后果：uuid=0 根 track 永远不会发事件，故 `seen_tracks` 永远不含 0，`SetTrackDescriptor` 永远 defer，**根 track descriptor 永不落盘**。trace processor（`track_event_tracker.cc` 中 `ResolveDescriptorTrack`）查 `kDefaultDescriptorTrackUuid`(=0) 的 reservation 找不到 `thread_ordering=EXPLICIT`，于是对所有线程跳过 `SetThreadSortIndex`，排序彻底失效。
+
+PR #6219 只修了 trace_processor 侧，**没修 SDK emit 侧**（其 diff test 用手工 textproto 绕过 SDK）。C++ SDK 用户要让 uuid=0 descriptor 进 buffer，必须绕过 `SetTrackDescriptor`。
+
+本模块的做法（`PerfettoManager::startTracing`）：
+
+```cpp
+::perfetto::Track rootTrack = ::perfetto::Track::Global(0);
+::perfetto::TrackEvent::Trace([rootTrack](::perfetto::TrackEvent::TraceContext ctx) {
+    auto packet = ctx.NewTracePacket();           // 公开 API，造一个任意 packet
+    auto* td = packet->set_track_descriptor();
+    rootTrack.Serialize(td);                       // 写 uuid=0、parent_uuid=0
+    td->set_thread_ordering(
+        ::perfetto::protos::pbzero::TrackDescriptor::THREAD_ORDERING_EXPLICIT);
+});
+```
+
+`TrackEvent::Trace`（public static）+ `TraceContext::NewTracePacket()`（public）直接往 buffer 写一个 `track_descriptor` packet，绕过 defer。验证方式：用 `perfetto.protos.perfetto.trace.perfetto_trace_pb2` 解析 trace 文件，应看到 `uuid=0, thread_ordering=1` 的 descriptor 包，以及各线程 `sibling_order_rank` 包。trace processor 据此调 `SetThreadSortIndex`，UI 升序排列。
+
+注意：线程 track 的 descriptor 不受此坑影响——`setThreadName` 仍用 `SetTrackDescriptor`，因为线程迟早会发事件（counter/event），首事件触发 `WriteTrackDescriptorIfNeeded` 从 registry 取出（含 `sibling_order_rank`）写出。
 
 ## 容易踩的坑
 
@@ -136,3 +173,15 @@ void processFrame() {
 ### 9. 追踪分类注册要求
 
 你必须保证 `MC_TRACE_EVENT`/`MC_TRACE_COUNTER` 等的第一个参数（分类名）在 `TraceCategories.hpp` 中已经被注册，否则会导致编译错误。
+
+### 10. vcpkg 残留头文件冲突
+
+本项目曾通过 vcpkg 装 Perfetto v53.0，现已改用 `third_party/perfetto/` 单文件 SDK。若 `vcpkg.json` 删除了 perfetto 依赖后未清理 build 目录，残留的 `build/vcpkg_installed/x64-windows/include/perfetto.h`（v53.0，无 `thread_ordering`）会被全局 include 优先命中，导致 `set_thread_ordering` 编译报错。
+
+**解决**：改 `vcpkg.json` 后必须 `rm -rf build` 再重新 configure。CMakeLists 中 `perfetto_sdk` 用 `target_include_directories(... BEFORE PUBLIC ...)` 强制 third_party 路径插队首作为双保险。
+
+### 11. 根 track 必须用 Track::Global(0)，且必须直接写 packet
+
+`PerfettoManager::startTracing` 里建立根 track 时必须用 `::perfetto::Track::Global(0)`。**不要用 `::perfetto::Track(0)`**——`Track(id)` 构造函数默认 parent 为 `MakeProcessTrack()`，会把 id 与 per-process 随机 cookie 异或，`0 ^ cookie` 得到非 0 uuid，根 track descriptor 不会被 trace processor 识别为 uuid=0，`thread_ordering` 失效。`Track::Global(0)` 用空 parent 构造，不异或，才是真正的 uuid=0。
+
+同时**不能只用 `TrackEvent::SetTrackDescriptor`** 发根 track——它对 uuid=0 永远 defer 不落盘（详见上文"线程排序机制"小节）。必须用 `TrackEvent::Trace` + `TraceContext::NewTracePacket` 直接写 `track_descriptor` packet。

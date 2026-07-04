@@ -22,7 +22,6 @@
       ]
     },
     "entt",
-    "perfetto",
     "abseil",
     "leveldb"
   ],

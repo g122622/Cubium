@@ -44,11 +44,39 @@
 
 #include <fstream>
 #include <stdexcept>
+#include <string_view>
 
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace perfetto {
+
+namespace {
+/**
+ * @brief 获取线程的 sibling_order_rank
+ *
+ * 返回指定线程名称的排序 rank，用于在 Perfetto UI 中固定线程显示顺序。
+ * 值越小越靠前；新机制未设默认 0（排最前），故命名线程显式给 1-100，
+ * 未命名线程因不调用 setThreadName 不会拿到默认 0，避免意外排前。
+ *
+ * 固定顺序：
+ * 1. MemoryTrace (ProcessMemory 计数器所在线程)
+ * 2. ClientMainThread (FPS 计数器所在线程)
+ * 3. IntegratedServerThread (ServerTickTime 计数器所在线程)
+ * 4. AudioEngineWorker
+ * 5. ServerMainThread (独立服务器)
+ * 其他线程使用默认值 100，显示在固定线程之后
+ */
+[[nodiscard]] constexpr int getThreadSortIndex(std::string_view name) noexcept
+{
+    if (name == "MemoryTrace") return 1;
+    if (name == "ClientMainThread") return 2;
+    if (name == "IntegratedServerThread") return 3;
+    if (name == "AudioEngineWorker") return 4;
+    if (name == "ServerMainThread") return 5;
+    return 100;
+}
+} // namespace
 
 /**
  * @brief PerfettoManager 的实现细节
@@ -164,6 +192,27 @@ void PerfettoManager::startTracing()
     m_impl->tracingSession->StartBlocking();
 
     m_tracing = true;
+
+    // 建立/刷新根 track descriptor（uuid=0），启用显式线程排序。
+    // thread_ordering=EXPLICIT 告知 trace processor 按 sibling_order_rank 排序线程。
+    // 必须在 session 启动后、第一个线程事件/setThreadName 之前发出。
+    //
+    // 关键：不能只用 TrackEvent::SetTrackDescriptor——它对“从未发过事件的 track”会
+    // defer（见 SDK track_event_data_source.h SetTrackDescriptor 的 seen_tracks 检查），
+    // uuid=0 根 track 永远不会发事件，故其 descriptor 永不落盘，trace processor 也就
+    // 读不到 thread_ordering，排序失效。这里改用 TrackEvent::Trace + TraceContext::
+    // NewTracePacket 直接写一个 track_descriptor packet 进 buffer，绕过 defer。
+    // 注意：必须用 Track::Global(0) 而非 Track(0)——后者会与 per-process cookie 异或得非 0 uuid。
+    {
+        ::perfetto::Track rootTrack = ::perfetto::Track::Global(0);
+        ::perfetto::TrackEvent::Trace([rootTrack](::perfetto::TrackEvent::TraceContext ctx) {
+            auto packet = ctx.NewTracePacket();
+            auto* td = packet->set_track_descriptor();
+            rootTrack.Serialize(td); // 写 uuid=0、parent_uuid=0
+            td->set_thread_ordering(::perfetto::protos::pbzero::TrackDescriptor::THREAD_ORDERING_EXPLICIT);
+        });
+    }
+
     spdlog::info("[Perfetto] Tracing started, buffer size: {} KB", m_config.bufferSizeKb);
     spdlog::info("[Perfetto] Output will be written to: {}", m_config.outputPath);
 }
@@ -238,12 +287,10 @@ void PerfettoManager::setThreadName(const std::string& name)
         return;
     }
 
-    auto desc = ::perfetto::ThreadTrack::Current().Serialize();
-    desc.mutable_thread()->set_thread_name(name);
-    ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
+    setThreadName(name, getThreadSortIndex(name));
 }
 
-void PerfettoManager::setThreadName(const std::string& name, int sortIndex)
+void PerfettoManager::setThreadName(const std::string& name, int siblingOrderRank)
 {
     if (!m_initialized) {
         return;
@@ -251,7 +298,7 @@ void PerfettoManager::setThreadName(const std::string& name, int sortIndex)
 
     auto desc = ::perfetto::ThreadTrack::Current().Serialize();
     desc.mutable_thread()->set_thread_name(name);
-    desc.mutable_thread()->set_legacy_sort_index(sortIndex);
+    desc.set_sibling_order_rank(siblingOrderRank);
     ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
 }
 

@@ -212,15 +212,17 @@ public:
     void setThreadName(const std::string& name);
 
     /**
-     * @brief 设置当前线程名称和排序索引
+     * @brief 设置当前线程名称和排序 rank
      *
      * 在 Perfetto UI 中显示有意义的线程名称，并控制显示顺序。
-     * 排序索引越小，线程越靠前显示。
+     * 基于 PR #6219：根 track uuid=0 设 thread_ordering=EXPLICIT 后，
+     * 线程按 sibling_order_rank 升序排列，值越小越靠前。
+     * 未设 rank 默认 0（排最前），故命名线程应显式给 1-100 避免意外排前。
      *
      * @param name 线程名称
-     * @param sortIndex 排序索引（0 = 最高优先级）
+     * @param siblingOrderRank 排序 rank（值越小越靠前，未设默认 0）
      */
-    void setThreadName(const std::string& name, int sortIndex);
+    void setThreadName(const std::string& name, int siblingOrderRank);
 
 private:
     PerfettoManager();
