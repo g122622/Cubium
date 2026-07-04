@@ -1029,11 +1029,14 @@ bool Template::placeInWorld(
                             static_cast<f32>(entityX), static_cast<f32>(entityY), static_cast<f32>(entityZ));
                         entity->setRotation(finalYaw, pitch);
 
-                        // 注：MC 还会调用 setYBodyRot(f) / setYHeadRot(f)，
-                        // 当前项目 Entity 没有 yBodyRot/yHeadRot 字段（参见
+                        // TODO: body/head rotation 未同步。MC 1.21.11 在此处还会调用
+                        // setYBodyRot(f) / setYHeadRot(f)（让生物身体与头部朝向跟随结构旋转），
+                        // 但当前项目 Entity 没有 yBodyRot/yHeadRot 字段（参见
                         // src/common/entity/ai/controller/README.md：bodyRotation 仅由
-                        // 个别实体（Phantom/ArmorStand）在客户端 tick 中手动同步），
-                        // 因此此处跳过 body/head rotation 设置，与项目现状一致。
+                        // 个别实体如 Phantom/ArmorStand 在客户端 tick 中手动同步）。
+                        // 待项目引入通用 body/head rotation 字段后，应在此处补上：
+                        //   entity->setYBodyRot(finalYaw);
+                        //   entity->setYHeadRot(finalYaw);
 
                         // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
                         // 对应 MC 1.21.11 Mob#finalizeSpawn(ServerLevelAccessor, DifficultyInstance, SpawnReason)
