@@ -82,6 +82,21 @@
         **驯服前后属性变化 *
             *：驯服后生命值 8→20，攻击力 2→4
 
+            ## #狼的兴趣状态（乞求食物）元数据同步
+        - **DataParameter * *：`WolfEntity::DATA_INTERESTED_PARAM`（bool）对应 MC 1.21.11 `Wolf.DATA_INTERESTED_ID` -
+        **registerData 显式调用 * *：由于 C++ 虚函数在基类构造函数中不派发到派生类，
+            `WolfEntity` 构造函数必须显式调用 `registerData()`（参考 `ZombieVillagerEntity` 模式），
+            否则 `DATA_INTERESTED_PARAM` 永远不会注册到 `EntityDataManager`，成为死代码 -
+        **BegGoal 驱动 * *：`BegGoal::startExecuting` 调用 `wolf.setInterested(true)`，
+            `BegGoal::resetTask` 调用 `wolf.setInterested(false)`（对应 MC `BegGoal.start()/stop()`） -
+        **客户端同步 * *：`ClientEntity::syncMetadataFromDataManager` 在 wolf 分支读取
+            `DATA_INTERESTED_PARAM` 并调用 `setWolfIsInterested` 更新客户端镜像 -
+        **动画插值 * *：`ClientEntity::tick` 根据 `m_wolfIsInterested` 推进
+            `m_wolfInterestedAngle` 向 1.0/0.0 插值（系数 0.4，对应 MC Wolf.tick() 第 318-323 行） -
+        **渲染 * *：`EntityRendererManager::updateAnimationContext` 通过
+            `lerp(partialTick, wolfInterestedAngleO, wolfInterestedAngle)` 写入
+            `AnimationContext::wolfInterestedAngle`，`WolfModel::setAnimState` 读取并应用到头部 Z 旋转
+
             ## #狼铠系统（WolfEntity + MobEntity + Crackiness）
 
         **狼铠装备 * *（`WolfEntity::interactMob` 优先级2）：主人右键狼 + 手持狼铠 + 未装备 + 非幼年 → 装备狼铠到 Body 槽位，播放 `ITEM_ARMOR_EQUIP_WOLF` 音效。调用 `MobEntity::setBodyArmorItem()` 自动设置保整掉落和持久化。
