@@ -30,6 +30,8 @@
 #include "../../Material.hpp"
 #include <memory>
 
+// TODO 这些类全部拆分到单独的文件中，一个文件一个类，避免 SpecialBlocks.hpp 过大。
+
 namespace mc {
 
 class IWorld;

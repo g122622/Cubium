@@ -35,6 +35,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 
 using namespace mc;
@@ -48,6 +49,20 @@ using namespace mc::item::tag;
 class LavaFireTestWorld final : public mc::test::BaseTestWorld {
 public:
     LavaFireTestWorld() = default;
+
+    // 流体覆盖：测试可让世界在某坐标返回指定流体状态，
+    // 这样 Entity::updateEnvironmentState()（baseTick 火焰处理之前调用）
+    // 会自然设置 m_inWater/m_inLava，对齐 MC Java 由世界流体驱动环境状态的语义。
+    // 默认 nullptr 表示返回空流体（与 BaseTestWorld 一致）。
+    void setFluidOverride(const fluid::FluidState* state) { m_fluidOverride = state; }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        if (m_fluidOverride != nullptr) {
+            return m_fluidOverride;
+        }
+        return mc::test::BaseTestWorld::getFluidState(x, y, z);
+    }
 
     void playSound(const ResourceLocation& soundEventId,
         sound::SoundCategory category,
@@ -92,6 +107,7 @@ public:
         m_gameEventCount = 0;
         m_lastGameEventId.clear();
         m_lastGameEventPos = BlockPos(0, 0, 0);
+        m_fluidOverride = nullptr;
     }
 
     [[nodiscard]] i32 soundPlayCount() const { return m_soundPlayCount; }
@@ -110,6 +126,7 @@ private:
     BlockPos m_lastGameEventPos{0, 0, 0};
     bool m_isRaining = false;
     bool m_canRainAt = false;
+    const fluid::FluidState* m_fluidOverride = nullptr;
 };
 
 // ============================================================================
@@ -168,6 +185,17 @@ protected:
     }
 
     void SetUp() override { m_world.clearState(); }
+
+    // 让测试世界在实体所在坐标返回水源流体状态。
+    // baseTick() 中 updateEnvironmentState() 会据此把 m_inWater 置 true，
+    // 使后续火焰处理走"水中灭火"分支——这与 MC Java 由世界流体驱动 isInWater() 的语义一致，
+    // 而直接调用 Entity::setInWater(true) 会被 updateEnvironmentState() 重置（测试世界默认无流体）。
+    void enableWaterAtEntity()
+    {
+        auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        ASSERT_NE(waterFluid, nullptr);
+        m_world.setFluidOverride(&waterFluid->defaultState());
+    }
 
     LavaFireTestWorld m_world;
 };
@@ -391,7 +419,9 @@ TEST_F(EntityLavaFireTest, BaseTick_FireClearedInWater)
     entity.setFire(100);
     EXPECT_TRUE(entity.isOnFire());
 
-    entity.setInWater(true);
+    // 通过世界流体让 updateEnvironmentState() 把 m_inWater 置 true（不可用 setInWater，
+    // 它会被 baseTick 内的 updateEnvironmentState() 重置）。
+    enableWaterAtEntity();
     entity.baseTick();
 
     EXPECT_FALSE(entity.isOnFire());
@@ -633,7 +663,8 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguish)
     entity.igniteForSeconds(5.0f);
     EXPECT_TRUE(entity.isOnFire());
 
-    entity.setInWater(true);
+    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    enableWaterAtEntity();
     entity.baseTick();
 
     // 基类 getFireImmuneTicks() 返回 0，所以 m_fire 应为 0 而非负值
@@ -648,7 +679,8 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguishWithPlayer)
     player.igniteForSeconds(5.0f);
     EXPECT_TRUE(player.isOnFire());
 
-    player.setInWater(true);
+    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    enableWaterAtEntity();
     player.baseTick();
 
     // Player 应获得 20 tick 免疫期
@@ -763,7 +795,8 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_PlaysSound)
     player.igniteForSeconds(5.0f);
     EXPECT_TRUE(player.isOnFire());
 
-    player.setInWater(true);
+    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    enableWaterAtEntity();
     player.baseTick();
 
     EXPECT_FALSE(player.isOnFire());
@@ -777,7 +810,8 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_NoSoundWhenNotBurning)
     TestLivingEntity entity(EntityId(1), &m_world);
     EXPECT_FALSE(entity.isOnFire());
 
-    entity.setInWater(true);
+    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    enableWaterAtEntity();
     entity.baseTick();
 
     EXPECT_EQ(m_world.soundPlayCount(), 0);
