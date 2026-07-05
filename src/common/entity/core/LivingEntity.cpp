@@ -720,8 +720,12 @@ void LivingEntity::tick()
     detectEquipmentUpdates();
 
     // 检测方块位置变化（服务端），触发位置依赖的附魔效果
-    // 对应 MC Java 的 LivingEntity.baseTick() 中 lastPos != blockPosition() 检测
-    if (!m_world->isClientSide()) {
+    // 对应 MC Java 的 LivingEntity.baseTick() 中 lastPos != blockPosition() 检测。
+    // 守卫 m_world：与同文件 tickFreeze/updateAirSupply/tickArrows 等位置一致，
+    // 也与 Entity::baseTick 的 null-safe 契约对齐（Entity 构造允许 world=nullptr，
+    // baseTick 全程守卫）。原版 LivingEntity.tick 假设 level 非空（实体注册后才 tick），
+    // 但 Cubium 允许"无世界 tick 基类部分"，此处需显式守卫避免空指针解引用。
+    if (m_world != nullptr && !m_world->isClientSide()) {
         BlockPos currentBlockPos(static_cast<i32>(std::floor(m_position.x)),
             static_cast<i32>(std::floor(m_position.y)),
             static_cast<i32>(std::floor(m_position.z)));

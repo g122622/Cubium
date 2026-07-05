@@ -71,14 +71,27 @@ private:
 
 } // anonymous namespace
 
-// ==================== 基础状态测试（不需要世界） ====================
+// ==================== 基础状态测试 ====================
+// 注意：部分用例调用 ironGolem->tick()，tick 链路 LivingEntity::tick 会解引用
+// m_world（位置附魔检测等），故 SetUp 必须装配 world。复用本文件已定义的
+// IronGolemTestWorld（与 IronGolemAttackTest 同一模式），避免无世界 tick 崩溃。
 
 class IronGolemEntityFeatureTest : public ::testing::Test {
 protected:
-    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityId(1)); }
+    void SetUp() override
+    {
+        m_world = std::make_unique<IronGolemTestWorld>();
+        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
+        ironGolem->setWorld(m_world.get());
+    }
 
-    void TearDown() override { ironGolem.reset(); }
+    void TearDown() override
+    {
+        ironGolem.reset();
+        m_world.reset();
+    }
 
+    std::unique_ptr<IronGolemTestWorld> m_world;
     std::unique_ptr<IronGolemEntity> ironGolem;
 };
 
