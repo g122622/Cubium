@@ -93,6 +93,10 @@ namespace mc::client::renderer::entity::renderer::player {
      （Cubium 中 `getItemInUseCount` 返回剩余 ticks，故用 `useDuration` 反推
      已使用 ticks，对应 MC `HumanoidMobRenderer.extractHumanoidRenderState` 填充逻辑）
    - 通过 `m_model.setMaxCrossbowChargeDuration` / `setCrossbowChargeTicks` 写入
+7. 计算鞘翅飞行速度因子并写入模型：
+   - `isFallFlying = player.isElytraFlying()`
+   - `speedValue = (velocity.lengthSquared() / 0.2)^3`，钳制到 `[1.0, +∞)`
+   - 通过 `m_model.setFallFlying` / `setSpeedValue` 写入
 
 **注意**：披风可见性由 `CapeLayer` 单独控制，不在 `setModelVisibilitiesFromFlags` 中。
 

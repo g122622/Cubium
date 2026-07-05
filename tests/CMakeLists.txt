@@ -875,6 +875,8 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelCrossbowTest.cpp
     # BipedModel Spyglass/Brush 手臂姿态角度测试
     client/renderer/entity/BipedModelArmPoseTest.cpp
+    # BipedModel 鞘翅飞行速度因子测试
+    client/renderer/entity/BipedModelSpeedValueTest.cpp
     # PlayerModel 手臂渲染测试
     client/renderer/entity/PlayerModelTest.cpp
     # PlayerArmPoseResolver 手臂姿态解析器测试

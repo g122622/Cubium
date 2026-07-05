@@ -125,6 +125,9 @@ void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
     m_model.setSwimming(false);
     // 重置游泳动画（来自 BipedModel）
     m_model.setSwimAnimation(0.0f);
+    // 重置鞘翅飞行状态：第一人称手臂渲染不应受鞘翅速度因子影响
+    m_model.setFallFlying(false);
+    m_model.setSpeedValue(1.0f);
 
     // 仅渲染右臂和右袖
     m_model.renderRightArm(1.0 / 16.0);
@@ -145,6 +148,9 @@ void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
     m_model.setSwimming(false);
     // 重置游泳动画（来自 BipedModel）
     m_model.setSwimAnimation(0.0f);
+    // 重置鞘翅飞行状态：第一人称手臂渲染不应受鞘翅速度因子影响
+    m_model.setFallFlying(false);
+    m_model.setSpeedValue(1.0f);
 
     // 仅渲染左臂和左袖
     m_model.renderLeftArm(1.0 / 16.0);
@@ -200,6 +206,25 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player, f64 partialTicks
 
     // 设置游泳状态
     m_model.setSwimming(player.isSwimming());
+
+    // 设置鞘翅飞行状态与速度因子（对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState
+    // 中 isFallFlying / speedValue 的填充逻辑）
+    // speedValue = (velocity.lengthSqr() / 0.2)^3，钳制到 [1.0, +∞)；非飞行时为 1.0
+    // 用作手臂/腿部摆动振幅的除数（见 BipedModel::setAngles）
+    {
+        constexpr f32 SPEED_DIVISOR = 0.2f;
+        f32 speedValue = 1.0f;
+        if (player.isElytraFlying()) {
+            const f32 lengthSq = player.velocity().lengthSquared();
+            speedValue = lengthSq / SPEED_DIVISOR;
+            speedValue = speedValue * speedValue * speedValue; // 立方
+        }
+        if (speedValue < 1.0f) {
+            speedValue = 1.0f;
+        }
+        m_model.setFallFlying(player.isElytraFlying());
+        m_model.setSpeedValue(speedValue);
+    }
 
     // 设置弩装填动画参数（对应 MC 1.21 HumanoidMobRenderer.extractHumanoidRenderState
     // 中 maxCrossbowChargeDuration / ticksUsingItem 的填充逻辑）

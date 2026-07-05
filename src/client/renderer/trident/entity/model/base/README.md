@@ -115,6 +115,28 @@ BipedModel 通过两个 protected 辅助方法实现弩的双手协调姿态，�
   对应 MC `HumanoidRenderState.maxCrossbowChargeDuration`，
   由渲染器调用 `CrossbowItem::getChargeTime(stack)` 计算
 
+### 鞘翅飞行状态与速度因子
+
+BipedModel 通过 `setFallFlying(bool)` 与 `setSpeedValue(f32)` 接收鞘翅飞行状态，
+对应 MC 1.21.11 `HumanoidRenderState.isFallFlying` 与 `HumanoidRenderState.speedValue`：
+
+- `setFallFlying(bool)`：直接布尔，对应 `Entity::isElytraFlying()` /
+  `ClientEntity::isFallFlying()`。控制头部角度（飞行时强制 -π/4）。
+- `setSpeedValue(f32)`：速度因子，由渲染器按 MC 公式计算：
+  - 默认 1.0
+  - 鞘翅飞行时 `speedValue = (velocity.lengthSquared() / 0.2)^3`
+  - 钳制到 `[1.0, +∞)`
+  - 用作手臂/腿部摆动振幅的除数（值越大摆动越慢，模拟风阻）
+- `setElytraFlyingTicks(i32)`：过渡 tick 计数（>4 时也触发飞行分支），
+  与 `setFallFlying(true)` 任一为真即进入鞘翅飞行动画。
+
+推送位置：
+- GPU 管线路径：`EntityRendererManager::_createModelForEntity` 通用 BipedModel 分支
+  调用 `_applyBipedElytraState`，覆盖所有 BipedModel 派生模型（玩家+所有怪物）
+- CPU 路径：`PlayerRenderer::setModelVisibilities` 中按 `player.isElytraFlying()` 计算
+- 第一人称手臂渲染：`renderRightArm/renderLeftArm` 中重置为 `setFallFlying(false)`
+  与 `setSpeedValue(1.0f)`，避免鞘翅状态影响第一人称手臂姿态
+
 ### 命名空间
 
 所有模型类位于 `mc::client::renderer::entity::model` 命名空间（注意：不是 `model::base` 子命名空间）。

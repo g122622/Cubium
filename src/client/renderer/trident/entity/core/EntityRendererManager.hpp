@@ -52,6 +52,7 @@ class ClientEntity;
 
 namespace mc::client::renderer::entity::model {
 class EntityModel;
+class BipedModel;
 namespace player {
 class PlayerModel;
 } // namespace player
@@ -435,6 +436,23 @@ private:
      */
     void _applyPlayerCrossbowState(
         model::player::PlayerModel& playerModel, ClientEntity& entity, const core::AnimationContext& context);
+
+    /**
+     * @brief 为 BipedModel 派生模型推送鞘翅飞行状态与速度因子
+     *
+     * 在 _createModelForEntity 通用路径中调用，覆盖所有 BipedModel 派生模型
+     * （玩家、僵尸、骷髅、末影人、猪灵等）。从 ClientEntity 读取 isFallFlying()
+     * 与 velocity()，按 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState
+     * 公式计算 speedValue：
+     *   - 默认 1.0
+     *   - 鞘翅飞行时 speedValue = (velocity.lengthSquared() / 0.2)^3
+     *   - 钳制到 [1.0, +∞)
+     * 并通过 setFallFlying/setSpeedValue 推送到模型，供 setAngles 使用。
+     *
+     * @param bipedModel 已创建的 BipedModel 派生模型
+     * @param entity 客户端实体（提供 isFallFlying/velocity）
+     */
+    void _applyBipedElytraState(model::BipedModel& bipedModel, const ClientEntity& entity);
 };
 
 } // namespace mc::client::renderer::entity

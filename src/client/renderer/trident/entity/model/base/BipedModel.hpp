@@ -126,8 +126,32 @@ public:
 
     /**
      * @brief 设置鞘翅飞行时间
+     *
+     * 用于驱动鞘翅飞行过渡效果（前 4 tick 头部角度从普通姿态插值到 -π/4）。
+     * 由渲染器在 setAngles 前调用，对应 MC 1.21 LivingEntity.fallFlyTicks。
      */
     void setElytraFlyingTicks(i32 ticks) { m_elytraFlyingTicks = ticks; }
+
+    /**
+     * @brief 设置是否处于鞘翅飞行状态
+     *
+     * 对应 MC 1.21.11 HumanoidRenderState.isFallFlying（boolean），
+     * 由渲染器在 setAngles 前从 ClientEntity/Entity::isFallFlying()/isElytraFlying() 推送。
+     * 与 m_elytraFlyingTicks > 4 任一为真即触发鞘翅飞行动画分支。
+     */
+    void setFallFlying(bool flying) { m_isFallFlying = flying; }
+
+    /**
+     * @brief 设置鞘翅飞行速度因子
+     *
+     * 对应 MC 1.21.11 HumanoidRenderState.speedValue，由渲染器在 setAngles 前
+     * 调用 computeSpeedValue(velocity) 计算：
+     *   - 默认 1.0
+     *   - 鞘翅飞行时 speedValue = (velocity.lengthSquared() / 0.2)^3
+     *   - 最终钳制到 [1.0, +∞)
+     * 该值作为手臂/腿部摆动振幅的除数：值越大，摆动越慢（视觉上像风阻）。
+     */
+    void setSpeedValue(f32 speedValue) { m_speedValue = speedValue; }
 
     /**
      * @brief 设置是否真正游泳
@@ -320,6 +344,11 @@ protected:
     HandSide m_swingingHand = HandSide::Right;
     i32 m_elytraFlyingTicks = 0;
     bool m_isActuallySwimming = false;
+    // 鞘翅飞行状态（对应 MC 1.21.11 HumanoidRenderState.isFallFlying）
+    bool m_isFallFlying = false;
+    // 鞘翅飞行速度因子（对应 MC 1.21.11 HumanoidRenderState.speedValue）
+    // 默认 1.0；鞘翅飞行时为 (velocity.lengthSquared() / 0.2)^3，钳制到 [1.0, +∞)
+    f32 m_speedValue = 1.0f;
 
     // 弩装填动画状态
     // m_crossbowChargeTicks: 已使用 ticks（含 partialTick 插值），对应 MC HumanoidRenderState.ticksUsingItem

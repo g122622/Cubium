@@ -148,7 +148,10 @@ void BipedModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
 void BipedModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
 {
-    bool isElytraFlying = m_elytraFlyingTicks > 4;
+    // 鞘翅飞行状态：MC 1.21.11 中 HumanoidModel.setupAnim 仅检查 isFallFlying 布尔值，
+    // 此处同时兼容 m_elytraFlyingTicks > 4（过渡判断）与 m_isFallFlying（直接布尔），
+    // 任一为真即进入鞘翅飞行分支。
+    bool isElytraFlying = m_isFallFlying || m_elytraFlyingTicks > 4;
     bool isActuallySwimming = m_isActuallySwimming;
 
     // 头部旋转
@@ -179,11 +182,11 @@ void BipedModel::setAngles(
     m_bipedLeftArm->setRotationPointZ(0.0f);
     m_bipedLeftArm->setRotationPointX(5.0f);
 
-    // 速度因子
-    f32 f = 1.0f;
-    if (isElytraFlying) {
-        // TODO: 计算鞘翅飞行速度因子，需要从实体获取运动向量
-    }
+    // 速度因子：对应 MC 1.21.11 HumanoidRenderState.speedValue
+    // 默认 1.0；鞘翅飞行时为 (deltaMovement.lengthSqr() / 0.2)^3，最终钳制到 [1.0, +∞)
+    // 该值由渲染器在 setAngles 前通过 setSpeedValue() 推送。
+    // 用作手臂/腿部摆动振幅的除数：值越大，摆动越慢（视觉上像风阻）。
+    f32 f = m_speedValue;
     if (f < 1.0f) {
         f = 1.0f;
     }
@@ -572,6 +575,9 @@ void BipedModel::copyModelAttributesTo(BipedModel& target) const
     target.m_isSneaking = m_isSneaking;
     target.m_swimAnimation = m_swimAnimation;
     target.m_mainHand = m_mainHand;
+    target.m_elytraFlyingTicks = m_elytraFlyingTicks;
+    target.m_isFallFlying = m_isFallFlying;
+    target.m_speedValue = m_speedValue;
 
     // 复制部件角度
     target.m_bipedHead->copyModelAngles(*m_bipedHead);
