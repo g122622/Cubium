@@ -53,15 +53,19 @@ public:
     // 流体覆盖：测试可让世界在某坐标返回指定流体状态，
     // 这样 Entity::updateEnvironmentState()（baseTick 火焰处理之前调用）
     // 会自然设置 m_inWater/m_inLava，对齐 MC Java 由世界流体驱动环境状态的语义。
-    // 默认 nullptr 表示返回空流体（与 BaseTestWorld 一致）。
+    // 默认 nullptr 表示该坐标无流体。
+    // 注意：不能复用 BaseTestWorld::getFluidState()（它返回 Fluid::getFluidState(0)），
+    // 因为全局流体 stateId 由各 Fluid 的 StateContainer 独立从 0 分配，
+    // m_statesById[0] 会被后续注册的流体覆盖，最终指向岩浆状态而非空流体——
+    // 会使 updateEnvironmentState 误判实体"在岩浆中"。这里直接返回 nullptr 表示无流体。
     void setFluidOverride(const fluid::FluidState* state) { m_fluidOverride = state; }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
-        if (m_fluidOverride != nullptr) {
-            return m_fluidOverride;
-        }
-        return mc::test::BaseTestWorld::getFluidState(x, y, z);
+        (void)x;
+        (void)y;
+        (void)z;
+        return m_fluidOverride;
     }
 
     void playSound(const ResourceLocation& soundEventId,
@@ -195,6 +199,14 @@ protected:
         auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         ASSERT_NE(waterFluid, nullptr);
         m_world.setFluidOverride(&waterFluid->defaultState());
+    }
+
+    // 让测试世界在实体所在坐标返回岩浆源流体状态（语义同 enableWaterAtEntity）。
+    void enableLavaAtEntity()
+    {
+        auto* lavaFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID);
+        ASSERT_NE(lavaFluid, nullptr);
+        m_world.setFluidOverride(&lavaFluid->defaultState());
     }
 
     LavaFireTestWorld m_world;
@@ -433,7 +445,8 @@ TEST_F(EntityLavaFireTest, BaseTick_FireNotClearedInLava)
     TestLivingEntity entity(EntityId(1), &m_world);
     entity.setFire(100);
 
-    entity.setInLava(true);
+    // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
+    enableLavaAtEntity();
     entity.baseTick();
 
     // 在岩浆中火焰计时器应递减但不清除
@@ -445,7 +458,8 @@ TEST_F(EntityLavaFireTest, BaseTick_FallDistanceHalvedInLava)
 {
     TestLivingEntity entity(EntityId(1), &m_world);
     entity.setFallDistance(10.0f);
-    entity.setInLava(true);
+    // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
+    enableLavaAtEntity();
 
     entity.baseTick();
 
@@ -456,6 +470,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FallDistanceNotAffectedOutsideLava)
 {
     TestLivingEntity entity(EntityId(1), &m_world);
     entity.setFallDistance(10.0f);
+    // 不在岩浆中：不启用流体覆盖，updateEnvironmentState() 后 isInLava() 为 false。
     entity.setInLava(false);
 
     entity.baseTick();
@@ -487,7 +502,8 @@ TEST_F(EntityLavaFireTest, BaseTick_NoOnFireDamageWhenInLava)
     // 在岩浆中时 onFire 伤害不应触发
     TestLivingEntity entity(EntityId(1), &m_world);
     entity.forceFireTicks(20);
-    entity.setInLava(true);
+    // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
+    enableLavaAtEntity();
     f32 healthBefore = entity.health();
 
     entity.baseTick();

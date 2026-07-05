@@ -199,6 +199,7 @@
                     - 火焰免疫期机制：实体离开火焰 / 岩浆后获得短暂免疫期（m_fire 设为负值），防止立即被重新点燃 -
                     doBlockCollisions() 末尾自动检测并设置免疫期（方块碰撞未点燃且当前不燃烧时触发） -
                     雨中灭火会播放音效并设置免疫期
+                    - 水中/岩浆状态（m_inWater/m_inLava）由 `updateEnvironmentState()` 在 `baseTick()` 火焰处理**之前**根据世界流体驱动，对齐 MC Java `Entity.baseTick()` 中 `updateInWaterStateAndDoFluidPushing()` 的时序。`setInWater()`/`setInLava()` 仅是测试桩，**会被 `updateEnvironmentState()` 无条件重置**——测试中要让实体"在水中/岩浆中"，必须让测试世界的 `getFluidState()` 在实体坐标返回对应流体状态，而不是调用 `setInWater(true)`/`setInLava(true)`。
 
                     ## #亡灵日光燃烧系统(burnUndead)
 
