@@ -573,13 +573,14 @@ void StriderEntity::setEquipment(i32 slot, const ItemStack& item)
 
 bool StriderEntity::canEquip(const ItemStack& item, i32 slot) const
 {
-    if (item.isEmpty()) {
-        return true; // 可以清空槽位
-    }
-
-    // 炽足兽只能装备鞍，且只有槽位0
+    // 槽位边界检查先于物品判断：炽足兽只有槽位 0
     if (slot != 0) {
         return false;
+    }
+
+    // 空物品可以清空槽位
+    if (item.isEmpty()) {
+        return true;
     }
 
     // 检查是否是鞍物品

@@ -227,14 +227,16 @@ void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item)
 bool AbstractHorseEntity::canEquip(const ItemStack& item, i32 slot) const
 {
     // MC 1.16.5: AbstractHorseEntity.replaceItemInInventory()
-    // 空物品总是可以放入任何槽位（用于清空槽位）
-    if (item.isEmpty()) {
-        return true;
-    }
-
-    // 检查槽位是否有效
+    // 槽位边界检查必须先于物品判断，与 MC Java 中
+    // `if (i >= 0 && i < 2 && i < this.horseChest.getSizeInventory())` 的顺序一致：
+    // 非法槽位无论物品是否为空都应返回 false。
     if (slot < 0 || slot >= getInventorySize()) {
         return false;
+    }
+
+    // 空物品可以放入任意有效槽位（用于清空槽位）
+    if (item.isEmpty()) {
+        return true;
     }
 
     // 获取物品类型
