@@ -31,7 +31,9 @@
 #include "../../../biome/BiomeIds.hpp"
 #include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
+#include "../../../block/BlockTags.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "../../feature/template/ProtectedBlocksProcessor.hpp"
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateLoader.hpp"
 #include "../../feature/template/TemplateManager.hpp"
@@ -45,6 +47,66 @@ namespace mc::world::gen::structure {
 
 using namespace mc::Biomes;
 using namespace mc::world; // 引入 CHUNK_WIDTH 等常量
+
+namespace {
+
+// ============================================================================
+// 废弃传送门处理器概率常量
+// 与 MC 1.21.11 RuinedPortalPiece 中定义一致
+// ============================================================================
+
+/// 金块替换为空气的概率（PROBABILITY_OF_GOLD_GONE）
+constexpr f32 PROBABILITY_OF_GOLD_GONE = 0.3F;
+
+/// 下界岩替换为岩浆块的概率（PROBABILITY_OF_MAGMA_INSTEAD_OF_NETHERRACK）
+constexpr f32 PROBABILITY_OF_MAGMA_INSTEAD_OF_NETHERRACK = 0.07F;
+
+/// 岩浆替换为岩浆块的概率（PROBABILITY_OF_MAGMA_INSTEAD_OF_LAVA）
+constexpr f32 PROBABILITY_OF_MAGMA_INSTEAD_OF_LAVA = 0.2F;
+
+/// 构造「输入方块 → 输出方块」的固定替换规则（无概率，纯 BlockMatch）
+std::unique_ptr<feature::template_::RuleEntry> makeBlockReplaceRule(const Block* inputBlock, const Block* outputBlock)
+{
+    if (inputBlock == nullptr || outputBlock == nullptr) {
+        return nullptr;
+    }
+    return std::make_unique<feature::template_::RuleEntry>(
+        std::make_unique<feature::template_::BlockMatchRuleTest>(inputBlock->defaultState().blockId()),
+        std::make_unique<feature::template_::AlwaysTrueRuleTest>(),
+        outputBlock->defaultState().stateId());
+}
+
+/// 构造「输入方块 按概率 → 输出方块」的随机替换规则（RandomBlockMatch）
+std::unique_ptr<feature::template_::RuleEntry> makeRandomBlockReplaceRule(
+    const Block* inputBlock, f32 probability, const Block* outputBlock)
+{
+    if (inputBlock == nullptr || outputBlock == nullptr) {
+        return nullptr;
+    }
+    return std::make_unique<feature::template_::RuleEntry>(
+        std::make_unique<feature::template_::RandomBlockMatchRuleTest>(
+            inputBlock->defaultState().blockId(), probability),
+        std::make_unique<feature::template_::AlwaysTrueRuleTest>(),
+        outputBlock->defaultState().stateId());
+}
+
+/// 根据垂直放置位置与 cold 属性构造岩浆处理规则
+/// 对应 MC 1.21.11 RuinedPortalPiece#getLavaProcessorRule
+std::unique_ptr<feature::template_::RuleEntry> makeLavaProcessorRule(RuinedPortalLocation location, bool cold)
+{
+    if (location == RuinedPortalLocation::OnOceanFloor) {
+        // 海底：岩浆固定替换为岩浆块
+        return makeBlockReplaceRule(VanillaBlocks::LAVA, VanillaBlocks::MAGMA);
+    }
+    if (cold) {
+        // 寒冷：岩浆固定替换为下界岩
+        return makeBlockReplaceRule(VanillaBlocks::LAVA, VanillaBlocks::NETHERRACK);
+    }
+    // 默认：岩浆以 0.2 概率替换为岩浆块
+    return makeRandomBlockReplaceRule(VanillaBlocks::LAVA, PROBABILITY_OF_MAGMA_INSTEAD_OF_LAVA, VanillaBlocks::MAGMA);
+}
+
+} // namespace
 
 // ============================================================================
 // 静态常量
@@ -158,10 +220,16 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
     settings.setCenterOffset(m_centerOffset);
     settings.setBoundingBox(&chunkBounds);
 
+    // 设置世界引用（ProtectedBlocksProcessor / LavaSubmergingProcessor 等需要 IWorld 读取世界方块）
+    const IWorld* iworld = dynamic_cast<const IWorld*>(&world);
+    if (iworld) {
+        settings.setWorld(iworld);
+    }
+
     // 添加处理器
     feature::template_::StructureProcessorList processors;
 
-    // 方块忽略处理器
+    // 1) 方块忽略处理器
     // 如果有空气口袋，只忽略结构方块；否则忽略空气和结构方块
     std::vector<u32> blocksToIgnore;
     if (m_properties.airPocket) {
@@ -182,11 +250,50 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
         processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     }
 
-    // TODO: 以下处理器待完整实现
-    // - RuleStructureProcessor: 金块随机替换为空气（0.2概率）
-    // - BlockMossinessProcessor: 石砖随机苔藓化
-    // - LavaSubmergingProcessor: 岩浆淹没处理
-    // - BlackStoneReplacementProcessor: 下界传送门的黑石替换
+    // 2) RuleStructureProcessor：构造替换规则列表
+    // 对应 MC 1.21.11 RuinedPortalPiece#makeSettings 中的 ruleProcessor
+    // 顺序：金块→空气(0.3) → 岩浆规则(位置/寒冷) → 下界岩→岩浆块(0.07, !cold)
+    {
+        std::vector<std::unique_ptr<feature::template_::RuleEntry>> rules;
+
+        // 金块以 0.3 概率替换为空气
+        if (auto rule =
+                makeRandomBlockReplaceRule(VanillaBlocks::GOLD_BLOCK, PROBABILITY_OF_GOLD_GONE, VanillaBlocks::AIR)) {
+            rules.push_back(std::move(rule));
+        }
+
+        // 岩浆处理规则（依赖垂直放置位置与 cold 属性）
+        if (auto rule = makeLavaProcessorRule(m_location, m_properties.cold)) {
+            rules.push_back(std::move(rule));
+        }
+
+        // 非寒冷时：下界岩以 0.07 概率替换为岩浆块
+        if (!m_properties.cold) {
+            if (auto rule = makeRandomBlockReplaceRule(
+                    VanillaBlocks::NETHERRACK, PROBABILITY_OF_MAGMA_INSTEAD_OF_NETHERRACK, VanillaBlocks::MAGMA)) {
+                rules.push_back(std::move(rule));
+            }
+        }
+
+        if (!rules.empty()) {
+            processors.addProcessor(std::make_unique<feature::template_::RuleStructureProcessor>(std::move(rules)));
+        }
+    }
+
+    // 3) BlockAgeProcessor：石砖随机苔藓化
+    processors.addProcessor(std::make_unique<feature::template_::BlockAgeProcessor>(m_properties.mossiness));
+
+    // 4) ProtectedBlocksProcessor：保护 #minecraft:features_cannot_replace 标签方块不被覆盖
+    processors.addProcessor(
+        std::make_unique<feature::template_::ProtectedBlocksProcessor>(BlockTags::FEATURES_CANNOT_REPLACE().getId()));
+
+    // 5) LavaSubmergingProcessor：岩浆淹没处理（非固体方块在岩浆中替换为岩浆）
+    processors.addProcessor(std::make_unique<feature::template_::LavaSubmergingProcessor>());
+
+    // 6) BlackstoneReplacementProcessor：下界传送门将石质方块替换为黑石变体
+    if (m_properties.replaceWithBlackstone) {
+        processors.addProcessor(std::make_unique<feature::template_::BlackstoneReplacementProcessor>());
+    }
 
     settings.setProcessors(&processors);
 
