@@ -191,7 +191,8 @@ Result<void> EntityPipeline::initialize(VkDevice device,
 void EntityPipeline::destroy()
 {
     const bool hadResources = m_initialized || m_pipeline != VK_NULL_HANDLE ||
-        m_additiveBlendPipeline != VK_NULL_HANDLE || m_linePipeline != VK_NULL_HANDLE ||
+        m_additiveBlendPipeline != VK_NULL_HANDLE || m_multiplyBlendPipeline != VK_NULL_HANDLE ||
+        m_noneBlendPipeline != VK_NULL_HANDLE || m_linePipeline != VK_NULL_HANDLE ||
         m_pipelineLayout != VK_NULL_HANDLE || m_textureSampler != VK_NULL_HANDLE ||
         m_textureDescriptorLayout != VK_NULL_HANDLE || m_vertexStagingBuffer != VK_NULL_HANDLE ||
         m_indexStagingBuffer != VK_NULL_HANDLE;
@@ -206,6 +207,18 @@ void EntityPipeline::destroy()
     if (m_additiveBlendPipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(m_device, m_additiveBlendPipeline, nullptr);
         m_additiveBlendPipeline = VK_NULL_HANDLE;
+    }
+
+    // 销毁乘法混合管线
+    if (m_multiplyBlendPipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_device, m_multiplyBlendPipeline, nullptr);
+        m_multiplyBlendPipeline = VK_NULL_HANDLE;
+    }
+
+    // 销毁无混合管线
+    if (m_noneBlendPipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_device, m_noneBlendPipeline, nullptr);
+        m_noneBlendPipeline = VK_NULL_HANDLE;
     }
 
     // 销毁线段渲染管线
@@ -249,14 +262,18 @@ void EntityPipeline::bind(VkCommandBuffer cmd, BlendMode blendMode)
         case BlendMode::Additive:
             pipelineToBind = m_additiveBlendPipeline;
             break;
+        case BlendMode::Multiply:
+            pipelineToBind = m_multiplyBlendPipeline;
+            break;
+        case BlendMode::None:
+            pipelineToBind = m_noneBlendPipeline;
+            break;
         case BlendMode::Lines:
             pipelineToBind = m_linePipeline;
             break;
         case BlendMode::Alpha:
-        case BlendMode::None:
-        case BlendMode::Multiply:
         default:
-            // TODO: BlendMode::Multiply 和 BlendMode::None 尚未实现专用管线，当前回退到Alpha混合
+            // 默认回退到 Alpha 混合管线，涵盖所有未匹配的枚举值
             pipelineToBind = m_pipeline;
             break;
     }
@@ -848,6 +865,70 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
     if (result != VK_SUCCESS) {
         spdlog::warn("EntityPipeline: Failed to create additive blend pipeline, falling back to alpha blend only");
         m_additiveBlendPipeline = VK_NULL_HANDLE;
+    }
+
+    // ==================== 乘法混合管线 ====================
+    // 使用 DST_COLOR * SRC_COLOR 的对称乘法混合（out = 2 * src * dst），
+    // 对应 MC 1.21.11 RenderPipelines.CRUMBLING 的 BlendFunction(DST_COLOR, SRC_COLOR, ONE, ZERO)，
+    // 以及本项目 BreakProgressRenderer 的破坏进度叠加。纹理按 50% 亮度补偿 2x 系数。
+    // 用于实体颜色调制/着色叠加（如受损红色闪烁覆盖、环境着色等）。
+    VkPipelineColorBlendAttachmentState multiplyBlendAttachment{};
+    multiplyBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    multiplyBlendAttachment.blendEnable = VK_TRUE;
+    // 乘法混合: src * dst + dst * src = 2 * src * dst
+    multiplyBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_DST_COLOR;
+    multiplyBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+    multiplyBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    // alpha 通道保持源 alpha 透传，避免叠加导致 alpha 失真
+    multiplyBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    multiplyBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    multiplyBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    VkPipelineColorBlendStateCreateInfo multiplyColorBlending{};
+    multiplyColorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    multiplyColorBlending.logicOpEnable = VK_FALSE;
+    multiplyColorBlending.attachmentCount = 1;
+    multiplyColorBlending.pAttachments = &multiplyBlendAttachment;
+
+    // 还原输入装配状态为三角形列表（line 块会修改 pInputAssemblyState，此处先复位）
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pColorBlendState = &multiplyColorBlending;
+
+    result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_multiplyBlendPipeline);
+    if (result != VK_SUCCESS) {
+        spdlog::warn("EntityPipeline: Failed to create multiply blend pipeline, falling back to alpha blend only");
+        m_multiplyBlendPipeline = VK_NULL_HANDLE;
+    }
+
+    // ==================== 无混合管线 ====================
+    // blendEnable=VK_FALSE，不透明/剪切实体渲染，对应 MC Java 的 withoutBlend()
+    // （ENTITY_SOLID / ENTITY_CUTOUT / ENTITY_CUTOUT_NO_CULL 等管线）。
+    // 片元着色器输出直接写入帧缓冲，不与现有颜色混合。
+    VkPipelineColorBlendAttachmentState noneBlendAttachment{};
+    noneBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    noneBlendAttachment.blendEnable = VK_FALSE;
+    // blendEnable=VK_FALSE 时以下字段被忽略，置零保持整洁
+    noneBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    noneBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    noneBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    noneBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    noneBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    noneBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    VkPipelineColorBlendStateCreateInfo noneColorBlending{};
+    noneColorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    noneColorBlending.logicOpEnable = VK_FALSE;
+    noneColorBlending.attachmentCount = 1;
+    noneColorBlending.pAttachments = &noneBlendAttachment;
+
+    pipelineInfo.pColorBlendState = &noneColorBlending;
+
+    result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_noneBlendPipeline);
+    if (result != VK_SUCCESS) {
+        spdlog::warn("EntityPipeline: Failed to create no-blend pipeline, falling back to alpha blend only");
+        m_noneBlendPipeline = VK_NULL_HANDLE;
     }
 
     // ==================== 线段渲染管线 ====================

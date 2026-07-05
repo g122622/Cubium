@@ -38,13 +38,23 @@ namespace mc::client::renderer::entity::pipeline {
 /**
  * @brief 混合模式枚举
  *
- * 用于不同渲染效果的混合模式
+ * 用于不同渲染效果的混合模式。每种模式对应一条专用的 Vulkan 图形管线，
+ * 由 _createGraphicsPipeline 创建、bind() 选择、destroy() 销毁。
+ *
+ * - None：无混合（blendEnable=VK_FALSE），用于不透明/剪切实体渲染。
+ *   对应 MC Java 的 withoutBlend()（ENTITY_SOLID / ENTITY_CUTOUT 等）。
+ * - Alpha：标准 Alpha 混合（src*srcAlpha + dst*(1-srcAlpha)），默认。
+ * - Additive：叠加混合（src*srcAlpha + dst*1），用于眼睛发光、能量光效等。
+ * - Multiply：乘法混合（out = 2*src*dst），用于颜色调制/着色叠加。
+ *   对应 MC 1.21.11 RenderPipelines.CRUMBLING 的 DST_COLOR/SRC_COLOR 配置，
+ *   以及本项目 BreakProgressRenderer 的破坏进度叠加。
+ * - Lines：线段渲染（VK_PRIMITIVE_TOPOLOGY_LINE_LIST），用于钓鱼线等。
  */
 enum class BlendMode : u8 {
-    None,     // 无混合
+    None,     // 无混合（不透明渲染，blendEnable=VK_FALSE）
     Alpha,    // Alpha 混合（默认）
     Additive, // 叠加混合（用于眼睛发光、能量光效等）
-    Multiply, // 乘法混合 // TODO: 尚未实现乘法混合管线，当前回退到Alpha混合
+    Multiply, // 乘法混合（out = 2*src*dst，用于颜色调制/着色叠加）
     Lines     // 线段渲染（VK_PRIMITIVE_TOPOLOGY_LINE_LIST，用于钓鱼线等）
 };
 
@@ -194,6 +204,8 @@ private:
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;              // Alpha 混合管线
     VkPipeline m_additiveBlendPipeline = VK_NULL_HANDLE; // 叠加混合管线
+    VkPipeline m_multiplyBlendPipeline = VK_NULL_HANDLE; // 乘法混合管线（DST_COLOR * SRC_COLOR）
+    VkPipeline m_noneBlendPipeline = VK_NULL_HANDLE;     // 无混合管线（不透明渲染）
     VkPipeline m_linePipeline = VK_NULL_HANDLE;          // 线段渲染管线（LINE_LIST）
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;

@@ -901,6 +901,8 @@ add_executable(mc_tests
     client/renderer/trident/entity/layer/entity/VillagerLayerTest.cpp
     # EnergyGlintLayer 附魔光效渲染层测试
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
+    # EntityPipeline BlendMode 枚举契约测试（Multiply/None 专用管线）
+    client/renderer/trident/entity/pipeline/EntityPipelineBlendModeTest.cpp
     # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
     client/renderer/entity/test_player_layers.cpp
     # ItemMeshBuilder 回退网格、法线变换、纹理坐标解析测试

@@ -91,11 +91,13 @@ namespace mc::client::renderer::entity::pipeline {
 ### 6. BlendMode 选择
 
 `EntityPipeline::bind()` 支持多种混合模式：
+- `BlendMode::None` - 无混合（blendEnable=VK_FALSE），用于不透明/剪切实体渲染，对应 MC Java 的 withoutBlend()
 - `BlendMode::Alpha` - 默认，用于大多数实体
-- `BlendMode::Additive` - 用于眼睛发光、能量光效等
+- `BlendMode::Additive` - 用于眼睛发光、能量光效等（src*srcAlpha + dst*1）
+- `BlendMode::Multiply` - 用于颜色调制/着色叠加（out = 2*src*dst），对应 MC 1.21.11 RenderPipelines.CRUMBLING
 - `BlendMode::Lines` - 使用 `LINE_LIST` 拓扑，用于钓鱼线等线段渲染
 
-选择错误的混合模式会导致渲染效果不正确。
+选择错误的混合模式会导致渲染效果不正确。所有管线共享相同的着色器、管线布局、顶点输入和光栅化状态，仅颜色混合状态（和 Lines 的输入装配）不同。管线创建失败时仅记录警告并回退到 Alpha 混合，不影响其他管线初始化。
 
 ### 7. EntityMesh 生命周期
 
