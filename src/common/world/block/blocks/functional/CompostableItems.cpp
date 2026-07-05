@@ -23,7 +23,6 @@
 
 #include "CompostableItems.hpp"
 #include "common/item/Items.hpp"
-#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -54,7 +53,14 @@ void CompostableItems::initialize()
 
 f32 CompostableItems::getCompostChance(const Item* item)
 {
-    MC_ASSERT_RELEASE(item != nullptr);
+    // 与 isCompostable 一致：空指针视为不可堆肥，返回 0.0f。
+    // 原 MC_ASSERT_RELEASE(item != nullptr) 会让 NullItemHandling 测试触发
+    // 断言并中止整个 mc_tests 套件。MC 1.21.11 中 COMPOSTABLES.getFloat(item)
+    // 对未注册/空物品返回 -1.0F（默认值），本项目的约定是返回 0.0f 表示
+    // 不可堆肥（见下方 s_chances.find 未命中分支），此处保持一致。
+    if (item == nullptr) {
+        return 0.0f;
+    }
 
     auto it = s_chances.find(item);
     if (it != s_chances.end()) {
