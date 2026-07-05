@@ -485,10 +485,7 @@ Block& block = state->getBlockMutable();
                      的 `Block.pushEntitiesUp()`。
 
                     * *工作原理 *
-                    *： 1. 获取新方块状态的碰撞形状，如果为空则直接返回 2. 计算新形状的世界包围盒，获取旧形状的最大Y
-                    3. 如果新形状最大Y没有增大（`maxY
-                <= oldMaxY`），不需要推出实体 4. 使用整体包围盒查找其中的实体
-                        5. 对每个与新形状相交的实体，计算需要向上推出的距离并移动
+                    *： 1. 计算 `oldState` 与 `newState` 的碰撞形状差集（`BooleanOps::OnlySecond`，即"在 newState 中但不在 oldState 中"的部分）并平移到世界坐标 2. 若差集形状为空，直接返回 `newState` 3. 取差集形状的世界 AABB，查找其中的所有实体 4. 对每个实体：将其碰撞箱上移 1 格，沿 Y 轴向下（`movement = -1.0`）与差集形状做碰撞，得到最大可下落距离 `d0`（非正数） 5. 让实体相对上移 `1 + d0`，即正好停在差集形状顶部之上
 
                         * *使用场景 * *： -
                     **雪层增加 * *：`tickPrecipitation()` 中雪层层数增加时调用 `pushEntitiesUp` 推出站在雪上的实体 -
@@ -501,7 +498,8 @@ Block& block = state->getBlockMutable();
 
                     * *注意 * *： -
                 方法返回 `newState`，方便链式调用
-                - 当前实现使用简化算法（整体包围盒），未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算 -
+                - 实现与 MC Java 1.21.11 完全一致，使用 `Shapes::joinUnoptimized` + `BooleanOps::OnlySecond` 计算形状差集，再用 `VoxelShape::collide(Axis::Y, ..., -1.0)` 计算推出距离 -
+                实体移动通过 `Entity::move(MoverType::Piston, delta)` 完成，该重载不做碰撞检测，与 MC 的 `entity.teleportRelative(...)` 语义一致 -
                 必须在 `setBlockState` * *之前 *
                     *调用，先推出实体再更新方块状态
 
