@@ -73,9 +73,19 @@ public:
         const BlockPos pos(x, y, z);
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
-        } else {
-            m_blocks[pos] = state;
+            return true;
         }
+
+        // 关键：必须像 ServerWorld::setBlockState 一样把传入的 BlockState* 规范化
+        // 为 BlockRegistry 持有的规范状态指针。FireBlock::tick / trySpread /
+        // tryCatchFire 内部会构造栈上局部 BlockState（withAge 返回值），再以
+        // &newState 调用 setBlockState。若直接存调用方指针，函数返回后栈帧销毁，
+        // m_blocks 里就留下悬空指针；后续 getNeighborEncouragement / canBurn /
+        // areNeighborsFlammable 读取该悬空指针，在 BlockState::getFireSpreadSpeed
+        // (this=0x5 一类小地址) 处触发 ACCESS_VIOLATION。规范化后存的是注册表
+        // 单例指针，生命周期随进程，安全。
+        const BlockState* canonical = BlockRegistry::instance().getBlockState(state->stateId());
+        m_blocks[pos] = (canonical != nullptr) ? canonical : state;
         return true;
     }
 

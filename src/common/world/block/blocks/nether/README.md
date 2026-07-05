@@ -117,3 +117,18 @@ BushBlock (来自 agricultural/ 模块)
 所有需要放置火焰的场景（爆炸、岩浆点火、火球、打火石等）必须使用 `FireBlock::getFireState(world, pos)` 而非直接使用 `VanillaBlocks::FIRE->defaultState()`。该方法根据下方方块是否为灵魂沙/灵魂土自动返回普通火或灵魂火，对应 MC 原版 `BaseFireBlock.getState()`。
 
 `NetherPortalBlock::isValidPosition()` 检查六个方向是否有传送门方块或黑曜石，如果检测逻辑不完整，传送门方块可能意外消失或残留。
+
+### 9. setBlockState 入参指针的所有权陷阱（测试桩世界必读）
+
+`FireBlock::tick` / `trySpread` / `tryCatchFire` 内部会构造**栈上局部** `BlockState`（`withAge(...)` 的返回值），再以 `&newState` 调用 `world.setBlockState(pos, &newState, flags)`：
+
+```cpp
+BlockState newState = withAge(age + 1);
+world.setBlockState(pos, &newState, 2);   // &newState 指向栈局部
+```
+
+生产侧 `ServerWorld::setBlockState` 会把入参 `BlockState*` **规范化**为 `BlockRegistry` 持有的规范状态指针（`blockRegistry.getBlockState(inputState->stateId())`），存的是注册表单例指针，调用方栈帧销毁后仍安全。
+
+但**测试桩世界**若直接照搬 `m_blocks[pos] = state;`（裸存调用方指针），函数返回后栈帧销毁，`m_blocks` 里就留下悬空指针。后续 `getNeighborEncouragement` / `canBurn` / `areNeighborsFlammable` 读取该悬空指针，会在 `BlockState::getFireSpreadSpeed`（`this` 为 `0x5` 一类小地址）处触发 `ACCESS_VIOLATION`。
+
+**对策**：任何持有 `BlockState*` 的测试桩世界，`setBlockState` 必须像 `ServerWorld` 一样走 `BlockRegistry::instance().getBlockState(state->stateId())` 规范化后再存。参见 `tests/common/world/block/blocks/FireBlockTest.cpp` 中 `FireSpreadTestWorld::setBlockState` 的注释。
