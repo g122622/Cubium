@@ -37,6 +37,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/world/IWorld.hpp"
@@ -106,11 +107,17 @@ private:
 
 /**
  * @brief 创建羊驼实体并设置世界，放置在指定位置
+ *
+ * 注意：直接构造的 LlamaEntity 不会通过注册表工厂初始化 typeId，
+ * 导致 LlamaFollowCaravanGoal::shouldExecute() 中的类型过滤
+ * (type != EntityTypeIdNumber::LLAMA && type != EntityTypeIdNumber::TRADER_LLAMA)
+ * 会跳过该实体。这里显式设置 typeId 为 minecraft:llama。
  */
 std::unique_ptr<LlamaEntity> createLlama(
     EntityId id, CaravanTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
     auto llama = std::make_unique<LlamaEntity>(id);
+    llama->setTypeId(entity::EntityTypes::LLAMA);
     llama->setWorld(&world);
     llama->setPosition(x, y, z);
     return llama;
