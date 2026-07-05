@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/EntitySenses.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -38,10 +39,20 @@ protected:
     [[nodiscard]] bool shouldResetPitch() const override { return false; }
 };
 
+// Entity::canSee 经 raycastBlocks(*m_world) 做视线检测，无 world 时直接返回 false。
+// EntitySensesTestWorld 提供 getBlockState=nullptr（空气）的空世界，使视线无阻挡。
+class EntitySensesTestWorld final : public test::BaseTestWorld {
+public:
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+};
+
 TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 {
+    EntitySensesTestWorld world;
     MobEntity observer(EntityId(1));
     MobEntity target(EntityId(2));
+    observer.setWorld(&world);
+    target.setWorld(&world);
 
     observer.setPosition(0.0f, 64.0f, 0.0f);
     target.setPosition(4.0f, 64.0f, 0.0f);
@@ -55,8 +66,11 @@ TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 
 TEST(EntitySensesTest, CacheClearsOnTick)
 {
+    EntitySensesTestWorld world;
     MobEntity observer(EntityId(3));
     MobEntity target(EntityId(4));
+    observer.setWorld(&world);
+    target.setWorld(&world);
 
     observer.setPosition(0.0f, 64.0f, 0.0f);
     target.setPosition(4.0f, 64.0f, 0.0f);
@@ -72,8 +86,11 @@ TEST(EntitySensesTest, CacheClearsOnTick)
 
 TEST(EntitySensesTest, InvisibleEntityIsCachedWithinSameTick)
 {
+    EntitySensesTestWorld world;
     MobEntity observer(EntityId(5));
     MobEntity target(EntityId(6));
+    observer.setWorld(&world);
+    target.setWorld(&world);
 
     observer.setPosition(0.0f, 64.0f, 0.0f);
     target.setPosition(128.0f, 64.0f, 0.0f);
