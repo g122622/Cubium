@@ -1122,6 +1122,18 @@ void EntityRendererManager::_applyPlayerCrossbowState(
         // TODO: 远程玩家的 ArmPose/主手/挥动手/蹲伏/游泳状态需通过网络同步到
         //       ClientEntity 后在此处补齐
     }
+
+    // 关键：重新调用 setAngles 让弩参数与 ArmPose 通过 handleRightArmPose/
+    // handleLeftArmPose 生效。_createModelForEntity 在创建模型后已调用过一次
+    // setAngles，但那时 ArmPose/弩参数尚未设置，handleRightArmPose/
+    // handleLeftArmPose 中的 CrossbowCharge/CrossbowHold 分支不会触发。此处
+    // 重新 setAngles 使弩动画在 GPU 管线路径下真正生效，避免形成孤岛代码。
+    playerModel.setAngles(context.limbSwing,
+        context.limbSwingAmount,
+        context.ageInTicks,
+        context.netHeadYaw,
+        context.headPitch,
+        context.scale * 16.0);
 }
 
 pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
