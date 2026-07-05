@@ -104,15 +104,20 @@ public:
     void setAmbientLightLevel(u8 skyLight, u8 blockLight, u8 moodSkyLight, u8 moodBlockLight);
 
     /**
-     * @brief 更新环境音效处理器的玩家位置
+     * @brief 更新环境音效处理器的玩家位置和心境采样位置
      *
-     * 用于心境音效的位置计算。
+     * 用于心境音效的位置计算。心境采样位置由主线程在查询光照时一并采样得到，
+     * 音频线程直接复用该位置计算声音播放方向，与 MC 原版在同一 tick 中用
+     * 同一位置查询光照和播放声音的行为对齐。
      *
      * @param x 玩家X坐标
      * @param y 玩家Y坐标（眼睛高度）
      * @param z 玩家Z坐标
+     * @param moodBx 心境音效采样位置X坐标（主线程已采样）
+     * @param moodBy 心境音效采样位置Y坐标（主线程已采样）
+     * @param moodBz 心境音效采样位置Z坐标（主线程已采样）
      */
-    void setAmbientPlayerPosition(f64 x, f64 y, f64 z);
+    void setAmbientPlayerPosition(f64 x, f64 y, f64 z, i32 moodBx, i32 moodBy, i32 moodBz);
 
     /**
      * @brief 更新音乐播放器
@@ -322,6 +327,10 @@ private:
         f64 playerX = 0.0;
         f64 playerY = 0.0;
         f64 playerZ = 0.0;
+        // 心境音效采样位置（主线程已采样，音频线程直接复用）
+        i32 moodBx = 0;
+        i32 moodBy = 0;
+        i32 moodBz = 0;
         // 实体声音
         u32 entityId = 0;
         std::string entityTypeId;

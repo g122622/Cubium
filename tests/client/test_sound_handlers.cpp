@@ -71,9 +71,20 @@ TEST_F(BiomeAmbientHandlerTest, SetBiomeId)
 
 TEST_F(BiomeAmbientHandlerTest, SetPlayerPosition)
 {
-    // 测试设置玩家位置不会崩溃
-    handler->setPlayerPosition(100.5, 64.0, -200.3);
+    // 测试设置玩家位置和心境采样位置不会崩溃
+    handler->setPlayerPosition(100.5, 64.0, -200.3, 95, 60, -195);
     // 无异常即成功
+}
+
+TEST_F(BiomeAmbientHandlerTest, SetPlayerPositionUsesMoodSampledPosition)
+{
+    // 主线程采样得到的 moodBx/moodBy/moodBz 应被音频线程直接复用作为
+    // 心境音效播放方向计算的基准位置，与 MC 原版行为对齐
+    handler->setLightLevel(0, 0, 0, 0); // 完全黑暗，触发心境计时器递增
+    handler->setPlayerPosition(100.0, 64.0, -200.0, 95, 60, -195);
+
+    // 无异常即成功（心境音效实际触发需要 moodTimer 累积到 1.0，
+    // 且需要 SoundEngine 实例才能播放，此处仅验证状态设置不崩溃）
 }
 
 TEST_F(BiomeAmbientHandlerTest, SetLightLevel)

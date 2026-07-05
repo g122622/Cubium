@@ -48,8 +48,8 @@ namespace mc::client::sound {
  * engine.addAmbientHandler(std::move(handler));
  * // 在游戏循环中调用:
  * handler->setBiomeId(biomeId);
- * handler->setPlayerPosition(x, y, z);
- * handler->setLightLevel(skyLight, blockLight);
+ * handler->setPlayerPosition(x, y, z, moodBx, moodBy, moodBz);
+ * handler->setLightLevel(skyLight, blockLight, moodSkyLight, moodBlockLight);
  * @endcode
  */
 class BiomeAmbientHandler : public IAmbientSoundHandler {
@@ -84,17 +84,27 @@ public:
     [[nodiscard]] u32 getBiomeId() const noexcept { return m_currentBiomeId; }
 
     /**
-     * @brief 设置玩家位置（用于心境音效位置计算）
+     * @brief 设置玩家位置和心境音效采样位置（用于心境音效位置计算）
+     *
+     * 心境采样位置由主线程在查询光照时一并采样得到，音频线程直接复用该位置
+     * 计算声音播放方向，与 MC 原版在同一 tick 中用同一位置查询光照和播放
+     * 声音的行为对齐。
      *
      * @param x 玩家X坐标
      * @param y 玩家Y坐标（眼睛高度）
      * @param z 玩家Z坐标
+     * @param moodBx 心境音效采样位置X坐标（主线程已采样）
+     * @param moodBy 心境音效采样位置Y坐标（主线程已采样）
+     * @param moodBz 心境音效采样位置Z坐标（主线程已采样）
      */
-    void setPlayerPosition(f64 x, f64 y, f64 z)
+    void setPlayerPosition(f64 x, f64 y, f64 z, i32 moodBx, i32 moodBy, i32 moodBz)
     {
         m_playerX = x;
         m_playerY = y;
         m_playerZ = z;
+        m_moodBx = moodBx;
+        m_moodBy = moodBy;
+        m_moodBz = moodBz;
     }
 
     /**
@@ -136,6 +146,11 @@ private:
     /// 心境音效采样位置的光照等级（默认 0，由主线程采样后传递）
     u8 m_moodSkyLight = 0;
     u8 m_moodBlockLight = 0;
+
+    /// 心境音效采样位置（主线程采样后传递，音频线程直接复用，对齐 MC 原版行为）
+    i32 m_moodBx = 0;
+    i32 m_moodBy = 0;
+    i32 m_moodBz = 0;
 
     /// 心境音效计时器 (0.0 - 1.0)
     f32 m_moodTimer = 0.0f;

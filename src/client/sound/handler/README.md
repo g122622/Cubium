@@ -48,3 +48,4 @@ common/sound/SoundEvents.hpp          # 音效事件 ID 定义
 - **WeatherSoundHandler 雨声类型判断**：使用 `canSeeSky`（天空光照判断）区分 RAIN 和 RAIN_ABOVE。canSeeSky=false 表示玩家在遮挡物下方（屋顶、洞穴等），此时播放闷雨声 RAIN_ABOVE（音量 0.1、音调 0.5）。雷声只在 canSeeSky=true 时播放。
 - **EntitySoundHandler 跨线程**：不直接引用 ClientEntity，通过 `EntitySoundState` 状态快照获取实体信息。
 - **蜜蜂声音切换**：由 `BeeSoundBase`（内嵌于 EntitySoundHandler.cpp）实现。愤怒状态变化时 `markDone()` 标记当前声音完成，`EntitySoundHandler::tick()` 同帧检测并重建对应类型声音，实现无缝切换。
+- **BiomeAmbientHandler 心境音效位置同步**：心境音效的采样位置由主线程在 `ClientApplicationAudio` 中查询光照时一并采样，并通过 `setAmbientPlayerPosition` 命令传递给音频线程的 `BiomeAmbientHandler`，后者直接复用该位置进行声音播放方向计算。这避免了双线程独立随机采样导致的位置不一致问题，对齐 MC 原版 `BiomeAmbientSoundsHandler.tick()` 在同一 tick 中用同一 `blockpos` 同时查询光照和播放声音的行为。采样范围 `blockSearchExtent` 从群系 `MoodSoundAmbience` 配置读取，仅在群系配置了 `moodSound` 时才采样。

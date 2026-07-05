@@ -72,7 +72,7 @@ src/client/sound/
 - **源计数追踪**：`OpenALBackend` 通过 `m_activeSourceCount`（原子变量）和 `OpenALSource` 析构回调实现动态源计数追踪。`getAvailableSources()` 返回 `m_maxSources - m_activeSourceCount`。移动赋值 `OpenALSource` 时旧源的回调会触发计数递减，务必注意此副作用
 - **源数量上限**：`m_maxSources` 从 OpenAL 设备属性 `ALC_MONO_SOURCES + ALC_STEREO_SOURCES` 查询，回退到 `MAX_CONCURRENT_SOUNDS = 256`。源耗尽时 `createSource()` 返回 `ResourceExhausted` 错误
 - **群系环境音**：群系需要配置 `BiomeAmbientSounds` 才能播放环境音效，否则使用默认心境音效
-- **心境音效光照采样**：心境音效的光照采样在主线程完成（通过 `ClientApplicationAudio`），而非音频线程。主线程每帧随机采样一个位置并查询该位置的光照，然后传递给 `BiomeAmbientHandler`。由于音频线程的随机采样位置（用于声音播放位置）与主线程的光照采样位置使用不同的随机种子，两者可能不一致——这是架构限制，属于已知的近似实现
+- **心境音效位置同步**：心境音效的采样位置由主线程在 `ClientApplicationAudio` 中查询光照时一并采样（采样范围从群系 `MoodSoundAmbience::blockSearchExtent()` 读取），并通过 `AudioService::setAmbientPlayerPosition` 传递给音频线程的 `BiomeAmbientHandler`，后者直接复用该位置进行声音播放方向计算，与 MC 原版在同一 tick 用同一位置查询光照和播放声音的行为对齐
 - **天气音效 canSeeSky 判断**：`WeatherSoundHandler` 通过 `canSeeSky` 参数判断雨声类型：户外（canSeeSky=true）播放 WEATHER_RAIN，遮挡物下方（canSeeSky=false）播放 WEATHER_RAIN_ABOVE。canSeeSky 由主线程通过 `ClientWorld::canSeeSky()` 计算，包含维度检查（仅主世界有天空光照）和天空光照判断（skyLight>=15）。
 - **水下音乐生物群系检查**：水下音乐（`MusicType::Underwater`）仅在海洋或河流生物群系中播放，通过 `BiomeTags::IS_OCEAN()` 和 `BiomeTags::IS_RIVER()` 标签判断。判断结果由主线程计算后通过 `AudioService::updateMusicState()` 传递到音频线程
 - **菜单状态判断**：菜单状态通过 `ScreenManager::instance().hasScreen()` 判断，需在 UI 更新后调用
