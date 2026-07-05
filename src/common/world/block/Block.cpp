@@ -35,6 +35,9 @@
 #include "../../item/loot/context/LootContextBuilder.hpp"
 #include "../../item/loot/context/LootParameterSets.hpp"
 #include "../../item/loot/context/LootParams.hpp"
+#include "../../physics/shape/BooleanOp.hpp"
+#include "../../physics/shape/Shapes.hpp"
+#include "../../physics/shape/VoxelShape.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/Direction.hpp"
 #include "../../util/math/Vector3.hpp"
@@ -54,6 +57,7 @@
 #include "PlantType.hpp"
 #include "SupportType.hpp"
 #include "common/entity/ai/util/PiglinAi.hpp"
+#include "common/entity/core/MoverType.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
@@ -841,72 +845,46 @@ bool Block::isExceptionForConnection(const BlockState& state)
 const BlockState& Block::pushEntitiesUp(
     const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)
 {
-    // 参考: net.minecraft.block.Block#pushEntitiesUp
+    // 参考: net.minecraft.world.level.block.Block#pushEntitiesUp
     // 当方块碰撞形状增大时，将嵌入方块内的实体向上推出。
-    // 简化实现：使用新形状的世界包围盒找到实体，推出到新形状最大Y之上。
-    // 未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算。
+    //
+    // 算法（与 MC Java 1.21.11 一致）：
+    // 1. 计算 oldCollision 与 newCollision 的"仅新增部分"差集形状
+    //    （ONLY_SECOND：在 newState 中但不在 oldState 中），并平移到世界坐标。
+    // 2. 若差集为空，直接返回 newState。
+    // 3. 否则对差集 AABB 范围内的每个实体：
+    //    a. 取实体碰撞箱上移 1 格后的 AABB。
+    //    b. 沿 Y 轴向下（movement = -1.0）与差集形状做碰撞，得到最大可下落距离 d0（≤0）。
+    //    c. 让实体相对上移 (1 + d0)，即正好停在差集形状顶部之上。
+    //
+    // 注：MC 使用 entity.teleportRelative(...)；本项目中等价的接口是
+    // Entity::move(MoverType::Piston, delta) —— 该重载不进行碰撞检测，仅更新位置，
+    // 与 teleportRelative 语义一致。
 
-    const CollisionShape& newShape = newState.getCollisionShape();
-    if (newShape.isEmpty()) {
+    VoxelShape oldShape = Shapes::fromCollisionShape(oldState.getCollisionShape());
+    VoxelShape newShape = Shapes::fromCollisionShape(newState.getCollisionShape());
+    VoxelShape diffShape = Shapes::joinUnoptimized(oldShape, newShape, BooleanOps::OnlySecond())
+                               .move(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z));
+
+    if (diffShape.isEmpty()) {
         return newState;
     }
 
-    // 获取新形状在世界坐标中的所有碰撞箱
-    auto worldBoxes = newShape.getWorldBoxes(pos.x, pos.y, pos.z);
-    if (worldBoxes.empty()) {
-        return newState;
-    }
-
-    // 计算新形状的整体包围盒
-    f64 minX = worldBoxes[0].minX, minY = worldBoxes[0].minY, minZ = worldBoxes[0].minZ;
-    f64 maxX = worldBoxes[0].maxX, maxY = worldBoxes[0].maxY, maxZ = worldBoxes[0].maxZ;
-    for (size_t i = 1; i < worldBoxes.size(); ++i) {
-        minX = std::min(minX, static_cast<f64>(worldBoxes[i].minX));
-        minY = std::min(minY, static_cast<f64>(worldBoxes[i].minY));
-        minZ = std::min(minZ, static_cast<f64>(worldBoxes[i].minZ));
-        maxX = std::max(maxX, static_cast<f64>(worldBoxes[i].maxX));
-        maxY = std::max(maxY, static_cast<f64>(worldBoxes[i].maxY));
-        maxZ = std::max(maxZ, static_cast<f64>(worldBoxes[i].maxZ));
-    }
-
-    // 获取旧形状的最大Y（用于判断是否需要推出）
-    const CollisionShape& oldShape = oldState.getCollisionShape();
-    f64 oldMaxY = static_cast<f64>(pos.y);
-    if (!oldShape.isEmpty()) {
-        const auto& oldBoxes = oldShape.boxes();
-        for (const auto& box : oldBoxes) {
-            oldMaxY = std::max(oldMaxY, static_cast<f64>(pos.y) + box.maxY);
-        }
-    }
-
-    // 如果新形状的最大Y没有增大，不需要推出实体
-    if (maxY <= oldMaxY) {
-        return newState;
-    }
-
-    // 使用整体包围盒查找实体
-    AxisAlignedBB worldBox(static_cast<f32>(minX),
-        static_cast<f32>(minY),
-        static_cast<f32>(minZ),
-        static_cast<f32>(maxX),
-        static_cast<f32>(maxY),
-        static_cast<f32>(maxZ));
-
-    auto entities = world.getEntitiesInAABB(worldBox, nullptr);
+    AxisAlignedBB bounds = diffShape.bounds();
+    auto entities = world.getEntitiesInAABB(bounds, nullptr);
     for (auto* entity : entities) {
         if (entity == nullptr) {
             continue;
         }
 
-        AxisAlignedBB entityBox = entity->boundingBox();
-        if (!entityBox.intersects(worldBox)) {
-            continue;
-        }
+        // 实体碰撞箱向上平移 1 格（用于在差集形状顶部上方寻找落点）
+        AxisAlignedBB shiftedBox = entity->boundingBox().offsetted(0.0f, 1.0f, 0.0f);
 
-        // 实体需要被推到新形状最大Y之上
-        f64 pushUp = maxY - static_cast<f64>(entityBox.minY);
-        if (pushUp > 0.0) {
-            entity->move(entity::MoverType::Piston, Vector3(0.0f, static_cast<f32>(pushUp), 0.0f));
+        // 沿 Y 轴向下碰撞计算：d0 为最大可下落距离（非正数）
+        f64 d0 = diffShape.collide(Axis::Y, shiftedBox, -1.0);
+        f32 pushUp = static_cast<f32>(1.0 + d0);
+        if (pushUp > 0.0f) {
+            entity->move(entity::MoverType::Piston, Vector3(0.0f, pushUp, 0.0f));
         }
     }
 
