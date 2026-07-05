@@ -33,6 +33,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -541,20 +542,31 @@ TEST(DamageSourceTest, DamageSourcesFactory)
 
 TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
 {
-    TestLivingEntity attacker;
-    TestLivingEntity target;
+    // commit 66a6ae396 起，力量/虚弱不再由 AttackContext::calculateFinalDamage
+    // 手动加减，而是通过 EffectAttributeModifiers 以 Addition 操作应用到
+    // ATTACK_DAMAGE 属性（Strength +3.0/级，Weakness -4.0/级）。此处验证属性
+    // 修改器路径：MonsterEntity 注册 ATTACK_DAMAGE，基础值 2.0，叠加 0 级力量
+    // (+3) 与 0 级虚弱 (-4) 后属性值为 2 + 3 - 4 = 1.0。
+    class TestMonster : public MonsterEntity {
+    public:
+        TestMonster()
+            : MonsterEntity(EntityId(1))
+        {
+            // C++ 虚方法在基类构造中只 dispatch 到基类版本，LivingEntity 构造调用的
+            // registerAttributes 不会派发到 MonsterEntity::registerAttributes，故需在此
+            // 显式调用以注册 ATTACK_DAMAGE 属性（与 TestMobEntity 模式一致）。
+            registerAttributes();
+            setAttributeBaseValue(Attributes::ATTACK_DAMAGE, 2.0);
+        }
+    };
 
+    TestMonster attacker;
     attacker.addEffect(
         mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Strength, 200, 0, false, true, true));
-
     attacker.addEffect(
         mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Weakness, 200, 0, false, true, true));
 
-    mc::entity::combat::AttackContext context(&attacker, &target);
-    context.setBaseDamage(5.0f);
-    context.setAttackType(mc::entity::combat::AttackType::Melee);
-
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 4.0f);
+    EXPECT_DOUBLE_EQ(attacker.attributes().getValue(Attributes::ATTACK_DAMAGE), 1.0);
 }
 
 TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula)
