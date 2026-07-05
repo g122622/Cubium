@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../core/Types.hpp"
+#include "math/MathUtils.hpp"
 #include <array>
 #include <cmath>
 #include <string>
@@ -457,7 +458,7 @@ inline bool isFacingAngle(Direction dir, f32 yaw)
         return false;
     }
     // 将偏航角转换为弧度，计算视线方向向量
-    f32 rad = yaw * static_cast<f32>(3.14159265358979323846) / 180.0f; // TODO: 使用 math::xxx
+    f32 rad = mc::math::toRadians(yaw);
     f32 sinYaw = -std::sin(rad);
     f32 cosYaw = std::cos(rad);
     // 方向的法向量与视线方向向量的点积
