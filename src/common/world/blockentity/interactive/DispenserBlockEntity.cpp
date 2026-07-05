@@ -32,7 +32,13 @@ DispenserBlockEntity::DispenserBlockEntity(BlockEntityType type, const BlockPos&
     : LootableContainerBlockEntity(type, pos)
     , m_inventory(INVENTORY_SIZE)
     , m_rng(std::random_device{}())
-{}
+{
+    // 注入战利品表延迟填充回调，使 m_inventory 的所有内容访问方法
+    // （isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear）
+    // 都自动触发 _unpackLootTable(nullptr)，与 MC Java 的
+    // RandomizableContainerBlockEntity 行为一致。
+    m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
+}
 
 bool DispenserBlockEntity::load(const nlohmann::json& data)
 {
@@ -93,6 +99,10 @@ std::unique_ptr<BlockEntity> DispenserBlockEntity::clone() const
 
 void DispenserBlockEntity::clearContainer()
 {
+    // 先触发战利品表填充，再清空（与 LootableContainerBlockEntity::clearContainer 一致）
+    // 注意：m_inventory.clear() 已通过 setLootUnpackCallback 自动触发 _unpackLootTable，
+    // 但此处显式调用 _unpackLootTable 以保证语义清晰，并与基类行为保持一致。
+    _unpackLootTable(nullptr);
     m_inventory.clear();
     setChanged();
 }

@@ -47,12 +47,29 @@ namespace blockentity {
  * };
  * @endcode
  *
+ * 战利品表延迟填充回调:
+ * - 通过 setLootUnpackCallback() 注入回调后，所有依赖容器内容的访问方法
+ *   （isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear）会在
+ *   实际操作前触发回调，确保上层 LootableContainerBlockEntity 的战利品表
+ *   被及时填充。
+ * - getContainerSize/getMaxStackSize/canPlaceItem 等不依赖内容的查询不触发。
+ * - 回调由 LootableContainerBlockEntity 子类在构造时注入，避免每个子类
+ *   再重写一遍 IInventory 接口（参考 ShulkerBoxEntity 的多重继承方式）。
+ *
  * 线程安全:
  * - 非线程安全，需要在正确的线程上操作
  * - 方块实体的tick和保存/加载会在不同线程调用
  */
 class SimpleInventory : public IInventory {
 public:
+    /**
+     * @brief 战利品表延迟填充回调类型
+     *
+     * 回调被调用时不带参数，实现方应在内部触发 _unpackLootTable(nullptr)。
+     * 回调必须是幂等的（多次调用安全）。
+     */
+    using LootUnpackCallback = std::function<void()>;
+
     /**
      * @brief 构造函数
      * @param size 背包大小（槽位数量）
@@ -110,6 +127,22 @@ public:
      *       如果需要更精细的控制，请直接使用 addListener()/removeListener()。
      */
     void setOnChanged(std::function<void()> callback) { m_onChanged = std::move(callback); }
+
+    /**
+     * @brief 设置战利品表延迟填充回调
+     *
+     * 设置后，isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear 在
+     * 实际操作前会调用此回调，使上层 LootableContainerBlockEntity 有机会
+     * 在容器内容被首次访问时填充战利品表。
+     *
+     * 典型用法（LootableContainerBlockEntity 子类构造函数中）:
+     * @code
+     * m_inventory.setLootUnpackCallback([this]() { _unpackLootTable(nullptr); });
+     * @endcode
+     *
+     * @param callback 战利品表延迟填充回调（nullptr 表示禁用）
+     */
+    void setLootUnpackCallback(LootUnpackCallback callback) { m_lootUnpackCallback = std::move(callback); }
 
     /**
      * @brief 添加容器变更监听器
@@ -200,9 +233,20 @@ private:
      */
     void _onChanged();
 
+    /**
+     * @brief 触发战利品表延迟填充回调
+     *
+     * 在容器内容访问方法（isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear）
+     * 开始处调用。回调未设置时为空操作。
+     * 使用 const 语义是因为该方法可能从 const 方法（isEmpty/getItem）中调用，
+     * 战利品填充本质上是缓存初始化而非逻辑状态变更（参考 _unpackLootTable 的 const_cast）。
+     */
+    void _unpackLoot() const;
+
     std::vector<ItemStack> m_items;
     i32 m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     std::function<void()> m_onChanged;
+    LootUnpackCallback m_lootUnpackCallback;     ///< 战利品表延迟填充回调（可为空）
     std::vector<ContainerListener*> m_listeners; ///< 容器变更监听器列表
 };
 

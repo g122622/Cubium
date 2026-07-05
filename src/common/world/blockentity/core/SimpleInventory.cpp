@@ -48,11 +48,13 @@ SimpleInventory::SimpleInventory(SimpleInventory&& other) noexcept
     : m_items(std::move(other.m_items))
     , m_maxStackSize(other.m_maxStackSize)
     , m_onChanged(std::move(other.m_onChanged))
+    , m_lootUnpackCallback(std::move(other.m_lootUnpackCallback))
     , m_listeners(std::move(other.m_listeners))
 {
     // 重置源对象
     other.m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     other.m_onChanged = nullptr;
+    other.m_lootUnpackCallback = nullptr;
     other.m_listeners.clear();
 }
 
@@ -62,11 +64,13 @@ SimpleInventory& SimpleInventory::operator=(SimpleInventory&& other) noexcept
         m_items = std::move(other.m_items);
         m_maxStackSize = other.m_maxStackSize;
         m_onChanged = std::move(other.m_onChanged);
+        m_lootUnpackCallback = std::move(other.m_lootUnpackCallback);
         m_listeners = std::move(other.m_listeners);
 
         // 重置源对象
         other.m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
         other.m_onChanged = nullptr;
+        other.m_lootUnpackCallback = nullptr;
         other.m_listeners.clear();
     }
     return *this;
@@ -74,6 +78,7 @@ SimpleInventory& SimpleInventory::operator=(SimpleInventory&& other) noexcept
 
 bool SimpleInventory::isEmpty() const
 {
+    _unpackLoot();
     for (const auto& item : m_items) {
         if (!item.isEmpty()) {
             return false;
@@ -84,6 +89,7 @@ bool SimpleInventory::isEmpty() const
 
 ItemStack SimpleInventory::getItem(i32 slot) const
 {
+    _unpackLoot();
     if (!_isValidSlot(slot)) {
         return ItemStack();
     }
@@ -92,6 +98,7 @@ ItemStack SimpleInventory::getItem(i32 slot) const
 
 void SimpleInventory::setItem(i32 slot, const ItemStack& stack)
 {
+    _unpackLoot();
     MC_ASSERT_RELEASE(_isValidSlot(slot) && "Slot index out of bounds");
     const std::size_t slotIndex = static_cast<std::size_t>(slot);
 
@@ -106,6 +113,7 @@ void SimpleInventory::setItem(i32 slot, const ItemStack& stack)
 
 ItemStack SimpleInventory::removeItem(i32 slot, i32 count)
 {
+    _unpackLoot();
     if (!_isValidSlot(slot) || count <= 0) {
         return ItemStack();
     }
@@ -130,6 +138,7 @@ ItemStack SimpleInventory::removeItem(i32 slot, i32 count)
 
 ItemStack SimpleInventory::removeItemNoUpdate(i32 slot)
 {
+    _unpackLoot();
     if (!_isValidSlot(slot)) {
         return ItemStack();
     }
@@ -142,6 +151,7 @@ ItemStack SimpleInventory::removeItemNoUpdate(i32 slot)
 
 void SimpleInventory::clear()
 {
+    _unpackLoot();
     for (auto& item : m_items) {
         item = ItemStack();
     }
@@ -294,6 +304,15 @@ void SimpleInventory::_onChanged()
     // 通知所有注册的 ContainerListener
     for (auto* listener : m_listeners) {
         listener->containerChanged(*this);
+    }
+}
+
+void SimpleInventory::_unpackLoot() const
+{
+    // 战利品表延迟填充回调：由 LootableContainerBlockEntity 子类注入。
+    // 回调内部会调用 _unpackLootTable(nullptr)，使用 m_lootFilled 防止递归。
+    if (m_lootUnpackCallback) {
+        m_lootUnpackCallback();
     }
 }
 

@@ -441,6 +441,8 @@ add_executable(mc_tests
     common/world/blockentity/BlockEntityTodoTest.cpp
     # LootableContainerBlockEntity 测试（观察者模式检查、canOpen 虚函数重写、战利品上下文完善）
     common/world/blockentity/LootableContainerBlockEntityTest.cpp
+    # SimpleInventory 战利品感知回调测试（验证 BarrelEntity/ChestEntity/DispenserBlockEntity 的延迟填充机制）
+    common/world/blockentity/LootUnpackCallbackTest.cpp
     # ConduitEntity 潮涌核心测试（敌对生物检测、魔法伤害）
     common/world/blockentity/ConduitEntityTest.cpp
     # SignEntity 告示牌测试（类型注册、文本功能）

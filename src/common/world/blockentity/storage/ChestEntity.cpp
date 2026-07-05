@@ -59,7 +59,13 @@ ChestEntity::ChestEntity(const BlockPos& pos)
 ChestEntity::ChestEntity(BlockEntityType type, const BlockPos& pos)
     : LootableContainerBlockEntity(type, pos)
     , m_inventory(CHEST_SIZE, [this]() { setChanged(); })
-{}
+{
+    // 重新绑定战利品表延迟填充回调（this 指针已确定）。
+    // 回调使 m_inventory 的 isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear
+    // 都自动触发 _unpackLootTable(nullptr)，与 MC Java 的
+    // RandomizableContainerBlockEntity 行为一致。
+    m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
+}
 
 ChestEntity::~ChestEntity() = default;
 
@@ -72,8 +78,10 @@ ChestEntity::ChestEntity(ChestEntity&& other) noexcept
     , m_prevLidAngle(other.m_prevLidAngle)
     , m_ticksSinceSync(other.m_ticksSinceSync)
 {
-    // 设置库存变更回调
+    // 设置库存变更回调（this 指针变化，需重新绑定）
     m_inventory.setOnChanged([this]() { setChanged(); });
+    // 重新绑定战利品表延迟填充回调（this 指针变化）
+    m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
     // 重置源对象状态
     other.m_lidAngle = 0.0f;
     other.m_prevLidAngle = 0.0f;
@@ -86,6 +94,8 @@ ChestEntity& ChestEntity::operator=(ChestEntity&& other) noexcept
         LootableContainerBlockEntity::operator=(std::move(other));
         m_inventory = std::move(other.m_inventory);
         m_inventory.setOnChanged([this]() { setChanged(); });
+        // 重新绑定战利品表延迟填充回调（this 指针变化）
+        m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
         m_lidAngle = other.m_lidAngle;
         m_prevLidAngle = other.m_prevLidAngle;
         m_ticksSinceSync = other.m_ticksSinceSync;

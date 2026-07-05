@@ -39,7 +39,13 @@ namespace blockentity {
 BarrelEntity::BarrelEntity(const BlockPos& pos)
     : LootableContainerBlockEntity(BlockEntityType::Barrel, pos)
     , m_inventory(BARREL_SIZE)
-{}
+{
+    // 注入战利品表延迟填充回调，使 SimpleInventory 的所有内容访问方法
+    // （isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear）
+    // 都自动触发 _unpackLootTable(nullptr)，与 MC Java 的
+    // RandomizableContainerBlockEntity 行为一致。
+    m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
+}
 
 BarrelEntity::~BarrelEntity() noexcept = default;
 

@@ -92,6 +92,26 @@ m_inventory(27)
 
 填充通过 `IWorld::lootTableManager()` 获取战利品表管理器，只有 ServerWorld 返回有效指针。`fillWithLoot()` 和 `fillWithLootFromTable()` 是内部实现，子类无需重写。
 
+#### SimpleInventory 战利品感知回调（推荐方式）
+
+为了避免每个 `LootableContainerBlockEntity` 子类都重写一遍 `IInventory` 接口（如 `ShulkerBoxEntity` 那样的多重继承方式），项目在 `SimpleInventory` 上提供了战利品表延迟填充回调机制：
+
+```cpp
+// 子类构造函数中注入回调
+BarrelEntity::BarrelEntity(const BlockPos& pos)
+    : LootableContainerBlockEntity(BlockEntityType::Barrel, pos)
+    , m_inventory(BARREL_SIZE)
+{
+    m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
+}
+```
+
+`_makeLootUnpackCallback()` 是 `LootableContainerBlockEntity` 提供的 protected 方法，返回一个绑定 `this` 的 `std::function<void()>`，内部调用 `_unpackLootTable(nullptr)`。
+
+设置回调后，`SimpleInventory` 的 `isEmpty`、`getItem`、`setItem`、`removeItem`、`removeItemNoUpdate`、`clear` 方法会在执行前自动触发回调，使所有通过 `getInventory()->...` 路径访问容器内容的代码（红石比较器、漏斗、`/loot` 命令、方块破坏等）都能正确触发延迟填充。
+
+**移动语义注意**：子类如果实现移动构造/移动赋值，必须重新调用 `setLootUnpackCallback(_makeLootUnpackCallback())` 绑定新的 `this` 指针（参考 `ChestEntity` 的移动构造实现）。`ShulkerBoxEntity` 因多重继承 `IInventory` 已通过方法重写处理，无需注入回调。
+
 ### 4. 注册时序
 
 方块实体注册应在游戏启动时完成（调用 `registerBuiltinTypes()`），之后才能从存档加载方块实体。

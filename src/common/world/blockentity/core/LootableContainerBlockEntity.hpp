@@ -26,6 +26,7 @@
 #include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
+#include <functional>
 #include <memory>
 
 namespace mc {
@@ -176,6 +177,32 @@ protected:
      * @param player 触发填充的玩家（可为nullptr，isEmpty/getItem等容器访问时传nullptr）
      */
     void _unpackLootTable(Player* player) const;
+
+    /**
+     * @brief 创建用于注入 SimpleInventory 的战利品表延迟填充回调
+     *
+     * 返回的回调可直接传给 SimpleInventory::setLootUnpackCallback()，
+     * 使 SimpleInventory 的 isEmpty/getItem/setItem/removeItem/removeItemNoUpdate/clear
+     * 在执行前自动触发 _unpackLootTable(nullptr)，确保所有容器访问路径都
+     * 触发延迟填充。
+     *
+     * 子类应在构造 SimpleInventory 后调用此方法注入回调，例如:
+     * @code
+     * BarrelEntity::BarrelEntity(const BlockPos& pos)
+     *     : LootableContainerBlockEntity(BlockEntityType::Barrel, pos)
+     *     , m_inventory(BARREL_SIZE)
+     * {
+     *     m_inventory.setLootUnpackCallback(_makeLootUnpackCallback());
+     * }
+     * @endcode
+     *
+     * @return 返回的 std::function 持有 this 指针的引用，回调必须在*this 存活期间使用。
+     *         子类移动构造/移动赋值后应重新调用此方法刷新回调（this 指针变化）。
+     */
+    std::function<void()> _makeLootUnpackCallback() const
+    {
+        return [this]() { _unpackLootTable(nullptr); };
+    }
 
     /**
      * @brief 填充战利品
