@@ -1538,6 +1538,38 @@ void ClientApplication::setupNetworkCallbacks()
             }
         };
 
+    // 方块粒子回调（携带方块状态 ID）
+    // 用于旋风人地面粒子、长跳轨迹粒子等需要方块纹理的场景。
+    // 通过 BlockRegistry 解析 stateId 回 BlockState，再调用 ClientWorld::addBlockParticle 生成。
+    callbacks.onBlockParticle = [this](::mc::particle::ParticleTypeId type,
+                                    f64 x,
+                                    f64 y,
+                                    f64 z,
+                                    f32 vx,
+                                    f32 vy,
+                                    f32 vz,
+                                    f32 ox,
+                                    f32 oy,
+                                    f32 oz,
+                                    u32 count,
+                                    u32 blockStateId) {
+        MC_UNUSED(ox);
+        MC_UNUSED(oy);
+        MC_UNUSED(oz);
+        MC_UNUSED(count);
+
+        // 通过 BlockRegistry 解析方块状态 ID
+        const auto* blockState = ::mc::BlockRegistry::instance().getBlockState(blockStateId);
+        if (blockState == nullptr) {
+            return;
+        }
+
+        // 调用 ClientWorld::addBlockParticle 生成方块粒子
+        const ::mc::Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        const ::mc::Vector3 velocity(vx, vy, vz);
+        m_world.addBlockParticle(type, pos, velocity, *blockState);
+    };
+
     // 玩家列表回调 - 皮肤系统集成
     callbacks.onPlayerListAdd = [this](const std::vector<::mc::skin::PlayerListEntry>& entries) {
         if (!m_skinManager) {

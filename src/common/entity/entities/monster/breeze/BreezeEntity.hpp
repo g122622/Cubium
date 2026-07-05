@@ -25,6 +25,7 @@
 
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileDeflection.hpp"
+#include "common/entity/utils/AnimationState.hpp"
 #include <memory>
 
 namespace mc {
@@ -59,6 +60,18 @@ class ProjectileEntity;
  * - LongJump：长跳移动，跳跃距离3-5格
  * - Slide：在地面上滑行移动
  * - ShootWhenStuck：卡住时紧急射击
+ *
+ * 动画状态机（基于 Pose 驱动）：
+ * - idle：默认空闲动画，每 tick 持续触发
+ * - slide：滑行 Pose 时启动
+ * - slideBack：从滑行恢复站立时短暂触发的回弹动画
+ * - longJump：长跳中 Pose 时启动
+ * - shoot：射击 Pose 时启动
+ * - inhale：吸气蓄力 Pose 时启动
+ *
+ * Pose 切换由各 AI Goal 调用 setPose() 触发，tick() 中根据当前 Pose
+ * 发射地面/轨迹粒子并播放呼啸音效。AnimationState 字段维护动画时序，
+ * 用于 slide→slideBack 等状态机转换判定。
  *
  * 掉落：
  * - 狂风杖 1-2（仅被玩家击杀时掉落，受抢夺附魔影响，每级额外+1~2）
@@ -129,7 +142,7 @@ public:
     /**
      * @brief 重写死亡掉落逻辑
      *
-     * MC 原版 Breeze 死亡时掉落狂风杖：
+     * Breeze 死亡时掉落狂风杖：
      * - 仅在被玩家击杀时掉落（killed_by_player 条件）
      * - 基础数量 1-2 个
      * - 每级抢夺附魔额外增加 1-2 个
@@ -143,7 +156,7 @@ public:
     /**
      * @brief 检查是否可以攻击指定类型的实体
      *
-     * MC 原版 Breeze.canAttackType() 仅允许攻击玩家和铁傀儡。
+     * Breeze.canAttackType() 仅允许攻击玩家和铁傀儡。
      * 旋风人采用白名单模式，只攻击这两种实体类型。
      */
     [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
@@ -154,10 +167,40 @@ public:
      * 重写 Entity::deflection()。
      * 旋风人偏转除风弹外的所有投射物，并播放偏转音效。
      * 风弹（包括旋风人风弹和玩家风弹）不被偏转。
-     *
-     * 对应 MC Java 的 Breeze.deflection(Projectile)。
      */
     [[nodiscard]] ProjectileDeflection deflection(const entity::ProjectileEntity& projectile) const override;
+
+    // ========== 动画状态访问器 ==========
+
+    /**
+     * @brief 空闲动画状态
+     */
+    [[nodiscard]] const entity::AnimationState& idleAnimation() const noexcept { return m_idleAnim; }
+
+    /**
+     * @brief 滑行动画状态
+     */
+    [[nodiscard]] const entity::AnimationState& slideAnimation() const noexcept { return m_slideAnim; }
+
+    /**
+     * @brief 滑行回弹动画状态（从滑行姿态恢复站立时短暂触发）
+     */
+    [[nodiscard]] const entity::AnimationState& slideBackAnimation() const noexcept { return m_slideBackAnim; }
+
+    /**
+     * @brief 长跳动画状态
+     */
+    [[nodiscard]] const entity::AnimationState& longJumpAnimation() const noexcept { return m_longJumpAnim; }
+
+    /**
+     * @brief 射击动画状态
+     */
+    [[nodiscard]] const entity::AnimationState& shootAnimation() const noexcept { return m_shootAnim; }
+
+    /**
+     * @brief 吸气蓄力动画状态
+     */
+    [[nodiscard]] const entity::AnimationState& inhaleAnimation() const noexcept { return m_inhaleAnim; }
 
 protected:
     void registerGoals() override;
@@ -232,6 +275,76 @@ private:
      */
     void shootWindCharge();
 
+    // ========== 动画状态机 ==========
+
+    /**
+     * @brief 推进滑行回弹动画
+     *
+     * 当旋风人从滑行姿态恢复站立时，启动 slideBack 动画并停止 slide。
+     * 由 tick() 在 Pose != Sliding 且 slide 已启动时调用。
+     */
+    void updateSlideBackAnimation();
+
+    // ========== 粒子与音效 ==========
+
+    /**
+     * @brief 在脚下生成地面方块粒子
+     *
+     * @param count 粒子数量
+     *
+     * 在旋风人脚下位置生成 count 个 BLOCK 类型粒子，
+     * 粒子携带脚下方块的状态用于纹理渲染。
+     * 受骑乘状态抑制（被骑乘时不生成）。
+     */
+    void emitGroundParticles(i32 count);
+
+    /**
+     * @brief 重置跳跃轨迹计时器并返回自身
+     *
+     * 在 Pose 切换到 LONG_JUMPING 之外时调用，确保下次长跳从 0 开始计数。
+     */
+    void resetJumpTrail() { m_jumpTrailStartedTick = 0; }
+
+    /**
+     * @brief 发射长跳轨迹粒子
+     *
+     * 长跳中每 tick 调用，前 5 tick 在实体前方稍上方位置生成 3 个 BLOCK 粒子。
+     * 粒子携带实体当前穿过/脚下的方块状态。
+     */
+    void emitJumpTrailParticles();
+
+    /**
+     * @brief 播放旋风人呼啸音效
+     *
+     * 随机间隔触发，音量和音调带有随机扰动。
+     */
+    void playWhirlSound();
+
+    // ========== 动画状态字段 ==========
+
+    /// 空闲动画（持续触发，每 tick startIfStopped）
+    entity::AnimationState m_idleAnim;
+    /// 滑行动画（Sliding Pose 时启动）
+    entity::AnimationState m_slideAnim;
+    /// 滑行回弹动画（从 Sliding 恢复站立时短暂触发）
+    entity::AnimationState m_slideBackAnim;
+    /// 长跳动画（LongJumping Pose 时启动）
+    entity::AnimationState m_longJumpAnim;
+    /// 射击动画（Shooting Pose 时启动）
+    entity::AnimationState m_shootAnim;
+    /// 吸气蓄力动画（Inhaling Pose 时启动）
+    entity::AnimationState m_inhaleAnim;
+
+    // ========== 长跳轨迹与音效计时 ==========
+
+    /// 长跳轨迹已发射的 tick 数（>5 后停止发射，0 表示未启动）
+    i32 m_jumpTrailStartedTick = 0;
+
+    /// 呼啸音效下次触发的倒计时（0 表示触发并重新随机化）
+    i32 m_soundTick = 0;
+
+    // ========== AI 状态字段 ==========
+
     /// 是否正在滑行
     bool m_sliding = false;
 
@@ -246,6 +359,21 @@ private:
 
     /// 是否正在长跳中（吸气或跳跃阶段）
     bool m_isLongJumping = false;
+
+    // ========== 常量 ==========
+
+    /// 滑行姿态每 tick 发射的地面粒子数
+    static constexpr i32 SLIDE_PARTICLES_AMOUNT = 20;
+    /// 站立/射击/吸气姿态每 tick 发射的地面粒子数（实际为 1 + nextInt(1)）
+    static constexpr i32 IDLE_PARTICLES_AMOUNT = 1;
+    /// 长跳轨迹粒子每 tick 发射数量
+    static constexpr i32 JUMP_TRAIL_PARTICLES_AMOUNT = 3;
+    /// 长跳轨迹粒子持续 tick 数
+    static constexpr i32 JUMP_TRAIL_DURATION_TICKS = 5;
+    /// 呼啸音效随机间隔下限（ticks）
+    static constexpr i32 WHIRL_SOUND_FREQUENCY_MIN = 1;
+    /// 呼啸音效随机间隔上限（ticks）
+    static constexpr i32 WHIRL_SOUND_FREQUENCY_MAX = 80;
 };
 
 } // namespace mc

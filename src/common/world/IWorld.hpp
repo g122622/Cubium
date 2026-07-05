@@ -1231,6 +1231,27 @@ public:
     }
 
     /**
+     * @brief 生成方块粒子（携带方块状态）
+     *
+     * 用于 Block/Breaking/FallingDust 等需要方块纹理的粒子。
+     * 服务端：广播 ParticlePacket（携带 blockStateId）给附近玩家
+     * 客户端：调用 ClientWorld::addBlockParticle 直接生成
+     *
+     * @param type 粒子类型（必须为 requiresBlockState 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param blockState 方块状态（用于粒子纹理和颜色）
+     */
+    virtual void addBlockParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState)
+    {
+        (void)type;
+        (void)pos;
+        (void)velocity;
+        (void)blockState;
+    }
+
+    /**
      * @brief 生成轨迹粒子（Trail Particle）
      *
      * 用于眼眸花状态切换等场景。Trail 粒子会从 pos 飞向 targetPosition，

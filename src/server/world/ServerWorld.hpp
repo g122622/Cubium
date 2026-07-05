@@ -561,6 +561,20 @@ public:
         m_onBroadcastEntityEffectParticle = std::move(callback);
     }
 
+    /**
+     * @brief 方块粒子广播回调类型
+     *
+     * 当服务端需要广播携带方块状态的粒子（Block/Breaking 等）给玩家时调用。
+     * 参数：粒子类型、位置、速度、方块状态 ID
+     */
+    using BlockParticleBroadcastCallback = std::function<void(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, u32 blockStateId)>;
+
+    void setOnBroadcastBlockParticle(BlockParticleBroadcastCallback callback)
+    {
+        m_onBroadcastBlockParticle = std::move(callback);
+    }
+
     // ========== 实体状态广播回调 ==========
 
     /**
@@ -738,6 +752,22 @@ public:
      */
     void addEntityEffectParticle(
         const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color) override;
+
+    /**
+     * @brief 添加方块粒子（携带方块状态 ID）
+     *
+     * 服务端通过 ParticlePacket.createBlock 编码 blockStateId 到可选数据中，
+     * 广播给附近玩家。客户端解码后调用 ClientWorld::addBlockParticle 生成粒子。
+     *
+     * @param type 粒子类型（必须为 requiresBlockState 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param blockState 方块状态（用于粒子纹理和颜色）
+     */
+    void addBlockParticle(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const BlockState& blockState) override;
 
     [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const override;
 
@@ -1356,6 +1386,7 @@ private:
     VibrationParticleBroadcastCallback m_onBroadcastVibrationParticle;
     TrailParticleBroadcastCallback m_onBroadcastTrailParticle;
     EntityEffectParticleBroadcastCallback m_onBroadcastEntityEffectParticle;
+    BlockParticleBroadcastCallback m_onBroadcastBlockParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;

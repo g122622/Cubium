@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/special/BreezeGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityPose.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -40,10 +41,15 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 
@@ -53,7 +59,7 @@ BreezeEntity::BreezeEntity(EntityId id)
     registerGoals();
     registerAttributes();
 
-    // MC 原版 Breeze 经验值为 10
+    // Breeze 经验值为 10
     setExperienceValue(10);
 }
 
@@ -64,6 +70,43 @@ std::unique_ptr<Entity> BreezeEntity::create(IWorld* /*world*/)
 
 void BreezeEntity::tick()
 {
+    // 根据当前 Pose 发射粒子、推进动画状态
+    const EntityPose pose = this->pose();
+    switch (pose) {
+        case EntityPose::Shooting:
+        case EntityPose::Inhaling:
+        case EntityPose::Standing:
+            resetJumpTrail();
+            emitGroundParticles(IDLE_PARTICLES_AMOUNT + static_cast<i32>(getRandom().nextInt(1)));
+            break;
+        case EntityPose::Sliding:
+            emitGroundParticles(SLIDE_PARTICLES_AMOUNT);
+            break;
+        case EntityPose::LongJumping:
+            m_longJumpAnim.startIfStopped(static_cast<i32>(ticksExisted()));
+            emitJumpTrailParticles();
+            break;
+        default:
+            // 其他姿态不发射地面/轨迹粒子
+            break;
+    }
+
+    // 空闲动画持续触发
+    m_idleAnim.startIfStopped(static_cast<i32>(ticksExisted()));
+
+    // 滑行 → 滑行回弹动画过渡
+    updateSlideBackAnimation();
+
+    // 呼啸音效随机播放
+    if (m_soundTick == 0) {
+        m_soundTick = getRandom().nextInt(WHIRL_SOUND_FREQUENCY_MIN, WHIRL_SOUND_FREQUENCY_MAX);
+    } else {
+        --m_soundTick;
+    }
+    if (m_soundTick == 0) {
+        playWhirlSound();
+    }
+
     MonsterEntity::tick();
 
     // 更新射击冷却
@@ -85,16 +128,99 @@ void BreezeEntity::tick()
     if (m_isLongJumping && onGround()) {
         m_isLongJumping = false;
     }
+}
 
-    // TODO(trial_chambers): 实现旋风人动画状态机
-    // 空闲 → 滑行 → 长跳蓄力 → 长跳中 → 射击
+void BreezeEntity::updateSlideBackAnimation()
+{
+    // 当旋风人不再处于滑行姿态但滑行动画仍在播放时，
+    // 启动滑行回弹动画并停止滑行动画。
+    if (pose() != EntityPose::Sliding && m_slideAnim.isStarted()) {
+        m_slideBackAnim.start(static_cast<i32>(ticksExisted()));
+        m_slideAnim.stop();
+    }
+}
+
+void BreezeEntity::emitGroundParticles(i32 count)
+{
+    // 被骑乘时不发射地面粒子
+    if (isRiding()) {
+        return;
+    }
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 计算实体碰撞箱中心点的地面位置
+    const AxisAlignedBB bbox = boundingBox();
+    const Vector3 center = bbox.center();
+    const Vector3 groundPos(center.x, position().y, center.z);
+
+    // 获取脚下方块状态（实体所站立的方块）
+    const BlockPos belowPos(static_cast<i32>(std::floor(groundPos.x)),
+        static_cast<i32>(std::floor(groundPos.y)) - 1,
+        static_cast<i32>(std::floor(groundPos.z)));
+    const BlockState* blockState = m_world->getBlockState(belowPos);
+    if (blockState == nullptr || blockState->isAir()) {
+        return;
+    }
+
+    // 发射 count 个 BLOCK 类型粒子，携带方块状态
+    for (i32 i = 0; i < count; ++i) {
+        m_world->addBlockParticle(particle::ParticleTypeId::Block, groundPos, Vector3(0.0, 0.0, 0.0), *blockState);
+    }
+}
+
+void BreezeEntity::emitJumpTrailParticles()
+{
+    // 前 5 tick 发射轨迹粒子
+    if (++m_jumpTrailStartedTick > JUMP_TRAIL_DURATION_TICKS) {
+        return;
+    }
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取实体当前穿过或脚下的方块状态
+    const BlockPos currentPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+    const BlockState* blockState = m_world->getBlockState(currentPos);
+    if (blockState == nullptr || blockState->isAir()) {
+        // 回退到脚下方块
+        const BlockPos belowPos(static_cast<i32>(std::floor(x())),
+            static_cast<i32>(std::floor(y())) - 1,
+            static_cast<i32>(std::floor(z())));
+        blockState = m_world->getBlockState(belowPos);
+        if (blockState == nullptr || blockState->isAir()) {
+            return;
+        }
+    }
+
+    // 在实体前方稍上方位置发射 3 个 BLOCK 粒子
+    const Vector3 lookAhead = position() + velocity() + Vector3(0.0f, 0.1f, 0.0f);
+    for (i32 i = 0; i < JUMP_TRAIL_PARTICLES_AMOUNT; ++i) {
+        m_world->addBlockParticle(particle::ParticleTypeId::Block, lookAhead, Vector3(0.0, 0.0, 0.0), *blockState);
+    }
+}
+
+void BreezeEntity::playWhirlSound()
+{
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 音调和音量带随机扰动
+    const f32 volume = 0.8f + 0.2f * getRandom().nextFloat();
+    const f32 pitch = 0.7f + 0.4f * getRandom().nextFloat();
+    m_world->playSound(SoundEvents::ENTITY_BREEZE_WHIRL, sound::SoundCategory::Hostile, position(), volume, pitch);
 }
 
 void BreezeEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // 行为目标（参考 MC Java BreezeAi.FIGHT 行为优先级）
+    // 行为目标（参考 BreezeAi.FIGHT 行为优先级）
     m_goalSelector.addGoal(1, new entity::ai::goal::SwimGoal(this));
     m_goalSelector.addGoal(2, new entity::ai::goal::BreezeShootGoal(this));          // 射击风弹
     m_goalSelector.addGoal(3, new entity::ai::goal::BreezeLongJumpGoal(this));       // 长跳移动
@@ -121,14 +247,14 @@ void BreezeEntity::registerAttributes()
 
 bool BreezeEntity::canAttackType(entity::EntityTypeId typeId) const
 {
-    // MC 原版 Breeze.canAttackType()：仅允许攻击玩家和铁傀儡
+    // Breeze.canAttackType()：仅允许攻击玩家和铁傀儡
     // 旋风人采用白名单模式，其余所有实体类型都不能被攻击
     return typeId == entity::EntityTypeIdNumber::PLAYER || typeId == entity::EntityTypeIdNumber::IRON_GOLEM;
 }
 
 ProjectileDeflection BreezeEntity::deflection(const entity::ProjectileEntity& projectile) const
 {
-    // MC Java: Breeze.deflection(Projectile)
+    // Breeze.deflection(Projectile)
     // 旋风人不偏转风弹（包括旋风人风弹和玩家风弹）
     if (dynamic_cast<const entity::WindChargeEntity*>(&projectile) != nullptr) {
         return ProjectileDeflection::None;
@@ -194,7 +320,7 @@ void BreezeEntity::die(DamageSource& source)
     // 调用父类 die()，处理死亡动画和经验掉落
     MonsterEntity::die(source);
 
-    // MC 原版 Breeze 掉落逻辑：
+    // Breeze 掉落逻辑：
     // 战利品表 minecraft:entities/breeze 定义：
     //   - 条件: killed_by_player
     //   - 物品: Breeze Rod

@@ -256,6 +256,23 @@ struct NetworkClientCallbacks {
     std::function<void(f64 x, f64 y, f64 z, f32 vx, f32 vy, f32 vz, f32 ox, f32 oy, f32 oz, u32 count, u32 color)>
         onEntityEffectParticle;
 
+    // 方块粒子回调（携带方块状态 ID）
+    // 用于 Block/Breaking/FallingDust/BlockMarker/BlockCrumble/DustPillar 等粒子，
+    // 客户端通过 BlockRegistry::instance().getBlockState(stateId) 解析回 BlockState。
+    std::function<void(particle::ParticleTypeId type,
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        f32 ox,
+        f32 oy,
+        f32 oz,
+        u32 count,
+        u32 blockStateId)>
+        onBlockParticle;
+
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 

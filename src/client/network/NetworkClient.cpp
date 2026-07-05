@@ -1899,6 +1899,25 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
                 color.value());
         }
     }
+
+    // 方块粒子特殊处理：解码方块状态 ID
+    if (packet.isBlockParticle() && m_callbacks.onBlockParticle) {
+        auto stateId = packet.decodeBlockStateId();
+        if (stateId.has_value()) {
+            m_callbacks.onBlockParticle(packet.particleType(),
+                packet.x(),
+                packet.y(),
+                packet.z(),
+                packet.velocityX(),
+                packet.velocityY(),
+                packet.velocityZ(),
+                packet.offsetX(),
+                packet.offsetY(),
+                packet.offsetZ(),
+                packet.count(),
+                stateId.value());
+        }
+    }
 }
 
 void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)

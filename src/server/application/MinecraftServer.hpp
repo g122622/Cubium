@@ -939,6 +939,23 @@ protected:
     void broadcastEntityEffectParticleInRange(
         const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color, f32 range = 256.0f);
 
+    /**
+     * @brief 广播方块粒子（携带方块状态 ID）给范围内玩家
+     *
+     * 用于旋风人地面粒子、长跳轨迹粒子等需要方块纹理的场景。
+     *
+     * @param type 粒子类型（必须为 requiresBlockState 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param blockStateId 方块状态 ID（BlockState::stateId()）
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastBlockParticleInRange(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        u32 blockStateId,
+        f32 range = 256.0f);
+
     // ========== 爆炸广播方法 ==========
 
     /**

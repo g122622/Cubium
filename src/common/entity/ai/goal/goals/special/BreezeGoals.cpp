@@ -122,6 +122,9 @@ void BreezeShootGoal::startExecuting()
     m_chargeTime = CHARGE_TICKS;
     m_recoverTime = 0;
 
+    // 切换到射击姿态（参考 MC Shoot.start）
+    m_breeze->setPose(EntityPose::Shooting);
+
     // 播放吸气音效
     if (m_breeze->world() != nullptr) {
         m_breeze->world()->playSound(
@@ -136,6 +139,11 @@ void BreezeShootGoal::resetTask()
     m_hasFired = false;
     m_chargeTime = 0;
     m_recoverTime = 0;
+
+    // 仅在当前处于射击姿态时恢复站立（参考 MC Shoot.stop）
+    if (m_breeze->pose() == EntityPose::Shooting) {
+        m_breeze->setPose(EntityPose::Standing);
+    }
 
     // 清除射击许可并设置冷却
     m_breeze->clearShootPermit();
@@ -276,6 +284,9 @@ void BreezeLongJumpGoal::startExecuting()
     m_isJumping = false;
     m_inhaleTime = INHALE_TICKS;
 
+    // 切换到吸气姿态（参考 MC LongJump.start）
+    m_breeze->setPose(EntityPose::Inhaling);
+
     // 播放蓄力音效
     if (m_breeze->world() != nullptr) {
         m_breeze->world()->playSound(
@@ -291,6 +302,14 @@ void BreezeLongJumpGoal::startExecuting()
 
 void BreezeLongJumpGoal::resetTask()
 {
+    // 若仍处于长跳或吸气姿态，恢复站立（参考 MC LongJump.stop）
+    if (m_breeze != nullptr) {
+        const EntityPose pose = m_breeze->pose();
+        if (pose == EntityPose::LongJumping || pose == EntityPose::Inhaling) {
+            m_breeze->setPose(EntityPose::Standing);
+        }
+    }
+
     m_isInhaling = false;
     m_isJumping = false;
     m_inhaleTime = 0;
@@ -328,6 +347,10 @@ void BreezeLongJumpGoal::tick()
                         1.0f);
                 }
 
+                // 切换到长跳姿态（参考 MC LongJump.tick 中 isFinishedInhaling 分支）
+                m_breeze->setPose(EntityPose::LongJumping);
+                m_breeze->setLongJumping(true);
+
                 // 施加跳跃速度
                 const Vector3& vel = jumpVec.value();
                 m_breeze->setVelocity(vel.x, vel.y, vel.z);
@@ -335,7 +358,8 @@ void BreezeLongJumpGoal::tick()
                 m_isInhaling = false;
                 m_isJumping = true;
             } else {
-                // 无法找到有效跳跃向量，取消
+                // 无法找到有效跳跃向量，取消并恢复站立
+                m_breeze->setPose(EntityPose::Standing);
                 resetTask();
             }
         }
@@ -347,6 +371,9 @@ void BreezeLongJumpGoal::tick()
                 m_breeze->world()->playSound(
                     SoundEvents::ENTITY_BREEZE_LAND, sound::SoundCategory::Hostile, m_breeze->position(), 1.0f, 1.0f);
             }
+
+            // 切换回站立姿态（参考 MC LongJump.tick 中 isFinishedJumping 分支）
+            m_breeze->setPose(EntityPose::Standing);
 
             m_isJumping = false;
 
@@ -593,6 +620,9 @@ void BreezeSlideGoal::startExecuting()
     // 设置滑行状态和移动目标
     m_breeze->setSliding(true);
 
+    // 切换到滑行姿态（参考 MC BreezeAi.SlideToTargetSink.start）
+    m_breeze->setPose(EntityPose::Sliding);
+
     auto* moveCtrl = m_breeze->moveController();
     if (moveCtrl != nullptr) {
         moveCtrl->setMoveTo(static_cast<f64>(slideTarget.x),
@@ -616,6 +646,9 @@ void BreezeSlideGoal::resetTask()
     m_target = nullptr;
     if (m_breeze != nullptr) {
         m_breeze->setSliding(false);
+
+        // 切换回站立姿态（参考 MC BreezeAi.SlideToTargetSink.stop）
+        m_breeze->setPose(EntityPose::Standing);
     }
 }
 

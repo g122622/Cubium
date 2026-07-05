@@ -672,4 +672,45 @@ std::optional<u32> ParticlePacket::decodeEntityEffectColor() const
     return static_cast<u32>(colorResult.value());
 }
 
+// static
+ParticlePacket ParticlePacket::createBlock(particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count,
+    u32 blockStateId)
+{
+    ParticlePacket packet(type, pos, velocity, offset, count);
+
+    // 编码可选数据：VarInt blockStateId
+    PacketSerializer serializer(5);
+    serializer.writeVarInt(static_cast<i32>(blockStateId));
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+bool ParticlePacket::isBlockParticle() const noexcept
+{
+    return particle::requiresBlockState(m_particleType) && !m_optionalData.empty();
+}
+
+std::optional<u32> ParticlePacket::decodeBlockStateId() const
+{
+    if (!isBlockParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：VarInt blockStateId
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+    auto stateIdResult = deserializer.readVarInt();
+    if (!stateIdResult.success()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(stateIdResult.value());
+}
+
 } // namespace mc::network

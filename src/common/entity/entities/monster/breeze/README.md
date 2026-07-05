@@ -6,7 +6,7 @@ MC 1.21 新增的敌对生物，在试炼密室中生成。
 
 ```
 breeze/
-├── BreezeEntity.hpp/cpp   # 旋风人实体（风弹攻击、滑行、长跳）
+├── BreezeEntity.hpp/cpp   # 旋风人实体（风弹攻击、滑行、长跳、动画状态机）
 └── README.md
 ```
 
@@ -15,11 +15,89 @@ breeze/
 ```
 MonsterEntity (敌对生物基类)
   └── BreezeEntity — 旋风人
+        ├── tick() — 每 tick 根据 Pose 发射粒子、推进动画状态、播放呼啸音效
         ├── shootWindCharge() — 发射风弹
         ├── deflection() — 偏转投射物（重写 Entity::deflection，风弹除外，播放偏转音效）
         ├── die() — 死亡掉落狂风杖（仅被玩家击杀时，1-2个，受抢夺附魔影响）
+        ├── updateSlideBackAnimation() — 滑行→站立过渡时触发 slideBack 动画
+        ├── emitGroundParticles(count) — 在脚下生成 BLOCK 粒子（携带方块状态）
+        ├── emitJumpTrailParticles() — 长跳轨迹粒子（前 5 tick 每 tick 3 个）
+        ├── playWhirlSound() — 随机呼啸音效（音量/音调带扰动）
         └── AI 行为目标（注册在 registerGoals()）
 ```
+
+## 动画状态机
+
+旋风人的客户端动画基于 `EntityPose` 驱动，服务端通过 `setPose()` 切换姿态，
+客户端在 Pose 同步后启动对应的 `AnimationState`。Pose 转换由各 AI Goal 触发：
+
+```
+              ┌──────────┐
+        ┌────→│ Standing │←──────────────────────────────┐
+        │     └──────────┘                                │
+        │         │                                       │
+        │         │ BreezeShootGoal.start                 │
+        │         ↓                                       │
+        │     ┌──────────┐                                │
+        │     │ Shooting │── BreezeShootGoal.resetTask ───┘
+        │     └──────────┘
+        │
+        │         │ BreezeLongJumpGoal.start
+        │         ↓
+        │     ┌──────────┐
+        │     │ Inhaling │── isFinishedInhaling(成功) ──┐
+        │     └──────────┘                              │
+        │         │                                     ↓
+        │         │ isFinishedInhaling(失败/无向量)  ┌────────────┐
+        │         ↓                                  │ LongJumping│
+        │     ┌──────────┐                          └────────────┘
+        │     │ Standing │── isFinishedJumping(着陆)──┘
+        │     └──────────┘
+        │
+        │         │ BreezeSlideGoal.start
+        │         ↓
+        │     ┌──────────┐
+        └────│ Sliding  │── BreezeSlideGoal.resetTask
+              └──────────┘
+```
+
+各 Goal 中的 Pose 转换（参考 MC 1.21.11 `Shoot.java` / `LongJump.java` / `BreezeAi.SlideToTargetSink`）：
+
+| Goal | 方法 | Pose 转换 |
+|---|---|---|
+| BreezeShootGoal | startExecuting | Standing → Shooting |
+| BreezeShootGoal | resetTask | Shooting → Standing（带条件守卫） |
+| BreezeLongJumpGoal | startExecuting | * → Inhaling |
+| BreezeLongJumpGoal | tick（吸气完成且有跳跃向量） | Inhaling → LongJumping |
+| BreezeLongJumpGoal | tick（吸气完成但无跳跃向量） | Inhaling → Standing |
+| BreezeLongJumpGoal | tick（着陆） | LongJumping → Standing |
+| BreezeLongJumpGoal | resetTask | LongJumping/Inhaling → Standing（带条件守卫） |
+| BreezeSlideGoal | startExecuting | * → Sliding |
+| BreezeSlideGoal | resetTask | Sliding → Standing |
+
+`tick()` 中根据当前 Pose 发射粒子并推进动画：
+
+| Pose | 粒子 | 动画 |
+|---|---|---|
+| Standing / Shooting / Inhaling | 地面粒子 1 + nextInt(1) 个 | idle.startIfStopped |
+| Sliding | 地面粒子 20 个 | idle.startIfStopped；离开 Sliding 时启动 slideBack |
+| LongJumping | 跳跃轨迹粒子（前 5 tick 每 tick 3 个） | longJump.startIfStopped |
+
+AnimationState 字段说明：
+
+| 字段 | 含义 | 触发时机 |
+|---|---|---|
+| m_idleAnim | 空闲动画 | 每 tick `startIfStopped` |
+| m_slideAnim | 滑行动画 | Pose 切换到 Sliding 时由客户端启动 |
+| m_slideBackAnim | 滑行回弹动画 | Pose 离开 Sliding 且 slide 已启动时启动 |
+| m_longJumpAnim | 长跳动画 | Pose 为 LongJumping 时由 tick 启动 |
+| m_shootAnim | 射击动画 | Pose 切换到 Shooting 时由客户端启动 |
+| m_inhaleAnim | 吸气动画 | Pose 切换到 Inhaling 时由客户端启动 |
+
+> 注意：Cubium 架构中服务端 `BreezeEntity` 与客户端 `ClientEntity` 是分离的两个类
+> （与 MC 单类设计不同）。服务端 `BreezeEntity` 维护 `AnimationState` 字段用于
+> 镜像 MC 设计，并为未来客户端渲染器查询做好准备；客户端的 Pose 同步与动画
+> 启动由 `ClientEntity` 在收到 EntityDataManager 更新时处理。
 
 ## 上下游外部依赖关系
 
@@ -32,12 +110,16 @@ MonsterEntity (敌对生物基类)
 - `WindChargeEntity` — 风弹弹射物实体
 - `ProjectileEntity` — 弹射物基类（deflection 参数类型）
 - `ProjectileDeflection` — 弹射物偏转类型枚举
+- `AnimationState` — 动画状态机工具类
+- `EntityPose` — 实体姿态枚举（新增 Sliding/Shooting/Inhaling/LongJumping）
 - `SoundEvents` / `SoundCategory` — 音效播放
-- `IWorld` — 世界接口（spawnEntity、playSound）
+- `IWorld` — 世界接口（spawnEntity、playSound、addBlockParticle）
 - `Items::BREEZE_ROD` — 狂风杖物品（死亡掉落）
 - `ItemDropHelper` — 物品掉落工具
 - `EnchantmentHelper` — 抢夺附魔查询
 - `Player` — 玩家实体（判断击杀者、获取武器附魔）
+- `ParticleTypes` / `ParticleTypeId` — 粒子类型
+- `BlockState` — 方块状态（粒子携带）
 
 ## 容易踩的坑
 
@@ -51,3 +133,12 @@ MonsterEntity (敌对生物基类)
    - `BreezeShootWhenStuckGoal`（优先级4）：卡住时（水中/骑乘/飘浮）紧急射击
    - `BreezeSlideGoal`（优先级5）：地面滑行移动，内圈逃跑或中圈/目标身后移动，结束后设置射击许可
    - `shootWindCharge()` 方法由 BreezeShootGoal 调用触发
+
+4. **Pose 转换必须带条件守卫**：`resetTask` 中切换回 `Standing` 前必须检查当前 Pose 是否仍为该 Goal 拥有的姿态（如 `Shooting`/`LongJumping`/`Inhaling`/`Sliding`），避免误覆盖其他 Goal 设置的 Pose。这与 MC 原版 `Shoot.stop`、`LongJump.stop` 的实现保持一致。
+
+5. **粒子携带方块状态**：`emitGroundParticles` 和 `emitJumpTrailParticles` 都发射 `ParticleTypeId::Block` 类型粒子，需要携带方块状态用于纹理渲染。这通过 `IWorld::addBlockParticle` → `ServerWorld` 广播回调 → `MinecraftServer::broadcastBlockParticleInRange` → `ParticlePacket::createBlock` → `NetworkClient::onBlockParticle` → `ClientApplicationNetwork` 调用 `BlockRegistry::getBlockState(stateId)` 还原 → 客户端世界 `addBlockParticle` 的链路完成。
+
+6. **呼啸音效随机间隔**：`m_soundTick == 0` 时触发并重新随机化（1-80 ticks），否则每 tick 递减。音量 = `0.8 + 0.2 * nextFloat`，音调 = `0.7 + 0.4 * nextFloat`。
+
+7. **长跳轨迹粒子持续 5 tick**：`m_jumpTrailStartedTick` 从 0 开始，进入 `LongJumping` Pose 后每 tick 自增并发射 3 个粒子，超过 `JUMP_TRAIL_DURATION_TICKS`（5）后停止。Pose 切换回非 `LongJumping` 时由 `resetJumpTrail()` 重置计数器。
+

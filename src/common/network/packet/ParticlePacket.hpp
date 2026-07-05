@@ -437,6 +437,50 @@ public:
      */
     [[nodiscard]] std::optional<u32> decodeEntityEffectColor() const;
 
+    // ========== 方块粒子数据编解码 ==========
+
+    /**
+     * @brief 创建方块粒子包（带方块状态 ID）
+     *
+     * 方块粒子（Block/Breaking/FallingDust/BlockMarker/BlockCrumble/DustPillar）
+     * 需要额外数据：方块状态 ID，用于客户端选择正确的方块纹理。
+     *
+     * 可选数据格式：VarInt blockStateId
+     *
+     * @param type 粒子类型（必须为 requiresBlockState 返回 true 的类型）
+     * @param pos 位置
+     * @param velocity 速度
+     * @param offset 偏移范围
+     * @param count 粒子数量
+     * @param blockStateId 方块状态 ID（BlockState::stateId()）
+     */
+    static ParticlePacket createBlock(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count,
+        u32 blockStateId);
+
+    /**
+     * @brief 检查此粒子包是否为携带方块状态的方块粒子
+     *
+     * 方块粒子包的粒子类型必须为 requiresBlockState 返回 true 的类型，
+     * 且含有可选数据。
+     *
+     * @return 是否为携带方块状态的方块粒子
+     */
+    [[nodiscard]] bool isBlockParticle() const noexcept;
+
+    /**
+     * @brief 解码方块粒子的方块状态 ID
+     *
+     * 仅当 isBlockParticle() 返回 true 时有效。
+     * 客户端可通过 BlockRegistry::instance().getBlockState(stateId) 解析回 BlockState。
+     *
+     * @return 方块状态 ID，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<u32> decodeBlockStateId() const;
+
 private:
     particle::ParticleTypeId m_particleType = particle::ParticleTypeId::Invalid;
 

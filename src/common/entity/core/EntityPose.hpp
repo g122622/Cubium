@@ -35,15 +35,21 @@ using mc::u8;
  *
  * 不同的姿态影响实体的尺寸（高度）和眼睛高度。
  * 例如：蹲下时玩家变矮，游泳时玩家变得更扁平。
+ *
+ * 编号与原版 Pose 序号保持一致，以便网络同步与存档兼容。
  */
 enum class EntityPose : u8 {
-    Standing = 0,   // 站立 - 默认姿态
-    FallFlying = 1, // 鞘翅飞行
-    Sleeping = 2,   // 睡眠
-    Swimming = 3,   // 游泳
-    SpinAttack = 4, // 三叉戟激流攻击
-    Crouching = 5,  // 蹲下/潜行
-    Dying = 6       // 死亡动画
+    Standing = 0,    // 站立 - 默认姿态
+    FallFlying = 1,  // 鞘翅飞行
+    Sleeping = 2,    // 睡眠
+    Swimming = 3,    // 游泳
+    SpinAttack = 4,  // 三叉戟激流攻击
+    Crouching = 5,   // 蹲下/潜行
+    Dying = 6,       // 死亡动画
+    Sliding = 7,     // 滑行 - 旋风人专用
+    Shooting = 8,    // 射击 - 旋风人专用
+    Inhaling = 9,    // 吸气蓄力 - 旋风人专用
+    LongJumping = 10 // 长跳中 - 旋风人专用
 };
 
 /**
@@ -68,6 +74,14 @@ inline const char* getPoseName(EntityPose pose)
             return "crouching";
         case EntityPose::Dying:
             return "dying";
+        case EntityPose::Sliding:
+            return "sliding";
+        case EntityPose::Shooting:
+            return "shooting";
+        case EntityPose::Inhaling:
+            return "inhaling";
+        case EntityPose::LongJumping:
+            return "long_jumping";
     }
     return "unknown";
 }
@@ -86,6 +100,10 @@ inline EntityPose getPoseByName(const std::string& name)
     if (name == "spin_attack") return EntityPose::SpinAttack;
     if (name == "crouching") return EntityPose::Crouching;
     if (name == "dying") return EntityPose::Dying;
+    if (name == "sliding") return EntityPose::Sliding;
+    if (name == "shooting") return EntityPose::Shooting;
+    if (name == "inhaling") return EntityPose::Inhaling;
+    if (name == "long_jumping") return EntityPose::LongJumping;
     return EntityPose::Standing;
 }
 

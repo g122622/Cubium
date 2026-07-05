@@ -2308,6 +2308,15 @@ void ServerWorld::addEntityEffectParticle(
     }
 }
 
+void ServerWorld::addBlockParticle(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState)
+{
+    // 服务端不生成粒子，而是广播携带方块状态 ID 的方块粒子给附近玩家
+    if (m_onBroadcastBlockParticle) {
+        m_onBroadcastBlockParticle(type, pos, velocity, blockState.stateId());
+    }
+}
+
 bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送

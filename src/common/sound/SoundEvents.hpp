@@ -677,6 +677,9 @@ extern const ResourceLocation ENTITY_BREEZE_SLIDE;
 /// 旋风人偏转投射物
 extern const ResourceLocation ENTITY_BREEZE_DEFLECT;
 
+/// 旋风人呼啸环境音（随机间隔播放）
+extern const ResourceLocation ENTITY_BREEZE_WHIRL;
+
 // ============================================================================
 // 重锤声音
 // ============================================================================
