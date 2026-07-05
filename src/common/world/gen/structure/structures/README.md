@@ -74,3 +74,10 @@ structures/
 - **Jigsaw 系统配置**：Jigsaw 结构需要正确配置拼图池（`JigsawPool`）和起始模板，否则无法生成或生成异常
 - **递归生成终止条件**：递归生成结构（末地城、要塞）需要正确实现终止条件，否则可能导致无限递归或生成失败
 - **林地府邸房间位标志**：`_identifyRooms()` 在房间网格中设置位标志：0x10000(1x1)/0x20000(1x2)/0x40000(2x2)为房间类型，0x100000为门位置，0x200000为走廊入口标志（门位置与走廊value=1相邻时设置），0x400000为楼梯标志，0x800000为楼梯入口。0x200000标志是三楼走廊生成的关键前提——`_setupThirdFloor()` 仅选择有0x200000标志的1x2房间作为楼梯房间
+- **废弃传送门处理器链**：`RuinedPortalPiece::generate()` 按顺序组装 6 类结构处理器，对应 MC 1.21.11 `RuinedPortalPiece#makeSettings`：
+  1. `BlockIgnoreStructureProcessor`：airPocket 时只忽略 STRUCTURE_BLOCK，否则忽略 STRUCTURE_AND_AIR
+  2. `RuleStructureProcessor`：金块→空气(0.3)、岩浆规则(按位置/寒冷分支)、非寒冷时下界岩→岩浆块(0.07)
+  3. `BlockAgeProcessor`：按 `mossiness` 苔藓化石砖/楼梯/台阶/墙/黑曜石
+  4. `ProtectedBlocksProcessor`：保护 `#minecraft:features_cannot_replace` 标签方块不被覆盖（依赖 `PlacementSettings::setWorld()`）
+  5. `LavaSubmergingProcessor`：岩浆海中非固体方块替换为岩浆（依赖 `PlacementSettings::setWorld()`）
+  6. `BlackstoneReplacementProcessor`：仅 `replaceWithBlackstone=true`（下界变体）时添加，将石质方块替换为黑石变体

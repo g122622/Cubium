@@ -995,6 +995,7 @@ add_executable(mc_tests
     common/world/gen/structure/PlaceEndPortalFramesTest.cpp
     common/world/gen/structure/StrongholdPiecesTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp
+    common/world/gen/structure/RuinedPortalStructureTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp
     common/world/gen/jigsaw/test_pos_rule_test.cpp
