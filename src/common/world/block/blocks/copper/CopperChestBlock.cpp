@@ -27,8 +27,10 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 
 namespace mc {
@@ -159,6 +161,114 @@ std::unique_ptr<BlockEntity> CopperChestBlock::createBlockEntity(const BlockPos&
     // shouldChangedStateKeepBlockEntity 机制处理，此处创建的是空箱子实体
     // （仅在方块首次放置时调用；氧化/涂蜡/除蜡/刮削时复用旧实体）
     return std::make_unique<blockentity::ChestEntity>(pos);
+}
+
+BlockState CopperChestBlock::getFromCopperBlock(
+    const Block* copperBlock, Direction facing, IWorld& world, const BlockPos& pos)
+{
+    // 对应 MC 1.21.11: CopperChestBlock.getFromCopperBlock
+    //   CopperChestBlock copperchestblock = (CopperChestBlock)COPPER_TO_COPPER_CHEST_MAPPING
+    //       .getOrDefault(p_434003_, Blocks.COPPER_CHEST::asBlock).get();
+    //   ChestType chesttype = copperchestblock.getChestType(p_442654_, p_443072_, p_442692_);
+    //   BlockState blockstate = copperchestblock.defaultBlockState()
+    //       .setValue(FACING, p_442692_).setValue(TYPE, chesttype);
+    //   return getLeastOxidizedChestOfConnectedBlocks(blockstate, p_442654_, p_443072_);
+
+    // 选择目标铜箱子方块：根据源铜块的氧化等级与涂蜡状态映射
+    // 涂蜡铜块映射到对应氧化等级的"未涂蜡"铜箱子（与 MC 一致：涂蜡状态不传递到箱子）
+    Block* targetChestBlock = VanillaBlocks::COPPER_CHEST;
+    if (copperBlock != nullptr) {
+        if (copperBlock == VanillaBlocks::COPPER_BLOCK || copperBlock == VanillaBlocks::WAXED_COPPER_BLOCK) {
+            targetChestBlock = VanillaBlocks::COPPER_CHEST;
+        } else if (copperBlock == VanillaBlocks::EXPOSED_COPPER || copperBlock == VanillaBlocks::WAXED_EXPOSED_COPPER) {
+            targetChestBlock = VanillaBlocks::EXPOSED_COPPER_CHEST;
+        } else if (copperBlock == VanillaBlocks::WEATHERED_COPPER ||
+            copperBlock == VanillaBlocks::WAXED_WEATHERED_COPPER) {
+            targetChestBlock = VanillaBlocks::WEATHERED_COPPER_CHEST;
+        } else if (copperBlock == VanillaBlocks::OXIDIZED_COPPER ||
+            copperBlock == VanillaBlocks::WAXED_OXIDIZED_COPPER) {
+            targetChestBlock = VanillaBlocks::OXIDIZED_COPPER_CHEST;
+        }
+        // 其他铜块（如切制铜、铜门等）回退到 copper_chest（与 MC 默认行为一致）
+    }
+
+    if (targetChestBlock == nullptr) {
+        // VanillaBlocks::COPPER_CHEST 未注册（理论上不应发生，VanillaBlocks::initialize 早于任何 golem 生成）
+        // 兜底返回原铜块状态，避免破坏世界
+        MC_ASSERT(false && "CopperChestBlock::getFromCopperBlock: VanillaBlocks::COPPER_CHEST not registered");
+        if (copperBlock != nullptr) {
+            return copperBlock->defaultState();
+        }
+        // 实在没有方块可用，返回 air（VanillaBlocks::AIR 一定已注册）
+        return VanillaBlocks::AIR->defaultState();
+    }
+
+    // 自动判定 ChestType（Single/Left/Right）：扫描四个水平方向寻找可连接的铜箱子
+    // 对应 MC Java: CopperChestBlock.getChestType(Level, BlockPos, Direction)
+    BlockStateProperties::ChestType chestType = BlockStateProperties::ChestType::Single;
+    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West}) {
+        BlockPos neighborPos = pos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState == nullptr) {
+            continue;
+        }
+
+        // 检查邻居是否为可连接的箱子（COPPER_CHESTS 标签 + 拥有 CHEST_TYPE 属性）
+        const CopperChestBlock* neighborChest = dynamic_cast<const CopperChestBlock*>(&neighborState->getBlock());
+        if (neighborChest == nullptr) {
+            // 也可能为普通箱子（ChestBlock 子类），通过 chestCanConnectTo 间接判断
+            const ChestBlock* neighborAnyChest = dynamic_cast<const ChestBlock*>(&neighborState->getBlock());
+            if (neighborAnyChest == nullptr || !neighborAnyChest->chestCanConnectTo(*neighborState)) {
+                continue;
+            }
+        } else if (!BlockTags::COPPER_CHESTS().contains(*neighborState)) {
+            continue;
+        }
+
+        if (!neighborState->hasProperty(BlockStateProperties::CHEST_TYPE())) {
+            continue;
+        }
+
+        Direction neighborFacing = neighborState->get(BlockStateProperties::HORIZONTAL_FACING());
+        BlockStateProperties::ChestType neighborType = neighborState->get(BlockStateProperties::CHEST_TYPE());
+
+        // 只有朝向相同且是单箱的才能合并
+        if (neighborFacing == facing && neighborType == BlockStateProperties::ChestType::Single) {
+            if (dir == Directions::rotateYCCW(facing)) {
+                chestType = BlockStateProperties::ChestType::Right;
+            } else if (dir == Directions::rotateY(facing)) {
+                chestType = BlockStateProperties::ChestType::Left;
+            }
+            break;
+        }
+    }
+
+    // 构造铜箱子状态：默认状态 + FACING + CHEST_TYPE
+    BlockState result = targetChestBlock->defaultState()
+                            .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+                            .with(BlockStateProperties::CHEST_TYPE(), chestType);
+
+    // 与相邻铜箱子合并时取较低氧化等级的方块类型
+    // 对应 MC Java: getLeastOxidizedChestOfConnectedBlocks
+    if (chestType != BlockStateProperties::ChestType::Single) {
+        Direction connectedDir = ChestBlock::getConnectedDirection(result);
+        BlockPos neighborPos = pos.offset(connectedDir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState != nullptr) {
+            const CopperChestBlock* neighborChest = dynamic_cast<const CopperChestBlock*>(&neighborState->getBlock());
+            const CopperChestBlock* selfChest = dynamic_cast<const CopperChestBlock*>(targetChestBlock);
+            if (neighborChest != nullptr && selfChest != nullptr) {
+                // 比较氧化等级：取较低等级的方块作为合并后方块类型
+                const Block* targetBlock = (static_cast<i32>(selfChest->getOxidationLevel()) <=
+                                               static_cast<i32>(neighborChest->getOxidationLevel()))
+                    ? targetChestBlock
+                    : &neighborState->getBlock();
+                result = targetBlock->defaultState().withPropertiesOf(result);
+            }
+        }
+    }
+
+    return result;
 }
 
 // ============================================================================

@@ -175,6 +175,46 @@ public:
      */
     [[nodiscard]] virtual bool isWaxed() const noexcept { return false; }
 
+    // ========== 铜块 → 铜箱子转换 ==========
+
+    /**
+     * @brief 将铜块转换为对应氧化等级的铜箱子状态
+     *
+     * 用于铜傀儡生成时替换铜块底座：CarvedPumpkinBlock 在铜傀儡生成后，
+     * 用铜箱子替换原铜块位置（保留方块实体内容，对应 MC 1.21.11
+     * CarvedPumpkinBlock.replaceCopperBlockWithChest + CopperChestBlock.getFromCopperBlock）。
+     *
+     * 转换规则（与 MC 1.21.11 COPPER_TO_COPPER_CHEST_MAPPING 一致）：
+     * | 铜块                       | 铜箱子                     |
+     * |---------------------------|---------------------------|
+     * | copper_block              | copper_chest              |
+     * | exposed_copper            | exposed_copper_chest      |
+     * | weathered_copper          | weathered_copper_chest    |
+     * | oxidized_copper           | oxidized_copper_chest     |
+     * | waxed_copper_block        | copper_chest              |
+     * | waxed_exposed_copper      | exposed_copper_chest      |
+     * | waxed_weathered_copper    | weathered_copper_chest    |
+     * | waxed_oxidized_copper     | oxidized_copper_chest     |
+     *
+     * 涂蜡铜块映射到对应氧化等级的"未涂蜡"铜箱子（与 MC 一致：涂蜡状态不传递到箱子）。
+     * 未识别的方块（非铜块）回退到 copper_chest（与 MC 默认行为一致）。
+     *
+     * 返回的 BlockState 包含：
+     * - HORIZONTAL_FACING = 传入的 direction
+     * - CHEST_TYPE = 根据相邻方块自动判定（Single/Left/Right）
+     * - WATERLOGGED = false（生成环境不会在水下）
+     *
+     * @param copperBlock 源铜块指针（可为 nullptr，回退到 copper_chest）
+     * @param facing 朝向
+     * @param world 世界引用
+     * @param pos 放置位置
+     * @return 铜箱子方块状态
+     *
+     * 参考: net.minecraft.world.level.block.CopperChestBlock.getFromCopperBlock (MC 1.21.11)
+     */
+    [[nodiscard]] static BlockState getFromCopperBlock(
+        const Block* copperBlock, Direction facing, IWorld& world, const BlockPos& pos);
+
     // ========== 开合音效 ==========
 
     /**

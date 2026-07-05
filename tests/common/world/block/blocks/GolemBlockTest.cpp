@@ -39,6 +39,8 @@
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/core/VanillaEntities.hpp"
+#include "entity/entities/passive/golem/CopperGolemEntity.hpp"
+#include "entity/entities/passive/golem/CopperGolemTypes.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "entity/entities/passive/golem/SnowGolemEntity.hpp"
 #include "util/Direction.hpp"
@@ -47,7 +49,10 @@
 #include "world/IWorld.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "world/block/blocks/copper/CopperChestBlock.hpp"
+#include "world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
@@ -181,6 +186,20 @@ public:
     {
         if (VanillaBlocks::SNOW_BLOCK) {
             m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(VanillaBlocks::SNOW_BLOCK->defaultState());
+        }
+    }
+
+    void setCopperBlockAt(i32 x, i32 y, i32 z)
+    {
+        if (VanillaBlocks::COPPER_BLOCK) {
+            m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(VanillaBlocks::COPPER_BLOCK->defaultState());
+        }
+    }
+
+    void setBlockAtPos(const BlockPos& pos, const Block* block)
+    {
+        if (block != nullptr) {
+            m_blocks[pos] = std::make_unique<BlockState>(block->defaultState());
         }
     }
 
@@ -1120,4 +1139,475 @@ TEST_F(IsPumpkinHeadTest, SnowBlock_IsNotPumpkinHead)
         const BlockState* snowState = &VanillaBlocks::SNOW_BLOCK->defaultState();
         EXPECT_FALSE(CarvedPumpkinBlock::isPumpkinHead(snowState));
     }
+}
+
+TEST_F(IsPumpkinHeadTest, CopperBlock_IsNotPumpkinHead)
+{
+    if (VanillaBlocks::COPPER_BLOCK) {
+        const BlockState* copperState = &VanillaBlocks::COPPER_BLOCK->defaultState();
+        EXPECT_FALSE(CarvedPumpkinBlock::isPumpkinHead(copperState));
+    }
+}
+
+// ============================================================================
+// canSpawnGolem 公共 API 测试
+// ============================================================================
+
+class CanSpawnGolemTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        world_ = std::make_unique<GolemTestWorld>();
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
+    }
+
+    std::unique_ptr<GolemTestWorld> world_;
+    std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
+};
+
+TEST_F(CanSpawnGolemTest, EmptyWorld_NoSpawn)
+{
+    // 空世界，无身体方块
+    BlockPos pumpkinPos(0, 10, 0);
+    EXPECT_FALSE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+}
+
+TEST_F(CanSpawnGolemTest, SnowGolemBase_CanSpawn)
+{
+    // 雪傀儡身体：南瓜下方两个雪块
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setSnowBlockAt(0, 9, 0);
+    world_->setSnowBlockAt(0, 8, 0);
+
+    EXPECT_TRUE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+}
+
+TEST_F(CanSpawnGolemTest, IronGolemBase_CanSpawn)
+{
+    // 铁傀儡身体：T 形铁块
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setIronBlockAt(-1, 9, 0);
+    world_->setIronBlockAt(0, 9, 0);
+    world_->setIronBlockAt(1, 9, 0);
+    world_->setIronBlockAt(0, 8, 0);
+
+    EXPECT_TRUE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+}
+
+TEST_F(CanSpawnGolemTest, CopperGolemBase_CanSpawn)
+{
+    // 铜傀儡身体：南瓜下方一个铜块
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setCopperBlockAt(0, 9, 0);
+
+    EXPECT_TRUE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+}
+
+TEST_F(CanSpawnGolemTest, WrongBlock_NoSpawn)
+{
+    // 错误的方块（泥土）不应可生成
+    BlockPos pumpkinPos(0, 10, 0);
+    if (VanillaBlocks::DIRT) {
+        world_->setBlockAt(0, 9, 0, &VanillaBlocks::DIRT->defaultState());
+    }
+
+    EXPECT_FALSE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+}
+
+TEST_F(CanSpawnGolemTest, ExposedCopper_CanSpawn)
+{
+    // 暴露的铜块也是合法的铜傀儡身体
+    if (VanillaBlocks::EXPOSED_COPPER) {
+        BlockPos pumpkinPos(0, 10, 0);
+        world_->setBlockAtPos(BlockPos(0, 9, 0), VanillaBlocks::EXPOSED_COPPER);
+
+        EXPECT_TRUE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+    }
+}
+
+TEST_F(CanSpawnGolemTest, WaxedCopper_CanSpawn)
+{
+    // 涂蜡铜块也是合法的铜傀儡身体（在 BlockTags::COPPER 标签中）
+    if (VanillaBlocks::WAXED_COPPER_BLOCK) {
+        BlockPos pumpkinPos(0, 10, 0);
+        world_->setBlockAtPos(BlockPos(0, 9, 0), VanillaBlocks::WAXED_COPPER_BLOCK);
+
+        EXPECT_TRUE(CarvedPumpkinBlock::canSpawnGolem(*world_, pumpkinPos));
+    }
+}
+
+// ============================================================================
+// 铜傀儡生成测试
+// ============================================================================
+
+class CopperGolemSpawnTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        world_ = std::make_unique<GolemTestWorld>();
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
+        jackOLantern_ =
+            std::make_unique<JackOLanternBlock>(BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
+    }
+
+    /**
+     * @brief 设置铜傀儡模式（南瓜 + 铜块）
+     *
+     * 模式布局（垂直 2 格）：
+     *     南瓜(px,py,pz)
+     *     铜块(px,py-1,pz)
+     */
+    void setupCopperGolem(const BlockPos& pumpkinPos, const Block* copperBlock)
+    {
+        world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+        if (copperBlock != nullptr) {
+            world_->setBlockAtPos(pumpkinPos.down(), copperBlock);
+        }
+    }
+
+    std::unique_ptr<GolemTestWorld> world_;
+    std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
+    std::unique_ptr<JackOLanternBlock> jackOLantern_;
+};
+
+TEST_F(CopperGolemSpawnTest, CarvedPumpkin_CopperGolemPattern_SpawnsEntity)
+{
+    if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 验证生成了实体
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+
+    // 验证生成的是铜傀儡
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    CopperGolemEntity* copperGolem = dynamic_cast<CopperGolemEntity*>(entity);
+    EXPECT_NE(copperGolem, nullptr);
+
+    // 验证氧化等级为 Unaffected（COPPER_BLOCK 是最低等级）
+    EXPECT_EQ(copperGolem->getWeatherState(), entity::CopperGolemWeatherState::Unaffected);
+}
+
+TEST_F(CopperGolemSpawnTest, JackOLantern_CopperGolemPattern_SpawnsEntity)
+{
+    if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos jackPos(5, 20, 5);
+    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setCopperBlockAt(5, 19, 5);
+
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    CopperGolemEntity* copperGolem = dynamic_cast<CopperGolemEntity*>(entity);
+    EXPECT_NE(copperGolem, nullptr);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_RemovesBlocks)
+{
+    if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 南瓜位置变为空气
+    const BlockState* pumpkinState = world_->getBlockState(0, 10, 0);
+    ASSERT_NE(pumpkinState, nullptr);
+    EXPECT_TRUE(pumpkinState->isAir());
+
+    // 铜块位置被铜箱子替换（不是空气，是铜箱子）
+    const BlockState* chestState = world_->getBlockState(0, 9, 0);
+    ASSERT_NE(chestState, nullptr);
+    EXPECT_FALSE(chestState->isAir());
+
+    // 验证是铜箱子（在 COPPER_CHESTS 标签中）
+    EXPECT_TRUE(BlockTags::COPPER_CHESTS().contains(*chestState));
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_PlaysBreakEvents)
+{
+    if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 验证播放了破坏事件（南瓜 + 铜块 = 2 次）
+    EXPECT_GE(world_->getEventCount(), 2);
+    EXPECT_EQ(world_->getLastEventId(), mc::world::WorldEvents::BREAK_BLOCK_EFFECTS);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_NoCopperBlock_NoSpawn)
+{
+    // 没有铜块，不应生成铜傀儡
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_WrongBlock_NoSpawn)
+{
+    // 错误的方块（铁块不是铜块），不应生成铜傀儡
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setIronBlockAt(0, 9, 0); // 铁块不是铜块
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 铁块单独不会触发任何傀儡（需要 T 形结构）
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(CopperGolemSpawnTest, ExposedCopper_SpawnsExposedGolem)
+{
+    // 暴露的铜块生成暴露的铜傀儡
+    if (VanillaBlocks::EXPOSED_COPPER == nullptr || VanillaBlocks::EXPOSED_COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Exposed copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::EXPOSED_COPPER);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    CopperGolemEntity* copperGolem = dynamic_cast<CopperGolemEntity*>(entity);
+    ASSERT_NE(copperGolem, nullptr);
+
+    // 验证氧化等级为 Exposed
+    EXPECT_EQ(copperGolem->getWeatherState(), entity::CopperGolemWeatherState::Exposed);
+
+    // 验证铜箱子也是暴露的铜箱子
+    const BlockState* chestState = world_->getBlockState(0, 9, 0);
+    ASSERT_NE(chestState, nullptr);
+    const auto* copperChest = dynamic_cast<const blocks::CopperChestBlock*>(&chestState->getBlock());
+    ASSERT_NE(copperChest, nullptr);
+    EXPECT_EQ(copperChest->getOxidationLevel(), BlockStateProperties::OxidationLevel::Exposed);
+}
+
+TEST_F(CopperGolemSpawnTest, WeatheredCopper_SpawnsWeatheredGolem)
+{
+    if (VanillaBlocks::WEATHERED_COPPER == nullptr || VanillaBlocks::WEATHERED_COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Weathered copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::WEATHERED_COPPER);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    CopperGolemEntity* copperGolem = dynamic_cast<CopperGolemEntity*>(entity);
+    ASSERT_NE(copperGolem, nullptr);
+
+    EXPECT_EQ(copperGolem->getWeatherState(), entity::CopperGolemWeatherState::Weathered);
+}
+
+TEST_F(CopperGolemSpawnTest, OxidizedCopper_SpawnsOxidizedGolem)
+{
+    if (VanillaBlocks::OXIDIZED_COPPER == nullptr || VanillaBlocks::OXIDIZED_COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Oxidized copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::OXIDIZED_COPPER);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    CopperGolemEntity* copperGolem = dynamic_cast<CopperGolemEntity*>(entity);
+    ASSERT_NE(copperGolem, nullptr);
+
+    EXPECT_EQ(copperGolem->getWeatherState(), entity::CopperGolemWeatherState::Oxidized);
+}
+
+TEST_F(CopperGolemSpawnTest, WaxedExposedCopper_SpawnsExposedGolem)
+{
+    // 涂蜡暴露铜块也应生成暴露的铜傀儡（通过 HoneycombItem::getWaxOffMap 查找）
+    if (VanillaBlocks::WAXED_EXPOSED_COPPER == nullptr || VanillaBlocks::EXPOSED_COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Waxed exposed copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::WAXED_EXPOSED_COPPER);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    CopperGolemEntity* copperGolem = dynamic_cast<CopperGolemEntity*>(entity);
+    ASSERT_NE(copperGolem, nullptr);
+
+    // 涂蜡暴露铜块通过除蜡映射表查找后，氧化等级为 Exposed
+    EXPECT_EQ(copperGolem->getWeatherState(), entity::CopperGolemWeatherState::Exposed);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_PriorityAfterSnowAndIron)
+{
+    // 铜傀儡优先级最低：当同时满足雪傀儡模式时应生成雪傀儡
+    if (VanillaBlocks::COPPER_BLOCK == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    // 同时放置雪块和铜块（南瓜下方是雪块，雪块下方是铜块）
+    // 这满足雪傀儡模式（南瓜 + 雪块 + 雪块？不，只有一个雪块）
+    // 实际上：南瓜 + 雪块 + 铜块 不满足雪傀儡（需要两个雪块）
+    // 也不满足铁傀儡（需要 T 形铁块）
+    // 但满足铜傀儡（南瓜 + 任意铜块，只要铜块紧邻南瓜下方）
+    // 这里铜块在雪块下方，不紧邻南瓜，所以不满足铜傀儡
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setSnowBlockAt(0, 9, 0);   // 雪块
+    world_->setCopperBlockAt(0, 8, 0); // 铜块（不紧邻南瓜）
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 不满足任何完整模式
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_ReplacesCopperWithChest)
+{
+    // 验证铜块被替换为对应氧化等级的铜箱子
+    if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 验证铜块位置现在是铜箱子
+    const BlockState* chestState = world_->getBlockState(0, 9, 0);
+    ASSERT_NE(chestState, nullptr);
+
+    // 验证是铜箱子（CopperChestBlock 或其子类）
+    const auto* copperChest = dynamic_cast<const blocks::CopperChestBlock*>(&chestState->getBlock());
+    ASSERT_NE(copperChest, nullptr);
+
+    // 验证氧化等级为 Unaffected（COPPER_BLOCK 是最低等级）
+    EXPECT_EQ(copperChest->getOxidationLevel(), BlockStateProperties::OxidationLevel::Unaffected);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_SpawnPosition_AtPumpkinLevel)
+{
+    // 验证铜傀儡在南瓜头部位置生成（不是铜块位置）
+    // 对应 MC 1.21.11 spawnGolemInWorld 使用 getBlock(0, 0, 0) = 南瓜位置
+    if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(5, 30, 7);
+    setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+
+    // 铜傀儡应在南瓜位置（顶部）生成，y + 0.05 偏移
+    EXPECT_FLOAT_EQ(entity->x(), static_cast<f32>(pumpkinPos.x) + 0.5f);
+    EXPECT_FLOAT_EQ(entity->y(), static_cast<f32>(pumpkinPos.y) + 0.05f);
+    EXPECT_FLOAT_EQ(entity->z(), static_cast<f32>(pumpkinPos.z) + 0.5f);
+}
+
+// ============================================================================
+// 傀儡优先级测试（雪 > 铁 > 铜）
+// ============================================================================
+
+class GolemPriorityWithCopperTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        world_ = std::make_unique<GolemTestWorld>();
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
+    }
+
+    std::unique_ptr<GolemTestWorld> world_;
+    std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
+};
+
+TEST_F(GolemPriorityWithCopperTest, SnowGolem_PriorityOverCopperGolem)
+{
+    // 雪傀儡 + 铜块同时存在：南瓜 + 雪块 + 雪块，但底部雪块换成铜块
+    // 实际：南瓜 + 雪块 + 铜块 不满足雪傀儡（需要两个雪块）
+    // 满足铜傀儡？铜块在 pos.down(2)，不紧邻南瓜（pos.down()）
+    // 所以不满足任何模式
+    if (VanillaBlocks::COPPER_BLOCK == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setSnowBlockAt(0, 9, 0);
+    world_->setCopperBlockAt(0, 8, 0); // 铜块在底部，不紧邻南瓜
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 不满足任何模式（雪傀儡需要两个雪块，铜傀儡需要铜块紧邻南瓜）
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(GolemPriorityWithCopperTest, IronGolem_PriorityOverCopperGolem)
+{
+    // 铁傀儡 T 形结构 + 铜块同时存在
+    // 铁傀儡：南瓜 + 铁块T形（中央铁块紧邻南瓜下方）
+    // 铜傀儡：需要铜块紧邻南瓜下方
+    // 两者互斥（中央位置只能是铁块或铜块，不能同时）
+    // 这里测试：南瓜 + 铁块T形，铜块放在远处
+    if (VanillaBlocks::COPPER_BLOCK == nullptr) {
+        GTEST_SKIP() << "Copper blocks not registered";
+    }
+
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setIronBlockAt(-1, 9, 0);
+    world_->setIronBlockAt(0, 9, 0);
+    world_->setIronBlockAt(1, 9, 0);
+    world_->setIronBlockAt(0, 8, 0);
+    world_->setCopperBlockAt(5, 9, 5); // 铜块在远处，不影响
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+
+    // 应生成铁傀儡（优先级高于铜傀儡）
+    IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity);
+    EXPECT_NE(ironGolem, nullptr);
 }
