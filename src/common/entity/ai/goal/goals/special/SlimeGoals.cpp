@@ -106,11 +106,20 @@ bool SlimeAttackGoal::shouldContinueExecuting()
         return false;
     }
 
-    if (!m_attackTarget->isAlive()) {
+    // 与 MC 1.21.11 SlimeAttackGoal.canContinueToUse 对齐：重新获取目标而非
+    // 直接解引用缓存的 m_attackTarget。目标可能在 tick 之间被清除（死亡、
+    // 切换目标、攻击者清除等），此时 m_attackTarget 仍指向旧对象或为空。
+    // 直接解引用会导致空指针/悬空指针崩溃（Tick_WithoutTarget_DoesNotCrash
+    // 即复现此路径：未调用 shouldExecute 直接 tick，m_attackTarget 为空）。
+    LivingEntity* currentTarget = m_slime->attackTarget();
+    if (currentTarget == nullptr) {
         return false;
     }
 
-    LivingEntity* currentTarget = m_slime->attackTarget();
+    if (!currentTarget->isAlive()) {
+        return false;
+    }
+
     return currentTarget == m_attackTarget;
 }
 
@@ -124,10 +133,17 @@ void SlimeAttackGoal::tick()
 {
     --m_attackTimer;
 
-    m_slime->lookAt(*m_attackTarget, 10.0f, 10.0f);
+    // 与 MC 1.21.11 SlimeAttackGoal.tick 对齐：每帧重新获取目标并做空检查。
+    // 原实现直接解引用缓存的 m_attackTarget，若目标在执行期间被清除
+    // （Tick_WithoutTarget_DoesNotCrash 测试即此场景：无目标直接 tick）
+    // 会触发空指针解引用崩溃。
+    LivingEntity* target = m_slime->attackTarget();
+    if (target != nullptr) {
+        m_slime->lookAt(*target, 10.0f, 10.0f);
 
-    if (m_slime->moveController() != nullptr) {
-        m_slime->moveController()->setMoveTo(m_attackTarget->x(), m_attackTarget->y(), m_attackTarget->z(), 1.0);
+        if (m_slime->moveController() != nullptr) {
+            m_slime->moveController()->setMoveTo(target->x(), target->y(), target->z(), 1.0);
+        }
     }
 }
 
