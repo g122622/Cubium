@@ -124,7 +124,8 @@ TEST(ShulkerEntityTest, CreateFactory)
 {
     auto entity = ShulkerEntity::create(nullptr);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::SHULKER);
+    // 静态工厂不 setTypeId（由 EntityType::create 经注册表赋值），仅验证非空+类型。
+    EXPECT_NE(dynamic_cast<ShulkerEntity*>(entity.get()), nullptr);
 }
 
 TEST(ShulkerEntityTest, ExperienceValue)
