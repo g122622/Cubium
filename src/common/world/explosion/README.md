@@ -64,6 +64,17 @@ ExplosionContext ◄─────────── Explosion
 | `WitherEntity` | 凋灵召唤/攻击时爆炸 |
 | `AbstractFireballEntity` | 恶魂火球/凋灵之首爆炸（蓝色凋灵之首使用 WitherSkullExplosionContext） |
 | `MinecartEntity`（TNT 矿车） | TNT 矿车爆炸 |
+| `WindChargeEntity` | 风弹命中后调用 `applyWindBurst`，自行实现爆炸击退逻辑并通过 `IWorld::broadcastExplosion` 同步给客户端（不使用 `Explosion` 类，因为风弹不破坏方块） |
+
+### 爆炸事件广播接口
+
+`IWorld::broadcastExplosion(position, strength, affectedBlocks, playerKnockback)` 是 common 层访问爆炸同步网络的统一入口：
+
+- 默认空实现，`WorldGenRegion` 等非服务端实现继承空实现
+- `ServerWorld` 重写后委托给 `m_onBroadcastExplosion` 回调（由 `MinecraftServer::attachWorldBindings` 注册），最终调用 `MinecraftServer::broadcastExplosionInRange` 在 64 格范围内逐个发送 `ExplosionPacket`
+- `Explosion` 类在 `explode()` 完成后由 `ServerWorld::createExplosion*` 系列方法调用此接口；`WindChargeEntity` 因不破坏方块而独立调用
+
+对应 MC Java 的 `ServerLevel.explode()`：爆炸完成后遍历 64 格（`distanceToSqr < 4096.0`）内玩家发送 `ClientboundExplodePacket`，每个玩家收到的是属于自己的 `Optional<Vec3>` 击退向量（来自 `ServerExplosion.hitPlayers` 映射），客户端 `handleExplosion` 调用 `player.addDeltaMovement(vec)` 累加到现有速度上。
 
 ## 容易踩的坑
 
@@ -127,3 +138,19 @@ ExplosionContext ◄─────────── Explosion
 - 但基岩（`WITHER_IMMUNE` 标签）仍不可破坏，保持原始高抗性
 - 普通凋灵之首使用基类 `EntityExplosionContext`，不修改任何爆炸抗性
 - 对应 MC Java 的 `WitherSkull.getBlockExplosionResistance()` 和 `WitherBoss.canDestroy()`
+
+### #10. 玩家击退双重应用（既有设计缺陷）
+
+**问题**：`Explosion::_calculateAffectedEntities` 与 `WindChargeEntity::applyWindBurst` 都存在玩家击退被双重应用的结构性问题：
+
+1. 服务端在实体循环中对玩家调用 `entity->addVelocity(dx*impact, ...)`（服务端速度被修改）
+2. 同一循环中又把 `(dx*impact, ...)` 写入 `m_playerKnockback` / `playerKnockback` 映射
+3. `ServerWorld::createExplosion*` / `WindChargeEntity::applyWindBurst` 随后调用 `IWorld::broadcastExplosion`，通过 `ExplosionPacket` 把该向量发给客户端
+4. 客户端 `handleExplosion` 调用 `player.addDeltaMovement(vec)` 再次累加（注意是累加，不是覆盖）
+
+对服务端玩家：服务端 `addVelocity` 修改了速度 → 客户端收到 `EntityVelocityPacket` 同步 → 又收到 `ExplosionPacket` 再加一次 → 双倍击退。
+对客户端其他玩家：`ExplosionPacket` 的击退直接累加，没有双倍问题。
+
+**修复方向**（需作为独立任务统一处理 `Explosion` 与 `WindChargeEntity`）：玩家分支跳过 `addVelocity`，仅通过 `ExplosionPacket` 让客户端应用击退；服务端玩家速度由客户端发包同步回来。但需验证伤害公式（依赖 `deltaMovement` 的坠落伤害计算等）不受影响。
+
+代码中已通过 `TODO` 注释明文标注，便于全文搜索定位。

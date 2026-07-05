@@ -26,6 +26,11 @@
 #include "ThrowableEntity.hpp"
 
 namespace mc {
+
+namespace test {
+class WindChargeEntityTestAccessor; // 测试访问器，声明为 friend 以访问 private 成员
+} // namespace test
+
 namespace entity {
 
 /**
@@ -159,6 +164,10 @@ private:
      * @brief 生成风爆粒子效果
      */
     void _spawnWindBurstParticles(const Vector3& pos) const;
+
+    // 测试访问器通过 friend 声明访问 private applyWindBurst，
+    // 避免修改生产代码的可见性。对应 BreezeEntity 的 test::BreezeEntityTestAccessor 模式。
+    friend class test::WindChargeEntityTestAccessor;
 };
 
 } // namespace entity

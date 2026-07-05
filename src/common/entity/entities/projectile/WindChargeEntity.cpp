@@ -294,6 +294,15 @@ void WindChargeEntity::applyWindBurst()
             // 记录玩家击退向量，稍后通过 ExplosionPacket 发送给客户端
             // 对应 MC Java ServerExplosion.hurtEntities 中 hitPlayers.put(player, vec32)
             // 客户端收到后会调用 player.addDeltaMovement(vec) 累加到现有速度上
+            //
+            // TODO: 此处存在玩家被双重应用击退的既有设计缺陷：
+            // 上方 line ~277 已对实体（含玩家）调用 addVelocity 应用了 (dx*finalImpact, ...)，
+            // 此处又通过 ExplosionPacket 让客户端 addDeltaMovement 累加同一向量，
+            // 导致服务端玩家最终获得双倍击退。该问题与 common/world/explosion/Explosion.cpp
+            // 中 _calculateAffectedEntities 的玩家分支同构（同样先 addVelocity 再写入 hitPlayers），
+            // 属项目整体爆炸同步设计需要统一修复的问题。
+            // 修复方案建议：玩家分支跳过 addVelocity，仅通过 ExplosionPacket 让客户端应用击退；
+            // 但需同步修改 Explosion 类与所有爆炸路径，并验证伤害公式不受影响，应作为独立任务处理。
             playerKnockback[static_cast<u64>(player->id())] =
                 Vector3(dx * finalImpact, dy * finalImpact, dz * finalImpact);
         }

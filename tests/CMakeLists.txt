@@ -635,6 +635,8 @@ add_executable(mc_tests
     entity/BreezeEntityAnimationTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
+    # 风弹实体风爆效果测试（玩家击退收集、旁观/创造飞行过滤、broadcastExplosion 调用）
+    entity/WindChargeEntityBurstTest.cpp
     # DamagingProjectileEntity 粒子效果测试（水下气泡、拖尾粒子）
     entity/DamagingProjectileParticleTest.cpp
     # LookAtGoal 类型过滤测试
@@ -1080,6 +1082,8 @@ add_executable(mc_tests
     server/world/ServerWorldSpawnAngleTest.cpp
     # ServerWorld 命令执行回调测试
     server/world/ServerWorldCommandExecuteTest.cpp
+    # ServerWorld 爆炸广播回调测试（broadcastExplosion 委托 m_onBroadcastExplosion）
+    server/world/ServerWorldExplosionCallbackTest.cpp
     # ServerWorld tickPrecipitation 测试
     server/world/TickPrecipitationTest.cpp
     # isBlockInLine 方块射线遍历测试
