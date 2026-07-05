@@ -285,7 +285,7 @@ TEST_F(GameMasterBlockItemPlacementTest, AllowsPlacementWhenPlayerIsNull)
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, nullptr, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, nullptr, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     ASSERT_NE(result, nullptr);
@@ -307,7 +307,7 @@ TEST_F(GameMasterBlockItemPlacementTest, AllowsPlacementWhenPlayerHasPermission)
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     ASSERT_NE(result, nullptr);
@@ -329,7 +329,7 @@ TEST_F(GameMasterBlockItemPlacementTest, AllowsPlacementWhenPlayerHasOwnerPermis
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     ASSERT_NE(result, nullptr);
@@ -351,7 +351,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenSurvivalModeWithPerm
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     EXPECT_EQ(result, nullptr);
@@ -372,7 +372,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenCreativeModeWithoutP
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     EXPECT_EQ(result, nullptr);
@@ -393,7 +393,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenCreativeModeWithMode
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     EXPECT_EQ(result, nullptr);
@@ -414,7 +414,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenAdventureModeWithPer
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     EXPECT_EQ(result, nullptr);
@@ -435,7 +435,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenSpectatorModeWithPer
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     EXPECT_EQ(result, nullptr);
@@ -455,7 +455,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenDefaultPlayer)
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     EXPECT_EQ(result, nullptr);
@@ -481,7 +481,7 @@ TEST_P(GameMasterBlockItemPermissionComboTest, ParameterizedPlacementCheck)
     ItemStack stack(item, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     const BlockState* result = item.getStateForPlacement(context);
     if (expectedAllowed) {
@@ -534,7 +534,7 @@ TEST_F(GameMasterBlockItemPlacementTest, NormalBlockItemAlwaysAllowsPlacement)
     ItemStack stack(*stoneItem, 1);
 
     BlockItemUseContext context(
-        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f);
+        world, &player, stack, Vector3(0.5f, 63.99f, 0.5f), BlockPos(0, 63, 0), Direction::Up, 0.0f, 0.0f);
 
     // 普通 BlockItem 不检查权限，应正常返回
     const BlockState* result = stoneItem->getStateForPlacement(context);

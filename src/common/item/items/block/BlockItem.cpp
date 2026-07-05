@@ -49,13 +49,15 @@ BlockItem::BlockItem(const Block& block, ItemProperties properties)
 ActionResultType BlockItem::onItemUse(ItemUseContext& context)
 {
     // 创建 BlockItemUseContext 并尝试放置
+    // 透传 yaw 与 pitch，pitch 用于 getNearestLookingDirections 的方向排序
     BlockItemUseContext blockContext(context.getWorld(),
         context.getPlayer(),
         context.getItemStack(),
         context.getHitPos(),
         context.getBlockPos(),
         context.getFace(),
-        context.getPlayerYaw());
+        context.getPlayerYaw(),
+        context.getPlayerPitch());
 
     ActionResultType result = tryPlace(blockContext);
 

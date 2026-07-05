@@ -257,7 +257,15 @@ TEST_F(FireChargeItemTest, OnItemUse_LightCampfire_SetsLitTrue)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -286,7 +294,15 @@ TEST_F(FireChargeItemTest, OnItemUse_LightCandle_SetsLitTrue)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -318,7 +334,15 @@ TEST_F(FireChargeItemTest, OnItemUse_WaterloggedCandle_ReturnsFail)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -343,7 +367,15 @@ TEST_F(FireChargeItemTest, OnItemUse_PlaceFireInAir)
     // (0, 65, 0) 默认为空气
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -373,7 +405,15 @@ TEST_F(FireChargeItemTest, OnItemUse_PlaceSoulFireAboveSoulSand)
 
     // 点击上方面，火将放在 (0, 65, 0)
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -396,7 +436,15 @@ TEST_F(FireChargeItemTest, OnItemUse_PlaceSoulFireAboveSoulSoil)
 
     // 点击上方面，火将放在 (0, 65, 0)
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -431,7 +479,15 @@ TEST_F(FireChargeItemTest, OnItemUse_CreativeMode_DoesNotConsumeItem)
     player.setGameMode(GameMode::Creative);
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, &player, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        &player,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -462,7 +518,15 @@ TEST_F(FireChargeItemTest, OnItemUse_SurvivalMode_ConsumesItem)
     player.setGameMode(GameMode::Survival);
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, &player, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        &player,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -489,7 +553,15 @@ TEST_F(FireChargeItemTest, OnItemUse_NullPlayer_ConsumesItem)
 
     // 无玩家（如发射器使用火焰弹）
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -515,7 +587,15 @@ TEST_F(FireChargeItemTest, OnItemUse_AlreadyLitBlock_ReturnsFail)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -541,7 +621,15 @@ TEST_F(FireChargeItemTest, OnItemUse_AlreadyLitBlock_NonAirAbove_ReturnsFail)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -563,7 +651,15 @@ TEST_F(FireChargeItemTest, OnItemUse_NonLitBlock_PlaceFireAdjacent)
     // (0, 65, 0) 默认为空气
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -589,7 +685,15 @@ TEST_F(FireChargeItemTest, OnItemUse_NonAirAdjacent_DoesNotPlaceFire)
     m_world.setBlockState(0, 65, 0, &solidBlock.defaultState());
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -617,7 +721,15 @@ TEST_F(FireChargeItemTest, OnItemUse_PlaysSoundOnSuccess)
     m_world.clearSounds();
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
@@ -639,7 +751,15 @@ TEST_F(FireChargeItemTest, OnItemUse_NoSoundOnFail)
     m_world.clearSounds();
 
     ItemStack stack(Items::FIRE_CHARGE, 10);
-    ItemUseContext context(m_world, nullptr, stack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 

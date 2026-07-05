@@ -203,8 +203,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesCopperBlock)
 
     // 创建蜜脾物品和上下文（无玩家 = 创造模式不消耗物品）
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     // 使用蜜脾
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
@@ -232,8 +239,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_PassesOnNonCopperBlock)
     m_world.setBlockState(0, 64, 0, &VanillaBlocks::STONE->defaultState());
 
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
 
@@ -256,8 +270,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_PassesOnAlreadyWaxedBlock)
     m_world.setBlockState(0, 64, 0, &VanillaBlocks::WAXED_COPPER_BLOCK->defaultState());
 
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
 
@@ -276,8 +297,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesCutCopperStairs)
     m_world.setBlockState(0, 64, 0, &VanillaBlocks::CUT_COPPER_STAIRS->defaultState());
 
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
 
@@ -305,7 +333,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedCopperBlock)
     // 创建铁斧（无玩家，避免 playSound 需要玩家的问题）
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -333,7 +369,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedExposedCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -356,7 +400,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_PassesOnUnwaxedCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -375,7 +427,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_StripsLogBeforeDeWaxing)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -400,8 +460,15 @@ TEST_F(WaxIntegrationTest, WaxThenDeWax_RoundTrip)
     m_world.setBlockState(0, 64, 0, &VanillaBlocks::COPPER_BLOCK->defaultState());
 
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext waxContext(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext waxContext(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType waxResult = Items::HONEYCOMB->onItemUse(waxContext);
     EXPECT_EQ(waxResult, ActionResultType::Success);
@@ -418,8 +485,15 @@ TEST_F(WaxIntegrationTest, WaxThenDeWax_RoundTrip)
     // 再除蜡
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext dewaxContext(
-        m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext dewaxContext(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType dewaxResult = axe.onItemUse(dewaxContext);
     EXPECT_EQ(dewaxResult, ActionResultType::Success);
@@ -463,7 +537,15 @@ TEST_F(WaxIntegrationTest, DeWaxNoDoubleSound)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
     EXPECT_EQ(result, ActionResultType::Success);
@@ -487,7 +569,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesExposedCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -512,7 +602,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesWeatheredCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -535,7 +633,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesOxidizedCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -558,7 +664,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_CannotScrapeUnaffectedCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -578,7 +692,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapingPriorityOverDeWaxing)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -603,7 +725,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxBeforeScrapeOnWaxedBlock)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -627,7 +757,15 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesCutCopperStairs)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        axeStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -652,7 +790,15 @@ TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
 
     // 第一次刮削：Oxidized → Weathered
     ItemStack axeStack1(&axe, 1);
-    ItemUseContext context1(m_world, nullptr, axeStack1, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context1(m_world,
+        nullptr,
+        axeStack1,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
     EXPECT_EQ(axe.onItemUse(context1), ActionResultType::Success);
     EXPECT_EQ(&m_world.getBlockState(0, 64, 0)->owner(), VanillaBlocks::WEATHERED_COPPER);
 
@@ -660,7 +806,15 @@ TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
 
     // 第二次刮削：Weathered → Exposed
     ItemStack axeStack2(&axe, 1);
-    ItemUseContext context2(m_world, nullptr, axeStack2, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context2(m_world,
+        nullptr,
+        axeStack2,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
     EXPECT_EQ(axe.onItemUse(context2), ActionResultType::Success);
     EXPECT_EQ(&m_world.getBlockState(0, 64, 0)->owner(), VanillaBlocks::EXPOSED_COPPER);
 
@@ -668,7 +822,15 @@ TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
 
     // 第三次刮削：Exposed → Copper (Unaffected)
     ItemStack axeStack3(&axe, 1);
-    ItemUseContext context3(m_world, nullptr, axeStack3, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context3(m_world,
+        nullptr,
+        axeStack3,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
     EXPECT_EQ(axe.onItemUse(context3), ActionResultType::Success);
     EXPECT_EQ(&m_world.getBlockState(0, 64, 0)->owner(), VanillaBlocks::COPPER_BLOCK);
 
@@ -676,7 +838,15 @@ TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
 
     // 第四次刮削：Copper (Unaffected) 无法再降级
     ItemStack axeStack4(&axe, 1);
-    ItemUseContext context4(m_world, nullptr, axeStack4, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context4(m_world,
+        nullptr,
+        axeStack4,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
     EXPECT_EQ(axe.onItemUse(context4), ActionResultType::Pass);
 }
 
@@ -695,8 +865,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesSignEntity)
 
     // 使用蜜脾
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
 
@@ -723,8 +900,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_SignAlreadyWaxed_ReturnsPass)
 
     // 使用蜜脾
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
 
@@ -742,8 +926,15 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_SignWithoutBlockEntity_ReturnsPass
 
     // 使用蜜脾
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
-    ItemUseContext context(
-        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world,
+        nullptr,
+        honeycombStack,
+        Vector3(0.5f, 64.5f, 0.5f),
+        BlockPos(0, 64, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     ActionResultType result = Items::HONEYCOMB->onItemUse(context);
 

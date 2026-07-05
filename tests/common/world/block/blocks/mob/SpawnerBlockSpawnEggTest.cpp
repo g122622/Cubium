@@ -246,8 +246,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_SpawnEggSetsEntityId)
     player.getHeldItem(Hand::MainHand) = eggStack;
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-    auto result =
-        spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+    auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(spawnerEntity_->getNextEntityId(), ResourceLocation("minecraft:pig"));
@@ -261,8 +260,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_EmptyHandReturnsPass)
     player.setWorld(&world_);
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-    auto result =
-        spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+    auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
     EXPECT_EQ(spawnerEntity_->getNextEntityId(), ResourceLocation());
@@ -281,8 +279,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_NonSpawnEggItemReturnsPass)
 
         BlockRaycastResult hit =
             BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-        auto result =
-            spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+        auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
         EXPECT_EQ(result, ActionResultType::Pass);
     }
@@ -317,8 +314,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_SurvivalModeConsumesEgg)
     player.getHeldItem(Hand::MainHand) = eggStack;
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-    auto result =
-        spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+    auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(player.getHeldItem(Hand::MainHand).getCount(), 4);
@@ -337,8 +333,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_ClientSideReturnsSuccess)
     world_.setClientSide(true);
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-    auto result =
-        spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+    auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_EQ(spawnerEntity_->getNextEntityId(), ResourceLocation());
@@ -358,8 +353,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_NoBlockEntityReturnsPass)
     player.getHeldItem(Hand::MainHand) = eggStack;
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-    auto result =
-        spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+    auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
 }
@@ -375,8 +369,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_DifferentEntityTypes)
     player.getHeldItem(Hand::MainHand) = zombieStack;
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
-    auto result =
-        spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
+    auto result = spawnerBlock_->onBlockActivated(*spawnerState_, world_, spawnerPos_, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(spawnerEntity_->getNextEntityId(), ResourceLocation("minecraft:zombie"));
@@ -412,6 +405,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnItemUse_SpawnerBlockSetsEntityId)
         spawnerPos_,
         Direction::Up,
         Hand::MainHand,
+        0.0f,
         0.0f);
 
     ActionResultType result = pigEgg_->onItemUse(context);
@@ -439,6 +433,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnItemUse_SpawnerBlockCreativeModeNoConsume)
         spawnerPos_,
         Direction::Up,
         Hand::MainHand,
+        0.0f,
         0.0f);
 
     ActionResultType result = pigEgg_->onItemUse(context);

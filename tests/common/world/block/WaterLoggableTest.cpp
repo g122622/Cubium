@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -33,7 +34,6 @@
 #include "world/IWorld.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/IWaterLoggable.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/building/FenceBlock.hpp"
@@ -163,7 +163,8 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Dir
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
         pos,
         face,
-        playerYaw);
+        playerYaw,
+        0.0f);
 }
 
 } // namespace

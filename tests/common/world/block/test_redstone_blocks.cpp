@@ -33,11 +33,11 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/DoorBlock.hpp"
 #include "common/world/block/blocks/FenceGateBlock.hpp"
 #include "common/world/block/blocks/HopperBlock.hpp"
 #include "common/world/block/blocks/building/TrapDoorBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -165,7 +165,8 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, f32
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
         pos,
         Direction::Up,
-        playerYaw);
+        playerYaw,
+        0.0f);
 }
 
 ConstantPowerBlock& powerBlock()

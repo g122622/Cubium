@@ -54,8 +54,9 @@ public:
      * @param hitPos 击中点（世界坐标）
      * @param blockPos 击中的方块位置
      * @param face 击中的面
-     * @param hand 使用的手（默认主手）
-     * @param playerYaw 玩家yaw角度（默认0）
+     * @param hand 使用的手
+     * @param playerYaw 玩家yaw角度
+     * @param playerPitch 玩家pitch角度（度数，正值俯视，负值仰视）
      */
     ItemUseContext(IWorld& world,
         Player* player,
@@ -63,8 +64,9 @@ public:
         const Vector3& hitPos,
         const BlockPos& blockPos,
         Direction face,
-        Hand hand = Hand::MainHand,
-        f32 playerYaw = 0.0f);
+        Hand hand,
+        f32 playerYaw,
+        f32 playerPitch);
 
     virtual ~ItemUseContext() = default;
 
@@ -126,6 +128,12 @@ public:
      * @return yaw 角度
      */
     [[nodiscard]] f32 getPlayerYaw() const { return m_playerYaw; }
+
+    /**
+     * @brief 获取玩家 pitch 角度
+     * @return pitch 角度（度数，正值俯视，负值仰视）
+     */
+    [[nodiscard]] f32 getPlayerPitch() const { return m_playerPitch; }
 
     /**
      * @brief 获取击中点（世界坐标）
@@ -204,6 +212,7 @@ protected:
     Direction m_face;
     Hand m_hand;
     f32 m_playerYaw = 0.0f;
+    f32 m_playerPitch = 0.0f;
 
     // 击中点在方块内的相对坐标（0-1范围）
     f32 m_hitX = 0.0f;

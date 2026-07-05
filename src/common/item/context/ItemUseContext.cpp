@@ -34,7 +34,8 @@ ItemUseContext::ItemUseContext(IWorld& world,
     const BlockPos& blockPos,
     Direction face,
     Hand hand,
-    f32 playerYaw)
+    f32 playerYaw,
+    f32 playerPitch)
     : m_world(world)
     , m_player(player)
     , m_stack(const_cast<ItemStack*>(&stack))
@@ -43,6 +44,7 @@ ItemUseContext::ItemUseContext(IWorld& world,
     , m_face(face)
     , m_hand(hand)
     , m_playerYaw(playerYaw)
+    , m_playerPitch(playerPitch)
 {
     // 计算击中点在方块内的相对坐标（0-1范围）
     m_hitX = hitPos.x - static_cast<f32>(blockPos.x);

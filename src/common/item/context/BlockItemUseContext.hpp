@@ -44,6 +44,7 @@ public:
      * @param blockPos 击中的方块位置
      * @param face 击中的面
      * @param playerYaw 玩家yaw角度（用于计算水平朝向）
+     * @param playerPitch 玩家pitch角度（度数，正值俯视，负值仰视；用于 getNearestLookingDirections 排序）
      */
     BlockItemUseContext(IWorld& world,
         Player* player,
@@ -51,7 +52,8 @@ public:
         const Vector3& hitPos,
         const BlockPos& blockPos,
         Direction face,
-        f32 playerYaw = 0.0f);
+        f32 playerYaw,
+        f32 playerPitch);
 
     ~BlockItemUseContext() override = default;
 

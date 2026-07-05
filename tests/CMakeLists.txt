@@ -81,6 +81,8 @@ add_executable(mc_tests
     common/item/tag/ItemTagsTest.cpp
     # BedItem 床物品放置测试
     common/item/BedItemTest.cpp
+    # BlockItemUseContext 上下文测试（pitch 透传、getNearestLookingDirections 方向排序）
+    common/item/BlockItemUseContextTest.cpp
     # ItemTagLoader 数据包标签加载测试
     common/item/tag/ItemTagLoaderTest.cpp
     common/item/potion/GlassBottleItemTest.cpp

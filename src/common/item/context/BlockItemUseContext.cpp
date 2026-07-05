@@ -38,10 +38,11 @@ namespace {
 //
 // 参数：
 //   yawDeg   玩家偏航角（度）。MC 约定：0=南, 90=西, 180=北, 270=东。
-//   pitchDeg 玩家俯仰角（度）。0=水平，正=仰视，负=俯视。
+//   pitchDeg 玩家俯仰角（度）。MC 约定：0=水平，正=俯视，负=仰视。
 std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
 {
     // MC 1.21.11: f = viewXRot*(π/180)；f1 = -viewYRot*(π/180)
+    // 注：MC 的 viewXRot 即 pitch，正=俯视，负=仰视。
     const f32 f = pitchDeg * math::DEG_TO_RAD;
     const f32 f1 = -yawDeg * math::DEG_TO_RAD;
     const f32 f2 = std::sin(f);   // sin(pitch)
@@ -49,7 +50,7 @@ std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
     const f32 f4 = std::sin(f1);  // sin(-yaw)
     const f32 f5 = std::cos(f1);  // cos(-yaw)
     const bool flag = f4 > 0.0f;  // 东向分量>0
-    const bool flag1 = f2 < 0.0f; // 俯视（pitch<0）
+    const bool flag1 = f2 < 0.0f; // true=仰视（pitch<0 时 sin(pitch)<0），false=俯视
     const bool flag2 = f5 > 0.0f; // 南向分量>0
     const f32 f6 = flag ? f4 : -f4;
     const f32 f7 = flag1 ? -f2 : f2;
@@ -85,8 +86,9 @@ BlockItemUseContext::BlockItemUseContext(IWorld& world,
     const Vector3& hitPos,
     const BlockPos& blockPos,
     Direction face,
-    f32 playerYaw)
-    : ItemUseContext(world, player, stack, hitPos, blockPos, face, Hand::MainHand, playerYaw)
+    f32 playerYaw,
+    f32 playerPitch)
+    : ItemUseContext(world, player, stack, hitPos, blockPos, face, Hand::MainHand, playerYaw, playerPitch)
     , m_replacingClickedBlock(false)
 {
     // 计算相邻位置（击中面的另一侧）
@@ -188,12 +190,10 @@ std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
     //   return adirection;
 
     // 获取玩家视线 yaw/pitch。优先使用真实玩家实体；测试上下文可能 player==nullptr，
-    // 此时回退到构造时传入的 m_playerYaw（默认 0=朝南），pitch 取 0（水平视线）。
-    // TODO(pitch-precision): 当 player==nullptr 时无法获知俯仰角，统一按 pitch=0 处理；
-    //   若未来需要测试用例覆盖仰视/俯视放置（如楼梯半板朝向），应扩展
-    //   BlockItemUseContext 构造参数显式传入 pitch，或改用真实 Player 实体。
+    // 此时回退到构造时传入的 m_playerYaw / m_playerPitch（由调用方显式提供，
+    // 例如 BlockInteractionManager 通过 ServerPlayerData->pitch 传入）。
     f32 yawDeg = m_playerYaw;
-    f32 pitchDeg = 0.0f;
+    f32 pitchDeg = m_playerPitch;
     if (m_player != nullptr) {
         yawDeg = m_player->yaw();
         pitchDeg = m_player->pitch();

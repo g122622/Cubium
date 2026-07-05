@@ -140,7 +140,8 @@ BlockItemUseContext makePlacementContext(IWorld& world, const BlockPos& pos, Dir
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
         pos,
         face,
-        playerYaw);
+        playerYaw,
+        0.0f);
 }
 
 class TestSolidBlock final : public Block {

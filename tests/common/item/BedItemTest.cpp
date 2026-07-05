@@ -209,7 +209,7 @@ protected:
     {
         Vector3 hitPos(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
         ItemStack stack;
-        return BlockItemUseContext(world, nullptr, stack, hitPos, pos, face, playerYaw);
+        return BlockItemUseContext(world, nullptr, stack, hitPos, pos, face, playerYaw, 0.0f);
     }
 
     std::unique_ptr<BedBlock> bed_;

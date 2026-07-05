@@ -304,7 +304,8 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     }
 
     // 创建放置上下文（player 为 nullptr，因为我们通过 InventoryManager 管理）
-    BlockItemUseContext context(*world, nullptr, heldItem, hitPos, pos, face, playerData->yaw);
+    // playerData 同时提供 yaw 与 pitch，pitch 用于 getNearestLookingDirections 的方向排序
+    BlockItemUseContext context(*world, nullptr, heldItem, hitPos, pos, face, playerData->yaw, playerData->pitch);
 
     // 先检查是否可以放置（位置有效性检查）
     if (!context.canPlace()) {
