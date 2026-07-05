@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityType.hpp"
@@ -31,7 +32,6 @@
 #include "entity/damage/DamageSource.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"
@@ -296,13 +296,15 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer)
     // 初始火焰计时器为 0
     EXPECT_EQ(entity.getFireTimer(), 0);
 
-    // 第一次碰撞
+    // commit 6398bbbf3 起对齐 MC Java：碰撞时先 forceFireTicks(timer+1)，
+    // 再 igniteForSeconds(8)（>=0 时）。首次碰撞 timer 0→1→被 igniteForSeconds
+    // 覆盖为 160。
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
-    EXPECT_EQ(entity.getFireTimer(), 1);
+    EXPECT_EQ(entity.getFireTimer(), 160);
 
-    // 第二次碰撞
+    // 第二次碰撞：timer 160→161，igniteForSeconds(8) 因 161>160 不覆盖
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
-    EXPECT_EQ(entity.getFireTimer(), 2);
+    EXPECT_EQ(entity.getFireTimer(), 161);
 }
 
 TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity)
@@ -354,7 +356,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NegativeTimerIgnites)
     EXPECT_EQ(entity.fire(), 160);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionNotIgnite)
+TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionIgnites)
 {
     FireTestWorld world;
     TestLivingEntity entity(EntityId(1), &world);
@@ -366,12 +368,13 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionNotIgnite)
     // 初始 timer 为 0
     EXPECT_EQ(entity.getFireTimer(), 0);
 
-    // 第一次碰撞：timer 从 0 变为 1，不触发 setFire
-    // 因为 MC 1.16.5 逻辑是：先 increment，再检查是否等于 0
+    // commit 6398bbbf3 起对齐 MC Java：首次碰撞即点燃 8 秒（160 ticks）。
+    // 旧逻辑 if(getFireTimer()==0) 在递增后不再成立故不点燃；新逻辑条件为
+    // getRemainingFireTicks()>=0，递增后 1>=0 成立，触发 igniteForSeconds(8)。
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
 
-    EXPECT_EQ(entity.getFireTimer(), 1);
-    // fire() 不会被设置为 160，因为 timer != 0
+    EXPECT_EQ(entity.getFireTimer(), 160);
+    EXPECT_EQ(entity.fire(), 160);
 }
 
 TEST_F(FireBlockCollisionTest, OnEntityCollision_SoulFire_HigherDamage)
@@ -406,11 +409,12 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases)
     BlockPos pos(0, 0, 0);
 
     // Entity 基类不受伤害（dynamic_cast<LivingEntity*> 返回 nullptr）
-    // 但火焰计时器仍然增加
+    // 但火焰计时器仍按 onEntityCollision 逻辑处理：首次碰撞被 igniteForSeconds(8)
+    // 覆盖为 160（commit 6398bbbf3）。
     EXPECT_EQ(entity.getFireTimer(), 0);
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
-    EXPECT_EQ(entity.getFireTimer(), 1); // 计时器增加
-    // isOnFire() 检查 fire > 0，fireTimer 变为 1 所以点燃了
+    EXPECT_EQ(entity.getFireTimer(), 160);
+    // isOnFire() 检查 fire > 0，timer=160 故点燃
     EXPECT_TRUE(entity.isOnFire());
 }
 
@@ -433,8 +437,10 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_MultipleCollisions_EachTick)
     EXPECT_EQ(entity.hurtCount(), 5);
     EXPECT_EQ(entity.lastDamage(), 1.0f);
 
-    // 火焰计时器应该增加 5
-    EXPECT_EQ(entity.getFireTimer(), 5);
+    // commit 6398bbbf3 起对齐 MC Java：首次碰撞 igniteForSeconds(8) 覆盖为 160，
+    // 后续每次 forceFireTicks(timer+1) 递增且 igniteForSeconds(8) 不再覆盖
+    // （timer 已 >160）。5 次后 timer = 160 + 4 = 164。
+    EXPECT_EQ(entity.getFireTimer(), 164);
 }
 
 } // namespace
