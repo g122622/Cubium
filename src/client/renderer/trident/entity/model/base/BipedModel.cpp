@@ -378,6 +378,21 @@ void BipedModel::handleRightArmPose()
             // 弩持握：双手协调姿态，由右手分支主导设置双手角度
             handleCrossbowHold(true);
             break;
+        case ArmPose::Spyglass: {
+            // 望远镜：右臂贴近眼部前方，X 跟随头部 pitch（带 clamp），Y 为头部 yaw - π/12
+            const f32 headPitch = m_bipedHead->rotateAngleX();
+            const f32 headYaw = m_bipedHead->rotateAngleY();
+            const f32 crouchOffset = m_isSneaking ? static_cast<f32>(mc::math::PI_DOUBLE / 12.0) : 0.0f;
+            m_bipedRightArm->setRotateAngleX(std::clamp(headPitch - 1.9198622f - crouchOffset, -2.4f, 3.3f));
+            m_bipedRightArm->setRotateAngleY(headYaw - static_cast<f32>(mc::math::PI_DOUBLE / 12.0));
+            break;
+        }
+        case ArmPose::Brush:
+            // 刷子：右臂半折，向前下方刷扫
+            m_bipedRightArm->setRotateAngleX(
+                m_bipedRightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 5.0));
+            m_bipedRightArm->setRotateAngleY(0.0f);
+            break;
     }
 }
 
@@ -421,6 +436,21 @@ void BipedModel::handleLeftArmPose()
             if (m_rightArmPose != ArmPose::CrossbowHold) {
                 handleCrossbowHold(false);
             }
+            break;
+        case ArmPose::Spyglass: {
+            // 望远镜：左臂贴近眼部前方，X 跟随头部 pitch（带 clamp），Y 为头部 yaw + π/12
+            const f32 headPitch = m_bipedHead->rotateAngleX();
+            const f32 headYaw = m_bipedHead->rotateAngleY();
+            const f32 crouchOffset = m_isSneaking ? static_cast<f32>(mc::math::PI_DOUBLE / 12.0) : 0.0f;
+            m_bipedLeftArm->setRotateAngleX(std::clamp(headPitch - 1.9198622f - crouchOffset, -2.4f, 3.3f));
+            m_bipedLeftArm->setRotateAngleY(headYaw + static_cast<f32>(mc::math::PI_DOUBLE / 12.0));
+            break;
+        }
+        case ArmPose::Brush:
+            // 刷子：左臂半折，向前下方刷扫
+            m_bipedLeftArm->setRotateAngleX(
+                m_bipedLeftArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE / 5.0));
+            m_bipedLeftArm->setRotateAngleY(0.0f);
             break;
     }
 }

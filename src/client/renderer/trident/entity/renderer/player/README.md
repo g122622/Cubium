@@ -115,7 +115,7 @@ TODO 注释）。
 
 ### 5. determineArmPose 实现说明
 
-`determineArmPose(player, hand)` 参考 MC 1.21.11 `AvatarRenderer.getArmPose` 实现，根据手持物品与使用状态返回对应 `ArmPose`：
+`determineArmPose(player, hand)` 对应 MC 1.21.11 `AvatarRenderer.getArmPose` 实现，根据手持物品与使用状态返回对应 `ArmPose`：
 
 1. 空手 → `Empty`
 2. 已装填的弩（且未挥动）→ `CrossbowHold`
@@ -124,11 +124,17 @@ TODO 注释）。
    - `Bow`（弓）→ `BowAndArrow`
    - `Spear`/`Trident`（三叉戟/长矛）→ `ThrowSpear`
    - `Crossbow`（弩装填）→ `CrossbowCharge`
-   - `Spyglass`/`Brush` → 暂降级为 `Item`（TODO：第三人称特殊姿态枚举待补）
+   - `Spyglass`（望远镜）→ `Spyglass`
+   - `Brush`（刷子）→ `Brush`
+   - `Bundle`（收纳袋）→ 暂降级为 `Item`（无对应第三人称 EatOrDrink 枚举）
 4. 长矛类物品（`ItemTags::SPEARS`）→ `ThrowSpear`
 5. 默认持有物品 → `Item`
 
 `setModelVisibilities()` 中还会执行双手姿态协调：若主手姿态为 `BowAndArrow`/`CrossbowCharge`/`CrossbowHold`，副手姿态降级为 `Empty`（副手空）或 `Item`（副手非空）。随后根据 `player.isRightHanded()` 将主/副手姿态映射到模型右臂/左臂。
+
+`Spyglass`/`Brush` 姿态为单手动作（`isTwoHanded=false`），不参与双手协调，由 `BipedModel::handleRightArmPose`/`handleLeftArmPose` 中的对应 case 分支按 MC 1.21.11 `HumanoidModel.poseRightArm`/`poseLeftArm` 角度公式设置：
+- `Spyglass`：手臂 X 跟随头部 pitch（带 clamp 与蹲伏偏移），Y 为头部 yaw ± π/12
+- `Brush`：手臂 X 半折后偏移 -π/5，Y 归零
 
 ### 6. PlayerArmPoseResolver 工具类
 

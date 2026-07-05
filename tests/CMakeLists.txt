@@ -867,6 +867,8 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelTranslateHandTest.cpp
     # BipedModel 弩装填/持握动画测试
     client/renderer/entity/BipedModelCrossbowTest.cpp
+    # BipedModel Spyglass/Brush 手臂姿态角度测试
+    client/renderer/entity/BipedModelArmPoseTest.cpp
     # PlayerModel 手臂渲染测试
     client/renderer/entity/PlayerModelTest.cpp
     # PlayerArmPoseResolver 手臂姿态解析器测试

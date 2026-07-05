@@ -34,8 +34,6 @@ namespace mc::client::renderer::entity::renderer::player {
 
 model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& player, ::mc::Hand hand)
 {
-    // 参考 MC 1.21.11 AvatarRenderer.getArmPose(Avatar, ItemStack, InteractionHand)
-
     // 获取手持物品
     const ::mc::ItemStack& heldStack = player.getHeldItem(hand);
     if (heldStack.isEmpty()) {
@@ -48,7 +46,6 @@ model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& pla
     }
 
     // 1) 已装填的弩：未挥动时返回 CrossbowHold
-    //    匹配 MC: !swinging && stack.is(Items.CROSSBOW) && CrossbowItem.isCharged(stack)
     if (!player.isSwingInProgress() && item == ::mc::Items::CROSSBOW) {
         if (::mc::item::CrossbowItem::isCharged(heldStack)) {
             return model::player::ArmPose::CrossbowHold;
@@ -56,7 +53,6 @@ model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& pla
     }
 
     // 2) 正在使用物品且使用的手就是当前判断的手
-    //    匹配 MC: entity.getUsedItemHand() == hand && entity.getUseItemRemainingTicks() > 0
     if (player.isUsingItem() && player.getActiveHand() == hand && player.getItemInUseCount() > 0) {
         const ::mc::UseAction useAction = item->getUseAction(heldStack);
         switch (useAction) {
@@ -70,14 +66,11 @@ model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& pla
             case ::mc::UseAction::Crossbow:
                 return model::player::ArmPose::CrossbowCharge;
             case ::mc::UseAction::Spyglass:
-                // TODO: 望远镜暂无第三人称特殊姿态枚举，临时降级为 Item
-                return model::player::ArmPose::Item;
+                return model::player::ArmPose::Spyglass;
             case ::mc::UseAction::Brush:
-                // TODO: 刷子暂无第三人称特殊姿态枚举，临时降级为 Item
-                return model::player::ArmPose::Item;
+                return model::player::ArmPose::Brush;
             case ::mc::UseAction::Bundle:
                 // 收纳袋使用动作类似饮用，第三人称 ArmPose 无 EatOrDrink 枚举，降级为 Item
-                // TODO: 若第三人称 ArmPose 扩展 EatOrDrink，应改为返回该姿态
                 return model::player::ArmPose::Item;
             default:
                 break;
@@ -85,7 +78,6 @@ model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& pla
     }
 
     // 3) 长矛类物品（通过 ItemTags::SPEARS 标签判断）返回 ThrowSpear
-    //    匹配 MC: stack.is(ItemTags.SPEARS) ? SPEAR : ITEM
     if (::mc::item::tag::ItemTags::isInitialized()) {
         if (item->isIn(::mc::item::tag::ItemTags::SPEARS())) {
             return model::player::ArmPose::ThrowSpear;
@@ -98,7 +90,6 @@ model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& pla
 
 PlayerArmPoseResolver::ArmPosePair PlayerArmPoseResolver::resolveArmPoses(::mc::Player& player)
 {
-    // 参考 MC 1.21.11 AvatarRenderer.getArmPose(Avatar, HumanoidArm) 与 setModelVisibilities 协调逻辑
     const ::mc::Hand mainHandSlot = ::mc::Hand::MainHand;
     const ::mc::Hand offHandSlot = ::mc::Hand::OffHand;
     auto mainArmPose = determineArmPose(player, mainHandSlot);

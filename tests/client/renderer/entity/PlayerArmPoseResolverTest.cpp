@@ -26,10 +26,10 @@
  * @brief PlayerArmPoseResolver 单元测试
  *
  * 测试覆盖：
- * - determineArmPose：空手、持有普通物品、弓、弩装填、盾牌、三叉戟/长矛、已装填弩、刷子等分支
+ * - determineArmPose：空手、持有普通物品、弓、弩装填、盾牌、三叉戟/长矛、已装填弩、刷子、望远镜等分支
  * - resolveArmPoses：双手协调（弓/弩装填/弩持握降级副手）、右撇子/左撇子映射
  *
- * 参考 MC 1.21.11 AvatarRenderer.getArmPose 与 setModelVisibilities 协调逻辑。
+ * 对应 MC 1.21.11 AvatarRenderer.getArmPose 与 setModelVisibilities 协调逻辑。
  */
 
 #include <gtest/gtest.h>
@@ -39,6 +39,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
@@ -87,6 +88,23 @@ public:
     {
         // 测试中忽略粒子效果
     }
+};
+
+// ============================================================================
+// 测试用望远镜物品（项目暂未实现 SpyglassItem，用 mock 验证姿态映射）
+// ============================================================================
+
+class TestSpyglassItem final : public Item {
+public:
+    TestSpyglassItem()
+        : Item(ItemProperties().maxStackSize(1))
+    {}
+
+    // 望远镜使用时长 1200 ticks（MC 1.21.11 SpyglassItem.USE_DURATION = 1200）
+    // 仅需 >0 即可让 LivingEntity::setActiveHand 进入使用状态
+    [[nodiscard]] i32 getUseDuration(const ItemStack&) const override { return 1200; }
+
+    [[nodiscard]] UseAction getUseAction(const ItemStack&) const override { return UseAction::Spyglass; }
 };
 
 // ============================================================================
@@ -302,10 +320,10 @@ TEST_F(PlayerArmPoseResolverTest, DetermineArmPose_CrossbowUsing_ReturnsCrossbow
 }
 
 // ============================================================================
-// determineArmPose - 刷子（降级为 Item）
+// determineArmPose - 刷子
 // ============================================================================
 
-TEST_F(PlayerArmPoseResolverTest, DetermineArmPose_BrushUsing_ReturnsItem)
+TEST_F(PlayerArmPoseResolverTest, DetermineArmPose_BrushUsing_ReturnsBrush)
 {
     TestPlayer player(m_world.get());
     ASSERT_NE(Items::BRUSH, nullptr);
@@ -316,10 +334,30 @@ TEST_F(PlayerArmPoseResolverTest, DetermineArmPose_BrushUsing_ReturnsItem)
     player.setActiveHand(Hand::MainHand);
     ASSERT_TRUE(player.isUsingItem());
 
-    // Brush 暂无第三人称特殊姿态枚举，降级为 Item
     EXPECT_EQ(
         client::renderer::entity::renderer::player::PlayerArmPoseResolver::determineArmPose(player, Hand::MainHand),
-        ArmPose::Item);
+        ArmPose::Brush);
+}
+
+// ============================================================================
+// determineArmPose - 望远镜
+// ============================================================================
+
+TEST_F(PlayerArmPoseResolverTest, DetermineArmPose_SpyglassUsing_ReturnsSpyglass)
+{
+    TestPlayer player(m_world.get());
+    // 项目尚未实现 SpyglassItem，使用 mock 物品验证 UseAction::Spyglass → ArmPose::Spyglass 映射
+    TestSpyglassItem spyglassItem;
+    ItemStack spyglassStack(&spyglassItem, 1);
+    player.setEquipment(EquipmentSlot::MainHand, spyglassStack);
+
+    // 激活使用望远镜
+    player.setActiveHand(Hand::MainHand);
+    ASSERT_TRUE(player.isUsingItem());
+
+    EXPECT_EQ(
+        client::renderer::entity::renderer::player::PlayerArmPoseResolver::determineArmPose(player, Hand::MainHand),
+        ArmPose::Spyglass);
 }
 
 // ============================================================================

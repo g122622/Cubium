@@ -40,7 +40,8 @@ using HandSide = mc::client::renderer::entity::model::HandSide;
  * @brief 手臂姿态枚举别名
  *
  * 直接复用基类 BipedModel 的 ArmPose 枚举，避免命名空间分裂和字段隐藏问题。
- * 7 种姿态：Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold
+ * 9 种姿态：Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold,
+ * Spyglass, Brush
  */
 using ArmPose = mc::client::renderer::entity::model::ArmPose;
 

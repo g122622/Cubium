@@ -36,7 +36,7 @@ namespace mc::client::renderer::entity::renderer::player {
  * @brief 玩家手臂姿态解析器
  *
  * 将玩家手持物品与使用状态解析为第三人称 PlayerModel 使用的 ArmPose。
- * 参考 MC 1.21.11 AvatarRenderer.getArmPose 与 setModelVisibilities 中的双手协调逻辑。
+ * 对应 MC 1.21.11 AvatarRenderer.getArmPose 与 setModelVisibilities 中的双手协调逻辑。
  *
  * 该类为纯逻辑工具类，不依赖任何渲染层（Vulkan/管线/层渲染器），
  * 可在单元测试中直接调用，避免构造完整 PlayerRenderer 所引入的重依赖。
@@ -46,12 +46,13 @@ public:
     /**
      * @brief 解析指定手的手臂姿态
      *
-     * 参考 MC 1.21.11 AvatarRenderer.getArmPose(Avatar, ItemStack, InteractionHand)：
+     * 解析流程：
      * 1. 空手 → Empty
      * 2. 已装填的弩（且未挥动）→ CrossbowHold
      * 3. 正在使用物品且使用手匹配时按 UseAction 映射：
-     *    Block→Block, Bow→BowAndArrow, Spear/Trident→ThrowSpear, Crossbow→CrossbowCharge
-     *    Spyglass/Brush 暂降级为 Item（TODO：第三人称特殊姿态枚举待补）
+     *    Block→Block, Bow→BowAndArrow, Spear/Trident→ThrowSpear,
+     *    Crossbow→CrossbowCharge, Spyglass→Spyglass, Brush→Brush,
+     *    Bundle 暂降级为 Item（无对应第三人称 EatOrDrink 枚举）
      * 4. 长矛类物品（ItemTags::SPEARS）→ ThrowSpear
      * 5. 默认持有物品 → Item
      *

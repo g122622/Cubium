@@ -42,8 +42,17 @@ enum class HandSide { Left, Right };
 
 /**
  * @brief 手臂姿态枚举
+ *
+ * 与 MC 1.21.11 HumanoidModel.ArmPose 对应（同姿态语义）：
+ * - Empty/Item/Block/BowAndArrow/ThrowSpear/CrossbowCharge/CrossbowHold：原有姿态
+ * - Spyglass：使用望远镜时第三人称将手臂贴近眼部前方
+ * - Brush：使用刷子时第三人称刷扫姿态
+ *
+ * 注意：MC 1.21.11 中还有 TOOT_HORN 与 SPEAR 姿态，前者依赖山羊角物品与
+ * UseAction::TootHorn（项目尚未实现），后者依赖 SpearAnimations 第三人称
+ * 投掷长矛动画（项目 ThrowSpear 已覆盖三叉戟/长矛静态持握），暂不引入。
  */
-enum class ArmPose { Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold };
+enum class ArmPose { Empty, Item, Block, BowAndArrow, ThrowSpear, CrossbowCharge, CrossbowHold, Spyglass, Brush };
 
 /**
  * @brief 双足动物模型基类
