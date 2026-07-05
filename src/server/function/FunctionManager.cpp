@@ -22,6 +22,7 @@
  */
 
 #include "FunctionManager.hpp"
+#include "MacroFunction.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <spdlog/spdlog.h>
@@ -39,6 +40,11 @@ void FunctionManager::registerFunction(const ResourceLocation& id, std::vector<s
     m_functions[id] = std::move(func);
 }
 
+void FunctionManager::registerMacroFunction(const ResourceLocation& id, std::unique_ptr<MacroFunction> function)
+{
+    m_functions[id] = std::move(function);
+}
+
 void FunctionManager::registerTag(const ResourceLocation& tagId, std::vector<ResourceLocation> functionIds)
 {
     m_tags[tagId] = std::move(functionIds);
@@ -50,13 +56,26 @@ void FunctionManager::clear()
     m_tags.clear();
 }
 
-const CommandFunction* FunctionManager::getFunction(const ResourceLocation& id) const
+const IFunction* FunctionManager::getFunctionAny(const ResourceLocation& id) const
 {
     auto it = m_functions.find(id);
     if (it != m_functions.end()) {
         return it->second.get();
     }
     return nullptr;
+}
+
+const CommandFunction* FunctionManager::getFunction(const ResourceLocation& id) const
+{
+    auto it = m_functions.find(id);
+    if (it == m_functions.end()) {
+        return nullptr;
+    }
+    // 仅当不是宏函数时返回 CommandFunction 指针
+    if (it->second->isMacro()) {
+        return nullptr;
+    }
+    return static_cast<const CommandFunction*>(it->second.get());
 }
 
 const std::vector<ResourceLocation>& FunctionManager::getTag(const ResourceLocation& tagId) const
@@ -101,52 +120,25 @@ std::vector<ResourceLocation> FunctionManager::getAllTagIds() const
 FunctionManager::ExecuteResult FunctionManager::execute(
     const ResourceLocation& id, command::ServerCommandSource& source)
 {
-    auto* func = getFunction(id);
+    return execute(id, source, nullptr);
+}
+
+FunctionManager::ExecuteResult FunctionManager::execute(
+    const ResourceLocation& id, command::ServerCommandSource& source, const nbt::tags::compound_tag* arguments)
+{
+    auto* func = getFunctionAny(id);
     if (func == nullptr) {
         spdlog::warn("FunctionManager: Unknown function '{}'", id.toString());
         return ExecuteResult{0, 0};
     }
-    return execute(*func, source);
+    return func->execute(*this, source, arguments);
 }
 
 FunctionManager::ExecuteResult FunctionManager::execute(
     const CommandFunction& function, command::ServerCommandSource& source)
 {
-    ExecuteResult result{0, 0};
-
-    if (function.isEmpty()) {
-        return result;
-    }
-
-    spdlog::info(
-        "FunctionManager: Executing function '{}' with {} commands", function.id().toString(), function.commandCount());
-
-    auto& registry = command::CommandRegistry::getGlobal();
-
-    for (const auto& command : function.commands()) {
-        if (command.empty()) {
-            continue;
-        }
-
-        // 确保命令以 / 开头（CommandRegistry::execute 期望带 / 前缀的命令）
-        std::string fullCommand = command;
-        if (fullCommand[0] != '/') {
-            fullCommand = "/" + fullCommand;
-        }
-
-        auto execResult = registry.execute(fullCommand, source);
-        if (execResult.success()) {
-            ++result.successCount;
-        } else {
-            ++result.failureCount;
-            spdlog::info("FunctionManager: Command '{}' in function '{}' failed: {}",
-                command,
-                function.id().toString(),
-                execResult.error().toString());
-        }
-    }
-
-    return result;
+    // 历史接口：复用 IFunction::execute，arguments 忽略
+    return function.execute(*this, source, nullptr);
 }
 
 void FunctionManager::tick(command::ServerCommandSource& source)
@@ -170,9 +162,10 @@ void FunctionManager::executeTagFunctions(const ResourceLocation& tagId, command
 {
     const auto& functionIds = getTag(tagId);
     for (const auto& funcId : functionIds) {
-        auto* func = getFunction(funcId);
+        auto* func = getFunctionAny(funcId);
         if (func != nullptr) {
-            execute(*func, source);
+            // tick / load 标签中的函数无 arguments
+            (void)func->execute(*this, source, nullptr);
         } else {
             spdlog::warn(
                 "FunctionManager: Function '{}' referenced in tag '{}' not found", funcId.toString(), tagId.toString());

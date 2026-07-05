@@ -573,6 +573,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
     ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
     ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
     ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
 )
 

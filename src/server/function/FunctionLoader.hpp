@@ -1,11 +1,13 @@
 #pragma once
 
+#include "MacroFunction.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -40,7 +42,8 @@ class FunctionManager;
  *   - 每行一条命令（不含 / 前缀）
  *   - # 开头的行为注释，被忽略
  *   - \ 结尾的行与下一行连接
- *   - $ 开头的行为宏函数行，当前版本跳过并记录警告
+ *   - $ 开头的行为宏函数行（$(var) 占位符语法），整个文件若有至少一个宏行
+ *     将被注册为 MacroFunction，否则注册为 CommandFunction
  *   - 空行被忽略
  *   - 命令长度上限为 2,000,000 字符
  */
@@ -52,17 +55,31 @@ public:
     struct LoadResult {
         Size successCount = 0;
         Size failedCount = 0;
-        Size skippedCount = 0; ///< 跳过的宏函数行数
-        Size tagCount = 0;     ///< 加载的函数标签数量
+        Size skippedCount = 0;       ///< 跳过的宏函数行数（保留字段，新实现不再跳过宏行而是注册为 MacroFunction）
+        Size tagCount = 0;           ///< 加载的函数标签数量
+        Size macroFunctionCount = 0; ///< 注册为 MacroFunction 的函数数量
         std::vector<std::string> errors;
     };
 
     /**
      * @brief 解析结果
+     *
+     * 解析 .mcfunction 文件后产生的中间结果。
+     * 若 macroEntries 非空，则应注册为 MacroFunction；否则注册为 CommandFunction。
      */
     struct ParseResult {
-        std::vector<std::string> commands; ///< 解析出的命令列表
-        Size skippedMacroCount = 0;        ///< 跳过的宏函数行数（$ 开头的行）
+        /// 普通命令列表（仅当 macroEntries 为空时使用，即文件不含 $ 宏行）
+        std::vector<std::string> commands;
+
+        /// 宏函数条目列表（仅当文件含 $ 宏行时填充）
+        /// 此时 commands 留空，所有普通命令已被转成 PlainText entry 放入 macroEntries
+        std::vector<MacroFunctionEntry> macroEntries;
+
+        /// 形参名列表（仅当 macroEntries 非空时有效，按首次出现顺序去重）
+        std::vector<std::string> macroParameters;
+
+        /// 是否为宏函数（macroEntries 非空）
+        [[nodiscard]] bool isMacro() const noexcept { return !macroEntries.empty(); }
     };
 
     /**
@@ -178,7 +195,12 @@ public:
      *
      * 公开接口，便于单元测试直接调用。
      *
-     * @param id 函数 ID
+     * 解析规则：
+     * - 普通行（非 $ 开头）转为 PlainText entry 或 commands 列表（视是否含宏行而定）
+     * - $ 开头的行（去掉 $ 后）用 StringTemplate::fromString 解析为 Macro entry
+     * - 文件含至少一个宏行时，整体注册为 MacroFunction；否则为 CommandFunction
+     *
+     * @param id 函数 ID（用于错误消息）
      * @param content 文件内容
      * @return 解析结果（成功）或错误
      */

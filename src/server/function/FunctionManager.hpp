@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CommandFunction.hpp"
+#include "IFunction.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -16,16 +17,19 @@ class ServerCommandSource;
 
 namespace function {
 
+// 前向声明
+class MacroFunction;
+
 /**
  * @brief 函数管理器
  *
  * 管理 .mcfunction 文件的注册、查找和执行。
  *
  * 职责：
- * 1. 存储已注册的 CommandFunction（按 ResourceLocation 索引）
+ * 1. 存储已注册的 IFunction（CommandFunction 和 MacroFunction，按 ResourceLocation 索引）
  * 2. 存储函数标签（按 ResourceLocation 索引的函数 ID 列表）
  * 3. 提供函数查找接口（按 ID 和标签）
- * 4. 提供函数执行接口（通过 CommandRegistry 逐行执行）
+ * 4. 提供函数执行接口（通过 IFunction::execute → CommandRegistry 逐行执行）
  * 5. 管理 tick 和 load 函数标签的每 tick 执行
  * 6. 支持函数递归调用深度限制（防止无限递归）
  */
@@ -36,11 +40,12 @@ public:
 
     /**
      * @brief 函数执行结果
+     *
+     * @note 等价于 FunctionExecuteResult，保留此 typedef 仅为向后兼容。
+     *       外部代码（PlayerAdvancements、MinecraftServer、FunctionCommand 等）已大量使用
+     *       FunctionManager::ExecuteResult，重命名会引发不必要的连锁修改。
      */
-    struct ExecuteResult {
-        i32 successCount = 0; ///< 成功执行的命令数
-        i32 failureCount = 0; ///< 失败的命令数
-    };
+    using ExecuteResult = FunctionExecuteResult;
 
     FunctionManager() = default;
     ~FunctionManager() = default;
@@ -53,11 +58,22 @@ public:
     // ========== 函数注册 ==========
 
     /**
-     * @brief 注册函数
+     * @brief 注册普通函数（命令列表形式）
      * @param id 函数 ID
      * @param commands 命令列表
      */
     void registerFunction(const ResourceLocation& id, std::vector<std::string> commands);
+
+    /**
+     * @brief 注册宏函数
+     *
+     * 在 FunctionLoader 解析 .mcfunction 文件时，若文件包含 $ 宏行，
+     * 调用此接口注册 MacroFunction 而非 CommandFunction。
+     *
+     * @param id 函数 ID
+     * @param function 宏函数对象（已构建 entries 与 parameters）
+     */
+    void registerMacroFunction(const ResourceLocation& id, std::unique_ptr<MacroFunction> function);
 
     /**
      * @brief 注册函数标签
@@ -74,9 +90,23 @@ public:
     // ========== 函数查找 ==========
 
     /**
-     * @brief 按函数 ID 查找函数
+     * @brief 按函数 ID 查找函数对象（统一接口）
+     *
+     * 返回的 IFunction 指针可用于判断 isMacro() 或调用 execute。
+     *
      * @param id 函数 ID
      * @return 函数指针（未找到返回 nullptr）
+     */
+    [[nodiscard]] const IFunction* getFunctionAny(const ResourceLocation& id) const;
+
+    /**
+     * @brief 按函数 ID 查找普通函数
+     *
+     * 仅当函数是 CommandFunction（非宏函数）时返回非空指针。
+     * 历史接口，保留是为了 FunctionCommand 等仍能区分类型；新代码应优先使用 getFunctionAny。
+     *
+     * @param id 函数 ID
+     * @return 函数指针（未找到或为宏函数时返回 nullptr）
      */
     [[nodiscard]] const CommandFunction* getFunction(const ResourceLocation& id) const;
 
@@ -88,7 +118,7 @@ public:
     [[nodiscard]] const std::vector<ResourceLocation>& getTag(const ResourceLocation& tagId) const;
 
     /**
-     * @brief 检查函数是否存在
+     * @brief 检查函数是否存在（含普通函数和宏函数）
      */
     [[nodiscard]] bool hasFunction(const ResourceLocation& id) const;
 
@@ -120,10 +150,10 @@ public:
     // ========== 函数执行 ==========
 
     /**
-     * @brief 执行函数
+     * @brief 执行函数（无参数）
      *
-     * 通过 CommandRegistry 逐行执行函数中的命令。
-     * 执行时使用 gamemaster 权限等级（权限2），并抑制命令输出。
+     * 普通函数直接逐行执行；宏函数将抛 FunctionInstantiationException（缺参数），
+     * 失败计入 failureCount 而非抛出异常。
      *
      * @param id 函数 ID
      * @param source 命令源
@@ -132,10 +162,23 @@ public:
     ExecuteResult execute(const ResourceLocation& id, command::ServerCommandSource& source);
 
     /**
-     * @brief 执行已加载的函数对象
-     * @param function 函数对象
+     * @brief 执行函数（带参数）
+     *
+     * 用于宏函数的 /function <name> <arguments> 形式。
+     * 普通函数忽略 arguments；宏函数用 arguments 实例化 $(var) 占位符。
+     *
+     * @param id 函数 ID
      * @param source 命令源
+     * @param arguments 实参 CompoundTag（可为 nullptr）
      * @return 执行结果
+     */
+    ExecuteResult execute(
+        const ResourceLocation& id, command::ServerCommandSource& source, const nbt::tags::compound_tag* arguments);
+
+    /**
+     * @brief 执行已加载的 CommandFunction 对象
+     *
+     * 历史接口，新代码应使用 execute(id, source, arguments) 或 IFunction::execute。
      */
     ExecuteResult execute(const CommandFunction& function, command::ServerCommandSource& source);
 
@@ -164,8 +207,8 @@ private:
      */
     void executeTagFunctions(const ResourceLocation& tagId, command::ServerCommandSource& source);
 
-    /// 存储函数（按 ResourceLocation 索引）
-    std::unordered_map<ResourceLocation, std::unique_ptr<CommandFunction>> m_functions;
+    /// 存储函数（按 ResourceLocation 索引，CommandFunction 和 MacroFunction 都通过 IFunction 多态管理）
+    std::unordered_map<ResourceLocation, std::unique_ptr<IFunction>> m_functions;
 
     /// 存储函数标签（标签 ID -> 函数 ID 列表）
     std::unordered_map<ResourceLocation, std::vector<ResourceLocation>> m_tags;

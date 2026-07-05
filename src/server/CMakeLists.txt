@@ -165,6 +165,8 @@ add_executable(minecraft-server
     function/CommandFunction.cpp
     function/FunctionLoader.cpp
     function/FunctionManager.cpp
+    function/MacroFunction.cpp
+    function/StringTemplate.cpp
     function/TimerQueue.cpp
     # 脚本系统集成
     mod/bedrock/addon/ServerScriptManager.cpp

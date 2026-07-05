@@ -86,17 +86,20 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
         auto parseResult = parseFunctionContent(id, readResult.value());
         if (parseResult.success()) {
             auto& parsed = parseResult.value();
-            if (!parsed.commands.empty()) {
-                ResourceLocation loc = ResourceLocation::parse(id);
+            ResourceLocation loc = ResourceLocation::parse(id);
+
+            if (parsed.isMacro()) {
+                // 含 $ 宏行：注册为 MacroFunction
+                auto macroFunc = std::make_unique<MacroFunction>(
+                    loc, std::move(parsed.macroEntries), std::move(parsed.macroParameters));
+                m_manager.registerMacroFunction(loc, std::move(macroFunc));
+                ++result.successCount;
+                ++result.macroFunctionCount;
+            } else {
+                // 普通函数：注册为 CommandFunction
                 m_manager.registerFunction(loc, std::move(parsed.commands));
                 ++result.successCount;
-            } else {
-                // 空函数仍然注册
-                ResourceLocation loc = ResourceLocation::parse(id);
-                m_manager.registerFunction(loc, std::vector<std::string>{});
-                ++result.successCount;
             }
-            result.skippedCount += parsed.skippedMacroCount;
         } else {
             ++result.failedCount;
             result.errors.push_back(id + ": " + parseResult.error().toString());
@@ -518,6 +521,62 @@ Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
         lines.push_back(line);
     }
 
+    // 形参名 -> 索引（用于 MacroFunctionEntry::Macro::parameterIndices）
+    // 与 MC 1.21.11 FunctionBuilder#getArgumentIndex 行为一致：首次出现时分配索引
+    std::unordered_map<std::string, Size> parameterIndexMap;
+
+    /// 内部辅助：将普通命令加入 result（按当前是否已切换到 macro 模式分别处理）
+    auto addPlainCommand = [&](std::string command) {
+        if (result.isMacro()) {
+            // 已切换到 macro 模式：转为 PlainTextEntry
+            result.macroEntries.push_back(MacroFunctionEntry::plainText(std::move(command)));
+        } else {
+            // 仍在纯命令模式：累积到 commands
+            result.commands.push_back(std::move(command));
+        }
+    };
+
+    /// 内部辅助：将 $ 宏行加入 result，并在需要时切换到 macro 模式
+    /// 对应 MC 1.21.11 FunctionBuilder#addMacro
+    auto addMacroLine = [&](const std::string& macroBody, Size lineNumber) -> Result<void> {
+        // 解析 $(var) 语法
+        StringTemplate tmpl;
+        try {
+            tmpl = StringTemplate::fromString(macroBody);
+        }
+        catch (const std::exception& e) {
+            return Error(ErrorCode::ResourceParseError,
+                "Can't parse function line " + std::to_string(lineNumber) + ": '" + macroBody + "' (" + e.what() + ")");
+        }
+
+        // 首次遇到 $ 宏行时切换到 macro 模式：把已累积的 commands 转为 PlainTextEntry
+        if (!result.isMacro()) {
+            result.macroEntries.reserve(result.commands.size() + 1);
+            for (auto& cmd : result.commands) {
+                result.macroEntries.push_back(MacroFunctionEntry::plainText(std::move(cmd)));
+            }
+            result.commands.clear();
+        }
+
+        // 为模板中的每个变量分配或复用形参索引
+        std::vector<Size> indices;
+        indices.reserve(tmpl.variables().size());
+        for (const auto& varName : tmpl.variables()) {
+            auto it = parameterIndexMap.find(varName);
+            if (it == parameterIndexMap.end()) {
+                Size idx = result.macroParameters.size();
+                result.macroParameters.push_back(varName);
+                parameterIndexMap[varName] = idx;
+                indices.push_back(idx);
+            } else {
+                indices.push_back(it->second);
+            }
+        }
+
+        result.macroEntries.push_back(MacroFunctionEntry::macro(std::move(tmpl), std::move(indices)));
+        return {};
+    };
+
     // 处理行连接和命令解析
     for (Size i = 0; i < lines.size(); ++i) {
         std::string processedLine = lines[i];
@@ -555,10 +614,14 @@ Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
             continue;
         }
 
-        // 宏行：以 $ 开头 - 当前版本跳过
+        // 宏行：以 $ 开头 - 解析为 MacroFunctionEntry::Macro
         if (processedLine[0] == '$') {
-            spdlog::warn("Macro function line skipped in function '{}' on line {}: {}", id, i + 1, processedLine);
-            ++result.skippedMacroCount;
+            // 去除 $ 前缀，剩余部分作为宏体（对应 MC 1.21.11 FunctionBuilder#addMacro 的 s1.substring(1)）
+            std::string macroBody = processedLine.substr(1);
+            auto addResult = addMacroLine(macroBody, i + 1);
+            if (!addResult.success()) {
+                return addResult.error();
+            }
             continue;
         }
 
@@ -575,7 +638,7 @@ Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
         }
 
         if (!processedLine.empty()) {
-            result.commands.push_back(processedLine);
+            addPlainCommand(std::move(processedLine));
         }
     }
 

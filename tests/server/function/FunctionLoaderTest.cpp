@@ -47,7 +47,7 @@ TEST_F(FunctionLoaderTest, ParseFunctionContent_SimpleCommands)
     EXPECT_EQ(result.value().commands.size(), 2u);
     EXPECT_EQ(result.value().commands[0], "say hello");
     EXPECT_EQ(result.value().commands[1], "give @a diamond");
-    EXPECT_EQ(result.value().skippedMacroCount, 0u);
+    EXPECT_FALSE(result.value().isMacro());
 }
 
 TEST_F(FunctionLoaderTest, ParseFunctionContent_CommentsIgnored)
@@ -57,7 +57,7 @@ TEST_F(FunctionLoaderTest, ParseFunctionContent_CommentsIgnored)
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value().commands.size(), 1u);
     EXPECT_EQ(result.value().commands[0], "say hello");
-    EXPECT_EQ(result.value().skippedMacroCount, 0u);
+    EXPECT_FALSE(result.value().isMacro());
 }
 
 TEST_F(FunctionLoaderTest, ParseFunctionContent_EmptyLinesIgnored)
@@ -102,14 +102,23 @@ TEST_F(FunctionLoaderTest, ParseFunctionContent_LineContinuation)
     EXPECT_EQ(result.value().commands[0], "say hello world");
 }
 
-TEST_F(FunctionLoaderTest, ParseFunctionContent_MacroLinesSkipped)
+TEST_F(FunctionLoaderTest, ParseFunctionContent_MacroLinesBecomeMacroEntries)
 {
+    // 新行为：$ 开头的行被解析为 MacroFunctionEntry::Macro，整个文件成为宏函数
+    // 宏行格式：$<body>，其中 body 含 $(var) 替换
     FunctionLoader loader(manager);
-    auto result = loader.parseFunctionContent("test:macro", "$(var)\nsay hello\n$macro_line");
+    auto result = loader.parseFunctionContent("test:macro", "$say $(var)\nsay hello\n$tellraw @a $(msg)");
     ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().commands.size(), 1u);
-    EXPECT_EQ(result.value().commands[0], "say hello");
-    EXPECT_EQ(result.value().skippedMacroCount, 2u);
+    // 含 $ 宏行的文件不再是 CommandFunction，commands 为空
+    EXPECT_TRUE(result.value().commands.empty());
+    // isMacro() 为真
+    EXPECT_TRUE(result.value().isMacro());
+    // 含 3 个 entry（1 个 say 命令转为 PlainText + 2 个宏行）
+    EXPECT_EQ(result.value().macroEntries.size(), 3u);
+    // 形参列表含 2 个去重后的形参：var, msg
+    EXPECT_EQ(result.value().macroParameters.size(), 2u);
+    EXPECT_EQ(result.value().macroParameters[0], "var");
+    EXPECT_EQ(result.value().macroParameters[1], "msg");
 }
 
 TEST_F(FunctionLoaderTest, ParseFunctionContent_EmptyContent)
@@ -118,7 +127,7 @@ TEST_F(FunctionLoaderTest, ParseFunctionContent_EmptyContent)
     auto result = loader.parseFunctionContent("test:empty", "");
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().commands.empty());
-    EXPECT_EQ(result.value().skippedMacroCount, 0u);
+    EXPECT_FALSE(result.value().isMacro());
 }
 
 TEST_F(FunctionLoaderTest, ParseFunctionContent_OnlyComments)
@@ -127,7 +136,7 @@ TEST_F(FunctionLoaderTest, ParseFunctionContent_OnlyComments)
     auto result = loader.parseFunctionContent("test:onlycomments", "# comment 1\n# comment 2\n# comment 3");
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().commands.empty());
-    EXPECT_EQ(result.value().skippedMacroCount, 0u);
+    EXPECT_FALSE(result.value().isMacro());
 }
 
 TEST_F(FunctionLoaderTest, ParseFunctionContent_WindowsLineEndings)
@@ -149,26 +158,53 @@ TEST_F(FunctionLoaderTest, ParseFunctionContent_CommandTooLong)
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(FunctionLoaderTest, ParseFunctionContent_MixedContent)
+TEST_F(FunctionLoaderTest, ParseFunctionContent_MixedContentWithMacroBecomesMacroFunction)
 {
+    // 新行为：含 $ 宏行的文件被注册为宏函数
+    // - "say first command" / "say indented command" / "say slash-prefixed" / "give @a diamond" 都转为 PlainText entry
+    // - "$say $(skip_me)" / "$tellraw @a $(another_macro)" 转为 Macro entry
+    // - "skip_me" 和 "another_macro" 加入形参列表
     FunctionLoader loader(manager);
     std::string content = "# Header comment\n"
                           "\n"
                           "say first command\n"
-                          "$(skip_me)\n"
+                          "$say $(skip_me)\n"
                           "  say indented command\n"
                           "/say slash-prefixed\n"
                           "# Middle comment\n"
                           "give @a diamond\n"
-                          "$another_macro\n";
+                          "$tellraw @a $(another_macro)\n";
     auto result = loader.parseFunctionContent("test:mixed", content);
     ASSERT_TRUE(result.success());
+    // 含 $ 宏行：commands 为空，macroEntries 含 6 项
+    EXPECT_TRUE(result.value().commands.empty());
+    EXPECT_TRUE(result.value().isMacro());
+    EXPECT_EQ(result.value().macroEntries.size(), 6u);
+    // 形参列表: skip_me, another_macro
+    EXPECT_EQ(result.value().macroParameters.size(), 2u);
+    EXPECT_EQ(result.value().macroParameters[0], "skip_me");
+    EXPECT_EQ(result.value().macroParameters[1], "another_macro");
+}
+
+TEST_F(FunctionLoaderTest, ParseFunctionContent_MixedContentWithoutMacroStaysCommandFunction)
+{
+    // 不含 $ 宏行：仍为 CommandFunction，commands 列表正常
+    FunctionLoader loader(manager);
+    std::string content = "# Header comment\n"
+                          "\n"
+                          "say first command\n"
+                          "  say indented command\n"
+                          "/say slash-prefixed\n"
+                          "# Middle comment\n"
+                          "give @a diamond\n";
+    auto result = loader.parseFunctionContent("test:mixed_plain", content);
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().isMacro());
     EXPECT_EQ(result.value().commands.size(), 4u);
     EXPECT_EQ(result.value().commands[0], "say first command");
     EXPECT_EQ(result.value().commands[1], "say indented command");
     EXPECT_EQ(result.value().commands[2], "say slash-prefixed");
     EXPECT_EQ(result.value().commands[3], "give @a diamond");
-    EXPECT_EQ(result.value().skippedMacroCount, 2u);
 }
 
 // ========== pathToFunctionId 测试 ==========

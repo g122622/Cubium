@@ -1364,6 +1364,8 @@ add_executable(mc_tests
     # 函数系统测试
     server/function/FunctionLoaderTest.cpp
     server/function/FunctionManagerTest.cpp
+    server/function/MacroFunctionTest.cpp
+    server/function/StringTemplateTest.cpp
     server/function/TimerQueueTest.cpp
 )
 
@@ -1435,6 +1437,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
         # 统计系统
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
@@ -2491,6 +2495,8 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
 )
 
