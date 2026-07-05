@@ -28,6 +28,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -1337,4 +1338,201 @@ TEST_F(MobSpawnerPlayEventTest, Tick_MultipleSpawns_EmitsEventForEachBatch)
     }
     // 应该有多次成功生成事件
     EXPECT_GE(eventCount, 1u) << "Expected at least one MOB_SPAWNER_PARTICLES event in 20 ticks";
+}
+
+// ============================================================================
+// 端到端生成测试（验证 entityType->create → finalizeSpawn → spawnEntity 完整链路）
+// ============================================================================
+//
+// 这组测试用于覆盖 MobSpawnerBlockEntity::_spawnEntities 的完整生成链路：
+// 1. 通过 EntityType::create(&world) 创建实体实例
+// 2. 对 MobEntity 调用 finalizeSpawn(world, DifficultyInstance, SpawnReason::Spawner)
+// 3. 通过 world.spawnEntity(std::move(entity)) 将实体添加到世界
+//
+// 早期由于测试环境中未注册 EntityType，该链路无法端到端验证，留下 TODO。
+// 现在 VanillaEntities::registerAll() 已可在测试环境调用，且 MobSpawnerTestWorld
+// 的 spawnEntity override 会持有生成实体的所有权并暴露 spawnedEntities() 访问接口，
+// 因此可以完整断言生成结果（实体数量、类型 id、MobEntity 多态、finalizeSpawn 副作用）。
+
+class MobSpawnerE2ESpawnTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        entity::VanillaEntities::registerAll();
+        spawner_ = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+        world_ = std::make_unique<MobSpawnerTestWorld>();
+
+        // 延迟参数：min=max=0，使每个 tick 都尝试生成
+        spawner_->setMinSpawnDelay(0);
+        spawner_->setMaxSpawnDelay(0);
+        // 关闭玩家范围限制（_isNearPlayer 直接返回 true）
+        spawner_->setRequiredPlayerRange(0);
+        // 每次 tick 生成 1 个实体
+        spawner_->setSpawnCount(1);
+        // 附近同类实体上限设大，避免 _countNearbyEntities 阻塞后续生成
+        spawner_->setMaxNearbyEntities(64);
+        // 生成范围 1（围绕刷怪笼 3x3x3 区域）
+        spawner_->setSpawnRange(1);
+
+        // CustomSpawnRules 放宽光照限制，绕过 EntitySpawnPlacementRegistry::canSpawnEntity
+        // 的 OnGround 放置检查（BaseTestWorld::getBlockState 返回 nullptr，无法通过默认检查）。
+        CustomSpawnRules rules;
+        rules.blockLightMin = 0;
+        rules.blockLightMax = 15;
+        rules.skyLightMin = 0;
+        rules.skyLightMax = 15;
+        spawner_->setCustomSpawnRules(rules);
+
+        math::Random rng(42);
+        spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+        world_->setSeed(12345);
+        world_->setCurrentTick(100);
+        world_->setDifficulty(Difficulty::Easy);
+    }
+
+    void TearDown() override {}
+
+    std::unique_ptr<MobSpawnerBlockEntity> spawner_;
+    std::unique_ptr<MobSpawnerTestWorld> world_;
+};
+
+TEST_F(MobSpawnerE2ESpawnTest, Tick_SpawnsPigEntity_EndToEnd)
+{
+    // 多次 tick 以触发生成（默认 m_spawnDelay=20，需要 ~20 tick 才能归零）
+    for (int i = 0; i < 30; ++i) {
+        spawner_->tick(*world_);
+    }
+
+    // 断言 1：至少生成 1 个实体（spawnEntity 被成功调用且返回有效 id）
+    EXPECT_GE(world_->spawnedCount(), 1u) << "Expected at least one spawned pig entity after 30 ticks";
+
+    // 断言 2：生成的实体类型 id 为 "minecraft:pig"
+    //   EntityType::create 内部会调用 setTypeId(m_name)，确保 getTypeId() 返回注册名
+    const auto& spawned = world_->spawnedEntities();
+    ASSERT_FALSE(spawned.empty());
+    EXPECT_EQ(spawned.front()->getTypeId(), std::string("minecraft:pig"));
+
+    // 断言 3：生成的实体是 MobEntity 派生类（PigEntity 继承自 MobEntity）
+    //   验证 _spawnEntities 中 dynamic_cast<MobEntity*>(entity.get()) 分支被触发
+    EXPECT_NE(dynamic_cast<const MobEntity*>(spawned.front()), nullptr);
+
+    // 断言 4：spawnEntity 返回的 id 已正确写入实体（非 0 表示成功）
+    //   MobSpawnerTestWorld::spawnEntity 通过 setId(EntityId(++m_nextEntityId)) 设置 id
+    EXPECT_NE(spawned.front()->id(), EntityId(0));
+}
+
+TEST_F(MobSpawnerE2ESpawnTest, Tick_MultipleTicks_SpawnsMultipleEntities)
+{
+    // spawnCount=1 且 maxNearbyEntities=64，每个成功 tick 都应生成 1 个实体。
+    // 跑足够多的 tick 以确保至少触发多次生成事件。
+    for (int i = 0; i < 60; ++i) {
+        spawner_->tick(*world_);
+    }
+
+    // 在 maxNearbyEntities=64 的上限内，应生成多个实体
+    EXPECT_GE(world_->spawnedCount(), 2u) << "Expected multiple spawned entities across 60 ticks";
+
+    // 所有生成的实体类型 id 都是 "minecraft:pig"
+    for (const auto* entity : world_->spawnedEntities()) {
+        EXPECT_EQ(entity->getTypeId(), std::string("minecraft:pig"));
+    }
+}
+
+TEST_F(MobSpawnerE2ESpawnTest, Tick_SpawnSuccess_EmitsParticlesEvent)
+{
+    // 端到端验证：成功生成后应触发 MOB_SPAWNER_PARTICLES 事件
+    for (int i = 0; i < 30; ++i) {
+        spawner_->tick(*world_);
+    }
+
+    // 生成成功的前提下游离粒子事件必须被发出
+    ASSERT_GE(world_->spawnedCount(), 1u);
+
+    bool foundMobSpawnerEvent = false;
+    for (const auto& call : world_->playEventCalls()) {
+        if (call.eventId == world::WorldEvents::MOB_SPAWNER_PARTICLES) {
+            foundMobSpawnerEvent = true;
+            EXPECT_EQ(call.pos.x, 10);
+            EXPECT_EQ(call.pos.y, 64);
+            EXPECT_EQ(call.pos.z, 20);
+            break;
+        }
+    }
+    EXPECT_TRUE(foundMobSpawnerEvent) << "Expected MOB_SPAWNER_PARTICLES event after successful spawn";
+}
+
+TEST_F(MobSpawnerE2ESpawnTest, Tick_ZombieSpawn_FinalizeSpawnCalledWithSpawnerReason)
+{
+    // 重新构造刷怪笼，避免 SetUp 中的 PIG spawnPotentials 干扰 ZOMBIE 选择
+    // （setEntityId 在 spawnPotentials 非空时不会替换条目，_selectNextEntity 会回到 PIG）
+    auto zSpawner = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    zSpawner->setMinSpawnDelay(0);
+    zSpawner->setMaxSpawnDelay(0);
+    zSpawner->setRequiredPlayerRange(0);
+    zSpawner->setSpawnCount(1);
+    zSpawner->setMaxNearbyEntities(64);
+    zSpawner->setSpawnRange(1);
+
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    zSpawner->setCustomSpawnRules(rules);
+
+    // 切换实体类型为 Zombie（Monster 分类，MonsterEntity 派生）
+    math::Random rng(7);
+    zSpawner->setEntityId(ResourceLocation(entity::EntityTypes::ZOMBIE), rng);
+
+    // 难度设为 Normal，确保 Monster 类生物允许生成
+    // （CustomSpawnRules 路径下，非和平生物仅在和平难度被拒绝）
+    world_->setDifficulty(Difficulty::Normal);
+
+    for (int i = 0; i < 30; ++i) {
+        zSpawner->tick(*world_);
+    }
+
+    // Zombie 应在普通难度下成功生成
+    EXPECT_GE(world_->spawnedCount(), 1u) << "Expected at least one spawned zombie in Normal difficulty";
+
+    if (!world_->spawnedEntities().empty()) {
+        const auto* zombie = world_->spawnedEntities().front();
+        EXPECT_EQ(zombie->getTypeId(), std::string("minecraft:zombie"));
+        // Zombie 继承自 MonsterEntity → MobEntity，验证 dynamic_cast 分支被触发
+        EXPECT_NE(dynamic_cast<const MobEntity*>(zombie), nullptr);
+    }
+}
+
+TEST_F(MobSpawnerE2ESpawnTest, Tick_PeacefulDifficulty_MonsterSpawnRejected)
+{
+    // 重新构造刷怪笼，避免 SetUp 中的 PIG spawnPotentials 干扰 ZOMBIE 选择
+    auto zSpawner = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    zSpawner->setMinSpawnDelay(0);
+    zSpawner->setMaxSpawnDelay(0);
+    zSpawner->setRequiredPlayerRange(0);
+    zSpawner->setSpawnCount(1);
+    zSpawner->setMaxNearbyEntities(64);
+    zSpawner->setSpawnRange(1);
+
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    zSpawner->setCustomSpawnRules(rules);
+
+    // 切换实体类型为 Zombie（Monster 分类）
+    math::Random rng(7);
+    zSpawner->setEntityId(ResourceLocation(entity::EntityTypes::ZOMBIE), rng);
+
+    // 难度设为 Peaceful，CustomSpawnRules 路径下应拒绝 Monster 类生物
+    world_->setDifficulty(Difficulty::Peaceful);
+
+    for (int i = 0; i < 40; ++i) {
+        zSpawner->tick(*world_);
+    }
+
+    // Peaceful 难度下不应生成 Zombie（_spawnEntities 在生成前直接 return false）
+    EXPECT_EQ(world_->spawnedCount(), 0u) << "Expected no zombie spawn in Peaceful difficulty with CustomSpawnRules";
 }

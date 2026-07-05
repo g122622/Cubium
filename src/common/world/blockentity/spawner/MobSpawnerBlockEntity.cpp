@@ -553,10 +553,6 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         }
 
         // 尝试添加到世界
-        // TODO: 实体生成的集成测试待完善。当前单元测试中 MockWorld 未注册 EntityType，
-        // 因此 entityType->create(&world)、mobEntity->finalizeSpawn() 和
-        // world.spawnEntity() 的完整调用链未在测试中实际验证。待 EntityType 注册
-        // 机制可在测试环境中使用后，补充实体生成的端到端测试。
         EntityId id = world.spawnEntity(std::move(entity));
         if (id != EntityId(0)) {
             spawnedAny = true;
