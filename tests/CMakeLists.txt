@@ -780,6 +780,7 @@ add_executable(mc_tests
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp
     server/test_integrated_server.cpp
+    server/test_save_player_runtime_state.cpp
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
     server/interaction/SignCommandHelperTest.cpp

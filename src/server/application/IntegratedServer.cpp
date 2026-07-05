@@ -290,6 +290,16 @@ void IntegratedServer::savePlayerRuntimeState()
             // fromPlayer() 提取位置、生命、饥饿、经验、背包、效果等运行时状态
             // savePlayer() 同时更新缓存并标记脏，后续 saveAllWorldData() 会落盘
             auto saveData = world::storage::PlayerDataManager::fromPlayer(*player);
+
+            // Player 实体的 m_uuid 由登录流程（handleLoginRequestPacket）计算离线
+            // UUID 后存入 ServerPlayerData，但未回写到实体本身。这里用 PlayerManager
+            // 中的权威 UUID 覆盖 saveData.uuid，避免以空字符串作为键落盘导致数据丢失。
+            if (auto* playerData = m_playerManager->getPlayer(playerId)) {
+                if (!playerData->uuid.empty()) {
+                    saveData.uuid = playerData->uuid;
+                }
+            }
+
             auto result = pdm->savePlayer(saveData);
             if (result.success()) {
                 ++savedCount;

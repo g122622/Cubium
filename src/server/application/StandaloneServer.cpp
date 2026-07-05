@@ -533,6 +533,16 @@ void StandaloneServer::savePlayerRuntimeState()
             // fromPlayer() 提取位置、生命、饥饿、经验、背包、效果等运行时状态
             // savePlayer() 同时更新缓存并标记脏，后续 saveAllWorldData() 会落盘
             auto saveData = world::storage::PlayerDataManager::fromPlayer(*player);
+
+            // Player 实体的 m_uuid 由登录流程（handleLoginRequestPacket）计算离线
+            // UUID 后存入 ServerPlayerData，但未回写到实体本身。这里用 PlayerManager
+            // 中的权威 UUID 覆盖 saveData.uuid，避免以空字符串作为键落盘导致数据丢失。
+            if (auto* playerData = m_playerManager->getPlayer(playerId)) {
+                if (!playerData->uuid.empty()) {
+                    saveData.uuid = playerData->uuid;
+                }
+            }
+
             auto result = pdm->savePlayer(saveData);
             if (result.success()) {
                 ++savedCount;
@@ -557,9 +567,17 @@ void StandaloneServer::stop()
     spdlog::info("Stopping server...");
     m_running = false;
 
+    // 先 join 主循环线程，确保 tick() 已完全退出，再回写玩家状态或清理核心组件。
+    // 否则 savePlayerRuntimeState() 遍历玩家实体时可能与正在执行的 tick() 并发，
+    // 造成数据竞争（玩家位置、生命、背包等被同时读写）。
+    if (m_serverThread && m_serverThread->joinable()) {
+        m_serverThread->join();
+    }
+    m_serverThread.reset();
+
     // 回写在线玩家运行时状态到 PlayerDataManager 缓存
-    // StandaloneServer 不主动 clearAll 玩家实体，但 savePlayerRuntimeState() 仍需
-    // 在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
+    // 此时主循环已退出，玩家实体不再被 tick() 修改，可安全遍历。
+    // 必须在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
     savePlayerRuntimeState();
 
     // 停止核心组件
@@ -616,14 +634,16 @@ Result<void> StandaloneServer::run()
     spdlog::info("Starting server main loop...");
     m_running = true;
 
-    try {
-        _mainLoop();
-    }
-    catch (const std::exception& e) {
-        spdlog::critical("Server crashed: {}", e.what());
-        m_running = false;
-        return Error(ErrorCode::Unknown, e.what());
-    }
+    // 在内部线程中运行主循环，stop() 会先 join 再清理，避免与 tick() 产生数据竞争
+    m_serverThread = std::make_unique<std::thread>([this]() {
+        try {
+            _mainLoop();
+        }
+        catch (const std::exception& e) {
+            spdlog::critical("Server crashed: {}", e.what());
+            m_running = false;
+        }
+    });
 
     return Result<void>::ok();
 }
