@@ -690,8 +690,8 @@ void AxolotlModel::setAngles(
 
         // 腿部行走摆动
         m_leftHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed)));
-        m_rightHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));
-        m_leftFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));
+        m_rightHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));// TODO : 使用 math::PI
+        m_leftFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));// TODO : 使用 math::PI
         m_rightFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed)));
 
         m_body->setRotateAngleZ(0.0f);
