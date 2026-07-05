@@ -33,6 +33,7 @@
  * - 海豚恩惠效果
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -46,19 +47,34 @@ using namespace mc::physics;
 using namespace mc::entity::effect;
 using mc::entity::EntitySize;
 
+namespace {
+
+// 服务端测试世界（isClientSide() 返回 false），使 LivingEntity::updateAirSupply
+// 的 m_world==nullptr / 客户端早退分支不再触发。BaseTestWorld 默认构造为 protected，
+// 需通过派生类暴露 public 默认构造以作为夹具成员。
+class PlayerSwimWorld final : public test::BaseTestWorld {};
+
+} // namespace
+
 /**
  * @brief 测试夹具 - 玩家游泳测试
+ *
+ * 提供 BaseTestWorld 作为服务端世界（isClientSide() 返回 false），
+ * 使 LivingEntity::updateAirSupply() 的 m_world==nullptr / 客户端早退分支不再触发，
+ * 从而让空气消耗与溺水伤害逻辑对齐 MC Java 服务端行为。
  */
 class PlayerSwimTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 创建玩家
+        // 创建玩家并绑定服务端测试世界
         player = std::make_unique<Player>(1, "TestPlayer");
+        player->setWorld(&m_world);
     }
 
     void TearDown() override { player.reset(); }
 
+    PlayerSwimWorld m_world;
     std::unique_ptr<Player> player;
 };
 
@@ -126,12 +142,12 @@ TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty)
     // 模拟在水中
     player->setInWater(true);
 
-    // 更新空气供应，空气会降到 -20，然后重置为 0
+    // 更新空气供应，空气会降到 -20，触发 shouldTakeDrowningDamage()，重置为 0
+    // 并立即造成溺水伤害（MC Java: baseTick 中 air<=-20 时 hurtServer(drown, 2.0F)）
     player->updateAirSupply();
     EXPECT_EQ(player->air(), 0);
 
-    // 空气重置后，第一次不应该立即伤害（需要 DROWN_DAMAGE_INTERVAL tick）
-    // 设置溺水计时器使其触发
+    // 多次重复触发溺水伤害（受无敌帧限制，实际伤害可能只发生一次）
     for (int i = 0; i < DROWN_DAMAGE_INTERVAL; ++i) {
         player->setAir(-19);
         player->updateAirSupply();
@@ -213,8 +229,10 @@ TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption)
     EXPECT_EQ(player->air(), initialAir);
 }
 
-TEST_F(PlayerSwimTest, EnteringWaterWithoutWorldDoesNotCrash)
+TEST_F(PlayerSwimTest, EnteringWaterConsumesAir)
 {
+    // 入水后空气应被消耗（依赖服务端世界：updateAirSupply 在 m_world==nullptr
+    // 或 isClientSide()==true 时早退，空气保持不变）
     player->setInWater(true);
 
     player->updateAirSupply();
