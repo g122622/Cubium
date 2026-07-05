@@ -1,8 +1,11 @@
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/CraftingTableEntity.hpp"
+#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -30,6 +33,27 @@ protected:
 
         // 初始化方块注册表（NoiseChunkGenerator 依赖）
         VanillaBlocks::initialize();
+
+        // 注册内置方块实体类型工厂（CraftingTable 等）。
+        // 反序列化路径 BlockEntityStorageManager -> BlockEntityDeserializer ->
+        // BlockEntityRegistry::create 依赖此注册，否则 create 返回 nullptr，
+        // 警告 "Failed to create block entity of type 'minecraft:crafting_table'"。
+        // 与 SignEntityTest.cpp:46 同一模式。registerBuiltinTypes 幂等，重复调用无副作用。
+        blockentity::BlockEntityRegistry::instance().registerBuiltinTypes();
+
+        // 注册测试用实体类型 "minecraft:unknown"。
+        // 反序列化器 EntityDeserializer::deserialize 通过 EntityRegistry::getType(typeId)
+        // 查类型工厂，未注册则报 "Unknown entity type"。原版注册表（VanillaEntities）
+        // 不会注册 "minecraft:unknown"，故测试需自行注册一个工厂创建裸 Entity。
+        // 与 EntitySerializationTest.cpp:86-92 同一模式。hasType 守卫避免重复注册报错。
+        if (!entity::EntityRegistry::instance().hasType("minecraft:unknown")) {
+            auto registerResult = entity::EntityRegistry::instance().registerType("minecraft:unknown",
+                entity::EntityType::Builder(
+                    [](IWorld* world) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(0, world); },
+                    entity::EntityClassification::Misc)
+                    .build());
+            ASSERT_TRUE(registerResult.success()) << registerResult.error().message();
+        }
     }
 
     void TearDown() override

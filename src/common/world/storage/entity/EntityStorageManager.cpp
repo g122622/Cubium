@@ -177,10 +177,19 @@ Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesI
         std::vector<u8> data(value.data(), value.data() + value.size());
 
         auto entityResult = entity::serialization::EntityDeserializer::deserializeFromBinary(data, world);
-        if (entityResult.success() && entityResult.value() != nullptr) {
-            entities.push_back(entityResult.value());
-        } else {
+        if (!entityResult.success()) {
             spdlog::warn("EntityStorageManager: Failed to deserialize entity in chunk ({}, {})", chunkX, chunkZ);
+        } else {
+            // 注意：Result<unique_ptr<T>>::value() 按值返回（内部 takeValue 会把 m_value
+            // 置空），因此每次调用都"取走"实体。绝不能在 != nullptr 检查里调用一次、
+            // 再在 push_back 里调用第二次——第二次会取到空 unique_ptr，导致 vector 里
+            // 混入空指针，下游 value()[0]->x() 之类解引用崩溃。这里先取出实体再判空。
+            auto entity = entityResult.value();
+            if (entity != nullptr) {
+                entities.push_back(std::move(entity));
+            } else {
+                spdlog::warn("EntityStorageManager: Failed to deserialize entity in chunk ({}, {})", chunkX, chunkZ);
+            }
         }
 
         iter->Next();
