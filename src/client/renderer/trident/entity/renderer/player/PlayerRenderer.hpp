@@ -163,11 +163,19 @@ public:
 
 protected:
     /**
-     * @brief 设置模型可见性
+     * @brief 设置模型可见性（含弩装填进度参数）
      *
-     * 根据玩家设置显示/隐藏各部件。
+     * 根据玩家设置显示/隐藏各部件，并计算弩装填动画所需的：
+     * - maxCrossbowChargeDuration（CrossbowItem.getChargeTime）
+     * - ticksUsingItem（useDuration - useItemRemaining + partialTick）
+     *
+     * 对应 MC 1.21 HumanoidMobRenderer.extractHumanoidRenderState 中
+     * maxCrossbowChargeDuration / ticksUsingItem 的填充逻辑。
+     *
+     * @param player 玩家实体
+     * @param partialTicks 部分刻（用于 ticksUsingItem 插值）
      */
-    void setModelVisibilities(::mc::Player& player);
+    void setModelVisibilities(::mc::Player& player, f64 partialTicks);
 
     /**
      * @brief 确定指定手的手臂姿态

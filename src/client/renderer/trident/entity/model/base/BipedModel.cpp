@@ -24,6 +24,7 @@
 #include "BipedModel.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc::client::renderer::entity::model {
@@ -369,14 +370,13 @@ void BipedModel::handleRightArmPose()
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             break;
         case ArmPose::CrossbowCharge:
-            // TODO: 实现完整的弩装填动画（需要动画进度参数）
-            m_bipedRightArm->setRotateAngleY(m_bipedHead->rotateAngleY());
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+            // 弩装填：双手协调姿态，由右手分支主导设置双手角度
+            // 仅当右手姿态为 CrossbowCharge 时调用（避免与左手分支重复设置）
+            handleCrossbowCharge(true);
             break;
         case ArmPose::CrossbowHold:
-            // TODO: 实现完整的弩持握动画（需要动画进度参数）
-            m_bipedRightArm->setRotateAngleY(-0.1f + m_bipedHead->rotateAngleY());
-            m_bipedRightArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+            // 弩持握：双手协调姿态，由右手分支主导设置双手角度
+            handleCrossbowHold(true);
             break;
     }
 }
@@ -410,16 +410,69 @@ void BipedModel::handleLeftArmPose()
             m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + m_bipedHead->rotateAngleX());
             break;
         case ArmPose::CrossbowCharge:
-            // TODO: 实现完整的弩装填动画（需要动画进度参数）
-            m_bipedLeftArm->setRotateAngleY(m_bipedHead->rotateAngleY());
-            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+            // 弩装填是双手协调姿态：仅当右手姿态不是 CrossbowCharge 时才由此分支主导
+            // 否则双手已在 handleRightArmPose::CrossbowCharge 中被设置，此处跳过避免重复
+            if (m_rightArmPose != ArmPose::CrossbowCharge) {
+                handleCrossbowCharge(false);
+            }
             break;
         case ArmPose::CrossbowHold:
-            // TODO: 实现完整的弩持握动画（需要动画进度参数）
-            m_bipedLeftArm->setRotateAngleY(0.1f + m_bipedHead->rotateAngleY());
-            m_bipedLeftArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0));
+            // 弩持握同理：仅当右手姿态不是 CrossbowHold 时由此分支主导
+            if (m_rightArmPose != ArmPose::CrossbowHold) {
+                handleCrossbowHold(false);
+            }
             break;
     }
+}
+
+void BipedModel::handleCrossbowCharge(bool isRightHanded)
+{
+    // 主手（持弩手）与副手（拉弦手）
+    auto& mainArm = isRightHanded ? m_bipedRightArm : m_bipedLeftArm;
+    auto& offArm = isRightHanded ? m_bipedLeftArm : m_bipedRightArm;
+
+    // 主手角度：固定向前下方
+    mainArm->setRotateAngleY(isRightHanded ? -0.8f : 0.8f);
+    mainArm->setRotateAngleX(-0.97079635f);
+
+    // 副手初始 X 角度与主手相同
+    offArm->setRotateAngleX(mainArm->rotateAngleX());
+
+    // 装填进度归一化到 [0, 1]，避免除零
+    f32 progress = 0.0f;
+    if (m_maxCrossbowChargeDuration > 0.0f) {
+        const f32 clampedTicks = std::clamp(m_crossbowChargeTicks, 0.0f, m_maxCrossbowChargeDuration);
+        progress = clampedTicks / m_maxCrossbowChargeDuration;
+    }
+
+    // 副手 Y 角度：从 0.4 lerp 到 0.85（带主手方向符号）
+    const f32 sign = isRightHanded ? 1.0f : -1.0f;
+    const f32 offArmY = (0.4f + (0.85f - 0.4f) * progress) * sign;
+    offArm->setRotateAngleY(offArmY);
+
+    // 副手 X 角度：从初始 -0.97079635 lerp 到 -PI/2
+    const f32 targetX = static_cast<f32>(-mc::math::PI_DOUBLE / 2.0);
+    const f32 offArmX = -0.97079635f + (targetX - (-0.97079635f)) * progress;
+    offArm->setRotateAngleX(offArmX);
+}
+
+void BipedModel::handleCrossbowHold(bool isRightHanded)
+{
+    // 主手（持弩手）与副手（拉弦手）
+    auto& mainArm = isRightHanded ? m_bipedRightArm : m_bipedLeftArm;
+    auto& offArm = isRightHanded ? m_bipedLeftArm : m_bipedRightArm;
+
+    const f32 headYaw = m_bipedHead->rotateAngleY();
+    const f32 headPitch = m_bipedHead->rotateAngleX();
+    const f32 sign = isRightHanded ? 1.0f : -1.0f;
+
+    // 主手 Y: ±0.3 + headYaw；副手 Y: ∓0.6 + headYaw
+    mainArm->setRotateAngleY((-0.3f * sign) + headYaw);
+    offArm->setRotateAngleY((0.6f * sign) + headYaw);
+
+    // 主手 X: -PI/2 + headPitch + 0.1；副手 X: -1.5 + headPitch
+    mainArm->setRotateAngleX(static_cast<f32>(-mc::math::PI_DOUBLE / 2.0) + headPitch + 0.1f);
+    offArm->setRotateAngleX(-1.5f + headPitch);
 }
 
 void BipedModel::handleSwingAnimation(f64 /*ageInTicks*/)

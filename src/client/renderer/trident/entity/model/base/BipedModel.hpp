@@ -126,6 +126,24 @@ public:
     void setActuallySwimming(bool swimming) { m_isActuallySwimming = swimming; }
 
     /**
+     * @brief 设置弩装填进度（已使用 ticks，含 partialTick 插值）
+     *
+     * 对应 MC 1.21 HumanoidRenderState.ticksUsingItem，由渲染器在 setAngles 前
+     * 调用 PlayerEntity::getTicksUsingItem(partialTick) 计算。
+     * 仅当 m_leftArmPose 或 m_rightArmPose 为 CrossbowCharge 时使用。
+     */
+    void setCrossbowChargeTicks(f32 ticks) { m_crossbowChargeTicks = ticks; }
+
+    /**
+     * @brief 设置弩的最大装填时长（ticks）
+     *
+     * 对应 MC 1.21 HumanoidRenderState.maxCrossbowChargeDuration，
+     * 由渲染器调用 CrossbowItem::getChargeTime(stack) 计算。
+     * 用于将 m_crossbowChargeTicks 归一化为 [0,1] 进度比。
+     */
+    void setMaxCrossbowChargeDuration(f32 duration) { m_maxCrossbowChargeDuration = duration; }
+
+    /**
      * @brief 设置所有部件可见性
      */
     void setVisible(bool visible);
@@ -226,6 +244,26 @@ protected:
     virtual void handleSwimAnimation(f64 limbSwing);
 
     /**
+     * @brief 处理弩装填动画（双手协调）
+     *
+     * 对应 MC 1.21 AnimationUtils.animateCrossbowCharge。同时设置主手（持弩手）
+     * 与副手（拉弦手）的角度，副手角度随装填进度从初始位置 lerp 到拉弦完成位置。
+     *
+     * @param isRightHanded true 表示主手为右手
+     */
+    void handleCrossbowCharge(bool isRightHanded);
+
+    /**
+     * @brief 处理弩持握动画（双手协调）
+     *
+     * 对应 MC 1.21 AnimationUtils.animateCrossbowHold。同时设置主副手角度，
+     * 让模型呈双手持弩瞄准姿态。
+     *
+     * @param isRightHanded true 表示主手为右手
+     */
+    void handleCrossbowHold(bool isRightHanded);
+
+    /**
      * @brief 角度插值（弧度）
      */
     static f32 rotLerpRad(f32 angle, f64 maxAngle, f64 target);
@@ -273,6 +311,12 @@ protected:
     HandSide m_swingingHand = HandSide::Right;
     i32 m_elytraFlyingTicks = 0;
     bool m_isActuallySwimming = false;
+
+    // 弩装填动画状态
+    // m_crossbowChargeTicks: 已使用 ticks（含 partialTick 插值），对应 MC HumanoidRenderState.ticksUsingItem
+    // m_maxCrossbowChargeDuration: 弩最大装填时长（ticks），对应 MC HumanoidRenderState.maxCrossbowChargeDuration
+    f32 m_crossbowChargeTicks = 0.0f;
+    f32 m_maxCrossbowChargeDuration = 0.0f;
 };
 
 } // namespace mc::client::renderer::entity::model

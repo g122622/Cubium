@@ -28,6 +28,9 @@
 #include "client/renderer/trident/entity/layer/equipment/HeadLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <spdlog/spdlog.h>
 
@@ -52,8 +55,8 @@ void PlayerRenderer::render(Entity& entity, f64 partialTicks)
 {
     auto& player = static_cast<::mc::Player&>(entity);
 
-    // 设置模型可见性
-    setModelVisibilities(player);
+    // 设置模型可见性（含弩装填进度参数）
+    setModelVisibilities(player, partialTicks);
 
     // 计算动画参数
     f64 limbSwing = getLimbSwing(player, partialTicks);
@@ -112,8 +115,8 @@ void PlayerRenderer::renderLayersPipeline(
 
 void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
 {
-    // 设置模型可见性
-    setModelVisibilities(player);
+    // 设置模型可见性（含弩装填进度参数）
+    setModelVisibilities(player, partialTicks);
 
     // 重置动画状态
     m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
@@ -132,8 +135,8 @@ void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
 
 void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
 {
-    // 设置模型可见性
-    setModelVisibilities(player);
+    // 设置模型可见性（含弩装填进度参数）
+    setModelVisibilities(player, partialTicks);
 
     // 重置动画状态
     m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
@@ -162,7 +165,7 @@ void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTi
     context.computeHash();
 }
 
-void PlayerRenderer::setModelVisibilities(::mc::Player& player)
+void PlayerRenderer::setModelVisibilities(::mc::Player& player, f64 partialTicks)
 {
     // 默认显示所有部件
     m_model.setAllVisible(true);
@@ -191,6 +194,28 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player)
 
     // 设置游泳状态
     m_model.setSwimming(player.isSwimming());
+
+    // 设置弩装填动画参数（对应 MC 1.21 HumanoidMobRenderer.extractHumanoidRenderState
+    // 中 maxCrossbowChargeDuration / ticksUsingItem 的填充逻辑）
+    // 仅当玩家正在使用物品且使用的是弩时才计算有效进度，否则将进度归零
+    f32 ticksUsingItem = 0.0f;
+    f32 maxChargeDuration = 0.0f;
+    if (player.isUsingItem()) {
+        const ::mc::ItemStack& activeStack = player.getActiveItem();
+        const ::mc::Item* activeItem = activeStack.getItem();
+        if (activeItem == ::mc::Items::CROSSBOW) {
+            // maxCrossbowChargeDuration = CrossbowItem.getChargeTime(stack)
+            maxChargeDuration = static_cast<f32>(::mc::item::CrossbowItem::getChargeTime(activeStack));
+            // ticksUsingItem = useDuration - useItemRemaining + partialTick
+            // Cubium 中 CrossbowItem::getUseDuration = getChargeTime + 3
+            const i32 useDuration = activeItem->getUseDuration(activeStack);
+            const i32 remaining = player.getItemInUseCount();
+            const i32 elapsed = useDuration - remaining;
+            ticksUsingItem = static_cast<f32>(elapsed) + static_cast<f32>(partialTicks);
+        }
+    }
+    m_model.setMaxCrossbowChargeDuration(maxChargeDuration);
+    m_model.setCrossbowChargeTicks(ticksUsingItem);
 }
 
 model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, ::mc::Hand hand)
