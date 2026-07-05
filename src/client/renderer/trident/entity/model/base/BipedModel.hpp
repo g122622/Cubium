@@ -125,10 +125,16 @@ public:
     void setSwingingHand(HandSide hand) { m_swingingHand = hand; }
 
     /**
-     * @brief 设置鞘翅飞行时间
+     * @brief 设置鞘翅飞行过渡 tick 计数
      *
-     * 用于驱动鞘翅飞行过渡效果（前 4 tick 头部角度从普通姿态插值到 -π/4）。
-     * 由渲染器在 setAngles 前调用，对应 MC 1.21 LivingEntity.fallFlyTicks。
+     * 历史遗留字段，对应 MC 1.21 之前 LivingEntity.fallFlyTicks。MC 1.21.11
+     * HumanoidRenderState 已移除 fallFlyTicks，HumanoidModel.setupAnim 仅检查
+     * isFallFlying 布尔值，不再使用此字段驱动头部角度。
+     *
+     * 当前 Cubium 中没有任何渲染器调用此 setter，且 setAngles 中已移除
+     * `m_elytraFlyingTicks > 4` 分支（死代码）。保留 setter 仅为向后兼容，
+     * 待 LivingEntity 服务端 fallFlyTicks 跟踪逻辑实现后可重新启用
+     * （见 LivingEntity::tick 中的 TODO(elytra_fall_fly_ticks)）。
      */
     void setElytraFlyingTicks(i32 ticks) { m_elytraFlyingTicks = ticks; }
 
@@ -136,8 +142,8 @@ public:
      * @brief 设置是否处于鞘翅飞行状态
      *
      * 对应 MC 1.21.11 HumanoidRenderState.isFallFlying（boolean），
-     * 由渲染器在 setAngles 前从 ClientEntity/Entity::isFallFlying()/isElytraFlying() 推送。
-     * 与 m_elytraFlyingTicks > 4 任一为真即触发鞘翅飞行动画分支。
+     * 由渲染器在 setAngles 前从 ClientEntity::isFallFlying() /
+     * Entity::isElytraFlying() 推送。控制头部角度（飞行时强制 -π/4）。
      */
     void setFallFlying(bool flying) { m_isFallFlying = flying; }
 
@@ -145,7 +151,7 @@ public:
      * @brief 设置鞘翅飞行速度因子
      *
      * 对应 MC 1.21.11 HumanoidRenderState.speedValue，由渲染器在 setAngles 前
-     * 调用 computeSpeedValue(velocity) 计算：
+     * 调用 `elytra::computeSpeedValue(isFallFlying, velocity.lengthSquared())` 计算：
      *   - 默认 1.0
      *   - 鞘翅飞行时 speedValue = (velocity.lengthSquared() / 0.2)^3
      *   - 最终钳制到 [1.0, +∞)
@@ -342,6 +348,9 @@ protected:
     ArmPose m_rightArmPose = ArmPose::Empty;
     HandSide m_mainHand = HandSide::Right;
     HandSide m_swingingHand = HandSide::Right;
+    // 历史遗留字段：MC 1.21.11 HumanoidRenderState 已无 fallFlyTicks，
+    // HumanoidModel.setupAnim 仅检查 isFallFlying 布尔。Cubium 中此字段
+    // 当前未被任何渲染器推送（见 LivingEntity::tick 中的 TODO(elytra_fall_fly_ticks)）。
     i32 m_elytraFlyingTicks = 0;
     bool m_isActuallySwimming = false;
     // 鞘翅飞行状态（对应 MC 1.21.11 HumanoidRenderState.isFallFlying）

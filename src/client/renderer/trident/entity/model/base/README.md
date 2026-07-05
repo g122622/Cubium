@@ -8,6 +8,8 @@
 base/
 ├── BipedModel.hpp           # 双足模型基类（玩家、僵尸、骷髅等）
 ├── BipedModel.cpp           # 双足模型实现
+├── ElytraSpeedValue.hpp     # 鞘翅飞行速度因子纯逻辑函数（computeSpeedValue）
+├── ElytraSpeedValue.cpp     # 鞘翅飞行速度因子实现
 ├── QuadrupedModel.hpp       # 四足模型基类（猪、牛、羊等）
 └── QuadrupedModel.cpp       # 四足模型实现
 ```
@@ -122,20 +124,41 @@ BipedModel 通过 `setFallFlying(bool)` 与 `setSpeedValue(f32)` 接收鞘翅飞
 
 - `setFallFlying(bool)`：直接布尔，对应 `Entity::isElytraFlying()` /
   `ClientEntity::isFallFlying()`。控制头部角度（飞行时强制 -π/4）。
-- `setSpeedValue(f32)`：速度因子，由渲染器按 MC 公式计算：
+- `setSpeedValue(f32)`：速度因子，由渲染器调用 `elytra::computeSpeedValue`
+  （`ElytraSpeedValue.hpp`）按 MC 公式计算：
   - 默认 1.0
   - 鞘翅飞行时 `speedValue = (velocity.lengthSquared() / 0.2)^3`
   - 钳制到 `[1.0, +∞)`
   - 用作手臂/腿部摆动振幅的除数（值越大摆动越慢，模拟风阻）
-- `setElytraFlyingTicks(i32)`：过渡 tick 计数（>4 时也触发飞行分支），
-  与 `setFallFlying(true)` 任一为真即进入鞘翅飞行动画。
+- `setElytraFlyingTicks(i32)`：历史遗留字段，MC 1.21.11
+  `HumanoidRenderState` 已移除 `fallFlyTicks`，`HumanoidModel.setupAnim`
+  仅检查 `isFallFlying` 布尔。Cubium 中此 setter 当前未被任何渲染器调用，
+  `setAngles` 中已移除 `m_elytraFlyingTicks > 4` 死分支。保留仅为向后兼容，
+  待服务端 `fallFlyTicks` 跟踪逻辑实现后可重新启用（见 `LivingEntity::tick`
+  中的 `TODO(elytra_fall_fly_ticks)`）。
+
+`elytra::computeSpeedValue(bool, f32)` 抽取为自由函数（`ElytraSpeedValue.hpp/cpp`），
+便于在 GPU 管线路径（`EntityRendererManager::_applyBipedElytraState`）与 CPU
+路径（`PlayerRenderer::setModelVisibilities`）共用，并在单元测试中直接验证公式分支
+（`tests/client/renderer/entity/ElytraSpeedValueTest.cpp`）。
 
 推送位置：
 - GPU 管线路径：`EntityRendererManager::_createModelForEntity` 通用 BipedModel 分支
-  调用 `_applyBipedElytraState`，覆盖所有 BipedModel 派生模型（玩家+所有怪物）
+  调用 `_applyBipedElytraState`，覆盖所有 BipedModel 派生模型（玩家+所有怪物）。
+  通过 `dynamic_cast<BipedModel*>` 守卫，非 BipedModel 派生模型（蜘蛛/苦力怕/猪等）
+  返回 nullptr 跳过此步（见 `tests/client/renderer/entity/BipedModelDynamicCastTest.cpp`）。
 - CPU 路径：`PlayerRenderer::setModelVisibilities` 中按 `player.isElytraFlying()` 计算
 - 第一人称手臂渲染：`renderRightArm/renderLeftArm` 中重置为 `setFallFlying(false)`
   与 `setSpeedValue(1.0f)`，避免鞘翅状态影响第一人称手臂姿态
+
+**已知缺口**（已标注 TODO）：
+- `TODO(elytra_fall_fly_ticks)`：服务端 `LivingEntity::tick` 中 `fallFlyTicks`
+  递增/重置、`tryToStartFallFlying`/`stopFallFlying`/`updateFallFlying`/
+  `travelFallFlying`/`canGlide` 等方法、`PacketHandler` 处理
+  `ServerboundPlayerCommandPacket::START_FALL_FLYING` 分支均未实现，
+  鞘翅滑翔玩法当前不可用（仅 NBT 加载会还原 FallFlying 标志）。
+- `TODO(elytra_head_lerp)`：MC 1.21.11 中鞘翅飞行起始时头部角度从当前值
+  lerp 到 -π/4 的过渡动画未实现，Cubium 直接 snap 到 -π/4。
 
 ### 命名空间
 

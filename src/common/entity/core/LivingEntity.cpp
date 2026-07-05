@@ -797,6 +797,24 @@ void LivingEntity::tick()
 
     // 更新激流攻击状态
     updateSpinAttack();
+
+    // TODO(elytra_fall_fly_ticks): 对应 MC 1.21.11 LivingEntity.tick() 末尾的
+    //   fallFlyTicks 跟踪与 handleFallFlyingCollisions：
+    //     if (this.isFallFlying()) {
+    //         this.fallFlyTicks++;
+    //     } else {
+    //         this.fallFlyTicks = 0;
+    //     }
+    //   以及 handleFallFlyingCollisions 中每 10 tick 触发 gameEvent(ELYTRA_GLIDE)、
+    //   每 20 tick 随机损坏一件可滑翔装备（LivingEntity.java:3044-3057）。
+    //   Cubium 当前未实现 fallFlyTicks 字段递增、未实现 tryToStartFallFlying() /
+    //   stopFallFlying() / updateFallFlying() / travelFallFlying() / canGlide()，
+    //   也未在 PacketHandler 中处理 ServerboundPlayerCommandPacket 的 START_FALL_FLYING 分支。
+    //   这意味着服务端永远不会主动设置 EntityFlags::FallFlying 标志位（仅 NBT 加载会还原），
+    //   鞘翅滑翔玩法当前不可用。BipedModel::setElytraFlyingTicks 历史遗留 setter
+    //   因此也未被任何渲染器调用，setAngles 中已移除对应的 m_elytraFlyingTicks > 4 死分支。
+    //   实现此 TODO 时应同步在渲染器中推送 fallFlyTicks 给 BipedModel 以驱动头部
+    //   角度的过渡 lerp 动画（见 BipedModel::setAngles 中的 TODO(elytra_head_lerp)）。
 }
 
 void LivingEntity::syncMetadataFromDataManager()

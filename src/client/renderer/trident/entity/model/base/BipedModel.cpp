@@ -148,10 +148,14 @@ void BipedModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/,
 void BipedModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 /*scale*/)
 {
-    // 鞘翅飞行状态：MC 1.21.11 中 HumanoidModel.setupAnim 仅检查 isFallFlying 布尔值，
-    // 此处同时兼容 m_elytraFlyingTicks > 4（过渡判断）与 m_isFallFlying（直接布尔），
-    // 任一为真即进入鞘翅飞行分支。
-    bool isElytraFlying = m_isFallFlying || m_elytraFlyingTicks > 4;
+    // 鞘翅飞行状态：MC 1.21.11 HumanoidModel.setupAnim 仅检查 isFallFlying 布尔值，
+    // 不再使用 fallFlyTicks（HumanoidRenderState 已移除该字段）。
+    // TODO(elytra_head_lerp): MC 1.21.11 中鞘翅飞行起始时头部角度从当前值 lerp 到 -π/4
+    //                         的过渡动画（对应 HumanoidModel.setupAnim 中 swimAmount > 0
+    //                         时的 rotLerpRad 路径）当前未实现。Cubium 直接 snap 到 -π/4，
+    //                         视觉上会有跳变。后续应在 LivingEntity/BipedModel 中跟踪
+    //                         鞘翅飞行过渡 tick（fallFlyTicks 0..4）并在此处 lerp。
+    bool isElytraFlying = m_isFallFlying;
     bool isActuallySwimming = m_isActuallySwimming;
 
     // 头部旋转
@@ -575,6 +579,8 @@ void BipedModel::copyModelAttributesTo(BipedModel& target) const
     target.m_isSneaking = m_isSneaking;
     target.m_swimAnimation = m_swimAnimation;
     target.m_mainHand = m_mainHand;
+    // 保留历史遗留字段复制（m_elytraFlyingTicks 当前未被推送，永远为 0，
+    // 但保留复制以避免未来重新启用时遗漏）。
     target.m_elytraFlyingTicks = m_elytraFlyingTicks;
     target.m_isFallFlying = m_isFallFlying;
     target.m_speedValue = m_speedValue;

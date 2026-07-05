@@ -877,6 +877,10 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelArmPoseTest.cpp
     # BipedModel 鞘翅飞行速度因子测试
     client/renderer/entity/BipedModelSpeedValueTest.cpp
+    # elytra::computeSpeedValue 纯逻辑公式测试（_applyBipedElytraState 单元测试）
+    client/renderer/entity/ElytraSpeedValueTest.cpp
+    # dynamic_cast<BipedModel*> 安全性测试（验证非 BipedModel 派生模型不会误触发）
+    client/renderer/entity/BipedModelDynamicCastTest.cpp
     # PlayerModel 手臂渲染测试
     client/renderer/entity/PlayerModelTest.cpp
     # PlayerArmPoseResolver 手臂姿态解析器测试
@@ -1949,12 +1953,16 @@ target_sources(mc_tests
         # ItemMeshBuilder 物品网格构建测试
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/item/ItemMeshBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/BipedModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/ElytraSpeedValue.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
         # VillagerModel + WitchModel 女巫模型测试依赖
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/VillagerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/WitchModel.cpp
+        # CreeperModel + SpiderModel 非 BipedModel 派生模型（dynamic_cast 安全性测试依赖）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/CreeperModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpiderModel.cpp
         # PlayerModel 手臂渲染测试
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
         # PlayerArmPoseResolver 手臂姿态解析器（测试依赖）

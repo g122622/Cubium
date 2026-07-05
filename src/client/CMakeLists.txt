@@ -189,6 +189,7 @@ add_executable(minecraft-client
     renderer/trident/entity/model/core/SegmentedModel.cpp
     renderer/trident/entity/model/ModelRegistration.cpp
     renderer/trident/entity/model/base/BipedModel.cpp
+    renderer/trident/entity/model/base/ElytraSpeedValue.cpp
     renderer/trident/entity/model/base/QuadrupedModel.cpp
     renderer/trident/entity/model/animal/AnimalModels.cpp
     renderer/trident/entity/model/animal/WolfModel.cpp

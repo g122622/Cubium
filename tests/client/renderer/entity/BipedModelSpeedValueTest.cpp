@@ -48,6 +48,7 @@
 #include <gtest/gtest.h>
 
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "common/util/math/MathConstants.hpp"
 
 #include <cmath>
@@ -235,50 +236,19 @@ TEST_F(BipedModelSpeedValueTest, SpeedValueBelowOne_ClampedToOne)
     EXPECT_NEAR(leftLeg->rotateAngleX(), expectedLeftLegX(limbSwing, limbSwingAmount, f), 1e-5f);
 }
 
-// ========== 速度因子计算公式验证 ==========
+// ========== 速度因子公式端到端集成（通过 elytra::computeSpeedValue） ==========
 //
-// 对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState:
-//   speedValue = 1.0F;
-//   if (isFallFlying) {
-//       speedValue = (float)deltaMovement.lengthSqr();
-//       speedValue /= 0.2F;
-//       speedValue = speedValue * (speedValue * speedValue);  // 立方
-//   }
-//   if (speedValue < 1.0F) speedValue = 1.0F;
-//
-// 此处验证渲染器（PlayerRenderer::_applyBipedElytraState 或 PlayerRenderer::setModelVisibilities）
-// 应推送的 speedValue 公式。测试通过模拟渲染器计算后调用 setSpeedValue 验证。
+// 对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState 中 speedValue 公式
+// 已抽取为 elytra::computeSpeedValue 自由函数（见 ElytraSpeedValue.hpp），
+// 由 EntityRendererManager::_applyBipedElytraState（GPU 管线路径）与
+// PlayerRenderer::setModelVisibilities（CPU 路径）调用。此处通过同一函数计算
+// speedValue 并推送给 BipedModel，验证渲染器→模型→setAngles 的端到端集成。
 
-TEST_F(BipedModelSpeedValueTest, SpeedValueFormula_VelocityZero_FallFlying_ClampedToOne)
+TEST_F(BipedModelSpeedValueTest, FallFlying_SpeedValueFromComputeSpeedValue_AppliedToModel)
 {
-    // 速度为 0 时：lengthSq=0, speedValue = 0/0.2 = 0, 立方=0, 钳制到 1.0
-    constexpr f32 lengthSq = 0.0f;
-    constexpr f32 speedDivisor = 0.2f;
-    f32 speedValue = lengthSq / speedDivisor;
-    speedValue = speedValue * speedValue * speedValue;
-    if (speedValue < 1.0f) {
-        speedValue = 1.0f;
-    }
-    EXPECT_NEAR(speedValue, 1.0f, 1e-5f);
-
-    m_model->setSpeedValue(speedValue);
-    m_model->setFallFlying(true);
-    applyAngles();
-
-    // 头部角度应反映鞘翅飞行（-π/4）
-    auto head = m_model->getModelHead();
-    ASSERT_NE(head, nullptr);
-    EXPECT_NEAR(head->rotateAngleX(), static_cast<f32>(-PI_DOUBLE / 4.0), 1e-5f);
-}
-
-TEST_F(BipedModelSpeedValueTest, SpeedValueFormula_VelocityModerate_ProducesLargeDivisor)
-{
-    // 速度长度平方 = 1.0（约 1 m/tick），speedValue = (1.0/0.2)^3 = 125
-    // 手臂/腿部摆动应被显著缩放（除以 125）
+    // 速度长度平方 = 1.0（约 1 m/tick），computeSpeedValue 返回 (1.0/0.2)^3 = 125
     constexpr f32 lengthSq = 1.0f;
-    constexpr f32 speedDivisor = 0.2f;
-    f32 speedValue = lengthSq / speedDivisor;
-    speedValue = speedValue * speedValue * speedValue;
+    const f32 speedValue = elytra::computeSpeedValue(true, lengthSq);
     EXPECT_NEAR(speedValue, 125.0f, 1e-3f);
 
     m_model->setSpeedValue(speedValue);
@@ -296,6 +266,25 @@ TEST_F(BipedModelSpeedValueTest, SpeedValueFormula_VelocityModerate_ProducesLarg
 
     EXPECT_NEAR(rightArm->rotateAngleX(), expectedRightArmX(limbSwing, limbSwingAmount, f), 1e-5f);
     EXPECT_NEAR(rightLeg->rotateAngleX(), expectedRightLegX(limbSwing, limbSwingAmount, f), 1e-5f);
+}
+
+TEST_F(BipedModelSpeedValueTest, NotFallFlying_SpeedValueFromComputeSpeedValue_IsOne)
+{
+    // 非飞行时 computeSpeedValue 返回 1.0，与未设置 speedValue 等价
+    const f32 speedValue = elytra::computeSpeedValue(false, 1.0f);
+    EXPECT_FLOAT_EQ(speedValue, 1.0f);
+
+    m_model->setSpeedValue(speedValue);
+    m_model->setFallFlying(false);
+    applyAngles();
+
+    constexpr f64 limbSwing = 0.5;
+    constexpr f64 limbSwingAmount = 0.4;
+    constexpr f32 f = 1.0f;
+
+    auto rightArm = m_model->getRightArm();
+    ASSERT_NE(rightArm, nullptr);
+    EXPECT_NEAR(rightArm->rotateAngleX(), expectedRightArmX(limbSwing, limbSwingAmount, f), 1e-5f);
 }
 
 // ========== copyModelAttributesTo 应复制 speedValue/fallFlying 字段 ==========

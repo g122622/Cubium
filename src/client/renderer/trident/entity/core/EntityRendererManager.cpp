@@ -30,6 +30,7 @@
 #include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
@@ -1146,30 +1147,18 @@ void EntityRendererManager::_applyPlayerCrossbowState(
 
 void EntityRendererManager::_applyBipedElytraState(model::BipedModel& bipedModel, const ClientEntity& entity)
 {
-    // 对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState 中 speedValue 计算：
-    //   speedValue = 1.0F;
-    //   if (isFallFlying) {
-    //       speedValue = (float)deltaMovement.lengthSqr();
-    //       speedValue /= 0.2F;
-    //       speedValue = speedValue * (speedValue * speedValue);  // 立方
-    //   }
-    //   if (speedValue < 1.0F) speedValue = 1.0F;
+    // 对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState 中 isFallFlying /
+    // speedValue 的填充逻辑。纯计算抽取到 elytra::computeSpeedValue 自由函数中，
+    // 便于在单元测试中直接验证公式（无需链接 Vulkan/EntityRendererManager）。
     //
     // Cubium 中 ClientEntity::velocity() 返回当前 tick 的速度向量（无 prevVelocity 字段），
     // 直接使用 velocity().lengthSquared() 作为 deltaMovement.lengthSqr() 的等价物。
     // speedValue 作为手臂/腿部摆动振幅的除数（见 BipedModel::setAngles），越大摆动越慢。
-    constexpr f32 SPEED_DIVISOR = 0.2f;
-    f32 speedValue = 1.0f;
-    if (entity.isFallFlying()) {
-        const f32 lengthSq = entity.velocity().lengthSquared();
-        speedValue = lengthSq / SPEED_DIVISOR;
-        speedValue = speedValue * speedValue * speedValue; // 立方
-    }
-    if (speedValue < 1.0f) {
-        speedValue = 1.0f;
-    }
+    const bool isFallFlying = entity.isFallFlying();
+    const f32 lengthSq = entity.velocity().lengthSquared();
+    const f32 speedValue = model::elytra::computeSpeedValue(isFallFlying, lengthSq);
 
-    bipedModel.setFallFlying(entity.isFallFlying());
+    bipedModel.setFallFlying(isFallFlying);
     bipedModel.setSpeedValue(speedValue);
 }
 

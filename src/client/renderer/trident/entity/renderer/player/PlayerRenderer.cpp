@@ -27,6 +27,7 @@
 #include "client/renderer/trident/entity/layer/cosmetic/ElytraLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeadLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
+#include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -212,17 +213,10 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player, f64 partialTicks
     // speedValue = (velocity.lengthSqr() / 0.2)^3，钳制到 [1.0, +∞)；非飞行时为 1.0
     // 用作手臂/腿部摆动振幅的除数（见 BipedModel::setAngles）
     {
-        constexpr f32 SPEED_DIVISOR = 0.2f;
-        f32 speedValue = 1.0f;
-        if (player.isElytraFlying()) {
-            const f32 lengthSq = player.velocity().lengthSquared();
-            speedValue = lengthSq / SPEED_DIVISOR;
-            speedValue = speedValue * speedValue * speedValue; // 立方
-        }
-        if (speedValue < 1.0f) {
-            speedValue = 1.0f;
-        }
-        m_model.setFallFlying(player.isElytraFlying());
+        const bool isFallFlying = player.isElytraFlying();
+        const f32 lengthSq = player.velocity().lengthSquared();
+        const f32 speedValue = model::elytra::computeSpeedValue(isFallFlying, lengthSq);
+        m_model.setFallFlying(isFallFlying);
         m_model.setSpeedValue(speedValue);
     }
 
