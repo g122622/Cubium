@@ -334,7 +334,7 @@ void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight, u8 moodSkyLi
     _enqueue(std::move(command));
 }
 
-void AudioService::setAmbientPlayerPosition(f64 x, f64 y, f64 z)
+void AudioService::setAmbientPlayerPosition(f64 x, f64 y, f64 z, i32 moodBx, i32 moodBy, i32 moodBz)
 {
     if (!m_loaded.load()) {
         return;
@@ -345,6 +345,9 @@ void AudioService::setAmbientPlayerPosition(f64 x, f64 y, f64 z)
     command.playerX = x;
     command.playerY = y;
     command.playerZ = z;
+    command.moodBx = moodBx;
+    command.moodBy = moodBy;
+    command.moodBz = moodBz;
     _enqueue(std::move(command));
 }
 
@@ -758,7 +761,8 @@ void AudioService::_processCommand(Command& command)
 
         case CommandType::SetAmbientPlayerPosition:
             if (m_biomeAmbientHandler) {
-                m_biomeAmbientHandler->setPlayerPosition(command.playerX, command.playerY, command.playerZ);
+                m_biomeAmbientHandler->setPlayerPosition(
+                    command.playerX, command.playerY, command.playerZ, command.moodBx, command.moodBy, command.moodBz);
             }
             break;
 

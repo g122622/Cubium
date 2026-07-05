@@ -197,16 +197,32 @@ void ClientApplication::updateWorldAudio()
         // 玩家眼睛位置光照
         const u8 skyLight = m_world.getSkyLight(eyeBlockX, eyeBlockY, eyeBlockZ);
         const u8 blockLight = m_world.getBlockLight(eyeBlockX, eyeBlockY, eyeBlockZ);
-        // 心境音效采样位置光照：在玩家周围随机采样一个位置，获取该位置的光照
-        // 与 MC 原版一致，心境计时器使用采样位置的光照而非玩家位置的光照
-        constexpr i32 MOOD_BLOCK_SEARCH_EXTENT = 8;
-        const i32 moodBx = eyeBlockX + m_moodRng.nextInt(MOOD_BLOCK_SEARCH_EXTENT * 2 + 1) - MOOD_BLOCK_SEARCH_EXTENT;
-        const i32 moodBy = eyeBlockY + m_moodRng.nextInt(MOOD_BLOCK_SEARCH_EXTENT * 2 + 1) - MOOD_BLOCK_SEARCH_EXTENT;
-        const i32 moodBz = eyeBlockZ + m_moodRng.nextInt(MOOD_BLOCK_SEARCH_EXTENT * 2 + 1) - MOOD_BLOCK_SEARCH_EXTENT;
-        const u8 moodSkyLight = m_world.getSkyLight(moodBx, moodBy, moodBz);
-        const u8 moodBlockLight = m_world.getBlockLight(moodBx, moodBy, moodBz);
+
+        // 心境音效采样位置：在玩家周围随机采样一个位置，查询该位置的光照
+        // 与 MC 原版 BiomeAmbientSoundsHandler.tick() 行为一致：
+        //   - 仅在群系配置了 moodSound 时才采样
+        //   - 采样范围 blockSearchExtent 从群系配置读取（不同群系可不同）
+        //   - 同一采样位置同时用于光照查询（驱动心境计时器）和声音播放位置计算
+        //     （音频线程直接复用主线程采样的位置，避免双线程独立随机导致位置不一致）
+        i32 moodBx = 0;
+        i32 moodBy = 0;
+        i32 moodBz = 0;
+        u8 moodSkyLight = 0;
+        u8 moodBlockLight = 0;
+        if (biome) {
+            const auto& ambientSounds = biome->ambientSounds();
+            if (ambientSounds.moodSound().has_value()) {
+                const i32 extent = ambientSounds.moodSound()->blockSearchExtent();
+                moodBx = eyeBlockX + m_moodRng.nextInt(extent * 2 + 1) - extent;
+                moodBy = eyeBlockY + m_moodRng.nextInt(extent * 2 + 1) - extent;
+                moodBz = eyeBlockZ + m_moodRng.nextInt(extent * 2 + 1) - extent;
+                moodSkyLight = m_world.getSkyLight(moodBx, moodBy, moodBz);
+                moodBlockLight = m_world.getBlockLight(moodBx, moodBy, moodBz);
+            }
+        }
         m_audioService->setAmbientLightLevel(skyLight, blockLight, moodSkyLight, moodBlockLight);
-        m_audioService->setAmbientPlayerPosition(m_player->x(), m_player->y() + m_player->eyeHeight(), m_player->z());
+        m_audioService->setAmbientPlayerPosition(
+            m_player->x(), m_player->y() + m_player->eyeHeight(), m_player->z(), moodBx, moodBy, moodBz);
 
         // 更新音乐状态
         // 维度: 0=主世界, -1=下界, 1=末地

@@ -198,16 +198,12 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
     if (m_currentMoodSound.has_value()) {
         const world::biome::MoodSoundAmbience& mood = m_currentMoodSound.value();
 
-        // 随机选择一个采样位置
-        // blockpos = playerPos + random(blockSearchExtent*2+1) - blockSearchExtent
-        // TODO: 当前光照采样在主线程完成（m_moodSkyLight/m_moodBlockLight），而声音播放位置
-        // 在音频线程计算（bx, by, bz），两者使用不同的随机种子，位置可能不一致。
-        // MC 原版在同一 tick 中使用相同随机位置同时查询光照和播放声音。
-        // 要完全对齐 MC，需要将声音播放位置也通过主线程采样后传递到音频线程。
-        i32 extent = mood.blockSearchExtent();
-        i32 bx = static_cast<i32>(m_playerX) + m_rng.nextInt(extent * 2 + 1) - extent;
-        i32 by = static_cast<i32>(m_playerY) + m_rng.nextInt(extent * 2 + 1) - extent;
-        i32 bz = static_cast<i32>(m_playerZ) + m_rng.nextInt(extent * 2 + 1) - extent;
+        // 使用主线程已采样的心境位置（与光照采样位置一致，对齐 MC 原版
+        // BiomeAmbientSoundsHandler.tick() 在同一 tick 中用同一 blockpos
+        // 同时查询光照和计算声音播放位置的行为）
+        const i32 bx = m_moodBx;
+        const i32 by = m_moodBy;
+        const i32 bz = m_moodBz;
 
         // 心境计时器逻辑
         // 使用采样位置的光照，而非玩家位置的光照（与 MC 原版一致）
