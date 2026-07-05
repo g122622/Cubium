@@ -109,6 +109,20 @@ public:
     void updateHeightmap(
         HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
 
+    /**
+     * @brief 从存档数据直接恢复指定类型的高度图（绕过 _isOpaque 判定）
+     *
+     * 用于 Java/Bedrock 存档读取、原生 serialize/deserialize 等场景，将存档中
+     * 已持久化的高度值整列写回 m_heightmaps[type]，并标记该槽位为已初始化。
+     *
+     * 注意：data 必须按 Heightmap 内部存储顺序（z-major：index = z * CHUNK_WIDTH + x）
+     * 排列，且每个元素为 Heightmap 内部存储语义（最高方块 Y+1，0 表示无方块）。
+     *
+     * @param type 高度图类型
+     * @param data 高度数据数组（大小必须为 Heightmap::SIZE）
+     */
+    void setHeightmapFromStorage(HeightmapType type, const std::array<BlockCoord, Heightmap::SIZE>& data);
+
     // 区块状态 (IChunk 接口)
     [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
     void setStatus(ChunkLoadStatus status) override { m_status = status; }

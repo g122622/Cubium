@@ -60,10 +60,26 @@ constexpr size_t HEIGHTMAP_TYPE_COUNT = static_cast<size_t>(HeightmapType::COUNT
  * @brief 高度图
  *
  * 存储每个 XZ 位置的最高方块 Y 坐标。
+ *
+ * 内部存储语义：每个槽位存储"最高方块 Y+1"（即上方空气方块位置）。
+ * "无方块"列使用 NO_BLOCK_SENTINEL 标记。
+ *
+ * 历史上曾使用 0 作为"无方块"哨兵，但这与 Y=-1 的 Y+1=0 冲突，
+ * 在主世界（minY=-64）等支持负 Y 的维度中无法区分"无方块"与"Y=-1 处有方块"。
+ * 现使用 MIN_BUILD_HEIGHT - 1（主世界为 -65）作为哨兵，确保任何合法 Y+1
+ * （范围 [minY+1, maxY] = [-63, 320]）都不会与哨兵冲突。
  */
 class Heightmap {
 public:
     static constexpr i32 SIZE = mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH;
+
+    /**
+     * @brief "无方块"哨兵值
+     *
+     * 取 MIN_BUILD_HEIGHT - 1（主世界为 -65），低于任何合法方块的 Y+1，
+     * 因此不会与真实高度混淆。getHeight 返回此值表示该列无任何阻挡方块。
+     */
+    static constexpr BlockCoord NO_BLOCK_SENTINEL = mc::world::MIN_BUILD_HEIGHT - 1;
 
     explicit Heightmap(HeightmapType type = HeightmapType::WorldSurface);
 
@@ -79,6 +95,8 @@ public:
 
     /**
      * @brief 获取高度
+     *
+     * @return 最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示该列无方块
      */
     [[nodiscard]] BlockCoord getHeight(BlockCoord x, BlockCoord z) const;
 
@@ -86,12 +104,14 @@ public:
      * @brief 直接设置指定 XZ 位置的高度（绕过 _isOpaque 判定，用于整列重算或从存档恢复）
      * @param x 区块内 X 坐标 (0-15)
      * @param z 区块内 Z 坐标 (0-15)
-     * @param height 高度值（Heightmap 内部存储语义，即最高方块 Y+1，0 表示无方块）
+     * @param height 高度值（Heightmap 内部存储语义，即最高方块 Y+1，NO_BLOCK_SENTINEL 表示无方块）
      */
     void setHeight(BlockCoord x, BlockCoord z, BlockCoord height);
 
     /**
      * @brief 设置高度数据（从存档加载）
+     *
+     * @param data 高度数据数组，元素语义同 setHeight（Y+1 或 NO_BLOCK_SENTINEL）
      */
     void setData(const std::array<BlockCoord, SIZE>& data);
 

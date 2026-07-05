@@ -91,7 +91,10 @@ std::optional<BlockPos> readBlockEntityPos(const compound_tag& tag)
 
 void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_tag& packedHeights, i32 heightOffset)
 {
-    // Java版高度图使用9位编码每个高度值（支持-512到2047的范围）
+    // Java 版高度图使用 9 位编码每个高度值（支持 -512 到 2047 的范围）
+    // Java 存储值语义：Y+1-minY（相对维度最低 Y），0 表示无方块。
+    // 转换为内部存储语义：encoded != 0 时为 Y+1（绝对，= encoded + heightOffset），
+    //                       encoded == 0 时为 NO_BLOCK_SENTINEL（无方块）。
     constexpr i32 BITS_PER_ENTRY = 9;
     constexpr i32 ENTRY_COUNT = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
 
@@ -103,17 +106,18 @@ void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_t
             const i32 encoded = (index < static_cast<i32>(unpacked.size()))
                 ? static_cast<i32>(unpacked[static_cast<size_t>(index)])
                 : 0;
-            heights[static_cast<size_t>(index)] = static_cast<BlockCoord>(encoded + heightOffset);
+            heights[static_cast<size_t>(index)] =
+                encoded != 0 ? static_cast<BlockCoord>(encoded + heightOffset) : Heightmap::NO_BLOCK_SENTINEL;
         }
     }
 
-    Heightmap heightmap(type);
-    heightmap.setData(heights);
-    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-            chunk.updateHeightmap(type, x, heights[static_cast<size_t>(z * world::CHUNK_WIDTH + x)] - 1, z, nullptr);
-        }
-    }
+    // 直接整列写回 Heightmap 并标记槽位已初始化。
+    // 旧实现调用 chunk.updateHeightmap(type, x, heights[i] - 1, z, nullptr) 试图逐列更新，
+    // 但 updateHeightmap 内部调用 Heightmap::update，后者依赖 _isOpaque(state) 判定，
+    // state 为 nullptr 时 _isOpaque 返回 false，导致所有列的写入被跳过，
+    // 持久化的高度值从未真正进入 m_heightmaps，仅 m_heightmapInitialized 被置 true。
+    // 此处使用专门的 setHeightmapFromStorage 绕过 _isOpaque 判定。
+    chunk.setHeightmapFromStorage(type, heights);
 }
 
 const compound_tag& unwrapColumnRoot(const compound_tag& root)
@@ -430,14 +434,20 @@ void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData&
         return;
     }
 
+    // 旧版 HeightMap int 数组语义：每列最高方块 Y+1（绝对世界坐标），0 表示无方块。
+    // 直接整列写回 Heightmap，避免 updateHeightmap + nullptr state 的 no-op 问题。
+    // 0 转换为 NO_BLOCK_SENTINEL 以匹配内部存储语义。
+    std::array<BlockCoord, Heightmap::SIZE> heights{};
     for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
         for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
             const i32 index = z * world::CHUNK_WIDTH + x;
-            const i32 height = legacyHeightmap->value[static_cast<size_t>(index)];
-            chunk.updateHeightmap(HeightmapType::WorldSurface, x, height, z, nullptr);
-            chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, x, height, z, nullptr);
+            const i32 legacy = legacyHeightmap->value[static_cast<size_t>(index)];
+            heights[static_cast<size_t>(index)] =
+                legacy != 0 ? static_cast<BlockCoord>(legacy) : Heightmap::NO_BLOCK_SENTINEL;
         }
     }
+    chunk.setHeightmapFromStorage(HeightmapType::WorldSurface, heights);
+    chunk.setHeightmapFromStorage(HeightmapType::WorldSurfaceWG, heights);
 }
 
 void JavaColumnReader::_readEntities(const compound_tag& columnNbt, ChunkData& chunk)

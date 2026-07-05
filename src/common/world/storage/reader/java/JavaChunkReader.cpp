@@ -250,15 +250,6 @@ Result<void> JavaChunkReader::readBlockStates(
     return {};
 }
 
-void JavaChunkReader::readHeightmaps(const compound_tag& levelNbt, ChunkData& chunk)
-{
-    MC_UNUSED(levelNbt);
-    MC_UNUSED(chunk);
-    // 高度图数据目前仅保存到 ChunkData 的元数据中
-    // 未来可在 ChunkData 中添加 heightmap 字段
-    // 暂时跳过，不阻塞区块加载
-}
-
 void JavaChunkReader::readLightData(const compound_tag& sectionNbt, ChunkSection& section, bool hasSkyLight)
 {
     auto applyNibble = [&section](const bytearray_tag& bytes, bool isSky) {

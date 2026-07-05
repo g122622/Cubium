@@ -245,7 +245,7 @@ TEST_F(ChunkTest, ChunkData_SectionManagement)
     // MIN_BUILD_HEIGHT=-64，故 Y=50 落在段 7（覆盖 Y∈[48,64)）。
     constexpr BlockCoord blockY = 50;
     const i32 expectedSection = toSectionIndex(blockY); // = (50-(-64))/16 = 7
-    ASSERT_EQ(expectedSection, 7);                       // 防止高度模型再次迁移时静默回归
+    ASSERT_EQ(expectedSection, 7);                      // 防止高度模型再次迁移时静默回归
     chunk.setBlockState(5, blockY, 7, &VanillaBlocks::DIRT->defaultState());
 
     // 目标段应被创建，其它段（含段 0）不应被创建
@@ -299,4 +299,141 @@ TEST_F(ChunkTest, ChunkData_Serialization)
     ASSERT_NE(block8, nullptr);
     EXPECT_EQ(block0->blockId(), VanillaBlocks::STONE->blockId());
     EXPECT_EQ(block8->blockId(), VanillaBlocks::DIRT->blockId());
+}
+
+// 验证 WorldSurface 高度图在 serialize/deserialize 往返中保持一致
+TEST_F(ChunkTest, ChunkData_Serialization_PreservesWorldSurfaceHeightmap)
+{
+    ChunkData original(3, 7);
+    original.setBlockState(0, 10, 0, &VanillaBlocks::STONE->defaultState());
+    original.setBlockState(0, 20, 0, &VanillaBlocks::DIRT->defaultState());
+    original.setBlockState(5, 50, 5, &VanillaBlocks::GRASS_BLOCK->defaultState());
+
+    // 序列化 + 反序列化
+    auto data = original.serialize();
+    ASSERT_FALSE(data.empty());
+    auto result = ChunkData::deserialize(data.data(), data.size());
+    ASSERT_TRUE(result.success());
+    auto restored = result.value();
+
+    // WorldSurface 高度图应保留：方块 Y=20 是 (0,0) 列最高，Y=50 是 (5,5) 列最高
+    EXPECT_EQ(restored->getHighestBlock(0, 0), 20);
+    EXPECT_EQ(restored->getHighestBlock(5, 5), 50);
+    // 未放置方块的列应回退为 0
+    EXPECT_EQ(restored->getHighestBlock(10, 10), 0);
+}
+
+// 验证所有 7 种高度图类型在 serialize/deserialize 往返中保持一致
+TEST_F(ChunkTest, ChunkData_Serialization_PreservesAllHeightmapTypes)
+{
+    ChunkData original(2, 3);
+
+    // 通过 setHeightmapFromStorage 模拟从存档加载各类型高度图
+    std::array<BlockCoord, Heightmap::SIZE> worldSurfaceHeights{};
+    std::array<BlockCoord, Heightmap::SIZE> oceanFloorHeights{};
+    std::array<BlockCoord, Heightmap::SIZE> motionBlockingHeights{};
+    std::array<BlockCoord, Heightmap::SIZE> motionBlockingNoLeavesHeights{};
+    std::array<BlockCoord, Heightmap::SIZE> worldSurfaceWGHeights{};
+    std::array<BlockCoord, Heightmap::SIZE> oceanFloorWGHeights{};
+    std::array<BlockCoord, Heightmap::SIZE> lightBlockingHeights{};
+
+    // 设置一些不同的高度值，确保每种类型都能正确往返
+    // 内部存储语义：Y+1（Heightmap::NO_BLOCK_SENTINEL 表示无方块）
+    const BlockCoord noBlock = Heightmap::NO_BLOCK_SENTINEL;
+    for (i32 z = 0; z < 16; ++z) {
+        for (i32 x = 0; x < 16; ++x) {
+            const i32 index = z * 16 + x;
+            // WorldSurface: 高度随 x+z 递增
+            worldSurfaceHeights[static_cast<size_t>(index)] = static_cast<BlockCoord>(x + z + 1);
+            // OceanFloor: 比 WorldSurface 低 5
+            oceanFloorHeights[static_cast<size_t>(index)] =
+                static_cast<BlockCoord>(x + z - 4 > 0 ? x + z - 4 : noBlock);
+            // MotionBlocking: 与 WorldSurface 相同
+            motionBlockingHeights[static_cast<size_t>(index)] = static_cast<BlockCoord>(x + z + 1);
+            // MotionBlockingNoLeaves: 比 WorldSurface 低 2
+            motionBlockingNoLeavesHeights[static_cast<size_t>(index)] =
+                static_cast<BlockCoord>(x + z - 1 > 0 ? x + z - 1 : noBlock);
+            // WorldSurfaceWG: 比 WorldSurface 高 3
+            worldSurfaceWGHeights[static_cast<size_t>(index)] = static_cast<BlockCoord>(x + z + 4);
+            // OceanFloorWG: 比 OceanFloor 高 1
+            oceanFloorWGHeights[static_cast<size_t>(index)] =
+                static_cast<BlockCoord>(x + z - 3 > 0 ? x + z - 3 : noBlock);
+            // LightBlocking: 比 WorldSurface 低 1
+            lightBlockingHeights[static_cast<size_t>(index)] = static_cast<BlockCoord>(x + z > 0 ? x + z : noBlock);
+        }
+    }
+
+    original.setHeightmapFromStorage(HeightmapType::WorldSurface, worldSurfaceHeights);
+    original.setHeightmapFromStorage(HeightmapType::OceanFloor, oceanFloorHeights);
+    original.setHeightmapFromStorage(HeightmapType::MotionBlocking, motionBlockingHeights);
+    original.setHeightmapFromStorage(HeightmapType::MotionBlockingNoLeaves, motionBlockingNoLeavesHeights);
+    original.setHeightmapFromStorage(HeightmapType::WorldSurfaceWG, worldSurfaceWGHeights);
+    original.setHeightmapFromStorage(HeightmapType::OceanFloorWG, oceanFloorWGHeights);
+    original.setHeightmapFromStorage(HeightmapType::LightBlocking, lightBlockingHeights);
+
+    // 序列化 + 反序列化
+    auto data = original.serialize();
+    ASSERT_FALSE(data.empty());
+    auto result = ChunkData::deserialize(data.data(), data.size());
+    ASSERT_TRUE(result.success());
+    auto restored = result.value();
+
+    // 验证每种类型的高度图都能正确还原
+    // 注意 getTopBlockY 返回最高方块 Y（即内部存储 Y+1 - 1），无方块返回 MIN_BUILD_HEIGHT
+    const BlockCoord expectedWs = 5 + 5;         // x=5, z=5: internal=11, Y=10
+    const BlockCoord expectedOf = 5 + 5 - 4 - 1; // internal=6, Y=5
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::WorldSurface, 5, 5), expectedWs);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::OceanFloor, 5, 5), expectedOf);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::MotionBlocking, 5, 5), expectedWs);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::MotionBlockingNoLeaves, 5, 5), 5 + 5 - 1 - 1);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::WorldSurfaceWG, 5, 5), 5 + 5 + 4 - 1);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::OceanFloorWG, 5, 5), 5 + 5 - 3 - 1);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::LightBlocking, 5, 5), 5 + 5 - 1);
+
+    // 边界：x=0, z=0 时 internal=1，Y=0
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::WorldSurface, 0, 0), 0);
+    // OceanFloor at (0,0): internal=noBlock → 无方块 → MIN_BUILD_HEIGHT
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::OceanFloor, 0, 0), mc::world::MIN_BUILD_HEIGHT);
+}
+
+// 验证未初始化的高度图类型在反序列化后仍回退到 WorldSurface
+TEST_F(ChunkTest, ChunkData_Serialization_UninitializedHeightmapsFallBackToWorldSurface)
+{
+    ChunkData original(1, 1);
+    original.setBlockState(0, 30, 0, &VanillaBlocks::STONE->defaultState());
+
+    // 只填充 WorldSurface（setBlockState 会自动维护）
+    // 其它类型不填充
+
+    auto data = original.serialize();
+    ASSERT_FALSE(data.empty());
+    auto result = ChunkData::deserialize(data.data(), data.size());
+    ASSERT_TRUE(result.success());
+    auto restored = result.value();
+
+    // WorldSurface 应为 Y=30
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::WorldSurface, 0, 0), 30);
+    // OceanFloor 等未初始化类型应回退到 WorldSurface 的值
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::OceanFloor, 0, 0), 30);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::MotionBlocking, 0, 0), 30);
+    EXPECT_EQ(restored->getTopBlockY(HeightmapType::LightBlocking, 0, 0), 30);
+}
+
+// 验证 setHeightmapFromStorage 直接写入数据并标记初始化
+TEST_F(ChunkTest, ChunkData_SetHeightmapFromStorage_LoadsDataAndMarksInitialized)
+{
+    ChunkData chunk(0, 0);
+
+    std::array<BlockCoord, Heightmap::SIZE> heights{};
+    // 未设置的列用 NO_BLOCK_SENTINEL 填充（语义为无方块）
+    heights.fill(Heightmap::NO_BLOCK_SENTINEL);
+    // 设置 (5, 5) 列高度为 Y+1=42（即 Y=41）
+    heights[5 * 16 + 5] = 42;
+
+    chunk.setHeightmapFromStorage(HeightmapType::OceanFloor, heights);
+
+    // getTopBlockY 应返回 41（Y+1 - 1）
+    EXPECT_EQ(chunk.getTopBlockY(HeightmapType::OceanFloor, 5, 5), 41);
+    // 未设置的列应为 MIN_BUILD_HEIGHT（NO_BLOCK_SENTINEL 表示无方块）
+    EXPECT_EQ(chunk.getTopBlockY(HeightmapType::OceanFloor, 0, 0), mc::world::MIN_BUILD_HEIGHT);
 }

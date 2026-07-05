@@ -175,9 +175,11 @@ BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoor
 {
     auto it = m_heightmaps.find(type);
     if (it != m_heightmaps.end()) {
-        // Heightmap 内部保存的是"最高方块上方一格"的 Y，所以这里要减 1
+        // Heightmap 内部保存的是"最高方块上方一格"的 Y+1，所以这里要减 1
         // 才是实际的方块坐标。OceanFloorWG 也遵循同一语义。
-        return it->second.getHeight(x, z) - 1;
+        // 无方块列返回 NO_BLOCK_SENTINEL，回退为 MIN_BUILD_HEIGHT。
+        const BlockCoord height = it->second.getHeight(x, z);
+        return height != Heightmap::NO_BLOCK_SENTINEL ? height - 1 : mc::world::MIN_BUILD_HEIGHT;
     }
     MC_ASSERT_RELEASE(false);
 }
@@ -331,17 +333,19 @@ void ChunkPrimer::initializeLightSources()
 
 void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 {
-    // 先重置指定类型的高度图
+    // 先重置指定类型的高度图为"无方块"（哨兵值）
     for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (hasFlag(types, flag)) {
             auto it = m_heightmaps.find(type);
             if (it != m_heightmaps.end()) {
-                it->second.setAll(mc::world::MAX_BUILD_HEIGHT);
+                it->second.setAll(Heightmap::NO_BLOCK_SENTINEL);
             }
         }
     }
 
-    // 从方块数据重新计算
+    // 从方块数据重新计算：自顶向下扫描，第一个阻挡方块写入 Y+1。
+    // update 内部检查 y >= currentHeight，currentHeight 为哨兵(MIN_BUILD_HEIGHT-1)时
+    // 任何合法 y 都满足条件，从而正确记录最高方块。
     for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
         for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
             for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {

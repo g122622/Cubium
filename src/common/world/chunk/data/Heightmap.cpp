@@ -34,7 +34,7 @@ namespace mc::world::chunk {
 Heightmap::Heightmap(HeightmapType type)
     : m_type(type)
 {
-    m_heights.fill(0);
+    m_heights.fill(NO_BLOCK_SENTINEL);
 }
 
 bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
@@ -46,7 +46,9 @@ bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockStat
     const i32 index = z * mc::world::CHUNK_WIDTH + x;
     const BlockCoord currentHeight = m_heights[static_cast<size_t>(index)];
 
-    // 只有当新方块高于当前高度且是阻挡方块时才更新
+    // 只有当新方块不低于当前高度且是阻挡方块时才更新。
+    // currentHeight 为 NO_BLOCK_SENTINEL（MIN_BUILD_HEIGHT-1）时表示该列尚无方块，
+    // 任何合法 y（>= MIN_BUILD_HEIGHT）都满足 y >= currentHeight，从而正常写入。
     if (y >= currentHeight && _isOpaque(state)) {
         m_heights[static_cast<size_t>(index)] = y + 1; // 高度图存储的是 Y+1（即上方空气方块的位置）
         return true;
@@ -58,7 +60,7 @@ bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockStat
 BlockCoord Heightmap::getHeight(BlockCoord x, BlockCoord z) const
 {
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
-        return 0;
+        return NO_BLOCK_SENTINEL;
     }
     const i32 index = z * mc::world::CHUNK_WIDTH + x;
     return m_heights[static_cast<size_t>(index)];

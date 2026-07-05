@@ -49,9 +49,11 @@ namespace mc::world::storage::reader::java {
  * 支持：
  * - 区块 Sections（palette + long array 方块状态）
  * - Biomes（1.16.5 格式：int[1024]）
- * - Heightmaps（long array）
  * - BlockEntities
  * - 光照数据
+ *
+ * 高度图（long array）的解析在 JavaColumnReader::_readHeightmaps 中完成，
+ * 因为高度图是列级（column-level）字段，而非 section 级。
  */
 class JavaChunkReader {
 public:
@@ -82,11 +84,6 @@ public:
      */
     Result<void> readSection(
         const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight);
-
-    /**
-     * @brief 读取高度图
-     */
-    void readHeightmaps(const nbt::tags::compound_tag& levelNbt, ChunkData& chunk);
 
     [[nodiscard]] BiomeId mapBiomeName(const std::string& biomeName) const;
     [[nodiscard]] BiomeId mapBiomeId(i32 biomeId) const;

@@ -90,7 +90,10 @@ JavaWorldReader
 
 - Java 版使用 9 位编码每个高度值（支持 -512 到 2047 范围）
 - 解包后需要加上维度感知的高度偏移（主世界 -64，下界 0，末地 -64）
-- 高度图类型：`WORLD_SURFACE`、`OCEAN_FLOOR`、`MOTION_BLOCKING`、`MOTION_BLOCKING_NO_LEAVES`、`LIGHT_BLOCKING`
+- Java 存储值语义为 `Y+1-minY`（相对维度最低 Y，且为最高方块 Y+1），加偏移后得到绝对 `Y+1`
+- 高度图类型：`WORLD_SURFACE`、`OCEAN_FLOOR`、`MOTION_BLOCKING`、`MOTION_BLOCKING_NO_LEAVES`、`LIGHT_BLOCKING`、`WORLD_SURFACE_WG`、`OCEAN_FLOOR_WG`
+- 加载路径：`JavaColumnReader::_readHeightmaps` → `applyHeightmapArray`（long array）或旧版 `HeightMap` int[256] 数组
+- 写入 `ChunkData` 使用 `setHeightmapFromStorage`（绕过 `_isOpaque` 判定，整列写入；`updateHeightmap` + nullptr state 是 no-op）
 
 ### 维度特定处理
 
