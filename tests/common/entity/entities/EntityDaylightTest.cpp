@@ -233,7 +233,14 @@ TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness)
 // PhantomEntity 日光燃烧测试
 // ============================================================================
 
-class PhantomEntityTest : public ::testing::Test {
+// 注意：此 fixture 原名 PhantomEntityTest，与 tests/common/entity/PhantomGoalsTest.cpp
+// 中的同名 fixture 跨翻译单元 ODR 冲突（两者都链接进 mc_tests，类名相同但成员不同：
+// 本 fixture 持有 m_world，PhantomGoalsTest 持有 phantom）。这导致 SetUp/成员布局被
+// 互相替换，PhantomEntityTest.DoesNotBurnAtNight 在 tick()->updateEnvironmentState()
+// 中读取到错误的 m_world，getFluidState 返回代码段垃圾指针，进而 isEmpty() 崩溃。
+// 修复：将本文件 fixture 重命名为 PhantomEntityDaylightTest 以消除 ODR 冲突。
+// 参考 commit 49936ac20 的同类问题处理方式。
+class PhantomEntityDaylightTest : public ::testing::Test {
 protected:
     void SetUp() override { m_world = std::make_unique<EntityTestWorld>(); }
 
@@ -242,7 +249,7 @@ protected:
     std::unique_ptr<EntityTestWorld> m_world;
 };
 
-TEST_F(PhantomEntityTest, DoesNotBurnAtNight)
+TEST_F(PhantomEntityDaylightTest, DoesNotBurnAtNight)
 {
     m_world->setDayTime(13000); // 夜晚
     m_world->setCanSeeSky(true);
@@ -256,7 +263,7 @@ TEST_F(PhantomEntityTest, DoesNotBurnAtNight)
     EXPECT_NO_THROW(phantom.tick());
 }
 
-TEST_F(PhantomEntityTest, SizeAffectsDimensions)
+TEST_F(PhantomEntityDaylightTest, SizeAffectsDimensions)
 {
     PhantomEntity phantom(EntityId(1));
 
@@ -272,7 +279,7 @@ TEST_F(PhantomEntityTest, SizeAffectsDimensions)
     EXPECT_EQ(phantom.getPhantomSize(), 64); // 应该被限制为 64
 }
 
-TEST_F(PhantomEntityTest, SizeAffectsAttackDamage)
+TEST_F(PhantomEntityDaylightTest, SizeAffectsAttackDamage)
 {
     PhantomEntity phantom(EntityId(1));
 
@@ -285,7 +292,7 @@ TEST_F(PhantomEntityTest, SizeAffectsAttackDamage)
     EXPECT_EQ(phantom.getPhantomSize(), 4);
 }
 
-TEST_F(PhantomEntityTest, AttackPhaseDefaultIsCircle)
+TEST_F(PhantomEntityDaylightTest, AttackPhaseDefaultIsCircle)
 {
     PhantomEntity phantom(EntityId(1));
     EXPECT_EQ(phantom.getAttackPhase(), PhantomEntity::AttackPhase::CIRCLE);
