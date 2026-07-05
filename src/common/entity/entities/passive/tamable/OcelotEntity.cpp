@@ -73,15 +73,11 @@ OcelotEntity::OcelotEntity(EntityId id)
     // 注册属性
     registerAttributes();
 
-    // TODO: 此处应显式调用 registerData() 以注册 DATA_TRUSTING_PARAM/DATA_FLEEING_PARAM
-    // 到 EntityDataManager。由于 C++ 虚函数在基类构造函数中不会派发到派生类
-    // （Entity::Entity() 内部调用 registerData() 时调用的是 Entity::registerData
-    // 而非 OcelotEntity::registerData），当前的 registerData() override 成为死代码，
-    // 导致信任/逃跑状态从未通过元数据同步到客户端。
-    // 已有的 5 个测试失败（OcelotEntityTestFixture.AttackGoal_AttackDamage 等）
-    // 与此问题相关。修复方式：参考 WolfEntity / ZombieVillagerEntity 模式，
-    // 取消下方注释并验证相关测试通过。
-    // registerData();
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 OcelotEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 WolfEntity / ZombieVillagerEntity 模式。
+    registerData();
 }
 
 std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/)
