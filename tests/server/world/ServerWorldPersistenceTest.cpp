@@ -89,7 +89,12 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     ASSERT_NE(entityId, 0);
 
     auto blockEntity = std::make_unique<CraftingTableEntity>(BlockPos(1, 64, 1));
-    world->setBlockEntity(blockEntity->getPos(), blockEntity.release());
+    // 注意：不能在同一表达式里同时用 blockEntity->getPos() 和 blockEntity.release()。
+    // 函数实参求值顺序未指定：若 release() 先求值，unique_ptr 内部裸指针被置空，
+    // 随后 getPos() 在空指针上内联读取 m_pos（偏移 0x0C/0x10/0x14），在 m_pos.z
+    // (偏移 0x14) 处触发 ACCESS_VIOLATION。先取 pos 再 release 以解耦求值顺序。
+    const BlockPos blockEntityPos = blockEntity->getPos();
+    world->setBlockEntity(blockEntityPos, blockEntity.release());
 
     auto saveAllResult = world->saveAll();
     ASSERT_TRUE(saveAllResult.success()) << saveAllResult.error().message();
