@@ -793,7 +793,6 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
             else if (blockState->is(VanillaBlocks::KELP) || blockState->is(VanillaBlocks::KELP_PLANT) ||
                 blockState->is(VanillaBlocks::SEAGRASS) || blockState->is(VanillaBlocks::TALL_SEAGRASS)) {
                 // 在移除方块之前生成掉落物品
-                // MC 原版调用 Block.dropResources(state, level, pos, blockEntity) 生成掉落
                 Block::dropResources(world, neighborPos, *blockState);
 
                 const BlockState& airState = VanillaBlocks::AIR->defaultState();
