@@ -51,6 +51,7 @@ player/
 - `SingleLevelStorageManager` - 通过 `playerDataManager()` 暴露本模块
 - `ServerWorld` - 在玩家加入/退出/保存时调用
 - `PlayerManager` - 管理在线玩家时触发保存
+- `IntegratedServer` / `StandaloneServer` - 关服时通过 `savePlayerRuntimeState()` 钩子回写在线玩家运行时状态（`fromPlayer()` + `savePlayer()`），登录时通过 `applyToPlayer()` 恢复
 - `/save-all` 命令 - 触发 `saveAllDirty()`
 
 **下游依赖（本模块依赖谁）**：
@@ -58,7 +59,7 @@ player/
 - `NbtIo` - NBT 序列化/反序列化
 - `ItemStack` - 物品序列化
 - `EffectInstance` - 药水效果序列化
-- `ServerPlayerData`/`ServerPlayer` - 运行时玩家状态转换
+- `Player` / `ServerPlayerData` - 运行时玩家状态转换（`fromPlayer` 接受 `const Player&`，`fromServerPlayerData` 接受 `const ServerPlayerData&`）
 - `zlib` - gzip 压缩
 
 ## 与 MC 1.16.5 的对应
@@ -89,3 +90,9 @@ player/
    - **PlayerSaveData 路径**: `PlayerSaveData::toNbt()` / `PlayerSaveData::fromNbt()` + `PlayerDataManager::fromPlayer()` / `applyToPlayer()` — 独立的玩家存储系统，用于登录保存/恢复
 
 8. **冲量上下文持久化**: 冲量上下文字段（`currentImpulseImpactPos`、`ignoreFallDamageFromCurrentImpulse`、`currentImpulseContextResetGraceTime`）同时通过两条路径持久化。`m_currentExplosionCause` 不持久化（MC Java 同样不序列化此运行时瞬时字段）
+
+9. **关服时玩家运行时状态回写（fromPlayer + savePlayerRuntimeState 钩子）**:
+   `PlayerDataManager::fromPlayer(const Player&)` 提取 Player 实体的运行时状态（位置、生命、饥饿、经验、背包、效果等）为 `PlayerSaveData`。该方法在关服时由 `IntegratedServer::savePlayerRuntimeState()` 和 `StandaloneServer::savePlayerRuntimeState()` 调用——遍历所有维度的在线 Player 实体，调用 `fromPlayer()` 提取状态，再用 `savePlayer()` 灌入缓存并标记脏。后续 `stopCore()` → `shutdownManagers()` → `saveAllWorldData()` 会通过 `PlayerDataManager::saveAll()` 把缓存落盘到 RocksDB。
+   - **签名变更**：`fromPlayer()` 的参数类型从 `const ServerPlayer&` 改为 `const Player&`，因为 `ServerPlayerEntityManager::createPlayerEntity` 创建的是基类 `Player` 实例，原签名无法被调用。
+   - **调用时机约束**：必须在主循环线程 join 之后、玩家实体被 `clearAll()` 移除之前调用，否则会与 `tick()` 产生数据竞争或拿到空指针。详见 `src/server/application/README.md` 第 9、10 节。
+   - **UUID 来源覆盖**：`Player` 实体的 `m_uuid` 由登录流程（`handleLoginRequestPacket`）计算离线 UUID 后存入 `ServerPlayerData`，但**未回写到实体本身**。若直接用 `fromPlayer()` 提取的 `uuid` 字段落盘，会以空字符串作为 RocksDB key，导致下次登录无法读回。因此 `savePlayerRuntimeState()` 在调用 `fromPlayer()` 后，会用 `PlayerManager` 中的权威 UUID（`playerData->uuid`）覆盖 `saveData.uuid`，确保落盘 key 与登录时 `loadPlayer()` 查询的 key 一致。

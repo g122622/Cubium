@@ -447,6 +447,57 @@ auto config = layout::spaceBetweenFlexConfig();
 
 **`<screen>` 标签默认使用垂直居中 Flex 布局**，无需手动指定 `layout` 属性。
 
+### Grid 布局
+
+ContainerWidget 同时支持 Grid 网格布局，按列/行均匀排布子元素：
+
+```cpp
+// 设置 Grid 布局
+container->setLayoutType(ContainerLayoutType::Grid);
+
+// 自定义 Grid 配置
+layout::GridConfig config;
+config.columns = 9;        // 列数（≥1，默认 1）
+config.rows = 3;           // 行数（0=自动推算，默认 0）
+config.columnGap = 2;      // 列间距（≥0）
+config.rowGap = 2;         // 行间距（≥0）
+container->setGridConfig(config);
+```
+
+**GridConfig 字段**：
+
+| 字段 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `columns` | `i32` | `1` | 列数，<1 时被钳制为 1 |
+| `rows` | `i32` | `0` | 行数，0 表示根据子项数与列数自动推算 |
+| `columnGap` | `i32` | `0` | 列间距（横向间隙），<0 时被钳制为 0 |
+| `rowGap` | `i32` | `0` | 行间距（纵向间隙），<0 时被钳制为 0 |
+| `autoPlacement` | `bool` | `true` | 是否启用自动放置（按行优先填充单元格） |
+
+**自动推算行数**：当 `rows=0` 时，GridLayout 会按 `ceil(childCount / columns)` 推算实际行数，保证所有子项都能被布局。
+
+**单元格尺寸**：每个单元格的宽度为 `(contentWidth - (columns-1) * columnGap) / columns`，高度同理。
+
+在模板中使用 Grid 布局：
+
+```xml
+<grid id="inventoryGrid" cols="9" rows="3" gap="2" pos="10,80" size="178,70">
+    <slot id="slot_0" index="0" size="18,18"/>
+    <slot id="slot_1" index="1" size="18,18"/>
+    <!-- ... -->
+</grid>
+```
+
+模板属性语义：
+
+| 属性 | 说明 |
+|------|------|
+| `cols` | 列数，非数字或缺失时为默认值 1；<1 时被钳制为 1 |
+| `rows` | 行数，非数字或缺失时为默认值 0（自动推算） |
+| `gap` | 同时设置 `columnGap` 与 `rowGap`；<0 时被钳制为 0 |
+
+> 注意：当前 `<grid>` 标签的 `gap` 属性是 `columnGap` 与 `rowGap` 的便捷写法，等价于同时设置两者为相同值。如需让两者不同，请在 C++ 侧通过 `setGridConfig` 设置。
+
 ## 滚动容器 (ScrollableWidget)
 
 支持滚动的内容容器：
@@ -530,6 +581,20 @@ slot->setOnSlotClick([](i32 slotIndex, i32 button, bool shiftHeld) {
     std::cout << "Slot " << slotIndex << " clicked" << std::endl;
 });
 ```
+
+在模板中使用 SlotWidget：
+
+```xml
+<slot id="slot_0" index="5" size="18,18"/>
+```
+
+模板属性：
+
+| 属性 | 说明 |
+|------|------|
+| `index` | 槽索引，对应 `slot->slotIndex()`。非数字或缺失时为默认值 -1（表示未绑定到具体槽位）；解析失败时也回退到 -1。`index=0` 是合法值。 |
+
+> 模板中显式指定 `index` 后，槽位点击回调收到的 `slotIndex` 即为该值，便于和上游容器（如 Inventory）的槽位下标对齐。
 
 ## 3D 视口组件 (Viewport3DWidget)
 

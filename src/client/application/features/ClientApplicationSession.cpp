@@ -439,7 +439,10 @@ bool ClientApplication::leaveWorldToMainMenu()
         return false;
     }
 
-    // TODO: 保存世界（当存档系统完善后）
+    // 世界与玩家存档由 IntegratedServer::stop() 统一负责：
+    // - stop() 在 clearAll() 之前调用 savePlayerRuntimeState() 回写在线玩家运行时状态
+    // - 随后 stopCore() → shutdownManagers() → saveAllWorldData() 落盘区块、level.dat、玩家数据
+    // 因此此处无需再显式触发保存。
 
     // 销毁游戏会话
     destroyGameSession();

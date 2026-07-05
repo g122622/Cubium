@@ -30,7 +30,6 @@
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/player/ServerPlayer.hpp"
 #include <mutex>
 #include <spdlog/spdlog.h>
 
@@ -240,7 +239,7 @@ PlayerSaveData PlayerDataManager::fromServerPlayerData(const server::ServerPlaye
     return data;
 }
 
-PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
+PlayerSaveData PlayerDataManager::fromPlayer(const Player& player)
 {
     PlayerSaveData data;
 

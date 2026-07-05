@@ -26,6 +26,7 @@
 #include "LayoutResult.hpp"
 #include "MeasureSpec.hpp"
 #include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
 #include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
 #include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include <functional>
@@ -182,6 +183,17 @@ public:
      */
     void layoutFlex(WidgetLayoutAdaptor* container, const Rect& availableSpace, const FlexConfig& config);
 
+    // ==================== Grid布局便捷方法 ====================
+
+    /**
+     * @brief 使用Grid布局
+     *
+     * @param container 容器适配器
+     * @param availableSpace 可用空间
+     * @param config Grid配置
+     */
+    void layoutGrid(WidgetLayoutAdaptor* container, const Rect& availableSpace, const GridConfig& config);
+
     // ==================== 统计信息 ====================
 
     /**
@@ -235,6 +247,7 @@ private:
 
     // 内置算法
     std::unique_ptr<FlexLayout> m_flexLayout;
+    std::unique_ptr<GridLayout> m_gridLayout;
 };
 
 /**

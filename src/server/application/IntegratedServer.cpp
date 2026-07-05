@@ -254,6 +254,67 @@ void IntegratedServer::shutdown()
     stop();
 }
 
+void IntegratedServer::savePlayerRuntimeState()
+{
+    // 外来只读存档不写盘，直接跳过
+    if (isSharedStorageReadonlyForeignWorld()) {
+        return;
+    }
+
+    auto* storage = sharedStorage();
+    if (storage == nullptr || !storage->isOpen()) {
+        return;
+    }
+    auto* pdm = storage->playerDataManager();
+    if (pdm == nullptr) {
+        return;
+    }
+
+    // 遍历所有维度，对每个在线 Player 实体回写运行时状态到 PlayerDataManager 缓存
+    // 注意：必须在 clearAll 之前调用，否则玩家实体已被从 EntityManager 移除
+    size_t savedCount = 0;
+    m_dimensionManager->forEachDimension([&](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world == nullptr) {
+            return;
+        }
+
+        const auto playerIds = m_playerEntityManager.getPlayerIds();
+        for (PlayerId playerId : playerIds) {
+            Player* player = m_playerEntityManager.getPlayerEntity(playerId, *world);
+            if (player == nullptr) {
+                continue;
+            }
+
+            // fromPlayer() 提取位置、生命、饥饿、经验、背包、效果等运行时状态
+            // savePlayer() 同时更新缓存并标记脏，后续 saveAllWorldData() 会落盘
+            auto saveData = world::storage::PlayerDataManager::fromPlayer(*player);
+
+            // Player 实体的 m_uuid 由登录流程（handleLoginRequestPacket）计算离线
+            // UUID 后存入 ServerPlayerData，但未回写到实体本身。这里用 PlayerManager
+            // 中的权威 UUID 覆盖 saveData.uuid，避免以空字符串作为键落盘导致数据丢失。
+            if (auto* playerData = m_playerManager->getPlayer(playerId)) {
+                if (!playerData->uuid.empty()) {
+                    saveData.uuid = playerData->uuid;
+                }
+            }
+
+            auto result = pdm->savePlayer(saveData);
+            if (result.success()) {
+                ++savedCount;
+            } else {
+                spdlog::warn(
+                    "Failed to save player runtime state for playerId={}: {}", playerId, result.error().message());
+            }
+        }
+    });
+
+    if (savedCount > 0) {
+        spdlog::info("Saved runtime state for {} player(s) before shutdown", savedCount);
+    }
+}
+
 void IntegratedServer::requestStop()
 {
     MinecraftServer::requestStop();
@@ -282,6 +343,11 @@ void IntegratedServer::stop()
         m_serverThread->join();
     }
     m_serverThread.reset();
+
+    // 回写在线玩家运行时状态到 PlayerDataManager 缓存
+    // 必须在 clearAll() 之前调用，否则玩家实体已被从 EntityManager 移除
+    // saveAllWorldData() 后续会通过 PlayerDataManager::saveAll() 把缓存落盘
+    savePlayerRuntimeState();
 
     // 清理玩家实体（遍历所有维度）
     m_dimensionManager->forEachDimension([this](Dimension& dim) {

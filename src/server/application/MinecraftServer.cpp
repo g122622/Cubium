@@ -1424,6 +1424,9 @@ void MinecraftServer::shutdownManagers()
             spdlog::info("Shutdown skipped persistence for readonly foreign world (format: {})",
                 m_storage->formatInfo().formatName);
         } else {
+            // 注意：savePlayerRuntimeState() 由子类在 stop() 中调用，
+            // 必须在 clearAll() 之前、维度管理器 shutdown 之前执行，
+            // 以保证遍历玩家实体时它们仍存在于世界中。
             m_storage->shutdownAutoSave();
             auto saveResult = saveAllWorldData();
             if (saveResult.failed()) {

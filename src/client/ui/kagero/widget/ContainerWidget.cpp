@@ -162,8 +162,7 @@ void ContainerWidget::relayout()
             engine.layoutFlex(&adaptor, bounds(), m_flexConfig);
             break;
         case ContainerLayoutType::Grid:
-            // TODO: Grid 布局尚未传递 GridConfig，需要 LayoutEngine 提供 layoutGrid 便捷方法
-            engine.layoutWith("grid", &adaptor, bounds());
+            engine.layoutGrid(&adaptor, bounds(), m_gridConfig);
             break;
         case ContainerLayoutType::Anchor:
             engine.layoutWith("anchor", &adaptor, bounds());

@@ -108,3 +108,22 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 - **实体破门**：`BreakDoorGoal` 直接调用 `IWorld::destroyBlockProgress()` → 同上链路
 - **排除破坏者**：`broadcastBlockBreakProgressInRange()` 通过 `playerEntityManager().getPlayerIdByEntityId()` 将 breakerId 转为 PlayerId，在遍历玩家时跳过破坏者自身。对应 MC Java `ServerLevel.destroyBlockProgress()` 中 `serverplayer.getId() != breakerId` 的过滤逻辑。
 - **PlayerId↔EntityId 映射**：`ServerPlayerEntityManager` 维护双向映射，`getPlayerEntityId(PlayerId)` 和 `getPlayerIdByEntityId(EntityId)` 用于两个方向的转换。
+
+### 9. 关服时玩家运行时状态回写（savePlayerRuntimeState 钩子）
+
+**问题背景**：`saveAllWorldData()` 落盘区块、level.dat、玩家缓存数据，但在线玩家的位置、生命、饥饿、经验、背包等运行时状态从未回写到 `PlayerDataManager` 缓存——`PlayerDataManager::fromPlayer()` 虽然存在但全项目无调用方，导致玩家退出后最新进度丢失。
+
+**钩子机制**：
+- `MinecraftServer::savePlayerRuntimeState()` 是一个虚函数钩子（默认空实现），由子类 override 提供具体遍历逻辑。基类无法直接实现，因为 `playerEntityManager()` 是纯虚函数。
+- `IntegratedServer::savePlayerRuntimeState()` 和 `StandaloneServer::savePlayerRuntimeState()` 均遍历所有维度的在线 `Player` 实体，调用 `PlayerDataManager::fromPlayer()` 提取运行时状态，再用 `savePlayer()` 更新缓存并标记脏。后续 `stopCore()` → `shutdownManagers()` → `saveAllWorldData()` 会通过 `PlayerDataManager::saveAll()` 把缓存落盘到 RocksDB。
+
+**调用时机（关键，避免数据竞争）**：
+- `IntegratedServer::stop()`：在 `m_serverThread->join()` 之后、`clearAll()` 之前调用。join 确保主循环已退出，clearAll 之前确保玩家实体仍存在于 EntityManager 中。
+- `StandaloneServer::stop()`：在 `m_serverThread->join()` 之后、`stopCore()` 之前调用。join 确保主循环（含 `tick()`）已退出，避免与正在执行的 tick 产生数据竞争；stopCore 之前确保维度和玩家实体仍然有效。
+
+**只读外来存档**：`isSharedStorageReadonlyForeignWorld()` 返回 true 时，`savePlayerRuntimeState()` 直接跳过，不写盘。
+
+**UUID 来源覆盖（关键）**：`Player` 实体的 `m_uuid` 由登录流程（`handleLoginRequestPacket`）计算离线 UUID 后存入 `ServerPlayerData`，但**未回写到实体本身**。若直接用 `fromPlayer()` 提取的 `uuid` 字段落盘，会以空字符串作为 RocksDB key，导致下次登录 `loadPlayer(uuid)` 查询不到。因此 `savePlayerRuntimeState()` 在调用 `fromPlayer()` 后，会用 `PlayerManager` 中的权威 UUID（`playerData->uuid`）覆盖 `saveData.uuid`，确保落盘 key 与登录查询的 key 一致。
+
+### 10. StandaloneServer 主循环线程归属
+`StandaloneServer::run()` 是非阻塞的——它在内部启动 `m_serverThread` 运行 `_mainLoop()`，立即返回。线程由 `StandaloneServer` 自身持有（与 `IntegratedServer::initialize()` 一致），`stop()` 中先 join 再清理。这与早期版本不同：早期版本由 `main.cpp` 在外部 `std::thread` 中调用阻塞式 `run()`，导致 `stop()` 无法等待主循环退出，存在与 `tick()` 的数据竞争。现在 `stop()` 的顺序是：设置 `m_running=false` → join 主循环线程 → `savePlayerRuntimeState()` → `stopCore()` → 关闭网络/设置/性能追踪。

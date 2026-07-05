@@ -27,9 +27,11 @@
 #include "world/storage/db/RocksDBDatabase.hpp"
 #include "world/storage/player/PlayerDataManager.hpp"
 #include "world/storage/player/PlayerSaveData.hpp"
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <thread>
 
 namespace mc::world::storage {
 namespace {
@@ -1132,6 +1134,299 @@ TEST_F(ApplyToPlayerTest, RestoresFullPlayerState)
     EXPECT_EQ(player->currentImpulseContextResetGraceTime(), 50);
     EXPECT_TRUE(player->isSprinting());
     EXPECT_EQ(player->air(), 150);
+}
+
+// ============================================================================
+// fromPlayer 测试
+//
+// fromPlayer() 是关闭服务端时回写在线玩家运行时状态的核心入口：
+// IntegratedServer::savePlayerRuntimeState() 和 StandaloneServer::savePlayerRuntimeState()
+// 都通过遍历在线玩家实体调用 fromPlayer() + savePlayer()，将运行时状态写入缓存，
+// 随后 saveAllWorldData() 会通过 PlayerDataManager::saveAll() 落盘到 RocksDB。
+// 因此 fromPlayer() 必须能够完整提取 Player 的所有可持久化状态。
+// ============================================================================
+
+class FromPlayerTest : public ::testing::Test {
+protected:
+    void SetUp() override { player = std::make_unique<Player>(EntityId(1), "FromPlayerTest"); }
+    void TearDown() override { player.reset(); }
+
+    std::unique_ptr<Player> player;
+};
+
+TEST_F(FromPlayerTest, ExtractsDefaultPlayerState)
+{
+    // 默认构造的 Player 也应该能安全提取状态
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_EQ(data.username, "FromPlayerTest");
+    EXPECT_FLOAT_EQ(data.health, 20.0f);
+    EXPECT_EQ(data.foodLevel, 20);
+    EXPECT_EQ(data.gameMode, GameMode::Survival);
+}
+
+TEST_F(FromPlayerTest, ExtractsCustomPositionAndRotation)
+{
+    player->setPosition(100.5f, 70.0f, -200.3f);
+    player->setRotation(90.0f, 45.0f);
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_FLOAT_EQ(static_cast<f32>(data.posX), 100.5f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(data.posY), 70.0f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(data.posZ), -200.3f);
+    EXPECT_FLOAT_EQ(data.yaw, 90.0f);
+    EXPECT_FLOAT_EQ(data.pitch, 45.0f);
+}
+
+TEST_F(FromPlayerTest, ExtractsHealthAndFood)
+{
+    player->setHealth(15.0f);
+    player->foodStats().setFoodLevel(12);
+    player->foodStats().setSaturationLevel(3.5f);
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_FLOAT_EQ(data.health, 15.0f);
+    EXPECT_EQ(data.foodLevel, 12);
+    EXPECT_FLOAT_EQ(data.saturationLevel, 3.5f);
+}
+
+TEST_F(FromPlayerTest, ExtractsExperience)
+{
+    player->experienceManager().setExperience(30, 0.75f, 1500);
+    player->experienceManager().setXpSeed(42);
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_EQ(data.experienceLevel, 30);
+    EXPECT_FLOAT_EQ(data.experienceProgress, 0.75f);
+    EXPECT_EQ(data.totalExperience, 1500);
+    EXPECT_EQ(data.xpSeed, 42);
+}
+
+TEST_F(FromPlayerTest, ExtractsAbilities)
+{
+    auto& abilities = player->abilities();
+    abilities.invulnerable = true;
+    abilities.canFly = true;
+    abilities.flying = true;
+    abilities.flySpeed = 0.1f;
+    abilities.walkSpeed = 0.2f;
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_TRUE(data.invulnerable);
+    EXPECT_TRUE(data.canFly);
+    EXPECT_TRUE(data.flying);
+    EXPECT_FLOAT_EQ(data.flySpeed, 0.1f);
+    EXPECT_FLOAT_EQ(data.walkSpeed, 0.2f);
+}
+
+TEST_F(FromPlayerTest, ExtractsSpawnPoint)
+{
+    player->setSpawnPoint(DimensionId(-1), BlockPos(50, 30, 100), true);
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    ASSERT_TRUE(data.spawnPoint.has_value());
+    EXPECT_EQ(data.spawnPoint->getDimensionId(), DimensionId(-1));
+    EXPECT_EQ(data.spawnPoint->x(), 50);
+    EXPECT_EQ(data.spawnPoint->y(), 30);
+    EXPECT_EQ(data.spawnPoint->z(), 100);
+    EXPECT_TRUE(data.spawnForced);
+}
+
+TEST_F(FromPlayerTest, ExtractsLastDeathLocation)
+{
+    player->setLastDeathLocation(GlobalPos(DimensionId(0), BlockPos(100, 64, -200)));
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    ASSERT_TRUE(data.lastDeathLocation.has_value());
+    EXPECT_EQ(data.lastDeathLocation->getDimensionId(), DimensionId(0));
+    EXPECT_EQ(data.lastDeathLocation->x(), 100);
+    EXPECT_EQ(data.lastDeathLocation->y(), 64);
+    EXPECT_EQ(data.lastDeathLocation->z(), -200);
+}
+
+TEST_F(FromPlayerTest, ExtractsEnteredNetherPosition)
+{
+    player->setEnteredNetherPosition(Vector3d(200.0, 50.0, 300.0));
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    ASSERT_TRUE(data.enteredNetherPosition.has_value());
+    EXPECT_DOUBLE_EQ(data.enteredNetherPosition->x, 200.0);
+    EXPECT_DOUBLE_EQ(data.enteredNetherPosition->y, 50.0);
+    EXPECT_DOUBLE_EQ(data.enteredNetherPosition->z, 300.0);
+}
+
+TEST_F(FromPlayerTest, ExtractsImpulseContext)
+{
+    player->setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
+    player->setIgnoreFallDamageFromCurrentImpulse(true);
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    ASSERT_TRUE(data.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(data.currentImpulseImpactPos->x, 100.0f);
+    EXPECT_FLOAT_EQ(data.currentImpulseImpactPos->y, 64.0f);
+    EXPECT_FLOAT_EQ(data.currentImpulseImpactPos->z, 200.0f);
+    EXPECT_TRUE(data.ignoreFallDamageFromCurrentImpulse);
+    // setIgnoreFallDamageFromCurrentImpulse(true) 设置 40 tick 宽限期
+    EXPECT_EQ(data.currentImpulseContextResetGraceTime, 40);
+}
+
+TEST_F(FromPlayerTest, ExtractsStatusFlags)
+{
+    player->setSprinting(true);
+    player->setSneaking(true);
+    player->setAir(150);
+
+    PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_TRUE(data.sprinting);
+    EXPECT_TRUE(data.sneaking);
+    EXPECT_EQ(data.airSupply, 150);
+}
+
+TEST_F(FromPlayerTest, RoundTripPreservesFullState)
+{
+    // 先通过 applyToPlayer 设置完整状态
+    // 注意：applyToPlayer 不修改 username/uuid，这些在 Player 构造时确定
+    PlayerSaveData original;
+    original.uuid = "roundtrip-from-player";
+    original.username = "RoundTripPlayer"; // applyToPlayer 不会改写 username
+    original.posX = 500.0;
+    original.posY = 80.0;
+    original.posZ = -300.0;
+    original.yaw = 180.0f;
+    original.pitch = -30.0f;
+    original.gameMode = GameMode::Spectator;
+    original.health = 10.0f;
+    original.foodLevel = 8;
+    original.saturationLevel = 1.0f;
+    original.exhaustionLevel = 2.5f;
+    original.foodTickTimer = 75;
+    original.experienceLevel = 50;
+    original.experienceProgress = 0.9f;
+    original.totalExperience = 5000;
+    original.xpSeed = 999;
+    original.invulnerable = true;
+    original.canFly = true;
+    original.flying = false;
+    original.flySpeed = 0.07f;
+    original.walkSpeed = 0.15f;
+    original.spawnPoint = GlobalPos(DimensionId(0), BlockPos(100, 64, 200));
+    original.spawnForced = false;
+    original.enteredNetherPosition = Vector3d(150.0, 40.0, 250.0);
+    original.onGround = true;
+    original.sprinting = true;
+    original.sneaking = false;
+    original.airSupply = 150;
+
+    PlayerDataManager::applyToPlayer(*player, original);
+
+    // 用 fromPlayer 提取，应该得到等价的状态
+    // （username/uuid 来自 Player 构造函数，不会被 applyToPlayer 修改，
+    //  因此 fromPlayer 提取的值是构造时的值，不是 original.username）
+    PlayerSaveData extracted = PlayerDataManager::fromPlayer(*player);
+
+    EXPECT_FLOAT_EQ(static_cast<f32>(extracted.posX), static_cast<f32>(original.posX));
+    EXPECT_FLOAT_EQ(static_cast<f32>(extracted.posY), static_cast<f32>(original.posY));
+    EXPECT_FLOAT_EQ(static_cast<f32>(extracted.posZ), static_cast<f32>(original.posZ));
+    EXPECT_FLOAT_EQ(extracted.yaw, original.yaw);
+    EXPECT_FLOAT_EQ(extracted.pitch, original.pitch);
+    EXPECT_EQ(extracted.gameMode, original.gameMode);
+    EXPECT_FLOAT_EQ(extracted.health, original.health);
+    EXPECT_EQ(extracted.foodLevel, original.foodLevel);
+    EXPECT_FLOAT_EQ(extracted.saturationLevel, original.saturationLevel);
+    EXPECT_EQ(extracted.experienceLevel, original.experienceLevel);
+    EXPECT_FLOAT_EQ(extracted.experienceProgress, original.experienceProgress);
+    EXPECT_EQ(extracted.totalExperience, original.totalExperience);
+    EXPECT_EQ(extracted.xpSeed, original.xpSeed);
+    EXPECT_TRUE(extracted.invulnerable);
+    EXPECT_TRUE(extracted.canFly);
+    EXPECT_FALSE(extracted.flying);
+    EXPECT_FLOAT_EQ(extracted.flySpeed, original.flySpeed);
+    EXPECT_FLOAT_EQ(extracted.walkSpeed, original.walkSpeed);
+
+    ASSERT_TRUE(extracted.spawnPoint.has_value());
+    EXPECT_EQ(extracted.spawnPoint->getDimensionId(), original.spawnPoint->getDimensionId());
+    EXPECT_EQ(extracted.spawnPoint->x(), original.spawnPoint->x());
+    EXPECT_EQ(extracted.spawnPoint->y(), original.spawnPoint->y());
+    EXPECT_EQ(extracted.spawnPoint->z(), original.spawnPoint->z());
+    EXPECT_EQ(extracted.spawnForced, original.spawnForced);
+
+    ASSERT_TRUE(extracted.enteredNetherPosition.has_value());
+    EXPECT_DOUBLE_EQ(extracted.enteredNetherPosition->x, original.enteredNetherPosition->x);
+    EXPECT_DOUBLE_EQ(extracted.enteredNetherPosition->y, original.enteredNetherPosition->y);
+    EXPECT_DOUBLE_EQ(extracted.enteredNetherPosition->z, original.enteredNetherPosition->z);
+
+    EXPECT_EQ(extracted.sprinting, original.sprinting);
+    EXPECT_EQ(extracted.sneaking, original.sneaking);
+    EXPECT_EQ(extracted.airSupply, original.airSupply);
+}
+
+TEST_F(FromPlayerTest, RoundTripPersistsThroughStorage)
+{
+    // 验证完整的存档往返：applyToPlayer → fromPlayer → savePlayerImmediate → loadPlayer
+    // 这正是 IntegratedServer::savePlayerRuntimeState() 的核心流程
+    // 注意：必须显式设置 Player 的 uuid，否则 fromPlayer 提取的 uuid 为空，
+    //       savePlayerImmediate 后 loadPlayer 将无法通过 uuid 查找
+    player->setUuid("roundtrip-storage-uuid");
+
+    PlayerSaveData original;
+    original.uuid = "roundtrip-storage-uuid";
+    original.username = "StorageRoundTrip";
+    original.posX = 123.45;
+    original.posY = 64.0;
+    original.posZ = -678.9;
+    original.health = 17.5f;
+    original.foodLevel = 14;
+    original.experienceLevel = 7;
+
+    PlayerDataManager::applyToPlayer(*player, original);
+
+    PlayerSaveData extracted = PlayerDataManager::fromPlayer(*player);
+    EXPECT_EQ(extracted.uuid, "roundtrip-storage-uuid");
+
+    // 创建独立存储管理器
+    std::filesystem::path testDir = std::filesystem::temp_directory_path() / "player_from_player_storage_test";
+    std::filesystem::create_directories(testDir);
+    auto dbResult = RocksDBDatabase::open((testDir / "players.db").string());
+    ASSERT_TRUE(dbResult.success());
+    auto db = std::move(dbResult.value());
+    PlayerDataManager manager(*db);
+
+    auto saveResult = manager.savePlayerImmediate(extracted);
+    ASSERT_TRUE(saveResult.success());
+
+    auto loadResult = manager.loadPlayer("roundtrip-storage-uuid");
+    ASSERT_TRUE(loadResult.success());
+    ASSERT_NE(loadResult.value(), nullptr);
+
+    const PlayerSaveData* loaded = loadResult.value();
+    EXPECT_EQ(loaded->uuid, "roundtrip-storage-uuid");
+    // posX/posZ 在 Player 中以 f32 存储，往返会丢失 double 精度，故用 f32 比较
+    EXPECT_FLOAT_EQ(static_cast<f32>(loaded->posX), 123.45f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(loaded->posZ), -678.9f);
+    EXPECT_FLOAT_EQ(loaded->health, 17.5f);
+    EXPECT_EQ(loaded->foodLevel, 14);
+    EXPECT_EQ(loaded->experienceLevel, 7);
+
+    // 关闭数据库后再清理临时目录，避免文件占用
+    manager.clearCache();
+    db.reset();
+
+    // 重试几次删除（Windows 上 RocksDB 后台线程可能延迟释放句柄）
+    for (int i = 0; i < 5; ++i) {
+        std::error_code ec;
+        std::filesystem::remove_all(testDir, ec);
+        if (!ec) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 }
 
 } // namespace

@@ -461,15 +461,28 @@ void BuiltinWidgets::_registerGridWidget()
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "grid" : id);
         widget->setLayoutType(widget::ContainerLayoutType::Grid);
 
-        // TODO: 实现cols和rows属性的解析和应用
+        // 解析 cols/rows/gap 属性并应用到 GridConfig
+        // - cols：列数，最小为 1（GridLayout 内部会再次钳制）
+        // - rows：行数，0 表示根据子项数量自动推算（_resolveRows）
+        // - gap：列间距与行间距的统一值，同时写入 columnGap 与 rowGap
+        layout::GridConfig config = widget->gridConfig();
+
         auto colsIt = attrs.find("cols");
         if (colsIt != attrs.end()) {
-            MC_UNUSED(colsIt);
+            config.columns = std::max(1, widget_attrs::parseInt(colsIt->second, 1));
         }
         auto rowsIt = attrs.find("rows");
         if (rowsIt != attrs.end()) {
-            MC_UNUSED(rowsIt);
+            config.rows = std::max(0, widget_attrs::parseInt(rowsIt->second, 0));
         }
+        auto gapIt = attrs.find("gap");
+        if (gapIt != attrs.end()) {
+            const i32 gap = std::max(0, widget_attrs::parseInt(gapIt->second, 0));
+            config.columnGap = gap;
+            config.rowGap = gap;
+        }
+
+        widget->setGridConfig(config);
 
         return widget;
     };
@@ -486,10 +499,11 @@ void BuiltinWidgets::_registerSlotWidget()
             slot->setId(id);
         }
 
-        // TODO: 实现slot index属性的解析和应用
+        // 解析 index 属性并应用到 SlotWidget
+        // 默认值取 slot->slotIndex()（-1），保证属性缺失时保持默认行为
         auto indexIt = attrs.find("index");
         if (indexIt != attrs.end()) {
-            MC_UNUSED(indexIt);
+            slot->setSlotIndex(widget_attrs::parseInt(indexIt->second, slot->slotIndex()));
         }
 
         return slot;

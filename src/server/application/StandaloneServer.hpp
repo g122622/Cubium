@@ -94,6 +94,16 @@ protected:
     void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
 
+    /**
+     * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
+     *
+     * 在 stop() 中 stopCore() 之前调用。遍历所有维度的在线 Player 实体，
+     * 通过 PlayerDataManager::fromPlayer() 提取运行时状态，再用 savePlayer()
+     * 更新缓存并标记脏。后续 stopCore() → shutdownManagers() → saveAllWorldData()
+     * 会通过 PlayerDataManager::saveAll() 把缓存落盘到 RocksDB。
+     */
+    void savePlayerRuntimeState() override;
+
 public:
     // ========== StandaloneServer 特有接口 ==========
 
@@ -103,12 +113,26 @@ public:
     [[nodiscard]] Result<void> initialize(const StandaloneServerParams& params);
 
     /**
-     * @brief 运行主循环
+     * @brief 启动服务端主循环线程（非阻塞）
+     *
+     * 与 IntegratedServer::initialize() 类似，在内部启动一个线程运行 _mainLoop()，
+     * 立即返回。线程由 StandaloneServer 自身持有，stop() 会先 join 再清理，
+     * 确保 savePlayerRuntimeState() 与 stopCore() 执行时主循环已退出，
+     * 避免与 tick() 产生数据竞争。
+     *
+     * @return 启动成功返回 ok，未初始化或已运行则返回错误
      */
     [[nodiscard]] Result<void> run();
 
     /**
      * @brief 停止服务器
+     *
+     * 顺序：
+     * 1. 设置 m_running = false，通知主循环退出
+     * 2. join 主循环线程，确保 tick() 已结束
+     * 3. 调用 savePlayerRuntimeState() 回写在线玩家运行时状态
+     * 4. 调用 stopCore() 落盘区块、level.dat、玩家数据
+     * 5. 关闭网络服务器、保存设置、关闭性能追踪
      */
     void stop();
 
@@ -157,6 +181,10 @@ private:
     // 游戏目录管理器（统一管理数据包、存档等路径）
     GameDirectory m_gameDirectory;
     std::unique_ptr<TcpServer> m_tcpServer;
+
+    // 服务端主循环线程（由 StandaloneServer 自身持有，stop() 中先 join 再清理，
+    // 避免与 tick() 产生数据竞争）
+    std::unique_ptr<std::thread> m_serverThread;
 
     // 玩家实体管理器
     ServerPlayerEntityManager m_playerEntityManager;

@@ -258,6 +258,22 @@ instance.updateBinding("player.name");
 | `align-items` | 交叉轴对齐 | `start` / `center` / `end` / `stretch` / `baseline` |
 | `justify-content` | 主轴对齐 | `start` / `center` / `end` / `space-between` / `space-around` / `space-evenly` |
 
+**Grid 子属性**（仅 `<grid>` 标签）：
+
+| 属性 | 描述 | 值 | 默认 / 钳制 |
+|------|------|-----|-------------|
+| `cols` | 列数 | 整数 | 默认 `1`；非数字回退到 `1`；<1 钳制为 `1` |
+| `rows` | 行数 | 整数 | 默认 `0`（自动推算为 `ceil(childCount/cols)`） |
+| `gap` | 同时设置列间距与行间距 | 整数（像素） | 默认 `0`；<0 钳制为 `0` |
+
+```xml
+<!-- 9 列 3 行、间距 2px 的物品栏网格 -->
+<grid id="inventory" cols="9" rows="3" gap="2" pos="10,10" size="178,70">
+    <slot id="slot_0" index="0" size="18,18"/>
+    <!-- ... -->
+</grid>
+```
+
 **screen 默认布局**：`<screen>` 标签默认使用 `flex-center` 布局（垂直居中排列），无需手动设置。
 
 ### 百分比尺寸

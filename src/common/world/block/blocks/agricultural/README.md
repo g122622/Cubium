@@ -138,6 +138,8 @@ Block
 
 **解决方案**：`CarvedPumpkinBlock::checkIronGolemPattern()` 需检测两个垂直方向（东西/南北），南瓜的 FACING 属性决定傀儡朝向。
 
+**铜傀儡生成**（MC 1.21.11）：`CarvedPumpkinBlock` 同时支持雪/铁/铜三种傀儡模式，优先级为 雪 > 铁 > 铜。铜傀儡模式为垂直 2 格（南瓜 + 任意 `BlockTags::COPPER` 标签内的铜块），生成后会用对应氧化等级的铜箱子替换铜块位置（`CopperChestBlock::getFromCopperBlock`）。铜傀儡的氧化等级由铜块状态推导：直接实现 `IOxidizableBlock` 的铜块取其氧化等级；涂蜡变种通过 `HoneycombItem::getWaxOffMap` 查找未涂蜡变种后取等级。`canSpawnGolem(IWorld, BlockPos)` 公共 API 仅检查身体部分（雪/铁/铜），头部由调用方提供。
+
 ### 8. 农作物支撑检测
 
 **问题**：农作物只能种植在耕地上，但 `BushBlock::canSustain()` 默认返回 false，导致所有作物无法放置。

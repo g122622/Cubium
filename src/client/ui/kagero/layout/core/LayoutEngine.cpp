@@ -56,6 +56,7 @@ void applyLayoutResults(const std::vector<WidgetLayoutAdaptor*>& children, const
 
 LayoutEngine::LayoutEngine()
     : m_flexLayout(std::make_unique<FlexLayout>())
+    , m_gridLayout(std::make_unique<GridLayout>())
 {
     registerAlgorithm("flex", std::make_unique<FlexLayoutAlgorithm>(FlexConfig{}));
     registerAlgorithm("flex-row", std::make_unique<FlexLayoutAlgorithm>([]() {
@@ -194,6 +195,27 @@ void LayoutEngine::layoutFlex(WidgetLayoutAdaptor* container, const Rect& availa
 
     auto children = container->getChildren();
     const auto results = m_flexLayout->compute(availableSpace, children, container->constraints());
+    applyLayoutResults(children, results);
+
+    const auto endTime = std::chrono::high_resolution_clock::now();
+    m_stats.totalTimeMs = std::chrono::duration<f64, std::milli>(endTime - startTime).count();
+    m_stats.layoutCount = 1;
+}
+
+void LayoutEngine::layoutGrid(WidgetLayoutAdaptor* container, const Rect& availableSpace, const GridConfig& config)
+{
+    if (container == nullptr || !container->isValid()) {
+        return;
+    }
+
+    m_stats.reset();
+    const auto startTime = std::chrono::high_resolution_clock::now();
+
+    container->applyLayout(LayoutResult(availableSpace));
+    m_gridLayout->setConfig(config);
+
+    auto children = container->getChildren();
+    const auto results = m_gridLayout->compute(availableSpace, children);
     applyLayoutResults(children, results);
 
     const auto endTime = std::chrono::high_resolution_clock::now();

@@ -172,26 +172,20 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        // 在单独线程中运行服务端
-        std::thread serverThread([&server]() {
-            auto runResult = server.run();
-            if (runResult.failed()) {
-                spdlog::error("Server error: {}", runResult.error().toString());
-            }
-        });
+        // 启动服务端主循环（非阻塞，内部线程由 StandaloneServer 持有）
+        auto runResult = server.run();
+        if (runResult.failed()) {
+            spdlog::error("Failed to start server: {}", runResult.error().toString());
+            return 1;
+        }
 
         // 等待退出信号
         while (!g_shouldExit && server.isRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        // 停止服务端
+        // 停止服务端（内部会 join 主循环线程，再回写玩家状态、落盘存档、清理资源）
         server.stop();
-
-        // 等待服务端线程结束
-        if (serverThread.joinable()) {
-            serverThread.join();
-        }
 
         spdlog::info("Server exited successfully");
         return 0;
