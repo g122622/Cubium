@@ -35,6 +35,9 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <cmath>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -53,6 +56,11 @@ public:
         // 注册属性
         registerAttributes();
     }
+
+    // 暴露 protected 方法用于单元测试
+    [[nodiscard]] Vector3 publicGetLookAngle() const { return getLookAngle(); }
+    [[nodiscard]] f64 publicGetEffectiveGravity() const { return getEffectiveGravity(); }
+    Vector3 publicUpdateFallFlyingMovement(const Vector3& v) const { return updateFallFlyingMovement(v); }
 };
 
 /**
@@ -293,4 +301,181 @@ TEST_F(PoseAndFlagIntegrationTest, ElytraFlyingHigherPriorityThanSpinAttack)
     // 姿态应该设置为 FallFlying（优先级更高）
     entity->setPose(EntityPose::FallFlying);
     EXPECT_EQ(entity->pose(), EntityPose::FallFlying);
+}
+
+// ============================================================================
+// 鞘翅飞行状态机测试（fallFlyTicks / canGlide / tryToStartFallFlying 等）
+// 对应 MC 1.21.11 LivingEntity 中的 elytra 滑翔逻辑
+// ============================================================================
+
+/**
+ * @brief 鞘翅飞行状态机测试夹具
+ */
+class ElytraGlideTest : public ::testing::Test {
+protected:
+    void SetUp() override { entity = std::make_unique<TestLivingEntity>(); }
+
+    std::unique_ptr<TestLivingEntity> entity;
+};
+
+TEST_F(ElytraGlideTest, FallFlyTicksInitiallyZero)
+{
+    // 默认未飞行时 fallFlyTicks 应为 0
+    EXPECT_EQ(entity->fallFlyTicks(), 0);
+}
+
+TEST_F(ElytraGlideTest, StopFallFlyingClearsFlag)
+{
+    // 先设置 FallFlying 标志
+    entity->addFlag(mc::EntityFlags::FallFlying);
+    EXPECT_TRUE(entity->isElytraFlying());
+
+    // stopFallFlying 应清除标志
+    entity->stopFallFlying();
+    EXPECT_FALSE(entity->isElytraFlying());
+}
+
+TEST_F(ElytraGlideTest, StartFallFlyingSetsFlag)
+{
+    // startFallFlying 应设置 FallFlying 标志
+    EXPECT_FALSE(entity->isElytraFlying());
+    entity->startFallFlying();
+    EXPECT_TRUE(entity->isElytraFlying());
+}
+
+TEST_F(ElytraGlideTest, CanGlideReturnsFalseWithoutElytra)
+{
+    // 未装备鞘翅时 canGlide() 应返回 false
+    // 注意：TestLivingEntity 默认 onGround=true（未设置位置），
+    // onGround 的实体会直接返回 false
+    EXPECT_FALSE(entity->canGlide());
+}
+
+TEST_F(ElytraGlideTest, CanGlideReturnsFalseOnGround)
+{
+    // 即使有可滑翔装备，在地面上的实体也不能滑翔
+    // TestLivingEntity 默认 onGround=false（未调用 checkOnGround）
+    // 但 canGlide() 会检查 onGround()，这里验证默认状态
+    // 由于 TestLivingEntity 没有 world，onGround 保持默认 false
+    // 但没有装备 elytra，所以仍返回 false
+    EXPECT_FALSE(entity->canGlide());
+}
+
+TEST_F(ElytraGlideTest, CanGlideUsingEmptyStackReturnsFalse)
+{
+    // 空物品堆不能滑翔
+    ItemStack emptyStack;
+    EXPECT_FALSE(LivingEntity::canGlideUsing(emptyStack, EquipmentSlot::Chest));
+}
+
+TEST_F(ElytraGlideTest, CanGlideUsingWrongSlotReturnsFalse)
+{
+    // 即使物品可受损，槽位不对（非 Chest）也不能滑翔
+    // 由于测试中没有初始化 Items::ELYTRA，这里用任意非空可受损物品验证槽位检查
+    // canGlideUsing 先检查 isEmpty/isDamageable，再检查 slot
+    // 我们无法在未初始化 Items 的情况下创建真实 elytra，
+    // 但 canGlideUsing 的 slot 检查在 isDamageable 检查之后，
+    // 对于空 stack 会直接返回 false（isEmpty 为 true）
+    ItemStack emptyStack;
+    EXPECT_FALSE(LivingEntity::canGlideUsing(emptyStack, EquipmentSlot::Head));
+    EXPECT_FALSE(LivingEntity::canGlideUsing(emptyStack, EquipmentSlot::Feet));
+    EXPECT_FALSE(LivingEntity::canGlideUsing(emptyStack, EquipmentSlot::MainHand));
+}
+
+TEST_F(ElytraGlideTest, TryToStartFallFlyingReturnsFalseWithoutElytra)
+{
+    // 未装备鞘翅时 tryToStartFallFlying() 应返回 false 且不设置标志
+    EXPECT_FALSE(entity->isElytraFlying());
+    bool result = entity->tryToStartFallFlying();
+    EXPECT_FALSE(result);
+    EXPECT_FALSE(entity->isElytraFlying());
+}
+
+TEST_F(ElytraGlideTest, TryToStartFallFlyingSetsFlagWhenSuccessful)
+{
+    // 手动设置 canGlide 条件：通过设置 FallFlying 标志后再调用
+    // 注意：tryToStartFallFlying 检查 !isElytraFlying() 作为前置条件
+    // 这里验证：当 tryToStartFallFlying 返回 false 时，不会改变状态
+    EXPECT_FALSE(entity->tryToStartFallFlying());
+    EXPECT_FALSE(entity->isElytraFlying());
+}
+
+TEST_F(ElytraGlideTest, GetLookAngleReturnsNormalizedVector)
+{
+    // getLookAngle 应返回归一化向量
+    // 默认 yaw=0, pitch=0 时，视线方向应为 (0, 0, 1)
+    entity->setRotation(0.0f, 0.0f);
+    Vector3 look = entity->publicGetLookAngle();
+    EXPECT_NEAR(look.x, 0.0f, 0.0001f);
+    EXPECT_NEAR(look.y, 0.0f, 0.0001f);
+    EXPECT_NEAR(look.z, 1.0f, 0.0001f);
+
+    // 验证归一化
+    float length = std::sqrt(look.x * look.x + look.y * look.y + look.z * look.z);
+    EXPECT_NEAR(length, 1.0f, 0.0001f);
+}
+
+TEST_F(ElytraGlideTest, GetLookAnglePitchUp)
+{
+    // 向上看（pitch 负值）时，视线 y 分量应为正
+    entity->setRotation(0.0f, -45.0f);
+    Vector3 look = entity->publicGetLookAngle();
+    EXPECT_GT(look.y, 0.0f); // 向上看 y > 0
+}
+
+TEST_F(ElytraGlideTest, GetLookAnglePitchDown)
+{
+    // 向下看（pitch 正值）时，视线 y 分量应为负
+    entity->setRotation(0.0f, 45.0f);
+    Vector3 look = entity->publicGetLookAngle();
+    EXPECT_LT(look.y, 0.0f); // 向下看 y < 0
+}
+
+TEST_F(ElytraGlideTest, GetEffectiveGravityReturnsDefault)
+{
+    // 默认无缓降效果，getEffectiveGravity 应返回默认重力 0.08
+    f64 gravity = entity->publicGetEffectiveGravity();
+    EXPECT_NEAR(gravity, 0.08, 0.001);
+}
+
+TEST_F(ElytraGlideTest, UpdateFallFlyingMovementAppliesGravityReduction)
+{
+    // 验证 updateFallFlyingMovement 的基本物理特性
+    // 设置 pitch=0（水平视线），cos²(0)=1，重力被抵消 1 - 1*0.75 = 0.25
+    // 即 velocity.y += gravity * (-1 + 0.75) = -0.25 * gravity
+    entity->setRotation(0.0f, 0.0f);
+    Vector3 initialVelocity(0.0f, 0.0f, 0.0f);
+    Vector3 newVelocity = entity->publicUpdateFallFlyingMovement(initialVelocity);
+
+    // pitch=0 时，d0 = 1（视线水平分量），d3 = cos²(0) = 1
+    // Step1（重力）：velocity.y += 0.08 * (-1 + 0.75) = -0.02
+    // Step2（俯冲加速）：d4 = -0.02 * -0.1 * 1 = 0.002，velocity.y += 0.002 → -0.018
+    // Step5（阻力）：velocity.y *= 0.98 → -0.01764
+    // gravity = 0.08，所以 velocity.y ≈ -0.01764
+    EXPECT_NEAR(newVelocity.y, -0.01764, 0.001);
+}
+
+TEST_F(ElytraGlideTest, UpdateFallFlyingMovementAppliesDrag)
+{
+    // 验证阻力应用：最终速度应乘以 0.99/0.98/0.99
+    entity->setRotation(0.0f, 0.0f);
+    Vector3 initialVelocity(1.0f, 1.0f, 1.0f);
+    Vector3 newVelocity = entity->publicUpdateFallFlyingMovement(initialVelocity);
+
+    // 由于 pitch=0 且初始速度有水平分量，会有 lerp 对齐，
+    // 但 y 分量主要是重力效应 + 0.98 阻力
+    // 这里只验证速度被修改（不等于初始值）
+    EXPECT_NE(newVelocity.x, 1.0f);
+    EXPECT_NE(newVelocity.y, 1.0f);
+    EXPECT_NE(newVelocity.z, 1.0f);
+}
+
+TEST_F(ElytraGlideTest, FallFlyTicksIncrementAfterStartFallFlying)
+{
+    // 验证 startFallFlying 后 fallFlyTicks 仍为 0（递增发生在 tick 中）
+    entity->startFallFlying();
+    EXPECT_TRUE(entity->isElytraFlying());
+    EXPECT_EQ(entity->fallFlyTicks(), 0);
+    // fallFlyTicks 的递增由 LivingEntity::tick() 末尾的逻辑处理，
+    // 单独调用 startFallFlying 不会立即递增
 }

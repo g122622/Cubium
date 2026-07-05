@@ -218,6 +218,9 @@ void PlayerRenderer::setModelVisibilities(::mc::Player& player, f64 partialTicks
         const f32 speedValue = model::elytra::computeSpeedValue(isFallFlying, lengthSq);
         m_model.setFallFlying(isFallFlying);
         m_model.setSpeedValue(speedValue);
+        // 推送服务端 fallFlyTicks 给 BipedModel（MC 1.21.11 渲染器不读取此字段，
+        // 但 Cubium 保留推送以支持未来扩展和与 LivingEntity 状态机一致性检查）
+        m_model.setElytraFlyingTicks(player.fallFlyTicks());
     }
 
     // 设置弩装填动画参数（对应 MC 1.21 HumanoidMobRenderer.extractHumanoidRenderState

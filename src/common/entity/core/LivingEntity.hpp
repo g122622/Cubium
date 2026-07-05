@@ -903,6 +903,8 @@ public:
      * @brief 执行移动（AI物理更新核心方法）
      *
      * 根据 moveStrafing 和 moveForward 计算移动向量并执行物理移动。
+     * 当实体处于鞘翅飞行（isFallFlying()）状态时，委托给 travelFallFlying()
+     * 处理滑翔物理；否则走常规陆地/水中/空中物理。
      *
      * @param strafing 横向移动量（左右）
      * @param vertical 垂直移动量（上下，用于飞行/游泳）
@@ -923,8 +925,92 @@ public:
      * @brief AI步进更新
      *
      * 处理AI移动逻辑，应用阻力，调用travel方法。
+     * 在 travel() 之前调用 updateFallFlying() 维护鞘翅飞行状态机
+     * （检查可滑翔条件、每 10 tick 触发 ELYTRA_GLIDE 游戏事件、
+     * 每 20 tick 随机损坏一件可滑翔装备）。
      */
     virtual void aiStep();
+
+    // ========== 鞘翅飞行（Elytra Glide） ==========
+
+    /**
+     * @brief 检查实体当前是否可以滑翔
+     *
+     * 对应 MC 1.21.11 LivingEntity.canGlide()。
+     * 默认实现：不在地面、非骑乘、无飘浮效果，且任意装备槽位的物品
+     * 通过 canGlideUsing() 判定为可滑翔时返回 true。
+     * Player 子类重写此方法额外排除飞行模式（abilities.flying）。
+     *
+     * @return 如果实体当前可以滑翔返回 true
+     */
+    [[nodiscard]] virtual bool canGlide() const;
+
+    /**
+     * @brief 检查指定槽位的物品是否可用于滑翔
+     *
+     * 对应 MC 1.21.11 LivingEntity.canGlideUsing(ItemStack, EquipmentSlot)。
+     * Cubium 当前仅 ElytraItem 实现滑翔能力，判定条件：
+     * 1. 物品非空且可受损（isDamageable）
+     * 2. 物品位于 Chest 槽位（鞘翅占用胸甲槽）
+     * 3. 物品未接近损坏（getDamage < getMaxDamage - 1，与 ElytraItem::isUsable 一致）
+     *
+     * @param stack 物品堆
+     * @param slot 物品所在装备槽位
+     * @return 如果该物品可用于滑翔返回 true
+     */
+    [[nodiscard]] static bool canGlideUsing(const ItemStack& stack, EquipmentSlot slot);
+
+    /**
+     * @brief 尝试开始鞘翅飞行
+     *
+     * 对应 MC 1.21.11 LivingEntity.tryToStartFallFlying()。
+     * 基类默认实现：如果当前未在飞行、canGlide() 返回 true 且不在水中，
+     * 则设置 FallFlying 标志位并返回 true。
+     * Player 子类重写此方法以处理开始滑翔的额外逻辑（如取消创造飞行）。
+     *
+     * @return 如果成功开始飞行返回 true
+     */
+    virtual bool tryToStartFallFlying();
+
+    /**
+     * @brief 开始鞘翅飞行
+     *
+     * 对应 MC 1.21.11 Player.startFallFlying()。
+     * 设置 EntityFlags::FallFlying 标志位。
+     */
+    void startFallFlying();
+
+    /**
+     * @brief 停止鞘翅飞行
+     *
+     * 对应 MC 1.21.11 LivingEntity.stopFallFlying()。
+     * 通过先添加后移除 FallFlying 标志位的方式触发数据参数同步
+     * （MC 原版实现以两次 setSharedFlag(7, ...) 确保数据管理器标记脏值）。
+     */
+    void stopFallFlying();
+
+    /**
+     * @brief 更新鞘翅飞行状态机
+     *
+     * 对应 MC 1.21.11 LivingEntity.updateFallFlying()。
+     * 在 aiStep() 中 travel() 之前调用。
+     * - 若不可滑翔（canGlide() 返回 false），清除 FallFlying 标志
+     * - 否则每 10 tick：偶数次触发 ELYTRA_GLIDE 游戏事件，
+     *   奇数次随机损坏一件可滑翔装备
+     *
+     * 仅在服务端执行。
+     */
+    void updateFallFlying();
+
+    /**
+     * @brief 获取鞘翅飞行已持续的 tick 数
+     *
+     * 对应 MC 1.21.11 LivingEntity.getFallFlyingTicks()。
+     * 客户端渲染器（BipedModel）可读取此值驱动头部角度过渡动画。
+     *
+     * @return 已飞行 tick 数，未飞行时为 0
+     */
+    [[nodiscard]] i32 fallFlyTicks() const noexcept { return m_fallFlyTicks; }
 
     // ========== 战斗追踪 ==========
 
@@ -1245,6 +1331,72 @@ protected:
      */
     virtual void updateAnimation();
 
+    // ========== 鞘翅飞行物理（protected，子类可扩展） ==========
+
+    /**
+     * @brief 鞘翅飞行移动物理
+     *
+     * 对应 MC 1.21.11 LivingEntity.travelFallFlying(Vec3)。
+     * 根据视线方向计算滑翔加速度，处理俯冲加速、抬头爬升、
+     * 水平方向修正，并应用 0.99/0.98/0.99 的阻力。
+     * 在梯子上时改用常规空中移动并停止飞行。
+     * 移动后调用 handleFallFlyingCollisions() 检测撞墙伤害。
+     *
+     * @param travelVec 输入移动向量（strafing/vertical/forward）
+     */
+    void travelFallFlying(const Vector3& travelVec);
+
+    /**
+     * @brief 计算鞘翅飞行下一帧速度
+     *
+     * 对应 MC 1.21.11 LivingEntity.updateFallFlyingMovement(Vec3)。
+     * 基于视线俯仰角计算滑翔力学：
+     * - 重力部分被 cos²(pitch) * 0.75 抵消（俯冲时下落更快）
+     * - 俯冲时（pitch<0）将向下速度转化为前方加速
+     * - 抬头时（pitch>0）将水平速度转化为向上爬升
+     * - 水平分量朝视线方向缓慢对齐（lerp 0.1）
+     * - 最终乘以 0.99/0.98/0.99 阻力
+     *
+     * @param currentVelocity 当前速度
+     * @return 下一帧速度
+     */
+    Vector3 updateFallFlyingMovement(const Vector3& currentVelocity) const;
+
+    /**
+     * @brief 处理鞘翅飞行撞墙伤害
+     *
+     * 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(double, double)。
+     * 当横向碰撞发生时，根据飞行前后水平速度差计算伤害：
+     * damage = (prevHorizontal - currHorizontal) * 10 - 3
+     * 若 damage > 0，播放摔落音效并施加 FlyIntoWall 伤害。
+     *
+     * @param prevHorizontalSpeed 移动前水平速度
+     * @param currHorizontalSpeed 移动后水平速度
+     */
+    void handleFallFlyingCollisions(f64 prevHorizontalSpeed, f64 currHorizontalSpeed);
+
+    /**
+     * @brief 获取实体视线方向（归一化）
+     *
+     * 对应 MC 1.21.11 Entity.getLookAngle()。
+     * LivingEntity 需要此方法计算滑翔力学，也用于其他视线相关计算。
+     * 默认实现使用 yaw/pitch 计算视线向量（与 Player::getLookVector 算法一致）。
+     *
+     * @return 归一化的视线方向向量
+     */
+    [[nodiscard]] Vector3 getLookAngle() const;
+
+    /**
+     * @brief 获取当前有效重力加速度
+     *
+     * 对应 MC 1.21.11 LivingEntity.getEffectiveGravity()（protected）。
+     * 当实体向下移动且有缓降效果时，重力被钳制到最大 0.01；
+     * 否则使用 forge.entity_gravity 属性值（默认 0.08）。
+     *
+     * @return 有效重力加速度（blocks/tick²）
+     */
+    [[nodiscard]] f64 getEffectiveGravity() const;
+
     /**
      * @brief 更新移动动画参数
      *
@@ -1446,6 +1598,12 @@ protected:
 
     // 三叉戟激流攻击状态
     i32 m_spinAttackDuration = 0; // 激流攻击剩余持续时间（ticks）
+
+    // 鞘翅飞行计时器
+    // 对应 MC 1.21.11 LivingEntity.fallFlyTicks（protected int）
+    // 在 tick() 末尾根据 isFallFlying() 递增或归零；
+    // updateFallFlying() 中以 fallFlyTicks+1 周期性触发游戏事件与装备损坏。
+    i32 m_fallFlyTicks = 0;
 
     // 箭矢计数
     i32 m_arrowCount = 0;    // 插在身上的箭矢数量

@@ -529,6 +529,21 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
             player->setSprinting(false);
             break;
 
+        case network::EntityActionType::StartFallFlying:
+            // 开始鞘翅滑翔
+            // 对应 MC 1.21.11 ServerGamePacketListenerImpl.handlePlayerCommand():
+            //   case START_FALL_FLYING:
+            //     if (!this.player.tryToStartFallFlying()) {
+            //         this.player.stopFallFlying();
+            //     }
+            //     break;
+            // 客户端在玩家于空中按下空格（且穿戴鞘翅）时发送此包。
+            // 服务端校验可滑翔条件，若失败则强制收起鞘翅（同步状态）。
+            if (!player->tryToStartFallFlying()) {
+                player->stopFallFlying();
+            }
+            break;
+
         default:
             spdlog::error(
                 "PacketHandler: Unhandled entity action {} for player {}", static_cast<i32>(packet.action()), playerId);

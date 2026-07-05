@@ -2135,6 +2135,37 @@ void Player::updatePose()
     setPose(targetPose);
 }
 
+// ============================================================================
+// 鞘翅飞行（Elytra Glide）
+// ============================================================================
+
+bool Player::canGlide() const
+{
+    // 对应 MC 1.21.11 Player.canGlide()
+    // 创造/旁观飞行模式下禁止滑翔，避免两种飞行模式冲突
+    if (m_abilities.flying) {
+        return false;
+    }
+    return LivingEntity::canGlide();
+}
+
+bool Player::tryToStartFallFlying()
+{
+    // 对应 MC 1.21.11 Player.tryToStartFallFlying()
+    if (!isElytraFlying() && canGlide() && !isInWater()) {
+        startFallFlying();
+        return true;
+    }
+    return false;
+}
+
+void Player::startFallFlying()
+{
+    // 对应 MC 1.21.11 Player.startFallFlying()
+    // 设置 FallFlying 标志位（bit 7），数据参数会同步给客户端
+    addFlag(EntityFlags::FallFlying);
+}
+
 i32 Player::getDepthStriderLevel() const
 {
     // 检查靴子上的深度守卫附魔等级

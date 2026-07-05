@@ -131,10 +131,11 @@ public:
      * HumanoidRenderState 已移除 fallFlyTicks，HumanoidModel.setupAnim 仅检查
      * isFallFlying 布尔值，不再使用此字段驱动头部角度。
      *
-     * 当前 Cubium 中没有任何渲染器调用此 setter，且 setAngles 中已移除
-     * `m_elytraFlyingTicks > 4` 分支（死代码）。保留 setter 仅为向后兼容，
-     * 待 LivingEntity 服务端 fallFlyTicks 跟踪逻辑实现后可重新启用
-     * （见 LivingEntity::tick 中的 TODO(elytra_fall_fly_ticks)）。
+     * Cubium 中 LivingEntity::tick() 已实现 fallFlyTicks 递增/归零逻辑
+     * （对应 MC 1.21.11 LivingEntity.tick 末尾），用于 updateFallFlying()
+     * 周期性触发 ELYTRA_GLIDE 游戏事件与装备损坏。渲染器可选择将此值
+     * 推送给 BipedModel 以支持未来扩展（如自定义过渡动画），但 MC 1.21.11
+     * 原版渲染器不读取此字段。
      */
     void setElytraFlyingTicks(i32 ticks) { m_elytraFlyingTicks = ticks; }
 
@@ -349,8 +350,9 @@ protected:
     HandSide m_mainHand = HandSide::Right;
     HandSide m_swingingHand = HandSide::Right;
     // 历史遗留字段：MC 1.21.11 HumanoidRenderState 已无 fallFlyTicks，
-    // HumanoidModel.setupAnim 仅检查 isFallFlying 布尔。Cubium 中此字段
-    // 当前未被任何渲染器推送（见 LivingEntity::tick 中的 TODO(elytra_fall_fly_ticks)）。
+    // HumanoidModel.setupAnim 仅检查 isFallFlying 布尔。Cubium 中 LivingEntity::tick
+    // 已实现 fallFlyTicks 递增逻辑（用于服务端 updateFallFlying 周期触发），
+    // 但渲染器不读取此字段（与 MC 1.21.11 行为一致）。
     i32 m_elytraFlyingTicks = 0;
     bool m_isActuallySwimming = false;
     // 鞘翅飞行状态（对应 MC 1.21.11 HumanoidRenderState.isFallFlying）

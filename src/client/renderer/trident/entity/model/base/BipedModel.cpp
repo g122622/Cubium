@@ -150,11 +150,9 @@ void BipedModel::setAngles(
 {
     // 鞘翅飞行状态：MC 1.21.11 HumanoidModel.setupAnim 仅检查 isFallFlying 布尔值，
     // 不再使用 fallFlyTicks（HumanoidRenderState 已移除该字段）。
-    // TODO(elytra_head_lerp): MC 1.21.11 中鞘翅飞行起始时头部角度从当前值 lerp 到 -π/4
-    //                         的过渡动画（对应 HumanoidModel.setupAnim 中 swimAmount > 0
-    //                         时的 rotLerpRad 路径）当前未实现。Cubium 直接 snap 到 -π/4，
-    //                         视觉上会有跳变。后续应在 LivingEntity/BipedModel 中跟踪
-    //                         鞘翅飞行过渡 tick（fallFlyTicks 0..4）并在此处 lerp。
+    // MC 1.21.11 中鞘翅飞行起始时头部角度直接 snap 到 -π/4（无过渡 lerp），
+    // 过渡 lerp 仅用于游泳（swimAmount > 0 路径）。
+    // Cubium 已与此行为对齐，无需额外跟踪 fallFlyTicks 驱动头部动画。
     bool isElytraFlying = m_isFallFlying;
     bool isActuallySwimming = m_isActuallySwimming;
 

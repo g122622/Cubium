@@ -132,10 +132,9 @@ BipedModel 通过 `setFallFlying(bool)` 与 `setSpeedValue(f32)` 接收鞘翅飞
   - 用作手臂/腿部摆动振幅的除数（值越大摆动越慢，模拟风阻）
 - `setElytraFlyingTicks(i32)`：历史遗留字段，MC 1.21.11
   `HumanoidRenderState` 已移除 `fallFlyTicks`，`HumanoidModel.setupAnim`
-  仅检查 `isFallFlying` 布尔。Cubium 中此 setter 当前未被任何渲染器调用，
-  `setAngles` 中已移除 `m_elytraFlyingTicks > 4` 死分支。保留仅为向后兼容，
-  待服务端 `fallFlyTicks` 跟踪逻辑实现后可重新启用（见 `LivingEntity::tick`
-  中的 `TODO(elytra_fall_fly_ticks)`）。
+  仅检查 `isFallFlying` 布尔。Cubium 中 `PlayerRenderer::setModelVisibilities`
+  会将服务端 `LivingEntity::fallFlyTicks()` 推送给 BipedModel 以保持状态机一致性，
+  但 `setAngles` 不读取此字段（与 MC 1.21.11 行为一致）。
 
 `elytra::computeSpeedValue(bool, f32)` 抽取为自由函数（`ElytraSpeedValue.hpp/cpp`），
 便于在 GPU 管线路径（`EntityRendererManager::_applyBipedElytraState`）与 CPU
@@ -151,14 +150,15 @@ BipedModel 通过 `setFallFlying(bool)` 与 `setSpeedValue(f32)` 接收鞘翅飞
 - 第一人称手臂渲染：`renderRightArm/renderLeftArm` 中重置为 `setFallFlying(false)`
   与 `setSpeedValue(1.0f)`，避免鞘翅状态影响第一人称手臂姿态
 
-**已知缺口**（已标注 TODO）：
-- `TODO(elytra_fall_fly_ticks)`：服务端 `LivingEntity::tick` 中 `fallFlyTicks`
-  递增/重置、`tryToStartFallFlying`/`stopFallFlying`/`updateFallFlying`/
-  `travelFallFlying`/`canGlide` 等方法、`PacketHandler` 处理
-  `ServerboundPlayerCommandPacket::START_FALL_FLYING` 分支均未实现，
-  鞘翅滑翔玩法当前不可用（仅 NBT 加载会还原 FallFlying 标志）。
-- `TODO(elytra_head_lerp)`：MC 1.21.11 中鞘翅飞行起始时头部角度从当前值
-  lerp 到 -π/4 的过渡动画未实现，Cubium 直接 snap 到 -π/4。
+**鞘翅滑翔状态机已完整实现**（对应 MC 1.21.11 LivingEntity 中的 elytra 逻辑）：
+- 服务端 `LivingEntity::tick` 末尾递增/重置 `fallFlyTicks`
+- `LivingEntity::aiStep` 在 `travel()` 前调用 `updateFallFlying()`
+  维护可滑翔条件、周期性触发 `ELYTRA_GLIDE` 游戏事件与装备损坏
+- `LivingEntity::travel` 开头根据 `isElytraFlying()` 分发到 `travelFallFlying()`
+  处理滑翔物理（视线方向驱动、重力抵消、撞墙伤害）
+- `Player` 重写 `canGlide()`/`tryToStartFallFlying()` 排除创造飞行模式
+- `PacketHandler::handleEntityAction` 处理 `StartFallFlying` 分支
+  （客户端按下空格触发，服务端校验后设置 FallFlying 标志）
 
 ### 命名空间
 

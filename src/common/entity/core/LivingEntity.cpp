@@ -37,6 +37,7 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
+#include "common/item/items/armor/ElytraItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
@@ -51,9 +52,11 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 namespace mc {
 
@@ -798,23 +801,16 @@ void LivingEntity::tick()
     // 更新激流攻击状态
     updateSpinAttack();
 
-    // TODO(elytra_fall_fly_ticks): 对应 MC 1.21.11 LivingEntity.tick() 末尾的
-    //   fallFlyTicks 跟踪与 handleFallFlyingCollisions：
-    //     if (this.isFallFlying()) {
-    //         this.fallFlyTicks++;
-    //     } else {
-    //         this.fallFlyTicks = 0;
-    //     }
-    //   以及 handleFallFlyingCollisions 中每 10 tick 触发 gameEvent(ELYTRA_GLIDE)、
-    //   每 20 tick 随机损坏一件可滑翔装备（LivingEntity.java:3044-3057）。
-    //   Cubium 当前未实现 fallFlyTicks 字段递增、未实现 tryToStartFallFlying() /
-    //   stopFallFlying() / updateFallFlying() / travelFallFlying() / canGlide()，
-    //   也未在 PacketHandler 中处理 ServerboundPlayerCommandPacket 的 START_FALL_FLYING 分支。
-    //   这意味着服务端永远不会主动设置 EntityFlags::FallFlying 标志位（仅 NBT 加载会还原），
-    //   鞘翅滑翔玩法当前不可用。BipedModel::setElytraFlyingTicks 历史遗留 setter
-    //   因此也未被任何渲染器调用，setAngles 中已移除对应的 m_elytraFlyingTicks > 4 死分支。
-    //   实现此 TODO 时应同步在渲染器中推送 fallFlyTicks 给 BipedModel 以驱动头部
-    //   角度的过渡 lerp 动画（见 BipedModel::setAngles 中的 TODO(elytra_head_lerp)）。
+    // 鞘翅飞行计时器
+    // 对应 MC 1.21.11 LivingEntity.tick() 末尾：
+    //   if (this.isFallFlying()) { this.fallFlyTicks++; } else { this.fallFlyTicks = 0; }
+    // fallFlyTicks 用于 updateFallFlying() 中每 10 tick 周期触发 ELYTRA_GLIDE
+    // 游戏事件与装备损坏，客户端渲染器（BipedModel）也可读取此值驱动头部过渡动画。
+    if (isElytraFlying()) {
+        ++m_fallFlyTicks;
+    } else {
+        m_fallFlyTicks = 0;
+    }
 }
 
 void LivingEntity::syncMetadataFromDataManager()
@@ -1176,6 +1172,14 @@ void LivingEntity::aiStep()
         m_jumpTicks--;
     }
 
+    // 鞘翅飞行状态机更新
+    // 对应 MC 1.21.11 LivingEntity.aiStep() 中的：
+    //   if (this.isFallFlying()) { this.updateFallFlying(); }
+    // 检查可滑翔条件、周期性触发 ELYTRA_GLIDE 游戏事件与装备损坏。
+    if (isElytraFlying()) {
+        updateFallFlying();
+    }
+
     // 执行 travel（物理移动）
     // 注意：aiStep() 中不对输入值应用阻力
     // 阻力是在 travel() 中应用到速度上的
@@ -1190,6 +1194,20 @@ void LivingEntity::aiStep()
 
 void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 {
+    // 对应 MC 1.21.11 LivingEntity.travel(Vec3)：
+    //   if (shouldTravelInFluid) travelInFluid
+    //   else if (isFallFlying) travelFallFlying
+    //   else travelInAir
+    // Cubium 的 travel 已将 travelInAir/travelInFluid 内联在此方法中。
+    // 当实体处于鞘翅飞行状态且不在液体中时，委托给 travelFallFlying() 处理滑翔物理。
+    // 在水中/岩浆中时走常规分支（液体中无法滑翔，tryToStartFallFlying 已阻止开始）。
+    if (isElytraFlying() && !isInWater() && !isInLava()) {
+        travelFallFlying(Vector3(strafing, vertical, forward));
+        // 滑翔物理已自行执行 moveWithCollision 与动画更新
+        updateTravelAnimation(true);
+        return;
+    }
+
     // 正确的物理顺序：
     // 1. 计算移动因子
     // 2. moveRelative(): 速度 += 输入 * 移动因子
@@ -1363,6 +1381,251 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     if (std::abs(m_velocity.x) < MOTION_THRESHOLD) m_velocity.x = 0.0f;
     if (std::abs(m_velocity.y) < MOTION_THRESHOLD) m_velocity.y = 0.0f;
     if (std::abs(m_velocity.z) < MOTION_THRESHOLD) m_velocity.z = 0.0f;
+}
+
+// ============================================================================
+// 鞘翅飞行（Elytra Glide）
+// ============================================================================
+
+bool LivingEntity::canGlide() const
+{
+    // 对应 MC 1.21.11 LivingEntity.canGlide()
+    // 不在地面、非骑乘、无飘浮效果
+    if (onGround() || isRiding() || hasEffect(entity::effect::EffectType::Levitation)) {
+        return false;
+    }
+
+    // 任意装备槽位的物品可滑翔
+    for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+        auto slot = static_cast<EquipmentSlot>(i);
+        if (canGlideUsing(getEquipment(slot), slot)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool LivingEntity::canGlideUsing(const ItemStack& stack, EquipmentSlot slot)
+{
+    // 对应 MC 1.21.11 LivingEntity.canGlideUsing(ItemStack, EquipmentSlot)
+    // Cubium 当前仅 ElytraItem 提供滑翔能力：
+    // 1. 物品必须是 ElytraItem（占用 Chest 槽位）
+    // 2. 物品必须可受损且未接近损坏（与 ElytraItem::isUsable 一致）
+    if (stack.isEmpty() || !stack.isDamageable()) {
+        return false;
+    }
+    if (slot != EquipmentSlot::Chest) {
+        return false;
+    }
+    const auto* elytra = dynamic_cast<const item::items::ElytraItem*>(stack.getItem());
+    if (elytra == nullptr) {
+        return false;
+    }
+    // isUsable 内部判定：getDamage < getMaxDamage - 1
+    // 即差 1 点耐久时还能使用，与 MC nextDamageWillBreak() 取反语义一致
+    return item::items::ElytraItem::isUsable(stack);
+}
+
+bool LivingEntity::tryToStartFallFlying()
+{
+    // 对应 MC 1.21.11 Player.tryToStartFallFlying()
+    // （MC 中此方法仅定义在 Player 中，Cubium 将其上提到 LivingEntity
+    // 以便非玩家生物（未来扩展）也能复用基础滑翔逻辑）
+    if (!isElytraFlying() && canGlide() && !isInWater()) {
+        startFallFlying();
+        return true;
+    }
+    return false;
+}
+
+void LivingEntity::startFallFlying()
+{
+    // 对应 MC 1.21.11 Player.startFallFlying()
+    // 设置 EntityFlags::FallFlying 标志位（bit 7）
+    addFlag(EntityFlags::FallFlying);
+}
+
+void LivingEntity::stopFallFlying()
+{
+    // 对应 MC 1.21.11 LivingEntity.stopFallFlying()
+    // MC 原版通过两次 setSharedFlag(7, true)/setSharedFlag(7, false) 触发数据同步
+    // Cubium 的 addFlag/removeFlag 同样会更新 DataManager，无需重复调用
+    removeFlag(EntityFlags::FallFlying);
+}
+
+void LivingEntity::updateFallFlying()
+{
+    // 对应 MC 1.21.11 LivingEntity.updateFallFlying()
+    // 仅服务端执行
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return;
+    }
+
+    // 不可滑翔时清除飞行标志
+    if (!canGlide()) {
+        removeFlag(EntityFlags::FallFlying);
+        return;
+    }
+
+    // 周期性触发：每 10 tick 一次
+    const i32 i = m_fallFlyTicks + 1;
+    if (i % 10 == 0) {
+        const i32 j = i / 10;
+        // 偶数次（每 20 tick）随机损坏一件可滑翔装备
+        if (j % 2 == 0) {
+            // 收集所有可滑翔装备槽位
+            std::vector<EquipmentSlot> glideSlots;
+            for (u8 k = 0; k < static_cast<u8>(EquipmentSlot::Count); ++k) {
+                auto slot = static_cast<EquipmentSlot>(k);
+                if (canGlideUsing(getEquipment(slot), slot)) {
+                    glideSlots.push_back(slot);
+                }
+            }
+            if (!glideSlots.empty()) {
+                // 从可滑翔槽位中随机选一个损坏
+                i32 randomIdx = static_cast<i32>(m_random.nextInt(static_cast<i32>(glideSlots.size())));
+                EquipmentSlot chosen = glideSlots[static_cast<size_t>(randomIdx)];
+                ItemStack& stack = getMutableEquipment(chosen);
+                hurtAndBreak(stack, 1, this, chosen);
+            }
+        }
+
+        // 触发 ELYTRA_GLIDE 游戏事件（通知幽匿感测体）
+        if (m_world != nullptr) {
+            BlockPos eventPos(static_cast<i32>(std::floor(m_position.x)),
+                static_cast<i32>(std::floor(m_position.y)),
+                static_cast<i32>(std::floor(m_position.z)));
+            m_world->gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos, gameevent::GameEvent::Context::of(this));
+        }
+    }
+}
+
+void LivingEntity::travelFallFlying(const Vector3& travelVec)
+{
+    // 对应 MC 1.21.11 LivingEntity.travelFallFlying(Vec3)
+    (void)travelVec; // Cubium 的输入向量已通过 m_moveStrafing/m_moveForward 体现，
+                     // 滑翔物理主要由视线方向驱动，与原版一致
+
+    // 在梯子上时改用常规空中移动并停止飞行
+    // 注意：MC 1.21.11 调用 travelInAir（非 travel），避免再次进入 travelFallFlying 分支。
+    // Cubium 中 travel() 开头会根据 isElytraFlying() 分发，若直接调用 travel() 会无限递归。
+    // 此处先 stopFallFlying() 清除标志，再调用 travel() 走常规分支。
+    if (isOnLadder()) {
+        stopFallFlying();
+        travel(0.0f, 0.0f, 0.0f);
+        return;
+    }
+
+    // 记录移动前的水平速度（用于撞墙伤害计算）
+    const Vector3 velocityBefore = m_velocity;
+    const f64 prevHorizontalSpeed = std::sqrt(
+        static_cast<f64>(velocityBefore.x) * velocityBefore.x + static_cast<f64>(velocityBefore.z) * velocityBefore.z);
+
+    // 计算滑翔后的速度
+    m_velocity = updateFallFlyingMovement(velocityBefore);
+
+    // 执行移动（碰撞检测）
+    if (m_velocity.x != 0.0f || m_velocity.y != 0.0f || m_velocity.z != 0.0f) {
+        moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+    }
+
+    // 服务端检测撞墙伤害
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        const f64 currHorizontalSpeed =
+            std::sqrt(static_cast<f64>(m_velocity.x) * m_velocity.x + static_cast<f64>(m_velocity.z) * m_velocity.z);
+        handleFallFlyingCollisions(prevHorizontalSpeed, currHorizontalSpeed);
+    }
+}
+
+Vector3 LivingEntity::updateFallFlyingMovement(const Vector3& currentVelocity) const
+{
+    // 对应 MC 1.21.11 LivingEntity.updateFallFlyingMovement(Vec3)
+    Vector3 look = getLookAngle();
+    const f32 pitchRad = m_pitch * math::DEG_TO_RAD;
+    const f64 d0 = std::sqrt(static_cast<f64>(look.x) * look.x + static_cast<f64>(look.z) * look.z); // 视线水平分量长度
+    const f64 d1 = std::sqrt(static_cast<f64>(currentVelocity.x) * currentVelocity.x +
+        static_cast<f64>(currentVelocity.z) * currentVelocity.z); // 速度水平分量长度
+    const f64 d2 = getEffectiveGravity();
+    const f64 d3 = static_cast<f64>(std::cos(pitchRad)) * static_cast<f64>(std::cos(pitchRad)); // cos²(pitch)
+
+    Vector3 velocity = currentVelocity;
+    // 重力被 cos²(pitch) * 0.75 部分抵消
+    velocity.y += static_cast<f32>(d2 * (-1.0 + d3 * 0.75));
+
+    // 俯冲时（y<0）将向下速度转化为前方加速
+    if (velocity.y < 0.0f && d0 > 0.0) {
+        const f64 d4 = static_cast<f64>(velocity.y) * -0.1 * d3;
+        velocity.x += static_cast<f32>(static_cast<f64>(look.x) * d4 / d0);
+        velocity.y += static_cast<f32>(d4);
+        velocity.z += static_cast<f32>(static_cast<f64>(look.z) * d4 / d0);
+    }
+
+    // 抬头时（pitch<0）将水平速度转化为向上爬升
+    if (pitchRad < 0.0f && d0 > 0.0) {
+        const f64 d5 = d1 * -static_cast<f64>(std::sin(pitchRad)) * 0.04;
+        velocity.x -= static_cast<f32>(static_cast<f64>(look.x) * d5 / d0);
+        velocity.y += static_cast<f32>(d5 * 3.2);
+        velocity.z -= static_cast<f32>(static_cast<f64>(look.z) * d5 / d0);
+    }
+
+    // 水平分量朝视线方向缓慢对齐（lerp 0.1）
+    if (d0 > 0.0) {
+        velocity.x += static_cast<f32>((static_cast<f64>(look.x) / d0 * d1 - static_cast<f64>(velocity.x)) * 0.1);
+        velocity.z += static_cast<f32>((static_cast<f64>(look.z) / d0 * d1 - static_cast<f64>(velocity.z)) * 0.1);
+    }
+
+    // 应用阻力 0.99/0.98/0.99
+    velocity.x *= 0.99f;
+    velocity.y *= 0.98f;
+    velocity.z *= 0.99f;
+    return velocity;
+}
+
+void LivingEntity::handleFallFlyingCollisions(f64 prevHorizontalSpeed, f64 currHorizontalSpeed)
+{
+    // 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(double, double)
+    if (!m_collidedHorizontally) {
+        return;
+    }
+    const f64 d0 = prevHorizontalSpeed - currHorizontalSpeed;
+    const f32 f = static_cast<f32>(d0 * 10.0 - 3.0);
+    if (f > 0.0f) {
+        // 播放摔落音效（与摔落伤害共用）
+        i32 fallHeight = static_cast<i32>(f);
+        auto fallSound = getFallSound(fallHeight);
+        if (fallSound.has_value()) {
+            playSound(*fallSound, 1.0f, 1.0f);
+        }
+        // 施加撞墙伤害
+        auto source = DamageSources::flyIntoWall();
+        hurt(source, f);
+    }
+}
+
+Vector3 LivingEntity::getLookAngle() const
+{
+    // 对应 MC 1.21.11 Entity.getLookAngle()
+    // 与 Player::getLookVector 算法一致：
+    // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
+    // pitch 正值向下看，负值向上看
+    const f32 yawRad = math::toRadians(m_yaw);
+    const f32 pitchRad = math::toRadians(m_pitch);
+    const f32 cosYaw = std::cos(yawRad);
+    const f32 sinYaw = std::sin(yawRad);
+    const f32 cosPitch = std::cos(pitchRad);
+    const f32 sinPitch = std::sin(pitchRad);
+    return Vector3(-sinYaw * cosPitch, -sinPitch, cosYaw * cosPitch).normalized();
+}
+
+f64 LivingEntity::getEffectiveGravity() const
+{
+    // 对应 MC 1.21.11 LivingEntity.getEffectiveGravity()
+    // 向下移动且有缓降效果时，重力被钳制到最大 0.01
+    const bool movingDown = m_velocity.y <= 0.0;
+    if (movingDown && hasEffect(entity::effect::EffectType::SlowFalling)) {
+        return std::min(getAttributeValue(entity::attribute::Attributes::ENTITY_GRAVITY, GRAVITY), 0.01);
+    }
+    return getAttributeValue(entity::attribute::Attributes::ENTITY_GRAVITY, GRAVITY);
 }
 
 // ============================================================================

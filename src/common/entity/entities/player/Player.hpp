@@ -996,6 +996,41 @@ public:
      */
     void updatePose();
 
+    // ========== 鞘翅飞行（Elytra Glide） ==========
+
+    /**
+     * @brief 重写 canGlide：创造/旁观飞行模式下禁止滑翔
+     *
+     * 对应 MC 1.21.11 Player.canGlide()：
+     *   return !this.abilities.flying && super.canGlide();
+     * 当玩家通过创造模式双击空格进入飞行状态（abilities.flying=true）时，
+     * 即使穿戴鞘翅也不能滑翔，避免两种飞行模式冲突。
+     *
+     * @return 如果玩家未在创造飞行且基类判定可滑翔返回 true
+     */
+    [[nodiscard]] bool canGlide() const override;
+
+    /**
+     * @brief 重写 tryToStartFallFlying：玩家专属的开始滑翔逻辑
+     *
+     * 对应 MC 1.21.11 Player.tryToStartFallFlying()。
+     * Player 不沿用 LivingEntity 基类的通用实现，而是显式重写：
+     * - 仅当未在飞行、canGlide() 返回 true、不在水中时调用 startFallFlying()
+     * - 由 PacketHandler 在收到 START_FALL_FLYING 包时调用
+     * - 若返回 false，PacketHandler 会调用 stopFallFlying() 强制收起鞘翅
+     *
+     * @return 如果成功开始滑翔返回 true
+     */
+    bool tryToStartFallFlying() override;
+
+    /**
+     * @brief 玩家专属的开始鞘翅飞行
+     *
+     * 对应 MC 1.21.11 Player.startFallFlying()。
+     * 设置 EntityFlags::FallFlying 标志位，触发数据参数同步给客户端。
+     */
+    void startFallFlying();
+
     /**
      * @brief 获取游泳动画进度
      * @return 0.0-1.0 之间的插值
