@@ -589,15 +589,19 @@ void Player::tick()
 {
     LivingEntity::tick();
 
-    for (i32 i = world::MIN_BUILD_HEIGHT; i < world::MAX_BUILD_HEIGHT; ++i) {
-        auto bs = m_world->getBlockState(BlockPos(x(), i, z()));
-        if (bs == nullptr) {
-            // spdlog::error("Failed to get block state at y={}", i);
-            continue;
+    // 注意：此遍历列方块用于调试观察，且无世界时（如基类单元测试直接 tick）不应崩溃。
+    // 与下方 worldBorder / foodStats 等访问保持一致的 m_world 空检查守卫。
+    if (m_world != nullptr) {
+        for (i32 i = world::MIN_BUILD_HEIGHT; i < world::MAX_BUILD_HEIGHT; ++i) {
+            auto bs = m_world->getBlockState(BlockPos(x(), i, z()));
+            if (bs == nullptr) {
+                // spdlog::error("Failed to get block state at y={}", i);
+                continue;
+            }
+            std::stringstream ss;
+            ss << "Block at y=" << i << " is " << bs->getBlock().toString();
+            // spdlog::warn(ss.str());
         }
-        std::stringstream ss;
-        ss << "Block at y=" << i << " is " << bs->getBlock().toString();
-        // spdlog::warn(ss.str());
     }
 
     // 更新 XP 冷却
