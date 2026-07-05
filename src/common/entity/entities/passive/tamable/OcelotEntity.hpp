@@ -236,6 +236,16 @@ protected:
     void registerAttributes() override;
 
     // ========== 数据同步 ==========
+    /**
+     * @brief 注册同步数据参数
+     *
+     * 注册 DATA_TRUSTING_PARAM（信任状态）和 DATA_FLEEING_PARAM（逃跑状态）到
+     * EntityDataManager。客户端通过 getTrustingParamId() / getFleeingParamId()
+     * 读取参数 ID 并在元数据同步时更新客户端镜像状态。
+     *
+     * 注意：由于 C++ 虚函数在基类构造函数中不会派发到派生类，
+     * OcelotEntity 构造函数必须显式调用此方法（参考 WolfEntity / ZombieVillagerEntity 模式）。
+     */
     void registerData() override;
 
     // ========== NBT 序列化 ==========
