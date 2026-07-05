@@ -267,3 +267,249 @@ TEST(BuiltinWidgetsGridLayoutTest, GridColsRowsTakeEffectAfterRelayout)
     EXPECT_EQ(100, children[1]->x());
     EXPECT_EQ(200, children[2]->x());
 }
+
+TEST(BuiltinWidgetsGridLayoutTest, GridRowsTakesEffectAfterRelayout)
+{
+    // 验证 rows 属性在 relayout 后实际生效：cols=2, rows=2，4 个子项排成 2x2 网格。
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"cols", "2"}, {"rows", "2"}};
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+
+    // 容器 200x200，2x2 网格，每格 100x100
+    container->setBounds(Rect(0, 0, 200, 200));
+
+    auto child0 = std::make_unique<Widget>("c0");
+    auto child1 = std::make_unique<Widget>("c1");
+    auto child2 = std::make_unique<Widget>("c2");
+    auto child3 = std::make_unique<Widget>("c3");
+    child0->setBounds(Rect(0, 0, 100, 100));
+    child1->setBounds(Rect(0, 0, 100, 100));
+    child2->setBounds(Rect(0, 0, 100, 100));
+    child3->setBounds(Rect(0, 0, 100, 100));
+    container->addChild(std::move(child0));
+    container->addChild(std::move(child1));
+    container->addChild(std::move(child2));
+    container->addChild(std::move(child3));
+
+    container->requestLayout();
+    container->relayout();
+
+    // 2x2 排列：
+    //   (0,0) (100,0)
+    //   (0,100) (100,100)
+    const auto& children = container->widgets();
+    ASSERT_EQ(4u, children.size());
+    EXPECT_EQ(0, children[0]->x());
+    EXPECT_EQ(0, children[0]->y());
+    EXPECT_EQ(100, children[1]->x());
+    EXPECT_EQ(0, children[1]->y());
+    EXPECT_EQ(0, children[2]->x());
+    EXPECT_EQ(100, children[2]->y());
+    EXPECT_EQ(100, children[3]->x());
+    EXPECT_EQ(100, children[3]->y());
+}
+
+TEST(BuiltinWidgetsGridLayoutTest, GridGapTakesEffectAfterRelayout)
+{
+    // 验证 gap 属性在 relayout 后实际生效：cols=3, gap=8，子项间距为 8。
+    // 容器宽 316，3 列 + 2 个 gap：cellWidth = (316 - 2*8) / 3 = 100
+    // 子项 x = 0, 108, 216
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"cols", "3"}, {"rows", "1"}, {"gap", "8"}};
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+
+    container->setBounds(Rect(0, 0, 316, 100));
+
+    auto child0 = std::make_unique<Widget>("c0");
+    auto child1 = std::make_unique<Widget>("c1");
+    auto child2 = std::make_unique<Widget>("c2");
+    child0->setBounds(Rect(0, 0, 100, 100));
+    child1->setBounds(Rect(0, 0, 100, 100));
+    child2->setBounds(Rect(0, 0, 100, 100));
+    container->addChild(std::move(child0));
+    container->addChild(std::move(child1));
+    container->addChild(std::move(child2));
+
+    container->requestLayout();
+    container->relayout();
+
+    const auto& children = container->widgets();
+    ASSERT_EQ(3u, children.size());
+    // cellWidth = (316 - 2*8) / 3 = 100
+    // x = 0, 0+100+8=108, 108+100+8=216
+    EXPECT_EQ(0, children[0]->x());
+    EXPECT_EQ(108, children[1]->x());
+    EXPECT_EQ(216, children[2]->x());
+    // 间距确实为 8（cellWidth + gap = 108）
+    EXPECT_EQ(8, children[1]->x() - children[0]->x() - children[0]->width());
+    EXPECT_EQ(8, children[2]->x() - children[1]->x() - children[1]->width());
+}
+
+TEST(BuiltinWidgetsGridLayoutTest, GridGapAffectsRowSpacingAfterRelayout)
+{
+    // 验证 gap 属性同时影响行间距：cols=1, rows=2, gap=10
+    // 容器高 210，2 行 + 1 个 rowGap：cellHeight = (210 - 10) / 2 = 100
+    // 子项 y = 0, 110
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"cols", "1"}, {"rows", "2"}, {"gap", "10"}};
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+
+    container->setBounds(Rect(0, 0, 100, 210));
+
+    auto child0 = std::make_unique<Widget>("c0");
+    auto child1 = std::make_unique<Widget>("c1");
+    child0->setBounds(Rect(0, 0, 100, 100));
+    child1->setBounds(Rect(0, 0, 100, 100));
+    container->addChild(std::move(child0));
+    container->addChild(std::move(child1));
+
+    container->requestLayout();
+    container->relayout();
+
+    const auto& children = container->widgets();
+    ASSERT_EQ(2u, children.size());
+    // cellHeight = (210 - 10) / 2 = 100
+    // y = 0, 0+100+10=110
+    EXPECT_EQ(0, children[0]->y());
+    EXPECT_EQ(110, children[1]->y());
+    // 行间距确实为 10
+    EXPECT_EQ(10, children[1]->y() - children[0]->y() - children[0]->height());
+}
+
+// ==================== parseInt 负数字符串显式断言测试 ====================
+
+TEST(BuiltinWidgetsParseIntTest, ParseIntNegativeStringReturnsNegativeValue)
+{
+    // 显式验证 widget_attrs::parseInt 对负数字符串的返回值
+    // 这是 GridGapClampedToZero 用例假设的基石：parseInt("-5") 返回 -5，
+    // 然后 BuiltinWidgets 的 std::max(0, ...) 才会将其钳制为 0。
+    using namespace mc::client::ui::kagero::tpl::bindings::widget_attrs;
+    EXPECT_EQ(-5, parseInt("-5", 0));
+    EXPECT_EQ(-1, parseInt("-1", 0));
+    EXPECT_EQ(-100, parseInt("-100", 7));
+}
+
+TEST(BuiltinWidgetsParseIntTest, ParseIntNegativeStringAppliedToGridGap)
+{
+    // 验证完整链路：gap="-5" -> parseInt 返回 -5 -> std::max(0, -5) = 0 -> columnGap/rowGap = 0
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"gap", "-5"}};
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+    // -5 经过 parseInt 解析为 -5，再经 std::max(0, -5) 钳制为 0
+    EXPECT_EQ(0, container->gridConfig().columnGap);
+    EXPECT_EQ(0, container->gridConfig().rowGap);
+}
+
+TEST(BuiltinWidgetsParseIntTest, ParseIntNegativeStringAppliedToSlotIndex)
+{
+    // 验证 slot 的 index 属性可以接受负数（parseInt 直接返回负数，slot 不钳制）
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"index", "-3"}};
+    auto widget = BuiltinWidgets::instance().create("slot", "slot_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* slot = dynamic_cast<SlotWidget*>(widget.get());
+    ASSERT_NE(slot, nullptr);
+    EXPECT_EQ(-3, slot->slotIndex());
+}
+
+TEST(BuiltinWidgetsParseIntTest, ParseIntNegativeStringAppliedToGridCols)
+{
+    // 验证 cols 负数经 parseInt 解析为负数，再被 std::max(1, ...) 钳制为 1
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"cols", "-3"}};
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+    EXPECT_EQ(1, container->gridConfig().columns);
+}
+
+TEST(BuiltinWidgetsParseIntTest, ParseIntNegativeStringAppliedToGridRows)
+{
+    // 验证 rows 负数经 parseInt 解析为负数，再被 std::max(0, ...) 钳制为 0（自动推算）
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"rows", "-2"}};
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+    EXPECT_EQ(0, container->gridConfig().rows);
+}
+
+// ==================== GridLayout auto-placement 验证测试 ====================
+
+TEST(BuiltinWidgetsGridLayoutTest, AutoPlacementFillsRowFirst)
+{
+    // 直接验证 GridLayout auto-placement 行为：3 列 5 个子项，应排成 2 行
+    // 第 0/1/2 子项在第 0 行（col 0/1/2），第 3/4 子项在第 1 行（col 0/1）
+    BuiltinWidgets::instance().initialize();
+
+    std::map<std::string, std::string> attrs{{"cols", "3"}}; // rows 默认 0 = 自动推算
+    auto widget = BuiltinWidgets::instance().create("grid", "grid_0", attrs);
+    ASSERT_NE(widget, nullptr);
+
+    auto* container = dynamic_cast<ContainerWidget*>(widget.get());
+    ASSERT_NE(container, nullptr);
+
+    // rows 配置仍为 0（自动推算）；GridLayout::compute 内部 _resolveRows(5) = ceil(5/3) = 2
+    EXPECT_EQ(0, container->gridConfig().rows);
+
+    container->setBounds(Rect(0, 0, 300, 200));
+
+    for (int i = 0; i < 5; ++i) {
+        auto child = std::make_unique<Widget>("c" + std::to_string(i));
+        child->setBounds(Rect(0, 0, 100, 100));
+        container->addChild(std::move(child));
+    }
+
+    container->requestLayout();
+    container->relayout();
+
+    const auto& children = container->widgets();
+    ASSERT_EQ(5u, children.size());
+
+    // 容器 300x200，3 列 2 行，cellWidth = 100, cellHeight = 100
+    // 行优先填充：
+    //   c0(0,0)    c1(100,0)  c2(200,0)
+    //   c3(0,100)  c4(100,100)
+    EXPECT_EQ(0, children[0]->x());
+    EXPECT_EQ(0, children[0]->y());
+
+    EXPECT_EQ(100, children[1]->x());
+    EXPECT_EQ(0, children[1]->y());
+
+    EXPECT_EQ(200, children[2]->x());
+    EXPECT_EQ(0, children[2]->y());
+
+    EXPECT_EQ(0, children[3]->x());
+    EXPECT_EQ(100, children[3]->y());
+
+    EXPECT_EQ(100, children[4]->x());
+    EXPECT_EQ(100, children[4]->y());
+}
