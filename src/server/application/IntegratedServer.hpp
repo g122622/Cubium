@@ -110,6 +110,16 @@ protected:
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
+    /**
+     * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
+     *
+     * 在 stop() 中 clearAll 之前调用。遍历所有维度的在线 Player 实体，
+     * 通过 PlayerDataManager::fromPlayer() 提取运行时状态，再用 savePlayer()
+     * 更新缓存并标记脏。后续 stopCore() → shutdownManagers() → saveAllWorldData()
+     * 会通过 PlayerDataManager::saveAll() 把缓存落盘到 RocksDB。
+     */
+    void savePlayerRuntimeState() override;
+
 public:
     // ========== IntegratedServer 特有接口 ==========
 

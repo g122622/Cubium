@@ -341,6 +341,23 @@ protected:
     void shutdownSharedStorage();
 
     /**
+     * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
+     *
+     * 在 shutdownManagers() 中 saveAllWorldData() 之前调用。子类应遍历自己的
+     * ServerPlayerEntityManager，对每个在线 Player 调用
+     * PlayerDataManager::fromPlayer() + savePlayer()，把位置、生命、饥饿、经验、
+     * 背包等运行时状态灌入缓存。后续 saveAllWorldData() 会通过 PlayerDataManager::saveAll()
+     * 把缓存落盘到 RocksDB。
+     *
+     * 默认实现为空，因为基类无法访问 playerEntityManager()（纯虚）。子类必须 override
+     * 此方法以提供具体的遍历逻辑。
+     *
+     * @note 调用时机：必须在维度管理器 shutdown 之前、玩家实体被 clearAll 之前调用。
+     *       readonly foreign world 场景下不会被调用（shutdownManagers 已判断）。
+     */
+    virtual void savePlayerRuntimeState() {}
+
+    /**
      * @brief 解析玩家在命令分发时使用的权限等级。
      *
      * 默认实现直接返回 OP 列表中的等级；集成服务器可 override 在此之上叠加

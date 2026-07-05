@@ -36,7 +36,7 @@
 namespace mc {
 
 // 前向声明
-class ServerPlayer;
+class Player;
 namespace server {
 struct ServerPlayerData;
 }
@@ -181,7 +181,7 @@ public:
      * @param player 玩家实体
      * @return 保存数据
      */
-    [[nodiscard]] static PlayerSaveData fromPlayer(const ServerPlayer& player);
+    [[nodiscard]] static PlayerSaveData fromPlayer(const Player& player);
 
     /**
      * @brief 将保存数据应用到玩家实体

@@ -496,6 +496,58 @@ void StandaloneServer::shutdown()
     stop();
 }
 
+void StandaloneServer::savePlayerRuntimeState()
+{
+    // 外来只读存档不写盘，直接跳过
+    if (isSharedStorageReadonlyForeignWorld()) {
+        return;
+    }
+
+    auto* storage = sharedStorage();
+    if (storage == nullptr || !storage->isOpen()) {
+        return;
+    }
+    auto* pdm = storage->playerDataManager();
+    if (pdm == nullptr) {
+        return;
+    }
+
+    // 遍历所有维度，对每个在线 Player 实体回写运行时状态到 PlayerDataManager 缓存
+    // 注意：必须在 stopCore()（含 shutdownManagers）之前调用，
+    // 否则维度已被卸载、玩家实体已被销毁
+    size_t savedCount = 0;
+    m_dimensionManager->forEachDimension([&](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world == nullptr) {
+            return;
+        }
+
+        const auto playerIds = m_playerEntityManager.getPlayerIds();
+        for (PlayerId playerId : playerIds) {
+            Player* player = m_playerEntityManager.getPlayerEntity(playerId, *world);
+            if (player == nullptr) {
+                continue;
+            }
+
+            // fromPlayer() 提取位置、生命、饥饿、经验、背包、效果等运行时状态
+            // savePlayer() 同时更新缓存并标记脏，后续 saveAllWorldData() 会落盘
+            auto saveData = world::storage::PlayerDataManager::fromPlayer(*player);
+            auto result = pdm->savePlayer(saveData);
+            if (result.success()) {
+                ++savedCount;
+            } else {
+                spdlog::warn(
+                    "Failed to save player runtime state for playerId={}: {}", playerId, result.error().message());
+            }
+        }
+    });
+
+    if (savedCount > 0) {
+        spdlog::info("Saved runtime state for {} player(s) before shutdown", savedCount);
+    }
+}
+
 void StandaloneServer::stop()
 {
     if (!m_initialized) {
@@ -504,6 +556,11 @@ void StandaloneServer::stop()
 
     spdlog::info("Stopping server...");
     m_running = false;
+
+    // 回写在线玩家运行时状态到 PlayerDataManager 缓存
+    // StandaloneServer 不主动 clearAll 玩家实体，但 savePlayerRuntimeState() 仍需
+    // 在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
+    savePlayerRuntimeState();
 
     // 停止核心组件
     stopCore();
