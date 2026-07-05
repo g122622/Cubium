@@ -41,6 +41,8 @@
 // 粒子类型
 #include "common/particle/ParticleTypes.hpp"
 
+#include <unordered_map>
+
 namespace mc {
 namespace entity {
 
@@ -184,6 +186,10 @@ void WindChargeEntity::applyWindBurst()
     const f32 knockbackMultiplier = getKnockbackMultiplier();
     const f32 range = radius * ENTITY_RANGE_MULTIPLIER;
 
+    // 收集每个受影响玩家的击退向量，用于广播 ExplosionPacket
+    // 对应 MC Java ServerExplosion.hitPlayers 映射
+    std::unordered_map<u64, Vector3> playerKnockback;
+
     // ========== 1. 查询范围内的实体 ==========
     // 对应 MC ServerExplosion.hurtEntities 中的实体范围查询
     AxisAlignedBB searchBox(burstPos.x - range - 1.0f,
@@ -285,8 +291,11 @@ void WindChargeEntity::applyWindBurst()
             if (player->isCreative() && abilities.flying) {
                 continue;
             }
-            // TODO: 当爆炸同步系统完善后，需要向客户端发送爆炸击退数据包
-            // 对应 MC: player.connection.send(new ClientboundExplodePacket(...))
+            // 记录玩家击退向量，稍后通过 ExplosionPacket 发送给客户端
+            // 对应 MC Java ServerExplosion.hurtEntities 中 hitPlayers.put(player, vec32)
+            // 客户端收到后会调用 player.addDeltaMovement(vec) 累加到现有速度上
+            playerKnockback[static_cast<u64>(player->id())] =
+                Vector3(dx * finalImpact, dy * finalImpact, dz * finalImpact);
         }
 
         // ========== 7. 通知实体被爆炸击中 ==========
@@ -294,10 +303,15 @@ void WindChargeEntity::applyWindBurst()
         entity->onExplosionHit(getShooter());
     }
 
-    // ========== 7. 播放风爆音效 ==========
+    // ========== 8. 广播爆炸事件给附近玩家 ==========
+    // 对应 MC Java ServerLevel.explode() 中遍历 64 格内玩家发送 ClientboundExplodePacket
+    // ServerWorld 通过回调委托给 MinecraftServer::broadcastExplosionInRange 进行范围筛选和发包
+    m_world->broadcastExplosion(burstPos, radius, {}, playerKnockback);
+
+    // ========== 9. 播放风爆音效 ==========
     _playWindBurstSound(burstPos);
 
-    // ========== 8. 生成风爆粒子效果 ==========
+    // ========== 10. 生成风爆粒子效果 ==========
     _spawnWindBurstParticles(burstPos);
 }
 

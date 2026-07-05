@@ -2344,6 +2344,17 @@ void ServerWorld::broadcastSetEntityLink(EntityId entityId, EntityId linkedEntit
     }
 }
 
+void ServerWorld::broadcastExplosion(const Vector3& position,
+    f32 strength,
+    const std::vector<BlockPos>& affectedBlocks,
+    const std::unordered_map<u64, Vector3>& playerKnockback)
+{
+    // 委托给 MinecraftServer 注册的回调，按 64 格范围筛选玩家并逐个发送 ExplosionPacket
+    if (m_onBroadcastExplosion) {
+        m_onBroadcastExplosion(position, strength, affectedBlocks, playerKnockback);
+    }
+}
+
 // ============================================================================
 // 爆炸
 // ============================================================================

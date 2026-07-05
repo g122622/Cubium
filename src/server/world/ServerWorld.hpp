@@ -779,6 +779,11 @@ public:
 
     void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId) override;
 
+    void broadcastExplosion(const Vector3& position,
+        f32 strength,
+        const std::vector<BlockPos>& affectedBlocks,
+        const std::unordered_map<u64, Vector3>& playerKnockback) override;
+
     // ========== 爆炸 ==========
 
     void createExplosion(const Vector3& position,

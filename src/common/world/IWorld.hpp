@@ -43,6 +43,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -1520,6 +1521,37 @@ public:
     {
         (void)entityId;
         (void)linkedEntityId;
+    }
+
+    // ========== 爆炸事件广播 ==========
+
+    /**
+     * @brief 广播爆炸事件给附近玩家
+     *
+     * 向爆炸点附近（默认 64 格）的玩家发送 ExplosionPacket，
+     * 包含爆炸位置、威力、受影响方块列表以及每个玩家的击退向量。
+     *
+     * ServerWorld 重写此方法，通过 `m_onBroadcastExplosion` 回调委托给
+     * MinecraftServer::broadcastExplosionInRange 进行实际的网络发送；
+     * 其他实现（如 WorldGenRegion）默认为空操作。
+     *
+     * 与 MC Java 的 ServerLevel.explode() 行为对应：爆炸完成后，
+     * 遍历 64 格内的玩家，根据 hitPlayers 映射发送 ClientboundExplodePacket。
+     *
+     * @param position 爆炸中心
+     * @param strength 爆炸威力（半径）
+     * @param affectedBlocks 受爆炸影响的方块位置列表
+     * @param playerKnockback 每个玩家对应的击退向量，键为玩家实体ID
+     */
+    virtual void broadcastExplosion(const Vector3& position,
+        f32 strength,
+        const std::vector<BlockPos>& affectedBlocks,
+        const std::unordered_map<u64, Vector3>& playerKnockback)
+    {
+        (void)position;
+        (void)strength;
+        (void)affectedBlocks;
+        (void)playerKnockback;
     }
 
     // ========== 睡眠系统 ==========
