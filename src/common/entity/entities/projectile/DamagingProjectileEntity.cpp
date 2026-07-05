@@ -89,7 +89,11 @@ particle::ParticleTypeId DamagingProjectileEntity::getParticleType() const
 
 void DamagingProjectileEntity::spawnTrailParticles(const Vector3& position)
 {
-    if (m_world->isClientSide()) {
+    // 与本模块其它抛射物（AbstractArrowEntity / TridentEntity / OtherProjectiles 等）一致：
+    // Cubium 允许 m_world == nullptr（测试/反序列化中间态），凡解引用 m_world 前都需判空。
+    // MC Java 侧 DamagingProjectileEntity.tick 按生命周期不变量保证 level 非空，此处不可照搬。
+    // 不判空时单元测试以无世界 FireballEntity 调用 tick 会在此解引用空指针崩溃。
+    if (m_world != nullptr && m_world->isClientSide()) {
         m_world->addParticle(getParticleType(), position, Vector3(0.0f, 0.0f, 0.0f));
     }
 }
@@ -97,7 +101,7 @@ void DamagingProjectileEntity::spawnTrailParticles(const Vector3& position)
 void DamagingProjectileEntity::spawnWaterParticles()
 {
     // 水中每 tick 生成 4 个气泡粒子
-    if (m_world->isClientSide()) {
+    if (m_world != nullptr && m_world->isClientSide()) {
         for (i32 i = 0; i < 4; ++i) {
             constexpr f32 offset = 0.25f;
             Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
