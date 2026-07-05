@@ -211,8 +211,6 @@ private:
     f64 m_speed;
     i32 m_seaLevel;
     bool m_stuck = false;
-
-    static constexpr f64 PI = 3.14159265358979323846; // TODO : 使用 math::PI
 };
 
 } // namespace entity::ai::goal

@@ -396,7 +396,7 @@ void DrownedSwimUpGoal::tick()
 
             // 使用随机偏移寻找可达位置
             math::Random& rng = m_drowned->getRandom();
-            f64 angle = rng.nextFloat() * PI * 2.0;
+            f64 angle = rng.nextFloat() * math::PI_DOUBLE * 2.0;
             f64 dist = static_cast<f64>(rng.nextInt(4, 8));
 
             f64 dx = -std::sin(angle) * dist;
