@@ -960,7 +960,12 @@ TEST_F(InfestedBlockStaticTest, RegisterInfestedBlock_MultipleMappings)
     EXPECT_TRUE(true);
 }
 
-// ==================== DragonBreathBlock 实体碰撞伤害测试 ====================
+// ==================== DragonBreathBlock 实体碰撞测试 ====================
+//
+// 注：commit b1b27cb0d 移除了 DragonBreathBlock::onEntityCollision 的直接伤害逻辑，
+// 龙息方块改为纯视觉占位——龙息伤害由 DragonFireballEntity / DragonSittingFlamingPhase
+// 生成的 AreaEffectCloudEntity 统一处理（与原版 MC 行为一致）。下方测试验证该决策：
+// 方块碰撞本身不施加任何伤害。
 
 /**
  * @brief 测试用伤害追踪 LivingEntity
@@ -1012,7 +1017,7 @@ protected:
     MobBlocksTestWorld world_;
 };
 
-TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_TakesDamage)
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_NoDamage)
 {
     // 设置服务端
     world_.setClientSide(false);
@@ -1030,10 +1035,9 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_TakesDamag
     // 触发碰撞
     dragonBreath_->onEntityCollision(state, world_, pos, entity);
 
-    // 验证：实体应该受到龙息伤害
-    EXPECT_EQ(entity.hurtCount(), 1);
-    EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f);
-    EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath);
+    // 验证：龙息方块为纯视觉占位，不直接造成伤害（伤害由 AreaEffectCloudEntity 处理）
+    EXPECT_EQ(entity.hurtCount(), 0);
+    EXPECT_FLOAT_EQ(entity.health(), 20.0f);
 }
 
 TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_ClientSide_NoDamage)
@@ -1079,7 +1083,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_NonLivingEntity_NoDamag
     // 非生物实体不应该受到伤害（方法内部检查 LivingEntity）
 }
 
-TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_MultipleDamage)
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_NoDamage)
 {
     // 设置服务端
     world_.setClientSide(false);
@@ -1099,11 +1103,11 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_Mult
     dragonBreath_->onEntityCollision(state, world_, pos, entity);
     dragonBreath_->onEntityCollision(state, world_, pos, entity);
 
-    // 验证：每次碰撞都应该造成伤害
-    EXPECT_EQ(entity.hurtCount(), 3);
+    // 验证：方块碰撞不造成伤害，多次碰撞仍为 0
+    EXPECT_EQ(entity.hurtCount(), 0);
 }
 
-TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBypassesArmor)
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBlock_NoDirectDamage)
 {
     // 设置服务端
     world_.setClientSide(false);
@@ -1121,14 +1125,12 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBypassesArm
     // 触发碰撞
     dragonBreath_->onEntityCollision(state, world_, pos, entity);
 
-    // 验证：龙息伤害类型绕过护甲
-    // 伤害类型应该正确设置
-    EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath);
-    // 伤害值应该是 1.0
-    EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f);
+    // 验证：龙息方块不直接施加伤害，伤害类型/数值保持未触发状态
+    EXPECT_EQ(entity.hurtCount(), 0);
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 0.0f);
 }
 
-TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_AllTakeDamage)
+TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_NoneTakeDamage)
 {
     // 设置服务端
     world_.setClientSide(false);
@@ -1155,10 +1157,8 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_Al
 
         dragonBreath_->onEntityCollision(state, world_, pos, entity);
 
-        EXPECT_EQ(entity.hurtCount(), 1) << "Entity type " << entityTypeIds[i] << " should take damage";
-        EXPECT_FLOAT_EQ(entity.lastDamage(), 1.0f) << "Entity type " << entityTypeIds[i] << " should take 1.0 damage";
-        EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath)
-            << "Entity type " << entityTypeIds[i] << " should take dragon breath damage";
+        EXPECT_EQ(entity.hurtCount(), 0) << "Entity type " << entityTypeIds[i] << " should not take damage from block";
+        EXPECT_FLOAT_EQ(entity.health(), 20.0f) << "Entity type " << entityTypeIds[i] << " should keep full health";
     }
 }
 
