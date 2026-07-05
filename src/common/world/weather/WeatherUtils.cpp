@@ -61,6 +61,13 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
+    // MC 1.21.11 Level.precipitationAt: 若该位置上方存在运动阻挡方块（MOTION_BLOCKING
+    // 高度图 Y > pos.y），则降水被遮挡。getHeight 返回最高阻挡方块上方的空气层 Y，
+    // 与 getHeightmapPos(MOTION_BLOCKING).getY() 语义一致。
+    if (world.getHeight(pos.x, pos.z) > pos.y) {
+        return false;
+    }
+
     const mc::Biome* biome = getBiomeAt(world, pos);
     if (biome == nullptr) {
         return false;
@@ -80,6 +87,13 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
 bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
 {
     if (world.isUltraWarm() || !canSeeSky(world, pos)) {
+        return false;
+    }
+
+    // MC 1.21.11 Level.precipitationAt: 若该位置上方存在运动阻挡方块（MOTION_BLOCKING
+    // 高度图 Y > pos.y），则降水被遮挡。getHeight 返回最高阻挡方块上方的空气层 Y，
+    // 与 getHeightmapPos(MOTION_BLOCKING).getY() 语义一致。
+    if (world.getHeight(pos.x, pos.z) > pos.y) {
         return false;
     }
 
