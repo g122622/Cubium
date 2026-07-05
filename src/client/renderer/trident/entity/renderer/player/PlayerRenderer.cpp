@@ -167,6 +167,12 @@ void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTi
 
 void PlayerRenderer::setModelVisibilities(::mc::Player& player, f64 partialTicks)
 {
+    // 本方法在 CPU 渲染路径（render/renderRightArm/renderLeftArm）中被调用。
+    // 第三人称 GPU 管线路径不经过此处，弩参数由
+    // EntityRendererManager::_applyPlayerCrossbowState 单独填充。
+    // TODO: 远程玩家的 use-item 状态网络同步未实现，远程玩家在 GPU 管线路径下
+    //       弩装填/持握动画暂不生效（详见 _applyPlayerCrossbowState 中的 TODO）。
+
     // 默认显示所有部件
     m_model.setAllVisible(true);
 

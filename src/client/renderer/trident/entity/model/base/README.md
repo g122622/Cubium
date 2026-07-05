@@ -90,6 +90,31 @@ BipedModel 的盔甲槽位可见性设置需参考 MC 1.16.5 `BipedArmorLayer.se
 - `netHeadYaw`：头部偏航角（rotationYawHead - renderYawOffset）
 - 不要在模型内部重新计算这些值，应直接使用传入参数
 
+### 弩装填/持握动画
+
+BipedModel 通过两个 protected 辅助方法实现弩的双手协调姿态，对应 MC 1.21
+`AnimationUtils.animateCrossbowCharge` / `animateCrossbowHold`：
+
+- `handleCrossbowCharge(isRightHanded)`：由 `handleRightArmPose` /
+  `handleLeftArmPose` 在 `ArmPose::CrossbowCharge` 分支调用。主手固定向前下方
+  （Y=±0.8, X=-0.97079635），副手 X 从 -0.97079635 lerp 到 -PI/2、Y 从 ±0.4
+  lerp 到 ±0.85，进度由 `m_crossbowChargeTicks / m_maxCrossbowChargeDuration`
+  归一化（含 clamp 防越界、除零保护）。
+- `handleCrossbowHold(isRightHanded)`：由 `handleRightArmPose` /
+  `handleLeftArmPose` 在 `ArmPose::CrossbowHold` 分支调用。主副手 Y/X 角度
+  跟随头部 yaw/pitch，呈双手持弩瞄准姿态。
+
+调用约定（避免双手协调姿态被重复设置）：
+- 右手分支：`CrossbowCharge`/`CrossbowHold` 直接调用 handler
+- 左手分支：先判断右手姿态是否已为同一姿态，是则跳过（双手已在右手分支设置）
+
+状态字段 setter（由渲染器在 `setAngles` 前调用）：
+- `setCrossbowChargeTicks(f32)`：已使用 ticks（含 partialTick 插值），
+  对应 MC `HumanoidRenderState.ticksUsingItem`
+- `setMaxCrossbowChargeDuration(f32)`：弩最大装填时长（ticks），
+  对应 MC `HumanoidRenderState.maxCrossbowChargeDuration`，
+  由渲染器调用 `CrossbowItem::getChargeTime(stack)` 计算
+
 ### 命名空间
 
 所有模型类位于 `mc::client::renderer::entity::model` 命名空间（注意：不是 `model::base` 子命名空间）。

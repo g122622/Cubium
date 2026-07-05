@@ -32,6 +32,7 @@
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -41,12 +42,20 @@ namespace mc {
 class Entity;
 class Item;
 class ItemStack;
+class Player;
 struct TextureRegion;
 } // namespace mc
 
 namespace mc::client {
 class ClientEntity;
 }
+
+namespace mc::client::renderer::entity::model {
+class EntityModel;
+namespace player {
+class PlayerModel;
+} // namespace player
+} // namespace mc::client::renderer::entity::model
 
 namespace mc::client::renderer::entity {
 
@@ -249,6 +258,24 @@ public:
      */
     [[nodiscard]] bool renderNameTags() const { return m_renderNameTags; }
 
+    // ========== 本地玩家访问 ==========
+
+    /**
+     * @brief 设置本地玩家访问器
+     *
+     * 第三人称玩家渲染走 GPU 管线路径（_createModelForEntity），需要从本地 Player
+     * 对象读取 use-item 状态以驱动弩装填/持握动画。远程玩家缺此状态，留待网络同步
+     * 实现后补齐（见 _createModelForEntity 玩家分支的 TODO 注释）。
+     *
+     * @param localPlayerEntityId 本地玩家的实体 ID（用于在 ClientEntity 中识别）
+     * @param accessor 返回本地 Player 指针的回调（可能返回 nullptr）
+     */
+    void setLocalPlayerAccessor(EntityId localPlayerEntityId, std::function<::mc::Player*()> accessor)
+    {
+        m_localPlayerEntityId = localPlayerEntityId;
+        m_localPlayerAccessor = std::move(accessor);
+    }
+
     // ========== 初始化 ==========
 
     /**
@@ -287,6 +314,10 @@ private:
 
     bool m_renderShadows = true;
     bool m_renderNameTags = true;
+
+    // 本地玩家访问器（用于第三人称玩家 GPU 管线路径读取 use-item 状态）
+    EntityId m_localPlayerEntityId = INVALID_ENTITY_ID;
+    std::function<::mc::Player*()> m_localPlayerAccessor;
 
     /**
      * @brief 创建或获取渲染器
@@ -389,6 +420,21 @@ private:
      */
     [[nodiscard]] std::unique_ptr<model::EntityModel> _createModelForEntity(
         ClientEntity& entity, core::AnimationContext& context);
+
+    /**
+     * @brief 为玩家模型设置弩装填/持握动画参数与 ArmPose
+     *
+     * 在 _createModelForEntity 玩家分支中调用。从本地 Player 对象读取
+     * use-item 状态，计算 maxCrossbowChargeDuration 与 ticksUsingItem，
+     * 并通过 PlayerArmPoseResolver 解析 ArmPose 设置到模型。
+     * 远程玩家暂缺 use-item 状态，留 TODO 待网络同步实现。
+     *
+     * @param playerModel 已通过 setAngles 设置基础动画的玩家模型
+     * @param entity 客户端实体（用于识别是否为本地玩家）
+     * @param context 动画上下文（提供 partialTicks）
+     */
+    void _applyPlayerCrossbowState(
+        model::player::PlayerModel& playerModel, ClientEntity& entity, const core::AnimationContext& context);
 };
 
 } // namespace mc::client::renderer::entity

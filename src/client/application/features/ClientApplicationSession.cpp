@@ -281,6 +281,11 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
                 frameContext.camera->position(), frameContext.viewMatrix, frustum);
         }
 
+        // 设置本地玩家访问器（每帧更新以应对登录/登出切换）
+        // 第三人称玩家 GPU 管线路径需要从本地 Player 读取 use-item 状态驱动弩动画
+        m_renderer->entityRendererManager().setLocalPlayerAccessor(
+            m_localIdentity.entityId(), [this]() -> ::mc::Player* { return m_player.get(); });
+
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
             m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick, frustum);
         });

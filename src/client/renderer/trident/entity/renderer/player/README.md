@@ -81,14 +81,33 @@ namespace mc::client::renderer::entity::renderer::player {
 
 ### 3. 模型可见性设置顺序
 
-`setModelVisibilities()` 必须在渲染前调用，它会：
+`setModelVisibilities(player, partialTicks)` 必须在渲染前调用，它会：
 1. 设置所有部件可见
 2. 通过 `PlayerArmPoseResolver::resolveArmPoses()` 解析双手姿态并映射到模型左右臂
 3. 设置 `mainHand`/`swingingHand` 供 `BipedModel::setAngles` 双臂协调逻辑使用
 4. 根据 `playerModelParts()` 设置外层皮肤可见性
 5. 设置蹲伏/游泳状态
+6. 计算弩装填参数并写入模型：
+   - `maxChargeDuration = CrossbowItem::getChargeTime(stack)`
+   - `ticksUsingItem = useDuration - getItemInUseCount() + partialTicks`
+     （Cubium 中 `getItemInUseCount` 返回剩余 ticks，故用 `useDuration` 反推
+     已使用 ticks，对应 MC `HumanoidMobRenderer.extractHumanoidRenderState` 填充逻辑）
+   - 通过 `m_model.setMaxCrossbowChargeDuration` / `setCrossbowChargeTicks` 写入
 
 **注意**：披风可见性由 `CapeLayer` 单独控制，不在 `setModelVisibilitiesFromFlags` 中。
+
+### 3.1 第三人称 GPU 管线路径的弩参数填充
+
+第三人称玩家走 GPU 管线路径（`EntityRendererManager::_createModelForEntity`），
+不经过 `PlayerRenderer::setModelVisibilities`。为避免弩动画参数缺失导致
+`handleCrossbowCharge` 中 progress 恒为 0，`_createModelForEntity` 玩家分支
+会调用 `_applyPlayerCrossbowState`，从本地 `Player` 对象读取 use-item 状态
+并填充弩参数与 ArmPose。
+
+本地玩家访问通过 `EntityRendererManager::setLocalPlayerAccessor` 注入，
+由 `ClientApplicationSession` 在实体渲染回调中每帧更新。**远程玩家缺
+use-item 状态的网络同步，弩动画在远程玩家上暂时不生效**（见代码中
+TODO 注释）。
 
 ### 4. 第一人称手臂渲染
 

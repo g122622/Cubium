@@ -29,10 +29,13 @@
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
 #include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/renderer/RendererRegistration.hpp"
+#include "client/renderer/trident/entity/renderer/player/PlayerArmPoseResolver.hpp"
 #include "client/renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "client/renderer/trident/entity/renderer/projectile/ItemEntityRenderer.hpp"
 #include "client/renderer/trident/entity/util/NameTagRenderer.hpp"
@@ -43,9 +46,12 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -1044,11 +1050,78 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             // puffState == 0 使用 ModelFactory 创建的 PufferfishSmallModel
         }
 
+        // 玩家弩装填/持握动画参数
+        // 第三人称玩家走 GPU 管线路径，需要在此设置 BipedModel 的弩状态字段，
+        // 否则 handleCrossbowCharge 中 progress 恒为 0、副手角度恒为初始值。
+        if (normalizedId == "player" || normalizedId == "minecraft:player") {
+            auto* playerModel = dynamic_cast<model::player::PlayerModel*>(model.get());
+            if (playerModel != nullptr) {
+                _applyPlayerCrossbowState(*playerModel, entity, context);
+            }
+        }
+
         return model;
     }
 
     spdlog::warn("_createModelForEntity: No model found for entity type: {}", normalizedId);
     return nullptr;
+}
+
+void EntityRendererManager::_applyPlayerCrossbowState(
+    model::player::PlayerModel& playerModel, ClientEntity& entity, const core::AnimationContext& context)
+{
+    // 默认值：弩参数归零，ArmPose 不设置（保持 setAngles 默认的 Empty）
+    f32 ticksUsingItem = 0.0f;
+    f32 maxChargeDuration = 0.0f;
+
+    // 仅本地玩家可通过 Player 对象读取 use-item 状态
+    // TODO: 远程玩家的 use-item 状态需通过网络同步到 ClientEntity 后才能驱动弩动画。
+    //       当前远程玩家在第三人称下不会出现弩装填/持握动画，弓箭/三叉戟等姿态
+    //       同样缺失。实现路径：
+    //       1. 服务端 LivingEntity 在 setActiveHand/stopActiveHand 时发送
+    //          ServerboundUseItemPacket 对应的客户端状态包
+    //          （ClientboundUseItemPacket 或扩展 metadata）
+    //       2. ClientEntity 增加 m_activeHand / m_activeItem / m_activeItemUseCount 字段
+    //          及其元数据同步逻辑（DATA_LIVING_FLAGS_PARAM bit 0/1）
+    //       3. 此处通过 entity.activeHand() / entity.activeItem() / entity.getItemInUseCount()
+    //          读取，与 PlayerRenderer::setModelVisibilities 中的逻辑合并到公共工具函数
+    ::mc::Player* localPlayer =
+        (m_localPlayerAccessor && entity.id() == m_localPlayerEntityId) ? m_localPlayerAccessor() : nullptr;
+
+    if (localPlayer != nullptr && localPlayer->isUsingItem()) {
+        const ::mc::ItemStack& activeStack = localPlayer->getActiveItem();
+        const ::mc::Item* activeItem = activeStack.getItem();
+        if (activeItem == ::mc::Items::CROSSBOW) {
+            // maxCrossbowChargeDuration = CrossbowItem.getChargeTime(stack)
+            maxChargeDuration = static_cast<f32>(::mc::item::CrossbowItem::getChargeTime(activeStack));
+            // ticksUsingItem = useDuration - useItemRemaining + partialTick
+            // Cubium 中 CrossbowItem::getUseDuration = getChargeTime + 3
+            const i32 useDuration = activeItem->getUseDuration(activeStack);
+            const i32 remaining = localPlayer->getItemInUseCount();
+            const i32 elapsed = useDuration - remaining;
+            ticksUsingItem = static_cast<f32>(elapsed) + static_cast<f32>(context.partialTicks);
+        }
+    }
+
+    playerModel.setMaxCrossbowChargeDuration(maxChargeDuration);
+    playerModel.setCrossbowChargeTicks(ticksUsingItem);
+
+    // ArmPose 解析（含双手协调与主/副手映射）
+    if (localPlayer != nullptr) {
+        const auto poses = renderer::player::PlayerArmPoseResolver::resolveArmPoses(*localPlayer);
+        playerModel.setArmPose(poses.leftArmPose, poses.rightArmPose);
+        playerModel.setMainHand(localPlayer->isRightHanded() ? model::HandSide::Right : model::HandSide::Left);
+        if (localPlayer->isSwingInProgress()) {
+            playerModel.setSwingingHand(localPlayer->swingingHand() == ::mc::Hand::MainHand
+                    ? (localPlayer->isRightHanded() ? model::HandSide::Right : model::HandSide::Left)
+                    : (localPlayer->isRightHanded() ? model::HandSide::Left : model::HandSide::Right));
+        }
+        // 蹲伏/游泳状态（影响 setAngles 中的身体角度）
+        playerModel.setCrouching(localPlayer->isSneaking());
+        playerModel.setSwimming(localPlayer->isSwimming());
+        // TODO: 远程玩家的 ArmPose/主手/挥动手/蹲伏/游泳状态需通过网络同步到
+        //       ClientEntity 后在此处补齐
+    }
 }
 
 pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
