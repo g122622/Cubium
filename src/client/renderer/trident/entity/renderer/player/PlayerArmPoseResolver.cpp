@@ -71,6 +71,7 @@ model::player::ArmPose PlayerArmPoseResolver::determineArmPose(::mc::Player& pla
                 return model::player::ArmPose::Brush;
             case ::mc::UseAction::Bundle:
                 // 收纳袋使用动作类似饮用，第三人称 ArmPose 无 EatOrDrink 枚举，降级为 Item
+                // TODO: 若第三人称 ArmPose 扩展 EatOrDrink，应改为返回该姿态
                 return model::player::ArmPose::Item;
             default:
                 break;

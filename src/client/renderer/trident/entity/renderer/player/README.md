@@ -126,7 +126,7 @@ TODO 注释）。
    - `Crossbow`（弩装填）→ `CrossbowCharge`
    - `Spyglass`（望远镜）→ `Spyglass`
    - `Brush`（刷子）→ `Brush`
-   - `Bundle`（收纳袋）→ 暂降级为 `Item`（无对应第三人称 EatOrDrink 枚举）
+   - `Bundle`（收纳袋）→ 暂降级为 `Item`（TODO：第三人称 ArmPose 无 EatOrDrink 枚举，未来扩展后应改为返回该姿态）
 4. 长矛类物品（`ItemTags::SPEARS`）→ `ThrowSpear`
 5. 默认持有物品 → `Item`
 
