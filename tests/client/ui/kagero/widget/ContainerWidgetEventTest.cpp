@@ -303,4 +303,106 @@ TEST_F(ContainerWidgetEventTest, Drag_PropagatesToHoveredChild)
     EXPECT_FALSE(handled);
 }
 
+// ========== 拖拽开始/结束事件传播测试 ==========
+
+// 用于追踪 onDragStart/onDragEnd 的 Mock Widget
+class MockDragWidget : public Widget {
+public:
+    explicit MockDragWidget(const std::string& id)
+        : Widget(id)
+    {}
+
+    void setBounds(Rect r) { Widget::setBounds(r); }
+
+    bool onClick(i32, i32, i32, i32) override { return true; }
+
+    bool onDragStart(i32 x, i32 y, i32 button, i32 mods) override
+    {
+        dragStartCalled = true;
+        lastX = x;
+        lastY = y;
+        lastButton = button;
+        lastMods = mods;
+        return true;
+    }
+
+    bool onDragEnd(i32 x, i32 y, i32 button, bool dropped) override
+    {
+        dragEndCalled = true;
+        endLastX = x;
+        endLastY = y;
+        endLastButton = button;
+        endLastDropped = dropped;
+        return true;
+    }
+
+    bool dragStartCalled = false;
+    bool dragEndCalled = false;
+    i32 lastX = 0;
+    i32 lastY = 0;
+    i32 lastButton = -1;
+    i32 lastMods = 0;
+    i32 endLastX = 0;
+    i32 endLastY = 0;
+    i32 endLastButton = -1;
+    bool endLastDropped = false;
+};
+
+TEST_F(ContainerWidgetEventTest, DragStart_PropagatesToHitChild)
+{
+    auto dragWidget = std::make_unique<MockDragWidget>("dragWidget");
+    dragWidget->setBounds(Rect(10, 10, 100, 20));
+    dragWidget->setActive(true);
+    auto* dragPtr = dragWidget.get();
+    container->addChild(std::move(dragWidget));
+
+    bool handled = container->onDragStart(50, 20, 0, 1);
+    EXPECT_TRUE(handled);
+    EXPECT_TRUE(dragPtr->dragStartCalled);
+    EXPECT_EQ(50, dragPtr->lastX);
+    EXPECT_EQ(20, dragPtr->lastY);
+    EXPECT_EQ(0, dragPtr->lastButton);
+    EXPECT_EQ(1, dragPtr->lastMods);
+}
+
+TEST_F(ContainerWidgetEventTest, DragStart_ReturnsFalseWhenNoWidgetHit)
+{
+    auto dragWidget = std::make_unique<MockDragWidget>("dragWidget");
+    dragWidget->setBounds(Rect(10, 10, 100, 20));
+    dragWidget->setActive(true);
+    container->addChild(std::move(dragWidget));
+
+    // 点击空白区域
+    EXPECT_FALSE(container->onDragStart(300, 200, 0, 0));
+}
+
+TEST_F(ContainerWidgetEventTest, DragEnd_PropagatesToHitChild)
+{
+    auto dragWidget = std::make_unique<MockDragWidget>("dragWidget");
+    dragWidget->setBounds(Rect(10, 10, 100, 20));
+    dragWidget->setActive(true);
+    auto* dragPtr = dragWidget.get();
+    container->addChild(std::move(dragWidget));
+
+    bool handled = container->onDragEnd(60, 25, 0, false);
+    EXPECT_TRUE(handled);
+    EXPECT_TRUE(dragPtr->dragEndCalled);
+    EXPECT_EQ(60, dragPtr->endLastX);
+    EXPECT_EQ(25, dragPtr->endLastY);
+    EXPECT_EQ(0, dragPtr->endLastButton);
+    EXPECT_FALSE(dragPtr->endLastDropped);
+}
+
+TEST_F(ContainerWidgetEventTest, DragEnd_PropagatesDroppedFlag)
+{
+    auto dragWidget = std::make_unique<MockDragWidget>("dragWidget");
+    dragWidget->setBounds(Rect(10, 10, 100, 20));
+    dragWidget->setActive(true);
+    auto* dragPtr = dragWidget.get();
+    container->addChild(std::move(dragWidget));
+
+    container->onDragEnd(60, 25, 0, true);
+    EXPECT_TRUE(dragPtr->endLastDropped);
+}
+
 } // namespace mc::client::ui::kagero::widget

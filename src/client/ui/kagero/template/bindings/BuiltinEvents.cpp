@@ -22,6 +22,9 @@
  */
 
 #include "BuiltinEvents.hpp"
+#include "client/ui/kagero/widget/CheckboxWidget.hpp"
+#include "client/ui/kagero/widget/SliderWidget.hpp"
+#include "client/ui/kagero/widget/TextFieldWidget.hpp"
 #include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <cctype>
@@ -242,14 +245,47 @@ void BuiltinEvents::_registerKeyEvents()
 
 void BuiltinEvents::_registerValueEvents()
 {
-    // change事件
-    // TODO: 值变化处理尚未实现，需要由具体Widget实现onValueChange接口
-    m_handlers[event_names::CHANGE] = [](widget::Widget* widget, const event::Event&) { (void)widget; };
+    // change事件：值变化通知
+    //
+    // 值变化事件由具体 Widget 在内部状态变化时主动发出（例如 CheckboxWidget 在
+    // onClick 中触发 m_onChanged、SliderWidget 在 setValue 中触发 m_onValueChanged、
+    // TextFieldWidget 在 onChar/onKey 中触发 m_onTextChanged）。
+    //
+    // 模板系统通过 TemplateInstance::registerDefaultEventBinders 中的 "change" 绑定器
+    // 将这些回调桥接到模板回调（ctx.invokeCallback），这是实际生效的路径。
+    //
+    // 此处注册的 handler 仅用于 BuiltinEvents::handle() 直接分发场景（当前未被调用），
+    // 按 Widget 类型做最小分发示意，不重复注册回调以避免覆盖模板绑定。
+    m_handlers[event_names::CHANGE] = [](widget::Widget* widget, const event::Event& event) {
+        if (!widget || !widget->isActive() || !widget->isVisible()) {
+            return;
+        }
+        (void)event;
+        // 值变化回调已由 TemplateInstance 的 change 绑定器通过 setOnChanged/
+        // setOnValueChanged/setTextChangedCallback 注册，此处仅作为类型分发占位。
+        if (dynamic_cast<widget::CheckboxWidget*>(widget) != nullptr) {
+            // CheckboxWidget：值变化由 onClick 内部触发
+        } else if (dynamic_cast<widget::SliderWidget*>(widget) != nullptr) {
+            // SliderWidget：值变化由 setValue/onDrag 内部触发
+        } else if (dynamic_cast<widget::TextFieldWidget*>(widget) != nullptr) {
+            // TextFieldWidget：值变化由 onChar/onKey 内部触发
+        }
+    };
     m_eventTypes[event_names::CHANGE] = event::EventType::ValueChange;
 
-    // input事件
-    // TODO: 输入处理尚未实现，需要由具体Widget实现onTextInput接口
-    m_handlers[event_names::INPUT] = [](widget::Widget* widget, const event::Event&) { (void)widget; };
+    // input事件：文本输入通知（仅 TextFieldWidget）
+    //
+    // 与 change 事件类似，文本输入回调由 TemplateInstance 的 "input" 绑定器通过
+    // setTextChangedCallback 注册，此处仅作为事件分发占位。
+    m_handlers[event_names::INPUT] = [](widget::Widget* widget, const event::Event& event) {
+        if (!widget || !widget->isActive() || !widget->isVisible()) {
+            return;
+        }
+        (void)event;
+        if (dynamic_cast<widget::TextFieldWidget*>(widget) != nullptr) {
+            // TextFieldWidget：文本输入由 onChar 内部触发
+        }
+    };
     m_eventTypes[event_names::INPUT] = event::EventType::TextChange;
 }
 
@@ -266,23 +302,26 @@ void BuiltinEvents::_registerDragEvents()
     };
     m_eventTypes[event_names::DRAG] = event::EventType::MouseDrag;
 
-    // dragStart事件
-    // TODO: 拖拽开始处理尚未实现，需要Widget添加onDragStart方法
+    // dragStart事件：拖拽开始，调用 Widget::onDragStart
+    // 与 KageroEngine::handleClick 中的 onDragStart 调用对应。DragStartEvent 当前
+    // 仅携带 x/y，button 与 mods 通过默认值传入（直接分发场景下需要事件对象扩展字段，
+    // 当前 KageroEngine 走同步调用路径，不经过此 handler）。
     m_handlers[event_names::DRAG_START] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragStartEvent*>(&event)) {
-                (void)dragEvent;
+                widget->onDragStart(dragEvent->x(), dragEvent->y(), /*button=*/0, /*mods=*/0);
             }
         }
     };
     m_eventTypes[event_names::DRAG_START] = event::EventType::Custom;
 
-    // dragEnd事件
-    // TODO: 拖拽结束处理尚未实现，需要Widget添加onDragEnd方法
+    // dragEnd事件：拖拽结束，调用 Widget::onDragEnd
+    // 与 KageroEngine::handleRelease 中的 onDragEnd 调用对应。DragEndEvent 携带
+    // wasDropped 标志，button 通过默认值传入。
     m_handlers[event_names::DRAG_END] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragEndEvent*>(&event)) {
-                (void)dragEvent;
+                widget->onDragEnd(dragEvent->x(), dragEvent->y(), /*button=*/0, dragEvent->wasDropped());
             }
         }
     };

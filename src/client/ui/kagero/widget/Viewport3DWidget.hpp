@@ -154,6 +154,25 @@ public:
         return true;
     }
 
+    bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mods;
+        // onClick 已经设置了 m_dragging 并记录起始坐标，onDragStart 仅确认拖拽按钮
+        if (button != 0) return false;
+        return m_dragging;
+    }
+
+    bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)dropped;
+        // onDragEnd 仅作为拖拽结束通知，不清理 m_dragging。
+        // 状态清理由 onRelease 统一完成（与原设计一致，避免双重清理）。
+        if (button != 0) return false;
+        return m_dragging;
+    }
+
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override
     {
         (void)mouseX;

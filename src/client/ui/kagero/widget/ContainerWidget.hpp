@@ -67,6 +67,8 @@ public:
     bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
     bool onRightClick(i32 mouseX, i32 mouseY, i32 mods) override;
     bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override;
+    bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
+    bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override;
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override;
 
     /**

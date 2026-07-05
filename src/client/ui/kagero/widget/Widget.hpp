@@ -283,6 +283,55 @@ public:
     }
 
     /**
+     * @brief 鼠标拖拽开始事件
+     *
+     * 在用户按下鼠标并准备开始拖拽时触发（onClick 成功后立即调用）。
+     * 与 MC Java版 ContainerEventHandler 的 drag 协议一致：无阈值、
+     * 在点击命中的 Widget 上立即触发 onDragStart，随后续鼠标移动产生 onDrag。
+     *
+     * 子类可重写此方法初始化拖拽状态（如记录起始坐标、设置拖拽标志）。
+     * 默认实现返回 false，表示未处理拖拽开始事件。
+     *
+     * @param mouseX 鼠标X坐标（拖拽起始位置）
+     * @param mouseY 鼠标Y坐标（拖拽起始位置）
+     * @param button 触发拖拽的鼠标按钮 (0=左键, 1=右键, 2=中键)
+     * @param mods 拖拽开始时的修饰键状态
+     * @return 如果事件被处理返回true
+     */
+    virtual bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods)
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)button;
+        (void)mods;
+        return false;
+    }
+
+    /**
+     * @brief 鼠标拖拽结束事件
+     *
+     * 在用户释放鼠标按钮、结束拖拽时触发（onRelease 之前调用）。
+     * 与 MC Java版 ContainerEventHandler 的 drag 协议一致。
+     *
+     * 子类可重写此方法清理拖拽状态（如清除拖拽标志、提交最终值）。
+     * 默认实现返回 false，表示未处理拖拽结束事件。
+     *
+     * @param mouseX 鼠标X坐标（拖拽结束位置）
+     * @param mouseY 鼠标Y坐标（拖拽结束位置）
+     * @param button 结束拖拽的鼠标按钮 (0=左键, 1=右键, 2=中键)
+     * @param dropped 是否在拖拽过程中被丢弃（如焦点丢失、外部取消）
+     * @return 如果事件被处理返回true
+     */
+    virtual bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped)
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)button;
+        (void)dropped;
+        return false;
+    }
+
+    /**
      * @brief 鼠标滚轮事件
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标

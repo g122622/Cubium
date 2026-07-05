@@ -81,6 +81,16 @@ bool ContainerWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32
     return handleDragInChildren(mouseX, mouseY, deltaX, deltaY, button);
 }
 
+bool ContainerWidget::onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods)
+{
+    return handleDragStartInChildren(mouseX, mouseY, button, mods);
+}
+
+bool ContainerWidget::onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped)
+{
+    return handleDragEndInChildren(mouseX, mouseY, button, dropped);
+}
+
 bool ContainerWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta)
 {
     return handleScrollInChildren(mouseX, mouseY, delta);

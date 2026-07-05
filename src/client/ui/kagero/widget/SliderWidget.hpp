@@ -149,7 +149,8 @@ public:
 
         if (m_dragging) {
             m_dragging = false;
-            // 触发最终值变化
+            // 触发最终值变化（拖拽结束的最终回调由 onRelease 统一触发，
+            // 与原设计一致；onDragEnd 不重复触发，避免双重回调）
             if (m_onValueChanged) {
                 m_onValueChanged(m_value);
             }
@@ -169,6 +170,28 @@ public:
 
         setValueFromMouse(mouseX);
         return true;
+    }
+
+    bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)mods;
+        // onClick 已经设置了 m_dragging 并设置了焦点，onDragStart 仅确认拖拽按钮
+        if (button != 0) return false;
+        return m_dragging;
+    }
+
+    bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)dropped;
+        // onDragEnd 仅作为拖拽结束通知，不清理 m_dragging，也不触发回调。
+        // 状态清理与最终回调由 onRelease 统一完成（与原设计一致，
+        // 避免 onDragEnd→onRelease 双重触发回调）。
+        if (button != 0) return false;
+        return m_dragging;
     }
 
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override

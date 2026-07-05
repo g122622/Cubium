@@ -565,6 +565,56 @@ protected:
     }
 
     /**
+     * @brief 处理子组件的拖拽开始事件
+     *
+     * 将 onDragStart 分发到命中的子组件（与 handleClickInChildren 一致，
+     * 通过 getWidgetAt 查找命中目标，自动设置焦点）。
+     *
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param button 触发拖拽的鼠标按钮
+     * @param mods 修饰键位掩码
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleDragStartInChildren(i32 mouseX, i32 mouseY, i32 button, i32 mods)
+    {
+        Widget* widget = getWidgetAt(mouseX, mouseY);
+        if (widget != nullptr) {
+            return widget->onDragStart(mouseX, mouseY, button, mods);
+        }
+        return false;
+    }
+
+    /**
+     * @brief 处理子组件的拖拽结束事件
+     *
+     * 将 onDragEnd 分发到命中的子组件。若已知拖拽目标（draggingWidget），
+     * 优先分发到该组件，否则按命中位置查找。
+     *
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param button 结束拖拽的鼠标按钮
+     * @param dropped 是否被丢弃（焦点丢失/外部取消）
+     * @param draggingWidget 当前拖拽中的子组件（可选，nullptr 时按命中位置查找）
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleDragEndInChildren(i32 mouseX, i32 mouseY, i32 button, bool dropped, Widget* draggingWidget = nullptr)
+    {
+        if (draggingWidget != nullptr) {
+            // 优先分发到已知的拖拽目标，避免拖拽过程中鼠标移出组件区域后丢失事件
+            if (draggingWidget->isVisible() && draggingWidget->isActive()) {
+                return draggingWidget->onDragEnd(mouseX, mouseY, button, dropped);
+            }
+            return false;
+        }
+        Widget* widget = getWidgetAt(mouseX, mouseY);
+        if (widget != nullptr) {
+            return widget->onDragEnd(mouseX, mouseY, button, dropped);
+        }
+        return false;
+    }
+
+    /**
      * @brief 处理子组件的滚轮事件
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标

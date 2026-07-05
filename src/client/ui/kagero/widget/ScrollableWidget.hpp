@@ -223,6 +223,41 @@ public:
         return false;
     }
 
+    bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mods;
+        if (!isActive() || !isVisible()) return false;
+        if (button != 0) return false; // 仅左键触发拖拽
+
+        // 滚动条拖拽状态已由 onClick 设置（m_draggingScrollbar/m_draggingHorizontalScrollbar），
+        // onDragStart 仅负责将事件转发给命中的子组件，让子组件也能感知拖拽开始。
+        // 若点击落在滚动条区域，则不向子组件分发。
+        if (m_draggingScrollbar || m_draggingHorizontalScrollbar) {
+            return true;
+        }
+
+        // 调整坐标并传递给子组件
+        i32 adjustedX = mouseX + m_scrollX;
+        i32 adjustedY = mouseY + m_scrollY;
+        return handleDragStartInChildren(adjustedX, adjustedY, button, mods);
+    }
+
+    bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override
+    {
+        if (button != 0) return false;
+
+        // 滚动条拖拽：onDragEnd 仅作为通知，状态清理由 onRelease 统一完成
+        // （避免 onDragEnd→onRelease 双重清理导致 onRelease 误将事件传递给子组件）。
+        if (m_draggingScrollbar || m_draggingHorizontalScrollbar) {
+            return true;
+        }
+
+        // 非滚动条拖拽：调整坐标并传递给子组件
+        i32 adjustedX = mouseX + m_scrollX;
+        i32 adjustedY = mouseY + m_scrollY;
+        return handleDragEndInChildren(adjustedX, adjustedY, button, dropped);
+    }
+
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override
     {
         if (!isActive() || !isVisible()) return false;

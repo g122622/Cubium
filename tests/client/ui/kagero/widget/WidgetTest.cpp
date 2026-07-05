@@ -54,6 +54,40 @@ public:
     bool wasPaintCalled() const { return m_paintCalled; }
     void resetFlags() { m_paintCalled = false; }
 
+    // 拖拽开始/结束事件追踪
+    bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        m_dragStartCalled = true;
+        m_lastDragStartX = mouseX;
+        m_lastDragStartY = mouseY;
+        m_lastDragStartButton = button;
+        m_lastDragStartMods = mods;
+        return m_dragStartHandled;
+    }
+
+    bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override
+    {
+        m_dragEndCalled = true;
+        m_lastDragEndX = mouseX;
+        m_lastDragEndY = mouseY;
+        m_lastDragEndButton = button;
+        m_lastDragEndDropped = dropped;
+        return m_dragEndHandled;
+    }
+
+    bool m_dragStartCalled = false;
+    bool m_dragEndCalled = false;
+    bool m_dragStartHandled = false;
+    bool m_dragEndHandled = false;
+    i32 m_lastDragStartX = 0;
+    i32 m_lastDragStartY = 0;
+    i32 m_lastDragStartButton = -1;
+    i32 m_lastDragStartMods = 0;
+    i32 m_lastDragEndX = 0;
+    i32 m_lastDragEndY = 0;
+    i32 m_lastDragEndButton = -1;
+    bool m_lastDragEndDropped = false;
+
 private:
     bool m_paintCalled = false;
 };
@@ -311,6 +345,64 @@ TEST(WidgetTest, OnDragReturnsFalse)
     widget.setBounds(Rect(0, 0, 100, 100));
 
     EXPECT_FALSE(widget.onDrag(50, 50, 10, 10, 0));
+}
+
+// ==================== 拖拽开始/结束事件测试 ====================
+
+TEST(WidgetTest, OnDragStartDefaultReturnsFalse)
+{
+    // 默认实现（未重写）应返回 false
+    Widget widget;
+    EXPECT_FALSE(widget.onDragStart(10, 20, 0, 0));
+}
+
+TEST(WidgetTest, OnDragEndDefaultReturnsFalse)
+{
+    // 默认实现（未重写）应返回 false
+    Widget widget;
+    EXPECT_FALSE(widget.onDragEnd(10, 20, 0, false));
+}
+
+TEST(WidgetTest, OnDragStartRecordsArguments)
+{
+    TestWidget widget;
+    widget.setBounds(Rect(0, 0, 100, 100));
+
+    EXPECT_FALSE(widget.onDragStart(30, 40, 0, 1)); // 默认 m_dragStartHandled = false
+    EXPECT_TRUE(widget.m_dragStartCalled);
+    EXPECT_EQ(30, widget.m_lastDragStartX);
+    EXPECT_EQ(40, widget.m_lastDragStartY);
+    EXPECT_EQ(0, widget.m_lastDragStartButton);
+    EXPECT_EQ(1, widget.m_lastDragStartMods);
+}
+
+TEST(WidgetTest, OnDragEndRecordsArguments)
+{
+    TestWidget widget;
+    widget.setBounds(Rect(0, 0, 100, 100));
+
+    EXPECT_FALSE(widget.onDragEnd(50, 60, 0, true));
+    EXPECT_TRUE(widget.m_dragEndCalled);
+    EXPECT_EQ(50, widget.m_lastDragEndX);
+    EXPECT_EQ(60, widget.m_lastDragEndY);
+    EXPECT_EQ(0, widget.m_lastDragEndButton);
+    EXPECT_TRUE(widget.m_lastDragEndDropped);
+}
+
+TEST(WidgetTest, OnDragStartHandledReturnsTrue)
+{
+    TestWidget widget;
+    widget.m_dragStartHandled = true;
+
+    EXPECT_TRUE(widget.onDragStart(0, 0, 0, 0));
+}
+
+TEST(WidgetTest, OnDragEndHandledReturnsTrue)
+{
+    TestWidget widget;
+    widget.m_dragEndHandled = true;
+
+    EXPECT_TRUE(widget.onDragEnd(0, 0, 0, false));
 }
 
 TEST(WidgetTest, OnScrollReturnsFalse)

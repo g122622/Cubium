@@ -164,6 +164,10 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button, i32 mods)
             m_dragButton = button;
             m_dragMods = mods;
 
+            // 触发拖拽开始事件（与 MC Java版 ContainerEventHandler 一致：
+            // 点击命中后立即触发 onDragStart，无阈值，由 Widget 自行管理拖拽状态）
+            m_draggingWidget->onDragStart(x, y, button, mods);
+
             // 双击检测（与Java版MouseHandler一致：同一Widget、同一按钮、250ms内）
             auto now = std::chrono::steady_clock::now();
             auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -208,9 +212,12 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button, i32 mods)
 
 bool KageroEngine::handleRelease(i32 x, i32 y, i32 button, i32 mods)
 {
-    // 如果有正在拖动的Widget，发送释放事件
+    (void)mods;
+    // 如果有正在拖动的Widget，先触发 onDragEnd，再发送释放事件
     if (m_draggingWidget != nullptr) {
         widget::Widget* w = m_draggingWidget;
+        // 拖拽正常结束（鼠标释放），dropped = false
+        w->onDragEnd(x, y, m_dragButton, /*dropped=*/false);
         m_draggingWidget = nullptr;
         m_dragButton = 0;
         m_dragMods = 0;

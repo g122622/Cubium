@@ -24,7 +24,7 @@ kagero/
 │   └── StateObserver.hpp        # 观察者辅助类
 │
 ├── widget/                      # Widget组件
-│   ├── Widget.hpp               # Widget基类，所有UI组件的基类（含onDoubleClick/onRightClick虚方法、Tooltip支持）
+│   ├── Widget.hpp               # Widget基类，所有UI组件的基类（含onDoubleClick/onRightClick/onDragStart/onDragEnd虚方法、Tooltip支持）
 │   ├── IWidgetContainer.hpp     # 容器接口，CRTP模板
 │   ├── ContainerWidget.hpp/cpp  # 通用容器组件
 │   ├── ButtonWidget.hpp         # 按钮组件（ButtonWidget, ImageButtonWidget）
@@ -186,6 +186,66 @@ ContainerWidget 和 ScrollableWidget 均覆写了 `onDoubleClick`/`onRightClick`
 ### ListWidget 双击
 
 ListWidget 的 `onDoubleClick` 覆写会将双击事件分发到列表项（`IListItem::onDoubleClick`），并触发 `m_onDoubleClick` 回调（签名：`void(size_t index, IListItem*)`），然后调用基类 `Widget::onDoubleClick` 以触发模板回调。
+
+## 拖拽事件系统
+
+Kagero 引擎在框架层面统一实现了拖拽开始/进行/结束的事件分发，参考 MC Java 版 `ContainerEventHandler` 的拖拽协议：无阈值、点击命中即开始拖拽、鼠标释放即结束拖拽。
+
+### 事件分发流程
+
+```
+GLFW鼠标回调 → InputManager → ClientApplication → KageroEngine::handleClick()
+                                                         │
+                                                         ├─ onClick() → Widget::onClick()
+                                                         │   └─ 命中后立即触发 onDragStart()
+                                                         │
+GLFW鼠标移动 → KageroEngine::handleMouseMove()
+                  └─ onDrag() → Widget::onDrag()（拖拽过程中持续触发）
+
+GLFW鼠标释放 → KageroEngine::handleRelease()
+                  ├─ onDragEnd() → Widget::onDragEnd()（先触发，dropped=false）
+                  └─ onRelease() → Widget::onRelease()
+```
+
+### KageroEngine 拖拽协议
+
+- **无阈值**：点击命中后立即进入拖拽状态，无最小移动距离要求
+- **按钮记录**：`m_dragButton` 记录触发拖拽的鼠标按钮，用于 `onDrag`/`onDragEnd` 分发
+- **修饰键记录**：`m_dragMods` 记录拖拽开始时的修饰键状态
+- **焦点锁定**：拖拽期间所有 `onDrag` 事件分发到 `m_draggingWidget`，即使鼠标移出组件区域
+- **正常结束**：鼠标释放时先触发 `onDragEnd(dropped=false)`，再触发 `onRelease`
+- **丢弃标志**：`dropped=true` 表示拖拽被外部取消（焦点丢失等），当前未启用
+
+### Widget 虚方法
+
+| 方法 | 说明 | 默认行为 |
+|------|------|----------|
+| `onDragStart(x, y, button, mods)` | 拖拽开始事件 | 返回 false |
+| `onDrag(x, y, deltaX, deltaY, button)` | 拖拽进行事件（持续触发） | 返回 false |
+| `onDragEnd(x, y, button, dropped)` | 拖拽结束事件 | 返回 false |
+
+### 容器分发
+
+ContainerWidget 和 ScrollableWidget 均覆写了 `onDragStart`/`onDrag`/`onDragEnd`，自动将事件分发到子 Widget：
+- ContainerWidget：通过 `handleDragStartInChildren`/`handleDragInChildren`/`handleDragEndInChildren` 分发
+- ScrollableWidget：优先处理滚动条拖拽（`m_draggingScrollbar`/`m_draggingHorizontalScrollbar`），否则调整滚动偏移后分发到子 Widget
+
+### 已实现拖拽的组件
+
+| 组件 | 拖拽行为 |
+|------|----------|
+| `SliderWidget` | `onClick` 设置 `m_dragging`，`onDrag` 实时更新值，`onDragEnd` 触发最终 `m_onValueChanged` |
+| `ScrollableWidget` | `onClick` 设置滚动条拖拽标志，`onDrag` 移动滚动位置，`onDragEnd` 清除标志 |
+| `Viewport3DWidget` | `onClick` 设置 `m_dragging`，`onDrag` 旋转视角，`onDragEnd` 清除 `m_dragging` |
+
+### BuiltinEvents 拖拽事件
+
+模板系统可通过 `bind:dragStart`/`bind:drag`/`bind:dragEnd` 绑定拖拽事件：
+- `dragStart` → `BuiltinEvents` 调用 `widget->onDragStart()`
+- `drag` → `BuiltinEvents` 调用 `widget->onDrag()`
+- `dragEnd` → `BuiltinEvents` 调用 `widget->onDragEnd()`
+
+事件对象：`DragStartEvent(x, y)`、`MouseDragEvent(x, y, deltaX, deltaY, button)`、`DragEndEvent(x, y, dropped)`。
 
 ## Tooltip 系统
 
