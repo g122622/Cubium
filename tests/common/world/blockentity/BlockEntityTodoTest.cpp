@@ -146,6 +146,15 @@ public:
     [[nodiscard]] i32 lastSetFlags() const { return m_lastSetFlags; }
     [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
 
+    // notifyBlockUpdate 计数：c20a7597c 后 ChestEntity/BarrelEntity 等改用 notifyBlockUpdate
+    // 通知客户端（替代 setBlockState(pos,state,3)，因方块状态未变时 setBlockState 会被跳过）。
+    void notifyBlockUpdate(const BlockPos& pos) override
+    {
+        ++m_notifyBlockUpdateCalls;
+        (void)pos;
+    }
+    [[nodiscard]] i32 notifyBlockUpdateCalls() const { return m_notifyBlockUpdateCalls; }
+
     void resetSetBlockStateCalls() { m_setBlockStateCalls = 0; }
 
     // TickManager interface (stubbed)
@@ -164,6 +173,7 @@ private:
     i32 m_setBlockCalls = 0;
     i32 m_setBlockStateCalls = 0;
     i32 m_lastSetFlags = -1;
+    i32 m_notifyBlockUpdateCalls = 0;
     std::unordered_map<BlockPos, BlockEntity*> m_entities;
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
     std::vector<Entity*> m_entitiesInAabb;
@@ -382,7 +392,10 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityOpenCloseBroadcastsWhenWorldAttache
     chest.closeContainer(nullptr);
 
     EXPECT_EQ(chest.getOpenCount(), 0);
-    EXPECT_GE(world.setBlockStateCalls(), 2);
+    // c20a7597c 后 ChestEntity.broadcastChestState 改用 notifyBlockUpdate 通知客户端
+    // （替代 setBlockState(pos,state,3)，方块状态未变时 setBlockState 会被 ServerWorld 跳过）。
+    // open/close 各触发一次 broadcastChestState → notifyBlockUpdate。
+    EXPECT_GE(world.notifyBlockUpdateCalls(), 2);
 }
 
 TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync)
@@ -397,7 +410,8 @@ TEST_F(BlockEntityTodoTestHelper, ChestEntityTickPerformsPeriodicStateSync)
         chest.tick(world);
     }
 
-    EXPECT_GE(world.setBlockStateCalls(), 1);
+    // 每 SYNC_INTERVAL(200) ticks 调一次 notifyBlockUpdate 同步客户端
+    EXPECT_GE(world.notifyBlockUpdateCalls(), 1);
 }
 
 TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePath)
@@ -417,7 +431,8 @@ TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePat
     trapped.closeContainer(nullptr);
     EXPECT_EQ(trapped.getOpenCount(), 1);
     EXPECT_EQ(trapped.getRedstoneSignal(world), 1);
-    EXPECT_GE(world.setBlockStateCalls(), 1);
+    // open/close 经 broadcastChestState → notifyBlockUpdate 通知客户端（c20a7597c 后）
+    EXPECT_GE(world.notifyBlockUpdateCalls(), 1);
 }
 
 TEST_F(BlockEntityTodoTestHelper, HopperTickSkipsTransferWhenDisabledByState)
