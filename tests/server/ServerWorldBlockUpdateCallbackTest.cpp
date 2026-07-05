@@ -23,10 +23,18 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/RandomState.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include <ctime>
+#include <filesystem>
 #include <utility>
 #include <vector>
 
@@ -41,6 +49,15 @@ protected:
     {
         VanillaBlocks::initialize();
 
+        // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
+        m_testDir = std::filesystem::temp_directory_path() / "mc_block_update_callback_test" /
+            std::to_string(std::time(nullptr));
+        std::filesystem::create_directories(m_testDir);
+
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
         ServerWorldConfig config;
         config.viewDistance = 8;
         config.dimension = 0;
@@ -48,6 +65,16 @@ protected:
         // 注意：isDebugWorld 字段已移除，改用 isDebugWorld() 方法通过检测区块生成器类型判断
 
         m_world = std::make_unique<ServerWorld>(config);
+        m_world->setSharedStorage(&m_storage);
+        // 装配区块管理器（ServerWorld::initialize 亦要求 m_chunkManager != nullptr）
+        auto settings = DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
+        m_world->setChunkManager(std::move(chunkManager));
+
         auto result = m_world->initialize();
         ASSERT_TRUE(result.success());
     }
@@ -58,9 +85,16 @@ protected:
             m_world->shutdown();
             m_world.reset();
         }
+        m_storage.close();
+        if (std::filesystem::exists(m_testDir)) {
+            std::error_code ec;
+            std::filesystem::remove_all(m_testDir, ec);
+        }
     }
 
     std::unique_ptr<ServerWorld> m_world;
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
 };
 
 } // namespace

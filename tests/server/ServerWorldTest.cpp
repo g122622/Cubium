@@ -37,8 +37,11 @@
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include <atomic>
+#include <ctime>
+#include <filesystem>
 #include <thread>
 #include <gtest/gtest.h>
 
@@ -85,9 +88,13 @@ public:
 
 class ServerWorldTest : public ::testing::Test {
 protected:
-    static std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
+    // 注意：createTestWorld 不能再为 static —— 需要访问 fixture 的 m_storage
+    // 以便为每个创建的 ServerWorld 绑定存档（ServerWorld::initialize 要求
+    // m_storage 已设置且 isOpen()）。
+    std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
     {
         auto world = std::make_unique<ServerWorld>(config);
+        world->setSharedStorage(&m_storage);
         auto settings = DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
         auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
@@ -103,6 +110,16 @@ protected:
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
+        // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
+        // 复用 ServerWorldPersistenceTest 的模式，在临时目录中打开一个 RocksDB 存档。
+        m_testDir =
+            std::filesystem::temp_directory_path() / "mc_server_world_test" / std::to_string(std::time(nullptr));
+        std::filesystem::create_directories(m_testDir);
+
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
         ServerWorldConfig config;
         config.viewDistance = 10;
         config.dimension = 0;
@@ -111,9 +128,19 @@ protected:
         world = createTestWorld(config);
     }
 
-    void TearDown() override { world.reset(); }
+    void TearDown() override
+    {
+        world.reset();
+        m_storage.close();
+        if (std::filesystem::exists(m_testDir)) {
+            std::error_code ec;
+            std::filesystem::remove_all(m_testDir, ec);
+        }
+    }
 
     std::unique_ptr<ServerWorld> world;
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
 };
 
 // ============================================================================
@@ -475,12 +502,14 @@ TEST_F(ServerWorldTest, IsDebugWorld_ReturnsFalse_WithNoiseChunkGenerator)
     config.dimension = 0;
     config.seed = 12345;
 
-    ServerWorld testWorld(config);
-    auto result = testWorld.initialize();
+    // 通过 createTestWorld 构造以绑定存档（ServerWorld::initialize 要求 m_storage 已设置），
+    // createTestWorld 默认装配 NoiseChunkGenerator。
+    auto testWorld = createTestWorld(config);
+    auto result = testWorld->initialize();
     ASSERT_TRUE(result.success());
 
     // 默认使用 NoiseChunkGenerator，不是调试世界
-    EXPECT_FALSE(testWorld.isDebugWorld());
+    EXPECT_FALSE(testWorld->isDebugWorld());
 }
 
 TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator)
@@ -490,17 +519,18 @@ TEST_F(ServerWorldTest, IsDebugWorld_ReturnsTrue_WithDebugChunkGenerator)
     config.dimension = 0;
     config.seed = 12345;
 
-    ServerWorld testWorld(config);
-    auto result = testWorld.initialize();
+    // 通过 createTestWorld 构造以绑定存档，再替换区块生成器为 DebugChunkGenerator。
+    auto testWorld = createTestWorld(config);
+    auto result = testWorld->initialize();
     ASSERT_TRUE(result.success());
 
     // 创建 DebugChunkGenerator
     auto debugGenerator = std::make_unique<DebugChunkGenerator>();
-    auto chunkManager = std::make_unique<ServerChunkManager>(testWorld, std::move(debugGenerator));
-    testWorld.setChunkManager(std::move(chunkManager));
+    auto chunkManager = std::make_unique<ServerChunkManager>(*testWorld, std::move(debugGenerator));
+    testWorld->setChunkManager(std::move(chunkManager));
 
     // 使用 DebugChunkGenerator 时应返回 true
-    EXPECT_TRUE(testWorld.isDebugWorld());
+    EXPECT_TRUE(testWorld->isDebugWorld());
 }
 
 // ============================================================================

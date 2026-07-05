@@ -24,9 +24,19 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/RandomState.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <gtest/gtest.h>
+
+#include <ctime>
+#include <filesystem>
+#include <utility>
 
 using namespace mc;
 using namespace mc::server;
@@ -42,11 +52,29 @@ protected:
         // 初始化方块注册表
         VanillaBlocks::initialize();
 
+        // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
+        m_testDir =
+            std::filesystem::temp_directory_path() / "mc_world_collision_test" / std::to_string(std::time(nullptr));
+        std::filesystem::create_directories(m_testDir);
+
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
         ServerWorldConfig config;
         config.viewDistance = 2;
         config.dimension = 0;
         config.seed = 12345;
         world = std::make_unique<ServerWorld>(config);
+        world->setSharedStorage(&m_storage);
+        // 装配区块管理器（ServerWorld::initialize 亦要求 m_chunkManager != nullptr）
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
 
         // 初始化世界
         auto result = world->initialize();
@@ -55,11 +83,20 @@ protected:
 
     void TearDown() override
     {
-        world->shutdown();
-        world.reset();
+        if (world) {
+            world->shutdown();
+            world.reset();
+        }
+        m_storage.close();
+        if (std::filesystem::exists(m_testDir)) {
+            std::error_code ec;
+            std::filesystem::remove_all(m_testDir, ec);
+        }
     }
 
     std::unique_ptr<ServerWorld> world;
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
 };
 
 // ========== 物理引擎测试 ==========
