@@ -139,6 +139,9 @@ ItemStack DefaultDispenseItemBehavior::_doDispense(IWorld& world,
         vy,
         vz);
 
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    itemEntity->setTypeId(entity::EntityTypes::ITEM);
+
     // 设置拾取延迟（发射器发射的物品不能立即被拾取）
     itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);
 
@@ -191,6 +194,10 @@ void DefaultDispenseItemBehavior::_spawnItemEntity(
 
     auto itemEntity =
         std::make_unique<ItemEntity>(EntityId(0), itemStack, dispensePos.x, adjustedY, dispensePos.z, vx, vy, vz);
+
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    itemEntity->setTypeId(entity::EntityTypes::ITEM);
+
     itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);
     world.spawnEntity(std::move(itemEntity));
 }
@@ -382,6 +389,7 @@ ItemStack BoatDispenseBehavior::dispense(
 
     // 创建船实体
     auto boatEntity = std::make_unique<entity::BoatEntity>(m_boatType);
+    boatEntity->setTypeId(entity::EntityTypes::BOAT);
     boatEntity->setPosition(x, y + waterLevel, z);
 
     // 添加到世界

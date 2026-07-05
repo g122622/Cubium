@@ -25,6 +25,7 @@
 
 #include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/SpearEntity.hpp"
@@ -95,6 +96,7 @@ void SpearItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEnti
 
     // 创建长矛投掷实体
     auto spearEntity = std::make_unique<entity::SpearEntity>(EntityId(0));
+    spearEntity->setTypeId(entity::EntityTypes::SPEAR);
     spearEntity->setWorld(&world);
     spearEntity->setPosition(player->x(), player->y() + player->eyeHeight() - 0.1f, player->z());
     spearEntity->setShooter(player);

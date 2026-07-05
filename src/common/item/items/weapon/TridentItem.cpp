@@ -23,6 +23,7 @@
 
 #include "TridentItem.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
@@ -163,6 +164,7 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
     // 正常投掷模式
     // 创建三叉戟实体
     auto tridentEntity = std::make_unique<entity::TridentEntity>(EntityId(0));
+    tridentEntity->setTypeId(entity::EntityTypes::TRIDENT);
     tridentEntity->setWorld(&world);
     tridentEntity->setPosition(player->x(), player->y() + player->eyeHeight() - 0.1f, player->z());
     tridentEntity->setShooter(player);

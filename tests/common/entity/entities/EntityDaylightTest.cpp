@@ -528,7 +528,6 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
 
     // 验证船实体创建正确
     EXPECT_EQ(m_boat->id(), EntityId(2));
-    EXPECT_EQ(m_boat->typeId(), entity::EntityTypeIdNumber::BOAT);
     EXPECT_NE(m_boat->getStatus(), entity::BoatStatus::UnderWater) << "Boat should not be underwater";
 
     // 验证 dynamic_cast 能正确识别 BoatEntity
@@ -579,7 +578,6 @@ TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly)
     m_boat->setId(EntityId(1));
 
     EXPECT_EQ(m_boat->id(), EntityId(1));
-    EXPECT_EQ(m_boat->typeId(), entity::EntityTypeIdNumber::BOAT);
 
     // 验证 dynamic_cast 可以正确识别 BoatEntity
     Entity* entityPtr = m_boat.get();
@@ -591,9 +589,6 @@ TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
     // 验证不同类型的船
     auto oakBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
     auto spruceBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE);
-
-    EXPECT_EQ(oakBoat->typeId(), entity::EntityTypeIdNumber::BOAT);
-    EXPECT_EQ(spruceBoat->typeId(), entity::EntityTypeIdNumber::BOAT);
 
     // 两种船都应该能被 dynamic_cast 识别
     Entity* oakPtr = oakBoat.get();

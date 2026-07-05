@@ -43,7 +43,8 @@ TEST(Entity, Construction)
     Entity entity(EntityId(1));
 
     EXPECT_EQ(entity.id(), 1u);
-    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::PLAYER);
+    // 直接构造的 Entity 未 setTypeId，typeId() 返回 0（对齐 EntityCoreTests DefaultTypeIdIsUnknown）
+    EXPECT_EQ(entity.typeId(), 0);
     EXPECT_FALSE(entity.uuid().empty());
     EXPECT_FALSE(entity.isRemoved());
 }

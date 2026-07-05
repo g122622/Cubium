@@ -34,6 +34,7 @@
 #include "../../../world/block/WaterLoggableHelpers.hpp"
 #include "../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
+#include "../../core/EntityRegistry.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../effect/EffectInstance.hpp"
@@ -612,6 +613,9 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
 
         auto orb =
             std::make_unique<ExperienceOrbEntity>(m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp);
+
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        orb->setTypeId(EntityTypes::EXPERIENCE_ORB);
 
         // 设置拾取延迟
         orb->setPickupDelay(10);

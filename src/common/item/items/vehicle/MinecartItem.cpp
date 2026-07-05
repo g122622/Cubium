@@ -22,6 +22,7 @@
  */
 
 #include "common/item/items/vehicle/MinecartItem.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -102,27 +103,34 @@ ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
     switch (m_minecartType) {
         case entity::AbstractMinecartEntity::Type::Rideable:
             minecart = std::make_unique<entity::RideableMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::Chest:
             minecart = std::make_unique<entity::ChestMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::CHEST_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::Furnace:
             minecart = std::make_unique<entity::FurnaceMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::FURNACE_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::TNT:
             minecart = std::make_unique<entity::TNTMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::TNT_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::Hopper:
             minecart = std::make_unique<entity::HopperMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::HOPPER_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::CommandBlock:
             minecart = std::make_unique<entity::CommandBlockMinecartEntity>(EntityId(0));
             break;
         case entity::AbstractMinecartEntity::Type::Spawner:
             minecart = std::make_unique<entity::SpawnerMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::SPAWNER_MINECART);
             break;
         default:
             minecart = std::make_unique<entity::RideableMinecartEntity>(EntityId(0));
+            minecart->setTypeId(entity::EntityTypes::MINECART);
             break;
     }
 

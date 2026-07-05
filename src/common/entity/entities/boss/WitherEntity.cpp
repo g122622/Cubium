@@ -49,6 +49,7 @@
 #include "../../entities/player/Player.hpp"
 #include "../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../utils/ItemDropHelper.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
@@ -296,6 +297,7 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
 
     // 创建凋灵之首实体
     auto skull = std::make_unique<WitherSkullEntity>(EntityId(0));
+    skull->setTypeId(EntityTypes::WITHER_SKULL);
     skull->setPosition(Vector3(headX, headY, headZ));
     skull->setShooter(this);
     // 蓝色凋灵之首的运动因子为 0.73，普通为 0.95
@@ -1007,6 +1009,7 @@ void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 target
 
     // 创建凋灵之首实体
     auto skull = std::make_unique<WitherSkullEntity>(EntityId(0));
+    skull->setTypeId(EntityTypes::WITHER_SKULL);
     skull->setPosition(Vector3(headX, headY, headZ));
     skull->setShooter(this);
     // 蓝色凋灵之首的运动因子为 0.73，普通为 0.95

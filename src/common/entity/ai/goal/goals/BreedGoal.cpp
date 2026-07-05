@@ -30,6 +30,7 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -192,6 +193,10 @@ void BreedGoal::spawnBaby()
             for (i32 i = 0; i < xpCount; ++i) {
                 auto xpOrb =
                     std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
+
+                // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+                xpOrb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+
                 // 添加随机速度
                 f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
                 f32 vy = rng.nextFloat() * 0.2f;

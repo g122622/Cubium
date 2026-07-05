@@ -21,6 +21,7 @@
  */
 
 #include "TrialBlocks.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/IInventory.hpp"
@@ -473,6 +474,10 @@ void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Directio
     vz += rng.nextGaussian(0.0f, INACCURACY);
 
     auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), stack, x, y, z, vx, vy, vz);
+
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    itemEntity->setTypeId(entity::EntityTypes::ITEM);
+
     itemEntity->setPickupDelay(10);
     world.spawnEntity(std::move(itemEntity));
 }

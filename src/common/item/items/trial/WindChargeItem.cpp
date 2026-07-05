@@ -19,6 +19,7 @@
 
 #include "WindChargeItem.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
@@ -56,6 +57,7 @@ ItemActionResult WindChargeItem::onItemRightClick(IWorld& world, Player& player,
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
+    entity->setTypeId(entity::EntityTypes::WIND_CHARGE);
 
     // 将实体添加到世界（需在 shootFrom 之前，因为 shootFrom 可能访问世界引用）
     entity::WindChargeEntity* projectile = entity.get();
@@ -96,6 +98,7 @@ std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& w
     auto entity = std::make_unique<entity::WindChargeEntity>(EntityId(0));
     entity->setWorld(&world);
     entity->setPosition(position.x, position.y, position.z);
+    entity->setTypeId(entity::EntityTypes::WIND_CHARGE);
 
     // 风弹在 asProjectile 中根据方向预设初速度
     // 使用 DispenseConfig 中的 power 来设置初速度

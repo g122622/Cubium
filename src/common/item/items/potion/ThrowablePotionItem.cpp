@@ -22,6 +22,7 @@
  */
 
 #include "common/item/items/potion/ThrowablePotionItem.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
@@ -74,6 +75,7 @@ std::unique_ptr<entity::ProjectileEntity> ThrowablePotionItem::createProjectileE
     auto entity = std::make_unique<entity::PotionEntity>(EntityId(0));
     entity->setItemStack(stack);
     entity->setLingering(isLingering());
+    entity->setTypeId(entity::EntityTypes::POTION);
     return entity;
 }
 

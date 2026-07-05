@@ -23,6 +23,7 @@
 
 #include "AbstractArrowEntity.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -483,6 +484,7 @@ std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/)
 std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shooter, IWorld* world)
 {
     auto arrow = std::make_unique<ArrowEntity>(0);
+    arrow->setTypeId(EntityTypes::ARROW);
     arrow->setWorld(world);
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
     arrow->setShooter(&shooter);

@@ -23,6 +23,7 @@
 
 #include "BlockDropHandler.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -158,6 +159,9 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(EntityManager& entityManager,
         }
 
         auto itemEntity = std::make_unique<ItemEntity>(0, stack, centerX, centerY, centerZ);
+
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        itemEntity->setTypeId(entity::EntityTypes::ITEM);
 
         // 使用 ItemDropHelper 统一随机速度计算
         Vector3 velocity = ItemDropHelper::getBlockDropVelocity(random);
@@ -335,6 +339,10 @@ i32 BlockDropHandler::spawnOreExperience(
     i32 spawnedCount = 0;
     for (i32 xpValue : xpValues) {
         auto orb = std::make_unique<ExperienceOrbEntity>(&world, centerX, centerY, centerZ, xpValue);
+
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        orb->setTypeId(entity::EntityTypes::EXPERIENCE_ORB);
+
         orb->setPickupDelay(10);
 
         const EntityId entityId = world.spawnEntity(std::move(orb));
@@ -373,6 +381,9 @@ i32 BlockDropHandler::spawnOreExperience(
     for (i32 xpValue : xpValues) {
         // 创建经验球实体（不传 world，后续添加到 entityManager 时设置）
         auto orb = std::make_unique<ExperienceOrbEntity>(xpValue);
+
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        orb->setTypeId(entity::EntityTypes::EXPERIENCE_ORB);
 
         // 设置位置
         orb->setPosition(centerX, centerY, centerZ);

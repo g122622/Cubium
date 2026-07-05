@@ -23,6 +23,7 @@
 
 #include "ExperienceDropHandler.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/IWorld.hpp"
@@ -171,6 +172,9 @@ ExperienceOrbEntity* ExperienceDropHandler::_createExperienceOrb(
 
     // 创建经验球实体
     auto orb = std::make_unique<ExperienceOrbEntity>(world, x, y, z, xpValue);
+
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    orb->setTypeId(EntityTypes::EXPERIENCE_ORB);
 
     // 设置初始速度
     orb->setVelocity(vx, vy, vz);
