@@ -777,18 +777,23 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_AllChunksBlockTi
     auto* chunkManager = world().chunkManager();
     ASSERT_NE(chunkManager, nullptr);
 
-    // 注册玩家位置使区块达到 EntityTicking 级别（<= BlockTicking）
-    // viewDistance=2 意味着以玩家为中心 2 个区块的范围内区块会被加载到 EntityTicking 级别
-    chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
-    chunkManager->processTicketUpdatesSync();
-
-    // 加载区块到内存
+    // 先逐个同步加载 3x3 区块到内存。若先 updatePlayerPosition 批量预触发 ~25 个区块的
+    // 异步存档加载（完成回调入队 m_pendingLoadCompletes），后续 getChunkSync 触发生成时
+    // 邻居 holder 仍处于 ResolvingStorage，会命中 executeEmptyLoad 的 ResolvingStorage 守卫
+    // 而 markFailed，导致 getChunkSync 返回 nullptr。逐个 getChunkSync 让每个区块独立完成
+    // 生成（邻居调度时 holder 状态机已推进到 StorageMissing），避免该竞态。
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
             auto* chunk = chunkManager->getChunkSync(dx, dz);
             ASSERT_NE(chunk, nullptr) << "Failed to load chunk (" << dx << ", " << dz << ")";
         }
     }
+
+    // 注册玩家位置使 3x3 区块达到 EntityTicking 级别（<= BlockTicking）。
+    // 此时区块已 loaded，_onTicketLevelChanged 的 _submitChunkRequest 不会重新走存档加载，
+    // 仅推进票据级别。viewDistance=2 覆盖 3x3 范围。
+    chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
+    chunkManager->processTicketUpdatesSync();
 
     // 验证区块加载级别 <= BlockTicking
     using mc::world::chunk::ChunkLoadLevel;
@@ -891,16 +896,18 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_UsesListenerPosi
     auto* chunkManager = world().chunkManager();
     ASSERT_NE(chunkManager, nullptr);
 
-    // 通过玩家位置使监听器位置（区块 0,0）周围的 3x3 区块达到 EntityTicking 级别
-    chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
-    chunkManager->processTicketUpdatesSync();
-
+    // 先逐个同步加载 3x3 区块到内存，再 updatePlayerPosition 设置票据级别
+    // （理由见 VibrationTicker_AdjacentChunksCheck_AllChunksBlockTicking_ReceivesVibration 注释）。
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
             auto* chunk = chunkManager->getChunkSync(dx, dz);
             ASSERT_NE(chunk, nullptr) << "Failed to load chunk (" << dx << ", " << dz << ")";
         }
     }
+
+    // 通过玩家位置使监听器位置（区块 0,0）周围的 3x3 区块达到 EntityTicking 级别
+    chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
+    chunkManager->processTicketUpdatesSync();
 
     // 监听器在区块 (0,0) 内，振动源在远处（但仍在检测半径内）
     TestVibrationSystem system(BlockPos(8, 64, 8), 16);
