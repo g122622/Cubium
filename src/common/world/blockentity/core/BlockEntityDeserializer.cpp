@@ -244,8 +244,15 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityDeserializer::deser
                     const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
                     for (const auto& element : compoundList.value) {
                         auto entityResult = deserialize(element);
-                        if (entityResult.success() && entityResult.value()) {
-                            result.push_back(entityResult.value());
+                        if (!entityResult.success()) {
+                            continue;
+                        }
+                        // 注意：Result<unique_ptr<T>>::value() 按值返回（内部 takeValue 会
+                        // 把 m_value 置空），每次调用都"取走"实体。不能在条件里调用一次、
+                        // 再在 push_back 里调用第二次（第二次取到空 unique_ptr，混入空指针）。
+                        auto blockEntity = entityResult.value();
+                        if (blockEntity) {
+                            result.push_back(std::move(blockEntity));
                         }
                     }
                     return result;
@@ -254,8 +261,11 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityDeserializer::deser
 
             // 否则当作单个方块实体
             auto entityResult = deserialize(*root);
-            if (entityResult.success() && entityResult.value()) {
-                result.push_back(entityResult.value());
+            if (entityResult.success()) {
+                auto blockEntity = entityResult.value();
+                if (blockEntity) {
+                    result.push_back(std::move(blockEntity));
+                }
             }
         }
     }

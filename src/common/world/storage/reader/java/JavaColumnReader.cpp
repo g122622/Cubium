@@ -459,11 +459,15 @@ void JavaColumnReader::_readEntities(const compound_tag& columnNbt, ChunkData& c
             spdlog::warn("JavaColumnReader: Failed to deserialize entity: {}", entityResult.error().message());
             continue;
         }
-        if (entityResult.value() == nullptr) {
+        // 注意：Result<unique_ptr<T>>::value() 按值返回（内部 takeValue 会把 m_value
+        // 置空），每次调用都"取走"实体。不能在判空和 addLoadedEntity 里各调用一次
+        // （第二次取到空 unique_ptr，会把空实体加进区块）。这里先取出再判空。
+        auto entity = entityResult.value();
+        if (entity == nullptr) {
             continue;
         }
 
-        chunk.addLoadedEntity(entityResult.value());
+        chunk.addLoadedEntity(std::move(entity));
     }
 }
 
