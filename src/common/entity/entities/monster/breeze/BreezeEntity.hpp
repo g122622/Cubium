@@ -41,6 +41,10 @@ namespace entity {
 class ProjectileEntity;
 } // namespace entity
 
+namespace test {
+class BreezeEntityTestAccessor; // 测试访问器，声明为 friend 以访问 protected 成员
+} // namespace test
+
 /**
  * @brief 旋风人实体
  *
@@ -73,6 +77,20 @@ class ProjectileEntity;
  * 发射地面/轨迹粒子并播放呼啸音效。AnimationState 字段维护动画时序，
  * 用于 slide→slideBack 等状态机转换判定。
  *
+ * TODO(client_renderer): 旋风人客户端模型与渲染器尚未实现。
+ * 当前服务端 BreezeEntity 维护了 m_idleAnim/m_slideAnim/m_slideBackAnim/
+ * m_longJumpAnim/m_shootAnim/m_inhaleAnim 六个 AnimationState 字段，
+ * 这些字段镜像 MC 1.21.11 Breeze.java 的设计，但 Cubium 的客户端
+ * ClientEntity 是与服务端实体分离的独立类，目前尚无 BreezeModel/
+ * BreezeRenderer 读取这些动画状态。未来实现客户端渲染器时，需要：
+ * 1. 在 ClientEntity 中根据同步的 Pose 启动对应的 AnimationState
+ *    （参考 MC Breeze.onSyncedDataUpdated 与 resetAnimations）
+ * 2. BreezeModel 根据各 AnimationState 的 startTick 计算动画进度
+ * 3. 客户端渲染器调用 idleAnimation()/slideAnimation()/等访问器
+ *    读取服务端实体（或 ClientEntity 自身维护）的动画状态
+ * 在客户端渲染器实现之前，这些 AnimationState 字段暂时没有渲染侧
+ * 消费者，但服务端会持续维护它们，确保未来渲染器实现后可直接接入。
+ *
  * 掉落：
  * - 狂风杖 1-2（仅被玩家击杀时掉落，受抢夺附魔影响，每级额外+1~2）
  * - 经验值 10
@@ -86,6 +104,8 @@ public:
     friend class entity::ai::goal::BreezeLongJumpGoal;
     friend class entity::ai::goal::BreezeSlideGoal;
     friend class entity::ai::goal::BreezeShootWhenStuckGoal;
+    // 测试访问器，用于单元测试访问 protected 成员（无需修改生产代码可见性）
+    friend class test::BreezeEntityTestAccessor;
     /// 基础生命值
     static constexpr f32 MAX_HEALTH = 30.0f;
 
@@ -321,6 +341,13 @@ private:
     void playWhirlSound();
 
     // ========== 动画状态字段 ==========
+
+    // TODO(client_renderer): 以下六个 AnimationState 字段镜像 MC 1.21.11
+    // Breeze.java 的设计，由服务端 BreezeEntity::tick() 与各 AI Goal 维护。
+    // 当前尚无客户端 BreezeModel/BreezeRenderer 读取这些字段，存在孤岛代码
+    // 风险。未来实现客户端渲染器时，需要在 ClientEntity 中根据同步的 Pose
+    // 启动对应动画（参考 MC Breeze.onSyncedDataUpdated），并通过 BreezeModel
+    // 根据 startTick 计算动画进度。详见类注释中的 TODO(client_renderer)。
 
     /// 空闲动画（持续触发，每 tick startIfStopped）
     entity::AnimationState m_idleAnim;

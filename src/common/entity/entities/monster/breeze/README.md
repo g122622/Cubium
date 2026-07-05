@@ -10,6 +10,21 @@ breeze/
 └── README.md
 ```
 
+## TODO 待办
+
+- **TODO(client_renderer)**: 旋风人客户端模型与渲染器尚未实现。
+  服务端 `BreezeEntity` 已维护 `m_idleAnim`/`m_slideAnim`/`m_slideBackAnim`/
+  `m_longJumpAnim`/`m_shootAnim`/`m_inhaleAnim` 六个 `AnimationState` 字段
+  （镜像 MC 1.21.11 `Breeze.java`），但 Cubium 的客户端 `ClientEntity` 是与
+  服务端实体分离的独立类，目前尚无 `BreezeModel`/`BreezeRenderer` 读取这些
+  动画状态。未来实现客户端渲染器时，需要：
+  1. 在 `ClientEntity` 中根据同步的 Pose 启动对应的 `AnimationState`
+     （参考 MC `Breeze.onSyncedDataUpdated` 与 `resetAnimations`）
+  2. `BreezeModel` 根据各 `AnimationState` 的 `startTick` 计算动画进度
+  3. 客户端渲染器通过 `idleAnimation()`/`slideAnimation()`/等访问器读取动画状态
+  在客户端渲染器实现之前，这些 `AnimationState` 字段暂时没有渲染侧消费者，
+  但服务端会持续维护它们，确保未来渲染器实现后可直接接入。
+
 ## 内部模块关系
 
 ```

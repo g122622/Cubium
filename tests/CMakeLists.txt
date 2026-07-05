@@ -629,6 +629,8 @@ add_executable(mc_tests
     entity/AreaEffectCloudEntityTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
     entity/BlazeHoverBehaviorTest.cpp
+    # 旋风人动画状态机测试（Pose 转换、resetTask 守卫、AnimationState 访问器）
+    entity/BreezeEntityAnimationTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
     # DamagingProjectileEntity 粒子效果测试（水下气泡、拖尾粒子）
@@ -908,6 +910,8 @@ add_executable(mc_tests
     network/ParticlePacketTrailTest.cpp
     # EntityEffect 粒子数据包测试
     network/ParticlePacketEntityEffectTest.cpp
+    # Block 方块粒子数据包测试（携带方块状态 ID）
+    network/ParticlePacketBlockTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -942,6 +946,8 @@ add_executable(mc_tests
     common/advancement/AdvancementLoaderTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
+    # AnimationState 动画状态机工具类测试（start/stop/startIfStopped/animateWhen/copyFrom）
+    common/entity/AnimationStateTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
     common/entity/effect/EffectAttributeModifiersTest.cpp
     # EffectManager 效果合并行为测试
