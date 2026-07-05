@@ -30,8 +30,8 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <gtest/gtest.h>
 #include <thread>
+#include <gtest/gtest.h>
 
 namespace mc::world::storage {
 namespace {
@@ -853,6 +853,7 @@ TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion)
     // 创建简化的测试数据
     server::ServerPlayerData serverData;
     serverData.playerId = 12345;
+    serverData.uuid = "server-uuid-12345"; // commit f20d2df32 起使用真正的 UUID 字段
     serverData.username = "ServerPlayer";
     serverData.x = 100.0;
     serverData.y = 64.0;
@@ -864,7 +865,7 @@ TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion)
 
     PlayerSaveData saveData = PlayerDataManager::fromServerPlayerData(serverData);
 
-    EXPECT_EQ(saveData.uuid, "12345");
+    EXPECT_EQ(saveData.uuid, "server-uuid-12345");
     EXPECT_EQ(saveData.username, "ServerPlayer");
     EXPECT_DOUBLE_EQ(saveData.posX, 100.0);
     EXPECT_DOUBLE_EQ(saveData.posY, 64.0);
