@@ -206,3 +206,99 @@ TEST(Viewport3DWidgetTest, SetActive)
     viewport.setActive(false);
     EXPECT_FALSE(viewport.isActive());
 }
+
+// ==================== 拖拽开始/结束事件测试 ====================
+
+TEST(Viewport3DWidgetTest, OnDragStartReturnsTrueAfterClick)
+{
+    // onClick 后 onDragStart 应返回 true（m_dragging 已设置）
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+
+    // 点击前 onDragStart 返回 false
+    EXPECT_FALSE(viewport.onDragStart(50, 50, 0, 0));
+
+    viewport.onClick(50, 50, 0, 0);
+    // 点击后 onDragStart 返回 true
+    EXPECT_TRUE(viewport.onDragStart(50, 50, 0, 0));
+}
+
+TEST(Viewport3DWidgetTest, OnDragStartRejectsNonLeftButton)
+{
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+    viewport.onClick(50, 50, 0, 0);
+
+    // 右键/中键不应触发拖拽
+    EXPECT_FALSE(viewport.onDragStart(50, 50, 1, 0));
+    EXPECT_FALSE(viewport.onDragStart(50, 50, 2, 0));
+}
+
+TEST(Viewport3DWidgetTest, OnDragEndReturnsTrueWhenDragging)
+{
+    // 拖拽中 onDragEnd 返回 true，但不清理 m_dragging（由 onRelease 统一清理）
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+    viewport.onClick(50, 50, 0, 0);
+
+    EXPECT_TRUE(viewport.onDragEnd(60, 60, 0, false));
+    // onDragEnd 不清理 m_dragging，onRelease 仍能正确清理
+    EXPECT_TRUE(viewport.onRelease(60, 60, 0, 0));
+}
+
+TEST(Viewport3DWidgetTest, OnDragEndRejectsNonLeftButton)
+{
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+    viewport.onClick(50, 50, 0, 0);
+
+    EXPECT_FALSE(viewport.onDragEnd(60, 60, 1, false));
+    EXPECT_FALSE(viewport.onDragEnd(60, 60, 2, false));
+}
+
+TEST(Viewport3DWidgetTest, OnDragEndReturnsFalseWhenNotDragging)
+{
+    // 未点击直接调用 onDragEnd 应返回 false
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+
+    EXPECT_FALSE(viewport.onDragEnd(60, 60, 0, false));
+}
+
+TEST(Viewport3DWidgetTest, OnDragEndPassesDroppedFlag)
+{
+    // onDragEnd 的 dropped 标志不影响状态清理（onDragEnd 不清理状态）
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+    viewport.onClick(50, 50, 0, 0);
+
+    // dropped=true 也不应清理状态，返回 true
+    EXPECT_TRUE(viewport.onDragEnd(60, 60, 0, true));
+    // onRelease 仍能正常清理
+    EXPECT_TRUE(viewport.onRelease(60, 60, 0, 0));
+}
+
+TEST(Viewport3DWidgetTest, DragRotatesViewport)
+{
+    // 验证 onDrag 在拖拽中旋转视角
+    Viewport3DWidget viewport("test", 0, 0, 100, 100);
+    viewport.setActive(true);
+    viewport.setVisible(true);
+
+    f32 initialYaw = viewport.yaw();
+    f32 initialPitch = viewport.pitch();
+
+    viewport.onClick(50, 50, 0, 0);
+    viewport.onDrag(60, 50, 10, 0, 0);
+
+    // deltaX=10 应导致 yaw 变化
+    EXPECT_NE(initialYaw, viewport.yaw());
+    // deltaY=0 应保持 pitch 不变
+    EXPECT_FLOAT_EQ(initialPitch, viewport.pitch());
+}

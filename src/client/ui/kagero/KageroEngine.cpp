@@ -217,6 +217,14 @@ bool KageroEngine::handleRelease(i32 x, i32 y, i32 button, i32 mods)
     if (m_draggingWidget != nullptr) {
         widget::Widget* w = m_draggingWidget;
         // 拖拽正常结束（鼠标释放），dropped = false
+        //
+        // TODO: 当前 dropped 标志始终为 false，未实现「拖拽被外部取消」的场景，例如：
+        //   - 焦点丢失（窗口失焦、模态对话框弹出）
+        //   - 拖拽过程中 Widget 被移除或销毁
+        //   - 外部取消（Esc 键、强制清除 m_draggingWidget）
+        // 未来应在 KageroEngine 增加拖拽取消路径（如 onCancelDrag / clearDragState），
+        // 并在这些路径中调用 onDragEnd(..., dropped=true) 以让 Widget 区分「正常释放」
+        // 与「异常取消」，从而决定是否提交/回滚拖拽结果。
         w->onDragEnd(x, y, m_dragButton, /*dropped=*/false);
         m_draggingWidget = nullptr;
         m_dragButton = 0;

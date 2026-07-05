@@ -247,43 +247,57 @@ void BuiltinEvents::_registerValueEvents()
 {
     // change事件：值变化通知
     //
-    // 值变化事件由具体 Widget 在内部状态变化时主动发出（例如 CheckboxWidget 在
-    // onClick 中触发 m_onChanged、SliderWidget 在 setValue 中触发 m_onValueChanged、
-    // TextFieldWidget 在 onChar/onKey 中触发 m_onTextChanged）。
+    // 架构说明（TODO 未消除，需文档化）：
+    // 值变化事件由具体 Widget 在内部状态变化时主动发出，而非由外部事件触发。
+    //   - CheckboxWidget 在 onClick 中触发 m_onChanged(bool)
+    //   - SliderWidget 在 setValue/onDrag 中触发 m_onValueChanged(f64)
+    //   - TextFieldWidget 在 onChar/onKey 中触发 m_onTextChanged(const string&)
     //
     // 模板系统通过 TemplateInstance::registerDefaultEventBinders 中的 "change" 绑定器
     // 将这些回调桥接到模板回调（ctx.invokeCallback），这是实际生效的路径。
     //
-    // 此处注册的 handler 仅用于 BuiltinEvents::handle() 直接分发场景（当前未被调用），
-    // 按 Widget 类型做最小分发示意，不重复注册回调以避免覆盖模板绑定。
+    // BuiltinEvents::handle() 的设计语义是「将外部事件分发给 Widget」，
+    // 而 change 事件的语义是「Widget 内部值变化后向外通知」，方向相反。
+    // 因此此处的 handler 无法「触发」回调——回调已在 Widget 内部状态变更时触发完毕。
+    //
+    // TODO: 若未来需要外部强制触发值变化（例如状态系统反向同步），应在 Widget 基类
+    // 增加 onValueChange() 虚方法，由具体 Widget 重写后转发到各自的 m_onXxx 回调，
+    // 此处再改为 widget->onValueChange() 统一分发。当前 BuiltinEvents::handle() 未被
+    // 任何路径调用，此限制不影响实际功能。
     m_handlers[event_names::CHANGE] = [](widget::Widget* widget, const event::Event& event) {
         if (!widget || !widget->isActive() || !widget->isVisible()) {
             return;
         }
         (void)event;
-        // 值变化回调已由 TemplateInstance 的 change 绑定器通过 setOnChanged/
-        // setOnValueChanged/setTextChangedCallback 注册，此处仅作为类型分发占位。
+        // 按 Widget 类型记录分发意图，便于调试与未来扩展。
+        // 实际的值变化回调已在 Widget 内部状态变更时触发，此处无需重复触发。
         if (dynamic_cast<widget::CheckboxWidget*>(widget) != nullptr) {
-            // CheckboxWidget：值变化由 onClick 内部触发
+            // CheckboxWidget：m_onChanged 已在 onClick 中触发
         } else if (dynamic_cast<widget::SliderWidget*>(widget) != nullptr) {
-            // SliderWidget：值变化由 setValue/onDrag 内部触发
+            // SliderWidget：m_onValueChanged 已在 setValue/onDrag 中触发
         } else if (dynamic_cast<widget::TextFieldWidget*>(widget) != nullptr) {
-            // TextFieldWidget：值变化由 onChar/onKey 内部触发
+            // TextFieldWidget：m_onTextChanged 已在 onChar/onKey 中触发
         }
     };
     m_eventTypes[event_names::CHANGE] = event::EventType::ValueChange;
 
     // input事件：文本输入通知（仅 TextFieldWidget）
     //
-    // 与 change 事件类似，文本输入回调由 TemplateInstance 的 "input" 绑定器通过
-    // setTextChangedCallback 注册，此处仅作为事件分发占位。
+    // 架构说明（TODO 未消除，需文档化）：
+    // 与 change 事件同理，input 事件的语义是「Widget 文本变化后向外通知」，
+    // 而 BuiltinEvents::handle() 的语义是「将外部事件分发给 Widget」，方向相反。
+    // 文本输入回调由 TemplateInstance 的 "input" 绑定器通过 setTextChangedCallback
+    // 注册，在 TextFieldWidget::onChar/onKey 内部触发。
+    //
+    // TODO: 同 change 事件，若未来需要外部强制触发文本变化，应在 Widget 基类增加
+    // onTextInput() 虚方法。当前此 handler 仅作为事件分发占位。
     m_handlers[event_names::INPUT] = [](widget::Widget* widget, const event::Event& event) {
         if (!widget || !widget->isActive() || !widget->isVisible()) {
             return;
         }
         (void)event;
         if (dynamic_cast<widget::TextFieldWidget*>(widget) != nullptr) {
-            // TextFieldWidget：文本输入由 onChar 内部触发
+            // TextFieldWidget：m_onTextChanged 已在 onChar 内部触发
         }
     };
     m_eventTypes[event_names::INPUT] = event::EventType::TextChange;
@@ -303,9 +317,12 @@ void BuiltinEvents::_registerDragEvents()
     m_eventTypes[event_names::DRAG] = event::EventType::MouseDrag;
 
     // dragStart事件：拖拽开始，调用 Widget::onDragStart
-    // 与 KageroEngine::handleClick 中的 onDragStart 调用对应。DragStartEvent 当前
-    // 仅携带 x/y，button 与 mods 通过默认值传入（直接分发场景下需要事件对象扩展字段，
-    // 当前 KageroEngine 走同步调用路径，不经过此 handler）。
+    //
+    // TODO: DragStartEvent 当前仅携带 x/y，未携带 button 与 mods 字段，此处硬编码为
+    // button=0（左键）、mods=0（无修饰键）。KageroEngine::handleClick 走同步调用路径
+    // 不经过此 handler，实际 button/mods 由 KageroEngine 直接传入 onDragStart。
+    // 若未来 BuiltinEvents::handle() 被启用为拖拽分发入口，需扩展 DragStartEvent
+    // 结构以携带 button/mods，并在此处改为从事件对象读取。
     m_handlers[event_names::DRAG_START] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragStartEvent*>(&event)) {
@@ -316,8 +333,12 @@ void BuiltinEvents::_registerDragEvents()
     m_eventTypes[event_names::DRAG_START] = event::EventType::Custom;
 
     // dragEnd事件：拖拽结束，调用 Widget::onDragEnd
-    // 与 KageroEngine::handleRelease 中的 onDragEnd 调用对应。DragEndEvent 携带
-    // wasDropped 标志，button 通过默认值传入。
+    //
+    // TODO: DragEndEvent 当前携带 x/y/wasDropped，未携带 button 字段，此处硬编码为
+    // button=0（左键）。KageroEngine::handleRelease 走同步调用路径不经过此 handler，
+    // 实际 button 由 KageroEngine::m_dragButton 直接传入 onDragEnd。若未来
+    // BuiltinEvents::handle() 被启用为拖拽分发入口，需扩展 DragEndEvent 结构以携带
+    // button，并在此处改为从事件对象读取。
     m_handlers[event_names::DRAG_END] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragEndEvent*>(&event)) {

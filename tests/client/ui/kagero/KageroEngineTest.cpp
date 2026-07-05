@@ -477,4 +477,235 @@ TEST_F(BuiltinEventsNewEventsTest, InactiveWidgetDoesNotHandleDoubleClick)
     EXPECT_EQ(0, widget.doubleClickCount); // the widget's onDoubleClick was NOT called
 }
 
+// ==================== KageroEngine 拖拽生命周期集成测试 ====================
+
+// 跟踪 onDragStart/onDrag/onDragEnd/onRelease 调用的 Mock Widget
+class MockDragTrackingWidget : public widget::Widget {
+public:
+    explicit MockDragTrackingWidget(const std::string& id)
+        : Widget(id)
+    {
+        setBounds(Rect(0, 0, 100, 100));
+    }
+
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)mods;
+        lastClickButton = button;
+        clickCount++;
+        return consumeClick;
+    }
+
+    bool onDragStart(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        dragStartCount++;
+        lastDragStartX = mouseX;
+        lastDragStartY = mouseY;
+        lastDragStartButton = button;
+        lastDragStartMods = mods;
+        return true;
+    }
+
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override
+    {
+        dragCount++;
+        lastDragX = mouseX;
+        lastDragY = mouseY;
+        lastDragDeltaX = deltaX;
+        lastDragDeltaY = deltaY;
+        lastDragButton = button;
+        return true;
+    }
+
+    bool onDragEnd(i32 mouseX, i32 mouseY, i32 button, bool dropped) override
+    {
+        dragEndCount++;
+        lastDragEndX = mouseX;
+        lastDragEndY = mouseY;
+        lastDragEndButton = button;
+        lastDragEndDropped = dropped;
+        return true;
+    }
+
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)mods;
+        releaseCount++;
+        lastReleaseButton = button;
+        return true;
+    }
+
+    // 控制是否消费点击（不消费则不会进入拖拽流程）
+    bool consumeClick = true;
+
+    int clickCount = 0;
+    int dragStartCount = 0;
+    int dragCount = 0;
+    int dragEndCount = 0;
+    int releaseCount = 0;
+
+    int lastClickButton = -1;
+    int lastDragStartX = 0;
+    int lastDragStartY = 0;
+    int lastDragStartButton = -1;
+    int lastDragStartMods = 0;
+    int lastDragX = 0;
+    int lastDragY = 0;
+    int lastDragDeltaX = 0;
+    int lastDragDeltaY = 0;
+    int lastDragButton = -1;
+    int lastDragEndX = 0;
+    int lastDragEndY = 0;
+    int lastDragEndButton = -1;
+    bool lastDragEndDropped = false;
+    int lastReleaseButton = -1;
+};
+
+class KageroEngineDragLifecycleTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        auto result = engine.initialize(canvas, {800, 600});
+        ASSERT_TRUE(result.success());
+    }
+
+    MockCanvas canvas;
+    KageroEngine engine;
+};
+
+TEST_F(KageroEngineDragLifecycleTest, HandleClickTriggersOnDragStart)
+{
+    // handleClick 成功点击后应立即触发 onDragStart，传入正确的 button 与 mods
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    engine.handleClick(50, 60, 0, 1); // button=0(左键), mods=1(Shift)
+
+    EXPECT_EQ(1, widgetPtr->clickCount);
+    EXPECT_EQ(1, widgetPtr->dragStartCount);
+    EXPECT_EQ(50, widgetPtr->lastDragStartX);
+    EXPECT_EQ(60, widgetPtr->lastDragStartY);
+    EXPECT_EQ(0, widgetPtr->lastDragStartButton);
+    EXPECT_EQ(1, widgetPtr->lastDragStartMods);
+}
+
+TEST_F(KageroEngineDragLifecycleTest, HandleClickDoesNotTriggerOnDragStartWhenClickNotConsumed)
+{
+    // onClick 返回 false（未消费点击）时不应触发 onDragStart
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    widgetPtr->consumeClick = false;
+    engine.addLayer(std::move(widget), 0);
+
+    engine.handleClick(50, 60, 0, 0);
+
+    EXPECT_EQ(1, widgetPtr->clickCount);
+    EXPECT_EQ(0, widgetPtr->dragStartCount);
+}
+
+TEST_F(KageroEngineDragLifecycleTest, HandleMouseMoveTriggersOnDragAfterClick)
+{
+    // 点击后移动鼠标应触发 onDrag，传入正确的 button（来自 m_dragButton）
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    engine.handleClick(50, 50, 0, 0);
+    EXPECT_EQ(0, widgetPtr->dragCount);
+
+    // 第一次移动（建立 m_hasLastMousePos）
+    engine.handleMouseMove(55, 55);
+    // 第二次移动（产生 deltaX/deltaY）
+    engine.handleMouseMove(65, 70);
+
+    EXPECT_GE(widgetPtr->dragCount, 1);
+    EXPECT_EQ(0, widgetPtr->lastDragButton); // button 来自 m_dragButton
+}
+
+TEST_F(KageroEngineDragLifecycleTest, HandleReleaseTriggersOnDragEndThenOnRelease)
+{
+    // 释放鼠标时应先触发 onDragEnd（dropped=false），再触发 onRelease
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    engine.handleClick(50, 50, 0, 0);
+    EXPECT_EQ(0, widgetPtr->dragEndCount);
+    EXPECT_EQ(0, widgetPtr->releaseCount);
+
+    engine.handleRelease(60, 70, 0, 0);
+
+    // onDragEnd 应被调用一次，dropped=false
+    EXPECT_EQ(1, widgetPtr->dragEndCount);
+    EXPECT_FALSE(widgetPtr->lastDragEndDropped);
+    EXPECT_EQ(60, widgetPtr->lastDragEndX);
+    EXPECT_EQ(70, widgetPtr->lastDragEndY);
+
+    // onRelease 也应被调用
+    EXPECT_EQ(1, widgetPtr->releaseCount);
+}
+
+TEST_F(KageroEngineDragLifecycleTest, HandleReleaseDoesNotTriggerOnDragEndWithoutClick)
+{
+    // 未点击直接释放不应触发 onDragEnd（m_draggingWidget 为 null）
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    engine.handleRelease(50, 50, 0, 0);
+
+    EXPECT_EQ(0, widgetPtr->dragEndCount);
+}
+
+TEST_F(KageroEngineDragLifecycleTest, DragEndButtonMatchesClickButton)
+{
+    // onDragEnd 的 button 参数应与触发拖拽的 click button 一致（来自 m_dragButton）
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    // 注意：MockDragTrackingWidget 的 onClick 不区分按钮，均返回 consumeClick
+    engine.handleClick(50, 50, 2, 0); // button=2(中键)
+    engine.handleRelease(60, 60, 2, 0);
+
+    EXPECT_EQ(2, widgetPtr->lastDragStartButton);
+    EXPECT_EQ(2, widgetPtr->lastDragEndButton);
+}
+
+TEST_F(KageroEngineDragLifecycleTest, FullDragLifecycleOrder)
+{
+    // 完整拖拽生命周期：onClick → onDragStart → onDrag → onDragEnd → onRelease
+    auto widget = std::make_unique<MockDragTrackingWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    // 1. 点击
+    engine.handleClick(50, 50, 0, 0);
+    EXPECT_EQ(1, widgetPtr->clickCount);
+    EXPECT_EQ(1, widgetPtr->dragStartCount);
+
+    // 2. 移动（建立基准位置）
+    engine.handleMouseMove(55, 55);
+
+    // 3. 拖拽
+    engine.handleMouseMove(70, 80);
+    EXPECT_GE(widgetPtr->dragCount, 1);
+
+    // 4. 释放
+    engine.handleRelease(70, 80, 0, 0);
+    EXPECT_EQ(1, widgetPtr->dragEndCount);
+    EXPECT_EQ(1, widgetPtr->releaseCount);
+
+    // 5. 再次移动不应触发 onDrag（拖拽已结束）
+    int dragCountAfterRelease = widgetPtr->dragCount;
+    engine.handleMouseMove(75, 85);
+    engine.handleMouseMove(80, 90);
+    EXPECT_EQ(dragCountAfterRelease, widgetPtr->dragCount);
+}
+
 } // namespace mc::client::ui::kagero

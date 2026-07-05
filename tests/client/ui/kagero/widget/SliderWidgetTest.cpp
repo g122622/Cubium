@@ -243,6 +243,98 @@ TEST(SliderWidgetTest, DraggingState)
     EXPECT_FALSE(slider.isDragging());
 }
 
+// ==================== 拖拽开始/结束事件测试 ====================
+
+TEST(SliderWidgetTest, OnDragStartReturnsTrueAfterClick)
+{
+    // onClick 后 onDragStart 应返回 true（m_dragging 已设置）
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setActive(true);
+    slider.setVisible(true);
+
+    // 点击前 onDragStart 返回 false（m_dragging 未设置）
+    EXPECT_FALSE(slider.onDragStart(50, 10, 0, 0));
+
+    slider.onClick(50, 10, 0, 0);
+    // 点击后 onDragStart 返回 true
+    EXPECT_TRUE(slider.onDragStart(50, 10, 0, 0));
+    // onDragStart 不应改变 m_dragging 状态
+    EXPECT_TRUE(slider.isDragging());
+}
+
+TEST(SliderWidgetTest, OnDragStartRejectsNonLeftButton)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setActive(true);
+    slider.setVisible(true);
+    slider.onClick(50, 10, 0, 0);
+
+    // 右键/中键不应触发拖拽
+    EXPECT_FALSE(slider.onDragStart(50, 10, 1, 0));
+    EXPECT_FALSE(slider.onDragStart(50, 10, 2, 0));
+}
+
+TEST(SliderWidgetTest, OnDragEndReturnsTrueWhenDragging)
+{
+    // 拖拽中 onDragEnd 返回 true，但不清理 m_dragging（由 onRelease 统一清理）
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setActive(true);
+    slider.setVisible(true);
+    slider.onClick(50, 10, 0, 0);
+
+    EXPECT_TRUE(slider.isDragging());
+    EXPECT_TRUE(slider.onDragEnd(60, 10, 0, false));
+    // onDragEnd 不清理 m_dragging，仍为 true
+    EXPECT_TRUE(slider.isDragging());
+
+    // onRelease 才清理 m_dragging
+    EXPECT_TRUE(slider.onRelease(60, 10, 0, 0));
+    EXPECT_FALSE(slider.isDragging());
+}
+
+TEST(SliderWidgetTest, OnDragEndRejectsNonLeftButton)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setActive(true);
+    slider.setVisible(true);
+    slider.onClick(50, 10, 0, 0);
+
+    EXPECT_FALSE(slider.onDragEnd(60, 10, 1, false));
+    EXPECT_FALSE(slider.onDragEnd(60, 10, 2, false));
+}
+
+TEST(SliderWidgetTest, OnDragEndReturnsFalseWhenNotDragging)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setActive(true);
+    slider.setVisible(true);
+
+    // 未点击直接调用 onDragEnd
+    EXPECT_FALSE(slider.onDragEnd(60, 10, 0, false));
+}
+
+TEST(SliderWidgetTest, OnDragEndDoesNotTriggerValueCallback)
+{
+    // onDragEnd 不触发 m_onValueChanged（由 onRelease 统一触发，避免双重回调）
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setActive(true);
+    slider.setVisible(true);
+
+    int callCount = 0;
+    slider.setOnValueChanged([&callCount](f64) { ++callCount; });
+
+    slider.onClick(50, 10, 0, 0);
+    slider.onDrag(70, 10, 20, 0, 0); // setValue 触发回调
+    EXPECT_GT(callCount, 0);
+    int callsAfterDrag = callCount;
+
+    slider.onDragEnd(70, 10, 0, false);
+    EXPECT_EQ(callsAfterDrag, callCount); // onDragEnd 不触发回调
+
+    slider.onRelease(70, 10, 0, 0);
+    EXPECT_EQ(callCount, callsAfterDrag + 1); // onRelease 触发最终回调
+}
+
 // ==================== IntSliderWidget测试 ====================
 
 TEST(IntSliderWidgetTest, Constructor)

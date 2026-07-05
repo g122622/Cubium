@@ -661,3 +661,100 @@ TEST(ScrollableWidgetTest, OnKeyUnfocusedDoesNotScroll)
     EXPECT_FALSE(result);
     EXPECT_EQ(0, scrollable.scrollX()); // 未聚焦时不应该滚动
 }
+
+// ==================== 拖拽开始/结束事件测试 ====================
+
+TEST(ScrollableWidgetTest, OnDragStartReturnsTrueForVerticalScrollbar)
+{
+    // 点击垂直滚动条后 onDragStart 应返回 true（滚动条拖拽中）
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    // 点击垂直滚动条区域：x=297 在滚动条宽度内（300-6=294 到 300）
+    scrollable.onClick(297, 100, 0, 0);
+
+    // onDragStart 应返回 true，表示滚动条拖拽已开始
+    EXPECT_TRUE(scrollable.onDragStart(297, 100, 0, 0));
+}
+
+TEST(ScrollableWidgetTest, OnDragStartReturnsTrueForHorizontalScrollbar)
+{
+    // 点击水平滚动条后 onDragStart 应返回 true
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 800);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    // 点击水平滚动条区域：y=397 在底部滚动条内（400-6=394 到 400）
+    scrollable.onClick(150, 397, 0, 0);
+
+    EXPECT_TRUE(scrollable.onDragStart(150, 397, 0, 0));
+}
+
+TEST(ScrollableWidgetTest, OnDragStartRejectsNonLeftButton)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+    scrollable.onClick(297, 100, 0, 0);
+
+    // 右键/中键不应触发拖拽开始
+    EXPECT_FALSE(scrollable.onDragStart(297, 100, 1, 0));
+    EXPECT_FALSE(scrollable.onDragStart(297, 100, 2, 0));
+}
+
+TEST(ScrollableWidgetTest, OnDragEndReturnsTrueWhenScrollbarDragging)
+{
+    // 滚动条拖拽中 onDragEnd 应返回 true，但不清理拖拽状态（由 onRelease 统一清理）
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+    scrollable.onClick(297, 100, 0, 0);
+
+    EXPECT_TRUE(scrollable.onDragEnd(297, 100, 0, false));
+
+    // onDragEnd 不清理状态，onRelease 仍能正确识别并清理
+    EXPECT_TRUE(scrollable.onRelease(297, 100, 0, 0));
+}
+
+TEST(ScrollableWidgetTest, OnDragEndRejectsNonLeftButton)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+    scrollable.onClick(297, 100, 0, 0);
+
+    EXPECT_FALSE(scrollable.onDragEnd(297, 100, 1, false));
+    EXPECT_FALSE(scrollable.onDragEnd(297, 100, 2, false));
+}
+
+TEST(ScrollableWidgetTest, OnDragEndReturnsFalseWhenNotDragging)
+{
+    // 未点击直接调用 onDragEnd 应返回 false
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    EXPECT_FALSE(scrollable.onDragEnd(297, 100, 0, false));
+}
+
+TEST(ScrollableWidgetTest, OnDragEndPassesDroppedFlag)
+{
+    // onDragEnd 的 dropped 标志不影响状态清理（onDragEnd 不清理状态）
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+    scrollable.onClick(297, 100, 0, 0);
+
+    // dropped=true 也不应清理状态，返回 true
+    EXPECT_TRUE(scrollable.onDragEnd(297, 100, 0, true));
+    // onRelease 仍能正常清理
+    EXPECT_TRUE(scrollable.onRelease(297, 100, 0, 0));
+}
