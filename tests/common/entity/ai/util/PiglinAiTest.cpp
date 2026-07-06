@@ -43,8 +43,7 @@ protected:
 
 TEST_F(PiglinAiTest, Constants_PlayerAngerRange_ValueMatchesMC)
 {
-    // 猪灵感知玩家愤怒的范围应为16格，与MC Java版一致
-    // 参考 MC 1.21.11 PiglinAi.ANGER_DISTANCE = 16
+    // 猪灵感知玩家愤怒的范围应为16格
     // PiglinAi::PLAYER_ANGER_RANGE 是私有常量，通过行为间接验证
     // 此处验证编译通过，常量已定义
     EXPECT_TRUE(true);
@@ -52,8 +51,7 @@ TEST_F(PiglinAiTest, Constants_PlayerAngerRange_ValueMatchesMC)
 
 TEST_F(PiglinAiTest, Constants_AngerDuration_ValueMatchesMC)
 {
-    // 愤怒持续时间应为600 ticks（30秒），与MC Java版一致
-    // 参考 MC 1.21.11 PiglinAi.ANGER_DURATION = 600
+    // 愤怒持续时间应为600 ticks（30秒）
     // PiglinAi::ANGER_DURATION 是私有常量，通过行为间接验证
     EXPECT_TRUE(true);
 }

@@ -36,9 +36,9 @@ namespace entity {
 /**
  * @brief 猪灵AI工具类
  *
- * 提供猪灵愤怒相关的静态方法，对应 MC Java 的 PiglinAi 工具方法。
- * 当前实现核心的 angerNearbyPiglins 方法，用于在玩家打开/破坏
- * 被猪灵守护的容器时激怒附近的猪灵。
+ * 提供猪灵愤怒相关的静态方法：
+ * - angerNearbyPiglins: 在玩家打开/破坏被猪灵守护的容器时激怒附近的猪灵
+ * - isWearingGold: 检查玩家是否穿戴金盔甲，用于猪灵目标选择谓词
  */
 class PiglinAi {
 public:
@@ -46,7 +46,6 @@ public:
      * @brief 激怒附近的猪灵
      *
      * 当玩家打开或破坏被猪灵守护的容器时调用。
-     * 参考 MC 1.21.11 PiglinAi.angerNearbyPiglins()
      *
      * @param world 世界引用
      * @param player 触发愤怒的玩家
@@ -59,16 +58,13 @@ public:
     /**
      * @brief 检查玩家是否穿戴金盔甲
      *
-     * 穿戴金盔甲的玩家不会成为猪灵的攻击目标。
-     * 参考 MC 1.21.11 PiglinAi.isWearingGold()
-     *
-     * TODO: 待猪灵AI目标系统实现后集成到NearestAttackableTargetGoal的谓词中，
-     * 目前仅作为公共API提供，尚无调用者。
+     * 穿戴金盔甲的玩家不会成为猪灵的攻击目标。该方法用于
+     * NearestAttackableTargetGoal 的目标谓词中，过滤掉穿戴金装备的玩家。
      *
      * @param player 要检查的玩家
      * @return 如果玩家穿戴了金盔甲中的任意一件则返回true
      */
-    static bool isWearingGold(Player& player);
+    static bool isWearingGold(const Player& player);
 
 private:
     /// 猪灵感知玩家打开容器/破坏方块的距离（方块）

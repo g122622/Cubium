@@ -62,7 +62,6 @@ void PiglinAi::angerNearbyPiglins(IWorld& world, Player& player, bool requireLin
     for (auto* piglin : piglins) {
         if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER)) {
             // 全局愤怒模式下，猪灵攻击最近的可见玩家
-            // 参考 MC 1.21.11 PiglinAi.setAngerTargetToNearestTargetablePlayerIfFound
             Player* nearestPlayer = EntityUtils::findClosestEntity<Player>(
                 &world, piglin->position(), PLAYER_ANGER_RANGE, nullptr, [](Player* p) { return p->isAlive(); });
             if (nearestPlayer != nullptr) {
@@ -81,9 +80,8 @@ void PiglinAi::angerNearbyPiglins(IWorld& world, Player& player, bool requireLin
     }
 }
 
-bool PiglinAi::isWearingGold(Player& player)
+bool PiglinAi::isWearingGold(const Player& player)
 {
-    // 参考 MC 1.21.11 PiglinAi.isWearingGold()
     // 检查玩家是否穿戴了金盔甲中的任意一件
     return player.isWearingGoldArmor();
 }

@@ -770,6 +770,8 @@ add_executable(mc_tests
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
     # PiglinAi 猪灵AI工具类测试
     common/entity/ai/util/PiglinAiTest.cpp
+    # PiglinAi::isWearingGold 金盔甲判定测试
+    common/entity/ai/util/PiglinAiIsWearingGoldTest.cpp
     # BreakDoorGoal 破门目标测试
     common/entity/ai/goal/goals/interact/BreakDoorGoalTest.cpp
     # OpenDoorGoal 开门目标测试

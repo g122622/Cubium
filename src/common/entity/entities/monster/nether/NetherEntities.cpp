@@ -35,6 +35,7 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/special/GhastGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -460,7 +461,7 @@ void PiglinEntity::registerGoals()
                     const Player* player = dynamic_cast<const Player*>(entity);
                     if (!player || !player->isAlive()) return false;
                     // 攻击未穿戴金装备的玩家
-                    return !player->isWearingGoldArmor();
+                    return !entity::PiglinAi::isWearingGold(*player);
                 }));
     }
 }
