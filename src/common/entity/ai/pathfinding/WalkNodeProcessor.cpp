@@ -30,6 +30,7 @@
 #include "../../../world/block/blocks/FenceGateBlock.hpp"
 #include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
+#include "../../core/MobEntity.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
@@ -386,7 +387,18 @@ std::unique_ptr<PathPoint> WalkNodeProcessor::createNode(i32 x, i32 y, i32 z)
 
     auto node = std::make_unique<PathPoint>(x, y, z);
     node->setNodeType(type);
-    node->setCostMalus(getPathCostPenalty(type));
+
+    // 优先使用 MobEntity 的 pathfinding malus（对应 MC Java WalkNodeEvaluator 中
+    // node.costMalus = mob.getPathfindingMalus(type)），未设置时回退到默认代价
+    // （getPathCostPenalty，等价于 MC Java 的 PathType.getMalus()）
+    f32 costMalus = getPathCostPenalty(type);
+    if (m_entity != nullptr) {
+        const auto* mob = dynamic_cast<const MobEntity*>(m_entity);
+        if (mob != nullptr) {
+            costMalus = mob->getPathfindingMalus(type);
+        }
+    }
+    node->setCostMalus(costMalus);
 
     return node;
 }
@@ -519,6 +531,20 @@ void WalkNodeProcessor::_addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, 
     PathPoint* node = getNode(x, y, z);
     if (node) {
         node->setNodeType(type);
+
+        // 类型变更时同步 costMalus，对应 MC Java WalkNodeEvaluator.getNodeAndUpdateCostToMax
+        // 的 node.costMalus = Math.max(node.costMalus, mob.getPathfindingMalus(type))
+        // 此处直接覆盖为新类型对应的 malus（getNode 返回的节点可能已有旧 costMalus，
+        // 但 createNode 已用 mob malus 初始化，故取 max 与覆盖语义等价）
+        f32 newCostMalus = getPathCostPenalty(type);
+        if (m_entity != nullptr) {
+            const auto* mob = dynamic_cast<const MobEntity*>(m_entity);
+            if (mob != nullptr) {
+                newCostMalus = mob->getPathfindingMalus(type);
+            }
+        }
+        node->setCostMalus(newCostMalus);
+
         neighbors.push_back(node);
         m_openNodes.push_back(node);
     }

@@ -404,6 +404,8 @@ add_executable(mc_tests
     common/entity/combat/MobEntityEquipmentTest.cpp
     # MobEntity 交互测试（processInitialInteract、canBeLeashed、_spawnOffspringFromSpawnEgg）
     common/entity/core/MobEntityInteractTest.cpp
+    # MobEntity 寻路惩罚值测试（setPathfindingMalus/getPathfindingMalus/shouldPassengersInheritMalus）
+    common/entity/core/PathfindingMalusTest.cpp
     # Crackiness 裂纹程度追踪器测试
     common/entity/core/CrackinessTest.cpp
     # Entity 持久化随机数生成器测试（getRandom() 返回引用、独立 RNG、状态连续性、const 可调用性）

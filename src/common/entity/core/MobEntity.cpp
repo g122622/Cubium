@@ -73,6 +73,10 @@ MobEntity::MobEntity(EntityId id)
 {
     // 初始化装备掉落概率为默认值
     m_equipmentDropChances.fill(DEFAULT_EQUIPMENT_DROP_CHANCE);
+
+    // 初始化寻路惩罚值表为 NaN（表示"未设置"，回退到 PathNodeType 默认代价）
+    // 对应 MC Java 的 EnumMap<PathType, Float>：get() 返回 null 时回退到 getMalus()
+    m_pathfindingMalus.fill(std::numeric_limits<f32>::quiet_NaN());
 }
 
 MobEntity::~MobEntity() = default;
@@ -135,6 +139,39 @@ entity::ai::EntitySenses* MobEntity::senses()
 const entity::ai::EntitySenses* MobEntity::senses() const
 {
     return m_senses.get();
+}
+
+f32 MobEntity::getPathfindingMalus(entity::ai::pathfinding::PathNodeType pathType) const noexcept
+{
+    // 对应 MC Java Mob.getPathfindingMalus(PathType)：
+    //   if (this.getControlledVehicle() instanceof Mob mob1 && mob1.shouldPassengersInheritMalus()) {
+    //       mob = mob1;
+    //   } else {
+    //       mob = this;
+    //   }
+    //   Float f = mob.pathfindingMalus.get(p_326934_);
+    //   return f == null ? p_326934_.getMalus() : f;
+    //
+    // 项目无 getControlledVehicle()，使用 getVehicle() + world()->getEntity() 解引用，
+    // 与 MobEntity.cpp::isInDaylight() 中既有的解引用模式一致。
+
+    const MobEntity* malusSource = this;
+
+    const EntityId vehicleId = getVehicle();
+    if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
+        const Entity* vehicle = m_world->getEntity(vehicleId);
+        const MobEntity* vehicleMob = dynamic_cast<const MobEntity*>(vehicle);
+        if (vehicleMob != nullptr && vehicleMob->shouldPassengersInheritMalus()) {
+            malusSource = vehicleMob;
+        }
+    }
+
+    const f32 stored = malusSource->m_pathfindingMalus[static_cast<size_t>(pathType)];
+    if (std::isnan(stored)) {
+        // 未显式设置，回退到 PathNodeType 默认代价（对应 MC 的 PathType.getMalus()）
+        return entity::ai::pathfinding::getPathCostPenalty(pathType);
+    }
+    return stored;
 }
 
 bool MobEntity::isBeingRidden() const

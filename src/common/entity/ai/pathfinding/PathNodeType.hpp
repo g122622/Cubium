@@ -127,8 +127,15 @@ enum class PathNodeType : u8 {
     TrapdoorDown = 28,
 
     /// 其他
-    Other = 255
+    Other = 255,
 };
+
+/// PathNodeType 数量（仅用于数组大小推导，不是合法 PathNodeType）
+/// 注意：由于枚举底层类型为 u8（最大 255），Count 必须独立于枚举之外定义。
+[[nodiscard]] constexpr size_t pathNodeTypeCount() noexcept
+{
+    return 256u;
+}
 
 /**
  * @brief 获取节点类型的代价惩罚

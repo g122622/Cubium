@@ -28,6 +28,7 @@
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -52,12 +53,17 @@ namespace mc {
 CopperGolemEntity::CopperGolemEntity(EntityId id)
     : GolemEntity(id)
 {
-    // MC 1.21.11 CopperGolem 构造函数：
+    // 对应 MC 1.21.11 CopperGolem 构造函数：
     //   setPersistenceRequired();
     //   setState(IDLE);
     //   setPathfindingMalus(DANGER_FIRE, 16.0F);
+    //   setPathfindingMalus(DANGER_OTHER, 16.0F);
     //   setPathfindingMalus(DAMAGE_FIRE, -1.0F);
-    // 本项目暂未实现 setPathfindingMalus，留作 TODO
+    // DANGER_FIRE/DANGER_OTHER 设为 16.0F：高代价但可通行（铜傀儡会避开火焰周边）
+    // DAMAGE_FIRE 设为 -1.0F：禁止踏入火焰方块本身
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DangerFire, 16.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DangerOther, 16.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DamageFire, -1.0f);
 
     // 铜傀儡可以走上1格高的方块（MC: STEP_HEIGHT=1.0）
     setStepHeight(1.0f);

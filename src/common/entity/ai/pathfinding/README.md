@@ -141,3 +141,17 @@ PathPoint 的 `m_distanceToNext` 字段存储的是 `启发式值 * 1.5`（MC 1.
 ### 11. 阳光避让路径截断
 
 `PathNavigator::_trimPath()` 实现了阳光避让逻辑（对应 MC Java 的 `GroundPathNavigation.trimPath()`）。当 `m_avoidSun` 为 true 时（由 `RestrictSunGoal` 通过 `setAvoidSunPathing(true)` 设置），路径计算完成后会遍历所有节点，在第一个暴露在阳光下的节点处截断路径。如果实体当前已在阳光下，则保留完整路径（实体需要移动来逃离阳光）。此逻辑不修改 WalkNodeProcessor 的节点代价，而是通过路径后处理实现阳光避让。
+
+### 12. 寻路惩罚值（Pathfinding Malus）
+
+`MobEntity` 提供了 `setPathfindingMalus(PathNodeType, float)` / `getPathfindingMalus(PathNodeType)` 接口，对应 MC Java `Mob.setPathfindingMalus` / `Mob.getPathfindingMalus`：
+
+- **存储**：`MobEntity` 内部使用 `std::array<f32, pathNodeTypeCount()>` 存储，初始化为 NaN 表示"未设置"。
+- **默认值回退**：若某类型未通过 `setPathfindingMalus` 显式设置，`getPathfindingMalus` 回退到 `getPathCostPenalty(type)`（对应 MC Java 的 `PathType.getMalus()`）。
+- **乘客继承**：`shouldPassengersInheritMalus()` 默认返回 `false`。当实体骑乘在重写此方法返回 `true` 的载具上时（如炽足兽 Strider），`getPathfindingMalus` 返回载具的 malus 值。此逻辑通过 `getVehicle()` + `world()->getEntity()` 解引用载具实现。
+- **集成点**：`WalkNodeProcessor::createNode()` 和 `_addNeighbor()` 在创建/更新节点时调用 `mob.getPathfindingMalus(type)` 设置 `PathPoint::costMalus`，对应 MC Java `WalkNodeEvaluator` 中的 `node.costMalus = mob.getPathfindingMalus(type)`。
+
+**典型用例**：
+- `CopperGolemEntity` 构造函数设置 `DANGER_FIRE=16.0`、`DANGER_OTHER=16.0`、`DAMAGE_FIRE=-1.0`（对应 MC 1.21.11 `CopperGolem.java:91-93`），使铜傀儡避开火焰周边但可在紧急时穿过。
+- 其他实体（如僵尸、骷髅）可在各自构造函数或 AI 初始化时按需调用 `setPathfindingMalus` 自定义路径偏好。
+

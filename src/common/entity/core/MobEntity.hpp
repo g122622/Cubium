@@ -26,10 +26,13 @@
 #include "../../util/math/random/Random.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../ai/goal/GoalSelector.hpp"
+#include "../ai/pathfinding/PathNodeType.hpp"
 #include "../combat/DifficultyInstance.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "LivingEntity.hpp"
+#include <array>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <variant>
@@ -241,6 +244,58 @@ public:
     [[nodiscard]] const entity::ai::pathfinding::PathNavigator* navigator() const;
     [[nodiscard]] entity::ai::EntitySenses* senses();
     [[nodiscard]] const entity::ai::EntitySenses* senses() const;
+
+    // ========== 寻路惩罚值 (Pathfinding Malus) ==========
+
+    /**
+     * @brief 设置指定路径节点类型的寻路惩罚值
+     *
+     * 对应 Minecraft 原版的 Mob.setPathfindingMalus(PathType, float)。
+     * 用于在实体构造函数中声明实体对特定地形（水、岩浆、火焰等）的
+     * 寻路代价偏好。WalkNodeProcessor 在创建节点时会读取此值覆盖默认代价。
+     *
+     * 惩罚值语义：
+     * - 负值（如 -1.0F）：完全不可通行，节点会被排除出寻路
+     * - 0.0F：无惩罚，按默认路径类型代价处理
+     * - 正值（如 8.0F/16.0F）：高代价但可通行，A* 会优先选择更便宜的路径
+     *
+     * @param pathType 路径节点类型
+     * @param malus 惩罚值
+     */
+    void setPathfindingMalus(entity::ai::pathfinding::PathNodeType pathType, f32 malus) noexcept
+    {
+        m_pathfindingMalus[static_cast<size_t>(pathType)] = malus;
+    }
+
+    /**
+     * @brief 获取指定路径节点类型的寻路惩罚值
+     *
+     * 对应 Minecraft 原版的 Mob.getPathfindingMalus(PathType)。
+     *
+     * 乘客继承逻辑：若当前实体骑乘在重写了 shouldPassengersInheritMalus()
+     * 返回 true 的 Mob 载具上（如炽足兽 Strider），则返回载具的 malus 值；
+     * 否则返回自身的 malus 值。这与 MC Java 中"乘客使用载具的 malus"
+     * 的行为一致，使骑乘者也能在载具适配的地形（如岩浆）上寻路。
+     *
+     * 默认值回退：若未通过 setPathfindingMalus() 显式设置该类型，
+     * 回退到 PathNodeType 的默认惩罚值（getPathCostPenalty(pathType)，
+     * 对应 MC Java 的 PathType.getMalus()）。
+     *
+     * @param pathType 路径节点类型
+     * @return 惩罚值（负值表示不可通行）
+     */
+    [[nodiscard]] f32 getPathfindingMalus(entity::ai::pathfinding::PathNodeType pathType) const noexcept;
+
+    /**
+     * @brief 乘客是否继承载具的寻路惩罚值
+     *
+     * 对应 Minecraft 原版的 Mob.shouldPassengersInheritMalus()。
+     * 默认返回 false。炽足兽（Strider）等载具重写为 true，
+     * 使骑乘者能在岩浆上寻路。
+     *
+     * @return 如果乘客应继承载具的 malus 返回 true
+     */
+    [[nodiscard]] virtual bool shouldPassengersInheritMalus() const noexcept { return false; }
 
     // ========== AI 便捷方法 ==========
 
@@ -1022,6 +1077,10 @@ protected:
     std::optional<std::string> m_leashHolderUuid; // 拴绳目标实体的 UUID（拴在实体上时）
     std::optional<BlockPos> m_leashFencePos;      // 拴绳目标栅栏柱坐标（拴在栅栏上时）
     LeashDelayInfo m_leashDelayInfo;              // 延迟绑定信息（NBT 加载后尚未解析时使用）
+
+    // 寻路惩罚值表（按 PathNodeType 索引，NaN 表示未设置，回退到默认惩罚值）
+    // 对应 MC Java Mob.pathfindingMalus: EnumMap<PathType, Float>
+    std::array<f32, entity::ai::pathfinding::pathNodeTypeCount()> m_pathfindingMalus{};
 
     // ========== 装备附魔辅助方法 ==========
 
