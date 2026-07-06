@@ -31,29 +31,7 @@
 
 namespace mc::client::renderer::entity::layer::entity {
 
-namespace {
-// 项圈颜色 RGB 值
-// 索引对应 DyeColor 枚举序数（0-15）
-// 对应 MC 1.21.11 DyeColor.getTextureDiffuseColor() 的 RGB 值
-const Vector3f COLLAR_COLORS[16] = {
-    Vector3f(1.0f, 1.0f, 1.0f),  // 白色 (0)
-    Vector3f(0.85f, 0.5f, 0.2f), // 橙色 (1)
-    Vector3f(0.8f, 0.2f, 0.6f),  // 品红色 (2)
-    Vector3f(0.2f, 0.6f, 0.9f),  // 淡蓝色 (3)
-    Vector3f(0.9f, 0.9f, 0.2f),  // 黄色 (4)
-    Vector3f(0.4f, 0.8f, 0.2f),  // 黄绿色 (5)
-    Vector3f(1.0f, 0.5f, 0.7f),  // 粉红色 (6)
-    Vector3f(0.3f, 0.3f, 0.3f),  // 灰色 (7)
-    Vector3f(0.5f, 0.5f, 0.5f),  // 淡灰色 (8)
-    Vector3f(0.2f, 0.4f, 0.6f),  // 青色 (9)
-    Vector3f(0.5f, 0.2f, 0.8f),  // 紫色 (10)
-    Vector3f(0.2f, 0.3f, 0.7f),  // 蓝色 (11)
-    Vector3f(0.5f, 0.3f, 0.1f),  // 棕色 (12)
-    Vector3f(0.2f, 0.5f, 0.2f),  // 绿色 (13)
-    Vector3f(0.6f, 0.2f, 0.2f),  // 红色 (14)
-    Vector3f(0.1f, 0.1f, 0.1f),  // 黑色 (15)
-};
-} // namespace
+using wolf_collar_colors::getCollarColorByIndex;
 
 // 静态成员定义
 std::unique_ptr<pipeline::EntityMesh> WolfCollarLayer::s_collarMesh = nullptr;
@@ -124,12 +102,8 @@ bool WolfCollarLayer::shouldRender(const ::mc::client::ClientEntity& entity) con
 Vector3f WolfCollarLayer::_getCollarColor(const ::mc::client::ClientEntity& entity)
 {
     u8 colorIndex = static_cast<u8>(entity.wolfCollarColor());
-    if (colorIndex < 16) {
-        return COLLAR_COLORS[colorIndex];
-    }
-    return COLLAR_COLORS[14]; // 默认红色
+    return getCollarColorByIndex(colorIndex);
 }
-
 void WolfCollarLayer::_buildCollarMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     // 项圈是一个简单的环形，围绕颈部

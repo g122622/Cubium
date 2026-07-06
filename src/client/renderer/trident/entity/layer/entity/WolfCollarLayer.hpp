@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/entity/WolfCollarColors.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/core/Types.hpp"
@@ -48,6 +49,9 @@ namespace mc::client::renderer::entity::layer::entity {
  * 数据来源：通过 ClientEntity 的元数据镜像字段读取驯服状态和颈圈颜色。
  * - wolfTamed(): 通过 TameableEntity::DATA_TAMED_PARAM 同步，仅驯服的狼渲染项圈
  * - wolfCollarColor(): 通过 WolfEntity::DATA_COLLAR_COLOR_PARAM 同步，决定项圈色调
+ *
+ * 颜色映射逻辑（DyeColor → RGB）定义在 WolfCollarColors.hpp 中，
+ * 可独立于 Vulkan 渲染管线进行单元测试。
  *
  * 对应 MC 1.21.11 WolfCollarLayer：
  * - shouldRender 检查 collarColor != null（MC 中 extractRenderState 在未驯服时设为 null）

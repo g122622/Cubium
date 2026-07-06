@@ -97,6 +97,17 @@
             `lerp(partialTick, wolfInterestedAngleO, wolfInterestedAngle)` 写入
             `AnimationContext::wolfInterestedAngle`，`WolfModel::setAnimState` 读取并应用到头部 Z 旋转
 
+            ## #狼驯服状态与颈圈颜色元数据同步
+        - **DataParameter * *：
+            - `TameableEntity::DATA_TAMED_PARAM`（bool）对应 MC `TameableEntity.DATA_TAMED_ID`，`setTamed()` 写入
+            - `WolfEntity::DATA_COLLAR_COLOR_PARAM`（i32，`DyeColor` 枚举序数 0-15）对应 MC `Wolf.DATA_COLLAR_COLOR_ID`，`setCollarColor()` 写入
+        - **registerData 显式调用 * *：`TameableEntity` 构造函数显式调用 `registerData()` 注册 `DATA_TAMED_PARAM`，`WolfEntity` 构造函数显式调用 `registerData()` 注册 `DATA_COLLAR_COLOR_PARAM`（同 `DATA_INTERESTED_PARAM` 模式，避免虚函数不派发问题）
+        - **默认值 * *：`DATA_TAMED_PARAM` 默认 false，`DATA_COLLAR_COLOR_PARAM` 默认 `DyeColor::Red`（14）
+        - **NBT 持久化 * *：`WolfEntity::addAdditionalSaveData`/`readAdditionalSaveData` 序列化 `CollarColor` 字段（i32），与 MC Java 一致
+        - **客户端同步 * *：`ClientEntity::syncMetadataFromDataManager` 在 wolf 分支读取两个参数并调用 `setWolfTamed`/`setWolfCollarColor` 更新镜像字段
+        - **渲染 * *：`WolfCollarLayer::shouldRender` 读取 `wolfTamed()` 判断是否渲染项圈，`_getCollarColor` 读取 `wolfCollarColor()` 选择色调；`WolfRenderer::getEntityTexture` 读取 `isTamed()` 选择驯服纹理
+        - **getCollarColorParamId/getTamedParamId * *：公共静态方法暴露 DataParameter ID，供 `ClientEntity` 的同步逻辑按 ID 读取（避免跨层包含头文件的循环依赖）
+
             ## #狼铠系统（WolfEntity + MobEntity + Crackiness）
 
         **狼铠装备 * *（`WolfEntity::interactMob` 优先级2）：主人右键狼 + 手持狼铠 + 未装备 + 非幼年 → 装备狼铠到 Body 槽位，播放 `ITEM_ARMOR_EQUIP_WOLF` 音效。调用 `MobEntity::setBodyArmorItem()` 自动设置保整掉落和持久化。

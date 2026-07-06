@@ -25,7 +25,7 @@ entity/
 |--------|----------|----------|
 | SaddleLayer | 可骑乘实体（马、猪等） | 通用模板 |
 | SheepWoolLayer | SheepEntity | BipedModel |
-| WolfCollarLayer | WolfEntity | WolfModel |
+| WolfCollarLayer | ClientEntity（狼） | 自建环形网格（不依赖 WolfModel） |
 | ArrowLayer | LivingEntity | 通用模板 |
 | HeldBlockLayer | EndermanEntity | 通用模板 |
 | VillagerLayer | VillagerEntity / ZombieVillagerEntity | VillagerModel |
@@ -60,6 +60,8 @@ entity/
 6. **彩虹羊检测**：`SheepWoolLayer::isRainbowSheep()` 检查实体自定义名称是否为 "jeb_" 或 "jeb"，颜色每 2 tick 变化一次。
 
 7. **项圈颜色边界**：`WolfCollarLayer` 需检查颜色索引是否 < 16，超出范围时回退到默认红色（索引 14）。
+
+8. **WolfCollarLayer 使用 ClientEntity 而非 WolfEntity**：与其他层不同，`WolfCollarLayer` 模板参数为 `ClientEntity`，通过 `entity.wolfTamed()`/`entity.wolfCollarColor()` 读取元数据镜像字段（由 `ClientEntity::syncMetadataFromDataManager` 从 `TameableEntity::DATA_TAMED_PARAM`/`WolfEntity::DATA_COLLAR_COLOR_PARAM` 同步）。这是因为 `WolfRenderer::renderLayersPipelineClient` 直接接收 `ClientEntity&`，层无需访问服务端 `WolfEntity`。
 
 ## 参考
 

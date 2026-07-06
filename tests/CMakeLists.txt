@@ -903,6 +903,8 @@ add_executable(mc_tests
     client/renderer/trident/entity/layer/entity/HeldBlockLayerTest.cpp
     # VillagerLayer 村民多层纹理渲染层测试
     client/renderer/trident/entity/layer/entity/VillagerLayerTest.cpp
+    # WolfCollarLayer 狼项圈渲染层测试（shouldRender + 颜色映射）
+    client/renderer/trident/entity/layer/entity/WolfCollarLayerTest.cpp
     # EnergyGlintLayer 附魔光效渲染层测试
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
     # EntityPipeline BlendMode 枚举契约测试（Multiply/None 专用管线）
