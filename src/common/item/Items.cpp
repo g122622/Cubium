@@ -1411,12 +1411,15 @@ Item* Items::BEE_SPAWN_EGG = nullptr;
 Item* Items::BLAZE_SPAWN_EGG = nullptr;
 Item* Items::BOGGED_SPAWN_EGG = nullptr;
 Item* Items::BREEZE_SPAWN_EGG = nullptr;
+Item* Items::CAMEL_HUSK_SPAWN_EGG = nullptr;
 Item* Items::CAT_SPAWN_EGG = nullptr;
 Item* Items::CAMEL_SPAWN_EGG = nullptr;
 Item* Items::CAVE_SPIDER_SPAWN_EGG = nullptr;
 Item* Items::CHICKEN_SPAWN_EGG = nullptr;
 Item* Items::COD_SPAWN_EGG = nullptr;
+Item* Items::COPPER_GOLEM_SPAWN_EGG = nullptr;
 Item* Items::COW_SPAWN_EGG = nullptr;
+Item* Items::CREAKING_SPAWN_EGG = nullptr;
 Item* Items::CREEPER_SPAWN_EGG = nullptr;
 Item* Items::DOLPHIN_SPAWN_EGG = nullptr;
 Item* Items::DONKEY_SPAWN_EGG = nullptr;
@@ -1432,6 +1435,7 @@ Item* Items::GHAST_SPAWN_EGG = nullptr;
 Item* Items::GLOW_SQUID_SPAWN_EGG = nullptr;
 Item* Items::GOAT_SPAWN_EGG = nullptr;
 Item* Items::GUARDIAN_SPAWN_EGG = nullptr;
+Item* Items::HAPPY_GHAST_SPAWN_EGG = nullptr;
 Item* Items::HOGLIN_SPAWN_EGG = nullptr;
 Item* Items::HORSE_SPAWN_EGG = nullptr;
 Item* Items::HUSK_SPAWN_EGG = nullptr;
@@ -1440,9 +1444,11 @@ Item* Items::LLAMA_SPAWN_EGG = nullptr;
 Item* Items::MAGMA_CUBE_SPAWN_EGG = nullptr;
 Item* Items::MOOSHROOM_SPAWN_EGG = nullptr;
 Item* Items::MULE_SPAWN_EGG = nullptr;
+Item* Items::NAUTILUS_SPAWN_EGG = nullptr;
 Item* Items::OCELOT_SPAWN_EGG = nullptr;
 Item* Items::PANDA_SPAWN_EGG = nullptr;
 Item* Items::PARROT_SPAWN_EGG = nullptr;
+Item* Items::PARCHED_SPAWN_EGG = nullptr;
 Item* Items::PHANTOM_SPAWN_EGG = nullptr;
 Item* Items::PIG_SPAWN_EGG = nullptr;
 Item* Items::PIGLIN_SPAWN_EGG = nullptr;
@@ -1481,6 +1487,7 @@ Item* Items::WOLF_SPAWN_EGG = nullptr;
 Item* Items::ZOGLIN_SPAWN_EGG = nullptr;
 Item* Items::ZOMBIE_SPAWN_EGG = nullptr;
 Item* Items::ZOMBIE_HORSE_SPAWN_EGG = nullptr;
+Item* Items::ZOMBIE_NAUTILUS_SPAWN_EGG = nullptr;
 Item* Items::ZOMBIFIED_PIGLIN_SPAWN_EGG = nullptr;
 Item* Items::ZOMBIE_VILLAGER_SPAWN_EGG = nullptr;
 
@@ -5333,6 +5340,13 @@ void Items::_registerSpawnEggs()
         0xE4DDC9FF,
         ItemProperties().maxStackSize(64));
 
+    CAMEL_HUSK_SPAWN_EGG =
+        &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:camel_husk_spawn_egg"),
+            makeEntityTypeForSpawnEgg("minecraft:camel_husk"),
+            0x383127FF,
+            0x544937FF,
+            ItemProperties().maxStackSize(64));
+
     CAVE_SPIDER_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:cave_spider_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:cave_spider"),
@@ -5352,10 +5366,23 @@ void Items::_registerSpawnEggs()
         0x465A82FF,
         ItemProperties().maxStackSize(64));
 
+    COPPER_GOLEM_SPAWN_EGG =
+        &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:copper_golem_spawn_egg"),
+            makeEntityTypeForSpawnEgg("minecraft:copper_golem"),
+            0x783219FF,
+            0xE3826CFF,
+            ItemProperties().maxStackSize(64));
+
     COW_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:cow_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:cow"),
         0x45362DFF,
         0xC9A063FF,
+        ItemProperties().maxStackSize(64));
+
+    CREAKING_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:creaking_spawn_egg"),
+        makeEntityTypeForSpawnEgg("minecraft:creaking"),
+        0x5A504EFF,
+        0x8F968DFF,
         ItemProperties().maxStackSize(64));
 
     CREEPER_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:creeper_spawn_egg"),
@@ -5451,6 +5478,13 @@ void Items::_registerSpawnEggs()
         0x25D1C2FF,
         ItemProperties().maxStackSize(64));
 
+    HAPPY_GHAST_SPAWN_EGG =
+        &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:happy_ghast_spawn_egg"),
+            makeEntityTypeForSpawnEgg("minecraft:happy_ghast"),
+            0xF0F0F0FF,
+            0xD8CCCCFF,
+            ItemProperties().maxStackSize(64));
+
     HOGLIN_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:hoglin_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:hoglin"),
         0x5E2D29FF,
@@ -5501,6 +5535,12 @@ void Items::_registerSpawnEggs()
         0x4F3E2DFF,
         ItemProperties().maxStackSize(64));
 
+    NAUTILUS_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:nautilus_spawn_egg"),
+        makeEntityTypeForSpawnEgg("minecraft:nautilus"),
+        0xDB5A41FF,
+        0x66452EFF,
+        ItemProperties().maxStackSize(64));
+
     OCELOT_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:ocelot_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:ocelot"),
         0x161616FF,
@@ -5517,6 +5557,12 @@ void Items::_registerSpawnEggs()
         makeEntityTypeForSpawnEgg("minecraft:parrot"),
         0x161616FF,
         0x15B7B7FF,
+        ItemProperties().maxStackSize(64));
+
+    PARCHED_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:parched_spawn_egg"),
+        makeEntityTypeForSpawnEgg("minecraft:parched"),
+        0x746E66FF,
+        0xAC986BFF,
         ItemProperties().maxStackSize(64));
 
     PHANTOM_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:phantom_spawn_egg"),
@@ -5757,6 +5803,13 @@ void Items::_registerSpawnEggs()
             makeEntityTypeForSpawnEgg("minecraft:zombie_horse"),
             0x161616FF,
             0x6A6A6AFF,
+            ItemProperties().maxStackSize(64));
+
+    ZOMBIE_NAUTILUS_SPAWN_EGG =
+        &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:zombie_nautilus_spawn_egg"),
+            makeEntityTypeForSpawnEgg("minecraft:zombie_nautilus"),
+            0x776C49FF,
+            0x615633FF,
             ItemProperties().maxStackSize(64));
 
     ZOMBIFIED_PIGLIN_SPAWN_EGG =

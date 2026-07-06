@@ -432,3 +432,27 @@ MC 1.21+ 将原 `minecraft:chain` 重命名为 `minecraft:iron_chain`，与铜�
 **与普通 BlockItem 的区别**：普通 `BlockItem` 的 `getStateForPlacement()` 直接委托给方块的 `getStateForPlacement()`，而 `BedItem` 自行实现检查逻辑，确保双格结构（头部+脚部）的完整性。
 
 **16色床物品**：WHITE_BED、ORANGE_BED、MAGENTA_BED、LIGHT_BLUE_BED、YELLOW_BED、LIME_BED、PINK_BED、GRAY_BED、LIGHT_GRAY_BED、CYAN_BED、PURPLE_BED、BLUE_BED、BROWN_BED、GREEN_BED、RED_BED、BLACK_BED
+
+### 21. 刷怪蛋物品注册
+
+MC 1.21.11 共 87 种刷怪蛋物品，统一注册在 `Items::_registerSpawnEggs()` 中。每种刷怪蛋注册名为 `minecraft:xxx_spawn_egg`，最大堆叠数 64。
+
+**注册方式**：`registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:xxx_spawn_egg"), makeEntityTypeForSpawnEgg("minecraft:xxx"), primaryColor, secondaryColor, ItemProperties().maxStackSize(64))`
+
+**EntityType 构造**：`SpawnEggItem` 持有 `EntityType` 副本（不可拷贝、可移动），但 `EntityType` 的工厂为空——`SpawnEggItem` 内部 `EntityType` 仅作为名称载体。实际实体生成由 `MobEntity::_spawnOffspringFromSpawnEgg`（右键生物生成幼体）或 `SpawnEggItem::spawnEntity`（右键方块生成实体）通过 `EntityRegistry::getType(name)->create()` 完成，因此刷怪蛋内 `EntityType` 的工厂从不被调用。
+
+`makeEntityTypeForSpawnEgg(const char*)` 是 `Items.cpp` 匿名命名空间中的辅助函数，使用 `EntityType::Builder` + `const_cast<std::string&>(type.name())` 写入实体注册名（与 `EntityRegistry::registerType` 内部一致），规避 `EntityType` 不可拷贝的约束。
+
+**颜色数据来源**：
+- 历史型刷怪蛋（1.16.5 之前 Java 内置）：沿用 MC Java `SpawnEggItem` 的 `background`/`foreground` (ARGB) 常量，该数据在各版本间保持稳定
+- 新增实体刷怪蛋（1.17+ 实验性/未实现实体）：从原版资源包纹理 `assets/minecraft/textures/item/xxx_spawn_egg.png` 提取主色/次色
+- MC 1.21.11 已将颜色从 Java 代码迁移至客户端纹理，本项目中颜色仅作为 API 字段保留（`SpawnEggItem::getPrimaryColor/getSecondaryColor`），不参与服务端逻辑
+
+**两种使用路径**：
+1. **右键方块**：`SpawnEggItem::onItemUse` 在方块面上方生成对应实体（调用 `SpawnEggItem::spawnEntity` → `m_entityType.create(&world)`，工厂为空时返回 `nullptr`）
+2. **右键生物**：`MobEntity::processInitialInteract` 检测手持刷怪蛋 → `_spawnOffspringFromSpawnEgg` 比较刷怪蛋实体名与目标实体 `getTypeId()`，匹配时通过 `EntityRegistry::getType(getTypeId())->create()` 生成幼体（仅 `AgeableEntity` 子类支持）
+
+**注意事项**：
+- 刷怪蛋类型匹配使用实体类型名称字符串比较（如 `"minecraft:pig"`），而非 `EntityType` 对象比较，避免 `EntityType` 不可拷贝的问题
+- 客户端预测：`isClientSide() == true` 时直接返回 `Success`，不消耗物品、不生成实体（实际由服务端处理）
+- 创造模式下不消耗刷怪蛋物品
