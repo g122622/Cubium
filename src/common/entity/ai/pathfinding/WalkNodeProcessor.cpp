@@ -534,8 +534,9 @@ void WalkNodeProcessor::_addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, 
 
         // 类型变更时同步 costMalus，对应 MC Java WalkNodeEvaluator.getNodeAndUpdateCostToMax
         // 的 node.costMalus = Math.max(node.costMalus, mob.getPathfindingMalus(type))
-        // 此处直接覆盖为新类型对应的 malus（getNode 返回的节点可能已有旧 costMalus，
-        // 但 createNode 已用 mob malus 初始化，故取 max 与覆盖语义等价）
+        // 取 max 语义保证：若节点已被更"昂贵"的类型标记过，不会因后续更"便宜"的类型
+        // 覆盖而降低代价。这是 MC 原版的保守策略——一旦某节点被判定为危险（高代价），
+        // 后续相邻检测中的其他类型判定不应削弱该危险标记。
         f32 newCostMalus = getPathCostPenalty(type);
         if (m_entity != nullptr) {
             const auto* mob = dynamic_cast<const MobEntity*>(m_entity);
@@ -543,7 +544,7 @@ void WalkNodeProcessor::_addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, 
                 newCostMalus = mob->getPathfindingMalus(type);
             }
         }
-        node->setCostMalus(newCostMalus);
+        node->setCostMalus(std::max(node->costMalus(), newCostMalus));
 
         neighbors.push_back(node);
         m_openNodes.push_back(node);
