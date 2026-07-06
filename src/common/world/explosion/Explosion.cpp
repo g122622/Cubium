@@ -332,7 +332,59 @@ void Explosion::_calculateAffectedEntities()
                 damageSource = std::make_unique<EntityDamageSource>(DamageType::Explosion, m_source);
             }
 
-            // 对生物实体造成伤害
+            // ========== 玩家分支 ==========
+            // 玩家的击退完全由客户端通过 ExplosionPacket 应用（client-authoritative），
+            // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 ExplosionPacket 双重应用。
+            // 同时清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket 覆盖客户端速度。
+            // 对应 MC Java: ServerExplosion.hurtEntities 中 entity.push(vec32) 对所有实体调用，
+            // 但 ServerPlayer 的 motion 是 client-authoritative，server 不会通过 SetEntityMotionPacket
+            // 把自身速度同步给自己，因此 MC 端不会出现双重应用。Cubium 的 EntityTracker 采用
+            // "AndSelf" 模式（向 ServerPlayer 自身发送速度包），所以必须在玩家分支显式跳过
+            // 服务端速度修改与同步。
+            Player* player = dynamic_cast<Player*>(entity);
+            if (player) {
+                // 观察者模式不受击退也不受伤害（与 MC 一致：旁观者免疫爆炸）
+                if (player->isSpectator()) {
+                    continue;
+                }
+                // 创造模式飞行中不受击退（仍受伤害，与原版一致）
+                const PlayerAbilities& abilities = player->abilities();
+                const bool creativeFlying = player->isCreative() && abilities.flying;
+
+                // 应用爆炸保护附魔减伤与击退衰减
+                // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
+                // 击退减少: knockback * (1 - EPF * 0.15)
+                f32 playerKnockback = impact;
+                i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
+                    player->getArmorSlots(), DamageFlags::EXPLOSION);
+                if (blastProtection > 0) {
+                    damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
+                    playerKnockback = playerKnockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
+                }
+
+                // 造成伤害（LivingEntity::hurt 会设置 hurtMarked）
+                player->hurt(*damageSource, damage);
+
+                if (!creativeFlying) {
+                    // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
+                    // （玩家速度由客户端通过 ExplosionPacket 应用，服务端不应同步速度）
+                    player->clearHurtMarked();
+                    // 记录玩家击退向量，将通过 ExplosionPacket 发送给客户端
+                    // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度
+                    m_playerKnockback[player->id()] =
+                        Vector3(dx * playerKnockback, dy * playerKnockback, dz * playerKnockback);
+                } else {
+                    // 创造飞行玩家不受击退，但仍需清除 hurtMarked（hurt 调用已设置它）
+                    // 否则 EntityTracker 会发送 EntityVelocityPacket，可能干扰飞行状态
+                    player->clearHurtMarked();
+                }
+
+                // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
+                entity->onExplosionHit(m_source);
+                continue;
+            }
+
+            // ========== 非玩家生物实体分支 ==========
             LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
             if (living) {
                 // 应用爆炸保护附魔减伤
@@ -348,29 +400,18 @@ void Explosion::_calculateAffectedEntities()
 
                 living->hurt(*damageSource, damage);
 
-                // 应用击退
+                // 应用击退（非玩家实体由服务端权威同步速度）
                 entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
+                // LivingEntity::hurt 已设置 markHurt，EntityTracker 会通过 EntityVelocityPacket
+                // 把更新后的速度同步给追踪此实体的客户端。这里无需额外 markHurt。
             } else {
                 // 普通实体伤害
                 entity->hurt(*damageSource, damage);
 
                 // 应用击退
                 entity->addVelocity(dx * impact, dy * impact, dz * impact);
-            }
-
-            // 记录玩家击退
-            Player* player = dynamic_cast<Player*>(entity);
-            if (player) {
-                // 观察者模式不受击退
-                if (player->isSpectator()) {
-                    continue;
-                }
-                // 创造模式飞行中不受击退
-                const PlayerAbilities& abilities = player->abilities();
-                if (player->isCreative() && abilities.flying) {
-                    continue;
-                }
-                m_playerKnockback[player->id()] = Vector3(dx * impact, dy * impact, dz * impact);
+                // 非 LivingEntity 的 hurt 默认实现不调用 markHurt，需显式标记以同步速度
+                entity->markHurt();
             }
 
             // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）

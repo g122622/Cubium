@@ -139,18 +139,23 @@ ExplosionContext ◄─────────── Explosion
 - 普通凋灵之首使用基类 `EntityExplosionContext`，不修改任何爆炸抗性
 - 对应 MC Java 的 `WitherSkull.getBlockExplosionResistance()` 和 `WitherBoss.canDestroy()`
 
-### #10. 玩家击退双重应用（既有设计缺陷）
+### #10. 玩家击退的双重应用防范
 
-**问题**：`Explosion::_calculateAffectedEntities` 与 `WindChargeEntity::applyWindBurst` 都存在玩家击退被双重应用的结构性问题：
+**背景**：`Explosion::_calculateAffectedEntities` 与 `WindChargeEntity::applyWindBurst` 都通过 `IWorld::broadcastExplosion` 把玩家击退向量以 `ExplosionPacket` 形式发给客户端。`ExplosionPacket` 在客户端通过 `addVelocity`（累加）应用击退，对应 MC Java `ClientPacketListener.handleExplosion` 调用 `player.addDeltaMovement(vec)`。
 
-1. 服务端在实体循环中对玩家调用 `entity->addVelocity(dx*impact, ...)`（服务端速度被修改）
-2. 同一循环中又把 `(dx*impact, ...)` 写入 `m_playerKnockback` / `playerKnockback` 映射
-3. `ServerWorld::createExplosion*` / `WindChargeEntity::applyWindBurst` 随后调用 `IWorld::broadcastExplosion`，通过 `ExplosionPacket` 把该向量发给客户端
-4. 客户端 `handleExplosion` 调用 `player.addDeltaMovement(vec)` 再次累加（注意是累加，不是覆盖）
+**关键约束**：玩家分支**不能**在服务端调用 `addVelocity` 修改玩家速度，否则：
 
-对服务端玩家：服务端 `addVelocity` 修改了速度 → 客户端收到 `EntityVelocityPacket` 同步 → 又收到 `ExplosionPacket` 再加一次 → 双倍击退。
-对客户端其他玩家：`ExplosionPacket` 的击退直接累加，没有双倍问题。
+1. 服务端 `addVelocity` 修改玩家速度 → `LivingEntity::hurt` 已设置 `hurtMarked` → `EntityTracker::tick` 通过 `EntityVelocityPacket`（"AndSelf" 模式）把更新后的速度同步给客户端 → 客户端 `setVelocity` 覆盖本地速度
+2. `ExplosionPacket` 随后到达 → 客户端 `addVelocity` 累加击退 → 双重应用（先被覆盖，再累加，最终速度 = 服务端速度 + 击退，而非 客户端原速度 + 击退）
 
-**修复方向**（需作为独立任务统一处理 `Explosion` 与 `WindChargeEntity`）：玩家分支跳过 `addVelocity`，仅通过 `ExplosionPacket` 让客户端应用击退；服务端玩家速度由客户端发包同步回来。但需验证伤害公式（依赖 `deltaMovement` 的坠落伤害计算等）不受影响。
+**修复方案**（已实施）：玩家分支采用「客户端权威速度」模型，与 MC Java `ServerPlayer` 速度由客户端发包同步回来的设计一致：
 
-代码中已通过 `TODO` 注释明文标注，便于全文搜索定位。
+1. 玩家分支调用 `hurt()` 造成伤害（`hurt` 内部会设置 `hurtMarked`）
+2. 立即调用 `clearHurtMarked()` 清除标记，阻止 `EntityTracker` 发送 `EntityVelocityPacket`
+3. **不**调用 `addVelocity`（服务端玩家速度保持不变，等待客户端通过 `ServerboundMovePlayerPacket` 同步回来）
+4. 把击退向量写入 `playerKnockback` 映射，通过 `ExplosionPacket` 发送给客户端
+5. 客户端 `onExplosion` 回调调用 `addVelocity` 累加击退到本地玩家速度
+
+**非玩家实体**（生物、掉落物等）仍由服务端权威同步速度：调用 `addVelocity` 修改服务端速度，依赖 `LivingEntity::hurt` 设置的 `hurtMarked` 通过 `EntityVelocityPacket` 同步给追踪此实体的客户端。
+
+**EPF 一致性**：玩家分支与非玩家生物分支都使用 EPF 衰减后的 `knockback` 值（`impact * (1 - EPF * 0.15)`），保证 `ExplosionPacket` 中的击退向量与服务端（若有）应用的一致。对应 MC Java `ServerExplosion.hurtEntities` 第 197 行：`Vec3 vec32 = vec31.scale(d2)` 计算一次，`entity.push(vec32)` 与 `hitPlayers.put(player, vec32)` 共用同一向量。

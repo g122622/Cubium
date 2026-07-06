@@ -31,6 +31,7 @@
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
+#include "common/network/packet/ExplosionPacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/MapDataPacket.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
@@ -129,6 +130,12 @@ struct NetworkClientCallbacks {
     std::function<void(u32 entityId, u8 animation)> onEntityAnimation;
     std::function<void(u32 entityId, f32 headYaw)> onEntityHeadLook;
     std::function<void(u32 entityId, u8 status)> onEntityStatus;
+
+    // 爆炸事件
+    // 对应 MC Java ClientboundExplodePacket / ClientPacketListener.handleExplosion。
+    // 客户端通过 addVelocity 累加击退向量到本地玩家速度（不是 setVelocity 覆盖）。
+    // affectedBlocks 用于客户端方块破坏视觉；position/strength 用于粒子与音效。
+    std::function<void(const network::ExplosionPacket& packet)> onExplosion;
 
     // 乘客事件
     std::function<void(u32 entityId, const std::vector<u32>& passengerIds)> onSetPassengers;
@@ -439,6 +446,9 @@ private:
     void _handleEntityHeadLook(network::PacketDeserializer& deser);
     void _handleEntityStatus(network::PacketDeserializer& deser);
     void _handleCollectItem(network::PacketDeserializer& deser);
+
+    // 爆炸包处理
+    void _handleExplosion(network::PacketDeserializer& deser);
 
     // 天气包处理
     void _handleGameStateChange(network::PacketDeserializer& deser);

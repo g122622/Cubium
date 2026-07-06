@@ -211,7 +211,7 @@ void WindChargeEntity::applyWindBurst()
             continue;
         }
 
-        // ========== 2. 计算距离和方向 ==========
+        // ========== 1. 计算距离和方向 ==========
         // 对应 MC: entity.distanceToSqr(center) / (radius * 2)
         Vector3 entityPos = entity->position();
         f32 dx = entityPos.x - burstPos.x;
@@ -241,11 +241,11 @@ void WindChargeEntity::applyWindBurst()
         dy /= length;
         dz /= length;
 
-        // ========== 3. 计算视线遮挡密度 ==========
+        // ========== 2. 计算视线遮挡密度 ==========
         // 对应 MC: Explosion.getSeenPercent() / getBlockDensity()
         f32 density = _calculateSeenPercent(entity->boundingBox(), burstPos);
 
-        // ========== 4. 计算推力 ==========
+        // ========== 3. 计算推力 ==========
         // 对应 MC ServerExplosion 的推力计算：
         // impact = (1.0 - distanceRatio) * density
         // knockbackResistance = 爆炸保护附魔提供的击退抗性
@@ -271,15 +271,11 @@ void WindChargeEntity::applyWindBurst()
             continue;
         }
 
-        // ========== 5. 应用推力 ==========
-        // 风弹自身不受推力（addVelocity 已被重写为空方法）
-        // 对应 MC: entity.push(vec32) 即 deltaMovement += vec32
-        entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
-        // 标记受伤（风弹推力改变了实体速度，需要同步到客户端）
-        // 对应 MC Java ApplyEntityImpulse 中 hurtMarked = true
-        entity->markHurt();
-
-        // ========== 6. 玩家特殊处理 ==========
+        // ========== 4. 玩家分支：仅通过 ExplosionPacket 应用击退 ==========
+        // 玩家速度由客户端权威管理（对应 MC Java ServerPlayer 的 client-authoritative motion）。
+        // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 ExplosionPacket 双重应用。
+        // 同时清除 LivingEntity::hurt 设置的 hurtMarked，防止 EntityTracker 发送
+        // EntityVelocityPacket 覆盖客户端速度。
         Player* player = dynamic_cast<Player*>(entity);
         if (player != nullptr) {
             // 观察者模式不受击退
@@ -291,24 +287,38 @@ void WindChargeEntity::applyWindBurst()
             if (player->isCreative() && abilities.flying) {
                 continue;
             }
-            // 记录玩家击退向量，稍后通过 ExplosionPacket 发送给客户端
-            // 对应 MC Java ServerExplosion.hurtEntities 中 hitPlayers.put(player, vec32)
-            // 客户端收到后会调用 player.addDeltaMovement(vec) 累加到现有速度上
-            //
-            // TODO: 此处存在玩家被双重应用击退的既有设计缺陷：
-            // 上方 line ~277 已对实体（含玩家）调用 addVelocity 应用了 (dx*finalImpact, ...)，
-            // 此处又通过 ExplosionPacket 让客户端 addDeltaMovement 累加同一向量，
-            // 导致服务端玩家最终获得双倍击退。该问题与 common/world/explosion/Explosion.cpp
-            // 中 _calculateAffectedEntities 的玩家分支同构（同样先 addVelocity 再写入 hitPlayers），
-            // 属项目整体爆炸同步设计需要统一修复的问题。
-            // 修复方案建议：玩家分支跳过 addVelocity，仅通过 ExplosionPacket 让客户端应用击退；
-            // 但需同步修改 Explosion 类与所有爆炸路径，并验证伤害公式不受影响，应作为独立任务处理。
+
+            // 风弹对玩家造成 1 点风爆伤害（与 onEntityHit 中的伤害一致）
+            // 对应 MC: DamageSources.windCharge(this, target)
+            Entity* shooter = getShooter();
+            bool isPlayerShooter = shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            auto damageSource = DamageSources::windBurst(this, shooter, isPlayerShooter);
+            player->hurt(damageSource, PLAYER_DAMAGE);
+
+            // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
+            // （玩家速度由客户端通过 ExplosionPacket 应用）
+            player->clearHurtMarked();
+
+            // 记录玩家击退向量，将通过 ExplosionPacket 发送给客户端
+            // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度
             playerKnockback[static_cast<u64>(player->id())] =
                 Vector3(dx * finalImpact, dy * finalImpact, dz * finalImpact);
+
+            // 通知实体被爆炸击中（冲量坠落伤害免疫等）
+            entity->onExplosionHit(getShooter());
+            continue;
         }
 
-        // ========== 7. 通知实体被爆炸击中 ==========
-        // 风弹爆炸触发冲量坠落伤害免疫（对应 MC ServerPlayer.onExplosionHit 中对 WindCharge 的检查）
+        // ========== 5. 非玩家实体分支：服务端权威速度 ==========
+        // 风弹自身不受推力（addVelocity 已被重写为空方法）
+        // 对应 MC: entity.push(vec32) 即 deltaMovement += vec32
+        entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
+        // 标记受伤（风弹推力改变了实体速度，需要同步到客户端）
+        // 对应 MC Java ApplyEntityImpulse 中 hurtMarked = true
+        entity->markHurt();
+
+        // 通知实体被爆炸击中（冲量坠落伤害免疫等）
+        // 对应 MC Java ServerPlayer.onExplosionHit 中对 WindCharge 的检查
         entity->onExplosionHit(getShooter());
     }
 

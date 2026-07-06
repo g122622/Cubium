@@ -885,6 +885,11 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
             break;
         }
 
+        case network::PacketType::Explosion: {
+            _handleExplosion(bodyDeser);
+            break;
+        }
+
         default:
             spdlog::error("Unhandled packet type: {}", static_cast<i32>(packetType));
             break;
@@ -1360,6 +1365,26 @@ void NetworkClient::_handleEntityVelocity(network::PacketDeserializer& deser)
 
     if (m_callbacks.onEntityVelocity) {
         m_callbacks.onEntityVelocity(packet.entityId(), packet.velocityX(), packet.velocityY(), packet.velocityZ());
+    }
+}
+
+void NetworkClient::_handleExplosion(network::PacketDeserializer& deser)
+{
+    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleExplosion");
+
+    // ExplosionPacket::deserialize 接收原始 data/size（内部自建 PacketDeserializer）
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::ExplosionPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize Explosion packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onExplosion) {
+        m_callbacks.onExplosion(packet);
     }
 }
 

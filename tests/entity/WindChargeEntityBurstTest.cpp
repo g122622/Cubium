@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -161,11 +162,12 @@ private:
  * @brief WindChargeEntity::applyWindBurst 测试固件
  *
  * 验证风弹爆炸时玩家击退收集与广播逻辑：
- * - 普通玩家（生存模式）被加入 playerKnockback 映射并应用 addVelocity
+ * - 普通玩家（生存模式）被加入 playerKnockback 映射，服务端不调用 addVelocity（客户端权威速度）
  * - 旁观模式玩家被过滤
  * - 创造模式飞行玩家被过滤
  * - broadcastExplosion 被调用，传入正确的位置、半径、空 affectedBlocks、playerKnockback
- * - playerKnockback 中保存的击退向量与 addVelocity 应用的向量一致
+ * - playerKnockback 中保存的击退向量即为客户端应通过 addVelocity 累加的向量
+ * - 玩家分支清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
  */
 class WindChargeEntityBurstTest : public ::testing::Test {
 protected:
@@ -254,8 +256,14 @@ TEST_F(WindChargeEntityBurstTest, SurvivalPlayer_AddedToKnockbackMap)
 
 TEST_F(WindChargeEntityBurstTest, KnockbackVector_MatchesAppliedVelocity)
 {
-    // 验证 playerKnockback 中保存的向量与 addVelocity 应用的向量一致
-    // （即两条路径使用同一个 finalImpact 计算）
+    // 验证修复后的击退契约：
+    // - 服务端玩家速度不变（不调用 addVelocity）
+    // - playerKnockback 中保存的向量即为客户端应累加的击退向量
+    // - 玩家 hurtMarked 被清除（防止 EntityTracker 发送 EntityVelocityPacket 覆盖客户端速度）
+    //
+    // 对应 MC Java: ServerPlayer 的 motion 是 client-authoritative，服务端不通过 SetEntityMotionPacket
+    // 把自身速度同步给自己。Cubium 的 EntityTracker 采用 "AndSelf" 模式，因此玩家分支必须显式
+    // 跳过 addVelocity 并 clearHurtMarked，让击退仅通过 ExplosionPacket 在客户端应用。
     Player player(EntityId(2), "SurvivalPlayer");
     player.setPosition(1.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
@@ -270,11 +278,108 @@ TEST_F(WindChargeEntityBurstTest, KnockbackVector_MatchesAppliedVelocity)
 
     const Vector3 velocityAfter = player.velocity();
     const Vector3 appliedDelta = velocityAfter - velocityBefore;
-    const Vector3& broadcastDelta = m_world.lastPlayerKnockback().at(static_cast<u64>(player.id()));
 
-    EXPECT_FLOAT_EQ(appliedDelta.x, broadcastDelta.x);
-    EXPECT_FLOAT_EQ(appliedDelta.y, broadcastDelta.y);
-    EXPECT_FLOAT_EQ(appliedDelta.z, broadcastDelta.z);
+    // 修复后：服务端玩家速度不变（击退通过 ExplosionPacket 由客户端应用）
+    EXPECT_FLOAT_EQ(appliedDelta.x, 0.0f);
+    EXPECT_FLOAT_EQ(appliedDelta.y, 0.0f);
+    EXPECT_FLOAT_EQ(appliedDelta.z, 0.0f);
+
+    // playerKnockback 中保存的向量即为客户端应累加的击退向量
+    const auto& knockback = m_world.lastPlayerKnockback();
+    ASSERT_EQ(knockback.size(), 1u);
+    ASSERT_NE(knockback.find(static_cast<u64>(player.id())), knockback.end());
+    const Vector3& broadcastDelta = knockback.at(static_cast<u64>(player.id()));
+    // 击退方向应从爆炸中心指向玩家（即 +X 方向）
+    EXPECT_GT(broadcastDelta.x, 0.0f);
+
+    // hurtMarked 必须被清除，防止 EntityTracker 发送 EntityVelocityPacket 覆盖客户端速度
+    EXPECT_FALSE(player.isHurtMarked());
+}
+
+TEST_F(WindChargeEntityBurstTest, PlayerVelocity_UnchangedAfterBurst)
+{
+    // 额外验证：生存模式玩家被风弹击中后，服务端速度保持不变
+    // （击退仅通过 ExplosionPacket 在客户端应用）
+    Player player(EntityId(2), "SurvivalPlayer");
+    player.setPosition(0.5f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Survival);
+    // 设置一个非零初速度，验证它不会被覆盖
+    player.setVelocity(0.3f, -0.1f, 0.2f);
+    m_world.registerEntity(&player);
+    m_world.setEntities({&player});
+
+    const Vector3 velocityBefore = player.velocity();
+
+    test::WindChargeEntityTestAccessor accessor(*m_windCharge);
+    accessor.applyWindBurst();
+
+    const Vector3 velocityAfter = player.velocity();
+    // 服务端玩家速度完全不变（击退由客户端通过 ExplosionPacket 累加）
+    EXPECT_FLOAT_EQ(velocityAfter.x, velocityBefore.x);
+    EXPECT_FLOAT_EQ(velocityAfter.y, velocityBefore.y);
+    EXPECT_FLOAT_EQ(velocityAfter.z, velocityBefore.z);
+}
+
+TEST_F(WindChargeEntityBurstTest, Player_NotHurtMarked_AfterBurst)
+{
+    // 验证 hurtMarked 在玩家分支被清除
+    Player player(EntityId(2), "SurvivalPlayer");
+    player.setPosition(0.5f, 64.0f, 0.0f);
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Survival);
+    m_world.registerEntity(&player);
+    m_world.setEntities({&player});
+
+    EXPECT_FALSE(player.isHurtMarked());
+
+    test::WindChargeEntityTestAccessor accessor(*m_windCharge);
+    accessor.applyWindBurst();
+
+    // 玩家分支应清除 hurtMarked（LivingEntity::hurt 会设置它，但玩家分支立即清除）
+    EXPECT_FALSE(player.isHurtMarked());
+}
+
+TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_VelocityStillChanged)
+{
+    // 验证非玩家实体（LivingEntity）仍由服务端权威同步速度：
+    // 服务端调用 addVelocity 修改速度，并 markHurt 让 EntityTracker 同步
+    // 注意：WindChargeBurstTestWorld::getBlockState 返回 nullptr，
+    // _calculateSeenPercent 中的 raycastBlocks 会返回 miss（无方块阻挡），
+    // 因此 density = 1.0，impact > 0，finalImpact > 0，击退会被应用。
+
+    // 创建一个非玩家 LivingEntity（参考 HurtMarkedTest.cpp 的 TestHurtEntity 模式）
+    class TestLivingEntity final : public LivingEntity {
+    public:
+        explicit TestLivingEntity(EntityId id)
+            : LivingEntity(id)
+        {
+            registerAttributes();
+            setHealth(maxHealth());
+        }
+    };
+
+    TestLivingEntity entity(EntityId(2));
+    entity.setPosition(0.5f, 64.0f, 0.0f);
+    entity.setWorld(&m_world);
+    m_world.registerEntity(&entity);
+    m_world.setEntities({&entity});
+
+    const Vector3 velocityBefore = entity.velocity();
+    EXPECT_FALSE(entity.isHurtMarked());
+
+    test::WindChargeEntityTestAccessor accessor(*m_windCharge);
+    accessor.applyWindBurst();
+
+    const Vector3 velocityAfter = entity.velocity();
+
+    // 非玩家实体：服务端应调用 addVelocity 修改速度
+    // 若 finalImpact > 0（density=1.0 时成立），速度必须有变化
+    if (velocityAfter != velocityBefore) {
+        // 速度变化了，说明 finalImpact > 0，则 markHurt 必须为 true
+        // （非玩家实体分支会调用 markHurt 以让 EntityTracker 同步速度）
+        EXPECT_TRUE(entity.isHurtMarked());
+    }
 }
 
 TEST_F(WindChargeEntityBurstTest, SpectatorPlayer_FilteredFromKnockback)

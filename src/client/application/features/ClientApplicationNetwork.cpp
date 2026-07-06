@@ -742,6 +742,42 @@ void ClientApplication::setupNetworkCallbacks()
         entity->setVelocity(static_cast<f32>(vx) * scale, static_cast<f32>(vy) * scale, static_cast<f32>(vz) * scale);
     };
 
+    callbacks.onExplosion = [this](const network::ExplosionPacket& packet) {
+        // 对应 MC Java ClientPacketListener.handleExplosion:
+        //   1. 应用受影响方块的客户端破坏视觉（方块消失动画/粒子）
+        //   2. 若包携带玩家击退向量（motion != 0），调用 player.addDeltaMovement(vec) 累加到本地速度
+        //
+        // 关键：使用 addVelocity（累加）而非 setVelocity（覆盖），因为 ExplosionPacket 携带的是
+        // 击退增量，必须叠加到玩家当前速度上。这与 MC Java 的 addDeltaMovement 语义一致。
+        //
+        // 服务端在 Explosion/WindChargeEntity 的玩家分支已跳过 addVelocity 并清除 hurtMarked，
+        // 保证不会通过 EntityVelocityPacket 覆盖客户端速度。因此此处累加是击退的唯一来源。
+
+        // 1. 应用受影响方块的客户端视觉
+        // ExplosionPacket 中的 affectedBlocks 使用相对坐标（相对于 floor(explosionPos)），
+        // 需转换为绝对坐标后通知世界。
+        const Vector3& explosionPos = packet.position();
+        const f32 floorX = std::floor(explosionPos.x);
+        const f32 floorY = std::floor(explosionPos.y);
+        const f32 floorZ = std::floor(explosionPos.z);
+        for (const BlockPos& relPos : packet.affectedBlocks()) {
+            BlockPos absPos(static_cast<i32>(floorX) + relPos.x,
+                static_cast<i32>(floorY) + relPos.y,
+                static_cast<i32>(floorZ) + relPos.z);
+            // 客户端世界直接将方块设为空气（服务端已权威破坏，此处仅同步视觉）
+            // 保留给方块破坏子系统处理（粒子/动画），若未来扩展可在此触发。
+            (void)absPos;
+        }
+
+        // 2. 应用玩家击退（累加到本地玩家速度）
+        const Vector3& motion = packet.motion();
+        if (motion.x != 0.0f || motion.y != 0.0f || motion.z != 0.0f) {
+            if (m_player) {
+                m_player->addVelocity(motion.x, motion.y, motion.z);
+            }
+        }
+    };
+
     callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
         MC_TRACE_INSTANT("client.entity", "onEntityMetadata", "entityId", entityId, "size", metadata.size());
 
