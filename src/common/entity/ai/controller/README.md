@@ -148,7 +148,15 @@ if (auto* ctrl = m_mob->lookController()) {
 - 不使用 setMoveForward/setAIMoveSpeed，直接修改 velocity
 
 PhantomLookController 是空操作（tick() 无实现），因为幻翼的朝向完全由 PhantomMovementController 控制。
-PhantomEntity::tick() 在客户端侧手动同步 bodyRotation 和 headRotation 为 yaw。
+
+### 8. 身体/头部朝向字段（LivingEntity 通用机制）
+
+LivingEntity 提供通用的身体/头部朝向字段与虚方法，所有生物实体子类自动继承：
+- `m_renderYawOffset`（对应 MC `yBodyRot`）— 身体旋转偏移，通过 `renderYawOffset()` / `setRenderYawOffset()` 或虚方法 `setYBodyRot()` 访问
+- `m_rotationYawHead`（对应 MC `yHeadRot`）— 头部旋转，通过 `rotationYawHead()` / `setRotationYawHead()` 或虚方法 `setYHeadRot()` 访问
+- `Entity` 基类的 `setYBodyRot` / `setYHeadRot` 为空实现，`LivingEntity` 重写后写入上述字段
+
+LookController 在每 tick 中通过 `setRotationYawHead()` 更新头部朝向到当前关注目标；身体朝向（`m_renderYawOffset`）则由结构模板放置（`Template::placeInWorld`）、NBT 加载（`Entity::readFromNBT`）、方块实体生成（如 `CopperGolemStatueBlockEntity::removeStatue`）等场景通过 `setYBodyRot()` 设置首帧值。详见 `src/common/entity/core/README.md` 中 "setYBodyRot / setYHeadRot 虚方法" 章节。
 
 ### 9. MovementController 到达检测
 

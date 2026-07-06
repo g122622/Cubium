@@ -767,6 +767,48 @@
             典型覆写示例：`VillagerEntity::
                 setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
 
+## #setYBodyRot / setYHeadRot 虚方法（身体/头部偏航角同步）
+
+对应 MC 1.21.11 `Entity#setYBodyRot` / `Entity#setYHeadRot`，用于同步实体身体与头部朝向。
+
+### 方法层次
+
+- **`Entity::setYBodyRot(f32 yaw)`**（基类，虚方法）：默认空实现（no-op）。对应 MC `Entity.setYBodyRot` 同样为空方法。
+- **`Entity::setYHeadRot(f32 yaw)`**（基类，虚方法）：默认空实现（no-op）。对应 MC `Entity.setYHeadRot` 同样为空方法。
+- **`LivingEntity::setYBodyRot(f32 yaw)`**（重写）：写入 `m_renderYawOffset` 字段（对应 MC `LivingEntity.yBodyRot`）。
+- **`LivingEntity::setYHeadRot(f32 yaw)`**（重写）：写入 `m_rotationYawHead` 字段（对应 MC `LivingEntity.yHeadRot`）。
+
+### 设计意图
+
+基类提供空实现而非纯虚方法，使得通用代码（如结构模板放置实体、NBT 加载）可对任意 `Entity*` 调用 `setYBodyRot` / `setYHeadRot`，无需调用方做 `dynamic_cast<LivingEntity*>` 判断。非 `LivingEntity` 子类（如 `ItemEntity`、`ExperienceOrbEntity`）调用时为 no-op，安全无副作用。
+
+### 字段对照表
+
+| 项目字段 | MC Java 字段 | 含义 |
+|----------|-------------|------|
+| `m_renderYawOffset` | `yBodyRot` | 身体旋转偏移（视觉身体朝向） |
+| `m_rotationYawHead` | `yHeadRot` | 头部旋转（视觉头部朝向） |
+
+注意：项目中等价字段为 `m_renderYawOffset`（body）/ `m_rotationYawHead`（head），与 MC Java 的 `yBodyRot` / `yHeadRot` 一一对应。另提供 `renderYawOffset()` / `setRenderYawOffset()` 和 `rotationYawHead()` / `setRotationYawHead()` 作为直接访问器，但通用代码应优先使用 `setYBodyRot` / `setYHeadRot` 虚方法以支持多态。
+
+### 调用场景
+
+1. **`Template::placeInWorld`**：结构模板放置实体时，在 `setRotation(finalYaw, pitch)` 后调用 `setYBodyRot(finalYaw)` / `setYHeadRot(finalYaw)`，让首帧身体/头部朝向跟随结构旋转。对应 MC 1.21.11 `StructureTemplate#placeEntities` 中的 `setYBodyRot(f)` / `setYHeadRot(f)`。
+2. **`Entity::readFromNBT`**：加载 NBT 的 `Rotation` 标签后，调用 `setYBodyRot(m_yaw)` / `setYHeadRot(m_yaw)` 同步身体/头部朝向到 yaw。对应 MC 1.21.11 `Entity#load` 中的 `setYBodyRot(getYRot())` / `setYHeadRot(getYRot())`。
+3. **`CopperGolemStatueBlockEntity::removeStatue`**：铜傀儡雕像复活为实体时，调用 `setYBodyRot(yaw)` / `setYHeadRot(yaw)` 同步身体/头部朝向到 FACING 方向。对应 MC 1.21.11 `CopperGolemStatueBlockEntity#initCopperGolem`。
+
+### 与 AI LookController 的关系
+
+`LivingEntity::tick()` 中的 AI LookController 会在每 tick 更新 `m_rotationYawHead`（通过 `setRotationYawHead` 直接写入），让头部朝向当前关注目标。结构模板放置时的 `setYHeadRot` 仅设置首帧朝向，后续 tick 由 AI 接管。
+
+### 测试覆盖
+
+- `tests/common/world/gen/feature/template/TemplateEntityPlacementTest.cpp` — 12 个测试用例覆盖：
+  - `setYBodyRot` / `setYHeadRot` 接口直接验证（基类分发、LivingEntity 写入字段）
+  - `placeInWorld` 各种旋转（90/180/270）、镜像（FrontBack/LeftRight）、组合场景下 body/head 同步
+  - 非零 NBT yaw 的变换验证
+  - `readFromNBT` 同步 body/head 验证
+
             ## #hurtMarked 受伤标记机制
             - `m_hurtMarked`（bool）— 瞬态标记，实体受到伤害或击退时设为 true - `markHurt()` — 设置标记为
             true - `isHurtMarked()` — 查询标记状态

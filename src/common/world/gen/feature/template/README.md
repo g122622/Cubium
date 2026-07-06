@@ -143,7 +143,7 @@ settings.setBoundingBox(&chunkBounds);
 
 朝向变换公式为 `f = rotate(yaw) + (mirror(yaw) - yaw)`，对应 MC 1.21.11 `Entity#rotate` + `Entity#mirror`。
 
-**已知限制**：当前未同步 `setYBodyRot` / `setYHeadRot`（项目 `Entity` 类暂无这两个字段，详见 `Template.cpp` 中对应 TODO 注释）。待通用 body/head rotation 字段引入后补齐。
+**身体/头部朝向同步**：`placeInWorld` 中实体放置时，在 `setRotation(finalYaw, pitch)` 后会调用 `setYBodyRot(finalYaw)` / `setYHeadRot(finalYaw)` 同步身体与头部朝向到结构旋转后的 yaw，对应 MC 1.21.11 `StructureTemplate#placeEntities` 中的 `setYBodyRot(f)` / `setYHeadRot(f)`。`Entity` 基类的 `setYBodyRot` / `setYHeadRot` 为空实现，`LivingEntity` 重写后写入 `m_renderYawOffset` / `m_rotationYawHead` 字段，因此对任意实体类型调用都安全（非 `LivingEntity` 时为 no-op）。详见 `src/common/entity/core/README.md` 中 "setYBodyRot / setYHeadRot 虚方法" 章节。
 
 ### 6. 调色板格式兼容性
 

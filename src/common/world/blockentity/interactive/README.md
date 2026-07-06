@@ -230,3 +230,22 @@ BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `t
 1. **客户端**：`IWorld::addEntityEffectParticle` → `ClientWorld::addEntityEffectParticle` → 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle` → 数据工厂 `EntityEffectParticle::createWithColor`
 2. **服务端**（虽 `_showBellParticles` 仅在客户端调用，但 `addEntityEffectParticle` 接口可被其他场景复用）：`ServerWorld::addEntityEffectParticle` → `m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange` → `ParticlePacket::createEntityEffect` 发送给范围内玩家
 3. **客户端接收**：`NetworkClient::_handleParticle` → `isEntityEffectParticle` 分支 → `onEntityEffectParticle` 回调 → `ClientApplicationNetwork` 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle`
+
+## #17. CopperGolemStatueBlockEntity 雕像复活与身体/头部朝向同步
+
+`removeStatue(const BlockState& state)` 将铜傀儡雕像复活为铜傀儡实体，对应 MC 1.21.11 `CopperGolemStatueBlockEntity.removeStatue` + `initCopperGolem`。
+
+### 朝向同步流程
+
+1. 从方块状态的 `HORIZONTAL_FACING` 属性计算 yaw（South=0, West=90, North=180, East=270，对应 MC `Direction.toYRot()`）
+2. 调用 `entity->setPosition(center.x, y, center.z)` 设置位置（对应 MC `snapTo` 的坐标部分）
+3. 调用 `entity->setRotation(yaw, 0.0f)` 设置 yaw/pitch（对应 MC `snapTo` 的朝向部分）
+4. 调用 `entity->setYBodyRot(yaw)` / `entity->setYHeadRot(yaw)` 同步身体与头部朝向到 FACING 方向（对应 MC `initCopperGolem` 中的 `yHeadRot = getYRot()` / `yBodyRot = getYRot()`）
+
+`Entity` 基类的 `setYBodyRot` / `setYHeadRot` 为空实现，`LivingEntity`（含 `CopperGolemEntity`）重写后写入 `m_renderYawOffset` / `m_rotationYawHead` 字段，因此对任意实体类型调用都安全。详见 `src/common/entity/core/README.md` 中 "setYBodyRot / setYHeadRot 虚方法" 章节。
+
+### 其他初始化
+
+- 转移 `CUSTOM_NAME`（对应 MC `coppergolem.setCustomName(this.components().get(DataComponents.CUSTOM_NAME))`）
+- 调用 `CopperGolemEntity::spawnFromStatue(Unaffected)` 设置初始氧化等级并播放生成音效（对应 MC `playSpawnSound()`）
+
