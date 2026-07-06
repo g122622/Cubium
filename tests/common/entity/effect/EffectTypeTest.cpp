@@ -58,7 +58,9 @@ TEST_F(EffectTypeTest, GetEffectById_InvalidIds)
     // 测试无效ID
     EXPECT_FALSE(getEffectById(0).has_value());
     EXPECT_FALSE(getEffectById(-1).has_value());
-    EXPECT_FALSE(getEffectById(33).has_value());
+    // EffectType 枚举已扩展到 Darkness=36（33=TrialOmen 已有效），
+    // 此前期望 33 返回 nullopt 是枚举扩展前的过时边界。改为 37（>EFFECT_COUNT=36）。
+    EXPECT_FALSE(getEffectById(37).has_value());
     EXPECT_FALSE(getEffectById(100).has_value());
 }
 

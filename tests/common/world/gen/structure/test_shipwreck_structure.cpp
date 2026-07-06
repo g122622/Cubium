@@ -124,11 +124,12 @@ TEST_F(ShipwreckStructureTest, Structure_ValidBiomeTag)
     const auto* tag = structure.biomeTag();
     ASSERT_NE(tag, nullptr);
 
-    // 验证海洋和沙滩生物群系
+    // 普通沉船 tag（has_structure/shipwreck）只含海洋生物群系；
+    // Beach/SnowyBeach 属于搁浅变体 tag（has_structure/shipwreck_beached），不在普通沉船 tag 中。
     EXPECT_TRUE(tag->contains(Biomes::Ocean));
-    EXPECT_TRUE(tag->contains(Biomes::Beach));
-    EXPECT_TRUE(tag->contains(Biomes::SnowyBeach));
     EXPECT_TRUE(tag->contains(Biomes::DeepOcean));
+    EXPECT_FALSE(tag->contains(Biomes::Beach));
+    EXPECT_FALSE(tag->contains(Biomes::SnowyBeach));
 }
 
 TEST_F(ShipwreckStructureTest, Structure_TemplateNames)

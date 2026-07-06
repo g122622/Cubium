@@ -287,9 +287,14 @@ TEST_F(PlayerResolverTest, ResolveWithDistanceFilter)
     ASSERT_NE(data1, nullptr);
     ASSERT_NE(data2, nullptr);
     ASSERT_NE(data3, nullptr);
+    // 玩家默认 y=SEA_LEVEL+1=64，console 在 (0,0,0)，3D 距离 sqrt(x²+64²) 远大于 max=30，
+    // 会导致所有玩家都被距离过滤排除。这里把 y 置 0，使 3D 距离≈x 距离，player2(x=15) 距离=15 在 [10,30] 内通过。
     data1->x = 5.0f;
+    data1->y = 0.0f;
     data2->x = 15.0f;
+    data2->y = 0.0f;
     data3->x = 50.0f;
+    data3->y = 0.0f;
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector(EntitySelectorType::AllPlayers);

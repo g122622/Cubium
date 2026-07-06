@@ -241,9 +241,10 @@ TEST(LootConditionBuilderTest, FactoryMethods)
     std::vector<std::unique_ptr<LootCondition>> andConditions;
     andConditions.push_back(LootConditionBuilder::randomChance(0.5f));
     andConditions.push_back(LootConditionBuilder::fortune(1));
+    // and_() 返回 AndCondition，其 type 为 "and"（OrCondition 为 "or"）。
     auto andCondition = LootConditionBuilder::and_(std::move(andConditions));
     EXPECT_NE(andCondition, nullptr);
-    EXPECT_EQ(andCondition->getType(), "alternative");
+    EXPECT_EQ(andCondition->getType(), "and");
 
     std::vector<std::unique_ptr<LootCondition>> orConditions;
     orConditions.push_back(LootConditionBuilder::silkTouch());

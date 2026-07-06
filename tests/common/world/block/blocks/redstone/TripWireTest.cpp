@@ -38,9 +38,9 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/TripWireBlock.hpp"
 #include "common/world/block/blocks/redstone/TripWireHookBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -180,7 +180,8 @@ TEST_F(TripWireTest, TripWireBlock_PowerOutput)
     // 触发时输出 15
     BlockState poweredState = unpoweredState.with(BlockStateProperties::POWERED(), true);
     EXPECT_EQ(poweredState.getBlock().getWeakPower(poweredState, m_world, BlockPos(0, 0, 0), Direction::North), 15);
-    EXPECT_EQ(poweredState.getBlock().getStrongPower(poweredState, m_world, BlockPos(0, 0, 0), Direction::North), 15);
+    // 绊线只输出弱信号，不输出强信号（getStrongPower 恒为 0）。
+    EXPECT_EQ(poweredState.getBlock().getStrongPower(poweredState, m_world, BlockPos(0, 0, 0), Direction::North), 0);
 }
 
 /**

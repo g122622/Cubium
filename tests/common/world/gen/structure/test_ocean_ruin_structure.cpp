@@ -127,10 +127,11 @@ TEST_F(OceanRuinStructureTest, Structure_ValidBiomeTag)
     const auto* tag = structure.biomeTag();
     ASSERT_NE(tag, nullptr);
 
-    // 验证海洋生物群系
+    // OceanRuinStructure::biomeTag() 返回 has_structure/ocean_ruin_cold，
+    // 只含冷/普通海洋群系；WarmOcean 属于 warm 变体 tag（has_structure/ocean_ruin_warm），不在普通 ruin tag 中。
     EXPECT_TRUE(tag->contains(Biomes::Ocean));
-    EXPECT_TRUE(tag->contains(Biomes::WarmOcean));
     EXPECT_TRUE(tag->contains(Biomes::DeepOcean));
+    EXPECT_FALSE(tag->contains(Biomes::WarmOcean));
 }
 
 TEST_F(OceanRuinStructureTest, Structure_TemplateNames)
