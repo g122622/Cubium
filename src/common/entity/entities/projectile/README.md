@@ -141,6 +141,46 @@ Entity (core/Entity.hpp)
 - 实际伤害 = 基础伤害 × sqrt((5 - distance) / 5)
 - 视线检测：两条射线（脚部 y=0, 腰部 y=0.5×height）
 
+### 3.1 烟花火箭生命周期随机化
+
+**爆炸阈值公式**（对应 MC 1.21.11 `FireworkRocketEntity.tick()`）：
+```
+lifeTime = flightTime * 10 + nextInt(6) + nextInt(7)
+```
+- `flightTime`：从物品 NBT `Fireworks.Flight` 读取（默认 1）
+- `nextInt(6) ∈ [0, 5]`、`nextInt(7) ∈ [0, 6]`，总和范围 `[0, 11]`
+- 故 `flightTime=1` 时 `lifeTime ∈ [10, 21]`，`flightTime=2` 时 `∈ [20, 31]`
+
+**懒初始化**（`_ensureLifeTimeComputed()`）：
+- `m_lifeTime` 初值为 -1（未计算），首次 `tick()` 时通过 `world.getRandom()` 一次性确定
+- **仅服务端执行**：客户端不跑 `FireworkRocketEntity::tick`，爆炸由服务端 `remove` 数据包驱动
+- 服务端确定性：`world.getRandom()` 为服务端共享 RNG，同一 tick 内多个烟花火箭调用得到不同序列值
+- 客户端回退阈值 `flightTime*10+6` 仅为防御性代码，正常路径不触发（详见 `OtherProjectiles.cpp` 内 TODO 注释）
+
+**物品变更后失效**：`setFireworkItem()` 会将 `m_lifeTime` 重置为 -1，因为不同物品可能有不同 `flightTime`，需重新懒初始化。
+
+### 3.2 烟花火箭 NBT 持久化
+
+**序列化键名**（`EntityNbtKeys.hpp`）：
+
+| 键名 | 类型 | 含义 |
+|------|------|------|
+| `FireworksItem` | compound | 烟花物品（由 `ItemStack::toNbt` 写入，空物品不写出） |
+| `Life` | i32 | 已存在时间（每 tick 递增） |
+| `LifeTime` | i32 | 总生命时间（爆炸阈值，未计算时不写出） |
+| `ShotAtAngle` | i8 | 是否从弩射出（对应 `m_shotFromCrossbow`） |
+
+**反序列化顺序**（`readAdditionalSaveData`）：
+1. 先读 `FireworksItem` → 调用 `setFireworkItem()` 恢复 `m_fireworkItem` 与 `m_flightTime`（此步会将 `m_lifeTime` 重置为 -1）
+2. 再读 `LifeTime` → 显式覆盖 `m_lifeTime`（绕过 `setFireworkItem` 的重置）
+3. 读 `Life` → 恢复 `m_lifetime`
+4. 读 `ShotAtAngle` → 恢复 `m_shotFromCrossbow`
+
+**踩坑点**：
+- `setFireworkItem` 必须在 `LifeTime` 恢复之前调用，否则 `setFireworkItem` 的 -1 重置会覆盖 NBT 中恢复的值
+- 空 `fireworkItem`（默认 AIR）不会写出 `FireworksItem` 键，反序列化时跳过 `setFireworkItem` 调用
+- `LifeTime` 仅在 `m_lifeTime >= 0` 时写出，避免持久化 -1 占位符
+
 ### 4. 潜影贝子弹追踪算法
 
 子弹沿轴向移动（X、Y、Z），每 step 选择最优轴向接近目标。速度公式：`velocity *= 1.025`（每tick加速2.5%）。

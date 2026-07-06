@@ -1493,6 +1493,15 @@ void FireworkRocketEntity::tick()
 
     // 检查是否爆炸：lifeTime = flightTime * 10 + rand.nextInt(6) + rand.nextInt(7)
     // 若 lifeTime 尚未计算（如客户端或无世界场景），回退到 flightTime * 10 + 6 的旧简化行为
+    //
+    // TODO[firework-client-lifetime]: 此处客户端回退公式 flightTime*10+6 仅为防御性代码，
+    // 与 MC 原版客户端行为存在偏差。MC 原版客户端通过实体同步的随机种子（由 entityId 派生）
+    // 重新计算 lifeTime，保证双端爆炸时序一致。本项目当前 Entity::m_random 用
+    // entityId^clock 初始化导致跨端不一致，且 createRandomFromEntity 不适用于 lifeTime
+    // 计算（lifeTime 应在创建时一次性确定而非每 tick 重算）。
+    // 当前架构下客户端不跑 FireworkRocketEntity::tick（爆炸由服务端 remove 数据包驱动），
+    // 故此回退分支仅在测试或异常路径触发。若未来引入客户端独立 tick 路径，需改为通过
+    // EntityDataManager 同步 lifeTime 字段或使用跨端确定性 RNG 重新计算。
     const i32 explodeThreshold = (m_lifeTime >= 0) ? m_lifeTime : (m_flightTime * 10 + 6);
     if (m_lifetime >= explodeThreshold) {
         _explode();
