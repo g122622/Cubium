@@ -28,6 +28,7 @@
 #include "common/entity/core/Crackiness.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
 
 namespace mc {
@@ -214,6 +215,24 @@ public:
      */
     void die(DamageSource& cause) override;
 
+    // ========== NBT 序列化 ==========
+
+    /**
+     * @brief 保存颈圈颜色到 NBT
+     *
+     * 对应 MC 1.21.11 Wolf.addAdditionalSaveData 中的 "CollarColor" 字段。
+     * 颈圈颜色存储为 i32（DyeColor 的序数值）。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 读取颈圈颜色
+     *
+     * 对应 MC 1.21.11 Wolf.readAdditionalSaveData 中的 "CollarColor" 字段。
+     * 如果 NBT 中没有该字段，保持默认值（红色）。
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
     // ========== 愤怒系统 ==========
 
     /**
@@ -257,15 +276,33 @@ public:
 
     /**
      * @brief 获取颈圈颜色
+     *
+     * 通过 DataParameter 从 EntityDataManager 读取，服务端调用 setCollarColor 修改后
+     * 会自动通过元数据同步到客户端。客户端 ClientEntity::wolfCollarColor 镜像此状态。
+     *
      * @return 染料颜色
      */
-    [[nodiscard]] DyeColor getCollarColor() const { return m_collarColor; }
+    [[nodiscard]] DyeColor getCollarColor() const
+    {
+        return static_cast<DyeColor>(m_dataManager.get<i32>(DATA_COLLAR_COLOR_PARAM));
+    }
 
     /**
      * @brief 设置颈圈颜色
+     *
+     * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
+     * EntityMetadataPacket 到所有观察者客户端。
+     *
      * @param color 染料颜色
      */
-    void setCollarColor(DyeColor color) { m_collarColor = color; }
+    void setCollarColor(DyeColor color) { m_dataManager.set(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(color)); }
+
+    /**
+     * @brief 获取颈圈颜色数据参数 ID
+     *
+     * 用于客户端从元数据中读取颈圈颜色（ClientEntity::syncMetadataFromDataManager）。
+     */
+    [[nodiscard]] static u16 getCollarColorParamId() { return DATA_COLLAR_COLOR_PARAM.id(); }
 
     // ========== 水域行为 ==========
 
@@ -433,8 +470,15 @@ private:
      */
     static entity::DataParameter<bool> DATA_INTERESTED_PARAM;
 
-    // 颈圈颜色（默认红色，对应 DyeColor::Red = 14）
-    DyeColor m_collarColor = DyeColor::Red;
+    /**
+     * @brief 颈圈颜色同步参数
+     *
+     * 对应 MC 1.21.11 Wolf.DATA_COLLAR_COLOR。
+     * 存储 DyeColor 的 i32 值（0-15），由 setCollarColor 写入，
+     * 由 EntityTracker 自动广播到所有观察者客户端。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfCollarColor。
+     */
+    static entity::DataParameter<i32> DATA_COLLAR_COLOR_PARAM;
 
     // 常量
     static constexpr f32 TAIL_ANGLE_HEALTHY = 0.698f;    // 健康时尾巴角度（弧度）

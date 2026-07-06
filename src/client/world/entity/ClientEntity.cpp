@@ -298,12 +298,28 @@ void ClientEntity::syncMetadataFromDataManager()
         }
     }
 
-    // 狼兴趣状态同步（乞求食物头部倾斜动画）
-    // 服务端 WolfEntity::setInterested 通过 DataParameter 写入，
+    // 狼状态同步（驯服状态、颈圈颜色、兴趣状态）
+    // 服务端 WolfEntity/TameableEntity 通过 DataParameter 写入，
     // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
-    // 客户端在此处读取并调用 setWolfIsInterested 更新镜像状态。
-    // ClientEntity::tick 根据 m_wolfIsInterested 推进 m_wolfInterestedAngle 插值。
+    // 客户端在此处读取并调用 setWolfTamed/setWolfCollarColor/setWolfIsInterested 更新镜像状态。
     if (m_typeId == "minecraft:wolf" || m_typeId == "wolf") {
+        // 驯服状态（通过 TameableEntity::DATA_TAMED_PARAM 同步）
+        if (m_dataManager.hasParam(::mc::TameableEntity::getTamedParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::TameableEntity::getTamedParamId()); value != nullptr) {
+                const bool tamed = value->get<bool>();
+                setWolfTamed(tamed);
+            }
+        }
+        // 颈圈颜色（通过 WolfEntity::DATA_COLLAR_COLOR_PARAM 同步）
+        if (m_dataManager.hasParam(::mc::WolfEntity::getCollarColorParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getCollarColorParamId()); value != nullptr) {
+                const i32 colorValue = value->get<i32>();
+                if (colorValue >= 0 && colorValue <= 15) {
+                    setWolfCollarColor(static_cast<DyeColor>(colorValue));
+                }
+            }
+        }
+        // 兴趣状态（乞求食物头部倾斜动画，通过 WolfEntity::DATA_INTERESTED_PARAM 同步）
         if (m_dataManager.hasParam(::mc::WolfEntity::getInterestedParamId())) {
             if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getInterestedParamId()); value != nullptr) {
                 const bool interested = value->get<bool>();

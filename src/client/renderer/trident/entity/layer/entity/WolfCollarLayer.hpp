@@ -24,18 +24,14 @@
 #pragma once
 
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
-#include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
-
-namespace mc {
-class WolfEntity;
-}
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
@@ -48,8 +44,16 @@ namespace mc::client::renderer::entity::layer::entity {
  * @brief 狼项圈层渲染器
  *
  * 渲染驯服狼的项圈。支持不同颜色的项圈。
+ *
+ * 数据来源：通过 ClientEntity 的元数据镜像字段读取驯服状态和颈圈颜色。
+ * - wolfTamed(): 通过 TameableEntity::DATA_TAMED_PARAM 同步，仅驯服的狼渲染项圈
+ * - wolfCollarColor(): 通过 WolfEntity::DATA_COLLAR_COLOR_PARAM 同步，决定项圈色调
+ *
+ * 对应 MC 1.21.11 WolfCollarLayer：
+ * - shouldRender 检查 collarColor != null（MC 中 extractRenderState 在未驯服时设为 null）
+ * - render 使用 DyeColor.getTextureDiffuseColor() 作为项圈色调
  */
-class WolfCollarLayer : public core::LayerRenderer<::mc::WolfEntity> {
+class WolfCollarLayer : public core::LayerRenderer<::mc::client::ClientEntity> {
 public:
     WolfCollarLayer() = default;
     ~WolfCollarLayer() override = default;
@@ -57,23 +61,26 @@ public:
     /**
      * @brief 渲染项圈层（GPU管线路径）
      */
-    void renderPipeline(::mc::WolfEntity& entity,
+    void renderPipeline(::mc::client::ClientEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline) override;
 
     /**
      * @brief 检查是否应该渲染项圈
+     *
+     * 只有驯服的狼才显示项圈。
+     * 对应 MC 1.21.11 WolfCollarLayer.submit() 中的 collarColor != null 检查。
      */
-    [[nodiscard]] bool shouldRender(const ::mc::WolfEntity& entity) const override;
+    [[nodiscard]] bool shouldRender(const ::mc::client::ClientEntity& entity) const override;
 
 private:
     /**
      * @brief 获取项圈颜色
-     * @param entity 狼实体
+     * @param entity 客户端实体（狼）
      * @return RGB颜色值
      */
-    [[nodiscard]] static Vector3f _getCollarColor(const ::mc::WolfEntity& entity);
+    [[nodiscard]] static Vector3f _getCollarColor(const ::mc::client::ClientEntity& entity);
 
     /**
      * @brief 构建项圈网格

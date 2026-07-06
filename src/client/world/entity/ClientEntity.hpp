@@ -27,6 +27,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <algorithm>
@@ -979,6 +980,44 @@ public:
      */
     void setWolfIsInterested(bool interested) { m_wolfIsInterested = interested; }
 
+    /**
+     * @brief 获取狼是否已被驯服
+     *
+     * 通过元数据同步自服务端 TameableEntity::DATA_TAMED_PARAM。
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用 setWolfTamed 更新。
+     * WolfCollarLayer::shouldRender 读取此状态判断是否渲染项圈。
+     */
+    [[nodiscard]] bool wolfTamed() const { return m_wolfTamed; }
+
+    /**
+     * @brief 设置狼是否已被驯服
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param tamed 是否已被驯服
+     */
+    void setWolfTamed(bool tamed) { m_wolfTamed = tamed; }
+
+    /**
+     * @brief 获取狼颈圈颜色
+     *
+     * 通过元数据同步自服务端 WolfEntity::DATA_COLLAR_COLOR_PARAM。
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用 setWolfCollarColor 更新。
+     * WolfCollarLayer::renderPipeline 读取此颜色渲染项圈色调。
+     *
+     * @return 染料颜色（DyeColor 枚举值）
+     */
+    [[nodiscard]] DyeColor wolfCollarColor() const { return m_wolfCollarColor; }
+
+    /**
+     * @brief 设置狼颈圈颜色
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param color 染料颜色
+     */
+    void setWolfCollarColor(DyeColor color) { m_wolfCollarColor = color; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -1108,9 +1147,12 @@ private:
     i32 m_flingAnimationTicks = 0; // 撞飞攻击动画计时器（收到 HoglinAttack 时设为 10）
 
     // 狼甩水动画状态（对应 MC Wolf.isWet/isShaking/shakeAnim/shakeAnimO/interestedAngle/interestedAngleO）
-    bool m_wolfIsShaking = false;      ///< 是否正在甩水（收到 ShakeOffWater(8) 时设 true）
-    bool m_wolfIsWet = false;          ///< 是否湿润（收到 ShakeOffWater 时设 true，甩水完成时设 false）
-    bool m_wolfIsInterested = false;   ///< 是否感兴趣（乞求食物，通过元数据同步自服务端）
+    bool m_wolfIsShaking = false;    ///< 是否正在甩水（收到 ShakeOffWater(8) 时设 true）
+    bool m_wolfIsWet = false;        ///< 是否湿润（收到 ShakeOffWater 时设 true，甩水完成时设 false）
+    bool m_wolfIsInterested = false; ///< 是否感兴趣（乞求食物，通过元数据同步自服务端）
+    bool m_wolfTamed = false;        ///< 是否已被驯服（通过元数据同步自服务端 TameableEntity::DATA_TAMED_PARAM）
+    DyeColor m_wolfCollarColor =
+        DyeColor::Red;                 ///< 颈圈颜色（通过元数据同步自服务端 WolfEntity::DATA_COLLAR_COLOR_PARAM）
     f32 m_wolfShakeAnim = 0.0f;        ///< 甩水动画进度（每 tick +0.05，达到 2.0 时完成）
     f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
     f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）

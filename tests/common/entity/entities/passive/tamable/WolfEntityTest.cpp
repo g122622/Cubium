@@ -715,6 +715,186 @@ TEST_F(WolfEntityTestFixture, DataParameter_RegisteredOnConstruction)
 }
 
 // ============================================================================
+// 驯服状态 DataParameter 同步测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, DataParameter_TamedParamId_IsValid)
+{
+    // DATA_TAMED_PARAM 的 ID 应该是有效的（>0，由 createKey 自动分配）
+    u16 paramId = TameableEntity::getTamedParamId();
+    EXPECT_GT(paramId, 0u);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_IsTamed_ReadsFromDataManager)
+{
+    // isTamed() 应该从 DataManager 读取而非成员变量
+    WolfEntity wolf(EntityId(0));
+    EXPECT_FALSE(wolf.isTamed());
+
+    wolf.setTamed(true);
+    EXPECT_TRUE(wolf.isTamed());
+
+    // 通过 DataManager 直接读取验证
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = TameableEntity::getTamedParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_SetTamed_WritesToDataManager)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = TameableEntity::getTamedParamId();
+
+    // 设置驯服状态
+    wolf.setTamed(true);
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+
+    // 设置为未驯服
+    wolf.setTamed(false);
+    storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_FALSE(storedValue);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnTamedChange)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+
+    // 初始状态不应有脏数据
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置驯服状态应该标记为脏数据
+    wolf.setTamed(true);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记后设置相同值不应标记为脏
+    dataManager.clearDirty();
+    wolf.setTamed(true);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同值应该标记为脏
+    wolf.setTamed(false);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_TamedRegisteredOnConstruction)
+{
+    // 验证 WolfEntity 构造后 DATA_TAMED_PARAM 已注册到 DataManager
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = TameableEntity::getTamedParamId();
+
+    // 参数应该已注册
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+
+    // 默认值应为 false（未驯服）
+    EXPECT_FALSE(wolf.isTamed());
+}
+
+// ============================================================================
+// 颈圈颜色 DataParameter 同步测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, DataParameter_CollarColorParamId_IsValid)
+{
+    // DATA_COLLAR_COLOR_PARAM 的 ID 应该是有效的（>0，由 createKey 自动分配）
+    u16 paramId = WolfEntity::getCollarColorParamId();
+    EXPECT_GT(paramId, 0u);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_GetCollarColor_ReadsFromDataManager)
+{
+    // getCollarColor() 应该从 DataManager 读取而非成员变量
+    WolfEntity wolf(EntityId(0));
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
+
+    wolf.setCollarColor(DyeColor::Blue);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
+
+    // 通过 DataManager 直接读取验证
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getCollarColorParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::Blue));
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_SetCollarColor_WritesToDataManager)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getCollarColorParamId();
+
+    // 设置颈圈颜色
+    wolf.setCollarColor(DyeColor::Green);
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::Green));
+
+    // 设置为白色
+    wolf.setCollarColor(DyeColor::White);
+    storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::White));
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnCollarColorChange)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+
+    // 初始状态不应有脏数据
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置颈圈颜色应该标记为脏数据
+    wolf.setCollarColor(DyeColor::Blue);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记后设置相同值不应标记为脏
+    dataManager.clearDirty();
+    wolf.setCollarColor(DyeColor::Blue);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同值应该标记为脏
+    wolf.setCollarColor(DyeColor::Red);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_CollarColorDefaultIsRed)
+{
+    // 验证 WolfEntity 构造后 DATA_COLLAR_COLOR_PARAM 默认值为红色
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getCollarColorParamId();
+
+    // 参数应该已注册
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+
+    // 默认值应为红色
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_CollarColor_AllDyeColorsRoundTrip)
+{
+    // 验证所有 16 种 DyeColor 都能正确通过 DataParameter 存取
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getCollarColorParamId();
+
+    for (i32 i = 0; i <= 15; ++i) {
+        DyeColor color = static_cast<DyeColor>(i);
+        wolf.setCollarColor(color);
+        EXPECT_EQ(wolf.getCollarColor(), color);
+        i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+        EXPECT_EQ(storedValue, i);
+    }
+}
+
+// ============================================================================
 // interactMob 测试 - 未驯服狼 + 骨头 → 驯服尝试
 // ============================================================================
 

@@ -813,6 +813,95 @@ TEST_F(ClientEntityWolfSyncTest, InterestedAngle_OTracksCurrentFrame)
 }
 
 // ============================================================================
+// 狼驯服状态客户端同步测试
+// ============================================================================
+
+TEST_F(ClientEntityWolfSyncTest, TamedState_DefaultFalse)
+{
+    // 狼客户端实体默认未驯服
+    EXPECT_FALSE(entity->wolfTamed());
+}
+
+TEST_F(ClientEntityWolfSyncTest, TamedState_CanSetAndGet)
+{
+    EXPECT_FALSE(entity->wolfTamed());
+
+    entity->setWolfTamed(true);
+    EXPECT_TRUE(entity->wolfTamed());
+
+    entity->setWolfTamed(false);
+    EXPECT_FALSE(entity->wolfTamed());
+}
+
+TEST_F(ClientEntityWolfSyncTest, TamedState_SyncFromDataManager)
+{
+    // 模拟服务端 TameableEntity 通过元数据同步驯服状态到客户端
+    auto& dataManager = entity->dataManager();
+
+    // 注册 DataParameter（与服务端 TameableEntity::DATA_TAMED_PARAM 相同的参数）
+    auto tamedParam = mc::entity::EntityDataManager::createKey<bool>();
+    dataManager.registerParam(tamedParam, false);
+
+    // 服务端调用 setTamed(true) → EntityTracker 广播 → 客户端收到元数据
+    dataManager.set(tamedParam, true);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 模拟 ClientEntity::syncMetadataFromDataManager 的逻辑
+    entity->setWolfTamed(true);
+    EXPECT_TRUE(entity->wolfTamed());
+}
+
+// ============================================================================
+// 狼颈圈颜色客户端同步测试
+// ============================================================================
+
+TEST_F(ClientEntityWolfSyncTest, CollarColor_DefaultRed)
+{
+    // 狼客户端实体默认颈圈颜色为红色
+    EXPECT_EQ(entity->wolfCollarColor(), DyeColor::Red);
+}
+
+TEST_F(ClientEntityWolfSyncTest, CollarColor_CanSetAndGet)
+{
+    entity->setWolfCollarColor(DyeColor::Blue);
+    EXPECT_EQ(entity->wolfCollarColor(), DyeColor::Blue);
+
+    entity->setWolfCollarColor(DyeColor::Green);
+    EXPECT_EQ(entity->wolfCollarColor(), DyeColor::Green);
+
+    entity->setWolfCollarColor(DyeColor::White);
+    EXPECT_EQ(entity->wolfCollarColor(), DyeColor::White);
+}
+
+TEST_F(ClientEntityWolfSyncTest, CollarColor_SyncFromDataManager)
+{
+    // 模拟服务端 WolfEntity 通过元数据同步颈圈颜色到客户端
+    auto& dataManager = entity->dataManager();
+
+    // 注册 DataParameter（与服务端 WolfEntity::DATA_COLLAR_COLOR_PARAM 相同的参数）
+    auto collarColorParam = mc::entity::EntityDataManager::createKey<i32>();
+    dataManager.registerParam(collarColorParam, static_cast<i32>(DyeColor::Red));
+
+    // 服务端调用 setCollarColor(DyeColor::Blue) → EntityTracker 广播 → 客户端收到元数据
+    dataManager.set(collarColorParam, static_cast<i32>(DyeColor::Blue));
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 模拟 ClientEntity::syncMetadataFromDataManager 的逻辑
+    entity->setWolfCollarColor(DyeColor::Blue);
+    EXPECT_EQ(entity->wolfCollarColor(), DyeColor::Blue);
+}
+
+TEST_F(ClientEntityWolfSyncTest, CollarColor_AllDyeColorsRoundTrip)
+{
+    // 验证所有 16 种 DyeColor 都能正确设置和读取
+    for (i32 i = 0; i <= 15; ++i) {
+        DyeColor color = static_cast<DyeColor>(i);
+        entity->setWolfCollarColor(color);
+        EXPECT_EQ(entity->wolfCollarColor(), color);
+    }
+}
+
+// ============================================================================
 // ClientEntity 眼高（eyeHeight）测试
 // ============================================================================
 

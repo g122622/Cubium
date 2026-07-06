@@ -25,7 +25,6 @@
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
-#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -34,6 +33,8 @@ namespace mc::client::renderer::entity::layer::entity {
 
 namespace {
 // 项圈颜色 RGB 值
+// 索引对应 DyeColor 枚举序数（0-15）
+// 对应 MC 1.21.11 DyeColor.getTextureDiffuseColor() 的 RGB 值
 const Vector3f COLLAR_COLORS[16] = {
     Vector3f(1.0f, 1.0f, 1.0f),  // 白色 (0)
     Vector3f(0.85f, 0.5f, 0.2f), // 橙色 (1)
@@ -57,7 +58,7 @@ const Vector3f COLLAR_COLORS[16] = {
 // 静态成员定义
 std::unique_ptr<pipeline::EntityMesh> WolfCollarLayer::s_collarMesh = nullptr;
 
-void WolfCollarLayer::renderPipeline(::mc::WolfEntity& entity,
+void WolfCollarLayer::renderPipeline(::mc::client::ClientEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
@@ -112,15 +113,17 @@ void WolfCollarLayer::renderPipeline(::mc::WolfEntity& entity,
     (void)context;
 }
 
-bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const
+bool WolfCollarLayer::shouldRender(const ::mc::client::ClientEntity& entity) const
 {
     // 只有驯服的狼才显示项圈
-    return entity.isTamed();
+    // 对应 MC 1.21.11 WolfCollarLayer.submit() 中的 collarColor != null 检查
+    // （MC 中 extractRenderState 在未驯服时将 collarColor 设为 null）
+    return entity.wolfTamed();
 }
 
-Vector3f WolfCollarLayer::_getCollarColor(const ::mc::WolfEntity& entity)
+Vector3f WolfCollarLayer::_getCollarColor(const ::mc::client::ClientEntity& entity)
 {
-    u8 colorIndex = static_cast<u8>(entity.getCollarColor());
+    u8 colorIndex = static_cast<u8>(entity.wolfCollarColor());
     if (colorIndex < 16) {
         return COLLAR_COLORS[colorIndex];
     }

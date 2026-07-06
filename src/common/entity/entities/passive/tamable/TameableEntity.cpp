@@ -35,17 +35,26 @@
 
 namespace mc {
 
+// ==================== 静态成员初始化 ====================
+entity::DataParameter<bool> TameableEntity::DATA_TAMED_PARAM = entity::EntityDataManager::createKey<bool>();
+
 TameableEntity::TameableEntity(EntityId id)
     : AnimalEntity(id)
 {
     // 注册属性
     registerAttributes();
+
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 TameableEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 WolfEntity / CatEntity 模式。
+    registerData();
 }
 
 void TameableEntity::setTamed(bool tamed)
 {
-    if (m_tamed != tamed) {
-        m_tamed = tamed;
+    if (isTamed() != tamed) {
+        m_dataManager.set(DATA_TAMED_PARAM, tamed);
         onTamed(tamed);
     }
 }
@@ -143,6 +152,16 @@ void TameableEntity::registerAttributes()
     // 大多数驯服动物的属性由子类设置
 }
 
+void TameableEntity::registerData()
+{
+    // 调用父类方法，确保基类数据参数已注册
+    AnimalEntity::registerData();
+
+    // 注册驯服状态数据参数，用于客户端-服务端同步
+    // 对应 MC 1.21.11 TamableAnimal.defineSynchedData() 中的 DATA_FLAGS_ID 的 isTame 位
+    m_dataManager.registerParam(DATA_TAMED_PARAM, false);
+}
+
 Player* TameableEntity::getOwner() const
 {
     // 通过主人ID在世界中查找玩家实体
@@ -173,7 +192,7 @@ Player* TameableEntity::getOwner() const
 scoreboard::Team* TameableEntity::getTeam()
 {
     // 已驯服的动物继承主人的队伍
-    if (m_tamed && m_ownerId.has_value()) {
+    if (isTamed() && m_ownerId.has_value()) {
         Player* owner = getOwner();
         if (owner != nullptr) {
             return owner->getTeam();
@@ -186,7 +205,7 @@ scoreboard::Team* TameableEntity::getTeam()
 const scoreboard::Team* TameableEntity::getTeam() const
 {
     // 已驯服的动物继承主人的队伍
-    if (m_tamed && m_ownerId.has_value()) {
+    if (isTamed() && m_ownerId.has_value()) {
         Player* owner = getOwner();
         if (owner != nullptr) {
             return owner->getTeam();
