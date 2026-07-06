@@ -46,6 +46,7 @@ MonsterEntity (基类，来自 ../MonsterEntity.hpp)
 - `../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp` - 烈焰人火球攻击目标
 - `../../ai/goal/goals/special/GhastGoals.hpp` - 恶魂AI目标
 - `../../ai/controller/GhastMovementController.hpp` - 恶魂移动控制器
+- `../../ai/util/PiglinAi.hpp` - 猪灵AI工具类（PiglinEntity 目标谓词调用 `PiglinAi::isWearingGold()` 判断金盔甲）
 
 ### 下游依赖（依赖本目录的模块）
 
@@ -80,7 +81,9 @@ void MagmaCubeEntity::registerGoals() {
 
 ### 4. 猪灵蛮兵 vs 普通猪灵的目标选择差异
 
-猪灵蛮兵攻击玩家时不检查金装备，普通猪灵会检查。这是MC 1.16.5的正确行为。
+猪灵蛮兵攻击玩家时不检查金装备，普通猪灵会检查。普通猪灵的
+`NearestAttackableTargetGoal<Player>` 谓词通过 `PiglinAi::isWearingGold()`
+判断玩家是否穿戴金盔甲，穿戴金盔甲的玩家不会被选为攻击目标。
 
 ### 5. 僵尸猪灵愤怒机制
 
