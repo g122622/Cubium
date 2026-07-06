@@ -39,6 +39,13 @@ using mc::Error;
 using mc::ErrorCode;
 using mc::Result;
 
+// 前向声明：EntityTypeIdNumber::reset() 由 clear() 调用以同步重置全局 ID 缓存，
+// 保证"注册表空 ⇔ ID 缓存全 0"不变量。定义在 EntityTypeIdNumber.cpp，
+// 此处仅声明避免循环包含（EntityTypeIdNumber.hpp 经由其它路径可能依赖本头）。
+namespace EntityTypeIdNumber {
+void reset();
+} // namespace EntityTypeIdNumber
+
 /**
  * @brief 实体类型注册表
  *
@@ -159,6 +166,10 @@ public:
 
     /**
      * @brief 清空所有注册（仅用于测试）
+     *
+     * 同时调用 EntityTypeIdNumber::reset() 重置全局缓存的实体类型 ID，
+     * 保证"注册表空 ⇔ ID 缓存全 0"不变量，避免 clear() 后 typeId()==0
+     * 与 EntityTypeIdNumber::ITEM=旧值 比较失败的测试顺序污染。
      */
     void clear()
     {
@@ -166,6 +177,7 @@ public:
         m_types.clear();
         m_nameToId.clear();
         m_nextId = 1; // 从1开始，0保留
+        EntityTypeIdNumber::reset();
     }
 
     // 禁止拷贝和移动

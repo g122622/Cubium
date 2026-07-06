@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -188,6 +189,10 @@ void ensureRegistriesInitialized()
     std::call_once(s_once, [] {
         fluid::FluidRegistry::instance().initialize();
         VanillaBlocks::initialize();
+        // 注册原版实体类型，确保 EntityTypeIdNumber::ITEM 等全局缓存与注册表一致。
+        // 本测试断言 entity->typeId() == EntityTypeIdNumber::ITEM，二者必须来自同一
+        // 已初始化的实体注册表，避免依赖前置测试的隐式注册状态（测试顺序污染）。
+        entity::VanillaEntities::registerAll();
         // 用 try/catch 包裹 Items::initialize()，吸收旗帜物品双注册异常。
         // 测试顺序污染场景：若 FallingBlockEntityTest::SetUp 先跑过
         // BlockItemRegistry::initializeVanillaBlockItems()，会把 minecraft:white_banner 等
