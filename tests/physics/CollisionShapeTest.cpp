@@ -343,12 +343,22 @@ TEST_F(CollisionShapeFaceTest, BoxTouchesBoundary)
 {
     // 测试刚好接触边界的方块
     // 使用底部边界测试（minY 接近 0）
-    // EPSILON = 1.0e-5f，所以 minY = 1e-6f < EPSILON 应该被接受
-    CollisionShape shape = CollisionShape::box(0.0f, 0.000001f, 0.0f, 1.0f, 1.0f, 1.0f);
+    // getFaceShape 使用 EPSILON = 1.0e-7f（与 MC 1.16.5 对齐，参见
+    // src/common/physics/collision/README.md），所以 minY = 1e-8f < EPSILON 应该被接受
+    CollisionShape shape = CollisionShape::box(0.0f, 0.00000001f, 0.0f, 1.0f, 1.0f, 1.0f);
 
     // 底面应该被识别为接触边界
     CollisionShape bottomFace = shape.getFaceShape(Direction::Down);
-    EXPECT_FALSE(bottomFace.isEmpty()) << "Face with minY=0.000001 should touch boundary (within epsilon)";
+    EXPECT_FALSE(bottomFace.isEmpty()) << "Face with minY=1e-8 should touch boundary (within epsilon 1e-7)";
+}
+
+TEST_F(CollisionShapeFaceTest, BoxJustOutsideEpsilonDoesNotTouchBoundary)
+{
+    // minY = 1e-6 大于 EPSILON(1e-7)，不应被识别为接触边界
+    CollisionShape shape = CollisionShape::box(0.0f, 0.000001f, 0.0f, 1.0f, 1.0f, 1.0f);
+
+    CollisionShape bottomFace = shape.getFaceShape(Direction::Down);
+    EXPECT_TRUE(bottomFace.isEmpty()) << "Face with minY=1e-6 should not touch boundary (exceeds epsilon 1e-7)";
 }
 
 TEST_F(CollisionShapeFaceTest, BoxAtExactBoundary)
