@@ -2148,6 +2148,18 @@ set_target_properties(mc_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# QuickJS（quickjs-ng）的栈溢出检查用 uintptr_t 算术：stack_limit = stack_top - stack_size，
+# 与当前栈指针 sp 比较。当 JS 栈限制（DEFAULT_CONTEXT_STACK_SIZE_BYTES=4MB）大于宿主 C 栈
+# （Windows 默认 1MB）时，stack_top - 4MB 会发生无符号下溢，回绕成接近 UINTPTR_MAX 的巨大值，
+# 于是 sp < stack_limit 恒为真——任何 evaluate（哪怕 Promise.resolve().then(...)）都会误报
+# "Maximum call stack size exceeded"。quickjs-ng 自身的 CMake 也因此把可执行文件栈设为 8MB
+# （见 _deps/quickjs-ng-src/CMakeLists.txt 的 /STACK:8388608）。这里为 mc_tests 对齐设置。
+# 注意：本项目用 clang + lld-link（非 MSVC link.exe），不能用 if(MSVC) 判断（clang 下 MSVC 为
+# FALSE）；通过 -Xlinker 把 /STACK 传给 lld-link（lld-link 与 link.exe 一样接受 /STACK）。
+if(WIN32)
+    target_link_options(mc_tests PRIVATE "-Xlinker" "/STACK:8388608")
+endif()
+
 set_target_properties(mc_resource_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
