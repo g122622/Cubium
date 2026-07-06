@@ -65,7 +65,7 @@ src/client/renderer/
 │   │   ├── ItemEntityRenderer.hpp/cpp    # 物品实体渲染器
 │   │   ├── LivingRenderer.hpp    # 生物渲染器基类
 │   │   └── model/                # 实体模型
-│   │       ├── AnimalModels.hpp/cpp  # 动物模型
+│   │       ├── animal/             # 动物模型目录（每模型一文件）
 │   │       ├── EntityModel.hpp/cpp   # 实体模型基类
 │   │       └── ModelRenderer.hpp/cpp # 模型渲染器
 │   ├── fog/                      # 雾效果

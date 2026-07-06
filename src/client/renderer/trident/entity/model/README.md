@@ -16,12 +16,15 @@ model/
 │   ├── BipedModel.hpp          # 双足模型基类（玩家、僵尸、骷髅等）
 │   └── QuadrupedModel.hpp      # 四足模型基类（猪、牛、羊等）
 ├── animal/                     # 动物模型
-│   ├── AnimalModels.hpp        # 猪、牛、羊、鸡模型（待拆分）
 │   ├── WolfModel.hpp           # 狼模型
 │   ├── HorseModel.hpp          # 马模型
 │   ├── LlamaModel.hpp          # 羊驼模型
 │   ├── OcelotModel.hpp         # 豹猫模型
 │   ├── CatModel.hpp            # 猫模型
+│   ├── PigModel.hpp            # 猪模型
+│   ├── CowModel.hpp            # 牛模型
+│   ├── SheepModel.hpp          # 羊模型
+│   ├── ChickenModel.hpp        # 鸡模型
 │   ├── RabbitModel.hpp         # 兔子模型
 │   ├── PolarBearModel.hpp      # 北极熊模型
 │   ├── SquidModel.hpp          # 鱿鱼模型
@@ -99,5 +102,3 @@ ModelFactory：模型工厂，统一创建所有实体模型实例
 6. **ModelFactory 注册**：新模型必须在 `ModelRegistration.cpp` 中通过 `REGISTER_ENTITY_MODEL` 宏注册，否则 ModelFactory::createModel 会返回 nullptr
 
 7. **ModelRenderer::render 已废弃**：项目已改用 GPU 管线路径，应使用 `generateMesh()` 生成网格数据，然后通过 EntityPipeline 提交到 GPU，不应再调用 `render()` 方法
-
-8. **AnimalModels.hpp 待拆分**：该文件包含多个模型类（PigModel, CowModel, SheepModel, ChickenModel），每个模型应拆分为独立文件

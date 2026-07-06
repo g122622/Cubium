@@ -24,9 +24,12 @@
 #pragma once
 
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
-#include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
 #include "client/renderer/trident/entity/model/animal/BatModel.hpp"
+#include "client/renderer/trident/entity/model/animal/ChickenModel.hpp"
+#include "client/renderer/trident/entity/model/animal/CowModel.hpp"
+#include "client/renderer/trident/entity/model/animal/PigModel.hpp"
 #include "client/renderer/trident/entity/model/animal/RabbitModel.hpp"
+#include "client/renderer/trident/entity/model/animal/SheepModel.hpp"
 #include "client/renderer/trident/entity/model/animal/SquidModel.hpp"
 #include <memory>
 

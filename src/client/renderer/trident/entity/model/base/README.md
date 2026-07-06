@@ -58,7 +58,7 @@ base/
 | `model/monster/ZombieModel` | 僵尸模型，继承 BipedModel |
 | `model/monster/SkeletonModel` | 骷髅模型，继承 BipedModel |
 | `model/monster/EndermanModel` | 末影人模型，继承 BipedModel |
-| `model/animal/AnimalModels` | 猪、牛、羊模型，继承 QuadrupedModel |
+| `model/animal/PigModel` / `CowModel` / `SheepModel` | 猪、牛、羊模型，继承 QuadrupedModel |
 | `model/aquatic/AquaticModels` | 水生生物模型 |
 | `layer/equipment/ArmorLayer` | 盔甲渲染层，使用 BipedModel 部件可见性 |
 | `layer/equipment/HeldItemLayer` | 手持物品渲染层，使用 translateHand 方法 |

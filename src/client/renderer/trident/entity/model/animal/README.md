@@ -6,14 +6,17 @@
 
 ```
 animal/
-├── AnimalModels.hpp/cpp         # 猪、牛、羊、鸡模型
 ├── BatModel.hpp/cpp             # 蝙蝠模型
 ├── CatModel.hpp/cpp             # 猫模型
+├── ChickenModel.hpp/cpp         # 鸡模型
+├── CowModel.hpp/cpp             # 牛模型（含牛角；同时被哞菇复用）
 ├── HorseModel.hpp/cpp           # 马模型（含驴、骡、骷髅马、僵尸马）
 ├── LlamaModel.hpp/cpp           # 羊驼模型
 ├── OcelotModel.hpp/cpp          # 豹猫模型
+├── PigModel.hpp/cpp             # 猪模型（在四足模型上追加猪鼻子）
 ├── PolarBearModel.hpp/cpp       # 北极熊模型
 ├── RabbitModel.hpp/cpp          # 兔子模型
+├── SheepModel.hpp/cpp           # 羊模型（含吃草动画）
 ├── SquidModel.hpp/cpp           # 鱿鱼模型
 ├── VillagerModel.hpp/cpp        # 村民模型
 ├── WolfModel.hpp/cpp            # 狼模型

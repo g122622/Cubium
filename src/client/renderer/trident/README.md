@@ -42,7 +42,7 @@ trident/
 │   └── model/                # 实体模型
 │       ├── EntityModel.hpp/cpp      # 模型基类
 │       ├── ModelRenderer.hpp/cpp    # 模型部件渲染
-│       └── AnimalModels.hpp/cpp     # 动物模型
+│       └── animal/                  # 动物模型目录（每模型一文件）
 ├── fog/                     # 雾效果
 │   └── FogManager.hpp/cpp   # 雾管理器（Linear/Exp2）
 ├── firstperson/             # 第一人称渲染

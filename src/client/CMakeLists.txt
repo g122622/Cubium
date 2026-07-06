@@ -191,7 +191,10 @@ add_executable(minecraft-client
     renderer/trident/entity/model/base/BipedModel.cpp
     renderer/trident/entity/model/base/ElytraSpeedValue.cpp
     renderer/trident/entity/model/base/QuadrupedModel.cpp
-    renderer/trident/entity/model/animal/AnimalModels.cpp
+    renderer/trident/entity/model/animal/ChickenModel.cpp
+    renderer/trident/entity/model/animal/CowModel.cpp
+    renderer/trident/entity/model/animal/PigModel.cpp
+    renderer/trident/entity/model/animal/SheepModel.cpp
     renderer/trident/entity/model/animal/WolfModel.cpp
     renderer/trident/entity/model/animal/OcelotModel.cpp
     renderer/trident/entity/model/animal/CatModel.cpp

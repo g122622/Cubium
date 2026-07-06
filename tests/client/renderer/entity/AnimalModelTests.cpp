@@ -25,7 +25,10 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
+#include "client/renderer/trident/entity/model/animal/ChickenModel.hpp"
+#include "client/renderer/trident/entity/model/animal/CowModel.hpp"
+#include "client/renderer/trident/entity/model/animal/PigModel.hpp"
+#include "client/renderer/trident/entity/model/animal/SheepModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 
 using namespace mc::client::renderer::entity::model::animal;

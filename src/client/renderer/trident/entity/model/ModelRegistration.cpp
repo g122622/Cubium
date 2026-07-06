@@ -33,14 +33,17 @@
 #include <spdlog/spdlog.h>
 
 // 动物模型
-#include "animal/AnimalModels.hpp"
 #include "animal/BatModel.hpp"
 #include "animal/CatModel.hpp"
+#include "animal/ChickenModel.hpp"
+#include "animal/CowModel.hpp"
 #include "animal/HorseModel.hpp"
 #include "animal/LlamaModel.hpp"
 #include "animal/OcelotModel.hpp"
+#include "animal/PigModel.hpp"
 #include "animal/PolarBearModel.hpp"
 #include "animal/RabbitModel.hpp"
+#include "animal/SheepModel.hpp"
 #include "animal/SquidModel.hpp"
 #include "animal/VillagerModel.hpp"
 #include "animal/WolfModel.hpp"

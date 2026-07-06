@@ -1976,7 +1976,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/BipedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/ElytraSpeedValue.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/ChickenModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/CowModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/PigModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/SheepModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
         # VillagerModel + WitchModel 女巫模型测试依赖
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/VillagerModel.cpp
