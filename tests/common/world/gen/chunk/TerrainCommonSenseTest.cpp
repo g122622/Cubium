@@ -36,6 +36,7 @@
 // ============================================================================
 
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -173,6 +174,29 @@ protected:
         return result;
     }
 };
+
+// 判断生物群系是否为海洋变体。海洋生物群系的海床不应用默认 onFloor 表面规则
+// （原版 onFloor 顶层规则被 waterBlockCheck(-1,0) 包裹：方块上方是水时跳过草/泥土，
+// 海床保持 STONE）。因此草方块断言只应针对陆地生物群系列，否则会误报"生成管线 bug"。
+bool _isOceanBiome(BiomeId id)
+{
+    using namespace world::biome::Biomes;
+    switch (id) {
+        case Ocean:
+        case DeepOcean:
+        case WarmOcean:
+        case LukewarmOcean:
+        case ColdOcean:
+        case FrozenOcean:
+        case DeepWarmOcean:
+        case DeepLukewarmOcean:
+        case DeepColdOcean:
+        case DeepFrozenOcean:
+            return true;
+        default:
+            return false;
+    }
+}
 
 // ============================================================================
 // 1. 主世界高度范围——地表应在合理范围
@@ -1768,7 +1792,15 @@ TEST_F(TerrainCommonSenseTest, Overworld_SurfaceHasGrassBlock)
 
 TEST_F(TerrainCommonSenseTest, Overworld_GrassBlockMultiSeed)
 {
-    // 多个种子下都应有草方块出现——如果某个种子完全没有草方块，说明生成管线有 bug
+    // 多个种子下，露出水面的陆地生物群系列都应有草方块出现——如果这样的列完全没有
+    // 草方块，说明生成管线有 bug。需要排除两类本就不该有草方块的列：
+    //   1. 海洋生物群系：海床不应用默认 onFloor 顶层规则（原版被 waterBlockCheck(-1,0)
+    //      包裹，方块上方是水时跳过草/泥土），保持 STONE/GRAVEL。
+    //   2. 被水淹没的陆地区域：地形低于海平面的陆地列被水填充，WorldSurfaceWG 高度图
+    //      返回水面（水非空气）而非海床；水面方块显然不是草。原版这些水下表面正确地
+    //      走 gravel/stone 默认规则而非草。
+    // 某些种子在区块 (0,0) 的 3x3 区域内既无露出水面的陆地列（全海洋或全水淹海岸），
+    // 此时没有可校验列，跳过该种子的断言（属预期，非 bug）。
     const u64 seeds[] = {42ULL, 12345ULL, 987654321ULL, 0xCAFEBABEULL, 0xDEADBEEFULL};
 
     for (u64 seed : seeds) {
@@ -1778,6 +1810,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_GrassBlockMultiSeed)
         const i32 radius = 1;
         const i32 diameter = radius * 2 + 1;
         i32 grassBlockCount = 0;
+        i32 landColumns = 0;
 
         for (i32 dz = -radius; dz <= radius; ++dz) {
             for (i32 dx = -radius; dx <= radius; ++dx) {
@@ -1791,7 +1824,13 @@ TEST_F(TerrainCommonSenseTest, Overworld_GrassBlockMultiSeed)
                     for (i32 z = 0; z < world::CHUNK_WIDTH; z += 2) {
                         i32 surfaceY = chunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
                         const BlockState* block = chunk->getBlockState(x, surfaceY, z);
-                        if (block != nullptr && block->is(VanillaBlocks::GRASS_BLOCK)) {
+                        // 海洋海床、或被水淹没列的水面方块，都正确地无草方块。
+                        if (block == nullptr || block->isLiquid() ||
+                            _isOceanBiome(chunk->getBiomeAtBlock(x, surfaceY, z))) {
+                            continue;
+                        }
+                        ++landColumns;
+                        if (block->is(VanillaBlocks::GRASS_BLOCK)) {
                             ++grassBlockCount;
                         }
                     }
@@ -1799,8 +1838,15 @@ TEST_F(TerrainCommonSenseTest, Overworld_GrassBlockMultiSeed)
             }
         }
 
-        EXPECT_GT(grassBlockCount, 0) << "Grass blocks should appear for seed " << seed << ", found "
-                                      << grassBlockCount;
+        // 整个 3x3 区域都没有露出水面的陆地列可校验，跳过（属预期，非 bug）。
+        if (landColumns == 0) {
+            std::cout << "[GrassBlockMultiSeed] seed " << seed << " 3x3 区域无露出水面的陆地列，跳过草方块断言"
+                      << std::endl;
+            continue;
+        }
+
+        EXPECT_GT(grassBlockCount, 0) << "Grass blocks should appear for seed " << seed
+                                      << " (landColumns=" << landColumns << "), found " << grassBlockCount;
     }
 }
 
