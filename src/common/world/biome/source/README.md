@@ -74,3 +74,31 @@
    `BiomeSource.hpp
             / cpp`。代码中可通过 `using BiomeSource = IBiomeSource;
 ` 兼容别名使用旧名称
+
+## OverworldBiomeBuilder::spawnTarget() 出生点气候目标
+
+`OverworldBiomeBuilder` 新增 `spawnTarget()` 方法，返回用于出生点查找的气候目标参数列表（对齐 MC 1.21.11 `OverworldBiomeBuilder.spawnTarget()`）。
+
+**签名**：
+```cpp
+[[nodiscard]] std::vector<climate::ParameterPoint> spawnTarget() const;
+```
+
+**返回值**：2 个 `ParameterPoint`，分别对应负奇异性和正奇异性区域：
+
+| 字段 | 值 | 说明 |
+|------|-----|------|
+| `temperature` | `m_fullRange` | 全范围 |
+| `humidity` | `m_fullRange` | 全范围 |
+| `continentalness` | `Parameter::span(m_inlandContinentalness, m_fullRange)` | 内陆到全范围（跨度包含所有内陆生物群系） |
+| `erosion` | `m_fullRange` | 全范围 |
+| `depth` | `Parameter::point(0.0f)` | 地表层（depth=0） |
+| `weirdness` | `Parameter::span(-1.0f, -0.16f)` 或 `Parameter::span(0.16f, 1.0f)` | 以 ±0.16 分割 |
+| `offset` | 0 | 无偏移 |
+
+**用途**：
+- 由 `DimensionSettings::overworld()` / `largeBiomesPreset()` / `amplified()` 调用，填充到 `DimensionSettings::spawnTarget` 字段
+- 经 `RandomState::create()` 设置到 `Climate::Sampler` 上
+- 由 `ServerWorld::initializeWorldSpawn()` 调用 `Sampler::findSpawnPosition()` 在气候空间中径向搜索最佳出生点
+
+**对齐 MC 1.21.11**：`Parameter::span(first, second)` 语义为 `{first.min, second.max}`，因此 `Parameter::span(m_inlandContinentalness, m_fullRange)` 跨度为 `[-1, 1]`（`m_inlandContinentalness.min = -1, m_fullRange.max = 1`），覆盖所有可能的内陆生物群系。

@@ -109,7 +109,7 @@ src/server/world/
 | `spawnAngle()` | 获取出生点朝向角度（`f32`，度，范围 [-180, 180]） |
 | `setWorldSpawnPoint(pos, angle)` | 同时设置出生点位置和朝向，`angle` 默认 `0.0f` |
 | `setSpawnAngle(angle)` | 仅设置出生点朝向，不影响位置 |
-| `initializeWorldSpawn()` | 世界初始化时在 (0,0) 区块查找合适出生位置 |
+| `initializeWorldSpawn()` | 世界初始化时查找合适出生位置；主世界使用 `Climate::Sampler::findSpawnPosition()` 气候搜索，其他维度沿用 (0,0) 区块 |
 | `applyLevelRuntimeData(data)` | 从 level.dat 读取的运行时数据中恢复出生点（含朝向） |
 
 ### 数据流
@@ -124,12 +124,40 @@ level.dat (SpawnAngle 字段)
     → /setworldspawn 命令修改后广播给所有玩家
 ```
 
+### initializeWorldSpawn 气候搜索流程
+
+`initializeWorldSpawn()` 对齐 MC 1.21.11 `MinecraftServer.setInitialSpawn`，对主世界使用 `Climate::Sampler::findSpawnPosition()` 在气候空间中径向搜索最佳出生点：
+
+```
+NoiseChunkGenerator::randomState()  →  RandomState
+                                      ↓
+                                   sampler()  →  Climate::Sampler
+                                                  ↓
+                                              spawnTarget()  →  非空？
+                                                  ↓ 是
+                                              findSpawnPosition()  →  BlockPos
+                                                  ↓
+                                              ChunkPos(climateSpawn)  →  spawnChunk
+                                                  ↓
+                                              在 spawnChunk 内查找有效出生 Y 坐标
+```
+
+**维度行为差异**：
+
+| 维度 | spawnTarget | 出生点查找方式 |
+|------|------------|--------------|
+| 主世界 / 大型生物群系 / 放大化 | 非空（2 个 ParameterPoint） | `Sampler::findSpawnPosition()` 气候搜索 |
+| 下界 / 末地 / 洞穴 / 浮岛 / 平坦 | 空 | 沿用 (0,0) 区块作为出生点 |
+
+**降级行为**：当 `DimensionSettings::spawnTarget` 为空、`NoiseChunkGenerator` 不可用、`RandomState` 未初始化、或 `sampler.spawnTarget()` 为空时，自动降级为 (0,0) 区块作为出生点。这保证下界/末地等无气候搜索维度的世界能正常初始化。
+
 ### 注意事项
 
 - **朝向范围**：MC 原版使用 `Mth.wrapDegrees()` 归一化到 [-180, 180]，`SetWorldSpawnCommand` 已做归一化处理。
 - **保存一致性**：`saveAllWorldData()` 从 `world->spawnAngle()` 读取朝向值写入 level.dat，确保保存/加载循环不丢失。
 - **客户端同步**：`SpawnPositionPacket` 包含 angle 字段，客户端 `ClientWorld::setSpawnPoint(x, y, z, angle)` 接收并存储。
 - **Dimension 出生点**：`Dimension::spawnPoint()` 是每个维度的出生点（独立于世界出生点），当前不含朝向字段。
+- **气候搜索仅主世界生效**：下界/末地等预设的 `DimensionSettings::spawnTarget` 为空，`initializeWorldSpawn()` 会跳过气候搜索，直接使用 (0,0) 区块作为出生点。这是 MC 1.21.11 原版行为（`NoiseGeneratorSettings.spawnTarget` 在下界/末地为空列表）。
 
 ## 容易踩的坑
 

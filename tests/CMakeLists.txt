@@ -1100,6 +1100,8 @@ add_executable(mc_tests
     server/world/ServerWorldBlockEntityTest.cpp
     # ServerWorld 出生点朝向测试
     server/world/ServerWorldSpawnAngleTest.cpp
+    # ServerWorld initializeWorldSpawn 气候搜索集成测试
+    server/world/ServerWorldInitializeWorldSpawnTest.cpp
     # ServerWorld 命令执行回调测试
     server/world/ServerWorldCommandExecuteTest.cpp
     # ServerWorld 爆炸广播回调测试（broadcastExplosion 委托 m_onBroadcastExplosion）
@@ -1273,6 +1275,8 @@ add_executable(mc_tests
     common/world/gen/chunk/DensityDirectTest.cpp
     # 生成设置单元测试（NoiseSettings, DimensionSettings, FlatLayerInfo, FlatLevelGeneratorSettings等）
     common/world/gen/settings/SettingsTest.cpp
+    # spawnTarget 数据流集成测试（NoiseChunk/RandomState/ServerWorld）
+    common/world/gen/density/SpawnTargetIntegrationTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娣峰悎娴嬭瘯

@@ -194,6 +194,8 @@ rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 
 `NoiseChunkGenerator` 使用 MC 1.21 密度函数管线，通过 `NoiseRouter` 和 `NoiseChunk` 实现 cell-based 三线性插值。`RandomState` 统一持有 `NoiseRouter`、`SurfaceSystem`、随机工厂等资源。`m_randomState` 必须在构造时初始化，各生成阶段通过 `MC_ASSERT_RELEASE` 保证其有效性。
 
+`NoiseChunkGenerator` 暴露 `randomState()` 访问器（返回 `const std::shared_ptr<world::gen::RandomState>&`），供 `ServerWorld::initializeWorldSpawn()` 等外部调用方访问 `RandomState` 内的 `Climate::Sampler`，用于出生点气候搜索（`findSpawnPosition`）。
+
 ### 8. SurfaceRules 系统
 
 地表生成使用 MC 1.21 的 `SurfaceSystem` 和 `SurfaceRules`，替代旧版 `SurfaceBuilder` 按生物群系路由的方式。基岩生成由 SurfaceRules 规则驱动。所有维度均使用此系统。
@@ -201,6 +203,21 @@ rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 ### 9. buildSurface 的 noiseChunk 空检查
 
 当 `NoiseChunk` 指针为空时（例如使用了不正确的 ChunkStatus 顺序），`buildSurface` 会输出 `spdlog::warn` 日志并安全跳过，而非静默崩溃。
+
+### 10. generateBiomes 与 spawnTarget 数据流
+
+`NoiseChunkGenerator::generateBiomes()` 在调用 `noiseChunk.cachedClimateSampler(...)` 时显式传入 `m_settings.spawnTarget`（对齐 MC 1.21.11 `NoiseBasedChunkGenerator.doCreateBiomes` 透传 `settings.value().spawnTarget()`）。
+
+数据流：
+```
+DimensionSettings::spawnTarget
+    → NoiseChunkGenerator::generateBiomes() 读取 m_settings.spawnTarget
+    → NoiseChunk::cachedClimateSampler(spawnTarget)
+    → Climate::Sampler::setSpawnTarget(spawnTarget)
+    → Sampler::sample() 进行生物群系采样
+```
+
+主世界预设的 `spawnTarget` 由 `OverworldBiomeBuilder::spawnTarget()` 提供（2 个 ParameterPoint，depth=0，weirdness 以 ±0.16 分割）；下界/末地等预设的 `spawnTarget` 为空，不影响生物群系采样，仅影响出生点查找（沿用 (0,0) 区块作为出生点）。
 
 ### 10. FlatChunkGenerator 特性放置
 

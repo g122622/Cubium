@@ -170,6 +170,21 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
 
 当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。需要实现 BlendDensity 密度函数类和 Blender 系统后才能完整支持。
 
+### 13. NoiseChunk::cachedClimateSampler 与 spawnTarget
+
+`NoiseChunk::cachedClimateSampler(spawnTarget)` 对齐 MC 1.21.11 `NoiseChunk.cachedClimateSampler(router, spawnTarget)`，将 `spawnTarget` 传递给 `Climate::Sampler` 用于出生点查找。
+
+**行为**：
+- 首次调用时构造 `Sampler`，并立即调用 `sampler->setSpawnTarget(spawnTarget)` 设置出生点气候目标
+- 后续调用若 `spawnTarget` 与缓存中的不同，则刷新 `sampler->spawnTarget()`（对齐 MC 行为，避免使用过期的 spawnTarget）
+- 返回 `std::shared_ptr<climate::Sampler>`，调用方持有共享所有权
+
+**调用方**：
+- `NoiseChunkGenerator::generateBiomes()` 通过 `noiseChunk.cachedClimateSampler(m_settings.spawnTarget)` 获取 Sampler，并使用其 `sample()` 方法进行生物群系采样
+- `ServerWorld::initializeWorldSpawn()` 不直接使用 NoiseChunk 的 Sampler，而是通过 `NoiseChunkGenerator::randomState()->sampler()` 访问（该 Sampler 在 `RandomState::create()` 时已设置 `spawnTarget`）
+
+**重要**：`spawnTarget` 参数不再被忽略。先前实现有 `(void)spawnTarget;` 占位 TODO，现已完整实现数据流：`DimensionSettings::spawnTarget` → `RandomState::create()` → `Sampler::setSpawnTarget()` → `findSpawnPosition()`。
+
 ## 容易踩的坑
 
 1. **NormalNoise 种子**：两个 PerlinNoise 实例必须使用不同种子（第二个偏移 0xDEADBEEF）
