@@ -494,9 +494,9 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
     }
 
     // 2. 刷怪蛋交互：如果玩家手持刷怪蛋，生成幼体
-    //    注意：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 Items::PIG_SPAWN_EGG），
-    //    当前 Items 注册表尚未注册任何刷怪蛋物品，因此通过正常游戏流程无法触发此分支。
-    //    待 Items::registerSpawnEggs() 实现后，此路径将可通过 processInitialInteract 触发。
+    //    SpawnEggItem 已在 Items::_registerSpawnEggs() 中注册（67 种刷怪蛋），
+    //    玩家手持匹配类型的刷怪蛋右键对应生物时，通过 _spawnOffspringFromSpawnEgg 生成幼体。
+    //    仅 AgeableEntity 子类（如 PigEntity、CowEntity）支持幼体生成。
     if (item != nullptr) {
         auto* spawnEgg = dynamic_cast<const item::SpawnEggItem*>(item);
         if (spawnEgg != nullptr) {
@@ -610,15 +610,6 @@ bool MobEntity::canBeLeashed() const
 
 bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEggItem& spawnEgg, ItemStack& heldItem)
 {
-    // TODO: 此方法的核心逻辑（实体生成、物品消耗、类型匹配、AgeableEntity判断）
-    // 缺少单元测试覆盖。完整的测试需要 Items 注册表中注册 SpawnEggItem 实例
-    // （如 Items::PIG_SPAWN_EGG），当前 Items 注册表尚未注册任何刷怪蛋物品。
-    // 待刷怪蛋注册后应补充以下测试场景：
-    //   - 刷怪蛋类型匹配时成功生成幼体
-    //   - 刷怪蛋类型不匹配时返回 false
-    //   - 非 AgeableEntity 实体（如 ZombieEntity）使用匹配类型刷怪蛋返回 false
-    //   - 创造模式下刷怪蛋不消耗物品
-    //   - 客户端（isClientSide）预测返回 Success
     // 检查刷怪蛋的实体类型是否与当前实体类型匹配
     // 只有相同类型的刷怪蛋才能在该实体上生成幼体
     // 使用实体类型名称字符串进行比较，避免 EntityType 不可拷贝的问题

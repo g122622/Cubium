@@ -1456,6 +1456,98 @@ public:
     static Item* DRAGON_HEAD;           // 龙首
     static Item* PIGLIN_HEAD;           // 猪灵头
 
+    // ========================================================================
+    // 刷怪蛋物品
+    //
+    // 对应 MC 1.21.11 的 SpawnEggItem，共 67 种刷怪蛋（含Allay等1.21新增）。
+    // 颜色数据来自 net.minecraft.world.item.SpawnEggs 中 DEFAULT_ENTITY_IDS_TO_EGGS
+    // 的 background/foreground（ARGB）。物品注册名为 minecraft:xxx_spawn_egg。
+    // 使用方式：
+    //   - 右键方块：SpawnEggItem::onItemUse 在方块面上方生成对应实体
+    //   - 右键玩家对应生物（如手持猪刷怪蛋右键猪）：MobEntity::processInitialInteract
+    //     走 _spawnOffspringFromSpawnEgg 路径，生成幼体（仅 AgeableEntity 子类）
+    // ========================================================================
+    static Item* ALLAY_SPAWN_EGG;            // 悦灵刷怪蛋
+    static Item* ARMADILLO_SPAWN_EGG;        // 犰狳刷怪蛋
+    static Item* AXOLOTL_SPAWN_EGG;          // 美西螈刷怪蛋
+    static Item* BAT_SPAWN_EGG;              // 蝙蝠刷怪蛋
+    static Item* BEE_SPAWN_EGG;              // 蜜蜂刷怪蛋
+    static Item* BLAZE_SPAWN_EGG;            // 烈焰人刷怪蛋
+    static Item* BOGGED_SPAWN_EGG;           // 沼骸刷怪蛋
+    static Item* BREEZE_SPAWN_EGG;           // 旋风刷怪蛋
+    static Item* CAT_SPAWN_EGG;              // 猫刷怪蛋
+    static Item* CAMEL_SPAWN_EGG;            // 骆驼刷怪蛋
+    static Item* CAVE_SPIDER_SPAWN_EGG;      // 洞穴蜘蛛刷怪蛋
+    static Item* CHICKEN_SPAWN_EGG;          // 鸡刷怪蛋
+    static Item* COD_SPAWN_EGG;              // 鳕鱼刷怪蛋
+    static Item* COW_SPAWN_EGG;              // 牛刷怪蛋
+    static Item* CREEPER_SPAWN_EGG;          // 苦力怕刷怪蛋
+    static Item* DOLPHIN_SPAWN_EGG;          // 海豚刷怪蛋
+    static Item* DONKEY_SPAWN_EGG;           // 驴刷怪蛋
+    static Item* DROWNED_SPAWN_EGG;          // 溺尸刷怪蛋
+    static Item* ELDER_GUARDIAN_SPAWN_EGG;   // 远古守卫者刷怪蛋
+    static Item* ENDER_DRAGON_SPAWN_EGG;     // 末影龙刷怪蛋
+    static Item* ENDERMAN_SPAWN_EGG;         // 末影人刷怪蛋
+    static Item* ENDERMITE_SPAWN_EGG;        // 末影螨刷怪蛋
+    static Item* EVOKER_SPAWN_EGG;           // 唤魔者刷怪蛋
+    static Item* FOX_SPAWN_EGG;              // 狐狸刷怪蛋
+    static Item* FROG_SPAWN_EGG;             // 青蛙刷怪蛋
+    static Item* GHAST_SPAWN_EGG;            // 恶魂刷怪蛋
+    static Item* GLOW_SQUID_SPAWN_EGG;       // 发光鱿鱼刷怪蛋
+    static Item* GOAT_SPAWN_EGG;             // 山羊刷怪蛋
+    static Item* GUARDIAN_SPAWN_EGG;         // 守卫者刷怪蛋
+    static Item* HOGLIN_SPAWN_EGG;           // 疣猪兽刷怪蛋
+    static Item* HORSE_SPAWN_EGG;            // 马刷怪蛋
+    static Item* HUSK_SPAWN_EGG;             // 尸壳刷怪蛋
+    static Item* IRON_GOLEM_SPAWN_EGG;       // 铁傀儡刷怪蛋
+    static Item* LLAMA_SPAWN_EGG;            // 羊驼刷怪蛋
+    static Item* MAGMA_CUBE_SPAWN_EGG;       // 岩浆怪刷怪蛋
+    static Item* MOOSHROOM_SPAWN_EGG;        // 哞菇刷怪蛋
+    static Item* MULE_SPAWN_EGG;             // 骡刷怪蛋
+    static Item* OCELOT_SPAWN_EGG;           // 豹猫刷怪蛋
+    static Item* PANDA_SPAWN_EGG;            // 熊猫刷怪蛋
+    static Item* PARROT_SPAWN_EGG;           // 鹦鹉刷怪蛋
+    static Item* PHANTOM_SPAWN_EGG;          // 幻翼刷怪蛋
+    static Item* PIG_SPAWN_EGG;              // 猪刷怪蛋
+    static Item* PIGLIN_SPAWN_EGG;           // 猪灵刷怪蛋
+    static Item* PIGLIN_BRUTE_SPAWN_EGG;     // 猪灵蛮兵刷怪蛋
+    static Item* PILLAGER_SPAWN_EGG;         // 掠夺者刷怪蛋
+    static Item* POLAR_BEAR_SPAWN_EGG;       // 北极熊刷怪蛋
+    static Item* PUFFERFISH_SPAWN_EGG;       // 河豚刷怪蛋
+    static Item* RABBIT_SPAWN_EGG;           // 兔子刷怪蛋
+    static Item* RAVAGER_SPAWN_EGG;          // 劫掠兽刷怪蛋
+    static Item* SALMON_SPAWN_EGG;           // 鲑鱼刷怪蛋
+    static Item* SHEEP_SPAWN_EGG;            // 羊刷怪蛋
+    static Item* SHULKER_SPAWN_EGG;          // 潜影贝刷怪蛋
+    static Item* SILVERFISH_SPAWN_EGG;       // 蠹虫刷怪蛋
+    static Item* SKELETON_SPAWN_EGG;         // 骷髅刷怪蛋
+    static Item* SKELETON_HORSE_SPAWN_EGG;   // 骷髅马刷怪蛋
+    static Item* SLIME_SPAWN_EGG;            // 史莱姆刷怪蛋
+    static Item* SNIFFER_SPAWN_EGG;          // 嗅探兽刷怪蛋
+    static Item* SNOW_GOLEM_SPAWN_EGG;       // 雪傀儡刷怪蛋
+    static Item* SPIDER_SPAWN_EGG;           // 蜘蛛刷怪蛋
+    static Item* SQUID_SPAWN_EGG;            // 鱿鱼刷怪蛋
+    static Item* STRAY_SPAWN_EGG;            // 流髑刷怪蛋
+    static Item* STRIDER_SPAWN_EGG;          // 炽足兽刷怪蛋
+    static Item* TADPOLE_SPAWN_EGG;          // 蝌蚪刷怪蛋
+    static Item* TRADER_LLAMA_SPAWN_EGG;     // 行商羊驼刷怪蛋
+    static Item* TROPICAL_FISH_SPAWN_EGG;    // 热带鱼刷怪蛋
+    static Item* TURTLE_SPAWN_EGG;           // 海龟刷怪蛋
+    static Item* VEX_SPAWN_EGG;              // 恼鬼刷怪蛋
+    static Item* VILLAGER_SPAWN_EGG;         // 村民刷怪蛋
+    static Item* VINDICATOR_SPAWN_EGG;       // 卫道士刷怪蛋
+    static Item* WANDERING_TRADER_SPAWN_EGG; // 流浪商人刷怪蛋
+    static Item* WARDEN_SPAWN_EGG;           // 监守者刷怪蛋
+    static Item* WITCH_SPAWN_EGG;            // 女巫刷怪蛋
+    static Item* WITHER_SPAWN_EGG;           // 凋灵刷怪蛋
+    static Item* WITHER_SKELETON_SPAWN_EGG;  // 凋灵骷髅刷怪蛋
+    static Item* WOLF_SPAWN_EGG;             // 狼刷怪蛋
+    static Item* ZOGLIN_SPAWN_EGG;           // 僵尸疣猪兽刷怪蛋
+    static Item* ZOMBIE_SPAWN_EGG;           // 僵尸刷怪蛋
+    static Item* ZOMBIE_HORSE_SPAWN_EGG;     // 僵尸马刷怪蛋
+    static Item* ZOMBIFIED_PIGLIN_SPAWN_EGG; // 僵尸猪灵刷怪蛋
+    static Item* ZOMBIE_VILLAGER_SPAWN_EGG;  // 僵尸村民刷怪蛋
+
 private:
     static bool s_initialized;
 
@@ -1498,6 +1590,7 @@ private:
     static void _registerSkulls();
     static void _registerHarnesses();
     static void _registerBundles();
+    static void _registerSpawnEggs();
 };
 
 } // namespace mc
