@@ -87,6 +87,8 @@
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
+#include "common/world/gen/structure/StructureTagLoader.hpp"
+#include "common/world/gen/structure/StructureTags.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
@@ -1048,6 +1050,24 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JigsawTemplateManager");
         world::gen::jigsaw::JigsawAssembler::getTemplateManager().setDataPackRepository(&m_dataPackList);
         spdlog::info("Jigsaw TemplateManager configured with data pack list");
+    }
+
+    // 初始化结构标签（必须在结构集合注册后，海豚寻宝等玩法依赖此标签）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::StructureTags");
+        world::gen::structure::StructureTags::initialize();
+    }
+    spdlog::info("Structure tags initialized");
+
+    // 从数据包加载结构标签（追加到或替换内置默认值）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::StructureTagLoader");
+        auto dataPackLoadResult = world::gen::structure::StructureTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load structure tags from data packs: {}", dataPackLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} structure tags from data packs", dataPackLoadResult.value());
+        }
     }
 
     // 注册实体类型（可选）

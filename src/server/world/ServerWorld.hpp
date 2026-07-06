@@ -1331,6 +1331,23 @@ public:
         bool skipExisting = false) override;
 
     /**
+     * @brief 按结构标签查找最近的结构
+     *
+     * 对应 MC 1.21.11 ServerLevel.findNearestMapStructure(TagKey<Structure>, BlockPos, int, boolean)。
+     *
+     * 遍历标签中的所有结构 ID，对每个结构调用 findNearestStructure，
+     * 返回所有候选中距离最近的位置。
+     *
+     * @param center 搜索中心位置
+     * @param tagId 结构标签资源位置（如 minecraft:dolphin_located）
+     * @param maxDistance 最大搜索距离（格）
+     * @param skipExisting 是否跳过已找到的结构
+     * @return 最近结构位置，如果未找到返回空
+     */
+    [[nodiscard]] std::optional<BlockPos> findNearestMapStructure(
+        const BlockPos& center, const ResourceLocation& tagId, i32 maxDistance, bool skipExisting = false) override;
+
+    /**
      * @brief 检查并处理全员睡眠
      *
      * 在 tick() 中调用，检查是否所有玩家都完全入睡，

@@ -1881,6 +1881,32 @@ public:
         return std::nullopt;
     }
 
+    /**
+     * @brief 按结构标签查找最近的结构
+     *
+     * 对应 MC 1.21.11 ServerLevel.findNearestMapStructure(TagKey<Structure>, BlockPos, int, boolean)。
+     *
+     * 与 findNearestStructure 不同，此方法接受结构标签（如 minecraft:dolphin_located），
+     * 遍历标签中的所有结构 ID，对每个结构调用 findNearestStructure，返回最近的位置。
+     *
+     * 服务端世界实现此方法，客户端世界返回空。
+     *
+     * @param center 搜索中心位置
+     * @param tagId 结构标签资源位置（如 minecraft:dolphin_located）
+     * @param maxDistance 最大搜索距离（格）
+     * @param skipExisting 是否跳过已找到的结构
+     * @return 最近结构位置，如果未找到返回空
+     */
+    [[nodiscard]] virtual std::optional<BlockPos> findNearestMapStructure(
+        const BlockPos& center, const ResourceLocation& tagId, i32 maxDistance, bool skipExisting = false)
+    {
+        (void)center;
+        (void)tagId;
+        (void)maxDistance;
+        (void)skipExisting;
+        return std::nullopt;
+    }
+
     // ========== 命令执行 ==========
 
     /**

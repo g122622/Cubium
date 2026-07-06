@@ -20,6 +20,12 @@ structure/
 ├── StructureCheck.cpp
 ├── StructureManager.hpp      # 结构管理器（注册、查询、生成协调）
 ├── StructureManager.cpp
+├── StructureTag.hpp          # 结构标签（对应 MC StructureTags，按标签分组结构 ID）
+├── StructureTag.cpp
+├── StructureTags.hpp         # 20 个原版结构标签静态访问器（DOLPHIN_LOCATED、VILLAGE 等）
+├── StructureTags.cpp
+├── StructureTagLoader.hpp    # 结构标签 JSON 加载器（数据包，支持 # 嵌套引用 + replace 语义）
+├── StructureTagLoader.cpp
 ├── JigsawStructure.hpp       # Jigsaw 拼图结构基类
 ├── JigsawStructure.cpp
 ├── placement/                # 结构放置策略（MC 1.21.11 对齐）
@@ -67,6 +73,7 @@ structure/
 worldgen/structure/*.json     → Structure (定义结构类型、生物群系标签、装饰阶段)
 worldgen/structure_set/*.json → StructureSet (加权条目 + StructurePlacement)
 tags/worldgen/biome/*.json    → BiomeTag (has_structure/* 标签)
+tags/worldgen/structure/*.json→ StructureTag (DOLPHIN_LOCATED、VILLAGE 等结构分组标签)
 worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 
 生成流程:
@@ -165,9 +172,9 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 | `world/gen/chunk/NoiseChunkGenerator` | 区块生成器在三个阶段调用结构生成 |
 | `world/gen/chunk/FlatChunkGenerator` | 超平坦区块生成器，含生物群系预过滤 |
 | `world/gen/density/Beardifier` | 结构地形平滑密度函数 |
-| `server/world/ServerWorld` | `findNearestStructure()` 使用 StructureCheck 快速跳过不含结构的区块，使用 `findByStructure()` 查询 StructureSetRegistry |
+| `server/world/ServerWorld` | `findNearestStructure()` 使用 StructureCheck 快速跳过不含结构的区块，使用 `findByStructure()` 查询 StructureSetRegistry；`findNearestMapStructure()` 遍历 StructureTag 成员调用 `findNearestStructure()` |
 | `server/command/commands/LocateCommand` | `/locate` 命令使用 `ResourceLocation` 别名映射 |
-| `common/entity/ai/goal/goals/special/DolphinGoals` | 海豚引导到结构使用 `ResourceLocation` |
+| `common/entity/ai/goal/goals/special/DolphinGoals` | 海豚寻宝通过 `findNearestMapStructure()` + `minecraft:dolphin_located` 结构标签查找最近的沉船或海底废墟 |
 | `common/item/loot/functions/ExplorationMapFunction` | 探险地图使用 `ResourceLocation` 定位结构 |
 
 ## 容易踩的坑
@@ -254,3 +261,54 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 **`generateDispenser()` 使用方式与指定朝向的 `generateChest()` 相同。**
 
 这些方法要求 `WorldGenRegion` 正确覆写 `getBlockEntity()`/`setBlockEntity()`/`removeBlockEntity()` 方法，以便在结构生成阶段访问和操作方块实体。`WorldGenRegion::setBlockState()` 会在放置有方块实体的方块时自动创建对应的 `BlockEntity`，然后通过 `getBlockEntity()` 即可获取并设置战利品表。
+
+### 12. 结构标签（StructureTag / StructureTags / StructureTagLoader）
+
+对应 MC 1.21.11 `net.minecraft.tags.StructureTags`。结构标签用于将多个结构 ID 分组，便于玩法系统按标签查找结构（如海豚寻宝通过 `minecraft:dolphin_located` 标签同时查找沉船和海底废墟）。
+
+**与 BiomeTag 的差异：**
+- `StructureTag` 内部存储 `std::unordered_set<ResourceLocation>`（结构 ID），而 `BiomeTag` 存储 `BiomeId`（整数）。
+- 这是因为结构在 Cubium 中以 `ResourceLocation` 标识（如 `minecraft:shipwreck`），而非枚举。
+
+**20 个原版标签（与 MC 1.21.11 StructureTagsProvider 一致）：**
+
+| 标签 | 用途 | 默认成员 |
+|------|------|----------|
+| `eye_of_ender_located` | 末影之眼定位 | `stronghold` |
+| `dolphin_located` | 海豚寻宝 | `#ocean_ruin` + `#shipwreck` |
+| `on_woodland_explorer_maps` | 林地探险地图 | `mansion` |
+| `on_ocean_explorer_maps` | 海洋探险地图 | `monument` |
+| `on_treasure_maps` | 藏宝图 | `buried_treasure` |
+| `on_trial_chambers_maps` | 试炼密室地图 | `trial_chambers` |
+| `on_*_village_maps` | 村庄探险地图（5 种变体） | 对应村庄变体 |
+| `on_jungle_explorer_maps` | 丛林探险地图 | `jungle_temple` |
+| `on_swamp_explorer_maps` | 沼泽探险地图 | `swamp_hut` |
+| `cats_spawn_in` / `cats_spawn_as_black` | 猫生成 | `swamp_hut` |
+| `village` | 村庄分组 | 5 个变体 |
+| `mineshaft` | 矿井分组 | `mineshaft` + `mineshaft_mesa` |
+| `shipwreck` | 沉船分组 | `shipwreck` + `shipwreck_beached` |
+| `ruined_portal` | 废弃传送门分组 | 7 个变体 |
+| `ocean_ruin` | 海底废墟分组 | `ocean_ruin_cold` + `ocean_ruin_warm` |
+
+**数据包加载（StructureTagLoader）：**
+- 路径：`data/<namespace>/tags/worldgen/structure/*.json`
+- JSON 格式与 BiomeTag 一致：`{"replace": false, "values": ["minecraft:shipwreck", "#minecraft:ocean_ruin"]}`
+- `#` 前缀表示引用其他标签（递归解析，带循环检测）
+- `replace=true` 时清空已有条目后追加（多数据包合并语义）
+- `required` 字段控制条目缺失时是否输出警告
+
+**初始化顺序（MinecraftServer::initializeRegistries）：**
+1. `StructureTags::initialize()` — 注册 20 个内置标签
+2. `StructureTagLoader::loadFromDataPackRepository()` — 加载数据包标签（追加或替换）
+
+**使用示例：**
+```cpp
+// 海豚寻宝：通过标签查找最近的沉船或海底废墟
+auto treasurePos = world->findNearestMapStructure(
+    dolphinPos, ResourceLocation("minecraft", "dolphin_located"), 1200, false);
+
+// 检查结构是否在某标签中
+if (StructureTags::DOLPHIN_LOCATED().contains(ResourceLocation("minecraft", "shipwreck"))) {
+    // 该结构可被海豚定位
+}
+```

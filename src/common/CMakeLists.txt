@@ -1198,6 +1198,9 @@ add_library(mc_common STATIC
     world/gen/structure/StructureManager.cpp
     world/gen/structure/StructureSet.cpp
     world/gen/structure/StructureSetLoader.cpp
+    world/gen/structure/StructureTag.cpp
+    world/gen/structure/StructureTags.cpp
+    world/gen/structure/StructureTagLoader.cpp
     world/gen/structure/placement/StructurePlacement.cpp
     world/gen/structure/placement/RandomSpreadStructurePlacement.cpp
     world/gen/structure/placement/ConcentricRingsStructurePlacement.cpp

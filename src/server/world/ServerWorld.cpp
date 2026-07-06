@@ -70,6 +70,7 @@
 #include "common/world/gen/FeaturePlacer.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
+#include "common/world/gen/structure/StructureTags.hpp"
 #include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
 #include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -2838,6 +2839,43 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
                 nearestDistSq = distSq;
                 nearestPos = locatePos;
             }
+        }
+    }
+
+    return nearestPos;
+}
+
+std::optional<BlockPos> ServerWorld::findNearestMapStructure(
+    const BlockPos& center, const ResourceLocation& tagId, i32 maxDistance, bool skipExisting)
+{
+    // 通过结构标签 ID 查找标签，遍历标签中的所有结构 ID，对每个结构调用 findNearestStructure，
+    // 返回所有候选中距离最近的位置。对应 MC 1.21.11 ServerLevel.findNearestMapStructure()。
+    auto* tag = world::gen::structure::StructureTags::getTag(tagId);
+    if (tag == nullptr) {
+        spdlog::warn("ServerWorld::findNearestMapStructure: 未知结构标签 '{}', 返回空", tagId.toString());
+        return std::nullopt;
+    }
+
+    if (tag->getStructureIds().empty()) {
+        return std::nullopt;
+    }
+
+    std::optional<BlockPos> nearestPos;
+    f64 nearestDistSq = std::numeric_limits<f64>::max();
+
+    for (const auto& structureId : tag->getStructureIds()) {
+        auto candidatePos = findNearestStructure(center, structureId, maxDistance, skipExisting);
+        if (!candidatePos.has_value()) {
+            continue;
+        }
+
+        i32 dx = candidatePos->x - center.x;
+        i32 dz = candidatePos->z - center.z;
+        f64 distSq = static_cast<f64>(dx * dx + dz * dz);
+
+        if (distSq < nearestDistSq) {
+            nearestDistSq = distSq;
+            nearestPos = candidatePos;
         }
     }
 

@@ -267,28 +267,35 @@ void SwimToTreasureGoal::startExecuting()
     m_failed = false;
     m_dolphin->clearNavigationPath();
 
-    // 随机选择沉船或海底废墟进行搜索
-    math::Random& rng = m_dolphin->getRandom();
-    bool tryShipwreckFirst = rng.nextFloat() < 0.5f;
-
-    // TODO: 结构定位系统完善后启用真实搜索
-    // 目前使用占位实现
-    std::optional<BlockPos> treasurePos;
-
-    if (tryShipwreckFirst) {
-        treasurePos = _findStructure(0); // 沉船
-        if (!treasurePos.has_value()) {
-            treasurePos = _findStructure(1); // 海底废墟
-        }
-    } else {
-        treasurePos = _findStructure(1); // 海底废墟
-        if (!treasurePos.has_value()) {
-            treasurePos = _findStructure(0); // 沉船
-        }
+    // 对应 MC 1.21.11 DolphinSwimToTreasureGoal.start():
+    //   BlockPos blockpos = this.dolphin.blockPosition();
+    //   BlockPos blockpos1 = serverlevel.findNearestMapStructure(StructureTags.DOLPHIN_LOCATED, blockpos, 50, false);
+    //   if (blockpos1 != null) {
+    //       this.dolphin.treasurePos = blockpos1;
+    //       serverlevel.broadcastEntityState(this.dolphin, (byte)38);
+    //   } else {
+    //       this.stuck = true;
+    //   }
+    IWorld* world = m_dolphin->world();
+    if (world == nullptr) {
+        m_failed = true;
+        return;
     }
+
+    // 获取海豚的方块位置
+    Vector3 pos = m_dolphin->position();
+    BlockPos dolphinPos(
+        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
+
+    // 通过 minecraft:dolphin_located 结构标签查找最近的沉船或海底废墟
+    auto treasurePos = world->findNearestMapStructure(
+        dolphinPos, ResourceLocation("minecraft", "dolphin_located"), SEARCH_RADIUS_BLOCKS, false);
 
     if (treasurePos.has_value()) {
         m_dolphin->setTreasurePos(treasurePos.value());
+        // 广播实体状态 38（Dolphin），触发客户端播放 HAPPY_VILLAGER 粒子效果
+        world->broadcastEntityStatus(
+            m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
     } else {
         m_failed = true;
     }
@@ -373,27 +380,6 @@ void SwimToTreasureGoal::tick()
         world->broadcastEntityStatus(
             m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
     }
-}
-
-std::optional<BlockPos> SwimToTreasureGoal::_findStructure(i32 structureType) const
-{
-    IWorld* world = m_dolphin->world();
-    if (world == nullptr) {
-        return std::nullopt;
-    }
-
-    // 海豚寻找沉船或海底废墟
-    // structureType: 0 = 沉船 (minecraft:shipwreck), 1 = 海底废墟 (minecraft:ocean_ruin_cold)
-    ResourceLocation structureId = (structureType == 0) ? ResourceLocation("minecraft", "shipwreck")
-                                                        : ResourceLocation("minecraft", "ocean_ruin_cold");
-
-    // 获取海豚的方块位置
-    Vector3 pos = m_dolphin->position();
-    BlockPos dolphinPos(
-        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
-
-    // 使用世界 API 查找最近的结构
-    return world->findNearestStructure(dolphinPos, structureId, m_searchRadius, false);
 }
 
 // ============================================================================

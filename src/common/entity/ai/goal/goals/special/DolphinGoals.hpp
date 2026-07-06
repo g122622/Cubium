@@ -112,9 +112,11 @@ private:
  * - 空气值 >= 100
  *
  * 行为:
- * - startExecuting: 寻找附近的沉船或海底废墟结构
+ * - startExecuting: 通过 minecraft:dolphin_located 结构标签查找附近的沉船或海底废墟
  * - tick: 向宝藏位置游泳，如果接近目标则重新规划路径
  * - resetTask: 到达宝藏后清除鱼的标记
+ *
+ * 参考: net.minecraft.world.entity.animal.dolphin.Dolphin.DolphinSwimToTreasureGoal (MC 1.21.11)
  */
 class SwimToTreasureGoal : public Goal {
 public:
@@ -135,18 +137,15 @@ public:
     static constexpr i32 MIN_AIR = 100;
     static constexpr f32 ARRIVE_DISTANCE = 4.0f;
     static constexpr f32 CLOSE_TO_TARGET_DISTANCE = 12.0f;
+    /// 搜索半径（方块单位）。
+    /// 对应 MC 1.21.11 DolphinSwimToTreasureGoal.start() 中的 findNearestMapStructure(..., 50, false)。
+    /// MC 的 50 是 RandomSpread 放置策略的网格步数（spacing steps），
+    /// 对于沉船（spacing=24）约等于 50*24=1200 方块。此处使用等价的方块距离。
+    static constexpr i32 SEARCH_RADIUS_BLOCKS = 1200;
 
 private:
-    /**
-     * @brief 寻找附近的结构位置
-     * @param structureType 结构类型（0=沉船, 1=海底废墟）
-     * @return 如果找到返回位置，否则返回空
-     */
-    [[nodiscard]] std::optional<BlockPos> _findStructure(i32 structureType) const;
-
     DolphinEntity* m_dolphin;
     bool m_failed = false;
-    i32 m_searchRadius = 50;
 };
 
 /**
