@@ -5340,6 +5340,10 @@ void Items::_registerSpawnEggs()
         0xE4DDC9FF,
         ItemProperties().maxStackSize(64));
 
+    // TODO: camel_husk_spawn_egg 依赖 CamelHuskEntity 注册实现。当前 CamelHuskEntity 尚未在
+    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
+    // EntityRegistry::getType("minecraft:camel_husk") 查找实体会返回 nullptr，导致此刷怪蛋
+    // 右键方块/右键生物时无法生成实体。待 CamelHuskEntity 实现并在 VanillaEntities 中注册后生效。
     CAMEL_HUSK_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:camel_husk_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:camel_husk"),
@@ -5379,6 +5383,10 @@ void Items::_registerSpawnEggs()
         0xC9A063FF,
         ItemProperties().maxStackSize(64));
 
+    // TODO: creaking_spawn_egg 依赖 CreakingEntity 注册实现。当前 CreakingEntity 尚未在
+    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
+    // EntityRegistry::getType("minecraft:creaking") 查找实体会返回 nullptr，导致此刷怪蛋
+    // 右键方块/右键生物时无法生成实体。待 CreakingEntity 实现并在 VanillaEntities 中注册后生效。
     CREAKING_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:creaking_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:creaking"),
         0x5A504EFF,
@@ -5478,6 +5486,10 @@ void Items::_registerSpawnEggs()
         0x25D1C2FF,
         ItemProperties().maxStackSize(64));
 
+    // TODO: happy_ghast_spawn_egg 依赖 HappyGhastEntity 注册实现。当前 HappyGhastEntity 尚未在
+    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
+    // EntityRegistry::getType("minecraft:happy_ghast") 查找实体会返回 nullptr，导致此刷怪蛋
+    // 右键方块/右键生物时无法生成实体。待 HappyGhastEntity 实现并在 VanillaEntities 中注册后生效。
     HAPPY_GHAST_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:happy_ghast_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:happy_ghast"),
@@ -5535,6 +5547,10 @@ void Items::_registerSpawnEggs()
         0x4F3E2DFF,
         ItemProperties().maxStackSize(64));
 
+    // TODO: nautilus_spawn_egg 依赖 NautilusEntity 注册实现。当前 NautilusEntity 尚未在
+    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
+    // EntityRegistry::getType("minecraft:nautilus") 查找实体会返回 nullptr，导致此刷怪蛋
+    // 右键方块/右键生物时无法生成实体。待 NautilusEntity 实现并在 VanillaEntities 中注册后生效。
     NAUTILUS_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:nautilus_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:nautilus"),
         0xDB5A41FF,
@@ -5559,6 +5575,10 @@ void Items::_registerSpawnEggs()
         0x15B7B7FF,
         ItemProperties().maxStackSize(64));
 
+    // TODO: parched_spawn_egg 依赖 ParchedEntity 注册实现。当前 ParchedEntity 尚未在
+    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
+    // EntityRegistry::getType("minecraft:parched") 查找实体会返回 nullptr，导致此刷怪蛋
+    // 右键方块/右键生物时无法生成实体。待 ParchedEntity 实现并在 VanillaEntities 中注册后生效。
     PARCHED_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:parched_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:parched"),
         0x746E66FF,
@@ -5805,6 +5825,10 @@ void Items::_registerSpawnEggs()
             0x6A6A6AFF,
             ItemProperties().maxStackSize(64));
 
+    // TODO: zombie_nautilus_spawn_egg 依赖 ZombieNautilusEntity 注册实现。当前
+    // ZombieNautilusEntity 尚未在 EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg
+    // 通过 EntityRegistry::getType("minecraft:zombie_nautilus") 查找实体会返回 nullptr，导致此
+    // 刷怪蛋右键方块/右键生物时无法生成实体。待 ZombieNautilusEntity 实现并在 VanillaEntities 中注册后生效。
     ZOMBIE_NAUTILUS_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:zombie_nautilus_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:zombie_nautilus"),
@@ -5825,6 +5849,18 @@ void Items::_registerSpawnEggs()
             0x00AFC1FF,
             0x88B1BFFF,
             ItemProperties().maxStackSize(64));
+
+    // TODO: 以下 6 种刷怪蛋对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
+    // 但实际使用时（右键方块/右键生物生成幼体）MobEntity::_spawnOffspringFromSpawnEgg 或
+    // SpawnEggItem::spawnEntity 通过 EntityRegistry::getType(name)->create() 查找实体会返回
+    // nullptr，导致无法生成实体，功能不完整：
+    //   - camel_husk_spawn_egg     → 依赖 CamelHuskEntity
+    //   - creaking_spawn_egg       → 依赖 CreakingEntity
+    //   - happy_ghast_spawn_egg    → 依赖 HappyGhastEntity
+    //   - nautilus_spawn_egg       → 依赖 NautilusEntity
+    //   - parched_spawn_egg        → 依赖 ParchedEntity
+    //   - zombie_nautilus_spawn_egg → 依赖 ZombieNautilusEntity
+    // 待上述实体类型实现并在 VanillaEntities::registerAll() 中注册后，刷怪蛋功能自动生效。
 }
 
 } // namespace mc
