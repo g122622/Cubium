@@ -37,6 +37,26 @@ ResourceManager（核心入口，协调所有加载器）
 3. `BlockModelCache.initialize()` 遍历 BlockRegistry 构建状态ID→外观映射
 4. 区块渲染时通过 `BlockModelCache.getBlockAppearance(state)` O(1) 获取外观
 
+## 物品模型预加载
+
+`ItemModelCache::initialize()` 会在构造 `ItemModelLoader` 后立即调用
+`ItemModelLoader::loadAllModels()` 全量预加载所有资源包中
+`assets/<namespace>/models/item/` 目录下的 `.json` 文件并烘焙，将结果填充到
+`m_unbakedModels` / `m_bakedModels` 缓存，供后续 `getModel` / `getItemModel`
+直接命中。
+
+**设计意图**：将物品模型加载从运行时延迟加载升级为预加载 + 延迟加载兜底，
+消除玩家进入游戏后的运行时卡顿。
+
+**容错行为**：
+- 单个模型烘焙失败不中断整体流程，仅记录 `spdlog::warn` 警告。
+- `loadAllModels()` 整体不返回错误（部分文件缺失属正常情况）。
+- 即使 `loadAllModels()` 整体失败（理论上不会发生，因其总是返回 `ok()`），
+  `ItemModelCache::initialize()` 也仅记录 `spdlog::warn` 后继续，
+  后续 `getItemModel()` 仍可走 `bakeModel()` 延迟加载兜底路径。
+- 跨包去重：同一 `ResourceLocation` 只烘焙一次，高优先级包（`m_resourcePacks[0]`）
+  的内容通过 `_readModelFromResourcePacks` 的顺序读取自然生效。
+
 ## 上下游依赖关系
 
 ### 上游依赖（本模块依赖的）
