@@ -26,6 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <array>
+#include <cmath>
 #include <utility>
 #include <gtest/gtest.h>
 
@@ -134,18 +135,22 @@ TEST_F(NaturalSpawnerTest, MobDensityTracker_DistanceFalloff)
     // 在原点添加密度
     tracker.addCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
 
-    // 在同一位置应该得到完整的密度（无衰减）
+    // 密度采用逆衰减公式：sum(charge / sqrt(distSq)) * multiplier。
+    // 在与点电荷重合的位置查询时返回无穷大（任何有限预算都会被超出），
+    // 这样可以阻止在已存在实体的精确位置上堆叠生成。
     f64 chargeAtOrigin = tracker.getTotalCharge(Vector3(0.0f, 0.0f, 0.0f), 1.0);
-    EXPECT_NEAR(chargeAtOrigin, 1.0, 0.01);
+    EXPECT_TRUE(std::isinf(chargeAtOrigin));
 
-    // 在距离 32 格处应该有衰减
+    // 在距离 32 格处按 1/32 衰减
     f64 chargeAt32 = tracker.getTotalCharge(Vector3(32.0f, 0.0f, 0.0f), 1.0);
     EXPECT_GT(chargeAt32, 0.0);
     EXPECT_LT(chargeAt32, chargeAtOrigin);
+    EXPECT_NEAR(chargeAt32, 1.0 / 32.0, 0.001);
 
-    // 在距离 64 格处应该完全衰减
+    // 逆衰减永远不会真正归零；距离 64 格处按 1/64 衰减
     f64 chargeAt64 = tracker.getTotalCharge(Vector3(64.0f, 0.0f, 0.0f), 1.0);
-    EXPECT_NEAR(chargeAt64, 0.0, 0.01);
+    EXPECT_GT(chargeAt64, 0.0);
+    EXPECT_NEAR(chargeAt64, 1.0 / 64.0, 0.001);
 }
 
 // ========== EntityDensityManager 测试 ==========

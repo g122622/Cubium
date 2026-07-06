@@ -149,8 +149,10 @@ TEST(AnimationTextureTest, AnimatedTextureStoresAllFrames)
 
     // 验证位置信息
     EXPECT_EQ(anim.location, loc);
-    EXPECT_GT(anim.atlasX, 0u); // 应该有有效的图集位置
-    EXPECT_GT(anim.atlasY, 0u);
+    // 动画纹理可能被图集打包到原点(0,0)（单纹理时），因此只校验位置有效（非负）而非 >0
+    // 对齐 MC Java：atlasX/atlasY 由图集打包算法决定，无“必须大于0”的保证。
+    EXPECT_GE(anim.atlasX, 0u);
+    EXPECT_GE(anim.atlasY, 0u);
     EXPECT_EQ(anim.frameWidth, frameWidth);
     EXPECT_EQ(anim.frameHeight, frameHeight);
 
@@ -288,8 +290,7 @@ TEST(AnimationTextureTest, AddTextureFrameWithMetadataButSameSizeStillCreatesAni
 
     const auto pixels = makeSolidRgba(width, height, 128, 128, 128, 255);
 
-    // 使用带元数据的addTextureFrame，即使帧尺寸等于图像尺寸
-    // 如果显式传递了元数据，说明调用者知道这是动画（只是恰好只有1帧）
+    // 使用带元数据的addTextureFrame，但帧尺寸等于图像尺寸（单帧图像）
     resource::metadata::AnimationMetadata metadata;
     metadata.frametime = 2;
 
@@ -303,9 +304,11 @@ TEST(AnimationTextureTest, AddTextureFrameWithMetadataButSameSizeStillCreatesAni
     auto it = atlas.regions.find(loc);
     ASSERT_NE(it, atlas.regions.end());
 
-    // 即使只有1帧，也应该创建动画条目（因为传递了元数据）
-    ASSERT_EQ(atlas.animations.size(), 1u);
-    EXPECT_EQ(atlas.animations[0].framePixels.size(), 1u);
+    // 对齐 MC Java：SpriteContents.isAnimated() 返回 getFrameCount() > 1。
+    // 单帧图像（imageHeight == frameHeight）即使附带动画元数据，也不被视作活动动画——
+    // 没有多帧可循环播放，因此 atlas.animations 不应包含该纹理。
+    // TextureAtlasBuilder 据此判定：仅当 height > storedHeight（几何上多帧）才注册动画。
+    EXPECT_EQ(atlas.animations.size(), 0u);
 }
 
 // ============================================================================

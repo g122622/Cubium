@@ -162,7 +162,7 @@ GUI 精灵图集需要按正确顺序初始化：
 
 ### 15. NaturalSpawner 密度管理器
 
-`NaturalSpawner::createDensityManager()` 如果保存 `EntityManager::countEntitiesByClassification()` 结果的引用，会导致悬垂引用。必须按值持有。`MobDensityTracker` 的密度衰减是 64 格线性衰减，零距离按完整成本计入。
+`NaturalSpawner::createDensityManager()` 如果保存 `EntityManager::countEntitiesByClassification()` 结果的引用，会导致悬垂引用。必须按值持有。`MobDensityTracker` 的密度采用逆衰减公式 `sum(charge / sqrt(distSq)) * multiplier`，与查询位置重合的点电荷贡献无穷大（阻止同位置堆叠生成）。
 
 ### 16. 玩家物理与渲染插值
 

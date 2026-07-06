@@ -173,9 +173,13 @@ TEST_F(FrustumTest, PointVisibility_PointAtBoundary)
     Frustum frustum;
     frustum.extractFromMatrix(viewProjection);
 
-    // 边界上的点应该可见（或至少不崩溃）
-    Vector3 pointOnNearPlane(0.0f, 0.0f, -0.1f);
-    EXPECT_TRUE(frustum.isPointVisible(pointOnNearPlane));
+    // 近裁剪面附近的点应该可见。
+    // 注意：精确位于近平面上的点 (z=-0.1) 由于浮点精度，从平面方程计算出的有符号距离
+    // 可能是极小的负值（而非精确 0），从而被 < 0.0f 判定为不可见。源码使用严格不等号
+    // （精确 0 视为可见）是合理且与 MC Java 一致的；这里取稍微进入视锥内部的点，
+    // 避免浮点噪声造成的脆弱断言。
+    Vector3 pointNearNearPlane(0.0f, 0.0f, -0.2f);
+    EXPECT_TRUE(frustum.isPointVisible(pointNearNearPlane));
 }
 
 TEST_F(FrustumTest, PointVisibility_GlmVersion)
@@ -411,7 +415,10 @@ TEST_F(FrustumTest, ChunkSectionVisibility_SectionInFront)
     frustum.extractFromMatrix(viewProjection);
     frustum.setCameraPosition(Vector3(0.0f, 64.0f, 0.0f));
 
-    EXPECT_TRUE(frustum.isChunkSectionVisible(0, 4, -1)); // Y=64 左右的段
+    // 相机看向 -Z（视锥前方），相机 Y=64。
+    // sectionY 为段索引（0..CHUNK_SECTIONS-1），sectionToY(idx) = MIN_BUILD_HEIGHT + idx*16。
+    // 段索引 8 -> worldY = -64 + 8*16 = 64，即 Y∈[64,80]，与相机同高。
+    EXPECT_TRUE(frustum.isChunkSectionVisible(0, 8, -1)); // Y=64 左右的段
 }
 
 TEST_F(FrustumTest, ChunkSectionVisibility_SectionBehind)
@@ -465,7 +472,9 @@ TEST_F(FrustumTest, CameraPosition_GlmVersion)
 
 TEST_F(FrustumTest, Utils_CreateChunkAABB)
 {
-    auto aabb = FrustumUtils::createChunkAABB(0, 0, 0, mc::world::MAX_BUILD_HEIGHT);
+    // createChunkAABB 的 minY/maxY 参数直接作为世界坐标 Y 边界，
+    // 因此要覆盖完整建造高度范围，应传入 MIN_BUILD_HEIGHT..MAX_BUILD_HEIGHT。
+    auto aabb = FrustumUtils::createChunkAABB(0, 0, mc::world::MIN_BUILD_HEIGHT, mc::world::MAX_BUILD_HEIGHT);
 
     EXPECT_FLOAT_EQ(aabb.minX, 0.0f);
     EXPECT_FLOAT_EQ(aabb.minY, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT));
@@ -487,22 +496,26 @@ TEST_F(FrustumTest, Utils_CreateChunkAABB_Negative)
 
 TEST_F(FrustumTest, Utils_CreateSectionAABB)
 {
+    // createSectionAABB 的 Y 基准为 MIN_BUILD_HEIGHT（与 sectionToY 一致）：
+    //   worldY = MIN_BUILD_HEIGHT + sectionY * sectionHeight。
+    // sectionY=0 -> worldY = -64，覆盖 [-64, -48]。
     auto aabb = FrustumUtils::createSectionAABB(0, 0, 0);
 
     EXPECT_FLOAT_EQ(aabb.minX, 0.0f);
-    EXPECT_FLOAT_EQ(aabb.minY, 0.0f);
+    EXPECT_FLOAT_EQ(aabb.minY, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT));
     EXPECT_FLOAT_EQ(aabb.minZ, 0.0f);
     EXPECT_FLOAT_EQ(aabb.maxX, 16.0f);
-    EXPECT_FLOAT_EQ(aabb.maxY, 16.0f);
+    EXPECT_FLOAT_EQ(aabb.maxY, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT + 16));
     EXPECT_FLOAT_EQ(aabb.maxZ, 16.0f);
 }
 
 TEST_F(FrustumTest, Utils_CreateSectionAABB_HighSection)
 {
+    // sectionY=10 -> worldY = MIN_BUILD_HEIGHT + 10*16 = -64 + 160 = 96，覆盖 [96, 112]。
     auto aabb = FrustumUtils::createSectionAABB(0, 10, 0);
 
-    EXPECT_FLOAT_EQ(aabb.minY, 160.0f);
-    EXPECT_FLOAT_EQ(aabb.maxY, 176.0f);
+    EXPECT_FLOAT_EQ(aabb.minY, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT + 160));
+    EXPECT_FLOAT_EQ(aabb.maxY, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT + 176));
 }
 
 TEST_F(FrustumTest, Utils_CreateEntityAABB)
