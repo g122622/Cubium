@@ -33,13 +33,37 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/SpreadPlayersCommand.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 
 namespace mc {
 namespace command {
 
-class SpreadPlayersTestServer final : public test::BaseTestServer {};
+class SpreadPlayersTestServer final : public test::BaseTestServer {
+public:
+    // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
+    // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
+    // 命令走 "World not available" 分支返回 0，避免 BaseTestServer 默认实现
+    // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
+    // 注意：DimensionManager 是 ServerDimensionManager 的基类，
+    // 我们将 DimensionManager reinterpret_cast 为 ServerDimensionManager，
+    // 因为 ServerDimensionManager::getDimension() 仅调用基类 DimensionManager::getDimension()
+    // 然后做 static_cast，在我们的测试场景中是安全的。
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+    }
+
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+    }
+
+private:
+    DimensionManager m_dimensionManager;
+};
 
 class SpreadPlayersCommandTest : public ::testing::Test {
 protected:

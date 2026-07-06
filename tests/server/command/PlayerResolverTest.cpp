@@ -32,13 +32,43 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/PlayerResolver.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 
 namespace mc::command {
 
-class PlayerResolverTestServer final : public test::BaseTestServer {};
+// 测试服务器所需的服务端类型位于 mc:: 顶层命名空间，此处引入以便在
+// mc::command 命名空间内直接引用。
+using mc::DimensionManager;
+using mc::ServerDimensionManager;
+
+class PlayerResolverTestServer final : public test::BaseTestServer {
+public:
+    // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
+    // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
+    // resolvePlayerIds 的 applyFilters/matchesFilter 在 world==nullptr 时跳过
+    // 依赖实体的过滤，仍可正常按等级/游戏模式等过滤，避免 BaseTestServer 默认实现
+    // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
+    // 注意：DimensionManager 是 ServerDimensionManager 的基类，
+    // 我们将 DimensionManager reinterpret_cast 为 ServerDimensionManager，
+    // 因为 ServerDimensionManager::getDimension() 仅调用基类 DimensionManager::getDimension()
+    // 然后做 static_cast，在我们的测试场景中是安全的。
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+    }
+
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+    }
+
+private:
+    DimensionManager m_dimensionManager;
+};
 
 } // namespace mc::command
 
