@@ -1051,6 +1051,23 @@ extern const ResourceLocation ENTITY_TURTLE_SHAMBLE;
 extern const ResourceLocation ENTITY_TURTLE_SHAMBLE_BABY;
 extern const ResourceLocation ENTITY_TURTLE_SWIM;
 
+/// 嗅探兽
+extern const ResourceLocation SNIFFER_STEP;
+extern const ResourceLocation SNIFFER_EAT;
+extern const ResourceLocation SNIFFER_IDLE;
+extern const ResourceLocation SNIFFER_HURT;
+extern const ResourceLocation SNIFFER_DEATH;
+extern const ResourceLocation SNIFFER_DROP_SEED;
+extern const ResourceLocation SNIFFER_SCENTING;
+extern const ResourceLocation SNIFFER_SNIFFING;
+extern const ResourceLocation SNIFFER_SEARCHING;
+extern const ResourceLocation SNIFFER_DIGGING;
+extern const ResourceLocation SNIFFER_DIGGING_STOP;
+extern const ResourceLocation SNIFFER_HAPPY;
+extern const ResourceLocation SNIFFER_EGG_PLOP;
+extern const ResourceLocation SNIFFER_EGG_CRACK;
+extern const ResourceLocation SNIFFER_EGG_HATCH;
+
 /// 蜜蜂
 extern const ResourceLocation ENTITY_BEE_DEATH;
 extern const ResourceLocation ENTITY_BEE_HURT;

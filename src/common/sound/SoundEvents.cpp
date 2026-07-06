@@ -909,6 +909,23 @@ const ResourceLocation ENTITY_TURTLE_SHAMBLE("minecraft:entity.turtle.shamble");
 const ResourceLocation ENTITY_TURTLE_SHAMBLE_BABY("minecraft:entity.turtle.shamble_baby");
 const ResourceLocation ENTITY_TURTLE_SWIM("minecraft:entity.turtle.swim");
 
+// 嗅探兽
+const ResourceLocation SNIFFER_STEP("minecraft:entity.sniffer.step");
+const ResourceLocation SNIFFER_EAT("minecraft:entity.sniffer.eat");
+const ResourceLocation SNIFFER_IDLE("minecraft:entity.sniffer.idle");
+const ResourceLocation SNIFFER_HURT("minecraft:entity.sniffer.hurt");
+const ResourceLocation SNIFFER_DEATH("minecraft:entity.sniffer.death");
+const ResourceLocation SNIFFER_DROP_SEED("minecraft:entity.sniffer.drop_seed");
+const ResourceLocation SNIFFER_SCENTING("minecraft:entity.sniffer.scenting");
+const ResourceLocation SNIFFER_SNIFFING("minecraft:entity.sniffer.sniffing");
+const ResourceLocation SNIFFER_SEARCHING("minecraft:entity.sniffer.searching");
+const ResourceLocation SNIFFER_DIGGING("minecraft:entity.sniffer.digging");
+const ResourceLocation SNIFFER_DIGGING_STOP("minecraft:entity.sniffer.digging_stop");
+const ResourceLocation SNIFFER_HAPPY("minecraft:entity.sniffer.happy");
+const ResourceLocation SNIFFER_EGG_PLOP("minecraft:block.sniffer_egg.plop");
+const ResourceLocation SNIFFER_EGG_CRACK("minecraft:block.sniffer_egg.crack");
+const ResourceLocation SNIFFER_EGG_HATCH("minecraft:block.sniffer_egg.hatch");
+
 // 蜜蜂
 const ResourceLocation ENTITY_BEE_DEATH("minecraft:entity.bee.death");
 const ResourceLocation ENTITY_BEE_HURT("minecraft:entity.bee.hurt");
