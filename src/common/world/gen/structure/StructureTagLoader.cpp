@@ -47,15 +47,24 @@ namespace mc::world::gen::structure {
  * - 标签引用: "#minecraft:ocean_ruin"（解析引用标签中的所有结构）
  * - 对象格式: {"id":"minecraft:shipwreck","required":false}（由上层解析后调用此方法）
  *
+ * 循环检测采用"按解析路径"策略：visitedTags 按值传递，每个标签引用分支获得
+ * 独立的访问集合副本。这样同一标签在不同分支中都能被正确展开，避免跨分支
+ * 错误跳过。最终去重由 StructureTag 内部的 std::unordered_set 保证。
+ *
+ * 注意：当前实现不递归解析标签引用——StructureTags::getTag() 返回的是已构建
+ * 完成的标签，直接拷贝其成员即可。真正的循环引用（如 A→B→A）不会导致
+ * 无限递归，因为不存在的数据包标签 getTag() 返回 nullptr。
+ * 此处的循环检测主要用于防止自引用（loadFromJson 已预插入 location）。
+ *
  * @param entry 值条目字符串（如 "minecraft:shipwreck" 或 "#minecraft:ocean_ruin"）
  * @param required 是否必须存在（required=true 时缺失条目会输出警告，required=false 时静默跳过）
  * @param structureIds 输出参数：收集的结构 ID 集合
- * @param visitedTags 已访问的标签集合（防止循环引用）
+ * @param visitedTags 已访问的标签集合（按值传递，实现路径级循环检测）
  */
 static void resolveTagEntry(const std::string& entry,
     bool required,
     std::vector<ResourceLocation>& structureIds,
-    std::unordered_set<ResourceLocation>& visitedTags)
+    std::unordered_set<ResourceLocation> visitedTags)
 {
     if (entry.empty()) {
         return;
@@ -66,16 +75,18 @@ static void resolveTagEntry(const std::string& entry,
         std::string tagRef = entry.substr(1);
         ResourceLocation tagLocation = ResourceLocation::parse(tagRef);
 
-        // 防止循环引用
+        // 路径级循环检测：若当前解析路径已包含此标签，跳过
+        // 由于 visitedTags 按值传递，不同分支的解析路径互不影响
         if (visitedTags.count(tagLocation) > 0) {
             if (required) {
                 spdlog::warn("StructureTagLoader: 循环标签引用 '{}' (required), 跳过", entry);
             }
             return;
         }
+        // 注意：此处修改的是局部副本，不影响调用方的 visitedTags
         visitedTags.insert(tagLocation);
 
-        // 查找被引用的标签
+        // 查找被引用的标签（已构建完成的标签）
         auto* referencedTag = StructureTags::getTag(tagLocation);
         if (referencedTag != nullptr) {
             for (const auto& id : referencedTag->getStructureIds()) {

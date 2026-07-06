@@ -131,6 +131,17 @@ public:
     [[nodiscard]] static StructureTag* getTag(const ResourceLocation& id);
 
     /**
+     * @brief 注册（或获取已存在的）标签
+     *
+     * 用于数据包加载和测试场景。如果标签已存在则返回已有标签引用，
+     * 否则创建新的空标签并返回引用。
+     *
+     * @param id 标签资源位置
+     * @return 标签引用
+     */
+    static StructureTag& registerTag(const ResourceLocation& id);
+
+    /**
      * @brief 遍历所有标签
      *
      * 用于 StructureTagLoader 在加载前清空已有标签（如果数据包 replace=true）。

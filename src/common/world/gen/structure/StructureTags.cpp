@@ -421,6 +421,22 @@ StructureTag* StructureTags::getTag(const ResourceLocation& id)
     return nullptr;
 }
 
+StructureTag& StructureTags::registerTag(const ResourceLocation& id)
+{
+    if (!s_initialized) {
+        initialize();
+    }
+    auto& tags = _getTags();
+    auto it = tags.find(id);
+    if (it != tags.end()) {
+        return *it->second;
+    }
+    auto tag = std::make_unique<StructureTag>(id);
+    auto& ref = *tag;
+    tags[id] = std::move(tag);
+    return ref;
+}
+
 void StructureTags::forEachTag(std::function<void(StructureTag&)> callback)
 {
     if (!s_initialized) {
