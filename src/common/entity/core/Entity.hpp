@@ -632,6 +632,27 @@ public:
     [[nodiscard]] virtual bool canBeCollidedWith() const { return true; }
 
     /**
+     * @brief this 是否会与指定实体发生碰撞
+     *
+     * 对应 MC Java 的 Entity.canCollideWith(Entity)：
+     *   return other.canBeCollidedWith(this) && !isPassengerOfSameVehicle(other);
+     *
+     * 即：candidate 必须可被碰撞，且不能与 this 同处一个骑乘链
+     * （载具不会与其乘客、共享同一载具的乘客之间互相碰撞）。
+     *
+     * 注意：MC Java 的 getEntityCollisions 在传入 entity 时使用
+     * `EntitySelector.NO_SPECTATORS.and(entity::canCollideWith)` 作为过滤谓词，
+     * 因此物理碰撞检测中的"实体碰撞"会调用此方法。
+     *
+     * @param other 候选实体
+     * @return 若 this 应与 other 进行碰撞检测返回 true
+     */
+    [[nodiscard]] virtual bool canCollideWith(const Entity& other) const
+    {
+        return other.canBeCollidedWith() && !isRidingSameEntity(other);
+    }
+
+    /**
      * @brief 实体是否可被弹射物命中
      *
      * 对应 MC Java 的 canBeHitByProjectile()。

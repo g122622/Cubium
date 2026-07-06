@@ -818,6 +818,10 @@ add_executable(mc_tests
     server/core/PermissionResolverTest.cpp
     # PacketHandler 测试（载具输入、位置验证、实体交互、实体动作）
     server/core/PacketHandlerTest.cpp
+    # PacketHandler 载具校正辅助函数单元测试
+    server/core/PacketHandlerMoveVehicleHelpersTest.cpp
+    # PacketHandler handleMoveVehicle 集成测试（moved wrongly / 回退 / 正常接受）
+    server/core/PacketHandlerMoveVehicleIntegrationTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # ServerPlayer PvP 保护机制测试
