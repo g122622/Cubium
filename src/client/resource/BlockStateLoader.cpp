@@ -77,8 +77,6 @@ namespace mc {
 
 Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
 {
-    m_resourcePack = &resourcePack;
-
     // 列出所有方块状态文件
     auto result = resourcePack.listResources(resource::PackType::ClientResources, "minecraft/blockstates", "json");
 

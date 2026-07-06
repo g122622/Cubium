@@ -273,11 +273,10 @@ private:
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
     // 管线
-    VkPipeline m_skyPipeline = VK_NULL_HANDLE;     // 天空穹顶管线
-    VkPipeline m_skyStarPipeline = VK_NULL_HANDLE; // TODO: 后续如需实现夜晚天空渐变效果可启用
-    VkPipeline m_sunPipeline = VK_NULL_HANDLE;     // 太阳管线
-    VkPipeline m_moonPipeline = VK_NULL_HANDLE;    // 月亮管线
-    VkPipeline m_starPipeline = VK_NULL_HANDLE;    // 星星管线
+    VkPipeline m_skyPipeline = VK_NULL_HANDLE;  // 天空穹顶管线
+    VkPipeline m_sunPipeline = VK_NULL_HANDLE;  // 太阳管线
+    VkPipeline m_moonPipeline = VK_NULL_HANDLE; // 月亮管线
+    VkPipeline m_starPipeline = VK_NULL_HANDLE; // 星星管线
 
     // 顶点缓冲区
     VkBuffer m_skyDomeVBO = VK_NULL_HANDLE;

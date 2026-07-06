@@ -199,10 +199,6 @@ void SkyRenderer::destroy()
         vkDestroyPipeline(device, m_skyPipeline, nullptr);
         m_skyPipeline = VK_NULL_HANDLE;
     }
-    if (m_skyStarPipeline != VK_NULL_HANDLE && m_skyStarPipeline != m_skyPipeline) {
-        vkDestroyPipeline(device, m_skyStarPipeline, nullptr);
-        m_skyStarPipeline = VK_NULL_HANDLE;
-    }
     if (m_sunPipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(device, m_sunPipeline, nullptr);
         m_sunPipeline = VK_NULL_HANDLE;
@@ -989,9 +985,6 @@ Result<void> SkyRenderer::_createPipelines(VkSampleCountFlagBits sampleCount)
     if (starResult.failed()) {
         return starResult.error();
     }
-
-    // TODO: 当前未使用独立夜晚天空管线，后续如需实现夜晚天空渐变效果可启用
-    m_skyStarPipeline = VK_NULL_HANDLE;
 
     spdlog::info("SkyRenderer pipelines created");
     return Result<void>::ok();
