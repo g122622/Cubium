@@ -334,6 +334,8 @@ add_executable(minecraft-client
     ui/screen/FurnaceScreen.cpp
     ui/screen/CartographyScreen.cpp
     ui/screen/MapScreen.cpp
+    ui/screen/tooltip/BundleTooltipRenderer.cpp
+    ui/screen/tooltip/BundleTooltipRendererRender.cpp
     ui/minecraft/screens/LoomScreen.cpp
     # UI Kagero模板系统
     ui/kagero/template/parser/Ast.cpp

@@ -183,12 +183,12 @@ public:
      */
     [[nodiscard]] static f32 getFullnessDisplay(const ItemStack& stack);
 
-    // TODO: BundleTooltip 渲染未实现
-    // MC 1.21.11 中收纳袋在物品栏悬停时显示专门的 tooltip：内容物网格 + 满度进度条。
-    // 本项目当前没有"物品自定义 tooltip 渲染"架构（Item::addInformation 已定义但客户端
-    // 未调用），需先在 AbstractContainerScreen::renderItemTooltip 中接通 addInformation
-    // 调用链，再为 BundleItem 实现 tooltip 渲染。
-    // 上述 getNumberOfItemsToShow / getFullnessDisplay 已为此预留，待渲染层接入。
+    // BundleTooltip 渲染已实现：见 src/client/ui/screen/tooltip/BundleTooltipRenderer
+    // 该渲染器由 AbstractContainerScreen::renderItemTooltip 和
+    // CreativeScreen::_renderItemTooltip 在检测到 BundleItem 时调用，
+    // 渲染内容物网格 + 选中项高亮 + 满度进度条 + 溢出 "+N" 指示。
+    // 上述 getNumberOfItemsToShow / getFullnessDisplay 仍保留为公共 API，
+    // 供其他模块（如 HUD、第三方插件）查询收纳袋状态使用。
 
     /**
      * @brief 判断物品堆是否为收纳袋（任意颜色变体）

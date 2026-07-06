@@ -25,7 +25,11 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "client/ui/screen/tooltip/BundleTooltipRenderer.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/util/StringUtils.hpp"
+#include "common/world/IWorld.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -466,6 +470,20 @@ void CreativeScreen::_renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 
         return;
     }
 
+    // 收纳袋物品：使用专用 tooltip 渲染器（创造屏幕使用蓝色边框）
+    // 对应 MC 1.21.11 中 BundleItem 通过 getTooltipImage 返回 BundleTooltip
+    if (mc::item::items::BundleItem::isBundleItem(stack) && m_itemRenderer != nullptr) {
+        mc::client::ui::screen::tooltip::BundleTooltipRenderer::render(*m_gui,
+            *m_itemRenderer,
+            stack,
+            mouseX,
+            mouseY,
+            m_screenWidth,
+            m_screenHeight,
+            mc::client::ui::screen::tooltip::BundleTooltipRenderer::CREATIVE_BORDER_COLOR);
+        return;
+    }
+
     std::vector<std::string> lines;
     auto displayName = stack.getDisplayName();
     lines.emplace_back(displayName ? displayName->getUnformattedText() : "");
@@ -478,6 +496,17 @@ void CreativeScreen::_renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 
         const i32 remainingDurability = std::max(0, stack.getMaxDamage() - stack.getDamage());
         lines.emplace_back(
             "Durability: " + std::to_string(remainingDurability) + "/" + std::to_string(stack.getMaxDamage()));
+    }
+
+    // 调用 Item::addInformation 附加物品自定义 tooltip
+    // 对应 MC 1.21.11 ItemStack#getTooltipLines 调用 Item#appendHoverText
+    // 注意：客户端 Player 的 world() 可能为空（ClientWorld 不继承 IWorld），
+    // 此处仅在 world 非空时调用，避免解引用空指针
+    if (stack.getItem() != nullptr && m_inventory != nullptr && m_inventory->getPlayer() != nullptr) {
+        mc::IWorld* world = m_inventory->getPlayer()->world();
+        if (world != nullptr) {
+            stack.getItem()->addInformation(stack, *world, lines, false);
+        }
     }
 
     f64 maxTextWidth = 0.0;

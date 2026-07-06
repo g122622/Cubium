@@ -24,8 +24,12 @@
 #pragma once
 
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "client/ui/screen/tooltip/BundleTooltipRenderer.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/screen/IScreen.hpp"
+#include "common/world/IWorld.hpp"
 #include "core/Types.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
@@ -659,6 +663,11 @@ protected:
 
     /**
      * @brief 渲染物品提示框
+     *
+     * 渲染流程：
+     * 1. 收纳袋物品：委托给 BundleTooltipRenderer 渲染网格 + 进度条
+     * 2. 普通物品：渲染物品名 + 数量 + 耐久 + Item::addInformation 自定义行
+     *
      * @param stack 物品堆
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
@@ -666,6 +675,20 @@ protected:
     void renderItemTooltip(const mc::ItemStack& stack, i32 mouseX, i32 mouseY)
     {
         if (m_gui->font() == nullptr || stack.isEmpty()) {
+            return;
+        }
+
+        // 收纳袋物品：使用专用 tooltip 渲染器
+        // 对应 MC 1.21.11 中 BundleItem 通过 getTooltipImage 返回 BundleTooltip
+        if (mc::item::items::BundleItem::isBundleItem(stack) && m_itemRenderer != nullptr) {
+            mc::client::ui::screen::tooltip::BundleTooltipRenderer::render(*m_gui,
+                *m_itemRenderer,
+                stack,
+                mouseX,
+                mouseY,
+                m_screenWidth,
+                m_screenHeight,
+                mc::client::ui::screen::tooltip::BundleTooltipRenderer::BORDER_COLOR);
             return;
         }
 
@@ -681,6 +704,23 @@ protected:
             const i32 remainingDurability = std::max(0, stack.getMaxDamage() - stack.getDamage());
             lines.emplace_back(
                 "Durability: " + std::to_string(remainingDurability) + "/" + std::to_string(stack.getMaxDamage()));
+        }
+
+        // 调用 Item::addInformation 附加物品自定义 tooltip
+        // 对应 MC 1.21.11 ItemStack#getTooltipLines 调用 Item#appendHoverText
+        // 注意：客户端 Player 的 world() 可能为空（ClientWorld 不继承 IWorld），
+        // 此处仅在 world 非空时调用，避免解引用空指针
+        if (stack.getItem() != nullptr) {
+            mc::IWorld* world = nullptr;
+            if (m_menu != nullptr) {
+                auto* playerInventory = m_menu->getPlayerInventory();
+                if (playerInventory != nullptr && playerInventory->getPlayer() != nullptr) {
+                    world = playerInventory->getPlayer()->world();
+                }
+            }
+            if (world != nullptr) {
+                stack.getItem()->addInformation(stack, *world, lines, false);
+            }
         }
 
         f64 maxTextWidth = 0.0;
