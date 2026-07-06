@@ -40,25 +40,57 @@ struct WeightedStateEntry {
     WeightedStateEntry(const BlockState* s, i32 w)
         : state(s)
         , weight(w)
-    {
-    }
+    {}
 };
 
 /**
  * @brief 加权方块状态提供者
  *
- * 根据权重随机选择方块状态。用于植被特征中随机选择植物类型。
+ * 根据权重随机选择方块状态。用于植被特征中随机选择植物类型，
+ * 也可用于树叶提供器（如杜鹃树混合杜鹃叶与开花杜鹃叶）。
  *
- * 参考: net.minecraft.world.level.levelgen.blockproviders.WeightedListBlockStateProvider
+ * 内部使用线性扫描减权重法选择，适用于条目数较少（< 64）的场景。
+ * 当 totalWeight >= 64 时，MC 原版切换到紧凑 selector，本实现暂未做此优化。
+ *
+ * 参考: net.minecraft.world.level.levelgen.feature.stateproviders.WeightedStateProvider
+ *       net.minecraft.util.random.WeightedList
  */
 class WeightedBlockStateProvider {
 public:
     WeightedBlockStateProvider() = default;
 
+    /// 拷贝构造函数（深拷贝条目列表，权重与总权重一并复制）
+    WeightedBlockStateProvider(const WeightedBlockStateProvider& other)
+        : m_entries(other.m_entries)
+        , m_totalWeight(other.m_totalWeight)
+    {}
+
+    /// 拷贝赋值运算符
+    WeightedBlockStateProvider& operator=(const WeightedBlockStateProvider& other)
+    {
+        if (this != &other) {
+            m_entries = other.m_entries;
+            m_totalWeight = other.m_totalWeight;
+        }
+        return *this;
+    }
+
+    WeightedBlockStateProvider(WeightedBlockStateProvider&&) noexcept = default;
+    WeightedBlockStateProvider& operator=(WeightedBlockStateProvider&&) noexcept = default;
+
+    /**
+     * @brief 深拷贝当前提供者
+     * @return 新的 WeightedBlockStateProvider 实例
+     */
+    [[nodiscard]] std::unique_ptr<WeightedBlockStateProvider> clone() const
+    {
+        return std::make_unique<WeightedBlockStateProvider>(*this);
+    }
+
     /**
      * @brief 添加加权方块状态
      * @param state 方块状态
-     * @param weight 权重
+     * @param weight 权重（必须 >= 0）
      */
     void add(const BlockState* state, i32 weight)
     {
@@ -69,11 +101,11 @@ public:
     /**
      * @brief 获取随机方块状态
      * @param rng 随机数生成器
-     * @return 随机选择的方块状态
+     * @return 随机选择的方块状态；若条目为空返回 nullptr
      */
     [[nodiscard]] const BlockState* getState(math::IRandom& rng) const
     {
-        if (m_entries.empty()) {
+        if (m_entries.empty() || m_totalWeight <= 0) {
             return nullptr;
         }
         i32 remaining = rng.nextInt(m_totalWeight);
@@ -95,6 +127,11 @@ public:
      * @brief 是否为空
      */
     [[nodiscard]] bool empty() const { return m_entries.empty(); }
+
+    /**
+     * @brief 获取总权重
+     */
+    [[nodiscard]] i32 totalWeight() const noexcept { return m_totalWeight; }
 
 private:
     std::vector<WeightedStateEntry> m_entries;

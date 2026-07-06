@@ -28,6 +28,7 @@
 #include "../../../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -55,9 +56,30 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
     math::Random& random,
     i32 trunkHeight,
     const std::vector<FoliagePosition>& foliagePositions,
+    const std::set<BlockPos>& trunkBlocks,
+    i32 trunkOffset,
+    const BlockState* foliageBlock,
+    std::set<BlockPos>& outFoliageBlocks)
+{
+    placeFoliage(world,
+        random,
+        trunkHeight,
+        foliagePositions,
+        trunkBlocks,
+        trunkOffset,
+        foliageBlock,
+        nullptr,
+        outFoliageBlocks);
+}
+
+void FoliagePlacer::placeFoliage(WorldGenRegion& world,
+    math::Random& random,
+    i32 trunkHeight,
+    const std::vector<FoliagePosition>& foliagePositions,
     const std::set<BlockPos>& /*trunkBlocks*/,
     i32 /*trunkOffset*/,
     const BlockState* foliageBlock,
+    const world::gen::feature::state::WeightedBlockStateProvider* foliageProvider,
     std::set<BlockPos>& outFoliageBlocks)
 {
     for (const auto& foliagePos : foliagePositions) {
@@ -71,7 +93,9 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
 
     // 子类只负责计算并收集树叶坐标，这里统一执行实际放置。
     // 允许覆盖空气或已有树叶，避免覆盖实心方块。
-    if (foliageBlock == nullptr) {
+    // 当 foliageProvider 非空且非空条目时，每个叶片独立采样；否则使用 foliageBlock。
+    const bool useProvider = foliageProvider != nullptr && !foliageProvider->empty();
+    if (!useProvider && foliageBlock == nullptr) {
         return;
     }
 
@@ -85,7 +109,10 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
             state->is(VanillaBlocks::SPRUCE_LEAVES) || state->is(VanillaBlocks::BIRCH_LEAVES) ||
             state->is(VanillaBlocks::JUNGLE_LEAVES) || state->is(VanillaBlocks::ACACIA_LEAVES) ||
             state->is(VanillaBlocks::DARK_OAK_LEAVES) || state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
-            world.setBlockState(pos, foliageBlock);
+            const BlockState* stateToPlace = useProvider ? foliageProvider->getState(random) : foliageBlock;
+            if (stateToPlace != nullptr) {
+                world.setBlockState(pos, stateToPlace);
+            }
         }
     }
 }

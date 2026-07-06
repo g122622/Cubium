@@ -30,8 +30,9 @@
 #include "common/world/gen/feature/FeatureIds.hpp"
 #include "common/world/gen/feature/FeatureSpread.hpp"
 #include "common/world/gen/feature/predicate/BlockPredicate.hpp"
+#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include "common/world/gen/feature/tree/TreeFeature.hpp"
-#include "common/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "common/world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.hpp"
 #include "common/world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
 #include "common/world/gen/placement/BiomeFilterPlacement.hpp"
 #include "common/world/gen/placement/EnvironmentScanPlacement.hpp"
@@ -225,16 +226,26 @@ std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createDripleaf()
 
 std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createAzaleaTree()
 {
-    // 杜鹃树 - 使用BendingTrunkPlacer + BlobFoliagePlacer
-    // MC: BendingTrunkPlacer(4,2,0,3,UniformInt(1,2)) + WeightedFoliage(AzaleaLeaves 3:FloweringAzaleaLeaves 1)
-    //     + RandomSpreadFoliagePlacer(radius=3,offset=0,height=2) + forceDirt=true + dirtBlock=ROOTED_DIRT
-    // TODO: 实现RandomSpreadFoliagePlacer后替换BlobFoliagePlacer
-    // TODO: 实现加权树叶提供器后替换单一foliageBlock
+    // 杜鹃树 - 使用 BendingTrunkPlacer + RandomSpreadFoliagePlacer
+    // 配置对齐 MC 1.21.11 azalea_tree.json：
+    //   - trunk: BendingTrunkPlacer(4, 2, 0, 3, UniformInt(1, 2))，trunk_provider=oak_log
+    //   - foliage: RandomSpreadFoliagePlacer(radius=3, offset=0, foliageHeight=2, leafPlacementAttempts=50)
+    //   - foliage_provider: WeightedStateProvider(azalea_leaves:3, flowering_azalea_leaves:1)
+    //   - force_dirt=true（项目对应 forcePlacement=true），dirt_provider=rooted_dirt（项目暂未实现 dirtProvider）
     auto trunkPlacer = std::make_unique<BendingTrunkPlacer>(4, 2, 0, 3, std::make_unique<UniformInt>(1, 2));
-    auto foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(3, 0), FeatureSpread::fixed(0), 2);
+    auto foliagePlacer = std::make_unique<RandomSpreadFoliagePlacer>(FeatureSpread::fixed(3), // radius
+        FeatureSpread::fixed(0),                                                              // offset
+        std::make_unique<ConstantInt>(2),                                                     // foliageHeight
+        50                                                                                    // leafPlacementAttempts
+    );
 
     auto config = std::make_unique<TreeFeatureConfig>();
     config->trunkBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
+    // 加权树叶提供者：杜鹃叶 3 : 开花杜鹃叶 1（每个叶片独立采样）
+    config->foliageProvider = std::make_unique<blockstate::WeightedBlockStateProvider>();
+    config->foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
+    config->foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+    // 同时设置 foliageBlock 作为兜底（provider 为空时使用），保持配置完整性
     config->foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
     config->trunkPlacer = std::move(trunkPlacer);
     config->foliagePlacer = std::move(foliagePlacer);

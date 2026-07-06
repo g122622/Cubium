@@ -98,8 +98,15 @@ bool TreeFeature::place(
 
     // 放置树叶
     std::set<BlockPos> foliageBlocks;
-    config.foliagePlacer->placeFoliage(
-        world, random, trunkHeight, foliagePositions, trunkBlocks, trunkHeight - 1, config.foliageBlock, foliageBlocks);
+    config.foliagePlacer->placeFoliage(world,
+        random,
+        trunkHeight,
+        foliagePositions,
+        trunkBlocks,
+        trunkHeight - 1,
+        config.foliageBlock,
+        config.foliageProvider.get(),
+        foliageBlocks);
 
     // 设置树叶距离属性（用于树叶腐烂机制）
     _setFoliageDistance(world, trunkBlocks, foliageBlocks);

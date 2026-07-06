@@ -40,10 +40,12 @@
 #include "world/gen/feature/FeatureSpread.hpp"
 #include "world/gen/feature/nether/HugeFungusFeature.hpp"
 #include "world/gen/feature/ore/OreFeature.hpp"
+#include "world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include "world/gen/feature/tree/TreeFeature.hpp"
 #include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
 #include "world/gen/feature/tree/foliage/FoliagePlacers.hpp"
+#include "world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.hpp"
 #include "world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
 #include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
 #include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
@@ -358,6 +360,225 @@ TEST_F(NewFoliagePlacerTest, FancyFoliagePlacerClone)
     auto clone = placer.clone();
     ASSERT_NE(clone, nullptr);
     EXPECT_STREQ(clone->name(), "fancy");
+}
+
+// ============================================================================
+// RandomSpreadFoliagePlacer 测试
+// ============================================================================
+
+TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerName)
+{
+    auto placer = std::make_unique<RandomSpreadFoliagePlacer>(
+        FeatureSpread::fixed(3), FeatureSpread::fixed(0), world::gen::valueprovider::ConstantInt::create(2), 50);
+    EXPECT_STREQ(placer->name(), "random_spread");
+}
+
+TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerHeight)
+{
+    RandomSpreadFoliagePlacer placer(
+        FeatureSpread::fixed(3), FeatureSpread::fixed(0), world::gen::valueprovider::ConstantInt::create(2), 50);
+    // ConstantInt(2) 始终返回 2
+    EXPECT_EQ(placer.getFoliageHeight(*random, 6), 2);
+}
+
+TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerUniformHeight)
+{
+    // UniformInt(1, 4) 应在 [1, 4] 范围内采样
+    RandomSpreadFoliagePlacer placer(
+        FeatureSpread::fixed(3), FeatureSpread::fixed(0), world::gen::valueprovider::UniformInt::create(1, 4), 50);
+    for (int i = 0; i < 100; ++i) {
+        i32 h = placer.getFoliageHeight(*random, 6);
+        EXPECT_GE(h, 1);
+        EXPECT_LE(h, 4);
+    }
+}
+
+TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerClone)
+{
+    RandomSpreadFoliagePlacer placer(
+        FeatureSpread::fixed(3), FeatureSpread::fixed(0), world::gen::valueprovider::ConstantInt::create(2), 50);
+    auto clone = placer.clone();
+    ASSERT_NE(clone, nullptr);
+    EXPECT_STREQ(clone->name(), "random_spread");
+    // 验证 clone 后的 leafPlacementAttempts 一致
+    auto* cloned = dynamic_cast<RandomSpreadFoliagePlacer*>(clone.get());
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ(cloned->leafPlacementAttempts(), 50);
+}
+
+TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerClonePreservesHeight)
+{
+    // 验证 clone 保留 IntProvider 状态：clone 后 getFoliageHeight 应正常工作
+    RandomSpreadFoliagePlacer placer(
+        FeatureSpread::fixed(3), FeatureSpread::fixed(0), world::gen::valueprovider::ConstantInt::create(2), 50);
+    auto clone = placer.clone();
+    ASSERT_NE(clone, nullptr);
+    EXPECT_EQ(clone->getFoliageHeight(*random, 6), 2);
+}
+
+TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerNullHeightProvider)
+{
+    // foliageHeight 为 nullptr 时，getFoliageHeight 应安全返回 0（防御性）
+    RandomSpreadFoliagePlacer placer(FeatureSpread::fixed(3), FeatureSpread::fixed(0), nullptr, 50);
+    EXPECT_EQ(placer.getFoliageHeight(*random, 6), 0);
+}
+
+// ============================================================================
+// WeightedBlockStateProvider 测试
+// ============================================================================
+
+TEST(WeightedBlockStateProviderTest, EmptyProviderReturnsNull)
+{
+    world::gen::feature::state::WeightedBlockStateProvider provider;
+    math::Random rng(42);
+    EXPECT_EQ(provider.getState(rng), nullptr);
+    EXPECT_TRUE(provider.empty());
+    EXPECT_EQ(provider.size(), 0u);
+}
+
+TEST(WeightedBlockStateProviderTest, SingleEntryAlwaysReturnsThatState)
+{
+    VanillaBlocks::initialize();
+    world::gen::feature::state::WeightedBlockStateProvider provider;
+    const BlockState* azalea = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    provider.add(azalea, 5);
+    math::Random rng(42);
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_EQ(provider.getState(rng), azalea);
+    }
+    EXPECT_FALSE(provider.empty());
+    EXPECT_EQ(provider.size(), 1u);
+    EXPECT_EQ(provider.totalWeight(), 5);
+}
+
+TEST(WeightedBlockStateProviderTest, WeightedDistributionRoughlyProportional)
+{
+    VanillaBlocks::initialize();
+    world::gen::feature::state::WeightedBlockStateProvider provider;
+    const BlockState* azalea = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    const BlockState* flowering = VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES);
+    provider.add(azalea, 3);
+    provider.add(flowering, 1);
+
+    math::Random rng(12345);
+    int azaleaCount = 0;
+    int floweringCount = 0;
+    constexpr int kSamples = 4000;
+    for (int i = 0; i < kSamples; ++i) {
+        const BlockState* s = provider.getState(rng);
+        if (s == azalea) {
+            ++azaleaCount;
+        } else if (s == flowering) {
+            ++floweringCount;
+        } else {
+            FAIL() << "getState returned unknown state";
+        }
+    }
+    // 权重 3:1 -> 期望 75%:25%，给 ±10% 容差
+    EXPECT_NEAR(static_cast<double>(azaleaCount) / kSamples, 0.75, 0.10);
+    EXPECT_NEAR(static_cast<double>(floweringCount) / kSamples, 0.25, 0.10);
+    EXPECT_EQ(azaleaCount + floweringCount, kSamples);
+}
+
+TEST(WeightedBlockStateProviderTest, CloneProducesIndependentCopy)
+{
+    VanillaBlocks::initialize();
+    world::gen::feature::state::WeightedBlockStateProvider provider;
+    const BlockState* azalea = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    const BlockState* flowering = VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES);
+    provider.add(azalea, 3);
+    provider.add(flowering, 1);
+
+    auto cloned = provider.clone();
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ(cloned->size(), 2u);
+    EXPECT_EQ(cloned->totalWeight(), 4);
+
+    // 修改原对象不影响 clone
+    const BlockState* oak = VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES);
+    provider.add(oak, 10);
+    EXPECT_EQ(provider.size(), 3u);
+    EXPECT_EQ(cloned->size(), 2u); // clone 不受影响
+}
+
+TEST(WeightedBlockStateProviderTest, CopyConstructorProducesIndependentCopy)
+{
+    VanillaBlocks::initialize();
+    world::gen::feature::state::WeightedBlockStateProvider provider;
+    const BlockState* azalea = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    provider.add(azalea, 3);
+
+    world::gen::feature::state::WeightedBlockStateProvider copied(provider);
+    const BlockState* flowering = VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES);
+    provider.add(flowering, 1);
+
+    EXPECT_EQ(provider.size(), 2u);
+    EXPECT_EQ(copied.size(), 1u); // 拷贝构造后独立
+}
+
+// ============================================================================
+// TreeFeatureConfig foliageProvider 测试
+// ============================================================================
+
+TEST(TreeFeatureConfigFoliageProviderTest, DefaultHasNoProvider)
+{
+    TreeFeatureConfig config;
+    EXPECT_FALSE(config.hasFoliageProvider());
+}
+
+TEST(TreeFeatureConfigFoliageProviderTest, HasFoliageProviderWhenSet)
+{
+    VanillaBlocks::initialize();
+    TreeFeatureConfig config;
+    config.foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    config.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
+    EXPECT_TRUE(config.hasFoliageProvider());
+}
+
+TEST(TreeFeatureConfigFoliageProviderTest, CopyConstructorDeepCopiesProvider)
+{
+    VanillaBlocks::initialize();
+    TreeFeatureConfig original;
+    original.foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    original.foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    original.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
+    original.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+
+    // 拷贝构造
+    TreeFeatureConfig copied(original);
+    ASSERT_TRUE(copied.hasFoliageProvider());
+    ASSERT_TRUE(original.hasFoliageProvider());
+
+    // 修改 original 的 provider 不应影响 copied
+    original.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES), 5);
+    EXPECT_EQ(original.foliageProvider->size(), 3u);
+    EXPECT_EQ(copied.foliageProvider->size(), 2u);
+}
+
+TEST(TreeFeatureConfigFoliageProviderTest, GetFoliageStateUsesProviderWhenPresent)
+{
+    VanillaBlocks::initialize();
+    TreeFeatureConfig config;
+    config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    config.foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    config.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+
+    math::Random rng(42);
+    // provider 优先级高于 foliageBlock
+    const BlockState* s = config.getFoliageState(rng);
+    EXPECT_EQ(s, VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES));
+}
+
+TEST(TreeFeatureConfigFoliageProviderTest, GetFoliageStateFallsBackToFoliageBlock)
+{
+    VanillaBlocks::initialize();
+    TreeFeatureConfig config;
+    config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    // 不设置 foliageProvider
+
+    math::Random rng(42);
+    const BlockState* s = config.getFoliageState(rng);
+    EXPECT_EQ(s, VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES));
 }
 
 // ============================================================================

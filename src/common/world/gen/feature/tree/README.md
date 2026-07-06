@@ -15,9 +15,10 @@ tree/
 │   ├── CherryTrunkPlacer.hpp/cpp    # 樱花树干放置器
 │   └── TrunkPlacers.hpp/cpp    # 其他树干放置器（深色橡树/精美/金合欢/巨型云杉/巨型丛林木）
 ├── foliage/                    # 树叶放置器
-│   ├── FoliagePlacer.hpp/cpp   # 树叶放置器基类
+│   ├── FoliagePlacer.hpp/cpp   # 树叶放置器基类（支持加权树叶提供者）
 │   ├── BlobFoliagePlacer.hpp/cpp    # 球形树叶（橡树/白桦）
 │   ├── CherryFoliagePlacer.hpp/cpp  # 樱花树叶放置器
+│   ├── RandomSpreadFoliagePlacer.hpp/cpp # 随机散布树叶（杜鹃树）
 │   └── FoliagePlacers.hpp/cpp  # 其他树叶放置器（松树/云杉/金合欢/深色橡树/丛林木/巨型松树/灌木/精美）
 └── README.md
 ```
@@ -28,6 +29,7 @@ tree/
 TreeFeature（主入口）
     └── TreeFeatureConfig（配置）
             ├── trunkBlock / foliageBlock（方块状态）
+            ├── foliageProvider（可选加权树叶提供者，优先于 foliageBlock）
             ├── TrunkPlacer（树干放置器）
             │       ├── StraightTrunkPlacer
             │       ├── DarkOakTrunkPlacer
@@ -47,7 +49,8 @@ TreeFeature（主入口）
                     ├── MegaPineFoliagePlacer
                     ├── BushFoliagePlacer
                     ├── FancyFoliagePlacer
-                    └── CherryFoliagePlacer
+                    ├── CherryFoliagePlacer
+                    └── RandomSpreadFoliagePlacer
 ```
 
 **生成流程**：`TreeFeature::place()` → `TrunkPlacer::placeTrunk()` 返回 `FoliagePosition` 列表 → `FoliagePlacer::placeFoliage()` 生成树叶
@@ -96,6 +99,7 @@ TreeFeature（主入口）
 - ForkyTrunkPlacer + AcaciaFoliagePlacer（金合欢）
 - DarkOakTrunkPlacer + DarkOakFoliagePlacer（深色橡树）
 - GiantTrunkPlacer + MegaPineFoliagePlacer（巨型云杉）
+- BendingTrunkPlacer + RandomSpreadFoliagePlacer（杜鹃树）
 
 ### 6. 随机数种子一致性
 
@@ -118,5 +122,20 @@ FeatureSpread::fixed(5)      // 总是返回 5
 必须使用 `mc::world::MIN_BUILD_HEIGHT`、`MAX_BUILD_HEIGHT` 等常量，禁止硬编码 0、256 等数字。
 
 ### 10. 区块尺寸常量使用
+
+必须使用 `mc::world::CHUNK_WIDTH`、`CHUNK_HEIGHT`、`CHUNK_SECTION_HEIGHT` 等常量，禁止硬编码 16 等数字。
+
+### 11. 加权树叶提供者（foliageProvider）
+
+`TreeFeatureConfig::foliageProvider`（`WeightedBlockStateProvider`）优先级高于 `foliageBlock`。
+设置后，每个叶片独立采样（用于杜鹃树混合杜鹃叶/开花杜鹃叶等场景）。
+`FoliagePlacer::placeFoliage` 提供两个重载：单一 `foliageBlock` 版本和带 `foliageProvider` 版本。
+`TreeFeature::place` 始终传递 `config.foliageProvider.get()`（可能为 nullptr，此时回退到 `foliageBlock`）。
+
+### 12. RandomSpreadFoliagePlacer 边界保护
+
+`RandomSpreadFoliagePlacer::placeFoliageInternal` 在 `radius == 0` 或 `foliageHeight == 0` 时
+会跳过 `nextInt(0)` 调用（避免非法参数），将对应轴偏移置为 0。
+`foliageHeight` IntProvider 为 nullptr 时，`getFoliageHeight` 安全返回 0。
 
 必须使用 `mc::world::CHUNK_WIDTH`、`CHUNK_HEIGHT`、`CHUNK_SECTION_HEIGHT` 等常量，禁止硬编码 16 等数字。

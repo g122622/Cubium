@@ -25,9 +25,9 @@
 
 #include "../../../../../core/Types.hpp"
 #include "../../../../../util/math/random/Random.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../../FeatureSpread.hpp"
 #include "../trunk/TrunkPlacer.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
 #include <set>
 #include <vector>
@@ -37,11 +37,21 @@ namespace mc {
 // 前向声明
 class WorldGenRegion;
 class BlockState;
+namespace world::gen::feature::state {
+class WeightedBlockStateProvider;
+}
 
 /**
  * @brief 树叶放置器基类
  *
  * 负责生成树叶。接收树干放置器返回的树叶位置列表。
+ *
+ * placeFoliage 主流程：
+ * 1. 对每个 FoliagePosition 采样 radius/offset/foliageHeight 并调用 placeFoliageInternal（子类实现，仅收集坐标）
+ * 2. 末尾统一执行实际放置：遍历 outFoliageBlocks，根据 foliageProvider 或 foliageBlock 决定放置哪个状态
+ *
+ * 当 foliageProvider 非空时，每个叶片独立采样（用于杜鹃树混合杜鹃叶/开花杜鹃叶等场景）；
+ * 否则使用单一 foliageBlock。这与 MC 原版 FoliagePlacer.tryPlaceLeaf + TreeConfiguration.foliProvider 语义一致。
  */
 class FoliagePlacer {
 public:
@@ -55,7 +65,22 @@ public:
     virtual ~FoliagePlacer() = default;
 
     /**
-     * @brief 放置树叶
+     * @brief 放置树叶（使用单一树叶方块状态）
+     *
+     * 等价于 placeFoliage(..., foliageBlock, nullptr, outFoliageBlocks)。
+     * 保留此重载以兼容现有调用方。
+     */
+    void placeFoliage(WorldGenRegion& world,
+        math::Random& random,
+        i32 trunkHeight,
+        const std::vector<FoliagePosition>& foliagePositions,
+        const std::set<BlockPos>& trunkBlocks,
+        i32 trunkOffset,
+        const BlockState* foliageBlock,
+        std::set<BlockPos>& outFoliageBlocks);
+
+    /**
+     * @brief 放置树叶（支持加权树叶提供者）
      *
      * @param world 世界区域
      * @param random 随机数生成器
@@ -63,7 +88,8 @@ public:
      * @param foliagePositions 树叶位置列表
      * @param trunkBlocks 树干方块集合
      * @param trunkOffset 树干顶部的偏移（从树干顶部到树叶底部的距离）
-     * @param foliageBlock 树叶方块状态
+     * @param foliageBlock 默认树叶方块状态（foliageProvider 为空时使用）
+     * @param foliageProvider 加权树叶提供者（非空时优先于 foliageBlock，每个叶片独立采样）
      * @param outFoliageBlocks 输出参数，放置的树叶方块位置集合
      */
     void placeFoliage(WorldGenRegion& world,
@@ -73,6 +99,7 @@ public:
         const std::set<BlockPos>& trunkBlocks,
         i32 trunkOffset,
         const BlockState* foliageBlock,
+        const world::gen::feature::state::WeightedBlockStateProvider* foliageProvider,
         std::set<BlockPos>& outFoliageBlocks);
 
     /**
@@ -134,6 +161,7 @@ protected:
      * @brief 内部放置树叶
      *
      * 由 placeFoliage 调用，子类实现具体逻辑。
+     * 子类只负责将坐标插入 foliageBlocks，实际方块放置由基类统一执行。
      */
     virtual void placeFoliageInternal(WorldGenRegion& world,
         math::Random& random,

@@ -27,6 +27,7 @@
 #include "../../placement/Placement.hpp"
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include "../state/WeightedBlockStateProvider.hpp"
 #include "foliage/FoliagePlacer.hpp"
 #include "trunk/TrunkPlacer.hpp"
 #include <memory>
@@ -40,13 +41,23 @@ class BlockState;
  * @brief 树木特征配置
  *
  * 参考: net.minecraft.world.gen.feature.BaseTreeFeatureConfig
+ *
+ * foliageBlock 与 foliageProvider 的优先级：
+ * - 若 foliageProvider 非空且非空条目，每个叶片独立采样
+ * - 否则使用 foliageBlock 单一状态
+ * 这与 MC 原版 TreeConfiguration.foliageProvider（始终是 BlockStateProvider）语义一致，
+ * 同时保留 foliageBlock 以最小化对现有调用方的破坏。
  */
 struct TreeFeatureConfig : public IFeatureConfig {
     /// 树干方块状态
     const BlockState* trunkBlock = nullptr;
 
-    /// 树叶方块状态
+    /// 树叶方块状态（单一，当 foliageProvider 为空时使用）
     const BlockState* foliageBlock = nullptr;
+
+    /// 树叶方块状态提供者（加权随机，优先于 foliageBlock）
+    /// 用于杜鹃树等需要混合多种叶子方块的配置
+    std::unique_ptr<world::gen::feature::state::WeightedBlockStateProvider> foliageProvider;
 
     /// 树干放置器
     std::unique_ptr<TrunkPlacer> trunkPlacer;
@@ -96,6 +107,10 @@ struct TreeFeatureConfig : public IFeatureConfig {
         if (other.foliagePlacer) {
             foliagePlacer = other.foliagePlacer->clone();
         }
+        // 深拷贝树叶状态提供者
+        if (other.foliageProvider) {
+            foliageProvider = other.foliageProvider->clone();
+        }
     }
 
     /**
@@ -112,9 +127,18 @@ struct TreeFeatureConfig : public IFeatureConfig {
             minHeight = other.minHeight;
             if (other.trunkPlacer) {
                 trunkPlacer = other.trunkPlacer->clone();
+            } else {
+                trunkPlacer.reset();
             }
             if (other.foliagePlacer) {
                 foliagePlacer = other.foliagePlacer->clone();
+            } else {
+                foliagePlacer.reset();
+            }
+            if (other.foliageProvider) {
+                foliageProvider = other.foliageProvider->clone();
+            } else {
+                foliageProvider.reset();
             }
         }
         return *this;
@@ -126,6 +150,7 @@ struct TreeFeatureConfig : public IFeatureConfig {
     TreeFeatureConfig(TreeFeatureConfig&& other) noexcept
         : trunkBlock(other.trunkBlock)
         , foliageBlock(other.foliageBlock)
+        , foliageProvider(std::move(other.foliageProvider))
         , trunkPlacer(std::move(other.trunkPlacer))
         , foliagePlacer(std::move(other.foliagePlacer))
         , maxWaterDepth(other.maxWaterDepth)
@@ -142,6 +167,7 @@ struct TreeFeatureConfig : public IFeatureConfig {
         if (this != &other) {
             trunkBlock = other.trunkBlock;
             foliageBlock = other.foliageBlock;
+            foliageProvider = std::move(other.foliageProvider);
             trunkPlacer = std::move(other.trunkPlacer);
             foliagePlacer = std::move(other.foliagePlacer);
             maxWaterDepth = other.maxWaterDepth;
@@ -150,6 +176,32 @@ struct TreeFeatureConfig : public IFeatureConfig {
             minHeight = other.minHeight;
         }
         return *this;
+    }
+
+    /**
+     * @brief 是否使用加权树叶提供者
+     * @return 若 foliageProvider 非空且至少有一个条目，返回 true
+     */
+    [[nodiscard]] bool hasFoliageProvider() const noexcept
+    {
+        return foliageProvider != nullptr && !foliageProvider->empty();
+    }
+
+    /**
+     * @brief 获取单个树叶方块状态
+     *
+     * 当 foliageProvider 存在时，每次调用独立采样（用于支持加权混合叶子）。
+     * 否则返回 foliageBlock。
+     *
+     * @param random 随机数生成器
+     * @return 树叶方块状态（可能为 nullptr，调用方需自行检查）
+     */
+    [[nodiscard]] const BlockState* getFoliageState(math::IRandom& random) const
+    {
+        if (hasFoliageProvider()) {
+            return foliageProvider->getState(random);
+        }
+        return foliageBlock;
     }
 };
 

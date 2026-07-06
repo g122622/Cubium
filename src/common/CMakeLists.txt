@@ -1128,6 +1128,7 @@ add_library(mc_common STATIC
     world/gen/feature/tree/foliage/BlobFoliagePlacer.cpp
     world/gen/feature/tree/foliage/FoliagePlacers.cpp
     world/gen/feature/tree/foliage/CherryFoliagePlacer.cpp
+    world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.cpp
     # World - Generation - Feature - Vegetation
     world/gen/feature/vegetation/FlowerFeature.cpp
     world/gen/feature/vegetation/GrassFeature.cpp
