@@ -114,6 +114,7 @@ bundle/
 - `ItemTags::BUNDLES`（物品标签，包含所有 17 个变体）
 - `TransmuteRecipe`（转化配方，用于收纳袋染色：bundle + dye → colored_bundle）
 - `AbstractContainerMenu`（物品栏交互，通过插槽覆盖协议）
+- 客户端 tooltip 渲染：`AbstractContainerScreen::renderItemTooltip` 和 `CreativeScreen::_renderItemTooltip` 通过 `BundleItem::isBundleItem(stack)` 检测收纳袋后，委托给 `client/ui/screen/tooltip/BundleTooltipRenderer` 渲染内容物网格、进度条等（见 `src/client/ui/screen/tooltip/README.md`）。
 
 ## 收纳袋染色配方
 

@@ -32,7 +32,7 @@ PotterySherdItem::PotterySherdItem(blockentity::DecoratedPotPattern pattern, Ite
 {}
 
 void PotterySherdItem::addInformation(
-    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+    const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
     Item::addInformation(stack, world, tooltip, advanced);
 

@@ -33,12 +33,13 @@ BannerPatternItem::BannerPatternItem(blockentity::BannerPatternType pattern, Ite
 {}
 
 void BannerPatternItem::addInformation(
-    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+    const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
     Item::addInformation(stack, world, tooltip, advanced);
 
     // 显示图案的翻译描述文本
     // MC Java 中 BannerPatternItem 使用 descriptionId + ".desc" 作为翻译键
+    // 不依赖 world，world 为 null 时仍可正常翻译
     std::string translationKey = "item.minecraft.banner_pattern." + blockentity::BannerPatterns::getFileName(m_pattern);
     std::string descriptionKey = translationKey + ".desc";
     tooltip.push_back(LanguageManager::instance().get(descriptionKey));

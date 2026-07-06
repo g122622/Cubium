@@ -129,7 +129,7 @@ public:
      * 此类应与 TrimPattern 注册表关联，并提供空槽位图标路径用于客户端锻造台界面渲染。
      */
     void addInformation(
-        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;
+        const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const override;
 
     // ========== 工厂方法 ==========
 

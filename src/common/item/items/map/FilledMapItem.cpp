@@ -278,38 +278,42 @@ bool FilledMapItem::isFilledMap(const ItemStack& stack)
 }
 
 void FilledMapItem::addInformation(
-    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+    const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
-    auto* data = getMapData(stack, world);
-    if (data != nullptr) {
-        // 缩放级别提示
-        i32 scale = data->scale();
-        std::string scaleText;
-        switch (scale) {
-            case 0:
-                scaleText = "1:1";
-                break;
-            case 1:
-                scaleText = "1:2";
-                break;
-            case 2:
-                scaleText = "1:4";
-                break;
-            case 3:
-                scaleText = "1:8";
-                break;
-            case 4:
-                scaleText = "1:16";
-                break;
-            default:
-                scaleText = "1:" + std::to_string(1 << scale);
-                break;
-        }
-        tooltip.push_back(scaleText);
+    // world 为 null 时（客户端 Player 无 IWorld）跳过缩放级别提示，
+    // 对应 MC 1.21.11 EMPTY TooltipContext 的 mapData 返回 null。
+    if (world != nullptr) {
+        auto* data = getMapData(stack, *world);
+        if (data != nullptr) {
+            // 缩放级别提示
+            i32 scale = data->scale();
+            std::string scaleText;
+            switch (scale) {
+                case 0:
+                    scaleText = "1:1";
+                    break;
+                case 1:
+                    scaleText = "1:2";
+                    break;
+                case 2:
+                    scaleText = "1:4";
+                    break;
+                case 3:
+                    scaleText = "1:8";
+                    break;
+                case 4:
+                    scaleText = "1:16";
+                    break;
+                default:
+                    scaleText = "1:" + std::to_string(1 << scale);
+                    break;
+            }
+            tooltip.push_back(scaleText);
 
-        // 锁定状态提示
-        if (data->locked()) {
-            tooltip.push_back("Locked");
+            // 锁定状态提示
+            if (data->locked()) {
+                tooltip.push_back("Locked");
+            }
         }
     }
 

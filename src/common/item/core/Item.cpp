@@ -278,10 +278,11 @@ void Item::onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) co
     (void)player;
 }
 
-void Item::addInformation(const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+void Item::addInformation(const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
     // 默认实现：不做任何操作
     // 子类可重写以添加自定义提示
+    // world 可为 null（对应 MC 的 EMPTY TooltipContext，如客户端 Player 无 IWorld 时）
     (void)stack;
     (void)world;
     (void)tooltip;

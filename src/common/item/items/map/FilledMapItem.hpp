@@ -137,9 +137,12 @@ public:
 
     /**
      * @brief 添加提示信息（地图ID和缩放级别）
+     *
+     * world 为 null 时（客户端无 IWorld）跳过缩放级别提示，
+     * 对应 MC 1.21.11 EMPTY TooltipContext 的 mapData 返回 null。
      */
     void addInformation(
-        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;
+        const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const override;
 
 private:
     /**

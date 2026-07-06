@@ -376,7 +376,7 @@ TEST_F(ItemTooltipIntegrationTest, SmithingTemplateAddInformation_ArmorTrimOutpu
 
     ItemStack stack(*sentry, 1);
     std::vector<std::string> tooltip;
-    sentry->addInformation(stack, m_world, tooltip, false);
+    sentry->addInformation(stack, &m_world, tooltip, false);
 
     // 未加载语言文件时，LanguageManager::get() 返回键本身
     ASSERT_EQ(tooltip.size(), 6u) << "SmithingTemplateItem tooltip should have exactly 6 lines";
@@ -399,7 +399,7 @@ TEST_F(ItemTooltipIntegrationTest, SmithingTemplateAddInformation_NetheriteUpgra
 
     ItemStack stack(*netherite, 1);
     std::vector<std::string> tooltip;
-    netherite->addInformation(stack, m_world, tooltip, false);
+    netherite->addInformation(stack, &m_world, tooltip, false);
 
     ASSERT_EQ(tooltip.size(), 6u);
 
@@ -426,8 +426,8 @@ TEST_F(ItemTooltipIntegrationTest, SmithingTemplateAddInformation_AllArmorTrimsS
     std::vector<std::string> sentryTooltip;
     std::vector<std::string> ribTooltip;
 
-    sentry->addInformation(sentryStack, m_world, sentryTooltip, false);
-    rib->addInformation(ribStack, m_world, ribTooltip, false);
+    sentry->addInformation(sentryStack, &m_world, sentryTooltip, false);
+    rib->addInformation(ribStack, &m_world, ribTooltip, false);
 
     // 所有盔甲纹饰模板共享相同的 appliesTo 和 ingredients 翻译键
     ASSERT_EQ(sentryTooltip.size(), 6u);
@@ -444,7 +444,7 @@ TEST_F(ItemTooltipIntegrationTest, PotterySherdAddInformation_NoExtraLines)
 
     ItemStack stack(*angler, 1);
     std::vector<std::string> tooltip;
-    angler->addInformation(stack, m_world, tooltip, false);
+    angler->addInformation(stack, &m_world, tooltip, false);
 
     // 基类 Item::addInformation 是空操作，PotterySherdItem 也不添加任何行
     EXPECT_TRUE(tooltip.empty()) << "PotterySherdItem should not add any tooltip lines";
@@ -461,7 +461,7 @@ TEST_F(ItemTooltipIntegrationTest, BannerPatternItemAddInformation_DescKeyFormat
 
     ItemStack stack(*creeper, 1);
     std::vector<std::string> tooltip;
-    creeper->addInformation(stack, m_world, tooltip, false);
+    creeper->addInformation(stack, &m_world, tooltip, false);
 
     // 未加载语言文件时，LanguageManager::get() 返回键本身
     ASSERT_EQ(tooltip.size(), 1u) << "BannerPatternItem should add exactly 1 tooltip line";

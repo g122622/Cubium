@@ -71,7 +71,7 @@ public:
      * 此方法保留为空实现以备将来扩展。
      */
     void addInformation(
-        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;
+        const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const override;
 
 private:
     blockentity::DecoratedPotPattern m_pattern;

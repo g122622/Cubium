@@ -33,6 +33,14 @@ namespace mc::client::ui::screen::tooltip {
 // ============================================================================
 // 渲染主入口（依赖 GuiRenderer + ItemRenderer，仅在客户端构建中链接）
 // ============================================================================
+//
+// TODO: 当前使用 GuiRenderer 纯色矩形（fillRect/drawRect）渲染所有视觉元素，
+// 与 MC 1.21.11 原版 ClientBundleTooltip 的 sprite 纹理渲染有视觉差异。
+// 原版使用 6 个 sprite 纹理：SLOT_HIGHLIGHT_BACK_SPRITE、SLOT_HIGHLIGHT_FRONT_SPRITE、
+// BUNDLE_OVERLAY_SPRITE、EMPTY_BUNDLE_OVERLAY_SPRITE、PROGRESS_BAR_EMPTY_SPRITE、
+// PROGRESS_BAR_FULL_SPRITE。待 GuiTextureManager 支持加载这些 sprite 后，应升级
+// 为纹理化渲染，并保留当前纯色方案作为纹理不可用时的回退。
+// 详见 src/client/ui/screen/tooltip/README.md 中的 "TODO：升级到纹理化渲染" 章节。
 
 void BundleTooltipRenderer::render(renderer::trident::gui::GuiRenderer& gui,
     renderer::trident::item::ItemRenderer& itemRenderer,

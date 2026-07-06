@@ -44,11 +44,12 @@ DyeColor BannerItem::getColor() const
 }
 
 void BannerItem::addInformation(
-    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+    const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
     WallOrFloorItem::addInformation(stack, world, tooltip, advanced);
 
     // 从BlockEntityTag读取图案并显示（最多6层）
+    // 不依赖 world，world 为 null 时仍可从 NBT 读取图案并翻译
     const nlohmann::json* tag = stack.getChildTag("BlockEntityTag");
     if (tag == nullptr || !tag->contains("Patterns")) {
         return;

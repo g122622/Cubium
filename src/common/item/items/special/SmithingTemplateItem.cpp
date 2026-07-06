@@ -55,10 +55,11 @@ SmithingTemplateItem::SmithingTemplateItem(SmithingTemplateType type,
 {}
 
 void SmithingTemplateItem::addInformation(
-    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
+    const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
     Item::addInformation(stack, world, tooltip, advanced);
 
+    // 不依赖 world，world 为 null 时仍可通过 LanguageManager 翻译
     auto& lang = LanguageManager::instance();
 
     // 1. "Smithing Template" 后缀标题（灰色）

@@ -165,6 +165,11 @@ public:
      * - 空：渲染空描述文本 + 空进度条
      * - 非空：渲染物品网格 + 进度条（+ 满时文本 / +N 溢出指示）
      *
+     * TODO: 当前使用 GuiRenderer 纯色矩形渲染所有视觉元素，与 MC 1.21.11 原版
+     * ClientBundleTooltip 的 sprite 纹理渲染有视觉差异。待 GuiTextureManager 支持
+     * 加载相关 sprite 后应升级为纹理化渲染。详见 README.md 中的
+     * "TODO：升级到纹理化渲染" 章节。
+     *
      * @param gui GUI 渲染器
      * @param itemRenderer 物品渲染器（用于渲染网格中的物品图标）
      * @param stack 收纳袋物品堆（已通过 BundleItem::isBundleItem 校验）

@@ -500,13 +500,12 @@ void CreativeScreen::_renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 
 
     // 调用 Item::addInformation 附加物品自定义 tooltip
     // 对应 MC 1.21.11 ItemStack#getTooltipLines 调用 Item#appendHoverText
-    // 注意：客户端 Player 的 world() 可能为空（ClientWorld 不继承 IWorld），
-    // 此处仅在 world 非空时调用，避免解引用空指针
+    // MC 中 TooltipContext.of(level) 在 level 为 null 时返回 EMPTY 上下文，
+    // 本项目用 IWorld* 表达同样的可空语义：客户端 Player 的 world() 为 null
+    // （ClientWorld 不继承 IWorld），此时传 nullptr，子类按需跳过依赖世界的逻辑。
     if (stack.getItem() != nullptr && m_inventory != nullptr && m_inventory->getPlayer() != nullptr) {
         mc::IWorld* world = m_inventory->getPlayer()->world();
-        if (world != nullptr) {
-            stack.getItem()->addInformation(stack, *world, lines, false);
-        }
+        stack.getItem()->addInformation(stack, world, lines, false);
     }
 
     f64 maxTextWidth = 0.0;

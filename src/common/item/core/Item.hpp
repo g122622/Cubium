@@ -600,13 +600,19 @@ public:
      *
      * 当鼠标悬停在物品上时调用，用于添加提示文本。
      *
+     * 对应 MC 1.21.11 Item#appendHoverText(ItemStack, Item.TooltipContext, ...)。
+     * MC 中 TooltipContext 由 Item.TooltipContext.of(level) 构造，level 为 null 时
+     * 返回 EMPTY 上下文（mapData 等方法返回 null）。本项目用 IWorld* 指针表达同样的
+     * 可空语义：world 为 null 时，子类应跳过依赖世界的逻辑（如 FilledMapItem 的
+     * 缩放级别提示），其他逻辑（如 SmithingTemplateItem 的翻译文本）正常执行。
+     *
      * @param stack 物品堆
-     * @param world 世界引用
+     * @param world 世界指针（可为 null，对应 MC 的 EMPTY TooltipContext）
      * @param tooltip 提示文本列表
      * @param advanced 是否显示高级提示
      */
     virtual void addInformation(
-        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const;
+        const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const;
 
     /**
      * @brief 是否有附魔光效

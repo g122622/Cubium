@@ -72,7 +72,7 @@ public:
      * 在物品提示中显示最多6层图案信息。
      */
     void addInformation(
-        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;
+        const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const override;
 
     /**
      * @brief 从ItemStack的BlockEntityTag获取图案列表（静态方法）

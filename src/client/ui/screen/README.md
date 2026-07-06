@@ -13,7 +13,12 @@ src/client/ui/screen/
 ├── FurnaceScreen.hpp/cpp           # 熔炉屏幕（纹理背景、火焰指示器、进度箭头动画）
 ├── CartographyScreen.hpp/cpp       # 制图台屏幕（地图复制、扩展、锁定）
 ├── MapScreen.hpp/cpp               # 地图查看屏幕（全屏显示已填充地图）
-└── CreativeScreen.hpp/cpp          # 创造模式物品库屏幕（搜索、滚动、垃圾槽、背包编辑）
+├── CreativeScreen.hpp/cpp          # 创造模式物品库屏幕（搜索、滚动、垃圾槽、背包编辑）
+└── tooltip/
+    ├── BundleTooltipRenderer.hpp   # 收纳袋 tooltip 渲染器（独立工具类，被 AbstractContainerScreen / CreativeScreen 调用）
+    ├── BundleTooltipRenderer.cpp   # 布局算法（无 ItemRenderer 依赖，可链接到 mc_tests）
+    ├── BundleTooltipRendererRender.cpp  # 渲染主入口（依赖 ItemRenderer，仅 mc_client 构建）
+    └── README.md                   # tooltip 子模块说明
 ```
 
 ## 内部模块关系
@@ -144,3 +149,5 @@ src/client/ui/screen/
 - **m_hoveredSlotIndex 自动更新**：在 `render()` 每帧中通过 `_updateHoveredSlot()` 更新，键盘操作（Q键丢弃、数字键交换）依赖此索引。
 - **拖拽分发需要 Player**：`_isValidDragMode` 检查 `m_playerInventory->getPlayer()` 是否非空，测试拖拽时必须用 `PlayerInventory(&player)` 构造。
 - **IScreen 接口签名**：`onClick` 和 `onRelease` 含 `mods` 参数（GLFW 修饰键），`onDrag` 含 `button` 参数（鼠标按钮），所有 IScreen 子类必须匹配新签名。
+- **收纳袋 tooltip 委托**：`AbstractContainerScreen::renderItemTooltip` 和 `CreativeScreen::_renderItemTooltip` 在检测到 `BundleItem::isBundleItem(stack)` 时，委托给 `tooltip::BundleTooltipRenderer::render`（见 `tooltip/BundleTooltipRenderer.hpp`）。该渲染器复刻 MC 1.21.11 `ClientBundleTooltip` 的 4 列网格、进度条、"+N" 溢出指示等布局，使用 GuiRenderer 纯色矩形渲染（未来升级到纹理化渲染见 tooltip/README.md 中的 TODO）。
+- **Item::addInformation 接入**：两条 tooltip 路径在渲染普通物品时调用 `Item::addInformation(stack, world, lines, false)` 附加物品自定义 tooltip。`world` 为 `IWorld*`（可空），对应 MC 1.21.11 `Item.TooltipContext.of(level)` 在 `level` 为 null 时返回 EMPTY 上下文——客户端 Player 的 `world()` 为 null（`ClientWorld` 不继承 `IWorld`），此时 `addInformation` 仍被调用，但子类需跳过依赖世界的逻辑（如 `FilledMapItem` 的缩放级别提示）。
