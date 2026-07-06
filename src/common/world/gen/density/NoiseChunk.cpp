@@ -634,12 +634,13 @@ i32 NoiseChunk::maxPreliminarySurfaceLevel(i32 minBlockX, i32 minBlockZ, i32 max
 
 biome::climate::Sampler NoiseChunk::cachedClimateSampler(const std::vector<biome::climate::ParameterPoint>& spawnTarget)
 {
-    // MC 1.21: NoiseChunk.cachedClimateSampler()
+    // MC 1.21.11: NoiseChunk.cachedClimateSampler(router, spawnTarget)
     // 使用经过 mapAll(this::wrap) 包装的密度函数创建 Climate::Sampler。
     // 这些密度函数已被 NoiseInterpolator/CacheOnce/CellCache 包装，
     // 在区块生成上下文中采样时使用插值缓存。
-    (void)spawnTarget; // TODO: spawnTarget 用于 findSpawnPosition，暂不实现
-
+    //
+    // spawnTarget 用于 Climate.Sampler.findSpawnPosition()，在气候空间中
+    // 径向搜索最佳出生点。SpawnFinder 实现见 Climate.cpp。
     if (!m_cachedSampler) {
         m_cachedSampler = std::make_unique<biome::climate::Sampler>(m_router.temperature(),
             m_router.vegetation(),
@@ -647,6 +648,13 @@ biome::climate::Sampler NoiseChunk::cachedClimateSampler(const std::vector<biome
             m_router.erosion(),
             m_router.depth(),
             m_router.ridges());
+        // 将出生点目标传给采样器，供后续 findSpawnPosition 使用。
+        // 与 MC 一致：Sampler 构造时即接收 spawnTarget，这里在缓存创建时设置。
+        m_cachedSampler->setSpawnTarget(spawnTarget);
+    } else if (!spawnTarget.empty() && m_cachedSampler->spawnTarget() != spawnTarget) {
+        // 不同区块可能传入相同 spawnTarget（来自同一 DimensionSettings），通常无需更新；
+        // 但若调用方显式传入不同目标，则刷新以保证语义一致。
+        m_cachedSampler->setSpawnTarget(spawnTarget);
     }
 
     // 返回采样器副本（Sampler 只持有指针，拷贝是廉价的）

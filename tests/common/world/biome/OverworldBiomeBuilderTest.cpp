@@ -1055,5 +1055,132 @@ TEST(OverworldBiomeBuilderTest, DeepDarkLowErosion)
     }
 }
 
+// ============================================================================
+// spawnTarget() 测试
+// ============================================================================
+//
+// MC 1.21.11: OverworldBiomeBuilder.spawnTarget() 返回 2 个 ParameterPoint。
+// 验证我们的实现与原版完全一致。
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, ReturnsTwoParameterPoints)
+{
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, TemperatureIsFullRange)
+{
+    // MC: this.FULL_RANGE = Climate.Parameter.span(-1.0F, 1.0F)
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    const i64 expectedMin = static_cast<i64>(-1.0f * QUANTIZATION_FACTOR);
+    const i64 expectedMax = static_cast<i64>(1.0f * QUANTIZATION_FACTOR);
+    for (const auto& pp : target) {
+        EXPECT_EQ(pp.temperature.min, expectedMin);
+        EXPECT_EQ(pp.temperature.max, expectedMax);
+    }
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, HumidityIsFullRange)
+{
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    const i64 expectedMin = static_cast<i64>(-1.0f * QUANTIZATION_FACTOR);
+    const i64 expectedMax = static_cast<i64>(1.0f * QUANTIZATION_FACTOR);
+    for (const auto& pp : target) {
+        EXPECT_EQ(pp.humidity.min, expectedMin);
+        EXPECT_EQ(pp.humidity.max, expectedMax);
+    }
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, ErosionIsFullRange)
+{
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    const i64 expectedMin = static_cast<i64>(-1.0f * QUANTIZATION_FACTOR);
+    const i64 expectedMax = static_cast<i64>(1.0f * QUANTIZATION_FACTOR);
+    for (const auto& pp : target) {
+        EXPECT_EQ(pp.erosion.min, expectedMin);
+        EXPECT_EQ(pp.erosion.max, expectedMax);
+    }
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, ContinentalnessSpansInlandToFullRange)
+{
+    // MC: Climate.Parameter.span(this.inlandContinentalness, this.FULL_RANGE)
+    //   = span([-0.11, 0.55], [-1, 1]) = [-0.11, 1]
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    const i64 expectedMin = static_cast<i64>(-0.11f * QUANTIZATION_FACTOR);
+    const i64 expectedMax = static_cast<i64>(1.0f * QUANTIZATION_FACTOR);
+    for (const auto& pp : target) {
+        EXPECT_EQ(pp.continentalness.min, expectedMin);
+        EXPECT_EQ(pp.continentalness.max, expectedMax);
+    }
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, DepthIsZeroPoint)
+{
+    // MC: Climate.Parameter.point(0.0F)
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    for (const auto& pp : target) {
+        EXPECT_EQ(pp.depth.min, 0);
+        EXPECT_EQ(pp.depth.max, 0);
+    }
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, OffsetIsZero)
+{
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    for (const auto& pp : target) {
+        EXPECT_EQ(pp.offset, 0);
+    }
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, WeirdnessSplitAtPlusMinus016)
+{
+    // MC: 第一个 weirdness = span(-1.0F, -0.16F)
+    //     第二个 weirdness = span(0.16F, 1.0F)
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    const i64 negMin = static_cast<i64>(-1.0f * QUANTIZATION_FACTOR);
+    const i64 negMax = static_cast<i64>(-0.16f * QUANTIZATION_FACTOR);
+    const i64 posMin = static_cast<i64>(0.16f * QUANTIZATION_FACTOR);
+    const i64 posMax = static_cast<i64>(1.0f * QUANTIZATION_FACTOR);
+
+    EXPECT_EQ(target[0].weirdness.min, negMin);
+    EXPECT_EQ(target[0].weirdness.max, negMax);
+    EXPECT_EQ(target[1].weirdness.min, posMin);
+    EXPECT_EQ(target[1].weirdness.max, posMax);
+}
+
+TEST(OverworldBiomeBuilderSpawnTargetTest, TwoEntriesHaveDisjointWeirdness)
+{
+    // 两个 weirdness 范围不重叠（[-1, -0.16] 和 [0.16, 1]）
+    OverworldBiomeBuilder builder;
+    auto target = builder.spawnTarget();
+    ASSERT_EQ(target.size(), 2u);
+
+    // 第一个的 max 应小于第二个的 min
+    EXPECT_LT(target[0].weirdness.max, target[1].weirdness.min);
+}
+
 } // namespace
 } // namespace mc

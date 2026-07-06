@@ -23,6 +23,7 @@
 
 #include "DimensionSettings.hpp"
 #include "common/core/Constants.hpp"
+#include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -38,6 +39,8 @@ DimensionSettings DimensionSettings::overworld() noexcept
     settings.dimensionKind = DimensionKind::Overworld;
     settings.oreVeinsEnabled = true;
     settings.disableMobGeneration = false;
+    // MC 1.21.11: NoiseGeneratorSettings.overworld() 使用 OverworldBiomeBuilder.spawnTarget()
+    settings.spawnTarget = world::biome::source::OverworldBiomeBuilder().spawnTarget();
     return settings;
 }
 
@@ -52,6 +55,8 @@ DimensionSettings DimensionSettings::largeBiomesPreset() noexcept
     settings.largeBiomes = true;
     settings.oreVeinsEnabled = true;
     settings.disableMobGeneration = false;
+    // MC 1.21.11: LARGE_BIOMES 与 OVERWORLD 共用同一 spawnTarget
+    settings.spawnTarget = world::biome::source::OverworldBiomeBuilder().spawnTarget();
     return settings;
 }
 
@@ -65,6 +70,8 @@ DimensionSettings DimensionSettings::amplified() noexcept
     settings.dimensionKind = DimensionKind::Amplified;
     settings.oreVeinsEnabled = true;
     settings.disableMobGeneration = false;
+    // MC 1.21.11: AMPLIFIED 与 OVERWORLD 共用同一 spawnTarget
+    settings.spawnTarget = world::biome::source::OverworldBiomeBuilder().spawnTarget();
     return settings;
 }
 

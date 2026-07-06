@@ -361,7 +361,11 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     });
 
     // 获取缓存气候采样器
-    auto sampler = noiseChunk.cachedClimateSampler();
+    // MC 1.21.11: NoiseBasedChunkGenerator.doCreateBiomes 调用
+    //   noisechunk.cachedClimateSampler(router, settings.value().spawnTarget())
+    // spawnTarget 用于 Climate.Sampler.findSpawnPosition()，在区块生物群系填充阶段
+    // 不影响 BiomeResolver 的查找（其使用独立 ParameterList），仅传递给采样器供出生点查询。
+    auto sampler = noiseChunk.cachedClimateSampler(m_settings.spawnTarget);
 
     // 获取 BiomeSource 的参数列表用于生物群系查找
     auto* multiNoiseSource = dynamic_cast<world::biome::source::MultiNoiseBiomeSource*>(m_biomeSource.get());

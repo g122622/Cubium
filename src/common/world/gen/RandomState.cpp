@@ -61,7 +61,12 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     }
 
     // 创建 Climate::Sampler（从 NoiseRouter 的 6 个气候函数）
+    // MC 1.21.11: RandomState 持有的 Sampler 用于全局气候查询（非区块上下文），
+    // 出生点查找（findSpawnPosition）通过 Sampler.spawnTarget 完成。
+    // 这里将 DimensionSettings.spawnTarget 设置到 Sampler 上，供
+    // MinecraftServer.setInitialSpawn / ServerWorld::initializeWorldSpawn 使用。
     state->m_sampler = std::make_unique<biome::climate::Sampler>(state->m_router->createClimateSampler());
+    state->m_sampler->setSpawnTarget(settings.spawnTarget);
 
     // 创建 PositionalRandomFactory（必须在 SurfaceSystem 之前，因为 getOrCreateNoise 需要它）
     // MC 1.21: RandomState 构造时从 worldSeed fork 出位置随机工厂

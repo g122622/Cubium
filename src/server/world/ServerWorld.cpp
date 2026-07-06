@@ -68,6 +68,7 @@
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/FeaturePlacer.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
 #include "common/world/gen/structure/StructureTags.hpp"
@@ -476,8 +477,39 @@ void ServerWorld::initializeWorldSpawn()
 {
     spdlog::info("ServerWorld: Initializing world spawn point...");
 
-    // 直接使用 m_chunkManager->getChunkSync()，确保出生点区块已加载
+    // MC 1.21.11: MinecraftServer.setInitialSpawn
+    //   ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());
+    // 通过 Climate.Sampler.findSpawnPosition() 在气候空间径向搜索最佳出生区块，
+    // 然后在出生区块中用 SpawnLocationHelper 查找有效出生位置。
+    //
+    // 仅 NoiseChunkGenerator 持有 RandomState（其 Sampler 内含 spawnTarget）。
+    // 其他生成器（FlatChunkGenerator/DebugChunkGenerator）退回到 (0,0) 区块。
     ChunkPos spawnChunk(0, 0);
+
+    auto* generator = m_chunkManager->generator();
+    auto* noiseGenerator = dynamic_cast<NoiseChunkGenerator*>(generator);
+    if (noiseGenerator != nullptr) {
+        const auto& randomState = noiseGenerator->randomState();
+        if (randomState != nullptr) {
+            const auto& sampler = randomState->sampler();
+            const auto& spawnTarget = sampler.spawnTarget();
+            if (!spawnTarget.empty()) {
+                // Climate-based 径向搜索：返回 (x, 0, z) 块坐标，转区块坐标
+                const BlockPos climateSpawn = sampler.findSpawnPosition();
+                spawnChunk = ChunkPos(climateSpawn);
+                spdlog::info("ServerWorld: Climate-based spawn search returned block ({}, {}, {}), chunk ({}, {})",
+                    climateSpawn.x,
+                    climateSpawn.y,
+                    climateSpawn.z,
+                    spawnChunk.x,
+                    spawnChunk.z);
+            } else {
+                spdlog::debug("ServerWorld: spawnTarget empty, falling back to (0,0) chunk");
+            }
+        }
+    }
+
+    // 直接使用 m_chunkManager->getChunkSync()，确保出生点区块已加载
     ChunkData* chunk = m_chunkManager->requestFullChunkSync(spawnChunk.x, spawnChunk.z);
 
     if (chunk == nullptr) {

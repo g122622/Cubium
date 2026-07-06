@@ -56,6 +56,18 @@ public:
      */
     [[nodiscard]] climate::ParameterList<BiomeId> buildParameterList() const;
 
+    /**
+     * @brief 主世界出生点气候目标
+     *
+     * MC 1.21.11: OverworldBiomeBuilder.spawnTarget()
+     * 返回 2 个 ParameterPoint，depth=0、continentalness 跨内陆到全范围、
+     * weirdness 分别覆盖 [-1, -0.16] 与 [0.16, 1]。
+     * Climate.Sampler.findSpawnPosition() 用此目标在气候空间径向搜索最佳出生区块。
+     *
+     * @return 出生点目标 ParameterPoint 列表（始终为 2 项）
+     */
+    [[nodiscard]] std::vector<climate::ParameterPoint> spawnTarget() const;
+
 private:
     // ========== 气候参数范围 ==========
 

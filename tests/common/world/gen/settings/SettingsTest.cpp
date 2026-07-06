@@ -24,6 +24,7 @@
 #include "common/world/gen/settings/Settings.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -940,6 +941,83 @@ TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_PreservesOthe
     EXPECT_TRUE(s.hasLakes());
     EXPECT_TRUE(s.hasStructureGeneration());
     ASSERT_EQ(s.structureOverrides().size(), 1u);
+}
+
+// ============================================================================
+// DimensionSettings.spawnTarget 测试
+// ============================================================================
+//
+// MC 1.21.11: NoiseGeneratorSettings.spawnTarget
+// - overworld / large_biomes / amplified: 由 OverworldBiomeBuilder.spawnTarget() 提供（2 项）
+// - nether / end / caves / floating_islands / flat: 空列表
+
+TEST_F(SettingsTest, DimensionSettings_Overworld_HasSpawnTarget)
+{
+    auto s = DimensionSettings::overworld();
+    EXPECT_EQ(s.spawnTarget.size(), 2u);
+}
+
+TEST_F(SettingsTest, DimensionSettings_LargeBiomes_HasSpawnTarget)
+{
+    auto s = DimensionSettings::largeBiomesPreset();
+    EXPECT_EQ(s.spawnTarget.size(), 2u);
+}
+
+TEST_F(SettingsTest, DimensionSettings_Amplified_HasSpawnTarget)
+{
+    auto s = DimensionSettings::amplified();
+    EXPECT_EQ(s.spawnTarget.size(), 2u);
+}
+
+TEST_F(SettingsTest, DimensionSettings_Nether_HasEmptySpawnTarget)
+{
+    auto s = DimensionSettings::nether();
+    EXPECT_TRUE(s.spawnTarget.empty());
+}
+
+TEST_F(SettingsTest, DimensionSettings_End_HasEmptySpawnTarget)
+{
+    auto s = DimensionSettings::end();
+    EXPECT_TRUE(s.spawnTarget.empty());
+}
+
+TEST_F(SettingsTest, DimensionSettings_Caves_HasEmptySpawnTarget)
+{
+    auto s = DimensionSettings::caves();
+    EXPECT_TRUE(s.spawnTarget.empty());
+}
+
+TEST_F(SettingsTest, DimensionSettings_FloatingIslands_HasEmptySpawnTarget)
+{
+    auto s = DimensionSettings::floatingIslands();
+    EXPECT_TRUE(s.spawnTarget.empty());
+}
+
+TEST_F(SettingsTest, DimensionSettings_Flat_HasEmptySpawnTarget)
+{
+    auto s = DimensionSettings::flat();
+    EXPECT_TRUE(s.spawnTarget.empty());
+}
+
+TEST_F(SettingsTest, DimensionSettings_OverworldSpawnTarget_MatchesOverworldBiomeBuilder)
+{
+    // 主世界 spawnTarget 应与 OverworldBiomeBuilder.spawnTarget() 等价
+    auto s = DimensionSettings::overworld();
+    ASSERT_EQ(s.spawnTarget.size(), 2u);
+
+    world::biome::source::OverworldBiomeBuilder builder;
+    auto expected = builder.spawnTarget();
+    ASSERT_EQ(expected.size(), 2u);
+
+    for (size_t i = 0; i < 2; ++i) {
+        EXPECT_EQ(s.spawnTarget[i].temperature, expected[i].temperature);
+        EXPECT_EQ(s.spawnTarget[i].humidity, expected[i].humidity);
+        EXPECT_EQ(s.spawnTarget[i].continentalness, expected[i].continentalness);
+        EXPECT_EQ(s.spawnTarget[i].erosion, expected[i].erosion);
+        EXPECT_EQ(s.spawnTarget[i].depth, expected[i].depth);
+        EXPECT_EQ(s.spawnTarget[i].weirdness, expected[i].weirdness);
+        EXPECT_EQ(s.spawnTarget[i].offset, expected[i].offset);
+    }
 }
 
 } // namespace

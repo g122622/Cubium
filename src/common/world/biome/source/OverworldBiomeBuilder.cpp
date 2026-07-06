@@ -1175,4 +1175,42 @@ ParameterList<BiomeId> OverworldBiomeBuilder::buildParameterList() const
     return ParameterList<BiomeId>(std::move(entries));
 }
 
+std::vector<ParameterPoint> OverworldBiomeBuilder::spawnTarget() const
+{
+    // MC 1.21.11: OverworldBiomeBuilder.spawnTarget()
+    // 返回 2 个 ParameterPoint：
+    //   - temperature/humidity/erosion = FULL_RANGE [-1, 1]
+    //   - continentalness = span(inlandContinentalness, FULL_RANGE)
+    //     = span([-0.11, 0.55], [-1, 1]) = [-0.11, 1]
+    //     （表示「内陆及远内陆」大陆度，确保出生点不在海洋/海岸）
+    //   - depth = point(0.0F)  （出生点在地表）
+    //   - weirdness: 分别为 span(-1, -0.16) 与 span(0.16, 1)
+    //     （覆盖非河谷/非奇异的主地形与变体）
+    //   - offset = 0
+    const Parameter depth = Parameter::point(0.0f);
+    const Parameter continentalness = Parameter::span(m_inlandContinentalness, m_fullRange);
+    constexpr f32 weirdnessSplit = 0.16f;
+
+    return std::vector<ParameterPoint>{
+        ParameterPoint{
+            m_fullRange,                             // temperature
+            m_fullRange,                             // humidity
+            continentalness,                         // continentalness
+            m_fullRange,                             // erosion
+            depth,                                   // depth
+            Parameter::span(-1.0f, -weirdnessSplit), // weirdness
+            0                                        // offset
+        },
+        ParameterPoint{
+            m_fullRange,                           // temperature
+            m_fullRange,                           // humidity
+            continentalness,                       // continentalness
+            m_fullRange,                           // erosion
+            depth,                                 // depth
+            Parameter::span(weirdnessSplit, 1.0f), // weirdness
+            0                                      // offset
+        },
+    };
+}
+
 } // namespace mc::world::biome::source

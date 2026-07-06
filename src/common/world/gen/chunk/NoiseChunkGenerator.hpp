@@ -127,6 +127,19 @@ public:
      */
     void clearStructureCache() override;
 
+    // === 随机状态访问 ===
+
+    /**
+     * @brief 获取世界生成随机状态
+     *
+     * MC 1.21.11: ServerChunkCache.randomState()
+     * 持有 NoiseRouter、Climate::Sampler、SurfaceSystem 等。
+     * 出生点查找通过 sampler().findSpawnPosition() 完成。
+     *
+     * @return 随机状态共享指针
+     */
+    [[nodiscard]] const std::shared_ptr<world::gen::RandomState>& randomState() const { return m_randomState; }
+
     // === 结构地形平滑 ===
 
 private:

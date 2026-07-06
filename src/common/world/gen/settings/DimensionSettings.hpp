@@ -24,7 +24,9 @@
 #pragma once
 
 #include "NoiseSettings.hpp"
+#include "common/world/biome/climate/Climate.hpp"
 #include "common/world/block/Block.hpp"
+#include <vector>
 
 // 前向声明
 namespace mc {
@@ -65,6 +67,21 @@ struct DimensionSettings {
     bool largeBiomes = false;                               ///< 是否使用大型生物群系预设
     bool oreVeinsEnabled = true;                            ///< 是否启用矿脉生成（主世界=true，下界/末地=false）
     bool disableMobGeneration = false;                      ///< 是否禁用生物生成（末地=true）
+
+    /**
+     * @brief 出生点气候目标参数列表
+     *
+     * MC 1.21.11: NoiseGeneratorSettings.spawnTarget
+     * 用于 Climate.Sampler.findSpawnPosition() 在气候空间中径向搜索最佳出生点。
+     *
+     * - 主世界 / 大型生物群系 / 放大化：由 OverworldBiomeBuilder.spawnTarget() 提供
+     *   （2 个 ParameterPoint，depth=0，weirdness 以 ±0.16 分割）
+     * - 下界 / 末地 / 洞穴 / 浮岛 / 超平坦：空列表（沿用 (0,0) 区块作为出生点）
+     *
+     * 在 NoiseChunk.cachedClimateSampler 中传给 Climate::Sampler，
+     * 同时由 RandomState::create 时设置到 m_sampler 上以供出生点查找使用。
+     */
+    std::vector<world::biome::climate::ParameterPoint> spawnTarget;
 
     // === 预设 ===
 
