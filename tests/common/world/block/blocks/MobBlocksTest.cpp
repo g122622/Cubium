@@ -31,6 +31,7 @@
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/core/LivingEntity.hpp"
+#include "entity/core/VanillaEntities.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
@@ -748,6 +749,12 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        // 注册原版实体类型，使 EntityTypeIdNumber::SILVERFISH 全局缓存与注册表一致。
+        // 本夹具 SpawnAfterBreak_SpawnsSilverfish_OnServer 用例断言
+        // spawned->typeId() == EntityTypeIdNumber::SILVERFISH，二者必须来自同一
+        // 已初始化注册表，避免依赖前置测试的隐式注册状态（测试顺序污染）。
+        // VanillaEntities::registerAll() 幂等且线程安全，无异常风险。
+        entity::VanillaEntities::registerAll();
         infested_ = std::make_unique<InfestedBlock>(1, // 石头方块ID
             BlockProperties(Material::ROCK).hardness(0.75f).resistance(0.75f));
     }

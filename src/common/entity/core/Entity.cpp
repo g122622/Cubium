@@ -26,6 +26,7 @@
 #include "../../physics/PhysicsEngine.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundEvents.hpp"
+#include "../../util/UuidUtils.hpp"
 #include "../../util/assert/AssertMacros.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
@@ -87,10 +88,12 @@ Entity::Entity(EntityId id, IWorld* world)
           static_cast<u64>(id) ^ static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
     , m_world(world)
 {
-    // 生成随机UUID（使用实体的持久化随机数生成器）
-    std::stringstream ss;
-    ss << std::hex << m_random.nextU64() << m_random.nextU64();
-    m_uuid = ss.str();
+    // 生成随机 UUID（使用实体的持久化随机数生成器）。
+    // 必须用 util::generateRandomUuid + util::uuidToString 生成固定 32 字符的十六进制
+    // 字符串——不能用 `ss << std::hex << u64 << u64`，那种写法不补零，会得到 <32 字符
+    // 的串，导致 util::uuidFromString（要求恰好 32 字符）解析失败返回全零 UUID。
+    const Uuid uuidBytes = util::generateRandomUuid(m_random);
+    m_uuid = util::uuidToString(uuidBytes);
 
     // 注册数据参数
     registerData();

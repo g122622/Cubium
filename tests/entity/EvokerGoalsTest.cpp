@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -43,12 +44,13 @@ using namespace mc::math;
 // 注意：完整的集成测试需要 Mock 世界和实体系统。
 // 这里测试常量和核心逻辑。
 
+// 确保原版实体类型注册表已初始化，使 EntityTypeIdNumber::VEX / EVOKER / PLAYER 等
+// 全局缓存持有非 0 值。本文件存在 EXPECT_NE(VEX, Unknown/EVOKER/PLAYER) 断言，
+// 依赖各类型 ID 互不相同；若未初始化（全部为 0）这些断言会失败。
+// 仅做一次注册（VanillaEntities::registerAll 幂等且线程安全），无异常风险。
 class EvokerGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        // 设置代码
-    }
+    void SetUp() override { entity::VanillaEntities::registerAll(); }
 };
 
 // ============================================================================
