@@ -133,6 +133,11 @@ TEST(ButtonWidgetPaintTest, PaintDrawsBackgroundBorderAndCenteredText)
     EXPECT_EQ(20, canvas.lastFilledRect.y);
     EXPECT_EQ(100, canvas.lastFilledRect.width);
     EXPECT_EQ(40, canvas.lastFilledRect.height);
-    EXPECT_EQ(60.0f, canvas.lastTextX);
-    EXPECT_EQ(40.0f, canvas.lastTextY);
+    // 居中文本坐标由 PaintContext::drawTextCentered 计算：
+    //   x = centerX - textWidth/2，其中 textWidth = getTextWidth("Play") = 4*6 = 24
+    //     => x = 60 - 12 = 48
+    //   y = centerY - fontHeight/2 + fontHeight*0.75（基线偏移），fontHeight = 12
+    //     => y = 40 - 6 + 9 = 43
+    EXPECT_EQ(48.0f, canvas.lastTextX);
+    EXPECT_EQ(43.0f, canvas.lastTextY);
 }

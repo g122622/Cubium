@@ -35,8 +35,13 @@ PlayerSkinInfo::PlayerSkinInfo(const GameProfile& profile)
 
 ResourceLocation PlayerSkinInfo::getSkinLocation() const
 {
-    if (m_textures.hasSkin()) {
-        return m_textures.getSkin().value();
+    // 仅当 ResourceLocation 已填充（SkinManager 在缓存/下载完成后通过 setSkin 设置）
+    // 时返回实际皮肤位置；否则回退到默认皮肤。
+    // 注意：不能使用 hasSkin() 判断，因为 hasSkin() 在仅解析出 URL 但尚未下载时
+    // 也为 true，此时 getSkin() 为空 optional，直接 value() 会触发未定义行为。
+    const auto& skin = m_textures.getSkin();
+    if (skin.has_value()) {
+        return skin.value();
     }
     return getDefaultSkinLocation();
 }

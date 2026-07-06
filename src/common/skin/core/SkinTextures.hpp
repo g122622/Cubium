@@ -207,18 +207,27 @@ public:
 
     /**
      * @brief 是否有皮肤
+     *
+     * 判定依据为是否已解析出皮肤下载 URL 或已加载到 ResourceLocation。
+     * - SkinMetadataParser 解析 textures 属性后设置 URL（此时 ResourceLocation
+     *   尚未填充）；
+     * - SkinManager 在缓存/下载完成后通过 setSkin() 填充 ResourceLocation。
+     *
+     * 二者之一存在即视为"有皮肤"，从而同时满足解析阶段（SkinManager 依据
+     * hasSkin()+skinHash() 决定是否走缓存）与渲染阶段（PlayerSkinInfo 依据
+     * hasSkin() 决定是否使用 getSkin() 返回的 ResourceLocation）的使用需求。
      */
-    [[nodiscard]] bool hasSkin() const noexcept { return m_skin.has_value(); }
+    [[nodiscard]] bool hasSkin() const noexcept { return m_skinUrl.has_value() || m_skin.has_value(); }
 
     /**
      * @brief 是否有披风
      */
-    [[nodiscard]] bool hasCape() const noexcept { return m_cape.has_value(); }
+    [[nodiscard]] bool hasCape() const noexcept { return m_capeUrl.has_value() || m_cape.has_value(); }
 
     /**
      * @brief 是否有鞘翅
      */
-    [[nodiscard]] bool hasElytra() const noexcept { return m_elytra.has_value(); }
+    [[nodiscard]] bool hasElytra() const noexcept { return m_elytraUrl.has_value() || m_elytra.has_value(); }
 
     /**
      * @brief 是否有任何纹理
