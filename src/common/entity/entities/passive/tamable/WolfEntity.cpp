@@ -53,6 +53,8 @@
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -77,6 +79,7 @@ namespace mc {
 
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<i32> WolfEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
 
 WolfEntity::WolfEntity(EntityId id)
     : TameableEntity(id)
@@ -286,7 +289,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
         // 优先级5: 颈圈染色（染料 + 主人）
         auto dyeColor = _getDyeColorFromItem(item);
         if (dyeColor.has_value() && isOwner(player.playerId())) {
-            if (dyeColor.value() != m_collarColor) {
+            if (dyeColor.value() != getCollarColor()) {
                 setCollarColor(dyeColor.value());
                 if (!player.abilities().creativeMode) {
                     itemStack.shrink(1);
@@ -985,12 +988,17 @@ void WolfEntity::registerAttributes()
 
 void WolfEntity::registerData()
 {
-    // 调用父类方法，确保基类数据参数已注册
+    // 调用父类方法，确保基类数据参数已注册（包括 TameableEntity::DATA_TAMED_PARAM）
     TameableEntity::registerData();
 
     // 注册兴趣状态数据参数，用于客户端-服务端同步
     // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_INTERESTED_ID
     m_dataManager.registerParam(DATA_INTERESTED_PARAM, false);
+
+    // 注册颈圈颜色数据参数，用于客户端-服务端同步
+    // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_COLLAR_COLOR
+    // 默认值为红色（DyeColor::Red），与 MC 原版 DEFAULT_COLLAR_COLOR 一致
+    m_dataManager.registerParam(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(DyeColor::Red));
 }
 
 void WolfEntity::onTamed(bool tamed)
@@ -1008,6 +1016,39 @@ void WolfEntity::onTamed(bool tamed)
         setHealth(8.0f);
         m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
     }
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void WolfEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用父类实现
+    TameableEntity::addAdditionalSaveData(tag);
+
+    // 保存颈圈颜色（对应 MC 1.21.11 Wolf.addAdditionalSaveData 中的 "CollarColor"）
+    tag.put(nbt_keys::COLLAR_COLOR, static_cast<i32>(getCollarColor()));
+}
+
+Result<void> WolfEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用父类实现
+    MC_TRY(TameableEntity::readAdditionalSaveData(tag));
+
+    // 读取颈圈颜色（对应 MC 1.21.11 Wolf.readAdditionalSaveData 中的 "CollarColor"）
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::COLLAR_COLOR)) {
+        const i32 colorValue = *val;
+        if (colorValue >= 0 && colorValue <= 15) {
+            setCollarColor(static_cast<DyeColor>(colorValue));
+        }
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

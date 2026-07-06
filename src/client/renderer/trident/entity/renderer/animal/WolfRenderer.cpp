@@ -114,9 +114,13 @@ ResourceLocation WolfRenderer::getEntityTexture(const WolfEntity& entity) const
 
 void WolfRenderer::_setupLayers()
 {
-    // TODO: 狼渲染层系统待完善后注册以下层：
-    // 1. WolfCollarLayer - 项圈层（已实现，待注册）
-    // 2. WolfArmorLayer - 狼铠层（待实现，需要狼铠纹理资源和裂纹覆盖纹理）
+    // 注册项圈层（对应 MC 1.21.11 WolfRenderer 构造函数中的 addLayer(new WolfCollarLayer(this))）
+    // WolfCollarLayer 通过 ClientEntity 的元数据镜像字段读取驯服状态和颈圈颜色，
+    // 仅驯服的狼渲染项圈，颜色由 WolfEntity::DATA_COLLAR_COLOR_PARAM 同步。
+    m_collarLayer = std::make_unique<layer::entity::WolfCollarLayer>();
+
+    // TODO: 狼铠层待实现后注册：
+    // WolfArmorLayer - 狼铠层（需要狼铠纹理资源和裂纹覆盖纹理）
     //
     // 狼铠渲染需要以下纹理资源（MC 1.21.11）：
     // - textures/entity/wolf/wolf_armor.png （狼铠基础纹理）
@@ -128,6 +132,20 @@ void WolfRenderer::_setupLayers()
     // - 检查实体是否穿戴狼铠（getBodyArmorItem 非空且为 WolfArmorItem）
     // - 使用 WolfModel 渲染狼铠模型
     // - 根据 Crackiness::WOLF_ARMOR 裂纹等级渲染裂纹覆盖纹理
+}
+
+void WolfRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+    VkCommandBuffer cmd,
+    const core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    // 分发到已注册的层
+    // 对应 MC 1.21.11 RenderLayer 遍历调用 submit() 的逻辑
+    if (m_collarLayer != nullptr) {
+        if (m_collarLayer->shouldRender(entity)) {
+            m_collarLayer->renderPipeline(entity, cmd, context, pipeline);
+        }
+    }
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

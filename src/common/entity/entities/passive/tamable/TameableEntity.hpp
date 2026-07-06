@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -78,8 +79,11 @@ public:
     /**
      * @brief 检查是否已被驯服
      * @return 如果已被驯服返回true
+     *
+     * 通过 DataParameter 从 EntityDataManager 读取，服务端调用 setTamed 修改后
+     * 会自动通过元数据同步到客户端。客户端 ClientEntity::isWolfTamed 镜像此状态。
      */
-    [[nodiscard]] bool isTamed() const { return m_tamed; }
+    [[nodiscard]] bool isTamed() const { return m_dataManager.get<bool>(DATA_TAMED_PARAM); }
 
     /**
      * @brief 设置驯服状态
@@ -130,6 +134,13 @@ public:
      * @return 如果是主人返回true
      */
     [[nodiscard]] bool isOwner(u64 playerId) const { return m_ownerId.has_value() && m_ownerId.value() == playerId; }
+
+    /**
+     * @brief 获取驯服状态数据参数 ID
+     *
+     * 用于客户端从元数据中读取驯服状态（ClientEntity::syncMetadataFromDataManager）。
+     */
+    [[nodiscard]] static u16 getTamedParamId() { return DATA_TAMED_PARAM.id(); }
 
     /**
      * @brief 获取主人实体
@@ -233,6 +244,18 @@ protected:
     void registerAttributes() override;
 
     /**
+     * @brief 注册同步数据参数
+     *
+     * 注册 DATA_TAMED_PARAM（驯服状态）到 EntityDataManager。
+     * 客户端通过 getTamedParamId() 读取此参数 ID 并在元数据同步时
+     * 调用 setWolfTamed 更新客户端镜像状态。
+     *
+     * 注意：由于 C++ 虚函数在基类构造函数中不会派发到派生类，
+     * TameableEntity 构造函数必须显式调用此方法（参考 WolfEntity 模式）。
+     */
+    void registerData() override;
+
+    /**
      * @brief 更新愤怒状态
      */
     void updateAnger() override;
@@ -246,8 +269,17 @@ protected:
     virtual void onTamed(bool tamed) { MC_UNUSED(tamed); }
 
 private:
+    // ========== 数据同步 ==========
+    /**
+     * @brief 驯服状态同步参数
+     *
+     * 对应 MC 1.21.11 TamableAnimal.DATA_FLAGS_ID 中的 isTame 位（bit 2 / mask 0x4）。
+     * 由 setTamed 写入，由 EntityTracker 自动广播到所有观察者客户端。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfTamed。
+     */
+    static entity::DataParameter<bool> DATA_TAMED_PARAM;
+
     // 驯服状态
-    bool m_tamed = false;
     bool m_sitting = false;
     std::optional<u64> m_ownerId;
 

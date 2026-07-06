@@ -87,7 +87,7 @@ ClientEntity
      - `minecraft:pufferfish` → 膨胀状态
      - `minecraft:ocelot` → 信任状态（`isTrusting`）
      - `minecraft:cat` → 躺下/放松状态
-     - `minecraft:wolf` → 兴趣状态（`wolfIsInterested`，由 `BegGoal` 驱动）
+     - `minecraft:wolf` → 兴趣状态（`wolfIsInterested`，由 `BegGoal` 驱动）、驯服状态（`wolfTamed`，由 `TameableEntity::DATA_TAMED_PARAM` 同步）、颈圈颜色（`wolfCollarColor`，由 `WolfEntity::DATA_COLLAR_COLOR_PARAM` 同步，默认红色）
 
 8. **狼兴趣状态（乞求食物）动画**：
    - 服务端 `WolfEntity::setInterested` 写入 `DATA_INTERESTED_PARAM`
@@ -96,19 +96,24 @@ ClientEntity
    - 渲染时由 `EntityRendererManager` 写入 `AnimationContext::wolfInterestedAngle`
    - 对应 MC 1.21.11 `Wolf.tick()` 第 318-323 行的 `interestedAngle` 插值逻辑
 
-9. **铁傀儡状态不走元数据同步**：
-   - 铁傀儡的攻击动画和持花状态通过 `EntityStatusPacket` 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
-   - 客户端在 `onEntityStatus` 回调中直接设置 `ClientEntity` 的 `ironGolemAttackTimer` / `ironGolemArmsRaised` / `ironGolemHoldingRose`
-   - `ClientEntity::tick()` 中递减 `ironGolemAttackTimer`
-   - 新增铁傀儡动画状态时不要误走 metadata 路径
+9. **狼驯服状态与颈圈颜色镜像字段**：
+   - `wolfTamed()` ← `TameableEntity::DATA_TAMED_PARAM`（bool）：服务端 `setTamed()` 写入，客户端 `syncMetadataFromDataManager` 读取并调用 `setWolfTamed`。`WolfCollarLayer::shouldRender` 据此判断是否渲染项圈，`WolfRenderer::getEntityTexture` 据此选择驯服纹理。
+   - `wolfCollarColor()` ← `WolfEntity::DATA_COLLAR_COLOR_PARAM`（i32，`DyeColor` 枚举序数 0-15）：服务端 `setCollarColor()` 写入，客户端读取并调用 `setWolfCollarColor`。默认红色（`DyeColor::Red` = 14）。`WolfCollarLayer::_getCollarColor` 据此选择项圈色调。
+   - 这两个字段使 `WolfCollarLayer` 能在 GPU 管线路径下仅通过 `ClientEntity` 完成项圈渲染，无需访问服务端 `WolfEntity`。
 
-10. **TNT矿车引信计时器不走元数据同步**：
+10. **铁傀儡状态不走元数据同步**：
+    - 铁傀儡的攻击动画和持花状态通过 `EntityStatusPacket` 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
+    - 客户端在 `onEntityStatus` 回调中直接设置 `ClientEntity` 的 `ironGolemAttackTimer` / `ironGolemArmsRaised` / `ironGolemHoldingRose`
+    - `ClientEntity::tick()` 中递减 `ironGolemAttackTimer`
+    - 新增铁傀儡动画状态时不要误走 metadata 路径
+
+11. **TNT矿车引信计时器不走元数据同步**：
     - TNT矿车的 `fuseTimer` 通过 `EntityStatusPacket::Status::EatBlock` (status code 10) 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
     - 客户端在 `onEntityStatus` 回调中根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
     - `ClientEntity::tick()` 中递减 `m_fuseTimer`
     - 与铁傀儡状态同步模式一致：服务端 `broadcastEntityStatus()` → 网络包 → 客户端回调设置字段
 
-11. **眼高计算依赖注册表和姿态**：
+12. **眼高计算依赖注册表和姿态**：
     - `ClientEntity::eyeHeight()` 返回实体的眼睛高度，用于旁观者相机定位等场景
     - 实体创建时从 `EntityRegistry` 查找 `EntitySize` 初始化 `width`/`height`/`eyeHeight`
     - 玩家实体根据姿态动态调整：蹲伏=1.27，游泳/鞘翅飞行=0.4，睡眠=0.2，站立=1.62
