@@ -200,6 +200,15 @@ constexpr const char* WARMUP = "Warmup";
 constexpr const char* FANGS_OWNER_UUID_MOST = "OwnerUUIDMost";
 constexpr const char* FANGS_OWNER_UUID_LEAST = "OwnerUUIDLeast";
 
+// ========== FireworkRocketEntity 键 ==========
+// 参考 MC 1.21.11 FireworkRocketEntity.addAdditionalSaveData()/readAdditionalSaveData()
+// 持久化烟花物品、已存在时间、总生命时间、是否从弩射出标记
+
+constexpr const char* FIREWORKS_ITEM = "FireworksItem"; ///< 烟花物品（compound，由 ItemStack::toNbt 写入）
+constexpr const char* LIFE = "Life";                    ///< 已存在时间（i32，每 tick 递增）
+constexpr const char* LIFE_TIME = "LifeTime";           ///< 总生命时间（i32，创建时一次性随机确定）
+constexpr const char* SHOT_AT_ANGLE = "ShotAtAngle";    ///< 是否从弩射出（i8 bool，对应 m_shotFromCrossbow）
+
 // ========== Player 键 ==========
 
 constexpr const char* PLAYER_GAME_TYPE = "playerGameType";

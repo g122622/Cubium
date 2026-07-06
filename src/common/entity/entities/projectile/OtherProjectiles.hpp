@@ -599,6 +599,23 @@ public:
 
     void tick() override;
 
+    // ========== NBT 持久化 ==========
+
+    /**
+     * @brief 写出实体额外数据到 NBT
+     *
+     * 持久化字段：FireworksItem、Life、LifeTime、ShotAtAngle
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 读入实体额外数据
+     *
+     * 读取顺序：先调用基类 readAdditionalSaveData，再读子类字段。
+     * 读取后会重新调用 setFireworkItem 以恢复 m_flightTime 等运行时状态。
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
     // ========== 烟花火箭方法 ==========
 
     /**
@@ -636,6 +653,29 @@ public:
     void setFlightTime(i32 time) { m_flightTime = time; }
 
     /**
+     * @brief 获取总生命时间（爆炸阈值）
+     *
+     * 返回创建时一次性确定的总生命 tick 数。爆炸条件为 m_lifetime >= m_lifeTime。
+     * 若尚未计算（实体刚创建且未触发懒初始化），返回 -1。
+     *
+     * 公式：lifeTime = flightTime * 10 + rand.nextInt(6) + rand.nextInt(7)
+     */
+    [[nodiscard]] i32 lifeTime() const { return m_lifeTime; }
+
+    /**
+     * @brief 设置总生命时间（仅供测试和 NBT 反序列化使用）
+     *
+     * 注意：常规代码不应调用此方法，lifeTime 应由 _ensureLifeTimeComputed() 懒初始化或
+     * 由 readAdditionalSaveData 从 NBT 恢复。
+     */
+    void setLifeTime(i32 time) { m_lifeTime = time; }
+
+    /**
+     * @brief 获取已存在时间
+     */
+    [[nodiscard]] i32 lifetime() const { return m_lifetime; }
+
+    /**
      * @brief 获取爆炸效果数量
      * @return 爆炸效果数量（0 表示无爆炸效果）
      */
@@ -662,9 +702,19 @@ private:
      */
     void _explode();
 
+    /**
+     * @brief 懒计算总生命时间 m_lifeTime
+     *
+     * 使用世界随机数生成器一次性确定 lifeTime = flightTime * 10 + nextInt(6) + nextInt(7)。
+     * 仅在服务端执行（客户端不跑 FireworkRocketEntity::tick）；若 m_lifeTime 已为非负值
+     * （NBT 反序列化后已恢复），则跳过计算。
+     */
+    void _ensureLifeTimeComputed();
+
     ItemStack m_fireworkItem;        // 烟花火箭物品
-    i32 m_flightTime = 1;            // 飞行时间（ticks = flightTime * 10 + random）
-    i32 m_lifetime = 0;              // 已存在时间
+    i32 m_flightTime = 1;            // 飞行等级（从物品 NBT Fireworks.Flight 读取）
+    i32 m_lifetime = 0;              // 已存在时间（每 tick 递增）
+    i32 m_lifeTime = -1;             // 总生命时间（爆炸阈值，-1 表示尚未计算）
     bool m_shotFromCrossbow = false; // 是否从弩射出
 };
 

@@ -41,6 +41,8 @@ std::unique_ptr<entity::ProjectileEntity> FireworkRocketItem::asProjectile(IWorl
 {
     auto entity = entity::FireworkRocketEntity::create(&world);
     if (entity) {
+        // 必须在 setFireworkItem 之前 setWorld，以便 _ensureLifeTimeComputed 能访问世界 RNG
+        entity->setWorld(&world);
         entity->setPosition(position.x, position.y, position.z);
         auto* firework = dynamic_cast<entity::FireworkRocketEntity*>(entity.get());
         if (firework && !stack.isEmpty()) {

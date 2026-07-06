@@ -1426,6 +1426,25 @@ void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
             }
         }
     }
+
+    // 物品变更后，已计算的 lifeTime 失效，需重新懒初始化
+    // （NBT 反序列化路径会在 setFireworkItem 之后显式 setLifeTime 覆盖此处的重置）
+    m_lifeTime = -1;
+}
+
+void FireworkRocketEntity::_ensureLifeTimeComputed()
+{
+    if (m_lifeTime >= 0) {
+        return; // 已计算或已从 NBT 恢复
+    }
+
+    // lifeTime = flightTime * 10 + rand.nextInt(6) + rand.nextInt(7)
+    // 使用世界随机数生成器一次性确定，保证服务端确定性；
+    // 客户端不跑 FireworkRocketEntity::tick，无需此值
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        math::Random& rng = m_world->getRandom();
+        m_lifeTime = m_flightTime * 10 + rng.nextInt(6) + rng.nextInt(7);
+    }
 }
 
 i32 FireworkRocketEntity::getExplosionCount() const
@@ -1469,8 +1488,13 @@ void FireworkRocketEntity::tick()
         m_world->addParticle(particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
     }
 
-    // 检查是否爆炸（lifetime = flightTime * 10 + random(6) + random(7)，简化为 flightTime * 10）
-    if (m_lifetime >= m_flightTime * 10 + 6) {
+    // 懒计算总生命时间（仅服务端，客户端不跑此 tick）
+    _ensureLifeTimeComputed();
+
+    // 检查是否爆炸：lifeTime = flightTime * 10 + rand.nextInt(6) + rand.nextInt(7)
+    // 若 lifeTime 尚未计算（如客户端或无世界场景），回退到 flightTime * 10 + 6 的旧简化行为
+    const i32 explodeThreshold = (m_lifeTime >= 0) ? m_lifeTime : (m_flightTime * 10 + 6);
+    if (m_lifetime >= explodeThreshold) {
         _explode();
     }
 }
@@ -1538,6 +1562,64 @@ void FireworkRocketEntity::_explode()
     }
 
     remove();
+}
+
+void FireworkRocketEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    Entity::addAdditionalSaveData(tag);
+
+    using namespace serialization::nbt_keys;
+
+    // 烟花物品（compound，由 ItemStack::toNbt 写入）
+    if (!m_fireworkItem.isEmpty()) {
+        nbt::tags::compound_tag itemTag;
+        m_fireworkItem.toNbt(itemTag);
+        tag.value.emplace(FIREWORKS_ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+    }
+
+    // 已存在时间
+    tag.put(LIFE, m_lifetime);
+
+    // 总生命时间（创建时一次性确定的随机值）
+    // 仅在已计算时写出，避免写出 -1 占位符
+    if (m_lifeTime >= 0) {
+        tag.put(LIFE_TIME, m_lifeTime);
+    }
+
+    // 是否从弩射出（i8 bool，与 MC 原版 ShotAtAngle 一致）
+    tag.put(SHOT_AT_ANGLE, static_cast<i8>(m_shotFromCrossbow ? 1 : 0));
+}
+
+Result<void> FireworkRocketEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(Entity::readAdditionalSaveData(tag));
+
+    using namespace serialization::nbt_keys;
+
+    // 烟花物品（恢复 m_fireworkItem 与 m_flightTime）
+    if (const nbt::tags::compound_tag* itemTag = serialization::nbt_helper::tryGetCompound(tag, FIREWORKS_ITEM)) {
+        auto stackResult = ItemStack::fromNbt(*itemTag);
+        if (stackResult.success()) {
+            setFireworkItem(stackResult.value());
+        }
+    }
+
+    // 已存在时间
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, LIFE)) {
+        m_lifetime = *val;
+    }
+
+    // 总生命时间（覆盖 setFireworkItem 中的 -1 重置）
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, LIFE_TIME)) {
+        m_lifeTime = *val;
+    }
+
+    // 是否从弩射出
+    if (auto val = serialization::nbt_helper::tryGetByte(tag, SHOT_AT_ANGLE)) {
+        m_shotFromCrossbow = (*val != 0);
+    }
+
+    return Result<void>::ok();
 }
 
 void FireworkRocketEntity::dealExplosionDamage()
