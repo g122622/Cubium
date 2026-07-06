@@ -302,8 +302,7 @@ TEST(TimeUtilsFileTimeTest, FileTimeToUnixSecondsRoundTrip)
 TEST(TimeUtilsFileTimeTest, FileTimeToUnixSecondsKnownEpoch)
 {
     // Unix 纪元（1970-01-01 00:00:00 UTC）对应的 file_time_type 转换后应为 0
-    auto unixEpoch = std::chrono::system_clock::from_time_t(0);
-    auto fileTimeAtEpoch = std::chrono::clock_cast<std::filesystem::file_time_type::clock>(unixEpoch);
+    auto fileTimeAtEpoch = mc::util::TimeUtils::unixSecondsToFileTime(0);
     auto seconds = mc::util::TimeUtils::fileTimeToUnixSeconds(fileTimeAtEpoch);
     EXPECT_EQ(0, seconds);
 }

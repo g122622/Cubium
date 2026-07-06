@@ -31,6 +31,8 @@
 
 #include "common/world/gameevent/VibrationSystem.hpp"
 
+#include <cmath>
+
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/AvoidVibrationTrigger.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -147,8 +149,16 @@ namespace {
 } // namespace
 
 // ============================================================================
-// VibrationSystem::User - 依赖服务端的方法
+// VibrationSystem::User - 实现定义在服务端的方法
+//
+// User 的 vtable 在本 TU 生成（calculateTravelTimeInTicks 与 isValidVibration 均在此定义），
+// 避免在 common 库生成 vtable 而引用仅存在于 server 库的 isValidVibration 符号。
 // ============================================================================
+
+i32 VibrationSystem::User::calculateTravelTimeInTicks(f32 distance) const
+{
+    return static_cast<i32>(std::floor(static_cast<f64>(distance)));
+}
 
 bool VibrationSystem::User::isValidVibration(const GameEvent& event, const GameEvent::Context& context) const
 {

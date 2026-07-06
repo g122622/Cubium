@@ -387,7 +387,7 @@ void ReentrantAreaLock::backoff(long& failures)
     if (failures < 128L) {
         // 自旋（对齐 Moonrise Thread.onSpinWait × failures，并 failures 翻倍）
         for (long i = 0; i < failures; ++i) {
-            __builtin_ia32_pause();
+            cpuRelax();
         }
         failures = failures << 1;
     } else if (failures < 1200L) {

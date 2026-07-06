@@ -43,7 +43,6 @@
 namespace mc {
 
 class WorldGenRegion;
-class ChunkPrimer;
 class IChunkGenerator;
 
 /**

@@ -88,16 +88,16 @@ TEST_F(FeaturePlacerTest, PopulateWorldStateSetsProperties)
 
     // 填充世界状态
     world::gen::FeaturePlacer::populateWorldState(*region,
-        12345u,  // seed
-        100u,    // currentTick
-        6000i64, // dayTime
-        true,    // hardcore
+        12345u,    // seed
+        100u,      // currentTick
+        i64{6000}, // dayTime
+        true,      // hardcore
         Difficulty::Normal);
 
     // 验证填充的属性
     EXPECT_EQ(region->seed(), 12345u);
     EXPECT_EQ(region->currentTick(), 100u);
-    EXPECT_EQ(region->dayTime(), 6000i64);
+    EXPECT_EQ(region->dayTime(), i64{6000});
     EXPECT_EQ(region->isHardcore(), true);
     EXPECT_EQ(region->difficulty(), Difficulty::Normal);
 }
@@ -107,7 +107,7 @@ TEST_F(FeaturePlacerTest, PopulateWorldStateDefaultDifficulty)
     auto region = world::gen::FeaturePlacer::createRegion(0, 0, std::move(m_chunks), 1, 0);
     ASSERT_NE(region, nullptr);
 
-    world::gen::FeaturePlacer::populateWorldState(*region, 0u, 0u, 0i64, false, Difficulty::Peaceful);
+    world::gen::FeaturePlacer::populateWorldState(*region, 0u, 0u, i64{0}, false, Difficulty::Peaceful);
 
     EXPECT_EQ(region->seed(), 0u);
     EXPECT_EQ(region->difficulty(), Difficulty::Peaceful);
@@ -122,7 +122,7 @@ TEST_F(FeaturePlacerTest, CreateRegionAllowsBlockWrites)
     auto region = world::gen::FeaturePlacer::createRegion(0, 0, std::move(m_chunks), 1, 0);
     ASSERT_NE(region, nullptr);
 
-    world::gen::FeaturePlacer::populateWorldState(*region, 42u, 0u, 0i64, false, Difficulty::Easy);
+    world::gen::FeaturePlacer::populateWorldState(*region, 42u, 0u, i64{0}, false, Difficulty::Easy);
 
     // 在区块内设置一个方块 - 不应崩溃或断言失败
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
@@ -173,7 +173,7 @@ TEST_F(FeaturePlacerTest, PopulateWorldStateIsDeterministic)
 
     const u64 seed = 98765u;
     const u64 tick = 200u;
-    const i64 dayTime = 12000i64;
+    const i64 dayTime = i64{12000};
     const bool hardcore = false;
     const Difficulty difficulty = Difficulty::Hard;
 
