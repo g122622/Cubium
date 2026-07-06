@@ -48,9 +48,93 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <algorithm>
+#include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {
+
+namespace {
+
+/// moved wrongly 判定阈值（平方距离），对应 MC Java 的 0.0625（0.25² 格）
+constexpr f64 kMovedWronglyThresholdSq = 0.0625;
+
+/// moved too quickly 判定阈值（平方距离），对应 MC Java 的 100.0
+constexpr f64 kMaxVehicleSpeedSq = 100.0;
+
+/**
+ * @brief 发送载具位置校正包到客户端
+ *
+ * 对应 MC Java ServerGamePacketListenerImpl 中
+ * `this.send(ClientboundMoveVehiclePacket.fromEntity(entity))` 校正逻辑。
+ * 使用载具当前的位置与朝向构造 VehicleMovePacket 并发送给指定玩家。
+ *
+ * @param connectionManager 连接管理器
+ * @param playerId 目标玩家 ID
+ * @param vehicle 载具实体（取其 yaw/pitch）
+ * @param correctionPos 校正位置（通常是服务端已知的载具旧位置）
+ */
+void _sendVehicleMoveCorrection(
+    ConnectionManager& connectionManager, PlayerId playerId, const Entity& vehicle, const Vector3& correctionPos)
+{
+    network::VehicleMovePacket correction;
+    correction.setPosition(correctionPos.x, correctionPos.y, correctionPos.z);
+    correction.setRotation(vehicle.yaw(), vehicle.pitch());
+    auto serialResult = correction.serialize();
+    if (serialResult.success()) {
+        connectionManager.sendPacketToPlayer(playerId, network::PacketType::VehicleMove, serialResult.value());
+    }
+}
+
+/**
+ * @brief 检测载具移动到目标位置后是否与"新"实体发生碰撞
+ *
+ * 对应 MC Java ServerGamePacketListenerImpl.isEntityCollidingWithAnythingNew：
+ * 取移动前的 AABB，分别沿 X/Y/Z 轴偏移到目标位置，检查是否与任何
+ * `canBeCollidedWith()` 的实体（排除自身）碰撞。
+ *
+ * Cubium 的 EntityManager::getEntitiesInAABB 不会过滤 canBeCollidedWith，
+ * 因此需在调用方手动过滤，对齐 MC Java 的 isPickable 语义。
+ *
+ * @param world 世界
+ * @param vehicle 载具实体（用于排除自身与获取碰撞边界）
+ * @param oldAABB 移动前的 AABB
+ * @param targetPos 客户端请求的目标位置
+ * @return true 若目标位置会与任何可碰撞实体相交
+ */
+bool _isEntityCollidingWithAnythingNew(
+    const IWorld& world, const Entity& vehicle, const AxisAlignedBB& oldAABB, const Vector3& targetPos)
+{
+    // MC Java 使用 entity.getCollisionBorderSize() 扩展 AABB 做实体碰撞检测。
+    // Cubium 默认 getCollisionBorderSize() == 0.0f，载具（船/矿车）未重写，
+    // 因此 border 通常为 0，但严格对齐 MC Java 应保留此扩展。
+    const f32 border = vehicle.getCollisionBorderSize();
+
+    // 计算从 oldAABB 中心到 targetPos 的偏移量
+    // MC Java 的 isEntityCollidingWithAnythingNew 取 entity.getBoundingBox()（已 move 后）
+    // 然后 .move(target - entity.pos) 得到目标位置 AABB。等价于直接用 oldAABB 偏移到目标位置。
+    const Vector3 oldCenter = oldAABB.center();
+    const f32 offsetX = static_cast<f32>(targetPos.x - oldCenter.x);
+    const f32 offsetY = static_cast<f32>(targetPos.y - oldAABB.minY); // AABB 底部对齐实体脚部
+    const f32 offsetZ = static_cast<f32>(targetPos.z - oldCenter.z);
+
+    // 目标位置的 AABB（用 offsetted 一次性偏移三轴，再 grow border）
+    const AxisAlignedBB targetAABB = oldAABB.offsetted(offsetX, offsetY, offsetZ).grow(border);
+
+    // 查询目标 AABB 范围内的所有实体（排除自身），手动过滤 canBeCollidedWith
+    // IWorld::getEntitiesInAABB 是 const 方法，ServerWorld 通过 EntityManager 加锁查询。
+    std::vector<Entity*> nearbyEntities = world.getEntitiesInAABB(targetAABB, &vehicle);
+    for (const Entity* candidate : nearbyEntities) {
+        if (candidate == nullptr || candidate == &vehicle) {
+            continue;
+        }
+        if (candidate->canBeCollidedWith()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
 
 PacketHandler::PacketHandler(PlayerManager& playerManager,
     ConnectionManager& connectionManager,
@@ -393,8 +477,7 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     f64 dz = packetPos.z - vehiclePos.z;
     f64 deltaSq = dx * dx + dy * dy + dz * dz;
 
-    constexpr f64 MAX_VEHICLE_SPEED_SQ = 100.0;
-    if (deltaSq - vehicleSpeedSq > MAX_VEHICLE_SPEED_SQ) {
+    if (deltaSq - vehicleSpeedSq > kMaxVehicleSpeedSq) {
         spdlog::warn("PacketHandler: Player {} vehicle moved too quickly! delta={:.2f}, speed={:.2f}",
             playerId,
             std::sqrt(deltaSq),
@@ -403,21 +486,102 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
         // 发送校正包回客户端，恢复到服务端已知位置
         // 对应 MC Java ServerGamePacketListenerImpl.handleMoveVehicle 中
         // 的 ClientboundMoveVehiclePacket.fromEntity(entity) 校正逻辑
-        network::VehicleMovePacket correction;
-        correction.setPosition(vehiclePos.x, vehiclePos.y, vehiclePos.z);
-        correction.setRotation(vehicle->yaw(), vehicle->pitch());
-        auto serialResult = correction.serialize();
-        if (serialResult.success()) {
-            m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::VehicleMove, serialResult.value());
-        }
-
+        _sendVehicleMoveCorrection(m_connectionManager, playerId, *vehicle, vehiclePos);
         return PacketHandleResult::Success;
     }
 
-    // 更新载具位置
-    // TODO: 实际应进行碰撞检测和位置校正（对应 MC Java 的 entity.move() 后的 moved wrongly 检测），
-    // 若碰撞检测发现移动不合理，应回退到原位置并发送 VehicleMovePacket 校正包。
-    // 当前简化实现：直接设置载具位置
+    // ========== 碰撞检测与 moved wrongly 检测 ==========
+    // 对应 MC Java ServerGamePacketListenerImpl.handleMoveVehicle 中
+    // entity.move(MoverType.PLAYER, vec3) + moved wrongly 检测逻辑。
+    //
+    // 流程：
+    // 1. 保存移动前的载具位置与 AABB（作为回退点）
+    // 2. 调用 moveWithCollision 做带碰撞检测的移动，得到实际移动向量
+    // 3. 比较"客户端期望位置"与"碰撞移动后位置"的差距（moved wrongly 判定）
+    // 4. 若 moved wrongly 且旧位置无碰撞（说明是客户端穿了墙）→ 回退到旧位置并发校正包
+    // 5. 否则接受客户端位置（对齐 MC Java 的 absSnapTo(d3,d4,d5,f,f1)）
+
+    // 步骤 1：保存回退点
+    const Vector3 oldVehiclePos = vehiclePos;
+    const AxisAlignedBB oldAABB = vehicle->boundingBox();
+
+    // 步骤 2：调用 moveWithCollision 做带碰撞检测的移动
+    // moveWithCollision 会更新 m_position / m_boundingBox / m_onGround / 碰撞状态，
+    // 并在碰撞时清零对应轴的速度。moved wrongly 判定通过比较"客户端期望位置"
+    // 与"碰撞后载具实际位置"（vehicle->position()）的差距来完成，不直接使用返回值。
+    vehicle->moveWithCollision(static_cast<f32>(dx), static_cast<f32>(dy), static_cast<f32>(dz));
+
+    // 步骤 3：moved wrongly 检测
+    // 计算"客户端期望位置"与"碰撞移动后载具位置"的差距。
+    // 对应 MC Java：
+    //   d6 = d3 - entity.getX();
+    //   d7 = d4 - entity.getY();
+    //   if (d7 > -0.5 || d7 < 0.5) d7 = 0.0;   // Y 方向容差
+    //   d8 = d5 - entity.getZ();
+    //   d10 = d6*d6 + d7*d7 + d8*d8;
+    //   flag1 = (d10 > 0.0625);
+    //
+    // 注意 MC Java 的 Y 容差条件 `d7 > -0.5 || d7 < 0.5` 实际上几乎总为真
+    // （只有 d7 恰好落在 [-0.5, 0.5] 外才不满足），因此 Y 偏差几乎总被清零，
+    // moved wrongly 检测实际只看 X 和 Z 方向的偏差。
+    const Vector3 newVehiclePos = vehicle->position();
+    f64 diffX = packetPos.x - static_cast<f64>(newVehiclePos.x);
+    f64 diffY = packetPos.y - static_cast<f64>(newVehiclePos.y);
+    if (diffY > -0.5 || diffY < 0.5) {
+        diffY = 0.0;
+    }
+    f64 diffZ = packetPos.z - static_cast<f64>(newVehiclePos.z);
+    const f64 movedWronglySq = diffX * diffX + diffY * diffY + diffZ * diffZ;
+
+    const bool movedWrongly = movedWronglySq > kMovedWronglyThresholdSq;
+
+    // 步骤 4：回退判定
+    // 对应 MC Java：
+    //   if ((flag1 && serverlevel.noCollision(entity, aabb))
+    //       || isEntityCollidingWithAnythingNew(serverlevel, entity, aabb, d3, d4, d5))
+    //
+    // - noCollision(entity, 旧AABB)：旧 AABB 在当前世界无碰撞（说明客户端把载具推进了墙）
+    // - isEntityCollidingWithAnythingNew：移动到目标位置后会与新实体碰撞
+    //
+    // Cubium 中 noCollision 等价于：!hasBlockCollision(box) && !hasEntityCollision(box, except)
+    // isEntityCollidingWithAnythingNew 等价于检查目标位置 AABB 是否与"新"实体碰撞
+    // （由于 EntityManager::getEntitiesInAABB 不过滤 canBeCollidedWith，需手动过滤）。
+    const bool oldPosNoCollision = !world->hasBlockCollision(oldAABB) && !world->hasEntityCollision(oldAABB, vehicle);
+    const bool collidingWithNewEntity = _isEntityCollidingWithAnythingNew(*world, *vehicle, oldAABB, packetPos);
+
+    if ((movedWrongly && oldPosNoCollision) || collidingWithNewEntity) {
+        // 回退到旧位置：恢复载具位置与旋转
+        // 注意：moveWithCollision 可能已修改 velocity（碰撞轴清零），这里不恢复 velocity，
+        // 让下一帧的载具 tick 自然处理（与 MC Java 行为一致——回退后 entity.removeLatestMovementRecording）。
+        vehicle->setPosition(oldVehiclePos.x, oldVehiclePos.y, oldVehiclePos.z);
+        vehicle->setRotation(packet.yaw(), packet.pitch());
+
+        // 发送校正包回客户端，恢复到服务端已知位置
+        _sendVehicleMoveCorrection(m_connectionManager, playerId, *vehicle, oldVehiclePos);
+
+        // 玩家位置也回退到旧位置（保持骑乘关系）
+        player->setPosition(oldVehiclePos.x, oldVehiclePos.y, oldVehiclePos.z);
+        player->setRotation(player->yaw(), packet.pitch() * 0.5f);
+
+        // 更新位置追踪器（用回退后的位置）
+        m_positionTracker.updatePosition(playerId,
+            oldVehiclePos.x,
+            oldVehiclePos.y,
+            oldVehiclePos.z,
+            packet.yaw(),
+            packet.pitch(),
+            vehicle->onGround());
+
+        if (movedWrongly) {
+            spdlog::warn(
+                "PacketHandler: Player {} vehicle moved wrongly! delta={:.4f}", playerId, std::sqrt(movedWronglySq));
+        }
+        return PacketHandleResult::Success;
+    }
+
+    // 步骤 5：正常路径 - 对齐到客户端请求的精确位置
+    // 对应 MC Java 的 entity.absSnapTo(d3, d4, d5, f, f1)
+    // （MC Java 在 move 后仍用客户端精确位置覆盖，因为 move 只是用来做碰撞检测）
     vehicle->setPosition(packetPos.x, packetPos.y, packetPos.z);
     vehicle->setRotation(packet.yaw(), packet.pitch());
 
