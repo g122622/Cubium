@@ -830,11 +830,11 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
 
     result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline);
 
-    // 清理着色器模块
-    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
-
     if (result != VK_SUCCESS) {
+        // 主管线创建失败：销毁着色器模块与管线布局后返回。
+        // 注意：着色器模块在此销毁，因为后续变体管线不会创建。
+        vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
         vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
         m_pipelineLayout = VK_NULL_HANDLE;
         return Error(ErrorCode::InitializationFailed, "Failed to create graphics pipeline");
@@ -947,6 +947,13 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
         spdlog::warn("EntityPipeline: Failed to create line pipeline, falling back to alpha blend only");
         m_linePipeline = VK_NULL_HANDLE;
     }
+
+    // 所有管线（主管线 + 4 个变体）均已创建完毕，现在销毁着色器模块。
+    // 必须在变体管线创建之后再销毁：MoltenVK 在 vkCreateGraphicsPipelines 时
+    // 通过 SPIRV-Cross 对 VkShaderModule 做反射与 SPIRV→MSL 转换，过早销毁
+    // 会导致后续变体管线访问已释放的 SPIRV 数据，报 "SPIRV file too small"。
+    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
 
     return Result<void>::ok();
 }

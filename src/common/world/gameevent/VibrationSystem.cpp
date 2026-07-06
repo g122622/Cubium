@@ -279,15 +279,6 @@ i32 VibrationSystem::getRedstoneStrengthForDistance(f32 distance, i32 radius)
 }
 
 // ============================================================================
-// VibrationSystem::User
-// ============================================================================
-
-i32 VibrationSystem::User::calculateTravelTimeInTicks(f32 distance) const
-{
-    return static_cast<i32>(std::floor(static_cast<f64>(distance)));
-}
-
-// ============================================================================
 // VibrationInfo 序列化
 // ============================================================================
 

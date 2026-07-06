@@ -29,6 +29,23 @@
 namespace mc::util {
 
 /**
+ * @brief CPU 自旋提示（降低争用功耗、避免内存顺序违例惩罚）
+ *
+ * 跨平台实现：
+ * - x86/x86-64：`__builtin_ia32_pause()`（`_mm_pause`，对应 `pause` 指令）
+ * - ARM/ARM64：`__builtin_arm_yield()`（对应 `yield` 指令）
+ * 其它架构退化为空操作。
+ */
+inline void cpuRelax()
+{
+#if defined(__i386__) || defined(__x86_64__)
+    __builtin_ia32_pause();
+#elif defined(__arm__) || defined(__aarch64__)
+    __builtin_arm_yield();
+#endif
+}
+
+/**
  * @brief 无锁单链表 FIFO 队列，对齐 Moonrise `MultiThreadedQueue`
  *
  * 只移植 ReentrantAreaLock 实际用到的子集（add/forceAdd/preventAdds/allowAdds/pollOrBlockAdds/isAddBlocked）。
@@ -272,9 +289,9 @@ private:
     /**
      * @brief 退避（对齐 Moonrise ConcurrentUtil.backoff = Thread.onSpinWait）
      *
-     * x86 上用 _mm_pause 提示 CPU 流水线（减少争用功耗、避免内存顺序违例惩罚）。
+     * 通过 cpuRelax() 提示 CPU 流水线（减少争用功耗、避免内存顺序违例惩罚）。
      */
-    static void backoff() { __builtin_ia32_pause(); }
+    static void backoff() { cpuRelax(); }
 
     /**
      * @brief 内部入队：把单个元素追加到队列尾

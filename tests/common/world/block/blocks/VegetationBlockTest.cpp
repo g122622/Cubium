@@ -776,10 +776,10 @@ protected:
         ASSERT_NE(m_region, nullptr);
 
         world::gen::FeaturePlacer::populateWorldState(*m_region,
-            42u,     // seed
-            0u,      // currentTick
-            6000i64, // dayTime
-            false,   // hardcore
+            42u,       // seed
+            0u,        // currentTick
+            i64{6000}, // dayTime
+            false,     // hardcore
             Difficulty::Normal);
     }
 

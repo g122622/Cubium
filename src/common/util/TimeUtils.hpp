@@ -57,21 +57,49 @@ namespace TimeUtils {
             .count());
 }
 
+namespace detail {
+
+/**
+ * @brief file_clock 与 system_clock 之间的时钟差（秒）
+ *
+ * file_time_type 的 epoch 在不同平台上不同：
+ * - MSVC（Windows）：file_clock epoch 为 1601-01-01，system_clock epoch 为 1970-01-01，差 11644473600 秒
+ * - libc++（macOS/Linux）：file_clock 与 system_clock 共享 Unix epoch（1970-01-01），差为 0
+ *
+ * 通过探测两时钟对同一 time_point 的数值差，编译期确定该偏移，
+ * 从而在数值层面正确转换 file_time_type <-> system_clock，
+ * 避免使用 C++20 std::chrono::clock_cast（部分 libc++ 版本尚未实现）。
+ */
+inline constexpr i64 kFileClockToSystemOffsetSeconds = []() constexpr {
+#if defined(_LIBCPP_VERSION) || defined(__APPLE__)
+    // libc++ 与 libstdc++ 现代版本中 file_clock 与 system_clock 共享 Unix epoch
+    return 0;
+#else
+    // MSVC：file_clock epoch 为 1601-01-01（Windows FILETIME）
+    return 11644473600LL;
+#endif
+}();
+
+} // namespace detail
+
 /**
  * @brief 将 file_time_type 转换为 Unix 纪元秒数
  *
- * 使用 C++20 clock_cast 实现跨平台兼容的转换。
  * file_time_type 的 epoch 在不同平台上不同（Windows: 1601-01-01, Unix: 1970-01-01），
  * 直接使用 time_since_epoch() 会产生平台相关的值。
- * 此函数通过 clock_cast 转换到 system_clock，确保输出始终为 Unix 纪元秒数。
+ * 此函数通过数值转换 + 平台偏移补偿，确保输出始终为 Unix 纪元秒数，
+ * 不依赖 C++20 std::chrono::clock_cast（部分标准库尚未实现）。
  *
  * @param ft 文件时间戳
  * @return 自 1970-01-01 00:00:00 UTC 以来的秒数
  */
 [[nodiscard]] inline i64 fileTimeToUnixSeconds(const std::filesystem::file_time_type& ft)
 {
-    auto sysTime = std::chrono::clock_cast<std::chrono::system_clock>(ft);
-    return std::chrono::duration_cast<std::chrono::seconds>(sysTime.time_since_epoch()).count();
+    // 取 file_clock 下的纳秒数值，减去平台偏移后落到 Unix epoch 基准
+    const auto fileNs = std::chrono::duration_cast<std::chrono::nanoseconds>(ft.time_since_epoch()).count();
+    const auto unixNs =
+        fileNs - std::chrono::seconds{detail::kFileClockToSystemOffsetSeconds}.count() * 1'000'000'000LL;
+    return unixNs / std::chrono::nanoseconds::period::den;
 }
 
 /**
@@ -84,8 +112,12 @@ namespace TimeUtils {
  */
 [[nodiscard]] inline std::filesystem::file_time_type unixSecondsToFileTime(i64 unixSeconds)
 {
-    auto sysTime = std::chrono::system_clock::from_time_t(static_cast<time_t>(unixSeconds));
-    return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(sysTime);
+    // 先在 Unix epoch 基准下构造纳秒数值，再补回平台偏移得到 file_clock 数值
+    const auto unixNs = unixSeconds * std::chrono::nanoseconds::period::den;
+    const auto fileNs =
+        unixNs + std::chrono::seconds{detail::kFileClockToSystemOffsetSeconds}.count() * 1'000'000'000LL;
+    return std::filesystem::file_time_type{
+        std::chrono::duration_cast<std::filesystem::file_time_type::duration>(std::chrono::nanoseconds{fileNs})};
 }
 
 } // namespace TimeUtils
