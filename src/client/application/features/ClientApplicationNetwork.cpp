@@ -744,7 +744,7 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onExplosion = [this](const network::ExplosionPacket& packet) {
         // 对应 MC Java ClientPacketListener.handleExplosion:
-        //   1. 应用受影响方块的客户端破坏视觉（方块消失动画/粒子）
+        //   1. 应用受影响方块的客户端破坏视觉（方块设为空气）
         //   2. 若包携带玩家击退向量（motion != 0），调用 player.addDeltaMovement(vec) 累加到本地速度
         //
         // 关键：使用 addVelocity（累加）而非 setVelocity（覆盖），因为 ExplosionPacket 携带的是
@@ -752,21 +752,24 @@ void ClientApplication::setupNetworkCallbacks()
         //
         // 服务端在 Explosion/WindChargeEntity 的玩家分支已跳过 addVelocity 并清除 hurtMarked，
         // 保证不会通过 EntityVelocityPacket 覆盖客户端速度。因此此处累加是击退的唯一来源。
+        //
+        // 注意：爆炸音效与粒子效果由服务端通过 Explosion::_playSound / _spawnParticles
+        // （调用 IWorld::playSound / IWorld::addParticle）或 WindChargeEntity 的对应方法
+        // 直接发送给追踪玩家，ExplosionPacket 不携带音效/粒子信息（与 MC Java
+        // ClientboundExplodePacket 携带 explosionSound/explosionParticle 不同）。
+        // 因此此处不需要重复触发音效/粒子。
 
-        // 1. 应用受影响方块的客户端视觉
+        // 1. 应用受影响方块的客户端视觉：将每个方块设为空气
         // ExplosionPacket 中的 affectedBlocks 使用相对坐标（相对于 floor(explosionPos)），
-        // 需转换为绝对坐标后通知世界。
+        // 需转换为绝对坐标后通知客户端世界。
         const Vector3& explosionPos = packet.position();
-        const f32 floorX = std::floor(explosionPos.x);
-        const f32 floorY = std::floor(explosionPos.y);
-        const f32 floorZ = std::floor(explosionPos.z);
+        const i32 floorX = static_cast<i32>(std::floor(explosionPos.x));
+        const i32 floorY = static_cast<i32>(std::floor(explosionPos.y));
+        const i32 floorZ = static_cast<i32>(std::floor(explosionPos.z));
+        const BlockState* airState = BlockRegistry::instance().airState();
         for (const BlockPos& relPos : packet.affectedBlocks()) {
-            BlockPos absPos(static_cast<i32>(floorX) + relPos.x,
-                static_cast<i32>(floorY) + relPos.y,
-                static_cast<i32>(floorZ) + relPos.z);
-            // 客户端世界直接将方块设为空气（服务端已权威破坏，此处仅同步视觉）
-            // 保留给方块破坏子系统处理（粒子/动画），若未来扩展可在此触发。
-            (void)absPos;
+            const BlockPos absPos(floorX + relPos.x, floorY + relPos.y, floorZ + relPos.z);
+            m_world.setBlockState(absPos.x, absPos.y, absPos.z, airState);
         }
 
         // 2. 应用玩家击退（累加到本地玩家速度）

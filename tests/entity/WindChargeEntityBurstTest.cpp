@@ -343,10 +343,16 @@ TEST_F(WindChargeEntityBurstTest, Player_NotHurtMarked_AfterBurst)
 TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_VelocityStillChanged)
 {
     // 验证非玩家实体（LivingEntity）仍由服务端权威同步速度：
-    // 服务端调用 addVelocity 修改速度，并 markHurt 让 EntityTracker 同步
-    // 注意：WindChargeBurstTestWorld::getBlockState 返回 nullptr，
-    // _calculateSeenPercent 中的 raycastBlocks 会返回 miss（无方块阻挡），
-    // 因此 density = 1.0，impact > 0，finalImpact > 0，击退会被应用。
+    // 服务端调用 addVelocity 修改速度，并依赖 LivingEntity::hurt 设置的 markHurt
+    // 让 EntityTracker 通过 EntityVelocityPacket 同步给追踪此实体的客户端。
+    //
+    // 确定性前提：WindChargeBurstTestWorld::getBlockState 返回 nullptr（空气），
+    // _calculateSeenPercent 中所有射线都 isMiss（无方块阻挡），density = 1.0。
+    // 风弹位于原点，实体位于 (0.5, 64, 0)，爆炸半径 1.2，range = 2.4：
+    //   distanceRatio = 0.5 / 2.4 ≈ 0.208
+    //   impact = (1 - 0.208) * 1.0 = 0.792
+    //   finalImpact = 0.792 * 1.22 * (1 - 0) ≈ 0.966  （无爆炸保护附魔）
+    // 因此击退必然被应用，速度必然变化，markHurt 必然为 true。
 
     // 创建一个非玩家 LivingEntity（参考 HurtMarkedTest.cpp 的 TestHurtEntity 模式）
     class TestLivingEntity final : public LivingEntity {
@@ -372,14 +378,44 @@ TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_VelocityStillChanged)
     accessor.applyWindBurst();
 
     const Vector3 velocityAfter = entity.velocity();
+    const Vector3 appliedDelta = velocityAfter - velocityBefore;
 
-    // 非玩家实体：服务端应调用 addVelocity 修改速度
-    // 若 finalImpact > 0（density=1.0 时成立），速度必须有变化
-    if (velocityAfter != velocityBefore) {
-        // 速度变化了，说明 finalImpact > 0，则 markHurt 必须为 true
-        // （非玩家实体分支会调用 markHurt 以让 EntityTracker 同步速度）
-        EXPECT_TRUE(entity.isHurtMarked());
-    }
+    // 确定性断言：非玩家实体速度必须变化（addVelocity 被调用）
+    // 击退方向应从爆炸中心（原点）指向实体（+X 方向）
+    EXPECT_GT(appliedDelta.x, 0.0f);
+
+    // 非玩家实体的 markHurt 必须为 true（LivingEntity::hurt 已设置，未被清除）
+    // 这是非玩家分支与玩家分支的关键区别：玩家分支会 clearHurtMarked，非玩家分支不会
+    EXPECT_TRUE(entity.isHurtMarked());
+}
+
+TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_HurtMarkedNotCleared)
+{
+    // 补充验证：非玩家 LivingEntity 被风弹击中后，hurtMarked 保持 true
+    // （对比玩家分支会 clearHurtMarked，确保两条分支的同步语义不同）
+    class TestLivingEntity final : public LivingEntity {
+    public:
+        explicit TestLivingEntity(EntityId id)
+            : LivingEntity(id)
+        {
+            registerAttributes();
+            setHealth(maxHealth());
+        }
+    };
+
+    TestLivingEntity entity(EntityId(2));
+    entity.setPosition(0.5f, 64.0f, 0.0f);
+    entity.setWorld(&m_world);
+    m_world.registerEntity(&entity);
+    m_world.setEntities({&entity});
+
+    EXPECT_FALSE(entity.isHurtMarked());
+
+    test::WindChargeEntityTestAccessor accessor(*m_windCharge);
+    accessor.applyWindBurst();
+
+    // 非玩家实体：hurtMarked 必须为 true（未被清除）
+    EXPECT_TRUE(entity.isHurtMarked());
 }
 
 TEST_F(WindChargeEntityBurstTest, SpectatorPlayer_FilteredFromKnockback)
