@@ -36,6 +36,10 @@ namespace mc {
 // Forward declarations
 class IWorld;
 
+namespace test {
+class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以访问 private 成员
+} // namespace test
+
 /**
  * @brief 铜傀儡实体（MC 1.21.11）
  *
@@ -295,6 +299,8 @@ private:
     static constexpr i32 WEATHERING_TICK_FROM = 504000;   ///< 氧化最小 tick
     static constexpr i32 WEATHERING_TICK_TO = 552000;     ///< 氧化最大 tick
     static constexpr f32 TURN_TO_STATUE_CHANCE = 0.0058F; ///< 转雕像概率
+
+    friend class test::CopperGolemEntityTestAccessor;
 };
 
 } // namespace mc

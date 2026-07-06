@@ -40,6 +40,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <memory>
 
 namespace mc {
@@ -399,8 +400,11 @@ void CopperGolemEntity::turnToStatue()
 
     // 丢弃保存的装备
     // 对应 MC Java: this.dropPreservedEquipment(serverLevel)
-    // TODO: 实现 dropPreservedEquipment（需要 preserved equipment 槽位系统）
-    // 当前铜傀儡未实现装备槽，无装备可掉落
+    // MobEntity::dropPreservedEquipment() 已实现：遍历装备槽，掉落标记为保留（掉落概率 > 1.0）的物品。
+    // 当前铜傀儡未装备任何物品（天线槽位待 EQUIPMENT_SLOT_ANTENNA 系统实现），
+    // 此处仍按 MC 原版调用以保证未来扩展时的正确性。
+    // 返回值为保留在实体上的装备槽位集合（谓词返回 false 的槽位），当前始终为空。
+    (void)dropPreservedEquipment();
 
     // 播放变雕像音效
     // 对应 MC Java: this.playSound(SoundEvents.COPPER_GOLEM_BECOME_STATUE)
@@ -408,8 +412,17 @@ void CopperGolemEntity::turnToStatue()
 
     // 处理拴绳掉落
     // 对应 MC Java: if (this.isLeashed()) { if (gameRules.ENTITY_DROPS) dropLeash(); else removeLeash(); }
-    // TODO: 实现拴绳掉落逻辑（需要 isLeashed/dropLeash/removeLeash 方法）
-    //       MobEntity 已有拴绳系统，待后续集成
+    // MobEntity 已提供 isLeashed() / dropLeash() / clearLeash() 接口：
+    //   - dropLeash() 内部已检查 DO_ENTITY_DROPS 规则：规则为 true 时掉落拴绳物品，false 时仅清除状态。
+    //   - clearLeash() 仅清除拴绳状态（不掉落物品），对应 MC Java 的 removeLeash()。
+    // 这里采用显式 if/else 分支以 1:1 对应 MC 原版控制流，便于源码对照与未来维护。
+    if (isLeashed()) {
+        if (w->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+            dropLeash();
+        } else {
+            clearLeash();
+        }
+    }
 
     // 移除实体
     // 对应 MC Java: this.discard()
