@@ -194,7 +194,15 @@ public:
     explicit ItemModelLoader(const std::vector<ResourcePackPtr>& resourcePacks);
 
     /**
-     * @brief 加载所有物品模型
+     * @brief 全量预加载所有物品模型
+     *
+     * 枚举所有资源包中 `assets/<namespace>/models/item/` 目录下的所有 .json 文件并烘焙，
+     * 将结果填充到内部缓存（m_unbakedModels / m_bakedModels），供后续 getModel /
+     * getItemModel 直接命中。资源包优先级由 _readModelFromResourcePacks 内部处理，
+     * 本方法仅负责触发烘焙。
+     *
+     * 单个模型烘焙失败不会中断整体流程，仅记录 spdlog::warn 警告。
+     * 整体流程不返回错误（部分文件缺失属正常情况）。
      */
     [[nodiscard]] Result<void> loadAllModels();
 

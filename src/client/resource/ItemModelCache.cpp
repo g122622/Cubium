@@ -24,6 +24,7 @@
 #include "ItemModelCache.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::client::resource {
 
@@ -43,6 +44,13 @@ bool ItemModelCache::initialize(const std::vector<ResourcePackPtr>& resourcePack
 
     m_loader = std::make_unique<ItemModelLoader>(resourcePacks);
     m_initialized = true;
+
+    // 全量预加载所有资源包中的物品模型，避免运行时延迟加载造成的卡顿。
+    // 失败不阻塞初始化 —— 单个模型烘焙失败已由 loader 内部记录警告。
+    auto preloadResult = m_loader->loadAllModels();
+    if (preloadResult.failed()) {
+        spdlog::warn("ItemModelCache: loadAllModels failed: {}", preloadResult.error().message());
+    }
 
     return true;
 }

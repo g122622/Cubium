@@ -22,9 +22,16 @@
  */
 
 #include "ItemModelLoader.hpp"
+#include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <string>
+#include <string_view>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include <glm/gtc/matrix_transform.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::resource {
 
@@ -224,7 +231,110 @@ void ItemModelLoader::_loadDefaultTransforms()
 
 Result<void> ItemModelLoader::loadAllModels()
 {
-    // TODO: 实现全量物品模型加载，当前采用延迟加载策略
+    // 全量物品模型预加载：枚举所有资源包中 assets/<namespace>/models/item/ 目录下的所有 .json
+    // 文件并烘焙。
+    // 资源包按优先级从高到低排列（m_resourcePacks[0] 优先级最高），
+    // 但预加载顺序无关紧要 —— loadModel/bakeModel 内部会用 m_unbakedModels / m_bakedModels
+    // 缓存，先加载的模型会被后续重复请求命中；而 _readModelFromResourcePacks 也按
+    // m_resourcePacks 顺序（高优先级在前）读取，保证高优先级包的内容覆盖低优先级包。
+
+    // 已烘焙模型集合，用于跨包去重（同一 ResourceLocation 只烘焙一次）
+    std::unordered_set<ResourceLocation> bakedLocations;
+    size_t totalLoaded = 0;
+    size_t totalFailed = 0;
+
+    // 收集每个资源包加载的模型数量，用于日志输出
+    struct PackStat {
+        std::string name;
+        size_t loaded = 0;
+    };
+    std::vector<PackStat> packStats;
+    packStats.reserve(m_resourcePacks.size());
+
+    for (const auto& pack : m_resourcePacks) {
+        if (pack == nullptr) {
+            continue;
+        }
+
+        PackStat stat;
+        stat.name = pack->name();
+
+        // 获取该资源包的所有命名空间（assets/ 下的直接子目录）
+        auto nsResult = pack->getResourceNamespaces(mc::resource::PackType::ClientResources);
+        if (nsResult.failed()) {
+            // 资源包可能不包含客户端资源，跳过
+            continue;
+        }
+
+        for (const auto& ns : nsResult.value()) {
+            // 列出该命名空间下 models/item 目录的所有 .json 文件
+            // 目录格式为 "<namespace>/models/item"，listResources 返回的路径
+            // 相对于 PackType 根目录（assets/），形如 "<namespace>/models/item/<name>.json"
+            const std::string dir = ns + "/models/item";
+            auto listResult = pack->listResources(mc::resource::PackType::ClientResources, dir, ".json");
+            if (listResult.failed()) {
+                // 目录可能不存在（该命名空间没有物品模型），不算错误
+                continue;
+            }
+
+            for (const auto& filePath : listResult.value()) {
+                // 解析 filePath "<namespace>/models/item/<name>.json" 提取 <name>
+                // <name> 可能包含子目录（如 "item/template_spawn_egg"），保留原路径
+                const std::string prefix = ns + "/models/item/";
+                std::string name;
+                if (filePath.size() > prefix.size() && filePath.compare(0, prefix.size(), prefix) == 0) {
+                    // 去掉前缀和 .json 后缀
+                    std::string_view tail(filePath);
+                    tail.remove_prefix(prefix.size());
+                    constexpr std::string_view ext = ".json";
+                    if (tail.size() >= ext.size() && tail.compare(tail.size() - ext.size(), ext.size(), ext) == 0) {
+                        tail.remove_suffix(ext.size());
+                        name = std::string(tail);
+                    }
+                }
+
+                if (name.empty()) {
+                    // 路径格式异常，跳过
+                    ++totalFailed;
+                    continue;
+                }
+
+                // 构造模型 ResourceLocation：namespace=<ns>, path="item/<name>"
+                // 与 ItemModelCache::getItemModel(u32) 构造的路径一致
+                ResourceLocation modelLoc(ns, "item/" + name);
+
+                // 跨包去重：同一 modelLoc 只烘焙一次
+                if (bakedLocations.find(modelLoc) != bakedLocations.end()) {
+                    continue;
+                }
+
+                auto bakeResult = bakeModel(modelLoc);
+                if (bakeResult.success()) {
+                    bakedLocations.insert(modelLoc);
+                    ++stat.loaded;
+                    ++totalLoaded;
+                } else {
+                    // 单个模型烘焙失败不算致命错误，记录警告后继续
+                    spdlog::warn("ItemModelLoader: Failed to bake item model '{}' from pack '{}': {}",
+                        modelLoc.toString(),
+                        stat.name,
+                        bakeResult.error().message());
+                    ++totalFailed;
+                }
+            }
+        }
+
+        if (stat.loaded > 0) {
+            packStats.push_back(std::move(stat));
+        }
+    }
+
+    // 按资源包输出加载统计（与 BlockStateLoader 的日志风格一致）
+    for (const auto& stat : packStats) {
+        spdlog::info("ItemModelLoader: Loaded {} item models from '{}'", stat.loaded, stat.name);
+    }
+    spdlog::info("ItemModelLoader: Total loaded {} item models (failed: {})", totalLoaded, totalFailed);
+
     return Result<void>::ok();
 }
 
