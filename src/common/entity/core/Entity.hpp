@@ -387,6 +387,28 @@ public:
     void setVelocity(const Vector3& vel) { setVelocity(vel.x, vel.y, vel.z); }
 
     /**
+     * @brief 设置身体偏航角（默认空实现，LivingEntity 重写以持久化字段）
+     *
+     * 对齐 MC 1.21.11 Entity#setYBodyRot：基类为空操作，子类（LivingEntity）
+     * 重写后写入 yBodyRot 字段。结构模板放置实体、实体从 NBT 加载等场景
+     * 需要让身体朝向跟随结构旋转，调用此方法可统一处理任意实体类型，
+     * 无需调用方做 dynamic_cast<LivingEntity*> 判断。
+     *
+     * @param yaw 身体偏航角（度）
+     */
+    virtual void setYBodyRot(f32 yaw) { (void)yaw; }
+
+    /**
+     * @brief 设置头部偏航角（默认空实现，LivingEntity 重写以持久化字段）
+     *
+     * 对齐 MC 1.21.11 Entity#setYHeadRot：基类为空操作，子类（LivingEntity）
+     * 重写后写入 yHeadRot 字段。AI LookController、结构模板放置等场景使用。
+     *
+     * @param yaw 头部偏航角（度）
+     */
+    virtual void setYHeadRot(f32 yaw) { (void)yaw; }
+
+    /**
      * @brief 添加速度增量
      * @param dx X方向增量
      * @param dy Y方向增量

@@ -2439,6 +2439,16 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
         m_pitch = rotation[1];
     }
 
+    // 同步身体/头部旋转为 yaw（对齐 MC 1.21.11 Entity#load）
+    // MC 在加载 NBT 后会调用：
+    //   this.setYHeadRot(this.getYRot());
+    //   this.setYBodyRot(this.getYRot());
+    // 保证从存档/结构模板 NBT 加载的实体身体与头部朝向与 yaw 一致，
+    // 而不是保持字段构造初值 0。Entity 基类的 setYBodyRot/setYHeadRot
+    // 默认空实现，LivingEntity 子类重写后才会真正写入字段。
+    setYHeadRot(m_yaw);
+    setYBodyRot(m_yaw);
+
     // 坠落距离
     if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::FALL_DISTANCE)) {
         m_fallDistance = *val;

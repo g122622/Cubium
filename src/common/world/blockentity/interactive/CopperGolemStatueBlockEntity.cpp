@@ -113,6 +113,15 @@ std::unique_ptr<Entity> CopperGolemStatueBlockEntity::removeStatue(const BlockSt
     }
     entity->setRotation(yaw, 0.0f);
 
+    // 同步身体与头部朝向到 FACING 方向
+    // 对应 MC 1.21.11 CopperGolemStatueBlockEntity#initCopperGolem:
+    //   p_481299_.yHeadRot = p_481299_.getYRot();
+    //   p_481299_.yBodyRot = p_481299_.getYRot();
+    // Entity 基类的 setYBodyRot/setYHeadRot 默认空实现，LivingEntity（含
+    // CopperGolemEntity）重写后写入对应字段，因此对任意实体类型调用都安全。
+    entity->setYBodyRot(yaw);
+    entity->setYHeadRot(yaw);
+
     // 设置铜傀儡的初始氧化等级为 Unaffected 并播放生成音效
     // 对应 MC: p_481299_.playSpawnSound()（CopperGolem.spawn(WeatherState.UNAFFECTED) 内部也会播放音效）
     auto* copperGolem = dynamic_cast<CopperGolemEntity*>(entity.get());

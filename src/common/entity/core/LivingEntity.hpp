@@ -774,6 +774,18 @@ public:
     void setRenderYawOffset(f32 yaw) { m_renderYawOffset = yaw; }
 
     /**
+     * @brief 重写 Entity#setYBodyRot，将身体偏航角写入 m_renderYawOffset
+     *
+     * 对齐 MC 1.21.11 LivingEntity#setYBodyRot：基类 Entity 的空实现被覆盖，
+     * 实际写入 yBodyRot 字段（项目中等价字段为 m_renderYawOffset）。
+     * 这样结构模板放置实体等通用代码可对任意 Entity* 调用 setYBodyRot，
+     * 无需调用方做 dynamic_cast<LivingEntity*>。
+     *
+     * @param yaw 身体偏航角（度）
+     */
+    void setYBodyRot(f32 yaw) override { m_renderYawOffset = yaw; }
+
+    /**
      * @brief 获取头部旋转
      * 头部的实际朝向
      */
@@ -784,6 +796,16 @@ public:
      * @brief 设置头部偏航角
      */
     void setRotationYawHead(f32 yaw) { m_rotationYawHead = yaw; }
+
+    /**
+     * @brief 重写 Entity#setYHeadRot，将头部偏航角写入 m_rotationYawHead
+     *
+     * 对齐 MC 1.21.11 LivingEntity#setYHeadRot：基类 Entity 的空实现被覆盖，
+     * 实际写入 yHeadRot 字段（项目中等价字段为 m_rotationYawHead）。
+     *
+     * @param yaw 头部偏航角（度）
+     */
+    void setYHeadRot(f32 yaw) override { m_rotationYawHead = yaw; }
 
     /**
      * @brief 设置头部俯仰角
