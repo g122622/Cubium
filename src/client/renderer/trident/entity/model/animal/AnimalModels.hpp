@@ -149,8 +149,7 @@ private:
     std::shared_ptr<ModelRenderer> m_rightLeg;
     std::shared_ptr<ModelRenderer> m_leftLeg;
     std::shared_ptr<ModelRenderer> m_beak;   // 喙
-    std::shared_ptr<ModelRenderer> m_wattle; // 肉垂（下巴下面的红肉）
-    std::shared_ptr<ModelRenderer> m_comb;   // 鸡冠
+    std::shared_ptr<ModelRenderer> m_wattle; // 肉垂（下巴下面的红肉，对应 MC red_thing）
 };
 
 } // namespace mc::client::renderer::entity::model::animal

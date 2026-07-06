@@ -206,9 +206,6 @@ ChickenModel::ChickenModel()
     m_wattle->addBox(-1.0f, -2.0f, -3.0f, 2.0f, 2.0f, 2.0f);
     m_wattle->setRotationPoint(0.0f, 15.0f, -4.0f);
 
-    // TODO: 鸡冠（comb）模型暂未实现，需要添加纹理偏移和形状定义
-    m_comb.reset();
-
     // 身体
     m_body = std::make_shared<ModelRenderer>("body");
     m_body->setTextureOffset(0, 9);
@@ -259,9 +256,6 @@ std::vector<std::shared_ptr<ModelRenderer>> ChickenModel::getHeadParts() const
     parts.push_back(m_head);
     parts.push_back(m_beak);
     parts.push_back(m_wattle);
-    if (m_comb) {
-        parts.push_back(m_comb);
-    }
     return parts;
 }
 
@@ -288,15 +282,11 @@ void ChickenModel::setAngles(
     m_head->setRotateAngleX(static_cast<f32>(math::toRadians(static_cast<f32>(headPitch))));
     m_head->setRotateAngleY(static_cast<f32>(math::toRadians(static_cast<f32>(netHeadYaw))));
 
-    // 喙、肉垂、鸡冠跟随头部
+    // 喙、肉垂跟随头部
     m_beak->setRotateAngleX(m_head->rotateAngleX());
     m_beak->setRotateAngleY(m_head->rotateAngleY());
     m_wattle->setRotateAngleX(m_head->rotateAngleX());
     m_wattle->setRotateAngleY(m_head->rotateAngleY());
-    if (m_comb) {
-        m_comb->setRotateAngleX(m_head->rotateAngleX());
-        m_comb->setRotateAngleY(m_head->rotateAngleY());
-    }
 
     // 身体基础姿态（水平）
     m_body->setRotateAngleX(math::PI * 0.5f);
