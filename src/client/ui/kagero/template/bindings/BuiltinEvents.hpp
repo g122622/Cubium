@@ -185,6 +185,26 @@ namespace event_utils {
 [[nodiscard]] event::MouseDragEvent createDragEvent(i32 x, i32 y, i32 deltaX, i32 deltaY, i32 button);
 
 /**
+ * @brief 创建拖拽开始事件
+ *
+ * @param x 屏幕 X 坐标
+ * @param y 屏幕 Y 坐标
+ * @param button 触发拖拽的鼠标按钮（0=左键，1=右键，2=中键）
+ * @param mods 拖拽开始时的修饰键状态（KeyMods 位掩码）
+ */
+[[nodiscard]] event::DragStartEvent createDragStartEvent(i32 x, i32 y, i32 button, i32 mods = 0);
+
+/**
+ * @brief 创建拖拽结束事件
+ *
+ * @param x 屏幕 X 坐标
+ * @param y 屏幕 Y 坐标
+ * @param button 触发拖拽的鼠标按钮（0=左键，1=右键，2=中键）
+ * @param dropped 是否被外部取消（焦点丢失等）
+ */
+[[nodiscard]] event::DragEndEvent createDragEndEvent(i32 x, i32 y, i32 button, bool dropped = false);
+
+/**
  * @brief 创建鼠标滚轮事件
  */
 [[nodiscard]] event::MouseScrollEvent createScrollEvent(i32 x, i32 y, f64 deltaX, f64 deltaY);

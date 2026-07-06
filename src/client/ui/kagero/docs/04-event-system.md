@@ -430,15 +430,23 @@ slotEvent.isRightClick(); // false
 ### 拖拽事件
 
 ```cpp
-DragStartEvent dragStart(100, 200);  // x, y
+// DragStartEvent：x, y, button, mods（mods 默认为 0）
+DragStartEvent dragStart(100, 200, 0, 0x0003);  // 左键 + Shift+Ctrl
 dragStart.x();
 dragStart.y();
+dragStart.button();       // 0（左键）
+dragStart.mods();         // 0x0003（Shift | Control）
+dragStart.isLeftButton();  // true
 
-DragEndEvent dragEnd(150, 250, true);  // x, y, dropped
+// DragEndEvent：x, y, button, dropped
+DragEndEvent dragEnd(150, 250, 0, true);  // 左键，被外部取消
 dragEnd.x();
 dragEnd.y();
+dragEnd.button();      // 0（左键）
 dragEnd.wasDropped();  // true
 ```
+
+`button` 取值与 GLFW 一致（0=左键，1=右键，2=中键），`mods` 为 `KeyMods` 位掩码（参见 `Types.hpp`）。这两个字段会由 `BuiltinEvents` 的 `dragStart`/`dragEnd` 处理器透传到 `Widget::onDragStart(x, y, button, mods)` 与 `Widget::onDragEnd(x, y, button, dropped)`，与 `KageroEngine` 在 `handleClick`/`handleRelease` 中直接调用 Widget 虚方法的语义保持一致。
 
 ## 自定义事件
 

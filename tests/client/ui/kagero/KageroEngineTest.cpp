@@ -565,6 +565,108 @@ public:
     int lastReleaseButton = -1;
 };
 
+// ==================== BuiltinEvents 拖拽事件分发测试 ====================
+//
+// 验证 BuiltinEvents 的 dragStart/dragEnd 处理器从 DragStartEvent/DragEndEvent
+// 事件对象读取 button/mods/dropped 字段，正确转发到 Widget::onDragStart/onDragEnd，
+// 不再硬编码为 0。这些测试复用上方的 MockDragTrackingWidget。
+
+TEST_F(BuiltinEventsNewEventsTest, DragStartEventDispatchesOnDragStartWithButtonAndMods)
+{
+    // DragStartEvent 携带 button=1（右键）、mods=Shift+Control（0x0001|0x0002=0x0003）
+    MockDragTrackingWidget widget("test");
+    widget.setActive(true);
+    widget.setVisible(true);
+
+    auto event = tpl::bindings::event_utils::createDragStartEvent(50, 60, 1, 0x0003);
+    bool handled = tpl::bindings::BuiltinEvents::instance().handle(&widget, "dragStart", event);
+
+    EXPECT_TRUE(handled);
+    EXPECT_EQ(1, widget.dragStartCount);
+    EXPECT_EQ(50, widget.lastDragStartX);
+    EXPECT_EQ(60, widget.lastDragStartY);
+    EXPECT_EQ(1, widget.lastDragStartButton);
+    EXPECT_EQ(0x0003, widget.lastDragStartMods);
+}
+
+TEST_F(BuiltinEventsNewEventsTest, DragStartEventDefaultsModsToZero)
+{
+    // 默认 mods=0
+    MockDragTrackingWidget widget("test");
+    widget.setActive(true);
+    widget.setVisible(true);
+
+    auto event = tpl::bindings::event_utils::createDragStartEvent(10, 20, 0);
+    bool handled = tpl::bindings::BuiltinEvents::instance().handle(&widget, "dragStart", event);
+
+    EXPECT_TRUE(handled);
+    EXPECT_EQ(1, widget.dragStartCount);
+    EXPECT_EQ(0, widget.lastDragStartButton);
+    EXPECT_EQ(0, widget.lastDragStartMods);
+}
+
+TEST_F(BuiltinEventsNewEventsTest, DragEndEventDispatchesOnDragEndWithButtonAndDropped)
+{
+    // DragEndEvent 携带 button=2（中键）、dropped=true
+    MockDragTrackingWidget widget("test");
+    widget.setActive(true);
+    widget.setVisible(true);
+
+    auto event = tpl::bindings::event_utils::createDragEndEvent(70, 80, 2, true);
+    bool handled = tpl::bindings::BuiltinEvents::instance().handle(&widget, "dragEnd", event);
+
+    EXPECT_TRUE(handled);
+    EXPECT_EQ(1, widget.dragEndCount);
+    EXPECT_EQ(70, widget.lastDragEndX);
+    EXPECT_EQ(80, widget.lastDragEndY);
+    EXPECT_EQ(2, widget.lastDragEndButton);
+    EXPECT_TRUE(widget.lastDragEndDropped);
+}
+
+TEST_F(BuiltinEventsNewEventsTest, DragEndEventDefaultsDroppedToFalse)
+{
+    // 默认 dropped=false
+    MockDragTrackingWidget widget("test");
+    widget.setActive(true);
+    widget.setVisible(true);
+
+    auto event = tpl::bindings::event_utils::createDragEndEvent(30, 40, 0);
+    bool handled = tpl::bindings::BuiltinEvents::instance().handle(&widget, "dragEnd", event);
+
+    EXPECT_TRUE(handled);
+    EXPECT_EQ(1, widget.dragEndCount);
+    EXPECT_EQ(0, widget.lastDragEndButton);
+    EXPECT_FALSE(widget.lastDragEndDropped);
+}
+
+TEST_F(BuiltinEventsNewEventsTest, InactiveWidgetDoesNotHandleDragStart)
+{
+    // 非激活 Widget 不应触发 onDragStart
+    MockDragTrackingWidget widget("test");
+    widget.setActive(false);
+    widget.setVisible(true);
+
+    auto event = tpl::bindings::event_utils::createDragStartEvent(50, 60, 0, 0);
+    bool handled = tpl::bindings::BuiltinEvents::instance().handle(&widget, "dragStart", event);
+
+    EXPECT_TRUE(handled);                // handler 被找到并调用（但内部提前返回）
+    EXPECT_EQ(0, widget.dragStartCount); // 但 onDragStart 未被调用
+}
+
+TEST_F(BuiltinEventsNewEventsTest, InvisibleWidgetDoesNotHandleDragEnd)
+{
+    // 不可见 Widget 不应触发 onDragEnd
+    MockDragTrackingWidget widget("test");
+    widget.setActive(true);
+    widget.setVisible(false);
+
+    auto event = tpl::bindings::event_utils::createDragEndEvent(50, 60, 0, false);
+    bool handled = tpl::bindings::BuiltinEvents::instance().handle(&widget, "dragEnd", event);
+
+    EXPECT_TRUE(handled);              // handler 被找到并调用（但内部提前返回）
+    EXPECT_EQ(0, widget.dragEndCount); // 但 onDragEnd 未被调用
+}
+
 class KageroEngineDragLifecycleTest : public ::testing::Test {
 protected:
     void SetUp() override

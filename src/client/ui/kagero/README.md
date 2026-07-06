@@ -245,7 +245,9 @@ ContainerWidget 和 ScrollableWidget 均覆写了 `onDragStart`/`onDrag`/`onDrag
 - `drag` → `BuiltinEvents` 调用 `widget->onDrag()`
 - `dragEnd` → `BuiltinEvents` 调用 `widget->onDragEnd()`
 
-事件对象：`DragStartEvent(x, y)`、`MouseDragEvent(x, y, deltaX, deltaY, button)`、`DragEndEvent(x, y, dropped)`。
+事件对象：`DragStartEvent(x, y, button, mods)`、`MouseDragEvent(x, y, deltaX, deltaY, button)`、`DragEndEvent(x, y, button, dropped)`。
+
+其中 `button` 取值与 GLFW 一致（0=左键，1=右键，2=中键），`mods` 为 `KeyMods` 位掩码，`dropped` 表示拖拽是否被外部取消。
 
 ## Tooltip 系统
 

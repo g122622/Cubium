@@ -230,12 +230,22 @@ private:
 
 /**
  * @brief 拖拽开始事件
+ *
+ * 携带触发拖拽的鼠标按钮（button）和拖拽开始时的修饰键状态（mods），
+ * 与 KageroEngine 在 handleClick 中调用 Widget::onDragStart(x, y, button, mods)
+ * 的语义保持一致。BuiltinEvents 的 dragStart 处理器从事件对象读取 button/mods，
+ * 不再硬编码为 0。
+ *
+ * button 取值：0=左键，1=右键，2=中键（与 GLFW 一致）。
+ * mods 取值：KeyMods 枚举的位掩码（参见 Types.hpp）。
  */
 class DragStartEvent : public Event {
 public:
-    DragStartEvent(i32 x, i32 y, void* source = nullptr)
+    DragStartEvent(i32 x, i32 y, i32 button, i32 mods = 0, void* source = nullptr)
         : m_x(x)
         , m_y(y)
+        , m_button(button)
+        , m_mods(mods)
     {
         setTarget(source);
     }
@@ -245,20 +255,39 @@ public:
 
     [[nodiscard]] i32 x() const { return m_x; }
     [[nodiscard]] i32 y() const { return m_y; }
+    [[nodiscard]] i32 button() const { return m_button; }
+    [[nodiscard]] i32 mods() const { return m_mods; }
+
+    /// 是否为左键触发（button == 0）
+    [[nodiscard]] bool isLeftButton() const { return m_button == 0; }
+    /// 是否为右键触发（button == 1）
+    [[nodiscard]] bool isRightButton() const { return m_button == 1; }
 
 private:
     i32 m_x;
     i32 m_y;
+    i32 m_button;
+    i32 m_mods;
 };
 
 /**
  * @brief 拖拽结束事件
+ *
+ * 携带触发拖拽的鼠标按钮（button）以及是否被外部取消（dropped）的标志，
+ * 与 KageroEngine 在 handleRelease 中调用 Widget::onDragEnd(x, y, button, dropped)
+ * 的语义保持一致。BuiltinEvents 的 dragEnd 处理器从事件对象读取 button，
+ * 不再硬编码为 0。
+ *
+ * button 取值：0=左键，1=右键，2=中键（与 GLFW 一致）。
+ * dropped=true 表示拖拽被外部取消（焦点丢失等），当前 KageroEngine 同步路径
+ * 始终传 dropped=false，未来启用取消路径后才会出现 dropped=true 的事件。
  */
 class DragEndEvent : public Event {
 public:
-    DragEndEvent(i32 x, i32 y, bool dropped, void* source = nullptr)
+    DragEndEvent(i32 x, i32 y, i32 button, bool dropped, void* source = nullptr)
         : m_x(x)
         , m_y(y)
+        , m_button(button)
         , m_dropped(dropped)
     {
         setTarget(source);
@@ -269,11 +298,18 @@ public:
 
     [[nodiscard]] i32 x() const { return m_x; }
     [[nodiscard]] i32 y() const { return m_y; }
+    [[nodiscard]] i32 button() const { return m_button; }
     [[nodiscard]] bool wasDropped() const { return m_dropped; }
+
+    /// 是否为左键触发（button == 0）
+    [[nodiscard]] bool isLeftButton() const { return m_button == 0; }
+    /// 是否为右键触发（button == 1）
+    [[nodiscard]] bool isRightButton() const { return m_button == 1; }
 
 private:
     i32 m_x;
     i32 m_y;
+    i32 m_button;
     bool m_dropped;
 };
 

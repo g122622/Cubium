@@ -626,23 +626,56 @@ TEST_F(WidgetEventsTest, FormSubmitEvent)
 
 TEST_F(WidgetEventsTest, DragStartEvent)
 {
-    DragStartEvent event(100, 200);
+    // 默认 mods=0
+    DragStartEvent event(100, 200, 0);
 
     EXPECT_EQ(event.getType(), EventType::Custom);
     EXPECT_STREQ(event.getName(), "DragStart");
     EXPECT_EQ(event.x(), 100);
     EXPECT_EQ(event.y(), 200);
+    EXPECT_EQ(event.button(), 0);
+    EXPECT_EQ(event.mods(), 0);
+    EXPECT_TRUE(event.isLeftButton());
+    EXPECT_FALSE(event.isRightButton());
+}
+
+TEST_F(WidgetEventsTest, DragStartEventWithMods)
+{
+    // 右键 + Shift+Control 修饰键
+    DragStartEvent event(100, 200, 1, 0x0001 | 0x0002);
+
+    EXPECT_EQ(event.x(), 100);
+    EXPECT_EQ(event.y(), 200);
+    EXPECT_EQ(event.button(), 1);
+    EXPECT_EQ(event.mods(), 0x0001 | 0x0002);
+    EXPECT_FALSE(event.isLeftButton());
+    EXPECT_TRUE(event.isRightButton());
 }
 
 TEST_F(WidgetEventsTest, DragEndEvent)
 {
-    DragEndEvent event(150, 250, true);
+    // 默认 dropped=false
+    DragEndEvent event(150, 250, 0, true);
 
     EXPECT_EQ(event.getType(), EventType::Custom);
     EXPECT_STREQ(event.getName(), "DragEnd");
     EXPECT_EQ(event.x(), 150);
     EXPECT_EQ(event.y(), 250);
+    EXPECT_EQ(event.button(), 0);
     EXPECT_TRUE(event.wasDropped());
+    EXPECT_TRUE(event.isLeftButton());
+    EXPECT_FALSE(event.isRightButton());
+}
+
+TEST_F(WidgetEventsTest, DragEndEventWithRightButton)
+{
+    // 右键释放、未取消
+    DragEndEvent event(150, 250, 1, false);
+
+    EXPECT_EQ(event.button(), 1);
+    EXPECT_FALSE(event.wasDropped());
+    EXPECT_FALSE(event.isLeftButton());
+    EXPECT_TRUE(event.isRightButton());
 }
 
 // ==================== EventBus Tests ====================

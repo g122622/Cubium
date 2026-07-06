@@ -317,32 +317,24 @@ void BuiltinEvents::_registerDragEvents()
     m_eventTypes[event_names::DRAG] = event::EventType::MouseDrag;
 
     // dragStart事件：拖拽开始，调用 Widget::onDragStart
-    //
-    // TODO: DragStartEvent 当前仅携带 x/y，未携带 button 与 mods 字段，此处硬编码为
-    // button=0（左键）、mods=0（无修饰键）。KageroEngine::handleClick 走同步调用路径
-    // 不经过此 handler，实际 button/mods 由 KageroEngine 直接传入 onDragStart。
-    // 若未来 BuiltinEvents::handle() 被启用为拖拽分发入口，需扩展 DragStartEvent
-    // 结构以携带 button/mods，并在此处改为从事件对象读取。
+    // DragStartEvent 携带 button/mods，与 KageroEngine::handleClick 同步路径
+    // 直接调用 Widget::onDragStart(x, y, button, mods) 的语义一致。
     m_handlers[event_names::DRAG_START] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragStartEvent*>(&event)) {
-                widget->onDragStart(dragEvent->x(), dragEvent->y(), /*button=*/0, /*mods=*/0);
+                widget->onDragStart(dragEvent->x(), dragEvent->y(), dragEvent->button(), dragEvent->mods());
             }
         }
     };
     m_eventTypes[event_names::DRAG_START] = event::EventType::Custom;
 
     // dragEnd事件：拖拽结束，调用 Widget::onDragEnd
-    //
-    // TODO: DragEndEvent 当前携带 x/y/wasDropped，未携带 button 字段，此处硬编码为
-    // button=0（左键）。KageroEngine::handleRelease 走同步调用路径不经过此 handler，
-    // 实际 button 由 KageroEngine::m_dragButton 直接传入 onDragEnd。若未来
-    // BuiltinEvents::handle() 被启用为拖拽分发入口，需扩展 DragEndEvent 结构以携带
-    // button，并在此处改为从事件对象读取。
+    // DragEndEvent 携带 button，与 KageroEngine::handleRelease 同步路径
+    // 直接调用 Widget::onDragEnd(x, y, m_dragButton, dropped) 的语义一致。
     m_handlers[event_names::DRAG_END] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::DragEndEvent*>(&event)) {
-                widget->onDragEnd(dragEvent->x(), dragEvent->y(), /*button=*/0, dragEvent->wasDropped());
+                widget->onDragEnd(dragEvent->x(), dragEvent->y(), dragEvent->button(), dragEvent->wasDropped());
             }
         }
     };
@@ -413,6 +405,16 @@ event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button, i32 mods)
 event::MouseDragEvent createDragEvent(i32 x, i32 y, i32 deltaX, i32 deltaY, i32 button)
 {
     return event::MouseDragEvent(x, y, deltaX, deltaY, button);
+}
+
+event::DragStartEvent createDragStartEvent(i32 x, i32 y, i32 button, i32 mods)
+{
+    return event::DragStartEvent(x, y, button, mods);
+}
+
+event::DragEndEvent createDragEndEvent(i32 x, i32 y, i32 button, bool dropped)
+{
+    return event::DragEndEvent(x, y, button, dropped);
 }
 
 event::MouseScrollEvent createScrollEvent(i32 x, i32 y, f64 deltaX, f64 deltaY)
