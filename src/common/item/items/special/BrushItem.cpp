@@ -12,25 +12,63 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, ARISING FROM, IN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #include "common/item/items/special/BrushItem.hpp"
+
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include "common/util/math/Vector3.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/functional/TrailsBlocks.hpp"
 
 namespace mc {
 namespace item {
+
+// ============================================================================
+// DustParticlesDelta
+// ============================================================================
+
+BrushItem::DustParticlesDelta BrushItem::DustParticlesDelta::fromDirection(
+    const Vector3& viewVector, Direction direction) noexcept
+{
+    // 对齐 MC 1.21.11 BrushItem.DustParticlesDelta.fromDirection
+    // ALONG_SIDE_DELTA = 1.0, OUT_FROM_SIDE_DELTA = 0.1
+    switch (direction) {
+        case Direction::Down:
+        case Direction::Up:
+            // 顶/底面：粒子方向偏移取视线向量的 (z, 0, -x)
+            return DustParticlesDelta{static_cast<f64>(viewVector.z), 0.0, -static_cast<f64>(viewVector.x)};
+        case Direction::North:
+            return DustParticlesDelta{1.0, 0.0, -0.1};
+        case Direction::South:
+            return DustParticlesDelta{-1.0, 0.0, 0.1};
+        case Direction::West:
+            return DustParticlesDelta{-0.1, 0.0, -1.0};
+        case Direction::East:
+            return DustParticlesDelta{0.1, 0.0, 1.0};
+        default:
+            return DustParticlesDelta{0.0, 0.0, 0.0};
+    }
+}
+
+// ============================================================================
+// 构造与基本属性
+// ============================================================================
 
 BrushItem::BrushItem(ItemProperties properties)
     : Item(std::move(properties))
@@ -40,8 +78,11 @@ ActionResultType BrushItem::onItemUse(ItemUseContext& context)
 {
     Player* player = context.getPlayer();
     if (player != nullptr) {
-        // 玩家对准方块右键时，开始持续使用刷子
-        player->setActiveHand(context.getHand());
+        // 对齐 MC BrushItem.useOn：仅当视线对准方块时才开始持续使用
+        const BlockRaycastResult hit = calculateHitResult(*player);
+        if (hit.isHit()) {
+            player->setActiveHand(context.getHand());
+        }
     }
     return ActionResultType::Consume;
 }
@@ -53,6 +94,10 @@ ItemActionResult BrushItem::onItemRightClick(IWorld& world, Player& player, Hand
     return ItemActionResult::success(
         player.getMutableEquipment(hand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand));
 }
+
+// ============================================================================
+// onUseTick 核心刷扫逻辑
+// ============================================================================
 
 void BrushItem::onUseTick(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 elapsedTicks)
 {
@@ -66,34 +111,119 @@ void BrushItem::onUseTick(ItemStack& stack, IWorld& world, LivingEntity& entity,
     }
 
     // 计算当前是否为刷扫触发tick
-    // MC原版：每 ANIMATION_DURATION ticks 的第 BRUSH_TICK_IN_CYCLE tick 触发刷扫
-    // elapsedTicks 是1-based的，MC原版逻辑为 (i % 10 == 5)，其中 i = useDuration - count + 1
-    // 即 elapsedTicks 从1开始，当 (elapsedTicks % ANIMATION_DURATION == BRUSH_TICK_IN_CYCLE + 1) 时触发
-    bool shouldBrush = (elapsedTicks % ANIMATION_DURATION == BRUSH_TICK_IN_CYCLE + 1);
-
+    // 对齐 MC 1.21.11 BrushItem.onUseTick：
+    //   int i = getUseDuration - count + 1;  // count 即剩余时间，从 useDuration 递减
+    //   boolean flag = i % 10 == 5;
+    // 其中 i 即为本项目的 elapsedTicks（1-based）。
+    // 当 (elapsedTicks % ANIMATION_DURATION == BRUSH_TICK_IN_CYCLE + 1) 时触发刷扫
+    // 即 elapsedTicks = 5, 15, 25, 35, ...
+    const bool shouldBrush = (elapsedTicks % ANIMATION_DURATION == BRUSH_TICK_IN_CYCLE + 1);
     if (!shouldBrush) {
         return;
     }
 
-    // TODO: 当玩家视线射线检测（raycast）系统完善后，需要检测玩家视线是否对准方块。
-    // MC原版在 onUseTick 中调用 calculateHitResult 检查玩家视线，如果未对准方块则取消使用。
-    // 当前实现中暂无法从 onUseTick 获取射线检测结果，因此先跳过此检查。
+    // 对齐 MC BrushItem.onUseTick：先做视线射线检测
+    const BlockRaycastResult hit = calculateHitResult(*player);
+    if (!hit.isHit()) {
+        // 未对准方块，取消使用（对应 MC releaseUsingItem）
+        entity.stopActiveHand();
+        return;
+    }
+
+    const BlockPos& blockPos = hit.blockPos();
+    const BlockState* blockState = world.getBlockState(blockPos);
+    if (blockState == nullptr) {
+        return;
+    }
+
+    // 对齐 MC：判断主手/副手决定粒子方向镜像
+    // 主手使用时取主手臂侧；副手使用时取主手臂的对侧
+    const HandSide primaryArm = player->getPrimaryHand();
+    const HandSide arm = (player->getActiveHand() == Hand::MainHand)
+        ? primaryArm
+        : (primaryArm == HandSide::Right ? HandSide::Left : HandSide::Right);
+
+    // 对齐 MC：shouldSpawnTerrainParticles() && getRenderShape() != INVISIBLE
+    // 才生成方块碎屑粒子
+    if (blockState->shouldSpawnTerrainParticles() && !blockState->isInvisibleRenderType()) {
+        spawnDustParticles(world, hit, *blockState, player->getLookVector(), arm);
+    }
+
+    // 对齐 MC：播放刷扫音效
+    // 若命中方块是 BrushableBlock，使用其绑定的刷扫音效；否则使用 BRUSH_GENERIC
+    const auto* brushableBlock = dynamic_cast<const blocks::BrushableBlock*>(&blockState->getBlock());
+    const ResourceLocation& brushSound =
+        (brushableBlock != nullptr) ? brushableBlock->getBrushSound() : SoundEvents::BRUSH_GENERIC;
+
+    // world.playSound(player, blockpos, soundevent, SoundSource.BLOCKS)
+    world.playSound(brushSound, sound::SoundCategory::Blocks, blockPos.center(), 1.0f, 1.0f);
 
     // TODO: 当 BrushableBlockEntity 实现后，在此处添加完整的刷扫逻辑：
-    // 1. 获取射线检测命中的方块位置
-    // 2. 检查方块是否为 BrushableBlock
-    // 3. 播放方块对应的刷扫音效（可疑沙: BRUSH_SAND, 可疑沙砾: BRUSH_GRAVEL, 其他: BRUSH_GENERIC）
-    // 4. 获取 BrushableBlockEntity 并调用其 brush() 方法
-    // 5. 如果刷扫成功，消耗1耐久: LivingEntity::hurtAndBreak(stack, 1, player, slot)
-    // 6. 如果刷扫完成（brushCount 达到10），播放 BRUSH_BLOCK_COMPLETE 世界事件
-    //    world.playEvent(WorldEvents::BRUSH_BLOCK_COMPLETE, blockPos, 0);
-    // 7. 播放方块碎屑粒子
-
-    // 简化实现：播放刷扫粒子效果（待 BrushableBlockEntity 实现后替换为完整逻辑）
-    world.addParticle(particle::ParticleTypeId::DustPlume,
-        entity.position() + Vector3(0.0f, entity.eyeHeight() * 0.5f, 0.0f),
-        Vector3(0.0f, 0.1f, 0.0f));
+    // 1. 获取方块实体并调用 brushableblockentity.brush(gameTime, serverlevel, player, direction, stack)
+    // 2. 如果 brush() 返回 true（刷扫成功/完成）：
+    //    a. 消耗1耐久：LivingEntity::hurtAndBreak(stack, 1, player, handToEquipmentSlot(hand))
+    //    b. 播放完成音效：brushableBlock.getBrushCompletedSound()
+    //    c. 触发世界事件：world.playEvent(WorldEvents::BRUSH_BLOCK_COMPLETE, blockPos, 0)
+    // 注意：当前 BrushableBlockEntity 尚未实现，因此刷扫仅播放音效和粒子，
+    //       不消耗耐久、不刷出物品。待 BrushableBlockEntity 实现后补全此分支。
 }
+
+// ============================================================================
+// 私有辅助方法
+// ============================================================================
+
+BlockRaycastResult BrushItem::calculateHitResult(const Player& player)
+{
+    // 对齐 MC 1.21.11 BrushItem.calculateHitResult：
+    //   ProjectileUtil.getHitResultOnViewVector(player, EntitySelector.CAN_BE_PICKED, player.blockInteractionRange())
+    // 本项目仅做方块射线检测（刷子主要场景为方块），距离为 BLOCK_INTERACTION_RANGE。
+    const Vector3 eyePosition = player.getEyePosition();
+    const Ray ray(eyePosition, player.getLookVector());
+    const RaycastContext context(ray, BLOCK_INTERACTION_RANGE);
+    return raycastBlocks(context, *player.world());
+}
+
+void BrushItem::spawnDustParticles(IWorld& world,
+    const BlockRaycastResult& hitResult,
+    const BlockState& blockState,
+    const Vector3& viewVector,
+    HandSide arm)
+{
+    // 对齐 MC 1.21.11 BrushItem.spawnDustParticles
+    constexpr f64 ALONG_SIDE_DELTA = 3.0; // MC 源码中 d0 = 3.0
+    const i32 directionSign = (arm == HandSide::Right) ? 1 : -1;
+
+    // MC: int j = random.nextInt(7, 12);  // [7, 12)
+    // Cubium nextInt(min, max) 是 [min, max] 闭区间，因此用 nextInt(7, 11) 等价 [7, 11] = [7, 12)
+    math::Random& rng = world.getRandom();
+    const i32 particleCount = rng.nextInt(7, 11);
+
+    const Direction direction = hitResult.face();
+    const DustParticlesDelta delta = DustParticlesDelta::fromDirection(viewVector, direction);
+    const Vector3 hitPos = hitResult.hitPosition();
+
+    // 对齐 MC：West 方向时 x 坐标减 1e-6，North 方向时 z 坐标减 1e-6
+    const f32 xOffset = (direction == Direction::West) ? -1.0e-6f : 0.0f;
+    const f32 zOffset = (direction == Direction::North) ? -1.0e-6f : 0.0f;
+
+    for (i32 k = 0; k < particleCount; ++k) {
+        // MC: addParticle(blockparticleoption, vec3.x - offset, vec3.y, vec3.z - offset,
+        //                 delta.xd * sign * 3.0 * random.nextDouble(),
+        //                 0.0,
+        //                 delta.zd * sign * 3.0 * random.nextDouble());
+        const Vector3 position(hitPos.x + xOffset, hitPos.y, hitPos.z + zOffset);
+        const f64 velocityX = delta.xd * directionSign * ALONG_SIDE_DELTA * rng.nextDouble();
+        const f64 velocityZ = delta.zd * directionSign * ALONG_SIDE_DELTA * rng.nextDouble();
+        const Vector3 velocity(static_cast<f32>(velocityX), 0.0f, static_cast<f32>(velocityZ));
+
+        // 使用 Block 粒子携带方块状态（等价 MC 的 BlockParticleOption(ParticleTypes.BLOCK, blockstate)）
+        world.addBlockParticle(particle::ParticleTypeId::Block, position, velocity, blockState);
+    }
+}
+
+// ============================================================================
+// 实体交互（犰狳）与其他
+// ============================================================================
 
 bool BrushItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {

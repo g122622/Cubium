@@ -23,6 +23,7 @@
 
 #include "world/block/registry/TrailsBlocks.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
@@ -72,17 +73,20 @@ void registerTrailsBlocks()
     // ============================================================================
 
     // 可疑的沙 - 受重力影响，可以被刷子刷出物品，DUSTED属性(0-3)
+    // 刷扫音效：BRUSH_SAND，完成音效：BRUSH_SAND_COMPLETED
     TrailsBlocks::SUSPICIOUS_SAND = &registry.registerBlock<blocks::BrushableBlock>(
         ResourceLocation("minecraft:suspicious_sand"),
-        BlockProperties(Material::SAND).hardness(0.25f).resistance(0.25f).soundType(BlockSoundTypes::SUSPICIOUS_SAND));
+        BlockProperties(Material::SAND).hardness(0.25f).resistance(0.25f).soundType(BlockSoundTypes::SUSPICIOUS_SAND),
+        SoundEvents::BRUSH_SAND,
+        SoundEvents::BRUSH_SAND_COMPLETED);
 
     // 可疑的沙砾 - 受重力影响，可以被刷子刷出物品，DUSTED属性(0-3)
-    TrailsBlocks::SUSPICIOUS_GRAVEL =
-        &registry.registerBlock<blocks::BrushableBlock>(ResourceLocation("minecraft:suspicious_gravel"),
-            BlockProperties(Material::SAND)
-                .hardness(0.25f)
-                .resistance(0.25f)
-                .soundType(BlockSoundTypes::SUSPICIOUS_GRAVEL));
+    // 刷扫音效：BRUSH_GRAVEL，完成音效：BRUSH_GRAVEL_COMPLETED
+    TrailsBlocks::SUSPICIOUS_GRAVEL = &registry.registerBlock<blocks::BrushableBlock>(
+        ResourceLocation("minecraft:suspicious_gravel"),
+        BlockProperties(Material::SAND).hardness(0.25f).resistance(0.25f).soundType(BlockSoundTypes::SUSPICIOUS_GRAVEL),
+        SoundEvents::BRUSH_GRAVEL,
+        SoundEvents::BRUSH_GRAVEL_COMPLETED);
 
     // ============================================================================
     // 雕书架

@@ -27,6 +27,7 @@
 #include "../FallingBlock.hpp"
 #include "../HorizontalBlock.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 
 namespace mc {
@@ -184,19 +185,51 @@ private:
  *
  * 可被刷子刷出考古物品的方块。受重力影响。
  * 状态属性：DUSTED (0-3)
+ *
+ * 每个 BrushableBlock 实例绑定一个刷扫音效（brushSound）和刷扫完成音效
+ * （brushCompletedSound），由构造函数传入。MC 1.21.11 中 BrushableBlock 通过
+ * 数据驱动字段 brush_sound / brush_completed_sound 配置，本项目以构造参数
+ * 形式提供等价能力。
  */
 class BrushableBlock : public FallingBlock {
 public:
     /**
      * @brief 构造函数
      * @param properties 方块属性
+     * @param brushSound 刷扫过程中循环播放的音效（对应 MC 的 brush_sound）
+     * @param brushCompletedSound 刷扫完成时播放的音效（对应 MC 的 brush_completed_sound）
      */
-    explicit BrushableBlock(const BlockProperties& properties);
+    BrushableBlock(
+        const BlockProperties& properties, ResourceLocation brushSound, ResourceLocation brushCompletedSound);
 
     ~BrushableBlock() override = default;
 
+    /**
+     * @brief 获取刷扫音效
+     *
+     * BrushItem::onUseTick 在每次刷扫触发 tick 调用此方法获取音效并播放。
+     * 可疑沙返回 BRUSH_SAND，可疑沙砾返回 BRUSH_GRAVEL。
+     *
+     * @return 刷扫音效资源位置
+     */
+    [[nodiscard]] const ResourceLocation& getBrushSound() const noexcept { return m_brushSound; }
+
+    /**
+     * @brief 获取刷扫完成音效
+     *
+     * 当 BrushableBlockEntity.brush() 返回 true（即刷扫完成，刷出物品）时播放。
+     * 可疑沙返回 BRUSH_SAND_COMPLETED，可疑沙砾返回 BRUSH_GRAVEL_COMPLETED。
+     *
+     * @return 刷扫完成音效资源位置
+     */
+    [[nodiscard]] const ResourceLocation& getBrushCompletedSound() const noexcept { return m_brushCompletedSound; }
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+private:
+    ResourceLocation m_brushSound;
+    ResourceLocation m_brushCompletedSound;
 };
 
 /**

@@ -239,6 +239,11 @@ bool BlockState::isStickyBlock() const
     return m_owner->isStickyBlock(*this);
 }
 
+bool BlockState::isInvisibleRenderType() const
+{
+    return m_owner->getRenderType(*this) == Block::RenderType::INVISIBLE;
+}
+
 bool BlockState::canBeReplacedByFluid() const
 {
     // 对应 MC 的 BlockBehaviour.canBeReplaced(BlockState, Fluid)：

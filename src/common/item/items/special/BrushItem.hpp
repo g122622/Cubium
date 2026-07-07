@@ -12,10 +12,10 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, ARISING FROM, IN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -27,12 +27,15 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
 class IWorld;
 class Player;
 class LivingEntity;
+class BlockRaycastResult;
 
 namespace item {
 
@@ -49,7 +52,7 @@ namespace item {
  * - 动画周期：10 ticks
  *
  * 使用机制：
- * - 玩家右键方块开始持续使用刷子
+ * - 玩家右键方块开始持续使用刷子（onItemUse 检查视线是否对准方块）
  * - 每10 ticks触发一次刷扫（动画周期的第5 tick）
  * - 每次成功刷扫消耗1耐久
  * - 刷扫犰狳时消耗16耐久
@@ -68,11 +71,51 @@ public:
     /// 动画周期（ticks），每10 ticks触发一次刷扫
     static constexpr i32 ANIMATION_DURATION = 10;
 
-    /// 刷扫触发时机（动画周期内的第几个tick，0-based 为第5 tick）
+    /// 刷扫触发时机（动画周期内的第几个tick，0-based 为第4 tick，即第5 tick触发）
     static constexpr i32 BRUSH_TICK_IN_CYCLE = 4;
 
     /// 刷犰狳时的耐久消耗量
     static constexpr i32 ARMADILLO_DURABILITY_COST = 16;
+
+    /**
+     * @brief 玩家方块交互距离（与 MC 1.21.11 Player.blockInteractionRange 对齐）
+     *
+     * MC 中创造/生存模式均为 5.0 格。本项目 Player 暂未提供 blockInteractionRange()，
+     * 暂以常量形式在此处内联，待 Player 完善后改为调用 Player::blockInteractionRange()。
+     */
+    static constexpr f32 BLOCK_INTERACTION_RANGE = 5.0f;
+
+    /**
+     * @brief 刷扫粒子方向偏移记录
+     *
+     * 对应 MC 1.21.11 BrushItem.DustParticlesDelta。
+     * 根据玩家视线方向和命中面方向计算粒子在 X/Z 轴上的方向偏移，
+     * 用于让粒子沿方块表面散射而非垂直飞出。
+     */
+    struct DustParticlesDelta {
+        /// X 轴方向偏移
+        f64 xd;
+        /// Y 轴方向偏移（恒为0，刷子粒子不向上飞）
+        f64 yd;
+        /// Z 轴方向偏移
+        f64 zd;
+
+        /**
+         * @brief 根据视线方向和命中面方向计算粒子方向偏移
+         *
+         * 算法对齐 MC 1.21.11 BrushItem.DustParticlesDelta.fromDirection：
+         * - Down/Up：偏移取视线向量的 (z, -x) 分量
+         * - North：(-1, 0, -0.1)
+         * - South：(1, 0, 0.1)
+         * - West：(-0.1, 0, -1)
+         * - East：(0.1, 0, 1)
+         *
+         * @param viewVector 玩家视线方向（归一化）
+         * @param direction 命中面方向
+         * @return 粒子方向偏移
+         */
+        [[nodiscard]] static DustParticlesDelta fromDirection(const Vector3& viewVector, Direction direction) noexcept;
+    };
 
     /**
      * @brief 构造刷子
@@ -112,10 +155,11 @@ public:
      * @brief 物品使用过程中每tick调用
      *
      * 每 ANIMATION_DURATION (10) ticks 的第 BRUSH_TICK_IN_CYCLE+1 (5th) tick 触发刷扫逻辑：
-     * 1. 检查玩家是否仍对准方块
-     * 2. 对可刷方块执行刷扫逻辑
-     * 3. 播放音效和粒子
-     * 4. 消耗耐久
+     * 1. 通过 calculateHitResult 检查玩家视线是否仍对准方块，未对准则 stopActiveHand
+     * 2. 命中方块时：
+     *    - 播放方块对应的刷扫音效（BrushableBlock::getBrushSound 或 BRUSH_GENERIC）
+     *    - 生成方块碎屑粒子（spawnDustParticles，仅当 shouldSpawnTerrainParticles 且渲染类型非 INVISIBLE）
+     *    - 调用 BrushableBlockEntity.brush()（若存在），返回 true 时消耗1耐久
      *
      * @param stack 物品堆
      * @param world 世界引用
@@ -159,6 +203,39 @@ public:
      * @return 1
      */
     [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
+
+private:
+    /**
+     * @brief 计算玩家视线射线检测结果
+     *
+     * 对齐 MC 1.21.11 BrushItem.calculateHitResult。
+     * 从玩家眼睛位置沿视线方向进行方块射线检测，
+     * 最大距离为 BLOCK_INTERACTION_RANGE (5.0)。
+     *
+     * @param player 玩家
+     * @return 方块射线检测结果（miss 或 hit）
+     */
+    [[nodiscard]] static BlockRaycastResult calculateHitResult(const Player& player);
+
+    /**
+     * @brief 生成刷扫方块碎屑粒子
+     *
+     * 对齐 MC 1.21.11 BrushItem.spawnDustParticles。
+     * 在命中点附近生成 7~11 个 Block 粒子（携带方块状态），
+     * 粒子速度沿命中面表面散射（由 DustParticlesDelta 决定），
+     * 并根据主手/副手镜像方向。
+     *
+     * @param world 世界引用
+     * @param hitResult 方块射线检测结果
+     * @param blockState 命中方块状态（用于粒子纹理）
+     * @param viewVector 玩家视线方向（归一化）
+     * @param arm 使用刷子的手臂侧（Left/Right，决定粒子方向镜像）
+     */
+    static void spawnDustParticles(IWorld& world,
+        const BlockRaycastResult& hitResult,
+        const BlockState& blockState,
+        const Vector3& viewVector,
+        HandSide arm);
 };
 
 } // namespace item

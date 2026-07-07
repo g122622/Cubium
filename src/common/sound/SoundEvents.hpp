@@ -1748,6 +1748,30 @@ extern const ResourceLocation BLOCK_EYEBLOSSOM_CLOSE;
 extern const ResourceLocation BLOCK_EYEBLOSSOM_IDLE;
 
 // ============================================================================
+// 刷子音效 (BRUSH_)
+// ============================================================================
+
+/// 刷子通用刷扫音效（非 BrushableBlock 方块使用）
+/// 对应 MC Java: SoundEvents.BRUSH_GENERIC = "item.brush.brushing.generic"
+extern const ResourceLocation BRUSH_GENERIC;
+
+/// 刷扫可疑沙音效
+/// 对应 MC Java: SoundEvents.BRUSH_SAND = "item.brush.brushing.sand"
+extern const ResourceLocation BRUSH_SAND;
+
+/// 刷扫可疑沙砾音效
+/// 对应 MC Java: SoundEvents.BRUSH_GRAVEL = "item.brush.brushing.gravel"
+extern const ResourceLocation BRUSH_GRAVEL;
+
+/// 刷扫可疑沙完成音效（刷出物品时播放）
+/// 对应 MC Java: SoundEvents.BRUSH_SAND_COMPLETED = "item.brush.brushing.sand.complete"
+extern const ResourceLocation BRUSH_SAND_COMPLETED;
+
+/// 刷扫可疑沙砾完成音效（刷出物品时播放）
+/// 对应 MC Java: SoundEvents.BRUSH_GRAVEL_COMPLETED = "item.brush.brushing.gravel.complete"
+extern const ResourceLocation BRUSH_GRAVEL_COMPLETED;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 

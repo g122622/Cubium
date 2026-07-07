@@ -111,6 +111,27 @@ public:
     [[nodiscard]] bool isAir() const;
 
     /**
+     * @brief 是否应该生成地形粒子
+     *
+     * 对应 MC 1.21.11 net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase#shouldSpawnTerrainParticles。
+     * 默认实现：!isAir()。
+     * 用于刷子（BrushItem）等需要根据视线方块生成方块碎屑粒子的场景。
+     *
+     * @return 如果应生成地形粒子返回 true
+     */
+    [[nodiscard]] bool shouldSpawnTerrainParticles() const { return !isAir(); }
+
+    /**
+     * @brief 获取方块的渲染类型是否为不可见
+     *
+     * 委托到方块的 getRenderType 虚方法，判断是否为 INVISIBLE。
+     * 用于刷子（BrushItem）判断是否生成碎屑粒子（INVISIBLE 方块不生成）。
+     *
+     * @return 如果方块渲染类型为 INVISIBLE 返回 true
+     */
+    [[nodiscard]] bool isInvisibleRenderType() const;
+
+    /**
      * @brief 是否为固体
      */
     [[nodiscard]] bool isSolid() const { return m_isSolid; }

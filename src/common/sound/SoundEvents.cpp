@@ -1597,6 +1597,16 @@ const ResourceLocation BLOCK_EYEBLOSSOM_CLOSE("minecraft:block.eyeblossom.close"
 const ResourceLocation BLOCK_EYEBLOSSOM_IDLE("minecraft:block.eyeblossom.idle");
 
 // ============================================================================
+// 刷子音效 (BRUSH_)
+// ============================================================================
+
+const ResourceLocation BRUSH_GENERIC("minecraft:item.brush.brushing.generic");
+const ResourceLocation BRUSH_SAND("minecraft:item.brush.brushing.sand");
+const ResourceLocation BRUSH_GRAVEL("minecraft:item.brush.brushing.gravel");
+const ResourceLocation BRUSH_SAND_COMPLETED("minecraft:item.brush.brushing.sand.complete");
+const ResourceLocation BRUSH_GRAVEL_COMPLETED("minecraft:item.brush.brushing.gravel.complete");
+
+// ============================================================================
 // 初始化
 // ============================================================================
 

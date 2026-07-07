@@ -413,8 +413,11 @@ ItemStack DecoratedPotBlock::getCloneItemStack(const BlockState& state, IWorld* 
 // BrushableBlock
 // ============================================================================
 
-BrushableBlock::BrushableBlock(const BlockProperties& properties)
+BrushableBlock::BrushableBlock(
+    const BlockProperties& properties, ResourceLocation brushSound, ResourceLocation brushCompletedSound)
     : FallingBlock(properties)
+    , m_brushSound(std::move(brushSound))
+    , m_brushCompletedSound(std::move(brushCompletedSound))
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
