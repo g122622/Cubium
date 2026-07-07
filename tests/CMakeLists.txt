@@ -1203,6 +1203,8 @@ add_executable(mc_tests
     ${CMAKE_SOURCE_DIR}/src/client/ui/screen/tooltip/BundleTooltipRenderer.cpp
     # ScreenStackWidget 屏幕栈回调与事件通知测试
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
+    # CreateWorldScreen 创建世界界面配置选项与 buildRequest 测试
+    client/ui/minecraft/screens/CreateWorldScreenTest.cpp
     # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
     client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
@@ -2050,6 +2052,10 @@ target_sources(mc_tests
         # ScreenStackWidget 及 Screen 依赖
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/Screen.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/widgets/ScreenStackWidget.cpp
+        # CreateWorldScreen 测试依赖：模板屏幕基类 + 模板运行时实例 + 创建世界屏幕
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/TemplateScreen.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/TemplateInstance.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/CreateWorldScreen.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp

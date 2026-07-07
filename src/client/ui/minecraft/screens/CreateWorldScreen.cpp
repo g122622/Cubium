@@ -70,7 +70,6 @@ CreateWorldScreen::CreateWorldScreen()
     _updateGameModeText();
     _updateWorldTypeText();
     _updateDifficultyText();
-    _updateViewDistanceText();
 }
 
 void CreateWorldScreen::onOpen()
@@ -91,6 +90,8 @@ void CreateWorldScreen::_registerCallbacks()
 
     exposeSimpleCallback("onToggleAllowCommands", [this]() { _toggleAllowCommands(); });
 
+    exposeSimpleCallback("onViewDistanceChanged", [this]() { _onViewDistanceChanged(); });
+
     exposeSimpleCallback("onCreate", [this]() {
         if (_validateInput() && m_onCreate) {
             m_onCreate(buildRequest());
@@ -103,19 +104,11 @@ void CreateWorldScreen::_registerCallbacks()
         }
     });
 
-    // 视距滑块值变化回调：直接通过 C++ 侧连接，避免模板事件参数解析的复杂性
+    // 滑块显示配置：整数步长 + 整数格式化，让滑块上直接显示当前视距值
+    // 事件回调通过模板的 on:change 绑定到 onViewDistanceChanged，无需在此处 setOnValueChanged
     if (m_viewDistanceSlider) {
         m_viewDistanceSlider->setStepSize(1.0);
         m_viewDistanceSlider->setFormatCallback([](f64 value) { return std::to_string(static_cast<i32>(value)); });
-        m_viewDistanceSlider->setOnValueChanged([this](f64 value) {
-            m_viewDistance = static_cast<i32>(value);
-            _updateViewDistanceText();
-        });
-    }
-
-    // 允许作弊复选框状态变化回调
-    if (m_allowCommandsCheckbox) {
-        m_allowCommandsCheckbox->setOnChanged([this](bool checked) { m_allowCommands = checked; });
     }
 }
 
@@ -201,17 +194,19 @@ void CreateWorldScreen::_updateDifficultyText()
     }
 }
 
-void CreateWorldScreen::_updateViewDistanceText()
-{
-    // 视距值通过滑块的格式化回调直接显示在滑块上，无需额外更新标签
-}
-
 void CreateWorldScreen::_toggleAllowCommands()
 {
-    // 复选框状态变化已通过 setOnChanged 回调同步到 m_allowCommands。
-    // 此方法作为模板 on:change 回调的入口，保留以备未来扩展（如联动难度/游戏模式）
+    // 由模板的 on:change 事件回调触发，复选框状态已由 CheckboxWidget 内部更新
     if (m_allowCommandsCheckbox) {
         m_allowCommands = m_allowCommandsCheckbox->isChecked();
+    }
+}
+
+void CreateWorldScreen::_onViewDistanceChanged()
+{
+    // 由模板的 on:change 事件回调触发，滑块值已由 SliderWidget 内部更新
+    if (m_viewDistanceSlider) {
+        m_viewDistance = static_cast<i32>(m_viewDistanceSlider->value());
     }
 }
 

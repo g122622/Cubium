@@ -21,7 +21,7 @@
         <checkbox id="allowCommandsCheck" pos="90,150" size="20,20" checked="false" on:change="onToggleAllowCommands"/>
 
         <text id="viewDistanceLabel" text="View Distance" pos="0,180" size="80,20"/>
-        <slider id="viewDistanceSlider" pos="90,180" size="100,20" range="3,32" value="12"/>
+        <slider id="viewDistanceSlider" pos="90,180" size="100,20" range="3,32" value="12" on:change="onViewDistanceChanged"/>
     </container>
 
     <container id="buttonBar" pos="150,360" size="200,30">

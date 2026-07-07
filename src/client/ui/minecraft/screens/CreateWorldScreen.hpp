@@ -37,6 +37,10 @@
 
 namespace mc::client::ui::minecraft {
 
+namespace test {
+class CreateWorldScreenTestAccessor;
+} // namespace test
+
 /**
  * @brief 创建世界界面
  *
@@ -68,8 +72,8 @@ private:
     void _updateGameModeText();
     void _updateWorldTypeText();
     void _updateDifficultyText();
-    void _updateViewDistanceText();
     void _toggleAllowCommands();
+    void _onViewDistanceChanged();
     bool _validateInput();
     void _focusField(kagero::widget::TextFieldWidget* field);
 
@@ -102,6 +106,8 @@ private:
     // 回调
     CreateCallback m_onCreate;
     Callback m_onCancel;
+
+    friend class test::CreateWorldScreenTestAccessor;
 };
 
 } // namespace mc::client::ui::minecraft
