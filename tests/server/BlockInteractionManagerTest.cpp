@@ -42,6 +42,7 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <ctime>
 #include <filesystem>
@@ -53,6 +54,20 @@ namespace {
 class BlockInteractionTestServer final : public test::BaseTestServer {
 public:
     explicit BlockInteractionTestServer(server::ServerWorld& world) { setPlayerWorld(&world); }
+
+    // 提供 playerEntityManager：BaseTestServer 默认桩会抛异常，而 _canBreakBlock 经
+    // _getPlayerEntity 调用本接口（noexcept），抛异常会触发 std::terminate。
+    // 这里返回一个空的 ServerPlayerEntityManager——getPlayerEntity 对未注册玩家返回 nullptr，
+    // _canBreakBlock 在 player==nullptr 时会跳过 player 相关权限检查（gameMaster/冒险模式），
+    // 走到 _canInteract（仅依赖 PlayerManager），与测试 fixture 仅注入 ServerPlayerData 的语义一致。
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_playerEntityManager;
+    }
+
+private:
+    server::ServerPlayerEntityManager m_playerEntityManager;
 };
 
 class BlockInteractionManagerPlacementTest : public ::testing::Test {

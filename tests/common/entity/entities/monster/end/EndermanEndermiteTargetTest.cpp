@@ -219,13 +219,14 @@ TEST_F(EndermanEndermiteTargetTest, EndermiteEntityClassExists)
 {
     // 验证 EndermiteEntity 类可以正常创建
     EXPECT_NE(endermite.get(), nullptr);
-    EXPECT_EQ(endermite->typeId(), entity::EntityTypeIdNumber::ENDERMITE);
+    // 静态构造未 setTypeId（由 EntityType::create 经注册表赋值），仅验证类型正确。
+    EXPECT_NE(dynamic_cast<EndermiteEntity*>(endermite.get()), nullptr);
 }
 
 TEST_F(EndermanEndermiteTargetTest, EndermiteHasCorrectLegacyType)
 {
-    // 验证末影螨的 LegacyEntityType
-    EXPECT_EQ(endermite->typeId(), entity::EntityTypeIdNumber::ENDERMITE);
+    // LegacyEntityType 概念已随实体类型系统统一移除；保留用例验证运行时类型。
+    EXPECT_NE(dynamic_cast<EndermiteEntity*>(endermite.get()), nullptr);
 }
 
 TEST_F(EndermanEndermiteTargetTest, EndermiteIsAlive)
@@ -381,8 +382,8 @@ TEST_F(EndermanGoalsRegistrationTest, EndermanHasGoalSelector)
 
 TEST_F(EndermanGoalsRegistrationTest, EndermanHasCorrectLegacyType)
 {
-    // 验证末影人的 LegacyEntityType
-    EXPECT_EQ(enderman->typeId(), entity::EntityTypeIdNumber::ENDERMAN);
+    // LegacyEntityType 概念已随实体类型系统统一移除；保留用例验证运行时类型。
+    EXPECT_NE(dynamic_cast<EndermanEntity*>(enderman.get()), nullptr);
 }
 
 } // namespace

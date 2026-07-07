@@ -67,21 +67,51 @@ private:
 
 /**
  * @brief 延迟任务（用于测试优先级顺序）
+ *
+ * 可选的 startedFlag 在 execute() 入口处（延迟之前）置位，供测试等待"任务已被
+ * worker 取走并开始执行"的时机——这与 submit 的完成回调（任务结束后才触发）不同。
+ * 优先级顺序测试必须用 startedFlag 而非完成回调来同步，否则后续任务提交时
+ * worker 已空闲并可能立即取走最先到达的那个，绕过优先级排序（实测会随机失败）。
  */
 class DelayedTask : public ITask {
 public:
-    DelayedTask(int value, std::vector<int>& executionOrder, std::mutex& mutex)
+    /**
+     * @param startedFlag 若非空，在 execute() 入口处置位，供测试等待"任务已被
+     *                    worker 取走"的时机。
+     * @param releaseFlag 若非空，execute() 在置位 startedFlag 后会阻塞等待它被
+     *                    置位，再记录完成。优先级测试用它卡住首个任务，确保主线程
+     *                    有充足时间把后续任务全部入队后，才放行首个任务、触发 worker
+     *                    按 priority 取下一个。这彻底消除了"提交未完成 worker 已取走"
+     *                    的竞态，使 executionOrder 确定性化。
+     */
+    DelayedTask(int value,
+        std::vector<int>& executionOrder,
+        std::mutex& mutex,
+        std::atomic<bool>* startedFlag = nullptr,
+        std::atomic<bool>* releaseFlag = nullptr)
         : m_value(value)
         , m_executionOrder(executionOrder)
         , m_mutex(mutex)
+        , m_startedFlag(startedFlag)
+        , m_releaseFlag(releaseFlag)
     {}
 
     bool execute(const std::atomic<bool>& abortSignal) override
     {
+        if (m_startedFlag) {
+            m_startedFlag->store(true, std::memory_order::release);
+        }
         if (abortSignal.load(std::memory_order::acquire)) {
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        // 卡住 worker 直到测试放行，确保后续任务都已入队。
+        if (m_releaseFlag) {
+            for (int i = 0; i < 1000 && !m_releaseFlag->load(std::memory_order::acquire); ++i) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
         std::lock_guard<std::mutex> lock(m_mutex);
         m_executionOrder.push_back(m_value);
         return true;
@@ -94,6 +124,8 @@ private:
     int m_value;
     std::vector<int>& m_executionOrder;
     std::mutex& m_mutex;
+    std::atomic<bool>* m_startedFlag;
+    std::atomic<bool>* m_releaseFlag;
 };
 
 /**
@@ -292,14 +324,21 @@ TEST_F(ServerWorkerPoolTest, PriorityOrdering)
     std::vector<int> executionOrder;
     std::mutex orderMutex;
 
-    // 等待第一个任务开始执行，确保后续任务进入队列
+    // 首个任务用 startedFlag + releaseFlag 与主线程同步：
+    //  - startedFlag：worker 取走首个任务并进入 execute 时置位（注意不是 submit 的
+    //    完成回调，那个在任务结束后才触发，时序太晚）。
+    //  - releaseFlag：首个任务在 execute 里卡住等待它置位，确保主线程把后续任务全部
+    //    入队后才放行首个任务完成，worker 才会去取下一个——此时队列里已同时有
+    //    Low/High/Normal，priority 排序才生效。否则 worker 可能在某个后续任务刚提交、
+    //    其它还没入队时就取走它，绕过优先级（实测 executionOrder[1] 会随机错乱）。
     std::atomic<bool> firstStarted{false};
-    auto firstTask = std::make_unique<DelayedTask>(0, executionOrder, orderMutex);
+    std::atomic<bool> releaseFirst{false};
+    auto firstTask = std::make_unique<DelayedTask>(0, executionOrder, orderMutex, &firstStarted, &releaseFirst);
 
     // 提交任务，优先级不同（数值越小优先级越高）
-    pool.submit(std::move(firstTask), [&](bool, ITask*) { firstStarted = true; }, TaskPriority::Normal);
+    pool.submit(std::move(firstTask), nullptr, TaskPriority::Normal);
 
-    // 等待第一个任务开始
+    // 等待首个任务开始（worker 阻塞在 releaseFirst 上）
     for (int i = 0; i < 100 && !firstStarted; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -309,6 +348,9 @@ TEST_F(ServerWorkerPoolTest, PriorityOrdering)
     pool.submit(std::make_unique<DelayedTask>(1, executionOrder, orderMutex), nullptr, TaskPriority::High); // 高优先级
     pool.submit(
         std::make_unique<DelayedTask>(2, executionOrder, orderMutex), nullptr, TaskPriority::Normal); // 普通优先级
+
+    // 全部入队后放行首个任务，worker 完成首个任务后按 priority 取下一个（High=1）。
+    releaseFirst.store(true, std::memory_order::release);
 
     // 等待完成
     pool.waitForCompletion();
@@ -327,13 +369,15 @@ TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest)
     std::vector<int> executionOrder;
     std::mutex orderMutex;
 
+    // 同 PriorityOrdering：用 startedFlag + releaseFlag 卡住首个任务，
+    // 确保 High/Critical 都入队后 worker 才按 priority 取下一个（Critical=1）。
     std::atomic<bool> firstStarted{false};
-    pool.submit(
-        std::make_unique<DelayedTask>(0, executionOrder, orderMutex),
-        [&](bool, ITask*) { firstStarted = true; },
+    std::atomic<bool> releaseFirst{false};
+    pool.submit(std::make_unique<DelayedTask>(0, executionOrder, orderMutex, &firstStarted, &releaseFirst),
+        nullptr,
         TaskPriority::Normal);
 
-    // 等待第一个任务开始
+    // 等待首个任务开始（worker 阻塞在 releaseFirst 上）
     for (int i = 0; i < 100 && !firstStarted; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -341,6 +385,9 @@ TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest)
     // Critical 应该比 High 更优先
     pool.submit(std::make_unique<DelayedTask>(2, executionOrder, orderMutex), nullptr, TaskPriority::High);
     pool.submit(std::make_unique<DelayedTask>(1, executionOrder, orderMutex), nullptr, TaskPriority::Critical);
+
+    // 全部入队后放行，worker 取下一个时按 priority 选 Critical=1。
+    releaseFirst.store(true, std::memory_order::release);
 
     pool.waitForCompletion();
 

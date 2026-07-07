@@ -113,7 +113,10 @@ TEST_F(EndermiteEntityTest, Create_ReturnsValidEntity)
 {
     auto entity = EndermiteEntity::create(&m_world);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ENDERMITE);
+    // 静态工厂 EndermiteEntity::create 仅构造对象，不 setTypeId（typeId 由 EntityType::create
+    // 经注册表赋值，见 EntityType.cpp）。此处仅验证工厂返回非空且类型正确，不断言 typeId，
+    // 对齐 CopperGolem/SnowGolem Create_ReturnsValidEntity 约定，避免依赖 registerAll 副作用。
+    EXPECT_NE(dynamic_cast<EndermiteEntity*>(entity.get()), nullptr);
 }
 
 TEST_F(EndermiteEntityTest, Constructor_SetsCorrectDefaults)
@@ -263,7 +266,8 @@ TEST_F(SilverfishEntityTest, Create_ReturnsValidEntity)
 {
     auto entity = SilverfishEntity::create(&m_world);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::SILVERFISH);
+    // 静态工厂不 setTypeId，仅验证非空+类型，对齐 Endermite/CopperGolem/SnowGolem 约定。
+    EXPECT_NE(dynamic_cast<SilverfishEntity*>(entity.get()), nullptr);
 }
 
 TEST_F(SilverfishEntityTest, Constructor_SetsCorrectDefaults)

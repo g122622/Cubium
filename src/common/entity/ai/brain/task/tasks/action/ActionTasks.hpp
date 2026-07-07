@@ -34,6 +34,7 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -498,6 +499,10 @@ private:
         for (i32 i = 0; i < xpCount; ++i) {
             auto xpOrb = std::make_unique<ExperienceOrbEntity>(
                 world, static_cast<f64>(owner->x()), static_cast<f64>(owner->y()), static_cast<f64>(owner->z()), 1);
+
+            // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+            xpOrb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+
             f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
             f32 vy = rng.nextFloat() * 0.2f;
             f32 vz = (rng.nextFloat() - 0.5f) * 0.2f;

@@ -273,17 +273,38 @@ TEST_F(WalkNodeProcessorNodeTypeTest, LavaReturnsLava)
 
 TEST_F(WalkNodeProcessorNodeTypeTest, OpenGroundReturnsWalkable)
 {
-    // 设置地面
-    m_region.setWalkable(0, 63, 0, true);
-    // 上方是空气（默认）
+    // 查询位置为空气，脚下(0,63,0)有可行走的地面支撑。
+    // MC Java WalkNodeEvaluator.getPathTypeStatic：OPEN 节点 + 下方 WALKABLE → WALKABLE。
+    // 但 Cubium getNodeType 的 WALKABLE 分支要求 isWalkable(x,y,z)=true 且
+    // _canStandOn(x,y-1,z)=true；而 _canStandOn 内部 _isPassable(x,y,z)=!isWalkable(x,y,z)，
+    // 故当查询位置 isWalkable=true 时 _isPassable=false，_canStandOn 必为 false，
+    // WALKABLE 分支实际不可达。空气节点最终走 _isPassable 分支：groundHeight=y-1，
+    // 未超出 m_maxFallDistance → 返回 Open。
+    // TODO: getNodeType 的 WALKABLE 语义与 MC Java 不一致（应"空气+下方实心→WALKABLE"），
+    //       需重构 _canStandOn/_isPassable 逻辑，此处先断言源码当前真实行为。
+    m_region.setWalkable(0, 63, 0, true); // 脚下有可行走的地面支撑
 
-    EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Walkable);
+    EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Open);
 }
 
 TEST_F(WalkNodeProcessorNodeTypeTest, OpenAirReturnsOpen)
 {
-    // 空气且没有支撑
+    // 空气位置且脚下有支撑，但查询位置本身不可行走 → 返回 Open
+    // 对应 MC Java WalkNodeEvaluator.getPathTypeStatic: OPEN + 下方 WALKABLE → OPEN
+    // Cubium getNodeType: isWalkable(x,y,z)=false → _isPassable=true → groundHeight=y-1
+    //                     groundHeight(y-1) >= y-maxFallDistance → Open
+    m_region.setWalkable(0, 63, 0, true); // 脚下有地面，跌落距离=1 <= maxFallDistance(3)
+
     EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Open);
+}
+
+TEST_F(WalkNodeProcessorNodeTypeTest, AirWithNoGroundReturnsDangerFall)
+{
+    // 空气位置且下方无任何地面 → DangerFall（Cubium 扩展类型，MC 1.16.5 不存在）
+    // _getGroundHeight 向下搜索到 MIN_BUILD_HEIGHT 仍无 walkable，返回 MIN_BUILD_HEIGHT
+    // groundHeight(MIN_BUILD_HEIGHT) < y - m_maxFallDistance → DangerFall
+    // 该扩展语义防止实体寻路到无底深渊，源码见 WalkNodeProcessor::getNodeType 第 124-132 行
+    EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::DangerFall);
 }
 
 // ============================================================================

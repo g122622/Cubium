@@ -91,7 +91,7 @@ TEST_F(PiglinEntityTest, CreateFactory)
 {
     auto entity = PiglinEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::PIGLIN);
+    EXPECT_NE(dynamic_cast<PiglinEntity*>(entity.get()), nullptr);
 }
 
 /**
@@ -213,7 +213,7 @@ TEST_F(PiglinBruteEntityTest, CreateFactory)
 {
     auto entity = PiglinBruteEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::PIGLIN_BRUTE);
+    EXPECT_NE(dynamic_cast<PiglinBruteEntity*>(entity.get()), nullptr);
 }
 
 /**
@@ -240,7 +240,7 @@ TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
 {
     auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN);
+    EXPECT_NE(dynamic_cast<ZombifiedPiglinEntity*>(entity.get()), nullptr);
 }
 
 /**
@@ -286,7 +286,7 @@ TEST_F(HoglinEntityTest, CreateFactory)
 {
     auto entity = HoglinEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::HOGLIN);
+    EXPECT_NE(dynamic_cast<HoglinEntity*>(entity.get()), nullptr);
 }
 
 /**
@@ -340,7 +340,7 @@ TEST_F(ZoglinEntityTest, CreateFactory)
 {
     auto entity = ZoglinEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ZOGLIN);
+    EXPECT_NE(dynamic_cast<ZoglinEntity*>(entity.get()), nullptr);
 }
 
 /**

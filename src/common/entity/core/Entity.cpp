@@ -26,6 +26,7 @@
 #include "../../physics/PhysicsEngine.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundEvents.hpp"
+#include "../../util/UuidUtils.hpp"
 #include "../../util/assert/AssertMacros.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
@@ -87,10 +88,12 @@ Entity::Entity(EntityId id, IWorld* world)
           static_cast<u64>(id) ^ static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
     , m_world(world)
 {
-    // 生成随机UUID（使用实体的持久化随机数生成器）
-    std::stringstream ss;
-    ss << std::hex << m_random.nextU64() << m_random.nextU64();
-    m_uuid = ss.str();
+    // 生成随机 UUID（使用实体的持久化随机数生成器）。
+    // 必须用 util::generateRandomUuid + util::uuidToString 生成固定 32 字符的十六进制
+    // 字符串——不能用 `ss << std::hex << u64 << u64`，那种写法不补零，会得到 <32 字符
+    // 的串，导致 util::uuidFromString（要求恰好 32 字符）解析失败返回全零 UUID。
+    const Uuid uuidBytes = util::generateRandomUuid(m_random);
+    m_uuid = util::uuidToString(uuidBytes);
 
     // 注册数据参数
     registerData();
@@ -1551,12 +1554,22 @@ bool Entity::startRiding(Entity& vehicle)
     // 7. 先设置 vehicle，再调用 addPassenger
 
     // 1. 不能骑乘自己
-    if (vehicle.id() == m_id) {
+    // 对齐 MC Java：原版 startRiding 通过 this.vehicle == p_19966_ 的对象引用比较
+    // 间接拒绝自骑（vehicle 字段不可能指向自身），并未单独按 id 判定。
+    // 本项目以 EntityId 关联，INVALID_ENTITY_ID == 0，新建实体 id 可能为 0，
+    // 若按 id 比较则两个 id 均为 0 的不同实体会被误判为"自骑"而拒绝（反序列化
+    // Passengers 时 vehicle 尚未 spawn、id 仍为 0 即触发此坑）。故改用对象地址比较，
+    // 既精确拒绝真正的自骑，又消除 id==INVALID_ENTITY_ID 的歧义。
+    if (&vehicle == this) {
         return false;
     }
 
     // 2. 检查是否已经在骑乘此载具（避免重复骑乘）
-    if (getVehicle() == vehicle.id()) {
+    // 对齐 MC Java: if (p_19966_ == this.vehicle) return false（this.vehicle == null 即未骑乘）。
+    // 仅在确实处于骑乘状态（m_vehicle != INVALID_ENTITY_ID）时才判重，
+    // 否则未骑乘的乘客（m_vehicle == INVALID_ENTITY_ID == 0）与 id 为 0 的载具
+    // 会被 0==0 误判为"已在骑乘该载具"。
+    if (isRiding() && getVehicle() == vehicle.id()) {
         return false;
     }
 

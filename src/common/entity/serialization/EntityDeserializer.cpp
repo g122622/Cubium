@@ -107,6 +107,14 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
                             spawnedPassenger->getTypeId(),
                             entity->getTypeId()));
                 }
+                // TODO(vehicle-id-lifecycle): 主实体 vehicle 此时尚未 spawn 进世界，其 id
+                // 仍为构造时的 0（== INVALID_ENTITY_ID）。乘客已 spawn 并通过 startRiding
+                // 把 m_vehicle 记为 vehicle.id()==0。当调用方随后把 vehicle spawn 进世界、
+                // 由 world 分配真实 id（例如 5）后，乘客的 m_vehicle 仍指向 0，骑乘关系会失效。
+                // 当前 Entity::startRiding 已容忍 vehicle.id()==0（见 step1/step2 修复），
+                // 故 deserialize 阶段可成功建立关系；但调用方在 spawn vehicle 后需同步刷新
+                // 所有乘客的 m_vehicle 指向新 id（或改为先 spawn vehicle 再挂乘客）。
+                // 这是一个独立的生产缺陷，留待后续修复。
             }
         }
     }

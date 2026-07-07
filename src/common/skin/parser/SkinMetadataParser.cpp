@@ -38,8 +38,7 @@ namespace {
  */
 std::vector<u8> base64Decode(const std::string& encoded)
 {
-    static const std::string base64Chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    static const std::string base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::vector<u8> decoded;
 
@@ -85,7 +84,12 @@ std::vector<u8> base64Decode(const std::string& encoded)
         size_t pos = base64Chars.find(c);
         if (pos == std::string::npos) {
             spdlog::warn("SkinMetadataParser: Invalid base64 character: {}", c);
-            continue;
+            // 遇到非法字符时整体解码失败（返回空），与"Invalid base64 length"路径
+            // 的失败语义保持一致。此前实现仅 continue 跳过非法字符，会导致
+            // 形如 "!!!invalid-base64!!!" 的恶意/损坏签名被部分解码成非空字节，
+            // 进而使 getSignatureState 误判为可验证签名（Unsigned）而非 INVALID。
+            decoded.clear();
+            return decoded;
         }
 
         buffer = (buffer << 6) | static_cast<u32>(pos);
@@ -221,7 +225,7 @@ SignatureState SkinMetadataParser::getSignatureState(const GameProfileProperty& 
     MC_UNUSED(valueBytes);
 
     spdlog::info("SkinMetadataParser: Signature verification requires crypto library support, "
-                  "treating signed property as UNSIGNED");
+                 "treating signed property as UNSIGNED");
     return SignatureState::Unsigned;
 }
 

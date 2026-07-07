@@ -789,14 +789,10 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
                 }
             }
             // 情况3：海洋植物（海带、海带茎、海草、高海草）
-            // 参考 MC Java SpongeBlock.removeWaterBreadthFirstSearch:
-            // MC 明确检查 KELP、KELP_PLANT、SEAGRASS、TALL_SEAGRASS 四种方块，
-            // 而非按 Material 判断，以避免误匹配海泡菜等其他 OCEAN_PLANT 方块。
-            // 海泡菜不会被海绵吸收，因为 MC 的检查列表中不包含它。
+            // 不要按 Material 判断，以避免误匹配海泡菜等其他 OCEAN_PLANT 方块。
             else if (blockState->is(VanillaBlocks::KELP) || blockState->is(VanillaBlocks::KELP_PLANT) ||
                 blockState->is(VanillaBlocks::SEAGRASS) || blockState->is(VanillaBlocks::TALL_SEAGRASS)) {
                 // 在移除方块之前生成掉落物品
-                // MC 原版调用 Block.dropResources(state, level, pos, blockEntity) 生成掉落
                 Block::dropResources(world, neighborPos, *blockState);
 
                 const BlockState& airState = VanillaBlocks::AIR->defaultState();

@@ -259,13 +259,16 @@ protected:
     [[nodiscard]] i32 getHorizontalSourceCount(IWorld& world, const BlockPos& pos) const;
 
     /**
-     * @brief 检查方块是否可以被流体替换
+     * @brief 检查方块是否阻挡流体（不可被流体替换）
+     *
+     * 返回 true 表示方块阻挡流体流入；false 表示流体可以替换/流入该方块。
+     * 在 canBeReplacedByFluid() 之上叠加 MC Java canHoldAnyFluid 黑名单（门/告示牌/梯子/甘蔗/气泡柱/传送门/结构空位）。
      *
      * @param block 方块状态
      * @param world 世界
      * @param pos 位置
      * @param fluid 流体类型
-     * @return 是否可替换
+     * @return true=阻挡流体，false=可被流体替换
      */
     [[nodiscard]] bool isBlocked(IWorld& world, const BlockPos& pos, const BlockState* block, const Fluid& fluid) const;
 

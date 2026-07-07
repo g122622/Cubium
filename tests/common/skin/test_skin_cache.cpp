@@ -30,9 +30,11 @@
 #include "common/skin/network/PlayerSkinInfo.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/util/TimeUtils.hpp"
+#include <array>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <string>
 #include <gtest/gtest.h>
 
 using namespace mc::skin;
@@ -384,8 +386,12 @@ TEST_F(PlayerSkinInfoTest, SkinType)
     SkinType type = info_->getSkinType();
     EXPECT_TRUE(type == SkinType::Default || type == SkinType::Slim);
 
-    // 设置皮肤纹理后，使用纹理的类型
+    // 设置皮肤纹理后，使用纹理的类型。
+    // 注意：hasSkin() 以皮肤 URL 为存在判定依据（SkinMetadataParser 解析后设置 URL，
+    // ResourceLocation 由 SkinManager 在缓存/下载完成后再填充），因此这里必须
+    // 设置 skinUrl 才能让 getSkinType() 走"已加载皮肤"分支返回纹理自带的类型。
     SkinTextures textures;
+    textures.setSkinUrl("http://textures.minecraft.net/texture/slimtest");
     textures.setSkinType(SkinType::Slim);
     info_->setSkinTextures(textures);
 
@@ -412,6 +418,18 @@ TEST_F(PlayerSkinInfoTest, ModelParts)
 TEST_F(PlayerSkinInfoTest, DefaultSkinLocation)
 {
     mc::ResourceLocation defaultSkin = info_->getDefaultSkinLocation();
-    EXPECT_TRUE(defaultSkin.toString().find("steve") != std::string::npos ||
-        defaultSkin.toString().find("alex") != std::string::npos);
+    // MC 1.21.1 有 18 种默认皮肤（9 slim + 9 wide），9 个名称：
+    // alex, ari, efe, kai, makena, noor, steve, sunny, zuri。
+    // 根据 UUID 哈希选择，因此路径中应包含其中任意一个名称。
+    const std::string path = defaultSkin.toString();
+    const std::array<std::string, 9> validNames = {
+        "alex", "ari", "efe", "kai", "makena", "noor", "steve", "sunny", "zuri"};
+    bool matched = false;
+    for (const auto& name : validNames) {
+        if (path.find(name) != std::string::npos) {
+            matched = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(matched) << "Default skin path does not match any known default name: " << path;
 }

@@ -4356,9 +4356,20 @@ TEST_F(ValueEdgeCaseTest, GetPropertyReturnsNull)
     binder::Value strVal(std::string("hello"));
     binder::Value arrVal(std::vector<binder::Value>{});
 
+    // 整型不支持任何属性访问，返回 null
     EXPECT_TRUE(intVal.getProperty("anything").isNull());
-    EXPECT_TRUE(strVal.getProperty("length").isNull());
-    EXPECT_TRUE(arrVal.getProperty("size").isNull());
+
+    // 字符串/数组类型支持 length/size 这类内置属性（见 BindingContext.cpp
+    // Value::getProperty 实现），因此返回非 null。这里校验实际行为而非假设。
+    EXPECT_FALSE(strVal.getProperty("length").isNull());
+    EXPECT_EQ(strVal.getProperty("length").asInteger(), 5);
+
+    EXPECT_FALSE(arrVal.getProperty("size").isNull());
+    EXPECT_EQ(arrVal.getProperty("size").asInteger(), 0);
+
+    // 字符串对不存在的属性仍返回 null
+    EXPECT_TRUE(strVal.getProperty("nonexistent").isNull());
+    EXPECT_TRUE(arrVal.getProperty("nonexistent").isNull());
 }
 
 // ==================== BindingContext Edge Cases Tests ====================

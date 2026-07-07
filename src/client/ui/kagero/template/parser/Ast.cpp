@@ -315,7 +315,12 @@ bool isValidAttributeName(const std::string& name)
         }
     }
 
-    // 静态属性名必须是有效的标识符（允许连字符和冒号）
+    // 静态属性名必须是有效的标识符：首字符为字母或下划线，
+    // 其后可为字母数字、下划线、连字符或冒号（冒号用于命名空间风格的属性名）。
+    // 不允许以数字开头。
+    if (std::isdigit(static_cast<unsigned char>(name[0]))) {
+        return false;
+    }
     for (size_t i = 0; i < name.size(); ++i) {
         char c = name[i];
         if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-' && c != ':') {
@@ -335,38 +340,94 @@ bool isValidBindingPath(const std::string& path)
     // 绑定路径可以是：
     // 1. 简单标识符：player, game
     // 2. 点分隔路径：player.health, game.version
-    // 3. 循环变量：$item, $slot
-    // 4. 循环变量属性：$item.name, $slot.count
+    // 3. 数组索引：slots[0], grid[1][2], slots[0].item，亦支持命名索引 array[index]
+    // 4. 循环变量：$item, $slot
+    // 5. 循环变量属性：$item.name, $slot.count
+    //
+    // 规则：每个路径段必须是合法标识符（首字符为字母或下划线，其后为字母数字或下划线），
+    //      不能以数字开头。段后可跟随若干 [index] 索引片段，index 为非负整数或标识符，
+    //      但不允许负号（[-1] 无效）或空索引（[] 无效）。
 
-    size_t start = 0;
+    size_t i = 0;
+    const size_t len = path.size();
 
     // 检查循环变量前缀
     if (path[0] == '$') {
-        start = 1;
-        if (start >= path.size()) {
+        i = 1;
+        if (i >= len) {
             return false; // 只有 "$" 是无效的
         }
     }
 
-    // 验证路径段
-    bool hasSegmentChar = false;
+    // 至少需要一个路径段
+    bool hasSegment = false;
 
-    for (size_t i = start; i < path.size(); ++i) {
+    while (i < len) {
         char c = path[i];
 
         if (c == '.') {
-            if (!hasSegmentChar) {
-                return false; // 连续的点或点开头
+            // 点不能出现在开头，也不能紧跟另一个点或索引片段之后
+            if (!hasSegment) {
+                return false;
             }
-            hasSegmentChar = false;
-        } else if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
-            hasSegmentChar = true;
-        } else {
-            return false; // 无效字符
+            hasSegment = false;
+            ++i;
+            continue;
         }
+
+        if (c == '[') {
+            // 索引片段必须紧跟一个有效段
+            if (!hasSegment) {
+                return false;
+            }
+            ++i;
+            // 索引内容可为非负整数（如 [0]）或标识符（如 [index]），但不能为空，
+            // 也不能以负号开头（[-1] 无效）。
+            if (i >= len) {
+                return false; // 未闭合
+            }
+            char first = path[i];
+            bool isDigitIndex = std::isdigit(static_cast<unsigned char>(first));
+            bool isIdentIndex = std::isalpha(static_cast<unsigned char>(first)) || first == '_';
+            if (!isDigitIndex && !isIdentIndex) {
+                return false; // 空索引或非法首字符（含 '-'）
+            }
+            ++i;
+            if (isDigitIndex) {
+                while (i < len && std::isdigit(static_cast<unsigned char>(path[i]))) {
+                    ++i;
+                }
+            } else {
+                while (i < len && (std::isalnum(static_cast<unsigned char>(path[i])) || path[i] == '_')) {
+                    ++i;
+                }
+            }
+            if (i >= len || path[i] != ']') {
+                return false; // 缺少右括号
+            }
+            ++i; // 消费 ']'
+            // 索引后可以接 '.' 或 '[' 或结束，但不能直接接字母
+            continue;
+        }
+
+        // 标识符段字符
+        if (!hasSegment) {
+            // 段首字符：必须是字母或下划线（不允许数字开头）
+            if (!std::isalpha(static_cast<unsigned char>(c)) && c != '_') {
+                return false;
+            }
+            hasSegment = true;
+        } else {
+            // 段内字符：字母、数字或下划线
+            if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_') {
+                return false;
+            }
+        }
+        ++i;
     }
 
-    return hasSegmentChar; // 必须以有效段结尾
+    // 必须以有效段或索引片段结尾（不能以点结尾）
+    return hasSegment;
 }
 
 bool isValidCallbackName(const std::string& name)

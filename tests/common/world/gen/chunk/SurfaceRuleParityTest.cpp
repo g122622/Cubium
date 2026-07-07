@@ -33,6 +33,7 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Constants.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -42,6 +43,7 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 
+#include <iostream>
 #include <memory>
 #include <unordered_set>
 
@@ -170,6 +172,29 @@ protected:
      */
     static bool isBlock(const BlockState* state, const Block* block) { return state != nullptr && state->is(block); }
 };
+
+// 判断生物群系是否为海洋变体。海洋生物群系的海床不应用默认 onFloor 表面规则
+// （原版 onFloor 顶层规则被 waterBlockCheck(-1,0) 包裹：方块上方是水时跳过草/泥土，
+// 海床保持 STONE）。因此草方块断言只应针对陆地生物群系列，否则会误报"表面规则 bug"。
+bool _isOceanBiome(BiomeId id)
+{
+    using namespace world::biome::Biomes;
+    switch (id) {
+        case Ocean:
+        case DeepOcean:
+        case WarmOcean:
+        case LukewarmOcean:
+        case ColdOcean:
+        case FrozenOcean:
+        case DeepWarmOcean:
+        case DeepLukewarmOcean:
+        case DeepColdOcean:
+        case DeepFrozenOcean:
+            return true;
+        default:
+            return false;
+    }
+}
 
 // ============================================================================
 // 深板岩层测试
@@ -382,7 +407,15 @@ TEST_F(SurfaceRuleParityTest, Overworld_UnderfloorIsDirtNotGrass)
 // ============================================================================
 
 /**
- * @brief 多种子测试：每种种子都应生成草方块
+ * @brief 多种露出水面的陆地种子都应生成草方块
+ *
+ * 仅对露出水面的陆地生物群系列校验草方块。需排除两类本就不该有草方块的列：
+ *   1. 海洋生物群系：海床不应用默认 onFloor 顶层规则（原版被 waterBlockCheck(-1,0)
+ *      包裹，方块上方是水时跳过草/泥土），保持 STONE/GRAVEL。
+ *   2. 被水淹没的陆地区域：地形低于海平面的陆地列被水填充，WorldSurfaceWG 高度图
+ *      返回水面（水非空气）而非海床；水面方块显然不是草。
+ * 某些种子在区块 (0,0) 的 3x3 区域内既无露出水面的陆地列（全海洋或全水淹海岸），
+ * 此时没有可校验列，跳过该种子的断言（属预期，非 bug）。
  */
 TEST_F(SurfaceRuleParityTest, Overworld_GrassBlockMultiSeed)
 {
@@ -394,6 +427,7 @@ TEST_F(SurfaceRuleParityTest, Overworld_GrassBlockMultiSeed)
 
         const auto& chunk = *result->centerChunk;
         i32 grassCount = 0;
+        i32 landColumns = 0;
 
         // 每隔 2 格采样
         for (i32 x = 0; x < 16; x += 2) {
@@ -402,13 +436,27 @@ TEST_F(SurfaceRuleParityTest, Overworld_GrassBlockMultiSeed)
                 if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
                     continue;
                 }
-                if (isBlock(chunk.getBlockState(x, surfaceY, z), VanillaBlocks::GRASS_BLOCK)) {
+                const BlockState* block = chunk.getBlockState(x, surfaceY, z);
+                // 海洋海床、或被水淹没列的水面方块，都正确地无草方块。
+                if (block == nullptr || block->isLiquid() || _isOceanBiome(chunk.getBiomeAtBlock(x, surfaceY, z))) {
+                    continue;
+                }
+                ++landColumns;
+                if (isBlock(block, VanillaBlocks::GRASS_BLOCK)) {
                     ++grassCount;
                 }
             }
         }
 
-        EXPECT_GT(grassCount, 0) << "Seed " << seed << " should produce grass blocks";
+        // 整个区域都没有露出水面的陆地列可校验，跳过（属预期，非 bug）。
+        if (landColumns == 0) {
+            std::cout << "[GrassBlockMultiSeed] seed " << seed << " 区域无露出水面的陆地列，跳过草方块断言"
+                      << std::endl;
+            continue;
+        }
+
+        EXPECT_GT(grassCount, 0) << "Seed " << seed << " should produce grass blocks (landColumns=" << landColumns
+                                 << "), found " << grassCount;
     }
 }
 

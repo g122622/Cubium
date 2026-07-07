@@ -55,7 +55,9 @@ protected:
 
     void TearDown() override
     {
-        // 清理实体注册表
+        // 清理实体注册表。clear() 同时会重置全局 EntityTypeIdNumber::* 缓存
+        // （见 EntityTypeIdNumber::reset），保证"注册表空 ⇔ ID 缓存全 0"不变量，
+        // 避免后续测试因 typeId()==0 与 EntityTypeIdNumber::ITEM=旧值 比较失败。
         EntityRegistry::instance().clear();
     }
 

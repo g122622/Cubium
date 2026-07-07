@@ -198,9 +198,10 @@ TEST(HurtMarkedTest, ApplyKnockbackSetsMarkHurtFlag)
     EXPECT_TRUE(entity.isHurtMarked());
 }
 
-TEST(HurtMarkedTest, ApplyKnockbackWithZeroDirectionDoesNotSetFlag)
+TEST(HurtMarkedTest, ApplyKnockbackWithZeroDirectionStillSetsFlag)
 {
-    // 击退方向为零向量时不设置标记（applyKnockback 提前返回）
+    // commit 3265b790d 起对齐 MC Java：零向量方向不提前返回，而是随机扰动
+    // 方向（ratioX/Z = (random-random)*0.01）后继续应用击退，故仍设置 hurtMarked。
     HurtMarkedWorld world;
     TestHurtEntity entity(1);
     entity.setWorld(&world);
@@ -209,11 +210,11 @@ TEST(HurtMarkedTest, ApplyKnockbackWithZeroDirectionDoesNotSetFlag)
 
     EXPECT_FALSE(entity.isHurtMarked());
 
-    // 零向量方向导致归一化失败，applyKnockback 提前返回
+    // 零向量方向经随机扰动后仍应用击退
     entity.applyKnockback(1.0f, 0.0, 0.0);
 
-    // 击退未实际应用，不设置标记
-    EXPECT_FALSE(entity.isHurtMarked());
+    // 击退被应用，标记设置
+    EXPECT_TRUE(entity.isHurtMarked());
 }
 
 TEST(HurtMarkedTest, HurtThenKnockbackBothSetFlag)

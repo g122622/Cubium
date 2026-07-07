@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/special/GuardianAttackGoal.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -39,12 +40,14 @@ using namespace mc;
 // GuardianAttackGoal 常量和配置测试
 // ============================================================================
 
+// 确保原版实体类型注册表已初始化，使 EntityTypeIdNumber::PLAYER / SQUID / ZOMBIE 等
+// 全局缓存持有互不相同的非 0 值。本文件 TargetTypes_PlayerAndSquidOnly 用例构造
+// validTargets/invalidTargets 列表，并以 `type == PLAYER || type == SQUID` 判定，
+// 若全部 ID 为 0 则 ZOMBIE 等会被误判为“有效目标”，导致 EXPECT_FALSE 失败。
+// 仅做一次注册（VanillaEntities::registerAll 幂等且线程安全），无异常风险。
 class GuardianAttackGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        // 设置代码
-    }
+    void SetUp() override { entity::VanillaEntities::registerAll(); }
 };
 
 // ============================================================================

@@ -23,6 +23,7 @@
 
 #include "ItemDropHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -154,6 +155,9 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
         vy,
         vz);
 
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    itemEntity->setTypeId(entity::EntityTypes::ITEM);
+
     // 设置拾取延迟
     itemEntity->setPickupDelay(pickupDelay);
 
@@ -223,6 +227,9 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
             velocity.x,
             velocity.y,
             velocity.z);
+
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        itemEntity->setTypeId(entity::EntityTypes::ITEM);
 
         // 设置拾取延迟
         itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);

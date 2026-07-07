@@ -21,10 +21,21 @@
  *
  */
 
-#include "server/world/ServerWorld.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/RandomState.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
+#include <atomic>
+#include <chrono>
+#include <ctime>
+#include <filesystem>
+#include <thread>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -53,24 +64,64 @@ public:
 
 class ServerWorldBlockEntityTest : public ::testing::Test {
 protected:
+    // 复用 ServerWorldTest 的初始化模式：ServerWorld 的单参数构造函数不创建
+    // ServerChunkManager（m_chunkManager 为 nullptr），任何 getChunk/chunkManager()
+    // 调用都会解引用 nullptr 而触发 SEH 0xc0000005。这里必须显式构造区块管理器
+    // 与存档（ServerWorld::initialize 要求 m_storage 已打开，但这些用例不需要
+    // initialize()，只需 getChunkSync 可用即可）。
+    std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
+    {
+        auto world = std::make_unique<ServerWorld>(config);
+        world->setSharedStorage(&m_storage);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
+        return world;
+    }
+
     void SetUp() override
     {
         // 初始化方块注册表（ServerWorld需要）
         VanillaBlocks::initialize();
 
+        // 打开一个临时存档：getChunkSync 的区块生成路径会访问存档接口。
+        static std::atomic<std::uint64_t> s_counter{0};
+        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
+        m_testDir = std::filesystem::temp_directory_path() / "mc_server_world_blockentity_test" / token;
+        std::filesystem::create_directories(m_testDir);
+
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
         // 配置ServerWorld但不调用initialize()以避免数据库依赖
         ServerWorldConfig config;
         config.viewDistance = 3;
         config.dimension = 0;
-        world = std::make_unique<ServerWorld>(config);
-
-        // 使用getChunkSync创建区块，而不是依赖initialize()
-        // 这样可以避免RocksDB ZSTD压缩链接问题
+        config.seed = 12345;
+        world = createTestWorld(config);
     }
 
-    void TearDown() override { world.reset(); }
+    void TearDown() override
+    {
+        world.reset();
+        m_storage.close();
+        // Windows 上 RocksDB 后台线程可能延迟释放文件句柄，重试删除。
+        for (int i = 0; i < 10; ++i) {
+            std::error_code ec;
+            std::filesystem::remove_all(m_testDir, ec);
+            if (!ec) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
 
     std::unique_ptr<ServerWorld> world;
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
 };
 
 // ========== getBlockEntity 测试 ==========

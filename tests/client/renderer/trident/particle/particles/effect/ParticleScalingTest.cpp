@@ -145,8 +145,14 @@ TEST_F(LavaParticleScaleTest, GetScale_QuadraticShrink_NearsZeroAtEndOfLife)
 
     auto particle = LavaParticle::create(pos, velocity, nullptr);
 
-    // tick 很多次直到接近生命末尾
-    for (int i = 0; i < 28; ++i) {
+    // LavaParticle 构造时 maxAge = DEFAULT_LIFETIME(30) * (0.8~1.2) = 24~36，带随机抖动。
+    // 原测试固定 tick 28 次，当随机 maxAge 较大（如 36）时 28/maxAge < 0.894，
+    // scale = 1 - t^2 > 0.2，导致用例随机失败。这里显式设置确定性的 maxAge=10，
+    // 消除随机性后断言"接近生命末尾 scale 接近 0"才有确定意义。
+    particle->setMaxAge(10.0);
+
+    // tick 9 次（age=9, t=0.9, scale=1-0.81=0.19 < 0.2），接近生命末尾但未过期。
+    for (int i = 0; i < 9; ++i) {
         particle->tick(nullptr);
     }
 

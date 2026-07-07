@@ -22,6 +22,7 @@
  */
 
 #include "TippedArrowItem.hpp"
+#include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../world/IWorld.hpp"
@@ -78,6 +79,7 @@ std::unique_ptr<entity::ProjectileEntity> TippedArrowItem::asProjectile(IWorld& 
 {
     auto entity = entity::ArrowEntity::create(&world);
     if (entity) {
+        entity->setTypeId(entity::EntityTypes::ARROW);
         entity->setPosition(position.x, position.y, position.z);
         auto* arrow = dynamic_cast<entity::ArrowEntity*>(entity.get());
         if (arrow) {

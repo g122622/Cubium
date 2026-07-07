@@ -23,6 +23,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -225,6 +226,10 @@ void DragonFireballEntity::_createDragonBreathCloud()
     // 创建龙息区域效果云
     // 参数：半径 3.0，持续时间 600 ticks (30秒)，半径变化率扩展到 7.0
     auto cloud = std::make_unique<AreaEffectCloudEntity>();
+
+    // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+    cloud->setTypeId(EntityTypes::AREA_EFFECT_CLOUD);
+
     cloud->setWorld(worldPtr);
     cloud->setPosition(x(), y(), z());
 

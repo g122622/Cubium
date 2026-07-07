@@ -502,10 +502,11 @@ protected:
 TEST_F(CameraConfigTest, DefaultValues)
 {
     CameraConfig config;
-    EXPECT_FLOAT_EQ(config.fov, 70.0f);
-    EXPECT_FLOAT_EQ(config.aspectRatio, 16.0f / 9.0f);
-    EXPECT_FLOAT_EQ(config.nearPlane, 0.1f);
-    EXPECT_FLOAT_EQ(config.farPlane, 1000.0f);
+    // CameraConfig 字段均为 f64，使用 EXPECT_DOUBLE_EQ 避免 float→double 提升导致的精度不一致。
+    EXPECT_DOUBLE_EQ(config.fov, 70.0);
+    EXPECT_DOUBLE_EQ(config.aspectRatio, 16.0 / 9.0);
+    EXPECT_DOUBLE_EQ(config.nearPlane, 0.1);
+    EXPECT_DOUBLE_EQ(config.farPlane, 1000.0);
     EXPECT_EQ(config.projectionMode, ProjectionMode::Perspective);
 }
 

@@ -83,32 +83,30 @@ void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)
 
 std::optional<ResourceLocation> SlimeEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // 小史莱姆用 hurt_small
+    // 对齐 MC 1.21.11 Slime.getHurtSound：直接用 SoundEvents 字面量，不依赖 typeId。
+    // 此前用 makeSoundEventId 派生 ID，在 typeId 未设置（如单元测试直接构造）时返回 nullopt。
     if (isSmallSlime()) {
-        return makeSoundEventId("hurt_small");
+        return SoundEvents::ENTITY_SLIME_HURT_SMALL;
     }
-    // 大史莱姆用 hurt
-    return makeSoundEventId("hurt");
+    return SoundEvents::ENTITY_SLIME_HURT;
 }
 
 std::optional<ResourceLocation> SlimeEntity::getDeathSound() const
 {
-    // 小史莱姆用 death_small
+    // 对齐 MC 1.21.11 Slime.getDeathSound
     if (isSmallSlime()) {
-        return makeSoundEventId("death_small");
+        return SoundEvents::ENTITY_SLIME_DEATH_SMALL;
     }
-    // 大史莱姆用 death
-    return makeSoundEventId("death");
+    return SoundEvents::ENTITY_SLIME_DEATH;
 }
 
 std::optional<ResourceLocation> SlimeEntity::getSquishSound() const
 {
-    // 小史莱姆用 squish_small
+    // 对齐 MC 1.21.11 Slime.getSquishSound
     if (isSmallSlime()) {
-        return makeSoundEventId("squish_small");
+        return SoundEvents::ENTITY_SLIME_SQUISH_SMALL;
     }
-    // 大史莱姆用 squish
-    return makeSoundEventId("squish");
+    return SoundEvents::ENTITY_SLIME_SQUISH;
 }
 
 void SlimeEntity::alterSquishAmount()

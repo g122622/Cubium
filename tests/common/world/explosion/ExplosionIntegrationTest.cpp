@@ -24,8 +24,8 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Constants.hpp"
-#include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -264,9 +264,10 @@ TEST(ExplosionItemMergeTest, MergeDistance)
     BlockPos pos5(1, 1, 1);
     EXPECT_LE(pos1.distanceSq(pos5), maxMergeDistanceSq);
 
-    // 对角线距离：sqrt(4+4+4) ≈ 3.46，可以合并
+    // 对角线距离：sqrt(4+4+4)=3.46，距离平方=12 > 阈值 4，不能合并。
+    // （此前断言把距离 3.46 与距离平方阈值 4 混淆，误判为可合并。）
     BlockPos pos6(2, 2, 2);
-    EXPECT_LE(pos1.distanceSq(pos6), maxMergeDistanceSq);
+    EXPECT_GT(pos1.distanceSq(pos6), maxMergeDistanceSq);
 }
 
 TEST(ExplosionItemMergeTest, MergeConditions)

@@ -223,10 +223,12 @@ bool ProjectileEntity::mayBreak(IWorld& world) const
     // return this.getType().is(EntityTypeTags.IMPACT_PROJECTILES)
     //     && p_376471_.getGameRules().get(GameRules.PROJECTILES_CAN_BREAK_BLOCKS);
 
-    // 检查投射物实体类型是否属于 impact_projectiles 标签
+    // 检查投射物类型是否属于 IMPACT_PROJECTILES 标签。
+    // EntityTypeTag::contains(const EntityType&) 内部即 contains(entityType.name())，
+    // 这里直接用 typeId 字符串重载，避免一次 EntityRegistry 全局查询（与 MC Java
+    // getType() 返回本地字段的语义一致）。
     const std::string typeId = getTypeId();
-    const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeId);
-    if (type == nullptr || !EntityTypeTags::IMPACT_PROJECTILES().contains(*type)) {
+    if (!EntityTypeTags::IMPACT_PROJECTILES().contains(typeId)) {
         return false;
     }
 

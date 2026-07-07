@@ -528,7 +528,6 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
 
     // 验证船实体创建正确
     EXPECT_EQ(m_boat->id(), EntityId(2));
-    EXPECT_EQ(m_boat->typeId(), entity::EntityTypeIdNumber::BOAT);
     EXPECT_NE(m_boat->getStatus(), entity::BoatStatus::UnderWater) << "Boat should not be underwater";
 
     // 验证 dynamic_cast 能正确识别 BoatEntity
@@ -579,7 +578,6 @@ TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly)
     m_boat->setId(EntityId(1));
 
     EXPECT_EQ(m_boat->id(), EntityId(1));
-    EXPECT_EQ(m_boat->typeId(), entity::EntityTypeIdNumber::BOAT);
 
     // 验证 dynamic_cast 可以正确识别 BoatEntity
     Entity* entityPtr = m_boat.get();
@@ -591,9 +589,6 @@ TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
     // 验证不同类型的船
     auto oakBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
     auto spruceBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE);
-
-    EXPECT_EQ(oakBoat->typeId(), entity::EntityTypeIdNumber::BOAT);
-    EXPECT_EQ(spruceBoat->typeId(), entity::EntityTypeIdNumber::BOAT);
 
     // 两种船都应该能被 dynamic_cast 识别
     Entity* oakPtr = oakBoat.get();
@@ -846,13 +841,18 @@ TEST_F(ZombieHorseBurnTest, BurnsInDaylightWithoutProtection)
     // 白天、天空可见、高亮度、不下雨
     m_world->setDayTime(6000);
     m_world->setCanSeeSky(true);
-    m_world->setBrightness(0.8f);
     m_world->setRaining(false);
 
-    // 验证僵尸马的防护槽位为 Chest（即马铠槽位）
+    // burnUndead 经 isInDaylight() 的随机门控触发：randomCheck = nextFloat()*30 <
+    // (brightness-0.4)*2。亮度越高触发概率越大。原测试 brightness=0.8 时单次触发概率
+    // 仅 ~2.6%，200 次循环约 0.4% 概率全部不触发 → 完整测试套件下偶发失败。
+    // 改用满亮度 1.0（单次 ~4%）并增加到 500 次循环，全部不触发的概率 < 1e-9，
+    // 使该用例确定性通过。防护槽位为空时 burnUndead 调用 igniteForSeconds(8) 点燃。
+    m_world->setBrightness(1.0f);
+
     // 使用不同 entityId 避免随机种子固定
     bool caughtFire = false;
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; i < 500; ++i) {
         ZombieHorseEntity horse(EntityId(i + 1));
         horse.setWorld(m_world.get());
         horse.setPosition(0.0f, 64.0f, 0.0f);

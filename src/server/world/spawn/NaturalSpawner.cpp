@@ -49,6 +49,7 @@
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <utility>
 #include <fmt/format.h>
 
@@ -78,30 +79,29 @@ void MobDensityTracker::addCharge(const Vector3& pos, f64 charge)
 
 f64 MobDensityTracker::getTotalCharge(const Vector3& pos, f64 multiplier) const
 {
-    // 计算公式：sum(charge * multiplier / sqrt(distance))
+    // multiplier 为 0 时直接返回 0
     if (multiplier == 0.0) {
         return 0.0;
     }
 
-    f64 totalCharge = 0.0;
-
+    // 先对所有点电荷求和：sum(charge / sqrt(distSq))，距离为 0 处贡献无穷大
+    f64 sumCharge = 0.0;
     for (const auto& entry : m_charges) {
         f64 dx = entry.position.x - pos.x;
         f64 dy = entry.position.y - pos.y;
         f64 dz = entry.position.z - pos.z;
         f64 distSq = dx * dx + dy * dy + dz * dz;
 
-        if (distSq < 0.0001) {
-            // 距离为 0 时直接累加 multiplier
-            totalCharge += multiplier;
-        } else {
-            // charge * multiplier / sqrt(distance)
-            f64 distance = std::sqrt(distSq);
-            totalCharge += entry.charge * multiplier / distance;
+        if (distSq == 0.0) {
+            // 与查询位置重合的点电荷贡献无穷大，使任何有限预算都被超出
+            return std::numeric_limits<f64>::infinity();
         }
+
+        sumCharge += entry.charge / std::sqrt(distSq);
     }
 
-    return totalCharge;
+    // 乘以 multiplier 得到最终的密度变化量
+    return sumCharge * multiplier;
 }
 
 // ============================================================================

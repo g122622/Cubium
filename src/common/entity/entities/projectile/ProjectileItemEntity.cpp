@@ -22,6 +22,7 @@
  */
 
 #include "ProjectileItemEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -328,6 +329,10 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         if (m_lingering) {
             // 创建区域效果云实体
             auto cloud = std::make_unique<AreaEffectCloudEntity>();
+
+            // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+            cloud->setTypeId(EntityTypes::AREA_EFFECT_CLOUD);
+
             cloud->setWorld(m_world);
             cloud->setPosition(x(), y(), z());
 
@@ -397,6 +402,10 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
         // 生成经验球实体
         for (i32 i = 0; i < experience; ++i) {
             auto orb = std::make_unique<ExperienceOrbEntity>(1);
+
+            // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+            orb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+
             orb->setPosition(m_position.x + (rng.nextFloat() - 0.5f) * 0.5f,
                 m_position.y + 0.5f,
                 m_position.z + (rng.nextFloat() - 0.5f) * 0.5f);

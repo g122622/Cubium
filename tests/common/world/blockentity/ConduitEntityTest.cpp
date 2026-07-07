@@ -84,6 +84,28 @@ public:
         return m_entitiesInRange;
     }
 
+    // ConduitEntity::_findExistingTarget 通过 getEntityByUuid() 进行 O(1) 查找
+    // （commit e4a6925b2 改造，对齐 MC Java EntityLookup.byUuid）。测试桩从注入的
+    // 范围内实体列表中按 UUID 解析，使 mock 行为与范围内遍历语义一致。
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        for (Entity* entity : m_entitiesInRange) {
+            if (entity != nullptr && entity->uuid() == uuid) {
+                return entity;
+            }
+        }
+        return nullptr;
+    }
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
+    {
+        for (const Entity* entity : m_entitiesInRange) {
+            if (entity != nullptr && entity->uuid() == uuid) {
+                return entity;
+            }
+        }
+        return nullptr;
+    }
+
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         const auto it = m_blockEntities.find(pos);
@@ -532,6 +554,10 @@ TEST(ConduitEntityFindTargetTest, LoadRestoresTargetUuid)
     ConduitTestWorld world;
     MockMobEntityForConduit mob(1);
     mob.setUuid("1234567890abcdef1234567890abcdef");
+    // _findExistingTarget 改造为 getEntityByUuid + 距离校验后（commit e4a6925b2），
+    // 需将 mob 放在 conduit 攻击范围内（ATTACK_RANGE=8），否则距离校验剔除目标。
+    const Vector3 conduitCenter = BlockPos(10, 20, 30).center();
+    mob.setPosition(conduitCenter);
     world.setEntitiesInRangeResult({&mob});
 
     // If the UUID was loaded correctly, findExistingTarget should find the mob
@@ -550,6 +576,8 @@ TEST(ConduitEntityFindTargetTest, SaveWritesTargetUuidWhenTargetExists)
     MockMobEntityForConduit mob(1);
     std::string mobUuid = "abcdef1234567890abcdef1234567890";
     mob.setUuid(mobUuid);
+    // 将 mob 置于 conduit 攻击范围内，满足 _findExistingTarget 的距离校验。
+    mob.setPosition(BlockPos(10, 20, 30).center());
     world.setEntitiesInRangeResult({&mob});
 
     // Set target UUID and find the target
@@ -564,7 +592,8 @@ TEST(ConduitEntityFindTargetTest, SaveWritesTargetUuidWhenTargetExists)
     TestConduitEntity loaded(BlockPos(0, 0, 0));
     ASSERT_TRUE(loaded.load(loadData));
 
-    // Verify by finding the target again
+    // Verify by finding the target again：loaded conduit 位于原点，需将 mob 移近原点。
+    mob.setPosition(BlockPos(0, 0, 0).center());
     world.setEntitiesInRangeResult({&mob});
     LivingEntity* reloadedTarget = loaded.testFindExistingTarget(world);
     ASSERT_NE(reloadedTarget, nullptr);

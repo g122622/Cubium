@@ -728,15 +728,20 @@ TEST_F(PiglinPathWeightTest, RepelledBySoulFire)
     EXPECT_FLOAT_EQ(weight, -1.0f);
 }
 
-TEST_F(PiglinPathWeightTest, RepelledByWarpedFungus)
+TEST_F(PiglinPathWeightTest, NotRepelledByWarpedFungus)
 {
-    // 诡异菌属于 PIGLIN_REPELLENTS 标签，应排斥猪灵
+    // MC 1.21.11 VanillaBlockTagsProvider:
+    //   PIGLIN_REPELLENTS = {soul_fire, soul_torch, soul_wall_torch, soul_lantern, soul_campfire}
+    //   HOGLIN_REPELLENTS = {warped_fungus, potted_warped_fungus, nether_portal, respawn_anchor}
+    // 诡异菌（warped_fungus）不在 PIGLIN_REPELLENTS 中，仅排斥疣猪兽，不排斥猪灵。
+    // 因此猪灵在诡异菌附近应返回 CreatureEntity 默认值 0.0f。
     world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::WARPED_FUNGUS->defaultState());
 
     PiglinEntity piglin(EntityId(90));
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
-    EXPECT_FLOAT_EQ(weight, -1.0f);
+    // 诡异菌不排斥猪灵，应返回 CreatureEntity 默认值 0.0f
+    EXPECT_FLOAT_EQ(weight, 0.0f);
 }
 
 TEST_F(PiglinPathWeightTest, NotRepelledByRegularCampfire)

@@ -23,6 +23,7 @@
 
 #include "BoatItem.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -71,11 +72,13 @@ ActionResultType BoatItem::onItemUse(ItemUseContext& context)
     std::unique_ptr<mc::Entity> boat;
     if (m_hasChest) {
         auto chestBoat = std::make_unique<entity::ChestBoatEntity>(m_boatType);
+        chestBoat->setTypeId(entity::EntityTypes::CHEST_BOAT);
         chestBoat->setPosition(x, y, z);
         chestBoat->setRotation(context.getPlayerYaw());
         boat = std::move(chestBoat);
     } else {
         auto normalBoat = std::make_unique<entity::BoatEntity>(m_boatType);
+        normalBoat->setTypeId(entity::EntityTypes::BOAT);
         normalBoat->setPosition(x, y, z);
         normalBoat->setRotation(context.getPlayerYaw());
         boat = std::move(normalBoat);

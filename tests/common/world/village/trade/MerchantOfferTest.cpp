@@ -72,7 +72,10 @@ protected:
         bread_ = getOrRegisterTestItem("minecraft:bread");
         diamond_ = getOrRegisterTestItem("minecraft:diamond");
         book_ = getOrRegisterTestItem("minecraft:book");
-        enchantedBook_ = getOrRegisterTestItem("minecraft:enchanted_book");
+        // 使用测试专用命名空间 id，避免被 ItemTest::SetUp -> Items::initialize() 注册的原版
+        // minecraft:enchanted_book (EnchantedBookItem, maxStackSize=1) 污染。测试需要 maxStackSize=64
+        // 的普通物品，故改用 "test:" 命名空间隔离。
+        enchantedBook_ = getOrRegisterTestItem("test:enchanted_book");
     }
 
     void TearDown() override

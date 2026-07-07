@@ -21,6 +21,7 @@
  */
 
 #include "FireworkRocketItem.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -49,6 +50,7 @@ std::unique_ptr<entity::ProjectileEntity> FireworkRocketItem::asProjectile(IWorl
             // 设置烟花物品数据（飞行时间、爆炸效果等）
             firework->setFireworkItem(stack);
         }
+        entity->setTypeId(entity::EntityTypes::FIREWORK_ROCKET);
     }
     // FireworkRocketEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
     return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));

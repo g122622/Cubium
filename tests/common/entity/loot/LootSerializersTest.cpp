@@ -335,12 +335,15 @@ TEST_F(LootSerializersTest, ParseCondition_UnknownType)
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_ReferenceUnsupported)
+TEST_F(LootSerializersTest, ParseCondition_ReferenceSupported)
 {
     nlohmann::json json = {{"condition", "minecraft:reference"}, {"name", "minecraft:test"}};
 
     auto result = LootSerializers::parseCondition(json);
-    EXPECT_FALSE(result.success());
+    // 源码 LootSerializers 已实现 minecraft:reference 条件解析（_parseReferenceCondition），
+    // 此前测试期望 Unsupported，是源码实现前的过时期望。
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value()->getType(), "reference");
 }
 
 TEST_F(LootSerializersTest, ParseCondition_TableBonus)
@@ -568,12 +571,16 @@ TEST_F(LootSerializersTest, ParseFunction_UnknownType)
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_CopyNbtUnsupported)
+TEST_F(LootSerializersTest, ParseFunction_CopyNbtSupported)
 {
     nlohmann::json json = {{"function", "minecraft:copy_nbt"}, {"source", "block_entity"}};
 
     auto result = LootSerializers::parseFunction(json);
-    EXPECT_FALSE(result.success());
+    // 源码 LootSerializers 已实现 minecraft:copy_nbt 函数解析（_parseCopyNbtFunction），
+    // ops 数组可选；此前测试期望 Unsupported，是源码实现前的过时期望。
+    // 仅断言解析成功与类型标识，避免对实现细节（getSource）过度耦合。
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value()->getType(), "copy_nbt");
 }
 
 TEST_F(LootSerializersTest, ParseFunction_ExplorationMap)

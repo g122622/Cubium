@@ -457,9 +457,15 @@ protected:
 
 TEST_F(PredicateConditionTest, DefaultConditionHasMinecraftNamespace)
 {
-    // 默认构造的 ResourceLocation 有 "minecraft" 命名空间，所以 isValid() 返回 true
+    // 默认构造的 ResourceLocation 有 "minecraft" 命名空间，所以 isValid() 返回 true。
+    // 但 path() 为空，表示未引用任何具体谓词，因此 hasCondition() 返回 false
+    // （与 NbtCondition 默认 nullptr 时 hasCondition()==false 的语义一致，
+    //  参见 src/server/command/README.md 的说明）。
     EntitySelector::PredicateCondition condition;
-    EXPECT_TRUE(condition.hasCondition());
+    EXPECT_EQ(condition.predicate.namespace_(), "minecraft");
+    EXPECT_TRUE(condition.predicate.isValid());
+    EXPECT_TRUE(condition.predicate.path().empty());
+    EXPECT_FALSE(condition.hasCondition());
 }
 
 TEST_F(PredicateConditionTest, ValidPredicateHasCondition)

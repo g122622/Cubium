@@ -19,6 +19,7 @@
 
 #include "ThrowableItems.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
@@ -56,7 +57,9 @@ entity::ProjectileItemEntity* SnowballItem::createProjectile(
 std::unique_ptr<entity::ProjectileEntity> SnowballItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    return std::make_unique<entity::SnowballEntity>(EntityId(0));
+    auto entity = std::make_unique<entity::SnowballEntity>(EntityId(0));
+    entity->setTypeId(entity::EntityTypes::SNOWBALL);
+    return entity;
 }
 
 // ========== EggItem ==========
@@ -84,7 +87,9 @@ entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& p
 std::unique_ptr<entity::ProjectileEntity> EggItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    return std::make_unique<entity::EggEntity>(EntityId(0));
+    auto entity = std::make_unique<entity::EggEntity>(EntityId(0));
+    entity->setTypeId(entity::EntityTypes::EGG);
+    return entity;
 }
 
 // ========== EnderPearlItem ==========
@@ -113,7 +118,9 @@ entity::ProjectileItemEntity* EnderPearlItem::createProjectile(
 std::unique_ptr<entity::ProjectileEntity> EnderPearlItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    return std::make_unique<entity::EnderPearlEntity>(EntityId(0));
+    auto entity = std::make_unique<entity::EnderPearlEntity>(EntityId(0));
+    entity->setTypeId(entity::EntityTypes::ENDER_PEARL);
+    return entity;
 }
 
 // ========== ExperienceBottleItem ==========
@@ -142,7 +149,9 @@ entity::ProjectileItemEntity* ExperienceBottleItem::createProjectile(
 std::unique_ptr<entity::ProjectileEntity> ExperienceBottleItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    return std::make_unique<entity::ExperienceBottleEntity>(EntityId(0));
+    auto entity = std::make_unique<entity::ExperienceBottleEntity>(EntityId(0));
+    entity->setTypeId(entity::EntityTypes::EXPERIENCE_BOTTLE);
+    return entity;
 }
 
 } // namespace item

@@ -26,9 +26,11 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -277,6 +279,15 @@ private:
 
 class DecoratedPotBlockTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite()
+    {
+        // onProjectileHit 经 ProjectileEntity::mayBreak() 检查投射物类型是否属于
+        // IMPACT_PROJECTILES 标签，需先初始化 EntityTypeTags（对齐 BellBlockEntityTest 模式）。
+        if (!EntityTypeTags::isInitialized()) {
+            EntityTypeTags::initialize();
+        }
+    }
+
     void SetUp() override
     {
         VanillaBlocks::initialize();
@@ -756,6 +767,9 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_ProjectileSetsCrackedAndDestroys)
     m_world.registerEntity(player.get());
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     arrow.setShooter(player.get());
 
@@ -781,6 +795,9 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_ClientSide_DoesNothing)
     m_world.setClientSide(true); // 客户端
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
 
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
@@ -826,6 +843,9 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_MayInteractFalse_DoesNothing)
     m_world.registerEntity(player.get());
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     arrow.setShooter(player.get());
 
@@ -853,6 +873,9 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_MobGriefingFalse_DoesNothing)
     m_world.registerEntity(&mob);
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     arrow.setShooter(&mob);
 
@@ -873,6 +896,9 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_NullShooter_Allowed)
     m_world.setClientSide(false);
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     // 不设置射手（无主投射物）
 
@@ -899,6 +925,9 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_AlreadyCracked_StillDestroys)
     m_world.registerEntity(player.get());
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     arrow.setShooter(player.get());
 
@@ -1211,6 +1240,9 @@ TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_SurvivalPlayer_Allowed)
     m_world.registerEntity(player.get());
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     arrow.setShooter(player.get());
 
@@ -1227,6 +1259,9 @@ TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_AdventurePlayer_Denied)
     m_world.registerEntity(player.get());
 
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
     arrow.setShooter(player.get());
 
@@ -1238,6 +1273,9 @@ TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_NullShooter_Allowed)
 {
     // 无主投射物 mayInteract 返回 true
     entity::ArrowEntity arrow(EntityId(200));
+    // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
+    // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
+    arrow.setTypeId(entity::EntityTypes::ARROW);
     arrow.setWorld(&m_world);
 
     BlockPos pos(0, 64, 0);

@@ -23,6 +23,7 @@
 
 #include "InfestedBlock.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
@@ -72,6 +73,7 @@ void InfestedBlock::spawnAfterBreak(
 
     // 创建蠹虫实体
     auto silverfish = std::make_unique<SilverfishEntity>(EntityId(0));
+    silverfish->setTypeId(entity::EntityTypes::SILVERFISH);
 
     // 设置位置（方块中心）
     silverfish->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);

@@ -269,7 +269,7 @@ TEST_F(ExperienceOrbEntityTest, TrackingPlayer)
 
 TEST_F(ExperienceOrbEntityTest, EntityType)
 {
-    EXPECT_EQ(orb->typeId(), entity::EntityTypeIdNumber::EXPERIENCE_ORB);
+    EXPECT_NE(dynamic_cast<ExperienceOrbEntity*>(orb.get()), nullptr);
 }
 
 // ==================== ExperienceOrbEntity Integration Tests ====================

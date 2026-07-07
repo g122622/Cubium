@@ -28,6 +28,7 @@
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -113,7 +114,13 @@ private:
 
 class SlimeEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        // PerformSplit 通过 EntityRegistry 查询 EntityTypes::SLIME 来 create 子史莱姆，
+        // 需先注册原版实体类型；registerAll 经修复后可重入（hasType 哨兵双检）。
+        entity::VanillaEntities::registerAll();
+    }
 
     SlimeTestWorld m_world;
 };

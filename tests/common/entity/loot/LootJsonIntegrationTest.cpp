@@ -51,11 +51,13 @@ TEST_F(LootJsonIntegrationTest, ParseLootTable_WithTableFunctionsPoolFunctionsAn
     EXPECT_EQ("minecraft:contents", dynamicEntry->getName());
 }
 
-TEST_F(LootJsonIntegrationTest, ParseCondition_ReferenceRejected)
+TEST_F(LootJsonIntegrationTest, ParseCondition_ReferenceAccepted)
 {
     nlohmann::json json = {{"condition", "minecraft:reference"}, {"name", "minecraft:test"}};
     auto result = LootSerializers::parseCondition(json);
-    EXPECT_FALSE(result.success());
+    // 源码已实现 minecraft:reference 条件解析，此前期望 Rejected 是过时期望。
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value()->getType(), "reference");
 }
 
 TEST_F(LootJsonIntegrationTest, ParseCondition_TableBonus)

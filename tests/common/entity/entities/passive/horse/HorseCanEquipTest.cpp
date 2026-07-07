@@ -45,7 +45,9 @@ class HorseEntityCanEquipTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 初始化物品标签
+        // 初始化物品（幂等）与物品标签，使 canEquip 的物品类型判断（如 SADDLE、
+        // HorseArmorItem、CARPETS 标签）不依赖其他测试套件的初始化顺序。
+        Items::initialize();
         item::tag::ItemTags::initialize();
     }
 };

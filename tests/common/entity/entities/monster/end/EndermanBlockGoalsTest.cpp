@@ -576,13 +576,16 @@ TEST_F(EndermanCanPlaceBlockTest, PlaceBlockEmitsBlockPlaceEvent)
     }
     world.clearGameEvents();
 
-    // 遍历不同实体 ID，直接调用 tick() 绕过 shouldExecute() 的概率检查
+    // 直接调用 tick() 绕过 shouldExecute() 的 1/2000 概率，并用 setSeed(K) 确定性控制
+    // 实体 RNG：tick() 内 nextDouble 决定放置坐标。下方 3x3 已填支撑、y=64 为空气可放置，
+    // 几乎任意命中都会成功；setSeed 使每次试验确定，消除 id^now() 非确定性导致的 flaky。
     bool placed = false;
-    for (uint64_t id = 1; id <= 200; ++id) {
-        enderman = std::make_unique<EndermanEntity>(EntityId(id));
+    for (uint64_t k = 1; k <= 200; ++k) {
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
         enderman->setHeldBlockState(&dirtBlock->defaultState());
+        enderman->getRandom().setSeed(k);
         goal = std::make_unique<entity::ai::goal::EndermanPlaceBlockGoal>(enderman.get());
 
         // 重置持有的方块状态
@@ -617,26 +620,28 @@ TEST_F(EndermanCanPlaceBlockTest, TakeBlockEmitsBlockDestroyEvent)
     enderman->setPosition(0.5f, 64.0f, 0.5f);
     world.clearGameEvents();
 
-    // 遍历不同实体 ID，找到一个使得拾取成功的组合
+    // 直接调用 tick() 绕过 shouldExecute() 的 1/20 概率，并用 setSeed(K) 确定性控制
+    // 实体 RNG：tick() 内 3 次 nextDouble 决定 (x,y,z)，setSeed 完全重置状态故每个 K
+    // 是独立确定性试验。48 个候选位置中 (1,64,0) 占其一，期望 ~48 次内命中，5000 次充裕。
+    // 旧实现依赖 id^now() 非确定种子 + shouldExecute 概率门，5000 次 P(0 成功)≈0.55% 导致 flaky。
     bool pickedUp = false;
-    for (uint64_t id = 1; id <= 5000; ++id) {
-        enderman = std::make_unique<EndermanEntity>(EntityId(id));
+    for (uint64_t k = 1; k <= 5000; ++k) {
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
+        enderman->getRandom().setSeed(k);
         auto takeGoal = std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(enderman.get());
 
-        // 重置方块状态
+        // 重置方块状态（前一次迭代可能被拾取设为空气）
         world.setBlockAt(BlockPos(1, 64, 0), dirtState);
         world.clearGameEvents();
 
-        if (takeGoal->shouldExecute()) {
-            takeGoal->tick();
-            if (enderman->isHoldingBlock()) {
-                pickedUp = true;
-                // 验证发出了 BLOCK_DESTROY 事件
-                EXPECT_TRUE(world.hasGameEvent("block_destroy", BlockPos(1, 64, 0)));
-                break;
-            }
+        takeGoal->tick();
+        if (enderman->isHoldingBlock()) {
+            pickedUp = true;
+            // 验证发出了 BLOCK_DESTROY 事件
+            EXPECT_TRUE(world.hasGameEvent("block_destroy", BlockPos(1, 64, 0)));
+            break;
         }
     }
 
@@ -824,9 +829,9 @@ protected:
         VanillaBlocks::initialize();
         BlockTags::initialize();
 
-        // 使用 EntityId(1) 作为默认实体 ID
-        // 注意：MobEntity::getRandom() 基于 (entityId, ticksExisted) 生成随机种子
-        // 为了测试的确定性，测试逻辑不依赖特定的随机序列
+        // 使用 EntityId(1) 作为默认实体 ID。
+        // 注意：Entity 构造用 id ^ high_resolution_clock::now() 作 RNG 种子（非确定），
+        // 需要确定性的用例在 tick() 前用 getRandom().setSeed(k) 重置。
         enderman = std::make_unique<EndermanEntity>(EntityId(1));
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
@@ -848,9 +853,8 @@ protected:
 /**
  * @brief 测试末影人能拾取可见方块（无阻挡）
  *
- * 遍历不同的实体 ID 来找到一个使得 shouldExecute() 返回 true
- * 且 tick() 的随机坐标命中目标方块的确定性种子。
- * 这避免了依赖固定的实体 ID（因为随机算法可能变化）。
+ * 用 setSeed(K) 确定性控制实体 RNG，直接调用 tick() 绕过 shouldExecute() 的 1/20 概率，
+ * 在 48 个候选位置中遍历 K 直到 tick() 的 3 次 nextDouble 命中 (1,64,0)。
  */
 TEST_F(EndermanTakeBlockRaycastTest, CanPickUpVisibleBlock)
 {
@@ -861,27 +865,23 @@ TEST_F(EndermanTakeBlockRaycastTest, CanPickUpVisibleBlock)
     world.setBlockAt(BlockPos(1, 64, 0), &dirtBlock->defaultState());
     world.clearGameEvents();
 
-    // 尝试不同的实体 ID，找到一个使得拾取成功的组合
-    // MobEntity::getRandom() 使用 (entityId | (ticksExisted << 32)) 作为种子
-    // ticksExisted=0 时，种子就是 entityId
+    // setSeed 完全重置 RNG 状态，每个 K 是独立确定性试验；48 个位置中 (1,64,0) 占其一。
     bool pickedUp = false;
-    for (uint64_t id = 1; id <= 5000; ++id) {
-        // 重置末影人和目标
-        enderman = std::make_unique<EndermanEntity>(EntityId(id));
+    for (uint64_t k = 1; k <= 5000; ++k) {
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
+        enderman->getRandom().setSeed(k);
         goal = std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(enderman.get());
 
         // 重置方块状态（可能被前一次迭代修改）
         world.setBlockAt(BlockPos(1, 64, 0), &dirtBlock->defaultState());
         world.clearGameEvents();
 
-        if (goal->shouldExecute()) {
-            goal->tick();
-            if (enderman->isHoldingBlock()) {
-                pickedUp = true;
-                break;
-            }
+        goal->tick();
+        if (enderman->isHoldingBlock()) {
+            pickedUp = true;
+            break;
         }
     }
 
@@ -915,20 +915,20 @@ TEST_F(EndermanTakeBlockRaycastTest, CannotPickUpBlockedBlock)
 
     ASSERT_FALSE(enderman->isHoldingBlock());
 
-    // 遍历不同实体 ID，尝试所有使得 shouldExecute() 返回 true 的情况
-    for (uint64_t id = 1; id <= 500; ++id) {
-        enderman = std::make_unique<EndermanEntity>(EntityId(id));
+    // 用 setSeed(K) 确定性控制 RNG，直接调 tick() 绕过 shouldExecute()，确保每次迭代
+    // 真正进入 tick 路径；射线被 (6,64,5) 石头阻挡，末影人不应拾取 (7,64,5) 的泥土。
+    for (uint64_t k = 1; k <= 500; ++k) {
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         enderman->setWorld(&world);
         enderman->setPosition(5.5f, 64.0f, 5.5f);
+        enderman->getRandom().setSeed(k);
         goal = std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(enderman.get());
 
         // 确保方块状态正确
         world.setBlockAt(BlockPos(7, 64, 5), &dirtBlock->defaultState());
         world.setBlockAt(BlockPos(6, 64, 5), &stoneBlock->defaultState());
 
-        if (goal->shouldExecute()) {
-            goal->tick();
-        }
+        goal->tick();
 
         // 末影人不应该拾取被阻挡的方块
         EXPECT_FALSE(enderman->isHoldingBlock());
@@ -953,19 +953,19 @@ TEST_F(EndermanTakeBlockRaycastTest, CannotPickUpNonHoldableBlock)
     // 石头不在 ENDERMAN_HOLDABLE 标签中，放在末影人旁边
     world.setBlockAt(BlockPos(1, 64, 0), &stoneBlock->defaultState());
 
-    // 遍历不同实体 ID
-    for (uint64_t id = 1; id <= 500; ++id) {
-        enderman = std::make_unique<EndermanEntity>(EntityId(id));
+    // 用 setSeed(K) 确定性控制 RNG，直接调 tick() 绕过 shouldExecute()，确保每次迭代
+    // 真正进入 tick 路径；石头不可拾取，末影人应始终不持有方块。
+    for (uint64_t k = 1; k <= 500; ++k) {
+        enderman = std::make_unique<EndermanEntity>(EntityId(1));
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
+        enderman->getRandom().setSeed(k);
         goal = std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(enderman.get());
 
         // 确保石头还在
         world.setBlockAt(BlockPos(1, 64, 0), &stoneBlock->defaultState());
 
-        if (goal->shouldExecute()) {
-            goal->tick();
-        }
+        goal->tick();
 
         // 末影人应该不会拾取石头
         ASSERT_FALSE(enderman->isHoldingBlock());
