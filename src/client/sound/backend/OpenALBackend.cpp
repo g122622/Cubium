@@ -39,10 +39,16 @@ namespace mc::client::sound {
 // OpenALSource 实现
 // ============================================================================
 
-OpenALSource::OpenALSource(AudioSourceId id, ALuint source, OnDestroyCallback onDestroy)
+OpenALSource::OpenALSource(AudioSourceId id,
+    ALuint source,
+    OnDestroyCallback onDestroy,
+    LookupALBufferCallback lookupALBuffer,
+    LookupBufferIdCallback lookupBufferId)
     : m_id(id)
     , m_source(source)
     , m_onDestroy(std::move(onDestroy))
+    , m_lookupALBuffer(std::move(lookupALBuffer))
+    , m_lookupBufferId(std::move(lookupBufferId))
 {}
 
 OpenALSource::~OpenALSource()
@@ -65,10 +71,14 @@ OpenALSource::OpenALSource(OpenALSource&& other) noexcept
     , m_source(other.m_source)
     , m_buffer(std::move(other.m_buffer))
     , m_onDestroy(std::move(other.m_onDestroy))
+    , m_lookupALBuffer(std::move(other.m_lookupALBuffer))
+    , m_lookupBufferId(std::move(other.m_lookupBufferId))
 {
     other.m_id = 0;
     other.m_source = 0;
     other.m_onDestroy = nullptr;
+    other.m_lookupALBuffer = nullptr;
+    other.m_lookupBufferId = nullptr;
 }
 
 OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept
@@ -88,10 +98,14 @@ OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept
         m_source = other.m_source;
         m_buffer = std::move(other.m_buffer);
         m_onDestroy = std::move(other.m_onDestroy);
+        m_lookupALBuffer = std::move(other.m_lookupALBuffer);
+        m_lookupBufferId = std::move(other.m_lookupBufferId);
 
         other.m_id = 0;
         other.m_source = 0;
         other.m_onDestroy = nullptr;
+        other.m_lookupALBuffer = nullptr;
+        other.m_lookupBufferId = nullptr;
     }
     return *this;
 }
@@ -383,18 +397,43 @@ void OpenALSource::queueBuffers(const AudioBufferId* buffers, size_t count)
         return;
     }
 
-    // 收集 OpenAL buffer handles
+    // 收集 OpenAL buffer 句柄
+    // 应用层 AudioBufferId 与 OpenAL 内部 ALuint 是两套独立的命名空间，
+    // 必须通过 backend 维护的正向映射（AudioBufferId -> OpenALBuffer -> ALuint）翻译。
+    // 若查找回调缺失（旧代码路径），仅打印警告并放弃本次入队。
+    if (!m_lookupALBuffer) {
+        spdlog::warn("[OpenALSource] queueBuffers: buffer lookup callback not configured");
+        return;
+    }
+
     std::vector<ALuint> alBuffers;
     alBuffers.reserve(count);
 
-    // TODO: queueBuffers 需要从 AudioBufferCache 获取实际的 OpenALBuffer，当前为简化实现，流式播放将在 SoundEngine
-    // 层完成
-    spdlog::warn("[OpenALSource] queueBuffers: streaming not fully implemented");
+    for (size_t i = 0; i < count; ++i) {
+        AudioBufferId id = buffers[i];
+        if (id == 0) {
+            // 0 表示无效 ID，跳过以避免破坏后续入队顺序
+            spdlog::warn("[OpenALSource] queueBuffers: encountered invalid buffer id at index {}", i);
+            continue;
+        }
 
-    if (!alBuffers.empty()) {
-        alSourceQueueBuffers(m_source, static_cast<ALsizei>(alBuffers.size()), alBuffers.data());
-        _checkError("queueBuffers");
+        ALuint alBuffer = m_lookupALBuffer(id);
+        if (alBuffer == 0) {
+            // 找不到对应的 OpenALBuffer，跳过该 ID
+            spdlog::warn("[OpenALSource] queueBuffers: buffer id {} not found in backend", id);
+            continue;
+        }
+
+        alBuffers.push_back(alBuffer);
     }
+
+    if (alBuffers.empty()) {
+        // 没有可入队的有效 buffer，避免对空数组调用 alSourceQueueBuffers
+        return;
+    }
+
+    alSourceQueueBuffers(m_source, static_cast<ALsizei>(alBuffers.size()), alBuffers.data());
+    _checkError("queueBuffers");
 }
 
 u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count)
@@ -403,10 +442,21 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count)
         return 0;
     }
 
-    std::vector<ALuint> alBuffers(count);
-    const size_t processed = count;
+    // 先查询 OpenAL 实际已处理的 buffer 数量，取 min(processed, count) 作为本次出队数量。
+    // 直接按 count 出队在 processed < count 时会触发 AL_INVALID_VALUE。
+    ALint processed = 0;
+    alGetSourcei(m_source, AL_BUFFERS_PROCESSED, &processed);
+    if (processed <= 0) {
+        return 0;
+    }
 
-    alSourceUnqueueBuffers(m_source, static_cast<ALsizei>(processed), alBuffers.data());
+    const size_t toUnqueue = std::min(static_cast<size_t>(processed), count);
+    if (toUnqueue == 0) {
+        return 0;
+    }
+
+    std::vector<ALuint> alBuffers(toUnqueue);
+    alSourceUnqueueBuffers(m_source, static_cast<ALsizei>(toUnqueue), alBuffers.data());
 
     ALenum error = alGetError();
     if (error != AL_NO_ERROR) {
@@ -414,12 +464,27 @@ u32 OpenALSource::unqueueBuffers(AudioBufferId* buffers, size_t count)
         return 0;
     }
 
-    // TODO: 将 ALuint 转换回 AudioBufferId 需要实际的映射，当前为简化实现
-    for (size_t i = 0; i < processed; ++i) {
-        buffers[i] = static_cast<AudioBufferId>(alBuffers[i]);
+    // 把 OpenAL ALuint 句柄反向翻译回应用层 AudioBufferId。
+    // 若反向查找回调缺失（旧代码路径），无法正确翻译，对应位置写 0 并打印警告。
+    if (!m_lookupBufferId) {
+        spdlog::warn("[OpenALSource] unqueueBuffers: buffer id lookup callback not configured");
+        for (size_t i = 0; i < toUnqueue; ++i) {
+            buffers[i] = 0;
+        }
+        return static_cast<u32>(toUnqueue);
     }
 
-    return static_cast<u32>(processed);
+    for (size_t i = 0; i < toUnqueue; ++i) {
+        AudioBufferId id = m_lookupBufferId(alBuffers[i]);
+        if (id == 0) {
+            // 反向映射缺失通常意味着 buffer 已被 destroyBuffer 销毁，
+            // 但 OpenAL 仍在队列中持有句柄——理论上不应该发生，记录警告。
+            spdlog::warn("[OpenALSource] unqueueBuffers: alBuffer {} not found in reverse map", alBuffers[i]);
+        }
+        buffers[i] = id;
+    }
+
+    return static_cast<u32>(toUnqueue);
 }
 
 u32 OpenALSource::getProcessedBuffers() const noexcept
@@ -677,10 +742,11 @@ void OpenALBackend::shutdown()
 
     spdlog::info("[OpenALBackend] Shutting down...");
 
-    // 清理所有缓冲区
+    // 清理所有缓冲区（正向/反向映射一并清空）
     {
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         m_buffers.clear();
+        m_alBufferToId.clear();
     }
 
     // 停止所有源并清理上下文
@@ -795,10 +861,12 @@ Result<AudioBufferId> OpenALBackend::createBuffer(const AudioData& data)
 
     std::shared_ptr<OpenALBuffer> buffer = result.value();
 
-    // 存储缓冲区
+    // 存储缓冲区（同时维护正向/反向映射，保持两者一致）
     {
         std::lock_guard<std::mutex> lock(m_bufferMutex);
+        ALuint alBuffer = buffer->getALBuffer();
         m_buffers[id] = std::move(buffer);
+        m_alBufferToId[alBuffer] = id;
     }
 
     return id;
@@ -811,7 +879,16 @@ void OpenALBackend::destroyBuffer(AudioBufferId id)
     }
 
     std::lock_guard<std::mutex> lock(m_bufferMutex);
-    m_buffers.erase(id);
+
+    auto it = m_buffers.find(id);
+    if (it == m_buffers.end()) {
+        return;
+    }
+
+    // 同步删除反向映射，保持正向/反向映射一致
+    ALuint alBuffer = it->second->getALBuffer();
+    m_alBufferToId.erase(alBuffer);
+    m_buffers.erase(it);
 }
 
 bool OpenALBackend::hasBuffer(AudioBufferId id) const noexcept
@@ -828,6 +905,34 @@ std::shared_ptr<IAudioBuffer> OpenALBackend::getBuffer(AudioBufferId id) const
         return nullptr;
     }
 
+    return it->second;
+}
+
+ALuint OpenALBackend::_lookupALBuffer(AudioBufferId id) const
+{
+    if (id == 0) {
+        return 0;
+    }
+
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    auto it = m_buffers.find(id);
+    if (it == m_buffers.end()) {
+        return 0;
+    }
+    return it->second->getALBuffer();
+}
+
+AudioBufferId OpenALBackend::_lookupBufferId(ALuint alBuffer) const
+{
+    if (alBuffer == 0) {
+        return 0;
+    }
+
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    auto it = m_alBufferToId.find(alBuffer);
+    if (it == m_alBufferToId.end()) {
+        return 0;
+    }
     return it->second;
 }
 
@@ -860,7 +965,14 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource()
     // 创建源销毁回调，当源被销毁时递减活跃源计数
     auto onDestroy = [this]() { m_activeSourceCount.fetch_sub(1, std::memory_order::relaxed); };
 
-    std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(id, source, std::move(onDestroy));
+    // 创建缓冲区查找回调，供 OpenALSource 在流式播放 queue/unqueue 时
+    // 在 AudioBufferId 与 OpenAL ALuint 句柄之间转换。
+    // 回调内部加锁访问 m_buffers / m_alBufferToId，OpenALSource 调用时无需持锁。
+    auto lookupALBuffer = [this](AudioBufferId id) { return this->_lookupALBuffer(id); };
+    auto lookupBufferId = [this](ALuint alBuffer) { return this->_lookupBufferId(alBuffer); };
+
+    std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(
+        id, source, std::move(onDestroy), std::move(lookupALBuffer), std::move(lookupBufferId));
     return audioSource;
 }
 

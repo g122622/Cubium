@@ -38,6 +38,9 @@
 
 namespace mc::client::sound {
 
+// 前向声明，用于 OpenALSource 持有 backend 反向指针
+class OpenALBackend;
+
 /**
  * @brief OpenAL 音频源实现
  *
@@ -55,13 +58,41 @@ public:
     using OnDestroyCallback = std::function<void()>;
 
     /**
+     * @brief 缓冲区查找回调类型
+     *
+     * 用于流式播放接口（queueBuffers / unqueueBuffers）在 AudioBufferId 与 OpenAL
+     * ALuint 句柄之间转换。回调由 OpenALBackend 在创建源时绑定，避免 OpenALSource
+     * 直接依赖 OpenALBackend 的具体类型，保持接口抽象层次清晰。
+     *
+     * @param id 应用层缓冲区 ID
+     * @return 对应的 OpenAL ALuint 句柄，找不到返回 0
+     */
+    using LookupALBufferCallback = std::function<ALuint(AudioBufferId)>;
+
+    /**
+     * @brief 反向查找回调类型
+     *
+     * 用于 unqueueBuffers 把 OpenAL ALuint 句柄反向翻译回 AudioBufferId。
+     *
+     * @param alBuffer OpenAL 缓冲区句柄
+     * @return 对应的应用层缓冲区 ID，找不到返回 0
+     */
+    using LookupBufferIdCallback = std::function<AudioBufferId(ALuint)>;
+
+    /**
      * @brief 构造 OpenAL 音频源
      *
      * @param id 音频源 ID
      * @param source OpenAL source 句柄
      * @param onDestroy 源销毁时的回调（可选）
+     * @param lookupALBuffer 由 AudioBufferId 查找 ALuint 句柄的回调（流式播放必需）
+     * @param lookupBufferId 由 ALuint 句柄反向查找 AudioBufferId 的回调（流式播放必需）
      */
-    OpenALSource(AudioSourceId id, ALuint source, OnDestroyCallback onDestroy = nullptr);
+    OpenALSource(AudioSourceId id,
+        ALuint source,
+        OnDestroyCallback onDestroy = nullptr,
+        LookupALBufferCallback lookupALBuffer = nullptr,
+        LookupBufferIdCallback lookupBufferId = nullptr);
     ~OpenALSource() override;
 
     // 禁止拷贝
@@ -174,6 +205,8 @@ private:
     ALuint m_source;
     std::shared_ptr<IAudioBuffer> m_buffer;
     OnDestroyCallback m_onDestroy;
+    LookupALBufferCallback m_lookupALBuffer; ///< AudioBufferId -> ALuint 查找回调
+    LookupBufferIdCallback m_lookupBufferId; ///< ALuint -> AudioBufferId 反向查找回调
 };
 
 /**
@@ -339,6 +372,28 @@ private:
      */
     [[nodiscard]] std::string _checkALError(const char* operation) const;
 
+    /**
+     * @brief 由 AudioBufferId 查找 OpenAL ALuint 句柄
+     *
+     * 供 OpenALSource::queueBuffers 使用，将应用层 ID 翻译为 OpenAL 内部句柄。
+     * 调用方在音频线程，内部加锁访问 m_buffers。
+     *
+     * @param id 应用层缓冲区 ID
+     * @return OpenAL 缓冲区句柄，找不到返回 0
+     */
+    [[nodiscard]] ALuint _lookupALBuffer(AudioBufferId id) const;
+
+    /**
+     * @brief 由 OpenAL ALuint 句柄反向查找 AudioBufferId
+     *
+     * 供 OpenALSource::unqueueBuffers 使用，将 OpenAL 内部句柄翻译回应用层 ID。
+     * 调用方在音频线程，内部加锁访问 m_alBufferToId。
+     *
+     * @param alBuffer OpenAL 缓冲区句柄
+     * @return 应用层缓冲区 ID，找不到返回 0
+     */
+    [[nodiscard]] AudioBufferId _lookupBufferId(ALuint alBuffer) const;
+
     /// 最大音频源数量（从设备属性查询，回退到默认值）
     u32 m_maxSources = ::mc::sound::MAX_CONCURRENT_SOUNDS;
 
@@ -360,10 +415,14 @@ private:
     /// 下一个源 ID
     AudioSourceId m_nextSourceId = 1;
 
-    /// 缓冲区映射
+    /// 缓冲区映射（AudioBufferId -> OpenALBuffer）
     std::unordered_map<AudioBufferId, std::shared_ptr<OpenALBuffer>> m_buffers;
 
-    /// 缓冲区互斥锁
+    /// 反向缓冲区映射（OpenAL ALuint 句柄 -> AudioBufferId）
+    /// 用于流式播放时 unqueueBuffers 把 OpenAL 句柄翻译回应用层 ID
+    std::unordered_map<ALuint, AudioBufferId> m_alBufferToId;
+
+    /// 缓冲区互斥锁（同时保护 m_buffers 与 m_alBufferToId）
     mutable std::mutex m_bufferMutex;
 
     /// 听者位置
