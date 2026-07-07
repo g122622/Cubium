@@ -91,9 +91,17 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 
 ### 9. spawn list 与原版 1.16.5 仍有未收敛偏差
 
-`MobSpawnInfo.cpp` 中各工厂方法（`createOcean`/`createJungle`/`createSavanna`/`createSnowy`/`createCrimsonForest`/`createLushCaves` 等）的 spawn list 与原版 MC Java 1.16.5 仍存在若干已知偏差。这些偏差以 `TODO(spawn-list-<biome>)` 形式逐项标注在对应工厂方法内，文件顶部有汇总说明。收敛任一项时需同步删除对应 TODO。共性偏差包括：
+`MobSpawnInfo.cpp` 中各工厂方法（`createOcean`/`createSavanna`/`createSnowy`/`createCrimsonForest`/`createLushCaves` 等）的 spawn list 与原版 MC Java 1.16.5 仍存在若干已知偏差。这些偏差以 `TODO(spawn-list-<biome>)` 形式逐项标注在对应工厂方法内，文件顶部有汇总说明。收敛任一项时需同步删除对应 TODO。共性偏差包括：
 - `EntityClassification` 仅 6 类，缺失原版的 `UndergroundWaterCreature` 与 `Axolotls`，导致美西螈等临时塞进 `WaterCreature`
 - cod/salmon/tropical_fish/pufferfish 原版归 `WaterAmbient`，本项目误归 `WaterCreature`
-- hoglin/ocelot 原版归 `Creature`，本项目误归 `Monster`
-- Jungle 系列 `baseJungleSpawns()` 的"额外鸡"规则未实现
+- hoglin 原版归 `Creature`，本项目误归 `Monster`
 - 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo、zombie_horse），对应 spawn list 待补
+
+### 10. Jungle 系列变体使用不同工厂方法
+
+Jungle 系列生物群系按 MC 1.16.5 `OverworldBiomes` 拆分为三个工厂方法，必须按变体正确调用：
+- `createJungle()`：Jungle / JungleHills / ModifiedJungle / ModifiedJungleEdge（含 ocelot 2,1,3 + parrot 40,1,2 + panda 1,1,2）
+- `createSparseJungle()`：JungleEdge（旧名 sparseJungle，含 wolf 8,2,4，无 ocelot/parrot/panda）
+- `createBambooJungle()`：BambooJungle / BambooJungleHills（panda weight=80、ocelot pack=1，与普通 jungle 不同）
+
+三者共享 `applyBaseJungleSpawns()`（对应 `BiomeDefaultFeatures.baseJungleSpawns()`），含 farmAnimals + **额外 chicken** + commonSpawns。新增 Jungle 变体时应复用该辅助函数。

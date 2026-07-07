@@ -38,10 +38,8 @@ namespace mc::world::spawn {
 //      无法归入正确分类，目前临时塞进 WaterCreature。
 //   2) 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、
 //      armadillo、zombie_horse 等），无法加入对应 spawn list。
-//   3) Jungle 系列 baseJungleSpawns() 的"额外鸡"规则（在标准 farmAnimals 之外
-//      再加一条 weight=10 的 chicken）尚未实现。
-//   4) hoglin/ocelot 的 EntityClassification 归类与原版不一致（hoglin 原版为
-//      Creature，本项目为 Monster；ocelot 原版为 Creature，本项目为 Monster）。
+//   3) hoglin 的 EntityClassification 归类与原版不一致（hoglin 原版为 Creature，
+//      本项目为 Monster）。
 // 收敛上述任一项时，请同步删除对应的 TODO 注释。
 
 MobSpawnInfo MobSpawnInfo::createPlains()
@@ -353,44 +351,102 @@ MobSpawnInfo MobSpawnInfo::createTaiga()
     return info;
 }
 
-MobSpawnInfo MobSpawnInfo::createJungle()
+namespace {
+/**
+ * @brief 填充 baseJungleSpawns 公共生成列表
+ *
+ * 对应 MC 1.16.5 BiomeDefaultFeatures.baseJungleSpawns()：
+ *   farmAnimals() + 额外 chicken(10,4,4) CREATURE + commonSpawns()
+ * 其中 farmAnimals = sheep(12,4,4) + pig(10,4,4) + chicken(10,4,4) + cow(8,4,4)；
+ * commonSpawns = caveSpawns(bat AMBIENT 10,8,8 + glow_squid UNDERGROUND_WATER_CREATURE
+ * 10,4,6) + monsters(spider 100,4,4 + zombie 95,4,4 + zombie_villager 5,1,1 +
+ * skeleton 100,4,4 + creeper 100,4,4 + slime 100,4,4 + enderman 10,1,4 + witch 5,1,1)。
+ *
+ * 注：glow_squid 归 UNDERGROUND_WATER_CREATURE 分类，本项目暂未实现该分类，
+ * glow_squid 实体亦未注册，故此处暂不添加（见文件顶 TODO(spawn-list-alignment) #1/#2）。
+ *
+ * @param info 待填充的 MobSpawnInfo（调用方已设置好概率等基础字段）
+ */
+void applyBaseJungleSpawns(MobSpawnInfo& info)
 {
-    MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.1f;
-    info.m_playerSpawnFriendly = true;
-
-    // TODO(spawn-list-jungle): 以下偏差待收敛（参考原版 1.16.5 BiomeDefaultFeatures.baseJungleSpawns）：
-    //   1) ocelot 原版归类为 Creature（weight=2, pack=1），本项目误归 Monster，需待
-    //      EntityClassification 体系扩展或 ocelot 实体分类修正后迁移。
-    //   2) Jungle 应在标准 farmAnimals 之外额外加一条 minecraft:chicken weight=10 pack=4
-    //      （"额外鸡"规则，原版 baseJungleSpawns 显式添加），当前缺失。
-    //   3) parrot 原版 weight=40 pack=1（本项目 pack=2），需核对 pack size。
-    //   4) Jungle 变体（JungleHills/ModifiedJungle/ModifiedJungleEdge/BambooJungle 等）
-    //      应复用 baseJungleSpawns 并叠加变体特定条目（如 BambooJungle 的 panda weight=80），
-    //      当前 createJungle 直接硬编码 panda weight=1，未区分 BambooJungle 变体。
-
-    // 怪物
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    // 怪物（commonSpawns -> monsters）
+    info.setMaxMonsterInstances(MobSpawnInfo::DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 1)); // 丛林豹猫是怪物分类
 
-    // 动物（丛林没有牛！）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
+    // 动物（farmAnimals + 额外 chicken）
+    info.setMaxCreatureInstances(MobSpawnInfo::DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2));
-    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 1, 1, 2)); // 竹林变体是80
+    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
+    // baseJungleSpawns 显式追加的"额外鸡"（weight=10, pack=4）
+    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
 
-    // 环境生物
+    // 环境生物（caveSpawns -> bat）
+    info.setMaxAmbientInstances(MobSpawnInfo::DEFAULT_MAX_AMBIENT);
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+}
+} // namespace
+
+MobSpawnInfo MobSpawnInfo::createJungle()
+{
+    // 对应 MC 1.16.5 OverworldBiomes.jungle()：
+    //   baseJungleSpawns + parrot(40,1,2) CREATURE + ocelot(2,1,3) MONSTER
+    //   + panda(1,1,2) CREATURE
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+    info.m_playerSpawnFriendly = true;
+
+    applyBaseJungleSpawns(info);
+
+    // jungle 变体特定条目
+    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 3));
+    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2));
+    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 1, 1, 2));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createSparseJungle()
+{
+    // 对应 MC 1.16.5 OverworldBiomes.sparseJungle()（旧名 JungleEdge）：
+    //   baseJungleSpawns + wolf(8,2,4) CREATURE
+    // 稀疏丛林没有 ocelot/parrot/panda，取而代之的是狼。
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+    info.m_playerSpawnFriendly = true;
+
+    applyBaseJungleSpawns(info);
+
+    // sparseJungle 变体特定条目
+    info.addCreatureSpawn(SpawnEntry("minecraft:wolf", 8, 2, 4));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createBambooJungle()
+{
+    // 对应 MC 1.16.5 OverworldBiomes.bambooJungle()：
+    //   baseJungleSpawns + parrot(40,1,2) CREATURE + panda(80,1,2) CREATURE
+    //   + ocelot(2,1,1) MONSTER
+    // 与普通 jungle 的差异：panda weight=80（非 1）、ocelot pack=1（非 3）。
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+    info.m_playerSpawnFriendly = true;
+
+    applyBaseJungleSpawns(info);
+
+    // bambooJungle 变体特定条目
+    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 1));
+    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2));
+    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 80, 1, 2));
 
     return info;
 }

@@ -392,6 +392,13 @@ public:
 
     // ========== 工厂方法 ==========
 
+    // 默认实例限制常量（公开以便工厂实现复用）
+    static constexpr i32 DEFAULT_MAX_MONSTERS = 70;
+    static constexpr i32 DEFAULT_MAX_CREATURES = 10;
+    static constexpr i32 DEFAULT_MAX_AMBIENT = 15;
+    static constexpr i32 DEFAULT_MAX_WATER_CREATURES = 5;
+    static constexpr i32 DEFAULT_MAX_WATER_AMBIENT = 20;
+
     /**
      * @brief 创建平原生物群系的生成信息
      */
@@ -449,8 +456,30 @@ public:
 
     /**
      * @brief 创建丛林生物群系的生成信息
+     *
+     * 对应 MC 1.16.5 OverworldBiomes.jungle()：
+     *   baseJungleSpawns + parrot(40,1,2) CREATURE + ocelot(2,1,3) MONSTER
+     *   + panda(1,1,2) CREATURE
      */
     static MobSpawnInfo createJungle();
+
+    /**
+     * @brief 创建稀疏丛林（旧名 JungleEdge）生物群系的生成信息
+     *
+     * 对应 MC 1.16.5 OverworldBiomes.sparseJungle()：
+     *   baseJungleSpawns + wolf(8,2,4) CREATURE
+     */
+    static MobSpawnInfo createSparseJungle();
+
+    /**
+     * @brief 创建竹林生物群系的生成信息
+     *
+     * 对应 MC 1.16.5 OverworldBiomes.bambooJungle()：
+     *   baseJungleSpawns + parrot(40,1,2) CREATURE + panda(80,1,2) CREATURE
+     *   + ocelot(2,1,1) MONSTER
+     * 与普通 jungle 差异：panda weight=80、ocelot pack=1。
+     */
+    static MobSpawnInfo createBambooJungle();
 
     /**
      * @brief 创建热带草原生物群系的生成信息
@@ -549,13 +578,6 @@ private:
 
     /// 是否适合玩家生成
     bool m_playerSpawnFriendly = false;
-
-    // 默认实例限制
-    static constexpr i32 DEFAULT_MAX_MONSTERS = 70;
-    static constexpr i32 DEFAULT_MAX_CREATURES = 10;
-    static constexpr i32 DEFAULT_MAX_AMBIENT = 15;
-    static constexpr i32 DEFAULT_MAX_WATER_CREATURES = 5;
-    static constexpr i32 DEFAULT_MAX_WATER_AMBIENT = 20;
 };
 
 } // namespace mc::world::spawn

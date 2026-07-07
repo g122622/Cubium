@@ -823,6 +823,7 @@ Biome createJungleHills()
 
 Biome createJungleEdge()
 {
+    // 旧名 JungleEdge，对应 MC 1.16.5 sparseJungle()（baseJungleSpawns + wolf）
     Biome biome(Biomes::JungleEdge, "jungle_edge");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -832,7 +833,7 @@ Biome createJungleEdge()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSparseJungle());
     return biome;
 }
 
@@ -847,7 +848,7 @@ Biome createBambooJungle()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createBambooJungle());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBambooJungle());
     return biome;
 }
 
@@ -862,7 +863,7 @@ Biome createBambooJungleHills()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createBambooJungleHills());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBambooJungle());
     return biome;
 }
 

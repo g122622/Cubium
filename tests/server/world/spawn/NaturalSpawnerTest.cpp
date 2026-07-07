@@ -491,5 +491,121 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Snowy)
     EXPECT_GT(info.getMonsterSpawns().size(), 0);
 }
 
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Jungle)
+{
+    // 对应 MC 1.16.5 OverworldBiomes.jungle()
+    auto info = world::spawn::MobSpawnInfo::createJungle();
+    EXPECT_TRUE(info.isPlayerSpawnFriendly());
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // baseJungleSpawns 在标准 farmAnimals（含 1 条 chicken）之外额外再加一条
+    // weight=10 的 chicken，故 Jungle 应有两条 chicken 条目
+    int chickenCount = 0;
+    bool hasCow = false, hasParrot = false, hasPanda = false, hasOcelot = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
+        if (entry.entityTypeId == "minecraft:cow") hasCow = true;
+        if (entry.entityTypeId == "minecraft:parrot") hasParrot = true;
+        if (entry.entityTypeId == "minecraft:panda") hasPanda = true;
+    }
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:ocelot") hasOcelot = true;
+    }
+    EXPECT_EQ(chickenCount, 2); // farmAnimals 的 chicken + baseJungleSpawns 额外 chicken
+    EXPECT_TRUE(hasCow);        // farmAnimals 含 cow（旧实现误删，已收敛）
+    EXPECT_TRUE(hasParrot);
+    EXPECT_TRUE(hasPanda);
+    EXPECT_TRUE(hasOcelot); // MC 1.16.5 jungle() 将 ocelot 加入 MONSTER 分类
+
+    // 验证 ocelot pack size 为 (1,3)，parrot 为 (1,2)，panda 为 (1,2)
+    bool ocelotPackOk = false, parrotPackOk = false, pandaPackOk = false;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:ocelot" && entry.minCount == 1 && entry.maxCount == 3) {
+            ocelotPackOk = true;
+        }
+    }
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:parrot" && entry.minCount == 1 && entry.maxCount == 2) {
+            parrotPackOk = true;
+        }
+        if (entry.entityTypeId == "minecraft:panda" && entry.minCount == 1 && entry.maxCount == 2 &&
+            entry.weight == 1) {
+            pandaPackOk = true;
+        }
+    }
+    EXPECT_TRUE(ocelotPackOk);
+    EXPECT_TRUE(parrotPackOk);
+    EXPECT_TRUE(pandaPackOk);
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_SparseJungle)
+{
+    // 对应 MC 1.16.5 OverworldBiomes.sparseJungle()（旧名 JungleEdge）
+    auto info = world::spawn::MobSpawnInfo::createSparseJungle();
+    EXPECT_TRUE(info.isPlayerSpawnFriendly());
+
+    // sparseJungle = baseJungleSpawns + wolf(8,2,4) CREATURE
+    int chickenCount = 0;
+    bool hasWolf = false, hasOcelot = false, hasParrot = false, hasPanda = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+        if (entry.entityTypeId == "minecraft:parrot") hasParrot = true;
+        if (entry.entityTypeId == "minecraft:panda") hasPanda = true;
+    }
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:ocelot") hasOcelot = true;
+    }
+    EXPECT_EQ(chickenCount, 2); // baseJungleSpawns 额外鸡规则
+    EXPECT_TRUE(hasWolf);
+    EXPECT_FALSE(hasOcelot); // sparseJungle 没有 ocelot
+    EXPECT_FALSE(hasParrot); // sparseJungle 没有 parrot
+    EXPECT_FALSE(hasPanda);  // sparseJungle 没有 panda
+
+    // 验证 wolf 条目参数
+    bool wolfParamsOk = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:wolf" && entry.weight == 8 && entry.minCount == 2 && entry.maxCount == 4) {
+            wolfParamsOk = true;
+        }
+    }
+    EXPECT_TRUE(wolfParamsOk);
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_BambooJungle)
+{
+    // 对应 MC 1.16.5 OverworldBiomes.bambooJungle()
+    auto info = world::spawn::MobSpawnInfo::createBambooJungle();
+    EXPECT_TRUE(info.isPlayerSpawnFriendly());
+
+    // bambooJungle = baseJungleSpawns + parrot(40,1,2) + panda(80,1,2) + ocelot(2,1,1) MONSTER
+    int chickenCount = 0;
+    bool hasParrot = false, hasPanda = false, hasOcelot = false;
+    int pandaWeight = 0;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
+        if (entry.entityTypeId == "minecraft:parrot") hasParrot = true;
+        if (entry.entityTypeId == "minecraft:panda") {
+            hasPanda = true;
+            pandaWeight = entry.weight;
+        }
+    }
+    int ocelotMin = 0, ocelotMax = 0;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:ocelot") {
+            hasOcelot = true;
+            ocelotMin = entry.minCount;
+            ocelotMax = entry.maxCount;
+        }
+    }
+    EXPECT_EQ(chickenCount, 2); // baseJungleSpawns 额外鸡规则
+    EXPECT_TRUE(hasParrot);
+    EXPECT_TRUE(hasPanda);
+    EXPECT_EQ(pandaWeight, 80); // bambooJungle panda weight=80（与普通 jungle 的 1 不同）
+    EXPECT_TRUE(hasOcelot);
+    EXPECT_EQ(ocelotMin, 1); // bambooJungle ocelot pack=1（与普通 jungle 的 3 不同）
+    EXPECT_EQ(ocelotMax, 1);
+}
+
 } // namespace test
 } // namespace mc
