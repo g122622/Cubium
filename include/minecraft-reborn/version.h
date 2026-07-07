@@ -11,13 +11,13 @@
 #define MC_VERSION_NAME "Cubium"
 
 // ==================== Git 信息 ====================
-#define MC_GIT_COMMIT_HASH "454e58f"
-#define MC_GIT_COMMIT_HASH_FULL "454e58fe07df8ba94311209355068c469b02761f"
+#define MC_GIT_COMMIT_HASH "8f8da7c"
+#define MC_GIT_COMMIT_HASH_FULL "8f8da7c2713582d48b1c30dcef9e4f6a15dea4ab"
 #define MC_GIT_BRANCH "main"
 #define MC_GIT_DIRTY
 
 // ==================== 构建信息 ====================
-#define MC_BUILD_TIME "2026-07-04T15:01:26Z"
+#define MC_BUILD_TIME "2026-07-07T03:57:51Z"
 #define MC_BUILD_TYPE "RelWithDebInfo"
 #define MC_BUILD_PLATFORM "Windows"
 #define MC_BUILD_ARCH "x64"
