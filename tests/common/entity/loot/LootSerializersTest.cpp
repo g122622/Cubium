@@ -39,6 +39,7 @@
 #include "item/loot/conditions/MatchToolCondition.hpp"
 #include "item/loot/entries/ItemLootEntry.hpp"
 #include "item/loot/entries/LootEntry.hpp"
+#include "item/loot/entries/TableLootEntry.hpp"
 #include "item/loot/functions/LootFunctions.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -787,15 +788,66 @@ TEST_F(LootSerializersTest, ParseEntry_Empty)
     EXPECT_EQ(LootEntryType::Empty, entry->getType());
 }
 
-TEST_F(LootSerializersTest, ParseEntry_LootTable)
+TEST_F(LootSerializersTest, ParseEntry_LootTable_Reference)
 {
-    nlohmann::json json = {{"type", "minecraft:loot_table"}, {"name", "minecraft:blocks/diamond_ore"}};
+    // MC 1.21+：minecraft:loot_table entry 用 value 字段（字符串=外部引用）
+    nlohmann::json json = {{"type", "minecraft:loot_table"}, {"value", "minecraft:blocks/diamond_ore"}};
 
     auto result = LootSerializers::parseEntry(json);
     ASSERT_TRUE(result.success());
 
     auto entry = result.value();
     EXPECT_EQ(LootEntryType::Table, entry->getType());
+
+    auto* tableEntry = dynamic_cast<TableLootEntry*>(entry.get());
+    ASSERT_NE(nullptr, tableEntry);
+    EXPECT_FALSE(tableEntry->isInline());
+    EXPECT_EQ("minecraft:blocks/diamond_ore", tableEntry->getTableId());
+    EXPECT_EQ(nullptr, tableEntry->getInlineTable());
+}
+
+TEST_F(LootSerializersTest, ParseEntry_LootTable_Inline)
+{
+    // MC 1.21+：value 为对象时是内联完整掉落表
+    nlohmann::json inlineTable = {
+        {"pools", {{{"rolls", 1.0f}, {"entries", {{{"type", "minecraft:item"}, {"name", "minecraft:diamond"}}}}}}}};
+    nlohmann::json json = {{"type", "minecraft:loot_table"}, {"value", inlineTable}, {"weight", 4}};
+
+    auto result = LootSerializers::parseEntry(json);
+    ASSERT_TRUE(result.success());
+
+    auto entry = result.value();
+    EXPECT_EQ(LootEntryType::Table, entry->getType());
+    EXPECT_EQ(4, entry->getWeight());
+
+    auto* tableEntry = dynamic_cast<TableLootEntry*>(entry.get());
+    ASSERT_NE(nullptr, tableEntry);
+    EXPECT_TRUE(tableEntry->isInline());
+    EXPECT_TRUE(tableEntry->getTableId().empty());
+    EXPECT_NE(nullptr, tableEntry->getInlineTable());
+    EXPECT_EQ(1u, tableEntry->getInlineTable()->poolCount());
+}
+
+TEST_F(LootSerializersTest, ParseEntry_LootTable_MissingValue)
+{
+    // 缺 value 字段应解析失败
+    nlohmann::json json = {{"type", "minecraft:loot_table"}};
+
+    auto result = LootSerializers::parseEntry(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseEntry_LootTable_ToJsonRoundTrip)
+{
+    nlohmann::json json = {{"type", "minecraft:loot_table"}, {"value", "minecraft:blocks/diamond_ore"}};
+
+    auto result = LootSerializers::parseEntry(json);
+    ASSERT_TRUE(result.success());
+
+    nlohmann::json serialized = LootSerializers::toJson(*result.value());
+    EXPECT_EQ("minecraft:loot_table", serialized["type"].get<std::string>());
+    EXPECT_EQ("minecraft:blocks/diamond_ore", serialized["value"].get<std::string>());
+    EXPECT_FALSE(serialized.contains("name"));
 }
 
 TEST_F(LootSerializersTest, ParseEntry_Alternatives)

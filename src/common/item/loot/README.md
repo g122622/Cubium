@@ -210,3 +210,12 @@ MC 1.21+ 数据包使用单数目录名（`loot_table/`、`predicate/`），而�
 - **LootPredicateLoader**：路径过滤和 `pathToLootPredicateId()` 同时匹配 `predicate/` 和 `predicates/`。
 - **ItemTagLoader**：不受影响，使用 `listResourceStacks(namespace + "/tags/item")` 精确定位目录，不做路径子串匹配。
 - **FunctionLoader**：同样已修复，同时匹配 `function/` 和 `functions/`。
+
+### 7. `minecraft:loot_table` entry 的 value 字段（MC 1.21+）
+
+MC 1.21+ 把 `minecraft:loot_table` 类型 entry 的标识字段从 `name` 改成了 `value`，且 `value` 是 `Either<ResourceKey, LootTable>`：
+
+- 字符串：外部掉落表引用 ID（如 `"value": "minecraft:entities/sheep/white"`），由 `context.getLootTable()` 解析。
+- 对象：内联完整掉落表（如 `"value": {"pools": [...]}`），解析期直接构造嵌套 `LootTable`，不走解析器。
+
+`TableLootEntry` 用 `isInline()` 区分两种形态。**其他 entry（`minecraft:item`/`minecraft:tag`/`minecraft:dynamic`）的标识字段仍是 `name`，未改动。** 解析器只认 `value`，不再接受旧 `name`。

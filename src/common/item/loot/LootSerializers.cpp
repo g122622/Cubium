@@ -1412,7 +1412,16 @@ nlohmann::json LootSerializers::toJson(const LootEntry& entry)
         case LootEntryType::Table:
             json["type"] = "minecraft:loot_table";
             if (const auto* tableEntry = dynamic_cast<const TableLootEntry*>(&entry)) {
-                json["name"] = tableEntry->getTableId();
+                if (tableEntry->isInline()) {
+                    // 内联表：value 为完整掉落表 JSON
+                    const LootTable* inlineTable = tableEntry->getInlineTable();
+                    if (inlineTable != nullptr) {
+                        json["value"] = toJson(*inlineTable);
+                    }
+                } else {
+                    // 外部引用：value 为表 ID 字符串
+                    json["value"] = tableEntry->getTableId();
+                }
             }
             break;
         case LootEntryType::Tag:
@@ -1593,45 +1602,34 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseItemEntry(const nlohma
 
 Result<std::unique_ptr<LootEntry>> LootSerializers::_parseTableEntry(const nlohmann::json& json)
 {
-    if (!json.contains("name") || !json["name"].is_string()) {
-        return Error(ErrorCode::InvalidData, "loot_table entry missing 'name' field");
+    // MC 1.21+ 的 minecraft:loot_table entry 用 value 字段（Either<ResourceKey, LootTable>）：
+    // - 字符串：外部掉落表引用 ID
+    // - 对象：内联完整掉落表
+    if (!json.contains("value")) {
+        return Error(ErrorCode::InvalidData, "loot_table entry missing 'value' field");
     }
 
-    std::string tableId = json["name"].get<std::string>();
+    const nlohmann::json& valueJson = json["value"];
 
-    i32 weight = 1;
-    i32 quality = 0;
-
-    if (json.contains("weight") && json["weight"].is_number_integer()) {
-        weight = json["weight"].get<i32>();
-    }
-    if (json.contains("quality") && json["quality"].is_number_integer()) {
-        quality = json["quality"].get<i32>();
-    }
-
-    auto entry = std::make_unique<TableLootEntry>(tableId, weight, quality);
-
-    // 解析条件
-    if (json.contains("conditions") && json["conditions"].is_array()) {
-        for (const auto& condJson : json["conditions"]) {
-            auto condResult = parseCondition(condJson);
-            if (condResult.success()) {
-                entry->addCondition(condResult.value());
-            }
+    std::unique_ptr<LootEntry> entry;
+    if (valueJson.is_string()) {
+        // 外部引用
+        entry = std::make_unique<TableLootEntry>(valueJson.get<std::string>(), 1, 0);
+    } else if (valueJson.is_object()) {
+        // 内联掉落表
+        auto tableResult = parseLootTable(valueJson);
+        if (!tableResult.success()) {
+            return tableResult.error();
         }
+        entry = std::make_unique<TableLootEntry>(tableResult.value(), 1, 0);
+    } else {
+        return Error(ErrorCode::InvalidData, "loot_table entry 'value' field must be a string or an object");
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry->addFunction(funcResult.value());
-            }
-        }
-    }
+    // 解析公共属性（weight/quality/conditions/functions）
+    _parseEntryBase(*entry, json);
 
-    return castToBase<TableLootEntry, LootEntry>(std::move(entry));
+    return entry;
 }
 
 Result<std::unique_ptr<LootEntry>> LootSerializers::_parseTagEntry(const nlohmann::json& json)
