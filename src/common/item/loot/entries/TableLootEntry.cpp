@@ -22,9 +22,9 @@
  */
 
 #include "TableLootEntry.hpp"
+#include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
-#include "common/item/loot/LootTable.hpp"
 
 namespace mc {
 namespace loot {
@@ -38,9 +38,21 @@ TableLootEntry::TableLootEntry(const std::string& tableId, i32 weight, i32 quali
     , m_tableId(tableId)
 {}
 
+TableLootEntry::TableLootEntry(std::unique_ptr<LootTable> inlineTable, i32 weight, i32 quality)
+    : LootEntry(weight, quality)
+    , m_inlineTable(std::move(inlineTable))
+{}
+
+TableLootEntry::~TableLootEntry() = default;
+
 std::unique_ptr<LootEntry> TableLootEntry::clone() const
 {
-    auto entry = std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
+    std::unique_ptr<TableLootEntry> entry;
+    if (m_inlineTable) {
+        entry = std::make_unique<TableLootEntry>(m_inlineTable->clone(), m_weight, m_quality);
+    } else {
+        entry = std::make_unique<TableLootEntry>(m_tableId, m_weight, m_quality);
+    }
     for (const auto& cond : m_conditions) {
         entry->addCondition(cond->clone());
     }
@@ -62,13 +74,21 @@ bool TableLootEntry::generate(std::function<void(const ItemStack&)> consumer, Lo
         return false;
     }
 
-    // 获取引用的掉落表
+    // 内联表：直接生成，复用 LootTable::generate 内部的循环检测
+    if (m_inlineTable) {
+        auto items = m_inlineTable->generate(context);
+        for (const auto& item : items) {
+            consumer(item);
+        }
+        return !items.empty();
+    }
+
+    // 外部引用：通过解析器查找掉落表
     const LootTable* table = context.getLootTable(m_tableId);
     if (!table) {
         return false;
     }
 
-    // 生成掉落物
     auto items = table->generate(context);
     for (const auto& item : items) {
         consumer(item);
