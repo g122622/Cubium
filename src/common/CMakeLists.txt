@@ -883,7 +883,18 @@ add_library(mc_common STATIC
     world/block/blocks/end/DragonEggBlock.cpp
 
     # World - Block - Special
-    world/block/blocks/special/SpecialBlocks.cpp
+    world/block/blocks/special/BarrierBlock.cpp
+    world/block/blocks/special/StructureVoidBlock.cpp
+    world/block/blocks/special/StructureBlock.cpp
+    world/block/blocks/special/JigsawBlock.cpp
+    world/block/blocks/special/CommandBlock.cpp
+    world/block/blocks/special/RepeatingCommandBlock.cpp
+    world/block/blocks/special/ChainCommandBlock.cpp
+    world/block/blocks/special/SlimeBlock.cpp
+    world/block/blocks/special/HoneyBlock.cpp
+    world/block/blocks/special/SpongeBlock.cpp
+    world/block/blocks/special/WetSpongeBlock.cpp
+    world/block/blocks/special/WebBlock.cpp
 
     # World - Block - Mob
     world/block/blocks/mob/BeehiveBlock.cpp

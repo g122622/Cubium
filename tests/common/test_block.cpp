@@ -1404,7 +1404,9 @@ TEST(FunctionalBlockBehaviorTest, BedUpdatePostPlacementReturnsAirWhenPartnerIsM
 // ============================================================================
 
 #include "physics/PhysicsConstants.hpp"
-#include "world/block/blocks/special/SpecialBlocks.hpp"
+#include "world/block/blocks/special/HoneyBlock.hpp"
+#include "world/block/blocks/special/SlimeBlock.hpp"
+#include "world/block/blocks/special/WebBlock.hpp"
 
 TEST(SpecialBlocksSlipperiness, SlimeBlockSlipperiness)
 {

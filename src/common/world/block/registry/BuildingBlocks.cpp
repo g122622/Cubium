@@ -60,7 +60,8 @@
 #include "world/block/blocks/functional/SmithingTableBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/block/blocks/redstone/TNTBlock.hpp"
-#include "world/block/blocks/special/SpecialBlocks.hpp"
+#include "world/block/blocks/special/SpongeBlock.hpp"
+#include "world/block/blocks/special/WetSpongeBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
 
 namespace mc {

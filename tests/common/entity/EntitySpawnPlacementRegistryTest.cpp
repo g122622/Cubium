@@ -27,7 +27,7 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/blocks/special/SpecialBlocks.hpp"
+#include "world/block/blocks/special/BarrierBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/spawn/MobSpawnInfo.hpp"

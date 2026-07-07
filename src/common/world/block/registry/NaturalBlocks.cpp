@@ -43,7 +43,7 @@
 #include "world/block/blocks/ocean/SeaPickleBlock.hpp"
 #include "world/block/blocks/ocean/SeagrassBlock.hpp"
 #include "world/block/blocks/ocean/TallSeagrassBlock.hpp"
-#include "world/block/blocks/special/SpecialBlocks.hpp"
+#include "world/block/blocks/special/WebBlock.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
 #include "world/block/blocks/vegetation/CactusBlock.hpp"
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
