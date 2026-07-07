@@ -80,29 +80,47 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 
 ### 7. 工厂方法的海洋变体差异
 
-不同海洋类型有不同的生物配置：
-- **暖水海洋**：热带鱼/河豚归 WaterAmbient，鱿鱼/海豚归 WaterCreature，含 8 条标准陆地怪物 + bat，无 cod/salmon/drowned
-- **深海暖水海洋**：与暖水海洋相似，但有 drowned、无 pufferfish，squid 权重更低
-- **冰冻海洋**：鲑鱼为主，北极熊，**没有鳕鱼**
-- **深海**：更多鱿鱼
+不同海洋类型有不同的生物配置（均按 MC 1.16.5 `BiomeMaker` 对齐）：
+- **普通海洋 / 深海**：squid(1,1,4)+dolphin(1,1,2) WC，cod(10,3,6) WA，8 标准陆地怪物 + drowned + bat。深海 spawn list 与浅水一致（仅 generation settings 不同）。
+- **温水海洋（浅）**：squid(10,1,2)+dolphin(2,1,2) WC，cod(15,3,6)+pufferfish(5,1,3)+tropical_fish(25,8,8) WA，8 怪物 + drowned + bat。
+- **温水海洋（深）**：与浅水差异为 squid(8,1,4) 与 cod(8,3,6)（权重不同），其余一致。
+- **冷水海洋**：squid(3,1,4)+dolphin(2,1,2) WC，cod(15,3,6)+salmon(15,1,5) WA，8 怪物 + drowned + bat。深海 spawn list 与浅水一致。
+- **冰冻海洋**：squid(1,1,4) WC（无 dolphin），salmon(15,1,5) WA（无 cod），polar_bear(1,1,2) Creature，8 怪物 + drowned + bat，无 stray。深海 spawn list 与浅水一致。
+- **暖水海洋（浅）**：pufferfish(15,1,3)+tropical_fish(25,8,8) WA，squid(10,4,4)+dolphin(2,1,2) WC，8 怪物 + bat，无 drowned/cod/salmon。
+- **深海暖水海洋**：与暖水海洋相似，但有 drowned、无 pufferfish，squid 权重 5、minCount 1。
 
 ### 8. 史莱姆区块判断算法与 Java 不兼容
 
 `SlimeChunkChecker` 使用 Java `LegacyRandomSource`（48位 LCG）算法，与项目默认的 `Xoroshiro128ppRandom` 不兼容。史莱姆区块判断必须使用 `SlimeChunkChecker` 的静态方法，不能直接用 `math::Random` 替代。
 
-### 9. spawn list 与原版 1.16.5 仍有未收敛偏差
+### 9. spawn list 与原版 1.16.5 的对齐状态
 
-`MobSpawnInfo.cpp` 中各工厂方法（`createOcean`/`createSavanna`/`createSnowy`/`createCrimsonForest`/`createLushCaves` 等）的 spawn list 与原版 MC Java 1.16.5 仍存在若干已知偏差。这些偏差以 `TODO(spawn-list-<biome>)` 形式逐项标注在对应工厂方法内，文件顶部有汇总说明。收敛任一项时需同步删除对应 TODO。共性偏差包括：
-- `EntityClassification` 仅 6 类，缺失原版的 `UndergroundWaterCreature` 与 `Axolotls`，导致美西螈等临时塞进 `WaterCreature`
-- cod/salmon/tropical_fish/pufferfish 原版归 `WaterAmbient`，本项目误归 `WaterCreature`
-- hoglin 原版归 `Creature`，本项目误归 `Monster`
-- 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo、zombie_horse），对应 spawn list 待补
+`MobSpawnInfo.cpp` 中各工厂方法已按 MC 1.16.5 `BiomeMaker` 与 `DefaultBiomeFeatures` 收敛，主要对齐点：
+- **cod/salmon/tropical_fish/pufferfish 原版归 `WaterAmbient`**，本项目已对齐（此前误归 `WaterCreature`）。
+- **hoglin 原版归 `Monster`**（虽是 AnimalEntity 子类），本项目已对齐。
+- **Savanna 系列拆分三个工厂方法**：`createSavanna()`（无 llama/wolf）、`createSavannaPlateau()`（仅 llama，无 wolf）、`createShatteredSavanna()`（与 Savanna 相同）。1.16.5 中 ShatteredSavannaPlateau 也无 llama/wolf，复用 `createShatteredSavanna()`。
+- **DeepLukewarmOcean 独立工厂方法**：与浅水版本在 squid/cod 权重上有差异（squid 8 vs 10、cod 8 vs 15），DeepColdOcean/DeepFrozenOcean 与浅水版本 spawn list 一致，仍复用浅水工厂方法。
+- **Jungle 系列三个工厂方法**：`createJungle()`（parrot 40,1,2 + ocelot 2,1,3 + panda 1,1,2）、`createSparseJungle()`（仅 baseJungleSpawns，1.16.5 无 wolf）、`createBambooJungle()`（parrot 40,1,2 + panda 80,1,2 + ocelot 2,1,1）。
+
+仍存在的偏差（以 `TODO(spawn-list-*)` 标注）：
+- `EntityClassification` 仅 6 类，缺失原版的 `UndergroundWaterCreature` 与 `Axolotls`，导致美西螈等临时塞进 `WaterCreature`。
+- 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo），对应 spawn list 待补。
+- SnowyBeach/IceSpikes 等 Snowy 变体未拆分独立工厂方法，仍复用 `createSnowy()`，变体差异未区分。
 
 ### 10. Jungle 系列变体使用不同工厂方法
 
-Jungle 系列生物群系按 MC 1.16.5 `OverworldBiomes` 拆分为三个工厂方法，必须按变体正确调用：
+Jungle 系列生物群系按 MC 1.16.5 `BiomeMaker` 拆分为三个工厂方法，必须按变体正确调用：
 - `createJungle()`：Jungle / JungleHills / ModifiedJungle / ModifiedJungleEdge（含 ocelot 2,1,3 + parrot 40,1,2 + panda 1,1,2）
-- `createSparseJungle()`：JungleEdge（旧名 sparseJungle，含 wolf 8,2,4，无 ocelot/parrot/panda）
+- `createSparseJungle()`：JungleEdge / ModifiedJungleEdge（旧名 sparseJungle，仅 baseJungleSpawns，无 ocelot/parrot/panda/wolf；1.21.11 才加 wolf，本项目对齐 1.16.5）
 - `createBambooJungle()`：BambooJungle / BambooJungleHills（panda weight=80、ocelot pack=1，与普通 jungle 不同）
 
-三者共享 `applyBaseJungleSpawns()`（对应 `BiomeDefaultFeatures.baseJungleSpawns()`），含 farmAnimals + **额外 chicken** + commonSpawns。新增 Jungle 变体时应复用该辅助函数。
+三者共享 `applyBaseJungleSpawns()`（对应 `DefaultBiomeFeatures.func_243747_h()`），含 farmAnimals + **额外 chicken** + commonSpawns。新增 Jungle 变体时应复用该辅助函数。
+
+### 11. Savanna 系列变体使用不同工厂方法
+
+Savanna 系列生物群系按 MC 1.16.5 `BiomeMaker` 拆分为三个工厂方法：
+- `createSavanna()`：Savanna（farmAnimals + horse + donkey + commonSpawns，无 llama/wolf）
+- `createSavannaPlateau()`：SavannaPlateau（在 Savanna 基础上加 llama 8,4,4，无 wolf）
+- `createShatteredSavanna()`：ShatteredSavanna / ShatteredSavannaPlateau（spawn list 与普通 Savanna 相同，无 llama/wolf）
+
+三者共享 `applyBaseSavannaSpawns()` 辅助函数。1.16.5 中 ShatteredSavanna/ShatteredSavannaPlateau 的 shattered 标志仅影响地形（generation settings），不影响 spawn list。
