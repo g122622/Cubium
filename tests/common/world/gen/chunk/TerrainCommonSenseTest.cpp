@@ -91,7 +91,7 @@ protected:
         // 创建生成器
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, seed);
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         result.generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
@@ -229,7 +229,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_SurfaceHeightNearSeaLevel)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     int totalColumns = 0;
@@ -261,7 +261,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_OceanFloorAboveBedrock)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     for (i32 x = -32; x < 32; x += 8) {
@@ -317,7 +317,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_HeightmapConsistentWithColumn)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 采样几个位置
@@ -502,7 +502,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_NoWaterAboveSeaLevelInBaseColumn)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     for (i32 x : {0, 32, -32}) {
@@ -577,7 +577,7 @@ TEST_F(TerrainCommonSenseTest, End_HeightWithinBounds)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::end();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     for (i32 x = -32; x < 32; x += 8) {
@@ -613,7 +613,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_AdjacentChunksHaveContinuousHeight)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 沿 X 轴采样
@@ -647,7 +647,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_HeightSmoothAtShortDistance)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     int largeJumps = 0;
@@ -709,7 +709,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_BiomesVaryAcrossDistance)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     std::set<BiomeId> biomes;
@@ -812,7 +812,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_BaseColumnMatchesChunkGeneration)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 对比 getBaseColumn 和实际区块在深层的方块
@@ -897,7 +897,7 @@ TEST_F(TerrainCommonSenseTest, DimensionHeight_RangesCorrect)
     {
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, 0ULL);
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
         EXPECT_EQ(gen.getMinY(), -64);
         EXPECT_EQ(gen.getGenDepth(), 384);
@@ -919,7 +919,7 @@ TEST_F(TerrainCommonSenseTest, DimensionHeight_RangesCorrect)
     {
         auto settings = DimensionSettings::end();
         auto randomState = world::gen::RandomState::create(settings, 0ULL);
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
         EXPECT_EQ(gen.getMinY(), 0);
         EXPECT_EQ(gen.getGenDepth(), 128);
@@ -1415,7 +1415,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_AdjacentChunks_NoVerticalAirStoneCliff)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 在 X 方向上采样多对相邻列
@@ -1496,7 +1496,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_ChunkBorder_HeightConsistentWithNeighbo
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // X方向：区块(0,0)的x=15 vs 区块(1,0)的x=0 在世界坐标上是相邻的
@@ -1528,7 +1528,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_AreaGeneration_HeightContinuity)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 在 48x48 方块范围内验证相邻位置高度差平滑
@@ -1697,7 +1697,7 @@ TEST_F(TerrainCommonSenseTest, Overworld_AreaGeneration_BiomeVariationAcrossArea
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     std::set<BiomeId> biomes;

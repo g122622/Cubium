@@ -83,7 +83,7 @@ protected:
 
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, seed);
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         result->generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
@@ -363,7 +363,7 @@ TEST_F(ChunkXAxisHeightTest, XAxis_GetHeightAPIDiagnostic)
     u64 seed = 42ULL;
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     std::vector<i32> leftHeights, rightHeights;

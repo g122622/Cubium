@@ -113,7 +113,7 @@ TEST_F(ClearStructureCacheTest, NoiseGenerator_ClearStructureCache_EmptiesCache)
     // 创建 NoiseChunkGenerator 并填充结构缓存，然后验证 clearStructureCache() 清空缓存
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 获取 StructureCheck 指针
@@ -145,7 +145,7 @@ TEST_F(ClearStructureCacheTest, NoiseGenerator_ClearStructureCache_ClearsFeature
     // 验证 clearStructureCache() 同时清空精确缓存和近似缓存
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     StructureCheck* check = gen.structureCheck();
@@ -173,7 +173,7 @@ TEST_F(ClearStructureCacheTest, NoiseGenerator_ClearStructureCache_ReloadAfterCl
     // 验证清空缓存后可正常重新加载数据
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     StructureCheck* check = gen.structureCheck();
@@ -201,7 +201,7 @@ TEST_F(ClearStructureCacheTest, NoiseGenerator_ClearStructureCache_MultipleCalls
     // 验证重复调用 clearStructureCache() 安全
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     StructureCheck* check = gen.structureCheck();
@@ -278,7 +278,7 @@ TEST_F(ClearStructureCacheTest, PolymorphicCall_NoiseGenerator)
     // 通过基类指针调用 clearStructureCache()，验证虚函数分派正确
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     auto gen =
         std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
@@ -341,7 +341,7 @@ TEST_F(ClearStructureCacheTest, NoiseGenerator_ExplicitClearBeforeDestruction)
     // 先显式调用 clearStructureCache()，再销毁生成器
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     auto gen =
         std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 

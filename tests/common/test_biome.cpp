@@ -620,7 +620,7 @@ TEST_F(MultiNoiseBiomeSourceTest, CreateOverworldReturnsValidSource)
 {
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345);
-    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     ASSERT_NE(source, nullptr);
     EXPECT_NE(source->seed(), 0u);
 
@@ -632,7 +632,7 @@ TEST_F(MultiNoiseBiomeSourceTest, CreateOverworldLargeBiomes)
 {
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 54321);
-    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, true);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, true, false);
     ASSERT_NE(source, nullptr);
 
     const auto& biomes = source->possibleBiomes();
@@ -643,7 +643,7 @@ TEST_F(MultiNoiseBiomeSourceTest, GetNoiseBiomeReturnsValidBiomeId)
 {
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345);
-    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     ASSERT_NE(source, nullptr);
 
     BiomeId biome = source->getNoiseBiome(0, 0, 0);
@@ -1014,7 +1014,7 @@ TEST_F(BiomeSourceFindBiomeTest, FindBiomeWithRealOverworldSource)
 {
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345);
-    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     ASSERT_NE(source, nullptr);
 
     math::Random random(12345);
@@ -1030,7 +1030,7 @@ TEST_F(BiomeSourceFindBiomeTest, FindAnyBiomeWithRealOverworldSource)
 {
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 54321);
-    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     ASSERT_NE(source, nullptr);
 
     math::Random random(54321);

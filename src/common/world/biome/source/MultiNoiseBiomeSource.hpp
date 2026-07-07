@@ -94,10 +94,11 @@ public:
      * @brief 创建主世界生物群系源
      * @param rs 世界随机状态（与生成器共享同一缓存）
      * @param largeBiomes 是否使用大型生物群系
+     * @param amplified 是否使用放大化预设
      * @return 配置好的 MultiNoiseBiomeSource
      */
     [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createOverworld(
-        const gen::RandomState& rs, bool largeBiomes);
+        const gen::RandomState& rs, bool largeBiomes, bool amplified);
 
     /**
      * @brief 创建下界生物群系源

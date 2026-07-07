@@ -68,7 +68,7 @@ protected:
 
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, seed);
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         result->generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 

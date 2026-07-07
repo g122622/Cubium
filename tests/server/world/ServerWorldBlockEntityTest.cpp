@@ -75,7 +75,7 @@ protected:
         world->setSharedStorage(&m_storage);
         auto settings = DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
-        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         auto generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
         auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));

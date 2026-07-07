@@ -66,7 +66,7 @@ protected:
         // 创建区块管理器
         auto settings = DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
-        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         auto generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
         m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));

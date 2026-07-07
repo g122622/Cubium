@@ -162,9 +162,9 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
 
 ### 11. preliminarySurfaceLevel
 
-当前使用 `constant(0.0)` 占位。MC 原版使用 `findTopSurface` 密度函数向下搜索密度 > 0 的位置，影响含水层水位和结构放置。完整实现需要 FindTopSurface 密度函数类和 remap 辅助函数。
+已完整实现，对齐 MC 1.21.11 `NoiseRouterData.preliminarySurfaceLevel(offset, factor, amplified)`。使用 `FindTopSurface` 密度函数从 upperBound 向下搜索 density > 0 的位置，返回第一个满足条件的 Y 坐标（cellHeight=8）。实现包含 `remap`、`offsetToDepth` 辅助函数和 `FindTopSurface` 密度函数类。`amplified` 参数通过 `slideOverworld` 影响顶部和底部 slide 范围。
 
-**已知影响范围**：此占位**不影响海洋地表水域生成**——海洋海平面以下的水由 `NoiseBasedAquifer::computeSubstance` 的快速路径 `blockY > m_skipSamplingAboveY` 直接返回全局流体（`createOverworldFluidPicker(seaLevel=63, WATER)` 在 y<63 返回水）填充，与 preliminarySurfaceLevel 无关。该占位仅影响含水层**内部精度**：洞穴水位、地下水水位、含水层边界过渡可能偏离原版（因为 `m_skipSamplingAboveY` 和含水层条带高度依赖 `maxPreliminarySurfaceLevel`）。完整实现优先级低于地表水域，可在后续独立任务中补齐。
+**影响范围**：preliminarySurfaceLevel 影响含水层水位采样（`NoiseChunk::samplePreliminarySurfaceLevel`），进而影响 `m_skipSamplingAboveY` 和含水层条带高度。海洋海平面以下的水仍由 `NoiseBasedAquifer::computeSubstance` 快速路径直接填充全局流体，与 preliminarySurfaceLevel 无关。
 
 ### 12. BlendDensity
 

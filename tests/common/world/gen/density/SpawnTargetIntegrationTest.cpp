@@ -334,7 +334,7 @@ TEST_F(SpawnTargetIntegrationTest, NoiseChunkGenerator_RandomState_HasSpawnTarge
     // 验证 NoiseChunkGenerator 持有的 RandomState 的 Sampler 已经设置了 spawnTarget
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     auto generator =
         std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 

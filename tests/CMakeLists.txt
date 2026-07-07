@@ -1011,6 +1011,8 @@ add_executable(mc_tests
     common/world/gen/BeardifierCarvingContextTest.cpp
     # DensityFunctions (Invert, Mul 边界值) 和 CaveDensityFunctions 噪声参数测试
     common/world/gen/density/DensityFunctionsTest.cpp
+    # FindTopSurface 密度函数单元测试（preliminarySurfaceLevel 核心）
+    common/world/gen/density/FindTopSurfaceTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp

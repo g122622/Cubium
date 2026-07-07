@@ -63,7 +63,7 @@ std::unique_ptr<Dimension> Dimension::createOverworld(u64 seed)
     // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     auto generator =
         std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 

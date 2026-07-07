@@ -152,21 +152,22 @@ std::unique_ptr<DensityFunction> NoiseRouterData::slide(std::unique_ptr<DensityF
 
 std::unique_ptr<DensityFunction> NoiseRouterData::slideOverworld(std::unique_ptr<DensityFunction> input, bool amplified)
 {
-    // MC 1.21: overworld slide 参数
-    // startY=-64, height=384
-    // topSlide: fromTop=80, toTop=64, target=-0.078125
-    // bottomSlide: fromBottom=0, toBottom=24, target=0.1171875
-    // amplified 时 toTop=64→64 (不变), 但实际 MC amplified 只修改噪声参数
-    (void)amplified; // amplified 通过噪声参数体现，slide 参数不变
+    // MC 1.21.11: slideOverworld(amplified, input)
+    //   slide(input, -64, 384,
+    //         amplified ? 16 : 80,   // topSlideFromTop
+    //         amplified ? 0  : 64,   // topSlideToTop
+    //         -0.078125,             // topSlideTarget
+    //         0, 24,                 // bottomSlideFromBottom, bottomSlideToBottom
+    //         amplified ? 0.4 : 0.1171875)  // bottomSlideTarget
     return slide(std::move(input),
         world::MIN_BUILD_HEIGHT,
         world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT,
-        80,
-        64,
+        amplified ? 16 : 80,
+        amplified ? 0 : 64,
         -0.078125,
         0,
         24,
-        0.1171875);
+        amplified ? 0.4 : 0.1171875);
 }
 
 std::unique_ptr<DensityFunction> NoiseRouterData::slideNetherLike(
@@ -185,6 +186,69 @@ std::unique_ptr<DensityFunction> NoiseRouterData::slideEndLike(
     // topSlide: fromTop=72, toTop=-184, target=-23.4375
     // bottomSlide: fromBottom=4, toBottom=32, target=-0.234375
     return slide(std::move(input), startY, height, 72, -184, -23.4375, 4, 32, -0.234375);
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::remap(
+    std::unique_ptr<DensityFunction> input, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax)
+{
+    // MC 1.21.11: NoiseRouterData.remap
+    //   d0 = (toMax - toMin) / (fromMax - fromMin)
+    //   d1 = toMin - fromMin * d0
+    //   result = add(mul(x, constant(d0)), constant(d1))
+    const f64 d0 = (toMax - toMin) / (fromMax - fromMin);
+    const f64 d1 = toMin - fromMin * d0;
+    return factory::add(factory::mul(std::move(input), factory::constant(d0)), factory::constant(d1));
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::offsetToDepth(std::unique_ptr<DensityFunction> offset)
+{
+    // MC 1.21.11: NoiseRouterData.offsetToDepth(x)
+    //   = add(yClampedGradient(-64, 320, 1.5, -1.5), x)
+    return factory::add(
+        factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5), std::move(offset));
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::preliminarySurfaceLevel(
+    std::shared_ptr<DensityFunction> offset, std::shared_ptr<DensityFunction> factor, bool amplified)
+{
+    // MC 1.21.11: NoiseRouterData.preliminarySurfaceLevel(offset, factor, amplified)
+    //   densityfunction  = cache2d(factor)
+    //   densityfunction1 = cache2d(offset)
+    //   densityfunction2 (upperBound) =
+    //       remap(add(mul(0.2734375, factor.invert()), mul(-1.0, offset)), 1.5, -1.5, -64.0, 320.0)
+    //       .clamp(-40.0, 320.0)
+    //   densityfunction3 (density) =
+    //       add(slideOverworld(amplified,
+    //             add(noiseGradientDensity(factor, offsetToDepth(offset)), -0.703125).clamp(-64.0, 64.0)),
+    //           -0.390625)
+    //   return findTopSurface(density, upperBound, -64, cellHeight)
+    //
+    // 注意：Java 版使用 DensityFunction 引用共享（Holder），factor/offset 被 cache2d 包装后
+    // 在 densityfunction2 和 densityfunction3 中各引用一次。C++ 使用 shared_ptr 实现共享。
+    // cache2d 在 C++ 中对应 cache2DMarker（由 NoiseChunk::wrap() 替换为实际 Cache2D）。
+    auto factorCached = factory::cache2DMarker(factory::sharedHolder(factor));
+    auto offsetCached = factory::cache2DMarker(factory::sharedHolder(offset));
+
+    // upperBound = remap(add(mul(0.2734375, factor.invert()), mul(-1.0, offset)), 1.5, -1.5, -64, 320).clamp(-40, 320)
+    auto factorInverted = factory::invert(factory::sharedHolder(factor));
+    auto term1 = factory::mul(factory::constant(0.2734375), std::move(factorInverted));
+    auto term2 = factory::mul(factory::constant(-1.0), factory::sharedHolder(offset));
+    auto upperRaw = remap(factory::add(std::move(term1), std::move(term2)), 1.5, -1.5, -64.0, 320.0);
+    auto upperBound = factory::clamp(std::move(upperRaw), -40.0, 320.0);
+
+    // density = add(slideOverworld(amplified,
+    //                add(noiseGradientDensity(factorCached, offsetToDepth(offsetCached)), -0.703125).clamp(-64, 64)),
+    //              -0.390625)
+    auto depth = offsetToDepth(std::move(offsetCached));
+    auto gradient = TerrainProvider::noiseGradientDensity(std::move(factorCached), std::move(depth));
+    auto gradientWithOffset = factory::add(std::move(gradient), factory::constant(-0.703125));
+    auto clampedGradient = factory::clamp(std::move(gradientWithOffset), -64.0, 64.0);
+    auto slid = slideOverworld(std::move(clampedGradient), amplified);
+    auto density = factory::add(std::move(slid), factory::constant(-0.390625));
+
+    // cellHeight = NoiseSettings::OVERWORLD_NOISE_SETTINGS.getCellHeight()
+    //            = sizeVertical * 4 = 2 * 4 = 8
+    return factory::findTopSurface(std::move(density), std::move(upperBound), world::MIN_BUILD_HEIGHT, 8);
 }
 
 std::unique_ptr<DensityFunction> NoiseRouterData::postProcess(std::unique_ptr<DensityFunction> input)
@@ -246,7 +310,7 @@ NoiseRouter NoiseRouterData::noNewCaves(const RandomState& rs, u64 seed, std::un
         factory::constant(0.0));               // veinGap
 }
 
-NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool largeBiomes)
+NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool largeBiomes, bool amplified)
 {
     // 共享版：所有 NormalNoise 叶子从 RandomState 缓存获取，跨区块复用。
     // 树拓扑与 overworld(seed) 完全一致，仅 m_noise 由 clone 变为 shared_ptr 共享。
@@ -269,6 +333,8 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
     auto offsetSpline = TerrainProvider::overworldOffset(continentsShared, erosionShared, ridgesPVShared);
     auto offsetWithGlobal = factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET), std::move(offsetSpline));
     auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal), factory::blendOffset());
+    // offset 同时被 depthPlusOffset 和 preliminarySurfaceLevel 引用，转为 shared_ptr
+    auto offsetShared = std::shared_ptr<DensityFunction>(std::move(offset));
 
     auto continentsForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.continents));
     auto erosionForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.erosion));
@@ -316,6 +382,8 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
     auto factorSpline = TerrainProvider::overworldFactor(
         continentsForFactorShared, erosionForFactorShared, weirdnessShared, ridgesPVShared);
     auto factor = TerrainProvider::splineWithBlending(std::move(factorSpline), factory::constant(10.0));
+    // factor 同时被 slopedCheeseDensity 和 preliminarySurfaceLevel 引用，转为 shared_ptr
+    auto factorShared = std::shared_ptr<DensityFunction>(std::move(factor));
 
     auto continentsForJagged = factory::cache2DMarker(factory::shiftedNoise2d(rs,
         factory::flatCacheMarker(
@@ -344,7 +412,7 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
     auto jaggedness = TerrainProvider::splineWithBlending(std::move(jaggednessSpline), factory::constant(0.0));
 
     auto depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
-    auto depthPlusOffset = factory::add(std::move(depth), std::move(offset));
+    auto depthPlusOffset = factory::add(std::move(depth), factory::sharedHolder(offsetShared));
 
     auto jaggedNoise = factory::noise(rs,
         seed ^ 0x77777777ULL,
@@ -356,8 +424,8 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
 
     auto depthPlusOffsetPlusJagged = factory::add(std::move(depthPlusOffset), std::move(jaggedContribution));
 
-    auto slopedCheeseDensity =
-        TerrainProvider::noiseGradientDensity(std::move(factor), std::move(depthPlusOffsetPlusJagged));
+    auto slopedCheeseDensity = TerrainProvider::noiseGradientDensity(
+        factory::sharedHolder(factorShared), std::move(depthPlusOffsetPlusJagged));
 
     auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.125, 80.0, 160.0, 8.0);
 
@@ -423,7 +491,7 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
         std::move(whenInRange),
         factory::sharedHolder(undergroundShared));
 
-    auto slid = slideOverworld(std::move(noCavesOrNoodle));
+    auto slid = slideOverworld(std::move(noCavesOrNoodle), amplified);
     auto processedDensity = postProcess(std::move(slid));
 
     auto finalDensity = factory::min(std::move(processedDensity), std::move(noodle));
@@ -481,7 +549,9 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
         1.0,
         1.0);
 
-    auto preliminarySurfaceLevel = factory::constant(0.0);
+    // MC 1.21.11: preliminarySurfaceLevel(offset, factor, amplified)
+    // offset/factor 已转为 shared_ptr，因为它们同时被 slopedCheese 和 preliminarySurfaceLevel 引用。
+    auto preliminarySurfaceLevelFunc = preliminarySurfaceLevel(offsetShared, factorShared, amplified);
 
     return NoiseRouter(std::move(barrierNoise),          // barrierNoise
         std::move(fluidLevelFloodednessNoise),           // fluidLevelFloodednessNoise
@@ -493,7 +563,7 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
         factory::sharedHolder(erosionForDepthShared),    // erosion
         std::move(climateForRouter.depth),               // depth
         std::move(climateForRouter.ridges),              // ridges
-        std::move(preliminarySurfaceLevel),              // preliminarySurfaceLevel
+        std::move(preliminarySurfaceLevelFunc),          // preliminarySurfaceLevel
         std::move(finalDensity),                         // finalDensity
         std::move(veinToggle),                           // veinToggle
         std::move(veinRidged),                           // veinRidged

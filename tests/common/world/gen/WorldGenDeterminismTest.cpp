@@ -65,10 +65,10 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceDeterminism)
     // 创建两个生物群系源
     auto settings1 = DimensionSettings::overworld();
     auto randomState1 = mc::world::gen::RandomState::create(settings1, seed);
-    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState1, false);
+    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState1, false, false);
     auto settings2 = DimensionSettings::overworld();
     auto randomState2 = mc::world::gen::RandomState::create(settings2, seed);
-    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false);
+    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false, false);
 
     // 在相同坐标采样，结果应相同
     for (int i = 0; i < 100; ++i) {
@@ -90,7 +90,7 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceNoiseBatchMatchesScalarSamp
     const u64 seed = 24680;
     auto settings = DimensionSettings::overworld();
     auto randomState = mc::world::gen::RandomState::create(settings, seed);
-    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
 
     constexpr i32 startNoiseX = -40;
     constexpr i32 startNoiseZ = 28;
@@ -118,7 +118,7 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceContainerMatchesNoiseGrid)
     const u64 seed = 13579;
     auto settings = DimensionSettings::overworld();
     auto randomState = mc::world::gen::RandomState::create(settings, seed);
-    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
 
     constexpr ChunkCoord chunkX = 3;
     constexpr ChunkCoord chunkZ = -2;
@@ -379,10 +379,10 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceMultipleSamples)
     // 使用相同种子创建两个生物群系源
     auto settings1 = DimensionSettings::overworld();
     auto randomState1 = mc::world::gen::RandomState::create(settings1, seed);
-    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState1, false);
+    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState1, false, false);
     auto settings2 = DimensionSettings::overworld();
     auto randomState2 = mc::world::gen::RandomState::create(settings2, seed);
-    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false);
+    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false, false);
 
     // 采样多个点
     for (int i = 0; i < 50; ++i) {
@@ -409,7 +409,7 @@ TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow)
     for (u64 seed : seeds) {
         DimensionSettings settings = DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, seed);
-        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         for (i32 z = -512; z <= 512; z += 32) {

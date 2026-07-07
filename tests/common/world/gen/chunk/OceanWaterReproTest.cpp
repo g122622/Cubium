@@ -85,7 +85,7 @@ protected:
 
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, seed);
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         result.generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
@@ -329,13 +329,13 @@ TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed114514)
     std::cout << "[OceanWaterDiag] 海洋列: 本地(" << oceanX << "," << oceanZ << ") 世界(" << worldX << "," << worldZ
               << ") 生物群系ID=" << oceanBiome << std::endl;
 
-    // 1. preliminarySurfaceLevel —— 当前实现仍为 constant(0.0) 占位
-    // 注意：这是已知的独立占位问题（见 NoiseRouterData.cpp），不影响海洋水域生成
-    // （aquifer 的 blockY > skipSamplingAboveY 快速路径会返回全局流体），
-    // 但会影响含水层内部水位/地下水的精度。此处仅记录，不作为断言。
+    // 1. preliminarySurfaceLevel —— 已完整实现（FindTopSurface 密度函数）
+    // 注意：preliminarySurfaceLevel 影响含水层水位采样精度，但不影响海洋地表水域生成
+    // （aquifer 的 blockY > skipSamplingAboveY 快速路径会返回全局流体）。
+    // 此处仅记录值供调试参考，不作为断言。
     const i32 psl = noiseChunk->samplePreliminarySurfaceLevel(worldX, worldZ);
     std::cout << "[OceanWaterDiag] preliminarySurfaceLevel(" << worldX << "," << worldZ << ") = " << psl
-              << " (0 表示 NoiseRouterData 仍使用 constant(0.0) 占位，独立问题)" << std::endl;
+              << " (FindTopSurface 计算结果)" << std::endl;
 
     // 2. 扫描 Y=20..70 的最终方块，验证海平面下方有水
     std::cout << "[OceanWaterDiag] Y 扫描 (finalDensity, placed block):" << std::endl;

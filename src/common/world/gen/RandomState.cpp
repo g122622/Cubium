@@ -55,8 +55,8 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
         case DimensionKind::Caves:
         case DimensionKind::Flat:
         default:
-            state->m_router = std::make_unique<density::NoiseRouter>(
-                density::NoiseRouterData::overworld(*state, worldSeed, settings.largeBiomes));
+            state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::overworld(
+                *state, worldSeed, settings.largeBiomes, settings.dimensionKind == DimensionKind::Amplified));
             break;
     }
 
@@ -143,7 +143,8 @@ density::NoiseRouter RandomState::createRouterCopy() const
         case DimensionKind::Caves:
         case DimensionKind::Flat:
         default:
-            return density::NoiseRouterData::overworld(*this, m_worldSeed, m_settings.largeBiomes);
+            return density::NoiseRouterData::overworld(
+                *this, m_worldSeed, m_settings.largeBiomes, m_settings.dimensionKind == DimensionKind::Amplified);
     }
 }
 

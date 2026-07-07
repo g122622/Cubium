@@ -70,7 +70,7 @@ TEST_F(DensityDirectTest, RawClimateFunctions_SymmetricAtX4VsX12)
 {
     const u64 seed = 42;
     auto randomState = world::gen::RandomState::create(DimensionSettings::overworld(), seed);
-    auto router = world::gen::density::NoiseRouterData::overworld(*randomState, seed, false);
+    auto router = world::gen::density::NoiseRouterData::overworld(*randomState, seed, false, false);
 
     // 直接查询 continents 在 x=4 和 x=12 处的值
     // continents 是 FlatCache(ShiftedNoise(ShiftX, ShiftZ, ...))
@@ -153,7 +153,7 @@ TEST_F(DensityDirectTest, NoiseChunkInterpolationVsRawDensity)
     );
 
     // 同时创建一个原始路由器用于直接采样
-    auto rawRouter = world::gen::density::NoiseRouterData::overworld(*randomState, seed, false);
+    auto rawRouter = world::gen::density::NoiseRouterData::overworld(*randomState, seed, false, false);
 
     // 运行完整的插值流程（与 _generateNoiseWithDensityFunction 相同）
     const auto& cellConfig = noiseChunk->cellConfig();

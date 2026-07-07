@@ -68,11 +68,11 @@ const std::vector<BiomeId>& MultiNoiseBiomeSource::possibleBiomes() const
 }
 
 std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createOverworld(
-    const gen::RandomState& rs, bool largeBiomes)
+    const gen::RandomState& rs, bool largeBiomes, bool amplified)
 {
     // 创建主世界噪声路由器：从 rs 的派生种子缓存获取 NormalNoise，与生成器共享
     auto router = std::make_unique<gen::density::NoiseRouter>(
-        gen::density::NoiseRouterData::overworld(rs, rs.worldSeed(), largeBiomes));
+        gen::density::NoiseRouterData::overworld(rs, rs.worldSeed(), largeBiomes, amplified));
 
     // 构建主世界生物群系参数列表
     OverworldBiomeBuilder builder;

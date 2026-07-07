@@ -166,13 +166,13 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipeli
     DimensionSettings defaultSettings = DimensionSettings::overworld();
     auto defaultRandomState = mc::world::gen::RandomState::create(defaultSettings, seed);
     auto defaultBiomeSource =
-        mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*defaultRandomState, false);
+        mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*defaultRandomState, false, false);
     NoiseChunkGenerator defaultGenerator(
         std::move(defaultSettings), std::move(defaultBiomeSource), std::move(defaultRandomState));
 
     DimensionSettings injectedSettings = DimensionSettings::overworld();
     auto injectedRandomState = mc::world::gen::RandomState::create(injectedSettings, seed);
-    auto injectedSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*injectedRandomState, false);
+    auto injectedSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*injectedRandomState, false, false);
     NoiseChunkGenerator injectedGenerator(
         std::move(injectedSettings), std::move(injectedSource), std::move(injectedRandomState));
 
@@ -221,7 +221,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
     constexpr u64 seed = 12345ULL;
     DimensionSettings settings = DimensionSettings::overworld();
     auto randomState = mc::world::gen::RandomState::create(settings, seed);
-    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 验证生成器成功创建（高斯查找表作为静态成员初始化）
@@ -229,7 +229,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
     EXPECT_NO_THROW({
         DimensionSettings settings2 = DimensionSettings::overworld();
         auto randomState2 = mc::world::gen::RandomState::create(settings2, seed);
-        auto biomeSource2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false);
+        auto biomeSource2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false, false);
         NoiseChunkGenerator generator2(std::move(settings2), std::move(biomeSource2), std::move(randomState2));
     });
 }

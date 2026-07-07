@@ -172,7 +172,7 @@ TEST_F(BiomeFilterTest, MultiNoiseBiomeSource_ContainsManyOverworldBiomes)
     // MultiNoiseBiomeSource::createOverworld 的 possibleBiomes 应包含大量主世界生物群系
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
     const auto& possibleBiomes = biomeSource->possibleBiomes();
 
     // 主世界应该有大量生物群系

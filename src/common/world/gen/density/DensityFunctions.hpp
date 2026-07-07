@@ -1391,6 +1391,81 @@ private:
 };
 
 // ============================================================================
+// FindTopSurface — 查找顶部地表密度函数
+//
+// MC 1.21.11: DensityFunctions.FindTopSurface record
+// 从 upperBound 向 lowerBound 方向逐 cellHeight 步查找，
+// 返回第一个 density > 0.0 的 Y 坐标；若全部 ≤ 0.0 则返回 lowerBound。
+//
+// 用途：preliminarySurfaceLevel 中确定初步地表高度。
+// ============================================================================
+
+/**
+ * @brief 查找顶部地表密度函数
+ *
+ * 算法：
+ * 1. 计算 i = floor(upperBound.compute() / cellHeight) * cellHeight
+ * 2. 若 i <= lowerBound，直接返回 lowerBound
+ * 3. 否则从 j = i 开始向下逐 cellHeight 步采样 density.compute(blockX, j, blockZ)
+ * 4. 返回第一个 > 0.0 的 j；若全部 ≤ 0.0 则返回 lowerBound
+ *
+ * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.DensityFunctions.FindTopSurface
+ */
+class FindTopSurface final : public DensityFunction {
+public:
+    FindTopSurface(std::unique_ptr<DensityFunction> density,
+        std::unique_ptr<DensityFunction> upperBound,
+        i32 lowerBound,
+        i32 cellHeight)
+        : m_density(std::move(density))
+        , m_upperBound(std::move(upperBound))
+        , m_lowerBound(lowerBound)
+        , m_cellHeight(cellHeight)
+        , m_minValue(static_cast<f64>(lowerBound))
+        , m_maxValue(std::max(static_cast<f64>(lowerBound), m_upperBound->maxValue()))
+    {}
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        const f64 upperVal = m_upperBound->compute(blockX, blockY, blockZ);
+        const i32 i = static_cast<i32>(std::floor(upperVal / static_cast<f64>(m_cellHeight))) * m_cellHeight;
+        if (i <= m_lowerBound) {
+            return static_cast<f64>(m_lowerBound);
+        }
+        for (i32 j = i; j >= m_lowerBound; j -= m_cellHeight) {
+            if (m_density->compute(blockX, j, blockZ) > 0.0) {
+                return static_cast<f64>(j);
+            }
+        }
+        return static_cast<f64>(m_lowerBound);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_minValue; }
+    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+
+    [[nodiscard]] const DensityFunction& density() const { return *m_density; }
+    [[nodiscard]] const DensityFunction& upperBound() const { return *m_upperBound; }
+    [[nodiscard]] i32 lowerBound() const { return m_lowerBound; }
+    [[nodiscard]] i32 cellHeight() const { return m_cellHeight; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newDensity = m_density->mapAll(visitor);
+        auto newUpperBound = m_upperBound->mapAll(visitor);
+        return visitor.apply(std::make_unique<FindTopSurface>(
+            std::move(newDensity), std::move(newUpperBound), m_lowerBound, m_cellHeight));
+    }
+
+private:
+    std::unique_ptr<DensityFunction> m_density;
+    std::unique_ptr<DensityFunction> m_upperBound;
+    i32 m_lowerBound;
+    i32 m_cellHeight;
+    f64 m_minValue;
+    f64 m_maxValue;
+};
+
+// ============================================================================
 // 工厂函数
 // ============================================================================
 
@@ -1655,6 +1730,22 @@ namespace factory {
  * @brief 创建末地岛屿密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> endIslands(u64 seed);
+
+/**
+ * @brief 创建查找顶部地表密度函数
+ *
+ * MC 1.21.11: DensityFunctions.FindTopSurface
+ * 从 upperBound 向 lowerBound 方向逐 cellHeight 步查找第一个 density > 0.0 的 Y 坐标。
+ *
+ * @param density 采样用的密度函数（通常为地形密度）
+ * @param upperBound 搜索上界（动态计算）
+ * @param lowerBound 搜索下界（静态，返回值不低于此值）
+ * @param cellHeight 步长（通常为 NoiseSettings::getCellHeight()）
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> findTopSurface(std::unique_ptr<DensityFunction> density,
+    std::unique_ptr<DensityFunction> upperBound,
+    i32 lowerBound,
+    i32 cellHeight);
 
 /**
  * @brief 创建混合噪声密度函数（旧式三层 Perlin 噪声）

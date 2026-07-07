@@ -408,11 +408,12 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
             }
 
             const bool isLargeBiomes = (m_overworldType == WorldType::LargeBiomes);
+            const bool isAmplified = (m_overworldType == WorldType::Amplified);
 
             // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
             auto randomState = mc::world::gen::RandomState::create(settings, seed);
-            auto biomeSource =
-                mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, isLargeBiomes);
+            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(
+                *randomState, isLargeBiomes, isAmplified);
             generator = std::make_unique<NoiseChunkGenerator>(
                 std::move(settings), std::move(biomeSource), std::move(randomState));
             break;

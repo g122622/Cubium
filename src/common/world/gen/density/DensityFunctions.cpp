@@ -453,6 +453,14 @@ std::unique_ptr<DensityFunction> endIslands(u64 seed)
     return std::make_unique<EndIslands>(seed);
 }
 
+std::unique_ptr<DensityFunction> findTopSurface(std::unique_ptr<DensityFunction> density,
+    std::unique_ptr<DensityFunction> upperBound,
+    i32 lowerBound,
+    i32 cellHeight)
+{
+    return std::make_unique<FindTopSurface>(std::move(density), std::move(upperBound), lowerBound, cellHeight);
+}
+
 std::unique_ptr<DensityFunction> blendedNoise(
     u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
 {
