@@ -94,8 +94,24 @@ AgeableEntity (父类)
 
 10. **兔子跳跃动画状态机**（参考 MC 1.21.11 `Rabbit.java`）：
     - **字段**：`m_rabbitJumpTicks`（当前跳跃已持续 tick）、`m_rabbitJumpDuration`（总持续 tick，0=未在跳跃中）。**与 `LivingEntity::m_jumpTicks`（跳跃冷却）语义不同，独立存储**。
-    - **启动**：`setJumping(true)` 调用 `startJumping()`，后者设置 `m_rabbitJumpDuration=10`、`m_rabbitJumpTicks=0` 并广播 `EntityStatusPacket::RabbitJump(1)` 状态码。`startJumping()` 幂等：动画进行中（`m_rabbitJumpDuration != 0`）时跳过重置，避免 `JumpController::tick()` 每 tick 调用 `setJumping(true)` 导致反复归零。
+    - **启动**：`startJumping()` 设置 `m_rabbitJumpDuration=10`、`m_rabbitJumpTicks=0`、调用 `setJumping(true)`（播放跳跃音效）并广播 `EntityStatusPacket::RabbitJump(1)` 状态码。`startJumping()` 幂等：动画进行中（`m_rabbitJumpDuration != 0`）时跳过重置，避免 `RabbitJumpControl::tick()` 每 tick 调用导致反复归零。
     - **推进**：`aiStep()` 重写先调用 `LivingEntity::aiStep()`，再推进 `m_rabbitJumpTicks`；达到 `m_rabbitJumpDuration` 时归零并调用 `LivingEntity::setJumping(false)`（直接调基类，避免再次播音效/广播）。
     - **完成度**：`getJumpCompletion(partialTick) = m_rabbitJumpDuration == 0 ? 0 : (m_rabbitJumpTicks + partialTick) / m_rabbitJumpDuration`，供客户端计算 `jumpRotation = sin(completion * PI)`。
     - **广播**：项目架构下 `LivingEntity::jump()` 非虚函数无法重写（MC 在 `jumpFromGround()` 中广播），故在 `startJumping()` 中即广播，略早一个 tick，但客户端位置插值会平滑过渡。
-    - **未实现的 MC 原版特性**：`RabbitJumpControl`（兔子专属跳跃控制器，含 `canJump`/`setCanJump` 状态机）、`RabbitMoveControl`（移动控制器，控制跳跃速度）、`jumpDelayTicks`（着陆延迟，慢速 10 tick / 快速 1 tick）、`wasOnGround`（着陆检测）、`RaidGardenGoal`（偷胡萝卜）、`moreCarrotTicks`（偷食冷却）尚未实现。当前由通用 `JumpController` + `LivingEntity::aiStep()` 自动跳跃 + `m_jumpTicks` 冷却提供最小可行行为。详见 `RabbitEntity.cpp` 顶部 TODO 注释。
+
+11. **兔子专属 AI 控制器**（参考 MC 1.21.11 `Rabbit.RabbitJumpControl` / `Rabbit.RabbitMoveControl`）：
+    - **RabbitJumpControl**：继承 `JumpController`，维护 `canJump`/`wantJump` 状态机。`tick()` 仅在 `wantJump` 为 true 时调用 `rabbit.startJumping()`，然后清除标志。`canJump` 由 `RabbitEntity::updateAITasks()` 通过 `enableJumpControl()`/`disableJumpControl()` 控制，着陆延迟期间为 false。
+    - **RabbitMoveControl**：继承 `MovementController`，`tick()` 在地面且未跳跃且未请求跳跃时设置速度为 0（避免地面滑行）；有移动目标或跳跃中时应用 `nextJumpSpeed`。`setMoveTo()` 在水中时将速度倍率提升至 1.5。
+    - **构造**：`RabbitEntity` 构造函数中替换 `m_jumpController` 和 `m_moveController` 为兔子专属控制器。
+
+12. **兔子着陆延迟与 customServerAiStep**（参考 MC 1.21.11 `Rabbit.customServerAiStep`）：
+    - **字段**：`m_jumpDelayTicks`（着陆后禁止跳跃的剩余 tick）、`m_wasOnGround`（上一 tick 是否在地面，用于检测着陆瞬间）、`m_moreCarrotTicks`（啃食胡萝卜冷却，TODO: RaidGardenGoal 未实现）。
+    - **updateAITasks()**：作为 `customServerAiStep` 的等价入口点（在 `MobEntity::tick()` 中于 goalSelector/navigator 之后、控制器之前调用）。递减 `jumpDelayTicks`、随机递减 `moreCarrotTicks`；着陆瞬间（`onGround && !wasOnGround`）调用 `checkLandingDelay()` 设置着陆延迟并禁用跳跃控制器；杀手兔变种在 `jumpDelayTicks==0` 且目标在 4 格内时主动跳跃攻击；普通兔子在 `jumpDelayTicks==0` 且有移动目标时朝目标方向 `startJumping()`。
+    - **setLandingDelay()**：移动速度倍率 < 2.2 时延迟 10 tick，否则延迟 1 tick。
+    - **facePoint()**：朝向指定坐标设置 yaw（对应 MC `Mth.atan2` 计算）。
+
+13. **杀手兔变种**（参考 MC 1.21.11 `Rabbit.setVariant(EVIL)`）：
+    - `applyRabbitType(Killer)` 设置 ARMOR=8.0、添加 ATTACK_DAMAGE +5 修改器（ID `"rabbit_evil_attack_power"`）、注册 `MeleeAttackGoal`(speed=1.4)、`HurtByTargetGoal`(alertAllies=true)、`NearestAttackableTargetGoal<Player>` 和 `NearestAttackableTargetGoal<WolfEntity>`。
+    - `applyRabbitType(非Killer)` 移除 EVIL_ATTACK_POWER_MODIFIER。
+    - `RabbitEntity::registerAttributes()` 显式注册 `ATTACK_DAMAGE` 属性（基础值 3.0），因为 `AnimalEntity` 基类不注册此属性（仅 `MonsterEntity` 注册）。
+    - **未实现的 MC 原版特性**：`RaidGardenGoal`（偷胡萝卜）+ `CarrotBlock` 年龄递减逻辑、`getJumpPower()` 重写（根据移动速度和路径调整跳跃高度）尚未实现，详见 `RabbitEntity.cpp` 顶部注释。

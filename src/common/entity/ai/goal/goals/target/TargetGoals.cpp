@@ -239,6 +239,7 @@ template class NearestAttackableTargetGoal<EndermiteEntity>;
 template class NearestAttackableTargetGoal<AxolotlEntity>;
 template class NearestAttackableTargetGoal<ZombieEntity>;
 template class NearestAttackableTargetGoal<AbstractIllagerEntity>;
+template class NearestAttackableTargetGoal<WolfEntity>;
 
 // ==================== HurtByTargetGoal ====================
 

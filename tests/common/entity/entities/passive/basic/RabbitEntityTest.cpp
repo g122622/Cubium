@@ -25,6 +25,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/controller/RabbitJumpControl.hpp"
+#include "common/entity/ai/controller/RabbitMoveControl.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -631,28 +634,29 @@ TEST_F(RabbitEntityTest, Jump_DefaultState_NoJumpInProgress)
     EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(1.0f), 0.0f);
 }
 
-TEST_F(RabbitEntityTest, Jump_SetJumpingTrue_StartsJumpAnimation)
+TEST_F(RabbitEntityTest, Jump_StartJumping_StartsJumpAnimation)
 {
-    // setJumping(true) 应启动跳跃动画：jumpDuration=10, jumpTicks=0, isJumping=true
+    // startJumping() 应启动跳跃动画：jumpDuration=10, jumpTicks=0, isJumping=true
+    // 对应 MC 1.21.11 Rabbit.startJumping(): setJumping(true); jumpDuration=10; jumpTicks=0;
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
 
-    rabbit.setJumping(true);
+    rabbit.startJumping();
 
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
     EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
     EXPECT_TRUE(rabbit.isJumping());
 }
 
-TEST_F(RabbitEntityTest, Jump_SetJumpingTrue_BroadcastsRabbitJumpStatus)
+TEST_F(RabbitEntityTest, Jump_StartJumping_BroadcastsRabbitJumpStatus)
 {
-    // setJumping(true) 应广播 RabbitJump(1) 状态码到客户端
+    // startJumping() 应广播 RabbitJump(1) 状态码到客户端
     // 对应 MC 1.21.11 Rabbit.jumpFromGround() 中 broadcastEntityEvent(this, (byte)1)
     RabbitEntity rabbit(EntityId(42));
     rabbit.setWorld(&m_world);
     m_world.resetBroadcastTracking();
 
-    rabbit.setJumping(true);
+    rabbit.startJumping();
 
     EXPECT_EQ(m_world.broadcastCount(), 1);
     EXPECT_EQ(m_world.lastBroadcastEntityId(), EntityId(42));
@@ -662,17 +666,17 @@ TEST_F(RabbitEntityTest, Jump_SetJumpingTrue_BroadcastsRabbitJumpStatus)
 TEST_F(RabbitEntityTest, Jump_StartJumping_IdempotentWhileJumping)
 {
     // 跳跃动画进行中再次 startJumping() 不应重置状态或重复广播
-    // 项目架构下 JumpController::tick() 每 tick 调用 setJumping(true)，必须幂等
+    // 对应 MC RabbitJumpControl.tick() 每 tick 可能调用 startJumping()，必须幂等
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
 
-    rabbit.setJumping(true); // 启动跳跃
+    rabbit.startJumping(); // 启动跳跃
     EXPECT_EQ(m_world.broadcastCount(), 1);
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
     EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
 
     m_world.resetBroadcastTracking();
-    rabbit.setJumping(true); // 再次启动 - 应被忽略
+    rabbit.startJumping(); // 再次启动 - 应被忽略
 
     EXPECT_EQ(m_world.broadcastCount(), 0); // 不应重复广播
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
@@ -685,7 +689,7 @@ TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_Formula)
     //   jumpDuration == 0 ? 0 : (jumpTicks + partialTick) / jumpDuration
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true); // jumpDuration=10, jumpTicks=0
+    rabbit.startJumping(); // jumpDuration=10, jumpTicks=0
 
     // jumpTicks=0: completion = (0 + partialTick) / 10
     EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.0f), 0.0f);
@@ -710,7 +714,7 @@ TEST_F(RabbitEntityTest, Jump_AiStep_AdvancesJumpTicks)
     // aiStep() 每 tick 推进 jumpTicks，对应 MC Rabbit.aiStep() 的 jumpTicks++
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true);
+    rabbit.startJumping();
 
     EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
 
@@ -727,7 +731,7 @@ TEST_F(RabbitEntityTest, Jump_AiStep_ResetsAtJumpDuration)
     // 对应 MC Rabbit.aiStep(): else if (jumpDuration != 0) { jumpTicks=0; jumpDuration=0; setJumping(false); }
     //
     // 时序分析（jumpDuration=10）：
-    //   setJumping(true) → jumpTicks=0
+    //   startJumping() → jumpTicks=0
     //   aiStep #1: jumpTicks 0→1
     //   aiStep #2: jumpTicks 1→2
     //   ...
@@ -735,7 +739,7 @@ TEST_F(RabbitEntityTest, Jump_AiStep_ResetsAtJumpDuration)
     //   aiStep #11: jumpTicks==jumpDuration → 触发归零分支
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true); // jumpDuration=10
+    rabbit.startJumping(); // jumpDuration=10
 
     // 推进 10 tick 使 jumpTicks 达到 jumpDuration
     for (i32 i = 0; i < 10; ++i) {
@@ -759,7 +763,7 @@ TEST_F(RabbitEntityTest, Jump_AiStep_ExactTickBoundary)
     // 跳跃动画的有效渲染区间为 jumpTicks ∈ [0, 10]（含端点）
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true);
+    rabbit.startJumping();
 
     // 推进 10 tick: jumpTicks 应为 10，仍在跳跃中
     for (i32 i = 0; i < 10; ++i) {
@@ -782,7 +786,7 @@ TEST_F(RabbitEntityTest, Jump_CompletionReachesOne_BeforeReset)
     // 第 9 tick 后: jumpTicks=9, completion(1.0) = (9+1)/10 = 1.0
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true);
+    rabbit.startJumping();
 
     for (i32 i = 0; i < 9; ++i) {
         rabbit.aiStep();
@@ -797,7 +801,7 @@ TEST_F(RabbitEntityTest, Jump_SetJumpingFalse_DoesNotAffectAnimation)
     // 这与 MC 行为一致：setJumping(false) 只设置 jumping 标志
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true); // 启动: jumpDuration=10
+    rabbit.startJumping(); // 启动: jumpDuration=10
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
 
     rabbit.setJumping(false);                   // 不影响 jumpDuration
@@ -812,7 +816,7 @@ TEST_F(RabbitEntityTest, Jump_CanRestartAfterCompletion)
     rabbit.setWorld(&m_world);
 
     // 第一次跳跃
-    rabbit.setJumping(true);
+    rabbit.startJumping();
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
     EXPECT_EQ(m_world.broadcastCount(), 1);
 
@@ -825,7 +829,7 @@ TEST_F(RabbitEntityTest, Jump_CanRestartAfterCompletion)
 
     // 第二次跳跃
     m_world.resetBroadcastTracking();
-    rabbit.setJumping(true);
+    rabbit.startJumping();
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
     EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
     EXPECT_TRUE(rabbit.isJumping());
@@ -837,7 +841,7 @@ TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_PartialTickRange)
     // 验证 partialTick 在 [0, 1] 范围内的插值
     RabbitEntity rabbit(EntityId(1));
     rabbit.setWorld(&m_world);
-    rabbit.setJumping(true); // jumpDuration=10, jumpTicks=0
+    rabbit.startJumping(); // jumpDuration=10, jumpTicks=0
 
     // 推进 3 tick: jumpTicks=3
     for (i32 i = 0; i < 3; ++i) {
@@ -858,6 +862,293 @@ TEST_F(RabbitEntityTest, Jump_RabbitJumpStatusConstant_IsOne)
 {
     // 验证 RabbitJump 状态码 = 1（对应 MC byte 1）
     EXPECT_EQ(static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump), 1);
+}
+
+// ========== RabbitJumpControl 控制器测试 ==========
+
+TEST_F(RabbitEntityTest, RabbitJumpControl_DefaultCanJump)
+{
+    // 新建的 RabbitJumpControl 默认 canJump=true
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* jumpCtrl = rabbit.jumpController();
+    ASSERT_NE(jumpCtrl, nullptr);
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    ASSERT_NE(rabbitJumpCtrl, nullptr);
+    EXPECT_TRUE(rabbitJumpCtrl->canJump());
+    EXPECT_FALSE(rabbitJumpCtrl->wantJump());
+}
+
+TEST_F(RabbitEntityTest, RabbitJumpControl_SetCanJump)
+{
+    // setCanJump 可以启用/禁用跳跃
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* jumpCtrl = rabbit.jumpController();
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    ASSERT_NE(rabbitJumpCtrl, nullptr);
+
+    rabbitJumpCtrl->setCanJump(false);
+    EXPECT_FALSE(rabbitJumpCtrl->canJump());
+
+    rabbitJumpCtrl->setCanJump(true);
+    EXPECT_TRUE(rabbitJumpCtrl->canJump());
+}
+
+TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_TriggersStartJumping)
+{
+    // RabbitJumpControl::tick() 在 wantJump 时调用 startJumping()
+    RabbitEntity rabbit(EntityId(42));
+    rabbit.setWorld(&m_world);
+    m_world.resetBroadcastTracking();
+
+    auto* jumpCtrl = rabbit.jumpController();
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    ASSERT_NE(rabbitJumpCtrl, nullptr);
+
+    // 设置跳跃请求
+    rabbitJumpCtrl->setJumping();
+    EXPECT_TRUE(rabbitJumpCtrl->wantJump());
+
+    // tick 应触发 startJumping，启动跳跃动画并广播状态码
+    rabbitJumpCtrl->tick();
+
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+    EXPECT_TRUE(rabbit.isJumping());
+    EXPECT_FALSE(rabbitJumpCtrl->wantJump()); // wantJump 应被清除
+    EXPECT_EQ(m_world.broadcastCount(), 1);
+    EXPECT_EQ(m_world.lastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump));
+}
+
+TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_IdempotentWhenAlreadyJumping)
+{
+    // 跳跃动画进行中再次 tick 不应重复触发
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* jumpCtrl = rabbit.jumpController();
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    ASSERT_NE(rabbitJumpCtrl, nullptr);
+
+    // 第一次触发跳跃
+    rabbitJumpCtrl->setJumping();
+    rabbitJumpCtrl->tick();
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+
+    // 第二次触发 - 由于 startJumping 幂等，不应重复广播
+    m_world.resetBroadcastTracking();
+    rabbitJumpCtrl->setJumping();
+    rabbitJumpCtrl->tick();
+    EXPECT_EQ(m_world.broadcastCount(), 0);     // 不应重复广播
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10); // 仍为 10
+}
+
+TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_NoActionWhenNotWantJump)
+{
+    // wantJump 为 false 时 tick 不应触发跳跃
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    m_world.resetBroadcastTracking();
+
+    auto* jumpCtrl = rabbit.jumpController();
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    ASSERT_NE(rabbitJumpCtrl, nullptr);
+
+    // 不设置跳跃请求，直接 tick
+    rabbitJumpCtrl->tick();
+
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 0);
+    EXPECT_FALSE(rabbit.isJumping());
+    EXPECT_EQ(m_world.broadcastCount(), 0);
+}
+
+// ========== RabbitMoveControl 控制器测试 ==========
+
+TEST_F(RabbitEntityTest, RabbitMoveControl_DefaultNextJumpSpeed)
+{
+    // 新建的 RabbitMoveControl 默认 nextJumpSpeed=0
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* moveCtrl = rabbit.moveController();
+    ASSERT_NE(moveCtrl, nullptr);
+    auto* rabbitMoveCtrl = dynamic_cast<entity::ai::controller::RabbitMoveControl*>(moveCtrl);
+    ASSERT_NE(rabbitMoveCtrl, nullptr);
+    EXPECT_DOUBLE_EQ(rabbitMoveCtrl->nextJumpSpeed(), 0.0);
+}
+
+TEST_F(RabbitEntityTest, RabbitMoveControl_SetMoveTo_RecordsNextJumpSpeed)
+{
+    // setMoveTo 应记录 nextJumpSpeed（仅当 speed > 0）
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* moveCtrl = rabbit.moveController();
+    auto* rabbitMoveCtrl = dynamic_cast<entity::ai::controller::RabbitMoveControl*>(moveCtrl);
+    ASSERT_NE(rabbitMoveCtrl, nullptr);
+
+    rabbitMoveCtrl->setMoveTo(10.0, 0.0, 10.0, 1.5);
+    EXPECT_DOUBLE_EQ(rabbitMoveCtrl->nextJumpSpeed(), 1.5);
+    EXPECT_DOUBLE_EQ(rabbitMoveCtrl->speed(), 1.5);
+}
+
+TEST_F(RabbitEntityTest, RabbitMoveControl_SetMoveTo_ZeroSpeedDoesNotUpdateNextJumpSpeed)
+{
+    // speed=0 不应更新 nextJumpSpeed（对应 MC if (speed > 0.0)）
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* moveCtrl = rabbit.moveController();
+    auto* rabbitMoveCtrl = dynamic_cast<entity::ai::controller::RabbitMoveControl*>(moveCtrl);
+    ASSERT_NE(rabbitMoveCtrl, nullptr);
+
+    // 先设置非零速度
+    rabbitMoveCtrl->setMoveTo(10.0, 0.0, 10.0, 2.0);
+    EXPECT_DOUBLE_EQ(rabbitMoveCtrl->nextJumpSpeed(), 2.0);
+
+    // 再设置零速度 - nextJumpSpeed 不应被更新
+    rabbitMoveCtrl->setMoveTo(5.0, 0.0, 5.0, 0.0);
+    EXPECT_DOUBLE_EQ(rabbitMoveCtrl->nextJumpSpeed(), 2.0); // 仍为之前的值
+}
+
+// ========== 着陆延迟测试 ==========
+
+TEST_F(RabbitEntityTest, LandingDelay_DefaultZero)
+{
+    // 新建的兔子 jumpDelayTicks 为 0
+    RabbitEntity rabbit(EntityId(1));
+    EXPECT_EQ(rabbit.jumpDelayTicks(), 0);
+    EXPECT_FALSE(rabbit.wasOnGround());
+}
+
+TEST_F(RabbitEntityTest, LandingDelay_SetLandingDelay_SlowSpeed)
+{
+    // setLandingDelay: 速度 < 2.2 时延迟 10 tick
+    // 对应 MC Rabbit.setLandingDelay(): if (speed < 2.2) jumpDelayTicks=10; else jumpDelayTicks=1;
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    // 设置移动速度 < 2.2
+    auto* moveCtrl = rabbit.moveController();
+    ASSERT_NE(moveCtrl, nullptr);
+    moveCtrl->setMoveTo(10.0, 0.0, 10.0, 1.0); // speed=1.0
+
+    // 模拟着陆：设置 onGround=true，wasOnGround 初始为 false
+    // updateAITasks() 检测到 onGround && !wasOnGround 时调用 checkLandingDelay()
+    rabbit.setOnGround(true);
+    rabbit.updateAITasks();
+
+    // 速度 < 2.2，应设置延迟 10 tick
+    EXPECT_EQ(rabbit.jumpDelayTicks(), 10);
+}
+
+TEST_F(RabbitEntityTest, LandingDelay_SetLandingDelay_FastSpeed)
+{
+    // setLandingDelay: 速度 >= 2.2 时延迟 1 tick
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* moveCtrl = rabbit.moveController();
+    ASSERT_NE(moveCtrl, nullptr);
+    moveCtrl->setMoveTo(10.0, 0.0, 10.0, 2.5); // speed=2.5 >= 2.2
+
+    rabbit.setOnGround(true);
+    rabbit.updateAITasks();
+
+    // 速度 >= 2.2，应设置延迟 1 tick
+    EXPECT_EQ(rabbit.jumpDelayTicks(), 1);
+}
+
+TEST_F(RabbitEntityTest, LandingDelay_DecrementsOverTime)
+{
+    // jumpDelayTicks 每 tick 递减
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    auto* moveCtrl = rabbit.moveController();
+    ASSERT_NE(moveCtrl, nullptr);
+    moveCtrl->setMoveTo(10.0, 0.0, 10.0, 1.0); // speed=1.0, delay=10
+
+    rabbit.setOnGround(true);
+    rabbit.updateAITasks();
+    EXPECT_EQ(rabbit.jumpDelayTicks(), 10);
+
+    // 后续 tick 应递减（onGround 仍为 true，wasOnGround 已被设为 true，不再触发 checkLandingDelay）
+    rabbit.updateAITasks();
+    EXPECT_EQ(rabbit.jumpDelayTicks(), 9);
+}
+
+TEST_F(RabbitEntityTest, MoreCarrotTicks_DefaultZero)
+{
+    // 新建的兔子 moreCarrotTicks 为 0
+    RabbitEntity rabbit(EntityId(1));
+    EXPECT_EQ(rabbit.moreCarrotTicks(), 0);
+    EXPECT_TRUE(rabbit.wantsMoreFood());
+}
+
+TEST_F(RabbitEntityTest, MoreCarrotTicks_SetAndDecrement)
+{
+    // setMoreCarrotTicks 可以设置值，updateAITasks 会递减
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    rabbit.setMoreCarrotTicks(40);
+    EXPECT_EQ(rabbit.moreCarrotTicks(), 40);
+    EXPECT_FALSE(rabbit.wantsMoreFood());
+
+    // updateAITasks 应随机递减 moreCarrotTicks
+    rabbit.updateAITasks();
+    // 递减 0~2，所以结果在 [38, 40]
+    EXPECT_LE(rabbit.moreCarrotTicks(), 40);
+    EXPECT_GE(rabbit.moreCarrotTicks(), 38);
+}
+
+// ========== 杀手兔属性测试 ==========
+
+TEST_F(RabbitEntityTest, KillerRabbit_HasArmorAndAttackDamage)
+{
+    // 杀手兔应有 ARMOR=8 和 ATTACK_DAMAGE=3+5=8
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
+
+    // ARMOR = 8.0
+    EXPECT_FLOAT_EQ(static_cast<f32>(rabbit.getAttributeValue(entity::attribute::Attributes::ARMOR, 0.0)), 8.0f);
+
+    // ATTACK_DAMAGE = 3.0 (base) + 5.0 (modifier) = 8.0
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(rabbit.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 8.0f);
+}
+
+TEST_F(RabbitEntityTest, NormalRabbit_HasZeroArmorAndNoAttackModifier)
+{
+    // 普通兔子 ARMOR=0 且无 EVIL 攻击修改器
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
+
+    EXPECT_FLOAT_EQ(static_cast<f32>(rabbit.getAttributeValue(entity::attribute::Attributes::ARMOR, 0.0)), 0.0f);
+
+    // ATTACK_DAMAGE 基础值仍为 3.0（无修改器）
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(rabbit.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 3.0f);
+}
+
+TEST_F(RabbitEntityTest, KillerRabbit_ToNormal_RemovesAttackModifier)
+{
+    // 从杀手兔切回普通兔应移除 EVIL 攻击修改器
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
+    EXPECT_FLOAT_EQ(
+        static_cast<f32>(rabbit.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)), 8.0f);
+
+    rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
+    EXPECT_FLOAT_EQ(static_cast<f32>(rabbit.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0)),
+        3.0f); // 移除 +5 修改器后回到基础值
 }
 
 } // namespace

@@ -26,23 +26,33 @@
 #include <cmath>
 
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/RabbitJumpControl.hpp"
+#include "common/entity/ai/controller/RabbitMoveControl.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeIds.hpp"
@@ -52,50 +62,46 @@
 
 namespace mc {
 
-// TODO: 未实现的 MC 1.21.11 兔子专属 AI 控制器与行为（当前由通用 JumpController +
-// LivingEntity::aiStep() 自动跳跃 + m_jumpTicks 冷却提供最小可行行为）：
+// 本文件收敛了原 RabbitEntity 的 TODO：实现了兔子专属的 RabbitJumpControl /
+// RabbitMoveControl 控制器、jumpDelayTicks/wasOnGround 着陆延迟状态机、
+// updateAITasks()（对应 MC customServerAiStep）以及杀手兔变种的属性与 AI 目标切换。
 //
-// 1. RabbitJumpControl（net.minecraft.world.entity.animal.rabbit.Rabbit.RabbitJumpControl）
-//    - MC 中兔子使用专属跳跃控制器，含 canJump/wantJump 状态机
-//    - RabbitJumpControl.tick() 在 wantJump 时调用 rabbit.startJumping()
-//    - 项目当前由通用 JumpController::tick() 每 ticks 调用 setJumping(true)，
-//      再由 RabbitEntity::setJumping(true) → startJumping() 间接启动跳跃动画
-//
-// 2. RabbitMoveControl（net.minecraft.world.entity.animal.rabbit.Rabbit.RabbitMoveControl）
-//    - MC 中兔子使用专属移动控制器，控制跳跃速度（nextJumpSpeed）
-//    - 在地面且未跳跃时设置 speedModifier=0（避免地面滑动）
-//    - 项目当前由通用 MovementControl::tick() 处理移动
-//
-// 3. jumpDelayTicks / wasOnGround / checkLandingDelay() / setLandingDelay()
-//    - MC 中兔子着陆后有跳跃延迟（慢速 10 tick / 快速 1 tick），避免连续跳跃过于频繁
-//    - wasOnGround 用于检测着陆瞬间（从空中到地面的过渡）
-//    - 项目当前未实现，兔子可能比 MC 原版跳跃更频繁
-//
-// 4. customServerAiStep(ServerLevel)（MC 中 Rabbit 的服务端 AI 主循环）
-//    - 处理 jumpDelayTicks 递减、moreCarrotTicks 递减、着陆检测、跳跃控制
-//    - 杀手兔（EVIL 变种）的主动跳跃攻击逻辑
-//    - 项目当前由 LivingEntity::aiStep() + JumpController 提供基础移动
-//
-// 5. RaidGardenGoal（偷胡萝卜）+ moreCarrotTicks
-//    - MC 中兔子会寻找成熟胡萝卜田，啃食胡萝卜方块
-//    - moreCarrotTicks = 40 tick 冷却
-//    - 项目当前未实现
-//
-// 实现建议：参考 D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\entity\animal\rabbit\Rabbit.java
-// 新增 entity/ai/controller/RabbitJumpControl.hpp/cpp 和 RabbitMoveControl.hpp/cpp，
-// 并在 RabbitEntity 构造函数中替换 m_jumpController / m_moveController。
+// 仍保留为 TODO 的项目：
+// - RaidGardenGoal（偷胡萝卜）+ CarrotBlock 年龄递减逻辑：需要 FARMLAND 方块检测、
+//   CarrotBlock 最大年龄判断与 setBlock 调用。当前 moreCarrotTicks 字段已在
+//   updateAITasks() 中递减，未来实现 RaidGardenGoal 时可直接复用。
+// - getJumpPower() 重写：MC 中 Rabbit 重写了 getJumpPower() 根据移动速度和路径
+//   调整跳跃高度（0.2/0.3/0.5）。项目当前 LivingEntity::jump() 为非虚函数且使用
+//   m_jumpUpwardsMotion，重写跳跃力度需要更大的架构改动，暂留待未来处理。
 
 RabbitEntity::RabbitEntity(EntityId id)
     : AnimalEntity(id)
 {
-    // 随机设置皮肤类型
-    setRandomRabbitType();
+    // 替换为兔子专属的跳跃/移动控制器（对应 MC Rabbit 构造函数中：
+    //   this.jumpControl = new RabbitJumpControl(this);
+    //   this.moveControl = new RabbitMoveControl(this);
+    //   this.setSpeedModifier(0.0);
+    // ）
+    // 必须在 registerGoals()/registerAttributes() 之前完成，因为 AI 目标和
+    // customServerAiStep（updateAITasks）会通过 MobEntity::jumpController()/
+    // moveController() 访问这些控制器。
+    m_jumpController = std::make_unique<entity::ai::controller::RabbitJumpControl>(this);
+    m_moveController = std::make_unique<entity::ai::controller::RabbitMoveControl>(this);
+
+    // 注册属性（必须在 setRabbitType 之前，因为 applyRabbitType 需要访问 ATTACK_DAMAGE）
+    registerAttributes();
 
     // 注册 AI 目标
     registerGoals();
 
-    // 注册属性
-    registerAttributes();
+    // 设置皮肤类型（内部会调用 setRabbitType -> applyRabbitType）
+    // 必须在 registerAttributes() 之后，因为 killer 变种需要修改 ATTACK_DAMAGE
+    setRandomRabbitType();
+
+    // 对应 MC Rabbit 构造函数末尾的 setSpeedModifier(0.0)
+    if (auto* nav = navigator(); nav != nullptr) {
+        nav->setSpeed(0.0);
+    }
 }
 
 std::unique_ptr<Entity> RabbitEntity::create(IWorld* /*world*/)
@@ -108,7 +114,68 @@ void RabbitEntity::setRandomRabbitType()
     // 根据当前群系确定兔子类型
     // 参考 MC 1.21.11 Rabbit.getRandomRabbitVariant：杀手兔不再自然生成，
     // 自然生成的兔子类型完全由群系决定
-    m_rabbitType = getDefaultRabbitTypeForBiome();
+    setRabbitType(getDefaultRabbitTypeForBiome());
+}
+
+void RabbitEntity::setRabbitType(RabbitType type)
+{
+    // 对应 MC 1.21.11 Rabbit.setVariant()：先应用变种特定属性和 AI 目标，
+    // 再更新 m_rabbitType 字段
+    applyRabbitType(type);
+    m_rabbitType = type;
+}
+
+void RabbitEntity::applyRabbitType(RabbitType newType)
+{
+    // 对应 MC 1.21.11 Rabbit.setVariant()：
+    //   if (variant == EVIL) {
+    //       getAttribute(ARMOR).setBaseValue(8.0);
+    //       goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.4, true));
+    //       targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers());
+    //       targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+    //       targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Wolf.class, true));
+    //       getAttribute(ATTACK_DAMAGE).addOrUpdateTransientModifier(
+    //           new AttributeModifier(EVIL_ATTACK_POWER_MODIFIER, 5.0, ADD_VALUE));
+    //       if (!hasCustomName()) setCustomName(...killer_bunny...);
+    //   } else {
+    //       getAttribute(ATTACK_DAMAGE).removeModifier(EVIL_ATTACK_POWER_MODIFIER);
+    //   }
+    if (newType == RabbitType::Killer) {
+        // 杀手兔护甲值 = 8
+        m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 8.0);
+
+        // 注册近战攻击目标（速度 1.4，使用长期记忆）
+        // 对应 MC goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.4, true))
+        m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.4, true));
+
+        // 被攻击后反击，并警醒盟友（此处盟友为其他兔子，但 MC 原版 alertOthers
+        // 会通知同类的 HurtByTargetGoal。项目实现中 setAlertOthers 的谓词决定哪些
+        // 盟友被警醒，这里使用默认空谓词表示警醒所有同类）
+        m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+
+        // 主动攻击玩家
+        m_targetSelector.addGoal(
+            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+
+        // 主动攻击狼
+        m_targetSelector.addGoal(
+            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<WolfEntity>>(this, true));
+
+        // ATTACK_DAMAGE +5 修改器（对应 MC EVIL_ATTACK_POWER_MODIFIER）
+        // 使用 addOrUpdateTransientModifier 语义：先移除同 ID 修改器再添加
+        if (auto* inst = m_attributes.getInstance(entity::attribute::Attributes::ATTACK_DAMAGE); inst != nullptr) {
+            inst->removeModifier(EVIL_ATTACK_POWER_MODIFIER_ID);
+            inst->addModifier(entity::attribute::AttributeModifier(EVIL_ATTACK_POWER_MODIFIER_ID,
+                "Killer rabbit attack power boost",
+                5.0,
+                entity::attribute::Operation::Addition));
+        }
+    } else {
+        // 非杀手兔变种：移除 EVIL_ATTACK_POWER_MODIFIER（如果存在）
+        if (auto* inst = m_attributes.getInstance(entity::attribute::Attributes::ATTACK_DAMAGE); inst != nullptr) {
+            inst->removeModifier(EVIL_ATTACK_POWER_MODIFIER_ID);
+        }
+    }
 }
 
 RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
@@ -222,18 +289,16 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
 
 void RabbitEntity::setJumping(bool jumping)
 {
+    // 对应 MC 1.21.11 Rabbit.setJumping()：
+    //   super.setJumping(jumping);
+    //   if (jumping) { playSound(getJumpSound(), getSoundVolume(), ...); }
     LivingEntity::setJumping(jumping);
 
     if (!jumping) {
         return;
     }
 
-    // 对应 MC 1.21.11 Rabbit.setJumping(true)：开始一次跳跃动画并播放音效
-    // 项目当前的跳跃触发路径（LivingEntity::aiStep() -> jump()）由 MovementControl
-    // 自动驱动，故在此处同时启动跳跃动画状态机并广播 RabbitJump 状态码，
-    // 让客户端能够同步启动 jumpDuration 计时器以计算 jumpRotation。
-    startJumping();
-
+    // 播放跳跃音效（对应 MC Rabbit.getJumpSound() = SoundEvents.RABBIT_JUMP）
     auto soundEvent = makeSoundEventId("jump");
     if (!soundEvent.has_value()) {
         return;
@@ -248,13 +313,15 @@ void RabbitEntity::startJumping()
     // 对应 MC 1.21.11 Rabbit.startJumping()：
     //   setJumping(true); jumpDuration = 10; jumpTicks = 0;
     //
-    // 幂等保护：项目架构下 JumpController::tick() 每 tick 都会调用 setJumping(true)，
-    // 而跳跃动画状态机由本方法启动后应在 aiStep() 中独立推进直到结束。
-    // 若动画已在进行中（m_rabbitJumpDuration != 0），则跳过重置，避免反复归零导致
-    // 动画永远无法推进。这也避免向客户端重复广播 RabbitJump 状态码。
+    // 幂等保护：若动画已在进行中（m_rabbitJumpDuration != 0），则跳过重置，
+    // 避免反复归零导致动画永远无法推进，也避免向客户端重复广播 RabbitJump 状态码。
     if (m_rabbitJumpDuration != 0) {
         return;
     }
+
+    // 先设置 LivingEntity 的跳跃标志（会触发 jump 音效播放）
+    // 注意：此处调用本类重写的 setJumping(true)，它会先调用基类再播音效
+    setJumping(true);
 
     m_rabbitJumpDuration = 10;
     m_rabbitJumpTicks = 0;
@@ -298,6 +365,174 @@ void RabbitEntity::aiStep()
         m_rabbitJumpDuration = 0;
         LivingEntity::setJumping(false); // 直接调用基类避免再次播音效/广播
     }
+}
+
+void RabbitEntity::updateAITasks()
+{
+    // 对应 MC 1.21.11 Rabbit.customServerAiStep(ServerLevel)：
+    //   if (jumpDelayTicks > 0) jumpDelayTicks--;
+    //   if (moreCarrotTicks > 0) moreCarrotTicks -= random.nextInt(3);
+    //   if (onGround()) {
+    //       if (!wasOnGround) { setJumping(false); checkLandingDelay(); }
+    //       if (variant == EVIL && jumpDelayTicks == 0) { ...killer rabbit attack... }
+    //       if (!jumpControl.wantJump()) {
+    //           if (moveControl.hasWanted() && jumpDelayTicks == 0) {
+    //               ...face direction and startJumping...
+    //           }
+    //       } else if (!jumpControl.canJump()) { enableJumpControl(); }
+    //   }
+    //   wasOnGround = onGround();
+
+    // 1. 递减着陆延迟
+    if (m_jumpDelayTicks > 0) {
+        --m_jumpDelayTicks;
+    }
+
+    // 2. 随机递减 moreCarrotTicks（对应 MC moreCarrotTicks -= random.nextInt(3)）
+    if (m_moreCarrotTicks > 0) {
+        math::Random& rng = getRandom();
+        m_moreCarrotTicks -= rng.nextInt(3);
+        if (m_moreCarrotTicks < 0) {
+            m_moreCarrotTicks = 0;
+        }
+    }
+
+    // 3. 着陆检测与跳跃控制（仅在地面时执行）
+    if (onGround()) {
+        // 着陆瞬间：从空中到地面的过渡
+        if (!m_wasOnGround) {
+            // 对应 MC：setJumping(false); checkLandingDelay();
+            // 直接调用基类 setJumping(false) 避免触发本类的音效逻辑
+            LivingEntity::setJumping(false);
+            checkLandingDelay();
+        }
+
+        // 杀手兔的主动跳跃攻击
+        // 对应 MC：if (variant == EVIL && jumpDelayTicks == 0) {
+        //     LivingEntity target = getTarget();
+        //     if (target != null && distanceToSqr(target) < 16.0) {
+        //         facePoint(target.x, target.z);
+        //         moveControl.setWantedPosition(target.x, target.y, target.z, moveControl.getSpeedModifier());
+        //         startJumping();
+        //         wasOnGround = true;
+        //     }
+        // }
+        if (isKillerRabbit() && m_jumpDelayTicks == 0) {
+            LivingEntity* target = attackTarget();
+            if (target != nullptr) {
+                // distanceToSqr < 16.0 (4 格距离平方)
+                f32 distSq = distanceSqTo(*target);
+                if (distSq < 16.0f) {
+                    facePoint(target->x(), target->z());
+                    if (auto* moveCtrl = moveController(); moveCtrl != nullptr) {
+                        moveCtrl->setMoveTo(target->x(), target->y(), target->z(), moveCtrl->speed());
+                    }
+                    startJumping();
+                    m_wasOnGround = true;
+                    // 跳过后续的普通跳跃逻辑（杀手兔已主动跳跃）
+                    m_wasOnGround = onGround();
+                    return;
+                }
+            }
+        }
+
+        // 普通跳跃逻辑
+        // 对应 MC：RabbitJumpControl rabbitJumpCtrl = (RabbitJumpControl)jumpControl;
+        //   if (!rabbitJumpCtrl.wantJump()) {
+        //       if (moveControl.hasWanted() && jumpDelayTicks == 0) {
+        //           Path path = navigation.getPath();
+        //           Vec3 vec3 = new Vec3(moveControl.getWantedX(), ...);
+        //           if (path != null && !path.isDone()) vec3 = path.getNextEntityPos(this);
+        //           facePoint(vec3.x, vec3.z);
+        //           startJumping();
+        //       }
+        //   } else if (!rabbitJumpCtrl.canJump()) { enableJumpControl(); }
+        auto* jumpCtrl = jumpController();
+        auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+        if (rabbitJumpCtrl != nullptr && !rabbitJumpCtrl->wantJump()) {
+            // 检查是否有移动目标且着陆延迟已结束
+            auto* moveCtrl = moveController();
+            if (moveCtrl != nullptr && moveCtrl->isUpdating() && m_jumpDelayTicks == 0) {
+                // 获取目标位置：优先使用路径的下一节点，否则使用移动控制器的目标
+                f64 targetX = moveCtrl->getX();
+                f64 targetZ = moveCtrl->getZ();
+
+                auto* nav = navigator();
+                if (nav != nullptr) {
+                    const auto* path = nav->getPath();
+                    if (path != nullptr && !path->isFinished()) {
+                        // 对应 MC path.getNextEntityPos(this)
+                        Vector3d nextPos = path->getPosition(this);
+                        targetX = nextPos.x;
+                        targetZ = nextPos.z;
+                    }
+                }
+
+                facePoint(targetX, targetZ);
+                startJumping();
+            }
+        } else if (rabbitJumpCtrl != nullptr && !rabbitJumpCtrl->canJump()) {
+            // 跳跃控制器被禁用（着陆延迟期间），重新启用
+            enableJumpControl();
+        }
+    }
+
+    // 4. 更新 wasOnGround
+    m_wasOnGround = onGround();
+}
+
+void RabbitEntity::enableJumpControl()
+{
+    // 对应 MC Rabbit.enableJumpControl()：
+    //   ((RabbitJumpControl)jumpControl).setCanJump(true);
+    auto* jumpCtrl = jumpController();
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    if (rabbitJumpCtrl != nullptr) {
+        rabbitJumpCtrl->setCanJump(true);
+    }
+}
+
+void RabbitEntity::disableJumpControl()
+{
+    // 对应 MC Rabbit.disableJumpControl()：
+    //   ((RabbitJumpControl)jumpControl).setCanJump(false);
+    auto* jumpCtrl = jumpController();
+    auto* rabbitJumpCtrl = dynamic_cast<entity::ai::controller::RabbitJumpControl*>(jumpCtrl);
+    if (rabbitJumpCtrl != nullptr) {
+        rabbitJumpCtrl->setCanJump(false);
+    }
+}
+
+void RabbitEntity::setLandingDelay()
+{
+    // 对应 MC Rabbit.setLandingDelay()：
+    //   if (moveControl.getSpeedModifier() < 2.2) jumpDelayTicks = 10;
+    //   else jumpDelayTicks = 1;
+    f64 speedModifier = 0.0;
+    if (auto* moveCtrl = moveController(); moveCtrl != nullptr) {
+        speedModifier = moveCtrl->speed();
+    }
+    if (speedModifier < 2.2) {
+        m_jumpDelayTicks = 10;
+    } else {
+        m_jumpDelayTicks = 1;
+    }
+}
+
+void RabbitEntity::checkLandingDelay()
+{
+    // 对应 MC Rabbit.checkLandingDelay()：
+    //   setLandingDelay(); disableJumpControl();
+    setLandingDelay();
+    disableJumpControl();
+}
+
+void RabbitEntity::facePoint(f64 targetX, f64 targetZ)
+{
+    // 对应 MC Rabbit.facePoint(double, double)：
+    //   setYRot((float)(Mth.atan2(targetZ - getZ(), targetX - getX()) * 180.0 / PI) - 90.0F);
+    f32 targetYaw = static_cast<f32>(std::atan2(targetZ - z(), targetX - x()) * math::RAD_TO_DEG - 90.0);
+    setYaw(math::wrapDegrees(targetYaw));
 }
 
 sound::SoundCategory RabbitEntity::getSoundCategory() const
@@ -415,9 +650,18 @@ void RabbitEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // 兔子的属性
+    // 对应 MC 1.21.11 Rabbit.createAttributes()：
+    //   Animal.createAnimalAttributes()
+    //       .add(MAX_HEALTH, 3.0).add(MOVEMENT_SPEED, 0.3F).add(ATTACK_DAMAGE, 3.0)
+    // 兔子需要 ATTACK_DAMAGE 属性以支持杀手兔变种的攻击（+5 修改器）。
+    // AnimalEntity 基类不注册 ATTACK_DAMAGE（仅 MonsterEntity 注册），此处显式注册。
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    // 基础攻击伤害 3.0（对应 MC DEFAULT_ATTACK_POWER = 3）
+    // 杀手兔变种在 applyRabbitType() 中添加 +5 修改器
+    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 
 } // namespace mc

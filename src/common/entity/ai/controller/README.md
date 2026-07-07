@@ -8,13 +8,15 @@
 controller/
 ├── LookController.hpp/cpp          # 视线控制器，控制实体头部旋转
 ├── MovementController.hpp/cpp      # 移动控制器，控制地面移动行为
-├── JumpController.hpp/cpp          # 跳跃控制器，管理跳跃状态
+├── JumpController.hpp/cpp          # 跳跃控制器，管理跳跃状态（支持多态派生）
 ├── FlyingMovementController.hpp/cpp # 通用飞行控制器，三维飞行移动（凋灵、鹦鹉等）
 ├── VexMovementController.hpp/cpp   # 恼鬼飞行控制器，穿墙飞行
 ├── GhastMovementController.hpp/cpp # 恶魂飞行控制器，带碰撞检测飞行
 ├── PhantomMovementController.hpp/cpp # 幻翼飞行控制器，直接操控速度向量的飞行
 ├── PhantomLookController.hpp       # 幻翼视线控制器（空操作，朝向由移动控制器控制）
 ├── DrownedMoveControl.hpp/cpp      # 溺尸两栖控制器，水中游泳+陆地行走
+├── RabbitJumpControl.hpp/cpp       # 兔子跳跃控制器，canJump/wantJump 状态机
+├── RabbitMoveControl.hpp/cpp       # 兔子移动控制器，控制跳跃速度与地面静止
 └── README.md
 ```
 
@@ -40,6 +42,8 @@ controller/
 - GhastMovementController ──继承──> MovementController
 - PhantomMovementController ──继承──> MovementController
 - DrownedMoveControl ──继承──> MovementController
+- RabbitMoveControl ──继承──> MovementController
+- RabbitJumpControl ──继承──> JumpController
 - PhantomLookController ──继承──> LookController
 ```
 
@@ -69,6 +73,7 @@ controller/
   - `WitherEntity` → FlyingMovementController(this, 10, false)
   - `PhantomEntity` → PhantomMovementController + PhantomLookController（空操作）
   - `DrownedEntity` → DrownedMoveControl
+  - `RabbitEntity` → RabbitJumpControl + RabbitMoveControl
 - `PathNavigator` - 通过 MovementController 执行路径移动
 
 ## 容易踩的坑
@@ -177,3 +182,24 @@ LookController 在每 tick 中通过 `setRotationYawHead()` 更新头部朝向�
 - **水中模式**（`wantsToSwim() && isInWater()`）：直接修改 velocity 实现三维游泳移动，Y 方向使用 0.1 缩放因子（比水平方向 0.005 大 20 倍），提供足够垂直推力；旋转速度限制 90°/tick；身体朝向与头部一致
 - **陆地模式**（不在水中或不想游泳）：添加微小重力（-0.008），委托基类 `MovementController::tick()` 处理地面行走
 - `searchingForLand` 标志由 `DrownedSwimUpGoal` 设置、`DrownedGoToBeachGoal` 清除，控制是否施加额外向上推力
+
+### 11. RabbitJumpControl / RabbitMoveControl 兔子专属控制器
+
+兔子使用专属的跳跃和移动控制器实现 MC 1.21.11 的跳跃移动行为：
+
+**RabbitJumpControl**（继承 JumpController）：
+- 维护 `canJump`/`wantJump` 状态机：`wantJump` 由 AI Goal 通过 `setJumping()` 设置，`canJump` 由 `RabbitEntity::updateAITasks()` 通过 `enableJumpControl()`/`disableJumpControl()` 控制
+- `tick()` 仅在 `wantJump` 为 true 时调用 `rabbit.startJumping()` 启动跳跃动画，然后清除标志
+- 与通用 `JumpController` 的差异：不在 `wantJump=false` 时调用 `setJumping(false)`，动画结束由 `RabbitEntity::aiStep()` 控制
+- 着陆延迟期间 `canJump=false`，由 `checkLandingDelay()` → `disableJumpControl()` 设置
+
+**RabbitMoveControl**（继承 MovementController）：
+- `tick()` 在地面且未跳跃且未请求跳跃时设置速度为 0（避免地面滑行）
+- 有移动目标或处于 Jumping 状态时应用 `nextJumpSpeed` 作为移动速度
+- `setMoveTo()` 在水中时将速度倍率提升至 1.5（对应 MC `setWantedPosition` 水中逻辑）
+- `nextJumpSpeed` 仅在 `speed > 0` 时更新，保留之前的值
+
+**JumpController 多态支持**：
+- `JumpController` 基类提供 `virtual ~JumpController() = default`、`virtual void setJumping()` 和 `virtual void tick()` 支持派生
+- `m_isJumping` 字段为 `protected`，允许派生类直接读写以实现自定义状态机
+- 基类 `tick()` 调用 `m_mob->setJumping(m_isJumping)` 后清零；派生类可完全重写

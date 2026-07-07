@@ -94,8 +94,11 @@ public:
 
     /**
      * @brief 设置皮肤类型
+     *
+     * 对应 MC 1.21.11 Rabbit.setVariant()：应用变种特定的属性和 AI 目标
+     * （杀手兔变种会添加 ARMOR、ATTACK_DAMAGE 修改器和攻击目标）。
      */
-    void setRabbitType(RabbitType type) { m_rabbitType = type; }
+    void setRabbitType(RabbitType type);
 
     /**
      * @brief 随机设置皮肤类型（基于群系）
@@ -158,8 +161,8 @@ public:
      * 对应 MC 1.21.11 Rabbit.startJumping()：
      *   setJumping(true); jumpDuration = 10; jumpTicks = 0;
      *
-     * 由 RabbitJumpControl.tick() 在希望跳跃时调用（项目当前由 MovementControl::tick()
-     * 触发的自动跳跃路径间接调用 setJumping(true) 启动）。
+     * 由 RabbitJumpControl.tick() 在希望跳跃时调用。
+     * 幂等保护：若 m_rabbitJumpDuration != 0（动画进行中），则跳过。
      */
     void startJumping();
 
@@ -195,6 +198,47 @@ public:
      */
     [[nodiscard]] i32 rabbitJumpDuration() const { return m_rabbitJumpDuration; }
 
+    // ========== 着陆延迟 / 跳跃控制 ==========
+
+    /**
+     * @brief 当前着陆延迟剩余 tick 数
+     *
+     * 对应 MC 1.21.11 Rabbit.jumpDelayTicks 字段。
+     * 着陆后设置为 10（慢速）或 1（快速），每 tick 递减。
+     * 为 0 时允许下一次跳跃。
+     */
+    [[nodiscard]] i32 jumpDelayTicks() const { return m_jumpDelayTicks; }
+
+    /**
+     * @brief 上一 tick 是否在地面
+     *
+     * 对应 MC 1.21.11 Rabbit.wasOnGround 字段。用于检测着陆瞬间。
+     */
+    [[nodiscard]] bool wasOnGround() const { return m_wasOnGround; }
+
+    /**
+     * @brief moreCarrotTicks（啃食胡萝卜冷却）
+     *
+     * 对应 MC 1.21.11 Rabbit.moreCarrotTicks 字段。
+     * RaidGardenGoal 啃食胡萝卜后设为 40，customServerAiStep 中随机递减。
+     * 为 0 时表示兔子想要更多食物（wantsMoreFood() 返回 true）。
+     * TODO: RaidGardenGoal 尚未实现，此字段当前仅在 customServerAiStep 中递减，
+     *       未来实现 RaidGardenGoal 时需读取/设置此字段。
+     */
+    [[nodiscard]] i32 moreCarrotTicks() const { return m_moreCarrotTicks; }
+
+    /**
+     * @brief 设置 moreCarrotTicks（供未来 RaidGardenGoal 使用）
+     */
+    void setMoreCarrotTicks(i32 ticks) { m_moreCarrotTicks = ticks; }
+
+    /**
+     * @brief 是否想要更多食物
+     *
+     * 对应 MC 1.21.11 Rabbit.wantsMoreFood()：moreCarrotTicks <= 0
+     */
+    [[nodiscard]] bool wantsMoreFood() const { return m_moreCarrotTicks <= 0; }
+
     // ========== 属性 ==========
 
     /**
@@ -213,6 +257,22 @@ public:
      * 推进跳跃动画计时器；动画结束时清除跳跃状态。
      */
     void aiStep() override;
+
+    /**
+     * @brief 服务端 AI 主循环（对应 MC customServerAiStep）
+     *
+     * 对应 MC 1.21.11 Rabbit.customServerAiStep(ServerLevel)：
+     * - 递减 jumpDelayTicks
+     * - 随机递减 moreCarrotTicks
+     * - 着陆检测：从空中到地面的过渡时清除跳跃状态并设置着陆延迟
+     * - 杀手兔的主动跳跃攻击
+     * - 普通兔子的跳跃触发（有移动目标且 jumpDelayTicks==0 时 startJumping）
+     * - 跳跃控制器的 enable/disable 管理
+     *
+     * 项目架构中 MobEntity::updateAITasks() 是空的虚方法，作为 customServerAiStep
+     * 的等价入口点（在 MobEntity::tick() 中于 goalSelector/navigator 之后、控制器之前调用）。
+     */
+    void updateAITasks() override;
 
 protected:
     // ========== AI 目标注册 ==========
@@ -234,6 +294,63 @@ private:
     // 注意：不与 LivingEntity::m_jumpTicks（跳跃冷却）复用，语义不同
     i32 m_rabbitJumpTicks = 0;    // 当前跳跃已持续的 tick
     i32 m_rabbitJumpDuration = 0; // 当前跳跃总持续 tick；为 0 表示未在跳跃中
+
+    // 着陆延迟 / 跳跃控制状态（对应 MC 1.21.11 Rabbit 的 jumpDelayTicks / wasOnGround）
+    i32 m_jumpDelayTicks = 0;   // 着陆后禁止跳跃的剩余 tick
+    bool m_wasOnGround = false; // 上一 tick 是否在地面
+
+    // 啃食胡萝卜冷却（对应 MC 1.21.11 Rabbit.moreCarrotTicks）
+    // TODO: RaidGardenGoal 尚未实现，此字段当前仅在 updateAITasks() 中递减
+    i32 m_moreCarrotTicks = 0;
+
+    // ========== 私有辅助方法 ==========
+
+    /**
+     * @brief 启用跳跃控制器（对应 MC Rabbit.enableJumpControl()）
+     */
+    void enableJumpControl();
+
+    /**
+     * @brief 禁用跳跃控制器（对应 MC Rabbit.disableJumpControl()）
+     */
+    void disableJumpControl();
+
+    /**
+     * @brief 设置着陆延迟（对应 MC Rabbit.setLandingDelay()）
+     *
+     * 移动速度倍率 < 2.2 时延迟 10 tick，否则延迟 1 tick。
+     */
+    void setLandingDelay();
+
+    /**
+     * @brief 检查并应用着陆延迟（对应 MC Rabbit.checkLandingDelay()）
+     *
+     * 调用 setLandingDelay() 并禁用跳跃控制器。
+     */
+    void checkLandingDelay();
+
+    /**
+     * @brief 朝向指定坐标（对应 MC Rabbit.facePoint()）
+     * @param targetX 目标 X
+     * @param targetZ 目标 Z
+     */
+    void facePoint(f64 targetX, f64 targetZ);
+
+    /**
+     * @brief 应用兔子变种（对应 MC Rabbit.setVariant()）
+     *
+     * 杀手兔（EVIL）变种：设置 ARMOR=8、添加 ATTACK_DAMAGE 修改器 +5、
+     * 注册近战攻击目标和反击目标。非杀手兔变种：移除 EVIL 修改器。
+     *
+     * 注意：项目当前由 setRabbitType() 调用，因为 m_rabbitType 是项目原生枚举。
+     */
+    void applyRabbitType(RabbitType newType);
+
+    /// 杀手兔 ATTACK_DAMAGE 修改器 ID（对应 MC EVIL_ATTACK_POWER_MODIFIER）
+    static constexpr const char* EVIL_ATTACK_POWER_MODIFIER_ID = "rabbit_evil_attack_power";
+
+    /// moreCarrotTicks 重置值（对应 MC MORE_CARROTS_DELAY = 40）
+    static constexpr i32 MORE_CARROTS_DELAY = 40;
 };
 
 } // namespace mc

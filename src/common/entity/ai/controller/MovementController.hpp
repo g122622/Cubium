@@ -67,8 +67,10 @@ public:
      * @param y Y坐标
      * @param z Z坐标
      * @param speed 移动速度倍率
+     *
+     * 派生类可重写以维护自定义状态（如 RabbitMoveControl 记录 nextJumpSpeed）。
      */
-    void setMoveTo(f64 x, f64 y, f64 z, f64 speed);
+    virtual void setMoveTo(f64 x, f64 y, f64 z, f64 speed);
 
     /**
      * @brief 设置横向移动
