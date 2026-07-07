@@ -252,7 +252,7 @@ Biome createShatteredSavanna()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createShatteredSavanna());
     return biome;
 }
 
@@ -268,7 +268,7 @@ Biome createSavannaPlateau()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavannaPlateau());
     return biome;
 }
 
@@ -776,7 +776,8 @@ Biome createDeepLukewarmOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepLukewarmOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLukewarmOcean());
+    // 对应 MC 1.16.5 func_244237_d(true)：深水版本 squid/cod 权重与浅水版本不同
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepLukewarmOcean());
     // 与温水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::LUKEWARM_OCEAN_WATER_COLOR)
@@ -1200,7 +1201,8 @@ Biome createShatteredSavannaPlateau()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
     biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
+    // 对应 MC 1.16.5 func_244211_a(true, true)：spawn list 与 ShatteredSavanna 相同（无 llama/wolf）
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createShatteredSavanna());
     return biome;
 }
 

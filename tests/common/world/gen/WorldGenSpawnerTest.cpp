@@ -136,9 +136,17 @@ TEST_F(WorldGenSpawnerTest, OceanSpawnInfo)
 {
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createOcean();
 
-    // 海洋应该有水生生物
+    // 海洋应该有水生生物（squid + dolphin 归 WaterCreature）
     const auto& waterCreatures = info.getWaterCreatureSpawns();
     EXPECT_FALSE(waterCreatures.empty());
+
+    // 鱼类（cod）原版归 WaterAmbient，非 WaterCreature
+    const auto& waterAmbient = info.getWaterAmbientSpawns();
+    bool hasCod = false;
+    for (const auto& entry : waterAmbient) {
+        if (entry.entityTypeId == "minecraft:cod") hasCod = true;
+    }
+    EXPECT_TRUE(hasCod);
 
     // 应该有溺尸
     const auto& monsters = info.getMonsterSpawns();
@@ -212,24 +220,83 @@ TEST_F(WorldGenSpawnerTest, BambooJungleSpawnInfo)
 
 TEST_F(WorldGenSpawnerTest, SparseJungleSpawnInfo)
 {
-    // 对应 MC 1.16.5 OverworldBiomes.sparseJungle()（旧名 JungleEdge）
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(23, JUNGLE_EDGE, BiomeMaker.func_244227_b())
+    //   func_244227_b 内部仅调用 baseJungleSpawns，不额外添加 wolf/parrot/ocelot/panda。
+    //   注：1.21.11 sparseJungle() 额外添加了 wolf(8,2,4)，但 1.16.5 中无 wolf。本项目对齐 1.16.5。
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createSparseJungle();
 
-    // sparseJungle = baseJungleSpawns + wolf(8,2,4) CREATURE
+    // sparseJungle = baseJungleSpawns（farmAnimals + 额外 chicken + commonSpawns）
     const auto& creatures = info.getCreatureSpawns();
     bool hasWolf = false;
     int chickenCount = 0;
     bool hasOcelotInCreatures = false;
     for (const auto& entry : creatures) {
-        if (entry.entityTypeId == "minecraft:wolf" && entry.weight == 8 && entry.minCount == 2 && entry.maxCount == 4) {
-            hasWolf = true;
-        }
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
         if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
         if (entry.entityTypeId == "minecraft:ocelot") hasOcelotInCreatures = true;
     }
-    EXPECT_TRUE(hasWolf);
+    EXPECT_FALSE(hasWolf);              // 1.16.5 JungleEdge 不含 wolf
     EXPECT_EQ(chickenCount, 2);         // baseJungleSpawns 额外鸡规则
     EXPECT_FALSE(hasOcelotInCreatures); // sparseJungle 没有 ocelot
+}
+
+TEST_F(WorldGenSpawnerTest, SavannaSpawnInfo)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244211_a(..., false, false)
+    world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createSavanna();
+
+    // 普通 Savanna：farmAnimals + horse + donkey，无 llama/wolf
+    const auto& creatures = info.getCreatureSpawns();
+    bool hasHorse = false, hasDonkey = false, hasLlama = false, hasWolf = false;
+    for (const auto& entry : creatures) {
+        if (entry.entityTypeId == "minecraft:horse" && entry.weight == 1 && entry.minCount == 2 &&
+            entry.maxCount == 6) {
+            hasHorse = true;
+        }
+        if (entry.entityTypeId == "minecraft:donkey" && entry.weight == 1 && entry.minCount == 1 &&
+            entry.maxCount == 1) {
+            hasDonkey = true;
+        }
+        if (entry.entityTypeId == "minecraft:llama") hasLlama = true;
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_TRUE(hasHorse);
+    EXPECT_TRUE(hasDonkey);
+    EXPECT_FALSE(hasLlama);
+    EXPECT_FALSE(hasWolf);
+}
+
+TEST_F(WorldGenSpawnerTest, SavannaPlateauSpawnInfo)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244247_m()：在 func_244258_x 基础上加 llama(8,4,4)
+    world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createSavannaPlateau();
+
+    const auto& creatures = info.getCreatureSpawns();
+    bool hasLlama = false, hasWolf = false;
+    for (const auto& entry : creatures) {
+        if (entry.entityTypeId == "minecraft:llama" && entry.weight == 8 && entry.minCount == 4 &&
+            entry.maxCount == 4) {
+            hasLlama = true;
+        }
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_TRUE(hasLlama); // SavannaPlateau 含 llama
+    EXPECT_FALSE(hasWolf); // 1.16.5 SavannaPlateau 不含 wolf
+}
+
+TEST_F(WorldGenSpawnerTest, ShatteredSavannaSpawnInfo)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244211_a(..., true, true)：spawn list 与普通 Savanna 相同
+    world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createShatteredSavanna();
+
+    const auto& creatures = info.getCreatureSpawns();
+    bool hasLlama = false, hasWolf = false;
+    for (const auto& entry : creatures) {
+        if (entry.entityTypeId == "minecraft:llama") hasLlama = true;
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_FALSE(hasLlama);
+    EXPECT_FALSE(hasWolf);
 }
 
 // ========== SpawnEntry 测试 ==========

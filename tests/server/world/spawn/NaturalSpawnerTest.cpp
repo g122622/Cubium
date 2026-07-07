@@ -475,8 +475,227 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_SoulSandValley_SpawnCosts)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
 {
+    // 对应 MC 1.16.5 BiomeMaker.func_244234_c(false)（浅水版本）
     auto info = world::spawn::MobSpawnInfo::createOcean();
-    EXPECT_GT(info.getWaterCreatureSpawns().size(), 0);
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物 + drowned
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+    bool hasDrowned = false;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:drowned") {
+            hasDrowned = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
+    }
+    EXPECT_TRUE(hasDrowned);
+
+    // 水生生物：squid + dolphin（原版归 WaterCreature）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    bool hasSquid = false, hasDolphin = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 1);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:dolphin") {
+            hasDolphin = true;
+            EXPECT_EQ(entry.weight, 1);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 2);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasDolphin);
+
+    // 水生环境生物：cod（原版归 WaterAmbient，非 WaterCreature）
+    ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].entityTypeId, "minecraft:cod");
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].weight, 10);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].minCount, 3);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].maxCount, 6);
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_LukewarmOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244237_d(false)（浅水版本）
+    auto info = world::spawn::MobSpawnInfo::createLukewarmOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物 + drowned
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+
+    // 水生生物：squid(10,1,2) + dolphin(2,1,2)（原版归 WaterCreature）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    bool hasSquid = false, hasDolphin = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 10);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 2);
+        }
+        if (entry.entityTypeId == "minecraft:dolphin") {
+            hasDolphin = true;
+            EXPECT_EQ(entry.weight, 2);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasDolphin);
+
+    // 水生环境生物：cod(15,3,6) + pufferfish(5,1,3) + tropical_fish(25,8,8)
+    EXPECT_EQ(info.getWaterAmbientSpawns().size(), 3u);
+    bool hasCod = false, hasPufferfish = false, hasTropicalFish = false;
+    for (const auto& entry : info.getWaterAmbientSpawns()) {
+        if (entry.entityTypeId == "minecraft:cod") {
+            hasCod = true;
+            EXPECT_EQ(entry.weight, 15);
+        }
+        if (entry.entityTypeId == "minecraft:pufferfish") {
+            hasPufferfish = true;
+            EXPECT_EQ(entry.weight, 5);
+        }
+        if (entry.entityTypeId == "minecraft:tropical_fish") {
+            hasTropicalFish = true;
+            EXPECT_EQ(entry.weight, 25);
+        }
+    }
+    EXPECT_TRUE(hasCod);
+    EXPECT_TRUE(hasPufferfish);
+    EXPECT_TRUE(hasTropicalFish);
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepLukewarmOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244237_d(true)（深水版本）
+    auto info = world::spawn::MobSpawnInfo::createDeepLukewarmOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 与浅水版本差异：squid 权重 8（非 10）、minCount 4（非 2）；cod 权重 8（非 15）
+    bool hasSquid = false, hasCod = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 8);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+    }
+    for (const auto& entry : info.getWaterAmbientSpawns()) {
+        if (entry.entityTypeId == "minecraft:cod") {
+            hasCod = true;
+            EXPECT_EQ(entry.weight, 8);
+            EXPECT_EQ(entry.minCount, 3);
+            EXPECT_EQ(entry.maxCount, 6);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasCod);
+
+    // 其余条目与浅水版本相同
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);       // 8 标准怪物 + drowned
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u); // squid + dolphin
+    EXPECT_EQ(info.getWaterAmbientSpawns().size(), 3u);  // cod + pufferfish + tropical_fish
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_ColdOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244230_b(false)（浅水版本）
+    auto info = world::spawn::MobSpawnInfo::createColdOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物 + drowned
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+
+    // 水生生物：squid(3,1,4) + dolphin(2,1,2)
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    bool hasSquid = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 3);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+
+    // 水生环境生物：cod(15,3,6) + salmon(15,1,5)
+    EXPECT_EQ(info.getWaterAmbientSpawns().size(), 2u);
+    bool hasCod = false, hasSalmon = false;
+    for (const auto& entry : info.getWaterAmbientSpawns()) {
+        if (entry.entityTypeId == "minecraft:cod") {
+            hasCod = true;
+            EXPECT_EQ(entry.weight, 15);
+        }
+        if (entry.entityTypeId == "minecraft:salmon") {
+            hasSalmon = true;
+            EXPECT_EQ(entry.weight, 15);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 5);
+        }
+    }
+    EXPECT_TRUE(hasCod);
+    EXPECT_TRUE(hasSalmon);
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_FrozenOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244239_e(false)（浅水版本）
+    auto info = world::spawn::MobSpawnInfo::createFrozenOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物 + drowned
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+
+    // 水生生物：仅 squid(1,1,4)（无 dolphin）
+    ASSERT_EQ(info.getWaterCreatureSpawns().size(), 1u);
+    EXPECT_EQ(info.getWaterCreatureSpawns()[0].entityTypeId, "minecraft:squid");
+    EXPECT_EQ(info.getWaterCreatureSpawns()[0].weight, 1);
+
+    // 水生环境生物：仅 salmon(15,1,5)（无 cod、无 tropical_fish、无 pufferfish）
+    ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].entityTypeId, "minecraft:salmon");
+
+    // 动物：polar_bear(1,1,2)
+    ASSERT_EQ(info.getCreatureSpawns().size(), 1u);
+    EXPECT_EQ(info.getCreatureSpawns()[0].entityTypeId, "minecraft:polar_bear");
+    EXPECT_EQ(info.getCreatureSpawns()[0].weight, 1);
+    EXPECT_EQ(info.getCreatureSpawns()[0].minCount, 1);
+    EXPECT_EQ(info.getCreatureSpawns()[0].maxCount, 2);
+
+    // 确认无 stray（1.16.5 FrozenOcean 不调用 snowySpawns）
+    for (const auto& entry : info.getMonsterSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:stray") << "FrozenOcean 不应含 stray";
+    }
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244234_c(true)（深水版本）
+    //   spawn list 与普通 Ocean 完全一致
+    auto info = world::spawn::MobSpawnInfo::createDeepOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物 + drowned
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+
+    // 水生生物：squid + dolphin（与 Ocean 一致）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+
+    // 水生环境生物：cod（与 Ocean 一致）
+    ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].entityTypeId, "minecraft:cod");
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].weight, 10);
+
+    // 确认无 guardian（guardian 只在 OceanMonument 周围生成，由结构生成器处理）
+    for (const auto& entry : info.getMonsterSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:guardian") << "DeepOcean 不应含 guardian";
+    }
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_WarmOcean)
@@ -630,14 +849,157 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepWarmOcean)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
 {
+    // 对应 MC 1.16.5 BiomeMaker.func_244220_a(...) → DefaultBiomeFeatures.func_243743_f()（desertSpawns）
     auto info = world::spawn::MobSpawnInfo::createDesert();
-    EXPECT_GT(info.getMonsterSpawns().size(), 0);
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物（zombie weight=19, zombie_villager weight=1, skeleton weight=100）+ husk(80,4,4)
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+    bool hasHusk = false;
+    int zombieWeight = 0, skeletonWeight = 0;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:husk") {
+            hasHusk = true;
+            EXPECT_EQ(entry.weight, 80);
+            EXPECT_EQ(entry.minCount, 4);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:zombie") zombieWeight = entry.weight;
+        if (entry.entityTypeId == "minecraft:skeleton") skeletonWeight = entry.weight;
+    }
+    EXPECT_TRUE(hasHusk);
+    EXPECT_EQ(zombieWeight, 19);    // desertSpawns 中 zombie 权重 19（非标准 95）
+    EXPECT_EQ(skeletonWeight, 100); // desertSpawns 中 skeleton 权重 100（与标准一致）
+
+    // 动物：仅 rabbit(4,2,3)（desertSpawns 中 rabbit 权重 4，非 12）
+    ASSERT_EQ(info.getCreatureSpawns().size(), 1u);
+    EXPECT_EQ(info.getCreatureSpawns()[0].entityTypeId, "minecraft:rabbit");
+    EXPECT_EQ(info.getCreatureSpawns()[0].weight, 4);
+    EXPECT_EQ(info.getCreatureSpawns()[0].minCount, 2);
+    EXPECT_EQ(info.getCreatureSpawns()[0].maxCount, 3);
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Snowy)
 {
+    // 对应 MC 1.16.5 DefaultBiomeFeatures.func_243741_e()（snowySpawns）
     auto info = world::spawn::MobSpawnInfo::createSnowy();
-    EXPECT_GT(info.getMonsterSpawns().size(), 0);
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.07f); // 雪原更稀疏
+
+    // 怪物：8 条标准陆地怪物（zombie weight=95, skeleton weight=20）+ stray(80,4,4)
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+    bool hasStray = false;
+    int zombieWeight = 0, skeletonWeight = 0;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:stray") {
+            hasStray = true;
+            EXPECT_EQ(entry.weight, 80);
+        }
+        if (entry.entityTypeId == "minecraft:zombie") zombieWeight = entry.weight;
+        if (entry.entityTypeId == "minecraft:skeleton") skeletonWeight = entry.weight;
+    }
+    EXPECT_TRUE(hasStray);
+    EXPECT_EQ(zombieWeight, 95);   // snowySpawns 中 zombie 权重 95（与标准一致）
+    EXPECT_EQ(skeletonWeight, 20); // snowySpawns 中 skeleton 权重 20（非标准 100）
+
+    // 动物：rabbit(10,2,3) + polar_bear(1,1,2)
+    EXPECT_EQ(info.getCreatureSpawns().size(), 2u);
+    bool hasRabbit = false, hasPolarBear = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:rabbit") {
+            hasRabbit = true;
+            EXPECT_EQ(entry.weight, 10);
+        }
+        if (entry.entityTypeId == "minecraft:polar_bear") {
+            hasPolarBear = true;
+            EXPECT_EQ(entry.weight, 1);
+        }
+    }
+    EXPECT_TRUE(hasRabbit);
+    EXPECT_TRUE(hasPolarBear);
+
+    // 确认无 zombie_horse（1.16.5 中无任何生物群系 spawn list 含 zombie_horse）
+    for (const auto& entry : info.getMonsterSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:zombie_horse") << "Snowy 不应含 zombie_horse";
+    }
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_Savanna)
+{
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(35, SAVANNA, BiomeMaker.func_244211_a(..., false, false))
+    auto info = world::spawn::MobSpawnInfo::createSavanna();
+    EXPECT_TRUE(info.isPlayerSpawnFriendly());
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物
+    EXPECT_EQ(info.getMonsterSpawns().size(), 8u);
+
+    // 动物：farmAnimals + horse(1,2,6) + donkey(1,1,1)（无 llama、无 wolf、无 armadillo）
+    bool hasHorse = false, hasDonkey = false, hasLlama = false, hasWolf = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:horse") {
+            hasHorse = true;
+            EXPECT_EQ(entry.weight, 1);
+            EXPECT_EQ(entry.minCount, 2);
+            EXPECT_EQ(entry.maxCount, 6);
+        }
+        if (entry.entityTypeId == "minecraft:donkey") {
+            hasDonkey = true;
+            EXPECT_EQ(entry.weight, 1);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
+        if (entry.entityTypeId == "minecraft:llama") hasLlama = true;
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_TRUE(hasHorse);
+    EXPECT_TRUE(hasDonkey);
+    EXPECT_FALSE(hasLlama); // 普通 Savanna 不含 llama
+    EXPECT_FALSE(hasWolf);  // 1.16.5 Savanna 不含 wolf
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_SavannaPlateau)
+{
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(36, SAVANNA_PLATEAU, BiomeMaker.func_244247_m())
+    //   func_244247_m 在 func_244258_x 基础上额外添加 llama(8,4,4)（无 wolf）
+    auto info = world::spawn::MobSpawnInfo::createSavannaPlateau();
+    EXPECT_TRUE(info.isPlayerSpawnFriendly());
+
+    // 怪物：8 条标准陆地怪物
+    EXPECT_EQ(info.getMonsterSpawns().size(), 8u);
+
+    // 动物：farmAnimals + horse + donkey + llama(8,4,4)
+    bool hasLlama = false, hasWolf = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:llama") {
+            hasLlama = true;
+            EXPECT_EQ(entry.weight, 8);
+            EXPECT_EQ(entry.minCount, 4);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_TRUE(hasLlama); // SavannaPlateau 含 llama
+    EXPECT_FALSE(hasWolf); // 1.16.5 SavannaPlateau 不含 wolf
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_ShatteredSavanna)
+{
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(163, SHATTERED_SAVANNA, BiomeMaker.func_244211_a(..., true, true))
+    //   func_244211_a 内部仅调用 func_244258_x，spawn list 与普通 Savanna 相同
+    auto info = world::spawn::MobSpawnInfo::createShatteredSavanna();
+    EXPECT_TRUE(info.isPlayerSpawnFriendly());
+
+    // 怪物：8 条标准陆地怪物
+    EXPECT_EQ(info.getMonsterSpawns().size(), 8u);
+
+    // 动物：farmAnimals + horse + donkey（无 llama、无 wolf）
+    bool hasLlama = false, hasWolf = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:llama") hasLlama = true;
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_FALSE(hasLlama); // ShatteredSavanna 不含 llama
+    EXPECT_FALSE(hasWolf);  // ShatteredSavanna 不含 wolf
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Jungle)
@@ -689,11 +1051,13 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Jungle)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_SparseJungle)
 {
-    // 对应 MC 1.16.5 OverworldBiomes.sparseJungle()（旧名 JungleEdge）
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(23, JUNGLE_EDGE, BiomeMaker.func_244227_b())
+    //   func_244227_b 内部仅调用 baseJungleSpawns，不额外添加 wolf/parrot/ocelot/panda。
+    //   注：1.21.11 sparseJungle() 额外添加了 wolf(8,2,4)，但 1.16.5 中无 wolf。本项目对齐 1.16.5。
     auto info = world::spawn::MobSpawnInfo::createSparseJungle();
     EXPECT_TRUE(info.isPlayerSpawnFriendly());
 
-    // sparseJungle = baseJungleSpawns + wolf(8,2,4) CREATURE
+    // sparseJungle = baseJungleSpawns（farmAnimals + 额外 chicken + commonSpawns）
     int chickenCount = 0;
     bool hasWolf = false, hasOcelot = false, hasParrot = false, hasPanda = false;
     for (const auto& entry : info.getCreatureSpawns()) {
@@ -706,19 +1070,10 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_SparseJungle)
         if (entry.entityTypeId == "minecraft:ocelot") hasOcelot = true;
     }
     EXPECT_EQ(chickenCount, 2); // baseJungleSpawns 额外鸡规则
-    EXPECT_TRUE(hasWolf);
-    EXPECT_FALSE(hasOcelot); // sparseJungle 没有 ocelot
-    EXPECT_FALSE(hasParrot); // sparseJungle 没有 parrot
-    EXPECT_FALSE(hasPanda);  // sparseJungle 没有 panda
-
-    // 验证 wolf 条目参数
-    bool wolfParamsOk = false;
-    for (const auto& entry : info.getCreatureSpawns()) {
-        if (entry.entityTypeId == "minecraft:wolf" && entry.weight == 8 && entry.minCount == 2 && entry.maxCount == 4) {
-            wolfParamsOk = true;
-        }
-    }
-    EXPECT_TRUE(wolfParamsOk);
+    EXPECT_FALSE(hasWolf);      // 1.16.5 JungleEdge 不含 wolf（1.21.11 才加）
+    EXPECT_FALSE(hasOcelot);    // sparseJungle 没有 ocelot
+    EXPECT_FALSE(hasParrot);    // sparseJungle 没有 parrot
+    EXPECT_FALSE(hasPanda);     // sparseJungle 没有 panda
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_BambooJungle)
