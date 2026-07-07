@@ -55,6 +55,23 @@ store.clear();
 std::vector<std::string> keys = store.keys();
 ```
 
+### 存储复合类型与嵌套路径解析
+
+StateStore 内部以 `std::any` 存值，因此可以存任意类型，包括 `Value`、`std::vector<Value>`、`std::unordered_map<std::string, Value>` 等 Kagero 模板绑定系统使用的复合类型。`BindingContext::resolveBinding` 在路径未命中扁平键时，会通过 `getAny` 取出根键的 `std::any`，经 `Value::fromAny` 转为 `Value` 后逐层 `getProperty` / `getElement`，从而支持 `player.name`、`inventory[0]` 这样的嵌套路径绑定。
+
+```cpp
+// 取出 std::any 引用（键不存在时返回空 any，不抛异常）
+const std::any& any = store.getAny("player");
+
+// 存对象，供 BindingContext 嵌套路径解析
+std::unordered_map<std::string, Value> player;
+player["name"] = Value("Steve");
+player["health"] = Value(100);
+store.set("player", player);  // 注意：键是 "player"，不是 "player.name"
+```
+
+> **注意**：StateStore 的订阅按**扁平键**触发。存 `"player"` 对象后修改其内部字段（如 `player["health"]`）**不会**自动通知 `"player"` 的订阅者，必须整体 `store.set("player", updatedPlayer)` 才会触发。`BindingContext::subscribe` 在调用时会自动桥接 StateStore 的订阅，但仅当 `subscribe` 调用时 `m_store.has(path)` 为真才建立桥接（详见 `template/binder/README.md`）。
+
 ### 订阅状态变化
 
 ```cpp

@@ -44,18 +44,18 @@ Value Value::fromAny(const std::any& any)
         return Value(std::any_cast<i32>(any));
     }
     if (type == typeid(i64)) {
-        // i64 转为 i32 时可能丢失精度，调用方需自行确保值在 i32 范围内
+        // TODO: i64 转为 i32 可能丢失精度，未来应在 Value 类中增加原生 i64 类型支持
         return Value(static_cast<i32>(std::any_cast<i64>(any)));
     }
     if (type == typeid(u32)) {
-        // u32 转为 i32 时可能丢失精度，调用方需自行确保值在 i32 范围内
+        // TODO: u32 转为 i32 可能丢失精度，未来应在 Value 类中增加原生 u32 类型支持
         return Value(static_cast<i32>(std::any_cast<u32>(any)));
     }
     if (type == typeid(f32)) {
         return Value(std::any_cast<f32>(any));
     }
     if (type == typeid(f64)) {
-        // f64 转为 f32 时可能丢失精度，调用方需自行确保值在 f32 范围内
+        // TODO: f64 转为 f32 可能丢失精度，未来应在 Value 类中增加原生 f64 类型支持
         return Value(static_cast<f32>(std::any_cast<f64>(any)));
     }
     if (type == typeid(std::string)) {
