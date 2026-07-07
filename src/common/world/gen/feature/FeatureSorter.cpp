@@ -21,6 +21,8 @@
  */
 
 #include "FeatureSorter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -32,16 +34,19 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     const FeatureRegistry& registry)
 {
     // Step 1: 为每个特征分配全局索引，并记录所属 step
-    // 对应 Java: object2intmap.computeIfAbsent(placedfeature, p -> mutableint.getAndIncrement())
-    // 注意：Java 原版使用 PlacedFeature 对象引用作为 key，而非 stage-local 的 fid。
     // 使用 ConfiguredFeatureBase* 作为 key 确保跨 stage 的相同 fid 不会冲突
     // （例如 Lakes::WaterLake=0, UndergroundOres::CoalOre=0, TopLayerModification::FreezeTopLayer=0）
     std::unordered_map<ConfiguredFeatureBase*, i32> featureToGlobalIndex;
     i32 nextGlobalIndex = 0;
 
     // 收集每个生物群系的特征序列并建立依赖图
-    // 对应 Java: TreeMap<FeatureData, Set<FeatureData>> adjacencyList
     std::map<FeatureData, std::set<FeatureData>> adjacencyList;
+
+    // 成环诊断用：保留每个生物群系按生成顺序的特征序列，用于在检测到环后
+    // 反查“是哪些生物群系把环中相邻特征串成了 feature[k]→feature[k+1] 的依赖”。
+    // key 为生物群系在 possibleBiomes 中的下标，value 为该生物群系按生成顺序的特征节点。
+    std::vector<std::pair<BiomeId, std::vector<FeatureData>>> biomeFeatureSequences;
+    biomeFeatureSequences.reserve(possibleBiomes.size());
 
     i32 maxStep = 0;
 
@@ -77,7 +82,6 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
         }
 
         // Step 2: 建立依赖图
-        // 对应 Java: for (int k = 0; k < list.size(); k++) { set2.add(list.get(k + 1)); }
         // 同一生物群系内，feature[k] 必须在 feature[k+1] 之前放置
         for (size_t k = 0; k < biomeFeatures.size(); ++k) {
             const FeatureData& node = biomeFeatures[k];
@@ -89,6 +93,11 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
             if (k + 1 < biomeFeatures.size()) {
                 adjacencyList[node].insert(biomeFeatures[k + 1]);
             }
+        }
+
+        // 仅保留非空序列，用于后续成环反查；空序列对溯源无意义
+        if (!biomeFeatures.empty()) {
+            biomeFeatureSequences.emplace_back(biomeId, std::move(biomeFeatures));
         }
     }
 
@@ -111,26 +120,74 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     std::unordered_set<i32> visited;
     std::unordered_set<i32> inProgress;
     std::vector<i32> topoOrder;
+    std::vector<i32> dfsPath;      // 当前 DFS 递归路径（用于回溯成环节点）
+    std::vector<CycleInfo> cycles; // 检测到的所有环
 
     bool hasCycle = false;
 
     for (const auto& [nodeIdx, _] : adjByIndex) {
         if (visited.find(nodeIdx) == visited.end()) {
-            if (depthFirstSearch(adjByIndex, visited, inProgress, topoOrder, nodeIdx)) {
+            if (depthFirstSearch(adjByIndex, visited, inProgress, topoOrder, dfsPath, cycles, nodeIdx)) {
                 hasCycle = true;
             }
         }
     }
 
     if (hasCycle) {
-        spdlog::warn("[FeatureSorter] Feature order cycle detected, sorting may be incomplete");
+        // 输出友好的成环诊断：展示每条环的参与者（特征名@阶段#全局索引 链）
+        // 以及把这些特征串成依赖的生物群系来源（成因）。
+        for (const CycleInfo& cycle : cycles) {
+            // 环节点链：A -> B -> C -> A
+            std::string chain;
+            for (size_t i = 0; i < cycle.cycleNodes.size(); ++i) {
+                auto it = indexToData.find(cycle.cycleNodes[i]);
+                if (it != indexToData.end()) {
+                    chain += _formatNode(it->second);
+                } else {
+                    chain += fmt::format("(#{})", cycle.cycleNodes[i]);
+                }
+                if (i + 1 < cycle.cycleNodes.size()) {
+                    chain += " -> ";
+                }
+            }
+
+            // 反查成因：环中每条相邻依赖 (cycle[k] -> cycle[k+1]) 是由哪些生物群系
+            // 在其生成序列中以相邻 feature[k]→feature[k+1] 的形式建立的。
+            // 这些生物群系就是“把环串起来”的参与者。
+            std::string sources;
+            for (size_t k = 0; k + 1 < cycle.cycleNodes.size(); ++k) {
+                i32 fromIdx = cycle.cycleNodes[k];
+                i32 toIdx = cycle.cycleNodes[k + 1];
+                for (const auto& [biomeId, features] : biomeFeatureSequences) {
+                    for (size_t j = 0; j + 1 < features.size(); ++j) {
+                        if (features[j].globalIndex == fromIdx && features[j + 1].globalIndex == toIdx) {
+                            if (!sources.empty()) {
+                                sources += ", ";
+                            }
+                            sources += fmt::format("{} ({} -> {})",
+                                _formatBiome(biomeId),
+                                _formatNode(features[j]),
+                                _formatNode(features[j + 1]));
+                            break; // 同一生物群系内同一条边只记一次
+                        }
+                    }
+                }
+            }
+
+            spdlog::warn("[FeatureSorter] Feature order cycle detected, sorting may be incomplete.");
+            spdlog::warn("[FeatureSorter]   cycle: {}", chain);
+            if (!sources.empty()) {
+                spdlog::warn("[FeatureSorter]   involved biomes (edge source): {}", sources);
+            } else {
+                spdlog::warn("[FeatureSorter]   involved biomes (edge source): <unresolved>");
+            }
+        }
     }
 
     // 反转得到拓扑排序（DFS 后序的逆序）
     std::reverse(topoOrder.begin(), topoOrder.end());
 
     // Step 4: 按 step 分组
-    // 对应 Java: for (int l = 0; l < i; l++) { builder.add(new StepFeatureData(list4)); }
     std::vector<StepFeatureData> result;
     result.resize(static_cast<size_t>(maxStep + 1));
 
@@ -156,23 +213,42 @@ bool FeatureSorter::depthFirstSearch(const std::unordered_map<i32, std::vector<i
     std::unordered_set<i32>& visited,
     std::unordered_set<i32>& inProgress,
     std::vector<i32>& result,
+    std::vector<i32>& path,
+    std::vector<CycleInfo>& cycles,
     i32 node)
 {
     if (visited.count(node)) {
         return false;
     }
     if (inProgress.count(node)) {
-        // 检测到环：跳过此节点，继续处理其他分支（与 Java 原版一致）
+        // 检测到回边：当前 node 仍在递归栈中，path 中从首次出现 node 处到栈顶构成一条环。
+        // 截取该片段（首尾补上 node 便于阅读：A -> B -> C -> A）记录为一条 CycleInfo。
+        // 跳过此回边不继续深入，继续处理其他分支。
+        CycleInfo info;
+        for (size_t i = 0; i < path.size(); ++i) {
+            if (path[i] == node) {
+                // path[i..end] 即为环上节点，补回起点形成闭合
+                for (size_t j = i; j < path.size(); ++j) {
+                    info.cycleNodes.push_back(path[j]);
+                }
+                info.cycleNodes.push_back(node);
+                break;
+            }
+        }
+        if (!info.cycleNodes.empty()) {
+            cycles.push_back(std::move(info));
+        }
         return true;
     }
 
     inProgress.insert(node);
+    path.push_back(node);
 
     bool hasCycle = false;
     auto it = adj.find(node);
     if (it != adj.end()) {
         for (i32 neighbor : it->second) {
-            if (depthFirstSearch(adj, visited, inProgress, result, neighbor)) {
+            if (depthFirstSearch(adj, visited, inProgress, result, path, cycles, neighbor)) {
                 hasCycle = true;
             }
         }
@@ -180,8 +256,22 @@ bool FeatureSorter::depthFirstSearch(const std::unordered_map<i32, std::vector<i
 
     inProgress.erase(node);
     visited.insert(node);
+    path.pop_back();
     result.push_back(node);
     return hasCycle;
+}
+
+std::string FeatureSorter::_formatNode(const FeatureData& data)
+{
+    const char* featureName = data.feature ? data.feature->name() : "<null>";
+    const char* stageName = DecorationStages::getName(static_cast<DecorationStage>(data.step));
+    return fmt::format("{}@{}(#{})", featureName, stageName, data.globalIndex);
+}
+
+std::string FeatureSorter::_formatBiome(BiomeId biomeId)
+{
+    const world::biome::Biome& biome = world::biome::BiomeRegistry::instance().get(biomeId);
+    return fmt::format("{}({})", biome.name(), static_cast<u32>(biomeId));
 }
 
 } // namespace mc
