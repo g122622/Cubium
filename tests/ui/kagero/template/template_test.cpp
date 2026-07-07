@@ -1897,6 +1897,10 @@ class BindingContextTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // 清空单例状态，避免用例间相互污染
+        mc::client::ui::kagero::state::StateStore::instance().clear();
+        mc::client::ui::kagero::state::StateStore::instance().clearMiddlewares();
+        mc::client::ui::kagero::event::EventBus::instance().clear();
         // StateStore and EventBus are singletons - use instance()
         m_ctx = std::make_unique<binder::BindingContext>(
             mc::client::ui::kagero::state::StateStore::instance(), mc::client::ui::kagero::event::EventBus::instance());
@@ -1906,6 +1910,9 @@ protected:
     {
         // Clear the binding context
         m_ctx.reset();
+        mc::client::ui::kagero::state::StateStore::instance().clear();
+        mc::client::ui::kagero::state::StateStore::instance().clearMiddlewares();
+        mc::client::ui::kagero::event::EventBus::instance().clear();
     }
 
     std::unique_ptr<binder::BindingContext> m_ctx;
@@ -2037,6 +2044,241 @@ TEST_F(BindingContextTest, Clear)
 
     EXPECT_FALSE(m_ctx->hasPath("name"));
     EXPECT_FALSE(m_ctx->hasCallback("callback"));
+}
+
+// ==================== StateStore 嵌套路径解析测试 ====================
+// 以下测试覆盖 BindingContext::_resolvePath 中 StateStore 类型转换支持：
+// 当根键存在于 StateStore 但不在 m_exposedVars 中时，应通过 Value::fromAny
+// 读取并继续解析嵌套属性。
+
+TEST_F(BindingContextTest, ResolveStateStoreScalarDirectPath)
+{
+    // 直接路径：StateStore 中存储标量值，路径与键完全匹配
+    // resolveBinding 应通过 StateStore 分支直接返回
+    mc::client::ui::kagero::state::StateStore::instance().set<i32>("game.score", 1234);
+
+    auto value = m_ctx->resolveBinding("game.score");
+    EXPECT_FALSE(value.isNull());
+    EXPECT_TRUE(value.isInteger());
+    EXPECT_EQ(value.asInteger(), 1234);
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreStringDirectPath)
+{
+    mc::client::ui::kagero::state::StateStore::instance().set<std::string>("game.winner", "Steve");
+
+    auto value = m_ctx->resolveBinding("game.winner");
+    EXPECT_FALSE(value.isNull());
+    EXPECT_TRUE(value.isString());
+    EXPECT_EQ(value.asString(), "Steve");
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreBoolDirectPath)
+{
+    mc::client::ui::kagero::state::StateStore::instance().set<bool>("game.paused", true);
+
+    auto value = m_ctx->resolveBinding("game.paused");
+    EXPECT_FALSE(value.isNull());
+    EXPECT_TRUE(value.isBool());
+    EXPECT_TRUE(value.asBool());
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreFloatDirectPath)
+{
+    mc::client::ui::kagero::state::StateStore::instance().set<f32>("game.volume", 0.75f);
+
+    auto value = m_ctx->resolveBinding("game.volume");
+    EXPECT_FALSE(value.isNull());
+    EXPECT_TRUE(value.isFloat());
+    EXPECT_FLOAT_EQ(value.asFloat(), 0.75f);
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreObjectNestedPath)
+{
+    // 在 StateStore 中存储 Value 对象，通过嵌套路径访问属性
+    // 路径 "player.name" 中，player 是根键，name 是属性
+    std::unordered_map<std::string, binder::Value> playerProps;
+    playerProps["name"] = binder::Value(std::string("Alex"));
+    playerProps["level"] = binder::Value(42);
+    playerProps["health"] = binder::Value(100);
+    binder::Value playerObj = binder::Value::fromObject(std::move(playerProps));
+
+    mc::client::ui::kagero::state::StateStore::instance().set<binder::Value>("player", playerObj);
+
+    // 解析 player.name
+    auto nameValue = m_ctx->resolveBinding("player.name");
+    EXPECT_FALSE(nameValue.isNull());
+    EXPECT_TRUE(nameValue.isString());
+    EXPECT_EQ(nameValue.asString(), "Alex");
+
+    // 解析 player.level
+    auto levelValue = m_ctx->resolveBinding("player.level");
+    EXPECT_FALSE(levelValue.isNull());
+    EXPECT_TRUE(levelValue.isInteger());
+    EXPECT_EQ(levelValue.asInteger(), 42);
+
+    // 解析 player.health
+    auto healthValue = m_ctx->resolveBinding("player.health");
+    EXPECT_FALSE(healthValue.isNull());
+    EXPECT_TRUE(healthValue.isInteger());
+    EXPECT_EQ(healthValue.asInteger(), 100);
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreArrayNestedPath)
+{
+    // 在 StateStore 中存储 Value 数组，通过索引访问
+    std::vector<binder::Value> items;
+    items.emplace_back(binder::Value(std::string("sword")));
+    items.emplace_back(binder::Value(64));
+    items.emplace_back(binder::Value(3.14f));
+
+    mc::client::ui::kagero::state::StateStore::instance().set<std::vector<binder::Value>>("inventory", items);
+
+    // 注意：路径 "inventory[0]" 会被 _splitPath 拆分为 ["inventory", "[0]"]
+    auto item0 = m_ctx->resolveBinding("inventory[0]");
+    EXPECT_FALSE(item0.isNull());
+    EXPECT_TRUE(item0.isString());
+    EXPECT_EQ(item0.asString(), "sword");
+
+    auto item1 = m_ctx->resolveBinding("inventory[1]");
+    EXPECT_FALSE(item1.isNull());
+    EXPECT_TRUE(item1.isInteger());
+    EXPECT_EQ(item1.asInteger(), 64);
+
+    auto item2 = m_ctx->resolveBinding("inventory[2]");
+    EXPECT_FALSE(item2.isNull());
+    EXPECT_TRUE(item2.isFloat());
+    EXPECT_FLOAT_EQ(item2.asFloat(), 3.14f);
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreObjectMapNestedPath)
+{
+    // 在 StateStore 中存储 std::unordered_map<std::string, Value>，验证转换路径
+    std::unordered_map<std::string, binder::Value> settings;
+    settings["volume"] = binder::Value(80);
+    settings["brightness"] = binder::Value(50);
+    settings["language"] = binder::Value(std::string("zh_CN"));
+
+    mc::client::ui::kagero::state::StateStore::instance().set<std::unordered_map<std::string, binder::Value>>(
+        "settings", settings);
+
+    auto volumeValue = m_ctx->resolveBinding("settings.volume");
+    EXPECT_FALSE(volumeValue.isNull());
+    EXPECT_TRUE(volumeValue.isInteger());
+    EXPECT_EQ(volumeValue.asInteger(), 80);
+
+    auto langValue = m_ctx->resolveBinding("settings.language");
+    EXPECT_FALSE(langValue.isNull());
+    EXPECT_TRUE(langValue.isString());
+    EXPECT_EQ(langValue.asString(), "zh_CN");
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreScalarNestedPathReturnsNull)
+{
+    // StateStore 中存储标量值，但通过嵌套路径访问属性应返回 Null
+    // 因为标量类型（i32/string/bool/f32）不支持属性访问
+    mc::client::ui::kagero::state::StateStore::instance().set<i32>("score", 100);
+
+    // score 不存在 "level" 属性，应返回 Null
+    auto value = m_ctx->resolveBinding("score.level");
+    EXPECT_TRUE(value.isNull());
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreNonexistentRootKeyReturnsNull)
+{
+    // StateStore 中不存在的键，应返回 Null
+    auto value = m_ctx->resolveBinding("nonexistent.key");
+    EXPECT_TRUE(value.isNull());
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreValueReflectsUpdates)
+{
+    // StateStore 中的值变化后，resolveBinding 应返回最新值
+    mc::client::ui::kagero::state::StateStore::instance().set<i32>("counter", 1);
+    EXPECT_EQ(m_ctx->resolveBinding("counter").asInteger(), 1);
+
+    mc::client::ui::kagero::state::StateStore::instance().set<i32>("counter", 99);
+    EXPECT_EQ(m_ctx->resolveBinding("counter").asInteger(), 99);
+
+    // 对象属性的更新
+    std::unordered_map<std::string, binder::Value> playerProps;
+    playerProps["name"] = binder::Value(std::string("Steve"));
+    mc::client::ui::kagero::state::StateStore::instance().set<binder::Value>(
+        "player", binder::Value::fromObject(std::move(playerProps)));
+    EXPECT_EQ(m_ctx->resolveBinding("player.name").asString(), "Steve");
+
+    std::unordered_map<std::string, binder::Value> newProps;
+    newProps["name"] = binder::Value(std::string("Alex"));
+    mc::client::ui::kagero::state::StateStore::instance().set<binder::Value>(
+        "player", binder::Value::fromObject(std::move(newProps)));
+    EXPECT_EQ(m_ctx->resolveBinding("player.name").asString(), "Alex");
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreObjectHasPathAndWritable)
+{
+    // 验证 hasPath 对 StateStore 中嵌套路径的检测
+    std::unordered_map<std::string, binder::Value> playerProps;
+    playerProps["name"] = binder::Value(std::string("Steve"));
+    mc::client::ui::kagero::state::StateStore::instance().set<binder::Value>(
+        "player", binder::Value::fromObject(std::move(playerProps)));
+
+    // hasPath 检查完整路径 "player"（根键存在）
+    EXPECT_TRUE(m_ctx->hasPath("player"));
+    // 嵌套属性路径不在 hasPath 检测范围内（hasPath 只检查暴露变量、循环变量、StateStore 完整键）
+    EXPECT_FALSE(m_ctx->hasPath("player.name"));
+
+    // StateStore 中的值默认不可写（除非通过 exposeWritable 暴露）
+    EXPECT_FALSE(m_ctx->isWritable("player"));
+    EXPECT_FALSE(m_ctx->isWritable("player.name"));
+}
+
+TEST_F(BindingContextTest, ResolveStateStoreExposedVarTakesPrecedence)
+{
+    // 暴露变量优先于 StateStore 中的同根键
+    mc::client::ui::kagero::state::StateStore::instance().set<i32>("data", 100);
+
+    i32 exposedData = 999;
+    m_ctx->expose("data", &exposedData);
+
+    // resolveBinding 直接路径匹配应优先返回暴露变量
+    auto directValue = m_ctx->resolveBinding("data");
+    EXPECT_EQ(directValue.asInteger(), 999);
+}
+
+TEST_F(BindingContextTest, FromAnySupportsValueAndContainers)
+{
+    // 验证 Value::fromAny 对 Value、vector<Value>、unordered_map<string, Value> 的支持
+    binder::Value originalInt(42);
+    auto fromValue = binder::Value::fromAny(std::any(originalInt));
+    EXPECT_TRUE(fromValue.isInteger());
+    EXPECT_EQ(fromValue.asInteger(), 42);
+
+    std::vector<binder::Value> vec{binder::Value(1), binder::Value(2), binder::Value(3)};
+    auto fromVec = binder::Value::fromAny(std::any(vec));
+    EXPECT_TRUE(fromVec.isArray());
+    EXPECT_EQ(fromVec.arraySize(), 3u);
+    EXPECT_EQ(fromVec.getElement(0).asInteger(), 1);
+    EXPECT_EQ(fromVec.getElement(1).asInteger(), 2);
+    EXPECT_EQ(fromVec.getElement(2).asInteger(), 3);
+
+    std::unordered_map<std::string, binder::Value> map;
+    map["a"] = binder::Value(10);
+    map["b"] = binder::Value(std::string("hello"));
+    auto fromMap = binder::Value::fromAny(std::any(map));
+    EXPECT_TRUE(fromMap.isObject());
+    EXPECT_EQ(fromMap.getProperty("a").asInteger(), 10);
+    EXPECT_EQ(fromMap.getProperty("b").asString(), "hello");
+}
+
+TEST_F(BindingContextTest, FromAnyUnsupportedTypeReturnsNull)
+{
+    // 不支持的类型应返回 Null
+    struct CustomType {
+        int x;
+    };
+    CustomType custom{42};
+    auto fromCustom = binder::Value::fromAny(std::any(custom));
+    EXPECT_TRUE(fromCustom.isNull());
 }
 
 // ==================== Value Tests ====================

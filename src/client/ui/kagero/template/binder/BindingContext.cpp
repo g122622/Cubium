@@ -44,18 +44,18 @@ Value Value::fromAny(const std::any& any)
         return Value(std::any_cast<i32>(any));
     }
     if (type == typeid(i64)) {
-        // TODO: i64转i32可能丢失精度，考虑Value支持i64类型
+        // i64 转为 i32 时可能丢失精度，调用方需自行确保值在 i32 范围内
         return Value(static_cast<i32>(std::any_cast<i64>(any)));
     }
     if (type == typeid(u32)) {
-        // TODO: u32转i32可能丢失精度，考虑Value支持u32类型
+        // u32 转为 i32 时可能丢失精度，调用方需自行确保值在 i32 范围内
         return Value(static_cast<i32>(std::any_cast<u32>(any)));
     }
     if (type == typeid(f32)) {
         return Value(std::any_cast<f32>(any));
     }
     if (type == typeid(f64)) {
-        // TODO: f64转f32可能丢失精度，考虑Value支持f64类型
+        // f64 转为 f32 时可能丢失精度，调用方需自行确保值在 f32 范围内
         return Value(static_cast<f32>(std::any_cast<f64>(any)));
     }
     if (type == typeid(std::string)) {
@@ -63,6 +63,18 @@ Value Value::fromAny(const std::any& any)
     }
     if (type == typeid(const char*)) {
         return Value(std::string(std::any_cast<const char*>(any)));
+    }
+    // 支持直接存储在 StateStore 中的 Value 对象（用于嵌套对象/数组访问）
+    if (type == typeid(Value)) {
+        return std::any_cast<Value>(any);
+    }
+    // 支持存储在 StateStore 中的 Value 数组
+    if (type == typeid(std::vector<Value>)) {
+        return Value(std::any_cast<std::vector<Value>>(any));
+    }
+    // 支持存储在 StateStore 中的 Value 对象映射
+    if (type == typeid(std::unordered_map<std::string, Value>)) {
+        return Value::fromObject(std::any_cast<std::unordered_map<std::string, Value>>(any));
     }
 
     // 不支持的类型
@@ -592,8 +604,8 @@ Value BindingContext::_resolvePath(const std::string& path) const
     if (it != m_exposedVars.end()) {
         current = it->second.readFunc();
     } else if (m_store.has(rootKey)) {
-        // TODO: StateStore类型转换支持，目前暂返回空值
-        current = Value();
+        // 从 StateStore 读取 std::any 并转换为 Value，支持嵌套属性访问
+        current = Value::fromAny(m_store.getAny(rootKey));
     } else {
         return Value();
     }
