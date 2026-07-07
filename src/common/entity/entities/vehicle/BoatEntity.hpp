@@ -341,6 +341,21 @@ public:
      */
     void setRotation(f32 yaw) { Entity::setRotation(yaw, m_pitch); }
 
+    // ========== 数据参数访问器（供客户端渲染器读取同步状态） ==========
+
+    /**
+     * @brief 获取"受击时间"数据参数 ID
+     *
+     * 客户端渲染器通过此 ID 从 ClientEntity::dataManager() 读取
+     * 服务端同步过来的受击时间，用于计算受损抖动角度。
+     */
+    [[nodiscard]] static entity::DataParameter<i32> getTimeSinceHitParam() { return DATA_TIME_SINCE_HIT_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32> getForwardDirectionParam() { return DATA_FORWARD_DIRECTION_PARAM; }
+    [[nodiscard]] static entity::DataParameter<f32> getDamageTakenParam() { return DATA_DAMAGE_TAKEN_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32> getBoatTypeParam() { return DATA_BOAT_TYPE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<bool> getLeftPaddleParam() { return DATA_LEFT_PADDLE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<bool> getRightPaddleParam() { return DATA_RIGHT_PADDLE_PARAM; }
+
     // ========== 乘客 ==========
 
     /**

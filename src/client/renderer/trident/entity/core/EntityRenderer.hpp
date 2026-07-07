@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <array>
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -230,6 +231,42 @@ public:
      * @return 管线网格提供者指针，或 nullptr
      */
     [[nodiscard]] virtual PipelineMeshProvider* getPipelineMeshProvider() { return nullptr; }
+
+    /**
+     * @brief 计算自定义模型矩阵
+     *
+     * 默认情况下，EntityRendererManager 会构建一个通用模型矩阵：
+     *   rotateY(yaw) * scale(-1, -1, 1) * translate(0, 1.501, 0)
+     * 用于普通实体（生物等）。
+     *
+     * 某些实体（船、矿车等）需要完全不同的变换链（参见 MC Java 的
+     * AbstractBoatRenderer / AbstractMinecartRenderer），此时可重写本方法
+     * 返回 true 并写出 outMatrix，管理器会用该矩阵替换默认矩阵。
+     *
+     * 重写时通常还需要重写 getPipelineMeshProvider()，由
+     * PipelineMeshProvider 在 generateMesh 中输出"像素空间"几何体
+     * （scale = 1.0），最终由 drawMesh 的 MODEL_SCALE (1/16) 缩放到世界。
+     *
+     * @param entity 客户端实体
+     * @param partialTicks 部分 tick（用于插值）
+     * @param outMatrix 输出 4x4 行主序模型矩阵
+     * @param outHurtTime 输出 hurtTime（传给着色器的红色闪烁因子，0 表示不闪烁）
+     * @param outDeathTime 输出 deathTime（传给着色器的死亡淡出因子）
+     * @return true 表示使用自定义矩阵；false 表示使用默认矩阵
+     */
+    [[nodiscard]] virtual bool computeCustomModelMatrix(::mc::client::ClientEntity& entity,
+        f64 partialTicks,
+        std::array<f64, 16>& outMatrix,
+        f32& outHurtTime,
+        f32& outDeathTime)
+    {
+        (void)entity;
+        (void)partialTicks;
+        (void)outMatrix;
+        (void)outHurtTime;
+        (void)outDeathTime;
+        return false;
+    }
 
     /**
      * @brief 设置纹理图集

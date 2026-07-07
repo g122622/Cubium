@@ -225,6 +225,31 @@ public:
      */
     [[nodiscard]] i32 getRollingDirection() const { return m_rollingDirection; }
 
+    /**
+     * @brief 是否翻转
+     *
+     * 矿车在铁轨方向变化超过 90° 时会翻转，渲染器据此调整朝向。
+     */
+    [[nodiscard]] bool isFlipped() const { return m_flipped; }
+
+    // ========== 数据参数访问器（供客户端渲染器读取同步状态） ==========
+
+    /**
+     * @brief 获取"摇晃幅度"数据参数 ID
+     *
+     * 客户端渲染器通过此 ID 从 ClientEntity::dataManager() 读取
+     * 服务端同步过来的摇晃幅度，用于计算受损抖动角度。
+     */
+    [[nodiscard]] static entity::DataParameter<i32> getRollingAmplitudeParam() { return DATA_ROLLING_AMPLITUDE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32> getRollingDirectionParam() { return DATA_ROLLING_DIRECTION_PARAM; }
+    [[nodiscard]] static entity::DataParameter<f32> getDamageParam() { return DATA_DAMAGE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32> getDisplayTileParam() { return DATA_DISPLAY_TILE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32> getDisplayTileOffsetParam()
+    {
+        return DATA_DISPLAY_TILE_OFFSET_PARAM;
+    }
+    [[nodiscard]] static entity::DataParameter<bool> getShowBlockParam() { return DATA_SHOW_BLOCK_PARAM; }
+
     // ========== 乘客和碰撞 ==========
 
     /**
@@ -647,6 +672,14 @@ public:
      * @brief 是否已点燃
      */
     [[nodiscard]] bool isPrimed() const { return m_fuse > -1; }
+
+    /**
+     * @brief 获取剩余引信时间
+     *
+     * 返回剩余引信 tick 数；-1 表示未点燃。
+     * 渲染器据此判断 TNT 闪烁叠加层是否生效及计算闪烁缩放因子。
+     */
+    [[nodiscard]] i32 fuse() const { return m_fuse; }
 
     /**
      * @brief 激活铁轨点燃TNT

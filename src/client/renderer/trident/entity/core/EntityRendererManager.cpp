@@ -347,40 +347,53 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         // 普通实体渲染
         // 变换顺序：scale(-1, -1, 1) → preRenderCallback → translate(0, -1.501, 0)
 
-        // 应用 Y 轴旋转（yaw）- 在翻转之前应用
-        f64 yaw = static_cast<f64>(entity.getInterpolatedYaw(partialTickF32));
-        f64 yawRad = yaw * static_cast<f64>(math::DEG_TO_RAD);
-        f64 cosYaw = std::cos(yawRad);
-        f64 sinYaw = std::sin(yawRad);
-
-        // 旋转矩阵（绕Y轴）
-        modelMatrix[0] = cosYaw;
-        modelMatrix[2] = sinYaw;
-        modelMatrix[8] = -sinYaw;
-        modelMatrix[10] = cosYaw;
-
-        // scale(-1, -1, 1) - X和Y都取反
-        // 在旋转后应用翻转
-        for (i32 i = 0; i < 4; ++i) {
-            const auto rowOffset = static_cast<std::size_t>(i * 4);
-            modelMatrix[rowOffset] *= -1.0;     // X列取反
-            modelMatrix[rowOffset + 1] *= -1.0; // Y列取反
-        }
-
-        // Y偏移 - 原版是向下偏移 1.501
-        modelMatrix[13] = MODEL_Y_OFFSET;
-
         // 获取插值位置
         Vector3 posInterp = entity.getInterpolatedPosition(partialTickF32);
         Vector3f pos(static_cast<f32>(posInterp.x), static_cast<f32>(posInterp.y), static_cast<f32>(posInterp.z));
 
-        // 获取受伤和死亡时间（用于着色器效果）
+        // 默认 hurtTime / deathTime（用于着色器红色闪烁与死亡淡出）
         f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f; // 归一化到 0-1
         f32 deathTime = static_cast<f32>(entity.deathTime());
 
         // 全亮光照：MC Java 中部分实体覆盖 getBlockLightLevel() 返回 15，
         // 使其在黑暗中也清晰可见（如烈焰人、岩浆怪、凋灵、恼鬼等）。
         f32 fullbright = (renderer && renderer->isFullbright()) ? 1.0f : 0.0f;
+
+        // 渲染器可重写 computeCustomModelMatrix 提供完全自定义的模型矩阵
+        // （例如船、矿车按 MC AbstractBoatRenderer / AbstractMinecartRenderer
+        // 的变换链），此时跳过默认的 yaw + scale(-1,-1,1) + translate(0, 1.501, 0)。
+        bool useCustomMatrix = false;
+        if (renderer) {
+            useCustomMatrix =
+                renderer->computeCustomModelMatrix(entity, partialTicks, modelMatrix, hurtTime, deathTime);
+        }
+
+        if (!useCustomMatrix) {
+            // 默认模型矩阵：rotateY(yaw) * scale(-1, -1, 1) * translate(0, 1.501, 0)
+
+            // 应用 Y 轴旋转（yaw）- 在翻转之前应用
+            f64 yaw = static_cast<f64>(entity.getInterpolatedYaw(partialTickF32));
+            f64 yawRad = yaw * static_cast<f64>(math::DEG_TO_RAD);
+            f64 cosYaw = std::cos(yawRad);
+            f64 sinYaw = std::sin(yawRad);
+
+            // 旋转矩阵（绕Y轴）
+            modelMatrix[0] = cosYaw;
+            modelMatrix[2] = sinYaw;
+            modelMatrix[8] = -sinYaw;
+            modelMatrix[10] = cosYaw;
+
+            // scale(-1, -1, 1) - X和Y都取反
+            // 在旋转后应用翻转
+            for (i32 i = 0; i < 4; ++i) {
+                const auto rowOffset = static_cast<std::size_t>(i * 4);
+                modelMatrix[rowOffset] *= -1.0;     // X列取反
+                modelMatrix[rowOffset + 1] *= -1.0; // Y列取反
+            }
+
+            // Y偏移 - 原版是向下偏移 1.501
+            modelMatrix[13] = MODEL_Y_OFFSET;
+        }
 
         // 绘制网格
         m_pipeline->drawMesh(cmd,

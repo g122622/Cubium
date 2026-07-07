@@ -917,6 +917,8 @@ add_executable(mc_tests
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
     # EntityPipeline BlendMode 枚举契约测试（Multiply/None 专用管线）
     client/renderer/trident/entity/pipeline/EntityPipelineBlendModeTest.cpp
+    # 载具渲染器模型矩阵构建与 TNT 闪烁计算测试
+    client/renderer/trident/entity/renderer/vehicle/VehicleRendererMatrixTest.cpp
     # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
     client/renderer/entity/test_player_layers.cpp
     # ItemMeshBuilder 回退网格、法线变换、纹理坐标解析测试
@@ -2004,6 +2006,13 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
         # PlayerArmPoseResolver 手臂姿态解析器（测试依赖）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/player/PlayerArmPoseResolver.cpp
+        # 载具渲染器（BoatRenderer / MinecartRenderer 模型矩阵构建与 TNT 闪烁）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/core/EntityRenderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp
+        # EntityRenderer 依赖的辅助渲染器
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/ShadowRenderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/NameTagRenderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/WorldTextRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
         # HeldBlockLayer 测试只测试 EndermanEntity 的方法，不需要 Vulkan 渲染层代码
         # 方块实体模型

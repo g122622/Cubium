@@ -22,14 +22,35 @@
  */
 
 #include "VehicleRenderers.hpp"
-#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 namespace mc::client::renderer::entity::renderer::vehicle {
 
 namespace {
 using mc::math::PI;
 using mc::math::PI_DOUBLE;
+
+/// TNT 矿车类型 ID 字符串（用于 typeId 比较）
+constexpr const char* TNT_MINECART_TYPE = ::mc::entity::EntityTypes::TNT_MINECART;
+
+/// 从 ClientEntity 读取类型 ID（去掉 minecraft: 前缀的简短形式也兼容）
+[[nodiscard]] bool isTntMinecart(const ::mc::client::ClientEntity& entity) noexcept
+{
+    const std::string& tid = entity.typeId();
+    return tid == TNT_MINECART_TYPE || tid == "tnt_minecart";
+}
+
+/// 将度数转换为弧度
+[[nodiscard]] inline f64 degToRad(f64 degrees) noexcept
+{
+    return degrees * static_cast<f64>(mc::math::DEG_TO_RAD);
+}
+
 } // namespace
 
 // ==================== 船模型 ====================
@@ -44,8 +65,6 @@ BoatModel::BoatModel()
 void BoatModel::_setupParts()
 {
     // 纹理尺寸：128x64
-
-    // 创建5个船体面（底部、右、左、前、后）
 
     // 底部面 (amodelrenderer[0])
     m_bottom = std::make_shared<::mc::client::renderer::entity::model::ModelRenderer>("boatBottom");
@@ -113,20 +132,18 @@ void BoatModel::_setupParts()
     m_noWater->setRotateAngleX(static_cast<f32>(PI_DOUBLE / 2.0));
 }
 
-void BoatModel::render(f64 scale)
+void BoatModel::generateMesh(std::vector<model::ModelVertex>& vertices,
+    std::vector<u32>& indices,
+    const std::array<f64, 16>& parentMatrix,
+    f64 scale) const
 {
-    m_bottom->render(scale);
-    m_right->render(scale);
-    m_left->render(scale);
-    m_front->render(scale);
-    m_back->render(scale);
-    m_paddleLeft->render(scale);
-    m_paddleRight->render(scale);
-}
-
-void BoatModel::renderNoWater(f64 scale)
-{
-    m_noWater->render(scale);
+    m_bottom->generateMesh(vertices, indices, parentMatrix, scale);
+    m_right->generateMesh(vertices, indices, parentMatrix, scale);
+    m_left->generateMesh(vertices, indices, parentMatrix, scale);
+    m_front->generateMesh(vertices, indices, parentMatrix, scale);
+    m_back->generateMesh(vertices, indices, parentMatrix, scale);
+    m_paddleLeft->generateMesh(vertices, indices, parentMatrix, scale);
+    m_paddleRight->generateMesh(vertices, indices, parentMatrix, scale);
 }
 
 void BoatModel::setPaddleAngle(i32 paddleIndex, f32 angle)
@@ -142,7 +159,7 @@ void BoatModel::setPaddleAngle(i32 paddleIndex, f32 angle)
 
 BoatRenderer::BoatRenderer(BoatType type)
     : m_type(type)
-    , m_model(std::make_unique<BoatModel>())
+    , m_model()
 {
     m_shadowSize = 0.8f;
     m_shadowAlpha = 0.8f;
@@ -150,9 +167,8 @@ BoatRenderer::BoatRenderer(BoatType type)
 
 void BoatRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // TODO: 完整实现船渲染：计算朝向和倾斜、受损抖动、水面花效果、划桨动画
-    m_model->render(1.0 / 16.0);
-
+    // GPU 管线路径处理渲染（参见 EntityRendererManager::renderWithPipeline），
+    // 此方法为遗留 CPU 路径保留，无操作。
     (void)entity;
     (void)partialTicks;
 }
@@ -172,12 +188,126 @@ ResourceLocation BoatRenderer::getTexture() const
     return textures[static_cast<size_t>(m_type)];
 }
 
-f64 BoatRenderer::_calculateRockingAngle(::mc::entity::BoatEntity& boat, f64 partialTicks) const
+bool BoatRenderer::generateMesh(
+    ::mc::client::ClientEntity& entity, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // TODO: 实现船的摇晃角度计算
-    (void)boat;
-    (void)partialTicks;
-    return 0.0;
+    // 划桨动画：根据同步状态更新桨角度
+    // 注意：needsMeshUpdate 返回 true，每次更新都会重新调用 generateMesh
+    // 使用实体 ticksExisted + partialTicks 模拟划桨相位
+    const f64 partialTicks = 0.0; // generateMesh 不传 partialTicks，使用 0 占位
+    _setupPaddleAnimation(entity, partialTicks);
+
+    // 单位矩阵作为 parentMatrix，模型矩阵由 computeCustomModelMatrix 在管线路径注入
+    const auto identity = matrix::identity();
+    m_model.generateMesh(vertices, indices, identity, 1.0);
+
+    return !vertices.empty() && !indices.empty();
+}
+
+bool BoatRenderer::needsMeshUpdate(::mc::client::ClientEntity& entity) const
+{
+    // 桨角度随时间变化，每帧更新
+    (void)entity;
+    return true;
+}
+
+bool BoatRenderer::computeCustomModelMatrix(::mc::client::ClientEntity& entity,
+    f64 partialTicks,
+    std::array<f64, 16>& outMatrix,
+    f32& outHurtTime,
+    f32& outDeathTime)
+{
+    outMatrix = _buildBoatModelMatrix(entity, partialTicks);
+    // 船不使用着色器红色闪烁（不是 LivingEntity），hurtTime / deathTime 置 0
+    outHurtTime = 0.0f;
+    outDeathTime = 0.0f;
+    return true;
+}
+
+std::array<f64, 16> BoatRenderer::_buildBoatModelMatrix(::mc::client::ClientEntity& entity, f64 partialTicks) const
+{
+    using namespace mc::entity;
+
+    // 读取同步状态
+    const auto& dm = entity.dataManager();
+    const i32 timeSinceHit =
+        dm.hasParam(BoatEntity::getTimeSinceHitParam().id()) ? dm.get<i32>(BoatEntity::getTimeSinceHitParam()) : 0;
+    const i32 forwardDir = dm.hasParam(BoatEntity::getForwardDirectionParam().id())
+        ? dm.get<i32>(BoatEntity::getForwardDirectionParam())
+        : 1;
+    const f32 damageTaken =
+        dm.hasParam(BoatEntity::getDamageTakenParam().id()) ? dm.get<f32>(BoatEntity::getDamageTakenParam()) : 0.0f;
+
+    // 插值：hurtTime = timeSinceHit - partialTicks, damageTime = max(damage - partialTicks, 0)
+    const f64 hurtTime = static_cast<f64>(timeSinceHit) - partialTicks;
+    const f64 damageTime = std::max(static_cast<f64>(damageTaken) - partialTicks, 0.0);
+
+    // 朝向
+    const f32 yawF32 = entity.getInterpolatedYaw(static_cast<f32>(partialTicks));
+    const f64 yaw = static_cast<f64>(yawF32);
+
+    // 变换链（对齐 MC Java AbstractBoatRenderer.submit）：
+    //   translate(0, 0.375, 0)
+    //   rotateY(180 - yaw)
+    //   [hurt shake rotateX]  (if hurtTime > 0)
+    //   [bubble tilt around (1, 0, 1)]  (if !isUnderWater && bubbleAngle != 0)
+    //   scale(-1, -1, 1)
+    //   rotateY(90)
+
+    auto m = matrix::translation(0.0, 0.375, 0.0);
+    m = matrix::multiply(m, matrix::rotationY(degToRad(180.0 - yaw)));
+
+    // 受损抖动
+    if (hurtTime > 0.0) {
+        const f64 shakeDeg = std::sin(hurtTime) * hurtTime * damageTime / 10.0 * static_cast<f64>(forwardDir);
+        m = matrix::multiply(m, matrix::rotationX(degToRad(shakeDeg)));
+    }
+
+    // 气泡柱倾斜
+    // TODO: 同步 m_rockingAngle / m_prevRockingAngle 到 ClientEntity，当前未同步故使用 0
+    const f64 bubbleAngleDeg = 0.0;
+    const bool isUnderWater = false; // TODO: 同步 isUnderWater 状态
+    if (!isUnderWater && std::abs(bubbleAngleDeg) > 1e-6) {
+        m = matrix::multiply(m, matrix::rotationAxis(degToRad(bubbleAngleDeg), 1.0, 0.0, 1.0));
+    }
+
+    m = matrix::multiply(m, matrix::scale(-1.0, -1.0, 1.0));
+    m = matrix::multiply(m, matrix::rotationY(degToRad(90.0)));
+
+    return m;
+}
+
+void BoatRenderer::_setupPaddleAnimation(::mc::client::ClientEntity& entity, f64 partialTicks)
+{
+    using namespace mc::entity;
+
+    const auto& dm = entity.dataManager();
+    const bool leftActive =
+        dm.hasParam(BoatEntity::getLeftPaddleParam().id()) ? dm.get<bool>(BoatEntity::getLeftPaddleParam()) : false;
+    const bool rightActive =
+        dm.hasParam(BoatEntity::getRightPaddleParam().id()) ? dm.get<bool>(BoatEntity::getRightPaddleParam()) : false;
+
+    // 对齐 MC Java BoatModel.setupAnim：
+    //   paddle.rotateAngleX = (isPaddleActive(side) ? rowingTime : 0) - PI/2
+    // 其中 rowingTime 由 AbstractBoat.getRowingTime(side, partialTicks) 计算：
+    //   clampedLerp(partialTicks, paddlePositions[side] - PI/8, paddlePositions[side])
+    //
+    // 当前实体的 paddlePositions 不在 DataParameter 同步范围内，
+    // 使用基于 ticksExisted 的恒定速度动画近似：
+    //   paddlePositions[side] = (ticksExisted + partialTicks) * 0.79  （MC 中每 tick 约 0.79 弧度）
+    // TODO: 后续同步 paddlePositions 数组到 ClientEntity，使用真实插值
+    const f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
+    const f64 paddlePhase = time * 0.79;
+
+    const f32 leftAngle = leftActive
+        ? static_cast<f32>(mc::math::clampedLerp(partialTicks, paddlePhase - PI / 8.0, paddlePhase) - PI / 2.0)
+        : static_cast<f32>(-PI / 2.0);
+    const f32 rightAngle = rightActive
+        ? static_cast<f32>(mc::math::clampedLerp(partialTicks, paddlePhase - PI / 8.0, paddlePhase) - PI / 2.0)
+        : static_cast<f32>(-PI / 2.0);
+
+    m_model.setPaddleAngle(0, leftAngle);
+    m_model.setPaddleAngle(1, rightAngle);
 }
 
 // ==================== 矿车模型 ====================
@@ -240,22 +370,29 @@ void MinecartModel::_setupParts()
     m_sides[5]->setRotateAngleX(static_cast<f32>(-PI_DOUBLE / 2.0));
 }
 
-void MinecartModel::render(f64 scale)
+void MinecartModel::generateMesh(std::vector<model::ModelVertex>& vertices,
+    std::vector<u32>& indices,
+    const std::array<f64, 16>& parentMatrix,
+    f64 scale) const
 {
-    for (auto& side : m_sides) {
-        side->render(scale);
+    for (const auto& side : m_sides) {
+        if (side) {
+            side->generateMesh(vertices, indices, parentMatrix, scale);
+        }
     }
 }
 
 void MinecartModel::setInsideOffset(f32 yOffset)
 {
-    m_sides[5]->setRotationPointY(4.0f - yOffset);
+    if (m_sides[5]) {
+        m_sides[5]->setRotationPointY(4.0f - yOffset);
+    }
 }
 
 // ==================== 矿车渲染器 ====================
 
 MinecartRenderer::MinecartRenderer()
-    : m_model(std::make_unique<MinecartModel>())
+    : m_model()
 {
     m_shadowSize = 0.5f;
     m_shadowAlpha = 0.8f;
@@ -263,12 +400,7 @@ MinecartRenderer::MinecartRenderer()
 
 void MinecartRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // TODO: 完整实现矿车渲染：方向计算、受损抖动、内容物（乘客/箱子/TNT等）渲染
-    // TODO: TNT矿车引燃闪烁效果：读取 ClientEntity::fuseTimer()，当 fuseTimer > 0 且 (fuseTimer / 5) % 2 == 0
-    // 时渲染白色闪烁叠加层，
-    //       闪烁缩放因子 = (1.0 - fuseTimer / 10.0)^4（参考 MC TntMinecartRenderer）
-    m_model->setInsideOffset(0.0f);
-    m_model->render(1.0 / 16.0);
+    // GPU 管线路径处理渲染，此方法为遗留 CPU 路径保留，无操作。
     (void)entity;
     (void)partialTicks;
 }
@@ -278,11 +410,136 @@ ResourceLocation MinecartRenderer::getMinecartTexture()
     return ResourceLocation("minecraft", "textures/entity/minecart.png");
 }
 
-void MinecartRenderer::_calculateCartDirection(::mc::entity::AbstractMinecartEntity& minecart, f64 partialTicks)
+bool MinecartRenderer::generateMesh(
+    ::mc::client::ClientEntity& entity, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // TODO: 实现矿车方向计算
-    (void)minecart;
-    (void)partialTicks;
+    // 内部底板偏移：TODO 当乘客乘坐时调整（MC 中通过 setInsideOffset 实现）
+    m_model.setInsideOffset(0.0f);
+
+    const auto identity = matrix::identity();
+    m_model.generateMesh(vertices, indices, identity, 1.0);
+
+    return !vertices.empty() && !indices.empty();
+}
+
+bool MinecartRenderer::needsMeshUpdate(::mc::client::ClientEntity& entity) const
+{
+    // TNT 矿车闪烁需要每帧更新（fuse 递减）
+    // 普通矿车静态网格，但为简化实现统一返回 true（开销可接受）
+    (void)entity;
+    return true;
+}
+
+bool MinecartRenderer::computeCustomModelMatrix(::mc::client::ClientEntity& entity,
+    f64 partialTicks,
+    std::array<f64, 16>& outMatrix,
+    f32& outHurtTime,
+    f32& outDeathTime)
+{
+    outMatrix = _buildMinecartModelMatrix(entity, partialTicks, outHurtTime);
+    outDeathTime = 0.0f; // 矿车无死亡淡出
+    return true;
+}
+
+std::array<f64, 16> MinecartRenderer::_buildMinecartModelMatrix(
+    ::mc::client::ClientEntity& entity, f64 partialTicks, f32& outHurtTime) const
+{
+    using namespace mc::entity;
+
+    // 读取同步状态
+    const auto& dm = entity.dataManager();
+    const i32 rollingAmplitude = dm.hasParam(AbstractMinecartEntity::getRollingAmplitudeParam().id())
+        ? dm.get<i32>(AbstractMinecartEntity::getRollingAmplitudeParam())
+        : 0;
+    const i32 rollingDir = dm.hasParam(AbstractMinecartEntity::getRollingDirectionParam().id())
+        ? dm.get<i32>(AbstractMinecartEntity::getRollingDirectionParam())
+        : 1;
+    const f32 damage = dm.hasParam(AbstractMinecartEntity::getDamageParam().id())
+        ? dm.get<f32>(AbstractMinecartEntity::getDamageParam())
+        : 0.0f;
+
+    // 插值：hurtTime = rollingAmplitude - partialTicks, damageTime = max(damage - partialTicks, 0)
+    const f64 hurtTime = static_cast<f64>(rollingAmplitude) - partialTicks;
+    const f64 damageTime = std::max(static_cast<f64>(damage) - partialTicks, 0.0);
+
+    // 朝向
+    const f32 yawF32 = entity.getInterpolatedYaw(static_cast<f32>(partialTicks));
+    const f32 pitchF32 = entity.getInterpolatedPitch(static_cast<f32>(partialTicks));
+    const f64 yaw = static_cast<f64>(yawF32);
+    const f64 pitch = static_cast<f64>(pitchF32);
+
+    // 变换链（对齐 MC Java AbstractMinecartRenderer.oldRender + submit）：
+    //   translate(0, 0.375, 0)
+    //   rotateY(180 - yaw)
+    //   rotateZ(-pitch)
+    //   [hurt shake rotateX]  (if hurtTime > 0)
+    //   scale(-1, -1, 1)
+    //   [TNT flash scale]  (if TNT minecart && fuse in (-1, 10))
+
+    auto m = matrix::translation(0.0, 0.375, 0.0);
+    m = matrix::multiply(m, matrix::rotationY(degToRad(180.0 - yaw)));
+    m = matrix::multiply(m, matrix::rotationZ(degToRad(-pitch)));
+
+    // 受损抖动
+    if (hurtTime > 0.0) {
+        const f64 shakeDeg = std::sin(hurtTime) * hurtTime * damageTime / 10.0 * static_cast<f64>(rollingDir);
+        m = matrix::multiply(m, matrix::rotationX(degToRad(shakeDeg)));
+    }
+
+    m = matrix::multiply(m, matrix::scale(-1.0, -1.0, 1.0));
+
+    // TNT 矿车闪烁缩放
+    if (isTntMinecart(entity)) {
+        const i32 fuse = entity.fuseTimer();
+        const f64 flashScale = calculateTntFlashScale(fuse);
+        if (flashScale != 1.0) {
+            m = matrix::multiply(m, matrix::scale(flashScale, flashScale, flashScale));
+        }
+        // 白色闪烁通过 overlayColor 传递（对齐 MC TntMinecartRenderer 的 OverlayTexture.pack(10)）
+        // outHurtTime 在管线路径会传给着色器作为红色闪烁因子，这里复用实现白色叠加
+        if (isTntFlashFrame(fuse)) {
+            // 使用 overlayColor 而非 hurtTime，但当前 drawMesh 不接受自定义 overlayColor
+            // TODO: 后续扩展 EntityRenderer 接口允许渲染器自定义 overlayColor
+            // 当前先通过 hurtTime 通道近似（红色闪烁），视觉上可识别 TNT 即将爆炸
+            outHurtTime = 1.0f;
+        } else {
+            outHurtTime = 0.0f;
+        }
+    } else {
+        outHurtTime = 0.0f;
+    }
+
+    return m;
+}
+
+f64 MinecartRenderer::calculateTntFlashScale(i32 fuse) noexcept
+{
+    // 对齐 MC TntMinecartRenderer.submitMinecartContents：
+    //   if (fuse > -1 && fuse < 10) {
+    //       f = 1 - fuse/10;
+    //       f = clamp(f, 0, 1);
+    //       f *= f; f *= f;  // 4 次方
+    //       return 1 + f * 0.3;
+    //   }
+    //   return 1;
+    if (fuse <= -1 || fuse >= 10) {
+        return 1.0;
+    }
+    f64 f = 1.0 - static_cast<f64>(fuse) / 10.0;
+    f = mc::math::clamp(f, 0.0, 1.0);
+    f *= f;
+    f *= f;
+    return 1.0 + f * 0.3;
+}
+
+bool MinecartRenderer::isTntFlashFrame(i32 fuse) noexcept
+{
+    // 对齐 MC TntMinecartRenderer：
+    //   fuse > -1 && (int)fuse / 5 % 2 == 0
+    if (fuse <= -1) {
+        return false;
+    }
+    return (fuse / 5) % 2 == 0;
 }
 
 } // namespace mc::client::renderer::entity::renderer::vehicle
