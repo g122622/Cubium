@@ -80,3 +80,19 @@
 
     多个唱片可能共享相同的比较器输出值（如 `otherside` 和 `relic` 都是 14）。`JukeboxSongs::
         getSongByComparatorOutput()` 返回第一个匹配的歌曲，因此不能用于唯一标识唱片。应使用 `getSongBySoundEvent()` 通过声音事件ID唯一标识。
+
+    ## #7. 刷子音效常量（BRUSH_）
+
+    `SoundEvents` 命名空间中定义了 5 个刷子音效常量，对应 MC 1.21.11 `SoundEvents` 中的 `BRUSH_*` 系列：
+
+    | 常量 | ResourceLocation | 用途 |
+    |------|------------------|------|
+    | `BRUSH_GENERIC` | `minecraft:item.brush.brushing.generic` | 刷扫普通方块（非 BrushableBlock）时循环播放 |
+    | `BRUSH_SAND` | `minecraft:item.brush.brushing.sand` | 刷扫可疑沙时循环播放 |
+    | `BRUSH_GRAVEL` | `minecraft:item.brush.brushing.gravel` | 刷扫可疑沙砾时循环播放 |
+    | `BRUSH_SAND_COMPLETED` | `minecraft:item.brush.brushing.sand.complete` | 可疑沙刷扫完成时播放（待 BrushableBlockEntity 集成） |
+    | `BRUSH_GRAVEL_COMPLETED` | `minecraft:item.brush.brushing.gravel.complete` | 可疑沙砾刷扫完成时播放（待 BrushableBlockEntity 集成） |
+
+    **绑定关系**：`BrushableBlock` 构造函数接收 `brushSound` 和 `brushCompletedSound` 两个 `ResourceLocation` 参数，通过 `getBrushSound()` / `getBrushCompletedSound()` 暴露。可疑沙/可疑沙砾在 `registerTrailsBlocks()` 中分别绑定 `BRUSH_SAND`/`BRUSH_SAND_COMPLETED` 和 `BRUSH_GRAVEL`/`BRUSH_GRAVEL_COMPLETED`。
+
+    **调用方**：`BrushItem::onUseTick` 在刷扫触发 tick 通过 `dynamic_cast<const blocks::BrushableBlock*>(&blockState->getBlock())` 判断命中方块是否为 BrushableBlock，是则使用 `getBrushSound()`，否则回退到 `BRUSH_GENERIC`。完成音效待 `BrushableBlockEntity.brush()` 实现后在刷扫成功分支播放。

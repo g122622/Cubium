@@ -97,7 +97,7 @@
 │   │   ├── getComparatorInputOverride: 红石比较器信号输出
 │   │   ├── onBlockActivated: 物品插入后通过RedstoneSystem通知比较器更新
 │   │   └── 摇晃动画(Positive=放入/Negative=空手)触发
-│   ├── BrushableBlock(FallingBlock子类)
+│   ├── BrushableBlock(FallingBlock子类，构造接收 brushSound/brushCompletedSound 音效绑定)
 │   └── SnifferEggBlock(randomTick孵化)
 ├── CandleCakeBlock(→ AbstractCandleBlock)
 │   ├── 关联蜡烛方块（m_candleBlock，食用蛋糕后放置对应蜡烛）
@@ -205,8 +205,10 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
 `TrailsBlocks.hpp
         / cpp` 包含4个方块类：
     - `ChiseledBookshelfBlock` - 雕纹书架 - `DecoratedPotBlock` - 饰纹陶罐（实现 IWaterLoggable）
-    - `BrushableBlock` - 可刷方块（继承 FallingBlock） - `SnifferEggBlock` -
+    - `BrushableBlock` - 可刷方块（继承 FallingBlock，构造接收 `brushSound`/`brushCompletedSound` 音效绑定，通过 `getBrushSound()`/`getBrushCompletedSound()` 暴露给 `BrushItem::onUseTick`） - `SnifferEggBlock` -
     嗅探兽蛋（randomTick 孵化）
+
+    **BrushableBlock 音效绑定**：可疑沙在 `registerTrailsBlocks()` 中绑定 `SoundEvents::BRUSH_SAND`/`BRUSH_SAND_COMPLETED`，可疑沙砾绑定 `SoundEvents::BRUSH_GRAVEL`/`BRUSH_GRAVEL_COMPLETED`。`BrushItem::onUseTick` 命中 BrushableBlock 时通过 `dynamic_cast` 获取音效，命中其他方块时回退到 `BRUSH_GENERIC`。状态属性 `DUSTED(0-3)` 记录刷扫进度，待 `BrushableBlockEntity` 实现后驱动。
 
     ## #6. LecternBlock 红石脉冲机制
 

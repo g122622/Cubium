@@ -836,3 +836,15 @@ virtual BlockActionResult onBlockActivated(
 
 **C++ 引用语义注意**：
 MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中 `player.getHeldItem(hand)` 返回 `ItemStack&`（引用 `m_items[selectedSlot]`），`inventory.setItem()` 会修改该引用指向的值。因此若需要在 `setItem` 后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::onBlockActivated` 实现）。
+
+## #40. BlockState 粒子与渲染类型查询方法
+
+`BlockState` 提供两个用于刷子粒子生成等场景的查询方法：
+
+- **`shouldSpawnTerrainParticles()`**：对应 MC 1.21.11 `BlockBehaviour.BlockStateBase#shouldSpawnTerrainParticles`，默认实现 `!isAir()`。刷子（`BrushItem::onUseTick`）等需要根据视线方块生成方块碎屑粒子的场景使用此方法判断是否生成粒子。
+- **`isInvisibleRenderType()`**：委托到 `Block::getRenderType(*this) == Block::RenderType::INVISIBLE`。用于刷子粒子生成时排除不可见方块（如空气、屏障），避免在不可见方块表面生成无意义的碎屑粒子。
+
+**设计说明**：由于 `Block.hpp` 包含 `BlockState.hpp`（反向依赖），`BlockState.hpp` 中无法直接内联 `Block::RenderType` 枚举。因此 `isInvisibleRenderType()` 在 `BlockState.hpp` 中仅声明，实现位于 `BlockState.cpp`（可包含 `Block.hpp`）。`shouldSpawnTerrainParticles()` 为纯内联方法（仅依赖 `isAir()`），直接在头文件中实现。
+
+**调用方**：`BrushItem::onUseTick` 中判断 `blockState->shouldSpawnTerrainParticles() && !blockState->isInvisibleRenderType()` 才调用 `spawnDustParticles`，与 MC 1.21.11 `BrushItem.onUseTick` 中的 `blockstate.shouldSpawnTerrainParticles() && blockstate.getRenderShape() != INVISIBLE` 对齐。
+
