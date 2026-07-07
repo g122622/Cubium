@@ -24,6 +24,8 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <memory>
 #include <string>
 
@@ -199,10 +201,24 @@ public:
      */
     [[nodiscard]] BoatStatus getStatus() const { return m_status; }
 
+    /**
+     * @brief 是否在水下
+     *
+     * 用于渲染器判断气泡柱倾斜效果是否生效。
+     * 当状态为 UnderWater 或 UnderFlowingWater 时返回 true。
+     */
+    [[nodiscard]] bool isUnderWater() const
+    {
+        return m_status == BoatStatus::UnderWater || m_status == BoatStatus::UnderFlowingWater;
+    }
+
     // ========== 伤害状态 ==========
 
     /**
      * @brief 获取上次受击时间
+     *
+     * 对应 MC VehicleEntity.getHurtTime()，范围 0-10，
+     * 受击时设为 10，每 tick 递减。渲染器用于计算受损抖动角度。
      */
     [[nodiscard]] i32 getTimeSinceHit() const { return m_timeSinceHit; }
 
@@ -260,6 +276,53 @@ public:
     {
         m_leftPaddle = left;
         m_rightPaddle = right;
+    }
+
+    /**
+     * @brief 检查桨是否在划动
+     * @param side 0=左桨, 1=右桨
+     *
+     * 对应 MC AbstractBoat.getPaddleState(int)，
+     * 返回对应桨是否正在划动（由玩家输入驱动）。
+     * 渲染器据此判断是否应用划桨动画。
+     */
+    [[nodiscard]] bool isPaddleActive(i32 side) const
+    {
+        if (side == 0) return m_leftPaddle;
+        if (side == 1) return m_rightPaddle;
+        return false;
+    }
+
+    /**
+     * @brief 获取划桨插值时间
+     * @param side 0=左桨, 1=右桨
+     * @param partialTicks 部分 tick（用于插值）
+     *
+     * 对应 MC AbstractBoat.getRowingTime(int, float)。
+     * 当桨在划动时返回 [paddlePositions[side] - PI/8, paddlePositions[side]] 之间的插值，
+     * 否则返回 0。
+     */
+    [[nodiscard]] f32 getRowingTime(i32 side, f32 partialTicks) const
+    {
+        if (side < 0 || side > 1) return 0.0f;
+        if (!isPaddleActive(side)) return 0.0f;
+        // clampedLerp(partialTicks, paddlePositions[side] - PI/8, paddlePositions[side])
+        const f32 lo = m_paddlePositions[side] - math::PI / 8.0f;
+        const f32 hi = m_paddlePositions[side];
+        return math::clampedLerp(partialTicks, lo, hi);
+    }
+
+    /**
+     * @brief 获取气泡柱倾斜角度（插值）
+     * @param partialTicks 部分 tick（用于插值）
+     *
+     * 对应 MC AbstractBoat.getBubbleAngle(float)。
+     * 返回 prevRockingAngle 到 rockingAngle 的插值，
+     * 渲染器据此应用绕 (1,0,1) 轴的倾斜旋转。
+     */
+    [[nodiscard]] f32 getBubbleAngle(f32 partialTicks) const
+    {
+        return math::lerp(m_prevRockingAngle, m_rockingAngle, partialTicks);
     }
 
     // ========== 控制 ==========

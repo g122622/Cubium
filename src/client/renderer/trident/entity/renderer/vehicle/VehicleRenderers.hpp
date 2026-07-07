@@ -31,10 +31,10 @@
 #include <memory>
 
 // Forward declarations
-namespace mc {
+namespace mc::entity {
 class BoatEntity;
 class AbstractMinecartEntity;
-} // namespace mc
+} // namespace mc::entity
 
 namespace mc::client::renderer::entity {
 class EntityRendererManager;
@@ -113,7 +113,7 @@ private:
      * @brief 计算船的摇晃角度
      * TODO: 尚未实现完整的摇晃角度计算逻辑
      */
-    [[nodiscard]] f64 _calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const;
+    [[nodiscard]] f64 _calculateRockingAngle(::mc::entity::BoatEntity& boat, f64 partialTicks) const;
 };
 
 /**
@@ -158,7 +158,7 @@ private:
      * @brief 计算矿车方向
      * TODO: 尚未实现完整的矿车方向计算逻辑
      */
-    void _calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks);
+    void _calculateCartDirection(::mc::entity::AbstractMinecartEntity& minecart, f64 partialTicks);
 };
 
 } // namespace mc::client::renderer::entity::renderer::vehicle

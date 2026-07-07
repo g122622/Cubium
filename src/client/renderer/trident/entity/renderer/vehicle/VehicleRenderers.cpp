@@ -172,7 +172,7 @@ ResourceLocation BoatRenderer::getTexture() const
     return textures[static_cast<size_t>(m_type)];
 }
 
-f64 BoatRenderer::_calculateRockingAngle(::mc::BoatEntity& boat, f64 partialTicks) const
+f64 BoatRenderer::_calculateRockingAngle(::mc::entity::BoatEntity& boat, f64 partialTicks) const
 {
     // TODO: 实现船的摇晃角度计算
     (void)boat;
@@ -278,7 +278,7 @@ ResourceLocation MinecartRenderer::getMinecartTexture()
     return ResourceLocation("minecraft", "textures/entity/minecart.png");
 }
 
-void MinecartRenderer::_calculateCartDirection(::mc::AbstractMinecartEntity& minecart, f64 partialTicks)
+void MinecartRenderer::_calculateCartDirection(::mc::entity::AbstractMinecartEntity& minecart, f64 partialTicks)
 {
     // TODO: 实现矿车方向计算
     (void)minecart;
