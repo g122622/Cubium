@@ -58,11 +58,11 @@ namespace pools {
 class TrialChambersPools {
 public:
     /**
-     * @brief 注册试炼密室模板池和处理器
+     * @brief 注册试炼密室模板池
      * @param registry 模板池注册表
      *
      * 在 Pools::initialize() 中调用。
-     * 主要注册铜灯降级处理器，因为模板池本身从数据包加载。
+     * 当前为空实现：试炼密室的模板池和铜灯降级处理器列表均由数据包 JSON 加载。
      */
     static void registerAll(jigsaw::TemplatePoolRegistry& registry);
 };

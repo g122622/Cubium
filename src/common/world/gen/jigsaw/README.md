@@ -178,7 +178,7 @@ JSON 文件路径：`data/<namespace>/worldgen/template_pool/<path>.json`。支�
 1. **硬编码注册**：`ProcessorLists::initialize()` 在启动时注册内置处理器列表（村庄、堡垒遗迹等）
 2. **数据包加载**：`ProcessorListLoader::loadFromDataPackRepository()` 在 `MinecraftServer::initializeRegistries()` 中被调用，加载 `data/<namespace>/worldgen/processor_list/*.json`
 
-硬编码注册优先于数据包加载（数据包加载时跳过已注册的列表）。
+数据包加载会无条件覆盖同名的硬编码注册（`ProcessorListRegistry::registerList()` 通过 `m_lists[id] = ...` 写入，后注册者覆盖先注册者）。因此同一 ID 的处理器列表最终以数据包版本为准。
 
 必须在 `JigsawPlacer::placePieces()` 之前完成注册，否则 piece 自带处理器会找不到。
 

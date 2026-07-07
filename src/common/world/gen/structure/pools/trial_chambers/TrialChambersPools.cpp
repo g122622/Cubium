@@ -40,11 +40,11 @@ void TrialChambersPools::registerAll(jigsaw::TemplatePoolRegistry& registry)
     // data/minecraft/worldgen/template_pool/trial_chambers/*.json
     // 因此不需要编程式注册模板池。
 
-    // trial_chambers_copper_bulb_degradation 处理器列表由数据包 JSON 加载：
+    // trial_chambers_copper_bulb_degradation 处理器列表同样由数据包 JSON 加载：
     // data/minecraft/worldgen/processor_list/trial_chambers_copper_bulb_degradation.json
-    // ProcessorListLoader 会解析其中的 rule processor 和 protected_blocks processor。
-    // 注意：硬编码的 CopperBulbDegradationProcessor 仍可作为后备，
-    // 但数据包版本（含加权概率的 rule processor）会覆盖硬编码注册。
+    // ProcessorListLoader 会解析其中的 rule processor 和 protected_blocks processor，
+    // 完整复刻 MC 1.21.11 试炼密室铜灯降级（加权概率 + lit=true 输出状态），
+    // 因此无需任何编程式注册。
 }
 
 } // namespace pools

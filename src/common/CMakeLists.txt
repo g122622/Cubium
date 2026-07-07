@@ -1198,7 +1198,6 @@ add_library(mc_common STATIC
     world/gen/feature/ruletest/RuleEntry.cpp
     world/gen/feature/ruletest/StoneRuleTest.cpp
     world/gen/feature/ruletest/DeepslateRuleTest.cpp
-    world/gen/feature/template/CopperBulbDegradationProcessor.cpp
     world/gen/feature/template/CappedStructureProcessor.cpp
     world/gen/feature/template/ProtectedBlocksProcessor.cpp
 
