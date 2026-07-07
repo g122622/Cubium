@@ -38,8 +38,6 @@ namespace mc::world::spawn {
 //      无法归入正确分类，目前临时塞进 WaterCreature。
 //   2) 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、
 //      armadillo、zombie_horse 等），无法加入对应 spawn list。
-//   3) SnowyBeach/IceSpikes 等 Snowy 变体未拆分独立工厂方法，仍复用 createSnowy()，
-//      变体差异（polar_bear 无 rabbit、stray 权重不同）未区分。
 // 收敛上述任一项时，请同步删除对应的 TODO 注释。
 
 MobSpawnInfo MobSpawnInfo::createPlains()
@@ -786,7 +784,7 @@ MobSpawnInfo MobSpawnInfo::createMountains()
 
 MobSpawnInfo MobSpawnInfo::createSnowy()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(12, SNOWY_TUNDRA, BiomeMaker.func_244215_b(...))
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(12, SNOWY_TUNDRA, BiomeMaker.func_244219_a())
     //   → DefaultBiomeFeatures.func_243741_e()（snowySpawns）：
     //     RABBIT (10,2,3) CREATURE
     //     POLAR_BEAR (1,1,2) CREATURE
@@ -798,8 +796,9 @@ MobSpawnInfo MobSpawnInfo::createSnowy()
     //     + STRAY (80,4,4) MONSTER
     //   creatureGenerationProbability = 0.07F（雪原更稀疏）
     //   注：原版 1.16.5 snowySpawns 不含 zombie_horse（1.16.5 中无任何生物群系 spawn list 含 zombie_horse）。
-    //   变体差异：SnowyBeach 仅有 polar_bear 无 rabbit，IceSpikes 的 stray 权重不同，
-    //   待后续按需新增 createSnowyBeach()/createIceSpikes() 工厂方法区分。
+    //   变体：IceSpikes spawn list 与 SnowyTundra 完全一致（func_244239_b → func_244219_a），
+    //   复用本方法；SnowyBeach 差异较大（无 creature、skeleton 权重 100、无 stray），
+    //   使用独立的 createSnowyBeach() 工厂方法。
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.07f;
 
@@ -819,6 +818,43 @@ MobSpawnInfo MobSpawnInfo::createSnowy()
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:rabbit", 10, 2, 3));
     info.addCreatureSpawn(SpawnEntry("minecraft:polar_bear", 1, 1, 2));
+
+    // 环境生物（caveSpawns → bat）
+    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
+    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createSnowyBeach()
+{
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(26, SNOWY_BEACH,
+    //   BiomeMaker.func_244208_a(0.0F, 0.025F, 0.05F, 0.3F, true, false, false))
+    //   → 不添加 TURTLE（因 p_244208_5_=true 表示雪地沙滩，原版 beach 仅在 p_244208_5_=false 时加 TURTLE）
+    //   → DefaultBiomeFeatures.func_243737_c()（commonSpawns）：
+    //     caveSpawns: BAT (10,8,8) AMBIENT
+    //     monsters(builder, 95, 5, 100): 8 条标准陆地怪物（skeleton 权重 100，无 stray）
+    //   与 SnowyTundra(createSnowy) 差异：
+    //     - skeleton 权重 100（vs SnowyTundra 20）
+    //     - 无 stray（SnowyTundra 有 stray 80）
+    //     - 无 creature 分类（SnowyTundra 有 rabbit + polar_bear）
+    //     - creatureSpawnProbability 使用默认 0.1F（SnowyTundra 为 0.07F）
+    //   1.16.5 与 1.21.11 spawn list 完全相同（1.21.11 仅额外含 glow_squid，
+    //   本项目对齐 1.16.5 不含）。
+    MobSpawnInfo info;
+    // creatureSpawnProbability 使用默认 0.1f（commonSpawns 不修改概率）
+
+    // 怪物：commonSpawns → monsters(builder, 95, 5, 100)
+    // 注意 skeleton 权重为 100（与标准陆地一致），无 stray
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
+    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
     // 环境生物（caveSpawns → bat）
     info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);

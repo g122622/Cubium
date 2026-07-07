@@ -565,8 +565,35 @@ public:
 
     /**
      * @brief 创建雪地生物群系的生成信息
+     *
+     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(12, SNOWY_TUNDRA, BiomeMaker.func_244219_a())
+     *   → DefaultBiomeFeatures.func_243741_e()（snowySpawns）：
+     *     RABBIT (10,2,3) CREATURE + POLAR_BEAR (1,1,2) CREATURE
+     *     + caveSpawns: BAT (10,8,8) AMBIENT
+     *     + monsters(builder, 95, 5, 20): 8 条标准陆地怪物（skeleton 权重 20）
+     *     + STRAY (80,4,4) MONSTER
+     *   creatureSpawnProbability = 0.07F。
+     *   注：IceSpikes spawn list 与 SnowyTundra 完全一致，复用本方法。
      */
     static MobSpawnInfo createSnowy();
+
+    /**
+     * @brief 创建积雪沙滩生物群系的生成信息
+     *
+     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(26, SNOWY_BEACH,
+     *   BiomeMaker.func_244208_a(0.0F, 0.025F, 0.05F, 0.3F, true, false, false))
+     *   → 不添加 TURTLE（因 p_244208_5_=true 表示雪地沙滩）
+     *   → DefaultBiomeFeatures.func_243737_c()（commonSpawns）：
+     *     caveSpawns: BAT (10,8,8) AMBIENT
+     *     monsters(builder, 95, 5, 100): 8 条标准陆地怪物（skeleton 权重 100，无 stray）
+     *   与 SnowyTundra(createSnowy) 差异：
+     *     - skeleton 权重 100（vs SnowyTundra 20）
+     *     - 无 stray（SnowyTundra 有 stray 80）
+     *     - 无 creature 分类（SnowyTundra 有 rabbit + polar_bear）
+     *     - creatureSpawnProbability 使用默认 0.1F（SnowyTundra 为 0.07F）
+     *   1.16.5 与 1.21.11 spawn list 完全相同（1.21.11 仅额外含 glow_squid，本项目对齐 1.16.5 不含）。
+     */
+    static MobSpawnInfo createSnowyBeach();
 
     /**
      * @brief 创建默认（空）生成信息

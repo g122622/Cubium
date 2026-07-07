@@ -923,6 +923,50 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Snowy)
     }
 }
 
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_SnowyBeach)
+{
+    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(26, SNOWY_BEACH,
+    //   BiomeMaker.func_244208_a(..., true, false, false))
+    //   → commonSpawns（无 TURTLE、无 creature 分类）
+    auto info = world::spawn::MobSpawnInfo::createSnowyBeach();
+    // creatureSpawnProbability 使用默认 0.1f（commonSpawns 不修改概率）
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物（skeleton weight=100），无 stray
+    EXPECT_EQ(info.getMonsterSpawns().size(), 8u);
+    bool hasStray = false;
+    int zombieWeight = 0, skeletonWeight = 0;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:stray") {
+            hasStray = true;
+        }
+        if (entry.entityTypeId == "minecraft:zombie") zombieWeight = entry.weight;
+        if (entry.entityTypeId == "minecraft:skeleton") skeletonWeight = entry.weight;
+    }
+    EXPECT_FALSE(hasStray);         // SnowyBeach 无 stray（与 SnowyTundra 差异）
+    EXPECT_EQ(zombieWeight, 95);    // commonSpawns 中 zombie 权重 95（与标准一致）
+    EXPECT_EQ(skeletonWeight, 100); // commonSpawns 中 skeleton 权重 100（与标准一致，非 SnowyTundra 的 20）
+
+    // 动物：无（SnowyBeach 无 creature 分类，与 Beach 一致但 Beach 有 turtle，SnowyBeach 因雪地无 turtle）
+    EXPECT_EQ(info.getCreatureSpawns().size(), 0u);
+
+    // 环境生物：bat(10,8,8)
+    ASSERT_EQ(info.getAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getAmbientSpawns()[0].entityTypeId, "minecraft:bat");
+    EXPECT_EQ(info.getAmbientSpawns()[0].weight, 10);
+    EXPECT_EQ(info.getAmbientSpawns()[0].minCount, 8);
+    EXPECT_EQ(info.getAmbientSpawns()[0].maxCount, 8);
+
+    // 确认无 turtle（雪地沙滩不加 turtle）
+    for (const auto& entry : info.getCreatureSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:turtle") << "SnowyBeach 不应含 turtle";
+    }
+    // 确认无 zombie_horse
+    for (const auto& entry : info.getMonsterSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:zombie_horse") << "SnowyBeach 不应含 zombie_horse";
+    }
+}
+
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Savanna)
 {
     // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(35, SAVANNA, BiomeMaker.func_244211_a(..., false, false))

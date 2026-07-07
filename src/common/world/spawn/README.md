@@ -101,11 +101,11 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 - **Savanna 系列拆分三个工厂方法**：`createSavanna()`（无 llama/wolf）、`createSavannaPlateau()`（仅 llama，无 wolf）、`createShatteredSavanna()`（与 Savanna 相同）。1.16.5 中 ShatteredSavannaPlateau 也无 llama/wolf，复用 `createShatteredSavanna()`。
 - **DeepLukewarmOcean 独立工厂方法**：与浅水版本在 squid/cod 权重上有差异（squid 8 vs 10、cod 8 vs 15），DeepColdOcean/DeepFrozenOcean 与浅水版本 spawn list 一致，仍复用浅水工厂方法。
 - **Jungle 系列三个工厂方法**：`createJungle()`（parrot 40,1,2 + ocelot 2,1,3 + panda 1,1,2）、`createSparseJungle()`（仅 baseJungleSpawns，1.16.5 无 wolf）、`createBambooJungle()`（parrot 40,1,2 + panda 80,1,2 + ocelot 2,1,1）。
+- **SnowyBeach 独立工厂方法**：与 SnowyTundra 差异较大（无 creature、skeleton 权重 100、无 stray、概率 0.1F），使用 `createSnowyBeach()`；IceSpikes spawn list 与 SnowyTundra 完全一致，复用 `createSnowy()`。
 
 仍存在的偏差（以 `TODO(spawn-list-*)` 标注）：
 - `EntityClassification` 仅 6 类，缺失原版的 `UndergroundWaterCreature` 与 `Axolotls`，导致美西螈等临时塞进 `WaterCreature`。
 - 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo），对应 spawn list 待补。
-- SnowyBeach/IceSpikes 等 Snowy 变体未拆分独立工厂方法，仍复用 `createSnowy()`，变体差异未区分。
 
 ### 10. Jungle 系列变体使用不同工厂方法
 

@@ -400,6 +400,7 @@ Biome createSnowyBeach()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowyBeach());
     return biome;
 }
 
