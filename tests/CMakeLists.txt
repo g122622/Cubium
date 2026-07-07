@@ -744,6 +744,8 @@ add_executable(mc_tests
     # 鹦鹉 AI 目标测试（LandOnOwnersShoulderGoal, WaterAvoidingRandomFlyingGoal, FollowMobGoal）
     entity/ParrotGoalsTest.cpp
     entity/TraderLlamaSupportTypesTest.cpp
+    # 商队羊驼集成测试（拴绳/流浪商人/消失/乘客交互）
+    entity/TraderLlamaIntegrationTest.cpp
     # LlamaFollowCaravanGoal 商队跟随目标测试
     entity/LlamaFollowCaravanGoalTest.cpp
     entity/PathfindingTests.cpp

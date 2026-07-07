@@ -148,7 +148,15 @@ Result<void> TraderLlamaEntity::readAdditionalSaveData(const nbt::tags::compound
 
 void TraderLlamaEntity::maybeDespawn()
 {
-    if (!canDespawn(0.0)) {
+    // 对应 MC 1.21.11 TraderLlama.maybeDespawn() 中的私有 canDespawn() 判定
+    // （注意：此处不是 MobEntity::canDespawn(double)，后者供 DespawnManager 距离判断使用，
+    //  对任何拴绳状态均返回 false 以避免被距离判断误删）。
+    // MC 私有 canDespawn() 语义：
+    //   !isTamed && !isLeashedToSomethingOtherThanTheWanderingTrader && !hasExactlyOnePlayerPassenger
+    // 即"拴在流浪商人身上"仍允许消失（倒计时与流浪商人同步），
+    // 仅"拴在其他实体/栅栏上"才阻止消失。
+    const bool leashedToOther = isLeashed() && !isLeashedToWanderingTrader();
+    if (isTame() || leashedToOther || hasExactlyOnePlayerPassenger()) {
         return;
     }
 
