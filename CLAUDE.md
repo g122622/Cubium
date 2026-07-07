@@ -40,5 +40,6 @@ clang-format -i src\common\xxx\Foo.hpp
 注：当前资源包路径：C:\Users\Administrator\minecraft_reborn\resourcepacks\Vanilla
 注：当前数据包路径：C:\Users\Administrator\minecraft_reborn\datapacks\Vanilla
 注：可供参考的MC源码路径：D:\Minecraft\MC研究\Minecraft1.21.11源码
+（如果项目中代码是参考1.16.5的，必须迁移到1.21.11）
 注：Moonrise优化模组路径：E:\dev\MC\Mods\Moonrise
 注：ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil

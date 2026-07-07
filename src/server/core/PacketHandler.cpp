@@ -493,16 +493,13 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     //   d10 = d6*d6 + d7*d7 + d8*d8;
     //   flag1 = (d10 > 0.0625);
     //
-    // 注意 MC Java 的 Y 容差条件 `d7 > -0.5 || d7 < 0.5` 实际上几乎总为真
-    // （只有 d7 恰好落在 [-0.5, 0.5] 外才不满足），因此 Y 偏差几乎总被清零，
-    // moved wrongly 检测实际只看 X 和 Z 方向的偏差。
+    // MC Java 的 Y 容差条件 `d7 > -0.5 || d7 < 0.5` 用了 `||`，在数学上恒为真
+    // （不存在同时使两个子句为假的 d7），因此 Y 偏差实际上总是被清零，
+    // moved wrongly 检测实际只看 X 和 Z 方向的偏差。这里直接清零 diffY 以复刻其运行时效果。
     const Vector3 newVehiclePos = vehicle->position();
-    f64 diffX = packetPos.x - static_cast<f64>(newVehiclePos.x);
-    f64 diffY = packetPos.y - static_cast<f64>(newVehiclePos.y);
-    if (diffY > -0.5 || diffY < 0.5) {
-        diffY = 0.0;
-    }
-    f64 diffZ = packetPos.z - static_cast<f64>(newVehiclePos.z);
+    const f64 diffX = packetPos.x - static_cast<f64>(newVehiclePos.x);
+    const f64 diffY = 0.0;
+    const f64 diffZ = packetPos.z - static_cast<f64>(newVehiclePos.z);
     const f64 movedWronglySq = diffX * diffX + diffY * diffY + diffZ * diffZ;
 
     const bool movedWrongly = movedWronglySq > detail::kMovedWronglyThresholdSq;
