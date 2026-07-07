@@ -80,18 +80,15 @@ MobSpawnInfo MobSpawnInfo::createForest()
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
     // 动物（MC Java 1.16.5 forest creature spawn list：sheep/pig/cow/chicken/wolf）
-    // 依据：Minecraft Wiki wolf 生成群系表，Forest weight=5/45、pack=4。
-    // 源码此前误注"森林没有狼"导致漏配，此处对齐原版补回 wolf。
+    // 依据：原版 BiomeGenerationSettings 默认 farmAnimals + wolf（Forest weight=5/45、pack=4）。
+    // 源码此前误注"森林没有狼"导致漏配，且误将 Jungle 的"额外鸡"规则套到 Forest 上，
+    // 导致 Forest 出现两条 weight=10 的 chicken 条目。已收敛为原版单条。
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:wolf", 5, 4, 4));
-    // 森林有额外的鸡
-    // TODO: 下方重复的 chicken 条目疑似与上方重复（1.16.5 forest chicken 仅一条 weight 10），
-    //       待统一核对原版 Biome spawn list 后收敛，暂不动以避免影响本次 wolf 修复范围。
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
 
     // 环境生物
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
@@ -491,14 +488,16 @@ MobSpawnInfo MobSpawnInfo::createSoulSandValley()
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
 
     // 灵魂沙谷所有怪物都有 SpawnCosts
-    info.setSpawnCost("minecraft:skeleton", SpawnCosts(0.12, 0.7));
-    info.setSpawnCost("minecraft:ghast", SpawnCosts(0.12, 0.7));
-    info.setSpawnCost("minecraft:enderman", SpawnCosts(0.12, 0.7));
+    // 原版 1.16.5：灵魂沙谷 energyBudget=0.15，charge=0.7
+    // 此前误用 0.12（与 WarpedForest 混淆），已收敛为原版 0.15
+    info.setSpawnCost("minecraft:skeleton", SpawnCosts(0.15, 0.7));
+    info.setSpawnCost("minecraft:ghast", SpawnCosts(0.15, 0.7));
+    info.setSpawnCost("minecraft:enderman", SpawnCosts(0.15, 0.7));
 
     // 生物（炽足兽）
     info.setMaxCreatureInstances(10);
     info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
-    info.setSpawnCost("minecraft:strider", SpawnCosts(0.12, 0.7));
+    info.setSpawnCost("minecraft:strider", SpawnCosts(0.15, 0.7));
 
     return info;
 }

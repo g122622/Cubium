@@ -443,6 +443,34 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Forest)
     auto info = world::spawn::MobSpawnInfo::createForest();
     EXPECT_GT(info.getCreatureSpawns().size(), 0);
     EXPECT_TRUE(info.isPlayerSpawnFriendly());
+
+    // 原版 Forest chicken 仅一条 weight=10 条目；此前源码误加两条，已收敛
+    int chickenCount = 0;
+    bool hasWolf = false;
+    for (const auto& entry : info.getCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
+        if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+    }
+    EXPECT_EQ(chickenCount, 1);
+    EXPECT_TRUE(hasWolf);
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_SoulSandValley_SpawnCosts)
+{
+    // 原版 1.16.5：灵魂沙谷 energyBudget=0.15，charge=0.7
+    // 此前源码误用 0.12（与 WarpedForest 混淆），已收敛为 0.15
+    auto info = world::spawn::MobSpawnInfo::createSoulSandValley();
+
+    const auto checkCost = [&](const std::string& entityTypeId) {
+        const auto* costs = info.getSpawnCost(entityTypeId);
+        ASSERT_NE(costs, nullptr);
+        EXPECT_DOUBLE_EQ(costs->energyBudget, 0.15);
+        EXPECT_DOUBLE_EQ(costs->charge, 0.7);
+    };
+    checkCost("minecraft:skeleton");
+    checkCost("minecraft:ghast");
+    checkCost("minecraft:enderman");
+    checkCost("minecraft:strider");
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
