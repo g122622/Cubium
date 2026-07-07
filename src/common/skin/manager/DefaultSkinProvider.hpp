@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include <array>
 #include <vector>
@@ -45,13 +46,16 @@ namespace mc::skin {
  *
  * 皮肤名称列表：alex, ari, efe, kai, makena, noor, steve, sunny, zuri
  * 纹理路径格式：minecraft:textures/entity/player/{slim|wide}/{name}.png
+ *
+ * 生命周期约束：必须在 initialize() 调用之前通过 setResourcePack 注入资源包，
+ * 否则 _loadBuiltinSkins 会因无资源包可用而回退到零像素占位数据。
  */
 class DefaultSkinProvider {
 public:
     /**
      * @brief 初始化默认皮肤
      *
-     * 加载内置的 18 种默认皮肤数据。
+     * 加载内置的 18 种默认皮肤数据。需要先通过 setResourcePack 注入资源包。
      *
      * @return 成功或错误
      */
@@ -101,21 +105,21 @@ public:
     [[nodiscard]] ResourceLocation getAlexSkin() const noexcept { return getSkinLocation(0); }
 
     /**
-     * @brief 获取 Steve 皮肤 PNG 数据（向后兼容）
-     * @return PNG 数据（64x64）
+     * @brief 获取 Steve 皮肤 RGBA 像素数据（向后兼容）
+     * @return 64x64 RGBA 像素数据（共 16384 字节）
      */
     [[nodiscard]] const std::vector<u8>& getSteveSkinData() const noexcept { return m_skinData[15]; }
 
     /**
-     * @brief 获取 Alex 皮肤 PNG 数据（向后兼容）
-     * @return PNG 数据（64x64）
+     * @brief 获取 Alex 皮肤 RGBA 像素数据（向后兼容）
+     * @return 64x64 RGBA 像素数据（共 16384 字节）
      */
     [[nodiscard]] const std::vector<u8>& getAlexSkinData() const noexcept { return m_skinData[0]; }
 
     /**
-     * @brief 获取指定变体的皮肤 PNG 数据
+     * @brief 获取指定变体的皮肤 RGBA 像素数据
      * @param variantIndex 变体索引 (0-17)
-     * @return PNG 数据（64x64）
+     * @return 64x64 RGBA 像素数据（共 16384 字节）
      */
     [[nodiscard]] const std::vector<u8>& getSkinData(size_t variantIndex) const noexcept;
 
@@ -131,16 +135,46 @@ public:
      */
     [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
+    // ========== 资源包设置 ==========
+
+    /**
+     * @brief 设置资源包（用于从资源包加载默认皮肤 PNG 纹理）
+     *
+     * 必须在 initialize() 调用之前设置，否则 _loadBuiltinSkins 将无法读取
+     * `textures/entity/player/{slim|wide}/{name}.png` 资源，回退到零像素占位数据。
+     *
+     * @param resourcePack 资源包指针（非所有权，调用方保证生命周期）
+     */
+    void setResourcePack(IResourcePack* resourcePack) { m_resourcePack = resourcePack; }
+
+    /**
+     * @brief 获取已设置的资源包
+     */
+    [[nodiscard]] IResourcePack* resourcePack() const noexcept { return m_resourcePack; }
+
 private:
     /**
      * @brief 加载内置皮肤数据
      *
-     * 如果资源文件不存在，使用硬编码的简单皮肤。
+     * 遍历 18 个默认皮肤变体，从资源包读取 PNG 字节，
+     * 用 stb_image 解码为 RGBA 像素后存入 m_skinData。
+     * 单个变体加载失败仅记录警告并跳过，整体不失败（保持 initialize 容错语义）。
      */
     Result<void> _loadBuiltinSkins();
 
-    /// 18 种默认皮肤的 PNG 数据（索引与 DefaultSkinVariant::index 一致）
+    /**
+     * @brief 从资源包加载单个皮肤变体的 PNG 纹理
+     *
+     * @param variant 默认皮肤变体
+     * @return 解码后的 RGBA 像素数据，失败时返回空 vector
+     */
+    [[nodiscard]] std::vector<u8> _loadSkinFromResourcePack(const DefaultSkinVariant& variant) const;
+
+    /// 18 种默认皮肤的 RGBA 像素数据（索引与 DefaultSkinVariant::index 一致）
     std::array<std::vector<u8>, DEFAULT_SKIN_COUNT> m_skinData;
+
+    /// 资源包指针（非所有权），用于加载默认皮肤 PNG 纹理
+    IResourcePack* m_resourcePack = nullptr;
 
     bool m_initialized = false;
 };

@@ -23,7 +23,11 @@
 
 #include "DefaultSkinProvider.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include <cstring>
 #include <spdlog/spdlog.h>
+
+// stb_image 用于解码 PNG 纹理（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
+#include <stb_image.h>
 
 namespace mc::skin {
 
@@ -32,6 +36,10 @@ constexpr size_t SKIN_WIDTH = 64;
 constexpr size_t SKIN_HEIGHT = 64;
 constexpr size_t SKIN_CHANNELS = 4; // RGBA
 constexpr size_t SKIN_DATA_SIZE = SKIN_WIDTH * SKIN_HEIGHT * SKIN_CHANNELS;
+
+// 资源包路径前缀，toFilePath(PackType::ClientResources) 返回 "assets/..."，
+// 而 IResourcePack::readResource 期望相对于 PackType 根目录的路径（不含 "assets/" 前缀）
+constexpr const char* CLIENT_RESOURCE_PREFIX = "assets/";
 
 Result<void> DefaultSkinProvider::initialize()
 {
@@ -53,15 +61,111 @@ Result<void> DefaultSkinProvider::initialize()
 
 Result<void> DefaultSkinProvider::_loadBuiltinSkins()
 {
-    // TODO: 实现从资源文件加载真实皮肤数据
-    // 当前使用简化的 fallback 实现，生成空的 64x64 RGBA 数据占位
-    // 生产环境应该从 resources/textures/entity/player/{slim|wide}/{name}.png 加载
+    const auto& variants = getDefaultSkinVariants();
 
     for (size_t i = 0; i < DEFAULT_SKIN_COUNT; ++i) {
-        m_skinData[i].resize(SKIN_DATA_SIZE, 0);
+        const auto& variant = variants[i];
+
+        // 先填充零像素占位数据，作为单变体加载失败时的兜底
+        m_skinData[i].assign(SKIN_DATA_SIZE, 0);
+
+        if (!m_resourcePack) {
+            spdlog::warn(
+                "DefaultSkinProvider: No resource pack set, variant {} ({}) uses zero-pixel fallback", i, variant.name);
+            continue;
+        }
+
+        auto pixels = _loadSkinFromResourcePack(variant);
+        if (pixels.empty()) {
+            spdlog::warn(
+                "DefaultSkinProvider: Failed to load skin variant {} ({}), using zero-pixel fallback", i, variant.name);
+            continue;
+        }
+
+        m_skinData[i] = std::move(pixels);
+        spdlog::debug("DefaultSkinProvider: Loaded skin variant {} ({})", i, variant.name);
     }
 
     return {};
+}
+
+std::vector<u8> DefaultSkinProvider::_loadSkinFromResourcePack(const DefaultSkinVariant& variant) const
+{
+    if (!m_resourcePack) {
+        spdlog::warn("DefaultSkinProvider: No resource pack available for variant {}", variant.name);
+        return {};
+    }
+
+    // 将 ResourceLocation 转换为相对于 ClientResources 根目录的路径
+    // toFilePath 返回 "assets/minecraft/textures/entity/player/{slim|wide}/{name}.png"
+    // readResource 期望路径不含 "assets/" 前缀
+    std::string resourcePath = variant.textureLocation().toFilePath(resource::PackType::ClientResources);
+    if (resourcePath.rfind(CLIENT_RESOURCE_PREFIX, 0) == 0) {
+        resourcePath.erase(0, std::string(CLIENT_RESOURCE_PREFIX).size());
+    }
+
+    auto readResult = m_resourcePack->readResource(resource::PackType::ClientResources, resourcePath);
+    if (!readResult.success()) {
+        spdlog::warn("DefaultSkinProvider: Failed to read skin '{}' from resource pack: {}",
+            variant.textureLocation().toString(),
+            readResult.error().toString());
+        return {};
+    }
+
+    const auto& pngData = readResult.value();
+    if (pngData.empty()) {
+        spdlog::warn("DefaultSkinProvider: Empty PNG data for skin '{}'", variant.textureLocation().toString());
+        return {};
+    }
+
+    // 使用 stbi_load_from_memory 解码 PNG，强制 RGBA 4 通道输出
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    u8* pixels = stbi_load_from_memory(
+        pngData.data(), static_cast<int>(pngData.size()), &width, &height, &channels, static_cast<int>(SKIN_CHANNELS));
+
+    if (!pixels) {
+        spdlog::warn("DefaultSkinProvider: stb_image failed to decode skin '{}'", variant.textureLocation().toString());
+        return {};
+    }
+
+    // 验证皮肤尺寸：MC 1.21.1 默认皮肤均为 64x64，旧版 64x32 也允许（转换为 64x64）
+    if (width != static_cast<int>(SKIN_WIDTH)) {
+        spdlog::warn("DefaultSkinProvider: Invalid skin width for '{}' (expected {}, got {})",
+            variant.textureLocation().toString(),
+            SKIN_WIDTH,
+            width);
+        stbi_image_free(pixels);
+        return {};
+    }
+
+    if (height != static_cast<int>(SKIN_HEIGHT) && height != 32) {
+        spdlog::warn("DefaultSkinProvider: Invalid skin height for '{}' (expected {} or 32, got {})",
+            variant.textureLocation().toString(),
+            SKIN_HEIGHT,
+            height);
+        stbi_image_free(pixels);
+        return {};
+    }
+
+    std::vector<u8> result;
+
+    if (height == 32) {
+        // 旧版 64x32 皮肤：将上半部分复制到 64x64，下半部分保留为零（透明）
+        result.assign(SKIN_DATA_SIZE, 0);
+        const size_t copySize = static_cast<size_t>(32) * SKIN_WIDTH * SKIN_CHANNELS;
+        std::memcpy(result.data(), pixels, copySize);
+        spdlog::info(
+            "DefaultSkinProvider: Converted legacy 64x32 skin '{}' to 64x64", variant.textureLocation().toString());
+    } else {
+        // 64x64 皮肤：直接复制全部像素
+        result.resize(SKIN_DATA_SIZE);
+        std::memcpy(result.data(), pixels, SKIN_DATA_SIZE);
+    }
+
+    stbi_image_free(pixels);
+    return result;
 }
 
 ResourceLocation DefaultSkinProvider::getDefaultSkin(const std::array<u8, 16>& uuid) const noexcept

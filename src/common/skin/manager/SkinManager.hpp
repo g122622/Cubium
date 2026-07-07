@@ -205,8 +205,18 @@ public:
 
     /**
      * @brief 设置资源包（用于加载默认皮肤）
+     *
+     * 必须在 initialize() 调用之前设置，否则 DefaultSkinProvider 将无法
+     * 从资源包读取默认皮肤 PNG 纹理，回退到零像素占位数据。
+     *
+     * @param resourcePack 资源包指针（非所有权，调用方保证生命周期）
      */
-    void setResourcePack(IResourcePack* resourcePack) { m_resourcePack = resourcePack; }
+    void setResourcePack(IResourcePack* resourcePack)
+    {
+        m_resourcePack = resourcePack;
+        // 同步给 DefaultSkinProvider，确保后续 initialize 时能读取
+        m_defaultSkinProvider->setResourcePack(resourcePack);
+    }
 
 private:
     /**

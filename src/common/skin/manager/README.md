@@ -50,7 +50,8 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 - `common/skin/core` - SkinTextures、GameProfile、SkinTypes（含 DefaultSkinVariant）
 - `common/skin/loader` - ISkinLoader、SkinLoadResult
 - `common/skin/parser` - SkinMetadataParser
-- `common/resource` - ResourceLocation
+- `common/resource` - ResourceLocation、IResourcePack（DefaultSkinProvider 加载默认皮肤 PNG 纹理）
+- `stb_image` - PNG 解码（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
 - `nlohmann-json` - 元数据 JSON 序列化
 - `spdlog` - 日志
 
@@ -68,6 +69,17 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 
 SkinCache 的所有公共方法通过 `m_entriesMutex` 保证线程安全。元数据读写仅在初始化/关闭时进行，不持有条目互斥锁。
 
-### DefaultSkinProvider 尚未加载真实皮肤
+### DefaultSkinProvider 加载真实皮肤
 
-`_loadBuiltinSkins()` 当前填充零像素数据，需要后续从资源包加载 18 种默认皮肤纹理。纹理文件已存在于资源包路径 `textures/entity/player/{slim|wide}/{name}.png`。
+`_loadBuiltinSkins()` 通过注入的 `IResourcePack` 从资源包读取 18 种默认皮肤 PNG 纹理
+（路径 `textures/entity/player/{slim|wide}/{name}.png`），使用 `stb_image` 解码为 64×64
+RGBA 像素数据存入 `m_skinData`。
+
+**生命周期约束**：必须在 `initialize()` 调用之前通过 `setResourcePack()` 注入资源包，
+否则 `_loadBuiltinSkins()` 会因无资源包可用而回退到零像素占位数据。注入链路为：
+`ClientApplicationSession` → `ClientSkinManager::setResourcePack()` →
+`SkinManager::setResourcePack()` → `DefaultSkinProvider::setResourcePack()`。
+
+**容错策略**：单个变体加载失败仅记录警告并跳过，对应 `m_skinData[i]` 保持零像素占位
+数据，整体 `initialize()` 不返回错误，保持与原 fallback 语义一致的容错性。
+旧版 64×32 皮肤会被自动转换为 64×64（下半部分填零）。
