@@ -594,6 +594,8 @@ void ClientApplication::render()
 void ClientApplication::releaseRendererDependentResources()
 {
     // 这些对象内部持有 Vulkan 句柄，必须在渲染器销毁前释放。
+    MC_TRACE_EVENT("client.initialization", "ClientApplication::releaseRendererDependentResources");
+
     if (m_skinManager) {
         m_skinManager->shutdown();
         m_skinManager.reset();
@@ -618,6 +620,12 @@ void ClientApplication::releaseRendererDependentResources()
 
 void ClientApplication::shutdown()
 {
+    // 整体 shutdown 区间。注意：本函数末尾会调用 PerfettoManager::stopTracing()/
+    // shutdown()，此 RAII 事件析构触发的 END 在会话已停止后是安全 no-op
+    // （SDK 的 CallIfEnabled 检测到 instances==0 即立即返回），BEGIN 与中间子事件
+    // 均正常记录，符合期望。
+    MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown");
+
     spdlog::info("Shutting down client...");
 
     // 开始关闭流程
@@ -627,11 +635,14 @@ void ClientApplication::shutdown()
     }
 
     // 保存设置
-    const auto savePath =
-        m_settingsPath.empty() ? GameDirectory::defaultDirectory().clientOptionsPath() : m_settingsPath;
-    auto saveResult = m_settings.saveSettings(savePath);
-    if (saveResult.failed()) {
-        spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
+    {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::SaveSettings");
+        const auto savePath =
+            m_settingsPath.empty() ? GameDirectory::defaultDirectory().clientOptionsPath() : m_settingsPath;
+        auto saveResult = m_settings.saveSettings(savePath);
+        if (saveResult.failed()) {
+            spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
+        }
     }
 
     // 关闭声音系统
@@ -644,12 +655,14 @@ void ClientApplication::shutdown()
 
     // 断开网络连接（如果在主菜单但有残留连接）
     if (m_networkClient) {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DisconnectNetwork");
         m_networkClient->disconnect("Client shutdown");
         m_networkClient.reset();
     }
 
     // 停止内置服务端（如果有残留）
     if (m_integratedServer) {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::StopIntegratedServer");
         m_integratedServer->stop();
         m_integratedServer.reset();
     }
@@ -659,18 +672,28 @@ void ClientApplication::shutdown()
 
     // 清理渲染器
     if (m_renderer) {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyRenderer");
         m_renderer->destroy();
         m_renderer.reset();
     }
 
     // 清理玩家
-    m_player.reset();
-    m_physicsEngine.reset();
+    {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyPlayerAndPhysics");
+        m_player.reset();
+        m_physicsEngine.reset();
+    }
 
     // 清理世界（包括关闭网格构建线程池）
-    m_world.destroy();
+    {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyWorld");
+        m_world.destroy();
+    }
 
-    m_window.destroy();
+    {
+        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyWindow");
+        m_window.destroy();
+    }
 
     if (!m_launchParams.benchmarkExitAfterInitialize) {
         // 停止内存追踪线程

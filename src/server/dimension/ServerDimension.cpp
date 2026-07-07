@@ -96,9 +96,13 @@ void ServerDimension::shutdown()
         return;
     }
 
-    // 在世界销毁之前显式清理结构生成缓存。
-    // 对齐 MC 1.21.11 中 ServerLevel 卸载时立即清理 StructureCheck 的行为，
-    // 而非等到生成器析构时才清理，避免维度卸载后缓存数据仍驻留内存。
+    // per-dimension trace：m_dimensions 是 unordered_map，析构顺序不定，
+    // 必须带维度 ID/名称才能在 perfetto 中区分主世界/下界/末地的卸载耗时。
+    MC_TRACE_EVENT(
+        "server.initialization", "ServerDimension::shutdown", "dim", static_cast<i32>(id()), "dimName", type().name());
+
+    // 在世界销毁之前显式清理结构生成缓存（ServerLevel 卸载时立即清理 StructureCheck，
+    // 而非等到生成器析构时才清理，避免维度卸载后缓存数据仍驻留内存）。
     if (m_world != nullptr && m_world->chunkManager() != nullptr && m_world->chunkManager()->generator() != nullptr) {
         m_world->chunkManager()->generator()->clearStructureCache();
     }
@@ -116,7 +120,12 @@ void ServerDimension::shutdown()
     m_players.clear();
     m_portalPositions.clear();
 
-    m_world.reset();
+    // 销毁 ServerWorld，触发 ServerWorld::~ServerWorld() → ServerWorld::shutdown()
+    // （含实体落盘 + ServerChunkManager::shutdown，是维度卸载里最重的部分）。
+    {
+        MC_TRACE_EVENT("server.initialization", "ServerDimension::shutdown::DestroyWorld");
+        m_world.reset();
+    }
 
     m_initialized = false;
 }
