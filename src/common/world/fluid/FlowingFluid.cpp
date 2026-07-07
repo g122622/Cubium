@@ -558,8 +558,10 @@ bool FlowingFluid::canFlow(IWorld& world,
         return false;
     }
 
-    // 检查目标方块是否可被流体替换
-    return isBlocked(world, toPos, toBlock, fluid);
+    // 检查目标方块是否可被流体替换。
+    // isBlocked() 返回 true 表示方块阻挡流体（不可被替换），因此"可流动"需取反。
+    // 对应 MC Java FlowingFluid#canMaybePassThrough / canHoldAnyFluid：方块能容纳流体才允许流入。
+    return !isBlocked(world, toPos, toBlock, fluid);
 }
 
 bool FlowingFluid::doesSideHaveHoles(Direction dir,
@@ -763,7 +765,9 @@ bool FlowingFluid::canFlowDown(IWorld& world,
         return true;
     }
 
-    return isBlocked(world, belowPos, belowBlock, fluid);
+    // isBlocked() 返回 true 表示方块阻挡流体（不可被替换），因此"可向下流动"需取反。
+    // 对应 MC Java FlowingFluid#isWaterHole -> canHoldFluid：方块能容纳流体才视为可向下流动。
+    return !isBlocked(world, belowPos, belowBlock, fluid);
 }
 
 bool FlowingFluid::canFlowInto(IWorld& world,
@@ -776,7 +780,9 @@ bool FlowingFluid::canFlowInto(IWorld& world,
     const Fluid& fluidIn) const
 {
     if (!isSameSource(toFluid) && doesSideHaveHoles(dir, world, fromPos, fromBlock, toPos, toBlock)) {
-        return isBlocked(world, toPos, toBlock, fluidIn);
+        // isBlocked() 返回 true 表示方块阻挡流体（不可被替换），因此"可流入"需取反。
+        // 对应 MC Java FlowingFluid#canMaybePassThrough -> canHoldAnyFluid。
+        return !isBlocked(world, toPos, toBlock, fluidIn);
     }
     return false;
 }

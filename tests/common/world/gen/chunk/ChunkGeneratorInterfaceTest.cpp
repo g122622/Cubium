@@ -249,11 +249,18 @@ TEST_F(BaseChunkGeneratorTest, ChunkStep_LightWriteRadius)
 {
     // LIGHT 步骤的写入半径应为 2：光照在 LIGHT 阶段于 worker 线程执行，
     // 经 WorldLightManager::lightChunk 写半径2邻居的 nibble，走 m_radiusAwareExecutor（5×5 写区互斥）。
-    // neighbourReadRadius 仍为 1（accumulatedRadius），半径2邻居经 ChunkLightingProvider fallback 自取。
+    //
+    // neighbourReadRadius：ChunkStep::neighbourReadRadius() 返回 accumulatedRadius()，
+    // 即所有前序步骤累积依赖的最大半径（对齐 Moonrise 的 neighbourReadRadius =
+    // getAccumulatedRadiusOf(EMPTY)，主世界中 EMPTY 为最外圈状态）。LIGHT 继承
+    // STRUCTURE_REFERENCES 的 radius-8 STRUCTURE_STARTS 依赖及其前序偏移，累积到 11
+    // （与 FULL 的 accumulatedRadius=11 一致，见 ChunkTaskScheduler 注释）。半径2邻居
+    // 经 ChunkLightingProvider fallback 到 ServerWorld::getChunkForLight 自取，不影响此值。
     const ChunkStep& step = ChunkPyramid::generationPyramid().getStepTo(ChunkStatuses::LIGHT);
     EXPECT_EQ(step.blockStateWriteRadius(), 2);
-    // 邻居读取半径仍为 1（直接依赖仅 INITIALIZE_LIGHT(1)）
-    EXPECT_EQ(step.neighbourReadRadius(), 1);
+    EXPECT_EQ(step.neighbourReadRadius(), 11);
+    // 直接依赖半径（directRadius）才是 1：LIGHT 仅直接要求 INITIALIZE_LIGHT 半径1
+    EXPECT_EQ(step.directRadius(), 1);
 }
 
 TEST_F(BaseChunkGeneratorTest, ChunkStep_EmptyWriteRadius)

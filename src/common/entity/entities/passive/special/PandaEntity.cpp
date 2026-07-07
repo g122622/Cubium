@@ -211,6 +211,11 @@ std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner)
     // 设置位置
     baby->setPosition(x(), y(), z());
 
+    // 先把父方世界挂给幼体，inheritGenesFromParents 需 m_world->getRandom()；
+    // 否则 m_world==nullptr 时会提前返回，幼体保留构造时 randomizePersonality 的随机基因，
+    // 基因遗传失效（对齐 MC 1.21.11 Panda.getBreedOffspring：create 传入 ServerLevel 使子代有世界）。
+    baby->setWorld(world());
+
     // 遗传基因
     PandaEntity* parent = dynamic_cast<PandaEntity*>(&partner);
     baby->inheritGenesFromParents(this, parent);

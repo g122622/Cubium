@@ -126,12 +126,13 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight)
     engine.light(&provider, &chunk, false);
 
     // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
-    // Y=69 在 section 4 (Y=64-79)
-    // LIGHT_SECTIONS = 18, 索引 0 对应 section -1, 索引 i 对应 section (i-1)
-    // Section 4 在 LIGHT_SECTIONS 数组中的索引是 4 - (-1) = 5
+    // 主世界 MIN_BUILD_HEIGHT=-64 → m_minSection=-4 → m_minLightSection=-5。
+    // Starlight nibble 数组按光照段坐标索引：nibbles[sectionY - m_minLightSection]。
+    // Y=69 在 section 4 (Y=64-79)，nibble 索引 = 4 - (-5) = 9。
+    // （历史 bug：旧用例写作 nibbles[5]，对应 m_minLightSection=-1 的下界(minY=0)维度，对主世界错误。）
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[9]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     // 检查状态
@@ -201,11 +202,10 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15)
     engine.light(&provider, &chunk, false);
 
     // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
-    // Y=78 在 section 4 (Y=64-79)，在 LIGHT_SECTIONS 数组中索引为 5 (section 4 + 1)
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    // Section 4 在 LIGHT_SECTIONS 数组中的索引是 4 - minLightSection(-1) + 1 = 5
-    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[9]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     // 读取 (8, 78, 8) 位置的光照值
@@ -241,9 +241,10 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight)
     engine.light(&provider, &chunk, false);
 
     // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[9]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     mc::u8 before = nibble->getUpdating(8, 14, 8); // Y=78 -> localY=14
@@ -280,9 +281,10 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock)
     engine.light(&provider, &chunk, false);
 
     // 从 ChunkData 的 SWMRNibbleArray 读取光照数据
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getSkyNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5]; // section 4
+    mc::SWMRNibbleArray* nibble = nibbles[9]; // section 4
     ASSERT_NE(nibble, nullptr);
 
     // Y=69 -> localY=5

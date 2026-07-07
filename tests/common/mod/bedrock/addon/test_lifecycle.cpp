@@ -316,11 +316,12 @@ TEST(ScriptManagerTest, ExecutePendingJobsRunsQueuedPromiseCallbacks)
     auto context = manager.engine().runtime().createContext(config);
     ASSERT_NE(context, nullptr);
 
+    // 使用 function 表达式而非箭头函数，避免不同 QuickJS 构建对箭头函数解析差异的影响。
     auto result = context->evaluate("globalThis.__jobRan = 0;"
-                                    "Promise.resolve().then(() => { globalThis.__jobRan = 1; });",
+                                    "Promise.resolve().then(function() { globalThis.__jobRan = 1; });",
         "<pending-job>",
         EvalFlags::Global);
-    ASSERT_TRUE(result.success());
+    ASSERT_TRUE(result.success()) << "evaluate failed: " << result.errorMessage();
     EXPECT_TRUE(manager.engine().runtime().hasPendingJobs());
 
     manager.executePendingJobs();

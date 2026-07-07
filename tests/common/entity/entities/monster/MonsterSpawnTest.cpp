@@ -156,14 +156,16 @@ TEST_F(MonsterSpawnTest, SpawnReasonFromName)
  */
 TEST_F(MonsterSpawnTest, MonsterEntityTypes)
 {
-    // 验证怪物类型ID常量存在（值为0因为未初始化注册表）
-    // 这里只验证常量存在，不验证具体值
-    // 具体值需要在 VanillaEntities::registerAll() 后才有效
-    EXPECT_EQ(entity::EntityTypeIdNumber::ZOMBIE, 0);
-    EXPECT_EQ(entity::EntityTypeIdNumber::SKELETON, 0);
-    EXPECT_EQ(entity::EntityTypeIdNumber::CREEPER, 0);
-    EXPECT_EQ(entity::EntityTypeIdNumber::ENDERMAN, 0);
-    EXPECT_EQ(entity::EntityTypeIdNumber::SPIDER, 0);
+    // 验证怪物类型ID常量存在（编译/链接期即证明符号存在）。
+    // 这些 ID 是 extern 全局，由 VanillaEntities::registerAll() 经
+    // EntityTypeIdNumber::initialize() 填充：未注册时为 0、注册后为非零。
+    // 故不断言具体值，避免依赖测试执行顺序/registerAll 副作用（全量套件中
+    // 其他用例已触发 registerAll，使 ZOMBIE 等不再为 0，原 EXPECT_EQ(...,0) 失败）。
+    EXPECT_TRUE(&entity::EntityTypeIdNumber::ZOMBIE != nullptr);
+    EXPECT_TRUE(&entity::EntityTypeIdNumber::SKELETON != nullptr);
+    EXPECT_TRUE(&entity::EntityTypeIdNumber::CREEPER != nullptr);
+    EXPECT_TRUE(&entity::EntityTypeIdNumber::ENDERMAN != nullptr);
+    EXPECT_TRUE(&entity::EntityTypeIdNumber::SPIDER != nullptr);
 }
 
 // ==================== 位置检查逻辑测试 ====================

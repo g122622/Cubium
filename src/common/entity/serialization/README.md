@@ -114,6 +114,16 @@ if (result.success()) {
 }
 ```
 
+**坑：主实体 id 与 INVALID_ENTITY_ID 冲突。** `INVALID_ENTITY_ID == 0`，而主实体在
+`deserialize` 返回时尚未 spawn 进世界，其 `id()` 仍为构造时的 0。乘客会先 spawn（由 world
+分配非零 id）再 `startRiding(*entity)`，因此乘客的 `m_vehicle` 被记为 `vehicle.id() == 0`。
+
+- `Entity::startRiding` 已针对此情形做了容错（step1 改用对象地址比较判自骑、step2 加
+  `isRiding()` 前置判重），故 deserialize 阶段能成功挂载乘客。
+- 但调用方在 spawn 主实体、由 world 分配真实 id 后，**必须同步刷新所有乘客的 `m_vehicle`
+  指向新 id**，否则骑乘关系会失效。当前调用方尚未做此刷新——这是一个已知的生产缺陷
+  （见 `EntityDeserializer.cpp` 中 `TODO(vehicle-id-lifecycle)`），留待后续修复。
+
 ### 3. 压缩格式
 
 ```cpp

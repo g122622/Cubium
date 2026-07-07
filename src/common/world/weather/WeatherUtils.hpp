@@ -81,7 +81,8 @@ namespace WeatherUtils {
 /**
  * @brief 判断位置是否可以降雨
  *
- * 需要满足：可以看到天空 + 生物群系允许降水 + 高度调整温度 >= 0.15
+ * 需要满足：可以看到天空 + 上方无运动阻挡方块（MOTION_BLOCKING 高度图）
+ * + 生物群系允许降水 + 高度调整温度 >= 0.15
  * 使用 Biome::getHeightAdjustedTemperature() 替代基础温度，
  * 以正确处理高海拔降温效果（MC 1.21.11 对齐）。
  *
@@ -94,7 +95,8 @@ namespace WeatherUtils {
 /**
  * @brief 判断位置是否可以降雪
  *
- * 需要满足：可以看到天空 + 生物群系允许降水 + 高度调整温度 < 0.15
+ * 需要满足：可以看到天空 + 上方无运动阻挡方块（MOTION_BLOCKING 高度图）
+ * + 生物群系允许降水 + 高度调整温度 < 0.15
  * 使用 Biome::getHeightAdjustedTemperature() 替代基础温度，
  * 以正确处理高海拔降温效果（MC 1.21.11 对齐）。
  *

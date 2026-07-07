@@ -442,6 +442,12 @@ TEST(BrainActivityTest, HasActivity)
     Brain<MockTestEntity> brain;
     brain.setDefaultActivities({schedule::Activity::IDLE});
 
+    // 默认活动只有在 Brain 经过一次活动初始化后才生效。
+    // 对齐 MC Java Brain：activeActivities 初始为空，需 setActiveActivity/useDefaultActivity
+    // 才会把 coreActivities(默认活动) 注入 activeActivities。
+    // Cubium 中通过 clear() 将默认活动注入 m_activities。
+    brain.clear();
+
     // Initially should have the default activity
     EXPECT_TRUE(brain.hasActivity(schedule::Activity::IDLE));
 }

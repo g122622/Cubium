@@ -24,6 +24,7 @@
 #include "FishingRodItem.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -92,6 +93,7 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
 
         // 创建浮标实体
         auto bobber = std::make_unique<entity::FishingBobberEntity>(EntityId(0));
+        bobber->setTypeId(entity::EntityTypes::FISHING_BOBBER);
         bobber->setWorld(&world);
         bobber->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
         bobber->setShooter(&player);

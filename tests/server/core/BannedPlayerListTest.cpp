@@ -241,7 +241,7 @@ TEST_F(BannedPlayerListTest, SaveAndLoad)
         banList.addEntry(
             BannedPlayerEntry("uuid-1", "Player1", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "Griefing"));
         banList.addEntry(BannedPlayerEntry(
-            "uuid-2", "Player2", "2024-01-15 11:00:00 +0800", "Admin2", "2024-02-15 00:00:00 +0800", "Temporary ban"));
+            "uuid-2", "Player2", "2024-01-15 11:00:00 +0800", "Admin2", "2099-12-31 23:59:59 +0800", "Temporary ban"));
         banList.addEntry(
             BannedPlayerEntry("uuid-3", "Player3", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Hacking"));
 

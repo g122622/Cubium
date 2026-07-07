@@ -190,7 +190,7 @@ TEST_F(BannedIpListTest, SaveAndLoad)
         banList.addEntry(
             BannedIpEntry("192.168.1.100", "2024-01-15 10:00:00 +0800", "Admin1", "forever", "DDoS attack"));
         banList.addEntry(BannedIpEntry(
-            "192.168.1.101", "2024-01-15 11:00:00 +0800", "Admin2", "2024-02-15 00:00:00 +0800", "Temporary ban"));
+            "192.168.1.101", "2024-01-15 11:00:00 +0800", "Admin2", "2099-12-31 23:59:59 +0800", "Temporary ban"));
         banList.addEntry(BannedIpEntry("10.0.0.50", "2024-01-15 12:00:00 +0800", "Admin3", "forever", "Spam"));
 
         auto result = banList.save(testFile_);

@@ -80,13 +80,12 @@ public:
     /**
      * @brief 设置新值
      *
-     * 如果新值与当前值不同，将通知所有观察者
+     * 如果新值与当前值不同，将通知所有观察者。
+     * 观察者内部再次调用 set() 是允许的（递归通知）：_notify 会在通知前
+     * 复制观察者列表，并使用 m_notifyDepth 计数防止无限自递归。
      */
     void set(const T& newValue)
     {
-        if (m_notifying) {
-            return; // 防止观察者中递归调用set
-        }
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = newValue;
@@ -99,9 +98,6 @@ public:
      */
     void set(T&& newValue)
     {
-        if (m_notifying) {
-            return; // 防止观察者中递归调用set
-        }
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = std::move(newValue);
@@ -192,22 +188,33 @@ public:
 private:
     /**
      * @brief 通知所有观察者
+     *
+     * 在通知前复制观察者列表，避免迭代期间 observe/removeObserver 造成的迭代器失效。
+     * 使用 m_notifyDepth 深度计数而非布尔标志，允许观察者在通知过程中触发新的 set()
+     * （递归通知），同时为直接自递归提供深度上限保护。
      */
     void _notify(const T& oldValue, const T& newValue)
     {
-        m_notifying = true;
+        // 直接自递归保护：限制递归深度，避免观察者无限制地触发自身。
+        // 允许有限层级的递归通知（如 ObserverModificationDuringNotification 用例：
+        // 观察者 A 在收到 newVal==10 时再 set(20)，应触发新一轮通知）。
+        if (m_notifyDepth >= 2) {
+            return;
+        }
+
+        ++m_notifyDepth;
         // 复制观察者列表以避免迭代时修改
         auto observers = m_observers;
         for (const auto& pair : observers) {
             pair.second(oldValue, newValue);
         }
-        m_notifying = false;
+        --m_notifyDepth;
     }
 
     T m_value;
     std::vector<std::pair<ObserverId, Observer>> m_observers;
     ObserverId m_nextObserverId = 1;
-    bool m_notifying = false; ///< 防止递归通知的标志
+    u32 m_notifyDepth = 0; ///< 通知递归深度（替代原 m_notifying 布尔）
 };
 
 /**

@@ -294,13 +294,14 @@ void PigEntity::setEquipment(i32 slot, const ItemStack& item)
 
 bool PigEntity::canEquip(const ItemStack& item, i32 slot) const
 {
-    if (item.isEmpty()) {
-        return true; // 可以清空槽位
-    }
-
-    // 猪只能装备鞍，且只有槽位0
+    // 槽位边界检查先于物品判断：猪只有槽位 0
     if (slot != 0) {
         return false;
+    }
+
+    // 空物品可以清空槽位
+    if (item.isEmpty()) {
+        return true;
     }
 
     // 检查是否是鞍物品

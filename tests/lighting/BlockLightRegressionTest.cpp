@@ -122,9 +122,14 @@ TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors)
 
     lightManager.lightChunk(&chunk, false);
 
+    // Starlight nibble 数组按"光照段坐标"索引：nibbles[sectionY - m_minLightSection]。
+    // 主世界 MIN_BUILD_HEIGHT=-64 → m_minSection=-4 → m_minLightSection=-5。
+    // 方块 Y=70 → sectionY = 70>>4 = 4 → nibble 索引 = 4 - (-5) = 9。
+    // （历史 bug：旧用例写作 nibbles[5]，对应 m_minLightSection=-1 的下界(minY=0)维度，
+    //  对主世界错误，读到未初始化段返回 0。）
     auto* nibbles = chunk.getBlockNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];
+    mc::SWMRNibbleArray* nibble = nibbles[9];
     ASSERT_NE(nibble, nullptr);
 
     const mc::u8 source = nibble->getUpdating(8, 70 - 64, 8);
@@ -159,9 +164,10 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells)
 
     lightManager.lightChunk(&chunk, false);
 
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];
+    mc::SWMRNibbleArray* nibble = nibbles[9];
     ASSERT_NE(nibble, nullptr);
 
     mc::u8 before = nibble->getUpdating(9, 70 - 64, 8);
@@ -199,9 +205,10 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight)
 
     lightManager.lightChunk(&chunk, false);
 
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];
+    mc::SWMRNibbleArray* nibble = nibbles[9];
     ASSERT_NE(nibble, nullptr);
 
     const mc::u8 before = nibble->getUpdating(10, 70 - 64, 8);
@@ -238,9 +245,10 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight)
 
     lightManager.lightChunk(&chunk, false);
 
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];
+    mc::SWMRNibbleArray* nibble = nibbles[9];
     ASSERT_NE(nibble, nullptr);
 
     const mc::u8 blocked = nibble->getUpdating(10, 70 - 64, 8);
@@ -272,9 +280,10 @@ TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation)
 
     lightManager.lightChunk(&chunk, false);
 
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];
+    mc::SWMRNibbleArray* nibble = nibbles[9];
     ASSERT_NE(nibble, nullptr);
 
     const mc::u8 east = nibble->getUpdating(9, 70 - 64, 8);
@@ -300,9 +309,10 @@ TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock)
 
     lightManager.lightChunk(&chunk, false);
 
+    // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
     ASSERT_NE(nibbles, nullptr);
-    mc::SWMRNibbleArray* nibble = nibbles[5];
+    mc::SWMRNibbleArray* nibble = nibbles[9];
     ASSERT_NE(nibble, nullptr);
 
     const mc::u8 east = nibble->getUpdating(9, 70 - 64, 8);

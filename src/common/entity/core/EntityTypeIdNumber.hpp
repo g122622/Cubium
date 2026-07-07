@@ -232,6 +232,16 @@ extern EntityTypeId LEASH_KNOT;
  */
 void initialize();
 
+/**
+ * @brief 将所有缓存的实体类型 ID 重置为 0（未初始化）。
+ *
+ * 与 initialize() 配对，由 EntityRegistry::clear() 调用以保证"注册表空 ⇔
+ * ID 缓存全 0"的不变量。否则 clear() 仅清空注册表容器，而本命名空间的
+ * extern 变量（如 ITEM=77）仍保留旧值，导致后续测试中 typeId()==0 与
+ * EntityTypeIdNumber::ITEM=旧值 比较失败（测试顺序污染）。
+ */
+void reset();
+
 } // namespace EntityTypeIdNumber
 
 } // namespace entity

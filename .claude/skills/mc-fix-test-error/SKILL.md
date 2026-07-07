@@ -6,7 +6,7 @@ description: 运行测试，认领并收敛项目代码中的一个测试错误
 ## 任务简介
 
 ```bash
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_break_on_failure 2>&1
+./build/bin/RelWithDebInfo/mc_tests.exe --gtest_break_on_failure 2>&1 | tail -70
 ```
 
 运行测试（通过命令行参数，让测试套件遇到第一个测试失败就停下来），认领并收敛项目代码中的一个测试错误。项目中的测试错误产生原因多种多样，可能是因为：

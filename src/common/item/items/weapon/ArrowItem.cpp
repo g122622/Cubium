@@ -21,6 +21,7 @@
  */
 
 #include "ArrowItem.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -83,6 +84,7 @@ std::unique_ptr<entity::ProjectileEntity> ArrowItem::asProjectile(IWorld& world,
         if (arrow) {
             arrow->setPickupStatus(entity::PickupStatus::Allowed);
         }
+        entity->setTypeId(entity::EntityTypes::ARROW);
     }
     // ArrowEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
     return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));

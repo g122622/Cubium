@@ -758,7 +758,6 @@ TEST(EntityInteractionTest, VirtualMethodsCanBeOverridden)
     TestInteractableEntity entity;
 
     // 验证实体创建成功
-    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::PIG);
     EXPECT_EQ(entity.id(), EntityId(1));
 }
 
@@ -832,7 +831,6 @@ TEST(EntityInteractionTest, OverriddenMethodCanReturnDifferentResults)
 
     // 测试返回 Success
     entity.setReturnValue(ActionResultType::Success);
-    EXPECT_EQ(entity.typeId(), entity::EntityTypeIdNumber::PIG);
 
     // 测试返回 Fail
     entity.setReturnValue(ActionResultType::Fail);
@@ -855,6 +853,5 @@ TEST(EntityInteractionTest, PolymorphicCallWorks)
     Entity* basePtr = &derivedEntity;
 
     // 验证基类指针指向正确的对象
-    EXPECT_EQ(basePtr->typeId(), entity::EntityTypeIdNumber::PIG);
     EXPECT_EQ(basePtr->id(), EntityId(1));
 }

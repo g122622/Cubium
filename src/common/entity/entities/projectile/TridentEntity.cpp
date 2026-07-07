@@ -29,6 +29,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../core/EntityRegistry.hpp"
 #include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
@@ -252,6 +253,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
             if (isThundering && canSeeSky) {
                 // 创建闪电实体
                 auto lightning = std::make_unique<entity::LightningBoltEntity>();
+                lightning->setTypeId(EntityTypes::LIGHTNING_BOLT);
                 lightning->setPosition(target->x(), target->y(), target->z());
 
                 // 设置触发者

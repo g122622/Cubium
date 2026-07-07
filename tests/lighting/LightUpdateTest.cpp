@@ -38,7 +38,6 @@
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
-
 using namespace mc::network;
 using namespace mc;
 
@@ -413,13 +412,21 @@ protected:
         // 创建测试区块
         chunk = std::make_unique<ChunkData>(0, 0);
 
-        // 创建区块段
-        ChunkSection* section = chunk->createSection(0);
+        // 创建区块段。
+        // 注意: 主世界 MIN_BUILD_HEIGHT=-64，世界Y与段索引的对应关系为
+        //   sectionIndex = (worldY - MIN_BUILD_HEIGHT) / 16
+        // 世界Y=0..15 落在段索引 4（而非 0）。本测试用例统一在段索引 4 上
+        // 设置/读取光照，使 getSkyLight(0, worldY, 0) 能命中被写入的段。
+        // （历史 bug：旧用例误用段索引 0，对应世界Y=-64..-49，与读取坐标不匹配，
+        //  导致 getSkyLight 命中未创建段而返回默认值 15。）
+        constexpr i32 kSectionIndex = 4;
+        ChunkSection* section = chunk->createSection(kSectionIndex);
 
         // 设置光照
         // 注意: localY=0 是区块段底部，localY=15 是区块段顶部
         // 设置值: y=0 -> 光照=15 (底部最亮), y=15 -> 光照=0 (顶部最暗)
         // 这与真实光照相反，但用于测试存储功能
+        // 段索引 4 对应世界Y=0..15，故 localY==worldY（在此段内）
         NibbleArray& skyLight = section->skyLightNibble();
         NibbleArray& blockLight = section->blockLightNibble();
 
@@ -441,9 +448,10 @@ protected:
 TEST_F(ChunkDataLightTest, GetSkyLight)
 {
     // 验证区块光照存储正确
-    // 设置的是 15-y, 所以:
-    // y=0 -> 光照=15 (底部)
-    // y=15 -> 光照=0 (顶部)
+    // SetUp 在段索引 4（世界Y=0..15）上设置 15-y，故：
+    // worldY=0 -> localY=0 -> 光照=15 (底部)
+    // worldY=1 -> localY=1 -> 光照=14
+    // worldY=15 -> localY=15 -> 光照=0 (顶部)
     EXPECT_EQ(chunk->getSkyLight(0, 0, 0), 15); // 底层 (localY=0)
     EXPECT_EQ(chunk->getSkyLight(0, 1, 0), 14); // y=1 -> 15-1=14
     EXPECT_EQ(chunk->getSkyLight(0, 15, 0), 0); // 顶层 (localY=15)
@@ -475,7 +483,8 @@ TEST_F(ChunkDataLightTest, SetSkyLight)
 TEST_F(ChunkDataLightTest, SkyLightNibbleArrayDirectAccess)
 {
     // 测试直接访问 NibbleArray
-    ChunkSection* section = chunk->getSection(0);
+    // 段索引 4 对应世界Y=0..15，与 getSkyLight(worldY) 读取的段一致
+    ChunkSection* section = chunk->getSection(4);
     ASSERT_NE(section, nullptr);
 
     NibbleArray& skyLight = section->skyLightNibble();
@@ -491,7 +500,8 @@ TEST_F(ChunkDataLightTest, SkyLightNibbleArrayDirectAccess)
 TEST_F(ChunkDataLightTest, BlockLightNibbleArrayDirectAccess)
 {
     // 测试直接访问 NibbleArray
-    ChunkSection* section = chunk->getSection(0);
+    // 段索引 4 对应世界Y=0..15，与 getBlockLight(worldY) 读取的段一致
+    ChunkSection* section = chunk->getSection(4);
     ASSERT_NE(section, nullptr);
 
     NibbleArray& blockLight = section->blockLightNibble();

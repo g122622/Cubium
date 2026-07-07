@@ -22,6 +22,7 @@
  */
 
 #include "CrossbowItem.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -325,6 +326,7 @@ void CrossbowItem::_fireProjectiles(
         if (item == Items::FIREWORK_ROCKET) {
             // 创建烟花火箭实体
             auto firework = std::make_unique<entity::FireworkRocketEntity>(EntityId(0));
+            firework->setTypeId(entity::EntityTypes::FIREWORK_ROCKET);
             firework->setWorld(&world);
             firework->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.15f, shooter.z());
             firework->setShooter(&shooter);

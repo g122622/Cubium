@@ -24,15 +24,120 @@
 #include <gtest/gtest.h>
 
 #include "common/BaseTestServer.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/gen/RandomState.hpp"
+#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 namespace mc::command {
 namespace {
+
+// 测试服务器所需的服务端类型位于 mc::server 命名空间，此处引入以便在
+// mc::command 命名空间内直接引用（与 EntityResolverTest.cpp 的 using namespace
+// mc::server 等价，但作用域更窄）。
+using mc::ServerDimension;
+using mc::ServerDimensionManager;
+using mc::server::ServerChunkManager;
+using mc::server::ServerPlayerEntityManager;
+using mc::server::ServerWorld;
+using mc::server::ServerWorldConfig;
+
 class FakeServer final : public test::BaseTestServer {
 public:
-    FakeServer() { Items::initialize(); }
+    FakeServer()
+        : BaseTestServer()
+        , m_playerEntityManager()
+    {
+        // 初始化方块和物品注册表（createTestWorld 依赖方块注册表）
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        // 创建测试世界
+        ServerWorldConfig config;
+        config.viewDistance = 10;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto worldRaw = createTestWorld(config);
+        m_world = worldRaw.get(); // 保存裸指针（在 move 之前）
+
+        // 创建维度并关联测试世界
+        auto dimension = std::make_unique<ServerDimension>(0, // DimensionId::OVERWORLD
+            DimensionType::overworld(),
+            nullptr, // 无区块生成器（维度仅作为世界容器）
+            12345,   // seed
+            10       // viewDistance
+        );
+        dimension->setWorld(std::move(worldRaw));
+        m_dimension = dimension.get();
+        bool registered = m_dimensionManager.registerDimension(std::move(dimension));
+        (void)registered;
+    }
+
+    ~FakeServer() override = default;
+
+    // 覆盖 dimensionManager，返回包含测试世界的维度管理器
+    // 注意：DimensionManager 是 ServerDimensionManager 的基类，
+    // 我们将 DimensionManager reinterpret_cast 为 ServerDimensionManager，
+    // 因为 ServerDimensionManager::getDimension() 仅调用基类 DimensionManager::getDimension()
+    // 然后做 static_cast，在我们的测试场景中是安全的。
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override
+    {
+        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+    }
+
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
+    {
+        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+    }
+
+    // 覆盖 playerEntityManager，返回测试用实体管理器
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_playerEntityManager;
+    }
+
+    // 覆盖 getPlayerWorld，返回测试世界
+    [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId) override { return m_world; }
+
+    // 获取测试世界（供测试用例生成实体等使用）
+    [[nodiscard]] ServerWorld* world() const { return m_world; }
+
+    /**
+     * @brief 在测试世界中生成一个 id 等于 playerId 的 ServerPlayer 实体。
+     *
+     * SpectateCommand 会通过 `world->getEntity(static_cast<EntityId>(spectatorId))`
+     * 查找旁观者实体，并要求该实体能 dynamic_cast 为 ServerPlayer。addTestPlayer
+     * 仅在 PlayerManager 注册玩家数据，不会在世界中创建实体，因此旁观相关测试需要
+     * 额外调用本方法补足实体。
+     *
+     * @param playerId 玩家 ID，同时作为实体 ID（与 SpectateCommand 的查找键一致）。
+     * @param username 玩家名。
+     * @return 生成的 ServerPlayer 指针；生成失败返回 nullptr。
+     */
+    ServerPlayer* spawnTestPlayerEntity(PlayerId playerId, const std::string& username)
+    {
+        auto player = std::make_unique<ServerPlayer>(static_cast<EntityId>(playerId), username);
+        player->setPlayerId(playerId);
+        auto* raw = player.get();
+        m_world->spawnEntity(std::move(player));
+        return raw;
+    }
 
     void broadcastParticleInRange(u32 type,
         f64 x,
@@ -82,6 +187,25 @@ public:
     using test::BaseTestServer::stopRequested;
 
 private:
+    // 构造测试世界：创建带噪声区块生成器的 ServerWorld
+    static std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
+    {
+        auto world = std::make_unique<ServerWorld>(config);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
+        return world;
+    }
+
+    DimensionManager m_dimensionManager;
+    ServerDimension* m_dimension = nullptr;
+    ServerPlayerEntityManager m_playerEntityManager;
+    ServerWorld* m_world = nullptr;
+
     bool m_particleBroadcastCalled = false;
     u32 m_lastParticleType = 0;
     f64 m_lastParticleX = 0.0;
@@ -516,10 +640,24 @@ TEST_F(CommandRegistryServerTest, SpectateCommandAcceptsSpectatorGameMode)
     ASSERT_NE(steve, nullptr);
     steve->gameMode = GameMode::Spectator; // 设置为观察者模式
 
+    // SpectateCommand._startSpectating 通过 world->getEntity(playerId) 查找旁观者实体
+    // 并 dynamic_cast 为 ServerPlayer，因此需要生成 id==playerId 的 ServerPlayer 实体。
+    // 注意：不能同时用 playerEntityManager().createPlayerEntity 注册第二个玩家作为目标——
+    // EntityManager::allocateId 会从 1 开始自增，与手动指定的 id==1 实体冲突并覆盖。
+    // 因此旁观目标也以显式 EntityId 生成（此处使用 1000 避免冲突）。
+    auto* steveEntity = m_server.spawnTestPlayerEntity(1, "Steve");
+    ASSERT_NE(steveEntity, nullptr);
+
+    // 生成旁观目标实体（普通 Player 即可，SpectateCommand 仅要求目标是 Entity*）。
+    // 使用 @e[name=Alex,limit=1] 按名称选中目标，避免 “Cannot spectate yourself”。
+    auto targetEntity = std::make_unique<Player>(EntityId(1000), "Alex");
+    targetEntity->setPosition(5.0f, 64.0f, 0.0f);
+    m_server.world()->spawnEntity(std::move(targetEntity));
+
     auto playerSource = makePlayerSource(1, "Steve");
 
-    // 执行 spectate 命令（目标为自己作为测试）
-    const auto result = m_server.commandRegistry().execute("spectate @p", playerSource);
+    // 执行 spectate 命令，目标为按名称选中的 Alex 实体
+    const auto result = m_server.commandRegistry().execute("spectate @e[name=Alex,limit=1]", playerSource);
 
     // 命令执行成功
     EXPECT_TRUE(result.success());
@@ -564,6 +702,11 @@ TEST_F(CommandRegistryServerTest, SpectateCommandStopWorksForAnyGameMode)
     auto* steve = m_server.addTestPlayer(1, "Steve");
     ASSERT_NE(steve, nullptr);
     steve->gameMode = GameMode::Survival;
+
+    // SpectateCommand._stopSpectating 会通过 world->getEntity(playerId) 查找实体并
+    // dynamic_cast 为 ServerPlayer，因此需要在测试世界中生成对应实体。
+    auto* steveEntity = m_server.spawnTestPlayerEntity(1, "Steve");
+    ASSERT_NE(steveEntity, nullptr);
 
     auto playerSource = makePlayerSource(1, "Steve");
 

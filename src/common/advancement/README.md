@@ -157,7 +157,7 @@ advancement/
 
 12. **无 display 成就的 anyChildDone 行为**：当无 display 的成就有已完成子成就时，`anyChildDone = true` 会在算法层面将其标记为"可见"。这与 MC Java 一致，客户端/UI 层负责过滤不渲染无 display 的成就。
 
-13. **数据包目录名兼容**：`AdvancementLoader` 同时支持 MC 1.21+ 的单数目录名 `advancement/` 和 MC 1.16.5 的复数目录名 `advancements/`，`loadFromDataPackRepository` 和 `pathToAdvancementId` 均可处理两种格式。
+13. **数据包目录名兼容**：`AdvancementLoader` 同时支持 MC 1.21+ 的单数目录名 `advancement/` 和 MC 1.16.5 的复数目录名 `advancements/`，`loadFromDataPackRepository` 和 `pathToAdvancementId` 均可处理两种格式。`pathToAdvancementId` 同时支持两种路径形式：含 `data/` 前缀（`data/minecraft/advancements/...`）和相对于 `data/` 根（`minecraft/advancements/...`，后者是 `DataPackRepository::listResources` 返回的形式）。
 
 14. **服务器启动加载**：`MinecraftServer::initializeRegistries()` 会在启动时通过 `AdvancementLoader::loadFromDataPackRepository()` 从数据包加载进度。`/reload` 命令也会重新加载进度。
 

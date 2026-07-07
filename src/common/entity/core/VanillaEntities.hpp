@@ -133,11 +133,25 @@ public:
      * @brief 注册所有原版实体类型
      *
      * 包括动物、怪物和其他实体类型。
-     * 此方法线程安全，可以安全地多次调用，后续调用将被忽略。
+     * 此方法线程安全且幂等：若注册表已包含原版实体（如 minecraft:pig）则跳过；
+     * 若注册表被清空（例如测试中调用了 EntityRegistry::clear()）则重新注册。
+     * 必须在服务器启动时或客户端初始化时调用。
      */
     static void registerAll()
     {
-        std::call_once(s_onceFlag, []() { doRegisterAll(); });
+        auto& registry = EntityRegistry::instance();
+        // 以 minecraft:pig 作为哨兵：若已注册则认为原版实体已就绪，直接跳过。
+        // 这样在测试中调用 EntityRegistry::clear() 后，下一次 registerAll() 能重新填充注册表，
+        // 避免共享单例被某个测试清空后污染后续测试。
+        if (registry.hasType(EntityTypes::PIG)) {
+            return;
+        }
+        std::lock_guard<std::mutex> lock(s_registerMutex);
+        // 双检锁：拿到锁后再次确认，防止并发调用重复注册。
+        if (registry.hasType(EntityTypes::PIG)) {
+            return;
+        }
+        doRegisterAll();
     }
 
     /**
@@ -161,7 +175,8 @@ public:
     }
 
 private:
-    static inline std::once_flag s_onceFlag;
+    // 保护 doRegisterAll 的互斥锁，配合 hasType 哨兵检查实现幂等可重入注册。
+    static inline std::mutex s_registerMutex;
 
     static void doRegisterAll()
     {

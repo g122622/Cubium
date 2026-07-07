@@ -24,6 +24,7 @@
 #include "VillagerGoalUtils.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -123,6 +124,9 @@ bool throwHalfStackToTarget(VillagerEntity* villager,
 
             // 生成物品实体
             auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), throwStack, spawnX, spawnY, spawnZ, vx, vy, vz);
+
+            // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+            itemEntity->setTypeId(EntityTypes::ITEM);
 
             // 设置拾取延迟（防止村民立即捡回自己扔出的物品）
             static constexpr i32 ITEM_THROW_PICKUP_DELAY = 40; // 2秒

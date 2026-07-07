@@ -120,6 +120,12 @@ void LandOnOwnersShoulderGoal::tick()
         return;
     }
 
+    // 没有主人时无法落肩。正常情况下 shouldExecute() 会先填充 m_owner，
+    // 但 Goal 系统或测试可能在异常状态下直接调用 tick()，此处需判空避免空指针解引用。
+    if (m_owner == nullptr) {
+        return;
+    }
+
     // 检查是否被命令坐下
     if (m_entity->isSitting()) {
         return;

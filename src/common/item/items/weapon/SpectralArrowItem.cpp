@@ -22,6 +22,7 @@
  */
 
 #include "SpectralArrowItem.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/world/IWorld.hpp"
@@ -69,6 +70,7 @@ std::unique_ptr<entity::ProjectileEntity> SpectralArrowItem::asProjectile(IWorld
 {
     auto entity = entity::SpectralArrowEntity::create(&world);
     if (entity) {
+        entity->setTypeId(entity::EntityTypes::SPECTRAL_ARROW);
         entity->setPosition(position.x, position.y, position.z);
         auto* arrow = dynamic_cast<entity::SpectralArrowEntity*>(entity.get());
         if (arrow) {

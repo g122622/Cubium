@@ -19,6 +19,7 @@
 
 #include "OminousItemSpawnerEntity.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -197,6 +198,9 @@ void OminousItemSpawnerEntity::spawnItem()
         // 普通物品：创建物品实体自然掉落
         auto itemEntity = std::make_unique<ItemEntity>(
             EntityId(0), itemStack, static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
+
+        // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
+        itemEntity->setTypeId(EntityTypes::ITEM);
 
         ItemEntity* rawPtr = itemEntity.get();
         EntityId entityId = m_world->spawnEntity(std::move(itemEntity));

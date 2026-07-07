@@ -66,11 +66,13 @@ public:
     /**
      * @brief 获取指定位置的总密度
      *
-     * 计算公式：sum(charge / sqrt(distance))
+     * 计算公式：sum(charge / sqrt(distSq)) * multiplier。
+     * 当某个点电荷与查询位置重合（distSq==0）时返回无穷大，
+     * 以阻止在已存在实体的精确位置上堆叠生成。
      *
      * @param pos 目标位置
-     * @param multiplier 密度乘数（实体的 charge 值）
-     * @return 总密度值
+     * @param multiplier 密度乘数（待生成实体的 charge 值）
+     * @return 总密度值；重合时为正无穷
      */
     [[nodiscard]] f64 getTotalCharge(const Vector3& pos, f64 multiplier) const;
 

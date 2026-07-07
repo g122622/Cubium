@@ -86,16 +86,21 @@ Result<Advancement> Advancement::fromJson(const ResourceLocation& id, const nloh
         rewards = std::move(rewardsResult.value());
     }
 
-    // 解析条件
+    // 解析条件（criteria 是必需字段，且不能为空）
+    if (!json.contains("criteria") || !json["criteria"].is_object()) {
+        return Error(
+            ErrorCode::ResourceParseError, "Advancement '" + id.toString() + "' missing required field: criteria");
+    }
     std::map<std::string, Criterion> criteria;
-    if (json.contains("criteria") && json["criteria"].is_object()) {
-        for (const auto& [name, criterionJson] : json["criteria"].items()) {
-            auto criterionResult = Criterion::fromJson(name, criterionJson);
-            if (criterionResult.failed()) {
-                return criterionResult.error();
-            }
-            criteria[name] = std::move(criterionResult.value());
+    for (const auto& [name, criterionJson] : json["criteria"].items()) {
+        auto criterionResult = Criterion::fromJson(name, criterionJson);
+        if (criterionResult.failed()) {
+            return criterionResult.error();
         }
+        criteria[name] = std::move(criterionResult.value());
+    }
+    if (criteria.empty()) {
+        return Error(ErrorCode::ResourceParseError, "Advancement '" + id.toString() + "' criteria cannot be empty");
     }
 
     // 解析需求矩阵

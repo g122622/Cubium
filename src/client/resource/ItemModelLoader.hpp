@@ -232,7 +232,11 @@ public:
     void clearCache();
 
 private:
-    const std::vector<ResourcePackPtr>& m_resourcePacks;
+    // 按值持有资源包列表（ResourcePackPtr 为 shared_ptr，拷贝增引用计数）。
+    // 此前为引用，当 ResourceManager 析构、其 m_resourcePacks 释放后，
+    // 全局单例 ItemModelCache 仍持有 loader，引用即成为悬空引用，
+    // 导致后续 getItemModel 访问已释放内存（SEH 0xc0000005）。按值持有消除该 use-after-free。
+    std::vector<ResourcePackPtr> m_resourcePacks;
     std::map<ResourceLocation, UnbakedItemModel> m_unbakedModels;
     std::map<ResourceLocation, BakedItemModel> m_bakedModels;
 

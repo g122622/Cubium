@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -43,6 +44,11 @@ void ensureRegistriesInitialized()
     std::call_once(s_once, [] {
         VanillaBlocks::initialize();
         Items::initialize();
+        // 注册原版实体类型，使 EntityTypeIdNumber::ITEM 全局缓存与注册表一致。
+        // 本文件多个用例断言 entity->typeId() == EntityTypeIdNumber::ITEM，
+        // 二者必须来自同一已初始化注册表，避免依赖前置测试的隐式注册状态
+        // （测试顺序污染）。VanillaEntities::registerAll() 幂等且线程安全，无异常风险。
+        entity::VanillaEntities::registerAll();
     });
 }
 

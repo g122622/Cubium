@@ -428,12 +428,21 @@ TEST(SoundEventDefinitionTest, RandomNotStuckOnFirstSound)
 
 TEST(SoundEventDefinitionTest, EmptySoundsError)
 {
+    // 原版 MC 允许 sounds 为空数组（作为占位事件，不播放任何声音）。
+    // parse 应当返回 success，selectSound 在空列表时返回 nullptr。
+    // 参考 src/client/sound/resource/SoundDefinition.cpp:219-225 的处理逻辑。
     nlohmann::json json = R"({
         "sounds": []
     })"_json;
 
     auto result = SoundEventDefinition::parse("test:empty", json, "minecraft");
-    EXPECT_FALSE(result.success());
+    EXPECT_TRUE(result.success());
+    if (result.success()) {
+        const auto& def = result.value();
+        EXPECT_TRUE(def.sounds.empty());
+        mc::math::Random rng(0);
+        EXPECT_EQ(def.selectSound(rng), nullptr);
+    }
 }
 
 } // anonymous namespace

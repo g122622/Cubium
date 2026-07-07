@@ -338,6 +338,12 @@ class UseItemGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // 显式初始化 Items：gtest 进程内 Items 为全局静态变量，
+        // 其他测试套件（CatEntityTest/BegGoalTest 等）可能已调用 initialize()
+        // 使 Items::POTION / Items::MILK_BUCKET 变为非 nullptr。
+        // 为保证本套件测试独立于运行顺序且行为确定，这里显式初始化。
+        Items::initialize();
+
         m_world = std::make_unique<TestWanderingTraderWorld>();
         m_trader = std::make_unique<WanderingTraderEntity>(EntityId(1));
         m_trader->setWorld(m_world.get());
@@ -468,21 +474,22 @@ TEST_F(UseItemGoalTest, ShouldContinueExecutingWhenUsingItem)
     auto condition = [](MobEntity*) -> bool { return true; };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
-    // 未开始使用时不应该继续
+    // 未调用 startExecuting 时，实体未在使用物品，shouldContinueExecuting 应为 false
     EXPECT_FALSE(goal->shouldContinueExecuting());
+    EXPECT_FALSE(m_trader->isUsingItem());
 
-    // 注意：在测试环境中 Items 未初始化，Items::POTION 为 nullptr，
-    // 因此 ItemStack 为空，setActiveHand 不会设置 isUsingItem 状态。
-    // 这里的测试验证的是 Goal 层面的逻辑：
-    // shouldContinueExecuting 正确依赖 LivingEntity::isUsingItem()。
-    // 当 Items 初始化后，startExecuting() 会将物品放入主手并开始使用，
-    // isUsingItem() 返回 true，shouldContinueExecuting() 也会返回 true。
-    //
-    // 在测试环境中，由于 ItemStack 为空，setActiveHand 不会生效，
-    // 所以 startExecuting 后 shouldContinueExecuting 仍为 false。
+    // startExecuting 将药水放入主手并调用 setActiveHand。
+    // PotionItem::getUseDuration() 返回 32 > 0，因此 LivingEntity::setActiveHand
+    // 会设置 m_activeItemUseCount=32，isUsingItem() 返回 true。
+    // 此时 shouldContinueExecuting（依赖 isUsingItem()）也应返回 true。
     goal->startExecuting();
+    EXPECT_TRUE(m_trader->isUsingItem());
+    EXPECT_TRUE(goal->shouldContinueExecuting());
+
+    // resetTask 调用 stopActiveHand 清空使用状态后，shouldContinueExecuting 应回 false
+    goal->resetTask();
+    EXPECT_FALSE(m_trader->isUsingItem());
     EXPECT_FALSE(goal->shouldContinueExecuting());
-    // 此测试确认：shouldContinueExecuting 正确反映了 isUsingItem 状态
 }
 
 TEST_F(UseItemGoalTest, StartExecutingSetsMainHandItem)
@@ -497,15 +504,17 @@ TEST_F(UseItemGoalTest, StartExecutingSetsMainHandItem)
     // 主手初始应为空
     EXPECT_TRUE(m_trader->getMainHandItem().isEmpty());
 
-    // 注意：在测试环境中 Items 未初始化，Items::MILK_BUCKET 为 nullptr，
-    // 因此 ItemStack(Items::MILK_BUCKET, 1) 创建的是空 ItemStack。
-    // startExecuting() 调用 setMainHandItem(m_itemStack)，将 ItemStack 写入主手装备槽，
-    // 但由于 ItemStack 为空，主手仍然为空。
-    // 这是测试环境的限制，不是 Goal 逻辑的问题。
-    // 当 Items 初始化后，startExecuting() 会正确设置主手物品。
+    // SetUp 已调用 Items::initialize()，Items::MILK_BUCKET 为非空 Item*，
+    // 因此 stack 为非空 ItemStack。startExecuting() 会将其写入主手装备槽，
+    // 随后 setActiveHand(MainHand) 因 MilkBucketItem::getUseDuration() = 32 > 0
+    // 而进入使用状态。
     goal->startExecuting();
-    // 在测试环境中，空 ItemStack 的 isEmpty() 仍为 true
-    EXPECT_TRUE(m_trader->getMainHandItem().isEmpty());
+
+    // 主手应为牛奶桶（非空），且物品指针与传入的 Items::MILK_BUCKET 一致
+    const ItemStack& mainHand = m_trader->getMainHandItem();
+    EXPECT_FALSE(mainHand.isEmpty());
+    EXPECT_EQ(mainHand.getItem(), Items::MILK_BUCKET);
+    EXPECT_TRUE(m_trader->isUsingItem());
 }
 
 TEST_F(UseItemGoalTest, ResetTaskClearsMainHandItem)
@@ -517,12 +526,15 @@ TEST_F(UseItemGoalTest, ResetTaskClearsMainHandItem)
     auto condition = [](MobEntity*) -> bool { return true; };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
-    // 由于 Items 未初始化，startExecuting 后主手仍为空
+    // startExecuting 后主手为牛奶桶（非空），处于使用状态
     goal->startExecuting();
+    ASSERT_FALSE(m_trader->getMainHandItem().isEmpty());
+    ASSERT_TRUE(m_trader->isUsingItem());
 
-    // resetTask 应该清空主手并停止使用物品（不应该崩溃）
+    // resetTask 应清空主手并停止使用物品（不应崩溃）
     goal->resetTask();
     EXPECT_TRUE(m_trader->getMainHandItem().isEmpty());
+    EXPECT_FALSE(m_trader->isUsingItem());
 }
 
 // ============================================================================

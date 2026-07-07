@@ -27,11 +27,13 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/AttackContext.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -121,6 +123,10 @@ public:
     {
         registerAttributes();
         setHealth(maxHealth());
+        // makeSoundEventId 由 typeId 构造音效 ID（minecraft:entity.<type>.<suffix>），
+        // 直接构造的实体 m_typeId 为空会导致 getHurtSound/getDeathSound/
+        // getAmbientSound 返回 nullopt。设为 minecraft:cow 使音效测试可验证。
+        setTypeId(entity::EntityTypes::COW);
     }
 };
 
@@ -137,6 +143,10 @@ public:
     {
         registerAttributes();
         setHealth(maxHealth());
+        // makeSoundEventId 由 typeId 构造音效 ID，直接构造的实体 m_typeId 为空
+        // 会导致 getHurtSound/getDeathSound 返回 nullopt。设为 minecraft:player
+        // 使 HurtPlaysSound/DeathPlaysSound 可验证（对齐 commit 8bb41781b 策略）。
+        setTypeId(entity::EntityTypes::PLAYER);
     }
 };
 
@@ -532,20 +542,31 @@ TEST(DamageSourceTest, DamageSourcesFactory)
 
 TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
 {
-    TestLivingEntity attacker;
-    TestLivingEntity target;
+    // commit 66a6ae396 起，力量/虚弱不再由 AttackContext::calculateFinalDamage
+    // 手动加减，而是通过 EffectAttributeModifiers 以 Addition 操作应用到
+    // ATTACK_DAMAGE 属性（Strength +3.0/级，Weakness -4.0/级）。此处验证属性
+    // 修改器路径：MonsterEntity 注册 ATTACK_DAMAGE，基础值 2.0，叠加 0 级力量
+    // (+3) 与 0 级虚弱 (-4) 后属性值为 2 + 3 - 4 = 1.0。
+    class TestMonster : public MonsterEntity {
+    public:
+        TestMonster()
+            : MonsterEntity(EntityId(1))
+        {
+            // C++ 虚方法在基类构造中只 dispatch 到基类版本，LivingEntity 构造调用的
+            // registerAttributes 不会派发到 MonsterEntity::registerAttributes，故需在此
+            // 显式调用以注册 ATTACK_DAMAGE 属性（与 TestMobEntity 模式一致）。
+            registerAttributes();
+            setAttributeBaseValue(Attributes::ATTACK_DAMAGE, 2.0);
+        }
+    };
 
+    TestMonster attacker;
     attacker.addEffect(
         mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Strength, 200, 0, false, true, true));
-
     attacker.addEffect(
         mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::Weakness, 200, 0, false, true, true));
 
-    mc::entity::combat::AttackContext context(&attacker, &target);
-    context.setBaseDamage(5.0f);
-    context.setAttackType(mc::entity::combat::AttackType::Melee);
-
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 4.0f);
+    EXPECT_DOUBLE_EQ(attacker.attributes().getValue(Attributes::ATTACK_DAMAGE), 1.0);
 }
 
 TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula)

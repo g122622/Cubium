@@ -577,7 +577,10 @@ bool Lexer::isAlphaNumeric(char c)
 
 bool Lexer::isIdentifierChar(char c)
 {
-    return isAlphaNumeric(c) || c == '_' || c == '-';
+    // 冒号允许出现在标识符中部（如 bind:text, on:click），以使带前缀的属性名
+    // 作为一个完整的 Identifier token 输出。注意 ':' 作为首字符时仍由 _scanToken
+    // 单独产生 Colon token，此处仅在 _scanIdentifier 的连续扫描中生效。
+    return isAlphaNumeric(c) || c == '_' || c == '-' || c == ':';
 }
 
 void Lexer::_addError(TemplateErrorType type, const std::string& message)

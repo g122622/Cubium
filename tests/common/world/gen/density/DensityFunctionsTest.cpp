@@ -680,19 +680,49 @@ TEST(DensityFunctionsCache2DTest, DelegatesMinMax)
 // FlatCache 测试
 // ============================================================================
 
+// FlatCache 的 quart 级缓存语义只在 precompute=true（NoiseChunk::apply 注入区块
+// 几何）路径下成立。factory::flatCache 走 precompute=false 退化为单值 lastPos 缓存
+// （按 block XZ 精确匹配，非 quart）。本用例直接构造 precompute=true 的 FlatCache
+// 验证 quart 分辨率缓存，并补充非预计算路径的退化行为断言。
 TEST(DensityFunctionsFlatCacheTest, CachesAtQuartResolution)
 {
-    // FlatCache 在 quart 坐标级别缓存（floorDiv(block, 4)）
-    // 使用依赖于 XZ 坐标的噪声函数来验证缓存行为
+    // 使用依赖 XZ 的噪声函数作为输入，使不同 quart 格产生不同值。
     auto input = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
-    auto cache = factory::flatCache(std::move(input));
-    // 相同 quart 坐标应返回缓存值
-    f64 v1 = cache->compute(0, 0, 0);
-    f64 v2 = cache->compute(3, 0, 3); // 同一个 quart 格
+    // 保留一份相同构造的裸输入用于交叉校验预计算值。
+    auto inputRef = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+
+    // 直接构造 precompute=true 的 FlatCache，模拟 NoiseChunk::apply 注入区块几何。
+    // firstQuartX=0, firstQuartZ=0, sizeXZ=4 → 覆盖 quart 坐标 [0,4]，
+    // 对应 block 坐标 [0,16]，与主世界 cellCountXZ=4,cellWidth=4 的几何一致。
+    FlatCache cache(std::move(input), 0, 0, 4, true);
+
+    // (0,0,0) 与 (3,0,3) 同属 quart 格 (0,0)：floorDiv(block,4) 均为 0
+    // → 命中同一缓存槽，返回同一预计算值。
+    const f64 v1 = cache.compute(0, 0, 0);
+    const f64 v2 = cache.compute(3, 0, 3);
     EXPECT_DOUBLE_EQ(v1, v2);
-    // 不同 quart 坐标应重新计算
-    f64 v3 = cache->compute(4, 0, 0);
+
+    // 预计算值应等于裸输入在对应 quart 对齐 block 坐标的值。
+    // quart 格 (0,0) 的对齐 block 坐标为 (firstQuartX<<2, 0, firstQuartZ<<2)=(0,0,0)。
+    const f64 refV1 = inputRef->compute(0, 0, 0);
+    EXPECT_DOUBLE_EQ(v1, refV1);
+
+    // (4,0,0) 属于 quart 格 (1,0)，与 (0,0) 不同格 → 应为不同预计算值。
+    const f64 v3 = cache.compute(4, 0, 0);
     EXPECT_NE(v1, v3);
+    // 且 v3 应等于裸输入在 quart (1,0) 对齐 block 坐标 (4,0,0) 处的值。
+    const f64 refV3 = inputRef->compute(4, 0, 0);
+    EXPECT_DOUBLE_EQ(v3, refV3);
+
+    // Y 不参与 quart 缓存键（XZ-only）：同 XZ 不同 Y 返回同一缓存值。
+    const f64 v4 = cache.compute(3, 64, 3);
+    EXPECT_DOUBLE_EQ(v1, v4);
+
+    // 越界回退：quart 坐标超出 [0,sizeXZ] 时退化为 m_input->compute(block)，
+    // 不走数组查表（对齐原版 NoiseChunk.FlatCache.compute 越界分支）。
+    const f64 oob = cache.compute(100, 0, 100);
+    const f64 refOob = inputRef->compute(100, 0, 100);
+    EXPECT_DOUBLE_EQ(oob, refOob);
 }
 
 // ============================================================================
