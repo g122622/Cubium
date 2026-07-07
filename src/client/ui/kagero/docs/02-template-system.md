@@ -417,6 +417,40 @@ ctx.setLoopVariable("item", itemValue);
 ctx.clearLoopVariable("item");
 ```
 
+### 绑定路径解析规则
+
+`resolveBinding(path)` 按以下顺序解析路径：
+
+1. **循环变量**（`$var` 或 `$var.field`）：优先匹配当前 `loopVar`/`loopValue`，未命中再查 `m_loopVariables` 表。
+2. **暴露变量**（`expose` / `exposeWritable` / `exposeReactive`）：路径完全匹配 `m_exposedVars` 中的键。
+3. **StateStore 扁平键**：路径完全匹配 StateStore 中的键（如 `"player.name"`），直接通过 `Value::fromAny` 转换后返回。
+4. **StateStore 嵌套路径**：以 `.` 与 `[index]` 拆分路径，第一段作为根键查 StateStore，根键的 `std::any` 通过 `Value::fromAny` 转为 `Value`，再逐层 `getProperty` / `getElement`。
+
+**嵌套路径示例：**
+
+```cpp
+// 在 StateStore 中存对象
+std::unordered_map<std::string, Value> player;
+player["name"] = Value("Steve");
+player["health"] = Value(100);
+StateStore::instance().set("player", player);
+
+// 模板中可以直接用嵌套路径绑定
+// <text bind:text="player.name"/>
+// <text bind:text="player.health"/>
+
+// 数组同理
+std::vector<Value> inventory = { Value("sword"), Value("apple") };
+StateStore::instance().set("player.inventory", inventory);
+// <text bind:text="player.inventory[0]"/>
+```
+
+> **注意**：StateStore 中同时存在 `"player"` 与 `"player.name"` 时，`resolveBinding("player.name")` 会命中扁平键 `"player.name"`，跳过嵌套解析。两种写法不可混用。
+>
+> **Value::fromAny 支持的类型**：`bool`、`i32`、`i64`、`u32`、`f32`、`f64`、`std::string`、`const char*`、`Value`、`std::vector<Value>`、`std::unordered_map<std::string, Value>`。其他类型静默返回 `Null`。`i64`/`u32`/`f64` 会被窄化（代码中已标注 TODO，待 Value 类增加原生支持后消除）。
+
+详细行为见 `template/binder/README.md`。
+
 ## 更新调度器
 
 `UpdateScheduler` 管理增量更新，避免频繁刷新整个模板：

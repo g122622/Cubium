@@ -102,13 +102,17 @@ TEST_F(WorldGenSpawnerTest, ForestSpawnInfo)
 {
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createForest();
 
-    // 森林应该有狼
+    // 森林动物生成列表：sheep / pig / cow / chicken / wolf
     const auto& creatures = info.getCreatureSpawns();
     bool hasWolf = false;
+    int chickenCount = 0;
     for (const auto& entry : creatures) {
         if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
+        if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
     }
     EXPECT_TRUE(hasWolf);
+    // 原版 Forest chicken 仅一条 weight=10 条目；此前源码误加两条，已收敛
+    EXPECT_EQ(chickenCount, 1);
 }
 
 TEST_F(WorldGenSpawnerTest, DesertSpawnInfo)

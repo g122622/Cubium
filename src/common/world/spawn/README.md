@@ -88,3 +88,12 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 ### 8. 史莱姆区块判断算法与 Java 不兼容
 
 `SlimeChunkChecker` 使用 Java `LegacyRandomSource`（48位 LCG）算法，与项目默认的 `Xoroshiro128ppRandom` 不兼容。史莱姆区块判断必须使用 `SlimeChunkChecker` 的静态方法，不能直接用 `math::Random` 替代。
+
+### 9. spawn list 与原版 1.16.5 仍有未收敛偏差
+
+`MobSpawnInfo.cpp` 中各工厂方法（`createOcean`/`createJungle`/`createSavanna`/`createSnowy`/`createCrimsonForest`/`createLushCaves` 等）的 spawn list 与原版 MC Java 1.16.5 仍存在若干已知偏差。这些偏差以 `TODO(spawn-list-<biome>)` 形式逐项标注在对应工厂方法内，文件顶部有汇总说明。收敛任一项时需同步删除对应 TODO。共性偏差包括：
+- `EntityClassification` 仅 6 类，缺失原版的 `UndergroundWaterCreature` 与 `Axolotls`，导致美西螈等临时塞进 `WaterCreature`
+- cod/salmon/tropical_fish/pufferfish 原版归 `WaterAmbient`，本项目误归 `WaterCreature`
+- hoglin/ocelot 原版归 `Creature`，本项目误归 `Monster`
+- Jungle 系列 `baseJungleSpawns()` 的"额外鸡"规则未实现
+- 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo、zombie_horse），对应 spawn list 待补
