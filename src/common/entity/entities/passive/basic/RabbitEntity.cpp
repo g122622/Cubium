@@ -38,6 +38,7 @@
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/ai/goal/goals/special/RaidGardenGoal.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
@@ -65,11 +66,10 @@ namespace mc {
 // 本文件收敛了原 RabbitEntity 的 TODO：实现了兔子专属的 RabbitJumpControl /
 // RabbitMoveControl 控制器、jumpDelayTicks/wasOnGround 着陆延迟状态机、
 // updateAITasks()（对应 MC customServerAiStep）以及杀手兔变种的属性与 AI 目标切换。
+// RaidGardenGoal（偷胡萝卜）+ CarrotBlock 年龄递减逻辑已实现，详见
+// ai/goal/goals/special/RaidGardenGoal.{hpp,cpp}。
 //
 // 仍保留为 TODO 的项目：
-// - RaidGardenGoal（偷胡萝卜）+ CarrotBlock 年龄递减逻辑：需要 FARMLAND 方块检测、
-//   CarrotBlock 最大年龄判断与 setBlock 调用。当前 moreCarrotTicks 字段已在
-//   updateAITasks() 中递减，未来实现 RaidGardenGoal 时可直接复用。
 // - getJumpPower() 重写：MC 中 Rabbit 重写了 getJumpPower() 根据移动速度和路径
 //   调整跳跃高度（0.2/0.3/0.5）。项目当前 LivingEntity::jump() 为非虚函数且使用
 //   m_jumpUpwardsMotion，重写跳跃力度需要更大的架构改动，暂留待未来处理。
@@ -631,6 +631,11 @@ void RabbitEntity::registerGoals()
                 return false;
             },
             false)); // scaredByMovement = false
+
+    // 优先级 5: 偷胡萝卜（对应 MC 1.21.11 Rabbit.RaidGardenGoal）
+    // 兔子饥饿（moreCarrotTicks<=0）时寻找成熟胡萝卜并啃食，受 MOB_GRIEFING 规则限制。
+    // 与 FollowParentGoal 共用优先级 5，二者均占用 Move+Jump 标志，GoalSelector 保证互斥。
+    m_goalSelector.addGoal(5, new entity::ai::goal::RaidGardenGoal(this));
 
     // 优先级 5: 跟随父母
     m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));

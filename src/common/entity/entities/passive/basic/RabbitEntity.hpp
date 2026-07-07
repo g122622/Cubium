@@ -222,13 +222,11 @@ public:
      * 对应 MC 1.21.11 Rabbit.moreCarrotTicks 字段。
      * RaidGardenGoal 啃食胡萝卜后设为 40，customServerAiStep 中随机递减。
      * 为 0 时表示兔子想要更多食物（wantsMoreFood() 返回 true）。
-     * TODO: RaidGardenGoal 尚未实现，此字段当前仅在 customServerAiStep 中递减，
-     *       未来实现 RaidGardenGoal 时需读取/设置此字段。
      */
     [[nodiscard]] i32 moreCarrotTicks() const { return m_moreCarrotTicks; }
 
     /**
-     * @brief 设置 moreCarrotTicks（供未来 RaidGardenGoal 使用）
+     * @brief 设置 moreCarrotTicks（供 RaidGardenGoal 使用）
      */
     void setMoreCarrotTicks(i32 ticks) { m_moreCarrotTicks = ticks; }
 
@@ -300,7 +298,7 @@ private:
     bool m_wasOnGround = false; // 上一 tick 是否在地面
 
     // 啃食胡萝卜冷却（对应 MC 1.21.11 Rabbit.moreCarrotTicks）
-    // TODO: RaidGardenGoal 尚未实现，此字段当前仅在 updateAITasks() 中递减
+    // RaidGardenGoal 啃食后设为 40，updateAITasks() 中随机递减
     i32 m_moreCarrotTicks = 0;
 
     // ========== 私有辅助方法 ==========

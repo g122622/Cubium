@@ -105,7 +105,7 @@ AgeableEntity (父类)
     - **构造**：`RabbitEntity` 构造函数中替换 `m_jumpController` 和 `m_moveController` 为兔子专属控制器。
 
 12. **兔子着陆延迟与 customServerAiStep**（参考 MC 1.21.11 `Rabbit.customServerAiStep`）：
-    - **字段**：`m_jumpDelayTicks`（着陆后禁止跳跃的剩余 tick）、`m_wasOnGround`（上一 tick 是否在地面，用于检测着陆瞬间）、`m_moreCarrotTicks`（啃食胡萝卜冷却，TODO: RaidGardenGoal 未实现）。
+    - **字段**：`m_jumpDelayTicks`（着陆后禁止跳跃的剩余 tick）、`m_wasOnGround`（上一 tick 是否在地面，用于检测着陆瞬间）、`m_moreCarrotTicks`（啃食胡萝卜冷却，`RaidGardenGoal` 啃食后设为 40）。
     - **updateAITasks()**：作为 `customServerAiStep` 的等价入口点（在 `MobEntity::tick()` 中于 goalSelector/navigator 之后、控制器之前调用）。递减 `jumpDelayTicks`、随机递减 `moreCarrotTicks`；着陆瞬间（`onGround && !wasOnGround`）调用 `checkLandingDelay()` 设置着陆延迟并禁用跳跃控制器；杀手兔变种在 `jumpDelayTicks==0` 且目标在 4 格内时主动跳跃攻击；普通兔子在 `jumpDelayTicks==0` 且有移动目标时朝目标方向 `startJumping()`。
     - **setLandingDelay()**：移动速度倍率 < 2.2 时延迟 10 tick，否则延迟 1 tick。
     - **facePoint()**：朝向指定坐标设置 yaw（对应 MC `Mth.atan2` 计算）。
@@ -114,4 +114,4 @@ AgeableEntity (父类)
     - `applyRabbitType(Killer)` 设置 ARMOR=8.0、添加 ATTACK_DAMAGE +5 修改器（ID `"rabbit_evil_attack_power"`）、注册 `MeleeAttackGoal`(speed=1.4)、`HurtByTargetGoal`(alertAllies=true)、`NearestAttackableTargetGoal<Player>` 和 `NearestAttackableTargetGoal<WolfEntity>`。
     - `applyRabbitType(非Killer)` 移除 EVIL_ATTACK_POWER_MODIFIER。
     - `RabbitEntity::registerAttributes()` 显式注册 `ATTACK_DAMAGE` 属性（基础值 3.0），因为 `AnimalEntity` 基类不注册此属性（仅 `MonsterEntity` 注册）。
-    - **未实现的 MC 原版特性**：`RaidGardenGoal`（偷胡萝卜）+ `CarrotBlock` 年龄递减逻辑、`getJumpPower()` 重写（根据移动速度和路径调整跳跃高度）尚未实现，详见 `RabbitEntity.cpp` 顶部注释。
+    - **未实现的 MC 原版特性**：`getJumpPower()` 重写（根据移动速度和路径调整跳跃高度）尚未实现，详见 `RabbitEntity.cpp` 顶部注释。`RaidGardenGoal`（偷胡萝卜）已实现于 `ai/goal/goals/special/RaidGardenGoal.{hpp,cpp}`。

@@ -13,6 +13,7 @@
 ├── EndermanGoals.hpp / cpp #末影人目标（注视玩家、查找玩家）
 ├── MoveToBlockGoal.hpp / cpp #移动到方块目标基类（搜索方块并导航移动）
 ├── MoveToLavaGoal.hpp / cpp #炽足兽寻找熔岩目标（继承自MoveToBlockGoal）
+├── RaidGardenGoal.hpp / cpp #兔子偷胡萝卜目标（继承自MoveToBlockGoal，啃食成熟胡萝卜）
 ├── SquidGoals.hpp / cpp #鱿鱼目标（随机游泳、逃跑）
 ├── BatGoals.hpp / cpp #蝙蝠目标（随机飞行、挂墙休息）
 ├── DolphinGoals.hpp / cpp #海豚目标（跳跃、寻宝、与玩家同游、玩物品）
@@ -59,7 +60,8 @@
 ├── MoveToBlockGoal(抽象基类)
 │   ├── MoveToLavaGoal ───────────── 炽足兽寻找熔岩
 │   ├── DrownedGoToBeachGoal ─────── 溺尸前往海滩
-│   └── CatLieOnBedGoal ──────────── 猫躺在床上
+│   ├── CatLieOnBedGoal ──────────── 猫躺在床上
+│   └── RaidGardenGoal ──────────── 兔子偷胡萝卜（饥饿时啃食成熟胡萝卜）
 ├── DrownedGoToWaterGoal ─────────── 溺尸前往水源（白天陆地上寻找水）
 ├── DrownedTridentAttackGoal : RangedAttackGoal ─ 溺尸三叉戟远程攻击
 ├── DrownedAttackGoal : MeleeAttackGoal ─ 溺尸近战攻击（带 okTarget 过滤）
