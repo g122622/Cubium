@@ -256,6 +256,8 @@ void IntegratedServer::shutdown()
 
 void IntegratedServer::savePlayerRuntimeState()
 {
+    MC_TRACE_EVENT("server.initialization", "IntegratedServer::savePlayerRuntimeState");
+
     // 外来只读存档不写盘，直接跳过
     if (isSharedStorageReadonlyForeignWorld()) {
         return;
@@ -326,6 +328,12 @@ void IntegratedServer::requestStop()
 
 void IntegratedServer::stop()
 {
+    // IntegratedServer 停止流程整体区间。stopCore()/shutdownManagers()/saveAllWorldData()
+    // 等子阶段在各自函数内部有独立 trace，形成 slice 嵌套。
+    // 注意：集成服运行在客户端进程内，trace 会话生命周期由客户端统一管理，
+    // 本函数不关闭 Perfetto（与 StandaloneServer::stop() 不同）。
+    MC_TRACE_EVENT("server.initialization", "IntegratedServer::stop");
+
     if (!m_initialized) {
         return;
     }
@@ -339,10 +347,13 @@ void IntegratedServer::stop()
     }
 
     // 等待服务端线程结束
-    if (m_serverThread && m_serverThread->joinable()) {
-        m_serverThread->join();
+    {
+        MC_TRACE_EVENT("server.initialization", "IntegratedServer::stop::JoinServerThread");
+        if (m_serverThread && m_serverThread->joinable()) {
+            m_serverThread->join();
+        }
+        m_serverThread.reset();
     }
-    m_serverThread.reset();
 
     // 回写在线玩家运行时状态到 PlayerDataManager 缓存
     // 必须在 clearAll() 之前调用，否则玩家实体已被从 EntityManager 移除
@@ -350,13 +361,16 @@ void IntegratedServer::stop()
     savePlayerRuntimeState();
 
     // 清理玩家实体（遍历所有维度）
-    m_dimensionManager->forEachDimension([this](Dimension& dim) {
-        auto* serverDim = static_cast<ServerDimension*>(&dim);
-        auto* world = serverDim->world();
-        if (world) {
-            m_playerEntityManager.clearAll(*world);
-        }
-    });
+    {
+        MC_TRACE_EVENT("server.initialization", "IntegratedServer::stop::ClearPlayerEntities");
+        m_dimensionManager->forEachDimension([this](Dimension& dim) {
+            auto* serverDim = static_cast<ServerDimension*>(&dim);
+            auto* world = serverDim->world();
+            if (world) {
+                m_playerEntityManager.clearAll(*world);
+            }
+        });
+    }
 
     // 停止核心组件
     stopCore();

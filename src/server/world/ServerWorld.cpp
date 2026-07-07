@@ -209,11 +209,15 @@ void ServerWorld::shutdown()
         return;
     }
 
+    // per-dimension 世界卸载 trace，带维度 ID 便于区分主世界/下界/末地。
+    MC_TRACE_EVENT("server.initialization", "ServerWorld::shutdown", "dim", static_cast<i32>(m_config.dimension));
+
     spdlog::info("Shutting down server world...");
     m_initialized = false;
 
     // 先保存所有已加载区块内的实体
     if (m_storage && m_storage->isOpen() && m_chunkManager) {
+        MC_TRACE_EVENT("server.initialization", "ServerWorld::shutdown::SaveEntitiesInChunks");
         m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
             auto entityIds = m_entityChunkTracker.getEntitiesInChunk(chunk.x(), chunk.z());
             if (!entityIds.empty()) {
@@ -251,6 +255,7 @@ void ServerWorld::shutdown()
 
     // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
     if (m_chunkManager) {
+        MC_TRACE_EVENT("server.initialization", "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
     }
 

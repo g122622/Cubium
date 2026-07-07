@@ -598,6 +598,8 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
 
 void MinecraftServer::shutdownSharedStorage()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownSharedStorage");
+
     if (m_storage && m_storage->isOpen()) {
         m_storage->close();
     }
@@ -606,6 +608,8 @@ void MinecraftServer::shutdownSharedStorage()
 
 Result<size_t> MinecraftServer::saveAllWorldData()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::saveAllWorldData");
+
     if (!m_storage || !m_storage->isOpen()) {
         return Error(ErrorCode::InvalidState, "Shared storage not open");
     }
@@ -1442,50 +1446,82 @@ bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& p
 
 void MinecraftServer::shutdownManagers()
 {
-    if (m_storage && m_storage->isOpen()) {
-        if (isSharedStorageReadonlyForeignWorld()) {
-            m_storage->stopAutoSave();
-            spdlog::info("Shutdown skipped persistence for readonly foreign world (format: {})",
-                m_storage->formatInfo().formatName);
-        } else {
-            // 注意：savePlayerRuntimeState() 由子类在 stop() 中调用，
-            // 必须在 clearAll() 之前、维度管理器 shutdown 之前执行，
-            // 以保证遍历玩家实体时它们仍存在于世界中。
-            m_storage->shutdownAutoSave();
-            auto saveResult = saveAllWorldData();
-            if (saveResult.failed()) {
-                spdlog::error("Failed to save world during shutdown: {}", saveResult.error().message());
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers");
+
+    // 1. 保存世界数据（落盘，整个 stop 流程最重的 I/O 阶段）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::SaveWorldData");
+
+        if (m_storage && m_storage->isOpen()) {
+            if (isSharedStorageReadonlyForeignWorld()) {
+                m_storage->stopAutoSave();
+                spdlog::info("Shutdown skipped persistence for readonly foreign world (format: {})",
+                    m_storage->formatInfo().formatName);
+            } else {
+                // 注意：savePlayerRuntimeState() 由子类在 stop() 中调用，
+                // 必须在 clearAll() 之前、维度管理器 shutdown 之前执行，
+                // 以保证遍历玩家实体时它们仍存在于世界中。
+                m_storage->shutdownAutoSave();
+                auto saveResult = saveAllWorldData();
+                if (saveResult.failed()) {
+                    spdlog::error("Failed to save world during shutdown: {}", saveResult.error().message());
+                }
             }
         }
     }
 
-    // 关闭成就事件处理器
-    m_advancementEventHandler.shutdown();
+    // 2. 关闭成就事件处理器与脚本系统
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::ShutdownAdvancementAndScript");
+        m_advancementEventHandler.shutdown();
 
-    // 关闭脚本系统
-    if (m_scriptManager) {
-        m_scriptManager->shutdown();
+        if (m_scriptManager) {
+            m_scriptManager->shutdown();
+        }
     }
 
-    m_inventoryManager.reset();
-    m_containerManager.reset();
-    m_miningManager.reset();
-    m_blockInteractionManager.reset();
-    m_commandRegistry.reset();
-    m_commandStorage.reset();
-    if (m_dimensionManager) {
-        m_dimensionManager->shutdown();
+    // 3. reset 交互与命令管理器
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::ResetInteractionManagers");
+        m_inventoryManager.reset();
+        m_containerManager.reset();
+        m_miningManager.reset();
+        m_blockInteractionManager.reset();
+        m_commandRegistry.reset();
+        m_commandStorage.reset();
     }
-    m_dimensionManager.reset();
-    shutdownSharedStorage();
-    m_gameModeManager.reset();
-    m_packetHandler.reset();
-    m_positionTracker.reset();
-    m_keepAliveManager.reset();
-    m_teleportManager.reset();
-    m_timeManager.reset();
-    m_connectionManager.reset();
-    m_playerManager.reset();
+
+    // 4. 维度 shutdown + 共享存储关闭 + reset 剩余核心管理器
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::ResetCoreManagers");
+
+        // 4a. 维度管理器 shutdown（可能涉及卸载维度/世界资源）+ reset
+        {
+            MC_TRACE_EVENT("server.initialization",
+                "MinecraftServer::shutdownManagers::ResetCoreManagers::ShutdownDimensionManager");
+            if (m_dimensionManager) {
+                m_dimensionManager->shutdown();
+            }
+            m_dimensionManager.reset();
+        }
+
+        // 4b. 关闭共享存储（shutdownSharedStorage 内部已有独立 trace，会自动嵌套）
+        shutdownSharedStorage();
+
+        // 4c. reset 剩余核心管理器（轻量 unique_ptr 释放）
+        {
+            MC_TRACE_EVENT("server.initialization",
+                "MinecraftServer::shutdownManagers::ResetCoreManagers::ResetRemainingManagers");
+            m_gameModeManager.reset();
+            m_packetHandler.reset();
+            m_positionTracker.reset();
+            m_keepAliveManager.reset();
+            m_teleportManager.reset();
+            m_timeManager.reset();
+            m_connectionManager.reset();
+            m_playerManager.reset();
+        }
+    }
 }
 
 void MinecraftServer::tickEntities()
@@ -2279,11 +2315,16 @@ i32 MinecraftServer::resolveOpLevel(const std::string& uuid) const noexcept
 
 void MinecraftServer::stopCore()
 {
+    MC_TRACE_EVENT("server.initialization", "MinecraftServer::stopCore");
+
     spdlog::info("Stopping server core...");
 
     // 停止 Worker 线程池，避免后续关服过程中继续提交任务
-    m_computationWorkerPool.shutdown();
-    m_ioWorkerPool.shutdown();
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::stopCore::ShutdownWorkerPools");
+        m_computationWorkerPool.shutdown();
+        m_ioWorkerPool.shutdown();
+    }
 
     // 断开所有玩家
     if (m_connectionManager) {

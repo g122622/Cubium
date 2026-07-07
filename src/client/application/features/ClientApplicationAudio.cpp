@@ -288,6 +288,8 @@ void ClientApplication::updateAudioPauseState()
 
 void ClientApplication::shutdownAudio()
 {
+    MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdownAudio");
+
     // 清除 UI 音效回调，避免悬空指针
     ui::kagero::widget::Widget::setUiSoundCallback(nullptr);
 

@@ -117,6 +117,8 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
 
 void ServerDimensionManager::shutdown()
 {
+    MC_TRACE_EVENT("server.initialization", "ServerDimensionManager::shutdown");
+
     if (!m_initialized) {
         return;
     }
@@ -125,7 +127,8 @@ void ServerDimensionManager::shutdown()
     m_playerDimensions.clear();
     m_dimensionPlayers.clear();
 
-    // 调用基类关闭
+    // 调用基类关闭：基类通过 m_dimensions.clear() 析构每个 ServerDimension，
+    // 间接触发各维度的 ServerDimension::shutdown()（带 per-dimension trace）。
     DimensionManager::shutdown();
 
     m_initialized = false;

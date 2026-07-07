@@ -116,6 +116,8 @@ Result<void> ServerChunkManager::initialize()
 
 void ServerChunkManager::shutdown()
 {
+    MC_TRACE_EVENT("server.initialization", "ServerChunkManager::shutdown");
+
     // 标记关闭：异步存档加载完成回调（ServerCompute 线程）检测到此标志后不再入队
     // m_pendingLoadCompletes，避免析构后回调访问悬空 this。置位必须在 cancelActiveWork 之前，
     // 使在途回调快速丢弃结果。
@@ -169,6 +171,7 @@ void ServerChunkManager::shutdown()
     // 但取消已使所有 holder 的 abortSignal 失效，新调度产生的任务也会立刻检测到取消
     // （holder 已 cancelActiveWork），最终队列收敛为空。
     if (m_workerPool != nullptr && m_workerPool->isRunning()) {
+        MC_TRACE_EVENT("server.initialization", "ServerChunkManager::shutdown::WaitForWorkerCompletion");
         m_workerPool->waitForCompletion();
     }
 

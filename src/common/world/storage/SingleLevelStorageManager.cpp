@@ -1338,11 +1338,6 @@ void SingleLevelStorageManager::shutdownAutoSave()
         m_autoSave->stop();
     }
 
-    auto result = saveAll();
-    if (result.failed()) {
-        spdlog::error("Failed to save data during auto-save shutdown: {}", result.error().message());
-    }
-
     m_autoSave.reset();
     m_autoSaveInitialized = false;
     spdlog::info("AutoSave shutdown complete");
