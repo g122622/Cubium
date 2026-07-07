@@ -26,7 +26,6 @@
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include <memory>
-#include <vector>
 
 namespace mc {
 
@@ -78,7 +77,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -86,21 +85,7 @@ public:
 private:
     std::unique_ptr<NetherFireFeatureConfig> m_config;
     std::string m_name;
-    NetherFireFeature m_feature;
-};
-
-/**
- * @brief 预定义下界火焰特征
- */
-struct NetherFireFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredNetherFireFeature> createNormal();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> s_features;
+    mutable NetherFireFeature m_feature;
 };
 
 } // namespace mc

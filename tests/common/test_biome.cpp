@@ -34,7 +34,6 @@
 #include "common/world/biome/source/NetherBiomeBuilder.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/feature/FeatureIds.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -309,88 +308,6 @@ TEST_F(BiomeRegistryTest, CreateColdOcean)
     EXPECT_EQ(biome.name(), "cold_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 0.3f);
-}
-
-TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings)
-{
-    Biome biome = BiomeFactory::createColdOcean();
-    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
-
-    bool hasBlueIce = false;
-    bool hasLiveCoral = false;
-    bool hasKelp = false;
-    bool hasSeagrass = false;
-    for (u32 id : vegetal) {
-        if (id == BlueIceFeatureIds::Normal) {
-            hasBlueIce = true;
-        }
-        if (id == KelpFeatureIds::Cold) {
-            hasKelp = true;
-        }
-        if (id == SeagrassFeatureIds::Cold) {
-            hasSeagrass = true;
-        }
-        if (id == CoralFeatureIds::Tube || id == CoralFeatureIds::Brain || id == CoralFeatureIds::Bubble ||
-            id == CoralFeatureIds::Fire || id == CoralFeatureIds::Horn) {
-            hasLiveCoral = true;
-        }
-    }
-
-    // 冷海不应直接挂接蓝冰与暖水珊瑚，应包含海带/海草。
-    EXPECT_FALSE(hasBlueIce);
-    EXPECT_FALSE(hasLiveCoral);
-    EXPECT_TRUE(hasKelp);
-    EXPECT_TRUE(hasSeagrass);
-}
-
-TEST_F(BiomeRegistryTest, CreateDeepLukewarmOceanUsesLukewarmGenerationSettings)
-{
-    Biome biome = BiomeFactory::createDeepLukewarmOcean();
-    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
-
-    bool hasBlueIce = false;
-    for (u32 id : vegetal) {
-        if (id == BlueIceFeatureIds::Normal) {
-            hasBlueIce = true;
-            break;
-        }
-    }
-
-    // 深温水海洋不应包含蓝冰
-    EXPECT_FALSE(hasBlueIce);
-}
-
-TEST_F(BiomeRegistryTest, CreateDeepColdOceanUsesColdGenerationSettings)
-{
-    Biome biome = BiomeFactory::createDeepColdOcean();
-    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
-
-    bool hasBlueIce = false;
-    for (u32 id : vegetal) {
-        if (id == BlueIceFeatureIds::Normal) {
-            hasBlueIce = true;
-            break;
-        }
-    }
-
-    // 深冷海洋不应直接挂接蓝冰
-    EXPECT_FALSE(hasBlueIce);
-}
-
-TEST_F(BiomeRegistryTest, CreateDeepFrozenOceanUsesFrozenGenerationSettings)
-{
-    Biome biome = BiomeFactory::createDeepFrozenOcean();
-    const auto& vegetal = biome.generationSettings().getFeatures(DecorationStage::VegetalDecoration);
-
-    bool hasBlueIce = false;
-    for (u32 id : vegetal) {
-        if (id == BlueIceFeatureIds::Normal) {
-            hasBlueIce = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(hasBlueIce);
 }
 
 TEST_F(BiomeRegistryTest, CreateDeepWarmOcean)

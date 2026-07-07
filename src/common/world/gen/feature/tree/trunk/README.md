@@ -44,8 +44,8 @@ TrunkPlacer（基类）
 
 ### 下游依赖
 
-- `TreeFeature` / `TreeFeatures` — 创建树干放置器实例
-- `LushCavesFeatures` — 杜鹃树使用 BendingTrunkPlacer
+- `TreeFeature` — 创建树干放置器实例（由数据包 configured_feature JSON 驱动）
+- `RootSystemFeature`（杜鹃树）— 使用 BendingTrunkPlacer
 - `FoliagePlacer` — 消费 placeTrunk() 返回的 FoliagePosition
 
 ## 容易踩的坑

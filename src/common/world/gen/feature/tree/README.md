@@ -115,7 +115,7 @@ FeatureSpread::fixed(5)      // 总是返回 5
 
 ### 8. 初始化顺序
 
-特征初始化依赖方块系统，必须在 `VanillaBlocks::initialize()` 之后调用 `FeatureRegistry::instance().initialize()`。
+树木特征依赖方块系统。`MinecraftServer::initializeRegistries` 在 `VanillaBlocks::initialize()` 之后通过 `ConfiguredFeatureLoader` 从数据包加载 configured_feature（含 tree 类型），再经 `PlacedFeatureLoader` 包装为 placed_feature，最后由 `BiomeLoader` 写入各生物群系的 `features` 数组。不再有 `FeatureRegistry::initialize()` 硬编码注册。
 
 ### 9. 高度常量使用
 

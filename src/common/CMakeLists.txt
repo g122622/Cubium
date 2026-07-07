@@ -1080,6 +1080,8 @@ add_library(mc_common STATIC
     world/gen/carver/CanyonCarver.cpp
     world/gen/carver/CarverConfiguration.cpp
     world/gen/carver/NetherWorldCarver.cpp
+    world/gen/carver/ConfiguredCarverRegistry.cpp
+    world/gen/carver/ConfiguredCarverLoader.cpp
 
     # World - Biome
     world/biome/Biome.cpp
@@ -1087,6 +1089,7 @@ add_library(mc_common STATIC
     world/biome/BiomeManager.cpp
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
+    world/biome/BiomeLoader.cpp
     world/biome/BiomeFactoryOverworld.cpp
     world/biome/BiomeFactoryNether.cpp
     world/biome/BiomeFactoryEnd.cpp
@@ -1123,8 +1126,11 @@ add_library(mc_common STATIC
     world/gen/feature/Feature.cpp
     world/gen/FeaturePlacer.cpp
     world/gen/feature/FeatureSpread.cpp
-    world/gen/feature/ConfiguredFeature.cpp
     world/gen/feature/FeatureSorter.cpp
+    world/gen/feature/ConfiguredFeatureRegistry.cpp
+    world/gen/feature/ConfiguredFeatureLoader.cpp
+    world/gen/feature/FeatureTypeRegistry.cpp
+    world/gen/feature/MonsterRoomFeature.cpp
     world/gen/feature/BlockColumnFeature.cpp
     world/gen/feature/SimpleBlockFeature.cpp
     world/gen/feature/RandomBooleanSelectorFeature.cpp
@@ -1149,8 +1155,8 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/BambooFeature.cpp
 
     # World - Generation - Feature - Cave
-    world/gen/feature/cave/CaveFeatures.cpp
-    world/gen/feature/cave/LushCavesFeatures.cpp
+    world/gen/feature/cave/RootSystemFeature.cpp
+    world/gen/feature/cave/VegetationPatchFeature.cpp
 
     # World - Generation - Feature - Ocean
     world/gen/feature/ocean/KelpFeature.cpp
@@ -1169,7 +1175,6 @@ add_library(mc_common STATIC
     world/gen/feature/end/IceSpikeFeature.cpp
     world/gen/feature/end/ChorusPlantFeature.cpp
     world/gen/feature/end/EndIslandFeature.cpp
-    world/gen/feature/end/EndFeatures.cpp
 
     # World - Generation - Feature - Nether
     world/gen/feature/nether/HugeFungusFeature.cpp
@@ -1180,7 +1185,6 @@ add_library(mc_common STATIC
     world/gen/feature/nether/BasaltDeltaFeature.cpp
     world/gen/feature/nether/MagmaPatchFeature.cpp
     world/gen/feature/nether/NetherFireFeature.cpp
-    world/gen/feature/nether/NetherFeatures.cpp
 
     # World - Generation - Feature - Lake
     world/gen/feature/LakeFeature.cpp
@@ -1270,8 +1274,13 @@ add_library(mc_common STATIC
     world/gen/placement/PlacementUtils.cpp
     world/gen/placement/Placements.cpp
     world/gen/placement/PlacementRegistry.cpp
+    world/gen/placement/PlacedFeature.cpp
+    world/gen/placement/PlacedFeatureRegistry.cpp
+    world/gen/placement/PlacedFeatureLoader.cpp
 
     # World - Generation - Value Provider
+    world/gen/valueprovider/FloatProviderParser.cpp
+    world/gen/valueprovider/HeightProviderParser.cpp
     world/gen/valueprovider/IntProviderParser.cpp
 
     # World - Generation - Spawn

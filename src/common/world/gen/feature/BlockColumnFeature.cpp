@@ -129,8 +129,11 @@ ConfiguredBlockColumnFeature::ConfiguredBlockColumnFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredBlockColumnFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBlockColumnFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

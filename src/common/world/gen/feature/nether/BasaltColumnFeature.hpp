@@ -27,7 +27,6 @@
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <memory>
-#include <vector>
 
 namespace mc {
 
@@ -104,7 +103,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
@@ -113,25 +112,7 @@ public:
 private:
     std::unique_ptr<BasaltColumnFeatureConfig> m_config;
     std::string m_name;
-    BasaltColumnFeature m_feature;
-};
-
-/**
- * @brief 预定义玄武岩柱特征
- */
-struct BasaltColumnFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> getAllFeaturesAndClear();
-
-    /// 创建普通玄武岩柱
-    static std::unique_ptr<ConfiguredBasaltColumnFeature> createNormal();
-
-    /// 创建大型玄武岩柱
-    static std::unique_ptr<ConfiguredBasaltColumnFeature> createLarge();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> s_features;
+    mutable BasaltColumnFeature m_feature;
 };
 
 } // namespace mc

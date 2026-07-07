@@ -196,7 +196,7 @@ public:
         ChunkCoord originChunkX,
         ChunkCoord originChunkZ,
         CarvingMask& carvingMask,
-        math::IRandom& rng) = 0;
+        math::IRandom& rng) const = 0;
 
     [[nodiscard]] virtual bool shouldCarve(math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ) const = 0;
 };
@@ -222,7 +222,7 @@ public:
         ChunkCoord originChunkX,
         ChunkCoord originChunkZ,
         CarvingMask& carvingMask,
-        math::IRandom& rng) override
+        math::IRandom& rng) const override
     {
         return m_carver->carve(chunk,
             context,

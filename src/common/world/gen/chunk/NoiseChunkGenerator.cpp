@@ -34,13 +34,14 @@
 #include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
 #include "../carver/CarvingMask.hpp"
+#include "../carver/ConfiguredCarverRegistry.hpp"
 #include "../carver/WorldCarver.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/OreVeinifier.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/FeatureSorter.hpp"
-#include "../feature/ore/OreFeature.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
+#include "../placement/PlacedFeatureRegistry.hpp"
 #include "../placement/PlacementRegistry.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/Structure.hpp"
@@ -505,10 +506,14 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
             // 遍历该生物群系的所有雕刻器
-            const auto& carvers = biomeSettings.getCarvers();
-            for (size_t carverIndex = 0; carverIndex < carvers.size(); ++carverIndex) {
-                const auto& configuredCarver = carvers[carverIndex];
-                if (!configuredCarver) {
+            // 数据驱动：getCarvers() 返回 configured_carver 的 ResourceLocation id 列表，
+            // 需经 ConfiguredCarverRegistry 解析为 const ConfiguredCarverBase*。
+            const auto& carverIds = biomeSettings.getCarvers();
+            for (size_t carverIndex = 0; carverIndex < carverIds.size(); ++carverIndex) {
+                const ConfiguredCarverBase* configuredCarver =
+                    ConfiguredCarverRegistry::instance().get(carverIds[carverIndex]);
+                if (configuredCarver == nullptr) {
+                    // 未注册的雕刻器 id：跳过（严格报错在加载期已处理，运行期不中断生成）
                     continue;
                 }
 
@@ -541,26 +546,22 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     // CARVERS 阶段切换到 FINAL_HEIGHTMAPS 后，需要从 NOISE + SURFACE 阶段的方块重新计算
     chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);
 
-    // 初始化特征注册表（线程安全，仅初始化一次）
-    static std::once_flag s_featureRegistryInitFlag;
-    std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });
-
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
     // === MC 1.21: FeatureSorter 懒初始化 ===
-    // 构建所有可能生物群系的拓扑排序特征列表
+    // 构建所有可能生物群系的拓扑排序 placed_feature 列表
     std::call_once(m_featuresPerStepFlag, [this]() {
         const std::vector<BiomeId>& possibleBiomes = m_biomeSource->possibleBiomes();
         m_featuresPerStep = FeatureSorter::buildFeaturesPerStep(
             possibleBiomes,
-            [](BiomeId biomeId, DecorationStage stage) -> const std::vector<u32>& {
+            [](BiomeId biomeId, DecorationStage stage) -> const std::vector<ResourceLocation>& {
                 const Biome& biome = BiomeRegistry::instance().get(biomeId);
                 return biome.generationSettings().getFeatures(stage);
             },
-            FeatureRegistry::instance());
+            PlacedFeatureRegistry::instance());
     });
 
     // === MC 1.21: 收集 3x3 区块邻域内的 section biomes ===
@@ -688,7 +689,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
                 const Biome& biome = BiomeRegistry::instance().get(biomeId);
                 const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
                 const auto& featureIds = biomeSettings.getFeatures(stage);
-                for (u32 fid : featureIds) {
+                for (const ResourceLocation& fid : featureIds) {
                     const i32 topoIndex = stepData.getIndex(fid);
                     if (topoIndex >= 0) {
                         featureIndices.insert(topoIndex);

@@ -24,6 +24,7 @@
 
 #include "CaveSurface.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
@@ -46,8 +47,8 @@ struct VegetationPatchConfig {
     /// 地面方块状态提供者
     const BlockState* groundState = nullptr;
 
-    /// 植被特征ID（在FeatureRegistry中注册的ID）
-    u32 vegetationFeatureId = 0;
+    /// 植被特征ID（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    ResourceLocation vegetationFeatureId;
 
     /// 贴片表面方向
     CaveSurface surface = CaveSurface::Floor;
@@ -77,7 +78,7 @@ struct VegetationPatchConfig {
      */
     static VegetationPatchConfig floorPatch(const std::string& replaceableTag,
         const BlockState* groundState,
-        u32 vegetationFeatureId,
+        ResourceLocation vegetationFeatureId,
         std::unique_ptr<valueprovider::IntProvider> depth,
         f32 extraBottomBlockChance,
         i32 verticalRange,
@@ -90,7 +91,7 @@ struct VegetationPatchConfig {
      */
     static VegetationPatchConfig ceilingPatch(const std::string& replaceableTag,
         const BlockState* groundState,
-        u32 vegetationFeatureId,
+        ResourceLocation vegetationFeatureId,
         std::unique_ptr<valueprovider::IntProvider> depth,
         f32 extraBottomBlockChance,
         i32 verticalRange,
@@ -191,7 +192,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -214,7 +215,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 

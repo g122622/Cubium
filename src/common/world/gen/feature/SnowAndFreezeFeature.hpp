@@ -25,7 +25,6 @@
 
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
-#include <memory>
 
 namespace mc {
 
@@ -68,32 +67,13 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::TopLayerModification; }
 
 private:
     std::string m_name;
-};
-
-/**
- * @brief 雪和冰冻结特征集合
- *
- * 负责创建 TopLayerModification 阶段的配置化特征。
- */
-struct SnowAndFreezeFeatures {
-    /// 初始化所有雪和冰冻结特征
-    static void initialize();
-
-    /// 获取所有特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredSnowAndFreezeFeature>>& getAllFeatures();
-
-    /// 获取所有特征并转移所有权
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredSnowAndFreezeFeature>> getAllFeaturesAndClear();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredSnowAndFreezeFeature>> s_features;
 };
 
 } // namespace mc

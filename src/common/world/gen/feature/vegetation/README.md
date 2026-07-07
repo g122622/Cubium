@@ -9,9 +9,7 @@ vegetation/
 ├── CactusFeature.hpp/cpp          # 仙人掌特征（沙漠/恶地）
 ├── FlowerFeature.hpp/cpp          # 花卉特征（蒲公英、虞美人、郁金香等）
 ├── GrassFeature.hpp/cpp           # 草丛特征（草、蕨类、枯萎灌木）
-├── IceSpikeFeature.hpp/cpp        # 冰刺特征（尖塔型/冰丘型）
 ├── SugarCaneFeature.hpp/cpp       # 甘蔗特征（需水源）
-├── VegetationFeatures.hpp         # 统一头文件和管理器
 └── README.md                      # 本文档
 ```
 
@@ -26,7 +24,7 @@ graph TB
     end
 
     subgraph 植被特征
-        VegetationFeatures["VegetationFeatures.hpp<br/>统一入口"]
+        VegetationFeatures["数据包 JSON<br/>configured_feature/placed_feature"]
 
         FlowerFeature --> Feature
         FlowerFeature --> ConfiguredFeature
@@ -52,26 +50,21 @@ graph TB
         BambooFeature --> ConfiguredFeature
         BambooFeature --> VanillaBlocks
 
-        IceSpikeFeature --> Feature
-        IceSpikeFeature --> ConfiguredFeature
-        IceSpikeFeature --> VanillaBlocks
-
         VegetationFeatures --> FlowerFeature
         VegetationFeatures --> GrassFeature
         VegetationFeatures --> BigMushroomFeature
         VegetationFeatures --> CactusFeature
         VegetationFeatures --> SugarCaneFeature
         VegetationFeatures --> BambooFeature
-        VegetationFeatures --> IceSpikeFeature
     end
 
     subgraph 生物群系集成
         BiomeSettings["BiomeGenerationSettings<br/>生物群系生成设置"]
-        FeatureRegistry["FeatureRegistry<br/>特征注册表"]
+        Registry["ConfiguredFeatureRegistry<br/>PlacedFeatureRegistry"]
     end
 
     VegetationFeatures --> BiomeSettings
-    VegetationFeatures --> FeatureRegistry
+    VegetationFeatures --> Registry
 ```
 
 ## 上下游外部依赖关系
@@ -105,9 +98,9 @@ graph LR
 
 ### 下游依赖（依赖本模块的外部模块）
 
-- **BiomeGenerationSettings** - 各生物群系的生成设置（平原、森林、沙漠、沼泽、冰刺平原等）
-- **FeatureRegistry** - 特征注册表，管理所有特征的 ID 和实例
-- **ChunkGenerator** - 区块生成器，在 VegetalDecoration 和 SurfaceStructures 阶段调用
+- **BiomeGenerationSettings** - 各生物群系的生成设置（平原、森林、沙漠、沼泽等），以 `ResourceLocation` 引用 placed_feature
+- **ConfiguredFeatureRegistry / PlacedFeatureRegistry** - 数据驱动注册表，按 `ResourceLocation` 管理植被特征
+- **NoiseChunkGenerator** - 区块生成器，在 VegetalDecoration 和 SurfaceStructures 阶段通过 `PlacedFeature::place` 调用
 
 ## 模块整体职责
 
@@ -121,20 +114,16 @@ graph LR
 | 仙人掌 | VegetalDecoration | 沙漠、恶地 |
 | 甘蔗 | VegetalDecoration | 河流、沼泽等水源附近 |
 | 竹子 | VegetalDecoration | 竹子丛林（密集+灰化土）、普通丛林（稀疏） |
-| 冰刺 | SurfaceStructures | 冰刺平原 |
 
 ## 容易踩的坑
 
-### 1. 初始化顺序错误
+### 1. 初始化顺序
 
-在 `VanillaBlocks::initialize()` 之前调用植被特征初始化会导致空指针崩溃。正确顺序：
-1. `VanillaBlocks::initialize()` - 先初始化方块
-2. `VegetationFeatureManager::initialize()` - 再初始化植被特征
-3. `FeatureRegistry::instance().initialize()` - 最后注册特征
+植被特征依赖方块系统。`MinecraftServer::initializeRegistries` 中的加载顺序为：`VanillaBlocks::initialize()` → `PlacementRegistry::initialize` → `FeatureTypeRegistry::initializeBuiltinFeatureTypes` → `ConfiguredFeatureLoader`（从数据包加载 configured_feature）→ `PlacedFeatureLoader` → `ConfiguredCarverLoader` → `BiomeRegistry::initialize` → `BiomeLoader`。在 `VanillaBlocks::initialize()` 之前加载特征会导致空指针崩溃。
 
-### 2. getAllFeaturesAndClear() 所有权转移
+### 2. 数据驱动引用
 
-调用 `getAllFeaturesAndClear()` 后，静态存储被清空，再次调用返回空。只能调用一次，转移所有权给 FeatureRegistry。
+植被特征由数据包 `configured_feature`/`placed_feature` JSON 定义，生物群系通过 `features` 数组按 `ResourceLocation`（如 `minecraft:patch_grass_plain`、`minecraft:flower_forest_flower`）引用。不再有整型 ID 或 `getAllFeaturesAndClear()` 所有权转移语义。
 
 ### 3. 甘蔗没有水就不生成
 
@@ -144,18 +133,10 @@ graph LR
 
 仙人掌检查 `hasValidSpace()` 要求周围4格都是空气。不要在密集区域使用仙人掌特征。
 
-### 5. 冰刺需要雪块作为基座
-
-冰刺只在雪块上方生成，不会在普通方块上生成。确保 `IceSpikesBiomeSettings` 在雪层覆盖后再生成冰刺。
-
-### 6. 花卉/草丛需要草方块或泥土
+### 5. 花卉/草丛需要草方块或泥土
 
 `isValidGround()` 只检查草方块和泥土。如果需要在其他方块上放置，需修改 `isValidGround()` 或添加新的特征类型。
 
-### 7. 特征ID顺序必须与注册顺序一致
-
-`FeatureIds.hpp` 中的 ID 必须与 `initialize()` 中的注册顺序完全一致，否则会导致特征 ID 错乱。
-
-### 8. FlowerFeatureConfig 的 ySpread 必须显式设置
+### 6. FlowerFeatureConfig 的 ySpread 必须显式设置
 
 `FlowerFeatureConfig` 的 `ySpread` 默认值为 3，但花卉预设通常使用 `ySpread=2`。创建新的花卉配置时务必显式设置 `ySpread`，否则花卉会在 Y 方向过度扩散。偏移算法为三角形分布：`dy = nextInt(ySpread+1) - nextInt(ySpread+1)`，当 `ySpread=0` 时无 Y 偏移。

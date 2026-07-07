@@ -34,7 +34,7 @@ std::vector<BlockPos> BiomeFilterPlacement::getPositions(
     (void)random;
 
     const auto& filterConfig = static_cast<const BiomeFilterConfig&>(config);
-    const u32 featureId = filterConfig.featureId;
+    const ResourceLocation& placedFeatureId = filterConfig.placedFeatureId;
 
     // 获取当前位置的生物群系ID
     const BiomeId biomeId = region.getBiome(basePos.x, basePos.y, basePos.z);
@@ -42,8 +42,8 @@ std::vector<BlockPos> BiomeFilterPlacement::getPositions(
     // 从注册表获取生物群系定义
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
-    // 检查该生物群系的生成设置中是否包含当前特征
-    if (biome.generationSettings().hasFeature(featureId)) {
+    // 检查该生物群系的生成设置中是否包含当前 placed_feature
+    if (biome.generationSettings().hasPlacedFeature(placedFeatureId)) {
         return {basePos};
     }
 

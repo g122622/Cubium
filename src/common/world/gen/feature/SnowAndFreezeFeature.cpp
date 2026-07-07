@@ -42,8 +42,11 @@ ConfiguredSnowAndFreezeFeature::ConfiguredSnowAndFreezeFeature(const char* featu
     : m_name(featureName)
 {}
 
-bool ConfiguredSnowAndFreezeFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSnowAndFreezeFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)generator;
     (void)random;
@@ -108,32 +111,6 @@ bool ConfiguredSnowAndFreezeFeature::place(
     }
 
     return true;
-}
-
-// ============================================================================
-// SnowAndFreezeFeatures
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredSnowAndFreezeFeature>> SnowAndFreezeFeatures::s_features;
-
-void SnowAndFreezeFeatures::initialize()
-{
-    s_features.clear();
-
-    auto feature = std::make_unique<ConfiguredSnowAndFreezeFeature>("freeze_top_layer");
-    s_features.push_back(std::move(feature));
-}
-
-const std::vector<std::unique_ptr<ConfiguredSnowAndFreezeFeature>>& SnowAndFreezeFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredSnowAndFreezeFeature>> SnowAndFreezeFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
 }
 
 } // namespace mc

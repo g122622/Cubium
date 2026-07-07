@@ -27,7 +27,6 @@
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <memory>
-#include <vector>
 
 namespace mc {
 
@@ -78,7 +77,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
@@ -86,21 +85,7 @@ public:
 private:
     std::unique_ptr<BasaltDeltaFeatureConfig> m_config;
     std::string m_name;
-    BasaltDeltaFeature m_feature;
-};
-
-/**
- * @brief 预定义玄武岩三角洲特征
- */
-struct BasaltDeltaFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredBasaltDeltaFeature> createNormal();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> s_features;
+    mutable BasaltDeltaFeature m_feature;
 };
 
 } // namespace mc

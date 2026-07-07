@@ -62,19 +62,6 @@ std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
     return root;
 }
 
-std::unique_ptr<ConfiguredPlacement> appendBiomeFilter(std::unique_ptr<ConfiguredPlacement> root, u32 featureId)
-{
-    if (!root) {
-        return root;
-    }
-
-    auto filterConfigured = std::make_unique<ConfiguredPlacement>(
-        std::make_unique<BiomeFilterPlacement>(), std::make_unique<BiomeFilterConfig>(featureId));
-
-    appendToEnd(*root, std::move(filterConfigured));
-    return root;
-}
-
 std::unique_ptr<ConfiguredPlacement> appendEnvironmentScanUp(std::unique_ptr<ConfiguredPlacement> root, i32 maxSteps)
 {
     if (!root) {

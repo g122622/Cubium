@@ -23,7 +23,6 @@
 
 #include "SeagrassFeature.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -57,27 +56,6 @@ namespace {
     }
 
     return -1;
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> createSeagrassFeature(
-    const char* featureName, f32 tallChance, i32 tries, i32 spread)
-{
-    auto config = std::make_unique<SeagrassFeatureConfig>();
-    if (VanillaBlocks::SEAGRASS != nullptr) {
-        config->seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
-    }
-    if (VanillaBlocks::TALL_SEAGRASS != nullptr) {
-        config->tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-            BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
-        config->tallSeagrassUpperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
-            BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
-    }
-
-    config->tallSeagrassChance = tallChance;
-    config->tries = tries;
-    config->horizontalSpread = spread;
-
-    return std::make_unique<ConfiguredSeagrassFeature>(std::move(config), featureName);
 }
 
 } // namespace
@@ -184,95 +162,15 @@ ConfiguredSeagrassFeature::ConfiguredSeagrassFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredSeagrassFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSeagrassFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// SeagrassFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredSeagrassFeature>> SeagrassFeatures::s_features;
-
-void SeagrassFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createSimpleSeagrass());
-    s_features.push_back(createMixedSeagrass());
-    s_features.push_back(createColdSeagrass());
-    s_features.push_back(createDeepColdSeagrass());
-    s_features.push_back(createNormalSeagrass());
-    s_features.push_back(createRiverSeagrass());
-    s_features.push_back(createDeepSeagrass());
-    s_features.push_back(createSwampSeagrass());
-    s_features.push_back(createWarmSeagrass());
-    s_features.push_back(createDeepWarmSeagrass());
-}
-
-const std::vector<std::unique_ptr<ConfiguredSeagrassFeature>>& SeagrassFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredSeagrassFeature>> SeagrassFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createSimpleSeagrass()
-{
-    return createSeagrassFeature("seagrass_simple", 0.0f, 64, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createMixedSeagrass()
-{
-    return createSeagrassFeature("seagrass_mixed", 0.3f, 48, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createColdSeagrass()
-{
-    return createSeagrassFeature("seagrass_cold", 0.3f, 32, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createDeepColdSeagrass()
-{
-    return createSeagrassFeature("seagrass_deep_cold", 0.8f, 40, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createNormalSeagrass()
-{
-    return createSeagrassFeature("seagrass_normal", 0.3f, 48, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createRiverSeagrass()
-{
-    return createSeagrassFeature("seagrass_river", 0.4f, 48, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createDeepSeagrass()
-{
-    return createSeagrassFeature("seagrass_deep", 0.8f, 48, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createSwampSeagrass()
-{
-    return createSeagrassFeature("seagrass_swamp", 0.6f, 64, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createWarmSeagrass()
-{
-    return createSeagrassFeature("seagrass_warm", 0.3f, 80, 8);
-}
-
-std::unique_ptr<ConfiguredSeagrassFeature> SeagrassFeatures::createDeepWarmSeagrass()
-{
-    return createSeagrassFeature("seagrass_deep_warm", 0.8f, 80, 8);
 }
 
 } // namespace mc

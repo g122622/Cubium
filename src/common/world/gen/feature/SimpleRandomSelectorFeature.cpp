@@ -21,9 +21,11 @@
  */
 
 #include "SimpleRandomSelectorFeature.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "common/world/gen/placement/Placement.hpp"
 
 namespace mc::world::gen::feature::cave {
@@ -43,17 +45,14 @@ bool SimpleRandomSelectorFeature::place(WorldGenRegion& region,
         return false;
     }
 
-    FeatureRegistry& registry = FeatureRegistry::instance();
-    const auto& features = registry.getFeatures(DecorationStage::VegetalDecoration);
-
     u32 index = static_cast<u32>(random.nextInt(static_cast<i32>(config.featureIds.size())));
-    u32 featureId = config.featureIds[index];
+    const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(config.featureIds[index]);
 
-    if (featureId >= features.size() || features[featureId] == nullptr) {
+    if (feature == nullptr) {
         return false;
     }
 
-    return features[featureId]->place(region, chunk, generator, random, pos);
+    return feature->place(region, chunk, generator, random, pos);
 }
 
 // ============================================================================
@@ -69,8 +68,11 @@ ConfiguredSimpleRandomSelectorFeature::ConfiguredSimpleRandomSelectorFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredSimpleRandomSelectorFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSimpleRandomSelectorFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     std::vector<BlockPos> positions;
     if (m_placement) {

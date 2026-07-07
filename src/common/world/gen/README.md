@@ -37,10 +37,13 @@ gen/
 ├── feature/                     # 特征系统
 │   ├── Feature.hpp/cpp          # 特征基类
 │   ├── FeaturePlacer.hpp/cpp    # 按需放置特征（从 ServerWorld 已加载区块构建 WorldGenRegion）
-│   ├── ConfiguredFeature.hpp/cpp # 配置化特征
+│   ├── ConfiguredFeature.hpp/cpp # 配置化特征基类 + ConfiguredFeatureRegistry
+│   ├── ConfiguredFeatureLoader.hpp/cpp # 数据驱动 configured_feature JSON 加载器
+│   ├── FeatureTypeRegistry.hpp/cpp # feature type 字符串→C++ 工厂映射
+│   ├── FeatureSorter.hpp/cpp    # MC 1.21 特征拓扑排序器
+│   ├── MonsterRoomFeature.hpp/cpp # 地牢特征（复刻 MC 1.21.11）
 │   ├── FeatureSpread.hpp/cpp    # 特征扩散配置
 │   ├── DecorationStage.hpp      # 装饰阶段枚举
-│   ├── FeatureIds.hpp           # 特征ID常量
 │   ├── cave/                    # 洞穴特征（滴水石、繁茂洞穴）
 │   ├── fungus/                  # 下界巨型菌类特征
 │   ├── gateway/                 # 末地折跃门特征
@@ -87,9 +90,12 @@ gen/
 │   └── README.md
 ├── placement/                   # 放置器系统
 │   ├── Placement.hpp/cpp        # 放置器基类
-│   ├── PlacementRegistry.hpp/cpp # 放置器注册
+│   ├── PlacementRegistry.hpp/cpp # 放置器注册（type 字符串→工厂）
 │   ├── Placements.hpp/cpp       # 放置器实现（13种）
-│   └── PlacementUtils.hpp/cpp   # 放置器工具
+│   ├── PlacementUtils.hpp/cpp   # 放置器工具
+│   ├── PlacedFeature.hpp/cpp    # placed_feature（配置化特征 + 放置链）
+│   ├── PlacedFeatureRegistry.hpp/cpp # placed_feature 注册表（数据驱动）
+│   └── PlacedFeatureLoader.hpp/cpp # 数据驱动 placed_feature JSON 加载器
 ├── settings/                    # 生成设置配置
 │   ├── DimensionSettings.hpp/cpp # 维度设置（主世界/下界/末地）
 │   ├── NoiseSettings.hpp        # 噪声参数
@@ -236,7 +242,7 @@ gen/
 
 ### 6. 模板加载时机
 
-Jigsaw 模板在方块注册前加载会失败。初始化顺序：方块 → 生物群系 → Jigsaw模板池 → 特征。
+Jigsaw 模板在方块注册前加载会失败。初始化顺序（`MinecraftServer::initializeRegistries`）：方块 → `PlacementRegistry::initialize` → `FeatureTypeRegistry::initializeBuiltinFeatureTypes` → `ConfiguredFeatureLoader` → `PlacedFeatureLoader` → `ConfiguredCarverLoader` → `BiomeRegistry::initialize` → `BiomeLoader`。各 Loader 从数据包 JSON 加载对应注册表，遇未实现 type 或未注册引用时严格报错中断。
 
 ### 7. 高度图更新
 
@@ -258,9 +264,9 @@ Jigsaw 模板在方块注册前加载会失败。初始化顺序：方块 → �
 
 将临时 `BlockState` 副本传递给世界写入 API 可能导致状态 ID 不一致。优先使用 `state.with(...)` / `defaultState()` 返回的规范引用。
 
-### 12. 海洋特征注册顺序
+### 12. 海洋特征数据驱动
 
-`KelpFeatureIds` 和 `SeagrassFeatureIds` 按海洋温度分开，添加新海洋变体时必须保持 `FeatureRegistry::initialize()` 顺序、`BiomeGenerationSettings` 映射和海洋断言同步。
+海洋特征（海带/海草等）现由数据包 JSON 驱动（`configured_feature`/`placed_feature`），通过 `BiomeLoader` 写入各海洋生物群系的 `BiomeGenerationSettings`。特征 id 统一为 `ResourceLocation`（如 `minecraft:kelp`、`minecraft:seagrass`），不再有 `KelpFeatureIds`/`SeagrassFeatureIds` 整型常量。添加新海洋变体时，在数据包 JSON 中配置并通过 biome 的 `features` 数组引用即可。
 
 ### 13. FeaturePlacer 按需放置
 

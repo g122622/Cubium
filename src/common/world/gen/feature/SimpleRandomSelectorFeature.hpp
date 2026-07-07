@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>
 #include <vector>
@@ -35,11 +36,11 @@ namespace mc::world::gen::feature::cave {
  * 从特征列表中均匀随机选择一个。
  */
 struct SimpleRandomFeatureConfig {
-    /// 可选特征ID列表
-    std::vector<u32> featureIds;
+    /// 可选特征ID列表（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    std::vector<ResourceLocation> featureIds;
 
     SimpleRandomFeatureConfig() = default;
-    explicit SimpleRandomFeatureConfig(std::vector<u32> ids)
+    explicit SimpleRandomFeatureConfig(std::vector<ResourceLocation> ids)
         : featureIds(std::move(ids))
     {}
 };
@@ -73,7 +74,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 

@@ -103,45 +103,15 @@ ConfiguredBasaltDeltaFeature::ConfiguredBasaltDeltaFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredBasaltDeltaFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBasaltDeltaFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// BasaltDeltaFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> BasaltDeltaFeatures::s_features;
-
-void BasaltDeltaFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-    s_features.push_back(createNormal());
-}
-
-const std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>>& BasaltDeltaFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredBasaltDeltaFeature>> BasaltDeltaFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredBasaltDeltaFeature> BasaltDeltaFeatures::createNormal()
-{
-    auto config = std::make_unique<BasaltDeltaFeatureConfig>(8, // size
-        0.2f,                                                   // magmaChance
-        true                                                    // useBasalt
-    );
-    return std::make_unique<ConfiguredBasaltDeltaFeature>(std::move(config), "basalt_delta");
 }
 
 } // namespace mc

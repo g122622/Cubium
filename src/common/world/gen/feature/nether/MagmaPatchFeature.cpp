@@ -129,60 +129,15 @@ ConfiguredMagmaPatchFeature::ConfiguredMagmaPatchFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredMagmaPatchFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredMagmaPatchFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// MagmaPatchFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> MagmaPatchFeatures::s_features;
-
-void MagmaPatchFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    s_features.push_back(createNormal());
-    s_features.push_back(createDense());
-}
-
-const std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>>& MagmaPatchFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> MagmaPatchFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createNormal()
-{
-    auto config = std::make_unique<MagmaPatchFeatureConfig>(4, // radius
-        0.3f,                                                  // magmaChance
-        0.1f,                                                  // fireChance
-        1,                                                     // minDepth
-        3                                                      // maxDepth
-    );
-    return std::make_unique<ConfiguredMagmaPatchFeature>(std::move(config), "magma_patch");
-}
-
-std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createDense()
-{
-    auto config = std::make_unique<MagmaPatchFeatureConfig>(6, // radius
-        0.5f,                                                  // magmaChance
-        0.2f,                                                  // fireChance
-        2,                                                     // minDepth
-        4                                                      // maxDepth
-    );
-    return std::make_unique<ConfiguredMagmaPatchFeature>(std::move(config), "magma_patch_dense");
 }
 
 } // namespace mc

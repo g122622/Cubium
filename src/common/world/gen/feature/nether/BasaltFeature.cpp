@@ -200,54 +200,15 @@ ConfiguredBasaltColumnFeature::ConfiguredBasaltColumnFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredBasaltColumnFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBasaltColumnFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// BasaltColumnFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::s_features;
-
-void BasaltColumnFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    s_features.push_back(createNormal());
-    s_features.push_back(createLarge());
-}
-
-const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& BasaltColumnFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createNormal()
-{
-    auto config = std::make_unique<BasaltColumnFeatureConfig>(0, // minHeight
-        5,                                                       // maxHeight
-        false);
-    return std::make_unique<ConfiguredBasaltColumnFeature>(std::move(config), "basalt_column");
-}
-
-std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createLarge()
-{
-    auto config = std::make_unique<BasaltColumnFeatureConfig>(3, // minHeight
-        10,                                                      // maxHeight
-        true);
-    return std::make_unique<ConfiguredBasaltColumnFeature>(std::move(config), "basalt_column_large");
 }
 
 } // namespace mc

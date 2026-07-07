@@ -18,9 +18,42 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
-#pragma once
+#include "PlacedFeatureRegistry.hpp"
 
-// 洞穴特征聚合头文件（包含所有配置 + 特征类）
-#include "CaveFeatureConfigs.hpp"
+namespace mc {
+
+PlacedFeatureRegistry& PlacedFeatureRegistry::instance()
+{
+    static PlacedFeatureRegistry s_instance;
+    return s_instance;
+}
+
+void PlacedFeatureRegistry::registerPlacedFeature(std::unique_ptr<PlacedFeature> placedFeature)
+{
+    const PlacedFeature* raw = placedFeature.get();
+    const ResourceLocation id = raw->id();
+    m_placedFeaturesById[id] = raw;
+    m_ownedPlacedFeatures.push_back(std::move(placedFeature));
+}
+
+const PlacedFeature* PlacedFeatureRegistry::get(const ResourceLocation& id) const noexcept
+{
+    auto it = m_placedFeaturesById.find(id);
+    return it != m_placedFeaturesById.end() ? it->second : nullptr;
+}
+
+bool PlacedFeatureRegistry::has(const ResourceLocation& id) const noexcept
+{
+    return m_placedFeaturesById.find(id) != m_placedFeaturesById.end();
+}
+
+void PlacedFeatureRegistry::clear()
+{
+    m_placedFeaturesById.clear();
+    m_ownedPlacedFeatures.clear();
+}
+
+} // namespace mc

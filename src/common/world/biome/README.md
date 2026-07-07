@@ -20,6 +20,8 @@
 ├── BiomeGenerationSettings.cpp
 ├── BiomeRegistry.hpp #生物群系注册表（单例）
 ├── BiomeRegistry.cpp
+├── BiomeLoader.hpp #数据驱动 biome JSON 加载器（叠加 climate/effects/spawners/features 到已注册 Biome）
+├── BiomeLoader.cpp
 ├── BiomeFactory.hpp #生物群系工厂函数声明
 ├── BiomeFactoryOverworld.cpp #主世界生物群系工厂函数
 ├── BiomeFactoryNether.cpp #下界生物群系工厂函数
@@ -122,8 +124,10 @@
                 ## #5. 中央岛屿判定使用区块坐标
 
 ## #6. getFlowerFeatureIds() 与 addFlowerFeature()
-`BiomeGenerationSettings::getFlowerFeatureIds()` 返回通过 `addFlowerFeature()` 添加的花卉特征ID列表。花卉特征ID是 VegetalDecoration 阶段内的索引（定义在 `FeatureIds.hpp` 的 `FlowerFeatureIds` 命名空间中），可直接用作 `FeatureRegistry::getFeatures(DecorationStage::VegetalDecoration)` 返回向量的下标来查找对应的 `ConfiguredFlowerFeature`。注意：这些ID不是 `featureId()` 返回的全局ID，而是阶段内索引。调用 `clear()` 会清空花卉特征列表。`EndBiomeSource::isInCentralIsland()` 使用区块坐标（blockX
-        >> 4），不是方块坐标。4096 = 64²（64 个区块半径）。
+`BiomeGenerationSettings::getFlowerFeatureIds()` 返回通过 `addFlowerFeature()` 添加的花卉特征 `ResourceLocation` 列表。花卉特征 id 现在统一为 `ResourceLocation`（如 `minecraft:flower_forest_flower`），不再使用整型索引或 `FeatureIds.hpp`（已删除）。调用 `clear()` 会清空花卉特征列表。
+
+### 中央岛屿判定使用区块坐标
+`EndBiomeSource::isInCentralIsland()` 使用区块坐标（`blockX >> 4`），不是方块坐标。4096 = 64²（64 个区块半径）。
 
     ## #6. Parameter::span 支持两种重载
     - `Parameter::span(f32 min, f32 max)` — 从浮点值创建范围
@@ -165,3 +169,6 @@
 **注意**：`BiomeClimate` 中的 `Precipitation precipitation` 字段已重构为 `bool hasPrecipitation`。`Precipitation` 枚举（`None`/`Rain`/`Snow`）仍作为 `getPrecipitationAt()` 的返回类型使用，但不再作为 `BiomeClimate` 的字段。设置降水属性使用 `setHasPrecipitation(bool)` 而非旧的 `setPrecipitation()`。
 
 **调用场景**：`tickPrecipitation()` 在降水 tick 中调用此方法确定表面方块位置的降水类型，然后调用 `Block::handlePrecipitation()` 将降水事件传递给方块（如炼药锅填充水、避雷针雷暴激活等）。
+
+### 12. BiomeLoader 数据驱动叠加策略
+BiomeLoader 从数据包 biome JSON 加载 climate/effects/spawners/spawn_costs/carvers/features，**叠加**到 BiomeFactory 已构造的 Biome 上（保留 depth/scale/surface blocks 等非 JSON 字段）。必须按以下顺序在 `MinecraftServer::initializeRegistries` 调用：PlacementRegistry::initialize → FeatureTypeRegistry::initializeBuiltinFeatureTypes → ConfiguredFeatureLoader → PlacedFeatureLoader → ConfiguredCarverLoader → BiomeRegistry::initialize → BiomeLoader。BiomeLoader 内置 65 项 biome 名→BiomeId 映射表（含 11 个 1.18+ 重命名如 stony_shore=StoneShore）；数据包 biome 名无映射或 BiomeId 未注册时 warn+skip。placed_feature/carver id 未在对应 Registry 注册时 warn+skip（世界仍可生成）。

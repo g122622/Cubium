@@ -24,8 +24,7 @@
 #pragma once
 
 #include "../gen/feature/DecorationStage.hpp"
-#include <functional>
-#include <memory>
+#include "common/resource/ResourceLocation.hpp"
 #include <vector>
 
 // 前向声明（必须在 mc::world::biome 命名空间之外，避免命名空间污染）
@@ -50,7 +49,11 @@ using IChunkGenerator = ::mc::IChunkGenerator;
 /**
  * @brief 生物群系生成设置
  *
- * 存储生物群系特有的特征列表，按装饰阶段组织。
+ * 存储生物群系特有的 placed_feature 与 carver 列表，按装饰阶段组织。
+ *
+ * 数据驱动：features 存储 placed_feature 的 ResourceLocation id（由 BiomeLoader
+ * 从数据包 biome JSON 的 features 二维数组解析填充），运行时由 FeatureSorter
+ * 拓扑排序后经 PlacedFeatureRegistry 解析为 const PlacedFeature*。
  */
 class BiomeGenerationSettings {
 public:
@@ -63,54 +66,42 @@ public:
     BiomeGenerationSettings& operator=(const BiomeGenerationSettings&) = delete;
 
     /**
-     * @brief 添加特征到指定阶段
+     * @brief 添加 placed_feature 到指定阶段
      * @param stage 装饰阶段
-     * @param feature 特征ID（用于引用全局特征）
+     * @param placedFeatureId placed_feature 的 ResourceLocation（对应 placed_feature JSON 文件名）
      */
-    void addFeature(DecorationStage stage, u32 featureId);
+    void addPlacedFeature(DecorationStage stage, ResourceLocation placedFeatureId);
 
     /**
-     * @brief 添加花卉特征ID
+     * @brief 添加花卉 placed_feature id
      *
-     * 花卉特征同时添加到 VegetalDecoration 阶段的通用特征列表和独立的花卉特征列表。
+     * 花卉特征同时添加到 VegetalDecoration 阶段的通用列表和独立的花卉列表。
      * 用于骨粉在草方块上放置花朵时，根据生物群系选择对应的花卉列表。
      *
-     * @param featureId 花卉特征ID
+     * TODO: BiomeLoader 当前未从 biome JSON 填充花卉列表（无对应字段），本方法暂无调用方，
+     * 导致骨粉催花在所有生物群系都回退到蒲公英。待确定花卉列表的数据来源后接入。
      */
-    void addFlowerFeature(u32 featureId);
+    void addFlowerFeature(ResourceLocation placedFeatureId);
 
     /**
-     * @brief 获取指定阶段的特征ID列表
-     * @param stage 装饰阶段
-     * @return 特征ID列表
+     * @brief 获取指定阶段的 placed_feature id 列表
      */
-    [[nodiscard]] const std::vector<u32>& getFeatures(DecorationStage stage) const noexcept;
+    [[nodiscard]] const std::vector<ResourceLocation>& getFeatures(DecorationStage stage) const noexcept;
 
     /**
-     * @brief 检查是否有任何特征
-     */
-    [[nodiscard]] bool hasFeatures() const noexcept;
-
-    /**
-     * @brief 检查是否包含指定特征ID
+     * @brief 检查是否包含指定 placed_feature id
      *
-     * 遍历所有装饰阶段的特征列表，查找是否存在匹配的特征ID。
+     * 遍历所有装饰阶段的特征列表，查找是否存在匹配的 id。
      * 用于 BiomeFilterPlacement 的反向查询。
-     *
-     * @param featureId 特征ID
-     * @return 是否包含该特征
      */
-    [[nodiscard]] bool hasFeature(u32 featureId) const noexcept;
+    [[nodiscard]] bool hasPlacedFeature(const ResourceLocation& placedFeatureId) const noexcept;
 
     /**
-     * @brief 获取此生物群系的花卉特征ID列表
+     * @brief 获取此生物群系的花卉 placed_feature id 列表
      *
-     * 通过 addFlowerFeature() 添加的花卉特征ID列表。
      * 用于骨粉在草方块上放置花朵时，根据生物群系选择对应的花卉列表。
-     *
-     * @return 花卉特征ID列表（可能为空，表示此群系没有花卉特征）
      */
-    [[nodiscard]] const std::vector<u32>& getFlowerFeatureIds() const noexcept;
+    [[nodiscard]] const std::vector<ResourceLocation>& getFlowerFeatureIds() const noexcept;
 
     /**
      * @brief 清除所有特征和雕刻器
@@ -118,293 +109,25 @@ public:
     void clear() noexcept;
 
     /**
-     * @brief 添加配置化雕刻器
-     * @param carver 配置化雕刻器（所有权转移）
+     * @brief 添加配置化雕刻器（按 ResourceLocation 引用 ConfiguredCarverRegistry）
+     * @param carverId configured_carver 的 ResourceLocation
      */
-    void addCarver(std::unique_ptr<ConfiguredCarverBase> carver);
+    void addCarver(ResourceLocation carverId);
 
     /**
-     * @brief 获取雕刻器列表
-     * @return 雕刻器引用列表
+     * @brief 获取雕刻器 id 列表
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<ConfiguredCarverBase>>& getCarvers() const noexcept;
-
-    /**
-     * @brief 检查是否有雕刻器
-     */
-    [[nodiscard]] bool hasCarvers() const noexcept;
-
-    /**
-     * @brief 创建默认的生物群系生成设置
-     * @return 默认设置
-     */
-    static BiomeGenerationSettings createDefault();
-
-    /**
-     * @brief 创建平原生物群系的生成设置
-     * @return 平原设置
-     */
-    static BiomeGenerationSettings createPlains();
-
-    /**
-     * @brief 创建森林生物群系的生成设置
-     * @return 森林设置
-     */
-    static BiomeGenerationSettings createForest();
-
-    /**
-     * @brief 创建白桦森林生物群系的生成设置
-     *
-     * 与普通森林相比，白桦森林使用白桦树为主、加入野花（WildflowerFeature）特征。
-     * 参考 MC Java: BiomeDefaultFeatures.addBirchForestFlowers() 添加 WILDFLOWERS_BIRCH_FOREST
-     * @return 白桦森林设置
-     */
-    static BiomeGenerationSettings createBirchForest();
-
-    /**
-     * @brief 创建草甸生物群系的生成设置
-     *
-     * 草甸是 1.18+ 引入的山地生物群系，使用稀疏橡树和稀疏野花（WildflowerFeature）。
-     * 参考 MC Java: BiomeDefaultFeatures.addMeadowVegetation() 添加 WILDFLOWERS_MEADOW
-     * @return 草甸设置
-     */
-    static BiomeGenerationSettings createMeadow();
-
-    /**
-     * @brief 创建针叶林生物群系的生成设置
-     * @return 针叶林设置
-     */
-    static BiomeGenerationSettings createTaiga();
-
-    /**
-     * @brief 创建丛林生物群系的生成设置
-     * @return 丛林设置
-     */
-    static BiomeGenerationSettings createJungle();
-
-    /**
-     * @brief 创建竹子丛林生物群系的生成设置
-     *
-     * 包含密集竹子（20%灰化土概率）、丛林树和丛林草丛。
-     * 参考 MC BambooJungle 生物群系。
-     * @return 竹子丛林设置
-     */
-    static BiomeGenerationSettings createBambooJungle();
-
-    /**
-     * @brief 创建竹子丛林丘陵生物群系的生成设置
-     *
-     * 与竹子丛林相同的植被，但地形起伏更大。
-     * 参考 MC BambooJungleHills 生物群系。
-     * @return 竹子丛林丘陵设置
-     */
-    static BiomeGenerationSettings createBambooJungleHills();
-
-    /**
-     * @brief 创建稀树草原生物群系的生成设置
-     * @return 稀树草原设置
-     */
-    static BiomeGenerationSettings createSavanna();
-
-    /**
-     * @brief 创建沙漠生物群系的生成设置
-     * @return 沙漠设置
-     */
-    static BiomeGenerationSettings createDesert();
-
-    /**
-     * @brief 创建沼泽生物群系的生成设置
-     * @return 沼泽设置
-     */
-    static BiomeGenerationSettings createSwamp();
-
-    /**
-     * @brief 创建河流生物群系的生成设置
-     * @return 河流设置
-     */
-    static BiomeGenerationSettings createRiver();
-
-    /**
-     * @brief 创建冻河生物群系的生成设置
-     * @return 冻河设置
-     */
-    static BiomeGenerationSettings createFrozenRiver();
-
-    /**
-     * @brief 创建沼泽山丘生物群系的生成设置
-     * @return 沼泽山丘设置
-     */
-    static BiomeGenerationSettings createSwampHills();
-
-    /**
-     * @brief 创建冰刺平原生物群系的生成设置
-     * @return 冰刺平原设置
-     */
-    static BiomeGenerationSettings createIceSpikes();
-
-    /**
-     * @brief 创建恶地生物群系的生成设置
-     * @return 恶地设置
-     */
-    static BiomeGenerationSettings createBadlands();
-
-    /**
-     * @brief 创建繁花森林生物群系的生成设置
-     * @return 繁花森林设置
-     */
-    static BiomeGenerationSettings createFlowerForest();
-
-    /**
-     * @brief 创建樱花树林生物群系的生成设置
-     * @return 樱花树林设置
-     */
-    static BiomeGenerationSettings createCherryGrove();
-
-    /**
-     * @brief 创建山地生物群系的生成设置
-     * @return 山地设置
-     */
-    static BiomeGenerationSettings createMountains();
-
-    /**
-     * @brief 创建海洋生物群系的生成设置
-     * @return 海洋设置
-     */
-    static BiomeGenerationSettings createOcean();
-
-    /**
-     * @brief 创建深海生物群系的生成设置
-     * @return 深海设置
-     */
-    static BiomeGenerationSettings createDeepOcean();
-
-    /**
-     * @brief 创建暖水海洋生物群系的生成设置
-     * 参考原版：珊瑚植被 + 暖水海草 + 海泡菜
-     * @return 暖水海洋设置
-     */
-    static BiomeGenerationSettings createWarmOcean();
-
-    /**
-     * @brief 创建温水海洋生物群系的生成设置
-     * 参考原版：海带 + 常规海草
-     * @return 温水海洋设置
-     */
-    static BiomeGenerationSettings createLukewarmOcean();
-
-    /**
-     * @brief 创建冷水海洋生物群系的生成设置
-     * 参考原版：海带 + 冷水海草
-     * @return 冷水海洋设置
-     */
-    static BiomeGenerationSettings createColdOcean();
-
-    /**
-     * @brief 创建冻洋生物群系的生成设置
-     * 参考原版：冷水植被 + 蓝冰局部改造
-     * @return 冻洋设置
-     */
-    static BiomeGenerationSettings createFrozenOcean();
-
-    /**
-     * @brief 创建深暖水海洋生物群系的生成设置
-     */
-    static BiomeGenerationSettings createDeepWarmOcean();
-
-    /**
-     * @brief 创建深温水海洋生物群系的生成设置
-     */
-    static BiomeGenerationSettings createDeepLukewarmOcean();
-
-    /**
-     * @brief 创建深冷水海洋生物群系的生成设置
-     */
-    static BiomeGenerationSettings createDeepColdOcean();
-
-    /**
-     * @brief 创建深冻洋生物群系的生成设置
-     */
-    static BiomeGenerationSettings createDeepFrozenOcean();
-
-    // ========================================================================
-    // 下界生物群系生成设置
-    // ========================================================================
-
-    /**
-     * @brief 创建下界荒地生物群系的生成设置
-     */
-    static BiomeGenerationSettings createNether();
-
-    /**
-     * @brief 创建灵魂沙谷生物群系的生成设置
-     */
-    static BiomeGenerationSettings createSoulSandValley();
-
-    /**
-     * @brief 创建绯红森林生物群系的生成设置
-     */
-    static BiomeGenerationSettings createCrimsonForest();
-
-    /**
-     * @brief 创建诡异森林生物群系的生成设置
-     */
-    static BiomeGenerationSettings createWarpedForest();
-
-    /**
-     * @brief 创建玄武岩三角洲生物群系的生成设置
-     */
-    static BiomeGenerationSettings createBasaltDeltas();
-
-    // ========================================================================
-    // 洞穴生物群系生成设置
-    // ========================================================================
-
-    /**
-     * @brief 创建繁茂洞穴生物群系的生成设置
-     *
-     * 包含苔藓贴片、洞穴藤蔓、孢子花、黏土池、垂滴叶、杜鹃树等特征。
-     */
-    static BiomeGenerationSettings createLushCaves();
-
-    // ========================================================================
-    // 末地生物群系生成设置
-    // ========================================================================
-
-    /**
-     * @brief 创建末地主岛生物群系的生成设置
-     */
-    static BiomeGenerationSettings createTheEnd();
-
-    /**
-     * @brief 创建小型末地岛屿生物群系的生成设置
-     */
-    static BiomeGenerationSettings createSmallEndIslands();
-
-    /**
-     * @brief 创建末地中部生物群系的生成设置
-     */
-    static BiomeGenerationSettings createEndMidlands();
-
-    /**
-     * @brief 创建末地高地生物群系的生成设置
-     */
-    static BiomeGenerationSettings createEndHighlands();
-
-    /**
-     * @brief 创建末地荒地生物群系的生成设置
-     */
-    static BiomeGenerationSettings createEndBarrens();
+    [[nodiscard]] const std::vector<ResourceLocation>& getCarvers() const noexcept;
 
 private:
-    // 按阶段存储特征ID列表
-    // 使用特征ID而不是直接存储特征对象，以减少内存占用
-    std::vector<std::vector<u32>> m_featuresByStage;
+    // 按阶段存储 placed_feature 的 ResourceLocation 列表
+    std::vector<std::vector<ResourceLocation>> m_featuresByStage;
 
-    // 花卉特征ID列表（用于骨粉放置花朵时从生物群系获取花卉）
-    std::vector<u32> m_flowerFeatureIds;
+    // 花卉 placed_feature id 列表（用于骨粉放置花朵时从生物群系获取花卉）
+    std::vector<ResourceLocation> m_flowerFeatureIds;
 
-    // 配置化雕刻器列表
-    std::vector<std::unique_ptr<ConfiguredCarverBase>> m_carvers;
+    // 配置化雕刻器的 ResourceLocation 列表（引用 ConfiguredCarverRegistry）
+    std::vector<ResourceLocation> m_carvers;
 };
 
 } // namespace biome

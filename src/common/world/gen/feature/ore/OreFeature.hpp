@@ -119,7 +119,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     /**
      * @brief 在区块中生成矿石
@@ -148,49 +148,6 @@ private:
     std::unique_ptr<OreFeatureConfig> m_config;
     std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
-};
-
-/**
- * @brief 矿石注册表
- *
- * 存储所有预配置的矿石特征。
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-class OreFeatures {
-public:
-    /**
-     * @brief 初始化所有矿石特征
-     */
-    static void initialize();
-
-    /**
-     * @brief 获取所有矿石特征并转移所有权
-     * @note 调用后内部存储被清空
-     */
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredOreFeature>> getAllFeaturesAndClear();
-
-    /**
-     * @brief 获取所有矿石特征（只读访问）
-     */
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredOreFeature>>& getAllFeatures();
-
-    // 主世界矿石
-    static std::unique_ptr<ConfiguredOreFeature> createCoalOre();
-    static std::unique_ptr<ConfiguredOreFeature> createIronOre();
-    static std::unique_ptr<ConfiguredOreFeature> createGoldOre();
-    static std::unique_ptr<ConfiguredOreFeature> createRedstoneOre();
-    static std::unique_ptr<ConfiguredOreFeature> createDiamondOre();
-    static std::unique_ptr<ConfiguredOreFeature> createLapisOre();
-    static std::unique_ptr<ConfiguredOreFeature> createEmeraldOre();
-    static std::unique_ptr<ConfiguredOreFeature> createCopperOre();
-
-    // 下界矿石
-    static std::unique_ptr<ConfiguredOreFeature> createNetherQuartzOre();
-    static std::unique_ptr<ConfiguredOreFeature> createNetherGoldOre();
-    static std::unique_ptr<ConfiguredOreFeature> createAncientDebris();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredOreFeature>> s_features;
 };
 
 } // namespace mc

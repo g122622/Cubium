@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>
 
@@ -34,16 +35,16 @@ namespace mc::world::gen::feature::cave {
  * 50%概率选择两个特征中的一个。
  */
 struct RandomBooleanFeatureConfig {
-    /// true时放置的特征ID
-    u32 featureTrueId = 0;
+    /// true时放置的特征（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    ResourceLocation featureTrueId;
 
-    /// false时放置的特征ID
-    u32 featureFalseId = 0;
+    /// false时放置的特征（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    ResourceLocation featureFalseId;
 
     RandomBooleanFeatureConfig() = default;
-    RandomBooleanFeatureConfig(u32 trueId, u32 falseId)
-        : featureTrueId(trueId)
-        , featureFalseId(falseId)
+    RandomBooleanFeatureConfig(ResourceLocation trueId, ResourceLocation falseId)
+        : featureTrueId(std::move(trueId))
+        , featureFalseId(std::move(falseId))
     {}
 };
 
@@ -76,7 +77,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 

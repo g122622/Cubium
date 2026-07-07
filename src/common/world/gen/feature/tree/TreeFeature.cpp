@@ -24,10 +24,8 @@
 #include "TreeFeature.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../util/property/Properties.hpp"
-#include "../../../biome/BiomeIds.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include "../../placement/PlacementUtils.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
@@ -37,17 +35,9 @@
 #include "trunk/StraightTrunkPlacer.hpp"
 #include "trunk/TrunkPlacers.hpp"
 #include <map>
-#include <mutex>
 #include <queue>
-#include <spdlog/spdlog.h>
 
 namespace mc {
-
-namespace {
-
-std::mutex g_treeFeaturesMutex;
-
-} // namespace
 
 // ============================================================================
 // TreeFeature 实现（保持原有实现）
@@ -314,8 +304,11 @@ ConfiguredTreeFeature::ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> 
     , m_name(featureName)
 {}
 
-bool ConfiguredTreeFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredTreeFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)generator;
     (void)chunk;
@@ -351,109 +344,6 @@ bool ConfiguredTreeFeature::place(
 // ============================================================================
 // TreeFeatures 实现
 // ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredTreeFeature>> TreeFeatures::s_features;
-
-void TreeFeatures::initialize()
-{
-    std::lock_guard<std::mutex> lock(g_treeFeaturesMutex);
-    s_features.clear();
-
-    // 注册主世界树木
-    s_features.push_back(createOakTree());
-    s_features.push_back(createBirchTree());
-    s_features.push_back(createSpruceTree());
-    s_features.push_back(createJungleTree());
-    s_features.push_back(createAcaciaTree());
-    s_features.push_back(createDarkOakTree());
-    s_features.push_back(createSparseOakTree());
-    s_features.push_back(createGiantSpruceTree());
-    s_features.push_back(createGiantJungleTree());
-    s_features.push_back(createFancyOakTree());
-    s_features.push_back(createPineTree());
-    s_features.push_back(createJungleBush());
-    s_features.push_back(createSwampTree());
-    s_features.push_back(createMegaPineTree());
-    s_features.push_back(createTallBirchTree());
-    s_features.push_back(createCherryTree());
-    s_features.push_back(createCherryBeeTree());
-
-    spdlog::info("[TreeFeatures] Initialized {} tree features", s_features.size());
-}
-
-std::vector<std::unique_ptr<ConfiguredTreeFeature>> TreeFeatures::getAllFeaturesAndClear()
-{
-    std::lock_guard<std::mutex> lock(g_treeFeaturesMutex);
-    std::vector<std::unique_ptr<ConfiguredTreeFeature>> result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-const std::vector<std::unique_ptr<ConfiguredTreeFeature>>& TreeFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createOakTree()
-{
-    // 橡树配置
-    auto config = std::make_unique<TreeFeatureConfig>(oakConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(4), {Biomes::Forest, Biomes::WoodedHills, Biomes::DarkForest});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "oak_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createBirchTree()
-{
-    // 白桦配置
-    auto config = std::make_unique<TreeFeatureConfig>(birchConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3), {Biomes::BirchForest, Biomes::Forest});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "birch_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSpruceTree()
-{
-    // 云杉配置
-    auto config = std::make_unique<TreeFeatureConfig>(spruceConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(3),
-        {Biomes::Taiga,
-            Biomes::SnowyTaiga,
-            Biomes::GiantTreeTaiga,
-            Biomes::Mountains,
-            Biomes::WoodedMountains,
-            Biomes::MountainEdge,
-            Biomes::StoneShore});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "spruce_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createJungleTree()
-{
-    // 丛林木配置
-    auto config = std::make_unique<TreeFeatureConfig>(jungleConfig());
-
-    auto placement =
-        PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(6), {Biomes::Jungle});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "jungle_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSparseOakTree()
-{
-    // 稀疏橡树（用于平原）
-    auto config = std::make_unique<TreeFeatureConfig>(oakConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(PlacementUtils::createChanceSurfacePlacement(0.1f),
-        {Biomes::Plains, Biomes::Savanna, Biomes::SavannaPlateau, Biomes::ShatteredSavanna});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "sparse_oak_tree");
-}
 
 TreeFeatureConfig TreeFeatures::oakConfig()
 {
@@ -574,98 +464,6 @@ TreeFeatureConfig TreeFeatures::giantJungleConfig()
     return config;
 }
 
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createAcaciaTree()
-{
-    // 金合欢树配置
-    auto config = std::make_unique<TreeFeatureConfig>(acaciaConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(2),
-        {Biomes::Savanna, Biomes::SavannaPlateau, Biomes::ShatteredSavanna});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "acacia_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createDarkOakTree()
-{
-    // 深色橡树配置
-    auto config = std::make_unique<TreeFeatureConfig>(darkOakConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3), {Biomes::DarkForest, Biomes::DarkForestHills});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "dark_oak_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantSpruceTree()
-{
-    // 巨型云杉配置
-    auto config = std::make_unique<TreeFeatureConfig>(giantSpruceConfig());
-
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.3f), {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "giant_spruce_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createGiantJungleTree()
-{
-    // 巨型丛林木配置
-    auto config = std::make_unique<TreeFeatureConfig>(giantJungleConfig());
-
-    auto placement =
-        PlacementUtils::appendBiomePlacement(PlacementUtils::createChanceSurfacePlacement(0.2f), {Biomes::Jungle});
-
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "giant_jungle_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createFancyOakTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(fancyOakConfig());
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.1f), {Biomes::Forest, Biomes::FlowerForest, Biomes::Plains});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "fancy_oak_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createPineTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(pineConfig());
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(2), {Biomes::Taiga, Biomes::SnowyTaiga, Biomes::GiantTreeTaiga});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "pine_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createJungleBush()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(jungleBushConfig());
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(8), {Biomes::Jungle, Biomes::JungleHills, Biomes::JungleEdge});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "jungle_bush");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createSwampTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(swampConfig());
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(2), {Biomes::Swamp, Biomes::SwampHills});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "swamp_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createMegaPineTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(megaPineConfig());
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createChanceSurfacePlacement(0.3f), {Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "mega_pine_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createTallBirchTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(tallBirchConfig());
-    auto placement = PlacementUtils::appendBiomePlacement(
-        PlacementUtils::createCountedSurfacePlacement(3), {Biomes::TallBirchForest, Biomes::TallBirchHills});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "tall_birch_tree");
-}
-
 TreeFeatureConfig TreeFeatures::fancyOakConfig()
 {
     TreeFeatureConfig config;
@@ -763,22 +561,6 @@ TreeFeatureConfig TreeFeatures::cherryConfig()
     config.ignoreVines = true;
     config.minHeight = 4;
     return config;
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createCherryTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(cherryConfig());
-    auto placement =
-        PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(10), {Biomes::CherryGrove});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "cherry_tree");
-}
-
-std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createCherryBeeTree()
-{
-    auto config = std::make_unique<TreeFeatureConfig>(cherryConfig());
-    auto placement =
-        PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(10), {Biomes::CherryGrove});
-    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "cherry_bee_tree");
 }
 
 } // namespace mc

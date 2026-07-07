@@ -155,11 +155,8 @@ TEST_F(FoliagePlacerTest, BlobFoliageName)
 TEST(TreeFeatureConfigTest, OakConfig)
 {
     VanillaBlocks::initialize();
-    // 使用 createOakTree 并获取配置
-    auto feature = TreeFeatures::createOakTree();
-    ASSERT_NE(feature, nullptr);
+    const TreeFeatureConfig config = TreeFeatures::oakConfig();
 
-    const TreeFeatureConfig& config = feature->getConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::OAK_LOG));
@@ -172,10 +169,8 @@ TEST(TreeFeatureConfigTest, OakConfig)
 TEST(TreeFeatureConfigTest, BirchConfig)
 {
     VanillaBlocks::initialize();
-    auto feature = TreeFeatures::createBirchTree();
-    ASSERT_NE(feature, nullptr);
+    const TreeFeatureConfig config = TreeFeatures::birchConfig();
 
-    const TreeFeatureConfig& config = feature->getConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::BIRCH_LOG));
@@ -188,10 +183,8 @@ TEST(TreeFeatureConfigTest, BirchConfig)
 TEST(TreeFeatureConfigTest, SpruceConfig)
 {
     VanillaBlocks::initialize();
-    auto feature = TreeFeatures::createSpruceTree();
-    ASSERT_NE(feature, nullptr);
+    const TreeFeatureConfig config = TreeFeatures::spruceConfig();
 
-    const TreeFeatureConfig& config = feature->getConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::SPRUCE_LOG));
@@ -203,10 +196,8 @@ TEST(TreeFeatureConfigTest, SpruceConfig)
 TEST(TreeFeatureConfigTest, JungleConfig)
 {
     VanillaBlocks::initialize();
-    auto feature = TreeFeatures::createJungleTree();
-    ASSERT_NE(feature, nullptr);
+    const TreeFeatureConfig config = TreeFeatures::jungleConfig();
 
-    const TreeFeatureConfig& config = feature->getConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::JUNGLE_LOG));

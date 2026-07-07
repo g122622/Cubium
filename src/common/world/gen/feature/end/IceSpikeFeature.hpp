@@ -98,7 +98,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::SurfaceStructures; }
@@ -107,32 +107,7 @@ public:
 private:
     std::unique_ptr<IceSpikeFeatureConfig> m_config;
     std::string m_name;
-    IceSpikeFeature m_feature;
-};
-
-/**
- * @brief 预定义冰刺配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct IceSpikeFeatures {
-    /// 初始化所有冰刺特征
-    static void initialize();
-
-    /// 获取所有冰刺特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>>& getAllFeatures();
-
-    /// 获取所有冰刺特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> getAllFeaturesAndClear();
-
-    /// 创建尖塔型冰刺
-    static std::unique_ptr<ConfiguredIceSpikeFeature> createSpike();
-
-    /// 创建冰丘
-    static std::unique_ptr<ConfiguredIceSpikeFeature> createIceberg();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> s_features;
+    mutable IceSpikeFeature m_feature;
 };
 
 } // namespace mc

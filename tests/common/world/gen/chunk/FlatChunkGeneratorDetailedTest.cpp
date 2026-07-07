@@ -35,8 +35,7 @@
 // 8. placeFeatures 和 _placeFillLayers 逻辑
 //    8.1 默认设置（无装饰、无湖泊）
 //    8.2 _placeFillLayers 填充层逻辑
-//    8.3 decoration 和 addLakes 标志验证
-//    8.4 generateNoise 跳过 nullptr 层
+//    8.3 generateNoise 跳过 nullptr 层
 // 9. IChunkGenerator 接口验证
 // 10. 与 MC 1.21.11 FlatLevelSource 的行为对齐
 // ============================================================================
@@ -47,9 +46,7 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/gen/chunk/FlatChunkGenerator.hpp"
-#include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
-#include <mutex>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -582,91 +579,6 @@ TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_NoDecorationNoLakes_NoFeatu
     // 层应保持不变（无特性放置）
     const BlockState* grass = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
     EXPECT_EQ(centerChunk.getBlockState(0, 3, 0), grass);
-}
-
-TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_DecorationTrue_SetsChunkStatus)
-{
-    // decoration=true: 启用生物群系装饰特性
-    // 此测试仅验证不崩溃和区块状态正确，不验证具体特性放置（依赖 FeatureRegistry 初始化）
-    FlatLevelGeneratorSettings settings(Biomes::Plains, true, false);
-    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
-    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
-    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
-    settings.updateLayers();
-
-    EXPECT_TRUE(settings.hasDecoration());
-    EXPECT_FALSE(settings.hasLakes());
-
-    // 需要初始化 FeatureRegistry 以支持特性放置
-    static std::once_flag s_featureInit;
-    std::call_once(s_featureInit, []() { FeatureRegistry::instance().initialize(); });
-
-    FlatChunkGenerator gen(0LL, settings);
-
-    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
-    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
-    ChunkPrimer& centerChunk = *chunks[4];
-
-    gen.generateNoise(*region, centerChunk);
-    gen.placeFeatures(*region, centerChunk);
-
-    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
-}
-
-TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_LakesTrue_SetsChunkStatus)
-{
-    // addLakes=true: 仅放置熔岩湖特性
-    FlatLevelGeneratorSettings settings(Biomes::Plains, false, true);
-    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
-    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
-    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
-    settings.updateLayers();
-
-    EXPECT_FALSE(settings.hasDecoration());
-    EXPECT_TRUE(settings.hasLakes());
-
-    // 需要初始化 FeatureRegistry
-    static std::once_flag s_featureInit;
-    std::call_once(s_featureInit, []() { FeatureRegistry::instance().initialize(); });
-
-    FlatChunkGenerator gen(0LL, settings);
-
-    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
-    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
-    ChunkPrimer& centerChunk = *chunks[4];
-
-    gen.generateNoise(*region, centerChunk);
-    gen.placeFeatures(*region, centerChunk);
-
-    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
-}
-
-TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_DecorationAndLakes_SetsChunkStatus)
-{
-    // decoration=true, addLakes=true: 放置装饰特性 + 熔岩湖
-    FlatLevelGeneratorSettings settings(Biomes::Plains, true, true);
-    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
-    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
-    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
-    settings.updateLayers();
-
-    EXPECT_TRUE(settings.hasDecoration());
-    EXPECT_TRUE(settings.hasLakes());
-
-    // 需要初始化 FeatureRegistry
-    static std::once_flag s_featureInit;
-    std::call_once(s_featureInit, []() { FeatureRegistry::instance().initialize(); });
-
-    FlatChunkGenerator gen(0LL, settings);
-
-    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
-    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
-    ChunkPrimer& centerChunk = *chunks[4];
-
-    gen.generateNoise(*region, centerChunk);
-    gen.placeFeatures(*region, centerChunk);
-
-    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
 }
 
 // ============================================================================

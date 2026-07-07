@@ -29,9 +29,7 @@
 #include "core/Constants.hpp"
 #include "world/chunk/data/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
-#include "world/gen/feature/FeatureIds.hpp"
 #include "world/gen/feature/end/ChorusPlantFeature.hpp"
-#include "world/gen/feature/end/EndFeatures.hpp"
 #include "world/gen/feature/end/EndIslandFeature.hpp"
 #include "world/gen/settings/DimensionSettings.hpp"
 
@@ -65,46 +63,6 @@ public:
     [[nodiscard]] const DimensionSettings& settings() const override { return DimensionSettings::overworld(); }
     [[nodiscard]] i32 seaLevel() const override { return 63; }
 };
-
-// ============================================================================
-// 末地小岛特征测试
-// ============================================================================
-
-class EndIslandFeatureTest : public ::testing::Test {
-protected:
-    void SetUp() override { EndIslandFeatures::initialize(); }
-};
-
-TEST_F(EndIslandFeatureTest, InitializeFeatures)
-{
-    const auto& features = EndIslandFeatures::getAllFeatures();
-    EXPECT_GE(features.size(), 1u);
-}
-
-TEST_F(EndIslandFeatureTest, CreateEndIslandFeature)
-{
-    auto feature = EndIslandFeatures::createEndIsland();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_EQ(feature->stage(), DecorationStage::RawGeneration);
-    EXPECT_NE(feature->name(), nullptr);
-}
-
-TEST_F(EndIslandFeatureTest, EndIslandFeatureName)
-{
-    auto feature = EndIslandFeatures::createEndIsland();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "end_island");
-}
-
-TEST_F(EndIslandFeatureTest, GetAllFeaturesAndClear_TransfersOwnership)
-{
-    auto features = EndIslandFeatures::getAllFeaturesAndClear();
-    EXPECT_GE(features.size(), 1u);
-
-    // 清空后列表应为空
-    const auto& remaining = EndIslandFeatures::getAllFeatures();
-    EXPECT_EQ(remaining.size(), 0u);
-}
 
 // ============================================================================
 // 末地小岛放置测试（使用 WorldGenRegion）
@@ -183,46 +141,6 @@ TEST_F(EndIslandPlacementTest, PlaceEndIsland_CreatesNonTrivialShape)
 
     // 末地小岛应包含多个末地石方块
     EXPECT_GT(endStoneCount, 5);
-}
-
-// ============================================================================
-// 紫颂树特征测试
-// ============================================================================
-
-class ChorusPlantFeatureTest : public ::testing::Test {
-protected:
-    void SetUp() override { ChorusPlantFeatures::initialize(); }
-};
-
-TEST_F(ChorusPlantFeatureTest, InitializeFeatures)
-{
-    const auto& features = ChorusPlantFeatures::getAllFeatures();
-    EXPECT_GE(features.size(), 1u);
-}
-
-TEST_F(ChorusPlantFeatureTest, CreateChorusPlantFeature)
-{
-    auto feature = ChorusPlantFeatures::createChorusPlant();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_EQ(feature->stage(), DecorationStage::VegetalDecoration);
-    EXPECT_NE(feature->name(), nullptr);
-}
-
-TEST_F(ChorusPlantFeatureTest, ChorusPlantFeatureName)
-{
-    auto feature = ChorusPlantFeatures::createChorusPlant();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "chorus_plant");
-}
-
-TEST_F(ChorusPlantFeatureTest, GetAllFeaturesAndClear_TransfersOwnership)
-{
-    auto features = ChorusPlantFeatures::getAllFeaturesAndClear();
-    EXPECT_GE(features.size(), 1u);
-
-    // 清空后列表应为空
-    const auto& remaining = ChorusPlantFeatures::getAllFeatures();
-    EXPECT_EQ(remaining.size(), 0u);
 }
 
 // ============================================================================
@@ -451,46 +369,4 @@ TEST_F(ChorusFlowerGenTest, GeneratePlant_TopIsDeadFlowerOrBranch)
         }
     }
     EXPECT_TRUE(foundTop);
-}
-
-// ============================================================================
-// EndFeatureRegistry 测试
-// ============================================================================
-
-class EndFeatureRegistryTest : public ::testing::Test {
-protected:
-    void SetUp() override { EndFeatureRegistry::initialize(); }
-};
-
-TEST_F(EndFeatureRegistryTest, InitializeRegistry)
-{
-    EXPECT_NO_THROW(EndFeatureRegistry::initialize());
-}
-
-TEST_F(EndFeatureRegistryTest, GetSurfaceFeatures)
-{
-    auto features = EndFeatureRegistry::getAllSurfaceFeaturesAndClear();
-    EXPECT_GE(features.size(), 2u); // 黑曜石柱 + 末地折跃门
-}
-
-TEST_F(EndFeatureRegistryTest, GetVegetationFeatures)
-{
-    auto features = EndFeatureRegistry::getAllVegetationFeaturesAndClear();
-    EXPECT_GE(features.size(), 2u); // 冰刺 + 紫颂树
-}
-
-TEST_F(EndFeatureRegistryTest, GetRawGenerationFeatures)
-{
-    auto features = EndFeatureRegistry::getAllRawGenerationFeaturesAndClear();
-    EXPECT_GE(features.size(), 1u); // 末地小岛
-}
-
-TEST_F(EndFeatureRegistryTest, FeatureIds_EndIslandValid)
-{
-    EXPECT_GE(EndIslandFeatureIds::EndIsland, 0);
-}
-
-TEST_F(EndFeatureRegistryTest, FeatureIds_ChorusPlantValid)
-{
-    EXPECT_GE(ChorusPlantFeatureIds::ChorusPlant, 0);
 }

@@ -102,7 +102,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
@@ -111,32 +111,9 @@ public:
 private:
     std::unique_ptr<SugarCaneFeatureConfig> m_config;
     std::string m_name;
-    SugarCaneFeature m_feature;
-};
-
-/**
- * @brief 预定义甘蔗配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct SugarCaneFeatures {
-    /// 初始化所有甘蔗特征
-    static void initialize();
-
-    /// 获取所有甘蔗特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>>& getAllFeatures();
-
-    /// 获取所有甘蔗特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> getAllFeaturesAndClear();
-
-    /// 创建普通甘蔗
-    static std::unique_ptr<ConfiguredSugarCaneFeature> createNormal();
-
-    /// 创建密集甘蔗（沼泽）
-    static std::unique_ptr<ConfiguredSugarCaneFeature> createDense();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> s_features;
+    // SugarCaneFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredSugarCaneFeature::place() 语义不变
+    // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。
+    mutable SugarCaneFeature m_feature;
 };
 
 } // namespace mc

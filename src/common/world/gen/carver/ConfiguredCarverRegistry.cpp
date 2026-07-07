@@ -18,8 +18,42 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
-// 洞穴特征聚合源文件（包含洞穴专属特征实现）
-#include "RootSystemFeature.cpp"
-#include "VegetationPatchFeature.cpp"
+#include "ConfiguredCarverRegistry.hpp"
+#include "common/world/gen/carver/WorldCarver.hpp"
+
+namespace mc {
+
+ConfiguredCarverRegistry& ConfiguredCarverRegistry::instance()
+{
+    static ConfiguredCarverRegistry s_instance;
+    return s_instance;
+}
+
+void ConfiguredCarverRegistry::registerCarver(std::unique_ptr<ConfiguredCarverBase> carver, ResourceLocation id)
+{
+    const ConfiguredCarverBase* raw = carver.get();
+    m_carversById[id] = raw;
+    m_ownedCarvers.push_back(std::move(carver));
+}
+
+const ConfiguredCarverBase* ConfiguredCarverRegistry::get(const ResourceLocation& id) const noexcept
+{
+    auto it = m_carversById.find(id);
+    return it != m_carversById.end() ? it->second : nullptr;
+}
+
+bool ConfiguredCarverRegistry::has(const ResourceLocation& id) const noexcept
+{
+    return m_carversById.find(id) != m_carversById.end();
+}
+
+void ConfiguredCarverRegistry::clear()
+{
+    m_carversById.clear();
+    m_ownedCarvers.clear();
+}
+
+} // namespace mc

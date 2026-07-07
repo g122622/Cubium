@@ -24,9 +24,9 @@
 #include "SugarCaneFeature.hpp"
 #include "../../../../core/Constants.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -160,69 +160,15 @@ ConfiguredSugarCaneFeature::ConfiguredSugarCaneFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredSugarCaneFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSugarCaneFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// SugarCaneFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> SugarCaneFeatures::s_features;
-
-void SugarCaneFeatures::initialize()
-{
-    s_features.clear();
-
-    s_features.push_back(createNormal());
-    s_features.push_back(createDense());
-}
-
-const std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>>& SugarCaneFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> SugarCaneFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> result;
-    for (auto& feature : s_features) {
-        result.push_back(std::move(feature));
-    }
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredSugarCaneFeature> SugarCaneFeatures::createNormal()
-{
-    auto config = std::make_unique<SugarCaneFeatureConfig>();
-
-    if (VanillaBlocks::SUGAR_CANE) {
-        config->state = &VanillaBlocks::SUGAR_CANE->defaultState();
-    }
-    config->maxHeight = 3;
-    config->tries = 20;
-    config->xzSpread = 8;
-
-    return std::make_unique<ConfiguredSugarCaneFeature>(std::move(config), "sugar_cane");
-}
-
-std::unique_ptr<ConfiguredSugarCaneFeature> SugarCaneFeatures::createDense()
-{
-    auto config = std::make_unique<SugarCaneFeatureConfig>();
-
-    if (VanillaBlocks::SUGAR_CANE) {
-        config->state = &VanillaBlocks::SUGAR_CANE->defaultState();
-    }
-    config->maxHeight = 4;
-    config->tries = 40;
-    config->xzSpread = 10;
-
-    return std::make_unique<ConfiguredSugarCaneFeature>(std::move(config), "sugar_cane_dense");
 }
 
 } // namespace mc

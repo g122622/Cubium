@@ -1008,6 +1008,7 @@ add_executable(mc_tests
     # DensityFunctions (Invert, Mul 边界值) 和 CaveDensityFunctions 噪声参数测试
     common/world/gen/density/DensityFunctionsTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
+    common/world/gen/feature/MonsterRoomFeatureTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/end/EndFeatureTest.cpp
@@ -1126,7 +1127,6 @@ add_executable(mc_tests
     # 缂撳瓨鎬ц兘瀵规瘮娴嬭瘯
     common/util/cache/CacheBenchmark.cpp
     # 妞嶈鐗瑰緛闆嗘垚娴嬭瘯
-    common/world/gen/test_vegetation_features.cpp
     # 涓栫晫鐢熸垚纭畾鎬ф祴璇?    common/world/gen/WorldGenDeterminismTest.cpp
     # 瀹㈡埛绔懡浠ゆ爲鍚屾涓庤ˉ鍏ㄦ祴璇?    client/command/ClientCommandManagerTest.cpp
     # 鍏夌収绯荤粺娴嬭瘯
@@ -1768,7 +1768,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ore/OreFeature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/tree/TreeFeature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/tree/trunk/TrunkPlacer.cpp

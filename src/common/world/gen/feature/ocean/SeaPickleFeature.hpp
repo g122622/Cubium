@@ -92,7 +92,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
@@ -101,27 +101,7 @@ public:
 private:
     std::unique_ptr<SeaPickleFeatureConfig> m_config;
     std::string m_name;
-    SeaPickleFeature m_feature;
-};
-
-/**
- * @brief 预定义海泡菜配置
- */
-struct SeaPickleFeatures {
-    /// 初始化所有海泡菜特征
-    static void initialize();
-
-    /// 获取所有海泡菜特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>>& getAllFeatures() noexcept;
-
-    /// 获取所有海泡菜特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>> getAllFeaturesAndClear();
-
-    /// 创建普通海泡菜
-    static std::unique_ptr<ConfiguredSeaPickleFeature> createNormalSeaPickle();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>> s_features;
+    mutable SeaPickleFeature m_feature;
 };
 
 } // namespace mc

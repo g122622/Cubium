@@ -25,6 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include "Placement.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc {
@@ -32,17 +33,26 @@ namespace mc {
 /**
  * @brief 生物群系过滤放置配置
  *
- * 检查当前位置的生物群系是否包含指定的特征 ID。
+ * 检查当前位置的生物群系是否包含指定的 placed_feature。
  * 与 BiomePlacement（白名单模式）不同，BiomeFilterPlacement
  * 通过反向查询生物群系的生成设置来判断是否允许放置。
+ *
+ * 无 config 字段，运行时需要知道"自己属于哪个 placed_feature"——通过
+ * PlacedFeatureLoader 在构造完放置链后回填 placedFeatureId 实现。
  */
 struct BiomeFilterConfig : public IPlacementConfig {
-    /// 当前配置化特征的 ID
-    u32 featureId;
+    /// 当前 placed_feature 的 ResourceLocation（回填）
+    ResourceLocation placedFeatureId;
 
-    explicit BiomeFilterConfig(u32 id)
-        : featureId(id)
+    explicit BiomeFilterConfig(ResourceLocation id)
+        : placedFeatureId(std::move(id))
     {}
+
+    /// 默认构造：构造链时占位，之后由 setId 回填
+    BiomeFilterConfig() = default;
+
+    /// 回填 placed_feature id（PlacedFeatureLoader 在解析完整条链后调用）
+    void setPlacedFeatureId(ResourceLocation id) { placedFeatureId = std::move(id); }
 };
 
 /**

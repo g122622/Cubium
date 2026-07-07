@@ -68,8 +68,11 @@ ConfiguredSimpleBlockFeature::ConfiguredSimpleBlockFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredSimpleBlockFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSimpleBlockFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);

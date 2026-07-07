@@ -22,11 +22,13 @@
 
 #include "RootSystemFeature.hpp"
 #include "CaveSurface.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "common/world/gen/placement/Placement.hpp"
 
 namespace mc::world::gen::feature::cave {
@@ -158,11 +160,10 @@ bool RootSystemFeature::place(WorldGenRegion& region,
         }
 
         // 尝试放置树木
-        FeatureRegistry& registry = FeatureRegistry::instance();
-        const auto& features = registry.getFeatures(DecorationStage::VegetalDecoration);
+        const ConfiguredFeatureBase* treeFeature = ConfiguredFeatureRegistry::instance().get(config.treeFeatureId);
 
-        if (config.treeFeatureId < features.size() && features[config.treeFeatureId] != nullptr) {
-            bool treePlaced = features[config.treeFeatureId]->place(region, chunk, generator, random, treePos);
+        if (treeFeature != nullptr) {
+            bool treePlaced = treeFeature->place(region, chunk, generator, random, treePos);
             if (treePlaced) {
                 // 放置缠根泥土柱
                 placeRootedDirtColumn(region, random, pos, treePos.y, config);
@@ -189,8 +190,11 @@ ConfiguredRootSystemFeature::ConfiguredRootSystemFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredRootSystemFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredRootSystemFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     std::vector<BlockPos> positions;
     if (m_placement) {

@@ -29,7 +29,6 @@
 #include "common/world/gen/feature/Feature.hpp"
 #include <memory>
 #include <string>
-#include <vector>
 
 // Forward declarations
 namespace mc {
@@ -157,43 +156,18 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::Lakes; }
 
 private:
-    world::gen::feature::lake::LakeFeature m_feature;
+    mutable world::gen::feature::lake::LakeFeature m_feature;
     std::string m_name;
     i32 m_chance;
     i32 m_minY;
     i32 m_maxY;
     bool m_isLava;
-};
-
-/**
- * @brief 湖泊特征集合
- *
- * 负责创建并缓存 Lakes 阶段的配置化特征。
- */
-struct LakeFeatures {
-    /// 初始化所有湖泊特征
-    static void initialize();
-
-    /// 获取所有湖泊特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredLakeFeature>>& getAllFeatures();
-
-    /// 获取所有湖泊特征并转移所有权
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredLakeFeature>> getAllFeaturesAndClear();
-
-    /// 创建水湖特征
-    static std::unique_ptr<ConfiguredLakeFeature> createWaterLake();
-
-    /// 创建熔岩湖特征
-    static std::unique_ptr<ConfiguredLakeFeature> createLavaLake();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredLakeFeature>> s_features;
 };
 
 } // namespace mc

@@ -320,7 +320,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     /**
      * @brief 获取特征名称
@@ -341,83 +341,17 @@ private:
     std::unique_ptr<TreeFeatureConfig> m_config;
     std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
-    TreeFeature m_feature;
+    // TreeFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredTreeFeature::place() 语义不变
+    // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。
+    mutable TreeFeature m_feature;
 };
 
 /**
  * @brief 预定义的树木配置
  *
- * 管理所有预配置的树木特征。
- * 参考 MC Features / ConfiguredFeatures
+ * 提供各树种的纯配置工厂方法，供 sapling→tree 生长与 JSON 特征类型解析器复用。
  */
 struct TreeFeatures {
-    /**
-     * @brief 初始化所有树木特征
-     */
-    static void initialize();
-
-    /**
-     * @brief 获取所有树木特征并转移所有权
-     * @note 调用后内部存储被清空
-     */
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredTreeFeature>> getAllFeaturesAndClear();
-
-    /**
-     * @brief 获取所有树木特征（只读访问）
-     */
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredTreeFeature>>& getAllFeatures();
-
-    /// 创建橡树配置
-    static std::unique_ptr<ConfiguredTreeFeature> createOakTree();
-
-    /// 创建白桦配置
-    static std::unique_ptr<ConfiguredTreeFeature> createBirchTree();
-
-    /// 创建云杉配置
-    static std::unique_ptr<ConfiguredTreeFeature> createSpruceTree();
-
-    /// 创建丛林木配置
-    static std::unique_ptr<ConfiguredTreeFeature> createJungleTree();
-
-    /// 创建金合欢配置
-    static std::unique_ptr<ConfiguredTreeFeature> createAcaciaTree();
-
-    /// 创建深色橡树配置
-    static std::unique_ptr<ConfiguredTreeFeature> createDarkOakTree();
-
-    /// 创建稀疏橡树（平原用）
-    static std::unique_ptr<ConfiguredTreeFeature> createSparseOakTree();
-
-    /// 创建巨型云杉配置
-    static std::unique_ptr<ConfiguredTreeFeature> createGiantSpruceTree();
-
-    /// 创建巨型丛林木配置
-    static std::unique_ptr<ConfiguredTreeFeature> createGiantJungleTree();
-
-    /// 创建精美橡树配置（大型橡树）
-    static std::unique_ptr<ConfiguredTreeFeature> createFancyOakTree();
-
-    /// 创建松树配置
-    static std::unique_ptr<ConfiguredTreeFeature> createPineTree();
-
-    /// 创建丛林灌木配置
-    static std::unique_ptr<ConfiguredTreeFeature> createJungleBush();
-
-    /// 创建沼泽橡树配置
-    static std::unique_ptr<ConfiguredTreeFeature> createSwampTree();
-
-    /// 创建巨型松树配置
-    static std::unique_ptr<ConfiguredTreeFeature> createMegaPineTree();
-
-    /// 创建高白桦配置
-    static std::unique_ptr<ConfiguredTreeFeature> createTallBirchTree();
-
-    /// 创建樱花树配置
-    static std::unique_ptr<ConfiguredTreeFeature> createCherryTree();
-
-    /// 创建樱花树（带蜂巢）配置
-    static std::unique_ptr<ConfiguredTreeFeature> createCherryBeeTree();
-
     /// 创建树木特征的基础配置（公开供 TreeGenerators 使用）
     static TreeFeatureConfig oakConfig();
     static TreeFeatureConfig birchConfig();
@@ -434,9 +368,6 @@ struct TreeFeatures {
     static TreeFeatureConfig megaPineConfig();
     static TreeFeatureConfig tallBirchConfig();
     static TreeFeatureConfig cherryConfig();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredTreeFeature>> s_features;
 };
 
 } // namespace mc

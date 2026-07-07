@@ -16,16 +16,43 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
-#pragma once
+#include "ConfiguredFeatureRegistry.hpp"
 
-// 配置结构体聚合头文件
-#include "../BlockColumnFeature.hpp"
-#include "../RandomBooleanSelectorFeature.hpp"
-#include "RootSystemFeature.hpp"
-#include "../SimpleBlockFeature.hpp"
-#include "../SimpleRandomSelectorFeature.hpp"
-#include "VegetationPatchFeature.hpp"
+namespace mc {
+
+ConfiguredFeatureRegistry& ConfiguredFeatureRegistry::instance()
+{
+    static ConfiguredFeatureRegistry s_instance;
+    return s_instance;
+}
+
+void ConfiguredFeatureRegistry::registerFeature(std::unique_ptr<ConfiguredFeatureBase> feature, ResourceLocation id)
+{
+    const ConfiguredFeatureBase* raw = feature.get();
+    m_featuresById[id] = raw;
+    m_ownedFeatures.push_back(std::move(feature));
+}
+
+const ConfiguredFeatureBase* ConfiguredFeatureRegistry::get(const ResourceLocation& id) const noexcept
+{
+    auto it = m_featuresById.find(id);
+    return it != m_featuresById.end() ? it->second : nullptr;
+}
+
+bool ConfiguredFeatureRegistry::has(const ResourceLocation& id) const noexcept
+{
+    return m_featuresById.find(id) != m_featuresById.end();
+}
+
+void ConfiguredFeatureRegistry::clear()
+{
+    m_featuresById.clear();
+    m_ownedFeatures.clear();
+}
+
+} // namespace mc

@@ -96,7 +96,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
@@ -105,32 +105,9 @@ public:
 private:
     std::unique_ptr<BambooFeatureConfig> m_config;
     std::string m_name;
-    BambooFeature m_feature;
-};
-
-/**
- * @brief 预定义竹子配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct BambooFeatures {
-    /// 初始化所有竹子特征
-    static void initialize();
-
-    /// 获取所有竹子特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredBambooFeature>>& getAllFeatures();
-
-    /// 获取所有竹子特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredBambooFeature>> getAllFeaturesAndClear();
-
-    /// 创建竹子丛林竹子（密集，20%灰化土概率）
-    static std::unique_ptr<ConfiguredBambooFeature> createBambooJungle();
-
-    /// 创建稀疏竹子（普通丛林，无灰化土）
-    static std::unique_ptr<ConfiguredBambooFeature> createLightBamboo();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredBambooFeature>> s_features;
+    // BambooFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredBambooFeature::place() 语义不变
+    // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。
+    mutable BambooFeature m_feature;
 };
 
 } // namespace mc

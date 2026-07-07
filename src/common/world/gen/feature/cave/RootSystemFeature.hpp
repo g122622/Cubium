@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>
@@ -36,8 +37,8 @@ namespace mc::world::gen::feature::cave {
  * 定义杜鹃树根系统的生成参数。
  */
 struct RootSystemConfig {
-    /// 树木特征ID
-    u32 treeFeatureId = 0;
+    /// 树木特征ID（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    ResourceLocation treeFeatureId;
 
     /// 树木所需垂直空间
     i32 requiredVerticalSpaceForTree = 3;
@@ -126,7 +127,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 

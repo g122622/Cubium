@@ -31,7 +31,7 @@ Block
 - getBoneMealType() 返回 NEIGHBOR_SPREADER（粒子在方块上方水平扩散，3 倍数量）
 - canGrow() 检查上方是否有空气
 - grow() 在上方散布短草和花朵（128 次循环随机偏移）
-- grow() 花朵放置基于生物群系花卉特征列表：通过 ChunkData 获取散布位置对应的生物群系，从 BiomeGenerationSettings::getFlowerFeatureIds() 获取花卉特征列表，随机选择 ConfiguredFlowerFeature 中的花朵方块状态；无花卉特征的生物群系回退到蒲公英
+- grow() 花朵放置基于生物群系花卉特征列表：通过 ChunkData 获取散布位置对应的生物群系，从 `BiomeGenerationSettings::getFlowerFeatureIds()` 获取花卉 `ResourceLocation` 列表，随机选取一个 id 后经 `ConfiguredFeatureRegistry::get` 解析为 `ConfiguredFlowerFeature*`（`dynamic_cast`），从其 `FlowerFeatureConfig` 随机选择花朵方块状态；无花卉特征或解析失败的生物群系回退到蒲公英
 
 **子类差异**：GrassBlock 实现了 IGrowable 接口用于骨粉交互；MyceliumBlock 不实现 IGrowable（MC 原版行为）。
 

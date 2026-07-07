@@ -392,7 +392,7 @@ void registerAll(TemplatePoolRegistry& registry)
     auto trees = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/trees"), ResourceLocation("minecraft", "empty"));
 
-    // 注：FeatureJigsawPiece::place() 已实现（FeatureRegistry 名称映射 + 配置化地物放置），
+    // 注：FeatureJigsawPiece::place() 已实现（ConfiguredFeatureRegistry 名称映射 + 配置化地物放置），
     // 此处仍用空元素占位；后续可替换为 makeFeaturePiece("minecraft:oak_tree") 等真实地物块。
     trees->addPiece(makeEmptyPiece(), 1); // oak_tree placeholder
 

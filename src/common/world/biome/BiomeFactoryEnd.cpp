@@ -64,7 +64,7 @@ Biome createTheEnd()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
-    biome.setGenerationSettings(BiomeGenerationSettings::createTheEnd());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
 }
@@ -88,7 +88,7 @@ Biome createSmallEndIslands()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
-    biome.setGenerationSettings(BiomeGenerationSettings::createSmallEndIslands());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
 }
@@ -112,7 +112,7 @@ Biome createEndMidlands()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
-    biome.setGenerationSettings(BiomeGenerationSettings::createEndMidlands());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
 }
@@ -136,7 +136,7 @@ Biome createEndHighlands()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
-    biome.setGenerationSettings(BiomeGenerationSettings::createEndHighlands());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
 }
@@ -160,7 +160,7 @@ Biome createEndBarrens()
     sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
-    biome.setGenerationSettings(BiomeGenerationSettings::createEndBarrens());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTheEnd());
     return biome;
 }
@@ -187,7 +187,7 @@ Biome createMeadow()
             .skyColor(0x78A7FF)
             .grassColor(0x63A948)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createMeadow());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -208,7 +208,7 @@ Biome createGrove()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -229,7 +229,7 @@ Biome createSnowySlopes()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -250,7 +250,7 @@ Biome createJaggedPeaks()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -271,7 +271,7 @@ Biome createFrozenPeaks()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -292,7 +292,7 @@ Biome createStonyPeaks()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -313,7 +313,7 @@ Biome createDripstoneCaves()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -334,7 +334,7 @@ Biome createLushCaves()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createLushCaves());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLushCaves());
 
     // 繁茂洞穴环境音效：仅使用默认洞穴心境音（繁茂洞穴没有专属环境音事件）
@@ -362,7 +362,7 @@ Biome createDeepDark()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -385,7 +385,7 @@ Biome createMangroveSwamp()
             .grassColor(0x6A7039)
             .grassColorModifier(GrassColorModifier::Swamp)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createSwamp());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -408,7 +408,7 @@ Biome createCherryGrove()
             .grassColor(0xB69FE1)
             .foliageColor(0xB69FE1)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createCherryGrove());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -432,7 +432,7 @@ Biome createPaleGarden()
             .foliageColor(0x87B456)
             .dryFoliageColor(0xA0C486)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -452,7 +452,7 @@ Biome createTheVoid()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 

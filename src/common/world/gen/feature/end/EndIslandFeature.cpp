@@ -27,7 +27,6 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/PlacementUtils.hpp"
 
 namespace mc {
 
@@ -79,8 +78,11 @@ ConfiguredEndIslandFeature::ConfiguredEndIslandFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredEndIslandFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredEndIslandFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     bool placed = false;
 
@@ -96,37 +98,6 @@ bool ConfiguredEndIslandFeature::place(
     }
 
     return placed;
-}
-
-// ============================================================================
-// EndIslandFeatures
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredEndIslandFeature>> EndIslandFeatures::s_features;
-
-void EndIslandFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createEndIsland());
-}
-
-const std::vector<std::unique_ptr<ConfiguredEndIslandFeature>>& EndIslandFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredEndIslandFeature>> EndIslandFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredEndIslandFeature>> result;
-    result.swap(s_features);
-    return result;
-}
-
-std::unique_ptr<ConfiguredEndIslandFeature> EndIslandFeatures::createEndIsland()
-{
-    // 小型末地岛屿，高度55-70，每区块1次
-    auto placement = PlacementUtils::createCountedHeightPlacement(1, 55, 70);
-    return std::make_unique<ConfiguredEndIslandFeature>(std::move(placement), "end_island");
 }
 
 } // namespace mc

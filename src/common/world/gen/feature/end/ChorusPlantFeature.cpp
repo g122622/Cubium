@@ -26,7 +26,6 @@
 #include "common/world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/PlacementUtils.hpp"
 
 namespace mc {
 
@@ -62,8 +61,11 @@ ConfiguredChorusPlantFeature::ConfiguredChorusPlantFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredChorusPlantFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredChorusPlantFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     bool placed = false;
 
@@ -81,37 +83,6 @@ bool ConfiguredChorusPlantFeature::place(
     }
 
     return placed;
-}
-
-// ============================================================================
-// ChorusPlantFeatures
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> ChorusPlantFeatures::s_features;
-
-void ChorusPlantFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createChorusPlant());
-}
-
-const std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>>& ChorusPlantFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> ChorusPlantFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> result;
-    result.swap(s_features);
-    return result;
-}
-
-std::unique_ptr<ConfiguredChorusPlantFeature> ChorusPlantFeatures::createChorusPlant()
-{
-    // 末地高地，表面放置，每区块2次
-    auto placement = PlacementUtils::createCountedSurfacePlacement(2);
-    return std::make_unique<ConfiguredChorusPlantFeature>(std::move(placement), "chorus_plant");
 }
 
 } // namespace mc

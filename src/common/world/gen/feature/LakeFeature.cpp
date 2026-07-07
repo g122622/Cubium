@@ -32,7 +32,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <mutex>
 
 namespace {
 
@@ -40,8 +39,6 @@ using mc::BlockState;
 using mc::f32;
 using mc::f64;
 using mc::i32;
-
-std::mutex g_lakeFeaturesMutex;
 
 /// 湖泊布尔数组尺寸常量（参考 MC 1.21.11: LakeFeature）
 constexpr i32 LAKE_SIZE_X = 16;
@@ -277,8 +274,6 @@ std::unique_ptr<LakeFeature> createLavaLakeFeature()
 
 namespace mc {
 
-std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::s_features;
-
 ConfiguredLakeFeature::ConfiguredLakeFeature(
     world::gen::feature::lake::LakeFeatureConfig config, const char* featureName, i32 chance, i32 minY, i32 maxY)
     : m_feature(config)
@@ -289,8 +284,11 @@ ConfiguredLakeFeature::ConfiguredLakeFeature(
     , m_isLava(config.fluidBlock == VanillaBlocks::LAVA)
 {}
 
-bool ConfiguredLakeFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredLakeFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
 
@@ -318,40 +316,6 @@ bool ConfiguredLakeFeature::place(
     const i32 y = minY + random.nextInt(maxY - minY + 1);
 
     return m_feature.place(region, random, x, y, z);
-}
-
-void LakeFeatures::initialize()
-{
-    std::lock_guard<std::mutex> lock(g_lakeFeaturesMutex);
-    s_features.clear();
-    s_features.push_back(createWaterLake());
-    s_features.push_back(createLavaLake());
-}
-
-const std::vector<std::unique_ptr<ConfiguredLakeFeature>>& LakeFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::getAllFeaturesAndClear()
-{
-    std::lock_guard<std::mutex> lock(g_lakeFeaturesMutex);
-    std::vector<std::unique_ptr<ConfiguredLakeFeature>> result;
-    result.swap(s_features);
-    return result;
-}
-
-std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createWaterLake()
-{
-    constexpr i32 WATER_LAKE_MAX_Y = world::MAX_BUILD_HEIGHT / 2 - 1;
-    return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createWaterLake(), "water_lake", 4, 20, WATER_LAKE_MAX_Y);
-}
-
-std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createLavaLake()
-{
-    return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createLavaLake(), "lava_lake", 8, 10, world::SEA_LEVEL);
 }
 
 } // namespace mc
