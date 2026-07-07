@@ -273,7 +273,10 @@ public:
      *
      * @return 0.0 到 1.0 的进度值。
      *
-     * @note 当前进度为简化实现，并非 Java 版的最终精确行为。
+     * @note 返回的是 _updateBossBar() 在最近一次 tick 中缓存的进度值，
+     *       避免外部高频调用导致重复遍历袭击者列表。进度遵循 Java 版 1.21.11
+     *       的三段式语义：战斗中按存活血量比例、波间冷却按 300 tick 倒计时比例、
+     *       胜利/失败/停止后归零。
      */
     [[nodiscard]] f32 getBossBarProgress() const;
 
@@ -339,9 +342,23 @@ private:
     /**
      * @brief 更新 Boss 栏内部状态。
      *
-     * @note 当前仅保留扩展点，未来接入同步系统后在此集中更新。
+     * @param world 所属世界，用于查询袭击者实体的实时血量。
+     *
+     * @note 该方法在每次 tick() 末尾调用，依据当前袭击阶段（战斗 / 波间冷却 /
+     *       庆祝）按 Java 版 1.21.11 的语义计算进度并写入 m_cachedProgress。
      */
-    void _updateBossBar();
+    void _updateBossBar(IWorld& world);
+
+    /**
+     * @brief 计算当前所有存活袭击者的总血量。
+     *
+     * @param world 所属世界，用于查询实体。
+     * @return 当前追踪的袭击者血量之和。
+     *
+     * @note 当袭击者已离开世界或已死亡时，其血量不计入；该函数对应 Java 版
+     *       `Raid#getHealthOfLivingRaiders()`。
+     */
+    [[nodiscard]] f32 _getHealthOfLivingRaiders(IWorld& world) const;
 
     /**
      * @brief 生成指定波次。
@@ -406,6 +423,15 @@ private:
     i32 m_groupsSpawned = 0;
     i32 m_postRaidTicks = 0;
     i32 m_celebrateTicks = 0;
+
+    // Boss 栏进度追踪
+    // 三个字段共同实现 Java 版 1.21.11 Raid 的 BossBar 行为：
+    //  - m_totalHealth：当前波所有袭击者生成完成时的初始血量之和，作为分母
+    //  - m_raidCooldownTicks：波间冷却倒计时（0 表示未在冷却中，300 表示刚启动）
+    //  - m_cachedProgress：_updateBossBar() 计算后缓存给 getBossBarProgress() 返回的值
+    f32 m_totalHealth = 0.0f;
+    i32 m_raidCooldownTicks = 0;
+    f32 m_cachedProgress = 0.0f;
 
     // 英雄追踪
     std::unordered_set<Uuid, UuidHash> m_heroes; ///< 参与袭击的玩家 UUID

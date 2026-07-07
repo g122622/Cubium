@@ -104,6 +104,9 @@ struct RaidConfig {
     static constexpr i64 WAVE_INTERVAL = 1200;
     static constexpr i64 RAID_TIMEOUT = 48000;
 
+    /// Java 版 1.21.11：波次之间的冷却 tick 数，用于 Boss 栏进度展示。
+    static constexpr i32 RAID_COOLDOWN_TICKS = 300;
+
     static constexpr f32 SPAWN_DISTANCE_MIN = 45.0f;
     static constexpr f32 SPAWN_DISTANCE_MAX = 52.0f;
 

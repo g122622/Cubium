@@ -27,6 +27,7 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
 #include "common/entity/entities/monster/illager/IllagerEntities.hpp"
@@ -105,6 +106,10 @@ void Raid::removeRaider(EntityId raider)
  *
  * @param raider 死亡的袭击者实体 ID。
  * @param world 所属世界。
+ *
+ * @note 当死亡导致当前波被清空时，会启动 300 tick 的波间冷却，
+ *       与 Java 版 1.21.11 Raid#tick() 中 `raidCooldownTicks = 300` 一致。
+ *       该冷却值会被 _updateBossBar() 用于渲染 Boss 栏的"冷却条"进度。
  */
 void Raid::onRaiderDeath(EntityId raider, IWorld& world)
 {
@@ -113,6 +118,8 @@ void Raid::onRaiderDeath(EntityId raider, IWorld& world)
     if (isWaveDefeated()) {
         if (hasMoreWaves()) {
             m_lastWaveTime = static_cast<i64>(world.currentTick());
+            // 启动波间冷却，Boss 栏进度切换为冷却倒计时模式。
+            m_raidCooldownTicks = RaidConfig::RAID_COOLDOWN_TICKS;
         } else {
             setVictory();
         }
@@ -134,6 +141,10 @@ void Raid::startNextWave(IWorld& world)
  * @brief 生成当前波袭击者。
  *
  * @param world 所属世界。
+ *
+ * @note 每次开始新一波都会将 m_totalHealth 重置为 0，再随生成顺序累加；
+ *       这与 Java 版 1.21.11 Raid#spawnGroup() 的 `this.totalHealth = 0.0F`
+ *       行为一致，保证 _updateBossBar() 计算的比例始终基于"当前波"的血量。
  */
 void Raid::spawnRaiders(IWorld& world)
 {
@@ -156,6 +167,10 @@ void Raid::spawnRaiders(IWorld& world)
     const BlockPos basePos = *spawnPos;
     math::Random rng(world.seed() + static_cast<u64>(m_ticksActive));
 
+    // Java 版 1.21.11：每波开始时重置 totalHealth，本波生成阶段累加，
+    // 作为 _updateBossBar() 计算进度时的分母。
+    m_totalHealth = 0.0f;
+
     RaidWave waveData{};
     waveData.waveNumber = m_wave;
     waveData.totalToSpawn = totalRaiders;
@@ -172,6 +187,14 @@ void Raid::spawnRaiders(IWorld& world)
             addRaider(raider);
             waveData.raiders.push_back(raider);
             ++waveData.spawnCount;
+
+            // 累加新袭击者的当前血量到波次总血量。Java 版在 addWaveMob() 中做这件事；
+            // 我们在生成成功后立即读取，对应同一语义。
+            if (auto* const entity = world.getEntity(raider)) {
+                if (const auto* living = dynamic_cast<const LivingEntity*>(entity)) {
+                    m_totalHealth += living->health();
+                }
+            }
         }
     }
 
@@ -208,6 +231,11 @@ bool Raid::hasMoreWaves() const
  * @brief 更新袭击状态机。
  *
  * @param world 所属世界。
+ *
+ * @note 波间冷却逻辑对齐 Java 版 1.21.11 Raid#tick()：
+ *       - 当前波被清空时，raidCooldownTicks 已在 onRaiderDeath() 中置为 300；
+ *       - 此后每 tick 递减 raidCooldownTicks，并相应更新 Boss 栏冷却进度；
+ *       - 倒计时归零后才推进到下一波，避免使用旧的 WAVE_INTERVAL 静态阈值。
  */
 void Raid::tick(IWorld& world)
 {
@@ -234,20 +262,27 @@ void Raid::tick(IWorld& world)
 
     if (m_wave <= 0) {
         startNextWave(world);
+        _updateBossBar(world);
         return;
     }
 
     if (isWaveDefeated()) {
         if (hasMoreWaves()) {
-            if (m_ticksActive - m_lastWaveTime >= RaidConfig::WAVE_INTERVAL) {
-                startNextWave(world);
+            // 波间冷却阶段：raidCooldownTicks 在 onRaiderDeath 中被置为 300，
+            // 此处每 tick 递减，归零时推进到下一波。对应 Java 版 Raid#tick() 中
+            // 的 `if (this.raidCooldownTicks <= 0) { ... } else { ... raidCooldownTicks--; }` 分支。
+            if (m_raidCooldownTicks > 0) {
+                --m_raidCooldownTicks;
+                if (m_raidCooldownTicks == 0) {
+                    startNextWave(world);
+                }
             }
         } else {
             setVictory();
         }
     }
 
-    _updateBossBar();
+    _updateBossBar(world);
 }
 
 /**
@@ -309,27 +344,89 @@ std::string Raid::getBossBarTitle() const
 /**
  * @brief 计算 Boss 栏进度。
  *
- * @return 归一化进度值。
+ * @return 归一化进度值，范围 [0.0, 1.0]。
+ *
+ * @note 该方法直接返回 _updateBossBar() 在最近一次 tick 中缓存的进度值，
+ *       避免外部高频调用导致重复遍历袭击者列表。Raid 进入非 Ongoing 状态后
+ *       会强制返回 0.0，对应 Java 版 Raid#raidEvent.setProgress(0.0F) 的语义。
  */
 f32 Raid::getBossBarProgress() const
 {
     if (m_status != RaidStatus::Ongoing) {
         return 0.0f;
     }
-
-    const i32 totalWaves = std::max(1, maxWaves(m_difficulty) + std::max(0, m_badOmenLevel - 1));
-    const f32 waveProgress = static_cast<f32>(m_wave) / static_cast<f32>(totalWaves);
-    const f32 raiderProgress =
-        1.0f - static_cast<f32>(getAliveRaidersCount()) / static_cast<f32>(RaidConfig::MAX_RAIDERS_PER_WAVE);
-    return std::clamp(waveProgress + raiderProgress / static_cast<f32>(totalWaves), 0.0f, 1.0f);
+    return m_cachedProgress;
 }
 
 /**
- * @brief 更新 Boss 栏状态。
+ * @brief 更新 Boss 栏内部状态。
  *
- * @note 当前暂无同步目标，因此此处保持空实现。
+ * @param world 所属世界，用于查询袭击者实时血量。
+ *
+ * @note 三段式进度逻辑对齐 Java 版 1.21.11 Raid：
+ *       - 战斗中（raidCooldownTicks == 0 且仍有存活袭击者）：
+ *         `getHealthOfLivingRaiders() / m_totalHealth`，
+ *         分母为 0（波次尚未生成或刚清空）时记为 1.0，避免 NaN；
+ *       - 波间冷却（raidCooldownTicks > 0）：
+ *         `(RAID_COOLDOWN_TICKS - raidCooldownTicks) / RAID_COOLDOWN_TICKS`，
+ *         倒计时启动瞬间为 0、归零时为 1.0；
+ *       - 庆祝/结束：状态非 Ongoing 时由 getBossBarProgress() 直接返回 0。
  */
-void Raid::_updateBossBar() {}
+void Raid::_updateBossBar(IWorld& world)
+{
+    if (m_status != RaidStatus::Ongoing) {
+        m_cachedProgress = 0.0f;
+        return;
+    }
+
+    if (m_raidCooldownTicks > 0) {
+        // 波间冷却：倒计时从 300 → 0，进度从 0 → 1.0。
+        const f32 cooldownProgress = static_cast<f32>(RaidConfig::RAID_COOLDOWN_TICKS - m_raidCooldownTicks) /
+            static_cast<f32>(RaidConfig::RAID_COOLDOWN_TICKS);
+        m_cachedProgress = std::clamp(cooldownProgress, 0.0f, 1.0f);
+        return;
+    }
+
+    // 战斗中：按存活血量比例展示。分母为 0 时意味着本波尚未生成任何袭击者，
+    // 此时进度视为 1.0（满血），与 Java 版 totalHealth == 0 时的退化情况一致。
+    if (m_totalHealth <= 0.0f) {
+        m_cachedProgress = 1.0f;
+        return;
+    }
+
+    const f32 livingHealth = _getHealthOfLivingRaiders(world);
+    m_cachedProgress = std::clamp(livingHealth / m_totalHealth, 0.0f, 1.0f);
+}
+
+/**
+ * @brief 计算当前所有存活袭击者的总血量。
+ *
+ * @param world 所属世界。
+ * @return 当前追踪的袭击者血量之和；实体不存在或非 LivingEntity 时记为 0。
+ *
+ * @note 对应 Java 版 1.21.11 Raid#getHealthOfLivingRaiders()。
+ *       调用方需保证在主线程访问，避免与实体增删产生竞争。
+ */
+f32 Raid::_getHealthOfLivingRaiders(IWorld& world) const
+{
+    f32 total = 0.0f;
+    for (const EntityId id : m_raiders) {
+        const Entity* const entity = world.getEntity(id);
+        if (entity == nullptr) {
+            continue;
+        }
+        const auto* living = dynamic_cast<const LivingEntity*>(entity);
+        if (living == nullptr) {
+            continue;
+        }
+        // 实体虽然仍被 Raid 追踪，但可能血量已降至 0（处于死亡过渡阶段），
+        // 此时不计入存活血量，与 Java 版 Raider#getHealth() 行为一致。
+        if (living->health() > 0.0f) {
+            total += living->health();
+        }
+    }
+    return total;
+}
 
 /**
  * @brief 显式生成指定波次。

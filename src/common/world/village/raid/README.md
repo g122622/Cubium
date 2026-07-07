@@ -57,7 +57,13 @@ RaidManager
 `addHero()` 会同时添加到 `m_heroes` 集合和 `m_participants` 列表，但 `addContribution()` 不会自动添加英雄——必须先调用 `addHero()`。
 
 ### 波次间隔使用 tick 而非秒
-`RaidConfig::WAVE_INTERVAL = 1200` 表示 1200 tick（约 60 秒），不是毫秒或秒。
+`RaidConfig::WAVE_INTERVAL = 1200` 表示 1200 tick（约 60 秒），不是毫秒或秒。波间冷却由 `RAID_COOLDOWN_TICKS = 300`（约 15 秒）单独控制，对应 Java 版 `raidCooldownTicks`。
+
+### Boss 栏进度遵循三段式语义
+`Raid::getBossBarProgress()` 返回的是 `_updateBossBar()` 在最近一次 `tick()` 中缓存的值，外部不应直接重算。进度逻辑对齐 Java 版 1.21.11：
+- 战斗中：`getHealthOfLivingRaiders() / m_totalHealth`，`m_totalHealth` 在 `spawnRaiders()` 中累加、波次切换时清零。
+- 波间冷却：`(300 - raidCooldownTicks) / 300`，倒计时在 `onRaiderDeath()` 中清空波次时启动。
+- 庆祝/结束：状态非 Ongoing 时返回 0。
 
 ### 难度和平滑影响袭击行为
 - 和平难度下袭击会直接 `stop()`（`DifficultyHelper::allowsMobSpawning` 返回 false）
