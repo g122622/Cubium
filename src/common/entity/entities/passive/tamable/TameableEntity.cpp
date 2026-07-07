@@ -126,9 +126,11 @@ void TameableEntity::tick()
 
 void TameableEntity::updateAnger()
 {
-    if (m_angerTime > 0) {
-        --m_angerTime;
-        if (m_angerTime <= 0) {
+    // 通过虚函数 getAngerTime/setAngerTime 访问愤怒时间，
+    // 允许子类（如 WolfEntity）将愤怒状态存储到 DataParameter 并自动同步到客户端。
+    if (getAngerTime() > 0) {
+        setAngerTime(getAngerTime() - 1);
+        if (getAngerTime() <= 0) {
             // 愤怒时间结束，清除攻击目标
             setAttackTarget(nullptr);
             m_revengeTargetId = std::nullopt;
@@ -244,8 +246,9 @@ void TameableEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // AngerTime (i32) - 愤怒剩余时间
-    if (m_angerTime > 0) {
-        tag.put(nbt_keys::ANGER_TIME, m_angerTime);
+    // 通过虚函数 getAngerTime() 读取，允许子类（如 WolfEntity）将愤怒状态存储到 DataParameter。
+    if (getAngerTime() > 0) {
+        tag.put(nbt_keys::ANGER_TIME, getAngerTime());
     }
 }
 
@@ -272,8 +275,9 @@ Result<void> TameableEntity::readAdditionalSaveData(const nbt::tags::compound_ta
     }
 
     // AngerTime (i32)
+    // 通过虚函数 setAngerTime() 写入，允许子类（如 WolfEntity）将愤怒状态恢复到 DataParameter。
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::ANGER_TIME)) {
-        m_angerTime = *val;
+        setAngerTime(*val);
     }
 
     // 从存档恢复驯服状态：如果有主人则自动设为已驯服

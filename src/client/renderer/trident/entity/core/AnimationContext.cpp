@@ -59,6 +59,7 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, isSneaking ? 1.0 : 0.0);
     hash = hashCombine(hash, isSwimming ? 1.0 : 0.0);
     hash = hashCombine(hash, isRiding ? 1.0 : 0.0);
+    hash = hashCombine(hash, isAngry ? 1.0 : 0.0);
 
     stateHash = hash;
 }
@@ -116,6 +117,7 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
     if (isSneaking != other.isSneaking) return true;
     if (isSwimming != other.isSwimming) return true;
     if (isRiding != other.isRiding) return true;
+    if (isAngry != other.isAngry) return true;
 
     return false;
 }

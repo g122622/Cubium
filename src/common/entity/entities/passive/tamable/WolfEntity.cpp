@@ -80,6 +80,7 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i32> WolfEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> WolfEntity::DATA_ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
 
 WolfEntity::WolfEntity(EntityId id)
     : TameableEntity(id)
@@ -788,6 +789,18 @@ f32 WolfEntity::getTailAngle() const
     return TAIL_ANGLE_UNHEALTHY + (healthRatio * (TAIL_ANGLE_HEALTHY - TAIL_ANGLE_UNHEALTHY));
 }
 
+void WolfEntity::setAngry(bool angry)
+{
+    // 重写 TameableEntity::setAngry，本方法本身不直接操作状态，
+    // 而是委托给基类实现。基类内部通过虚函数 setAngerTime 写入愤怒时间，
+    // 由于 WolfEntity 重写了 setAngerTime，写入会路由到 DATA_ANGER_TIME_PARAM，
+    // 从而让 EntityTracker 自动广播到客户端，驱动尾巴角度、纹理选择等渲染表现。
+    //
+    // 基类 setAngry 还会清理攻击目标与复仇目标（m_revengeTargetId），这些副作用
+    // 与愤怒状态的清除语义一致，无需在 WolfEntity 中重复。
+    TameableEntity::setAngry(angry);
+}
+
 bool WolfEntity::isInWater() const
 {
     // 调用父类实现检查是否在水中
@@ -999,6 +1012,11 @@ void WolfEntity::registerData()
     // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_COLLAR_COLOR
     // 默认值为红色（DyeColor::Red），与 MC 原版 DEFAULT_COLLAR_COLOR 一致
     m_dataManager.registerParam(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(DyeColor::Red));
+
+    // 注册愤怒时间数据参数，用于客户端-服务端同步
+    // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_ANGER_END_TIME
+    // 默认值为 0（非愤怒），由 setAngry/setAngerTime 写入，由 updateAnger 递减
+    m_dataManager.registerParam(DATA_ANGER_TIME_PARAM, static_cast<i32>(0));
 }
 
 void WolfEntity::onTamed(bool tamed)

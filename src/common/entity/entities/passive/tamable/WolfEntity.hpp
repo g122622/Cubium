@@ -242,8 +242,59 @@ public:
      * 尾巴角度基于生命值：
      * - 满血时约40度
      * - 低血量时约-10度
+     * - 愤怒时约88度（1.539f）
      */
     [[nodiscard]] f32 getTailAngle() const;
+
+    /**
+     * @brief 检查是否处于愤怒状态
+     *
+     * 重写 TameableEntity::isAngry()，从 DATA_ANGER_TIME_PARAM 读取而非成员变量。
+     * 服务端调用 setAngry/setAngerTime 修改后，会自动通过元数据同步到客户端，
+     * 客户端 ClientEntity::wolfIsAngry 镜像此状态用于渲染（尾巴角度、纹理选择等）。
+     *
+     * @return 如果愤怒时间 > 0 返回 true
+     */
+    [[nodiscard]] bool isAngry() const override { return getAngerTime() > 0; }
+
+    /**
+     * @brief 获取愤怒时间（ticks）
+     *
+     * 通过 DataParameter 从 EntityDataManager 读取。每 tick 由 updateAnger() 递减。
+     *
+     * @return 剩余愤怒时间（ticks）
+     */
+    [[nodiscard]] i32 getAngerTime() const override { return m_dataManager.get<i32>(DATA_ANGER_TIME_PARAM); }
+
+    /**
+     * @brief 设置愤怒时间（ticks）
+     *
+     * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
+     * EntityMetadataPacket 到所有观察者客户端。
+     *
+     * @param time 愤怒时间（ticks）
+     */
+    void setAngerTime(i32 time) override { m_dataManager.set(DATA_ANGER_TIME_PARAM, time); }
+
+    /**
+     * @brief 设置愤怒状态
+     *
+     * 等价于 setAngerTime(MAX_ANGER_TIME) 或 setAngerTime(0) 并清除攻击目标。
+     * 重写 TameableEntity::setAngry() 是为了让狼的愤怒状态写入 DataParameter
+     * 而非 TameableEntity 的 m_angerTime 成员变量，从而实现服务端→客户端同步。
+     *
+     * @param angry 是否愤怒
+     */
+    void setAngry(bool angry) override;
+
+    /**
+     * @brief 获取愤怒时间数据参数 ID
+     *
+     * 用于客户端从元数据中读取愤怒时间（ClientEntity::syncMetadataFromDataManager）。
+     */
+    [[nodiscard]] static u16 getAngerTimeParamId() { return DATA_ANGER_TIME_PARAM.id(); }
+
+    // ========== 兴趣状态 ==========
 
     /**
      * @brief 检查是否感兴趣（乞求食物）
@@ -384,9 +435,10 @@ protected:
     /**
      * @brief 注册同步数据参数
      *
-     * 注册 DATA_INTERESTED_PARAM（兴趣状态）到 EntityDataManager。
-     * 客户端通过 getInterestedParamId() 读取此参数 ID 并在元数据同步时
-     * 调用 setWolfIsInterested 更新客户端镜像状态。
+     * 注册 DATA_INTERESTED_PARAM（兴趣状态）、DATA_COLLAR_COLOR_PARAM（颈圈颜色）、
+     * DATA_ANGER_TIME_PARAM（愤怒时间）到 EntityDataManager。
+     * 客户端通过对应 get*ParamId() 读取参数 ID 并在元数据同步时
+     * 调用 setWolfIsInterested/setWolfCollarColor/setWolfIsAngry 更新客户端镜像状态。
      *
      * 注意：由于 C++ 虚函数在基类构造函数中不会派发到派生类，
      * WolfEntity 构造函数必须显式调用此方法（参考 ZombieVillagerEntity 模式）。
@@ -479,6 +531,19 @@ private:
      * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfCollarColor。
      */
     static entity::DataParameter<i32> DATA_COLLAR_COLOR_PARAM;
+
+    /**
+     * @brief 愤怒时间同步参数
+     *
+     * 对应 MC 1.21.11 Wolf.DATA_ANGER_END_TIME（语义上：剩余愤怒 ticks）。
+     * 由 setAngerTime/setAngry 写入，由 updateAnger() 每 tick 递减，
+     * 由 EntityTracker 自动广播到所有观察者客户端。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfIsAngry。
+     *
+     * 注意：MC 1.21.11 原版使用 Long 类型的「愤怒结束时刻」(gameTime 戳)，
+     * 此处采用更直观的「剩余 ticks」i32 表示，与 BeeEntity::ANGER_TIME_PARAM 风格一致。
+     */
+    static entity::DataParameter<i32> DATA_ANGER_TIME_PARAM;
 
     // 常量
     static constexpr f32 TAIL_ANGLE_HEALTHY = 0.698f;    // 健康时尾巴角度（弧度）

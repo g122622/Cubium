@@ -2941,5 +2941,167 @@ TEST_F(WolfEntityTestFixture, Shake_Tick_NoReTriggerWhileShaking)
     EXPECT_TRUE(wolf.isShaking());
 }
 
+// ============================================================================
+// 愤怒状态 DataParameter 同步测试
+//
+// WolfEntity 重写了 TameableEntity 的 isAngry/getAngerTime/setAngerTime/setAngry，
+// 将愤怒状态从成员变量（TameableEntity::m_angerTime）改为 DataParameter
+// （WolfEntity::DATA_ANGER_TIME_PARAM），从而让愤怒状态能通过 EntityTracker
+// 自动广播到所有观察者客户端，驱动尾巴角度和纹理变体等渲染表现。
+//
+// 以下测试验证愤怒状态的 DataParameter 同步链路。
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, DataParameter_AngerTimeParamId_IsValid)
+{
+    // DATA_ANGER_TIME_PARAM 的 ID 应该是有效的（>0，由 createKey 自动分配）
+    u16 paramId = WolfEntity::getAngerTimeParamId();
+    EXPECT_GT(paramId, 0u);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_IsAngry_ReadsFromDataManager)
+{
+    // isAngry() 应该从 DataManager 读取而非成员变量
+    WolfEntity wolf(EntityId(0));
+    EXPECT_FALSE(wolf.isAngry());
+    EXPECT_EQ(wolf.getAngerTime(), 0);
+
+    wolf.setAngerTime(100);
+    EXPECT_TRUE(wolf.isAngry());
+    EXPECT_EQ(wolf.getAngerTime(), 100);
+
+    // 通过 DataManager 直接读取验证
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getAngerTimeParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, 100);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_SetAngry_WritesToDataManager)
+{
+    // setAngry(true) 应该通过虚函数 setAngerTime 路由到 DATA_ANGER_TIME_PARAM
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getAngerTimeParamId();
+
+    // 设置愤怒状态
+    wolf.setAngry(true);
+    EXPECT_TRUE(wolf.isAngry());
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_GT(storedValue, 0); // setAngry(true) 写入 MAX_ANGER_TIME
+
+    // 清除愤怒状态
+    wolf.setAngry(false);
+    EXPECT_FALSE(wolf.isAngry());
+    storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, 0);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_SetAngerTime_WritesToDataManager)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getAngerTimeParamId();
+
+    // 设置愤怒时间
+    wolf.setAngerTime(42);
+    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, 42);
+
+    // 设置为 0
+    wolf.setAngerTime(0);
+    storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    EXPECT_EQ(storedValue, 0);
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnAngerChange)
+{
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+
+    // 初始状态不应有脏数据
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置愤怒时间应该标记为脏数据
+    wolf.setAngerTime(100);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记后设置相同值不应标记为脏
+    dataManager.clearDirty();
+    wolf.setAngerTime(100);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同值应该标记为脏
+    wolf.setAngerTime(50);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 设置为 0 也应标记为脏
+    dataManager.clearDirty();
+    wolf.setAngerTime(0);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_AngerTimeRegisteredOnConstruction)
+{
+    // 验证 WolfEntity 构造后 DATA_ANGER_TIME_PARAM 已注册到 DataManager
+    WolfEntity wolf(EntityId(0));
+    auto& dataManager = wolf.dataManager();
+    u16 paramId = WolfEntity::getAngerTimeParamId();
+
+    // 参数应该已注册
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+
+    // 默认值应为 0（非愤怒）
+    EXPECT_EQ(wolf.getAngerTime(), 0);
+    EXPECT_FALSE(wolf.isAngry());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_AngerState_SyncsStateChanges)
+{
+    // 验证多次状态变更正确同步
+    WolfEntity wolf(EntityId(0));
+
+    EXPECT_FALSE(wolf.isAngry());
+
+    wolf.setAngry(true);
+    EXPECT_TRUE(wolf.isAngry());
+    EXPECT_GT(wolf.getAngerTime(), 0);
+
+    wolf.setAngry(false);
+    EXPECT_FALSE(wolf.isAngry());
+    EXPECT_EQ(wolf.getAngerTime(), 0);
+
+    wolf.setAngerTime(75);
+    EXPECT_TRUE(wolf.isAngry());
+    EXPECT_EQ(wolf.getAngerTime(), 75);
+
+    wolf.setAngerTime(0);
+    EXPECT_FALSE(wolf.isAngry());
+}
+
+TEST_F(WolfEntityTestFixture, DataParameter_TailAngle_UsesAngerFromDataManager)
+{
+    // 验证 getTailAngle() 在愤怒时返回 1.539f，且愤怒状态来自 DataParameter 而非成员变量
+    WolfEntity wolf(EntityId(0));
+
+    // 非愤怒状态：尾巴角度基于生命值
+    wolf.setHealth(wolf.maxHealth());
+    f32 calmTailAngle = wolf.getTailAngle();
+    EXPECT_NE(calmTailAngle, 1.539f);
+
+    // 通过 DataParameter 设置愤怒时间
+    wolf.setAngerTime(100);
+    EXPECT_TRUE(wolf.isAngry());
+    f32 angryTailAngle = wolf.getTailAngle();
+    EXPECT_FLOAT_EQ(angryTailAngle, 1.539f);
+
+    // 清除愤怒时间
+    wolf.setAngerTime(0);
+    EXPECT_FALSE(wolf.isAngry());
+    EXPECT_NE(wolf.getTailAngle(), 1.539f);
+}
+
 } // namespace
 } // namespace mc

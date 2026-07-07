@@ -298,10 +298,10 @@ void ClientEntity::syncMetadataFromDataManager()
         }
     }
 
-    // 狼状态同步（驯服状态、颈圈颜色、兴趣状态）
+    // 狼状态同步（驯服状态、颈圈颜色、兴趣状态、愤怒状态）
     // 服务端 WolfEntity/TameableEntity 通过 DataParameter 写入，
     // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
-    // 客户端在此处读取并调用 setWolfTamed/setWolfCollarColor/setWolfIsInterested 更新镜像状态。
+    // 客户端在此处读取并调用 setWolfTamed/setWolfCollarColor/setWolfIsInterested/setWolfIsAngry 更新镜像状态。
     if (m_typeId == "minecraft:wolf" || m_typeId == "wolf") {
         // 驯服状态（通过 TameableEntity::DATA_TAMED_PARAM 同步）
         if (m_dataManager.hasParam(::mc::TameableEntity::getTamedParamId())) {
@@ -324,6 +324,13 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getInterestedParamId()); value != nullptr) {
                 const bool interested = value->get<bool>();
                 setWolfIsInterested(interested);
+            }
+        }
+        // 愤怒状态（尾巴抬起/停止摆动 + angry 纹理变体，通过 WolfEntity::DATA_ANGER_TIME_PARAM 同步）
+        if (m_dataManager.hasParam(::mc::WolfEntity::getAngerTimeParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getAngerTimeParamId()); value != nullptr) {
+                const i32 angerTime = value->get<i32>();
+                setWolfIsAngry(angerTime > 0);
             }
         }
     }

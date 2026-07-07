@@ -957,10 +957,19 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         } else {
             context.wolfWetShade = std::min(0.75f + context.wolfShakeAnim / 2.0f * 0.25f, 1.0f);
         }
+
+        // 愤怒状态（对应 MC 1.21.11 Wolf.isAngry()，由 NeutralMob 默认方法计算 angerTime > 0）
+        // 数据流：服务端 WolfEntity::setAngry/setAngerTime 写入 DATA_ANGER_TIME_PARAM
+        //   → EntityTracker 广播 EntityMetadataPacket
+        //   → ClientEntity::syncMetadataFromDataManager 调用 setWolfIsAngry
+        //   → 此处读取 entity.wolfIsAngry() 写入 context.isAngry
+        //   → WolfModel::setAnimState 读取以决定尾巴 Y 旋转（愤怒时锁 1.539f ≈ 88°）
+        context.isAngry = entity.wolfIsAngry();
     } else {
         context.wolfShakeAnim = 0.0f;
         context.wolfInterestedAngle = 0.0f;
         context.wolfWetShade = 1.0f;
+        context.isAngry = false;
     }
 
     // 计算哈希
@@ -1014,17 +1023,21 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         if (normalizedId == "wolf" || normalizedId == "minecraft:wolf") {
             auto* wolfModel = dynamic_cast<model::animal::WolfModel*>(model.get());
             if (wolfModel != nullptr) {
-                // isSitting/isAngry 来自 ClientEntity 元数据状态
+                // isSitting 来自 ClientEntity 元数据状态
+                // isAngry 来自 context.isAngry（由 DATA_ANGER_TIME_PARAM 同步）
                 // isWet 使用 wolfIsWet（对应 MC Wolf.isWet）
-                // tailRotation 使用默认值（MC 原版 WolfRenderState.tailAngle = PI/5），
-                //   驯服后根据生命值变化，但客户端无 health 数据，使用默认值
-                //   TODO: 待元数据同步 health 后实现动态 tailAngle
+                // tailAngle 对应 MC 1.21.11 Wolf.getTailAngle()：
+                //   - 愤怒时返回 1.539f（≈88°，尾巴笔直抬起）
+                //   - 驯服时根据生命值变化（health 越低尾巴越低）
+                //   - 未驯服时返回 PI/5（≈36°）
+                //   客户端目前无 health 元数据，未驯服/驯服状态均使用 PI/5 作为基础值，
+                //   愤怒状态覆盖为 1.539f。TODO: 待 health 元数据同步后实现动态 tailAngle。
                 // shakeAnim 使用插值后的 context.wolfShakeAnim
                 // interestedAngle 使用 context.wolfInterestedAngle * 0.15 * PI（对应 MC getHeadRollAngle）
-                const f32 tailAngle = static_cast<f32>(math::PI / 5.0);
+                const f32 tailAngle = context.isAngry ? 1.539f : static_cast<f32>(math::PI / 5.0);
                 const f32 interestedHeadRoll = context.wolfInterestedAngle * 0.15f * static_cast<f32>(math::PI);
                 wolfModel->setAnimState(static_cast<bool>(context.isSitting),
-                    false, // isAngry: TODO 待元数据同步
+                    static_cast<bool>(context.isAngry),
                     entity.wolfIsWet(),
                     tailAngle,
                     context.wolfShakeAnim,

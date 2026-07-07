@@ -209,6 +209,22 @@ struct AnimationContext {
      */
     f32 wolfWetShade = 1.0f;
 
+    /**
+     * @brief 是否处于愤怒状态（狼专用）
+     *
+     * 对应 MC 1.21.11 Wolf.isAngry()（由 NeutralMob 默认方法计算）。
+     * 由 EntityRendererManager 从 ClientEntity::wolfIsAngry() 读取填充。
+     *
+     * 数据流：服务端 WolfEntity::setAngry/setAngerTime 写入 DATA_ANGER_TIME_PARAM
+     * → EntityTracker 广播 EntityMetadataPacket
+     * → ClientEntity::syncMetadataFromDataManager 调用 setWolfIsAngry
+     * → EntityRendererManager::updateAnimationContext 写入此字段
+     * → WolfModel::setAnimState 读取以决定尾巴 Y 旋转（愤怒时锁 0）。
+     *
+     * 注意：此字段同时影响 wolf 模型分支中的 tailAngle 计算（愤怒时 1.539f ≈ 88°）。
+     */
+    bool isAngry = false;
+
     // ========== 方法 ==========
 
     /**

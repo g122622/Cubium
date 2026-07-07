@@ -1018,6 +1018,28 @@ public:
      */
     void setWolfCollarColor(DyeColor color) { m_wolfCollarColor = color; }
 
+    /**
+     * @brief 获取狼是否处于愤怒状态
+     *
+     * 通过元数据同步自服务端 WolfEntity::DATA_ANGER_TIME_PARAM。
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用 setWolfIsAngry 更新。
+     * EntityRendererManager 在 wolf 模型分支读取此状态（通过 AnimationContext::isAngry）
+     * 驱动 WolfModel::setAnimState 的 isAngry 参数（愤怒时尾巴停止摆动），
+     * 以及尾巴抬起角度（1.539f ≈ 88°）。
+     *
+     * @return 如果狼处于愤怒状态返回 true
+     */
+    [[nodiscard]] bool wolfIsAngry() const { return m_wolfIsAngry; }
+
+    /**
+     * @brief 设置狼是否处于愤怒状态
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param angry 是否处于愤怒状态
+     */
+    void setWolfIsAngry(bool angry) { m_wolfIsAngry = angry; }
+
     // ========== 兔子跳跃动画状态 ==========
 
     /**
@@ -1213,6 +1235,7 @@ private:
     bool m_wolfIsWet = false;        ///< 是否湿润（收到 ShakeOffWater 时设 true，甩水完成时设 false）
     bool m_wolfIsInterested = false; ///< 是否感兴趣（乞求食物，通过元数据同步自服务端）
     bool m_wolfTamed = false;        ///< 是否已被驯服（通过元数据同步自服务端 TameableEntity::DATA_TAMED_PARAM）
+    bool m_wolfIsAngry = false;      ///< 是否处于愤怒状态（通过元数据同步自服务端 WolfEntity::DATA_ANGER_TIME_PARAM）
     DyeColor m_wolfCollarColor =
         DyeColor::Red;                 ///< 颈圈颜色（通过元数据同步自服务端 WolfEntity::DATA_COLLAR_COLOR_PARAM）
     f32 m_wolfShakeAnim = 0.0f;        ///< 甩水动画进度（每 tick +0.05，达到 2.0 时完成）

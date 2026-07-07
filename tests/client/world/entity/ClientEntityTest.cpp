@@ -905,6 +905,90 @@ TEST_F(ClientEntityWolfSyncTest, CollarColor_AllDyeColorsRoundTrip)
 }
 
 // ============================================================================
+// 狼愤怒状态客户端同步测试
+//
+// 服务端 WolfEntity 通过 DATA_ANGER_TIME_PARAM（i32）同步愤怒时间到客户端，
+// 客户端 ClientEntity::syncMetadataFromDataManager 读取该参数并调用 setWolfIsAngry
+// 更新镜像状态。EntityRendererManager 读取 wolfIsAngry() 写入 AnimationContext.isAngry，
+// 由 WolfModel::setAnimState 接收以决定尾巴 Y 旋转（愤怒时锁 0）和尾巴 X 旋转（1.539f）。
+// ============================================================================
+
+TEST_F(ClientEntityWolfSyncTest, AngryState_DefaultFalse)
+{
+    // 狼客户端实体默认不愤怒
+    EXPECT_FALSE(entity->wolfIsAngry());
+}
+
+TEST_F(ClientEntityWolfSyncTest, AngryState_CanSetAndGet)
+{
+    EXPECT_FALSE(entity->wolfIsAngry());
+
+    entity->setWolfIsAngry(true);
+    EXPECT_TRUE(entity->wolfIsAngry());
+
+    entity->setWolfIsAngry(false);
+    EXPECT_FALSE(entity->wolfIsAngry());
+}
+
+TEST_F(ClientEntityWolfSyncTest, AngryState_SyncFromDataManager)
+{
+    // 模拟服务端 WolfEntity 通过元数据同步愤怒状态到客户端
+    auto& dataManager = entity->dataManager();
+
+    // 注册 DataParameter（与服务端 WolfEntity::DATA_ANGER_TIME_PARAM 相同的参数类型）
+    auto angerTimeParam = mc::entity::EntityDataManager::createKey<i32>();
+    dataManager.registerParam(angerTimeParam, static_cast<i32>(0));
+
+    // 服务端调用 setAngerTime(100) → EntityTracker 广播 → 客户端收到元数据
+    dataManager.set(angerTimeParam, static_cast<i32>(100));
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 模拟 ClientEntity::syncMetadataFromDataManager 的逻辑：
+    // 读取 DataParameter 值，angerTime > 0 时调用 setWolfIsAngry(true)
+    i32 angerTime = dataManager.get<i32>(angerTimeParam);
+    entity->setWolfIsAngry(angerTime > 0);
+    EXPECT_TRUE(entity->wolfIsAngry());
+
+    // 模拟愤怒时间递减到 0
+    dataManager.set(angerTimeParam, static_cast<i32>(0));
+    angerTime = dataManager.get<i32>(angerTimeParam);
+    entity->setWolfIsAngry(angerTime > 0);
+    EXPECT_FALSE(entity->wolfIsAngry());
+}
+
+TEST_F(ClientEntityWolfSyncTest, AngryState_SyncFromDataManager_VariousAngerTimes)
+{
+    // 验证不同 angerTime 值的愤怒状态判定
+    auto& dataManager = entity->dataManager();
+    auto angerTimeParam = mc::entity::EntityDataManager::createKey<i32>();
+    dataManager.registerParam(angerTimeParam, static_cast<i32>(0));
+
+    // angerTime = 1 → 愤怒
+    dataManager.set(angerTimeParam, static_cast<i32>(1));
+    i32 angerTime = dataManager.get<i32>(angerTimeParam);
+    entity->setWolfIsAngry(angerTime > 0);
+    EXPECT_TRUE(entity->wolfIsAngry());
+
+    // angerTime = 0 → 不愤怒
+    dataManager.set(angerTimeParam, static_cast<i32>(0));
+    angerTime = dataManager.get<i32>(angerTimeParam);
+    entity->setWolfIsAngry(angerTime > 0);
+    EXPECT_FALSE(entity->wolfIsAngry());
+
+    // angerTime = -1（异常值）→ 不愤怒
+    dataManager.set(angerTimeParam, static_cast<i32>(-1));
+    angerTime = dataManager.get<i32>(angerTimeParam);
+    entity->setWolfIsAngry(angerTime > 0);
+    EXPECT_FALSE(entity->wolfIsAngry());
+
+    // angerTime = 1000 → 愤怒
+    dataManager.set(angerTimeParam, static_cast<i32>(1000));
+    angerTime = dataManager.get<i32>(angerTimeParam);
+    entity->setWolfIsAngry(angerTime > 0);
+    EXPECT_TRUE(entity->wolfIsAngry());
+}
+
+// ============================================================================
 // ClientEntity 眼高（eyeHeight）测试
 // ============================================================================
 
