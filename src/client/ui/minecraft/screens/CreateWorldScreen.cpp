@@ -41,11 +41,21 @@ const char* GAME_MODE_NAMES[] = {"Survival", "Creative", "Adventure", "Spectator
 // 世界类型名称
 const char* WORLD_TYPE_NAMES[] = {"Default", "Flat", "Large Biomes", "Amplified", "Debug"};
 
+// 难度名称
+const char* DIFFICULTY_NAMES[] = {"Peaceful", "Easy", "Normal", "Hard"};
+
 // 游戏模式循环数量，排除 NotSet
 constexpr i32 GAME_MODE_COUNT = 4;
 
 // 世界类型循环数量
 constexpr i32 WORLD_TYPE_COUNT = 5;
+
+// 难度循环数量
+constexpr i32 DIFFICULTY_COUNT = 4;
+
+// 视距滑块的最小/最大值
+constexpr i32 VIEW_DISTANCE_MIN = 3;
+constexpr i32 VIEW_DISTANCE_MAX = 32;
 
 } // namespace
 
@@ -59,6 +69,7 @@ CreateWorldScreen::CreateWorldScreen()
     _registerCallbacks();
     _updateGameModeText();
     _updateWorldTypeText();
+    _updateDifficultyText();
 }
 
 void CreateWorldScreen::onOpen()
@@ -75,6 +86,12 @@ void CreateWorldScreen::_registerCallbacks()
 
     exposeSimpleCallback("onCycleWorldType", [this]() { _cycleWorldType(); });
 
+    exposeSimpleCallback("onCycleDifficulty", [this]() { _cycleDifficulty(); });
+
+    exposeSimpleCallback("onToggleAllowCommands", [this]() { _toggleAllowCommands(); });
+
+    exposeSimpleCallback("onViewDistanceChanged", [this]() { _onViewDistanceChanged(); });
+
     exposeSimpleCallback("onCreate", [this]() {
         if (_validateInput() && m_onCreate) {
             m_onCreate(buildRequest());
@@ -86,6 +103,13 @@ void CreateWorldScreen::_registerCallbacks()
             m_onCancel();
         }
     });
+
+    // 滑块显示配置：整数步长 + 整数格式化，让滑块上直接显示当前视距值
+    // 事件回调通过模板的 on:change 绑定到 onViewDistanceChanged，无需在此处 setOnValueChanged
+    if (m_viewDistanceSlider) {
+        m_viewDistanceSlider->setStepSize(1.0);
+        m_viewDistanceSlider->setFormatCallback([](f64 value) { return std::to_string(static_cast<i32>(value)); });
+    }
 }
 
 void CreateWorldScreen::_cacheWidgets()
@@ -99,6 +123,12 @@ void CreateWorldScreen::_cacheWidgets()
     m_gameModeButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("gameModeBtn"));
     m_worldTypeLabel = dynamic_cast<kagero::widget::TextWidget*>(findWidget("worldTypeLabel"));
     m_worldTypeButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("worldTypeBtn"));
+    m_difficultyLabel = dynamic_cast<kagero::widget::TextWidget*>(findWidget("difficultyLabel"));
+    m_difficultyButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("difficultyBtn"));
+    m_allowCommandsLabel = dynamic_cast<kagero::widget::TextWidget*>(findWidget("allowCommandsLabel"));
+    m_allowCommandsCheckbox = dynamic_cast<kagero::widget::CheckboxWidget*>(findWidget("allowCommandsCheck"));
+    m_viewDistanceLabel = dynamic_cast<kagero::widget::TextWidget*>(findWidget("viewDistanceLabel"));
+    m_viewDistanceSlider = dynamic_cast<kagero::widget::SliderWidget*>(findWidget("viewDistanceSlider"));
     m_createButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("btn_create"));
     m_cancelButton = dynamic_cast<kagero::widget::ButtonWidget*>(findWidget("btn_cancel"));
 }
@@ -135,6 +165,14 @@ void CreateWorldScreen::_cycleWorldType()
     _updateWorldTypeText();
 }
 
+void CreateWorldScreen::_cycleDifficulty()
+{
+    i32 difficulty = static_cast<i32>(m_difficulty);
+    difficulty = (difficulty + 1) % DIFFICULTY_COUNT;
+    m_difficulty = static_cast<mc::Difficulty>(difficulty);
+    _updateDifficultyText();
+}
+
 void CreateWorldScreen::_updateGameModeText()
 {
     if (m_gameModeButton) {
@@ -146,6 +184,29 @@ void CreateWorldScreen::_updateWorldTypeText()
 {
     if (m_worldTypeButton) {
         m_worldTypeButton->setText(WORLD_TYPE_NAMES[static_cast<i32>(m_worldType)]);
+    }
+}
+
+void CreateWorldScreen::_updateDifficultyText()
+{
+    if (m_difficultyButton) {
+        m_difficultyButton->setText(DIFFICULTY_NAMES[static_cast<i32>(m_difficulty)]);
+    }
+}
+
+void CreateWorldScreen::_toggleAllowCommands()
+{
+    // 由模板的 on:change 事件回调触发，复选框状态已由 CheckboxWidget 内部更新
+    if (m_allowCommandsCheckbox) {
+        m_allowCommands = m_allowCommandsCheckbox->isChecked();
+    }
+}
+
+void CreateWorldScreen::_onViewDistanceChanged()
+{
+    // 由模板的 on:change 事件回调触发，滑块值已由 SliderWidget 内部更新
+    if (m_viewDistanceSlider) {
+        m_viewDistance = static_cast<i32>(m_viewDistanceSlider->value());
     }
 }
 
@@ -172,16 +233,23 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const
         }
     }
 
-    // TODO: 视距、难度、是否允许作弊等选项目前使用硬编码默认值，后续应提供界面让用户配置
+    // 限制视距到滑块范围，避免极端值
+    i32 viewDistance = m_viewDistance;
+    if (viewDistance < VIEW_DISTANCE_MIN) {
+        viewDistance = VIEW_DISTANCE_MIN;
+    } else if (viewDistance > VIEW_DISTANCE_MAX) {
+        viewDistance = VIEW_DISTANCE_MAX;
+    }
+
     return world::storage::CreateWorldRequest(m_nameField ? m_nameField->text() : "New World",
         "",
         seed,
         m_worldType,
         m_gameMode,
-        mc::Difficulty::Normal,
+        m_difficulty,
         false,
         m_allowCommands,
-        defaults::client::renderDistance);
+        viewDistance);
 }
 
 bool CreateWorldScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
