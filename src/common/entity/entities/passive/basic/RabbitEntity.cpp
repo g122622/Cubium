@@ -52,6 +52,39 @@
 
 namespace mc {
 
+// TODO: 未实现的 MC 1.21.11 兔子专属 AI 控制器与行为（当前由通用 JumpController +
+// LivingEntity::aiStep() 自动跳跃 + m_jumpTicks 冷却提供最小可行行为）：
+//
+// 1. RabbitJumpControl（net.minecraft.world.entity.animal.rabbit.Rabbit.RabbitJumpControl）
+//    - MC 中兔子使用专属跳跃控制器，含 canJump/wantJump 状态机
+//    - RabbitJumpControl.tick() 在 wantJump 时调用 rabbit.startJumping()
+//    - 项目当前由通用 JumpController::tick() 每 ticks 调用 setJumping(true)，
+//      再由 RabbitEntity::setJumping(true) → startJumping() 间接启动跳跃动画
+//
+// 2. RabbitMoveControl（net.minecraft.world.entity.animal.rabbit.Rabbit.RabbitMoveControl）
+//    - MC 中兔子使用专属移动控制器，控制跳跃速度（nextJumpSpeed）
+//    - 在地面且未跳跃时设置 speedModifier=0（避免地面滑动）
+//    - 项目当前由通用 MovementControl::tick() 处理移动
+//
+// 3. jumpDelayTicks / wasOnGround / checkLandingDelay() / setLandingDelay()
+//    - MC 中兔子着陆后有跳跃延迟（慢速 10 tick / 快速 1 tick），避免连续跳跃过于频繁
+//    - wasOnGround 用于检测着陆瞬间（从空中到地面的过渡）
+//    - 项目当前未实现，兔子可能比 MC 原版跳跃更频繁
+//
+// 4. customServerAiStep(ServerLevel)（MC 中 Rabbit 的服务端 AI 主循环）
+//    - 处理 jumpDelayTicks 递减、moreCarrotTicks 递减、着陆检测、跳跃控制
+//    - 杀手兔（EVIL 变种）的主动跳跃攻击逻辑
+//    - 项目当前由 LivingEntity::aiStep() + JumpController 提供基础移动
+//
+// 5. RaidGardenGoal（偷胡萝卜）+ moreCarrotTicks
+//    - MC 中兔子会寻找成熟胡萝卜田，啃食胡萝卜方块
+//    - moreCarrotTicks = 40 tick 冷却
+//    - 项目当前未实现
+//
+// 实现建议：参考 D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\entity\animal\rabbit\Rabbit.java
+// 新增 entity/ai/controller/RabbitJumpControl.hpp/cpp 和 RabbitMoveControl.hpp/cpp，
+// 并在 RabbitEntity 构造函数中替换 m_jumpController / m_moveController。
+
 RabbitEntity::RabbitEntity(EntityId id)
     : AnimalEntity(id)
 {

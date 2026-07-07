@@ -28,7 +28,10 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
+
+#include <cmath>
 
 using namespace mc;
 using namespace mc::client;
@@ -1135,4 +1138,148 @@ TEST_F(ClientEntityEyeHeightTest, DimensionsInitializedWithDefault)
     ClientEntity freshEntity(EntityId(31), "minecraft:sheep");
     EXPECT_FLOAT_EQ(freshEntity.width(), 0.6f);
     EXPECT_FLOAT_EQ(freshEntity.height(), 1.8f);
+}
+
+// ============================================================================
+// ClientEntity 兔子跳跃动画状态测试
+// ============================================================================
+// 对应 MC 1.21.11 Rabbit.handleEntityEvent(byte 1) + Rabbit.aiStep() 客户端镜像逻辑
+// 数据流：服务端 broadcastEntityStatus(RabbitJump=1)
+//   → ClientApplicationNetwork::onEntityStatus
+//   → ClientEntity::setRabbitJumpStart() (jumpDuration=10, jumpTicks=0)
+//   → ClientEntity::tick() 中 tickRabbitJump() 推进
+//   → rabbitJumpCompletion(partialTick) 供渲染器计算 jumpRotation
+
+class ClientEntityRabbitJumpTest : public ::testing::Test {
+protected:
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:rabbit"); }
+
+    void TearDown() override { entity.reset(); }
+
+    std::unique_ptr<ClientEntity> entity;
+};
+
+TEST_F(ClientEntityRabbitJumpTest, DefaultState_NoJumpInProgress)
+{
+    // 默认状态：未在跳跃中
+    EXPECT_FALSE(entity->rabbitIsJumping());
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.5f), 0.0f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(1.0f), 0.0f);
+}
+
+TEST_F(ClientEntityRabbitJumpTest, SetRabbitJumpStart_InitializesJumpDuration)
+{
+    // 对应 MC Rabbit.handleEntityEvent(byte 1): jumpDuration=10; jumpTicks=0;
+    entity->setRabbitJumpStart();
+
+    EXPECT_TRUE(entity->rabbitIsJumping());
+    // jumpDuration=10, jumpTicks=0: completion = (0 + partialTick) / 10
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.5f), 0.05f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(1.0f), 0.1f);
+}
+
+TEST_F(ClientEntityRabbitJumpTest, Tick_AdvancesJumpTicks)
+{
+    // tick() 中 tickRabbitJump() 推进 m_rabbitJumpTicks
+    // 对应 MC Rabbit.aiStep() 的 jumpTicks++ 逻辑
+    entity->setRabbitJumpStart(); // jumpDuration=10, jumpTicks=0
+
+    entity->tick();                                            // jumpTicks 0→1
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.1f); // 1/10
+
+    entity->tick();                                            // jumpTicks 1→2
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.2f); // 2/10
+}
+
+TEST_F(ClientEntityRabbitJumpTest, Tick_ResetsAtJumpDuration)
+{
+    // jumpTicks 达到 jumpDuration 时，tick 应归零
+    // 对应 MC Rabbit.aiStep(): else if (jumpDuration != 0) { jumpTicks=0; jumpDuration=0; }
+    //
+    // 时序：setRabbitJumpStart → jumpTicks=0
+    //   tick #1: jumpTicks 0→1
+    //   ...
+    //   tick #10: jumpTicks 9→10 (仍走 ++ 分支)
+    //   tick #11: jumpTicks==jumpDuration → 归零
+    entity->setRabbitJumpStart();
+
+    for (int i = 0; i < 10; ++i) {
+        entity->tick();
+    }
+    // 第 10 次 tick 后: jumpTicks=10，仍在跳跃中
+    EXPECT_TRUE(entity->rabbitIsJumping());
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 1.0f); // 10/10
+
+    // 第 11 次 tick: 归零
+    entity->tick();
+    EXPECT_FALSE(entity->rabbitIsJumping());
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.0f);
+}
+
+TEST_F(ClientEntityRabbitJumpTest, RabbitJumpCompletion_PartialTickInterpolation)
+{
+    // 验证 partialTick 在 [0, 1] 范围内的插值
+    // completion = (jumpTicks + partialTick) / jumpDuration
+    entity->setRabbitJumpStart(); // jumpDuration=10, jumpTicks=0
+
+    // 推进 3 tick: jumpTicks=3
+    for (int i = 0; i < 3; ++i) {
+        entity->tick();
+    }
+
+    // completion = (3 + partialTick) / 10
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.3f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.25f), 0.325f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.5f), 0.35f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.75f), 0.375f);
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(1.0f), 0.4f);
+}
+
+TEST_F(ClientEntityRabbitJumpTest, SetRabbitJumpStart_IdempotentDuringJump)
+{
+    // 跳跃进行中再次调用 setRabbitJumpStart 不应重置进度
+    // （虽然服务端 startJumping() 有幂等保护，客户端也应安全）
+    entity->setRabbitJumpStart();
+
+    for (int i = 0; i < 3; ++i) {
+        entity->tick();
+    }
+    // jumpTicks=3
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.3f);
+
+    // 再次调用 setRabbitJumpStart：重置 jumpTicks=0, jumpDuration=10
+    entity->setRabbitJumpStart();
+    EXPECT_FLOAT_EQ(entity->rabbitJumpCompletion(0.0f), 0.0f);
+    EXPECT_TRUE(entity->rabbitIsJumping());
+}
+
+TEST_F(ClientEntityRabbitJumpTest, JumpCompletion_SinProductForJumpRotation)
+{
+    // 验证渲染器使用的 jumpRotation = sin(completion * PI) 公式
+    // 这不是 ClientEntity 的方法，但验证 completion 值能正确驱动该公式
+    entity->setRabbitJumpStart();
+
+    // 跳跃中点：jumpTicks=5, completion(0.5) = 5.5/10 = 0.55
+    // sin(0.55 * PI) ≈ 0.9877
+    for (int i = 0; i < 5; ++i) {
+        entity->tick();
+    }
+    const f32 completion = entity->rabbitJumpCompletion(0.5f);
+    const f32 jumpRotation = std::sin(completion * math::PI);
+    EXPECT_NEAR(jumpRotation, 0.9877f, 0.001f);
+
+    // 跳跃开始：jumpTicks=0, completion(0) = 0, sin(0) = 0
+    entity->setRabbitJumpStart();
+    EXPECT_FLOAT_EQ(std::sin(entity->rabbitJumpCompletion(0.0f) * math::PI), 0.0f);
+
+    // 跳跃中点（partialTick=1, jumpTicks=4）: completion = 5/10 = 0.5
+    // sin(0.5 * PI) = 1.0 （最大跳跃旋转）
+    for (int i = 0; i < 4; ++i) {
+        entity->tick();
+    }
+    const f32 midCompletion = entity->rabbitJumpCompletion(1.0f);
+    EXPECT_FLOAT_EQ(midCompletion, 0.5f);
+    EXPECT_FLOAT_EQ(std::sin(midCompletion * math::PI), 1.0f);
 }

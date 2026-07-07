@@ -119,3 +119,10 @@ ClientEntity
     - 玩家实体根据姿态动态调整：蹲伏=1.27，游泳/鞘翅飞行=0.4，睡眠=0.2，站立=1.62
     - 非玩家幼年个体眼高为站立眼高的一半（与 MC Java 的 `getAgeScale() = 0.5` 一致）
     - 姿态变化（`setSneaking`/`setSwimming`/`setSleeping`/`setChild`）自动触发 `refreshEyeHeight()`
+
+13. **兔子跳跃动画客户端状态**（参考 MC 1.21.11 `Rabbit.handleEntityEvent(byte 1)`）：
+    - **字段**：`m_rabbitJumpTicks`（当前 tick）、`m_rabbitJumpDuration`（总 tick，0=未在跳跃中）。
+    - **启动**：`ClientApplicationNetwork::onEntityStatus` 收到 `RabbitJump(1)` 状态码时调用 `setRabbitJumpStart()`，设置 `m_rabbitJumpDuration=10`、`m_rabbitJumpTicks=0`。
+    - **推进**：`tick()` 末尾调用 `tickRabbitJump()`，对应 MC `Rabbit.aiStep()` 的跳跃推进逻辑——`m_rabbitJumpTicks != m_rabbitJumpDuration` 时递增，相等且 `m_rabbitJumpDuration != 0` 时归零。
+    - **读取**：`rabbitJumpCompletion(partialTick)` 供 `EntityRendererManager` 计算 `jumpRotation = sin(completion * PI)`，最终通过 `RabbitModel::setJumpRotation` 影响 thigh/foot/arm 旋转角度。
+    - **数据流**：服务端 `RabbitEntity::startJumping()` 广播 `RabbitJump(1)` → 网络包 → `onEntityStatus` 回调 → `setRabbitJumpStart()` → `tick()` 推进 → `rabbitJumpCompletion()` → 渲染器 → `RabbitModel`。与狼甩水动画（`ShakeOffWater(8)`）使用相同的"状态包触发 → 客户端镜像状态 → tick 推进 → 渲染器读取"模式。

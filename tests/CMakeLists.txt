@@ -898,6 +898,8 @@ add_executable(mc_tests
     client/renderer/entity/ArmorLayerVisibilityTest.cpp
     client/renderer/entity/LlamaModelTest.cpp
     client/renderer/entity/LlamaRendererTest.cpp
+    # RabbitModel 兔子模型跳跃角度测试（setJumpRotation 对 thigh/foot/arm 旋转角度的影响）
+    client/renderer/entity/RabbitModelTest.cpp
     # Fullbright 渲染器 isFullbright() 测试
     client/renderer/entity/FullbrightRendererTest.cpp
     # WitchModel 女巫模型测试
@@ -1988,6 +1990,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/PigModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/SheepModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
+    # RabbitModel 兔子模型跳跃角度测试依赖
+    ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/RabbitModel.cpp
         # VillagerModel + WitchModel 女巫模型测试依赖
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/VillagerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/WitchModel.cpp

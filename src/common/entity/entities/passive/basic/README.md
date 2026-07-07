@@ -91,3 +91,11 @@ AgeableEntity (父类)
 8. **AnimalEntity::registerGoals() 是空的**：子类必须自己注册完整的 AI 目标列表，不能依赖基类注册。
 
 9. **兔子类型与群系**：`setRandomRabbitType()` 根据生成位置的群系决定类型——雪地群系（白色/白色斑点）、沙漠群系（金色）、其他群系（棕色/椒盐色/黑色）。`getDefaultRabbitTypeForBiome()` 可用于繁殖时获取群系类型。
+
+10. **兔子跳跃动画状态机**（参考 MC 1.21.11 `Rabbit.java`）：
+    - **字段**：`m_rabbitJumpTicks`（当前跳跃已持续 tick）、`m_rabbitJumpDuration`（总持续 tick，0=未在跳跃中）。**与 `LivingEntity::m_jumpTicks`（跳跃冷却）语义不同，独立存储**。
+    - **启动**：`setJumping(true)` 调用 `startJumping()`，后者设置 `m_rabbitJumpDuration=10`、`m_rabbitJumpTicks=0` 并广播 `EntityStatusPacket::RabbitJump(1)` 状态码。`startJumping()` 幂等：动画进行中（`m_rabbitJumpDuration != 0`）时跳过重置，避免 `JumpController::tick()` 每 tick 调用 `setJumping(true)` 导致反复归零。
+    - **推进**：`aiStep()` 重写先调用 `LivingEntity::aiStep()`，再推进 `m_rabbitJumpTicks`；达到 `m_rabbitJumpDuration` 时归零并调用 `LivingEntity::setJumping(false)`（直接调基类，避免再次播音效/广播）。
+    - **完成度**：`getJumpCompletion(partialTick) = m_rabbitJumpDuration == 0 ? 0 : (m_rabbitJumpTicks + partialTick) / m_rabbitJumpDuration`，供客户端计算 `jumpRotation = sin(completion * PI)`。
+    - **广播**：项目架构下 `LivingEntity::jump()` 非虚函数无法重写（MC 在 `jumpFromGround()` 中广播），故在 `startJumping()` 中即广播，略早一个 tick，但客户端位置插值会平滑过渡。
+    - **未实现的 MC 原版特性**：`RabbitJumpControl`（兔子专属跳跃控制器，含 `canJump`/`setCanJump` 状态机）、`RabbitMoveControl`（移动控制器，控制跳跃速度）、`jumpDelayTicks`（着陆延迟，慢速 10 tick / 快速 1 tick）、`wasOnGround`（着陆检测）、`RaidGardenGoal`（偷胡萝卜）、`moreCarrotTicks`（偷食冷却）尚未实现。当前由通用 `JumpController` + `LivingEntity::aiStep()` 自动跳跃 + `m_jumpTicks` 冷却提供最小可行行为。详见 `RabbitEntity.cpp` 顶部 TODO 注释。

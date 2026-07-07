@@ -90,3 +90,25 @@ LivingRenderer::getLimbSwing() 中，幼体的动画速度会自动乘以 3.0。
 ### PipelineMeshProvider 用于特殊几何体
 
 Arrow、Boat、Minecart、FishingBobber 等实体的自定义几何体通过 PipelineMeshProvider 接口提供，不是通过 ModelFactory。如果实体不支持 ModelFactory 动画模型，需要实现此接口并重写 `getPipelineMeshProvider()` 返回 this。
+
+### 实体特定动画状态注入
+
+`_createModelForEntity` 中按 `normalizedId` 分发，为特定实体模型注入 AnimationContext 之外的实体特定状态：
+
+| 实体 | 分支 | 读取字段 | 调用方法 | 用途 |
+|------|------|----------|----------|------|
+| 狼 (`wolf`) | wolf | `wolfShakeAnim`/`wolfInterestedAngle`/`wolfIsWet`/`isSitting` | `WolfModel::setAnimState` + `setLivingAnimations` + `setTint` | 甩水动画、乞求食物、湿润着色、坐下姿态 |
+| 兔子 (`rabbit`) | rabbit | `rabbitJumpCompletion(partialTick)` | `RabbitModel::setJumpRotation(sin(completion * PI))` + `setLivingAnimations` | 跳跃动画（thigh/foot/arm 旋转） |
+| 羊 (`sheep`) | sheep | `eatAnimationTimer` | `SheepModel::setEatAnimationTimer` + `setLivingAnimations` | 吃草低头动画 |
+| 北极熊 (`polar_bear`) | polar_bear | `standingProgress` | `PolarBearModel::setStandingProgress` | 后腿站立动画 |
+| 疣猪兽 (`hoglin`/`zoglin`) | boar | `attackAnimationTicks` | `BoarModel::setAttackAnimationTicks` | 甩头攻击动画 |
+| 河豚 (`pufferfish`) | pufferfish | `puffState` | 替换为对应大小的模型 | 膨胀状态 |
+
+**兔子跳跃分支数据流**（参考 MC 1.21.11 `Rabbit.getJumpCompletion` + `RabbitModel.setupAnim`）：
+1. 服务端 `RabbitEntity::startJumping()` 广播 `EntityStatusPacket::RabbitJump(1)`
+2. 客户端 `onEntityStatus` 调用 `ClientEntity::setRabbitJumpStart()`（`m_rabbitJumpDuration=10`）
+3. `ClientEntity::tick()` 中 `tickRabbitJump()` 推进 `m_rabbitJumpTicks`
+4. 此处读取 `entity.rabbitJumpCompletion(partialTick)` 计算 `jumpRotation = sin(completion * PI)`
+5. 调用 `RabbitModel::setJumpRotation(jumpRotation)`，`setAngles` 中据此计算 thigh/foot/arm 旋转角度
+
+新增实体动画时，优先复用此"状态包触发 → 客户端镜像字段 → tick 推进 → 渲染器读取"模式，与狼甩水、兔子跳跃保持一致。

@@ -62,6 +62,16 @@ animal/
 
 5. ** HorseModel 变体**：同一模型支持马、驴、骡、骷髅马、僵尸马，通过纹理区分。
 
+6. **RabbitModel 跳跃动画**（参考 MC 1.21.11 `RabbitModel.setupAnim`）：
+   - 跳跃动画通过 `setJumpRotation(f32)` 从外部设置 `m_jumpRotation`（范围 [0, 1]，由 `sin(jumpCompletion * PI)` 计算）。
+   - `setAngles` 中根据 `m_jumpRotation` 计算三个旋转角度：
+     - `thighAngle = toRadians(jumpRotation * 50 - 21)`（大腿）
+     - `footAngle = toRadians(jumpRotation * 50)`（后脚）
+     - `armAngle = toRadians(jumpRotation * -40 - 11)`（前腿）
+   - 这些角度会叠加到基础旋转角度上（`baseThighAngle = -0.34906584`，`baseArmAngle = -0.17453292`）。
+   - `setLivingAnimations` 本身不做任何工作——`jumpRotation` 由 `EntityRendererManager::_createModelForEntity` 在调用 `setAngles` 之前通过 `setJumpRotation` 设置。完整数据流见 `core/EntityRendererManager.cpp` 的兔子分支。
+   - `jumpRotation = 0` 时（未跳跃），thigh/foot/arm 角度均为基础值，兔子保持站立姿态；`jumpRotation = 1` 时（跳跃中点），腿部达到最大旋转，呈跳跃姿态。
+
 ## 命名空间
 
 ```cpp
