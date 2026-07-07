@@ -76,6 +76,13 @@ public:
     LootTable(LootTable&&) noexcept = default;
     LootTable& operator=(LootTable&&) noexcept = default;
 
+    /**
+     * @brief 创建副本
+     *
+     * 深拷贝所有池、函数及标识信息。用于 TableLootEntry 深拷贝内联表等场景。
+     */
+    [[nodiscard]] std::unique_ptr<LootTable> clone() const;
+
     // ========== 池管理 ==========
 
     /**

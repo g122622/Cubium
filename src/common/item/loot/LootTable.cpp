@@ -177,6 +177,22 @@ Result<std::unique_ptr<LootTable>> LootTable::fromJson(const std::string& json)
     return LootSerializers::parseLootTable(json);
 }
 
+std::unique_ptr<LootTable> LootTable::clone() const
+{
+    auto table = std::make_unique<LootTable>();
+    table->setId(m_id);
+    table->setParameterSet(m_paramSet);
+
+    for (const auto& pool : m_pools) {
+        table->addPool(pool->clone());
+    }
+    for (const auto& func : m_functions) {
+        table->addFunction(func->clone());
+    }
+
+    return table;
+}
+
 std::string LootTable::toJson() const
 {
     return LootSerializers::toJsonString(*this, 2);

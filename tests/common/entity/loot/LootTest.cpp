@@ -268,9 +268,9 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
             {
               "rolls": 1,
               "entries": [
-                { "type": "minecraft:loot_table", "name": "minecraft:gameplay/fishing/junk", "weight": 10, "quality": -2 },
-                { "type": "minecraft:loot_table", "name": "minecraft:gameplay/fishing/treasure", "weight": 5, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
-                { "type": "minecraft:loot_table", "name": "minecraft:gameplay/fishing/fish", "weight": 85, "quality": -1 }
+                { "type": "minecraft:loot_table", "value": "minecraft:gameplay/fishing/junk", "weight": 10, "quality": -2 },
+                { "type": "minecraft:loot_table", "value": "minecraft:gameplay/fishing/treasure", "weight": 5, "quality": 2, "conditions": [{ "condition": "minecraft:fishing_hook_in_open_water" }] },
+                { "type": "minecraft:loot_table", "value": "minecraft:gameplay/fishing/fish", "weight": 85, "quality": -1 }
               ]
             }
           ]
