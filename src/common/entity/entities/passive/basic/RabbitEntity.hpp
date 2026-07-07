@@ -133,6 +133,10 @@ public:
 
     /**
      * @brief 设置跳跃状态
+     *
+     * 重写 LivingEntity::setJumping：
+     * - jumping=true 时播放跳跃音效（参考 MC 1.21.11 Rabbit.setJumping）
+     * - jumping=false 时不做额外处理（跳跃动画的结束由 aiStep() 中 jumpTicks 推进逻辑负责）
      */
     void setJumping(bool jumping) override;
 
@@ -146,18 +150,50 @@ public:
      */
     void playAttackSound(LivingEntity& target) override;
 
-    // ========== 移动 ==========
+    // ========== 跳跃动画状态机 ==========
 
     /**
-     * @brief 获取跳跃力量
-     * 兔子有更强的跳跃能力
+     * @brief 开始一次跳跃动画
+     *
+     * 对应 MC 1.21.11 Rabbit.startJumping()：
+     *   setJumping(true); jumpDuration = 10; jumpTicks = 0;
+     *
+     * 由 RabbitJumpControl.tick() 在希望跳跃时调用（项目当前由 MovementControl::tick()
+     * 触发的自动跳跃路径间接调用 setJumping(true) 启动）。
      */
-    [[nodiscard]] f32 getJumpPower() const { return m_jumpPower; }
+    void startJumping();
 
     /**
-     * @brief 设置跳跃力量
+     * @brief 获取跳跃动画完成度（0.0 ~ 1.0+）
+     *
+     * 对应 MC 1.21.11 Rabbit.getJumpCompletion(float partialTick)：
+     *   jumpDuration == 0 ? 0.0F : (jumpTicks + partialTick) / jumpDuration
+     *
+     * 用于客户端模型计算 jumpRotation = sin(completion * PI)。
+     *
+     * @param partialTick 渲染部分 tick（0.0 ~ 1.0）
+     * @return 跳跃动画完成度；若未在跳跃中（jumpDuration==0）返回 0
      */
-    void setJumpPower(f32 power) { m_jumpPower = power; }
+    [[nodiscard]] f32 getJumpCompletion(f32 partialTick) const;
+
+    /**
+     * @brief 当前跳跃动画的 tick 进度（服务端权威值）
+     *
+     * 对应 MC 1.21.11 Rabbit.jumpTicks 字段。在 aiStep() 中每 tick 递增，
+     * 直到等于 jumpDuration 后归零并结束本次跳跃。
+     *
+     * 注意：与 LivingEntity::m_jumpTicks（跳跃冷却，不同语义）不同，
+     * 此处使用独立的 m_rabbitJumpTicks 字段以避免语义冲突。
+     */
+    [[nodiscard]] i32 rabbitJumpTicks() const { return m_rabbitJumpTicks; }
+
+    /**
+     * @brief 当前跳跃动画的总持续 tick 数
+     *
+     * 对应 MC 1.21.11 Rabbit.jumpDuration 字段。startJumping() 时设为 10，
+     * 跳跃结束后归零。客户端收到 RabbitJump 状态时也设为 10。
+     */
+    [[nodiscard]] i32 rabbitJumpDuration() const { return m_rabbitJumpDuration; }
 
     // ========== 属性 ==========
 
@@ -165,6 +201,18 @@ public:
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.35f; }
+
+    /**
+     * @brief AI 步进重写
+     *
+     * 对应 MC 1.21.11 Rabbit.aiStep()：
+     *   super.aiStep();
+     *   if (jumpTicks != jumpDuration) jumpTicks++;
+     *   else if (jumpDuration != 0) { jumpTicks = 0; jumpDuration = 0; setJumping(false); }
+     *
+     * 推进跳跃动画计时器；动画结束时清除跳跃状态。
+     */
+    void aiStep() override;
 
 protected:
     // ========== AI 目标注册 ==========
@@ -182,15 +230,10 @@ private:
     // 皮肤类型
     RabbitType m_rabbitType = RabbitType::Brown;
 
-    // 跳跃力量
-    f32 m_jumpPower = 0.5f;
-
-    // 跳跃计时器
-    i32 m_jumpTimer = 0;
-
-    // 跳跃方向
-    f32 m_jumpDirectionX = 0.0f;
-    f32 m_jumpDirectionZ = 0.0f;
+    // 跳跃动画状态（对应 MC 1.21.11 Rabbit 的 jumpTicks / jumpDuration）
+    // 注意：不与 LivingEntity::m_jumpTicks（跳跃冷却）复用，语义不同
+    i32 m_rabbitJumpTicks = 0;    // 当前跳跃已持续的 tick
+    i32 m_rabbitJumpDuration = 0; // 当前跳跃总持续 tick；为 0 表示未在跳跃中
 };
 
 } // namespace mc

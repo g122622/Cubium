@@ -28,6 +28,8 @@
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -40,6 +42,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
+#include <cmath>
 #include <memory>
 #include <unordered_map>
 
@@ -84,6 +87,24 @@ public:
 
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
 
+    // 追踪 broadcastEntityStatus 调用（用于验证 RabbitJump 状态码广播）
+    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId lastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 lastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 broadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking()
+    {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
+
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -118,6 +139,11 @@ public:
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+
+    // 广播追踪
+    EntityId m_lastBroadcastEntityId = EntityId(0);
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
 };
 
 class RabbitEntityTest : public ::testing::Test {
@@ -587,6 +613,251 @@ TEST(PhysicsConstantsTest, SlipperinessIceValues)
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_BLUE_ICE, 0.989f);
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_SLIME, 0.8f);
     EXPECT_FLOAT_EQ(physics::SLIPPERINESS_DEFAULT, 0.6f);
+}
+
+// ========== 兔子跳跃动画状态机测试 ==========
+// 对应 MC 1.21.11 Rabbit 的 jumpTicks/jumpDuration/startJumping/getJumpCompletion/aiStep 逻辑
+
+TEST_F(RabbitEntityTest, Jump_DefaultState_NoJumpInProgress)
+{
+    // 默认状态：未在跳跃中
+    RabbitEntity rabbit(EntityId(1));
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 0);
+    EXPECT_FALSE(rabbit.isJumping());
+    // getJumpCompletion 在 jumpDuration==0 时返回 0
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.5f), 0.0f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(1.0f), 0.0f);
+}
+
+TEST_F(RabbitEntityTest, Jump_SetJumpingTrue_StartsJumpAnimation)
+{
+    // setJumping(true) 应启动跳跃动画：jumpDuration=10, jumpTicks=0, isJumping=true
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    rabbit.setJumping(true);
+
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+    EXPECT_TRUE(rabbit.isJumping());
+}
+
+TEST_F(RabbitEntityTest, Jump_SetJumpingTrue_BroadcastsRabbitJumpStatus)
+{
+    // setJumping(true) 应广播 RabbitJump(1) 状态码到客户端
+    // 对应 MC 1.21.11 Rabbit.jumpFromGround() 中 broadcastEntityEvent(this, (byte)1)
+    RabbitEntity rabbit(EntityId(42));
+    rabbit.setWorld(&m_world);
+    m_world.resetBroadcastTracking();
+
+    rabbit.setJumping(true);
+
+    EXPECT_EQ(m_world.broadcastCount(), 1);
+    EXPECT_EQ(m_world.lastBroadcastEntityId(), EntityId(42));
+    EXPECT_EQ(m_world.lastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump));
+}
+
+TEST_F(RabbitEntityTest, Jump_StartJumping_IdempotentWhileJumping)
+{
+    // 跳跃动画进行中再次 startJumping() 不应重置状态或重复广播
+    // 项目架构下 JumpController::tick() 每 tick 调用 setJumping(true)，必须幂等
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    rabbit.setJumping(true); // 启动跳跃
+    EXPECT_EQ(m_world.broadcastCount(), 1);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+
+    m_world.resetBroadcastTracking();
+    rabbit.setJumping(true); // 再次启动 - 应被忽略
+
+    EXPECT_EQ(m_world.broadcastCount(), 0); // 不应重复广播
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0); // 不应重置
+}
+
+TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_Formula)
+{
+    // 对应 MC 1.21.11 Rabbit.getJumpCompletion(partialTick):
+    //   jumpDuration == 0 ? 0 : (jumpTicks + partialTick) / jumpDuration
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true); // jumpDuration=10, jumpTicks=0
+
+    // jumpTicks=0: completion = (0 + partialTick) / 10
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.5f), 0.05f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(1.0f), 0.1f);
+
+    // 推进 5 tick: jumpTicks=5
+    for (i32 i = 0; i < 5; ++i) {
+        rabbit.aiStep();
+    }
+    // 注意：aiStep 推进 jumpTicks，每 tick +1
+    // 第 1 次 aiStep: jumpTicks 0→1
+    // 第 5 次 aiStep: jumpTicks 4→5
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 5);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.0f), 0.5f);  // 5/10
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.5f), 0.55f); // 5.5/10
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(1.0f), 0.6f);  // 6/10
+}
+
+TEST_F(RabbitEntityTest, Jump_AiStep_AdvancesJumpTicks)
+{
+    // aiStep() 每 tick 推进 jumpTicks，对应 MC Rabbit.aiStep() 的 jumpTicks++
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true);
+
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+
+    rabbit.aiStep(); // jumpTicks 0→1
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 1);
+
+    rabbit.aiStep(); // jumpTicks 1→2
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 2);
+}
+
+TEST_F(RabbitEntityTest, Jump_AiStep_ResetsAtJumpDuration)
+{
+    // 当 jumpTicks 达到 jumpDuration 时，aiStep 应归零并清除跳跃状态
+    // 对应 MC Rabbit.aiStep(): else if (jumpDuration != 0) { jumpTicks=0; jumpDuration=0; setJumping(false); }
+    //
+    // 时序分析（jumpDuration=10）：
+    //   setJumping(true) → jumpTicks=0
+    //   aiStep #1: jumpTicks 0→1
+    //   aiStep #2: jumpTicks 1→2
+    //   ...
+    //   aiStep #10: jumpTicks 9→10 (now == jumpDuration, 但本次仍走 ++ 分支)
+    //   aiStep #11: jumpTicks==jumpDuration → 触发归零分支
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true); // jumpDuration=10
+
+    // 推进 10 tick 使 jumpTicks 达到 jumpDuration
+    for (i32 i = 0; i < 10; ++i) {
+        rabbit.aiStep();
+    }
+    // 第 10 次 aiStep: jumpTicks 9→10，此时 jumpTicks == jumpDuration，但本次仍走 ++ 分支
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_TRUE(rabbit.isJumping());
+
+    // 第 11 tick: jumpTicks == jumpDuration → 触发归零
+    rabbit.aiStep();
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 0);
+    EXPECT_FALSE(rabbit.isJumping());
+}
+
+TEST_F(RabbitEntityTest, Jump_AiStep_ExactTickBoundary)
+{
+    // 验证跳跃动画持续 10 tick 后，在第 11 tick 结束
+    // 跳跃动画的有效渲染区间为 jumpTicks ∈ [0, 10]（含端点）
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true);
+
+    // 推进 10 tick: jumpTicks 应为 10，仍在跳跃中
+    for (i32 i = 0; i < 10; ++i) {
+        rabbit.aiStep();
+    }
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_TRUE(rabbit.isJumping());
+
+    // 第 11 tick: jumpTicks == jumpDuration → 触发归零
+    rabbit.aiStep();
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 0);
+    EXPECT_FALSE(rabbit.isJumping());
+}
+
+TEST_F(RabbitEntityTest, Jump_CompletionReachesOne_BeforeReset)
+{
+    // 验证在跳跃动画最后一 tick，getJumpCompletion(1.0) 等于 1.0
+    // 第 9 tick 后: jumpTicks=9, completion(1.0) = (9+1)/10 = 1.0
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true);
+
+    for (i32 i = 0; i < 9; ++i) {
+        rabbit.aiStep();
+    }
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 9);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(1.0f), 1.0f); // (9+1)/10
+}
+
+TEST_F(RabbitEntityTest, Jump_SetJumpingFalse_DoesNotAffectAnimation)
+{
+    // setJumping(false) 不应直接终止跳跃动画（动画由 aiStep 推进逻辑负责）
+    // 这与 MC 行为一致：setJumping(false) 只设置 jumping 标志
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true); // 启动: jumpDuration=10
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+
+    rabbit.setJumping(false);                   // 不影响 jumpDuration
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10); // 动画仍在进行
+    EXPECT_FALSE(rabbit.isJumping());           // 但 m_isJumping 已为 false
+}
+
+TEST_F(RabbitEntityTest, Jump_CanRestartAfterCompletion)
+{
+    // 跳跃动画完成后，可以启动新的跳跃
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+
+    // 第一次跳跃
+    rabbit.setJumping(true);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_EQ(m_world.broadcastCount(), 1);
+
+    // 推进到完成（11 tick: 10 tick 推进 + 1 tick 归零）
+    for (i32 i = 0; i < 11; ++i) {
+        rabbit.aiStep();
+    }
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 0);
+    EXPECT_FALSE(rabbit.isJumping());
+
+    // 第二次跳跃
+    m_world.resetBroadcastTracking();
+    rabbit.setJumping(true);
+    EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
+    EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
+    EXPECT_TRUE(rabbit.isJumping());
+    EXPECT_EQ(m_world.broadcastCount(), 1); // 再次广播
+}
+
+TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_PartialTickRange)
+{
+    // 验证 partialTick 在 [0, 1] 范围内的插值
+    RabbitEntity rabbit(EntityId(1));
+    rabbit.setWorld(&m_world);
+    rabbit.setJumping(true); // jumpDuration=10, jumpTicks=0
+
+    // 推进 3 tick: jumpTicks=3
+    for (i32 i = 0; i < 3; ++i) {
+        rabbit.aiStep();
+    }
+
+    // completion = (3 + partialTick) / 10
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.0f), 0.3f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.25f), 0.325f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.5f), 0.35f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(0.75f), 0.375f);
+    EXPECT_FLOAT_EQ(rabbit.getJumpCompletion(1.0f), 0.4f);
+}
+
+// ========== RabbitJump 状态码常量测试 ==========
+
+TEST_F(RabbitEntityTest, Jump_RabbitJumpStatusConstant_IsOne)
+{
+    // 验证 RabbitJump 状态码 = 1（对应 MC byte 1）
+    EXPECT_EQ(static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump), 1);
 }
 
 } // namespace

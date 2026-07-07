@@ -238,8 +238,15 @@ void RabbitModel::setAngles(
 
 void RabbitModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
 {
-    // TODO: jumpRotation 需要从兔子实体获取跳跃进度来计算，当前未实现
-    // 应通过 setJumpRotation() 从外部设置
+    // 跳跃动画的 jumpRotation 由 EntityRendererManager::_createModelForEntity 通过
+    // setJumpRotation(sin(jumpCompletion * PI)) 在外部设置，本方法无需处理。
+    // 完整数据流：
+    //   服务端 RabbitEntity::startJumping() 广播 RabbitJump(1) 状态码
+    //   → 客户端 ClientApplicationNetwork.onEntityStatus 调用 ClientEntity::setRabbitJumpStart()
+    //   → ClientEntity::tick() 中 tickRabbitJump() 推进 m_rabbitJumpTicks
+    //   → EntityRendererManager 读取 rabbitJumpCompletion(partialTick) 计算 jumpRotation
+    //   → setJumpRotation(sin(jumpCompletion * PI))
+    //   → setAngles 中根据 m_jumpRotation 计算 thigh/foot/arm 旋转角度
 }
 
 void RabbitModel::setJumpRotation(f32 jumpRotation)

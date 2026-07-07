@@ -1018,6 +1018,68 @@ public:
      */
     void setWolfCollarColor(DyeColor color) { m_wolfCollarColor = color; }
 
+    // ========== 兔子跳跃动画状态 ==========
+
+    /**
+     * @brief 启动兔子跳跃动画
+     *
+     * 收到 RabbitJump(1) 状态包时调用，对应 MC 1.21.11 Rabbit.handleEntityEvent(byte 1)：
+     *   jumpDuration = 10; jumpTicks = 0;
+     *
+     * 数据流：ClientApplicationNetwork.onEntityStatus(RabbitJump)
+     * → setRabbitJumpStart() → ClientEntity::tick() 推进 jumpTicks
+     * → rabbitJumpCompletion(partialTick) → EntityRendererManager 计算 jumpRotation
+     * → RabbitModel::setJumpRotation → setAngles 中影响腿部旋转
+     */
+    void setRabbitJumpStart()
+    {
+        m_rabbitJumpDuration = 10;
+        m_rabbitJumpTicks = 0;
+    }
+
+    /**
+     * @brief 获取兔子跳跃动画完成度（0.0 ~ 1.0+）
+     *
+     * 对应 MC 1.21.11 Rabbit.getJumpCompletion(float partialTick)：
+     *   jumpDuration == 0 ? 0.0F : (jumpTicks + partialTick) / jumpDuration
+     *
+     * 用于渲染线程计算 jumpRotation = sin(completion * PI)。
+     *
+     * @param partialTick 渲染部分 tick（0.0 ~ 1.0）
+     * @return 跳跃动画完成度；若未在跳跃中（jumpDuration==0）返回 0
+     */
+    [[nodiscard]] f32 rabbitJumpCompletion(f32 partialTick) const
+    {
+        if (m_rabbitJumpDuration == 0) {
+            return 0.0f;
+        }
+        return (static_cast<f32>(m_rabbitJumpTicks) + partialTick) / static_cast<f32>(m_rabbitJumpDuration);
+    }
+
+    /**
+     * @brief 兔子是否正在跳跃动画中
+     */
+    [[nodiscard]] bool rabbitIsJumping() const { return m_rabbitJumpDuration != 0; }
+
+    /**
+     * @brief 推进兔子跳跃动画计时器（每 tick 调用一次）
+     *
+     * 对应 MC 1.21.11 Rabbit.aiStep() 中的跳跃推进逻辑：
+     *   if (jumpTicks != jumpDuration) jumpTicks++;
+     *   else if (jumpDuration != 0) { jumpTicks = 0; jumpDuration = 0; }
+     *
+     * 由 ClientEntity::tick() 调用。
+     */
+    void tickRabbitJump()
+    {
+        if (m_rabbitJumpTicks != m_rabbitJumpDuration) {
+            ++m_rabbitJumpTicks;
+        } else if (m_rabbitJumpDuration != 0) {
+            m_rabbitJumpTicks = 0;
+            m_rabbitJumpDuration = 0;
+        }
+    }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -1157,6 +1219,11 @@ private:
     f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
     f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）
     f32 m_wolfInterestedAngleO = 0.0f; ///< 上一 tick 的乞求角度（用于插值）
+
+    // 兔子跳跃动画状态（对应 MC 1.21.11 Rabbit.jumpTicks / jumpDuration）
+    // 收到 RabbitJump(1) 状态包时启动；由 tickRabbitJump() 在 ClientEntity::tick() 中推进
+    i32 m_rabbitJumpTicks = 0;    ///< 当前跳跃已持续的 tick
+    i32 m_rabbitJumpDuration = 0; ///< 当前跳跃总持续 tick；为 0 表示未在跳跃中
 
     // 追踪位置系统（用于披风摆动）
     f64 m_chasingPosX = 0.0;

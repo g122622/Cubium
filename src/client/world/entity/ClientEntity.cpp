@@ -505,6 +505,12 @@ void ClientEntity::tick()
     } else {
         m_wolfInterestedAngle += (0.0f - m_wolfInterestedAngle) * 0.4f;
     }
+
+    // 更新兔子跳跃动画计时器（对应 MC 1.21.11 Rabbit.aiStep() 中的跳跃推进逻辑）
+    // 收到 RabbitJump(1) 状态包时启动 jumpDuration=10，每 tick 递增 jumpTicks，
+    // 达到 jumpDuration 后归零并结束本次跳跃。
+    // 渲染时 rabbitJumpCompletion(partialTick) 提供 [0, 1] 完成度供 RabbitModel 计算 jumpRotation。
+    tickRabbitJump();
 }
 
 void ClientEntity::updateStandingAnimation()

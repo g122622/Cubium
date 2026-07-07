@@ -459,6 +459,10 @@ public:
     // 状态类型
     // 数值与 MC 原版 EntityStatus byte 对应
     enum class Status : u8 {
+        // 兔子跳跃（MC 1.21.11 Rabbit.jumpFromGround() 中 broadcastEntityState(this, (byte)1)）
+        // 客户端收到后启动 jumpDuration 计时器，用于 RabbitModel 计算 jumpRotation
+        RabbitJump = 1,
+
         // 通用状态
         Hurt = 2,            // 受击反馈（红色闪烁）
         Death = 3,           // 死亡效果

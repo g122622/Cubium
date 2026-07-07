@@ -26,6 +26,7 @@
 #include "client/renderer/trident/entity/effect/fire/FireEffect.hpp"
 #include "client/renderer/trident/entity/model/ModelRegistration.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
+#include "client/renderer/trident/entity/model/animal/RabbitModel.hpp"
 #include "client/renderer/trident/entity/model/animal/SheepModel.hpp"
 #include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
@@ -1032,6 +1033,27 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
                 wolfModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
                 // 设置湿润着色（对应 MC WolfRenderer 中的 getWetShade tint）
                 wolfModel->setTint(context.wolfWetShade, context.wolfWetShade, context.wolfWetShade);
+            }
+        }
+
+        // 兔子跳跃动画（对应 MC 1.21.11 RabbitModel.setupAnim + Rabbit.getJumpCompletion）
+        // 数据流：服务端 RabbitEntity::startJumping() 广播 RabbitJump(1)
+        //   → 客户端 ClientEntity::setRabbitJumpStart() (jumpDuration=10)
+        //   → ClientEntity::tick() 中 tickRabbitJump() 推进 jumpTicks
+        //   → 此处读取 rabbitJumpCompletion(partialTick) 计算 jumpRotation
+        //   → RabbitModel::setJumpRotation(sin(completion * PI))
+        //   → setAngles 中根据 m_jumpRotation 计算 thigh/foot/arm 旋转角度
+        if (normalizedId == "rabbit" || normalizedId == "minecraft:rabbit") {
+            auto* rabbitModel = dynamic_cast<model::animal::RabbitModel*>(model.get());
+            if (rabbitModel != nullptr) {
+                // MC 1.21.11 RabbitRenderer.getWhiteOverlayPower + RabbitModel.setupAnim:
+                //   this.jumpRotation = Mth.sin(rabbit.getJumpCompletion(partialTick) * PI);
+                const f32 jumpCompletion = entity.rabbitJumpCompletion(static_cast<f32>(context.partialTicks));
+                const f32 jumpRotation = std::sin(jumpCompletion * static_cast<f32>(math::PI));
+                rabbitModel->setJumpRotation(jumpRotation);
+                // setLivingAnimations 在 RabbitModel 中已不需要做额外工作
+                // （jumpRotation 已通过 setJumpRotation 设置，setAngles 中会使用）
+                rabbitModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
             }
         }
 

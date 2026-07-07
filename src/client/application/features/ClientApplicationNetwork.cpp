@@ -1007,6 +1007,19 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
+            case static_cast<u8>(EntityStatusPacket::Status::RabbitJump): {
+                // 状态 1: 兔子开始跳跃动画
+                // 对应 MC 1.21.11 Rabbit.jumpFromGround() 中 broadcastEntityState(this, (byte)1)
+                // 客户端收到后启动 jumpDuration=10 计时器，用于 RabbitModel 计算 jumpRotation
+                // （参考 MC Rabbit.handleEntityEvent(byte 1)：jumpDuration=10; jumpTicks=0;）
+                if (entity != nullptr) {
+                    const std::string& typeId = entity->typeId();
+                    if (typeId == "minecraft:rabbit" || typeId == "rabbit") {
+                        entity->setRabbitJumpStart();
+                    }
+                }
+                break;
+            }
             case static_cast<u8>(EntityStatusPacket::Status::OcelotTrustSucceeded): {
                 // 状态 41: 豹猫信任成功 - 生成 7 个爱心粒子
                 // MC 原版: Ocelot.spawnTrustingParticles(true) — 与 TamableAnimal.spawnTamingParticles 逻辑相同

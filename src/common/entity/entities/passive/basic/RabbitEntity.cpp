@@ -42,6 +42,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeIds.hpp"
@@ -194,6 +195,12 @@ void RabbitEntity::setJumping(bool jumping)
         return;
     }
 
+    // 对应 MC 1.21.11 Rabbit.setJumping(true)：开始一次跳跃动画并播放音效
+    // 项目当前的跳跃触发路径（LivingEntity::aiStep() -> jump()）由 MovementControl
+    // 自动驱动，故在此处同时启动跳跃动画状态机并广播 RabbitJump 状态码，
+    // 让客户端能够同步启动 jumpDuration 计时器以计算 jumpRotation。
+    startJumping();
+
     auto soundEvent = makeSoundEventId("jump");
     if (!soundEvent.has_value()) {
         return;
@@ -201,6 +208,63 @@ void RabbitEntity::setJumping(bool jumping)
 
     math::Random& random = getRandom();
     playSound(*soundEvent, getSoundVolume(), ((random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f) * 0.8f);
+}
+
+void RabbitEntity::startJumping()
+{
+    // 对应 MC 1.21.11 Rabbit.startJumping()：
+    //   setJumping(true); jumpDuration = 10; jumpTicks = 0;
+    //
+    // 幂等保护：项目架构下 JumpController::tick() 每 tick 都会调用 setJumping(true)，
+    // 而跳跃动画状态机由本方法启动后应在 aiStep() 中独立推进直到结束。
+    // 若动画已在进行中（m_rabbitJumpDuration != 0），则跳过重置，避免反复归零导致
+    // 动画永远无法推进。这也避免向客户端重复广播 RabbitJump 状态码。
+    if (m_rabbitJumpDuration != 0) {
+        return;
+    }
+
+    m_rabbitJumpDuration = 10;
+    m_rabbitJumpTicks = 0;
+
+    // 对应 MC 1.21.11 Rabbit.jumpFromGround() 中的 broadcastEntityEvent(this, (byte)1)
+    // 项目架构下 LivingEntity::jump() 非虚函数无法重写，故在动画启动时即广播，
+    // 让客户端同步启动 jumpDuration 计时器以计算 jumpRotation。
+    // 注意：MC 中广播发生在 jumpFromGround() 内（物理跳跃时刻），此处略早一个 tick，
+    // 但客户端位置插值会平滑过渡，视觉上无差异。
+    if (auto* worldPtr = world(); worldPtr != nullptr) {
+        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump));
+    }
+}
+
+f32 RabbitEntity::getJumpCompletion(f32 partialTick) const
+{
+    // 对应 MC 1.21.11 Rabbit.getJumpCompletion(float)：
+    //   jumpDuration == 0 ? 0.0F : (jumpTicks + partialTick) / jumpDuration
+    if (m_rabbitJumpDuration == 0) {
+        return 0.0f;
+    }
+    return (static_cast<f32>(m_rabbitJumpTicks) + partialTick) / static_cast<f32>(m_rabbitJumpDuration);
+}
+
+void RabbitEntity::aiStep()
+{
+    // 先调用父类 aiStep()，处理物理移动、自动跳跃等基础逻辑
+    // 注意：父类 aiStep() 中可能在 m_isJumping && onGround && m_jumpTicks==0 时调用 jump()，
+    // jump() 仅设置垂直速度，不会触发跳跃动画状态机；动画由 setJumping(true) 路径启动。
+    LivingEntity::aiStep();
+
+    // 对应 MC 1.21.11 Rabbit.aiStep()：
+    //   if (this.jumpTicks != this.jumpDuration) { this.jumpTicks++; }
+    //   else if (this.jumpDuration != 0) {
+    //       this.jumpTicks = 0; this.jumpDuration = 0; this.setJumping(false);
+    //   }
+    if (m_rabbitJumpTicks != m_rabbitJumpDuration) {
+        ++m_rabbitJumpTicks;
+    } else if (m_rabbitJumpDuration != 0) {
+        m_rabbitJumpTicks = 0;
+        m_rabbitJumpDuration = 0;
+        LivingEntity::setJumping(false); // 直接调用基类避免再次播音效/广播
+    }
 }
 
 sound::SoundCategory RabbitEntity::getSoundCategory() const
