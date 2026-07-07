@@ -2422,6 +2422,31 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
 
     // 调用子类特有数据序列化
     addAdditionalSaveData(tag);
+
+    // Passengers (乘客列表)
+    // 参考: net.minecraft.world.entity.Entity.saveWithoutId → 若 isVehicle 则写 Passengers 列表。
+    // 每个 passenger 通过 saveAsPassenger 递归保存：写 "id" 后调用 saveWithoutId，
+    // 从而支持多层骑乘（Boat → Zombie → BabyZombie）的嵌套序列化。
+    // 注意：passenger 的 Pos 取 vehicle 的 x/z 与 passenger 的 y（MC Java 行为），
+    // 此处仅保存 passenger 的原始位置，反序列化时由 readFromNBT 直接读取。
+    if (hasPassengers() && m_world != nullptr) {
+        auto passengersList = std::make_unique<nbt::tags::compound_list_tag>();
+        for (EntityId passengerId : m_passengers) {
+            Entity* passenger = m_world->getEntity(passengerId);
+            if (passenger == nullptr) {
+                continue;
+            }
+
+            nbt::tags::compound_tag passengerTag;
+            passengerTag.put(nbt_keys::ID, passenger->getTypeId());
+            passenger->writeToNBT(passengerTag);
+            passengersList->value.push_back(std::move(passengerTag));
+        }
+
+        if (!passengersList->value.empty()) {
+            tag.value.emplace(nbt_keys::PASSENGERS, std::move(passengersList));
+        }
+    }
 }
 
 Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)

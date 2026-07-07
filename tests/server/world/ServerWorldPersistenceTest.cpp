@@ -123,7 +123,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     auto saveAllResult = world->saveAll();
     ASSERT_TRUE(saveAllResult.success()) << saveAllResult.error().message();
 
-    auto entityLoadResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0, world.get());
+    auto entityLoadResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0);
     ASSERT_TRUE(entityLoadResult.success()) << entityLoadResult.error().message();
     EXPECT_EQ(entityLoadResult.value().size(), 1u);
 
@@ -159,11 +159,11 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
 
     EXPECT_EQ(world->getEntity(entityId), nullptr);
 
-    auto oldChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0, world.get());
+    auto oldChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0);
     ASSERT_TRUE(oldChunkResult.success()) << oldChunkResult.error().message();
     EXPECT_TRUE(oldChunkResult.value().empty());
 
-    auto newChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(2, 0, 0, world.get());
+    auto newChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(2, 0, 0);
     ASSERT_TRUE(newChunkResult.success()) << newChunkResult.error().message();
     ASSERT_EQ(newChunkResult.value().size(), 1u);
     EXPECT_NEAR(newChunkResult.value()[0]->x(), 33.0f, 0.001f);

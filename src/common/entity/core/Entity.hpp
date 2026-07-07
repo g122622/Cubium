@@ -2073,6 +2073,41 @@ public:
     void detach();
 
     /**
+     * @brief 是否有待挂载的乘客 NBT
+     *
+     * 反序列化阶段（EntityDeserializer::deserialize）遇到 Passengers 标签时，
+     * 不会立即 spawn 乘客（因为主实体尚未 spawn，id 仍为 0，此时 spawn 乘客会导致
+     * 乘客的 m_vehicle 被记为 0，后续主实体 spawn 时骑乘关系失效）。
+     * 而是把 Passengers 列表暂存到 m_pendingPassengersNbt，等主实体被 spawnEntity
+     * 注入世界、拿到真实 id 后，由 EntityDeserializer::attachPassengers 递归处理。
+     *
+     * @return 是否有待挂载的乘客 NBT
+     */
+    [[nodiscard]] bool hasPendingPassengersNbt() const { return !m_pendingPassengersNbt.empty(); }
+
+    /**
+     * @brief 取走待挂载的乘客 NBT 列表
+     *
+     * 调用方（通常是 EntityDeserializer::attachPassengers）取走后，本实体的
+     * m_pendingPassengersNbt 会被清空。多次调用第二次起返回空列表。
+     *
+     * @return 待挂载的乘客 NBT 列表（按原 Passengers 列表顺序）
+     */
+    std::vector<nbt::tags::compound_tag> takePendingPassengersNbt() { return std::move(m_pendingPassengersNbt); }
+
+    /**
+     * @brief 追加一条待挂载乘客 NBT（内部方法）
+     *
+     * 仅由 EntityDeserializer::deserialize 调用，用于把 Passengers 列表中的
+     * 单个乘客 NBT 暂存到 m_pendingPassengersNbt。后续由 attachPassengers 取走处理。
+     * 下划线前缀表明这是内部 API，外部业务代码不应调用。
+     */
+    void _appendPendingPassengerNbt(const nbt::tags::compound_tag& passengerTag)
+    {
+        m_pendingPassengersNbt.push_back(passengerTag);
+    }
+
+    /**
      * @brief 获取第一个乘客
      * @return 第一个乘客的实体ID，如果没有则返回 INVALID_ENTITY_ID
      */
@@ -2579,6 +2614,11 @@ protected:
     std::vector<EntityId> m_passengers;     // 乘客列表
     EntityId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
     i32 m_rideCooldown = 0;                 // 骑乘冷却（tick），用于防止快速上下骑乘
+
+    // 反序列化阶段暂存的 Passengers NBT 列表。主实体被 spawnEntity 注入世界、拿到真实 id 后，
+    // 由 EntityDeserializer::attachPassengers 递归 spawn 乘客并 startRiding，保证乘客的 m_vehicle
+    // 指向主实体的真实 id。详见 hasPendingPassengersNbt() 注释。
+    std::vector<nbt::tags::compound_tag> m_pendingPassengersNbt;
 
     /**
      * @brief 设置车辆（内部方法）

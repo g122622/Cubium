@@ -40,6 +40,7 @@ src/common/entity/serialization/
 - `EntityDeserializer` 依赖 `Entity::readFromNBT()` 和 `Entity::writeToNBT()`
 - `EntityDeserializer` 依赖 `NbtHelper` 读取 NBT 数据
 - `EntityDeserializer` 依赖 `EntityNbtKeys` 获取键名常量
+- `EntityDeserializer::attachPassengers` 依赖 `IWorld`（spawn 乘客、解析乘客 id）
 - `EquipmentSlotNames` 依赖 `LivingEntity.hpp` 获取 `EquipmentSlot` 枚举定义
 - `EquipmentSlotNames` 被 `LivingEntity` 的 `addAdditionalSaveData`/`readAdditionalSaveData` 使用
 
@@ -89,40 +90,53 @@ src/common/entity/serialization/
 
 ```cpp
 // 错误：实体类型未注册
-auto result = EntityDeserializer::deserialize(tag, world);
+auto result = EntityDeserializer::deserialize(tag);
 // 如果 "id" 对应的类型未注册，返回 InvalidEntity 错误
 
 // 正确：确保实体类型已注册
 // 在游戏初始化时调用 VanillaEntities::registerAll()
 ```
 
-### 2. 乘客实体的所有权
+### 2. 乘客实体的挂载流程
 
 ```cpp
-// 注意：deserialize() 中加载的乘客实体
-// 仅建立了骑乘关系，不会自动添加到世界
-// 调用方需要将乘客实体添加到世界中
-
-auto result = EntityDeserializer::deserialize(tag, world);
+// 反序列化阶段：deserialize() 不再 spawn 乘客，仅把 Passengers NBT 暂存到主实体的
+// m_pendingPassengersNbt 字段。主实体此时尚未 spawn，id 仍为 0。
+auto result = EntityDeserializer::deserialize(tag);
 if (result.success()) {
     auto& entity = result.value();
-    // 主实体需要添加到世界
-    world.addEntity(std::move(entity));
+    // entity->hasPendingPassengersNbt() == true（若 NBT 含 Passengers）
 
-    // 乘客实体已在 deserialize 中建立骑乘关系
-    // 但调用方需要处理乘客的添加（如果需要）
+    // spawn 主实体：由 world 分配真实 id
+    EntityId vehicleId = world.spawnEntity(std::move(entity));
+
+    // 挂载乘客：attachPassengers 会递归 spawn 乘客并 startRiding
+    // 此时主实体已有真实 id，乘客的 m_vehicle 会被正确设置为 vehicleId
+    Entity* vehicle = world.getEntity(vehicleId);
+    auto attachResult = EntityDeserializer::attachPassengers(*vehicle, world);
 }
 ```
 
-**坑：主实体 id 与 INVALID_ENTITY_ID 冲突。** `INVALID_ENTITY_ID == 0`，而主实体在
-`deserialize` 返回时尚未 spawn 进世界，其 `id()` 仍为构造时的 0。乘客会先 spawn（由 world
-分配非零 id）再 `startRiding(*entity)`，因此乘客的 `m_vehicle` 被记为 `vehicle.id() == 0`。
+**设计要点：为什么不在 deserialize 阶段 spawn 乘客？**
 
-- `Entity::startRiding` 已针对此情形做了容错（step1 改用对象地址比较判自骑、step2 加
-  `isRiding()` 前置判重），故 deserialize 阶段能成功挂载乘客。
-- 但调用方在 spawn 主实体、由 world 分配真实 id 后，**必须同步刷新所有乘客的 `m_vehicle`
-  指向新 id**，否则骑乘关系会失效。当前调用方尚未做此刷新——这是一个已知的生产缺陷
-  （见 `EntityDeserializer.cpp` 中 `TODO(vehicle-id-lifecycle)`），留待后续修复。
+`INVALID_ENTITY_ID == 0`，而主实体在 `deserialize` 返回时尚未 spawn 进世界，
+其 `id()` 仍为构造时的 0。若此时 spawn 乘客并 `startRiding`，乘客的 `m_vehicle`
+会被记为 `vehicle.id() == 0`。后续主实体 spawn 时 id 改写为真实值，乘客的
+`m_vehicle` 仍为 0，骑乘关系失效。
+
+解决方案对齐 MC Java 的 `EntityType.loadPassengersRecursive` 模式：反序列化阶段
+仅构造实体对象树（暂存 Passengers NBT），主实体被 `spawnEntity` 注入世界、拿到
+真实 id 后，再由 `attachPassengers` 递归 spawn 乘客并 `startRiding`。这样保证
+每一层乘客的 `m_vehicle` 都指向上一层的真实 id。
+
+**调用方集成：** `ServerWorld::onChunkLoaded` 在 `spawnEntity` 之后自动调用
+`attachPassengers`，覆盖 Java 存档路径（`JavaColumnReader`）和 Native 存档路径
+（`EntityStorageManager`）。
+
+**序列化：** `Entity::writeToNBT` 在 `hasPassengers()` 时递归写入 Passengers
+列表（对齐 MC Java `saveWithoutId`）。`EntityStorageManager::saveEntity` 跳过
+`isRiding()` 的实体（乘客不单独落盘，作为载具 Passengers 标签的一部分被保存），
+对齐 MC Java `Entity.save` 中 `isPassenger` 返回 false 的行为。
 
 ### 3. 压缩格式
 
@@ -152,20 +166,23 @@ tag.put("uuid", "...");          // 应该是 "UUID"
 ### 5. 递归乘客加载
 
 ```cpp
-// deserialize() 会递归处理 Passengers 列表
-// 但只建立 Entity 之间的骑乘关系
-// 乘客实体的世界引用由传入的 world 参数设置
+// deserialize() 遇到 Passengers 标签时，不立即 spawn 乘客，
+// 而是把 Passengers NBT 暂存到主实体的 m_pendingPassengersNbt。
+// 调用方在 spawn 主实体后调用 attachPassengers 递归处理：
+//   - 对每个乘客 NBT 调用 deserialize 构造乘客实体
+//   - 调用 world.spawnEntity 把乘客注入世界（拿到真实 id）
+//   - 调用 passenger.startRiding(vehicle) 建立骑乘关系
+//   - 递归处理乘客自身的 m_pendingPassengersNbt（多层骑乘）
 
-// 如果乘客反序列化失败，会记录警告日志
-// 但不会中断主实体的返回
+// 如果乘客反序列化失败，attachPassengers 返回错误
+// 已挂载的乘客不会被回滚（与 MC Java 行为一致）
 ```
 
 ### 6. 空指针处理
 
 ```cpp
-// deserialize() 的 world 参数可以为 nullptr
-// 某些实体（如物品实体）可能不需要世界引用
-// 但大多数实体需要世界引用才能正常工作
+// deserialize() 不再接收 IWorld 参数
+// 乘客 spawn 延迟到 attachPassengers 阶段，由调用方传入 world
 
 // EntityType::create() 返回 std::unique_ptr<Entity>
 // 需要检查返回值是否为 nullptr

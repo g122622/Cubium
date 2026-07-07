@@ -45,25 +45,56 @@ namespace entity::serialization {
  * 2. 通过 EntityRegistry 查找 EntityType
  * 3. 调用 EntityType::create() 创建实例
  * 4. 调用 Entity::readFromNBT() 填充数据
- * 5. 处理 Passengers 递归加载
+ * 5. Passengers 标签暂存到实体的 m_pendingPassengersNbt（不在反序列化阶段 spawn 乘客）
+ *
+ * 乘客挂载流程：
+ * - 主实体被调用方 spawnEntity 注入世界、拿到真实 id 之后，
+ *   调用 attachPassengers(vehicle, world) 递归 spawn 乘客并 startRiding。
+ * - 这样保证乘客的 m_vehicle 指向主实体的真实 id，避免
+ *   "vehicle id 从 0 改写为真实 id 后乘客 m_vehicle 失效"的缺陷。
  */
 class EntityDeserializer {
 public:
     /**
      * @brief 从 NBT 反序列化实体
+     *
+     * 本方法仅反序列化主实体本身（含 readFromNBT），不处理 Passengers。
+     * 若 NBT 中含 Passengers 标签，会将其暂存到实体的 m_pendingPassengersNbt 字段，
+     * 由调用方在 spawn 主实体后调用 attachPassengers 处理。
+     *
      * @param tag NBT 复合标签
-     * @param world 世界引用（用于实体创建）
      * @return 实体实例或错误
      */
-    static Result<std::unique_ptr<Entity>> deserialize(const nbt::tags::compound_tag& tag, IWorld* world);
+    static Result<std::unique_ptr<Entity>> deserialize(const nbt::tags::compound_tag& tag);
 
     /**
      * @brief 从二进制数据反序列化实体
+     *
+     * 本方法仅反序列化主实体本身，Passengers 处理同 deserialize(tag)。
+     *
      * @param data 压缩的 NBT 二进制数据
-     * @param world 世界引用
      * @return 实体实例或错误
      */
-    static Result<std::unique_ptr<Entity>> deserializeFromBinary(const std::vector<u8>& data, IWorld* world);
+    static Result<std::unique_ptr<Entity>> deserializeFromBinary(const std::vector<u8>& data);
+
+    /**
+     * @brief 挂载主实体的待处理乘客
+     *
+     * 在主实体被 spawnEntity 注入世界、拿到真实 id 之后调用。本方法会：
+     * 1. 取走主实体的 m_pendingPassengersNbt 列表
+     * 2. 对每个乘客 NBT 递归调用 deserialize 构造乘客实体
+     * 3. 调用 world.spawnEntity 把乘客注入世界（乘客拿到真实 id）
+     * 4. 调用 passenger.startRiding(vehicle) 建立骑乘关系
+     *    （此时 vehicle.id() 已是真实 id，乘客的 m_vehicle 会被正确设置）
+     * 5. 递归处理乘客自身的 m_pendingPassengersNbt（多层骑乘）
+     *
+     * 若主实体没有待处理乘客（hasPendingPassengersNbt() 为 false），本方法为空操作。
+     *
+     * @param vehicle 已 spawn 的主实体（必须已注入 world，id 非 0）
+     * @param world 主实体所在的世界
+     * @return 成功或错误（任一乘客挂载失败则返回错误，已挂载的乘客不会被回滚）
+     */
+    static Result<void> attachPassengers(Entity& vehicle, IWorld& world);
 
     /**
      * @brief 将实体序列化为二进制数据

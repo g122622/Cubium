@@ -464,7 +464,7 @@ void JavaColumnReader::_readEntities(const compound_tag& columnNbt, ChunkData& c
             continue;
         }
 
-        auto entityResult = entity::serialization::EntityDeserializer::deserialize(*entityTag, nullptr);
+        auto entityResult = entity::serialization::EntityDeserializer::deserialize(*entityTag);
         if (entityResult.failed()) {
             spdlog::warn("JavaColumnReader: Failed to deserialize entity: {}", entityResult.error().message());
             continue;

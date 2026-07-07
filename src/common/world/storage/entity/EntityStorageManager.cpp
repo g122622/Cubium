@@ -105,6 +105,13 @@ EntityStorageManager::EntityStorageManager(RocksDBDatabase& db)
 
 Result<void> EntityStorageManager::saveEntity(const Entity& entity, DimensionId dimension)
 {
+    // 乘客不单独落盘：乘客作为载具 Passengers 标签的一部分被递归序列化，
+    // 参考 MC Java: Entity.save → isPassenger 时返回 false，不写入顶层 Entities 列表。
+    // 若乘客也单独保存，会在区块中产生冗余记录，反序列化时与载具的 Passengers 重复 spawn。
+    if (entity.isRiding()) {
+        return Result<void>::ok();
+    }
+
     // 序列化实体为压缩 NBT 二进制
     auto binaryResult = entity::serialization::EntityDeserializer::serializeToBinary(entity);
     if (!binaryResult.success()) {
@@ -120,7 +127,7 @@ Result<void> EntityStorageManager::saveEntity(const Entity& entity, DimensionId 
 }
 
 Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
-    const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, IWorld* world)
+    const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
     EntityKey key{chunkX, chunkZ, uuid};
     auto dbKey = _makeKey(key);
@@ -135,7 +142,7 @@ Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
         return std::unique_ptr<Entity>(nullptr);
     }
 
-    return entity::serialization::EntityDeserializer::deserializeFromBinary(data, world);
+    return entity::serialization::EntityDeserializer::deserializeFromBinary(data);
 }
 
 Result<void> EntityStorageManager::deleteEntity(
@@ -149,7 +156,7 @@ Result<void> EntityStorageManager::deleteEntity(
 // ========== 区块级操作 ==========
 
 Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesInChunk(
-    ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, IWorld* world)
+    ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
     std::vector<std::unique_ptr<Entity>> entities;
 
@@ -176,7 +183,7 @@ Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesI
         auto value = iter->value();
         std::vector<u8> data(value.data(), value.data() + value.size());
 
-        auto entityResult = entity::serialization::EntityDeserializer::deserializeFromBinary(data, world);
+        auto entityResult = entity::serialization::EntityDeserializer::deserializeFromBinary(data);
         if (!entityResult.success()) {
             spdlog::warn("EntityStorageManager: Failed to deserialize entity in chunk ({}, {})", chunkX, chunkZ);
         } else {
@@ -208,6 +215,10 @@ Result<void> EntityStorageManager::saveEntitiesInChunk(const std::vector<std::re
 
     for (const auto& entityRef : entities) {
         const Entity& entity = entityRef.get();
+        // 乘客不单独落盘（详见 saveEntity 注释）
+        if (entity.isRiding()) {
+            continue;
+        }
         auto result = saveEntity(entity, dimension);
         if (!result.success()) {
             return result;
@@ -223,6 +234,11 @@ Result<size_t> EntityStorageManager::saveAllEntities(
     size_t savedCount = 0;
     for (const auto& entityRef : entities) {
         const Entity& entity = entityRef.get();
+        // 乘客不单独落盘（详见 saveEntity 注释），但仍计入 savedCount 以便调用方统计
+        if (entity.isRiding()) {
+            ++savedCount;
+            continue;
+        }
         auto result = saveEntity(entity, dimension);
         if (result.failed()) {
             return result.error();

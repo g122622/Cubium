@@ -35,7 +35,6 @@
 namespace mc {
 
 class Entity;
-class IWorld;
 
 namespace world::storage {
 
@@ -87,15 +86,18 @@ public:
     /**
      * @brief 从存储加载单个实体
      *
+     * 仅反序列化实体本身，不处理 Passengers。若 NBT 含 Passengers 标签，
+     * 会暂存到实体的 m_pendingPassengersNbt，由调用方在 spawn 主实体后
+     * 调用 EntityDeserializer::attachPassengers 处理。
+     *
      * @param uuid 实体 UUID
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param dimension 维度ID
-     * @param world 世界引用（用于实体创建）
      * @return 实体实例或错误
      */
     Result<std::unique_ptr<Entity>> loadEntity(
-        const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, IWorld* world);
+        const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
 
     /**
      * @brief 从存储删除实体
@@ -113,16 +115,17 @@ public:
     /**
      * @brief 加载区块内所有实体
      *
-     * 使用 RocksDB 前缀扫描获取指定区块的所有实体。
+     * 使用 RocksDB 前缀扫描获取指定区块的所有实体。仅反序列化实体本身，
+     * Passengers 处理同 loadEntity。调用方应在 spawn 每个实体后调用
+     * EntityDeserializer::attachPassengers 挂载乘客。
      *
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param dimension 维度ID
-     * @param world 世界引用
      * @return 实体列表
      */
     Result<std::vector<std::unique_ptr<Entity>>> loadEntitiesInChunk(
-        ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, IWorld* world);
+        ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
 
     /**
      * @brief 保存区块内所有实体（批量写入）

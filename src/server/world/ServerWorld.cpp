@@ -2031,6 +2031,22 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
             EntityId id = spawnEntity(std::move(entityPtr));
             if (id == 0) {
                 spdlog::warn("Failed to spawn chunk-loaded entity for chunk ({}, {})", x, z);
+                continue;
+            }
+
+            // 主实体已 spawn 拿到真实 id，挂载反序列化阶段暂存的 Passengers。
+            // 必须在 spawn 之后调用：乘客 startRiding 时会把 m_vehicle 记为 vehicle.id()，
+            // 若在 spawn 之前调用，vehicle.id() 仍为 0，会导致乘客 m_vehicle 失效。
+            Entity* spawnedEntity = m_entityManager.getEntity(id);
+            if (spawnedEntity != nullptr) {
+                auto attachResult = entity::serialization::EntityDeserializer::attachPassengers(*spawnedEntity, *this);
+                if (attachResult.failed()) {
+                    spdlog::warn("Failed to attach passengers for entity {} in chunk ({}, {}): {}",
+                        spawnedEntity->getTypeId(),
+                        x,
+                        z,
+                        attachResult.error().message());
+                }
             }
         }
     }
@@ -2045,7 +2061,7 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         return;
     }
 
-    auto result = entityStorage->loadEntitiesInChunk(x, z, m_config.dimension, this);
+    auto result = entityStorage->loadEntitiesInChunk(x, z, m_config.dimension);
     if (result.failed()) {
         spdlog::error("Failed to load entities for chunk ({}, {}): {}", x, z, result.error().message());
         return;
@@ -2062,7 +2078,27 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         ChunkCoord entityCz = CoordConverter::blockToChunk(entityPtr->z());
 
         EntityId id = spawnEntity(std::move(entityPtr));
-        if (id != 0 && (entityCx != x || entityCz != z)) {
+        if (id == 0) {
+            spdlog::warn("Failed to spawn storage-loaded entity for chunk ({}, {})", x, z);
+            continue;
+        }
+
+        // 主实体已 spawn 拿到真实 id，挂载反序列化阶段暂存的 Passengers。
+        // 必须在 spawn 之后调用：乘客 startRiding 时会把 m_vehicle 记为 vehicle.id()，
+        // 若在 spawn 之前调用，vehicle.id() 仍为 0，会导致乘客 m_vehicle 失效。
+        Entity* spawnedEntity = m_entityManager.getEntity(id);
+        if (spawnedEntity != nullptr) {
+            auto attachResult = entity::serialization::EntityDeserializer::attachPassengers(*spawnedEntity, *this);
+            if (attachResult.failed()) {
+                spdlog::warn("Failed to attach passengers for entity {} in chunk ({}, {}): {}",
+                    spawnedEntity->getTypeId(),
+                    x,
+                    z,
+                    attachResult.error().message());
+            }
+        }
+
+        if (entityCx != x || entityCz != z) {
             m_entityChunkTracker.onEntityRemoved(id);
             m_entityChunkTracker.onEntityAdded(id, entityCx, entityCz);
         }

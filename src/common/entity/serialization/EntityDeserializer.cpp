@@ -33,7 +33,7 @@
 
 namespace mc::entity::serialization {
 
-Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags::compound_tag& tag, IWorld* world)
+Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags::compound_tag& tag)
 {
     // 1. 读取 "id" 标签获取实体类型字符串
     auto typeIdOpt = nbt_helper::tryGetString(tag, nbt_keys::ID);
@@ -50,7 +50,8 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
     }
 
     // 3. 调用 EntityType::create() 创建实例
-    auto entity = entityType->create(world);
+    // 创建时实体 id 为 0（== INVALID_ENTITY_ID），由后续 spawnEntity 分配真实 id
+    auto entity = entityType->create(nullptr);
     if (entity == nullptr) {
         return Error(ErrorCode::InvalidData, fmt::format("Failed to create entity of type: {}", typeId));
     }
@@ -64,57 +65,16 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
         return Error(ErrorCode::InvalidData, fmt::format("Failed to read entity NBT: {}", result.error().message()));
     }
 
-    // 5. 处理 Passengers 递归加载
-    // 当前运行时的实体管理器以 EntityId 互相关联，Passenger 列表只保存 EntityId。
-    // 因此这里不能像原版那样只在内存里临时拼出骑乘树，否则 passenger unique_ptr 会在
-    // 当前作用域结束后释放，留下无效的乘客关系。
-    //
-    // 这里的策略是：
-    // - 如果没有 world，则拒绝加载带乘客的实体，避免构造悬空关系。
-    // - 如果有 world，则把乘客递归反序列化并真正 spawn 进世界，再调用 startRiding() 建立关系。
+    // 5. 暂存 Passengers NBT 到实体的 m_pendingPassengersNbt
+    // 不在反序列化阶段 spawn 乘客：主实体此时尚未 spawn，id 仍为 0，
+    // 若此时 spawn 乘客并 startRiding，乘客的 m_vehicle 会被记为 0，
+    // 后续主实体 spawn 时 id 改写为真实值，乘客 m_vehicle 失效。
+    // 改为由调用方在 spawn 主实体后调用 attachPassengers 处理。
     if (const auto* passengersList = nbt_helper::tryGetList(tag, nbt_keys::PASSENGERS)) {
-        if (world == nullptr) {
-            return Error(ErrorCode::InvalidState, "Cannot deserialize entity passengers without world context");
-        }
-
         if (passengersList->element_id() == nbt::TagId::Compound) {
-            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*passengersList);
+            const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*passengersList);
             for (const auto& passengerTag : compoundList.value) {
-                auto passengerResult = deserialize(passengerTag, world);
-                if (passengerResult.failed()) {
-                    return passengerResult.error();
-                }
-
-                auto passenger = passengerResult.value();
-                if (passenger == nullptr) {
-                    return Error(ErrorCode::InvalidData, "Passenger deserialized to null entity");
-                }
-
-                EntityId passengerId = world->spawnEntity(std::move(passenger));
-                if (passengerId == 0) {
-                    return Error(ErrorCode::InvalidState, "Failed to spawn deserialized passenger entity");
-                }
-
-                Entity* spawnedPassenger = world->getEntity(passengerId);
-                if (spawnedPassenger == nullptr) {
-                    return Error(ErrorCode::InvalidState, "Spawned passenger entity not found in world");
-                }
-
-                if (!spawnedPassenger->startRiding(*entity)) {
-                    spawnedPassenger->remove();
-                    return Error(ErrorCode::InvalidState,
-                        fmt::format("Failed to attach passenger '{}' to vehicle '{}'",
-                            spawnedPassenger->getTypeId(),
-                            entity->getTypeId()));
-                }
-                // TODO(vehicle-id-lifecycle): 主实体 vehicle 此时尚未 spawn 进世界，其 id
-                // 仍为构造时的 0（== INVALID_ENTITY_ID）。乘客已 spawn 并通过 startRiding
-                // 把 m_vehicle 记为 vehicle.id()==0。当调用方随后把 vehicle spawn 进世界、
-                // 由 world 分配真实 id（例如 5）后，乘客的 m_vehicle 仍指向 0，骑乘关系会失效。
-                // 当前 Entity::startRiding 已容忍 vehicle.id()==0（见 step1/step2 修复），
-                // 故 deserialize 阶段可成功建立关系；但调用方在 spawn vehicle 后需同步刷新
-                // 所有乘客的 m_vehicle 指向新 id（或改为先 spawn vehicle 再挂乘客）。
-                // 这是一个独立的生产缺陷，留待后续修复。
+                entity->_appendPendingPassengerNbt(passengerTag);
             }
         }
     }
@@ -122,7 +82,60 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
     return entity;
 }
 
-Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(const std::vector<u8>& data, IWorld* world)
+Result<void> EntityDeserializer::attachPassengers(Entity& vehicle, IWorld& world)
+{
+    // 没有待处理乘客则直接返回
+    if (!vehicle.hasPendingPassengersNbt()) {
+        return Result<void>::ok();
+    }
+
+    // 取走待处理乘客 NBT 列表（takePendingPassengersNbt 会清空 vehicle 的字段）
+    auto pendingPassengers = vehicle.takePendingPassengersNbt();
+
+    for (auto& passengerTag : pendingPassengers) {
+        // 递归反序列化乘客（同样不在此处 spawn 乘客的乘客）
+        auto passengerResult = deserialize(passengerTag);
+        if (passengerResult.failed()) {
+            return passengerResult.error();
+        }
+
+        auto passenger = passengerResult.value();
+        if (passenger == nullptr) {
+            return Error(ErrorCode::InvalidData, "Passenger deserialized to null entity");
+        }
+
+        // 把乘客 spawn 进世界，由 world 分配真实 id
+        EntityId passengerId = world.spawnEntity(std::move(passenger));
+        if (passengerId == 0) {
+            return Error(ErrorCode::InvalidState, "Failed to spawn deserialized passenger entity");
+        }
+
+        Entity* spawnedPassenger = world.getEntity(passengerId);
+        if (spawnedPassenger == nullptr) {
+            return Error(ErrorCode::InvalidState, "Spawned passenger entity not found in world");
+        }
+
+        // 此时 vehicle 已被 spawn（由调用方在调用本方法前完成），id 为真实值，
+        // startRiding 会把乘客的 m_vehicle 记为 vehicle.id()（真实 id），关系持久有效
+        if (!spawnedPassenger->startRiding(vehicle)) {
+            spawnedPassenger->remove();
+            return Error(ErrorCode::InvalidState,
+                fmt::format("Failed to attach passenger '{}' to vehicle '{}'",
+                    spawnedPassenger->getTypeId(),
+                    vehicle.getTypeId()));
+        }
+
+        // 递归处理乘客自身的待处理乘客（多层骑乘，如 Boat → Zombie → BabyZombie）
+        auto subResult = attachPassengers(*spawnedPassenger, world);
+        if (subResult.failed()) {
+            return subResult.error();
+        }
+    }
+
+    return Result<void>::ok();
+}
+
+Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(const std::vector<u8>& data)
 {
     if (data.empty()) {
         return Error(ErrorCode::InvalidData, "Empty entity data");
@@ -165,7 +178,7 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(const 
             return Error(ErrorCode::InvalidData, "Failed to parse entity NBT");
         }
 
-        return deserialize(*root, world);
+        return deserialize(*root);
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, fmt::format("Failed to deserialize entity from binary: {}", e.what()));
