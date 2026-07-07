@@ -28,6 +28,21 @@ namespace mc::world::spawn {
 // ============================================================================
 // 工厂方法实现
 // ============================================================================
+//
+// TODO(spawn-list-alignment): 本文件下各工厂方法的 spawn list 与原版 MC Java 1.16.5
+// 仍存在若干偏差，逐项列在对应工厂方法内（搜索关键词 "TODO(spawn-list" 即可定位）。
+// 已知共性偏差汇总：
+//   1) EntityClassification 枚举仅实现 6 类（Monster/Creature/Ambient/
+//      WaterCreature/WaterAmbient/Misc），缺失原版的 UndergroundWaterCreature
+//      与 Axolotls 两类。导致繁茂洞穴的美西螈、深海守卫者、水下洞穴鱼群等
+//      无法归入正确分类，目前临时塞进 WaterCreature。
+//   2) 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、
+//      armadillo、zombie_horse 等），无法加入对应 spawn list。
+//   3) Jungle 系列 baseJungleSpawns() 的"额外鸡"规则（在标准 farmAnimals 之外
+//      再加一条 weight=10 的 chicken）尚未实现。
+//   4) hoglin/ocelot 的 EntityClassification 归类与原版不一致（hoglin 原版为
+//      Creature，本项目为 Monster；ocelot 原版为 Creature，本项目为 Monster）。
+// 收敛上述任一项时，请同步删除对应的 TODO 注释。
 
 MobSpawnInfo MobSpawnInfo::createPlains()
 {
@@ -101,6 +116,14 @@ MobSpawnInfo MobSpawnInfo::createDesert()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-desert): 与原版 1.16.5 偏差：
+    //   1) rabbit 原版 weight=4, pack=2-3，与当前一致，OK。
+    //   2) husk 原版 weight=80, pack=4，与当前一致，OK；zombie weight=19、
+    //      zombie_villager weight=1，与当前一致，OK。
+    //   3) Desert 变体（DesertHills/DesertLakes）原版 spawn list 与 Desert 一致，
+    //      但本项目未区分变体，未来若新增变体需复用本工厂。
+    //   4) 待实现 bogged（1.21+）后无需加入 Desert，1.16.5 暂无。
+
     // 怪物（沙漠没有末影人和女巫）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 19, 4, 4));
@@ -124,6 +147,15 @@ MobSpawnInfo MobSpawnInfo::createOcean()
 {
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
+
+    // TODO(spawn-list-ocean): 与原版 1.16.5 偏差：
+    //   1) 普通海洋 monster list 原版仅 drowned（weight=5, pack=1），不包含
+    //      zombie/skeleton/creeper/spider/slime/enderman/witch。这些是陆地怪物，
+    //      在海洋水面不应生成。当前误加了陆地怪物列表。
+    //   2) WaterCreature 缺少 tropical_fish（原版普通海洋无）、dolphin（原版普通海洋有，
+    //      weight=2, pack=1-2）。
+    //   3) 缺少 WaterAmbient 分类条目（cod/salmon 原版归 WaterAmbient 而非 WaterCreature，
+    //      本项目全部塞进 WaterCreature，分类与原版不一致）。
 
     // 怪物（海洋有溺尸）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
@@ -152,6 +184,12 @@ MobSpawnInfo MobSpawnInfo::createWarmOcean()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-warm-ocean): 与原版 1.16.5 偏差：
+    //   1) 暖水海洋原版无 cod（暖水太暖），当前误加 cod weight=15。
+    //   2) pufferfish/tropical_fish 原版归 WaterAmbient，当前误归 WaterCreature。
+    //   3) dolphin 原版 weight=2, pack=1-2，与当前一致，OK。
+    //   4) 怪物 list 原版仅 drowned（weight=5, pack=1），与当前一致，OK。
+
     // 怪物（标准 + 溺尸）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
@@ -172,6 +210,11 @@ MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
     // 温水海洋：混合鱼群
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
+
+    // TODO(spawn-list-lukewarm-ocean): 与原版 1.16.5 偏差：
+    //   1) cod/salmon/tropical_fish/pufferfish 原版归 WaterAmbient，当前误归 WaterCreature。
+    //   2) squid/dolphin 原版归 WaterCreature，与当前一致，OK。
+    //   3) 怪物 list 原版仅 drowned（weight=100, pack=4），与当前一致，OK。
 
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
@@ -195,6 +238,11 @@ MobSpawnInfo MobSpawnInfo::createColdOcean()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-cold-ocean): 与原版 1.16.5 偏差：
+    //   1) cod/salmon 原版归 WaterAmbient，当前误归 WaterCreature。
+    //   2) squid/dolphin 原版归 WaterCreature，与当前一致，OK。
+    //   3) 怪物 list 原版仅 drowned（weight=100, pack=4），与当前一致，OK。
+
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
@@ -215,6 +263,13 @@ MobSpawnInfo MobSpawnInfo::createFrozenOcean()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-frozen-ocean): 与原版 1.16.5 偏差：
+    //   1) salmon 原版归 WaterAmbient，当前误归 WaterCreature。
+    //   2) squid 原版归 WaterCreature，与当前一致，OK。
+    //   3) 怪物 list 原版仅 drowned（weight=5, pack=1），当前误加陆地怪物
+    //      （zombie/skeleton/creeper/spider/slime/enderman/witch）。
+    //   4) polar_bear 原版归 Creature，与当前一致，OK。
+    //   5) 原版 FrozenOcean 在冰面生成 stray，当前仅在注释中提及未实现。
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
@@ -246,6 +301,12 @@ MobSpawnInfo MobSpawnInfo::createDeepOcean()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-deep-ocean): 与原版 1.16.5 偏差：
+    //   1) cod/salmon 原版归 WaterAmbient，当前误归 WaterCreature。
+    //   2) squid/dolphin 原版归 WaterCreature，与当前一致，OK。
+    //   3) 怪物 list 原版仅 drowned（weight=100, pack=4），与当前一致，OK。
+    //   4) 深海原版有 guardian（水下守卫者）生成，归 WaterCreature（待确认），
+    //      当前缺失，待 guardian 实体实现后补回。
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
@@ -298,6 +359,16 @@ MobSpawnInfo MobSpawnInfo::createJungle()
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
+    // TODO(spawn-list-jungle): 以下偏差待收敛（参考原版 1.16.5 BiomeDefaultFeatures.baseJungleSpawns）：
+    //   1) ocelot 原版归类为 Creature（weight=2, pack=1），本项目误归 Monster，需待
+    //      EntityClassification 体系扩展或 ocelot 实体分类修正后迁移。
+    //   2) Jungle 应在标准 farmAnimals 之外额外加一条 minecraft:chicken weight=10 pack=4
+    //      （"额外鸡"规则，原版 baseJungleSpawns 显式添加），当前缺失。
+    //   3) parrot 原版 weight=40 pack=1（本项目 pack=2），需核对 pack size。
+    //   4) Jungle 变体（JungleHills/ModifiedJungle/ModifiedJungleEdge/BambooJungle 等）
+    //      应复用 baseJungleSpawns 并叠加变体特定条目（如 BambooJungle 的 panda weight=80），
+    //      当前 createJungle 直接硬编码 panda weight=1，未区分 BambooJungle 变体。
+
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
@@ -329,6 +400,13 @@ MobSpawnInfo MobSpawnInfo::createSavanna()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
+
+    // TODO(spawn-list-savanna): 与原版 1.16.5 偏差：
+    //   1) llama 原版仅在 SavannaPlateau/ShatteredSavanna 变体生成（weight=8, pack=4），
+    //      普通 Savanna 不应有 llama，当前误加。
+    //   2) horse 原版 weight=1, pack=2-6，donkey 原版 weight=1, pack=1，与当前一致，OK。
+    //   3) 原版 Savanna 无 zombie_villager，当前 monster list 也未加，OK。
+    //   4) 待实现 armadillo（1.20.5+）后需加入 Savanna spawn list，1.16.5 暂无。
 
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
@@ -419,6 +497,14 @@ MobSpawnInfo MobSpawnInfo::createSnowy()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-snowy): 与原版 1.16.5 偏差：
+    //   1) snowy 生物群系原版 creatureSpawnProbability 应为 0.07（雪原更稀疏），
+    //      当前误用 0.1。SnowyTundra/SnowyMountains/SnowyBeaches 等变体均应核对。
+    //   2) 雪地 animal list 原版只有 rabbit（weight=10, pack=2-3）和 polar_bear
+    //      （weight=1, pack=1-2），与当前一致，OK。但 SnowyBeaches 有 polar_bear
+    //      无 rabbit，变体未区分。
+    //   3) stray 原版 weight=80, pack=4，与当前一致，OK；skeleton 原版 weight=20，
+    //      与当前一致，OK。
     // 怪物（雪地有流浪者）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
@@ -508,6 +594,14 @@ MobSpawnInfo MobSpawnInfo::createCrimsonForest()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;
 
+    // TODO(spawn-list-crimson-forest): 与原版 1.16.5 偏差：
+    //   1) hoglin 原版归 Creature（weight=9, pack=3-4），本项目误归 Monster。
+    //      原版 CrimsonForest creature list 为 hoglin，monster list 为
+    //      zombified_piglin/piglin。待 hoglin EntityClassification 修正后迁移。
+    //   2) zombified_piglin 原版 weight=1, pack=2-4，与当前一致，OK。
+    //   3) piglin 原版 weight=5, pack=3-4，与当前一致，OK。
+    //   4) strider 原版归 Creature（weight=60, pack=1-2），与当前一致，OK。
+
     // 怪物（注意：疣猪兽是 MONSTER 分类）
     info.setMaxMonsterInstances(70);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 1, 2, 4));
@@ -583,6 +677,14 @@ MobSpawnInfo MobSpawnInfo::createLushCaves()
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
+    // TODO(spawn-list-lush-caves): 与原版 1.16.5 偏差：
+    //   1) axolotl 原版归 Axolotls 分类（独立分类，maxCount=5），本项目缺失该分类，
+    //      当前临时塞进 WaterCreature。待 EntityClassification 扩展 Axolotls 后迁移。
+    //   2) tropical_fish 原版归 WaterAmbient，与当前一致，OK。
+    //   3) 繁茂洞穴原版无独立 monster list（继承自宿主生物群系），当前硬编码了
+    //      通用洞穴怪物，可能与宿主群系不一致。
+    //   4) glow_squid 原版在 LushCaves 应生成（weight=10, pack=2-4），当前缺失，
+    //      待 glow_squid 实体实现后补回。
     // 怪物（普通洞穴怪物）
     info.setMaxMonsterInstances(70);
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
