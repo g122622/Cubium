@@ -29,14 +29,18 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
@@ -199,6 +203,9 @@ void EnderDragonEntity::tick()
     }
 
     // 调用父类 tick
+    // 注意：LivingEntity::tick() 会在 isDead() 时调用 tickDeath()，
+    // 而 EnderDragon 重写了 tickDeath() 委托给 _onDeathUpdate()，
+    // 因此死亡动画逻辑会在 BossEntity::tick() 内部触发，无需在此重复调用。
     BossEntity::tick();
 
     // 更新龙部件位置
@@ -209,11 +216,6 @@ void EnderDragonEntity::tick()
 
     // 处理碰撞
     _collideWithEntities();
-
-    // 死亡处理
-    if (isDying()) {
-        _onDeathUpdate();
-    }
 }
 
 void EnderDragonEntity::setPhase(Phase phase)
@@ -680,64 +682,126 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
 
 void EnderDragonEntity::_onDeathUpdate()
 {
+    // 对齐 MC 1.21.11 EnderDragon.tickDeath()
+    IWorld* worldPtr = world();
+
+    // MC: if (this.dragonFight != null) { this.dragonFight.updateDragon(this); }
+    // TODO: EndDragonFight::updateDragon() 尚未实现（用于同步 BossEvent 血量/名称），
+    //       待 EndDragonFight 接入 BossEvent 系统后在此调用。
+
     m_deathTicks++;
 
-    // 死亡动画
-    // 前100 ticks 上升并发光
-    // 后100 ticks 爆炸并消失
+    // 死亡爆炸粒子：在 180-200 tick 之间生成
+    // MC: if (this.dragonDeathTime >= 180 && this.dragonDeathTime <= 200) { ... }
+    if (m_deathTicks >= 180 && m_deathTicks <= DEATH_DURATION) {
+        // MC: float f = (this.random.nextFloat() - 0.5F) * 8.0F;
+        //     float f1 = (this.random.nextFloat() - 0.5F) * 4.0F;
+        //     float f2 = (this.random.nextFloat() - 0.5F) * 8.0F;
+        //     this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER,
+        //         this.getX() + f, this.getY() + 2.0 + f1, this.getZ() + f2, 0.0, 0.0, 0.0);
+        math::Random& rng = getRandom();
+        const f32 offsetX = (rng.nextFloat() - 0.5f) * 8.0f;
+        const f32 offsetY = (rng.nextFloat() - 0.5f) * 4.0f;
+        const f32 offsetZ = (rng.nextFloat() - 0.5f) * 8.0f;
+        const Vector3 particlePos(x() + offsetX, y() + 2.0f + offsetY, z() + offsetZ);
+        if (worldPtr != nullptr) {
+            // ParticleTypeId::HugeExplosion 对应 MC 的 ParticleTypes.EXPLOSION_EMITTER
+            worldPtr->addParticle(ParticleTypeId::HugeExplosion, particlePos, Vector3(0.0f, 0.0f, 0.0f));
+        }
+    }
 
-    // 判断是否首次击杀：如果有 EndDragonFight，查询 previouslyKilled 标志
-    IWorld* worldPtr = world();
+    // 经验掉落总量：首次击杀 12000，后续 500
+    // MC: int i = 500; if (dragonFight != null && !hasPreviouslyKilledDragon()) i = 12000;
     const bool previouslyKilled = (worldPtr != nullptr && worldPtr->dragonFight() != nullptr)
         ? worldPtr->dragonFight()->hasPreviouslyKilled()
         : false;
     const i32 totalXP = previouslyKilled ? XP_SUBSEQUENT : XP_FIRST_KILL;
 
-    if (m_deathTicks < DEATH_DURATION) {
-        // 死亡动画期间
-        // 缓慢上升
-        setVelocity(0.0f, 0.1f, 0.0f);
-
-        // 在 180-200 tick 之间，每 tick 生成爆炸粒子
-        if (worldPtr && m_deathTicks > 180) {
-            math::Random rng(m_deathTicks);
-            f32 px = static_cast<f32>(x() + rng.nextFloat(-5.0f, 5.0f));
-            f32 py = static_cast<f32>(y() + rng.nextFloat(-2.0f, 5.0f));
-            f32 pz = static_cast<f32>(z() + rng.nextFloat(-5.0f, 5.0f));
-            worldPtr->addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(1.0f, 0.0f, 0.0f));
-        }
-
-        // 在 150 tick 之后，每 5 tick 掉落 8% 经验
-        // MC 原版：150-179 tick 每 5 tick 掉 8%，共 6 次 = 48%
-        if (m_deathTicks > 150 && m_deathTicks % 5 == 0) {
-            constexpr f32 XP_DROP_FRACTION = 0.08f;
-            const i32 xpDropAmount = static_cast<i32>(static_cast<f32>(totalXP) * XP_DROP_FRACTION);
+    // 阶段性经验掉落：150 tick 之后，每 5 tick 掉落 8% 经验（需要 doMobLoot 规则）
+    // MC: if (dragonDeathTime > 150 && dragonDeathTime % 5 == 0 && MOB_DROPS) {
+    //         ExperienceOrb.award(serverlevel, this.position(), Mth.floor(i * 0.08F));
+    //     }
+    if (worldPtr != nullptr && m_deathTicks > 150 && m_deathTicks % 5 == 0) {
+        const auto& gameRules = worldPtr->getGameRules();
+        if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
+            const i32 xpDropAmount = static_cast<i32>(std::floor(static_cast<f32>(totalXP) * 0.08f));
             _dropExperienceAmount(xpDropAmount);
         }
     }
 
-    if (m_deathTicks >= DEATH_DURATION) {
-        // 死亡完成
-        // 掉落剩余经验（总计 100%，已掉落 48%，剩余 52%）
-        // MC 原版：200 tick 时掉落剩余全部经验
-        // 注意：这里简化处理，一次性掉落剩余经验
-        const i32 xpDroppedSoFar = static_cast<i32>(static_cast<f32>(totalXP) * 0.48f);
-        const i32 xpRemaining = totalXP - xpDroppedSoFar;
-        _dropExperienceAmount(xpRemaining);
+    // 死亡音效：在 1 tick 时触发（需要非静默）
+    // MC: if (dragonDeathTime == 1 && !isSilent()) {
+    //         serverlevel.globalLevelEvent(1028, this.blockPosition(), 0);
+    //     }
+    if (worldPtr != nullptr && m_deathTicks == 1 && !isSilent()) {
+        // Cubium 没有 globalLevelEvent，使用 playEvent 广播世界事件 1028（DRAGON_DEATH_SOUND）
+        // 给附近的客户端；同时通过 playSound 显式播放末影龙死亡音效以确保声音实际触发。
+        const BlockPos blockPos(
+            static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+        worldPtr->playEvent(world::WorldEvents::DRAGON_DEATH_SOUND, blockPos, 0);
+        // 龙死亡音效音量较大，使其能在更远距离听到（近似 MC 的全局广播）
+        worldPtr->playSound(
+            SoundEvents::ENTITY_ENDER_DRAGON_DEATH, sound::SoundCategory::Hostile, position(), 5.0f, 1.0f);
+    }
 
-        // 通过 EndDragonFight 统一处理龙蛋放置、折跃门生成和出口传送门
+    // 死亡动画期间缓慢上升
+    // MC: Vec3 vec3 = new Vec3(0.0, 0.1F, 0.0);
+    //     this.move(MoverType.SELF, vec3);
+    const Vector3 riseVelocity(0.0f, 0.1f, 0.0f);
+    move(entity::MoverType::Self, riseVelocity);
+
+    // 同步子部件位置：每个部件应用相同的位移
+    // MC: for (EnderDragonPart enderdragonpart : this.subEntities) {
+    //         enderdragonpart.setOldPosAndRot();
+    //         enderdragonpart.setPos(enderdragonpart.position().add(vec3));
+    //     }
+    // Cubium 的 Entity::setPosition() 内部会将 m_prevPosition 更新为当前位置，
+    // 再设置新位置，等价于 MC 的 setOldPosAndRot() + setPos() 组合。
+    for (EnderDragonPartEntity* part : m_dragonParts) {
+        if (part == nullptr) {
+            continue;
+        }
+        const Vector3 partNewPos(part->x() + riseVelocity.x, part->y() + riseVelocity.y, part->z() + riseVelocity.z);
+        part->setPosition(partNewPos);
+    }
+
+    // 死亡完成：200 tick 时掉落剩余 20% 经验、生成出口传送门、移除实体、触发 ENTITY_DIE 事件
+    // MC: if (dragonDeathTime == 200 && level instanceof ServerLevel) {
+    //         if (MOB_DROPS) ExperienceOrb.award(serverlevel, this.position(), Mth.floor(i * 0.2F));
+    //         if (dragonFight != null) dragonFight.setDragonKilled(this);
+    //         this.remove(Entity.RemovalReason.KILLED);
+    //         this.gameEvent(GameEvent.ENTITY_DIE);
+    //     }
+    if (m_deathTicks == DEATH_DURATION) {
         if (worldPtr != nullptr) {
+            const auto& gameRules = worldPtr->getGameRules();
+            if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
+                const i32 xpFinalDrop = static_cast<i32>(std::floor(static_cast<f32>(totalXP) * 0.2f));
+                _dropExperienceAmount(xpFinalDrop);
+            }
+
+            // 通过 EndDragonFight 统一处理龙蛋放置、折跃门生成和出口传送门
             EndDragonFight* fight = worldPtr->dragonFight();
             if (fight != nullptr) {
                 fight->setDragonKilled(*worldPtr);
             } else {
                 // 没有 EndDragonFight 时回退到仅创建出口传送门
+                // （例如调试用的非末地维度）
                 EndTeleporter::createExitPortal(*worldPtr, BlockPos(0, 0, 0), true);
             }
         }
 
-        // 移除实体
+        // 移除实体（Cubium 的 remove() 是无参数版本，对应 MC 的 remove(KILLED)）
         remove();
+
+        // 触发 ENTITY_DIE 游戏事件，通知附近的幽匿感测体
+        // MC: this.gameEvent(GameEvent.ENTITY_DIE);
+        if (worldPtr != nullptr) {
+            const BlockPos eventPos(static_cast<i32>(std::floor(x())),
+                static_cast<i32>(std::floor(y())),
+                static_cast<i32>(std::floor(z())));
+            worldPtr->gameEvent(gameevent::GameEvents::ENTITY_DIE, eventPos, gameevent::GameEvent::Context::of(this));
+        }
     }
 }
 

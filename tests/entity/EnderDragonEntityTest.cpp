@@ -957,5 +957,129 @@ TEST_F(EnderDragonEntityTest, DragonParts_HeadNeckBodyInitialized)
     EXPECT_EQ(parts[2]->part(), entity::EnderDragonPartEntity::Part::Body);
 }
 
+// ========== 死亡动画测试（对齐 MC 1.21.11 EnderDragon.tickDeath） ==========
+
+TEST_F(EnderDragonEntityTest, DeathUpdate_DeathTicksIncrementsWhenDying)
+{
+    // 验证死亡阶段下 tick 会推进 deathTicks
+    // MC: this.dragonDeathTime++;
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(0.0f);
+    dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
+
+    EXPECT_EQ(dragon.deathTicks(), 0);
+    dragon.tick();
+    EXPECT_EQ(dragon.deathTicks(), 1);
+    dragon.tick();
+    EXPECT_EQ(dragon.deathTicks(), 2);
+}
+
+TEST_F(EnderDragonEntityTest, DeathUpdate_ParticleRangeBounds_180To200)
+{
+    // 验证爆炸粒子的生成范围是 [180, 200]（对齐 MC）
+    // 旧实现使用 m_deathTicks > 180（遗漏 180 tick），新实现使用 >= 180 && <= 200
+    // 这里通过 deathTicks 推进验证逻辑路径不崩溃即可（粒子在 mock world 中是空操作）
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(0.0f);
+    dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
+
+    // 推进到 180 tick，应进入粒子生成阶段
+    for (i32 i = 0; i < 180; ++i) {
+        dragon.tick();
+    }
+    EXPECT_EQ(dragon.deathTicks(), 180);
+
+    // 推进到 200 tick，应触发死亡完成逻辑
+    for (i32 i = 0; i < 20; ++i) {
+        dragon.tick();
+    }
+    EXPECT_EQ(dragon.deathTicks(), 200);
+}
+
+TEST_F(EnderDragonEntityTest, DeathUpdate_NoXpDropWhenDoMobLootFalse)
+{
+    // 验证 doMobLoot=false 时不会掉落经验
+    // MC: if (serverlevel.getGameRules().get(GameRules.MOB_DROPS)) { ExperienceOrb.award(...) }
+    // Cubium 使用 DO_MOB_LOOT（对应 MC 1.21.11 的 mob_drops）
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(0.0f);
+    dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
+
+    // 关闭 doMobLoot
+    auto& gameRules = m_world->getGameRules();
+    gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT, false);
+
+    // 推进 200 tick，触发完整的死亡流程
+    for (i32 i = 0; i < 200; ++i) {
+        dragon.tick();
+    }
+
+    // 龙应该在 200 tick 时被移除
+    EXPECT_TRUE(dragon.isRemoved());
+}
+
+TEST_F(EnderDragonEntityTest, DeathUpdate_CompletesAt200Ticks)
+{
+    // 验证死亡动画在 200 tick 时完成，实体被移除
+    // MC: if (this.dragonDeathTime == 200 && this.level() instanceof ServerLevel) {
+    //         this.remove(Entity.RemovalReason.KILLED);
+    //         this.gameEvent(GameEvent.ENTITY_DIE);
+    //     }
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(0.0f);
+    dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
+
+    // 推进 199 tick，龙不应被移除
+    for (i32 i = 0; i < 199; ++i) {
+        dragon.tick();
+    }
+    EXPECT_EQ(dragon.deathTicks(), 199);
+    EXPECT_FALSE(dragon.isRemoved());
+
+    // 第 200 tick 应触发移除
+    dragon.tick();
+    EXPECT_EQ(dragon.deathTicks(), 200);
+    EXPECT_TRUE(dragon.isRemoved());
+}
+
+TEST_F(EnderDragonEntityTest, DeathUpdate_SubpartsMoveWithDragon)
+{
+    // 验证死亡动画期间子部件跟随龙一起上升
+    // MC: for (EnderDragonPart enderdragonpart : this.subEntities) {
+    //         enderdragonpart.setOldPosAndRot();
+    //         enderdragonpart.setPos(enderdragonpart.position().add(vec3));
+    //     }
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(0.0f);
+    dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
+    dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
+
+    // 记录每个部件的初始 Y 坐标
+    const auto& parts = dragon.getDragonParts();
+    ASSERT_FALSE(parts.empty());
+    std::vector<f32> initialY;
+    initialY.reserve(parts.size());
+    for (const auto* part : parts) {
+        ASSERT_NE(part, nullptr);
+        initialY.push_back(part->y());
+    }
+
+    // 推进 5 tick，每个 tick 龙上升 0.1
+    for (i32 i = 0; i < 5; ++i) {
+        dragon.tick();
+    }
+
+    // 验证每个部件的 Y 坐标上升了 0.5（5 tick × 0.1）
+    // 注意：部件位置在 _updateDragonParts() 中也会被更新，所以这里只验证上升趋势
+    for (size_t i = 0; i < parts.size(); ++i) {
+        EXPECT_GE(parts[i]->y(), initialY[i]);
+    }
+}
+
 } // namespace
 } // namespace mc

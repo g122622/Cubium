@@ -242,6 +242,16 @@ public:
     void tick() override;
 
     /**
+     * @brief 重写死亡更新逻辑
+     *
+     * 对齐 MC 1.21.11 EnderDragon.tickDeath()：末影龙有自定义的 200 tick 死亡动画，
+     * 需要重写以阻止 LivingEntity::tickDeath() 在 20 tick 后立即移除实体。
+     * 实际逻辑实现在 _onDeathUpdate() 中，由 LivingEntity::tick() 在 isDead() 时
+     * 通过本重写方法调用。
+     */
+    void tickDeath() override { _onDeathUpdate(); }
+
+    /**
      * @brief 末影龙不能被骑乘
      */
     [[nodiscard]] bool canBeRidden(const Entity& /*vehicle*/) const override { return false; }
