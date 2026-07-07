@@ -479,6 +479,155 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
     EXPECT_GT(info.getWaterCreatureSpawns().size(), 0);
 }
 
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_WarmOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244249_o()（warmOcean 浅水版本）
+    auto info = world::spawn::MobSpawnInfo::createWarmOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物列表（commonSpawns → func_243735_b(_, 95, 5, 100)）
+    // 浅水 warmOcean 不含 drowned（drowned 是 deepWarmOcean 才有）
+    const std::array<std::pair<std::string, std::array<i32, 3>>, 8> expectedMonsters = {{
+        {"minecraft:spider", {100, 4, 4}},
+        {"minecraft:zombie", {95, 4, 4}},
+        {"minecraft:zombie_villager", {5, 1, 1}},
+        {"minecraft:skeleton", {100, 4, 4}},
+        {"minecraft:creeper", {100, 4, 4}},
+        {"minecraft:slime", {100, 4, 4}},
+        {"minecraft:enderman", {10, 1, 4}},
+        {"minecraft:witch", {5, 1, 1}},
+    }};
+    EXPECT_EQ(info.getMonsterSpawns().size(), expectedMonsters.size());
+    for (const auto& [entityId, params] : expectedMonsters) {
+        bool found = false;
+        for (const auto& entry : info.getMonsterSpawns()) {
+            if (entry.entityTypeId == entityId && entry.weight == params[0] && entry.minCount == params[1] &&
+                entry.maxCount == params[2]) {
+                found = true;
+                break;
+            }
+        }
+        EXPECT_TRUE(found) << "Missing or wrong monster entry: " << entityId;
+    }
+    // 确认浅水版本不含 drowned
+    for (const auto& entry : info.getMonsterSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:drowned") << "浅水 warmOcean 不应含 drowned";
+    }
+
+    // 环境生物：bat（commonSpawns → caveSpawns）
+    ASSERT_EQ(info.getAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getAmbientSpawns()[0].entityTypeId, "minecraft:bat");
+    EXPECT_EQ(info.getAmbientSpawns()[0].weight, 10);
+    EXPECT_EQ(info.getAmbientSpawns()[0].minCount, 8);
+    EXPECT_EQ(info.getAmbientSpawns()[0].maxCount, 8);
+
+    // 水生生物：squid + dolphin（原版归 WaterCreature）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    bool hasSquid = false, hasDolphin = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 10);
+            EXPECT_EQ(entry.minCount, 4);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:dolphin") {
+            hasDolphin = true;
+            EXPECT_EQ(entry.weight, 2);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 2);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasDolphin);
+
+    // 水生环境生物：pufferfish + tropical_fish（原版归 WaterAmbient）
+    EXPECT_EQ(info.getWaterAmbientSpawns().size(), 2u);
+    bool hasPufferfish = false, hasTropicalFish = false;
+    for (const auto& entry : info.getWaterAmbientSpawns()) {
+        if (entry.entityTypeId == "minecraft:pufferfish") {
+            hasPufferfish = true;
+            EXPECT_EQ(entry.weight, 15);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 3);
+        }
+        if (entry.entityTypeId == "minecraft:tropical_fish") {
+            hasTropicalFish = true;
+            EXPECT_EQ(entry.weight, 25);
+            EXPECT_EQ(entry.minCount, 8);
+            EXPECT_EQ(entry.maxCount, 8);
+        }
+    }
+    EXPECT_TRUE(hasPufferfish);
+    EXPECT_TRUE(hasTropicalFish);
+
+    // 确认不含 cod（暖水太暖）和 salmon
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:cod") << "warmOcean 不应含 cod";
+        EXPECT_NE(entry.entityTypeId, "minecraft:salmon") << "warmOcean 不应含 salmon";
+    }
+    for (const auto& entry : info.getWaterAmbientSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:cod") << "warmOcean 不应含 cod";
+        EXPECT_NE(entry.entityTypeId, "minecraft:salmon") << "warmOcean 不应含 salmon";
+    }
+}
+
+TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepWarmOcean)
+{
+    // 对应 MC 1.16.5 BiomeMaker.func_244250_p()（deepWarmOcean 深水版本）
+    auto info = world::spawn::MobSpawnInfo::createDeepWarmOcean();
+    EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
+
+    // 怪物：8 条标准陆地怪物列表 + drowned（深水版本额外添加）
+    EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
+    bool hasDrowned = false;
+    for (const auto& entry : info.getMonsterSpawns()) {
+        if (entry.entityTypeId == "minecraft:drowned") {
+            hasDrowned = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
+    }
+    EXPECT_TRUE(hasDrowned) << "deepWarmOcean 应含 drowned";
+
+    // 环境生物：bat
+    ASSERT_EQ(info.getAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getAmbientSpawns()[0].entityTypeId, "minecraft:bat");
+
+    // 水生生物：squid + dolphin（深水 squid weight=5, minCount=1）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    bool hasSquid = false, hasDolphin = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:dolphin") {
+            hasDolphin = true;
+            EXPECT_EQ(entry.weight, 2);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 2);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasDolphin);
+
+    // 水生环境生物：仅 tropical_fish（深水版本无 pufferfish）
+    ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].entityTypeId, "minecraft:tropical_fish");
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].weight, 25);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].minCount, 8);
+    EXPECT_EQ(info.getWaterAmbientSpawns()[0].maxCount, 8);
+
+    // 确认深水版本不含 pufferfish
+    for (const auto& entry : info.getWaterAmbientSpawns()) {
+        EXPECT_NE(entry.entityTypeId, "minecraft:pufferfish") << "deepWarmOcean 不应含 pufferfish";
+    }
+}
+
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Desert)
 {
     auto info = world::spawn::MobSpawnInfo::createDesert();

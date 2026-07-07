@@ -178,27 +178,85 @@ MobSpawnInfo MobSpawnInfo::createOcean()
 
 MobSpawnInfo MobSpawnInfo::createWarmOcean()
 {
-    // 暖水海洋：热带鱼和河豚为主，鳕鱼、鲑鱼、海豚
+    // 暖水海洋浅水版本：对应 MC 1.16.5 BiomeMaker.func_244249_o()
+    //   PUFFERFISH (15,1,3) WATER_AMBIENT
+    //   + warmOceanSpawns(builder, 10, 4):
+    //       SQUID (10,4,4) WATER_CREATURE
+    //       TROPICAL_FISH (25,8,8) WATER_AMBIENT
+    //       DOLPHIN (2,1,2) WATER_CREATURE
+    //       + commonSpawns(builder):
+    //           BAT (10,8,8) AMBIENT
+    //           + monsters(builder, 95, 5, 100): 8 条标准陆地怪物
+    //   浅水版本无 drowned、无 cod、无 salmon。
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // TODO(spawn-list-warm-ocean): 与原版 1.16.5 偏差：
-    //   1) 暖水海洋原版无 cod（暖水太暖），当前误加 cod weight=15。
-    //   2) pufferfish/tropical_fish 原版归 WaterAmbient，当前误归 WaterCreature。
-    //   3) dolphin 原版 weight=2, pack=1-2，与当前一致，OK。
-    //   4) 怪物 list 原版仅 drowned（weight=5, pack=1），与当前一致，OK。
-
-    // 怪物（标准 + 溺尸）
+    // 怪物：标准 8 条陆地怪物列表（commonSpawns → func_243735_b(_, 95, 5, 100)）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
+    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+
+    // 环境生物（commonSpawns → caveSpawns → bat）
+    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
+    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+
+    // 水生生物：squid + dolphin（原版归 WaterCreature）
+    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 4, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    // 水生环境生物：pufferfish + tropical_fish（原版归 WaterAmbient）
+    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
+    info.addWaterAmbientSpawn(SpawnEntry("minecraft:pufferfish", 15, 1, 3));
+    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createDeepWarmOcean()
+{
+    // 深海暖水海洋：对应 MC 1.16.5 BiomeMaker.func_244250_p()
+    //   warmOceanSpawns(builder, 5, 1):
+    //       SQUID (5,1,4) WATER_CREATURE
+    //       TROPICAL_FISH (25,8,8) WATER_AMBIENT
+    //       DOLPHIN (2,1,2) WATER_CREATURE
+    //       + commonSpawns(builder): BAT + 8 条标准陆地怪物
+    //   + DROWNED (5,1,1) MONSTER
+    //   深水版本无 pufferfish、无 cod、无 salmon，但有 drowned；squid 权重 5、minCount 1。
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物：标准 8 条陆地怪物列表（commonSpawns → func_243735_b(_, 95, 5, 100)）
+    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
+    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
+    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+    // 深水版本额外添加 drowned
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
 
-    // 水生生物（暖水海洋配置）
+    // 环境生物（commonSpawns → caveSpawns → bat）
+    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
+    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+
+    // 水生生物：squid + dolphin（深水 squid 权重更低、minCount=1）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:pufferfish", 5, 1, 3));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 5, 1, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+
+    // 水生环境生物：仅 tropical_fish（深水版本无 pufferfish）
+    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
+    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
 
     return info;
 }

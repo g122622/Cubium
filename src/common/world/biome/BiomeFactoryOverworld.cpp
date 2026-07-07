@@ -755,7 +755,7 @@ Biome createDeepWarmOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setGenerationSettings(BiomeGenerationSettings::createDeepWarmOcean());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarmOcean());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepWarmOcean());
     // 与暖水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
             .waterColor(BiomeEffects::WARM_OCEAN_WATER_COLOR)

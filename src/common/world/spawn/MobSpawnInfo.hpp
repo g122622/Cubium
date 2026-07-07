@@ -421,7 +421,12 @@ public:
 
     /**
      * @brief 创建暖水海洋生物群系的生成信息
-     * 热带鱼(25)、河豚(5)，无鳕鱼/鲑鱼
+     *
+     * 对应 MC 1.16.5 BiomeMaker.func_244249_o()（warmOcean 浅水版本）：
+     *   PUFFERFISH (15,1,3) WATER_AMBIENT
+     *   + warmOceanSpawns(builder, 10, 4): SQUID/TROPICAL_FISH/DOLPHIN
+     *   + commonSpawns: BAT + 8 条标准陆地怪物
+     *   无 cod、无 salmon、无 drowned。
      */
     static MobSpawnInfo createWarmOcean();
 
@@ -448,6 +453,14 @@ public:
      * 更多鱿鱼
      */
     static MobSpawnInfo createDeepOcean();
+
+    /**
+     * @brief 创建深海暖水海洋生物群系的生成信息
+     *
+     * 对应 MC 1.16.5 BiomeMaker.func_244250_p()（deepWarmOcean 深水版本）：
+     *   比浅水 warmOcean 多 drowned、少 pufferfish，squid 权重更低。
+     */
+    static MobSpawnInfo createDeepWarmOcean();
 
     /**
      * @brief 创建针叶林生物群系的生成信息
