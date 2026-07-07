@@ -28,6 +28,7 @@
 #include <functional>
 #include <map>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -123,6 +124,15 @@ private:
     };
 
     /**
+     * @brief 一条检测到的环
+     *
+     * cycleNodes 按环的有向顺序给出参与成环的特征全局索引（首尾相同，便于阅读）。
+     */
+    struct CycleInfo {
+        std::vector<i32> cycleNodes; ///< 环中节点（globalIndex），首尾相同
+    };
+
+    /**
      * @brief DFS 拓扑排序（检测环）
      *
      * 对应 Java Graph.depthFirstSearch。
@@ -131,6 +141,8 @@ private:
      * @param visited 已完成节点集合
      * @param inProgress 正在处理节点集合
      * @param result 拓扑排序结果（逆后序）
+     * @param path 当前 DFS 递归路径（按访问顺序的 globalIndex，用于回溯成环节点）
+     * @param cycles 输出参数：检测到的所有环（每条回边产生一条 CycleInfo）
      * @param node 当前节点
      * @return 是否检测到环
      */
@@ -138,7 +150,21 @@ private:
         std::unordered_set<i32>& visited,
         std::unordered_set<i32>& inProgress,
         std::vector<i32>& result,
+        std::vector<i32>& path,
+        std::vector<CycleInfo>& cycles,
         i32 node);
+
+    /**
+     * @brief 把单个特征节点格式化为人类可读描述
+     *
+     * 输出形如 "coal_ore@underground_ores(#42)"：特征名 @ 装饰阶段 (#全局索引)。
+     */
+    static std::string _formatNode(const FeatureData& data);
+
+    /**
+     * @brief 把生物群系 ID 格式化为 "name(id)"
+     */
+    static std::string _formatBiome(BiomeId biomeId);
 };
 
 } // namespace mc

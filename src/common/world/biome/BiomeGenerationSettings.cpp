@@ -266,11 +266,11 @@ BiomeGenerationSettings BiomeGenerationSettings::createPlains()
 
 BiomeGenerationSettings BiomeGenerationSettings::createForest()
 {
-    // 森林：基础矿石 + 密集的树木 + 森林花卉 + 森林草丛
+    // 森林：基础矿石 + 橡树/白桦树 + 森林花卉 + 森林草丛
     BiomeGenerationSettings settings = createDefault();
 
-    // 添加树木（多添加几次增加密度）
-    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::OakTree);
+    // 添加树木（橡树在白桦树前，与所有森林类生物群系保持一致的拓扑顺序）
+    // TODO: 树木密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::OakTree);
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
 
@@ -285,14 +285,15 @@ BiomeGenerationSettings BiomeGenerationSettings::createForest()
 
 BiomeGenerationSettings BiomeGenerationSettings::createBirchForest()
 {
-    // 白桦森林：基础矿石 + 白桦树为主 + 野花 + 森林草丛
+    // 白桦森林：基础矿石 + 白桦树/橡树 + 野花 + 森林草丛
     // 参考 MC Java: BiomeDefaultFeatures.addBirchForestFlowers() 添加 WILDFLOWERS_BIRCH_FOREST
     BiomeGenerationSettings settings = createDefault();
 
-    // 白桦树为主，附加少量橡树
-    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
-    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
+    // 白桦树为主，附加少量橡树。顺序与 createForest 保持一致（橡树→白桦树），
+    // 避免跨生物群系产生 feature 顺序环；白桦树密度差异由 placed feature 的 count 决定。
+    // TODO: 白桦树密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::OakTree);
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
 
     // 添加白桦森林野花（野花床，16 种状态等权重，tries=64）
     settings.addFlowerFeature(FlowerFeatureIds::WildflowersBirchForest);
@@ -327,7 +328,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createTaiga()
     BiomeGenerationSettings settings = createDefault();
 
     // 添加云杉树
-    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SpruceTree);
+    // TODO: 云杉树密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SpruceTree);
 
     // 添加针叶林草丛（蕨类）
@@ -342,7 +343,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createJungle()
     BiomeGenerationSettings settings = createDefault();
 
     // 添加丛林树
-    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::JungleTree);
+    // TODO: 丛林树密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::JungleTree);
 
     // 添加丛林草丛
@@ -437,7 +438,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createRiver()
     addOverworldCarvers(settings);
     addDefaultOverworldOres(settings);
 
-    settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
+    // TODO: 海草密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
     settings.addFeature(DecorationStage::VegetalDecoration, SugarCaneFeatureIds::Normal);
 
@@ -498,15 +499,15 @@ BiomeGenerationSettings BiomeGenerationSettings::createBadlands()
 
 BiomeGenerationSettings BiomeGenerationSettings::createFlowerForest()
 {
-    // 繁花森林：矿石 + 密集树木 + 繁花森林花卉 + 森林草丛
+    // 繁花森林：矿石 + 橡树/白桦树 + 繁花森林花卉 + 森林草丛
     BiomeGenerationSettings settings = createDefault();
 
-    // 添加树木
+    // 添加树木（橡树→白桦树，与 createForest 保持一致）
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::OakTree);
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
 
     // 添加繁花森林花卉（最丰富的花卉）
-    settings.addFlowerFeature(FlowerFeatureIds::FlowerForestFlowers);
+    // TODO: 花卉密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFlowerFeature
     settings.addFlowerFeature(FlowerFeatureIds::FlowerForestFlowers);
 
     // 添加森林草丛
@@ -520,8 +521,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createCherryGrove()
     // 樱花树林：矿石 + 樱花树 + 粉色花瓣 + 草丛
     BiomeGenerationSettings settings = createDefault();
 
-    // 添加樱花树（两次增加密度）
-    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::CherryTree);
+    // 添加樱花树
+    // TODO: 樱花树密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::CherryTree);
 
     // 添加粉色花瓣
@@ -608,16 +609,18 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean()
 
 BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean()
 {
-    // 温水海洋：海带 + 常规海草
+    // 温水海洋：海泡菜 + 常规海草 + 海带
+    // 顺序与 createDeepLukewarmOcean / createWarmOcean 保持一致（海泡菜→海草→海带），
+    // 避免跨海洋生物群系产生 feature 顺序环。
     BiomeGenerationSettings settings;
 
     addOverworldOceanCarvers(settings);
 
     addDefaultOverworldOres(settings);
 
+    settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Normal);
     settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Warm);
-    settings.addFeature(DecorationStage::VegetalDecoration, SeaPickleFeatureIds::Normal);
     settings.addFeature(DecorationStage::VegetalDecoration, OceanDecorationFeatureIds::OceanProps);
 
     return settings;
@@ -680,8 +683,9 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean()
 
 BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean()
 {
-    // 深温水海洋：深海草 + 海带
-    // 注意：深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成
+    // 深温水海洋：海泡菜 + 深海草 + 海带
+    // 注意：深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成。
+    // 顺序与 createLukewarmOcean / createWarmOcean 保持一致（海泡菜→海草→海带）。
     BiomeGenerationSettings settings;
 
     addOverworldOceanCarvers(settings);
@@ -792,8 +796,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest()
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
     // 绯红巨型真菌
+    // TODO: 真菌密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus);
-    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::CrimsonFungus); // 增加密度
 
     // 岩浆池（较少）
     settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchNormal);
@@ -812,8 +816,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest()
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
     // 诡异巨型真菌
+    // TODO: 真菌密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus);
-    settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::WarpedFungus); // 增加密度
 
     return settings;
 }
@@ -828,16 +832,16 @@ BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas()
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
-    // 玄武岩柱（密集）
-    settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnNormal);
+    // 玄武岩柱
+    // TODO: 玄武岩柱密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnNormal);
     settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::ColumnLarge);
 
     // 玄武岩三角洲地面
     settings.addFeature(DecorationStage::UndergroundDecoration, BasaltFeatureIds::Delta);
 
-    // 密集岩浆池
-    settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchDense);
+    // 岩浆池
+    // TODO: 岩浆池密度应通过 placed feature 的 count 配置实现（与原版一致），而非重复 addFeature
     settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchDense);
 
     return settings;
