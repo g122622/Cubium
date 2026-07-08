@@ -292,6 +292,13 @@ void BreezeEntity::shootWindCharge()
 
     // 方向向量
     const f32 dx = targetPos.x - firingPos.x;
+    // TODO(breeze_target_y): 目标 Y 坐标计算与 MC 1.21.11 原版存在偏差。
+    // MC 原版 Shoot.tick(): livingentity.getY(livingentity.isPassenger() ? 0.8 : 0.3)
+    //   即 targetY + 0.3 * targetHeight（非骑乘）或 targetY + 0.8 * targetHeight（骑乘）。
+    // 当前实现使用 targetY + 0.5 * targetHeight（目标身体中心），未区分骑乘状态。
+    // 这会导致风弹瞄准点偏高（0.5 > 0.3），轻微影响命中率。
+    // 修复需要：1) 引入 Entity::getY(partialY) 方法或等价计算；
+    //          2) 根据 m_attackTarget->isPassenger() 选择 0.3 或 0.8 比例。
     const f32 dy = targetPos.y + m_attackTarget->height() * 0.5f - firingPos.y;
     const f32 dz = targetPos.z - firingPos.z;
 
