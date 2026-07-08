@@ -40,7 +40,9 @@ namespace parser {
  * 解析数据包中的方块谓词对象（allowed_placement / block_predicate_filter 等），
  * 按 JSON "type" 字段分派到 predicate::BlockPredicate 子类。
  * 支持：
- *   {"type":"minecraft:matching_blocks","blocks":"minecraft:air" | ["minecraft:air",...]}
+ *   {"type":"minecraft:matching_blocks","blocks":"minecraft:air" | ["minecraft:air",...],"offset":[x,y,z]?}
+ *   {"type":"minecraft:matching_fluids","fluids":"minecraft:water" | ["minecraft:water",...] |
+ * "#tag","offset":[x,y,z]?}
  *   {"type":"minecraft:matching_block_tag","tag":"#minecraft:xxx"}
  *   {"type":"minecraft:all_of","predicates":[...]}
  *   {"type":"minecraft:any_of","predicates":[...]}

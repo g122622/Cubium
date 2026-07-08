@@ -28,9 +28,13 @@
 #include "common/util/Direction.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gen/feature/predicate/AllOfPredicate.hpp"
 #include "common/world/gen/feature/predicate/HasSturdyFacePredicate.hpp"
 #include "common/world/gen/feature/predicate/MatchingBlockPredicate.hpp"
+#include "common/world/gen/feature/predicate/MatchingFluidsPredicate.hpp"
 #include "common/world/gen/feature/predicate/ReplaceablePredicate.hpp"
 #include "common/world/gen/feature/predicate/SolidBlockPredicate.hpp"
 #include "common/world/gen/feature/predicate/TagMatchPredicate.hpp"
@@ -60,8 +64,30 @@ std::string stripNamespace(const std::string& s)
     return s;
 }
 
+/// 解析可选的 "offset" 字段（[x,y,z] 整数数组，默认 0,0,0）。
+/// 对齐 MC StateTestingCodec 的 Vec3i.offsetCodec(16).optionalFieldOf("offset", Vec3i.ZERO)。
+Result<BlockPos> parseOffset(const nlohmann::json& predicateObj)
+{
+    BlockPos offset(0, 0, 0);
+    if (!predicateObj.contains("offset")) {
+        return offset;
+    }
+    const auto& arr = predicateObj["offset"];
+    if (!arr.is_array() || arr.size() != 3) {
+        return Error(ErrorCode::InvalidData, "block predicate 'offset' must be a 3-element int array");
+    }
+    for (i32 i = 0; i < 3; ++i) {
+        if (!arr[i].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "block predicate 'offset' entries must be integers");
+        }
+    }
+    offset = BlockPos(arr[0].get<i32>(), arr[1].get<i32>(), arr[2].get<i32>());
+    return offset;
+}
+
 /// 解析 "blocks" 字段（单个字符串或字符串数组）为 MatchingBlockPredicate 列表
-Result<std::vector<std::unique_ptr<predicate::BlockPredicate>>> parseMatchingBlocks(const nlohmann::json& blocksField)
+Result<std::vector<std::unique_ptr<predicate::BlockPredicate>>> parseMatchingBlocks(
+    const nlohmann::json& blocksField, const BlockPos& offset)
 {
     std::vector<std::unique_ptr<predicate::BlockPredicate>> result;
     if (blocksField.is_string()) {
@@ -70,7 +96,7 @@ Result<std::vector<std::unique_ptr<predicate::BlockPredicate>>> parseMatchingBlo
         if (block == nullptr) {
             return Error(ErrorCode::NotFound, "matching_blocks: unknown block '" + blockLoc.toString() + "'");
         }
-        result.push_back(std::make_unique<predicate::MatchingBlockPredicate>(block));
+        result.push_back(std::make_unique<predicate::MatchingBlockPredicate>(block, offset));
         return result;
     }
     if (blocksField.is_array()) {
@@ -83,11 +109,59 @@ Result<std::vector<std::unique_ptr<predicate::BlockPredicate>>> parseMatchingBlo
             if (block == nullptr) {
                 return Error(ErrorCode::NotFound, "matching_blocks: unknown block '" + blockLoc.toString() + "'");
             }
-            result.push_back(std::make_unique<predicate::MatchingBlockPredicate>(block));
+            result.push_back(std::make_unique<predicate::MatchingBlockPredicate>(block, offset));
         }
         return result;
     }
     return Error(ErrorCode::InvalidData, "matching_blocks 'blocks' must be string or array");
+}
+
+/// 解析 "fluids" 字段（单个字符串或字符串数组），每项为流体 id 或 "#tag" 引用。
+/// 对齐 MC RegistryCodecs.homogeneousList(Registries.FLUID)。
+Result<std::pair<std::vector<const fluid::Fluid*>, std::vector<const fluid::FluidTag*>>> parseMatchingFluids(
+    const nlohmann::json& fluidsField)
+{
+    std::vector<const fluid::Fluid*> fluids;
+    std::vector<const fluid::FluidTag*> tags;
+    auto parseOne = [&](const std::string& entry) -> Result<void> {
+        if (!entry.empty() && entry[0] == '#') {
+            const ResourceLocation tagLoc(entry.substr(1));
+            fluid::FluidTag* tag = fluid::FluidTags::getTag(tagLoc);
+            if (tag == nullptr) {
+                return Error(ErrorCode::NotFound, "matching_fluids: unknown fluid tag '" + tagLoc.toString() + "'");
+            }
+            tags.push_back(tag);
+            return {};
+        }
+        const ResourceLocation fluidLoc(entry);
+        fluid::Fluid* fluid = fluid::FluidRegistry::instance().getFluid(fluidLoc);
+        if (fluid == nullptr) {
+            return Error(ErrorCode::NotFound, "matching_fluids: unknown fluid '" + fluidLoc.toString() + "'");
+        }
+        fluids.push_back(fluid);
+        return {};
+    };
+
+    if (fluidsField.is_string()) {
+        auto r = parseOne(fluidsField.get<std::string>());
+        if (!r.success()) {
+            return r.error();
+        }
+        return std::make_pair(std::move(fluids), std::move(tags));
+    }
+    if (fluidsField.is_array()) {
+        for (const auto& entry : fluidsField) {
+            if (!entry.is_string()) {
+                return Error(ErrorCode::InvalidData, "matching_fluids array entry must be a string");
+            }
+            auto r = parseOne(entry.get<std::string>());
+            if (!r.success()) {
+                return r.error();
+            }
+        }
+        return std::make_pair(std::move(fluids), std::move(tags));
+    }
+    return Error(ErrorCode::InvalidData, "matching_fluids 'fluids' must be string or array");
 }
 
 /// 解析 predicates 数组
@@ -121,7 +195,11 @@ Result<std::unique_ptr<predicate::BlockPredicate>> parse(const nlohmann::json& p
         if (!predicateObj.contains("blocks")) {
             return Error(ErrorCode::InvalidData, "matching_blocks predicate missing 'blocks'");
         }
-        auto blocksResult = parseMatchingBlocks(predicateObj["blocks"]);
+        auto offsetResult = parseOffset(predicateObj);
+        if (!offsetResult.success()) {
+            return offsetResult.error();
+        }
+        auto blocksResult = parseMatchingBlocks(predicateObj["blocks"], offsetResult.value());
         if (!blocksResult.success()) {
             return blocksResult.error();
         }
@@ -132,6 +210,23 @@ Result<std::unique_ptr<predicate::BlockPredicate>> parse(const nlohmann::json& p
         // 多方块 → any_of（任一匹配即满足）
         return std::unique_ptr<predicate::BlockPredicate>(
             std::make_unique<predicate::AnyOfPredicate>(std::move(blocks)));
+    }
+
+    if (type == "matching_fluids") {
+        if (!predicateObj.contains("fluids")) {
+            return Error(ErrorCode::InvalidData, "matching_fluids predicate missing 'fluids'");
+        }
+        auto offsetResult = parseOffset(predicateObj);
+        if (!offsetResult.success()) {
+            return offsetResult.error();
+        }
+        auto fluidsResult = parseMatchingFluids(predicateObj["fluids"]);
+        if (!fluidsResult.success()) {
+            return fluidsResult.error();
+        }
+        auto& [fluids, tags] = fluidsResult.value();
+        return std::unique_ptr<predicate::BlockPredicate>(std::make_unique<predicate::MatchingFluidsPredicate>(
+            std::move(fluids), std::move(tags), offsetResult.value()));
     }
 
     if (type == "matching_block_tag") {

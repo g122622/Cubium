@@ -1208,6 +1208,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Feature - Predicate
     world/gen/feature/predicate/BlockPredicate.cpp
+    world/gen/feature/predicate/MatchingFluidsPredicate.cpp
 
     # World - Generation - Feature - Template
     world/gen/feature/template/Template.cpp

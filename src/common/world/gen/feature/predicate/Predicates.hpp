@@ -27,6 +27,7 @@
 #include "HasSturdyFacePredicate.hpp"
 #include "InsideWorldBoundsPredicate.hpp"
 #include "MatchingBlockPredicate.hpp"
+#include "MatchingFluidsPredicate.hpp"
 #include "OnlyInAirPredicate.hpp"
 #include "ReplaceablePredicate.hpp"
 #include "SolidBlockPredicate.hpp"
