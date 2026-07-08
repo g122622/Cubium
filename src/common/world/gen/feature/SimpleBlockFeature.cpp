@@ -35,7 +35,12 @@ bool SimpleBlockFeature::place(
 {
     MC_UNUSED(random);
 
-    if (config.toPlace == nullptr) {
+    // 取本次放置的目标状态：weighted 提供者按权重采样，simple 用单一状态。
+    const BlockState* toPlace = config.toPlace;
+    if (toPlace == nullptr && config.weightedProvider != nullptr) {
+        toPlace = config.weightedProvider->getState(random);
+    }
+    if (toPlace == nullptr) {
         return false;
     }
 
@@ -44,7 +49,7 @@ bool SimpleBlockFeature::place(
     // 空气可被替换（对齐 MC SimpleBlockFeature：AIR.canBeReplaced()=true），故 nullptr 视为可放置。
     const bool replaceable = (currentState == nullptr) || currentState->canBeReplaced();
 
-    const Block& block = config.toPlace->getBlock();
+    const Block& block = toPlace->getBlock();
     MC_UNUSED(block);
 
     // 如果当前位置不可替换，则放置失败
@@ -52,7 +57,7 @@ bool SimpleBlockFeature::place(
         return false;
     }
 
-    region.setBlockState(pos, config.toPlace, 3);
+    region.setBlockState(pos, toPlace, 3);
     return true;
 }
 

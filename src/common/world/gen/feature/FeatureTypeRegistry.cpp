@@ -363,7 +363,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createHugeFungus(const nlohmann::
 }
 
 /**
- * @brief simple_block 工厂：to_place（BlockStateProvider，取单一状态）→ toPlace。
+ * @brief simple_block 工厂：to_place（BlockStateProvider）。
+ * simple_state_provider → 取单一状态；weighted_state_provider → 持有提供者按权重采样。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createSimpleBlock(const nlohmann::json& configJson)
 {
@@ -374,11 +375,22 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSimpleBlock(const nlohmann:
     if (!providerResult.success()) {
         return providerResult.error();
     }
-    const BlockState* state = providerResult.value().asSingle();
-    if (state == nullptr) {
-        return Error(ErrorCode::InvalidData, "simple_block to_place must be simple_state_provider");
+    auto& handle = providerResult.value();
+    auto config = std::make_unique<cave::SimpleBlockConfig>();
+    if (handle.kind == parser::BlockStateProviderHandle::Kind::Simple) {
+        config->toPlace = handle.simple;
+        if (config->toPlace == nullptr) {
+            return Error(ErrorCode::InvalidData, "simple_block to_place simple_state_provider has null state");
+        }
+    } else if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted) {
+        config->weightedProvider = std::move(handle.weighted);
+        if (config->weightedProvider == nullptr || config->weightedProvider->empty()) {
+            return Error(ErrorCode::InvalidData, "simple_block to_place weighted_state_provider has no entries");
+        }
+    } else {
+        return Error(
+            ErrorCode::InvalidData, "simple_block to_place must be simple_state_provider or weighted_state_provider");
     }
-    auto config = std::make_unique<cave::SimpleBlockConfig>(state);
     return toBase(std::make_unique<cave::ConfiguredSimpleBlockFeature>(std::move(config), "simple_block"));
 }
 
@@ -691,11 +703,18 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createVegetationPatch(const nlohm
         config->replaceableTag = configJson["replaceable"].get<std::string>();
     }
     if (configJson.contains("ground_state")) {
-        auto groundResult = parser::BlockStateParser::parse(configJson["ground_state"]);
+        // ground_state 是 BlockStateProvider（如 simple_state_provider），不是裸 BlockState；
+        // 配置存单一状态，故取 asSingle()。非 simple provider（如 weighted）无法降级为单一状态。
+        auto groundResult = parser::BlockStateProviderParser::parse(configJson["ground_state"]);
         if (!groundResult.success()) {
             return groundResult.error();
         }
-        config->groundState = groundResult.value();
+        const BlockState* state = groundResult.value().asSingle();
+        if (state == nullptr) {
+            return Error(ErrorCode::InvalidData,
+                "vegetation_patch ground_state must be simple_state_provider (non-single provider unsupported)");
+        }
+        config->groundState = state;
     }
     if (configJson.contains("vegetation_feature") && configJson["vegetation_feature"].is_object() &&
         configJson["vegetation_feature"].contains("feature") &&
