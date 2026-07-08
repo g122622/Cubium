@@ -262,11 +262,13 @@ const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTU
 bool EntityTextureLoader::needsTexture(entity::EntityClassification classification)
 {
     switch (classification) {
-        case entity::EntityClassification::Creature:      // 动物
-        case entity::EntityClassification::WaterCreature: // 水生生物
-        case entity::EntityClassification::WaterAmbient:  // 水生环境生物（鱼）
-        case entity::EntityClassification::Ambient:       // 环境生物（蝙蝠）
-        case entity::EntityClassification::Monster:       // 怪物
+        case entity::EntityClassification::Creature:                 // 动物
+        case entity::EntityClassification::WaterCreature:            // 水生生物
+        case entity::EntityClassification::WaterAmbient:             // 水生环境生物（鱼）
+        case entity::EntityClassification::Ambient:                  // 环境生物（蝙蝠）
+        case entity::EntityClassification::Monster:                  // 怪物
+        case entity::EntityClassification::Axolotls:                 // 美西螈
+        case entity::EntityClassification::UndergroundWaterCreature: // 地下水生生物（发光鱿鱼）
             return true;
         case entity::EntityClassification::Misc: // 物品、经验球等
             // Misc 类别的实体通常不加载纹理，但经验球等需要纹理

@@ -174,6 +174,12 @@ public:
                 case entity::EntityClassification::Ambient:
                     m_ambient.addEntry(entry);
                     break;
+                case entity::EntityClassification::Axolotls:
+                    m_axolotls.addEntry(entry);
+                    break;
+                case entity::EntityClassification::UndergroundWaterCreature:
+                    m_undergroundWaterCreatures.addEntry(entry);
+                    break;
                 case entity::EntityClassification::WaterCreature:
                     m_waterCreatures.addEntry(entry);
                     break;
@@ -229,6 +235,8 @@ public:
             info.m_monsters = m_monsters;
             info.m_creatures = m_creatures;
             info.m_ambient = m_ambient;
+            info.m_axolotls = m_axolotls;
+            info.m_undergroundWaterCreatures = m_undergroundWaterCreatures;
             info.m_waterCreatures = m_waterCreatures;
             info.m_waterAmbient = m_waterAmbient;
             info.m_misc = m_misc;
@@ -242,6 +250,8 @@ public:
         SpawnCategory m_monsters;
         SpawnCategory m_creatures;
         SpawnCategory m_ambient;
+        SpawnCategory m_axolotls;
+        SpawnCategory m_undergroundWaterCreatures;
         SpawnCategory m_waterCreatures;
         SpawnCategory m_waterAmbient;
         SpawnCategory m_misc;
@@ -268,6 +278,16 @@ public:
      * @brief 添加环境生物生成条目（蝙蝠等）
      */
     void addAmbientSpawn(const SpawnEntry& entry) { m_ambient.addEntry(entry); }
+
+    /**
+     * @brief 添加美西螈生成条目
+     */
+    void addAxolotlSpawn(const SpawnEntry& entry) { m_axolotls.addEntry(entry); }
+
+    /**
+     * @brief 添加地下水生生物生成条目（发光鱿鱼等）
+     */
+    void addUndergroundWaterCreatureSpawn(const SpawnEntry& entry) { m_undergroundWaterCreatures.addEntry(entry); }
 
     /**
      * @brief 添加水生生物生成条目
@@ -307,6 +327,10 @@ public:
                 return m_creatures.entries;
             case entity::EntityClassification::Ambient:
                 return m_ambient.entries;
+            case entity::EntityClassification::Axolotls:
+                return m_axolotls.entries;
+            case entity::EntityClassification::UndergroundWaterCreature:
+                return m_undergroundWaterCreatures.entries;
             case entity::EntityClassification::WaterCreature:
                 return m_waterCreatures.entries;
             case entity::EntityClassification::WaterAmbient:
@@ -322,6 +346,13 @@ public:
     [[nodiscard]] const std::vector<SpawnEntry>& getCreatureSpawns() const noexcept { return m_creatures.entries; }
 
     [[nodiscard]] const std::vector<SpawnEntry>& getAmbientSpawns() const noexcept { return m_ambient.entries; }
+
+    [[nodiscard]] const std::vector<SpawnEntry>& getAxolotlSpawns() const noexcept { return m_axolotls.entries; }
+
+    [[nodiscard]] const std::vector<SpawnEntry>& getUndergroundWaterCreatureSpawns() const noexcept
+    {
+        return m_undergroundWaterCreatures.entries;
+    }
 
     [[nodiscard]] const std::vector<SpawnEntry>& getWaterCreatureSpawns() const noexcept
     {
@@ -356,6 +387,15 @@ public:
 
     [[nodiscard]] i32 getMaxAmbientInstances() const noexcept { return m_ambient.maxInstances; }
     void setMaxAmbientInstances(i32 max) noexcept { m_ambient.maxInstances = max; }
+
+    [[nodiscard]] i32 getMaxAxolotlInstances() const noexcept { return m_axolotls.maxInstances; }
+    void setMaxAxolotlInstances(i32 max) noexcept { m_axolotls.maxInstances = max; }
+
+    [[nodiscard]] i32 getMaxUndergroundWaterCreatureInstances() const noexcept
+    {
+        return m_undergroundWaterCreatures.maxInstances;
+    }
+    void setMaxUndergroundWaterCreatureInstances(i32 max) noexcept { m_undergroundWaterCreatures.maxInstances = max; }
 
     [[nodiscard]] i32 getMaxWaterCreatureInstances() const noexcept { return m_waterCreatures.maxInstances; }
     void setMaxWaterCreatureInstances(i32 max) noexcept { m_waterCreatures.maxInstances = max; }
@@ -396,6 +436,8 @@ public:
     static constexpr i32 DEFAULT_MAX_MONSTERS = 70;
     static constexpr i32 DEFAULT_MAX_CREATURES = 10;
     static constexpr i32 DEFAULT_MAX_AMBIENT = 15;
+    static constexpr i32 DEFAULT_MAX_AXOLOTLS = 5;
+    static constexpr i32 DEFAULT_MAX_UNDERGROUND_WATER_CREATURES = 5;
     static constexpr i32 DEFAULT_MAX_WATER_CREATURES = 5;
     static constexpr i32 DEFAULT_MAX_WATER_AMBIENT = 20;
 
@@ -657,12 +699,14 @@ public:
     static MobSpawnInfo createLushCaves();
 
 private:
-    SpawnCategory m_monsters;       // 怪物（僵尸、骷髅等）
-    SpawnCategory m_creatures;      // 动物（猪、牛、羊等）
-    SpawnCategory m_ambient;        // 环境生物（蝙蝠）
-    SpawnCategory m_waterCreatures; // 水生生物（鱿鱼、海豚）
-    SpawnCategory m_waterAmbient;   // 水生环境生物（鱼）
-    SpawnCategory m_misc;           // 其他
+    SpawnCategory m_monsters;                  // 怪物（僵尸、骷髅等）
+    SpawnCategory m_creatures;                 // 动物（猪、牛、羊等）
+    SpawnCategory m_ambient;                   // 环境生物（蝙蝠）
+    SpawnCategory m_axolotls;                  // 美西螈（独立分类）
+    SpawnCategory m_undergroundWaterCreatures; // 地下水生生物（发光鱿鱼）
+    SpawnCategory m_waterCreatures;            // 水生生物（鱿鱼、海豚）
+    SpawnCategory m_waterAmbient;              // 水生环境生物（鱼）
+    SpawnCategory m_misc;                      // 其他
 
     /// 实体类型到生成成本的映射
     std::unordered_map<std::string, SpawnCosts> m_spawnCosts;

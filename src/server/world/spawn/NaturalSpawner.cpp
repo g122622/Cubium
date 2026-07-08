@@ -312,6 +312,8 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
                 static const entity::EntityClassification classifications[] = {entity::EntityClassification::Monster,
                     entity::EntityClassification::Creature,
                     entity::EntityClassification::Ambient,
+                    entity::EntityClassification::Axolotls,
+                    entity::EntityClassification::UndergroundWaterCreature,
                     entity::EntityClassification::WaterCreature,
                     entity::EntityClassification::WaterAmbient};
 
@@ -320,7 +322,9 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
                     bool isPeaceful = (classification == entity::EntityClassification::Creature ||
                         classification == entity::EntityClassification::WaterCreature ||
                         classification == entity::EntityClassification::WaterAmbient ||
-                        classification == entity::EntityClassification::Ambient);
+                        classification == entity::EntityClassification::Ambient ||
+                        classification == entity::EntityClassification::Axolotls ||
+                        classification == entity::EntityClassification::UndergroundWaterCreature);
 
                     if (!hostile && !isPeaceful) continue;
                     if (!passive && isPeaceful) continue;
@@ -720,6 +724,8 @@ bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i
 
         case entity::EntityClassification::WaterCreature:
         case entity::EntityClassification::WaterAmbient:
+        case entity::EntityClassification::Axolotls:
+        case entity::EntityClassification::UndergroundWaterCreature:
             // 水生生物需要在水中 - 已由 EntitySpawnPlacementRegistry::checkInWaterSpawn 处理
             return true;
 
@@ -831,6 +837,12 @@ const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& 
                 break;
             case entity::EntityClassification::Ambient:
                 entries = &defaultInfo.getAmbientSpawns();
+                break;
+            case entity::EntityClassification::Axolotls:
+                entries = &defaultInfo.getAxolotlSpawns();
+                break;
+            case entity::EntityClassification::UndergroundWaterCreature:
+                entries = &defaultInfo.getUndergroundWaterCreatureSpawns();
                 break;
             case entity::EntityClassification::WaterCreature:
                 entries = &defaultInfo.getWaterCreatureSpawns();

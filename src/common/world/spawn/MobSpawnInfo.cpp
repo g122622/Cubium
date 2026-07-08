@@ -32,11 +32,7 @@ namespace mc::world::spawn {
 // TODO(spawn-list-alignment): 本文件下各工厂方法的 spawn list 与原版 MC Java 1.16.5
 // 仍存在若干偏差，逐项列在对应工厂方法内（搜索关键词 "TODO(spawn-list" 即可定位）。
 // 已知共性偏差汇总：
-//   1) EntityClassification 枚举仅实现 6 类（Monster/Creature/Ambient/
-//      WaterCreature/WaterAmbient/Misc），缺失原版的 UndergroundWaterCreature
-//      与 Axolotls 两类。导致繁茂洞穴的美西螈、深海守卫者、水下洞穴鱼群等
-//      无法归入正确分类，目前临时塞进 WaterCreature。
-//   2) 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、
+//   1) 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、
 //      armadillo、zombie_horse 等），无法加入对应 spawn list。
 // 收敛上述任一项时，请同步删除对应的 TODO 注释。
 
@@ -1027,15 +1023,14 @@ MobSpawnInfo MobSpawnInfo::createLushCaves()
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
-    // TODO(spawn-list-lush-caves): axolotl 原版归独立 Axolotls 分类（maxCount=5），
-    //   本项目 EntityClassification 缺失 Axolotls，当前临时塞进 WaterCreature。
-    //   待 EntityClassification 扩展 Axolotls 后迁移。
-    info.setMaxWaterCreatureInstances(5);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:axolotl", 10, 4, 6));
+    // 美西螈归独立 Axolotls 分类（maxCount=5），与 WaterCreature 分开计数，
+    // 避免与鱿鱼、海豚等竞争 5 个名额。
+    info.setMaxAxolotlInstances(DEFAULT_MAX_AXOLOTLS);
+    info.addAxolotlSpawn(SpawnEntry("minecraft:axolotl", 10, 4, 6));
 
     // TODO(spawn-list-lush-caves): glow_squid 原版在 LushCaves 应生成（10,4,6）归
-    //   UNDERGROUND_WATER_CREATURE，本项目缺失该分类且 glow_squid 实体未注册，
-    //   待 EntityClassification 扩展 + glow_squid 实体注册后补回。
+    //   UNDERGROUND_WATER_CREATURE，本项目分类已扩展但 glow_squid 实体尚未注册，
+    //   待 glow_squid 实体注册后补回 addUndergroundWaterCreatureSpawn 调用。
 
     // 水生环境生物：热带鱼（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(20);

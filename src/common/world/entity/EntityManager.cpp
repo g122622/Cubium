@@ -304,6 +304,8 @@ std::unordered_map<entity::EntityClassification, i32> EntityManager::countEntiti
     counts[entity::EntityClassification::Monster] = 0;
     counts[entity::EntityClassification::Creature] = 0;
     counts[entity::EntityClassification::Ambient] = 0;
+    counts[entity::EntityClassification::Axolotls] = 0;
+    counts[entity::EntityClassification::UndergroundWaterCreature] = 0;
     counts[entity::EntityClassification::WaterCreature] = 0;
     counts[entity::EntityClassification::WaterAmbient] = 0;
     counts[entity::EntityClassification::Misc] = 0;

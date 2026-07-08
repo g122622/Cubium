@@ -48,6 +48,8 @@ TEST(EntityClassification, MaxCount)
     EXPECT_EQ(getMaxCount(EntityClassification::Monster), 70);
     EXPECT_EQ(getMaxCount(EntityClassification::Creature), 10);
     EXPECT_EQ(getMaxCount(EntityClassification::Ambient), 15);
+    EXPECT_EQ(getMaxCount(EntityClassification::Axolotls), 5);
+    EXPECT_EQ(getMaxCount(EntityClassification::UndergroundWaterCreature), 5);
     EXPECT_EQ(getMaxCount(EntityClassification::WaterCreature), 5);
     EXPECT_EQ(getMaxCount(EntityClassification::WaterAmbient), 20);
     EXPECT_EQ(getMaxCount(EntityClassification::Misc), -1); // 无限制
@@ -58,6 +60,8 @@ TEST(EntityClassification, IsPeaceful)
     EXPECT_FALSE(isPeaceful(EntityClassification::Monster));
     EXPECT_TRUE(isPeaceful(EntityClassification::Creature));
     EXPECT_TRUE(isPeaceful(EntityClassification::Ambient));
+    EXPECT_TRUE(isPeaceful(EntityClassification::Axolotls));
+    EXPECT_TRUE(isPeaceful(EntityClassification::UndergroundWaterCreature));
     EXPECT_TRUE(isPeaceful(EntityClassification::WaterCreature));
     EXPECT_TRUE(isPeaceful(EntityClassification::WaterAmbient));
     EXPECT_TRUE(isPeaceful(EntityClassification::Misc));
@@ -68,6 +72,8 @@ TEST(EntityClassification, IsAnimal)
     EXPECT_FALSE(isAnimal(EntityClassification::Monster));
     EXPECT_TRUE(isAnimal(EntityClassification::Creature));
     EXPECT_FALSE(isAnimal(EntityClassification::Ambient));
+    EXPECT_FALSE(isAnimal(EntityClassification::Axolotls));
+    EXPECT_FALSE(isAnimal(EntityClassification::UndergroundWaterCreature));
     EXPECT_FALSE(isAnimal(EntityClassification::WaterCreature));
     EXPECT_FALSE(isAnimal(EntityClassification::WaterAmbient));
     EXPECT_FALSE(isAnimal(EntityClassification::Misc));
@@ -77,7 +83,42 @@ TEST(EntityClassification, DespawnDistance)
 {
     EXPECT_EQ(getDespawnDistance(EntityClassification::Monster), 128);
     EXPECT_EQ(getDespawnDistance(EntityClassification::Creature), 128);
+    EXPECT_EQ(getDespawnDistance(EntityClassification::Ambient), 128);
+    EXPECT_EQ(getDespawnDistance(EntityClassification::Axolotls), 128);
+    EXPECT_EQ(getDespawnDistance(EntityClassification::UndergroundWaterCreature), 128);
+    EXPECT_EQ(getDespawnDistance(EntityClassification::WaterCreature), 128);
     EXPECT_EQ(getDespawnDistance(EntityClassification::WaterAmbient), 64);
+    EXPECT_EQ(getDespawnDistance(EntityClassification::Misc), 128);
+}
+
+TEST(EntityClassification, InfoGetAllClassifications)
+{
+    // 校验 EntityClassificationInfo::get 对每个分类返回的字段
+    auto checkInfo = [](EntityClassification c,
+                         const char* expectedName,
+                         i32 expectedMax,
+                         bool expectedPeaceful,
+                         bool expectedAnimal,
+                         i32 expectedDespawn,
+                         i32 expectedRandomDespawn) {
+        const auto info = EntityClassificationInfo::get(c);
+        EXPECT_EQ(info.classification, c);
+        EXPECT_STREQ(info.name.c_str(), expectedName);
+        EXPECT_EQ(info.maxCount, expectedMax);
+        EXPECT_EQ(info.isPeaceful, expectedPeaceful);
+        EXPECT_EQ(info.isAnimal, expectedAnimal);
+        EXPECT_EQ(info.despawnDistance, expectedDespawn);
+        EXPECT_EQ(info.randomDespawnDistance, expectedRandomDespawn);
+    };
+
+    checkInfo(EntityClassification::Monster, "monster", 70, false, false, 128, 32);
+    checkInfo(EntityClassification::Creature, "creature", 10, true, true, 128, 32);
+    checkInfo(EntityClassification::Ambient, "ambient", 15, true, false, 128, 32);
+    checkInfo(EntityClassification::Axolotls, "axolotls", 5, true, false, 128, 32);
+    checkInfo(EntityClassification::UndergroundWaterCreature, "underground_water_creature", 5, true, false, 128, 32);
+    checkInfo(EntityClassification::WaterCreature, "water_creature", 5, true, false, 128, 32);
+    checkInfo(EntityClassification::WaterAmbient, "water_ambient", 20, true, false, 64, 32);
+    checkInfo(EntityClassification::Misc, "misc", -1, true, false, 128, 32);
 }
 
 // ============================================================================

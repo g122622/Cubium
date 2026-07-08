@@ -350,7 +350,7 @@ private:
 
         // 美西螈
         registry.registerType(EntityTypes::AXOLOTL,
-            EntityType::Builder(&AxolotlEntity::create, EntityClassification::WaterCreature)
+            EntityType::Builder(&AxolotlEntity::create, EntityClassification::Axolotls)
                 .size(0.75f, 0.42f)
                 .trackingRange(10)
                 .updateInterval(3)

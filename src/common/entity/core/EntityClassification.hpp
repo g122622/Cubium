@@ -38,12 +38,14 @@ using mc::u8;
  * 每种分类有不同的生成限制和生成规则。
  */
 enum class EntityClassification : u8 {
-    Monster = 0,       // 怪物（僵尸、骷髅等）- 每区块最多70个，不和平生成
-    Creature = 1,      // 生物（猪、牛、羊等）- 每区块最多10个，和平生成
-    Ambient = 2,       // 环境生物（蝙蝠）- 每区块最多15个
-    WaterCreature = 3, // 水生生物（鱿鱼、海豚）- 每区块最多5个
-    WaterAmbient = 4,  // 水生环境生物（鱼）- 每区块最多20个
-    Misc = 5           // 其他（物品、经验球、箭等）- 无限制
+    Monster = 0,                  // 怪物（僵尸、骷髅等）- 每区块最多70个，不和平生成
+    Creature = 1,                 // 生物（猪、牛、羊等）- 每区块最多10个，和平生成
+    Ambient = 2,                  // 环境生物（蝙蝠）- 每区块最多15个
+    Axolotls = 3,                 // 美西螈 - 每区块最多5个（独立分类，避免与其他水生生物竞争名额）
+    UndergroundWaterCreature = 4, // 地下水生生物（发光鱿鱼）- 每区块最多5个
+    WaterCreature = 5,            // 水生生物（鱿鱼、海豚）- 每区块最多5个
+    WaterAmbient = 6,             // 水生环境生物（鱼）- 每区块最多20个
+    Misc = 7                      // 其他（物品、经验球、箭等）- 无限制
 };
 
 /**
@@ -77,6 +79,10 @@ inline i32 getMaxCount(EntityClassification classification)
             return 10;
         case EntityClassification::Ambient:
             return 15;
+        case EntityClassification::Axolotls:
+            return 5;
+        case EntityClassification::UndergroundWaterCreature:
+            return 5;
         case EntityClassification::WaterCreature:
             return 5;
         case EntityClassification::WaterAmbient:
@@ -120,6 +126,10 @@ inline i32 getDespawnDistance(EntityClassification classification)
         case EntityClassification::Creature:
             return 128;
         case EntityClassification::Ambient:
+            return 128;
+        case EntityClassification::Axolotls:
+            return 128;
+        case EntityClassification::UndergroundWaterCreature:
             return 128;
         case EntityClassification::WaterCreature:
             return 128;

@@ -1,6 +1,6 @@
 # Spawn 模块
 
-本模块定义生物群系的实体生成配置，参考 MC 1.16.5 的 `MobSpawnInfo` 系统。
+本模块定义生物群系的实体生成配置，参考 MC 1.21.11 的 `MobSpawnInfo` 系统（`EntityClassification` 已对齐 1.21.11 的 8 类 `MobCategory`，spawn list 工厂方法主要按 1.16.5 `BiomeMaker` 对齐，逐步迁移至 1.21.11）。
 
 ## 目录结构
 
@@ -104,7 +104,8 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 - **SnowyBeach 独立工厂方法**：与 SnowyTundra 差异较大（无 creature、skeleton 权重 100、无 stray、概率 0.1F），使用 `createSnowyBeach()`；IceSpikes spawn list 与 SnowyTundra 完全一致，复用 `createSnowy()`。
 
 仍存在的偏差（以 `TODO(spawn-list-*)` 标注）：
-- `EntityClassification` 仅 6 类，缺失原版的 `UndergroundWaterCreature` 与 `Axolotls`，导致美西螈等临时塞进 `WaterCreature`。
+- `EntityClassification` 已扩展至 8 类，与 MC 1.21.11 `MobCategory` 完全对齐（`Axolotls` 与 `UndergroundWaterCreature` 已加入）。美西螈已归入独立的 `Axolotls` 分类，不再塞进 `WaterCreature`。
+- `UndergroundWaterCreature` 分类基础设施已就绪，但发光鱿鱼（glow_squid）实体尚未注册，LushCaves 的 glow_squid spawn entry 暂以 `TODO(spawn-list-lush-caves)` 标注，待 glow_squid 实体注册后补回。
 - 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo），对应 spawn list 待补。
 
 ### 10. Jungle 系列变体使用不同工厂方法

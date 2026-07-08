@@ -63,6 +63,26 @@ EntityClassificationInfo EntityClassificationInfo::get(EntityClassification clas
                 128,   // despawnDistance
                 32     // randomDespawnDistance
             };
+        case EntityClassification::Axolotls:
+            return {
+                EntityClassification::Axolotls,
+                "axolotls",
+                5,     // maxCount
+                true,  // isPeaceful
+                false, // isAnimal
+                128,   // despawnDistance
+                32     // randomDespawnDistance
+            };
+        case EntityClassification::UndergroundWaterCreature:
+            return {
+                EntityClassification::UndergroundWaterCreature,
+                "underground_water_creature",
+                5,     // maxCount
+                true,  // isPeaceful
+                false, // isAnimal
+                128,   // despawnDistance
+                32     // randomDespawnDistance
+            };
         case EntityClassification::WaterCreature:
             return {
                 EntityClassification::WaterCreature,
