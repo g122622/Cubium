@@ -1188,6 +1188,7 @@ add_library(mc_common STATIC
     world/gen/feature/cave/PointedDripstoneFeature.cpp
     world/gen/feature/cave/LargeDripstoneFeature.cpp
     world/gen/feature/cave/DripstoneClusterFeature.cpp
+    world/gen/feature/cave/IcebergFeature.cpp
 
     # World - Generation - Feature - Ocean
     world/gen/feature/ocean/KelpFeature.cpp

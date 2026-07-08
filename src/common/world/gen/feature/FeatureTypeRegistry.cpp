@@ -55,6 +55,7 @@
 #include "common/world/gen/feature/WeepingVinesFeature.hpp"
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
 #include "common/world/gen/feature/cave/DripstoneClusterFeature.hpp"
+#include "common/world/gen/feature/cave/IcebergFeature.hpp"
 #include "common/world/gen/feature/cave/LargeDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/PointedDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/RootSystemFeature.hpp"
@@ -620,6 +621,25 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createForestRock(const nlohmann::
     }
     auto config = std::make_unique<BlockStateConfig>(stateResult.value());
     return toBase(std::make_unique<ConfiguredBlockBlobFeature>(std::move(config), "forest_rock"));
+}
+
+/**
+ * @brief iceberg 工厂：state（block state 对象）→ IcebergConfig(=BlockStateConfig)。
+ *
+ * 忠实复刻 MC 1.21.11 IcebergFeature（BlockStateConfiguration）。origin 在放置时
+ * 对齐到海平面，故仅 config.state 需从 JSON 解析。packed_ice/blue_ice 各一份 JSON。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createIceberg(const nlohmann::json& configJson)
+{
+    if (!configJson.contains("state")) {
+        return Error(ErrorCode::InvalidData, "iceberg config missing 'state'");
+    }
+    auto stateResult = parser::BlockStateParser::parse(configJson["state"]);
+    if (!stateResult.success()) {
+        return stateResult.error();
+    }
+    auto config = std::make_unique<cave::IcebergConfig>(stateResult.value());
+    return toBase(std::make_unique<cave::ConfiguredIcebergFeature>(std::move(config), "iceberg"));
 }
 
 // ----------------------------------------------------------------------------
@@ -1550,8 +1570,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("pointed_dripstone", createPointedDripstone);
     reg.registerType("large_dripstone", createLargeDripstone);
     reg.registerType("dripstone_cluster", createDripstoneCluster);
-    // TODO: 数据包共 54 种 configured_feature type，当前注册 54 种。
-    // 未注册的 type（geode/sculk_patch/fossil/desert_well/fallen_tree/iceberg/multiface_growth 等）
+    reg.registerType("iceberg", createIceberg);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 49 种
+    // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
+    // 未注册的 type（desert_well/fallen_tree/fossil/geode/multiface_growth/sculk_patch）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 
