@@ -13,7 +13,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -25,7 +25,13 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/boss/EnderDragonEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -122,34 +128,115 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
 
 void EndDragonFight::tick(IWorld& world)
 {
-    // 状态扫描：首次加载旧存档时检查出口传送门和末影龙存活状态
+    // 1. 旧存档状态扫描：首次加载旧存档时检查出口传送门和末影龙存活状态
     if (m_needsStateScanning) {
         if (_isArenaLoaded(world)) {
             _scanState(world);
             m_needsStateScanning = false;
         }
     }
+
+    // 2. Boss 栏可见性更新（每 tick）
+    // 对应 MC Java: this.dragonEvent.setVisible(!this.dragonKilled);
+    m_dragonBossBar->setVisible(!m_dragonKilled);
+
+    // 3. 玩家扫描：每 TIME_BETWEEN_PLAYER_SCANS tick 更新 Boss 栏可见玩家列表
+    // 对应 MC Java: if (++this.ticksSinceLastPlayerScan >= 20) { this.updatePlayers(); ... }
+    if (++m_ticksSinceLastPlayerScan >= TIME_BETWEEN_PLAYER_SCANS) {
+        _updatePlayers(world);
+        m_ticksSinceLastPlayerScan = 0;
+    }
+
+    // 4. 仅有可见玩家时才执行重的战斗逻辑
+    // 对应 MC Java: if (!this.dragonEvent.getPlayers().isEmpty()) { ... }
+    if (!m_dragonBossBar->hasPlayers()) {
+        return;
+    }
+
+    // 5. 龙失联检查：当龙未死亡但长时间未被 updateDragon() 调用时，重新查找或创建龙
+    // 对应 MC Java: if (!this.dragonKilled) {
+    //     if ((this.dragonUUID == null || ++this.ticksSinceDragonSeen >= 1200) && flag) {
+    //         this.findOrCreateDragon();
+    //         this.ticksSinceDragonSeen = 0;
+    //     }
+    // }
+    if (!m_dragonKilled) {
+        const bool arenaLoaded = _isArenaLoaded(world);
+        const bool uuidEmpty = m_dragonUUID.empty();
+        if ((uuidEmpty || ++m_ticksSinceDragonSeen >= MAX_TICKS_BEFORE_DRAGON_RESPAWN) && arenaLoaded) {
+            // TODO: findOrCreateDragon() 尚未实现。需要：
+            // 1. 查找世界中已存在的末影龙实体（IWorld::getEntitiesByType(ENDER_DRAGON)）
+            // 2. 如果存在，记录其 UUID
+            // 3. 如果不存在，创建新的末影龙实体并设置初始阶段
+            // 当前实现仅重置计数器，避免日志刷屏
+            m_ticksSinceDragonSeen = 0;
+        }
+    }
 }
 
 void EndDragonFight::setDragonKilled(IWorld& world)
 {
-    // 1. 创建激活态出口传送门（讲台）
+    // 1. Boss 栏：设置百分比为 0，隐藏
+    // 对应 MC Java: this.dragonEvent.setProgress(0.0F); this.dragonEvent.setVisible(false);
+    m_dragonBossBar->setPercent(0.0f);
+    m_dragonBossBar->setVisible(false);
+
+    // 2. 创建激活态出口传送门（讲台）
     EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), true);
 
-    // 2. 生成一个末地折跃门（如果还有剩余）
+    // 3. 生成一个末地折跃门（如果还有剩余）
     _spawnNewGateway(world);
 
-    // 3. 首次击杀时在祭坛顶部放置龙蛋
+    // 4. 首次击杀时在祭坛顶部放置龙蛋
     if (!m_previouslyKilled) {
         _placeDragonEgg(world);
     }
 
-    // 4. 更新状态标志
+    // 5. 更新状态标志
     m_previouslyKilled = true;
     m_dragonKilled = true;
 
-    // 5. 清空末影龙 UUID（龙已死亡，不再追踪）
+    // 6. 清空末影龙 UUID（龙已死亡，不再追踪）
     m_dragonUUID.clear();
+}
+
+void EndDragonFight::updateDragon(entity::EnderDragonEntity& dragon)
+{
+    // 对应 MC Java: EndDragonFight.updateDragon(EnderDragon)
+    // if (p_64097_.getUUID().equals(this.dragonUUID)) {
+    //     this.dragonEvent.setProgress(p_64097_.getHealth() / p_64097_.getMaxHealth());
+    //     this.ticksSinceDragonSeen = 0;
+    //     if (p_64097_.hasCustomName()) {
+    //         this.dragonEvent.setName(p_64097_.getDisplayName());
+    //     }
+    // }
+
+    if (dragon.uuid() != m_dragonUUID) {
+        return;
+    }
+
+    // 同步血量百分比
+    const f32 maxHp = dragon.maxHealth();
+    const f32 hp = dragon.health();
+    const f32 percent = (maxHp > 0.0f) ? (hp / maxHp) : 0.0f;
+    m_dragonBossBar->setPercent(percent);
+
+    // 重置失联计数器
+    m_ticksSinceDragonSeen = 0;
+
+    // 同步名称（仅当龙有自定义名称时）
+    if (dragon.hasCustomName()) {
+        m_dragonBossBar->setName(dragon.getDisplayName());
+    }
+}
+
+void EndDragonFight::setDragonBossBar(std::unique_ptr<IDragonBossBar> bossBar)
+{
+    if (bossBar == nullptr) {
+        m_dragonBossBar = std::make_unique<NullDragonBossBar>();
+    } else {
+        m_dragonBossBar = std::move(bossBar);
+    }
 }
 
 // ============================================================================
@@ -349,6 +436,50 @@ void EndDragonFight::_placeDragonEgg(IWorld& world)
     if (dragonEggState != nullptr) {
         world.setBlockState(BlockPos(0, topY, 0), dragonEggState);
     }
+}
+
+void EndDragonFight::_updatePlayers(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.updatePlayers()
+    // 扫描 PLAYER_TRACKING_RADIUS 半径内的存活玩家，一次性替换 Boss 栏可见玩家列表。
+    // replacePlayers 内部计算差集，仅对新增/移除的玩家发送 Add/Remove 包，
+    // 已追踪且仍在范围内的玩家不受影响（无闪烁）。
+
+    // validPlayer 谓词：ENTITY_STILL_ALIVE 且距离 (0, 128, 0) 在 PLAYER_TRACKING_RADIUS 内
+    // MC Java: withinDistance(origin.x, 128 + origin.y, origin.z, 192.0)
+    // Cubium 的末地原点为 (0, 0, 0)，故追踪中心为 (0, 128, 0)
+
+    const Vector3 trackCenter(0.0f, 128.0f, 0.0f);
+    const f32 trackRadiusSq = PLAYER_TRACKING_RADIUS * PLAYER_TRACKING_RADIUS;
+
+    std::set<PlayerId> inRange;
+
+    std::vector<Entity*> players = world.getPlayers();
+    for (Entity* entity : players) {
+        if (entity == nullptr || !entity->isAlive()) {
+            continue;
+        }
+
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 3D 球形距离检测（MC Java 的 withinDistance 是 3D 检测）
+        const Vector3 delta(entity->x() - trackCenter.x, entity->y() - trackCenter.y, entity->z() - trackCenter.z);
+        const f32 distSq = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
+        if (distSq <= trackRadiusSq) {
+            inRange.insert(player->playerId());
+        }
+    }
+
+    m_dragonBossBar->replacePlayers(inRange);
+}
+
+std::unique_ptr<text::ITextComponent> EndDragonFight::createDefaultBossName()
+{
+    // 对应 MC Java: Component.translatable("entity.minecraft.ender_dragon")
+    return std::make_unique<text::TranslationTextComponent>("entity.minecraft.ender_dragon");
 }
 
 } // namespace mc

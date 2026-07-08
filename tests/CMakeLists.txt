@@ -611,6 +611,7 @@ add_executable(mc_tests
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
     common/world/dimension/EndDragonFightTest.cpp
+    common/world/dimension/EndDragonFightBossBarTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
@@ -1476,6 +1477,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerDragonBossBar.cpp
         # 函数系统
         ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
@@ -2564,6 +2566,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerDragonBossBar.cpp
         # 函数系统
         ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp

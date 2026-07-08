@@ -216,6 +216,21 @@ void EnderDragonEntity::tick()
     // 因此死亡动画逻辑会在 BossEntity::tick() 内部触发，无需在此重复调用。
     BossEntity::tick();
 
+    // 同步 Boss 栏血量/名称到 EndDragonFight
+    // 对应 MC 1.21.11 EnderDragon.aiStep() 中：
+    //   if (this.dragonFight != null) { this.dragonFight.updateDragon(this); }
+    // 注意：死亡动画期间的 updateDragon 调用在 _onDeathUpdate() 中，
+    // 此处仅处理龙存活时的常规同步。
+    if (!isDead()) {
+        IWorld* worldPtr = world();
+        if (worldPtr != nullptr) {
+            EndDragonFight* fight = worldPtr->dragonFight();
+            if (fight != nullptr) {
+                fight->updateDragon(*this);
+            }
+        }
+    }
+
     // 更新末影水晶
     _updateDragonEnderCrystal();
 
@@ -691,8 +706,13 @@ void EnderDragonEntity::_onDeathUpdate()
     IWorld* worldPtr = world();
 
     // MC: if (this.dragonFight != null) { this.dragonFight.updateDragon(this); }
-    // TODO: EndDragonFight::updateDragon() 尚未实现（用于同步 BossEvent 血量/名称），
-    //       待 EndDragonFight 接入 BossEvent 系统后在此调用。
+    // 死亡动画期间持续同步 Boss 栏血量（龙血量为 0，Boss 栏显示 0%）和名称
+    if (worldPtr != nullptr) {
+        EndDragonFight* fight = worldPtr->dragonFight();
+        if (fight != nullptr) {
+            fight->updateDragon(*this);
+        }
+    }
 
     m_deathTicks++;
 

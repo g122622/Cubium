@@ -229,6 +229,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     }
 
     setupRaidManagerCallbacks();
+    setupDragonFightBossBar();
     initializeInteractionManagers();
 
     // 初始化同步管理器

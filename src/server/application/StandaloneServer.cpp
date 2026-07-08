@@ -448,6 +448,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     }
 
     setupRaidManagerCallbacks();
+    setupDragonFightBossBar();
     initializeInteractionManagers();
 
     // 初始化同步管理器

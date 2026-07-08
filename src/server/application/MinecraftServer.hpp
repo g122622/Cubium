@@ -493,6 +493,15 @@ protected:
     void setupRaidManagerCallbacks();
 
     /**
+     * @brief 为末地维度的 EndDragonFight 注入服务端 Boss 栏
+     *
+     * 在维度初始化完成后调用，从 dimensionManager 获取末地维度的 ServerWorld，
+     * 为其 EndDragonFight 创建并注入 ServerDragonBossBar，使末影龙 Boss 栏
+     * 能通过网络包同步到客户端。
+     */
+    void setupDragonFightBossBar();
+
+    /**
      * @brief 发送区块数据给指定玩家
      */
     void sendChunkDataToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);

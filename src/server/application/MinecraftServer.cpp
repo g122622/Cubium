@@ -75,6 +75,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -96,6 +97,8 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
+#include "server/bossbar/BossInfo.hpp"
+#include "server/bossbar/ServerDragonBossBar.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -112,6 +115,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include <chrono>
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
@@ -1437,6 +1441,39 @@ void MinecraftServer::setupRaidManagerCallbacks()
     };
 
     raidManager->setCallbacks(std::move(callbacks));
+}
+
+void MinecraftServer::setupDragonFightBossBar()
+{
+    // 获取末地维度
+    auto* theEnd = m_dimensionManager ? m_dimensionManager->getTheEnd() : nullptr;
+    if (theEnd == nullptr || theEnd->world() == nullptr) {
+        return;
+    }
+
+    auto* world = theEnd->world();
+    EndDragonFight* fight = world->dragonFight();
+    if (fight == nullptr) {
+        return;
+    }
+
+    // 创建服务端末影龙 Boss 栏并注入 EndDragonFight
+    // 对应 MC Java: EndDragonFight.dragonEvent = new ServerBossEvent(
+    //     Component.translatable("entity.minecraft.ender_dragon"),
+    //     BossBarColor.PINK, BossBarOverlay.PROGRESS)
+    //     .setPlayBossMusic(true).setCreateWorldFog(true);
+
+    // 使用世界种子 + 当前时间生成 UUID 随机数种子，保证每次启动生成不同的 Boss 栏 UUID
+    math::Random uuidRng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+
+    auto bossBar = std::make_unique<ServerDragonBossBar>(*this,
+        util::generateRandomUuid(uuidRng),
+        EndDragonFight::createDefaultBossName(),
+        BossInfoColor::Pink,
+        BossInfoOverlay::Progress);
+
+    fight->setDragonBossBar(std::move(bossBar));
+    spdlog::info("Dragon fight boss bar injected into EndDragonFight");
 }
 
 bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)

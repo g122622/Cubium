@@ -574,6 +574,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerDragonBossBar.cpp
     # 函数系统
     ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
     ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp

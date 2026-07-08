@@ -6,11 +6,12 @@
 
 | 文件 | 说明 |
 |------|------|
-| `EndDragonFight.hpp/cpp` | 末影龙战斗管理器，协调击杀奖励（龙蛋放置、折跃门生成、经验掉落区分）、旧存档状态扫描及末影龙存活检测 |
+| `EndDragonFight.hpp/cpp` | 末影龙战斗管理器，协调击杀奖励（龙蛋放置、折跃门生成、经验掉落区分）、旧存档状态扫描、末影龙存活检测及 Boss 栏同步 |
+| `IDragonBossBar.hpp` | 末影龙 Boss 栏抽象接口，解耦 common 与 server 层；含默认空实现 `NullDragonBossBar` |
 
 ## EndDragonFight
 
-末影龙战斗管理器，协调末影龙击杀奖励、旧存档状态检测和末影龙存活追踪。
+末影龙战斗管理器，协调末影龙击杀奖励、旧存档状态检测、末影龙存活追踪和 Boss 栏同步。
 
 ### 职责
 
@@ -21,6 +22,43 @@
 5. **经验掉落区分**: 首次击杀 12000 XP，后续击杀 500 XP
 6. **出口传送门创建**: 龙死亡后创建激活态出口传送门
 7. **旧存档状态扫描**: 首次加载旧世界时检测出口传送门是否存在以推断 `previouslyKilled`
+8. **Boss 栏同步**: 通过 `IDragonBossBar` 接口同步龙血量百分比、自定义名称和可见性；服务端通过 `setDragonBossBar()` 注入真实实现
+
+### Boss 栏同步
+
+EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`），对应 MC 1.21.11 `EndDragonFight.dragonEvent`（`ServerBossEvent`）。
+
+#### 生命周期
+
+- **构造时**: 创建 `NullDragonBossBar` 作为默认值
+- **服务端初始化时**: 通过 `setDragonBossBar()` 注入 `ServerDragonBossBar`（见 `src/server/bossbar/`）
+- **每 tick**: 调用 `setVisible(!dragonKilled)` 更新可见性
+- **每 20 tick**: 扫描 192 格半径内玩家，通过 `replacePlayers()` 增量更新可见玩家列表
+- **updateDragon()**: 由末影龙每 tick 调用，同步血量百分比和自定义名称
+- **setDragonKilled()**: 设置百分比为 0、隐藏 Boss 栏
+
+#### 接口设计
+
+`IDragonBossBar` 定义在 common 层，使 `EndDragonFight`（common）不依赖 `ServerBossInfo`（server）。关键方法：
+
+| 方法 | 对应 MC Java | 说明 |
+|------|-------------|------|
+| `setPercent(f32)` | `ServerBossEvent.setProgress` | 同步血量百分比 |
+| `setName(unique_ptr<ITextComponent>)` | `ServerBossEvent.setName` | 同步显示名称 |
+| `setVisible(bool)` | `ServerBossEvent.setVisible` | 同步可见性 |
+| `addPlayer(PlayerId)` | `ServerBossEvent.addPlayer` | 添加可见玩家 |
+| `removePlayer(PlayerId)` | `ServerBossEvent.removePlayer` | 移除可见玩家 |
+| `replacePlayers(set<PlayerId>)` | EndDragonFight.updatePlayers 差集逻辑 | 一次性替换玩家列表，内部计算差集避免闪烁 |
+| `hasPlayers()` | `getPlayers().isEmpty()` | 用于 tick 中判断是否跳过重逻辑 |
+
+#### 玩家追踪
+
+`_updatePlayers()` 对应 MC Java `EndDragonFight.updatePlayers()`：
+
+- 追踪中心：`(0, 128, 0)`（末地原点上方 128 格）
+- 追踪半径：`PLAYER_TRACKING_RADIUS = 192.0f`
+- 扫描间隔：`TIME_BETWEEN_PLAYER_SCANS = 20` tick
+- 使用 `replacePlayers()` 一次性更新，避免 `removeAllPlayers()` + 逐个 `addPlayer()` 导致的客户端闪烁
 
 ### 旧存档状态扫描
 
@@ -55,3 +93,14 @@
 - X = floor(96 * cos(angle))
 - Z = floor(96 * sin(angle))
 - 初始顺序用世界种子随机打乱，每次击杀消耗一个
+
+### updateDragon 调用链
+
+末影龙每 tick 调用 `EndDragonFight::updateDragon()`：
+
+1. `EnderDragonEntity::tick()` → `BossEntity::tick()` → ... → `EndDragonFight::updateDragon(*this)`
+2. `updateDragon` 检查龙 UUID 与 `m_dragonUUID` 是否匹配
+3. 匹配时：同步血量百分比、重置 `ticksSinceDragonSeen`、同步自定义名称
+4. 不匹配时：忽略（防止错误龙实体污染 Boss 栏）
+
+对应 MC Java: `EnderDragonEntity.aiStep()` 中调用 `dragonFight.updateDragon(this)`。

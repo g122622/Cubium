@@ -161,6 +161,7 @@ add_executable(minecraft-server
     bossbar/ServerBossInfo.cpp
     bossbar/CustomServerBossInfo.cpp
     bossbar/CustomServerBossInfoManager.cpp
+    bossbar/ServerDragonBossBar.cpp
     # 函数系统
     function/CommandFunction.cpp
     function/FunctionLoader.cpp
