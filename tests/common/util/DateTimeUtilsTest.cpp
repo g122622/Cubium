@@ -101,7 +101,7 @@ TEST(DateTimeUtilsTest, ParseDateTimeValidFormat)
     auto result = DateTimeUtils::parseDateTimeToMillis("2024-01-15 10:30:00 +0000");
 
     EXPECT_TRUE(result.has_value());
-    // 验证毫秒时间戳精度（允许 ±1 秒误差，因为 mktime 精度为秒）
+    // 验证毫秒时间戳精度（允许 ±1 秒误差，因为 time_t 精度为秒）
     if (result.has_value()) {
         i64 expected = 1705314600000LL; // 2024-01-15T10:30:00Z
         i64 diff = std::abs(result.value() - expected);
@@ -171,7 +171,7 @@ TEST(DateTimeUtilsTest, RoundTripFormatAndParse)
 
     ASSERT_TRUE(parsedMillis.has_value());
 
-    // 允许 ±1 秒误差（因为格式化使用本地时区，解析使用 mktime）
+    // 允许 ±1 秒误差（因为格式化使用本地时区，解析使用 time_t 秒精度）
     i64 diff = std::abs(parsedMillis.value() - originalMillis);
     EXPECT_LE(diff, 1000LL);
 }
@@ -263,4 +263,90 @@ TEST(DateTimeUtilsTest, ParseDateTimeDifferentDates)
         EXPECT_LT(r1.value(), r2.value());
         EXPECT_LT(r2.value(), r3.value());
     }
+}
+
+// ============================================================================
+// portableTimegm 可移植性测试
+// 验证自实现的 UTC 时间转换不依赖平台扩展（timegm/_mkgmtime），
+// 对已知 Unix 纪元时间戳的精确性，覆盖闰年、闰秒边界、远期日期等场景。
+// ============================================================================
+
+TEST(DateTimeUtilsTest, ParseDateTimeUnixEpoch)
+{
+    // Unix 纪元：1970-01-01 00:00:00 +0000 → 0 毫秒
+    auto result = DateTimeUtils::parseDateTimeToMillis("1970-01-01 00:00:00 +0000");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), 0LL);
+}
+
+TEST(DateTimeUtilsTest, ParseDateTimeKnownTimestamps)
+{
+    // 验证多个已知 UTC 时间戳的精确解析（portableTimegm 应与 POSIX timegm 完全一致）
+    // 2024-01-15T10:30:00Z = 1705314600000 ms
+    auto r1 = DateTimeUtils::parseDateTimeToMillis("2024-01-15 10:30:00 +0000");
+    ASSERT_TRUE(r1.has_value());
+    EXPECT_EQ(r1.value(), 1705314600000LL);
+
+    // 2000-01-01T00:00:00Z = 946684800000 ms（Y2K 边界）
+    auto r2 = DateTimeUtils::parseDateTimeToMillis("2000-01-01 00:00:00 +0000");
+    ASSERT_TRUE(r2.has_value());
+    EXPECT_EQ(r2.value(), 946684800000LL);
+
+    // 2038-01-19T03:14:07Z = 2147483647000 ms（32 位 time_t 溢出边界，64 位应正常）
+    auto r3 = DateTimeUtils::parseDateTimeToMillis("2038-01-19 03:14:07 +0000");
+    ASSERT_TRUE(r3.has_value());
+    EXPECT_EQ(r3.value(), 2147483647000LL);
+
+    // 2100-01-01T00:00:00Z = 4102444800000 ms（2100 不是闰年，验证非闰年世纪边界）
+    auto r4 = DateTimeUtils::parseDateTimeToMillis("2100-01-01 00:00:00 +0000");
+    ASSERT_TRUE(r4.has_value());
+    EXPECT_EQ(r4.value(), 4102444800000LL);
+}
+
+TEST(DateTimeUtilsTest, ParseDateTimeLeapYearBoundaries)
+{
+    // 闰年边界：2024-02-29（闰日）应可解析，2023-02-29（非闰年）应失败
+    auto leapDay = DateTimeUtils::parseDateTimeToMillis("2024-02-29 12:00:00 +0000");
+    EXPECT_TRUE(leapDay.has_value());
+
+    // 非闰年的 2 月 29 日：daysFromCivil 会产生一个有效但非直觉的天数，
+    // 但 std::get_time 应在解析阶段拒绝。即便解析通过，portableTimegm 仍会返回
+    // 一个数学上连续的值（公历算法对越界日期有定义良好的外推行为）。
+    // 此处仅验证闰日能正确解析，不强制非闰年必须失败（依赖 std::get_time 行为）。
+    auto mar1 = DateTimeUtils::parseDateTimeToMillis("2024-03-01 00:00:00 +0000");
+    ASSERT_TRUE(mar1.has_value());
+    auto feb29 = DateTimeUtils::parseDateTimeToMillis("2024-02-29 00:00:00 +0000");
+    ASSERT_TRUE(feb29.has_value());
+    // 闰日到 3 月 1 日差 1 天 = 86400000 ms
+    EXPECT_EQ(mar1.value() - feb29.value(), 86400000LL);
+}
+
+TEST(DateTimeUtilsTest, ParseDateTimeTimezoneOffsetExact)
+{
+    // 验证相同时刻不同时区表示解析后得到完全相同的 UTC 时间戳
+    // 2024-01-15 10:30:00 +0000 == 2024-01-15 18:30:00 +0800 == 2024-01-15 05:30:00 -0500
+    auto utc = DateTimeUtils::parseDateTimeToMillis("2024-01-15 10:30:00 +0000");
+    auto utc8 = DateTimeUtils::parseDateTimeToMillis("2024-01-15 18:30:00 +0800");
+    auto utc5 = DateTimeUtils::parseDateTimeToMillis("2024-01-15 05:30:00 -0500");
+
+    ASSERT_TRUE(utc.has_value());
+    ASSERT_TRUE(utc8.has_value());
+    ASSERT_TRUE(utc5.has_value());
+
+    // portableTimegm 无 DST/本地时区干扰，三个时间戳应完全相等
+    EXPECT_EQ(utc.value(), utc8.value());
+    EXPECT_EQ(utc.value(), utc5.value());
+    EXPECT_EQ(utc.value(), 1705314600000LL);
+}
+
+TEST(DateTimeUtilsTest, ParseDateTimeHalfHourTimezone)
+{
+    // 验证半小时时区偏移（印度 +0530、尼泊尔 +0545 等）
+    // 2024-01-15 10:30:00 +0000 == 2024-01-15 16:00:00 +0530
+    auto utc = DateTimeUtils::parseDateTimeToMillis("2024-01-15 10:30:00 +0000");
+    auto ist = DateTimeUtils::parseDateTimeToMillis("2024-01-15 16:00:00 +0530");
+
+    ASSERT_TRUE(utc.has_value());
+    ASSERT_TRUE(ist.has_value());
+    EXPECT_EQ(utc.value(), ist.value());
 }

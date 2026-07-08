@@ -257,7 +257,7 @@ MD5 已被证明不安全，**仅用于兼容性需求**（如 Minecraft 离线 
 
 ### 16. DateTimeUtils 时区依赖
 
-`DateTimeUtils::formatDateTime()` 和 `parseDateTimeToMillis()` 依赖本地时区（与 MC Java 版的 `ZoneId.systemDefault()` 行为一致）。格式化使用 `localtime_s/localtime_r`，解析使用 `mktime`。在不同时区的机器上，同一毫秒时间戳格式化出的字符串不同，但往返一致性（format → parse）始终成立。**不要在跨时区通信中使用格式化后的字符串传输时间**，应使用毫秒时间戳（`i64`）。
+`DateTimeUtils::formatDateTime()` 依赖本地时区（与 MC Java 版的 `ZoneId.systemDefault()` 行为一致），使用 `localtime_s/localtime_r`。`parseDateTimeToMillis()` **不**依赖本地时区：使用自实现的 `portableTimegm`（基于 Howard Hinnant 的 `days_from_civil` 算法）将 `struct tm` 视为 UTC 解释，再手动减去字符串携带的时区偏移，得到真实 UTC 时间戳。该实现完全可移植、线程安全，不依赖 `timegm`/`_mkgmtime` 平台扩展，也不修改 `TZ` 环境变量等全局状态。在不同时区的机器上，同一毫秒时间戳格式化出的字符串不同，但往返一致性（format → parse）始终成立。**不要在跨时区通信中使用格式化后的字符串传输时间**，应使用毫秒时间戳（`i64`）。
 
 ### 17. DateTimeUtils 与 MC Java 版兼容性
 
