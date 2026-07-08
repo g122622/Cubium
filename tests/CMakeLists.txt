@@ -1215,6 +1215,8 @@ add_executable(mc_tests
     # Tooltip 工具提示组件测试
     client/ui/kagero/widget/TooltipTest.cpp
     client/ui/kagero/KageroEngineTest.cpp
+    # Kagero Paint 绘制层测试（TextureImage 构造参数、ImageFormat 传播等）
+    client/ui/kagero/paint/TextureImageTest.cpp
     client/ui/FontObfuscatedTest.cpp
     client/ui/minecraft/targetinfo/TargetInfoFormatterTest.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
@@ -2094,6 +2096,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/KageroEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/TextureImage.cpp
         # ScreenStackWidget 及 Screen 依赖
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/Screen.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/widgets/ScreenStackWidget.cpp
