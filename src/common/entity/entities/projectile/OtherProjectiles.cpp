@@ -132,10 +132,32 @@ void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
 // FishingBobberEntity
 // ============================================================================
 
+// 静态数据参数定义（对应 MC 1.21.11 FishingHook.DATA_HOOKED_ENTITY / DATA_BITING）
+// 在静态初始化阶段通过 EntityDataManager::createKey<T>() 分配全局唯一 ID。
+entity::DataParameter<i32> FishingBobberEntity::DATA_HOOKED_ENTITY_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<bool> FishingBobberEntity::DATA_BITING_PARAM = entity::EntityDataManager::createKey<bool>();
+
 FishingBobberEntity::FishingBobberEntity(EntityId id)
     : Entity(id)
 {
     m_noGravity = false;
+    // C++ 虚函数在构造函数中不会派生到子类，因此 Entity 基类构造函数中
+    // 调用的 registerData() 只会执行 Entity::registerData()。
+    // 子类必须在此显式调用自身的 registerData() 以注册子类专属数据参数。
+    registerData();
+}
+
+void FishingBobberEntity::registerData()
+{
+    // 先调用基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等）
+    Entity::registerData();
+
+    // 注册钓鱼浮标专属同步参数
+    // 对应 MC 1.21.11 FishingHook.defineSynchedData():
+    //   define(DATA_HOOKED_ENTITY, 0)
+    //   define(DATA_BITING, false)
+    m_dataManager.registerParam(DATA_HOOKED_ENTITY_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_BITING_PARAM, false);
 }
 
 std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/)
@@ -273,8 +295,10 @@ void FishingBobberEntity::tick()
             if (m_caughtEntity != nullptr) {
                 if (m_caughtEntity->isRemoved() || !m_caughtEntity->isAlive()) {
                     // 实体被移除或死亡，恢复飞行状态
+                    // 先清除 m_caughtEntity 再调用 _syncCaughtEntityId()，
+                    // 以确保客户端同步收到 DATA_HOOKED_ENTITY=0 的更新。
                     m_caughtEntity = nullptr;
-                    m_caughtEntityId = 0;
+                    _syncCaughtEntityId();
                     m_state = State::Flying;
                 } else {
                     // 浮标跟随实体位置（设置位置到实体高度的 80% 处）
@@ -778,14 +802,14 @@ void FishingBobberEntity::_bringInHookedEntity()
 void FishingBobberEntity::_syncCaughtEntityId()
 {
     // 存储时 +1，因为 0 表示"无实体"
-    if (m_caughtEntity != nullptr) {
-        m_caughtEntityId = m_caughtEntity->id() + 1;
-    } else {
-        m_caughtEntityId = 0;
-    }
+    // 对应 MC 1.21.11 FishingHook.setHookedEntity():
+    //   this.getEntityData().set(DATA_HOOKED_ENTITY, p_150158_ == null ? 0 : p_150158_.getId() + 1);
+    i32 syncedId = (m_caughtEntity != nullptr) ? static_cast<i32>(m_caughtEntity->id()) + 1 : 0;
+    m_caughtEntityId = syncedId;
 
-    // TODO: 当网络同步系统完善后，发送数据包同步到客户端
-    // 参考 MC 1.16.5: getDataManager().set(DATA_HOOKED_ENTITY, entityId + 1)
+    // 通过 EntityDataManager 同步到客户端
+    // EntityTracker 会在 tick() 中检测脏数据并广播 EntityMetadataPacket
+    m_dataManager.set(DATA_HOOKED_ENTITY_PARAM, syncedId);
 }
 
 // ============================================================================

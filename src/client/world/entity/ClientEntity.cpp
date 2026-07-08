@@ -35,6 +35,7 @@
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -380,6 +381,26 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget3ParamId());
                 value != nullptr) {
                 m_witherHeadTargetId[2] = value->get<i32>();
+            }
+        }
+    }
+
+    // 钓鱼浮标状态同步：DATA_HOOKED_ENTITY / DATA_BITING 通过元数据同步自服务端
+    // FishingBobberEntity。对应 MC 1.21.11 FishingHook.onSyncedDataUpdated()。
+    //   DATA_HOOKED_ENTITY: 被钩住实体 ID（+1 偏移，0=无），缓存到
+    //     m_fishingHookedEntityId，供渲染器在生成钓线时查找另一端实体。
+    //   DATA_BITING: 是否咬钩，缓存到 m_fishingBiting，供渲染器播放咬钩下沉动画。
+    if (m_typeId == "minecraft:fishing_bobber" || m_typeId == "fishing_bobber") {
+        if (m_dataManager.hasParam(::mc::entity::FishingBobberEntity::getHookedEntityParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::FishingBobberEntity::getHookedEntityParamId());
+                value != nullptr) {
+                m_fishingHookedEntityId = value->get<i32>();
+            }
+        }
+        if (m_dataManager.hasParam(::mc::entity::FishingBobberEntity::getBitingParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::FishingBobberEntity::getBitingParamId());
+                value != nullptr) {
+                m_fishingBiting = value->get<bool>();
             }
         }
     }

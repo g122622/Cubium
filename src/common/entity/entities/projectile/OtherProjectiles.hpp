@@ -26,6 +26,7 @@
 #include "ProjectileEntity.hpp"
 #include "ProjectileHelper.hpp"
 #include "ThrowableEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <memory>
 
@@ -107,6 +108,20 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写 Entity::registerData()，注册 FishingBobberEntity 的网络同步参数：
+     * - DATA_HOOKED_ENTITY_PARAM：被钩住实体的 ID（+1 偏移，0 表示无）
+     * - DATA_BITING_PARAM：是否正在咬钩
+     *
+     * 对应 MC 1.21.11 FishingHook.defineSynchedData()。
+     *
+     * 注意：由于 C++ 虚函数在构造函数中不会派生到子类，
+     * FishingBobberEntity 构造函数必须显式调用此方法。
+     */
+    void registerData() override;
+
     // ========== 钓鱼浮标方法 ==========
 
     /**
@@ -153,6 +168,31 @@ public:
      * @return 实体ID，如果没有则返回 0
      */
     [[nodiscard]] EntityId getCaughtEntityId() const { return m_caughtEntityId; }
+
+    /**
+     * @brief 获取 DATA_HOOKED_ENTITY_PARAM 的参数 ID（客户端元数据同步用）
+     *
+     * 客户端 ClientEntity::syncMetadataFromDataManager() 通过此 ID 读取
+     * 服务端同步过来的"被钩住实体 ID"（存储时 +1，0 表示无），用于：
+     * - 客户端钓鱼浮标渲染时确定钓线另一端连接的实体
+     *
+     * 对应 MC 1.21.11 FishingHook.DATA_HOOKED_ENTITY。
+     *
+     * @return 数据参数 ID
+     */
+    [[nodiscard]] static u16 getHookedEntityParamId() { return DATA_HOOKED_ENTITY_PARAM.id(); }
+
+    /**
+     * @brief 获取 DATA_BITING_PARAM 的参数 ID（客户端元数据同步用）
+     *
+     * 客户端 ClientEntity::syncMetadataFromDataManager() 通过此 ID 读取
+     * 服务端同步过来的"是否咬钩"状态，用于驱动咬钩动画（浮标下沉）。
+     *
+     * 对应 MC 1.21.11 FishingHook.DATA_BITING。
+     *
+     * @return 数据参数 ID
+     */
+    [[nodiscard]] static u16 getBitingParamId() { return DATA_BITING_PARAM.id(); }
 
     /**
      * @brief 设置钓鱼附魔加成
@@ -287,6 +327,13 @@ private:
     i32 m_speedBonus = 0;             // 饵钓附魔等级
     i32 m_outOfWaterTime = 0;         // 离开水的时间计数器
     i32 m_lifetime = 0;               // 存在时间
+
+    // ========== 网络同步数据参数 ==========
+    // 对应 MC 1.21.11 FishingHook 的 DATA_HOOKED_ENTITY / DATA_BITING。
+    // 静态成员在 OtherProjectiles.cpp 中通过 EntityDataManager::createKey<T>() 定义，
+    // 在静态初始化阶段分配全局唯一 ID。
+    static entity::DataParameter<i32> DATA_HOOKED_ENTITY_PARAM; ///< 被钩住实体 ID（+1 偏移，0=无）
+    static entity::DataParameter<bool> DATA_BITING_PARAM;       ///< 是否咬钩
 
     // 允许测试类访问私有方法
     friend class FishingBobberTestAccess;

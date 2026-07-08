@@ -109,8 +109,12 @@ void FishingBobberRenderer::_generateFishingLine(
     Vector3f bobberPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y() + 0.25), static_cast<f32>(entity.z()));
 
     // 玩家手持位置（简化为浮标上方偏移）
-    // TODO: 当能访问持有者实体时，计算实际的手持位置
-    // 目前使用固定偏移作为占位
+    // TODO: 当渲染层能访问持有者实体（及被钩住实体）时，计算实际的手持位置。
+    //   钓线两端在 MC 1.21.11 中由 FishingHook.getPlayerOwner() 决定起点（玩家眼睛/手部），
+    //   若存在被钩住实体（ClientEntity::fishingHookedEntityId() > 0），
+    //   钓线另一端应连接到该实体位置而非玩家手中。
+    //   当前 PipelineMeshProvider::generateMesh 接口仅传入 ClientEntity&，
+    //   无世界查找回调，因此暂用固定偏移占位。
     Vector3f playerHandPos(bobberPos.x, bobberPos.y + 1.5f, bobberPos.z);
 
     Vector3f start = playerHandPos;

@@ -1066,6 +1066,38 @@ public:
      */
     void setChargingBow(bool charging) { m_chargingBow = charging; }
 
+    // ========== 钓鱼浮标状态 ==========
+
+    /**
+     * @brief 获取被钩住实体 ID（客户端镜像）
+     *
+     * 通过元数据同步自服务端 FishingBobberEntity::DATA_HOOKED_ENTITY_PARAM。
+     * 由 syncMetadataFromDataManager 在收到元数据更新时写入。
+     *
+     * 值约定（对应 MC 1.21.11 FishingHook.DATA_HOOKED_ENTITY）：
+     *   0  = 无被钩住实体
+     *   >0 = 实体 ID + 1，使用时需减 1 得到真实实体 ID
+     *
+     * 渲染器（如 FishingBobberRenderer）可读取此值并通过世界查找实体，
+     * 将钓线另一端连接到被钩住的实体（而非默认的钓鱼者位置上方）。
+     *
+     * @return 被钩住实体 ID（+1 偏移），0 表示无
+     */
+    [[nodiscard]] i32 fishingHookedEntityId() const { return m_fishingHookedEntityId; }
+
+    /**
+     * @brief 获取是否咬钩（客户端镜像）
+     *
+     * 通过元数据同步自服务端 FishingBobberEntity::DATA_BITING_PARAM。
+     * 由 syncMetadataFromDataManager 在收到元数据更新时写入。
+     *
+     * 对应 MC 1.21.11 FishingHook.onSyncedDataUpdated(DATA_BITING)：
+     * 咬钩时浮标获得向下速度（-0.4 * random[0.6,1.0]），渲染器可据此播放下沉动画。
+     *
+     * @return 如果浮标正处于咬钩状态返回 true
+     */
+    [[nodiscard]] bool fishingBiting() const { return m_fishingBiting; }
+
     // ========== 兔子跳跃动画状态 ==========
 
     /**
@@ -1337,6 +1369,13 @@ private:
     // index 0 = 主头，index 1 = 左头，index 2 = 右头。
     // 由 syncMetadataFromDataManager 读取，供 tickWitherSideHeads 查找目标位置。
     std::array<i32, 3> m_witherHeadTargetId = {0, 0, 0};
+
+    // 钓鱼浮标状态（通过 DATA_HOOKED_ENTITY / DATA_BITING 元数据同步自服务端 FishingBobberEntity）
+    // 对应 MC 1.21.11 FishingHook.onSyncedDataUpdated():
+    //   m_fishingHookedEntityId: 被钩住实体 ID（+1 偏移，0=无），供渲染器查找另一端实体位置。
+    //   m_fishingBiting: 是否咬钩，供渲染器播放咬钩下沉动画。
+    i32 m_fishingHookedEntityId = 0; ///< 被钩住实体 ID（0 表示无）
+    bool m_fishingBiting = false;    ///< 是否咬钩
 
     // 追踪位置系统（用于披风摆动）
     f64 m_chasingPosX = 0.0;

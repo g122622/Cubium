@@ -36,6 +36,24 @@
 #include <vector>
 
 namespace mc {
+namespace entity {
+
+/**
+ * @brief 测试辅助类，用于访问 FishingBobberEntity 的私有方法
+ *
+ * 必须在 mc::entity 命名空间中，以便 friend 声明能正确引用。
+ */
+class FishingBobberTestAccess {
+public:
+    static void syncCaughtEntityId(FishingBobberEntity& bobber) { bobber._syncCaughtEntityId(); }
+    static void setCaughtEntity(FishingBobberEntity& bobber, Entity* entity) { bobber.m_caughtEntity = entity; }
+};
+
+} // namespace entity
+
+// 别名，方便在匿名命名空间的测试中使用
+using FishingBobberAccess = entity::FishingBobberTestAccess;
+
 namespace {
 
 /**
@@ -252,6 +270,139 @@ TEST_F(FishingBobberHookEntityTest, HookedStateClearsVelocity)
     EXPECT_FLOAT_EQ(bobber.velocity().x, 1.0f);
     EXPECT_FLOAT_EQ(bobber.velocity().y, 0.5f);
     EXPECT_FLOAT_EQ(bobber.velocity().z, 1.0f);
+}
+
+/**
+ * @brief 测试 registerData 注册了 DATA_HOOKED_ENTITY / DATA_BITING 参数
+ *
+ * 对应 MC 1.21.11 FishingHook.defineSynchedData():
+ *   define(DATA_HOOKED_ENTITY, 0)
+ *   define(DATA_BITING, false)
+ */
+TEST_F(FishingBobberHookEntityTest, RegisterDataRegistersHookedEntityAndBitingParams)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+
+    // DATA_HOOKED_ENTITY_PARAM 应已注册，初始值为 0（无被钩住实体）
+    const u16 hookedParamId = entity::FishingBobberEntity::getHookedEntityParamId();
+    EXPECT_TRUE(bobber.dataManager().hasParam(hookedParamId));
+    const auto* hookedValue = bobber.dataManager().getRaw(hookedParamId);
+    ASSERT_NE(hookedValue, nullptr);
+    EXPECT_EQ(hookedValue->get<i32>(), 0);
+
+    // DATA_BITING_PARAM 应已注册，初始值为 false
+    const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
+    EXPECT_TRUE(bobber.dataManager().hasParam(bitingParamId));
+    const auto* bitingValue = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_NE(bitingValue, nullptr);
+    EXPECT_FALSE(bitingValue->get<bool>());
+}
+
+/**
+ * @brief 测试 _syncCaughtEntityId 在无被钩住实体时写入 0 并同步到数据管理器
+ *
+ * 对应 MC 1.21.11 FishingHook.setHookedEntity(null):
+ *   getEntityData().set(DATA_HOOKED_ENTITY, 0)
+ */
+TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithNullWritesZero)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+
+    // 通过 Friend 访问器调用私有 _syncCaughtEntityId
+    // 由于此时 m_caughtEntity == nullptr，应写入 0
+    FishingBobberAccess::syncCaughtEntityId(bobber);
+
+    EXPECT_EQ(bobber.getCaughtEntityId(), 0);
+
+    // 验证数据管理器中的值也为 0
+    const u16 paramId = entity::FishingBobberEntity::getHookedEntityParamId();
+    const auto* value = bobber.dataManager().getRaw(paramId);
+    ASSERT_NE(value, nullptr);
+    EXPECT_EQ(value->get<i32>(), 0);
+}
+
+/**
+ * @brief 测试 _syncCaughtEntityId 在有被钩住实体时写入 entityId+1 并标记为脏
+ *
+ * 对应 MC 1.21.11 FishingHook.setHookedEntity(entity):
+ *   getEntityData().set(DATA_HOOKED_ENTITY, entity.getId() + 1)
+ * +1 偏移是为了区分"无实体"(0) 和"实体 ID 0"。
+ */
+TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithEntityWritesIdPlusOne)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    auto& caughtEntity = m_world->addEntity<TestEntity>(EntityId(42));
+
+    // 设置被钩住实体
+    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity);
+
+    // 调用 _syncCaughtEntityId
+    FishingBobberAccess::syncCaughtEntityId(bobber);
+
+    // 验证本地字段：42 + 1 = 43
+    EXPECT_EQ(bobber.getCaughtEntityId(), 43);
+
+    // 验证数据管理器中的值：42 + 1 = 43
+    const u16 paramId = entity::FishingBobberEntity::getHookedEntityParamId();
+    const auto* value = bobber.dataManager().getRaw(paramId);
+    ASSERT_NE(value, nullptr);
+    EXPECT_EQ(value->get<i32>(), 43);
+
+    // 验证标记为脏（用于 EntityTracker 广播）
+    EXPECT_TRUE(bobber.dataManager().hasDirtyData());
+}
+
+/**
+ * @brief 测试 _syncCaughtEntityId 从有实体到无实体的转换
+ *
+ * 先钩住实体，然后清除，验证数据管理器值从 entityId+1 变回 0。
+ */
+TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdTransitionFromEntityToNull)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    auto& caughtEntity = m_world->addEntity<TestEntity>(EntityId(42));
+
+    // 先钩住实体
+    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity);
+    FishingBobberAccess::syncCaughtEntityId(bobber);
+
+    const u16 paramId = entity::FishingBobberEntity::getHookedEntityParamId();
+    EXPECT_EQ(bobber.dataManager().getRaw(paramId)->get<i32>(), 43);
+
+    // 清除脏标记
+    bobber.dataManager().clearDirty();
+
+    // 然后清除被钩住实体
+    FishingBobberAccess::setCaughtEntity(bobber, nullptr);
+    FishingBobberAccess::syncCaughtEntityId(bobber);
+
+    EXPECT_EQ(bobber.getCaughtEntityId(), 0);
+    EXPECT_EQ(bobber.dataManager().getRaw(paramId)->get<i32>(), 0);
+    EXPECT_TRUE(bobber.dataManager().hasDirtyData());
+}
+
+/**
+ * @brief 测试 _syncCaughtEntityId 相同值不重复标记为脏
+ *
+ * 对应 EntityDataManager::set 的去重逻辑：值未变化时不标记 dirty。
+ */
+TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdSameValueDoesNotMarkDirty)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    auto& caughtEntity = m_world->addEntity<TestEntity>(EntityId(42));
+
+    // 第一次同步
+    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity);
+    FishingBobberAccess::syncCaughtEntityId(bobber);
+    EXPECT_TRUE(bobber.dataManager().hasDirtyData());
+
+    // 清除脏标记
+    bobber.dataManager().clearDirty();
+    EXPECT_FALSE(bobber.dataManager().hasDirtyData());
+
+    // 再次同步相同值，不应标记为脏
+    FishingBobberAccess::syncCaughtEntityId(bobber);
+    EXPECT_FALSE(bobber.dataManager().hasDirtyData());
 }
 
 } // namespace
