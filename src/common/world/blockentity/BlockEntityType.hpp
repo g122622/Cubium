@@ -105,6 +105,9 @@ enum class BlockEntityType : u16 {
     // 1.21.11 铜傀儡雕像
     CopperGolemStatue, ///< 铜傀儡雕像
 
+    // 考古
+    Brushable, ///< 可刷方块（可疑沙/可疑沙砾）
+
     Count ///< 类型数量
 };
 

@@ -195,6 +195,12 @@ public:
 
     ~BrushableBlock() override = default;
 
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept { return BlockEntityType::Brushable; }
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 };

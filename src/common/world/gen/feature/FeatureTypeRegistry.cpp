@@ -54,6 +54,7 @@
 #include "common/world/gen/feature/VoidStartPlatformFeature.hpp"
 #include "common/world/gen/feature/WeepingVinesFeature.hpp"
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
+#include "common/world/gen/feature/cave/DesertWellFeature.hpp"
 #include "common/world/gen/feature/cave/DripstoneClusterFeature.hpp"
 #include "common/world/gen/feature/cave/FossilFeature.hpp"
 #include "common/world/gen/feature/cave/GeodeFeature.hpp"
@@ -131,6 +132,14 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createMonsterRoom(const nlohmann:
 {
     std::unique_ptr<ConfiguredFeatureBase> feature = std::make_unique<ConfiguredMonsterRoomFeature>();
     return feature;
+}
+
+/**
+ * @brief desert_well 工厂：config 为空（NoneFeatureConfiguration），构造 ConfiguredDesertWellFeature
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createDesertWell(const nlohmann::json& /*configJson*/)
+{
+    return toBase(std::make_unique<cave::ConfiguredDesertWellFeature>("desert_well"));
 }
 
 /**
@@ -1775,9 +1784,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("iceberg", createIceberg);
     reg.registerType("fossil", createFossil);
     reg.registerType("geode", createGeode);
-    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 51 种
+    reg.registerType("desert_well", createDesertWell);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 52 种
     // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
-    // 未注册的 type（desert_well/fallen_tree/multiface_growth/sculk_patch）
+    // 未注册的 type（fallen_tree/multiface_growth/sculk_patch）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 

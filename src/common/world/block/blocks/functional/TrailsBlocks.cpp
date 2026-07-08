@@ -40,6 +40,7 @@
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/block/registry/TrailsBlocks.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "world/gameevent/GameEvents.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
@@ -434,6 +435,11 @@ BrushableBlock::BrushableBlock(const BlockProperties& properties)
 void BrushableBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     MC_UNUSED(container);
+}
+
+std::unique_ptr<BlockEntity> BrushableBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::BrushableBlockEntity>(pos);
 }
 
 // ============================================================================

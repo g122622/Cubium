@@ -967,6 +967,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/SignEntity.cpp
     world/blockentity/interactive/BannerEntity.cpp
     world/blockentity/interactive/BannerPattern.cpp
+    world/blockentity/interactive/BrushableBlockEntity.cpp
     world/blockentity/interactive/DecoratedPotPattern.cpp
     world/blockentity/interactive/DecoratedPotBlockEntity.cpp
     world/blockentity/interactive/BeehiveBlockEntity.cpp
@@ -1188,6 +1189,7 @@ add_library(mc_common STATIC
     world/gen/feature/cave/PointedDripstoneFeature.cpp
     world/gen/feature/cave/LargeDripstoneFeature.cpp
     world/gen/feature/cave/DripstoneClusterFeature.cpp
+    world/gen/feature/cave/DesertWellFeature.cpp
     world/gen/feature/cave/IcebergFeature.cpp
     world/gen/feature/cave/FossilFeature.cpp
     world/gen/feature/cave/GeodeFeature.cpp
