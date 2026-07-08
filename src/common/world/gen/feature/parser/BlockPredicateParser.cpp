@@ -33,6 +33,7 @@
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gen/feature/predicate/AllOfPredicate.hpp"
 #include "common/world/gen/feature/predicate/HasSturdyFacePredicate.hpp"
+#include "common/world/gen/feature/predicate/InsideWorldBoundsPredicate.hpp"
 #include "common/world/gen/feature/predicate/MatchingBlockPredicate.hpp"
 #include "common/world/gen/feature/predicate/MatchingFluidsPredicate.hpp"
 #include "common/world/gen/feature/predicate/ReplaceablePredicate.hpp"
@@ -302,7 +303,23 @@ Result<std::unique_ptr<predicate::BlockPredicate>> parse(const nlohmann::json& p
                 dir = *parsed;
             }
         }
-        return std::unique_ptr<predicate::BlockPredicate>(std::make_unique<predicate::HasSturdyFacePredicate>(dir));
+        // MC: optional "offset" (Vec3i, 默认 ZERO)
+        auto offsetResult = parseOffset(predicateObj);
+        if (!offsetResult.success()) {
+            return offsetResult.error();
+        }
+        return std::unique_ptr<predicate::BlockPredicate>(
+            std::make_unique<predicate::HasSturdyFacePredicate>(dir, offsetResult.value()));
+    }
+
+    if (type == "inside_world_bounds") {
+        // MC: optional "offset" (Vec3i, 默认 ZERO)；test = !isOutsideBuildHeight(pos+offset)
+        auto offsetResult = parseOffset(predicateObj);
+        if (!offsetResult.success()) {
+            return offsetResult.error();
+        }
+        return std::unique_ptr<predicate::BlockPredicate>(
+            std::make_unique<predicate::InsideWorldBoundsPredicate>(offsetResult.value()));
     }
 
     return Error(ErrorCode::NotFound, "unsupported block predicate type '" + type + "'");

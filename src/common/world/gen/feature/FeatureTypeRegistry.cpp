@@ -49,7 +49,10 @@
 #include "common/world/gen/feature/SimpleRandomSelectorFeature.hpp"
 #include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
 #include "common/world/gen/feature/SpringFeature.hpp"
+#include "common/world/gen/feature/TwistingVinesFeature.hpp"
+#include "common/world/gen/feature/VinesFeature.hpp"
 #include "common/world/gen/feature/VoidStartPlatformFeature.hpp"
+#include "common/world/gen/feature/WeepingVinesFeature.hpp"
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
 #include "common/world/gen/feature/cave/RootSystemFeature.hpp"
 #include "common/world/gen/feature/cave/VegetationPatchFeature.hpp"
@@ -572,6 +575,31 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBonusChest(const nlohmann::
 Result<std::unique_ptr<ConfiguredFeatureBase>> createBasaltPillar(const nlohmann::json& /*configJson*/)
 {
     return toBase(std::make_unique<ConfiguredBasaltPillarFeature>());
+}
+
+/**
+ * @brief vines / weeping_vines 工厂：NoneFeatureConfiguration，直接构造。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createVines(const nlohmann::json& /*configJson*/)
+{
+    return toBase(std::make_unique<ConfiguredVinesFeature>());
+}
+
+Result<std::unique_ptr<ConfiguredFeatureBase>> createWeepingVines(const nlohmann::json& /*configJson*/)
+{
+    return toBase(std::make_unique<ConfiguredWeepingVinesFeature>());
+}
+
+/**
+ * @brief twisting_vines 工厂：TwistingVinesConfig{spread_width, spread_height, max_height}。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createTwistingVines(const nlohmann::json& configJson)
+{
+    auto config = std::make_unique<TwistingVinesFeatureConfig>();
+    config->spreadWidth = getInt(configJson, "spread_width", 0);
+    config->spreadHeight = getInt(configJson, "spread_height", 0);
+    config->maxHeight = getInt(configJson, "max_height", 0);
+    return toBase(std::make_unique<ConfiguredTwistingVinesFeature>(std::move(config)));
 }
 
 /**
@@ -1362,6 +1390,9 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("root_system", createRootSystem);
     reg.registerType("flower", createFlower);
     reg.registerType("random_patch", createRandomPatch);
+    // MC 1.21.11 Feature.java: no_bonemeal_flower 与 random_patch 同为 RandomPatchFeature
+    // （RandomPatchConfiguration.CODEC），仅注册名不同。直接复用 createRandomPatch 工厂。
+    reg.registerType("no_bonemeal_flower", createRandomPatch);
     // 算法对齐档：忠实复刻 MC 1.21.11 的 lake/basalt_columns/delta_feature/underwater_magma
     reg.registerType("lake", createLake);
     reg.registerType("basalt_columns", createBasaltColumns);
@@ -1380,9 +1411,14 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("bonus_chest", createBonusChest);
     reg.registerType("basalt_pillar", createBasaltPillar);
     reg.registerType("forest_rock", createForestRock);
-    // TODO: 数据包共 54 种 configured_feature type，当前注册 48 种。
+    // 藤蔓：NoneConfig(vines/weeping_vines) 与 TwistingVinesConfig(twisting_vines)，
+    // 忠实复刻 MC 1.21.11 VinesFeature/WeepingVinesFeature/TwistingVinesFeature。
+    reg.registerType("vines", createVines);
+    reg.registerType("weeping_vines", createWeepingVines);
+    reg.registerType("twisting_vines", createTwistingVines);
+    // TODO: 数据包共 54 种 configured_feature type，当前注册 51 种。
     // 未注册的 type（geode/sculk_patch/large_dripstone/fossil/desert_well/
-    // twisting_vines/weeping_vines/fallen_tree/iceberg/multiface_growth 等）
+    // fallen_tree/iceberg/multiface_growth/pointed_dripstone/dripstone_cluster 等）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 

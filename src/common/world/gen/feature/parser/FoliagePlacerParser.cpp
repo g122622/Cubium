@@ -52,16 +52,25 @@ std::string stripNamespace(const std::string& s)
 }
 
 /**
- * @brief 读取 radius/offset 裸整数字段为 FeatureSpread（固定值）
+ * @brief 读取 radius/offset 字段为 FeatureSpread（MC 1.21 为 IntProvider）
+ *
+ * 接受裸整数（简写为 ConstantInt）或 IntProvider 对象（如 uniform）。
  */
 Result<bool> readRadiusOffset(const nlohmann::json& obj, FeatureSpread& radius, FeatureSpread& offset)
 {
-    if (!obj.contains("radius") || !obj["radius"].is_number_integer() || !obj.contains("offset") ||
-        !obj["offset"].is_number_integer()) {
-        return Error(ErrorCode::InvalidData, "foliage placer missing 'radius'/'offset' integer fields");
+    if (!obj.contains("radius") || !obj.contains("offset")) {
+        return Error(ErrorCode::InvalidData, "foliage placer missing 'radius'/'offset' fields");
     }
-    radius = FeatureSpread::fixed(obj["radius"].get<i32>());
-    offset = FeatureSpread::fixed(obj["offset"].get<i32>());
+    auto radiusResult = valueprovider::IntProviderParser::parse(obj["radius"]);
+    if (!radiusResult.success()) {
+        return radiusResult.error();
+    }
+    auto offsetResult = valueprovider::IntProviderParser::parse(obj["offset"]);
+    if (!offsetResult.success()) {
+        return offsetResult.error();
+    }
+    radius = FeatureSpread::of(std::move(radiusResult).value());
+    offset = FeatureSpread::of(std::move(offsetResult).value());
     return true;
 }
 

@@ -25,6 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -32,9 +34,14 @@ namespace mc {
  * @brief 特征扩散配置
  *
  * 用于定义特征生成时的范围扩散。
- * 包含基础值和随机扩散值。
  *
- * 参考: net.minecraft.world.gen.feature.FeatureSpread
+ * MC 1.21.11 起 FoliagePlacer 的 radius/offset 为 IntProvider（而非旧的
+ * FeatureSpread{base,spread}）。本类兼容两种表示：
+ * - 旧的 {base, spread}（get() = base + random[0..spread]）；
+ * - 新的任意 IntProvider（get() 委托 provider->sample()）。
+ * 当 provider 非空时以 IntProvider 为准。
+ *
+ * 参考: net.minecraft.world.gen.feature.FeatureSpread / 1.21 FoliagePlacer.radius
  */
 class FeatureSpread {
 public:
@@ -50,6 +57,16 @@ public:
      * @param spread 扩散范围（0到spread的随机值）
      */
     static FeatureSpread spread(i32 base, i32 spread) noexcept { return FeatureSpread(base, spread); }
+
+    /**
+     * @brief 由 IntProvider 构造（MC 1.21 radius/offset 语义）
+     */
+    static FeatureSpread of(std::unique_ptr<world::gen::valueprovider::IntProvider> provider)
+    {
+        FeatureSpread fs(0, 0);
+        fs.m_provider = std::move(provider);
+        return fs;
+    }
 
     /**
      * @brief 默认构造（值为0）
@@ -69,10 +86,27 @@ public:
         , m_spread(spread)
     {}
 
+    FeatureSpread(FeatureSpread&&) noexcept = default;
+    FeatureSpread& operator=(FeatureSpread&&) noexcept = default;
+    FeatureSpread(const FeatureSpread& other)
+        : m_base(other.m_base)
+        , m_spread(other.m_spread)
+        , m_provider(other.m_provider ? other.m_provider->clone() : nullptr)
+    {}
+    FeatureSpread& operator=(const FeatureSpread& other)
+    {
+        if (this != &other) {
+            m_base = other.m_base;
+            m_spread = other.m_spread;
+            m_provider = other.m_provider ? other.m_provider->clone() : nullptr;
+        }
+        return *this;
+    }
+
     /**
      * @brief 获取随机值
      * @param random 随机数生成器
-     * @return base + random(0, spread)
+     * @return 持有 IntProvider 时 provider->sample()；否则 base + random(0, spread)
      */
     [[nodiscard]] i32 get(math::Random& random) const;
 
@@ -86,9 +120,15 @@ public:
      */
     [[nodiscard]] i32 spread() const noexcept { return m_spread; }
 
+    /**
+     * @brief 是否持有 IntProvider（MC 1.21 语义）
+     */
+    [[nodiscard]] bool hasProvider() const noexcept { return m_provider != nullptr; }
+
 private:
     i32 m_base;
     i32 m_spread;
+    std::unique_ptr<world::gen::valueprovider::IntProvider> m_provider;
 };
 
 } // namespace mc

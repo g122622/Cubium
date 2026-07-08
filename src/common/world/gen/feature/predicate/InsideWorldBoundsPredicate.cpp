@@ -21,13 +21,16 @@
  */
 
 #include "InsideWorldBoundsPredicate.hpp"
-#include "common/world/WorldConstants.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc::world::gen::feature::predicate {
 
-bool InsideWorldBoundsPredicate::test(const IWorld& /*world*/, const BlockPos& pos) const
+bool InsideWorldBoundsPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
-    return pos.y >= mc::world::MIN_BUILD_HEIGHT && pos.y < mc::world::MAX_BUILD_HEIGHT;
+    // MC: !world.isOutsideBuildHeight(pos.offset(offset))
+    // isOutsideBuildHeight = y < minBuildHeight || y >= maxBuildHeight
+    const i32 y = pos.y + m_offset.y;
+    return y >= world.getMinBuildHeight() && y < world.getMaxBuildHeight();
 }
 
 } // namespace mc::world::gen::feature::predicate

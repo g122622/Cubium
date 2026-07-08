@@ -27,6 +27,9 @@ namespace mc {
 
 i32 FeatureSpread::get(math::Random& random) const
 {
+    if (m_provider != nullptr) {
+        return m_provider->sample(random);
+    }
     // Random::nextInt(max) 的上界是开区间，这里显式传入 spread + 1 来得到 [0, spread]。
     return m_base + random.nextInt(m_spread + 1);
 }

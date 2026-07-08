@@ -1145,6 +1145,9 @@ add_library(mc_common STATIC
     world/gen/feature/BlockPileFeature.cpp
     world/gen/feature/DiskFeature.cpp
     world/gen/feature/NetherForestVegetationFeature.cpp
+    world/gen/feature/VinesFeature.cpp
+    world/gen/feature/WeepingVinesFeature.cpp
+    world/gen/feature/TwistingVinesFeature.cpp
     world/gen/feature/SpringFeature.cpp
     world/gen/feature/ScatteredOreFeature.cpp
     world/gen/feature/ReplaceBlobsFeature.cpp
@@ -1163,6 +1166,7 @@ add_library(mc_common STATIC
     world/gen/feature/tree/trunk/StraightTrunkPlacer.cpp
     world/gen/feature/tree/trunk/TrunkPlacers.cpp
     world/gen/feature/tree/trunk/CherryTrunkPlacer.cpp
+    world/gen/feature/tree/trunk/UpwardsBranchingTrunkPlacer.cpp
     world/gen/feature/tree/foliage/FoliagePlacer.cpp
     world/gen/feature/tree/foliage/BlobFoliagePlacer.cpp
     world/gen/feature/tree/foliage/FoliagePlacers.cpp
