@@ -6,7 +6,8 @@
 
 | 文件 | 说明 |
 |------|------|
-| `EndDragonFight.hpp/cpp` | 末影龙战斗管理器，协调击杀奖励（龙蛋放置、折跃门生成、经验掉落区分）、旧存档状态扫描、末影龙存活检测及 Boss 栏同步 |
+| `EndDragonFight.hpp/cpp` | 末影龙战斗管理器，协调击杀奖励（龙蛋放置、折跃门生成、经验掉落区分）、旧存档状态扫描、末影龙存活检测、Boss 栏同步及水晶重生序列 |
+| `DragonRespawnAnimation.hpp/cpp` | 末影龙重生动画的 5 阶段枚举与各阶段 tick 函数（`dragon_respawn::` 命名空间） |
 | `IDragonBossBar.hpp` | 末影龙 Boss 栏抽象接口，解耦 common 与 server 层；含默认空实现 `NullDragonBossBar` |
 
 ## EndDragonFight
@@ -142,6 +143,67 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 - MC 原版通过 `PhaseManager` 设置阶段；Cubium 的 `EnderDragonEntity` 直接提供 `setPhase()` 方法
 - MC 原版使用 `List.get(0)` 取第一条龙；Cubium 同样取过滤后列表的首元素
 
-#### 注意：末影水晶重生系统未实现
+### 末影水晶重生序列
 
-此处实现的是龙失联后的**自然重生**（findOrCreateDragon）。玩家通过末影水晶主动触发的重生动画序列（4 个末影水晶光柱 → 龙重生）尚未实现，见 `EndDragonFight.hpp` 中的 TODO 注释。
+玩家通过在出口传送门四周放置 4 个末影水晶触发的龙重生动画序列。对应 MC 1.21.11 `EndDragonFight.tryRespawn()` / `respawnDragon()` / `DragonRespawnAnimation`。
+
+#### 触发条件（tryRespawn）
+
+`tryRespawn()` 仅在龙已死（`dragonKilled = true`）且未在重生中时执行：
+
+1. 确定出口传送门位置（`portalLocation`，默认 `(0, 0, 0)`）
+2. 检查传送门上方一格（`portalLoc.up(1)`）四个水平方向各 2 格外是否有末影水晶
+3. 四个方向全部有水晶时，收集 4 个水晶到列表，调用 `_respawnDragon()`
+4. 任一方向缺水晶则直接返回（不启动重生）
+
+#### 启动重生（_respawnDragon）
+
+1. 清除出口传送门区域（`(-4..4) × 全高度 × (-4..4)`）的基岩/末地传送门方块，替换为末地石
+2. 设置 `respawnStage = START`，`respawnTime = 0`
+3. 创建非激活态出口传送门（`EndTeleporter::createExitPortal(false)`）
+4. 记录 4 个重生水晶到 `m_respawnCrystals`
+
+#### 5 阶段状态机（DragonRespawnAnimation）
+
+| 阶段 | 持续时间 | 主要行为 |
+|------|----------|----------|
+| `START` | 1 tick | 将所有重生水晶光束指向 `(0, 128, 0)`，立即切换到 `PREPARING_TO_SUMMON_PILLARS` |
+| `PREPARING_TO_SUMMON_PILLARS` | 100 tick | 在 tick 0/50/51/52/95+ 播放音效事件 3001；100 tick 后切换到 `SUMMONING_PILLARS` |
+| `SUMMONING_PILLARS` | 400 tick (10柱×40) | 每 40 tick 处理一根柱子：tick%40==0 切光束到柱顶，tick%40==39 移除柱区方块+爆炸+重新生成柱子+水晶；所有柱子处理完后切换到 `SUMMONING_DRAGON` |
+| `SUMMONING_DRAGON` | 100 tick | tick 0 切光束到 `(0, 128, 0)`；<5 每 tick 播放 3001；>=80 每 tick 播放 3001；100 tick 时爆炸所有水晶+discard+切换到 `END` |
+| `END` | 0 tick | 空操作，`setRespawnStage(END)` 会清除重生状态、创建新龙 |
+
+每阶段对应 `dragon_respawn::` 命名空间内的一个 tick 函数（`tickStart` / `tickPreparingToSummonPillars` / `tickSummoningPillars` / `tickSummoningDragon` / `tickEnd`），由 `EndDragonFight::tick()` 在 `respawnStage` 有值时分发调用。
+
+#### 阶段切换（setRespawnStage）
+
+`setRespawnStage(world, stage)` 仅在重生序列进行中可调用：
+
+- 非 `END` 阶段：设置 `respawnStage = stage`，重置 `respawnTime = 0`
+- `END` 阶段：清除 `respawnStage`，设置 `dragonKilled = false`，清空重生水晶列表，调用 `_createNewDragon()` 创建新龙
+
+#### 中止重生（onCrystalDestroyed）
+
+末影水晶被破坏时（`EnderCrystalEntity::hurt()` → `EndDragonFight::onCrystalDestroyed()`）：
+
+- 若重生序列进行中且被破坏的水晶是重生水晶：中止重生序列，重置柱顶水晶（清除无敌和光束），重新生成激活态出口传送门
+- 否则：更新 `crystalsAlive` 计数，若存在末影龙则调用 `dragon->onCrystalDestroyed()` 触发龙息等反应
+
+#### 柱顶水晶管理
+
+- `_updateCrystalCount()`：每 `TIME_BETWEEN_CRYSTAL_SCANS`（100）tick 遍历所有柱顶碰撞箱（`EndSpike::getTopBoundingBox()`），统计末影水晶数量到 `m_crystalsAlive`
+- `resetSpikeCrystals()`：遍历所有柱顶水晶，清除无敌标志和光束目标（用于重生中止或完成后）
+
+#### 数据持久化
+
+`EndDragonFight::Data` 新增字段：
+
+- `isRespawning` - 是否正在重生（存档恢复时用于重启重生序列）
+- `exitPortalLocation` - 出口传送门位置（序列化为 `[x, y, z]` JSON 数组）
+
+#### 与 MC 原版的差异
+
+- MC 使用 `enum + abstract tick()`，Cubium 使用 `enum class + 命名空间内静态 tick 函数`（避免抽象类开销，便于测试）
+- MC 通过 `level.explode(null, x, y, z, 5.0F, BLOCK)` 触发爆炸，Cubium 通过 `IWorld::createExplosion(pos, 5.0f, ExplosionMode::Break, false, nullptr)`
+- MC 通过 `level.removeBlock(pos, false)` 移除方块，Cubium 通过 `IWorld::setBlockState(pos, airState, 3)`
+- MC 的 `SpikeFeature.place()` 在重生阶段调用 `placeSpike()` 重新生成柱子，Cubium 直接调用 `EndSpikeFeature::placeSpike(IWorld&, ...)` 运行时重载

@@ -28,8 +28,12 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -43,6 +47,7 @@
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/gen/feature/end/EndSpikeFeature.hpp"
 
 #include <algorithm>
 
@@ -60,10 +65,18 @@ EndDragonFight::Data EndDragonFight::Data::fromJson(const nlohmann::json& json)
     data.needsStateScanning = json.value("NeedsStateScanning", true);
     data.dragonKilled = json.value("DragonKilled", false);
     data.previouslyKilled = json.value("PreviouslyKilled", false);
+    data.isRespawning = json.value("IsRespawning", false);
 
     // 反序列化末影龙 UUID（MC Java 中键名为 "Dragon"）
     if (json.contains("Dragon") && json["Dragon"].is_string()) {
         data.dragonUUID = json["Dragon"].get<std::string>();
+    }
+
+    // 反序列化出口传送门位置（MC Java 中键名为 "ExitPortalLocation"，格式 [x, y, z]）
+    if (json.contains("ExitPortalLocation") && json["ExitPortalLocation"].is_array() &&
+        json["ExitPortalLocation"].size() == 3) {
+        const auto& arr = json["ExitPortalLocation"];
+        data.exitPortalLocation = BlockPos(arr[0].get<i32>(), arr[1].get<i32>(), arr[2].get<i32>());
     }
 
     if (json.contains("Gateways") && json["Gateways"].is_array()) {
@@ -85,10 +98,17 @@ EndDragonFight::Data EndDragonFight::Data::fromJson(const nlohmann::json& json)
     json["NeedsStateScanning"] = needsStateScanning;
     json["DragonKilled"] = dragonKilled;
     json["PreviouslyKilled"] = previouslyKilled;
+    json["IsRespawning"] = isRespawning;
 
     // 序列化末影龙 UUID
     if (dragonUUID.has_value() && !dragonUUID->empty()) {
         json["Dragon"] = *dragonUUID;
+    }
+
+    // 序列化出口传送门位置
+    if (exitPortalLocation.has_value()) {
+        const BlockPos& pos = *exitPortalLocation;
+        json["ExitPortalLocation"] = nlohmann::json::array({pos.x, pos.y, pos.z});
     }
 
     if (gateways.has_value()) {
@@ -107,6 +127,12 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
 {
     if (data.has_value()) {
         _loadData(*data);
+        // 存档标记为正在重生时，从 START 阶段重新开始重生序列
+        // 对应 MC Java: if (p_289768_.isRespawning) { this.respawnStage = DragonRespawnAnimation.START; }
+        if (data->isRespawning) {
+            m_respawnStage = DragonRespawnAnimation::START;
+            m_respawnTime = 0;
+        }
     } else {
         // 新世界：初始化折跃门列表
         m_gateways.reserve(GATEWAY_COUNT);
@@ -156,7 +182,55 @@ void EndDragonFight::tick(IWorld& world)
         return;
     }
 
-    // 5. 龙失联检查：当龙未死亡但长时间未被 updateDragon() 调用时，重新查找或创建龙
+    // 4.5 竞技场区块加载状态（用于后续重生/水晶扫描前置检查）
+    const bool arenaLoaded = _isArenaLoaded(world);
+
+    // 5. 重生序列处理
+    // 对应 MC Java: if (this.respawnStage != null) {
+    //     if (this.respawnCrystals == null && flag) {
+    //         this.respawnStage = null;
+    //         this.tryRespawn();
+    //     }
+    //     this.respawnStage.tick(this.level, this, this.respawnCrystals, this.respawnTime++, this.portalLocation);
+    // }
+    if (m_respawnStage.has_value()) {
+        // 重生序列进行中，但重生水晶列表为空（存档恢复时水晶未持久化）
+        // 且竞技场已加载：中止当前重生状态，尝试重新触发
+        if (m_respawnCrystals.empty() && arenaLoaded) {
+            m_respawnStage.reset();
+            m_respawnTime = 0;
+            tryRespawn(world);
+        } else if (m_respawnStage.has_value()) {
+            // 调用当前阶段的 tick 函数
+            const BlockPos portalLoc = m_portalLocation.value_or(BlockPos(0, 0, 0));
+            const DragonRespawnAnimation stage = *m_respawnStage;
+            switch (stage) {
+                case DragonRespawnAnimation::START:
+                    dragon_respawn::tickStart(world, *this, m_respawnCrystals, m_respawnTime, portalLoc);
+                    break;
+                case DragonRespawnAnimation::PREPARING_TO_SUMMON_PILLARS:
+                    dragon_respawn::tickPreparingToSummonPillars(
+                        world, *this, m_respawnCrystals, m_respawnTime, portalLoc);
+                    break;
+                case DragonRespawnAnimation::SUMMONING_PILLARS:
+                    dragon_respawn::tickSummoningPillars(world, *this, m_respawnCrystals, m_respawnTime, portalLoc);
+                    break;
+                case DragonRespawnAnimation::SUMMONING_DRAGON:
+                    dragon_respawn::tickSummoningDragon(world, *this, m_respawnCrystals, m_respawnTime, portalLoc);
+                    break;
+                case DragonRespawnAnimation::END:
+                    dragon_respawn::tickEnd(world, *this, m_respawnCrystals, m_respawnTime, portalLoc);
+                    break;
+            }
+            // 仅在重生状态仍然存在时递增计时器
+            // （setRespawnStage(END) 会清除 m_respawnStage，此时不应继续递增）
+            if (m_respawnStage.has_value()) {
+                ++m_respawnTime;
+            }
+        }
+    }
+
+    // 6. 龙失联检查：当龙未死亡但长时间未被 updateDragon() 调用时，重新查找或创建龙
     // 对应 MC Java: if (!this.dragonKilled) {
     //     if ((this.dragonUUID == null || ++this.ticksSinceDragonSeen >= 1200) && flag) {
     //         this.findOrCreateDragon();
@@ -164,11 +238,20 @@ void EndDragonFight::tick(IWorld& world)
     //     }
     // }
     if (!m_dragonKilled) {
-        const bool arenaLoaded = _isArenaLoaded(world);
         const bool uuidEmpty = m_dragonUUID.empty();
         if ((uuidEmpty || ++m_ticksSinceDragonSeen >= MAX_TICKS_BEFORE_DRAGON_RESPAWN) && arenaLoaded) {
             _findOrCreateDragon(world);
             m_ticksSinceDragonSeen = 0;
+        }
+
+        // 7. 末影水晶计数扫描：每 TIME_BETWEEN_CRYSTAL_SCANS tick 更新 crystalsAlive
+        // 对应 MC Java: if (++this.ticksSinceCrystalsScanned >= 100 && flag) {
+        //     this.updateCrystalCount();
+        //     this.ticksSinceCrystalsScanned = 0;
+        // }
+        if (++m_ticksSinceCrystalsScanned >= TIME_BETWEEN_CRYSTAL_SCANS && arenaLoaded) {
+            _updateCrystalCount(world);
+            m_ticksSinceCrystalsScanned = 0;
         }
     }
 }
@@ -248,10 +331,17 @@ EndDragonFight::Data EndDragonFight::saveData() const
     data.needsStateScanning = m_needsStateScanning;
     data.dragonKilled = m_dragonKilled;
     data.previouslyKilled = m_previouslyKilled;
+    // 重生序列进行中时记录 isRespawning=true，加载时从 START 阶段重启
+    data.isRespawning = m_respawnStage.has_value();
 
     // 序列化末影龙 UUID
     if (!m_dragonUUID.empty()) {
         data.dragonUUID = m_dragonUUID;
+    }
+
+    // 序列化出口传送门位置
+    if (m_portalLocation.has_value()) {
+        data.exitPortalLocation = m_portalLocation;
     }
 
     // gateways 始终保存（即使为空列表），区别于加载时的 nullopt
@@ -272,6 +362,11 @@ void EndDragonFight::_loadData(const Data& data)
     // 恢复末影龙 UUID
     if (data.dragonUUID.has_value()) {
         m_dragonUUID = *data.dragonUUID;
+    }
+
+    // 恢复出口传送门位置
+    if (data.exitPortalLocation.has_value()) {
+        m_portalLocation = data.exitPortalLocation;
     }
 
     if (data.gateways.has_value()) {
@@ -567,6 +662,245 @@ std::unique_ptr<text::ITextComponent> EndDragonFight::createDefaultBossName()
 {
     // 对应 MC Java: Component.translatable("entity.minecraft.ender_dragon")
     return std::make_unique<text::TranslationTextComponent>("entity.minecraft.ender_dragon");
+}
+
+// ============================================================================
+// 末影水晶重生系统
+// ============================================================================
+
+void EndDragonFight::_updateCrystalCount(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.updateCrystalCount()
+    // 遍历所有柱顶碰撞箱，统计柱顶末影水晶数量
+    m_ticksSinceCrystalsScanned = 0;
+    m_crystalsAlive = 0;
+
+    const std::vector<EndSpike> spikes = EndSpikeFeatureConfig::generateSpikes(m_worldSeed);
+    for (const EndSpike& spike : spikes) {
+        const AxisAlignedBB topBox = spike.getTopBoundingBox();
+        std::vector<Entity*> entities = world.getEntitiesInAABB(topBox, nullptr);
+        for (Entity* entity : entities) {
+            if (entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::END_CRYSTAL) {
+                ++m_crystalsAlive;
+            }
+        }
+    }
+
+    spdlog::debug("EndDragonFight: Found {} end crystals still alive", m_crystalsAlive);
+}
+
+void EndDragonFight::tryRespawn(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.tryRespawn()
+    // 仅在龙已死且未在重生中时尝试触发重生
+    if (!m_dragonKilled || m_respawnStage.has_value()) {
+        return;
+    }
+
+    // 确定 portalLocation（如果尚未记录）
+    // MC: 如果 portalLocation == null，先 findExitPortal，找不到则 spawnExitPortal(true)
+    // Cubium 简化：如果未记录，使用 (0, 0, 0) 作为出口传送门位置（末地原点讲台）
+    BlockPos portalLoc;
+    if (m_portalLocation.has_value()) {
+        portalLoc = *m_portalLocation;
+    } else {
+        // 查找出口传送门：Cubium 当前简化为使用原点（讲台中心）
+        // 如果世界中不存在讲台结构，创建激活态讲台
+        // 对应 MC: if (findExitPortal() == null) { spawnExitPortal(true); }
+        const i32 surfaceY = world.getHeight(0, 0);
+        const BlockState* surfaceBlock = world.getBlockState(0, surfaceY - 1, 0);
+        bool hasPodium = (surfaceBlock != nullptr && surfaceBlock->is(VanillaBlocks::BEDROCK));
+        if (!hasPodium) {
+            EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), true);
+        }
+        portalLoc = BlockPos(0, 0, 0);
+        m_portalLocation = portalLoc;
+    }
+
+    // 检查出口传送门四个水平方向 2 格外是否有末影水晶
+    // MC: for (Direction direction : Direction.Plane.HORIZONTAL) {
+    //         List<EndCrystal> list = level.getEntitiesOfClass(EndCrystal.class,
+    //             new AABB(blockpos1.relative(direction, 2)));
+    //         if (list.isEmpty()) return;
+    //         list1.addAll(list);
+    //     }
+    std::vector<entity::EnderCrystalEntity*> respawnCrystals;
+    const BlockPos portalAbove = portalLoc.up(1); // MC: blockpos1 = blockpos.above(1)
+
+    // 四个水平方向
+    const std::array<Direction, 4> horizontalDirs = Directions::horizontal();
+    for (Direction dir : horizontalDirs) {
+        // 相对位置偏移 2 格
+        const BlockPos checkPos = portalAbove.offset(dir, 2);
+        // 构建 1x1x1 碰撞箱
+        const AxisAlignedBB box = AxisAlignedBB::fromBlock(checkPos.x, checkPos.y, checkPos.z);
+        std::vector<Entity*> entities = world.getEntitiesInAABB(box, nullptr);
+
+        bool foundCrystal = false;
+        for (Entity* entity : entities) {
+            if (entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::END_CRYSTAL) {
+                auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(entity);
+                if (crystal != nullptr) {
+                    respawnCrystals.push_back(crystal);
+                    foundCrystal = true;
+                }
+            }
+        }
+        if (!foundCrystal) {
+            // 某个方向缺少水晶，无法启动重生
+            spdlog::debug("EndDragonFight: tryRespawn - no crystal at direction {} (pos={},{},{})",
+                static_cast<i32>(dir),
+                checkPos.x,
+                checkPos.y,
+                checkPos.z);
+            return;
+        }
+    }
+
+    spdlog::info("EndDragonFight: Found all 4 crystals, respawning dragon.");
+    _respawnDragon(world, std::move(respawnCrystals));
+}
+
+void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrystalEntity*> crystals)
+{
+    // 对应 MC Java: EndDragonFight.respawnDragon(List<EndCrystal>)
+    // 前置条件已满足（龙已死 + 未在重生中）
+    if (!m_dragonKilled || m_respawnStage.has_value()) {
+        return;
+    }
+
+    // 1. 清除出口传送门区域的基岩/末地传送门方块（替换为末地石）
+    // MC: for (BlockPatternMatch match = findExitPortal(); match != null; match = findExitPortal()) {
+    //         for (i,j,k in pattern) {
+    //             if (state.is(BEDROCK) || state.is(END_PORTAL)) {
+    //                 setBlockAndUpdate(pos, END_STONE);
+    //             }
+    //         }
+    //     }
+    // Cubium 简化：扫描原点周围区块，将 BEDROCK 和 END_PORTAL 方块替换为 END_STONE
+    // 这确保重生序列开始前出口传送门被"填平"，重生完成后由 setDragonKilled 重新创建
+    const BlockState* endStoneState = VanillaBlocks::getState(VanillaBlocks::END_STONE);
+    const BlockState* bedrockState = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+    const BlockState* endPortalState = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+    if (endStoneState != nullptr) {
+        // 扫描原点讲台区域（出口传送门大致在 (0, ~64, 0) 附近）
+        // MC 的 exitPortalPattern 是 7x7 区域，Cubium 扫描略大的范围以确保覆盖
+        for (i32 bx = -4; bx <= 4; ++bx) {
+            for (i32 by = world::MIN_BUILD_HEIGHT; by < world::MAX_BUILD_HEIGHT; ++by) {
+                for (i32 bz = -4; bz <= 4; ++bz) {
+                    const BlockState* state = world.getBlockState(bx, by, bz);
+                    if (state == bedrockState || state == endPortalState) {
+                        world.setBlockState(bx, by, bz, endStoneState, 3);
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. 设置重生阶段为 START
+    m_respawnStage = DragonRespawnAnimation::START;
+    m_respawnTime = 0;
+
+    // 3. 创建非激活态出口传送门（不含 END_PORTAL 方块，仅讲台结构）
+    // MC: this.spawnExitPortal(false);
+    EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), false);
+
+    // 4. 记录重生水晶列表
+    m_respawnCrystals = std::move(crystals);
+}
+
+void EndDragonFight::setRespawnStage(IWorld& world, DragonRespawnAnimation stage)
+{
+    // 对应 MC Java: EndDragonFight.setRespawnStage(DragonRespawnAnimation)
+    // 仅在重生序列进行中时可调用
+    if (!m_respawnStage.has_value()) {
+        spdlog::warn("EndDragonFight: setRespawnStage called but dragon respawn isn't in progress.");
+        return;
+    }
+
+    m_respawnTime = 0;
+
+    if (stage == DragonRespawnAnimation::END) {
+        // END 阶段：清除重生状态，创建新龙
+        m_respawnStage.reset();
+        m_dragonKilled = false;
+        m_respawnCrystals.clear();
+
+        // 创建新龙
+        // MC: EnderDragon enderdragon = this.createNewDragon();
+        _createNewDragon(world);
+        // 注意：MC 在此处触发 SUMMONED_ENTITY 进度，Cubium 暂未实现该进度系统
+    } else {
+        m_respawnStage = stage;
+    }
+}
+
+void EndDragonFight::onCrystalDestroyed(IWorld& world, entity::EnderCrystalEntity* crystal, DamageSource& source)
+{
+    // 对应 MC Java: EndDragonFight.onCrystalDestroyed(EndCrystal, DamageSource)
+    if (m_respawnStage.has_value()) {
+        // 重生序列进行中：检查被破坏的水晶是否为重生水晶
+        auto it = std::find(m_respawnCrystals.begin(), m_respawnCrystals.end(), crystal);
+        if (it != m_respawnCrystals.end()) {
+            // 中止重生序列
+            spdlog::debug("EndDragonFight: Aborting respawn sequence (crystal destroyed during respawn)");
+            m_respawnStage.reset();
+            m_respawnTime = 0;
+            m_respawnCrystals.clear();
+            resetSpikeCrystals(world);
+            // 重新生成激活态出口传送门
+            EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), true);
+            return;
+        }
+    }
+
+    // 非重生阶段：更新水晶计数并通知末影龙
+    _updateCrystalCount(world);
+
+    // 如果存在末影龙，调用龙的 onCrystalDestroyed
+    // MC: if (this.level.getEntity(this.dragonUUID) instanceof EnderDragon enderdragon) {
+    //         enderdragon.onCrystalDestroyed(this.level, p_64083_, p_64083_.blockPosition(), p_64084_);
+    //     }
+    if (!m_dragonUUID.empty()) {
+        std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+        for (Entity* entity : dragons) {
+            if (entity == nullptr || entity->uuid() != m_dragonUUID) {
+                continue;
+            }
+            auto* dragon = dynamic_cast<entity::EnderDragonEntity*>(entity);
+            if (dragon != nullptr) {
+                const BlockPos crystalPos(static_cast<i32>(std::floor(crystal->x())),
+                    static_cast<i32>(std::floor(crystal->y())),
+                    static_cast<i32>(std::floor(crystal->z())));
+                dragon->onCrystalDestroyed(crystal, crystalPos, source);
+            }
+            break;
+        }
+    }
+}
+
+void EndDragonFight::resetSpikeCrystals(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.resetSpikeCrystals()
+    // 遍历所有柱顶末影水晶，清除无敌和光束
+    const std::vector<EndSpike> spikes = EndSpikeFeatureConfig::generateSpikes(m_worldSeed);
+    for (const EndSpike& spike : spikes) {
+        const AxisAlignedBB topBox = spike.getTopBoundingBox();
+        std::vector<Entity*> entities = world.getEntitiesInAABB(topBox, nullptr);
+        for (Entity* entity : entities) {
+            if (entity == nullptr || entity->typeId() != entity::EntityTypeIdNumber::END_CRYSTAL) {
+                continue;
+            }
+            auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(entity);
+            if (crystal != nullptr) {
+                // MC: endcrystal.setInvulnerable(false);
+                crystal->setInvulnerable(false);
+                // MC: endcrystal.setBeamTarget(null);
+                // Cubium: hasBeamTarget() 检查 (0,0,0) 表示无光束
+                crystal->setBeamTarget(BlockPos(0, 0, 0));
+            }
+        }
+    }
 }
 
 } // namespace mc

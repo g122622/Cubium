@@ -28,9 +28,14 @@
 #include <random>
 
 #include "common/core/Constants.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -212,6 +217,121 @@ void EndSpikeFeature::_generateCage(WorldGenRegion& world, const BlockPos& topPo
     const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
     if (bedrock) {
         world.setBlockState(topPos.x, topPos.y, topPos.z, bedrock);
+    }
+}
+
+// ============================================================================
+// 运行时柱子放置（用于末影龙重生阶段）
+// ============================================================================
+
+void EndSpikeFeature::placeSpike(
+    IWorld& world, math::Random& random, const EndSpikeFeatureConfig& config, const EndSpike& spike)
+{
+    // 对齐 MC 1.21.11 SpikeFeature.placeSpike()
+    // 在运行时（非世界生成阶段）放置单根柱子，包括柱体、笼子、基岩底座、末影水晶和底部火焰。
+    //
+    // 与 _generateSpike（世界生成阶段使用 WorldGenRegion）不同，此方法使用 IWorld& 接口，
+    // 由 EndDragonFight 在龙重生序列的 SUMMONING_PILLARS 阶段调用。
+
+    const BlockState* obsidian = VanillaBlocks::getState(VanillaBlocks::OBSIDIAN);
+    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+
+    const i32 baseX = spike.centerX;
+    const i32 baseZ = spike.centerZ;
+    const i32 radius = spike.radius;
+    const i32 height = spike.height;
+
+    // 放置柱体：圆形截面（半径 radius），高度从世界最低 Y 到 spike.height+10
+    // MC: for (BlockPos blockpos : BlockPos.betweenClosed(centerX-i, minY, centerZ-i,
+    //                                                centerX+i, height+10, centerZ+i))
+    for (i32 dx = -radius; dx <= radius; ++dx) {
+        for (i32 dz = -radius; dz <= radius; ++dz) {
+            for (i32 y = world::MIN_BUILD_HEIGHT; y <= height + 10; ++y) {
+                const f64 distSq = static_cast<f64>(dx * dx + dz * dz);
+                if (distSq <= static_cast<f64>(radius * radius + 1) && y < height) {
+                    // 柱体范围内且低于 height：放置黑曜石
+                    world.setBlockState(baseX + dx, y, baseZ + dz, obsidian);
+                } else if (y > 65) {
+                    // Y > 65 区域清除为空气（顶部清理）
+                    world.setBlockState(baseX + dx, y, baseZ + dz, air);
+                }
+            }
+        }
+    }
+
+    // 如果有笼子，生成铁栏杆笼子
+    if (spike.guarded) {
+        BlockPos topPos(baseX, height, baseZ);
+        // 复用世界生成阶段的笼子生成逻辑：使用 WorldGenRegion 的 setBlockState。
+        // 由于此处只有 IWorld&，内联实现笼子生成逻辑。
+        const BlockState* cageBlock = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
+        if (cageBlock != nullptr) {
+            for (i32 k = -2; k <= 2; ++k) {
+                for (i32 l = -2; l <= 2; ++l) {
+                    for (i32 y = 0; y <= 3; ++y) {
+                        const bool isOuterK = std::abs(k) == 2;
+                        const bool isOuterL = std::abs(l) == 2;
+                        const bool isTop = (y == 3);
+                        if (isOuterK || isOuterL || isTop) {
+                            const bool flag3 = (k == -2) || (k == 2) || isTop;
+                            const bool flag4 = (l == -2) || (l == 2) || isTop;
+                            const BlockState* barState = cageBlock;
+                            barState = &barState->with(BlockStateProperties::NORTH(), flag3 && l != -2);
+                            barState = &barState->with(BlockStateProperties::SOUTH(), flag3 && l != 2);
+                            barState = &barState->with(BlockStateProperties::WEST(), flag4 && k != -2);
+                            barState = &barState->with(BlockStateProperties::EAST(), flag4 && k != 2);
+                            world.setBlockState(topPos.x + k, topPos.y + y, topPos.z + l, barState);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 在柱顶创建末影水晶实体
+    // MC: EndCrystal endcrystal = EntityType.END_CRYSTAL.create(level, STRUCTURE);
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* crystalType = registry.getType(entity::EntityTypes::END_CRYSTAL);
+    if (crystalType != nullptr) {
+        std::unique_ptr<Entity> crystalEntity = crystalType->create(&world);
+        if (crystalEntity != nullptr) {
+            auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(crystalEntity.get());
+            if (crystal != nullptr) {
+                // 设置光束目标（如果配置中有）
+                if (config.crystalBeamTarget.has_value()) {
+                    crystal->setBeamTarget(*config.crystalBeamTarget);
+                }
+                // 设置无敌状态（重生阶段中柱顶水晶为无敌）
+                crystal->setInvulnerable(config.crystalInvulnerable);
+
+                // 设置位置和随机朝向
+                // MC: endcrystal.snapTo(centerX + 0.5, height + 1, centerZ + 0.5,
+                //                       random.nextFloat() * 360.0F, 0.0F);
+                const f32 yaw = random.nextFloat() * 360.0f;
+                crystalEntity->setPosition(Vector3(
+                    static_cast<f32>(baseX) + 0.5f, static_cast<f32>(height) + 1.0f, static_cast<f32>(baseZ) + 0.5f));
+                crystalEntity->setRotation(yaw, 0.0f);
+
+                // 记录水晶位置（用于下方基岩/火焰放置）
+                const BlockPos crystalPos(baseX, height + 1, baseZ);
+
+                // 加入世界
+                // MC: p_225247_.addFreshEntity(endcrystal);
+                world.spawnEntity(std::move(crystalEntity));
+
+                // 在水晶下方放置基岩底座
+                // MC: this.setBlock(p_225247_, blockpos1.below(), Blocks.BEDROCK.defaultBlockState());
+                const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+                if (bedrock != nullptr) {
+                    world.setBlockState(crystalPos.x, crystalPos.y - 1, crystalPos.z, bedrock);
+                }
+
+                // 在水晶位置放置火焰
+                // MC: this.setBlock(p_225247_, blockpos1, FireBlock.getState(p_225247_, blockpos1));
+                const BlockState& fireState = blocks::FireBlock::getFireState(world, crystalPos);
+                world.setBlockState(crystalPos.x, crystalPos.y, crystalPos.z, &fireState);
+            }
+        }
     }
 }
 

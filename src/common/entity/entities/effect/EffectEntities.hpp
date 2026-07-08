@@ -69,6 +69,21 @@ public:
     [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     /**
+     * @brief 受伤入口
+     *
+     * 末影水晶对大多数伤害免疫（仅可被玩家/实体破坏）。受伤时移除自身，
+     * 若伤害来源非爆炸则触发一次破坏性爆炸（半径 6.0），随后通知
+     * 末影龙战斗系统（EndDragonFight::onCrystalDestroyed）。
+     *
+     * 对应 MC 1.21.11 EndCrystal.hurtServer()。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量（末影水晶不按血量结算，仅用于触发死亡）
+     * @return true 表示伤害被接受（已触发破坏流程）
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
      * @brief 检查是否显示基岩
      */
     [[nodiscard]] bool shouldShowBottom() const { return m_showBottom; }

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "DragonRespawnAnimation.hpp"
 #include "IDragonBossBar.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -39,8 +40,10 @@ namespace mc {
 
 // 前向声明
 class IWorld;
+class DamageSource;
 
 namespace entity {
+class EnderCrystalEntity;
 class EnderDragonEntity;
 } // namespace entity
 
@@ -77,11 +80,13 @@ public:
      * @brief 战斗数据，用于存档保存/加载
      */
     struct Data {
-        bool needsStateScanning = true;           ///< 是否需要扫描旧世界状态
-        bool dragonKilled = false;                ///< 龙当前是否已死
-        bool previouslyKilled = false;            ///< 是否曾经击杀过龙
-        std::optional<std::string> dragonUUID;    ///< 末影龙的 UUID（nullopt 表示无龙或未追踪）
-        std::optional<std::vector<i32>> gateways; ///< 剩余折跃门索引列表（空=全部消耗，nullopt=首次初始化）
+        bool needsStateScanning = true;             ///< 是否需要扫描旧世界状态
+        bool dragonKilled = false;                  ///< 龙当前是否已死
+        bool previouslyKilled = false;              ///< 是否曾经击杀过龙
+        bool isRespawning = false;                  ///< 是否正在重生（存档恢复时用于重启重生序列）
+        std::optional<std::string> dragonUUID;      ///< 末影龙的 UUID（nullopt 表示无龙或未追踪）
+        std::optional<BlockPos> exitPortalLocation; ///< 出口传送门位置（nullopt 表示未记录）
+        std::optional<std::vector<i32>> gateways;   ///< 剩余折跃门索引列表（空=全部消耗，nullopt=首次初始化）
 
         /**
          * @brief 从 JSON 反序列化
@@ -110,6 +115,10 @@ public:
 
     /// 玩家扫描间隔（tick），对应 MC Java TIME_BETWEEN_PLAYER_SCANS = 20
     static constexpr i32 TIME_BETWEEN_PLAYER_SCANS = 20;
+
+    /// 末影水晶扫描间隔（tick），对应 MC Java TIME_BETWEEN_CRYSTAL_SCANS = 100
+    /// 每 100 tick 扫描柱顶末影水晶数量，更新 crystalsAlive 计数
+    static constexpr i32 TIME_BETWEEN_CRYSTAL_SCANS = 100;
 
     /// 龙失联后的重生检查阈值（tick），对应 MC Java MAX_TICKS_BEFORE_DRAGON_RESPAWN = 1200
     static constexpr i32 MAX_TICKS_BEFORE_DRAGON_RESPAWN = 1200;
@@ -188,6 +197,91 @@ public:
      * @param dragon 末影龙实体
      */
     void updateDragon(entity::EnderDragonEntity& dragon);
+
+    /**
+     * @brief 尝试触发龙重生
+     *
+     * 当龙已死且未在重生中时，检查出口传送门四个水平方向 2 格外是否有末影水晶。
+     * 如果四个方向都有水晶，启动重生序列。
+     *
+     * 对应 MC Java: EndDragonFight.tryRespawn()
+     *
+     * @param world 末地世界引用
+     */
+    void tryRespawn(IWorld& world);
+
+    /**
+     * @brief 设置重生阶段（用于阶段切换和测试跳转）
+     *
+     * 仅在重生序列进行中时可调用。如果新阶段为 END：
+     * - 清除重生状态（respawnStage = nullptr）
+     * - 设置 dragonKilled = false
+     * - 创建新龙
+     *
+     * 对应 MC Java: EndDragonFight.setRespawnStage(DragonRespawnAnimation)
+     *
+     * @param world 末地世界引用（END 阶段创建新龙时使用）
+     * @param stage 新的重生阶段
+     */
+    void setRespawnStage(IWorld& world, DragonRespawnAnimation stage);
+
+    /**
+     * @brief 末影水晶被破坏时调用
+     *
+     * 如果重生序列进行中且被破坏的水晶是重生水晶：
+     * - 中止重生序列
+     * - 重置柱顶水晶（清除无敌和光束）
+     * - 重新生成激活态出口传送门
+     * 否则：
+     * - 更新 crystalsAlive 计数
+     * - 如果存在末影龙，调用龙的 onCrystalDestroyed
+     *
+     * 对应 MC Java: EndDragonFight.onCrystalDestroyed(EndCrystal, DamageSource)
+     *
+     * @param world 末地世界引用
+     * @param crystal 被破坏的水晶
+     * @param source 伤害来源
+     */
+    void onCrystalDestroyed(IWorld& world, entity::EnderCrystalEntity* crystal, DamageSource& source);
+
+    /**
+     * @brief 重置柱顶水晶（清除无敌和光束）
+     *
+     * 遍历所有柱顶末影水晶，设置：
+     * - setInvulnerable(false)
+     * - setBeamTarget(null)
+     *
+     * 对应 MC Java: EndDragonFight.resetSpikeCrystals()
+     *
+     * @param world 末地世界引用
+     */
+    void resetSpikeCrystals(IWorld& world);
+
+    /**
+     * @brief 获取当前存活的末影水晶数量（柱顶）
+     *
+     * 由 tick() 每 TIME_BETWEEN_CRYSTAL_SCANS tick 自动更新。
+     *
+     * @return 柱顶末影水晶数量
+     */
+    [[nodiscard]] i32 crystalsAlive() const { return m_crystalsAlive; }
+
+    /**
+     * @brief 是否正在重生
+     */
+    [[nodiscard]] bool isRespawning() const { return m_respawnStage.has_value(); }
+
+    /**
+     * @brief 获取当前重生阶段
+     *
+     * @return 当前阶段，如果未在重生中返回 nullopt
+     */
+    [[nodiscard]] std::optional<DragonRespawnAnimation> respawnStage() const { return m_respawnStage; }
+
+    /**
+     * @brief 获取出口传送门位置
+     */
+    [[nodiscard]] const std::optional<BlockPos>& portalLocation() const { return m_portalLocation; }
 
     // ========== 状态查询 ==========
 
@@ -374,6 +468,33 @@ private:
      */
     void _updatePlayers(IWorld& world);
 
+    /**
+     * @brief 更新柱顶末影水晶计数
+     *
+     * 遍历所有柱子，统计柱顶碰撞箱内的末影水晶数量。
+     * 对应 MC Java: EndDragonFight.updateCrystalCount()
+     *
+     * @param world 末地世界引用
+     */
+    void _updateCrystalCount(IWorld& world);
+
+    /**
+     * @brief 启动龙重生序列
+     *
+     * 前置条件已满足（4 个水晶就位），执行：
+     * 1. 将出口传送门区域的基岩/末地传送门方块替换为末地石（清除现有传送门）
+     * 2. 设置 respawnStage = START
+     * 3. 重置 respawnTime = 0
+     * 4. 创建非激活态出口传送门
+     * 5. 记录重生水晶列表
+     *
+     * 对应 MC Java: EndDragonFight.respawnDragon(List<EndCrystal>)
+     *
+     * @param world 末地世界引用
+     * @param crystals 重生水晶列表
+     */
+    void _respawnDragon(IWorld& world, std::vector<entity::EnderCrystalEntity*> crystals);
+
     // ========== 成员变量 ==========
 
     u64 m_worldSeed;                  ///< 世界种子
@@ -382,6 +503,23 @@ private:
     bool m_needsStateScanning = true; ///< 是否需要扫描旧世界状态
     std::string m_dragonUUID;         ///< 末影龙的 UUID（空字符串表示无龙或未追踪）
     std::vector<i32> m_gateways;      ///< 剩余折跃门索引列表（随机打乱）
+
+    // ========== 重生序列相关 ==========
+
+    /// 当前重生阶段（nullopt 表示未在重生中）
+    std::optional<DragonRespawnAnimation> m_respawnStage;
+
+    /// 当前重生阶段已持续的 tick 数
+    i32 m_respawnTime = 0;
+
+    /// 重生水晶列表（玩家放置在出口传送门四周的 4 个水晶，所有权属于世界）
+    std::vector<entity::EnderCrystalEntity*> m_respawnCrystals;
+
+    /// 出口传送门位置（nullopt 表示未记录，首次扫描或重生时记录）
+    std::optional<BlockPos> m_portalLocation;
+
+    /// 柱顶存活末影水晶数量（由 _updateCrystalCount 每 100 tick 更新）
+    i32 m_crystalsAlive = 0;
 
     // ========== Boss 栏相关 ==========
 
@@ -395,16 +533,20 @@ private:
     /// 距上次看到龙的 tick 数（对应 MC Java ticksSinceDragonSeen）
     i32 m_ticksSinceDragonSeen = 0;
 
-    friend class test::EndDragonFightTestAccessor;
+    /// 距上次末影水晶扫描的 tick 数（对应 MC Java ticksSinceCrystalsScanned）
+    i32 m_ticksSinceCrystalsScanned = 0;
 
-    // TODO: 末影水晶触发的重生系统尚未实现。需要：
-    // 1. 末影水晶管理：检测末地黑曜石柱上的末影水晶放置/破坏
-    // 2. 重生序列：4个末影水晶同时存在时启动重生动画（ crystals -> beam -> dragon spawn ）
-    // 3. 重生计时器：重生过程约 10 秒，期间需播放粒子效果和光柱动画
-    // 4. 重生后状态重置：dragonKilled = false, needsStateScanning = false
-    //
-    // 注意：龙失联后的自然重生（findOrCreateDragon）已实现，见 _findOrCreateDragon()。
-    // 此处 TODO 仅针对玩家通过末影水晶主动触发的重生动画序列。
+    friend class test::EndDragonFightTestAccessor;
+    friend void dragon_respawn::tickStart(
+        IWorld&, EndDragonFight&, std::vector<entity::EnderCrystalEntity*>&, i32, const BlockPos&);
+    friend void dragon_respawn::tickPreparingToSummonPillars(
+        IWorld&, EndDragonFight&, std::vector<entity::EnderCrystalEntity*>&, i32, const BlockPos&);
+    friend void dragon_respawn::tickSummoningPillars(
+        IWorld&, EndDragonFight&, std::vector<entity::EnderCrystalEntity*>&, i32, const BlockPos&);
+    friend void dragon_respawn::tickSummoningDragon(
+        IWorld&, EndDragonFight&, std::vector<entity::EnderCrystalEntity*>&, i32, const BlockPos&);
+    friend void dragon_respawn::tickEnd(
+        IWorld&, EndDragonFight&, std::vector<entity::EnderCrystalEntity*>&, i32, const BlockPos&);
 };
 
 } // namespace mc

@@ -87,3 +87,16 @@ ChorusPlantFeature.place()
 ### 4. BlockState 临时值
 
 `ChorusPlantBlock::getStateWithConnections()` 返回 `BlockState` 值类型，传给 `WorldGenRegion::setBlockState()` 时需先存入局部变量再取地址，不能对临时值取地址。
+
+### 5. EndSpikeFeature 的两类放置接口
+
+`EndSpikeFeature` 提供两个放置接口，分别用于世界生成阶段和运行时：
+
+- `place(WorldGenRegion&, ...)`：世界生成阶段使用，按 `chunkX`/`chunkZ` 划分仅生成中心位于该区块的柱子（避免跨区块写入）
+- `placeSpike(IWorld&, ...)`：运行时使用（如龙重生阶段），立即放置单根柱子，包括柱体、笼子、基岩底座、末影水晶和底部火焰
+
+`placeSpike` 由 `EndDragonFight` 在 `SUMMONING_PILLARS` 阶段调用，配置中 `crystalBeamTarget` 和 `crystalInvulnerable` 控制生成水晶的光束目标和无敌标志。
+
+### 6. EndSpike::getTopBoundingBox 用于柱顶水晶扫描
+
+`EndSpike::getTopBoundingBox()` 返回覆盖柱子整个 Y 轴的 AABB（X/Z 为柱子外接方形）。`EndDragonFight::_updateCrystalCount()` 和 `resetSpikeCrystals()` 使用此碰撞箱通过 `IWorld::getEntitiesInAABB()` 查找柱顶末影水晶。

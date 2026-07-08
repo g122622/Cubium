@@ -51,6 +51,21 @@ public:
 
     [[nodiscard]] bool dragonKilled() const { return m_fight.m_dragonKilled; }
 
+    // ========== 重生序列字段读取器 ==========
+
+    [[nodiscard]] std::optional<DragonRespawnAnimation> respawnStage() const { return m_fight.m_respawnStage; }
+
+    [[nodiscard]] i32 respawnTime() const { return m_fight.m_respawnTime; }
+
+    [[nodiscard]] const std::vector<entity::EnderCrystalEntity*>& respawnCrystals() const
+    {
+        return m_fight.m_respawnCrystals;
+    }
+
+    [[nodiscard]] i32 crystalsAlive() const { return m_fight.m_crystalsAlive; }
+
+    [[nodiscard]] i32 ticksSinceCrystalsScanned() const { return m_fight.m_ticksSinceCrystalsScanned; }
+
     // ========== 私有字段设置器 ==========
 
     void setTicksSinceDragonSeen(i32 value) { m_fight.m_ticksSinceDragonSeen = value; }
@@ -61,6 +76,12 @@ public:
 
     void setDragonKilledFlag(bool value) { m_fight.m_dragonKilled = value; }
 
+    void setRespawnStage(std::optional<DragonRespawnAnimation> stage) { m_fight.m_respawnStage = stage; }
+
+    void setRespawnTime(i32 value) { m_fight.m_respawnTime = value; }
+
+    void setCrystalsAlive(i32 value) { m_fight.m_crystalsAlive = value; }
+
     // ========== 私有方法调用器 ==========
 
     void updatePlayers(IWorld& world) { m_fight._updatePlayers(world); }
@@ -68,6 +89,13 @@ public:
     void findOrCreateDragon(IWorld& world) { m_fight._findOrCreateDragon(world); }
 
     bool createNewDragon(IWorld& world) { return m_fight._createNewDragon(world); }
+
+    void updateCrystalCount(IWorld& world) { m_fight._updateCrystalCount(world); }
+
+    void respawnDragon(IWorld& world, std::vector<entity::EnderCrystalEntity*> crystals)
+    {
+        m_fight._respawnDragon(world, std::move(crystals));
+    }
 
 private:
     EndDragonFight& m_fight;

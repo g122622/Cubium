@@ -36,6 +36,7 @@
 #include "../player/Player.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/end/EndDragonFight.hpp"
 #include <chrono>
 #include <cmath>
 
@@ -235,6 +236,47 @@ void EnderCrystalEntity::explode()
         );
     }
     remove();
+}
+
+bool EnderCrystalEntity::hurt(DamageSource& source, f32 /*amount*/)
+{
+    // 对应 MC 1.21.11 EndCrystal.hurtServer()
+    // 1. 无敌伤害直接拒绝
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+    // 2. 末影龙造成的伤害无效（避免龙误伤自己的水晶）
+    Entity* attacker = source.getEntity();
+    if (attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::ENDER_DRAGON) {
+        return false;
+    }
+    // 3. 仅在尚未移除时执行破坏流程（防止递归爆炸重复触发）
+    if (isRemoved()) {
+        return true;
+    }
+    discard();
+    // 4. 若伤害来源不是爆炸，则触发一次破坏性爆炸（避免被爆炸炸毁时再次爆炸）
+    if (!source.isExplosion()) {
+        IWorld* worldPtr = world();
+        if (worldPtr != nullptr) {
+            // 使用当前水晶作为爆炸源，伤害来源作为造成者（用于击杀归因）
+            // MC: level.explode(this, damagesource, null, x, y, z, 6.0F, false, BLOCK)
+            worldPtr->createExplosion(m_position,
+                EXPLOSION_RADIUS,
+                world::explosion::ExplosionMode::Break,
+                false, // 不生成火焰
+                this);
+        }
+    }
+    // 5. 通知末影龙战斗系统（中止重生 / 更新水晶计数 / 触发龙息等）
+    IWorld* worldPtr = world();
+    if (worldPtr != nullptr) {
+        EndDragonFight* fight = worldPtr->dragonFight();
+        if (fight != nullptr) {
+            fight->onCrystalDestroyed(*worldPtr, this, source);
+        }
+    }
+    return true;
 }
 
 // ==================== LightningBoltEntity ====================

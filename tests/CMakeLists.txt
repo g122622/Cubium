@@ -615,6 +615,7 @@ add_executable(mc_tests
     common/world/dimension/EndDragonFightTest.cpp
     common/world/dimension/EndDragonFightBossBarTest.cpp
     common/world/dimension/EndDragonFightSpawnTest.cpp
+    common/world/dimension/EndDragonFightRespawnTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
