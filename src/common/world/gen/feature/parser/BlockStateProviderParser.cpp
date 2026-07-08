@@ -181,6 +181,50 @@ std::unique_ptr<world::gen::noise::NormalNoise> createNoise(
     return std::make_unique<world::gen::noise::NormalNoise>(seed, params.firstOctave, params.amplitudes);
 }
 
+/// MC ExtraCodecs.intervalCodec 的 InclusiveRange<Integer> 三形式解析：
+/// 裸整数 N（min=max=N）、数组 [min,max]、对象 {min_inclusive,max_inclusive}。
+/// minBound/maxBound 为合法上下界（含），违反则返回错误。
+Result<InclusiveRange> parseInclusiveRange(const nlohmann::json& json, i32 minBound, i32 maxBound)
+{
+    if (json.is_number_integer()) {
+        const i32 v = json.get<i32>();
+        if (v < minBound || v > maxBound) {
+            return Error(ErrorCode::InvalidData,
+                "InclusiveRange value " + std::to_string(v) + " out of range [" + std::to_string(minBound) + "," +
+                    std::to_string(maxBound) + "]");
+        }
+        return InclusiveRange{v, v};
+    }
+    if (json.is_array()) {
+        if (json.size() != 2 || !json[0].is_number_integer() || !json[1].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "InclusiveRange array must be [min,max] integers");
+        }
+        const i32 lo = json[0].get<i32>();
+        const i32 hi = json[1].get<i32>();
+        if (lo > hi || lo < minBound || hi > maxBound) {
+            return Error(ErrorCode::InvalidData,
+                "InclusiveRange [" + std::to_string(lo) + "," + std::to_string(hi) +
+                    "] invalid (require minBound<=min<=max<=maxBound)");
+        }
+        return InclusiveRange{lo, hi};
+    }
+    if (json.is_object()) {
+        if (!json.contains("min_inclusive") || !json.contains("max_inclusive") ||
+            !json["min_inclusive"].is_number_integer() || !json["max_inclusive"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "InclusiveRange object missing 'min_inclusive'/'max_inclusive'");
+        }
+        const i32 lo = json["min_inclusive"].get<i32>();
+        const i32 hi = json["max_inclusive"].get<i32>();
+        if (lo > hi || lo < minBound || hi > maxBound) {
+            return Error(ErrorCode::InvalidData,
+                "InclusiveRange {min=" + std::to_string(lo) + ",max=" + std::to_string(hi) +
+                    "} invalid (require minBound<=min<=max<=maxBound)");
+        }
+        return InclusiveRange{lo, hi};
+    }
+    return Error(ErrorCode::InvalidData, "InclusiveRange must be int, [min,max] array, or {min_inclusive,max_inclusive}");
+}
+
 } // namespace
 
 Result<BlockStateProviderHandle> parse(const nlohmann::json& providerObj)
@@ -327,18 +371,14 @@ Result<BlockStateProviderHandle> parse(const nlohmann::json& providerObj)
     }
 
     if (type == "dual_noise_provider") {
-        if (!providerObj.contains("variety") || !providerObj["variety"].is_object()) {
-            return Error(ErrorCode::InvalidData, "dual_noise_provider missing 'variety' object");
+        if (!providerObj.contains("variety")) {
+            return Error(ErrorCode::InvalidData, "dual_noise_provider missing 'variety' InclusiveRange");
         }
-        const auto& varietyObj = providerObj["variety"];
-        if (!varietyObj.contains("min_inclusive") || !varietyObj.contains("max_inclusive") ||
-            !varietyObj["min_inclusive"].is_number_integer() || !varietyObj["max_inclusive"].is_number_integer()) {
-            return Error(ErrorCode::InvalidData, "dual_noise_provider variety missing min/max_inclusive");
+        auto varietyResult = parseInclusiveRange(providerObj["variety"], 1, 64);
+        if (!varietyResult.success()) {
+            return varietyResult.error();
         }
-        InclusiveRange variety{varietyObj["min_inclusive"].get<i32>(), varietyObj["max_inclusive"].get<i32>()};
-        if (variety.minInclusive < 1 || variety.maxInclusive > 64 || variety.minInclusive > variety.maxInclusive) {
-            return Error(ErrorCode::InvalidData, "dual_noise_provider variety must satisfy 1<=min<=max<=64");
-        }
+        const InclusiveRange variety = varietyResult.value();
         if (!providerObj.contains("slow_noise")) {
             return Error(ErrorCode::InvalidData, "dual_noise_provider missing 'slow_noise' parameters");
         }

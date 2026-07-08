@@ -119,7 +119,7 @@ Result<std::unique_ptr<TrunkPlacer>> parse(const nlohmann::json& placerObj)
     if (type == "fancy_trunk_placer") {
         return std::unique_ptr<TrunkPlacer>(std::make_unique<FancyTrunkPlacer>(baseHeight, heightRandA, heightRandB));
     }
-    if (type == "forky_trunk_placer") {
+    if (type == "forking_trunk_placer") {
         return std::unique_ptr<TrunkPlacer>(std::make_unique<ForkyTrunkPlacer>(baseHeight, heightRandA, heightRandB));
     }
     if (type == "giant_trunk_placer") {
