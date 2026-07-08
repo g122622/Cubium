@@ -223,6 +223,90 @@ public:
         return (ux << 36) | (uy << 28) | uz;
     }
 
+    // ========================================================================
+    // 网络序列化打包 (asLong / fromLong)
+    // 与 MC Java BlockPos.asLong 完全一致的位布局：
+    //   X 占高 26 位 (bit 38..63)，Z 占中间 26 位 (bit 12..37)，Y 占低 12 位 (bit 0..11)
+    //   PACKED_HORIZONTAL_LENGTH = 26, PACKED_Y_LENGTH = 12
+    // 支持 X/Z: ±33554432 (2^25)，Y: ±2048 (2^11)
+    // 用于 VibrationParticleOption 等网络协议中的方块位置编码
+    // ========================================================================
+
+    /// 水平坐标（X/Z）打包位宽，对应 MC Java BlockPos.PACKED_HORIZONTAL_LENGTH
+    static constexpr i32 PACKED_HORIZONTAL_LENGTH = 26;
+    /// Y 坐标打包位宽，对应 MC Java BlockPos.PACKED_Y_LENGTH
+    static constexpr i32 PACKED_Y_LENGTH = 64 - 2 * PACKED_HORIZONTAL_LENGTH; // 12
+    /// X 坐标在 packed long 中的位移，对应 MC Java BlockPos.X_OFFSET
+    static constexpr i32 PACKED_X_OFFSET = PACKED_Y_LENGTH + PACKED_HORIZONTAL_LENGTH; // 38
+    /// Z 坐标在 packed long 中的位移，对应 MC Java BlockPos.Z_OFFSET
+    static constexpr i32 PACKED_Z_OFFSET = PACKED_Y_LENGTH; // 12
+
+    /**
+     * @brief 将方块位置打包为 64 位整数
+     *
+     * 位布局：X(高26位) | Z(中26位) | Y(低12位)
+     * 对应 MC Java: BlockPos.asLong(int, int, int)
+     *
+     * @return 打包后的 64 位整数
+     */
+    [[nodiscard]] i64 asLong() const noexcept { return asLong(x, y, z); }
+
+    /**
+     * @brief 将三个整数坐标打包为 64 位整数
+     *
+     * 对应 MC Java: BlockPos.asLong(int x, int y, int z)
+     */
+    [[nodiscard]] static constexpr i64 asLong(i32 px, i32 py, i32 pz) noexcept
+    {
+        constexpr i64 XZ_MASK = (1LL << PACKED_HORIZONTAL_LENGTH) - 1;
+        constexpr i64 Y_MASK = (1LL << PACKED_Y_LENGTH) - 1;
+        return ((static_cast<i64>(px) & XZ_MASK) << PACKED_X_OFFSET) | (static_cast<i64>(py) & Y_MASK) |
+            ((static_cast<i64>(pz) & XZ_MASK) << PACKED_Z_OFFSET);
+    }
+
+    /**
+     * @brief 从 packed long 中提取 X 坐标
+     *
+     * 对应 MC Java: BlockPos.getX(long)
+     */
+    [[nodiscard]] static constexpr i32 getXFromLong(i64 packed) noexcept
+    {
+        // 算术右移实现符号扩展：先左移使 X 成为最高 26 位，再右移回低位
+        return static_cast<i32>(
+            packed << (64 - PACKED_X_OFFSET - PACKED_HORIZONTAL_LENGTH) >> (64 - PACKED_HORIZONTAL_LENGTH));
+    }
+
+    /**
+     * @brief 从 packed long 中提取 Y 坐标
+     *
+     * 对应 MC Java: BlockPos.getY(long)
+     */
+    [[nodiscard]] static constexpr i32 getYFromLong(i64 packed) noexcept
+    {
+        return static_cast<i32>(packed << (64 - PACKED_Y_LENGTH) >> (64 - PACKED_Y_LENGTH));
+    }
+
+    /**
+     * @brief 从 packed long 中提取 Z 坐标
+     *
+     * 对应 MC Java: BlockPos.getZ(long)
+     */
+    [[nodiscard]] static constexpr i32 getZFromLong(i64 packed) noexcept
+    {
+        return static_cast<i32>(
+            packed << (64 - PACKED_Z_OFFSET - PACKED_HORIZONTAL_LENGTH) >> (64 - PACKED_HORIZONTAL_LENGTH));
+    }
+
+    /**
+     * @brief 从 packed long 还原 BlockPos
+     *
+     * 对应 MC Java: BlockPos.of(long)
+     */
+    [[nodiscard]] static BlockPos fromLong(i64 packed) noexcept
+    {
+        return BlockPos(getXFromLong(packed), getYFromLong(packed), getZFromLong(packed));
+    }
+
     // 区块坐标
     [[nodiscard]] ChunkCoord chunkX() const noexcept { return math::toChunkCoord(x); }
     [[nodiscard]] ChunkCoord chunkZ() const noexcept { return math::toChunkCoord(z); }

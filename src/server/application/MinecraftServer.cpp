@@ -83,6 +83,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
@@ -513,8 +514,8 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
                                      const Vector3& offset,
                                      u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
     world.setOnBroadcastVibrationParticle(
-        [this](const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks) {
-            broadcastVibrationParticleInRange(pos, targetPosition, arrivalInTicks);
+        [this](const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks) {
+            broadcastVibrationParticleInRange(pos, targetSource, arrivalInTicks);
         });
     world.setOnBroadcastTrailParticle(
         [this](const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks) {
@@ -2664,9 +2665,23 @@ void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
 }
 
 void MinecraftServer::broadcastVibrationParticleInRange(
-    const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks, f32 range)
+    const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks, f32 range)
 {
-    network::ParticlePacket packet = network::ParticlePacket::createVibration(pos, targetPosition, arrivalInTicks);
+    // 根据 PositionSource 类型选择对应的 createVibration 重载，
+    // 以确保网络序列化格式与 MC Java 1.21.11 VibrationParticleOption.STREAM_CODEC 一致：
+    // - BlockPositionSource -> VarInt(0) + i64 packedBlockPos
+    // - EntityPositionSource -> VarInt(1) + VarInt entityId + f32 yOffset
+    network::ParticlePacket packet;
+    const std::string sourceType = targetSource.type();
+    if (sourceType == "entity") {
+        const auto& entitySource = static_cast<const gameevent::EntityPositionSource&>(targetSource);
+        packet = network::ParticlePacket::createVibration(
+            pos, entitySource.entityId(), entitySource.yOffset(), arrivalInTicks);
+    } else {
+        // 默认按方块位置源处理（"block" 或任何未知类型）
+        const auto& blockSource = static_cast<const gameevent::BlockPositionSource&>(targetSource);
+        packet = network::ParticlePacket::createVibration(pos, blockSource.pos(), arrivalInTicks);
+    }
 
     auto result = packet.serialize();
     if (result.failed()) {

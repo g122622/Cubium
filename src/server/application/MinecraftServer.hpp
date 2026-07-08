@@ -79,6 +79,9 @@ enum class ParticleTypeId : u16;
 namespace command {
 class CommandRegistry;
 }
+namespace gameevent {
+class PositionSource;
+}
 } // namespace mc
 
 namespace mc::server {
@@ -907,16 +910,18 @@ protected:
     /**
      * @brief 广播振动粒子给指定范围内的玩家
      *
-     * 振动粒子需要携带目标位置和到达时间信息，与普通粒子包不同。
-     * 使用 ParticlePacket 的振动粒子扩展格式。
+     * 振动粒子需要携带目标位置来源和到达时间信息，与普通粒子包不同。
+     * 使用 ParticlePacket 的振动粒子扩展格式，按 PositionSource 类型序列化：
+     * - BlockPositionSource: VarInt(0) + i64 packedBlockPos
+     * - EntityPositionSource: VarInt(1) + VarInt entityId + f32 yOffset
      *
      * @param pos 粒子起始位置（振动源位置）
-     * @param targetPosition 粒子飞向的目标位置（监听器位置）
+     * @param targetSource 粒子飞向的目标位置来源（监听器位置来源）
      * @param arrivalInTicks 到达目标的 tick 数
      * @param range 广播范围（格），默认 256 格
      */
     void broadcastVibrationParticleInRange(
-        const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks, f32 range = 256.0f);
+        const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks, f32 range = 256.0f);
 
     /**
      * @brief 广播轨迹粒子给指定范围内的玩家

@@ -37,6 +37,7 @@
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
+#include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -521,11 +522,15 @@ public:
      * @brief 振动粒子广播回调类型
      *
      * 当服务端需要广播振动粒子给玩家时调用。
-     * 振动粒子需要额外的目标位置和到达时间信息。
-     * 参数：粒子起始位置、目标位置、到达 tick 数
+     * 振动粒子需要额外的目标位置来源和到达时间信息。
+     * 参数：粒子起始位置、目标位置来源、到达 tick 数
+     *
+     * 目标位置来源 (PositionSource) 决定网络序列化方式：
+     * - BlockPositionSource: 序列化为 VarInt(0) + i64 packedBlockPos
+     * - EntityPositionSource: 序列化为 VarInt(1) + VarInt entityId + f32 yOffset
      */
     using VibrationParticleBroadcastCallback =
-        std::function<void(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)>;
+        std::function<void(const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks)>;
 
     void setOnBroadcastVibrationParticle(VibrationParticleBroadcastCallback callback)
     {
@@ -711,16 +716,17 @@ public:
         u32 count) override;
 
     /**
-     * @brief 添加振动粒子（带目标位置和到达时间）
+     * @brief 添加振动粒子（带目标位置来源和到达时间）
      *
-     * 振动粒子从 pos 飞向 targetPosition，飞行时间为 arrivalInTicks 个 tick。
-     * 与普通 addParticle 不同，振动粒子需要携带目标位置信息以实现定向飞行效果。
+     * 振动粒子从 pos 飞向 targetSource 解析的位置，飞行时间为 arrivalInTicks 个 tick。
+     * 与普通 addParticle 不同，振动粒子需要携带目标位置来源信息以实现定向飞行效果，
+     * 并在网络上按 MC Java 1.21.11 VibrationParticleOption 格式序列化 PositionSource。
      *
      * @param pos 粒子起始位置（振动源位置）
-     * @param targetPosition 粒子飞向的目标位置（监听器位置）
+     * @param targetSource 粒子飞向的目标位置来源（监听器位置来源）
      * @param arrivalInTicks 到达目标的 tick 数
      */
-    void addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+    void addVibrationParticle(const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks);
 
     /**
      * @brief 添加轨迹粒子（带目标位置、颜色和持续时间）

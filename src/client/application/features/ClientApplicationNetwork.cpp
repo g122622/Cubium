@@ -1472,23 +1472,45 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
-    // 振动粒子回调（携带目标位置和到达时间）
-    callbacks.onVibrationParticle =
-        [this](f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, i32 arrivalInTicks) {
-            if (!m_world.particleManager()) {
+    // 振动粒子回调（携带目标位置来源和到达时间）
+    callbacks.onVibrationParticle = [this](f64 x,
+                                        f64 y,
+                                        f64 z,
+                                        u8 targetKind,
+                                        f64 targetX,
+                                        f64 targetY,
+                                        f64 targetZ,
+                                        EntityId targetEntityId,
+                                        f32 yOffset,
+                                        i32 arrivalInTicks) {
+        if (!m_world.particleManager()) {
+            return;
+        }
+
+        glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        Vector3d targetPosition(targetX, targetY, targetZ);
+
+        // 实体来源：通过实体管理器查找实体当前位置，叠加 Y 轴偏移
+        // 对应 MC Java EntityPositionSource.getPosition(Level)
+        if (targetKind == 1 && targetEntityId != INVALID_ENTITY_ID) {
+            const ClientEntity* targetEntity = m_world.entityManager().getEntity(targetEntityId);
+            if (targetEntity != nullptr) {
+                targetPosition = Vector3d(static_cast<f64>(targetEntity->x()),
+                    static_cast<f64>(targetEntity->y()) + static_cast<f64>(yOffset),
+                    static_cast<f64>(targetEntity->z()));
+            } else {
+                // 实体不在客户端视野内，放弃生成粒子（对应 MC Java VibrationSignalParticle.tick 中
+                // target.getPosition().isEmpty() 时 remove）
                 return;
             }
+        }
 
-            // 创建振动信号粒子，从当前位置飞向目标位置
-            glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-            Vector3d targetPosition(targetX, targetY, targetZ);
-
-            // 通过粒子数据管线创建粒子
-            using namespace client::renderer::trident::particle;
-            auto vibrationData = std::make_unique<data::VibrationParticleData>(targetPosition, arrivalInTicks);
-            m_world.particleManager()->addPendingParticle(
-                particle::ParticleTypeId::Vibration, pos, glm::vec3(0.0f), &m_world, std::move(vibrationData));
-        };
+        // 通过粒子数据管线创建粒子
+        using namespace client::renderer::trident::particle;
+        auto vibrationData = std::make_unique<data::VibrationParticleData>(targetPosition, arrivalInTicks);
+        m_world.particleManager()->addPendingParticle(
+            particle::ParticleTypeId::Vibration, pos, glm::vec3(0.0f), &m_world, std::move(vibrationData));
+    };
 
     // 轨迹粒子回调（携带目标位置、颜色和持续时间）
     callbacks.onTrailParticle =

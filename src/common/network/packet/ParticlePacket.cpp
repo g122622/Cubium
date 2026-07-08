@@ -208,7 +208,7 @@ ParticlePacket ParticlePacket::createSingle(particle::ParticleTypeId type, const
 }
 
 // static
-ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)
+ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const BlockPos& targetBlockPos, i32 arrivalInTicks)
 {
     // 构建振动粒子包：粒子类型为 Vibration，无偏移，数量为 1
     ParticlePacket packet(particle::ParticleTypeId::Vibration,
@@ -217,14 +217,41 @@ ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const Vector3
         Vector3(0.0f, 0.0f, 0.0f), // 无偏移
         1);                        // 单个粒子
 
-    // 编码可选数据：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
-    // 振动粒子协议格式与 MC Java 版 VibrationParticleOption.STREAM_CODEC 一致：
-    // PositionSource 使用 BlockPositionSource (type=0) 序列化为 3 个 VarInt (x, y, z)，
-    // 后跟 VarInt arrivalInTicks。此处简化为直接写入目标坐标和 tick 数。
-    PacketSerializer serializer(32);
-    serializer.writeF64(targetPosition.x);
-    serializer.writeF64(targetPosition.y);
-    serializer.writeF64(targetPosition.z);
+    // 编码可选数据（与 MC Java 1.21.11 VibrationParticleOption.STREAM_CODEC 一致）：
+    //   VarInt positionSourceTypeId(0=Block)
+    //   i64 packedBlockPos (BlockPos.asLong)
+    //   VarInt arrivalInTicks
+    PacketSerializer serializer(16);
+    serializer.writeVarInt(0); // BLOCK = 0
+    serializer.writeI64(targetBlockPos.asLong());
+    serializer.writeVarInt(arrivalInTicks);
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+// static
+ParticlePacket ParticlePacket::createVibration(
+    const Vector3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks)
+{
+    // 构建振动粒子包：粒子类型为 Vibration，无偏移，数量为 1
+    ParticlePacket packet(particle::ParticleTypeId::Vibration,
+        pos,
+        Vector3(0.0f, 0.0f, 0.0f), // 无速度
+        Vector3(0.0f, 0.0f, 0.0f), // 无偏移
+        1);                        // 单个粒子
+
+    // 编码可选数据（与 MC Java 1.21.11 VibrationParticleOption.STREAM_CODEC 一致）：
+    //   VarInt positionSourceTypeId(1=Entity)
+    //   VarInt entityId
+    //   f32 yOffset
+    //   VarInt arrivalInTicks
+    PacketSerializer serializer(16);
+    serializer.writeVarInt(1); // ENTITY = 1
+    serializer.writeVarInt(static_cast<i32>(targetEntityId));
+    serializer.writeF32(yOffset);
     serializer.writeVarInt(arrivalInTicks);
 
     std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
@@ -238,35 +265,51 @@ bool ParticlePacket::isVibrationParticle() const noexcept
     return m_particleType == particle::ParticleTypeId::Vibration && !m_optionalData.empty();
 }
 
-std::optional<Vector3d> ParticlePacket::decodeVibrationTarget() const
+std::optional<ParticlePacket::VibrationTarget> ParticlePacket::decodeVibrationTarget() const
 {
     if (!isVibrationParticle()) {
         return std::nullopt;
     }
 
-    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
-    if (m_optionalData.size() < 3 * sizeof(f64)) {
-        return std::nullopt;
-    }
-
     PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
 
-    auto xResult = deserializer.readF64();
-    if (!xResult.success()) {
+    // 读取 PositionSource 类型 ID (VarInt)
+    auto typeResult = deserializer.readVarInt();
+    if (!typeResult.success()) {
         return std::nullopt;
     }
 
-    auto yResult = deserializer.readF64();
-    if (!yResult.success()) {
-        return std::nullopt;
+    VibrationTarget target;
+    switch (typeResult.value()) {
+        case 0: { // BLOCK
+            target.kind = VibrationTarget::Kind::Block;
+            auto packedResult = deserializer.readI64();
+            if (!packedResult.success()) {
+                return std::nullopt;
+            }
+            target.blockPos = BlockPos::fromLong(packedResult.value());
+            break;
+        }
+        case 1: { // ENTITY
+            target.kind = VibrationTarget::Kind::Entity;
+            auto entityIdResult = deserializer.readVarInt();
+            if (!entityIdResult.success()) {
+                return std::nullopt;
+            }
+            auto yOffsetResult = deserializer.readF32();
+            if (!yOffsetResult.success()) {
+                return std::nullopt;
+            }
+            target.entityId = static_cast<EntityId>(entityIdResult.value());
+            target.yOffset = yOffsetResult.value();
+            break;
+        }
+        default:
+            // 未知的位置源类型
+            return std::nullopt;
     }
 
-    auto zResult = deserializer.readF64();
-    if (!zResult.success()) {
-        return std::nullopt;
-    }
-
-    return Vector3d(xResult.value(), yResult.value(), zResult.value());
+    return target;
 }
 
 std::optional<i32> ParticlePacket::decodeVibrationArrivalInTicks() const
@@ -275,29 +318,38 @@ std::optional<i32> ParticlePacket::decodeVibrationArrivalInTicks() const
         return std::nullopt;
     }
 
-    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
-    if (m_optionalData.size() < 3 * sizeof(f64)) {
-        return std::nullopt;
-    }
-
     PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
 
-    // 跳过 3 个 f64（targetX, targetY, targetZ）
-    auto xResult = deserializer.readF64();
-    if (!xResult.success()) {
+    // 跳过 PositionSource 部分：先读类型 ID，再按类型跳过对应字段
+    auto typeResult = deserializer.readVarInt();
+    if (!typeResult.success()) {
         return std::nullopt;
     }
 
-    auto yResult = deserializer.readF64();
-    if (!yResult.success()) {
-        return std::nullopt;
+    switch (typeResult.value()) {
+        case 0: { // BLOCK: 跳过 i64 packedBlockPos
+            auto packedResult = deserializer.readI64();
+            if (!packedResult.success()) {
+                return std::nullopt;
+            }
+            break;
+        }
+        case 1: { // ENTITY: 跳过 VarInt entityId + f32 yOffset
+            auto entityIdResult = deserializer.readVarInt();
+            if (!entityIdResult.success()) {
+                return std::nullopt;
+            }
+            auto yOffsetResult = deserializer.readF32();
+            if (!yOffsetResult.success()) {
+                return std::nullopt;
+            }
+            break;
+        }
+        default:
+            return std::nullopt;
     }
 
-    auto zResult = deserializer.readF64();
-    if (!zResult.success()) {
-        return std::nullopt;
-    }
-
+    // 读取 arrivalInTicks
     auto tickResult = deserializer.readVarInt();
     if (!tickResult.success()) {
         return std::nullopt;

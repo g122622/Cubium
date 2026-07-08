@@ -1843,13 +1843,37 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
             packet.count());
     }
 
-    // 振动粒子特殊处理：解码目标位置和到达时间
+    // 振动粒子特殊处理：解码目标位置来源和到达时间
     if (packet.isVibrationParticle() && m_callbacks.onVibrationParticle) {
         auto target = packet.decodeVibrationTarget();
         auto arrivalInTicks = packet.decodeVibrationArrivalInTicks();
         if (target.has_value() && arrivalInTicks.has_value()) {
-            m_callbacks.onVibrationParticle(
-                packet.x(), packet.y(), packet.z(), target->x, target->y, target->z, arrivalInTicks.value());
+            // 方块来源：目标位置为方块中心 (x+0.5, y+0.5, z+0.5)，对应 MC Java Vec3.atCenterOf
+            // 实体来源：目标位置暂设为粒子起始位置，由 ClientApplicationNetwork 解析实体位置
+            f64 targetX = packet.x();
+            f64 targetY = packet.y();
+            f64 targetZ = packet.z();
+            EntityId targetEntityId = INVALID_ENTITY_ID;
+            f32 yOffset = 0.0f;
+            const u8 targetKind = static_cast<u8>(target->kind);
+            if (target->kind == network::ParticlePacket::VibrationTarget::Kind::Block) {
+                targetX = static_cast<f64>(target->blockPos.x) + 0.5;
+                targetY = static_cast<f64>(target->blockPos.y) + 0.5;
+                targetZ = static_cast<f64>(target->blockPos.z) + 0.5;
+            } else {
+                targetEntityId = target->entityId;
+                yOffset = target->yOffset;
+            }
+            m_callbacks.onVibrationParticle(packet.x(),
+                packet.y(),
+                packet.z(),
+                targetKind,
+                targetX,
+                targetY,
+                targetZ,
+                targetEntityId,
+                yOffset,
+                arrivalInTicks.value());
         }
     }
 

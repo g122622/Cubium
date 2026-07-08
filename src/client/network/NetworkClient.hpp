@@ -219,8 +219,19 @@ struct NetworkClientCallbacks {
         u32 count)>
         onParticle;
 
-    // 振动粒子回调（携带目标位置和到达时间）
-    std::function<void(f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, i32 arrivalInTicks)>
+    // 振动粒子回调（携带目标位置来源和到达时间）
+    // targetKind: 0=方块位置（targetX/Y/Z 为方块中心），1=实体位置（targetEntityId + yOffset，需客户端解析实体位置）
+    // 当 targetKind==1 且客户端无法解析实体位置时，targetX/Y/Z 回退为粒子起始位置
+    std::function<void(f64 x,
+        f64 y,
+        f64 z,
+        u8 targetKind,
+        f64 targetX,
+        f64 targetY,
+        f64 targetZ,
+        EntityId targetEntityId,
+        f32 yOffset,
+        i32 arrivalInTicks)>
         onVibrationParticle;
 
     // 轨迹粒子回调（携带目标位置、颜色和持续时间）

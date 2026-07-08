@@ -2357,11 +2357,12 @@ void ServerWorld::addParticle(
     }
 }
 
-void ServerWorld::addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)
+void ServerWorld::addVibrationParticle(
+    const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks)
 {
     // 服务端不生成粒子，而是广播振动粒子给附近玩家
     if (m_onBroadcastVibrationParticle) {
-        m_onBroadcastVibrationParticle(pos, targetPosition, arrivalInTicks);
+        m_onBroadcastVibrationParticle(pos, targetSource, arrivalInTicks);
     }
 }
 

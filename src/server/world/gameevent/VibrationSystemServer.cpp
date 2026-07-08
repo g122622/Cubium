@@ -339,11 +339,11 @@ void VibrationSystem::Ticker::trySelectAndScheduleVibration(server::ServerWorld&
         data.setTravelTimeInTicks(travelTime);
 
         // 发送振动粒子效果，从振动源位置飞向监听器位置
-        // 粒子类型为 Vibration，携带目标位置和到达时间
+        // 粒子类型为 Vibration，携带目标位置来源和到达时间
         Vector3 particlePos(static_cast<f32>(info.pos.x), static_cast<f32>(info.pos.y), static_cast<f32>(info.pos.z));
         auto listenerPosOpt = user.getPositionSource().getPosition(world);
         if (listenerPosOpt.has_value()) {
-            world.addVibrationParticle(particlePos, listenerPosOpt.value(), travelTime);
+            world.addVibrationParticle(particlePos, user.getPositionSource(), travelTime);
         } else {
             // 无法获取监听器位置时，使用简化的静态粒子效果（向后兼容）
             world.addParticle(particle::ParticleTypeId::Vibration,
@@ -433,9 +433,9 @@ void VibrationSystem::Ticker::tryReloadVibrationParticle(server::ServerWorld& wo
     f32 particleY = static_cast<f32>(info.pos.y + (listenerPos->y - info.pos.y) * progress);
     f32 particleZ = static_cast<f32>(info.pos.z + (listenerPos->z - info.pos.z) * progress);
 
-    // 在插值位置发送振动粒子，携带监听器目标位置和剩余传播时间
+    // 在插值位置发送振动粒子，携带监听器目标位置来源和剩余传播时间
     Vector3 particlePos(particleX, particleY, particleZ);
-    world.addVibrationParticle(particlePos, listenerPos.value(), remainingTicks);
+    world.addVibrationParticle(particlePos, user.getPositionSource(), remainingTicks);
 
     // 重载完成，清除标志
     data.setReloadVibrationParticle(false);

@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 #include <vector>
 
@@ -59,7 +60,8 @@ namespace mc::network {
  * - Item/ItemSlime/ItemSnowball: ItemStack (NBT)
  * - Dust/Redstone: i32 color(ARGB), f32 scale
  * - DustColorTransition: i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
- * - Vibration: f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+ * - Vibration: VarInt positionSourceTypeId(0=Block,1=Entity), [Block: i64 packedBlockPos | Entity: VarInt entityId, f32
+ * yOffset], VarInt arrivalInTicks
  * - Trail: f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
  * - EntityEffect: i32 color(ARGB)
  */
@@ -184,18 +186,37 @@ public:
     static ParticlePacket createSingle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
 
     /**
-     * @brief 创建振动粒子包（带目标位置和到达时间）
+     * @brief 创建振动粒子包（方块目标位置）
      *
-     * 振动粒子需要额外数据：目标位置和到达 tick 数。
+     * 振动粒子需要额外数据：目标位置来源和到达 tick 数。
      * 这些数据编码到 optionalData 中，客户端解码后创建 VibrationSignalParticle。
      *
-     * 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+     * 可选数据格式（与 MC Java 1.21.11 VibrationParticleOption.STREAM_CODEC 一致）：
+     *   VarInt positionSourceTypeId(0=Block)
+     *   i64 packedBlockPos (BlockPos.asLong: X bits 38-63, Z bits 12-37, Y bits 0-11)
+     *   VarInt arrivalInTicks
      *
      * @param pos 粒子起始位置（振动源位置）
-     * @param targetPosition 粒子飞向的目标位置（监听器位置）
+     * @param targetBlockPos 粒子飞向的目标方块位置（监听器所在方块）
      * @param arrivalInTicks 到达目标的 tick 数
      */
-    static ParticlePacket createVibration(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+    static ParticlePacket createVibration(const Vector3& pos, const BlockPos& targetBlockPos, i32 arrivalInTicks);
+
+    /**
+     * @brief 创建振动粒子包（实体目标位置）
+     *
+     * 可选数据格式（与 MC Java 1.21.11 VibrationParticleOption.STREAM_CODEC 一致）：
+     *   VarInt positionSourceTypeId(1=Entity)
+     *   VarInt entityId
+     *   f32 yOffset
+     *   VarInt arrivalInTicks
+     *
+     * @param pos 粒子起始位置（振动源位置）
+     * @param targetEntityId 粒子飞向的目标实体 ID
+     * @param yOffset 实体位置的 Y 轴偏移（如眼睛高度）
+     * @param arrivalInTicks 到达目标的 tick 数
+     */
+    static ParticlePacket createVibration(const Vector3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     /**
      * @brief 创建轨迹粒子包（带目标位置、颜色和持续时间）
@@ -216,6 +237,30 @@ public:
     // ========== 振动粒子数据解码 ==========
 
     /**
+     * @brief 振动粒子目标来源
+     *
+     * 解码自 VibrationParticleOption 的 PositionSource 部分。
+     * 对应 MC Java: PositionSource（BlockPositionSource 或 EntityPositionSource）。
+     * 客户端据此决定如何解析目标位置：方块来源直接取方块中心，实体来源需查实体位置。
+     */
+    struct VibrationTarget {
+        /// 来源类型
+        enum class Kind : u8 {
+            Block = 0,  ///< 方块位置源（对应 positionSourceTypeId=0）
+            Entity = 1, ///< 实体位置源（对应 positionSourceTypeId=1）
+        };
+
+        Kind kind = Kind::Block;
+
+        // kind == Block 时有效：目标方块位置
+        BlockPos blockPos{};
+
+        // kind == Entity 时有效：目标实体 ID 与 Y 轴偏移
+        EntityId entityId = INVALID_ENTITY_ID;
+        f32 yOffset = 0.0f;
+    };
+
+    /**
      * @brief 检查此粒子包是否为振动粒子
      *
      * 振动粒子包的粒子类型为 ParticleTypeId::Vibration 且含有可选数据。
@@ -225,14 +270,14 @@ public:
     [[nodiscard]] bool isVibrationParticle() const noexcept;
 
     /**
-     * @brief 解码振动粒子目标位置
+     * @brief 解码振动粒子目标来源
      *
      * 仅当 isVibrationParticle() 返回 true 时有效。
-     * 从可选数据中解码目标位置。
+     * 从可选数据中解码 PositionSource 类型与数据。
      *
-     * @return 目标位置，解码失败返回 std::nullopt
+     * @return 目标来源，解码失败返回 std::nullopt
      */
-    [[nodiscard]] std::optional<Vector3d> decodeVibrationTarget() const;
+    [[nodiscard]] std::optional<VibrationTarget> decodeVibrationTarget() const;
 
     /**
      * @brief 解码振动粒子到达时间
