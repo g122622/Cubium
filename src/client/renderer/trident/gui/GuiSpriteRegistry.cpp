@@ -66,6 +66,17 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteManager& manager, i32 at
     // slider/slider_highlighted: 200x20 轨道背景，九宫格边距1像素
     // slider_handle/slider_handle_highlighted: 8x20 手柄，九宫格边距(2,2,2,3)
     // 旧版回退坐标：slider 复用 button_normal/button_hover 区域，handle 取按钮最左侧8像素
+    // TODO(consumer): 滑动条精灵目前尚无消费者。Cubium 现有的 kagero::SliderWidget
+    // （src/client/ui/kagero/widget/SliderWidget.hpp）使用纯色 drawFilledRect 绘制，
+    // 未使用本精灵。MC 原版中由 AbstractSliderButton（net/minecraft/client/gui/components/
+    // AbstractSliderButton.java）通过 blitSprite 消费这4个精灵。未来实现 MC 风格的
+    // AbstractSliderButton 组件（用于选项屏幕如视频设置、音量滑块等）时，应在此接入：
+    // 1. 创建 AbstractSliderButton 组件（参考 MC 源码），renderWidget 中调用
+    //    GuiSpriteAtlas::createTextureImage("slider"/"slider_highlighted") 绘制轨道背景，
+    //    createTextureImage("slider_handle"/"slider_handle_highlighted") 绘制手柄；
+    // 2. 根据 isHovered/isFocused/isActive 选择 normal/highlighted 变体（参考 MC getSprite/
+    //    getHandleSprite）；3. 手柄 X = getX() + (int)(value * (width - 8))。在消费者实现
+    //    之前，这些精灵注册仅保证图集布局就绪，不构成功能闭环。
     manager.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
     manager.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
     manager.registerSprite("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
@@ -161,6 +172,23 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager, i32 atla
     // 旧版 icons.png 中位于 Y=94 行
     // 准星模式：full(16x16) 在(68,94)，background(16x4) 在(36,94)，progress(16x4) 在(52,94)
     // 快捷栏模式：background(18x18) 在(0,94)，progress(18x18) 在(18,94)
+    // TODO(consumer): 攻击指示器精灵目前尚无消费者。MC 原版中由 Gui.renderCrosshair()
+    // （准星模式，net/minecraft/client/gui/Gui.java:432）和 Gui.renderHotbar()（快捷栏
+    // 模式，同文件:594）根据 options.attackIndicator() 的值（CROSSHAIR/HOTBAR）消费：
+    // - 准星模式：f = player.getAttackStrengthScale(0.0F)；f>=1.0F 且当前目标是 LivingEntity
+    //   且 currentItemAttackStrengthDelay>5 时绘制 full（暴击指示）；f<1.0F 时绘制 background
+    //   + 裁剪宽度为 (int)(f*17) 的 progress。
+    // - 快捷栏模式：f<1.0F 时在副手槽对面绘制 background + 裁剪高度为 (int)(f*19) 的 progress
+    //   （从底部向上填充）。
+    // Cubium 现状：CrosshairWidget（src/client/ui/minecraft/widgets/CrosshairWidget.cpp）使用
+    //   纯色十字线绘制准星，未渲染攻击指示器；HudWidget（同目录）未渲染攻击指示器；
+    //   且尚无 AttackIndicatorStatus 选项枚举。Player::getCooledAttackStrength() 已实现
+    //   （src/common/entity/entities/player/Player.hpp:1690），可作为冷却进度数据源。
+    // 未来接入步骤：1. 在客户端选项中新增 AttackIndicatorStatus 枚举（NONE/CROSSHAIR/HOTBAR）；
+    // 2. CrosshairWidget 增加攻击指示器渲染分支（准星下方16px处，参考 MC Gui.java:442-450）；
+    // 3. HudWidget._renderHotbar() 增加攻击指示器渲染分支（副手槽对面，参考 MC Gui.java:594-606）；
+    // 4. 需访问 crosshairPickEntity 判断 full 暴击指示条件。在消费者实现之前，这些精灵注册
+    // 仅保证图集布局就绪，不构成功能闭环。
     manager.registerSprite("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
     manager.registerSprite("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
     manager.registerSprite("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
@@ -226,6 +254,7 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiTextureAtlas& atlas, i32 atlas
     // slider/slider_highlighted: 200x20 轨道背景，九宫格边距1像素
     // slider_handle/slider_handle_highlighted: 8x20 手柄，九宫格边距(2,2,2,3)
     // 旧版回退坐标：slider 复用 button_normal/button_hover 区域，handle 取按钮最左侧8像素
+    // TODO(consumer): 滑动条精灵尚无消费者，详见 GuiSpriteManager 重载中的 TODO(consumer) 说明。
     atlas.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
     atlas.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
     atlas.registerSprite("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
@@ -321,13 +350,14 @@ void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWi
     // 旧版 icons.png 中位于 Y=94 行
     // 准星模式：full(16x16) 在(68,94)，background(16x4) 在(36,94)，progress(16x4) 在(52,94)
     // 快捷栏模式：background(18x18) 在(0,94)，progress(18x18) 在(18,94)
+    // TODO(consumer): 攻击指示器精灵尚无消费者，详见 GuiSpriteManager 重载中的 TODO(consumer) 说明。
     atlas.registerSprite("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
     atlas.registerSprite("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
     atlas.registerSprite("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_attack_indicator_background", 0, 94, 18, 18, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_attack_indicator_progress", 18, 94, 18, 18, atlasWidth, atlasHeight);
 
-    // 注：经验等级数字精灵位于 icons.png 中，但目前使用字体渲染替代，
+    // TODO: 经验等级数字精灵位于 icons.png 中，但目前使用字体渲染替代，
     // 因为经验等级需要根据等级值动态着色，字体渲染更灵活。
 }
 
@@ -400,6 +430,7 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteAtlas& atlas, i32 atlasW
     // slider/slider_highlighted: 200x20 轨道背景，九宫格边距1像素
     // slider_handle/slider_handle_highlighted: 8x20 手柄，九宫格边距(2,2,2,3)
     // 旧版回退坐标：slider 复用 button_normal/button_hover 区域，handle 取按钮最左侧8像素
+    // TODO(consumer): 滑动条精灵尚无消费者，详见 GuiSpriteManager 重载中的 TODO(consumer) 说明。
     atlas.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
     atlas.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
     atlas.registerSprite("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
@@ -506,13 +537,14 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas, i32 atlasWid
     // 旧版 icons.png 中位于 Y=94 行
     // 准星模式：full(16x16) 在(68,94)，background(16x4) 在(36,94)，progress(16x4) 在(52,94)
     // 快捷栏模式：background(18x18) 在(0,94)，progress(18x18) 在(18,94)
+    // TODO(consumer): 攻击指示器精灵尚无消费者，详见 GuiSpriteManager 重载中的 TODO(consumer) 说明。
     atlas.registerSprite("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
     atlas.registerSprite("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
     atlas.registerSprite("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_attack_indicator_background", 0, 94, 18, 18, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_attack_indicator_progress", 18, 94, 18, 18, atlasWidth, atlasHeight);
 
-    // 注：经验等级数字精灵位于 icons.png 中，但目前使用字体渲染替代，
+    // TODO: 经验等级数字精灵位于 icons.png 中，但目前使用字体渲染替代，
     // 因为经验等级需要根据等级值动态着色，字体渲染更灵活。
 }
 
