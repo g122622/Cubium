@@ -86,6 +86,8 @@ struct BlockStateProviderHandle {
  *    "fallback":<BlockStateProvider>, "rules":[{"if_true":<BlockPredicate>, "then":<BlockStateProvider>}, ...]}
  *
  * 支持 simple_state_provider / weighted_state_provider / rule_based_state_provider。
+ * 另有 parseRuleBased() 解析无 type 字段的 {fallback,rules}（MC 1.21.11
+ * RuleBasedBlockStateProvider 为独立 record 类型，DiskConfiguration 直接持有）。
  * 其它 type（rotated_block_state_provider / noise_provider / randomized_int_state_provider 等）
  * 当前严格报错。
  */
@@ -95,6 +97,16 @@ namespace BlockStateProviderParser {
  * @brief 解析方块状态提供者
  */
 [[nodiscard]] Result<BlockStateProviderHandle> parse(const nlohmann::json& providerObj);
+
+/**
+ * @brief 解析 rule_based_state_provider（无 type 字段）
+ *
+ * 对应 MC 1.21.11 RuleBasedBlockStateProvider.CODEC：仅 {fallback, rules}，
+ * 无 "type" 字段（与多态 BlockStateProvider.CODEC 的带 type 派发不同）。
+ * DiskConfiguration.stateProvider 等直接持有此类型，JSON 不写 type。
+ * 解析结果 kind 恒为 RuleBased。
+ */
+[[nodiscard]] Result<BlockStateProviderHandle> parseRuleBased(const nlohmann::json& providerObj);
 
 /**
  * @brief 从提供者采样一个方块状态

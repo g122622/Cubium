@@ -1193,7 +1193,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDisk(const nlohmann::json& 
     if (!configJson.contains("state_provider")) {
         return Error(ErrorCode::InvalidData, "disk config missing 'state_provider'");
     }
-    auto providerResult = parser::BlockStateProviderParser::parse(configJson["state_provider"]);
+    // MC 1.21.11 DiskConfiguration.stateProvider 为 RuleBasedBlockStateProvider（独立 record，
+    // JSON 仅 {fallback,rules} 无 type 字段），故用 parseRuleBased 而非多态 parse。
+    auto providerResult = parser::BlockStateProviderParser::parseRuleBased(configJson["state_provider"]);
     if (!providerResult.success()) {
         return providerResult.error();
     }
@@ -1211,7 +1213,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDisk(const nlohmann::json& 
     if (!configJson.contains("radius")) {
         return Error(ErrorCode::InvalidData, "disk config missing 'radius' IntProvider");
     }
-    auto radiusResult = valueprovider::IntProviderParser::parse(configJson["radius"]);
+    // MC DiskConfiguration.radius = IntProvider.codec(0, 8)。
+    auto radiusResult = valueprovider::IntProviderParser::parse(configJson["radius"], 0, 8);
     if (!radiusResult.success()) {
         return radiusResult.error();
     }

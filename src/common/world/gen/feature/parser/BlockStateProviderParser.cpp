@@ -58,6 +58,53 @@ std::string stripNamespace(const std::string& s)
     return s;
 }
 
+/**
+ * @brief 解析 {fallback, rules} 结构为 RuleBased 句柄（MC 1.21.11 RuleBasedBlockStateProvider）。
+ *        parse(type=rule_based_state_provider) 与 parseRuleBased(无 type) 共用此逻辑。
+ */
+Result<BlockStateProviderHandle> parseRuleBasedData(const nlohmann::json& providerObj)
+{
+    if (!providerObj.contains("fallback") || !providerObj["fallback"].is_object()) {
+        return Error(ErrorCode::InvalidData, "rule_based_state_provider missing 'fallback' object");
+    }
+    auto fallbackResult = parse(providerObj["fallback"]);
+    if (!fallbackResult.success()) {
+        return fallbackResult.error();
+    }
+    auto data = std::make_unique<BlockStateProviderHandle::RuleBasedData>();
+    data->fallback = std::make_unique<BlockStateProviderHandle>(std::move(fallbackResult.value()));
+
+    if (!providerObj.contains("rules") || !providerObj["rules"].is_array()) {
+        return Error(ErrorCode::InvalidData, "rule_based_state_provider missing 'rules' array");
+    }
+    for (size_t i = 0; i < providerObj["rules"].size(); ++i) {
+        const auto& ruleObj = providerObj["rules"][i];
+        if (!ruleObj.is_object() || !ruleObj.contains("if_true") || !ruleObj.contains("then")) {
+            return Error(ErrorCode::InvalidData,
+                "rule_based_state_provider rule[" + std::to_string(i) + "] missing 'if_true'/'then'");
+        }
+        auto predResult = BlockPredicateParser::parse(ruleObj["if_true"]);
+        if (!predResult.success()) {
+            return Error(predResult.error().code(),
+                "rule_based_state_provider rule[" + std::to_string(i) + "] if_true: " + predResult.error().message());
+        }
+        auto thenResult = parse(ruleObj["then"]);
+        if (!thenResult.success()) {
+            return Error(thenResult.error().code(),
+                "rule_based_state_provider rule[" + std::to_string(i) + "] then: " + thenResult.error().message());
+        }
+        BlockStateProviderHandle::Rule rule;
+        rule.ifTrue = predResult.value();
+        rule.then = std::make_unique<BlockStateProviderHandle>(std::move(thenResult.value()));
+        data->rules.push_back(std::move(rule));
+    }
+
+    BlockStateProviderHandle handle;
+    handle.kind = BlockStateProviderHandle::Kind::RuleBased;
+    handle.ruleBased = std::move(data);
+    return handle;
+}
+
 } // namespace
 
 Result<BlockStateProviderHandle> parse(const nlohmann::json& providerObj)
@@ -110,51 +157,20 @@ Result<BlockStateProviderHandle> parse(const nlohmann::json& providerObj)
     }
 
     if (type == "rule_based_state_provider") {
-        if (!providerObj.contains("fallback") || !providerObj["fallback"].is_object()) {
-            return Error(ErrorCode::InvalidData, "rule_based_state_provider missing 'fallback' object");
-        }
-        auto fallbackResult = parse(providerObj["fallback"]);
-        if (!fallbackResult.success()) {
-            return fallbackResult.error();
-        }
-        auto data = std::make_unique<BlockStateProviderHandle::RuleBasedData>();
-        data->fallback = std::make_unique<BlockStateProviderHandle>(std::move(fallbackResult.value()));
-
-        if (!providerObj.contains("rules") || !providerObj["rules"].is_array()) {
-            return Error(ErrorCode::InvalidData, "rule_based_state_provider missing 'rules' array");
-        }
-        for (size_t i = 0; i < providerObj["rules"].size(); ++i) {
-            const auto& ruleObj = providerObj["rules"][i];
-            if (!ruleObj.is_object() || !ruleObj.contains("if_true") || !ruleObj.contains("then")) {
-                return Error(ErrorCode::InvalidData,
-                    "rule_based_state_provider rule[" + std::to_string(i) + "] missing 'if_true'/'then'");
-            }
-            auto predResult = BlockPredicateParser::parse(ruleObj["if_true"]);
-            if (!predResult.success()) {
-                return Error(predResult.error().code(),
-                    "rule_based_state_provider rule[" + std::to_string(i) +
-                        "] if_true: " + predResult.error().message());
-            }
-            auto thenResult = parse(ruleObj["then"]);
-            if (!thenResult.success()) {
-                return Error(thenResult.error().code(),
-                    "rule_based_state_provider rule[" + std::to_string(i) + "] then: " + thenResult.error().message());
-            }
-            BlockStateProviderHandle::Rule rule;
-            rule.ifTrue = predResult.value();
-            rule.then = std::make_unique<BlockStateProviderHandle>(std::move(thenResult.value()));
-            data->rules.push_back(std::move(rule));
-        }
-
-        BlockStateProviderHandle handle;
-        handle.kind = BlockStateProviderHandle::Kind::RuleBased;
-        handle.ruleBased = std::move(data);
-        return handle;
+        return parseRuleBasedData(providerObj);
     }
 
     return Error(ErrorCode::NotFound,
         "unsupported block state provider type '" + type +
             "' (only simple_state_provider/weighted_state_provider/rule_based_state_provider implemented)");
+}
+
+Result<BlockStateProviderHandle> parseRuleBased(const nlohmann::json& providerObj)
+{
+    if (!providerObj.is_object()) {
+        return Error(ErrorCode::InvalidData, "rule_based_state_provider JSON must be an object");
+    }
+    return parseRuleBasedData(providerObj);
 }
 
 const BlockState* sampleState(

@@ -350,7 +350,6 @@ TEST_F(DiskAndPileFeatureTest, DiskReplacesTargetBlocksWithinRadius)
     config["radius"]["type"] = "minecraft:uniform";
     config["radius"]["min_inclusive"] = 2;
     config["radius"]["max_inclusive"] = 2;
-    config["state_provider"]["type"] = "minecraft:rule_based_state_provider";
     config["state_provider"]["fallback"]["type"] = "minecraft:simple_state_provider";
     config["state_provider"]["fallback"]["state"]["Name"] = "minecraft:clay";
     config["state_provider"]["rules"] = nlohmann::json::array();
@@ -388,7 +387,6 @@ TEST_F(DiskAndPileFeatureTest, DiskRuleBasedProviderAppliesMatchingRule)
     rule["if_true"]["blocks"] = nlohmann::json::array({"minecraft:dirt"});
     rule["then"]["type"] = "minecraft:simple_state_provider";
     rule["then"]["state"]["Name"] = "minecraft:sand";
-    config["state_provider"]["type"] = "minecraft:rule_based_state_provider";
     config["state_provider"]["fallback"]["type"] = "minecraft:simple_state_provider";
     config["state_provider"]["fallback"]["state"]["Name"] = "minecraft:clay";
     config["state_provider"]["rules"] = nlohmann::json::array({rule});
@@ -423,7 +421,6 @@ TEST_F(DiskAndPileFeatureTest, DiskUsesFallbackWhenNoRuleMatches)
     rule["if_true"]["blocks"] = nlohmann::json::array({"minecraft:stone"}); // 不命中 dirt
     rule["then"]["type"] = "minecraft:simple_state_provider";
     rule["then"]["state"]["Name"] = "minecraft:sand";
-    config["state_provider"]["type"] = "minecraft:rule_based_state_provider";
     config["state_provider"]["fallback"]["type"] = "minecraft:simple_state_provider";
     config["state_provider"]["fallback"]["state"]["Name"] = "minecraft:clay";
     config["state_provider"]["rules"] = nlohmann::json::array({rule});

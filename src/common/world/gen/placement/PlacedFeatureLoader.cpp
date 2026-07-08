@@ -25,6 +25,7 @@
 
 #include "BiomeFilterPlacement.hpp"
 #include "BlockPredicateFilterPlacement.hpp"
+#include "EnvironmentScanPlacement.hpp"
 #include "PlacedFeature.hpp"
 #include "PlacedFeatureRegistry.hpp"
 #include "Placement.hpp"
@@ -32,6 +33,7 @@
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "common/world/gen/feature/parser/BlockPredicateParser.hpp"
@@ -116,6 +118,9 @@ std::unique_ptr<Placement> createPlacement(const std::string& name)
     if (name == "block_predicate_filter") {
         return std::make_unique<BlockPredicateFilterPlacement>();
     }
+    if (name == "environment_scan") {
+        return std::make_unique<EnvironmentScanPlacement>();
+    }
     return nullptr;
 }
 
@@ -185,6 +190,39 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
                 predResult.error().code(), "block_predicate_filter placement: " + predResult.error().message());
         }
         config = std::make_unique<BlockPredicateFilterConfig>(predResult.value());
+    } else if (type == "environment_scan") {
+        // environment_scan: {direction_of_search, target_condition, [allowed_search_condition], max_steps}。
+        // 沿 direction_of_search 逐步扫描，找到满足 target_condition 的位置；扫描路径上每格须满足
+        // allowed_search_condition（缺省视为 always_true，项目用 nullptr 表示无约束）。
+        if (!node.contains("direction_of_search") || !node["direction_of_search"].is_string()) {
+            return Error(ErrorCode::InvalidData, "environment_scan placement missing 'direction_of_search' string");
+        }
+        auto dirOpt = Directions::fromName(node["direction_of_search"].get<std::string>());
+        if (!dirOpt.has_value()) {
+            return Error(ErrorCode::InvalidData, "environment_scan placement: unknown direction_of_search");
+        }
+        if (!node.contains("target_condition") || !node["target_condition"].is_object()) {
+            return Error(ErrorCode::InvalidData, "environment_scan placement missing 'target_condition' object");
+        }
+        auto targetResult = feature::parser::BlockPredicateParser::parse(node["target_condition"]);
+        if (!targetResult.success()) {
+            return Error(targetResult.error().code(),
+                "environment_scan placement target_condition: " + targetResult.error().message());
+        }
+        std::unique_ptr<feature::predicate::BlockPredicate> allowedPred;
+        if (node.contains("allowed_search_condition") && node["allowed_search_condition"].is_object()) {
+            auto allowedResult = feature::parser::BlockPredicateParser::parse(node["allowed_search_condition"]);
+            if (!allowedResult.success()) {
+                return Error(allowedResult.error().code(),
+                    "environment_scan placement allowed_search_condition: " + allowedResult.error().message());
+            }
+            allowedPred = allowedResult.value();
+        }
+        if (!node.contains("max_steps") || !node["max_steps"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "environment_scan placement missing 'max_steps' integer");
+        }
+        config = std::make_unique<EnvironmentScanConfig>(
+            dirOpt.value(), targetResult.value(), std::move(allowedPred), node["max_steps"].get<i32>());
     } else {
         // TODO: 其余 placement type（chance/rarity_filter/heightmap/surface 等）的 JSON config
         // 解析尚未实现。这些 type 在 MC 中各有自己的 config（如 chance 需 IntProvider、
