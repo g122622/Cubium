@@ -103,6 +103,27 @@ const std::vector<std::pair<std::string, ResourceLocation>> HUD_SPRITE_MAPPINGS 
     // 准星
     {"crosshair", ResourceLocation("minecraft", "textures/gui/sprites/hud/crosshair")},
 
+    // 攻击指示器 - 准星模式（AttackIndicatorStatus.CROSSHAIR）
+    // 位于准星下方，显示武器冷却进度
+    // full: 武器完全充能且可暴击时显示（16x16）
+    // background: 冷却中背景条（16x4）
+    // progress: 冷却中进度条（16x4，从左向右填充）
+    {"crosshair_attack_indicator_full",
+        ResourceLocation("minecraft", "textures/gui/sprites/hud/crosshair_attack_indicator_full")},
+    {"crosshair_attack_indicator_background",
+        ResourceLocation("minecraft", "textures/gui/sprites/hud/crosshair_attack_indicator_background")},
+    {"crosshair_attack_indicator_progress",
+        ResourceLocation("minecraft", "textures/gui/sprites/hud/crosshair_attack_indicator_progress")},
+
+    // 攻击指示器 - 快捷栏模式（AttackIndicatorStatus.HOTBAR）
+    // 位于快捷栏副手槽对面，显示武器冷却进度
+    // background: 冷却中背景（18x18）
+    // progress: 冷却中进度（18x18，从底部向上填充）
+    {"hotbar_attack_indicator_background",
+        ResourceLocation("minecraft", "textures/gui/sprites/hud/hotbar_attack_indicator_background")},
+    {"hotbar_attack_indicator_progress",
+        ResourceLocation("minecraft", "textures/gui/sprites/hud/hotbar_attack_indicator_progress")},
+
     // 快捷栏（MC 1.21+ 中 hotbar 位于 hud/ 目录下）
     {"hotbar_bg", ResourceLocation("minecraft", "textures/gui/sprites/hud/hotbar")},
     {"hotbar_selection", ResourceLocation("minecraft", "textures/gui/sprites/hud/hotbar_selection")},
@@ -120,6 +141,15 @@ const std::vector<std::pair<std::string, ResourceLocation>> WIDGET_SPRITE_MAPPIN
     {"button_disabled", ResourceLocation("minecraft", "textures/gui/sprites/widget/button_disabled")},
     {"button_normal", ResourceLocation("minecraft", "textures/gui/sprites/widget/button")},
     {"button_hover", ResourceLocation("minecraft", "textures/gui/sprites/widget/button_highlighted")},
+
+    // 滑动条（AbstractSliderButton）
+    // slider/slider_highlighted: 200x20 轨道背景，nine_slice border=1
+    // slider_handle/slider_handle_highlighted: 8x20 手柄，nine_slice border(2,2,2,3)
+    {"slider", ResourceLocation("minecraft", "textures/gui/sprites/widget/slider")},
+    {"slider_highlighted", ResourceLocation("minecraft", "textures/gui/sprites/widget/slider_highlighted")},
+    {"slider_handle", ResourceLocation("minecraft", "textures/gui/sprites/widget/slider_handle")},
+    {"slider_handle_highlighted",
+        ResourceLocation("minecraft", "textures/gui/sprites/widget/slider_handle_highlighted")},
 };
 
 } // namespace mc::client::renderer::trident::gui

@@ -61,6 +61,29 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteManager& manager, i32 at
     // 副手槽位 (24, 22) 29x24 和 (53, 22) 29x24
     manager.registerSprite("hotbar_offhand_left", 24, 22, 29, 24, atlasWidth, atlasHeight);
     manager.registerSprite("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
+
+    // 滑动条精灵（MC 1.21+ 独立精灵，旧版 widgets.png 中复用按钮纹理区域）
+    // slider/slider_highlighted: 200x20 轨道背景，九宫格边距1像素
+    // slider_handle/slider_handle_highlighted: 8x20 手柄，九宫格边距(2,2,2,3)
+    // 旧版回退坐标：slider 复用 button_normal/button_hover 区域，handle 取按钮最左侧8像素
+    manager.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
+    manager.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
+    manager.registerSprite("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
+    manager.registerSprite("slider_handle_highlighted", 0, 86, 8, 20, atlasWidth, atlasHeight);
+
+    // 滑动条九宫格
+    if (auto* sprite = manager.getSprite("slider")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(1, 1, 199, 19);
+    }
+    if (auto* sprite = manager.getSprite("slider_highlighted")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(1, 1, 199, 19);
+    }
+    if (auto* sprite = manager.getSprite("slider_handle")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(2, 2, 6, 17);
+    }
+    if (auto* sprite = manager.getSprite("slider_handle_highlighted")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(2, 2, 6, 17);
+    }
 }
 
 void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager, i32 atlasWidth, i32 atlasHeight)
@@ -133,6 +156,16 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager, i32 atla
     // ========== 准星 (15x15) ==========
     // 位于(0, 0)
     manager.registerSprite("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
+
+    // ========== 攻击指示器 ==========
+    // 旧版 icons.png 中位于 Y=94 行
+    // 准星模式：full(16x16) 在(68,94)，background(16x4) 在(36,94)，progress(16x4) 在(52,94)
+    // 快捷栏模式：background(18x18) 在(0,94)，progress(18x18) 在(18,94)
+    manager.registerSprite("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
+    manager.registerSprite("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
+    manager.registerSprite("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
+    manager.registerSprite("hotbar_attack_indicator_background", 0, 94, 18, 18, atlasWidth, atlasHeight);
+    manager.registerSprite("hotbar_attack_indicator_progress", 18, 94, 18, 18, atlasWidth, atlasHeight);
 }
 
 void GuiSpriteRegistry::registerContainerSprites(GuiSpriteManager& manager, i32 atlasWidth, i32 atlasHeight)
@@ -189,10 +222,28 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiTextureAtlas& atlas, i32 atlas
     atlas.registerSprite("hotbar_offhand_left", 24, 22, 29, 24, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
 
-    // TODO: 滑动条背景精灵（具体坐标待确认）
-    // TODO: 滑动条手柄精灵（具体坐标待确认）
+    // 滑动条精灵（MC 1.21+ 独立精灵，旧版 widgets.png 中复用按钮纹理区域）
+    // slider/slider_highlighted: 200x20 轨道背景，九宫格边距1像素
+    // slider_handle/slider_handle_highlighted: 8x20 手柄，九宫格边距(2,2,2,3)
+    // 旧版回退坐标：slider 复用 button_normal/button_hover 区域，handle 取按钮最左侧8像素
+    atlas.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
+    atlas.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
+    atlas.registerSprite("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
+    atlas.registerSprite("slider_handle_highlighted", 0, 86, 8, 20, atlasWidth, atlasHeight);
 
-    // TODO: 攻击指示器精灵（具体坐标待确认）
+    // 滑动条九宫格
+    if (auto* sprite = atlas.getSprite("slider")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(1, 1, 199, 19);
+    }
+    if (auto* sprite = atlas.getSprite("slider_highlighted")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(1, 1, 199, 19);
+    }
+    if (auto* sprite = atlas.getSprite("slider_handle")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(2, 2, 6, 17);
+    }
+    if (auto* sprite = atlas.getSprite("slider_handle_highlighted")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(2, 2, 6, 17);
+    }
 }
 
 void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
@@ -266,7 +317,18 @@ void GuiSpriteRegistry::registerIconsSprites(GuiTextureAtlas& atlas, i32 atlasWi
     // 位于(0, 0)
     atlas.registerSprite("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
 
-    // TODO: 经验等级数字精灵，位于icons.png中，目前使用字体渲染替代
+    // ========== 攻击指示器 ==========
+    // 旧版 icons.png 中位于 Y=94 行
+    // 准星模式：full(16x16) 在(68,94)，background(16x4) 在(36,94)，progress(16x4) 在(52,94)
+    // 快捷栏模式：background(18x18) 在(0,94)，progress(18x18) 在(18,94)
+    atlas.registerSprite("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
+    atlas.registerSprite("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
+    atlas.registerSprite("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
+    atlas.registerSprite("hotbar_attack_indicator_background", 0, 94, 18, 18, atlasWidth, atlasHeight);
+    atlas.registerSprite("hotbar_attack_indicator_progress", 18, 94, 18, 18, atlasWidth, atlasHeight);
+
+    // 注：经验等级数字精灵位于 icons.png 中，但目前使用字体渲染替代，
+    // 因为经验等级需要根据等级值动态着色，字体渲染更灵活。
 }
 
 void GuiSpriteRegistry::registerContainerSprites(GuiTextureAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
@@ -333,6 +395,29 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteAtlas& atlas, i32 atlasW
     // 副手槽位 (24, 22) 29x24 和 (53, 22) 29x24
     atlas.registerSprite("hotbar_offhand_left", 24, 22, 29, 24, atlasWidth, atlasHeight);
     atlas.registerSprite("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
+
+    // 滑动条精灵（MC 1.21+ 独立精灵，旧版 widgets.png 中复用按钮纹理区域）
+    // slider/slider_highlighted: 200x20 轨道背景，九宫格边距1像素
+    // slider_handle/slider_handle_highlighted: 8x20 手柄，九宫格边距(2,2,2,3)
+    // 旧版回退坐标：slider 复用 button_normal/button_hover 区域，handle 取按钮最左侧8像素
+    atlas.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
+    atlas.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
+    atlas.registerSprite("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
+    atlas.registerSprite("slider_handle_highlighted", 0, 86, 8, 20, atlasWidth, atlasHeight);
+
+    // 滑动条九宫格
+    if (auto* sprite = atlas.getSprite("slider")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(1, 1, 199, 19);
+    }
+    if (auto* sprite = atlas.getSprite("slider_highlighted")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(1, 1, 199, 19);
+    }
+    if (auto* sprite = atlas.getSprite("slider_handle")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(2, 2, 6, 17);
+    }
+    if (auto* sprite = atlas.getSprite("slider_handle_highlighted")) {
+        const_cast<GuiSprite*>(sprite)->setNinePatch(2, 2, 6, 17);
+    }
 }
 
 void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
@@ -416,6 +501,19 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteAtlas& atlas, i32 atlasWid
     // ========== 准星 (15x15) ==========
     // 位于(0, 0)
     atlas.registerSprite("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
+
+    // ========== 攻击指示器 ==========
+    // 旧版 icons.png 中位于 Y=94 行
+    // 准星模式：full(16x16) 在(68,94)，background(16x4) 在(36,94)，progress(16x4) 在(52,94)
+    // 快捷栏模式：background(18x18) 在(0,94)，progress(18x18) 在(18,94)
+    atlas.registerSprite("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
+    atlas.registerSprite("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
+    atlas.registerSprite("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
+    atlas.registerSprite("hotbar_attack_indicator_background", 0, 94, 18, 18, atlasWidth, atlasHeight);
+    atlas.registerSprite("hotbar_attack_indicator_progress", 18, 94, 18, 18, atlasWidth, atlasHeight);
+
+    // 注：经验等级数字精灵位于 icons.png 中，但目前使用字体渲染替代，
+    // 因为经验等级需要根据等级值动态着色，字体渲染更灵活。
 }
 
 void GuiSpriteRegistry::registerContainerSprites(GuiSpriteAtlas& atlas, i32 atlasWidth, i32 atlasHeight)
@@ -457,6 +555,12 @@ std::vector<GuiSprite> GuiSpriteRegistry::getWidgetsSpriteList(i32 atlasWidth, i
     sprites.emplace_back("button_hover", 0, 86, 200, 20, atlasWidth, atlasHeight);
     sprites.emplace_back("hotbar_bg", 0, 0, 182, 22, atlasWidth, atlasHeight);
     sprites.emplace_back("hotbar_selection", 0, 22, 24, 22, atlasWidth, atlasHeight);
+    sprites.emplace_back("hotbar_offhand_left", 24, 22, 29, 24, atlasWidth, atlasHeight);
+    sprites.emplace_back("hotbar_offhand_right", 53, 22, 29, 24, atlasWidth, atlasHeight);
+    sprites.emplace_back("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
+    sprites.emplace_back("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
+    sprites.emplace_back("slider_handle", 0, 66, 8, 20, atlasWidth, atlasHeight);
+    sprites.emplace_back("slider_handle_highlighted", 0, 86, 8, 20, atlasWidth, atlasHeight);
     return sprites;
 }
 
@@ -474,6 +578,12 @@ std::vector<GuiSprite> GuiSpriteRegistry::getIconsSpriteList(i32 atlasWidth, i32
     sprites.emplace_back("hunger_empty", 16, 27, 9, 9, atlasWidth, atlasHeight);
     sprites.emplace_back("xp_bar_empty", 0, 64, 182, 5, atlasWidth, atlasHeight);
     sprites.emplace_back("xp_bar_full", 0, 69, 182, 5, atlasWidth, atlasHeight);
+    sprites.emplace_back("crosshair", 0, 0, 15, 15, atlasWidth, atlasHeight);
+    sprites.emplace_back("crosshair_attack_indicator_full", 68, 94, 16, 16, atlasWidth, atlasHeight);
+    sprites.emplace_back("crosshair_attack_indicator_background", 36, 94, 16, 4, atlasWidth, atlasHeight);
+    sprites.emplace_back("crosshair_attack_indicator_progress", 52, 94, 16, 4, atlasWidth, atlasHeight);
+    sprites.emplace_back("hotbar_attack_indicator_background", 0, 94, 18, 18, atlasWidth, atlasHeight);
+    sprites.emplace_back("hotbar_attack_indicator_progress", 18, 94, 18, 18, atlasWidth, atlasHeight);
     return sprites;
 }
 
