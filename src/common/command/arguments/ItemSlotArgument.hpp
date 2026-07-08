@@ -157,6 +157,8 @@ public:
                 return 2; // Feet
             case 105:
                 return 6; // Body (EquipmentSlot::Body, 非玩家实体护甲槽位)
+            case 106:
+                return 7; // Saddle (EquipmentSlot::Saddle, 鞍槽/铜傀儡天线槽)
             default:
                 return -1;
         }

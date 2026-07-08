@@ -335,6 +335,15 @@ ItemTag& ItemTags::COPPER_GOLEM_STATUES()
     return *tag;
 }
 
+ItemTag& ItemTags::SHEARABLE_FROM_COPPER_GOLEM()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "shearable_from_copper_golem"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::COPPER_CHESTS()
 {
     static ItemTag* tag = nullptr;
@@ -994,6 +1003,15 @@ void ItemTags::initialize()
     copperGolemStatues->add(
         ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")));
     allTags[copperGolemStatues->getId()] = std::move(copperGolemStatues);
+
+    // 创建 SHEARABLE_FROM_COPPER_GOLEM 标签
+    // 包含可放置在铜傀儡天线槽（EquipmentSlot::Saddle）并通过剪刀剪下的物品。
+    // MC 1.21.11 原版仅包含 poppy（虞美人），由铁傀儡的 OfferFlowerGoal 赠予铜傀儡。
+    // 对应 MC 原版标签 minecraft:shearable_from_copper_golem (MC 1.21.11)。
+    auto shearableFromCopperGolem =
+        std::make_unique<ItemTag>(ResourceLocation("minecraft", "shearable_from_copper_golem"), false);
+    shearableFromCopperGolem->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "poppy")));
+    allTags[shearableFromCopperGolem->getId()] = std::move(shearableFromCopperGolem);
 
     // 创建 COPPER_CHESTS 标签
     // 包含所有 8 个铜箱子物品变体（未涂蜡/涂蜡 × 4 个氧化等级）。

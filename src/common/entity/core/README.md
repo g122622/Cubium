@@ -551,7 +551,7 @@
             对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中 -
             索引与 `EquipmentSlot` 枚举值对应：[0] = MainHand,
     [1] = OffHand, [2] = Feet, [3] = Legs, [4] = Chest,
-    [5] = Head, [6] = Body - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
+    [5] = Head, [6] = Body, [7] = Saddle - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
     大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`） - `isEquipmentDropPreserved(slot)` 检查掉落概率 > 1.0
     - `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落）
     - `dropPreservedEquipment(predicate)` 遍历装备槽位，根据谓词和保留状态处理装备（用于实体转化场景）
@@ -559,6 +559,8 @@
     - NBT 序列化格式：
         - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
         - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
+    - `EquipmentSlot::Saddle` 用于铜傀儡天线槽（对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA`），
+      由铁傀儡 `OfferFlowerGoal` 装备罂粟花（TODO：`OfferFlowerGoal` 尚未实现）
 
         ## #死亡掉落表(
             DeathLootTable) - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/"

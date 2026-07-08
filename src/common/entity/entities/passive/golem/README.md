@@ -42,7 +42,7 @@ golem/
 - **GolemEntity**：傀儡基类，继承 `CreatureEntity` 并实现 `IAngerable` 接口，提供愤怒系统
 - **SnowGolemEntity**：雪傀儡，实现远程攻击（雪球）和剪切（南瓜头）功能
 - **IronGolemEntity**：铁傀儡，实现近战攻击和村民保护功能
-- **CopperGolemEntity**：铜傀儡，实现氧化等级系统、斧头敲击雕像生成、涂蜡阻止氧化、剪刀剪切天线、氧化到顶后转化为雕像
+- **CopperGolemEntity**：铜傀儡，实现氧化等级系统、斧头敲击雕像生成、涂蜡阻止氧化、剪刀剪切天线（罂粟花）、氧化到顶后转化为雕像
 
 ## 上下游外部依赖关系
 
@@ -101,3 +101,7 @@ golem/
 14. **铜傀儡雕像架构差异**：本项目基础 `copper_golem_statue` 注册为 `CopperGolemStatueBlock`（不实现 `IOxidizableBlock`），与 MC 原版使用 `WeatheringCopperGolemStatueBlock(UNAFFECTED)` 不同。因此斧头生成铜傀儡的逻辑在 `CopperGolemStatueBlock::onBlockActivated` 中实现，并通过 `HoneycombItem::getWaxedOff(state)` 区分涂蜡变体（返回 Pass 交由 AxeItem 除蜡）与基础变体（生成铜傀儡）。
 
 15. **Direction 转 yaw**：MC 的 `Direction.toYRot()` 在本项目无对应工具函数，`CopperGolemStatueBlockEntity::removeStatue` 与 `CopperGolemEntity::turnToStatue` 中手写转换：South=0, West=90, North=180, East=270。
+
+16. **铜傀儡天线槽设计**：对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA = EquipmentSlot.SADDLE`。铜傀儡头顶"天线"并非独立物品，而是 `EquipmentSlot::Saddle` 槽中持有的罂粟花（`minecraft:poppy`），由铁傀儡 `OfferFlowerGoal` 赠予（TODO：`OfferFlowerGoal` 尚未实现）。剪切时通过 `ItemTags::SHEARABLE_FROM_COPPER_GOLEM` 判断可剪性，取出 Saddle 槽物品并掉落。转雕像时由 `MobEntity::dropPreservedEquipment()` 自动掉落 Saddle 槽物品（需先 `setGuaranteedDrop(Saddle)` 标记保留，由 `OfferFlowerGoal` 调用）。
+
+17. **EquipmentSlot::Saddle 扩展**：为支持铜傀儡天线槽，`EquipmentSlot` 枚举扩展了 `Saddle = 7`（`Count = 8`）。所有基于 `EquipmentSlot::Count` 的 `std::array` 自动扩展。`EquipmentSlotNames` 提供 `saddle` 名称映射，`ItemSlotArgument` 的 `saddle` 命名槽位映射到索引 106 → `EquipmentSlot` 索引 7。`Player::getEquipment` 的 `default` 分支返回空 `ItemStack`，因此玩家访问 Saddle 槽安全。

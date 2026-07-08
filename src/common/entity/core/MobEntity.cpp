@@ -1012,6 +1012,8 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
             {EquipmentSlot::Legs, "legs"},
             {EquipmentSlot::Chest, "chest"},
             {EquipmentSlot::Head, "head"},
+            {EquipmentSlot::Body, "body"},
+            {EquipmentSlot::Saddle, "saddle"},
         };
         for (const auto& entry : slotNames) {
             f32 chance = m_equipmentDropChances[static_cast<size_t>(entry.slot)];
@@ -1102,6 +1104,8 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
                 {"legs", EquipmentSlot::Legs},
                 {"chest", EquipmentSlot::Chest},
                 {"head", EquipmentSlot::Head},
+                {"body", EquipmentSlot::Body},
+                {"saddle", EquipmentSlot::Saddle},
             };
             for (const auto& entry : slotNames) {
                 if (auto chance = nbt_helper::tryGetFloat(*dropChancesCompound, entry.name)) {

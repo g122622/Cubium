@@ -44,6 +44,8 @@ const char* toName(EquipmentSlot slot) noexcept
             return "head";
         case EquipmentSlot::Body:
             return "body";
+        case EquipmentSlot::Saddle:
+            return "saddle";
         default:
             return "mainhand";
     }
@@ -58,6 +60,7 @@ std::optional<EquipmentSlot> fromName(const std::string_view name) noexcept
     if (name == "chest") return EquipmentSlot::Chest;
     if (name == "head") return EquipmentSlot::Head;
     if (name == "body") return EquipmentSlot::Body;
+    if (name == "saddle") return EquipmentSlot::Saddle;
     return std::nullopt;
 }
 

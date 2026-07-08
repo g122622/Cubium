@@ -287,6 +287,17 @@ public:
     static ItemTag& COPPER_GOLEM_STATUES();
 
     /**
+     * @brief 可从铜傀儡剪切的物品标签
+     *
+     * 包含可放置在铜傀儡天线槽（EquipmentSlot::Saddle）并通过剪刀剪下的物品。
+     * MC 1.21.11 原版仅包含 poppy（虞美人），由铁傀儡的 OfferFlowerGoal 赠予铜傀儡。
+     * 对应 MC 原版标签 minecraft:shearable_from_copper_golem (MC 1.21.11)。
+     *
+     * CopperGolemEntity::isShearable() 通过此标签判断铜傀儡是否可被剪切。
+     */
+    static ItemTag& SHEARABLE_FROM_COPPER_GOLEM();
+
+    /**
      * @brief 铜箱子物品标签
      *
      * 包含所有 8 个铜箱子物品变体（未涂蜡/涂蜡 × 4 个氧化等级）。

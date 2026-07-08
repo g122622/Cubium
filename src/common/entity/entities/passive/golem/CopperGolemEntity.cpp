@@ -32,6 +32,9 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -96,15 +99,32 @@ void CopperGolemEntity::playSpawnSound()
     playSound(SoundEvents::ENTITY_COPPER_GOLEM_SPAWN, 1.0f, 1.0f);
 }
 
+bool CopperGolemEntity::isShearable() const
+{
+    // 对应 MC Java: CopperGolem.readyForShearing()
+    //   return this.isAlive() && this.getItemBySlot(EQUIPMENT_SLOT_ANTENNA)
+    //                                 .is(ItemTags.SHEARABLE_FROM_COPPER_GOLEM)
+    if (!isAlive()) {
+        return false;
+    }
+    const ItemStack& antenna = getEquipment(EQUIPMENT_SLOT_ANTENNA);
+    if (antenna.isEmpty()) {
+        return false;
+    }
+    const Item* item = antenna.getItem();
+    return item != nullptr && item->isIn(item::tag::ItemTags::SHEARABLE_FROM_COPPER_GOLEM());
+}
+
 std::vector<ItemStack> CopperGolemEntity::shear(Player* /*player*/)
 {
     // 对应 MC Java: CopperGolem.shear(ServerLevel, SoundSource, ItemStack)
-    //   - 播放 COPPER_GOLEM_SHEAR 音效
-    //   - 获取 EQUIPMENT_SLOT_ANTENNA（天线槽）物品
-    //   - 清空天线槽
-    //   - 掉落天线物品
-    // 本项目当前未实现装备槽与铜傀儡天线物品，仅播放音效
-    // TODO: 实现 EQUIPMENT_SLOT_ANTENNA 装备槽与铜傀儡天线物品后，补充掉落逻辑
+    //   - playSound(COPPER_GOLEM_SHEAR)
+    //   - itemstack = getItemBySlot(EQUIPMENT_SLOT_ANTENNA)
+    //   - setItemSlot(EQUIPMENT_SLOT_ANTENNA, ItemStack.EMPTY)
+    //   - spawnAtLocation(serverlevel, itemstack, 1.5F)
+    // 本项目的 IShearable 接口由 ShearsItem::itemInteractionForEntity 统一调用
+    // ItemDropHelper::spawnItemEntity 在世界生成 ItemEntity，因此这里只返回掉落物列表。
+    std::vector<ItemStack> drops;
 
     IWorld* w = world();
     if (w != nullptr) {
@@ -120,8 +140,15 @@ std::vector<ItemStack> CopperGolemEntity::shear(Player* /*player*/)
         w->gameEvent(gameevent::GameEvents::SHEAR, soundBlockPos, nullptr);
     }
 
-    // 当前未实现天线物品，返回空列表
-    return {};
+    // 取出天线槽物品并清空槽位
+    // 对应 MC: itemstack = getItemBySlot(EQUIPMENT_SLOT_ANTENNA); setItemSlot(..., EMPTY)
+    ItemStack antenna = getEquipment(EQUIPMENT_SLOT_ANTENNA);
+    setEquipment(EQUIPMENT_SLOT_ANTENNA, ItemStack{});
+
+    if (!antenna.isEmpty()) {
+        drops.push_back(std::move(antenna));
+    }
+    return drops;
 }
 
 std::optional<ResourceLocation> CopperGolemEntity::getHurtSound(DamageSource& /*source*/) const
@@ -406,10 +433,12 @@ void CopperGolemEntity::turnToStatue()
 
     // 丢弃保存的装备
     // 对应 MC Java: this.dropPreservedEquipment(serverLevel)
-    // MobEntity::dropPreservedEquipment() 已实现：遍历装备槽，掉落标记为保留（掉落概率 > 1.0）的物品。
-    // 当前铜傀儡未装备任何物品（天线槽位待 EQUIPMENT_SLOT_ANTENNA 系统实现），
-    // 此处仍按 MC 原版调用以保证未来扩展时的正确性。
-    // 返回值为保留在实体上的装备槽位集合（谓词返回 false 的槽位），当前始终为空。
+    // MobEntity::dropPreservedEquipment() 已实现：遍历所有装备槽（含 Saddle/天线槽），
+    // 掉落标记为保留（掉落概率 > 1.0，由 setGuaranteedDrop 设置）的物品。
+    // 铜傀儡天线槽（EQUIPMENT_SLOT_ANTENNA = Saddle）由铁傀儡 OfferFlowerGoal
+    // 装备罂粟花时调用 setGuaranteedDrop 标记保留（TODO: OfferFlowerGoal 尚未实现），
+    // 此处按 MC 原版调用，待 OfferFlowerGoal 实现后天线物品会自动在此掉落。
+    // 返回值为保留在实体上的装备槽位集合（谓词返回 false 的槽位，如绑定诅咒）。
     (void)dropPreservedEquipment();
 
     // 播放变雕像音效

@@ -81,6 +81,7 @@ TEST(EquipmentSlotNamesTest, ToNameAllSlots)
     EXPECT_STREQ(EquipmentSlotNames::toName(EquipmentSlot::Chest), "chest");
     EXPECT_STREQ(EquipmentSlotNames::toName(EquipmentSlot::Head), "head");
     EXPECT_STREQ(EquipmentSlotNames::toName(EquipmentSlot::Body), "body");
+    EXPECT_STREQ(EquipmentSlotNames::toName(EquipmentSlot::Saddle), "saddle");
 }
 
 TEST(EquipmentSlotNamesTest, FromNameAllSlots)
@@ -92,6 +93,7 @@ TEST(EquipmentSlotNamesTest, FromNameAllSlots)
     EXPECT_EQ(EquipmentSlotNames::fromName("chest"), EquipmentSlot::Chest);
     EXPECT_EQ(EquipmentSlotNames::fromName("head"), EquipmentSlot::Head);
     EXPECT_EQ(EquipmentSlotNames::fromName("body"), EquipmentSlot::Body);
+    EXPECT_EQ(EquipmentSlotNames::fromName("saddle"), EquipmentSlot::Saddle);
 }
 
 TEST(EquipmentSlotNamesTest, FromNameInvalid)

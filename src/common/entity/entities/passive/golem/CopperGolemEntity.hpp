@@ -50,7 +50,7 @@ class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以�
  * - 持久化：生成后标记为 PersistenceRequired，不会自然消失
  * - 氧化：随时间氧化到下一等级（Unaffected → Exposed → Weathered → Oxidized）
  * - 转雕像：达到 Oxidized 等级后，有概率在空气中转化为 Oxidized 铜傀儡雕像
- * - 可剪切：可用剪刀剪下天线（掉落铜傀儡天线物品）
+ * - 可剪切：可用剪刀剪下天线槽（Saddle 槽）中的物品（如罂粟花）
  * - 蜜脾涂蜡：可用蜜脾阻止氧化
  * - 斧头刮削：可用斧头刮削回上一氧化等级
  *
@@ -60,10 +60,27 @@ class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以�
  *   物品运输行为留作 TODO（需要 ChestBlock 容器接口、ContainerOpenersCounter 等子系统）。
  * - 氧化与转雕像逻辑完整实现（对应 MC 1.21.11 CopperGolem.updateWeathering/turnToStatue）。
  *
+ * 天线槽设计（对应 MC 1.21.11 CopperGolem.EQUIPMENT_SLOT_ANTENNA）：
+ * - 铜傀儡的"天线槽"复用 EquipmentSlot::Saddle（与 MC 原版一致）。
+ * - 天线物品并非独立物品，而是罂粟花（minecraft:poppy），由铁傀儡的
+ *   OfferFlowerGoal 赠予铜傀儡并装备到 Saddle 槽（TODO：OfferFlowerGoal 尚未实现）。
+ * - 剪切时取出 Saddle 槽物品并掉落，由 ItemTags::SHEARABLE_FROM_COPPER_GOLEM 判断可剪性。
+ * - 转雕像时通过 MobEntity::dropPreservedEquipment() 自动掉落 Saddle 槽物品
+ *   （需先 setGuaranteedDrop(Saddle) 标记保留，由 OfferFlowerGoal 调用）。
+ *
  * 参考: net.minecraft.world.entity.animal.golem.CopperGolem (MC 1.21.11)
  */
 class CopperGolemEntity : public GolemEntity, public entity::IShearable {
 public:
+    /**
+     * @brief 铜傀儡的天线装备槽
+     *
+     * 对应 MC 1.21.11 CopperGolem.EQUIPMENT_SLOT_ANTENNA = EquipmentSlot.SADDLE。
+     * 铜傀儡头顶"天线"实际是 Saddle 槽中持有的物品（罂粟花），
+     * 由铁傀儡 OfferFlowerGoal 赠予，可被剪刀剪下。
+     */
+    static constexpr EquipmentSlot EQUIPMENT_SLOT_ANTENNA = EquipmentSlot::Saddle;
+
     /**
      * @brief 构造函数
      * @param id 实体ID
@@ -146,21 +163,23 @@ public:
 
     /**
      * @brief 检查是否可以被剪切
-     * @return 铜傀儡永远可被剪切（活着即可，对应 MC 原版 readyForShearing 检查天线物品，
-     *         本项目未实现装备槽，简化为活着即可）
+     * @return 活着且天线槽（Saddle）物品属于 SHEARABLE_FROM_COPPER_GOLEM 标签时可剪
      *
-     * TODO: 实现 EQUIPMENT_SLOT_ANTENNA 装备槽后，按 MC 原版逻辑检查天线物品标签。
+     * 对应 MC Java: CopperGolem.readyForShearing()
+     *   return this.isAlive() && this.getItemBySlot(EQUIPMENT_SLOT_ANTENNA).is(ItemTags.SHEARABLE_FROM_COPPER_GOLEM)
      */
-    [[nodiscard]] bool isShearable() const override { return isAlive(); }
+    [[nodiscard]] bool isShearable() const override;
 
     /**
      * @brief 剪切铜傀儡
      *
-     * 对应 MC Java: CopperGolem.shear() - 播放剪切音效并掉落天线物品。
-     * 本项目当前未实现铜傀儡天线物品，仅播放音效，留 TODO 待物品系统补充后集成。
+     * 对应 MC Java: CopperGolem.shear(ServerLevel, SoundSource, ItemStack)
+     * - 播放 COPPER_GOLEM_SHEAR 音效
+     * - 取出天线槽（Saddle）物品并清空槽位
+     * - 返回掉落物列表（由 ShearsItem 统一调用 ItemDropHelper 在世界生成 ItemEntity）
      *
      * @param player 执行剪切的玩家（可为 nullptr）
-     * @return 获得的物品列表（当前为空）
+     * @return 获得的物品列表（天线槽中的物品）
      */
     std::vector<ItemStack> shear(Player* player = nullptr) override;
 

@@ -234,6 +234,7 @@ TEST_F(ItemSlotTest, ToEquipmentSlotIndex)
     EXPECT_EQ(ItemSlot(102).toEquipmentSlotIndex(), 3); // Legs
     EXPECT_EQ(ItemSlot(103).toEquipmentSlotIndex(), 2); // Feet
     EXPECT_EQ(ItemSlot(105).toEquipmentSlotIndex(), 6); // Body (EquipmentSlot::Body)
+    EXPECT_EQ(ItemSlot(106).toEquipmentSlotIndex(), 7); // Saddle (EquipmentSlot::Saddle)
     // 非装备槽位
     EXPECT_EQ(ItemSlot(0).toEquipmentSlotIndex(), -1);
     EXPECT_EQ(ItemSlot(104).toEquipmentSlotIndex(), -1);

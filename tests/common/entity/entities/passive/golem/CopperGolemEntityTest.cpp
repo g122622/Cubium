@@ -33,6 +33,10 @@
 #include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
@@ -46,6 +50,7 @@
 using namespace mc;
 using namespace mc::entity;
 using namespace mc::entity::serialization;
+using mc::item::tag::ItemTags;
 
 namespace {
 
@@ -231,17 +236,41 @@ TEST_F(CopperGolemEntityTest, Inheritance_IsShearable)
 // IShearable 接口测试
 // ============================================================================
 
-TEST_F(CopperGolemEntityTest, IsShearable_TrueWhenAlive)
+TEST_F(CopperGolemEntityTest, IsShearable_FalseWhenAntennaSlotEmpty)
 {
-    // 铜傀儡可被剪切（活着即可，本项目未实现装备槽）
+    // 铜傀儡天线槽（Saddle）默认为空，不可剪切
+    // 对应 MC: readyForShearing() 要求天线槽物品 ∈ SHEARABLE_FROM_COPPER_GOLEM
+    EXPECT_FALSE(golem_->isShearable());
+}
+
+TEST_F(CopperGolemEntityTest, IsShearable_TrueWhenAntennaSlotHasPoppy)
+{
+    // 装备罂粟花到天线槽后可剪切
+    ItemTags::initialize();
+    VanillaBlocks::initialize();
+    Items::initialize();
+    BlockItemRegistry::instance().initializeVanillaBlockItems();
+
+    ASSERT_NE(Items::POPPY, nullptr);
+    golem_->setEquipment(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA, ItemStack(Items::POPPY, 1));
     EXPECT_TRUE(golem_->isShearable());
 }
 
-TEST_F(CopperGolemEntityTest, Shear_PlaysShearSound)
+TEST_F(CopperGolemEntityTest, Shear_PlaysShearSoundAndDropsAntenna)
 {
+    ItemTags::initialize();
+    VanillaBlocks::initialize();
+    Items::initialize();
+    BlockItemRegistry::instance().initializeVanillaBlockItems();
+
     CopperGolemTestWorld world;
     golem_->setWorld(&world);
     golem_->setPosition(0.0f, 64.0f, 0.0f);
+
+    // 装备罂粟花到天线槽
+    ASSERT_NE(Items::POPPY, nullptr);
+    golem_->setEquipment(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA, ItemStack(Items::POPPY, 1));
+    ASSERT_TRUE(golem_->isShearable());
 
     world.clearSounds();
     auto drops = golem_->shear(nullptr);
@@ -257,7 +286,37 @@ TEST_F(CopperGolemEntityTest, Shear_PlaysShearSound)
     }
     EXPECT_TRUE(foundShearSound);
 
-    // 当前未实现天线物品，掉落应为空
+    // 应掉落 1 个罂粟花（天线槽物品）
+    ASSERT_EQ(drops.size(), 1u);
+    EXPECT_EQ(drops[0].getItem(), Items::POPPY);
+    EXPECT_EQ(drops[0].getCount(), 1);
+
+    // 剪后天线槽应清空，isShearable 应为 false
+    EXPECT_TRUE(golem_->getEquipment(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA).isEmpty());
+    EXPECT_FALSE(golem_->isShearable());
+}
+
+TEST_F(CopperGolemEntityTest, Shear_NoDropWhenAntennaSlotEmpty)
+{
+    CopperGolemTestWorld world;
+    golem_->setWorld(&world);
+    golem_->setPosition(0.0f, 64.0f, 0.0f);
+
+    // 天线槽为空时直接调用 shear（绕过 isShearable 检查）
+    world.clearSounds();
+    auto drops = golem_->shear(nullptr);
+
+    // 仍应播放剪切音效
+    bool foundShearSound = false;
+    for (const auto& s : world.sounds()) {
+        if (s.sound == SoundEvents::ENTITY_COPPER_GOLEM_SHEAR) {
+            foundShearSound = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundShearSound);
+
+    // 天线槽为空，掉落应为空
     EXPECT_TRUE(drops.empty());
 }
 

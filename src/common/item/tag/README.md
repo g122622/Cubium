@@ -143,6 +143,8 @@ tag/
 | ItemEntity 伤害处理 | `FIRE_RESISTANT` 标签判断防火物品是否免疫火焰伤害 |
 | ItemStack::canBeHurtBy | `FIRE_RESISTANT` 标签检查物品是否可被火焰伤害源伤害 |
 | 农民村民种植 | `VILLAGER_PLANTABLE_SEEDS` 标签判断农民可在耕地上种植的种子（小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果），对应 MC 1.21.11 `HarvestFarmland.plantCrop` |
+| 铜傀儡雕像方块物品 | `COPPER_GOLEM_STATUES` 标签判断铜傀儡雕像物品变体（未涂蜡/涂蜡 × 4 个氧化等级） |
+| 铜傀儡剪切 | `SHEARABLE_FROM_COPPER_GOLEM` 标签判断铜傀儡天线槽（`EquipmentSlot::Saddle`）物品是否可被剪刀剪下（MC 1.21.11 原版仅包含 poppy），由 `CopperGolemEntity::isShearable()` 调用 |
 | 配方系统（未来） | `Ingredient` 将支持标签匹配 |
 | 服务端初始化 | `MinecraftServer::initializeRegistries()` 调用 `ItemTagLoader` |
 

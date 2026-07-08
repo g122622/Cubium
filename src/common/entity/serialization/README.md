@@ -215,6 +215,9 @@ tag.put("uuid", "...");          // 应该是 "UUID"
 | `Chest` | `"chest"` |
 | `Head` | `"head"` |
 | `Body` | `"body"` |
+| `Saddle` | `"saddle"` |
+
+> **注**：`EquipmentSlot::Saddle` 对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA`，用于铜傀儡天线槽（持有罂粟花）。玩家不使用此槽位。
 
 ### 使用场景
 
