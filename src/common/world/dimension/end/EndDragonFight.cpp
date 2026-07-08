@@ -699,7 +699,10 @@ void EndDragonFight::tryRespawn(IWorld& world)
 
     // 确定 portalLocation（如果尚未记录）
     // MC: 如果 portalLocation == null，先 findExitPortal，找不到则 spawnExitPortal(true)
-    // Cubium 简化：如果未记录，使用 (0, 0, 0) 作为出口传送门位置（末地原点讲台）
+    // TODO: MC 使用 BlockPattern 精确匹配出口传送门结构来定位 portalLocation，
+    //       Cubium 当前简化为固定使用末地原点 (0, 0, 0) 作为出口传送门位置。
+    //       原版末地出口讲台固定生成在原点，此简化在原版地形下行为正确；
+    //       但若未来支持自定义维度原点或数据包修改讲台位置，需迁移到 BlockPattern 扫描。
     BlockPos portalLoc;
     if (m_portalLocation.has_value()) {
         portalLoc = *m_portalLocation;
@@ -777,14 +780,21 @@ void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrys
     //             }
     //         }
     //     }
-    // Cubium 简化：扫描原点周围区块，将 BEDROCK 和 END_PORTAL 方块替换为 END_STONE
-    // 这确保重生序列开始前出口传送门被"填平"，重生完成后由 setDragonKilled 重新创建
+    // TODO: MC 使用 exitPortalPattern（7x7x7 BlockPattern，仅匹配讲台结构的基岩轮廓）精确
+    //       定位并替换出口传送门方块，Cubium 暂未实现 BlockPattern 方块模式匹配系统，当前采用
+    //       扫描原点 (-4..4) × 全高度 × (-4..4) 范围内所有 BEDROCK/END_PORTAL 方块替换为 END_STONE
+    //       的简化实现。
+    //       已知偏差：此范围扫描会误伤玩家在原点附近手动放置的基岩/末地传送门方块。原版末地
+    //       地形在原点周围不自然生成基岩（仅讲台与中心柱），故对原版玩法无影响；但数据包自定义
+    //       结构或玩家建造可能受影响。待 BlockPattern 系统落地后迁移到精确匹配。
+    //       范围 (-4..4) 覆盖讲台外环半径 3.5 + 0.5 余量，确保完整覆盖 EndTeleporter::createExitPortal
+    //       生成的所有讲台基岩（PODIUM_RADIUS=4）。
     const BlockState* endStoneState = VanillaBlocks::getState(VanillaBlocks::END_STONE);
     const BlockState* bedrockState = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
     const BlockState* endPortalState = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
     if (endStoneState != nullptr) {
         // 扫描原点讲台区域（出口传送门大致在 (0, ~64, 0) 附近）
-        // MC 的 exitPortalPattern 是 7x7 区域，Cubium 扫描略大的范围以确保覆盖
+        // 范围 (-4..4) 对应 EndTeleporter::PODIUM_RADIUS=4，完整覆盖讲台水平范围
         for (i32 bx = -4; bx <= 4; ++bx) {
             for (i32 by = world::MIN_BUILD_HEIGHT; by < world::MAX_BUILD_HEIGHT; ++by) {
                 for (i32 bz = -4; bz <= 4; ++bz) {
@@ -829,7 +839,8 @@ void EndDragonFight::setRespawnStage(IWorld& world, DragonRespawnAnimation stage
         // 创建新龙
         // MC: EnderDragon enderdragon = this.createNewDragon();
         _createNewDragon(world);
-        // 注意：MC 在此处触发 SUMMONED_ENTITY 进度，Cubium 暂未实现该进度系统
+        // TODO: MC 在此处触发 SUMMONED_ENTITY 进度（CriteriaTriggers.SUMMONED_ENTITY.trigger(player)），
+        //       Cubium 暂未实现进度系统（advancements），待进度系统落地后在此处补上触发调用。
     } else {
         m_respawnStage = stage;
     }
