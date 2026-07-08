@@ -1579,6 +1579,66 @@ public:
      */
     [[nodiscard]] Vector3 getEyePosition() const;
 
+    // ========== 交互范围 ==========
+
+    /**
+     * @brief 获取玩家方块交互距离
+     *
+     * 对应 MC 1.21.11 Player.blockInteractionRange()。
+     * 返回 generic.block_interaction_range 属性的计算值。
+     * 生存/冒险模式默认 4.5 格，创造模式通过修饰符 +0.5 达到 5.0 格。
+     *
+     * @return 方块交互距离（格）
+     */
+    [[nodiscard]] f64 blockInteractionRange() const;
+
+    /**
+     * @brief 获取玩家实体交互距离
+     *
+     * 对应 MC 1.21.11 Player.entityInteractionRange()。
+     * 返回 generic.entity_interaction_range 属性的计算值。
+     * 生存/冒险模式默认 3.0 格，创造模式通过修饰符 +2.0 达到 5.0 格。
+     *
+     * @return 实体交互距离（格）
+     */
+    [[nodiscard]] f64 entityInteractionRange() const;
+
+    /**
+     * @brief 检查玩家是否在方块交互范围内
+     *
+     * 对应 MC 1.21.11 Player.isWithinBlockInteractionRange(BlockPos, double)。
+     * 计算玩家眼睛到方块 AABB 的距离平方，与 (blockInteractionRange + padding)² 比较。
+     *
+     * @param pos 方块位置
+     * @param padding 额外容差（如 1.0 用于破坏/使用，4.0 用于容器菜单）
+     * @return 玩家在该方块交互范围内返回 true
+     */
+    [[nodiscard]] bool isWithinBlockInteractionRange(const BlockPos& pos, f64 padding) const;
+
+    /**
+     * @brief 检查玩家是否在实体交互范围内
+     *
+     * 对应 MC 1.21.11 Player.isWithinEntityInteractionRange(Entity, double)。
+     * 若实体已移除返回 false，否则委托到 AABB 重载。
+     *
+     * @param entity 目标实体
+     * @param padding 额外容差（如 0.0 用于交互，3.0 用于捡选，4.0 用于坐骑容器）
+     * @return 玩家在该实体交互范围内返回 true
+     */
+    [[nodiscard]] bool isWithinEntityInteractionRange(const Entity& entity, f64 padding) const;
+
+    /**
+     * @brief 检查玩家是否在指定 AABB 交互范围内
+     *
+     * 对应 MC 1.21.11 Player.isWithinEntityInteractionRange(AABB, double)。
+     * 计算玩家眼睛到 AABB 的距离平方，与 (entityInteractionRange + padding)² 比较。
+     *
+     * @param aabb 目标 AABB
+     * @param padding 额外容差
+     * @return 玩家在该 AABB 交互范围内返回 true
+     */
+    [[nodiscard]] bool isWithinEntityInteractionRange(const AxisAlignedBB& aabb, f64 padding) const;
+
     /**
      * @brief 检查玩家是否戴着南瓜头
      *
@@ -1847,6 +1907,20 @@ private:
      * @brief 更新原版视野晃动强度
      */
     void _updateCameraYaw();
+
+    /**
+     * @brief 根据当前游戏模式刷新创造模式交互距离修饰符
+     *
+     * 对应 MC 1.21.11 ServerPlayer.updatePlayerAttributes()。
+     * 创造模式时为 BLOCK_INTERACTION_RANGE 和 ENTITY_INTERACTION_RANGE 添加 +0.5/+2.0 的 Addition 修饰符；
+     * 非创造模式时移除这两个修饰符。
+     *
+     * 该方法具有幂等性：内部先 removeModifier 再 addModifier，可安全重复调用。
+     * 在 setGameMode() 中调用以响应模式切换；在 readAdditionalSaveData() 末尾调用以
+     * 修正存档中可能残留的旧修饰符状态（属性 NBT 在基类 readAdditionalSaveData 中加载，
+     * 此时若存档来自创造模式玩家，修饰符已被持久化到 NBT 中）。
+     */
+    void _applyCreativeInteractionRangeModifiers();
 
     /**
      * @brief 按当前缓存输入向速度添加玩家加速度

@@ -46,6 +46,8 @@
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/dimension/MapDimensionId.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
+#include "../../attribute/AttributeModifier.hpp"
+#include "../../attribute/AttributeModifierUUIDs.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
 #include "../../core/EntityTypeIdNumber.hpp"
@@ -198,6 +200,10 @@ void Player::setGameMode(GameMode mode)
     // 同步移动速度到属性系统
     // PlayerAbilities 是配置层，属性系统是计算层
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
+
+    // 根据游戏模式刷新创造模式交互距离修饰符
+    // 对应 MC 1.21.11 ServerPlayer.updatePlayerAttributes()：创造模式 +0.5/+2.0，其他模式移除
+    _applyCreativeInteractionRangeModifiers();
 }
 
 bool Player::mayInteract(IWorld& world, const BlockPos& pos) const
@@ -2007,11 +2013,16 @@ void Player::registerAttributes()
     m_attributes.registerAttribute(*Attributes::luck());
     m_attributes.registerAttribute(*Attributes::attackDamage());
     m_attributes.registerAttribute(*Attributes::attackSpeed());
+    // 注册方块/实体交互距离属性（对应 MC 1.21.11 Player.createAttributes）
+    m_attributes.registerAttribute(*Attributes::blockInteractionRange());
+    m_attributes.registerAttribute(*Attributes::entityInteractionRange());
 
     // 设置玩家特有属性值
     m_attributes.setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
     m_attributes.setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
     m_attributes.setBaseValue(Attributes::ATTACK_SPEED, defaults::player::ATTACK_SPEED);
+    m_attributes.setBaseValue(Attributes::BLOCK_INTERACTION_RANGE, defaults::player::BLOCK_INTERACTION_RANGE);
+    m_attributes.setBaseValue(Attributes::ENTITY_INTERACTION_RANGE, defaults::player::ENTITY_INTERACTION_RANGE);
     // LUCK 属性默认值为 0.0，无需显式设置
 }
 
@@ -2304,6 +2315,40 @@ void Player::_updateCameraYaw()
         targetCameraYaw = std::min(0.1f, std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z));
     }
     m_cameraYaw += (targetCameraYaw - m_cameraYaw) * 0.4f;
+}
+
+void Player::_applyCreativeInteractionRangeModifiers()
+{
+    // 对应 MC 1.21.11 ServerPlayer.updatePlayerAttributes()：
+    // 创造模式为 BLOCK_INTERACTION_RANGE / ENTITY_INTERACTION_RANGE 添加 +0.5 / +2.0 的 Addition 修饰符；
+    // 非创造模式移除这两个修饰符。
+    //
+    // 实现采用「先移除后按需添加」的幂等模式：无论调用多少次，结果都一致。
+    // 这样可同时支持：
+    //   1. setGameMode() 中切换模式时刷新
+    //   2. readAdditionalSaveData() 末尾修正存档中可能残留的旧修饰符
+    //      （属性 NBT 在 LivingEntity::readAdditionalSaveData 中加载，修饰符会被持久化到 NBT）
+    using namespace entity::attribute;
+
+    // 方块交互距离：创造模式 +0.5
+    m_attributes.removeModifier(Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID);
+    if (isCreative()) {
+        m_attributes.addModifier(Attributes::BLOCK_INTERACTION_RANGE,
+            AttributeModifier(uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID,
+                "Creative Mode Block Interaction Range Boost",
+                0.5,
+                Operation::Addition));
+    }
+
+    // 实体交互距离：创造模式 +2.0
+    m_attributes.removeModifier(Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID);
+    if (isCreative()) {
+        m_attributes.addModifier(Attributes::ENTITY_INTERACTION_RANGE,
+            AttributeModifier(uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID,
+                "Creative Mode Entity Interaction Range Boost",
+                2.0,
+                Operation::Addition));
+    }
 }
 
 void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
@@ -2868,6 +2913,69 @@ Vector3 Player::getEyePosition() const
     return Vector3(x(), y() + eyeHeight(), z());
 }
 
+// ============================================================================
+// 交互范围（对应 MC 1.21.11 Player.blockInteractionRange / entityInteractionRange / isWithin*）
+// ============================================================================
+
+f64 Player::blockInteractionRange() const
+{
+    // 返回 generic.block_interaction_range 属性的计算值
+    // 生存/冒险模式默认 4.5，创造模式由修饰符 +0.5 达到 5.0
+    return getAttributeValue(entity::attribute::Attributes::BLOCK_INTERACTION_RANGE,
+        static_cast<f64>(entity::attribute::defaults::player::BLOCK_INTERACTION_RANGE));
+}
+
+f64 Player::entityInteractionRange() const
+{
+    // 返回 generic.entity_interaction_range 属性的计算值
+    // 生存/冒险模式默认 3.0，创造模式由修饰符 +2.0 达到 5.0
+    return getAttributeValue(entity::attribute::Attributes::ENTITY_INTERACTION_RANGE,
+        static_cast<f64>(entity::attribute::defaults::player::ENTITY_INTERACTION_RANGE));
+}
+
+bool Player::isWithinBlockInteractionRange(const BlockPos& pos, f64 padding) const
+{
+    // 构建 方块对应的 AABB（[x, x+1] × [y, y+1] × [z, z+1]）
+    const AxisAlignedBB aabb(static_cast<f32>(pos.x),
+        static_cast<f32>(pos.y),
+        static_cast<f32>(pos.z),
+        static_cast<f32>(pos.x + 1),
+        static_cast<f32>(pos.y + 1),
+        static_cast<f32>(pos.z + 1));
+
+    // 计算眼睛到 AABB 的最近距离平方
+    const Vector3 eye = getEyePosition();
+    const f32 dx = (eye.x < aabb.minX) ? (aabb.minX - eye.x) : (eye.x > aabb.maxX) ? (eye.x - aabb.maxX) : 0.0f;
+    const f32 dy = (eye.y < aabb.minY) ? (aabb.minY - eye.y) : (eye.y > aabb.maxY) ? (eye.y - aabb.maxY) : 0.0f;
+    const f32 dz = (eye.z < aabb.minZ) ? (aabb.minZ - eye.z) : (eye.z > aabb.maxZ) ? (eye.z - aabb.maxZ) : 0.0f;
+    const f64 distSq = static_cast<f64>(dx) * dx + static_cast<f64>(dy) * dy + static_cast<f64>(dz) * dz;
+
+    const f64 range = blockInteractionRange() + padding;
+    return distSq < range * range;
+}
+
+bool Player::isWithinEntityInteractionRange(const Entity& entity, f64 padding) const
+{
+    // 已移除的实体不可交互
+    if (entity.isRemoved()) {
+        return false;
+    }
+    return isWithinEntityInteractionRange(entity.boundingBox(), padding);
+}
+
+bool Player::isWithinEntityInteractionRange(const AxisAlignedBB& aabb, f64 padding) const
+{
+    // 计算眼睛到 AABB 的最近距离平方，与 (range + padding)² 比较
+    const Vector3 eye = getEyePosition();
+    const f32 dx = (eye.x < aabb.minX) ? (aabb.minX - eye.x) : (eye.x > aabb.maxX) ? (eye.x - aabb.maxX) : 0.0f;
+    const f32 dy = (eye.y < aabb.minY) ? (aabb.minY - eye.y) : (eye.y > aabb.maxY) ? (eye.y - aabb.maxY) : 0.0f;
+    const f32 dz = (eye.z < aabb.minZ) ? (aabb.minZ - eye.z) : (eye.z > aabb.maxZ) ? (eye.z - aabb.maxZ) : 0.0f;
+    const f64 distSq = static_cast<f64>(dx) * dx + static_cast<f64>(dy) * dy + static_cast<f64>(dz) * dz;
+
+    const f64 range = entityInteractionRange() + padding;
+    return distSq < range * range;
+}
+
 bool Player::isWearingPumpkin() const
 {
     // 检查玩家头盔是否为雕刻南瓜或南瓜灯
@@ -3217,6 +3325,11 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     } else {
         m_lastDeathLocation = std::nullopt;
     }
+
+    // 修正创造模式交互距离修饰符
+    // 属性 NBT 在 LivingEntity::readAdditionalSaveData 中已加载，若存档来自创造模式玩家，
+    // 创造修饰符可能已被持久化到 NBT 中；此调用确保当前修饰符状态与玩家游戏模式严格一致。
+    _applyCreativeInteractionRangeModifiers();
 
     return Result<void>::ok();
 }

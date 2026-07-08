@@ -288,6 +288,32 @@ inline std::unique_ptr<Attribute> movementEfficiency()
     return std::make_unique<Attribute>("generic.movement_efficiency", 0.0, 0.0, 1.0);
 }
 
+/**
+ * @brief 方块交互距离
+ *
+ * 决定玩家与方块交互（破坏/使用/放置）的最大距离。
+ * 默认值: 4.5（生存/冒险模式）
+ * 范围: 0.0 ~ 64.0
+ * 创造模式由 ServerPlayer 添加 +0.5 的 Addition 修饰符，达到 5.0。
+ */
+inline std::unique_ptr<Attribute> blockInteractionRange()
+{
+    return std::make_unique<Attribute>("generic.block_interaction_range", 4.5, 0.0, 64.0);
+}
+
+/**
+ * @brief 实体交互距离
+ *
+ * 决定玩家与实体交互（攻击/右键/捡选）的最大距离。
+ * 默认值: 3.0（生存/冒险模式）
+ * 范围: 0.0 ~ 64.0
+ * 创造模式由 ServerPlayer 添加 +2.0 的 Addition 修饰符，达到 5.0。
+ */
+inline std::unique_ptr<Attribute> entityInteractionRange()
+{
+    return std::make_unique<Attribute>("generic.entity_interaction_range", 3.0, 0.0, 64.0);
+}
+
 // ============================================================================
 // 属性名称常量
 // ============================================================================
@@ -309,6 +335,8 @@ constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
 
 // MC 1.21+ 新增属性
 constexpr const char* MOVEMENT_EFFICIENCY = "generic.movement_efficiency";
+constexpr const char* BLOCK_INTERACTION_RANGE = "generic.block_interaction_range";
+constexpr const char* ENTITY_INTERACTION_RANGE = "generic.entity_interaction_range";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";

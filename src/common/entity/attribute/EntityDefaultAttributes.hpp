@@ -49,6 +49,12 @@ constexpr f32 ATTACK_DAMAGE = 1.0f;
 
 /// 玩家攻击速度
 constexpr f32 ATTACK_SPEED = 4.0f;
+
+/// 玩家方块交互距离基础值（生存/冒险模式），创造模式额外 +0.5
+constexpr f32 BLOCK_INTERACTION_RANGE = 4.5f;
+
+/// 玩家实体交互距离基础值（生存/冒险模式），创造模式额外 +2.0
+constexpr f32 ENTITY_INTERACTION_RANGE = 3.0f;
 } // namespace player
 
 // ============================================================================

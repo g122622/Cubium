@@ -718,6 +718,8 @@ add_executable(mc_tests
     common/entity/player/ImpulseContextTest.cpp
     # Player NBT 序列化测试
     common/entity/player/PlayerSerializationTest.cpp
+    # Player 交互距离属性测试（方块/实体交互范围、创造模式修饰符）
+    common/entity/player/PlayerInteractionRangeTest.cpp
     entity/ProjectileHelperTest.cpp
     # ThrowableEntity 传送门处理测试（下界传送门、末地折跃门）
     entity/ThrowablePortalTest.cpp

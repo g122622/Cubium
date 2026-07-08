@@ -350,7 +350,9 @@ TEST_F(BrushItemTest, ConstantValuesMatchMC)
     EXPECT_EQ(item::BrushItem::ANIMATION_DURATION, 10);
     EXPECT_EQ(item::BrushItem::BRUSH_TICK_IN_CYCLE, 4);
     EXPECT_EQ(item::BrushItem::ARMADILLO_DURABILITY_COST, 16);
-    EXPECT_FLOAT_EQ(item::BrushItem::BLOCK_INTERACTION_RANGE, 5.0f);
+    // 注：BLOCK_INTERACTION_RANGE 已移除，改用 Player::blockInteractionRange()
+    // 该值由 generic.block_interaction_range 属性决定（生存/冒险 4.5，创造 5.0），
+    // 由 PlayerInteractionRange 测试覆盖
 }
 
 // ============================================================================
@@ -699,7 +701,7 @@ TEST_F(BrushItemTest, OnUseTick_RaycastMissStopsActiveHand)
  * @brief 验证刷扫触发tick上视线超出方块交互距离时停止使用
  *
  * 玩家在 y=20 高处直视下方，下方 y=4 的方块距离 16 格，
- * 超出 BLOCK_INTERACTION_RANGE (5.0)，射线应 miss。
+ * 超出 Player::blockInteractionRange()（生存模式 4.5），射线应 miss。
  */
 TEST_F(BrushItemTest, OnUseTick_RaycastOutOfRangeStopsActiveHand)
 {
@@ -709,7 +711,7 @@ TEST_F(BrushItemTest, OnUseTick_RaycastOutOfRangeStopsActiveHand)
     player.setRotation(0.0f, 90.0f);
 
     // 在 (0, 4, 0) 放置方块，距离眼睛 21.62 - 5.0 = 16.62 格
-    // 超出 BLOCK_INTERACTION_RANGE (5.0) → 射线 miss
+    // 超出 Player::blockInteractionRange()（生存模式 4.5）→ 射线 miss
     m_world->setBlockStateAt(0, 4, 0, &VanillaBlocks::STONE->defaultState());
 
     ItemStack brushStack(Items::BRUSH, 1);

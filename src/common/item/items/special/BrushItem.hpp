@@ -78,16 +78,6 @@ public:
     static constexpr i32 ARMADILLO_DURABILITY_COST = 16;
 
     /**
-     * @brief 玩家方块交互距离（与 MC 1.21.11 Player.blockInteractionRange 对齐）
-     *
-     * MC 中创造/生存模式均为 5.0 格。本项目 Player 暂未提供 blockInteractionRange()，
-     * 暂以常量形式在此处内联。
-     *
-     * TODO: 待 Player 完善 blockInteractionRange() 后改为调用该方法。
-     */
-    static constexpr f32 BLOCK_INTERACTION_RANGE = 5.0f;
-
-    /**
      * @brief 刷扫粒子方向偏移记录
      *
      * 对应 MC 1.21.11 BrushItem.DustParticlesDelta。
@@ -212,7 +202,7 @@ private:
      *
      * 对齐 MC 1.21.11 BrushItem.calculateHitResult。
      * 从玩家眼睛位置沿视线方向进行方块射线检测，
-     * 最大距离为 BLOCK_INTERACTION_RANGE (5.0)。
+     * 最大距离为玩家方块交互距离（Player::blockInteractionRange()）。
      *
      * @param player 玩家
      * @return 方块射线检测结果（miss 或 hit）

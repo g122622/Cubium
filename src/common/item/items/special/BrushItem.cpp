@@ -176,10 +176,11 @@ BlockRaycastResult BrushItem::calculateHitResult(const Player& player)
 {
     // 对齐 MC 1.21.11 BrushItem.calculateHitResult：
     //   ProjectileUtil.getHitResultOnViewVector(player, EntitySelector.CAN_BE_PICKED, player.blockInteractionRange())
-    // 本项目仅做方块射线检测（刷子主要场景为方块），距离为 BLOCK_INTERACTION_RANGE。
+    // 本项目仅做方块射线检测（刷子主要场景为方块），距离取自 Player::blockInteractionRange()，
+    // 该值由 generic.block_interaction_range 属性决定（生存/冒险 4.5，创造 5.0）。
     const Vector3 eyePosition = player.getEyePosition();
     const Ray ray(eyePosition, player.getLookVector());
-    const RaycastContext context(ray, BLOCK_INTERACTION_RANGE);
+    const RaycastContext context(ray, static_cast<f32>(player.blockInteractionRange()));
     return raycastBlocks(context, *player.world());
 }
 

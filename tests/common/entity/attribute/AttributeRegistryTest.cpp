@@ -64,6 +64,11 @@ TEST(AttributeRegistryTest, AllBuiltinAttributesAreRegistered)
     // Forge 扩展属性
     EXPECT_TRUE(registry.isKnown(Attributes::ENTITY_GRAVITY));
     EXPECT_TRUE(registry.isKnown(Attributes::SWIM_SPEED));
+
+    // MC 1.21+ 新增属性
+    EXPECT_TRUE(registry.isKnown(Attributes::MOVEMENT_EFFICIENCY));
+    EXPECT_TRUE(registry.isKnown(Attributes::BLOCK_INTERACTION_RANGE));
+    EXPECT_TRUE(registry.isKnown(Attributes::ENTITY_INTERACTION_RANGE));
 }
 
 TEST(AttributeRegistryTest, UnknownAttributeIsNotKnown)
@@ -125,6 +130,30 @@ TEST(AttributeRegistryTest, EntityGravityRangeSupportsNegativeValues)
     auto [minVal, maxVal] = registry.getRange(Attributes::ENTITY_GRAVITY);
     EXPECT_DOUBLE_EQ(minVal, -8.0);
     EXPECT_DOUBLE_EQ(maxVal, 8.0);
+}
+
+TEST(AttributeRegistryTest, BlockInteractionRangeDefinitionMatchesMC)
+{
+    // MC 1.21.11: generic.block_interaction_range 默认 4.5，范围 [0, 64]
+    auto& registry = AttributeRegistry::instance();
+    const auto* attr = registry.getAttribute(Attributes::BLOCK_INTERACTION_RANGE);
+    ASSERT_NE(attr, nullptr);
+    EXPECT_EQ(attr->registryName(), "generic.block_interaction_range");
+    EXPECT_DOUBLE_EQ(attr->defaultValue(), 4.5);
+    EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 64.0);
+}
+
+TEST(AttributeRegistryTest, EntityInteractionRangeDefinitionMatchesMC)
+{
+    // MC 1.21.11: generic.entity_interaction_range 默认 3.0，范围 [0, 64]
+    auto& registry = AttributeRegistry::instance();
+    const auto* attr = registry.getAttribute(Attributes::ENTITY_INTERACTION_RANGE);
+    ASSERT_NE(attr, nullptr);
+    EXPECT_EQ(attr->registryName(), "generic.entity_interaction_range");
+    EXPECT_DOUBLE_EQ(attr->defaultValue(), 3.0);
+    EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 64.0);
 }
 
 TEST(AttributeRegistryTest, UnknownAttributeReturnsFallbackRange)
