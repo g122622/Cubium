@@ -41,6 +41,9 @@ struct BuildingBlocks {
 
     // 功能方块
     static Block* CRAFTING_TABLE;
+    static Block* FURNACE;
+    static Block* BLAST_FURNACE;
+    static Block* SMOKER;
     static Block* CAULDRON;
     static Block* WATER_CAULDRON;
     static Block* LAVA_CAULDRON;

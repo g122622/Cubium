@@ -326,6 +326,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 功能方块
     registerSimpleBlock(VanillaBlocks::CRAFTING_TABLE, "crafting_table");
+    registerSimpleBlock(VanillaBlocks::FURNACE, "furnace");
+    registerSimpleBlock(VanillaBlocks::BLAST_FURNACE, "blast_furnace");
+    registerSimpleBlock(VanillaBlocks::SMOKER, "smoker");
     registerSimpleBlock(VanillaBlocks::BARREL, "barrel");
     registerSimpleBlock(VanillaBlocks::CARTOGRAPHY_TABLE, "cartography_table");
     registerSimpleBlock(VanillaBlocks::FLETCHING_TABLE, "fletching_table");

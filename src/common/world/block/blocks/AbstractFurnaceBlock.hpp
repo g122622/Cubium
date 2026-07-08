@@ -78,6 +78,17 @@ public:
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    // ========== 光照 ==========
+
+    /**
+     * @brief 获取方块状态的动态光照等级
+     *
+     * 对应 MC 1.21.11 的 litBlockEmission(13)：LIT=true 时返回 13，否则返回 0。
+     * 参考: net.minecraft.world.level.block.Blocks.litBlockEmission
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
     // ========== 方块实体 ==========
 
     /**

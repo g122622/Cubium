@@ -24,11 +24,13 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
+#include "world/block/blocks/BlastFurnaceBlock.hpp"
 #include "world/block/blocks/BookshelfBlock.hpp"
 #include "world/block/blocks/CauldronBlock.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/EnchantingTableBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
+#include "world/block/blocks/FurnaceBlock.hpp"
 #include "world/block/blocks/LavaCauldronBlock.hpp"
 #include "world/block/blocks/LayeredCauldronBlock.hpp"
 #include "world/block/blocks/LiquidBlock.hpp"
@@ -36,6 +38,7 @@
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
 #include "world/block/blocks/SignBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/SmokerBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
@@ -77,6 +80,9 @@ Block* BuildingBlocks::WET_SPONGE = nullptr;
 
 // 功能方块
 Block* BuildingBlocks::CRAFTING_TABLE = nullptr;
+Block* BuildingBlocks::FURNACE = nullptr;
+Block* BuildingBlocks::BLAST_FURNACE = nullptr;
+Block* BuildingBlocks::SMOKER = nullptr;
 Block* BuildingBlocks::CAULDRON = nullptr;
 Block* BuildingBlocks::WATER_CAULDRON = nullptr;
 Block* BuildingBlocks::LAVA_CAULDRON = nullptr;
@@ -183,6 +189,28 @@ void registerBuildingBlocks()
     BuildingBlocks::CRAFTING_TABLE =
         &registry.registerBlock<blocks::CraftingTableBlock>(ResourceLocation("minecraft:crafting_table"),
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+
+    // 熔炉、高炉、烟熏炉
+    // 三者共用相同的方块属性：mapColor(STONE).instrument(BASEDRUM).requiresCorrectToolForDrops()
+    //   .strength(3.5F).lightLevel(litBlockEmission(13))
+    // 光照等级由 AbstractFurnaceBlock::getLightLevel() 根据 LIT 属性动态返回（13/0）。
+    // requiresTool + harvestTool(Pickaxe) 确保必须用镐挖掘才能掉落。
+    // 参考 MC 1.21.11: Blocks.FURNACE / BLAST_FURNACE / SMOKER
+    BlockProperties furnaceProps = BlockProperties(Material::ROCK)
+                                       .hardness(3.5f)
+                                       .resistance(3.5f)
+                                       .requiresTool()
+                                       .harvestTool(HarvestTool::Pickaxe)
+                                       .instrument(BlockProperties::Instrument::BaseDrum);
+
+    BuildingBlocks::FURNACE =
+        &registry.registerBlock<blocks::FurnaceBlock>(ResourceLocation("minecraft:furnace"), furnaceProps);
+
+    BuildingBlocks::BLAST_FURNACE =
+        &registry.registerBlock<blocks::BlastFurnaceBlock>(ResourceLocation("minecraft:blast_furnace"), furnaceProps);
+
+    BuildingBlocks::SMOKER =
+        &registry.registerBlock<blocks::SmokerBlock>(ResourceLocation("minecraft:smoker"), furnaceProps);
 
     // 炼药锅（空）
     BuildingBlocks::CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),

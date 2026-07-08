@@ -1276,15 +1276,19 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
     }
 
     // 如果不是爆炸伤害且游戏规则允许实体掉落，则掉落熔炉方块
+    // 参考 MC 1.16.5 FurnaceMinecartEntity.killMinecart()：
+    //   非爆炸销毁时额外掉落熔炉方块（MC 1.21.11 MinecartFurnace 已移除此行为，仅掉落 FURNACE_MINECART 物品）
     bool isExplosion = (source != nullptr && source->isExplosion());
     bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
 
     if (!isExplosion && doEntityDrops) {
-        // 掉落熔炉方块
-        // 通过 BlockItemRegistry 获取熔炉方块物品
-        // TODO: 当 FURNACE 方块注册到 VanillaBlocks 后使用 BlockItemRegistry
-        // 目前暂不实现熔炉方块掉落，因为 FURNACE 方块尚未完全实现
-        // const BlockItem* furnaceBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::FURNACE);
+        // 通过 BlockItemRegistry 获取熔炉方块物品并掉落
+        const BlockItem* furnaceBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::FURNACE);
+        if (furnaceBlockItem != nullptr) {
+            ItemStack stack(*furnaceBlockItem, 1);
+            math::Random& rng = worldPtr->getRandom();
+            ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+        }
     }
 }
 

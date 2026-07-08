@@ -68,6 +68,14 @@ BlockState AbstractFurnaceBlock::getStateForPlacement(BlockItemUseContext& conte
         .with(BlockStateProperties::LIT(), false);
 }
 
+// ========== 光照 ==========
+
+u8 AbstractFurnaceBlock::getLightLevel(const BlockState& state, IWorld* /*world*/, const BlockPos* /*pos*/) const
+{
+    // 对应 MC 1.21.11 litBlockEmission(13)：LIT=true 时发光 13，否则不发光
+    return state.get(BlockStateProperties::LIT()) ? 13 : 0;
+}
+
 // ========== 交互 ==========
 
 BlockActionResult AbstractFurnaceBlock::onBlockActivated(const BlockState& state,

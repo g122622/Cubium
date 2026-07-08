@@ -111,9 +111,9 @@ Entity (基类)
 
 **要点**：
 - 爆炸伤害 → 只掉落矿车
-- 非爆炸伤害 → 掉落矿车 + 熔炉方块
+- 非爆炸伤害 → 掉落矿车 + 熔炉方块（通过 `BlockItemRegistry` 查询 `VanillaBlocks::FURNACE` 对应的 BlockItem）
 
-参考 MC 1.16.5：`FurnaceMinecartEntity.killMinecart()`
+**与 MC 1.21.11 的差异**：MC 1.21.11 `MinecartFurnace` 不覆写 `destroy()`，只掉落 `FURNACE_MINECART` 物品，不再掉落熔炉方块。本项目保留 MC 1.16.5 `FurnaceMinecartEntity.killMinecart()` 的行为（非爆炸时额外掉落熔炉方块），此为有意偏差。
 
 ### 5. 漏斗矿车红石禁用
 
