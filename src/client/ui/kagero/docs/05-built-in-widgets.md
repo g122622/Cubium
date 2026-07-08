@@ -557,6 +557,35 @@ list->setOnSelectionChanged([](i32 oldIndex, i32 newIndex) {
 });
 ```
 
+### 数据绑定与刷新
+
+ListWidget 支持从 `tpl::binder::Value` 数组构建列表项，常用于模板 `bind:items` 绑定：
+
+```cpp
+// 设置 ItemFactory 自定义从 Value 创建列表项的方式
+list->setItemFactory([](const tpl::binder::Value& data, size_t index) {
+    return std::make_unique<TextListItem>(data["label"].toString());
+});
+
+// 从 Value 数组设置列表项（同时缓存数据源）
+tpl::binder::Value array = ...;  // Array 类型
+list->setItemsFromValue(array);
+
+// 之后若替换了 ItemFactory，可使用缓存的数据源重建列表项，
+// 无需重新提供 Value 数组
+list->setItemFactory(newFactory);
+list->refreshItems();
+```
+
+**数据源缓存语义：**
+- `setItemsFromValue(array)` 会将 `array` 缓存到内部 `m_dataSource`，后续可通过 `refreshItems()` 复用
+- `refreshItems()` 使用缓存的数据源重建列表项，并尽可能保留当前选中状态（单选索引重新校验范围，多选列表过滤越界索引）
+- 两个方法均触发 `m_onItemsChanged` 回调以保持观察者一致性
+- `hasCachedDataSource()` 可查询是否存在可重建的数据源
+- 若从未调用过 `setItemsFromValue`，`refreshItems()` 为空操作（仅更新内容高度）
+
+> **注意：** 模板绑定路径（`bind:items`）由 `TemplateScreen::tick()` → `updateBindings()` 每帧自动刷新，无需手动调用 `refreshItems()`。该方法主要用于直接 C++ 调用场景（如替换 ItemFactory 后强制重建）。
+
 ## 物品槽组件 (SlotWidget)
 
 显示物品槽的组件：
