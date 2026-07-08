@@ -23,9 +23,11 @@
 
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
+#include "../MultifaceBlock.hpp"
 
 namespace mc {
 
@@ -53,15 +55,45 @@ public:
 /**
  * @brief 幽匿脉络
  *
- * 可附着在方块表面的幽匿蔓延物，可被骨粉催生。
+ * 多面方块（继承 MultifaceBlock），可附着在方块六面，支持含水。
+ * 可被骨粉催生（spreadFromRandomFaceTowardRandomDirection）。
  */
-class SculkVeinBlock : public Block {
+class SculkVeinBlock : public MultifaceBlock {
 public:
-    explicit SculkVeinBlock(const BlockProperties& properties)
-        : Block(properties)
-    {}
+    explicit SculkVeinBlock(const BlockProperties& properties);
 
     ~SculkVeinBlock() override = default;
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
+
+protected:
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override { MC_UNUSED(container); }
+
+private:
+    /// 预计算 64 种面组合形状（2^6）。
+    std::array<CollisionShape, 64> m_shapes;
+    static size_t shapeIndex(const BlockState& state);
 };
 
 /**

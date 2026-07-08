@@ -23,10 +23,9 @@
 
 #pragma once
 
+#include "../MultifaceBlock.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
 #include <array>
 
 namespace mc {
@@ -40,7 +39,7 @@ namespace blocks {
  * 每个面是一个1像素厚的薄板，多个面激活时组合为联合形状。
  * 预计算64种形状组合（2^6 = NORTH|SOUTH|EAST|WEST|UP|DOWN）。
  */
-class GlowLichenBlock : public Block, public IWaterLoggable {
+class GlowLichenBlock : public MultifaceBlock {
 public:
     explicit GlowLichenBlock(const BlockProperties& properties);
 

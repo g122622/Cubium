@@ -396,6 +396,101 @@ i32 SculkCatalystBlock::getComparatorInputOverride(const BlockState& state, IWor
 }
 
 // ============================================================================
+// SculkVeinBlock
+// ============================================================================
+
+SculkVeinBlock::SculkVeinBlock(const BlockProperties& properties)
+    : MultifaceBlock(properties)
+{
+    buildMultifaceStateContainer();
+
+    // 预计算 64 种面组合形状（2^6，与 GlowLichenBlock 一致：每面 1 像素薄板）。
+    const CollisionShape northShape = CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 1);
+    const CollisionShape southShape = CollisionShape::fromPixelBox(0, 0, 15, 16, 16, 16);
+    const CollisionShape eastShape = CollisionShape::fromPixelBox(15, 0, 0, 16, 16, 16);
+    const CollisionShape westShape = CollisionShape::fromPixelBox(0, 0, 0, 1, 16, 16);
+    const CollisionShape upShape = CollisionShape::fromPixelBox(0, 15, 0, 16, 16, 16);
+    const CollisionShape downShape = CollisionShape::fromPixelBox(0, 0, 0, 16, 1, 16);
+
+    for (int down = 0; down <= 1; ++down) {
+        for (int up = 0; up <= 1; ++up) {
+            for (int north = 0; north <= 1; ++north) {
+                for (int south = 0; south <= 1; ++south) {
+                    for (int east = 0; east <= 1; ++east) {
+                        for (int west = 0; west <= 1; ++west) {
+                            const size_t idx = static_cast<size_t>(
+                                (down) | (up << 1) | (north << 2) | (south << 3) | (east << 4) | (west << 5));
+                            CollisionShape shape = CollisionShape::empty();
+                            if (north) shape = CollisionShape::combine(shape, northShape);
+                            if (south) shape = CollisionShape::combine(shape, southShape);
+                            if (east) shape = CollisionShape::combine(shape, eastShape);
+                            if (west) shape = CollisionShape::combine(shape, westShape);
+                            if (up) shape = CollisionShape::combine(shape, upShape);
+                            if (down) shape = CollisionShape::combine(shape, downShape);
+                            if (!north && !south && !east && !west && !up && !down) {
+                                shape = CollisionShape::fullBlock();
+                            }
+                            m_shapes[idx] = shape;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+size_t SculkVeinBlock::shapeIndex(const BlockState& state)
+{
+    size_t index = 0;
+    if (state.get(BlockStateProperties::DOWN())) index |= 1;
+    if (state.get(BlockStateProperties::UP())) index |= 2;
+    if (state.get(BlockStateProperties::NORTH())) index |= 4;
+    if (state.get(BlockStateProperties::SOUTH())) index |= 8;
+    if (state.get(BlockStateProperties::EAST())) index |= 16;
+    if (state.get(BlockStateProperties::WEST())) index |= 32;
+    return index;
+}
+
+BlockState SculkVeinBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    const Direction clickedFace = context.getClickedFace();
+    const BlockState* current = context.getWorld().getBlockState(context.placementPos());
+    const BlockState* placed =
+        MultifaceBlock::getStateForPlacement(current, context.getWorld(), context.placementPos(), clickedFace);
+    if (placed == nullptr) {
+        return defaultState();
+    }
+    return *placed;
+}
+
+BlockState SculkVeinBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
+    MC_UNUSED(facing);
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        waterloggable::scheduleWaterTick(world, currentPos);
+    }
+    return state;
+}
+
+const CollisionShape& SculkVeinBlock::getShape(const BlockState& state) const
+{
+    return m_shapes[shapeIndex(state)];
+}
+
+const fluid::FluidState* SculkVeinBlock::getFluidState(const BlockState& state) const
+{
+    return waterloggable::getWaterFluidState(state);
+}
+
+// ============================================================================
 // SculkShriekerBlock
 // ============================================================================
 

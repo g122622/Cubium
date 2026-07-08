@@ -28,6 +28,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/MultifaceBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/BasaltPillarFeature.hpp"
 #include "common/world/gen/feature/BlockBlobFeature.hpp"
@@ -60,6 +61,7 @@
 #include "common/world/gen/feature/cave/GeodeFeature.hpp"
 #include "common/world/gen/feature/cave/IcebergFeature.hpp"
 #include "common/world/gen/feature/cave/LargeDripstoneFeature.hpp"
+#include "common/world/gen/feature/cave/MultifaceGrowthFeature.hpp"
 #include "common/world/gen/feature/cave/PointedDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/RootSystemFeature.hpp"
 #include "common/world/gen/feature/cave/VegetationPatchFeature.hpp"
@@ -734,7 +736,106 @@ Result<void> parseGeodeProvider(
     return {};
 }
 
+/// 解析 multiface_growth 的 can_be_placed_on：方块标签("#xxx")或方块名数组（可混合）。
+Result<void> parseMultifaceCanBePlacedOn(const nlohmann::json& field, cave::MultifaceGrowthConfig& config)
+{
+    auto resolve = [&](const std::string& entry) -> Result<void> {
+        if (!entry.empty() && entry[0] == '#') {
+            const ResourceLocation tagLoc(entry.substr(1));
+            const BlockTag* tag = BlockTags::getTag(tagLoc);
+            if (tag == nullptr) {
+                return Error(ErrorCode::NotFound, "multiface_growth can_be_placed_on tag not found: " + entry);
+            }
+            config.canBePlacedOnTag = tag;
+            return {};
+        }
+        const ResourceLocation loc(entry);
+        const Block* block = Block::getBlock(loc);
+        if (block == nullptr) {
+            return Error(ErrorCode::NotFound, "multiface_growth can_be_placed_on block not found: " + entry);
+        }
+        config.canBePlacedOnBlocks.push_back(block);
+        return {};
+    };
+
+    if (field.is_string()) {
+        return resolve(field.get<std::string>());
+    }
+    if (field.is_array()) {
+        for (const auto& entry : field) {
+            if (!entry.is_string()) {
+                return Error(ErrorCode::InvalidData, "multiface_growth can_be_placed_on entry must be a string");
+            }
+            auto r = resolve(entry.get<std::string>());
+            if (!r.success()) {
+                return r.error();
+            }
+        }
+        return {};
+    }
+    return Error(ErrorCode::InvalidData, "multiface_growth can_be_placed_on must be a string or array");
+}
+
 } // namespace
+
+/**
+ * @brief multiface_growth 工厂：解析 MultifaceGrowthConfiguration 全字段并构造
+ *        ConfiguredMultifaceGrowthFeature。
+ *
+ * block（Block，必须是 MultifaceBlock）/search_range/can_place_on_{floor,ceiling,wall}/
+ * chance_of_spreading/can_be_placed_on（"#tag" 或方块名数组）。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createMultifaceGrowth(const nlohmann::json& configJson)
+{
+    if (!configJson.contains("block") || !configJson["block"].is_string()) {
+        return Error(ErrorCode::InvalidData, "multiface_growth config missing 'block'");
+    }
+    const ResourceLocation blockLoc(configJson["block"].get<std::string>());
+    Block* block = Block::getBlock(blockLoc);
+    if (block == nullptr) {
+        return Error(
+            ErrorCode::NotFound, "multiface_growth block not found: " + configJson["block"].get<std::string>());
+    }
+    const auto* multiface = dynamic_cast<const blocks::MultifaceBlock*>(block);
+    if (multiface == nullptr) {
+        return Error(ErrorCode::InvalidData,
+            "multiface_growth block must be a MultifaceBlock: " + configJson["block"].get<std::string>());
+    }
+
+    auto config = std::make_unique<cave::MultifaceGrowthConfig>();
+    config->placeBlock = multiface;
+    config->searchRange = configJson.value("search_range", 10);
+    config->chanceOfSpreading = configJson.value("chance_of_spreading", 0.5f);
+
+    if (configJson.contains("can_be_placed_on")) {
+        auto r = parseMultifaceCanBePlacedOn(configJson["can_be_placed_on"], *config);
+        if (!r.success()) {
+            return r.error();
+        }
+    }
+
+    // MC: 由 can_place_on_{ceiling,floor,wall} 派生 validDirections。
+    //   ceiling→UP, floor→DOWN, wall→HORIZONTAL(NORTH/SOUTH/WEST/EAST)。
+    const bool canCeiling = configJson.value("can_place_on_ceiling", false);
+    const bool canFloor = configJson.value("can_place_on_floor", false);
+    const bool canWall = configJson.value("can_place_on_wall", false);
+    config->validDirections.clear();
+    if (canCeiling) {
+        config->validDirections.push_back(Direction::Up);
+    }
+    if (canFloor) {
+        config->validDirections.push_back(Direction::Down);
+    }
+    if (canWall) {
+        // MC Direction.Plane.HORIZONTAL 顺序：NORTH, SOUTH, WEST, EAST。
+        config->validDirections.push_back(Direction::North);
+        config->validDirections.push_back(Direction::South);
+        config->validDirections.push_back(Direction::West);
+        config->validDirections.push_back(Direction::East);
+    }
+
+    return toBase(std::make_unique<cave::ConfiguredMultifaceGrowthFeature>(std::move(config), "multiface_growth"));
+}
 
 /**
  * @brief geode 工厂：解析 GeodeConfiguration 全字段并构造 ConfiguredGeodeFeature。
@@ -1785,9 +1886,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("fossil", createFossil);
     reg.registerType("geode", createGeode);
     reg.registerType("desert_well", createDesertWell);
-    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 52 种
+    reg.registerType("multiface_growth", createMultifaceGrowth);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 53 种
     // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
-    // 未注册的 type（fallen_tree/multiface_growth/sculk_patch）
+    // 未注册的 type（fallen_tree/sculk_patch）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 

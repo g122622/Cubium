@@ -694,6 +694,8 @@ add_library(mc_common STATIC
     world/block/blocks/RotatedPillarBlock.cpp
     world/block/blocks/DirectionalBlock.cpp
     world/block/blocks/HorizontalBlock.cpp
+    world/block/blocks/MultifaceBlock.cpp
+    world/block/blocks/MultifaceSpreader.cpp
     world/block/blocks/LiquidBlock.cpp
     world/block/blocks/CauldronBlock.cpp
     world/block/blocks/LayeredCauldronBlock.cpp
@@ -1193,6 +1195,7 @@ add_library(mc_common STATIC
     world/gen/feature/cave/IcebergFeature.cpp
     world/gen/feature/cave/FossilFeature.cpp
     world/gen/feature/cave/GeodeFeature.cpp
+    world/gen/feature/cave/MultifaceGrowthFeature.cpp
 
     # World - Generation - Feature - Ocean
     world/gen/feature/ocean/KelpFeature.cpp
