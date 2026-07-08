@@ -102,6 +102,43 @@ boss/
 - `WitherRandomFlyGoal` 在无敌阶段外以 0.001 概率随机选择飞行目标（避水避岩浆），因 WitherEntity 继承自 MobEntity 而非 CreatureEntity，不能复用 `WaterAvoidingRandomFlyingGoal`
 - 凋灵注册了 FLYING_SPEED 属性（0.6），供 FlyingMovementController 飞行时使用
 
+### 6.5 凋灵侧头独立朝向计算
+
+凋灵有三个独立的头，其中主头（index 0）由 `LookController` 控制朝向攻击目标，两侧头（index 0=左、1=右）需要独立追踪各自的 `HEAD_TARGET_2`/`HEAD_TARGET_3` 目标。对应 MC 1.21.11 `WitherBoss.aiStep()` 中 `j=0..1` 的循环：
+
+**数据流（服务端权威计算）**：
+
+```
+WitherEntity::aiStep()
+  ├─ _updateFlightBehavior()          // 1. 飞行行为（在 LivingEntity::aiStep 之前）
+  ├─ LivingEntity::aiStep()           // 2. 父类物理/AI
+  ├─ 备份 m_prevHeadXRot/YRot[2]      // 3. 备份上一 tick 侧头角度（供渲染插值）
+  └─ _updateSideHeadRotations()       // 4. 计算侧头朝向
+       ├─ j=0: 读 HEAD_TARGET_2 → 查目标实体
+       │    ├─ 有目标: dx/dy/dz → atan2 → targetYaw/Pitch → _rotLerp 逼近
+       │    │    pitch 限速 40°/tick, yaw 限速 10°/tick
+       │    └─ 无目标: yaw _rotLerp 朝 bodyRot(renderYawOffset) 逼近, pitch 不变
+       └─ j=1: 读 HEAD_TARGET_3 → 同上
+```
+
+**关键方法**：
+
+- `_rotLerp(current, target, maxStep)`：MC `rotlerp` 等价实现，委托 `math::clampedRotate`。计算 `wrapDegrees(target - current)` 后 `clamp` 到 `[-maxStep, maxStep]`，返回 `current + clamped`（结果**不**包装到 `[-180, 180)`）。
+- `_updateSideHeadRotations()`：镜像 MC `WitherBoss.aiStep()` 的 `j=0..1` 循环。头部位置通过 `_getHeadX/Y/Z(j+1)` 计算（使用 `renderYawOffset() + 180*(head-1)` 角度偏移，偏移 1.3 格）。目标实体 `getEyeY()` 在 Cubium 中等价于 `y() + eyeHeight()`。
+- `_getHeadX/Y/Z(head)`：`head<=0` 为主头（偏移 3.0），`head>=1` 为侧头（偏移 2.2，水平 1.3 格偏移）。`getScale()` 对凋灵恒为 1.0（无幼体凋灵）。
+
+**公共访问器**（供渲染层读取）：
+
+- `sideHeadPitch/Yaw(index)` / `prevSideHeadPitch/Yaw(index)`：返回当前/上一 tick 的侧头角度（度，不包装）。
+- `getHeadTarget1/2/3ParamId()` / `getInvulTimeParamId()`：静态方法，返回 `DataParameter` 的 ID，供 `ClientEntity::syncMetadataFromDataManager` 读取网络同步的 `HEAD_TARGET` 值。
+
+**客户端镜像**：由于 `ClientEntity` 不继承 `Entity`/`WitherEntity` 且 `WitherEntity::aiStep()` 不在客户端运行，客户端在 `ClientEntity::tickWitherSideHeads()` 中独立镜像此计算（详见 `src/client/world/entity/README.md`）。侧头角度本身**不**网络同步——只有 `HEAD_TARGET_1/2/3`（目标实体 ID）通过 `EntityMetadataPacket` 同步，客户端根据目标 ID 本地重算朝向。
+
+**与 MC 原版的一致性**：
+- yaw 限速 10°/tick、pitch 限速 40°/tick（MC `rotlerp(xRotHeads[j], f2, 40)` / `rotlerp(yRotHeads[j], f1, 10)`）
+- 无目标时 yaw 回正到 `yBodyRot`（Cubium `renderYawOffset()`），pitch 不变
+- 头部位置偏移 1.3 格、Y 偏移 2.2（侧头）/ 3.0（主头），与 MC `getHeadX/Y/Z` 一致
+
 ### 6. Boss 生命条显示范围
 
 `BossEntity::getHealthBarRange()` 定义了玩家可以看到 Boss 生命条的最大距离：

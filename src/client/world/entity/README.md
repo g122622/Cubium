@@ -32,7 +32,7 @@ ClientEntity
 ├── 实体状态：onGround, sneaking, swimming, riding, sleeping
 ├── 实体尺寸：width, height, eyeHeight（根据实体类型和姿态计算）
 ├── 元数据缓存：EntityDataManager, metadata bytes
-└── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体), fuseTimer(TNT矿车), eatAnimationTimer(羊等吃草动画)
+├── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体), fuseTimer(TNT矿车), eatAnimationTimer(羊等吃草动画), witherSideHeadYaw/Pitch[2]+m_witherHeadTargetId[3](凋灵侧头朝向)
 ```
 
 ## 上下游外部依赖关系
@@ -89,6 +89,7 @@ ClientEntity
      - `minecraft:cat` → 躺下/放松状态
      - `minecraft:wolf` → 兴趣状态（`wolfIsInterested`，由 `BegGoal` 驱动）、驯服状态（`wolfTamed`，由 `TameableEntity::DATA_TAMED_PARAM` 同步）、颈圈颜色（`wolfCollarColor`，由 `WolfEntity::DATA_COLLAR_COLOR_PARAM` 同步，默认红色）
      - `minecraft:skeleton` / `minecraft:stray` / `minecraft:bogged` → 拉弓状态（`isChargingBow`，由 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步，驱动 `SkeletonModel` 的 `BowAndArrow` 姿态）
+     - `minecraft:wither` / `wither` → 凋灵侧头目标实体 ID（`m_witherHeadTargetId[3]`，由 `WitherEntity::HEAD_TARGET_1/2/3` 同步，驱动 `tickWitherSideHeads` 客户端镜像计算）
 
 8. **狼兴趣状态（乞求食物）动画**：
    - 服务端 `WolfEntity::setInterested` 写入 `DATA_INTERESTED_PARAM`
@@ -127,3 +128,20 @@ ClientEntity
     - **推进**：`tick()` 末尾调用 `tickRabbitJump()`，对应 MC `Rabbit.aiStep()` 的跳跃推进逻辑——`m_rabbitJumpTicks != m_rabbitJumpDuration` 时递增，相等且 `m_rabbitJumpDuration != 0` 时归零。
     - **读取**：`rabbitJumpCompletion(partialTick)` 供 `EntityRendererManager` 计算 `jumpRotation = sin(completion * PI)`，最终通过 `RabbitModel::setJumpRotation` 影响 thigh/foot/arm 旋转角度。
     - **数据流**：服务端 `RabbitEntity::startJumping()` 广播 `RabbitJump(1)` → 网络包 → `onEntityStatus` 回调 → `setRabbitJumpStart()` → `tick()` 推进 → `rabbitJumpCompletion()` → 渲染器 → `RabbitModel`。与狼甩水动画（`ShakeOffWater(8)`）使用相同的"状态包触发 → 客户端镜像状态 → tick 推进 → 渲染器读取"模式。
+
+14. **凋灵侧头独立朝向客户端镜像**（参考 MC 1.21.11 `WitherBoss.aiStep()` 中 `j=0..1` 循环）：
+    - **背景**：`WitherEntity::aiStep()` 不在客户端运行（`ClientEntity` 是独立代理类，不继承 `Entity`/`WitherEntity`），但凋灵两侧头需要独立追踪 `HEAD_TARGET_2`/`HEAD_TARGET_3` 目标实体。因此客户端必须独立镜像 MC 的侧头朝向计算。
+    - **字段**：
+      - `m_witherHeadTargetId[3]`：三个头的目标实体 ID（index 0=主头 `HEAD_TARGET_1`，1=左头 `HEAD_TARGET_2`，2=右头 `HEAD_TARGET_3`）。
+      - `m_witherSideHeadYaw[2]` / `m_witherSideHeadPitch[2]`：侧头当前 tick 的偏航/俯仰角（度，不包装到 `[-180,180)`），index 0=左头、1=右头。
+      - `m_prevWitherSideHeadYaw[2]` / `m_prevWitherSideHeadPitch[2]`：上一 tick 的值，供渲染插值。
+    - **元数据同步**：`syncMetadataFromDataManager()` 中 `typeId == "minecraft:wither" || "wither"` 分支读取 `WitherEntity::getHeadTarget1/2/3ParamId()` 对应的 `DataParameter<i32>`，写入 `m_witherHeadTargetId[0/1/2]`。侧头角度本身**不**网络同步——只有目标实体 ID 同步。
+    - **推进**：`ClientEntityManager::tick()` 对 `typeId == "minecraft:wither" || "wither"` 的实体调用 `tickWitherSideHeads(entityLookup)`，其中 `entityLookup` 回调为 `[this](EntityId id) -> const ClientEntity* { return this->getEntity(id); }`。方法内部：
+      1. 备份 prev 值（对应 MC `aiStep()` 中 `super.aiStep()` 之后的 `yRotOHeads[i]=yRotHeads[i]`）
+      2. `j=0..1` 循环：读 `m_witherHeadTargetId[j+1]`，通过回调查找目标 `ClientEntity`
+         - 有目标：计算头部位置（`bodyRot + 180*j` 角度偏移，1.3 格水平偏移，2.2 格 Y 偏移），`dx/dy/dz` → `atan2` → `targetYaw/Pitch`，`math::clampedRotate` 逼近（yaw 限速 10°/tick，pitch 限速 40°/tick）
+         - 无目标（`targetId<=0` 或回调返回 `nullptr` 或回调为空）：yaw 朝 `bodyRot`（`m_yaw`）逼近 10°/tick，pitch 不变
+    - **读取**：`getInterpolatedWitherSideHeadYaw/Pitch(index, partialTick)` 供 `EntityRendererManager::_createModelForEntity` 调用。渲染器通过 `math::wrapDegrees(absoluteYaw - bodyYaw)` 将绝对 yaw 转为 body 相对值（对齐 MC `WitherBossModel.setupHeadRotation` 中 `yHeadRots[index] - bodyRot`），再调用 `WitherModel::setSideHeadRotations(yaw0, pitch0, yaw1, pitch1)` 注入。
+    - **数据流**：服务端 `WitherEntity::aiStep` → `_updateSideHeadRotations`（服务端权威计算）→ `HEAD_TARGET_1/2/3` 通过 `EntityMetadataPacket` 同步 → 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 → `m_witherHeadTargetId[3]` → `ClientEntityManager::tick` 调用 `tickWitherSideHeads` → 客户端独立镜像 MC 计算 → `getInterpolatedWitherSideHeadYaw/Pitch` → `EntityRendererManager` → `WitherModel::setSideHeadRotations` → `WitherModel::setAngles` 应用到 `m_heads[1]`/`m_heads[2]`。
+    - **与狼甩水/兔子跳跃模式的差异**：狼甩水/兔子跳跃通过 `EntityStatusPacket` 触发状态镜像 + `tick()` 推进；凋灵侧头通过 `EntityMetadataPacket` 同步目标 ID + `tickWitherSideHeads` 独立计算朝向。共同点是"服务端权威 → 客户端镜像状态 → tick 推进 → 渲染器读取"。
+

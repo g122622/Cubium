@@ -667,6 +667,8 @@ add_executable(mc_tests
     # PatrolGoal 测试
     common/entity/ai/goal/PatrolGoalTest.cpp
     common/entity/entities/boss/WitherEntityTest.cpp
+    # WitherEntity 侧头朝向计算测试（_updateSideHeadRotations/rotlerp 限速/无目标回退/bodyRot 插值）
+    common/entity/entities/boss/WitherEntitySideHeadTest.cpp
     common/entity/entities/boss/WardenEntityTest.cpp
     # EnderDragonEntity 末影龙测试
     entity/EnderDragonEntityTest.cpp
@@ -870,6 +872,8 @@ add_executable(mc_tests
     client/world/entity/ClientEntityTest.cpp
     # ClientEntity 骷髅拉弓状态元数据同步测试（skeleton/stray/bogged/wither_skeleton）
     client/world/entity/ClientEntitySkeletonSyncTest.cpp
+    # ClientEntity 凋灵侧头朝向客户端镜像计算测试（tickWitherSideHeads/rotlerp 限速/插值/元数据同步）
+    client/world/entity/ClientEntityWitherSideHeadTest.cpp
     client/entity/ClientEntityAnimationTest.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
@@ -897,6 +901,8 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelArmPoseTest.cpp
     # SkeletonModel 手臂姿态委托基类 BipedModel 测试（BowAndArrow/CrossbowCharge/CrossbowHold/isAggressive）
     client/renderer/entity/SkeletonModelArmPoseTest.cpp
+    # WitherModel 侧头朝向注入测试（setSideHeadRotations/setAngles 度→弧度/主头不受影响/两侧头独立）
+    client/renderer/entity/WitherModelSideHeadTest.cpp
     # EntityRendererManager::_applySkeletonArmPose 契约测试（isChargingBow → BowAndArrow/Empty）
     client/renderer/entity/ApplySkeletonArmPoseTest.cpp
     # BipedModel 鞘翅飞行速度因子测试
@@ -2022,6 +2028,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpiderModel.cpp
         # SkeletonModel 手臂姿态委托基类 BipedModel 测试依赖
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SkeletonModel.cpp
+        # WitherModel 侧头朝向注入测试依赖（SpecialMonsterModels 包含 WitherModel）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpecialMonsterModels.cpp
         # PlayerModel 手臂渲染测试
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
         # PlayerArmPoseResolver 手臂姿态解析器（测试依赖）

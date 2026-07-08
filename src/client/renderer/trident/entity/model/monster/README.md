@@ -122,8 +122,11 @@ layer/
 - `EndermanModel.setCarrying()/setAttacking()` - 携带方块/尖叫状态
 - `CreeperModel` 的充能状态通过 `renderArmor()` 单独渲染
 - `GuardianModel.setSpikeAnimation()/setTailAnimation()` - 尖刺和尾巴动画
+- `WitherModel.setSideHeadRotations(yaw0, pitch0, yaw1, pitch1)` - 注入两侧头独立朝向（度）。`yaw0/pitch0` 为左头（`m_heads[1]`），`yaw1/pitch1` 为右头（`m_heads[2]`）。调用后 `m_hasSideHeadRotations=true`，`setAngles()` 中侧头使用注入值（度→弧度转换）而非复制主头。主头（`m_heads[0]`）始终由 `netHeadYaw`/`headPitch` 参数驱动，不受此方法影响。对应 MC 1.21.11 `WitherBossModel.setupHeadRotation(state, head, index)`：`head.yRot = (yHeadRots[index] - bodyRot) * PI/180`、`head.xRot = xHeadRots[index] * PI/180`。调用时机：`setSideHeadRotations` 在 `setAngles` **之前**调用（仅存储），`setAngles` 时应用。未调用时回退到复制主头旋转，保持视觉一致。
 
 **骷髅 ArmPose 管道**：`SkeletonModel` 不再自定义 `ArmPose` 枚举与 `m_rightArmPose/m_leftArmPose` 字段（避免遮蔽基类），改用 `using ArmPose = model::ArmPose;` 复用 `BipedModel::ArmPose`。弩姿态（`CrossbowCharge`/`CrossbowHold`）由基类 `handleCrossbowCharge/handleCrossbowHold` 完整处理，子类无需重复实现。`EntityRendererManager::_applySkeletonArmPose` 根据 `ClientEntity::isChargingBow()`（通过 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步）设置右臂 `BowAndArrow` 姿态。
+
+**凋灵侧头朝向管道**：`EntityRendererManager::_createModelForEntity` 中对凋灵分支读取 `ClientEntity::getInterpolatedWitherSideHeadYaw/Pitch(index, partialTick)`，通过 `math::wrapDegrees(absoluteYaw - bodyYaw)` 将绝对 yaw 转为 body 相对值（对齐 MC `yHeadRots[index] - bodyRot`），再调用 `WitherModel::setSideHeadRotations()` 注入。详见 `src/client/world/entity/README.md` 的凋灵侧头朝向章节。
 
 ### 3. 变体模型复用
 
