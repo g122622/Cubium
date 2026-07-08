@@ -43,6 +43,7 @@ class ProjectileEntity;
 
 namespace test {
 class BreezeEntityTestAccessor; // 测试访问器，声明为 friend 以访问 protected 成员
+class BreezeShootTestAccessor;  // shootWindCharge 测试访问器，声明为 friend 以访问 private 成员
 } // namespace test
 
 /**
@@ -106,6 +107,8 @@ public:
     friend class entity::ai::goal::BreezeShootWhenStuckGoal;
     // 测试访问器，用于单元测试访问 protected 成员（无需修改生产代码可见性）
     friend class test::BreezeEntityTestAccessor;
+    // shootWindCharge 单元测试访问器（访问 private shootWindCharge）
+    friend class test::BreezeShootTestAccessor;
     /// 基础生命值
     static constexpr f32 MAX_HEALTH = 30.0f;
 

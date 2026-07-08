@@ -645,6 +645,8 @@ add_executable(mc_tests
     entity/BlazeHoverBehaviorTest.cpp
     # 旋风人动画状态机测试（Pose 转换、resetTask 守卫、AnimationState 访问器）
     entity/BreezeEntityAnimationTest.cpp
+    # BreezeEntity::shootWindCharge 目标 Y 坐标计算测试（partialY 0.3/0.8、发射点 Y、冷却与边界）
+    entity/BreezeShootWindChargeTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
     # 风弹实体风爆效果测试（玩家击退收集、旁观/创造飞行过滤、broadcastExplosion 调用）

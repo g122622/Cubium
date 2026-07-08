@@ -235,6 +235,52 @@ public:
     [[nodiscard]] f32 z() const { return m_position.z; }
 
     /**
+     * @brief 获取实体高度按比例偏移后的 Y 坐标
+     *
+     * 对应 MC 1.21.11 Entity.getY(double partialY)。
+     * 计算公式：position.y + height * partialY。
+     *
+     * 常用 partialY 值（参考 MC 原版调用约定）：
+     * - 0.0：脚部 Y（等价于 y()）
+     * - 1/3：胸部高度，用于弓箭/三叉戟/弩瞄准（AbstractSkeleton/Drowned/Illusioner/CrossbowItem）
+     * - 0.5：身体几何中心，用于粒子/瞄准点（Blaze/Ghast/Guardian/EnderMan/Phantom）
+     * - 0.8：接近头部，用于骑乘时瞄准（Breeze Shoot）或钓鱼钩吸附位置（FishingHook）
+     * - 1.0：实体头顶（MushroomCow 掉落物、AbstractBoat 水位线）
+     *
+     * 注意：与 getEyeY() 不同——getEyeY 使用 eyeHeight 偏移，本方法使用 height 偏移，
+     * 两者仅在实体姿态/尺寸固定时通过 eyeHeight/height 比例间接关联。
+     *
+     * @param partialY 高度比例（0.0 = 脚部，1.0 = 头顶）
+     * @return 偏移后的 Y 坐标（f64 精度，与 MC 原版一致）
+     */
+    [[nodiscard]] f64 getY(f64 partialY) const
+    {
+        return static_cast<f64>(m_position.y) + static_cast<f64>(height()) * partialY;
+    }
+
+    /**
+     * @brief 获取眼睛高度对应的 Y 坐标
+     *
+     * 对应 MC 1.21.11 Entity.getEyeY()，计算公式：position.y + eyeHeight。
+     * 用于瞄准、视线碰撞、粒子发射等需要"眼睛位置"的场景。
+     *
+     * 项目内多处已有 `y() + eyeHeight()` 内联代码，本方法统一封装以提升复用性。
+     *
+     * @return 眼睛 Y 坐标（f64 精度）
+     */
+    [[nodiscard]] f64 getEyeY() const { return static_cast<f64>(m_position.y) + static_cast<f64>(eyeHeight()); }
+
+    /**
+     * @brief 获取实体碰撞盒内随机高度的 Y 坐标
+     *
+     * 对应 MC 1.21.11 Entity.getRandomY()，使用持久化随机数生成器在 [0, 1) 区间取高度比例。
+     * 用于粒子等需要"实体表面随机点"的场景。
+     *
+     * @return 随机 Y 坐标（f64 精度）
+     */
+    [[nodiscard]] f64 getRandomY() { return getY(static_cast<f64>(m_random.nextFloat())); }
+
+    /**
      * @brief 获取实体所站立的方块位置（对应 MC Entity.getOnPos()）
      *
      * 返回实体脚下方块的位置，即 Y 坐标向下取整后再减1。

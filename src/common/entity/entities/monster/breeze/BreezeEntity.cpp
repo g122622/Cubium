@@ -285,22 +285,22 @@ void BreezeEntity::shootWindCharge()
     }
 
     // 计算从旋风人到目标的方向向量
-    // 旋风人发射位置：身体中心偏上0.3格
+    // 旋风人发射位置：身体中心偏上0.3格（对应 MC 1.21.11 Breeze.getFiringYPosition()）
     const f32 firingY = y() + height() * 0.5f + 0.3f;
     const Vector3 firingPos(x(), firingY, z());
-    const Vector3 targetPos = m_attackTarget->position();
 
     // 方向向量
-    const f32 dx = targetPos.x - firingPos.x;
-    // TODO(breeze_target_y): 目标 Y 坐标计算与 MC 1.21.11 原版存在偏差。
-    // MC 原版 Shoot.tick(): livingentity.getY(livingentity.isPassenger() ? 0.8 : 0.3)
-    //   即 targetY + 0.3 * targetHeight（非骑乘）或 targetY + 0.8 * targetHeight（骑乘）。
-    // 当前实现使用 targetY + 0.5 * targetHeight（目标身体中心），未区分骑乘状态。
-    // 这会导致风弹瞄准点偏高（0.5 > 0.3），轻微影响命中率。
-    // 修复需要：1) 引入 Entity::getY(partialY) 方法或等价计算；
-    //          2) 根据 m_attackTarget->isPassenger() 选择 0.3 或 0.8 比例。
-    const f32 dy = targetPos.y + m_attackTarget->height() * 0.5f - firingPos.y;
-    const f32 dz = targetPos.z - firingPos.z;
+    // 对齐 MC 1.21.11 Shoot.tick()：
+    //   d1 = livingentity.getY(livingentity.isPassenger() ? 0.8 : 0.3) - breeze.getFiringYPosition();
+    // 其中 Entity.getY(partialY) = position.y + height * partialY。
+    // - 非骑乘目标：partialY = 0.3（瞄准躯干下部），补偿风弹无重力补偿的抛物线下坠
+    // - 骑乘目标：partialY = 0.8（瞄准接近头部），避开载具碰撞盒遮挡
+    // 项目中 MC 的 isPassenger() 对应 isRiding()（本实体正在骑乘其他实体）。
+    const f64 targetPartialY = m_attackTarget->isRiding() ? 0.8 : 0.3;
+    const f64 targetY = m_attackTarget->getY(targetPartialY);
+    const f32 dx = static_cast<f32>(static_cast<f64>(m_attackTarget->x()) - static_cast<f64>(firingPos.x));
+    const f32 dy = static_cast<f32>(targetY - static_cast<f64>(firingPos.y));
+    const f32 dz = static_cast<f32>(static_cast<f64>(m_attackTarget->z()) - static_cast<f64>(firingPos.z));
 
     // 创建风弹弹射物实体（通过发射者类型自动判定为旋风人风弹）
     auto entity = std::make_unique<entity::WindChargeEntity>(EntityId(0));
