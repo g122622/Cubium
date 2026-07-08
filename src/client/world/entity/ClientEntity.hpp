@@ -1040,6 +1040,30 @@ public:
      */
     void setWolfIsAngry(bool angry) { m_wolfIsAngry = angry; }
 
+    // ========== 骷髅拉弓状态 ==========
+
+    /**
+     * @brief 获取骷髅是否正在拉弓
+     *
+     * 通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM。
+     * 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态写入。
+     * EntityRendererManager 在 skeleton 模型分支读取此状态，
+     * 驱动 SkeletonModel 的 ArmPose::BowAndArrow 姿态（拉弓动画）。
+     *
+     * 覆盖类型：普通骷髅（skeleton）、流浪者（stray）、沼骸骨（bogged）。
+     * 凋灵骷髅不持弓，不会注册此参数，hasParam 返回 false。
+     */
+    [[nodiscard]] bool isChargingBow() const { return m_chargingBow; }
+
+    /**
+     * @brief 设置骷髅是否正在拉弓
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param charging 是否正在拉弓
+     */
+    void setChargingBow(bool charging) { m_chargingBow = charging; }
+
     // ========== 兔子跳跃动画状态 ==========
 
     /**
@@ -1242,6 +1266,9 @@ private:
     f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
     f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）
     f32 m_wolfInterestedAngleO = 0.0f; ///< 上一 tick 的乞求角度（用于插值）
+
+    // 骷髅拉弓状态（通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM）
+    bool m_chargingBow = false; ///< 是否正在拉弓（驱动 SkeletonModel 的 BowAndArrow 姿态）
 
     // 兔子跳跃动画状态（对应 MC 1.21.11 Rabbit.jumpTicks / jumpDuration）
     // 收到 RabbitJump(1) 状态包时启动；由 tickRabbitJump() 在 ClientEntity::tick() 中推进

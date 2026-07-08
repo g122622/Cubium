@@ -56,6 +56,9 @@ class BipedModel;
 namespace player {
 class PlayerModel;
 } // namespace player
+namespace monster {
+class SkeletonModel;
+} // namespace monster
 } // namespace mc::client::renderer::entity::model
 
 namespace mc::client::renderer::entity {
@@ -436,6 +439,33 @@ private:
      */
     void _applyPlayerCrossbowState(
         model::player::PlayerModel& playerModel, ClientEntity& entity, const core::AnimationContext& context);
+
+    /**
+     * @brief 为骷髅模型设置手臂姿态
+     *
+     * 在 _createModelForEntity 骷髅分支中调用。从 ClientEntity 读取 isChargingBow()
+     * （通过 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM 同步），设置 SkeletonModel
+     * 的右臂 ArmPose 为 BowAndArrow，触发 BipedModel::handleRightArmPose 的拉弓动画。
+     *
+     * 对应 MC 1.21.11 AbstractSkeletonRenderer.getArmPose：
+     *   当 isAggressive && mainHandItem.is(Items.BOW) 时返回 BOW_AND_ARROW。
+     * 本项目用 chargingBow 布尔字段替代 isAggressive + isHoldingBow 组合判断，
+     * 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态设置。
+     *
+     * 覆盖类型：普通骷髅（skeleton）、流浪者（stray）、沼骸骨（bogged）。
+     * 凋灵骷髅（wither_skeleton）不持弓，走 MeleeAttackGoal，不进入此分支。
+     *
+     * TODO: 弩姿态（CrossbowCharge/CrossbowHold）需要 use-item 状态网络同步
+     *       （参考 _applyPlayerCrossbowState 的 TODO 注释），待 ClientEntity 增加
+     *       isUsingItem/getActiveItem/getItemInUseCount 后在此处补齐。
+     *
+     * @param skeletonModel 已通过 setAngles 设置基础动画的骷髅模型
+     * @param entity 客户端实体（提供 isChargingBow）
+     * @param context 动画上下文（提供 limbSwing 等用于重新调用 setAngles）
+     */
+    void _applySkeletonArmPose(model::monster::SkeletonModel& skeletonModel,
+        const ClientEntity& entity,
+        const core::AnimationContext& context);
 
     /**
      * @brief 为 BipedModel 派生模型推送鞘翅飞行状态与速度因子

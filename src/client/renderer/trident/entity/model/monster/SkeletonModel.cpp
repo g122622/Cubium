@@ -72,17 +72,26 @@ void SkeletonModel::setupParts()
 void SkeletonModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 调用基类设置基础动画
+    // 调用基类设置基础动画，包括所有 ArmPose（BowAndArrow/CrossbowCharge/CrossbowHold/
+    // ThrowSpear/Spyglass/Brush/Item/Block/Empty）的双手协调处理。
+    // 基类 handleRightArmPose/handleLeftArmPose 会读取 m_rightArmPose/m_leftArmPose
+    // 字段（由 setRightArmPose/setLeftArmPose 写入），无需子类重复实现。
     BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 空手攻击动画 - 当攻击中且主手不是弓时
-    // 注意：isAggressive 和 swingProgress 需要从实体获取
-    // 这里使用 m_isAggressive 和 m_swingProgress 成员变量
-
-    if (m_isAggressive && m_rightArmPose != ArmPose::BowAndArrow) {
-        f32 swingProgress = m_swingProgress;
-        f32 f = static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE));
-        f32 f1 =
+    // 空手攻击动画 - 对应 MC 1.21.11 SkeletonModel.setupAnim 中
+    // if (state.isAggressive && !state.isHoldingBow) 分支。
+    // 当骷髅攻击中且未持弓拉弓时，覆盖基类设置的手臂角度，呈现空手挥击动画。
+    // 注意：当 ArmPose 为 BowAndArrow 时保留基类拉弓姿态，不进入此分支。
+    // 当 ArmPose 为 CrossbowCharge/CrossbowHold 时也保留基类弩姿态。
+    // TODO: isAggressive 状态当前未由渲染管线推送（EntityRendererManager 未调用
+    //       setAggressive），因为骷髅攻击状态尚未通过 metadata 同步到 ClientEntity。
+    //       待网络同步完成后，应在 EntityRendererManager 的 skeleton 分支调用
+    //       setAggressive(entity.isAggressive())。
+    if (m_isAggressive && m_rightArmPose != ArmPose::BowAndArrow && m_rightArmPose != ArmPose::CrossbowCharge &&
+        m_rightArmPose != ArmPose::CrossbowHold) {
+        const f32 swingProgress = m_swingProgress;
+        const f32 f = static_cast<f32>(std::sin(swingProgress * mc::math::PI_DOUBLE));
+        const f32 f1 =
             static_cast<f32>(std::sin((1.0 - (1.0 - swingProgress) * (1.0 - swingProgress)) * mc::math::PI_DOUBLE));
 
         if (m_rightArm && m_leftArm) {
@@ -95,7 +104,7 @@ void SkeletonModel::setAngles(
             m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
             m_leftArm->setRotateAngleX(m_leftArm->rotateAngleX() - (f * 1.2f - f1 * 0.4f));
 
-            // 手臂抖动效果 (ModelHelper.func_239101_a_)
+            // 手臂抖动效果 (AnimationUtils.bobArms)
             m_rightArm->setRotateAngleZ(
                 m_rightArm->rotateAngleZ() + static_cast<f32>(std::cos(ageInTicks * 0.09) * 0.05 + 0.05));
             m_leftArm->setRotateAngleZ(
@@ -105,34 +114,6 @@ void SkeletonModel::setAngles(
             m_leftArm->setRotateAngleX(
                 m_leftArm->rotateAngleX() - static_cast<f32>(std::sin(ageInTicks * 0.067) * 0.05));
         }
-    }
-
-    // 弓箭姿态处理
-    switch (m_rightArmPose) {
-        case ArmPose::BowAndArrow:
-            // 拉弓姿态
-            // 使用头部的Y旋转角度
-            if (m_rightArm && m_leftArm && m_head) {
-                m_rightArm->setRotateAngleY(-0.1f + m_head->rotateAngleY());
-                m_leftArm->setRotateAngleY(0.1f + m_head->rotateAngleY() + 0.4f);
-                m_rightArm->setRotateAngleX(
-                    static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * mc::math::DEG_TO_RAD));
-                m_leftArm->setRotateAngleX(
-                    static_cast<f32>(-mc::math::PI_DOUBLE / 2.0 + headPitch * mc::math::DEG_TO_RAD));
-            }
-            break;
-        case ArmPose::ThrowSpear:
-            // 投掷三叉戟姿态
-            if (m_rightArm) {
-                m_rightArm->setRotateAngleX(m_rightArm->rotateAngleX() * 0.5f - static_cast<f32>(mc::math::PI_DOUBLE));
-            }
-            break;
-        case ArmPose::CrossbowCharge:
-        case ArmPose::CrossbowHold:
-            // TODO: 弩姿态需要额外实现
-            break;
-        default:
-            break;
     }
 }
 

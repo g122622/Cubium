@@ -33,6 +33,7 @@
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
+#include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
@@ -1117,6 +1118,20 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             }
         }
 
+        // 骷髅拉弓手臂姿态
+        // 第三人称骷髅走 GPU 管线路径，需要在此根据 ClientEntity::isChargingBow()
+        // （通过 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM 同步）设置
+        // SkeletonModel 的右臂 ArmPose 为 BowAndArrow，触发 BipedModel::handleRightArmPose
+        // 的拉弓动画。覆盖普通骷髅（skeleton）、流浪者（stray）和沼骸骨（bogged）。
+        // 凋灵骷髅（wither_skeleton）不持弓，不进入此分支。
+        if (normalizedId == "skeleton" || normalizedId == "minecraft:skeleton" || normalizedId == "stray" ||
+            normalizedId == "minecraft:stray" || normalizedId == "bogged" || normalizedId == "minecraft:bogged") {
+            auto* skeletonModel = dynamic_cast<model::monster::SkeletonModel*>(model.get());
+            if (skeletonModel != nullptr) {
+                _applySkeletonArmPose(*skeletonModel, entity, context);
+            }
+        }
+
         return model;
     }
 
@@ -1186,6 +1201,45 @@ void EntityRendererManager::_applyPlayerCrossbowState(
     // handleLeftArmPose 中的 CrossbowCharge/CrossbowHold 分支不会触发。此处
     // 重新 setAngles 使弩动画在 GPU 管线路径下真正生效，避免形成孤岛代码。
     playerModel.setAngles(context.limbSwing,
+        context.limbSwingAmount,
+        context.ageInTicks,
+        context.netHeadYaw,
+        context.headPitch,
+        context.scale * 16.0);
+}
+
+void EntityRendererManager::_applySkeletonArmPose(
+    model::monster::SkeletonModel& skeletonModel, const ClientEntity& entity, const core::AnimationContext& context)
+{
+    // 对应 MC 1.21.11 AbstractSkeletonRenderer.getArmPose：
+    //   当 isAggressive && mainHandItem.is(Items.BOW) 时返回 BOW_AND_ARROW。
+    // 本项目用 chargingBow 布尔字段替代 isAggressive + isHoldingBow 组合判断，
+    // 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态设置，
+    // 通过 DATA_CHARGING_BOW_PARAM 同步到 ClientEntity::isChargingBow()。
+    //
+    // 骷髅默认右撇子（MC 原版骷髅不区分主手，统一用右手持弓拉弓），
+    // 故仅设置右臂 ArmPose。BipedModel::handleRightArmPose 的 BowAndArrow 分支
+    // 会同时设置右臂和左臂的角度（双手拉弓协调），无需额外设置左臂。
+    using model::ArmPose;
+    if (entity.isChargingBow()) {
+        skeletonModel.setRightArmPose(ArmPose::BowAndArrow);
+        // 左臂保持 Empty，由 BipedModel::handleRightArmPose 的 BowAndArrow 分支
+        // 统一设置双手角度（右臂 Y=-0.1+headYaw，左臂 Y=0.1+headYaw+0.4）。
+    } else {
+        skeletonModel.setRightArmPose(ArmPose::Empty);
+    }
+
+    // TODO: 弩姿态（CrossbowCharge/CrossbowHold）需要 use-item 状态网络同步
+    // （参考 _applyPlayerCrossbowState 的 TODO 注释）。待 ClientEntity 增加
+    // isUsingItem/getActiveItem/getItemInUseCount 后，在此处根据持弩状态设置
+    // CrossbowCharge/CrossbowHold 姿态，并调用 setCrossbowChargeTicks/
+    // setMaxCrossbowChargeDuration 推送弩装填进度。
+
+    // 关键：重新调用 setAngles 让 ArmPose 通过 handleRightArmPose/handleLeftArmPose
+    // 生效。_createModelForEntity 在创建模型后已调用过一次 setAngles，但那时
+    // ArmPose 尚未设置，handleRightArmPose 的 BowAndArrow 分支不会触发。此处
+    // 重新 setAngles 使拉弓动画在 GPU 管线路径下真正生效，避免形成孤岛代码。
+    skeletonModel.setAngles(context.limbSwing,
         context.limbSwingAmount,
         context.ageInTicks,
         context.netHeadYaw,

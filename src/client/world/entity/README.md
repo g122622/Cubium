@@ -88,6 +88,7 @@ ClientEntity
      - `minecraft:ocelot` → 信任状态（`isTrusting`）
      - `minecraft:cat` → 躺下/放松状态
      - `minecraft:wolf` → 兴趣状态（`wolfIsInterested`，由 `BegGoal` 驱动）、驯服状态（`wolfTamed`，由 `TameableEntity::DATA_TAMED_PARAM` 同步）、颈圈颜色（`wolfCollarColor`，由 `WolfEntity::DATA_COLLAR_COLOR_PARAM` 同步，默认红色）
+     - `minecraft:skeleton` / `minecraft:stray` / `minecraft:bogged` → 拉弓状态（`isChargingBow`，由 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步，驱动 `SkeletonModel` 的 `BowAndArrow` 姿态）
 
 8. **狼兴趣状态（乞求食物）动画**：
    - 服务端 `WolfEntity::setInterested` 写入 `DATA_INTERESTED_PARAM`

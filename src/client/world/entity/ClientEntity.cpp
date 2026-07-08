@@ -28,6 +28,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
@@ -331,6 +332,22 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getAngerTimeParamId()); value != nullptr) {
                 const i32 angerTime = value->get<i32>();
                 setWolfIsAngry(angerTime > 0);
+            }
+        }
+    }
+
+    // 骷髅拉弓状态同步（普通骷髅 skeleton、流浪者 stray、沼骸骨 bogged）
+    // 通过 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM 同步。
+    // 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态写入，
+    // 客户端读取后驱动 SkeletonModel 的 BowAndArrow 姿态（拉弓动画）。
+    // 凋灵骷髅不持弓，不注册此参数，hasParam 返回 false，分支自然跳过。
+    if (m_typeId == "minecraft:skeleton" || m_typeId == "skeleton" || m_typeId == "minecraft:stray" ||
+        m_typeId == "stray" || m_typeId == "minecraft:bogged" || m_typeId == "bogged") {
+        if (m_dataManager.hasParam(::mc::AbstractSkeletonEntity::getChargingBowParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::AbstractSkeletonEntity::getChargingBowParamId());
+                value != nullptr) {
+                const bool charging = value->get<bool>();
+                setChargingBow(charging);
             }
         }
     }

@@ -118,10 +118,12 @@ layer/
 
 渲染前必须正确设置模型状态，否则动画不正确：
 - `ZombieModel.setAggressive()` - 攻击状态（影响手臂动画）
-- `SkeletonModel.setRightArmPose()/setLeftArmPose()` - 手臂姿态（拉弓、持弩等）
+- `SkeletonModel.setRightArmPose()/setLeftArmPose()` - 手臂姿态（拉弓、持弩等），直接转发到基类 `BipedModel::m_rightArmPose/m_leftArmPose` 字段，由 `BipedModel::handleRightArmPose/handleLeftArmPose` 消费
 - `EndermanModel.setCarrying()/setAttacking()` - 携带方块/尖叫状态
 - `CreeperModel` 的充能状态通过 `renderArmor()` 单独渲染
 - `GuardianModel.setSpikeAnimation()/setTailAnimation()` - 尖刺和尾巴动画
+
+**骷髅 ArmPose 管道**：`SkeletonModel` 不再自定义 `ArmPose` 枚举与 `m_rightArmPose/m_leftArmPose` 字段（避免遮蔽基类），改用 `using ArmPose = model::ArmPose;` 复用 `BipedModel::ArmPose`。弩姿态（`CrossbowCharge`/`CrossbowHold`）由基类 `handleCrossbowCharge/handleCrossbowHold` 完整处理，子类无需重复实现。`EntityRendererManager::_applySkeletonArmPose` 根据 `ClientEntity::isChargingBow()`（通过 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步）设置右臂 `BowAndArrow` 姿态。
 
 ### 3. 变体模型复用
 

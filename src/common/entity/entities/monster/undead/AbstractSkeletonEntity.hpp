@@ -25,6 +25,7 @@
 
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/item/core/ItemStack.hpp"
 
 namespace mc {
@@ -91,8 +92,28 @@ public:
 
     // ========== 弓箭状态管理 ==========
 
-    [[nodiscard]] bool isChargingBow() const { return m_chargingBow; }
-    void setChargingBow(bool charging) { m_chargingBow = charging; }
+    /**
+     * @brief 获取是否正在拉弓
+     *
+     * 通过 DataParameter 同步到客户端，由 ClientEntity::syncMetadataFromDataManager
+     * 读取并写入 ClientEntity::m_chargingBow 镜像字段。
+     * 渲染层据此设置 SkeletonModel 的 ArmPose::BowAndArrow，触发拉弓动画。
+     */
+    [[nodiscard]] bool isChargingBow() const { return m_dataManager.get<bool>(DATA_CHARGING_BOW_PARAM); }
+
+    /**
+     * @brief 设置拉弓状态
+     *
+     * 写入 DataParameter，由 EntityTracker 自动广播到所有观察者客户端。
+     * 由 AbstractSkeletonEntity::tick 根据 m_attackTimer 推进设置，
+     * 由 attackEntityWithRangedAttack 在射击时重置为 false。
+     */
+    void setChargingBow(bool charging) { m_dataManager.set(DATA_CHARGING_BOW_PARAM, charging); }
+
+    /**
+     * @brief 获取拉弓状态参数 ID（供客户端 syncMetadataFromDataManager 使用）
+     */
+    [[nodiscard]] static u16 getChargingBowParamId() { return DATA_CHARGING_BOW_PARAM.id(); }
 
     [[nodiscard]] i32 getAttackTimer() const { return m_attackTimer; }
     void setAttackTimer(i32 timer) { m_attackTimer = timer; }
@@ -185,6 +206,15 @@ protected:
     void registerAttributes() override;
 
     /**
+     * @brief 注册同步数据参数
+     *
+     * 重写 MonsterEntity::registerData，注册 DATA_CHARGING_BOW_PARAM。
+     * 由于 C++ 虚函数在基类构造函数中不会派发到派生类，
+     * 派生类构造函数必须显式调用 registerData()，参考 WolfEntity 模式。
+     */
+    void registerData() override;
+
+    /**
      * @brief 装备变更回调
      *
      * 当装备槽位发生变化时，重新评估战斗目标（远程/近战切换）。
@@ -194,9 +224,19 @@ protected:
 
     // ========== 弓箭状态 ==========
 
-    bool m_chargingBow = false;
     i32 m_attackTimer = 0;
     i32 m_attackCooldown = 0;
+
+    /**
+     * @brief 拉弓状态同步参数
+     *
+     * 对应 MC 1.21.11 AbstractSkeleton.DATA_CHARGING_BOW（虽原版骷髅走 isAggressive
+     * + isHoldingBow 渲染状态，本项目简化为单独的 chargingBow 布尔字段）。
+     * 由 setChargingBow 写入，由 EntityTracker 自动广播到所有观察者客户端。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用
+     * ClientEntity::setChargingBow，驱动 SkeletonModel 的 BowAndArrow 姿态。
+     */
+    static entity::DataParameter<bool> DATA_CHARGING_BOW_PARAM;
 
     // ========== 战斗目标 ==========
     // 注意：战斗目标的唯一所有权归 GoalSelector 所有，不再使用 unique_ptr 成员存储。
