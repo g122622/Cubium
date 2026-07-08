@@ -23,7 +23,9 @@
 
 #include "BlockStateProviderParser.hpp"
 
+#include "BlockPredicateParser.hpp"
 #include "BlockStateParser.hpp"
+#include "common/world/IWorld.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -39,7 +41,7 @@ namespace parser {
 
 const BlockState* BlockStateProviderHandle::asSingle() const noexcept
 {
-    // 仅 Simple 情形可无随机源取单一状态；Weighted 情形调用方须自行持有 weighted 提供者。
+    // 仅 Simple 情形可无随机源取单一状态；Weighted/RuleBased 调用方须自行采样。
     return kind == Kind::Simple ? simple : nullptr;
 }
 
@@ -107,9 +109,75 @@ Result<BlockStateProviderHandle> parse(const nlohmann::json& providerObj)
         return handle;
     }
 
+    if (type == "rule_based_state_provider") {
+        if (!providerObj.contains("fallback") || !providerObj["fallback"].is_object()) {
+            return Error(ErrorCode::InvalidData, "rule_based_state_provider missing 'fallback' object");
+        }
+        auto fallbackResult = parse(providerObj["fallback"]);
+        if (!fallbackResult.success()) {
+            return fallbackResult.error();
+        }
+        auto data = std::make_unique<BlockStateProviderHandle::RuleBasedData>();
+        data->fallback = std::make_unique<BlockStateProviderHandle>(std::move(fallbackResult.value()));
+
+        if (!providerObj.contains("rules") || !providerObj["rules"].is_array()) {
+            return Error(ErrorCode::InvalidData, "rule_based_state_provider missing 'rules' array");
+        }
+        for (size_t i = 0; i < providerObj["rules"].size(); ++i) {
+            const auto& ruleObj = providerObj["rules"][i];
+            if (!ruleObj.is_object() || !ruleObj.contains("if_true") || !ruleObj.contains("then")) {
+                return Error(ErrorCode::InvalidData,
+                    "rule_based_state_provider rule[" + std::to_string(i) + "] missing 'if_true'/'then'");
+            }
+            auto predResult = BlockPredicateParser::parse(ruleObj["if_true"]);
+            if (!predResult.success()) {
+                return Error(predResult.error().code(),
+                    "rule_based_state_provider rule[" + std::to_string(i) +
+                        "] if_true: " + predResult.error().message());
+            }
+            auto thenResult = parse(ruleObj["then"]);
+            if (!thenResult.success()) {
+                return Error(thenResult.error().code(),
+                    "rule_based_state_provider rule[" + std::to_string(i) + "] then: " + thenResult.error().message());
+            }
+            BlockStateProviderHandle::Rule rule;
+            rule.ifTrue = predResult.value();
+            rule.then = std::make_unique<BlockStateProviderHandle>(std::move(thenResult.value()));
+            data->rules.push_back(std::move(rule));
+        }
+
+        BlockStateProviderHandle handle;
+        handle.kind = BlockStateProviderHandle::Kind::RuleBased;
+        handle.ruleBased = std::move(data);
+        return handle;
+    }
+
     return Error(ErrorCode::NotFound,
         "unsupported block state provider type '" + type +
-            "' (only simple_state_provider/weighted_state_provider implemented)");
+            "' (only simple_state_provider/weighted_state_provider/rule_based_state_provider implemented)");
+}
+
+const BlockState* sampleState(
+    const BlockStateProviderHandle& handle, const IWorld& world, math::IRandom& random, const BlockPos& pos)
+{
+    if (handle.kind == BlockStateProviderHandle::Kind::Simple) {
+        return handle.simple;
+    }
+    if (handle.kind == BlockStateProviderHandle::Kind::Weighted) {
+        return (handle.weighted != nullptr) ? handle.weighted->getState(random) : nullptr;
+    }
+    // RuleBased：按 rules 顺序找第一个命中的谓词，取其 then；否则 fallback。
+    if (handle.ruleBased != nullptr) {
+        for (const auto& rule : handle.ruleBased->rules) {
+            if (rule.ifTrue != nullptr && rule.ifTrue->test(world, pos)) {
+                return (rule.then != nullptr) ? sampleState(*rule.then, world, random, pos) : nullptr;
+            }
+        }
+        if (handle.ruleBased->fallback != nullptr) {
+            return sampleState(*handle.ruleBased->fallback, world, random, pos);
+        }
+    }
+    return nullptr;
 }
 
 } // namespace BlockStateProviderParser

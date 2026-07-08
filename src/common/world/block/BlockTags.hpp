@@ -162,6 +162,10 @@ public:
     /// 石头标签
     static BlockTag& STONE();
 
+    /// 菌丝岩标签（crimson_nylium / warped_nylium）
+    /// 运行时消费场景：NetherForestVegetationFeature 判断 origin 下方是否为菌丝岩。
+    static BlockTag& NYLIUM();
+
     /// 火标签
     static BlockTag& FIRE();
 

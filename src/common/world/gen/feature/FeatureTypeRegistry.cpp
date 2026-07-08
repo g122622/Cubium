@@ -26,21 +26,27 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/BasaltPillarFeature.hpp"
 #include "common/world/gen/feature/BlockBlobFeature.hpp"
 #include "common/world/gen/feature/BlockColumnFeature.hpp"
+#include "common/world/gen/feature/BlockPileFeature.hpp"
 #include "common/world/gen/feature/BonusChestFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DiskFeature.hpp"
 #include "common/world/gen/feature/EndPlatformFeature.hpp"
 #include "common/world/gen/feature/LakeFeature.hpp"
 #include "common/world/gen/feature/MonsterRoomFeature.hpp"
+#include "common/world/gen/feature/NetherForestVegetationFeature.hpp"
 #include "common/world/gen/feature/RandomBooleanSelectorFeature.hpp"
 #include "common/world/gen/feature/RandomPatchFeature.hpp"
 #include "common/world/gen/feature/RandomSelectorFeature.hpp"
 #include "common/world/gen/feature/SimpleBlockFeature.hpp"
 #include "common/world/gen/feature/SimpleRandomSelectorFeature.hpp"
 #include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
+#include "common/world/gen/feature/SpringFeature.hpp"
 #include "common/world/gen/feature/VoidStartPlatformFeature.hpp"
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
 #include "common/world/gen/feature/cave/RootSystemFeature.hpp"
@@ -1042,6 +1048,165 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createUnderwaterMagma(const nlohm
     return toBase(std::make_unique<ConfiguredUnderwaterMagmaFeature>(config, "underwater_magma"));
 }
 
+// ----------------------------------------------------------------------------
+// spring_feature / block_pile / nether_forest_vegetation / disk
+// 各自忠实复刻 MC 1.21.11 算法，config 从 JSON 读取。
+// ----------------------------------------------------------------------------
+
+namespace {
+
+/// 解析 spring_feature 的 valid_blocks（HolderSet<Block>）：
+/// 字符串数组 ["minecraft:stone",...]、单字符串 "minecraft:stone" 或 "#minecraft:tag"。
+/// 填入 config.validBlocks 或 config.validTag。
+Result<void> parseValidBlocks(const nlohmann::json& field, SpringConfig& config)
+{
+    auto resolve = [&](const std::string& entry) -> Result<void> {
+        if (entry.size() > 0 && entry[0] == '#') {
+            const ResourceLocation tagLoc(entry.substr(1));
+            const BlockTag* tag = BlockTags::getTag(tagLoc);
+            if (tag == nullptr) {
+                return Error(ErrorCode::NotFound, "spring_feature valid_blocks tag not found: " + entry);
+            }
+            config.validTag = tag;
+            return {};
+        }
+        const ResourceLocation loc(entry);
+        const Block* block = Block::getBlock(loc);
+        if (block == nullptr) {
+            return Error(ErrorCode::NotFound, "spring_feature valid_blocks block not found: " + entry);
+        }
+        config.validBlocks.push_back(block);
+        return {};
+    };
+
+    if (field.is_string()) {
+        return resolve(field.get<std::string>());
+    }
+    if (field.is_array()) {
+        for (const auto& entry : field) {
+            if (!entry.is_string()) {
+                return Error(ErrorCode::InvalidData, "spring_feature valid_blocks entry must be a string");
+            }
+            auto r = resolve(entry.get<std::string>());
+            if (!r.success()) {
+                return r.error();
+            }
+        }
+        return {};
+    }
+    return Error(ErrorCode::InvalidData, "spring_feature valid_blocks must be a string or array");
+}
+
+} // namespace
+
+/**
+ * @brief spring_feature 工厂：state(FluidState→BlockState) + requires_block_below +
+ *        rock_count + hole_count + valid_blocks。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createSpringFeature(const nlohmann::json& configJson)
+{
+    auto config = std::make_unique<SpringConfig>();
+    if (!configJson.contains("state")) {
+        return Error(ErrorCode::InvalidData, "spring_feature config missing 'state' fluid state");
+    }
+    auto stateResult = parser::BlockStateParser::parse(configJson["state"]);
+    if (!stateResult.success()) {
+        return stateResult.error();
+    }
+    config->state = stateResult.value();
+    config->requiresBlockBelow = getBool(configJson, "requires_block_below", true);
+    config->rockCount = getInt(configJson, "rock_count", 4);
+    config->holeCount = getInt(configJson, "hole_count", 1);
+    if (!configJson.contains("valid_blocks")) {
+        return Error(ErrorCode::InvalidData, "spring_feature config missing 'valid_blocks'");
+    }
+    auto vbResult = parseValidBlocks(configJson["valid_blocks"], *config);
+    if (!vbResult.success()) {
+        return vbResult.error();
+    }
+    if (config->state == nullptr) {
+        return Error(ErrorCode::InvalidData, "spring_feature state is null");
+    }
+    return toBase(std::make_unique<ConfiguredSpringFeature>(std::move(config), "spring_feature"));
+}
+
+/**
+ * @brief block_pile 工厂：state_provider（simple/weighted/rule_based）。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createBlockPile(const nlohmann::json& configJson)
+{
+    if (!configJson.contains("state_provider")) {
+        return Error(ErrorCode::InvalidData, "block_pile config missing 'state_provider'");
+    }
+    auto providerResult = parser::BlockStateProviderParser::parse(configJson["state_provider"]);
+    if (!providerResult.success()) {
+        return providerResult.error();
+    }
+    auto config = std::make_unique<BlockPileConfig>();
+    config->stateProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value()));
+    return toBase(std::make_unique<ConfiguredBlockPileFeature>(std::move(config), "block_pile"));
+}
+
+/**
+ * @brief nether_forest_vegetation 工厂：state_provider + spread_width + spread_height。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createNetherForestVegetation(const nlohmann::json& configJson)
+{
+    if (!configJson.contains("state_provider")) {
+        return Error(ErrorCode::InvalidData, "nether_forest_vegetation config missing 'state_provider'");
+    }
+    auto providerResult = parser::BlockStateProviderParser::parse(configJson["state_provider"]);
+    if (!providerResult.success()) {
+        return providerResult.error();
+    }
+    auto config = std::make_unique<NetherForestVegetationConfig>();
+    config->stateProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value()));
+    config->spreadWidth = getInt(configJson, "spread_width", 0);
+    config->spreadHeight = getInt(configJson, "spread_height", 0);
+    if (config->spreadWidth <= 0 || config->spreadHeight <= 0) {
+        return Error(ErrorCode::InvalidData, "nether_forest_vegetation spread_width/spread_height must be positive");
+    }
+    return toBase(
+        std::make_unique<ConfiguredNetherForestVegetationFeature>(std::move(config), "nether_forest_vegetation"));
+}
+
+/**
+ * @brief disk 工厂：state_provider(RuleBased) + target(BlockPredicate) + radius(IntProvider) + half_height。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createDisk(const nlohmann::json& configJson)
+{
+    auto config = std::make_unique<DiskConfig>();
+    if (!configJson.contains("state_provider")) {
+        return Error(ErrorCode::InvalidData, "disk config missing 'state_provider'");
+    }
+    auto providerResult = parser::BlockStateProviderParser::parse(configJson["state_provider"]);
+    if (!providerResult.success()) {
+        return providerResult.error();
+    }
+    config->stateProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value()));
+
+    if (!configJson.contains("target")) {
+        return Error(ErrorCode::InvalidData, "disk config missing 'target' predicate");
+    }
+    auto targetResult = parser::BlockPredicateParser::parse(configJson["target"]);
+    if (!targetResult.success()) {
+        return targetResult.error();
+    }
+    config->target = targetResult.value();
+
+    if (!configJson.contains("radius")) {
+        return Error(ErrorCode::InvalidData, "disk config missing 'radius' IntProvider");
+    }
+    auto radiusResult = valueprovider::IntProviderParser::parse(configJson["radius"]);
+    if (!radiusResult.success()) {
+        return radiusResult.error();
+    }
+    config->radius = radiusResult.value();
+
+    config->halfHeight = getInt(configJson, "half_height", 0);
+    return toBase(std::make_unique<ConfiguredDiskFeature>(std::move(config), "disk"));
+}
+
 } // namespace
 
 FeatureTypeRegistry& FeatureTypeRegistry::instance()
@@ -1127,16 +1292,20 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("basalt_columns", createBasaltColumns);
     reg.registerType("delta_feature", createDelta);
     reg.registerType("underwater_magma", createUnderwaterMagma);
+    // spring_feature / block_pile / nether_forest_vegetation / disk：忠实复刻 MC 1.21.11
+    reg.registerType("spring_feature", createSpringFeature);
+    reg.registerType("block_pile", createBlockPile);
+    reg.registerType("nether_forest_vegetation", createNetherForestVegetation);
+    reg.registerType("disk", createDisk);
     // 简单档：NoneConfig 或单一 BlockState 配置
     reg.registerType("end_platform", createEndPlatform);
     reg.registerType("void_start_platform", createVoidStartPlatform);
     reg.registerType("bonus_chest", createBonusChest);
     reg.registerType("basalt_pillar", createBasaltPillar);
     reg.registerType("forest_rock", createForestRock);
-    // TODO: 数据包共 54 种 configured_feature type，当前注册 42 种。
-    // 未注册的 type（geode/sculk_patch/large_dripstone/disk/spring_feature/fossil/
-    // desert_well/scattered_ore/netherrack_replace_blobs/block_pile/twisting_vines/
-    // weeping_vines/nether_forest_vegetation/fallen_tree/iceberg 等）
+    // TODO: 数据包共 54 种 configured_feature type，当前注册 46 种。
+    // 未注册的 type（geode/sculk_patch/large_dripstone/fossil/desert_well/scattered_ore/
+    // netherrack_replace_blobs/twisting_vines/weeping_vines/fallen_tree/iceberg/multiface_growth 等）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 

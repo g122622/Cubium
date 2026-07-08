@@ -208,6 +208,15 @@ BlockTag& BlockTags::STONE()
     return *tag;
 }
 
+BlockTag& BlockTags::NYLIUM()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "nylium"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::FIRE()
 {
     static BlockTag* tag = nullptr;
@@ -1199,6 +1208,11 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "andesite"),
         ResourceLocation("minecraft", "polished_andesite")});
     tags[stone->getId()] = std::move(stone);
+
+    // 创建 NYLIUM 标签（crimson_nylium / warped_nylium）
+    auto nylium = std::make_unique<BlockTag>(ResourceLocation("minecraft", "nylium"));
+    nylium->addAll({ResourceLocation("minecraft", "crimson_nylium"), ResourceLocation("minecraft", "warped_nylium")});
+    tags[nylium->getId()] = std::move(nylium);
 
     // 创建 FIRE 标签
     auto fire = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fire"));
