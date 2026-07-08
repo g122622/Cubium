@@ -1151,6 +1151,8 @@ add_library(mc_common STATIC
     world/gen/feature/SpringFeature.cpp
     world/gen/feature/ScatteredOreFeature.cpp
     world/gen/feature/ReplaceBlobsFeature.cpp
+    world/gen/feature/DripstoneUtils.cpp
+    world/gen/feature/Column.cpp
 
     # World - Generation - Feature - Parser
     world/gen/feature/parser/BlockStateParser.cpp
@@ -1183,6 +1185,9 @@ add_library(mc_common STATIC
     # World - Generation - Feature - Cave
     world/gen/feature/cave/RootSystemFeature.cpp
     world/gen/feature/cave/VegetationPatchFeature.cpp
+    world/gen/feature/cave/PointedDripstoneFeature.cpp
+    world/gen/feature/cave/LargeDripstoneFeature.cpp
+    world/gen/feature/cave/DripstoneClusterFeature.cpp
 
     # World - Generation - Feature - Ocean
     world/gen/feature/ocean/KelpFeature.cpp

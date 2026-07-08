@@ -101,6 +101,15 @@ Result<std::unique_ptr<FloatProvider>> parse(const nlohmann::json& json)
         return provider;
     }
 
+    if (type == "clamped_normal") {
+        const f32 mean = readF32(valueObj, "mean", 0.0f);
+        const f32 deviation = readF32(valueObj, "deviation", 0.0f);
+        const f32 min = readF32(valueObj, "min", 0.0f);
+        const f32 max = readF32(valueObj, "max", 0.0f);
+        std::unique_ptr<FloatProvider> provider = ClampedNormalFloat::create(mean, deviation, min, max);
+        return provider;
+    }
+
     return Error(ErrorCode::InvalidData, "Unknown FloatProvider type: " + type);
 }
 

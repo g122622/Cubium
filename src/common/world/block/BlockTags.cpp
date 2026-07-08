@@ -558,6 +558,15 @@ BlockTag& BlockTags::BASE_STONE_OVERWORLD()
     return *tag;
 }
 
+BlockTag& BlockTags::DRIPSTONE_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dripstone_replaceable"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::CRYSTAL_SOUND_BLOCKS()
 {
     static BlockTag* tag = nullptr;
@@ -1950,6 +1959,29 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "tuff"),
         ResourceLocation("minecraft", "deepslate")});
     tags[baseStoneOverworld->getId()] = std::move(baseStoneOverworld);
+
+    // 可被滴水石块替换的方块（DripstoneUtils.placeDripstoneBlockIfPossible / isDripstoneBase 依赖）
+    auto dripstoneReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dripstone_replaceable"));
+    dripstoneReplaceable->addAll({ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "rooted_dirt"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "pale_moss_block"),
+        ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "terracotta"),
+        ResourceLocation("minecraft", "sandstone"),
+        ResourceLocation("minecraft", "red_sandstone"),
+        ResourceLocation("minecraft", "calcite"),
+        ResourceLocation("minecraft", "dripstone_block")});
+    tags[dripstoneReplaceable->getId()] = std::move(dripstoneReplaceable);
 
     // 水晶声音方块
     auto crystalSoundBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "crystal_sound_blocks"));

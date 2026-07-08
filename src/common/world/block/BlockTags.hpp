@@ -352,6 +352,9 @@ public:
     /// 主世界基础石头标签（石头、花岗岩、闪长岩、安山岩、凝灰岩、深板岩）
     static BlockTag& BASE_STONE_OVERWORLD();
 
+    /// 可被滴水石块替换的方块标签（DripstoneUtils 依赖）
+    static BlockTag& DRIPSTONE_REPLACEABLE();
+
     /// 水晶声音方块标签（紫水晶块、紫水晶母岩）
     static BlockTag& CRYSTAL_SOUND_BLOCKS();
 

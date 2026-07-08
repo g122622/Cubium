@@ -54,6 +54,9 @@
 #include "common/world/gen/feature/VoidStartPlatformFeature.hpp"
 #include "common/world/gen/feature/WeepingVinesFeature.hpp"
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
+#include "common/world/gen/feature/cave/DripstoneClusterFeature.hpp"
+#include "common/world/gen/feature/cave/LargeDripstoneFeature.hpp"
+#include "common/world/gen/feature/cave/PointedDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/RootSystemFeature.hpp"
 #include "common/world/gen/feature/cave/VegetationPatchFeature.hpp"
 #include "common/world/gen/feature/end/ChorusPlantFeature.hpp"
@@ -84,6 +87,7 @@
 #include "common/world/gen/feature/vegetation/FlowerFeature.hpp"
 #include "common/world/gen/placement/PlacedFeature.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
+#include "common/world/gen/valueprovider/FloatProviderParser.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
@@ -1016,6 +1020,133 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createLake(const nlohmann::json& 
 }
 
 /**
+ * @brief pointed_dripstone 工厂：4 个 [0,1] 概率（均有默认值）。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createPointedDripstone(const nlohmann::json& configJson)
+{
+    auto readF32 = [&](const char* key, f32 fallback) -> f32 {
+        return (configJson.contains(key) && configJson[key].is_number()) ? configJson[key].get<f32>() : fallback;
+    };
+    auto config = std::make_unique<cave::PointedDripstoneConfig>(readF32("chance_of_taller_dripstone", 0.2F),
+        readF32("chance_of_directional_spread", 0.7F),
+        readF32("chance_of_spread_radius2", 0.5F),
+        readF32("chance_of_spread_radius3", 0.5F));
+    return toBase(std::make_unique<cave::ConfiguredPointedDripstoneFeature>(std::move(config), "pointed_dripstone"));
+}
+
+/**
+ * @brief large_dripstone 工厂：floor_to_ceiling_search_range(int) + column_radius(IntProvider)
+ *        + height_scale/stalactite_bluntness/stalagmite_bluntness/wind_speed(FloatProvider)
+ *        + max_column_radius_to_cave_height_ratio(f32) + min_radius_for_wind(int)
+ *        + min_bluntness_for_wind(f32)。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createLargeDripstone(const nlohmann::json& configJson)
+{
+    const i32 searchRange = configJson.value("floor_to_ceiling_search_range", 30);
+    if (!configJson.contains("column_radius")) {
+        return Error(ErrorCode::InvalidData, "large_dripstone config missing 'column_radius' IntProvider");
+    }
+    auto radiusResult = valueprovider::IntProviderParser::parse(configJson["column_radius"]);
+    if (!radiusResult.success()) {
+        return radiusResult.error();
+    }
+    if (!configJson.contains("height_scale") || !configJson.contains("stalactite_bluntness") ||
+        !configJson.contains("stalagmite_bluntness") || !configJson.contains("wind_speed")) {
+        return Error(ErrorCode::InvalidData,
+            "large_dripstone config missing height_scale/stalactite_bluntness/stalagmite_bluntness/wind_speed "
+            "FloatProvider");
+    }
+    auto heightScaleResult = valueprovider::FloatProviderParser::parse(configJson["height_scale"]);
+    if (!heightScaleResult.success()) {
+        return heightScaleResult.error();
+    }
+    auto stalactiteBluntResult = valueprovider::FloatProviderParser::parse(configJson["stalactite_bluntness"]);
+    if (!stalactiteBluntResult.success()) {
+        return stalactiteBluntResult.error();
+    }
+    auto stalagmiteBluntResult = valueprovider::FloatProviderParser::parse(configJson["stalagmite_bluntness"]);
+    if (!stalagmiteBluntResult.success()) {
+        return stalagmiteBluntResult.error();
+    }
+    auto windResult = valueprovider::FloatProviderParser::parse(configJson["wind_speed"]);
+    if (!windResult.success()) {
+        return windResult.error();
+    }
+    const f32 maxRatio = configJson.value("max_column_radius_to_cave_height_ratio", 0.0F);
+    const i32 minRadiusWind = configJson.value("min_radius_for_wind", 0);
+    const f32 minBluntWind = configJson.value("min_bluntness_for_wind", 0.0F);
+
+    auto config = std::make_unique<cave::LargeDripstoneConfig>(searchRange,
+        std::move(radiusResult).value(),
+        std::move(heightScaleResult).value(),
+        maxRatio,
+        std::move(stalactiteBluntResult).value(),
+        std::move(stalagmiteBluntResult).value(),
+        std::move(windResult).value(),
+        minRadiusWind,
+        minBluntWind);
+    return toBase(std::make_unique<cave::ConfiguredLargeDripstoneFeature>(std::move(config), "large_dripstone"));
+}
+
+/**
+ * @brief dripstone_cluster 工厂：floor_to_ceiling_search_range(int) + height/radius/dripstone_block_layer_thickness
+ *        (IntProvider) + max_stalagmite_stalactite_height_diff/height_deviation(int)
+ *        + density/wetness(FloatProvider) + chance_of_dripstone_column_at_max_distance_from_center(f32)
+ *        + max_distance_from_edge_affecting_chance_of_dripstone_column/max_distance_from_center_affecting_height_bias
+ *        (int)。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createDripstoneCluster(const nlohmann::json& configJson)
+{
+    const i32 searchRange = configJson.value("floor_to_ceiling_search_range", 0);
+    if (!configJson.contains("height") || !configJson.contains("radius") ||
+        !configJson.contains("dripstone_block_layer_thickness")) {
+        return Error(ErrorCode::InvalidData,
+            "dripstone_cluster config missing height/radius/dripstone_block_layer_thickness IntProvider");
+    }
+    auto heightResult = valueprovider::IntProviderParser::parse(configJson["height"]);
+    if (!heightResult.success()) {
+        return heightResult.error();
+    }
+    auto radiusResult = valueprovider::IntProviderParser::parse(configJson["radius"]);
+    if (!radiusResult.success()) {
+        return radiusResult.error();
+    }
+    auto layerResult = valueprovider::IntProviderParser::parse(configJson["dripstone_block_layer_thickness"]);
+    if (!layerResult.success()) {
+        return layerResult.error();
+    }
+    if (!configJson.contains("density") || !configJson.contains("wetness")) {
+        return Error(ErrorCode::InvalidData, "dripstone_cluster config missing density/wetness FloatProvider");
+    }
+    auto densityResult = valueprovider::FloatProviderParser::parse(configJson["density"]);
+    if (!densityResult.success()) {
+        return densityResult.error();
+    }
+    auto wetnessResult = valueprovider::FloatProviderParser::parse(configJson["wetness"]);
+    if (!wetnessResult.success()) {
+        return wetnessResult.error();
+    }
+    const i32 maxHeightDiff = configJson.value("max_stalagmite_stalactite_height_diff", 0);
+    const i32 heightDeviation = configJson.value("height_deviation", 0);
+    const f32 chanceAtMax = configJson.value("chance_of_dripstone_column_at_max_distance_from_center", 0.0F);
+    const i32 maxDistEdge = configJson.value("max_distance_from_edge_affecting_chance_of_dripstone_column", 0);
+    const i32 maxDistCenter = configJson.value("max_distance_from_center_affecting_height_bias", 0);
+
+    auto config = std::make_unique<cave::DripstoneClusterConfig>(searchRange,
+        std::move(heightResult).value(),
+        std::move(radiusResult).value(),
+        maxHeightDiff,
+        heightDeviation,
+        std::move(layerResult).value(),
+        std::move(densityResult).value(),
+        std::move(wetnessResult).value(),
+        chanceAtMax,
+        maxDistEdge,
+        maxDistCenter);
+    return toBase(std::make_unique<cave::ConfiguredDripstoneClusterFeature>(std::move(config), "dripstone_cluster"));
+}
+
+/**
  * @brief basalt_columns 工厂：reach + height（均 IntProvider）。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createBasaltColumns(const nlohmann::json& configJson)
@@ -1416,9 +1547,11 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("vines", createVines);
     reg.registerType("weeping_vines", createWeepingVines);
     reg.registerType("twisting_vines", createTwistingVines);
-    // TODO: 数据包共 54 种 configured_feature type，当前注册 51 种。
-    // 未注册的 type（geode/sculk_patch/large_dripstone/fossil/desert_well/
-    // fallen_tree/iceberg/multiface_growth/pointed_dripstone/dripstone_cluster 等）
+    reg.registerType("pointed_dripstone", createPointedDripstone);
+    reg.registerType("large_dripstone", createLargeDripstone);
+    reg.registerType("dripstone_cluster", createDripstoneCluster);
+    // TODO: 数据包共 54 种 configured_feature type，当前注册 54 种。
+    // 未注册的 type（geode/sculk_patch/fossil/desert_well/fallen_tree/iceberg/multiface_growth 等）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 
