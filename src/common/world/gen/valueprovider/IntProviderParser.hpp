@@ -27,6 +27,7 @@
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 
 #include <memory>
+#include <optional>
 #include <nlohmann/json.hpp>
 
 namespace mc {
@@ -57,12 +58,13 @@ namespace IntProviderParser {
  * @brief 从 JSON 解析 IntProvider
  *
  * @param json JSON 值，可以是裸整数或类型分派对象
- * @param minInclusive 最小值校验（可选，-1 表示不校验）
- * @param maxInclusive 最大值校验（可选，-1 表示不校验）
+ * @param minInclusive 最小值校验（nullopt 表示不校验；支持负值下界如 random_offset 的 -16）
+ * @param maxInclusive 最大值校验（nullopt 表示不校验）
  * @return 解析后的 IntProvider，或错误
  */
-[[nodiscard]] Result<std::unique_ptr<IntProvider>> parse(
-    const nlohmann::json& json, i32 minInclusive = -1, i32 maxInclusive = -1);
+[[nodiscard]] Result<std::unique_ptr<IntProvider>> parse(const nlohmann::json& json,
+    std::optional<i32> minInclusive = std::nullopt,
+    std::optional<i32> maxInclusive = std::nullopt);
 
 } // namespace IntProviderParser
 

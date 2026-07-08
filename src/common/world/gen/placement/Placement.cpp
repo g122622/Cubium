@@ -295,21 +295,16 @@ std::vector<BlockPos> HeightmapPlacement::getPositions(
     WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)random;
-    (void)config;
+    const auto& heightmapConfig = static_cast<const HeightmapPlacementConfig&>(config);
 
-    // 参考 MC 1.21.11: HeightmapPlacement
-    // 使用 OCEAN_FLOOR_WG 高度图查找海底 Y 坐标
-    // 如果配置为空，默认使用 OCEAN_FLOOR_WG
-    i32 topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::OceanFloorWG);
-    if (topY <= world::MIN_BUILD_HEIGHT) {
-        // 回退到 WORLD_SURFACE_WG
-        topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::WorldSurfaceWG);
-    }
-
-    if (topY <= world::MIN_BUILD_HEIGHT) {
+    // MC 1.21.11: HeightmapPlacement.getPositions
+    //   int k = ctx.getHeight(this.heightmap, x, z);
+    //   return k > ctx.getMinY() ? Stream.of(new BlockPos(x, k, z)) : Stream.of();
+    // 用 config 指定的高度图类型查列高，k > minY 才返回，无回退。
+    const i32 topY = region.getTopBlockY(basePos.x, basePos.z, heightmapConfig.heightmap);
+    if (topY <= region.getMinBuildHeight()) {
         return {};
     }
-
     return {BlockPos(basePos.x, topY, basePos.z)};
 }
 
@@ -323,8 +318,9 @@ std::vector<BlockPos> RarityFilterPlacement::getPositions(
     (void)region;
     const auto& rarityConfig = static_cast<const RarityFilterConfig&>(config);
 
-    // MC 1.21.11: RarityFilter - 以 1/chance 概率通过
-    if (random.nextInt(rarityConfig.chance) == 0) {
+    // MC 1.21.11: RarityFilter.shouldPlace
+    //   return random.nextFloat() < 1.0F / this.chance;
+    if (random.nextFloat() < 1.0f / static_cast<f32>(rarityConfig.chance)) {
         return {basePos};
     }
     return {};

@@ -30,6 +30,7 @@
 #include "PlacedFeatureRegistry.hpp"
 #include "Placement.hpp"
 #include "PlacementRegistry.hpp"
+#include "Placements.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -63,10 +64,11 @@ std::string stripNamespace(const std::string& s)
 /**
  * @brief 把 MC JSON 的 placement type 名映射到项目 PlacementRegistry 注册名
  *
- * MC 与项目的两处不一致：
- * - MC "in_square"  → 项目 "square"
- * - MC "biome"      → 项目 "biome_filter"（MC 的 biome placement 实为 BiomeFilter，
- *                     项目的 "biome" 是白名单 BiomePlacement，二者语义不同）
+ * MC 与项目的三处不一致：
+ * - MC "in_square"                   → 项目 "square"
+ * - MC "biome"                       → 项目 "biome_filter"（MC 的 biome placement 实为 BiomeFilter，
+ *                                       项目的 "biome" 是白名单 BiomePlacement，二者语义不同）
+ * - MC "surface_water_depth_filter"  → 项目 "water_depth_threshold"（同一算法，注册名不同）
  */
 std::string mapPlacementName(const std::string& mcType)
 {
@@ -76,6 +78,9 @@ std::string mapPlacementName(const std::string& mcType)
     }
     if (t == "biome") {
         return "biome_filter";
+    }
+    if (t == "surface_water_depth_filter") {
+        return "water_depth_threshold";
     }
     return t;
 }
@@ -120,6 +125,12 @@ std::unique_ptr<Placement> createPlacement(const std::string& name)
     }
     if (name == "environment_scan") {
         return std::make_unique<EnvironmentScanPlacement>();
+    }
+    if (name == "random_offset") {
+        return std::make_unique<RandomOffsetPlacement>();
+    }
+    if (name == "water_depth_threshold") {
+        return std::make_unique<WaterDepthThresholdPlacement>();
     }
     return nullptr;
 }
@@ -223,12 +234,58 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         }
         config = std::make_unique<EnvironmentScanConfig>(
             dirOpt.value(), targetResult.value(), std::move(allowedPred), node["max_steps"].get<i32>());
+    } else if (type == "random_offset") {
+        // random_offset: {xz_spread, y_spread}，二者均为 IntProvider（CODEC 范围 [-16,16]），
+        // vanilla JSON 常用裸整数（如 0/-1）。xz_spread 给 dx 与 dz 各独立采样一次，y_spread 给 dy。
+        if (!node.contains("xz_spread")) {
+            return Error(ErrorCode::InvalidData, "random_offset placement missing 'xz_spread' field");
+        }
+        if (!node.contains("y_spread")) {
+            return Error(ErrorCode::InvalidData, "random_offset placement missing 'y_spread' field");
+        }
+        auto xzResult = valueprovider::IntProviderParser::parse(node["xz_spread"], -16, 16);
+        if (!xzResult.success()) {
+            return Error(xzResult.error().code(), "random_offset placement xz_spread: " + xzResult.error().message());
+        }
+        auto yResult = valueprovider::IntProviderParser::parse(node["y_spread"], -16, 16);
+        if (!yResult.success()) {
+            return Error(yResult.error().code(), "random_offset placement y_spread: " + yResult.error().message());
+        }
+        config = std::make_unique<RandomOffsetConfig>(xzResult.value(), yResult.value());
+    } else if (type == "water_depth_threshold") {
+        // surface_water_depth_filter: {max_water_depth}（裸整数）。
+        // 仅当当前位置列的水柱深度 <= max_water_depth 才保留该位置。
+        if (!node.contains("max_water_depth") || !node["max_water_depth"].is_number_integer()) {
+            return Error(
+                ErrorCode::InvalidData, "surface_water_depth_filter placement missing 'max_water_depth' integer");
+        }
+        config = std::make_unique<WaterDepthThresholdConfig>(node["max_water_depth"].get<i32>());
+    } else if (type == "rarity_filter") {
+        // rarity_filter: {chance}（裸整数，POSITIVE_INT 即 >=1）。以 1/chance 概率通过。
+        if (!node.contains("chance") || !node["chance"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "rarity_filter placement missing 'chance' integer");
+        }
+        const i32 chance = node["chance"].get<i32>();
+        if (chance < 1) {
+            return Error(ErrorCode::InvalidData,
+                "rarity_filter placement 'chance' must be >= 1 (POSITIVE_INT), got " + std::to_string(chance));
+        }
+        config = std::make_unique<RarityFilterConfig>(chance);
+    } else if (type == "heightmap") {
+        // heightmap: {heightmap}（全大写枚举字符串）。用配置的高度图类型查 (x,z) 列最高方块 Y。
+        if (!node.contains("heightmap") || !node["heightmap"].is_string()) {
+            return Error(ErrorCode::InvalidData, "heightmap placement missing 'heightmap' string");
+        }
+        const auto heightmapOpt = world::chunk::heightmapTypeFromString(node["heightmap"].get<std::string>());
+        if (!heightmapOpt.has_value()) {
+            return Error(ErrorCode::InvalidData,
+                "heightmap placement: unknown heightmap type '" + node["heightmap"].get<std::string>() + "'");
+        }
+        config = std::make_unique<HeightmapPlacementConfig>(heightmapOpt.value());
     } else {
-        // TODO: 其余 placement type（chance/rarity_filter/heightmap/surface 等）的 JSON config
-        // 解析尚未实现。这些 type 在 MC 中各有自己的 config（如 chance 需 IntProvider、
-        // heightmap 需高度图类型枚举、surface 需水深阈值），当前一律回退到 EmptyPlacementConfig，
-        // 导致其修饰行为静默丢失（仅靠 Placement 默认实现兜底）。待对应 feature type 落地时
-        // 在此分支逐 type 补全 config 解析。
+        // chance/surface 是项目自造的遗留 placement（MC 1.21.11 无此 type，原版数据包不会触发），
+        // 保留其工厂以兼容潜在第三方数据包，config 用空实现兜底。其余未注册 type 已由
+        // PlacementRegistry::get 在入口拦截，不会走到这里。
         config = std::make_unique<EmptyPlacementConfig>();
     }
 

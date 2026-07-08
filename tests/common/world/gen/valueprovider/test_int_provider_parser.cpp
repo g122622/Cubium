@@ -341,7 +341,7 @@ TEST(IntProviderParserTest, PositiveValidation_Uniform_Fail)
 TEST(IntProviderParserTest, MaxValidation_Uniform_Fail)
 {
     nlohmann::json json = {{"type", "uniform"}, {"min_inclusive", 1}, {"max_inclusive", 20}};
-    auto result = IntProviderParser::parse(json, -1, 10); // maxValue <= 10, but 20 > 10
+    auto result = IntProviderParser::parse(json, std::nullopt, 10); // maxValue <= 10, but 20 > 10
     EXPECT_FALSE(result.success());
 }
 
@@ -354,6 +354,43 @@ TEST(IntProviderParserTest, NoValidation_Pass)
     auto provider = result.value();
     EXPECT_EQ(provider->getMinValue(), -100);
     EXPECT_EQ(provider->getMaxValue(), 100);
+}
+
+TEST(IntProviderParserTest, NegativeMinInclusive_BareInteger_Fail)
+{
+    // 负下界校验：random_offset 的 xz_spread/y_spread 范围 [-16,16]。
+    // -100 < -16 应被拒绝（旧实现 minInclusive>=0 守卫会把 -16 当哨兵跳过，此为回归测试）。
+    nlohmann::json json = -100;
+    auto result = IntProviderParser::parse(json, -16, 16);
+    EXPECT_FALSE(result.success());
+}
+
+TEST(IntProviderParserTest, NegativeMinInclusive_BareInteger_Pass)
+{
+    // -16 恰好等于下界，应通过。
+    nlohmann::json json = -16;
+    auto result = IntProviderParser::parse(json, -16, 16);
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value()->getMinValue(), -16);
+}
+
+TEST(IntProviderParserTest, NegativeMinInclusive_Uniform_Fail)
+{
+    // uniform(-100, -50) 的 min=-100 < -16，应被拒绝。
+    nlohmann::json json = {{"type", "uniform"}, {"min_inclusive", -100}, {"max_inclusive", -50}};
+    auto result = IntProviderParser::parse(json, -16, 16);
+    EXPECT_FALSE(result.success());
+}
+
+TEST(IntProviderParserTest, NegativeMinInclusive_Uniform_Pass)
+{
+    // uniform(-16, 16) 恰好落在 [-16,16]，应通过。
+    nlohmann::json json = {{"type", "uniform"}, {"min_inclusive", -16}, {"max_inclusive", 16}};
+    auto result = IntProviderParser::parse(json, -16, 16);
+    ASSERT_TRUE(result.success());
+    auto provider = result.value();
+    EXPECT_EQ(provider->getMinValue(), -16);
+    EXPECT_EQ(provider->getMaxValue(), 16);
 }
 
 // ============================================================================

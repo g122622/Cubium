@@ -26,6 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/Block.hpp"
+#include "../../chunk/data/Heightmap.hpp"
 #include "../valueprovider/HeightProvider.hpp"
 #include "../valueprovider/IntProvider.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
@@ -231,6 +232,21 @@ struct SurfacePlacementConfig : public IPlacementConfig {
     explicit SurfacePlacementConfig(i32 waterDepth = 0, bool sunlight = false)
         : maxWaterDepth(waterDepth)
         , requireSunlight(sunlight)
+    {}
+};
+
+/**
+ * @brief 高度图放置配置
+ *
+ * 参考 MC 1.21.11: HeightmapPlacement
+ * 持有 JSON "heightmap" 字段指定的高度图类型，getPositions 用它查 (x,z) 列最高方块 Y。
+ */
+struct HeightmapPlacementConfig : public IPlacementConfig {
+    /// 高度图类型（WORLD_SURFACE_WG / OCEAN_FLOOR / MOTION_BLOCKING 等）
+    HeightmapType heightmap;
+
+    explicit HeightmapPlacementConfig(HeightmapType type)
+        : heightmap(type)
     {}
 };
 
