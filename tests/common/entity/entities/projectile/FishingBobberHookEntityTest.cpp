@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -47,6 +48,9 @@ class FishingBobberTestAccess {
 public:
     static void syncCaughtEntityId(FishingBobberEntity& bobber) { bobber._syncCaughtEntityId(); }
     static void setCaughtEntity(FishingBobberEntity& bobber, Entity* entity) { bobber.m_caughtEntity = entity; }
+    static void setState(FishingBobberEntity& bobber, FishingBobberEntity::State state) { bobber.m_state = state; }
+    static void setTicksCatchable(FishingBobberEntity& bobber, i32 value) { bobber.m_ticksCatchable = value; }
+    static void setTicksCatchableDelay(FishingBobberEntity& bobber, i32 value) { bobber.m_ticksCatchableDelay = value; }
 };
 
 } // namespace entity
@@ -403,6 +407,85 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdSameValueDoesNotMarkDirty)
     // 再次同步相同值，不应标记为脏
     FishingBobberAccess::syncCaughtEntityId(bobber);
     EXPECT_FALSE(bobber.dataManager().hasDirtyData());
+}
+
+// ============================================================================
+// DATA_BITING 服务端设置逻辑测试
+//
+// 对应 MC 1.21.11 FishingHook.catchingFish() / tick() 中 DATA_BITING 的设置：
+// - 鱼咬钩（进入 Fishing 状态）：DATA_BITING = true
+// - 咬钩超时（回到 Bobbing 状态）：DATA_BITING = false
+// ============================================================================
+
+/**
+ * @brief 测试 DATA_BITING 初始值为 false
+ */
+TEST_F(FishingBobberHookEntityTest, BitingParam_InitialValueIsFalse)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+
+    const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
+    const auto* value = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_NE(value, nullptr);
+    EXPECT_FALSE(value->get<bool>());
+}
+
+/**
+ * @brief 测试 tick() 中 State::Fishing 超时时设置 DATA_BITING = false
+ *
+ * 对应 MC 1.21.11 FishingHook.catchingFish(): nibble 归零时 DATA_BITING = false。
+ * 当 m_ticksCatchable 递减到 0 时，tick() 会设置 DATA_BITING = false 并回到 Bobbing 状态。
+ */
+TEST_F(FishingBobberHookEntityTest, BitingParam_SetToFalse_WhenFishingStateExpires)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    // tick() 前置守卫要求 m_angler 存在、存活且 isFishing() 为 true，
+    // 因此需要设置真实的 Player 作为钓鱼者并标记其正在钓鱼。
+    auto& player = m_world->addEntity<Player>(EntityId(2), "TestPlayer");
+    bobber.setShooter(&player);
+    player.setFishingBobber(bobber.id());
+
+    // 手动设置 Fishing 状态，m_ticksCatchable=1，DATA_BITING 预设为 true
+    FishingBobberAccess::setState(bobber, entity::FishingBobberEntity::State::Fishing);
+    FishingBobberAccess::setTicksCatchable(bobber, 1);
+    const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
+    bobber.dataManager().set(entity::DataParameter<bool>(bitingParamId), true);
+    bobber.dataManager().clearDirty();
+
+    // 执行一次 tick，m_ticksCatchable 应递减到 0，触发 DATA_BITING = false
+    bobber.tick();
+
+    const auto* value = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_NE(value, nullptr);
+    EXPECT_FALSE(value->get<bool>());
+    EXPECT_EQ(bobber.state(), entity::FishingBobberEntity::State::Bobbing);
+}
+
+/**
+ * @brief 测试 tick() 中 State::Fishing 且 m_ticksCatchable<=0 时也清除 DATA_BITING
+ *
+ * 防御性分支：m_ticksCatchable 已为 0 时进入 Fishing 状态，
+ * tick() 应立即回到 Bobbing 并清除 DATA_BITING。
+ */
+TEST_F(FishingBobberHookEntityTest, BitingParam_Cleared_WhenFishingStateWithZeroCatchable)
+{
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityId(1));
+    // 同上：tick() 前置守卫要求有效的 Player 钓鱼者。
+    auto& player = m_world->addEntity<Player>(EntityId(2), "TestPlayer");
+    bobber.setShooter(&player);
+    player.setFishingBobber(bobber.id());
+
+    FishingBobberAccess::setState(bobber, entity::FishingBobberEntity::State::Fishing);
+    FishingBobberAccess::setTicksCatchable(bobber, 0);
+    const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
+    bobber.dataManager().set(entity::DataParameter<bool>(bitingParamId), true);
+    bobber.dataManager().clearDirty();
+
+    bobber.tick();
+
+    const auto* value = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_NE(value, nullptr);
+    EXPECT_FALSE(value->get<bool>());
 }
 
 } // namespace

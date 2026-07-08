@@ -48,23 +48,33 @@ bool FishingBobberRenderer::generateMesh(
     // 钓鱼浮标 + 钓线全部使用 LINE_LIST 拓扑
     // 浮标渲染为十字线段，钓线为抛物线
 
-    _generateBobberCross(vertices, indices);
-    _generateFishingLine(entity, vertices, indices);
+    // 读取咬钩状态（通过元数据同步自服务端 DATA_BITING_PARAM）。
+    // 对应 MC 1.21.11 FishingHook.onSyncedDataUpdated(DATA_BITING)：
+    // 咬钩时浮标获得向下速度并下沉，此处以 Y 轴负偏移模拟下沉视觉效果。
+    const bool biting = entity.fishingBiting();
+
+    _generateBobberCross(vertices, indices, biting);
+    _generateFishingLine(entity, vertices, indices, biting);
 
     return !vertices.empty() && !indices.empty();
 }
 
 bool FishingBobberRenderer::needsMeshUpdate(ClientEntity& entity) const
 {
-    // 钓线位置随实体移动而变化，每帧都需要更新
+    // 钓线位置随实体移动而变化，每帧都需要更新；
+    // 咬钩状态变化也需要重建网格（浮标下沉偏移）。
+    (void)entity;
     return true;
 }
 
-void FishingBobberRenderer::_generateBobberCross(std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+void FishingBobberRenderer::_generateBobberCross(
+    std::vector<ModelVertex>& vertices, std::vector<u32>& indices, bool biting)
 {
     // 浮标渲染为十字线段（LINE_LIST）
     const f32 halfSize = 0.0625f; // 1/16 格，约 MC 原版浮标大小
-    const f32 yOffset = 0.25f;    // 浮标浮在水面上的高度偏移
+    // 浮标浮在水面上的高度偏移；咬钩时下沉 0.1 格模拟 MC 中
+    // DATA_BITING 触发的 -0.4*random[0.6,1.0] 向下速度造成的视觉下沉。
+    const f32 yOffset = biting ? 0.15f : 0.25f;
 
     const u32 baseIndex = static_cast<u32>(vertices.size());
 
@@ -100,21 +110,30 @@ void FishingBobberRenderer::_generateBobberCross(std::vector<ModelVertex>& verti
 }
 
 void FishingBobberRenderer::_generateFishingLine(
-    ClientEntity& entity, std::vector<ModelVertex>& vertices, std::vector<u32>& indices)
+    ClientEntity& entity, std::vector<ModelVertex>& vertices, std::vector<u32>& indices, bool biting)
 {
     // 钓线渲染为16段抛物线
     constexpr i32 SEGMENTS = 16;
 
-    // 浮标世界位置
-    Vector3f bobberPos(static_cast<f32>(entity.x()), static_cast<f32>(entity.y() + 0.25), static_cast<f32>(entity.z()));
+    // 读取被钩住实体 ID 镜像（通过元数据同步自服务端 DATA_HOOKED_ENTITY_PARAM）。
+    // >0 表示浮标钩住了某个实体，此时钓线应绷紧（下垂量减小），
+    // 模拟钓线连接到附近被钩实体而非远端玩家的视觉。
+    // 对应 MC 1.21.11 FishingHook.onSyncedDataUpdated(DATA_HOOKED_ENTITY)。
+    const i32 hookedEntityId = entity.fishingHookedEntityId();
+    const bool hasHookedEntity = (hookedEntityId > 0);
+
+    // 浮标世界位置（咬钩时与浮标下沉偏移保持一致）
+    const f32 bobberYOffset = biting ? 0.15f : 0.25f;
+    Vector3f bobberPos(
+        static_cast<f32>(entity.x()), static_cast<f32>(entity.y() + bobberYOffset), static_cast<f32>(entity.z()));
 
     // 玩家手持位置（简化为浮标上方偏移）
     // TODO: 当渲染层能访问持有者实体（及被钩住实体）时，计算实际的手持位置。
     //   钓线两端在 MC 1.21.11 中由 FishingHook.getPlayerOwner() 决定起点（玩家眼睛/手部），
-    //   若存在被钩住实体（ClientEntity::fishingHookedEntityId() > 0），
+    //   若存在被钩住实体（hasHookedEntity == true），
     //   钓线另一端应连接到该实体位置而非玩家手中。
     //   当前 PipelineMeshProvider::generateMesh 接口仅传入 ClientEntity&，
-    //   无世界查找回调，因此暂用固定偏移占位。
+    //   无世界查找回调，因此暂用固定偏移占位，仅通过 hasHookedEntity 调整下垂量。
     Vector3f playerHandPos(bobberPos.x, bobberPos.y + 1.5f, bobberPos.z);
 
     Vector3f start = playerHandPos;
@@ -126,8 +145,12 @@ void FishingBobberRenderer::_generateFishingLine(
     f32 dz = end.z - start.z;
     f32 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
-    // 下垂量取决于水平距离，最大约 0.25 格
+    // 下垂量取决于水平距离，最大约 0.25 格。
+    // 钩住实体时钓线绷紧（下垂量减半），模拟连接到附近被钩实体。
     f32 sag = horizontalDist * 0.1f + 0.15f;
+    if (hasHookedEntity) {
+        sag *= 0.5f;
+    }
 
     const u32 baseIndex = static_cast<u32>(vertices.size());
 

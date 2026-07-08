@@ -32,7 +32,7 @@ ClientEntity
 ├── 实体状态：onGround, sneaking, swimming, riding, sleeping
 ├── 实体尺寸：width, height, eyeHeight（根据实体类型和姿态计算）
 ├── 元数据缓存：EntityDataManager, metadata bytes
-├── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体), fuseTimer(TNT矿车), eatAnimationTimer(羊等吃草动画), witherSideHeadYaw/Pitch[2]+m_witherHeadTargetId[3](凋灵侧头朝向)
+├── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体), fuseTimer(TNT矿车), eatAnimationTimer(羊等吃草动画), witherSideHeadYaw/Pitch[2]+m_witherHeadTargetId[3](凋灵侧头朝向), fishingHookedEntityId/fishingBiting(钓鱼浮标)
 ```
 
 ## 上下游外部依赖关系
@@ -90,6 +90,7 @@ ClientEntity
      - `minecraft:wolf` → 兴趣状态（`wolfIsInterested`，由 `BegGoal` 驱动）、驯服状态（`wolfTamed`，由 `TameableEntity::DATA_TAMED_PARAM` 同步）、颈圈颜色（`wolfCollarColor`，由 `WolfEntity::DATA_COLLAR_COLOR_PARAM` 同步，默认红色）
      - `minecraft:skeleton` / `minecraft:stray` / `minecraft:bogged` → 拉弓状态（`isChargingBow`，由 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步，驱动 `SkeletonModel` 的 `BowAndArrow` 姿态）
      - `minecraft:wither` / `wither` → 凋灵侧头目标实体 ID（`m_witherHeadTargetId[3]`，由 `WitherEntity::HEAD_TARGET_1/2/3` 同步，驱动 `tickWitherSideHeads` 客户端镜像计算）
+     - `minecraft:fishing_bobber` / `fishing_bobber` → 被钩住实体 ID（`m_fishingHookedEntityId`，由 `FishingBobberEntity::DATA_HOOKED_ENTITY_PARAM` 同步，+1 偏移 0=无）+ 咬钩状态（`m_fishingBiting`，由 `DATA_BITING_PARAM` 同步），驱动 `FishingBobberRenderer` 浮标下沉与钓线绷紧
 
 8. **狼兴趣状态（乞求食物）动画**：
    - 服务端 `WolfEntity::setInterested` 写入 `DATA_INTERESTED_PARAM`
@@ -144,4 +145,14 @@ ClientEntity
     - **读取**：`getInterpolatedWitherSideHeadYaw/Pitch(index, partialTick)` 供 `EntityRendererManager::_createModelForEntity` 调用。渲染器通过 `math::wrapDegrees(absoluteYaw - bodyYaw)` 将绝对 yaw 转为 body 相对值（对齐 MC `WitherBossModel.setupHeadRotation` 中 `yHeadRots[index] - bodyRot`），再调用 `WitherModel::setSideHeadRotations(yaw0, pitch0, yaw1, pitch1)` 注入。
     - **数据流**：服务端 `WitherEntity::aiStep` → `_updateSideHeadRotations`（服务端权威计算）→ `HEAD_TARGET_1/2/3` 通过 `EntityMetadataPacket` 同步 → 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 → `m_witherHeadTargetId[3]` → `ClientEntityManager::tick` 调用 `tickWitherSideHeads` → 客户端独立镜像 MC 计算 → `getInterpolatedWitherSideHeadYaw/Pitch` → `EntityRendererManager` → `WitherModel::setSideHeadRotations` → `WitherModel::setAngles` 应用到 `m_heads[1]`/`m_heads[2]`。
     - **与狼甩水/兔子跳跃模式的差异**：狼甩水/兔子跳跃通过 `EntityStatusPacket` 触发状态镜像 + `tick()` 推进；凋灵侧头通过 `EntityMetadataPacket` 同步目标 ID + `tickWitherSideHeads` 独立计算朝向。共同点是"服务端权威 → 客户端镜像状态 → tick 推进 → 渲染器读取"。
+
+15. **钓鱼浮标网络同步镜像**（参考 MC 1.21.11 `FishingHook.onSyncedDataUpdated()`）：
+    - **字段**：
+      - `m_fishingHookedEntityId`（i32）：被钩住实体 ID（+1 偏移，0=无）。由 `FishingBobberEntity::DATA_HOOKED_ENTITY_PARAM` 同步。
+      - `m_fishingBiting`（bool）：是否咬钩。由 `FishingBobberEntity::DATA_BITING_PARAM` 同步。
+    - **元数据同步**：`syncMetadataFromDataManager()` 中 `typeId == "minecraft:fishing_bobber" || "fishing_bobber"` 分支读取 `FishingBobberEntity::getHookedEntityParamId()` / `getBitingParamId()` 对应参数，写入镜像字段。对应 MC 1.21.11 `FishingHook.onSyncedDataUpdated(DATA_HOOKED_ENTITY/DATA_BITING)`。
+    - **访问器**：`fishingHookedEntityId()` / `fishingBiting()` 供渲染器读取。
+    - **读取**：`FishingBobberRenderer::generateMesh()` 读取 `fishingBiting()` 驱动浮标 Y 偏移下沉（咬钩时 0.15 替代 0.25，模拟 MC 中 `DATA_BITING` 触发的 `-0.4*random[0.6,1.0]` 向下速度视觉效果）；读取 `fishingHookedEntityId()` 判断是否有被钩实体，有则钓线绷紧（下垂量减半）。
+    - **数据流**：服务端 `FishingBobberEntity::_syncCaughtEntityId()` / `_catchingFish()` / `tick()` 写入 `DATA_HOOKED_ENTITY_PARAM` / `DATA_BITING_PARAM` → `EntityMetadataPacket` 同步 → 客户端 `syncMetadataFromDataManager` 读取 → `m_fishingHookedEntityId` / `m_fishingBiting` → `FishingBobberRenderer::generateMesh` 消费。
+    - **+1 偏移**：`DATA_HOOKED_ENTITY` 存储 `entityId+1`，0 专门表示"无被钩住实体"，避免与合法 entityId=0 冲突。渲染器通过 `fishingHookedEntityId() > 0` 判断是否存在被钩实体。
 

@@ -213,6 +213,45 @@ lifeTime = flightTime * 10 + nextInt(6) + nextInt(7)
 - 层间过渡规则：`Invalid` 直接判定失败；`AboveWater` 前面不能有 `Invalid`；`InsideWater` 前面不能有 `AboveWater`
 - 开放水域影响钓鱼宝藏表的概率
 
+### 5.1 钓鱼浮标网络同步
+
+对应 MC 1.21.11 `FishingHook.defineSynchedData()` / `onSyncedDataUpdated()`，FishingBobberEntity 通过 `EntityDataManager` 注册两个网络同步数据参数：
+
+| 参数 | 类型 | 含义 | MC 1.21.11 对应 |
+|------|------|------|----------------|
+| `DATA_HOOKED_ENTITY_PARAM` | i32 | 被钩住实体 ID（+1 偏移，0=无） | `DATA_HOOKED_ENTITY` |
+| `DATA_BITING_PARAM` | bool | 是否咬钩 | `DATA_BITING` |
+
+**注册**（`registerData()`）：
+- 由于 C++ 虚函数在构造函数中不会派生到子类，`Entity` 基类构造函数中调用的 `registerData()` 只会执行 `Entity::registerData()`。
+- `FishingBobberEntity` 构造函数必须也显式调用 `registerData()` 以注册子类专属参数。
+- `registerData()` override 先调用 `Entity::registerData()` 注册基础参数（FLAGS/AIR/CUSTOM_NAME 等），再注册上述两个参数。
+
+**写入时机**（服务端）：
+| 事件 | 写入 | 位置 |
+|------|------|------|
+| 钩住实体（`_onEntityHit`） | `DATA_HOOKED_ENTITY = entityId+1` | `_syncCaughtEntityId()` |
+| 被钩实体失效 | `DATA_HOOKED_ENTITY = 0` | `tick()` State::Hooked 分支 → `_syncCaughtEntityId()` |
+| 鱼咬钩（进入 Fishing 状态） | `DATA_BITING = true` | `_catchingFish()` |
+| 咬钩超时（回到 Bobbing） | `DATA_BITING = false` | `tick()` State::Fishing 分支 |
+
+**+1 偏移的设计**：`DATA_HOOKED_ENTITY` 存储的是 `entityId + 1`，0 专门表示"无被钩住实体"，避免与合法的 entityId=0 冲突。客户端读取后需减 1 还原真实实体 ID。
+
+**同步链路**：
+```
+服务端 m_dataManager.set() → 标记脏数据
+  → EntityTracker::tick() 检测 hasDirtyData()
+  → EntityMetadataSerializer 序列化 → EntityMetadataPacket 广播
+  → 客户端 ClientEntity::setMetadata() 反序列化到 m_dataManager
+  → syncMetadataFromDataManager() 按 typeId 分发
+  → fishing_bobber 分支：读取参数写入 m_fishingHookedEntityId / m_fishingBiting 镜像
+  → FishingBobberRenderer::generateMesh() 读取镜像字段驱动渲染
+```
+
+**踩坑点**：
+- `EntityTracker::tick()` 的元数据同步受位置/旋转变化门控（`needsFullUpdate || positionChanged || rotationChanged`）。钓鱼浮标在钩住实体时浮标跟随实体移动（位置变化），在咬钩时浮标在水面上下浮动（位置变化），因此同步通常能及时触发。若浮标完全静止且仅有元数据变化，可能延迟到下次位置变化时同步。
+- `DATA_BITING` 的写入必须成对：进入 Fishing 状态时设 true，离开时设 false，否则客户端镜像会永久停留在咬钩状态。
+
 ### 6. 箭矢伤害计算
 
 箭矢伤害由两个独立方法控制：

@@ -73,7 +73,14 @@ FishingBobberRenderer：独立实现，使用 LINE_LIST 拓扑渲染浮标和钓
 
 5. **Billboard 渲染器的 fullbright 参数**：继承 `ItemBillboardRenderer` 时需注意 fullbright 参数，末影之眼、火球等发光实体需要 `fullbright=true`。fullbright 通过 `EntityRenderer::isFullbright()` 虚方法传递到渲染管线，在着色器中将光照混合到最大亮度 1.0，使实体在黑暗中也清晰可见。对应 MC Java 中 `EntityRenderer.getBlockLightLevel()` 返回 15 的行为。
 
-6. **FishingBobberRenderer 使用 LINE_LIST 拓扑**：与其他渲染器不同，钓线使用线段而非三角形渲染，需注意管线配置
+6. **FishingBobberRenderer 使用 LINE_LIST 拓扑**：与其他渲染器不同，钓线使用线段而非三角形渲染，需注意管线配置。
+
+   **网络同步状态驱动渲染**：`generateMesh()` 通过 `ClientEntity::fishingBiting()` 与 `ClientEntity::fishingHookedEntityId()` 读取服务端同步过来的镜像字段（对应 MC 1.21.11 `FishingHook.onSyncedDataUpdated()`）：
+   - `fishingBiting() == true`（咬钩，由 `DATA_BITING_PARAM` 同步）：浮标 Y 偏移从 0.25 下沉到 0.15，模拟 MC 中 `DATA_BITING` 触发的 `-0.4*random[0.6,1.0]` 向下速度造成的视觉下沉；钓线端点同步下沉。
+   - `fishingHookedEntityId() > 0`（钩住实体，由 `DATA_HOOKED_ENTITY_PARAM` 同步，+1 偏移）：钓线绷紧（下垂量减半），模拟钓线连接到附近被钩实体而非远端玩家。
+   - 镜像字段由 `ClientEntity::syncMetadataFromDataManager()` 的 `fishing_bobber` 分支从 `EntityMetadataPacket` 反序列化写入。
+
+   **已知限制**（TODO）：`PipelineMeshProvider::generateMesh` 接口仅传入 `ClientEntity&`，无世界查找回调，因此钓线另一端目前仍使用固定偏移占位（浮标上方 1.5 格），而非实际的玩家手持位置或被钩实体位置。后续若扩展接口传入世界查找回调，可据此解析 `fishingHookedEntityId()` 对应的实体位置并将钓线连接到该实体。
 
 7. **ItemEntity 动画参数是硬编码的**：浮动周期 `/10`、旋转周期 `/20`、基础偏移 `0.25` 等常量在 ItemEntityRenderer 中定义，修改需同步 MC 原版
 

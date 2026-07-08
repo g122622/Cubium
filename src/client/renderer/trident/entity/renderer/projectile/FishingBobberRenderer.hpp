@@ -63,20 +63,24 @@ private:
      * @brief 生成浮标十字线段顶点
      * @param vertices 输出顶点数组
      * @param indices 输出索引数组
+     * @param biting 是否咬钩（咬钩时浮标 Y 偏移下沉，对应 DATA_BITING 同步状态）
      */
-    void _generateBobberCross(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _generateBobberCross(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices, bool biting);
 
     /**
      * @brief 生成钓鱼线顶点
      *
      * 从浮标位置到玩家手持位置生成16段抛物线线段。
      *
-     * @param entity 客户端实体（用于获取浮标位置）
+     * @param entity 客户端实体（用于获取浮标位置及咬钩状态）
      * @param vertices 输出顶点数组
      * @param indices 输出索引数组
+     * @param biting 是否咬钩（咬钩时浮标端点 Y 偏移下沉，与浮标十字保持一致）
      */
-    void _generateFishingLine(
-        ::mc::client::ClientEntity& entity, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
+    void _generateFishingLine(::mc::client::ClientEntity& entity,
+        std::vector<model::ModelVertex>& vertices,
+        std::vector<u32>& indices,
+        bool biting);
 };
 
 } // namespace mc::client::renderer::entity::renderer::projectile

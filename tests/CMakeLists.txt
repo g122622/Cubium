@@ -874,6 +874,8 @@ add_executable(mc_tests
     client/world/entity/ClientEntitySkeletonSyncTest.cpp
     # ClientEntity 凋灵侧头朝向客户端镜像计算测试（tickWitherSideHeads/rotlerp 限速/插值/元数据同步）
     client/world/entity/ClientEntityWitherSideHeadTest.cpp
+    # ClientEntity 钓鱼浮标元数据同步端到端测试（DATA_HOOKED_ENTITY/DATA_BITING 序列化→反序列化→镜像）
+    client/world/entity/ClientEntityFishingBobberSyncTest.cpp
     # 振动粒子目标位置解析纯函数测试（方块/实体来源、实体不存在回退、未知来源类型）
     client/application/features/VibrationParticleDispatchTest.cpp
     client/entity/ClientEntityAnimationTest.cpp

@@ -284,9 +284,14 @@ void FishingBobberEntity::tick()
                 if (m_ticksCatchable <= 0) {
                     m_state = State::Bobbing;
                     _setWaitTime();
+                    // 对应 MC 1.21.11 FishingHook.catchingFish(): nibble 归零时
+                    // 设置 DATA_BITING = false，客户端停止咬钩动画。
+                    m_dataManager.set(DATA_BITING_PARAM, false);
                 }
             } else {
                 m_state = State::Bobbing;
+                // 防御性：确保 DATA_BITING 已清除（虽然理论上不应进入此分支时仍为 true）
+                m_dataManager.set(DATA_BITING_PARAM, false);
             }
             break;
 
@@ -484,6 +489,9 @@ void FishingBobberEntity::_catchingFish()
             playSound(SoundEvents::ENTITY_FISHING_BOBBER_SPLASH,
                 0.25f,
                 1.0f + (math::Random().nextFloat() - math::Random().nextFloat()) * 0.4f);
+            // 对应 MC 1.21.11 FishingHook.catchingFish(): 鱼咬钩时设置 DATA_BITING = true
+            // 客户端收到后会驱动浮标下沉动画。
+            m_dataManager.set(DATA_BITING_PARAM, true);
         }
         return;
     }
