@@ -121,6 +121,13 @@ EnderDragonEntity::EnderDragonEntity(EntityId id)
 
     // 初始化路径点
     initPathPoints();
+
+    // 构造时设置满血，对齐 MC 1.21.11 EnderDragon 构造函数中的
+    // this.setHealth(this.getMaxHealth());
+    // registerAttributes() 已设置 MAX_HEALTH=200，此处显式赋值确保 m_health 同步。
+    // MC 原版还在此处设置 noPhysics=true，Cubium 通过物理系统侧的碰撞过滤处理，
+    // LivingEntity 不暴露 noPhysics 接口，因此此处不重复设置。
+    setHealth(maxHealth());
 }
 
 void EnderDragonEntity::initDragonParts()

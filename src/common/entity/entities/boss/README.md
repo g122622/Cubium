@@ -185,7 +185,6 @@ MC 原版中末影龙只接受两种伤害：
 **与 MC 的差异**：
 
 - Cubium 没有 `globalLevelEvent`（全局广播世界事件），`DRAGON_DEATH_SOUND`（1028）通过 `playEvent` 广播给附近客户端（范围有限），同时通过 `playSound(ENTITY_ENDER_DRAGON_DEATH, volume=5.0)` 显式播放音效以近似 MC 的全局广播。
-- MC 原版在 `tickDeath` 开头调用 `dragonFight.updateDragon(this)` 同步 Boss 血条；Cubium 的 `EndDragonFight` 尚未实现 `updateDragon`，已留有 TODO 注释。
 - MC 原版通过 `DragonDeathPhase` 在龙飞回祭坛后才将生命值设为 0 触发 `tickDeath`；Cubium 未实现 `DragonDeathPhase`，龙生命值降为 0 后立即开始死亡动画。
 
 ## 参考

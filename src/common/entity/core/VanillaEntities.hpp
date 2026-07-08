@@ -646,14 +646,20 @@ private:
                 .build());
 
         // ========== Boss ==========
-        // TODO: 末影龙实现不完整，暂未注册
-        // registry.registerType(EntityTypes::ENDER_DRAGON,
-        //     EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
-        //         .size(16.0f, 8.0f)
-        //         .trackingRange(128)
-        //         .updateInterval(1)
-        //         .immuneToFire()
-        //         .build());
+        // 末影龙
+        // MC 1.21.11 EnderDragon.getDefaultDimensions(): 宽 16.0f, 高 8.0f
+        // trackingRange: 128 (Boss 实体需要远距离可见)
+        // updateInterval: 1 (每 tick 同步，龙动画高频)
+        // immuneToFire: 末影龙免疫火焰
+        // 不可召唤（canSummon 默认 false）：末影龙仅由 EndDragonFight::findOrCreateDragon() 创建，
+        // 不通过 /summon 或刷怪蛋生成（与监守者通过 SculkShrieker 召唤不同）
+        registry.registerType(EntityTypes::ENDER_DRAGON,
+            EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
+                .size(16.0f, 8.0f)
+                .trackingRange(128)
+                .updateInterval(1)
+                .immuneToFire()
+                .build());
 
         // 凋灵
         registry.registerType(EntityTypes::WITHER,

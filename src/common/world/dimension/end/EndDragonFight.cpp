@@ -24,12 +24,15 @@
 #include "EndDragonFight.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
@@ -164,11 +167,7 @@ void EndDragonFight::tick(IWorld& world)
         const bool arenaLoaded = _isArenaLoaded(world);
         const bool uuidEmpty = m_dragonUUID.empty();
         if ((uuidEmpty || ++m_ticksSinceDragonSeen >= MAX_TICKS_BEFORE_DRAGON_RESPAWN) && arenaLoaded) {
-            // TODO: findOrCreateDragon() 尚未实现。需要：
-            // 1. 查找世界中已存在的末影龙实体（IWorld::getEntitiesByType(ENDER_DRAGON)）
-            // 2. 如果存在，记录其 UUID
-            // 3. 如果不存在，创建新的末影龙实体并设置初始阶段
-            // 当前实现仅重置计数器，避免日志刷屏
+            _findOrCreateDragon(world);
             m_ticksSinceDragonSeen = 0;
         }
     }
@@ -287,6 +286,94 @@ void EndDragonFight::_loadData(const Data& data)
         math::Random rng(m_worldSeed);
         rng.shuffle(m_gateways);
     }
+}
+
+void EndDragonFight::_findOrCreateDragon(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.findOrCreateDragon()
+    // 查找世界中已存在的末影龙实体，若存在则复用其 UUID，否则创建新龙。
+    //
+    // MC 原版：
+    //   List<? extends EnderDragon> list = this.level.getDragons();
+    //   if (list.isEmpty()) { this.createNewDragon(); }
+    //   else { this.dragonUUID = list.get(0).getUUID(); }
+
+    // 仅取存活的末影龙（MC 原版 getDragons() 内部过滤 isAlive）
+    std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+
+    // 过滤已死亡/已移除的实体（防御性，正常情况下 getEntitiesByType 不返回死亡实体）
+    dragons.erase(
+        std::remove_if(dragons.begin(), dragons.end(), [](Entity* e) { return e == nullptr || e->isRemoved(); }),
+        dragons.end());
+
+    if (!dragons.empty()) {
+        // 复用已存在的龙：仅记录 UUID，不重复生成
+        Entity* dragon = dragons[0];
+        m_dragonUUID = dragon->uuid();
+        m_dragonKilled = false;
+        spdlog::info("EndDragonFight: Found existing dragon entity ({}) - reusing UUID.", m_dragonUUID);
+        return;
+    }
+
+    // 世界中无末影龙：创建新龙
+    spdlog::info("EndDragonFight: No dragon entity found, respawning it.");
+    _createNewDragon(world);
+}
+
+bool EndDragonFight::_createNewDragon(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.createNewDragon()
+    // 通过 EntityType 工厂创建末影龙，设置位置/朝向/初始阶段，加入世界。
+
+    // 1. 从实体注册表获取末影龙 EntityType
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* dragonType = registry.getType(entity::EntityTypes::ENDER_DRAGON);
+    if (dragonType == nullptr) {
+        spdlog::warn("EndDragonFight: Ender dragon entity type not registered, cannot create new dragon.");
+        return false;
+    }
+
+    // 2. 工厂方法创建实例（Entity 构造时自动生成随机 UUID）
+    std::unique_ptr<Entity> dragonEntity = dragonType->create(&world);
+    if (dragonEntity == nullptr) {
+        spdlog::warn("EndDragonFight: Ender dragon factory returned nullptr.");
+        return false;
+    }
+
+    // 3. 设置生成位置 (0, DRAGON_SPAWN_Y, 0) 和随机朝向
+    // MC 原版：snapTo(origin.x, 128+origin.y, origin.z, random.nextFloat()*360, 0)
+    // origin 默认 (0,0,0)，故生成位置为 (0, 128, 0)
+    math::Random& rng = world.getRandom();
+    const f32 yaw = rng.nextFloat() * 360.0f;
+    dragonEntity->setPosition(Vector3(0.0f, static_cast<f32>(DRAGON_SPAWN_Y), 0.0f));
+    dragonEntity->setRotation(yaw, 0.0f);
+
+    // 4. 设置初始阶段为 HoldingPattern
+    // MC 原版：enderdragon.getPhaseManager().setPhase(EnderDragonPhase.HOLDING_PATTERN)
+    // Cubium 的 EnderDragonEntity 默认阶段已是 HoldingPattern（构造函数初始化），
+    // 但显式调用 setPhase 以对齐 MC 语义，并为未来阶段系统扩展预留接入点。
+    auto* dragon = dynamic_cast<entity::EnderDragonEntity*>(dragonEntity.get());
+    if (dragon != nullptr) {
+        dragon->setPhase(entity::EnderDragonEntity::Phase::HoldingPattern);
+    }
+
+    // 5. 在 spawnEntity 之前记录 UUID，因为 spawnEntity 会 transfer ownership
+    const std::string newDragonUUID = dragonEntity->uuid();
+
+    // 6. 加入世界（ServerWorld::spawnEntity 内部完成 ID 分配、EntityTracker 注册、区块跟踪）
+    const EntityId spawnedId = world.spawnEntity(std::move(dragonEntity));
+    if (spawnedId == 0) {
+        spdlog::warn("EndDragonFight: Failed to spawn new dragon (spawnEntity returned 0).");
+        return false;
+    }
+
+    // 7. 记录新龙的 UUID，重置状态
+    m_dragonUUID = newDragonUUID;
+    m_dragonKilled = false;
+    m_ticksSinceDragonSeen = 0;
+
+    spdlog::info("EndDragonFight: Spawned new dragon entity (id={}, uuid={}).", spawnedId, m_dragonUUID);
+    return true;
 }
 
 void EndDragonFight::_scanState(IWorld& world)

@@ -17,12 +17,13 @@
 
 1. **追踪战斗状态**: 记录龙是否已被击杀（`previouslyKilled` 标志）
 2. **末影龙存活检测**: 在状态扫描时通过 `IWorld::getEntitiesByType()` 检测末影龙是否存活，并追踪其 UUID
-3. **首次击杀放置龙蛋**: 仅首次击杀末影龙时在祭坛顶部放置龙蛋
-4. **折跃门生成**: 每次击杀末影龙生成一个末地折跃门，最多 20 个
-5. **经验掉落区分**: 首次击杀 12000 XP，后续击杀 500 XP
-6. **出口传送门创建**: 龙死亡后创建激活态出口传送门
-7. **旧存档状态扫描**: 首次加载旧世界时检测出口传送门是否存在以推断 `previouslyKilled`
-8. **Boss 栏同步**: 通过 `IDragonBossBar` 接口同步龙血量百分比、自定义名称和可见性；服务端通过 `setDragonBossBar()` 注入真实实现
+3. **末影龙失联重生**: 当龙 UUID 为空或长时间未被 `updateDragon()` 调用时，通过 `_findOrCreateDragon()` 重新查找或生成末影龙
+4. **首次击杀放置龙蛋**: 仅首次击杀末影龙时在祭坛顶部放置龙蛋
+5. **折跃门生成**: 每次击杀末影龙生成一个末地折跃门，最多 20 个
+6. **经验掉落区分**: 首次击杀 12000 XP，后续击杀 500 XP
+7. **出口传送门创建**: 龙死亡后创建激活态出口传送门
+8. **旧存档状态扫描**: 首次加载旧世界时检测出口传送门是否存在以推断 `previouslyKilled`
+9. **Boss 栏同步**: 通过 `IDragonBossBar` 接口同步龙血量百分比、自定义名称和可见性；服务端通过 `setDragonBossBar()` 注入真实实现
 
 ### Boss 栏同步
 
@@ -104,3 +105,43 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 4. 不匹配时：忽略（防止错误龙实体污染 Boss 栏）
 
 对应 MC Java: `EnderDragonEntity.aiStep()` 中调用 `dragonFight.updateDragon(this)`。
+
+### 末影龙失联重生
+
+`tick()` 中每游戏 tick 检查末影龙失联状态。当 `!dragonKilled` 且满足以下任一条件时，调用 `_findOrCreateDragon()`：
+
+- `m_dragonUUID` 为空（从未追踪或已被清除）
+- `++m_ticksSinceDragonSeen >= MAX_TICKS_BEFORE_DRAGON_RESPAWN`（1200 tick，约 60 秒未通过 `updateDragon()` 看到龙）
+
+且竞技场区块已加载（`_isArenaLoaded()` 返回 true）时触发。
+
+#### _findOrCreateDragon
+
+对应 MC Java `EndDragonFight.findOrCreateDragon()`：
+
+1. 通过 `IWorld::getEntitiesByType(EntityTypeIdNumber::ENDER_DRAGON)` 查找已存在的末影龙
+2. 过滤已移除（`isRemoved()`）的实体（防御性）
+3. 若存在存活龙：记录其 UUID 到 `m_dragonUUID`，设置 `dragonKilled = false`，不重复生成
+4. 若不存在：调用 `_createNewDragon()` 创建新龙
+
+#### _createNewDragon
+
+对应 MC Java `EndDragonFight.createNewDragon()`：
+
+1. 从 `EntityRegistry` 获取 `ENDER_DRAGON` 的 `EntityType`
+2. 通过工厂方法 `EntityType::create()` 创建实例（`Entity` 构造时自动生成随机 UUID）
+3. 设置生成位置 `(0, DRAGON_SPAWN_Y, 0)`（DRAGON_SPAWN_Y=128，讲台正上方）
+4. 设置随机 yaw（`world.getRandom().nextFloat() * 360`），pitch=0
+5. 设置初始阶段为 `HoldingPattern`
+6. 调用 `IWorld::spawnEntity()` 加入世界（分配 ID、注册追踪器）
+7. 记录新龙 UUID 到 `m_dragonUUID`，重置 `dragonKilled = false` 和 `ticksSinceDragonSeen = 0`
+
+#### 与 MC 原版的差异
+
+- MC 原版在 `createNewDragon()` 中调用 `level.getChunkAt()` 强制加载生成位置区块；Cubium 的调用方（`tick()`）已通过 `_isArenaLoaded()` 保证区块加载，故不再重复
+- MC 原版通过 `PhaseManager` 设置阶段；Cubium 的 `EnderDragonEntity` 直接提供 `setPhase()` 方法
+- MC 原版使用 `List.get(0)` 取第一条龙；Cubium 同样取过滤后列表的首元素
+
+#### 注意：末影水晶重生系统未实现
+
+此处实现的是龙失联后的**自然重生**（findOrCreateDragon）。玩家通过末影水晶主动触发的重生动画序列（4 个末影水晶光柱 → 龙重生）尚未实现，见 `EndDragonFight.hpp` 中的 TODO 注释。

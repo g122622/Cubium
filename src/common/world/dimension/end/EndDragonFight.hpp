@@ -117,6 +117,10 @@ public:
     /// Boss 栏玩家追踪半径，对应 MC Java EndDragonFight.validPlayer 的 192.0
     static constexpr f32 PLAYER_TRACKING_RADIUS = 192.0f;
 
+    /// 末影龙生成 Y 坐标，对应 MC Java EndDragonFight.DRAGON_SPAWN_Y
+    /// 龙在末地原点 (0, DRAGON_SPAWN_Y, 0) 生成，位于出口讲台正上方 128 格高空
+    static constexpr i32 DRAGON_SPAWN_Y = 128;
+
     // ========== 构造/析构 ==========
 
     /**
@@ -276,6 +280,39 @@ private:
     void _scanState(IWorld& world);
 
     /**
+     * @brief 查找或创建末影龙
+     *
+     * 当龙失联（dragonUUID 为空或 ticksSinceDragonSeen 超阈值）时调用：
+     * 1. 查找世界中已存在的末影龙实体（IWorld::getEntitiesByType(ENDER_DRAGON)）
+     * 2. 若存在，记录其 UUID 到 m_dragonUUID（复用已有龙，避免重复生成）
+     * 3. 若不存在，调用 _createNewDragon() 创建新龙
+     *
+     * 对应 MC Java: EndDragonFight.findOrCreateDragon()
+     *
+     * @param world 末地世界引用
+     */
+    void _findOrCreateDragon(IWorld& world);
+
+    /**
+     * @brief 创建新末影龙并加入世界
+     *
+     * 流程：
+     * 1. 通过 EntityRegistry 获取末影龙 EntityType，调用工厂方法创建实例
+     * 2. 设置生成位置 (0, DRAGON_SPAWN_Y, 0)，随机 yaw（0~360°），pitch=0
+     * 3. 设置初始阶段为 HoldingPattern
+     * 4. 通过 IWorld::spawnEntity 加入世界
+     * 5. 记录新龙的 UUID 到 m_dragonUUID
+     *
+     * 对应 MC Java: EndDragonFight.createNewDragon()
+     * 注意：MC 原版在生成前调用 level.getChunkAt() 强制加载生成位置区块，
+     * Cubium 的调用方（tick）已通过 _isArenaLoaded() 保证区块加载，此处不再重复。
+     *
+     * @param world 末地世界引用
+     * @return true 创建成功
+     */
+    bool _createNewDragon(IWorld& world);
+
+    /**
      * @brief 检查是否存在活跃的出口传送门
      *
      * 扫描原点周围区块，查找 END_PORTAL 方块。
@@ -360,11 +397,14 @@ private:
 
     friend class test::EndDragonFightTestAccessor;
 
-    // TODO: 末影龙重生系统尚未实现。需要：
+    // TODO: 末影水晶触发的重生系统尚未实现。需要：
     // 1. 末影水晶管理：检测末地黑曜石柱上的末影水晶放置/破坏
     // 2. 重生序列：4个末影水晶同时存在时启动重生动画（ crystals -> beam -> dragon spawn ）
     // 3. 重生计时器：重生过程约 10 秒，期间需播放粒子效果和光柱动画
     // 4. 重生后状态重置：dragonKilled = false, needsStateScanning = false
+    //
+    // 注意：龙失联后的自然重生（findOrCreateDragon）已实现，见 _findOrCreateDragon()。
+    // 此处 TODO 仅针对玩家通过末影水晶主动触发的重生动画序列。
 };
 
 } // namespace mc
