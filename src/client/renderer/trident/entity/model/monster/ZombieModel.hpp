@@ -65,7 +65,7 @@ private:
     void setupParts() override;
 
     bool m_slim = false;         // 是否使用细长纹理
-    bool m_isAggressive = false; // TODO: 目前未在动画计算中使用，需接入攻击状态影响手臂动画
+    bool m_isAggressive = false; // 是否处于激怒/攻击中状态（由 EntityRendererManager::_applyZombieState 推送）
 };
 
 } // namespace mc::client::renderer::entity::model::monster

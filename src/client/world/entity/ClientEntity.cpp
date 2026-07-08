@@ -27,6 +27,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
@@ -352,6 +353,24 @@ void ClientEntity::syncMetadataFromDataManager()
                 const bool charging = value->get<bool>();
                 setChargingBow(charging);
             }
+        }
+    }
+
+    // Mob 激怒/攻击中状态同步（僵尸、尸壳、溺尸、僵尸村民等所有 Mob）
+    // 通过 MobEntity::DATA_MOB_FLAGS_PARAM 的位 2 (MOB_FLAG_AGGRESSIVE) 同步。
+    // 对应 MC 1.21.11 Mob.isAggressive() / DATA_MOB_FLAGS_ID 位 2。
+    // 服务端写入路径：MeleeAttackGoal::startExecuting → setAggroed(true) →
+    //   MobEntity::setAggressive(true) → 数据参数置位 MOB_FLAG_AGGRESSIVE。
+    // 客户端读取后驱动 ZombieModel::setAggressive，进而影响 animateZombieArms
+    // 的空手攻击抬臂基础角度（aggressive 时 -PI/1.5，否则 -PI/2.25）。
+    // 注意：DATA_MOB_FLAGS_PARAM 由 MobEntity::registerData 注册，所有继承自
+    // MobEntity 的实体（含动物、怪物）都会拥有此参数，因此无需按 typeId 过滤，
+    // 仅以 hasParam 判断即可，缺失时（如非 Mob 实体）自然跳过。
+    if (m_dataManager.hasParam(::mc::MobEntity::getMobFlagsParamId())) {
+        if (const auto* value = m_dataManager.getRaw(::mc::MobEntity::getMobFlagsParamId()); value != nullptr) {
+            const i8 flags = value->get<i8>();
+            const bool aggressive = (flags & static_cast<i8>(::mc::MobEntity::getAggressiveFlagMask())) != 0;
+            setIsAggressive(aggressive);
         }
     }
 

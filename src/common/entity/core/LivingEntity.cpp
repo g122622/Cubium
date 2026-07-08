@@ -863,6 +863,27 @@ i32 LivingEntity::getArmSwingAnimationEnd() const
     return std::max(base, 1);
 }
 
+void LivingEntity::swing(Hand hand)
+{
+    // 条件判断允许在动画进行到一半时重新触发
+    if (!m_swingInProgress || m_swingProgressInt >= getArmSwingAnimationEnd() / 2 || m_swingProgressInt < 0) {
+        m_swingProgressInt = -1;
+        m_swingInProgress = true;
+        m_swingingHand = hand;
+
+        // 服务端广播挥动动画事件，对应 MC 1.21.11 LivingEntity.swing() 中
+        // 发送 ClientboundAnimatePacket 的逻辑。客户端收到后通过
+        // ClientEntity::triggerSwingAnimation 启动本地 6 tick 挥动动画。
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            using network::EntityAnimationPacket;
+            const u8 animation = (hand == Hand::MainHand)
+                ? static_cast<u8>(EntityAnimationPacket::Animation::SwingMainHand)
+                : static_cast<u8>(EntityAnimationPacket::Animation::SwingOffHand);
+            m_world->broadcastEntityAnimation(m_id, animation);
+        }
+    }
+}
+
 void LivingEntity::updateTravelAnimation(bool includeVertical)
 {
     // 在 travel() 结束时调用，更新肢体摆动动画

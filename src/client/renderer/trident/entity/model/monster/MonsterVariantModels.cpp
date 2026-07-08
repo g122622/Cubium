@@ -30,13 +30,13 @@ namespace mc::client::renderer::entity::model::monster {
 // ==================== ZombieVillagerModel ====================
 
 ZombieVillagerModel::ZombieVillagerModel()
-    : BipedModel()
+    : ZombieModel(false)
 {
     _setupParts(0.0f, false);
 }
 
 ZombieVillagerModel::ZombieVillagerModel(f32 scale, bool slim)
-    : BipedModel()
+    : ZombieModel(slim)
 {
     _setupParts(scale, slim);
 }
@@ -69,7 +69,8 @@ void ZombieVillagerModel::_setupParts(f32 scale, bool slim)
 void ZombieVillagerModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
+    // 调用 ZombieModel::setAngles 以获得 animateZombieArms 手臂前伸/攻击动画
+    ZombieModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 }
 
 void ZombieVillagerModel::setHeadVisible(bool visible)
@@ -84,13 +85,13 @@ void ZombieVillagerModel::setHeadVisible(bool visible)
 // ==================== DrownedModel ====================
 
 DrownedModel::DrownedModel()
-    : BipedModel()
+    : ZombieModel(false)
 {
     _setupParts(0.0f, 0.0f, 64, 64);
 }
 
 DrownedModel::DrownedModel(f32 scale, bool slim)
-    : BipedModel()
+    : ZombieModel(slim)
 {
     MC_UNUSED(slim);
     _setupParts(scale, 0.0f, 64, 64);
@@ -114,7 +115,8 @@ void DrownedModel::_setupParts(f32 scale, f32 yOffset, i32 textureWidth, i32 tex
 void DrownedModel::setAngles(
     f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    BipedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
+    // 调用 ZombieModel::setAngles 以获得 animateZombieArms 手臂前伸/攻击动画
+    ZombieModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
     // TODO: 溺尸游泳动画未实现
 }
@@ -130,7 +132,7 @@ StrayModel::StrayModel()
 // ==================== HuskModel ====================
 
 HuskModel::HuskModel()
-    : BipedModel()
+    : ZombieModel(false)
 {
     // 尸壳与僵尸结构相同，只是纹理不同
 }
@@ -152,7 +154,7 @@ void CaveSpiderModel::render(f64 scale)
 // ==================== GiantModel ====================
 
 GiantModel::GiantModel()
-    : BipedModel()
+    : ZombieModel(false)
 {
     // 巨人与僵尸模型相同，只是渲染时缩放更大
 }

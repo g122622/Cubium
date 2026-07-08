@@ -1066,6 +1066,40 @@ public:
      */
     void setChargingBow(bool charging) { m_chargingBow = charging; }
 
+    // ========== Mob 激怒/攻击中状态 ==========
+
+    /**
+     * @brief 获取 Mob 是否处于激怒/攻击中状态（客户端镜像）
+     *
+     * 通过元数据同步自服务端 MobEntity::DATA_MOB_FLAGS_PARAM 的位 2
+     * （对应 MC 1.21.11 Mob.MOB_FLAG_AGGRESSIVE / DATA_MOB_FLAGS_ID 位 2）。
+     *
+     * 服务端写入路径：
+     *   - MeleeAttackGoal::startExecuting() → CreatureEntity::setAggroed(true)
+     *     → MobEntity::setAggressive(true) → 数据参数置位 MOB_FLAG_AGGRESSIVE。
+     *   - MeleeAttackGoal::resetTask() → setAggroed(false) → 清除置位。
+     *
+     * 客户端读取路径：
+     *   - ClientEntity::syncMetadataFromDataManager 解析 DATA_MOB_FLAGS_PARAM，
+     *     提取位 2 后调用 setIsAggressive。
+     *   - EntityRendererManager::_applyZombieState 在僵尸模型分支读取此状态，
+     *     推送给 ZombieModel::setAggressive，驱动 animateZombieArms 的空手攻击抬臂动画
+     *     （aggressive 时基础抬臂角度为 -PI/1.5，否则 -PI/2.25）。
+     *
+     * 覆盖类型：僵尸、尸壳、溺尸、僵尸村民等所有继承自 ZombieEntity 的实体，
+     * 以及未来任何需要在客户端表现攻击姿态的 Mob。
+     *
+     * @return 是否处于激怒状态
+     */
+    [[nodiscard]] bool isAggressive() const { return m_isAggressive; }
+
+    /**
+     * @brief 设置 Mob 是否处于激怒/攻击中状态
+     *
+     * @param aggressive 是否处于激怒状态
+     */
+    void setIsAggressive(bool aggressive) { m_isAggressive = aggressive; }
+
     // ========== 钓鱼浮标状态 ==========
 
     /**
@@ -1351,6 +1385,11 @@ private:
 
     // 骷髅拉弓状态（通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM）
     bool m_chargingBow = false; ///< 是否正在拉弓（驱动 SkeletonModel 的 BowAndArrow 姿态）
+
+    // Mob 激怒/攻击中状态（通过元数据同步自服务端 MobEntity::DATA_MOB_FLAGS_PARAM 位 2）
+    // 对应 MC 1.21.11 Mob.isAggressive()。由 MeleeAttackGoal 等攻击目标在 start/reset 时设置，
+    // 驱动 ZombieModel 的空手攻击抬臂动画（animateZombieArms）。
+    bool m_isAggressive = false; ///< 是否处于激怒状态（驱动 ZombieModel 攻击手臂动画）
 
     // 兔子跳跃动画状态（对应 MC 1.21.11 Rabbit.jumpTicks / jumpDuration）
     // 收到 RabbitJump(1) 状态包时启动；由 tickRabbitJump() 在 ClientEntity::tick() 中推进

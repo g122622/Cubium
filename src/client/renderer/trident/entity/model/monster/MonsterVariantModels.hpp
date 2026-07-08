@@ -25,14 +25,18 @@
 
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
+#include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity::model::monster {
 
 /**
  * @brief 僵尸村民模型
+ *
+ * 继承自 ZombieModel（对应 MC 1.21.11 ZombieVillagerModel extends ZombieModel），
+ * 从而获得僵尸的 animateZombieArms 手臂前伸/攻击动画与 setAggressive 状态。
  */
-class ZombieVillagerModel : public BipedModel {
+class ZombieVillagerModel : public ZombieModel {
 public:
     ZombieVillagerModel();
     explicit ZombieVillagerModel(f32 scale, bool slim);
@@ -51,8 +55,11 @@ private:
 
 /**
  * @brief 溺尸模型
+ *
+ * 继承自 ZombieModel（对应 MC 1.21.11 DrownedModel extends ZombieModel），
+ * 从而获得僵尸的 animateZombieArms 手臂前伸/攻击动画与 setAggressive 状态。
  */
-class DrownedModel : public BipedModel {
+class DrownedModel : public ZombieModel {
 public:
     DrownedModel();
     explicit DrownedModel(f32 scale, bool slim);
@@ -79,9 +86,11 @@ public:
 /**
  * @brief 尸壳模型
  *
- * 与僵尸结构相同，只是纹理不同
+ * 继承自 ZombieModel（对应 MC 1.21.11 HuskModel extends ZombieModel），
+ * 从而获得僵尸的 animateZombieArms 手臂前伸/攻击动画与 setAggressive 状态。
+ * 与僵尸结构相同，只是纹理不同。
  */
-class HuskModel : public BipedModel {
+class HuskModel : public ZombieModel {
 public:
     HuskModel();
     ~HuskModel() override = default;
@@ -109,9 +118,11 @@ public:
 /**
  * @brief 巨人模型
  *
- * 与僵尸模型相同，渲染时缩放更大
+ * 继承自 ZombieModel（对应 MC 1.21.11 GiantModel extends ZombieModel），
+ * 从而获得僵尸的 animateZombieArms 手臂前伸/攻击动画与 setAggressive 状态。
+ * 与僵尸模型相同，渲染时缩放更大。
  */
-class GiantModel : public BipedModel {
+class GiantModel : public ZombieModel {
 public:
     GiantModel();
     ~GiantModel() override = default;

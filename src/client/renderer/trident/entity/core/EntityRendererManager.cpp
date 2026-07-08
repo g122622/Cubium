@@ -35,6 +35,7 @@
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
+#include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
@@ -1162,6 +1163,24 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             }
         }
 
+        // 僵尸激怒/攻击中手臂动画
+        // 第三人称僵尸及其变体走 GPU 管线路径，需要在此根据 ClientEntity::isAggressive()
+        // （通过 MobEntity::DATA_MOB_FLAGS_PARAM 位 2 同步）与 getInterpolatedSwingProgress
+        // 推送 ZombieModel 的 setAggressive / setSwingProgress，并重新调用 setAngles
+        // 使 animateZombieArms 的攻击抬臂动画生效。
+        // 覆盖普通僵尸（zombie）、尸壳（husk）、溺尸（drowned）、僵尸村民
+        // （zombie_villager）、巨人（giant）。变体模型均继承自 ZombieModel，
+        // 故 dynamic_cast<ZombieModel*> 可统一命中。
+        if (normalizedId == "zombie" || normalizedId == "minecraft:zombie" || normalizedId == "husk" ||
+            normalizedId == "minecraft:husk" || normalizedId == "drowned" || normalizedId == "minecraft:drowned" ||
+            normalizedId == "zombie_villager" || normalizedId == "minecraft:zombie_villager" ||
+            normalizedId == "giant" || normalizedId == "minecraft:giant") {
+            auto* zombieModel = dynamic_cast<model::monster::ZombieModel*>(model.get());
+            if (zombieModel != nullptr) {
+                _applyZombieState(*zombieModel, entity, context);
+            }
+        }
+
         // 凋灵侧头朝向（对应 MC 1.21.11 WitherBossModel.setupHeadRotation）
         // 第三人称凋灵走 GPU 管线路径，需要在此将 AnimationContext 中已计算的
         // 侧头偏航/俯仰角传递给 WitherModel，覆盖 setAngles 中默认的"复制主头"逻辑。
@@ -1285,6 +1304,42 @@ void EntityRendererManager::_applySkeletonArmPose(
     // ArmPose 尚未设置，handleRightArmPose 的 BowAndArrow 分支不会触发。此处
     // 重新 setAngles 使拉弓动画在 GPU 管线路径下真正生效，避免形成孤岛代码。
     skeletonModel.setAngles(context.limbSwing,
+        context.limbSwingAmount,
+        context.ageInTicks,
+        context.netHeadYaw,
+        context.headPitch,
+        context.scale * 16.0);
+}
+
+void EntityRendererManager::_applyZombieState(
+    model::monster::ZombieModel& zombieModel, const ClientEntity& entity, const core::AnimationContext& context)
+{
+    // 对应 MC 1.21.11 AbstractZombieModel.setupAnim() 调用：
+    //   AnimationUtils.animateZombieArms(leftArm, rightArm, isAggressive, renderState);
+    //
+    // isAggressive：通过 MobEntity::DATA_MOB_FLAGS_PARAM 位 2 同步到 ClientEntity。
+    //   服务端写入路径：MeleeAttackGoal::startExecuting → setAggroed(true)
+    //     → MobEntity::setAggressive(true) → 数据参数置位 MOB_FLAG_AGGRESSIVE。
+    //   客户端读取路径：syncMetadataFromDataManager → setIsAggressive。
+    //
+    // attackTime（对应 m_swingProgress）：挥手进度，由 getInterpolatedSwingProgress
+    //   提供（基于 LivingEntity 的 m_swingProgressInt 与 partialTicks 插值）。
+    //   服务端触发路径：LivingEntity::swing() 广播 EntityAnimationPacket(SwingMainHand)，
+    //     客户端收到后调用 LivingEntity::swing() 重置 m_swingProgressInt = -1 并启动挥手。
+    //
+    // ZombieModel::setAngles 读取 m_swingProgress 计算 f2/f3 攻击动画因子，并按
+    // m_isAggressive 选择基础抬臂角度 -PI/(aggressive?1.5:2.25)。两项均须在 setAngles
+    // 之前推送，否则使用模型默认值（aggressive=false, swingProgress=0）导致攻击姿态缺失。
+
+    zombieModel.setAggressive(entity.isAggressive());
+    zombieModel.setSwingProgress(entity.getInterpolatedSwingProgress(static_cast<f32>(context.partialTicks)));
+
+    // 关键：重新调用 setAngles 让 setAggressive / setSwingProgress 通过
+    // animateZombieArms 逻辑生效。_createModelForEntity 在创建模型后已调用过一次
+    // setAngles，但那时 m_isAggressive 与 m_swingProgress 均为模型默认值，
+    // 攻击抬臂动画不会正确触发。此处重新 setAngles 使激怒抬臂与挥手动画在
+    // GPU 管线路径下真正生效，避免形成孤岛代码。
+    zombieModel.setAngles(context.limbSwing,
         context.limbSwingAmount,
         context.ageInTicks,
         context.netHeadYaw,

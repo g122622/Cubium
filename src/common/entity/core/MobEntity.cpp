@@ -63,6 +63,9 @@
 
 namespace mc {
 
+// ==================== 静态成员初始化 ====================
+entity::DataParameter<i8> MobEntity::DATA_MOB_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+
 MobEntity::MobEntity(EntityId id)
     : LivingEntity(id)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
@@ -77,9 +80,25 @@ MobEntity::MobEntity(EntityId id)
     // 初始化寻路惩罚值表为 NaN（表示"未设置"，回退到 PathNodeType 默认代价）
     // 对应 MC Java 的 EnumMap<PathType, Float>：get() 返回 null 时回退到 getMalus()
     m_pathfindingMalus.fill(std::numeric_limits<f32>::quiet_NaN());
+
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 MobEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 WolfEntity / AbstractSkeletonEntity 模式。
+    registerData();
 }
 
 MobEntity::~MobEntity() = default;
+
+void MobEntity::registerData()
+{
+    // 先调用父类方法，确保基类数据参数已注册
+    LivingEntity::registerData();
+
+    // 注册 Mob 标志位数据参数，默认值为 0（无标志）
+    // 对应 MC 1.21.11 Mob.DATA_MOB_FLAGS_ID，存储 noAI/leftHanded/aggressive 位标志。
+    m_dataManager.registerParam(DATA_MOB_FLAGS_PARAM, static_cast<i8>(0));
+}
 
 void MobEntity::registerAttributes()
 {

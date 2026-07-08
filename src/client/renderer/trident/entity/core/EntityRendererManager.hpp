@@ -58,6 +58,7 @@ class PlayerModel;
 } // namespace player
 namespace monster {
 class SkeletonModel;
+class ZombieModel;
 } // namespace monster
 } // namespace mc::client::renderer::entity::model
 
@@ -466,6 +467,47 @@ private:
     void _applySkeletonArmPose(model::monster::SkeletonModel& skeletonModel,
         const ClientEntity& entity,
         const core::AnimationContext& context);
+
+    /**
+     * @brief 为僵尸模型（及其变体）推送激怒状态与挥手进度
+     *
+     * 在 _createModelForEntity 僵尸分支中调用。从 ClientEntity 读取 isAggressive()
+     * （通过 MobEntity::DATA_MOB_FLAGS_PARAM 位 2 同步）与 getInterpolatedSwingProgress，
+     * 推送到 ZombieModel 的 setAggressive / setSwingProgress，并重新调用 setAngles
+     * 使 animateZombieArms 的攻击抬臂动画生效。
+     *
+     * 对应 MC 1.21.11 AbstractZombieModel.setupAnim() 中：
+     *   AnimationUtils.animateZombieArms(leftArm, rightArm, isAggressive, renderState);
+     * 其中 renderState.attackTime 对应本项目的 m_swingProgress。
+     *
+     * 覆盖类型：普通僵尸（zombie）、尸壳（husk）、溺尸（drowned）、僵尸村民
+     * （zombie_villager）、巨人（giant）。这些模型均继承自 ZombieModel，
+     * 故 dynamic_cast<ZombieModel*> 可统一命中。
+     *
+     * 数据流：
+     *   服务端 MeleeAttackGoal::startExecuting → MobEntity::setAggressive(true)
+     *     → DATA_MOB_FLAGS_PARAM 置位 MOB_FLAG_AGGRESSIVE → EntityTracker 广播
+     *   客户端 ClientEntity::syncMetadataFromDataManager 读取位 2 → setIsAggressive
+     *   EntityRendererManager::_applyZombieState 读取 isAggressive → ZombieModel::setAggressive
+     *   ZombieModel::setAngles 中按 m_isAggressive 选择 -PI/1.5 或 -PI/2.25 基础角度
+     *
+     * 关键：setSwingProgress 必须在 setAngles 之前推送，因为 ZombieModel::setAngles
+     * 直接读取 m_swingProgress 计算 f2/f3 攻击动画因子。_createModelForEntity 通用路径
+     * 在创建模型后已调用过一次 setAngles，但那时 m_swingProgress 仍为模型默认值 0，
+     * 且 m_isAggressive 也未设置，故攻击动画不正确。此处重新 setAngles 使激怒抬臂与
+     * 挥手动画在 GPU 管线路径下真正生效，避免形成孤岛代码。
+     *
+     * TODO: MC 1.21.11 animateZombieArms 中有 flag = (swingAnimationType != STAB)
+     *       守卫，持剑刺击时跳过僵尸手臂动画（改用 swingWeaponDown）。本项目尚未
+     *       实现 SwingAnimationType，此处等价于 flag=true（非刺击）。待武器系统引入
+     *       SwingAnimationType 后，需在此处读取并按 MC 原版守卫。
+     *
+     * @param zombieModel 已通过 setAngles 设置基础动画的僵尸模型
+     * @param entity 客户端实体（提供 isAggressive / getInterpolatedSwingProgress）
+     * @param context 动画上下文（提供 partialTicks / limbSwing 等用于重新调用 setAngles）
+     */
+    void _applyZombieState(
+        model::monster::ZombieModel& zombieModel, const ClientEntity& entity, const core::AnimationContext& context);
 
     /**
      * @brief 为 BipedModel 派生模型推送鞘翅飞行状态与速度因子

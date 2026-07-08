@@ -53,7 +53,7 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
-    void resetTask() noexcept override;
+    void resetTask() override;
     void tick() override;
 
     [[nodiscard]] std::string getTypeName() const noexcept override { return "MeleeAttackGoal"; }

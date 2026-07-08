@@ -102,6 +102,61 @@ public:
     MobEntity(MobEntity&&) = delete;
     MobEntity& operator=(MobEntity&&) = delete;
 
+    /**
+     * @brief 注册同步数据参数
+     *
+     * 重写 LivingEntity::registerData，注册 DATA_MOB_FLAGS_PARAM。
+     * 由于 C++ 虚函数在基类构造函数中不会派发到派生类，
+     * 派生类构造函数必须显式调用 registerData()，参考 WolfEntity / AbstractSkeletonEntity 模式。
+     */
+    void registerData() override;
+
+    // ========== 攻击/激怒状态同步 ==========
+
+    /**
+     * @brief 检查是否处于激怒（攻击中）状态
+     *
+     * 通过 DATA_MOB_FLAGS_PARAM 位 2 (0x04) 同步到客户端，
+     * 对应 MC 1.21.11 Mob.isAggressive()。
+     * 由 MeleeAttackGoal 等攻击目标在 start/reset 时设置，
+     * 驱动 ZombieModel/SkeletonModel 的空手攻击抬臂动画。
+     */
+    [[nodiscard]] bool isAggressive() const
+    {
+        return (m_dataManager.get<i8>(DATA_MOB_FLAGS_PARAM) & static_cast<i8>(MOB_FLAG_AGGRESSIVE)) != 0;
+    }
+
+    /**
+     * @brief 设置激怒（攻击中）状态
+     *
+     * 写入 DATA_MOB_FLAGS_PARAM 位 2，由 EntityTracker 自动广播到所有观察者客户端。
+     * 同时维护 m_aggroed 内存镜像字段以保持向后兼容。
+     *
+     * @param aggressive 是否处于激怒状态
+     */
+    void setAggressive(bool aggressive)
+    {
+        m_aggroed = aggressive;
+        const i8 current = m_dataManager.get<i8>(DATA_MOB_FLAGS_PARAM);
+        const i8 updated = aggressive ? static_cast<i8>(current | MOB_FLAG_AGGRESSIVE)
+                                      : static_cast<i8>(current & ~MOB_FLAG_AGGRESSIVE);
+        m_dataManager.set(DATA_MOB_FLAGS_PARAM, updated);
+    }
+
+    /**
+     * @brief 获取 Mob 标志位参数 ID（供客户端 syncMetadataFromDataManager 使用）
+     */
+    [[nodiscard]] static u16 getMobFlagsParamId() { return DATA_MOB_FLAGS_PARAM.id(); }
+
+    /**
+     * @brief 获取"激怒"标志位的位掩码（供客户端解析 DATA_MOB_FLAGS_PARAM 使用）
+     *
+     * 对应 MC 1.21.11 Mob.MOB_FLAG_AGGRESSIVE（位 2，0x04）。
+     * ClientEntity::syncMetadataFromDataManager 读取 DATA_MOB_FLAGS_PARAM 后，
+     * 用此掩码按位与判断 aggressive 位是否置位。
+     */
+    [[nodiscard]] static constexpr i8 getAggressiveFlagMask() { return MOB_FLAG_AGGRESSIVE; }
+
     // ========== AI 目标系统 ==========
 
     /**
@@ -179,13 +234,13 @@ public:
      * @brief 检查是否处于激怒状态
      * 激怒状态会触发特定的渲染效果
      */
-    [[nodiscard]] bool isAggroed() const { return m_aggroed; }
+    [[nodiscard]] bool isAggroed() const { return isAggressive(); }
 
     /**
      * @brief 设置激怒状态
-     * 在攻击目标时设置
+     * 在攻击目标时设置，通过 metadata 同步到客户端
      */
-    void setAggroed(bool aggroed) { m_aggroed = aggroed; }
+    void setAggroed(bool aggroed) { setAggressive(aggroed); }
 
     // ========== 刻更新 ==========
 
@@ -1120,6 +1175,24 @@ protected:
      */
     void enchantSpawnedArmor(
         math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
+
+    // ========== 同步数据参数 ==========
+
+    /**
+     * @brief Mob 标志位同步参数
+     *
+     * 对应 MC 1.21.11 Mob.DATA_MOB_FLAGS_ID。
+     * 存储位标志：bit 2 (0x04) = aggressive（激怒/攻击中状态）。
+     * 由 setAggressive 写入，由 EntityTracker 自动广播到所有观察者客户端，
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取后驱动
+     * ZombieModel/SkeletonModel 的空手攻击抬臂动画。
+     */
+    static entity::DataParameter<i8> DATA_MOB_FLAGS_PARAM;
+
+    // Mob 标志位定义（对应 MC 1.21.11 Mob 的 MOB_FLAG_* 常量）
+    static constexpr i8 MOB_FLAG_NO_AI = 1;      // bit 0
+    static constexpr i8 MOB_FLAG_LEFTHANDED = 2; // bit 1
+    static constexpr i8 MOB_FLAG_AGGRESSIVE = 4; // bit 2
 };
 
 } // namespace mc

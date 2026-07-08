@@ -146,13 +146,18 @@ void MeleeAttackGoal::startExecuting()
     }
 }
 
-void MeleeAttackGoal::resetTask() noexcept
+void MeleeAttackGoal::resetTask()
 {
     m_attackTarget = nullptr;
     m_failedPathFindingPenalty = 0;
 
     if (m_creature) {
         m_creature->clearNavigation();
+        // 清除激怒状态，与 startExecuting 中的 setAggroed(true) 对称。
+        // 对应 MC 1.21.11 MeleeAttackGoal.stop() 中调用 mob.setAggressive(false)。
+        // setAggroed 内部调用 setAggressive，通过 DATA_MOB_FLAGS_PARAM 同步到客户端，
+        // 驱动 ZombieModel 等模型放下举起的攻击手臂。
+        m_creature->setAggroed(false);
     }
 }
 
