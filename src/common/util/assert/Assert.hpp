@@ -70,7 +70,7 @@ using AssertHandler = std::function<void(const AssertFailure&)>;
  */
 struct AssertConfig {
     AssertHandler handler;          // 自定义处理器
-    bool captureStackTrace = false; // 是否捕获堆栈跟踪
+    bool captureStackTrace = true;  // 是否捕获堆栈跟踪（默认开启，与 CrashHandler 的崩溃栈输出对齐）
     bool breakOnFailure = false;    // 是否触发调试器断点
     bool throwException = false;    // 是否抛出异常
     bool continueExecution = false; // 是否继续执行（仅 Debug 级别）
@@ -132,8 +132,11 @@ public:
     [[nodiscard]] std::string captureStackTrace() const;
 
 private:
-    AssertManager() = default;
+    AssertManager();
     ~AssertManager() = default;
+
+    // 读取 "0/1" 形式的布尔环境变量（值为 1/true/TRUE 视为真）
+    bool readEnvFlag(const char* name) const;
 
     AssertConfig m_config;
 };
@@ -141,16 +144,9 @@ private:
 /**
  * @brief 默认断言处理器
  *
- * 输出到 stderr 并终止程序
+ * 输出失败信息（含调用栈）到 stderr 并终止程序
  */
 [[noreturn]] void defaultAssertHandler(const AssertFailure& failure);
-
-/**
- * @brief 日志断言处理器
- *
- * 使用 spdlog 记录错误
- */
-[[noreturn]] void logAssertHandler(const AssertFailure& failure);
 
 /**
  * @brief 异常断言处理器

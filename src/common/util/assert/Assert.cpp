@@ -22,9 +22,10 @@
  */
 
 #include "Assert.hpp"
+#include "CrashHandler.hpp"
+
 #include <cstdlib>
 #include <cstring>
-#include <iomanip>
 #include <iostream>
 #include <mutex>
 
@@ -35,13 +36,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
-#include <DbgHelp.h>
 // clang-format on
-#pragma comment(lib, "dbghelp.lib")
-#elif defined(__linux__) || defined(__APPLE__)
-#include <cxxabi.h>
-#include <execinfo.h>
-#include <unistd.h>
 #endif
 
 namespace mc::assert {
@@ -64,6 +59,37 @@ AssertManager& AssertManager::instance()
 {
     static AssertManager instance;
     return instance;
+}
+
+AssertManager::AssertManager()
+{
+    // 断言失败默认捕获调用栈，便于在没有调试器附加时定位失败根因
+    // （与 CrashHandler 的崩溃栈输出对齐）。如需关闭（例如压测热路径），
+    // 设置环境变量 MC_ASSERT_NO_STACK=1 即可全局禁用。
+    m_config.captureStackTrace = !readEnvFlag("MC_ASSERT_NO_STACK");
+}
+
+bool AssertManager::readEnvFlag(const char* name) const
+{
+    if (name == nullptr) {
+        return false;
+    }
+#ifdef _WIN32
+    // 使用 GetEnvironmentVariableA 避免 UCRT getenv 的弃用警告（C4996/-Wdeprecated-declarations）
+    char buffer[8] = {};
+    const DWORD len = GetEnvironmentVariableA(name, buffer, static_cast<DWORD>(sizeof(buffer)));
+    if (len == 0 || len >= sizeof(buffer)) {
+        // 0 表示变量不存在或为空；>= buffer 表示值过长，非预期布尔标记
+        return false;
+    }
+    const char* value = buffer;
+#else
+    const char* value = std::getenv(name);
+    if (value == nullptr) {
+        return false;
+    }
+#endif
+    return std::strcmp(value, "1") == 0 || std::strcmp(value, "true") == 0 || std::strcmp(value, "TRUE") == 0;
 }
 
 void AssertManager::setConfig(const AssertConfig& config)
@@ -145,86 +171,10 @@ bool AssertManager::handleRecoverableFailure(
 
 std::string AssertManager::captureStackTrace() const
 {
-    std::ostringstream oss;
-    oss << "Stack trace:\n";
-
-#ifdef _WIN32
-    // Windows 堆栈跟踪
-    constexpr i32 MAX_FRAMES = 64;
-    void* stack[MAX_FRAMES];
-    USHORT frames = CaptureStackBackTrace(2, MAX_FRAMES, stack, nullptr);
-
-    HANDLE process = GetCurrentProcess();
-    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(malloc(sizeof(SYMBOL_INFO) + 256));
-    symbol->MaxNameLen = 255;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-    IMAGEHLP_LINE64 line;
-    line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-    DWORD displacement;
-
-    SymInitialize(process, nullptr, TRUE);
-
-    for (USHORT i = 0; i < frames; ++i) {
-        DWORD64 address = reinterpret_cast<DWORD64>(stack[i]);
-
-        if (SymFromAddr(process, address, nullptr, symbol)) {
-            oss << "  [" << std::setw(2) << i << "] " << symbol->Name;
-
-            if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
-                oss << " at " << line.FileName << ":" << line.LineNumber;
-            }
-
-            oss << "\n";
-        }
-    }
-
-    SymCleanup(process);
-    free(symbol);
-
-#elif defined(__linux__) || defined(__APPLE__)
-    // Linux/macOS 堆栈跟踪
-    constexpr i32 MAX_FRAMES = 64;
-    void* buffer[MAX_FRAMES];
-    int frames = backtrace(buffer, MAX_FRAMES);
-    char** symbols = backtrace_symbols(buffer, frames);
-
-    if (symbols) {
-        for (int i = 2; i < frames; ++i) {
-            oss << "  [" << std::setw(2) << (i - 2) << "] ";
-
-            // 尝试解码 C++ 符号
-            std::string sym(symbols[i]);
-
-#ifdef __GNUC__
-            // 尝试使用 abi::__cxa_demangle 解码
-            size_t start = sym.find('(');
-            size_t end = sym.find('+', start);
-
-            if (start != std::string::npos && end != std::string::npos) {
-                std::string mangled = sym.substr(start + 1, end - start - 1);
-                int status = 0;
-                char* demangled = abi::__cxa_demangle(mangled.c_str(), nullptr, nullptr, &status);
-
-                if (status == 0 && demangled) {
-                    oss << demangled;
-                    free(demangled);
-                } else {
-                    oss << sym;
-                }
-            } else {
-                oss << sym;
-            }
-#else
-            oss << sym;
-#endif
-            oss << "\n";
-        }
-        free(symbols);
-    }
-#endif
-
-    return oss.str();
+    // 委托给 CrashHandler 的统一实现：使用 StackWalk64 + 一次性符号初始化，
+    // 并尝试枚举每帧局部变量，质量优于 CaptureStackBackTrace 裸调用。
+    // 不跳过任何帧（skipFrames=0），完整保留断言处理链与调用方栈帧。
+    return "Stack trace:\n" + CrashHandler::captureStackTrace(0);
 }
 
 // ============================================================================
@@ -241,25 +191,6 @@ std::string AssertManager::captureStackTrace() const
     perfettoManager.stopTracing();
     perfettoManager.shutdown();
     std::cout << "Perfetto tracing stopped due to assertion failure" << std::endl;
-
-    std::abort();
-}
-
-// ============================================================================
-// 日志断言处理器
-// ============================================================================
-
-[[noreturn]] void logAssertHandler(const AssertFailure& failure)
-{
-    // 如果 spdlog 可用，使用它；否则回退到 stderr
-    // 这里简单使用 stderr，实际项目中可以集成 spdlog
-    std::cerr << "[ASSERT] Assertion failed: " << failure.expression;
-
-    if (!failure.message.empty()) {
-        std::cerr << " - " << failure.message;
-    }
-
-    std::cerr << " at " << failure.file << ":" << failure.line << " in " << failure.function << std::endl;
 
     std::abort();
 }
