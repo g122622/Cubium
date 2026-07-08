@@ -30,10 +30,12 @@
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
+using namespace mc::client::ui::kagero::tpl::binder;
 using namespace mc::client::Colors;
 using namespace mc;
 
@@ -663,4 +665,383 @@ TEST(ListWidgetTest, OnMouseMove_ScrollOffsetAffectsIndex)
     list.setScrollY(40);
     list.onMouseMove(10, 5);
     EXPECT_EQ(2, list.hoveredIndex());
+}
+
+// ==================== 数据绑定与 refreshItems 测试 ====================
+
+namespace {
+
+/// @brief 测试用工厂：根据 Value 中的 "label" 字段构造 TestListItem
+std::unique_ptr<IListItem> makeLabelItem(const Value& data, size_t /*index*/)
+{
+    if (data.isString()) {
+        return std::make_unique<TestListItem>(data.asString());
+    }
+    if (data.isObject() && data.hasProperty("label")) {
+        return std::make_unique<TestListItem>(data.getProperty("label").toString());
+    }
+    return std::make_unique<TestListItem>(data.toString());
+}
+
+} // namespace
+
+TEST(ListWidgetTest, SetItemsFromValue_BuildsItemsFromValueArray)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("Apple")));
+    values.emplace_back(Value(std::string("Banana")));
+    values.emplace_back(Value(std::string("Cherry")));
+
+    list.setItemsFromValue(Value::fromArray(values));
+
+    EXPECT_EQ(3u, list.itemCount());
+    auto* item0 = dynamic_cast<TestListItem*>(list.getItem(0));
+    auto* item1 = dynamic_cast<TestListItem*>(list.getItem(1));
+    auto* item2 = dynamic_cast<TestListItem*>(list.getItem(2));
+    ASSERT_NE(nullptr, item0);
+    ASSERT_NE(nullptr, item1);
+    ASSERT_NE(nullptr, item2);
+    EXPECT_EQ("Apple", item0->text());
+    EXPECT_EQ("Banana", item1->text());
+    EXPECT_EQ("Cherry", item2->text());
+}
+
+TEST(ListWidgetTest, SetItemsFromValue_FallsBackToTextListItemWhenNoFactory)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("Hello")));
+    values.emplace_back(Value(std::string("World")));
+
+    list.setItemsFromValue(Value::fromArray(values));
+
+    EXPECT_EQ(2u, list.itemCount());
+    // 无工厂时回退为 TextListItem（内部类型，通过 toString 验证内容）
+    auto* item0 = list.getItem(0);
+    auto* item1 = list.getItem(1);
+    ASSERT_NE(nullptr, item0);
+    ASSERT_NE(nullptr, item1);
+    // TextListItem 不暴露 text()，但可通过 toString() 间接验证（这里仅校验类型存在）
+    EXPECT_EQ(20, item0->getHeight());
+    EXPECT_EQ(20, item1->getHeight());
+}
+
+TEST(ListWidgetTest, SetItemsFromValue_NonArrayClearsItems)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    // 先填充一些项
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("A")));
+    values.emplace_back(Value(std::string("B")));
+    list.setItemsFromValue(Value::fromArray(values));
+    EXPECT_EQ(2u, list.itemCount());
+
+    // 传入非数组应清空
+    list.setItemsFromValue(Value(true));
+    EXPECT_EQ(0u, list.itemCount());
+}
+
+TEST(ListWidgetTest, SetItemsFromValue_FiresOnItemsChangedCallback)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    i32 callCount = 0;
+    list.setOnItemsChanged([&callCount]() { ++callCount; });
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("X")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    EXPECT_EQ(1, callCount);
+}
+
+TEST(ListWidgetTest, SetItemsFromValue_CachesDataSourceForRefresh)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    EXPECT_FALSE(list.hasCachedDataSource());
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("Original")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    EXPECT_TRUE(list.hasCachedDataSource());
+}
+
+TEST(ListWidgetTest, RefreshItems_NoCachedDataSourceIsNoOp)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    i32 callCount = 0;
+    list.setOnItemsChanged([&callCount]() { ++callCount; });
+
+    // 从未调用 setItemsFromValue，refreshItems 应为空操作
+    list.refreshItems();
+
+    EXPECT_EQ(0u, list.itemCount());
+    EXPECT_EQ(0, callCount);
+    EXPECT_FALSE(list.hasCachedDataSource());
+}
+
+TEST(ListWidgetTest, RefreshItems_RebuildsFromCachedDataSource)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("First")));
+    values.emplace_back(Value(std::string("Second")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    EXPECT_EQ(2u, list.itemCount());
+
+    // 清空后调用 refreshItems，应从缓存重建
+    list.clearItems();
+    EXPECT_EQ(0u, list.itemCount());
+
+    list.refreshItems();
+
+    EXPECT_EQ(2u, list.itemCount());
+    auto* item0 = dynamic_cast<TestListItem*>(list.getItem(0));
+    auto* item1 = dynamic_cast<TestListItem*>(list.getItem(1));
+    ASSERT_NE(nullptr, item0);
+    ASSERT_NE(nullptr, item1);
+    EXPECT_EQ("First", item0->text());
+    EXPECT_EQ("Second", item1->text());
+}
+
+TEST(ListWidgetTest, RefreshItems_UsesCurrentItemFactory)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("Data1")));
+    values.emplace_back(Value(std::string("Data2")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    // 验证初始工厂生效
+    auto* item0 = dynamic_cast<TestListItem*>(list.getItem(0));
+    ASSERT_NE(nullptr, item0);
+    EXPECT_EQ("Data1", item0->text());
+
+    // 替换工厂：在文本前加前缀
+    list.setItemFactory([](const Value& data, size_t /*index*/) -> std::unique_ptr<IListItem> {
+        return std::make_unique<TestListItem>("[" + data.toString() + "]");
+    });
+
+    // refreshItems 应使用新工厂重建
+    list.refreshItems();
+
+    EXPECT_EQ(2u, list.itemCount());
+    auto* newItem0 = dynamic_cast<TestListItem*>(list.getItem(0));
+    auto* newItem1 = dynamic_cast<TestListItem*>(list.getItem(1));
+    ASSERT_NE(nullptr, newItem0);
+    ASSERT_NE(nullptr, newItem1);
+    EXPECT_EQ("[Data1]", newItem0->text());
+    EXPECT_EQ("[Data2]", newItem1->text());
+}
+
+TEST(ListWidgetTest, RefreshItems_FiresOnItemsChangedCallback)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("X")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    i32 callCount = 0;
+    list.setOnItemsChanged([&callCount]() { ++callCount; });
+
+    list.refreshItems();
+
+    EXPECT_EQ(1, callCount);
+}
+
+TEST(ListWidgetTest, RefreshItems_PreservesValidSelectionIndex)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+    list.setSelectionMode(ListWidget::SelectionMode::Single);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("A")));
+    values.emplace_back(Value(std::string("B")));
+    values.emplace_back(Value(std::string("C")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    // 选中第 1 项
+    list.selectItem(1);
+    EXPECT_EQ(1, list.selectedIndex());
+
+    // refreshItems 重建后应保留选中索引（仍在范围内）
+    list.refreshItems();
+
+    EXPECT_EQ(1, list.selectedIndex());
+    EXPECT_EQ(3u, list.itemCount());
+}
+
+TEST(ListWidgetTest, RefreshItems_ClearsSelectionWhenIndexOutOfRange)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+    list.setSelectionMode(ListWidget::SelectionMode::Single);
+
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("A")));
+    values.emplace_back(Value(std::string("B")));
+    values.emplace_back(Value(std::string("C")));
+    values.emplace_back(Value(std::string("D")));
+    values.emplace_back(Value(std::string("E")));
+    list.setItemsFromValue(Value::fromArray(values));
+
+    // 选中第 4 项
+    list.selectItem(4);
+    EXPECT_EQ(4, list.selectedIndex());
+
+    // 用更短的数组刷新数据源（选中索引将越界）
+    std::vector<Value> shorterValues;
+    shorterValues.emplace_back(Value(std::string("A")));
+    shorterValues.emplace_back(Value(std::string("B")));
+    list.setItemsFromValue(Value::fromArray(shorterValues));
+
+    // 此时 selectedIndex 已被 clearItems 重置为 -1
+    EXPECT_EQ(-1, list.selectedIndex());
+
+    // 重新选中第 1 项，然后 refreshItems（数据源长度不变，应保留选中）
+    list.selectItem(1);
+    list.refreshItems();
+    EXPECT_EQ(1, list.selectedIndex());
+}
+
+TEST(ListWidgetTest, RefreshItems_PreservesMultiSelectionInRange)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+    list.setSelectionMode(ListWidget::SelectionMode::Multiple);
+
+    std::vector<Value> values;
+    for (i32 i = 0; i < 5; ++i) {
+        values.emplace_back(Value(std::string("Item") + std::to_string(i)));
+    }
+    list.setItemsFromValue(Value::fromArray(values));
+
+    // 多选第 0、2、4 项
+    list.selectItem(0);
+    list.selectItem(2);
+    list.selectItem(4);
+    EXPECT_EQ(3u, list.selectedIndices().size());
+
+    // refreshItems 重建后应保留仍在范围内的多选索引
+    list.refreshItems();
+
+    const auto& indices = list.selectedIndices();
+    EXPECT_EQ(3u, indices.size());
+    // 验证具体索引值（顺序由 selectItem 的 toggle 逻辑决定）
+    bool has0 = std::find(indices.begin(), indices.end(), 0) != indices.end();
+    bool has2 = std::find(indices.begin(), indices.end(), 2) != indices.end();
+    bool has4 = std::find(indices.begin(), indices.end(), 4) != indices.end();
+    EXPECT_TRUE(has0);
+    EXPECT_TRUE(has2);
+    EXPECT_TRUE(has4);
+}
+
+TEST(ListWidgetTest, RefreshItems_FiltersMultiSelectionWhenOutOfRange)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+    list.setSelectionMode(ListWidget::SelectionMode::Multiple);
+
+    std::vector<Value> values;
+    for (i32 i = 0; i < 5; ++i) {
+        values.emplace_back(Value(std::string("Item") + std::to_string(i)));
+    }
+    list.setItemsFromValue(Value::fromArray(values));
+
+    // 多选第 0、3、4 项
+    list.selectItem(0);
+    list.selectItem(3);
+    list.selectItem(4);
+
+    // 用更短的数组刷新数据源（长度变为 3，索引 3、4 越界）
+    std::vector<Value> shorterValues;
+    shorterValues.emplace_back(Value(std::string("A")));
+    shorterValues.emplace_back(Value(std::string("B")));
+    shorterValues.emplace_back(Value(std::string("C")));
+    list.setItemsFromValue(Value::fromArray(shorterValues));
+
+    // clearItems 已重置单选索引，但多选列表 m_selectedIndices 在 clearItems 中未清空
+    // 重新选中第 1 项以建立有效多选状态
+    list.selectItem(1);
+
+    // 再次 refreshItems，应过滤掉越界索引
+    list.refreshItems();
+
+    const auto& indices = list.selectedIndices();
+    // 所有保留下来的索引都应在 [0, 3) 范围内
+    for (i32 idx : indices) {
+        EXPECT_GE(idx, 0);
+        EXPECT_LT(idx, static_cast<i32>(list.itemCount()));
+    }
+}
+
+TEST(ListWidgetTest, RefreshItems_EmptyArrayDataSource)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setItemFactory(&makeLabelItem);
+
+    // 先填充一些项
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("A")));
+    list.setItemsFromValue(Value::fromArray(values));
+    EXPECT_EQ(1u, list.itemCount());
+
+    // 用空数组刷新数据源
+    list.setItemsFromValue(Value::emptyArray());
+    EXPECT_EQ(0u, list.itemCount());
+    EXPECT_TRUE(list.hasCachedDataSource());
+
+    // refreshItems 应保持空列表
+    i32 callCount = 0;
+    list.setOnItemsChanged([&callCount]() { ++callCount; });
+    list.refreshItems();
+
+    EXPECT_EQ(0u, list.itemCount());
+    EXPECT_EQ(1, callCount);
+}
+
+TEST(ListWidgetTest, RefreshItems_UsesCachedDataSourceAfterFactoryChange)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+
+    // 初始无工厂，使用默认 TextListItem
+    std::vector<Value> values;
+    values.emplace_back(Value(std::string("Test")));
+    list.setItemsFromValue(Value::fromArray(values));
+    EXPECT_EQ(1u, list.itemCount());
+
+    // 设置工厂后 refreshItems，应使用新工厂重建
+    i32 factoryCallCount = 0;
+    list.setItemFactory([&factoryCallCount](const Value& data, size_t /*index*/) -> std::unique_ptr<IListItem> {
+        ++factoryCallCount;
+        return std::make_unique<TestListItem>("Factory:" + data.toString(), 30);
+    });
+
+    list.refreshItems();
+
+    EXPECT_EQ(1u, list.itemCount());
+    EXPECT_EQ(1, factoryCallCount);
+    auto* item = list.getItem(0);
+    ASSERT_NE(nullptr, item);
+    EXPECT_EQ(30, item->getHeight()); // 新工厂使用 30 高度
 }

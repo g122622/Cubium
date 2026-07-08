@@ -26,12 +26,30 @@
 
 namespace mc::client::ui::kagero::widget {
 
-void ListWidget::setItemsFromValue(const tpl::binder::Value& array)
+// 析构函数在此定义，此时 tpl::binder::Value 已完整可见，
+// std::unique_ptr<Value> 才能安全释放其持有的对象。
+ListWidget::~ListWidget() = default;
+
+// 默认/移动构造与移动赋值同样定义于此，避免头文件中因 m_dataSource 的
+// unique_ptr<Value> 在潜在异常或默认实现路径上要求 Value 完整类型。
+ListWidget::ListWidget() = default;
+
+ListWidget::ListWidget(ListWidget&&) noexcept = default;
+ListWidget& ListWidget::operator=(ListWidget&&) noexcept = default;
+
+// 构造函数同样定义于此，避免头文件中因 m_dataSource 的 unique_ptr<Value>
+// 在异常路径上要求 Value 完整类型而导致编译错误。
+ListWidget::ListWidget(std::string id)
+    : ScrollableWidget(std::move(id), 0, 0, 0, 0)
+{}
+
+ListWidget::ListWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
+    : ScrollableWidget(std::move(id), x, y, width, height)
+{}
+
+void ListWidget::_rebuildItemsFromArray(const tpl::binder::Value& array)
 {
-    if (!array.isArray()) {
-        clearItems();
-        return;
-    }
+    MC_ASSERT_RELEASE(array.isArray());
 
     clearItems();
 
@@ -45,6 +63,19 @@ void ListWidget::setItemsFromValue(const tpl::binder::Value& array)
             addItem(std::make_unique<TextListItem>(itemData.toString()));
         }
     }
+}
+
+void ListWidget::setItemsFromValue(const tpl::binder::Value& array)
+{
+    // 缓存数据源，供后续 refreshItems() 重建使用
+    m_dataSource = std::make_unique<tpl::binder::Value>(array);
+
+    if (!array.isArray()) {
+        clearItems();
+        return;
+    }
+
+    _rebuildItemsFromArray(array);
 
     if (m_onItemsChanged) {
         m_onItemsChanged();
@@ -53,8 +84,48 @@ void ListWidget::setItemsFromValue(const tpl::binder::Value& array)
 
 void ListWidget::refreshItems()
 {
-    // TODO: 实现基于数据源的自动刷新，当前需要外部重新调用 setItemsFromValue
-    updateContentHeight();
+    // 无缓存数据源时仅更新内容高度
+    if (!m_dataSource) {
+        updateContentHeight();
+        return;
+    }
+
+    // 捕获当前选中状态，重建后尽可能恢复（重新校验范围）
+    const i32 prevSelectedIndex = m_selectedIndex;
+    const std::vector<i32> prevSelectedIndices = m_selectedIndices;
+
+    if (!m_dataSource->isArray()) {
+        // 数据源非数组：清空并通知
+        clearItems();
+        if (m_onItemsChanged) {
+            m_onItemsChanged();
+        }
+        return;
+    }
+
+    _rebuildItemsFromArray(*m_dataSource);
+
+    // 恢复选中状态：单选索引若仍有效则保留，多选列表过滤掉越界索引
+    if (prevSelectedIndex >= 0 && prevSelectedIndex < static_cast<i32>(m_items.size())) {
+        m_selectedIndex = prevSelectedIndex;
+    } else {
+        m_selectedIndex = -1;
+    }
+
+    if (!prevSelectedIndices.empty()) {
+        m_selectedIndices.clear();
+        m_selectedIndices.reserve(prevSelectedIndices.size());
+        for (i32 idx : prevSelectedIndices) {
+            if (idx >= 0 && idx < static_cast<i32>(m_items.size())) {
+                m_selectedIndices.push_back(idx);
+            }
+        }
+    }
+
+    // 数据变更通知，与 setItemsFromValue 行为保持一致
+    if (m_onItemsChanged) {
+        m_onItemsChanged();
+    }
 }
 
 } // namespace mc::client::ui::kagero::widget

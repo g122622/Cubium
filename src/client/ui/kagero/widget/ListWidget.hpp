@@ -119,16 +119,37 @@ public:
 
     /**
      * @brief 默认构造函数
+     *
+     * 定义在 .cpp 中：m_dataSource 为前向声明的 Value 的 unique_ptr，
+     * 其默认构造（虽不分配）仍需 Value 完整类型以满足编译器的潜在销毁路径检查。
      */
-    ListWidget() = default;
+    ListWidget();
+
+    /**
+     * @brief 析构函数
+     *
+     * 声明为虚函数并在 .cpp 中定义，以便安全释放 m_dataSource（其类型为
+     * 前向声明的 tpl::binder::Value 的 std::unique_ptr）。
+     */
+    ~ListWidget() override;
+
+    // 禁止拷贝（继承自 Widget 的删除语义）
+    ListWidget(const ListWidget&) = delete;
+    ListWidget& operator=(const ListWidget&) = delete;
+
+    // 允许移动（unique_ptr 成员支持移动语义）
+    // 定义在 .cpp 中，原因同上：需要 Value 完整类型
+    ListWidget(ListWidget&&) noexcept;
+    ListWidget& operator=(ListWidget&&) noexcept;
 
     /**
      * @brief 构造函数（仅ID）
      * @param id 组件ID
+     *
+     * 定义在 .cpp 中：由于 m_dataSource 类型为前向声明的 Value 的 unique_ptr，
+     * 编译器需要在构造异常路径上能销毁 unique_ptr，因此要求 Value 完整可见。
      */
-    explicit ListWidget(std::string id)
-        : ScrollableWidget(std::move(id), 0, 0, 0, 0)
-    {}
+    explicit ListWidget(std::string id);
 
     /**
      * @brief 构造函数
@@ -138,9 +159,7 @@ public:
      * @param width 宽度
      * @param height 高度
      */
-    ListWidget(std::string id, i32 x, i32 y, i32 width, i32 height)
-        : ScrollableWidget(std::move(id), x, y, width, height)
-    {}
+    ListWidget(std::string id, i32 x, i32 y, i32 width, i32 height);
 
     // ==================== 生命周期 ====================
 
@@ -539,7 +558,9 @@ public:
     /**
      * @brief 从 Value 数组设置列表项
      *
-     * 用于模板绑定 bind:items
+     * 用于模板绑定 bind:items。调用后会将 array 缓存为内部数据源，
+     * 后续可通过 refreshItems() 使用该缓存重新创建列表项（例如在
+     * 替换 ItemFactory 之后）。
      * @param array 包含列表数据的 Value 数组
      */
     void setItemsFromValue(const ::mc::client::ui::kagero::tpl::binder::Value& array);
@@ -560,16 +581,29 @@ public:
     /**
      * @brief 设置数据变更回调
      *
-     * 当列表数据更新时调用
+     * 当列表数据更新时调用（包括 setItemsFromValue 与 refreshItems 重建后）
      */
     void setOnItemsChanged(std::function<void()> callback) { m_onItemsChanged = std::move(callback); }
 
     /**
      * @brief 刷新列表项
      *
-     * 使用当前数据源重新创建列表项
+     * 使用最近一次 setItemsFromValue 缓存的数据源重新创建列表项。
+     * 适用场景：
+     * - 替换 ItemFactory 后重建列表（无需重新提供 Value 数组）
+     * - 强制重建以响应外部状态变化（模板绑定路径另有 tick 级自动刷新，此处仅用于直接 C++ 调用）
+     *
+     * 若从未调用过 setItemsFromValue，则该方法为空操作。
+     * 刷新会尽可能保留当前选中索引（重新校验范围），并触发 m_onItemsChanged 回调。
      */
     void refreshItems();
+
+    /**
+     * @brief 检查是否存在已缓存的数据源
+     *
+     * @return 是否存在可通过 refreshItems 重建的数据源
+     */
+    [[nodiscard]] bool hasCachedDataSource() const { return m_dataSource != nullptr; }
 
 protected:
     /**
@@ -629,6 +663,17 @@ protected:
         }
     }
 
+    /**
+     * @brief 从给定的 Value 数组重建列表项
+     *
+     * 内部公共重建逻辑：清空当前列表项，按 array 中的元素依次调用 m_itemFactory
+     * （未设置工厂时回退为 TextListItem）构造新项。不处理数据源缓存与选中状态保留，
+     * 这些由调用方（setItemsFromValue / refreshItems）负责。
+     *
+     * @param array 已校验为 Array 类型的数据源
+     */
+    void _rebuildItemsFromArray(const ::mc::client::ui::kagero::tpl::binder::Value& array);
+
     // 项目
     std::vector<std::unique_ptr<IListItem>> m_items; ///< 列表项
     i32 m_fixedItemHeight = 20;                      ///< 固定项高度（0表示使用项目自己的高度）
@@ -647,6 +692,10 @@ protected:
     // 数据绑定
     ItemFactory m_itemFactory;              ///< 项目工厂
     std::function<void()> m_onItemsChanged; ///< 数据变更回调
+    /// 缓存的数据源（最近一次 setItemsFromValue 的入参），用于 refreshItems 重建。
+    /// 使用 unique_ptr 以避免在头文件中包含完整的 BindingContext.hpp；
+    /// 析构由 ~ListWidget()（定义于 .cpp，此时 Value 已完整）负责。
+    std::unique_ptr<::mc::client::ui::kagero::tpl::binder::Value> m_dataSource;
 };
 
 /**
