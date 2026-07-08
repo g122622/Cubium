@@ -907,6 +907,7 @@ add_library(mc_common STATIC
 
     # World - Block - Sculk
     world/block/blocks/sculk/SculkBlocks.cpp
+    world/block/blocks/sculk/SculkSpreader.cpp
 
     # World - Block - Trial
     world/block/blocks/trial/HeavyCoreBlock.cpp
@@ -1196,6 +1197,7 @@ add_library(mc_common STATIC
     world/gen/feature/cave/FossilFeature.cpp
     world/gen/feature/cave/GeodeFeature.cpp
     world/gen/feature/cave/MultifaceGrowthFeature.cpp
+    world/gen/feature/cave/SculkPatchFeature.cpp
 
     # World - Generation - Feature - Ocean
     world/gen/feature/ocean/KelpFeature.cpp

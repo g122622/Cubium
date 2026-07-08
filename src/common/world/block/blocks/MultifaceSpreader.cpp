@@ -22,103 +22,160 @@
  */
 
 #include "MultifaceSpreader.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 
 namespace mc {
 namespace blocks {
 
-bool MultifaceSpreader::spreadFromFaceTowardRandomDirection(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction fromFace, math::IRandom& random) const
+const std::vector<MultifaceSpreadType>& defaultSpreadOrder()
 {
-    // MC: Direction.allShuffled(random)，逐个尝试，命中即止。
-    std::vector<Direction> dirs = {
-        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
-    random.shuffle(dirs);
-    for (Direction spreadDir : dirs) {
-        if (spreadFromFaceTowardDirection(state, world, pos, fromFace, spreadDir)) {
-            return true;
-        }
-    }
-    return false;
+    static const std::vector<MultifaceSpreadType> order = {
+        MultifaceSpreadType::SamePosition, MultifaceSpreadType::SamePlane, MultifaceSpreadType::WrapAround};
+    return order;
 }
 
-bool MultifaceSpreader::spreadFromFaceTowardDirection(
+// ============================================================================
+// MultifaceSpreadConfig
+// ============================================================================
+
+bool MultifaceSpreadConfig::placeBlock(
+    IWorld& world, const MultifaceSpreadPos& spreadPos, const BlockState* current, bool worldGen) const
+{
+    // MC SpreadConfig.placeBlock: getStateForPlacement → setBlock(pos, state, 2)；
+    //   worldGen 时 markPosForPostprocessing（项目暂未实现该标记，此处仅放置）。
+    const BlockState* placed = getStateForPlacement(current, world, spreadPos.pos, spreadPos.face);
+    if (placed == nullptr) {
+        return false;
+    }
+    MC_UNUSED(worldGen);
+    return world.setBlockState(spreadPos.pos, placed, 2);
+}
+
+// ============================================================================
+// MultifaceSpreader
+// ============================================================================
+
+MultifaceSpreadPos MultifaceSpreader::getSpreadPos(
+    const BlockPos& pos, Direction spreadDir, Direction fromFace, MultifaceSpreadType type)
+{
+    // MC SpreadType.getSpreadPos(原位置, 目标方向 spreadDir, 源面 fromFace)：
+    //   SAME_POSITION: (pos, spreadDir)
+    //   SAME_PLANE:    (pos.relative(spreadDir), fromFace)
+    //   WRAP_AROUND:   (pos.relative(spreadDir).relative(fromFace), fromFace.getOpposite())
+    switch (type) {
+        case MultifaceSpreadType::SamePosition:
+            return {pos, spreadDir};
+        case MultifaceSpreadType::SamePlane:
+            return {pos.offset(spreadDir), fromFace};
+        case MultifaceSpreadType::WrapAround:
+            return {pos.offset(spreadDir).offset(fromFace), Directions::opposite(fromFace)};
+    }
+    return {pos, spreadDir};
+}
+
+std::optional<MultifaceSpreadPos> MultifaceSpreader::getSpreadFromFaceTowardDirection(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction fromFace, Direction spreadDir) const
 {
     // MC getSpreadFromFaceTowardDirection:
     //   1) 同轴不扩散
-    //   2) hasFace(state, fromFace) && !hasFace(state, spreadDir) 才继续
-    //   3) 逐 SpreadType 取 spreadPos，predicate 命中即放置
+    //   2) isOtherBlockValidAsSource || (hasFace(fromFace) && !hasFace(spreadDir))
+    //   3) 按 getSpreadTypes() 顺序找第一个 canSpreadInto 的 SpreadPos
     if (Directions::getAxis(spreadDir) == Directions::getAxis(fromFace)) {
-        return false;
+        return std::nullopt;
     }
-    if (!MultifaceBlock::hasFace(state, fromFace) || MultifaceBlock::hasFace(state, spreadDir)) {
-        return false;
+    if (!m_config->isOtherBlockValidAsSource(state) &&
+        !(m_config->hasFace(state, fromFace) && !m_config->hasFace(state, spreadDir))) {
+        return std::nullopt;
     }
 
-    for (const SpreadPos& spread : candidateSpreadPos(pos, spreadDir, fromFace)) {
-        if (!canSpreadInto(world, spread.pos, spread.face)) {
-            continue;
+    for (MultifaceSpreadType type : m_config->getSpreadTypes()) {
+        MultifaceSpreadPos spreadPos = getSpreadPos(pos, spreadDir, fromFace, type);
+        if (m_config->canSpreadInto(world, pos, spreadPos)) {
+            return spreadPos;
         }
-        // MC DefaultSpreaderConfig.canSpreadInto 额外要求 isValidStateForPlacement。
-        const BlockState* targetState = world.getBlockState(spread.pos);
-        if (targetState == nullptr) {
-            continue;
+    }
+    return std::nullopt;
+}
+
+std::optional<MultifaceSpreadPos> MultifaceSpreader::spreadToFace(
+    IWorld& world, const MultifaceSpreadPos& spreadPos, bool worldGen) const
+{
+    // MC spreadToFace: 取目标格当前 state（nullptr=空气），placeBlock 成功则返回 SpreadPos。
+    const BlockState* current = world.getBlockState(spreadPos.pos);
+    if (m_config->placeBlock(world, spreadPos, current, worldGen)) {
+        return spreadPos;
+    }
+    return std::nullopt;
+}
+
+std::optional<MultifaceSpreadPos> MultifaceSpreader::spreadFromFaceTowardRandomDirection(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction fromFace,
+    math::IRandom& random,
+    bool worldGen) const
+{
+    // MC: Direction.allShuffled(random) 逐个尝试 spreadFromFaceTowardDirection，首个成功即返回。
+    std::vector<Direction> dirs = {
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+    random.shuffle(dirs);
+    for (Direction spreadDir : dirs) {
+        auto spreadPos = getSpreadFromFaceTowardDirection(state, world, pos, fromFace, spreadDir);
+        if (spreadPos.has_value()) {
+            auto placed = spreadToFace(world, spreadPos.value(), worldGen);
+            if (placed.has_value()) {
+                return placed;
+            }
         }
-        if (!m_block.isValidStateForPlacement(world, *targetState, spread.pos, spread.face)) {
-            continue;
+    }
+    return std::nullopt;
+}
+
+bool MultifaceSpreader::spreadFromFaceTowardRandomDirection(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction fromFace, math::IRandom& random) const
+{
+    // 5 参便捷版：worldGen=true，仅返回是否成功。
+    return spreadFromFaceTowardRandomDirection(state, world, pos, fromFace, random, true).has_value();
+}
+
+i64 MultifaceSpreader::spreadFromFaceTowardAllDirections(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction fromFace, bool worldGen) const
+{
+    // MC spreadFromFaceTowardAllDirections: 对所有方向尝试 spreadFromFaceTowardDirection，计数成功。
+    i64 count = 0;
+    for (Direction spreadDir : Directions::all()) {
+        auto spreadPos = getSpreadFromFaceTowardDirection(state, world, pos, fromFace, spreadDir);
+        if (spreadPos.has_value() && spreadToFace(world, spreadPos.value(), worldGen).has_value()) {
+            ++count;
         }
-        spreadToFace(world, spread.pos, spread.face);
-        return true;
+    }
+    return count;
+}
+
+i64 MultifaceSpreader::spreadAll(const BlockState& state, IWorld& world, const BlockPos& pos, bool worldGen) const
+{
+    // MC spreadAll: Direction.stream().filter(canSpreadFrom).map(spreadFromFaceTowardAllDirections).sum
+    i64 total = 0;
+    for (Direction fromFace : Directions::all()) {
+        if (m_config->canSpreadFrom(state, fromFace)) {
+            total += spreadFromFaceTowardAllDirections(state, world, pos, fromFace, worldGen);
+        }
+    }
+    return total;
+}
+
+bool MultifaceSpreader::canSpreadInAnyDirection(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction fromFace) const
+{
+    // MC canSpreadInAnyDirection: 任一方向 getSpreadFromFaceTowardDirection 命中。
+    for (Direction spreadDir : Directions::all()) {
+        if (getSpreadFromFaceTowardDirection(state, world, pos, fromFace, spreadDir).has_value()) {
+            return true;
+        }
     }
     return false;
-}
-
-std::vector<MultifaceSpreader::SpreadPos> MultifaceSpreader::candidateSpreadPos(
-    const BlockPos& pos, Direction spreadDir, Direction fromFace) const
-{
-    // MC DEFAULT_SPREAD_ORDER = {SAME_POSITION, SAME_PLANE, WRAP_AROUND}
-    //   SAME_POSITION: (pos, spreadDir)
-    //   SAME_PLANE:    (pos.relative(spreadDir), fromFace)
-    //   WRAP_AROUND:   (pos.relative(spreadDir).relative(fromFace), fromFace.getOpposite())
-    std::vector<SpreadPos> result;
-    result.reserve(3);
-    result.push_back({pos, spreadDir});
-    result.push_back({pos.offset(spreadDir), fromFace});
-    result.push_back({pos.offset(spreadDir).offset(fromFace), Directions::opposite(fromFace)});
-    return result;
-}
-
-bool MultifaceSpreader::canSpreadInto(IWorld& world, const BlockPos& targetPos, Direction /*face*/) const
-{
-    // MC DefaultSpreaderConfig.stateCanBeReplaced:
-    //   state.isAir() || state.is(this.block) || (state.is(WATER) && state.getFluidState().isSource())
-    const BlockState* state = world.getBlockState(targetPos);
-    if (state == nullptr) {
-        return true; // nullptr 视为空气
-    }
-    if (state->isAir()) {
-        return true;
-    }
-    if (state->is(&m_block)) {
-        return true;
-    }
-    const fluid::FluidState* fluid = state->getFluidState();
-    if (fluid != nullptr && fluid->isSource() && &fluid->getFluid() == fluid::Fluids::WATER()) {
-        return true;
-    }
-    return false;
-}
-
-void MultifaceSpreader::spreadToFace(IWorld& world, const BlockPos& targetPos, Direction face) const
-{
-    // MC spreadToFace: getStateForPlacement(targetState, reader, pos, face) → setBlock(pos, state, 2)。
-    const BlockState* current = world.getBlockState(targetPos);
-    const BlockState* placed = m_block.getStateForPlacement(current, world, targetPos, face);
-    if (placed != nullptr) {
-        world.setBlockState(targetPos, placed, 2);
-    }
 }
 
 } // namespace blocks

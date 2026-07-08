@@ -70,6 +70,33 @@ bool MultifaceBlock::hasAnyFace(const BlockState& state)
     return false;
 }
 
+std::vector<Direction> MultifaceBlock::availableFaces(const BlockState& state)
+{
+    // MC MultifaceBlock.availableFaces：非 MultifaceBlock 返回空集，否则收集所有 hasFace 的方向。
+    std::vector<Direction> faces;
+    if (dynamic_cast<const MultifaceBlock*>(&state.getBlock()) == nullptr) {
+        return faces;
+    }
+    static constexpr Direction kFaces[] = {
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+    for (Direction dir : kFaces) {
+        if (hasFace(state, dir)) {
+            faces.push_back(dir);
+        }
+    }
+    return faces;
+}
+
+u8 MultifaceBlock::pack(const std::vector<Direction>& directions)
+{
+    // MC MultifaceBlock.pack：按 direction.ordinal() 置位。
+    u8 mask = 0;
+    for (Direction dir : directions) {
+        mask |= static_cast<u8>(1u << static_cast<u8>(ordinal(dir)));
+    }
+    return mask;
+}
+
 bool MultifaceBlock::isValidStateForPlacement(
     IWorld& world, const BlockState& state, const BlockPos& pos, Direction direction) const
 {

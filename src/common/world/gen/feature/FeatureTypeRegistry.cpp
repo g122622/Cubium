@@ -64,6 +64,7 @@
 #include "common/world/gen/feature/cave/MultifaceGrowthFeature.hpp"
 #include "common/world/gen/feature/cave/PointedDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/RootSystemFeature.hpp"
+#include "common/world/gen/feature/cave/SculkPatchFeature.hpp"
 #include "common/world/gen/feature/cave/VegetationPatchFeature.hpp"
 #include "common/world/gen/feature/end/ChorusPlantFeature.hpp"
 #include "common/world/gen/feature/end/EndGatewayFeature.hpp"
@@ -835,6 +836,78 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createMultifaceGrowth(const nlohm
     }
 
     return toBase(std::make_unique<cave::ConfiguredMultifaceGrowthFeature>(std::move(config), "multiface_growth"));
+}
+
+/**
+ * @brief sculk_patch 工厂：解析 SculkPatchConfiguration 全字段并构造
+ *        ConfiguredSculkPatchFeature。
+ *
+ * charge_count[1,32] / amount_per_charge[1,500] / spread_attempts[1,64] /
+ * growth_rounds[0,8] / spread_rounds[0,8] / extra_rare_growths(IntProvider) /
+ * catalyst_chance[0.0,1.0]。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createSculkPatch(const nlohmann::json& configJson)
+{
+    auto config = std::make_unique<cave::SculkPatchConfig>();
+
+    if (!configJson.contains("charge_count") || !configJson["charge_count"].is_number_integer()) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'charge_count'");
+    }
+    config->chargeCount = configJson["charge_count"].get<i32>();
+    if (config->chargeCount < 1 || config->chargeCount > 32) {
+        return Error(ErrorCode::InvalidData, "sculk_patch charge_count out of range [1,32]");
+    }
+
+    if (!configJson.contains("amount_per_charge") || !configJson["amount_per_charge"].is_number_integer()) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'amount_per_charge'");
+    }
+    config->amountPerCharge = configJson["amount_per_charge"].get<i32>();
+    if (config->amountPerCharge < 1 || config->amountPerCharge > 500) {
+        return Error(ErrorCode::InvalidData, "sculk_patch amount_per_charge out of range [1,500]");
+    }
+
+    if (!configJson.contains("spread_attempts") || !configJson["spread_attempts"].is_number_integer()) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'spread_attempts'");
+    }
+    config->spreadAttempts = configJson["spread_attempts"].get<i32>();
+    if (config->spreadAttempts < 1 || config->spreadAttempts > 64) {
+        return Error(ErrorCode::InvalidData, "sculk_patch spread_attempts out of range [1,64]");
+    }
+
+    if (!configJson.contains("growth_rounds") || !configJson["growth_rounds"].is_number_integer()) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'growth_rounds'");
+    }
+    config->growthRounds = configJson["growth_rounds"].get<i32>();
+    if (config->growthRounds < 0 || config->growthRounds > 8) {
+        return Error(ErrorCode::InvalidData, "sculk_patch growth_rounds out of range [0,8]");
+    }
+
+    if (!configJson.contains("spread_rounds") || !configJson["spread_rounds"].is_number_integer()) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'spread_rounds'");
+    }
+    config->spreadRounds = configJson["spread_rounds"].get<i32>();
+    if (config->spreadRounds < 0 || config->spreadRounds > 8) {
+        return Error(ErrorCode::InvalidData, "sculk_patch spread_rounds out of range [0,8]");
+    }
+
+    if (!configJson.contains("extra_rare_growths")) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'extra_rare_growths' IntProvider");
+    }
+    auto growthResult = valueprovider::IntProviderParser::parse(configJson["extra_rare_growths"]);
+    if (!growthResult.success()) {
+        return growthResult.error();
+    }
+    config->extraRareGrowths = growthResult.value();
+
+    if (!configJson.contains("catalyst_chance") || !configJson["catalyst_chance"].is_number()) {
+        return Error(ErrorCode::InvalidData, "sculk_patch config missing 'catalyst_chance'");
+    }
+    config->catalystChance = configJson["catalyst_chance"].get<f32>();
+    if (config->catalystChance < 0.0f || config->catalystChance > 1.0f) {
+        return Error(ErrorCode::InvalidData, "sculk_patch catalyst_chance out of range [0.0,1.0]");
+    }
+
+    return toBase(std::make_unique<cave::ConfiguredSculkPatchFeature>(std::move(config), "sculk_patch"));
 }
 
 /**
@@ -1887,9 +1960,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("geode", createGeode);
     reg.registerType("desert_well", createDesertWell);
     reg.registerType("multiface_growth", createMultifaceGrowth);
-    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 53 种
+    reg.registerType("sculk_patch", createSculkPatch);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 54 种
     // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
-    // 未注册的 type（fallen_tree/sculk_patch）
+    // 未注册的 type（fallen_tree 1 种）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 

@@ -31,6 +31,8 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
 
+#include <vector>
+
 namespace mc {
 namespace blocks {
 
@@ -58,6 +60,12 @@ public:
 
     /// MC MultifaceBlock.hasAnyFace：六个方向是否至少有一个面。
     [[nodiscard]] static bool hasAnyFace(const BlockState& state);
+
+    /// MC MultifaceBlock.availableFaces：state 在哪些方向有面（仅 MultifaceBlock 子类有效）。
+    [[nodiscard]] static std::vector<Direction> availableFaces(const BlockState& state);
+
+    /// MC MultifaceBlock.pack：把方向集合按 ordinal 压成字节掩码（用于 levelEvent 3006 data 编码）。
+    [[nodiscard]] static u8 pack(const std::vector<Direction>& directions);
 
     /**
      * @brief MC MultifaceBlock.isValidStateForPlacement：
