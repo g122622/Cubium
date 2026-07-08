@@ -1146,6 +1146,8 @@ add_library(mc_common STATIC
     world/gen/feature/DiskFeature.cpp
     world/gen/feature/NetherForestVegetationFeature.cpp
     world/gen/feature/SpringFeature.cpp
+    world/gen/feature/ScatteredOreFeature.cpp
+    world/gen/feature/ReplaceBlobsFeature.cpp
 
     # World - Generation - Feature - Parser
     world/gen/feature/parser/BlockStateParser.cpp

@@ -43,6 +43,8 @@
 #include "common/world/gen/feature/RandomBooleanSelectorFeature.hpp"
 #include "common/world/gen/feature/RandomPatchFeature.hpp"
 #include "common/world/gen/feature/RandomSelectorFeature.hpp"
+#include "common/world/gen/feature/ReplaceBlobsFeature.hpp"
+#include "common/world/gen/feature/ScatteredOreFeature.hpp"
 #include "common/world/gen/feature/SimpleBlockFeature.hpp"
 #include "common/world/gen/feature/SimpleRandomSelectorFeature.hpp"
 #include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
@@ -593,12 +595,12 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createForestRock(const nlohmann::
 // ----------------------------------------------------------------------------
 
 /**
- * @brief ore 工厂：size + discard_chance_on_air_exposure + targets[]（每项 state + target RuleTest）。
+ * @brief 解析 OreFeatureConfig 的 targets 数组（ore 与 scattered_ore 共用）。
  */
-Result<std::unique_ptr<ConfiguredFeatureBase>> createOre(const nlohmann::json& configJson)
+Result<std::vector<OreTarget>> parseOreTargets(const nlohmann::json& configJson)
 {
     if (!configJson.contains("targets") || !configJson["targets"].is_array()) {
-        return Error(ErrorCode::InvalidData, "ore config missing 'targets' array");
+        return Error(ErrorCode::InvalidData, "ore/scattered_ore config missing 'targets' array");
     }
     std::vector<OreTarget> targets;
     for (const auto& entry : configJson["targets"]) {
@@ -615,9 +617,21 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createOre(const nlohmann::json& c
         }
         targets.emplace_back(targetResult.value(), stateResult.value());
     }
+    return targets;
+}
+
+/**
+ * @brief ore 工厂：size + discard_chance_on_air_exposure + targets[]（每项 state + target RuleTest）。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createOre(const nlohmann::json& configJson)
+{
+    auto targetsResult = parseOreTargets(configJson);
+    if (!targetsResult.success()) {
+        return targetsResult.error();
+    }
     const i32 size = getInt(configJson, "size", 0);
     const f32 discardChance = getFloat(configJson, "discard_chance_on_air_exposure", 0.0f);
-    auto config = std::make_unique<OreFeatureConfig>(std::move(targets), size, discardChance);
+    auto config = std::make_unique<OreFeatureConfig>(std::move(targetsResult.value()), size, discardChance);
     return toBase(std::make_unique<ConfiguredOreFeature>(std::move(config), "ore"));
 }
 
@@ -1207,6 +1221,64 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDisk(const nlohmann::json& 
     return toBase(std::make_unique<ConfiguredDiskFeature>(std::move(config), "disk"));
 }
 
+// ----------------------------------------------------------------------------
+// scattered_ore / netherrack_replace_blobs
+// scattered_ore 复用 OreFeatureConfig（targets/size/discard_chance）；
+// netherrack_replace_blobs 用 ReplaceSphereConfig（target/state BlockState + radius IntProvider）。
+// ----------------------------------------------------------------------------
+
+/**
+ * @brief scattered_ore 工厂：与 ore 共用 OreFeatureConfig（targets + size + discard_chance）。
+ *        放置算法为散点式（ConfiguredScatteredOreFeature），而非 ore 的椭圆矿脉。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createScatteredOre(const nlohmann::json& configJson)
+{
+    auto targetsResult = parseOreTargets(configJson);
+    if (!targetsResult.success()) {
+        return targetsResult.error();
+    }
+    const i32 size = getInt(configJson, "size", 0);
+    const f32 discardChance = getFloat(configJson, "discard_chance_on_air_exposure", 0.0f);
+    auto config = std::make_unique<OreFeatureConfig>(std::move(targetsResult.value()), size, discardChance);
+    return toBase(std::make_unique<ConfiguredScatteredOreFeature>(std::move(config), "scattered_ore"));
+}
+
+/**
+ * @brief netherrack_replace_blobs 工厂：target/state（BlockState）+ radius（IntProvider 0..12）。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createReplaceBlobs(const nlohmann::json& configJson)
+{
+    auto config = std::make_unique<ReplaceSphereConfig>();
+    if (!configJson.contains("target")) {
+        return Error(ErrorCode::InvalidData, "netherrack_replace_blobs config missing 'target' block state");
+    }
+    auto targetResult = parser::BlockStateParser::parse(configJson["target"]);
+    if (!targetResult.success()) {
+        return targetResult.error();
+    }
+    config->targetState = targetResult.value();
+
+    if (!configJson.contains("state")) {
+        return Error(ErrorCode::InvalidData, "netherrack_replace_blobs config missing 'state' block state");
+    }
+    auto stateResult = parser::BlockStateParser::parse(configJson["state"]);
+    if (!stateResult.success()) {
+        return stateResult.error();
+    }
+    config->replaceState = stateResult.value();
+
+    if (!configJson.contains("radius")) {
+        return Error(ErrorCode::InvalidData, "netherrack_replace_blobs config missing 'radius' IntProvider");
+    }
+    auto radiusResult = valueprovider::IntProviderParser::parse(configJson["radius"], 0, 12);
+    if (!radiusResult.success()) {
+        return radiusResult.error();
+    }
+    config->radius = radiusResult.value();
+
+    return toBase(std::make_unique<ConfiguredReplaceBlobsFeature>(std::move(config), "netherrack_replace_blobs"));
+}
+
 } // namespace
 
 FeatureTypeRegistry& FeatureTypeRegistry::instance()
@@ -1297,15 +1369,17 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("block_pile", createBlockPile);
     reg.registerType("nether_forest_vegetation", createNetherForestVegetation);
     reg.registerType("disk", createDisk);
+    reg.registerType("scattered_ore", createScatteredOre);
+    reg.registerType("netherrack_replace_blobs", createReplaceBlobs);
     // 简单档：NoneConfig 或单一 BlockState 配置
     reg.registerType("end_platform", createEndPlatform);
     reg.registerType("void_start_platform", createVoidStartPlatform);
     reg.registerType("bonus_chest", createBonusChest);
     reg.registerType("basalt_pillar", createBasaltPillar);
     reg.registerType("forest_rock", createForestRock);
-    // TODO: 数据包共 54 种 configured_feature type，当前注册 46 种。
-    // 未注册的 type（geode/sculk_patch/large_dripstone/fossil/desert_well/scattered_ore/
-    // netherrack_replace_blobs/twisting_vines/weeping_vines/fallen_tree/iceberg/multiface_growth 等）
+    // TODO: 数据包共 54 种 configured_feature type，当前注册 48 种。
+    // 未注册的 type（geode/sculk_patch/large_dripstone/fossil/desert_well/
+    // twisting_vines/weeping_vines/fallen_tree/iceberg/multiface_growth 等）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 
