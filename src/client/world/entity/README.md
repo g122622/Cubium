@@ -156,3 +156,12 @@ ClientEntity
     - **数据流**：服务端 `FishingBobberEntity::_syncCaughtEntityId()` / `_catchingFish()` / `tick()` 写入 `DATA_HOOKED_ENTITY_PARAM` / `DATA_BITING_PARAM` → `EntityMetadataPacket` 同步 → 客户端 `syncMetadataFromDataManager` 读取 → `m_fishingHookedEntityId` / `m_fishingBiting` → `FishingBobberRenderer::generateMesh` 消费。
     - **+1 偏移**：`DATA_HOOKED_ENTITY` 存储 `entityId+1`，0 专门表示"无被钩住实体"，避免与合法 entityId=0 冲突。渲染器通过 `fishingHookedEntityId() > 0` 判断是否存在被钩实体。
 
+16. **Mob 激怒状态镜像**（参考 MC 1.21.11 `Mob.MOB_FLAG_AGGRESSIVE`）：
+    - **字段**：`m_isAggressive`（bool）— Mob 激怒状态镜像，驱动僵尸系模型 `ZombieModel::setAngles` 的 `animateZombieArms` 攻击抬臂动画。
+    - **元数据同步**：`syncMetadataFromDataManager()` 通过 `m_dataManager.hasParam(MobEntity::getMobFlagsParamId())` 检测参数是否存在（**所有** MobEntity 子类都注册了 `DATA_MOB_FLAGS_PARAM`，因此不按 typeId 分发）。读取 `DataParameter<i8>` 后位与 `MobEntity::getAggressiveFlagMask()`（0x04），写入 `m_isAggressive`。对应 MC 1.21.11 `Mob.onSyncedDataUpdated(DATA_MOB_FLAGS_ID)` 的位 2 解码。
+    - **访问器**：`isAggressive()` / `setIsAggressive(bool)` 供渲染器读取与外部设置。
+    - **数据流**：服务端 `MobEntity::setAggressive(true)` → `DATA_MOB_FLAGS_PARAM` 位 2 置位 → `EntityMetadataPacket` 广播 → 客户端 `syncMetadataFromDataManager` 读取位 2 → `m_isAggressive=true` → `EntityRendererManager::_applyZombieState` 推送到 `ZombieModel::setAggressive` → `ZombieModel::setAngles` 按 `f1 = -PI/(aggressive?1.5:2.25)` 计算手臂前伸基础角度。
+    - **位隔离**：`DATA_MOB_FLAGS_PARAM` 还携带 NO_AI（位 0）/ LEFTHANDED（位 1）等标志，客户端只读取位 2，不影响其他位解码。
+    - **覆盖范围**：所有 MobEntity 子类（zombie/husk/drowned/zombie_villager/skeleton/creeper/enderman/...）共享同一同步路径，无需为每个 typeId 编写分支。
+    - **与骷髅拉弓同步的差异**：骷髅拉弓状态（`AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM`）按 typeId 分发，因为是骷髅特有的独立参数；激怒状态通过 `DATA_MOB_FLAGS_PARAM` 通用同步，因为所有 MobEntity 子类都注册了该参数。
+

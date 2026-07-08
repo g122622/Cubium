@@ -103,6 +103,16 @@ Arrow、Boat、Minecart、FishingBobber 等实体的自定义几何体通过 Pip
 | 北极熊 (`polar_bear`) | polar_bear | `standingProgress` | `PolarBearModel::setStandingProgress` | 后腿站立动画 |
 | 疣猪兽 (`hoglin`/`zoglin`) | boar | `attackAnimationTicks` | `BoarModel::setAttackAnimationTicks` | 甩头攻击动画 |
 | 河豚 (`pufferfish`) | pufferfish | `puffState` | 替换为对应大小的模型 | 膨胀状态 |
+| 僵尸系 (`zombie`/`husk`/`drowned`/`zombie_villager`/`giant`) | zombie | `isAggressive()` | `_applyZombieState(model, entity)` → `ZombieModel::setAggressive` | 激怒状态驱动 `animateZombieArms` 攻击抬臂动画 |
+
+**僵尸激怒状态分支**（参考 MC 1.21.11 `ZombieRenderer` + `AnimationUtils.animateZombieArms`）：
+1. 服务端 `MobEntity::setAggressive(true)` → `DATA_MOB_FLAGS_PARAM` 位 2 置位
+2. 客户端 `ClientEntity::syncMetadataFromDataManager` 读取位 2 → `m_isAggressive=true`
+3. `_createModelForEntity` 僵尸分支调用 `_applyZombieState(model, entity)`
+4. `_applyZombieState` 读取 `entity.isAggressive()`，通过 `dynamic_cast<ZombieModel*>` 安全转换后调用 `model->setAggressive(aggressive)`
+5. `ZombieModel::setAngles` 中按 `f1 = -PI/(m_isAggressive ? 1.5 : 2.25)` 应用 `animateZombieArms` 攻击抬臂动画
+
+`HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` 均继承 `ZombieModel`，因此 `dynamic_cast<ZombieModel*>` 对这些变体模型同样命中，无需为每个变体单独编写分支。
 
 **兔子跳跃分支数据流**（参考 MC 1.21.11 `Rabbit.getJumpCompletion` + `RabbitModel.setupAnim`）：
 1. 服务端 `RabbitEntity::startJumping()` 广播 `EntityStatusPacket::RabbitJump(1)`
@@ -111,4 +121,4 @@ Arrow、Boat、Minecart、FishingBobber 等实体的自定义几何体通过 Pip
 4. 此处读取 `entity.rabbitJumpCompletion(partialTick)` 计算 `jumpRotation = sin(completion * PI)`
 5. 调用 `RabbitModel::setJumpRotation(jumpRotation)`，`setAngles` 中据此计算 thigh/foot/arm 旋转角度
 
-新增实体动画时，优先复用此"状态包触发 → 客户端镜像字段 → tick 推进 → 渲染器读取"模式，与狼甩水、兔子跳跃保持一致。
+新增实体动画时，优先复用此"状态包触发 → 客户端镜像字段 → tick 推进 → 渲染器读取"模式，与狼甩水、兔子跳跃保持一致。激怒状态走的是"元数据包触发 → `syncMetadataFromDataManager` 镜像 → 渲染器读取"模式，与骷髅拉弓同步模式一致。

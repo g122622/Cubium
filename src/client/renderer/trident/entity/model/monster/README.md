@@ -36,14 +36,14 @@ monster/
 ```
 EntityModel（基类，定义于 model/core/）
 ├── BipedModel（双足模型，定义于 model/base/）
-│   ├── ZombieModel        → 僵尸，手臂前伸
+│   ├── ZombieModel        → 僵尸，手臂前伸（含激怒状态攻击抬臂动画）
+│   │   ├── HuskModel          → 尸壳（与僵尸结构相同）
+│   │   ├── DrownedModel       → 溺尸（64x64 纹理）
+│   │   ├── ZombieVillagerModel → 僵尸村民（64x64 纹理，带鼻子部件）
+│   │   └── GiantModel         → 巨人（与僵尸结构相同，缩放更大）
 │   ├── SkeletonModel      → 骷髅，细臂细腿，支持弓箭姿态
+│   │   └── StrayModel         → 流浪者（与骷髅结构相同）
 │   ├── EndermanModel      → 末影人，高瘦身材，长臂长腿
-│   ├── ZombieVillagerModel → 僵尸村民（带鼻子部件）
-│   ├── DrownedModel       → 溺尸
-│   ├── StrayModel         → 流浪者（与骷髅结构相同）
-│   ├── HuskModel          → 尸壳（与僵尸结构相同）
-│   ├── GiantModel         → 巨人（与僵尸结构相同，缩放更大）
 │   ├── VexModel           → 恼鬼（带翅膀）
 │   └── IllagerModel       → 灾厄村民基类
 ├── SpiderModel
@@ -67,6 +67,8 @@ EntityModel（基类，定义于 model/core/）
 ├── EndermiteModel         → 末影螨（独立实现）
 └── WitchModel             → 女巫（继承 VillagerModel，分层帽子+鼻子动画）
 ```
+
+**重要**：`HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` **继承自 `ZombieModel`**（而非直接继承 `BipedModel`），以共享 `ZombieModel::setAngles` 中的 `animateZombieArms` 攻击抬臂动画与 `setAggressive` 状态。对应 MC 1.21.11 中 `HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` 均继承 `ZombieModel`。`StrayModel` 仍继承 `SkeletonModel`。
 
 ### 模型分类
 
@@ -117,12 +119,34 @@ layer/
 ### 2. 模型状态同步
 
 渲染前必须正确设置模型状态，否则动画不正确：
-- `ZombieModel.setAggressive()` - 攻击状态（影响手臂动画）
+- `ZombieModel.setAggressive()` - 攻击状态（影响手臂动画，详见下文）
 - `SkeletonModel.setRightArmPose()/setLeftArmPose()` - 手臂姿态（拉弓、持弩等），直接转发到基类 `BipedModel::m_rightArmPose/m_leftArmPose` 字段，由 `BipedModel::handleRightArmPose/handleLeftArmPose` 消费
 - `EndermanModel.setCarrying()/setAttacking()` - 携带方块/尖叫状态
 - `CreeperModel` 的充能状态通过 `renderArmor()` 单独渲染
 - `GuardianModel.setSpikeAnimation()/setTailAnimation()` - 尖刺和尾巴动画
 - `WitherModel.setSideHeadRotations(yaw0, pitch0, yaw1, pitch1)` - 注入两侧头独立朝向（度）。`yaw0/pitch0` 为左头（`m_heads[1]`），`yaw1/pitch1` 为右头（`m_heads[2]`）。调用后 `m_hasSideHeadRotations=true`，`setAngles()` 中侧头使用注入值（度→弧度转换）而非复制主头。主头（`m_heads[0]`）始终由 `netHeadYaw`/`headPitch` 参数驱动，不受此方法影响。对应 MC 1.21.11 `WitherBossModel.setupHeadRotation(state, head, index)`：`head.yRot = (yHeadRots[index] - bodyRot) * PI/180`、`head.xRot = xHeadRots[index] * PI/180`。调用时机：`setSideHeadRotations` 在 `setAngles` **之前**调用（仅存储），`setAngles` 时应用。未调用时回退到复制主头旋转，保持视觉一致。
+
+#### ZombieModel.setAggressive 与 animateZombieArms
+
+对应 MC 1.21.11 `AnimationUtils.animateZombieArms`。`ZombieModel::setAngles` 在 `BipedModel::setAngles` 之后按以下公式设置双臂角度：
+
+```
+f1 = -PI / (m_isAggressive ? 1.5 : 2.25)   // 手臂前伸基础角度
+f2 = sin(swingProgress * PI)
+f3 = sin((1 - (1-swingProgress)^2) * PI)
+rightArm: zRot=0, yRot=-(0.1 - f2*0.6), xRot=f1 + f2*1.2 - f3*0.4
+leftArm:  zRot=0, yRot= (0.1 - f2*0.6), xRot=f1 + f2*1.2 - f3*0.4
+bobArms(rightArm, leftArm, ageInTicks)  // 无条件执行
+```
+
+- **`m_isAggressive=true`**：`f1 = -PI/1.5 ≈ -2.094`（抬臂更高，呈攻击姿态）
+- **`m_isAggressive=false`**：`f1 = -PI/2.25 ≈ -1.396`（抬臂较低，呈自然站立姿态）
+- **`swingProgress`**：通过 `f2`/`f3` 叠加攻击挥动因子，0 时无影响
+- **`bobArms`**：无条件执行，根据 `ageInTicks` 添加手臂抖动偏移（`rightArm.zRot += cos(age*0.09)*0.05 + 0.05`、`rightArm.xRot += sin(age*0.067)*0.05`，左臂取反）
+
+**数据流**：服务端 `MobEntity::setAggressive` → `DATA_MOB_FLAGS_PARAM` 位 2 → 客户端 `ClientEntity::syncMetadataFromDataManager` → `m_isAggressive` → `EntityRendererManager::_applyZombieState` → `ZombieModel::setAggressive` → `setAngles` 应用 `animateZombieArms` 公式。
+
+**变体继承**：`HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` 均继承 `ZombieModel`，自动复用 `setAggressive` 和 `setAngles` 中的攻击抬臂动画，无需各自重写。对应 MC 1.21.11 中这些变体模型也继承 `ZombieModel`。
 
 **骷髅 ArmPose 管道**：`SkeletonModel` 不再自定义 `ArmPose` 枚举与 `m_rightArmPose/m_leftArmPose` 字段（避免遮蔽基类），改用 `using ArmPose = model::ArmPose;` 复用 `BipedModel::ArmPose`。弩姿态（`CrossbowCharge`/`CrossbowHold`）由基类 `handleCrossbowCharge/handleCrossbowHold` 完整处理，子类无需重复实现。`EntityRendererManager::_applySkeletonArmPose` 根据 `ClientEntity::isChargingBow()`（通过 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步）设置右臂 `BowAndArrow` 姿态。
 
@@ -132,7 +156,8 @@ layer/
 
 部分变体模型直接继承基础模型，仅改变纹理或缩放：
 - `CaveSpiderModel` 继承 `SpiderModel`，渲染时缩放 0.7 倍
-- `StrayModel`/`HuskModel`/`GiantModel` 继承 `BipedModel`，结构与骷髅/僵尸相同
+- `StrayModel` 继承 `SkeletonModel`，结构与骷髅相同
+- `HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` 继承 `ZombieModel`，共享 `animateZombieArms` 攻击抬臂动画与 `setAggressive` 状态（纹理尺寸差异：DrownedModel/ZombieVillagerModel=64x64，HuskModel/GiantModel=64x64/64x32）
 - `ElderGuardianModel` 继承 `GuardianModel`，仅纹理不同
 
 ### 4. BipedModel 基类接口

@@ -414,6 +414,8 @@ add_executable(mc_tests
     common/entity/core/EntityRandomTest.cpp
     # MobEntity 序列化测试（掉落概率、死亡掉落表、拴绳数据 NBT 序列化）
     entity/MobEntitySerializationTest.cpp
+    # MobEntity DATA_MOB_FLAGS_PARAM 位 2 (MOB_FLAG_AGGRESSIVE) 同步与位隔离测试
+    entity/MobEntityAggressiveFlagTest.cpp
     # MobEntity dropPreservedEquipment 测试（装备掉落保留逻辑、绑定诅咒、保留/非保留装备处理）
     common/entity/core/DropPreservedEquipmentTest.cpp
     # Entity::getLootTableId() 及其子类覆写测试
@@ -631,6 +633,8 @@ add_executable(mc_tests
     # Player LUCK 属性测试
     entity/PlayerLuckAttributeTest.cpp
     entity/LivingEntityTests.cpp
+    # LivingEntity::swing(Hand) 服务端广播 EntityAnimationPacket 测试
+    entity/LivingEntitySwingBroadcastTest.cpp
     entity/HurtMarkedTest.cpp
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
@@ -874,6 +878,8 @@ add_executable(mc_tests
     client/world/entity/ClientEntityTest.cpp
     # ClientEntity 骷髅拉弓状态元数据同步测试（skeleton/stray/bogged/wither_skeleton）
     client/world/entity/ClientEntitySkeletonSyncTest.cpp
+    # ClientEntity Mob 激怒状态元数据同步测试（zombie/husk/drowned/zombie_villager/skeleton/creeper）
+    client/world/entity/ClientEntityAggressiveSyncTest.cpp
     # ClientEntity 凋灵侧头朝向客户端镜像计算测试（tickWitherSideHeads/rotlerp 限速/插值/元数据同步）
     client/world/entity/ClientEntityWitherSideHeadTest.cpp
     # ClientEntity 钓鱼浮标元数据同步端到端测试（DATA_HOOKED_ENTITY/DATA_BITING 序列化→反序列化→镜像）
@@ -907,6 +913,8 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelArmPoseTest.cpp
     # SkeletonModel 手臂姿态委托基类 BipedModel 测试（BowAndArrow/CrossbowCharge/CrossbowHold/isAggressive）
     client/renderer/entity/SkeletonModelArmPoseTest.cpp
+    # ZombieModel::setAngles 激怒状态手臂动画测试（aggressive=true/false、swingProgress 攻击因子、bobArms、变体继承）
+    client/renderer/entity/ZombieModelArmPoseTest.cpp
     # WitherModel 侧头朝向注入测试（setSideHeadRotations/setAngles 度→弧度/主头不受影响/两侧头独立）
     client/renderer/entity/WitherModelSideHeadTest.cpp
     # EntityRendererManager::_applySkeletonArmPose 契约测试（isChargingBow → BowAndArrow/Empty）
@@ -2038,6 +2046,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpiderModel.cpp
         # SkeletonModel 手臂姿态委托基类 BipedModel 测试依赖
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SkeletonModel.cpp
+        # ZombieModel 手臂姿态激怒状态测试依赖 + 变体模型继承测试依赖
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/ZombieModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/MonsterVariantModels.cpp
         # WitherModel 侧头朝向注入测试依赖（SpecialMonsterModels 包含 WitherModel）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpecialMonsterModels.cpp
         # PlayerModel 手臂渲染测试

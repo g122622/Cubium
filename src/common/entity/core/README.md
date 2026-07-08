@@ -1008,3 +1008,124 @@
   - `shouldPassengersInheritMalus` 默认 false（TestMobEntity + PigEntity）
   - CopperGolemEntity 构造函数初始化验证（DangerFire/DangerOther/DamageFire）
   - 乘客继承场景（`shouldPassengersInheritMalus=true` / `false` / 无载具）
+
+## #激怒状态同步系统（MOB_FLAG_AGGRESSIVE）
+
+对应 MC 1.21.11 `Mob.MOB_FLAG_AGGRESSIVE` 与 `Mob.isAggressive` / `Mob.setAggressive`，通过 `DATA_MOB_FLAGS_PARAM`（i8）的位 2（0x04）在服务端-客户端之间同步 Mob 的"激怒"状态（僵尸抬臂攻击姿态、近战 AI 锁定目标等）。
+
+### 核心字段与方法
+
+- **`MobEntity::DATA_MOB_FLAGS_PARAM`**（`protected static` 成员）：`EntityDataManager::createKey<i8>()` 在 `registerData()` 中分配的同步参数 ID，存储 Mob 标志位。
+- **`MobEntity::MOB_FLAG_AGGRESSIVE`**（`protected static constexpr i8 = 0x04`）：位 2 掩码，对应 MC `MOB_FLAG_AGGRESSIVE = 4`。
+- **`getMobFlagsParamId()`** / **`getAggressiveFlagMask()`**（`public static`）：暴露给客户端同步层（ClientEntity）和测试代码使用的访问器，避免直接访问 protected 成员。
+- **`isAggressive() const`**：读取 `DATA_MOB_FLAGS_PARAM` 的位 2，`(value & 0x04) != 0`。
+- **`setAggressive(bool)`**：位运算修改 `DATA_MOB_FLAGS_PARAM`：`aggressive ? (b0 | 4) : (b0 & -5)`，仅修改位 2，保留位 0 (NO_AI) 和位 1 (LEFTHANDED)。
+- **`isAggroed()` / `setAggroed(bool)`**：向后兼容委托方法，分别委托给 `isAggressive()` / `setAggressive()`。MC 1.21.11 已统一为 `isAggressive`/`setAggressive`，旧代码可继续使用 `isAggroed`/`setAggroed` 而不破坏行为。
+
+### 位布局
+
+| 位 | 掩码 | 含义 | 对应 MC |
+|----|------|------|---------|
+| 0  | 0x01 | NO_AI（无 AI） | `MOB_FLAG_NO_AI` |
+| 1  | 0x02 | LEFTHANDED（左撇子） | `MOB_FLAG_LEFTHANDED` |
+| 2  | 0x04 | AGGRESSIVE（激怒状态） | `MOB_FLAG_AGGRESSIVE` |
+| 3-7 | —   | 未使用 | — |
+
+### registerData 注册时机
+
+`MobEntity::MobEntity(...)` 构造函数**显式**调用 `registerData()`（重写 `Entity::registerData` 虚方法）注册 `DATA_MOB_FLAGS_PARAM`。由于 C++ 虚函数在构造函数中不进行动态派发，派生类构造时必须自行调用 `MobEntity::registerData()` 或在自身 `registerData` 重写中调用基类版本，否则 `DATA_MOB_FLAGS_PARAM` 不会被注册。
+
+### 数据流
+
+```
+服务端 MobEntity::setAggressive(true)
+  → DATA_MOB_FLAGS_PARAM |= 0x04（位 2 置位）
+  → EntityTracker 广播 EntityMetadataPacket
+  → 客户端 ClientEntity::setMetadata → EntityMetadataSerializer::deserialize
+  → 写入 ClientEntity::m_dataManager
+  → syncMetadataFromDataManager 读取 DATA_MOB_FLAGS_PARAM & 0x04
+  → setIsAggressive(aggressive)
+  → EntityRendererManager::_applyZombieState 推送到 ZombieModel::setAggressive
+  → ZombieModel::setAngles 按 animateZombieArms 计算手臂角度（aggressive=true → -PI/1.5）
+```
+
+### 关键调用位置
+
+- **`MeleeAttackGoal::resetTask()`**：攻击目标丢失或目标死亡时调用 `m_mob->setAggroed(false)` 清除激怒状态，对应 MC 1.21.11 `MeleeAttackGoal#stop` 中 `mob.setAggressive(false)`。注意该方法不再为 `noexcept`，因为 `setAggroed → setAggressive → m_dataManager.set` 涉及互斥锁，理论上可抛异常。
+- **`ZombieEntity` / `HuskEntity` / `DrownedEntity` 等**：在 AI 锁定玩家或进入攻击范围时通过 `setAggressive(true)` 启用激怒状态，驱动客户端抬臂动画。
+
+### 测试覆盖
+
+- `tests/entity/MobEntityAggressiveFlagTest.cpp` — DATA_MOB_FLAGS_PARAM 位 2 同步完整单元测试
+  - 默认状态（isAggressive=false、原始字节=0）
+  - setAggressive 往返（true→false、多次切换幂等）
+  - 位隔离（保留 NO_AI/LEFTHANDED，只修改位 2）
+  - getAggressiveFlagMask / getMobFlagsParamId 静态访问器
+  - isAggroed / setAggroed 向后兼容委托
+
+## #swing(Hand) 挥动动画广播
+
+对应 MC 1.21.11 `LivingEntity.swing(InteractionHand)`，在服务端调用时通过 `IWorld::broadcastEntityAnimation` 广播 `EntityAnimationPacket`，客户端收到后启动本地 6 tick 挥动动画。
+
+### 核心方法
+
+- **`swing(Hand hand)`** — 触发一次挥动动画。条件判断 `!m_swingInProgress || m_swingProgressInt >= getArmSwingAnimationEnd()/2 || m_swingProgressInt < 0` 允许在动画进行到一半时重新触发（避免连击被节流）。
+- **`swingArm()`** — 便捷方法，等价于 `swing(Hand::MainHand)`。
+- **`getArmSwingAnimationEnd()`** — 返回挥动动画总 tick 数（默认 6，受急迫/挖掘疲劳效果影响）。
+- **`isSwingInProgress()` / `swingProgressInt()`** — 挥动状态访问器，供测试验证节流逻辑。
+
+### 网络广播
+
+```cpp
+void LivingEntity::swing(Hand hand)
+{
+    if (!m_swingInProgress || m_swingProgressInt >= getArmSwingAnimationEnd() / 2 || m_swingProgressInt < 0) {
+        m_swingProgressInt = -1;
+        m_swingInProgress = true;
+        m_swingingHand = hand;
+
+        // 服务端广播挥动动画事件
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            const u8 animation = (hand == Hand::MainHand)
+                ? static_cast<u8>(EntityAnimationPacket::Animation::SwingMainHand)  // 0
+                : static_cast<u8>(EntityAnimationPacket::Animation::SwingOffHand); // 3
+            m_world->broadcastEntityAnimation(m_id, animation);
+        }
+    }
+}
+```
+
+### 动画值映射
+
+| Hand | Animation 枚举 | 网络值 |
+|------|----------------|--------|
+| MainHand | `SwingMainHand` | 0 |
+| OffHand | `SwingOffHand` | 3 |
+
+### 边界条件
+
+- **客户端世界**（`isClientSide()==true`）：不广播动画事件，仅更新本地挥动状态。
+- **无世界**（`m_world==nullptr`）：不广播，不崩溃。
+- **节流**：挥动进行中（`m_swingInProgress==true` 且 `m_swingProgressInt ∈ [0, half)`）时重复调用 `swing` 不会重新广播。
+
+### 数据流
+
+```
+服务端 LivingEntity::swing(Hand::MainHand)
+  → 检测 !m_world->isClientSide()
+  → m_world->broadcastEntityAnimation(entityId, SwingMainHand=0)
+  → 客户端收到 EntityAnimationPacket
+  → ClientEntity::triggerSwingAnimation 启动本地 6 tick 挥动动画
+  → ClientEntity::tick 推进 swingProgress
+  → BipedModel::setSwingProgress(swingProgress) 应用到手臂旋转
+```
+
+### 测试覆盖
+
+- `tests/entity/LivingEntitySwingBroadcastTest.cpp` — swing 广播完整单元测试
+  - MainHand/OffHand 广播正确的 animation 值（0/3）
+  - 客户端世界（isClientSide=true）不广播
+  - 无世界（m_world=nullptr）不崩溃
+  - 节流状态验证（swingInProgress、swingProgressInt）
+  - swingArm() 便捷方法等价于 swing(MainHand)
+

@@ -267,3 +267,11 @@ m_goalSelector.addGoal(4,
 **与 `getPathWeight()` 的协同**：`AvoidBlockGoal` 提供主动逃跑行为，而 `getPathWeight()` 返回 `-1.0f` 阻止寻路穿过排斥区域。两者共同实现了 MC 原版 `isPosNearNearestRepellent` + `SetWalkTargetAwayFrom` 的完整行为。
 
 **互斥标志**：`GoalFlag::Move`（与 `AvoidEntityGoal`、`FleeSunGoal` 等一致）
+
+### 17. MeleeAttackGoal 在 resetTask 中清除激怒状态
+
+`MeleeAttackGoal::resetTask()` 对应 MC 1.21.11 `MeleeAttackGoal#stop`，在目标丢失或目标死亡时调用 `m_mob->setAggroed(false)`（委托 `setAggressive(false)`）清除激怒状态。
+
+**重要**：`resetTask()` **不再** 标记为 `noexcept`。原因：`setAggroed → setAggressive → m_dataManager.set` 涉及互斥锁，理论上可抛异常。继承 `MeleeAttackGoal` 的子类（如 `PolarBearMeleeAttackGoal`）重写 `resetTask` 时也必须移除 `noexcept`，否则在异常传播时会导致 `std::terminate`。
+
+**数据流**：`resetTask` 调用 `setAggroed(false)` → `DATA_MOB_FLAGS_PARAM` 位 2 清除 → `EntityMetadataPacket` 广播 → 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 → `m_isAggressive=false` → `EntityRendererManager::_applyZombieState` 推送到 `ZombieModel::setAggressive(false)` → 手臂从 `-PI/1.5`（攻击抬臂）切换到 `-PI/2.25`（自然站立）。
