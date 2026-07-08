@@ -251,6 +251,8 @@ add_executable(mc_tests
     common/entity/entities/monster/undead/SkeletonEntityTest.cpp
     # SkeletonEntity 骷髅战斗目标切换测试（getWeaponHoldingHand, canUseNonMeleeWeapon, setCombatTask, setEquipment）
     common/entity/entities/monster/undead/SkeletonCombatTaskTest.cpp
+    # AbstractSkeletonEntity 拉弓状态（DATA_CHARGING_BOW_PARAM）注册与读写测试
+    common/entity/entities/monster/undead/SkeletonChargingBowTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
     # EvokerEntity 尖牙攻击和召唤恼鬼测试
@@ -864,6 +866,8 @@ add_executable(mc_tests
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
     client/world/entity/ClientEntityTest.cpp
+    # ClientEntity 骷髅拉弓状态元数据同步测试（skeleton/stray/bogged/wither_skeleton）
+    client/world/entity/ClientEntitySkeletonSyncTest.cpp
     client/entity/ClientEntityAnimationTest.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
@@ -889,6 +893,10 @@ add_executable(mc_tests
     client/renderer/entity/BipedModelCrossbowTest.cpp
     # BipedModel Spyglass/Brush 手臂姿态角度测试
     client/renderer/entity/BipedModelArmPoseTest.cpp
+    # SkeletonModel 手臂姿态委托基类 BipedModel 测试（BowAndArrow/CrossbowCharge/CrossbowHold/isAggressive）
+    client/renderer/entity/SkeletonModelArmPoseTest.cpp
+    # EntityRendererManager::_applySkeletonArmPose 契约测试（isChargingBow → BowAndArrow/Empty）
+    client/renderer/entity/ApplySkeletonArmPoseTest.cpp
     # BipedModel 鞘翅飞行速度因子测试
     client/renderer/entity/BipedModelSpeedValueTest.cpp
     # elytra::computeSpeedValue 纯逻辑公式测试（_applyBipedElytraState 单元测试）
@@ -2009,6 +2017,8 @@ target_sources(mc_tests
         # CreeperModel + SpiderModel 非 BipedModel 派生模型（dynamic_cast 安全性测试依赖）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/CreeperModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpiderModel.cpp
+        # SkeletonModel 手臂姿态委托基类 BipedModel 测试依赖
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SkeletonModel.cpp
         # PlayerModel 手臂渲染测试
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
         # PlayerArmPoseResolver 手臂姿态解析器（测试依赖）
