@@ -22,6 +22,7 @@
  */
 
 #include "client/application/ClientApplication.hpp"
+#include "client/application/features/VibrationTargetResolver.hpp"
 
 #include "client/command/ClientCommandManager.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
@@ -1488,26 +1489,34 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-        Vector3d targetPosition(targetX, targetY, targetZ);
 
+        // 解析振动粒子的目标位置
         // 实体来源：通过实体管理器查找实体当前位置，叠加 Y 轴偏移
         // 对应 MC Java EntityPositionSource.getPosition(Level)
-        if (targetKind == 1 && targetEntityId != INVALID_ENTITY_ID) {
-            const ClientEntity* targetEntity = m_world.entityManager().getEntity(targetEntityId);
-            if (targetEntity != nullptr) {
-                targetPosition = Vector3d(static_cast<f64>(targetEntity->x()),
-                    static_cast<f64>(targetEntity->y()) + static_cast<f64>(yOffset),
-                    static_cast<f64>(targetEntity->z()));
-            } else {
-                // 实体不在客户端视野内，放弃生成粒子（对应 MC Java VibrationSignalParticle.tick 中
-                // target.getPosition().isEmpty() 时 remove）
-                return;
-            }
+        //
+        // TODO: 当前实现仅在粒子接收时解析一次实体位置，与 MC Java VibrationSignalParticle 的行为不一致。
+        // MC Java 的 VibrationSignalParticle 持有 PositionSource，在每 tick 的 tick() 中重新调用
+        // target.getPosition(level) 解析目标位置，因此当目标实体移动时粒子会持续跟随。
+        // 本项目当前将解析后的固定坐标传入 VibrationParticleData，粒子飞行期间不再更新目标，
+        // 目标实体移动时粒子不会跟随。要完全对齐 MC Java 行为，需要：
+        //   1. 将 VibrationParticleData 改为持有 PositionSource 信息（实体 ID + yOffset）而非固定 Vector3d
+        //   2. VibrationSignalParticle::tick() 中每 tick 通过 ClientWorld 重新解析实体位置
+        //   3. 实体消失时（getEntity 返回 nullptr）使粒子过期，对应 MC Java 的 isEmpty() -> remove()
+        // 该改造涉及粒子数据管线、VibrationSignalParticle、VibrationParticleData 三处协同修改，
+        // 当前先保留接收时一次性解析的简化行为，待后续专门收敛。
+        auto targetPosition = application::features::resolveVibrationTargetPosition(
+            targetKind, targetX, targetY, targetZ, targetEntityId, yOffset, [this](EntityId id) -> const ClientEntity* {
+                return m_world.entityManager().getEntity(id);
+            });
+
+        if (!targetPosition.has_value()) {
+            // 实体不在客户端视野内，放弃生成粒子
+            return;
         }
 
         // 通过粒子数据管线创建粒子
         using namespace client::renderer::trident::particle;
-        auto vibrationData = std::make_unique<data::VibrationParticleData>(targetPosition, arrivalInTicks);
+        auto vibrationData = std::make_unique<data::VibrationParticleData>(*targetPosition, arrivalInTicks);
         m_world.particleManager()->addPendingParticle(
             particle::ParticleTypeId::Vibration, pos, glm::vec3(0.0f), &m_world, std::move(vibrationData));
     };

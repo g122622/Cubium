@@ -9,6 +9,7 @@ add_executable(minecraft-client
     main.cpp
     application/ClientApplication.cpp
     application/features/ClientApplicationHelpers.cpp
+    application/features/VibrationTargetResolver.cpp
     application/features/ClientApplicationBootstrap.cpp
     application/features/ClientApplicationSession.cpp
     application/features/ClientApplicationAudio.cpp

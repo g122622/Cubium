@@ -874,6 +874,8 @@ add_executable(mc_tests
     client/world/entity/ClientEntitySkeletonSyncTest.cpp
     # ClientEntity 凋灵侧头朝向客户端镜像计算测试（tickWitherSideHeads/rotlerp 限速/插值/元数据同步）
     client/world/entity/ClientEntityWitherSideHeadTest.cpp
+    # 振动粒子目标位置解析纯函数测试（方块/实体来源、实体不存在回退、未知来源类型）
+    client/application/features/VibrationParticleDispatchTest.cpp
     client/entity/ClientEntityAnimationTest.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
@@ -1993,6 +1995,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
+        # VibrationTargetResolver 纯函数依赖（振动粒子目标位置解析）
+        ${CMAKE_SOURCE_DIR}/src/client/application/features/VibrationTargetResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
         # 维度管理
