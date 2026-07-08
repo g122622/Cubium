@@ -44,6 +44,8 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <limits>
+
 namespace mc {
 namespace world::gen::placement {
 
@@ -131,6 +133,21 @@ std::unique_ptr<Placement> createPlacement(const std::string& name)
     }
     if (name == "water_depth_threshold") {
         return std::make_unique<WaterDepthThresholdPlacement>();
+    }
+    if (name == "fixed_placement") {
+        return std::make_unique<FixedPlacement>();
+    }
+    if (name == "count_on_every_layer") {
+        return std::make_unique<CountOnEveryLayerPlacement>();
+    }
+    if (name == "noise_threshold_count") {
+        return std::make_unique<NoiseThresholdCountPlacement>();
+    }
+    if (name == "noise_based_count") {
+        return std::make_unique<NoiseBasedCountPlacement>();
+    }
+    if (name == "surface_relative_threshold_filter") {
+        return std::make_unique<SurfaceRelativeThresholdFilterPlacement>();
     }
     return nullptr;
 }
@@ -282,6 +299,73 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
                 "heightmap placement: unknown heightmap type '" + node["heightmap"].get<std::string>() + "'");
         }
         config = std::make_unique<HeightmapPlacementConfig>(heightmapOpt.value());
+    } else if (type == "fixed_placement") {
+        // fixed_placement: {positions: [[x,y,z], ...]}。仅当 basePos 所在区块含这些坐标时返回它们。
+        if (!node.contains("positions") || !node["positions"].is_array()) {
+            return Error(ErrorCode::InvalidData, "fixed_placement placement missing 'positions' array");
+        }
+        std::vector<BlockPos> positions;
+        positions.reserve(node["positions"].size());
+        for (const auto& entry : node["positions"]) {
+            if (!entry.is_array() || entry.size() != 3 || !entry[0].is_number_integer() ||
+                !entry[1].is_number_integer() || !entry[2].is_number_integer()) {
+                return Error(
+                    ErrorCode::InvalidData, "fixed_placement placement: each position must be [x,y,z] integers");
+            }
+            positions.emplace_back(entry[0].get<i32>(), entry[1].get<i32>(), entry[2].get<i32>());
+        }
+        config = std::make_unique<FixedPlacementConfig>(std::move(positions));
+    } else if (type == "count_on_every_layer") {
+        // count_on_every_layer: {count: IntProvider(0,256) 或裸整数}。
+        if (!node.contains("count")) {
+            return Error(ErrorCode::InvalidData, "count_on_every_layer placement missing 'count' field");
+        }
+        auto providerResult = valueprovider::IntProviderParser::parse(node["count"], 0, 256);
+        if (!providerResult.success()) {
+            return Error(
+                providerResult.error().code(), "count_on_every_layer placement: " + providerResult.error().message());
+        }
+        config = std::make_unique<CountOnEveryLayerConfig>(providerResult.value());
+    } else if (type == "noise_threshold_count") {
+        // noise_threshold_count: {noise_level: double, below_noise: int, above_noise: int}。
+        if (!node.contains("noise_level") || !node["noise_level"].is_number()) {
+            return Error(ErrorCode::InvalidData, "noise_threshold_count placement missing 'noise_level' number");
+        }
+        if (!node.contains("below_noise") || !node["below_noise"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "noise_threshold_count placement missing 'below_noise' integer");
+        }
+        if (!node.contains("above_noise") || !node["above_noise"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "noise_threshold_count placement missing 'above_noise' integer");
+        }
+        config = std::make_unique<NoiseThresholdCountConfig>(
+            node["noise_level"].get<f64>(), node["below_noise"].get<i32>(), node["above_noise"].get<i32>());
+    } else if (type == "noise_based_count") {
+        // noise_based_count: {noise_to_count_ratio: int, noise_factor: double, noise_offset: double (缺省 0)}。
+        if (!node.contains("noise_to_count_ratio") || !node["noise_to_count_ratio"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "noise_based_count placement missing 'noise_to_count_ratio' integer");
+        }
+        if (!node.contains("noise_factor") || !node["noise_factor"].is_number()) {
+            return Error(ErrorCode::InvalidData, "noise_based_count placement missing 'noise_factor' number");
+        }
+        const f64 noiseOffset = node.value("noise_offset", 0.0);
+        config = std::make_unique<NoiseBasedCountConfig>(
+            node["noise_to_count_ratio"].get<i32>(), node["noise_factor"].get<f64>(), noiseOffset);
+    } else if (type == "surface_relative_threshold_filter") {
+        // surface_relative_threshold_filter: {heightmap, min_inclusive? int, max_inclusive? int}。
+        if (!node.contains("heightmap") || !node["heightmap"].is_string()) {
+            return Error(
+                ErrorCode::InvalidData, "surface_relative_threshold_filter placement missing 'heightmap' string");
+        }
+        const auto heightmapOpt = world::chunk::heightmapTypeFromString(node["heightmap"].get<std::string>());
+        if (!heightmapOpt.has_value()) {
+            return Error(ErrorCode::InvalidData,
+                "surface_relative_threshold_filter placement: unknown heightmap type '" +
+                    node["heightmap"].get<std::string>() + "'");
+        }
+        const i32 minInclusive = node.value("min_inclusive", std::numeric_limits<i32>::min());
+        const i32 maxInclusive = node.value("max_inclusive", std::numeric_limits<i32>::max());
+        config =
+            std::make_unique<SurfaceRelativeThresholdFilterConfig>(heightmapOpt.value(), minInclusive, maxInclusive);
     } else {
         // chance/surface 是项目自造的遗留 placement（MC 1.21.11 无此 type，原版数据包不会触发），
         // 保留其工厂以兼容潜在第三方数据包，config 用空实现兜底。其余未注册 type 已由

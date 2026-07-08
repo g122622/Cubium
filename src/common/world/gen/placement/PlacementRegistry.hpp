@@ -195,10 +195,34 @@ std::unique_ptr<Placement> biomeFilter();
 /**
  * @brief 创建环境扫描放置器
  *
- * 参考 MC 1.21.11: EnvironmentScanPlacement
  * 沿指定方向扫描，寻找满足目标条件的位置。
  */
 std::unique_ptr<Placement> environmentScan();
+
+/**
+ * @brief 创建固定坐标放置器
+ */
+std::unique_ptr<Placement> fixedPlacement();
+
+/**
+ * @brief 创建逐层数量放置器
+ */
+std::unique_ptr<Placement> countOnEveryLayer();
+
+/**
+ * @brief 创建噪声阈值数量放置器
+ */
+std::unique_ptr<Placement> noiseThresholdCount();
+
+/**
+ * @brief 创建噪声数量放置器
+ */
+std::unique_ptr<Placement> noiseBasedCount();
+
+/**
+ * @brief 创建地表相对阈值过滤放置器
+ */
+std::unique_ptr<Placement> surfaceRelativeThresholdFilter();
 
 } // namespace Placements
 

@@ -1017,6 +1017,7 @@ add_executable(mc_tests
     common/world/gen/feature/ScatteredOreAndReplaceBlobsTest.cpp
     common/world/gen/feature/EnvironmentScanAndRuleBasedProviderTest.cpp
     common/world/gen/placement/RandomOffsetAndWaterDepthTest.cpp
+    common/world/gen/placement/CountOnEveryLayerAndNoisePlacementTest.cpp
     common/world/gen/feature/predicate/MatchingPredicatesTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
