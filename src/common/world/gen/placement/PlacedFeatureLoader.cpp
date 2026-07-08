@@ -24,6 +24,7 @@
 #include "PlacedFeatureLoader.hpp"
 
 #include "BiomeFilterPlacement.hpp"
+#include "BlockPredicateFilterPlacement.hpp"
 #include "PlacedFeature.hpp"
 #include "PlacedFeatureRegistry.hpp"
 #include "Placement.hpp"
@@ -33,6 +34,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
+#include "common/world/gen/feature/parser/BlockPredicateParser.hpp"
 #include "common/world/gen/valueprovider/HeightProviderParser.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
@@ -111,6 +113,9 @@ std::unique_ptr<Placement> createPlacement(const std::string& name)
     if (name == "rarity_filter") {
         return std::make_unique<RarityFilterPlacement>();
     }
+    if (name == "block_predicate_filter") {
+        return std::make_unique<BlockPredicateFilterPlacement>();
+    }
     return nullptr;
 }
 
@@ -169,6 +174,17 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         // biome: 无 config。运行时由 BiomeFilterPlacement 反查生物群系是否包含
         // 当前 placed_feature（通过 placedFeatureId）。
         config = std::make_unique<BiomeFilterConfig>(placedFeatureId);
+    } else if (type == "block_predicate_filter") {
+        // block_predicate_filter: {predicate: <BlockPredicate>}。仅当 basePos 满足谓词才保留该位置。
+        if (!node.contains("predicate") || !node["predicate"].is_object()) {
+            return Error(ErrorCode::InvalidData, "block_predicate_filter placement missing 'predicate' object");
+        }
+        auto predResult = feature::parser::BlockPredicateParser::parse(node["predicate"]);
+        if (!predResult.success()) {
+            return Error(
+                predResult.error().code(), "block_predicate_filter placement: " + predResult.error().message());
+        }
+        config = std::make_unique<BlockPredicateFilterConfig>(predResult.value());
     } else {
         // TODO: 其余 placement type（chance/rarity_filter/heightmap/surface 等）的 JSON config
         // 解析尚未实现。这些 type 在 MC 中各有自己的 config（如 chance 需 IntProvider、

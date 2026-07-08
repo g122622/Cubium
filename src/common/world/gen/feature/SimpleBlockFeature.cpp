@@ -40,15 +40,15 @@ bool SimpleBlockFeature::place(
     }
 
     const BlockState* currentState = region.getBlockState(pos);
-    if (currentState == nullptr) {
-        return false;
-    }
+    // ChunkData 对未初始化 section 返回 nullptr 表示空气（空气不持久化）。
+    // 空气可被替换（对齐 MC SimpleBlockFeature：AIR.canBeReplaced()=true），故 nullptr 视为可放置。
+    const bool replaceable = (currentState == nullptr) || currentState->canBeReplaced();
 
     const Block& block = config.toPlace->getBlock();
     MC_UNUSED(block);
 
     // 如果当前位置不可替换，则放置失败
-    if (!currentState->canBeReplaced()) {
+    if (!replaceable) {
         return false;
     }
 

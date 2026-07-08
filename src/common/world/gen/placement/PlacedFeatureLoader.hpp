@@ -80,16 +80,18 @@ public:
     [[nodiscard]] static Result<std::unique_ptr<PlacedFeature>> loadFromJson(
         const nlohmann::json& jsonObj, const ResourceLocation& id);
 
-private:
     /**
      * @brief 解析 placement 数组为 ConfiguredPlacement 链
+     *
+     * 供内联 PlacedFeature（random_patch/flower 等 config 中的 feature.placement）
+     * 复用：内联 feature 无独立 id，BiomeFilterConfig 回填用调用方提供的 placedFeatureId。
      *
      * @param placementArr placement 数组
      * @param placedFeatureId 当前 placed_feature 的 id（回填给 BiomeFilterConfig，
      *                        用于运行时反查生物群系是否包含此特征）
      * @return 链头 ConfiguredPlacement，或错误
      */
-    static Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementChain(
+    [[nodiscard]] static Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementChain(
         const nlohmann::json& placementArr, const ResourceLocation& placedFeatureId);
 };
 

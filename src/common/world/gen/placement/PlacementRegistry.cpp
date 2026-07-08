@@ -23,6 +23,8 @@
 
 #include "PlacementRegistry.hpp"
 
+#include "BlockPredicateFilterPlacement.hpp"
+
 namespace mc {
 
 // ============================================================================
@@ -61,6 +63,7 @@ void PlacementRegistry::initialize()
     registerPlacement("spread", Placements::spread());
     registerPlacement("biome_filter", Placements::biomeFilter());
     registerPlacement("environment_scan", Placements::environmentScan());
+    registerPlacement("block_predicate_filter", std::make_unique<BlockPredicateFilterPlacement>());
 
     m_initialized = true;
 }

@@ -36,6 +36,7 @@
 #include "common/world/gen/feature/LakeFeature.hpp"
 #include "common/world/gen/feature/MonsterRoomFeature.hpp"
 #include "common/world/gen/feature/RandomBooleanSelectorFeature.hpp"
+#include "common/world/gen/feature/RandomPatchFeature.hpp"
 #include "common/world/gen/feature/RandomSelectorFeature.hpp"
 #include "common/world/gen/feature/SimpleBlockFeature.hpp"
 #include "common/world/gen/feature/SimpleRandomSelectorFeature.hpp"
@@ -70,6 +71,8 @@
 #include "common/world/gen/feature/vegetation/BambooFeature.hpp"
 #include "common/world/gen/feature/vegetation/BigMushroomFeature.hpp"
 #include "common/world/gen/feature/vegetation/FlowerFeature.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
+#include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
@@ -806,6 +809,64 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createFlower(const nlohmann::json
     return toBase(std::make_unique<ConfiguredFlowerFeature>(std::move(config), "flower"));
 }
 
+/**
+ * @brief random_patch 工厂：tries/xz_spread/y_spread + feature（内联 PlacedFeature，
+ *        含内联 configured_feature 对象 + placement 链，通常含 block_predicate_filter）。
+ *
+ * 内联 configured_feature 经 FeatureTypeRegistry::create 递归构造，所有权由
+ * RandomPatchFeatureConfig::inlineFeature 托管；PlacedFeature 持有其裸指针 +
+ * placement 链（经 PlacedFeatureLoader::parsePlacementChain 构造）。
+ * 因内联 feature 无独立 id，placement 链回填用一个占位 ResourceLocation。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createRandomPatch(const nlohmann::json& configJson)
+{
+    if (!configJson.contains("feature") || !configJson["feature"].is_object()) {
+        return Error(ErrorCode::InvalidData, "random_patch config missing inline 'feature' object");
+    }
+    const auto& inlinePlacedFeature = configJson["feature"];
+
+    // 内联 configured_feature：{type, config}
+    if (!inlinePlacedFeature.contains("feature") || !inlinePlacedFeature["feature"].is_object() ||
+        !inlinePlacedFeature["feature"].contains("type")) {
+        return Error(ErrorCode::InvalidData,
+            "random_patch inline feature.feature must be a configured_feature object with 'type'");
+    }
+    const auto& inlineConfiguredFeature = inlinePlacedFeature["feature"];
+    const std::string innerType = inlineConfiguredFeature["type"].get<std::string>();
+    const nlohmann::json innerConfig =
+        inlineConfiguredFeature.contains("config") ? inlineConfiguredFeature["config"] : nlohmann::json::object();
+    auto innerResult = FeatureTypeRegistry::instance().create(innerType, innerConfig);
+    if (!innerResult.success()) {
+        return Error(innerResult.error().code(),
+            "random_patch inline configured_feature '" + innerType + "': " + innerResult.error().message());
+    }
+    auto inlineFeature = innerResult.value();
+    if (inlineFeature == nullptr) {
+        return Error(ErrorCode::InvalidData, "random_patch inline configured_feature constructed as null");
+    }
+
+    // placement 链：内联 feature 无独立 id，用一个占位 ResourceLocation 回填 BiomeFilterConfig
+    if (!inlinePlacedFeature.contains("placement") || !inlinePlacedFeature["placement"].is_array()) {
+        return Error(ErrorCode::InvalidData, "random_patch inline feature missing 'placement' array");
+    }
+    const ResourceLocation placeholderId("minecraft", "random_patch_inline");
+    auto chainResult =
+        placement::PlacedFeatureLoader::parsePlacementChain(inlinePlacedFeature["placement"], placeholderId);
+    if (!chainResult.success()) {
+        return Error(chainResult.error().code(), "random_patch inline placement: " + chainResult.error().message());
+    }
+
+    auto config = std::make_unique<RandomPatchFeatureConfig>();
+    config->tries = getInt(configJson, "tries", 128);
+    config->xzSpread = getInt(configJson, "xz_spread", 7);
+    config->ySpread = getInt(configJson, "y_spread", 3);
+    config->inlineFeature = std::move(inlineFeature);
+    // PlacedFeature 持有 inlineFeature 裸指针（由 config 持有所有权，生命周期长于 PlacedFeature）
+    config->feature = std::make_unique<PlacedFeature>(config->inlineFeature.get(), chainResult.value(), placeholderId);
+
+    return toBase(std::make_unique<ConfiguredRandomPatchFeature>(std::move(config), "random_patch"));
+}
+
 // ----------------------------------------------------------------------------
 // 算法对齐档：lake / basalt_columns / delta_feature / underwater_magma
 // 各自忠实复刻 MC 1.21.11 算法，config 从 JSON 读取。
@@ -1002,6 +1063,7 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("waterlogged_vegetation_patch", createWaterloggedVegetationPatch);
     reg.registerType("root_system", createRootSystem);
     reg.registerType("flower", createFlower);
+    reg.registerType("random_patch", createRandomPatch);
     // 算法对齐档：忠实复刻 MC 1.21.11 的 lake/basalt_columns/delta_feature/underwater_magma
     reg.registerType("lake", createLake);
     reg.registerType("basalt_columns", createBasaltColumns);
@@ -1013,11 +1075,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("bonus_chest", createBonusChest);
     reg.registerType("basalt_pillar", createBasaltPillar);
     reg.registerType("forest_rock", createForestRock);
-    // TODO: 数据包共 54 种 configured_feature type，当前注册 41 种。
+    // TODO: 数据包共 54 种 configured_feature type，当前注册 42 种。
     // 未注册的 type（geode/sculk_patch/large_dripstone/disk/spring_feature/fossil/
-    // desert_well/scattered_ore/random_patch/
-    // netherrack_replace_blobs/block_pile/twisting_vines/weeping_vines/
-    // nether_forest_vegetation/fallen_tree/iceberg 等）
+    // desert_well/scattered_ore/netherrack_replace_blobs/block_pile/twisting_vines/
+    // weeping_vines/nether_forest_vegetation/fallen_tree/iceberg 等）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 

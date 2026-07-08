@@ -1141,6 +1141,7 @@ add_library(mc_common STATIC
     world/gen/feature/VoidStartPlatformFeature.cpp
     world/gen/feature/BlockBlobFeature.cpp
     world/gen/feature/BasaltPillarFeature.cpp
+    world/gen/feature/RandomPatchFeature.cpp
 
     # World - Generation - Feature - Parser
     world/gen/feature/parser/BlockStateParser.cpp
@@ -1284,6 +1285,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Placement
     world/gen/placement/BiomeFilterPlacement.cpp
+    world/gen/placement/BlockPredicateFilterPlacement.cpp
     world/gen/placement/EnvironmentScanPlacement.cpp
     world/gen/placement/Placement.cpp
     world/gen/placement/PlacementUtils.cpp

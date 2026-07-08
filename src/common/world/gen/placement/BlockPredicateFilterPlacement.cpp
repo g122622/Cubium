@@ -18,24 +18,27 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
-#include "MatchingBlockPredicate.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "BlockPredicateFilterPlacement.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
-namespace mc::world::gen::feature::predicate {
+namespace mc {
 
-bool MatchingBlockPredicate::test(const IWorld& world, const BlockPos& pos) const
+std::vector<BlockPos> BlockPredicateFilterPlacement::getPositions(
+    WorldGenRegion& region, math::Random& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
 {
-    const BlockState* state = world.getBlockState(pos);
-    // ChunkData 对未初始化 section 返回 nullptr 表示空气（空气不持久化到 section），
-    // 故 nullptr 等价于 AIR 方块状态：当且仅当本谓词匹配的正是空气方块时为真。
-    if (state == nullptr) {
-        return m_block != nullptr && m_block == BlockRegistry::instance().getBlock(ResourceLocation("minecraft:air"));
+    const auto& filterConfig = static_cast<const BlockPredicateFilterConfig&>(config);
+    if (filterConfig.predicate == nullptr) {
+        // 无谓词视为永真过滤（防御：正常路径必经 BlockPredicateParser 构造出非空谓词）
+        return {basePos};
     }
-    return &state->getBlock() == m_block;
+    // WorldGenRegion 继承 IWorld，可直接作为谓词测试的世界接口
+    if (filterConfig.predicate->test(region, basePos)) {
+        return {basePos};
+    }
+    return {};
 }
 
-} // namespace mc::world::gen::feature::predicate
+} // namespace mc

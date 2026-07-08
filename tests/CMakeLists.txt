@@ -1010,6 +1010,7 @@ add_executable(mc_tests
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/MonsterRoomFeatureTest.cpp
     common/world/gen/feature/RandomSelectorFeatureTest.cpp
+    common/world/gen/feature/RandomPatchFeatureTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/end/EndFeatureTest.cpp
