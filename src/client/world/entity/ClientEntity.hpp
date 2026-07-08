@@ -31,6 +31,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <algorithm>
+#include <array>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -1126,6 +1128,54 @@ public:
         }
     }
 
+    // ========== 凋灵侧头朝向 ==========
+
+    /**
+     * @brief 获取凋灵侧头偏航角（度，已减去身体偏航角，插值后）
+     *
+     * 对应 MC 1.21.11 WitherRenderState.yHeadRots[index] - bodyRot。
+     * 由 EntityRendererManager 在 wither 分支读取并填充 AnimationContext.witherSideHeadYaw。
+     *
+     * @param index 侧头索引 (0=左头, 1=右头)
+     * @param partialTick 部分 tick (0.0-1.0)，用于插值
+     * @return 插值后的偏航角（度）
+     */
+    [[nodiscard]] f32 getInterpolatedWitherSideHeadYaw(i32 index, f32 partialTick) const
+    {
+        return m_prevWitherSideHeadYaw[index] +
+            (m_witherSideHeadYaw[index] - m_prevWitherSideHeadYaw[index]) * partialTick;
+    }
+
+    /**
+     * @brief 获取凋灵侧头俯仰角（度，插值后）
+     *
+     * 对应 MC 1.21.11 WitherRenderState.xHeadRots[index]。
+     *
+     * @param index 侧头索引 (0=左头, 1=右头)
+     * @param partialTick 部分 tick (0.0-1.0)，用于插值
+     * @return 插值后的俯仰角（度）
+     */
+    [[nodiscard]] f32 getInterpolatedWitherSideHeadPitch(i32 index, f32 partialTick) const
+    {
+        return m_prevWitherSideHeadPitch[index] +
+            (m_witherSideHeadPitch[index] - m_prevWitherSideHeadPitch[index]) * partialTick;
+    }
+
+    /**
+     * @brief 推进凋灵侧头朝向（每 tick 调用一次）
+     *
+     * 由于客户端不运行 WitherEntity::aiStep()（ClientEntity 是独立代理类），
+     * 此方法在 ClientEntityManager::tick() 中对凋灵实体调用，
+     * 镜像 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 的侧头朝向计算逻辑：
+     * - 备份 prev 值
+     * - 若侧头有追踪目标（通过 HEAD_TARGET_2/3 元数据同步的目标 ID），
+     *   从目标位置反算 yaw/pitch，用 rotlerp 逐步逼近
+     * - 若无目标，yaw 逐步回正到身体偏航角（renderYawOffset = yaw）
+     *
+     * @param entityLookup 实体查找回调，返回指定 ID 的 ClientEntity 指针（可能为 nullptr）
+     */
+    void tickWitherSideHeads(const std::function<const ClientEntity*(EntityId)>& entityLookup);
+
 private:
     // 基本信息
     EntityId m_id;
@@ -1274,6 +1324,19 @@ private:
     // 收到 RabbitJump(1) 状态包时启动；由 tickRabbitJump() 在 ClientEntity::tick() 中推进
     i32 m_rabbitJumpTicks = 0;    ///< 当前跳跃已持续的 tick
     i32 m_rabbitJumpDuration = 0; ///< 当前跳跃总持续 tick；为 0 表示未在跳跃中
+
+    // 凋灵侧头朝向（对应 MC 1.21.11 WitherBoss.yRotHeads/xRotHeads[2]）
+    // 客户端不运行 WitherEntity::aiStep()，由 tickWitherSideHeads() 本地镜像计算。
+    // index 0 = 左头（对应 m_heads[1]），index 1 = 右头（对应 m_heads[2]）。
+    std::array<f32, 2> m_witherSideHeadYaw = {0.0f, 0.0f};
+    std::array<f32, 2> m_witherSideHeadPitch = {0.0f, 0.0f};
+    std::array<f32, 2> m_prevWitherSideHeadYaw = {0.0f, 0.0f};
+    std::array<f32, 2> m_prevWitherSideHeadPitch = {0.0f, 0.0f};
+
+    // 凋灵三头追踪目标实体 ID（通过 HEAD_TARGET_1/2/3 元数据同步）
+    // index 0 = 主头，index 1 = 左头，index 2 = 右头。
+    // 由 syncMetadataFromDataManager 读取，供 tickWitherSideHeads 查找目标位置。
+    std::array<i32, 3> m_witherHeadTargetId = {0, 0, 0};
 
     // 追踪位置系统（用于披风摆动）
     f64 m_chasingPosX = 0.0;

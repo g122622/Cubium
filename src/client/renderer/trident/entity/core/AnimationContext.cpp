@@ -53,6 +53,12 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, static_cast<f64>(wolfInterestedAngle));
     hash = hashCombine(hash, static_cast<f64>(wolfWetShade));
 
+    // 凋灵侧头朝向
+    hash = hashCombine(hash, static_cast<f64>(witherSideHeadYaw[0]));
+    hash = hashCombine(hash, static_cast<f64>(witherSideHeadPitch[0]));
+    hash = hashCombine(hash, static_cast<f64>(witherSideHeadYaw[1]));
+    hash = hashCombine(hash, static_cast<f64>(witherSideHeadPitch[1]));
+
     // 组合布尔状态（转换为 0.0 或 1.0）
     hash = hashCombine(hash, isSitting ? 1.0 : 0.0);
     hash = hashCombine(hash, isChild ? 1.0 : 0.0);
@@ -109,6 +115,16 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
     // 狼乞求角度变化
     if (checkDiff(static_cast<f64>(wolfInterestedAngle), static_cast<f64>(other.wolfInterestedAngle))) {
         return true;
+    }
+
+    // 凋灵侧头朝向变化（立即更新网格）
+    for (i32 i = 0; i < 2; ++i) {
+        if (checkDiff(static_cast<f64>(witherSideHeadYaw[i]), static_cast<f64>(other.witherSideHeadYaw[i]))) {
+            return true;
+        }
+        if (checkDiff(static_cast<f64>(witherSideHeadPitch[i]), static_cast<f64>(other.witherSideHeadPitch[i]))) {
+            return true;
+        }
     }
 
     // 布尔状态变化（立即更新）

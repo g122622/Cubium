@@ -124,14 +124,30 @@ void WitherModel::setAngles(
         static_cast<f32>(-0.5 + std::sin(m_upperBodyParts[1]->rotateAngleX()) * 10.0));
     m_upperBodyParts[2]->setRotateAngleX(static_cast<f32>((0.265 + 0.1 * f) * mc::math::PI_DOUBLE));
 
+    // 主头：由标准 setAngles 参数（netHeadYaw/headPitch）驱动
     m_heads[0]->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
     m_heads[0]->setRotateAngleX(static_cast<f32>(headPitch * mc::math::PI_DOUBLE / 180.0));
 
-    // TODO: 侧头旋转需要从实体获取独立头朝向数据，当前暂时复制主头旋转
-    m_heads[1]->setRotateAngleY(static_cast<f32>(m_heads[0]->rotateAngleY()));
-    m_heads[1]->setRotateAngleX(static_cast<f32>(m_heads[0]->rotateAngleX()));
-    m_heads[2]->setRotateAngleY(static_cast<f32>(m_heads[0]->rotateAngleY()));
-    m_heads[2]->setRotateAngleX(static_cast<f32>(m_heads[0]->rotateAngleX()));
+    // 侧头：由 setSideHeadRotations 提供的独立朝向驱动。
+    // 对应 MC 1.21.11 WitherBossModel.setupHeadRotation(state, head, index)：
+    //   head.yRot = (yHeadRots[index] - bodyRot) * PI / 180
+    //   head.xRot = xHeadRots[index] * PI / 180
+    // setSideHeadRotations 接收的 yaw 已是 (yHeadRots[index] - bodyRot) 的结果，
+    // pitch 直接为 xHeadRots[index]。
+    //
+    // 当 setSideHeadRotations 未被调用时（例如 CPU 渲染路径的旧代码或测试），
+    // 回退到复制主头旋转，保持视觉一致。
+    if (m_hasSideHeadRotations) {
+        m_heads[1]->setRotateAngleY(m_sideHeadYaw[0] * static_cast<f32>(mc::math::PI_DOUBLE / 180.0));
+        m_heads[1]->setRotateAngleX(m_sideHeadPitch[0] * static_cast<f32>(mc::math::PI_DOUBLE / 180.0));
+        m_heads[2]->setRotateAngleY(m_sideHeadYaw[1] * static_cast<f32>(mc::math::PI_DOUBLE / 180.0));
+        m_heads[2]->setRotateAngleX(m_sideHeadPitch[1] * static_cast<f32>(mc::math::PI_DOUBLE / 180.0));
+    } else {
+        m_heads[1]->setRotateAngleY(static_cast<f32>(m_heads[0]->rotateAngleY()));
+        m_heads[1]->setRotateAngleX(static_cast<f32>(m_heads[0]->rotateAngleX()));
+        m_heads[2]->setRotateAngleY(static_cast<f32>(m_heads[0]->rotateAngleY()));
+        m_heads[2]->setRotateAngleX(static_cast<f32>(m_heads[0]->rotateAngleX()));
+    }
 
     (void)limbSwing;
     (void)limbSwingAmount;

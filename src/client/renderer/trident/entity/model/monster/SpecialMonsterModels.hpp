@@ -41,11 +41,42 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 设置侧头朝向（偏航、俯仰）
+     *
+     * 对应 MC 1.21.11 WitherBossModel.setupHeadRotation(renderState, head, index)：
+     *   head.yRot = (yHeadRots[index] - bodyRot) * PI / 180
+     *   head.xRot = xHeadRots[index] * PI / 180
+     *
+     * 调用时机：在 setAngles 之后由 EntityRendererManager::_createModelForEntity
+     * 或 WitherRenderer::render 调用，使用已插值的角度值。
+     *
+     * @param yaw0   左头偏航角（度，已减去身体偏航角，对应 MC yHeadRots[0]-bodyRot）
+     * @param pitch0 左头俯仰角（度）
+     * @param yaw1   右头偏航角（度，已减去身体偏航角）
+     * @param pitch1 右头俯仰角（度）
+     */
+    void setSideHeadRotations(f32 yaw0, f32 pitch0, f32 yaw1, f32 pitch1)
+    {
+        m_sideHeadYaw[0] = yaw0;
+        m_sideHeadPitch[0] = pitch0;
+        m_sideHeadYaw[1] = yaw1;
+        m_sideHeadPitch[1] = pitch1;
+        m_hasSideHeadRotations = true;
+    }
+
 private:
     void _setupParts();
 
     std::array<std::shared_ptr<ModelRenderer>, 3> m_upperBodyParts;
     std::array<std::shared_ptr<ModelRenderer>, 3> m_heads;
+
+    // 侧头朝向（度），由 setSideHeadRotations 设置。
+    // m_heads[1] 使用 index 0（左头），m_heads[2] 使用 index 1（右头）。
+    // 对应 MC 1.21.11 WitherRenderState.yHeadRots[2] / xHeadRots[2]。
+    std::array<f32, 2> m_sideHeadYaw = {0.0f, 0.0f};
+    std::array<f32, 2> m_sideHeadPitch = {0.0f, 0.0f};
+    bool m_hasSideHeadRotations = false;
 };
 
 /**

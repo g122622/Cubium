@@ -322,11 +322,10 @@ void WitherEntity::ignite()
 
 void WitherEntity::tick()
 {
-    // 更新上一帧头部角度
-    for (i32 i = 0; i < 2; ++i) {
-        m_prevHeadXRot[i] = m_headXRot[i];
-        m_prevHeadYRot[i] = m_headYRot[i];
-    }
+    // 注意：侧头角度的 prev 备份（m_prevHeadXRot/m_prevHeadYRot）在 aiStep() 中执行，
+    // 对应 MC 1.21.11 WitherBoss.aiStep() 中 super.aiStep() 之后的备份逻辑。
+    // tick() → MobEntity::tick() → LivingEntity::tick() → aiStep()，
+    // 因此备份发生在 tick 链内部，时序正确。
 
     // 调用父类tick
     MobEntity::tick();
@@ -350,6 +349,18 @@ void WitherEntity::aiStep()
     // 所以调用链是：aiStep() -> LivingEntity::aiStep() -> 物理移动
     // 然后 MobEntity::tick() 继续 -> m_moveController->tick() -> m_lookController->tick()
     LivingEntity::aiStep();
+
+    // 保存上一帧侧头角度（对应 MC 1.21.11 WitherBoss.aiStep() 中
+    // super.aiStep() 之后的 yRotOHeads[i]=yRotHeads[i]; xRotOHeads[i]=xRotHeads[i];）
+    // 必须在 _updateSideHeadRotations() 之前执行，确保 prev 保存的是上一 tick 的值。
+    for (i32 i = 0; i < 2; ++i) {
+        m_prevHeadYRot[i] = m_headYRot[i];
+        m_prevHeadXRot[i] = m_headXRot[i];
+    }
+
+    // 更新侧头朝向（对应 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 循环）
+    // 在 LivingEntity::aiStep() 之后执行，与 MC 调用顺序一致。
+    _updateSideHeadRotations();
 }
 
 void WitherEntity::_spawnParticles()
@@ -612,37 +623,103 @@ void WitherEntity::_updateHeadTargets()
 
 f32 WitherEntity::_getHeadX(i32 head) const
 {
-    // 计算头的X坐标
-    if (head == 0) {
-        // 主头
+    // 对应 MC 1.21.11 WitherBoss.getHeadX(int)：
+    //   head <= 0: return this.getX()
+    //   else: f = (yBodyRot + 180*(head-1)) * PI/180; return getX + cos(f) * 1.3 * getScale()
+    // 此处 getScale() 对凋灵恒为 1.0（无幼体凋灵）。
+    if (head <= 0) {
         return static_cast<f32>(x());
-    } else if (head == 1) {
-        // 左头
-        return static_cast<f32>(x() + 0.5 * std::cos(yaw() * math::DEG_TO_RAD));
-    } else {
-        // 右头
-        return static_cast<f32>(x() - 0.5 * std::cos(yaw() * math::DEG_TO_RAD));
     }
+    f32 angleDeg = renderYawOffset() + 180.0f * static_cast<f32>(head - 1);
+    f32 angleRad = angleDeg * math::DEG_TO_RAD;
+    return static_cast<f32>(x() + std::cos(angleRad) * 1.3);
 }
 
 f32 WitherEntity::_getHeadY(i32 head) const
 {
-    // 计算头的Y坐标
-    return static_cast<f32>(y() + 2.0);
+    // 对应 MC 1.21.11 WitherBoss.getHeadY(int)：
+    //   head <= 0: return getY + 3.0 * getScale()
+    //   else:      return getY + 2.2 * getScale()
+    // 此处 getScale() 对凋灵恒为 1.0。
+    f32 yOffset = (head <= 0) ? 3.0f : 2.2f;
+    return static_cast<f32>(y() + yOffset);
 }
 
 f32 WitherEntity::_getHeadZ(i32 head) const
 {
-    // 计算头的Z坐标
-    if (head == 0) {
-        // 主头
+    // 对应 MC 1.21.11 WitherBoss.getHeadZ(int)：
+    //   head <= 0: return this.getZ()
+    //   else: f = (yBodyRot + 180*(head-1)) * PI/180; return getZ + sin(f) * 1.3 * getScale()
+    // 此处 getScale() 对凋灵恒为 1.0。
+    if (head <= 0) {
         return static_cast<f32>(z());
-    } else if (head == 1) {
-        // 左头
-        return static_cast<f32>(z() + 0.5 * std::sin(yaw() * math::DEG_TO_RAD));
-    } else {
-        // 右头
-        return static_cast<f32>(z() - 0.5 * std::sin(yaw() * math::DEG_TO_RAD));
+    }
+    f32 angleDeg = renderYawOffset() + 180.0f * static_cast<f32>(head - 1);
+    f32 angleRad = angleDeg * math::DEG_TO_RAD;
+    return static_cast<f32>(z() + std::sin(angleRad) * 1.3);
+}
+
+f32 WitherEntity::_rotLerp(f32 current, f32 target, f32 maxStep)
+{
+    // 对应 MC 1.21.11 WitherBoss.rotlerp(current, target, maxStep)：
+    //   diff = Mth.wrapDegrees(target - current)
+    //   diff = clamp(diff, -maxStep, maxStep)
+    //   return current + diff
+    // 使用 math::clampedRotate（与 MC rotlerp 完全等价）。
+    return math::clampedRotate(current, target, maxStep);
+}
+
+void WitherEntity::_updateSideHeadRotations()
+{
+    // 对应 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 循环：
+    //   int k = getAlternativeTarget(j + 1);
+    //   Entity entity1 = (k > 0) ? level.getEntity(k) : null;
+    //   if (entity1 != null) {
+    //       double d9 = getHeadX(j+1), d1 = getHeadY(j+1), d3 = getHeadZ(j+1);
+    //       double d4 = entity1.getX() - d9;     // 目标相对头部的 X 偏移
+    //       double d5 = entity1.getEyeY() - d1;  // 目标眼睛 Y 偏移
+    //       double d6 = entity1.getZ() - d3;     // 目标相对头部的 Z 偏移
+    //       double d7 = sqrt(d4*d4 + d6*d6);     // 水平距离
+    //       float f1 = atan2(d6, d4) * 180/PI - 90;  // 目标偏航角
+    //       float f2 = -(atan2(d5, d7) * 180/PI);    // 目标俯仰角
+    //       xRotHeads[j] = rotlerp(xRotHeads[j], f2, 40);  // pitch 最大 40°/tick
+    //       yRotHeads[j] = rotlerp(yRotHeads[j], f1, 10);  // yaw 最大 10°/tick
+    //   } else {
+    //       yRotHeads[j] = rotlerp(yRotHeads[j], yBodyRot, 10);  // 无目标时回正到身体朝向
+    //   }
+    IWorld* worldPtr = world();
+    f32 bodyRot = renderYawOffset();
+
+    for (i32 j = 0; j < 2; ++j) {
+        i32 targetId = getWatchedTargetId(j + 1);
+        Entity* targetEntity = nullptr;
+        if (targetId > 0 && worldPtr != nullptr) {
+            targetEntity = worldPtr->getEntity(static_cast<EntityId>(targetId));
+        }
+
+        if (targetEntity != nullptr) {
+            f64 headX = _getHeadX(j + 1);
+            f64 headY = _getHeadY(j + 1);
+            f64 headZ = _getHeadZ(j + 1);
+
+            f64 dx = targetEntity->x() - headX;
+            // MC 1.21.11: entity1.getEyeY() = entity1.getY() + entity1.getEyeHeight()
+            f64 dy = (targetEntity->y() + targetEntity->eyeHeight()) - headY;
+            f64 dz = targetEntity->z() - headZ;
+
+            f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
+
+            // 偏航角：atan2(dz, dx) * 180/PI - 90
+            f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * (180.0 / math::PI) - 90.0);
+            // 俯仰角：-(atan2(dy, horizontalDist) * 180/PI)
+            f32 targetPitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * (180.0 / math::PI)));
+
+            m_headXRot[j] = _rotLerp(m_headXRot[j], targetPitch, 40.0f);
+            m_headYRot[j] = _rotLerp(m_headYRot[j], targetYaw, 10.0f);
+        } else {
+            // 无目标：偏航角逐步回正到身体朝向（俯仰角保持不变，与 MC 一致）
+            m_headYRot[j] = _rotLerp(m_headYRot[j], bodyRot, 10.0f);
+        }
     }
 }
 

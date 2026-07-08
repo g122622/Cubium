@@ -34,6 +34,7 @@
 #include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
@@ -986,6 +987,35 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         context.isAngry = false;
     }
 
+    // 凋灵侧头朝向（对应 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 循环）
+    // 客户端不运行 WitherEntity::aiStep()，由 ClientEntity::tickWitherSideHeads
+    // 在 ClientEntityManager::tick() 中本地镜像计算侧头 yaw/pitch。
+    // 此处从 ClientEntity 读取插值后的角度，并转换为模型所需的"身体相对"角度。
+    //
+    // MC 1.21.11 WitherBossModel.setupHeadRotation:
+    //   head.yRot = (yHeadRots[index] - bodyRot) * PI / 180
+    //   head.xRot = xHeadRots[index] * PI / 180
+    // 因此 context.witherSideHeadYaw 存储 (absoluteYaw - bodyRot)，
+    // context.witherSideHeadPitch 存储 absolutePitch。
+    if (typeId == "minecraft:wither" || typeId == "wither") {
+        // bodyRot 对应 MC yBodyRot，Cubium 中为 renderYawOffset（= yaw on ClientEntity）
+        // 使用插值后的 bodyYaw（与 netHeadYaw 计算中使用的 bodyYaw 一致）
+        const f32 bodyYawF = static_cast<f32>(bodyYaw);
+        for (i32 i = 0; i < 2; ++i) {
+            const f32 absYaw = entity.getInterpolatedWitherSideHeadYaw(i, static_cast<f32>(context.partialTicks));
+            const f32 absPitch = entity.getInterpolatedWitherSideHeadPitch(i, static_cast<f32>(context.partialTicks));
+            // 转换为身体相对偏航（对应 MC yHeadRots[i] - bodyRot）
+            f32 relYaw = absYaw - bodyYawF;
+            // 归一化到 [-180, 180]
+            relYaw = math::wrapDegrees(relYaw);
+            context.witherSideHeadYaw[i] = relYaw;
+            context.witherSideHeadPitch[i] = absPitch;
+        }
+    } else {
+        context.witherSideHeadYaw.fill(0.0f);
+        context.witherSideHeadPitch.fill(0.0f);
+    }
+
     // 计算哈希
     context.computeHash();
 
@@ -1129,6 +1159,21 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             auto* skeletonModel = dynamic_cast<model::monster::SkeletonModel*>(model.get());
             if (skeletonModel != nullptr) {
                 _applySkeletonArmPose(*skeletonModel, entity, context);
+            }
+        }
+
+        // 凋灵侧头朝向（对应 MC 1.21.11 WitherBossModel.setupHeadRotation）
+        // 第三人称凋灵走 GPU 管线路径，需要在此将 AnimationContext 中已计算的
+        // 侧头偏航/俯仰角传递给 WitherModel，覆盖 setAngles 中默认的"复制主头"逻辑。
+        // context.witherSideHeadYaw 已是"身体相对"偏航（对应 MC yHeadRots[i] - bodyRot），
+        // context.witherSideHeadPitch 是绝对俯仰（对应 MC xHeadRots[i]）。
+        if (normalizedId == "wither" || normalizedId == "minecraft:wither") {
+            auto* witherModel = dynamic_cast<model::monster::WitherModel*>(model.get());
+            if (witherModel != nullptr) {
+                witherModel->setSideHeadRotations(context.witherSideHeadYaw[0],
+                    context.witherSideHeadPitch[0],
+                    context.witherSideHeadYaw[1],
+                    context.witherSideHeadPitch[1]);
             }
         }
 

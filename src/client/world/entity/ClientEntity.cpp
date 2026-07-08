@@ -27,6 +27,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
@@ -38,6 +39,7 @@
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -348,6 +350,36 @@ void ClientEntity::syncMetadataFromDataManager()
                 value != nullptr) {
                 const bool charging = value->get<bool>();
                 setChargingBow(charging);
+            }
+        }
+    }
+
+    // 凋灵侧头目标同步：HEAD_TARGET_1/2/3 通过元数据同步自服务端 WitherEntity。
+    // 客户端在 tickWitherSideHeads() 中使用这些目标 ID 查找目标实体位置，
+    // 本地镜像 MC 1.21.11 WitherBoss.aiStep() 的侧头朝向计算逻辑。
+    // 注意：侧头朝向角度本身不通过网络同步（与 MC 设计一致），仅同步目标 ID。
+    //   HEAD_TARGET_1 = 主头目标（index 0，不参与侧头朝向计算）
+    //   HEAD_TARGET_2 = 左头目标（index 1，对应 m_witherSideHeadYaw[0]/Pitch[0]）
+    //   HEAD_TARGET_3 = 右头目标（index 2，对应 m_witherSideHeadYaw[1]/Pitch[1]）
+    if (m_typeId == "minecraft:wither" || m_typeId == "wither") {
+        // 目标 ID 缓存到 m_witherHeadTargetId，供 tickWitherSideHeads 使用
+        // 主头目标不参与侧头朝向，但此处仍读取以保持元数据消费一致性
+        if (m_dataManager.hasParam(::mc::entity::WitherEntity::getHeadTarget1ParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget1ParamId());
+                value != nullptr) {
+                m_witherHeadTargetId[0] = value->get<i32>();
+            }
+        }
+        if (m_dataManager.hasParam(::mc::entity::WitherEntity::getHeadTarget2ParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget2ParamId());
+                value != nullptr) {
+                m_witherHeadTargetId[1] = value->get<i32>();
+            }
+        }
+        if (m_dataManager.hasParam(::mc::entity::WitherEntity::getHeadTarget3ParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget3ParamId());
+                value != nullptr) {
+                m_witherHeadTargetId[2] = value->get<i32>();
             }
         }
     }
@@ -791,6 +823,62 @@ void ClientEntity::refreshEyeHeight()
     }
 
     m_eyeHeight = baseEyeHeight;
+}
+
+void ClientEntity::tickWitherSideHeads(const std::function<const ClientEntity*(EntityId)>& entityLookup)
+{
+    // 镜像 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 的侧头朝向计算。
+    // 客户端不运行 WitherEntity::aiStep()（ClientEntity 是独立代理类），
+    // 因此由 ClientEntityManager::tick() 对凋灵实体调用此方法。
+
+    // 1. 备份 prev 值（对应 MC aiStep() 中 super.aiStep() 之后的
+    //    yRotOHeads[i]=yRotHeads[i]; xRotOHeads[i]=xRotHeads[i];）
+    for (i32 i = 0; i < 2; ++i) {
+        m_prevWitherSideHeadYaw[i] = m_witherSideHeadYaw[i];
+        m_prevWitherSideHeadPitch[i] = m_witherSideHeadPitch[i];
+    }
+
+    // 2. 计算侧头朝向
+    // MC 1.21.11 getHeadX/Y/Z 使用 yBodyRot（Cubium 中为 renderYawOffset = m_yaw）。
+    // 凋灵 getScale() 恒为 1.0（无幼体凋灵）。
+    const f32 bodyRot = m_yaw; // renderYawOffset() == yaw() on ClientEntity
+
+    for (i32 j = 0; j < 2; ++j) {
+        // j=0 对应侧头 1（左头，HEAD_TARGET_2），j=1 对应侧头 2（右头，HEAD_TARGET_3）
+        const i32 targetId = m_witherHeadTargetId[j + 1];
+        const ClientEntity* targetEntity =
+            (targetId > 0 && entityLookup) ? entityLookup(static_cast<EntityId>(targetId)) : nullptr;
+
+        if (targetEntity != nullptr) {
+            // 计算头部位置（对应 MC WitherBoss.getHeadX/Y/Z(j+1)）
+            // head <= 0 为主头，此处 j+1 >= 1 为侧头
+            const f32 headAngleDeg = bodyRot + 180.0f * static_cast<f32>(j); // j+1-1 = j
+            const f32 headAngleRad = headAngleDeg * math::DEG_TO_RAD;
+            const f64 headX = static_cast<f64>(m_position.x + std::cos(headAngleRad) * 1.3);
+            const f64 headY = static_cast<f64>(m_position.y + 2.2); // 侧头 Y 偏移 2.2
+            const f64 headZ = static_cast<f64>(m_position.z + std::sin(headAngleRad) * 1.3);
+
+            // 目标相对头部的偏移
+            const f64 dx = static_cast<f64>(targetEntity->x()) - headX;
+            // MC: entity1.getEyeY() = entity1.getY() + entity1.getEyeHeight()
+            const f64 dy = static_cast<f64>(targetEntity->y() + targetEntity->eyeHeight()) - headY;
+            const f64 dz = static_cast<f64>(targetEntity->z()) - headZ;
+
+            const f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
+
+            // 偏航角：atan2(dz, dx) * 180/PI - 90
+            const f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * (180.0 / math::PI) - 90.0);
+            // 俯仰角：-(atan2(dy, horizontalDist) * 180/PI)
+            const f32 targetPitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * (180.0 / math::PI)));
+
+            // rotlerp: pitch 最大 40°/tick，yaw 最大 10°/tick
+            m_witherSideHeadPitch[j] = math::clampedRotate(m_witherSideHeadPitch[j], targetPitch, 40.0f);
+            m_witherSideHeadYaw[j] = math::clampedRotate(m_witherSideHeadYaw[j], targetYaw, 10.0f);
+        } else {
+            // 无目标：偏航角逐步回正到身体朝向（俯仰角保持不变，与 MC 一致）
+            m_witherSideHeadYaw[j] = math::clampedRotate(m_witherSideHeadYaw[j], bodyRot, 10.0f);
+        }
+    }
 }
 
 } // namespace mc::client

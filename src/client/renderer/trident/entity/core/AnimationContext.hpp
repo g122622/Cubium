@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <array>
 
 namespace mc::client::renderer::entity::core {
 
@@ -224,6 +225,29 @@ struct AnimationContext {
      * 注意：此字段同时影响 wolf 模型分支中的 tailAngle 计算（愤怒时 1.539f ≈ 88°）。
      */
     bool isAngry = false;
+
+    /**
+     * @brief 凋灵侧头偏航角（度，已减去身体偏航角，插值后）
+     *
+     * 对应 MC 1.21.11 WitherRenderState.yHeadRots[2] - bodyRot。
+     * index 0 = 左头，index 1 = 右头。
+     *
+     * 数据流：服务端 WitherEntity::aiStep() 调用 _updateSideHeadRotations()
+     * 用 rotlerp 计算 m_headYRot[2]
+     * → （客户端不运行 aiStep，由 ClientEntity::tickWitherSideHeads 本地镜像计算）
+     * → ClientEntity 存储 witherSideHeadYaw/Pitch + prev 变体
+     * → EntityRendererManager 在 wither 分支插值并写入此字段
+     * → WitherModel::setSideHeadRotations 应用到 m_heads[1]/m_heads[2]
+     */
+    std::array<f32, 2> witherSideHeadYaw = {0.0f, 0.0f};
+
+    /**
+     * @brief 凋灵侧头俯仰角（度，插值后）
+     *
+     * 对应 MC 1.21.11 WitherRenderState.xHeadRots[2]。
+     * index 0 = 左头，index 1 = 右头。
+     */
+    std::array<f32, 2> witherSideHeadPitch = {0.0f, 0.0f};
 
     // ========== 方法 ==========
 

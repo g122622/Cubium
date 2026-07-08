@@ -27,6 +27,7 @@
 #include "../../core/DataParameter.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -276,6 +277,64 @@ public:
      */
     void ignite();
 
+    // ========== 侧头朝向（用于渲染） ==========
+
+    /**
+     * @brief 获取指定侧头的当前俯仰角（度）
+     * @param index 侧头索引 (0=左头, 1=右头)
+     * @return 当前 tick 的俯仰角
+     *
+     * 对应 MC 1.21.11 WitherBoss.xRotHeads[index]。
+     * 在 aiStep() 中由 rotlerp 逐步逼近目标俯仰角。
+     */
+    [[nodiscard]] f32 sideHeadPitch(i32 index) const { return m_headXRot[index]; }
+
+    /**
+     * @brief 获取指定侧头的上一 tick 俯仰角（度，用于插值）
+     * @param index 侧头索引 (0=左头, 1=右头)
+     */
+    [[nodiscard]] f32 prevSideHeadPitch(i32 index) const { return m_prevHeadXRot[index]; }
+
+    /**
+     * @brief 获取指定侧头的当前偏航角（度）
+     * @param index 侧头索引 (0=左头, 1=右头)
+     *
+     * 对应 MC 1.21.11 WitherBoss.yRotHeads[index]。
+     * 在 aiStep() 中由 rotlerp 逐步逼近目标偏航角（或身体偏航角，当无目标时）。
+     */
+    [[nodiscard]] f32 sideHeadYaw(i32 index) const { return m_headYRot[index]; }
+
+    /**
+     * @brief 获取指定侧头的上一 tick 偏航角（度，用于插值）
+     * @param index 侧头索引 (0=左头, 1=右头)
+     */
+    [[nodiscard]] f32 prevSideHeadYaw(i32 index) const { return m_prevHeadYRot[index]; }
+
+    // ========== DataParameter ID 访问器（供 ClientEntity 读取元数据） ==========
+
+    /**
+     * @brief 获取主头目标 DataParameter ID
+     * ClientEntity::syncMetadataFromDataManager 通过此 ID 读取 HEAD_TARGET_1。
+     */
+    [[nodiscard]] static u16 getHeadTarget1ParamId() { return HEAD_TARGET_1.id(); }
+
+    /**
+     * @brief 获取左头目标 DataParameter ID
+     * ClientEntity::syncMetadataFromDataManager 通过此 ID 读取 HEAD_TARGET_2。
+     */
+    [[nodiscard]] static u16 getHeadTarget2ParamId() { return HEAD_TARGET_2.id(); }
+
+    /**
+     * @brief 获取右头目标 DataParameter ID
+     * ClientEntity::syncMetadataFromDataManager 通过此 ID 读取 HEAD_TARGET_3。
+     */
+    [[nodiscard]] static u16 getHeadTarget3ParamId() { return HEAD_TARGET_3.id(); }
+
+    /**
+     * @brief 获取无敌时间 DataParameter ID
+     */
+    [[nodiscard]] static u16 getInvulTimeParamId() { return INVULNERABILITY_TIME.id(); }
+
 protected:
     void registerData() override;
     void registerGoals() override;
@@ -339,6 +398,34 @@ private:
      * @brief 更新头部目标追踪
      */
     void _updateHeadTargets();
+
+    /**
+     * @brief 更新侧头朝向角度
+     *
+     * 对应 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 循环：
+     * - 若侧头有追踪目标，计算目标相对头部位置的 yaw/pitch，
+     *   用 rotlerp 逐步逼近（yaw 最大 10°/tick，pitch 最大 40°/tick）。
+     * - 若无目标，yaw 用 rotlerp 逐步逼近身体偏航角（renderYawOffset）。
+     *
+     * 在 aiStep() 中于 LivingEntity::aiStep() 之后调用，
+     * 以确保 renderYawOffset 已由 LookController 更新。
+     */
+    void _updateSideHeadRotations();
+
+    /**
+     * @brief 角度逐步逼近（rotlerp）
+     *
+     * 对应 MC 1.21.11 WitherBoss.rotlerp(current, target, maxStep)：
+     *   diff = wrapDegrees(target - current)
+     *   diff = clamp(diff, -maxStep, maxStep)
+     *   return current + diff
+     *
+     * @param current 当前角度（度）
+     * @param target 目标角度（度）
+     * @param maxStep 单 tick 最大变化量（度）
+     * @return 逼近后的角度（度，不包装到 [-180,180]）
+     */
+    [[nodiscard]] static f32 _rotLerp(f32 current, f32 target, f32 maxStep);
 
     /**
      * @brief 获取头的X坐标
