@@ -202,14 +202,19 @@ void EnderDragonEntity::tick()
         m_animTime += 0.01f;
     }
 
+    // 先更新龙部件位置（基于龙当前位置），对齐 MC 1.21.11 的调用顺序：
+    // MC 在 LivingEntity.tick() → aiStep() 中通过 tickPart() 更新部件位置，
+    // 随后 tickDeath()（若 isDead()）才执行死亡动画的部件位移。
+    // 因此 _updateDragonParts() 必须在 BossEntity::tick() 之前调用，
+    // 使死亡动画 _onDeathUpdate() 中的 part->setPosition(part.pos + riseVelocity)
+    // 成为最终位置（覆盖 _updateDragonParts() 的结果）。
+    _updateDragonParts();
+
     // 调用父类 tick
     // 注意：LivingEntity::tick() 会在 isDead() 时调用 tickDeath()，
     // 而 EnderDragon 重写了 tickDeath() 委托给 _onDeathUpdate()，
     // 因此死亡动画逻辑会在 BossEntity::tick() 内部触发，无需在此重复调用。
     BossEntity::tick();
-
-    // 更新龙部件位置
-    _updateDragonParts();
 
     // 更新末影水晶
     _updateDragonEnderCrystal();

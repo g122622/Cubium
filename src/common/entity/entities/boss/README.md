@@ -160,9 +160,41 @@ MC 原版中末影龙只接受两种伤害：
 2. 否则，调用 `world->getClosestPlayer(crystalPos, 64.0f)` 搜索水晶位置 64 格内最近的玩家（对应 MC 的 `CRYSTAL_DESTROY_TARGETING`）
 3. 如果两者都找不到玩家，`causePlayer` 为 `nullptr`，爆炸伤害使用 `DamageSources::explosion(crystal, nullptr)`
 
+### 15. 末影龙死亡动画（`_onDeathUpdate` / `tickDeath` 重写）
+
+末影龙拥有自定义的 200 tick（10 秒）死亡动画，与普通生物的 20 tick 死亡动画不同。实现要点：
+
+**`tickDeath()` 重写**：`EnderDragonEntity` 重写了 `LivingEntity::tickDeath()`，委托给私有方法 `_onDeathUpdate()`。这一重写是**必须的**——否则 `LivingEntity::tickDeath()` 会在 `isDead()` 后 20 tick 调用 `remove()`，导致 200 tick 动画从未播放。`tickDeath()` 由 `LivingEntity::tick()` 在 `isDead()`（`m_health <= 0`）时自动调用，无需在 `EnderDragonEntity::tick()` 中显式调用 `_onDeathUpdate()`。
+
+**死亡动画时序**（对齐 MC 1.21.11 `EnderDragon.tickDeath`）：
+
+| 时刻（dragonDeathTime） | 行为 |
+|--------------------------|------|
+| 1（且 `!isSilent()`） | 广播世界事件 `DRAGON_DEATH_SOUND`（1028）+ 播放 `ENTITY_ENDER_DRAGON_DEATH` 音效 |
+| 每 tick | 龙 `move(MoverType::Self, (0, 0.1, 0))` 上升；所有子部件同步位移 |
+| `[180, 200]` 每 tick | 生成 `HugeExplosion` 粒子（MC `EXPLOSION_EMITTER`），位置 `pos + (±4, +2±2, ±4)`，速度 `(0,0,0)` |
+| `> 150` 且 `% 5 == 0` | 阶段性经验掉落：`floor(totalXP * 0.08)`，共 10 次（155、160、…、195、**200**） |
+| 200 | 最终经验掉落 `floor(totalXP * 0.2)`；`EndDragonFight::setDragonKilled()` 放置龙蛋/折跃门/出口传送门；`remove()`；触发 `ENTITY_DIE` 游戏事件 |
+
+**经验掉落总量**：首次击杀 12000，后续击杀 500。经验掉落受 `DO_MOB_LOOT` 游戏规则控制（MC 1.21.11 的 `mob_drops`），关闭时跳过所有掉落。注意 tick 200 同时满足阶段性条件（`>150 && %5==0`）和最终条件（`==200`），因此 tick 200 会同时触发 `floor(totalXP * 0.08)` 和 `floor(totalXP * 0.2)` 两次掉落。阶段掉落（10 次 × 8%）+ 最终掉落（20%）= 100%，与 MC 原版一致。
+
+**子部件同步**：MC 在每个 tick 对 `subEntities` 调用 `setOldPosAndRot()` + `setPos(pos + vec3)`。Cubium 的 `Entity::setPosition()` 内部将 `m_prevPosition` 更新为当前位置再设置新位置，等价于 MC 的组合调用，因此直接遍历 `m_dragonParts` 调用 `setPosition(part.pos + riseVelocity)` 即可。
+
+**`_updateDragonParts()` 调用顺序**：Cubium 在 `EnderDragonEntity::tick()` 中**先**调用 `_updateDragonParts()`，**再**调用 `BossEntity::tick()`（其内部 `LivingEntity::tick()` → `tickDeath()` → `_onDeathUpdate()`）。这一顺序对齐 MC 1.21.11：MC 在 `LivingEntity.tick()` → `aiStep()` 中通过 `tickPart()` 更新部件位置，随后 `tickDeath()` 执行死亡动画的部件位移。若 `_updateDragonParts()` 在 `tickDeath()` 之后调用，会覆盖死亡动画的部件位移，导致部件不跟随龙的上升。
+
+**与 MC 的差异**：
+
+- Cubium 没有 `globalLevelEvent`（全局广播世界事件），`DRAGON_DEATH_SOUND`（1028）通过 `playEvent` 广播给附近客户端（范围有限），同时通过 `playSound(ENTITY_ENDER_DRAGON_DEATH, volume=5.0)` 显式播放音效以近似 MC 的全局广播。
+- MC 原版在 `tickDeath` 开头调用 `dragonFight.updateDragon(this)` 同步 Boss 血条；Cubium 的 `EndDragonFight` 尚未实现 `updateDragon`，已留有 TODO 注释。
+- MC 原版通过 `DragonDeathPhase` 在龙飞回祭坛后才将生命值设为 0 触发 `tickDeath`；Cubium 未实现 `DragonDeathPhase`，龙生命值降为 0 后立即开始死亡动画。
+
 ## 参考
 
-- MC 1.16.5 `EnderDragonEntity`
+- MC 1.21.11 `net.minecraft.world.entity.boss.enderdragon.EnderDragon`（`tickDeath` 死亡动画）
+- MC 1.21.11 `net.minecraft.world.entity.boss.enderdragon.EnderDragonPart`（子部件）
+- MC 1.21.11 `net.minecraft.world.entity.boss.enderdragon.phases.DragonDeathPhase`（死亡阶段，Cubium 未实现）
+- MC 1.21.11 `net.minecraft.world.level.dimension.end.EndDragonFight`（`setDragonKilled`/`updateDragon`）
+- MC 1.16.5 `EnderDragonEntity`（历史参考）
 - MC 1.16.5 `EnderDragonPartEntity`
 - MC 1.16.5 `WitherEntity`
 - MC 1.16.5 `DragonPhaseManager`
