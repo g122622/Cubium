@@ -61,6 +61,7 @@ public:
      * @param v1 纹理坐标 V1
      * @param atlasSlot 图集槽位ID（默认1=物品图集）
      * @param debugName 调试名称
+     * @param format 纹理像素格式（默认 RGBA8）
      */
     TextureImage(VkImageView imageView,
         VkSampler sampler,
@@ -71,7 +72,8 @@ public:
         f32 u1 = 1.0f,
         f32 v1 = 1.0f,
         u8 atlasSlot = 1,
-        std::string debugName = std::string());
+        std::string debugName = std::string(),
+        ImageFormat format = ImageFormat::RGBA8);
 
     ~TextureImage() override = default;
 
@@ -148,7 +150,7 @@ private:
     f32 m_u1 = 1.0f;
     f32 m_v1 = 1.0f;
     u8 m_atlasSlot = 1;                        ///< 默认使用物品图集槽位
-    ImageFormat m_format = ImageFormat::RGBA8; ///< TODO: 当前固定为 RGBA8，未来应支持从构造函数传入实际纹理格式
+    ImageFormat m_format = ImageFormat::RGBA8; ///< 纹理像素格式
     std::string m_debugName;
 };
 

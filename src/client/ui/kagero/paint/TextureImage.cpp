@@ -34,7 +34,8 @@ TextureImage::TextureImage(VkImageView imageView,
     f32 u1,
     f32 v1,
     u8 atlasSlot,
-    std::string debugName)
+    std::string debugName,
+    ImageFormat format)
     : m_imageView(imageView)
     , m_sampler(sampler)
     , m_width(width)
@@ -44,6 +45,7 @@ TextureImage::TextureImage(VkImageView imageView,
     , m_u1(u1)
     , m_v1(v1)
     , m_atlasSlot(atlasSlot)
+    , m_format(format)
     , m_debugName(std::move(debugName))
 {}
 

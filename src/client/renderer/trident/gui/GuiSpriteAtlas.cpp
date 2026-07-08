@@ -595,7 +595,17 @@ ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::st
     const GuiSprite* sprite = getSprite(spriteId);
     if (!sprite) {
         // 返回无效的TextureImage
-        return ui::kagero::paint::TextureImage(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0, m_atlasSlot, spriteId);
+        return ui::kagero::paint::TextureImage(VK_NULL_HANDLE,
+            VK_NULL_HANDLE,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            m_atlasSlot,
+            spriteId,
+            ui::kagero::paint::ImageFormat::RGBA8);
     }
 
     return ui::kagero::paint::TextureImage(m_impl->imageView,
@@ -607,7 +617,8 @@ ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(const std::st
         sprite->u1,
         sprite->v1,
         m_atlasSlot,
-        spriteId);
+        spriteId,
+        ui::kagero::paint::ImageFormat::RGBA8);
 }
 
 ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(
@@ -616,7 +627,17 @@ ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(
     const GuiSprite* sprite = getSprite(spriteId);
     if (!sprite) {
         // 返回无效的TextureImage
-        return ui::kagero::paint::TextureImage(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0, 0, 0, 0, 0, m_atlasSlot, spriteId);
+        return ui::kagero::paint::TextureImage(VK_NULL_HANDLE,
+            VK_NULL_HANDLE,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            m_atlasSlot,
+            spriteId,
+            ui::kagero::paint::ImageFormat::RGBA8);
     }
 
     return ui::kagero::paint::TextureImage(m_impl->imageView,
@@ -628,7 +649,8 @@ ui::kagero::paint::TextureImage GuiSpriteAtlas::createTextureImage(
         sprite->u1,
         sprite->v1,
         m_atlasSlot,
-        spriteId);
+        spriteId,
+        ui::kagero::paint::ImageFormat::RGBA8);
 }
 
 } // namespace mc::client::renderer::trident::gui
