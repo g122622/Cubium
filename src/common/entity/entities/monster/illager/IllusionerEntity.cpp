@@ -81,7 +81,7 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
 
     // 计算发射方向
     f64 dx = target->x() - x();
-    f64 dy = (target->y() + target->height() * 0.333) - (arrow->y());
+    f64 dy = target->getY(0.333) - (arrow->y());
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 

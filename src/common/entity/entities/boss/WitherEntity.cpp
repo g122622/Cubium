@@ -704,7 +704,7 @@ void WitherEntity::_updateSideHeadRotations()
 
             f64 dx = targetEntity->x() - headX;
             // MC 1.21.11: entity1.getEyeY() = entity1.getY() + entity1.getEyeHeight()
-            f64 dy = (targetEntity->y() + targetEntity->eyeHeight()) - headY;
+            f64 dy = targetEntity->getEyeY() - headY;
             f64 dz = targetEntity->z() - headZ;
 
             f64 horizontalDist = std::sqrt(dx * dx + dz * dz);

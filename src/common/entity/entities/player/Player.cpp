@@ -2910,7 +2910,7 @@ Vector3 Player::getLookVector() const
 Vector3 Player::getEyePosition() const
 {
     // 眼睛位置 = 实体位置 + 眼睛高度
-    return Vector3(x(), y() + eyeHeight(), z());
+    return Vector3(x(), static_cast<f32>(getEyeY()), z());
 }
 
 // ============================================================================

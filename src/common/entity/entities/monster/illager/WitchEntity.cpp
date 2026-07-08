@@ -362,7 +362,7 @@ void WitchEntity::_throwPotionAt(LivingEntity* target, entity::effect::EffectTyp
 
     // 设置位置（从眼睛高度发射）
     f32 posX = static_cast<f32>(x());
-    f32 posY = static_cast<f32>(y() + eyeHeight() - 0.1f);
+    f32 posY = static_cast<f32>(getEyeY() - 0.1f);
     f32 posZ = static_cast<f32>(z());
     potion->setPosition(Vector3(posX, posY, posZ));
 

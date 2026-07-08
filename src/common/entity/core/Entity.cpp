@@ -1949,8 +1949,8 @@ bool Entity::canSee(const Entity& other) const
     }
 
     // 使用射线检测检查视线是否被方块阻挡
-    Vector3 eyePos = Vector3(x(), y() + eyeHeight(), z());
-    Vector3 targetEyePos = Vector3(other.x(), other.y() + other.eyeHeight(), other.z());
+    Vector3 eyePos = Vector3(x(), static_cast<f32>(getEyeY()), z());
+    Vector3 targetEyePos = Vector3(other.x(), static_cast<f32>(other.getEyeY()), other.z());
 
     // 计算射线方向和距离
     Vector3 direction = targetEyePos - eyePos;

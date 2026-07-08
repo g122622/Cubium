@@ -332,7 +332,7 @@ void LlamaEntity::_spit(LivingEntity* target)
     f32 cosYaw = std::cos(renderYawOffset * math::DEG_TO_RAD);
 
     f32 spawnX = static_cast<f32>(x()) - (width() + 1.0f) * 0.5f * sinYaw;
-    f32 spawnY = y() + eyeHeight() - 0.1f;
+    f32 spawnY = static_cast<f32>(getEyeY()) - 0.1f;
     f32 spawnZ = static_cast<f32>(z()) + (width() + 1.0f) * 0.5f * cosYaw;
 
     spitEntity->setPosition(spawnX, spawnY, spawnZ);

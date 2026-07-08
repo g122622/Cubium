@@ -307,8 +307,7 @@ void FishingBobberEntity::tick()
                     m_state = State::Flying;
                 } else {
                     // 浮标跟随实体位置（设置位置到实体高度的 80% 处）
-                    setPosition(
-                        m_caughtEntity->x(), m_caughtEntity->y() + m_caughtEntity->height() * 0.8, m_caughtEntity->z());
+                    setPosition(m_caughtEntity->x(), static_cast<f32>(m_caughtEntity->getY(0.8)), m_caughtEntity->z());
                 }
             } else {
                 // 没有被钩住的实体，恢复飞行状态

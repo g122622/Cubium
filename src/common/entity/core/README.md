@@ -463,6 +463,26 @@
         使用 * *指针相等性 * *比较队伍，而非队伍名称比较 - 两个 Team 对象即使名称相同，指针不同也不算同一队伍 -
         没有队伍的实体（`getTeam()` 返回 nullptr）不会与任何队伍匹配
 
+    ## #位置与高度偏移访问器（getY / getEyeY）
+
+    对应 MC 1.21.11 `Entity.getY(double partialY)` / `Entity.getEyeY()`，提供按高度比例偏移的 Y 坐标访问入口，统一瞄准点、发射位置、视线检测等场景的 Y 坐标计算。
+
+    ### 核心方法
+
+    - **`getY(f64 partialY) const`** — 返回 `position.y + height * partialY`。partialY 取值约定（参考 MC 原版调用）：
+      - `0.0`：脚部 Y（等价于 `y()`）
+      - `1.0/3.0`：躯干下部，弓/弩/三叉戟瞄准点（`AbstractSkeleton`/`DrownedEntity`/`IllusionerEntity`/`IllagerEntities` 的 `performRangedAttack`）
+      - `0.5`：身体几何中心
+      - `0.8`：接近头部，旋风人风弹对骑乘目标的瞄准点（`BreezeEntity::shootWindCharge`）、钓鱼钩吸附位置（`FishingHook`）
+      - `1.0`：实体头顶
+    - **`getEyeY() const`** — 返回 `position.y + eyeHeight`，对应 MC `Entity.getEyeY()`。用于视线检测（`Entity::canSee`）、玩家眼睛位置（`Player::getEyePosition`）、弹射物发射位置（`LlamaEntity`/`DrownedEntity`/`WitchEntity`/`NetherEntities`/`IllagerEntities`）、凋灵侧头瞄准（`WitherEntity::_updateSideHeadRotations`）等。
+
+    ### 与既有访问器的关系
+
+    - `y()` 返回 `f32` 脚部 Y；`getY(partialY)`/`getEyeY()` 返回 `f64` 以匹配 MC 原版精度。
+    - `getEyeY()` 使用 `eyeHeight()`（姿态相关，潜行/游泳时降低），`getY(1.0)` 使用 `height()`（碰撞盒高度），两者语义不同。
+    - 新增瞄准/发射位置代码应优先使用 `getY(partialY)`/`getEyeY()`，而非内联 `y() + height() * k` / `y() + eyeHeight()`。
+
         ## #传送系统使用 - `attemptTeleport(x, y, z)` -
         安全传送，自动查找地面 - `randomTeleport(range, playEffects, avoidFluid)` - 随机传送 -
         传送会自动重置运动向量

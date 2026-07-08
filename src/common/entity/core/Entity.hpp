@@ -262,23 +262,15 @@ public:
      * @brief 获取眼睛高度对应的 Y 坐标
      *
      * 对应 MC 1.21.11 Entity.getEyeY()，计算公式：position.y + eyeHeight。
-     * 用于瞄准、视线碰撞、粒子发射等需要"眼睛位置"的场景。
+     * 用于瞄准、视线碰撞（canSee）、弹射物发射位置等需要"眼睛位置"的场景。
      *
-     * 项目内多处已有 `y() + eyeHeight()` 内联代码，本方法统一封装以提升复用性。
+     * 项目内原有多处 `y() + eyeHeight()` 内联代码（Entity::canSee、Player::getEyePosition、
+     * LlamaEntity、DrownedEntity、WitchEntity、NetherEntities、IllagerEntities 等），
+     * 已统一重构为本方法调用以提升复用性。
      *
      * @return 眼睛 Y 坐标（f64 精度）
      */
     [[nodiscard]] f64 getEyeY() const { return static_cast<f64>(m_position.y) + static_cast<f64>(eyeHeight()); }
-
-    /**
-     * @brief 获取实体碰撞盒内随机高度的 Y 坐标
-     *
-     * 对应 MC 1.21.11 Entity.getRandomY()，使用持久化随机数生成器在 [0, 1) 区间取高度比例。
-     * 用于粒子等需要"实体表面随机点"的场景。
-     *
-     * @return 随机 Y 坐标（f64 精度）
-     */
-    [[nodiscard]] f64 getRandomY() { return getY(static_cast<f64>(m_random.nextFloat())); }
 
     /**
      * @brief 获取实体所站立的方块位置（对应 MC Entity.getOnPos()）

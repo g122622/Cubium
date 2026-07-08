@@ -124,7 +124,7 @@ WitherEntity::aiStep()
 **关键方法**：
 
 - `_rotLerp(current, target, maxStep)`：MC `rotlerp` 等价实现，委托 `math::clampedRotate`。计算 `wrapDegrees(target - current)` 后 `clamp` 到 `[-maxStep, maxStep]`，返回 `current + clamped`（结果**不**包装到 `[-180, 180)`）。
-- `_updateSideHeadRotations()`：镜像 MC `WitherBoss.aiStep()` 的 `j=0..1` 循环。头部位置通过 `_getHeadX/Y/Z(j+1)` 计算（使用 `renderYawOffset() + 180*(head-1)` 角度偏移，偏移 1.3 格）。目标实体 `getEyeY()` 在 Cubium 中等价于 `y() + eyeHeight()`。
+- `_updateSideHeadRotations()`：镜像 MC `WitherBoss.aiStep()` 的 `j=0..1` 循环。头部位置通过 `_getHeadX/Y/Z(j+1)` 计算（使用 `renderYawOffset() + 180*(head-1)` 角度偏移，偏移 1.3 格）。目标实体眼睛 Y 坐标通过 `Entity::getEyeY()`（= `y() + eyeHeight()`）获取。
 - `_getHeadX/Y/Z(head)`：`head<=0` 为主头（偏移 3.0），`head>=1` 为侧头（偏移 2.2，水平 1.3 格偏移）。`getScale()` 对凋灵恒为 1.0（无幼体凋灵）。
 
 **公共访问器**（供渲染层读取）：

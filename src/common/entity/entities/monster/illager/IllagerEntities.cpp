@@ -111,9 +111,9 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
-    // 目标高度偏移：目标眼睛高度的 1/3
+    // 目标高度偏移：目标高度的 1/3（瞄准躯干下部，对齐 MC AbstractSkeleton.performRangedAttack）
     // 弹道高度补偿：水平距离 * 0.2
-    f64 dy = (target->y() + target->height() * 0.3333333333333333) - (y() + eyeHeight() - 0.15) + horizontalDist * 0.2;
+    f64 dy = target->getY(0.3333333333333333) - (getEyeY() - 0.15) + horizontalDist * 0.2;
 
     // 计算弹道偏移角度（多重射击支持）
     // 掠夺者只有一支箭，偏移为 0
@@ -136,7 +136,7 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
     // 掠夺者不消耗弹药，直接创建箭矢
     auto arrow = std::make_unique<entity::ArrowEntity>(EntityId(0));
     arrow->setWorld(m_world);
-    arrow->setPosition(x(), y() + eyeHeight() - 0.15, z());
+    arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);
 
     // 设置箭矢属性

@@ -123,7 +123,7 @@ void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charg
     }
 
     trident->setWorld(world());
-    trident->setPosition(x(), y() + eyeHeight() - 0.1f, z());
+    trident->setPosition(x(), static_cast<f32>(getEyeY() - 0.1f), z());
     trident->setShooter(this);
 
     // 设置三叉戟的基础伤害
@@ -131,7 +131,7 @@ void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charg
 
     // 计算射击方向
     f64 dx = target->x() - x();
-    f64 dy = (target->y() + target->height() * 0.3333333333333333) - trident->y();
+    f64 dy = target->getY(0.3333333333333333) - trident->y();
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
