@@ -181,12 +181,12 @@ private:
 
 /**
  * @brief 配置化植被贴片特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，本类只负责在已确定的 pos 处放置。
  */
 class ConfiguredVegetationPatchFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredVegetationPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredVegetationPatchFeature(std::unique_ptr<VegetationPatchConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -198,18 +198,17 @@ public:
 
 private:
     std::unique_ptr<VegetationPatchConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 
 /**
  * @brief 配置化含水植被贴片特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，本类只负责在已确定的 pos 处放置。
  */
 class ConfiguredWaterloggedPatchFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredWaterloggedPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredWaterloggedPatchFeature(std::unique_ptr<VegetationPatchConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -221,7 +220,6 @@ public:
 
 private:
     std::unique_ptr<VegetationPatchConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

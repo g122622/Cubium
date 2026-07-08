@@ -822,6 +822,15 @@ BlockTag& BlockTags::FEATURES_CANNOT_REPLACE()
     return *tag;
 }
 
+BlockTag& BlockTags::LAVA_POOL_STONE_CANNOT_REPLACE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "lava_pool_stone_cannot_replace"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::ENCHANTMENT_POWER_PROVIDER()
 {
     static BlockTag* tag = nullptr;

@@ -66,12 +66,13 @@ public:
 
 /**
  * @brief 配置化随机布尔选择特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置选中的子特征。
  */
 class ConfiguredRandomBooleanSelectorFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredRandomBooleanSelectorFeature(std::unique_ptr<RandomBooleanFeatureConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredRandomBooleanSelectorFeature(std::unique_ptr<RandomBooleanFeatureConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -83,7 +84,6 @@ public:
 
 private:
     std::unique_ptr<RandomBooleanFeatureConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

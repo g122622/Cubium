@@ -31,12 +31,12 @@ feature/
 │   ├── IceSpikeFeature.hpp/cpp       # 冰刺
 │   ├── ChorusPlantFeature.hpp/cpp    # 紫颂树特征（VegetalDecoration 阶段）
 │   └── EndIslandFeature.hpp/cpp      # 末地小岛特征（RawGeneration 阶段）
-├── nether/                           # 下界特征（萤石/玄武岩/岩浆/火焰/巨型菌类）
+├── nether/                           # 下界特征（萤石/玄武岩/三角洲/水下岩浆/火焰/巨型菌类）
 │   ├── GlowstoneFeature.hpp/cpp      # 萤石簇
 │   ├── BasaltColumnFeature.hpp/cpp   # 玄武岩柱
-│   ├── BasaltDeltaFeature.hpp/cpp    # 玄武岩三角洲
 │   ├── BasaltFeature.hpp             # 玄武岩聚合头文件
-│   ├── MagmaPatchFeature.hpp/cpp     # 岩浆池
+│   ├── DeltaFeature.hpp/cpp          # 三角洲（contents/rim + size/rim_size）
+│   ├── UnderwaterMagmaFeature.hpp/cpp # 水下岩浆（Column.scan 找水柱底）
 │   ├── NetherFireFeature.hpp/cpp     # 下界火焰
 │   └── HugeFungusFeature.hpp/cpp     # 巨型菌类
 ├── ocean/                            # 海洋特征（海带/海草/珊瑚/蓝冰等）

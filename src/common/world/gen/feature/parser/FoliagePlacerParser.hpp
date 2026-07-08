@@ -23,5 +23,35 @@
 
 #pragma once
 
-// 玄武岩柱特征聚合头文件
-#include "BasaltColumnFeature.hpp"
+#include "common/core/Result.hpp"
+#include "common/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
+
+namespace mc {
+namespace world {
+namespace gen {
+namespace feature {
+namespace parser {
+
+/**
+ * @brief FoliagePlacer JSON 解析器
+ *
+ * 解析树木配置 foliage_placer 字段，按 JSON "type" 分派到对应树叶放置器子类。
+ * 通用字段：radius / offset（裸整数，→ FeatureSpread::fixed）；多数再加 height（裸整数）。
+ *   {"type":"minecraft:blob_foliage_placer","radius":2,"offset":0,"height":3}
+ * 特殊字段：
+ *   cherry_foliage_placer：4 个概率参数(wide_bottom_layer_hole_chance 等)
+ *   random_spread_foliage_placer：foliage_height(IntProvider) + leaf_placement_attempts
+ */
+namespace FoliagePlacerParser {
+
+[[nodiscard]] Result<std::unique_ptr<FoliagePlacer>> parse(const nlohmann::json& placerObj);
+
+} // namespace FoliagePlacerParser
+
+} // namespace parser
+} // namespace feature
+} // namespace gen
+} // namespace world
+} // namespace mc

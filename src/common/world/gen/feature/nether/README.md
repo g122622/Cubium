@@ -4,11 +4,11 @@
 
 ```text
 nether/
-├── BasaltFeature.hpp/cpp        # 玄武岩柱与玄武岩三角洲特征聚合头文件
-├── BasaltColumnFeature.hpp/cpp  # 玄武岩柱特征
-├── BasaltDeltaFeature.hpp/cpp   # 玄武岩三角洲特征
+├── BasaltFeature.hpp/cpp        # 玄武岩柱特征聚合头文件
+├── BasaltColumnFeature.hpp/cpp  # 玄武岩柱特征（reach/height IntProvider）
+├── DeltaFeature.hpp/cpp         # 三角洲特征（contents/rim + size/rim_size）
+├── UnderwaterMagmaFeature.hpp/cpp # 水下岩浆特征（Column.scan 找水柱底）
 ├── GlowstoneFeature.hpp/cpp     # 萤石簇特征
-├── MagmaPatchFeature.hpp/cpp    # 岩浆池特征
 ├── NetherFireFeature.hpp/cpp    # 下界火焰特征（自动选择普通火/灵魂火）
 ├── HugeFungusFeature.hpp/cpp    # 巨型菌类特征
 └── README.md

@@ -23,5 +23,39 @@
 
 #pragma once
 
-// 玄武岩柱特征聚合头文件
-#include "BasaltColumnFeature.hpp"
+#include "common/core/Result.hpp"
+#include <nlohmann/json_fwd.hpp>
+
+namespace mc {
+
+class BlockState;
+
+namespace world {
+namespace gen {
+namespace feature {
+namespace parser {
+
+/**
+ * @brief 方块状态 JSON 解析器
+ *
+ * 解析数据包中形如 `{"Name":"minecraft:oak_log","Properties":{"axis":"y"}}` 的方块状态对象，
+ * 返回对应 BlockState 指针。无 Properties 时返回方块默认状态。
+ *
+ * 这是 BlockStateProviderParser / RuleTestParser 等更上层解析器复用的基础工具。
+ */
+namespace BlockStateParser {
+
+/**
+ * @brief 解析方块状态对象
+ * @param stateObj JSON 对象，必须含 "Name" 字符串字段，可选 "Properties" 对象字段
+ * @return 方块状态指针；Name 缺失或方块未注册时返回 Error
+ */
+[[nodiscard]] Result<const BlockState*> parse(const nlohmann::json& stateObj);
+
+} // namespace BlockStateParser
+
+} // namespace parser
+} // namespace feature
+} // namespace gen
+} // namespace world
+} // namespace mc

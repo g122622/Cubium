@@ -1135,6 +1135,21 @@ add_library(mc_common STATIC
     world/gen/feature/SimpleBlockFeature.cpp
     world/gen/feature/RandomBooleanSelectorFeature.cpp
     world/gen/feature/SimpleRandomSelectorFeature.cpp
+    world/gen/feature/RandomSelectorFeature.cpp
+    world/gen/feature/EndPlatformFeature.cpp
+    world/gen/feature/BonusChestFeature.cpp
+    world/gen/feature/VoidStartPlatformFeature.cpp
+    world/gen/feature/BlockBlobFeature.cpp
+    world/gen/feature/BasaltPillarFeature.cpp
+
+    # World - Generation - Feature - Parser
+    world/gen/feature/parser/BlockStateParser.cpp
+    world/gen/feature/parser/BlockStateProviderParser.cpp
+    world/gen/feature/parser/RuleTestParser.cpp
+    world/gen/feature/parser/TrunkPlacerParser.cpp
+    world/gen/feature/parser/FoliagePlacerParser.cpp
+    world/gen/feature/parser/BlockPredicateParser.cpp
+
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
     world/gen/feature/tree/trunk/TrunkPlacer.cpp
@@ -1182,8 +1197,8 @@ add_library(mc_common STATIC
     # World - Generation - Feature - Nether
     world/gen/feature/nether/GlowstoneFeature.cpp
     world/gen/feature/nether/BasaltFeature.cpp
-    world/gen/feature/nether/BasaltDeltaFeature.cpp
-    world/gen/feature/nether/MagmaPatchFeature.cpp
+    world/gen/feature/nether/DeltaFeature.cpp
+    world/gen/feature/nether/UnderwaterMagmaFeature.cpp
     world/gen/feature/nether/NetherFireFeature.cpp
 
     # World - Generation - Feature - Lake

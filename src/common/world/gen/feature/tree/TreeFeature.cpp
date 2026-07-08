@@ -296,11 +296,8 @@ void TreeFeature::_setFoliageDistance(
 // ConfiguredTreeFeature 实现
 // ============================================================================
 
-ConfiguredTreeFeature::ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> featureConfig,
-    std::unique_ptr<ConfiguredPlacement> placement,
-    const char* featureName)
+ConfiguredTreeFeature::ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> featureConfig, const char* featureName)
     : m_config(std::move(featureConfig))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
@@ -313,32 +310,16 @@ bool ConfiguredTreeFeature::place(WorldGenRegion& region,
     (void)generator;
     (void)chunk;
 
-    if (!m_config || !m_placement) {
+    if (!m_config) {
         return false;
     }
 
-    // 获取放置位置
-    std::vector<BlockPos> positions = m_placement->getPositions(region, random, pos);
-
-    if (positions.empty()) {
+    // 数据驱动下 pos 已是 placement 链处理后的最终位置，直接放置树木
+    if (pos.y < world::MIN_BUILD_HEIGHT + 1 || pos.y >= world::MAX_BUILD_HEIGHT - 1) {
         return false;
     }
 
-    bool placedAny = false;
-
-    for (const BlockPos& placePos : positions) {
-        // 跳过无效位置
-        if (placePos.y < world::MIN_BUILD_HEIGHT + 1 || placePos.y >= world::MAX_BUILD_HEIGHT - 1) {
-            continue;
-        }
-
-        // 尝试放置树木
-        if (m_feature.place(region, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-
-    return placedAny;
+    return m_feature.place(region, random, pos, *m_config);
 }
 
 // ============================================================================

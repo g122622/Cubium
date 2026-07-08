@@ -70,12 +70,13 @@ public:
 
 /**
  * @brief 配置化简单方块特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置方块。
  */
 class ConfiguredSimpleBlockFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredSimpleBlockFeature(std::unique_ptr<SimpleBlockConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredSimpleBlockFeature(std::unique_ptr<SimpleBlockConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -87,7 +88,6 @@ public:
 
 private:
     std::unique_ptr<SimpleBlockConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

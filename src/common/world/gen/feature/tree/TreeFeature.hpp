@@ -24,7 +24,6 @@
 #pragma once
 
 #include "../../../block/Block.hpp"
-#include "../../placement/Placement.hpp"
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include "../state/WeightedBlockStateProvider.hpp"
@@ -298,7 +297,8 @@ private:
 /**
  * @brief 配置化的树木特征
  *
- * 组合树木特征、配置和放置规则。
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置树木。
  * 继承 ConfiguredFeatureBase 以支持统一的特征注册。
  */
 class ConfiguredTreeFeature : public ConfiguredFeatureBase {
@@ -306,12 +306,9 @@ public:
     /**
      * @brief 构造配置化树木特征
      * @param featureConfig 树木配置
-     * @param placement 放置规则
      * @param featureName 特征名称
      */
-    ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> featureConfig,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName = "tree");
+    ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> featureConfig, const char* featureName = "tree");
 
     /**
      * @brief 在指定位置放置树木（实现 ConfiguredFeatureBase 接口）
@@ -339,7 +336,6 @@ public:
 
 private:
     std::unique_ptr<TreeFeatureConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
     // TreeFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredTreeFeature::place() 语义不变
     // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。

@@ -23,70 +23,49 @@
 
 #pragma once
 
-// 岩浆池特征聚合头文件（包含岩浆池 + 下界火焰）
-#include "NetherFireFeature.hpp"
-
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
 
 namespace mc {
 
 /**
- * @brief 岩浆池特征配置
- */
-struct MagmaPatchFeatureConfig : public IFeatureConfig {
-    /// 池的半径
-    i32 radius = 4;
-
-    /// 岩浆块出现的概率
-    f32 magmaChance = 0.3f;
-
-    /// 火焰出现的概率
-    f32 fireChance = 0.1f;
-
-    /// 最小深度
-    i32 minDepth = 1;
-
-    /// 最大深度
-    i32 maxDepth = 3;
-
-    MagmaPatchFeatureConfig() = default;
-
-    explicit MagmaPatchFeatureConfig(i32 r, f32 magma, f32 fire, i32 minD, i32 maxD)
-        : radius(r)
-        , magmaChance(magma)
-        , fireChance(fire)
-        , minDepth(minD)
-        , maxDepth(maxD)
-    {}
-};
-
-/**
- * @brief 岩浆池特征
+ * @brief 三角洲特征配置
  *
- * 生成岩浆块和火焰的池子
+ * 对应 MC 1.21.11: DeltaFeatureConfiguration(contents, rim, size, rimSize)。
+ * contents/rim 为方块状态；size/rimSize 为 IntProvider[0,16]。
  */
-class MagmaPatchFeature {
-public:
-    /**
-     * @brief 放置岩浆池
-     */
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const MagmaPatchFeatureConfig& config);
+struct DeltaFeatureConfig : public IFeatureConfig {
+    const BlockState* contents = nullptr; ///< 填充方块（如熔岩）
+    const BlockState* rim = nullptr;      ///< 边缘方块（如岩浆块）
+    std::unique_ptr<world::gen::valueprovider::IntProvider> size;
+    std::unique_ptr<world::gen::valueprovider::IntProvider> rimSize;
 
-private:
-    /**
-     * @brief 检查位置是否有效
-     */
-    [[nodiscard]] bool _isValidLocation(WorldGenRegion& world, const BlockPos& pos) const;
+    DeltaFeatureConfig() = default;
 };
 
 /**
- * @brief 配置化岩浆池特征
+ * @brief 三角洲特征
+ *
+ * 对应 MC 1.21.11: DeltaFeature。在下界生成熔岩池 + 岩浆块边缘的三角洲地貌。
+ * 以原点为中心，在 (size,0,size) 曼哈顿菱形范围内放置 contents/rim。
  */
-class ConfiguredMagmaPatchFeature : public ConfiguredFeatureBase {
+class DeltaFeature {
 public:
-    ConfiguredMagmaPatchFeature(std::unique_ptr<MagmaPatchFeatureConfig> config, const char* featureName);
+    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const DeltaFeatureConfig& config);
+};
+
+/**
+ * @brief 配置化三角洲特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有，本类在已确定的 pos 处放置。
+ */
+class ConfiguredDeltaFeature : public ConfiguredFeatureBase {
+public:
+    ConfiguredDeltaFeature(std::unique_ptr<DeltaFeatureConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -98,9 +77,9 @@ public:
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
 
 private:
-    std::unique_ptr<MagmaPatchFeatureConfig> m_config;
+    std::unique_ptr<DeltaFeatureConfig> m_config;
     std::string m_name;
-    mutable MagmaPatchFeature m_feature;
+    mutable DeltaFeature m_feature;
 };
 
 } // namespace mc

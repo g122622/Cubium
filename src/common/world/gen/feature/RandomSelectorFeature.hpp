@@ -4,8 +4,8 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * to use, copy, modify, merge, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #pragma once
@@ -28,37 +29,49 @@
 #include <memory>
 #include <vector>
 
-namespace mc::world::gen::feature::cave {
+namespace mc::world::gen::feature {
+
+/**
+ * @brief 加权特征条目
+ *
+ * 对应 MC 1.21.11 WeightedPlacedFeature{feature, chance}。
+ * featureId 为内联 PlacedFeature 中 "feature" 字段提取的 configured_feature id
+ * （placement 链由父 PlacedFeature 走完，此处直接委派）。
+ */
+struct WeightedFeatureEntry {
+    ResourceLocation featureId;
+    f32 chance = 0.0f; // [0.0, 1.0]
+};
 
 /**
  * @brief 随机选择配置
  *
- * 从特征列表中均匀随机选择一个。
+ * 对应 MC 1.21.11 RandomFeatureConfiguration{features[], default}。
+ * place() 顺序遍历 features，每项按 chance 概率命中即委派并返回；
+ * 全部未命中则走 default。
  */
-struct SimpleRandomFeatureConfig {
-    /// 可选特征ID列表（ConfiguredFeatureRegistry 中的 ResourceLocation）
-    std::vector<ResourceLocation> featureIds;
+struct RandomSelectorFeatureConfig {
+    std::vector<WeightedFeatureEntry> features;
+    ResourceLocation defaultFeatureId;
 
-    SimpleRandomFeatureConfig() = default;
-    explicit SimpleRandomFeatureConfig(std::vector<ResourceLocation> ids)
-        : featureIds(std::move(ids))
-    {}
+    RandomSelectorFeatureConfig() = default;
 };
 
 /**
  * @brief 随机选择特征
  *
- * 从特征列表中均匀随机选择一个放置。
- * 用于垂滴叶（选择小型垂滴叶或大型垂滴叶方向）。
+ * 对应 MC 1.21.11 RandomSelectorFeature。顺序概率检查 + default 兜底。
+ * 与 simple_random_selector（均匀随机选一个）的根本区别：本类按 chance
+ * 顺序检查，命中即返回，列表顺序影响最终概率分布。
  */
-class SimpleRandomSelectorFeature {
+class RandomSelectorFeature {
 public:
     static bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
         const BlockPos& pos,
-        const SimpleRandomFeatureConfig& config);
+        const RandomSelectorFeatureConfig& config);
 };
 
 /**
@@ -66,9 +79,9 @@ public:
  *
  * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，本类只负责在已确定的 pos 处放置。
  */
-class ConfiguredSimpleRandomSelectorFeature : public ConfiguredFeatureBase {
+class ConfiguredRandomSelectorFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredSimpleRandomSelectorFeature(std::unique_ptr<SimpleRandomFeatureConfig> config, const char* featureName);
+    ConfiguredRandomSelectorFeature(std::unique_ptr<RandomSelectorFeatureConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -79,8 +92,8 @@ public:
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
 private:
-    std::unique_ptr<SimpleRandomFeatureConfig> m_config;
+    std::unique_ptr<RandomSelectorFeatureConfig> m_config;
     std::string m_name;
 };
 
-} // namespace mc::world::gen::feature::cave
+} // namespace mc::world::gen::feature

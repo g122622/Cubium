@@ -448,6 +448,10 @@ public:
     /// 不可被特性替换方块标签（基岩、刷怪笼、箱子等）
     static BlockTag& FEATURES_CANNOT_REPLACE();
 
+    /// 熔岩湖边界石不可替换标签（引用 features_cannot_replace + leaves + logs）
+    /// 用于 LakeFeature 边界方块放置判定
+    static BlockTag& LAVA_POOL_STONE_CANNOT_REPLACE();
+
     /// 附魔力量提供者标签（书架）
     static BlockTag& ENCHANTMENT_POWER_PROVIDER();
 

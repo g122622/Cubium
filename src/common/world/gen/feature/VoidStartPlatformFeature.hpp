@@ -23,5 +23,38 @@
 
 #pragma once
 
-// 玄武岩柱特征聚合头文件
-#include "BasaltColumnFeature.hpp"
+#include "ConfiguredFeature.hpp"
+#include "common/core/Types.hpp"
+
+namespace mc {
+
+// 前向声明
+class WorldGenRegion;
+
+namespace world::gen::feature {
+
+/**
+ * @brief 虚空起始平台特征（void_start_platform）
+ *
+ * 在 (8,3,8) 为中心的 33x33 区域（切比雪夫距离≤16）放置石制平台：
+ * 中心格 (8,3,8) 为 COBBLESTONE，其余为 STONE。仅处理当前区块与平台
+ * 中心所在区块切比雪夫距离≤1 的区块（否则直接返回 true）。
+ *
+ * 配置为 NoneFeatureConfiguration。装饰阶段为 RawGeneration。
+ */
+class ConfiguredVoidStartPlatformFeature : public ConfiguredFeatureBase {
+public:
+    ConfiguredVoidStartPlatformFeature() = default;
+
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) const override;
+
+    [[nodiscard]] const char* name() const override { return "void_start_platform"; }
+    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::RawGeneration; }
+};
+
+} // namespace world::gen::feature
+} // namespace mc

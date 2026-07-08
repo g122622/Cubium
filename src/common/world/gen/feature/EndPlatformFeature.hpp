@@ -23,5 +23,39 @@
 
 #pragma once
 
-// 玄武岩柱特征聚合头文件
-#include "BasaltColumnFeature.hpp"
+#include "ConfiguredFeature.hpp"
+#include "common/core/Types.hpp"
+
+namespace mc {
+
+// 前向声明
+class WorldGenRegion;
+
+namespace world::gen::feature {
+
+/**
+ * @brief 末地平台特征（end_platform）
+ *
+ * 在 origin 周围 5x5 水平范围、y∈[-1,2]（相对 origin.y）放置：
+ * - y==-1 层：OBSIDIAN（平台底）
+ * - y∈[0,2] 层：AIR（清空平台上方）
+ * 仅当当前方块与目标方块不同时才 setBlock（避免无意义写入）。
+ *
+ * 配置为 NoneFeatureConfiguration。装饰阶段为 RawGeneration。
+ */
+class ConfiguredEndPlatformFeature : public ConfiguredFeatureBase {
+public:
+    ConfiguredEndPlatformFeature() = default;
+
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) const override;
+
+    [[nodiscard]] const char* name() const override { return "end_platform"; }
+    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::RawGeneration; }
+};
+
+} // namespace world::gen::feature
+} // namespace mc

@@ -26,7 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include <memory>
 
 namespace mc {
@@ -103,14 +103,13 @@ private:
 /**
  * @brief 预配置的矿石特征
  *
- * 组合矿石特征和配置，方便注册和使用。
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置矿脉。
  * 继承 ConfiguredFeatureBase 以支持统一的特征注册。
  */
 class ConfiguredOreFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName = "ore");
+    ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig, const char* featureName = "ore");
 
     /**
      * @brief 在指定位置放置矿石（实现 ConfiguredFeatureBase 接口）
@@ -120,14 +119,6 @@ public:
         IChunkGenerator& generator,
         math::Random& random,
         const BlockPos& pos) const override;
-
-    /**
-     * @brief 在区块中生成矿石
-     * @param region 世界生成区域
-     * @param chunk 区块数据
-     * @param random 随机数生成器
-     */
-    void generate(WorldGenRegion& region, ChunkPrimer& chunk, math::Random& random);
 
     /**
      * @brief 获取特征名称
@@ -146,7 +137,6 @@ public:
 
 private:
     std::unique_ptr<OreFeatureConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

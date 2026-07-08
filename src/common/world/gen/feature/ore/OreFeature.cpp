@@ -270,11 +270,8 @@ void OreFeature::_generateSphere(WorldGenRegion& region,
 // ConfiguredOreFeature 实现
 // ============================================================================
 
-ConfiguredOreFeature::ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig,
-    std::unique_ptr<ConfiguredPlacement> placement,
-    const char* featureName)
+ConfiguredOreFeature::ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig, const char* featureName)
     : m_config(std::move(featureConfig))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
@@ -284,44 +281,16 @@ bool ConfiguredOreFeature::place(WorldGenRegion& region,
     math::Random& random,
     const BlockPos& pos) const
 {
-    // 忽略 pos 参数，矿石生成使用自己的放置逻辑
-    (void)pos;
+    (void)chunk;
     (void)generator;
 
-    if (!m_placement || !m_config) {
+    if (!m_config) {
         return false;
     }
 
-    // 获取放置位置
-    BlockPos chunkPos(mc::world::toWorldCoord(chunk.x()), 0, mc::world::toWorldCoord(chunk.z()));
-    auto positions = m_placement->getPositions(region, random, chunkPos);
-
-    // 在每个位置生成矿石
+    // 数据驱动下 pos 已是 placement 链处理后的最终位置，直接放置矿脉
     OreFeature feature;
-    bool placed = false;
-    for (const BlockPos& orePos : positions) {
-        if (feature.place(region, chunk, random, orePos, *m_config)) {
-            placed = true;
-        }
-    }
-    return placed;
-}
-
-void ConfiguredOreFeature::generate(WorldGenRegion& region, ChunkPrimer& chunk, math::Random& random)
-{
-    if (!m_placement || !m_config) {
-        return;
-    }
-
-    // 获取放置位置
-    BlockPos chunkPos(mc::world::toWorldCoord(chunk.x()), 0, mc::world::toWorldCoord(chunk.z()));
-    auto positions = m_placement->getPositions(region, random, chunkPos);
-
-    // 在每个位置生成矿石
-    OreFeature feature;
-    for (const BlockPos& pos : positions) {
-        feature.place(region, chunk, random, pos, *m_config);
-    }
+    return feature.place(region, chunk, random, pos, *m_config);
 }
 
 } // namespace mc

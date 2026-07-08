@@ -23,55 +23,29 @@
 
 #pragma once
 
+#include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/feature/Feature.hpp"
-#include <memory>
 
 namespace mc {
 
-/**
- * @brief 玄武岩簇特征配置
- */
-struct BasaltDeltaFeatureConfig : public IFeatureConfig {
-    /// 簇的大小
-    i32 size = 8;
+// 前向声明
+class WorldGenRegion;
 
-    /// 岩浆块替换下界岩的概率 (0.0 - 1.0)
-    f32 magmaChance = 0.2f;
-
-    /// 是否使用玄武岩
-    bool useBasalt = true;
-
-    BasaltDeltaFeatureConfig() = default;
-
-    explicit BasaltDeltaFeatureConfig(i32 s, f32 magma, bool basalt = true)
-        : size(s)
-        , magmaChance(magma)
-        , useBasalt(basalt)
-    {}
-};
+namespace world::gen::feature {
 
 /**
- * @brief 玄武岩三角洲特征
+ * @brief 玄武岩柱特征（basalt_pillar）
  *
- * 生成玄武岩三角洲特有的地貌：玄武岩地面和岩浆块池。
+ * 仅当 origin 为空且其上方非空时生成：从 origin 向下逐格放置 BASALT，
+ * 每格在水平四方向尝试概率性"垂挂"（nextInt(10)!=0 放 BASALT，一旦失败
+ * 该方向停止垂挂）。到达底部后，在停止柱底周围随机放基座垂挂；再在柱底
+ * 下方 7x7 区域内按 |i|*|j| 衰减概率放散落 BASALT（向下找支撑）。
+ *
+ * 配置为 NoneFeatureConfiguration。装饰阶段为 UndergroundDecoration。
  */
-class BasaltDeltaFeature {
+class ConfiguredBasaltPillarFeature : public ConfiguredFeatureBase {
 public:
-    /**
-     * @brief 放置玄武岩三角洲特征
-     */
-    bool place(
-        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltDeltaFeatureConfig& config);
-};
-
-/**
- * @brief 配置化玄武岩三角洲特征
- */
-class ConfiguredBasaltDeltaFeature : public ConfiguredFeatureBase {
-public:
-    ConfiguredBasaltDeltaFeature(std::unique_ptr<BasaltDeltaFeatureConfig> config, const char* featureName);
+    ConfiguredBasaltPillarFeature() = default;
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -79,13 +53,9 @@ public:
         math::Random& random,
         const BlockPos& pos) const override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
+    [[nodiscard]] const char* name() const override { return "basalt_pillar"; }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
-
-private:
-    std::unique_ptr<BasaltDeltaFeatureConfig> m_config;
-    std::string m_name;
-    mutable BasaltDeltaFeature m_feature;
 };
 
+} // namespace world::gen::feature
 } // namespace mc

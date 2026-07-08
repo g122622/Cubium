@@ -23,7 +23,6 @@
 #include "SimpleBlockFeature.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/Placement.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -62,9 +61,8 @@ bool SimpleBlockFeature::place(
 // ============================================================================
 
 ConfiguredSimpleBlockFeature::ConfiguredSimpleBlockFeature(
-    std::unique_ptr<SimpleBlockConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<SimpleBlockConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
@@ -77,21 +75,11 @@ bool ConfiguredSimpleBlockFeature::place(WorldGenRegion& region,
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
 
-    // 获取放置位置
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
+    if (!m_config) {
+        return false;
     }
 
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (SimpleBlockFeature::place(region, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return SimpleBlockFeature::place(region, random, pos, *m_config);
 }
 
 } // namespace mc::world::gen::feature::cave

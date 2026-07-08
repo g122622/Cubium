@@ -133,6 +133,12 @@ public:
      */
     [[nodiscard]] i32 totalWeight() const noexcept { return m_totalWeight; }
 
+    /**
+     * @brief 只读访问全部加权条目（用于解析期枚举，如把 weighted_state_provider
+     *        的所有状态平铺到 flowers 列表）
+     */
+    [[nodiscard]] const std::vector<WeightedStateEntry>& entries() const noexcept { return m_entries; }
+
 private:
     std::vector<WeightedStateEntry> m_entries;
     i32 m_totalWeight = 0;

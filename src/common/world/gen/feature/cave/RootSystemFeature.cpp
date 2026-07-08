@@ -29,7 +29,6 @@
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
-#include "common/world/gen/placement/Placement.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -184,9 +183,8 @@ bool RootSystemFeature::place(WorldGenRegion& region,
 // ============================================================================
 
 ConfiguredRootSystemFeature::ConfiguredRootSystemFeature(
-    std::unique_ptr<RootSystemConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<RootSystemConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
@@ -196,20 +194,7 @@ bool ConfiguredRootSystemFeature::place(WorldGenRegion& region,
     math::Random& random,
     const BlockPos& pos) const
 {
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
-    }
-
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (RootSystemFeature::place(region, chunk, generator, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return RootSystemFeature::place(region, chunk, generator, random, pos, *m_config);
 }
 
 } // namespace mc::world::gen::feature::cave

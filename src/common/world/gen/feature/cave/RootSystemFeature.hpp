@@ -116,12 +116,12 @@ private:
 
 /**
  * @brief 配置化根系特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，本类只负责在已确定的 pos 处放置。
  */
 class ConfiguredRootSystemFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredRootSystemFeature(std::unique_ptr<RootSystemConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredRootSystemFeature(std::unique_ptr<RootSystemConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
@@ -133,7 +133,6 @@ public:
 
 private:
     std::unique_ptr<RootSystemConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

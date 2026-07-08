@@ -18,59 +18,68 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
-#include "SimpleRandomSelectorFeature.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "RandomSelectorFeature.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 
-namespace mc::world::gen::feature::cave {
+namespace mc::world::gen::feature {
 
 // ============================================================================
-// SimpleRandomSelectorFeature
+// RandomSelectorFeature
 // ============================================================================
 
-bool SimpleRandomSelectorFeature::place(WorldGenRegion& region,
+bool RandomSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
     math::Random& random,
     const BlockPos& pos,
-    const SimpleRandomFeatureConfig& config)
+    const RandomSelectorFeatureConfig& config)
 {
-    if (config.featureIds.empty()) {
-        return false;
+    // 顺序概率检查：遍历 features，每项 nextFloat() < chance 即命中委派并返回。
+    // nextFloat() ∈ [0.0, 1.0)，故 chance=1.0 必触发，chance=0.0 必不触发。
+    for (const auto& entry : config.features) {
+        if (random.nextFloat() < entry.chance) {
+            const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(entry.featureId);
+            if (feature == nullptr) {
+                return false;
+            }
+            return feature->place(region, chunk, generator, random, pos);
+        }
     }
 
-    u32 index = static_cast<u32>(random.nextInt(static_cast<i32>(config.featureIds.size())));
-    const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(config.featureIds[index]);
-
-    if (feature == nullptr) {
+    // 全部未命中，走 default
+    const ConfiguredFeatureBase* fallback = ConfiguredFeatureRegistry::instance().get(config.defaultFeatureId);
+    if (fallback == nullptr) {
         return false;
     }
-
-    return feature->place(region, chunk, generator, random, pos);
+    return fallback->place(region, chunk, generator, random, pos);
 }
 
 // ============================================================================
-// ConfiguredSimpleRandomSelectorFeature
+// ConfiguredRandomSelectorFeature
 // ============================================================================
 
-ConfiguredSimpleRandomSelectorFeature::ConfiguredSimpleRandomSelectorFeature(
-    std::unique_ptr<SimpleRandomFeatureConfig> config, const char* featureName)
+ConfiguredRandomSelectorFeature::ConfiguredRandomSelectorFeature(
+    std::unique_ptr<RandomSelectorFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
     , m_name(featureName)
 {}
 
-bool ConfiguredSimpleRandomSelectorFeature::place(WorldGenRegion& region,
+bool ConfiguredRandomSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
     math::Random& random,
     const BlockPos& pos) const
 {
-    return SimpleRandomSelectorFeature::place(region, chunk, generator, random, pos, *m_config);
+    if (!m_config) {
+        return false;
+    }
+    return RandomSelectorFeature::place(region, chunk, generator, random, pos, *m_config);
 }
 
-} // namespace mc::world::gen::feature::cave
+} // namespace mc::world::gen::feature

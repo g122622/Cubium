@@ -72,10 +72,8 @@ bool EndIslandFeature::place(WorldGenRegion& world, math::Random& random, const 
 // ConfiguredEndIslandFeature
 // ============================================================================
 
-ConfiguredEndIslandFeature::ConfiguredEndIslandFeature(
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
-    : m_placement(std::move(placement))
-    , m_name(featureName)
+ConfiguredEndIslandFeature::ConfiguredEndIslandFeature(const char* featureName)
+    : m_name(featureName)
 {}
 
 bool ConfiguredEndIslandFeature::place(WorldGenRegion& region,
@@ -84,20 +82,7 @@ bool ConfiguredEndIslandFeature::place(WorldGenRegion& region,
     math::Random& random,
     const BlockPos& pos) const
 {
-    bool placed = false;
-
-    if (m_placement != nullptr) {
-        auto positions = m_placement->getPositions(region, random, pos);
-        for (const auto& placePos : positions) {
-            if (EndIslandFeature::place(region, random, placePos)) {
-                placed = true;
-            }
-        }
-    } else {
-        placed = EndIslandFeature::place(region, random, pos);
-    }
-
-    return placed;
+    return EndIslandFeature::place(region, random, pos);
 }
 
 } // namespace mc
