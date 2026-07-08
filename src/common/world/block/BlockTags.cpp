@@ -2548,6 +2548,17 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "vault")});
     tags[featuresCannotReplace->getId()] = std::move(featuresCannotReplace);
 
+    // 晶洞无效方块标签（geode_invalid_blocks）：晶洞分布点命中这些方块计入 invalidCount。
+    // 对齐数据包 data/minecraft/tags/blocks/geode_invalid_blocks.json。
+    auto geodeInvalidBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "geode_invalid_blocks"));
+    geodeInvalidBlocks->addAll({ResourceLocation("minecraft", "bedrock"),
+        ResourceLocation("minecraft", "water"),
+        ResourceLocation("minecraft", "lava"),
+        ResourceLocation("minecraft", "ice"),
+        ResourceLocation("minecraft", "packed_ice"),
+        ResourceLocation("minecraft", "blue_ice")});
+    tags[geodeInvalidBlocks->getId()] = std::move(geodeInvalidBlocks);
+
     // 附魔力量提供者标签
     auto enchantmentPowerProvider =
         std::make_unique<BlockTag>(ResourceLocation("minecraft", "enchantment_power_provider"));

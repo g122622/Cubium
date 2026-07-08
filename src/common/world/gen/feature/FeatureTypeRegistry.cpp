@@ -56,6 +56,7 @@
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
 #include "common/world/gen/feature/cave/DripstoneClusterFeature.hpp"
 #include "common/world/gen/feature/cave/FossilFeature.hpp"
+#include "common/world/gen/feature/cave/GeodeFeature.hpp"
 #include "common/world/gen/feature/cave/IcebergFeature.hpp"
 #include "common/world/gen/feature/cave/LargeDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/PointedDripstoneFeature.hpp"
@@ -691,6 +692,156 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createFossil(const nlohmann::json
     config->overlayProcessors = ResourceLocation(configJson["overlay_processors"].get<std::string>());
     config->maxEmptyCornersAllowed = configJson.value("max_empty_corners_allowed", 0);
     return toBase(std::make_unique<cave::ConfiguredFossilFeature>(std::move(config), "fossil"));
+}
+
+namespace {
+
+/// 解析 "#namespace:tag" 形式的方块标签字符串为 BlockTag*，标签未注册返回 Error。
+Result<const BlockTag*> parseBlockTag(const std::string& entry)
+{
+    if (entry.empty() || entry[0] != '#') {
+        return Error(ErrorCode::InvalidData, "expected block tag string (starting with '#'): " + entry);
+    }
+    const ResourceLocation tagLoc(entry.substr(1));
+    const BlockTag* tag = BlockTags::getTag(tagLoc);
+    if (tag == nullptr) {
+        return Error(ErrorCode::NotFound, "block tag not found: " + entry);
+    }
+    return tag;
+}
+
+/// 解析 GeodeBlockSettings 中的 BlockStateProvider 字段。
+Result<void> parseGeodeProvider(
+    const nlohmann::json& blocksJson, const char* key, parser::BlockStateProviderHandle& out)
+{
+    if (!blocksJson.contains(key)) {
+        return Error(ErrorCode::InvalidData, std::string("geode blocks missing '") + key + "'");
+    }
+    auto r = parser::BlockStateProviderParser::parse(blocksJson[key]);
+    if (!r.success()) {
+        return r.error();
+    }
+    out = std::move(r.value());
+    return {};
+}
+
+} // namespace
+
+/**
+ * @brief geode 工厂：解析 GeodeConfiguration 全字段并构造 ConfiguredGeodeFeature。
+ *
+ * blocks.{filling,inner_layer,alternate_inner_layer,middle_layer,outer_layer}_provider
+ *   为 BlockStateProvider；inner_placements 为 BlockState 列表；cannot_replace /
+ *   invalid_blocks 为 "#tag" 字符串。layers/crack 为数值/几率；outer_wall_distance /
+ *   distribution_points / point_offset 为 IntProvider；noise_multiplier 等为标量。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createGeode(const nlohmann::json& configJson)
+{
+    if (!configJson.contains("blocks") || !configJson["blocks"].is_object()) {
+        return Error(ErrorCode::InvalidData, "geode config missing 'blocks'");
+    }
+    const auto& blocksJson = configJson["blocks"];
+
+    auto config = std::make_unique<cave::GeodeConfig>();
+
+    if (auto r = parseGeodeProvider(blocksJson, "filling_provider", config->blockSettings.fillingProvider);
+        !r.success()) {
+        return r.error();
+    }
+    if (auto r = parseGeodeProvider(blocksJson, "inner_layer_provider", config->blockSettings.innerLayerProvider);
+        !r.success()) {
+        return r.error();
+    }
+    if (auto r = parseGeodeProvider(
+            blocksJson, "alternate_inner_layer_provider", config->blockSettings.alternateInnerLayerProvider);
+        !r.success()) {
+        return r.error();
+    }
+    if (auto r = parseGeodeProvider(blocksJson, "middle_layer_provider", config->blockSettings.middleLayerProvider);
+        !r.success()) {
+        return r.error();
+    }
+    if (auto r = parseGeodeProvider(blocksJson, "outer_layer_provider", config->blockSettings.outerLayerProvider);
+        !r.success()) {
+        return r.error();
+    }
+
+    if (!blocksJson.contains("inner_placements") || !blocksJson["inner_placements"].is_array()) {
+        return Error(ErrorCode::InvalidData, "geode blocks missing 'inner_placements' array");
+    }
+    for (const auto& item : blocksJson["inner_placements"]) {
+        auto r = parser::BlockStateParser::parse(item);
+        if (!r.success()) {
+            return r.error();
+        }
+        config->blockSettings.innerPlacements.push_back(r.value());
+    }
+
+    if (!blocksJson.contains("cannot_replace") || !blocksJson["cannot_replace"].is_string()) {
+        return Error(ErrorCode::InvalidData, "geode blocks missing 'cannot_replace' tag");
+    }
+    if (auto r = parseBlockTag(blocksJson["cannot_replace"].get<std::string>()); !r.success()) {
+        return r.error();
+    } else {
+        config->blockSettings.cannotReplace = r.value();
+    }
+    if (!blocksJson.contains("invalid_blocks") || !blocksJson["invalid_blocks"].is_string()) {
+        return Error(ErrorCode::InvalidData, "geode blocks missing 'invalid_blocks' tag");
+    }
+    if (auto r = parseBlockTag(blocksJson["invalid_blocks"].get<std::string>()); !r.success()) {
+        return r.error();
+    } else {
+        config->blockSettings.invalidBlocks = r.value();
+    }
+
+    // layers
+    const auto& layersJson = configJson.value("layers", nlohmann::json::object());
+    config->layerSettings.filling = layersJson.value("filling", 1.7);
+    config->layerSettings.innerLayer = layersJson.value("inner_layer", 2.2);
+    config->layerSettings.middleLayer = layersJson.value("middle_layer", 3.2);
+    config->layerSettings.outerLayer = layersJson.value("outer_layer", 4.2);
+
+    // crack
+    const auto& crackJson = configJson.value("crack", nlohmann::json::object());
+    config->crackSettings.generateCrackChance = crackJson.value("generate_crack_chance", 1.0);
+    config->crackSettings.baseCrackSize = crackJson.value("base_crack_size", 2.0);
+    config->crackSettings.crackPointOffset = crackJson.value("crack_point_offset", 2);
+
+    config->usePotentialPlacementsChance = configJson.value("use_potential_placements_chance", 0.35);
+    config->useAlternateLayer0Chance = configJson.value("use_alternate_layer0_chance", 0.0);
+    config->placementsRequireLayer0Alternate = configJson.value("placements_require_layer0_alternate", true);
+
+    if (!configJson.contains("outer_wall_distance")) {
+        return Error(ErrorCode::InvalidData, "geode config missing 'outer_wall_distance' IntProvider");
+    }
+    if (auto r = valueprovider::IntProviderParser::parse(configJson["outer_wall_distance"], 1, 20); !r.success()) {
+        return r.error();
+    } else {
+        config->outerWallDistance = r.value();
+    }
+    if (!configJson.contains("distribution_points")) {
+        return Error(ErrorCode::InvalidData, "geode config missing 'distribution_points' IntProvider");
+    }
+    if (auto r = valueprovider::IntProviderParser::parse(configJson["distribution_points"], 1, 20); !r.success()) {
+        return r.error();
+    } else {
+        config->distributionPoints = r.value();
+    }
+    if (!configJson.contains("point_offset")) {
+        return Error(ErrorCode::InvalidData, "geode config missing 'point_offset' IntProvider");
+    }
+    if (auto r = valueprovider::IntProviderParser::parse(configJson["point_offset"], 0, 10); !r.success()) {
+        return r.error();
+    } else {
+        config->pointOffset = r.value();
+    }
+
+    config->minGenOffset = configJson.value("min_gen_offset", -16);
+    config->maxGenOffset = configJson.value("max_gen_offset", 16);
+    config->noiseMultiplier = configJson.value("noise_multiplier", 0.05);
+    config->invalidBlocksThreshold = configJson.value("invalid_blocks_threshold", 1);
+
+    return toBase(std::make_unique<cave::ConfiguredGeodeFeature>(std::move(config), "geode"));
 }
 
 // ----------------------------------------------------------------------------
@@ -1623,9 +1774,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("dripstone_cluster", createDripstoneCluster);
     reg.registerType("iceberg", createIceberg);
     reg.registerType("fossil", createFossil);
-    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 50 种
+    reg.registerType("geode", createGeode);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 51 种
     // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
-    // 未注册的 type（desert_well/fallen_tree/geode/multiface_growth/sculk_patch）
+    // 未注册的 type（desert_well/fallen_tree/multiface_growth/sculk_patch）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 
