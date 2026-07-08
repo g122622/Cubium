@@ -55,6 +55,7 @@
 #include "common/world/gen/feature/WeepingVinesFeature.hpp"
 #include "common/world/gen/feature/cave/CaveSurface.hpp"
 #include "common/world/gen/feature/cave/DripstoneClusterFeature.hpp"
+#include "common/world/gen/feature/cave/FossilFeature.hpp"
 #include "common/world/gen/feature/cave/IcebergFeature.hpp"
 #include "common/world/gen/feature/cave/LargeDripstoneFeature.hpp"
 #include "common/world/gen/feature/cave/PointedDripstoneFeature.hpp"
@@ -640,6 +641,56 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createIceberg(const nlohmann::jso
     }
     auto config = std::make_unique<cave::IcebergConfig>(stateResult.value());
     return toBase(std::make_unique<cave::ConfiguredIcebergFeature>(std::move(config), "iceberg"));
+}
+
+/**
+ * @brief 解析 ResourceLocation 数组（fossil_structures / overlay_structures 共用）。
+ */
+Result<std::vector<ResourceLocation>> parseResourceLocationArray(const nlohmann::json& configJson, const char* key)
+{
+    if (!configJson.contains(key) || !configJson[key].is_array()) {
+        return Error(ErrorCode::InvalidData, std::string("config missing '") + key + "' array");
+    }
+    std::vector<ResourceLocation> result;
+    for (const auto& entry : configJson[key]) {
+        if (!entry.is_string()) {
+            return Error(ErrorCode::InvalidData, std::string("config '") + key + "' must contain strings");
+        }
+        result.emplace_back(entry.get<std::string>());
+    }
+    return result;
+}
+
+/**
+ * @brief fossil 工厂：fossil_structures/overlay_structures（RL 数组）、
+ * fossil_processors/overlay_processors（RL 引用）、max_empty_corners_allowed（int）。
+ *
+ * 忠实复刻 MC 1.21.11 FossilFeature（FossilFeatureConfiguration）。模板与处理器列表
+ * 在放置时按 id 从 TemplateManager / ProcessorListRegistry 查询，故 config 仅存引用。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createFossil(const nlohmann::json& configJson)
+{
+    auto fossilStructures = parseResourceLocationArray(configJson, "fossil_structures");
+    if (!fossilStructures.success()) {
+        return fossilStructures.error();
+    }
+    auto overlayStructures = parseResourceLocationArray(configJson, "overlay_structures");
+    if (!overlayStructures.success()) {
+        return overlayStructures.error();
+    }
+    if (!configJson.contains("fossil_processors") || !configJson["fossil_processors"].is_string()) {
+        return Error(ErrorCode::InvalidData, "fossil config missing 'fossil_processors'");
+    }
+    if (!configJson.contains("overlay_processors") || !configJson["overlay_processors"].is_string()) {
+        return Error(ErrorCode::InvalidData, "fossil config missing 'overlay_processors'");
+    }
+    auto config = std::make_unique<cave::FossilConfig>();
+    config->fossilStructures = std::move(fossilStructures.value());
+    config->overlayStructures = std::move(overlayStructures.value());
+    config->fossilProcessors = ResourceLocation(configJson["fossil_processors"].get<std::string>());
+    config->overlayProcessors = ResourceLocation(configJson["overlay_processors"].get<std::string>());
+    config->maxEmptyCornersAllowed = configJson.value("max_empty_corners_allowed", 0);
+    return toBase(std::make_unique<cave::ConfiguredFossilFeature>(std::move(config), "fossil"));
 }
 
 // ----------------------------------------------------------------------------
@@ -1571,9 +1622,10 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("large_dripstone", createLargeDripstone);
     reg.registerType("dripstone_cluster", createDripstoneCluster);
     reg.registerType("iceberg", createIceberg);
-    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 49 种
+    reg.registerType("fossil", createFossil);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 50 种
     // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
-    // 未注册的 type（desert_well/fallen_tree/fossil/geode/multiface_growth/sculk_patch）
+    // 未注册的 type（desert_well/fallen_tree/geode/multiface_growth/sculk_patch）
     // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 
