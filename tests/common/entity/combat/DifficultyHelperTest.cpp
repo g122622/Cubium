@@ -225,6 +225,43 @@ TEST(DifficultyHelperTest, GetRangedAttackInaccuracy_Hard)
     EXPECT_FLOAT_EQ(DifficultyHelper::getRangedAttackInaccuracy(Difficulty::Hard), 2.0f);
 }
 
+// ========== 旋风人风弹散布测试 ==========
+
+TEST(DifficultyHelperTest, GetBreezeWindChargeInaccuracy_Peaceful)
+{
+    // 和平模式：5 - 0*4 = 5
+    EXPECT_FLOAT_EQ(DifficultyHelper::getBreezeWindChargeInaccuracy(Difficulty::Peaceful), 5.0f);
+}
+
+TEST(DifficultyHelperTest, GetBreezeWindChargeInaccuracy_Easy)
+{
+    // 简单模式：5 - 1*4 = 1
+    EXPECT_FLOAT_EQ(DifficultyHelper::getBreezeWindChargeInaccuracy(Difficulty::Easy), 1.0f);
+}
+
+TEST(DifficultyHelperTest, GetBreezeWindChargeInaccuracy_Normal)
+{
+    // 普通模式：5 - 2*4 = -3（负数，由 ProjectileEntity::shoot 取绝对值处理）
+    EXPECT_FLOAT_EQ(DifficultyHelper::getBreezeWindChargeInaccuracy(Difficulty::Normal), -3.0f);
+}
+
+TEST(DifficultyHelperTest, GetBreezeWindChargeInaccuracy_Hard)
+{
+    // 困难模式：5 - 3*4 = -7（负数，由 ProjectileEntity::shoot 取绝对值处理）
+    EXPECT_FLOAT_EQ(DifficultyHelper::getBreezeWindChargeInaccuracy(Difficulty::Hard), -7.0f);
+}
+
+TEST(DifficultyHelperTest, GetBreezeWindChargeInaccuracy_DiffersFromRangedAttackInaccuracy)
+{
+    // 验证旋风人风弹散布公式（5 - id*4）与弓/弩散布公式（14 - id*4）不同
+    // 这是两套独立的公式，不能混用
+    for (const Difficulty diff : {Difficulty::Peaceful, Difficulty::Easy, Difficulty::Normal, Difficulty::Hard}) {
+        EXPECT_NE(
+            DifficultyHelper::getBreezeWindChargeInaccuracy(diff), DifficultyHelper::getRangedAttackInaccuracy(diff))
+            << "Breeze 风弹散布应与弓/弩散布不同";
+    }
+}
+
 // ========== 边界测试 ==========
 
 TEST(DifficultyHelperTest, InvalidDifficultyId)

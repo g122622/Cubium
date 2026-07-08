@@ -737,6 +737,8 @@ add_executable(mc_tests
     common/entity/entities/projectile/ProjectileCanHitEntityTest.cpp
     # ProjectileDeflection 弹射物偏转系统测试
     common/entity/entities/projectile/ProjectileDeflectionTest.cpp
+    # ProjectileEntity::shoot 负 inaccuracy 行为测试（旋风人风弹散布修复）
+    common/entity/entities/projectile/ProjectileShootInaccuracyTest.cpp
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     # DragonFireballEntity 龙息云和粒子类型测试

@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/special/BreezeGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
@@ -303,9 +304,14 @@ void BreezeEntity::shootWindCharge()
     entity::WindChargeEntity* projectile = entity.get();
     m_world->spawnEntity(std::move(entity));
 
-    // 设置射击参数：速度0.7，散布随难度降低（简单=1, 普通=1, 困难=0）
-    // 项目中散布暂时使用1.0
-    projectile->shoot(dx, dy, dz, 0.7f, 1.0f);
+    // 设置射击参数：速度 0.7，散布根据难度计算
+    // MC 1.21.11 Shoot.tick(): 5 - difficulty.getId() * 4
+    // 各难度散布值：Peaceful=5, Easy=1, Normal=-3, Hard=-7
+    // Normal/Hard 为负数，ProjectileEntity::shoot 内部取绝对值处理，
+    // 散布效果等效于 3 / 7（难度越高散布越大）
+    constexpr f32 PROJECTILE_VELOCITY = 0.7f;
+    const f32 inaccuracy = entity::combat::DifficultyHelper::getBreezeWindChargeInaccuracy(m_world->difficulty());
+    projectile->shoot(dx, dy, dz, PROJECTILE_VELOCITY, inaccuracy);
 
     // 播放旋风人射击音效
     m_world->playSound(

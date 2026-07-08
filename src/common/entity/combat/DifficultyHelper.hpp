@@ -210,6 +210,30 @@ public:
      */
     [[nodiscard]] static f32 getRangedAttackInaccuracy(Difficulty difficulty);
 
+    /**
+     * @brief 获取旋风人风弹射击的不精确度
+     *
+     * 对应 MC 1.21.11 原版 Shoot.tick() 中发射 BreezeWindCharge 的公式：
+     * `5 - difficulty.getId() * 4`
+     *
+     * 各难度下的原始值：
+     * - Peaceful: 5
+     * - Easy: 1
+     * - Normal: -3
+     * - Hard: -7
+     *
+     * 注意：Normal 和 Hard 难度下返回值为负数。MC 原版使用 triangle 分布计算散布，
+     * 由于其对称性，负值与同绝对值的正值产生相同的散布效果。
+     * 本项目的 ProjectileEntity::shoot 已对 inaccuracy 取绝对值处理，
+     * 因此负值会正常产生散布（等效于 3 / 7）。
+     *
+     * 与 getRangedAttackInaccuracy（弓/弩专用，14 - id*4）不同，这是旋风人风弹的专属公式。
+     *
+     * @param difficulty 难度
+     * @return 不精确度值（可能为负数，由 shoot 内部取绝对值处理）
+     */
+    [[nodiscard]] static f32 getBreezeWindChargeInaccuracy(Difficulty difficulty);
+
 private:
     // 常量
     static constexpr f32 NORMAL_PLAYER_DAMAGE_MULT = 1.0f;

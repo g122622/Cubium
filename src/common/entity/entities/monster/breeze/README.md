@@ -140,20 +140,22 @@ AnimationState 字段说明：
 
 1. **旋风人发射位置偏移**：`shootWindCharge()` 中发射 Y 坐标为 `y() + height() * 0.5f + 0.3f`（身体中心偏上 0.3 格），对齐 MC 原版 `Breeze.getFiringYPosition()`。
 
-2. **风弹不被偏转**：`deflection()` 对 `WindChargeEntity` 返回 `ProjectileDeflection::None`，其他投射物返回 `ProjectileDeflection::Reverse`（前提是实体类型属于 `DEFLECTS_PROJECTILES` 标签）。这确保旋风人不会偏转自己发射的风弹。偏转时播放 `ENTITY_BREEZE_DEFLECT` 音效。
+2. **风弹散布按难度计算**：`shootWindCharge()` 中风弹散布（inaccuracy）由 `DifficultyHelper::getBreezeWindChargeInaccuracy(difficulty)` 计算，对应 MC 1.21.11 `Shoot.tick()` 公式 `5 - difficulty.getId() * 4`。各难度散布值：Peaceful=5、Easy=1、Normal=-3、Hard=-7。Normal/Hard 为负数，由 `ProjectileEntity::shoot` 内部取 `std::abs` 处理，散布效果等效于 3/7。注意此公式与弓/弩散布公式（`14 - id*4`）不同，不可混用。
 
-3. **AI 行为目标**：`registerGoals()` 中已实现旋风人特有的四个 AI 目标：
+3. **风弹不被偏转**：`deflection()` 对 `WindChargeEntity` 返回 `ProjectileDeflection::None`，其他投射物返回 `ProjectileDeflection::Reverse`（前提是实体类型属于 `DEFLECTS_PROJECTILES` 标签）。这确保旋风人不会偏转自己发射的风弹。偏转时播放 `ENTITY_BREEZE_DEFLECT` 音效。
+
+4. **AI 行为目标**：`registerGoals()` 中已实现旋风人特有的四个 AI 目标：
    - `BreezeShootGoal`（优先级2）：向目标投掷风弹，充能15 ticks后发射，恢复4 ticks，冷却10 ticks
    - `BreezeLongJumpGoal`（优先级3）：长跳移动，吸气10 ticks后跳跃，着陆后设置射击许可
    - `BreezeShootWhenStuckGoal`（优先级4）：卡住时（水中/骑乘/飘浮）紧急射击
    - `BreezeSlideGoal`（优先级5）：地面滑行移动，内圈逃跑或中圈/目标身后移动，结束后设置射击许可
    - `shootWindCharge()` 方法由 BreezeShootGoal 调用触发
 
-4. **Pose 转换必须带条件守卫**：`resetTask` 中切换回 `Standing` 前必须检查当前 Pose 是否仍为该 Goal 拥有的姿态（如 `Shooting`/`LongJumping`/`Inhaling`/`Sliding`），避免误覆盖其他 Goal 设置的 Pose。这与 MC 原版 `Shoot.stop`、`LongJump.stop` 的实现保持一致。
+5. **Pose 转换必须带条件守卫**：`resetTask` 中切换回 `Standing` 前必须检查当前 Pose 是否仍为该 Goal 拥有的姿态（如 `Shooting`/`LongJumping`/`Inhaling`/`Sliding`），避免误覆盖其他 Goal 设置的 Pose。这与 MC 原版 `Shoot.stop`、`LongJump.stop` 的实现保持一致。
 
-5. **粒子携带方块状态**：`emitGroundParticles` 和 `emitJumpTrailParticles` 都发射 `ParticleTypeId::Block` 类型粒子，需要携带方块状态用于纹理渲染。这通过 `IWorld::addBlockParticle` → `ServerWorld` 广播回调 → `MinecraftServer::broadcastBlockParticleInRange` → `ParticlePacket::createBlock` → `NetworkClient::onBlockParticle` → `ClientApplicationNetwork` 调用 `BlockRegistry::getBlockState(stateId)` 还原 → 客户端世界 `addBlockParticle` 的链路完成。
+6. **粒子携带方块状态**：`emitGroundParticles` 和 `emitJumpTrailParticles` 都发射 `ParticleTypeId::Block` 类型粒子，需要携带方块状态用于纹理渲染。这通过 `IWorld::addBlockParticle` → `ServerWorld` 广播回调 → `MinecraftServer::broadcastBlockParticleInRange` → `ParticlePacket::createBlock` → `NetworkClient::onBlockParticle` → `ClientApplicationNetwork` 调用 `BlockRegistry::getBlockState(stateId)` 还原 → 客户端世界 `addBlockParticle` 的链路完成。
 
-6. **呼啸音效随机间隔**：`m_soundTick == 0` 时触发并重新随机化（1-80 ticks），否则每 tick 递减。音量 = `0.8 + 0.2 * nextFloat`，音调 = `0.7 + 0.4 * nextFloat`。
+7. **呼啸音效随机间隔**：`m_soundTick == 0` 时触发并重新随机化（1-80 ticks），否则每 tick 递减。音量 = `0.8 + 0.2 * nextFloat`，音调 = `0.7 + 0.4 * nextFloat`。
 
-7. **长跳轨迹粒子持续 5 tick**：`m_jumpTrailStartedTick` 从 0 开始，进入 `LongJumping` Pose 后每 tick 自增并发射 3 个粒子，超过 `JUMP_TRAIL_DURATION_TICKS`（5）后停止。Pose 切换回非 `LongJumping` 时由 `resetJumpTrail()` 重置计数器。
+8. **长跳轨迹粒子持续 5 tick**：`m_jumpTrailStartedTick` 从 0 开始，进入 `LongJumping` Pose 后每 tick 自增并发射 3 个粒子，超过 `JUMP_TRAIL_DURATION_TICKS`（5）后停止。Pose 切换回非 `LongJumping` 时由 `resetJumpTrail()` 重置计数器。
 

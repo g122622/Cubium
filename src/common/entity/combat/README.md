@@ -172,3 +172,26 @@ if (breachLevel > 0) {
 ### 10. 重锤下落攻击使用专属伤害类型
 
 重锤下落攻击使用 `DamageSources::maceSmash()` 而非 `DamageSources::playerAttack()`，不触发普通暴击。下落攻击伤害加成由 `MaceItem::getSmashAttackDamageBonus()` 计算（含致密魔咒），在 `Player::attack()` 中加到总伤害上。
+
+### 11. 远程攻击散布（inaccuracy）有两套独立公式
+
+`DifficultyHelper` 提供两个远程攻击散布方法，分别对应不同实体类型，**不可混用**：
+
+| 方法 | 适用实体 | MC 1.21.11 公式 | Peaceful | Easy | Normal | Hard |
+|------|----------|-----------------|----------|------|--------|------|
+| `getRangedAttackInaccuracy()` | 弓/弩（骷髅、掠夺者、猪灵、幻术师等） | `14 - id*4` | 14 | 10 | 6 | 2 |
+| `getBreezeWindChargeInaccuracy()` | 旋风人风弹 | `5 - id*4` | 5 | 1 | -3 | -7 |
+
+**注意**：旋风人风弹公式在 Normal/Hard 难度下返回**负数**。由于散布分布的对称性，
+负值与同绝对值的正值产生相同的散布效果。`ProjectileEntity::shoot` 内部对 inaccuracy
+取 `std::abs` 处理，因此负值能正常产生散布（等效于 3 / 7）。
+
+```cpp
+// 弓/弩散布（骷髅等）
+const f32 inaccuracy = DifficultyHelper::getRangedAttackInaccuracy(difficulty);
+projectile->shoot(dx, dy, dz, velocity, inaccuracy);
+
+// 旋风人风弹散布（BreezeEntity 专用）
+const f32 inaccuracy = DifficultyHelper::getBreezeWindChargeInaccuracy(difficulty);
+projectile->shoot(dx, dy, dz, velocity, inaccuracy);
+```

@@ -136,11 +136,15 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
     }
 
     // 高斯随机散布
-    if (inaccuracy > 0.0f) {
+    // 取绝对值以支持负 inaccuracy：MC 原版部分实体（如旋风人风弹）在普通/困难难度下
+    // 会传入负的 inaccuracy（公式 5 - difficulty*4），但由于分布的对称性，
+    // 负值与同绝对值的正值产生相同的散布效果。使用 abs 确保行为与 MC 原版一致。
+    const f32 absInaccuracy = std::abs(inaccuracy);
+    if (absInaccuracy > 0.0f) {
         math::Random rng = createRandomFromEntity(*this);
-        f32 gaussianX = static_cast<f32>(rng.nextGaussian()) * 0.0075f * inaccuracy;
-        f32 gaussianY = static_cast<f32>(rng.nextGaussian()) * 0.0075f * inaccuracy;
-        f32 gaussianZ = static_cast<f32>(rng.nextGaussian()) * 0.0075f * inaccuracy;
+        f32 gaussianX = static_cast<f32>(rng.nextGaussian()) * 0.0075f * absInaccuracy;
+        f32 gaussianY = static_cast<f32>(rng.nextGaussian()) * 0.0075f * absInaccuracy;
+        f32 gaussianZ = static_cast<f32>(rng.nextGaussian()) * 0.0075f * absInaccuracy;
         x += gaussianX;
         y += gaussianY;
         z += gaussianZ;

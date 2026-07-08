@@ -290,6 +290,8 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 
 发射时使用 `world->getRandom().nextGaussian()` 计算散布精度，符合 MC 1.16.5 投掷物不精确度计算：`inaccuracy * 0.0075 * nextGaussian()`。
 
+**负 inaccuracy 支持**：`ProjectileEntity::shoot()` 内部对 inaccuracy 取 `std::abs` 后再参与高斯散布计算。这是因为 MC 1.21.11 旋风人风弹散布公式 `5 - difficulty.getId() * 4` 在 Normal(-3) 和 Hard(-7) 难度下产生负值。由于高斯分布对称，负值与同绝对值的正值产生相同散布效果。所有调用者无需关心符号，传入正值或负值均可正常产生散布。
+
 ### 11. 投射物传送门处理
 
 `ThrowableEntity::tick()` 实现投射物的传送门检测逻辑：

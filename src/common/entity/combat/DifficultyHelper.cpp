@@ -180,4 +180,14 @@ f32 DifficultyHelper::getRangedAttackInaccuracy(Difficulty difficulty)
     return static_cast<f32>(14 - static_cast<i32>(difficulty) * 4);
 }
 
+f32 DifficultyHelper::getBreezeWindChargeInaccuracy(Difficulty difficulty)
+{
+    // 对应 MC 1.21.11 Shoot.tick() 中发射 BreezeWindCharge 的公式：
+    // 5 - difficulty.getId() * 4
+    // 各难度返回值：Peaceful=5, Easy=1, Normal=-3, Hard=-7
+    // Normal/Hard 难度下为负数，由于分布对称性，负值与同绝对值的正值散布效果相同，
+    // ProjectileEntity::shoot 内部会取绝对值处理。
+    return static_cast<f32>(5 - static_cast<i32>(difficulty) * 4);
+}
+
 } // namespace mc::entity::combat
