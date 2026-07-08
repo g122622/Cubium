@@ -1168,6 +1168,10 @@ add_library(mc_common STATIC
 
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
+    world/gen/feature/tree/FallenTreeFeature.cpp
+    world/gen/feature/tree/decorator/TreeDecorator.cpp
+    world/gen/feature/tree/decorator/AttachToLogsDecorator.cpp
+    world/gen/feature/tree/decorator/TrunkVineDecorator.cpp
     world/gen/feature/tree/trunk/TrunkPlacer.cpp
     world/gen/feature/tree/trunk/StraightTrunkPlacer.cpp
     world/gen/feature/tree/trunk/TrunkPlacers.cpp

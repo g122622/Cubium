@@ -88,7 +88,9 @@
 #include "common/world/gen/feature/parser/FoliagePlacerParser.hpp"
 #include "common/world/gen/feature/parser/RuleTestParser.hpp"
 #include "common/world/gen/feature/parser/TrunkPlacerParser.hpp"
+#include "common/world/gen/feature/tree/FallenTreeFeature.hpp"
 #include "common/world/gen/feature/tree/TreeFeature.hpp"
+#include "common/world/gen/feature/tree/decorator/TreeDecorator.hpp"
 #include "common/world/gen/feature/vegetation/BambooFeature.hpp"
 #include "common/world/gen/feature/vegetation/BigMushroomFeature.hpp"
 #include "common/world/gen/feature/vegetation/FlowerFeature.hpp"
@@ -908,6 +910,60 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSculkPatch(const nlohmann::
     }
 
     return toBase(std::make_unique<cave::ConfiguredSculkPatchFeature>(std::move(config), "sculk_patch"));
+}
+
+/**
+ * @brief fallen_tree 工厂：解析 FallenTreeConfiguration 全字段并构造
+ *        ConfiguredFallenTreeFeature。
+ *
+ * trunk_provider(BlockStateProvider) / log_length(IntProvider 0..16) /
+ * stump_decorators(list<TreeDecorator>) / log_decorators(list<TreeDecorator>)。
+ */
+Result<std::unique_ptr<ConfiguredFeatureBase>> createFallenTree(const nlohmann::json& configJson)
+{
+    auto config = std::make_unique<tree::FallenTreeConfig>();
+
+    // trunk_provider：BlockStateProvider（simple/weighted 等）。
+    if (!configJson.contains("trunk_provider")) {
+        return Error(ErrorCode::InvalidData, "fallen_tree config missing 'trunk_provider'");
+    }
+    auto trunkResult = parser::BlockStateProviderParser::parse(configJson["trunk_provider"]);
+    if (!trunkResult.success()) {
+        return trunkResult.error();
+    }
+    config->trunkProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(trunkResult.value()));
+
+    // log_length：IntProvider（MC codec 0..16）。
+    if (!configJson.contains("log_length")) {
+        return Error(ErrorCode::InvalidData, "fallen_tree config missing 'log_length' IntProvider");
+    }
+    auto lengthResult = valueprovider::IntProviderParser::parse(configJson["log_length"], 0, 16);
+    if (!lengthResult.success()) {
+        return lengthResult.error();
+    }
+    config->logLength = lengthResult.value();
+
+    // stump_decorators / log_decorators：可选，缺省为空列表。
+    if (configJson.contains("stump_decorators") && configJson["stump_decorators"].is_array()) {
+        for (const auto& decJson : configJson["stump_decorators"]) {
+            auto decResult = tree::decorator::parseDecorator(decJson);
+            if (!decResult.success()) {
+                return decResult.error();
+            }
+            config->stumpDecorators.push_back(decResult.value());
+        }
+    }
+    if (configJson.contains("log_decorators") && configJson["log_decorators"].is_array()) {
+        for (const auto& decJson : configJson["log_decorators"]) {
+            auto decResult = tree::decorator::parseDecorator(decJson);
+            if (!decResult.success()) {
+                return decResult.error();
+            }
+            config->logDecorators.push_back(decResult.value());
+        }
+    }
+
+    return toBase(std::make_unique<tree::ConfiguredFallenTreeFeature>(std::move(config), "fallen_tree"));
 }
 
 /**
@@ -1961,10 +2017,9 @@ void initializeBuiltinFeatureTypes()
     reg.registerType("desert_well", createDesertWell);
     reg.registerType("multiface_growth", createMultifaceGrowth);
     reg.registerType("sculk_patch", createSculkPatch);
-    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种中的 54 种
+    reg.registerType("fallen_tree", createFallenTree);
+    // 数据包 configured_feature 共 55 种 type，当前已注册全部 55 种。
     // （另注册 5 种非顶层 type：coral_claw/coral_mushroom/coral_tree/no_bonemeal_flower/pointed_dripstone）。
-    // 未注册的 type（fallen_tree 1 种）
-    // 加载对应 JSON 时会严格报错中断。按报错逐个补实现并在此 registerType。
 }
 
 } // namespace world::gen::feature

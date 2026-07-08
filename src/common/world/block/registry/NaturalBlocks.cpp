@@ -48,6 +48,7 @@
 #include "world/block/blocks/vegetation/CactusBlock.hpp"
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
+#include "world/block/blocks/vegetation/VineBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
 
 namespace mc {
@@ -186,7 +187,7 @@ void registerNaturalBlocks()
         ResourceLocation("minecraft:lily_pad"), BlockProperties(Material::PLANT).noCollision().notSolid());
 
     // 藤蔓
-    NaturalBlocks::VINE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:vine"),
+    NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
         BlockProperties(Material::REPLACEABLE_PLANT).hardness(0.2f).noCollision().notSolid());
 
     // 蜘蛛网
