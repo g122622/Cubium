@@ -26,9 +26,9 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/Block.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../valueprovider/HeightProvider.hpp"
 #include "../valueprovider/IntProvider.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -260,6 +260,23 @@ public:
      * @brief 获取放置器名称
      */
     [[nodiscard]] virtual const char* name() const noexcept = 0;
+};
+
+/**
+ * @brief 恒等放置器
+ *
+ * 直接返回基础位置 {basePos}，对应 MC 空 placement 修饰符链的语义
+ * （PlacedFeature 的 placement 列表为空时，特征在 origin 处放置）。
+ * 用于内联 PlacedFeature（如 simple_random_selector 的 features[]）placement 数组为空的情形。
+ */
+class IdentityPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "identity"; }
 };
 
 /**

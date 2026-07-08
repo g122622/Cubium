@@ -98,6 +98,19 @@ std::unique_ptr<ConfiguredPlacement> ConfiguredPlacement::then(
 }
 
 // ============================================================================
+// IdentityPlacement 实现
+// ============================================================================
+
+std::vector<BlockPos> IdentityPlacement::getPositions(WorldGenRegion& /*region*/,
+    math::Random& /*random*/,
+    const IPlacementConfig& /*config*/,
+    const BlockPos& basePos) const
+{
+    // 空 placement 链：直接在 origin 处放置。
+    return {basePos};
+}
+
+// ============================================================================
 // CountPlacement 实现
 // ============================================================================
 

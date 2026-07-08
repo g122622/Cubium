@@ -411,9 +411,16 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRandomBooleanSelector(const
 }
 
 /**
- * @brief simple_random_selector 工厂：features 数组（每项 {feature:{...inline configured_feature...},
- *        placement:[]}）。项目 SimpleRandomFeatureConfig 存 ResourceLocation id 列表，仅支持
- *        "feature" 为字符串引用的形式；inline configured_feature 无法存为 id，此时严格报错。
+ * @brief simple_random_selector 工厂：features 数组（每项为内联 PlacedFeature，对齐 MC
+ *        SimpleRandomFeatureConfiguration{features: HolderSet<PlacedFeature>}）。
+ *
+ * 每项形式：{feature:{type,config}, placement:[...]}（内联 configured_feature + placement 链）。
+ * 原版 4 个 simple_random_selector 文件（dripleaf/forest_flowers/pointed_dripstone/
+ * warm_ocean_vegetation）均用此内联对象形式。
+ *
+ * 内联 configured_feature 所有权由 SimpleRandomFeatureConfig::inlineFeatures 托管；
+ * PlacedFeature 持其裸指针 + placement 链（经 PlacedFeatureLoader::parsePlacementChain 构造）。
+ * 内联项无独立 id，placement 链回填用占位 ResourceLocation。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createSimpleRandomSelector(const nlohmann::json& configJson)
 {
@@ -421,20 +428,52 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSimpleRandomSelector(const 
         return Error(ErrorCode::InvalidData, "simple_random_selector config missing 'features' array");
     }
     auto config = std::make_unique<cave::SimpleRandomFeatureConfig>();
-    for (const auto& entry : configJson["features"]) {
-        if (!entry.is_object() || !entry.contains("feature")) {
-            return Error(ErrorCode::InvalidData, "simple_random_selector features[] entry missing 'feature'");
+
+    for (size_t i = 0; i < configJson["features"].size(); ++i) {
+        const auto& entry = configJson["features"][i];
+        const ResourceLocation placeholderId("minecraft", "simple_random_selector_inline_" + std::to_string(i));
+
+        // 每项必须是内联 PlacedFeature 对象：{feature:{type,config}, placement:[...]}。
+        // 对齐 MC SimpleRandomFeatureConfiguration.features=HolderSet<PlacedFeature>；
+        // 原版 4 个 simple_random_selector 文件均用此内联对象形式。
+        if (!entry.is_object() || !entry.contains("feature") || !entry["feature"].is_object()) {
+            return Error(ErrorCode::InvalidData,
+                "simple_random_selector features[] entry must be an inline PlacedFeature object "
+                "{feature:{type,config}, placement:[...]}");
         }
         const auto& featureField = entry["feature"];
-        // "feature" 为字符串 → 已注册 configured_feature 的 ResourceLocation 引用
-        if (featureField.is_string()) {
-            config->featureIds.emplace_back(featureField.get<std::string>());
-            continue;
+
+        if (!entry.contains("placement") || !entry["placement"].is_array()) {
+            return Error(ErrorCode::InvalidData, "simple_random_selector features[] entry missing 'placement' array");
         }
-        // "feature" 为内联 configured_feature 对象：项目存 ResourceLocation id，无法表达内联定义
-        return Error(ErrorCode::InvalidData,
-            "simple_random_selector inline configured_feature not supported (use feature id reference)");
+        auto chainResult = placement::PlacedFeatureLoader::parsePlacementChain(entry["placement"], placeholderId);
+        if (!chainResult.success()) {
+            return Error(chainResult.error().code(),
+                "simple_random_selector features[] placement: " + chainResult.error().message());
+        }
+
+        if (!featureField.contains("type") || !featureField["type"].is_string()) {
+            return Error(ErrorCode::InvalidData, "simple_random_selector inline feature object missing 'type' string");
+        }
+        const std::string innerType = featureField["type"].get<std::string>();
+        const nlohmann::json innerConfig =
+            featureField.contains("config") ? featureField["config"] : nlohmann::json::object();
+        auto innerResult = FeatureTypeRegistry::instance().create(innerType, innerConfig);
+        if (!innerResult.success()) {
+            return Error(innerResult.error().code(),
+                "simple_random_selector inline configured_feature '" + innerType +
+                    "': " + innerResult.error().message());
+        }
+        auto inlineFeature = innerResult.value();
+        if (inlineFeature == nullptr) {
+            return Error(
+                ErrorCode::InvalidData, "simple_random_selector inline configured_feature constructed as null");
+        }
+        config->inlineFeatures.push_back(std::move(inlineFeature));
+        const auto* cfPtr = config->inlineFeatures.back().get();
+        config->features.push_back(std::make_unique<PlacedFeature>(cfPtr, chainResult.value(), placeholderId));
     }
+
     return toBase(
         std::make_unique<cave::ConfiguredSimpleRandomSelectorFeature>(std::move(config), "simple_random_selector"));
 }

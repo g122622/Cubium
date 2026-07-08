@@ -21,11 +21,10 @@
  */
 
 #include "SimpleRandomSelectorFeature.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -40,18 +39,15 @@ bool SimpleRandomSelectorFeature::place(WorldGenRegion& region,
     const BlockPos& pos,
     const SimpleRandomFeatureConfig& config)
 {
-    if (config.featureIds.empty()) {
+    if (config.features.empty()) {
         return false;
     }
 
-    u32 index = static_cast<u32>(random.nextInt(static_cast<i32>(config.featureIds.size())));
-    const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(config.featureIds[index]);
-
-    if (feature == nullptr) {
-        return false;
-    }
-
-    return feature->place(region, chunk, generator, random, pos);
+    // 对齐 MC SimpleRandomSelectorFeature.place：均匀随机选一个 PlacedFeature，委托其 place(origin)
+    // （先走 placement 链，再 place 配置化特征）。
+    const i32 count = static_cast<i32>(config.features.size());
+    const u32 index = static_cast<u32>(random.nextInt(count));
+    return config.features[index]->place(region, chunk, generator, random, pos);
 }
 
 // ============================================================================

@@ -202,8 +202,14 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
 Result<std::unique_ptr<ConfiguredPlacement>> PlacedFeatureLoader::parsePlacementChain(
     const nlohmann::json& placementArr, const ResourceLocation& placedFeatureId)
 {
-    if (!placementArr.is_array() || placementArr.empty()) {
-        return Error(ErrorCode::InvalidData, "placed_feature 'placement' must be a non-empty array");
+    if (!placementArr.is_array()) {
+        return Error(ErrorCode::InvalidData, "placed_feature 'placement' must be an array");
+    }
+    // 空 placement 链：返回恒等放置器（在 origin 处放置），对齐 MC 空 placement 修饰符列表语义。
+    // 用于内联 PlacedFeature（random_patch/simple_random_selector 的 features[] 项）placement 为空的情形。
+    if (placementArr.empty()) {
+        return std::make_unique<ConfiguredPlacement>(
+            std::make_unique<IdentityPlacement>(), std::make_unique<EmptyPlacementConfig>());
     }
 
     std::unique_ptr<ConfiguredPlacement> head;
