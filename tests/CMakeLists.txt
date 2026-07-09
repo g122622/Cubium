@@ -49,6 +49,8 @@ add_executable(mc_tests
     common/world/biome/ClimateTest.cpp
     common/world/biome/RTreeTest.cpp
     common/world/biome/OverworldBiomeBuilderTest.cpp
+    # BiomeLoader 数据驱动生物生成配置解析测试（creature_spawn_probability / spawners 校验）
+    common/world/biome/BiomeLoaderSpawnTest.cpp
     common/test_biome_freeze.cpp
     common/world/biome/BiomeGetPrecipitationAtTest.cpp
     # BiomeGenerationSettings 花卉列表填充与 GrassBlock::grow 解析路径测试
@@ -857,6 +859,9 @@ add_executable(mc_tests
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp
     server/world/spawn/DespawnManagerTest.cpp
+    # NaturalSpawner 实体分类与容量上限对齐测试（修复实体无限累积）
+    server/world/spawn/NaturalSpawnerClassificationTest.cpp
+    server/world/spawn/NaturalSpawnerCapTest.cpp
     server/command/CommandRegistryTest.cpp
     server/command/LocateCommandTest.cpp
     server/command/SetBlockCommandTest.cpp

@@ -114,6 +114,19 @@ inline bool isAnimal(EntityClassification classification)
 }
 
 /**
+ * @brief 获取实体分类是否为持久化分类（控制生成节流与消失行为）
+ *
+ * MobCategory.isPersistent：CREATURE/MISC 为 true，其余为 false。
+ * 持久化分类每 400tick 才参与一次生成（getFilteredSpawningCategories 第三条件）。
+ * @param classification 实体分类
+ * @return 是否为持久化分类
+ */
+inline bool isPersistent(EntityClassification classification)
+{
+    return classification == EntityClassification::Creature || classification == EntityClassification::Misc;
+}
+
+/**
  * @brief 获取实体分类的立即消失距离
  * @param classification 实体分类
  * @return 立即消失距离（方块）

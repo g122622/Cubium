@@ -17,7 +17,7 @@ src/server/world/entity/
 ## 内部模块关系
 
 - **EntityTracker** 管理实体的客户端可见性，基于距离和视距计算追踪范围，发送实体生成/销毁/更新包；tick 中检测 `isHurtMarked()` 并在受伤时发送速度同步包
-- **ItemPickupManager** 处理玩家拾取掉落物逻辑，包括拾取检测、物品合并（空间哈希优化）、背包更新
+- **ItemPickupManager** 处理玩家拾取掉落物逻辑，包括拾取检测、背包更新。物品合并由 `ItemEntity::_updateMerge` 在每实体 tick 中统一处理（移动时每 2 tick、静止时每 40 tick 检测，对应原版 `ItemEntity.mergeWithNeighbours` 单一路径），ItemPickupManager 不再重复扫描合并
 - **EntityChunkTracker** 跟踪实体当前所属区块，为区块卸载保存和跨区块移动修正提供稳定映射
 
 ## 上下游外部依赖关系
@@ -52,8 +52,8 @@ src/server/world/entity/
 ### 5. UUID 处理
 Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包需要 `std::array<u8, 16>` 格式，使用 `util::uuidFromString()` 进行转换。
 
-### 6. 物品合并顺序
-在物品合并时，需要通过指针比较确定处理顺序（`if (item2 <= item1) continue;`）避免重复处理。
+### 6. 物品合并单一入口
+物品合并仅由 `ItemEntity::_updateMerge` 处理（搜索 AABB 内邻居，数量较少的合并到较多的，受 `ItemEntity::MERGE_RANGE` 控制）。`ItemEntity::tick` 起始处检查空物品立即移除（`getItem().isEmpty()`），`pickupDelay` 仅当 `>0 且 != FAKE_PICKUP_DELAY(32767)` 时递减（创造假物品永不递减、不可拾取）。ItemPickupManager::tick 不再调用任何合并扫描，避免与 `_updateMerge` 重复执行导致 CPU 翻倍。
 
 ### 7. EntityChunkTracker 与 EntityTracker 的区别
 - `EntityTracker`：网络同步追踪，管理客户端可见性

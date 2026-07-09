@@ -58,6 +58,12 @@ public:
     /// 默认拾取延迟（ticks）
     static constexpr i32 DEFAULT_PICKUP_DELAY = 10;
 
+    /// 创造假物品拾取延迟（永不递减、不可拾取）
+    static constexpr i32 FAKE_PICKUP_DELAY = 32767;
+
+    /// 物品合并检测半径（AABB 水平扩展量）
+    static constexpr f32 MERGE_RANGE = 0.5f;
+
     /// 默认存活时间（ticks）= 5分钟 = 6000 ticks
     static constexpr i32 DEFAULT_LIFETIME = 6000;
 
@@ -317,9 +323,6 @@ private:
 
     std::string m_ownerUuid;   // 所有者UUID（防止自己立即拾取）
     std::string m_throwerUuid; // 投掷者UUID
-
-    // 合并相关
-    static constexpr f32 MERGE_RADIUS = 1.5f; // 合并检测半径
 };
 
 } // namespace mc

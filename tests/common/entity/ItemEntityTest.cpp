@@ -35,6 +35,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
@@ -79,6 +80,12 @@ public:
         m_lastGameEventSourceEntity = context.sourceEntity();
         m_gameEventCount++;
     }
+
+    // 测试世界为纯空气环境（无方块、无流体）。基类 BaseTestWorld::getFluidState
+    // 返回 Fluid::getFluidState(0)，由于流体状态 ID 在各流体 StateContainer 内独立
+    // 从 0 分配、FluidRegistry 按 stateId 覆盖式注册，stateId 0 实际指向流动岩浆，
+    // 会导致落体物品误判为浸入岩浆并被 lavaHurt 销毁。此处显式返回 nullptr 表示无流体。
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
 
     [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
     [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
@@ -897,4 +904,134 @@ TEST_F(ItemEntityNbtTest, OwnerAndThrowerRoundTrip)
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.ownerUuid(), "player-uuid-123");
     EXPECT_EQ(loaded.throwerUuid(), "thrower-uuid-456");
+}
+
+// ============================================================================
+// ItemEntity 生命周期与合并测试
+//
+// 这些测试覆盖曾导致 item 实体异常累积/异常消失的几个偏差：
+//   1. tick 开头未检查空物品 —— tick 起始处若 getItem().isEmpty() 即移除自身。
+//   2. pickupDelay 无条件递减 —— 仅当 pickupDelay>0 且 !=32767 时递减，
+//      创造模式假物品（pickupDelay=32767）不应被递减为可拾取。
+//   3. 寿命到期应在 tick 中被移除 —— 验证批量到期收敛（不泄漏）。
+//   4. 合并应只有一条路径 —— 移除 ItemPickupManager::processItemMerging 后，
+//      ItemEntity._updateMerge 是唯一合并入口。
+// ============================================================================
+
+// 复用 ItemEntityWorldTest 的初始化（VanillaBlocks/Items 等）与 ItemEntityTestWorld。
+// 这里为生命周期/合并测试单独放一个固定装置，内嵌 EntityManager 以驱动 tick。
+
+class ItemEntityLifecycleTest : public ItemEntityWorldTest {
+protected:
+    void SetUp() override
+    {
+        ItemEntityWorldTest::SetUp();
+        // EntityManager 不持有 world 引用；实体自带 m_world，tick 时各自使用。
+    }
+
+    // 创建一个掉落 stone 的 ItemEntity，关联到测试世界并加入管理器
+    EntityId spawnItem(EntityManager& manager, i32 lifetime, i32 pickupDelay = 0)
+    {
+        Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+        EXPECT_NE(stone, nullptr);
+        auto entity = std::make_unique<ItemEntity>(EntityId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+        entity->setLifetime(lifetime);
+        entity->setPickupDelay(pickupDelay);
+        entity->setWorld(&m_world);
+        return manager.addEntity(std::move(entity));
+    }
+};
+
+// 空物品应在 tick 开头被移除：getItem().isEmpty() 为真时立即 discard。
+// 当前实现缺少该检查 → 测试红。
+TEST_F(ItemEntityLifecycleTest, EmptyItemRemovedOnTick)
+{
+    EntityManager manager;
+    // 默认构造的 ItemStack 为空（item==nullptr）
+    ItemStack emptyStack;
+    auto entity = std::make_unique<ItemEntity>(EntityId(0), emptyStack, 0.0f, 0.0f, 0.0f);
+    entity->setWorld(&m_world);
+    EntityId id = manager.addEntity(std::move(entity));
+    ASSERT_NE(id, 0);
+    EXPECT_EQ(manager.entityCount(), 1);
+
+    manager.tick(); // 空物品应在 tick 中被移除
+
+    EXPECT_EQ(manager.entityCount(), 0);
+}
+
+// pickupDelay=32767（创造假物品/无限拾取延迟）不应被递减。
+// 仅当 pickupDelay > 0 且 pickupDelay != 32767 时才递减。
+// 当前实现无条件递减 → 测试红。
+TEST_F(ItemEntityLifecycleTest, FakePickupDelayNotDecremented)
+{
+    EntityManager manager;
+    constexpr i32 kFakeDelay = 32767;
+    EntityId id = spawnItem(manager, ItemEntity::DEFAULT_LIFETIME, kFakeDelay);
+
+    auto* entity = manager.getEntity(id);
+    ASSERT_NE(entity, nullptr);
+    auto* itemEntity = dynamic_cast<ItemEntity*>(entity);
+    ASSERT_NE(itemEntity, nullptr);
+    ASSERT_EQ(itemEntity->getPickupDelay(), kFakeDelay);
+
+    manager.tick();
+
+    EXPECT_EQ(itemEntity->getPickupDelay(), kFakeDelay) << "pickupDelay=32767 不应被递减（创造假物品语义）";
+}
+
+// 普通 pickupDelay 应随 tick 递减至 0 后停止。
+TEST_F(ItemEntityLifecycleTest, NormalPickupDelayDecrements)
+{
+    EntityManager manager;
+    EntityId id = spawnItem(manager, ItemEntity::DEFAULT_LIFETIME, 5);
+
+    auto* itemEntity = dynamic_cast<ItemEntity*>(manager.getEntity(id));
+    ASSERT_NE(itemEntity, nullptr);
+
+    for (i32 i = 0; i < 5; ++i) {
+        manager.tick();
+    }
+    EXPECT_EQ(itemEntity->getPickupDelay(), 0);
+
+    // 递减到 0 后不应变为负数
+    manager.tick();
+    EXPECT_EQ(itemEntity->getPickupDelay(), 0);
+}
+
+// 批量到期：500 个短寿命物品 tick 超过寿命后应全部被移除（不泄漏）。
+TEST_F(ItemEntityLifecycleTest, BatchExpiry)
+{
+    EntityManager manager;
+    constexpr i32 kCount = 500;
+    constexpr i32 kLifetime = 100;
+
+    for (i32 i = 0; i < kCount; ++i) {
+        spawnItem(manager, kLifetime, 0);
+    }
+    ASSERT_EQ(manager.entityCount(), kCount);
+
+    // 寿命 100，tick 101 次后应全部到期移除
+    for (i32 i = 0; i <= kLifetime; ++i) {
+        manager.tick();
+    }
+
+    EXPECT_EQ(manager.entityCount(), 0);
+}
+
+// 无限寿命物品不应因年龄到期而移除。
+TEST_F(ItemEntityLifecycleTest, InfiniteLifetimeNeverExpires)
+{
+    EntityManager manager;
+    EntityId id = spawnItem(manager, ItemEntity::INFINITE_LIFETIME, 0);
+
+    // tick 远超普通寿命
+    for (i32 i = 0; i < ItemEntity::DEFAULT_LIFETIME + 1000; ++i) {
+        manager.tick();
+    }
+
+    EXPECT_EQ(manager.entityCount(), 1);
+    auto* itemEntity = dynamic_cast<ItemEntity*>(manager.getEntity(id));
+    ASSERT_NE(itemEntity, nullptr);
+    EXPECT_FALSE(itemEntity->isRemoved());
 }

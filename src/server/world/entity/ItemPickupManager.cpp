@@ -56,8 +56,7 @@ void ItemPickupManager::tick(ServerWorld& world, IServer& server)
 {
     MC_TRACE_EVENT("server.entity", "ItemPickupManager::tick");
 
-    // 处理物品合并
-    processItemMerging(world, server);
+    // 物品合并由 ItemEntity::tick 中的 _updateMerge 统一处理，此处不再重复扫描。
 
     // 获取所有玩家实体并检查拾取
     auto players = world.entityManager().getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
@@ -162,96 +161,6 @@ bool ItemPickupManager::tryPickupItem(ServerWorld& world, IServer& server, Entit
 
     _sendItemEntityUpdate(world, server, itemEntity);
     return false;
-}
-
-// ============================================================================
-// processItemMerging
-// ============================================================================
-
-void ItemPickupManager::processItemMerging(ServerWorld& world, IServer& server)
-{
-    MC_TRACE_EVENT("server.entity", "ItemPickupManager::processItemMerging");
-
-    // 收集所有存活的物品实体
-    std::vector<ItemEntity*> itemEntities;
-    world.entityManager().forEachEntity([&itemEntities](Entity* entity) {
-        if (entity && entity->isAlive() && entity->typeId() == entity::EntityTypeIdNumber::ITEM) {
-            itemEntities.push_back(static_cast<ItemEntity*>(entity));
-        }
-        return true; // 继续遍历
-    });
-
-    if (itemEntities.size() < 2) {
-        return; // 少于2个物品无需合并
-    }
-
-    // 使用空间哈希网格优化合并检测
-    // 哈希键 = 区块坐标，每个单元格大小为 MERGE_RANGE
-    constexpr f32 CELL_SIZE = MERGE_RANGE * 2.0f; // 单元格大小为合并范围的2倍
-    std::unordered_map<i64, std::vector<ItemEntity*>> grid;
-
-    // 将物品分配到网格单元格
-    for (ItemEntity* item : itemEntities) {
-        Vector3 pos = item->position();
-        i32 cellX = static_cast<i32>(std::floor(pos.x / CELL_SIZE));
-        i32 cellZ = static_cast<i32>(std::floor(pos.z / CELL_SIZE));
-        i64 key = (static_cast<i64>(cellX) << 32) | (static_cast<i64>(cellZ) & 0xFFFFFFFF);
-        grid[key].push_back(item);
-    }
-
-    // 只检查同一单元格和相邻单元格内的物品
-    constexpr i32 NEIGHBOR_OFFSETS[9][2] = {
-        {-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 0}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
-    constexpr f32 MERGE_RANGE_SQ = MERGE_RANGE * MERGE_RANGE;
-
-    for (const auto& [key, items] : grid) {
-        i32 cellX = static_cast<i32>(key >> 32);
-        i32 cellZ = static_cast<i32>(key & 0xFFFFFFFF);
-
-        // 获取当前单元格和相邻单元格的所有物品
-        std::vector<ItemEntity*> nearbyItems;
-        for (const auto& offset : NEIGHBOR_OFFSETS) {
-            i64 neighborKey =
-                (static_cast<i64>(cellX + offset[0]) << 32) | (static_cast<i64>(cellZ + offset[1]) & 0xFFFFFFFF);
-            auto it = grid.find(neighborKey);
-            if (it != grid.end()) {
-                nearbyItems.insert(nearbyItems.end(), it->second.begin(), it->second.end());
-            }
-        }
-
-        // 在当前单元格内的物品之间检查合并
-        for (size_t i = 0; i < items.size(); ++i) {
-            ItemEntity* item1 = items[i];
-            if (!item1 || !item1->isAlive()) {
-                continue;
-            }
-
-            Vector3 pos1 = item1->position();
-
-            for (ItemEntity* item2 : nearbyItems) {
-                if (item2 == item1 || !item2 || !item2->isAlive()) {
-                    continue;
-                }
-
-                // 只处理 item2 在 items 中的索引大于 i 的情况，避免重复
-                // 通过指针比较来确定处理顺序
-                if (item2 <= item1) {
-                    continue;
-                }
-
-                // 检查距离
-                Vector3 pos2 = item2->position();
-                f32 distSq = math::distanceSq(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
-
-                if (distSq <= MERGE_RANGE_SQ) {
-                    // 尝试合并
-                    if (item1->tryMergeWith(*item2)) {
-                        _sendItemEntityUpdate(world, server, *item1);
-                    }
-                }
-            }
-        }
-    }
 }
 
 // ============================================================================

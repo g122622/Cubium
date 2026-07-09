@@ -24,6 +24,7 @@
 #include "EntityManager.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -319,6 +320,16 @@ std::unordered_map<entity::EntityClassification, i32> EntityManager::countEntiti
             const entity::EntityType* type = registry.getType(typeId);
             if (type) {
                 entity::EntityClassification classification = type->classification();
+
+                // 跳过持久化的 Mob（命名/桶装等）：createState 不把持久化实体计入
+                // 容量计数，否则会挤占刷新名额。
+                if (classification != entity::EntityClassification::Misc) {
+                    const auto* mob = dynamic_cast<const MobEntity*>(entity.get());
+                    if (mob != nullptr && (mob->isNoDespawnRequired() || mob->preventDespawn())) {
+                        continue;
+                    }
+                }
+
                 counts[classification]++;
             }
         }

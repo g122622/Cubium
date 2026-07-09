@@ -18,8 +18,9 @@ spawn/
 
 ```
 NaturalSpawner（主生成器）
-    ├── EntityDensityManager（密度管理器）── 限制各类实体数量
-    │       └── MobDensityTracker（密度追踪器）── SpawnCosts 系统核心
+    ├── EntityDensityManager（密度管理器）── 全局 cap：count < maxInstancesPerChunk * spawnableChunkCount / 289
+    │       └── MobDensityTracker（密度追踪器）── SpawnCosts 系统核心，每 tick 清空重建
+    ├── LocalMobCapCalculator（本地 cap）── 每玩家每分类跨区块共享，防单区域堆积
     └── SpawnConditions（条件检查）── 光照、碰撞、位置检查
 
 VillageSiege（村庄围攻）
@@ -59,13 +60,24 @@ DespawnManager（消失管理）
 
 ## 实体数量限制常量
 
-| 分类 | 最大实例数 |
-|------|-----------|
-| Monster（怪物） | 70 |
-| Creature（动物） | 10 |
-| Ambient（环境生物） | 15 |
-| WaterCreature（水生生物） | 5 |
-| WaterAmbient（水生环境生物） | 20 |
+每分类的全局 cap 公式：`count < maxInstancesPerChunk * spawnableChunkCount / MAGIC_NUMBER(289)`，无 `max(...,1)` 下限保护。`spawnableChunkCount` 为玩家固定刷怪距离（SPAWN_DISTANCE_CHUNK=8）内已加载区块数（满载≈289），由 `_countSpawnableChunks` 去重统计（对应原版 `DistanceManager.getNaturalSpawnChunkCount`）。持久化生物（`isNoDespawnRequired`/`preventDespawn`）不计入 cap 计数（对应原版 `createState` 跳过 `isPersistenceRequired`）。
+
+| 分类 | 最大实例数/区块 | isPersistent | despawnDistance |
+|------|-----------|--------------|-----------------|
+| Monster（怪物） | 70 | false | 128 |
+| Creature（动物） | 10 | true（每 400tick 节流） | 128 |
+| Ambient（环境生物） | 15 | false | 128 |
+| Axolotls | 5 | false | 128 |
+| UndergroundWaterCreature | 5 | false | 128 |
+| WaterCreature（鱿鱼/海豚/鹦鹉螺） | 5 | false | 128 |
+| WaterAmbient（鳕鱼/鲑鱼/河豚/热带鱼） | 20 | false | 64 |
+| Misc | -1 | true | 128 |
+
+> **分类对齐要点**：cod/salmon/pufferfish/tropical_fish 属 WaterAmbient（非 WaterCreature），squid/dolphin/nautilus 属 WaterCreature，glow_squid 属 UndergroundWaterCreature。分类错配会导致该分类真实计数永远为 0、cap 永久失效、无限累积。
+
+## 生成循环结构
+
+每 tick：全局预过滤出仍可生成的分类列表（friendly/persistent 过滤 + 全局 cap + 持久化分类 400tick 节流）→ `_getSpawnableChunks` 收集玩家 8 区块内已加载区块并随机打乱（无 1/17 概率丢弃）→ 逐块逐分类：全局 cap 复检 + 本地 cap（`LocalMobCapCalculator`）复检 + `_spawnForClassificationInChunk` 外层 3 轮尝试（群体规模 `ceil(random*4)`），生成成功后 `addMob` 占用本地配额。
 
 ## 生成规则速查
 
@@ -78,14 +90,16 @@ DespawnManager（消失管理）
 
 ## DespawnManager 消失规则
 
+每 tick 遍历**所有**生物实体（无每 tick 数量上限），对应原版 `Mob.checkDespawn` 每实体每 tick 检查。纯函数 `shouldDespawn(mob, closestPlayerDistSq, difficulty, currentTick, random)` 便于覆盖边界，无玩家时用 `kNoPlayer(-1.0)` 哨兵表示（对应原版 `getNearestPlayer` 返回 null 时保留实体）。
+
 | 条件 | 行为 |
 |------|------|
-| 距离玩家 > 128 格 | 立即消失 |
-| 距离玩家 > 32 格且空闲 > 600 tick | 1/800 概率消失 |
-| 和平难度下的怪物 | 立即消失 |
-| 命名牌命名（isNoDespawnRequired） | 永不消失 |
-| 正在骑乘其他实体 | 永不消失 |
-| AnimalEntity（canDespawn 返回 false） | 永不消失 |
+| 距离玩家 > despawnDistance（128，WaterAmbient=64） | 立即消失（需 `canDespawn`） |
+| 距离玩家 > 32 格且空闲 > 600 tick | 1/800 概率消失（需 `canDespawn`） |
+| 距离玩家 < 32 格 | 重置空闲时间 noActionTime=0 |
+| 和平难度下的怪物（isDespawnPeaceful） | 立即消失 |
+| 持久化（isNoDespawnRequired / preventDespawn） | 重置空闲时间，永不消失 |
+| 无玩家（kNoPlayer） | 保留实体（不做任何事） |
 
 ## VillageSiege 触发条件
 

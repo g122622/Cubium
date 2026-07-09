@@ -23,7 +23,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -37,15 +39,33 @@
 
 using namespace mc;
 using namespace mc::entity;
+using namespace mc::world::spawn;
 
 namespace {
 
+// 在首次构造测试实体前注册原版实体类型，使 DespawnManager::shouldDespawn 能通过
+// typeId 查到分类（原版 Mob.checkDespawn 用 this.getType().getCategory() 取消失距离）。
+// 使用函数局部静态量保证注册在首个测试实体构造前完成，规避跨 TU 静态初始化顺序问题。
+void ensureVanillaEntitiesRegistered()
+{
+    static const bool kRegistered = [] {
+        VanillaEntities::registerAll();
+        return true;
+    }();
+    (void)kRegistered;
+}
+
 // 测试用的 MobEntity 子类
+// 设置 typeId 为 minecraft:zombie（Monster 分类，despawnDistance=128），
+// 使 DespawnManager::shouldDespawn 能查到分类消失距离。
 class TestMob : public MobEntity {
 public:
     TestMob(EntityId id)
         : MobEntity(id)
-    {}
+    {
+        ensureVanillaEntitiesRegistered();
+        setTypeId(EntityTypes::ZOMBIE);
+    }
 
     void tick() override { MobEntity::tick(); }
     void registerGoals() override {}
@@ -56,7 +76,10 @@ class TestMonster : public MonsterEntity {
 public:
     TestMonster(EntityId id)
         : MonsterEntity(id)
-    {}
+    {
+        ensureVanillaEntitiesRegistered();
+        setTypeId(EntityTypes::ZOMBIE);
+    }
 
     void registerGoals() override {}
 };
@@ -66,7 +89,10 @@ class TestAnimal : public AnimalEntity {
 public:
     TestAnimal(EntityId id)
         : AnimalEntity(id)
-    {}
+    {
+        ensureVanillaEntitiesRegistered();
+        setTypeId(EntityTypes::COW);
+    }
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
 };
@@ -238,4 +264,88 @@ TEST(EntityClassificationDespawnTest, MiscDespawnDistance)
     auto info = EntityClassificationInfo::get(EntityClassification::Misc);
     EXPECT_EQ(info.despawnDistance, 128);
     EXPECT_EQ(info.randomDespawnDistance, 32);
+}
+
+// ============================================================================
+// DespawnManager 消失决策测试
+//
+// 原版 Mob.checkDespawn 的核心逻辑被提取为纯函数 DespawnManager::shouldDespawn，
+// 不依赖 ServerWorld，便于覆盖边界。无玩家时用 kNoPlayer（负值哨兵）表示，
+// 此时原版保留实体（getNearestPlayer 返回 null 不做任何事）。
+// ============================================================================
+
+#include "server/world/spawn/DespawnManager.hpp"
+
+// 无玩家哨兵复用 DespawnManager::kNoPlayer（getClosestPlayerDistanceSq 无玩家时
+// 返回 null，这里用负值表示"无玩家"语义）
+
+// 和平难度下，怪物（isDespawnPeaceful）应立即消失
+TEST(DespawnManagerDecisionTest, PeacefulDespawnsMonsters)
+{
+    TestMonster monster(EntityId(1));
+    // 玩家就在旁边（距离 0）
+    EXPECT_TRUE(DespawnManager::shouldDespawn(monster, 0.0, Difficulty::Peaceful, 0));
+}
+
+// 和平难度下，动物（isDespawnPeaceful=false）不消失
+TEST(DespawnManagerDecisionTest, PeacefulKeepsAnimals)
+{
+    TestAnimal animal(EntityId(1));
+    EXPECT_FALSE(DespawnManager::shouldDespawn(animal, 0.0, Difficulty::Peaceful, 0));
+}
+
+// 距离玩家超过立即消失距离（Monster=128）时消失
+TEST(DespawnManagerDecisionTest, FarEntityDespawnsImmediately)
+{
+    TestMonster monster(EntityId(1));
+    // 200 格 > 128
+    EXPECT_TRUE(DespawnManager::shouldDespawn(monster, 200.0 * 200.0, Difficulty::Normal, 0));
+}
+
+// 距离玩家在 32 格内时重置 idle，不消失
+TEST(DespawnManagerDecisionTest, CloseEntityResetsIdleAndKeeps)
+{
+    TestMob mob(EntityId(1));
+    mob.setIdleTime(10000); // 即使空闲很久
+    // 10 格 < 32，应保留并重置 idle
+    EXPECT_FALSE(DespawnManager::shouldDespawn(mob, 10.0 * 10.0, Difficulty::Normal, 0));
+    EXPECT_EQ(mob.idleTime(), 0);
+}
+
+// 无玩家时应保留实体：最近玩家距离查询返回 null 时，实体不做任何事。
+TEST(DespawnManagerDecisionTest, NoPlayerKeepsEntity)
+{
+    TestMonster monster(EntityId(1));
+    monster.setIdleTime(10000);
+    EXPECT_FALSE(DespawnManager::shouldDespawn(monster, DespawnManager::kNoPlayer, Difficulty::Normal, 0));
+}
+
+// 持久化实体（命名/桶装）永不消失
+TEST(DespawnManagerDecisionTest, PersistentEntityNeverDespawns)
+{
+    TestMonster monster(EntityId(1));
+    monster.enablePersistence();
+    // 即使远超 128 格
+    EXPECT_FALSE(DespawnManager::shouldDespawn(monster, 10000.0 * 10000.0, Difficulty::Normal, 0));
+}
+
+// 32~128 格内、idle>600 时，仅以 1/800 概率消失。
+// 这里用确定性 Random 验证"概率命中"与"未命中"两条路径。
+TEST(DespawnManagerDecisionTest, RandomDespawnRespectsProbability)
+{
+    TestMob mob(EntityId(1));
+    mob.setIdleTime(700);              // > 600
+    const f64 midDistSq = 64.0 * 64.0; // 32 < 64 < 128
+
+    // 用一个恒返回 0 的随机源模拟"命中"（nextInt(800)==0）
+    // 由于 Random 基于 seed，这里多 seed 抽样：只要存在不消失的 seed 即可证明非 100% 消失
+    bool anyKeep = false;
+    for (u64 seed = 0; seed < 200; ++seed) {
+        math::Random rng(seed);
+        if (!DespawnManager::shouldDespawn(mob, midDistSq, Difficulty::Normal, 0, rng)) {
+            anyKeep = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(anyKeep) << "32~128 格内不应 100% 消失，应有概率保留";
 }

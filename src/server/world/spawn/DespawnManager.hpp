@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -42,10 +43,13 @@ namespace world::spawn {
 /**
  * @brief 生物消失管理器
  *
- * 负责管理生物的自然消失机制：
- * - 距离玩家 > 128 格：立即消失
- * - 距离玩家 > 32 格 且 空闲时间 > 600 tick：1/800 概率消失
- * - 和平难度：怪物立即消失
+ * Mob.checkDespawn 的消失决策：
+ * - 和平难度下不允许的生物立即消失
+ * - 非持久化生物距玩家 > despawnDistance 立即消失
+ * - 非持久化生物距玩家 > noDespawnDistance(32) 且 noActionTime>600 时，1/800 概率消失
+ * - 距玩家 < 32 重置 noActionTime
+ * - 持久化生物重置 noActionTime，永不消失
+ * - 无玩家时保留（getNearestPlayer 返回 null 不做任何事）
  */
 class DespawnManager {
 public:
@@ -70,7 +74,7 @@ public:
     /**
      * @brief 每tick调用，检查实体的消失条件
      *
-     * 遍历所有生物实体，检查其消失条件。
+     * 遍历所有生物实体，检查其消失条件。每实体每 tick 都检查，无每 tick 上限。
      *
      * @param world 世界引用
      */
@@ -87,7 +91,32 @@ public:
      */
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
 
+    /**
+     * @brief 纯函数消失决策（Mob.checkDespawn）
+     *
+     * 不依赖 ServerWorld，便于覆盖边界。无玩家时用 kNoPlayer（负值哨兵）表示，
+     * 此时 getNearestPlayer 返回 null 的语义——保留实体。
+     *
+     * @param mob 待检查生物
+     * @param closestPlayerDistSq 最近玩家距离平方；无玩家时传 kNoPlayer（负值）
+     * @param difficulty 当前难度
+     * @param currentTick 当前游戏刻
+     * @param random 随机数源
+     * @return 是否应消失
+     */
+    [[nodiscard]] static bool shouldDespawn(
+        MobEntity& mob, f64 closestPlayerDistSq, Difficulty difficulty, u64 currentTick, math::Random& random);
+
+    /**
+     * @brief 纯函数消失决策（内部自建确定性随机源）
+     */
+    [[nodiscard]] static bool shouldDespawn(
+        MobEntity& mob, f64 closestPlayerDistSq, Difficulty difficulty, u64 currentTick);
+
     // ========== 常量 ==========
+
+    /// 无玩家哨兵：closestPlayerDistSq 传此值表示无玩家（保留实体）
+    static constexpr f64 kNoPlayer = -1.0;
 
     /// 最小空闲时间（600 tick = 30秒）
     static constexpr i32 MIN_IDLE_TIME = 600;
@@ -95,19 +124,7 @@ public:
     /// 随机消失概率分母（800）
     static constexpr i32 DESPAWN_CHANCE_DENOMINATOR = 800;
 
-    /// 每tick检查的实体数量限制
-    static constexpr i32 MAX_CHECKS_PER_TICK = 50;
-
 private:
-    /**
-     * @brief 检查单个生物是否应该消失
-     *
-     * @param mob 生物实体
-     * @param world 世界引用
-     * @return 是否应该消失
-     */
-    [[nodiscard]] bool _shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& world) const;
-
     bool m_enabled = true;
 };
 

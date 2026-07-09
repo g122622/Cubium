@@ -56,7 +56,7 @@ spawnX = std::clamp(spawnX, chunkStartX + width, chunkStartX + CHUNK_WIDTH - wid
 
 ### 4. 生物群系生成概率控制生成次数
 
-`biome.creatureSpawnProbability()` 返回值决定生成循环次数。每次循环有该概率尝试生成一组动物，平原等生物群系概率较高。
+`biome.spawnInfo().getCreatureSpawnProbability()` 返回值决定生成循环次数。每次循环有该概率尝试生成一组动物，平原等生物群系概率较高。该值是动物生成概率的**唯一数据来源**（对应原版 `MobSpawnSettings.getCreatureProbability()`），由 `BiomeLoader` 从数据包顶层 `creature_spawn_probability` 字段解析，缺省时回退到 BiomeFactory 工厂方法的设定（如 plains=0.1、snowy_plains=0.07）。`Biome::creatureSpawnProbability()` 仅为便捷代理，直接读取 `spawnInfo` 同一字段，WorldGenSpawner 与 NaturalSpawner 共用同一来源。
 
 ### 5. 马和驴对地形平坦度有特殊要求
 

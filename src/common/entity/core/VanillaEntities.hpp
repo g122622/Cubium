@@ -358,6 +358,10 @@ private:
                 .canSummon(true)
                 .build());
 
+        // TODO(spawn): nautilus 实体尚未实现。海洋生物群系数据包含其生成条目，
+        // 生成路径对未注册类型返回 nullptr 并跳过，不崩但不在世界生成。
+        // 待补 NautilusEntity + EntityTypes::NAUTILUS 后在此注册为 WaterCreature。
+
         // 美西螈
         registry.registerType(EntityTypes::AXOLOTL,
             EntityType::Builder(&AxolotlEntity::create, EntityClassification::Axolotls)
@@ -370,7 +374,7 @@ private:
         // ========== 鱼类 ==========
         // 鳕鱼
         registry.registerType(EntityTypes::COD,
-            EntityType::Builder(&CodEntity::create, EntityClassification::WaterCreature)
+            EntityType::Builder(&CodEntity::create, EntityClassification::WaterAmbient)
                 .size(0.5f, 0.3f)
                 .trackingRange(8)
                 .updateInterval(3)
@@ -379,7 +383,7 @@ private:
 
         // 鲑鱼
         registry.registerType(EntityTypes::SALMON,
-            EntityType::Builder(&SalmonEntity::create, EntityClassification::WaterCreature)
+            EntityType::Builder(&SalmonEntity::create, EntityClassification::WaterAmbient)
                 .size(0.7f, 0.4f)
                 .trackingRange(8)
                 .updateInterval(3)
@@ -388,7 +392,7 @@ private:
 
         // 河豚
         registry.registerType(EntityTypes::PUFFERFISH,
-            EntityType::Builder(&PufferfishEntity::create, EntityClassification::WaterCreature)
+            EntityType::Builder(&PufferfishEntity::create, EntityClassification::WaterAmbient)
                 .size(0.7f, 0.7f)
                 .trackingRange(8)
                 .updateInterval(3)
@@ -397,7 +401,7 @@ private:
 
         // 热带鱼
         registry.registerType(EntityTypes::TROPICAL_FISH,
-            EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterCreature)
+            EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterAmbient)
                 .size(0.5f, 0.4f)
                 .trackingRange(8)
                 .updateInterval(3)
