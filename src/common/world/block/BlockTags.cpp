@@ -3364,6 +3364,28 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "warped_shelf")});
     tags[nonFlammableWood->getId()] = std::move(nonFlammableWood);
 
+    // 熔岩湖边界石不可替换标签。
+    // 数据包 data/minecraft/tags/block/lava_pool_stone_cannot_replace.json 引用三个子标签：
+    //   ["#minecraft:features_cannot_replace", "#minecraft:leaves", "#minecraft:logs"]
+    // BlockTag 体系是扁平的（unordered_set<ResourceLocation>，不支持 #tag 嵌套引用），故在此把三个
+    // 已完整填充的标签内容合并到 lava_pool_stone_cannot_replace。features_cannot_replace（基岩/刷怪笼/
+    // 箱子等）、leaves、logs 在上方均已 addAll 完毕，合并顺序无依赖。LakeFeature 边界方块放置时用它
+    // 判定哪些固体方块不被熔岩湖边界石覆盖。
+    {
+        auto lavaPoolStoneCannotReplace =
+            std::make_unique<BlockTag>(ResourceLocation("minecraft", "lava_pool_stone_cannot_replace"));
+        std::vector<ResourceLocation> merged;
+        const auto collect = [&merged](const BlockTag& src) {
+            const auto& ids = src.getBlockIds();
+            merged.insert(merged.end(), ids.begin(), ids.end());
+        };
+        collect(*tags.at(ResourceLocation("minecraft", "features_cannot_replace")));
+        collect(*tags.at(ResourceLocation("minecraft", "leaves")));
+        collect(*tags.at(ResourceLocation("minecraft", "logs")));
+        lavaPoolStoneCannotReplace->addAll(merged);
+        tags[lavaPoolStoneCannotReplace->getId()] = std::move(lavaPoolStoneCannotReplace);
+    }
+
     s_initialized = true;
 }
 

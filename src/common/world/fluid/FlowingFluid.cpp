@@ -59,6 +59,17 @@ struct FaceRectangle {
     return std::fabs(lhs - rhs) <= FACE_EPSILON;
 }
 
+// 取空流体状态。MC 的 LevelAccessor#getFluidState 契约保证永不返回 null（无流体处返回 EMPTY
+// 的 defaultFluidState）；项目 IWorld::getFluidState 返回指针，存档/边界/未初始化路径可能为 null。
+// 流动计算按值取目标流体状态 *getFluidState(...)，若直接解引用 null 会拷贝出 m_owner==nullptr 的
+// 野 FluidState，随后 canDisplace 的虚函数派发在 0x8 处崩溃。此处用 EMPTY 兜底，对齐 MC 非空语义。
+[[nodiscard]] const FluidState& emptyFluidState()
+{
+    // EMPTY 流体（fluidId=0）在 FluidRegistry 构造时最先注册，其唯一状态即默认状态。
+    // calculateCorrectFlowingState 亦用同一路径取空状态。
+    return FluidRegistry::instance().getFluid(FluidRegistry::EMPTY_ID)->defaultState();
+}
+
 [[nodiscard]] bool hasSuffix(const std::string& value, const char* suffix)
 {
     const size_t suffixLength = std::strlen(suffix);
@@ -390,15 +401,11 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
     const BlockPos belowPos = pos.down();
     const BlockState* belowBlock = world.getBlockState(belowPos);
     FluidState belowFlowState = calculateCorrectFlowingState(world, belowPos, belowBlock);
+    const FluidState* belowFluidPtr = world.getFluidState(belowPos);
+    const FluidState& belowFluid = belowFluidPtr != nullptr ? *belowFluidPtr : emptyFluidState();
 
-    if (canFlow(world,
-            pos,
-            currentBlock,
-            Direction::Down,
-            belowPos,
-            belowBlock,
-            *world.getFluidState(belowPos),
-            belowFlowState.getFluid())) {
+    if (canFlow(
+            world, pos, currentBlock, Direction::Down, belowPos, belowBlock, belowFluid, belowFlowState.getFluid())) {
         flowInto(world, belowPos, belowBlock, Direction::Down, belowFlowState);
         if (getHorizontalSourceCount(world, pos) >= 3) {
             spreadHorizontally(world, pos, state, currentBlock);
@@ -430,15 +437,12 @@ void FlowingFluid::spreadHorizontally(
     for (const auto& [dir, fluidState] : flowDirections) {
         BlockPos targetPos = pos.offset(Directions::toBlockFace(dir));
         const BlockState* targetBlock = world.getBlockState(targetPos);
-        if (targetBlock != nullptr &&
-            canFlow(world,
-                pos,
-                blockState,
-                dir,
-                targetPos,
-                targetBlock,
-                *world.getFluidState(targetPos),
-                fluidState.getFluid())) {
+        if (targetBlock == nullptr) {
+            continue;
+        }
+        const FluidState* targetFluidPtr = world.getFluidState(targetPos);
+        const FluidState& targetFluid = targetFluidPtr != nullptr ? *targetFluidPtr : emptyFluidState();
+        if (canFlow(world, pos, blockState, dir, targetPos, targetBlock, targetFluid, fluidState.getFluid())) {
             flowInto(world, targetPos, targetBlock, dir, fluidState);
         }
     }

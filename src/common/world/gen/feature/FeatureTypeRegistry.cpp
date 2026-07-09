@@ -190,11 +190,16 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createGlowstoneBlob(const nlohman
 
 /**
  * @brief kelp 工厂：config 为空，海带方块状态硬编码（KELP/KELP_PLANT）
+ *
+ * MC 语义：minecraft:kelp（顶，含 AGE_0_25）与 minecraft:kelp_plant（茎，无 AGE）是两个独立方块。
+ * KelpFeature 仅在 kelpTopState（顶）上设 AGE，故 kelpTopState 必须是 KELP（有 AGE），
+ * kelpState（茎）必须是 KELP_PLANT（无 AGE）。曾因两参数顺序颠倒，kelpTopState 被设成 KELP_PLANT，
+ * `.with(AGE_0_25, age)` 抛异常 → onChunkGenFailed。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createKelp(const nlohmann::json& /*configJson*/)
 {
     auto config = std::make_unique<KelpFeatureConfig>(
-        VanillaBlocks::getState(VanillaBlocks::KELP), VanillaBlocks::getState(VanillaBlocks::KELP_PLANT), 16, 6);
+        VanillaBlocks::getState(VanillaBlocks::KELP_PLANT), VanillaBlocks::getState(VanillaBlocks::KELP), 16, 6);
     return toBase(std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp"));
 }
 
