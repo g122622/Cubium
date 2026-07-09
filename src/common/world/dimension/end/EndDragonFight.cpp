@@ -44,6 +44,9 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/state/pattern/BlockInWorld.hpp"
+#include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
@@ -124,6 +127,7 @@ EndDragonFight::Data EndDragonFight::Data::fromJson(const nlohmann::json& json)
 
 EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
     : m_worldSeed(worldSeed)
+    , m_exitPortalPattern(_buildExitPortalPattern())
 {
     if (data.has_value()) {
         _loadData(*data);
@@ -572,6 +576,129 @@ bool EndDragonFight::_hasActiveExitPortal(IWorld& world)
     return false;
 }
 
+std::unique_ptr<blockpattern::BlockPattern> EndDragonFight::_buildExitPortalPattern()
+{
+    // 对应 MC Java: EndDragonFight 构造函数中构建的 exitPortalPattern
+    //
+    // 模式为 5 层 aisle（depth=5），每层 7 行（height=7）× 7 字符（width=7）。
+    // '#' 绑定到 hasState(s.is(BEDROCK)) 谓词，' '（空格）默认匹配任何方块。
+    //
+    // 第 0..2 层（depth=0,1,2）：中央基岩柱（height=3 位置为 #）
+    //   "       "
+    //   "       "
+    //   "       "
+    //   "   #   "  ← 中央基岩柱
+    //   "       "
+    //   "       "
+    //   "       "
+    //
+    // 第 3 层（depth=3）：十字形基岩外环（PODIUM_RADIUS=4 缩放后的 7×7 十字）
+    //   "  ###  "
+    //   " #   # "
+    //   "#     #"
+    //   "#  #  #"  ← 中央基岩柱 + 外环四角
+    //   "#     #"
+    //   " #   # "
+    //   "  ###  "
+    //
+    // 第 4 层（depth=4）：5×5 中心讲台底座
+    //   "       "
+    //   "  ###  "
+    //   " ##### "
+    //   " ##### "  ← 底面中心 5×5（含中央基岩柱底）
+    //   " ##### "
+    //   "  ###  "
+    //   "       "
+    //
+    // 匹配后，getBlock(3, 3, 3) 返回讲台中心位置（depthIdx=3 的中央基岩柱位置）。
+    using namespace blockpattern;
+
+    const Block* bedrockBlock = VanillaBlocks::BEDROCK;
+    return BlockPatternBuilder::start()
+        .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
+        .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
+        .aisle({"       ", "       ", "       ", "   #   ", "       ", "       ", "       "})
+        .aisle({"  ###  ", " #   # ", "#     #", "#  #  #", "#     #", " #   # ", "  ###  "})
+        .aisle({"       ", "  ###  ", " ##### ", " ##### ", " ##### ", "  ###  ", "       "})
+        .where('#', BlockInWorld::hasState([bedrockBlock](const BlockState& s) { return s.is(bedrockBlock); }))
+        .build();
+}
+
+std::optional<blockpattern::BlockPatternMatch> EndDragonFight::_findExitPortal(IWorld& world)
+{
+    // 对应 MC Java: EndDragonFight.findExitPortal()
+    //
+    // 两级搜索策略：
+    // 1. 扫描原点周围 ARENA_CHUNK_RADIUS 范围内的所有 END_PORTAL 方块位置，
+    //    对每个位置调用 pattern.find(world, pos) 尝试匹配。
+    //    MC 原版扫描 TheEndPortalBlockEntity 实例（因为 END_PORTAL 方块有对应方块实体），
+    //    Cubium 未实现 TheEndPortalBlockEntity，改为直接扫描 END_PORTAL 方块状态。
+    //
+    // 2. 若策略 1 未找到，退化为原点高度图扫描：
+    //    a. 取 EndPodiumFeature.getLocation(origin) = origin（Cubium 末地原点固定为 (0,0,0)）
+    //    b. 取该位置的 MOTION_BLOCKING 高度 Y
+    //    c. 从 Y 向下逐格尝试 pattern.find(world, (x, l, z))，直到 MinY
+
+    const BlockState* endPortalState = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+    if (endPortalState == nullptr) {
+        return std::nullopt;
+    }
+
+    // ========== 策略 1：扫描竞技场区块中的 END_PORTAL 方块 ==========
+    for (ChunkCoord cx = -ARENA_CHUNK_RADIUS; cx <= ARENA_CHUNK_RADIUS; ++cx) {
+        for (ChunkCoord cz = -ARENA_CHUNK_RADIUS; cz <= ARENA_CHUNK_RADIUS; ++cz) {
+            const ChunkData* chunk = world.getChunk(cx, cz);
+            if (chunk == nullptr) {
+                continue;
+            }
+
+            for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                        const BlockState* state = chunk->getBlockState(x, y, z);
+                        if (state != endPortalState) {
+                            continue;
+                        }
+
+                        // 将局部坐标转换为世界坐标
+                        const i32 worldX = cx * world::CHUNK_WIDTH + x;
+                        const i32 worldZ = cz * world::CHUNK_WIDTH + z;
+                        const BlockPos portalPos(worldX, y, worldZ);
+
+                        // 在 END_PORTAL 方块位置附近尝试模式匹配
+                        auto match = m_exitPortalPattern->find(world, portalPos);
+                        if (match.has_value()) {
+                            // 记录讲台中心位置（基岩柱顶端）
+                            if (!m_portalLocation.has_value()) {
+                                m_portalLocation = match->getBlock(3, 3, 3).pos();
+                            }
+                            return match;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ========== 策略 2：原点高度图扫描 ==========
+    // EndPodiumFeature.getLocation(origin) = origin.offset(0,0,0) = origin
+    // Cubium 末地原点固定为 (0, 0, 0)
+    const BlockPos podiumLoc(0, 0, 0);
+    const i32 surfaceY = world.getHeight(podiumLoc.x, podiumLoc.z);
+
+    for (i32 l = surfaceY; l >= world::MIN_BUILD_HEIGHT; --l) {
+        auto match = m_exitPortalPattern->find(world, BlockPos(podiumLoc.x, l, podiumLoc.z));
+        if (match.has_value()) {
+            if (!m_portalLocation.has_value()) {
+                m_portalLocation = match->getBlock(3, 3, 3).pos();
+            }
+            return match;
+        }
+    }
+
+    return std::nullopt;
+}
+
 bool EndDragonFight::_isArenaLoaded(IWorld& world)
 {
     // 检查原点周围的区块是否已加载
@@ -706,26 +833,30 @@ void EndDragonFight::tryRespawn(IWorld& world)
     }
 
     // 确定 portalLocation（如果尚未记录）
-    // MC: 如果 portalLocation == null，先 findExitPortal，找不到则 spawnExitPortal(true)
-    // TODO: MC 使用 BlockPattern 精确匹配出口传送门结构来定位 portalLocation，
-    //       Cubium 当前简化为固定使用末地原点 (0, 0, 0) 作为出口传送门位置。
-    //       原版末地出口讲台固定生成在原点，此简化在原版地形下行为正确；
-    //       但若未来支持自定义维度原点或数据包修改讲台位置，需迁移到 BlockPattern 扫描。
+    // 对应 MC Java: if (this.portalLocation == null) {
+    //     BlockPatternMatch match = this.findExitPortal();
+    //     if (match == null) { this.spawnExitPortal(true); }
+    //     blockpos = this.portalLocation;
+    // }
     BlockPos portalLoc;
     if (m_portalLocation.has_value()) {
         portalLoc = *m_portalLocation;
     } else {
-        // 查找出口传送门：Cubium 当前简化为使用原点（讲台中心）
-        // 如果世界中不存在讲台结构，创建激活态讲台
-        // 对应 MC: if (findExitPortal() == null) { spawnExitPortal(true); }
-        const i32 surfaceY = world.getHeight(0, 0);
-        const BlockState* surfaceBlock = world.getBlockState(0, surfaceY - 1, 0);
-        bool hasPodium = (surfaceBlock != nullptr && surfaceBlock->is(VanillaBlocks::BEDROCK));
-        if (!hasPodium) {
+        // 通过 BlockPattern 精确匹配出口传送门讲台结构
+        auto match = _findExitPortal(world);
+        if (!match.has_value()) {
+            // 未找到讲台结构，创建激活态讲台
+            spdlog::debug("EndDragonFight: tryRespawn - couldn't find exit portal, creating one.");
             EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), true);
+        } else {
+            spdlog::debug("EndDragonFight: tryRespawn - found exit portal, saved its location.");
         }
-        portalLoc = BlockPos(0, 0, 0);
-        m_portalLocation = portalLoc;
+
+        // m_portalLocation 已由 _findExitPortal 设置；若未找到则使用原点
+        portalLoc = m_portalLocation.value_or(BlockPos(0, 0, 0));
+        if (!m_portalLocation.has_value()) {
+            m_portalLocation = portalLoc;
+        }
     }
 
     // 检查出口传送门四个水平方向 2 格外是否有末影水晶
@@ -781,34 +912,42 @@ void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrys
     }
 
     // 1. 清除出口传送门区域的基岩/末地传送门方块（替换为末地石）
-    // MC: for (BlockPatternMatch match = findExitPortal(); match != null; match = findExitPortal()) {
-    //         for (i,j,k in pattern) {
-    //             if (state.is(BEDROCK) || state.is(END_PORTAL)) {
-    //                 setBlockAndUpdate(pos, END_STONE);
-    //             }
-    //         }
-    //     }
-    // TODO: MC 使用 exitPortalPattern（7x7x7 BlockPattern，仅匹配讲台结构的基岩轮廓）精确
-    //       定位并替换出口传送门方块，Cubium 暂未实现 BlockPattern 方块模式匹配系统，当前采用
-    //       扫描原点 (-4..4) × 全高度 × (-4..4) 范围内所有 BEDROCK/END_PORTAL 方块替换为 END_STONE
-    //       的简化实现。
-    //       已知偏差：此范围扫描会误伤玩家在原点附近手动放置的基岩/末地传送门方块。原版末地
-    //       地形在原点周围不自然生成基岩（仅讲台与中心柱），故对原版玩法无影响；但数据包自定义
-    //       结构或玩家建造可能受影响。待 BlockPattern 系统落地后迁移到精确匹配。
-    //       范围 (-4..4) 覆盖讲台外环半径 3.5 + 0.5 余量，确保完整覆盖 EndTeleporter::createExitPortal
-    //       生成的所有讲台基岩（PODIUM_RADIUS=4）。
+    // 对应 MC Java:
+    //   for (BlockPatternMatch match = findExitPortal(); match != null; match = findExitPortal()) {
+    //       for (int i = 0; i < exitPortalPattern.getWidth(); i++) {
+    //           for (int j = 0; j < exitPortalPattern.getHeight(); j++) {
+    //               for (int k = 0; k < exitPortalPattern.getDepth(); k++) {
+    //                   BlockInWorld b = match.getBlock(i, j, k);
+    //                   if (b.getState().is(BEDROCK) || b.getState().is(END_PORTAL)) {
+    //                       setBlockAndUpdate(b.getPos(), END_STONE);
+    //                   }
+    //               }
+    //           }
+    //       }
+    //   }
+    //
+    // 使用 BlockPattern 精确定位讲台结构，仅替换讲台轮廓内的基岩和末地传送门方块，
+    // 避免误伤玩家在原点附近放置的基岩。循环直至找不到讲台（清除所有匹配的讲台）。
     const BlockState* endStoneState = VanillaBlocks::getState(VanillaBlocks::END_STONE);
-    const BlockState* bedrockState = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
-    const BlockState* endPortalState = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+    const Block* bedrockBlock = VanillaBlocks::BEDROCK;
+    const Block* endPortalBlock = VanillaBlocks::END_PORTAL;
     if (endStoneState != nullptr) {
-        // 扫描原点讲台区域（出口传送门大致在 (0, ~64, 0) 附近）
-        // 范围 (-4..4) 对应 EndTeleporter::PODIUM_RADIUS=4，完整覆盖讲台水平范围
-        for (i32 bx = -4; bx <= 4; ++bx) {
-            for (i32 by = world::MIN_BUILD_HEIGHT; by < world::MAX_BUILD_HEIGHT; ++by) {
-                for (i32 bz = -4; bz <= 4; ++bz) {
-                    const BlockState* state = world.getBlockState(bx, by, bz);
-                    if (state == bedrockState || state == endPortalState) {
-                        world.setBlockState(bx, by, bz, endStoneState, 3);
+        while (true) {
+            auto match = _findExitPortal(world);
+            if (!match.has_value()) {
+                break;
+            }
+
+            // 遍历模式内所有方块，替换基岩和末地传送门为末地石
+            // 索引顺序：i=width, j=height, k=depth
+            for (i32 i = 0; i < m_exitPortalPattern->width(); ++i) {
+                for (i32 j = 0; j < m_exitPortalPattern->height(); ++j) {
+                    for (i32 k = 0; k < m_exitPortalPattern->depth(); ++k) {
+                        blockpattern::BlockInWorld blockInWorld = match->getBlock(i, j, k);
+                        const BlockState* state = blockInWorld.getState();
+                        if (state != nullptr && (state->is(bedrockBlock) || state->is(endPortalBlock))) {
+                            world.setBlockState(blockInWorld.pos(), endStoneState, 3);
+                        }
                     }
                 }
             }

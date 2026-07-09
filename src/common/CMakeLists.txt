@@ -662,6 +662,9 @@ add_library(mc_common STATIC
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
     world/block/SupportType.cpp
+    world/block/state/pattern/BlockInWorld.cpp
+    world/block/state/pattern/BlockPattern.cpp
+    world/block/state/pattern/BlockPatternBuilder.cpp
     world/block/registry/AgriculturalBlocks.cpp
     world/block/registry/BaseBlocks.cpp
     world/block/registry/BuildingBlocks.cpp

@@ -617,6 +617,7 @@ add_executable(mc_tests
     common/world/block/BlockStateMutableTest.cpp
     common/world/block/BuildingVariantRegistrationTest.cpp
     common/world/block/BlockPushEntitiesUpTest.cpp
+    common/world/block/state/pattern/BlockPatternTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
@@ -624,6 +625,7 @@ add_executable(mc_tests
     common/world/dimension/EndDragonFightBossBarTest.cpp
     common/world/dimension/EndDragonFightSpawnTest.cpp
     common/world/dimension/EndDragonFightRespawnTest.cpp
+    common/world/dimension/EndDragonFightFindPortalTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
