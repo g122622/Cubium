@@ -70,6 +70,9 @@ FireTextureData loadFireTextureData(const std::vector<IResourcePack*>& resourceP
 
             // fire_0.png / fire_1.png 原版为 16x16 单帧，但资源包可能提供 16x512 动画条带。
             // 启发式：以宽度为单帧边长；若 height >= width 则视为竖向动画条带，取首帧。
+            // TODO: 完整的 .mcmeta 动画处理（按帧时间戳循环播放、frametime/interpolate）未实现，
+            //       当前仅取动画条带首帧作为静态纹理，后续应读取同名 .png.mcmeta 动画元数据
+            //       并将其上传为数组纹理或时间轴驱动更新。
             const u32 sourceWidth = static_cast<u32>(width);
             const u32 sourceHeight = static_cast<u32>(height);
             if (sourceWidth == 0 || sourceHeight == 0) {

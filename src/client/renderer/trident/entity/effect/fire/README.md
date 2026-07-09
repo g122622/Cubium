@@ -46,6 +46,8 @@ fire/
 
 原版 `fire_0.png` / `fire_1.png` 为 16x16 单帧，但资源包可能提供 16x512 动画条带（32 帧）。`loadFireTextureData` 通过"以宽度为单帧边长"启发式地从条带中提取首帧，避免将整张条带当作单帧导致缓冲区越界。
 
+> **TODO**：完整的 `.mcmeta` 动画处理（按帧时间戳循环播放、`frametime`/`interpolate`）未实现，当前仅取动画条带首帧作为静态纹理。后续应读取同名 `.png.mcmeta` 动画元数据，并将其上传为数组纹理或时间轴驱动更新。
+
 ### 1.2 初始化与纹理注入分离
 
 `FireEffect::initialize()` 仅建立 Vulkan 句柄并生成程序化占位纹理，不访问资源包。真实火焰纹理在 `TridentEngine::initializeEntityTextureAtlas()` 中通过 `FireEffect::loadTexture(packs)` 注入；资源热重载时由 `TridentEngine::reloadFireTexture()` 重新注入。`loadTexture` 内部会 `vkDeviceWaitIdle` 并销毁旧纹理，可安全重复调用。
