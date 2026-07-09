@@ -102,6 +102,9 @@ enum class BlockEntityType : u16 {
     // 交互
     DecoratedPot, ///< 饰纹陶罐
 
+    // 考古
+    BrushableBlock, ///< 可疑沙/可疑沙砾（可刷方块）
+
     // 1.21.11 铜傀儡雕像
     CopperGolemStatue, ///< 铜傀儡雕像
 

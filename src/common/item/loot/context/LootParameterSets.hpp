@@ -43,6 +43,7 @@ extern LootParameterSet gift();
 extern LootParameterSet barter();
 extern LootParameterSet generic();
 extern LootParameterSet selector();
+extern LootParameterSet archaeology();
 } // namespace LootParameterSets
 
 } // namespace loot

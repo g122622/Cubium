@@ -208,7 +208,9 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
     - `BrushableBlock` - 可刷方块（继承 FallingBlock，构造接收 `brushSound`/`brushCompletedSound` 音效绑定，通过 `getBrushSound()`/`getBrushCompletedSound()` 暴露给 `BrushItem::onUseTick`） - `SnifferEggBlock` -
     嗅探兽蛋（randomTick 孵化）
 
-    **BrushableBlock 音效绑定**：可疑沙在 `registerTrailsBlocks()` 中绑定 `SoundEvents::BRUSH_SAND`/`BRUSH_SAND_COMPLETED`，可疑沙砾绑定 `SoundEvents::BRUSH_GRAVEL`/`BRUSH_GRAVEL_COMPLETED`。`BrushItem::onUseTick` 命中 BrushableBlock 时通过 `dynamic_cast` 获取音效，命中其他方块时回退到 `BRUSH_GENERIC`。状态属性 `DUSTED(0-3)` 记录刷扫进度，待 `BrushableBlockEntity` 实现后驱动。
+    **BrushableBlock 音效绑定与方块实体**：可疑沙在 `registerTrailsBlocks()` 中绑定 `SoundEvents::BRUSH_SAND`/`BRUSH_SAND_COMPLETED`，可疑沙砾绑定 `SoundEvents::BRUSH_GRAVEL`/`BRUSH_GRAVEL_COMPLETED`。`BrushItem::onUseTick` 命中 BrushableBlock 时通过 `dynamic_cast` 获取音效，命中其他方块时回退到 `BRUSH_GENERIC`。状态属性 `DUSTED(0-3)` 记录刷扫进度，由 `BrushableBlockEntity` 驱动（详见 `world/blockentity/interactive/README.md` 第 #18 条）。
+
+    **BrushableBlock 构造参数 `turnsInto`**：构造时传入刷扫完成后转换的目标方块（可疑沙→`VanillaBlocks::SAND`，可疑沙砾→`VanillaBlocks::GRAVEL`），通过 `getTurnsInto()` 暴露给 `BrushableBlockEntity::brushingCompleted()` 用于方块替换。`tick()` 重写先调用 `BrushableBlockEntity::checkReset()` 处理刷扫计数重置，再委托 `FallingBlock::tick()` 执行下落检测。
 
     ## #6. LecternBlock 红石脉冲机制
 

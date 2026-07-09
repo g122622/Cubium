@@ -47,15 +47,16 @@ public:
      * 定义不同场景下使用的参数集合类型。
      */
     enum class Type {
-        Empty,   ///< 空集合，不需要任何参数
-        Generic, ///< 通用集合
-        Entity,  ///< 实体相关，如击杀掉落
-        Block,   ///< 方块相关，如方块破坏掉落
-        Chest,   ///< 容器，如宝箱战利品
-        Fishing, ///< 钓鱼
-        Gift,    ///< 礼物，如猫的礼物
-        Barter,  ///< 以物易物，如猪灵交易
-        Selector ///< 实体选择器谓词评估，需要 THIS_ENTITY + BLOCK_POS
+        Empty,      ///< 空集合，不需要任何参数
+        Generic,    ///< 通用集合
+        Entity,     ///< 实体相关，如击杀掉落
+        Block,      ///< 方块相关，如方块破坏掉落
+        Chest,      ///< 容器，如宝箱战利品
+        Fishing,    ///< 钓鱼
+        Gift,       ///< 礼物，如猫的礼物
+        Barter,     ///< 以物易物，如猪灵交易
+        Selector,   ///< 实体选择器谓词评估，需要 THIS_ENTITY + BLOCK_POS
+        Archaeology ///< 考古，可刷方块刷扫完成时生成物品
     };
 
     LootParameterSet() = default;
@@ -99,6 +100,8 @@ public:
                 return "minecraft:barter";
             case Type::Selector:
                 return "minecraft:selector";
+            case Type::Archaeology:
+                return "minecraft:archaeology";
             default:
                 return "minecraft:generic";
         }

@@ -20,6 +20,7 @@
 ├── PistonBlockEntity.hpp / cpp #活塞方块实体（方块移动动画）
 ├── ShelfBlockEntity.hpp / cpp #书架方块实体（3槽位物品存储、比较器3位二进制信号、侧链连接）
 ├── CopperGolemStatueBlockEntity.hpp / cpp #铜傀儡雕像方块实体（CUSTOM_NAME 存储、removeStatue 生成铜傀儡实体）
+├── BrushableBlockEntity.hpp / cpp #可刷方块实体（可疑沙/可疑沙砾，考古战利品表、刷扫计数与冷却、DUSTED状态、完成后转换为普通方块）
 ├── SignEntity.hpp /
         cpp #告示牌方块实体（富文本存储、点击事件、涂蜡保护）
 └── README.md
@@ -248,4 +249,64 @@ BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `t
 
 - 转移 `CUSTOM_NAME`（对应 MC `coppergolem.setCustomName(this.components().get(DataComponents.CUSTOM_NAME))`）
 - 调用 `CopperGolemEntity::spawnFromStatue(Unaffected)` 设置初始氧化等级并播放生成音效（对应 MC `playSpawnSound()`）
+
+## #18. BrushableBlockEntity 刷扫机制与考古战利品表
+
+`BrushableBlockEntity` 对应 MC 1.21.11 `net.minecraft.world.level.block.entity.BrushableBlockEntity`，为可疑沙（`minecraft:suspicious_sand`）/可疑沙砾（`minecraft:suspicious_gravel`）方块提供考古刷扫功能。
+
+### 核心状态
+
+| 成员 | 类型 | 说明 |
+| -- -- --| -- -- --| -- -- --|
+| `m_brushCount` | `i32` | 累计刷扫次数，达到 `REQUIRED_BRUSHES_TO_BREAK (10)` 时完成 |
+| `m_coolDownEndsAtTick` | `i64` | 刷扫冷却结束 tick，每次成功刷扫后设为 `gameTime + 10` |
+| `m_brushCountResetsAtTick` | `i64` | 刷扫计数重置 tick，每次 `brush()` 设为 `gameTime + 40` |
+| `m_hitDirection` | `optional<Direction>` | 首次刷扫命中方向，用于物品掉落位置偏移 |
+| `m_item` | `ItemStack` | 缓存的考古物品（`unpackLootTable()` 一次性生成） |
+| `m_lootTable` / `m_lootTableSeed` | `ResourceLocation` / `i64` | 考古战利品表引用与种子 |
+
+### 刷扫流程（`brush()`）
+
+1. 首次调用记录 `hitDirection`
+2. 更新 `brushCountResetsAtTick = gameTime + 40`（每次调用都更新）
+3. 冷却期内（`gameTime < coolDownEndsAtTick`）返回 false
+4. 设置 `coolDownEndsAtTick = gameTime + 10`
+5. 调用 `unpackLootTable()` 一次性生成物品
+6. `++brushCount`，若 `>= 10` 调用 `brushingCompleted()` 返回 true
+7. 否则调度 2 tick 后的方块 tick（用于 `checkReset` 与下落检测）
+8. 按需更新 DUSTED 方块状态（0-3）
+
+### DUSTED 完成度映射（`getCompletionState()`）
+
+- 0：`brushCount == 0`
+- 1：`brushCount < 3`
+- 2：`brushCount < 6`
+- 3：`brushCount >= 6`
+
+### 完成处理（`brushingCompleted()`）
+
+1. 调用 `dropContent()` 掉落物品（在命中方向相邻位置生成 ItemEntity，数量为 `split(nextInt(21) + 10)`）
+2. 触发 `BRUSH_BLOCK_COMPLETE (3008)` 世界事件
+3. 将方块替换为 `BrushableBlock::getTurnsInto()` 的默认状态（可疑沙→沙，可疑沙砾→沙砾）
+
+### 计数重置（`checkReset()`）
+
+由 `BrushableBlock::tick()`（方块计划刻）调用：
+- 当 `brushCount != 0` 且 `gameTime >= brushCountResetsAtTick` 时，`brushCount = max(0, brushCount - 2)`，更新 DUSTED，设置 `brushCountResetsAtTick = gameTime + 4`
+- `brushCount == 0` 时完全重置（清空 `hitDirection` 与计时器）
+
+### 战利品表生成（`unpackLootTable()`）
+
+使用 `LootParameterSets::archaeology()` 参数集，设置 `BLOCK_POS` / `THIS_ENTITY` / `TOOL` / `BLOCK_ENTITY` 参数，取生成列表的第一个物品。生成后清空 `m_hasLootTable` 标记防止重复生成。
+
+### 序列化
+
+- JSON（区块存档）：`LootTable` / `LootTableSeed` / `item` / `hit_direction` / `brush_count` / `brush_count_resets_at_tick` / `cooldown_ends_at_tick`
+- NBT（结构模板 / 客户端同步）：同上键名
+
+### 集成点
+
+- `BrushableBlock`（`world/block/blocks/functional/TrailsBlocks.hpp`）：重写 `hasBlockEntity()` / `createBlockEntity()` / `tick()`，`tick()` 中调用 `checkReset()` 后委托 `FallingBlock::tick()` 执行下落检测
+- `BrushItem`（`item/items/special/BrushItem.cpp`）：`onUseTick()` 中调用 `brush()`，完成时调用 `LivingEntity::hurtAndBreak(stack, 1, ...)` 消耗耐久
+- `DesertPyramidStructure`（`world/gen/structure/structures/DesertPyramidStructure.cpp`）：在宝藏室地板放置可疑沙并调用 `setLootTable("minecraft:archaeology/desert_pyramid", seed)` 挂载考古战利品表
 

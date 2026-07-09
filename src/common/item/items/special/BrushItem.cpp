@@ -35,6 +35,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 
 namespace mc {
 namespace item {
@@ -101,8 +103,6 @@ ItemActionResult BrushItem::onItemRightClick(IWorld& world, Player& player, Hand
 
 void BrushItem::onUseTick(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 elapsedTicks)
 {
-    MC_UNUSED(stack);
-
     // 仅玩家可以使用刷子
     auto* player = dynamic_cast<Player*>(&entity);
     if (player == nullptr) {
@@ -158,14 +158,27 @@ void BrushItem::onUseTick(ItemStack& stack, IWorld& world, LivingEntity& entity,
     // world.playSound(player, blockpos, soundevent, SoundSource.BLOCKS)
     world.playSound(brushSound, sound::SoundCategory::Blocks, blockPos.center(), 1.0f, 1.0f);
 
-    // TODO: 当 BrushableBlockEntity 实现后，在此处添加完整的刷扫逻辑：
-    // 1. 获取方块实体并调用 brushableblockentity.brush(gameTime, serverlevel, player, direction, stack)
-    // 2. 如果 brush() 返回 true（刷扫成功/完成）：
-    //    a. 消耗1耐久：LivingEntity::hurtAndBreak(stack, 1, player, handToEquipmentSlot(hand))
-    //    b. 播放完成音效：brushableBlock.getBrushCompletedSound()
-    //    c. 触发世界事件：world.playEvent(WorldEvents::BRUSH_BLOCK_COMPLETE, blockPos, 0)
-    // 注意：当前 BrushableBlockEntity 尚未实现，因此刷扫仅播放音效和粒子，
-    //       不消耗耐久、不刷出物品。待 BrushableBlockEntity 实现后补全此分支。
+    // 对齐 MC 1.21.11 BrushItem.onUseTick：
+    // 仅在服务端且命中方块实体为 BrushableBlockEntity 时调用 brush()
+    if (brushableBlock != nullptr && !world.isClientSide()) {
+        BlockEntity* blockEntity = world.getBlockEntity(blockPos);
+        if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::BrushableBlock) {
+            auto* brushableEntity = static_cast<blockentity::BrushableBlockEntity*>(blockEntity);
+            const Direction hitDirection = hit.face();
+            const i64 gameTime = static_cast<i64>(world.getGameTime());
+
+            // 调用 brush()，返回 true 表示刷扫完成（刷出物品并转换方块）
+            const bool completed = brushableEntity->brush(gameTime, world, entity, hitDirection, stack);
+
+            if (completed) {
+                // 刷扫完成时消耗1耐久
+                // 对齐 MC: stack.hurtAndBreak(1, player, equipmentslot)
+                // equipmentslot 由当前活动手决定
+                const Hand activeHand = entity.getActiveHand();
+                LivingEntity::hurtAndBreak(stack, 1, &entity, LivingEntity::handToEquipmentSlot(activeHand));
+            }
+        }
+    }
 }
 
 // ============================================================================

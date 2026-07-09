@@ -40,6 +40,7 @@
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/block/registry/TrailsBlocks.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "world/gameevent/GameEvents.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
@@ -413,9 +414,12 @@ ItemStack DecoratedPotBlock::getCloneItemStack(const BlockState& state, IWorld* 
 // BrushableBlock
 // ============================================================================
 
-BrushableBlock::BrushableBlock(
-    const BlockProperties& properties, ResourceLocation brushSound, ResourceLocation brushCompletedSound)
+BrushableBlock::BrushableBlock(const BlockProperties& properties,
+    const Block* turnsInto,
+    ResourceLocation brushSound,
+    ResourceLocation brushCompletedSound)
     : FallingBlock(properties)
+    , m_turnsInto(turnsInto)
     , m_brushSound(std::move(brushSound))
     , m_brushCompletedSound(std::move(brushCompletedSound))
 {
@@ -437,6 +441,28 @@ BrushableBlock::BrushableBlock(
 void BrushableBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     MC_UNUSED(container);
+}
+
+std::unique_ptr<BlockEntity> BrushableBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::BrushableBlockEntity>(pos);
+}
+
+void BrushableBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    // 对齐 MC 1.21.11 BrushableBlock.tick：
+    // 1. 获取 BrushableBlockEntity 并调用 checkReset()
+    // 2. 执行 FallingBlock 的下落检测逻辑
+
+    // 步骤 1：调用 checkReset
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::BrushableBlock) {
+        auto* brushableEntity = static_cast<blockentity::BrushableBlockEntity*>(blockEntity);
+        brushableEntity->checkReset(world);
+    }
+
+    // 步骤 2：委托基类执行下落检测
+    FallingBlock::tick(world, pos, state, random);
 }
 
 // ============================================================================

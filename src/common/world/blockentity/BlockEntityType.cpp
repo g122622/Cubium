@@ -75,6 +75,7 @@ const std::unordered_map<BlockEntityType, ResourceLocation> typeToIdMap = {
     {BlockEntityType::SculkSensor, ResourceLocation("minecraft", "sculk_sensor")},
     {BlockEntityType::SculkShrieker, ResourceLocation("minecraft", "sculk_shrieker")},
     {BlockEntityType::DecoratedPot, ResourceLocation("minecraft", "decorated_pot")},
+    {BlockEntityType::BrushableBlock, ResourceLocation("minecraft", "brushable_block")},
     {BlockEntityType::CopperGolemStatue, ResourceLocation("minecraft", "copper_golem_statue")}};
 
 const std::unordered_map<std::string, BlockEntityType> idToTypeMap = {{"minecraft:chest", BlockEntityType::Chest},
@@ -125,6 +126,7 @@ const std::unordered_map<std::string, BlockEntityType> idToTypeMap = {{"minecraf
     {"minecraft:sculk_sensor", BlockEntityType::SculkSensor},
     {"minecraft:sculk_shrieker", BlockEntityType::SculkShrieker},
     {"minecraft:decorated_pot", BlockEntityType::DecoratedPot},
+    {"minecraft:brushable_block", BlockEntityType::BrushableBlock},
     {"minecraft:copper_golem_statue", BlockEntityType::CopperGolemStatue},
     // 简写形式
     {"chest", BlockEntityType::Chest},

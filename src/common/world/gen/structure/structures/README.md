@@ -73,6 +73,7 @@ structures/
 - **随机源错误**：`IntegrityProcessor` 完整度处理器使用位置种子随机，确保使用 `math::getPositionRandom()` 而非简单的哈希值
 - **Jigsaw 系统配置**：Jigsaw 结构需要正确配置拼图池（`JigsawPool`）和起始模板，否则无法生成或生成异常
 - **递归生成终止条件**：递归生成结构（末地城、要塞）需要正确实现终止条件，否则可能导致无限递归或生成失败
+- **沙漠神殿考古集成**：`DesertPyramidStructure` 在宝藏室地板四角（相对坐标 (2,2)/(4,2)/(2,4)/(4,4)）放置可疑沙方块，通过 `dynamic_cast<IWorld*>(&world)` 获取 `BrushableBlockEntity` 并调用 `setLootTable("minecraft:archaeology/desert_pyramid", seed)` 挂载考古战利品表。玩家使用刷子刷扫 10 次后掉落考古物品并将方块转换为普通沙。注意 `IWorldWriter` 接口不提供方块实体访问能力，必须 downcast 到 `IWorld`
 - **林地府邸房间位标志**：`_identifyRooms()` 在房间网格中设置位标志：0x10000(1x1)/0x20000(1x2)/0x40000(2x2)为房间类型，0x100000为门位置，0x200000为走廊入口标志（门位置与走廊value=1相邻时设置），0x400000为楼梯标志，0x800000为楼梯入口。0x200000标志是三楼走廊生成的关键前提——`_setupThirdFloor()` 仅选择有0x200000标志的1x2房间作为楼梯房间
 - **废弃传送门处理器链**：`RuinedPortalPiece::generate()` 按顺序组装 6 类结构处理器，对应 MC 1.21.11 `RuinedPortalPiece#makeSettings`：
   1. `BlockIgnoreStructureProcessor`：airPocket 时只忽略 STRUCTURE_BLOCK，否则忽略 STRUCTURE_AND_AIR

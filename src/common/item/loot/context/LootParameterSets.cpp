@@ -113,6 +113,21 @@ LootParameterSet selector()
     return set;
 }
 
+LootParameterSet archaeology()
+{
+    // 对齐 MC 1.21.11 LootContextParamSets.ARCHAEOLOGY：
+    //   required = {ORIGIN}, optional = {THIS_ENTITY, TOOL}
+    // 本项目使用 BLOCK_POS 代替 ORIGIN（项目约定，见 ChestBoatEntity.cpp:441）。
+    // 此外还将 BLOCK_ENTITY、LUCK 设为可选参数，方便考古战利品表函数引用。
+    LootParameterSet set(LootParameterSet::Type::Archaeology);
+    set.addRequired(LootParams::BLOCK_POS);
+    set.addOptional(LootParams::THIS_ENTITY);
+    set.addOptional(LootParams::TOOL);
+    set.addOptional(LootParams::BLOCK_ENTITY);
+    set.addOptional(LootParams::LUCK);
+    return set;
+}
+
 } // namespace LootParameterSets
 
 } // namespace loot

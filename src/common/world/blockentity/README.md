@@ -65,6 +65,8 @@
 │   ├── DecoratedPotPattern.hpp / cpp #饰纹陶罐图案类型定义（24种图案：Blank + 20考古学 +
         3试炼密室）
 │   ├── DecoratedPotBlockEntity.hpp / cpp #饰纹陶罐（四面图案PotDecorations、1格物品容器、摇晃动画、比较器信号）
+│   ├── CopperGolemStatueBlockEntity.hpp / cpp #铜傀儡雕像（CUSTOM_NAME存储、removeStatue复活铜傀儡）
+│   ├── BrushableBlockEntity.hpp / cpp #可刷方块实体（可疑沙/可疑沙砾，考古战利品表、刷扫计数与冷却、DUSTED状态、完成后转换为普通方块）
 │   └── README.md
 └── trial / #试炼相关方块实体
     ├── TrialSpawnerBlockEntity.hpp / cpp #试炼刷怪笼

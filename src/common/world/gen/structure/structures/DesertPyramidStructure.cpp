@@ -25,11 +25,16 @@
 
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <algorithm>
@@ -236,6 +241,58 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
         i32 chestZ = chamberZ + 3;
         if (goldBlock && bounds.contains(chestX, chamberY + 1, chestZ)) {
             world.setBlockState(chestX, chamberY + 1, chestZ, goldBlock, 18);
+        }
+    }
+
+    // ============================================================================
+    // 考古：在主宝藏室地板放置可疑沙并挂载考古战利品表
+    // ============================================================================
+    // 对齐 MC 1.21.11 DesertPyramidPiece：神殿主宝藏室地板上放置可疑沙，
+    // 玩家使用刷子刷扫后可从 minecraft:archaeology/desert_pyramid 战利品表获得
+    // 考古物品（如射手纹样、嗅探兽蛋等）。
+    //
+    // MC 原版在 addCellarRoom 中通过 placeSand() 记录潜在位置，再由结构处理器
+    // SusipiciousSandBlockProcessor 替换为可疑沙。本项目直接在地板上放置 4 块
+    // 可疑沙（对齐 MC 在宝藏室中 4 个固定可疑沙位置的设计意图）。
+    //
+    // 可疑沙放置后需要通过 IWorld 获取 BrushableBlockEntity 并调用 setLootTable()，
+    // IWorldWriter 接口不提供方块实体访问能力，因此通过 dynamic_cast<IWorld*> 获取。
+    const BlockState* suspiciousSand = nullptr;
+    if (block_registry::TrailsBlocks::SUSPICIOUS_SAND != nullptr) {
+        suspiciousSand = VanillaBlocks::getState(block_registry::TrailsBlocks::SUSPICIOUS_SAND);
+    }
+
+    if (suspiciousSand != nullptr) {
+        // 在宝藏室地板四角放置可疑沙（避免与 TNT 陷阱和中央宝箱位置重叠）
+        // TNT 陷阱在 (1,1)/(5,1)/(1,5)/(5,5)，中央在 (3,3)
+        // 可疑沙放在 (2,2)/(4,2)/(2,4)/(4,4) 四个对称位置
+        constexpr i32 sandPositions[4][2] = {{2, 2}, {4, 2}, {2, 4}, {4, 4}};
+        const ResourceLocation archaeologyLootTable("minecraft", "archaeology/desert_pyramid");
+
+        // 尝试获取 IWorld 接口以访问方块实体（结构生成阶段使用 IWorldWriter）
+        IWorld* iworld = dynamic_cast<IWorld*>(&world);
+
+        for (i32 i = 0; i < 4; ++i) {
+            const i32 sx = chamberX + sandPositions[i][0];
+            const i32 sy = chamberY;
+            const i32 sz = chamberZ + sandPositions[i][1];
+
+            if (!bounds.contains(sx, sy, sz)) {
+                continue;
+            }
+
+            // 放置可疑沙方块
+            world.setBlockState(sx, sy, sz, suspiciousSand, 18);
+
+            // 设置考古战利品表
+            if (iworld != nullptr) {
+                BlockPos sandPos(sx, sy, sz);
+                BlockEntity* blockEntity = iworld->getBlockEntity(sandPos);
+                if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::BrushableBlock) {
+                    auto* brushableEntity = static_cast<blockentity::BrushableBlockEntity*>(blockEntity);
+                    brushableEntity->setLootTable(archaeologyLootTable, rng.nextLong());
+                }
+            }
         }
     }
 }

@@ -27,6 +27,7 @@
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include "world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "world/blockentity/interactive/BellBlockEntity.hpp"
+#include "world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
@@ -206,6 +207,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册铜傀儡雕像方块实体
     registerType(BlockEntityType::CopperGolemStatue,
         [](const BlockPos& pos) { return std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos); });
+
+    // 注册可刷方块实体（可疑沙/可疑沙砾）
+    registerType(BlockEntityType::BrushableBlock,
+        [](const BlockPos& pos) { return std::make_unique<BrushableBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

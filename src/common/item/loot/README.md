@@ -44,7 +44,7 @@ loot/
 │   ├── LootContextBuilder.hpp/cpp # 掉落上下文构建器（流式 API）
 │   ├── LootParameter.hpp          # 参数标识符模板
 │   ├── LootParameterSet.hpp/cpp   # 参数集合（定义必需和可选参数）
-│   ├── LootParameterSets.hpp/cpp  # 预定义参数集合（block、entity、chest 等）
+│   ├── LootParameterSets.hpp/cpp  # 预定义参数集合（block、entity、chest、archaeology 等）
 │   └── LootParams.hpp/cpp         # 常用参数定义（BLOCK_STATE、THIS_ENTITY 等）
 ├── entries/                       # 战利品条目
 │   ├── LootEntry.hpp/cpp          # 条目基类
@@ -173,7 +173,7 @@ ReferenceCondition::test(context)
 | `server/world/drop/` | `BlockDropHandler`（方块掉落物生成） |
 | `server/command/` | `LootCommand`（/loot 命令） |
 | `common/world/explosion/` | `Explosion`（爆炸掉落） |
-| `common/world/blockentity/` | `LootableContainerBlockEntity`（容器随机战利品） |
+| `common/world/blockentity/` | `LootableContainerBlockEntity`（容器随机战利品）、`BrushableBlockEntity`（考古刷扫掉落，使用 `archaeology` 参数集） |
 | `common/entity/projectile/` | `OtherProjectiles`（投射物掉落） |
 | `common/world/fluid/` | `WaterFluid`（钓鱼战利品） |
 

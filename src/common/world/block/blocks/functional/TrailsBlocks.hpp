@@ -188,19 +188,28 @@ private:
  *
  * 每个 BrushableBlock 实例绑定一个刷扫音效（brushSound）和刷扫完成音效
  * （brushCompletedSound），由构造函数传入。MC 1.21.11 中 BrushableBlock 通过
- * 数据驱动字段 brush_sound / brush_completed_sound 配置，本项目以构造参数
- * 形式提供等价能力。
+ * 数据驱动字段 brush_sound / brush_completed_sound / turns_into 配置，
+ * 本项目以构造参数形式提供等价能力。
+ *
+ * 刷扫完成时（BrushableBlockEntity.brush() 返回 true），方块会被替换为
+ * `turnsInto` 指向的普通方块（可疑沙→沙，可疑沙砾→沙砾）。
+ *
+ * 方块 tick（计划刻）会先调用方块实体上的 checkReset() 递减刷扫计数，
+ * 再执行 FallingBlock 的下落检测逻辑（对齐 MC 1.21.11 BrushableBlock.tick）。
  */
 class BrushableBlock : public FallingBlock {
 public:
     /**
      * @brief 构造函数
      * @param properties 方块属性
+     * @param turnsInto 刷扫完成后转换成的目标方块（如沙、沙砾）
      * @param brushSound 刷扫过程中循环播放的音效（对应 MC 的 brush_sound）
      * @param brushCompletedSound 刷扫完成时播放的音效（对应 MC 的 brush_completed_sound）
      */
-    BrushableBlock(
-        const BlockProperties& properties, ResourceLocation brushSound, ResourceLocation brushCompletedSound);
+    BrushableBlock(const BlockProperties& properties,
+        const Block* turnsInto,
+        ResourceLocation brushSound,
+        ResourceLocation brushCompletedSound);
 
     ~BrushableBlock() override = default;
 
@@ -224,10 +233,43 @@ public:
      */
     [[nodiscard]] const ResourceLocation& getBrushCompletedSound() const noexcept { return m_brushCompletedSound; }
 
+    /**
+     * @brief 获取刷扫完成后转换成的目标方块
+     *
+     * 对应 MC 1.21.11 BrushableBlock.getTurnsInto()。
+     * 可疑沙返回沙方块，可疑沙砾返回沙砾方块。
+     *
+     * @return 目标方块指针（可能为 nullptr，调用方需检查）
+     */
+    [[nodiscard]] const Block* getTurnsInto() const noexcept { return m_turnsInto; }
+
+    // ========== 方块实体 ==========
+
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept { return BlockEntityType::BrushableBlock; }
+
+    // ========== 方块 tick（计划刻）==========
+
+    /**
+     * @brief 计划刻回调
+     *
+     * 对齐 MC 1.21.11 BrushableBlock.tick：
+     * 1. 获取 BrushableBlockEntity 并调用 checkReset() 递减刷扫计数
+     * 2. 执行 FallingBlock 的下落检测逻辑
+     *
+     * 注意：FallingBlock::tick 已经实现了下落检测，此处先调用 checkReset
+     * 再委托给基类执行下落逻辑。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
 private:
+    const Block* m_turnsInto;
     ResourceLocation m_brushSound;
     ResourceLocation m_brushCompletedSound;
 };
