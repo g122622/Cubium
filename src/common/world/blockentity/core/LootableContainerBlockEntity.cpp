@@ -170,6 +170,17 @@ void LootableContainerBlockEntity::save(nlohmann::json& data) const
 // 序列化 - NBT（结构模板 / 客户端同步）
 // ============================================================================
 
+// TODO: 子类容器物品（Items 列表）的 NBT 序列化尚未实现。
+// 当前 LootableContainerBlockEntity 的 loadFromNBT/saveToNBT 仅处理
+// LootTable/LootTableSeed 两个键，未序列化容器内物品列表（"Items" NBT 键）。
+// 子类（ChestEntity/BarrelEntity/ShulkerBoxEntity/DispenserBlockEntity 等）
+// 均未重写 loadFromNBT/saveToNBT，仅有 JSON load/save（区块存档路径）。
+// 后果：结构模板放置预填充物品的容器时，Items NBT 数据会被丢弃，
+// 容器内物品丢失。仅当容器使用战利品表（LootTable 键）时不受影响，
+// 因为战利品表会延迟生成物品。
+// 后续应让各子类重写 loadFromNBT/saveToNBT，调用基类方法后
+// 序列化 SimpleInventory 的 Items 列表（参考 BannerEntity/SignEntity 的模式）。
+
 namespace {
 /// NBT 键名
 constexpr const char* LOOT_TABLE_TAG = "LootTable";
@@ -207,7 +218,8 @@ void LootableContainerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
     BlockEntity::saveToNBT(tag);
 
     // 仅在已设置战利品表且尚未填充时保存
-    // 已填充后战利品表引用清空，物品通过子类的 Items/item NBT 持久化
+    // 已填充后战利品表引用清空，物品应通过子类的 Items NBT 持久化
+    // （注：子类 Items NBT 序列化尚未实现，见上方 TODO）
     if (m_hasLootTable && !m_lootFilled) {
         tag.put(LOOT_TABLE_TAG, m_lootTable.toString());
         if (m_lootTableSeed != 0) {

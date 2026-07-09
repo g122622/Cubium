@@ -112,6 +112,17 @@ BarrelEntity::BarrelEntity(const BlockPos& pos)
 
 **移动语义注意**：子类如果实现移动构造/移动赋值，必须重新调用 `setLootUnpackCallback(_makeLootUnpackCallback())` 绑定新的 `this` 指针（参考 `ChestEntity` 的移动构造实现）。`ShulkerBoxEntity` 因多重继承 `IInventory` 已通过方法重写处理，无需注入回调。
 
+#### NBT 序列化（结构模板 / 客户端同步）
+
+`LootableContainerBlockEntity` 重写了 `loadFromNBT`/`saveToNBT`，处理 `LootTable`（string）与 `LootTableSeed`（long）两个键：
+
+- **`loadFromNBT`**：调用 `BlockEntity::loadFromNBT` 后，重置战利品状态。若 NBT 中存在 `LootTable` 键则设置 `m_hasLootTable = true` 并重置 `m_lootFilled`，使后续容器访问触发延迟填充。`LootTableSeed` 始终读取（缺失默认 0，表示使用随机种子）。
+- **`saveToNBT`**：调用 `BlockEntity::saveToNBT` 后，仅在 `m_hasLootTable && !m_lootFilled` 时写入两个键。已填充后不写入（避免持久化已生成物品与战利品表引用并存）。
+
+子类（`ChestEntity`/`BarrelEntity` 等）通过继承自动获得战利品表 NBT 往返能力，无需各自重写。结构模板放置时，`Template::placeInWorld` 会在调用 `loadFromNBT` 前注入随机 `LootTableSeed`（见 `src/common/world/gen/feature/template/README.md` 第 13 节）。
+
+**已知缺口 TODO**：当前子类未重写 `loadFromNBT`/`saveToNBT` 序列化容器物品列表（`Items` NBT 键），结构模板放置预填充物品的容器时物品会丢失。仅使用战利品表的容器不受影响。详见 `LootableContainerBlockEntity.cpp` 中的 TODO 注释。
+
 ### 4. 注册时序
 
 方块实体注册应在游戏启动时完成（调用 `registerBuiltinTypes()`），之后才能从存档加载方块实体。

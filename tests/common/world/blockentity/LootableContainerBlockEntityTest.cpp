@@ -39,6 +39,7 @@
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include "world/blockentity/transport/HopperEntity.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -974,11 +975,11 @@ TEST_F(LootableContainerNbtTest, DynamicCast_LootableContainerFromBlockEntityBas
 
 TEST_F(LootableContainerNbtTest, DynamicCast_NonLootableBlockEntity_ReturnsNull)
 {
-    // 验证非 LootableContainerBlockEntity 的方块实体不会被误判
-    // 此处用一个不是 LootableContainer 的方块实体（如有）
-    // 由于 TestLootableEntity 总是 LootableContainer，这里验证 dynamic_cast
-    // 在基类指针上对真实 LootableContainer 子类有效即可
-    auto barrel = std::make_unique<BarrelEntity>(BlockPos(0, 0, 0));
-    BlockEntity* base = barrel.get();
-    EXPECT_NE(dynamic_cast<LootableContainerBlockEntity*>(base), nullptr);
+    // 验证非 LootableContainerBlockEntity 的方块实体不会被误判为战利品容器。
+    // HopperEntity 继承自 LockableBlockEntity（而非 LootableContainerBlockEntity），
+    // 是真正的非战利品容器，用于验证 Template::placeInWorld 中 dynamic_cast
+    // 判定的排除分支：此类实体的 NBT 不应被注入 LootTableSeed。
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(0, 0, 0));
+    BlockEntity* base = hopper.get();
+    EXPECT_EQ(dynamic_cast<LootableContainerBlockEntity*>(base), nullptr);
 }
