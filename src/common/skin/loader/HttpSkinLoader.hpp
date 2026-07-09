@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -24,7 +24,9 @@
 #pragma once
 
 #include "SkinLoader.hpp"
-#include <future>
+#include "common/util/thread/ServerWorkerPool.hpp"
+#include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <unordered_map>
 
@@ -39,7 +41,10 @@ namespace mc::skin {
  * - http://textures.minecraft.net/texture/<hash>
  * - https://textures.minecraft.net/texture/<hash>
  *
- * 注意：这个加载器使用异步下载，避免阻塞主线程。
+ * 异步加载通过注入的 ServerWorkerPool 实现，回调在 worker 线程触发。
+ * 若未注入线程池，loadAsync 降级为同步执行后立即回调。
+ *
+ * 注意：_httpGet 当前未实现（返回 Unsupported），HTTP 下载功能待后续补充。
  */
 class HttpSkinLoader : public ISkinLoader {
 public:
@@ -69,6 +74,16 @@ public:
      */
     void setReadTimeout(u32 timeoutMs) { m_readTimeout = timeoutMs; }
 
+    /**
+     * @brief 注入工作线程池用于异步加载
+     *
+     * 线程池由调用方拥有，必须保证生命周期长于本加载器（或在 shutdown 后释放）。
+     * 传入 nullptr 切换回同步降级模式。
+     *
+     * @param workerPool 工作线程池指针（非所有权）
+     */
+    void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
+
 private:
     /**
      * @brief 执行 HTTP GET 请求
@@ -90,12 +105,31 @@ private:
      */
     std::string _calculateHash(const std::vector<u8>& data);
 
-    std::mutex m_pendingMutex;
-    std::unordered_map<std::string, std::future<Result<SkinLoadResult>>> m_pendingLoads;
+    /**
+     * @brief 在途任务计数增加（loadAsync 提交时调用）
+     */
+    void _incrementPending();
+
+    /**
+     * @brief 在途任务计数减少（回调完成时调用），通知 shutdown 等待者
+     */
+    void _decrementPending();
 
     u32 m_connectTimeout = 5000; // 5 秒
     u32 m_readTimeout = 30000;   // 30 秒
     bool m_initialized = false;
+
+    // 异步加载基础设施
+    util::ServerWorkerPool* m_workerPool = nullptr;
+
+    // 在途任务管理：url → 取消信号
+    std::mutex m_pendingMutex;
+    std::unordered_map<std::string, std::shared_ptr<std::atomic<bool>>> m_pendingLoads;
+
+    // shutdown 同步：等待所有在途回调完成
+    std::atomic<size_t> m_pendingCount{0};
+    std::mutex m_shutdownMutex;
+    std::condition_variable m_shutdownCondition;
 };
 
 } // namespace mc::skin

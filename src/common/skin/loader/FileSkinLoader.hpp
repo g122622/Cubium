@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -25,7 +25,12 @@
 
 #include "SkinLoader.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
+#include <atomic>
+#include <condition_variable>
 #include <filesystem>
+#include <mutex>
+#include <unordered_map>
 
 namespace mc::skin {
 
@@ -38,6 +43,9 @@ namespace mc::skin {
  * - 绝对路径：/path/to/skin.png
  * - 相对路径：skins/player.png
  * - 资源位置：minecraft:textures/entity/steve.png
+ *
+ * 异步加载通过注入的 ServerWorkerPool 实现，回调在 worker 线程触发。
+ * 若未注入线程池，loadAsync 降级为同步执行后立即回调。
  */
 class FileSkinLoader : public ISkinLoader {
 public:
@@ -47,7 +55,7 @@ public:
      */
     explicit FileSkinLoader(IResourcePack* resourcePack = nullptr);
 
-    ~FileSkinLoader() override = default;
+    ~FileSkinLoader() override;
 
     Result<void> initialize() override;
     void shutdown() override;
@@ -59,6 +67,25 @@ public:
     void cancelAll() override;
 
     [[nodiscard]] std::string name() const override { return "FileSkinLoader"; }
+
+    /**
+     * @brief 注入工作线程池用于异步加载
+     *
+     * 线程池由调用方拥有，必须保证生命周期长于本加载器（或在 shutdown 后释放）。
+     * 传入 nullptr 切换回同步降级模式。
+     *
+     * @param workerPool 工作线程池指针（非所有权）
+     */
+    void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
+
+    /**
+     * @brief 设置资源包（用于从资源包加载皮肤）
+     *
+     * 资源包由调用方拥有，必须保证生命周期长于本加载器。
+     *
+     * @param resourcePack 资源包指针（非所有权）
+     */
+    void setResourcePack(IResourcePack* resourcePack) { m_resourcePack = resourcePack; }
 
 private:
     /**
@@ -84,8 +111,30 @@ private:
      */
     std::string _calculateHash(const std::vector<u8>& data);
 
+    /**
+     * @brief 在途任务计数增加（loadAsync 提交时调用）
+     */
+    void _incrementPending();
+
+    /**
+     * @brief 在途任务计数减少（回调完成时调用），通知 shutdown 等待者
+     */
+    void _decrementPending();
+
     IResourcePack* m_resourcePack = nullptr;
     bool m_initialized = false;
+
+    // 异步加载基础设施
+    util::ServerWorkerPool* m_workerPool = nullptr;
+
+    // 在途任务管理：url → 取消信号
+    std::mutex m_pendingMutex;
+    std::unordered_map<std::string, std::shared_ptr<std::atomic<bool>>> m_pendingLoads;
+
+    // shutdown 同步：等待所有在途回调完成
+    std::atomic<size_t> m_pendingCount{0};
+    std::mutex m_shutdownMutex;
+    std::condition_variable m_shutdownCondition;
 };
 
 } // namespace mc::skin
