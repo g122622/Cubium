@@ -580,6 +580,20 @@ public:
         m_onBroadcastBlockParticle = std::move(callback);
     }
 
+    /**
+     * @brief 物品粒子广播回调类型
+     *
+     * 当服务端需要广播携带物品堆的粒子（Item/ItemSlime/ItemCobweb/ItemSnowball）给玩家时调用。
+     * 参数：粒子类型、位置、速度、物品堆
+     */
+    using ItemParticleBroadcastCallback = std::function<void(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack)>;
+
+    void setOnBroadcastItemParticle(ItemParticleBroadcastCallback callback)
+    {
+        m_onBroadcastItemParticle = std::move(callback);
+    }
+
     // ========== 实体状态广播回调 ==========
 
     /**
@@ -774,6 +788,22 @@ public:
         const Vector3& pos,
         const Vector3& velocity,
         const BlockState& blockState) override;
+
+    /**
+     * @brief 添加物品粒子（携带物品堆）
+     *
+     * 服务端通过 ParticlePacket.createItem 编码 ItemStack 到可选数据中，
+     * 广播给附近玩家。客户端解码后通过粒子数据管线生成物品粒子。
+     *
+     * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param itemStack 物品堆（用于粒子纹理）
+     */
+    void addItemParticle(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const ItemStack& itemStack) override;
 
     [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const override;
 
@@ -1415,6 +1445,7 @@ private:
     TrailParticleBroadcastCallback m_onBroadcastTrailParticle;
     EntityEffectParticleBroadcastCallback m_onBroadcastEntityEffectParticle;
     BlockParticleBroadcastCallback m_onBroadcastBlockParticle;
+    ItemParticleBroadcastCallback m_onBroadcastItemParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;

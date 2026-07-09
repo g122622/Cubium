@@ -34,7 +34,9 @@
 #include "../renderer/trident/particle/data/EntityEffectParticleData.hpp"
 #include "../renderer/trident/particle/particles/block/DiggingParticle.hpp"
 #include "../renderer/trident/particle/particles/block/DustPillarParticle.hpp"
+#include "../renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "common/core/Constants.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -934,6 +936,34 @@ void ClientWorld::addBlockParticle(
         }
     }
     // 其他粒子类型暂时不支持方块状态，忽略
+}
+
+void ClientWorld::addItemParticle(
+    ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ::mc::ItemStack& itemStack)
+{
+    if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
+        return;
+    }
+
+    using namespace renderer::trident::particle;
+
+    glm::vec3 glmPos(pos.x, pos.y, pos.z);
+    glm::vec3 glmVel(velocity.x, velocity.y, velocity.z);
+
+    // 物品粒子：使用 ItemParticle::createWithItemStack 传递物品堆
+    if (type == ParticleTypeId::Item || type == ParticleTypeId::ItemSlime || type == ParticleTypeId::ItemCobweb ||
+        type == ParticleTypeId::ItemSnowball) {
+        auto particle = particles::ItemParticle::createWithItemStack(glmPos, glmVel, itemStack);
+        if (particle) {
+            m_particleManager->addParticle(std::move(particle));
+        }
+    }
+    // 其他粒子类型暂时不支持物品数据，忽略
 }
 
 void ClientWorld::addParticleWithData(::mc::particle::ParticleTypeId type,

@@ -1253,6 +1253,27 @@ public:
     }
 
     /**
+     * @brief 生成物品粒子（携带物品堆）
+     *
+     * 用于 Item/ItemSlime/ItemCobweb/ItemSnowball 等需要物品纹理的粒子。
+     * 服务端：广播 ParticlePacket（携带 ItemStack）给附近玩家
+     * 客户端：通过粒子数据管线调用 ItemParticle::createWithItemStack 生成
+     *
+     * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param itemStack 物品堆（用于粒子纹理）
+     */
+    virtual void addItemParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack)
+    {
+        (void)type;
+        (void)pos;
+        (void)velocity;
+        (void)itemStack;
+    }
+
+    /**
      * @brief 生成轨迹粒子（Trail Particle）
      *
      * 用于眼眸花状态切换等场景。Trail 粒子会从 pos 飞向 targetPosition，

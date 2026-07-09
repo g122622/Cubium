@@ -983,6 +983,8 @@ add_executable(mc_tests
     network/ParticlePacketEntityEffectTest.cpp
     # Block 方块粒子数据包测试（携带方块状态 ID）
     network/ParticlePacketBlockTest.cpp
+    # Item 物品粒子数据包测试（携带物品堆）
+    network/ParticlePacketItemTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -1362,6 +1364,8 @@ add_executable(mc_tests
     client/renderer/trident/particle/data/TrailParticleDataTest.cpp
     # EntityEffectParticleData 粒子数据测试
     client/renderer/trident/particle/data/EntityEffectParticleDataTest.cpp
+    # ItemParticleData 粒子数据测试
+    client/renderer/trident/particle/data/ItemParticleDataTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试

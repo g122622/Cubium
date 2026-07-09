@@ -33,6 +33,7 @@
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/renderer/trident/particle/data/DustParticleData.hpp"
 #include "client/renderer/trident/particle/data/EntityEffectParticleData.hpp"
+#include "client/renderer/trident/particle/data/ItemParticleData.hpp"
 #include "client/renderer/trident/particle/data/TrailParticleData.hpp"
 #include "client/renderer/trident/particle/data/VibrationParticleData.hpp"
 #include "client/skin/ClientSkinManager.hpp"
@@ -1651,6 +1652,39 @@ void ClientApplication::setupNetworkCallbacks()
         const ::mc::Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
         const ::mc::Vector3 velocity(vx, vy, vz);
         m_world.addBlockParticle(type, pos, velocity, *blockState);
+    };
+
+    // 物品粒子回调（携带物品堆）
+    // 用于 Item/ItemSlime/ItemCobweb/ItemSnowball 等粒子。
+    // 通过粒子数据管线创建物品粒子：将 ItemStack 包装为 ItemParticleData，
+    // 由 ParticleRegistry 的数据工厂调用 ItemParticle::createWithItemStack 创建粒子。
+    callbacks.onItemParticle = [this](::mc::particle::ParticleTypeId type,
+                                   f64 x,
+                                   f64 y,
+                                   f64 z,
+                                   f32 vx,
+                                   f32 vy,
+                                   f32 vz,
+                                   f32 ox,
+                                   f32 oy,
+                                   f32 oz,
+                                   u32 count,
+                                   const ::mc::ItemStack& itemStack) {
+        if (!m_world.particleManager()) {
+            return;
+        }
+
+        // 通过粒子数据管线创建物品粒子
+        using namespace client::renderer::trident::particle;
+        glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        glm::vec3 velocity(vx, vy, vz);
+        glm::vec3 offset(ox, oy, oz);
+        MC_UNUSED(offset);
+
+        auto itemData = std::make_unique<data::ItemParticleData>(type, itemStack);
+        for (u32 i = 0; i < count; ++i) {
+            m_world.particleManager()->addPendingParticle(type, pos, velocity, &m_world, itemData->clone());
+        }
     };
 
     // 玩家列表回调 - 皮肤系统集成

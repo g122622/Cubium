@@ -32,6 +32,10 @@
 #include <optional>
 #include <vector>
 
+namespace mc {
+class ItemStack;
+} // namespace mc
+
 namespace mc::network {
 
 /**
@@ -525,6 +529,52 @@ public:
      * @return 方块状态 ID，解码失败返回 std::nullopt
      */
     [[nodiscard]] std::optional<u32> decodeBlockStateId() const;
+
+    // ========== 物品粒子数据编解码 ==========
+
+    /**
+     * @brief 创建物品粒子包（带物品堆）
+     *
+     * 物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball）需要额外数据：ItemStack，
+     * 用于客户端选择正确的物品纹理。
+     *
+     * 可选数据格式：ItemStack 序列化字节流（由 ItemStack::serialize(PacketSerializer&) 产生）。
+     * 该字节流自包含（带 itemId、count、damage 等字段），无需额外长度前缀，
+     * 因为整个 optionalData 即为该字节流。
+     *
+     * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）
+     * @param pos 位置
+     * @param velocity 速度
+     * @param offset 偏移范围
+     * @param count 粒子数量
+     * @param itemStack 物品堆
+     */
+    static ParticlePacket createItem(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count,
+        const ::mc::ItemStack& itemStack);
+
+    /**
+     * @brief 检查此粒子包是否为携带物品堆的物品粒子
+     *
+     * 物品粒子包的粒子类型必须为 requiresItemData 返回 true 的类型，
+     * 且含有可选数据。
+     *
+     * @return 是否为携带物品堆的物品粒子
+     */
+    [[nodiscard]] bool isItemParticle() const noexcept;
+
+    /**
+     * @brief 解码物品粒子的物品堆
+     *
+     * 仅当 isItemParticle() 返回 true 时有效。
+     * 客户端通过 ItemStack::deserialize(PacketDeserializer&) 解析回 ItemStack。
+     *
+     * @return 物品堆，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<::mc::ItemStack> decodeItemStack() const;
 
 private:
     particle::ParticleTypeId m_particleType = particle::ParticleTypeId::Invalid;

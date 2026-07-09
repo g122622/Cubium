@@ -27,6 +27,7 @@
 // 粒子数据类型头文件
 #include "data/DustParticleData.hpp"
 #include "data/EntityEffectParticleData.hpp"
+#include "data/ItemParticleData.hpp"
 #include "data/TrailParticleData.hpp"
 #include "data/VibrationParticleData.hpp"
 
@@ -1353,6 +1354,29 @@ void registerBuiltinParticleFactories()
             // 回退到默认工厂（紫色药水效果粒子）
             return EntityEffectParticle::create(pos, velocity, world);
         });
+
+    // 物品粒子：从 ItemParticleData 提取 ItemStack，调用 createWithItemStack 创建粒子。
+    // Item、ItemSlime、ItemCobweb、ItemSnowball 共享相同的 ItemParticle 类与数据格式。
+    // 对应 MC Java 1.21.11 的 ItemParticleProvider，其通过 ItemStack 解析物品纹理。
+    auto itemDataFactory = [](const glm::vec3& pos,
+                               const glm::vec3& velocity,
+                               mc::client::ClientWorld* world,
+                               const data::ParticleData* data) -> std::unique_ptr<Particle> {
+        if (data) {
+            auto* itemData = dynamic_cast<const data::ItemParticleData*>(data);
+            if (itemData) {
+                return particles::ItemParticle::createWithItemStack(pos, velocity, itemData->getItemStack());
+            }
+        }
+        // 回退到默认工厂（占位纹理）
+        MC_UNUSED(world);
+        return particles::ItemParticle::create(pos, velocity, world);
+    };
+
+    registry.registerDataFactory(ParticleTypeId::Item, itemDataFactory);
+    registry.registerDataFactory(ParticleTypeId::ItemSlime, itemDataFactory);
+    registry.registerDataFactory(ParticleTypeId::ItemCobweb, itemDataFactory);
+    registry.registerDataFactory(ParticleTypeId::ItemSnowball, itemDataFactory);
 }
 
 } // namespace mc::client::renderer::trident::particle

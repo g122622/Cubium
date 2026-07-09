@@ -291,6 +291,23 @@ struct NetworkClientCallbacks {
         u32 blockStateId)>
         onBlockParticle;
 
+    // 物品粒子回调（携带物品堆）
+    // 用于 Item/ItemSlime/ItemCobweb/ItemSnowball 等粒子，
+    // 客户端通过 ItemStack 解析物品纹理（方块物品走 BlockModelCache，普通物品走 ItemTextureAtlas）。
+    std::function<void(particle::ParticleTypeId type,
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        f32 ox,
+        f32 oy,
+        f32 oz,
+        u32 count,
+        const ItemStack& itemStack)>
+        onItemParticle;
+
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 

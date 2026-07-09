@@ -48,6 +48,10 @@
 #include <unordered_map>
 #include <vector>
 
+namespace mc {
+class ItemStack;
+} // namespace mc
+
 namespace mc::client {
 
 // 前向声明
@@ -347,6 +351,23 @@ public:
      */
     void addBlockParticle(
         ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState);
+
+    /**
+     * @brief 生成携带物品堆纹理的粒子
+     *
+     * 创建携带物品纹理的粒子（如 Item、ItemSlime、ItemCobweb、ItemSnowball），
+     * 直接使用指定的 ItemStack 作为粒子纹理来源。
+     * 方块物品复用 BlockModelCache 获取方块纹理，普通物品使用 ItemTextureAtlas。
+     *
+     * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param itemStack 物品堆（用于粒子纹理）
+     */
+    void addItemParticle(::mc::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const ::mc::ItemStack& itemStack);
 
     /**
      * @brief 携带粒子数据生成粒子

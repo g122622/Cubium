@@ -47,6 +47,7 @@
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
+#include "client/renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "client/renderer/trident/sky/SkyRenderer.hpp"
 #include "client/renderer/trident/weather/WeatherRenderer.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
@@ -371,6 +372,9 @@ void TridentEngine::destroy()
 
     // 清除 ItemMeshBuilder 对 ItemTextureAtlas 的静态引用，防止悬垂指针
     ::mc::client::renderer::entity::item::ItemMeshBuilder::setItemTextureAtlas(nullptr);
+
+    // 清除 ItemParticle 对 ItemTextureAtlas 的静态引用，防止悬垂指针
+    ::mc::client::renderer::trident::particle::particles::ItemParticle::setItemTextureAtlas(nullptr);
 
     m_itemTextureAtlas.destroy();
     m_entityTextureAtlas.destroy();
@@ -1727,6 +1731,9 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
 
     // 设置 ItemMeshBuilder 的纹理图集引用，用于解析物品纹理坐标
     ::mc::client::renderer::entity::item::ItemMeshBuilder::setItemTextureAtlas(&m_itemTextureAtlas);
+
+    // 设置 ItemParticle 的纹理图集引用，用于解析非方块物品粒子的纹理坐标
+    ::mc::client::renderer::trident::particle::particles::ItemParticle::setItemTextureAtlas(&m_itemTextureAtlas);
 
     if (m_guiRendererInitialized && m_guiRendererPtr && m_itemTextureAtlas.isValid()) {
         m_guiRendererPtr->setItemTextureAtlas(m_itemTextureAtlas.imageView(), m_itemTextureAtlas.sampler());
