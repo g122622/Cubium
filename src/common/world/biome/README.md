@@ -172,3 +172,5 @@
 
 ### 12. BiomeLoader 数据驱动叠加策略
 BiomeLoader 从数据包 biome JSON 加载 climate/effects/spawners/spawn_costs/carvers/features，**叠加**到 BiomeFactory 已构造的 Biome 上（保留 depth/scale/surface blocks 等非 JSON 字段）。必须按以下顺序在 `MinecraftServer::initializeRegistries` 调用：PlacementRegistry::initialize → FeatureTypeRegistry::initializeBuiltinFeatureTypes → ConfiguredFeatureLoader → PlacedFeatureLoader → ConfiguredCarverLoader → BiomeRegistry::initialize → BiomeLoader。BiomeLoader 内置 65 项 biome 名→BiomeId 映射表（含 11 个 1.18+ 重命名如 stony_shore=StoneShore）；数据包 biome 名无映射或 BiomeId 未注册时 warn+skip。placed_feature/carver id 未在对应 Registry 注册时 warn+skip（世界仍可生成）。
+
+顶层 `creature_spawn_probability` 字段（[0,1]，snowy_plains/badlands/ice_spikes 等为 0.03-0.07，其余默认 0.1）由 `resolveCreatureSpawnProbability` 解析到 `MobSpawnInfo.creatureSpawnProbability`，是动物生成概率的**唯一数据来源**（对应原版 `MobSpawnSettings.getCreatureProbability()`）。`applySpawners` 用全新 MobSpawnInfo 覆盖时会保留 BiomeFactory 工厂方法（如 createSnowy 的 0.07）的设定作为默认值，再用 JSON 字段覆盖；无 `spawners` 字段时仍独立应用到现有 spawnInfo。`spawners` 条目校验 weight>0、minCount<=maxCount、minCount>=0，不合法条目 warn+skip。`Biome::creatureSpawnProbability()` 仅代理 `spawnInfo().getCreatureSpawnProbability()`，无独立字段。

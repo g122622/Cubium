@@ -192,6 +192,12 @@ void ItemEntity::tick()
     // 递增存活时间（Entity::tick 会在 baseTick 前递增，ItemEntity 直接调用 baseTick 需手动递增）
     m_ticksExisted++;
 
+    // 空物品立即移除
+    if (m_itemStack.isEmpty()) {
+        remove();
+        return;
+    }
+
     // 基础 tick：更新前一帧位置、处理火焰计时器、环境状态等
     Entity::baseTick();
 
@@ -204,8 +210,8 @@ void ItemEntity::tick()
         return;
     }
 
-    // 减少拾取延迟
-    if (m_pickupDelay > 0) {
+    // 减少拾取延迟：仅当 >0 且非创造假物品时递减
+    if (m_pickupDelay > 0 && m_pickupDelay != FAKE_PICKUP_DELAY) {
         m_pickupDelay--;
     }
 
@@ -276,7 +282,7 @@ void ItemEntity::_updateMerge()
     }
 
     // 无限拾取延迟的物品不合并
-    if (m_pickupDelay == 32767) {
+    if (m_pickupDelay == FAKE_PICKUP_DELAY) {
         return;
     }
 
@@ -298,7 +304,7 @@ void ItemEntity::_updateMerge()
     }
 
     // 搜索附近可合并的物品实体
-    AxisAlignedBB searchBox = m_boundingBox.expand(0.5f, 0.0f, 0.5f);
+    AxisAlignedBB searchBox = m_boundingBox.expand(MERGE_RANGE, 0.0f, MERGE_RANGE);
     std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
 
     for (Entity* entity : nearbyEntities) {
@@ -412,7 +418,7 @@ bool ItemEntity::canMergeWith(const ItemEntity& other) const
         return false;
     }
 
-    if (other.m_pickupDelay == 32767) {
+    if (other.m_pickupDelay == FAKE_PICKUP_DELAY) {
         return false;
     }
 

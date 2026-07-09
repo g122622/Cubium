@@ -341,9 +341,30 @@ std::optional<entity::EntityClassification> parseSpawnerCategory(const std::stri
 }
 
 /**
+ * @brief 解析顶层 creature_spawn_probability 字段
+ *
+ * 数据包顶层字段，范围 [0,1]。若缺省则返回 BiomeFactory 工厂方法设定的默认概率，
+ * 保留 createSnowy(0.07) 等设定；非法值 warn 后回退到默认概率。
+ */
+f32 resolveCreatureSpawnProbability(const Biome& biome, const nlohmann::json& jsonObj)
+{
+    const f32 defaultProb = biome.spawnInfo().getCreatureSpawnProbability();
+    if (!jsonObj.contains("creature_spawn_probability") || !jsonObj["creature_spawn_probability"].is_number()) {
+        return defaultProb;
+    }
+    const f64 prob = jsonObj["creature_spawn_probability"].get<f64>();
+    if (prob < 0.0 || prob > 1.0) {
+        spdlog::warn("creature_spawn_probability {} out of [0,1], using default {}", prob, defaultProb);
+        return defaultProb;
+    }
+    return static_cast<f32>(prob);
+}
+
+/**
  * @brief 解析单个 spawner 条目 JSON 为 SpawnEntry
  *
  * JSON 格式: { "type": "minecraft:zombie", "weight": 100, "minCount": 4, "maxCount": 4 }
+ * 校验：weight>0、minCount<=maxCount、minCount>=0、type 非空。不合法条目返回 nullopt。
  */
 std::optional<world::spawn::SpawnEntry> parseSpawnEntry(const nlohmann::json& entryJson)
 {
@@ -374,6 +395,21 @@ std::optional<world::spawn::SpawnEntry> parseSpawnEntry(const nlohmann::json& en
     if (entryJson.contains("maxGroup") && entryJson["maxGroup"].is_number_integer()) {
         maxCount = entryJson["maxGroup"].get<i32>();
     }
+
+    // 校验：权重必须为正、最小数量非负、最小数量不大于最大数量。
+    if (weight <= 0) {
+        spdlog::warn("spawner entry '{}' has non-positive weight {}, skipping", *typeStr, weight);
+        return std::nullopt;
+    }
+    if (minCount < 0) {
+        spdlog::warn("spawner entry '{}' has negative minCount {}, skipping", *typeStr, minCount);
+        return std::nullopt;
+    }
+    if (minCount > maxCount) {
+        spdlog::warn("spawner entry '{}' has minCount {} > maxCount {}, skipping", *typeStr, minCount, maxCount);
+        return std::nullopt;
+    }
+
     return world::spawn::SpawnEntry(*typeStr, weight, minCount, maxCount);
 }
 
@@ -395,6 +431,11 @@ void applySpawners(Biome& biome, const nlohmann::json& jsonObj)
         world::spawn::MobSpawnInfo::DEFAULT_MAX_UNDERGROUND_WATER_CREATURES);
     newInfo.setMaxWaterCreatureInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_WATER_CREATURES);
     newInfo.setMaxWaterAmbientInstances(world::spawn::MobSpawnInfo::DEFAULT_MAX_WATER_AMBIENT);
+
+    // 动物生成概率：保留 BiomeFactory 工厂方法（如 createSnowy 的 0.07）的设定作为默认值，
+    // 避免用全新 MobSpawnInfo 的默认 0.1 覆盖掉工厂方法的设定；数据包顶层
+    // creature_spawn_probability 字段（若存在）覆盖默认值。
+    newInfo.setCreatureSpawnProbability(resolveCreatureSpawnProbability(biome, jsonObj));
 
     for (const auto& [categoryName, entriesJson] : spawnersJson.items()) {
         if (!entriesJson.is_array()) {
@@ -713,6 +754,13 @@ Result<void> BiomeLoader::loadFromJson(const nlohmann::json& jsonObj, const Reso
     applyEffects(biome, jsonObj);
     applySpawners(biome, jsonObj);
     applySpawnCosts(biome, jsonObj);
+
+    // creature_spawn_probability 是顶层字段，独立于 spawners。当数据包未提供 spawners 时，
+    // applySpawners 会提前返回而不重建 MobSpawnInfo，此时仍需把该字段应用到现有 spawnInfo。
+    if (!jsonObj.contains("spawners") || !jsonObj["spawners"].is_object()) {
+        biome.spawnInfo().setCreatureSpawnProbability(resolveCreatureSpawnProbability(biome, jsonObj));
+    }
+
     // 生成设置覆盖：先清空 BiomeFactory 可能设置的旧数据，再从 JSON 填充
     biome.generationSettings().clear();
     applyCarvers(biome, jsonObj);

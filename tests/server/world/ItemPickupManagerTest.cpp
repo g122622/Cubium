@@ -50,14 +50,15 @@ protected:
 // 常量测试
 // ============================================================================
 
+// 常量测试参考 MC 1.21.11 物品实体行为
+
 TEST_F(ItemPickupManagerTest, ConstantsAreCorrect)
 {
-    // 参考 MC 1.16.5 EntityItem 常量
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE, 1.0f);
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE_EXTENDED, 1.5f);
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE_CREATIVE, 1.0f);
     EXPECT_FLOAT_EQ(ItemPickupManager::PICKUP_RANGE_SNEAKING, 0.5f);
-    EXPECT_FLOAT_EQ(ItemPickupManager::MERGE_RANGE, 0.5f);
+    EXPECT_FLOAT_EQ(ItemEntity::MERGE_RANGE, 0.5f);
     EXPECT_EQ(ItemPickupManager::DEFAULT_THROWER_PICKUP_DELAY, 10);
     EXPECT_EQ(ItemPickupManager::MERGE_DELAY, 20);
 }

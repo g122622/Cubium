@@ -96,6 +96,48 @@ private:
 };
 
 /**
+ * @brief 本地容量计算器（LocalMobCapCalculator）
+ *
+ * 每个玩家在其附近区块内对每个分类维护一个本地计数，本地 cap = getMaxInstancesPerChunk(classification)。
+ * 跨区块共享同一玩家的本地计数，防止单一区域在同一玩家名下无限堆积。
+ */
+class LocalMobCapCalculator {
+public:
+    /**
+     * @brief 登记玩家与区块的关联（createState 时为每个玩家登记其附近区块）。
+     */
+    void addPlayerChunk(u64 playerId, const ChunkPos& chunk);
+
+    /**
+     * @brief 登记一个已存在的 Mob（createState 时调用，占用本地配额）。
+     */
+    void addMob(const ChunkPos& chunk, entity::EntityClassification classification);
+
+    /**
+     * @brief 检查在指定区块生成该分类是否不超本地 cap。
+     *
+     * 本地 cap = getMaxCount(classification)。区块附近所有共享该区块的玩家的本地
+     * 计数都必须 < cap 才允许生成。
+     */
+    [[nodiscard]] bool canSpawn(entity::EntityClassification classification, const ChunkPos& chunk) const;
+
+    /**
+     * @brief 清空所有登记（每 tick createState 重建时调用，复用桶容量避免逐节点重分配）。
+     */
+    void clear()
+    {
+        m_playerChunks.clear();
+        m_chunkCounts.clear();
+    }
+
+private:
+    // 玩家 -> 该玩家登记的区块集合
+    std::unordered_map<u64, std::unordered_set<ChunkPos>> m_playerChunks;
+    // 区块 -> 各分类已占用本地计数
+    std::unordered_map<ChunkPos, std::unordered_map<entity::EntityClassification, i32>> m_chunkCounts;
+};
+
+/**
  * @brief 实体密度管理器
  *
  * 管理各类实体的数量和密度限制。
@@ -104,11 +146,11 @@ class EntityDensityManager {
 public:
     /**
      * @brief 构造密度管理器
-     * @param viewDistance 视距（区块）
+     * @param spawnableChunkCount 刷怪区块计数（玩家固定刷怪距离内的区块数，满载≈289）
      * @param entityCounts 各分类实体数量快照
      * @param densityTracker 密度追踪器
      */
-    EntityDensityManager(i32 viewDistance,
+    EntityDensityManager(i32 spawnableChunkCount,
         std::unordered_map<entity::EntityClassification, i32> entityCounts,
         MobDensityTracker& densityTracker);
 
@@ -148,12 +190,12 @@ public:
     [[nodiscard]] i32 getCount(entity::EntityClassification classification) const;
 
     /**
-     * @brief 获取视距
+     * @brief 获取刷怪区块计数
      */
-    [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
+    [[nodiscard]] i32 spawnableChunkCount() const { return m_spawnableChunkCount; }
 
 private:
-    i32 m_viewDistance;
+    i32 m_spawnableChunkCount;
     std::unordered_map<entity::EntityClassification, i32> m_entityCounts;
     MobDensityTracker& m_densityTracker;
 };
@@ -241,7 +283,7 @@ public:
      */
     [[nodiscard]] i32 getMaxEntities() const { return m_maxEntities; }
 
-    // ========== 常量（public 供 EntityDensityManager 使用） ==========
+    // ========== 常量 ==========
 
     /// 最小生成距离（玩家周围）
     static constexpr f64 MIN_SPAWN_DISTANCE_SQ = 24.0 * 24.0;
@@ -249,23 +291,8 @@ public:
     /// 最大生成距离（玩家周围）
     static constexpr f64 MAX_SPAWN_DISTANCE_SQ = 128.0 * 128.0;
 
-    /// 即刻消失距离
-    static constexpr f64 INSTANT_DESPAWN_DISTANCE_SQ = 128.0 * 128.0;
-
-    /// 每次生成尝试的组大小上限
-    static constexpr i32 MAX_GROUP_SIZE = 4;
-
-    /// 怪物最大实例数
-    static constexpr i32 MAX_MONSTERS = 70;
-
-    /// 动物最大实例数
-    static constexpr i32 MAX_CREATURES = 10;
-
-    /// 环境生物最大实例数
-    static constexpr i32 MAX_AMBIENT = 15;
-
-    /// 水生生物最大实例数
-    static constexpr i32 MAX_WATER_CREATURES = 5;
+    /// 固定刷怪距离（区块）
+    static constexpr i32 SPAWN_DISTANCE_CHUNK = 8;
 
 private:
     i32 m_spawnDistance = 8; // 生成距离（区块）
@@ -274,6 +301,9 @@ private:
 
     /// 密度追踪器
     MobDensityTracker m_densityTracker;
+
+    /// 本地容量计算器（每 tick 在 createState 阶段重建）
+    LocalMobCapCalculator m_localMobCap;
 
     /// 上次动物生成检查时间（游戏刻）
     u64 m_lastCreatureSpawnTime = 0;
@@ -320,24 +350,6 @@ private:
     [[nodiscard]] i32 _getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const;
 
     /**
-     * @brief 获取区块内的随机高度位置
-     */
-    [[nodiscard]] Vector3i _getRandomSpawnPosition(mc::server::ServerWorld& world,
-        const ChunkData* chunk,
-        HeightmapType heightmapType,
-        math::Random& random) const;
-
-    /**
-     * @brief 检查位置是否在玩家附近的有效生成区域
-     * @param world 世界
-     * @param pos 位置
-     * @param playerDistanceSq 玩家距离的平方
-     * @return 是否可以生成
-     */
-    [[nodiscard]] bool _isValidSpawnPosition(
-        mc::server::ServerWorld& world, const Vector3i& pos, f64 playerDistanceSq) const;
-
-    /**
      * @brief 选择指定分类的生成条目
      */
     [[nodiscard]] const SpawnEntry* _getRandomSpawnEntry(mc::server::ServerWorld& world,
@@ -348,21 +360,35 @@ private:
 
     /**
      * @brief 创建实体密度管理器
+     *
+     * 同时重建密度追踪器（清空上 tick 残留）与本地容量计算器，
+     * 并以固定刷怪距离内的区块数作为 spawnableChunkCount。
      */
     EntityDensityManager _createDensityManager(mc::server::ServerWorld& world);
 
     /**
+     * @brief 统计刷怪区块数（玩家固定刷怪距离内已加载区块数，去重）
+     *
+     * 统计玩家固定刷怪距离内已加载区块数（去重）。对应 DistanceManager.getNaturalSpawnChunkCount，满载约 289。
+     */
+    [[nodiscard]] i32 _countSpawnableChunks(mc::server::ServerWorld& world) const;
+
+    /**
+     * @brief 收集所有玩家固定刷怪距离内的已加载区块（去重，未打乱）
+     */
+    [[nodiscard]] std::vector<ChunkPos> _collectSpawnableChunks(mc::server::ServerWorld& world) const;
+
+    /**
      * @brief 获取可生成区块列表
      *
-     * 从玩家视距内的区块中随机选择可生成区块。
+     * 收集所有玩家固定刷怪距离（SPAWN_DISTANCE_CHUNK=8）内的已加载区块，
+     * 去重后随机打乱（collectSpawningChunks + Util.shuffle）。
      *
      * @param world 世界
-     * @param maxChunks 最大区块数量
      * @param random 随机数生成器
-     * @return 可生成区块的坐标列表
+     * @return 打乱后的可生成区块坐标列表
      */
-    [[nodiscard]] std::vector<ChunkPos> _getSpawnableChunks(
-        mc::server::ServerWorld& world, i32 maxChunks, math::Random& random) const;
+    [[nodiscard]] std::vector<ChunkPos> _getSpawnableChunks(mc::server::ServerWorld& world, math::Random& random) const;
 
     /**
      * @brief 检查实体类型是否应该在当前条件下生成

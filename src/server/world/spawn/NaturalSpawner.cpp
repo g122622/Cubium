@@ -47,8 +47,7 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
-#include <algorithm>
-#include <chrono>
+#include <cmath>
 #include <limits>
 #include <utility>
 #include <fmt/format.h>
@@ -59,13 +58,10 @@ namespace mc::world::spawn {
 // 常量定义
 // ============================================================================
 
-/// 每次生成尝试的区块数量乘数
-static constexpr i32 SPAWN_CHUNK_DIVISOR = 17;
-
-/// 每区块最大生成尝试次数
+/// 每区块生成尝试轮数（spawnCategoryForPosition 外层 3 轮）
 static constexpr i32 MAX_SPAWN_ATTEMPTS_PER_CHUNK = 3;
 
-/// 生成区块计算常量 (17^2)
+/// 生成区块计数基准 (17^2)
 static constexpr i32 MAGIC_NUMBER = 289;
 
 // ============================================================================
@@ -105,40 +101,73 @@ f64 MobDensityTracker::getTotalCharge(const Vector3& pos, f64 multiplier) const
 }
 
 // ============================================================================
+// LocalMobCapCalculator 实现
+// ============================================================================
+
+void LocalMobCapCalculator::addPlayerChunk(u64 playerId, const ChunkPos& chunk)
+{
+    m_playerChunks[playerId].insert(chunk);
+}
+
+void LocalMobCapCalculator::addMob(const ChunkPos& chunk, entity::EntityClassification classification)
+{
+    m_chunkCounts[chunk][classification]++;
+}
+
+bool LocalMobCapCalculator::canSpawn(entity::EntityClassification classification, const ChunkPos& chunk) const
+{
+    // 本地 cap = 该分类每区块最大实例数（cap 取 MobCategory.getMaxInstancesPerChunk）。
+    const i32 localCap = getMaxCount(classification);
+
+    // 任何共享该区块的玩家，其本地计数达到 cap 即阻止生成。
+    for (const auto& [playerId, chunks] : m_playerChunks) {
+        if (chunks.find(chunk) == chunks.end()) {
+            continue;
+        }
+        auto countIt = m_chunkCounts.find(chunk);
+        i32 used = 0;
+        if (countIt != m_chunkCounts.end()) {
+            auto classIt = countIt->second.find(classification);
+            if (classIt != countIt->second.end()) {
+                used = classIt->second;
+            }
+        }
+        if (used >= localCap) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ============================================================================
 // EntityDensityManager 实现
 // ============================================================================
 
-EntityDensityManager::EntityDensityManager(i32 viewDistance,
+EntityDensityManager::EntityDensityManager(i32 spawnableChunkCount,
     std::unordered_map<entity::EntityClassification, i32> entityCounts,
     MobDensityTracker& densityTracker)
-    : m_viewDistance(viewDistance)
+    : m_spawnableChunkCount(spawnableChunkCount)
     , m_entityCounts(std::move(entityCounts))
     , m_densityTracker(densityTracker)
 {}
 
 bool EntityDensityManager::canSpawn(entity::EntityClassification classification) const
 {
-    // 获取当前数量
-    auto it = m_entityCounts.find(classification);
-    i32 currentCount = (it != m_entityCounts.end()) ? it->second : 0;
-
     // MISC 分类不生成
     if (classification == entity::EntityClassification::Misc) {
         return false;
     }
 
-    // 获取最大实例数
+    // 获取当前数量
+    auto it = m_entityCounts.find(classification);
+    i32 currentCount = (it != m_entityCounts.end()) ? it->second : 0;
+
+    // 全局容量上限：maxInstancesPerChunk * spawnableChunkCount / MAGIC_NUMBER(289)
+    // 对应 NaturalSpawner.canSpawnForCategoryGlobal，无下限保护。
     i32 maxInstances = getMaxCount(classification);
+    i32 cap = maxInstances * m_spawnableChunkCount / MAGIC_NUMBER;
 
-    // 计算刷怪区块数量
-    // maxCount * chunkCount / 289
-    i32 chunkCount = (2 * m_viewDistance + 1) * (2 * m_viewDistance + 1);
-    i32 adjustedMax = maxInstances * chunkCount / MAGIC_NUMBER;
-
-    // 确保至少有一个
-    adjustedMax = std::max(adjustedMax, 1);
-
-    return currentCount < adjustedMax;
+    return currentCount < cap;
 }
 
 bool EntityDensityManager::canSpawnWithDensity(
@@ -265,7 +294,7 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
     }
 
     // 获取当前时间
-    u64 worldTime = world.currentTick();
+    const u64 worldTime = world.currentTick();
 
     // 创建随机数生成器
     math::Random random(static_cast<u64>(worldTime));
@@ -276,80 +305,73 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
         return;
     }
 
-    // 获取玩家视距
-    i32 viewDistance = 10; // 默认视距
-    auto* chunkManager = world.chunkManager();
-    if (chunkManager) {
-        viewDistance = chunkManager->viewDistance();
-    }
-
-    // 创建实体密度管理器
+    // 创建实体密度管理器（同时重建密度追踪器与本地容量计算器，统计刷怪区块数）
     EntityDensityManager densityManager = _createDensityManager(world);
 
-    // 遍历每个玩家周围的区块
-    for (Entity* player : players) {
-        if (!player || player->isRemoved()) {
+    // 全局预过滤：一次性选出本 tick 仍可生成的分类列表。
+    // getFilteredSpawningCategories：friendly/persistent 过滤 + 全局 cap 检查 +
+    // 持久化分类（Creature/Misc）的 400tick 节流。
+    static const entity::EntityClassification allCategories[] = {entity::EntityClassification::Monster,
+        entity::EntityClassification::Creature,
+        entity::EntityClassification::Ambient,
+        entity::EntityClassification::Axolotls,
+        entity::EntityClassification::UndergroundWaterCreature,
+        entity::EntityClassification::WaterCreature,
+        entity::EntityClassification::WaterAmbient};
+
+    std::vector<entity::EntityClassification> activeCategories;
+    for (auto classification : allCategories) {
+        const bool isPeaceful = entity::isPeaceful(classification);
+        if (!hostile && !isPeaceful) {
+            continue;
+        }
+        if (!passive && isPeaceful) {
+            continue;
+        }
+        // 持久化分类（Creature）每 400tick 才允许
+        if (!_isSpawnCategoryReady(classification, worldTime)) {
+            continue;
+        }
+        if (!densityManager.canSpawn(classification)) {
+            continue;
+        }
+        activeCategories.push_back(classification);
+    }
+    if (activeCategories.empty()) {
+        // 仍更新动物生成时间戳
+        if (passive && worldTime - m_lastCreatureSpawnTime >= CREATURE_SPAWN_INTERVAL) {
+            m_lastCreatureSpawnTime = worldTime;
+        }
+        return;
+    }
+
+    // 收集并打乱刷怪区块（collectSpawningChunks + Util.shuffle，无 1/17 概率丢弃）。
+    std::vector<ChunkPos> spawnableChunks = _getSpawnableChunks(world, random);
+
+    for (const ChunkPos& chunkPos : spawnableChunks) {
+        const ChunkData* chunk = world.getChunk(chunkPos.x, chunkPos.z);
+        if (chunk == nullptr) {
             continue;
         }
 
-        Vector3 playerPos = player->position();
-        ChunkCoord playerChunkX = world::toChunkCoord(static_cast<i32>(playerPos.x));
-        ChunkCoord playerChunkZ = world::toChunkCoord(static_cast<i32>(playerPos.z));
+        // 取该区块附近最近的玩家作为距离基准
+        const Vector3 chunkCenter = chunkPos.center();
+        Entity* nearestPlayer = world.getClosestPlayer(chunkCenter);
+        if (nearestPlayer == nullptr) {
+            continue;
+        }
+        const Vector3 playerPos = nearestPlayer->position();
 
-        // 遍历玩家周围的区块
-        for (i32 dx = -viewDistance; dx <= viewDistance; ++dx) {
-            for (i32 dz = -viewDistance; dz <= viewDistance; ++dz) {
-                ChunkCoord chunkX = playerChunkX + dx;
-                ChunkCoord chunkZ = playerChunkZ + dz;
-
-                // 获取区块
-                const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
-                if (!chunk) {
-                    continue;
-                }
-
-                // 遍历每个分类
-                static const entity::EntityClassification classifications[] = {entity::EntityClassification::Monster,
-                    entity::EntityClassification::Creature,
-                    entity::EntityClassification::Ambient,
-                    entity::EntityClassification::Axolotls,
-                    entity::EntityClassification::UndergroundWaterCreature,
-                    entity::EntityClassification::WaterCreature,
-                    entity::EntityClassification::WaterAmbient};
-
-                for (auto classification : classifications) {
-                    // 检查是否应该生成该分类
-                    bool isPeaceful = (classification == entity::EntityClassification::Creature ||
-                        classification == entity::EntityClassification::WaterCreature ||
-                        classification == entity::EntityClassification::WaterAmbient ||
-                        classification == entity::EntityClassification::Ambient ||
-                        classification == entity::EntityClassification::Axolotls ||
-                        classification == entity::EntityClassification::UndergroundWaterCreature);
-
-                    if (!hostile && !isPeaceful) continue;
-                    if (!passive && isPeaceful) continue;
-
-                    // 检查实例数量限制
-                    if (!densityManager.canSpawn(classification)) {
-                        continue;
-                    }
-
-                    // 动物生成检查 - 每 400 tick 检查一次
-                    if (classification == entity::EntityClassification::Creature) {
-                        if (!_isSpawnCategoryReady(classification, worldTime)) {
-                            continue;
-                        }
-                    }
-
-                    // 随机决定是否生成
-                    if (random.nextInt(SPAWN_CHUNK_DIVISOR) != 0) {
-                        continue;
-                    }
-
-                    // 执行生成
-                    _spawnForClassificationInChunk(classification, world, chunk, playerPos, densityManager, random);
-                }
+        for (auto classification : activeCategories) {
+            // 每块每分类重新检查容量（前面块可能已触顶）
+            if (!densityManager.canSpawn(classification)) {
+                continue;
             }
+            if (!m_localMobCap.canSpawn(classification, chunkPos)) {
+                continue;
+            }
+
+            _spawnForClassificationInChunk(classification, world, chunk, playerPos, densityManager, random);
         }
     }
 
@@ -377,121 +399,147 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
     // 获取该分类对应的生成高度图类型
     HeightmapType heightmapType = HeightmapType::MotionBlockingNoLeaves;
 
+    // 区块坐标（用于本地容量检查）
+    const ChunkPos chunkPos(chunk->x(), chunk->z());
+
     // 获取区块的世界坐标
     i32 chunkMinX = chunk->x() << world::CHUNK_SHIFT;
     i32 chunkMinZ = chunk->z() << world::CHUNK_SHIFT;
 
-    // 随机选择区块内位置
-    i32 spawnX = chunkMinX + random.nextInt(world::CHUNK_WIDTH);
-    i32 spawnZ = chunkMinZ + random.nextInt(world::CHUNK_WIDTH);
-
-    // 获取高度
-    i32 spawnY = _getSpawnHeight(world, spawnX, spawnZ, heightmapType);
-    if (spawnY < 0) {
-        return;
-    }
-
-    // 检查玩家距离
-    f64 dx = static_cast<f64>(spawnX) + 0.5 - playerPos.x;
-    f64 dz = static_cast<f64>(spawnZ) + 0.5 - playerPos.z;
-    f64 playerDistanceSq = dx * dx + dz * dz;
-
-    // 玩家距离必须 > 24 格
-    if (playerDistanceSq < MIN_SPAWN_DISTANCE_SQ) {
-        return;
-    }
-
-    // 玩家距离必须 <= 128 格
-    if (playerDistanceSq > MAX_SPAWN_DISTANCE_SQ) {
-        return;
-    }
-
-    // 选择生成条目
-    Vector3i pos(spawnX, spawnY, spawnZ);
-    const SpawnEntry* entry = _getRandomSpawnEntry(world, chunk, classification, pos, random);
-    if (!entry) {
-        return;
-    }
-
-    // 从 ChunkData 获取生物群系，再从生物群系获取 SpawnCosts
-    const SpawnCosts* spawnCosts = nullptr;
-    if (chunk) {
-        i32 localX = world::toLocalCoord(spawnX);
-        i32 localZ = world::toLocalCoord(spawnZ);
-        BiomeId biomeId = chunk->getBiomeAtBlock(localX, spawnY, localZ);
-
-        if (BiomeRegistry::instance().hasBiome(biomeId)) {
-            const Biome& biome = BiomeRegistry::instance().get(biomeId);
-            const MobSpawnInfo& spawnInfo = biome.spawnInfo();
-            spawnCosts = spawnInfo.getSpawnCost(entry->entityTypeId);
-        }
-    }
-
-    if (spawnCosts && spawnCosts->isValid()) {
-        if (!densityManager.canSpawnWithDensity(entry->entityTypeId,
-                Vector3(static_cast<f32>(spawnX), static_cast<f32>(spawnY), static_cast<f32>(spawnZ)),
-                *spawnCosts)) {
+    // 原版 spawnCategoryForPosition 外层 3 轮：每轮独立选取区块内随机位置、
+    // 独立重新检查全局/本地容量上限、独立确定群体规模 k1=ceil(random*4)。
+    for (i32 round = 0; round < MAX_SPAWN_ATTEMPTS_PER_CHUNK; ++round) {
+        // 每轮重新检查容量上限（上一轮生成可能已触顶）
+        if (!densityManager.canSpawn(classification)) {
             return;
         }
-    }
+        if (!m_localMobCap.canSpawn(classification, chunkPos)) {
+            return;
+        }
 
-    // 获取实体类型
-    auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* entityType = registry.getType(entry->entityTypeId);
-    if (!entityType) {
-        return;
-    }
-
-    // 确定生成数量
-    i32 count = entry->minCount;
-    if (entry->maxCount > entry->minCount) {
-        count = random.nextInt(entry->minCount, entry->maxCount);
-    }
-
-    i32 spawned = 0;
-    i32 groupSize = std::min(count, MAX_GROUP_SIZE);
-
-    // 尝试在位置周围生成群体
-    for (i32 i = 0; i < groupSize; ++i) {
-        // 计算偏移位置
-        i32 x = spawnX + random.nextInt(6) - random.nextInt(6);
-        i32 z = spawnZ + random.nextInt(6) - random.nextInt(6);
+        // 随机选择区块内位置
+        i32 spawnX = chunkMinX + random.nextInt(world::CHUNK_WIDTH);
+        i32 spawnZ = chunkMinZ + random.nextInt(world::CHUNK_WIDTH);
 
         // 获取高度
-        i32 y = _getSpawnHeight(world, x, z, heightmapType);
-        if (y < world::MIN_BUILD_HEIGHT) {
+        i32 spawnY = _getSpawnHeight(world, spawnX, spawnZ, heightmapType);
+        if (spawnY < 0) {
             continue;
         }
 
         // 检查玩家距离
-        f64 odx = static_cast<f64>(x) + 0.5 - playerPos.x;
-        f64 odz = static_cast<f64>(z) + 0.5 - playerPos.z;
-        f64 oDistSq = odx * odx + odz * odz;
+        f64 dx = static_cast<f64>(spawnX) + 0.5 - playerPos.x;
+        f64 dz = static_cast<f64>(spawnZ) + 0.5 - playerPos.z;
+        f64 playerDistanceSq = dx * dx + dz * dz;
 
-        if (oDistSq < MIN_SPAWN_DISTANCE_SQ || oDistSq > MAX_SPAWN_DISTANCE_SQ) {
+        // 玩家距离必须 > 24 格
+        if (playerDistanceSq < MIN_SPAWN_DISTANCE_SQ) {
             continue;
         }
 
-        // 检查是否可以生成
-        if (!_canSpawnAt(world, x, y, z, *entry)) {
+        // 玩家距离必须 <= 128 格
+        if (playerDistanceSq > MAX_SPAWN_DISTANCE_SQ) {
             continue;
         }
 
-        // 尝试生成
-        i32 result = _trySpawnAt(world, x, y, z, *entry, random);
-        if (result > 0) {
-            spawned += result;
+        // 选择生成条目
+        Vector3i pos(spawnX, spawnY, spawnZ);
+        const SpawnEntry* entry = _getRandomSpawnEntry(world, chunk, classification, pos, random);
+        if (!entry) {
+            continue;
+        }
 
-            // 更新密度和分类计数
-            densityManager.onSpawn(entry->entityTypeId,
-                classification,
-                Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)),
-                spawnCosts ? *spawnCosts : SpawnCosts());
+        // 从 ChunkData 获取生物群系，再从生物群系获取 SpawnCosts
+        const SpawnCosts* spawnCosts = nullptr;
+        {
+            i32 localX = world::toLocalCoord(spawnX);
+            i32 localZ = world::toLocalCoord(spawnZ);
+            BiomeId biomeId = chunk->getBiomeAtBlock(localX, spawnY, localZ);
 
-            // 检查是否达到群体大小限制
-            if (spawned >= MAX_GROUP_SIZE) {
+            if (BiomeRegistry::instance().hasBiome(biomeId)) {
+                const Biome& biome = BiomeRegistry::instance().get(biomeId);
+                const MobSpawnInfo& spawnInfo = biome.spawnInfo();
+                spawnCosts = spawnInfo.getSpawnCost(entry->entityTypeId);
+            }
+        }
+
+        if (spawnCosts && spawnCosts->isValid()) {
+            if (!densityManager.canSpawnWithDensity(entry->entityTypeId,
+                    Vector3(static_cast<f32>(spawnX), static_cast<f32>(spawnY), static_cast<f32>(spawnZ)),
+                    *spawnCosts)) {
+                continue;
+            }
+        }
+
+        // 获取实体类型
+        auto& registry = entity::EntityRegistry::instance();
+        const entity::EntityType* entityType = registry.getType(entry->entityTypeId);
+        if (!entityType) {
+            continue;
+        }
+
+        // 群体规模 k1 = ceil(random*4)。
+        i32 groupSize = static_cast<i32>(std::ceil(random.nextFloat() * 4.0f));
+        if (groupSize < 1) {
+            groupSize = 1;
+        }
+
+        i32 spawned = 0;
+
+        // 尝试在位置周围生成群体
+        for (i32 i = 0; i < groupSize; ++i) {
+            // 计算偏移位置
+            i32 x = spawnX + random.nextInt(6) - random.nextInt(6);
+            i32 z = spawnZ + random.nextInt(6) - random.nextInt(6);
+
+            // 获取高度
+            i32 y = _getSpawnHeight(world, x, z, heightmapType);
+            if (y < world::MIN_BUILD_HEIGHT) {
+                continue;
+            }
+
+            // 检查玩家距离
+            f64 odx = static_cast<f64>(x) + 0.5 - playerPos.x;
+            f64 odz = static_cast<f64>(z) + 0.5 - playerPos.z;
+            f64 oDistSq = odx * odx + odz * odz;
+
+            if (oDistSq < MIN_SPAWN_DISTANCE_SQ || oDistSq > MAX_SPAWN_DISTANCE_SQ) {
+                continue;
+            }
+
+            // 生成前再次检查容量（群体内逐只检查）
+            if (!densityManager.canSpawn(classification)) {
                 break;
             }
+            if (!m_localMobCap.canSpawn(classification, chunkPos)) {
+                break;
+            }
+
+            // 检查是否可以生成
+            if (!_canSpawnAt(world, x, y, z, *entry)) {
+                continue;
+            }
+
+            // 尝试生成
+            i32 result = _trySpawnAt(world, x, y, z, *entry, random);
+            if (result > 0) {
+                spawned += result;
+
+                // 更新密度和分类计数
+                densityManager.onSpawn(entry->entityTypeId,
+                    classification,
+                    Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)),
+                    spawnCosts ? *spawnCosts : SpawnCosts());
+
+                // 登记到本地容量（占用本地配额）
+                m_localMobCap.addMob(chunkPos, classification);
+            }
+        }
+
+        // 本轮已生成即结束（原版 spawnCategoryForPosition 每轮独立，
+        // 一旦某轮成功生成群体后通常不再同轮堆叠；这里逐轮独立，符合原版语义）
+        if (spawned > 0) {
+            return;
         }
     }
 }
@@ -766,49 +814,6 @@ i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z
     return chunk->getTopBlockY(heightmapType, localX, localZ);
 }
 
-Vector3i NaturalSpawner::_getRandomSpawnPosition(
-    mc::server::ServerWorld& world, const ChunkData* chunk, HeightmapType heightmapType, math::Random& random) const
-{
-    if (!chunk) {
-        return Vector3i(0, -1, 0);
-    }
-
-    // 获取区块坐标范围
-    i32 minX = chunk->x() << world::CHUNK_SHIFT;
-    i32 minZ = chunk->z() << world::CHUNK_SHIFT;
-
-    // 随机选择区块内位置
-    i32 x = minX + random.nextInt(world::CHUNK_WIDTH);
-    i32 z = minZ + random.nextInt(world::CHUNK_WIDTH);
-
-    // 获取高度
-    i32 y = _getSpawnHeight(world, x, z, heightmapType);
-
-    return Vector3i(x, y, z);
-}
-
-bool NaturalSpawner::_isValidSpawnPosition(
-    mc::server::ServerWorld& world, const Vector3i& pos, f64 playerDistanceSq) const
-{
-    // 检查距离限制
-    // 玩家必须在 24-128 格范围内
-    if (playerDistanceSq < MIN_SPAWN_DISTANCE_SQ) {
-        return false;
-    }
-
-    // 超过最大距离的怪物会立刻消失
-    if (playerDistanceSq > MAX_SPAWN_DISTANCE_SQ) {
-        return false;
-    }
-
-    // 检查世界边界
-    if (!world.isWithinWorldBounds(pos.x, pos.y, pos.z)) {
-        return false;
-    }
-
-    return true;
-}
-
 const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& world,
     const ChunkData* chunk,
     entity::EntityClassification classification,
@@ -827,34 +832,7 @@ const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& 
     if (!BiomeRegistry::instance().hasBiome(biomeId)) {
         // 使用默认生物群系
         static MobSpawnInfo defaultInfo = MobSpawnInfo::createPlains();
-        const std::vector<SpawnEntry>* entries = nullptr;
-        switch (classification) {
-            case entity::EntityClassification::Monster:
-                entries = &defaultInfo.getMonsterSpawns();
-                break;
-            case entity::EntityClassification::Creature:
-                entries = &defaultInfo.getCreatureSpawns();
-                break;
-            case entity::EntityClassification::Ambient:
-                entries = &defaultInfo.getAmbientSpawns();
-                break;
-            case entity::EntityClassification::Axolotls:
-                entries = &defaultInfo.getAxolotlSpawns();
-                break;
-            case entity::EntityClassification::UndergroundWaterCreature:
-                entries = &defaultInfo.getUndergroundWaterCreatureSpawns();
-                break;
-            case entity::EntityClassification::WaterCreature:
-                entries = &defaultInfo.getWaterCreatureSpawns();
-                break;
-            case entity::EntityClassification::WaterAmbient:
-                entries = &defaultInfo.getWaterAmbientSpawns();
-                break;
-            case entity::EntityClassification::Misc:
-            default:
-                return nullptr;
-        }
-        return _selectEntry(*entries, random);
+        return _selectEntry(defaultInfo.getSpawns(classification), random);
     }
 
     // 获取生物群系信息
@@ -873,80 +851,130 @@ const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& 
 
 EntityDensityManager NaturalSpawner::_createDensityManager(mc::server::ServerWorld& world)
 {
-    // 统计当前实体数量快照
-    std::unordered_map<entity::EntityClassification, i32> entityCounts =
-        world.entityManager().countEntitiesByClassification();
+    // 每 tick 重建密度追踪器：与原版 createState 重建 PotentialCalculator 一致，
+    // 避免上 tick 残留的 charge 跨 tick 无限累积。
+    m_densityTracker.clear();
 
-    // 获取视距
-    i32 viewDistance = 10;
-    auto* chunkManager = world.chunkManager();
-    if (chunkManager) {
-        viewDistance = chunkManager->viewDistance();
-    }
+    // 每 tick 重建本地容量计算器（createState 重建 LocalMobCapCalculator）。
+    // 用 clear 复用桶容量，避免每 tick 逐节点堆分配。
+    m_localMobCap.clear();
 
-    return EntityDensityManager(viewDistance, std::move(entityCounts), m_densityTracker);
-}
+    auto& entityManager = world.entityManager();
 
-std::vector<ChunkPos> NaturalSpawner::_getSpawnableChunks(
-    mc::server::ServerWorld& world, i32 maxChunks, math::Random& random) const
-{
-    std::vector<ChunkPos> result;
-    std::vector<ChunkPos> allChunks;
-
-    // 获取所有玩家视距内的区块
-    auto players = world.entityManager().getPlayers();
-    auto* chunkManager = world.chunkManager();
-    if (!chunkManager) {
-        return result;
-    }
-
-    auto& ticketManager = chunkManager->ticketManager();
-    i32 viewDistance = ticketManager.viewDistance();
-
-    for (Entity* player : players) {
-        if (!player || player->isRemoved()) {
+    // 登记每个玩家固定刷怪距离内的区块到本地容量计算器。
+    auto players = entityManager.getPlayers();
+    for (const Entity* player : players) {
+        if (player == nullptr || player->isRemoved()) {
             continue;
         }
+        const u64 playerId = static_cast<u64>(static_cast<const Player*>(player)->playerId());
+        const Vector3 pos = player->position();
+        const ChunkCoord pcx = world::toChunkCoord(static_cast<i32>(pos.x));
+        const ChunkCoord pcz = world::toChunkCoord(static_cast<i32>(pos.z));
+        for (i32 dx = -SPAWN_DISTANCE_CHUNK; dx <= SPAWN_DISTANCE_CHUNK; ++dx) {
+            for (i32 dz = -SPAWN_DISTANCE_CHUNK; dz <= SPAWN_DISTANCE_CHUNK; ++dz) {
+                m_localMobCap.addPlayerChunk(playerId, ChunkPos(pcx + dx, pcz + dz));
+            }
+        }
+    }
 
-        Vector3 pos = player->position();
-        ChunkCoord playerChunkX = world::toChunkCoord(static_cast<i32>(pos.x));
-        ChunkCoord playerChunkZ = world::toChunkCoord(static_cast<i32>(pos.z));
+    // 统计当前实体数量快照（countEntitiesByClassification 已跳过持久化 Mob）。
+    // 同时把每个非持久化 Mob 登记到其所在区块的本地容量。
+    std::unordered_map<entity::EntityClassification, i32> entityCounts = entityManager.countEntitiesByClassification();
 
-        // 遍历玩家周围的区块
-        for (i32 dx = -viewDistance; dx <= viewDistance; ++dx) {
-            for (i32 dz = -viewDistance; dz <= viewDistance; ++dz) {
-                ChunkCoord chunkX = playerChunkX + dx;
-                ChunkCoord chunkZ = playerChunkZ + dz;
+    entityManager.forEachEntity([&](const Entity* entity) {
+        if (entity == nullptr || entity->isRemoved()) {
+            return true;
+        }
+        const auto* mob = dynamic_cast<const MobEntity*>(entity);
+        if (mob == nullptr) {
+            return true;
+        }
+        if (mob->isNoDespawnRequired() || mob->preventDespawn()) {
+            return true; // 持久化 Mob 不占用本地配额
+        }
+        const std::string& typeId = entity->getTypeId();
+        const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeId);
+        if (type == nullptr) {
+            return true;
+        }
+        const entity::EntityClassification classification = type->classification();
+        if (classification == entity::EntityClassification::Misc) {
+            return true;
+        }
+        const Vector3 pos = entity->position();
+        const ChunkPos chunk(
+            world::toChunkCoord(static_cast<i32>(pos.x)), world::toChunkCoord(static_cast<i32>(pos.z)));
+        m_localMobCap.addMob(chunk, classification);
+        return true;
+    });
 
-                // 检查区块是否加载
-                if (world.hasChunk(chunkX, chunkZ)) {
-                    allChunks.emplace_back(chunkX, chunkZ);
+    // 刷怪区块计数：玩家固定刷怪距离（SPAWN_DISTANCE_CHUNK=8）内已加载区块数。
+    // 与原版 DistanceManager.getNaturalSpawnChunkCount 一致，满载约 289，与视距无关。
+    const i32 spawnableChunkCount = _countSpawnableChunks(world);
+
+    return EntityDensityManager(spawnableChunkCount, std::move(entityCounts), m_densityTracker);
+}
+
+// 收集所有玩家固定刷怪距离（SPAWN_DISTANCE_CHUNK=8）内的已加载区块，去重。
+// 返回的集合未被排序；调用方可据此计数或打乱后逐块生成。
+std::vector<ChunkPos> NaturalSpawner::_collectSpawnableChunks(mc::server::ServerWorld& world) const
+{
+    std::vector<ChunkPos> allChunks;
+    std::unordered_set<ChunkPos> seen;
+
+    auto players = world.entityManager().getPlayers();
+    for (const Entity* player : players) {
+        if (player == nullptr || player->isRemoved()) {
+            continue;
+        }
+        const Vector3 pos = player->position();
+        const ChunkCoord playerChunkX = world::toChunkCoord(static_cast<i32>(pos.x));
+        const ChunkCoord playerChunkZ = world::toChunkCoord(static_cast<i32>(pos.z));
+
+        for (i32 dx = -SPAWN_DISTANCE_CHUNK; dx <= SPAWN_DISTANCE_CHUNK; ++dx) {
+            for (i32 dz = -SPAWN_DISTANCE_CHUNK; dz <= SPAWN_DISTANCE_CHUNK; ++dz) {
+                const ChunkCoord chunkX = playerChunkX + dx;
+                const ChunkCoord chunkZ = playerChunkZ + dz;
+                if (!world.hasChunk(chunkX, chunkZ)) {
+                    continue;
+                }
+                const ChunkPos chunk(chunkX, chunkZ);
+                if (seen.insert(chunk).second) {
+                    allChunks.push_back(chunk);
                 }
             }
         }
     }
 
-    // 随机打乱并选择最多 maxChunks 个
-    if (static_cast<i32>(allChunks.size()) > maxChunks) {
-        // Fisher-Yates shuffle
-        for (size_t i = allChunks.size(); i > 1; --i) {
-            size_t j = static_cast<size_t>(random.nextInt(static_cast<i32>(i)));
-            std::swap(allChunks[i - 1], allChunks[j]);
-        }
-        allChunks.resize(maxChunks);
-    }
-
     return allChunks;
+}
+
+i32 NaturalSpawner::_countSpawnableChunks(mc::server::ServerWorld& world) const
+{
+    return static_cast<i32>(_collectSpawnableChunks(world).size());
+}
+
+std::vector<ChunkPos> NaturalSpawner::_getSpawnableChunks(mc::server::ServerWorld& world, math::Random& random) const
+{
+    std::vector<ChunkPos> chunks = _collectSpawnableChunks(world);
+
+    // 打乱（Util.shuffle），保证遍历顺序随机。
+    random.shuffle(chunks);
+
+    return chunks;
 }
 
 bool NaturalSpawner::_isSpawnCategoryReady(entity::EntityClassification classification, u64 worldTime) const
 {
-    // 动物生成检查 - 每 400 tick 检查一次
-    if (classification == entity::EntityClassification::Creature) {
+    // 持久化分类（Creature 等）每 400 tick 才参与一次生成。
+    // getFilteredSpawningCategories 第三条件：
+    //   flag1(gameTime%400==0) || !mobcategory.isPersistent()
+    if (entity::isPersistent(classification)) {
         return worldTime - m_lastCreatureSpawnTime >= CREATURE_SPAWN_INTERVAL;
     }
 
-    // 其他分类每次都检查
+    // 非持久化分类每次都检查
     return true;
 }
 

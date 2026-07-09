@@ -128,8 +128,8 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
     const i32 startX = world::toWorldCoord(chunkX);
     const i32 startZ = world::toWorldCoord(chunkZ);
 
-    // 使用生物群系的生成概率 (creatureSpawnProbability)
-    const f32 spawnProbability = biome.creatureSpawnProbability();
+    // 使用生物群系的动物生成概率（creatureSpawnProbability，与 NaturalSpawner 同源）
+    const f32 spawnProbability = biome.spawnInfo().getCreatureSpawnProbability();
 
     // 预计算总权重（creatures 列表不会改变，可以提前计算）
     i32 totalWeight = 0;

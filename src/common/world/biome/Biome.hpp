@@ -318,13 +318,13 @@ public:
     /**
      * @brief 获取动物生成概率
      *
-     * 返回每次尝试生成动物的基础概率。
-     * 默认值为 10.0f / 128.0f ≈ 0.078
+     * 返回每次尝试生成动物的基础概率。直接代理到 MobSpawnInfo 的
+     * creatureSpawnProbability（唯一数据来源），与 WorldGenSpawner / NaturalSpawner
+     * 读取同一字段。
      *
      * @return 生成概率 (0.0 - 1.0)
      */
-    [[nodiscard]] f32 creatureSpawnProbability() const { return m_creatureSpawnProbability; }
-    void setCreatureSpawnProbability(f32 prob) { m_creatureSpawnProbability = prob; }
+    [[nodiscard]] f32 creatureSpawnProbability() const { return m_spawnInfo.getCreatureSpawnProbability(); }
 
     // === 视觉效果 ===
 
@@ -398,7 +398,6 @@ private:
 
     // 生物生成设置
     MobSpawnInfo m_spawnInfo;
-    f32 m_creatureSpawnProbability = 10.0f / 128.0f; ///< 动物生成概率，默认 ~7.8%
 
     // 视觉效果
     BiomeEffects m_effects; ///< 生物群系视觉效果（水体颜色、雾颜色等）

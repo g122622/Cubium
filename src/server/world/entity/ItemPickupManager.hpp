@@ -66,9 +66,6 @@ public:
     /// 潜行时拾取范围缩小
     static constexpr f32 PICKUP_RANGE_SNEAKING = 0.5f;
 
-    /// 物品合并检测范围
-    static constexpr f32 MERGE_RANGE = 0.5f;
-
     /// 拾取延迟（ticks）- 刚丢弃的物品不能立即被拾取
     static constexpr i32 DEFAULT_THROWER_PICKUP_DELAY = 10;
 
@@ -120,18 +117,6 @@ public:
      * @return true 如果物品被完全拾取（实体应被移除）
      */
     bool tryPickupItem(ServerWorld& world, IServer& server, Entity& player, ItemEntity& itemEntity);
-
-    // ========== 物品合并 ==========
-
-    /**
-     * @brief 处理物品实体合并
-     *
-     * 检查附近的ItemEntity，合并相同物品。
-     *
-     * @param world 物品所在维度的 ServerWorld
-     * @param server 服务器接口（用于发送数据包）
-     */
-    void processItemMerging(ServerWorld& world, IServer& server);
 
 private:
     /**

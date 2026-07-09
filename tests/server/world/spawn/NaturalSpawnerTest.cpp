@@ -38,7 +38,7 @@ mc::world::spawn::EntityDensityManager createTemporaryDensityManager(
     std::unordered_map<mc::entity::EntityClassification, mc::i32> entityCounts;
     entityCounts[mc::entity::EntityClassification::Monster] = 200;
     entityCounts[mc::entity::EntityClassification::Creature] = 5;
-    return mc::world::spawn::EntityDensityManager(10, std::move(entityCounts), densityTracker);
+    return mc::world::spawn::EntityDensityManager(289, std::move(entityCounts), densityTracker);
 }
 
 void clobberStack()
@@ -161,7 +161,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawn)
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
     // 初始状态应该可以生成
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 怪物应该可以生成（数量为0，低于限制70）
     EXPECT_TRUE(manager.canSpawn(entity::EntityClassification::Monster));
@@ -181,10 +181,10 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithLimit)
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
-    // 视距为 10 时，怪物上限会按区块数量缩放到 106
+    // 满载刷怪范围（spawnableChunkCount=289）时，怪物上限 = 70*289/289 = 70
     entityCounts[entity::EntityClassification::Monster] = 107;
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 超过缩放后的上限时不应该可以生成
     EXPECT_FALSE(manager.canSpawn(entity::EntityClassification::Monster));
@@ -201,7 +201,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnBelowLimit)
     // 设置怪物数量接近但未达到上限
     entityCounts[entity::EntityClassification::Monster] = 69;
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 怪物应该可以生成
     EXPECT_TRUE(manager.canSpawn(entity::EntityClassification::Monster));
@@ -212,7 +212,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensity)
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 无效的 SpawnCosts 应该允许生成
     world::spawn::SpawnCosts invalidCosts(0.0, 0.0);
@@ -231,7 +231,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_CanSpawnWithDensityExceeded)
     // 预先添加密度
     densityTracker.addCharge(Vector3(0.0f, 0.0f, 0.0f), 2.0);
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 在相同位置，如果能量预算为 1.0 且已有 2.0 的密度，应该不允许生成
     world::spawn::SpawnCosts costs(1.0, 0.5);
@@ -257,7 +257,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawn)
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 生成实体后更新密度
     world::spawn::SpawnCosts costs(1.0, 0.5);
@@ -272,7 +272,7 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_OnSpawnWithoutCosts)
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     // 生成没有成本的实体不应该添加密度
     world::spawn::SpawnCosts noCosts;
@@ -290,20 +290,20 @@ TEST_F(NaturalSpawnerTest, EntityDensityManager_GetCount)
     entityCounts[entity::EntityClassification::Monster] = 10;
     entityCounts[entity::EntityClassification::Creature] = 5;
 
-    world::spawn::EntityDensityManager manager(10, entityCounts, densityTracker);
+    world::spawn::EntityDensityManager manager(289, entityCounts, densityTracker);
 
     EXPECT_EQ(manager.getCount(entity::EntityClassification::Monster), 10);
     EXPECT_EQ(manager.getCount(entity::EntityClassification::Creature), 5);
     EXPECT_EQ(manager.getCount(entity::EntityClassification::Ambient), 0);
 }
 
-TEST_F(NaturalSpawnerTest, EntityDensityManager_ViewDistance)
+TEST_F(NaturalSpawnerTest, EntityDensityManager_SpawnableChunkCount)
 {
     world::spawn::MobDensityTracker densityTracker;
     std::unordered_map<entity::EntityClassification, i32> entityCounts;
 
     world::spawn::EntityDensityManager manager(16, entityCounts, densityTracker);
-    EXPECT_EQ(manager.viewDistance(), 16);
+    EXPECT_EQ(manager.spawnableChunkCount(), 16);
 }
 
 // ========== NaturalSpawner 基本功能测试 ==========
@@ -351,29 +351,28 @@ TEST_F(NaturalSpawnerTest, Constants_MaxSpawnDistance)
     EXPECT_DOUBLE_EQ(world::spawn::NaturalSpawner::MAX_SPAWN_DISTANCE_SQ, 16384.0);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxMonsters)
+// 各分类每区块最大实例数由 EntityClassification::getMaxCount 统一提供（cap 公式据此计算）。
+TEST_F(NaturalSpawnerTest, EntityLimits_FromClassification)
 {
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_MONSTERS, 70);
+    using ec = entity::EntityClassification;
+    EXPECT_EQ(entity::getMaxCount(ec::Monster), 70);
+    EXPECT_EQ(entity::getMaxCount(ec::Creature), 10);
+    EXPECT_EQ(entity::getMaxCount(ec::Ambient), 15);
+    EXPECT_EQ(entity::getMaxCount(ec::WaterCreature), 5);
+    EXPECT_EQ(entity::getMaxCount(ec::WaterAmbient), 20);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxCreatures)
+TEST_F(NaturalSpawnerTest, Constants_SpawnDistanceChunk)
 {
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_CREATURES, 10);
+    // 固定刷怪距离 8 区块
+    EXPECT_EQ(world::spawn::NaturalSpawner::SPAWN_DISTANCE_CHUNK, 8);
 }
 
-TEST_F(NaturalSpawnerTest, Constants_MaxAmbient)
+TEST_F(NaturalSpawnerTest, Constants_MagicNumber)
 {
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_AMBIENT, 15);
-}
-
-TEST_F(NaturalSpawnerTest, Constants_MaxWaterCreatures)
-{
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_WATER_CREATURES, 5);
-}
-
-TEST_F(NaturalSpawnerTest, Constants_MaxGroupSize)
-{
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_GROUP_SIZE, 4);
+    // 刷怪区块计数基准 17^2 = 289 = (2*SPAWN_DISTANCE_CHUNK+1)^2
+    constexpr i32 side = 2 * world::spawn::NaturalSpawner::SPAWN_DISTANCE_CHUNK + 1;
+    EXPECT_EQ(side * side, 289);
 }
 
 // ========== SpawnCosts 测试 ==========
@@ -404,28 +403,6 @@ TEST_F(NaturalSpawnerTest, SpawnCosts_ZeroCharge)
 {
     world::spawn::SpawnCosts costs(1.0, 0.0);
     EXPECT_FALSE(costs.isValid());
-}
-
-// ========== 实体分类限制测试 ==========
-
-TEST_F(NaturalSpawnerTest, EntityLimits_Monster)
-{
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_MONSTERS, 70);
-}
-
-TEST_F(NaturalSpawnerTest, EntityLimits_Creature)
-{
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_CREATURES, 10);
-}
-
-TEST_F(NaturalSpawnerTest, EntityLimits_Ambient)
-{
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_AMBIENT, 15);
-}
-
-TEST_F(NaturalSpawnerTest, EntityLimits_WaterCreature)
-{
-    EXPECT_EQ(world::spawn::NaturalSpawner::MAX_WATER_CREATURES, 5);
 }
 
 // ========== MobSpawnInfo 工厂方法测试 ==========

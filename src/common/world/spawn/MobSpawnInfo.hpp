@@ -463,68 +463,36 @@ public:
 
     /**
      * @brief 创建暖水海洋生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244249_o()（warmOcean 浅水版本）：
-     *   PUFFERFISH (15,1,3) WATER_AMBIENT
-     *   + warmOceanSpawns(builder, 10, 4): SQUID/TROPICAL_FISH/DOLPHIN
-     *   + commonSpawns: BAT + 8 条标准陆地怪物
-     *   无 cod、无 salmon、无 drowned。
      */
     static MobSpawnInfo createWarmOcean();
 
     /**
      * @brief 创建温水海洋生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244237_d(false)（浅水版本）：
-     *   func_243716_a(builder, 10, 2, 15): SQUID(10,1,4) WC + COD(15,3,6) WA + commonSpawns + DROWNED(5,1,1)
-     *   + PUFFERFISH(5,1,3) WA + TROPICAL_FISH(25,8,8) WA + DOLPHIN(2,1,2) WC
      */
     static MobSpawnInfo createLukewarmOcean();
 
     /**
      * @brief 创建深海温水海洋生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244237_d(true)（深水版本）：
-     *   与浅水版本差异：squid/cod 权重不同（func_243716_a(builder, 8, 4, 8) → SQUID(8,1,4) WC + COD(8,3,6) WA）。
-     *   其余条目（pufferfish/tropical_fish/dolphin/drowned/8 陆地怪物/bat）与浅水版本相同。
      */
     static MobSpawnInfo createDeepLukewarmOcean();
 
     /**
      * @brief 创建冷水海洋生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244230_b(false)（浅水版本）：
-     *   func_243716_a(builder, 3, 4, 15): SQUID(3,1,4) WC + COD(15,3,6) WA + commonSpawns + DROWNED(5,1,1)
-     *   + SALMON(15,1,5) WA + DOLPHIN(2,1,2) WC
-     *   注：DEEP_COLD_OCEAN = func_244230_b(true)，spawn list 与浅水版本相同。
      */
     static MobSpawnInfo createColdOcean();
 
     /**
      * @brief 创建冰冻海洋生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244239_e(false)（浅水版本）：
-     *   SQUID(1,1,4) WC + SALMON(15,1,5) WA + POLAR_BEAR(1,1,2) CREATURE + commonSpawns + DROWNED(5,1,1)
-     *   注：DEEP_FROZEN_OCEAN = func_244239_e(true)，spawn list 与浅水版本相同。
-     *   原版 1.16.5 不在 FrozenOcean 加 stray（stray 由 snowySpawns 添加，FrozenOcean 不调用）。
      */
     static MobSpawnInfo createFrozenOcean();
 
     /**
      * @brief 创建深海生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244234_c(true)（深水版本）：
-     *   spawn list 与普通 Ocean 完全一致（func_244234_c 的 deep 参数仅影响 generation settings）：
-     *     func_243716_a(builder, 1, 4, 10): SQUID(1,1,4) WC + COD(10,3,6) WA + commonSpawns + DROWNED(5,1,1)
-     *     + DOLPHIN(1,1,2) WC
      */
     static MobSpawnInfo createDeepOcean();
 
     /**
      * @brief 创建深海暖水海洋生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeMaker.func_244250_p()（deepWarmOcean 深水版本）：
-     *   比浅水 warmOcean 多 drowned、少 pufferfish，squid 权重更低。
      */
     static MobSpawnInfo createDeepWarmOcean();
 
@@ -535,63 +503,31 @@ public:
 
     /**
      * @brief 创建丛林生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(21, JUNGLE, BiomeMaker.func_244205_a())
-     *   → func_244215_a(0.1F, 0.2F, 40, 2, 3)：
-     *   baseJungleSpawns + parrot(40,1,2) CREATURE + ocelot(2,1,3) MONSTER
-     *   + panda(1,1,2) CREATURE
-     *   JungleHills (func_244238_e → func_244215_a(0.45F, 0.3F, 10, 1, 1)) 与 ModifiedJungle (func_244235_d)
-     *   spawn list 与 Jungle 类似（parrot/ocelot/panda 权重不同），目前复用 createJungle()。
      */
     static MobSpawnInfo createJungle();
 
     /**
      * @brief 创建稀疏丛林（旧名 JungleEdge）生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(23, JUNGLE_EDGE, BiomeMaker.func_244227_b())：
-     *   func_244227_b 内部仅调用 baseJungleSpawns，不额外添加 wolf/parrot/ocelot/panda。
-     *   注：1.21.11 sparseJungle() 额外添加了 wolf(8,2,4)，但 1.16.5 中无 wolf。本项目对齐 1.16.5。
-     *   ModifiedJungleEdge (func_244231_c) spawn list 与 JungleEdge 相同。
      */
     static MobSpawnInfo createSparseJungle();
 
     /**
      * @brief 创建竹林生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(168, BAMBOO_JUNGLE, BiomeMaker.func_244240_f())
-     *   → func_244214_a(0.1F, 0.2F, 40, 2)：
-     *   baseJungleSpawns + parrot(40,1,2) CREATURE + panda(80,1,2) CREATURE
-     *   + ocelot(2,1,1) MONSTER
-     *   与普通 jungle 差异：panda weight=80（非 1）、ocelot pack=1（非 3）。
-     *   BambooJungleHills (func_244241_g) spawn list 与 BambooJungle 类似（parrot 权重 10、pack 1）。
      */
     static MobSpawnInfo createBambooJungle();
 
     /**
      * @brief 创建热带草原生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(35, SAVANNA, BiomeMaker.func_244211_a(0.125F, 0.05F, 1.2F, false,
-     * false))： func_244211_a 内部调用 func_244258_x()：farmAnimals + horse(1,2,6) + donkey(1,1,1) + commonSpawns（8
-     * 陆地怪物 + bat）。 不含 llama/wolf（仅 SavannaPlateau 通过 func_244247_m() 加 llama，无 wolf）。
      */
     static MobSpawnInfo createSavanna();
 
     /**
      * @brief 创建热带草原高原生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(36, SAVANNA_PLATEAU, BiomeMaker.func_244247_m())：
-     *   func_244247_m() 在 func_244258_x() 基础上额外添加 llama(8,4,4)（CREATURE 分类）。
-     *   注：1.16.5 中仅 SavannaPlateau 加 llama，无 wolf；ShatteredSavannaPlateau 不加任何额外条目。
      */
     static MobSpawnInfo createSavannaPlateau();
 
     /**
      * @brief 创建破碎热带草原生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(163, SHATTERED_SAVANNA,
-     * BiomeMaker.func_244211_a(0.3625F, 1.225F, 1.1F, true, true))： func_244211_a 内部仅调用 func_244258_x()，与普通
-     * Savanna spawn list 相同（无 llama/wolf）。 shattered=true 仅影响地形与地表方块（generation settings），不影响
-     * spawn list。
      */
     static MobSpawnInfo createShatteredSavanna();
 
@@ -607,33 +543,11 @@ public:
 
     /**
      * @brief 创建雪地生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(12, SNOWY_TUNDRA, BiomeMaker.func_244219_a())
-     *   → DefaultBiomeFeatures.func_243741_e()（snowySpawns）：
-     *     RABBIT (10,2,3) CREATURE + POLAR_BEAR (1,1,2) CREATURE
-     *     + caveSpawns: BAT (10,8,8) AMBIENT
-     *     + monsters(builder, 95, 5, 20): 8 条标准陆地怪物（skeleton 权重 20）
-     *     + STRAY (80,4,4) MONSTER
-     *   creatureSpawnProbability = 0.07F。
-     *   注：IceSpikes spawn list 与 SnowyTundra 完全一致，复用本方法。
      */
     static MobSpawnInfo createSnowy();
 
     /**
      * @brief 创建积雪沙滩生物群系的生成信息
-     *
-     * 对应 MC 1.16.5 BiomeRegistry.func_244204_a(26, SNOWY_BEACH,
-     *   BiomeMaker.func_244208_a(0.0F, 0.025F, 0.05F, 0.3F, true, false, false))
-     *   → 不添加 TURTLE（因 p_244208_5_=true 表示雪地沙滩）
-     *   → DefaultBiomeFeatures.func_243737_c()（commonSpawns）：
-     *     caveSpawns: BAT (10,8,8) AMBIENT
-     *     monsters(builder, 95, 5, 100): 8 条标准陆地怪物（skeleton 权重 100，无 stray）
-     *   与 SnowyTundra(createSnowy) 差异：
-     *     - skeleton 权重 100（vs SnowyTundra 20）
-     *     - 无 stray（SnowyTundra 有 stray 80）
-     *     - 无 creature 分类（SnowyTundra 有 rabbit + polar_bear）
-     *     - creatureSpawnProbability 使用默认 0.1F（SnowyTundra 为 0.07F）
-     *   1.16.5 与 1.21.11 spawn list 完全相同（1.21.11 仅额外含 glow_squid，本项目对齐 1.16.5 不含）。
      */
     static MobSpawnInfo createSnowyBeach();
 
