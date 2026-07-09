@@ -1307,7 +1307,8 @@ TEST_F(EntityResolverTest, AllPlayersSelectorReturnsPlayers)
     aliceData->x = 0.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 0.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 0.0f, 64.0f, 0.0f);
 
     m_server.addTestPlayer(2, "Bob");
     auto* bobData = m_server.playerManager().getPlayer(2);
@@ -1315,7 +1316,8 @@ TEST_F(EntityResolverTest, AllPlayersSelectorReturnsPlayers)
     bobData->x = 10.0;
     bobData->y = 64.0;
     bobData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 10.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 10.0f, 64.0f, 0.0f);
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector(EntitySelectorType::AllPlayers);
@@ -1332,7 +1334,8 @@ TEST_F(EntityResolverTest, NearestPlayerSelectorReturnsClosestPlayer)
     aliceData->x = 5.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 5.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 5.0f, 64.0f, 0.0f);
 
     m_server.addTestPlayer(2, "Bob");
     auto* bobData = m_server.playerManager().getPlayer(2);
@@ -1340,7 +1343,8 @@ TEST_F(EntityResolverTest, NearestPlayerSelectorReturnsClosestPlayer)
     bobData->x = 50.0;
     bobData->y = 64.0;
     bobData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 50.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 50.0f, 64.0f, 0.0f);
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::nearestPlayer();
@@ -1348,7 +1352,7 @@ TEST_F(EntityResolverTest, NearestPlayerSelectorReturnsClosestPlayer)
     auto result = EntityResolver::resolve(source, selector);
     ASSERT_EQ(result.size(), 1u);
     // Alice 距离控制台(0,0,0)更近
-    // 注意：createPlayerEntity 创建的 Player 的 typeId 为 "minecraft:unknown"（未通过 EntityType 工厂创建），
+    // 注意：createPlayerEntity 创建的 ServerPlayer 的 typeId 为 "minecraft:unknown"（未通过 EntityType 工厂创建），
     // 因此不能通过 getTypeId() 判断是否为玩家，但 EntityResolver 的 @p 选择器确实返回了最近的玩家实体
     EXPECT_NE(result[0], nullptr);
 }
@@ -1361,7 +1365,8 @@ TEST_F(EntityResolverTest, RandomPlayerSelectorReturnsOnePlayer)
     aliceData->x = 0.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 0.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 0.0f, 64.0f, 0.0f);
 
     m_server.addTestPlayer(2, "Bob");
     auto* bobData = m_server.playerManager().getPlayer(2);
@@ -1369,7 +1374,8 @@ TEST_F(EntityResolverTest, RandomPlayerSelectorReturnsOnePlayer)
     bobData->x = 10.0;
     bobData->y = 64.0;
     bobData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 10.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 10.0f, 64.0f, 0.0f);
 
     m_server.addTestPlayer(3, "Charlie");
     auto* charlieData = m_server.playerManager().getPlayer(3);
@@ -1377,14 +1383,15 @@ TEST_F(EntityResolverTest, RandomPlayerSelectorReturnsOnePlayer)
     charlieData->x = 20.0;
     charlieData->y = 64.0;
     charlieData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(3, "Charlie", *m_server.world(), 20.0f, 64.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        3, "Charlie", *m_server.world(), &m_server, nullptr, 20.0f, 64.0f, 0.0f);
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::randomPlayer();
 
     auto result = EntityResolver::resolve(source, selector);
     ASSERT_EQ(result.size(), 1u);
-    // 注意：createPlayerEntity 创建的 Player 的 typeId 为 "minecraft:unknown"
+    // 注意：createPlayerEntity 创建的 ServerPlayer 的 typeId 为 "minecraft:unknown"
     EXPECT_NE(result[0], nullptr);
     // 验证返回的是玩家实体（通过 dynamic_cast）
     EXPECT_NE(dynamic_cast<Player*>(result[0]), nullptr);
@@ -1399,7 +1406,8 @@ TEST_F(EntityResolverTest, AllPlayersSelectorWithDistanceFilter)
     aliceData->x = 5.0;
     aliceData->y = 0.0;
     aliceData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 5.0f, 0.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 5.0f, 0.0f, 0.0f);
 
     m_server.addTestPlayer(2, "Bob");
     auto* bobData = m_server.playerManager().getPlayer(2);
@@ -1407,7 +1415,8 @@ TEST_F(EntityResolverTest, AllPlayersSelectorWithDistanceFilter)
     bobData->x = 50.0;
     bobData->y = 0.0;
     bobData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 50.0f, 0.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 50.0f, 0.0f, 0.0f);
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector(EntitySelectorType::AllPlayers);
@@ -1427,7 +1436,8 @@ TEST_F(EntityResolverTest, AllPlayersSelectorWithDistanceFilterAtSameY)
     aliceData->x = 5.0;
     aliceData->y = 0.0;
     aliceData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 5.0f, 0.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 5.0f, 0.0f, 0.0f);
 
     m_server.addTestPlayer(2, "Bob");
     auto* bobData = m_server.playerManager().getPlayer(2);
@@ -1435,7 +1445,8 @@ TEST_F(EntityResolverTest, AllPlayersSelectorWithDistanceFilterAtSameY)
     bobData->x = 50.0;
     bobData->y = 0.0;
     bobData->z = 0.0;
-    m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 50.0f, 0.0f, 0.0f);
+    m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 50.0f, 0.0f, 0.0f);
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector(EntitySelectorType::AllPlayers);
@@ -1457,7 +1468,8 @@ TEST_F(EntityResolverTest, GamemodeFilterMatchesPlayerGamemode)
     aliceData->x = 0.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    auto* alice = m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 0.0f, 64.0f, 0.0f);
+    auto* alice = m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 0.0f, 64.0f, 0.0f);
     ASSERT_NE(alice, nullptr);
     alice->setGameMode(GameMode::Creative);
 
@@ -1467,7 +1479,8 @@ TEST_F(EntityResolverTest, GamemodeFilterMatchesPlayerGamemode)
     bobData->x = 5.0;
     bobData->y = 64.0;
     bobData->z = 0.0;
-    auto* bob = m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 5.0f, 64.0f, 0.0f);
+    auto* bob = m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 5.0f, 64.0f, 0.0f);
     ASSERT_NE(bob, nullptr);
     bob->setGameMode(GameMode::Survival);
 
@@ -1487,7 +1500,8 @@ TEST_F(EntityResolverTest, GamemodeFilterNegatedExcludesCreative)
     aliceData->x = 0.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    auto* alice = m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 0.0f, 64.0f, 0.0f);
+    auto* alice = m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 0.0f, 64.0f, 0.0f);
     ASSERT_NE(alice, nullptr);
     alice->setGameMode(GameMode::Creative);
 
@@ -1497,7 +1511,8 @@ TEST_F(EntityResolverTest, GamemodeFilterNegatedExcludesCreative)
     bobData->x = 5.0;
     bobData->y = 64.0;
     bobData->z = 0.0;
-    auto* bob = m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 5.0f, 64.0f, 0.0f);
+    auto* bob = m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 5.0f, 64.0f, 0.0f);
     ASSERT_NE(bob, nullptr);
     bob->setGameMode(GameMode::Survival);
 
@@ -1538,7 +1553,8 @@ TEST_F(EntityResolverTest, LevelFilterMatchesPlayerLevel)
     aliceData->x = 0.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    auto* alice = m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 0.0f, 64.0f, 0.0f);
+    auto* alice = m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 0.0f, 64.0f, 0.0f);
     ASSERT_NE(alice, nullptr);
     alice->setExperienceLevel(10);
 
@@ -1548,7 +1564,8 @@ TEST_F(EntityResolverTest, LevelFilterMatchesPlayerLevel)
     bobData->x = 5.0;
     bobData->y = 64.0;
     bobData->z = 0.0;
-    auto* bob = m_server.playerEntityManager().createPlayerEntity(2, "Bob", *m_server.world(), 5.0f, 64.0f, 0.0f);
+    auto* bob = m_server.playerEntityManager().createPlayerEntity(
+        2, "Bob", *m_server.world(), &m_server, nullptr, 5.0f, 64.0f, 0.0f);
     ASSERT_NE(bob, nullptr);
     bob->setExperienceLevel(30);
 
@@ -1592,14 +1609,14 @@ TEST_F(EntityResolverTest, SelfSelectorWithPlayerSource)
     aliceData->x = 5.0;
     aliceData->y = 64.0;
     aliceData->z = 0.0;
-    auto* playerEntity =
-        m_server.playerEntityManager().createPlayerEntity(1, "Alice", *m_server.world(), 5.0f, 64.0f, 0.0f);
+    auto* playerEntity = m_server.playerEntityManager().createPlayerEntity(
+        1, "Alice", *m_server.world(), &m_server, nullptr, 5.0f, 64.0f, 0.0f);
     ASSERT_NE(playerEntity, nullptr);
 
     // 将 Player* 转换为 ServerPlayer* 用于 ServerCommandSource
     auto* serverPlayer = playerEntity->asServerPlayer();
-    // 注意：createPlayerEntity 创建的是 Player*，不是 ServerPlayer*
-    // 所以 asServerPlayer() 返回 nullptr。我们需要直接创建 ServerPlayer。
+    // createPlayerEntity 现在直接创建 ServerPlayer，
+    // 所以 asServerPlayer() 返回有效指针，可直接用于 ServerCommandSource。
 
     // 创建 mc::ServerPlayer 实体并生成到世界中
     // 注意：需要使用 mc::ServerPlayer 而非 mc::server::ServerPlayer（StatisticsManager 中的前向声明）

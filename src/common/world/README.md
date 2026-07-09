@@ -377,3 +377,20 @@ world/
 **线程安全**：与 `requestFullChunkSync` 相同，仅在服务端主线程调用安全。
 
 **使用场景**：`EndGatewayEntity::_generateExitPortal` 通过 `world.getOrLoadChunk()` 扫描外岛区块判空，完整复刻 MC Java 的 `findExitPortalXZPosTentative` 行为。需要仅查询内存时（不触发加载）仍使用 `getChunk()`。
+
+### 17. IWorld 粒子生成虚接口
+
+`IWorld` 提供一组粒子生成虚方法，供 common 层游戏逻辑（方块动画、方块实体、实体行为等）编程式调用，由 `ServerWorld`（服务端广播）和 `ClientWorld`（客户端直接生成）分别实现：
+
+| 虚方法 | 用途 | 服务端行为 | 客户端行为 |
+|--------|------|-----------|-----------|
+| `addParticle(type, pos, velocity)` | 普通粒子 | 广播 `ParticlePacket::create()` | 直接生成 |
+| `addParticle(type, pos, velocity, offset, count)` | 批量普通粒子 | 广播 | 直接生成 |
+| `addBlockParticle(type, pos, velocity, blockState)` | 方块粒子（Block/Breaking/FallingDust） | 广播 `createBlock()`（携带 BlockState ID） | `ClientWorld` 直接调用 `DiggingParticle::createWithBlock()` |
+| `addItemParticle(type, pos, velocity, itemStack)` | 物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball） | 广播 `createItem()`（携带 ItemStack 序列化字节流） | `ClientWorld` 直接调用 `ItemParticle::createWithItemStack()` |
+| `addEntityEffectParticle(pos, velocity, offset, count, color)` | 实体效果粒子（EntityEffect） | 广播 `createEntityEffect()`（携带 ARGB 颜色） | `ClientWorld` 通过 `EntityEffectParticleData` 走数据管线 |
+| `addTrailParticle(pos, target, color, duration)` | 轨迹粒子（Trail） | 广播 `createTrail()` | 客户端默认无操作 |
+
+**默认实现**：所有粒子虚方法在 `IWorld` 中提供默认空实现（no-op），`ClientWorld` 和 `ServerWorld` 按需覆写。`WorldGenRegion` 等只读快照实现继承默认空行为。
+
+**服务端广播链路**：`ServerWorld::addXxxParticle()` → `m_onBroadcastXxxParticle` 回调 → `MinecraftServer::broadcastXxxParticleInRange()` → `ParticlePacket::createXxx()`。回调在 `MinecraftServer::attachWorldBindings()` 中注册。详见 `src/server/application/README.md` 的「粒子广播链路」章节。

@@ -213,9 +213,6 @@ namespace {
     if (selector.hasAdvancementConditions()) {
         // 通过 ServerPlayerEntityManager 获取 ServerPlayer 的成就进度
         // 而不是使用 ServerPlayerData::advancements（始终为 nullptr）
-        // TODO: 当前 ServerPlayerEntityManager::createPlayerEntity() 创建的是 Player 而非 ServerPlayer，
-        // 导致 Player::asServerPlayer() 返回 nullptr，此路径在运行时无法获取 PlayerAdvancements。
-        // 修复 ServerPlayer 创建机制后此逻辑将自动生效。
         server::PlayerAdvancements* playerAdvancements = nullptr;
         if (server != nullptr && world != nullptr) {
             Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);

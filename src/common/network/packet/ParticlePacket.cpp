@@ -22,6 +22,8 @@
  */
 
 #include "ParticlePacket.hpp"
+#include "PacketDeserializer.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc::network {
 
@@ -763,6 +765,49 @@ std::optional<u32> ParticlePacket::decodeBlockStateId() const
     }
 
     return static_cast<u32>(stateIdResult.value());
+}
+
+// static
+ParticlePacket ParticlePacket::createItem(particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count,
+    const ::mc::ItemStack& itemStack)
+{
+    ParticlePacket packet(type, pos, velocity, offset, count);
+
+    // 将 ItemStack 序列化到 PacketSerializer，再将字节流复制到 optionalData
+    // ItemStack::serialize 写入：bool(present) + u16(itemId) + i32(count) + 可选字段
+    // 整个字节流即为 optionalData 内容，无需额外长度前缀
+    PacketSerializer serializer(32);
+    itemStack.serialize(serializer);
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+bool ParticlePacket::isItemParticle() const noexcept
+{
+    return particle::requiresItemData(m_particleType) && !m_optionalData.empty();
+}
+
+std::optional<::mc::ItemStack> ParticlePacket::decodeItemStack() const
+{
+    if (!isItemParticle()) {
+        return std::nullopt;
+    }
+
+    // 用 optionalData 构造 PacketDeserializer，调用 ItemStack::deserialize 解析
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+    auto itemResult = ::mc::ItemStack::deserialize(deserializer);
+    if (!itemResult.success()) {
+        return std::nullopt;
+    }
+
+    return std::move(itemResult.value());
 }
 
 } // namespace mc::network

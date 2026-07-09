@@ -37,8 +37,10 @@
 #include "item/loot/entries/ItemLootEntry.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include <gtest/gtest.h>
 
@@ -982,4 +984,230 @@ TEST_F(LootableContainerNbtTest, DynamicCast_NonLootableBlockEntity_ReturnsNull)
     auto hopper = std::make_unique<HopperEntity>(BlockPos(0, 0, 0));
     BlockEntity* base = hopper.get();
     EXPECT_EQ(dynamic_cast<LootableContainerBlockEntity*>(base), nullptr);
+}
+
+// ============================================================================
+// Items NBT 序列化测试（loadFromNBT / saveToNBT 中的 "Items" 键）
+// ============================================================================
+//
+// 验证子类（ChestEntity/BarrelEntity/ShulkerBoxEntity/DispenserBlockEntity）通过
+// 基类 saveItemsToNBT/loadItemsFromNBT 辅助方法序列化容器物品列表。
+// 与 MC Java RandomizableContainer 一致：LootTable/LootTableSeed 与 Items 互斥。
+
+namespace {
+/// 从 NBT compound_list_tag 读取 Items 列表中的物品（Slot, id, Count）
+struct LoadedItem {
+    i8 slot = -1;
+    std::string id;
+    i32 count = 0;
+};
+
+/// 从 NBT tag 中提取 Items 列表
+std::vector<LoadedItem> extractItemsList(const nbt::CompoundTag& tag)
+{
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    std::vector<LoadedItem> result;
+
+    const auto* listTag = nbt_helper::tryGetList(tag, "Items");
+    if (listTag == nullptr || listTag->element_id() != nbt::TagId::Compound) {
+        return result;
+    }
+    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
+    for (const auto& itemTag : compoundList.value) {
+        LoadedItem item;
+        if (auto slotOpt = nbt_helper::tryGetByte(itemTag, "Slot")) {
+            item.slot = *slotOpt;
+        }
+        if (auto idOpt = nbt_helper::tryGetString(itemTag, "id")) {
+            item.id = *idOpt;
+        }
+        if (auto countOpt = nbt_helper::tryGetByte(itemTag, "Count")) {
+            item.count = static_cast<i32>(*countOpt);
+        }
+        result.push_back(item);
+    }
+    return result;
+}
+} // namespace
+
+TEST_F(LootableContainerNbtTest, ChestEntity_ItemsRoundTrip_PreservesItems)
+{
+    // 验证 ChestEntity 在无战利品表时正确序列化 Items 列表
+    ChestEntity chest(BlockPos(1, 2, 3));
+    Item* diamond = ensureTestItem("diamond");
+    Item* ironIngot = ensureTestItem("iron_ingot");
+    chest.getInventory()->setItem(0, ItemStack(diamond, 32));
+    chest.getInventory()->setItem(26, ItemStack(ironIngot, 1));
+
+    nbt::CompoundTag tag;
+    chest.saveToNBT(tag);
+
+    // 应写入 Items，且不写入 LootTable
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    EXPECT_FALSE(nbt_helper::tryGetString(tag, "LootTable").has_value());
+    auto items = extractItemsList(tag);
+    ASSERT_EQ(items.size(), 2u);
+
+    // 加载到新实体验证往返
+    ChestEntity loaded(BlockPos(1, 2, 3));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    EXPECT_FALSE(loaded.hasLootTable());
+    EXPECT_EQ(loaded.getInventory()->getItem(0).getItem(), diamond);
+    EXPECT_EQ(loaded.getInventory()->getItem(0).getCount(), 32);
+    EXPECT_EQ(loaded.getInventory()->getItem(26).getItem(), ironIngot);
+    EXPECT_EQ(loaded.getInventory()->getItem(26).getCount(), 1);
+    // 空槽位保持空
+    EXPECT_TRUE(loaded.getInventory()->getItem(13).isEmpty());
+}
+
+TEST_F(LootableContainerNbtTest, ChestEntity_LootTablePresent_ItemsNotWritten)
+{
+    // 验证设置了战利品表时，Items 不被写入（互斥语义）
+    ChestEntity chest(BlockPos(1, 2, 3));
+    Item* diamond = ensureTestItem("diamond");
+    chest.getInventory()->setItem(0, ItemStack(diamond, 5));
+    chest.setLootTable(ResourceLocation("minecraft", "chests/loot_only"), 12345LL);
+
+    nbt::CompoundTag tag;
+    chest.saveToNBT(tag);
+
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    EXPECT_TRUE(nbt_helper::tryGetString(tag, "LootTable").has_value());
+    // 有战利品表时不应写入 Items
+    const auto* listTag = nbt_helper::tryGetList(tag, "Items");
+    EXPECT_EQ(listTag, nullptr);
+}
+
+TEST_F(LootableContainerNbtTest, ChestEntity_LootTableInNBT_ItemsNotLoaded)
+{
+    // 验证 NBT 含 LootTable 时，loadFromNBT 不读取 Items（防止覆盖战利品表逻辑）
+    ChestEntity chest(BlockPos(1, 2, 3));
+    Item* diamond = ensureTestItem("diamond");
+    chest.getInventory()->setItem(5, ItemStack(diamond, 10));
+
+    nbt::CompoundTag tag;
+    tag.put("LootTable", std::string("minecraft:chests/has_table"));
+    tag.put("LootTableSeed", static_cast<i64>(999LL));
+    // 同时塞入一个 Items 列表（模拟损坏数据），加载时应被忽略
+    {
+        auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
+        nbt::tags::compound_tag itemTag;
+        itemTag.put("Slot", static_cast<i8>(0));
+        itemTag.put("id", std::string("minecraft:diamond"));
+        itemTag.put("Count", static_cast<i8>(64));
+        itemsList->value.push_back(std::move(itemTag));
+        tag.value.emplace("Items", std::move(itemsList));
+    }
+
+    ChestEntity loaded(BlockPos(1, 2, 3));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    EXPECT_TRUE(loaded.hasLootTable());
+    // Items 应未被加载（槽位 0 保持空）
+    EXPECT_TRUE(loaded.getInventory()->getItem(0).isEmpty());
+}
+
+TEST_F(LootableContainerNbtTest, BarrelEntity_ItemsRoundTrip_PreservesItems)
+{
+    // 验证 BarrelEntity 的 Items NBT 序列化
+    BarrelEntity barrel(BlockPos(4, 5, 6));
+    Item* apple = ensureTestItem("apple");
+    barrel.getInventory()->setItem(13, ItemStack(apple, 16));
+
+    nbt::CompoundTag tag;
+    barrel.saveToNBT(tag);
+
+    BarrelEntity loaded(BlockPos(4, 5, 6));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    EXPECT_FALSE(loaded.hasLootTable());
+    EXPECT_EQ(loaded.getInventory()->getItem(13).getItem(), apple);
+    EXPECT_EQ(loaded.getInventory()->getItem(13).getCount(), 16);
+}
+
+TEST_F(LootableContainerNbtTest, ShulkerBoxEntity_ItemsRoundTrip_PreservesItems)
+{
+    // 验证 ShulkerBoxEntity 的 Items NBT 序列化
+    ShulkerBoxEntity shulker(BlockPos(7, 8, 9));
+    Item* diamond = ensureTestItem("diamond");
+    shulker.getInventory()->setItem(0, ItemStack(diamond, 1));
+
+    nbt::CompoundTag tag;
+    shulker.saveToNBT(tag);
+
+    ShulkerBoxEntity loaded(BlockPos(7, 8, 9));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    EXPECT_FALSE(loaded.hasLootTable());
+    EXPECT_EQ(loaded.getInventory()->getItem(0).getItem(), diamond);
+    EXPECT_EQ(loaded.getInventory()->getItem(0).getCount(), 1);
+}
+
+TEST_F(LootableContainerNbtTest, DispenserBlockEntity_ItemsRoundTrip_PreservesItems)
+{
+    // 验证 DispenserBlockEntity 的 Items NBT 序列化（9 格容器）
+    DispenserBlockEntity dispenser(BlockEntityType::Dispenser, BlockPos(10, 11, 12));
+    Item* arrow = ensureTestItem("arrow");
+    dispenser.getInventory()->setItem(0, ItemStack(arrow, 32));
+    dispenser.getInventory()->setItem(8, ItemStack(arrow, 7));
+
+    nbt::CompoundTag tag;
+    dispenser.saveToNBT(tag);
+
+    DispenserBlockEntity loaded(BlockEntityType::Dispenser, BlockPos(10, 11, 12));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    EXPECT_FALSE(loaded.hasLootTable());
+    EXPECT_EQ(loaded.getInventory()->getItem(0).getItem(), arrow);
+    EXPECT_EQ(loaded.getInventory()->getItem(0).getCount(), 32);
+    EXPECT_EQ(loaded.getInventory()->getItem(8).getItem(), arrow);
+    EXPECT_EQ(loaded.getInventory()->getItem(8).getCount(), 7);
+}
+
+TEST_F(LootableContainerNbtTest, ChestEntity_EmptyInventory_ItemsNotWritten)
+{
+    // 空容器的 Items 列表可为空或缺失，加载后应仍为空
+    ChestEntity chest(BlockPos(1, 2, 3));
+
+    nbt::CompoundTag tag;
+    chest.saveToNBT(tag);
+
+    // 空容器：Items 列表存在但为空（saveItemsToNBT 始终写入列表标签）
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    const auto* listTag = nbt_helper::tryGetList(tag, "Items");
+    ASSERT_NE(listTag, nullptr);
+    EXPECT_EQ(listTag->size(), 0u);
+
+    ChestEntity loaded(BlockPos(1, 2, 3));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    for (i32 i = 0; i < ChestEntity::CHEST_SIZE; ++i) {
+        EXPECT_TRUE(loaded.getInventory()->getItem(i).isEmpty()) << "slot " << i;
+    }
+}
+
+TEST_F(LootableContainerNbtTest, ChestEntity_ItemsWithInvalidSlot_Skipped)
+{
+    // 验证 Slot 超出容器范围时跳过该物品
+    ChestEntity chest(BlockPos(1, 2, 3));
+
+    nbt::CompoundTag tag;
+    {
+        auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
+        // 有效槽位 5
+        nbt::tags::compound_tag validTag;
+        validTag.put("Slot", static_cast<i8>(5));
+        validTag.put("id", std::string("minecraft:diamond"));
+        validTag.put("Count", static_cast<i8>(1));
+        itemsList->value.push_back(std::move(validTag));
+        // 无效槽位 99（超出 27 格）
+        nbt::tags::compound_tag invalidTag;
+        invalidTag.put("Slot", static_cast<i8>(99));
+        invalidTag.put("id", std::string("minecraft:iron_ingot"));
+        invalidTag.put("Count", static_cast<i8>(1));
+        itemsList->value.push_back(std::move(invalidTag));
+        tag.value.emplace("Items", std::move(itemsList));
+    }
+
+    ChestEntity loaded(BlockPos(1, 2, 3));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+    // 槽位 5 应有物品，槽位 99 被丢弃
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    EXPECT_EQ(loaded.getInventory()->getItem(5).getItem(), diamond);
 }

@@ -170,21 +170,17 @@ void LootableContainerBlockEntity::save(nlohmann::json& data) const
 // 序列化 - NBT（结构模板 / 客户端同步）
 // ============================================================================
 
-// TODO: 子类容器物品（Items 列表）的 NBT 序列化尚未实现。
-// 当前 LootableContainerBlockEntity 的 loadFromNBT/saveToNBT 仅处理
-// LootTable/LootTableSeed 两个键，未序列化容器内物品列表（"Items" NBT 键）。
-// 子类（ChestEntity/BarrelEntity/ShulkerBoxEntity/DispenserBlockEntity 等）
-// 均未重写 loadFromNBT/saveToNBT，仅有 JSON load/save（区块存档路径）。
-// 后果：结构模板放置预填充物品的容器时，Items NBT 数据会被丢弃，
-// 容器内物品丢失。仅当容器使用战利品表（LootTable 键）时不受影响，
-// 因为战利品表会延迟生成物品。
-// 后续应让各子类重写 loadFromNBT/saveToNBT，调用基类方法后
-// 序列化 SimpleInventory 的 Items 列表（参考 BannerEntity/SignEntity 的模式）。
+// 子类（ChestEntity/BarrelEntity/ShulkerBoxEntity/DispenserBlockEntity 等）通过
+// 重写 loadFromNBT/saveToNBT，调用基类方法处理战利品表引用后，再调用基类 protected
+// 辅助方法 saveItemsToNBT/loadItemsFromNBT 序列化容器物品列表（"Items" NBT 键）。
+// LootTable/LootTableSeed 与 Items 互斥：未解包的战利品表存在时只持久化引用，
+// 已解包或无战利品表时持久化实际物品（与 MC Java RandomizableContainer 一致）。
 
 namespace {
 /// NBT 键名
 constexpr const char* LOOT_TABLE_TAG = "LootTable";
 constexpr const char* LOOT_TABLE_SEED_TAG = "LootTableSeed";
+constexpr const char* ITEMS_TAG = "Items";
 } // namespace
 
 bool LootableContainerBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
@@ -218,13 +214,60 @@ void LootableContainerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
     BlockEntity::saveToNBT(tag);
 
     // 仅在已设置战利品表且尚未填充时保存
-    // 已填充后战利品表引用清空，物品应通过子类的 Items NBT 持久化
-    // （注：子类 Items NBT 序列化尚未实现，见上方 TODO）
+    // 已填充后战利品表引用清空，物品应由子类通过 saveItemsToNBT 持久化到 "Items" 键
     if (m_hasLootTable && !m_lootFilled) {
         tag.put(LOOT_TABLE_TAG, m_lootTable.toString());
         if (m_lootTableSeed != 0) {
             tag.put(LOOT_TABLE_SEED_TAG, m_lootTableSeed);
         }
+    }
+}
+
+// ========== 容器物品 NBT 序列化辅助 ==========
+
+void LootableContainerBlockEntity::saveItemsToNBT(nbt::CompoundTag& tag, const IInventory& inventory) const
+{
+    auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
+    const i32 containerSize = inventory.getContainerSize();
+    for (i32 slot = 0; slot < containerSize; ++slot) {
+        const ItemStack& stack = inventory.getItem(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        nbt::tags::compound_tag itemTag;
+        itemTag.put("Slot", static_cast<i8>(slot));
+        stack.toNbt(itemTag);
+        itemsList->value.push_back(std::move(itemTag));
+    }
+    tag.value.insert_or_assign(ITEMS_TAG, std::move(itemsList));
+}
+
+void LootableContainerBlockEntity::loadItemsFromNBT(const nbt::CompoundTag& tag, IInventory& inventory)
+{
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+
+    inventory.clear();
+
+    const auto* listTag = nbt_helper::tryGetList(tag, ITEMS_TAG);
+    if (listTag == nullptr || listTag->element_id() != nbt::TagId::Compound) {
+        return;
+    }
+
+    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
+    const i32 containerSize = inventory.getContainerSize();
+    for (const auto& itemTag : compoundList.value) {
+        i8 slot = 0;
+        if (auto slotOpt = nbt_helper::tryGetByte(itemTag, "Slot")) {
+            slot = *slotOpt;
+        }
+        if (slot < 0 || slot >= containerSize) {
+            continue;
+        }
+        auto stackResult = ItemStack::fromNbt(itemTag);
+        if (!stackResult.success()) {
+            continue;
+        }
+        inventory.setItem(slot, stackResult.value());
     }
 }
 

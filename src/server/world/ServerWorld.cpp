@@ -2392,6 +2392,15 @@ void ServerWorld::addBlockParticle(
     }
 }
 
+void ServerWorld::addItemParticle(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack)
+{
+    // 服务端不生成粒子，而是广播携带物品堆的物品粒子给附近玩家
+    if (m_onBroadcastItemParticle) {
+        m_onBroadcastItemParticle(type, pos, velocity, itemStack);
+    }
+}
+
 bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送

@@ -192,4 +192,4 @@ tileEntity->loadFromNBT(*processedBlock.nbt);
 - `BrushableBlockEntity`（可疑沙）不是 `LootableContainerBlockEntity`，其 `LootTableSeed` 由结构生成器（如 `DesertPyramidStructure`）通过 `setLootTable()` 直接设置，此处不干预。
 - `LootableContainerBlockEntity::loadFromNBT` 负责读取 `LootTable`/`LootTableSeed` 并触发延迟填充机制。
 
-**已知缺口**：`LootableContainerBlockEntity` 的子类尚未重写 `loadFromNBT`/`saveToNBT` 序列化容器物品列表（`Items` NBT 键），结构模板放置预填充物品的容器时物品会丢失。仅使用战利品表的容器不受影响。详见 `src/common/world/blockentity/core/LootableContainerBlockEntity.cpp` 中的 TODO 注释。
+**容器物品序列化**：`LootableContainerBlockEntity` 子类（`ChestEntity`/`BarrelEntity`/`ShulkerBoxEntity`/`DispenserBlockEntity`）已重写 `loadFromNBT`/`saveToNBT`，通过基类 protected 辅助方法 `saveItemsToNBT`/`loadItemsFromNBT` 序列化容器物品列表（`Items` NBT 键）。`LootTable`/`LootTableSeed` 与 `Items` 互斥：模板 NBT 中含 `LootTable` 时仅处理战利品表引用，否则加载/保存实际物品。结构模板放置预填充物品的容器（无战利品表）时物品得以正确保留。

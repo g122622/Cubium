@@ -189,6 +189,38 @@ protected:
     LootableContainerBlockEntity(BlockEntityType type, const BlockPos& pos);
 
     /**
+     * @brief 将容器物品列表序列化为 NBT "Items" 键
+     *
+     * 遍历容器中的非空槽位，将每个物品写入一个 compound_tag：
+     *   - "Slot" (byte): 槽位索引
+     *   - 物品字段（id/Count/tag）：由 ItemStack::toNbt 写入
+     * 全部存入 compound_list_tag，键名为 "Items"。
+     *
+     * 调用方（子类 saveToNBT）应在确认无未解包的战利品表后调用本方法，
+     * 与 MC Java 中 RandomizableContainer.saveAdditional 的互斥语义一致：
+     * LootTable/LootTableSeed 与 Items 不会同时持久化。
+     *
+     * @param tag 输出 NBT 复合标签
+     * @param inventory 要序列化的容器（通常为子类的 SimpleInventory）
+     */
+    void saveItemsToNBT(nbt::CompoundTag& tag, const IInventory& inventory) const;
+
+    /**
+     * @brief 从 NBT "Items" 键反序列化容器物品列表
+     *
+     * 读取 compound_list_tag 中的每个物品 compound，按 "Slot" 字段放置到容器。
+     * 缺失 "Slot" 或超出容器范围时跳过该物品。
+     * ItemStack::fromNbt 失败时跳过，不影响其余物品的加载。
+     *
+     * 调用前会清空容器。调用方（子类 loadFromNBT）应在确认 NBT 中不含
+     * 战利品表引用后调用本方法，与 MC Java 中互斥语义一致。
+     *
+     * @param tag 源 NBT 复合标签
+     * @param inventory 目标容器（通常为子类的 SimpleInventory）
+     */
+    void loadItemsFromNBT(const nbt::CompoundTag& tag, IInventory& inventory);
+
+    /**
      * @brief 延迟填充战利品表
      *
      * 如果战利品表尚未填充，则触发填充。此方法可从 const 方法中调用，

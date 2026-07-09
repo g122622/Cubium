@@ -93,6 +93,13 @@ private:
  * @brief 海豚模型
  *
  * textureWidth = 64, textureHeight = 64
+ *
+ * 运动状态推送：
+ *   EntityRendererManager::_applyDolphinMotionState 从 ClientEntity::velocity() 计算
+ *   水平速度平方（horizontalDistanceSqr = vx*vx + vz*vz，对应 MC 1.21.11
+ *   DolphinRenderer 中 isMoving = deltaMovement.horizontalDistanceSqr() > 1.0E-7），
+ *   通过 setMotionMagnitude 推送。setAngles 中根据 m_motionMagnitude 是否超过
+ *   MOTION_THRESHOLD (1.0E-7) 判断是否播放游泳摆尾动画。
  */
 class DolphinModel : public EntityModel {
 public:
@@ -104,16 +111,36 @@ public:
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
     /**
-     * @brief 设置是否在水中（已废弃，使用setMotionMagnitude）
-     * @deprecated 使用 setMotionMagnitude 替代
-     * TODO: 移除此方法，所有调用方应改用 setMotionMagnitude
-     */
-    void setInWater(bool inWater) { m_isInWater = inWater; }
-
-    /**
-     * @brief 设置运动向量模长的平方
+     * @brief 设置运动向量水平模长的平方
+     *
+     * 对应 MC 1.21.11 DolphinRenderer 中：
+     *   p_364903_.isMoving = p_480257_.getDeltaMovement().horizontalDistanceSqr() > 1.0E-7
+     * 由 EntityRendererManager::_applyDolphinMotionState 在 setAngles 之前推送，
+     * setAngles 依据该值是否超过 MOTION_THRESHOLD 决定是否播放游泳摆尾动画。
+     *
+     * @param magnitude 水平速度平方（vx*vx + vz*vz）
      */
     void setMotionMagnitude(f64 magnitude) { m_motionMagnitude = magnitude; }
+
+    /**
+     * @brief 运动判定阈值，对应 MC 1.21.11 DolphinRenderer 中的 1.0E-7
+     *
+     * 当 m_motionMagnitude > MOTION_THRESHOLD 时判定海豚正在移动，播放游泳摆尾动画；
+     * 否则恢复静态尾巴角度。公开此常量便于单元测试验证阈值边界行为。
+     */
+    static constexpr f64 MOTION_THRESHOLD = 1.0E-7;
+
+    // ========== 部件访问器（供单元测试验证摆尾角度） ==========
+    // 返回裸指针而非 shared_ptr，避免测试用例意外修改部件引用计数。
+    // 这些访问器仅用于读取 setAngles 写入的 rotateAngleX/Y 值。
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& body() const { return m_body; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& tail() const { return m_tail; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& tailFin() const { return m_tailFin; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& dorsalFin() const { return m_dorsalFin; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& finRight() const { return m_finRight; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& finLeft() const { return m_finLeft; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& head() const { return m_head; }
+    [[nodiscard]] const std::shared_ptr<ModelRenderer>& nose() const { return m_nose; }
 
 private:
     void _setupParts();
@@ -126,7 +153,6 @@ private:
     std::shared_ptr<ModelRenderer> m_head;      // 头部（子部件）
     std::shared_ptr<ModelRenderer> m_nose;      // 鼻子（子部件）
 
-    bool m_isInWater = true;
     f64 m_motionMagnitude = 0.0;
 };
 
@@ -322,15 +348,15 @@ private:
     void _setupParts();
 
     std::shared_ptr<ModelRenderer> m_body;          // 身体
-    std::shared_ptr<ModelRenderer> m_head;           // 头部
-    std::shared_ptr<ModelRenderer> m_tail;           // 尾巴
-    std::shared_ptr<ModelRenderer> m_leftHindLeg;    // 左后腿
-    std::shared_ptr<ModelRenderer> m_rightHindLeg;   // 右后腿
-    std::shared_ptr<ModelRenderer> m_leftFrontLeg;   // 左前腿
-    std::shared_ptr<ModelRenderer> m_rightFrontLeg;  // 右前腿
-    std::shared_ptr<ModelRenderer> m_topGills;       // 顶部鳃
-    std::shared_ptr<ModelRenderer> m_leftGills;      // 左侧鳃
-    std::shared_ptr<ModelRenderer> m_rightGills;     // 右侧鳃
+    std::shared_ptr<ModelRenderer> m_head;          // 头部
+    std::shared_ptr<ModelRenderer> m_tail;          // 尾巴
+    std::shared_ptr<ModelRenderer> m_leftHindLeg;   // 左后腿
+    std::shared_ptr<ModelRenderer> m_rightHindLeg;  // 右后腿
+    std::shared_ptr<ModelRenderer> m_leftFrontLeg;  // 左前腿
+    std::shared_ptr<ModelRenderer> m_rightFrontLeg; // 右前腿
+    std::shared_ptr<ModelRenderer> m_topGills;      // 顶部鳃
+    std::shared_ptr<ModelRenderer> m_leftGills;     // 左侧鳃
+    std::shared_ptr<ModelRenderer> m_rightGills;    // 右侧鳃
 
     bool m_isInWater = true;
     bool m_isOnGround = false;

@@ -901,6 +901,8 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     Player* playerEntity = m_playerEntityManager.createPlayerEntity(playerId,
         username,
         *overworldDim->world(),
+        this,
+        connection,
         static_cast<f32>(playerData->x),
         static_cast<f32>(playerData->y),
         static_cast<f32>(playerData->z));

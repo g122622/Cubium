@@ -136,3 +136,14 @@ if (client.isLocalConnection()) { /* 本地连接处理 */ }
 ### 7. NetworkClientConfig 默认值
 
 该结构体字段设置了默认值（如 `serverAddress = "127.0.0.1"`），使用时需注意是否符合预期。
+
+### 8. 粒子同步回调
+
+`NetworkClientCallbacks` 提供了一组粒子回调，由 `_handleParticle()` 根据 `ParticlePacket` 的可选数据类型分发：
+- `onParticle` - 普通粒子（无附加数据）
+- `onBlockParticle` - 方块粒子（携带 `BlockState&`，由 `decodeBlockState()` 解析）
+- `onItemParticle` - 物品粒子（携带 `ItemStack&`，由 `decodeItemStack()` 解析；对应 Item/ItemSlime/ItemCobweb/ItemSnowball）
+- `onVibrationParticle` / `onTrailParticle` - 振动/轨迹粒子（携带目标位置等参数）
+- `onEntityEffectParticle` - 实体效果粒子（携带 ARGB 颜色）
+
+分发顺序：先检查 `isBlockParticle()` → `isItemParticle()` → `isVibrationParticle()` → `isTrailParticle()` → `isEntityEffectParticle()`，均不匹配则走 `onParticle`。各回调由 `ClientApplicationNetwork` 注册，通过 `ParticleData` 走粒子数据管线创建粒子。

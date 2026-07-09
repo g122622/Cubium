@@ -970,6 +970,23 @@ protected:
         u32 blockStateId,
         f32 range = 256.0f);
 
+    /**
+     * @brief 广播物品粒子（携带物品堆）给范围内玩家
+     *
+     * 用于物品破碎、史莱姆弹跳、雪球击中等需要物品纹理的场景。
+     *
+     * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param itemStack 物品堆（用于粒子纹理）
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastItemParticleInRange(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const ItemStack& itemStack,
+        f32 range = 256.0f);
+
     // ========== 爆炸广播方法 ==========
 
     /**

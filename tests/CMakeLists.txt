@@ -946,6 +946,8 @@ add_executable(mc_tests
     client/renderer/entity/LlamaRendererTest.cpp
     # RabbitModel 兔子模型跳跃角度测试（setJumpRotation 对 thigh/foot/arm 旋转角度的影响）
     client/renderer/entity/RabbitModelTest.cpp
+    # DolphinModel 海豚模型运动状态注入测试（setMotionMagnitude + 摆尾动画 cos 公式）
+    client/renderer/entity/DolphinModelTest.cpp
     # Fullbright 渲染器 isFullbright() 测试
     client/renderer/entity/FullbrightRendererTest.cpp
     # WitchModel 女巫模型测试
@@ -986,6 +988,8 @@ add_executable(mc_tests
     network/ParticlePacketEntityEffectTest.cpp
     # Block 方块粒子数据包测试（携带方块状态 ID）
     network/ParticlePacketBlockTest.cpp
+    # Item 物品粒子数据包测试（携带物品堆）
+    network/ParticlePacketItemTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -1365,6 +1369,8 @@ add_executable(mc_tests
     client/renderer/trident/particle/data/TrailParticleDataTest.cpp
     # EntityEffectParticleData 粒子数据测试
     client/renderer/trident/particle/data/EntityEffectParticleDataTest.cpp
+    # ItemParticleData 粒子数据测试
+    client/renderer/trident/particle/data/ItemParticleDataTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试
@@ -2059,6 +2065,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
     # RabbitModel 兔子模型跳跃角度测试依赖
     ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/RabbitModel.cpp
+        # DolphinModel 海豚模型运动状态注入测试依赖（setMotionMagnitude + 摆尾动画）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/aquatic/AquaticModels.cpp
         # VillagerModel + WitchModel 女巫模型测试依赖
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/VillagerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/WitchModel.cpp

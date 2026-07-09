@@ -1967,6 +1967,25 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
                 stateId.value());
         }
     }
+
+    // 物品粒子特殊处理：解码物品堆
+    if (packet.isItemParticle() && m_callbacks.onItemParticle) {
+        auto itemStack = packet.decodeItemStack();
+        if (itemStack.has_value()) {
+            m_callbacks.onItemParticle(packet.particleType(),
+                packet.x(),
+                packet.y(),
+                packet.z(),
+                packet.velocityX(),
+                packet.velocityY(),
+                packet.velocityZ(),
+                packet.offsetX(),
+                packet.offsetY(),
+                packet.offsetZ(),
+                packet.count(),
+                itemStack.value());
+        }
+    }
 }
 
 void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)

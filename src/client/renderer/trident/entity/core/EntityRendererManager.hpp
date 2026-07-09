@@ -60,6 +60,9 @@ namespace monster {
 class SkeletonModel;
 class ZombieModel;
 } // namespace monster
+namespace aquatic {
+class DolphinModel;
+} // namespace aquatic
 } // namespace mc::client::renderer::entity::model
 
 namespace mc::client::renderer::entity {
@@ -525,6 +528,25 @@ private:
      * @param entity 客户端实体（提供 isFallFlying/velocity）
      */
     void _applyBipedElytraState(model::BipedModel& bipedModel, const ClientEntity& entity);
+
+    /**
+     * @brief 为海豚模型推送运动状态（水平速度平方）
+     *
+     * 在 _createModelForEntity 通用路径中调用。对应 MC 1.21.11 DolphinRenderer
+     * 中 isMoving 的填充：
+     *   p_364903_.isMoving = p_480257_.getDeltaMovement().horizontalDistanceSqr() > 1.0E-7;
+     * 从 ClientEntity::velocity() 取 x/z 分量计算 horizontalDistanceSqr = vx*vx + vz*vz
+     * （注意：只取水平分量 XZ，不包含 Y，与 MC 的 horizontalDistanceSqr 语义一致；
+     *  不能直接用 velocity().lengthSquared()，那是 3D 含 Y 的）。
+     * 通过 setMotionMagnitude 推送到 DolphinModel，setAngles 中据此判断是否播放
+     * 游泳摆尾动画（tail/tailFin 的 cos 波形）。
+     *
+     * 必须在 setAngles 之前调用，因为 setAngles 直接读取 m_motionMagnitude。
+     *
+     * @param dolphinModel 已创建的海豚模型
+     * @param entity 客户端实体（提供 velocity）
+     */
+    void _applyDolphinMotionState(model::aquatic::DolphinModel& dolphinModel, const ClientEntity& entity);
 };
 
 } // namespace mc::client::renderer::entity

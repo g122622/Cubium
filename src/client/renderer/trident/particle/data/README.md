@@ -54,6 +54,7 @@ ParticleData (基类)
 - `Redstone`：从 `DustParticleData` 提取 ARGB 颜色和缩放
 - `DustColorTransition`：从 `DustColorTransitionParticleData` 提取起始颜色、目标颜色和缩放
 - `EntityEffect`：从 `EntityEffectParticleData` 提取 ARGB 颜色（对应 MC `ColorParticleOption`）
+- `Item` / `ItemSlime` / `ItemCobweb` / `ItemSnowball`：从 `ItemParticleData` 提取 `ItemStack`，调用 `ItemParticle::createWithItemStack` 创建物品破碎粒子（对应 MC Java 1.21.11 的 `ItemParticleProvider`，通过 `BlockItemRegistry` 区分方块物品/非方块物品走不同纹理解析路径）
 
 ## EntityEffectParticleData 说明
 
