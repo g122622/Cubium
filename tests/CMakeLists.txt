@@ -493,6 +493,8 @@ add_executable(mc_tests
     common/world/block/blocks/mob/SpawnerBlockSpawnEggTest.cpp
     # DecoratedPotBlockEntity 饰纹陶罐方块实体测试
     common/world/blockentity/DecoratedPotBlockEntityTest.cpp
+    # BrushableBlockEntity 可刷方块实体测试（刷扫/冷却/重置/战利品/序列化/克隆）
+    common/world/blockentity/BrushableBlockEntityTest.cpp
     # SculkBlockEntity 幽匿方块实体测试
     common/world/blockentity/sculk/SculkBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp

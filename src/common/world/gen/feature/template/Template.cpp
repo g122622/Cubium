@@ -846,7 +846,15 @@ bool Template::placeInWorld(
                 // 加载 NBT 数据到方块实体
                 tileEntity->loadFromNBT(*processedBlock.nbt);
 
-                // 为战利品表容器设置随机种子
+                // TODO: 为战利品容器（RandomizableContainer / LootableContainerBlockEntity）
+                // 设置随机 LootTableSeed。对齐 MC 1.21.11 StructureTemplate.placeInWorld：
+                //   if (blockentity instanceof RandomizableContainer) {
+                //       nbt.putLong("LootTableSeed", rng.nextLong());
+                //   }
+                // 当前仅影响箱子/潜影盒等容器模板（其 LootTableSeed 由此处生成），
+                // 不影响可疑沙（BrushableBlockEntity），因为可疑沙不是 RandomizableContainer，
+                // 其 LootTableSeed 已由结构生成器（如 DesertPyramidStructure）通过
+                // setLootTable() 写入 NBT，loadFromNBT 会正确读取。
             }
         }
 
