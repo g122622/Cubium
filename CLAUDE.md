@@ -1,16 +1,29 @@
+## 文档参考
+
 如果你的任务涉及代码修改、文档更新、编译等，必须完整阅读下面三个文件的内容：
 
 /README.md
 /docs/CODE_CONVENTIONS.md
 /docs/PROJECT_CONVENTIONS.md
 
+## 构建
+
 【重要】由于本项目代码量已达百万级，构建时间很长，任务的超时等待时间必须30分钟以上！你在等待构建完成的过程中，不允许做其他任何事情。构建不允许在后台进行。
 等待子代理（agent）完成的过程中，不允许做其他任何事情。子代理不允许在后台进行。
 
-只允许执行下面唯一构建命令：
+在windows上，只允许执行下面唯一构建命令：
 ```bash
 ./scripts/configure.sh build
 ```
+
+在macos上：
+```bash
+cmake --build --preset macos-relwithdebinfo -- -j10
+```
+
+如果仍然对于构建过程存在疑难问题，可参考`docs/BUILD.md`
+
+## 代码格式化
 
 提交代码之前，必须使用clang-format对你修改的文件进行格式化：
 
@@ -19,8 +32,9 @@ clang-format -i src\common\xxx\Foo.cpp
 clang-format -i src\common\xxx\Foo.hpp
 ```
 
-可能出现找不到clang-format的情况，此时需要手动指定路径。（我的vs安装在D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64/bin/clang-format.exe）
-只允许格式化.cpp和.hpp文件，其他文件严禁通过上述命令格式化。
+- 可能出现找不到clang-format的情况，此时需要手动指定路径。
+（在windows上，我的vs安装在D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64/bin/clang-format.exe）
+- 只允许格式化.cpp和.hpp文件，其他文件严禁通过上述命令格式化。
 
 ## git 规范
 
@@ -33,13 +47,27 @@ clang-format -i src\common\xxx\Foo.hpp
 ### 合并方式
 不允许使用线性历史（rebase）
 
+## 子代理使用规范
+
 【重要】不允许让子代理执行编译命令，因为多个子代理执行编译命令会导致构建系统出现大量严重问题甚至锁死，必须由你来执行编译命令！你必须在子代理的提示词当中显式说明这个问题。
 【重要】不允许让子代理执行编译命令，因为多个子代理执行编译命令会导致构建系统出现大量严重问题甚至锁死，必须由你来执行编译命令！你必须在子代理的提示词当中显式说明这个问题。
 【重要】不允许让子代理执行编译命令，因为多个子代理执行编译命令会导致构建系统出现大量严重问题甚至锁死，必须由你来执行编译命令！你必须在子代理的提示词当中显式说明这个问题。
 
-注：当前资源包路径：C:\Users\Administrator\minecraft_reborn\resourcepacks\Vanilla
-注：当前数据包路径：C:\Users\Administrator\minecraft_reborn\datapacks\Vanilla
-注：可供参考的MC源码路径：D:\Minecraft\MC研究\Minecraft1.21.11源码
+## 重要的外部路径（用于参考和辅助错误排查）
+
+### Windows
+
+当前资源包路径：C:\Users\Administrator\minecraft_reborn\resourcepacks\Vanilla
+当前数据包路径：C:\Users\Administrator\minecraft_reborn\datapacks\Vanilla
+可供参考的MC源码路径：D:\Minecraft\MC研究\Minecraft1.21.11源码
 （如果项目中代码是参考1.16.5的，必须迁移到1.21.11）
-注：Moonrise优化模组路径：E:\dev\MC\Mods\Moonrise
-注：ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil
+Moonrise优化模组路径：E:\dev\MC\Mods\Moonrise
+ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil
+
+### MacOS
+　
+当前资源包路径：~\minecraft_reborn\resourcepacks\Vanilla
+当前数据包路径：~\minecraft_reborn\datapacks\Vanilla
+可供参考的MC源码路径：~/dev/MC/java/Minecraft1.21.11/
+（如果项目中代码是参考1.16.5的，必须迁移到1.21.11）
+Moonrise优化模组路径：~\dev\MC\Mods\Moonrise
