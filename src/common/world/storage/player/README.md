@@ -93,6 +93,6 @@ player/
 
 9. **关服时玩家运行时状态回写（fromPlayer + savePlayerRuntimeState 钩子）**:
    `PlayerDataManager::fromPlayer(const Player&)` 提取 Player 实体的运行时状态（位置、生命、饥饿、经验、背包、效果等）为 `PlayerSaveData`。该方法在关服时由 `IntegratedServer::savePlayerRuntimeState()` 和 `StandaloneServer::savePlayerRuntimeState()` 调用——遍历所有维度的在线 Player 实体，调用 `fromPlayer()` 提取状态，再用 `savePlayer()` 灌入缓存并标记脏。后续 `stopCore()` → `shutdownManagers()` → `saveAllWorldData()` 会通过 `PlayerDataManager::saveAll()` 把缓存落盘到 RocksDB。
-   - **签名变更**：`fromPlayer()` 的参数类型从 `const ServerPlayer&` 改为 `const Player&`，因为 `ServerPlayerEntityManager::createPlayerEntity` 创建的是基类 `Player` 实例，原签名无法被调用。
+   - **签名说明**：`fromPlayer()` 的参数类型为 `const Player&`，可接受 `ServerPlayer`（`ServerPlayerEntityManager::createPlayerEntity` 创建的就是 `ServerPlayer` 实例，通过基类引用访问运行时状态）。
    - **调用时机约束**：必须在主循环线程 join 之后、玩家实体被 `clearAll()` 移除之前调用，否则会与 `tick()` 产生数据竞争或拿到空指针。详见 `src/server/application/README.md` 第 9、10 节。
    - **UUID 来源覆盖**：`Player` 实体的 `m_uuid` 由登录流程（`handleLoginRequestPacket`）计算离线 UUID 后存入 `ServerPlayerData`，但**未回写到实体本身**。若直接用 `fromPlayer()` 提取的 `uuid` 字段落盘，会以空字符串作为 RocksDB key，导致下次登录无法读回。因此 `savePlayerRuntimeState()` 在调用 `fromPlayer()` 后，会用 `PlayerManager` 中的权威 UUID（`playerData->uuid`）覆盖 `saveData.uuid`，确保落盘 key 与登录时 `loadPlayer()` 查询的 key 一致。

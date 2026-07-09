@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/network/connection/IServerConnection.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -31,11 +32,13 @@
 
 namespace mc {
 class Player;
-}
+class ServerPlayer;
+} // namespace mc
 
 namespace mc::server {
 class ServerWorld;
-}
+class IServer;
+} // namespace mc::server
 
 namespace mc::server {
 
@@ -43,7 +46,7 @@ namespace mc::server {
  * @brief 服务端玩家实体管理器
  *
  * 负责创建和管理服务端玩家实体，整合：
- * - 实体创建（Player 对象）
+ * - 实体创建（ServerPlayer 对象）
  * - 世界实体池管理（EntityManager）
  * - 实体追踪（EntityTracker）
  * - PlayerId ↔ EntityId 双向映射
@@ -54,6 +57,9 @@ namespace mc::server {
  * - EntityId：世界实体标识，由 EntityManager 分配
  * - 玩家实体被纳入世界实体池，与其他实体统一管理
  * - EntityTracker 追踪玩家实体，自动同步给其他玩家
+ * - createPlayerEntity 创建的是 ServerPlayer（而非基类 Player），
+ *   以便成就系统、命令系统、选择器等通过 Player::asServerPlayer()
+ *   获取 ServerPlayer* 并访问其特有功能（PlayerAdvancements、网络通信等）
  *
  * ## 线程安全
  *
@@ -85,15 +91,19 @@ public:
      * @brief 创建玩家实体并加入世界
      *
      * 此方法执行以下操作：
-     * 1. 创建 Player 对象
+     * 1. 创建 ServerPlayer 对象（携带 PlayerAdvancements、末影箱回调等服务端特有状态）
      * 2. 设置玩家的 PlayerId
      * 3. 将玩家加入世界的 EntityManager（分配 EntityId）
-     * 4. 将玩家加入 EntityTracker（开始同步）
-     * 5. 建立 PlayerId ↔ EntityId 映射
+     * 4. 注入服务端上下文：setServer、setWorld、setConnection，
+     *    使成就触发、网络发包、末影箱自动保存等路径立即可用
+     * 5. 将玩家加入 EntityTracker（开始同步）
+     * 6. 建立 PlayerId ↔ EntityId 映射
      *
      * @param playerId 玩家ID（由 PlayerManager 分配）
      * @param username 用户名
      * @param world 目标世界
+     * @param server 服务器接口指针（用于 ServerPlayer::setServer）
+     * @param connection 网络连接（可为 nullptr，用于 ServerPlayer::setConnection）
      * @param spawnX 生成点 X 坐标
      * @param spawnY 生成点 Y 坐标
      * @param spawnZ 生成点 Z 坐标
@@ -101,9 +111,16 @@ public:
      *
      * @pre playerId != 0
      * @pre world != nullptr
+     * @pre server != nullptr
      */
-    Player* createPlayerEntity(
-        PlayerId playerId, const std::string& username, ServerWorld& world, f32 spawnX, f32 spawnY, f32 spawnZ);
+    Player* createPlayerEntity(PlayerId playerId,
+        const std::string& username,
+        ServerWorld& world,
+        IServer* server,
+        network::ConnectionPtr connection,
+        f32 spawnX,
+        f32 spawnY,
+        f32 spawnZ);
 
     /**
      * @brief 移除玩家实体

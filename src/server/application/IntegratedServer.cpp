@@ -555,6 +555,8 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         Player* playerEntity = m_playerEntityManager.createPlayerEntity(m_clientPlayerId,
             username,
             *overworld->world(),
+            this,
+            m_clientConnection,
             static_cast<f32>(playerData->x),
             static_cast<f32>(playerData->y),
             static_cast<f32>(playerData->z));

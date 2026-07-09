@@ -143,10 +143,6 @@ std::vector<advancement::AdvancementPtr> collectAdvancements(
  *
  * 通过 IServer → ServerPlayerEntityManager → ServerPlayer 路径获取
  * 玩家成就管理器，确保使用的是与触发器系统关联的 PlayerAdvancements 实例。
- *
- * TODO: 当前 ServerPlayerEntityManager::createPlayerEntity() 创建的是 Player 而非 ServerPlayer，
- * 导致 Player::asServerPlayer() 返回 nullptr，此函数在运行时无法获取 ServerPlayer。
- * 修复 ServerPlayer 创建机制后此路径将自动生效。
  */
 server::PlayerAdvancements* getPlayerAdvancements(server::IServer* server, PlayerId playerId)
 {

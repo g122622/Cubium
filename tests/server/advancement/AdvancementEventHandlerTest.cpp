@@ -242,9 +242,8 @@ TEST_F(AdvancementEventHandlerTest, EventSubscriptionLifecycle)
 //    - 验证 ServerTickEvent 正确触发 TickTrigger
 //    - 需要完整的 IServer、ServerWorld、ServerPlayer 环境
 //    - 当前 _onServerTick 依赖 _getServerPlayer() 获取在线玩家列表
-//    - 由于 ServerPlayerEntityManager::createPlayerEntity() 创建的是 Player 而非 ServerPlayer，
-//      Player::asServerPlayer() 返回 nullptr，导致 _onServerTick 无法获取 ServerPlayer
-//    - 修复 ServerPlayer 创建机制后此集成测试将可以正常工作
+//    - ServerPlayerEntityManager::createPlayerEntity() 已创建 ServerPlayer，
+//      Player::asServerPlayer() 返回有效指针，_onServerTick 可获取 ServerPlayer。
 
 // ========== _onServerTick 架构验证测试 ==========
 
@@ -283,8 +282,8 @@ TEST_F(AdvancementEventHandlerTest, OnServerTickArchitectureGetServerPlayerPath)
     // m_server -> playerEntityManager() -> getPlayerIds()
     // 对每个 playerId：m_server -> getPlayerWorld(playerId) -> entityManager.getPlayerEntity() -> asServerPlayer()
     //
-    // TODO: 当前 ServerPlayerEntityManager::createPlayerEntity() 创建 Player 而非 ServerPlayer，
-    // 导致 Player::asServerPlayer() 返回 nullptr，TickTrigger 的 trigger() 不会被调用。
-    // 此测试记录了正确的架构路径，待 ServerPlayer 创建机制修复后验证。
+    // ServerPlayerEntityManager::createPlayerEntity() 现已创建 ServerPlayer，
+    // Player::asServerPlayer() 返回有效指针，TickTrigger 的 trigger() 可被正确调用。
+    // 此测试记录了正确的架构路径。
     SUCCEED();
 }

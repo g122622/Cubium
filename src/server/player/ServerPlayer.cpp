@@ -96,6 +96,11 @@ void ServerPlayer::setupInventoryCallback()
 
     // 设置末影箱物品栏变更回调，标记玩家数据为脏以触发自动保存
     enderChestInventory().setOnChanged([this]() {
+        // m_server 在 ServerPlayerEntityManager::createPlayerEntity 中通过 setServer 注入。
+        // 测试环境或尚未完成初始化时 m_server 可能为 nullptr，需做空指针守卫避免崩溃。
+        if (m_server == nullptr) {
+            return;
+        }
         if (auto* storage = getServer()->sharedStorage()) {
             if (auto* pdm = storage->playerDataManager()) {
                 pdm->markDirty(uuid());

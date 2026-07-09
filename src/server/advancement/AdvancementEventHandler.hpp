@@ -331,9 +331,6 @@ private:
     {
         // 玩家登录时，初始化成就监听器
         // 为玩家尚未追踪的所有成就注册触发器监听器
-        // TODO: 当前 ServerPlayerEntityManager::createPlayerEntity() 创建的是 Player 而非 ServerPlayer，
-        // 导致 Player::asServerPlayer() 返回 nullptr，_getServerPlayer() 无法获取 ServerPlayer。
-        // 此处理器在 ServerPlayer 创建机制修复前不会实际执行。修复后此逻辑将自动生效。
         mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;

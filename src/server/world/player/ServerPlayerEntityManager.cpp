@@ -24,17 +24,25 @@
 #include "ServerPlayerEntityManager.hpp"
 #include "../../world/ServerWorld.hpp"
 #include "../../world/entity/EntityTracker.hpp"
-#include "common/entity/entities/player/Player.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "server/application/IServer.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
 
-Player* ServerPlayerEntityManager::createPlayerEntity(
-    PlayerId playerId, const std::string& username, ServerWorld& world, f32 spawnX, f32 spawnY, f32 spawnZ)
+Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
+    const std::string& username,
+    ServerWorld& world,
+    IServer* server,
+    network::ConnectionPtr connection,
+    f32 spawnX,
+    f32 spawnY,
+    f32 spawnZ)
 {
     MC_ASSERT_RELEASE(playerId != 0);
+    MC_ASSERT_RELEASE(server != nullptr);
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -44,10 +52,15 @@ Player* ServerPlayerEntityManager::createPlayerEntity(
         return nullptr;
     }
 
-    // 创建玩家实体（EntityId 暂时为 0，由 EntityManager 分配）
-    auto player = std::make_unique<Player>(0, username);
+    // 创建服务端玩家实体（EntityId 暂时为 0，由 EntityManager 分配）
+    // 使用 mc::ServerPlayer（而非基类 Player），以便：
+    // - PlayerAdvancements、StatisticsManager、ServerRecipeBook 等服务端状态就位
+    // - Player::asServerPlayer() 返回有效指针，打通成就触发、命令系统、选择器等路径
+    // 注意：必须使用 mc::ServerPlayer 全限定名，避免被 mc::server::ServerPlayer
+    // （StatisticsManager.hpp 中的前向声明）错误遮蔽。
+    auto player = std::make_unique<mc::ServerPlayer>(0, username);
     if (!player) {
-        spdlog::error("ServerPlayerEntityManager: Failed to create Player for {}", username);
+        spdlog::error("ServerPlayerEntityManager: Failed to create ServerPlayer for {}", username);
         return nullptr;
     }
 
@@ -56,6 +69,16 @@ Player* ServerPlayerEntityManager::createPlayerEntity(
 
     // 设置初始位置
     player->setPosition(spawnX, spawnY, spawnZ);
+
+    // 注入服务端上下文：必须在 spawnEntity 之前完成，
+    // 这样实体一进入 EntityManager 就是完整初始化状态，
+    // 避免其他系统在 setServer/setWorld/setConnection 完成前访问到未就绪的 ServerPlayer。
+    // - setServer：末影箱自动保存回调依赖 m_server（见 ServerPlayer::setupInventoryCallback）
+    // - setWorld：ServerPlayer::m_world 独立于 Entity::m_world，需显式设置
+    // - setConnection：网络发包方法依赖 m_connection
+    player->setServer(server);
+    player->setWorld(&world);
+    player->setConnection(std::move(connection));
 
     // 加入世界实体池（EntityManager 会分配 EntityId）
     EntityId entityId = world.spawnEntity(std::move(player));

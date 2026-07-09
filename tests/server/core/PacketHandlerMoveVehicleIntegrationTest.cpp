@@ -222,7 +222,7 @@ protected:
 
         // 2. 在世界中创建玩家实体（高空，远离地形，确保无碰撞）
         m_player = m_server.playerEntityManager().createPlayerEntity(
-            kPlayerId, "Steve", *m_server.world(), 0.0f, 200.0f, 0.0f);
+            kPlayerId, "Steve", *m_server.world(), &m_server, conn, 0.0f, 200.0f, 0.0f);
         ASSERT_NE(m_player, nullptr);
 
         // 3. 生成 BoatEntity 并让玩家骑乘

@@ -24,7 +24,11 @@ player/
 │  ├─ handleLoginRequest()                                        │
 │  │   ├─ m_playerManager.addPlayer(playerId, ...) // 会话管理     │
 │  │   └─ m_playerEntityManager.createPlayerEntity(...)           │
-│  │       ├─ 创建 Player 对象                                     │
+│  │       ├─ 创建 ServerPlayer 对象（携带 PlayerAdvancements、   │
+│  │       │  末影箱回调等服务端特有状态）                          │
+│  │       ├─ 注入服务端上下文：setServer/setWorld/setConnection  │
+│  │       │  必须在 spawnEntity 之前完成，确保实体一进入          │
+│  │       │  EntityManager 就是完整初始化状态                     │
 │  │       ├─ world.spawnEntity() → EntityManager 分配 EntityId   │
 │  │       ├─ world.entityTracker().trackEntity()                 │
 │  │       └─ 建立 playerId ↔ entityId 映射                        │
@@ -46,8 +50,10 @@ player/
 | 模块 | 用途 |
 |------|------|
 | `common/core/Types.hpp` | PlayerId、EntityId 类型定义 |
-| `common/entity/entities/player/Player.hpp` | Player 实体类 |
+| `server/player/ServerPlayer.hpp` | ServerPlayer 实体类（携带服务端特有状态） |
 | `common/world/entity/EntityManager.hpp` | 实体管理器（分配 EntityId） |
+| `server/application/IServer.hpp` | 服务器接口（注入到 ServerPlayer） |
+| `common/network/connection/IServerConnection.hpp` | 网络连接（注入到 ServerPlayer） |
 | `server/world/ServerWorld.hpp` | 服务端世界（spawnEntity、removeEntity） |
 | `server/world/entity/EntityTracker.hpp` | 实体追踪器（trackEntity、untrackEntity） |
 
@@ -68,12 +74,15 @@ player/
 
 ### 1. 玩家实体创建流程
 
-玩家实体必须通过 `createPlayerEntity()` 创建，不能直接 `new Player`。因为创建流程包含：
-1. 设置 PlayerId
-2. 设置初始位置
-3. 加入世界实体池（EntityManager 分配 EntityId）
-4. 加入实体追踪器（EntityTracker 开始同步）
-5. 建立双向映射
+玩家实体必须通过 `createPlayerEntity()` 创建，不能直接 `new ServerPlayer`。因为创建流程包含：
+1. 创建 ServerPlayer 对象（携带 PlayerAdvancements、末影箱回调等服务端特有状态）
+2. 设置 PlayerId
+3. 设置初始位置
+4. 注入服务端上下文（setServer/setWorld/setConnection），必须在 spawnEntity 之前完成，
+   使成就触发、网络发包、末影箱自动保存等路径在实体进入 EntityManager 时立即可用
+5. 加入世界实体池（EntityManager 分配 EntityId）
+6. 加入实体追踪器（EntityTracker 开始同步）
+7. 建立双向映射
 
 ### 2. 玩家移除必须使用正确的方法
 
