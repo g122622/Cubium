@@ -57,6 +57,9 @@ struct TreeGenerators {
 
     /// 樱花树生成器
     static SaplingBlock::TreeGenerator cherryTree();
+
+    /// 苍白橡树生成器
+    static SaplingBlock::TreeGenerator paleOakTree();
 };
 
 } // namespace blocks

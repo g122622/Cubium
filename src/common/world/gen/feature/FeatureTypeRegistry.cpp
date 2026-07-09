@@ -85,6 +85,7 @@
 #include "common/world/gen/feature/parser/BlockPredicateParser.hpp"
 #include "common/world/gen/feature/parser/BlockStateParser.hpp"
 #include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/parser/FluidStateParser.hpp"
 #include "common/world/gen/feature/parser/FoliagePlacerParser.hpp"
 #include "common/world/gen/feature/parser/RuleTestParser.hpp"
 #include "common/world/gen/feature/parser/TrunkPlacerParser.hpp"
@@ -1748,7 +1749,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSpringFeature(const nlohman
     if (!configJson.contains("state")) {
         return Error(ErrorCode::InvalidData, "spring_feature config missing 'state' fluid state");
     }
-    auto stateResult = parser::BlockStateParser::parse(configJson["state"]);
+    // MC SpringConfiguration.state 是 FluidState（可带 falling 属性），用 FluidStateParser 解析。
+    auto stateResult = parser::FluidStateParser::parse(configJson["state"]);
     if (!stateResult.success()) {
         return stateResult.error();
     }

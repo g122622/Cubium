@@ -37,8 +37,11 @@
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/pale_garden/CreakingHeartBlock.hpp"
 #include "world/block/blocks/pale_garden/EyeblossomBlock.hpp"
+#include "world/block/blocks/pale_garden/MossyCarpetBlock.hpp"
 #include "world/block/blocks/pale_garden/PaleHangingMossBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/blocks/vegetation/SaplingBlock.hpp"
+#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -159,9 +162,10 @@ void registerPaleGardenBlocks()
                 .harvestTool(HarvestTool::Hoe)
                 .soundType(BlockSoundTypes::LEAVES));
 
-    // 苍白橡树树苗
+    // 苍白橡树树苗（带 stage 属性，可生长成苍白橡树）
     PaleGardenBlocks::PALE_OAK_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pale_oak_sapling"),
+        &registry.registerBlock<blocks::SaplingBlock>(ResourceLocation("minecraft:pale_oak_sapling"),
+            blocks::TreeGenerators::paleOakTree(),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
@@ -260,9 +264,9 @@ void registerPaleGardenBlocks()
                 .harvestTool(HarvestTool::Hoe)
                 .soundType(BlockSoundTypes::PALE_MOSS));
 
-    // 苍白苔藓地毯
+    // 苍白苔藓地毯（BOTTOM + 四方向 WALL_HEIGHT 属性，可贴墙贴地）
     PaleGardenBlocks::PALE_MOSS_CARPET =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pale_moss_carpet"),
+        &registry.registerBlock<blocks::MossyCarpetBlock>(ResourceLocation("minecraft:pale_moss_carpet"),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()

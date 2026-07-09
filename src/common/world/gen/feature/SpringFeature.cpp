@@ -102,7 +102,9 @@ bool ConfiguredSpringFeature::place(WorldGenRegion& region,
     }
 
     if (j == m_config->rockCount && k == m_config->holeCount) {
-        region.setBlockState(origin, m_config->state, 2);
+        // 对齐 MC SpringFeature: worldgenlevel.setBlock(blockpos, springconfiguration.state.createLegacyBlock(), 2)。
+        // state 是 FluidState，先 createLegacyBlock 转回对应方块状态再放置。
+        region.setBlockState(origin, m_config->state->getBlockState(), 2);
         // scheduleTick 省略：项目无 scheduleTick API；流体放置后由后续 tick 自然流动。
         return true;
     }

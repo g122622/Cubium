@@ -27,6 +27,7 @@
 #include "../../../block/BlockRegistry.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
+#include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
 #include "foliage/CherryFoliagePlacer.hpp"
@@ -540,6 +541,17 @@ TreeFeatureConfig TreeFeatures::cherryConfig()
         1.0f / 3.0f // hangingLeavesExtensionChance
     );
     config.ignoreVines = true;
+    config.minHeight = 4;
+    return config;
+}
+
+TreeFeatureConfig TreeFeatures::paleOakConfig()
+{
+    TreeFeatureConfig config;
+    config.trunkBlock = VanillaBlocks::getState(block_registry::PaleGardenBlocks::PALE_OAK_LOG);
+    config.foliageBlock = VanillaBlocks::getState(block_registry::PaleGardenBlocks::PALE_OAK_LEAVES);
+    config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 2, 0);
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 3);
     config.minHeight = 4;
     return config;
 }

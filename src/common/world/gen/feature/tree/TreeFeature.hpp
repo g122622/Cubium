@@ -364,6 +364,7 @@ struct TreeFeatures {
     static TreeFeatureConfig megaPineConfig();
     static TreeFeatureConfig tallBirchConfig();
     static TreeFeatureConfig cherryConfig();
+    static TreeFeatureConfig paleOakConfig();
 };
 
 } // namespace mc

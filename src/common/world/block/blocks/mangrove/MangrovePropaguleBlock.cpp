@@ -48,6 +48,7 @@ MangrovePropaguleBlock::MangrovePropaguleBlock(const BlockProperties& properties
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::AGE_0_4())
             .add(BlockStateProperties::HANGING())
+            .add(BlockStateProperties::STAGE_0_1())
             .add(BlockStateProperties::WATERLOGGED())
             .create([](const Block& block,
                         std::vector<size_t> values,
@@ -61,6 +62,7 @@ MangrovePropaguleBlock::MangrovePropaguleBlock(const BlockProperties& properties
     setDefaultState(defaultState()
             .with(BlockStateProperties::AGE_0_4(), 0)
             .with(BlockStateProperties::HANGING(), false)
+            .with(BlockStateProperties::STAGE_0_1(), 0)
             .with(BlockStateProperties::WATERLOGGED(), false));
 }
 

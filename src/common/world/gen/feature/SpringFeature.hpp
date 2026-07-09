@@ -26,6 +26,7 @@
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -43,12 +44,13 @@ namespace world::gen::feature {
  * @brief spring_feature 配置
  *
  * 对应 MC 1.21.11 SpringConfiguration{state, requiresBlockBelow, rockCount, holeCount, validBlocks}。
- * state 在 MC 中是 FluidState，项目用其对应方块状态（water/lava 方块）表示。
+ * state 是 FluidState（数据包 JSON 形如 {"Name":"minecraft:water","Properties":{"falling":"true"}}），
+ * place 时调 FluidState::getBlockState()（= MC createLegacyBlock）转回方块状态放置。
  * validBlocks 为 HolderSet<Block>：方块列表或 #tag，运行时 is 语义判断。
  */
 struct SpringConfig {
-    /// 流体对应方块状态（如 water/lava）。
-    const BlockState* state = nullptr;
+    /// 流体状态（如 water/lava，可带 falling）。
+    const fluid::FluidState* state = nullptr;
     bool requiresBlockBelow = true;
     i32 rockCount = 4;
     i32 holeCount = 1;

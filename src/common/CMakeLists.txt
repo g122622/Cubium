@@ -802,10 +802,12 @@ add_library(mc_common STATIC
     # World - Block - Garden Awakening
     world/block/blocks/garden/CactusFlowerBlock.cpp
     world/block/blocks/garden/FlowerBedBlock.cpp
+    world/block/blocks/garden/LeafLitterBlock.cpp
 
     # World - Block - Pale Garden
     world/block/blocks/pale_garden/CreakingHeartBlock.cpp
     world/block/blocks/pale_garden/EyeblossomBlock.cpp
+    world/block/blocks/pale_garden/MossyCarpetBlock.cpp
     world/block/blocks/pale_garden/PaleHangingMossBlock.cpp
 
     # World - Block - Coral
@@ -902,6 +904,7 @@ add_library(mc_common STATIC
     world/block/blocks/mob/BeehiveBlock.cpp
     world/block/blocks/mob/TurtleEggBlock.cpp
     world/block/blocks/mob/InfestedBlock.cpp
+    world/block/blocks/mob/InfestedRotatedPillarBlock.cpp
     world/block/blocks/mob/SpawnerBlock.cpp
     world/block/blocks/mob/DragonBreathBlock.cpp
 
@@ -1161,6 +1164,7 @@ add_library(mc_common STATIC
     # World - Generation - Feature - Parser
     world/gen/feature/parser/BlockStateParser.cpp
     world/gen/feature/parser/BlockStateProviderParser.cpp
+    world/gen/feature/parser/FluidStateParser.cpp
     world/gen/feature/parser/RuleTestParser.cpp
     world/gen/feature/parser/TrunkPlacerParser.cpp
     world/gen/feature/parser/FoliagePlacerParser.cpp

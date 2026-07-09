@@ -27,6 +27,7 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
+#include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
@@ -102,9 +103,9 @@ void registerVegetationBlocks()
     VegetationBlocks::SHORT_GRASS =
         &registry.registerBlock<blocks::TallGrassBlock>(ResourceLocation("minecraft:short_grass"), grassProps);
 
-    // 高草
+    // 高草（双格植物，half 属性区分上下半部分）
     VegetationBlocks::TALL_GRASS =
-        &registry.registerBlock<blocks::TallGrassBlock>(ResourceLocation("minecraft:tall_grass"), grassProps);
+        &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:tall_grass"), grassProps);
 
     // 蕨
     VegetationBlocks::FERN = &registry.registerBlock<blocks::FernBlock>(ResourceLocation("minecraft:fern"), grassProps);

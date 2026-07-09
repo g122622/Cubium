@@ -30,6 +30,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
+#include "world/block/blocks/mob/InfestedRotatedPillarBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneOreBlock.hpp"
 
 namespace mc {
@@ -382,9 +383,9 @@ void registerDeepslateBlocks()
             .soundType(BlockSoundTypes::BASALT));
 
     // ========== 虫蚀深板岩 ==========
-    // 虫蚀深板岩 - 蠹虫会从其中生成，使用深板岩音效
+    // 虫蚀深板岩 - 蠹虫会从其中生成，带 AXIS 属性可绕 Y 轴旋转，使用深板岩音效
     DeepslateBlocks::INFESTED_DEEPSLATE =
-        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_deepslate"),
+        &registry.registerBlock<blocks::InfestedRotatedPillarBlock>(ResourceLocation("minecraft:infested_deepslate"),
             DeepslateBlocks::DEEPSLATE->blockId(),
             BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f).soundType(BlockSoundTypes::DEEPSLATE));
 
