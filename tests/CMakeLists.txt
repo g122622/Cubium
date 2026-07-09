@@ -898,8 +898,6 @@ add_executable(mc_tests
     client/world/entity/ClientEntityWitherSideHeadTest.cpp
     # ClientEntity 钓鱼浮标元数据同步端到端测试（DATA_HOOKED_ENTITY/DATA_BITING 序列化→反序列化→镜像）
     client/world/entity/ClientEntityFishingBobberSyncTest.cpp
-    # 振动粒子目标位置解析纯函数测试（方块/实体来源、实体不存在回退、未知来源类型）
-    client/application/features/VibrationParticleDispatchTest.cpp
     client/entity/ClientEntityAnimationTest.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
@@ -2039,8 +2037,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp
-        # VibrationTargetResolver 纯函数依赖（振动粒子目标位置解析）
-        ${CMAKE_SOURCE_DIR}/src/client/application/features/VibrationTargetResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
         # 维度管理
