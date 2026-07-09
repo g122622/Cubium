@@ -25,7 +25,9 @@
 
 #include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -48,31 +50,48 @@ std::unique_ptr<Entity> SquidEntity::create(IWorld* /*world*/)
 
 void SquidEntity::sprayInk()
 {
-    if (!m_sprayingInk) {
-        m_sprayingInk = true;
-        m_sprayTimer = SPRAY_INK_DURATION;
+    if (m_sprayingInk) {
+        return;
+    }
+    m_sprayingInk = true;
+    m_sprayTimer = SPRAY_INK_DURATION;
 
-        // 在鱿鱼位置生成墨汁粒子
-        if (world() != nullptr && world()->isClientSide()) {
-            using namespace mc::particle;
-            math::Random& random = world()->getRandom();
+    // 播放喷墨音效
+    auto squirtSound = getSquirtSound();
+    if (squirtSound.has_value()) {
+        playSound(*squirtSound, 1.0f, 1.0f);
+    }
 
-            // 生成多个墨汁粒子形成云状效果
-            for (i32 i = 0; i < 30; ++i) {
-                // 粒子位置：在鱿鱼周围随机分布
-                f32 px = static_cast<f32>(x()) + (random.nextFloat() - 0.5f) * width() * 2.0f;
-                f32 py = static_cast<f32>(y()) + random.nextFloat() * height();
-                f32 pz = static_cast<f32>(z()) + (random.nextFloat() - 0.5f) * width() * 2.0f;
+    // 在鱿鱼位置生成墨汁粒子
+    if (world() != nullptr && world()->isClientSide()) {
+        using namespace mc::particle;
+        math::Random& random = world()->getRandom();
 
-                // 粒子速度：向外扩散
-                f32 vx = (random.nextFloat() - 0.5f) * 0.5f;
-                f32 vy = random.nextFloat() * 0.1f;
-                f32 vz = (random.nextFloat() - 0.5f) * 0.5f;
+        // 生成多个墨汁粒子形成云状效果
+        for (i32 i = 0; i < 30; ++i) {
+            // 粒子位置：在鱿鱼周围随机分布
+            f32 px = static_cast<f32>(x()) + (random.nextFloat() - 0.5f) * width() * 2.0f;
+            f32 py = static_cast<f32>(y()) + random.nextFloat() * height();
+            f32 pz = static_cast<f32>(z()) + (random.nextFloat() - 0.5f) * width() * 2.0f;
 
-                world()->addParticle(ParticleTypeId::SquidInk, Vector3(px, py, pz), Vector3(vx, vy, vz));
-            }
+            // 粒子速度：向外扩散
+            f32 vx = (random.nextFloat() - 0.5f) * 0.5f;
+            f32 vy = random.nextFloat() * 0.1f;
+            f32 vz = (random.nextFloat() - 0.5f) * 0.5f;
+
+            world()->addParticle(getInkParticle(), Vector3(px, py, pz), Vector3(vx, vy, vz));
         }
     }
+}
+
+bool SquidEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 调用父类 hurt 处理实际伤害；仅当成功受伤且有复仇目标时才喷墨逃跑
+    if (WaterMobEntity::hurt(source, amount) && getLastHurtBy() != nullptr) {
+        sprayInk();
+        return true;
+    }
+    return false;
 }
 
 void SquidEntity::tick()

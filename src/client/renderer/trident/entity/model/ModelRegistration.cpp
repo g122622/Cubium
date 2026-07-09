@@ -106,6 +106,8 @@ void initializeModelRegistration()
     factory.registerModel(ET::RABBIT, []() { return std::make_unique<animal::RabbitModel>(); });
     factory.registerModel(ET::BAT, []() { return std::make_unique<animal::BatModel>(); });
     factory.registerModel(ET::SQUID, []() { return std::make_unique<animal::SquidModel>(); });
+    // 发光鱿鱼复用鱿鱼模型（MC Java 中 GlowSquidModel extends SquidModel，无额外部件）
+    factory.registerModel(ET::GLOW_SQUID, []() { return std::make_unique<animal::SquidModel>(); });
     factory.registerModel(ET::LLAMA, []() { return std::make_unique<animal::LlamaModel>(0.0f); });
     factory.registerModel(ET::TRADER_LLAMA, []() { return std::make_unique<animal::LlamaModel>(0.0f); });
 

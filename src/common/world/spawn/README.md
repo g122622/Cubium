@@ -105,8 +105,8 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 
 仍存在的偏差（以 `TODO(spawn-list-*)` 标注）：
 - `EntityClassification` 已扩展至 8 类，与 MC 1.21.11 `MobCategory` 完全对齐（`Axolotls` 与 `UndergroundWaterCreature` 已加入）。美西螈已归入独立的 `Axolotls` 分类，不再塞进 `WaterCreature`。
-- `UndergroundWaterCreature` 分类基础设施已就绪，但发光鱿鱼（glow_squid）实体尚未注册，LushCaves 的 glow_squid spawn entry 暂以 `TODO(spawn-list-lush-caves)` 标注，待 glow_squid 实体注册后补回。
-- 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、armadillo），对应 spawn list 待补。
+- `UndergroundWaterCreature` 分类与发光鱿鱼（glow_squid）实体均已就绪，LushCaves 已添加 `glow_squid (10,4,6)` spawn entry。
+- 多个 1.16.5 实体未注册（parched、camel、nautilus、bogged、armadillo），对应 spawn list 待补。
 
 ### 10. Jungle 系列变体使用不同工厂方法
 

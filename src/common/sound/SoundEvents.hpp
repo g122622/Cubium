@@ -1013,6 +1013,12 @@ extern const ResourceLocation ENTITY_SQUID_DEATH;
 extern const ResourceLocation ENTITY_SQUID_HURT;
 extern const ResourceLocation ENTITY_SQUID_SQUIRT;
 
+/// 发光鱿鱼
+extern const ResourceLocation ENTITY_GLOW_SQUID_AMBIENT;
+extern const ResourceLocation ENTITY_GLOW_SQUID_DEATH;
+extern const ResourceLocation ENTITY_GLOW_SQUID_HURT;
+extern const ResourceLocation ENTITY_GLOW_SQUID_SQUIRT;
+
 /// 鱼
 extern const ResourceLocation ENTITY_COD_AMBIENT;
 extern const ResourceLocation ENTITY_COD_DEATH;

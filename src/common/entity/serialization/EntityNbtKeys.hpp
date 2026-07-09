@@ -274,6 +274,10 @@ constexpr const char* ITEM_ID = "id";
 constexpr const char* ITEM_COUNT = "Count";
 constexpr const char* ITEM_TAG = "tag";
 
+// ========== GlowSquidEntity 键 ==========
+
+constexpr const char* DARK_TICKS_REMAINING = "DarkTicksRemaining"; ///< 剩余暗化 tick 数（i32）
+
 // ========== CopperGolemEntity 键 ==========
 // 对应 MC 1.21.11 CopperGolem.addAdditionalSaveData/readAdditionalSaveData
 // 注意：MC 仅持久化 weatherState 与 nextWeatheringTick，behaviorState 为运行时动画状态不持久化

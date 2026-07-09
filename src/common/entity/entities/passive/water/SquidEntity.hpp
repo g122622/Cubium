@@ -25,9 +25,14 @@
 
 #include "../../../../core/Types.hpp"
 #include "../water/WaterMobEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include <memory>
 
 namespace mc {
+
+// 前向声明
+class DamageSource;
 
 /**
  * @brief 鱿鱼实体
@@ -95,8 +100,38 @@ public:
 
     /**
      * @brief 喷墨
+     *
+     * 受击时触发，生成墨汁粒子并播放喷墨音效。
+     * 粒子类型和音效由 getInkParticle() / getSquirtSound() 虚函数决定，
+     * 子类（如 GlowSquidEntity）可重写以提供发光变种。
      */
     void sprayInk();
+
+    /**
+     * @brief 获取喷墨粒子类型
+     *
+     * 子类可重写以提供不同的墨汁粒子（如发光鱿鱼返回 GlowSquidInk）。
+     */
+    [[nodiscard]] virtual particle::ParticleTypeId getInkParticle() const { return particle::ParticleTypeId::SquidInk; }
+
+    /**
+     * @brief 获取喷墨音效
+     *
+     * 子类可重写以提供不同的喷墨音效。默认返回空（鱿鱼原版喷墨音效未在基类播放）。
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> getSquirtSound() const
+    {
+        return SoundEvents::ENTITY_SQUID_SQUIRT;
+    }
+
+    // ========== 受伤 ==========
+
+    /**
+     * @brief 受伤处理
+     *
+     * 重写 LivingEntity::hurt，受击成功后触发喷墨（对应 MC Java Squid.hurtServer）。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
 
     // ========== 移动向量 ==========
 

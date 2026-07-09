@@ -183,6 +183,10 @@ void initializeRendererRegistration()
     f.registerRenderer(
         ET::SQUID, []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<animal::SquidRenderer>(); });
 
+    // ==================== 发光鱿鱼 ====================
+    f.registerRenderer(ET::GLOW_SQUID,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<animal::GlowSquidRenderer>(); });
+
     // ==================== 基础怪物渲染器 ====================
     f.registerRenderer(ET::ZOMBIE,
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<monster::ZombieRenderer>(); });

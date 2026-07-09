@@ -88,6 +88,7 @@ EntityTypeId SALMON = 0;
 EntityTypeId PUFFERFISH = 0;
 EntityTypeId TROPICAL_FISH = 0;
 EntityTypeId SQUID = 0;
+EntityTypeId GLOW_SQUID = 0;
 EntityTypeId DOLPHIN = 0;
 EntityTypeId AXOLOTL = 0;
 
@@ -273,6 +274,7 @@ void initialize()
     PUFFERFISH = safeGetId(registry, EntityTypes::PUFFERFISH);
     TROPICAL_FISH = safeGetId(registry, EntityTypes::TROPICAL_FISH);
     SQUID = safeGetId(registry, EntityTypes::SQUID);
+    GLOW_SQUID = safeGetId(registry, EntityTypes::GLOW_SQUID);
     DOLPHIN = safeGetId(registry, EntityTypes::DOLPHIN);
     AXOLOTL = safeGetId(registry, EntityTypes::AXOLOTL);
 
@@ -424,6 +426,7 @@ void reset()
     PUFFERFISH = 0;
     TROPICAL_FISH = 0;
     SQUID = 0;
+    GLOW_SQUID = 0;
     DOLPHIN = 0;
     AXOLOTL = 0;
     BAT = 0;

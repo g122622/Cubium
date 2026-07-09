@@ -102,6 +102,7 @@
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/passive/water/DolphinEntity.hpp"
+#include "common/entity/entities/passive/water/GlowSquidEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -333,6 +334,15 @@ private:
         // 鱿鱼
         registry.registerType(EntityTypes::SQUID,
             EntityType::Builder(&SquidEntity::create, EntityClassification::WaterCreature)
+                .size(0.8f, 0.8f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 发光鱿鱼（地下水生生物分类，生成于黑暗地下水域）
+        registry.registerType(EntityTypes::GLOW_SQUID,
+            EntityType::Builder(&GlowSquidEntity::create, EntityClassification::UndergroundWaterCreature)
                 .size(0.8f, 0.8f)
                 .trackingRange(8)
                 .updateInterval(3)

@@ -85,6 +85,7 @@ extern EntityTypeId SALMON;
 extern EntityTypeId PUFFERFISH;
 extern EntityTypeId TROPICAL_FISH;
 extern EntityTypeId SQUID;
+extern EntityTypeId GLOW_SQUID;
 extern EntityTypeId DOLPHIN;
 extern EntityTypeId AXOLOTL;
 

@@ -871,6 +871,12 @@ const ResourceLocation ENTITY_SQUID_DEATH("minecraft:entity.squid.death");
 const ResourceLocation ENTITY_SQUID_HURT("minecraft:entity.squid.hurt");
 const ResourceLocation ENTITY_SQUID_SQUIRT("minecraft:entity.squid.squirt");
 
+// 发光鱿鱼
+const ResourceLocation ENTITY_GLOW_SQUID_AMBIENT("minecraft:entity.glow_squid.ambient");
+const ResourceLocation ENTITY_GLOW_SQUID_DEATH("minecraft:entity.glow_squid.death");
+const ResourceLocation ENTITY_GLOW_SQUID_HURT("minecraft:entity.glow_squid.hurt");
+const ResourceLocation ENTITY_GLOW_SQUID_SQUIRT("minecraft:entity.glow_squid.squirt");
+
 // 鱼
 const ResourceLocation ENTITY_COD_AMBIENT("minecraft:entity.cod.ambient");
 const ResourceLocation ENTITY_COD_DEATH("minecraft:entity.cod.death");

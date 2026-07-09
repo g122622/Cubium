@@ -91,6 +91,7 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"tropical_fish", {"entity/fish/tropical_a"}},
     // MC 1.21+ 资源包中 squid 纹理移至子目录 textures/entity/squid/squid.png
     {"squid", {"entity/squid/squid"}},
+    {"glow_squid", {"entity/squid/glow_squid"}},
     {"dolphin", {"entity/dolphin"}},
 
     // 环境生物 / 结构类实体

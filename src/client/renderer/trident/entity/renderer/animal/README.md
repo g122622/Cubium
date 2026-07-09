@@ -6,7 +6,7 @@
 
 ```
 animal/
-├── AnimalRenderers.hpp/cpp      # 猪、牛、羊、哞菇、鸡、兔子、蝙蝠、鱿鱼渲染器
+├── AnimalRenderers.hpp/cpp      # 猪、牛、羊、哞菇、鸡、兔子、蝙蝠、鱿鱼、发光鱿鱼渲染器
 ├── CatRenderer.hpp/cpp          # 猫渲染器（11种皮肤）
 ├── HorseRenderer.hpp/cpp        # 马渲染器（含驴、骡、骷髅马、僵尸马）
 ├── LlamaRenderer.hpp/cpp        # 羊驼渲染器（4种颜色变体）
@@ -24,7 +24,7 @@ animal/
 - `EntityRenderer` — 实体渲染器基类，提供渲染接口
 
 继承关系：
-- PigRenderer、CowRenderer、SheepRenderer、MooshroomRenderer、ChickenRenderer、RabbitRenderer、BatRenderer、SquidRenderer → `LivingRenderer<LivingEntity, ModelT>`（定义在 AnimalRenderers.hpp）
+- PigRenderer、CowRenderer、SheepRenderer、MooshroomRenderer、ChickenRenderer、RabbitRenderer、BatRenderer、SquidRenderer、GlowSquidRenderer → `LivingRenderer<LivingEntity, ModelT>`（定义在 AnimalRenderers.hpp）
 - VillagerRenderer → `LivingRenderer<VillagerEntity, VillagerModel>`
 - CatRenderer、HorseRenderer、LlamaRenderer、OcelotRenderer、WolfRenderer → `EntityRenderer`（自行管理模型和渲染）
 

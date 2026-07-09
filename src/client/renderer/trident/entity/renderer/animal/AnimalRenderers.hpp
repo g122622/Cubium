@@ -215,4 +215,27 @@ public:
     }
 };
 
+/**
+ * @brief 发光鱿鱼渲染器
+ *
+ * 复用 SquidModel，仅纹理不同。对应 MC Java GlowSquidRenderer extends SquidRenderer。
+ */
+class GlowSquidRenderer : public core::LivingRenderer<LivingEntity, model::animal::SquidModel> {
+public:
+    GlowSquidRenderer() { m_shadowSize = 0.7f; }
+    ~GlowSquidRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
+    {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/squid/glow_squid.png");
+    }
+
+    [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
+    {
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/squid/glow_squid.png");
+    }
+};
+
 } // namespace mc::client::renderer::entity::renderer::animal

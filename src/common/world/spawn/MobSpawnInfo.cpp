@@ -32,7 +32,7 @@ namespace mc::world::spawn {
 // TODO(spawn-list-alignment): 本文件下各工厂方法的 spawn list 与原版 MC Java 1.16.5
 // 仍存在若干偏差，逐项列在对应工厂方法内（搜索关键词 "TODO(spawn-list" 即可定位）。
 // 已知共性偏差汇总：
-//   1) 多个 1.16.5 实体未注册（parched、camel、nautilus、glow_squid、bogged、
+//   1) 多个 1.16.5 实体未注册（parched、camel、nautilus、bogged、
 //      armadillo、zombie_horse 等），无法加入对应 spawn list。
 // 收敛上述任一项时，请同步删除对应的 TODO 注释。
 
@@ -532,12 +532,13 @@ namespace {
  * 对应 MC 1.16.5 BiomeDefaultFeatures.baseJungleSpawns()：
  *   farmAnimals() + 额外 chicken(10,4,4) CREATURE + commonSpawns()
  * 其中 farmAnimals = sheep(12,4,4) + pig(10,4,4) + chicken(10,4,4) + cow(8,4,4)；
- * commonSpawns = caveSpawns(bat AMBIENT 10,8,8 + glow_squid UNDERGROUND_WATER_CREATURE
- * 10,4,6) + monsters(spider 100,4,4 + zombie 95,4,4 + zombie_villager 5,1,1 +
- * skeleton 100,4,4 + creeper 100,4,4 + slime 100,4,4 + enderman 10,1,4 + witch 5,1,1)。
+ * commonSpawns = caveSpawns(bat AMBIENT 10,8,8) + monsters(spider 100,4,4 +
+ * zombie 95,4,4 + zombie_villager 5,1,1 + skeleton 100,4,4 + creeper 100,4,4 +
+ * slime 100,4,4 + enderman 10,1,4 + witch 5,1,1)。
  *
- * 注：glow_squid 归 UNDERGROUND_WATER_CREATURE 分类，本项目暂未实现该分类，
- * glow_squid 实体亦未注册，故此处暂不添加（见文件顶 TODO(spawn-list-alignment) #1/#2）。
+ * 注：1.18+ 的 caveSpawns 额外含 glow_squid UNDERGROUND_WATER_CREATURE (10,4,6)，
+ * 本项目对齐 1.16.5 故不含 glow_squid。UndergroundWaterCreature 分类与 glow_squid
+ * 实体已在 LushCaves 等生物群系中启用。
  *
  * @param info 待填充的 MobSpawnInfo（调用方已设置好概率等基础字段）
  */
@@ -1028,9 +1029,9 @@ MobSpawnInfo MobSpawnInfo::createLushCaves()
     info.setMaxAxolotlInstances(DEFAULT_MAX_AXOLOTLS);
     info.addAxolotlSpawn(SpawnEntry("minecraft:axolotl", 10, 4, 6));
 
-    // TODO(spawn-list-lush-caves): glow_squid 原版在 LushCaves 应生成（10,4,6）归
-    //   UNDERGROUND_WATER_CREATURE，本项目分类已扩展但 glow_squid 实体尚未注册，
-    //   待 glow_squid 实体注册后补回 addUndergroundWaterCreatureSpawn 调用。
+    // 地下水生生物：发光鱿鱼（原版 commonSpawns 中的 glow_squid (10,4,6)）
+    info.setMaxUndergroundWaterCreatureInstances(DEFAULT_MAX_UNDERGROUND_WATER_CREATURES);
+    info.addUndergroundWaterCreatureSpawn(SpawnEntry("minecraft:glow_squid", 10, 4, 6));
 
     // 水生环境生物：热带鱼（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(20);
