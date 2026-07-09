@@ -176,3 +176,20 @@ IntegrityProcessor 等使用位置哈希进行确定性随机。必须使用 `Ma
 ### 12. 未编译的独立处理器文件
 
 目录中存在多个标记为 `[未编译]` 的独立处理器文件（如 `BlockAgeProcessor.hpp/cpp`、`BlackstoneReplacementProcessor.hpp/cpp` 等），这些文件不在 `CMakeLists.txt` 编译列表中。它们的功能已在 `Template.hpp/cpp` 中统一实现。修改处理器逻辑时，务必修改 `Template.hpp/cpp` 中的实现，而非仅修改独立文件。
+
+### 13. 战利品容器 LootTableSeed 注入
+
+`placeInWorld` 在加载方块实体 NBT 前，会对 `LootableContainerBlockEntity`（对应 MC Java `RandomizableContainer`，含 `ChestEntity`/`BarrelEntity`/`ShulkerBoxEntity`/`DispenserBlockEntity` 等）注入随机 `LootTableSeed`：
+
+```cpp
+if (dynamic_cast<LootableContainerBlockEntity*>(tileEntity) != nullptr) {
+    processedBlock.nbt->put("LootTableSeed", rng.nextLong());
+}
+tileEntity->loadFromNBT(*processedBlock.nbt);
+```
+
+- 仅注入 `LootTableSeed`，`LootTable` 键已存在于模板 NBT 中（由数据包模板定义）。
+- `BrushableBlockEntity`（可疑沙）不是 `LootableContainerBlockEntity`，其 `LootTableSeed` 由结构生成器（如 `DesertPyramidStructure`）通过 `setLootTable()` 直接设置，此处不干预。
+- `LootableContainerBlockEntity::loadFromNBT` 负责读取 `LootTable`/`LootTableSeed` 并触发延迟填充机制。
+
+**已知缺口**：`LootableContainerBlockEntity` 的子类尚未重写 `loadFromNBT`/`saveToNBT` 序列化容器物品列表（`Items` NBT 键），结构模板放置预填充物品的容器时物品会丢失。仅使用战利品表的容器不受影响。详见 `src/common/world/blockentity/core/LootableContainerBlockEntity.cpp` 中的 TODO 注释。

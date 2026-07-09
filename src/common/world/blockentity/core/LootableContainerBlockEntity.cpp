@@ -24,6 +24,7 @@
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/serialization/NbtHelper.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/LootTableManager.hpp"
 #include "item/loot/context/LootContext.hpp"
@@ -161,6 +162,68 @@ void LootableContainerBlockEntity::save(nlohmann::json& data) const
         data["LootTable"] = m_lootTable.toString();
         if (m_lootTableSeed != 0) {
             data["LootTableSeed"] = m_lootTableSeed;
+        }
+    }
+}
+
+// ============================================================================
+// 序列化 - NBT（结构模板 / 客户端同步）
+// ============================================================================
+
+// TODO: 子类容器物品（Items 列表）的 NBT 序列化尚未实现。
+// 当前 LootableContainerBlockEntity 的 loadFromNBT/saveToNBT 仅处理
+// LootTable/LootTableSeed 两个键，未序列化容器内物品列表（"Items" NBT 键）。
+// 子类（ChestEntity/BarrelEntity/ShulkerBoxEntity/DispenserBlockEntity 等）
+// 均未重写 loadFromNBT/saveToNBT，仅有 JSON load/save（区块存档路径）。
+// 后果：结构模板放置预填充物品的容器时，Items NBT 数据会被丢弃，
+// 容器内物品丢失。仅当容器使用战利品表（LootTable 键）时不受影响，
+// 因为战利品表会延迟生成物品。
+// 后续应让各子类重写 loadFromNBT/saveToNBT，调用基类方法后
+// 序列化 SimpleInventory 的 Items 列表（参考 BannerEntity/SignEntity 的模式）。
+
+namespace {
+/// NBT 键名
+constexpr const char* LOOT_TABLE_TAG = "LootTable";
+constexpr const char* LOOT_TABLE_SEED_TAG = "LootTableSeed";
+} // namespace
+
+bool LootableContainerBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    if (!BlockEntity::loadFromNBT(tag)) {
+        return false;
+    }
+
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+
+    // 战利品表：无论 LootTable 是否存在都读取种子，
+    // 但种子仅在 hasLootTable 为 true 时才有意义。
+    m_hasLootTable = false;
+    m_lootTable = ResourceLocation();
+    m_lootTableSeed = 0;
+    m_lootFilled = false;
+
+    auto lootTableOpt = nbt_helper::tryGetString(tag, LOOT_TABLE_TAG);
+    if (lootTableOpt.has_value()) {
+        m_lootTable = ResourceLocation(lootTableOpt.value());
+        m_hasLootTable = true;
+    }
+    // 种子始终读取（缺失默认 0，表示使用随机种子填充）
+    m_lootTableSeed = nbt_helper::tryGetLong(tag, LOOT_TABLE_SEED_TAG).value_or(0);
+
+    return true;
+}
+
+void LootableContainerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    BlockEntity::saveToNBT(tag);
+
+    // 仅在已设置战利品表且尚未填充时保存
+    // 已填充后战利品表引用清空，物品应通过子类的 Items NBT 持久化
+    // （注：子类 Items NBT 序列化尚未实现，见上方 TODO）
+    if (m_hasLootTable && !m_lootFilled) {
+        tag.put(LOOT_TABLE_TAG, m_lootTable.toString());
+        if (m_lootTableSeed != 0) {
+            tag.put(LOOT_TABLE_SEED_TAG, m_lootTableSeed);
         }
     }
 }

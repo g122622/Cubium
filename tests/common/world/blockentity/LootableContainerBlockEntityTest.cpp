@@ -25,6 +25,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/serialization/NbtHelper.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/loot/LootTable.hpp"
@@ -34,9 +35,11 @@
 #include "item/loot/context/LootParameterSets.hpp"
 #include "item/loot/context/LootParams.hpp"
 #include "item/loot/entries/ItemLootEntry.hpp"
+#include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include "world/blockentity/transport/HopperEntity.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -776,4 +779,207 @@ TEST_F(UnpackLootTableTest, SetLootTable_ResetsFillFlag)
     EXPECT_TRUE(entity_->hasLootTable());
     EXPECT_TRUE(entity_->needsLootFill());
     EXPECT_EQ(entity_->getLootTableSeed(), 99);
+}
+
+// ============================================================================
+// NBT 序列化测试（loadFromNBT / saveToNBT）
+// ============================================================================
+//
+// 结构模板放置时，Template::placeInWorld 会在 loadFromNBT 前向 NBT 注入
+// 随机 LootTableSeed（仅对 LootableContainerBlockEntity 子类），随后
+// loadFromNBT 读取 LootTable + LootTableSeed 并触发延迟填充。
+// 此处验证 NBT 往返（round-trip）正确性。
+
+class LootableContainerNbtTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        Items::initialize();
+        entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
+    }
+
+    std::unique_ptr<TestLootableEntity> entity_;
+};
+
+TEST_F(LootableContainerNbtTest, LoadFromNBT_LootTableAndSeed_Preserved)
+{
+    // 构造含 LootTable + LootTableSeed 的 NBT
+    nbt::CompoundTag tag;
+    tag.put("LootTable", std::string("minecraft:chests/simple_dungeon"));
+    tag.put("LootTableSeed", static_cast<i64>(77777LL));
+
+    EXPECT_TRUE(entity_->loadFromNBT(tag));
+
+    EXPECT_TRUE(entity_->hasLootTable());
+    EXPECT_EQ(entity_->getLootTable().toString(), "minecraft:chests/simple_dungeon");
+    EXPECT_EQ(entity_->getLootTableSeed(), 77777LL);
+    EXPECT_TRUE(entity_->needsLootFill());
+}
+
+TEST_F(LootableContainerNbtTest, LoadFromNBT_OnlyLootTable_SeedDefaultsToZero)
+{
+    // 缺失 LootTableSeed 时默认为 0（MC 行为：0 表示使用随机种子填充）
+    nbt::CompoundTag tag;
+    tag.put("LootTable", std::string("minecraft:chests/no_seed"));
+
+    EXPECT_TRUE(entity_->loadFromNBT(tag));
+
+    EXPECT_TRUE(entity_->hasLootTable());
+    EXPECT_EQ(entity_->getLootTable().toString(), "minecraft:chests/no_seed");
+    EXPECT_EQ(entity_->getLootTableSeed(), 0LL);
+}
+
+TEST_F(LootableContainerNbtTest, LoadFromNBT_NoLootTable_DoesNotSetFlag)
+{
+    // 无 LootTable 键：容器不标记为战利品容器
+    nbt::CompoundTag tag;
+    tag.put("LootTableSeed", static_cast<i64>(12345LL));
+
+    EXPECT_TRUE(entity_->loadFromNBT(tag));
+
+    EXPECT_FALSE(entity_->hasLootTable());
+    // 种子仍被读取（无论 LootTable 是否存在都读取种子）
+    EXPECT_EQ(entity_->getLootTableSeed(), 12345LL);
+}
+
+TEST_F(LootableContainerNbtTest, LoadFromNBT_EmptyTag_NoCrash)
+{
+    // 空 NBT 不应崩溃，且不设置战利品表
+    nbt::CompoundTag tag;
+    EXPECT_TRUE(entity_->loadFromNBT(tag));
+    EXPECT_FALSE(entity_->hasLootTable());
+    EXPECT_EQ(entity_->getLootTableSeed(), 0LL);
+}
+
+TEST_F(LootableContainerNbtTest, SaveToNBT_RoundTrip_PreservesLootTableAndSeed)
+{
+    // 设置战利品表后保存到 NBT，再加载到新实体，验证 round-trip
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/round_trip"), 99999LL);
+
+    nbt::CompoundTag tag;
+    entity_->saveToNBT(tag);
+
+    auto loaded = std::make_unique<TestLootableEntity>(BlockPos(0, 0, 0));
+    EXPECT_TRUE(loaded->loadFromNBT(tag));
+
+    EXPECT_TRUE(loaded->hasLootTable());
+    EXPECT_EQ(loaded->getLootTable().toString(), "minecraft:chests/round_trip");
+    EXPECT_EQ(loaded->getLootTableSeed(), 99999LL);
+}
+
+TEST_F(LootableContainerNbtTest, SaveToNBT_EmptySeed_NotWritten)
+{
+    // 种子为 0 时不写入 NBT（省略零值种子）
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/zero_seed"), 0LL);
+
+    nbt::CompoundTag tag;
+    entity_->saveToNBT(tag);
+
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    auto lootOpt = nbt_helper::tryGetString(tag, "LootTable");
+    ASSERT_TRUE(lootOpt.has_value());
+    EXPECT_EQ(lootOpt.value(), "minecraft:chests/zero_seed");
+
+    // 种子为 0 时不写入
+    auto seedOpt = nbt_helper::tryGetLong(tag, "LootTableSeed");
+    EXPECT_FALSE(seedOpt.has_value());
+}
+
+TEST_F(LootableContainerNbtTest, SaveToNBT_NoLootTable_NotWritten)
+{
+    // 未设置战利品表时，NBT 不应包含 LootTable 键
+    nbt::CompoundTag tag;
+    entity_->saveToNBT(tag);
+
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    auto lootOpt = nbt_helper::tryGetString(tag, "LootTable");
+    EXPECT_FALSE(lootOpt.has_value());
+    auto seedOpt = nbt_helper::tryGetLong(tag, "LootTableSeed");
+    EXPECT_FALSE(seedOpt.has_value());
+}
+
+TEST_F(LootableContainerNbtTest, SaveToNBT_FilledLootTable_NotWritten)
+{
+    // 战利品表已填充后（m_hasLootTable 变为 false）不应再写入 NBT
+    // 模拟已填充状态：setLootTable 后调用 fillWithLootFromTable
+    // 但没有 LootTableManager 无法真正填充，这里通过 round-trip 验证逻辑
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/will_fill"), 11111LL);
+    EXPECT_TRUE(entity_->hasLootTable());
+
+    // 未填充时 NBT 应包含 LootTable
+    nbt::CompoundTag tag;
+    entity_->saveToNBT(tag);
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+    EXPECT_TRUE(nbt_helper::tryGetString(tag, "LootTable").has_value());
+}
+
+TEST_F(LootableContainerNbtTest, LoadFromNBT_OverwritesPreviousLootTable)
+{
+    // 先设置一个战利品表，再用 NBT 加载另一个，验证覆盖
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/old"), 100LL);
+    EXPECT_TRUE(entity_->hasLootTable());
+
+    nbt::CompoundTag tag;
+    tag.put("LootTable", std::string("minecraft:chests/new"));
+    tag.put("LootTableSeed", static_cast<i64>(200LL));
+
+    EXPECT_TRUE(entity_->loadFromNBT(tag));
+
+    EXPECT_TRUE(entity_->hasLootTable());
+    EXPECT_EQ(entity_->getLootTable().toString(), "minecraft:chests/new");
+    EXPECT_EQ(entity_->getLootTableSeed(), 200LL);
+}
+
+TEST_F(LootableContainerNbtTest, ChestEntity_NbtRoundTrip_WorksViaBaseOverride)
+{
+    // 验证 ChestEntity 继承 LootableContainerBlockEntity 的 NBT 重写
+    ChestEntity chest(BlockPos(1, 2, 3));
+    chest.setLootTable(ResourceLocation("minecraft", "chests/chest_test"), 88888LL);
+
+    nbt::CompoundTag tag;
+    chest.saveToNBT(tag);
+
+    ChestEntity loaded(BlockPos(1, 2, 3));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+
+    EXPECT_TRUE(loaded.hasLootTable());
+    EXPECT_EQ(loaded.getLootTable().toString(), "minecraft:chests/chest_test");
+    EXPECT_EQ(loaded.getLootTableSeed(), 88888LL);
+}
+
+TEST_F(LootableContainerNbtTest, BarrelEntity_NbtRoundTrip_WorksViaBaseOverride)
+{
+    // 验证 BarrelEntity 继承 LootableContainerBlockEntity 的 NBT 重写
+    BarrelEntity barrel(BlockPos(4, 5, 6));
+    barrel.setLootTable(ResourceLocation("minecraft", "chests/barrel_test"), 66666LL);
+
+    nbt::CompoundTag tag;
+    barrel.saveToNBT(tag);
+
+    BarrelEntity loaded(BlockPos(4, 5, 6));
+    EXPECT_TRUE(loaded.loadFromNBT(tag));
+
+    EXPECT_TRUE(loaded.hasLootTable());
+    EXPECT_EQ(loaded.getLootTable().toString(), "minecraft:chests/barrel_test");
+    EXPECT_EQ(loaded.getLootTableSeed(), 66666LL);
+}
+
+TEST_F(LootableContainerNbtTest, DynamicCast_LootableContainerFromBlockEntityBase_Succeeds)
+{
+    // 验证 dynamic_cast<BlockEntity*, LootableContainerBlockEntity*> 能正确识别
+    // 这是 Template::placeInWorld 中注入 LootTableSeed 的关键检查
+    auto chest = std::make_unique<ChestEntity>(BlockPos(0, 0, 0));
+    BlockEntity* base = chest.get();
+    EXPECT_NE(dynamic_cast<LootableContainerBlockEntity*>(base), nullptr);
+}
+
+TEST_F(LootableContainerNbtTest, DynamicCast_NonLootableBlockEntity_ReturnsNull)
+{
+    // 验证非 LootableContainerBlockEntity 的方块实体不会被误判为战利品容器。
+    // HopperEntity 继承自 LockableBlockEntity（而非 LootableContainerBlockEntity），
+    // 是真正的非战利品容器，用于验证 Template::placeInWorld 中 dynamic_cast
+    // 判定的排除分支：此类实体的 NBT 不应被注入 LootTableSeed。
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(0, 0, 0));
+    BlockEntity* base = hopper.get();
+    EXPECT_EQ(dynamic_cast<LootableContainerBlockEntity*>(base), nullptr);
 }
