@@ -237,13 +237,29 @@ public:
     // ========================================================================
 
     /**
+     * @brief 设置关联的客户端世界
+     *
+     * 某些粒子（如 VibrationSignalParticle 的实体来源变体）在 tick() 中需要
+     * 通过 ClientWorld 重新解析实体位置。当 TridentEngine::render() 在无 world
+     * 参数的情况下调用 tick() 时，ParticleManager 会使用此处设置的世界指针。
+     *
+     * @param world 客户端世界指针（可为空）
+     */
+    void setClientWorld(mc::client::ClientWorld* world) { m_clientWorld = world; }
+
+    /**
+     * @brief 获取关联的客户端世界
+     */
+    [[nodiscard]] mc::client::ClientWorld* clientWorld() const { return m_clientWorld; }
+
+    /**
      * @brief 更新所有粒子
      *
      * 更新粒子位置、生命周期等。
      * 首先处理待处理粒子队列，然后更新所有粒子。
      * 对于发射器粒子，会处理其发射的新粒子。
      *
-     * @param world 客户端世界（用于碰撞检测和光照采样）
+     * @param world 客户端世界（用于碰撞检测和光照采样）。为空时使用 setClientWorld() 设置的世界
      */
     void tick(mc::client::ClientWorld* world = nullptr);
 
@@ -365,6 +381,9 @@ private:
 
     // 粒子效果模式
     client::ParticleMode m_particleMode = client::ParticleMode::All; ///< 粒子效果模式（默认全部显示）
+
+    // 关联的客户端世界（用于 tick() 中需要世界参数的粒子，如实体来源的振动粒子）
+    mc::client::ClientWorld* m_clientWorld = nullptr;
 
     // 纹理图集
     ParticleTextureAtlas m_textureAtlas;

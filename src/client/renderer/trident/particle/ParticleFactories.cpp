@@ -1232,7 +1232,9 @@ void registerBuiltinParticleFactories()
     // 当 data 为 nullptr 时，回退到普通工厂（使用默认值）。
     // ========================================================================
 
-    // 振动信号粒子：从 VibrationParticleData 提取目标位置和到达时间
+    // 振动信号粒子：从 VibrationParticleData 提取目标来源和到达时间
+    // - 方块来源：使用固定目标位置
+    // - 实体来源：持有实体 ID + yOffset，每 tick 通过 ClientWorld 动态解析
     registry.registerDataFactory(ParticleTypeId::Vibration,
         [](const glm::vec3& pos,
             const glm::vec3& velocity,
@@ -1241,6 +1243,12 @@ void registerBuiltinParticleFactories()
             if (data) {
                 auto* vibrationData = dynamic_cast<const data::VibrationParticleData*>(data);
                 if (vibrationData) {
+                    if (vibrationData->isEntitySource()) {
+                        return VibrationSignalParticle::createWithEntityTarget(pos,
+                            vibrationData->targetEntityId(),
+                            vibrationData->yOffset(),
+                            vibrationData->arrivalInTicks());
+                    }
                     return VibrationSignalParticle::createWithTarget(
                         pos, vibrationData->targetPosition(), vibrationData->arrivalInTicks());
                 }
@@ -1268,7 +1276,8 @@ void registerBuiltinParticleFactories()
 
     // 宝库连接粒子：MC Java 中 vault_connection 是 SimpleParticleType，网络层通过 velocity 字段传递目标偏移，
     // 不需要专门的 ParticleData。但为支持编程方式创建（通过 addParticleWithData），
-    // 注册使用 VibrationParticleData 的数据工厂（targetPosition + arrivalInTicks 模式相同）。
+    // 注册使用 VibrationParticleData 的数据工厂（方块来源的 targetPosition + arrivalInTicks 模式相同）。
+    // 宝库连接粒子始终飞向固定方块位置，实体来源变体在此回退到默认工厂。
     registry.registerDataFactory(ParticleTypeId::VaultConnection,
         [](const glm::vec3& pos,
             const glm::vec3& velocity,
@@ -1276,7 +1285,7 @@ void registerBuiltinParticleFactories()
             const data::ParticleData* data) -> std::unique_ptr<Particle> {
             if (data) {
                 auto* vibrationData = dynamic_cast<const data::VibrationParticleData*>(data);
-                if (vibrationData) {
+                if (vibrationData && vibrationData->isBlockSource()) {
                     return VaultConnectionParticle::createWithTarget(
                         pos, vibrationData->targetPosition(), vibrationData->arrivalInTicks());
                 }

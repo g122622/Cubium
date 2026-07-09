@@ -15,7 +15,7 @@ data/
 ├── EntityEffectParticleData.hpp / cpp # 实体效果粒子数据，携带 ARGB 颜色（对应 MC ColorParticleOption）
 ├── ItemParticleData.hpp / cpp    # 物品粒子数据，携带 ItemStack 参数
 ├── RedstoneParticleData.hpp / cpp # 红石粒子数据，携带 RGB 颜色参数
-├── VibrationParticleData.hpp / cpp # 振动粒子数据，携带目标位置 Vector3d + 到达时间 i32
+├── VibrationParticleData.hpp / cpp # 振动粒子数据，携带目标来源（方块位置 或 实体ID+yOffset）+ 到达时间 i32
 ├── TrailParticleData.hpp / cpp   # 轨迹粒子数据，携带目标位置 Vector3d + 颜色 u32(ARGB) + 持续时间 i32
 └── README.md
 ```
@@ -31,7 +31,7 @@ ParticleData (基类)
     ├── DustColorTransitionParticleData (颜色过渡灰尘粒子，携带起始颜色 + 目标颜色 + 缩放)
     ├── EntityEffectParticleData (实体效果粒子，仅携带 ARGB 颜色，无缩放)
     ├── RedstoneParticleData (红石粒子，携带 glm::vec3 颜色)
-    ├── VibrationParticleData (振动粒子，携带目标位置 Vector3d + 到达时间 i32)
+    ├── VibrationParticleData (振动粒子，携带目标来源（方块位置 或 实体ID+yOffset）+ 到达时间 i32)
     └── TrailParticleData (轨迹粒子，携带目标位置 Vector3d + 颜色 u32 + 持续时间 i32)
 ```
 
@@ -47,9 +47,9 @@ ParticleData (基类)
 4. **无数据回退**：当 `ParticleData` 为空或类型不匹配时，回退到 `create()` 使用默认值
 
 已注册数据工厂的粒子类型：
-- `Vibration`：从 `VibrationParticleData` 提取目标位置和到达时间
+- `Vibration`：从 `VibrationParticleData` 提取目标来源和到达时间。方块来源调用 `createWithTarget`，实体来源调用 `createWithEntityTarget`（每 tick 通过 ClientWorld 重新解析实体位置）
 - `Trail`：从 `TrailParticleData` 提取目标位置、颜色和持续时间
-- `VaultConnection`：从 `VibrationParticleData` 提取目标位置和到达时间
+- `VaultConnection`：从 `VibrationParticleData` 提取目标位置和到达时间（仅方块来源，实体来源回退到默认工厂）
 - `Dust`：从 `DustParticleData` 提取 ARGB 颜色和缩放
 - `Redstone`：从 `DustParticleData` 提取 ARGB 颜色和缩放
 - `DustColorTransition`：从 `DustColorTransitionParticleData` 提取起始颜色、目标颜色和缩放
@@ -80,6 +80,28 @@ for (i32 k = 0; k < particleCount; ++k) {
     auto data = std::make_unique<EntityEffectParticleData>(static_cast<u32>(colorCounter));
     // ...通过粒子数据管线创建粒子
 }
+```
+
+## VibrationParticleData 说明
+
+`VibrationParticleData` 对应 MC Java 的 `VibrationParticleOption`（用于 `ParticleTypes.VIBRATION`），携带目标位置来源和到达时间。
+
+### 目标来源类型（对应 MC Java PositionSource）
+
+| 来源类型 | TargetKind | 携带数据 | MC 对应 | 行为 |
+|---------|-----------|---------|---------|------|
+| 方块来源 | `Block` | `Vector3d` 固定坐标 | `BlockPositionSource` | 目标位置固定，粒子飞行期间不更新 |
+| 实体来源 | `Entity` | `EntityId` + `f32 yOffset` | `EntityPositionSource` | 每 tick 通过 `ClientWorld.entityManager().getEntity(id)` 重新解析实体当前位置并叠加 yOffset，实体消失时粒子立即过期 |
+
+### 使用示例
+```cpp
+// 方块来源：目标已解析为方块中心坐标
+auto blockData = std::make_unique<VibrationParticleData>(
+    Vector3d(10.5, 64.0, -20.5), 15);
+
+// 实体来源：持有实体 ID 和 Y 轴偏移
+auto entityData = std::make_unique<VibrationParticleData>(
+    EntityId(42), 1.62f, 15);  // 1.62 = 玩家眼睛高度
 ```
 
 ## 上下游外部依赖关系

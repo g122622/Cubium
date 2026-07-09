@@ -33,6 +33,7 @@
 #include "client/renderer/trident/gui/GuiSpriteMappings.hpp"
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
 #include "client/renderer/trident/gui/GuiTextureLoader.hpp"
+#include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/weather/WeatherRenderer.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
 #include "client/skin/ClientSkinManager.hpp"
@@ -359,6 +360,13 @@ Result<void> ClientApplication::initializeRenderer()
             auto particleInitResult = m_renderer->initializeParticleManager();
             if (particleInitResult.failed()) {
                 spdlog::warn("Failed to initialize particle manager: {}", particleInitResult.error().toString());
+            } else {
+                // 将 ParticleManager 注入 ClientWorld，使得 ClientWorld 能够通过
+                // particleManager() 访问粒子管理器（用于网络粒子回调、世界事件触发粒子等）
+                m_world.setParticleManager(&m_renderer->particleManager());
+                // 将 ClientWorld 注入 ParticleManager，使得实体来源的振动粒子等
+                // 在 tick() 中能够通过世界解析实体位置
+                m_renderer->particleManager().setClientWorld(&m_world);
             }
         }
 

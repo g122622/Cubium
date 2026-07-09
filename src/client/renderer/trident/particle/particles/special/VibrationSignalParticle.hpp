@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/particle/Particle.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <memory>
@@ -43,20 +44,39 @@ namespace mc::client::renderer::trident::particle::particles {
  * 粒子以指数缓动向目标位置飞行，飞行过程中带有轻微的正弦摆动效果，
  * 始终面向摄像机，使用半透明渲染和全亮度光照。
  *
- * 数据管线：通过 VibrationParticleData 传递目标位置和到达时间。
+ * 目标来源有两种（对应 MC Java PositionSource）：
+ * - **方块来源**（BlockPositionSource）：目标位置固定，粒子飞行期间不更新。
+ * - **实体来源**（EntityPositionSource）：持有实体 ID 和 Y 轴偏移，每 tick 通过
+ *   ClientWorld.entityManager().getEntity(id) 重新解析实体当前位置并叠加 yOffset，
+ *   因此当目标实体移动时粒子会持续跟随。实体消失时粒子立即过期，
+ *   对应 MC Java VibrationSignalParticle.tick() 中 target.getPosition().isEmpty() -> remove()。
+ *
+ * 数据管线：通过 VibrationParticleData 传递目标来源和到达时间。
  * 当无 ParticleData 时，create() 回退到默认行为（向上飞8格，8 tick）。
  * 数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class VibrationSignalParticle : public Particle {
 public:
     /**
-     * @brief 构造振动信号粒子
+     * @brief 构造方块来源的振动信号粒子
      *
      * @param pos 起始位置
-     * @param targetPosition 目标位置（飞向的终点）
+     * @param targetPosition 目标位置（已解析为方块中心的世界坐标）
      * @param arrivalInTicks 到达目标位置的 tick 数（即粒子生命周期）
      */
     VibrationSignalParticle(const glm::vec3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+
+    /**
+     * @brief 构造实体来源的振动信号粒子
+     *
+     * 粒子持有实体 ID 和 Y 轴偏移，每 tick 通过 ClientWorld 重新解析实体当前位置。
+     *
+     * @param pos 起始位置
+     * @param targetEntityId 目标实体 ID
+     * @param yOffset Y 轴偏移（如眼睛高度）
+     * @param arrivalInTicks 到达目标位置的 tick 数（即粒子生命周期）
+     */
+    VibrationSignalParticle(const glm::vec3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     /**
      * @brief 工厂函数（标准粒子工厂，用于 ParticleRegistry 注册）
@@ -65,9 +85,9 @@ public:
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     /**
-     * @brief 带目标位置的工厂函数
+     * @brief 带方块目标位置的工厂函数
      *
-     * 用于从 VibrationParticleData 创建振动信号粒子。
+     * 用于从 VibrationParticleData（方块来源）创建振动信号粒子。
      * velocity 参数在此工厂中不使用，粒子的运动完全由目标位置驱动。
      *
      * @param pos 起始位置
@@ -76,6 +96,21 @@ public:
      */
     static std::unique_ptr<Particle> createWithTarget(
         const glm::vec3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+
+    /**
+     * @brief 带实体目标的工厂函数
+     *
+     * 用于从 VibrationParticleData（实体来源）创建振动信号粒子。
+     * 粒子每 tick 通过 ClientWorld.entityManager().getEntity(targetEntityId) 重新解析
+     * 实体当前位置并叠加 yOffset，实体消失时立即过期。
+     *
+     * @param pos 起始位置
+     * @param targetEntityId 目标实体 ID
+     * @param yOffset Y 轴偏移（如眼睛高度）
+     * @param arrivalInTicks 到达目标的 tick 数
+     */
+    static std::unique_ptr<Particle> createWithEntityTarget(
+        const glm::vec3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     void tick(mc::client::ClientWorld* world) override;
 
@@ -100,11 +135,20 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
+    /// 目标来源类型
+    enum class TargetKind : u8 {
+        Block = 0,  ///< 方块来源：m_targetPosition 已解析为方块中心坐标
+        Entity = 1, ///< 实体来源：每 tick 通过 m_targetEntityId + m_yOffset 动态解析
+    };
+
     /// 最大亮度光照值（skyLight=15, blockLight=15 的组合值）
     static constexpr u32 FULL_BRIGHTNESS = 15728880;
 
-    Vector3d m_targetPosition; ///< 目标位置（世界坐标）
-    i32 m_arrivalInTicks;      ///< 到达目标的总 tick 数（生命周期）
+    TargetKind m_kind = TargetKind::Block;         ///< 目标来源类型
+    Vector3d m_targetPosition;                     ///< 方块来源的目标位置（世界坐标）
+    EntityId m_targetEntityId = INVALID_ENTITY_ID; ///< 实体来源的目标实体 ID
+    f32 m_yOffset = 0.0f;                          ///< 实体来源的 Y 轴偏移
+    i32 m_arrivalInTicks;                          ///< 到达目标的总 tick 数（生命周期）
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

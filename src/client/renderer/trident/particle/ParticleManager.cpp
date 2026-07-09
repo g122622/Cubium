@@ -375,6 +375,13 @@ size_t ParticleManager::aliveParticleCount() const
 
 void ParticleManager::tick(mc::client::ClientWorld* world)
 {
+    // 当调用方未传入 world 时，回退到 setClientWorld() 设置的关联世界
+    // 这使得 TridentEngine::render() 在无 world 参数调用 tick() 时，
+    // 实体来源的振动粒子等仍能通过 ClientWorld 解析实体位置
+    if (world == nullptr) {
+        world = m_clientWorld;
+    }
+
     // 首先处理待处理粒子队列
     processPendingParticles();
 

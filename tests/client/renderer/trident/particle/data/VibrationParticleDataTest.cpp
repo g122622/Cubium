@@ -194,5 +194,109 @@ TEST_F(VibrationParticleDataTest, MoveConstruction)
     EXPECT_EQ(moved.getType(), ParticleTypeId::Vibration);
 }
 
+// ==================== 实体来源构造测试 ====================
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_SetsTargetEntityId)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    EXPECT_TRUE(data.isEntitySource());
+    EXPECT_FALSE(data.isBlockSource());
+    EXPECT_EQ(data.kind(), VibrationParticleData::TargetKind::Entity);
+    EXPECT_EQ(data.targetEntityId(), EntityId(42));
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_SetsYOffset)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    EXPECT_FLOAT_EQ(data.yOffset(), 2.5f);
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_SetsArrivalInTicks)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    EXPECT_EQ(data.arrivalInTicks(), 15);
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_GetTypeReturnsVibration)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    EXPECT_EQ(data.getType(), ParticleTypeId::Vibration);
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_GetTypeNameReturnsVibrationName)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    EXPECT_EQ(data.getTypeName(), "minecraft:vibration");
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_GetParametersContainsEntityId)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    auto params = data.getParameters();
+
+    // 实体来源参数格式: "entity <id> <yOffset> <arrivalInTicks>"
+    EXPECT_NE(params.find("entity"), std::string::npos);
+    EXPECT_NE(params.find("42"), std::string::npos);
+    EXPECT_NE(params.find("2.50"), std::string::npos);
+    EXPECT_NE(params.find("15"), std::string::npos);
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_CloneReturnsIdenticalCopy)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+
+    auto cloned = data.clone();
+
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ(cloned->getType(), ParticleTypeId::Vibration);
+
+    auto* clonedVibration = dynamic_cast<VibrationParticleData*>(cloned.get());
+    ASSERT_NE(clonedVibration, nullptr);
+
+    EXPECT_TRUE(clonedVibration->isEntitySource());
+    EXPECT_EQ(clonedVibration->targetEntityId(), EntityId(42));
+    EXPECT_FLOAT_EQ(clonedVibration->yOffset(), 2.5f);
+    EXPECT_EQ(clonedVibration->arrivalInTicks(), arrivalTicks);
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_CopyConstruction)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData copy(data);
+
+    EXPECT_TRUE(copy.isEntitySource());
+    EXPECT_EQ(copy.targetEntityId(), EntityId(42));
+    EXPECT_FLOAT_EQ(copy.yOffset(), 2.5f);
+    EXPECT_EQ(copy.arrivalInTicks(), arrivalTicks);
+}
+
+TEST_F(VibrationParticleDataTest, EntityConstruction_MoveConstruction)
+{
+    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData moved(std::move(data));
+
+    EXPECT_TRUE(moved.isEntitySource());
+    EXPECT_EQ(moved.targetEntityId(), EntityId(42));
+    EXPECT_FLOAT_EQ(moved.yOffset(), 2.5f);
+    EXPECT_EQ(moved.arrivalInTicks(), arrivalTicks);
+}
+
+// ==================== 方块来源类型检查测试 ====================
+
+TEST_F(VibrationParticleDataTest, BlockConstruction_IsBlockSource)
+{
+    VibrationParticleData data(targetPos, arrivalTicks);
+
+    EXPECT_TRUE(data.isBlockSource());
+    EXPECT_FALSE(data.isEntitySource());
+    EXPECT_EQ(data.kind(), VibrationParticleData::TargetKind::Block);
+}
+
 } // namespace
 } // namespace mc

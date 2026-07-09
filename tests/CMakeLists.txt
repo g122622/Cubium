@@ -2038,6 +2038,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp
         # VibrationTargetResolver 纯函数依赖（振动粒子目标位置解析）
         ${CMAKE_SOURCE_DIR}/src/client/application/features/VibrationTargetResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
