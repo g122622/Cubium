@@ -259,6 +259,7 @@ add_executable(minecraft-client
     renderer/trident/entity/layer/effect/EyesLayer.cpp
     # 实体特效
     renderer/trident/entity/effect/glow/GlowEffect.cpp
+    renderer/trident/entity/effect/fire/FireTextureLoader.cpp
     renderer/trident/entity/effect/fire/FireEffect.cpp
     renderer/trident/entity/effect/hurt/HurtFlashEffect.cpp
     # 第一人称手部渲染

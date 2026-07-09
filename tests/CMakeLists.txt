@@ -2234,6 +2234,7 @@ add_executable(mc_resource_tests
     client/resource/test_resource_location.cpp
     client/resource/test_model_loader.cpp
     client/resource/TexturePathVariantTest.cpp
+    client/resource/test_fire_texture_loader.cpp
 )
 
 target_link_libraries(mc_resource_tests
@@ -2270,6 +2271,7 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
 )
 
