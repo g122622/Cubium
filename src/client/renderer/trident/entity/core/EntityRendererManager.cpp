@@ -29,6 +29,7 @@
 #include "client/renderer/trident/entity/model/animal/RabbitModel.hpp"
 #include "client/renderer/trident/entity/model/animal/SheepModel.hpp"
 #include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
+#include "client/renderer/trident/entity/model/aquatic/AquaticModels.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
@@ -1031,6 +1032,15 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             _applyBipedElytraState(*bipedModel, entity);
         }
 
+        // 海豚运动状态推送：水平速度平方
+        // 必须在 setAngles 之前调用，因为 DolphinModel::setAngles 直接读取 m_motionMagnitude
+        // 决定是否播放游泳摆尾动画。对应 MC 1.21.11 DolphinRenderer 中
+        // isMoving = deltaMovement.horizontalDistanceSqr() > 1.0E-7 的填充。
+        auto* dolphinModel = dynamic_cast<model::aquatic::DolphinModel*>(model.get());
+        if (dolphinModel != nullptr) {
+            _applyDolphinMotionState(*dolphinModel, entity);
+        }
+
         model->setAngles(context.limbSwing,
             context.limbSwingAmount,
             context.ageInTicks,
@@ -1362,6 +1372,20 @@ void EntityRendererManager::_applyBipedElytraState(model::BipedModel& bipedModel
 
     bipedModel.setFallFlying(isFallFlying);
     bipedModel.setSpeedValue(speedValue);
+}
+
+void EntityRendererManager::_applyDolphinMotionState(
+    model::aquatic::DolphinModel& dolphinModel, const ClientEntity& entity)
+{
+    // 对应 MC 1.21.11 DolphinRenderer：
+    //   p_364903_.isMoving = p_480257_.getDeltaMovement().horizontalDistanceSqr() > 1.0E-7;
+    // Vec3.horizontalDistanceSqr() 只取 xz 分量（x*x + z*z），不含 Y。
+    // 因此不能直接用 velocity().lengthSquared()（那是 3D 含 Y 的）。
+    // DolphinModel::setAngles 依据 m_motionMagnitude 是否超过 MOTION_THRESHOLD (1.0E-7)
+    // 决定播放游泳摆尾动画或恢复静态尾鳍角度。
+    const Vector3 vel = entity.velocity();
+    const f64 horizontalDistanceSqr = static_cast<f64>(vel.x) * vel.x + static_cast<f64>(vel.z) * vel.z;
+    dolphinModel.setMotionMagnitude(horizontalDistanceSqr);
 }
 
 pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(

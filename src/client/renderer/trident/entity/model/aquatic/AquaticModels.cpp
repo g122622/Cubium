@@ -271,15 +271,25 @@ void DolphinModel::setAngles(
     m_body->setRotateAngleX(mc::math::toRadians(static_cast<f32>(headPitch)));
     m_body->setRotateAngleY(mc::math::toRadians(static_cast<f32>(netHeadYaw)));
 
-    // 根据运动速度判断是否在移动
-    constexpr f64 MOTION_THRESHOLD = 1.0E-7;
+    // 对应 MC 1.21.11 DolphinModel.setupAnim：
+    //   if (renderState.isMoving) {
+    //       float wave = Mth.cos(ageInTicks * 0.3F);
+    //       body.xRot += -0.05F - 0.05F * wave;
+    //       tail.xRot = -0.1F * wave;
+    //       tailFin.xRot = -0.2F * wave;
+    //   } else {
+    //       tail.xRot = -0.10471976F;  // 即 -PI/30，静态尾鳍基础角度
+    //       // tailFin 保持初始 0
+    //   }
+    // isMoving 由 DolphinRenderer 从 deltaMovement.horizontalDistanceSqr() > 1.0E-7 计算，
+    // 本项目中由 EntityRendererManager::_applyDolphinMotionState 推送到 m_motionMagnitude。
     if (m_motionMagnitude > MOTION_THRESHOLD) {
         f32 wave = static_cast<f32>(std::cos(ageInTicks * 0.3));
         m_body->setRotateAngleX(m_body->rotateAngleX() + (-0.05f - 0.05f * wave));
         m_tail->setRotateAngleX(-0.1f * wave);
         m_tailFin->setRotateAngleX(-0.2f * wave);
     } else {
-        // 不移动时恢复初始角度
+        // 不移动时恢复静态角度（-PI/30 ≈ -0.10471976）
         m_tail->setRotateAngleX(-0.10471976f);
         m_tailFin->setRotateAngleX(0.0f);
     }
@@ -689,9 +699,12 @@ void AxolotlModel::setAngles(
         m_tail->setRotateAngleY(-0.15f * walkAmount * static_cast<f32>(std::sin(walkSpeed * 0.5)));
 
         // 腿部行走摆动
+        // 对侧腿相位差 PI（对应 MC 1.21.11 AxolotlModel.setupAnim 陆地分支中
+        // 使用 Mth.PI 对左右侧、前后腿做反相摆动）
+        const f32 legPhaseOffset = static_cast<f32>(mc::math::PI);
         m_leftHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed)));
-        m_rightHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));// TODO : 使用 math::PI
-        m_leftFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));// TODO : 使用 math::PI
+        m_rightHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + legPhaseOffset)));
+        m_leftFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + legPhaseOffset)));
         m_rightFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed)));
 
         m_body->setRotateAngleZ(0.0f);
