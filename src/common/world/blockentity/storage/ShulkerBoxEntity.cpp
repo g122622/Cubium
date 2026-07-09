@@ -327,6 +327,32 @@ void ShulkerBoxEntity::save(nlohmann::json& data) const
     data["items"] = itemsJson;
 }
 
+// ========== NBT 序列化（结构模板 / 客户端同步）==========
+
+bool ShulkerBoxEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    if (!LootableContainerBlockEntity::loadFromNBT(tag)) {
+        return false;
+    }
+
+    // 仅在无未解包的战利品表时加载物品，与 MC Java 互斥语义一致
+    if (!hasLootTable()) {
+        loadItemsFromNBT(tag, m_inventory);
+    }
+
+    return true;
+}
+
+void ShulkerBoxEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    LootableContainerBlockEntity::saveToNBT(tag);
+
+    // 仅在无未解包的战利品表时保存物品，与 MC Java 互斥语义一致
+    if (!hasLootTable()) {
+        saveItemsToNBT(tag, m_inventory);
+    }
+}
+
 std::unique_ptr<BlockEntity> ShulkerBoxEntity::clone() const
 {
     auto clone = std::make_unique<ShulkerBoxEntity>(m_pos);

@@ -233,6 +233,22 @@ public:
 
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
+
+    /**
+     * @brief 从 NBT 加载（结构模板 / 客户端同步）
+     *
+     * 调用基类处理战利品表引用后，若无未解包的战利品表则加载容器物品列表。
+     * LootTable 与 Items 互斥，与 MC Java RandomizableContainer 一致。
+     */
+    bool loadFromNBT(const nbt::CompoundTag& tag) override;
+
+    /**
+     * @brief 保存到 NBT（结构模板 / 客户端同步）
+     *
+     * 调用基类处理战利品表引用后，若无未解包的战利品表则保存容器物品列表。
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const override;
+
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 protected:

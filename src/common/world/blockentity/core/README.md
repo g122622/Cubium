@@ -121,7 +121,13 @@ BarrelEntity::BarrelEntity(const BlockPos& pos)
 
 子类（`ChestEntity`/`BarrelEntity` 等）通过继承自动获得战利品表 NBT 往返能力，无需各自重写。结构模板放置时，`Template::placeInWorld` 会在调用 `loadFromNBT` 前注入随机 `LootTableSeed`（见 `src/common/world/gen/feature/template/README.md` 第 13 节）。
 
-**已知缺口 TODO**：当前子类未重写 `loadFromNBT`/`saveToNBT` 序列化容器物品列表（`Items` NBT 键），结构模板放置预填充物品的容器时物品会丢失。仅使用战利品表的容器不受影响。详见 `LootableContainerBlockEntity.cpp` 中的 TODO 注释。
+#### 容器物品 NBT 序列化（"Items" 键）
+
+`LootableContainerBlockEntity` 提供 protected 辅助方法 `saveItemsToNBT(tag, inventory)` / `loadItemsFromNBT(tag, inventory)`，将容器物品列表序列化为 NBT "Items" 键（`compound_list_tag`，每个元素包含 `Slot`/`id`/`Count`/`tag`）。
+
+各子类（`ChestEntity`/`BarrelEntity`/`ShulkerBoxEntity`/`DispenserBlockEntity`）重写 `loadFromNBT`/`saveToNBT`：先调用基类方法处理战利品表引用，再在无未解包战利品表时调用辅助方法处理 Items。`LootTable/LootTableSeed` 与 `Items` 互斥：未解包的战利品表存在时只持久化引用，已解包或无战利品表时持久化实际物品（与 MC Java `RandomizableContainer` 一致）。
+
+这使结构模板放置预填充物品的容器时物品得以正确保留。`TrappedChestEntity`（继承 `ChestEntity`）与 `DropperBlockEntity`（继承 `DispenserBlockEntity`）通过继承自动获得此能力。
 
 ### 4. 注册时序
 
