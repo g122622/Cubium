@@ -218,9 +218,9 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SpawnsDragonEntity)
     EXPECT_TRUE(accessor.dragonUUID().empty());
     EXPECT_FALSE(accessor.dragonKilled());
 
-    const bool result = accessor.createNewDragon(m_world);
+    Entity* newDragon = accessor.createNewDragon(m_world);
 
-    EXPECT_TRUE(result);
+    EXPECT_NE(newDragon, nullptr);
     EXPECT_FALSE(accessor.dragonUUID().empty());
     EXPECT_FALSE(accessor.dragonKilled());
 
@@ -228,6 +228,8 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SpawnsDragonEntity)
     auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
     EXPECT_EQ(dragons[0]->uuid(), accessor.dragonUUID());
+    // 返回的指针应指向世界中生成的同一实体
+    EXPECT_EQ(dragons[0], newDragon);
 }
 
 TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SetsSpawnPosition)

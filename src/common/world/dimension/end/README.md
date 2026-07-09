@@ -52,6 +52,7 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 | `removePlayer(PlayerId)` | `ServerBossEvent.removePlayer` | 移除可见玩家 |
 | `replacePlayers(set<PlayerId>)` | EndDragonFight.updatePlayers 差集逻辑 | 一次性替换玩家列表，内部计算差集避免闪烁 |
 | `hasPlayers()` | `getPlayers().isEmpty()` | 用于 tick 中判断是否跳过重逻辑 |
+| `getPlayers()` | `ServerBossEvent.getPlayers()` | 返回当前可见玩家集合，用于 `setRespawnStage(END)` 遍历触发 `SUMMONED_ENTITY` 进度 |
 
 #### 玩家追踪
 
@@ -136,6 +137,7 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 5. 设置初始阶段为 `HoldingPattern`
 6. 调用 `IWorld::spawnEntity()` 加入世界（分配 ID、注册追踪器）
 7. 记录新龙 UUID 到 `m_dragonUUID`，重置 `dragonKilled = false` 和 `ticksSinceDragonSeen = 0`
+8. 返回新龙的 `Entity*` 指针（对齐 MC Java 返回 `@Nullable EnderDragon`），供 `setRespawnStage(END)` 触发 `SUMMONED_ENTITY` 进度
 
 #### 与 MC 原版的差异
 
@@ -180,7 +182,7 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 `setRespawnStage(world, stage)` 仅在重生序列进行中可调用：
 
 - 非 `END` 阶段：设置 `respawnStage = stage`，重置 `respawnTime = 0`
-- `END` 阶段：清除 `respawnStage`，设置 `dragonKilled = false`，清空重生水晶列表，调用 `_createNewDragon()` 创建新龙
+- `END` 阶段：清除 `respawnStage`，设置 `dragonKilled = false`，清空重生水晶列表，调用 `_createNewDragon()` 创建新龙。新龙创建成功后，遍历 Boss 栏可见玩家集合（`IDragonBossBar::getPlayers()`），对每个玩家调用 `IWorld::onSummonedEntity(playerId, newDragon)`，由 `ServerWorld` 发布 `SummonedEntityEvent` 并经 `AdvancementEventHandler` 触发 `SummonedEntityTrigger`（对应 MC Java `CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, enderdragon)`）
 
 #### 中止重生（onCrystalDestroyed）
 

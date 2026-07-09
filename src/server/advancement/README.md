@@ -174,6 +174,7 @@ server/advancement/
 
 20. **SummonedEntityTrigger 事件链**：玩家召唤实体时触发。当前触发路径：
     - `/summon` 命令：`SummonCommand` → `world->spawnEntity()` → `IWorld::onSummonedEntity()` → `ServerWorld::onSummonedEntity()` → `ServerEventBus::publish(SummonedEntityEvent)` → `AdvancementEventHandler::_onSummonedEntity()`
-    - **未实现**：铁傀儡/雪傀儡建造（`CarvedPumpkinBlock`）、凋灵建造（`WitherSkullBlock` 未实现）、末影龙重生（`EndDragonFight` 未实现）。这些场景需要重构以获取附近玩家信息后触发
+    - 末影龙重生：`EndDragonFight::setRespawnStage(END)` → `_createNewDragon()` 创建新龙 → 遍历 `m_dragonBossBar->getPlayers()` → 对每个可见玩家调用 `IWorld::onSummonedEntity(playerId, newDragon)` → `ServerWorld::onSummonedEntity()` → 同上事件链（对应 MC Java `CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, enderdragon)`）
+    - **未实现**：铁傀儡/雪傀儡建造（`CarvedPumpkinBlock`）、凋灵建造（`WitherSkullBlock` 未实现）。这些场景需要重构以获取附近玩家信息后触发
 
 21. **PlayerInteractedWithEntityTrigger 触发路径**：不通过 IWorld 回调，而是在 `PacketHandler::handleUseEntity()` 中直接调用 `AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger()`。当交互结果为 `Success` 或 `Consume` 时，获取玩家手持物品和目标实体进行谓词匹配。

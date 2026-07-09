@@ -86,6 +86,7 @@ public:
     void removeAllPlayers() override;
     void replacePlayers(const std::set<PlayerId>& playerIds) override;
     [[nodiscard]] bool hasPlayers() const override;
+    [[nodiscard]] const std::set<PlayerId>& getPlayers() const override;
     [[nodiscard]] f32 percent() const override;
     [[nodiscard]] bool visible() const override;
 

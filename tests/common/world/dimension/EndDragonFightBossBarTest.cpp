@@ -136,6 +136,7 @@ public:
     [[nodiscard]] bool hasPlayers() const override { return !m_players.empty(); }
     [[nodiscard]] f32 percent() const override { return m_percent; }
     [[nodiscard]] bool visible() const override { return m_visible; }
+    [[nodiscard]] const std::set<PlayerId>& getPlayers() const override { return m_players; }
 
     // ========== 测试断言辅助 ==========
 

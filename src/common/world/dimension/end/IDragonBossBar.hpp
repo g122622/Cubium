@@ -131,6 +131,17 @@ public:
     [[nodiscard]] virtual bool hasPlayers() const = 0;
 
     /**
+     * @brief 获取当前可见玩家集合
+     *
+     * 返回 Boss 栏当前追踪的玩家 ID 集合的 const 引用。
+     * 对应 MC Java: ServerBossEvent.getPlayers()（返回 Collection<ServerPlayer>）。
+     * 用于 EndDragonFight 在龙重生时遍历玩家触发 SUMMONED_ENTITY 进度。
+     *
+     * @return 玩家 ID 集合的 const 引用（实现保证返回非空引用，集合可能为空）
+     */
+    [[nodiscard]] virtual const std::set<PlayerId>& getPlayers() const = 0;
+
+    /**
      * @brief 获取当前血量百分比
      */
     [[nodiscard]] virtual f32 percent() const = 0;
@@ -161,6 +172,12 @@ public:
     void removeAllPlayers() override {}
     void replacePlayers(const std::set<PlayerId>& /*playerIds*/) override {}
     [[nodiscard]] bool hasPlayers() const override { return false; }
+    [[nodiscard]] const std::set<PlayerId>& getPlayers() const override
+    {
+        // 返回对函数局部静态空集合的稳定引用，避免引入 .cpp 文件
+        static const std::set<PlayerId> kEmptyPlayers;
+        return kEmptyPlayers;
+    }
     [[nodiscard]] f32 percent() const override { return 0.0f; }
     [[nodiscard]] bool visible() const override { return false; }
 };

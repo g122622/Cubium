@@ -154,6 +154,11 @@ bool ServerDragonBossBar::hasPlayers() const
     return !m_players.empty();
 }
 
+const std::set<PlayerId>& ServerDragonBossBar::getPlayers() const
+{
+    return m_players;
+}
+
 f32 ServerDragonBossBar::percent() const
 {
     return m_percent;

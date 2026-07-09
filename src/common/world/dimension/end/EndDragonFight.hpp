@@ -41,6 +41,7 @@ namespace mc {
 // 前向声明
 class IWorld;
 class DamageSource;
+class Entity;
 
 namespace entity {
 class EnderCrystalEntity;
@@ -402,9 +403,10 @@ private:
      * Cubium 的调用方（tick）已通过 _isArenaLoaded() 保证区块加载，此处不再重复。
      *
      * @param world 末地世界引用
-     * @return true 创建成功
+     * @return 新创建的末影龙实体指针（nullptr 表示创建失败）；返回的指针所有权属于世界，
+     *         调用方不应释放。对齐 MC Java createNewDragon() 返回 @Nullable EnderDragon
      */
-    bool _createNewDragon(IWorld& world);
+    Entity* _createNewDragon(IWorld& world);
 
     /**
      * @brief 检查是否存在活跃的出口传送门

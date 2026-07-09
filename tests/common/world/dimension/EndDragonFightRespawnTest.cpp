@@ -180,6 +180,14 @@ public:
         m_explosions.push_back(position);
     }
 
+    // ========== 进度触发回调 ==========
+
+    void onSummonedEntity(PlayerId playerId, Entity* entity) override
+    {
+        // 记录调用以供测试断言 SUMMONED_ENTITY 进度触发逻辑
+        m_summonedEntityCalls.push_back({playerId, entity});
+    }
+
     // ========== dragonFight 注入 ==========
 
     [[nodiscard]] EndDragonFight* dragonFight() override { return m_fight; }
@@ -218,7 +226,17 @@ public:
 
     [[nodiscard]] size_t explosionCount() const { return m_explosions.size(); }
 
-    void clearEvents() { m_events.clear(); }
+    /// 获取 onSummonedEntity 调用记录（playerId, entity 指针）
+    [[nodiscard]] const std::vector<std::pair<PlayerId, Entity*>>& summonedEntityCalls() const
+    {
+        return m_summonedEntityCalls;
+    }
+
+    void clearEvents()
+    {
+        m_events.clear();
+        m_summonedEntityCalls.clear();
+    }
 
 private:
     static i32 toChunkCoord(i32 worldCoord)
@@ -243,6 +261,7 @@ private:
     };
     std::vector<PlayEventCall> m_events;
     std::vector<Vector3> m_explosions;
+    std::vector<std::pair<PlayerId, Entity*>> m_summonedEntityCalls;
 };
 
 } // namespace mc::test
@@ -772,6 +791,84 @@ TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_ThrowsOrCleared)
     EXPECT_FALSE(fight.respawnStage().has_value());
     EXPECT_FALSE(fight.isDragonKilled());
     // 新龙应被创建
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    EXPECT_EQ(dragons.size(), 1u);
+}
+
+TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_FiresSummonedEntityForEachBossBarPlayer)
+{
+    // 验证 setRespawnStage(END) 创建新龙后，对 Boss 栏可见玩家列表中的每个玩家
+    // 触发一次 onSummonedEntity 回调（对应 MC Java CriteriaTriggers.SUMMONED_ENTITY）。
+    // 对应 MC Java: EndDragonFight.setRespawnStage(END) 中
+    //   for (ServerPlayer serverplayer : this.dragonEvent.getPlayers()) {
+    //       CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, enderdragon);
+    //   }
+    EndDragonFight fight(42, std::nullopt);
+    test::EndDragonFightTestAccessor accessor(fight);
+    accessor.setDragonKilledFlag(true);
+    m_world.setDragonFight(&fight);
+
+    // 注入一个可编程的 Boss 栏，预设可见玩家集合
+    class TestBossBar final : public IDragonBossBar {
+    public:
+        explicit TestBossBar(std::set<PlayerId> players)
+            : m_players(std::move(players))
+        {}
+
+        void setPercent(f32 /*percent*/) override {}
+        void setName(std::unique_ptr<text::ITextComponent> /*name*/) override {}
+        void setVisible(bool /*visible*/) override {}
+        void addPlayer(PlayerId /*playerId*/) override {}
+        void removePlayer(PlayerId /*playerId*/) override {}
+        void removeAllPlayers() override {}
+        void replacePlayers(const std::set<PlayerId>& /*playerIds*/) override {}
+        [[nodiscard]] bool hasPlayers() const override { return !m_players.empty(); }
+        [[nodiscard]] const std::set<PlayerId>& getPlayers() const override { return m_players; }
+        [[nodiscard]] f32 percent() const override { return 0.0f; }
+        [[nodiscard]] bool visible() const override { return true; }
+
+    private:
+        std::set<PlayerId> m_players;
+    };
+
+    const std::set<PlayerId> trackedPlayers{PlayerId{1001}, PlayerId{1002}, PlayerId{1003}};
+    fight.setDragonBossBar(std::make_unique<TestBossBar>(trackedPlayers));
+
+    accessor.setRespawnStage(DragonRespawnAnimation::START);
+
+    fight.setRespawnStage(m_world, DragonRespawnAnimation::END);
+
+    // 应对每个 Boss 栏可见玩家触发一次 onSummonedEntity
+    const auto& calls = m_world.summonedEntityCalls();
+    ASSERT_EQ(calls.size(), trackedPlayers.size());
+
+    // 收集实际触发的 playerId 集合
+    std::set<PlayerId> actualPlayers;
+    for (const auto& [pid, entityPtr] : calls) {
+        actualPlayers.insert(pid);
+        // 实体指针应为新生成的末影龙（非空）
+        EXPECT_NE(entityPtr, nullptr);
+        EXPECT_EQ(entityPtr->typeId(), entity::EntityTypeIdNumber::ENDER_DRAGON);
+    }
+    EXPECT_EQ(actualPlayers, trackedPlayers);
+}
+
+TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_WithNoBossBarPlayers_DoesNotFireSummonedEntity)
+{
+    // Boss 栏无可见玩家时，setRespawnStage(END) 不应触发任何 onSummonedEntity 回调。
+    // 默认 NullDragonBossBar.getPlayers() 返回空集合，满足此条件。
+    EndDragonFight fight(42, std::nullopt);
+    test::EndDragonFightTestAccessor accessor(fight);
+    accessor.setDragonKilledFlag(true);
+    m_world.setDragonFight(&fight);
+
+    accessor.setRespawnStage(DragonRespawnAnimation::START);
+
+    fight.setRespawnStage(m_world, DragonRespawnAnimation::END);
+
+    // 无玩家时不应触发任何回调
+    EXPECT_TRUE(m_world.summonedEntityCalls().empty());
+    // 但新龙仍应被创建
     auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
     EXPECT_EQ(dragons.size(), 1u);
 }

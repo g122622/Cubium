@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "common/entity/core/Entity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 
@@ -88,7 +89,9 @@ public:
 
     void findOrCreateDragon(IWorld& world) { m_fight._findOrCreateDragon(world); }
 
-    bool createNewDragon(IWorld& world) { return m_fight._createNewDragon(world); }
+    /// 调用 _createNewDragon，返回新龙实体指针（nullptr 表示创建失败）
+    /// 对齐 EndDragonFight::_createNewDragon 的返回类型
+    Entity* createNewDragon(IWorld& world) { return m_fight._createNewDragon(world); }
 
     void updateCrystalCount(IWorld& world) { m_fight._updateCrystalCount(world); }
 

@@ -415,24 +415,25 @@ void EndDragonFight::_findOrCreateDragon(IWorld& world)
     _createNewDragon(world);
 }
 
-bool EndDragonFight::_createNewDragon(IWorld& world)
+Entity* EndDragonFight::_createNewDragon(IWorld& world)
 {
     // 对应 MC Java: EndDragonFight.createNewDragon()
     // 通过 EntityType 工厂创建末影龙，设置位置/朝向/初始阶段，加入世界。
+    // 返回新龙实体指针（对齐 MC Java 返回 @Nullable EnderDragon），供调用方触发 SUMMONED_ENTITY 进度。
 
     // 1. 从实体注册表获取末影龙 EntityType
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* dragonType = registry.getType(entity::EntityTypes::ENDER_DRAGON);
     if (dragonType == nullptr) {
         spdlog::warn("EndDragonFight: Ender dragon entity type not registered, cannot create new dragon.");
-        return false;
+        return nullptr;
     }
 
     // 2. 工厂方法创建实例（Entity 构造时自动生成随机 UUID）
     std::unique_ptr<Entity> dragonEntity = dragonType->create(&world);
     if (dragonEntity == nullptr) {
         spdlog::warn("EndDragonFight: Ender dragon factory returned nullptr.");
-        return false;
+        return nullptr;
     }
 
     // 3. 设置生成位置 (0, DRAGON_SPAWN_Y, 0) 和随机朝向
@@ -452,14 +453,16 @@ bool EndDragonFight::_createNewDragon(IWorld& world)
         dragon->setPhase(entity::EnderDragonEntity::Phase::HoldingPattern);
     }
 
-    // 5. 在 spawnEntity 之前记录 UUID，因为 spawnEntity 会 transfer ownership
+    // 5. 在 spawnEntity 之前记录 UUID 和原始指针，因为 spawnEntity 会 transfer ownership
     const std::string newDragonUUID = dragonEntity->uuid();
+    // 保留原始 Entity 指针，spawnEntity 后通过 EntityId 二次校验取回
+    Entity* spawnedDragonPtr = dragonEntity.get();
 
     // 6. 加入世界（ServerWorld::spawnEntity 内部完成 ID 分配、EntityTracker 注册、区块跟踪）
     const EntityId spawnedId = world.spawnEntity(std::move(dragonEntity));
     if (spawnedId == 0) {
         spdlog::warn("EndDragonFight: Failed to spawn new dragon (spawnEntity returned 0).");
-        return false;
+        return nullptr;
     }
 
     // 7. 记录新龙的 UUID，重置状态
@@ -468,7 +471,12 @@ bool EndDragonFight::_createNewDragon(IWorld& world)
     m_ticksSinceDragonSeen = 0;
 
     spdlog::info("EndDragonFight: Spawned new dragon entity (id={}, uuid={}).", spawnedId, m_dragonUUID);
-    return true;
+
+    // spawnEntity 后 dragonEntity 已被 move 走，通过 getEntity(spawnedId) 取回稳定的 Entity*
+    // 使用 getEntity 而非直接返回 spawnedDragonPtr，以对齐 MC Java 的语义并保证指针来自世界管理器
+    Entity* result = world.getEntity(spawnedId);
+    // 理论上 result 应等于 spawnedDragonPtr；若 getEntity 返回 nullptr（异常情况），降级使用原始指针
+    return (result != nullptr) ? result : spawnedDragonPtr;
 }
 
 void EndDragonFight::_scanState(IWorld& world)
@@ -836,11 +844,23 @@ void EndDragonFight::setRespawnStage(IWorld& world, DragonRespawnAnimation stage
         m_dragonKilled = false;
         m_respawnCrystals.clear();
 
-        // 创建新龙
+        // 创建新龙并取回其 Entity 指针，用于触发 SUMMONED_ENTITY 进度
         // MC: EnderDragon enderdragon = this.createNewDragon();
-        _createNewDragon(world);
-        // TODO: MC 在此处触发 SUMMONED_ENTITY 进度（CriteriaTriggers.SUMMONED_ENTITY.trigger(player)），
-        //       Cubium 暂未实现进度系统（advancements），待进度系统落地后在此处补上触发调用。
+        Entity* newDragon = _createNewDragon(world);
+
+        // 对应 MC Java: EndDragonFight.setRespawnStage(END) 的进度触发逻辑
+        //   if (enderdragon != null) {
+        //       for (ServerPlayer serverplayer : this.dragonEvent.getPlayers()) {
+        //           CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, enderdragon);
+        //       }
+        //   }
+        // Cubium 通过 IWorld::onSummonedEntity 回调发布 SummonedEntityEvent，
+        // 由 ServerWorld 转发到 AdvancementEventHandler 触发 SummonedEntityTrigger。
+        if (newDragon != nullptr) {
+            for (PlayerId playerId : m_dragonBossBar->getPlayers()) {
+                world.onSummonedEntity(playerId, newDragon);
+            }
+        }
     } else {
         m_respawnStage = stage;
     }

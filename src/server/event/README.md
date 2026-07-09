@@ -69,6 +69,7 @@ server/event/
 | `common/entity/entities/passive/tamable/ParrotEntity` | TameAnimalEvent（通过 IWorld::onTameAnimal） |
 | `common/entity/entities/passive/horse/AbstractHorseEntity` | TameAnimalEvent（通过 IWorld::onTameAnimal） |
 | `server/command/commands/SummonCommand` | SummonedEntityEvent（通过 IWorld::onSummonedEntity） |
+| `common/world/dimension/end/EndDragonFight` | SummonedEntityEvent（通过 IWorld::onSummonedEntity，龙重生 END 阶段对 Boss 栏可见玩家触发） |
 | `server/world/ServerWorld` | CuredZombieVillagerEvent, ChanneledLightningEvent, BredAnimalsEvent 等（IWorld 回调重写） |
 | `server/advancement/AdvancementEventHandler` | 订阅 22 种事件触发成就（InventoryChangedEvent, PlayerKillEntityEvent, TameAnimalEvent, SummonedEntityEvent 等） |
 | `server/application/MinecraftServer` | 初始化和关闭 AdvancementEventHandler |
