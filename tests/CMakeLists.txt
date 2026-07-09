@@ -198,6 +198,8 @@ add_executable(mc_tests
     common/entity/DolphinEntityTest.cpp
     # 鱿鱼 AI 目标测试
     common/entity/SquidGoalsTest.cpp
+    # 发光鱿鱼实体测试（同步数据、NBT 往返、hurt 暗化、喷墨粒子、registerData 唯一性）
+    entity/GlowSquidEntityTest.cpp
     # 村民 AI 目标测试
     common/entity/VillagerGoalsTest.cpp
     # 职业映射测试
