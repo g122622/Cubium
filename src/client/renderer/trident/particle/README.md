@@ -37,7 +37,8 @@ particle/
     │
     ├── block/                    # 方块粒子
     │   ├── DiggingParticle.hpp/cpp    # 挖掘粒子（使用方块纹理）
-    │   └── DustPillarParticle.hpp/cpp # 尘柱粒子（重锤砸地攻击，继承DiggingParticle）
+    │   ├── DustPillarParticle.hpp/cpp # 尘柱粒子（重锤砸地攻击，继承DiggingParticle）
+    │   └── ItemParticle.hpp/cpp       # 物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball 共用，双路径纹理解析）
     │
     ├── effect/                   # 特效粒子
     │   ├── FlameParticle.hpp/cpp      # 火焰粒子
@@ -95,20 +96,22 @@ ParticleManager
 | `common/core` | 基础类型、Result |
 | `common/util/math` | 向量、随机数 |
 | `common/util/AxisAlignedBB` | 碰撞检测 |
-| `common/resource` | ResourceLocation、IResourcePack |
+| `common/resource` | ResourceLocation、IResourcePack、BlockModelCache、ItemModelCache、ItemTextureAtlas |
 | `common/world` | BlockState、FluidTags |
+| `common/item` | ItemStack（ItemParticle）、BlockItemRegistry（方块物品判断与 Block 解析） |
 | `client/world/ClientWorld` | 光照采样、碰撞检测、流体状态 |
 | `client/renderer/trident/core` | Vulkan 设备、命令池、渲染通道 |
-| `client/network` | ParticlePacket 粒子同步 |
+| `client/renderer/trident/chunk` | ChunkMesher::modelCache() 获取 BlockModelCache（方块/方块物品粒子纹理） |
+| `client/network` | ParticlePacket 粒子同步（含 createItem / createBlock / createEntityEffect） |
 
 ### 下游依赖（使用粒子系统的模块）
 
 | 使用模块 | 用途 |
 |---------|------|
-| `TridentEngine` | 持有 ParticleManager，每帧调用 tick/render |
+| `TridentEngine` | 持有 ParticleManager，每帧调用 tick/render；注入 `ItemTextureAtlas` 给 `ItemParticle` |
 | `WeatherRenderer` | 生成雨滴/雪花粒子 |
-| `ClientWorld` | 世界事件触发粒子（方块破坏、实体效果等） |
-| `ClientApplicationNetwork` | 处理服务端粒子同步包 |
+| `ClientWorld` | 世界事件触发粒子（方块破坏、实体效果、物品破碎等） |
+| `ClientApplicationNetwork` | 处理服务端粒子同步包（Block/Item/EntityEffect/Vibration 等），通过 `ParticleData` 走数据管线 |
 
 ## 容易踩的坑
 
@@ -142,3 +145,5 @@ ParticleManager
 11. **getScale() 返回值是乘数**：`getScale()` 返回的值会与 `m_size` 相乘（渲染管线：`halfSize = m_size * scale * 0.5`），因此 getScale() 应仅返回缩放乘数（如 0~1 范围），**不要**乘以 `m_initialSize` 或 `size()`，否则渲染尺寸会被平方放大。如需基于初始大小做动画，应在 `tick()` 中用 `setSize(m_initialSize * factor)` 更新 m_size，让 getScale() 返回 1.0；或让 getScale() 仅返回乘数。
 
 12. **粒子随机源**：`Particle` 基类提供 `m_random` 成员（`mc::math::Random` 类型），构造时使用位置哈希和时间戳作为种子。子类应直接使用 `m_random` 获取随机数，**不要**在 tick() 或构造函数中创建局部 `mc::math::Random` 对象，否则每个粒子实例的随机序列会完全相同（默认种子为 0），且每 tick 创建对象有性能开销。
+
+13. **TERRAIN_SHEET 粒子的纹理图集限制（TODO）**：`ParticleManager` 当前在渲染所有粒子时仅绑定单一的 `ParticleTextureAtlas` 纹理（描述符集 binding 1），不支持按 `ParticleRenderType` 切换纹理图集。`DiggingParticle`、`DustPillarParticle`、`ItemParticle` 等 `TERRAIN_SHEET` 粒子预计算的方块图集 / 物品图集 UV 坐标在渲染时会采样错误纹理。`ItemParticle` 的非方块物品路径通过 `setItemTextureAtlas()` 静态注入 `ItemTextureAtlas`，但该图集的 UV 仅用于 `buildVertices()` 预计算，渲染采样器仍指向 `ParticleTextureAtlas`。完整修复需要 `ParticleManager` 按 `ParticleRenderType` 维护多套纹理图集描述符并按渲染批次绑定。

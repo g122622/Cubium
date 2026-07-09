@@ -47,7 +47,9 @@ src/common/network/packet/
 ├── SetCameraPacket.hpp            # 旁观者摄像机同步包 (S2C)
 ├── SetCameraPacket.cpp            # 旁观者摄像机同步包实现
 ├── BlockEventPacket.hpp           # 方块事件同步包 (S2C)
-└── BlockEventPacket.cpp           # 方块事件同步包实现
+├── BlockEventPacket.cpp           # 方块事件同步包实现
+├── ParticlePacket.hpp             # 粒子同步包 (S2C)（普通/方块/物品/EntityEffect/Vibration/Trail）
+└── ParticlePacket.cpp             # 粒子同步包实现
 ```
 
 ## 内部模块关系
@@ -156,3 +158,16 @@ PacketModule.hpp (统一入口)
     - 服务端由 `ServerPlayer::_sendSetCameraPacket()` 发送
     - 客户端由 `NetworkClient::_handleSetCamera()` 接收，通过 `onSetCamera` 回调更新 `Player::m_cameraEntityId`
     - 对应 MC Java 的 `ClientboundSetCameraPacket`
+
+11. **ParticlePacket 粒子同步包**
+    - 方向：服务端→客户端 (S2C)
+    - 字段：粒子类型 ID、位置、速度、偏移、数量、可选数据（`m_optionalData` 字节流）
+    - 工厂方法（按粒子数据类型区分）：
+      - `create()` - 普通粒子（无附加数据）
+      - `createBlock()` - 方块粒子，`m_optionalData` 存储 BlockState ID（VarInt）
+      - `createItem()` - 物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball），`m_optionalData` 存储 `ItemStack::serialize()` 的完整字节流（包含 present 标志 + 物品 ID + 数量 + NBT）
+      - `createEntityEffect()` - 实体效果粒子，`m_optionalData` 存储 ARGB 颜色（4 字节）
+      - `createVibration()` / `createTrail()` - 振动/轨迹粒子，`m_optionalData` 存储目标位置等参数
+    - 辅助方法：`isBlockParticle()` / `isItemParticle()` / `isEntityEffectParticle()` / `isVibrationParticle()` / `isTrailParticle()` 判断可选数据类型；`decodeBlockState()` / `decodeItemStack()` / `decodeColor()` / `decodeVibrationData()` / `decodeTrailData()` 从 `m_optionalData` 反序列化
+    - **物品粒子序列化**：`createItem()` 通过 `PacketSerializer` 临时序列化 `ItemStack`，再将字节流拷贝到 `m_optionalData`；`decodeItemStack()` 用 `PacketDeserializer` 包装 `m_optionalData` 调用 `ItemStack::deserialize()` 还原
+    - **判空约定**：`isItemParticle()` 要求 `requiresItemData(type) && !m_optionalData.empty()`；空 `ItemStack` 序列化后为单字节 `0x00`（present=false），仍视为有效物品粒子数据

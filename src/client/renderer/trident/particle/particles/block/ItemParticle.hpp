@@ -50,6 +50,12 @@ namespace mc::client::renderer::trident::particle::particles {
  *
  * Item、ItemSlime、ItemCobweb、ItemSnowball 均使用此类，
  * 仅通过不同的 ParticleTypeId 注册来区分。
+ *
+ * TODO(架构限制): ParticleManager 当前仅绑定单一的 ParticleTextureAtlas 纹理
+ * 渲染所有粒子，不支持按 ParticleRenderType 切换纹理图集。非方块物品的
+ * ItemTextureAtlas UV 在渲染时采样错误纹理。完整修复需要 ParticleManager
+ * 按渲染类型维护多套纹理图集描述符。详见 _initializeFromPlainItem() 的
+ * TODO 注释和 particle/README.md 第 13 条。
  */
 class ItemParticle : public Particle {
 public:

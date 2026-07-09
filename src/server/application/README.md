@@ -109,6 +109,14 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 - **排除破坏者**：`broadcastBlockBreakProgressInRange()` 通过 `playerEntityManager().getPlayerIdByEntityId()` 将 breakerId 转为 PlayerId，在遍历玩家时跳过破坏者自身。对应 MC Java `ServerLevel.destroyBlockProgress()` 中 `serverplayer.getId() != breakerId` 的过滤逻辑。
 - **PlayerId↔EntityId 映射**：`ServerPlayerEntityManager` 维护双向映射，`getPlayerEntityId(PlayerId)` 和 `getPlayerIdByEntityId(EntityId)` 用于两个方向的转换。
 
+### 8a. 粒子广播链路
+携带附加数据的粒子通过 `IWorld` 虚接口 + `ServerWorld` 广播回调 + `MinecraftServer::broadcastXxxParticleInRange` 路径广播给附近玩家：
+- **方块粒子**：`IWorld::addBlockParticle()` → `ServerWorld::m_onBroadcastBlockParticle` 回调 → `MinecraftServer::broadcastBlockParticleInRange()` → `ParticlePacket::createBlock()`（携带 BlockState ID）
+- **物品粒子**：`IWorld::addItemParticle()` → `ServerWorld::m_onBroadcastItemParticle` 回调 → `MinecraftServer::broadcastItemParticleInRange()` → `ParticlePacket::createItem()`（携带 `ItemStack` 序列化字节流）
+- **实体效果粒子**：`IWorld::addEntityEffectParticle()` → `ServerWorld::m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange()` → `ParticlePacket::createEntityEffect()`（携带 ARGB 颜色）
+- **范围过滤**：各 `broadcastXxxParticleInRange` 默认范围 256 格，遍历 `playerEntityManager()` 中所有在线玩家，跳过距离超出的玩家。对应 MC Java `ServerLevel.sendParticles()` 的距离裁剪逻辑。
+- **回调注册**：`MinecraftServer::attachWorldBindings()` 中通过 `world->setOnBroadcastXxxParticle()` 注册回调，将 `ServerWorld` 与 `MinecraftServer` 的广播方法绑定。
+
 ### 9. 关服时玩家运行时状态回写（savePlayerRuntimeState 钩子）
 
 **问题背景**：`saveAllWorldData()` 落盘区块、level.dat、玩家缓存数据，但在线玩家的位置、生命、饥饿、经验、背包等运行时状态从未回写到 `PlayerDataManager` 缓存——`PlayerDataManager::fromPlayer()` 虽然存在但全项目无调用方，导致玩家退出后最新进度丢失。

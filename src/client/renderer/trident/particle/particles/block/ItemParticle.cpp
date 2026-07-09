@@ -435,6 +435,17 @@ bool ItemParticle::_initializeFromPlainItem()
     m_textureRegion = *region;
     m_textureLocation = layer0;
     m_hasValidTexture = true;
+
+    // TODO(架构限制): 此处预计算的 m_textureRegion UV 基于 ItemTextureAtlas，
+    // 但 ParticleManager 当前渲染所有粒子时仅绑定单一的 ParticleTextureAtlas 纹理
+    // （描述符集 binding 1，见 ParticleManager::_createDescriptorSets），
+    // 不支持按 ParticleRenderType 切换纹理图集。因此非方块物品粒子的 UV
+    // 在渲染时会采样错误的纹理（ParticleTextureAtlas 而非 ItemTextureAtlas）。
+    // 该限制同样影响 DiggingParticle 等所有 TERRAIN_SHEET 粒子（方块图集 UV
+    // 也采样错误纹理）。完整修复需要 ParticleManager 按 ParticleRenderType
+    // 维护多套纹理图集描述符并按渲染批次绑定。详见
+    // src/client/renderer/trident/particle/README.md 第 13 条「TERRAIN_SHEET
+    // 粒子的纹理图集限制」。
     return true;
 }
 
