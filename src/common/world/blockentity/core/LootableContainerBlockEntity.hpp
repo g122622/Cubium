@@ -154,6 +154,32 @@ public:
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
 
+    /**
+     * @brief 从 NBT 加载战利品表引用与种子
+     *
+     * 读取 "LootTable"（string）与 "LootTableSeed"（long）键。
+     * - "LootTable" 存在时设置 m_hasLootTable = true 并重置 m_lootFilled，
+     *   使后续容器访问触发延迟填充。
+     * - "LootTableSeed" 缺失时默认为 0（表示使用随机种子）。
+     *
+     * 子类（ChestEntity/BarrelEntity 等）应在其 loadFromNBT 重写中调用
+     * 本方法以复用战利品表加载逻辑。
+     *
+     * @param tag NBT 复合标签
+     * @return 是否成功
+     */
+    bool loadFromNBT(const nbt::CompoundTag& tag) override;
+
+    /**
+     * @brief 保存战利品表引用与种子到 NBT
+     *
+     * 仅在已设置战利品表且尚未填充时写入 "LootTable" / "LootTableSeed"。
+     * 已填充后不写入（避免持久化已生成的物品与战利品表引用同时存在）。
+     *
+     * @param tag 输出 NBT 复合标签
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const override;
+
 protected:
     /**
      * @brief 构造函数

@@ -24,6 +24,7 @@
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/serialization/NbtHelper.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/LootTableManager.hpp"
 #include "item/loot/context/LootContext.hpp"
@@ -161,6 +162,56 @@ void LootableContainerBlockEntity::save(nlohmann::json& data) const
         data["LootTable"] = m_lootTable.toString();
         if (m_lootTableSeed != 0) {
             data["LootTableSeed"] = m_lootTableSeed;
+        }
+    }
+}
+
+// ============================================================================
+// 序列化 - NBT（结构模板 / 客户端同步）
+// ============================================================================
+
+namespace {
+/// NBT 键名
+constexpr const char* LOOT_TABLE_TAG = "LootTable";
+constexpr const char* LOOT_TABLE_SEED_TAG = "LootTableSeed";
+} // namespace
+
+bool LootableContainerBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    if (!BlockEntity::loadFromNBT(tag)) {
+        return false;
+    }
+
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+
+    // 战利品表：无论 LootTable 是否存在都读取种子，
+    // 但种子仅在 hasLootTable 为 true 时才有意义。
+    m_hasLootTable = false;
+    m_lootTable = ResourceLocation();
+    m_lootTableSeed = 0;
+    m_lootFilled = false;
+
+    auto lootTableOpt = nbt_helper::tryGetString(tag, LOOT_TABLE_TAG);
+    if (lootTableOpt.has_value()) {
+        m_lootTable = ResourceLocation(lootTableOpt.value());
+        m_hasLootTable = true;
+    }
+    // 种子始终读取（缺失默认 0，表示使用随机种子填充）
+    m_lootTableSeed = nbt_helper::tryGetLong(tag, LOOT_TABLE_SEED_TAG).value_or(0);
+
+    return true;
+}
+
+void LootableContainerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    BlockEntity::saveToNBT(tag);
+
+    // 仅在已设置战利品表且尚未填充时保存
+    // 已填充后战利品表引用清空，物品通过子类的 Items/item NBT 持久化
+    if (m_hasLootTable && !m_lootFilled) {
+        tag.put(LOOT_TABLE_TAG, m_lootTable.toString());
+        if (m_lootTableSeed != 0) {
+            tag.put(LOOT_TABLE_SEED_TAG, m_lootTableSeed);
         }
     }
 }

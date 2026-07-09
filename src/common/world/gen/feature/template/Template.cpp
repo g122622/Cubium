@@ -42,6 +42,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <unordered_map>
@@ -843,18 +844,19 @@ bool Template::placeInWorld(
                 processedBlock.nbt->put("y", processedBlock.pos.y);
                 processedBlock.nbt->put("z", processedBlock.pos.z);
 
+                // 为战利品容器注入随机 LootTableSeed。
+                // LootableContainerBlockEntity 是 RandomizableContainer 的等价类
+                // （ChestEntity/BarrelEntity/ShulkerBoxEntity/DispenserBlockEntity 等）。
+                // 仅注入 LootTableSeed，LootTable 键已存在于模板 NBT 中。
+                // BrushableBlockEntity（可疑沙）不是 LootableContainerBlockEntity，
+                // 其 LootTableSeed 由结构生成器（如 DesertPyramidStructure）通过
+                // setLootTable() 直接设置，此处不干预。
+                if (dynamic_cast<blockentity::LootableContainerBlockEntity*>(tileEntity) != nullptr) {
+                    processedBlock.nbt->put("LootTableSeed", rng.nextLong());
+                }
+
                 // 加载 NBT 数据到方块实体
                 tileEntity->loadFromNBT(*processedBlock.nbt);
-
-                // TODO: 为战利品容器（RandomizableContainer / LootableContainerBlockEntity）
-                // 设置随机 LootTableSeed。对齐 MC 1.21.11 StructureTemplate.placeInWorld：
-                //   if (blockentity instanceof RandomizableContainer) {
-                //       nbt.putLong("LootTableSeed", rng.nextLong());
-                //   }
-                // 当前仅影响箱子/潜影盒等容器模板（其 LootTableSeed 由此处生成），
-                // 不影响可疑沙（BrushableBlockEntity），因为可疑沙不是 RandomizableContainer，
-                // 其 LootTableSeed 已由结构生成器（如 DesertPyramidStructure）通过
-                // setLootTable() 写入 NBT，loadFromNBT 会正确读取。
             }
         }
 
