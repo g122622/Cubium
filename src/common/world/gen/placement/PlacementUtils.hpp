@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "BiomeFilterPlacement.hpp"
 #include "EnvironmentScanPlacement.hpp"
 #include "Placement.hpp"
 #include <memory>
@@ -47,18 +46,6 @@ namespace PlacementUtils {
  */
 [[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
     std::unique_ptr<ConfiguredPlacement> root, std::vector<u32> allowedBiomes);
-
-/**
- * @brief 在放置链末尾添加生物群系过滤（原版 BiomeFilter 模式）
- *
- * 通过反向查询生物群系的生成设置判断是否允许放置。
- *
- * @param root 放置链根节点
- * @param featureId 当前配置化特征的ID
- * @return 带有生物群系过滤的放置链
- */
-[[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendBiomeFilter(
-    std::unique_ptr<ConfiguredPlacement> root, u32 featureId);
 
 /**
  * @brief 在放置链末尾添加环境扫描（向上扫描寻找实心面）

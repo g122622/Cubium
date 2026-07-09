@@ -698,6 +698,8 @@ add_library(mc_common STATIC
     world/block/blocks/RotatedPillarBlock.cpp
     world/block/blocks/DirectionalBlock.cpp
     world/block/blocks/HorizontalBlock.cpp
+    world/block/blocks/MultifaceBlock.cpp
+    world/block/blocks/MultifaceSpreader.cpp
     world/block/blocks/LiquidBlock.cpp
     world/block/blocks/CauldronBlock.cpp
     world/block/blocks/LayeredCauldronBlock.cpp
@@ -804,10 +806,12 @@ add_library(mc_common STATIC
     # World - Block - Garden Awakening
     world/block/blocks/garden/CactusFlowerBlock.cpp
     world/block/blocks/garden/FlowerBedBlock.cpp
+    world/block/blocks/garden/LeafLitterBlock.cpp
 
     # World - Block - Pale Garden
     world/block/blocks/pale_garden/CreakingHeartBlock.cpp
     world/block/blocks/pale_garden/EyeblossomBlock.cpp
+    world/block/blocks/pale_garden/MossyCarpetBlock.cpp
     world/block/blocks/pale_garden/PaleHangingMossBlock.cpp
 
     # World - Block - Coral
@@ -904,11 +908,13 @@ add_library(mc_common STATIC
     world/block/blocks/mob/BeehiveBlock.cpp
     world/block/blocks/mob/TurtleEggBlock.cpp
     world/block/blocks/mob/InfestedBlock.cpp
+    world/block/blocks/mob/InfestedRotatedPillarBlock.cpp
     world/block/blocks/mob/SpawnerBlock.cpp
     world/block/blocks/mob/DragonBreathBlock.cpp
 
     # World - Block - Sculk
     world/block/blocks/sculk/SculkBlocks.cpp
+    world/block/blocks/sculk/SculkSpreader.cpp
 
     # World - Block - Trial
     world/block/blocks/trial/HeavyCoreBlock.cpp
@@ -971,6 +977,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/SignEntity.cpp
     world/blockentity/interactive/BannerEntity.cpp
     world/blockentity/interactive/BannerPattern.cpp
+    world/blockentity/interactive/BrushableBlockEntity.cpp
     world/blockentity/interactive/DecoratedPotPattern.cpp
     world/blockentity/interactive/DecoratedPotBlockEntity.cpp
     world/blockentity/interactive/BeehiveBlockEntity.cpp
@@ -1086,6 +1093,8 @@ add_library(mc_common STATIC
     world/gen/carver/CanyonCarver.cpp
     world/gen/carver/CarverConfiguration.cpp
     world/gen/carver/NetherWorldCarver.cpp
+    world/gen/carver/ConfiguredCarverRegistry.cpp
+    world/gen/carver/ConfiguredCarverLoader.cpp
 
     # World - Biome
     world/biome/Biome.cpp
@@ -1093,6 +1102,7 @@ add_library(mc_common STATIC
     world/biome/BiomeManager.cpp
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
+    world/biome/BiomeLoader.cpp
     world/biome/BiomeFactoryOverworld.cpp
     world/biome/BiomeFactoryNether.cpp
     world/biome/BiomeFactoryEnd.cpp
@@ -1129,18 +1139,54 @@ add_library(mc_common STATIC
     world/gen/feature/Feature.cpp
     world/gen/FeaturePlacer.cpp
     world/gen/feature/FeatureSpread.cpp
-    world/gen/feature/ConfiguredFeature.cpp
     world/gen/feature/FeatureSorter.cpp
+    world/gen/feature/ConfiguredFeatureRegistry.cpp
+    world/gen/feature/ConfiguredFeatureLoader.cpp
+    world/gen/feature/FeatureTypeRegistry.cpp
+    world/gen/feature/MonsterRoomFeature.cpp
     world/gen/feature/BlockColumnFeature.cpp
     world/gen/feature/SimpleBlockFeature.cpp
     world/gen/feature/RandomBooleanSelectorFeature.cpp
     world/gen/feature/SimpleRandomSelectorFeature.cpp
+    world/gen/feature/RandomSelectorFeature.cpp
+    world/gen/feature/EndPlatformFeature.cpp
+    world/gen/feature/BonusChestFeature.cpp
+    world/gen/feature/VoidStartPlatformFeature.cpp
+    world/gen/feature/BlockBlobFeature.cpp
+    world/gen/feature/BasaltPillarFeature.cpp
+    world/gen/feature/RandomPatchFeature.cpp
+    world/gen/feature/BlockPileFeature.cpp
+    world/gen/feature/DiskFeature.cpp
+    world/gen/feature/NetherForestVegetationFeature.cpp
+    world/gen/feature/VinesFeature.cpp
+    world/gen/feature/WeepingVinesFeature.cpp
+    world/gen/feature/TwistingVinesFeature.cpp
+    world/gen/feature/SpringFeature.cpp
+    world/gen/feature/ScatteredOreFeature.cpp
+    world/gen/feature/ReplaceBlobsFeature.cpp
+    world/gen/feature/DripstoneUtils.cpp
+    world/gen/feature/Column.cpp
+
+    # World - Generation - Feature - Parser
+    world/gen/feature/parser/BlockStateParser.cpp
+    world/gen/feature/parser/BlockStateProviderParser.cpp
+    world/gen/feature/parser/FluidStateParser.cpp
+    world/gen/feature/parser/RuleTestParser.cpp
+    world/gen/feature/parser/TrunkPlacerParser.cpp
+    world/gen/feature/parser/FoliagePlacerParser.cpp
+    world/gen/feature/parser/BlockPredicateParser.cpp
+
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
+    world/gen/feature/tree/FallenTreeFeature.cpp
+    world/gen/feature/tree/decorator/TreeDecorator.cpp
+    world/gen/feature/tree/decorator/AttachToLogsDecorator.cpp
+    world/gen/feature/tree/decorator/TrunkVineDecorator.cpp
     world/gen/feature/tree/trunk/TrunkPlacer.cpp
     world/gen/feature/tree/trunk/StraightTrunkPlacer.cpp
     world/gen/feature/tree/trunk/TrunkPlacers.cpp
     world/gen/feature/tree/trunk/CherryTrunkPlacer.cpp
+    world/gen/feature/tree/trunk/UpwardsBranchingTrunkPlacer.cpp
     world/gen/feature/tree/foliage/FoliagePlacer.cpp
     world/gen/feature/tree/foliage/BlobFoliagePlacer.cpp
     world/gen/feature/tree/foliage/FoliagePlacers.cpp
@@ -1155,8 +1201,17 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/BambooFeature.cpp
 
     # World - Generation - Feature - Cave
-    world/gen/feature/cave/CaveFeatures.cpp
-    world/gen/feature/cave/LushCavesFeatures.cpp
+    world/gen/feature/cave/RootSystemFeature.cpp
+    world/gen/feature/cave/VegetationPatchFeature.cpp
+    world/gen/feature/cave/PointedDripstoneFeature.cpp
+    world/gen/feature/cave/LargeDripstoneFeature.cpp
+    world/gen/feature/cave/DripstoneClusterFeature.cpp
+    world/gen/feature/cave/DesertWellFeature.cpp
+    world/gen/feature/cave/IcebergFeature.cpp
+    world/gen/feature/cave/FossilFeature.cpp
+    world/gen/feature/cave/GeodeFeature.cpp
+    world/gen/feature/cave/MultifaceGrowthFeature.cpp
+    world/gen/feature/cave/SculkPatchFeature.cpp
 
     # World - Generation - Feature - Ocean
     world/gen/feature/ocean/KelpFeature.cpp
@@ -1175,7 +1230,6 @@ add_library(mc_common STATIC
     world/gen/feature/end/IceSpikeFeature.cpp
     world/gen/feature/end/ChorusPlantFeature.cpp
     world/gen/feature/end/EndIslandFeature.cpp
-    world/gen/feature/end/EndFeatures.cpp
 
     # World - Generation - Feature - Nether
     world/gen/feature/nether/HugeFungusFeature.cpp
@@ -1183,10 +1237,9 @@ add_library(mc_common STATIC
     # World - Generation - Feature - Nether
     world/gen/feature/nether/GlowstoneFeature.cpp
     world/gen/feature/nether/BasaltFeature.cpp
-    world/gen/feature/nether/BasaltDeltaFeature.cpp
-    world/gen/feature/nether/MagmaPatchFeature.cpp
+    world/gen/feature/nether/DeltaFeature.cpp
+    world/gen/feature/nether/UnderwaterMagmaFeature.cpp
     world/gen/feature/nether/NetherFireFeature.cpp
-    world/gen/feature/nether/NetherFeatures.cpp
 
     # World - Generation - Feature - Lake
     world/gen/feature/LakeFeature.cpp
@@ -1194,6 +1247,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Feature - Predicate
     world/gen/feature/predicate/BlockPredicate.cpp
+    world/gen/feature/predicate/MatchingFluidsPredicate.cpp
 
     # World - Generation - Feature - Template
     world/gen/feature/template/Template.cpp
@@ -1270,13 +1324,19 @@ add_library(mc_common STATIC
 
     # World - Generation - Placement
     world/gen/placement/BiomeFilterPlacement.cpp
+    world/gen/placement/BlockPredicateFilterPlacement.cpp
     world/gen/placement/EnvironmentScanPlacement.cpp
     world/gen/placement/Placement.cpp
     world/gen/placement/PlacementUtils.cpp
     world/gen/placement/Placements.cpp
     world/gen/placement/PlacementRegistry.cpp
+    world/gen/placement/PlacedFeature.cpp
+    world/gen/placement/PlacedFeatureRegistry.cpp
+    world/gen/placement/PlacedFeatureLoader.cpp
 
     # World - Generation - Value Provider
+    world/gen/valueprovider/FloatProviderParser.cpp
+    world/gen/valueprovider/HeightProviderParser.cpp
     world/gen/valueprovider/IntProviderParser.cpp
 
     # World - Generation - Spawn

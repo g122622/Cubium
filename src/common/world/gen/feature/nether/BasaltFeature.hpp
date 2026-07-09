@@ -23,6 +23,5 @@
 
 #pragma once
 
-// 玄武岩特征聚合头文件（包含所有配置 + 特征类）
+// 玄武岩柱特征聚合头文件
 #include "BasaltColumnFeature.hpp"
-#include "BasaltDeltaFeature.hpp"

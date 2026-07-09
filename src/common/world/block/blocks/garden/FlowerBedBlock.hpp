@@ -65,8 +65,8 @@ namespace blocks {
  *
  * 野花（wildflowers）通过 WildflowerFeature 在世界生成时放置，
  * 初始 AMOUNT 为 1-4 随机（与 FACING 共 16 种状态等权重）。
- * 配置见 FlowerFeatures::createWildflowersBirchForest() 和
- * createWildflowersMeadow()。
+ * 野花的 configured_feature 由数据包 JSON 驱动（如 minecraft:wildflowers_birch_forest、
+ * minecraft:wildflowers_meadow），由 ConfiguredFeatureLoader 加载。
  *
  * 参考: net.minecraft.block.FlowerBedBlock
  */

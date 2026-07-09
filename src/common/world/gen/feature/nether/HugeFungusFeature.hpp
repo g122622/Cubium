@@ -145,7 +145,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -154,22 +154,7 @@ public:
 private:
     std::unique_ptr<HugeFungusFeatureConfig> m_config;
     std::string m_name;
-    HugeFungusFeature m_feature;
-};
-
-/**
- * @brief 预定义巨型真菌特征
- */
-struct HugeFungusFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredHugeFungusFeature> createCrimson();
-    static std::unique_ptr<ConfiguredHugeFungusFeature> createWarped();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> s_features;
+    mutable HugeFungusFeature m_feature;
 };
 
 } // namespace mc

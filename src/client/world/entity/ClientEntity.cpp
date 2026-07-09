@@ -238,14 +238,11 @@ void ClientEntity::syncMetadataFromDataManager()
 {
     // 物品实体特殊处理
     if (m_typeId == entity::EntityTypes::ITEM || m_typeId == "minecraft:item") {
-        if (m_dataManager.hasParam(ItemEntity::DATA_ITEM_COUNT_PARAM.id())) {
-            if (const auto* value = m_dataManager.getRaw(ItemEntity::DATA_ITEM_COUNT_PARAM.id()); value != nullptr) {
-                const i32 count = value->get<i32>();
-                if (m_itemStack != nullptr && m_itemStack->getCount() != count) {
-                    ItemStack updated = *m_itemStack;
-                    updated.setCount(count);
-                    setItemStack(updated);
-                }
+        if (const auto count = _readMetadata<i32>(ItemEntity::DATA_ITEM_COUNT_PARAM.id()); count.has_value()) {
+            if (m_itemStack != nullptr && m_itemStack->getCount() != *count) {
+                ItemStack updated = *m_itemStack;
+                updated.setCount(*count);
+                setItemStack(updated);
             }
         }
 
@@ -255,32 +252,23 @@ void ClientEntity::syncMetadataFromDataManager()
 
     // 北极熊站立状态同步
     if (m_typeId == "minecraft:polar_bear" || m_typeId == "polar_bear") {
-        if (m_dataManager.hasParam(PolarBearEntity::getStandingParamId())) {
-            if (const auto* value = m_dataManager.getRaw(PolarBearEntity::getStandingParamId()); value != nullptr) {
-                const bool standing = value->get<bool>();
-                setStanding(standing);
-            }
+        if (const auto standing = _readMetadata<bool>(PolarBearEntity::getStandingParamId()); standing.has_value()) {
+            setStanding(*standing);
         }
     }
 
     // 河豚膨胀状态同步
     if (m_typeId == "minecraft:pufferfish" || m_typeId == "pufferfish") {
-        if (m_dataManager.hasParam(::mc::PufferfishEntity::getPuffStateParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::PufferfishEntity::getPuffStateParamId());
-                value != nullptr) {
-                const i32 puffState = value->get<i32>();
-                setPuffState(puffState);
-            }
+        if (const auto puffState = _readMetadata<i32>(::mc::PufferfishEntity::getPuffStateParamId());
+            puffState.has_value()) {
+            setPuffState(*puffState);
         }
     }
 
     // 豹猫信任状态同步
     if (m_typeId == "minecraft:ocelot" || m_typeId == "ocelot") {
-        if (m_dataManager.hasParam(::mc::OcelotEntity::getTrustingParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::OcelotEntity::getTrustingParamId()); value != nullptr) {
-                const bool trusting = value->get<bool>();
-                setTrusting(trusting);
-            }
+        if (const auto trusting = _readMetadata<bool>(::mc::OcelotEntity::getTrustingParamId()); trusting.has_value()) {
+            setTrusting(*trusting);
         }
         // 注意：豹猫逃跑状态（isFleeing）通过 OcelotEntity::DATA_FLEEING_PARAM 同步，
         // 渲染器直接从 OcelotEntity::isFleeing() 读取，无需在 ClientEntity 中维护副本
@@ -288,18 +276,11 @@ void ClientEntity::syncMetadataFromDataManager()
 
     // 猫动画状态同步
     if (m_typeId == "minecraft:cat" || m_typeId == "cat") {
-        if (m_dataManager.hasParam(::mc::CatEntity::getLyingParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::CatEntity::getLyingParamId()); value != nullptr) {
-                const bool lying = value->get<bool>();
-                setCatLieDown(lying);
-            }
+        if (const auto lying = _readMetadata<bool>(::mc::CatEntity::getLyingParamId()); lying.has_value()) {
+            setCatLieDown(*lying);
         }
-        if (m_dataManager.hasParam(::mc::CatEntity::getRelaxStateOneParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::CatEntity::getRelaxStateOneParamId());
-                value != nullptr) {
-                const bool relax = value->get<bool>();
-                setCatRelaxStateOne(relax);
-            }
+        if (const auto relax = _readMetadata<bool>(::mc::CatEntity::getRelaxStateOneParamId()); relax.has_value()) {
+            setCatRelaxStateOne(*relax);
         }
     }
 
@@ -309,27 +290,20 @@ void ClientEntity::syncMetadataFromDataManager()
     // 客户端在此处读取并调用 setWolfTamed/setWolfCollarColor/setWolfIsInterested/setWolfIsAngry 更新镜像状态。
     if (m_typeId == "minecraft:wolf" || m_typeId == "wolf") {
         // 驯服状态（通过 TameableEntity::DATA_TAMED_PARAM 同步）
-        if (m_dataManager.hasParam(::mc::TameableEntity::getTamedParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::TameableEntity::getTamedParamId()); value != nullptr) {
-                const bool tamed = value->get<bool>();
-                setWolfTamed(tamed);
-            }
+        if (const auto tamed = _readMetadata<bool>(::mc::TameableEntity::getTamedParamId()); tamed.has_value()) {
+            setWolfTamed(*tamed);
         }
         // 颈圈颜色（通过 WolfEntity::DATA_COLLAR_COLOR_PARAM 同步）
-        if (m_dataManager.hasParam(::mc::WolfEntity::getCollarColorParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getCollarColorParamId()); value != nullptr) {
-                const i32 colorValue = value->get<i32>();
-                if (colorValue >= 0 && colorValue <= 15) {
-                    setWolfCollarColor(static_cast<DyeColor>(colorValue));
-                }
+        if (const auto colorValue = _readMetadata<i32>(::mc::WolfEntity::getCollarColorParamId());
+            colorValue.has_value()) {
+            if (*colorValue >= 0 && *colorValue <= 15) {
+                setWolfCollarColor(static_cast<DyeColor>(*colorValue));
             }
         }
         // 兴趣状态（乞求食物头部倾斜动画，通过 WolfEntity::DATA_INTERESTED_PARAM 同步）
-        if (m_dataManager.hasParam(::mc::WolfEntity::getInterestedParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getInterestedParamId()); value != nullptr) {
-                const bool interested = value->get<bool>();
-                setWolfIsInterested(interested);
-            }
+        if (const auto interested = _readMetadata<bool>(::mc::WolfEntity::getInterestedParamId());
+            interested.has_value()) {
+            setWolfIsInterested(*interested);
         }
         // 愤怒状态（尾巴抬起/停止摆动 + angry 纹理变体，通过 WolfEntity::DATA_ANGER_TIME_PARAM 同步）
         if (m_dataManager.hasParam(::mc::WolfEntity::getAngerTimeParamId())) {
@@ -626,31 +600,17 @@ void ClientEntity::updateStandingAnimation()
 
 bool ClientEntity::isFallFlying() const
 {
-    // 从元数据管理器读取 FLAGS_PARAM (id 0)
-    if (m_dataManager.hasParam(0)) {
-        const auto* value = m_dataManager.getRaw(0);
-        if (value != nullptr) {
-            // FLAGS_PARAM 类型是 i8
-            i8 flags = value->get<i8>();
-            return (flags & static_cast<i8>(EntityFlags::FallFlying)) != 0;
-        }
-    }
-    return false;
+    // 从元数据管理器读取实体 flags（参数槽位 0）。服务端序列化按 unordered_map 顺序把任意
+    // 参数写入字节索引 0，槽位类型不匹配则该实体无 flags，返回 false。
+    const auto flags = _readMetadata<i8>(0);
+    return flags.has_value() && (*flags & static_cast<i8>(EntityFlags::FallFlying)) != 0;
 }
 
 bool ClientEntity::isAngry() const
 {
-    // 蜜蜂愤怒状态检测
-    // 当愤怒时间 > 0 时，蜜蜂处于愤怒状态
-    if (m_dataManager.hasParam(1)) {
-        const auto* value = m_dataManager.getRaw(1);
-        if (value != nullptr) {
-            // ANGER_TIME 类型是 i32
-            i32 angerTime = value->get<i32>();
-            return angerTime > 0;
-        }
-    }
-    return false;
+    // 蜜蜂愤怒状态检测：当愤怒时间 > 0 时处于愤怒状态。槽位 1 存储类型非 i32 时返回 false。
+    const auto angerTime = _readMetadata<i32>(1);
+    return angerTime.has_value() && *angerTime > 0;
 }
 
 void ClientEntity::_updateItemRenderStateVersion()

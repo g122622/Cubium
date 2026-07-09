@@ -96,7 +96,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -105,30 +105,7 @@ public:
 private:
     std::unique_ptr<KelpFeatureConfig> m_config;
     std::string m_name;
-    KelpFeature m_feature;
-};
-
-/**
- * @brief 预定义海带配置
- */
-struct KelpFeatures {
-    /// 初始化所有海带特征
-    static void initialize();
-
-    /// 获取所有海带特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredKelpFeature>>& getAllFeatures();
-
-    /// 获取所有海带特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredKelpFeature>> getAllFeaturesAndClear();
-
-    /// 创建冷海带
-    static std::unique_ptr<ConfiguredKelpFeature> createColdKelp();
-
-    /// 创建暖海带
-    static std::unique_ptr<ConfiguredKelpFeature> createWarmKelp();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredKelpFeature>> s_features;
+    mutable KelpFeature m_feature;
 };
 
 } // namespace mc

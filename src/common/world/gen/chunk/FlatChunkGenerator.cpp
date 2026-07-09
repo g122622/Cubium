@@ -32,9 +32,10 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
-#include "common/world/gen/feature/FeatureIds.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
+#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
@@ -330,20 +331,16 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
 
     // 如果需要放置装饰特性或湖泊，使用完整的特性放置流水线
     if (hasDecoration || hasLakes || !structuresByStage.empty()) {
-        // 初始化特征注册表（线程安全，仅初始化一次）
-        static std::once_flag s_featureRegistryInitFlag;
-        std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });
-
-        // 懒初始化 FeatureSorter
+        // 懒初始化 FeatureSorter（数据驱动：placed_feature 已由 PlacedFeatureLoader 注册）
         std::call_once(m_featuresPerStepFlag, [this]() {
             const std::vector<BiomeId>& possibleBiomes = m_biomeSource->possibleBiomes();
             m_featuresPerStep = FeatureSorter::buildFeaturesPerStep(
                 possibleBiomes,
-                [](BiomeId biomeId, DecorationStage stage) -> const std::vector<u32>& {
+                [](BiomeId biomeId, DecorationStage stage) -> const std::vector<ResourceLocation>& {
                     const Biome& biome = BiomeRegistry::instance().get(biomeId);
                     return biome.generationSettings().getFeatures(stage);
                 },
-                FeatureRegistry::instance());
+                PlacedFeatureRegistry::instance());
         });
 
         // 收集当前区块的生物群系（平坦世界只有一个生物群系）
@@ -405,7 +402,7 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
                 const auto& featureIds = biomeSettings.getFeatures(stage);
 
                 std::set<i32> featureIndices;
-                for (u32 fid : featureIds) {
+                for (const ResourceLocation& fid : featureIds) {
                     const i32 topoIndex = stepData.getIndex(fid);
                     if (topoIndex >= 0) {
                         featureIndices.insert(topoIndex);
@@ -427,19 +424,13 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
         // 参考 MC 1.21.11: FlatLevelGeneratorSettings.createLakesList()
         // MC 原版只放置 LAKE_LAVA_UNDERGROUND 和 LAKE_LAVA_SURFACE，不放置水湖
         // 水湖由生物群系自身的 Lakes 阶段特性提供（decoration=true 时才生效）
+        // 数据驱动：直接从 ConfiguredFeatureRegistry 按 id 取配置化熔岩湖并放置
         if (hasLakes) {
-            const auto& lakeFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::Lakes);
-            for (i32 i = 0; i < static_cast<i32>(lakeFeatures.size()); ++i) {
-                ConfiguredFeatureBase* feature = lakeFeatures[static_cast<size_t>(i)];
-                if (feature == nullptr) {
-                    continue;
-                }
-                // 仅放置熔岩湖（跳过水湖，水湖由生物群系特性提供）
-                // 参考 MC: createLakesList 只包含 LAKE_LAVA_UNDERGROUND 和 LAKE_LAVA_SURFACE
-                if (feature->featureId() == LakeFeatureIds::LavaLake) {
-                    worldgenRandom.setFeatureSeed(decorSeed, i, static_cast<i32>(DecorationStage::Lakes));
-                    feature->place(region, chunk, *this, worldgenRandom, chunkOrigin);
-                }
+            const ConfiguredFeatureBase* lavaLake =
+                ConfiguredFeatureRegistry::instance().get(ResourceLocation("minecraft", "lake_lava"));
+            if (lavaLake != nullptr) {
+                worldgenRandom.setFeatureSeed(decorSeed, 0, static_cast<i32>(DecorationStage::Lakes));
+                lavaLake->place(region, chunk, *this, worldgenRandom, chunkOrigin);
             }
         }
     }

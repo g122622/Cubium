@@ -23,6 +23,7 @@
 #include "VegetationPatchFeature.hpp"
 #include "CaveSurface.hpp"
 #include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -30,7 +31,7 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -166,18 +167,15 @@ void VegetationPatchFeature::distributeVegetation(WorldGenRegion& region,
     const std::vector<BlockPos>& groundPositions,
     const VegetationPatchConfig& config)
 {
-    if (config.vegetationFeatureId == 0 || groundPositions.empty()) {
+    if (!config.vegetationFeatureId.isValid() || groundPositions.empty()) {
         return;
     }
 
-    FeatureRegistry& registry = FeatureRegistry::instance();
-    const auto& features = registry.getFeatures(DecorationStage::VegetalDecoration);
+    const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(config.vegetationFeatureId);
 
-    if (config.vegetationFeatureId >= features.size() || features[config.vegetationFeatureId] == nullptr) {
+    if (feature == nullptr) {
         return;
     }
-
-    ConfiguredFeatureBase* feature = features[config.vegetationFeatureId];
 
     // 植被放置的Y偏移
     i32 yOffset = getVegetationYOffset(config.surface);
@@ -265,12 +263,10 @@ bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region,
     }
 
     // 分布植被（含水版）
-    if (config.vegetationFeatureId != 0) {
-        FeatureRegistry& registry = FeatureRegistry::instance();
-        const auto& features = registry.getFeatures(DecorationStage::VegetalDecoration);
+    if (config.vegetationFeatureId.isValid()) {
+        const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(config.vegetationFeatureId);
 
-        if (config.vegetationFeatureId < features.size() && features[config.vegetationFeatureId] != nullptr) {
-            ConfiguredFeatureBase* feature = features[config.vegetationFeatureId];
+        if (feature != nullptr) {
             i32 yOffset = getVegetationYOffset(config.surface);
 
             for (const BlockPos& groundPos : groundPositions) {
@@ -300,62 +296,38 @@ bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region,
 // ConfiguredVegetationPatchFeature
 // ============================================================================
 
-ConfiguredVegetationPatchFeature::ConfiguredVegetationPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement,
-    const char* featureName)
+ConfiguredVegetationPatchFeature::ConfiguredVegetationPatchFeature(
+    std::unique_ptr<VegetationPatchConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredVegetationPatchFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredVegetationPatchFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
-    }
-
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (VegetationPatchFeature::place(region, chunk, generator, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return VegetationPatchFeature::place(region, chunk, generator, random, pos, *m_config);
 }
 
 // ============================================================================
 // ConfiguredWaterloggedPatchFeature
 // ============================================================================
 
-ConfiguredWaterloggedPatchFeature::ConfiguredWaterloggedPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement,
-    const char* featureName)
+ConfiguredWaterloggedPatchFeature::ConfiguredWaterloggedPatchFeature(
+    std::unique_ptr<VegetationPatchConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredWaterloggedPatchFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredWaterloggedPatchFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
-    }
-
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (WaterloggedVegetationPatchFeature::place(region, chunk, generator, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return WaterloggedVegetationPatchFeature::place(region, chunk, generator, random, pos, *m_config);
 }
 
 // ============================================================================
@@ -364,7 +336,7 @@ bool ConfiguredWaterloggedPatchFeature::place(
 
 VegetationPatchConfig VegetationPatchConfig::floorPatch(const std::string& replaceableTag,
     const BlockState* groundState,
-    u32 vegetationFeatureId,
+    ResourceLocation vegetationFeatureId,
     std::unique_ptr<valueprovider::IntProvider> depth,
     f32 extraBottomBlockChance,
     i32 verticalRange,
@@ -375,7 +347,7 @@ VegetationPatchConfig VegetationPatchConfig::floorPatch(const std::string& repla
     VegetationPatchConfig config;
     config.replaceableTag = replaceableTag;
     config.groundState = groundState;
-    config.vegetationFeatureId = vegetationFeatureId;
+    config.vegetationFeatureId = std::move(vegetationFeatureId);
     config.surface = CaveSurface::Floor;
     config.depth = std::move(depth);
     config.extraBottomBlockChance = extraBottomBlockChance;
@@ -388,7 +360,7 @@ VegetationPatchConfig VegetationPatchConfig::floorPatch(const std::string& repla
 
 VegetationPatchConfig VegetationPatchConfig::ceilingPatch(const std::string& replaceableTag,
     const BlockState* groundState,
-    u32 vegetationFeatureId,
+    ResourceLocation vegetationFeatureId,
     std::unique_ptr<valueprovider::IntProvider> depth,
     f32 extraBottomBlockChance,
     i32 verticalRange,
@@ -399,7 +371,7 @@ VegetationPatchConfig VegetationPatchConfig::ceilingPatch(const std::string& rep
     VegetationPatchConfig config;
     config.replaceableTag = replaceableTag;
     config.groundState = groundState;
-    config.vegetationFeatureId = vegetationFeatureId;
+    config.vegetationFeatureId = std::move(vegetationFeatureId);
     config.surface = CaveSurface::Ceiling;
     config.depth = std::move(depth);
     config.extraBottomBlockChance = extraBottomBlockChance;

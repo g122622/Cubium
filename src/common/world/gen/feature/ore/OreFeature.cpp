@@ -24,24 +24,12 @@
 #include "OreFeature.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/DeepslateBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/Feature.hpp"
-#include "common/world/gen/placement/PlacementUtils.hpp"
 #include <algorithm>
 #include <cmath>
-#include <mutex>
 
 namespace mc {
-
-namespace {
-
-std::mutex g_oreFeaturesMutex;
-
-} // namespace
 
 // ============================================================================
 // OreFeature 实现
@@ -282,373 +270,27 @@ void OreFeature::_generateSphere(WorldGenRegion& region,
 // ConfiguredOreFeature 实现
 // ============================================================================
 
-ConfiguredOreFeature::ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig,
-    std::unique_ptr<ConfiguredPlacement> placement,
-    const char* featureName)
+ConfiguredOreFeature::ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> featureConfig, const char* featureName)
     : m_config(std::move(featureConfig))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredOreFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredOreFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
-    // 忽略 pos 参数，矿石生成使用自己的放置逻辑
-    (void)pos;
+    (void)chunk;
     (void)generator;
 
-    if (!m_placement || !m_config) {
+    if (!m_config) {
         return false;
     }
 
-    // 获取放置位置
-    BlockPos chunkPos(mc::world::toWorldCoord(chunk.x()), 0, mc::world::toWorldCoord(chunk.z()));
-    auto positions = m_placement->getPositions(region, random, chunkPos);
-
-    // 在每个位置生成矿石
+    // 数据驱动下 pos 已是 placement 链处理后的最终位置，直接放置矿脉
     OreFeature feature;
-    bool placed = false;
-    for (const BlockPos& orePos : positions) {
-        if (feature.place(region, chunk, random, orePos, *m_config)) {
-            placed = true;
-        }
-    }
-    return placed;
-}
-
-void ConfiguredOreFeature::generate(WorldGenRegion& region, ChunkPrimer& chunk, math::Random& random)
-{
-    if (!m_placement || !m_config) {
-        return;
-    }
-
-    // 获取放置位置
-    BlockPos chunkPos(mc::world::toWorldCoord(chunk.x()), 0, mc::world::toWorldCoord(chunk.z()));
-    auto positions = m_placement->getPositions(region, random, chunkPos);
-
-    // 在每个位置生成矿石
-    OreFeature feature;
-    for (const BlockPos& pos : positions) {
-        feature.place(region, chunk, random, pos, *m_config);
-    }
-}
-
-// ============================================================================
-// OreFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredOreFeature>> OreFeatures::s_features;
-
-void OreFeatures::initialize()
-{
-    std::lock_guard<std::mutex> lock(g_oreFeaturesMutex);
-    s_features.clear();
-
-    // 主世界矿石
-    s_features.push_back(createCoalOre());
-    s_features.push_back(createIronOre());
-    s_features.push_back(createGoldOre());
-    s_features.push_back(createRedstoneOre());
-    s_features.push_back(createDiamondOre());
-    s_features.push_back(createLapisOre());
-    s_features.push_back(createEmeraldOre());
-    s_features.push_back(createCopperOre());
-
-    // 下界矿石
-    s_features.push_back(createNetherQuartzOre());
-    s_features.push_back(createNetherGoldOre());
-    s_features.push_back(createAncientDebris());
-}
-
-const std::vector<std::unique_ptr<ConfiguredOreFeature>>& OreFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredOreFeature>> OreFeatures::getAllFeaturesAndClear()
-{
-    std::lock_guard<std::mutex> lock(g_oreFeaturesMutex);
-    std::vector<std::unique_ptr<ConfiguredOreFeature>> result;
-    result.swap(s_features);
-    return result;
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createCoalOre()
-{
-    // 煤矿：Y 0-127，每区块20个，矿脉大小17
-    // MC 1.21: 石头→煤矿，深板岩→深层煤矿
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::COAL_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_COAL_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_COAL_ORE->defaultState()
-                : nullptr),
-        17);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 128);
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(20);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "coal_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createIronOre()
-{
-    // 铁矿：Y 0-63，每区块20个，矿脉大小9
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::IRON_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE->defaultState()
-                : nullptr),
-        9);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 64); // Y 0-63
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(20);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "iron_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createGoldOre()
-{
-    // 金矿：Y 0-31，每区块2个，矿脉大小9
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::GOLD_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_GOLD_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_GOLD_ORE->defaultState()
-                : nullptr),
-        9);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 32); // Y 0-31
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(2);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "gold_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createRedstoneOre()
-{
-    // 红石：Y 0-15，每区块8个，矿脉大小8
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::REDSTONE_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_REDSTONE_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_REDSTONE_ORE->defaultState()
-                : nullptr),
-        8);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 16); // Y 0-15
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(8);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "redstone_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createDiamondOre()
-{
-    // 钻石：Y 0-15，每区块1个，矿脉大小8
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::DIAMOND_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_DIAMOND_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_DIAMOND_ORE->defaultState()
-                : nullptr),
-        8);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 16); // Y 0-15
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(1);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "diamond_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createLapisOre()
-{
-    // 青金石：Y 0-30，每区块1个，矿脉大小7
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::LAPIS_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_LAPIS_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_LAPIS_ORE->defaultState()
-                : nullptr),
-        7);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 31); // Y 0-30
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(1);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "lapis_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createEmeraldOre()
-{
-    // 绿宝石：Y 4-31，每区块1个，矿脉大小1（山地生物群系特有）
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::EMERALD_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_EMERALD_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_EMERALD_ORE->defaultState()
-                : nullptr),
-        1);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(4, 0, 32); // Y 4-31
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(1);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    auto placement = PlacementUtils::appendBiomePlacement(std::move(countConfigured),
-        {Biomes::Mountains, Biomes::WoodedMountains, Biomes::MountainEdge, Biomes::StoneShore});
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(placement), "emerald_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createCopperOre()
-{
-    // 铜矿：Y 0-96，每区块6个，矿脉大小10
-    auto config = std::make_unique<OreFeatureConfig>(
-        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::COPPER_ORE),
-            block_registry::DeepslateBlocks::DEEPSLATE_COPPER_ORE
-                ? &block_registry::DeepslateBlocks::DEEPSLATE_COPPER_ORE->defaultState()
-                : nullptr),
-        10);
-
-    auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 96); // Y 0-95
-
-    auto squarePlacement = std::make_unique<SquarePlacement>();
-    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(6);
-
-    auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
-    auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
-    auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    squareConfigured->setNext(std::move(heightConfigured));
-    countConfigured->setNext(std::move(squareConfigured));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(countConfigured), "copper_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createNetherQuartzOre()
-{
-    // 下界石英：Y 10-117，每区块16个，矿脉大小14
-    auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::Netherrack), VanillaBlocks::getState(VanillaBlocks::NETHER_QUARTZ_ORE), 14);
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(16);
-
-    auto placement = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(placement), "nether_quartz_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createNetherGoldOre()
-{
-    // 下界金矿：Y 10-117，每区块10个，矿脉大小10
-    auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::Netherrack), VanillaBlocks::getState(VanillaBlocks::NETHER_GOLD_ORE), 10);
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(10);
-
-    auto placement = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(placement), "nether_gold_ore");
-}
-
-std::unique_ptr<ConfiguredOreFeature> OreFeatures::createAncientDebris()
-{
-    // 远古残骸：Y 8-22，每区块2个，矿脉大小3
-    auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::Netherrack), VanillaBlocks::getState(VanillaBlocks::ANCIENT_DEBRIS), 3);
-
-    auto countPlacement = std::make_unique<CountPlacement>();
-    auto countConfig = std::make_unique<CountPlacementConfig>(2);
-
-    auto placement = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
-
-    return std::make_unique<ConfiguredOreFeature>(std::move(config), std::move(placement), "ancient_debris");
+    return feature.place(region, chunk, random, pos, *m_config);
 }
 
 } // namespace mc

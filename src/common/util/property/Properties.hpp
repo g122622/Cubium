@@ -552,6 +552,17 @@ public:
         return *prop;
     }
 
+    /**
+     * @brief 落叶段数属性 (1-4)
+     *
+     * 用于 LeafLitterBlock，表示方块中落叶的段数。
+     */
+    static const IntegerProperty& SEGMENT_AMOUNT()
+    {
+        static auto prop = IntegerProperty::create("segment_amount", 1, 4);
+        return *prop;
+    }
+
     // ========================================================================
     // 箱子类型属性
     // ========================================================================

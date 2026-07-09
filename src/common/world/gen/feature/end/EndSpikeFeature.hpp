@@ -213,7 +213,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::SurfaceStructures; }
@@ -222,29 +222,7 @@ public:
 private:
     std::unique_ptr<EndSpikeFeatureConfig> m_config;
     std::string m_name;
-    EndSpikeFeature m_feature;
-};
-
-/**
- * @brief 预定义黑曜石柱特征
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct EndSpikeFeatures {
-    /// 初始化所有黑曜石柱特征
-    static void initialize();
-
-    /// 获取所有黑曜石柱特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>>& getAllFeatures();
-
-    /// 获取所有黑曜石柱特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> getAllFeaturesAndClear();
-
-    /// 创建标准黑曜石柱配置
-    static std::unique_ptr<ConfiguredEndSpikeFeature> createStandard(u64 worldSeed);
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> s_features;
+    mutable EndSpikeFeature m_feature;
 };
 
 } // namespace mc

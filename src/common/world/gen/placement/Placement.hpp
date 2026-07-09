@@ -26,9 +26,11 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/Block.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
+#include "../../chunk/data/Heightmap.hpp"
 #include "../valueprovider/HeightProvider.hpp"
 #include "../valueprovider/IntProvider.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -203,7 +205,6 @@ struct ChancePlacementConfig : public IPlacementConfig {
 /**
  * @brief 稀有度过滤配置
  *
- * 参考 MC 1.21.11: RarityFilter
  * 以 "1/chance" 的概率通过，即 N 分之一的概率。
  * 比 ChancePlacement 更适合整数概率的场景。
  */
@@ -213,6 +214,86 @@ struct RarityFilterConfig : public IPlacementConfig {
 
     explicit RarityFilterConfig(i32 c)
         : chance(std::max(1, c))
+    {}
+};
+
+/**
+ * @brief 固定坐标放置配置
+ *
+ * 持有一组固定 BlockPos，仅当 basePos 所在区块包含其中某些坐标时返回它们。
+ */
+struct FixedPlacementConfig : public IPlacementConfig {
+    std::vector<BlockPos> positions;
+
+    explicit FixedPlacementConfig(std::vector<BlockPos> pos)
+        : positions(std::move(pos))
+    {}
+};
+
+/**
+ * @brief 逐层数量放置配置
+ *
+ * count 为 IntProvider（CODEC 范围 [0,256]），每层采样一次。
+ */
+struct CountOnEveryLayerConfig : public IPlacementConfig {
+    std::unique_ptr<world::gen::valueprovider::IntProvider> count;
+
+    explicit CountOnEveryLayerConfig(std::unique_ptr<world::gen::valueprovider::IntProvider> c)
+        : count(std::move(c))
+    {}
+};
+
+/**
+ * @brief 噪声阈值数量放置配置
+ *
+ * BIOME_INFO_NOISE(x/200,z/200) < noiseLevel ? belowNoise : aboveNoise。
+ */
+struct NoiseThresholdCountConfig : public IPlacementConfig {
+    f64 noiseLevel;
+    i32 belowNoise;
+    i32 aboveNoise;
+
+    NoiseThresholdCountConfig(f64 level, i32 below, i32 above)
+        : noiseLevel(level)
+        , belowNoise(below)
+        , aboveNoise(above)
+    {}
+};
+
+/**
+ * @brief 噪声数量放置配置
+ *
+ * count = ceil((BIOME_INFO_NOISE(x/factor,z/factor) + offset) * ratio)。
+ */
+struct NoiseBasedCountConfig : public IPlacementConfig {
+    i32 noiseToCountRatio;
+    f64 noiseFactor;
+    f64 noiseOffset;
+
+    NoiseBasedCountConfig(i32 ratio, f64 factor, f64 offset)
+        : noiseToCountRatio(ratio)
+        , noiseFactor(factor)
+        , noiseOffset(offset)
+    {}
+};
+
+/**
+ * @brief 地表相对阈值过滤配置
+ *
+ * heightmap(x,z)+minInclusive <= y <= heightmap(x,z)+maxInclusive 才保留。
+ * min/max 缺省为 INT_MIN/INT_MAX（不过滤）。
+ */
+struct SurfaceRelativeThresholdFilterConfig : public IPlacementConfig {
+    HeightmapType heightmap;
+    i32 minInclusive;
+    i32 maxInclusive;
+
+    explicit SurfaceRelativeThresholdFilterConfig(HeightmapType type,
+        i32 minInclusive = std::numeric_limits<i32>::min(),
+        i32 maxInclusive = std::numeric_limits<i32>::max())
+        : heightmap(type)
+        , minInclusive(minInclusive)
+        , maxInclusive(maxInclusive)
     {}
 };
 
@@ -231,6 +312,21 @@ struct SurfacePlacementConfig : public IPlacementConfig {
     explicit SurfacePlacementConfig(i32 waterDepth = 0, bool sunlight = false)
         : maxWaterDepth(waterDepth)
         , requireSunlight(sunlight)
+    {}
+};
+
+/**
+ * @brief 高度图放置配置
+ *
+ * 参考 MC 1.21.11: HeightmapPlacement
+ * 持有 JSON "heightmap" 字段指定的高度图类型，getPositions 用它查 (x,z) 列最高方块 Y。
+ */
+struct HeightmapPlacementConfig : public IPlacementConfig {
+    /// 高度图类型（WORLD_SURFACE_WG / OCEAN_FLOOR / MOTION_BLOCKING 等）
+    HeightmapType heightmap;
+
+    explicit HeightmapPlacementConfig(HeightmapType type)
+        : heightmap(type)
     {}
 };
 
@@ -260,6 +356,23 @@ public:
      * @brief 获取放置器名称
      */
     [[nodiscard]] virtual const char* name() const noexcept = 0;
+};
+
+/**
+ * @brief 恒等放置器
+ *
+ * 直接返回基础位置 {basePos}，对应 MC 空 placement 修饰符链的语义
+ * （PlacedFeature 的 placement 列表为空时，特征在 origin 处放置）。
+ * 用于内联 PlacedFeature（如 simple_random_selector 的 features[]）placement 数组为空的情形。
+ */
+class IdentityPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "identity"; }
 };
 
 /**
@@ -372,7 +485,6 @@ public:
 /**
  * @brief 稀有度过滤放置器
  *
- * 参考 MC 1.21.11: RarityFilter
  * 以 1/chance 的概率通过，使用整数概率。
  */
 class RarityFilterPlacement : public Placement {
@@ -383,6 +495,81 @@ public:
         const BlockPos& basePos) const override;
 
     [[nodiscard]] const char* name() const noexcept override { return "rarity_filter"; }
+};
+
+/**
+ * @brief 固定坐标放置器
+ *
+ * 仅当 basePos 所在区块包含配置中的某些坐标时，返回那些坐标。
+ */
+class FixedPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "fixed_placement"; }
+};
+
+/**
+ * @brief 逐层数量放置器
+ *
+ * 从上到下逐层寻找"非空方块上方"的地面层，每层按 count 采样多次。
+ */
+class CountOnEveryLayerPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "count_on_every_layer"; }
+};
+
+/**
+ * @brief 噪声阈值数量放置器
+ *
+ * BIOME_INFO_NOISE(x/200,z/200) < noiseLevel ? belowNoise : aboveNoise。
+ */
+class NoiseThresholdCountPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "noise_threshold_count"; }
+};
+
+/**
+ * @brief 噪声数量放置器
+ *
+ * count = ceil((BIOME_INFO_NOISE(x/factor,z/factor) + offset) * ratio)。
+ */
+class NoiseBasedCountPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "noise_based_count"; }
+};
+
+/**
+ * @brief 地表相对阈值过滤放置器
+ *
+ * heightmap(x,z)+minInclusive <= y <= heightmap(x,z)+maxInclusive 才保留。
+ */
+class SurfaceRelativeThresholdFilterPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "surface_relative_threshold_filter"; }
 };
 
 /**

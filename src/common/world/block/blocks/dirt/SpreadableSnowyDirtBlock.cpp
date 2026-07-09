@@ -36,6 +36,7 @@
 #include "../../../chunk/data/ChunkData.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../gen/feature/ConfiguredFeature.hpp"
+#include "../../../gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "../../../gen/feature/DecorationStage.hpp"
 #include "../../../gen/feature/vegetation/FlowerFeature.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
@@ -43,6 +44,7 @@
 #include "../../registry/VegetationBlocks.hpp"
 #include "../ice/SnowBlock.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc::blocks {
 
@@ -289,15 +291,15 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
                     const auto& flowerIds = biome.generationSettings().getFlowerFeatureIds();
 
                     if (!flowerIds.empty()) {
-                        // 随机选择一个花卉特征ID
-                        // 花卉特征ID是VegetalDecoration阶段内的索引（定义在FeatureIds.hpp中）
-                        const u32 chosenId = flowerIds[random.nextInt(static_cast<i32>(flowerIds.size()))];
+                        // 数据驱动：花卉 id 是 placed_feature 的 ResourceLocation，
+                        // 但骨粉放花用的是 configured_feature 的花卉配置（FlowerFeatureConfig），
+                        // 故直接从 ConfiguredFeatureRegistry 按 id 解析配置化花卉特征。
+                        const ResourceLocation& chosenId =
+                            flowerIds[random.nextInt(static_cast<i32>(flowerIds.size()))];
 
-                        // 通过阶段内索引查找花卉特征配置
-                        const auto& vegFeatures =
-                            FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
-                        if (chosenId < vegFeatures.size()) {
-                            auto* feature = dynamic_cast<ConfiguredFlowerFeature*>(vegFeatures[chosenId]);
+                        const ConfiguredFeatureBase* featureBase = ConfiguredFeatureRegistry::instance().get(chosenId);
+                        if (featureBase != nullptr) {
+                            auto* feature = dynamic_cast<const ConfiguredFlowerFeature*>(featureBase);
                             if (feature != nullptr) {
                                 // 从花卉配置中随机选择花朵方块状态
                                 const BlockState* flower = feature->getConfig().getRandomFlower(random);

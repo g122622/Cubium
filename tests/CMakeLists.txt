@@ -1053,6 +1053,17 @@ add_executable(mc_tests
     # FindTopSurface 密度函数单元测试（preliminarySurfaceLevel 核心）
     common/world/gen/density/FindTopSurfaceTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
+    common/world/gen/feature/MonsterRoomFeatureTest.cpp
+    common/world/gen/feature/RandomSelectorFeatureTest.cpp
+    common/world/gen/feature/RandomPatchFeatureTest.cpp
+    common/world/gen/feature/SimpleBlockFeatureTest.cpp
+    common/world/gen/feature/SimpleRandomSelectorFeatureTest.cpp
+    common/world/gen/feature/DiskAndPileFeatureTest.cpp
+    common/world/gen/feature/ScatteredOreAndReplaceBlobsTest.cpp
+    common/world/gen/feature/EnvironmentScanAndRuleBasedProviderTest.cpp
+    common/world/gen/placement/RandomOffsetAndWaterDepthTest.cpp
+    common/world/gen/placement/CountOnEveryLayerAndNoisePlacementTest.cpp
+    common/world/gen/feature/predicate/MatchingPredicatesTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/end/EndFeatureTest.cpp
@@ -1171,7 +1182,6 @@ add_executable(mc_tests
     # 缂撳瓨鎬ц兘瀵规瘮娴嬭瘯
     common/util/cache/CacheBenchmark.cpp
     # 妞嶈鐗瑰緛闆嗘垚娴嬭瘯
-    common/world/gen/test_vegetation_features.cpp
     # 涓栫晫鐢熸垚纭畾鎬ф祴璇?    common/world/gen/WorldGenDeterminismTest.cpp
     # 瀹㈡埛绔懡浠ゆ爲鍚屾涓庤ˉ鍏ㄦ祴璇?    client/command/ClientCommandManagerTest.cpp
     # 鍏夌収绯荤粺娴嬭瘯
@@ -1817,7 +1827,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ore/OreFeature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/tree/TreeFeature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/tree/trunk/TrunkPlacer.cpp

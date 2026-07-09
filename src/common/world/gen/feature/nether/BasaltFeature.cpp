@@ -22,40 +22,89 @@
  */
 
 #include "BasaltFeature.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {
 
 namespace {
 
-/// MC 1.21.11: BasaltColumnsFeature.CANNOT_PLACE_ON
-/// 这些方块上不能放置玄武岩柱
-bool isCannotPlaceOnBlock(const Block& block)
+/// MC 1.21.11: BasaltColumnsFeature.CANNOT_PLACE_ON（10 个方块）
+[[nodiscard]] bool isCannotPlaceOnBlock(const Block& block)
 {
     return &block == VanillaBlocks::LAVA || &block == VanillaBlocks::BEDROCK || &block == VanillaBlocks::MAGMA ||
-        &block == VanillaBlocks::SOUL_SAND;
+        &block == VanillaBlocks::SOUL_SAND || &block == VanillaBlocks::NETHER_BRICKS ||
+        &block == VanillaBlocks::NETHER_BRICK_FENCE || &block == VanillaBlocks::NETHER_BRICK_STAIRS ||
+        &block == VanillaBlocks::NETHER_WART || &block == VanillaBlocks::CHEST || &block == VanillaBlocks::SPAWNER;
 }
 
-/// 检查位置是否为空气或熔岩海洋（海平面及以下的熔岩）
-bool isAirOrLavaOcean(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel)
+/// MC 1.21.11: isAirOrLavaOcean —— 空气，或海平面及以下的熔岩
+[[nodiscard]] bool isAirOrLavaOcean(WorldGenRegion& world, i32 seaLevel, const BlockPos& pos)
 {
     const BlockState* state = world.getBlockState(pos);
-    if (!state || state->isAir()) {
+    if (state == nullptr) {
         return true;
     }
-    // 海平面及以下的熔岩视为"海洋"
-    if (state->is(VanillaBlocks::LAVA) && pos.y <= seaLevel) {
+    if (state->isAir()) {
         return true;
     }
-    return false;
+    return state->is(VanillaBlocks::LAVA) && pos.y <= seaLevel;
 }
 
-/// MC 1.21.11: 聚类模式参数
+/// MC 1.21.11: canPlaceAt —— 当前格为空气/熔岩海，且下方非空且不在 CANNOT_PLACE_ON
+[[nodiscard]] bool canPlaceAt(WorldGenRegion& world, i32 seaLevel, const BlockPos& pos)
+{
+    if (!isAirOrLavaOcean(world, seaLevel, pos)) {
+        return false;
+    }
+    const BlockState* below = world.getBlockState(pos.down());
+    return below != nullptr && !below->isAir() && !isCannotPlaceOnBlock(below->getBlock());
+}
+
+/// MC 1.21.11: findSurface —— 向下搜索可放置表面（返回表面位置或无效哨兵）
+/// 与 MC 不同的是用 BlockPos 是否合法区分；这里用 minY+1 作为「未找到」哨兵。
+[[nodiscard]] BlockPos findSurface(WorldGenRegion& world, i32 seaLevel, BlockPos pos, i32 budget)
+{
+    while (pos.y > world::MIN_BUILD_HEIGHT + 1 && budget > 0) {
+        --budget;
+        if (canPlaceAt(world, seaLevel, pos)) {
+            return pos;
+        }
+        pos = pos.down();
+    }
+    return BlockPos(pos.x, world::MIN_BUILD_HEIGHT, pos.z);
+}
+
+/// MC 1.21.11: findAir —— 向上搜索空气（遇 CANNOT_PLACE_ON 则放弃，返回 minY 哨兵）
+[[nodiscard]] BlockPos findAir(WorldGenRegion& world, BlockPos pos, i32 budget)
+{
+    while (pos.y <= world::MAX_BUILD_HEIGHT && budget > 0) {
+        --budget;
+        const BlockState* state = world.getBlockState(pos);
+        if (state != nullptr && isCannotPlaceOnBlock(state->getBlock())) {
+            return BlockPos(pos.x, world::MIN_BUILD_HEIGHT, pos.z);
+        }
+        if (state != nullptr && state->isAir()) {
+            return pos;
+        }
+        pos = pos.up();
+    }
+    return BlockPos(pos.x, world::MIN_BUILD_HEIGHT, pos.z);
+}
+
+/// 哨兵判定：findSurface/findAir 返回的「未找到」位置
+[[nodiscard]] inline bool isSentinel(const BlockPos& p)
+{
+    return p.y <= world::MIN_BUILD_HEIGHT;
+}
+
+/// MC 1.21.11: 聚类/非聚类半径与柱数
 constexpr i32 CLUSTERED_REACH = 5;
 constexpr i32 CLUSTERED_SIZE = 50;
 constexpr i32 UNCLUSTERED_REACH = 8;
@@ -67,127 +116,88 @@ constexpr i32 UNCLUSTERED_SIZE = 15;
 // BasaltColumnFeature 实现
 // ============================================================================
 
-bool BasaltColumnFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltColumnFeatureConfig& config)
+bool BasaltColumnFeature::place(WorldGenRegion& world,
+    math::Random& random,
+    const BlockPos& pos,
+    i32 seaLevel,
+    const BasaltColumnFeatureConfig& config)
 {
-    // MC 1.21.11: 从配置采样柱高度
-    const i32 height = config.minHeight + random.nextInt(config.maxHeight - config.minHeight + 1);
-    if (height <= 0) {
+    // MC: !canPlaceAt → return false
+    if (!canPlaceAt(world, seaLevel, pos)) {
         return false;
     }
 
-    // MC 1.21.11: 90% 聚类模式，10% 非聚类模式
+    // MC: height = config.height().sample(rng)
+    const i32 height = config.height != nullptr ? config.height->sample(random) : 0;
+    // MC: flag = nextFloat() < 0.9；k = min(height, flag?5:8)；l = flag?50:15
     const bool clustered = random.nextFloat() < 0.9f;
     const i32 reach = std::min(height, clustered ? CLUSTERED_REACH : UNCLUSTERED_REACH);
-    const i32 size = clustered ? CLUSTERED_SIZE : UNCLUSTERED_SIZE;
+    const i32 sampleCount = clustered ? CLUSTERED_SIZE : UNCLUSTERED_SIZE;
 
-    // MC 1.21.11: 生成最多 size 个随机位置
-    for (i32 i = 0; i < size; ++i) {
-        i32 dx = random.nextInt(reach * 2 + 1) - reach;
-        i32 dz = random.nextInt(reach * 2 + 1) - reach;
-        BlockPos columnPos(pos.x + dx, pos.y, pos.z + dz);
-
-        // 计算到中心的曼哈顿距离
-        i32 manhattanDist = std::abs(dx) + std::abs(dz);
-        i32 columnHeight = height - manhattanDist / 2;
-        if (columnHeight <= 0) {
+    bool placedAny = false;
+    // MC: BlockPos.randomBetweenClosed(rng, l, x-k..x+k, y, z-k..z+k)
+    for (i32 i = 0; i < sampleCount; ++i) {
+        const i32 dx = random.nextInt(reach * 2 + 1) - reach;
+        const i32 dz = random.nextInt(reach * 2 + 1) - reach;
+        BlockPos samplePos(pos.x + dx, pos.y, pos.z + dz);
+        // MC: i1 = j - distManhattan；if (i1 >= 0) placeColumn(..., i1, reach.sample)
+        const i32 manhattan = samplePos.manhattanDistance(pos);
+        const i32 columnHeight = height - manhattan;
+        if (columnHeight < 0) {
             continue;
         }
-
-        _placeColumn(world, columnPos, columnHeight);
-    }
-
-    return true;
-}
-
-void BasaltColumnFeature::_placeColumn(WorldGenRegion& world, const BlockPos& pos, i32 height)
-{
-    const BlockState* basalt = VanillaBlocks::getState(VanillaBlocks::BASALT);
-    if (!basalt) return;
-
-    const i32 seaLevel = world::SEA_LEVEL; // 下界海平面高度
-
-    // 确定起始放置位置
-    BlockPos start = _findSurface(world, pos, seaLevel);
-
-    if (start.y < world::MIN_BUILD_HEIGHT) {
-        // 当前位置是实心方块，尝试向上找空气
-        start = _findAir(world, pos, seaLevel);
-        if (start.y < world::MIN_BUILD_HEIGHT) {
-            return;
+        const i32 columnReach = config.reach != nullptr ? config.reach->sample(random) : 0;
+        if (placeColumn(world, seaLevel, samplePos, columnHeight, columnReach)) {
+            placedAny = true;
         }
     }
-
-    // 检查起始位置是否可以放置
-    if (!_canPlaceAt(world, start, seaLevel)) {
-        return;
-    }
-
-    // 向上放置玄武岩柱
-    for (i32 y = 0; y < height; ++y) {
-        BlockPos placePos(start.x, start.y + y, start.z);
-        const BlockState* currentState = world.getBlockState(placePos);
-
-        if (isAirOrLavaOcean(world, placePos, seaLevel)) {
-            world.setBlockState(placePos, basalt);
-        } else if (currentState && currentState->is(VanillaBlocks::BASALT)) {
-            // 已有玄武岩块，跳过但继续向上
-            continue;
-        } else {
-            // 遇到非空气、非熔岩、非玄武岩的方块，停止
-            break;
-        }
-    }
+    return placedAny;
 }
 
-bool BasaltColumnFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const
+bool BasaltColumnFeature::placeColumn(
+    WorldGenRegion& world, i32 seaLevel, const BlockPos& center, i32 columnHeight, i32 reach)
 {
-    // MC 1.21.11: 当前位置必须为空气或熔岩海洋
-    if (!isAirOrLavaOcean(world, pos, seaLevel)) {
+    const BlockState* const basalt = VanillaBlocks::getState(VanillaBlocks::BASALT);
+    if (basalt == nullptr) {
         return false;
     }
 
-    // MC 1.21.11: 下方方块不能是空气也不能在 CANNOT_PLACE_ON 列表中
-    BlockPos below(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(below);
-    if (!belowState || belowState->isAir()) {
-        return false;
-    }
-    if (isCannotPlaceOnBlock(belowState->getBlock())) {
-        return false;
-    }
-
-    return true;
-}
-
-BlockPos BasaltColumnFeature::_findSurface(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const
-{
-    // MC 1.21.11: 向下搜索，寻找可以放置玄武岩的表面
-    for (i32 y = pos.y; y >= world::MIN_BUILD_HEIGHT; --y) {
-        BlockPos checkPos(pos.x, y, pos.z);
-        if (!isAirOrLavaOcean(world, checkPos, seaLevel)) {
-            // 找到固体方块，在其上方放置
-            return BlockPos(pos.x, y + 1, pos.z);
+    bool placedAny = false;
+    // MC: BlockPos.betweenClosed(cx-r, y, cz-r .. cx+r, y, cz+r)
+    for (i32 dx = -reach; dx <= reach; ++dx) {
+        for (i32 dz = -reach; dz <= reach; ++dz) {
+            const BlockPos columnPos(center.x + dx, center.y, center.z + dz);
+            const i32 manhattan = std::abs(dx) + std::abs(dz);
+            // MC: isAirOrLavaOcean ? findSurface(budget=manhattan) : findAir(budget=manhattan)
+            BlockPos start;
+            if (isAirOrLavaOcean(world, seaLevel, columnPos)) {
+                start = findSurface(world, seaLevel, columnPos, manhattan);
+            } else {
+                start = findAir(world, columnPos, manhattan);
+            }
+            if (isSentinel(start)) {
+                continue;
+            }
+            // MC: j = columnHeight - manhattan/2；向上 j+1 格放置
+            i32 remaining = columnHeight - manhattan / 2;
+            BlockPos cursor = start;
+            while (remaining >= 0) {
+                if (isAirOrLavaOcean(world, seaLevel, cursor)) {
+                    world.setBlockState(cursor, basalt);
+                    cursor = cursor.up();
+                    placedAny = true;
+                } else {
+                    const BlockState* s = world.getBlockState(cursor);
+                    if (s == nullptr || !s->is(VanillaBlocks::BASALT)) {
+                        break;
+                    }
+                    cursor = cursor.up();
+                }
+                --remaining;
+            }
         }
     }
-    return BlockPos(pos.x, world::MIN_BUILD_HEIGHT, pos.z);
-}
-
-BlockPos BasaltColumnFeature::_findAir(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const
-{
-    // MC 1.21.11: 向上搜索，寻找空气位置
-    for (i32 y = pos.y; y < world::MAX_BUILD_HEIGHT; ++y) {
-        BlockPos checkPos(pos.x, y, pos.z);
-        const BlockState* state = world.getBlockState(checkPos);
-        if (state && isCannotPlaceOnBlock(state->getBlock())) {
-            // 遇到 CANNOT_PLACE_ON 中的方块，放弃
-            return BlockPos(pos.x, world::MIN_BUILD_HEIGHT, pos.z);
-        }
-        if (isAirOrLavaOcean(world, checkPos, seaLevel)) {
-            return checkPos;
-        }
-    }
-    return BlockPos(pos.x, world::MIN_BUILD_HEIGHT, pos.z);
+    return placedAny;
 }
 
 // ============================================================================
@@ -200,54 +210,15 @@ ConfiguredBasaltColumnFeature::ConfiguredBasaltColumnFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredBasaltColumnFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBasaltColumnFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
-    return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// BasaltColumnFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::s_features;
-
-void BasaltColumnFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    s_features.push_back(createNormal());
-    s_features.push_back(createLarge());
-}
-
-const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& BasaltColumnFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> BasaltColumnFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createNormal()
-{
-    auto config = std::make_unique<BasaltColumnFeatureConfig>(0, // minHeight
-        5,                                                       // maxHeight
-        false);
-    return std::make_unique<ConfiguredBasaltColumnFeature>(std::move(config), "basalt_column");
-}
-
-std::unique_ptr<ConfiguredBasaltColumnFeature> BasaltColumnFeatures::createLarge()
-{
-    auto config = std::make_unique<BasaltColumnFeatureConfig>(3, // minHeight
-        10,                                                      // maxHeight
-        true);
-    return std::make_unique<ConfiguredBasaltColumnFeature>(std::move(config), "basalt_column_large");
+    return m_feature.place(region, random, pos, generator.seaLevel(), *m_config);
 }
 
 } // namespace mc

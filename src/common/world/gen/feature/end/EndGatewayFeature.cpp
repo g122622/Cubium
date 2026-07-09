@@ -168,8 +168,11 @@ ConfiguredEndGatewayFeature::ConfiguredEndGatewayFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredEndGatewayFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredEndGatewayFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(generator);
 
@@ -188,47 +191,6 @@ bool ConfiguredEndGatewayFeature::place(
 
     const BlockPos featurePos(sampleX, topY + 1, sampleZ);
     return m_feature.place(region, random, featurePos, *m_config);
-}
-
-// ============================================================================
-// EndGatewayFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> EndGatewayFeatures::s_features;
-
-void EndGatewayFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    // 创建标准末地折跃门
-    s_features.push_back(createGateway());
-
-    // 创建退出折跃门
-    s_features.push_back(createExitGateway());
-}
-
-const std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>>& EndGatewayFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> EndGatewayFeatures::getAllFeaturesAndClear()
-{
-    auto extracted = std::move(s_features);
-    s_features.clear();
-    return extracted;
-}
-
-std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createGateway()
-{
-    auto config = std::make_unique<EndGatewayFeatureConfig>(false);
-    return std::make_unique<ConfiguredEndGatewayFeature>(std::move(config), "end_gateway");
-}
-
-std::unique_ptr<ConfiguredEndGatewayFeature> EndGatewayFeatures::createExitGateway()
-{
-    auto config = std::make_unique<EndGatewayFeatureConfig>(true);
-    return std::make_unique<ConfiguredEndGatewayFeature>(std::move(config), "end_gateway_exit");
 }
 
 } // namespace mc

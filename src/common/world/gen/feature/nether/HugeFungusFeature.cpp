@@ -321,48 +321,13 @@ ConfiguredHugeFungusFeature::ConfiguredHugeFungusFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredHugeFungusFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredHugeFungusFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// HugeFungusFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> HugeFungusFeatures::s_features;
-
-void HugeFungusFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    s_features.push_back(createCrimson());
-    s_features.push_back(createWarped());
-}
-
-const std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>>& HugeFungusFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> HugeFungusFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredHugeFungusFeature> HugeFungusFeatures::createCrimson()
-{
-    auto config = std::make_unique<HugeFungusFeatureConfig>(FungusType::Crimson, false);
-    return std::make_unique<ConfiguredHugeFungusFeature>(std::move(config), "crimson_fungus");
-}
-
-std::unique_ptr<ConfiguredHugeFungusFeature> HugeFungusFeatures::createWarped()
-{
-    auto config = std::make_unique<HugeFungusFeatureConfig>(FungusType::Warped, false);
-    return std::make_unique<ConfiguredHugeFungusFeature>(std::move(config), "warped_fungus");
 }
 
 } // namespace mc

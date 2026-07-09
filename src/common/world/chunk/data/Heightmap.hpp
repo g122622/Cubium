@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include <array>
+#include <optional>
+#include <string>
 
 // BlockState 在 mc 命名空间中定义
 namespace mc {
@@ -136,6 +138,36 @@ private:
      */
     [[nodiscard]] bool _isOpaque(const BlockState* state) const;
 };
+
+/**
+ * @brief 把 MC 高度图序列化名（全大写）解析为 HeightmapType
+ *
+ * MC 1.21.11 Heightmap.Types 的 6 个合法序列化名：WORLD_SURFACE_WG / WORLD_SURFACE /
+ * OCEAN_FLOOR_WG / OCEAN_FLOOR / MOTION_BLOCKING / MOTION_BLOCKING_NO_LEAVES。
+ * 大小写敏感（MC 序列化名恒为全大写）。未知名返回 nullopt。
+ */
+[[nodiscard]] inline std::optional<HeightmapType> heightmapTypeFromString(const std::string& name)
+{
+    if (name == "WORLD_SURFACE_WG") {
+        return HeightmapType::WorldSurfaceWG;
+    }
+    if (name == "WORLD_SURFACE") {
+        return HeightmapType::WorldSurface;
+    }
+    if (name == "OCEAN_FLOOR_WG") {
+        return HeightmapType::OceanFloorWG;
+    }
+    if (name == "OCEAN_FLOOR") {
+        return HeightmapType::OceanFloor;
+    }
+    if (name == "MOTION_BLOCKING") {
+        return HeightmapType::MotionBlocking;
+    }
+    if (name == "MOTION_BLOCKING_NO_LEAVES") {
+        return HeightmapType::MotionBlockingNoLeaves;
+    }
+    return std::nullopt;
+}
 
 } // namespace mc::world::chunk
 

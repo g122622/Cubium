@@ -7,11 +7,14 @@ Cubium 世界生成特征系统，负责在地形生成后添加各种装饰性�
 ```
 feature/
 ├── Feature.hpp/cpp                   # 特征基类和配置
-├── ConfiguredFeature.hpp/cpp         # 配置化特征和特征注册表
-├── FeatureSorter.hpp/cpp             # MC 1.21 特征拓扑排序器
+├── ConfiguredFeature.hpp             # 配置化特征基类（ConfiguredFeatureBase）
+├── ConfiguredFeatureRegistry.hpp/cpp # 配置化特征注册表（数据驱动，按 ResourceLocation 索引）
+├── ConfiguredFeatureLoader.hpp/cpp   # 从数据包加载 configured_feature JSON
+├── FeatureTypeRegistry.hpp/cpp       # feature type 字符串→C++ 工厂映射（严格报错，增量注册）
+├── FeatureSorter.hpp/cpp             # MC 1.21 特征拓扑排序器（PlacedFeature* + ResourceLocation）
 ├── DecorationStage.hpp               # 装饰阶段枚举
-├── FeatureIds.hpp                    # 特征ID常量定义
 ├── FeatureSpread.hpp/cpp             # 特征扩散配置
+├── MonsterRoomFeature.hpp/cpp        # 地牢特征（忠实复刻 MC 1.21.11 MonsterRoomFeature）
 ├── LakeFeature.hpp/cpp               # 湖泊特征（水湖/熔岩湖）
 ├── SnowAndFreezeFeature.hpp/cpp      # 雪和冰冻结特征（TopLayerModification 阶段）
 ├── SimpleBlockFeature.hpp/cpp        # 简单方块放置特征
@@ -19,10 +22,7 @@ feature/
 ├── RandomBooleanSelectorFeature.hpp/cpp  # 随机布尔选择器特征
 ├── SimpleRandomSelectorFeature.hpp/cpp   # 简单随机选择器特征
 ├── cave/                             # 洞穴特征（繁茂洞穴/根系/植被贴片）
-│   ├── CaveFeatureConfigs.hpp        # 配置结构体聚合头文件
-│   ├── CaveFeatures.hpp/cpp          # 洞穴特征聚合
 │   ├── CaveSurface.hpp               # 洞穴表面辅助
-│   ├── LushCavesFeatures.hpp/cpp     # 繁茂洞穴特征
 │   ├── RootSystemFeature.hpp/cpp     # 根系特征
 │   └── VegetationPatchFeature.hpp/cpp # 植被贴片特征
 ├── end/                              # 末地特征（黑曜石柱/折跃门/冰刺/紫颂树/末地小岛）
@@ -30,17 +30,15 @@ feature/
 │   ├── EndGatewayFeature.hpp/cpp     # 末地折跃门
 │   ├── IceSpikeFeature.hpp/cpp       # 冰刺
 │   ├── ChorusPlantFeature.hpp/cpp    # 紫颂树特征（VegetalDecoration 阶段）
-│   ├── EndIslandFeature.hpp/cpp      # 末地小岛特征（RawGeneration 阶段）
-│   └── EndFeatures.hpp/cpp           # 末地特征注册
-├── nether/                           # 下界特征（萤石/玄武岩/岩浆/火焰/巨型菌类）
+│   └── EndIslandFeature.hpp/cpp      # 末地小岛特征（RawGeneration 阶段）
+├── nether/                           # 下界特征（萤石/玄武岩/三角洲/水下岩浆/火焰/巨型菌类）
 │   ├── GlowstoneFeature.hpp/cpp      # 萤石簇
 │   ├── BasaltColumnFeature.hpp/cpp   # 玄武岩柱
-│   ├── BasaltDeltaFeature.hpp/cpp    # 玄武岩三角洲
 │   ├── BasaltFeature.hpp             # 玄武岩聚合头文件
-│   ├── MagmaPatchFeature.hpp/cpp     # 岩浆池
+│   ├── DeltaFeature.hpp/cpp          # 三角洲（contents/rim + size/rim_size）
+│   ├── UnderwaterMagmaFeature.hpp/cpp # 水下岩浆（Column.scan 找水柱底）
 │   ├── NetherFireFeature.hpp/cpp     # 下界火焰
-│   ├── HugeFungusFeature.hpp/cpp     # 巨型菌类
-│   └── NetherFeatures.hpp/cpp        # 下界特征注册
+│   └── HugeFungusFeature.hpp/cpp     # 巨型菌类
 ├── ocean/                            # 海洋特征（海带/海草/珊瑚/蓝冰等）
 │   ├── KelpFeature.hpp/cpp           # 海带
 │   ├── SeagrassFeature.hpp/cpp       # 海草
@@ -69,7 +67,7 @@ feature/
 graph TB
     subgraph 核心系统
         A[Feature.hpp] --> B[ConfiguredFeature.hpp]
-        B --> C[FeatureRegistry]
+        B --> C[ConfiguredFeatureRegistry]
         D[DecorationStage.hpp] --> B
         E[FeatureSpread.hpp] --> F[TrunkPlacer]
         E --> G[FoliagePlacer]
@@ -99,9 +97,9 @@ graph TB
 
 **关键依赖链**：
 - `Feature` 是所有特征的抽象基类，定义 `place()` 接口
-- `ConfiguredFeature` 组合特征与放置配置，由 `FeatureRegistry` 管理
+- `ConfiguredFeature` 组合特征与配置，由 `ConfiguredFeatureRegistry` 管理（数据驱动，从数据包 JSON 加载）
 - `DecorationStage` 控制特征生成顺序（RawGeneration → Lakes → ... → TopLayerModification）
-- `FeatureSorter` 对所有可能生物群系的特征进行拓扑排序，确保跨生物群系边界的确定性放置
+- `FeatureSorter` 对所有可能生物群系的 placed_feature 进行拓扑排序，确保跨生物群系边界的确定性放置
 - `TreeFeature` 依赖 `TrunkPlacer` + `FoliagePlacer` 组合
 
 ## 上下游外部依赖关系
@@ -120,23 +118,27 @@ graph TB
 
 - `mc::world::gen::ChunkGenerator` - 区块生成器调用特征生成
 - `mc::world::biome` - 生物群系通过 BiomeGenerationSettings 配置特征列表
-- `mc::server::world::ServerWorld` - 服务端世界初始化时注册特征
+- `mc::server::world::ServerWorld` - 服务端世界初始化时从数据包加载特征注册表
 
 ## 容易踩的坑
 
-### 1. 特征ID偏移量
+### 1. 特征 ID 使用 ResourceLocation
 
-VegetalDecoration 阶段的特征ID需要使用 `FeatureIds.hpp` 中定义的偏移量常量，不要硬编码：
+特征不再使用 u32 整型 ID，统一以 `ResourceLocation`（如 `minecraft:monster_room`）标识。`ConfiguredFeatureBase::id()` 返回其 ResourceLocation，由 `ConfiguredFeatureRegistry` 按 `ResourceLocation` 索引。biome 的 `features` 数组、`placed_feature` JSON 的 `feature` 字段、`FeatureSorter` 的拓扑 key 全部是 `ResourceLocation`，不要混入整型 ID。
 ```cpp
 // 正确
-constexpr u32 myFlowerId = FlowerFeatureIds::Offset + 0;
-// 错误（如果树木数量变化会出错）
-constexpr u32 myFlowerId = 9;
+const auto id = ResourceLocation("minecraft", "monster_room");
+auto* feature = ConfiguredFeatureRegistry::instance().get(id);
+// 错误（已删除整型 ID 体系）
+// u32 featureId = FeatureIds::MonsterRoom;  // FeatureIds.hpp 已删除
 ```
 
-### 2. 初始化顺序
+### 2. 初始化顺序与数据驱动加载
 
-特征初始化依赖方块系统，必须在 `VanillaBlocks::initialize()` 之后调用 `FeatureRegistry::instance().initialize()`。
+特征注册表依赖方块系统与放置修饰器，加载顺序为：
+`VanillaBlocks::initialize()` → `PlacementRegistry::initialize()` → `FeatureTypeRegistry::initialize()`（注册 type 字符串→C++ 工厂）→ `ConfiguredFeatureLoader`（从数据包加载 configured_feature JSON）→ `PlacedFeatureLoader`（加载 placed_feature JSON，引用 configured_feature）→ `ConfiguredCarverLoader` → `BiomeLoader`（最后加载，引用前三者）。
+
+每个 Loader 从 `DataPackRepository` 枚举 `data/<namespace>/worldgen/<registry>/*.json`，遇未实现的 feature type / placement type / 引用未注册 id 时严格报错中断（`return Error`），便于按报错逐个补缺口。
 
 ### 3. TrunkPlacer/FoliagePlacer 深拷贝
 
@@ -148,11 +150,11 @@ constexpr u32 myFlowerId = 9;
 - 树木：检查下方是否为泥土/耕地
 - 仙人掌：检查周围是否有实体方块
 
-### 5. getFeatureById() 查找特征
+### 5. 查询特征
 
-`FeatureRegistry::getFeatureById(u32)` 按特征 ID 查找特征指针，ID 等于 `m_ownedFeatures` 中的索引。越界 ID 返回 `nullptr`。骨粉等运行时逻辑可通过此方法结合 `dynamic_cast<ConfiguredFlowerFeature*>` 筛选特定类型的特征。
+`ConfiguredFeatureRegistry::get(const ResourceLocation&)` 按 ResourceLocation 查找配置化特征指针，未找到返回 `nullptr`。`PlacedFeatureRegistry::get(const ResourceLocation&)` 同理查找 placed_feature（含 placement 链）。骨粉等运行时逻辑可通过 `ConfiguredFeatureRegistry::get` + `dynamic_cast` 筛选特定类型的特征。
 
-### 5. 随机数种子
+### 6. 随机数种子
 
 特征生成使用区块种子，计算方式：
 ```cpp

@@ -208,6 +208,15 @@ BlockTag& BlockTags::STONE()
     return *tag;
 }
 
+BlockTag& BlockTags::NYLIUM()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "nylium"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::FIRE()
 {
     static BlockTag* tag = nullptr;
@@ -549,6 +558,15 @@ BlockTag& BlockTags::BASE_STONE_OVERWORLD()
     return *tag;
 }
 
+BlockTag& BlockTags::DRIPSTONE_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dripstone_replaceable"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::CRYSTAL_SOUND_BLOCKS()
 {
     static BlockTag* tag = nullptr;
@@ -818,6 +836,15 @@ BlockTag& BlockTags::FEATURES_CANNOT_REPLACE()
     static BlockTag* tag = nullptr;
     if (tag == nullptr) {
         tag = getTag(ResourceLocation("minecraft", "features_cannot_replace"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::LAVA_POOL_STONE_CANNOT_REPLACE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "lava_pool_stone_cannot_replace"));
     }
     return *tag;
 }
@@ -1190,6 +1217,11 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "andesite"),
         ResourceLocation("minecraft", "polished_andesite")});
     tags[stone->getId()] = std::move(stone);
+
+    // 创建 NYLIUM 标签（crimson_nylium / warped_nylium）
+    auto nylium = std::make_unique<BlockTag>(ResourceLocation("minecraft", "nylium"));
+    nylium->addAll({ResourceLocation("minecraft", "crimson_nylium"), ResourceLocation("minecraft", "warped_nylium")});
+    tags[nylium->getId()] = std::move(nylium);
 
     // 创建 FIRE 标签
     auto fire = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fire"));
@@ -1928,6 +1960,29 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "deepslate")});
     tags[baseStoneOverworld->getId()] = std::move(baseStoneOverworld);
 
+    // 可被滴水石块替换的方块（DripstoneUtils.placeDripstoneBlockIfPossible / isDripstoneBase 依赖）
+    auto dripstoneReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dripstone_replaceable"));
+    dripstoneReplaceable->addAll({ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "rooted_dirt"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "pale_moss_block"),
+        ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "terracotta"),
+        ResourceLocation("minecraft", "sandstone"),
+        ResourceLocation("minecraft", "red_sandstone"),
+        ResourceLocation("minecraft", "calcite"),
+        ResourceLocation("minecraft", "dripstone_block")});
+    tags[dripstoneReplaceable->getId()] = std::move(dripstoneReplaceable);
+
     // 水晶声音方块
     auto crystalSoundBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "crystal_sound_blocks"));
     crystalSoundBlocks->addAll(
@@ -2492,6 +2547,17 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "trial_spawner"),
         ResourceLocation("minecraft", "vault")});
     tags[featuresCannotReplace->getId()] = std::move(featuresCannotReplace);
+
+    // 晶洞无效方块标签（geode_invalid_blocks）：晶洞分布点命中这些方块计入 invalidCount。
+    // 对齐数据包 data/minecraft/tags/blocks/geode_invalid_blocks.json。
+    auto geodeInvalidBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "geode_invalid_blocks"));
+    geodeInvalidBlocks->addAll({ResourceLocation("minecraft", "bedrock"),
+        ResourceLocation("minecraft", "water"),
+        ResourceLocation("minecraft", "lava"),
+        ResourceLocation("minecraft", "ice"),
+        ResourceLocation("minecraft", "packed_ice"),
+        ResourceLocation("minecraft", "blue_ice")});
+    tags[geodeInvalidBlocks->getId()] = std::move(geodeInvalidBlocks);
 
     // 附魔力量提供者标签
     auto enchantmentPowerProvider =
@@ -3297,6 +3363,28 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "warped_wall_hanging_sign"),
         ResourceLocation("minecraft", "warped_shelf")});
     tags[nonFlammableWood->getId()] = std::move(nonFlammableWood);
+
+    // 熔岩湖边界石不可替换标签。
+    // 数据包 data/minecraft/tags/block/lava_pool_stone_cannot_replace.json 引用三个子标签：
+    //   ["#minecraft:features_cannot_replace", "#minecraft:leaves", "#minecraft:logs"]
+    // BlockTag 体系是扁平的（unordered_set<ResourceLocation>，不支持 #tag 嵌套引用），故在此把三个
+    // 已完整填充的标签内容合并到 lava_pool_stone_cannot_replace。features_cannot_replace（基岩/刷怪笼/
+    // 箱子等）、leaves、logs 在上方均已 addAll 完毕，合并顺序无依赖。LakeFeature 边界方块放置时用它
+    // 判定哪些固体方块不被熔岩湖边界石覆盖。
+    {
+        auto lavaPoolStoneCannotReplace =
+            std::make_unique<BlockTag>(ResourceLocation("minecraft", "lava_pool_stone_cannot_replace"));
+        std::vector<ResourceLocation> merged;
+        const auto collect = [&merged](const BlockTag& src) {
+            const auto& ids = src.getBlockIds();
+            merged.insert(merged.end(), ids.begin(), ids.end());
+        };
+        collect(*tags.at(ResourceLocation("minecraft", "features_cannot_replace")));
+        collect(*tags.at(ResourceLocation("minecraft", "leaves")));
+        collect(*tags.at(ResourceLocation("minecraft", "logs")));
+        lavaPoolStoneCannotReplace->addAll(merged);
+        tags[lavaPoolStoneCannotReplace->getId()] = std::move(lavaPoolStoneCannotReplace);
+    }
 
     s_initialized = true;
 }

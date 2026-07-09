@@ -26,7 +26,6 @@
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include <memory>
-#include <vector>
 
 namespace mc {
 
@@ -161,7 +160,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -171,31 +170,6 @@ private:
     std::unique_ptr<BigMushroomFeatureConfig> m_config;
     std::string m_name;
     std::unique_ptr<BigMushroomFeature> m_feature;
-};
-
-/**
- * @brief 预定义巨型蘑菇配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct BigMushroomFeatures {
-    /// 初始化所有巨型蘑菇特征
-    static void initialize();
-
-    /// 获取所有巨型蘑菇特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>>& getAllFeatures();
-
-    /// 获取所有巨型蘑菇特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> getAllFeaturesAndClear();
-
-    /// 创建巨型棕色蘑菇
-    static std::unique_ptr<ConfiguredBigMushroomFeature> createBrownMushroom();
-
-    /// 创建巨型红色蘑菇
-    static std::unique_ptr<ConfiguredBigMushroomFeature> createRedMushroom();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> s_features;
 };
 
 } // namespace mc

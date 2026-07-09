@@ -121,7 +121,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -130,54 +130,7 @@ public:
 private:
     std::unique_ptr<SeagrassFeatureConfig> m_config;
     std::string m_name;
-    SeagrassFeature m_feature;
-};
-
-/**
- * @brief 预定义海草配置
- */
-struct SeagrassFeatures {
-    /// 初始化所有海草特征
-    static void initialize();
-
-    /// 获取所有海草特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredSeagrassFeature>>& getAllFeatures();
-
-    /// 获取所有海草特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredSeagrassFeature>> getAllFeaturesAndClear();
-
-    /// 创建普通海草（仅普通海草）
-    static std::unique_ptr<ConfiguredSeagrassFeature> createSimpleSeagrass();
-
-    /// 创建混合海草（普通+高海草）
-    static std::unique_ptr<ConfiguredSeagrassFeature> createMixedSeagrass();
-
-    /// 创建冷水海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createColdSeagrass();
-
-    /// 创建深冷水海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createDeepColdSeagrass();
-
-    /// 创建常规海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createNormalSeagrass();
-
-    /// 创建河流海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createRiverSeagrass();
-
-    /// 创建深海海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createDeepSeagrass();
-
-    /// 创建沼泽海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createSwampSeagrass();
-
-    /// 创建暖水海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createWarmSeagrass();
-
-    /// 创建深暖水海草
-    static std::unique_ptr<ConfiguredSeagrassFeature> createDeepWarmSeagrass();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredSeagrassFeature>> s_features;
+    mutable SeagrassFeature m_feature;
 };
 
 } // namespace mc

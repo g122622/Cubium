@@ -26,7 +26,6 @@
 #include "common/world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/PlacementUtils.hpp"
 
 namespace mc {
 
@@ -56,62 +55,17 @@ bool ChorusPlantFeature::place(WorldGenRegion& world, math::Random& random, cons
 // ConfiguredChorusPlantFeature
 // ============================================================================
 
-ConfiguredChorusPlantFeature::ConfiguredChorusPlantFeature(
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
-    : m_placement(std::move(placement))
-    , m_name(featureName)
+ConfiguredChorusPlantFeature::ConfiguredChorusPlantFeature(const char* featureName)
+    : m_name(featureName)
 {}
 
-bool ConfiguredChorusPlantFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredChorusPlantFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
-    bool placed = false;
-
-    if (m_placement != nullptr) {
-        // 使用放置链获取候选位置
-        auto positions = m_placement->getPositions(region, random, pos);
-        for (const auto& placePos : positions) {
-            if (ChorusPlantFeature::place(region, random, placePos)) {
-                placed = true;
-            }
-        }
-    } else {
-        // 没有放置链时直接使用给定位置
-        placed = ChorusPlantFeature::place(region, random, pos);
-    }
-
-    return placed;
-}
-
-// ============================================================================
-// ChorusPlantFeatures
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> ChorusPlantFeatures::s_features;
-
-void ChorusPlantFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createChorusPlant());
-}
-
-const std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>>& ChorusPlantFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> ChorusPlantFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> result;
-    result.swap(s_features);
-    return result;
-}
-
-std::unique_ptr<ConfiguredChorusPlantFeature> ChorusPlantFeatures::createChorusPlant()
-{
-    // 末地高地，表面放置，每区块2次
-    auto placement = PlacementUtils::createCountedSurfacePlacement(2);
-    return std::make_unique<ConfiguredChorusPlantFeature>(std::move(placement), "chorus_plant");
+    return ChorusPlantFeature::place(region, random, pos);
 }
 
 } // namespace mc

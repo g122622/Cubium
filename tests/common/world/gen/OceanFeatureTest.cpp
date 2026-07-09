@@ -25,6 +25,7 @@
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
+#include "util/property/Properties.hpp"
 #include "world/chunk/data/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
 #include "world/gen/feature/ocean/BlueIceFeature.hpp"
@@ -87,10 +88,16 @@ protected:
 
 TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater)
 {
-    auto configured = KelpFeatures::createColdKelp();
-    ASSERT_NE(configured, nullptr);
+    // 数据驱动迁移：原 KelpFeatures::createColdKelp() 胶水已删除，
+    // 测试直接内联构造 KelpFeatureConfig（与原工厂同值：kelp_plant/kelp, tries=120, maxH=10）。
+    KelpFeatureConfig config;
+    if (VanillaBlocks::KELP_PLANT != nullptr && VanillaBlocks::KELP != nullptr) {
+        config.kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
+        config.kelpTopState = &VanillaBlocks::KELP->defaultState();
+    }
+    config.tries = 120;
+    config.maxHeight = 10;
 
-    const KelpFeatureConfig& config = configured->getConfig();
     ASSERT_NE(config.kelpState, nullptr);
     ASSERT_NE(config.kelpTopState, nullptr);
 
@@ -122,10 +129,22 @@ TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater)
 
 TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant)
 {
-    auto configured = SeagrassFeatures::createMixedSeagrass();
-    ASSERT_NE(configured, nullptr);
+    // 数据驱动迁移：原 SeagrassFeatures::createMixedSeagrass() 胶水已删除，
+    // 测试直接内联构造 SeagrassFeatureConfig（与原工厂同值：tallChance=0.3, tries=48, spread=8）。
+    SeagrassFeatureConfig config;
+    if (VanillaBlocks::SEAGRASS != nullptr) {
+        config.seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
+    }
+    if (VanillaBlocks::TALL_SEAGRASS != nullptr) {
+        config.tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
+            BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+        config.tallSeagrassUpperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
+            BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    }
+    config.tallSeagrassChance = 0.3f;
+    config.tries = 48;
+    config.horizontalSpread = 8;
 
-    const SeagrassFeatureConfig& config = configured->getConfig();
     ASSERT_NE(config.seagrassState, nullptr);
     ASSERT_NE(config.tallSeagrassLowerState, nullptr);
     ASSERT_NE(config.tallSeagrassUpperState, nullptr);
@@ -206,10 +225,15 @@ TEST_F(OceanFeatureWorldTest, CoralFeaturePlacesDeadCoralBlock)
 
 TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnSolidOceanFloor)
 {
-    auto configured = SeaPickleFeatures::createNormalSeaPickle();
-    ASSERT_NE(configured, nullptr);
+    // 数据驱动迁移：原 SeaPickleFeatures::createNormalSeaPickle() 胶水已删除，
+    // 测试直接内联构造 SeaPickleFeatureConfig（tries=20, maxCount=4）。
+    SeaPickleFeatureConfig config;
+    if (VanillaBlocks::SEA_PICKLE != nullptr) {
+        config.seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState();
+    }
+    config.tries = 20;
+    config.maxCount = 4;
 
-    const SeaPickleFeatureConfig& config = configured->getConfig();
     ASSERT_NE(config.seaPickleState, nullptr);
 
     SeaPickleFeature feature;
@@ -227,13 +251,19 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral)
         }
     }
 
-    auto configured = SeaPickleFeatures::createNormalSeaPickle();
-    ASSERT_NE(configured, nullptr);
+    // 数据驱动迁移：原 SeaPickleFeatures::createNormalSeaPickle() 胶水已删除，
+    // 测试直接内联构造 SeaPickleFeatureConfig（tries=20, maxCount=4）。
+    SeaPickleFeatureConfig config;
+    if (VanillaBlocks::SEA_PICKLE != nullptr) {
+        config.seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState();
+    }
+    config.tries = 20;
+    config.maxCount = 4;
 
     SeaPickleFeature feature;
     math::Random random(44556);
 
-    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), configured->getConfig()));
+    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
 
     ASSERT_NE(VanillaBlocks::SEA_PICKLE, nullptr);
     bool foundSeaPickle = false;
@@ -250,10 +280,18 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral)
 
 TEST_F(OceanFeatureWorldTest, OceanDecorationFeaturePlacesOceanProps)
 {
-    auto configured = OceanDecorationFeatures::createOceanProps();
-    ASSERT_NE(configured, nullptr);
-
-    OceanDecorationFeatureConfig config = configured->getConfig();
+    // 数据驱动迁移：原 OceanDecorationFeatures::createOceanProps() 胶水已删除，
+    // 测试直接内联构造 OceanDecorationFeatureConfig（与原工厂同值）。
+    OceanDecorationFeatureConfig config;
+    config.conduitState = VanillaBlocks::getState(VanillaBlocks::CONDUIT);
+    config.driedKelpBlockState = VanillaBlocks::getState(VanillaBlocks::DRIED_KELP_BLOCK);
+    config.turtleEggState = VanillaBlocks::getState(VanillaBlocks::TURTLE_EGG);
+    config.bubbleColumnState = VanillaBlocks::getState(VanillaBlocks::BUBBLE_COLUMN);
+    config.prismarineStairsState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_STAIRS);
+    config.prismarineSlabState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_SLAB);
+    config.prismarineState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE);
+    config.magmaState = VanillaBlocks::getState(VanillaBlocks::MAGMA);
+    config.sandState = VanillaBlocks::getState(VanillaBlocks::SAND);
     config.tries = 12;
     config.driedKelpCount = 8;
     config.bubbleColumnMaxHeight = 16;
@@ -333,10 +371,11 @@ TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater)
     const i32 packedX = (startX < 15) ? (startX + 1) : (startX - 1);
     setWorldBlock(packedX, startY, startZ, &VanillaBlocks::PACKED_ICE->defaultState());
 
-    auto configured = BlueIceFeatures::createBlueIce();
-    ASSERT_NE(configured, nullptr);
-
-    BlueIceFeatureConfig config = configured->getConfig();
+    // 数据驱动迁移：原 BlueIceFeatures::createBlueIce() 胶水已删除，
+    // 测试直接内联构造 BlueIceFeatureConfig（spreadAttempts 由测试覆盖为 120）。
+    BlueIceFeatureConfig config;
+    config.blueIceState = VanillaBlocks::getState(VanillaBlocks::BLUE_ICE);
+    config.packedIceState = VanillaBlocks::getState(VanillaBlocks::PACKED_ICE);
     config.spreadAttempts = 120;
 
     BlueIceFeature feature;
@@ -363,11 +402,14 @@ TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater)
 
 TEST_F(OceanFeatureWorldTest, BlueIceFeatureFailsWithoutPackedIceNeighbor)
 {
-    auto configured = BlueIceFeatures::createBlueIce();
-    ASSERT_NE(configured, nullptr);
+    // 数据驱动迁移：原 BlueIceFeatures::createBlueIce() 胶水已删除，
+    // 测试直接内联构造 BlueIceFeatureConfig（默认 spreadAttempts=200）。
+    BlueIceFeatureConfig config;
+    config.blueIceState = VanillaBlocks::getState(VanillaBlocks::BLUE_ICE);
+    config.packedIceState = VanillaBlocks::getState(VanillaBlocks::PACKED_ICE);
 
     BlueIceFeature feature;
     math::Random random(1234567);
 
-    EXPECT_FALSE(feature.place(*m_region, random, BlockPos(0, 0, 0), configured->getConfig(), 63));
+    EXPECT_FALSE(feature.place(*m_region, random, BlockPos(0, 0, 0), config, 63));
 }

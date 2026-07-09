@@ -23,7 +23,6 @@
 #include "SimpleBlockFeature.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/Placement.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -36,24 +35,29 @@ bool SimpleBlockFeature::place(
 {
     MC_UNUSED(random);
 
-    if (config.toPlace == nullptr) {
+    // 取本次放置的目标状态：weighted 提供者按权重采样，simple 用单一状态。
+    const BlockState* toPlace = config.toPlace;
+    if (toPlace == nullptr && config.weightedProvider != nullptr) {
+        toPlace = config.weightedProvider->getState(random);
+    }
+    if (toPlace == nullptr) {
         return false;
     }
 
     const BlockState* currentState = region.getBlockState(pos);
-    if (currentState == nullptr) {
-        return false;
-    }
+    // ChunkData 对未初始化 section 返回 nullptr 表示空气（空气不持久化）。
+    // 空气可被替换（对齐 MC SimpleBlockFeature：AIR.canBeReplaced()=true），故 nullptr 视为可放置。
+    const bool replaceable = (currentState == nullptr) || currentState->canBeReplaced();
 
-    const Block& block = config.toPlace->getBlock();
+    const Block& block = toPlace->getBlock();
     MC_UNUSED(block);
 
     // 如果当前位置不可替换，则放置失败
-    if (!currentState->canBeReplaced()) {
+    if (!replaceable) {
         return false;
     }
 
-    region.setBlockState(pos, config.toPlace, 3);
+    region.setBlockState(pos, toPlace, 3);
     return true;
 }
 
@@ -62,33 +66,25 @@ bool SimpleBlockFeature::place(
 // ============================================================================
 
 ConfiguredSimpleBlockFeature::ConfiguredSimpleBlockFeature(
-    std::unique_ptr<SimpleBlockConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<SimpleBlockConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredSimpleBlockFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSimpleBlockFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
 
-    // 获取放置位置
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
+    if (!m_config) {
+        return false;
     }
 
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (SimpleBlockFeature::place(region, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return SimpleBlockFeature::place(region, random, pos, *m_config);
 }
 
 } // namespace mc::world::gen::feature::cave

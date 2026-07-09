@@ -23,7 +23,6 @@
 #include "BlockColumnFeature.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/Placement.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -123,32 +122,25 @@ bool BlockColumnFeature::place(
 // ============================================================================
 
 ConfiguredBlockColumnFeature::ConfiguredBlockColumnFeature(
-    std::unique_ptr<BlockColumnConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<BlockColumnConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredBlockColumnFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBlockColumnFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
 
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
+    if (!m_config) {
+        return false;
     }
 
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (BlockColumnFeature::place(region, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return BlockColumnFeature::place(region, random, pos, *m_config);
 }
 
 } // namespace mc::world::gen::feature::cave

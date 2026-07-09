@@ -227,20 +227,21 @@ Result<std::unique_ptr<IntProvider>> _parseWeightedList(const nlohmann::json& va
 
 namespace IntProviderParser {
 
-Result<std::unique_ptr<IntProvider>> parse(const nlohmann::json& json, i32 minInclusive, i32 maxInclusive)
+Result<std::unique_ptr<IntProvider>> parse(
+    const nlohmann::json& json, std::optional<i32> minInclusive, std::optional<i32> maxInclusive)
 {
     // 裸整数简写: 5 -> ConstantInt(5)
     if (json.is_number_integer()) {
         i32 value = json.get<i32>();
         auto provider = std::make_unique<ConstantInt>(value);
         // 校验范围
-        if (minInclusive >= 0 && provider->getMinValue() < minInclusive) {
+        if (minInclusive && provider->getMinValue() < *minInclusive) {
             return Error(ErrorCode::InvalidData,
-                fmt::format("IntProvider constant value {} is less than minimum {}", value, minInclusive));
+                fmt::format("IntProvider constant value {} is less than minimum {}", value, *minInclusive));
         }
-        if (maxInclusive >= 0 && provider->getMaxValue() > maxInclusive) {
+        if (maxInclusive && provider->getMaxValue() > *maxInclusive) {
             return Error(ErrorCode::InvalidData,
-                fmt::format("IntProvider constant value {} exceeds maximum {}", value, maxInclusive));
+                fmt::format("IntProvider constant value {} exceeds maximum {}", value, *maxInclusive));
         }
         return Result<std::unique_ptr<IntProvider>>(std::move(provider));
     }
@@ -291,17 +292,19 @@ Result<std::unique_ptr<IntProvider>> parse(const nlohmann::json& json, i32 minIn
 
     // 校验范围约束
     auto provider = result.value();
-    if (minInclusive >= 0 && provider->getMinValue() < minInclusive) {
+    if (minInclusive && provider->getMinValue() < *minInclusive) {
         return Error(ErrorCode::InvalidData,
             fmt::format("IntProvider {} minValue {} is less than required minimum {}",
                 type,
                 provider->getMinValue(),
-                minInclusive));
+                *minInclusive));
     }
-    if (maxInclusive >= 0 && provider->getMaxValue() > maxInclusive) {
+    if (maxInclusive && provider->getMaxValue() > *maxInclusive) {
         return Error(ErrorCode::InvalidData,
-            fmt::format(
-                "IntProvider {} maxValue {} exceeds required maximum {}", type, provider->getMaxValue(), maxInclusive));
+            fmt::format("IntProvider {} maxValue {} exceeds required maximum {}",
+                type,
+                provider->getMaxValue(),
+                *maxInclusive));
     }
 
     return Result<std::unique_ptr<IntProvider>>(std::move(provider));

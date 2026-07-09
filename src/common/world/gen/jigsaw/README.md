@@ -91,7 +91,7 @@ JigsawPiece ──包含──> JigsawJoint ──使用──> JigsawOrientatio
 
 ### FeatureJigsawPiece::place()
 
-`FeatureJigsawPiece` 不应用结构处理器，直接调用 `ConfiguredFeatureBase::place(region, chunk, generator, rng, pos)` 放置配置化地物。通过 `FeatureRegistry::getFeatureByName(m_featureId)` 按名称查找地物（名称去除 `minecraft:` 前缀后匹配 `ConfiguredFeatureBase::name()`）。`IWorldWriter` 向下转型为 `WorldGenRegion`（`dynamic_cast`），`chunk`/`generator` 通过 `place()` 链路透传。
+`FeatureJigsawPiece` 不应用结构处理器，直接调用 `ConfiguredFeatureBase::place(region, chunk, generator, rng, pos)` 放置配置化地物。`m_featureId` 是 configured_feature 的 `ResourceLocation` 字符串（如 `minecraft:pale_oak`），通过 `ConfiguredFeatureRegistry::instance().get(ResourceLocation::parse(m_featureId))` 按 id 解析为 `const ConfiguredFeatureBase*`（未找到则 warn 并跳过放置）。`IWorldWriter` 向下转型为 `WorldGenRegion`（`dynamic_cast`），`chunk`/`generator` 通过 `place()` 链路透传。
 
 ## 上下游外部依赖
 
@@ -104,7 +104,7 @@ JigsawPiece ──包含──> JigsawJoint ──使用──> JigsawOrientatio
 | TemplateManager | world/gen/feature/template/ | 模板加载 |
 | StructureProcessorList | world/gen/feature/template/ | 处理器列表（通过 ProcessorListRegistry 查找） |
 | VoxelShape/Shapes | world/physics/shape/ | 空间追踪（freeShape 减法/碰撞检测） |
-| ConfiguredFeatureBase/FeatureRegistry | world/gen/feature/ | FeatureJigsawPiece 地物放置 |
+| ConfiguredFeatureBase/ConfiguredFeatureRegistry | world/gen/feature/ | FeatureJigsawPiece 地物放置（按 ResourceLocation 解析） |
 | IChunkGenerator/ChunkPrimer | world/gen/chunk/ | TerrainMatching 高度计算 + FeatureJigsawPiece 放置 |
 | Random | util/math/random/ | 随机数 |
 | ResourceLocation | resource/ | 资源定位 |

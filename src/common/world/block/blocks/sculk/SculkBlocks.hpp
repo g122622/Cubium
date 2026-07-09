@@ -23,9 +23,15 @@
 
 #pragma once
 
+#include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
+#include "../MultifaceBlock.hpp"
+#include "../MultifaceSpreader.hpp"
+#include "SculkBehaviour.hpp"
+
+#include <optional>
 
 namespace mc {
 
@@ -40,28 +46,158 @@ namespace blocks {
  *
  * 深暗之域的主要构成方块，可通过幽匿催化体蔓延。
  * 当被精确采集时掉落经验。
+ *
+ * 实现 SculkBehaviour：在 SculkSpreader 电荷作用下生成生长物（sensor/shrieker）。
  */
-class SculkBlock : public Block {
+class SculkBlock : public Block, public SculkBehaviour {
 public:
     explicit SculkBlock(const BlockProperties& properties)
         : Block(properties)
     {}
 
     ~SculkBlock() override = default;
+
+    // ========== SculkBehaviour ==========
+
+    /// MC SculkBlock.canChangeBlockStateOnSpread = false。
+    [[nodiscard]] bool canChangeBlockStateOnSpread() const override { return false; }
+
+    /// MC SculkBehaviour.updateDecayDelay = 1。
+    [[nodiscard]] i32 updateDecayDelay(i32 decayDelay) const override { return 1; }
+
+    /**
+     * @brief MC SculkBehaviour.attemptSpreadVein：sculk 块不主动扩散脉络。
+     *
+     * SculkPatchFeature 的电荷游标在 sculk 块上时仅消耗电荷生成生长物（attemptUseCharge），
+     * 不调用 vein 的脉络扩散。返回 false 与 MC SculkBlock（未覆写 attemptSpreadVein，
+     * 走接口默认的 vein.spreadAll）行为不同——但 MC 中 sculk 块上 facings 为 nullopt，
+     * 接口默认分支 attemptSpreadVein(facings==null) 才会触发 vein spreadAll。
+     * 此处 worldgen 路径游标 facings 恒为 availableFaces（非空），故不扩散。
+     */
+    [[nodiscard]] bool attemptSpreadVein(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        std::optional<std::vector<Direction>> facings,
+        bool worldGen) override
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        MC_UNUSED(facings);
+        MC_UNUSED(worldGen);
+        return false;
+    }
+
+    /// MC SculkBlock.attemptUseCharge：消耗电荷、概率生成 sensor/shrieker 生长物。
+    [[nodiscard]] i32 attemptUseCharge(ChargeCursor& cursor,
+        IWorld& world,
+        const BlockPos& origin,
+        math::IRandom& random,
+        SculkSpreader& spreader,
+        bool shouldUpdateBlocks) override;
+
+private:
+    /// MC SculkBlock.getRandomGrowthState：1/11 概率 shrieker，否则 sensor；按流体水化。
+    [[nodiscard]] static const BlockState* getRandomGrowthState(
+        IWorld& world, const BlockPos& pos, math::IRandom& random, bool worldGen);
+
+    /// MC SculkBlock.canPlaceGrowth：上方为空气/水，且 4×3×4 范围内 sensor+shrieker ≤ 2。
+    [[nodiscard]] static bool canPlaceGrowth(IWorld& world, const BlockPos& pos);
+
+    /// MC SculkBlock.getDecayPenalty：距中心越远衰减越多。
+    [[nodiscard]] static i32 getDecayPenalty(
+        const SculkSpreader& spreader, const BlockPos& pos, const BlockPos& origin, i32 charge);
 };
 
 /**
  * @brief 幽匿脉络
  *
- * 可附着在方块表面的幽匿蔓延物，可被骨粉催生。
+ * 多面方块（继承 MultifaceBlock），可附着在方块六面，支持含水。
+ * 可被骨粉催生（spreadFromRandomFaceTowardRandomDirection）。
+ *
+ * 实现 SculkBehaviour：worldgen 电荷作用下把相邻可替换方块转化为 sculk，并在其周围蔓延脉络。
  */
-class SculkVeinBlock : public Block {
+class SculkVeinBlock : public MultifaceBlock, public SculkBehaviour {
 public:
-    explicit SculkVeinBlock(const BlockProperties& properties)
-        : Block(properties)
-    {}
+    explicit SculkVeinBlock(const BlockProperties& properties);
 
     ~SculkVeinBlock() override = default;
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
+
+    /// MC MultifaceSpreadeableBlock.getSpreader：DEFAULT_SPREAD_ORDER 的脉络扩散器。
+    [[nodiscard]] const MultifaceSpreader& getSpreader() const { return m_veinSpreader; }
+
+    /// MC SculkVeinBlock.getSameSpaceSpreader：仅 SAME_POSITION 的扩散器。
+    [[nodiscard]] const MultifaceSpreader& getSameSpaceSpreader() const { return m_sameSpaceSpreader; }
+
+    // ========== SculkBehaviour ==========
+
+    /// MC SculkVeinBlock.attemptUseCharge：worldgen 时尝试把相邻可替换方块转化为 sculk。
+    [[nodiscard]] i32 attemptUseCharge(ChargeCursor& cursor,
+        IWorld& world,
+        const BlockPos& origin,
+        math::IRandom& random,
+        SculkSpreader& spreader,
+        bool shouldUpdateBlocks) override;
+
+    /// MC SculkBehaviour.attemptSpreadVein（接口默认分支）：facings 为空时走 sameSpaceSpreader。
+    [[nodiscard]] bool attemptSpreadVein(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        std::optional<std::vector<Direction>> facings,
+        bool worldGen) override;
+
+    /// MC SculkVeinBlock.onDischarged：移除贴在 sculk 上的面，无面则变空气/水。
+    void onDischarged(IWorld& world, const BlockState& state, const BlockPos& pos, math::IRandom& random) override;
+
+    /// MC SculkBehaviour.canChangeBlockStateOnSpread = true（接口默认）。
+    [[nodiscard]] bool canChangeBlockStateOnSpread() const override { return true; }
+
+    // ========== 静态方法 ==========
+
+    /// MC SculkVeinBlock.hasSubstrateAccess：vein 某面朝向 SCULK_REPLACEABLE 方块。
+    [[nodiscard]] static bool hasSubstrateAccess(IWorld& world, const BlockState& state, const BlockPos& pos);
+
+    /// MC SculkVeinBlock.regrow：从一组方向重建 vein（仅可 attach 的方向加面）。
+    [[nodiscard]] static bool regrow(
+        IWorld& world, const BlockPos& pos, const BlockState& current, const std::vector<Direction>& directions);
+
+protected:
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override { MC_UNUSED(container); }
+
+private:
+    /// MC SculkVeinBlock.attemptPlaceSculk：随机方向遍历，把相邻可替换方块转化为 sculk 并蔓延脉络。
+    [[nodiscard]] bool attemptPlaceSculk(
+        SculkSpreader& spreader, IWorld& world, const BlockPos& pos, math::IRandom& random);
+
+    /// 预计算 64 种面组合形状（2^6）。
+    std::array<CollisionShape, 64> m_shapes;
+    static size_t shapeIndex(const BlockState& state);
+
+    MultifaceSpreader m_veinSpreader;
+    MultifaceSpreader m_sameSpaceSpreader;
 };
 
 /**

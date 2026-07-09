@@ -24,6 +24,7 @@
 
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include <memory>
 #include <string>
 
@@ -32,11 +33,15 @@ namespace mc::world::gen::feature::cave {
 /**
  * @brief 简单方块配置
  *
- * 用于放置单个方块（如孢子花、苔藓植被）。
+ * 用于放置单个方块（如孢子花、苔藓植被）。to_place 为 BlockStateProvider：
+ * simple_state_provider 取单一状态；weighted_state_provider 每次放置按权重采样。
  */
 struct SimpleBlockConfig {
-    /// 要放置的方块状态
+    /// 要放置的方块状态（simple_state_provider 的单一状态；weighted 时为 nullptr）
     const BlockState* toPlace = nullptr;
+
+    /// 加权方块状态提供者（weighted_state_provider；simple 时为 nullptr）
+    std::unique_ptr<state::WeightedBlockStateProvider> weightedProvider;
 
     /// 是否调度刻更新
     bool scheduleTick = false;
@@ -70,24 +75,24 @@ public:
 
 /**
  * @brief 配置化简单方块特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置方块。
  */
 class ConfiguredSimpleBlockFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredSimpleBlockFeature(std::unique_ptr<SimpleBlockConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredSimpleBlockFeature(std::unique_ptr<SimpleBlockConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
 private:
     std::unique_ptr<SimpleBlockConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

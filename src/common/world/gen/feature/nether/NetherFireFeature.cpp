@@ -95,45 +95,15 @@ ConfiguredNetherFireFeature::ConfiguredNetherFireFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredNetherFireFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredNetherFireFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// NetherFireFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::s_features;
-
-void NetherFireFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-    s_features.push_back(createNormal());
-}
-
-const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& NetherFireFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredNetherFireFeature> NetherFireFeatures::createNormal()
-{
-    auto config = std::make_unique<NetherFireFeatureConfig>(4, // spread
-        1,                                                     // minHeight
-        3                                                      // maxHeight
-    );
-    return std::make_unique<ConfiguredNetherFireFeature>(std::move(config), "nether_fire");
 }
 
 } // namespace mc

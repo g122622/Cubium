@@ -93,7 +93,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -102,32 +102,9 @@ public:
 private:
     std::unique_ptr<CactusFeatureConfig> m_config;
     std::string m_name;
-    CactusFeature m_feature;
-};
-
-/**
- * @brief 预定义仙人掌配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct CactusFeatures {
-    /// 初始化所有仙人掌特征
-    static void initialize();
-
-    /// 获取所有仙人掌特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredCactusFeature>>& getAllFeatures();
-
-    /// 获取所有仙人掌特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredCactusFeature>> getAllFeaturesAndClear();
-
-    /// 创建沙漠仙人掌
-    static std::unique_ptr<ConfiguredCactusFeature> createDesertCactus();
-
-    /// 创建恶地仙人掌（较高）
-    static std::unique_ptr<ConfiguredCactusFeature> createBadlandsCactus();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredCactusFeature>> s_features;
+    // CactusFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredCactusFeature::place() 语义不变
+    // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。
+    mutable CactusFeature m_feature;
 };
 
 } // namespace mc

@@ -162,6 +162,10 @@ public:
     /// 石头标签
     static BlockTag& STONE();
 
+    /// 菌丝岩标签（crimson_nylium / warped_nylium）
+    /// 运行时消费场景：NetherForestVegetationFeature 判断 origin 下方是否为菌丝岩。
+    static BlockTag& NYLIUM();
+
     /// 火标签
     static BlockTag& FIRE();
 
@@ -348,6 +352,9 @@ public:
     /// 主世界基础石头标签（石头、花岗岩、闪长岩、安山岩、凝灰岩、深板岩）
     static BlockTag& BASE_STONE_OVERWORLD();
 
+    /// 可被滴水石块替换的方块标签（DripstoneUtils 依赖）
+    static BlockTag& DRIPSTONE_REPLACEABLE();
+
     /// 水晶声音方块标签（紫水晶块、紫水晶母岩）
     static BlockTag& CRYSTAL_SOUND_BLOCKS();
 
@@ -447,6 +454,10 @@ public:
 
     /// 不可被特性替换方块标签（基岩、刷怪笼、箱子等）
     static BlockTag& FEATURES_CANNOT_REPLACE();
+
+    /// 熔岩湖边界石不可替换标签（引用 features_cannot_replace + leaves + logs）
+    /// 用于 LakeFeature 边界方块放置判定
+    static BlockTag& LAVA_POOL_STONE_CANNOT_REPLACE();
 
     /// 附魔力量提供者标签（书架）
     static BlockTag& ENCHANTMENT_POWER_PROVIDER();

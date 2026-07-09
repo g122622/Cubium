@@ -76,6 +76,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeLoader.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -85,9 +87,14 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/gen/carver/ConfiguredCarverLoader.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureLoader.hpp"
+#include "common/world/gen/feature/FeatureTypeRegistry.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
+#include "common/world/gen/placement/PlacedFeatureLoader.hpp"
+#include "common/world/gen/placement/PlacementRegistry.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureTagLoader.hpp"
 #include "common/world/gen/structure/StructureTags.hpp"
@@ -1059,6 +1066,65 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JigsawTemplateManager");
         world::gen::jigsaw::JigsawAssembler::getTemplateManager().setDataPackRepository(&m_dataPackList);
         spdlog::info("Jigsaw TemplateManager configured with data pack list");
+    }
+
+    // ============================================================================
+    // 数据驱动世界生成管线
+    // ============================================================================
+    // 顺序：放置器类型 → 特征类型 → configured_feature → placed_feature →
+    //       configured_carver → biome（biome 必须最后，引用上述注册表）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::PlacementRegistry");
+        PlacementRegistry::instance().initialize();
+    }
+    spdlog::info("Placement registry initialized");
+
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::FeatureTypeRegistry");
+        world::gen::feature::initializeBuiltinFeatureTypes();
+    }
+    spdlog::info("Builtin feature types initialized");
+
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ConfiguredFeatures");
+        auto featureResult = world::gen::feature::ConfiguredFeatureLoader::loadFromDataPackRepository(m_dataPackList);
+        if (featureResult.failed()) {
+            spdlog::error("Failed to load configured features from data packs: {}", featureResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} configured features from data packs", featureResult.value());
+        }
+    }
+
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::PlacedFeatures");
+        auto placedResult = world::gen::placement::PlacedFeatureLoader::loadFromDataPackRepository(m_dataPackList);
+        if (placedResult.failed()) {
+            spdlog::error("Failed to load placed features from data packs: {}", placedResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} placed features from data packs", placedResult.value());
+        }
+    }
+
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ConfiguredCarvers");
+        auto carverResult = world::gen::carver::ConfiguredCarverLoader::loadFromDataPackRepository(m_dataPackList);
+        if (carverResult.failed()) {
+            spdlog::error("Failed to load configured carvers from data packs: {}", carverResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} configured carvers from data packs", carverResult.value());
+        }
+    }
+
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Biomes");
+        // 确保 BiomeFactory 构造的默认 Biome 已注册（BiomeLoader 在其上叠加 JSON 字段）
+        BiomeRegistry::instance().initialize();
+        auto biomeResult = world::biome::BiomeLoader::loadFromDataPackRepository(m_dataPackList);
+        if (biomeResult.failed()) {
+            spdlog::error("Failed to load biomes from data packs: {}", biomeResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} biomes from data packs", biomeResult.value());
+        }
     }
 
     // 初始化结构标签（必须在结构集合注册后，海豚寻宝等玩法依赖此标签）

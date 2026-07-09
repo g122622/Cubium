@@ -27,7 +27,6 @@
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <memory>
-#include <vector>
 
 namespace mc {
 
@@ -77,7 +76,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
@@ -86,21 +85,7 @@ public:
 private:
     std::unique_ptr<GlowstoneFeatureConfig> m_config;
     std::string m_name;
-    GlowstoneFeature m_feature;
-};
-
-/**
- * @brief 预定义萤石簇特征
- */
-struct GlowstoneFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredGlowstoneFeature> createNormal();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> s_features;
+    mutable GlowstoneFeature m_feature;
 };
 
 } // namespace mc

@@ -25,9 +25,9 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../WorldConstants.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -144,48 +144,15 @@ ConfiguredSeaPickleFeature::ConfiguredSeaPickleFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredSeaPickleFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSeaPickleFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// SeaPickleFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>> SeaPickleFeatures::s_features;
-
-void SeaPickleFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createNormalSeaPickle());
-}
-
-const std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>>& SeaPickleFeatures::getAllFeatures() noexcept
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>> SeaPickleFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredSeaPickleFeature> SeaPickleFeatures::createNormalSeaPickle()
-{
-    auto config = std::make_unique<SeaPickleFeatureConfig>();
-    if (VanillaBlocks::SEA_PICKLE != nullptr) {
-        config->seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState();
-    }
-    config->tries = 20;
-    config->maxCount = 4;
-
-    return std::make_unique<ConfiguredSeaPickleFeature>(std::move(config), "sea_pickle");
 }
 
 } // namespace mc

@@ -26,75 +26,53 @@
 #include "common/core/Types.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
-#include <vector>
 
 namespace mc {
 
 /**
  * @brief 玄武岩柱特征配置
+ *
+ * 对应 MC 1.21.11: ColumnFeatureConfiguration(reach, height)。
+ * reach: 每列周围搜索半径 IntProvider[0,3]；height: 柱高 IntProvider[1,10]。
  */
 struct BasaltColumnFeatureConfig : public IFeatureConfig {
-    /// 最小柱高
-    i32 minHeight = 0;
-
-    /// 最大柱高
-    i32 maxHeight = 5;
-
-    /// 是否尝试达到天花板
-    bool reachCeiling = false;
+    std::unique_ptr<world::gen::valueprovider::IntProvider> reach;
+    std::unique_ptr<world::gen::valueprovider::IntProvider> height;
 
     BasaltColumnFeatureConfig() = default;
-
-    explicit BasaltColumnFeatureConfig(i32 minH, i32 maxH, bool reach = false)
-        : minHeight(minH)
-        , maxHeight(maxH)
-        , reachCeiling(reach)
+    BasaltColumnFeatureConfig(std::unique_ptr<world::gen::valueprovider::IntProvider> r,
+        std::unique_ptr<world::gen::valueprovider::IntProvider> h)
+        : reach(std::move(r))
+        , height(std::move(h))
     {}
 };
 
 /**
  * @brief 玄武岩柱特征
  *
- * 使用聚类算法生成从地板向上延伸的玄武岩柱。
- * 90% 概率使用聚类模式（reach=5, size=50），
- * 10% 概率使用非聚类模式（reach=8, size=15）。
+ * 对应 MC 1.21.11: BasaltColumnsFeature。在下界地板/熔岩海向上生长玄武岩柱。
+ * 90% 聚类模式（柱数 50，半径封顶 5），10% 非聚类模式（柱数 15，半径封顶 8）。
  */
 class BasaltColumnFeature {
 public:
-    /**
-     * @brief 放置玄武岩柱
-     */
-    bool place(
-        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltColumnFeatureConfig& config);
+    bool place(WorldGenRegion& world,
+        math::Random& random,
+        const BlockPos& pos,
+        i32 seaLevel,
+        const BasaltColumnFeatureConfig& config);
 
 private:
-    /**
-     * @brief 在指定位置放置一根柱子
-     * @param world 世界区域
-     * @param pos 柱子底部位置
-     * @param height 柱子高度
-     */
-    void _placeColumn(WorldGenRegion& world, const BlockPos& pos, i32 height);
-
-    /**
-     * @brief 检查位置是否可以放置玄武岩（空气或熔岩海洋，且下方不在 CANNOT_PLACE_ON 中）
-     */
-    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const;
-
-    /**
-     * @brief 向下搜索，找到可以放置玄武岩的表面位置
-     */
-    [[nodiscard]] BlockPos _findSurface(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const;
-
-    /**
-     * @brief 向上搜索，找到空气位置
-     */
-    [[nodiscard]] BlockPos _findAir(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const;
+    /// 在单点周围 reach 半径内放置玄武岩柱（返回是否放置了任意方块）
+    [[nodiscard]] bool placeColumn(
+        WorldGenRegion& world, i32 seaLevel, const BlockPos& center, i32 columnHeight, i32 reach);
 };
 
 /**
  * @brief 配置化玄武岩柱特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有，本类在已确定的 pos 处放置。
  */
 class ConfiguredBasaltColumnFeature : public ConfiguredFeatureBase {
 public:
@@ -104,7 +82,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::UndergroundDecoration; }
@@ -113,25 +91,7 @@ public:
 private:
     std::unique_ptr<BasaltColumnFeatureConfig> m_config;
     std::string m_name;
-    BasaltColumnFeature m_feature;
-};
-
-/**
- * @brief 预定义玄武岩柱特征
- */
-struct BasaltColumnFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> getAllFeaturesAndClear();
-
-    /// 创建普通玄武岩柱
-    static std::unique_ptr<ConfiguredBasaltColumnFeature> createNormal();
-
-    /// 创建大型玄武岩柱
-    static std::unique_ptr<ConfiguredBasaltColumnFeature> createLarge();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredBasaltColumnFeature>> s_features;
+    mutable BasaltColumnFeature m_feature;
 };
 
 } // namespace mc

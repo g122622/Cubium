@@ -99,7 +99,7 @@ for (int i = 0; i < millions; ++i) {
 
 ### 6. 堆栈跟踪性能开销
 
-启用 `captureStackTrace` 有性能开销，建议仅在调试时启用，生产环境禁用。
+断言失败默认捕获调用栈（`AssertConfig::captureStackTrace = true`），与 `CrashHandler` 的崩溃栈输出对齐，便于在没有调试器附加时定位失败根因。仅在断言**失败**时触发，不影响正常路径性能。如需全局禁用（例如压测热路径），设置环境变量 `MC_ASSERT_NO_STACK=1` 即可。
 
 ### 7. 比较断言的类型要求
 
@@ -111,4 +111,4 @@ for (int i = 0; i < millions; ++i) {
 
 ### 9. CrashHandler 与 MC_ASSERT 的关系
 
-`CrashHandler` 捕获的是**未处理的崩溃**（SEH 异常、信号、纯虚函数调用、std::terminate 等），而 `MC_ASSERT_*` 触发的断言走 `AssertManager` 的处理流程。两者是独立的，`CrashHandler` 不影响断言行为。
+`CrashHandler` 捕获的是**未处理的崩溃**（SEH 异常、信号、纯虚函数调用、std::terminate 等）；`MC_ASSERT_*` 触发的断言走 `AssertManager` 的处理流程。两者栈输出机制现已统一：`AssertManager::captureStackTrace()` 委托 `CrashHandler::captureStackTrace()`，断言失败时由 `defaultAssertHandler` 经 `formatFailureBlock` 一并输出调用栈，随后 `std::abort()` 触发 `CrashHandler` 的 `SIGABRT`/SEH 路径（栈可能被二次输出，属正常现象）。

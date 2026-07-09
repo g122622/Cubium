@@ -208,51 +208,15 @@ ConfiguredOceanDecorationFeature::ConfiguredOceanDecorationFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredOceanDecorationFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredOceanDecorationFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
     return m_feature.place(region, random, pos, *m_config);
-}
-
-std::vector<std::unique_ptr<ConfiguredOceanDecorationFeature>> OceanDecorationFeatures::s_features;
-
-void OceanDecorationFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createOceanProps());
-}
-
-const std::vector<std::unique_ptr<ConfiguredOceanDecorationFeature>>& OceanDecorationFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredOceanDecorationFeature>> OceanDecorationFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredOceanDecorationFeature> OceanDecorationFeatures::createOceanProps()
-{
-    auto config = std::make_unique<OceanDecorationFeatureConfig>();
-    config->conduitState = VanillaBlocks::getState(VanillaBlocks::CONDUIT);
-    config->driedKelpBlockState = VanillaBlocks::getState(VanillaBlocks::DRIED_KELP_BLOCK);
-    config->turtleEggState = VanillaBlocks::getState(VanillaBlocks::TURTLE_EGG);
-    config->bubbleColumnState = VanillaBlocks::getState(VanillaBlocks::BUBBLE_COLUMN);
-    config->prismarineStairsState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_STAIRS);
-    config->prismarineSlabState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_SLAB);
-    config->prismarineState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE);
-    config->magmaState = VanillaBlocks::getState(VanillaBlocks::MAGMA);
-    config->sandState = VanillaBlocks::getState(VanillaBlocks::SAND);
-    config->tries = 2;
-    config->bubbleColumnMaxHeight = 10;
-    config->driedKelpCount = 5;
-
-    return std::make_unique<ConfiguredOceanDecorationFeature>(std::move(config), "ocean_props");
 }
 
 } // namespace mc

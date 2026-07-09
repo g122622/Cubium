@@ -24,26 +24,32 @@
 
 #include "BlockPredicate.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc::world::gen::feature::predicate {
 
 /**
  * @brief 检查方块是否匹配指定方块的谓词
+ *
+ * 对齐 MC 1.21.11 net.minecraft.world.level.levelgen.blockpredicates.MatchingBlocksPredicate：
+ * 继承自 StateTestingPredicate，在 pos+offset 处取方块状态判断是否属于给定方块集合。
  */
 class MatchingBlockPredicate : public BlockPredicate {
 public:
-    explicit MatchingBlockPredicate(const Block* block)
+    explicit MatchingBlockPredicate(const Block* block, BlockPos offset = BlockPos(0, 0, 0))
         : m_block(block)
+        , m_offset(offset)
     {}
 
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
-        return std::make_unique<MatchingBlockPredicate>(m_block);
+        return std::make_unique<MatchingBlockPredicate>(m_block, m_offset);
     }
 
 private:
     const Block* m_block;
+    BlockPos m_offset;
 };
 
 } // namespace mc::world::gen::feature::predicate

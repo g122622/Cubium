@@ -102,7 +102,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::SurfaceStructures; }
@@ -111,32 +111,7 @@ public:
 private:
     std::unique_ptr<EndGatewayFeatureConfig> m_config;
     std::string m_name;
-    EndGatewayFeature m_feature;
-};
-
-/**
- * @brief 预定义末地折跃门特征
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct EndGatewayFeatures {
-    /// 初始化所有末地折跃门特征
-    static void initialize();
-
-    /// 获取所有末地折跃门特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>>& getAllFeatures();
-
-    /// 获取所有末地折跃门特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> getAllFeaturesAndClear();
-
-    /// 创建标准末地折跃门
-    static std::unique_ptr<ConfiguredEndGatewayFeature> createGateway();
-
-    /// 创建退出折跃门
-    static std::unique_ptr<ConfiguredEndGatewayFeature> createExitGateway();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredEndGatewayFeature>> s_features;
+    mutable EndGatewayFeature m_feature;
 };
 
 } // namespace mc

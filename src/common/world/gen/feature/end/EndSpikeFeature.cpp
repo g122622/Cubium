@@ -345,8 +345,11 @@ ConfiguredEndSpikeFeature::ConfiguredEndSpikeFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredEndSpikeFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredEndSpikeFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
 
@@ -356,39 +359,6 @@ bool ConfiguredEndSpikeFeature::place(
     }
 
     return m_feature.place(region, random, chunk.x(), chunk.z(), runtimeConfig);
-}
-
-// ============================================================================
-// EndSpikeFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> EndSpikeFeatures::s_features;
-
-void EndSpikeFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    // 创建标准黑曜石柱配置（使用默认种子）
-    // 实际使用时应该传入世界种子
-    s_features.push_back(createStandard(0));
-}
-
-const std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>>& EndSpikeFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredEndSpikeFeature>> EndSpikeFeatures::getAllFeaturesAndClear()
-{
-    auto extracted = std::move(s_features);
-    s_features.clear();
-    return extracted;
-}
-
-std::unique_ptr<ConfiguredEndSpikeFeature> EndSpikeFeatures::createStandard(u64 worldSeed)
-{
-    auto config = std::make_unique<EndSpikeFeatureConfig>(EndSpikeFeatureConfig::generateSpikes(worldSeed), false);
-    return std::make_unique<ConfiguredEndSpikeFeature>(std::move(config), "end_spike");
 }
 
 } // namespace mc

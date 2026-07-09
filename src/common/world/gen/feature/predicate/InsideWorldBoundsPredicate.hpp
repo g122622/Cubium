@@ -23,21 +23,33 @@
 #pragma once
 
 #include "BlockPredicate.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc::world::gen::feature::predicate {
 
 /**
  * @brief 检查位置是否在世界高度范围内的谓词
  *
- * 当 pos.y 在 [MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT) 范围内时返回true。
+ * 忠实复刻 MC 1.21.11 InsideWorldBoundsPredicate：
+ *   test = !world.isOutsideBuildHeight(pos + offset)
+ * 其中 offset 默认为 (0,0,0)。isOutsideBuildHeight 等价于
+ * y < MIN_BUILD_HEIGHT || y >= MAX_BUILD_HEIGHT。
  */
 class InsideWorldBoundsPredicate : public BlockPredicate {
 public:
+    InsideWorldBoundsPredicate() = default;
+    explicit InsideWorldBoundsPredicate(BlockPos offset) noexcept
+        : m_offset(offset)
+    {}
+
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
-        return std::make_unique<InsideWorldBoundsPredicate>();
+        return std::make_unique<InsideWorldBoundsPredicate>(m_offset);
     }
+
+private:
+    BlockPos m_offset{0, 0, 0};
 };
 
 } // namespace mc::world::gen::feature::predicate

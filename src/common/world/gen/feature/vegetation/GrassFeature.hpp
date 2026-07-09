@@ -114,7 +114,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -123,47 +123,9 @@ public:
 private:
     std::unique_ptr<GrassFeatureConfig> m_config;
     std::string m_name;
-    GrassFeature m_feature;
-};
-
-/**
- * @brief 预定义草丛配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct GrassFeatures {
-    /// 初始化所有草丛特征
-    static void initialize();
-
-    /// 获取所有草丛特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredGrassFeature>>& getAllFeatures();
-
-    /// 获取所有草丛特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredGrassFeature>> getAllFeaturesAndClear();
-
-    /// 创建平原草丛（高草、蕨类）
-    static std::unique_ptr<ConfiguredGrassFeature> createPlainsGrass();
-
-    /// 创建森林草丛（高草、蕨类、少量花）
-    static std::unique_ptr<ConfiguredGrassFeature> createForestGrass();
-
-    /// 创建丛林草丛（高草、蕨类）
-    static std::unique_ptr<ConfiguredGrassFeature> createJungleGrass();
-
-    /// 创建沼泽草丛
-    static std::unique_ptr<ConfiguredGrassFeature> createSwampGrass();
-
-    /// 创建稀树草原草丛（高草）
-    static std::unique_ptr<ConfiguredGrassFeature> createSavannaGrass();
-
-    /// 创建针叶林草丛（蕨类）
-    static std::unique_ptr<ConfiguredGrassFeature> createTaigaGrass();
-
-    /// 创建恶地枯萎灌木
-    static std::unique_ptr<ConfiguredGrassFeature> createBadlandsDeadBush();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredGrassFeature>> s_features;
+    // GrassFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredGrassFeature::place() 语义不变
+    // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。
+    mutable GrassFeature m_feature;
 };
 
 } // namespace mc

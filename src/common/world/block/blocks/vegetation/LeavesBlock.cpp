@@ -30,6 +30,7 @@
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
+#include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -43,6 +44,7 @@ LeavesBlock::LeavesBlock(const BlockProperties& properties)
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::DISTANCE_1_7())
             .add(BlockStateProperties::PERSISTENT())
+            .add(BlockStateProperties::WATERLOGGED())
             .create([this](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -52,16 +54,24 @@ LeavesBlock::LeavesBlock(const BlockProperties& properties)
             });
     createBlockState(std::move(container));
 
-    // 设置默认状态：距离7，非持久
-    setDefaultState(
-        defaultState().with(BlockStateProperties::DISTANCE_1_7(), 7).with(BlockStateProperties::PERSISTENT(), false));
+    // 设置默认状态：距离7，非持久，非含水
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::DISTANCE_1_7(), 7)
+            .with(BlockStateProperties::PERSISTENT(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 BlockState LeavesBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 玩家放置的树叶标记为持久
-    return _updateDistance(
+    BlockState state = _updateDistance(
         defaultState().with(BlockStateProperties::PERSISTENT(), true), context.getWorld(), context.placementPos());
+
+    if (waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos())) {
+        state = state.with(BlockStateProperties::WATERLOGGED(), true);
+    }
+
+    return state;
 }
 
 BlockState LeavesBlock::updatePostPlacement(const BlockState& state,
@@ -81,6 +91,11 @@ BlockState LeavesBlock::updatePostPlacement(const BlockState& state,
     i32 currentDistance = state.get(BlockStateProperties::DISTANCE_1_7());
     if (neighborDistance != 1 || currentDistance != neighborDistance) {
         world.tickManager().scheduleBlockTick(currentPos, *this, 1);
+    }
+
+    // 含水时调度流体 tick（对齐 MC SimpleWaterloggedBlock）
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     return state;
@@ -123,6 +138,11 @@ const CollisionShape& LeavesBlock::getCollisionShape(const BlockState& state) co
     MC_UNUSED(state);
     static const CollisionShape EMPTY_SHAPE;
     return EMPTY_SHAPE;
+}
+
+const fluid::FluidState* LeavesBlock::getFluidState(const BlockState& state) const
+{
+    return waterloggable::getWaterFluidState(state);
 }
 
 BlockState LeavesBlock::_updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos)

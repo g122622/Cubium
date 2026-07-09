@@ -139,7 +139,7 @@ context.region->setDifficulty(m_world->difficulty());
 | `gen/density/Beardifier` | 结构地形平滑密度函数 |
 | `gen/carver/` | 雕刻器（洞穴、峡谷） |
 | `gen/structure/StructureManager` | 结构生成管理 |
-| `gen/feature/FeatureRegistry` | 特性注册表 |
+| `gen/feature/ConfiguredFeatureRegistry` `gen/placement/PlacedFeatureRegistry` | 数据驱动特征注册表（configured_feature + placed_feature） |
 | `gen/surface/SurfaceRules` | MC 1.21 地表规则系统 |
 | `gen/spawn/WorldGenSpawner` | 初始生物生成 |
 | `gen/settings/DimensionSettings` | 维度配置 |

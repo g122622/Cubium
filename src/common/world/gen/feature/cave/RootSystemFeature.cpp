@@ -22,12 +22,13 @@
 
 #include "RootSystemFeature.hpp"
 #include "CaveSurface.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -158,11 +159,10 @@ bool RootSystemFeature::place(WorldGenRegion& region,
         }
 
         // 尝试放置树木
-        FeatureRegistry& registry = FeatureRegistry::instance();
-        const auto& features = registry.getFeatures(DecorationStage::VegetalDecoration);
+        const ConfiguredFeatureBase* treeFeature = ConfiguredFeatureRegistry::instance().get(config.treeFeatureId);
 
-        if (config.treeFeatureId < features.size() && features[config.treeFeatureId] != nullptr) {
-            bool treePlaced = features[config.treeFeatureId]->place(region, chunk, generator, random, treePos);
+        if (treeFeature != nullptr) {
+            bool treePlaced = treeFeature->place(region, chunk, generator, random, treePos);
             if (treePlaced) {
                 // 放置缠根泥土柱
                 placeRootedDirtColumn(region, random, pos, treePos.y, config);
@@ -183,29 +183,18 @@ bool RootSystemFeature::place(WorldGenRegion& region,
 // ============================================================================
 
 ConfiguredRootSystemFeature::ConfiguredRootSystemFeature(
-    std::unique_ptr<RootSystemConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<RootSystemConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredRootSystemFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredRootSystemFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
-    }
-
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (RootSystemFeature::place(region, chunk, generator, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return RootSystemFeature::place(region, chunk, generator, random, pos, *m_config);
 }
 
 } // namespace mc::world::gen::feature::cave

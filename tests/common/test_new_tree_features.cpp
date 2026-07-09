@@ -35,11 +35,8 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/chunk/data/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
-#include "world/gen/feature/ConfiguredFeature.hpp"
-#include "world/gen/feature/FeatureIds.hpp"
 #include "world/gen/feature/FeatureSpread.hpp"
 #include "world/gen/feature/nether/HugeFungusFeature.hpp"
-#include "world/gen/feature/ore/OreFeature.hpp"
 #include "world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include "world/gen/feature/tree/TreeFeature.hpp"
 #include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
@@ -68,10 +65,7 @@ protected:
 
 TEST_F(NewTreeFeatureConfigTest, FancyOakConfig)
 {
-    auto feature = TreeFeatures::createFancyOakTree();
-    ASSERT_NE(feature, nullptr);
-
-    const TreeFeatureConfig& config = feature->getConfig();
+    auto config = TreeFeatures::fancyOakConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::OAK_LOG));
@@ -81,15 +75,11 @@ TEST_F(NewTreeFeatureConfigTest, FancyOakConfig)
     EXPECT_STREQ(config.trunkPlacer->name(), "fancy");
     EXPECT_STREQ(config.foliagePlacer->name(), "fancy");
     EXPECT_EQ(config.minHeight, 4);
-    EXPECT_STREQ(feature->name(), "fancy_oak_tree");
 }
 
 TEST_F(NewTreeFeatureConfigTest, PineConfig)
 {
-    auto feature = TreeFeatures::createPineTree();
-    ASSERT_NE(feature, nullptr);
-
-    const TreeFeatureConfig& config = feature->getConfig();
+    auto config = TreeFeatures::pineConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::SPRUCE_LOG));
@@ -99,15 +89,11 @@ TEST_F(NewTreeFeatureConfigTest, PineConfig)
     EXPECT_STREQ(config.trunkPlacer->name(), "StraightTrunkPlacer");
     EXPECT_STREQ(config.foliagePlacer->name(), "pine");
     EXPECT_EQ(config.minHeight, 6);
-    EXPECT_STREQ(feature->name(), "pine_tree");
 }
 
 TEST_F(NewTreeFeatureConfigTest, JungleBushConfig)
 {
-    auto feature = TreeFeatures::createJungleBush();
-    ASSERT_NE(feature, nullptr);
-
-    const TreeFeatureConfig& config = feature->getConfig();
+    auto config = TreeFeatures::jungleBushConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     // Jungle bush uses jungle log but oak leaves (MC behavior)
@@ -118,15 +104,11 @@ TEST_F(NewTreeFeatureConfigTest, JungleBushConfig)
     EXPECT_STREQ(config.trunkPlacer->name(), "StraightTrunkPlacer");
     EXPECT_STREQ(config.foliagePlacer->name(), "bush");
     EXPECT_EQ(config.minHeight, 1);
-    EXPECT_STREQ(feature->name(), "jungle_bush");
 }
 
 TEST_F(NewTreeFeatureConfigTest, SwampTreeConfig)
 {
-    auto feature = TreeFeatures::createSwampTree();
-    ASSERT_NE(feature, nullptr);
-
-    const TreeFeatureConfig& config = feature->getConfig();
+    auto config = TreeFeatures::swampConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::OAK_LOG));
@@ -138,15 +120,11 @@ TEST_F(NewTreeFeatureConfigTest, SwampTreeConfig)
     // Swamp tree allows water depth
     EXPECT_EQ(config.maxWaterDepth, 1);
     EXPECT_EQ(config.minHeight, 5);
-    EXPECT_STREQ(feature->name(), "swamp_tree");
 }
 
 TEST_F(NewTreeFeatureConfigTest, MegaPineConfig)
 {
-    auto feature = TreeFeatures::createMegaPineTree();
-    ASSERT_NE(feature, nullptr);
-
-    const TreeFeatureConfig& config = feature->getConfig();
+    auto config = TreeFeatures::megaPineConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::SPRUCE_LOG));
@@ -156,15 +134,11 @@ TEST_F(NewTreeFeatureConfigTest, MegaPineConfig)
     EXPECT_STREQ(config.trunkPlacer->name(), "giant");
     EXPECT_STREQ(config.foliagePlacer->name(), "mega_pine");
     EXPECT_EQ(config.minHeight, 13);
-    EXPECT_STREQ(feature->name(), "mega_pine_tree");
 }
 
 TEST_F(NewTreeFeatureConfigTest, TallBirchConfig)
 {
-    auto feature = TreeFeatures::createTallBirchTree();
-    ASSERT_NE(feature, nullptr);
-
-    const TreeFeatureConfig& config = feature->getConfig();
+    auto config = TreeFeatures::tallBirchConfig();
     ASSERT_NE(config.trunkBlock, nullptr);
     ASSERT_NE(config.foliageBlock, nullptr);
     EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::BIRCH_LOG));
@@ -174,7 +148,6 @@ TEST_F(NewTreeFeatureConfigTest, TallBirchConfig)
     EXPECT_STREQ(config.trunkPlacer->name(), "StraightTrunkPlacer");
     EXPECT_STREQ(config.foliagePlacer->name(), "BlobFoliagePlacer");
     EXPECT_EQ(config.minHeight, 5);
-    EXPECT_STREQ(feature->name(), "tall_birch_tree");
 }
 
 // ============================================================================
@@ -183,9 +156,7 @@ TEST_F(NewTreeFeatureConfigTest, TallBirchConfig)
 
 TEST_F(NewTreeFeatureConfigTest, DeepCopyPreservesTrunkPlacer)
 {
-    auto feature = TreeFeatures::createFancyOakTree();
-    ASSERT_NE(feature, nullptr);
-    const TreeFeatureConfig& original = feature->getConfig();
+    auto original = TreeFeatures::fancyOakConfig();
 
     // Copy construct
     TreeFeatureConfig copy(original);
@@ -957,74 +928,6 @@ TEST_F(BendingTrunkPlacerTest, AzaleaTreeConfig)
 }
 
 // ============================================================================
-// TreeFeatures 注册顺序完整性测试
-// ============================================================================
-
-class TreeFeaturesRegistrationTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
-};
-
-TEST_F(TreeFeaturesRegistrationTest, InitializeCreatesExpectedFeatureCount)
-{
-    TreeFeatures::initialize();
-    const auto& features = TreeFeatures::getAllFeatures();
-    EXPECT_EQ(features.size(), TreeFeatureIds::Count);
-    EXPECT_EQ(features.size(), 17u);
-}
-
-TEST_F(TreeFeaturesRegistrationTest, FeatureNamesMatchRegistrationOrder)
-{
-    TreeFeatures::initialize();
-    const auto& features = TreeFeatures::getAllFeatures();
-
-    ASSERT_GE(features.size(), 15u);
-
-    EXPECT_STREQ(features[TreeFeatureIds::OakTree]->name(), "oak_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::BirchTree]->name(), "birch_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::SpruceTree]->name(), "spruce_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::JungleTree]->name(), "jungle_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::AcaciaTree]->name(), "acacia_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::DarkOakTree]->name(), "dark_oak_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::SparseOakTree]->name(), "sparse_oak_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::GiantSpruceTree]->name(), "giant_spruce_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::GiantJungleTree]->name(), "giant_jungle_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::FancyOakTree]->name(), "fancy_oak_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::PineTree]->name(), "pine_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::JungleBush]->name(), "jungle_bush");
-    EXPECT_STREQ(features[TreeFeatureIds::SwampTree]->name(), "swamp_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::MegaPineTree]->name(), "mega_pine_tree");
-    EXPECT_STREQ(features[TreeFeatureIds::TallBirchTree]->name(), "tall_birch_tree");
-}
-
-TEST_F(TreeFeaturesRegistrationTest, AllFeaturesHaveValidConfigs)
-{
-    TreeFeatures::initialize();
-    const auto& features = TreeFeatures::getAllFeatures();
-
-    for (size_t i = 0; i < features.size(); ++i) {
-        ASSERT_NE(features[i], nullptr) << "Feature at index " << i << " is null";
-        const TreeFeatureConfig& config = features[i]->getConfig();
-        EXPECT_NE(config.trunkBlock, nullptr) << "Feature " << features[i]->name() << " has null trunkBlock";
-        EXPECT_NE(config.foliageBlock, nullptr) << "Feature " << features[i]->name() << " has null foliageBlock";
-        EXPECT_NE(config.trunkPlacer, nullptr) << "Feature " << features[i]->name() << " has null trunkPlacer";
-        EXPECT_NE(config.foliagePlacer, nullptr) << "Feature " << features[i]->name() << " has null foliagePlacer";
-        EXPECT_GE(config.minHeight, 1) << "Feature " << features[i]->name() << " has invalid minHeight";
-    }
-}
-
-TEST_F(TreeFeaturesRegistrationTest, AllFeaturesAreVegetalDecoration)
-{
-    TreeFeatures::initialize();
-    const auto& features = TreeFeatures::getAllFeatures();
-
-    for (size_t i = 0; i < features.size(); ++i) {
-        EXPECT_EQ(features[i]->stage(), DecorationStage::VegetalDecoration)
-            << "Feature " << features[i]->name() << " has wrong stage";
-    }
-}
-
-// ============================================================================
 // 新增方块注册测试
 // ============================================================================
 
@@ -1098,165 +1001,6 @@ TEST_F(NewBlockRegistrationTest, AllNewBlocksHaveDefaultState)
 }
 
 // ============================================================================
-// BigMushroomFeature 配置测试
-// ============================================================================
-
-class BigMushroomFeatureTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
-};
-
-TEST_F(BigMushroomFeatureTest, BrownMushroomConfigUsesCorrectBlocks)
-{
-    auto feature = BigMushroomFeatures::createBrownMushroom();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "brown_mushroom");
-}
-
-TEST_F(BigMushroomFeatureTest, RedMushroomConfigUsesCorrectBlocks)
-{
-    auto feature = BigMushroomFeatures::createRedMushroom();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "red_mushroom");
-}
-
-TEST_F(BigMushroomFeatureTest, InitializeCreatesTwoFeatures)
-{
-    BigMushroomFeatures::initialize();
-    const auto& features = BigMushroomFeatures::getAllFeatures();
-    EXPECT_EQ(features.size(), MushroomFeatureIds::Count);
-    EXPECT_EQ(features.size(), 2u);
-}
-
-// ============================================================================
-// HugeFungusFeature 配置测试
-// ============================================================================
-
-class HugeFungusFeatureTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
-};
-
-TEST_F(HugeFungusFeatureTest, CrimsonFungusConfig)
-{
-    auto feature = HugeFungusFeatures::createCrimson();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "crimson_fungus");
-}
-
-TEST_F(HugeFungusFeatureTest, WarpedFungusConfig)
-{
-    auto feature = HugeFungusFeatures::createWarped();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "warped_fungus");
-}
-
-TEST_F(HugeFungusFeatureTest, InitializeCreatesTwoFeatures)
-{
-    HugeFungusFeatures::initialize();
-    const auto& features = HugeFungusFeatures::getAllFeatures();
-    EXPECT_EQ(features.size(), 2u);
-}
-
-TEST_F(HugeFungusFeatureTest, FungusTypeEnum)
-{
-    // Verify enum values exist
-    EXPECT_NE(static_cast<int>(FungusType::Crimson), static_cast<int>(FungusType::Warped));
-}
-
-TEST_F(HugeFungusFeatureTest, FungusConfigDefaults)
-{
-    HugeFungusFeatureConfig config;
-    EXPECT_EQ(config.fungusType, FungusType::Crimson);
-    EXPECT_EQ(config.planted, false);
-}
-
-TEST_F(HugeFungusFeatureTest, FungusConfigExplicit)
-{
-    HugeFungusFeatureConfig config(FungusType::Warped, true);
-    EXPECT_EQ(config.fungusType, FungusType::Warped);
-    EXPECT_EQ(config.planted, true);
-}
-
-// ============================================================================
-// 下界矿石注册测试
-// ============================================================================
-
-class NetherOreFeatureTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
-};
-
-TEST_F(NetherOreFeatureTest, NetherQuartzOreCreation)
-{
-    auto feature = OreFeatures::createNetherQuartzOre();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "nether_quartz_ore");
-}
-
-TEST_F(NetherOreFeatureTest, NetherGoldOreCreation)
-{
-    auto feature = OreFeatures::createNetherGoldOre();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "nether_gold_ore");
-}
-
-TEST_F(NetherOreFeatureTest, AncientDebrisCreation)
-{
-    auto feature = OreFeatures::createAncientDebris();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_STREQ(feature->name(), "ancient_debris");
-}
-
-TEST_F(NetherOreFeatureTest, InitializeCreatesAllOres)
-{
-    OreFeatures::initialize();
-    const auto& features = OreFeatures::getAllFeatures();
-    EXPECT_EQ(features.size(), OreFeatureIds::Count);
-    EXPECT_EQ(features.size(), 11u);
-}
-
-TEST_F(NetherOreFeatureTest, NetherOreIdsAreConsecutiveAfterOverworld)
-{
-    EXPECT_EQ(OreFeatureIds::NetherQuartzOre, 8u);
-    EXPECT_EQ(OreFeatureIds::NetherGoldOre, 9u);
-    EXPECT_EQ(OreFeatureIds::AncientDebris, 10u);
-}
-
-// ============================================================================
-// FeatureIds 偏移量级联测试
-// ============================================================================
-
-TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets)
-{
-    // TreeFeatureIds::Count includes oak, birch, spruce, jungle, acacia, dark_oak,
-    // sparse_oak, giant_spruce, giant_jungle, fancy_oak, pine, jungle_bush, swamp,
-    // mega_pine, tall_birch, cherry, cherry_bee = 17
-    EXPECT_EQ(TreeFeatureIds::Count, 17u);
-
-    // FlowerFeatureIds::Offset should equal TreeFeatureIds::Count
-    EXPECT_EQ(FlowerFeatureIds::Offset, 17u);
-
-    // FlowerFeatureIds::Count = 8: PlainsFlowers, ForestFlowers, FlowerForestFlowers,
-    // SwampFlowers, Sunflower, CherryGrovePetals, WildflowersBirchForest, WildflowersMeadow
-    // GrassFeatureIds::Offset should equal Tree + Flower counts (17 + 8 = 25)
-    EXPECT_EQ(GrassFeatureIds::Offset, 17u + 8u);
-
-    // MushroomFeatureIds::Offset should equal Tree + Flower + Grass counts (17 + 8 + 7 = 32)
-    EXPECT_EQ(MushroomFeatureIds::Offset, 17u + 8u + 7u);
-
-    // CactusFeatureIds::Offset (17 + 8 + 7 + 2 = 34)
-    EXPECT_EQ(CactusFeatureIds::Offset, 17u + 8u + 7u + 2u);
-
-    // SugarCaneFeatureIds::Offset (17 + 8 + 7 + 2 + 2 = 36)
-    EXPECT_EQ(SugarCaneFeatureIds::Offset, 17u + 8u + 7u + 2u + 2u);
-
-    // Total (Tree 17 + Flower 8 + Grass 7 + Mushroom 2 + Cactus 2 + SugarCane 2 + Bamboo 2 = 40)
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 17u + 8u + 7u + 2u + 2u + 2u + 2u);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 40u);
-}
-
-// ============================================================================
 // BigMushroomFeatureConfig 测试
 // ============================================================================
 
@@ -1318,6 +1062,30 @@ TEST(BigMushroomHeightTest, RedMushroomCapRadius)
     EXPECT_EQ(redFeature.getCapRadius(-1, 6, 2, 4), 1);
     EXPECT_EQ(redFeature.getCapRadius(-1, 6, 2, 5), 1);
     EXPECT_EQ(redFeature.getCapRadius(-1, 6, 2, 6), 2); // at totalHeight
+}
+
+// ============================================================================
+// HugeFungusFeatureConfig 测试
+// ============================================================================
+
+TEST(HugeFungusFeatureTest, FungusTypeEnum)
+{
+    // Verify enum values exist
+    EXPECT_NE(static_cast<int>(FungusType::Crimson), static_cast<int>(FungusType::Warped));
+}
+
+TEST(HugeFungusFeatureTest, FungusConfigDefaults)
+{
+    HugeFungusFeatureConfig config;
+    EXPECT_EQ(config.fungusType, FungusType::Crimson);
+    EXPECT_EQ(config.planted, false);
+}
+
+TEST(HugeFungusFeatureTest, FungusConfigExplicit)
+{
+    HugeFungusFeatureConfig config(FungusType::Warped, true);
+    EXPECT_EQ(config.fungusType, FungusType::Warped);
+    EXPECT_EQ(config.planted, true);
 }
 
 // ============================================================================

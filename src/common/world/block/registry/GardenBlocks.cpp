@@ -27,6 +27,7 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/garden/CactusFlowerBlock.hpp"
 #include "world/block/blocks/garden/FlowerBedBlock.hpp"
+#include "world/block/blocks/garden/LeafLitterBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -72,14 +73,18 @@ void registerGardenBlocks()
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::PINK_PETALS));
 
-    // 枯叶 - 地面装饰
-    GardenBlocks::LEAF_LITTER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:leaf_litter"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+    // 枯叶 - 地面装饰，可分段堆叠（1-4段）
+    // 使用 LeafLitterBlock 实现：FACING 属性（水平朝向）+ SEGMENT_AMOUNT 属性（1-4 段数）
+    // replaceable 标志允许同类型物品堆叠放置（isReplaceable 重写会检查物品类型）
+    GardenBlocks::LEAF_LITTER =
+        &registry.registerBlock<blocks::LeafLitterBlock>(ResourceLocation("minecraft:leaf_litter"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .replaceable()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::GRASS));
 
     // ============================================================================
     // 干草系列

@@ -131,7 +131,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -140,63 +140,9 @@ public:
 private:
     std::unique_ptr<FlowerFeatureConfig> m_config;
     std::string m_name;
-    FlowerFeature m_feature;
-};
-
-/**
- * @brief 预定义花卉配置
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct FlowerFeatures {
-    /// 初始化所有花卉特征
-    static void initialize();
-
-    /// 获取所有花卉特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredFlowerFeature>>& getAllFeatures();
-
-    /// 获取所有花卉特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredFlowerFeature>> getAllFeaturesAndClear();
-
-    /// 创建平原花卉（蒲公英、虞美人等）
-    static std::unique_ptr<ConfiguredFlowerFeature> createPlainsFlowers();
-
-    /// 创建森林花卉（蒲公英、虞美人、铃兰、茜草花）
-    static std::unique_ptr<ConfiguredFlowerFeature> createForestFlowers();
-
-    /// 创建繁花森林花卉（更多种类）
-    static std::unique_ptr<ConfiguredFlowerFeature> createFlowerForestFlowers();
-
-    /// 创建沼泽花卉（兰花）
-    static std::unique_ptr<ConfiguredFlowerFeature> createSwampFlowers();
-
-    /// 创建向日葵
-    static std::unique_ptr<ConfiguredFlowerFeature> createSunflower();
-
-    /// 创建樱花树林粉色花瓣
-    static std::unique_ptr<ConfiguredFlowerFeature> createCherryGrovePetals();
-
-    /// 创建白桦森林野花（野花床，tries=64）
-    /// 参考 MC Java: WILDFLOWERS_BIRCH_FOREST 配置
-    static std::unique_ptr<ConfiguredFlowerFeature> createWildflowersBirchForest();
-
-    /// 创建草甸野花（野花床，tries=8，稀疏分布）
-    /// 参考 MC Java: WILDFLOWERS_MEADOW 配置
-    static std::unique_ptr<ConfiguredFlowerFeature> createWildflowersMeadow();
-
-private:
-    /**
-     * @brief 将野花（wildflowers）方块的 16 种状态等权重添加到配置
-     *
-     * FlowerBedBlock 具有 FACING（4 水平朝向）+ AMOUNT（1-4 数量）共 16 种状态，
-     * 与 MC Java 的 flowerBedPatchBuilder 行为一致：每种状态等权重加入花卉列表，
-     * 世界生成时随机选择一种放置。
-     *
-     * @param config 花卉配置
-     */
-    static void _addWildflowersAllStates(FlowerFeatureConfig& config);
-
-    static std::vector<std::unique_ptr<ConfiguredFlowerFeature>> s_features;
+    // FlowerFeature::place() 算法重载非 const（工具类无状态），但 ConfiguredFlowerFeature::place() 语义不变
+    // feature 对象本身在放置时不可变。标记 mutable 使 const override 可调用算法。
+    mutable FlowerFeature m_feature;
 };
 
 } // namespace mc

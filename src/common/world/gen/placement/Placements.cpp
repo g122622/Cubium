@@ -25,8 +25,9 @@
 #include "PlacementUtils.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/noise/PerlinNoise.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <cmath>
 #include <memory>
 
@@ -36,26 +37,9 @@ namespace mc {
 // 噪声辅助
 // ============================================================================
 
-namespace {
-
-/**
- * @brief 全局 BIOME_INFO_NOISE 生成器
- *
- * 参考 MC 1.21.11: Biome.BIOME_INFO_NOISE
- * 用于 CountNoisePlacement 和 NoisePlacement。
- * 使用种子 12345 和 firstOctave=-7, amplitudes={1,1,1}
- */
-world::gen::noise::PerlinNoise& getInfoNoise()
-{
-    static std::unique_ptr<world::gen::noise::PerlinNoise> s_infoNoise;
-    if (!s_infoNoise) {
-        std::vector<f64> amplitudes = {1.0, 1.0, 1.0};
-        s_infoNoise = std::make_unique<world::gen::noise::PerlinNoise>(12345ULL, -7, std::move(amplitudes));
-    }
-    return *s_infoNoise;
-}
-
-} // anonymous namespace
+// MC 1.21.11: NoisePlacement / CountNoisePlacement 使用 Biome.BIOME_INFO_NOISE。
+// 该噪声为 PerlinSimplexNoise(seed=2345, octaves=[0])，项目已有 MC 准确的全局单例
+// world::biome::biomeInfoNoise()，直接复用。
 
 // ============================================================================
 // NoisePlacement 实现
@@ -74,10 +58,10 @@ std::vector<BlockPos> NoisePlacement::getPositions(
 
     // MC 1.21.11: 使用 BIOME_INFO_NOISE 采样噪声值
     // noiseAt(x / noiseFactor, z / noiseFactor, false)
-    const f64 noiseValue =
-        getInfoNoise().getValue(static_cast<f64>(basePos.x) / static_cast<f64>(noiseConfig->noiseFactor),
-            0.0,
-            static_cast<f64>(basePos.z) / static_cast<f64>(noiseConfig->noiseFactor));
+    const f64 noiseValue = world::biome::biomeInfoNoise().getValue(
+        static_cast<f64>(basePos.x) / static_cast<f64>(noiseConfig->noiseFactor),
+        static_cast<f64>(basePos.z) / static_cast<f64>(noiseConfig->noiseFactor),
+        false);
 
     // 应用偏移
     const f64 adjustedValue = noiseValue + static_cast<f64>(noiseConfig->noiseOffset);
@@ -106,8 +90,8 @@ std::vector<BlockPos> CountNoisePlacement::getPositions(
 
     // MC 1.21.11: 使用 BIOME_INFO_NOISE 采样噪声值
     // noiseAt(x / 200.0, z / 200.0, false)
-    const f64 noiseValue =
-        getInfoNoise().getValue(static_cast<f64>(basePos.x) / 200.0, 0.0, static_cast<f64>(basePos.z) / 200.0);
+    const f64 noiseValue = world::biome::biomeInfoNoise().getValue(
+        static_cast<f64>(basePos.x) / 200.0, static_cast<f64>(basePos.z) / 200.0, false);
 
     // 根据噪声阈值决定数量
     const i32 count = (noiseValue < countConfig->noiseLevel) ? countConfig->belowCount : countConfig->aboveCount;

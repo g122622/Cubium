@@ -26,92 +26,106 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <mutex>
-
-namespace {
-
-using mc::BlockState;
-using mc::f32;
-using mc::f64;
-using mc::i32;
-
-std::mutex g_lakeFeaturesMutex;
-
-/// 湖泊布尔数组尺寸常量（参考 MC 1.21.11: LakeFeature）
-constexpr i32 LAKE_SIZE_X = 16;
-constexpr i32 LAKE_SIZE_Y = 8;
-constexpr i32 LAKE_SIZE_Z = 16;
-constexpr i32 LAKE_ARRAY_SIZE = LAKE_SIZE_X * LAKE_SIZE_Z * LAKE_SIZE_Y; // 2048
-
-/// 流体表面高度（在布尔数组 Y 轴上的分界线，0-3 为流体，4-7 为空气）
-constexpr i32 FLUID_SURFACE_Y = 4;
-
-/// 索引计算：(x * 16 + z) * 8 + y
-[[nodiscard]] inline i32 lakeIndex(i32 x, i32 z, i32 y)
-{
-    return (x * LAKE_SIZE_Z + z) * LAKE_SIZE_Y + y;
-}
-
-} // namespace
 
 namespace mc::world::gen::feature::lake {
 
-LakeFeature::LakeFeature(const LakeFeatureConfig& config)
-    : m_config(config)
+// 16x8x16 布尔数组尺寸（对应 MC 1.21.11 LakeFeature: new boolean[2048]）
+constexpr i32 LAKE_DIM_X = 16;
+constexpr i32 LAKE_DIM_Y = 8;
+constexpr i32 LAKE_DIM_Z = 16;
+constexpr i32 LAKE_ARRAY_SIZE = LAKE_DIM_X * LAKE_DIM_Y * LAKE_DIM_Z; // 2048
+
+/// 流体/空气分界：Y>=4 为洞穴空气，Y<4 为流体
+constexpr i32 FLUID_SURFACE_Y = 4;
+
+/// (x * 16 + z) * 8 + y —— 与 MC 索引顺序一致
+[[nodiscard]] inline i32 lakeIndex(i32 x, i32 z, i32 y)
+{
+    return (x * LAKE_DIM_Z + z) * LAKE_DIM_Y + y;
+}
+
+LakeFeatureConfig::LakeFeatureConfig(const LakeFeatureConfig& other)
+    : fluidState(other.fluidState)
+    , fluidProvider(other.fluidProvider ? other.fluidProvider->clone() : nullptr)
+    , barrierState(other.barrierState)
+    , barrierProvider(other.barrierProvider ? other.barrierProvider->clone() : nullptr)
+{}
+
+LakeFeatureConfig& LakeFeatureConfig::operator=(const LakeFeatureConfig& other)
+{
+    if (this != &other) {
+        fluidState = other.fluidState;
+        fluidProvider = other.fluidProvider ? other.fluidProvider->clone() : nullptr;
+        barrierState = other.barrierState;
+        barrierProvider = other.barrierProvider ? other.barrierProvider->clone() : nullptr;
+    }
+    return *this;
+}
+
+const BlockState* LakeFeatureConfig::getFluidState(math::IRandom& rng) const
+{
+    if (fluidProvider && !fluidProvider->empty()) {
+        return fluidProvider->getState(rng);
+    }
+    return fluidState;
+}
+
+const BlockState* LakeFeatureConfig::getBarrierState(math::IRandom& rng) const
+{
+    if (barrierProvider && !barrierProvider->empty()) {
+        return barrierProvider->getState(rng);
+    }
+    return barrierState;
+}
+
+LakeFeature::LakeFeature(LakeFeatureConfig config)
+    : m_config(std::move(config))
 {}
 
 bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, i32 z)
 {
-    if (m_config.fluidState == nullptr) {
-        return false;
-    }
-
-    // MC 1.21.11: 如果 Y 低于 minY + 4，则无法生成
-    // 原版检查 blockpos.getY() <= world.getMinBuildHeight() + 4
+    // MC: blockpos.getY() <= worldgenlevel.getMinY() + 4 → return false
     if (y <= world::MIN_BUILD_HEIGHT + 4) {
         return false;
     }
 
-    // 中心位置下移 4 格
+    // 中心下移 4 格
     y -= 4;
 
-    // 1. 初始化布尔数组
+    // 1. 4~7 个随机椭球叠加到布尔数组
     std::array<bool, LAKE_ARRAY_SIZE> lakeMap{};
     lakeMap.fill(false);
-
-    // 2. 生成 4~7 个随机椭球体
-    const i32 numEllipsoids = 4 + rng.nextInt(4);
-    for (i32 e = 0; e < numEllipsoids; ++e) {
-        // 随机半径
-        const f64 rx = rng.nextDouble() * 6.0 + 3.0; // 3.0 ~ 9.0
-        const f64 ry = rng.nextDouble() * 4.0 + 2.0; // 2.0 ~ 6.0
-        const f64 rz = rng.nextDouble() * 6.0 + 3.0; // 3.0 ~ 9.0
-
-        // 随机中心（确保椭球在数组范围内）
+    const i32 ellipsoidCount = 4 + rng.nextInt(4);
+    for (i32 e = 0; e < ellipsoidCount; ++e) {
+        const f64 rx = rng.nextDouble() * 6.0 + 3.0;
+        const f64 ry = rng.nextDouble() * 4.0 + 2.0;
+        const f64 rz = rng.nextDouble() * 6.0 + 3.0;
         const f64 cx = rng.nextDouble() * (16.0 - rx - 2.0) + 1.0 + rx / 2.0;
         const f64 cy = rng.nextDouble() * (8.0 - ry - 4.0) + 2.0 + ry / 2.0;
         const f64 cz = rng.nextDouble() * (16.0 - rz - 2.0) + 1.0 + rz / 2.0;
 
-        // 遍历内部区域（边缘不参与，避免边界问题）
-        for (i32 bx = 1; bx < LAKE_SIZE_X - 1; ++bx) {
+        // MC: for l=1..14, i1=1..14, j1=1..6（内部区域，边缘不参与）
+        for (i32 bx = 1; bx < 15; ++bx) {
             const f64 dx = (static_cast<f64>(bx) - cx) / (rx / 2.0);
-            // 提前退出：X 方向已经超出椭球
-            if (dx * dx >= 1.0) continue;
-
-            for (i32 bz = 1; bz < LAKE_SIZE_Z - 1; ++bz) {
+            const f64 dxx = dx * dx;
+            if (dxx >= 1.0) {
+                continue;
+            }
+            for (i32 bz = 1; bz < 15; ++bz) {
                 const f64 dz = (static_cast<f64>(bz) - cz) / (rz / 2.0);
-                // 提前退出：X+Z 方向已经超出
-                if (dx * dx + dz * dz >= 1.0) continue;
-
-                for (i32 by = 1; by < LAKE_SIZE_Y - 1; ++by) {
+                if (dxx + dz * dz >= 1.0) {
+                    continue;
+                }
+                for (i32 by = 1; by < 7; ++by) {
                     const f64 dy = (static_cast<f64>(by) - cy) / (ry / 2.0);
-                    if (dx * dx + dy * dy + dz * dz < 1.0) {
+                    if (dxx + dy * dy + dz * dz < 1.0) {
                         lakeMap[lakeIndex(bx, bz, by)] = true;
                     }
                 }
@@ -119,122 +133,117 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
         }
     }
 
-    // 3. 验证边界（检查是否与不兼容的方块冲突）
-    for (i32 bx = 0; bx < LAKE_SIZE_X; ++bx) {
-        for (i32 bz = 0; bz < LAKE_SIZE_Z; ++bz) {
-            for (i32 by = 0; by < LAKE_SIZE_Y; ++by) {
+    // 本次放置使用的流体/边界状态（加权提供者按 rng 采样）
+    const BlockState* const fluidState = m_config.getFluidState(rng);
+    if (fluidState == nullptr) {
+        return false;
+    }
+
+    // 2. 边界格校验：自身不在湖内但有相邻格在湖内
+    for (i32 bx = 0; bx < LAKE_DIM_X; ++bx) {
+        for (i32 bz = 0; bz < LAKE_DIM_Z; ++bz) {
+            for (i32 by = 0; by < LAKE_DIM_Y; ++by) {
                 const bool isInside = lakeMap[lakeIndex(bx, bz, by)];
-
-                // 检查是否为边界格（自身不在湖内，但有相邻格在湖内）
-                if (!isInside &&
-                    ((bx > 0 && lakeMap[lakeIndex(bx - 1, bz, by)]) ||
-                        (bx < LAKE_SIZE_X - 1 && lakeMap[lakeIndex(bx + 1, bz, by)]) ||
+                const bool isBoundary = !isInside &&
+                    ((bx < 15 && lakeMap[lakeIndex(bx + 1, bz, by)]) ||
+                        (bx > 0 && lakeMap[lakeIndex(bx - 1, bz, by)]) ||
+                        (bz < 15 && lakeMap[lakeIndex(bx, bz + 1, by)]) ||
                         (bz > 0 && lakeMap[lakeIndex(bx, bz - 1, by)]) ||
-                        (bz < LAKE_SIZE_Z - 1 && lakeMap[lakeIndex(bx, bz + 1, by)]) ||
-                        (by > 0 && lakeMap[lakeIndex(bx, bz, by - 1)]) ||
-                        (by < LAKE_SIZE_Y - 1 && lakeMap[lakeIndex(bx, bz, by + 1)]))) {
-                    const BlockState* state = world.getBlockState(x + bx, y + by, z + bz);
-                    if (!state) continue;
-
-                    // Y >= 4 的边界格如果碰到液体，则不能生成
-                    if (by >= FLUID_SURFACE_Y && state->isLiquid()) {
-                        return false;
-                    }
-
-                    // Y < 4 的边界格如果不是固体且不是同种流体，则不能生成
-                    if (by < FLUID_SURFACE_Y) {
-                        if (!state->isSolid() && !state->is(m_config.fluidBlock)) {
-                            return false;
-                        }
-                    }
+                        (by < 7 && lakeMap[lakeIndex(bx, bz, by + 1)]) ||
+                        (by > 0 && lakeMap[lakeIndex(bx, bz, by - 1)]));
+                if (!isBoundary) {
+                    continue;
+                }
+                const BlockState* state = world.getBlockState(x + bx, y + by, z + bz);
+                if (state == nullptr) {
+                    continue;
+                }
+                // MC: l2 >= 4 && blockstate3.liquid() → return false
+                if (by >= FLUID_SURFACE_Y && state->isLiquid()) {
+                    return false;
+                }
+                // MC: l2 < 4 && !blockstate3.isSolid() && getBlockState != blockstate1 → return false
+                if (by < FLUID_SURFACE_Y && !state->isSolid() && state != fluidState) {
+                    return false;
                 }
             }
         }
     }
 
-    // 4. 雕刻湖泊内部
-    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
-    if (!caveAir) {
-        caveAir = VanillaBlocks::getState(VanillaBlocks::AIR);
-    }
-
-    for (i32 bx = 0; bx < LAKE_SIZE_X; ++bx) {
-        for (i32 bz = 0; bz < LAKE_SIZE_Z; ++bz) {
-            for (i32 by = 0; by < LAKE_SIZE_Y; ++by) {
+    // 3. 雕刻湖内：Y>=4 填 CAVE_AIR，Y<4 填流体
+    const BlockState* const caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+    for (i32 bx = 0; bx < LAKE_DIM_X; ++bx) {
+        for (i32 bz = 0; bz < LAKE_DIM_Z; ++bz) {
+            for (i32 by = 0; by < LAKE_DIM_Y; ++by) {
                 if (!lakeMap[lakeIndex(bx, bz, by)]) {
                     continue;
                 }
-
                 const BlockState* state = world.getBlockState(x + bx, y + by, z + bz);
-                if (!state || !canReplaceBlock(*state)) {
+                if (state == nullptr || !canReplaceBlock(*state)) {
                     continue;
                 }
-
-                if (by >= FLUID_SURFACE_Y) {
-                    // Y >= 4：填充洞穴空气
-                    world.setBlockState(x + bx, y + by, z + bz, caveAir);
-                } else {
-                    // Y < 4：填充流体
-                    world.setBlockState(x + bx, y + by, z + bz, m_config.fluidState);
-                }
+                const bool aboveFluid = by >= FLUID_SURFACE_Y;
+                world.setBlockState(x + bx, y + by, z + bz, aboveFluid ? caveAir : fluidState);
+                // MC 另对 cave_air 调 scheduleTick + markAboveForPostProcessing；项目流体更新由
+                // 区块后处理流水线扫描流体方块完成，无需显式调度。
             }
         }
     }
 
-    // 5. 放置边界方块
-    if (m_config.borderState && m_config.borderBlock && !m_config.borderBlock->defaultState().isAir()) {
-        for (i32 bx = 0; bx < LAKE_SIZE_X; ++bx) {
-            for (i32 bz = 0; bz < LAKE_SIZE_Z; ++bz) {
-                for (i32 by = 0; by < LAKE_SIZE_Y; ++by) {
+    // 4. 放置边界方块（barrier 非空时）
+    const BlockState* const barrierState = m_config.getBarrierState(rng);
+    if (barrierState != nullptr && !barrierState->isAir()) {
+        for (i32 bx = 0; bx < LAKE_DIM_X; ++bx) {
+            for (i32 bz = 0; bz < LAKE_DIM_Z; ++bz) {
+                for (i32 by = 0; by < LAKE_DIM_Y; ++by) {
                     const bool isInside = lakeMap[lakeIndex(bx, bz, by)];
-
-                    // 边界格：自身不在湖内但有相邻格在湖内
-                    if (!isInside &&
-                        ((bx > 0 && lakeMap[lakeIndex(bx - 1, bz, by)]) ||
-                            (bx < LAKE_SIZE_X - 1 && lakeMap[lakeIndex(bx + 1, bz, by)]) ||
+                    const bool isBoundary = !isInside &&
+                        ((bx < 15 && lakeMap[lakeIndex(bx + 1, bz, by)]) ||
+                            (bx > 0 && lakeMap[lakeIndex(bx - 1, bz, by)]) ||
+                            (bz < 15 && lakeMap[lakeIndex(bx, bz + 1, by)]) ||
                             (bz > 0 && lakeMap[lakeIndex(bx, bz - 1, by)]) ||
-                            (bz < LAKE_SIZE_Z - 1 && lakeMap[lakeIndex(bx, bz + 1, by)]) ||
-                            (by > 0 && lakeMap[lakeIndex(bx, bz, by - 1)]) ||
-                            (by < LAKE_SIZE_Y - 1 && lakeMap[lakeIndex(bx, bz, by + 1)]))) {
-                        const BlockState* state = world.getBlockState(x + bx, y + by, z + bz);
-                        if (!state || !state->isSolid()) {
-                            continue;
-                        }
-
-                        // Y >= 4 的边界有 50% 概率放置边界方块
-                        // Y < 4 的边界总是放置
-                        if (by >= FLUID_SURFACE_Y && rng.nextInt(2) != 0) {
-                            continue;
-                        }
-
-                        world.setBlockState(x + bx, y + by, z + bz, m_config.borderState);
+                            (by < 7 && lakeMap[lakeIndex(bx, bz, by + 1)]) ||
+                            (by > 0 && lakeMap[lakeIndex(bx, bz, by - 1)]));
+                    if (!isBoundary) {
+                        continue;
                     }
+                    // MC: flag2 && (l3 < 4 || nextInt(2) != 0)
+                    if (!(by < FLUID_SURFACE_Y || rng.nextInt(2) != 0)) {
+                        continue;
+                    }
+                    const BlockState* state = world.getBlockState(x + bx, y + by, z + bz);
+                    if (state == nullptr || !state->isSolid()) {
+                        continue;
+                    }
+                    // MC: !blockstate.is(BlockTags.LAVA_POOL_STONE_CANNOT_REPLACE)
+                    if (BlockTags::LAVA_POOL_STONE_CANNOT_REPLACE().contains(*state)) {
+                        continue;
+                    }
+                    world.setBlockState(x + bx, y + by, z + bz, barrierState);
                 }
             }
         }
     }
 
-    // 6. 水湖冻结检查（Y = FLUID_SURFACE_Y 处的流体表面）
-    if (m_config.fluidBlock != nullptr && m_config.fluidBlock == VanillaBlocks::WATER) {
-        for (i32 bx = 0; bx < LAKE_SIZE_X; ++bx) {
-            for (i32 bz = 0; bz < LAKE_SIZE_Z; ++bz) {
-                const i32 surfaceY = y + FLUID_SURFACE_Y;
-                const i32 wx = x + bx;
-                const i32 wz = z + bz;
-                const BlockState* state = world.getBlockState(wx, surfaceY, wz);
-
-                if (state && state->is(VanillaBlocks::WATER)) {
-                    // 获取生物群系并检查是否应该冻结
-                    // 使用 checkNeighbors=false，因为湖面冻结不需要检查邻居水域暴露
-                    auto biomeId = world.getBiome(wx, surfaceY, wz);
+    // 5. 水湖表面冻结：fluid 是水时，Y=4 表面按生物群系结冰
+    if (fluidState->getFluidState() != nullptr) {
+        // MC: blockstate1.getFluidState().is(FluidTags.WATER)
+        const bool isWater = fluidState->is(VanillaBlocks::WATER);
+        if (isWater) {
+            const BlockState* const iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
+            for (i32 bx = 0; bx < LAKE_DIM_X; ++bx) {
+                for (i32 bz = 0; bz < LAKE_DIM_Z; ++bz) {
+                    const i32 surfaceY = y + FLUID_SURFACE_Y;
+                    const BlockState* state = world.getBlockState(x + bx, surfaceY, z + bz);
+                    if (state == nullptr || !canReplaceBlock(*state)) {
+                        continue;
+                    }
+                    const BiomeId biomeId = world.getBiome(x + bx, surfaceY, z + bz);
                     const Biome& biome = BiomeRegistry::instance().get(biomeId);
-                    if (biome.shouldFreeze(world, wx, surfaceY, wz, world::SEA_LEVEL, false)) {
-                        // 仅冻结可替换的方块（避免冻结不可替换的方块）
-                        if (canReplaceBlock(*state)) {
-                            const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
-                            if (iceState) {
-                                world.setBlockState(wx, surfaceY, wz, iceState);
-                            }
+                    // checkNeighbors=false（湖面冻结无需检查邻居水域暴露）
+                    if (biome.shouldFreeze(world, x + bx, surfaceY, z + bz, world::SEA_LEVEL, false)) {
+                        if (iceState != nullptr) {
+                            world.setBlockState(x + bx, surfaceY, z + bz, iceState);
                         }
                     }
                 }
@@ -247,111 +256,31 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
 
 bool LakeFeature::canReplaceBlock(const BlockState& state)
 {
-    // MC 1.21.11: !state.is(BlockTags.FEATURES_CANNOT_REPLACE)
-    // 当项目添加 FEATURES_CANNOT_REPLACE 标签后替换为标签检查
-    // 目前使用简单判断：空气和流体可替换，其他方块需要进一步判断
-    return state.isAir() || state.isLiquid() || (!state.isSolid() && !state.is(VanillaBlocks::BEDROCK));
-}
-
-LakeFeatureConfig LakeFeature::createWaterLake()
-{
-    return LakeFeatureConfig(VanillaBlocks::WATER, VanillaBlocks::STONE);
-}
-
-LakeFeatureConfig LakeFeature::createLavaLake()
-{
-    return LakeFeatureConfig(VanillaBlocks::LAVA, VanillaBlocks::STONE);
-}
-
-std::unique_ptr<LakeFeature> createWaterLakeFeature()
-{
-    return std::make_unique<LakeFeature>(LakeFeature::createWaterLake());
-}
-
-std::unique_ptr<LakeFeature> createLavaLakeFeature()
-{
-    return std::make_unique<LakeFeature>(LakeFeature::createLavaLake());
+    // MC: !p_190952_.is(BlockTags.FEATURES_CANNOT_REPLACE)
+    return !BlockTags::FEATURES_CANNOT_REPLACE().contains(state);
 }
 
 } // namespace mc::world::gen::feature::lake
 
 namespace mc {
 
-std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::s_features;
-
 ConfiguredLakeFeature::ConfiguredLakeFeature(
-    world::gen::feature::lake::LakeFeatureConfig config, const char* featureName, i32 chance, i32 minY, i32 maxY)
-    : m_feature(config)
+    world::gen::feature::lake::LakeFeatureConfig config, const char* featureName)
+    : m_feature(std::move(config))
     , m_name(featureName)
-    , m_chance(std::max(1, chance))
-    , m_minY(minY)
-    , m_maxY(std::max(minY, maxY))
-    , m_isLava(config.fluidBlock == VanillaBlocks::LAVA)
 {}
 
-bool ConfiguredLakeFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredLakeFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
-
-    if (m_chance > 1 && random.nextInt(m_chance) != 0) {
-        return false;
-    }
-
-    i32 minY = m_minY;
-    i32 maxY = m_maxY;
-
-    if (m_isLava) {
-        const i32 seaLevel = generator.seaLevel();
-        constexpr i32 halfSectionHeight = world::CHUNK_SECTION_HEIGHT / 2;
-        maxY = std::min(maxY, seaLevel + halfSectionHeight);
-
-        // 熔岩湖通常更偏地下，保留少量高位湖泊
-        if (random.nextInt(10) != 0) {
-            maxY = std::min(maxY, seaLevel - halfSectionHeight);
-        }
-        maxY = std::max(maxY, minY);
-    }
-
-    const i32 x = pos.x + random.nextInt(world::CHUNK_WIDTH) + world::CHUNK_WIDTH / 2;
-    const i32 z = pos.z + random.nextInt(world::CHUNK_WIDTH) + world::CHUNK_WIDTH / 2;
-    const i32 y = minY + random.nextInt(maxY - minY + 1);
-
-    return m_feature.place(region, random, x, y, z);
-}
-
-void LakeFeatures::initialize()
-{
-    std::lock_guard<std::mutex> lock(g_lakeFeaturesMutex);
-    s_features.clear();
-    s_features.push_back(createWaterLake());
-    s_features.push_back(createLavaLake());
-}
-
-const std::vector<std::unique_ptr<ConfiguredLakeFeature>>& LakeFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::getAllFeaturesAndClear()
-{
-    std::lock_guard<std::mutex> lock(g_lakeFeaturesMutex);
-    std::vector<std::unique_ptr<ConfiguredLakeFeature>> result;
-    result.swap(s_features);
-    return result;
-}
-
-std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createWaterLake()
-{
-    constexpr i32 WATER_LAKE_MAX_Y = world::MAX_BUILD_HEIGHT / 2 - 1;
-    return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createWaterLake(), "water_lake", 4, 20, WATER_LAKE_MAX_Y);
-}
-
-std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createLavaLake()
-{
-    return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createLavaLake(), "lava_lake", 8, 10, world::SEA_LEVEL);
+    (void)generator;
+    // 数据驱动下概率/高度采样由 placement 链（Count/HeightRange 等）完成，
+    // 本方法在已确定的 pos 处直接放置湖泊。
+    return m_feature.place(region, random, pos.x, pos.y, pos.z);
 }
 
 } // namespace mc

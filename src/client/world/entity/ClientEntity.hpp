@@ -1446,6 +1446,23 @@ private:
     void _syncItemEntityMetadataFromRawBytes();
     bool _tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset);
     bool _tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const;
+
+    // 类型安全地按参数 ID 读取元数据值。
+    // 客户端 m_dataManager 的槽位索引来自服务端数据包字节索引，与服务端 C++ DataParameter::id()
+    // （全局自增 s_nextId）并不一致，因此 getRaw(id) 取到的可能是任意类型。仅当槽位存在且
+    // 存储类型与请求类型一致时返回值，否则返回 nullopt，避免 get<T>() 抛 bad_variant_access。
+    template <typename T>
+    [[nodiscard]] std::optional<T> _readMetadata(u16 id) const
+    {
+        const auto* value = m_dataManager.getRaw(id);
+        if (value == nullptr) {
+            return std::nullopt;
+        }
+        if (!std::holds_alternative<T>(value->value())) {
+            return std::nullopt;
+        }
+        return value->get<T>();
+    }
 };
 
 } // namespace mc::client

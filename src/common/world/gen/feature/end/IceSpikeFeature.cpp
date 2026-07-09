@@ -251,61 +251,15 @@ ConfiguredIceSpikeFeature::ConfiguredIceSpikeFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredIceSpikeFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredIceSpikeFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// IceSpikeFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> IceSpikeFeatures::s_features;
-
-void IceSpikeFeatures::initialize()
-{
-    s_features.clear();
-
-    s_features.push_back(createSpike());
-    s_features.push_back(createIceberg());
-}
-
-const std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>>& IceSpikeFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> IceSpikeFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredIceSpikeFeature>> result;
-    for (auto& feature : s_features) {
-        result.push_back(std::move(feature));
-    }
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredIceSpikeFeature> IceSpikeFeatures::createSpike()
-{
-    auto config = std::make_unique<IceSpikeFeatureConfig>();
-    config->isSpike = true;
-    config->maxHeight = 30;
-    config->baseRadius = 2;
-
-    return std::make_unique<ConfiguredIceSpikeFeature>(std::move(config), "ice_spike");
-}
-
-std::unique_ptr<ConfiguredIceSpikeFeature> IceSpikeFeatures::createIceberg()
-{
-    auto config = std::make_unique<IceSpikeFeatureConfig>();
-    config->isSpike = false;
-    config->maxHeight = 15;
-    config->baseRadius = 4;
-
-    return std::make_unique<ConfiguredIceSpikeFeature>(std::move(config), "ice_berg");
 }
 
 } // namespace mc

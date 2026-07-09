@@ -30,34 +30,9 @@ namespace mc {
 namespace blocks {
 
 GlowLichenBlock::GlowLichenBlock(const BlockProperties& properties)
-    : Block(properties)
+    : MultifaceBlock(properties)
 {
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::NORTH())
-            .add(BlockStateProperties::SOUTH())
-            .add(BlockStateProperties::EAST())
-            .add(BlockStateProperties::WEST())
-            .add(BlockStateProperties::UP())
-            .add(BlockStateProperties::DOWN())
-            .add(BlockStateProperties::WATERLOGGED())
-            .create([](const Block& block,
-                        std::vector<size_t> values,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::NORTH(), false)
-            .with(BlockStateProperties::SOUTH(), false)
-            .with(BlockStateProperties::EAST(), false)
-            .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::UP(), false)
-            .with(BlockStateProperties::DOWN(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false));
+    buildMultifaceStateContainer();
 
     // 预计算所有64种形状组合（2^6 = 64，六个面方向各布尔值）
     // 每个面方向是一个1像素厚的薄板：
@@ -115,38 +90,15 @@ void GlowLichenBlock::fillStateContainer(StateContainer<Block, BlockState>& cont
 
 BlockState GlowLichenBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    Direction clickedFace = context.getClickedFace();
-    BlockState state = defaultState();
-
-    // 设置被点击的面为true
-    switch (clickedFace) {
-        case Direction::North:
-            state = state.with(BlockStateProperties::NORTH(), true);
-            break;
-        case Direction::South:
-            state = state.with(BlockStateProperties::SOUTH(), true);
-            break;
-        case Direction::East:
-            state = state.with(BlockStateProperties::EAST(), true);
-            break;
-        case Direction::West:
-            state = state.with(BlockStateProperties::WEST(), true);
-            break;
-        case Direction::Up:
-            state = state.with(BlockStateProperties::UP(), true);
-            break;
-        case Direction::Down:
-            state = state.with(BlockStateProperties::DOWN(), true);
-            break;
-        default:
-            break;
+    const Direction clickedFace = context.getClickedFace();
+    const BlockState* current = context.getWorld().getBlockState(context.placementPos());
+    // 委托 MultifaceBlock.getStateForPlacement(state, reader, pos, direction)（对齐 MC）。
+    const BlockState* placed =
+        MultifaceBlock::getStateForPlacement(current, context.getWorld(), context.placementPos(), clickedFace);
+    if (placed == nullptr) {
+        return defaultState();
     }
-
-    if (waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos())) {
-        state = state.with(BlockStateProperties::WATERLOGGED(), true);
-    }
-
-    return state;
+    return *placed;
 }
 
 BlockState GlowLichenBlock::updatePostPlacement(const BlockState& state,

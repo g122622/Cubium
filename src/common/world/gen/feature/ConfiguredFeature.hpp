@@ -25,12 +25,10 @@
 
 #include "DecorationStage.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace mc {
 
@@ -48,6 +46,9 @@ struct OreFeatureConfig;
  * @brief 配置化特征基类
  *
  * 组合特征与其放置配置。
+ *
+ * 标识体系：每个配置化特征用 ResourceLocation 唯一标识（对应 configured_feature JSON
+ * 文件名，如 "minecraft:monster_room"）。取代旧的 u32 featureId 机制。
  */
 class ConfiguredFeatureBase {
 public:
@@ -55,6 +56,11 @@ public:
 
     /**
      * @brief 在指定位置放置特征
+     *
+     * 标记为 const：特征对象本身在放置过程中不可变，仅通过 region/chunk 写入世界。
+     * 这使 const ConfiguredFeatureBase* 可调用 place()，与 PlacedFeature::place() const
+     * 及 ConfiguredFeatureRegistry::get() 返回 const 指针的语义一致。
+     *
      * @param region 世界生成区域
      * @param chunk 区块数据
      * @param generator 区块生成器
@@ -66,10 +72,10 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) = 0;
+        const BlockPos& pos) const = 0;
 
     /**
-     * @brief 获取特征名称
+     * @brief 获取特征名称（feature type 字符串，如 "monster_room"）
      */
     [[nodiscard]] virtual const char* name() const = 0;
 
@@ -79,20 +85,20 @@ public:
     [[nodiscard]] virtual DecorationStage stage() const = 0;
 
     /**
-     * @brief 获取特征ID
+     * @brief 获取特征的 ResourceLocation 标识
      *
-     * 由 FeatureRegistry 在注册时自动赋值。
+     * 由 ConfiguredFeatureLoader 在注册时根据 JSON 文件名赋值。
      * 用于 BiomeFilterPlacement 反向查询生物群系是否包含此特征。
      */
-    [[nodiscard]] u32 featureId() const noexcept { return m_featureId; }
+    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
 
     /**
-     * @brief 设置特征ID（仅由 FeatureRegistry 调用）
+     * @brief 设置特征标识（仅由 ConfiguredFeatureLoader 调用）
      */
-    void setFeatureId(u32 id) noexcept { m_featureId = id; }
+    void setId(ResourceLocation id) noexcept { m_id = std::move(id); }
 
 private:
-    u32 m_featureId = 0;
+    ResourceLocation m_id;
 };
 
 /**
@@ -106,83 +112,5 @@ class ConfiguredOreFeature;
  * @brief 配置化树木特征
  */
 class ConfiguredTreeFeature;
-
-/**
- * @brief 特征注册表
- *
- * 管理所有配置化特征，按装饰阶段组织。
- */
-class FeatureRegistry {
-public:
-    /**
-     * @brief 获取单例实例
-     */
-    static FeatureRegistry& instance();
-
-    /**
-     * @brief 初始化所有特征
-     */
-    void initialize();
-
-    /**
-     * @brief 注册配置化特征
-     * @param feature 特征
-     * @param stage 装饰阶段
-     */
-    void registerFeature(std::unique_ptr<ConfiguredFeatureBase> feature, DecorationStage stage);
-
-    /**
-     * @brief 获取指定阶段的所有特征
-     * @param stage 装饰阶段
-     * @return 特征列表
-     */
-    [[nodiscard]] const std::vector<ConfiguredFeatureBase*>& getFeatures(DecorationStage stage) const;
-
-    /**
-     * @brief 根据特征ID获取特征
-     * @param featureId 特征ID
-     * @return 特征指针，如果ID无效则返回nullptr
-     */
-    [[nodiscard]] ConfiguredFeatureBase* getFeatureById(u32 featureId) const;
-
-    /**
-     * @brief 根据特征名称获取特征
-     *
-     * 用于 FeatureJigsawPiece::place() 通过 ResourceLocation 名称（如 "minecraft:oak_tree"）
-     * 查找配置化特征。名称匹配去除 "minecraft:" 前缀后与 ConfiguredFeatureBase::name() 比较
-     * （name() 返回不带命名空间前缀的简单名称，如 "oak_tree"）。
-     *
-     * @param name 特征名称（可带或不带 "minecraft:" 前缀）
-     * @return 特征指针，如果名称未注册则返回 nullptr
-     */
-    [[nodiscard]] ConfiguredFeatureBase* getFeatureByName(const std::string& name) const;
-
-    /**
-     * @brief 获取所有特征
-     * @return 所有特征（按阶段组织）
-     */
-    [[nodiscard]] const std::vector<std::vector<ConfiguredFeatureBase*>>& getAllFeatures() const
-    {
-        return m_featuresByStage;
-    }
-
-    /**
-     * @brief 清除所有特征
-     */
-    void clear();
-
-private:
-    FeatureRegistry();
-    ~FeatureRegistry();
-
-    // 存储所有特征的所有权
-    std::vector<std::unique_ptr<ConfiguredFeatureBase>> m_ownedFeatures;
-
-    // 按阶段索引的特征指针（不拥有所有权）
-    std::vector<std::vector<ConfiguredFeatureBase*>> m_featuresByStage;
-
-    // 按名称索引的特征指针（不拥有所有权），用于 getFeatureByName 查找
-    std::unordered_map<std::string, ConfiguredFeatureBase*> m_featuresByName;
-};
 
 } // namespace mc

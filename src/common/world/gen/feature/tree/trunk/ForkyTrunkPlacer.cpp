@@ -22,12 +22,28 @@
  */
 
 #include "ForkyTrunkPlacer.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+
+#include <optional>
 
 namespace mc {
 
 ForkyTrunkPlacer::ForkyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     : TrunkPlacer(baseHeight, heightRandA, heightRandB)
 {}
+
+namespace {
+
+/// MC: Direction.Plane.HORIZONTAL.getRandomDirection(random)。
+/// 项目 Directions::horizontal() 顺序为 {North,East,South,West}，与 MC 一致。
+Direction randomHorizontalDirection(math::Random& random)
+{
+    const auto dirs = Directions::horizontal();
+    return dirs[static_cast<size_t>(random.nextInt(4))];
+}
+
+} // namespace
 
 std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     math::Random& random,
@@ -36,67 +52,68 @@ std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     std::set<BlockPos>& trunkBlocks,
     const BlockState* trunkBlock)
 {
-    std::vector<FoliagePosition> foliagePositions;
-
-    // 在树干底部放置泥土
+    // MC: setDirtAt(startPos.below())
     placeDirtUnder(world, startPos.down());
 
-    // 随机方向和弯曲参数
-    i32 bendStart = height - random.nextInt(4) - 1; // 开始弯曲的高度
-    i32 bendLength = 1 + random.nextInt(2);         // 弯曲长度
+    std::vector<FoliagePosition> foliagePositions;
 
-    // 随机选择第一个弯曲方向（只能是水平方向）
-    i32 dirIndex = random.nextInt(4);
-    constexpr i32 DX[] = {0, 1, 0, -1}; // South, West, North, East 对应的 X 偏移
-    constexpr i32 DZ[] = {1, 0, -1, 0}; // South, West, North, East 对应的 Z 偏移
-    i32 dx = DX[dirIndex];
-    i32 dz = DZ[dirIndex];
+    const Direction direction = randomHorizontalDirection(random);
+    // MC: i = height - nextInt(4) - 1; j = 3 - nextInt(3)
+    const i32 i = height - random.nextInt(4) - 1;
+    i32 j = 3 - random.nextInt(3);
 
-    // 随机选择第二个弯曲方向（可选侧分支）
-    i32 dirIndex1 = random.nextInt(4);
-    bool hasSideBranch = dirIndex != dirIndex1;
-    i32 dx1 = DX[dirIndex1];
-    i32 dz1 = DZ[dirIndex1];
+    i32 k = startPos.x;
+    i32 l = startPos.z;
+    std::optional<i32> topY; // MC: OptionalInt optionalint
 
-    i32 x = startPos.x;
-    i32 z = startPos.z;
-    i32 topY = startPos.y + height - 1;
-
-    // 生成树干
-    for (i32 dy = 0; dy < height; ++dy) {
-        i32 currentY = startPos.y + dy;
-
-        // 主树干
-        placeBlock(world, BlockPos(startPos.x, currentY, startPos.z), trunkBlocks, trunkBlock);
-
-        // 弯曲逻辑
-        if (dy >= bendStart && bendLength > 0) {
-            // 向第一个方向弯曲
-            x += dx;
-            z += dz;
-            --bendLength;
-
-            // 放置弯曲位置的方块
-            placeBlock(world, BlockPos(x, currentY, z), trunkBlocks, trunkBlock);
-
-            // 如果有侧分支，也放置
-            if (hasSideBranch && dy < height - 1) {
-                i32 sideX = startPos.x + dx1;
-                i32 sideZ = startPos.z + dz1;
-                placeBlock(world, BlockPos(sideX, currentY, sideZ), trunkBlocks, trunkBlock);
-            }
+    // MC: 第一条主干（含顶部弯曲）
+    for (i32 i1 = 0; i1 < height; ++i1) {
+        const i32 y = startPos.y + i1;
+        if (i1 >= i && j > 0) {
+            k += Directions::xOffset(direction);
+            l += Directions::zOffset(direction);
+            --j;
+        }
+        // MC: placeLog 返回 true 表示成功放置 → 记录树顶 y+1
+        const BlockPos pos(k, y, l);
+        if (canPlaceAt(world, pos)) {
+            placeBlock(world, pos, trunkBlocks, trunkBlock);
+            topY = y + 1;
         }
     }
 
-    // 主分支树叶位置，radiusBonus = 1
-    foliagePositions.emplace_back(BlockPos(x, topY, z), 1, true);
+    if (topY.has_value()) {
+        foliagePositions.emplace_back(BlockPos(k, topY.value(), l), 1, false);
+    }
 
-    // 侧分支树叶位置
-    if (hasSideBranch) {
-        i32 sideX = startPos.x + dx1;
-        i32 sideZ = startPos.z + dz1;
-        // 侧分支的 radiusBonus = 0
-        foliagePositions.emplace_back(BlockPos(sideX, topY, sideZ), 0, false);
+    // MC: 第二条侧枝（仅当方向不同时）
+    k = startPos.x;
+    l = startPos.z;
+    const Direction direction1 = randomHorizontalDirection(random);
+    if (direction1 != direction) {
+        // MC: j2 = i - nextInt(2) - 1; k1 = 1 + nextInt(3)
+        const i32 j2 = i - random.nextInt(2) - 1;
+        i32 k1 = 1 + random.nextInt(3);
+        topY.reset();
+
+        // MC: for (l1 = j2; l1 < height && k1 > 0; k1--)
+        for (i32 l1 = j2; l1 < height && k1 > 0; --k1) {
+            if (l1 >= 1) {
+                const i32 y = startPos.y + l1;
+                k += Directions::xOffset(direction1);
+                l += Directions::zOffset(direction1);
+                const BlockPos pos(k, y, l);
+                if (canPlaceAt(world, pos)) {
+                    placeBlock(world, pos, trunkBlocks, trunkBlock);
+                    topY = y + 1;
+                }
+            }
+            ++l1;
+        }
+
+        if (topY.has_value()) {
+            foliagePositions.emplace_back(BlockPos(k, topY.value(), l), 0, false);
+        }
     }
 
     return foliagePositions;

@@ -35,7 +35,6 @@
 
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
-#include "common/world/gen/placement/Placement.hpp"
 #include <memory>
 #include <vector>
 
@@ -67,47 +66,24 @@ public:
 /**
  * @brief 配置化紫颂树特征
  *
- * 包装 ChorusPlantFeature 和放置链，用于注册到 FeatureRegistry。
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置紫颂树。
  */
 class ConfiguredChorusPlantFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredChorusPlantFeature(std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+    explicit ConfiguredChorusPlantFeature(const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
 private:
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
-};
-
-/**
- * @brief 预定义紫颂树特征
- *
- * 管理紫颂树特征的初始化和注册。
- * 调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct ChorusPlantFeatures {
-    /// 初始化紫颂树特征
-    static void initialize();
-
-    /// 获取所有紫颂树特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>>& getAllFeatures();
-
-    /// 获取所有紫颂树特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> getAllFeaturesAndClear();
-
-    /// 创建紫颂树特征（末地高地，0-4次/区块）
-    static std::unique_ptr<ConfiguredChorusPlantFeature> createChorusPlant();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> s_features;
 };
 
 } // namespace mc

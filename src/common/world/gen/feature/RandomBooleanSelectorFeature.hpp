@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>
 
@@ -34,16 +35,16 @@ namespace mc::world::gen::feature::cave {
  * 50%概率选择两个特征中的一个。
  */
 struct RandomBooleanFeatureConfig {
-    /// true时放置的特征ID
-    u32 featureTrueId = 0;
+    /// true时放置的特征（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    ResourceLocation featureTrueId;
 
-    /// false时放置的特征ID
-    u32 featureFalseId = 0;
+    /// false时放置的特征（ConfiguredFeatureRegistry 中的 ResourceLocation）
+    ResourceLocation featureFalseId;
 
     RandomBooleanFeatureConfig() = default;
-    RandomBooleanFeatureConfig(u32 trueId, u32 falseId)
-        : featureTrueId(trueId)
-        , featureFalseId(falseId)
+    RandomBooleanFeatureConfig(ResourceLocation trueId, ResourceLocation falseId)
+        : featureTrueId(std::move(trueId))
+        , featureFalseId(std::move(falseId))
     {}
 };
 
@@ -65,24 +66,24 @@ public:
 
 /**
  * @brief 配置化随机布尔选择特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置选中的子特征。
  */
 class ConfiguredRandomBooleanSelectorFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredRandomBooleanSelectorFeature(std::unique_ptr<RandomBooleanFeatureConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredRandomBooleanSelectorFeature(std::unique_ptr<RandomBooleanFeatureConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
 private:
     std::unique_ptr<RandomBooleanFeatureConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

@@ -172,64 +172,15 @@ ConfiguredKelpFeature::ConfiguredKelpFeature(std::unique_ptr<KelpFeatureConfig> 
     , m_name(featureName)
 {}
 
-bool ConfiguredKelpFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredKelpFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// KelpFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredKelpFeature>> KelpFeatures::s_features;
-
-void KelpFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createColdKelp());
-    s_features.push_back(createWarmKelp());
-}
-
-const std::vector<std::unique_ptr<ConfiguredKelpFeature>>& KelpFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredKelpFeature>> KelpFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createColdKelp()
-{
-    auto config = std::make_unique<KelpFeatureConfig>();
-    if (VanillaBlocks::KELP_PLANT != nullptr && VanillaBlocks::KELP != nullptr) {
-        // 主体使用 kelp_plant，顶端使用 kelp。
-        config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
-        config->kelpTopState = &VanillaBlocks::KELP->defaultState();
-    }
-    config->tries = 20;
-    config->maxHeight = 10;
-
-    return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp_cold");
-}
-
-std::unique_ptr<ConfiguredKelpFeature> KelpFeatures::createWarmKelp()
-{
-    auto config = std::make_unique<KelpFeatureConfig>();
-    if (VanillaBlocks::KELP_PLANT != nullptr && VanillaBlocks::KELP != nullptr) {
-        config->kelpState = &VanillaBlocks::KELP_PLANT->defaultState();
-        config->kelpTopState = &VanillaBlocks::KELP->defaultState();
-    }
-    config->tries = 10;
-    config->maxHeight = 10;
-
-    return std::make_unique<ConfiguredKelpFeature>(std::move(config), "kelp_warm");
 }
 
 } // namespace mc

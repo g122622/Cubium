@@ -70,6 +70,14 @@ const Biome& BiomeRegistry::get(BiomeId id) const
     return m_defaultBiome;
 }
 
+Biome& BiomeRegistry::getMutable(BiomeId id)
+{
+    if (id < m_biomes.size() && m_registered[id]) {
+        return m_biomes[id];
+    }
+    return m_defaultBiome;
+}
+
 bool BiomeRegistry::hasBiome(BiomeId id) const
 {
     return id < m_biomes.size() && m_registered[id];

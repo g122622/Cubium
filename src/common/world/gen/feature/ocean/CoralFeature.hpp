@@ -86,7 +86,8 @@ protected:
     [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
     [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
     void _placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
-    void _placeCoralFan(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
+    void _placeCoralFan(
+        WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
 };
 
 /**
@@ -100,7 +101,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -109,30 +110,7 @@ public:
 private:
     std::unique_ptr<CoralFeatureConfig> m_config;
     std::string m_name;
-    CoralFeature m_feature;
-};
-
-/**
- * @brief 预定义珊瑚配置
- */
-struct CoralFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredCoralFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredCoralFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredCoralFeature> createTubeCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createBrainCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createBubbleCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createFireCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createHornCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createDeadTubeCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createDeadBrainCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createDeadBubbleCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createDeadFireCoral();
-    static std::unique_ptr<ConfiguredCoralFeature> createDeadHornCoral();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredCoralFeature>> s_features;
+    mutable CoralFeature m_feature;
 };
 
 } // namespace mc

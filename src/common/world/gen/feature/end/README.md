@@ -10,8 +10,7 @@ end/
 ├── EndGatewayFeature.hpp/cpp     # 末地折跃门（SurfaceStructures 阶段）
 ├── IceSpikeFeature.hpp/cpp       # 冰刺（VegetalDecoration 阶段）
 ├── ChorusPlantFeature.hpp/cpp    # 紫颂树特征（VegetalDecoration 阶段）
-├── EndIslandFeature.hpp/cpp      # 末地小岛特征（RawGeneration 阶段）
-└── EndFeatures.hpp/cpp           # 末地特征注册（EndFeatureRegistry）
+└── EndIslandFeature.hpp/cpp      # 末地小岛特征（RawGeneration 阶段）
 ```
 
 ## 特征列表
@@ -34,12 +33,9 @@ ConfiguredFeatureBase (基类)
 ├── ConfiguredChorusPlantFeature   ─ 紫颂树
 └── ConfiguredEndIslandFeature     ─ 末地小岛
 
-EndFeatureRegistry
-├── EndSpikeFeatures     → SurfaceStructures
-├── EndGatewayFeatures   → SurfaceStructures
-├── IceSpikeFeatures     → VegetalDecoration
-├── ChorusPlantFeatures  → VegetalDecoration
-└── EndIslandFeatures    → RawGeneration
+各 ConfiguredXxxFeature 由数据包 configured_feature JSON 定义 →
+FeatureTypeRegistry 工厂构造 → 注册到 ConfiguredFeatureRegistry →
+经 placed_feature JSON 包装为 PlacedFeature → 供 BiomeLoader 引用
 
 ChorusPlantFeature.place()
 └── ChorusFlowerBlock::generatePlant()    （递归生成紫颂树）
@@ -54,8 +50,7 @@ ChorusPlantFeature.place()
 
 | 依赖 | 用途 |
 |------|------|
-| `world/gen/feature/ConfiguredFeature` | 配置化特征基类和特征注册表 |
-| `world/gen/feature/FeatureIds` | 特征 ID 常量（EndIslandFeatureIds、ChorusPlantFeatureIds） |
+| `world/gen/feature/ConfiguredFeature` | 配置化特征基类与 `ConfiguredFeatureRegistry` |
 | `world/gen/placement/PlacementUtils` | 放置链工具 |
 | `world/gen/chunk/IChunkGenerator` | WorldGenRegion |
 | `world/block/blocks/end/ChorusFlowerBlock` | 紫颂树递归生成 |
@@ -67,8 +62,8 @@ ChorusPlantFeature.place()
 
 | 模块 | 用途 |
 |------|------|
-| `world/gen/feature/ConfiguredFeature.cpp` | 特征注册 |
-| `world/biome/BiomeGenerationSettings` | 末地生物群系添加特征 |
+| `world/gen/feature/ConfiguredFeatureRegistry` | 数据驱动注册末地特征 |
+| `world/biome/BiomeLoader` | 末地生物群系从 JSON `features` 数组按 `ResourceLocation` 引用特征 |
 
 ## 容易踩的坑
 
@@ -78,7 +73,7 @@ ChorusPlantFeature.place()
 
 ### 2. EndIslandFeature 使用 RawGeneration 阶段
 
-末地小岛在 RawGeneration 阶段生成（地形基础阶段），而紫颂树在 VegetalDecoration 阶段生成（植被装饰阶段）。注册时注意使用正确的装饰阶段。
+末地小岛在 RawGeneration 阶段生成（地形基础阶段），而紫颂树在 VegetalDecoration 阶段生成（植被装饰阶段）。特征的装饰阶段由 `ConfiguredXxxFeature::stage()` 返回，数据包通过 biome 的 `features` 二维数组（11 层对应 11 个 DecorationStage）将 placed_feature 放入正确阶段。
 
 ### 3. ChorusPlantFeature 调用 ChorusFlowerBlock 静态方法
 

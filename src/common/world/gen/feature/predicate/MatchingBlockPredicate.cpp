@@ -21,15 +21,19 @@
  */
 
 #include "MatchingBlockPredicate.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 
 namespace mc::world::gen::feature::predicate {
 
 bool MatchingBlockPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlockState(pos);
+    const BlockState* state = world.getBlockState(pos + m_offset);
+    // ChunkData 对未初始化 section 返回 nullptr 表示空气（空气不持久化到 section），
+    // 故 nullptr 等价于 AIR 方块状态：当且仅当本谓词匹配的正是空气方块时为真。
     if (state == nullptr) {
-        return false;
+        return m_block != nullptr && m_block == BlockRegistry::instance().getBlock(ResourceLocation("minecraft:air"));
     }
     return &state->getBlock() == m_block;
 }

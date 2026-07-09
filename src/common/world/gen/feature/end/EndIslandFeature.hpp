@@ -36,7 +36,6 @@
 
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
-#include "common/world/gen/placement/Placement.hpp"
 #include <memory>
 #include <vector>
 
@@ -68,47 +67,24 @@ public:
 /**
  * @brief 配置化末地小岛特征
  *
- * 包装 EndIslandFeature 和放置链，用于注册到 FeatureRegistry。
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置末地石岛屿。
  */
 class ConfiguredEndIslandFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredEndIslandFeature(std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+    explicit ConfiguredEndIslandFeature(const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::RawGeneration; }
 
 private:
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
-};
-
-/**
- * @brief 预定义末地小岛特征
- *
- * 管理末地小岛特征的初始化和注册。
- * 调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
- */
-struct EndIslandFeatures {
-    /// 初始化末地小岛特征
-    static void initialize();
-
-    /// 获取所有末地小岛特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredEndIslandFeature>>& getAllFeatures();
-
-    /// 获取所有末地小岛特征并清空（转移所有权）
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredEndIslandFeature>> getAllFeaturesAndClear();
-
-    /// 创建末地小岛特征（小型末地岛屿，稀有度1/14）
-    static std::unique_ptr<ConfiguredEndIslandFeature> createEndIsland();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredEndIslandFeature>> s_features;
 };
 
 } // namespace mc

@@ -21,10 +21,11 @@
  */
 
 #include "RandomBooleanSelectorFeature.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -39,16 +40,14 @@ bool RandomBooleanSelectorFeature::place(WorldGenRegion& region,
     const BlockPos& pos,
     const RandomBooleanFeatureConfig& config)
 {
-    FeatureRegistry& registry = FeatureRegistry::instance();
+    const ResourceLocation& featureId = random.nextBoolean() ? config.featureTrueId : config.featureFalseId;
+    const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(featureId);
 
-    u32 featureId = random.nextBoolean() ? config.featureTrueId : config.featureFalseId;
-    const auto& features = registry.getFeatures(DecorationStage::VegetalDecoration);
-
-    if (featureId >= features.size() || features[featureId] == nullptr) {
+    if (feature == nullptr) {
         return false;
     }
 
-    return features[featureId]->place(region, chunk, generator, random, pos);
+    return feature->place(region, chunk, generator, random, pos);
 }
 
 // ============================================================================
@@ -56,31 +55,22 @@ bool RandomBooleanSelectorFeature::place(WorldGenRegion& region,
 // ============================================================================
 
 ConfiguredRandomBooleanSelectorFeature::ConfiguredRandomBooleanSelectorFeature(
-    std::unique_ptr<RandomBooleanFeatureConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement,
-    const char* featureName)
+    std::unique_ptr<RandomBooleanFeatureConfig> config, const char* featureName)
     : m_config(std::move(config))
-    , m_placement(std::move(placement))
     , m_name(featureName)
 {}
 
-bool ConfiguredRandomBooleanSelectorFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredRandomBooleanSelectorFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
-    std::vector<BlockPos> positions;
-    if (m_placement) {
-        positions = m_placement->getPositions(region, random, pos);
-    } else {
-        positions.push_back(pos);
+    if (!m_config) {
+        return false;
     }
 
-    bool placedAny = false;
-    for (const BlockPos& placePos : positions) {
-        if (RandomBooleanSelectorFeature::place(region, chunk, generator, random, placePos, *m_config)) {
-            placedAny = true;
-        }
-    }
-    return placedAny;
+    return RandomBooleanSelectorFeature::place(region, chunk, generator, random, pos, *m_config);
 }
 
 } // namespace mc::world::gen::feature::cave

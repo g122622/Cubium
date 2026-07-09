@@ -23,6 +23,8 @@
 
 #include "PlacementRegistry.hpp"
 
+#include "BlockPredicateFilterPlacement.hpp"
+
 namespace mc {
 
 // ============================================================================
@@ -61,6 +63,12 @@ void PlacementRegistry::initialize()
     registerPlacement("spread", Placements::spread());
     registerPlacement("biome_filter", Placements::biomeFilter());
     registerPlacement("environment_scan", Placements::environmentScan());
+    registerPlacement("block_predicate_filter", std::make_unique<BlockPredicateFilterPlacement>());
+    registerPlacement("fixed_placement", Placements::fixedPlacement());
+    registerPlacement("count_on_every_layer", Placements::countOnEveryLayer());
+    registerPlacement("noise_threshold_count", Placements::noiseThresholdCount());
+    registerPlacement("noise_based_count", Placements::noiseBasedCount());
+    registerPlacement("surface_relative_threshold_filter", Placements::surfaceRelativeThresholdFilter());
 
     m_initialized = true;
 }
@@ -189,6 +197,31 @@ std::unique_ptr<Placement> biomeFilter()
 std::unique_ptr<Placement> environmentScan()
 {
     return std::make_unique<EnvironmentScanPlacement>();
+}
+
+std::unique_ptr<Placement> fixedPlacement()
+{
+    return std::make_unique<FixedPlacement>();
+}
+
+std::unique_ptr<Placement> countOnEveryLayer()
+{
+    return std::make_unique<CountOnEveryLayerPlacement>();
+}
+
+std::unique_ptr<Placement> noiseThresholdCount()
+{
+    return std::make_unique<NoiseThresholdCountPlacement>();
+}
+
+std::unique_ptr<Placement> noiseBasedCount()
+{
+    return std::make_unique<NoiseBasedCountPlacement>();
+}
+
+std::unique_ptr<Placement> surfaceRelativeThresholdFilter()
+{
+    return std::make_unique<SurfaceRelativeThresholdFilterPlacement>();
 }
 
 } // namespace Placements

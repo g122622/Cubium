@@ -24,7 +24,6 @@
 #include "BambooFeature.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -143,111 +142,15 @@ ConfiguredBambooFeature::ConfiguredBambooFeature(std::unique_ptr<BambooFeatureCo
     , m_name(featureName)
 {}
 
-bool ConfiguredBambooFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBambooFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// BambooFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredBambooFeature>> BambooFeatures::s_features;
-
-void BambooFeatures::initialize()
-{
-    s_features.clear();
-
-    s_features.push_back(createBambooJungle());
-    s_features.push_back(createLightBamboo());
-}
-
-const std::vector<std::unique_ptr<ConfiguredBambooFeature>>& BambooFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredBambooFeature>> BambooFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredBambooFeature>> result;
-    for (auto& feature : s_features) {
-        result.push_back(std::move(feature));
-    }
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredBambooFeature> BambooFeatures::createBambooJungle()
-{
-    auto config = std::make_unique<BambooFeatureConfig>();
-
-    if (VanillaBlocks::BAMBOO) {
-        // 竹子主干状态：AGE=1（粗竹竿），STAGE=0（仍在生长），LEAVES=None
-        config->bambooState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 0)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None);
-        // 顶部最终状态：AGE=1, STAGE=1（停止生长）, LEAVES=Large
-        config->topFinalState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 1)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::Large);
-        // 顶部下方第1格：AGE=1, STAGE=0, LEAVES=Large
-        config->topLargeState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 0)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::Large);
-        // 顶部下方第2格：AGE=1, STAGE=0, LEAVES=Small
-        config->topSmallState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 0)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::Small);
-    }
-
-    // 竹子丛林：20% 概率生成灰化土
-    config->podzolProbability = 0.2f;
-
-    return std::make_unique<ConfiguredBambooFeature>(std::move(config), "bamboo_jungle");
-}
-
-std::unique_ptr<ConfiguredBambooFeature> BambooFeatures::createLightBamboo()
-{
-    auto config = std::make_unique<BambooFeatureConfig>();
-
-    if (VanillaBlocks::BAMBOO) {
-        config->bambooState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 0)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None);
-        config->topFinalState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 1)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::Large);
-        config->topLargeState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 0)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::Large);
-        config->topSmallState =
-            &VanillaBlocks::BAMBOO->defaultState()
-                 .with(BlockStateProperties::AGE_0_1(), 1)
-                 .with(BlockStateProperties::STAGE_0_1(), 0)
-                 .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::Small);
-    }
-
-    // 稀疏竹子：不生成灰化土
-    config->podzolProbability = 0.0f;
-
-    return std::make_unique<ConfiguredBambooFeature>(std::move(config), "bamboo_light");
 }
 
 } // namespace mc

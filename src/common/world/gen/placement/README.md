@@ -1,20 +1,26 @@
 # 放置器系统 (Placement System)
 
-本目录实现了 Minecraft 1.16.5 的特征放置器系统，控制特征（矿石、树木、花草等）在世界中的放置位置。
+本目录实现了 Minecraft 1.21.11 的特征放置器系统，控制特征（矿石、树木、花草等）在世界中的放置位置，并提供 placed_feature 的数据驱动加载。
 
 ## 目录结构
 
 ```
 placement/
-├── Placement.hpp          # 放置器基类和基础配置定义
-├── Placement.cpp          # 放置器基类实现
-├── Placements.hpp         # 扩展放置器类定义（噪声、水深等）
-├── Placements.cpp         # 扩展放置器实现
-├── PlacementRegistry.hpp  # 放置器注册表和工厂方法
-├── PlacementRegistry.cpp  # 放置器注册表实现
-├── PlacementUtils.hpp     # 放置器构建辅助函数
-├── PlacementUtils.cpp     # 工具函数实现
-└── README.md              # 本文档
+├── Placement.hpp              # 放置器基类和基础配置定义
+├── Placement.cpp              # 放置器基类实现
+├── Placements.hpp             # 扩展放置器类定义（噪声、水深等）
+├── Placements.cpp             # 扩展放置器实现
+├── PlacementRegistry.hpp      # 放置器注册表和工厂方法（type 字符串→工厂）
+├── PlacementRegistry.cpp      # 放置器注册表实现
+├── PlacementUtils.hpp         # 放置器构建辅助函数
+├── PlacementUtils.cpp         # 工具函数实现
+├── PlacedFeature.hpp          # placed_feature 类型（配置化特征 + 放置链 + ResourceLocation id）
+├── PlacedFeature.cpp          # PlacedFeature::place 实现（先走 placement 链，再调 feature）
+├── PlacedFeatureRegistry.hpp  # placed_feature 注册表（数据驱动，按 ResourceLocation 索引）
+├── PlacedFeatureRegistry.cpp  # 注册表实现
+├── PlacedFeatureLoader.hpp    # 从数据包加载 placed_feature JSON
+├── PlacedFeatureLoader.cpp    # Loader 实现（解析 feature 引用 + placement 数组）
+└── README.md                  # 本文档
 ```
 
 ---
@@ -147,8 +153,8 @@ graph LR
 | 模块 | 文件 | 用途 |
 |------|------|------|
 | feature/ | `TreeFeature.cpp`, `OreFeature.cpp` | 特征放置时使用放置器确定位置 |
-| chunk/ | `NoiseChunkGenerator.cpp` | 区块生成时调用特征放置 |
-| cave/ | `CaveFeatures.cpp`, `LushCavesFeatures.cpp` | 洞穴特征放置 |
+| chunk/ | `NoiseChunkGenerator.cpp` | 区块生成时通过 `PlacedFeature::place` 调用放置链 |
+| cave/ | `RootSystemFeature.cpp`, `VegetationPatchFeature.cpp` | 洞穴特征放置 |
 
 ---
 
@@ -219,7 +225,7 @@ chain->setNext(heightRange);
 
 **问题**：相同种子应产生相同结果，但随机数使用不一致会导致世界生成不可复现。
 
-**解决**：使用 `math::Random` 类，确保种子计算方式与 MC 1.16.5 一致。
+**解决**：使用 `math::Random` 类（禁用 `std::mt19937`），种子计算方式对齐 MC 1.21.11。
 
 ### 6. WorldGenRegion 边界检查
 
@@ -241,19 +247,34 @@ chain->setNext(heightRange);
 
 ---
 
-## 与 MC 1.16.5 的对应关系
+## 与 MC 1.21.11 的对应关系
 
-| 本项目类 | MC 1.16.5 类 | 说明 |
+| 本项目类 | MC 1.21.11 类 | 说明 |
 |----------|--------------|------|
 | `Placement` | `Placement` | 放置器基类 |
 | `IPlacementConfig` | `IPlacementConfig` | 配置基类 |
 | `CountPlacement` | `CountPlacement` | 数量放置 |
 | `HeightRangePlacement` | `RangePlacement` | 高度范围 |
 | `SquarePlacement` | `SquarePlacement` | 方形分散 |
-| `BiomePlacement` | `BiomePlacement` | 生物群系过滤 |
+| `BiomePlacement` | `BiomePlacement` | 生物群系白名单过滤 |
+| `BiomeFilterPlacement` | `BiomeFilter` | 生物群系过滤（placed_feature 是否属于该生物群系） |
 | `ChancePlacement` | `ChancePlacement` | 概率放置 |
 | `SurfacePlacement` | `SurfacePlacement` | 地表放置 |
 | `NoisePlacement` | `NoiseBasedPlacement` | 噪声放置 |
 | `CountNoisePlacement` | `CountNoisePlacement` | 噪声数量 |
 | `HeightmapPlacement` | `HeightmapPlacement` | 高度图放置 |
 | `RarityFilterPlacement` | `RarityFilter` | 稀有度过滤 |
+| `PlacedFeature` | `PlacedFeature` | 数据驱动的 placed_feature（feature 引用 + 放置链） |
+
+## 数据驱动加载
+
+`PlacedFeatureLoader` 从数据包枚举 `data/<namespace>/worldgen/placed_feature/*.json`，解析每个 placed_feature：
+- `feature` 字段：`ResourceLocation`，查 `ConfiguredFeatureRegistry` 得配置化特征指针
+- `placement` 数组：逐项按 `type` 查 `PlacementRegistry`，按 type 解析对应 `IPlacementConfig` JSON，用 `ConfiguredPlacement::then` 串链
+
+**MC JSON 名 ↔ 项目名映射**（loader 内部完成，对调用方透明）：
+- MC `in_square` → 项目 `square`
+- MC `biome`（BiomeFilter 语义）→ 项目 `biome_filter`（注意：不是项目的 `biome` 白名单）
+- 其余 placement type 同名
+
+未实现的 placement type 或引用未注册 configured_feature 时严格报错中断，便于按报错逐个补缺口。

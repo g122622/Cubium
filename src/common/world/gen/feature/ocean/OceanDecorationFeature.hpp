@@ -115,7 +115,7 @@ public:
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -124,23 +124,7 @@ public:
 private:
     std::unique_ptr<OceanDecorationFeatureConfig> m_config;
     std::string m_name;
-    OceanDecorationFeature m_feature;
-};
-
-/**
- * @brief 预定义海洋装饰特征
- */
-struct OceanDecorationFeatures {
-    static void initialize();
-
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredOceanDecorationFeature>>& getAllFeatures();
-
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredOceanDecorationFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredOceanDecorationFeature> createOceanProps();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredOceanDecorationFeature>> s_features;
+    mutable OceanDecorationFeature m_feature;
 };
 
 } // namespace mc

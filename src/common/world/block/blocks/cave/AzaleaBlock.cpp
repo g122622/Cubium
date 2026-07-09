@@ -25,7 +25,6 @@
 #include "AzaleaBlock.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/FeatureIds.hpp"
 
 namespace mc {
 namespace blocks {
@@ -106,7 +105,7 @@ void AzaleaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
     MC_UNUSED(state);
 
     // MC 1.21.11: TreeGrower.AZALEA.growTree(...)
-    // 需要 FeatureRegistry 在方块中可访问才能完成实现
+    // 需要 ConfiguredFeatureRegistry 在方块中可访问才能完成实现
     // 当前占位：骨粉效果尚未接入杜鹃树 feature
 }
 

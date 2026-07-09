@@ -386,105 +386,15 @@ ConfiguredCoralFeature::ConfiguredCoralFeature(std::unique_ptr<CoralFeatureConfi
     , m_name(featureName)
 {}
 
-bool ConfiguredCoralFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredCoralFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// CoralFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredCoralFeature>> CoralFeatures::s_features;
-
-void CoralFeatures::initialize()
-{
-    s_features.clear();
-    s_features.push_back(createTubeCoral());
-    s_features.push_back(createBrainCoral());
-    s_features.push_back(createBubbleCoral());
-    s_features.push_back(createFireCoral());
-    s_features.push_back(createHornCoral());
-    s_features.push_back(createDeadTubeCoral());
-    s_features.push_back(createDeadBrainCoral());
-    s_features.push_back(createDeadBubbleCoral());
-    s_features.push_back(createDeadFireCoral());
-    s_features.push_back(createDeadHornCoral());
-}
-
-const std::vector<std::unique_ptr<ConfiguredCoralFeature>>& CoralFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredCoralFeature>> CoralFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createTubeCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Tube, true, false);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "tube_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createBrainCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Brain, true, false);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "brain_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createBubbleCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Bubble, true, false);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "bubble_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createFireCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Fire, true, false);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "fire_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createHornCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Horn, true, false);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "horn_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadTubeCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Tube, true, true);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_tube_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadBrainCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Brain, true, true);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_brain_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadBubbleCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Bubble, true, true);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_dead_bubble_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadFireCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Fire, true, true);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_fire_coral");
-}
-
-std::unique_ptr<ConfiguredCoralFeature> CoralFeatures::createDeadHornCoral()
-{
-    auto config = std::make_unique<CoralFeatureConfig>(blocks::CoralColor::Horn, true, true);
-    return std::make_unique<ConfiguredCoralFeature>(std::move(config), "dead_horn_coral");
 }
 
 } // namespace mc

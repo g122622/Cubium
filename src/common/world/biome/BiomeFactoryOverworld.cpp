@@ -51,7 +51,7 @@ Biome createPlains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createPlains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
 
     // 主世界默认洞穴心境音效
@@ -73,7 +73,7 @@ Biome createDesert()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
 
     // 主世界默认洞穴心境音效
@@ -94,7 +94,7 @@ Biome createMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
 
     // 主世界默认洞穴心境音效
@@ -115,7 +115,7 @@ Biome createForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
 
     // 主世界默认洞穴心境音效
@@ -136,7 +136,7 @@ Biome createOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 海洋生物生成信息
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createOcean());
     return biome;
@@ -152,7 +152,7 @@ Biome createDeepOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDeepOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepOcean());
     return biome;
 }
@@ -167,7 +167,7 @@ Biome createTaiga()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
 
     // 主世界默认洞穴心境音效
@@ -190,7 +190,7 @@ Biome createSnowyTaiga()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 雪地针叶林水体颜色
     biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57E6).build());
@@ -207,7 +207,7 @@ Biome createJungle()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
 
     // 主世界默认洞穴心境音效
@@ -229,7 +229,7 @@ Biome createSavanna()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
 
     // 主世界默认洞穴心境音效
@@ -251,7 +251,7 @@ Biome createShatteredSavanna()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createShatteredSavanna());
     return biome;
 }
@@ -267,7 +267,7 @@ Biome createSavannaPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavannaPlateau());
     return biome;
 }
@@ -284,7 +284,7 @@ Biome createBadlands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE)); // Terracotta substitute
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBadlands());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 恶地特殊的黄褐色草和树叶
     biome.setEffects(BiomeEffects::Builder()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
@@ -306,7 +306,7 @@ Biome createErodedBadlands()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 与恶地相同的颜色
     biome.setEffects(BiomeEffects::Builder()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
@@ -328,7 +328,7 @@ Biome createBadlandsPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 与恶地相同的颜色
     biome.setEffects(BiomeEffects::Builder()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
@@ -350,7 +350,7 @@ Biome createWoodedBadlandsPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 与恶地相同的颜色
     biome.setEffects(BiomeEffects::Builder()
             .grassColor(BiomeEffects::BADLANDS_GRASS_COLOR)
@@ -370,7 +370,7 @@ Biome createBeach()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -384,7 +384,7 @@ Biome createStoneShore()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -399,8 +399,7 @@ Biome createSnowyBeach()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
-    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowyBeach());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     return biome;
 }
 
@@ -415,7 +414,7 @@ Biome createSwamp()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createSwamp());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSwamp());
     // 沼泽特殊颜色：水体为灰绿色，使用双色草/树叶
     biome.setEffects(BiomeEffects::Builder()
@@ -443,7 +442,7 @@ Biome createRiver()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createRiver());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
     return biome;
 }
@@ -458,7 +457,7 @@ Biome createWoodedHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -473,7 +472,7 @@ Biome createBirchForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -489,7 +488,7 @@ Biome createDarkForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     // 黑森林草颜色变暗
     biome.setEffects(BiomeEffects::Builder()
@@ -518,7 +517,7 @@ Biome createSnowyPlains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
 
     // 主世界默认洞穴心境音效
@@ -539,7 +538,7 @@ Biome createGiantTreeTaiga()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
 
     // 主世界默认洞穴心境音效
@@ -560,7 +559,7 @@ Biome createWoodedMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
     return biome;
 }
@@ -575,7 +574,7 @@ Biome createMountainEdge()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
     return biome;
 }
@@ -592,7 +591,7 @@ Biome createFrozenOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(true, 0.0f, BiomeClimate::TemperatureModifier::Frozen, 0.5f, 0.5f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createFrozenOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createFrozenOcean());
     // 冻洋水体颜色为深紫色
     biome.setEffects(BiomeEffects::Builder()
@@ -613,7 +612,7 @@ Biome createFrozenRiver()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(true, 0.0f, BiomeClimate::TemperatureModifier::Frozen, 0.5f, 0.5f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createFrozenRiver());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 冻河使用冻洋的水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -634,7 +633,7 @@ Biome createSnowyMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     return biome;
 }
@@ -650,7 +649,7 @@ Biome createIceSpikes()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createIceSpikes());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     return biome;
 }
@@ -667,7 +666,7 @@ Biome createDeepFrozenOcean()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(true, 0.0f, BiomeClimate::TemperatureModifier::Frozen, 0.5f, 0.5f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDeepFrozenOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createFrozenOcean());
     // 与冻洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -692,7 +691,7 @@ Biome createWarmOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
-    biome.setGenerationSettings(BiomeGenerationSettings::createWarmOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarmOcean());
     // 暖水海洋水体颜色为青绿色
     biome.setEffects(BiomeEffects::Builder()
@@ -713,7 +712,7 @@ Biome createLukewarmOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createLukewarmOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLukewarmOcean());
     // 温水海洋水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -734,7 +733,7 @@ Biome createColdOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createColdOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createColdOcean());
     // 冷水海洋水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -755,7 +754,7 @@ Biome createDeepWarmOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDeepWarmOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepWarmOcean());
     // 与暖水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -776,7 +775,7 @@ Biome createDeepLukewarmOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDeepLukewarmOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 对应 MC 1.16.5 func_244237_d(true)：深水版本 squid/cod 权重与浅水版本不同
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDeepLukewarmOcean());
     // 与温水海洋相同的水体颜色
@@ -798,7 +797,7 @@ Biome createDeepColdOcean()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDeepColdOcean());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createColdOcean());
     // 与冷水海洋相同的水体颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -818,7 +817,7 @@ Biome createJungleHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
     return biome;
 }
@@ -834,7 +833,7 @@ Biome createJungleEdge()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSparseJungle());
     return biome;
 }
@@ -849,7 +848,7 @@ Biome createBambooJungle()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBambooJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBambooJungle());
     return biome;
 }
@@ -864,7 +863,7 @@ Biome createBambooJungleHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBambooJungleHills());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBambooJungle());
     return biome;
 }
@@ -879,7 +878,7 @@ Biome createBirchForestHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -894,7 +893,7 @@ Biome createFlowerForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createFlowerForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -910,7 +909,7 @@ Biome createTallBirchForest()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -925,7 +924,7 @@ Biome createTallBirchHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createBirchForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -940,7 +939,7 @@ Biome createDarkForestHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
     return biome;
 }
@@ -957,7 +956,7 @@ Biome createMushroomFields()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(true, 0.9f, BiomeClimate::TemperatureModifier::None, 1.0f, 1.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createEmpty()); // 蘑菇岛没有普通生物
     return biome;
 }
@@ -974,7 +973,7 @@ Biome createMushroomFieldShore()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(true, 0.9f, BiomeClimate::TemperatureModifier::None, 1.0f, 1.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createEmpty());
     return biome;
 }
@@ -990,7 +989,7 @@ Biome createDesertHills()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
 }
@@ -1005,7 +1004,7 @@ Biome createTaigaHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
     return biome;
 }
@@ -1020,7 +1019,7 @@ Biome createGiantSpruceTaiga()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
     return biome;
 }
@@ -1035,7 +1034,7 @@ Biome createGiantSpruceTaigaHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
     return biome;
 }
@@ -1054,7 +1053,7 @@ Biome createSunflowerPlains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createPlains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
     return biome;
 }
@@ -1070,7 +1069,7 @@ Biome createDesertLakes()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SAND));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::SAND));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
 }
@@ -1085,7 +1084,7 @@ Biome createGravellyMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
     return biome;
 }
@@ -1100,7 +1099,7 @@ Biome createTaigaMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
     return biome;
 }
@@ -1115,7 +1114,7 @@ Biome createSwampHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createSwampHills());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSwamp());
     // 沼泽山丘使用与沼泽相同的颜色
     biome.setEffects(BiomeEffects::Builder()
@@ -1137,7 +1136,7 @@ Biome createModifiedJungle()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
     return biome;
 }
@@ -1152,7 +1151,7 @@ Biome createModifiedJungleEdge()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
     return biome;
 }
@@ -1168,7 +1167,7 @@ Biome createSnowyTaigaMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 雪地针叶林山地水体颜色
     biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57E6).build());
@@ -1185,7 +1184,7 @@ Biome createModifiedGravellyMountains()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
     return biome;
 }
@@ -1201,7 +1200,7 @@ Biome createShatteredSavannaPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     // 对应 MC 1.16.5 func_244211_a(true, true)：spawn list 与 ShatteredSavanna 相同（无 llama/wolf）
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createShatteredSavanna());
     return biome;
@@ -1218,7 +1217,7 @@ Biome createModifiedWoodedBadlandsPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
 }
@@ -1234,7 +1233,7 @@ Biome createModifiedBadlandsPlateau()
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::COBBLESTONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::RED_SANDSTONE));
     biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
     return biome;
 }
@@ -1250,7 +1249,7 @@ Biome createGiantTreeTaigaHillsBiome()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createForest());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
     return biome;
 }
@@ -1266,7 +1265,7 @@ Biome createSnowyTaigaHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
+    biome.setGenerationSettings(BiomeGenerationSettings{});
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
     // 雪地针叶林丘陵水体颜色
     biome.setEffects(BiomeEffects::Builder().waterColor(0x3D57E6).build());

@@ -27,9 +27,9 @@
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -325,81 +325,15 @@ ConfiguredBigMushroomFeature::ConfiguredBigMushroomFeature(
     }
 }
 
-bool ConfiguredBigMushroomFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBigMushroomFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
     return m_feature->place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// BigMushroomFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> BigMushroomFeatures::s_features;
-
-void BigMushroomFeatures::initialize()
-{
-    s_features.clear();
-
-    s_features.push_back(createBrownMushroom());
-    s_features.push_back(createRedMushroom());
-}
-
-const std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>>& BigMushroomFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> BigMushroomFeatures::getAllFeaturesAndClear()
-{
-    std::vector<std::unique_ptr<ConfiguredBigMushroomFeature>> result;
-    for (auto& feature : s_features) {
-        result.push_back(std::move(feature));
-    }
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createBrownMushroom()
-{
-    auto config = std::make_unique<BigMushroomFeatureConfig>();
-
-    // 使用棕色蘑菇方块作为盖，蘑菇柄作为茎
-    if (VanillaBlocks::BROWN_MUSHROOM_BLOCK) {
-        config->capState = &VanillaBlocks::BROWN_MUSHROOM_BLOCK->defaultState();
-    } else if (VanillaBlocks::BROWN_MUSHROOM) {
-        config->capState = &VanillaBlocks::BROWN_MUSHROOM->defaultState();
-    }
-    if (VanillaBlocks::MUSHROOM_STEM) {
-        config->stemState = &VanillaBlocks::MUSHROOM_STEM->defaultState();
-    } else if (VanillaBlocks::BROWN_MUSHROOM) {
-        config->stemState = &VanillaBlocks::BROWN_MUSHROOM->defaultState();
-    }
-    config->capRadius = 2;
-
-    return std::make_unique<ConfiguredBigMushroomFeature>(std::move(config), "brown_mushroom", true);
-}
-
-std::unique_ptr<ConfiguredBigMushroomFeature> BigMushroomFeatures::createRedMushroom()
-{
-    auto config = std::make_unique<BigMushroomFeatureConfig>();
-
-    // 使用红色蘑菇方块作为盖
-    if (VanillaBlocks::RED_MUSHROOM_BLOCK) {
-        config->capState = &VanillaBlocks::RED_MUSHROOM_BLOCK->defaultState();
-    } else if (VanillaBlocks::RED_MUSHROOM) {
-        config->capState = &VanillaBlocks::RED_MUSHROOM->defaultState();
-    }
-    if (VanillaBlocks::MUSHROOM_STEM) {
-        config->stemState = &VanillaBlocks::MUSHROOM_STEM->defaultState();
-    } else if (VanillaBlocks::RED_MUSHROOM) {
-        config->stemState = &VanillaBlocks::RED_MUSHROOM->defaultState();
-    }
-    config->capRadius = 2;
-
-    return std::make_unique<ConfiguredBigMushroomFeature>(std::move(config), "red_mushroom", false);
 }
 
 } // namespace mc

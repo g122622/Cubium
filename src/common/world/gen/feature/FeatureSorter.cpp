@@ -18,11 +18,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "FeatureSorter.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
+#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -30,20 +33,20 @@ namespace mc {
 
 std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     const std::vector<BiomeId>& possibleBiomes,
-    const std::function<const std::vector<u32>&(BiomeId, DecorationStage)>& getFeatures,
-    const FeatureRegistry& registry)
+    const std::function<const std::vector<ResourceLocation>&(BiomeId, DecorationStage)>& getFeatures,
+    const PlacedFeatureRegistry& registry)
 {
-    // Step 1: 为每个特征分配全局索引，并记录所属 step
-    // 使用 ConfiguredFeatureBase* 作为 key 确保跨 stage 的相同 fid 不会冲突
-    // （例如 Lakes::WaterLake=0, UndergroundOres::CoalOre=0, TopLayerModification::FreezeTopLayer=0）
-    std::unordered_map<ConfiguredFeatureBase*, i32> featureToGlobalIndex;
+    // Step 1: 为每个 placed_feature 分配全局索引，并记录所属 step
+    // 使用 const PlacedFeature* 作为 key 确保跨 stage 的相同 id 不会冲突
+    // （不同 stage 的 placed_feature 拥有不同的 ResourceLocation，天然不冲突）
+    std::unordered_map<const PlacedFeature*, i32> featureToGlobalIndex;
     i32 nextGlobalIndex = 0;
 
     // 收集每个生物群系的特征序列并建立依赖图
     std::map<FeatureData, std::set<FeatureData>> adjacencyList;
 
     // 成环诊断用：保留每个生物群系按生成顺序的特征序列，用于在检测到环后
-    // 反查“是哪些生物群系把环中相邻特征串成了 feature[k]→feature[k+1] 的依赖”。
+    // 反查"是哪些生物群系把环中相邻特征串成了 feature[k]→feature[k+1] 的依赖"。
     // key 为生物群系在 possibleBiomes 中的下标，value 为该生物群系按生成顺序的特征节点。
     std::vector<std::pair<BiomeId, std::vector<FeatureData>>> biomeFeatureSequences;
     biomeFeatureSequences.reserve(possibleBiomes.size());
@@ -62,36 +65,32 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
 
             maxStep = std::max(maxStep, stepIndex);
 
-            const auto& allFeatures = registry.getFeatures(stage);
-
-            for (u32 fid : featureIds) {
-                if (fid >= allFeatures.size() || allFeatures[fid] == nullptr) {
+            for (const ResourceLocation& placedFeatureId : featureIds) {
+                const PlacedFeature* feature = registry.get(placedFeatureId);
+                if (feature == nullptr) {
+                    // 该 placed_feature 未注册（数据驱动缺口），跳过但不中断排序
                     continue;
                 }
 
-                ConfiguredFeatureBase* feature = allFeatures[fid];
-
-                // 分配全局索引（如果尚未分配）——以特征对象指针为 key，与 Java 原版一致
+                // 分配全局索引（如果尚未分配）——以 PlacedFeature 指针为 key
                 auto it = featureToGlobalIndex.find(feature);
                 if (it == featureToGlobalIndex.end()) {
                     it = featureToGlobalIndex.emplace(feature, nextGlobalIndex++).first;
                 }
 
-                biomeFeatures.push_back({it->second, stepIndex, fid, feature});
+                biomeFeatures.push_back({it->second, stepIndex, placedFeatureId, feature});
             }
         }
 
         // Step 2: 建立依赖图
         // 同一生物群系内，feature[k] 必须在 feature[k+1] 之前放置
+        // operator[] 为每个节点（含无后继的叶子节点）创建邻接集条目，
+        // 保证后续 Step 3 遍历能覆盖全部节点
         for (size_t k = 0; k < biomeFeatures.size(); ++k) {
             const FeatureData& node = biomeFeatures[k];
-            // 确保节点在邻接表中
-            if (adjacencyList.find(node) == adjacencyList.end()) {
-                adjacencyList[node] = {};
-            }
-
+            auto& neighbors = adjacencyList[node];
             if (k + 1 < biomeFeatures.size()) {
-                adjacencyList[node].insert(biomeFeatures[k + 1]);
+                neighbors.insert(biomeFeatures[k + 1]);
             }
         }
 
@@ -108,11 +107,9 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
 
     for (const auto& [node, neighbors] : adjacencyList) {
         indexToData[node.globalIndex] = node;
-        if (adjByIndex.find(node.globalIndex) == adjByIndex.end()) {
-            adjByIndex[node.globalIndex] = {};
-        }
+        auto& idxNeighbors = adjByIndex[node.globalIndex];
         for (const auto& neighbor : neighbors) {
-            adjByIndex[node.globalIndex].push_back(neighbor.globalIndex);
+            idxNeighbors.push_back(neighbor.globalIndex);
             indexToData[neighbor.globalIndex] = neighbor;
         }
     }
@@ -153,7 +150,6 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
 
             // 反查成因：环中每条相邻依赖 (cycle[k] -> cycle[k+1]) 是由哪些生物群系
             // 在其生成序列中以相邻 feature[k]→feature[k+1] 的形式建立的。
-            // 这些生物群系就是“把环串起来”的参与者。
             std::string sources;
             for (size_t k = 0; k + 1 < cycle.cycleNodes.size(); ++k) {
                 i32 fromIdx = cycle.cycleNodes[k];
@@ -175,6 +171,9 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
             }
 
             spdlog::warn("[FeatureSorter] Feature order cycle detected, sorting may be incomplete.");
+            // TODO: 成环时当前仅 warn 不中断，拓扑顺序在环上不完整。原版行为是抛异常中断生成，
+            // 项目暂沿用 warn 容忍（数据包成环已在 BiomeGenerationSettings 去重阶段规避大多数情况），
+            // 待评估是否升级为严格中断。
             spdlog::warn("[FeatureSorter]   cycle: {}", chain);
             if (!sources.empty()) {
                 spdlog::warn("[FeatureSorter]   involved biomes (edge source): {}", sources);
@@ -192,8 +191,8 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     result.resize(static_cast<size_t>(maxStep + 1));
 
     for (i32 stepIndex = 0; stepIndex <= maxStep; ++stepIndex) {
-        std::vector<ConfiguredFeatureBase*> stepFeatures;
-        std::vector<u32> stepFeatureIds;
+        std::vector<const PlacedFeature*> stepFeatures;
+        std::vector<ResourceLocation> stepFeatureIds;
 
         for (i32 globalIdx : topoOrder) {
             auto dataIt = indexToData.find(globalIdx);
@@ -222,8 +221,6 @@ bool FeatureSorter::depthFirstSearch(const std::unordered_map<i32, std::vector<i
     }
     if (inProgress.count(node)) {
         // 检测到回边：当前 node 仍在递归栈中，path 中从首次出现 node 处到栈顶构成一条环。
-        // 截取该片段（首尾补上 node 便于阅读：A -> B -> C -> A）记录为一条 CycleInfo。
-        // 跳过此回边不继续深入，继续处理其他分支。
         CycleInfo info;
         for (size_t i = 0; i < path.size(); ++i) {
             if (path[i] == node) {
@@ -263,7 +260,8 @@ bool FeatureSorter::depthFirstSearch(const std::unordered_map<i32, std::vector<i
 
 std::string FeatureSorter::_formatNode(const FeatureData& data)
 {
-    const char* featureName = data.feature ? data.feature->name() : "<null>";
+    // 显示 placed_feature 的 ResourceLocation @ 装饰阶段 (#全局索引)
+    const std::string featureName = data.feature ? data.feature->id().toString() : std::string("<null>");
     const char* stageName = DecorationStages::getName(static_cast<DecorationStage>(data.step));
     return fmt::format("{}@{}(#{})", featureName, stageName, data.globalIndex);
 }

@@ -142,6 +142,19 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(
 
     // currentChunk 为空：需要先加载 EMPTY（从存档或新建空 Primer）
     if (holder.getCurrentChunk() == nullptr) {
+        // 存档解析在途（ResolvingStorage）：异步加载尚未完成，EMPTY 不应在此调度。
+        // 本 holder 的 EMPTY 推进由存档解析路径（_onChunkLoadComplete→noteStorageResolved→
+        // _advanceChunkState→_scheduleGeneration）独占负责：存档命中→markLoadedFromStorageReady(FULL)，
+        // 存档缺失→StorageMissing 后调度 EMPTY 任务。若此处也调度 EMPTY，会与在途的异步加载竞态：
+        // EMPTY 任务运行时 sourceState 仍为 ResolvingStorage，executeEmptyLoad 返回 false →
+        // onChunkGenFailed→markFailed（永久不可恢复）→ checkNeighbour 把它当永久阻塞 → 所有依赖该区块的
+        // 邻居级联失败（曾导致 spawn 环整圈区块 onChunkGenFailed）。
+        // 调用方（checkNeighbour）已建立双向依赖（addBlockingNeighbour/addWaitingNeighbour），
+        // 存档解析完成后该 holder 的 onChunkGenComplete（生成路径）或 _completeReadyWaiters（命中路径）
+        // 会解除中心 holder 的阻塞。故此处直接返回 nullptr，不提交任务。
+        if (holder.sourceState() == mc::world::chunk::SingleChunkLifecycleManager::SourceState::ResolvingStorage) {
+            return nullptr;
+        }
         return scheduleEmptyLoad(x, z, holder);
     }
 

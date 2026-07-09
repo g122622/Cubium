@@ -118,43 +118,15 @@ ConfiguredGlowstoneFeature::ConfiguredGlowstoneFeature(
     , m_name(featureName)
 {}
 
-bool ConfiguredGlowstoneFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredGlowstoneFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos) const
 {
     (void)chunk;
     (void)generator;
     return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// GlowstoneFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::s_features;
-
-void GlowstoneFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-
-    s_features.push_back(createNormal());
-}
-
-const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& GlowstoneFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createNormal()
-{
-    auto config = std::make_unique<GlowstoneFeatureConfig>();
-    return std::make_unique<ConfiguredGlowstoneFeature>(std::move(config), "glowstone");
 }
 
 } // namespace mc

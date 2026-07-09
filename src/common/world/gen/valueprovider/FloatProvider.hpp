@@ -216,4 +216,59 @@ private:
     f32 m_max;
 };
 
+// ============================================================================
+// ClampedNormalFloat — 钳位正态分布浮点值提供器
+// ============================================================================
+
+/**
+ * @brief 钳位正态分布浮点值提供器（MC 1.21 ClampedNormalFloat）
+ *
+ * 以 (mean, deviation) 正态分布采样，再钳位到 [min, max]。
+ * 采样方法：Mth.clamp(Mth.normal(rng, mean, deviation), min, max)。
+ *
+ * 用途：DripstoneClusterFeature 的滴石高度采样、LargeDripstoneFeature 的钝度/高度缩放。
+ */
+class ClampedNormalFloat final : public FloatProvider {
+public:
+    static std::unique_ptr<ClampedNormalFloat> create(f32 mean, f32 deviation, f32 min, f32 max)
+    {
+        return std::make_unique<ClampedNormalFloat>(mean, deviation, min, max);
+    }
+
+    ClampedNormalFloat(f32 mean, f32 deviation, f32 min, f32 max)
+        : m_mean(mean)
+        , m_deviation(deviation)
+        , m_min(min)
+        , m_max(max)
+    {}
+
+    [[nodiscard]] f32 sample(math::IRandom& rng) const override
+    {
+        return sampleStatic(rng, m_mean, m_deviation, m_min, m_max);
+    }
+
+    [[nodiscard]] f32 getMinValue() const override { return m_min; }
+    [[nodiscard]] f32 getMaxValue() const override { return m_max; }
+    [[nodiscard]] const char* getTypeName() const override { return "clamped_normal"; }
+
+    [[nodiscard]] f32 getMean() const noexcept { return m_mean; }
+    [[nodiscard]] f32 getDeviation() const noexcept { return m_deviation; }
+
+    /**
+     * @brief 静态采样：clamp(normal(rng, mean, deviation), min, max)
+     *
+     * DripstoneClusterFeature.randomBetweenBiased 直接调用此静态方法。
+     */
+    [[nodiscard]] static f32 sampleStatic(math::IRandom& rng, f32 mean, f32 deviation, f32 min, f32 max)
+    {
+        return std::clamp(rng.nextGaussian(mean, deviation), min, max);
+    }
+
+private:
+    f32 m_mean;
+    f32 m_deviation;
+    f32 m_min;
+    f32 m_max;
+};
+
 } // namespace mc::world::gen::valueprovider

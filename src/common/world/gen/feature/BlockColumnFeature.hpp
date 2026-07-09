@@ -120,24 +120,24 @@ public:
 
 /**
  * @brief 配置化方块柱特征
+ *
+ * 数据驱动下 placement 链由 PlacedFeature 持有并在 place() 前走完，
+ * 本类只负责在已确定的 pos 处放置方块柱。
  */
 class ConfiguredBlockColumnFeature : public ConfiguredFeatureBase {
 public:
-    ConfiguredBlockColumnFeature(std::unique_ptr<BlockColumnConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement,
-        const char* featureName);
+    ConfiguredBlockColumnFeature(std::unique_ptr<BlockColumnConfig> config, const char* featureName);
 
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
         math::Random& random,
-        const BlockPos& pos) override;
+        const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
 private:
     std::unique_ptr<BlockColumnConfig> m_config;
-    std::unique_ptr<ConfiguredPlacement> m_placement;
     std::string m_name;
 };
 

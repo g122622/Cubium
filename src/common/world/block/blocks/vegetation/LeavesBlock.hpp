@@ -26,6 +26,7 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 
 namespace mc {
@@ -45,10 +46,11 @@ namespace blocks {
  * 状态属性:
  * - DISTANCE (1-7): 距离最近原木的距离，7表示超过6格
  * - PERSISTENT: 是否持久（玩家放置的树叶）
+ * - WATERLOGGED: 是否含水
  *
  * 参考: net.minecraft.block.LeavesBlock
  */
-class LeavesBlock : public Block {
+class LeavesBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -140,6 +142,23 @@ public:
      * @brief 获取碰撞形状（树叶无碰撞）
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    // ========== 含水接口 ==========
+
+    /**
+     * @brief 获取方块对应的流体状态
+     *
+     * 含水时返回水的流体状态，否则返回空。
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
 
 private:
     /**

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/WorldGenRegistryFixture.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -50,13 +51,21 @@ protected:
     /**
      * @brief 初始化测试依赖
      *
-     * @note 方块和生物群系注册表是生成流程的前置条件。
+     * @note 方块和生物群系注册表是生成流程的前置条件。数据驱动迁移后雕刻器需从
+     *       数据包加载到 ConfiguredCarverRegistry，否则 applyCarvers 无雕刻器可执行。
+     *       数据包目录缺失时跳过整个测试套件（无法验证雕刻一致性）。
      */
     static void SetUpTestSuite()
     {
         VanillaBlocks::initialize();
-        BiomeRegistry::instance().initialize();
+        // 从默认数据包目录加载 worldgen 注册表（carver/feature/biome）。
+        // 失败时置标志，后续 TEST 用 GTEST_SKIP 跳过。
+        if (!test::loadVanillaWorldGenRegistries()) {
+            s_registriesLoaded = false;
+        }
     }
+
+    static inline bool s_registriesLoaded = true;
 
     /**
      * @brief 以石头填满整个区块
@@ -161,6 +170,10 @@ protected:
  */
 TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipelineParity)
 {
+    if (!s_registriesLoaded) {
+        GTEST_SKIP() << "Vanilla datapacks unavailable; cannot validate carver pipeline parity";
+    }
+
     constexpr u64 seed = 0x4D435245424F524EULL;
 
     DimensionSettings defaultSettings = DimensionSettings::overworld();

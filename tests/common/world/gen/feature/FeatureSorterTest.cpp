@@ -18,12 +18,18 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
-#include "../src/common/world/gen/feature/FeatureSorter.hpp"
-#include "../src/common/core/Types.hpp"
-#include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
-#include "../src/common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/FeatureSorter.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
+#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
+#include "common/world/gen/placement/Placement.hpp"
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -38,7 +44,7 @@ using namespace mc;
 /**
  * @brief 最小化的 ConfiguredFeatureBase 实现，仅用于测试
  *
- * FeatureSorter 只使用特征对象的指针身份和 featureId，
+ * FeatureSorter 只使用特征对象的指针身份和 ResourceLocation id，
  * 不调用 place() 方法。
  */
 class StubFeature : public ConfiguredFeatureBase {
@@ -48,7 +54,7 @@ public:
         , m_stage(s)
     {}
 
-    bool place(WorldGenRegion&, ChunkPrimer&, IChunkGenerator&, math::Random&, const BlockPos&) override
+    bool place(WorldGenRegion&, ChunkPrimer&, IChunkGenerator&, math::Random&, const BlockPos&) const override
     {
         return false;
     }
@@ -66,40 +72,61 @@ private:
 // ============================================================================
 
 /**
- * @brief 注册一个 stub 特征到 FeatureRegistry
- * @param registry 特征注册表
- * @param name 特征名称
+ * @brief 注册一个 stub 放置特征到 PlacedFeatureRegistry
+ *
+ * 构造一个 StubFeature（ConfiguredFeatureBase）并用一个最小放置链
+ * （SquarePlacement + EmptyPlacementConfig，行为无关紧要——测试从不调用 place()）
+ * 包装成 PlacedFeature，以 ResourceLocation("test", name) 为 id 注册。
+ *
+ * @param registry 放置特征注册表
+ * @param name 特征名称（同时作为 ResourceLocation 的 path）
  * @param stage 装饰阶段
- * @return 注册后的特征指针（由 registry 拥有所有权）
+ * @return 注册后的 PlacedFeature 指针（由 registry 拥有所有权）
  */
-static ConfiguredFeatureBase* registerStub(FeatureRegistry& registry, const char* name, DecorationStage stage)
+static const PlacedFeature* registerPlacedStub(PlacedFeatureRegistry& registry, const char* name, DecorationStage stage)
 {
-    auto feature = std::make_unique<StubFeature>(name, stage);
-    ConfiguredFeatureBase* ptr = feature.get();
-    registry.registerFeature(std::move(feature), stage);
-    return ptr;
+    auto configuredFeature = std::make_unique<StubFeature>(name, stage);
+    const ConfiguredFeatureBase* configuredPtr = configuredFeature.get();
+
+    // PlacedFeature 不拥有 ConfiguredFeatureBase 所有权，需要先保活。
+    // 这里把 configuredFeature 的所有权借给一个 static 容器，避免泄漏。
+    // （测试场景下 registry 在 TearDown 清空，stub 配置由下方 s_stubConfigs 持有。）
+    static std::vector<std::unique_ptr<ConfiguredFeatureBase>> s_stubConfigs;
+    s_stubConfigs.push_back(std::move(configuredFeature));
+
+    // PlacedFeature 构造要求 placement 非空（与 MC 语义一致：PlacedFeature 必须含 placement 链）。
+    // FeatureSorter 仅使用指针身份与 id，不调用 place()，故放置链行为无关紧要，
+    // 这里用最小的 SquarePlacement + EmptyPlacementConfig 占位。
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<SquarePlacement>(), std::make_unique<EmptyPlacementConfig>());
+
+    auto placedFeature =
+        std::make_unique<PlacedFeature>(configuredPtr, std::move(placement), ResourceLocation("test", name));
+    const PlacedFeature* placedPtr = placedFeature.get();
+    registry.registerPlacedFeature(std::move(placedFeature));
+    return placedPtr;
 }
 
 /**
- * @brief 测试夹具：自动清除 FeatureRegistry
+ * @brief 测试夹具：自动清除 PlacedFeatureRegistry
  */
 class FeatureSorterTest : public ::testing::Test {
 protected:
-    void SetUp() override { FeatureRegistry::instance().clear(); }
+    void SetUp() override { PlacedFeatureRegistry::instance().clear(); }
 
-    void TearDown() override { FeatureRegistry::instance().clear(); }
+    void TearDown() override { PlacedFeatureRegistry::instance().clear(); }
 
     /**
      * @brief 构建 getFeatures 回调函数
      *
-     * 使用 map<(BiomeId, stageIndex), vector<fid>> 存储测试数据，
+     * 使用 map<(BiomeId, stageIndex), vector<ResourceLocation>> 存储测试数据，
      * 返回的 lambda 返回对应 vector 的 const 引用。
      */
-    static std::function<const std::vector<u32>&(BiomeId, DecorationStage)> makeGetFeatures(
-        std::map<std::pair<BiomeId, int>, std::vector<u32>>& data)
+    static std::function<const std::vector<ResourceLocation>&(BiomeId, DecorationStage)> makeGetFeatures(
+        std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>>& data)
     {
-        return [&data](BiomeId biomeId, DecorationStage stage) -> const std::vector<u32>& {
-            static const std::vector<u32> empty;
+        return [&data](BiomeId biomeId, DecorationStage stage) -> const std::vector<ResourceLocation>& {
+            static const std::vector<ResourceLocation> empty;
             auto it = data.find({biomeId, static_cast<int>(stage)});
             return it != data.end() ? it->second : empty;
         };
@@ -121,39 +148,46 @@ TEST_F(FeatureSorterTest, StepFeatureDataEmpty)
 
 TEST_F(FeatureSorterTest, StepFeatureDataConstructorAndIndexMapping)
 {
-    // 创建 3 个 stub 特征（不需要注册到 registry，仅测试 StepFeatureData 构造）
-    auto f1 = std::make_unique<StubFeature>("feature_a", DecorationStage::UndergroundOres);
-    auto f2 = std::make_unique<StubFeature>("feature_b", DecorationStage::UndergroundOres);
-    auto f3 = std::make_unique<StubFeature>("feature_c", DecorationStage::UndergroundOres);
+    // 创建 3 个 stub 放置特征（不需要注册到 registry，仅测试 StepFeatureData 构造）
+    auto& registry = PlacedFeatureRegistry::instance();
+    const PlacedFeature* f1 = registerPlacedStub(registry, "feature_a", DecorationStage::UndergroundOres);
+    const PlacedFeature* f2 = registerPlacedStub(registry, "feature_b", DecorationStage::UndergroundOres);
+    const PlacedFeature* f3 = registerPlacedStub(registry, "feature_c", DecorationStage::UndergroundOres);
 
-    std::vector<ConfiguredFeatureBase*> features = {f1.get(), f2.get(), f3.get()};
-    std::vector<u32> featureIds = {10, 20, 30};
+    std::vector<const PlacedFeature*> features = {f1, f2, f3};
+    std::vector<ResourceLocation> featureIds = {
+        ResourceLocation("test", "feature_a"),
+        ResourceLocation("test", "feature_b"),
+        ResourceLocation("test", "feature_c"),
+    };
 
     FeatureSorter::StepFeatureData data(features, featureIds);
 
     EXPECT_FALSE(data.empty());
     EXPECT_EQ(data.features.size(), 3u);
-    EXPECT_EQ(data.features[0], f1.get());
-    EXPECT_EQ(data.features[1], f2.get());
-    EXPECT_EQ(data.features[2], f3.get());
+    EXPECT_EQ(data.features[0], f1);
+    EXPECT_EQ(data.features[1], f2);
+    EXPECT_EQ(data.features[2], f3);
 
-    // indexMapping: featureId -> sortedIndex
-    EXPECT_EQ(data.getIndex(10), 0);
-    EXPECT_EQ(data.getIndex(20), 1);
-    EXPECT_EQ(data.getIndex(30), 2);
+    // indexMapping: placed_feature id → sortedIndex
+    EXPECT_EQ(data.getIndex(ResourceLocation("test", "feature_a")), 0);
+    EXPECT_EQ(data.getIndex(ResourceLocation("test", "feature_b")), 1);
+    EXPECT_EQ(data.getIndex(ResourceLocation("test", "feature_c")), 2);
 }
 
 TEST_F(FeatureSorterTest, StepFeatureDataGetIndexNotFound)
 {
-    auto f1 = std::make_unique<StubFeature>("feature_a", DecorationStage::UndergroundOres);
-    std::vector<ConfiguredFeatureBase*> features = {f1.get()};
-    std::vector<u32> featureIds = {5};
+    auto& registry = PlacedFeatureRegistry::instance();
+    const PlacedFeature* f1 = registerPlacedStub(registry, "feature_a", DecorationStage::UndergroundOres);
+
+    std::vector<const PlacedFeature*> features = {f1};
+    std::vector<ResourceLocation> featureIds = {ResourceLocation("test", "feature_a")};
 
     FeatureSorter::StepFeatureData data(features, featureIds);
 
-    EXPECT_EQ(data.getIndex(5), 0);
-    EXPECT_EQ(data.getIndex(999), -1); // 不存在的 featureId
-    EXPECT_EQ(data.getIndex(0), -1);   // 不存在的 featureId
+    EXPECT_EQ(data.getIndex(ResourceLocation("test", "feature_a")), 0);
+    EXPECT_EQ(data.getIndex(ResourceLocation("test", "nonexistent")), -1); // 不存在的 id
+    EXPECT_EQ(data.getIndex(ResourceLocation("other", "feature_a")), -1);  // 命名空间不同
 }
 
 // ============================================================================
@@ -162,8 +196,8 @@ TEST_F(FeatureSorterTest, StepFeatureDataGetIndexNotFound)
 
 TEST_F(FeatureSorterTest, EmptyBiomesList)
 {
-    auto& registry = FeatureRegistry::instance();
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
+    auto& registry = PlacedFeatureRegistry::instance();
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
     auto getFeatures = makeGetFeatures(biomeData);
 
     std::vector<BiomeId> biomes; // 空
@@ -176,14 +210,14 @@ TEST_F(FeatureSorterTest, EmptyBiomesList)
 
 TEST_F(FeatureSorterTest, SingleBiomeSingleStageSingleFeature)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    // 注册 1 个特征到 UndergroundOres 阶段
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    // 注册 1 个放置特征到 UndergroundOres 阶段
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
 
     // 生物群系 0 在 UndergroundOres 有 1 个特征
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0}; // fid=0
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {ResourceLocation("test", "coal_ore")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -197,7 +231,7 @@ TEST_F(FeatureSorterTest, SingleBiomeSingleStageSingleFeature)
     auto& oresStep = result[static_cast<int>(DecorationStage::UndergroundOres)];
     ASSERT_EQ(oresStep.features.size(), 1u);
     EXPECT_EQ(oresStep.features[0], coalOre);
-    EXPECT_EQ(oresStep.getIndex(0), 0); // fid=0 在排序后索引为 0
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "coal_ore")), 0);
 
     // 其他步骤应为空（result 大小为 maxStep+1=7，索引 0-6）
     EXPECT_TRUE(result[static_cast<int>(DecorationStage::Lakes)].empty());
@@ -206,16 +240,20 @@ TEST_F(FeatureSorterTest, SingleBiomeSingleStageSingleFeature)
 
 TEST_F(FeatureSorterTest, SingleBiomeMultipleFeaturesSameStage)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    // 注册 3 个特征到 UndergroundOres 阶段
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
-    auto* ironOre = registerStub(registry, "iron_ore", DecorationStage::UndergroundOres);
-    auto* goldOre = registerStub(registry, "gold_ore", DecorationStage::UndergroundOres);
+    // 注册 3 个放置特征到 UndergroundOres 阶段
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* ironOre = registerPlacedStub(registry, "iron_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* goldOre = registerPlacedStub(registry, "gold_ore", DecorationStage::UndergroundOres);
 
     // 生物群系 0 在 UndergroundOres 有 3 个特征
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1, 2};
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+        ResourceLocation("test", "gold_ore"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -231,31 +269,39 @@ TEST_F(FeatureSorterTest, SingleBiomeMultipleFeaturesSameStage)
     EXPECT_EQ(oresStep.features[2], goldOre);
 
     // indexMapping 验证
-    EXPECT_EQ(oresStep.getIndex(0), 0); // coalOre fid=0
-    EXPECT_EQ(oresStep.getIndex(1), 1); // ironOre fid=1
-    EXPECT_EQ(oresStep.getIndex(2), 2); // goldOre fid=2
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "coal_ore")), 0);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "iron_ore")), 1);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "gold_ore")), 2);
 }
 
 TEST_F(FeatureSorterTest, SingleBiomeMultipleStages)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    // Lakes 阶段: WaterLake(fid=0), LavaLake(fid=1)
-    auto* waterLake = registerStub(registry, "water_lake", DecorationStage::Lakes);
-    auto* lavaLake = registerStub(registry, "lava_lake", DecorationStage::Lakes);
+    // Lakes 阶段: WaterLake, LavaLake
+    const PlacedFeature* waterLake = registerPlacedStub(registry, "water_lake", DecorationStage::Lakes);
+    const PlacedFeature* lavaLake = registerPlacedStub(registry, "lava_lake", DecorationStage::Lakes);
 
-    // UndergroundOres 阶段: CoalOre(fid=0), IronOre(fid=1)
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
-    auto* ironOre = registerStub(registry, "iron_ore", DecorationStage::UndergroundOres);
+    // UndergroundOres 阶段: CoalOre, IronOre
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* ironOre = registerPlacedStub(registry, "iron_ore", DecorationStage::UndergroundOres);
 
-    // VegetalDecoration 阶段: OakTree(fid=0)
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
+    // VegetalDecoration 阶段: OakTree
+    const PlacedFeature* oakTree = registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
 
     // 生物群系 0: Lakes + UndergroundOres + VegetalDecoration
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {0, 1};
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1};
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {
+        ResourceLocation("test", "water_lake"),
+        ResourceLocation("test", "lava_lake"),
+    };
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+    };
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "oak_tree"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -287,19 +333,22 @@ TEST_F(FeatureSorterTest, SingleBiomeMultipleStages)
 
 TEST_F(FeatureSorterTest, SingleBiomeFeaturesInCorrectStep)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
     // 注册特征到不同阶段
-    auto* waterLake = registerStub(registry, "water_lake", DecorationStage::Lakes);         // stage 1
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);   // stage 6
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration); // stage 9
-    auto* freeze = registerStub(registry, "freeze", DecorationStage::TopLayerModification); // stage 10
+    const PlacedFeature* waterLake = registerPlacedStub(registry, "water_lake", DecorationStage::Lakes); // stage 1
+    const PlacedFeature* coalOre =
+        registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres); // stage 6
+    const PlacedFeature* oakTree =
+        registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration); // stage 9
+    const PlacedFeature* freeze =
+        registerPlacedStub(registry, "freeze", DecorationStage::TopLayerModification); // stage 10
 
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {0};
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {ResourceLocation("test", "water_lake")};
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {ResourceLocation("test", "coal_ore")};
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "oak_tree")};
+    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {ResourceLocation("test", "freeze")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -316,10 +365,10 @@ TEST_F(FeatureSorterTest, SingleBiomeFeaturesInCorrectStep)
     EXPECT_EQ(result[10].features[0], freeze);
 
     // 验证 indexMapping
-    EXPECT_EQ(result[1].getIndex(0), 0);
-    EXPECT_EQ(result[6].getIndex(0), 0);
-    EXPECT_EQ(result[9].getIndex(0), 0);
-    EXPECT_EQ(result[10].getIndex(0), 0);
+    EXPECT_EQ(result[1].getIndex(ResourceLocation("test", "water_lake")), 0);
+    EXPECT_EQ(result[6].getIndex(ResourceLocation("test", "coal_ore")), 0);
+    EXPECT_EQ(result[9].getIndex(ResourceLocation("test", "oak_tree")), 0);
+    EXPECT_EQ(result[10].getIndex(ResourceLocation("test", "freeze")), 0);
 }
 
 // ============================================================================
@@ -328,17 +377,24 @@ TEST_F(FeatureSorterTest, SingleBiomeFeaturesInCorrectStep)
 
 TEST_F(FeatureSorterTest, TwoBiomesSharedFeatures)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    // 注册 3 个矿石特征
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
-    auto* ironOre = registerStub(registry, "iron_ore", DecorationStage::UndergroundOres);
-    auto* goldOre = registerStub(registry, "gold_ore", DecorationStage::UndergroundOres);
+    // 注册 3 个矿石放置特征
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* ironOre = registerPlacedStub(registry, "iron_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* goldOre = registerPlacedStub(registry, "gold_ore", DecorationStage::UndergroundOres);
 
     // 生物群系 0 和 1 共享 coalOre 和 ironOre
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1};    // coal, iron
-    biomeData[{1, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1, 2}; // coal, iron, gold
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+    };
+    biomeData[{1, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+        ResourceLocation("test", "gold_ore"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
@@ -356,27 +412,34 @@ TEST_F(FeatureSorterTest, TwoBiomesSharedFeatures)
     EXPECT_EQ(oresStep.features[2], goldOre);
 
     // indexMapping 验证
-    EXPECT_EQ(oresStep.getIndex(0), 0); // coalOre
-    EXPECT_EQ(oresStep.getIndex(1), 1); // ironOre
-    EXPECT_EQ(oresStep.getIndex(2), 2); // goldOre
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "coal_ore")), 0);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "iron_ore")), 1);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "gold_ore")), 2);
 }
 
 TEST_F(FeatureSorterTest, TwoBiomesSharedFeaturesInSameStage)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    // VegetalDecoration 阶段特征
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
-    auto* birchTree = registerStub(registry, "birch_tree", DecorationStage::VegetalDecoration);
-    auto* spruceTree = registerStub(registry, "spruce_tree", DecorationStage::VegetalDecoration);
-    auto* plainsGrass = registerStub(registry, "plains_grass", DecorationStage::VegetalDecoration);
+    // Vegetal Decoration 阶段特征
+    const PlacedFeature* oakTree = registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* birchTree = registerPlacedStub(registry, "birch_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* spruceTree = registerPlacedStub(registry, "spruce_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* plainsGrass = registerPlacedStub(registry, "plains_grass", DecorationStage::VegetalDecoration);
 
     // 生物群系 0 (Plains): oak + grass
     // 生物群系 1 (Forest): oak + birch + spruce
     // oakTree 被两个生物群系共享
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0, 3};    // oak, grass
-    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0, 1, 2}; // oak, birch, spruce
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "oak_tree"),
+        ResourceLocation("test", "plains_grass"),
+    };
+    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "oak_tree"),
+        ResourceLocation("test", "birch_tree"),
+        ResourceLocation("test", "spruce_tree"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
@@ -389,10 +452,10 @@ TEST_F(FeatureSorterTest, TwoBiomesSharedFeaturesInSameStage)
     // oakTree 应该排在 birchTree/spruceTree 之前（来自 Forest 的边: oak→birch→spruce）
     // oakTree 也应该在 plainsGrass 之前（来自 Plains 的边: oak→grass）
     // 验证 oakTree 的索引小于 birchTree 和 plainsGrass
-    i32 oakIdx = vegetalStep.getIndex(0);
-    i32 birchIdx = vegetalStep.getIndex(1);
-    i32 spruceIdx = vegetalStep.getIndex(2);
-    i32 grassIdx = vegetalStep.getIndex(3);
+    i32 oakIdx = vegetalStep.getIndex(ResourceLocation("test", "oak_tree"));
+    i32 birchIdx = vegetalStep.getIndex(ResourceLocation("test", "birch_tree"));
+    i32 spruceIdx = vegetalStep.getIndex(ResourceLocation("test", "spruce_tree"));
+    i32 grassIdx = vegetalStep.getIndex(ResourceLocation("test", "plains_grass"));
 
     EXPECT_GE(oakIdx, 0);
     EXPECT_GE(birchIdx, 0);
@@ -409,23 +472,24 @@ TEST_F(FeatureSorterTest, TwoBiomesSharedFeaturesInSameStage)
 TEST_F(FeatureSorterTest, CrossStageGlobalIndexNoCollision)
 {
     // 回归测试：不同 stage 的同名 fid 不应碰撞
-    // 这是修复 featureIdToGlobalIndex 使用 fid 作为 key 的 bug 的核心测试
-    auto& registry = FeatureRegistry::instance();
+    // 新标识体系下 placed_feature id 是 ResourceLocation，跨 stage 不会重名；
+    // 这里沿用原测试意图：同一生物群系在多个 stage 引用不同 placed_feature，每个 stage 独立排序。
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    // Lakes 阶段: fid=0 是 WaterLake
-    auto* waterLake = registerStub(registry, "water_lake", DecorationStage::Lakes);
+    // Lakes 阶段: WaterLake
+    const PlacedFeature* waterLake = registerPlacedStub(registry, "water_lake", DecorationStage::Lakes);
 
-    // UndergroundOres 阶段: fid=0 是 CoalOre（与 Lakes 的 fid=0 相同！）
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    // UndergroundOres 阶段: CoalOre（与 WaterLake 是不同的 placed_feature）
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
 
-    // TopLayerModification 阶段: fid=0 是 FreezeTopLayer
-    auto* freezeTop = registerStub(registry, "freeze_top", DecorationStage::TopLayerModification);
+    // TopLayerModification 阶段: FreezeTopLayer
+    const PlacedFeature* freezeTop = registerPlacedStub(registry, "freeze_top", DecorationStage::TopLayerModification);
 
     // 生物群系 0 拥有所有三个阶段的特征
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {0};
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {ResourceLocation("test", "water_lake")};
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {ResourceLocation("test", "coal_ore")};
+    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {ResourceLocation("test", "freeze_top")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -433,7 +497,6 @@ TEST_F(FeatureSorterTest, CrossStageGlobalIndexNoCollision)
     auto result = FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
 
     // 关键断言：每个阶段的特征应该是不同的对象
-    // 之前 bug: fid=0 在三个阶段都被映射到同一个 globalIndex，导致它们被合并为一个节点
     auto& lakesStep = result[static_cast<int>(DecorationStage::Lakes)];
     auto& oresStep = result[static_cast<int>(DecorationStage::UndergroundOres)];
     auto& freezeStep = result[static_cast<int>(DecorationStage::TopLayerModification)];
@@ -455,10 +518,10 @@ TEST_F(FeatureSorterTest, CrossStageGlobalIndexNoCollision)
     EXPECT_NE(freezeStep.features[0], waterLake);
     EXPECT_NE(freezeStep.features[0], coalOre);
 
-    // indexMapping 应正确：每个阶段的 fid=0 映射到索引 0
-    EXPECT_EQ(lakesStep.getIndex(0), 0);
-    EXPECT_EQ(oresStep.getIndex(0), 0);
-    EXPECT_EQ(freezeStep.getIndex(0), 0);
+    // indexMapping 应正确：每个阶段的 id 映射到索引 0
+    EXPECT_EQ(lakesStep.getIndex(ResourceLocation("test", "water_lake")), 0);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "coal_ore")), 0);
+    EXPECT_EQ(freezeStep.getIndex(ResourceLocation("test", "freeze_top")), 0);
 }
 
 // ============================================================================
@@ -467,17 +530,23 @@ TEST_F(FeatureSorterTest, CrossStageGlobalIndexNoCollision)
 
 TEST_F(FeatureSorterTest, CycleDetectionDoesNotCrash)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
     // 构造人工环：两个特征在两个生物群系中出现顺序相反
     // 生物群系 A: featureA → featureB  (A 在 B 前)
     // 生物群系 B: featureB → featureA  (B 在 A 前) → 环！
-    auto* featureA = registerStub(registry, "feature_a", DecorationStage::VegetalDecoration);
-    auto* featureB = registerStub(registry, "feature_b", DecorationStage::VegetalDecoration);
+    const PlacedFeature* featureA = registerPlacedStub(registry, "feature_a", DecorationStage::VegetalDecoration);
+    const PlacedFeature* featureB = registerPlacedStub(registry, "feature_b", DecorationStage::VegetalDecoration);
 
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0, 1}; // A → B
-    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {1, 0}; // B → A (环!)
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "feature_a"),
+        ResourceLocation("test", "feature_b"),
+    };
+    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "feature_b"),
+        ResourceLocation("test", "feature_a"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
@@ -488,23 +557,29 @@ TEST_F(FeatureSorterTest, CycleDetectionDoesNotCrash)
     // 应该返回结果（可能不完整，但不崩溃）
     auto& vegetalStep = result[static_cast<int>(DecorationStage::VegetalDecoration)];
     // 有环时，DFS 会跳过循环节点但继续处理
-    // 至少应该有一些结果
     EXPECT_GE(vegetalStep.features.size(), 1u);
 }
 
 TEST_F(FeatureSorterTest, CycleResultStillContainsFeatures)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
     // 构造一个场景：A→B (生物群系 0) 和 B→A (生物群系 1) 形成环
     // 加上 C 只在生物群系 0 中，不参与环
-    auto* featureA = registerStub(registry, "feature_a", DecorationStage::VegetalDecoration);
-    auto* featureB = registerStub(registry, "feature_b", DecorationStage::VegetalDecoration);
-    auto* featureC = registerStub(registry, "feature_c", DecorationStage::VegetalDecoration);
+    const PlacedFeature* featureA = registerPlacedStub(registry, "feature_a", DecorationStage::VegetalDecoration);
+    const PlacedFeature* featureB = registerPlacedStub(registry, "feature_b", DecorationStage::VegetalDecoration);
+    const PlacedFeature* featureC = registerPlacedStub(registry, "feature_c", DecorationStage::VegetalDecoration);
 
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0, 1, 2}; // A → B → C
-    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {1, 0};    // B → A (环)
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "feature_a"),
+        ResourceLocation("test", "feature_b"),
+        ResourceLocation("test", "feature_c"),
+    };
+    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
+        ResourceLocation("test", "feature_b"),
+        ResourceLocation("test", "feature_a"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
@@ -516,7 +591,6 @@ TEST_F(FeatureSorterTest, CycleResultStillContainsFeatures)
     EXPECT_GE(vegetalStep.features.size(), 1u);
 
     // featureC 不参与环，应该能正常排序
-    // 它可能出现在结果中（取决于 DFS 处理顺序）
     bool hasFeatureC = false;
     for (auto* f : vegetalStep.features) {
         if (f == featureC) {
@@ -527,18 +601,20 @@ TEST_F(FeatureSorterTest, CycleResultStillContainsFeatures)
     EXPECT_TRUE(hasFeatureC);
 }
 
-TEST_F(FeatureSorterTest, NullFeatureSkipped)
+TEST_F(FeatureSorterTest, UnregisteredFeatureIdSkipped)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
     // 注册一个有效特征
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
 
-    // 手动在 registry 的 UndergroundOres 阶段添加一个 null 槽位
-    // 注意: registerFeature 不会添加 null，所以我们通过 biomeData 引用越界 fid 来测试
-    // 当 fid >= allFeatures.size() 时，buildFeaturesPerStep 会跳过该特征
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 99}; // fid=99 不存在
+    // 在 biomeData 中引用一个未注册的 placed_feature id
+    // buildFeaturesPerStep 经 registry.get() 解析得到 nullptr 时应跳过该特征
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "nonexistent"),
+    };
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -546,20 +622,20 @@ TEST_F(FeatureSorterTest, NullFeatureSkipped)
     auto result = FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
 
     auto& oresStep = result[static_cast<int>(DecorationStage::UndergroundOres)];
-    // 只有 fid=0 (coalOre) 被处理，fid=99 被跳过
+    // 只有 coalOre 被处理，nonexistent 被跳过
     ASSERT_EQ(oresStep.features.size(), 1u);
     EXPECT_EQ(oresStep.features[0], coalOre);
 }
 
 TEST_F(FeatureSorterTest, EmptyStagesSkipped)
 {
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
     // 只在 VegetalDecoration (stage=9) 注册特征，跳过中间所有空阶段
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* oakTree = registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
 
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "oak_tree")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -590,19 +666,19 @@ TEST_F(FeatureSorterTest, CrossStageDependencyEdges)
     // 模拟真实的 Overworld 生物群系场景：
     // Lakes → UndergroundOres → VegetalDecoration → TopLayerModification
     // 验证跨阶段的依赖边确保了正确的排序
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    auto* waterLake = registerStub(registry, "water_lake", DecorationStage::Lakes);
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
-    auto* freezeTop = registerStub(registry, "freeze_top", DecorationStage::TopLayerModification);
+    const PlacedFeature* waterLake = registerPlacedStub(registry, "water_lake", DecorationStage::Lakes);
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* oakTree = registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* freezeTop = registerPlacedStub(registry, "freeze_top", DecorationStage::TopLayerModification);
 
     // 单个生物群系，跨阶段依赖链: WaterLake→CoalOre→OakTree→FreezeTop
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};
-    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {0};
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {ResourceLocation("test", "water_lake")};
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {ResourceLocation("test", "coal_ore")};
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "oak_tree")};
+    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {ResourceLocation("test", "freeze_top")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0};
@@ -627,32 +703,33 @@ TEST_F(FeatureSorterTest, MultiBiomeCrossStageNoFalseCycle)
 {
     // 回归测试：模拟之前 bug 导致的虚假环
     // 两个生物群系，一个有 Lakes+Ores，另一个只有 Ores
-    // 之前 fid 碰撞导致 WaterLake 和 CoalOre 共享 globalIndex，产生虚假环
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
-    auto* waterLake = registerStub(registry, "water_lake", DecorationStage::Lakes);
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
-    auto* ironOre = registerStub(registry, "iron_ore", DecorationStage::UndergroundOres);
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* waterLake = registerPlacedStub(registry, "water_lake", DecorationStage::Lakes);
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* ironOre = registerPlacedStub(registry, "iron_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* oakTree = registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
 
     // 生物群系 0 (Plains): Lakes + Ores + Vegetal
     // 生物群系 1 (River): Ores + Vegetal (无 Lakes)
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {0};              // WaterLake
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1}; // Coal, Iron
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};  // Oak
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {ResourceLocation("test", "water_lake")};
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+    };
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "oak_tree")};
 
-    biomeData[{1, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1}; // Coal, Iron
-    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};  // Oak
+    biomeData[{1, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+    };
+    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "oak_tree")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
 
     auto result = FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
-
-    // 之前 bug: WaterLake (Lakes fid=0) 和 CoalOre (Ores fid=0) 共享 globalIndex
-    // 导致 WaterLake→LavaLake 和 CoalOre→IronOre 边被合并，产生虚假环
-    // 修复后不应有环，所有特征应正确排序
 
     auto& lakesStep = result[static_cast<int>(DecorationStage::Lakes)];
     auto& oresStep = result[static_cast<int>(DecorationStage::UndergroundOres)];
@@ -680,34 +757,45 @@ TEST_F(FeatureSorterTest, RealWorldOverworldScenario)
     // Ocean (无 Lakes+Ores+Vegetal，无 FreezeTop)
     // 关键：Ocean 没有 Lakes 和 TopLayerModification，
     // 但与 Plains 共享 Ores 特征
-    auto& registry = FeatureRegistry::instance();
+    auto& registry = PlacedFeatureRegistry::instance();
 
     // Lakes
-    auto* waterLake = registerStub(registry, "water_lake", DecorationStage::Lakes);
-    auto* lavaLake = registerStub(registry, "lava_lake", DecorationStage::Lakes);
+    const PlacedFeature* waterLake = registerPlacedStub(registry, "water_lake", DecorationStage::Lakes);
+    const PlacedFeature* lavaLake = registerPlacedStub(registry, "lava_lake", DecorationStage::Lakes);
 
     // UndergroundOres
-    auto* coalOre = registerStub(registry, "coal_ore", DecorationStage::UndergroundOres);
-    auto* ironOre = registerStub(registry, "iron_ore", DecorationStage::UndergroundOres);
-    auto* goldOre = registerStub(registry, "gold_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* coalOre = registerPlacedStub(registry, "coal_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* ironOre = registerPlacedStub(registry, "iron_ore", DecorationStage::UndergroundOres);
+    const PlacedFeature* goldOre = registerPlacedStub(registry, "gold_ore", DecorationStage::UndergroundOres);
 
     // VegetalDecoration
-    auto* oakTree = registerStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
-    auto* seagrass = registerStub(registry, "seagrass", DecorationStage::VegetalDecoration);
+    const PlacedFeature* oakTree = registerPlacedStub(registry, "oak_tree", DecorationStage::VegetalDecoration);
+    const PlacedFeature* seagrass = registerPlacedStub(registry, "seagrass", DecorationStage::VegetalDecoration);
 
     // TopLayerModification
-    auto* freezeTop = registerStub(registry, "freeze_top", DecorationStage::TopLayerModification);
+    const PlacedFeature* freezeTop = registerPlacedStub(registry, "freeze_top", DecorationStage::TopLayerModification);
 
     // Plains (biome 0): Lakes + Ores + Vegetal + Freeze
     // Ocean  (biome 1): Ores + Vegetal (no Lakes, no Freeze)
-    std::map<std::pair<BiomeId, int>, std::vector<u32>> biomeData;
-    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {0, 1};              // Water, Lava
-    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1, 2}; // Coal, Iron, Gold
-    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {0};     // Oak
-    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {0};  // Freeze
+    std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
+    biomeData[{0, static_cast<int>(DecorationStage::Lakes)}] = {
+        ResourceLocation("test", "water_lake"),
+        ResourceLocation("test", "lava_lake"),
+    };
+    biomeData[{0, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+        ResourceLocation("test", "gold_ore"),
+    };
+    biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "oak_tree")};
+    biomeData[{0, static_cast<int>(DecorationStage::TopLayerModification)}] = {ResourceLocation("test", "freeze_top")};
 
-    biomeData[{1, static_cast<int>(DecorationStage::UndergroundOres)}] = {0, 1, 2}; // Coal, Iron, Gold
-    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {1};     // Seagrass
+    biomeData[{1, static_cast<int>(DecorationStage::UndergroundOres)}] = {
+        ResourceLocation("test", "coal_ore"),
+        ResourceLocation("test", "iron_ore"),
+        ResourceLocation("test", "gold_ore"),
+    };
+    biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {ResourceLocation("test", "seagrass")};
 
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
@@ -735,16 +823,13 @@ TEST_F(FeatureSorterTest, RealWorldOverworldScenario)
     EXPECT_EQ(oresStep.features[2], goldOre);
 
     // Vegetal 阶段包含 Plains 的 Oak 和 Ocean 的 Seagrass
-    // 拓扑排序: Oak 在 Plains 的链中位于 Ores 之后
-    // Seagrass 在 Ocean 的链中也位于 Ores 之后
-    // 两者都满足约束，具体顺序取决于 DFS 遍历顺序
     EXPECT_EQ(vegetalStep.features.size(), 2u);
 
     // Freeze 只有 Plains 的
     EXPECT_EQ(freezeStep.features[0], freezeTop);
 
     // 每个 Ores 特征的 indexMapping 正确
-    EXPECT_EQ(oresStep.getIndex(0), 0); // CoalOre
-    EXPECT_EQ(oresStep.getIndex(1), 1); // IronOre
-    EXPECT_EQ(oresStep.getIndex(2), 2); // GoldOre
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "coal_ore")), 0);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "iron_ore")), 1);
+    EXPECT_EQ(oresStep.getIndex(ResourceLocation("test", "gold_ore")), 2);
 }
