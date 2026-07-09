@@ -33,6 +33,7 @@
 #include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
 #include "client/ui/minecraft/screens/LoadingScreen.hpp"
 #include "client/ui/minecraft/screens/MainMenuScreen.hpp"
+#include "client/ui/minecraft/screens/MessageScreen.hpp"
 #include "client/ui/minecraft/screens/OptionsScreen.hpp"
 #include "client/ui/minecraft/screens/PauseScreen.hpp"
 #include "client/ui/minecraft/screens/WorldSelectionScreen.hpp"
@@ -617,7 +618,7 @@ void ClientApplication::showWorldSelection()
     worldSelectionScreen->setScreenStack(screenStack);
 
     // 设置回调
-    worldSelectionScreen->setOnSelectWorld([this](const world::storage::WorldListEntry& entry) {
+    worldSelectionScreen->setOnSelectWorld([this, screenStack](const world::storage::WorldListEntry& entry) {
         spdlog::info("[Session] Selected world: {}", entry.displayName);
 
         // 构建启动配置
@@ -637,7 +638,15 @@ void ClientApplication::showWorldSelection()
         auto result = startIntegratedWorld(config);
         if (result.failed()) {
             spdlog::error("[Session] Failed to start world: {}", result.error().toString());
-            // TODO: 显示错误对话框
+            // 弹出错误对话框，告知用户启动失败的具体原因
+            auto messageScreen = std::make_unique<ui::minecraft::MessageScreen>(
+                "Failed to Start World", result.error().message(), "OK", [screenStack]() {
+                    if (screenStack != nullptr) {
+                        screenStack->pop();
+                    }
+                });
+            messageScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
+            screenStack->push(std::move(messageScreen));
         }
     });
 
@@ -705,7 +714,15 @@ void ClientApplication::showCreateWorld()
         auto result = startIntegratedWorld(config);
         if (result.failed()) {
             spdlog::error("[Session] Failed to create world: {}", result.error().toString());
-            // TODO: 显示错误对话框
+            // 弹出错误对话框，告知用户创建失败的具体原因
+            auto messageScreen = std::make_unique<ui::minecraft::MessageScreen>(
+                "Failed to Create World", result.error().message(), "OK", [screenStack]() {
+                    if (screenStack != nullptr) {
+                        screenStack->pop();
+                    }
+                });
+            messageScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
+            screenStack->push(std::move(messageScreen));
         }
     });
 

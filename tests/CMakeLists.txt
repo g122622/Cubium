@@ -1273,6 +1273,8 @@ add_executable(mc_tests
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # CreateWorldScreen 创建世界界面配置选项与 buildRequest 测试
     client/ui/minecraft/screens/CreateWorldScreenTest.cpp
+    # MessageScreen 通用通知对话框回调与 ESC 关闭测试
+    client/ui/minecraft/screens/MessageScreenTest.cpp
     # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
     client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
@@ -2145,6 +2147,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/TemplateScreen.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/TemplateInstance.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/CreateWorldScreen.cpp
+        # MessageScreen 测试依赖：通用通知对话框实现
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/MessageScreen.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp

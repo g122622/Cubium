@@ -19,7 +19,8 @@ minecraft/
 │   ├── WorldSelectionScreen.hpp/cpp # 存档选择（含删除世界功能）
 │   ├── CreateWorldScreen.hpp/cpp  # 创建世界
 │   ├── PauseScreen.hpp/cpp        # 暂停菜单
-│   ├── ConfirmScreen.hpp/cpp      # 通用确认对话框
+│   ├── ConfirmScreen.hpp/cpp      # 通用确认对话框（双按钮）
+│   ├── MessageScreen.hpp/cpp      # 通用通知对话框（单按钮）
 │   ├── LoadingScreen.hpp/cpp      # 加载界面
 │   ├── InventoryScreen.hpp/cpp    # 物品栏界面
 │   ├── ContainerScreen.hpp/cpp    # 容器界面
@@ -50,6 +51,8 @@ minecraft/
     ├── pause_menu.tpl             # 暂停菜单模板
     ├── inventory.tpl              # 物品栏模板
     ├── create_world.tpl           # 创建世界模板
+    ├── confirm_dialog.tpl         # 确认对话框模板
+    ├── message_dialog.tpl         # 通知对话框模板
     ├── loading.tpl                # 加载界面模板
     ├── loom.tpl                   # 织布机界面模板
     └── world_selection.tpl        # 世界选择模板

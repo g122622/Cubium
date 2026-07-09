@@ -398,6 +398,7 @@ add_executable(minecraft-client
     ui/minecraft/screens/ContainerScreen.cpp
     ui/minecraft/screens/PauseScreen.cpp
     ui/minecraft/screens/ConfirmScreen.cpp
+    ui/minecraft/screens/MessageScreen.cpp
     ui/minecraft/screens/OptionsScreen.cpp
     ui/minecraft/screens/DebugScreenWidget.cpp
     # 客户端实体管理
