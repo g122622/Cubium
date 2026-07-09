@@ -1816,6 +1816,15 @@ Result<void> TridentEngine::initializeEntityRenderer()
 
     m_entityRendererInitialized = true;
     spdlog::info("Entity renderer initialized");
+
+    // 若方块纹理图集已加载（ChunkRenderer 已初始化），注入到 EntityRendererManager
+    // 供末影人手持方块层（HeldBlockLayer）使用
+    // 注意：initializeEntityRenderer 可能在 ChunkRenderer 初始化之前或之后调用，
+    //       此处处理"之后"的情况；"之前"的情况由加载方块纹理图集的位置处理
+    if (m_chunkRendererInitialized && m_chunkRenderer) {
+        m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
     return {};
 }
 
@@ -2274,7 +2283,9 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
 
     // 更新实体管线的纹理（如果已初始化）
     if (m_entityRendererInitialized && m_entityRendererManager) {
-        // 实体渲染器可以从 ChunkRenderer 的纹理图集获取纹理
+        // 将方块纹理图集注入到 EntityRendererManager，供末影人手持方块层（HeldBlockLayer）使用
+        // 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
+        m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
     }
 
     // 注册动画精灵

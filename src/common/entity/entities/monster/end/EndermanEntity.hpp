@@ -25,6 +25,7 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
+#include "../../../core/EntityDataManager.hpp"
 #include "../../../interfaces/IAngerable.hpp"
 #include "../MonsterEntity.hpp"
 #include <memory>
@@ -153,13 +154,17 @@ public:
 
     /**
      * @brief 是否正在被玩家注视
+     *
+     * 读取 DATA_SCREAMING_PARAM（网络同步参数）。
      */
-    [[nodiscard]] bool isScreaming() const { return m_screaming; }
+    [[nodiscard]] bool isScreaming() const { return m_dataManager.get<bool>(DATA_SCREAMING_PARAM); }
 
     /**
      * @brief 设置注视状态
+     *
+     * 写入 DATA_SCREAMING_PARAM，由 EntityTracker 自动广播到客户端。
      */
-    void setScreaming(bool screaming) { m_screaming = screaming; }
+    void setScreaming(bool screaming) { m_dataManager.set(DATA_SCREAMING_PARAM, screaming); }
 
     // ========== 瞬移系统 ==========
 
@@ -183,18 +188,37 @@ public:
 
     /**
      * @brief 是否拿着方块
+     *
+     * 通过 DATA_CARRIED_BLOCK_STATE_ID_PARAM 判断：stateId > 0 表示持有方块。
      */
-    [[nodiscard]] bool isHoldingBlock() const { return m_holdingBlock; }
+    [[nodiscard]] bool isHoldingBlock() const { return m_dataManager.get<i32>(DATA_CARRIED_BLOCK_STATE_ID_PARAM) > 0; }
 
     /**
      * @brief 获取拿着的方块状态
+     *
+     * 从 DATA_CARRIED_BLOCK_STATE_ID_PARAM 读取 stateId，
+     * 通过 BlockRegistry 解析为 BlockState 指针。
+     * 返回 nullptr 表示未持有方块。
      */
-    [[nodiscard]] const BlockState* getHeldBlockState() const { return m_heldBlockState; }
+    [[nodiscard]] const BlockState* getHeldBlockState() const;
 
     /**
      * @brief 设置拿着的方块状态
+     *
+     * 将 BlockState 的 stateId 写入 DATA_CARRIED_BLOCK_STATE_ID_PARAM，
+     * 由 EntityTracker 自动广播到客户端。传入 nullptr 清除持有方块。
      */
     void setHeldBlockState(const BlockState* state);
+
+    /**
+     * @brief 获取搬方块状态参数 ID（供客户端 ClientEntity 读取）
+     */
+    [[nodiscard]] static u16 getCarriedBlockStateIdParamId() { return DATA_CARRIED_BLOCK_STATE_ID_PARAM.id(); }
+
+    /**
+     * @brief 获取注视状态参数 ID（供客户端 ClientEntity 读取）
+     */
+    [[nodiscard]] static u16 getScreamingParamId() { return DATA_SCREAMING_PARAM.id(); }
 
     // ========== 阳光燃烧 ==========
 
@@ -291,6 +315,19 @@ protected:
      */
     void registerAttributes() override;
 
+    // ========== 数据参数注册 ==========
+
+    /**
+     * @brief 注册网络同步数据参数
+     *
+     * 注册 DATA_CARRIED_BLOCK_STATE_ID_PARAM 和 DATA_SCREAMING_PARAM 到
+     * EntityDataManager，由 EntityTracker 自动广播到客户端。
+     *
+     * 必须在构造函数中显式调用（参考 WolfEntity 模式），因为基类构造函数
+     * 中的虚函数调用不会派发到派生类。
+     */
+    void registerData() override;
+
 private:
     // IAngerable接口（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
     std::optional<u64> m_revengeTargetId;
@@ -298,15 +335,32 @@ private:
 
     // 愤怒状态
     bool m_angry = false;
-    bool m_screaming = false; // 被注视状态
     i32 m_angerTime = 0;
-
-    // 搬方块
-    bool m_holdingBlock = false;
-    const BlockState* m_heldBlockState = nullptr;
 
     // 瞬移冷却
     i32 m_teleportCooldown = 0;
+
+    // ========== 网络同步数据参数 ==========
+
+    /**
+     * @brief 搬方块状态同步参数
+     *
+     * 对应 MC 1.21.11 EnderMan.DATA_CARRY_STATE。
+     * 存储 BlockState 的 stateId（i32），0 表示未持有方块。
+     * 由 setHeldBlockState 写入，由 EntityTracker 自动广播。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取后通过
+     * BlockRegistry::getBlockState 解析为 BlockState* 并缓存到镜像字段。
+     */
+    static entity::DataParameter<i32> DATA_CARRIED_BLOCK_STATE_ID_PARAM;
+
+    /**
+     * @brief 注视状态同步参数
+     *
+     * 对应 MC 1.21.11 EnderMan.DATA_CREEPY（被注视/尖叫状态）。
+     * 由 setScreaming 写入，由 EntityTracker 自动广播。
+     * 客户端 ClientEntity 读取后镜像到 endermanScreaming()。
+     */
+    static entity::DataParameter<bool> DATA_SCREAMING_PARAM;
 };
 
 } // namespace mc

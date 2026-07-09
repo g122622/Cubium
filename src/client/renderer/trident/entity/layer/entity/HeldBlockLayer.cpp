@@ -27,16 +27,14 @@
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/item/ElementRotation.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/Block.hpp"
 #include <memory>
-#include <type_traits>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
@@ -121,31 +119,14 @@ static const TextureRegion* resolveFaceTexture(const BlockAppearance& appearance
     return nullptr;
 }
 
-template <typename TEntity>
-void HeldBlockLayer<TEntity>::renderPipeline(TEntity& entity,
+void HeldBlockLayer::renderPipeline(::mc::client::ClientEntity& entity,
     VkCommandBuffer cmd,
     const mc::client::renderer::entity::core::AnimationContext& context,
     pipeline::EntityPipeline& pipeline)
 {
-    // TODO: 调用链集成问题——当前 HeldBlockLayer<LivingEntity> 实例虽在
-    // EndermanRenderer::_setupLayers() 中注册，但 EntityRendererManager::renderWithPipeline
-    // 调用的是 renderer->renderLayersPipelineClient(ClientEntity&, ...)，而
-    // LivingRenderer 仅重写了 renderLayersPipeline(Entity&, ...)（服务端实体版本），
-    // 未重写 renderLayersPipelineClient。因此本层目前不会被实际调用。
-    //
-    // 彻底解决需要以下之一：
-    //   1) 让 LivingRenderer 重写 renderLayersPipelineClient，并从 ClientEntity 重建
-    //      LivingEntity 视图（需要 ClientEntity 暴露 heldBlockState 等末影人字段，
-    //      并在网络层同步该元数据）；
-    //   2) 将 HeldBlockLayer 迁移为 ClientEntity 模板，直接消费 ClientEntity 的
-    //      末影人持有方块元数据（需先在 ClientEntity 中加入对应字段与网络同步）。
-    //
-    // 在上述架构调整完成前，本层的内部实现（网格构建、变换链、纹理图集切换）已就绪，
-    // 一旦调用链打通即可正确渲染末影人手持方块。
-
     // 获取持有的方块
     const ::mc::BlockState* blockState = _getHeldBlock(entity);
-    if (!blockState) {
+    if (blockState == nullptr) {
         return;
     }
 
@@ -153,41 +134,20 @@ void HeldBlockLayer<TEntity>::renderPipeline(TEntity& entity,
     _renderBlockPipeline(entity, *blockState, 0.0f, 0.6875f, -0.75f, cmd, context, pipeline);
 }
 
-template <typename TEntity>
-bool HeldBlockLayer<TEntity>::shouldRender(const TEntity& entity) const
+bool HeldBlockLayer::shouldRender(const ::mc::client::ClientEntity& entity) const
 {
-    // 运行时类型检查：HeldBlockLayer<LivingEntity> 注册在 EndermanRenderer 上，
-    // 运行时传入的实体实际上是 EndermanEntity（派生自 LivingEntity）。
-    // 编译时 TEntity == LivingEntity，无法直接调用 EndermanEntity 接口，
-    // 因此使用 dynamic_cast 进行安全的向下转型。
-    if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
-        // 编译时即为 EndermanEntity（或其派生），直接调用
-        return entity.isHoldingBlock();
-    } else if constexpr (std::is_base_of_v<TEntity, ::mc::EndermanEntity>) {
-        // TEntity 是 EndermanEntity 的基类（如 LivingEntity），运行时向下转型
-        const auto* enderman = dynamic_cast<const ::mc::EndermanEntity*>(&entity);
-        return enderman != nullptr && enderman->isHoldingBlock();
-    }
-    return false;
+    // 通过 ClientEntity 的元数据镜像字段判断是否持有方块
+    // 对应 MC 1.21.11 CarriedBlockLayer.submit() 中的 carriedBlock != null 检查
+    return entity.endermanHeldBlockState() != nullptr;
 }
 
-template <typename TEntity>
-const ::mc::BlockState* HeldBlockLayer<TEntity>::_getHeldBlock(const TEntity& entity) const
+const ::mc::BlockState* HeldBlockLayer::_getHeldBlock(const ::mc::client::ClientEntity& entity)
 {
-    // 运行时类型检查（同 shouldRender 的逻辑）
-    if constexpr (std::is_base_of_v<::mc::EndermanEntity, TEntity>) {
-        return entity.getHeldBlockState();
-    } else if constexpr (std::is_base_of_v<TEntity, ::mc::EndermanEntity>) {
-        const auto* enderman = dynamic_cast<const ::mc::EndermanEntity*>(&entity);
-        if (enderman != nullptr) {
-            return enderman->getHeldBlockState();
-        }
-    }
-    return nullptr;
+    // 从 ClientEntity 镜像字段读取（由 syncMetadataFromDataManager 同步）
+    return entity.endermanHeldBlockState();
 }
 
-template <typename TEntity>
-void HeldBlockLayer<TEntity>::_renderBlockPipeline(TEntity& entity,
+void HeldBlockLayer::_renderBlockPipeline(::mc::client::ClientEntity& entity,
     const ::mc::BlockState& blockState,
     f32 x,
     f32 y,
@@ -198,7 +158,7 @@ void HeldBlockLayer<TEntity>::_renderBlockPipeline(TEntity& entity,
 {
     // 获取或创建方块网格
     pipeline::EntityMesh* mesh = _getOrCreateBlockMesh(pipeline, blockState);
-    if (!mesh || mesh->indexCount == 0) {
+    if (mesh == nullptr || mesh->indexCount == 0) {
         return;
     }
 
@@ -246,30 +206,31 @@ void HeldBlockLayer<TEntity>::_renderBlockPipeline(TEntity& entity,
     const f32 a = static_cast<f32>((tintColor >> 24) & 0xFFu) / 255.0f;
     Vector4f overlayColor(r, g, b, a);
 
-    // 切换到方块纹理图集（方块 UV 基于区块纹理图集，而非实体纹理图集）
-    VkImageView savedImageView = VK_NULL_HANDLE;
-    VkSampler savedSampler = VK_NULL_HANDLE;
+    // ---- 切换到方块纹理图集（方块 UV 基于区块纹理图集，而非实体纹理图集）----
+    // EntityPipeline::setTextureAtlas 是覆盖式写入，没有 getter 可以保存当前图集。
+    // 因此通过外部注入的 m_entityTextureAtlas 指针来恢复。
+    //
+    // 流程：
+    //   1. 渲染前：若方块纹理图集可用，切换 EntityPipeline 到方块纹理图集
+    //   2. 绘制方块网格
+    //   3. 渲染后：若实体纹理图集可用，恢复 EntityPipeline 到实体纹理图集
+    //              （避免污染后续实体渲染）
     const bool needAtlasSwitch = (m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid);
     if (needAtlasSwitch) {
-        // 保存当前图集并在渲染后恢复（EntityPipeline 未提供 getter，此处依赖
-        // 渲染调用者会在下一帧/下一次绑定前重置图集；为安全起见，我们在
-        // 渲染完成后将图集切回实体纹理图集——通过传入空句柄让上层重绑）。
-        // 实际上 EntityPipeline 的纹理描述符集是全局共享的，切换后需要恢复。
-        // 这里采用"切换-渲染-恢复"模式，但因为没有 getter，我们只能切换。
-        // 上层 EntityRendererManager 在每次 renderWithPipeline 开始时会重新
-        // 绑定实体纹理图集，所以此处切换不会污染后续帧。
         pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
     }
-    (void)savedImageView;
-    (void)savedSampler;
 
     pipeline.drawMesh(cmd, *mesh, blockTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
+
+    // 恢复实体纹理图集（避免后续实体渲染使用错误的纹理）
+    if (needAtlasSwitch && m_entityTextureAtlas != nullptr) {
+        pipeline.setTextureAtlas(m_entityTextureAtlas->imageView(), m_entityTextureAtlas->sampler());
+    }
 
     (void)context;
 }
 
-template <typename TEntity>
-void HeldBlockLayer<TEntity>::_buildBlockMesh(
+void HeldBlockLayer::_buildBlockMesh(
     const ::mc::BlockState& blockState, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     vertices.clear();
@@ -400,9 +361,7 @@ void HeldBlockLayer<TEntity>::_buildBlockMesh(
     }
 }
 
-template <typename TEntity>
-void HeldBlockLayer<TEntity>::_buildFallbackCubeMesh(
-    std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
+void HeldBlockLayer::_buildFallbackCubeMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
     vertices.clear();
     indices.clear();
@@ -491,8 +450,7 @@ void HeldBlockLayer<TEntity>::_buildFallbackCubeMesh(
     indices.push_back(base + 3);
 }
 
-template <typename TEntity>
-pipeline::EntityMesh* HeldBlockLayer<TEntity>::_getOrCreateBlockMesh(
+pipeline::EntityMesh* HeldBlockLayer::_getOrCreateBlockMesh(
     pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState)
 {
     // 按 BlockState 指针缓存网格（项目中方块状态指针来自 BlockRegistry，是稳定的）
@@ -522,16 +480,5 @@ pipeline::EntityMesh* HeldBlockLayer<TEntity>::_getOrCreateBlockMesh(
     m_blockMeshCache[&blockState] = std::move(meshPtr);
     return rawPtr;
 }
-
-template <typename TEntity>
-void HeldBlockLayer<TEntity>::_destroyCachedMeshes(pipeline::EntityPipeline& pipeline)
-{
-    (void)pipeline;
-    m_blockMeshCache.clear();
-}
-
-// 显式实例化
-template class HeldBlockLayer<::mc::LivingEntity>;
-template class HeldBlockLayer<::mc::EndermanEntity>;
 
 } // namespace mc::client::renderer::entity::layer::entity

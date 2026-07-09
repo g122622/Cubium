@@ -34,6 +34,7 @@
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
+#include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
@@ -65,6 +66,10 @@
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
+
+// 方块纹理图集与末影人渲染器
+#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/renderer/trident/entity/renderer/monster/MonsterRenderers.hpp"
 
 namespace mc::client::renderer::entity {
 
@@ -128,6 +133,17 @@ void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtl
     // 图集变化后，旧网格的UV映射可能失效，强制重建静态和动画缓存
     clearMeshes();
     clearAnimatedMeshes();
+}
+
+void EntityRendererManager::setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas)
+{
+    m_chunkTextureAtlas = atlas;
+    // 将方块纹理图集注入到所有需要的渲染器
+    // 目前只有 EndermanRenderer 需要方块纹理图集（用于 HeldBlockLayer）
+    auto* endermanRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::ENDERMAN);
+    if (auto* endermanRenderer = dynamic_cast<renderer::monster::EndermanRenderer*>(endermanRendererRaw)) {
+        endermanRenderer->setChunkTextureAtlas(atlas);
+    }
 }
 
 void EntityRendererManager::setCameraInfo(
@@ -1188,6 +1204,19 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             auto* zombieModel = dynamic_cast<model::monster::ZombieModel*>(model.get());
             if (zombieModel != nullptr) {
                 _applyZombieState(*zombieModel, entity, context);
+            }
+        }
+
+        // 末影人携带方块/尖叫状态
+        // 第三人称末影人走 GPU 管线路径，需要在此根据 ClientEntity::endermanHeldBlockState()
+        // 和 endermanScreaming() 推送 EndermanModel 的 setCarrying/setAttacking，
+        // 否则 setAngles 中的携带方块姿态和攻击姿态不会生效。
+        // 对应 CPU 路径中 EndermanRenderer::_updateEndermanState 的逻辑。
+        if (normalizedId == "enderman" || normalizedId == "minecraft:enderman") {
+            auto* endermanModel = dynamic_cast<model::monster::EndermanModel*>(model.get());
+            if (endermanModel != nullptr) {
+                endermanModel->setCarrying(entity.endermanHeldBlockState() != nullptr);
+                endermanModel->setAttacking(entity.endermanScreaming());
             }
         }
 

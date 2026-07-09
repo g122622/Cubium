@@ -34,6 +34,8 @@
 #include "util/math/MathConstants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
+#include "world/block/BlockRegistry.hpp"
 #include <cmath>
 
 namespace mc {
@@ -52,6 +54,31 @@ EndermanEntity::EndermanEntity(EntityId id)
 
     // 注册属性
     registerAttributes();
+
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 EndermanEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 WolfEntity 模式。
+    registerData();
+}
+
+// 网络同步数据参数定义
+entity::DataParameter<i32> EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<bool> EndermanEntity::DATA_SCREAMING_PARAM = entity::EntityDataManager::createKey<bool>();
+
+void EndermanEntity::registerData()
+{
+    // 调用父类方法，确保基类数据参数已注册
+    MonsterEntity::registerData();
+
+    // 注册搬方块状态参数：stateId（0 = 未持有方块）
+    // 对应 MC 1.21.11 EnderMan.defineSynchedData() 中的 DATA_CARRY_STATE
+    m_dataManager.registerParam(DATA_CARRIED_BLOCK_STATE_ID_PARAM, static_cast<i32>(0));
+
+    // 注册注视状态参数
+    // 对应 MC 1.21.11 EnderMan.defineSynchedData() 中的 DATA_CREEPY
+    m_dataManager.registerParam(DATA_SCREAMING_PARAM, false);
 }
 
 std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
@@ -62,7 +89,7 @@ std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
 std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
 {
     // 愤怒时返回 ambient，被注视时返回 scream
-    if (m_screaming) {
+    if (isScreaming()) {
         return makeSoundEventId("scream");
     }
     return makeSoundEventId("ambient");
@@ -122,17 +149,34 @@ LivingEntity* EndermanEntity::getRevengeTarget() const
 void EndermanEntity::setAngry(bool angry)
 {
     m_angry = angry;
-    if (!angry) {
+    if (angry) {
+        // 对应 MC 1.21.11 EnderMan.setTarget(target) 中 target != null 分支：
+        //   this.entityData.set(DATA_CREEPY, true);
+        // 愤怒时设置 screaming 状态，使客户端模型呈现攻击姿态（张嘴）。
+        setScreaming(true);
+    } else {
+        // 对应 MC 1.21.11 EnderMan.setTarget(null) 中 target == null 分支：
+        //   this.entityData.set(DATA_CREEPY, false);
+        // 同时清除愤怒时间和攻击目标。
         m_angerTime = 0;
         setAttackTarget(nullptr);
-        m_screaming = false;
+        setScreaming(false);
     }
+}
+
+const BlockState* EndermanEntity::getHeldBlockState() const
+{
+    const i32 stateId = m_dataManager.get<i32>(DATA_CARRIED_BLOCK_STATE_ID_PARAM);
+    if (stateId <= 0) {
+        return nullptr;
+    }
+    return ::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId));
 }
 
 void EndermanEntity::setHeldBlockState(const BlockState* state)
 {
-    m_heldBlockState = state;
-    m_holdingBlock = (state != nullptr);
+    const i32 stateId = (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
+    m_dataManager.set(DATA_CARRIED_BLOCK_STATE_ID_PARAM, stateId);
 }
 
 bool EndermanEntity::teleport()
@@ -257,7 +301,7 @@ void EndermanEntity::tick()
         m_angerTime--;
         if (m_angerTime <= 0) {
             m_angry = false;
-            m_screaming = false;
+            setScreaming(false);
         }
     }
 

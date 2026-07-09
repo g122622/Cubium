@@ -48,7 +48,8 @@ struct TextureRegion;
 
 namespace mc::client {
 class ClientEntity;
-}
+struct ChunkTextureAtlas;
+} // namespace mc::client
 
 namespace mc::client::renderer::entity::model {
 class EntityModel;
@@ -215,6 +216,17 @@ public:
     [[nodiscard]] pipeline::EntityTextureAtlas* itemTextureAtlas() { return m_itemTextureAtlas; }
 
     /**
+     * @brief 设置方块纹理图集（用于末影人手持方块渲染）
+     *
+     * 方块纹理图集（ChunkTextureAtlas）来自 ChunkRenderer，用于末影人手持方块层
+     * （HeldBlockLayer）的方块纹理采样。在 ChunkRenderer 初始化图集后调用此方法，
+     * 将图集指针注入到所有需要访问方块纹理的渲染器（如 EndermanRenderer）。
+     *
+     * @param atlas 方块纹理图集指针（来自 ChunkRenderer::textureAtlas()）
+     */
+    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas);
+
+    /**
      * @brief 获取实体纹理图集（只读）
      *
      * 用于层渲染器访问纹理UV区域信息。
@@ -310,6 +322,9 @@ private:
     pipeline::EntityPipeline* m_pipeline = nullptr;
     const pipeline::EntityTextureAtlas* m_textureAtlas = nullptr;
     pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr; // 用于 ItemEntity 渲染
+
+    // 方块纹理图集（来自 ChunkRenderer，用于末影人手持方块层）
+    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
 
     // 相机描述符集（set = 0）
     VkDescriptorSet m_cameraDescriptorSet = VK_NULL_HANDLE;

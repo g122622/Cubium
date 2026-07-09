@@ -25,6 +25,7 @@
 
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <unordered_map>
@@ -32,7 +33,6 @@
 #include <vulkan/vulkan.h>
 
 namespace mc {
-class LivingEntity;
 class BlockState;
 } // namespace mc
 
@@ -42,6 +42,7 @@ struct ChunkTextureAtlas;
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
+class EntityTextureAtlas;
 struct EntityMesh;
 } // namespace mc::client::renderer::entity::pipeline
 
@@ -53,10 +54,16 @@ namespace mc::client::renderer::entity::layer::entity {
  * 渲染末影人手持的方块。对应 MC 1.21.11 CarriedBlockLayer（1.16.5 为 HeldBlockLayer）。
  *
  * 类型安全的实现：
- * - 使用 `if constexpr` + `std::is_base_of_v` 进行编译时类型检查
- * - 只有 `EndermanEntity` 有手持方块功能
- * - 从 `EndermanEntity::getHeldBlockState()` 获取方块状态
- * - 从 `EndermanEntity::isHoldingBlock()` 判断是否渲染
+ * - 模板参数为 `ClientEntity`，直接消费客户端实体的元数据镜像字段
+ * - 从 `ClientEntity::endermanHeldBlockState()` 获取方块状态
+ * - 当 `endermanHeldBlockState()` 返回非空时渲染手持方块
+ *
+ * 数据来源：
+ * - 服务端 `EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM`（i32 stateId）
+ * - `EntityTracker` 自动广播 `EntityMetadataPacket`
+ * - 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 stateId，
+ *   通过 `BlockRegistry::getBlockState(stateId)` 解析为 `BlockState*`，
+ *   缓存到 `m_endermanHeldBlockState` 镜像字段
  *
  * 网格构建：
  * - 从 `BlockModelCache::getBlockAppearance()` 获取方块外观，遍历 `elements` 构建真实方块网格
@@ -65,13 +72,21 @@ namespace mc::client::renderer::entity::layer::entity {
  *
  * 纹理图集切换：
  * - 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
- * - 渲染前通过 `EntityPipeline::setTextureAtlas` 切换到方块纹理图集，渲染后切回
- * - `ChunkTextureAtlas` 引用通过 `setChunkTextureAtlas` 注入
+ * - 渲染前通过 `EntityPipeline::setTextureAtlas` 切换到方块纹理图集
+ * - 渲染后通过 `EntityPipeline::setTextureAtlas` 恢复为实体纹理图集
+ * - 方块纹理图集引用通过 `setChunkTextureAtlas` 注入（来自 `ChunkRenderer::textureAtlas()`）
+ * - 实体纹理图集引用通过 `setEntityTextureAtlas` 注入（来自 `EntityRendererManager::textureAtlas()`）
  *
- * @tparam TEntity 实体类型
+ * 调用链：
+ * `EntityRendererManager::renderWithPipeline`
+ *   → `EndermanRenderer::renderLayersPipelineClient(ClientEntity&, cmd, context, pipeline)`
+ *     → `HeldBlockLayer::shouldRender(ClientEntity&)` 检查 endermanHeldBlockState() != nullptr
+ *     → `HeldBlockLayer::renderPipeline(ClientEntity&, cmd, context, pipeline)`
+ *       → `_getHeldBlock(entity)` 读取 endermanHeldBlockState()
+ *       → `_getOrCreateBlockMesh(pipeline, blockState)` 获取/构建方块网格
+ *       → `_renderBlockPipeline(...)` 应用 MC 1.21.11 CarriedBlockLayer 变换链并绘制
  */
-template <typename TEntity>
-class HeldBlockLayer : public core::LayerRenderer<TEntity> {
+class HeldBlockLayer : public core::LayerRenderer<::mc::client::ClientEntity> {
 public:
     HeldBlockLayer() = default;
     ~HeldBlockLayer() override = default;
@@ -79,7 +94,7 @@ public:
     /**
      * @brief 渲染方块持有层（GPU管线路径）
      */
-    void renderPipeline(TEntity& entity,
+    void renderPipeline(::mc::client::ClientEntity& entity,
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline) override;
@@ -87,7 +102,7 @@ public:
     /**
      * @brief 检查是否应该渲染持有的方块
      */
-    [[nodiscard]] bool shouldRender(const TEntity& entity) const override;
+    [[nodiscard]] bool shouldRender(const ::mc::client::ClientEntity& entity) const override;
 
     /**
      * @brief 设置方块纹理图集引用
@@ -95,15 +110,25 @@ public:
      * 用于在渲染时切换 EntityPipeline 的纹理图集到方块纹理图集，
      * 以便正确采样方块纹理 UV。
      *
-     * @param atlas 方块纹理图集指针（可为 nullptr 表示未注入，此时仅使用默认图集）
+     * @param atlas 方块纹理图集指针（可为 nullptr 表示未注入，此时跳过渲染）
      */
     void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas) { m_chunkTextureAtlas = atlas; }
+
+    /**
+     * @brief 设置实体纹理图集引用
+     *
+     * 用于在渲染方块层后恢复 EntityPipeline 的纹理图集到实体纹理图集，
+     * 避免污染后续实体渲染。
+     *
+     * @param atlas 实体纹理图集指针（可为 nullptr 表示未注入，此时不恢复）
+     */
+    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_entityTextureAtlas = atlas; }
 
 private:
     /**
      * @brief 获取实体持有的方块状态
      */
-    [[nodiscard]] const ::mc::BlockState* _getHeldBlock(const TEntity& entity) const;
+    [[nodiscard]] static const ::mc::BlockState* _getHeldBlock(const ::mc::client::ClientEntity& entity);
 
     /**
      * @brief 渲染持有的方块（GPU管线路径）
@@ -127,7 +152,7 @@ private:
      * @param context 动画上下文
      * @param pipeline 实体管线
      */
-    void _renderBlockPipeline(TEntity& entity,
+    void _renderBlockPipeline(::mc::client::ClientEntity& entity,
         const ::mc::BlockState& blockState,
         f32 x,
         f32 y,
@@ -172,15 +197,12 @@ private:
     [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(
         pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState);
 
-    /**
-     * @brief 销毁所有缓存的网格
-     *
-     * 在管线销毁前调用，释放 GPU 资源。
-     */
-    void _destroyCachedMeshes(pipeline::EntityPipeline& pipeline);
-
-    // 方块纹理图集引用（弱引用，由外部 EntityRendererManager 注入）
+    // 方块纹理图集引用（弱引用，由 EndermanRenderer 通过 setChunkTextureAtlas 注入）
     const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+
+    // 实体纹理图集引用（弱引用，由 EndermanRenderer 通过 setEntityTextureAtlas 注入）
+    // 渲染方块后用于恢复 EntityPipeline 的纹理图集到实体纹理图集
+    const pipeline::EntityTextureAtlas* m_entityTextureAtlas = nullptr;
 
     // 按 BlockState 指针缓存的网格
     // key 为 BlockState*（项目中方块状态指针稳定，来自 BlockRegistry）

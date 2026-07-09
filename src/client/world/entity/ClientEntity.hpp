@@ -38,6 +38,10 @@
 #include <string>
 #include <vector>
 
+namespace mc {
+class BlockState;
+} // namespace mc
+
 namespace mc::client {
 
 /**
@@ -1042,6 +1046,46 @@ public:
      */
     void setWolfIsAngry(bool angry) { m_wolfIsAngry = angry; }
 
+    // ========== 末影人状态 ==========
+
+    /**
+     * @brief 获取末影人持有的方块状态
+     *
+     * 通过元数据同步自服务端 EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM。
+     * 服务端存储 BlockState 的 stateId（i32），客户端收到后通过
+     * BlockRegistry::instance().getBlockState(stateId) 解析为 BlockState 指针并缓存。
+     * 返回 nullptr 表示未持有方块。
+     *
+     * 由 HeldBlockLayer 读取以渲染末影人手持方块。
+     */
+    [[nodiscard]] const ::mc::BlockState* endermanHeldBlockState() const { return m_endermanHeldBlockState; }
+
+    /**
+     * @brief 设置末影人持有的方块状态
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param state 方块状态指针（nullptr 表示未持有）
+     */
+    void setEndermanHeldBlockState(const ::mc::BlockState* state) { m_endermanHeldBlockState = state; }
+
+    /**
+     * @brief 末影人是否正在被注视（尖叫状态）
+     *
+     * 通过元数据同步自服务端 EndermanEntity::DATA_SCREAMING_PARAM。
+     * 由 EndermanModel 读取以设置 setAttacking 姿态。
+     */
+    [[nodiscard]] bool endermanScreaming() const { return m_endermanScreaming; }
+
+    /**
+     * @brief 设置末影人注视状态
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param screaming 是否正在被注视
+     */
+    void setEndermanScreaming(bool screaming) { m_endermanScreaming = screaming; }
+
     // ========== 骷髅拉弓状态 ==========
 
     /**
@@ -1382,6 +1426,12 @@ private:
     f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
     f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）
     f32 m_wolfInterestedAngleO = 0.0f; ///< 上一 tick 的乞求角度（用于插值）
+
+    // 末影人状态（通过元数据同步自服务端 EndermanEntity）
+    const ::mc::BlockState* m_endermanHeldBlockState =
+        nullptr; ///< 末影人持有的方块状态（通过元数据同步自服务端 EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM）
+    bool m_endermanScreaming =
+        false; ///< 末影人是否被注视（通过元数据同步自服务端 EndermanEntity::DATA_SCREAMING_PARAM）
 
     // 骷髅拉弓状态（通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM）
     bool m_chargingBow = false; ///< 是否正在拉弓（驱动 SkeletonModel 的 BowAndArrow 姿态）
