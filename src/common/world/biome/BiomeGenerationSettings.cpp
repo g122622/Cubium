@@ -86,9 +86,9 @@ const std::vector<ResourceLocation>& BiomeGenerationSettings::getFlowerFeatureId
 
 void BiomeGenerationSettings::addFlowerFeature(ResourceLocation placedFeatureId)
 {
-    // 花卉特征同时登记到独立花卉列表与 VegetalDecoration 阶段通用列表
-    m_flowerFeatureIds.push_back(placedFeatureId);
-    addPlacedFeature(DecorationStage::VegetalDecoration, placedFeatureId);
+    // 仅追加到独立花卉列表；阶段通用列表由调用方通过 addPlacedFeature 维护，
+    // 避免同一 placed_feature 在阶段列表中被登记两次导致世界生成时重复放置。
+    m_flowerFeatureIds.push_back(std::move(placedFeatureId));
 }
 
 void BiomeGenerationSettings::clear() noexcept

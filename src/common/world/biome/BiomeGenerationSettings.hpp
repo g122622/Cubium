@@ -73,13 +73,16 @@ public:
     void addPlacedFeature(DecorationStage stage, ResourceLocation placedFeatureId);
 
     /**
-     * @brief 添加花卉 placed_feature id
+     * @brief 添加花卉 placed_feature id 到独立的花卉列表
      *
-     * 花卉特征同时添加到 VegetalDecoration 阶段的通用列表和独立的花卉列表。
-     * 用于骨粉在草方块上放置花朵时，根据生物群系选择对应的花卉列表。
+     * 仅追加到 m_flowerFeatureIds，不重复登记到阶段通用列表。
+     * 调用方负责保证该 placed_feature 同时通过 addPlacedFeature() 登记到对应阶段
+     * （通常是 VegetalDecoration）。BiomeLoader::applyFeatures 在解析 features 二维
+     * 数组时，对底层 configured_feature 为 ConfiguredFlowerFeature 的条目同时调用
+     * addPlacedFeature 和 addFlowerFeature，使花卉既参与正常装饰生成，也出现在
+     * 花卉列表中供 GrassBlock::grow 骨粉催花使用。
      *
-     * TODO: BiomeLoader 当前未从 biome JSON 填充花卉列表（无对应字段），本方法暂无调用方，
-     * 导致骨粉催花在所有生物群系都回退到蒲公英。待确定花卉列表的数据来源后接入。
+     * @param placedFeatureId 花卉 placed_feature 的 ResourceLocation
      */
     void addFlowerFeature(ResourceLocation placedFeatureId);
 

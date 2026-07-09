@@ -51,6 +51,8 @@ add_executable(mc_tests
     common/world/biome/OverworldBiomeBuilderTest.cpp
     common/test_biome_freeze.cpp
     common/world/biome/BiomeGetPrecipitationAtTest.cpp
+    # BiomeGenerationSettings 花卉列表填充与 GrassBlock::grow 解析路径测试
+    common/world/biome/BiomeFlowerFeatureTest.cpp
     common/test_ore_feature.cpp
     common/test_carver.cpp
     common/test_tree_feature.cpp

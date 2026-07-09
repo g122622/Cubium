@@ -124,7 +124,7 @@
                 ## #5. 中央岛屿判定使用区块坐标
 
 ## #6. getFlowerFeatureIds() 与 addFlowerFeature()
-`BiomeGenerationSettings::getFlowerFeatureIds()` 返回通过 `addFlowerFeature()` 添加的花卉特征 `ResourceLocation` 列表。花卉特征 id 现在统一为 `ResourceLocation`（如 `minecraft:flower_forest_flower`），不再使用整型索引或 `FeatureIds.hpp`（已删除）。调用 `clear()` 会清空花卉特征列表。
+`BiomeGenerationSettings::getFlowerFeatureIds()` 返回通过 `addFlowerFeature()` 添加的花卉 placed_feature `ResourceLocation` 列表。`addFlowerFeature()` 仅追加到独立花卉列表，不再调用 `addPlacedFeature`，调用方（`BiomeLoader::applyFeatures`）负责保证花卉 placed_feature 同时通过 `addPlacedFeature` 登记到对应阶段。`BiomeLoader::applyFeatures` 解析 features 二维数组时，对底层 configured_feature 为 `ConfiguredFlowerFeature` 的条目同时调用两者。GrassBlock::grow 骨粉催花时从花卉列表随机选取 placed_feature id，经 `PlacedFeatureRegistry` 解析后取 `feature()` 拿到 `ConfiguredFlowerFeature`，再从其配置中随机选择花朵方块状态。调用 `clear()` 会清空花卉特征列表。
 
 ### 中央岛屿判定使用区块坐标
 `EndBiomeSource::isInCentralIsland()` 使用区块坐标（`blockX >> 4`），不是方块坐标。4096 = 64²（64 个区块半径）。

@@ -35,6 +35,8 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/gen/carver/ConfiguredCarverRegistry.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/vegetation/FlowerFeature.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
 #include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 
@@ -483,6 +485,12 @@ void applySpawnCosts(Biome& biome, const nlohmann::json& jsonObj)
  * features 是一个数组，每个元素是一个 placed_feature id 字符串数组。
  * 数组索引对应 DecorationStage 枚举值（0=RawGeneration, 1=Lakes, ..., 10=TopLayerModification）。
  * 缺失的 placed_feature id 在 PlacedFeatureRegistry 中查不到时 warn + skip。
+ *
+ * 花卉列表填充：对每个 placed_feature，若其底层 configured_feature 为
+ * ConfiguredFlowerFeature（对应 MC 的 Feature.FLOWER），则同时通过 addFlowerFeature
+ * 登记到 BiomeGenerationSettings 的独立花卉列表。GrassBlock::grow 骨粉催花时从该列表
+ * 随机选取 placed_feature，通过 PlacedFeatureRegistry 解析后取 feature() 拿到
+ * ConfiguredFlowerFeature，再从其配置中随机选择花朵方块状态放置。
  */
 void applyFeatures(Biome& biome, const nlohmann::json& jsonObj)
 {
@@ -513,12 +521,18 @@ void applyFeatures(Biome& biome, const nlohmann::json& jsonObj)
             const ResourceLocation featureId = ResourceLocation::parse(featureIdStr);
 
             // 校验 placed_feature 是否已注册；未注册则 warn + skip（世界仍可生成）
-            if (placedRegistry.get(featureId) == nullptr) {
+            const PlacedFeature* placedFeature = placedRegistry.get(featureId);
+            if (placedFeature == nullptr) {
                 spdlog::warn(
                     "biome '{}' references unregistered placed_feature '{}', skipping", biome.name(), featureIdStr);
                 continue;
             }
             genSettings.addPlacedFeature(stage, featureId);
+
+            // 花卉 placed_feature 同时登记到独立花卉列表，供 GrassBlock::grow 骨粉催花使用
+            if (dynamic_cast<const ConfiguredFlowerFeature*>(placedFeature->feature()) != nullptr) {
+                genSettings.addFlowerFeature(featureId);
+            }
         }
     }
 }

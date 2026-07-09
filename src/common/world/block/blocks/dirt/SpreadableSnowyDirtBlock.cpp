@@ -35,10 +35,9 @@
 #include "../../../biome/BiomeRegistry.hpp"
 #include "../../../chunk/data/ChunkData.hpp"
 #include "../../../fluid/Fluid.hpp"
-#include "../../../gen/feature/ConfiguredFeature.hpp"
-#include "../../../gen/feature/ConfiguredFeatureRegistry.hpp"
-#include "../../../gen/feature/DecorationStage.hpp"
 #include "../../../gen/feature/vegetation/FlowerFeature.hpp"
+#include "../../../gen/placement/PlacedFeature.hpp"
+#include "../../../gen/placement/PlacedFeatureRegistry.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../../registry/VanillaBlocks.hpp"
 #include "../../registry/VegetationBlocks.hpp"
@@ -235,8 +234,10 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
     MC_UNUSED(state);
     // 在草方块上方散布花朵和短草
     //
-    // MC 原版使用 128 次循环散布，从生物群系获取花列表，通过 PlacedFeature 系统放置。
-    // 当前实现：在上方散布短草，小概率放置花朵（从生物群系的花卉特征列表中选择）。
+    // 128 次循环散布：每次随机偏移位置，若下方是草方块且当前位置是空气，
+    // 1/8 概率从生物群系的花卉 placed_feature 列表中随机选取一项，解析出
+    // ConfiguredFlowerFeature 后从其配置中随机选择花朵方块状态放置；
+    // 7/8 概率放置短草。
 
     const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
 
@@ -292,17 +293,19 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 
                     if (!flowerIds.empty()) {
                         // 数据驱动：花卉 id 是 placed_feature 的 ResourceLocation，
-                        // 但骨粉放花用的是 configured_feature 的花卉配置（FlowerFeatureConfig），
-                        // 故直接从 ConfiguredFeatureRegistry 按 id 解析配置化花卉特征。
+                        // 通过 PlacedFeatureRegistry 解析 placed_feature，再取其内部
+                        // configured_feature（应为 ConfiguredFlowerFeature），从配置中
+                        // 随机选择花朵方块状态放置。
                         const ResourceLocation& chosenId =
                             flowerIds[random.nextInt(static_cast<i32>(flowerIds.size()))];
 
-                        const ConfiguredFeatureBase* featureBase = ConfiguredFeatureRegistry::instance().get(chosenId);
-                        if (featureBase != nullptr) {
-                            auto* feature = dynamic_cast<const ConfiguredFlowerFeature*>(featureBase);
-                            if (feature != nullptr) {
+                        const PlacedFeature* placedFeature = PlacedFeatureRegistry::instance().get(chosenId);
+                        if (placedFeature != nullptr) {
+                            auto* flowerFeature =
+                                dynamic_cast<const ConfiguredFlowerFeature*>(placedFeature->feature());
+                            if (flowerFeature != nullptr) {
                                 // 从花卉配置中随机选择花朵方块状态
-                                const BlockState* flower = feature->getConfig().getRandomFlower(random);
+                                const BlockState* flower = flowerFeature->getConfig().getRandomFlower(random);
                                 if (flower != nullptr) {
                                     world.setBlockState(currentPos, flower, 3);
                                 }
