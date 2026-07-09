@@ -343,6 +343,17 @@ TEST(MemoryModuleTypesTest, AllTypesInitialized)
     EXPECT_NE(memory::MemoryModuleTypes::ADMIRING_ITEM, nullptr);
     EXPECT_NE(memory::MemoryModuleTypes::DANCING, nullptr);
     EXPECT_NE(memory::MemoryModuleTypes::ATE_RECENTLY, nullptr);
+
+    // Piglin/Hoglin
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_ADULT_PIGLINS, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLINS, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT_HOGLINS, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLIN, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::VISIBLE_ADULT_PIGLIN_COUNT, nullptr);
+    EXPECT_NE(memory::MemoryModuleTypes::VISIBLE_ADULT_HOGLIN_COUNT, nullptr);
 }
 
 // ============================================================================
