@@ -26,10 +26,10 @@ src/server/application/
 ```
 
 **继承关系：**
-- `IServer` 定义服务器接口契约
+- `IServer` 定义服务器接口契约（含 `publishToLan` 局域网发布接口）
 - `MinecraftServer` 实现共享逻辑，委托网络层给子类
-- `IntegratedServer` 使用 `LocalConnectionPair` 实现单机通信
-- `StandaloneServer` 使用 `TcpServer` 实现多人网络
+- `IntegratedServer` 使用 `LocalConnectionPair` 实现单机通信；`publishToLan()` 后额外启动 `TcpServer` 接受远程玩家（双路径架构，详见下文第 11 节）
+- `StandaloneServer` 使用 `TcpServer` 实现多人网络；`publishToLan()` 返回 `Unsupported`
 
 **Tick 执行流程：**
 1. `m_timeManager->tick()` - 更新时间
@@ -135,3 +135,41 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 
 ### 10. StandaloneServer 主循环线程归属
 `StandaloneServer::run()` 是非阻塞的——它在内部启动 `m_serverThread` 运行 `_mainLoop()`，立即返回。线程由 `StandaloneServer` 自身持有（与 `IntegratedServer::initialize()` 一致），`stop()` 中先 join 再清理。这与早期版本不同：早期版本由 `main.cpp` 在外部 `std::thread` 中调用阻塞式 `run()`，导致 `stop()` 无法等待主循环退出，存在与 `tick()` 的数据竞争。现在 `stop()` 的顺序是：设置 `m_running=false` → join 主循环线程 → `savePlayerRuntimeState()` → `stopCore()` → 关闭网络/设置/性能追踪。
+
+### 11. 集成服务器局域网发布（publishToLan 双路径架构）
+
+**功能背景**：原版 Minecraft 集成服务器（单机开房）支持通过 `/publish [port] [allowCheats]` 命令将单机世界发布到局域网，允许其他玩家通过 TCP 加入。对应原版 `MinecraftIntegratedServer.publishServer()`。
+
+**接口**：`IServer::publishToLan(i32 port, bool allowCheats)` 纯虚方法。
+- `IntegratedServer`：启动 TCP 监听器，运行时切换作弊开关。
+- `StandaloneServer`：返回 `ErrorCode::Unsupported`（已通过 TCP 对外服务，无法再次发布）。
+
+**双路径架构**：`IntegratedServer` 在发布前只有本地客户端一条路径（`LocalConnectionPair` + `m_clientInventory` 零拷贝优化）。发布后新增 TCP 监听器路径，同一局游戏同时服务本地与远程玩家。通过 `sessionId` 区分：
+- `sessionId == 0`：本地客户端，走 `LocalEndpoint`（`_sendToClient` 直接写入队列）。
+- `sessionId != 0`：远程 TCP 玩家，走 `PlayerManager` → `ServerPlayerData::send()` → `TcpConnection` → `TcpSession`。
+
+**需分支的虚函数**：以下方法在 `IntegratedServer` 中均按 `playerId == m_clientPlayerId` 或 `sessionId == 0` 分流到对应路径：
+| 方法 | 本地客户端路径 | 远程 TCP 玩家路径 |
+|------|---------------|------------------|
+| `pollNetwork()` | `m_serverEndpoint->receive()` | `m_lanTcpServer->poll()` |
+| `broadcastPacket()` | `_sendToClient()` | `forEachPlayer` 过滤 Tcp 连接 |
+| `sendPacketToPlayer()` | `_sendToClient()` | `ServerPlayerData::send()` |
+| `getPlayerIdForSession()` | 返回 `m_clientPlayerId` | `PlayerManager::getPlayerIdBySession()` |
+| `handleLoginRequestPacket()` | 本地登录流程 | `_handleRemoteLoginRequest()` |
+| `handleHotbarSelectPacket()` | `m_clientInventory` | `InventoryManager::setSelectedSlot()` |
+| `handleContainerClickPacket()` | `ContainerPacketHandler` + `m_openMenu` | `ContainerManager::handleClick()` |
+| `handleCloseContainerPacket()` | `_closeCurrentContainer()` | `ContainerManager::closeContainer()` |
+| `openContainerRequest()` | `_openContainerMenu()` | `ContainerManager::openContainer()` |
+| `getHeldItemForPlacement()` | `m_clientInventory.getSelectedStack()` | `InventoryManager::getHeldItem()` |
+| `getSelectedHotbarSlot()` | `m_clientInventory.getSelectedSlot()` | `InventoryManager::getSelectedSlot()` |
+| `setInventoryItem()` | `m_clientInventory.setItem()` | `InventoryManager::setItem()` |
+| `syncPlayerInventory()` | `_sendPlayerInventory()` | `InventoryManager::syncToClient()` |
+| `tryOpenCraftingContainer()` | `_openCraftingTableMenu()` | `ContainerManager::openContainer(Crafting)` |
+
+**远程登录流程**（`_handleRemoteLoginRequest`）：与 `StandaloneServer::handleLoginRequestPacket` 基本一致——创建 `TcpConnection`、分配 `PlayerId`、生成离线 UUID、`addPlayer` + `mapSessionToPlayer`、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`inventoryManager().initializeInventory()` + 创造模式填充、发送登录响应 / 权限等级 / 初始游戏状态 / 物品栏同步。
+
+**作弊开关运行时切换**：`publishToLan(allowCheats)` 直接修改 `m_params.allowCommands`，`resolveOpLevel` 读取此字段判定主机是否提升为 Owner。此修改不落盘 level.dat，关闭局域网发布后作弊状态恢复到原始设置。
+
+**资源清理**（`stop()` 顺序）：`m_running=false` → `m_connectionPair->disconnect()` → join 主循环线程 → `savePlayerRuntimeState()`（含远程玩家）→ `clearAll()` → `stopCore()` → `m_lanTcpServer->stop()` + reset → 清理 `m_remotePlayerEntityIds` → reset `m_clientConnection` / `m_connectionPair`。`requestStop()` 也会通知 `m_lanTcpServer->stop()` 停止接受新连接。
+
+**TODO（后续集成验证）**：远程玩家登录流程的运行时正确性目前仅通过编译验证，缺少端到端集成测试（需 mock TcpSession 或真实 TCP 连接验证远程玩家能加入并交互）。当前依赖 `StandaloneServer` 的同类流程作为正确性参考，后续应补充专门针对 `IntegratedServer` 远程路径的集成测试。

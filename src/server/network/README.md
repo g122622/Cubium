@@ -1,6 +1,6 @@
 # Server Network Module
 
-本目录包含服务端 TCP 网络通信模块，负责独立服务器（StandaloneServer）的远程客户端连接管理。
+本目录包含服务端 TCP 网络通信模块，负责独立服务器（StandaloneServer）与集成服务器局域网发布（IntegratedServer::publishToLan）的远程客户端连接管理。
 
 ## 目录结构
 
@@ -19,8 +19,8 @@ src/server/network/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    StandaloneServer                          │
-│                      (应用层)                                 │
+│            StandaloneServer / IntegratedServer              │
+│              (应用层，持有 TcpServer 实例)                    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -49,6 +49,21 @@ src/server/network/
 
 **会话状态流转**：Connecting → Connected → Authenticating → Playing → Disconnecting → Disconnected
 
+## 使用场景
+
+### 1. StandaloneServer（独立服务器）
+`StandaloneServer` 在 `initialize()` 中创建 `TcpServer` 并设置回调，监听 `serverPort`。所有玩家均通过 TCP 连接。`pollNetwork()` 调用 `m_tcpServer->poll()`，`broadcastPacket()` 遍历 `PlayerManager` 中所有拥有 TCP 连接的玩家发送。
+
+### 2. IntegratedServer（集成服务器局域网发布）
+`IntegratedServer` 默认仅使用 `LocalConnectionPair` 与本地客户端通信。当执行 `/publish [port] [allowCheats]` 命令时，`publishToLan()` 创建 `m_lanTcpServer` 并启动监听，复用同一套 `TcpServer` / `TcpSession` / `TcpConnection` 基建接受远程玩家。
+
+**双路径架构**：发布后，`IntegratedServer` 同时服务本地客户端（`sessionId == 0`，走 `LocalEndpoint`）与远程 TCP 玩家（`sessionId != 0`，走 `TcpConnection`）。`pollNetwork()` 同时轮询本地端点与 `m_lanTcpServer`；`broadcastPacket()` 先发送给本地客户端，再遍历远程 TCP 玩家。详见 `src/server/application/README.md` 第 11 节。
+
+**与 StandaloneServer 的差异**：
+- `IntegratedServer` 的本地客户端保留 `LocalConnection` 零拷贝优化路径，TCP 仅用于远程玩家。
+- 远程玩家走 `InventoryManager` / `ContainerManager` 多玩家路径，本地客户端走 `m_clientInventory` / `m_openMenu` 单玩家优化路径。
+- `stop()` 中 `m_lanTcpServer` 的清理在 `stopCore()` 之后执行。
+
 ## 上下游外部依赖关系
 
 ### 本模块依赖的外部模块
@@ -67,7 +82,8 @@ src/server/network/
 
 | 模块 | 路径 | 用途 |
 |------|------|------|
-| StandaloneServer | `src/server/core/StandaloneServer.hpp` | 使用 TcpServer 作为网络层 |
+| StandaloneServer | `src/server/application/StandaloneServer.hpp` | 使用 TcpServer 作为网络层 |
+| IntegratedServer | `src/server/application/IntegratedServer.hpp` | `publishToLan()` 后使用 TcpServer 接受远程玩家 |
 | ConnectionManager | `src/server/core/ConnectionManager.hpp` | 管理 TcpConnection 适配器 |
 | ServerPlayer | `src/server/player/ServerPlayer.hpp` | 通过 IServerConnection 发送数据 |
 

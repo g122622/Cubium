@@ -76,9 +76,19 @@ public:
     [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
     [[nodiscard]] bool isDedicated() const noexcept override { return false; }
 
-    // 测试桩：模拟局域网发布成功
+    // 测试桩：模拟局域网发布行为，复刻真实 IntegratedServer 的边界校验逻辑：
+    //   1. 端口范围校验（1-65535）→ InvalidArgument
+    //   2. 重复发布检查 → AlreadyExists
+    //   3. 首次合法调用 → ok
+    // 通过复刻边界行为，可在命令层与接口层验证异常路径，无需真实 TCP 基建。
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override
     {
+        if (port < 1 || port > 65535) {
+            return Error(ErrorCode::InvalidArgument, "Port must be between 1 and 65535");
+        }
+        if (m_publishCalled) {
+            return Error(ErrorCode::AlreadyExists, "Server already published to LAN");
+        }
         m_publishCalled = true;
         m_lastPort = port;
         m_lastAllowCheats = allowCheats;
@@ -253,6 +263,70 @@ TEST_F(PublishCommandTest, PublishCommandInvalidPortTooHigh)
     const auto result = m_integratedServer.commandRegistry().execute("publish 70000", source);
 
     EXPECT_FALSE(result.success());
+}
+
+// ---------------------------------------------------------------------------
+// 边界测试：以下用例覆盖 publishToLan 接口层的异常路径，验证错误码语义。
+// 命令层对端口范围的解析拒绝（PublishCommandInvalidPortTooLow/TooHigh）
+// 覆盖了 Brigadier 解析器路径；此处直接调用 publishToLan 验证接口层校验，
+// 确保即使绕过命令解析（如程序化调用）也能正确返回 InvalidArgument。
+// ---------------------------------------------------------------------------
+
+TEST_F(PublishCommandTest, PublishToLanInvalidPortZeroReturnsInvalidArgument)
+{
+    // 端口 0 在接口层应被拒绝（命令层 IntegerArgumentType(1, 65535) 已拒绝，
+    // 此处直接调用 publishToLan 验证接口层兜底校验）。
+    auto result = m_integratedServer.publishToLan(0, false);
+    EXPECT_FALSE(result.success());
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
+    EXPECT_FALSE(m_integratedServer.publishCalled());
+}
+
+TEST_F(PublishCommandTest, PublishToLanInvalidPortTooHighReturnsInvalidArgument)
+{
+    // 端口 65536 超出 u16 范围，接口层应拒绝。
+    auto result = m_integratedServer.publishToLan(65536, false);
+    EXPECT_FALSE(result.success());
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidArgument);
+    EXPECT_FALSE(m_integratedServer.publishCalled());
+}
+
+TEST_F(PublishCommandTest, PublishToLanRepeatedCallReturnsAlreadyExists)
+{
+    // 首次发布应成功。
+    auto first = m_integratedServer.publishToLan(25565, false);
+    EXPECT_TRUE(first.success());
+    EXPECT_TRUE(m_integratedServer.publishCalled());
+    EXPECT_EQ(m_integratedServer.lastPublishedPort(), 25565);
+
+    // 重复发布应返回 AlreadyExists，且不更新记录的端口/作弊开关。
+    auto second = m_integratedServer.publishToLan(25566, true);
+    EXPECT_FALSE(second.success());
+    EXPECT_EQ(second.error().code(), ErrorCode::AlreadyExists);
+    // 第一次调用的记录不应被第二次覆盖。
+    EXPECT_EQ(m_integratedServer.lastPublishedPort(), 25565);
+    EXPECT_FALSE(m_integratedServer.lastAllowCheats());
+}
+
+TEST_F(PublishCommandTest, PublishCommandOnDedicatedServerReturnsZeroAndDoesNotPublish)
+{
+    // /publish 在独立服务器上应返回 0（命令成功执行但功能不可用），
+    // 且不应触发 publishToLan（BaseTestServer 默认返回 Unsupported）。
+    ServerCommandSource source(&m_dedicatedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
+
+    const auto result = m_dedicatedServer.commandRegistry().execute("publish", source);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(PublishCommandTest, StandaloneServerPublishToLanReturnsUnsupported)
+{
+    // 直接验证 StandaloneServer（此处为 DedicatedTestServer）的 publishToLan
+    // 接口返回 Unsupported 错误码，符合 IServer 契约约定。
+    auto result = m_dedicatedServer.publishToLan(25565, false);
+    EXPECT_FALSE(result.success());
+    EXPECT_EQ(result.error().code(), ErrorCode::Unsupported);
 }
 
 } // namespace mc::command
