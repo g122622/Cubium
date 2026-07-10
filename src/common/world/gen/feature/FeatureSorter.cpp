@@ -22,6 +22,7 @@
  */
 
 #include "FeatureSorter.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/gen/placement/PlacedFeature.hpp"
@@ -133,6 +134,10 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     if (hasCycle) {
         // 输出友好的成环诊断：展示每条环的参与者（特征名@阶段#全局索引 链）
         // 以及把这些特征串成依赖的生物群系来源（成因）。
+        // 汇总所有环的诊断信息，统一断言中断（与原版抛 IllegalStateException 行为一致）。
+        std::string allChains;
+        std::string allSources;
+
         for (const CycleInfo& cycle : cycles) {
             // 环节点链：A -> B -> C -> A
             std::string chain;
@@ -170,17 +175,34 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
                 }
             }
 
-            spdlog::warn("[FeatureSorter] Feature order cycle detected, sorting may be incomplete.");
-            // TODO: 成环时当前仅 warn 不中断，拓扑顺序在环上不完整。原版行为是抛异常中断生成，
-            // 项目暂沿用 warn 容忍（数据包成环已在 BiomeGenerationSettings 去重阶段规避大多数情况），
-            // 待评估是否升级为严格中断。
-            spdlog::warn("[FeatureSorter]   cycle: {}", chain);
+            if (!allChains.empty()) {
+                allChains += " | ";
+            }
+            allChains += chain;
             if (!sources.empty()) {
-                spdlog::warn("[FeatureSorter]   involved biomes (edge source): {}", sources);
+                if (!allSources.empty()) {
+                    allSources += " | ";
+                }
+                allSources += sources;
+            }
+
+            spdlog::error("[FeatureSorter]   cycle: {}", chain);
+            if (!sources.empty()) {
+                spdlog::error("[FeatureSorter]   involved biomes (edge source): {}", sources);
             } else {
-                spdlog::warn("[FeatureSorter]   involved biomes (edge source): <unresolved>");
+                spdlog::error("[FeatureSorter]   involved biomes (edge source): <unresolved>");
             }
         }
+
+        spdlog::error("[FeatureSorter] Feature order cycle detected, aborting generation.");
+        // 成环属于数据包配置错误（feature 依赖关系存在循环），必须中断生成。
+        // 原版在 FeatureSorter.java 中抛 IllegalStateException 中断，项目沿用此严格语义，
+        // 避免在拓扑顺序不完整的情况下继续生成导致不可预期的世界状态。
+        const std::string assertMsg = fmt::format(
+            "[FeatureSorter] Feature order cycle detected. Cycles: [{}]. Involved biomes: [{}]",
+            allChains,
+            allSources.empty() ? std::string("<unresolved>") : allSources);
+        MC_ASSERT_RELEASE_MSG(false, assertMsg.c_str());
     }
 
     // 反转得到拓扑排序（DFS 后序的逆序）

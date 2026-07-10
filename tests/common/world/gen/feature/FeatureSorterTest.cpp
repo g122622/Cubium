@@ -24,6 +24,7 @@
 #include "common/world/gen/feature/FeatureSorter.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/Assert.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/placement/PlacedFeature.hpp"
@@ -108,13 +109,28 @@ static const PlacedFeature* registerPlacedStub(PlacedFeatureRegistry& registry, 
 }
 
 /**
- * @brief 测试夹具：自动清除 PlacedFeatureRegistry
+ * @brief 测试夹具：自动清除 PlacedFeatureRegistry，并安装抛异常的断言处理器
+ *
+ * FeatureSorter 在检测到 feature 依赖环时会触发 MC_ASSERT_RELEASE_MSG(false, ...)。
+ * 默认的断言处理器会终止进程，导致测试无法验证成环行为。这里在 SetUp 中安装
+ * 抛出 AssertException 的处理器，使测试可以用 EXPECT_THROW 捕获断言失败。
  */
 class FeatureSorterTest : public ::testing::Test {
 protected:
-    void SetUp() override { PlacedFeatureRegistry::instance().clear(); }
+    void SetUp() override
+    {
+        PlacedFeatureRegistry::instance().clear();
+        originalAssertConfig_ = mc::assert::AssertManager::instance().config();
+        mc::assert::AssertConfig config;
+        config.handler = [](const mc::assert::AssertFailure& failure) { throw mc::assert::AssertException(failure); };
+        mc::assert::AssertManager::instance().setConfig(config);
+    }
 
-    void TearDown() override { PlacedFeatureRegistry::instance().clear(); }
+    void TearDown() override
+    {
+        mc::assert::AssertManager::instance().setConfig(originalAssertConfig_);
+        PlacedFeatureRegistry::instance().clear();
+    }
 
     /**
      * @brief 构建 getFeatures 回调函数
@@ -131,6 +147,9 @@ protected:
             return it != data.end() ? it->second : empty;
         };
     }
+
+private:
+    mc::assert::AssertConfig originalAssertConfig_;
 };
 
 // ============================================================================
@@ -528,7 +547,7 @@ TEST_F(FeatureSorterTest, CrossStageGlobalIndexNoCollision)
 // 环检测与特殊场景
 // ============================================================================
 
-TEST_F(FeatureSorterTest, CycleDetectionDoesNotCrash)
+TEST_F(FeatureSorterTest, CycleDetectionThrowsAssert)
 {
     auto& registry = PlacedFeatureRegistry::instance();
 
@@ -551,30 +570,22 @@ TEST_F(FeatureSorterTest, CycleDetectionDoesNotCrash)
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
 
-    // 不应崩溃
-    auto result = FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
-
-    // 应该返回结果（可能不完整，但不崩溃）
-    auto& vegetalStep = result[static_cast<int>(DecorationStage::VegetalDecoration)];
-    // 有环时，DFS 会跳过循环节点但继续处理
-    EXPECT_GE(vegetalStep.features.size(), 1u);
+    // 成环时应抛出 AssertException（MC_ASSERT_RELEASE_MSG(false, ...) 触发）
+    EXPECT_THROW(FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry), mc::assert::AssertException);
 }
 
-TEST_F(FeatureSorterTest, CycleResultStillContainsFeatures)
+TEST_F(FeatureSorterTest, CycleExceptionMessageContainsDiagnosticInfo)
 {
     auto& registry = PlacedFeatureRegistry::instance();
 
-    // 构造一个场景：A→B (生物群系 0) 和 B→A (生物群系 1) 形成环
-    // 加上 C 只在生物群系 0 中，不参与环
+    // 构造人工环：A→B (生物群系 0) 和 B→A (生物群系 1)
     const PlacedFeature* featureA = registerPlacedStub(registry, "feature_a", DecorationStage::VegetalDecoration);
     const PlacedFeature* featureB = registerPlacedStub(registry, "feature_b", DecorationStage::VegetalDecoration);
-    const PlacedFeature* featureC = registerPlacedStub(registry, "feature_c", DecorationStage::VegetalDecoration);
 
     std::map<std::pair<BiomeId, int>, std::vector<ResourceLocation>> biomeData;
     biomeData[{0, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
         ResourceLocation("test", "feature_a"),
         ResourceLocation("test", "feature_b"),
-        ResourceLocation("test", "feature_c"),
     };
     biomeData[{1, static_cast<int>(DecorationStage::VegetalDecoration)}] = {
         ResourceLocation("test", "feature_b"),
@@ -584,21 +595,17 @@ TEST_F(FeatureSorterTest, CycleResultStillContainsFeatures)
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
 
-    auto result = FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
-
-    auto& vegetalStep = result[static_cast<int>(DecorationStage::VegetalDecoration)];
-    // 即使有环，结果不应为空，非环节点仍然应出现在排序结果中
-    EXPECT_GE(vegetalStep.features.size(), 1u);
-
-    // featureC 不参与环，应该能正常排序
-    bool hasFeatureC = false;
-    for (auto* f : vegetalStep.features) {
-        if (f == featureC) {
-            hasFeatureC = true;
-            break;
-        }
+    try {
+        FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
+        FAIL() << "Expected AssertException to be thrown";
     }
-    EXPECT_TRUE(hasFeatureC);
+    catch (const mc::assert::AssertException& ex) {
+        const std::string msg = ex.what();
+        // 断言消息应包含环节点链和生物群系来源的诊断信息
+        EXPECT_NE(msg.find("cycle"), std::string::npos);
+        EXPECT_NE(msg.find("feature_a"), std::string::npos);
+        EXPECT_NE(msg.find("feature_b"), std::string::npos);
+    }
 }
 
 TEST_F(FeatureSorterTest, UnregisteredFeatureIdSkipped)

@@ -197,3 +197,7 @@ NBT 模板文件路径格式：`data/<namespace>/structure/<path>.nbt`
 ```
 
 结构以 pos 为中心，范围 `pos + (-1, -2, -1)` 到 `pos + (1, 2, 1)`。修改结构时需同步更新两处代码。
+
+### 10. FeatureSorter 成环断言
+
+`FeatureSorter::buildFeaturesPerStep` 检测到 feature 依赖环时会通过 `MC_ASSERT_RELEASE_MSG(false, ...)` 中断生成（与原版 `IllegalStateException` 语义一致），断言消息包含环节点链和生物群系来源诊断信息。成环属于数据包配置错误，必须在数据包层面修复 feature 依赖关系，不能依赖排序器容错。
