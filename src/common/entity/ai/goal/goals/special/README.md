@@ -20,6 +20,7 @@
 ├── PhantomGoals.hpp / cpp #幻翼目标（环绕飞行、俯冲攻击）
 ├── SlimeGoals.hpp / cpp #史莱姆目标（漂浮、攻击、随机转向）
 ├── IronGolemGoals.hpp / cpp #铁傀儡目标（赠花给村民/铜傀儡、保护村庄、攻击）
+├── CopperGolemGoals.hpp / cpp #铜傀儡物品运输目标（在铜箱子与普通箱子间转移物品）
 ├── EvokerGoals.hpp / cpp #唤魔者目标（尖牙攻击、召唤恼鬼、Wololo法术）
 ├── VexGoals.hpp / cpp #恼鬼目标（冲锋攻击、随机飞行、复制主人目标）
 ├── BeeGoals.hpp / cpp #蜜蜂目标（授粉、返回蜂巢、蛰刺攻击、作物生长促进）
@@ -82,6 +83,7 @@
 ├── PhantomPickAttackGoal ────────── 幻翼攻击阶段选择
 ├── PhantomSweepAttackGoal ───────── 幻翼俯冲攻击
 ├── OfferFlowerGoal ─────────────── 铁傀儡向村民/铜傀儡赠花
+├── TransportItemsBetweenContainersGoal ── 铜傀儡物品运输（主手空取铜箱物品，主手有物放普通箱）
 ├── EvokerAttackSpellGoal ────────── 唤魔者尖牙攻击
 ├── EvokerSummonSpellGoal ────────── 唤魔者召唤恼鬼
 ├── EvokerWololoSpellGoal ────────── 唤魔者蓝色羊变红
@@ -423,3 +425,18 @@ if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSp
         3. *
         *`tick()` 栅栏拴绳早返回 * *：被拴在栅栏柱上的羊驼（`isLeashed() &&
     leashFencePos().has_value()`）不移动跟随商队。
+
+    ## #25. 铜傀儡物品运输目标的三状态机与 MC 1.21.11 常量
+
+        **问题**：`TransportItemsBetweenContainersGoal` 的状态机（TRAVELLING → QUEUING → INTERACTING）与 MC 1.21.11 `TransportItemsBetweenContainers` 行为常量需要对齐，否则铜傀儡物品运输行为会偏离原版。
+
+        **解决**：关键常量与时序点：
+        - 搜索半径：`HORIZONTAL_SEARCH_RADIUS=32`、`VERTICAL_SEARCH_RADIUS=8`（对应 MC `TRANSPORTED_ITEMS_SEARCH_RADIUS`）
+        - 交互时长：`TARGET_INTERACTION_TIME=60` tick（tick 1 startOpen+setOpenedChestPos+setState、tick 9 playSound、tick 60 transfer+stopOpen+clearOpenedChestPos）
+        - 运输堆叠上限：`TRANSPORTED_ITEM_MAX_STACK_SIZE=16`
+        - 冷却：`IDLE_COOLDOWN=140` tick（运输完成后进入冷却）
+        - 位置记忆：`MAX_VISITED_POSITIONS=10`（已访问位置集）、`MAX_UNREACHABLE_POSITIONS=50`（不可达位置集）
+        - 交互触发距离：水平 `CLOSE_ENOUGH_TO_INTERACT_SQ=1.0`（1 格内）、垂直 `CLOSE_ENOUGH_VERTICAL=2.0`
+        - 目标筛选：主手为空 → 在 `BlockTags::COPPER_CHESTS` 中找非空铜箱子（取物）；主手非空 → 在普通箱子（`VanillaBlocks::CHEST`/`TRAPPED_CHEST`）中找可堆叠箱子（放物）
+        - 双箱处理：`_tickInteracting` tick 1 在目标箱子及其连通箱子（`ChestBlock::getConnectedDirection`）上分别调用 `startOpen`/`stopOpen`，对应 MC `CompoundContainer` 转发
+        - 物品转移顺序：`_addItemsToContainer` 单次遍历容器，同时处理空槽（整堆放入）和可堆叠槽（增量堆叠），与 MC 原版 `addItemsToContainer` 一致（与项目 `IInventory::addItem` 默认顺序相反）

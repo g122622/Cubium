@@ -13,7 +13,7 @@ golem/
 ├── IronGolemEntity.hpp     # 铁傀儡实体
 ├── IronGolemEntity.cpp     # 铁傀儡实现
 ├── CopperGolemTypes.hpp    # 铜傀儡类型定义（氧化等级、行为状态、工具集）
-├── CopperGolemEntity.hpp   # 铜傀儡实体（IShearable，氧化与转雕像）
+├── CopperGolemEntity.hpp   # 铜傀儡实体（IShearable, ContainerUser，氧化与转雕像）
 ├── CopperGolemEntity.cpp   # 铜傀儡实现
 └── README.md               # 本文件
 ```
@@ -35,14 +35,14 @@ golem/
 ┌──────▼──────┐   ┌──────▼──────┐   ┌──────▼──────┐
 │SnowGolemEntity│  │IronGolemEntity│  │CopperGolemEntity│
 │(IShearable)  │   │              │   │(IShearable)     │
-│(IRangedAttack)│  │              │   │(氧化/转雕像)     │
+│(IRangedAttack)│  │              │   │(ContainerUser)  │
 └──────────────┘   └──────────────┘   └─────────────────┘
 ```
 
 - **GolemEntity**：傀儡基类，继承 `CreatureEntity` 并实现 `IAngerable` 接口，提供愤怒系统
 - **SnowGolemEntity**：雪傀儡，实现远程攻击（雪球）和剪切（南瓜头）功能
 - **IronGolemEntity**：铁傀儡，实现近战攻击和村民保护功能
-- **CopperGolemEntity**：铜傀儡，实现氧化等级系统、斧头敲击雕像生成、涂蜡阻止氧化、剪刀剪切天线（罂粟花）、氧化到顶后转化为雕像
+- **CopperGolemEntity**：铜傀儡，实现氧化等级系统、斧头敲击雕像生成、涂蜡阻止氧化、剪刀剪切天线（罂粟花）、氧化到顶后转化为雕像；实现 ContainerUser 接口以支持物品运输行为（TransportItemsBetweenContainersGoal）
 
 ## 上下游外部依赖关系
 
@@ -52,11 +52,14 @@ golem/
 - `IAngerable` - 愤怒接口
 - `IRangedAttackMob` - 远程攻击接口
 - `IShearable` - 可剪切接口
+- `ContainerUser` - 容器使用者接口（铜傀儡实现，用于物品运输）
 - `BiomeRegistry` - 生物群系注册表（雪傀儡温度检查）
 - `VanillaBlocks` / `BlockItemRegistry` - 方块和物品注册表
 - `SoundEvents` - 声音事件定义
 - `GameRules` - 游戏规则系统（mobGriefing）
-- AI 目标系统（RangedAttackGoal、MeleeAttackGoal 等）
+- `ChestEntity` - 箱子方块实体（铜傀儡物品运输目标）
+- `BlockTags::COPPER_CHESTS` - 铜箱子标签（运输源容器）
+- AI 目标系统（RangedAttackGoal、MeleeAttackGoal、TransportItemsBetweenContainersGoal 等）
 
 ### 下游依赖（依赖本模块）
 
@@ -64,6 +67,7 @@ golem/
 - 世界生成系统 - 村庄铁傀儡生成
 - 玩家交互系统 - 铁傀儡建造检测
 - 实体 AI 系统 - 使用傀儡特定的 AI 目标
+- `ChestEntity::_recheckOpeners` - 通过 ContainerUser 接口计入铜傀儡为打开者
 
 ## 容易踩的坑
 
@@ -105,3 +109,9 @@ golem/
 16. **铜傀儡天线槽设计**：对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA = EquipmentSlot.SADDLE`。铜傀儡头顶"天线"并非独立物品，而是 `EquipmentSlot::Saddle` 槽中持有的罂粟花（`minecraft:poppy`），由铁傀儡 `OfferFlowerGoal` 赠予。剪切时通过 `ItemTags::SHEARABLE_FROM_COPPER_GOLEM` 判断可剪性，取出 Saddle 槽物品并掉落。转雕像时由 `MobEntity::dropPreservedEquipment()` 自动掉落 Saddle 槽物品（需先 `setGuaranteedDrop(Saddle)` 标记保留，由 `OfferFlowerGoal` 调用）。
 
 17. **EquipmentSlot::Saddle 扩展**：为支持铜傀儡天线槽，`EquipmentSlot` 枚举扩展了 `Saddle = 7`（`Count = 8`）。所有基于 `EquipmentSlot::Count` 的 `std::array` 自动扩展。`EquipmentSlotNames` 提供 `saddle` 名称映射，`ItemSlotArgument` 的 `saddle` 命名槽位映射到索引 106 → `EquipmentSlot` 索引 7。`Player::getEquipment` 的 `default` 分支返回空 `ItemStack`，因此玩家访问 Saddle 槽安全。
+
+18. **铜傀儡 ContainerUser 接口**：铜傀儡实现 `mc::entity::ContainerUser` 接口以支持物品运输行为（`TransportItemsBetweenContainersGoal`）。接口要求实现 `hasContainerOpen(BlockPos)`、`getContainerInteractionRange()`（返回 3.0）、`getLivingEntity()`。铜傀儡通过 `m_openedChestPos`（`std::optional<BlockPos>`）记录当前打开的箱子位置，由 Goal 在交互开始时设置、结束时清除。`hasContainerOpen` 支持双箱合并场景：若 `m_openedChestPos` 是双箱的一半，对另一半位置也返回 true（通过 `ChestBlock::getConnectedDirection` 计算连通位置）。
+
+19. **铜傀儡物品运输时序**：`TransportItemsBetweenContainersGoal` 在到达容器后执行 60 tick 交互序列：tick 1 调用 `ChestEntity::startOpen(*golem)` + `setOpenedChestPos` + 设置动画状态；tick 9 播放音效（ITEM_GET/ITEM_NO_GET/ITEM_DROP/ITEM_NO_DROP）；tick 60 执行物品转移（取出最多 16 个或放入主手物品）+ `stopOpen` + `clearOpenedChestPos`。双箱场景下 `startOpen`/`stopOpen` 需在两个 ChestEntity 上分别调用（对应 MC CompoundContainer 转发）。
+
+20. **物品转移顺序差异**：MC 原版 `addItemsToContainer` 在单次遍历中同时处理空槽和可堆叠槽（遇到空槽整堆放入并返回，遇到可堆叠槽增量堆叠）；本项目 `IInventory::addItem` 默认顺序相反（先可堆叠后空槽）。`TransportItemsBetweenContainersGoal::_addItemsToContainer` 自行实现单次遍历逻辑以 1:1 对齐 MC 原版。

@@ -27,14 +27,18 @@
 #include "GolemEntity.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/interfaces/ContainerUser.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 
 // Forward declarations
 class IWorld;
+class LivingEntity;
 
 namespace test {
 class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以访问 private 成员
@@ -53,11 +57,11 @@ class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以�
  * - 可剪切：可用剪刀剪下天线槽（Saddle 槽）中的物品（如罂粟花）
  * - 蜜脾涂蜡：可用蜜脾阻止氧化
  * - 斧头刮削：可用斧头刮削回上一氧化等级
+ * - 物品运输：在铜箱子与普通箱子/陷阱箱之间运输物品（TransportItemsBetweenContainersGoal）
  *
  * 与 MC 原版的差异：
  * - MC 原版使用 Brain 系统（CopperGolemAi）实现物品运输行为，本项目使用 GoalSelector
- *   实现。当前实现只包含基础的随机漫步、看向玩家、随机看向等基础 AI，
- *   物品运输行为留作 TODO（需要 ChestBlock 容器接口、ContainerOpenersCounter 等子系统）。
+ *   实现，通过 TransportItemsBetweenContainersGoal 复刻相同行为。
  * - 氧化与转雕像逻辑完整实现（对应 MC 1.21.11 CopperGolem.updateWeathering/turnToStatue）。
  *
  * 天线槽设计（对应 MC 1.21.11 CopperGolem.EQUIPMENT_SLOT_ANTENNA）：
@@ -68,9 +72,15 @@ class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以�
  * - 转雕像时通过 MobEntity::dropPreservedEquipment() 自动掉落 Saddle 槽物品
  *   （需先 setGuaranteedDrop(Saddle) 标记保留，由 OfferFlowerGoal 调用）。
  *
+ * ContainerUser 接口（对应 MC 1.21.11 CopperGolem implements ContainerUser）：
+ * - hasContainerOpen(BlockPos)：检查 m_openedChestPos 是否匹配（含双箱另一半场景）
+ * - getContainerInteractionRange()：返回 3.0（MC 1.21.11 CopperGolem.getContainerInteractionRange）
+ * - getLivingEntity()：返回 this（CopperGolemEntity IS-A LivingEntity）
+ * - setOpenedChestPos / clearOpenedChestPos：由 TransportItemsBetweenContainersGoal 调用
+ *
  * 参考: net.minecraft.world.entity.animal.golem.CopperGolem (MC 1.21.11)
  */
-class CopperGolemEntity : public GolemEntity, public entity::IShearable {
+class CopperGolemEntity : public GolemEntity, public entity::IShearable, public entity::ContainerUser {
 public:
     /**
      * @brief 铜傀儡的天线装备槽
@@ -158,6 +168,59 @@ public:
      * 对应 MC Java: CopperGolem.playSpawnSound()
      */
     void playSpawnSound();
+
+    // ========== ContainerUser 接口实现 ==========
+
+    /**
+     * @brief 检查当前是否打开了指定位置的容器
+     *
+     * 对应 MC 1.21.11 CopperGolem.hasContainerOpen(ContainerOpenersCounter, BlockPos)：
+     * - 若 m_openedChestPos 为空返回 false
+     * - 若 m_openedChestPos == pos 返回 true
+     * - 否则获取 m_openedChestPos 处的 BlockState，若方块是 ChestBlock 且
+     *   CHEST_TYPE != Single（双箱），计算连通位置（getConnectedDirection + offset）
+     *   并比较是否等于 pos
+     *
+     * @param pos 待检查的容器位置
+     * @return 如果当前打开此容器（或其双箱另一半）返回 true
+     */
+    [[nodiscard]] bool hasContainerOpen(const BlockPos& pos) const override;
+
+    /**
+     * @brief 获取容器交互范围
+     *
+     * 对应 MC 1.21.11 CopperGolem.getContainerInteractionRange() = 3.0
+     *
+     * @return 交互半径（3.0 方块）
+     */
+    [[nodiscard]] f64 getContainerInteractionRange() const override { return CONTAINER_INTERACTION_RANGE; }
+
+    /**
+     * @brief 获取实现此接口的 LivingEntity 指针
+     *
+     * CopperGolemEntity IS-A LivingEntity（通过 GolemEntity → CreatureEntity → MobEntity → LivingEntity），
+     * 直接返回 this。
+     */
+    [[nodiscard]] LivingEntity* getLivingEntity() override;
+    [[nodiscard]] const LivingEntity* getLivingEntity() const override;
+
+    /**
+     * @brief 设置当前打开的箱子位置
+     *
+     * 对应 MC 1.21.11 CopperGolem.setOpenedChestPos(BlockPos)。
+     * 由 TransportItemsBetweenContainersGoal 在到达容器后（ticks==1）调用。
+     *
+     * @param pos 打开的箱子位置
+     */
+    void setOpenedChestPos(const BlockPos& pos) { m_openedChestPos = pos; }
+
+    /**
+     * @brief 清除当前打开的箱子位置
+     *
+     * 对应 MC 1.21.11 CopperGolem.clearOpenedChestPos()。
+     * 由 TransportItemsBetweenContainersGoal 在交互结束（ticks==60）或寻路中调用。
+     */
+    void clearOpenedChestPos() { m_openedChestPos.reset(); }
 
     // ========== IShearable 接口实现 ==========
 
@@ -311,12 +374,18 @@ private:
     /// 下次氧化 tick（-2 表示已涂蜡不氧化，-1 表示需初始化，>=0 表示具体 tick）
     i64 m_nextWeatheringTick = -1;
 
+    /// 当前打开的箱子位置（对应 MC CopperGolem.openedChestPos，transient 不持久化）
+    std::optional<BlockPos> m_openedChestPos;
+
     // 常量（对应 MC 1.21.11 CopperGolem 中的私有常量）
     static constexpr i64 IGNORE_WEATHERING_TICK = -2;     ///< 已涂蜡标记
     static constexpr i64 UNSET_WEATHERING_TICK = -1;      ///< 未设置标记
     static constexpr i32 WEATHERING_TICK_FROM = 504000;   ///< 氧化最小 tick
     static constexpr i32 WEATHERING_TICK_TO = 552000;     ///< 氧化最大 tick
     static constexpr f32 TURN_TO_STATUE_CHANCE = 0.0058F; ///< 转雕像概率
+
+    /// 容器交互范围（对应 MC CopperGolem.getContainerInteractionRange = 3.0）
+    static constexpr f64 CONTAINER_INTERACTION_RANGE = 3.0; ///< 转雕像概率
 
     friend class test::CopperGolemEntityTestAccessor;
 };

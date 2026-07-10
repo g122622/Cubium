@@ -22,7 +22,9 @@
  */
 
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/interfaces/ContainerUser.hpp"
 #include "entity/inventory/container/ChestContainer.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/context/LootContext.hpp"
@@ -236,6 +238,77 @@ void ChestEntity::closeContainer(Player* player)
     if (prevCount == 1 && m_openCount == 0 && m_world != nullptr && !m_world->isClientSide()) {
         _playSound(*m_world, false);
         m_world->gameEvent(gameevent::GameEvents::CONTAINER_CLOSE, m_pos, gameevent::GameEvent::Context::of(player));
+    }
+
+    // 广播状态变化
+    if (m_world != nullptr) {
+        broadcastChestState(*m_world, false);
+    }
+}
+
+void ChestEntity::startOpen(entity::ContainerUser& user)
+{
+    // 对应 MC 1.21.11 ChestBlockEntity.startOpen(ContainerUser):
+    //   if (!this.remove && !p_433320_.getLivingEntity().isSpectator()) {
+    //       this.openersCounter.incrementOpeners(livingEntity, level, pos, state, range);
+    //   }
+    LivingEntity* living = user.getLivingEntity();
+    if (living == nullptr) {
+        return;
+    }
+    // 旁观者不计入打开者
+    if (living->isSpectator()) {
+        return;
+    }
+
+    // 记录边沿状态
+    const bool wasEmpty = (m_openCount == 0);
+
+    // 计数增加（直接操作基类 protected 字段，与 ContainerBlockEntity::openContainer 一致）
+    if (m_openCount < 0) {
+        m_openCount = 0;
+    }
+    ++m_openCount;
+
+    // 仅在首次打开（0->1）时触发音效和游戏事件（仅服务端）
+    if (wasEmpty && m_openCount > 0 && m_world != nullptr && !m_world->isClientSide()) {
+        _playSound(*m_world, true);
+        // 游戏事件以 LivingEntity 为来源
+        m_world->gameEvent(gameevent::GameEvents::CONTAINER_OPEN, m_pos, gameevent::GameEvent::Context::of(living));
+    }
+
+    // 广播状态变化
+    if (m_world != nullptr) {
+        broadcastChestState(*m_world, true);
+    }
+}
+
+void ChestEntity::stopOpen(entity::ContainerUser& user)
+{
+    // 对应 MC 1.21.11 ChestBlockEntity.stopOpen(ContainerUser):
+    //   if (!this.remove && !p_432909_.getLivingEntity().isSpectator()) {
+    //       this.openersCounter.decrementOpeners(livingEntity, level, pos, state);
+    //   }
+    LivingEntity* living = user.getLivingEntity();
+    if (living == nullptr) {
+        return;
+    }
+    if (living->isSpectator()) {
+        return;
+    }
+
+    // 记录关闭前的计数
+    const i32 prevCount = m_openCount;
+
+    // 计数减少（防止下溢）
+    if (m_openCount > 0) {
+        --m_openCount;
+    }
+
+    // 仅在最后一个关闭者（1->0）时触发音效和游戏事件（仅服务端）
+    if (prevCount == 1 && m_openCount == 0 && m_world != nullptr && !m_world->isClientSide()) {
+        _playSound(*m_world, false);
+        m_world->gameEvent(gameevent::GameEvents::CONTAINER_CLOSE, m_pos, gameevent::GameEvent::Context::of(living));
     }
 
     // 广播状态变化
@@ -534,45 +607,54 @@ void ChestEntity::_playSound(IWorld& world, bool open)
 
 void ChestEntity::_recheckOpeners(IWorld& world)
 {
-    // 参考 MC ContainerOpenersCounter.recheckOpeners
-    // 遍历附近玩家，检查哪些玩家仍在使用此容器
+    // 参考 MC 1.21.11 ContainerOpenersCounter.recheckOpeners：
+    //   遍历附近所有 ContainerUser 实体（含 Player 和实现 ContainerUser 的非玩家实体如铜傀儡），
+    //   通过 hasContainerOpen 检查哪些实体仍在使用此容器，修正 m_openCount。
+    //
+    // 本项目 ContainerUser 接口与 MC 略有差异：hasContainerOpen(BlockPos) 内部判断
+    // 该实体当前打开的箱子位置（m_openedChestPos）是否匹配（含双箱另一半场景）。
 
-    // 搜索范围：MAX_ACCESS_DISTANCE（8格）
+    // 搜索范围：使用 MAX_ACCESS_DISTANCE（8 格）作为基础，兼顾 Player 的 8 格与
+    // ContainerUser 的自定义范围（铜傀儡 3.0）。MC 中实际取所有 ContainerUser 中
+    // 最大的 getContainerInteractionRange + 4.0 作为 AABB 半径，这里用 MAX_ACCESS_DISTANCE
+    // 覆盖常见情况。
     const f32 maxDistSq = MAX_ACCESS_DISTANCE * MAX_ACCESS_DISTANCE;
     Vector3 centerPos = m_pos.center();
 
     i32 actualOpenCount = 0;
 
-    // 获取附近所有实体并筛选玩家
+    // 获取附近所有实体
     std::vector<Entity*> entities = world.getEntitiesInRange(centerPos, MAX_ACCESS_DISTANCE);
     for (Entity* entity : entities) {
         if (entity == nullptr) {
             continue;
         }
 
-        // 检查是否是玩家
+        // 排除旁观者（Player 和其他 ContainerUser 都可能旁观）
+        if (entity->isSpectator()) {
+            continue;
+        }
+
+        // 检查实体是否在访问范围内
+        if (entity->distanceSqTo(centerPos.x, centerPos.y, centerPos.z) > maxDistSq) {
+            continue;
+        }
+
+        // 路径 1：玩家通过 GUI 菜单打开箱子
         auto* player = dynamic_cast<Player*>(entity);
-        if (player == nullptr) {
+        if (player != nullptr) {
+            if (_isOwnContainer(*player)) {
+                ++actualOpenCount;
+            }
             continue;
         }
 
-        // 排除旁观者
-        if (player->isSpectator()) {
-            continue;
-        }
-
-        // 检查玩家是否在访问范围内
-        if (player->distanceSqTo(centerPos.x, centerPos.y, centerPos.z) > maxDistSq) {
-            continue;
-        }
-
-        // 检查玩家当前打开的容器菜单是否包含此箱子
-        // 参考 MC ChestBlockEntity.isOwnContainer:
-        //   1. 玩家的 containerMenu 必须是 ChestMenu（对应本项目的 ChestContainer）
-        //   2. ChestMenu 持有的底层容器（getContainer()）必须是此箱子的 m_inventory
-        //   3. 对于双箱情况，底层容器是 DoubleSidedInventory，需检查 isPartOfLargeChest
-        if (_isOwnContainer(*player)) {
-            ++actualOpenCount;
+        // 路径 2：非玩家 ContainerUser（如铜傀儡）通过 hasContainerOpen 声明打开
+        auto* containerUser = dynamic_cast<entity::ContainerUser*>(entity);
+        if (containerUser != nullptr) {
+            if (containerUser->hasContainerOpen(m_pos)) {
+                ++actualOpenCount;
+            }
         }
     }
 

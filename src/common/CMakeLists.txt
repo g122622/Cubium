@@ -373,6 +373,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/BreezeGoals.cpp
     entity/ai/goal/goals/special/PhantomGoals.cpp
     entity/ai/goal/goals/special/IronGolemGoals.cpp
+    entity/ai/goal/goals/special/CopperGolemGoals.cpp
     entity/ai/goal/goals/special/ShulkerGoals.cpp
     entity/ai/goal/goals/special/EvokerGoals.cpp
     entity/ai/goal/goals/special/IllusionerGoals.cpp

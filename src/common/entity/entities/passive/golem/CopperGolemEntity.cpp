@@ -28,8 +28,10 @@
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/special/CopperGolemGoals.hpp"
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
@@ -38,11 +40,15 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/ChestBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <memory>
@@ -97,6 +103,71 @@ void CopperGolemEntity::playSpawnSound()
 {
     // 对应 MC Java: CopperGolem.playSpawnSound() -> playSound(SoundEvents.COPPER_GOLEM_SPAWN)
     playSound(SoundEvents::ENTITY_COPPER_GOLEM_SPAWN, 1.0f, 1.0f);
+}
+
+// ========== ContainerUser 接口实现 ==========
+
+bool CopperGolemEntity::hasContainerOpen(const BlockPos& pos) const
+{
+    // 对应 MC 1.21.11 CopperGolem.hasContainerOpen(ContainerOpenersCounter, BlockPos):
+    //   if (this.openedChestPos == null) return false;
+    //   BlockState blockstate = this.level().getBlockState(this.openedChestPos);
+    //   return this.openedChestPos.equals(p_482140_)
+    //       || blockstate.getBlock() instanceof ChestBlock
+    //           && blockstate.getValue(ChestBlock.TYPE) != ChestType.SINGLE
+    //           && ChestBlock.getConnectedBlockPos(this.openedChestPos, blockstate).equals(p_482140_);
+    if (!m_openedChestPos.has_value()) {
+        return false;
+    }
+
+    const BlockPos& openedPos = m_openedChestPos.value();
+    if (openedPos == pos) {
+        return true;
+    }
+
+    // 检查是否为双箱另一半场景
+    const IWorld* w = world();
+    if (w == nullptr) {
+        return false;
+    }
+    const BlockState* state = w->getBlockState(openedPos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 方块必须是 ChestBlock（含子类 CopperChestBlock 等）
+    const auto* chestBlock = dynamic_cast<const blocks::ChestBlock*>(&state->getBlock());
+    if (chestBlock == nullptr) {
+        return false;
+    }
+
+    // 检查 CHEST_TYPE 属性：必须非 Single 才有连通的另一半
+    BlockStateProperties::ChestType chestType = state->get(BlockStateProperties::CHEST_TYPE());
+    if (chestType == BlockStateProperties::ChestType::Single) {
+        return false;
+    }
+
+    // 计算双箱连通位置：
+    // ChestBlock::getConnectedDirection(state) 返回连通方向，offset 后得到另一半位置
+    // 对应 MC ChestBlock.getConnectedBlockPos(pos, state)
+    Direction connectedDir = blocks::ChestBlock::getConnectedDirection(*state);
+    if (connectedDir == Direction::None) {
+        return false;
+    }
+    BlockPos connectedPos = openedPos.offset(connectedDir);
+    return connectedPos == pos;
+}
+
+LivingEntity* CopperGolemEntity::getLivingEntity()
+{
+    // CopperGolemEntity IS-A LivingEntity（继承链：CopperGolemEntity → GolemEntity →
+    // CreatureEntity → MobEntity → LivingEntity），直接返回 this。
+    return this;
+}
+
+const LivingEntity* CopperGolemEntity::getLivingEntity() const
+{
+    return this;
 }
 
 bool CopperGolemEntity::isShearable() const
@@ -238,19 +309,27 @@ void CopperGolemEntity::registerGoals()
     //   - RandomStroll（随机漫步）
     //   - DoNothing（偶尔发呆）
     //
-    // 本项目使用 GoalSelector AI 系统，且 ContainerUser / ContainerOpenersCounter /
-    // TransportItemsBetweenContainers 行为子系统尚未完整实现。
-    // 当前使用基础 GoalSelector 实现基础行为，物品运输行为留作 TODO。
+    // 本项目使用 GoalSelector AI 系统替代 Brain，通过以下 Goal 复刻核心行为：
+    //   - SwimGoal（游泳）
+    //   - TransportItemsBetweenContainersGoal（物品运输，核心行为）
+    //   - RandomWalkingGoal（随机漫步）
+    //   - LookAtGoal（看向玩家）
+    //   - LookRandomlyGoal（随机看向）
     //
-    // TODO: 实现 ContainerUser 接口与 TransportItemsBetweenContainers 行为后，
-    //       在此注册物品运输目标，完整复刻 MC 原版铜傀儡行为。
+    // 优先级参考 MC CopperGolemAi 中 TransportItemsBetweenContainers 在 Idle Activity
+    // 中的 Pair.of(0, ...)，即运输目标在空闲行为中优先级最高。
 
     // 优先级 0: 游泳目标（在水中时上浮）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // 优先级 1: 随机漫步
+    // 优先级 1: 物品运输目标（在铜箱子与普通箱子/陷阱箱之间运输物品）
+    // 对应 MC CopperGolemAi.getIdleActivity 的 Pair.of(0, new TransportItemsBetweenContainers(...))
+    // 速度倍率 1.0F 对应 MC 构造参数 speedMultiplier
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::TransportItemsBetweenContainersGoal>(this, 1.0));
+
+    // 优先级 2: 随机漫步
     // 对应 MC RandomStroll.stroll(1.0F, 2, 2)
-    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 60));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 60));
 
     // 优先级 6: 看向玩家（对应 MC SetEntityLookTargetSometimes<Player, 6.0F>）
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f));

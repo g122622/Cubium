@@ -35,6 +35,11 @@ namespace mc {
 class IWorld;
 class ChestBlock;
 class Player;
+class LivingEntity;
+
+namespace entity {
+class ContainerUser;
+}
 
 namespace loot {
 class LootTableManager;
@@ -169,6 +174,34 @@ public:
      * @param player 关闭箱子的玩家（可为nullptr）
      */
     void closeContainer(Player* player) override;
+
+    /**
+     * @brief 非玩家 ContainerUser 实体开始打开容器
+     *
+     * 对应 MC 1.21.11 ChestBlockEntity.startOpen(ContainerUser)：
+     *   openersCounter.incrementOpeners(livingEntity, level, pos, state, range)
+     *
+     * 与 openContainer(Player*) 的差异：
+     * - ContainerUser 不打开 GUI 菜单，仅触发箱子开盖动画、计入打开者数量
+     * - 不进行战利品表填充（LootableContainerBlockEntity 的填充在 Player 路径）
+     * - 旁观者检查通过 ContainerUser::getLivingEntity()->isSpectator() 完成
+     *
+     * 双箱场景由调用方负责同时调用两个 ChestEntity 的 startOpen
+     * （对应 MC CompoundContainer.startOpen 转发到两个容器）。
+     *
+     * @param user 容器使用者（如铜傀儡），不能为 nullptr
+     */
+    void startOpen(entity::ContainerUser& user);
+
+    /**
+     * @brief 非玩家 ContainerUser 实体停止打开容器
+     *
+     * 对应 MC 1.21.11 ChestBlockEntity.stopOpen(ContainerUser)：
+     *   openersCounter.decrementOpeners(livingEntity, level, pos, state)
+     *
+     * @param user 容器使用者（如铜傀儡），不能为 nullptr
+     */
+    void stopOpen(entity::ContainerUser& user);
 
     /**
      * @brief 计算红石比较器信号

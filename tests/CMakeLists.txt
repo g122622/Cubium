@@ -200,6 +200,8 @@ add_executable(mc_tests
     common/entity/entities/passive/golem/CopperGolemEntityTest.cpp
     # CopperGolemEntity turnToStatue 拴绳掉落与雕像转化测试
     common/entity/entities/passive/golem/CopperGolemTurnToStatueTest.cpp
+    # TransportItemsBetweenContainersGoal 铜傀儡物品运输目标测试
+    entity/TransportItemsBetweenContainersGoalTest.cpp
     common/entity/DolphinEntityTest.cpp
     # 鱿鱼 AI 目标测试
     common/entity/SquidGoalsTest.cpp
