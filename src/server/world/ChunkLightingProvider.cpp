@@ -39,7 +39,8 @@ ChunkData* _chunkDataFromIChunk(IChunk* chunk)
     if (chunk == nullptr) {
         return nullptr;
     }
-    // WorldGenRegion 内的区块都是 ChunkPrimer（ChunkProgressionTask 从 StaticChunkCache2D<ChunkPrimer*> 填充）
+    // WorldGenRegion 内的区块都是 ChunkPrimer（ChunkProgressionTask 从 StaticChunkCache2D<shared_ptr<SCLM>> 提取各
+    // holder 的 ChunkPrimer 填充）
     auto* primer = dynamic_cast<world::chunk::ChunkPrimer*>(chunk);
     return primer != nullptr ? primer->getChunkData() : nullptr;
 }

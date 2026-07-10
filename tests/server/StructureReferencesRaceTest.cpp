@@ -34,17 +34,21 @@
 
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <ctime>
+#include <filesystem>
 #include <future>
 #include <thread>
 #include <vector>
@@ -62,35 +66,74 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
+        // 预初始化生物群系标签：区块生成 worker 会并发调用 BiomeTags::getTag()/
+        // HAS_STRUCTURE_*()（generateStructureStarts 遍历结构集时）。在工作线程启动前
+        // 完成初始化，避免多 worker 首次懒初始化的 call_once 串行化（虽然 call_once 已
+        // 保证正确性，但提前初始化消除首块生成时的屏障等待），并与其他测试夹具一致。
+        mc::world::biome::BiomeTags::initialize();
 
         // 8 个 worker 线程，最大化 STRUCTURE_REFERENCES 等无区域互斥任务的并发度
         m_workerPool = std::make_unique<mc::util::ServerWorkerPool>(8, "StructRaceWorker");
+
+        // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
+        // 复用 ServerWorldTest 的模式，在临时目录中打开一个 RocksDB 存档。
+        // 用时间戳 + 进程内自增计数器生成唯一目录，避免同秒内多个测试共享目录
+        // 导致 WorldSessionLock 残留句柄引发 ERROR_SHARING_VIOLATION。
+        static std::atomic<std::uint64_t> s_counter{0};
+        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
+        m_testDir = std::filesystem::temp_directory_path() / "mc_struct_race_test" / token;
+        std::filesystem::create_directories(m_testDir);
+
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
 
         ServerWorldConfig config;
         config.seed = 12345;
         // 大视距：更多区块同时生成，更多邻居 m_structureStarts 并发读
         config.viewDistance = 16;
+
+        // 把区块管理器挂到世界（与 ServerWorldTest 一致），使 world->initialize() 完整初始化
+        // m_tickManager 等。此前固件直接构造独立的 ServerChunkManager 且不调用 world->initialize()，
+        // 导致 m_tickManager 为空：玩家 ticket 驱动区块到 FULL 后，_postProcessChunk 调用
+        // m_world->tickManager().scheduleFluidTick 解引用空 m_tickManager → ACCESS_VIOLATION at 0x10。
         m_world = std::make_unique<ServerWorld>(config);
+        m_world->setSharedStorage(&m_storage);
 
         auto settings = DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
         auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         auto generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
-        m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
-        m_manager->setWorkerPool(m_workerPool.get());
+        auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
+        chunkManager->setWorkerPool(m_workerPool.get());
+        m_world->setChunkManager(std::move(chunkManager));
+        m_manager = m_world->chunkManager();
+
+        ASSERT_TRUE(m_world->initialize().success()) << "ServerWorld::initialize failed";
     }
 
     void TearDown() override
     {
-        m_manager.reset();
-        m_workerPool.reset();
         m_world.reset();
+        m_workerPool.reset();
+        m_storage.close();
+        // 重试删除：Windows 上 RocksDB 后台线程可能延迟释放文件句柄，
+        // 单次 remove_all 可能因 ERROR_SHARING_VIOLATION 失败。
+        for (int i = 0; i < 10; ++i) {
+            std::error_code ec;
+            std::filesystem::remove_all(m_testDir, ec);
+            if (!ec) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
 
     std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
-    std::unique_ptr<ServerChunkManager> m_manager;
+    // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
+    ServerChunkManager* m_manager = nullptr;
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
 };
 
 } // namespace
@@ -114,14 +157,22 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
         }
     }
 
-    // 等待全部完成（带超时，崩溃会表现为进程终止/ASan 报告）
+    // 等待全部完成（带超时，崩溃会表现为进程终止/ASan 报告）。
+    // 异步存档加载路径把完成回调入队 m_pendingLoadCompletes，需主线程 tick() 出队处理
+    // （_drainPendingLoadCompletes→_onChunkLoadComplete→_completeReadyWaiters fulfill promise）。
+    // 本测试不另起 tick 线程，故在主线程等待 future 期间主动 pump tick()，避免 promise 永不完成。
     for (auto& f : futures) {
-        if (f.valid()) {
-            auto status = f.wait_for(std::chrono::seconds(120));
-            ASSERT_NE(status, std::future_status::timeout) << "Grid generation timed out (possible deadlock)";
-            ChunkData* chunk = f.get();
-            ASSERT_NE(chunk, nullptr);
+        if (!f.valid()) {
+            continue;
         }
+        constexpr auto kTimeout = std::chrono::seconds(120);
+        const auto deadline = std::chrono::steady_clock::now() + kTimeout;
+        while (f.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
+            m_manager->tick();
+            ASSERT_LT(std::chrono::steady_clock::now(), deadline) << "Grid generation timed out (possible deadlock)";
+        }
+        ChunkData* chunk = f.get();
+        ASSERT_NE(chunk, nullptr);
     }
 
     m_manager->shutdown();
@@ -166,11 +217,18 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
             }
         }
         for (auto& f : seeds) {
-            if (f.valid()) {
-                ASSERT_EQ(f.wait_for(std::chrono::seconds(120)), std::future_status::ready)
-                    << "seed generation timed out";
-                (void)f.get();
+            if (!f.valid()) {
+                continue;
             }
+            // seed 生成在 teleporter tick 线程启动前，主线程等待 future 期间主动 pump tick()
+            // 处理异步存档加载完成（_drainPendingLoadCompletes），否则 promise 永不 fulfill。
+            constexpr auto kTimeout = std::chrono::seconds(120);
+            const auto deadline = std::chrono::steady_clock::now() + kTimeout;
+            while (f.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
+                m_manager->tick();
+                ASSERT_LT(std::chrono::steady_clock::now(), deadline) << "seed generation timed out";
+            }
+            (void)f.get();
         }
     }
 
@@ -209,6 +267,13 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     spdlog::info("[watchdog] deadlock: workers idle but pending={}", pending);
                     break;
                 }
+                // worker 池完全空闲（pending=0, running=0）但持续无进展：
+                // 说明 generator 线程的 future.get() 永不完成（promise 泄漏），dump 卡住 holder 诊断根因。
+                if (noProgressSamples >= 6 && pending == 0 && running == 0) {
+                    spdlog::info("[watchdog] stall: workers idle, no in-flight tasks — dumping stuck holders");
+                    m_manager->_debugDumpStuckHolders();
+                    break;
+                }
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
@@ -241,6 +306,18 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                 for (int t = 0; t < 25; ++t) {
                     m_manager->tick();
                 }
+                std::this_thread::sleep_for(std::chrono::microseconds(200));
+            }
+            // 传送循环结束后继续驱动 tick() 直到 generators 全部完成（stop 被置位）。
+            // 异步存档加载把完成回调入队 m_pendingLoadCompletes，必须由主线程 tick() 出队
+            // （_drainPendingLoadCompletes→_onChunkLoadComplete→_completeReadyWaiters fulfill promise）。
+            // 若传送循环一结束就停止 tick()，仍持有 in-flight future 的 generator 线程的 f.get() 会永久挂起
+            // （worker 池空闲 pending=0/running=0 但 promise 永不完成 → 测试死锁）。
+            // 此处对齐真实游戏：主 tick 线程持续运行，玩家位置更新与区块请求由其他线程发起。
+            // processTicketUpdatesSync（tick 内）与 updatePlayerPosition 共享 m_ticketManager 无锁状态，
+            // 二者必须同线程串行——teleporter 同时负责二者，满足单线程不变量。
+            while (!stop.load(std::memory_order::acquire)) {
+                m_manager->tick();
                 std::this_thread::sleep_for(std::chrono::microseconds(200));
             }
         }
@@ -290,11 +367,14 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
         });
     }
 
-    teleporter.join();
+    // 先 join generators：它们的 f.get() 排空依赖 teleporter 持续 tick() 驱动异步存档加载完成。
+    // generators 全部完成后置位 stop，teleporter 的 tick 循环才退出，最后 join teleporter。
+    // （若先 join teleporter，其 tick 循环在 generators 仍在排空 future 时就停止 → 死锁。）
     for (auto& g : generators) {
         g.join();
     }
     stop.store(true, std::memory_order::release);
+    teleporter.join();
     watchdog.join();
 
     // crashFlag 非 0 表示 generator/teleporter 线程捕获到异常（worker 线程的 ACCESS_VIOLATION
@@ -348,6 +428,13 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                     spdlog::info("[watchdog] deadlock: workers idle but pending={}", pending);
                     break;
                 }
+                // worker 池完全空闲（pending=0, running=0）但持续无进展：
+                // 说明 generator 线程的 future.get() 永不完成（promise 泄漏），dump 卡住 holder 诊断根因。
+                if (noProgressSamples >= 6 && pending == 0 && running == 0) {
+                    spdlog::info("[watchdog] stall: workers idle, no in-flight tasks — dumping stuck holders");
+                    m_manager->_debugDumpStuckHolders();
+                    break;
+                }
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
@@ -369,6 +456,12 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 m_manager->updatePlayerPosition(1, wx, wz);
                 m_manager->tick();
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+            // 移动循环结束后继续驱动 tick() 直到 generator 完成（stop 置位），避免 generator 的
+            // in-flight future 因异步存档加载完成回调无人出队而永久挂起（与 0x50Repro 同因）。
+            while (!stop.load(std::memory_order::acquire)) {
+                m_manager->tick();
+                std::this_thread::sleep_for(std::chrono::microseconds(200));
             }
         }
         catch (...) {
@@ -408,9 +501,11 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
         }
     });
 
-    mover.join();
+    // 先 join generator：其 f.get() 排空依赖 mover 持续 tick() 驱动异步存档加载完成。
+    // generator 完成后置位 stop，mover 的 tick 循环才退出，最后 join mover。
     generator.join();
     stop.store(true, std::memory_order::release);
+    mover.join();
     watchdog.join();
 
     EXPECT_EQ(crashFlag.load(std::memory_order::acquire), 0)

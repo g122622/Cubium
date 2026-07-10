@@ -502,6 +502,21 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_build
         return decision;
     }
 
+    // 已达到请求状态、但尚未发布到 Ready/FULL 的稳态：区块数据已在 m_currentChunk（primer）中可用，
+    // 但因请求的目标是中间状态（非 FULL，未走 _finalizeGeneratedChunkSync→markLoadedFromStorageReady），
+    // sourceState 停在 StorageMissing（生成路径）或 LoadedFromStorage（存档命中瞬态，理论应被
+    // markLoadedFromStorageReady 立即推进到 Ready，此处兜底）。此时新到达的请求 waiter 若仅靠下方
+    // shouldScheduleGeneration 分支（要求 gen<req）会被永久悬挂——_buildDecisionLocked 对 gen>=req 返回
+    // no-op，waiter 既不被完成也不被重新调度（_completeReadyWaiters 的 takeReadyWaiters 要求 Ready）。
+    // 对齐 Moonrise：schedule 中 currentGenStatus.isOrAfter(targetStatus) 时直接返回（请求者经
+    // getChunkIfPresentUnchecked 快速路径拿到已生成 chunk）。Cubium 在 _completeReadyWaiters 用
+    // takeAllWaiters 取出 waiter，从 primer 的 ChunkData 完成它们（与 _publishGeneratedChunk 同语义）。
+    if (m_sourceState != SourceState::Ready && m_currentGenStatus->isAtLeast(*m_requestedGenStatus) &&
+        m_generationTask == nullptr && m_currentChunk != nullptr) {
+        decision.shouldWakeReadyWaiters = !m_waiters.empty();
+        return decision;
+    }
+
     // 存档缺失后，若尚未达到请求状态且没有进行中任务，触发生成调度
     if (m_sourceState == SourceState::StorageMissing && m_currentGenStatus->isBefore(*m_requestedGenStatus) &&
         m_generationTask == nullptr) {
