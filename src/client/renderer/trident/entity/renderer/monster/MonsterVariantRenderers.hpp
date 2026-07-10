@@ -55,6 +55,24 @@ public:
 
 /**
  * @brief 溺尸渲染器
+ *
+ * TODO: 未实现 MC 1.21.11 DrownedRenderer.setupRotations 的游泳身体倾斜效果。
+ * 原版在游泳时（swimAmount > 0）将整个实体身体绕 X 轴倾斜
+ *   lerp(swimAmount, 0, -10 - xRot) 度，枢轴位于包围盒垂直中心：
+ *   poseStack.rotateAround(Axis.XP.rotationDegrees(f2), 0, boundingBoxHeight/2/scale, 0);
+ * 该效果是渲染器层面的整体身体倾斜（区别于 DrownedModel::setAngles 中的手臂/腿部
+ * 覆盖动画），与 MC 原版 DrownedRenderer.setupRotations 一一对应。
+ *
+ * 实现该效果需要：
+ *   1. 在 AnimationContext 中新增 xRot（实体俯仰角，区别于 headPitch）与
+ *      boundingBoxHeight 字段；
+ *   2. 在 LivingRenderer/EntityRenderer 基类新增 setupRotations 虚函数（或在
+ *      computeCustomModelMatrix 中组合），由 EntityRendererManager 构建实体矩阵时
+ *      调用；
+ *   3. DrownedRenderer 覆盖该方法，按上述公式应用 X 轴倾斜。
+ * 由于当前实体矩阵构建集中在 EntityRendererManager.cpp（无 setupRotations 虚函数
+ * 钩子），且 AnimationContext 缺少 xRot/boundingBoxHeight 字段，该效果需要较大的
+ * 渲染管线架构调整，暂留作后续 TODO。
  */
 class DrownedRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::DrownedModel> {
 public:

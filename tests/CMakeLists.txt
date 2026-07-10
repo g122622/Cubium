@@ -939,6 +939,8 @@ add_executable(mc_tests
     client/renderer/entity/WitherModelSideHeadTest.cpp
     # EntityRendererManager::_applySkeletonArmPose 契约测试（isChargingBow → BowAndArrow/Empty）
     client/renderer/entity/ApplySkeletonArmPoseTest.cpp
+    # EntityRendererManager::_applyDrownedTridentPose 契约测试（isAggressive → ThrowSpear/Empty）
+    client/renderer/entity/ApplyDrownedTridentPoseTest.cpp
     # BipedModel 鞘翅飞行速度因子测试
     client/renderer/entity/BipedModelSpeedValueTest.cpp
     # elytra::computeSpeedValue 纯逻辑公式测试（_applyBipedElytraState 单元测试）

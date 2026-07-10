@@ -35,6 +35,7 @@
 #include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include "client/renderer/trident/entity/model/monster/MonsterVariantModels.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
@@ -1248,6 +1249,17 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             normalizedId == "giant" || normalizedId == "minecraft:giant") {
             auto* zombieModel = dynamic_cast<model::monster::ZombieModel*>(model.get());
             if (zombieModel != nullptr) {
+                // 溺尸三叉戟投掷手臂姿态：必须在 _applyZombieState 之前设置，因为后者
+                // 末尾会重新调用 setAngles，DrownedModel::setAngles 读取 m_rightArmPose
+                // 重新应用 ThrowSpear 姿态（animateZombieArms 会覆盖该姿态）。对应 MC
+                // 1.21.11 DrownedRenderer.getArmPose 在 extractRenderState 阶段填充
+                // rightArmPos，setupAnim 阶段读取。
+                if (normalizedId == "drowned" || normalizedId == "minecraft:drowned") {
+                    auto* drownedModel = dynamic_cast<model::monster::DrownedModel*>(zombieModel);
+                    if (drownedModel != nullptr) {
+                        _applyDrownedTridentPose(*drownedModel, entity);
+                    }
+                }
                 _applyZombieState(*zombieModel, entity, context);
             }
         }
@@ -1441,6 +1453,40 @@ void EntityRendererManager::_applyZombieState(
         context.netHeadYaw,
         context.headPitch,
         context.scale * 16.0);
+}
+
+void EntityRendererManager::_applyDrownedTridentPose(
+    model::monster::DrownedModel& drownedModel, const ClientEntity& entity)
+{
+    // 对应 MC 1.21.11 DrownedRenderer.getArmPose：
+    //   if (entity.getMainArm() == hand && entity.isAggressive() &&
+    //       itemHeld.is(Items.TRIDENT))
+    //     return HumanoidModel.ArmPose.THROW_TRIDENT;
+    //
+    // 僵尸类实体在 MC 原版中始终为右撇子（无 MainArm NBT 字段，LivingEntity.getMainArm()
+    // 默认返回 RIGHT），故仅设置右臂 ArmPose，与 _applySkeletonArmPose 仅设置右臂
+    // BowAndArrow 的处理方式一致。
+    //
+    // 必须在 _applyZombieState 之前调用：_applyZombieState 末尾会重新调用 setAngles，
+    // DrownedModel::setAngles 在 ZombieModel::setAngles（animateZombieArms 覆盖手臂角度）
+    // 之后重新应用 ThrowSpear 姿态（xRot = xRot*0.5 - PI, yRot = 0）。若 ThrowSpear 在
+    // setAngles 之后才设置，该重应用逻辑成为死代码。
+    //
+    // 信号选择：MC 原版同时检查 isAggressive() 与主手三叉戟物品。本项目当前溺尸的
+    // 三叉戟是 m_hasTrident 行为标志（DrownedTridentAttackGoal 据此激活），而非装备
+    // 物品（DrownedEntity 未在 populateDefaultEquipmentSlots 中装备三叉戟到主手），
+    // 且 ClientEntity 尚未同步主手装备（getMainHandItem 恒为 nullptr）。故此处以
+    // isAggressive() 作为投掷姿态的唯一触发信号——DrownedTridentAttackGoal::startExecuting
+    // 会置位 aggroed，MeleeAttackGoal 也会置位 aggroed，两者均对应「激怒中即将攻击」
+    // 的语义，ThrowSpear 姿态在此期间显示是合理的近似。待 ClientEntity 主手装备同步
+    // 落地后，可恢复完整的三叉戟物品判定。
+    using model::ArmPose;
+    const bool shouldThrowSpear = entity.isAggressive();
+    if (shouldThrowSpear) {
+        drownedModel.setRightArmPose(ArmPose::ThrowSpear);
+    } else {
+        drownedModel.setRightArmPose(ArmPose::Empty);
+    }
 }
 
 void EntityRendererManager::_applyBipedElytraState(model::BipedModel& bipedModel, const ClientEntity& entity)

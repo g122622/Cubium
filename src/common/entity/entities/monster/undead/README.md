@@ -128,3 +128,13 @@ Entity
 
 13. **ZombieVillagerEntity 数据参数**：`CONVERTING_PARAM`、`VILLAGER_TYPE_PARAM`、`VILLAGER_PROFESSION_PARAM`、`VILLAGER_LEVEL_PARAM` 需要在 `registerData()` 中注册
 14. **客户端同步**：`syncMetadataFromDataManager()` 需要从 DataManager 读取数据更新本地状态
+
+### 溺尸游泳状态追踪
+
+对应 MC 1.21.11 `DrownedEntity.updateSwimming` 与 `DrownedRenderer.getArmPose`：
+
+- **`DrownedEntity::updateSwimming()`** 覆盖（服务端 tick 中调用）：按 `areEyesInWater() && isInWater() && wantsToSwim() && !isRiding()` 条件设置 `EntityFlags::Swimming` 位（经 `DATA_FLAGS_PARAM` slot 0 同步到客户端）。与普通僵尸/玩家的 `updateSwimming`（基于 Pose）不同，溺尸直接基于环境条件判定。
+- **`DrownedEntity::isVisuallySwimming()`** 覆盖：返回 `isSwimming() && !isRiding()`（基于 Swimming 标志位，不依赖 Pose，对应 MC 1.21.11 `Drowned.isVisuallySwimming`）。
+- **客户端 `ClientEntity`**：`syncMetadataFromDataManager` 读取 `DATA_FLAGS_PARAM` 的 Swimming 位 → `setSwimming`；每帧 `updateSwimAmount` 渐变 `m_swimAmount`（±0.09/tick），`getInterpolatedSwimAmount(partialTicks)` 提供 prev/cur 插值。
+- **渲染管道**：`EntityRendererManager::_applyDrownedTridentPose` 在 `_applyZombieState` 之前根据 `isAggressive()` 设置右臂 `ThrowSpear` 姿态；`_applyZombieState` 推送 `setSwimAnimation(swimAmount)` 并重新调用 `setAngles`，`DrownedModel::setAngles` 据此执行游泳手臂/腿部/头部覆盖（详见 `src/client/renderer/trident/entity/model/monster/README.md` 的溺尸游泳动画管道章节）。
+- **未实现项**：MC 1.21.11 `DrownedRenderer.setupRotations` 的游泳身体倾斜（渲染器层整体 X 轴旋转）暂留 TODO，见 `MonsterVariantRenderers.hpp` 中 DrownedRenderer 类注释。

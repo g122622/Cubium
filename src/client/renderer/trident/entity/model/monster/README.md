@@ -112,8 +112,8 @@ layer/
 ### 1. 纹理尺寸差异
 
 不同怪物使用不同的纹理尺寸，设置错误会导致纹理错乱：
-- **64x64**：普通僵尸、巨人
-- **64x32**：骷髅、末影人、尸壳、溺尸
+- **64x64**：普通僵尸、巨人、溺尸、僵尸村民
+- **64x32**：骷髅、末影人、尸壳
 - 苦力怕、蜘蛛等有各自独特的纹理布局
 
 ### 2. 模型状态同步
@@ -149,6 +149,12 @@ bobArms(rightArm, leftArm, ageInTicks)  // 无条件执行
 **变体继承**：`HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` 均继承 `ZombieModel`，自动复用 `setAggressive` 和 `setAngles` 中的攻击抬臂动画，无需各自重写。对应 MC 1.21.11 中这些变体模型也继承 `ZombieModel`。
 
 **骷髅 ArmPose 管道**：`SkeletonModel` 不再自定义 `ArmPose` 枚举与 `m_rightArmPose/m_leftArmPose` 字段（避免遮蔽基类），改用 `using ArmPose = model::ArmPose;` 复用 `BipedModel::ArmPose`。弩姿态（`CrossbowCharge`/`CrossbowHold`）由基类 `handleCrossbowCharge/handleCrossbowHold` 完整处理，子类无需重复实现。`EntityRendererManager::_applySkeletonArmPose` 根据 `ClientEntity::isChargingBow()`（通过 `AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM` 同步）设置右臂 `BowAndArrow` 姿态。
+
+**溺尸游泳动画管道**：`DrownedModel::setAngles` 覆盖 `ZombieModel::setAngles`，在 super 调用后执行两步覆盖（对应 MC 1.21.11 `DrownedModel.setupAnim`）：
+1. **ThrowSpear 重应用**：`animateZombieArms`（在 `ZombieModel::setAngles` 中）会覆盖 `BipedModel::handleRightArmPose` 已设置的 ThrowSpear 手臂角度，故 DrownedModel 在 super 返回后重新应用：`rightArm.xRot = rightArm.xRot * 0.5 - PI`、`rightArm.yRot = 0`（左臂同理）。ArmPose 由 `EntityRendererManager::_applyDrownedTridentPose` 在 `_applyZombieState` 之前根据 `ClientEntity::isAggressive()` 设置（对应 MC `DrownedRenderer.getArmPose`：`isAggressive && holdsTrident → THROW_TRIDENT`；本项目以 isAggressive 作为信号，待主手装备同步落地后恢复完整判定）。
+2. **游泳覆盖**（`swimAmount > 0` 时）：手臂 X `rotLerpRad(f, cur, -4π/5) ± 0.35*f*sin(0.1*age)`（划水摆动）、手臂 Z `rotLerpRad(f, cur, ∓0.15)`（略微内收/外展）、腿部 X 叠加 `∓0.55*f*sin(0.1*age)`（打水摆动）、头部 X 归零（平视前方）。`swimAmount` 由 `EntityRendererManager::_createModelForEntity` 从 `ClientEntity::getInterpolatedSwimAmount(partialTicks)` 填入 `AnimationContext.swimAmount`，再经 `_applyZombieState` 推送 `setSwimAnimation`。服务端 `DrownedEntity::updateSwimming` 按 `areEyesInWater && isInWater && wantsToSwim && !isRiding` 设置 `EntityFlags::Swimming` 位，经 `DATA_FLAGS_PARAM` 同步到客户端，客户端 `LivingEntity`/`ClientEntity` 每帧 `updateSwimAmount` 渐变（±0.09/tick）。
+
+**渲染器层游泳身体倾斜（未实现）**：MC 1.21.11 `DrownedRenderer.setupRotations` 在 `swimAmount > 0` 时将整个实体身体绕 X 轴倾斜 `lerp(swimAmount, 0, -10 - xRot)` 度（枢轴位于包围盒垂直中心）。本项目实体矩阵构建集中在 `EntityRendererManager`（无 `setupRotations` 虚函数钩子，且 `AnimationContext` 缺少 `xRot`/`boundingBoxHeight` 字段），该效果暂留作 TODO（见 `MonsterVariantRenderers.hpp` 中 DrownedRenderer 类注释）。
 
 **凋灵侧头朝向管道**：`EntityRendererManager::_createModelForEntity` 中对凋灵分支读取 `ClientEntity::getInterpolatedWitherSideHeadYaw/Pitch(index, partialTick)`，通过 `math::wrapDegrees(absoluteYaw - bodyYaw)` 将绝对 yaw 转为 body 相对值（对齐 MC `yHeadRots[index] - bodyRot`），再调用 `WitherModel::setSideHeadRotations()` 注入。详见 `src/client/world/entity/README.md` 的凋灵侧头朝向章节。
 

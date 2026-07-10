@@ -165,3 +165,12 @@ ClientEntity
     - **覆盖范围**：所有 MobEntity 子类（zombie/husk/drowned/zombie_villager/skeleton/creeper/enderman/...）共享同一同步路径，无需为每个 typeId 编写分支。
     - **与骷髅拉弓同步的差异**：骷髅拉弓状态（`AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM`）按 typeId 分发，因为是骷髅特有的独立参数；激怒状态通过 `DATA_MOB_FLAGS_PARAM` 通用同步，因为所有 MobEntity 子类都注册了该参数。
 
+17. **游泳状态镜像与 swimAmount 渐变**（参考 MC 1.21.11 `LivingEntity.isVisuallySwimming` / `HumanoidMobRenderer.extractHumanoidRenderState`）：
+    - **字段**：`m_swimAmount`（f32，当前 tick）/ `m_swimAmountO`（f32，上一 tick）— 游泳动画渐变量，驱动 `DrownedModel::setAngles` 的溺尸专属游泳手臂/腿部覆盖动画。
+    - **元数据同步**：`syncMetadataFromDataManager()` 中 Mob flags 分支之后新增 Swimming 位读取：从 `DATA_FLAGS_PARAM`（slot 0，i8）位 4（`EntityFlags::Swimming`）解码，调用 `setSwimming(bool)`。对应 MC 1.21.11 `Entity.onSyncedDataUpdated(DATA_SHARED_FLAGS_ID)` 的位 4 解码。服务端 `DrownedEntity::updateSwimming` 按 `areEyesInWater && isInWater && wantsToSwim && !isRiding` 设置该位。
+    - **推进**：`tick()` 末尾调用 `updateSwimAmount()`（对应 MC `LivingEntity::updateSwimAmount`）：`m_swimAmountO = m_swimAmount`，`isVisuallySwimming()` 为真时 `m_swimAmount = min(1, m_swimAmount + 0.09)`，否则 `m_swimAmount = max(0, m_swimAmount - 0.09)`。
+    - **isVisuallySwimming**：`ClientEntity::isVisuallySwimming()` 返回 `isSwimming() && !isRiding()`（与 `DrownedEntity::isVisuallySwimming` 语义一致；普通实体回退到 `Entity::isVisuallySwimming` 基于 Pose 的判定）。
+    - **访问器**：`swimAmount()` / `swimAmountO()` / `getInterpolatedSwimAmount(partialTicks)` 供渲染器读取。插值使用 `math::lerp(m_swimAmountO, m_swimAmount, partialTicks)`（注意本项目 `math::lerp(a, b, t)` 与 MC `Mth.lerp(t, a, b)` 参数顺序相反）。
+    - **数据流**：服务端 `DrownedEntity::updateSwimming` → `EntityFlags::Swimming` 位 4 → `EntityMetadataPacket` → 客户端 `syncMetadataFromDataManager` 读取位 4 → `setSwimming` → `tick()` 中 `updateSwimAmount` 渐变 → `getInterpolatedSwimAmount` → `EntityRendererManager` 写入 `AnimationContext::swimAmount` → `_applyZombieState` 推送 `setSwimAnimation` → `DrownedModel::setAngles` 执行游泳覆盖。
+    - **未实现项**：MC 1.21.11 `DrownedRenderer.setupRotations` 的游泳身体倾斜（渲染器层整体 X 轴旋转）暂留 TODO，见 `MonsterVariantRenderers.hpp` 中 DrownedRenderer 类注释。
+

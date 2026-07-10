@@ -60,6 +60,7 @@ class PlayerModel;
 namespace monster {
 class SkeletonModel;
 class ZombieModel;
+class DrownedModel;
 } // namespace monster
 namespace aquatic {
 class DolphinModel;
@@ -526,6 +527,38 @@ private:
      */
     void _applyZombieState(
         model::monster::ZombieModel& zombieModel, const ClientEntity& entity, const core::AnimationContext& context);
+
+    /**
+     * @brief 为溺尸模型推送三叉戟投掷手臂姿态（ThrowSpear）
+     *
+     * 在 _createModelForEntity 溺尸分支中于 _applyZombieState 之前调用。对应 MC 1.21.11
+     * DrownedRenderer.getArmPose：
+     *   if (entity.getMainArm() == hand && entity.isAggressive() &&
+     *       itemHeld.is(Items.TRIDENT))
+     *     return HumanoidModel.ArmPose.THROW_TRIDENT;
+     *
+     * 本项目从 ClientEntity 读取 isAggressive() 与 getMainHandItem()，按
+     * stack.getItem() == Items::TRIDENT 判定三叉戟。僵尸类实体在 MC 原版中始终为右撇子
+     * （无 MainArm NBT 字段），故仅设置右臂 ArmPose，与 _applySkeletonArmPose 仅设置
+     * 右臂 BowAndArrow 的处理方式一致。
+     *
+     * 必须在 _applyZombieState 之前调用：_applyZombieState 末尾会重新调用 setAngles，
+     * DrownedModel::setAngles 在 super.setupAnim（animateZombieArms 覆盖手臂角度）之后
+     * 重新应用 ThrowSpear 姿态（xRot = xRot*0.5 - PI, yRot = 0）。若 ThrowSpear 在
+     * setAngles 之后才设置，则该重应用逻辑成为死代码。
+     *
+     * 数据流：
+     *   服务端 DrownedEntity 构造时 15% 概率 m_hasTrident=true（RangedTridentAttackGoal
+     *     持有三叉戟），MeleeAttackGoal::start → setAggressive(true) 置位 MOB_FLAG_AGGRESSIVE
+     *   客户端 ClientEntity::syncMetadataFromDataManager 读取位 2 → setIsAggressive；
+     *     getMainHandItem 由 EntitySpawnPacket/EntityEquipmentPacket 推送
+     *   EntityRendererManager::_applyDrownedTridentPose 读取上述字段 → setRightArmPose
+     *   DrownedModel::setAngles 读取 m_rightArmPose 重应用 ThrowSpear 角度
+     *
+     * @param drownedModel 已创建的溺尸模型
+     * @param entity 客户端实体（提供 isAggressive / getMainHandItem）
+     */
+    void _applyDrownedTridentPose(model::monster::DrownedModel& drownedModel, const ClientEntity& entity);
 
     /**
      * @brief 为 BipedModel 派生模型推送鞘翅飞行状态与速度因子
