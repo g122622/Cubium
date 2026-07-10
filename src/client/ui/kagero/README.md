@@ -39,6 +39,7 @@ kagero/
 │   ├── ScrollableWidget.hpp     # 可滚动容器组件
 │   ├── SlotWidget.hpp           # 物品槽组件（用于背包等）
 │   ├── Viewport3DWidget.hpp     # 3D视口组件（用于物品预览等）
+│   ├── ImageWidget.hpp          # 图片组件（来自精灵图集，支持 auto 尺寸/着色/UV）
 │   └── PaintContext.hpp/cpp     # 绘图上下文，封装ICanvas操作
 │
 ├── layout/                      # 布局系统

@@ -441,12 +441,57 @@ void BuiltinWidgets::_registerCheckboxWidget()
 void BuiltinWidgets::_registerImageWidget()
 {
     m_creators["image"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
-        auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "image" : id);
+        auto widget = std::make_unique<widget::ImageWidget>(id.empty() ? "image" : id);
 
-        // TODO: 实现图片资源加载，当前ContainerWidget不支持图片渲染
+        // ImageWidget 构造函数已默认 setActive(false)（对齐 MC Java ImageWidget.isActive()==false 语义）
+
+        // 解析 src 属性：精灵ID（图集由外部通过 setSpriteSource/setAtlas 注入）
+        // 不在此处绑定图集，因为 BuiltinWidgets 工厂无法访问运行期 GuiSpriteAtlas。
+        // 外部（如 TemplateScreen / 业务代码）在创建后调用 setSpriteSource 设置来源。
         auto srcIt = attrs.find("src");
-        if (srcIt != attrs.end()) {
-            MC_UNUSED(srcIt);
+        if (srcIt != attrs.end() && !srcIt->second.empty()) {
+            widget->setSpriteId(srcIt->second);
+        }
+
+        // 解析 tint 属性：着色（ARGB）
+        auto tintIt = attrs.find("tint");
+        if (tintIt != attrs.end()) {
+            widget->setTint(widget_attrs::parseColor(tintIt->second));
+        }
+
+        // 解析 size 属性：支持 "auto" 关键字自适应纹理尺寸
+        // 注意：通用 create() 随后会再次调用 applySize，将 "auto" 解析为 0；
+        // 但 _resolveDrawRect 在绘制时会根据 m_autoWidth/m_autoHeight 重新计算，
+        // 因此此处仅需设置自动标志，尺寸回退到 0 不影响最终绘制。
+        auto sizeIt = attrs.find("size");
+        if (sizeIt != attrs.end()) {
+            const std::string& sizeValue = sizeIt->second;
+            // 简单子串匹配 "auto"（兼容 "auto,auto"、"auto,100"、"100,auto"）
+            const bool widthAuto = sizeValue.find("auto") != std::string::npos;
+            // 仅当第一个分量（宽度）为 auto 时设置 autoWidth
+            size_t comma = sizeValue.find(',');
+            if (comma != std::string::npos) {
+                std::string wPart = sizeValue.substr(0, comma);
+                std::string hPart = sizeValue.substr(comma + 1);
+                // 去除空格
+                auto trim = [](std::string& s) {
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+                        s.pop_back();
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
+                        s.erase(s.begin());
+                };
+                trim(wPart);
+                trim(hPart);
+                if (wPart == "auto") {
+                    widget->setAutoWidth(true);
+                }
+                if (hPart == "auto") {
+                    widget->setAutoHeight(true);
+                }
+            } else if (widthAuto) {
+                // 整个值为 "auto"
+                widget->setAutoSize(true);
+            }
         }
 
         return widget;

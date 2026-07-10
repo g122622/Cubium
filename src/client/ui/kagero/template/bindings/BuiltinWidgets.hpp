@@ -29,6 +29,7 @@
 #include "client/ui/kagero/widget/ButtonWidget.hpp"
 #include "client/ui/kagero/widget/CheckboxWidget.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/ImageWidget.hpp"
 #include "client/ui/kagero/widget/ListWidget.hpp"
 #include "client/ui/kagero/widget/ScrollableWidget.hpp"
 #include "client/ui/kagero/widget/SliderWidget.hpp"

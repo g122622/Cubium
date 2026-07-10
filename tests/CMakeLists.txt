@@ -1258,6 +1258,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
+    client/ui/kagero/widget/ImageWidgetTest.cpp
     # Tooltip 工具提示组件测试
     client/ui/kagero/widget/TooltipTest.cpp
     client/ui/kagero/KageroEngineTest.cpp

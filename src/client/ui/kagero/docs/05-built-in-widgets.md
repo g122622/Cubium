@@ -498,6 +498,70 @@ container->setGridConfig(config);
 
 > 注意：当前 `<grid>` 标签的 `gap` 属性是 `columnGap` 与 `rowGap` 的便捷写法，等价于同时设置两者为相同值。如需让两者不同，请在 C++ 侧通过 `setGridConfig` 设置。
 
+## 图片组件 (ImageWidget)
+
+在 UI 上显示一张来自 GUI 精灵图集的纹理图片。设计参考 MC Java 版 `net.minecraft.client.gui.components.ImageWidget`：
+
+- **非交互组件**：`isActive()` 始终为 `false`，不参与焦点导航，不响应点击
+- **尺寸语义**：支持显式尺寸与 `auto` 自适应（按纹理原始像素尺寸）
+- **着色**：支持 ARGB 着色（`tint`），默认 `0xFFFFFFFF`（无着色）
+- **UV 子区域**：支持自定义 UV，用于从大图集中截取局部精灵
+- **回退渲染**：当未关联图集或精灵不存在时，回退为半透明品红矩形，便于开发期识别资源缺失
+
+```cpp
+#include "kagero/widget/ImageWidget.hpp"
+
+// 基本用法：指定精灵来源与显式尺寸
+auto image = std::make_unique<ImageWidget>("logo");
+image->setSpriteSource(atlas, "title_logo");
+image->setBounds(Rect(10, 10, 200, 60));
+container->addChild(std::move(image));
+
+// 自动尺寸：按纹理原始像素尺寸绘制
+auto icon = std::make_unique<ImageWidget>("icon");
+icon->setSpriteSource(atlas, "heart_full");
+icon->setAutoSize(true);
+icon->setBounds(Rect(10, 10, 0, 0)); // auto 模式下宽高由纹理决定
+
+// 着色
+image->setTint(0x80FF0000); // 半透明红色叠加
+
+// 自定义 UV（归一化坐标）
+image->setUV(0.25f, 0.5f, 0.75f, 1.0f);
+image->clearUV(); // 恢复整张纹理
+```
+
+**核心 API**：
+
+| 方法 | 说明 |
+|------|------|
+| `setSpriteSource(atlas, spriteId)` | 绑定精灵图集与精灵ID |
+| `setSpriteId(spriteId)` | 设置精灵ID（保持图集不变） |
+| `setAtlas(atlas)` | 设置图集指针（外部拥有） |
+| `setTint(argb)` / `tint()` | 设置/获取着色颜色 |
+| `setAutoWidth(b)` / `autoWidth()` | 自动宽度（按纹理宽度） |
+| `setAutoHeight(b)` / `autoHeight()` | 自动高度（按纹理高度） |
+| `setAutoSize(b)` | 同时设置自动宽高 |
+| `setUV(u0,v0,u1,v1)` / `clearUV()` | 自定义 UV 子区域 |
+| `hasCustomUV()` | 是否设置了自定义 UV |
+
+在模板中使用：
+
+```xml
+<image id="logo" src="title_logo" size="200,60" tint="#FFFFFFFF"/>
+<image id="icon" src="heart_full" size="auto,auto"/>
+```
+
+模板属性：
+
+| 属性 | 说明 |
+|------|------|
+| `src` | 精灵ID，对应 `setSpriteId`。图集需在外部通过 `setSpriteSource`/`setAtlas` 注入。 |
+| `tint` | 着色颜色（ARGB），支持 `#RRGGBB`、`#RRGGBBAA`、`rgb(...)`、`rgba(...)` 与颜色名称 |
+| `size` | 尺寸，支持 `auto` 关键字（如 `auto,auto`、`auto,100`、`100,auto`）。`auto` 分量按纹理原始像素尺寸绘制 |
+
+> 注意：模板工厂仅设置精灵ID与着色，**图集指针需由业务层在创建后注入**（通过 `setSpriteSource` 或 `setAtlas`），因为 `BuiltinWidgets` 工厂无法访问运行期 `GuiSpriteAtlas` 实例。
+
 ## 滚动容器 (ScrollableWidget)
 
 支持滚动的内容容器：

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/gui/GuiSprite.hpp"
+#include "client/renderer/trident/gui/ISpriteAtlas.hpp"
 #include "client/ui/kagero/paint/TextureImage.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -61,10 +62,10 @@ class GuiSpriteManager;
  * }
  * @endcode
  */
-class GuiSpriteAtlas {
+class GuiSpriteAtlas : public ISpriteAtlas {
 public:
     GuiSpriteAtlas();
-    ~GuiSpriteAtlas();
+    ~GuiSpriteAtlas() override;
 
     // 禁止拷贝（持有Vulkan资源）
     GuiSpriteAtlas(const GuiSpriteAtlas&) = delete;
@@ -178,14 +179,14 @@ public:
      * @param id 精灵ID
      * @return 精灵指针，如果不存在返回nullptr
      */
-    [[nodiscard]] const GuiSprite* getSprite(const std::string& id) const;
+    [[nodiscard]] const GuiSprite* getSprite(const std::string& id) const override;
 
     /**
      * @brief 检查精灵是否存在
      * @param id 精灵ID
      * @return 如果精灵存在返回true
      */
-    [[nodiscard]] bool hasSprite(const std::string& id) const;
+    [[nodiscard]] bool hasSprite(const std::string& id) const override;
 
     /**
      * @brief 清除所有精灵
@@ -256,7 +257,7 @@ public:
      * @param spriteId 精灵ID
      * @return TextureImage对象，如果精灵不存在则返回无效对象
      */
-    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const std::string& spriteId) const;
+    [[nodiscard]] ui::kagero::paint::TextureImage createTextureImage(const std::string& spriteId) const override;
 
     /**
      * @brief 创建TextureImage（带自定义尺寸）
