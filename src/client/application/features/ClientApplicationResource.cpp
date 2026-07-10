@@ -212,6 +212,12 @@ void ClientApplication::reloadResources()
                 spdlog::warn(
                     "Failed to reload cloud texture after resource reload: {}", reloadCloudResult.error().toString());
             }
+
+            auto reloadFireResult = m_renderer->reloadFireTexture(m_resourceManager.get());
+            if (reloadFireResult.failed()) {
+                spdlog::warn(
+                    "Failed to reload fire texture after resource reload: {}", reloadFireResult.error().toString());
+            }
         }
 
         m_world.forEachChunk([](const ChunkId&, ClientChunk& chunk) { chunk.needsMeshUpdate = true; });

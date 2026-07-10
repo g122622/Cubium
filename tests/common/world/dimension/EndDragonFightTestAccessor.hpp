@@ -89,6 +89,12 @@ public:
 
     void findOrCreateDragon(IWorld& world) { m_fight._findOrCreateDragon(world); }
 
+    /// 调用 _findExitPortal，返回出口讲台的 BlockPatternMatch（nullopt 表示未找到）
+    std::optional<blockpattern::BlockPatternMatch> findExitPortal(IWorld& world)
+    {
+        return m_fight._findExitPortal(world);
+    }
+
     /// 调用 _createNewDragon，返回新龙实体指针（nullptr 表示创建失败）
     /// 对齐 EndDragonFight::_createNewDragon 的返回类型
     Entity* createNewDragon(IWorld& world) { return m_fight._createNewDragon(world); }

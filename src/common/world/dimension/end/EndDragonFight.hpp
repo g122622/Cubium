@@ -29,6 +29,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/state/pattern/BlockPattern.hpp"
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -420,6 +421,47 @@ private:
     [[nodiscard]] static bool _hasActiveExitPortal(IWorld& world);
 
     /**
+     * @brief 查找出口传送门讲台结构
+     *
+     * 对应 MC Java: EndDragonFight.findExitPortal()
+     *
+     * 使用 exitPortalPattern（7×7×5 BlockPattern，匹配讲台基岩轮廓）在世界中
+     * 精确定位出口讲台。采用两级搜索策略：
+     *
+     * 1. 扫描原点周围 ARENA_CHUNK_RADIUS 范围内所有 END_PORTAL 方块位置，
+     *    对每个位置尝试模式匹配。MC 原版扫描 TheEndPortalBlockEntity 实例，
+     *    Cubium 由于无此方块实体，改为扫描 END_PORTAL 方块状态。
+     *
+     * 2. 若策略 1 未找到，退化为原点高度图扫描：从 EndPodiumFeature 的原点
+     *    位置 (0, 0, 0) 取 MOTION_BLOCKING 高度，从该高度向下逐格尝试模式匹配。
+     *
+     * 找到匹配后，通过 `match.getBlock(3, 3, 3).pos()` 获取讲台中心位置（即出口
+     * 传送门正上方的基岩柱顶端位置）。若 m_portalLocation 为空，记录该位置。
+     *
+     * @param world 末地世界引用
+     * @return 匹配结果（nullopt 表示未找到出口讲台）
+     */
+    [[nodiscard]] std::optional<blockpattern::BlockPatternMatch> _findExitPortal(IWorld& world);
+
+    /**
+     * @brief 构造出口传送门模式（exitPortalPattern）
+     *
+     * 对应 MC Java: EndDragonFight 构造函数中通过 BlockPatternBuilder 构建的
+     * 7×7×5 讲台基岩轮廓模式。模式仅匹配讲台结构（基岩十字外环 + 中央基岩柱 +
+     * 底座），不匹配末地石外圈和空气区域，确保精确识别完整讲台。
+     *
+     * 模式布局（5 层 aisle，每层 7×7）：
+     * - 第 0..2 层：中央基岩柱（讲台中心 Y 方向 4 格高基岩柱的中下 3 格）
+     * - 第 3 层：十字形基岩外环（PODIUM_RADIUS=4 的 7×7 十字轮廓）
+     * - 第 4 层：5×5 中心讲台底座
+     *
+     * '#' 绑定到 `BlockInWorld::hasState(s.is(BEDROCK))` 谓词。
+     *
+     * @return 构造完成的 BlockPattern
+     */
+    [[nodiscard]] static std::unique_ptr<blockpattern::BlockPattern> _buildExitPortalPattern();
+
+    /**
      * @brief 检查竞技场区块是否已全部加载
      *
      * 检查原点周围 ARENA_CHUNK_RADIUS 范围内的区块是否已加载，
@@ -505,6 +547,9 @@ private:
     bool m_needsStateScanning = true; ///< 是否需要扫描旧世界状态
     std::string m_dragonUUID;         ///< 末影龙的 UUID（空字符串表示无龙或未追踪）
     std::vector<i32> m_gateways;      ///< 剩余折跃门索引列表（随机打乱）
+
+    /// 出口传送门模式（7×7×5 讲台基岩轮廓），构造时构建，用于 _findExitPortal 精确定位讲台
+    std::unique_ptr<blockpattern::BlockPattern> m_exitPortalPattern;
 
     // ========== 重生序列相关 ==========
 

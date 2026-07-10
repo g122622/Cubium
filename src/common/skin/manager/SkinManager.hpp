@@ -29,9 +29,12 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include "common/skin/loader/FileSkinLoader.hpp"
+#include "common/skin/loader/HttpSkinLoader.hpp"
 #include "common/skin/manager/DefaultSkinProvider.hpp"
 #include "common/skin/manager/SkinCache.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -216,7 +219,40 @@ public:
         m_resourcePack = resourcePack;
         // 同步给 DefaultSkinProvider，确保后续 initialize 时能读取
         m_defaultSkinProvider->setResourcePack(resourcePack);
+        // 同步给 FileSkinLoader（用于从资源包加载皮肤）
+        m_fileLoader->setResourcePack(resourcePack);
     }
+
+    // ========== 线程池设置 ==========
+
+    /**
+     * @brief 注入工作线程池用于异步皮肤加载
+     *
+     * 必须在 initialize() 之前调用，线程池由调用方拥有，必须保证生命周期
+     * 长于 SkinManager（或在 shutdown 后释放）。传入 nullptr 切换回同步降级模式。
+     *
+     * @param workerPool 工作线程池指针（非所有权）
+     */
+    void setWorkerPool(util::ServerWorkerPool* workerPool)
+    {
+        m_workerPool = workerPool;
+        m_fileLoader->setWorkerPool(workerPool);
+        m_httpLoader->setWorkerPool(workerPool);
+    }
+
+    // ========== 加载器访问 ==========
+
+    /**
+     * @brief 获取文件加载器（用于直接调用 load/loadAsync）
+     */
+    [[nodiscard]] FileSkinLoader& fileLoader() { return *m_fileLoader; }
+    [[nodiscard]] const FileSkinLoader& fileLoader() const { return *m_fileLoader; }
+
+    /**
+     * @brief 获取 HTTP 加载器（用于直接调用 load/loadAsync）
+     */
+    [[nodiscard]] HttpSkinLoader& httpLoader() { return *m_httpLoader; }
+    [[nodiscard]] const HttpSkinLoader& httpLoader() const { return *m_httpLoader; }
 
 private:
     /**
@@ -243,6 +279,9 @@ private:
     std::string m_cacheDir;
     std::unique_ptr<SkinCache> m_cache;
     std::unique_ptr<DefaultSkinProvider> m_defaultSkinProvider;
+    std::unique_ptr<FileSkinLoader> m_fileLoader;
+    std::unique_ptr<HttpSkinLoader> m_httpLoader;
+    util::ServerWorkerPool* m_workerPool = nullptr;
 
     mutable std::mutex m_playerInfosMutex;
     std::unordered_map<std::string, std::shared_ptr<PlayerSkinInfo>> m_playerInfos; // key: uuid string

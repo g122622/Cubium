@@ -24,8 +24,8 @@
 #include "MonsterRenderers.hpp"
 #include "client/renderer/trident/entity/layer/effect/EnergyGlintLayer.hpp"
 #include "client/renderer/trident/entity/layer/effect/EyesLayer.hpp"
-#include "client/renderer/trident/entity/layer/entity/HeldBlockLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
@@ -182,9 +182,52 @@ void EndermanRenderer::_updateEndermanState(LivingEntity& entity)
 
 void EndermanRenderer::_setupLayers()
 {
-    // 末影人层渲染器：HeldBlockLayer（手持方块）、EyesLayer（发光眼睛）
-    addLayer<layer::entity::HeldBlockLayer<LivingEntity>>();
+    // 末影人层渲染器：
+    // - HeldBlockLayer（手持方块）：直接持有，便于注入纹理图集
+    // - EyesLayer（发光眼睛）：通过 addLayer 注册到 m_layers
+    m_heldBlockLayer = std::make_unique<layer::entity::HeldBlockLayer>();
     addLayer<layer_effect::EyesLayer<LivingEntity, model::monster::EndermanModel>>(*this);
+}
+
+void EndermanRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+    VkCommandBuffer cmd,
+    const core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    // 分发到手持方块层（对应 MC 1.21.11 EndermanRenderer 构造函数中的 addLayer(new CarriedBlockLayer(this))）
+    if (m_heldBlockLayer != nullptr) {
+        if (m_heldBlockLayer->shouldRender(entity)) {
+            m_heldBlockLayer->renderPipeline(entity, cmd, context, pipeline);
+        }
+    }
+
+    // 分发到 m_layers 中的层（EyesLayer 等）
+    // 复用 LivingRenderer 的 renderLayersPipeline(Entity&) 路径不合适（需要 ClientEntity），
+    // 这里手动遍历 m_layers 并调用 renderPipeline
+    // 注意：EyesLayer<LivingEntity, EndermanModel> 是 LayerRenderer<LivingEntity>，
+    // 而 ClientEntity 不是 LivingEntity 的派生类，因此不能直接调用。
+    // EyesLayer 的 GPU 管线路径通过 EntityRendererManager 的主网格生成（_createModelForEntity）
+    // 处理眼睛发光纹理，层本身只在 CPU 路径渲染。这里跳过 EyesLayer 的 GPU 管线路径。
+    // TODO: 后续 EyesLayer 也应迁移为 ClientEntity 模板，以支持 GPU 管线路径。
+}
+
+void EndermanRenderer::setTextureAtlas(const pipeline::EntityTextureAtlas* atlas)
+{
+    // 调用父类方法（保存到 EntityRenderer 的 m_textureAtlas，供其他层使用）
+    EntityRenderer::setTextureAtlas(atlas);
+
+    // 将实体纹理图集传递给 HeldBlockLayer，供其在渲染方块后恢复纹理图集
+    if (m_heldBlockLayer != nullptr) {
+        m_heldBlockLayer->setEntityTextureAtlas(atlas);
+    }
+}
+
+void EndermanRenderer::setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas)
+{
+    // 将方块纹理图集传递给 HeldBlockLayer，供其在渲染方块时切换纹理图集
+    if (m_heldBlockLayer != nullptr) {
+        m_heldBlockLayer->setChunkTextureAtlas(atlas);
+    }
 }
 
 // ==================== 烈焰人渲染器 ====================

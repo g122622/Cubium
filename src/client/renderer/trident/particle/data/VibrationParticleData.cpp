@@ -28,7 +28,15 @@
 namespace mc::client::renderer::trident::particle::data {
 
 VibrationParticleData::VibrationParticleData(const Vector3d& targetPosition, i32 arrivalInTicks)
-    : m_targetPosition(targetPosition)
+    : m_kind(TargetKind::Block)
+    , m_targetPosition(targetPosition)
+    , m_arrivalInTicks(arrivalInTicks)
+{}
+
+VibrationParticleData::VibrationParticleData(EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks)
+    : m_kind(TargetKind::Entity)
+    , m_targetEntityId(targetEntityId)
+    , m_yOffset(yOffset)
     , m_arrivalInTicks(arrivalInTicks)
 {}
 
@@ -39,22 +47,36 @@ std::string VibrationParticleData::getTypeName() const
 
 std::string VibrationParticleData::getParameters() const
 {
-    // 振动粒子参数格式: targetX targetY targetZ arrivalInTicks
+    // 振动粒子参数格式取决于目标来源类型：
+    // - 方块来源: targetX targetY targetZ arrivalInTicks
+    // - 实体来源: entity yOffset arrivalInTicks
     // 用于 /particle 命令
     char buf[256];
-    std::snprintf(buf,
-        sizeof(buf),
-        "%.2f %.2f %.2f %d",
-        m_targetPosition.x,
-        m_targetPosition.y,
-        m_targetPosition.z,
-        m_arrivalInTicks);
+    if (m_kind == TargetKind::Block) {
+        std::snprintf(buf,
+            sizeof(buf),
+            "%.2f %.2f %.2f %d",
+            m_targetPosition.x,
+            m_targetPosition.y,
+            m_targetPosition.z,
+            m_arrivalInTicks);
+    } else {
+        std::snprintf(buf,
+            sizeof(buf),
+            "entity %llu %.2f %d",
+            static_cast<unsigned long long>(m_targetEntityId),
+            m_yOffset,
+            m_arrivalInTicks);
+    }
     return std::string(buf);
 }
 
 std::unique_ptr<ParticleData> VibrationParticleData::clone() const
 {
-    return std::make_unique<VibrationParticleData>(m_targetPosition, m_arrivalInTicks);
+    if (m_kind == TargetKind::Block) {
+        return std::make_unique<VibrationParticleData>(m_targetPosition, m_arrivalInTicks);
+    }
+    return std::make_unique<VibrationParticleData>(m_targetEntityId, m_yOffset, m_arrivalInTicks);
 }
 
 } // namespace mc::client::renderer::trident::particle::data

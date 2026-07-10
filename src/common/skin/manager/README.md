@@ -8,8 +8,8 @@
 manager/
 ├── SkinCache.hpp            # 皮肤缓存类（磁盘文件 + 内存索引 + metadata.json 持久化）
 ├── SkinCache.cpp            # 缓存读写、过期清理、元数据序列化
-├── SkinManager.hpp          # 皮肤管理器（主入口，协调缓存、加载、默认皮肤）
-├── SkinManager.cpp          # 加载策略（缓存→下载→默认）
+├── SkinManager.hpp          # 皮肤管理器（主入口，协调缓存、加载器、默认皮肤）
+├── SkinManager.cpp          # 加载策略（缓存→异步下载→默认）
 ├── DefaultSkinProvider.hpp  # 默认皮肤提供者（18种默认皮肤：9 slim + 9 wide）
 └── DefaultSkinProvider.cpp  # 基于 UUID 哈希选择默认皮肤
 ```
@@ -20,9 +20,8 @@ manager/
 SkinManager
 ├── SkinCache ──── metadata.json 持久化 + 磁盘文件缓存
 ├── DefaultSkinProvider ──── 18种内置默认皮肤（通过 UUID 哈希选择）
-└── ISkinLoader（通过 loadSkin 间接使用）
-    ├── FileSkinLoader
-    └── HttpSkinLoader
+├── FileSkinLoader ──── 本地文件/资源包加载（可注入 ServerWorkerPool 异步加载）
+└── HttpSkinLoader ──── HTTP 远程下载（可注入 ServerWorkerPool 异步加载）
 ```
 
 ## 默认皮肤系统
@@ -48,9 +47,10 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 ### 上游依赖
 
 - `common/skin/core` - SkinTextures、GameProfile、SkinTypes（含 DefaultSkinVariant）
-- `common/skin/loader` - ISkinLoader、SkinLoadResult
+- `common/skin/loader` - ISkinLoader、SkinLoadResult、FileSkinLoader、HttpSkinLoader
 - `common/skin/parser` - SkinMetadataParser
 - `common/resource` - ResourceLocation、IResourcePack（DefaultSkinProvider 加载默认皮肤 PNG 纹理）
+- `common/util/thread` - ServerWorkerPool（异步皮肤加载，可选注入）
 - `stb_image` - PNG 解码（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
 - `nlohmann-json` - 元数据 JSON 序列化
 - `spdlog` - 日志
@@ -68,6 +68,14 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 ### 线程安全
 
 SkinCache 的所有公共方法通过 `m_entriesMutex` 保证线程安全。元数据读写仅在初始化/关闭时进行，不持有条目互斥锁。
+
+### 异步加载与线程池注入
+
+`SkinManager` 持有 `FileSkinLoader` 和 `HttpSkinLoader` 实例，并通过 `setWorkerPool()` 将线程池传递给两个加载器。必须在 `initialize()` 之前调用 `setWorkerPool()`。未注入线程池时，`loadAsync` 降级为同步执行。`shutdown()` 会先关闭两个加载器（等待所有在途异步任务完成），再关闭缓存。
+
+### 皮肤加载流程
+
+`_loadFromTextures` 的加载策略：缓存命中 → 异步下载（HttpSkinLoader）→ 默认皮肤。异步下载完成后，皮肤保存到缓存并更新 `PlayerSkinInfo` 的状态。下载失败时回退到默认皮肤。
 
 ### DefaultSkinProvider 加载真实皮肤
 

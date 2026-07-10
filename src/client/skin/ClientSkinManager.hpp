@@ -192,6 +192,15 @@ public:
      */
     void setResourcePack(IResourcePack* resourcePack) { m_skinManager->setResourcePack(resourcePack); }
 
+    /**
+     * @brief 注入工作线程池用于异步皮肤加载
+     *
+     * 必须在 initialize() 之前调用，线程池由调用方拥有。
+     *
+     * @param workerPool 工作线程池指针（非所有权）
+     */
+    void setWorkerPool(::mc::util::ServerWorkerPool* workerPool) { m_skinManager->setWorkerPool(workerPool); }
+
 private:
     /**
      * @brief 加载默认皮肤到图集

@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -23,6 +23,8 @@
 
 #include "HttpSkinLoader.hpp"
 #include "common/util/crypto/Sha1.hpp"
+#include "common/util/thread/ITask.hpp"
+#include <vector>
 #include <spdlog/spdlog.h>
 
 // 注意：实际 HTTP 实现需要依赖 curl 或 asio
@@ -64,6 +66,13 @@ void HttpSkinLoader::shutdown()
     // curl_global_cleanup();
 
     m_initialized = false;
+
+    // 等待所有在途任务回调完成，避免回调访问已销毁对象
+    {
+        std::unique_lock<std::mutex> lock(m_shutdownMutex);
+        m_shutdownCondition.wait(lock, [this] { return m_pendingCount.load() == 0; });
+    }
+
     spdlog::info("HttpSkinLoader shutdown");
 }
 
@@ -109,27 +118,129 @@ Result<SkinLoadResult> HttpSkinLoader::load(const std::string& url)
 void HttpSkinLoader::loadAsync(const std::string& url, std::function<void(Result<SkinLoadResult>)> callback)
 {
     if (!m_initialized) {
-        callback(Error(ErrorCode::NotInitialized, "HttpSkinLoader not initialized"));
+        if (callback) {
+            callback(Error(ErrorCode::NotInitialized, "HttpSkinLoader not initialized"));
+        }
         return;
     }
 
-    // TODO: 使用线程池替代 detached thread，限制并发下载数
-    // 当前简化实现：同步调用并立即回调
-    // 实际 HTTP 实现时应使用有界线程池（如 4-8 工作线程）
-    auto result = load(url);
-    callback(std::move(result));
+    // 创建取消信号并登记在途任务
+    auto abortSignal = std::make_shared<std::atomic<bool>>(false);
+    {
+        std::lock_guard<std::mutex> lock(m_pendingMutex);
+        // 若同一 url 已有在途任务，覆盖其取消信号（旧任务将被取消）
+        m_pendingLoads[url] = abortSignal;
+    }
+    _incrementPending();
+
+    // 无线程池时降级为同步执行
+    if (m_workerPool == nullptr) {
+        auto result = load(url);
+        if (callback) {
+            callback(std::move(result));
+        }
+        _decrementPending();
+        {
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            m_pendingLoads.erase(url);
+        }
+        return;
+    }
+
+    // 使用 shared_ptr<optional<Result<...>>> 在 executor 和 callback 之间共享结果
+    // （FunctionTask::execute 只返回 bool，不能直接传递 Result<SkinLoadResult>；
+    //  Result<T> 不可拷贝且默认构造被删除，用 optional 包装以表达"未设置"状态）
+    auto sharedResult = std::make_shared<std::optional<Result<SkinLoadResult>>>();
+    auto thisLoader = this;
+
+    auto executor = [thisLoader, url, abortSignal, sharedResult](const std::atomic<bool>& signal) -> bool {
+        // 优先检查 loader 自己的取消信号（支持 cancel(url)）
+        if (abortSignal->load(std::memory_order::acquire)) {
+            *sharedResult = Error(ErrorCode::OperationFailed, "Skin download cancelled: " + url);
+            return false;
+        }
+        if (signal.load(std::memory_order::acquire)) {
+            *sharedResult = Error(ErrorCode::OperationFailed, "Skin download aborted: " + url);
+            return false;
+        }
+        *sharedResult = thisLoader->load(url);
+        return sharedResult->has_value() && sharedResult->value().success();
+    };
+
+    auto task = std::make_unique<util::FunctionTask>(
+        util::TaskType::Custom, "HttpSkinLoad(" + url + ")", std::move(executor), "worker_pool");
+
+    // 完成回调（在 worker 线程触发）
+    auto userCallback = std::move(callback);
+
+    util::TaskCallback poolCallback = [sharedResult, userCallback = std::move(userCallback), url, this](
+                                          bool /*success*/, util::ITask*) {
+        // 取出结果：executor 已执行则从 sharedResult 取，否则构造取消错误
+        Result<SkinLoadResult> result = sharedResult->has_value()
+            ? std::move(sharedResult->value())
+            : Result<SkinLoadResult>(Error(ErrorCode::OperationFailed, "Skin download cancelled: " + url));
+
+        // 调用用户回调
+        if (userCallback) {
+            userCallback(std::move(result));
+        }
+
+        // 清除在途任务登记
+        {
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            m_pendingLoads.erase(url);
+        }
+
+        // 减少计数并通知 shutdown 等待者
+        _decrementPending();
+    };
+
+    m_workerPool->submit(std::move(task), std::move(poolCallback), util::TaskPriority::Low, abortSignal);
 }
 
 void HttpSkinLoader::cancel(const std::string& url)
 {
-    std::lock_guard<std::mutex> lock(m_pendingMutex);
-    m_pendingLoads.erase(url);
+    std::shared_ptr<std::atomic<bool>> signal;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingMutex);
+        auto it = m_pendingLoads.find(url);
+        if (it != m_pendingLoads.end()) {
+            signal = it->second;
+        }
+        m_pendingLoads.erase(url);
+    }
+    if (signal) {
+        signal->store(true, std::memory_order::release);
+    }
 }
 
 void HttpSkinLoader::cancelAll()
 {
-    std::lock_guard<std::mutex> lock(m_pendingMutex);
-    m_pendingLoads.clear();
+    std::vector<std::shared_ptr<std::atomic<bool>>> signals;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingMutex);
+        signals.reserve(m_pendingLoads.size());
+        for (auto& [url, signal] : m_pendingLoads) {
+            if (signal) {
+                signals.push_back(signal);
+            }
+        }
+        m_pendingLoads.clear();
+    }
+    for (auto& signal : signals) {
+        signal->store(true, std::memory_order::release);
+    }
+}
+
+void HttpSkinLoader::_incrementPending()
+{
+    m_pendingCount.fetch_add(1, std::memory_order::acq_rel);
+}
+
+void HttpSkinLoader::_decrementPending()
+{
+    m_pendingCount.fetch_sub(1, std::memory_order::acq_rel);
+    m_shutdownCondition.notify_one();
 }
 
 Result<std::vector<u8>> HttpSkinLoader::_httpGet(const std::string& url)

@@ -31,10 +31,6 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-// STB 图像加载（仅 PNG）
-#define STBI_ONLY_PNG
-#include <stb_image.h>
-
 namespace mc::client::renderer::entity::effect::fire {
 
 // 静态成员初始化
@@ -50,16 +46,8 @@ VkSampler FireEffect::s_fireSampler = VK_NULL_HANDLE;
 u32 FireEffect::s_fireTextureWidth = 0;
 u32 FireEffect::s_fireTextureHeight = 0;
 
-// 火焰纹理路径
-namespace {
-const char* FIRE_TEXTURE_PATHS[] = {"textures/block/fire_0.png", "textures/block/fire_1.png"};
-} // namespace
-
-bool FireEffect::initialize(VkDevice device,
-    VkPhysicalDevice physicalDevice,
-    VkCommandPool commandPool,
-    VkQueue graphicsQueue,
-    const std::vector<IResourcePack*>& resourcePacks)
+bool FireEffect::initialize(
+    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
 {
     if (s_initialized) {
         return true;
@@ -75,14 +63,46 @@ bool FireEffect::initialize(VkDevice device,
     s_commandPool = commandPool;
     s_graphicsQueue = graphicsQueue;
 
-    // 加载火焰纹理
-    if (!_loadFireTexture(resourcePacks)) {
-        spdlog::warn("FireEffect: Failed to load fire texture, using placeholder");
-        // 继续初始化，使用程序化生成的纹理
+    // 初始化阶段使用程序化占位纹理，真实火焰纹理由 loadTexture() 在资源就绪后注入
+    FireTextureData placeholder = loadFireTextureData({});
+    const u32 placeholderHeight = placeholder.frameHeight * placeholder.frameCount;
+    if (!_createFireTexture(placeholder.pixels, placeholder.frameWidth, placeholderHeight)) {
+        spdlog::warn("FireEffect: Failed to create placeholder fire texture");
     }
 
     s_initialized = true;
     spdlog::info("FireEffect: Initialized successfully");
+    return true;
+}
+
+bool FireEffect::loadTexture(const std::vector<IResourcePack*>& resourcePacks)
+{
+    if (!s_initialized) {
+        spdlog::warn("FireEffect::loadTexture called before initialize");
+        return false;
+    }
+
+    // 等待设备空闲，确保旧纹理未被 GPU 使用
+    vkDeviceWaitIdle(s_device);
+
+    // 销毁旧纹理资源（保留设备句柄）
+    _destroyFireTexture();
+
+    // 从资源包解码纹理
+    FireTextureData data = loadFireTextureData(resourcePacks);
+    if (data.pixels.empty()) {
+        spdlog::warn("FireEffect: loadTexture produced no pixels");
+        return false;
+    }
+
+    const u32 textureHeight = data.frameHeight * data.frameCount;
+    if (!_createFireTexture(data.pixels, data.frameWidth, textureHeight)) {
+        spdlog::error("FireEffect: Failed to recreate fire texture during reload");
+        return false;
+    }
+
+    spdlog::info(
+        "FireEffect: Fire texture reloaded ({}x{}, {} frames)", data.frameWidth, data.frameHeight, data.frameCount);
     return true;
 }
 
@@ -92,29 +112,7 @@ void FireEffect::cleanup()
         return;
     }
 
-    // 销毁采样器
-    if (s_fireSampler != VK_NULL_HANDLE) {
-        vkDestroySampler(s_device, s_fireSampler, nullptr);
-        s_fireSampler = VK_NULL_HANDLE;
-    }
-
-    // 销毁图像视图
-    if (s_fireTextureView != VK_NULL_HANDLE) {
-        vkDestroyImageView(s_device, s_fireTextureView, nullptr);
-        s_fireTextureView = VK_NULL_HANDLE;
-    }
-
-    // 销毁图像
-    if (s_fireTexture != VK_NULL_HANDLE) {
-        vkDestroyImage(s_device, s_fireTexture, nullptr);
-        s_fireTexture = VK_NULL_HANDLE;
-    }
-
-    // 释放内存
-    if (s_fireTextureMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(s_device, s_fireTextureMemory, nullptr);
-        s_fireTextureMemory = VK_NULL_HANDLE;
-    }
+    _destroyFireTexture();
 
     s_device = VK_NULL_HANDLE;
     s_physicalDevice = VK_NULL_HANDLE;
@@ -122,6 +120,28 @@ void FireEffect::cleanup()
     s_graphicsQueue = VK_NULL_HANDLE;
     s_initialized = false;
     spdlog::info("FireEffect: Cleaned up");
+}
+
+void FireEffect::_destroyFireTexture()
+{
+    if (s_fireSampler != VK_NULL_HANDLE) {
+        vkDestroySampler(s_device, s_fireSampler, nullptr);
+        s_fireSampler = VK_NULL_HANDLE;
+    }
+    if (s_fireTextureView != VK_NULL_HANDLE) {
+        vkDestroyImageView(s_device, s_fireTextureView, nullptr);
+        s_fireTextureView = VK_NULL_HANDLE;
+    }
+    if (s_fireTexture != VK_NULL_HANDLE) {
+        vkDestroyImage(s_device, s_fireTexture, nullptr);
+        s_fireTexture = VK_NULL_HANDLE;
+    }
+    if (s_fireTextureMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(s_device, s_fireTextureMemory, nullptr);
+        s_fireTextureMemory = VK_NULL_HANDLE;
+    }
+    s_fireTextureWidth = 0;
+    s_fireTextureHeight = 0;
 }
 
 bool FireEffect::isInitialized()
@@ -312,79 +332,6 @@ void FireEffect::_renderFireLayers(VkCommandBuffer cmd,
         f4 += 0.45;
         f1 *= 0.9;
     }
-}
-
-bool FireEffect::_loadFireTexture(const std::vector<IResourcePack*>& resourcePacks)
-{
-    // 尝试从资源包加载火焰纹理
-    std::vector<u8> combinedPixels;
-    u32 frameWidth = 0;
-    u32 frameHeight = 0;
-
-    for (const char* path : FIRE_TEXTURE_PATHS) {
-        for (auto* pack : resourcePacks) {
-            if (!pack) continue;
-
-            auto result = pack->readResource(resource::PackType::ClientResources, path);
-            if (result.success() && !result.value().empty()) {
-                // 解码 PNG
-                int width, height, channels;
-                u8* pixels = stbi_load_from_memory(
-                    result.value().data(), static_cast<int>(result.value().size()), &width, &height, &channels, 4);
-
-                if (pixels != nullptr) {
-                    if (frameWidth == 0) {
-                        frameWidth = static_cast<u32>(width);
-                        frameHeight = static_cast<u32>(height);
-                        combinedPixels.resize(frameWidth * frameHeight * FIRE_FRAME_COUNT * 4);
-                    }
-
-                    // 复制像素数据到组合纹理
-                    size_t destOffset = combinedPixels.empty()
-                        ? 0
-                        : (combinedPixels.size() / FIRE_FRAME_COUNT) * (&path - FIRE_TEXTURE_PATHS);
-                    std::memcpy(combinedPixels.data() + destOffset, pixels, width * height * 4);
-                    stbi_image_free(pixels);
-
-                    spdlog::info("FireEffect: Loaded fire texture {} ({}x{})", path, width, height);
-                    break;
-                }
-            }
-        }
-    }
-
-    // 如果没有找到纹理文件，创建程序化纹理
-    if (combinedPixels.empty()) {
-        spdlog::info("FireEffect: Creating procedural fire texture");
-        frameWidth = 16;
-        frameHeight = 16;
-        combinedPixels.resize(frameWidth * frameHeight * FIRE_FRAME_COUNT * 4);
-
-        // 生成简单的火焰图案
-        for (u32 frame = 0; frame < FIRE_FRAME_COUNT; ++frame) {
-            for (u32 y = 0; y < frameHeight; ++y) {
-                for (u32 x = 0; x < frameWidth; ++x) {
-                    size_t idx = (frame * frameWidth * frameHeight + y * frameWidth + x) * 4;
-
-                    // 火焰颜色渐变（底部红色到顶部黄色）
-                    f32 t = static_cast<f32>(y) / static_cast<f32>(frameHeight);
-                    f32 intensity = 1.0f - t; // 底部更亮
-
-                    // 添加一些随机变化
-                    f32 variation = static_cast<f32>((x + frame * 8) % 16) / 16.0f * 0.3f;
-                    intensity = std::min(1.0f, intensity + variation);
-
-                    // 设置 RGBA
-                    combinedPixels[idx + 0] = static_cast<u8>(255 * intensity);                     // R
-                    combinedPixels[idx + 1] = static_cast<u8>(128 * intensity * (1.0f - t * 0.5f)); // G
-                    combinedPixels[idx + 2] = static_cast<u8>(32 * intensity);                      // B
-                    combinedPixels[idx + 3] = static_cast<u8>(255 * intensity);                     // A
-                }
-            }
-        }
-    }
-
-    return _createFireTexture(combinedPixels, frameWidth, frameHeight * FIRE_FRAME_COUNT);
 }
 
 bool FireEffect::_createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height)

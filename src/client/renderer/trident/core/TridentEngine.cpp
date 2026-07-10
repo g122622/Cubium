@@ -1809,12 +1809,10 @@ Result<void> TridentEngine::initializeEntityRenderer()
             spdlog::warn("WorldTextRenderer not initialized: font not available");
         }
 
-        // 初始化火焰效果渲染器
-        // TODO：需要资源包来加载火焰纹理，这里先初始化一个基本版本
-        // 完整的火焰纹理将在 initializeEntityTextureAtlas 中加载
-        bool fireEffectInit = entity::effect::fire::FireEffect::initialize(
-            device(), physicalDevice(), commandPool(), graphicsQueue(), {} // 空资源包列表，使用程序化纹理
-        );
+        // 初始化火焰效果渲染器（仅 Vulkan 句柄与程序化占位纹理）
+        // 真实火焰纹理在 initializeEntityTextureAtlas 中通过 loadTexture 注入
+        bool fireEffectInit =
+            entity::effect::fire::FireEffect::initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
         if (fireEffectInit) {
             spdlog::info("FireEffect initialized");
         } else {
@@ -1824,6 +1822,15 @@ Result<void> TridentEngine::initializeEntityRenderer()
 
     m_entityRendererInitialized = true;
     spdlog::info("Entity renderer initialized");
+
+    // 若方块纹理图集已加载（ChunkRenderer 已初始化），注入到 EntityRendererManager
+    // 供末影人手持方块层（HeldBlockLayer）使用
+    // 注意：initializeEntityRenderer 可能在 ChunkRenderer 初始化之前或之后调用，
+    //       此处处理"之后"的情况；"之前"的情况由加载方块纹理图集的位置处理
+    if (m_chunkRendererInitialized && m_chunkRenderer) {
+        m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
     return {};
 }
 
@@ -1859,6 +1866,13 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
     }
 
     spdlog::info("EntityTextureAtlas: Loading textures from {} resource packs", packs.size());
+
+    // 从资源包加载火焰纹理（fire_0.png / fire_1.png）
+    if (entity::effect::fire::FireEffect::isInitialized()) {
+        if (!entity::effect::fire::FireEffect::loadTexture(packs)) {
+            spdlog::warn("Failed to load fire texture from resource packs; using placeholder");
+        }
+    }
 
     // 使用新的自动发现方法加载所有实体纹理
     u32 loadedCount = 0;
@@ -1994,6 +2008,35 @@ Result<void> TridentEngine::reloadCloudTexture(ResourceManager* resourceManager)
     }
 
     return m_cloudRenderer->reloadTexture(resourceManager);
+}
+
+Result<void> TridentEngine::reloadFireTexture(ResourceManager* resourceManager)
+{
+    if (!entity::effect::fire::FireEffect::isInitialized()) {
+        return {};
+    }
+
+    if (resourceManager == nullptr) {
+        // 无资源管理器时回退到程序化纹理
+        if (!entity::effect::fire::FireEffect::loadTexture({})) {
+            return Error(ErrorCode::OperationFailed, "Failed to reload fire texture with empty packs");
+        }
+        return {};
+    }
+
+    // 构建资源包列表（按优先级从低到高）
+    std::vector<IResourcePack*> packs;
+    for (size_t i = 0; i < resourceManager->resourcePackCount(); ++i) {
+        auto* pack = resourceManager->getResourcePack(i);
+        if (pack) {
+            packs.push_back(pack);
+        }
+    }
+
+    if (!entity::effect::fire::FireEffect::loadTexture(packs)) {
+        return Error(ErrorCode::OperationFailed, "Failed to reload fire texture from resource packs");
+    }
+    return {};
 }
 
 cloud::CloudRenderer& TridentEngine::cloudRenderer()
@@ -2249,7 +2292,9 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
 
     // 更新实体管线的纹理（如果已初始化）
     if (m_entityRendererInitialized && m_entityRendererManager) {
-        // 实体渲染器可以从 ChunkRenderer 的纹理图集获取纹理
+        // 将方块纹理图集注入到 EntityRendererManager，供末影人手持方块层（HeldBlockLayer）使用
+        // 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
+        m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
     }
 
     // 注册动画精灵

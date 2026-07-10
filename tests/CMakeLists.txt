@@ -617,6 +617,7 @@ add_executable(mc_tests
     common/world/block/BlockStateMutableTest.cpp
     common/world/block/BuildingVariantRegistrationTest.cpp
     common/world/block/BlockPushEntitiesUpTest.cpp
+    common/world/block/state/pattern/BlockPatternTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
@@ -624,6 +625,7 @@ add_executable(mc_tests
     common/world/dimension/EndDragonFightBossBarTest.cpp
     common/world/dimension/EndDragonFightSpawnTest.cpp
     common/world/dimension/EndDragonFightRespawnTest.cpp
+    common/world/dimension/EndDragonFightFindPortalTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
@@ -898,8 +900,6 @@ add_executable(mc_tests
     client/world/entity/ClientEntityWitherSideHeadTest.cpp
     # ClientEntity 钓鱼浮标元数据同步端到端测试（DATA_HOOKED_ENTITY/DATA_BITING 序列化→反序列化→镜像）
     client/world/entity/ClientEntityFishingBobberSyncTest.cpp
-    # 振动粒子目标位置解析纯函数测试（方块/实体来源、实体不存在回退、未知来源类型）
-    client/application/features/VibrationParticleDispatchTest.cpp
     client/entity/ClientEntityAnimationTest.cpp
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
@@ -1273,6 +1273,8 @@ add_executable(mc_tests
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # CreateWorldScreen 创建世界界面配置选项与 buildRequest 测试
     client/ui/minecraft/screens/CreateWorldScreenTest.cpp
+    # MessageScreen 通用通知对话框回调与 ESC 关闭测试
+    client/ui/minecraft/screens/MessageScreenTest.cpp
     # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
     client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
@@ -1420,6 +1422,7 @@ add_executable(mc_tests
     common/skin/test_skin_packets.cpp
     common/skin/test_skin_manager.cpp
     common/skin/test_default_skin_provider.cpp
+    common/skin/test_skin_loader_async.cpp
     # 富文本系统测试
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp
@@ -2038,8 +2041,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
-        # VibrationTargetResolver 纯函数依赖（振动粒子目标位置解析）
-        ${CMAKE_SOURCE_DIR}/src/client/application/features/VibrationTargetResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
         # 维度管理
@@ -2146,6 +2148,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/TemplateScreen.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/TemplateInstance.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/CreateWorldScreen.cpp
+        # MessageScreen 测试依赖：通用通知对话框实现
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/MessageScreen.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp
@@ -2237,6 +2241,7 @@ add_executable(mc_resource_tests
     client/resource/test_resource_location.cpp
     client/resource/test_model_loader.cpp
     client/resource/TexturePathVariantTest.cpp
+    client/resource/test_fire_texture_loader.cpp
 )
 
 target_link_libraries(mc_resource_tests
@@ -2273,6 +2278,7 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
 )
 

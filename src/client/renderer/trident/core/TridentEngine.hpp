@@ -635,6 +635,16 @@ public:
     [[nodiscard]] Result<void> reloadCloudTexture(ResourceManager* resourceManager);
 
     /**
+     * @brief 重新加载火焰纹理
+     *
+     * 在资源热重载后重新从资源包加载 fire_0.png / fire_1.png。
+     *
+     * @param resourceManager 资源管理器（允许为空；为空时回退程序化纹理）
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> reloadFireTexture(ResourceManager* resourceManager);
+
+    /**
      * @brief 更新纹理图集
      */
     [[nodiscard]] Result<void> updateTextureAtlas(const AtlasBuildResult& atlasResult);

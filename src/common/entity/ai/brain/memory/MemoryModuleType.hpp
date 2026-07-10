@@ -40,6 +40,8 @@ class Player;
 class MobEntity;
 class AgeableEntity;
 class ItemEntity;
+class HoglinEntity;
+class AbstractPiglinEntity;
 class BlockPos;
 class GlobalPos;
 class DamageSource;
@@ -176,15 +178,13 @@ public:
     static const MemoryModuleType<u64>* ANGRY_AT; // 原 UUID 类型，使用 u64 存储
 
     // ========== 猪灵/疣兽相关 ==========
-    // TODO: 需要 HoglinEntity 和 AbstractPiglinEntity 类型
-    // 这里暂时使用 LivingEntity* 作为占位符，待实体类型完善后替换
-    static const MemoryModuleType<LivingEntity*>* NEAREST_VISIBLE_HUNTABLE_HOGLIN;
-    static const MemoryModuleType<LivingEntity*>* NEAREST_VISIBLE_BABY_HOGLIN;
+    static const MemoryModuleType<HoglinEntity*>* NEAREST_VISIBLE_HUNTABLE_HOGLIN;
+    static const MemoryModuleType<HoglinEntity*>* NEAREST_VISIBLE_BABY_HOGLIN;
     static const MemoryModuleType<Player*>* NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD;
-    static const MemoryModuleType<std::vector<LivingEntity*>>* NEAREST_ADULT_PIGLINS;
-    static const MemoryModuleType<std::vector<LivingEntity*>>* NEAREST_VISIBLE_ADULT_PIGLINS;
-    static const MemoryModuleType<std::vector<LivingEntity*>>* NEAREST_VISIBLE_ADULT_HOGLINS;
-    static const MemoryModuleType<LivingEntity*>* NEAREST_VISIBLE_ADULT_PIGLIN;
+    static const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* NEAREST_ADULT_PIGLINS;
+    static const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* NEAREST_VISIBLE_ADULT_PIGLINS;
+    static const MemoryModuleType<std::vector<HoglinEntity*>>* NEAREST_VISIBLE_ADULT_HOGLINS;
+    static const MemoryModuleType<AbstractPiglinEntity*>* NEAREST_VISIBLE_ADULT_PIGLIN;
     static const MemoryModuleType<i32>* VISIBLE_ADULT_PIGLIN_COUNT;
     static const MemoryModuleType<i32>* VISIBLE_ADULT_HOGLIN_COUNT;
 

@@ -25,6 +25,8 @@
 
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/renderer/trident/particle/particles/special/VibrationSignalParticle.hpp"
+#include "client/world/ClientWorld.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 
 #include <cmath>
 #include <memory>
@@ -34,6 +36,8 @@ namespace {
 
 using namespace client::renderer::trident::particle;
 using namespace client::renderer::trident::particle::particles;
+using mc::client::ClientEntity;
+using mc::client::ClientWorld;
 
 class VibrationSignalParticleTest : public ::testing::Test {
 protected:
@@ -498,6 +502,182 @@ TEST_F(VibrationSignalParticleTest, ZeroVelocity)
     EXPECT_FLOAT_EQ(particle->velocity().x, 0.0f);
     EXPECT_FLOAT_EQ(particle->velocity().y, 0.0f);
     EXPECT_FLOAT_EQ(particle->velocity().z, 0.0f);
+}
+
+// ==================== 实体来源测试 ====================
+
+TEST_F(VibrationSignalParticleTest, CreateWithEntityTarget_ReturnsValidParticle)
+{
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, EntityId(42), 1.5f, arrivalTicks);
+
+    EXPECT_NE(particle, nullptr);
+    EXPECT_TRUE(particle->isAlive());
+}
+
+TEST_F(VibrationSignalParticleTest, CreateWithEntityTarget_SetsPosition)
+{
+    glm::vec3 pos(10.0f, 64.0f, -20.0f);
+
+    auto particle = VibrationSignalParticle::createWithEntityTarget(pos, EntityId(42), 1.5f, 15);
+
+    EXPECT_FLOAT_EQ(particle->position().x, 10.0f);
+    EXPECT_FLOAT_EQ(particle->position().y, 64.0f);
+    EXPECT_FLOAT_EQ(particle->position().z, -20.0f);
+}
+
+TEST_F(VibrationSignalParticleTest, CreateWithEntityTarget_SetsMaxAge)
+{
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, EntityId(42), 1.5f, 15);
+
+    EXPECT_DOUBLE_EQ(particle->maxAge(), 15.0);
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_TickWithNullWorld_ExpiresImmediately)
+{
+    // 实体来源粒子在无 ClientWorld 时应立即过期
+    // 对应 MC Java VibrationSignalParticle.tick() 中无法解析目标位置时的 remove()
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, EntityId(42), 1.5f, arrivalTicks);
+
+    ASSERT_TRUE(particle->isAlive());
+
+    particle->tick(nullptr);
+
+    // 无 ClientWorld 无法解析实体位置，粒子立即过期
+    EXPECT_FALSE(particle->isAlive());
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_TickWithWorld_EntityNotFound_ExpiresImmediately)
+{
+    // 实体不存在时粒子应立即过期
+    // 对应 MC Java VibrationSignalParticle.tick() 中
+    // Optional<Vec3> optional = this.target.getPosition(this.level);
+    // if (optional.isEmpty()) { this.remove(); }
+    ClientWorld world;
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, EntityId(999), 1.5f, arrivalTicks);
+
+    ASSERT_TRUE(particle->isAlive());
+
+    particle->tick(&world);
+
+    // 实体 ID 999 不存在于世界中，粒子立即过期
+    EXPECT_FALSE(particle->isAlive());
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_TickWithWorld_EntityFound_MovesTowardEntity)
+{
+    // 实体存在时粒子应向实体位置移动
+    ClientWorld world;
+    ClientEntity* entity = world.entityManager().spawnEntity(EntityId(42), "minecraft:player");
+    const EntityId entityId = entity->id();
+    entity->setPosition(10.0f, 0.0f, 0.0f);
+
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, entityId, 0.0f, arrivalTicks);
+
+    f32 initialX = particle->position().x;
+
+    particle->tick(&world);
+
+    // 粒子应向实体方向移动（从 0 向 10）
+    EXPECT_GT(particle->position().x, initialX);
+    EXPECT_LT(particle->position().x, 10.0f);
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_FollowsMovingEntity)
+{
+    // 实体移动时粒子应跟随：每 tick 重新解析实体位置
+    // 这是 TODO 修复的核心行为：MC Java VibrationSignalParticle 在每 tick 中重新调用
+    // target.getPosition(level) 解析目标位置
+    ClientWorld world;
+    ClientEntity* entity = world.entityManager().spawnEntity(EntityId(42), "minecraft:player");
+    const EntityId entityId = entity->id();
+    entity->setPosition(10.0f, 0.0f, 0.0f);
+
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, entityId, 0.0f, 20);
+
+    // 第 1 tick：实体在 (10, 0, 0)
+    particle->tick(&world);
+    f32 xAfterFirstTick = particle->position().x;
+    EXPECT_GT(xAfterFirstTick, 0.0f);
+
+    // 移动实体到 (100, 0, 0)
+    entity->setPosition(100.0f, 0.0f, 0.0f);
+
+    // 第 2 tick：粒子应向新的实体位置 (100, 0, 0) 移动
+    particle->tick(&world);
+
+    // 由于目标移远，粒子的步长应比固定目标时更大
+    // 验证粒子确实在向新位置移动（x 坐标应继续增大）
+    EXPECT_GT(particle->position().x, xAfterFirstTick);
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_TickAppliesYOffset)
+{
+    // 验证 Y 轴偏移被正确应用
+    ClientWorld world;
+    ClientEntity* entity = world.entityManager().spawnEntity(EntityId(42), "minecraft:player");
+    const EntityId entityId = entity->id();
+    entity->setPosition(0.0f, 64.0f, 0.0f);
+
+    // yOffset = 2.0（如眼睛高度）
+    auto particle = VibrationSignalParticle::createWithEntityTarget(glm::vec3(0.0f, 64.0f, 0.0f), entityId, 2.0f, 10);
+
+    particle->tick(&world);
+
+    // 粒子应向 y = 64 + 2 = 66 方向移动
+    // 由于起始 y=64，目标 y=66，粒子 y 应增大
+    EXPECT_GT(particle->position().y, 64.0f);
+    EXPECT_LT(particle->position().y, 66.0f);
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_ExpiresAfterArrivalTicks)
+{
+    ClientWorld world;
+    ClientEntity* entity = world.entityManager().spawnEntity(EntityId(42), "minecraft:player");
+    const EntityId entityId = entity->id();
+    entity->setPosition(10.0f, 0.0f, 0.0f);
+
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, entityId, 0.0f, arrivalTicks);
+
+    // tick 直到过期
+    for (int i = 0; i < arrivalTicks; ++i) {
+        particle->tick(&world);
+    }
+
+    EXPECT_FALSE(particle->isAlive());
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_EntityRemovedDuringFlight_ExpiresImmediately)
+{
+    // 实体在粒子飞行途中消失时，粒子应立即过期
+    // 对应 MC Java VibrationSignalParticle.tick() 中
+    // target.getPosition().isEmpty() -> remove()
+    ClientWorld world;
+    ClientEntity* entity = world.entityManager().spawnEntity(EntityId(42), "minecraft:player");
+    const EntityId entityId = entity->id();
+    entity->setPosition(10.0f, 0.0f, 0.0f);
+
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, entityId, 0.0f, 20);
+
+    // 第 1 tick：实体存在，粒子正常移动
+    particle->tick(&world);
+    EXPECT_TRUE(particle->isAlive());
+
+    // 实体消失
+    world.entityManager().removeEntity(entityId);
+
+    // 第 2 tick：实体不存在，粒子立即过期
+    particle->tick(&world);
+    EXPECT_FALSE(particle->isAlive());
+}
+
+TEST_F(VibrationSignalParticleTest, EntitySource_RenderTypeAndTexture)
+{
+    // 实体来源粒子的渲染属性应与方块来源一致
+    auto particle = VibrationSignalParticle::createWithEntityTarget(startPos, EntityId(42), 1.5f, arrivalTicks);
+
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_LIT);
+    EXPECT_EQ(particle->getTextureLocation().toString(), "minecraft:particle/vibration");
+    EXPECT_EQ(particle->getLightColor(nullptr), 15728880u);
 }
 
 } // namespace

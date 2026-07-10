@@ -32,6 +32,8 @@ SkinManager::SkinManager(const std::string& cacheDir)
     : m_cacheDir(cacheDir)
     , m_cache(std::make_unique<SkinCache>(cacheDir))
     , m_defaultSkinProvider(std::make_unique<DefaultSkinProvider>())
+    , m_fileLoader(std::make_unique<FileSkinLoader>())
+    , m_httpLoader(std::make_unique<HttpSkinLoader>())
 {}
 
 SkinManager::~SkinManager()
@@ -59,6 +61,16 @@ Result<void> SkinManager::initialize()
         // 默认皮肤初始化失败也不是致命错误
     }
 
+    // 初始化加载器
+    auto fileResult = m_fileLoader->initialize();
+    if (!fileResult.success()) {
+        spdlog::warn("SkinManager: Failed to initialize FileSkinLoader: {}", fileResult.error().toString());
+    }
+    auto httpResult = m_httpLoader->initialize();
+    if (!httpResult.success()) {
+        spdlog::warn("SkinManager: Failed to initialize HttpSkinLoader: {}", httpResult.error().toString());
+    }
+
     m_initialized.store(true);
     spdlog::info("SkinManager initialized with cache dir: {}", m_cacheDir);
     return {};
@@ -77,6 +89,10 @@ void SkinManager::shutdown()
         std::lock_guard<std::mutex> lock(m_playerInfosMutex);
         m_playerInfos.clear();
     }
+
+    // 关闭加载器（等待所有在途异步任务完成）
+    m_httpLoader->shutdown();
+    m_fileLoader->shutdown();
 
     // 关闭缓存
     m_cache->shutdown();
@@ -269,11 +285,70 @@ void SkinManager::_loadFromTextures(
         return;
     }
 
-    // TODO: 实现异步下载
-    // 当前简化实现：使用默认皮肤
-    spdlog::info("SkinManager: Skin not in cache, would download: {}", textures.skinUrl().value_or("(none)"));
+    // 缓存未命中：异步下载皮肤
+    // 皮肤 URL 形如 http://textures.minecraft.net/texture/<hash>，由 HttpSkinLoader 处理
+    // 若 URL 不存在或加载失败，回退到默认皮肤
+    if (textures.skinUrl().has_value()) {
+        const std::string& skinUrl = *textures.skinUrl();
+        std::string skinHash = textures.skinHash().value_or("");
 
-    // 暂时使用默认皮肤
+        // 捕获回调所需的上下文（裸指针，保证对象生命周期由 SkinManager 自身管理）
+        auto infoPtr = info;
+        auto cache = m_cache.get();
+        auto defaultProvider = m_defaultSkinProvider.get();
+        auto uuid = profile.uuid();
+        auto skinType = textures.skinType();
+        auto onLoaded = callbacks.onSkinLoaded;
+        auto onFailed = callbacks.onSkinFailed;
+        auto httpLoader = m_httpLoader.get();
+        auto shuttingDown = &m_shuttingDown;
+
+        auto onSkinDownloaded =
+            [infoPtr, cache, defaultProvider, uuid, skinType, skinHash, onLoaded, onFailed, shuttingDown](
+                Result<SkinLoadResult> result) {
+                if (result.success()) {
+                    // 移动出结果避免多次访问
+                    SkinLoadResult loadResult = std::move(result.value());
+                    std::string effectiveHash = skinHash.empty() ? loadResult.hash : skinHash;
+
+                    // 保存到缓存
+                    auto saveResult = cache->saveSkin(effectiveHash, loadResult.pngData);
+                    if (saveResult.success()) {
+                        auto location = cache->generateSkinLocation(effectiveHash);
+                        infoPtr->setSkinLocation(location);
+                        infoPtr->setSkinType(skinType);
+                        infoPtr->setLoadState(SkinLoadState::Loaded);
+                        spdlog::info("SkinManager: Downloaded skin for UUID, saved to cache (hash: {})", effectiveHash);
+                        if (onLoaded) {
+                            onLoaded(uuid);
+                        }
+                        return;
+                    }
+                    spdlog::warn(
+                        "SkinManager: Failed to save downloaded skin to cache: {}", saveResult.error().toString());
+                } else {
+                    spdlog::warn("SkinManager: Failed to download skin: {}", result.error().toString());
+                }
+
+                // 失败回退到默认皮肤
+                if (!shuttingDown->load()) {
+                    ResourceLocation defaultSkin = defaultProvider->getDefaultSkin(uuid);
+                    infoPtr->setSkinLocation(defaultSkin);
+                    infoPtr->setSkinType(defaultProvider->getDefaultSkinType(uuid));
+                    infoPtr->setLoadState(SkinLoadState::UsingDefault);
+                }
+                if (onFailed) {
+                    onFailed(uuid, result.success() ? "save failed" : result.error().toString());
+                }
+            };
+
+        // 异步下载：HttpSkinLoader 会通过注入的线程池异步执行
+        // 若未注入线程池，loadAsync 降级为同步执行后立即回调
+        httpLoader->loadAsync(skinUrl, std::move(onSkinDownloaded));
+        return;
+    }
+
+    // 无皮肤 URL，使用默认皮肤
     _useDefaultSkin(info);
 
     if (callbacks.onSkinLoaded) {

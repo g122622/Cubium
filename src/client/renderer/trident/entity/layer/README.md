@@ -85,7 +85,9 @@ HeadLayer                      VillagerLayer
 
 1. **CPU 路径已移除**：所有层渲染器的 `render()` 方法已从子类中移除，所有渲染逻辑均在 `renderPipeline()` GPU 管线路径中实现。基类 `LayerRenderer::render()` 保留空实现以兼容 `LivingRenderer::render()` 旧路径。
 
-2. **模板类显式实例化**：`ElytraLayer`、`SaddleLayer`、`SheepWoolLayer`、`ArrowLayer`、`HeldBlockLayer`、`EnergyGlintLayer`、`EyesLayer` 均为模板类，需在 cpp 末尾显式实例化。
+2. **模板类显式实例化**：`ElytraLayer`、`SaddleLayer`、`SheepWoolLayer`、`ArrowLayer`、`EnergyGlintLayer`、`EyesLayer` 均为模板类，需在 cpp 末尾显式实例化。`HeldBlockLayer` 和 `WolfCollarLayer` 已迁移为 `LayerRenderer<ClientEntity>` 非模板类，无需显式实例化。
+
+3. **ClientEntity 层 vs LivingEntity 层**：`HeldBlockLayer` 和 `WolfCollarLayer` 模板参数为 `ClientEntity`，通过 `ClientEntity` 的元数据镜像字段读取状态（如 `endermanHeldBlockState()`、`wolfTamed()`）。其他层（如 `SaddleLayer`、`SheepWoolLayer`）模板参数为 `LivingEntity` 或其派生类。`ClientEntity` 层由渲染器的 `renderLayersPipelineClient(ClientEntity&, ...)` 分发，`LivingEntity` 层由 `LivingRenderer::renderLayersPipeline(Entity&, ...)` 分发。
 
 3. **shouldRender 条件检查**：层渲染器必须重写 `shouldRender()` 来检查渲染条件（如装备槽位是否有物品、是否开启了特定选项），避免不必要的渲染调用。
 

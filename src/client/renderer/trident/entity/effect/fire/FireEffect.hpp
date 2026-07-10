@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/effect/fire/FireTextureLoader.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
@@ -56,18 +57,29 @@ class FireEffect {
 public:
     /**
      * @brief 初始化着火效果系统
+     *
+     * 仅初始化 Vulkan 句柄与程序化占位纹理，不访问资源包。
+     * 真实火焰纹理通过 loadTexture() 在资源管理器就绪后注入。
+     *
      * @param device Vulkan 设备
      * @param physicalDevice 物理设备
      * @param commandPool 命令池
      * @param graphicsQueue 图形队列
-     * @param resourcePacks 资源包列表（用于加载火焰纹理）
      * @return 成功或错误
      */
-    static bool initialize(VkDevice device,
-        VkPhysicalDevice physicalDevice,
-        VkCommandPool commandPool,
-        VkQueue graphicsQueue,
-        const std::vector<IResourcePack*>& resourcePacks);
+    static bool initialize(
+        VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue);
+
+    /**
+     * @brief 从资源包加载并上传火焰纹理到 GPU
+     *
+     * 必须在 initialize() 成功后调用。可安全重复调用（用于热重载）：
+     * 会等待设备空闲、销毁旧纹理资源后重新创建。
+     *
+     * @param resourcePacks 资源包列表（按优先级从低到高）
+     * @return 成功或错误
+     */
+    static bool loadTexture(const std::vector<IResourcePack*>& resourcePacks);
 
     /**
      * @brief 清理着火效果系统
@@ -147,11 +159,11 @@ private:
         f32 cameraYaw);
 
     /**
-     * @brief 加载火焰纹理
-     * @param resourcePacks 资源包列表
-     * @return 成功或错误
+     * @brief 销毁已存在的火焰纹理 Vulkan 资源
+     *
+     * 用于 loadTexture 热重载前清理旧资源。
      */
-    static bool _loadFireTexture(const std::vector<IResourcePack*>& resourcePacks);
+    static void _destroyFireTexture();
 
     /**
      * @brief 创建火焰纹理资源

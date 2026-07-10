@@ -111,13 +111,13 @@ const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_PLAYER_HOLDING_WANTE
 const MemoryModuleType<u64>* MemoryModuleTypes::ANGRY_AT = nullptr;
 
 // ========== 猪灵/疣兽相关 ==========
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN = nullptr;
+const MemoryModuleType<HoglinEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN = nullptr;
+const MemoryModuleType<HoglinEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN = nullptr;
 const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = nullptr;
-const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::NEAREST_ADULT_PIGLINS = nullptr;
-const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLINS = nullptr;
-const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_HOGLINS = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLIN = nullptr;
+const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* MemoryModuleTypes::NEAREST_ADULT_PIGLINS = nullptr;
+const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLINS = nullptr;
+const MemoryModuleType<std::vector<HoglinEntity*>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_HOGLINS = nullptr;
+const MemoryModuleType<AbstractPiglinEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLIN = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::VISIBLE_ADULT_PIGLIN_COUNT = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::VISIBLE_ADULT_HOGLIN_COUNT = nullptr;
 
@@ -337,14 +337,14 @@ void MemoryModuleTypes::initialize()
 
     // ========== 猪灵/疣兽相关 ==========
     s_types["nearest_visible_huntable_hoglin"] =
-        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_huntable_hoglin");
+        std::make_unique<MemoryModuleType<HoglinEntity*>>("nearest_visible_huntable_hoglin");
     NEAREST_VISIBLE_HUNTABLE_HOGLIN =
-        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_huntable_hoglin"].get());
+        static_cast<const MemoryModuleType<HoglinEntity*>*>(s_types["nearest_visible_huntable_hoglin"].get());
 
     s_types["nearest_visible_baby_hoglin"] =
-        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_baby_hoglin");
+        std::make_unique<MemoryModuleType<HoglinEntity*>>("nearest_visible_baby_hoglin");
     NEAREST_VISIBLE_BABY_HOGLIN =
-        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_baby_hoglin"].get());
+        static_cast<const MemoryModuleType<HoglinEntity*>*>(s_types["nearest_visible_baby_hoglin"].get());
 
     s_types["nearest_targetable_player_not_wearing_gold"] =
         std::make_unique<MemoryModuleType<Player*>>("nearest_targetable_player_not_wearing_gold");
@@ -352,24 +352,24 @@ void MemoryModuleTypes::initialize()
         static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_targetable_player_not_wearing_gold"].get());
 
     s_types["nearby_adult_piglins"] =
-        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearby_adult_piglins");
+        std::make_unique<MemoryModuleType<std::vector<AbstractPiglinEntity*>>>("nearby_adult_piglins");
     NEAREST_ADULT_PIGLINS =
-        static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["nearby_adult_piglins"].get());
+        static_cast<const MemoryModuleType<std::vector<AbstractPiglinEntity*>>*>(s_types["nearby_adult_piglins"].get());
 
     s_types["nearest_visible_adult_piglins"] =
-        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearest_visible_adult_piglins");
-    NEAREST_VISIBLE_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(
+        std::make_unique<MemoryModuleType<std::vector<AbstractPiglinEntity*>>>("nearest_visible_adult_piglins");
+    NEAREST_VISIBLE_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<AbstractPiglinEntity*>>*>(
         s_types["nearest_visible_adult_piglins"].get());
 
     s_types["nearest_visible_adult_hoglins"] =
-        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("nearest_visible_adult_hoglins");
-    NEAREST_VISIBLE_ADULT_HOGLINS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(
+        std::make_unique<MemoryModuleType<std::vector<HoglinEntity*>>>("nearest_visible_adult_hoglins");
+    NEAREST_VISIBLE_ADULT_HOGLINS = static_cast<const MemoryModuleType<std::vector<HoglinEntity*>>*>(
         s_types["nearest_visible_adult_hoglins"].get());
 
     s_types["nearest_visible_adult_piglin"] =
-        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_adult_piglin");
+        std::make_unique<MemoryModuleType<AbstractPiglinEntity*>>("nearest_visible_adult_piglin");
     NEAREST_VISIBLE_ADULT_PIGLIN =
-        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_adult_piglin"].get());
+        static_cast<const MemoryModuleType<AbstractPiglinEntity*>*>(s_types["nearest_visible_adult_piglin"].get());
 
     s_types["visible_adult_piglin_count"] = std::make_unique<MemoryModuleType<i32>>("visible_adult_piglin_count");
     VISIBLE_ADULT_PIGLIN_COUNT = static_cast<const MemoryModuleType<i32>*>(s_types["visible_adult_piglin_count"].get());

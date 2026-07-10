@@ -9,8 +9,6 @@ src/client/application/features/
 ├── ClientApplicationBootstrap.cpp      # 客户端应用初始化骨架
 ├── ClientApplicationHelpers.hpp        # 通用辅助函数声明（容器同步、鼠标捕获、挖掘增量计算等）
 ├── ClientApplicationHelpers.cpp        # 非模板辅助函数实现
-├── VibrationTargetResolver.hpp         # 振动粒子目标位置解析纯函数声明（方块/实体来源）
-├── VibrationTargetResolver.cpp         # 振动粒子目标位置解析实现（供 ClientApplicationNetwork 与单测复用）
 ├── ClientApplicationAudio.cpp          # 音频初始化、音效、听者同步
 ├── ClientApplicationInput.cpp          # 输入绑定、相机初始化、鼠标捕获、挖掘状态机
 ├── ClientApplicationNetwork.cpp        # 网络回调、补全候选、聊天命令、维度切换、世界事件处理

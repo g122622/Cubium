@@ -30,6 +30,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
@@ -42,6 +43,8 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -313,6 +316,34 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getAngerTimeParamId()); value != nullptr) {
                 const i32 angerTime = value->get<i32>();
                 setWolfIsAngry(angerTime > 0);
+            }
+        }
+    }
+
+    // 末影人状态同步（搬方块状态、注视状态）
+    // 服务端 EndermanEntity 通过 DataParameter 写入，
+    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 客户端在此处读取并调用 setEndermanHeldBlockState/setEndermanScreaming 更新镜像状态。
+    if (m_typeId == "minecraft:enderman" || m_typeId == "enderman") {
+        // 搬方块状态（通过 EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM 同步）
+        // 服务端存储 BlockState 的 stateId（i32），0 表示未持有方块。
+        // 客户端通过 BlockRegistry::getBlockState(stateId) 解析为 BlockState*。
+        if (m_dataManager.hasParam(::mc::EndermanEntity::getCarriedBlockStateIdParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::EndermanEntity::getCarriedBlockStateIdParamId());
+                value != nullptr) {
+                const i32 stateId = value->get<i32>();
+                if (stateId > 0) {
+                    setEndermanHeldBlockState(::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
+                } else {
+                    setEndermanHeldBlockState(nullptr);
+                }
+            }
+        }
+        // 注视状态（通过 EndermanEntity::DATA_SCREAMING_PARAM 同步）
+        if (m_dataManager.hasParam(::mc::EndermanEntity::getScreamingParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::EndermanEntity::getScreamingParamId());
+                value != nullptr) {
+                setEndermanScreaming(value->get<bool>());
             }
         }
     }

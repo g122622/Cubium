@@ -13,7 +13,8 @@ src/client/ui/minecraft/screens/
 ├── WorldSelectionScreen.hpp/cpp # 存档选择（含删除世界功能）
 ├── CreateWorldScreen.hpp/cpp  # 创建世界
 ├── PauseScreen.hpp/cpp        # 暂停菜单
-├── ConfirmScreen.hpp/cpp      # 通用确认对话框
+├── ConfirmScreen.hpp/cpp      # 通用确认对话框（双按钮：确认/取消）
+├── MessageScreen.hpp/cpp      # 通用通知对话框（单按钮：OK）
 ├── LoadingScreen.hpp/cpp      # 加载界面
 ├── InventoryScreen.hpp/cpp    # 物品栏界面
 ├── ContainerScreen.hpp/cpp    # 容器界面
