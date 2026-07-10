@@ -70,6 +70,7 @@
 // 方块纹理图集与末影人渲染器
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/renderer/monster/MonsterRenderers.hpp"
+#include "client/renderer/trident/entity/renderer/special/SpecialEntityRenderers.hpp"
 
 namespace mc::client::renderer::entity {
 
@@ -133,16 +134,53 @@ void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtl
     // 图集变化后，旧网格的UV映射可能失效，强制重建静态和动画缓存
     clearMeshes();
     clearAnimatedMeshes();
+
+    // 将实体纹理图集注入到方块渲染器（用于渲染方块后恢复纹理图集）
+    // - FallingBlockRenderer: 渲染下落方块后恢复
+    // - TNTRenderer: 渲染 TNT 方块后恢复
+    auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::FALLING_BLOCK);
+    if (auto* fallingBlockRenderer = dynamic_cast<renderer::special::FallingBlockRenderer*>(fallingBlockRendererRaw)) {
+        fallingBlockRenderer->setEntityTextureAtlas(textureAtlas);
+    }
+
+    auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::TNT);
+    if (auto* tntRenderer = dynamic_cast<renderer::special::TNTRenderer*>(tntRendererRaw)) {
+        tntRenderer->setEntityTextureAtlas(textureAtlas);
+    }
 }
 
 void EntityRendererManager::setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas)
 {
     m_chunkTextureAtlas = atlas;
     // 将方块纹理图集注入到所有需要的渲染器
-    // 目前只有 EndermanRenderer 需要方块纹理图集（用于 HeldBlockLayer）
+    // - EndermanRenderer: 用于 HeldBlockLayer（末影人手持方块）
+    // - FallingBlockRenderer: 用于下落方块渲染
+    // - TNTRenderer: 用于 TNT 实体方块渲染
+
+    // 末影人渲染器
     auto* endermanRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::ENDERMAN);
     if (auto* endermanRenderer = dynamic_cast<renderer::monster::EndermanRenderer*>(endermanRendererRaw)) {
         endermanRenderer->setChunkTextureAtlas(atlas);
+    }
+
+    // 下落方块渲染器
+    auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::FALLING_BLOCK);
+    if (auto* fallingBlockRenderer = dynamic_cast<renderer::special::FallingBlockRenderer*>(fallingBlockRendererRaw)) {
+        fallingBlockRenderer->setChunkTextureAtlas(atlas);
+        // 同时注入实体纹理图集（用于渲染后恢复）
+        if (m_textureAtlas != nullptr) {
+            fallingBlockRenderer->setEntityTextureAtlas(m_textureAtlas);
+        }
+    }
+
+    // TNT 渲染器
+    auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::TNT);
+    if (auto* tntRenderer = dynamic_cast<renderer::special::TNTRenderer*>(tntRendererRaw)) {
+        tntRenderer->setChunkTextureAtlas(atlas);
+        // 同时注入实体纹理图集（用于渲染后恢复）
+        if (m_textureAtlas != nullptr) {
+            tntRenderer->setEntityTextureAtlas(m_textureAtlas);
+        }
     }
 }
 

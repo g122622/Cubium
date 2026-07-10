@@ -57,13 +57,57 @@ namespace entity {
 
 // ==================== FallingBlockEntity ====================
 
+// 网络同步数据参数定义
+::mc::entity::DataParameter<i32> FallingBlockEntity::DATA_BLOCK_STATE_ID_PARAM =
+    ::mc::entity::EntityDataManager::createKey<i32>();
+
 FallingBlockEntity::FallingBlockEntity()
     : Entity(EntityId(0))
-{}
+{
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 FallingBlockEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 EndermanEntity 模式。
+    registerData();
+}
+
+void FallingBlockEntity::registerData()
+{
+    // 调用父类方法，确保基类数据参数已注册
+    Entity::registerData();
+
+    // 注册下落方块状态参数：stateId（0 = 未设置/空气）
+    m_dataManager.registerParam(DATA_BLOCK_STATE_ID_PARAM, static_cast<i32>(0));
+}
 
 std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/)
 {
     return std::make_unique<FallingBlockEntity>();
+}
+
+void FallingBlockEntity::setBlockId(u32 blockId)
+{
+    m_blockId = blockId;
+
+    // 同步方块状态到 DataParameter，供客户端渲染
+    // 优先使用 m_fallingState（含属性），否则通过 blockId 查找默认状态
+    const BlockState* state = m_fallingState;
+    if (state == nullptr && blockId != 0) {
+        if (auto* block = Block::getBlock(blockId)) {
+            state = &block->defaultState();
+        }
+    }
+    const i32 stateId = (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
+    m_dataManager.set(DATA_BLOCK_STATE_ID_PARAM, stateId);
+}
+
+void FallingBlockEntity::setFallingState(const BlockState* state)
+{
+    m_fallingState = state;
+
+    // 同步方块状态到 DataParameter，供客户端渲染
+    const i32 stateId = (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
+    m_dataManager.set(DATA_BLOCK_STATE_ID_PARAM, stateId);
 }
 
 bool FallingBlockEntity::hurt(DamageSource& source, f32 /*amount*/)
@@ -412,13 +456,49 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
 
 // ==================== TNTEntity ====================
 
+// 网络同步数据参数定义
+::mc::entity::DataParameter<i32> TNTEntity::DATA_FUSE_PARAM = ::mc::entity::EntityDataManager::createKey<i32>();
+::mc::entity::DataParameter<i32> TNTEntity::DATA_BLOCK_STATE_ID_PARAM =
+    ::mc::entity::EntityDataManager::createKey<i32>();
+
 TNTEntity::TNTEntity()
     : Entity(EntityId(0))
-{}
+{
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 TNTEntity::registerData），
+    // 必须在派生类构造函数中显式调用，参考 EndermanEntity 模式。
+    registerData();
+}
 
 TNTEntity::TNTEntity(EntityId id)
     : Entity(id)
-{}
+{
+    // 显式调用 registerData() 注册同步数据参数（同上）
+    registerData();
+}
+
+void TNTEntity::registerData()
+{
+    // 调用父类方法，确保基类数据参数已注册
+    Entity::registerData();
+
+    // 注册引信参数：默认 0（未点燃状态）
+    // 项目设计中 TNTEntity 可处于未点燃状态（m_fuse=0, isPrimed()=false），
+    // ignite() 后才设为 DEFAULT_FUSE(80)。
+    // 对应 MC 1.21.11 PrimedTnt.DATA_FUSE_ID 默认值 80 仅在构造时设置，
+    // 本项目保持与既有 TNTEntity 生命周期一致：未点燃=0，点燃=80。
+    m_dataManager.registerParam(DATA_FUSE_PARAM, 0);
+
+    // 注册 TNT 方块状态参数：默认为 TNT 方块默认状态
+    // 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID 默认值 Blocks.TNT.defaultBlockState()
+    const BlockState* tntState = nullptr;
+    if (VanillaBlocks::TNT != nullptr) {
+        tntState = &VanillaBlocks::TNT->defaultState();
+    }
+    const i32 stateId = (tntState != nullptr) ? static_cast<i32>(tntState->stateId()) : 0;
+    m_dataManager.registerParam(DATA_BLOCK_STATE_ID_PARAM, stateId);
+}
 
 std::unique_ptr<Entity> TNTEntity::create(IWorld* world)
 {
@@ -427,13 +507,31 @@ std::unique_ptr<Entity> TNTEntity::create(IWorld* world)
     return std::make_unique<TNTEntity>();
 }
 
+i32 TNTEntity::getFuse() const
+{
+    // 读取 DataParameter 以保持与服务端-客户端同步一致性
+    // 对应 MC 1.21.11 PrimedTnt.getFuse() 读取 entityData
+    // registerData() 在构造时已注册 DATA_FUSE_PARAM，此处直接读取
+    return m_dataManager.get<i32>(DATA_FUSE_PARAM);
+}
+
+void TNTEntity::setFuse(i32 fuse)
+{
+    m_fuse = fuse;
+    // 同步到 DataParameter，供客户端渲染闪烁动画
+    // 对应 MC 1.21.11 PrimedTnt.setFuse(int) 写入 entityData
+    m_dataManager.set(DATA_FUSE_PARAM, fuse);
+}
+
 void TNTEntity::tick()
 {
     Entity::tick();
 
     // 引信倒计时
     if (m_fuse > 0) {
-        m_fuse--;
+        // 使用 setFuse 写入 DataParameter 以同步到客户端
+        // 对应 MC 1.21.11 PrimedTnt.tick() 中 this.setFuse(i)
+        setFuse(m_fuse - 1);
 
         // 客户端添加烟雾粒子效果
         if (world() != nullptr && world()->isClientSide()) {
@@ -493,12 +591,14 @@ void TNTEntity::tick()
 
 void TNTEntity::ignite()
 {
-    m_fuse = DEFAULT_FUSE;
+    // 使用 setFuse 同步到 DataParameter
+    setFuse(DEFAULT_FUSE);
 }
 
 void TNTEntity::ignite(i32 fuseTicks)
 {
-    m_fuse = fuseTicks;
+    // 使用 setFuse 同步到 DataParameter
+    setFuse(fuseTicks);
 }
 
 void TNTEntity::explode()

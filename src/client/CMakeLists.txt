@@ -181,6 +181,7 @@ add_executable(minecraft-client
     renderer/trident/entity/util/ShadowRenderer.cpp
     renderer/trident/entity/util/NameTagRenderer.cpp
     renderer/trident/entity/util/WorldTextRenderer.cpp
+    renderer/trident/entity/util/BlockMeshBuilder.cpp
     # 实体模型
     renderer/trident/entity/model/core/EntityModel.cpp
     renderer/trident/entity/model/core/ModelRenderer.cpp

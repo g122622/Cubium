@@ -162,33 +162,11 @@ private:
         pipeline::EntityPipeline& pipeline);
 
     /**
-     * @brief 从方块模型构建网格
-     *
-     * 遍历 BlockAppearance.elements 中的每个 ModelElement，对每个面生成
-     * 4 顶点 + 6 索引。顶点坐标基于 element.from/to（0-16 范围）乘以 1/16 转换为世界单位。
-     * UV 使用方块纹理图集中的 TextureRegion。支持元素旋转和 UV 旋转。
-     *
-     * 若无法获取方块外观，回退到简单立方体网格。
-     *
-     * @param blockState 方块状态
-     * @param vertices 输出顶点
-     * @param indices 输出索引
-     */
-    void _buildBlockMesh(
-        const ::mc::BlockState& blockState, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
-
-    /**
-     * @brief 构建回退用的简单立方体网格
-     *
-     * 当无法从 BlockModelCache 获取方块外观时使用。
-     */
-    void _buildFallbackCubeMesh(std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices);
-
-    /**
      * @brief 获取或创建方块网格
      *
      * 按 BlockState 指针缓存网格，避免重复构建。方块状态指针在项目中是稳定的
-     * （来自 BlockRegistry），可作为缓存 key。
+     * （来自 BlockRegistry），可作为缓存 key。网格构建委托给
+     * util::BlockMeshBuilder::buildBlockMesh。
      *
      * @param pipeline 实体管线（用于创建 GPU 缓冲区）
      * @param blockState 方块状态

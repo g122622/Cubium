@@ -1086,6 +1086,63 @@ public:
      */
     void setEndermanScreaming(bool screaming) { m_endermanScreaming = screaming; }
 
+    // ========== 下落方块状态 ==========
+
+    /**
+     * @brief 获取下落方块的方块状态
+     *
+     * 通过元数据同步自服务端 FallingBlockEntity::DATA_BLOCK_STATE_ID_PARAM。
+     * 服务端存储 BlockState 的 stateId（i32），客户端收到后通过
+     * BlockRegistry::instance().getBlockState(stateId) 解析为 BlockState 指针并缓存。
+     * 返回 nullptr 表示未设置（空气）。
+     *
+     * 由 FallingBlockRenderer 读取以渲染下落方块模型。
+     */
+    [[nodiscard]] const ::mc::BlockState* fallingBlockState() const { return m_fallingBlockState; }
+
+    /**
+     * @brief 设置下落方块的方块状态
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     *
+     * @param state 方块状态指针（nullptr 表示未设置）
+     */
+    void setFallingBlockState(const ::mc::BlockState* state) { m_fallingBlockState = state; }
+
+    // ========== TNT 实体状态 ==========
+
+    /**
+     * @brief 获取 TNT 引信剩余 tick
+     *
+     * 通过元数据同步自服务端 TNTEntity::DATA_FUSE_PARAM。
+     * 对应 MC 1.21.11 PrimedTnt.getFuse()。
+     * 由 TNTRenderer 读取以计算闪烁缩放和白色闪烁帧。
+     */
+    [[nodiscard]] i32 tntFuse() const { return m_tntFuse; }
+
+    /**
+     * @brief 设置 TNT 引信剩余 tick
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     */
+    void setTntFuse(i32 fuse) { m_tntFuse = fuse; }
+
+    /**
+     * @brief 获取 TNT 方块状态
+     *
+     * 通过元数据同步自服务端 TNTEntity::DATA_BLOCK_STATE_ID_PARAM。
+     * 对应 MC 1.21.11 PrimedTnt.getBlockState()。
+     * 由 TNTRenderer 读取以渲染 TNT 方块模型。
+     */
+    [[nodiscard]] const ::mc::BlockState* tntBlockState() const { return m_tntBlockState; }
+
+    /**
+     * @brief 设置 TNT 方块状态
+     *
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
+     */
+    void setTntBlockState(const ::mc::BlockState* state) { m_tntBlockState = state; }
+
     // ========== 骷髅拉弓状态 ==========
 
     /**
@@ -1432,6 +1489,20 @@ private:
         nullptr; ///< 末影人持有的方块状态（通过元数据同步自服务端 EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM）
     bool m_endermanScreaming =
         false; ///< 末影人是否被注视（通过元数据同步自服务端 EndermanEntity::DATA_SCREAMING_PARAM）
+
+    // 下落方块状态（通过元数据同步自服务端 FallingBlockEntity）
+    // 服务端存储 BlockState 的 stateId（i32），0 表示未设置。
+    // 客户端通过 BlockRegistry::getBlockState(stateId) 解析为 BlockState*。
+    // 由 FallingBlockRenderer 读取以渲染下落方块模型。
+    const ::mc::BlockState* m_fallingBlockState = nullptr;
+
+    // TNT 实体状态（通过元数据同步自服务端 TNTEntity）
+    // m_tntFuse：引信剩余 tick（对应 MC 1.21.11 PrimedTnt.DATA_FUSE_ID）
+    // m_tntBlockState：TNT 方块状态（对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID）
+    // 由 TNTRenderer 读取以渲染 TNT 方块模型和闪烁动画。
+    // 默认 0（未点燃），与服务端 DataParameter 默认值一致。
+    i32 m_tntFuse = 0;
+    const ::mc::BlockState* m_tntBlockState = nullptr;
 
     // 骷髅拉弓状态（通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM）
     bool m_chargingBow = false; ///< 是否正在拉弓（驱动 SkeletonModel 的 BowAndArrow 姿态）

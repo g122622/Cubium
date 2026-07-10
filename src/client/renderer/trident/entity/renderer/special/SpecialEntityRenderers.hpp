@@ -25,7 +25,22 @@
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/model/projectile/ProjectileModels.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include <memory>
+#include <unordered_map>
+
+namespace mc {
+class BlockState;
+} // namespace mc
+
+namespace mc::client {
+struct ChunkTextureAtlas;
+} // namespace mc::client
+
+namespace mc::client::renderer::entity::pipeline {
+class EntityTextureAtlas;
+struct EntityMesh;
+} // namespace mc::client::renderer::entity::pipeline
 
 namespace mc::client::renderer::entity {
 class EntityRendererManager;
@@ -230,6 +245,19 @@ public:
 
 /**
  * @brief 下落方块渲染器
+ *
+ * 渲染下落中的方块（沙子、砾石、铁砧等）。对应 MC 1.21.11 FallingBlockRenderer。
+ *
+ * 渲染方式：
+ * - 在 renderLayersPipelineClient 中完成全部渲染（不使用 PipelineMeshProvider 主网格路径）
+ * - 从 ClientEntity::fallingBlockState() 读取方块状态
+ * - 通过 util::BlockMeshBuilder 构建方块网格（按 BlockState* 缓存）
+ * - 切换到方块纹理图集（ChunkTextureAtlas）渲染，渲染后恢复实体纹理图集
+ *
+ * 变换链（对齐 MC 1.21.11 FallingBlockRenderer.submit）：
+ *   translate(-0.5, 0, -0.5)  // 方块中心对齐实体原点
+ *
+ * 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
  */
 class FallingBlockRenderer : public core::EntityRenderer {
 public:
@@ -237,6 +265,42 @@ public:
     ~FallingBlockRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
+
+    /**
+     * @brief 渲染下落方块（GPU管线路径）
+     *
+     * 在此方法中完成全部渲染：获取方块状态、构建/缓存网格、切换纹理图集、绘制。
+     */
+    void renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+        VkCommandBuffer cmd,
+        const core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline) override;
+
+    /**
+     * @brief 设置方块纹理图集引用
+     *
+     * 由 EntityRendererManager::setChunkTextureAtlas 注入。
+     * 用于在渲染时切换 EntityPipeline 的纹理图集到方块纹理图集。
+     */
+    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas) { m_chunkTextureAtlas = atlas; }
+
+    /**
+     * @brief 设置实体纹理图集引用
+     *
+     * 由 EntityRendererManager 注入。用于在渲染方块后恢复纹理图集。
+     */
+    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_entityTextureAtlas = atlas; }
+
+private:
+    /**
+     * @brief 获取或创建方块网格（按 BlockState* 缓存）
+     */
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(
+        pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState);
+
+    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    const pipeline::EntityTextureAtlas* m_entityTextureAtlas = nullptr;
+    std::unordered_map<const ::mc::BlockState*, std::unique_ptr<pipeline::EntityMesh>> m_blockMeshCache;
 };
 
 /**
@@ -285,6 +349,26 @@ public:
 
 /**
  * @brief TNT渲染器
+ *
+ * 渲染点燃的 TNT 实体。对应 MC 1.21.11 TntRenderer。
+ *
+ * 渲染方式：
+ * - 在 renderLayersPipelineClient 中完成全部渲染（不使用 PipelineMeshProvider 主网格路径）
+ * - 从 ClientEntity::tntBlockState() 读取方块状态（默认 TNT）
+ * - 从 ClientEntity::tntFuse() 读取引信剩余 tick
+ * - 通过 util::BlockMeshBuilder 构建方块网格（按 BlockState* 缓存）
+ * - 切换到方块纹理图集（ChunkTextureAtlas）渲染，渲染后恢复实体纹理图集
+ *
+ * 变换链（对齐 MC 1.21.11 TntRenderer.submit）：
+ *   translate(0, 0.5, 0)       // 抬高半个方块
+ *   [scale(flashScale)]        // 引信 < 10 时闪烁缩放
+ *   rotateY(-90°)
+ *   translate(-0.5, -0.5, 0.5)
+ *   rotateY(90°)
+ *
+ * 闪烁效果（对齐 MC TntRenderer / TntMinecartRenderer）：
+ * - fuse < 10 时，scale = 1 + (1 - fuse/10)^4 * 0.3
+ * - (fuse/5) % 2 == 0 时，通过 overlayColor 传递白色闪烁
  */
 class TNTRenderer : public core::EntityRenderer {
 public:
@@ -292,6 +376,38 @@ public:
     ~TNTRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
+
+    /**
+     * @brief 渲染 TNT（GPU管线路径）
+     *
+     * 在此方法中完成全部渲染：获取方块状态和引信、构建/缓存网格、
+     * 切换纹理图集、应用闪烁缩放和白色闪烁、绘制。
+     */
+    void renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+        VkCommandBuffer cmd,
+        const core::AnimationContext& context,
+        pipeline::EntityPipeline& pipeline) override;
+
+    /**
+     * @brief 设置方块纹理图集引用
+     */
+    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas) { m_chunkTextureAtlas = atlas; }
+
+    /**
+     * @brief 设置实体纹理图集引用
+     */
+    void setEntityTextureAtlas(const pipeline::EntityTextureAtlas* atlas) { m_entityTextureAtlas = atlas; }
+
+private:
+    /**
+     * @brief 获取或创建方块网格（按 BlockState* 缓存）
+     */
+    [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(
+        pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState);
+
+    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    const pipeline::EntityTextureAtlas* m_entityTextureAtlas = nullptr;
+    std::unordered_map<const ::mc::BlockState*, std::unique_ptr<pipeline::EntityMesh>> m_blockMeshCache;
 };
 
 /**

@@ -30,6 +30,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
@@ -341,6 +342,51 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(::mc::EndermanEntity::getScreamingParamId());
                 value != nullptr) {
                 setEndermanScreaming(value->get<bool>());
+            }
+        }
+    }
+
+    // 下落方块状态同步
+    // 服务端 FallingBlockEntity 通过 DataParameter 写入 DATA_BLOCK_STATE_ID_PARAM，
+    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 客户端在此处读取并调用 setFallingBlockState 更新镜像状态。
+    // 对应 MC 1.21.11 FallingBlockEntity.getBlockState()（项目通过 stateId 同步）。
+    if (m_typeId == "minecraft:falling_block" || m_typeId == "falling_block") {
+        if (m_dataManager.hasParam(::mc::entity::FallingBlockEntity::getBlockStateIdParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::FallingBlockEntity::getBlockStateIdParamId());
+                value != nullptr) {
+                const i32 stateId = value->get<i32>();
+                if (stateId > 0) {
+                    setFallingBlockState(::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
+                } else {
+                    setFallingBlockState(nullptr);
+                }
+            }
+        }
+    }
+
+    // TNT 实体状态同步（引信、方块状态）
+    // 服务端 TNTEntity 通过 DataParameter 写入 DATA_FUSE_PARAM 和 DATA_BLOCK_STATE_ID_PARAM，
+    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 客户端在此处读取并调用 setTntFuse/setTntBlockState 更新镜像状态。
+    // 对应 MC 1.21.11 PrimedTnt.getFuse() / getBlockState()。
+    if (m_typeId == "minecraft:tnt" || m_typeId == "tnt") {
+        // 引信（通过 TNTEntity::DATA_FUSE_PARAM 同步）
+        if (m_dataManager.hasParam(::mc::entity::TNTEntity::getFuseParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::TNTEntity::getFuseParamId()); value != nullptr) {
+                setTntFuse(value->get<i32>());
+            }
+        }
+        // 方块状态（通过 TNTEntity::DATA_BLOCK_STATE_ID_PARAM 同步）
+        if (m_dataManager.hasParam(::mc::entity::TNTEntity::getBlockStateIdParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::TNTEntity::getBlockStateIdParamId());
+                value != nullptr) {
+                const i32 stateId = value->get<i32>();
+                if (stateId > 0) {
+                    setTntBlockState(::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
+                } else {
+                    setTntBlockState(nullptr);
+                }
             }
         }
     }

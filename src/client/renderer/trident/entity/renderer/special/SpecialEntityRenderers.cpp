@@ -22,12 +22,21 @@
  */
 
 #include "SpecialEntityRenderers.hpp"
+#include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
+#include "client/renderer/trident/entity/util/BlockMeshBuilder.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
+#include <cmath>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::renderer::special {
 
@@ -414,13 +423,103 @@ FallingBlockRenderer::FallingBlockRenderer()
 
 void FallingBlockRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // TODO: 实现下落方块渲染
-    // 1. 获取方块状态
-    // 2. 渲染方块模型
-    // 3. 位置插值
-
+    // CPU 路径 - 已废弃，使用 GPU 管线路径
     (void)entity;
     (void)partialTicks;
+}
+
+void FallingBlockRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+    VkCommandBuffer cmd,
+    const core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    // 从 ClientEntity 读取下落方块状态
+    // 对应 MC 1.21.11 FallingBlockRenderer.extractRenderState 中 blockState = entity.getBlockState()
+    const ::mc::BlockState* blockState = entity.fallingBlockState();
+    if (blockState == nullptr) {
+        // 未设置方块状态，不渲染
+        return;
+    }
+
+    // 获取或创建方块网格
+    pipeline::EntityMesh* mesh = _getOrCreateBlockMesh(pipeline, *blockState);
+    if (mesh == nullptr || mesh->indexCount == 0) {
+        return;
+    }
+
+    // ---- 复刻 MC 1.21.11 FallingBlockRenderer.submit() 的变换链 ----
+    //   translate(-0.5, 0, -0.5)  // 方块中心对齐实体原点
+    //
+    // 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
+    // 实体位置即为方块原点位置，需要将方块中心偏移到实体位置：
+    //   方块范围 [0, 1]，中心在 (0.5, 0.5, 0.5)
+    //   translate(-0.5, 0, -0.5) 使方块底部中心对齐实体原点
+    //
+    // 注意：MC 原版使用 translate(-0.5, 0, -0.5) 而非 translate(-0.5, -0.5, -0.5)，
+    // 因为下落方块的实体原点在方块底部（y=0）。
+
+    std::array<f64, 16> modelMatrix = {
+        1.0, 0.0, 0.0, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, -0.5, 0.0, 0.0, 0.0, 1.0};
+
+    // 实体位置（插值）
+    Vector3f position(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
+
+    // 获取方块默认着色颜色（如草方块等需要 tint 的方块）
+    const u32 tintColor = ChunkMesher::getDefaultBlockTintColor(blockState);
+    const f32 r = static_cast<f32>(tintColor & 0xFFu) / 255.0f;
+    const f32 g = static_cast<f32>((tintColor >> 8) & 0xFFu) / 255.0f;
+    const f32 b = static_cast<f32>((tintColor >> 16) & 0xFFu) / 255.0f;
+    const f32 a = static_cast<f32>((tintColor >> 24) & 0xFFu) / 255.0f;
+    Vector4f overlayColor(r, g, b, a);
+
+    // ---- 切换到方块纹理图集 ----
+    // 方块纹理 UV 基于区块纹理图集（ChunkTextureAtlas），而非实体纹理图集。
+    // 渲染前切换到方块图集，渲染后恢复为实体图集，避免污染后续实体渲染。
+    const bool needAtlasSwitch = (m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid);
+    if (needAtlasSwitch) {
+        pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
+    }
+
+    pipeline.drawMesh(cmd, *mesh, modelMatrix, position, 1.0, overlayColor, 0.0f, 0.0f);
+
+    // 恢复实体纹理图集
+    if (needAtlasSwitch && m_entityTextureAtlas != nullptr) {
+        pipeline.setTextureAtlas(m_entityTextureAtlas->imageView(), m_entityTextureAtlas->sampler());
+    }
+
+    (void)context;
+    (void)cmd;
+}
+
+pipeline::EntityMesh* FallingBlockRenderer::_getOrCreateBlockMesh(
+    pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState)
+{
+    // 按 BlockState 指针缓存网格（项目中方块状态指针来自 BlockRegistry，是稳定的）
+    const auto it = m_blockMeshCache.find(&blockState);
+    if (it != m_blockMeshCache.end() && it->second && it->second->indexCount > 0) {
+        return it->second.get();
+    }
+
+    // 构建方块网格（委托给公共工具 util::BlockMeshBuilder）
+    std::vector<model::ModelVertex> vertices;
+    std::vector<u32> indices;
+    util::BlockMeshBuilder::buildBlockMesh(blockState, vertices, indices);
+
+    if (vertices.empty() || indices.empty()) {
+        return nullptr;
+    }
+
+    auto result = pipeline.createMesh(vertices, indices);
+    if (!result.success()) {
+        spdlog::warn("FallingBlockRenderer: Failed to create block mesh for blockState {}",
+            static_cast<const void*>(&blockState));
+        return nullptr;
+    }
+
+    auto meshPtr = std::make_unique<pipeline::EntityMesh>(std::move(result.value()));
+    pipeline::EntityMesh* rawPtr = meshPtr.get();
+    m_blockMeshCache[&blockState] = std::move(meshPtr);
+    return rawPtr;
 }
 
 // ==================== ItemFrameRenderer ====================
@@ -501,12 +600,168 @@ TNTRenderer::TNTRenderer()
 
 void TNTRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // TODO: 实现 TNT 渲染
-    // 1. 渲染TNT方块
-    // 2. 处理点燃闪烁
-
+    // CPU 路径 - 已废弃，使用 GPU 管线路径
     (void)entity;
     (void)partialTicks;
+}
+
+void TNTRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+    VkCommandBuffer cmd,
+    const core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
+{
+    // 从 ClientEntity 读取 TNT 方块状态
+    // 对应 MC 1.21.11 TntRenderer.extractRenderState 中 blockState = entity.getBlockState()
+    const ::mc::BlockState* blockState = entity.tntBlockState();
+    if (blockState == nullptr) {
+        // 未设置方块状态，不渲染
+        return;
+    }
+
+    // 获取或创建方块网格
+    pipeline::EntityMesh* mesh = _getOrCreateBlockMesh(pipeline, *blockState);
+    if (mesh == nullptr || mesh->indexCount == 0) {
+        return;
+    }
+
+    // ---- 读取引信并计算闪烁 ----
+    // 对应 MC 1.21.11 TntRenderer.extractRenderState:
+    //   fuseRemainingInTicks = entity.getFuse() - partialTicks + 1.0F
+    const f32 fuseRemaining = static_cast<f32>(entity.tntFuse()) - static_cast<f32>(context.partialTicks) + 1.0f;
+
+    // ---- 复刻 MC 1.21.11 TntRenderer.submit() 的变换链 ----
+    //   translate(0, 0.5, 0)              // 抬高半个方块
+    //   [scale(flashScale)]               // 引信 < 10 时闪烁缩放
+    //   rotateY(-90°)
+    //   translate(-0.5, -0.5, 0.5)
+    //   rotateY(90°)
+    //
+    // 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
+    //
+    // MC 的 PoseStack 使用右乘：current = current * newTransform
+    // 因此最终矩阵 = T1 * [S] * R1 * T2 * R2，顶点 v 变换为 T1 * [S] * R1 * T2 * R2 * v
+    // 最右侧的 R2 最先作用于顶点。
+    //
+    // 行主序矩阵乘法 helper：result = a * b（即 a 右乘 b）
+    auto matMul = [](const std::array<f64, 16>& a, const std::array<f64, 16>& b) -> std::array<f64, 16> {
+        std::array<f64, 16> result{};
+        for (i32 row = 0; row < 4; ++row) {
+            for (i32 col = 0; col < 4; ++col) {
+                const auto idx = static_cast<std::size_t>(row * 4 + col);
+                result[idx] = 0.0;
+                for (i32 k = 0; k < 4; ++k) {
+                    result[idx] += a[static_cast<std::size_t>(row * 4 + k)] * b[static_cast<std::size_t>(k * 4 + col)];
+                }
+            }
+        }
+        return result;
+    };
+
+    // translate(0, 0.5, 0)
+    std::array<f64, 16> modelMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+
+    // 闪烁缩放：fuseRemaining < 10 时，scale = 1 + (1 - fuse/10)^4 * 0.3
+    // 对齐 MC TntRenderer.submit / TntMinecartRenderer.submitMinecartContents
+    if (fuseRemaining >= 0.0f && fuseRemaining < 10.0f) {
+        f32 f = 1.0f - fuseRemaining / 10.0f;
+        f = mc::math::clamp(f, 0.0f, 1.0f);
+        f *= f;
+        f *= f; // 4 次方
+        const f32 flashScale = 1.0f + f * 0.3f;
+        const f64 fs = static_cast<f64>(flashScale);
+        std::array<f64, 16> scaleMatrix = {fs, 0.0, 0.0, 0.0, 0.0, fs, 0.0, 0.0, 0.0, 0.0, fs, 0.0, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = matMul(modelMatrix, scaleMatrix); // current = current * S
+    }
+
+    // rotateY(-90°)：cos(-90°)=0, sin(-90°)=-1
+    {
+        const f64 c = 0.0;
+        const f64 s = -1.0;
+        std::array<f64, 16> rotMatrix = {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = matMul(modelMatrix, rotMatrix); // current = current * R1
+    }
+
+    // translate(-0.5, -0.5, 0.5)
+    {
+        std::array<f64, 16> transMatrix = {
+            1.0, 0.0, 0.0, -0.5, 0.0, 1.0, 0.0, -0.5, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = matMul(modelMatrix, transMatrix); // current = current * T2
+    }
+
+    // rotateY(90°)：cos(90°)=0, sin(90°)=1
+    {
+        const f64 c = 0.0;
+        const f64 s = 1.0;
+        std::array<f64, 16> rotMatrix = {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = matMul(modelMatrix, rotMatrix); // current = current * R2
+    }
+
+    // 实体位置（插值）
+    Vector3f position(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
+
+    // 获取方块默认着色颜色
+    const u32 tintColor = ChunkMesher::getDefaultBlockTintColor(blockState);
+    const f32 r = static_cast<f32>(tintColor & 0xFFu) / 255.0f;
+    const f32 g = static_cast<f32>((tintColor >> 8) & 0xFFu) / 255.0f;
+    const f32 b = static_cast<f32>((tintColor >> 16) & 0xFFu) / 255.0f;
+    const f32 a = static_cast<f32>((tintColor >> 24) & 0xFFu) / 255.0f;
+    Vector4f overlayColor(r, g, b, a);
+
+    // ---- 切换到方块纹理图集 ----
+    const bool needAtlasSwitch = (m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid);
+    if (needAtlasSwitch) {
+        pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
+    }
+
+    // hurtTime 用于白色闪烁（对齐 MC TntMinecartRenderer 的 OverlayTexture.pack(10)）
+    // 当 (fuse/5) % 2 == 0 时，设置 hurtTime = 1.0 实现白色闪烁叠加
+    f32 hurtTime = 0.0f;
+    if (fuseRemaining > -1.0f) {
+        const i32 fuseInt = static_cast<i32>(fuseRemaining);
+        if (fuseInt / 5 % 2 == 0) {
+            hurtTime = 1.0f;
+        }
+    }
+
+    pipeline.drawMesh(cmd, *mesh, modelMatrix, position, 1.0, overlayColor, hurtTime, 0.0f);
+
+    // 恢复实体纹理图集
+    if (needAtlasSwitch && m_entityTextureAtlas != nullptr) {
+        pipeline.setTextureAtlas(m_entityTextureAtlas->imageView(), m_entityTextureAtlas->sampler());
+    }
+
+    (void)cmd;
+}
+
+pipeline::EntityMesh* TNTRenderer::_getOrCreateBlockMesh(
+    pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState)
+{
+    // 按 BlockState 指针缓存网格
+    const auto it = m_blockMeshCache.find(&blockState);
+    if (it != m_blockMeshCache.end() && it->second && it->second->indexCount > 0) {
+        return it->second.get();
+    }
+
+    // 构建方块网格（委托给公共工具 util::BlockMeshBuilder）
+    std::vector<model::ModelVertex> vertices;
+    std::vector<u32> indices;
+    util::BlockMeshBuilder::buildBlockMesh(blockState, vertices, indices);
+
+    if (vertices.empty() || indices.empty()) {
+        return nullptr;
+    }
+
+    auto result = pipeline.createMesh(vertices, indices);
+    if (!result.success()) {
+        spdlog::warn(
+            "TNTRenderer: Failed to create block mesh for blockState {}", static_cast<const void*>(&blockState));
+        return nullptr;
+    }
+
+    auto meshPtr = std::make_unique<pipeline::EntityMesh>(std::move(result.value()));
+    pipeline::EntityMesh* rawPtr = meshPtr.get();
+    m_blockMeshCache[&blockState] = std::move(meshPtr);
+    return rawPtr;
 }
 
 // ==================== FireworkRocketRenderer ====================

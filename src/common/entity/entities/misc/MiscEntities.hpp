@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
@@ -43,6 +44,9 @@ namespace entity {
  *
  * 沙子、砾石、铁砧等方块下落时创建的实体。
  * 铁砧下落时会伤害实体，并有概率损坏（降级到下一级铁砧或完全摧毁）。
+ *
+ * 网络同步：通过 DATA_BLOCK_STATE_ID_PARAM 同步下落方块的 BlockState 的 stateId（i32）。
+ * 对应 MC 1.21.11 FallingBlockEntity.blockState（非同步字段，但项目通过 DataParameter 同步）。
  */
 class FallingBlockEntity : public Entity {
 public:
@@ -76,17 +80,27 @@ public:
 
     /**
      * @brief 设置方块ID
+     *
+     * 同时更新 DataParameter DATA_BLOCK_STATE_ID_PARAM 以同步到客户端。
      */
-    void setBlockId(u32 blockId) { m_blockId = blockId; }
+    void setBlockId(u32 blockId);
+
     [[nodiscard]] u32 getBlockId() const { return m_blockId; }
 
     /**
      * @brief 设置下落时的方块状态
      *
      * 保存原始方块状态（包含属性如朝向等），用于落地时恢复。
+     * 同时更新 DataParameter DATA_BLOCK_STATE_ID_PARAM 以同步到客户端。
      */
-    void setFallingState(const BlockState* state) { m_fallingState = state; }
+    void setFallingState(const BlockState* state);
+
     [[nodiscard]] const BlockState* getFallingState() const { return m_fallingState; }
+
+    /**
+     * @brief 获取下落方块状态参数 ID（供客户端 ClientEntity 读取）
+     */
+    [[nodiscard]] static u16 getBlockStateIdParamId() { return DATA_BLOCK_STATE_ID_PARAM.id(); }
 
     /**
      * @brief 设置是否在落地时造成伤害
@@ -152,6 +166,17 @@ public:
     void setFallDamageType(DamageType type) { m_fallDamageType = type; }
     [[nodiscard]] DamageType getFallDamageType() const { return m_fallDamageType; }
 
+protected:
+    /**
+     * @brief 注册网络同步数据参数
+     *
+     * 注册 DATA_BLOCK_STATE_ID_PARAM 到 EntityDataManager，由 EntityTracker 自动广播到客户端。
+     *
+     * 必须在构造函数中显式调用（参考 EndermanEntity 模式），因为基类构造函数
+     * 中的虚函数调用不会派发到派生类。
+     */
+    void registerData() override;
+
 private:
     void _handleLanding();
 
@@ -197,12 +222,28 @@ private:
     static constexpr f32 HURT_AMOUNT = 2.0f;                ///< 默认每格下落伤害系数
     static constexpr i32 MAX_HURT_AMOUNT = 40;              ///< 默认最大伤害值
     static constexpr i32 MAX_FALL_TIME = 600;               ///< 最大下落时间（30秒）
+
+    /**
+     * @brief 下落方块状态同步参数
+     *
+     * 存储 BlockState 的 stateId（i32），0 表示空气/未设置。
+     * 由 setBlockId/setFallingState 写入，由 EntityTracker 自动广播。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取后通过
+     * BlockRegistry::getBlockState 解析为 BlockState* 并缓存到镜像字段，
+     * 供 FallingBlockRenderer 渲染方块模型。
+     */
+    static ::mc::entity::DataParameter<i32> DATA_BLOCK_STATE_ID_PARAM;
 };
 
 /**
  * @brief TNT实体
  *
  * 被激活的TNT方块，倒计时后爆炸。
+ *
+ * 网络同步：
+ * - DATA_FUSE_PARAM：引信剩余 tick（i32），对应 MC 1.21.11 PrimedTnt.DATA_FUSE_ID。
+ * - DATA_BLOCK_STATE_ID_PARAM：TNT 方块状态（i32），对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID。
+ *   存储 BlockState 的 stateId，默认为 TNT 方块默认状态。客户端据此渲染 TNT 外观。
  */
 class TNTEntity : public Entity {
 public:
@@ -229,9 +270,18 @@ public:
 
     /**
      * @brief 获取爆炸倒计时
+     *
+     * 读取 DataParameter DATA_FUSE_PARAM 的值，与 MC 1.21.11 PrimedTnt.getFuse() 一致。
      */
-    [[nodiscard]] i32 getFuse() const { return m_fuse; }
-    void setFuse(i32 fuse) { m_fuse = fuse; }
+    [[nodiscard]] i32 getFuse() const;
+
+    /**
+     * @brief 设置引信时间
+     *
+     * 同时写入 DataParameter DATA_FUSE_PARAM 以同步到客户端，
+     * 对应 MC 1.21.11 PrimedTnt.setFuse(int)。
+     */
+    void setFuse(i32 fuse);
 
     /**
      * @brief 设置爆炸半径
@@ -272,12 +322,54 @@ public:
      */
     [[nodiscard]] bool isPrimed() const { return m_fuse > 0; }
 
+    /**
+     * @brief 获取引信参数 ID（供客户端 ClientEntity 读取）
+     */
+    [[nodiscard]] static u16 getFuseParamId() { return DATA_FUSE_PARAM.id(); }
+
+    /**
+     * @brief 获取 TNT 方块状态参数 ID（供客户端 ClientEntity 读取）
+     */
+    [[nodiscard]] static u16 getBlockStateIdParamId() { return DATA_BLOCK_STATE_ID_PARAM.id(); }
+
+protected:
+    /**
+     * @brief 注册网络同步数据参数
+     *
+     * 注册 DATA_FUSE_PARAM 和 DATA_BLOCK_STATE_ID_PARAM 到 EntityDataManager，
+     * 由 EntityTracker 自动广播到客户端。
+     *
+     * 必须在构造函数中显式调用（参考 EndermanEntity 模式），因为基类构造函数
+     * 中的虚函数调用不会派发到派生类。
+     */
+    void registerData() override;
+
 private:
     i32 m_fuse = 0;
     f32 m_explosionRadius = 4.0f;
     bool m_exploded = false;
     LivingEntity* m_owner = nullptr;
     static constexpr i32 DEFAULT_FUSE = 80; // 4秒（80 ticks）
+
+    /**
+     * @brief 引信同步参数
+     *
+     * 对应 MC 1.21.11 PrimedTnt.DATA_FUSE_ID。
+     * 存储 i32 引信剩余 tick。由 setFuse 写入，由 EntityTracker 自动广播。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取后缓存到 m_tntFuse，
+     * 供 TNTRenderer 计算闪烁动画。
+     */
+    static ::mc::entity::DataParameter<i32> DATA_FUSE_PARAM;
+
+    /**
+     * @brief TNT 方块状态同步参数
+     *
+     * 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID。
+     * 存储 BlockState 的 stateId（i32），默认为 TNT 方块默认状态。
+     * 客户端 ClientEntity 读取后通过 BlockRegistry::getBlockState 解析为 BlockState*
+     * 并缓存到镜像字段，供 TNTRenderer 渲染 TNT 方块模型。
+     */
+    static ::mc::entity::DataParameter<i32> DATA_BLOCK_STATE_ID_PARAM;
 };
 
 /**
