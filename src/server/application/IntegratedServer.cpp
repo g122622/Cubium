@@ -1324,6 +1324,13 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "IntegratedServer::_handleRemoteLoginRequest");
 
+    // TODO: 远程玩家登录流程的运行时正确性目前仅通过编译验证，缺少端到端集成测试。
+    //   后续需补充专门针对 IntegratedServer 远程路径的集成测试（需 mock TcpSession
+    //   或建立真实 TCP 连接，验证远程玩家能完成登录、加入维度、收发数据包、交互
+    //   并正常退出）。当前依赖 StandaloneServer::handleLoginRequestPacket 的同类
+    //   流程作为正确性参考，二者共享 TcpConnection/PlayerManager/ContainerManager
+    //   基建，逻辑结构一致。详见 src/server/application/README.md 第 11 节。
+
     auto session = m_lanTcpServer ? m_lanTcpServer->getSession(sessionId) : nullptr;
     if (!session) {
         spdlog::warn("Session {} not found for remote login request", sessionId);
