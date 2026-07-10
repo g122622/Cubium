@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/effect/fire/FireAnimationState.hpp"
 #include "client/renderer/trident/entity/effect/fire/FireTextureLoader.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
@@ -46,57 +47,6 @@ class EntityTextureAtlas;
 } // namespace client::renderer::entity::pipeline
 
 namespace client::renderer::entity::effect::fire {
-
-/**
- * @brief 单张火焰纹理的动画播放状态
- *
- * 采用与 AnimatedSprite 一致的双计数器模式：
- * m_tickCounter 累加 tick，达到 m_currentFrameTime 后切换帧。
- * 不同帧可有独立时长（由 mcmeta frames[].time 指定）。
- */
-struct FireAnimationState {
-    /// 动画元数据（帧序列、frametime、interpolate）
-    resource::metadata::AnimationMetadata metadata;
-    /// 该纹理的帧数（用于无自定义帧序列时模运算）
-    u32 frameCount = 0;
-    /// 当前帧在 metadata.frames 数组中的位置（无自定义序列时等同帧索引）
-    u32 frameCounter = 0;
-    /// 当前帧内已累计的 tick
-    i32 tickCounter = 0;
-    /// 当前帧持续时间（tick）
-    i32 currentFrameTime = 1;
-
-    /**
-     * @brief 从元数据和帧数初始化播放状态
-     *
-     * 若有自定义帧序列，currentFrameTime 取第一帧的 time；
-     * 否则取 metadata.frametime。
-     */
-    void init(const resource::metadata::AnimationMetadata& md, u32 frames);
-
-    /**
-     * @brief 每 tick 更新动画状态
-     *
-     * 累加 tickCounter，达到 currentFrameTime 后切换到下一帧。
-     * 帧切换采用模运算实现循环。
-     */
-    void tick();
-
-    /**
-     * @brief 获取当前帧索引
-     *
-     * 有自定义帧序列时返回 frames[frameCounter].index；
-     * 否则返回 frameCounter 本身。
-     */
-    [[nodiscard]] i32 currentFrameIndex() const noexcept;
-
-    /**
-     * @brief 获取当前帧进度（0.0-1.0）
-     *
-     * 用于插值时的进度计算。
-     */
-    [[nodiscard]] f32 frameProgress() const noexcept;
-};
 
 /**
  * @brief 着火效果渲染器

@@ -210,11 +210,6 @@ void FireEffect::renderFire(
         return;
     }
 
-    // 获取实体尺寸
-    f64 width = static_cast<f64>(entity.width());
-    f64 height = static_cast<f64>(entity.height());
-    Vector3 pos = entity.getInterpolatedPosition(static_cast<f32>(partialTicks));
-
     // 获取相机偏航角（简化：假设从实体朝向获取）
     f32 cameraYaw = static_cast<f32>(entity.yaw());
 
@@ -261,9 +256,6 @@ void FireEffect::_renderFireLayers(VkCommandBuffer cmd,
     f64 y = pos.y;
     f64 z = pos.z;
 
-    // 计算动画帧
-    f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
-
     // 火焰颜色（使用白色，火焰纹理自带颜色）
     Vector4f fireColor(1.0f, 1.0f, 1.0f, 1.0f);
     Vector3f meshPos(0, 0, 0);
@@ -281,6 +273,10 @@ void FireEffect::_renderFireLayers(VkCommandBuffer cmd,
     // 单帧在纹理中占的 V 范围 = 1.0 / totalFrames
     // fire_0 起始 V 偏移 = fire0FrameIndex / totalFrames
     // fire_1 起始 V 偏移 = (s_fire0FrameCount + fire1FrameIndex) / totalFrames
+    //
+    // TODO: interpolate 插值未实现。当 metadata.interpolate=true 时，应在当前帧和
+    // 下一帧之间根据 frameProgress() 做 V 偏移混合或着色器双采样，产生平滑过渡。
+    // 当前实现直接使用 currentFrameIndex() 做离散帧切换，不进行插值。
     const u32 totalFrames = s_fire0FrameCount + s_fire1FrameCount;
     const f32 frameVSize = (totalFrames > 0) ? (1.0f / static_cast<f32>(totalFrames)) : 1.0f;
 

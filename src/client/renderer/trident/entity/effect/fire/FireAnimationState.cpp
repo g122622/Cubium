@@ -21,7 +21,7 @@
  *
  */
 
-#include "FireEffect.hpp"
+#include "FireAnimationState.hpp"
 
 namespace mc::client::renderer::entity::effect::fire {
 

@@ -2270,6 +2270,8 @@ add_executable(mc_resource_tests
     client/resource/test_model_loader.cpp
     client/resource/TexturePathVariantTest.cpp
     client/resource/test_fire_texture_loader.cpp
+    # FireAnimationState 动画状态机单元测试（纯逻辑，不依赖 Vulkan）
+    client/renderer/trident/entity/effect/fire/test_fire_animation_state.cpp
 )
 
 target_link_libraries(mc_resource_tests
@@ -2307,6 +2309,7 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireAnimationState.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
 )
 
