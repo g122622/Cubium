@@ -23,7 +23,7 @@
 
 #include "common/world/storage/section/SectionManager.hpp"
 #include "common/core/Constants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <mutex>
 #include <spdlog/spdlog.h>
 

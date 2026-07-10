@@ -92,6 +92,18 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
     updateAllHeightmaps();
 }
 
+ChunkPrimer::ChunkPrimer(std::shared_ptr<ChunkData> data)
+    : m_x(data->x())
+    , m_z(data->z())
+    , m_data(std::move(data))
+    , m_chunkStatus(&ChunkStatuses::FULL)
+    , m_status(ChunkLoadStatus::Loaded)
+{
+    MC_ASSERT_RELEASE(m_data != nullptr);
+    initializeAllHeightmaps(m_heightmaps);
+    updateAllHeightmaps();
+}
+
 // ============================================================================
 // 方块访问
 // ============================================================================

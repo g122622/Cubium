@@ -38,8 +38,8 @@
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -152,15 +152,15 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     spdlog::info("Initializing standalone server...");
 
     // 初始化性能追踪
-    mc::perfetto::TraceConfig traceConfig;
+    mc::profiler::TraceConfig traceConfig;
     traceConfig.outputPath = "server_trace.perfetto-trace";
     traceConfig.bufferSizeKb = 65536; // 64MB
-    mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
-    mc::perfetto::PerfettoManager::instance().startTracing();
+    mc::profiler::ProfilerManager::instance().initialize(traceConfig);
+    mc::profiler::ProfilerManager::instance().startTracing();
 
     // 设置进程和主线程名称
-    mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftServer");
-    mc::perfetto::PerfettoManager::instance().setThreadName("ServerMainThread");
+    mc::profiler::ProfilerManager::instance().setProcessName("MinecraftServer");
+    mc::profiler::ProfilerManager::instance().setThreadName("ServerMainThread");
     spdlog::info("Perfetto tracing initialized");
 
     // 初始化游戏注册表（包括实体类型）
@@ -601,8 +601,8 @@ void StandaloneServer::stop()
     }
 
     // 关闭性能追踪
-    mc::perfetto::PerfettoManager::instance().stopTracing();
-    mc::perfetto::PerfettoManager::instance().shutdown();
+    mc::profiler::ProfilerManager::instance().stopTracing();
+    mc::profiler::ProfilerManager::instance().shutdown();
     spdlog::info("Perfetto tracing stopped");
 
     m_initialized = false;

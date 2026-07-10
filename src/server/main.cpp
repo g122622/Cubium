@@ -29,7 +29,7 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-#include "common/perfetto/PerfettoManager.hpp"
+#include "common/profiler/ProfilerManager.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace {
@@ -117,9 +117,9 @@ int main(int argc, char* argv[])
 
     // 注册崩溃清理回调：崩溃时刷新 Perfetto 跟踪数据
     mc::assert::CrashHandler::setCleanupCallback([]() {
-        auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
-        perfettoManager.stopTracing();
-        perfettoManager.shutdown();
+        auto& profilerManager = mc::profiler::ProfilerManager::instance();
+        profilerManager.stopTracing();
+        profilerManager.shutdown();
         std::cerr << "Perfetto tracing stopped due to crash" << std::endl;
     });
 

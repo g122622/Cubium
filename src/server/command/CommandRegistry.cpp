@@ -90,7 +90,7 @@
 #include "commands/WeatherCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
 #include "commands/WorldBorderCommand.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 

@@ -23,7 +23,7 @@
 
 #include "TridentSwapchain.hpp"
 #include "TridentContext.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 

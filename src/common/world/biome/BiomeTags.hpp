@@ -28,6 +28,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 namespace mc::world::biome {
@@ -214,7 +215,9 @@ public:
     /**
      * @brief 初始化所有内置标签
      *
-     * 在 BiomeRegistry::initialize() 之后调用
+     * 在 BiomeRegistry::initialize() 之后调用。线程安全：内部用 std::call_once 保证
+     * 全进程只执行一次，多 worker 并发首次调用时只有一个线程填充 _getTags()，其余阻塞等待。
+     * 仍应在区块生成 worker 启动前调用一次，避免首个区块生成时多 worker 竞争 call_once 造成的串行化。
      */
     static void initialize();
 
@@ -244,7 +247,7 @@ private:
     BiomeTags() = delete;
 
     static std::unordered_map<ResourceLocation, std::unique_ptr<BiomeTag>>& _getTags();
-    static bool s_initialized;
+    static std::once_flag& _getInitOnce();
 };
 
 } // namespace mc::world::biome

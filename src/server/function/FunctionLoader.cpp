@@ -21,7 +21,7 @@
 
 #include "FunctionLoader.hpp"
 #include "FunctionManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <filesystem>
 #include <sstream>
 #include <nlohmann/json.hpp>

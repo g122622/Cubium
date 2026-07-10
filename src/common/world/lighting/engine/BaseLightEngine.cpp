@@ -22,7 +22,7 @@
  */
 
 #include "BaseLightEngine.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
 #include "common/util/Direction.hpp"

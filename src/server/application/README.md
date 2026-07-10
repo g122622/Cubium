@@ -62,7 +62,7 @@ src/server/application/
 - `common/entity/` - Player, Inventory, Loot
 - `common/item/` - Items, BlockItems, Recipes
 - `common/physics/` - PhysicsEngine
-- `common/perfetto/` - Tracing
+- `common/profiler/` - Tracing
 
 **被依赖方：**
 - 客户端启动单机模式时使用 `IntegratedServer`

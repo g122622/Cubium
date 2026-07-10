@@ -27,7 +27,7 @@
 #include "client/resource/ResourceManager.hpp"
 #include "client/world/color/BiomeColors.hpp"
 #include "client/world/color/blend/ChunkBiomeAccessor.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"

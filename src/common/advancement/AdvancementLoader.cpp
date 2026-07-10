@@ -24,7 +24,7 @@
 #include "AdvancementLoader.hpp"
 #include "AdvancementManager.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>

@@ -25,8 +25,8 @@
 #include "BenchmarkResultWriter.hpp"
 #include "BenchmarkRunner.hpp"
 
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <chrono>
 #include <ctime>
 #include <filesystem>
@@ -131,19 +131,19 @@ int main()
     const std::filesystem::path visualizeScriptPath = rootDirectory / config.visualizeScriptPath;
     const std::filesystem::path pythonExecutablePath = config.pythonExecutable;
 
-    mc::perfetto::TraceConfig traceConfig;
+    mc::profiler::TraceConfig traceConfig;
     traceConfig.enabled = config.traceEnabled;
     traceConfig.outputToFile = true;
     traceConfig.outputPath = traceOutputPath.string();
-    mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
-    mc::perfetto::PerfettoManager::instance().setProcessName("mc_benchmarks");
-    mc::perfetto::PerfettoManager::instance().setThreadName("benchmark-main");
-    mc::perfetto::PerfettoManager::instance().startTracing();
+    mc::profiler::ProfilerManager::instance().initialize(traceConfig);
+    mc::profiler::ProfilerManager::instance().setProcessName("mc_benchmarks");
+    mc::profiler::ProfilerManager::instance().setThreadName("benchmark-main");
+    mc::profiler::ProfilerManager::instance().startTracing();
 
     mc::benchmark::BenchmarkRunner runner;
     auto runResult = runner.run(config);
-    mc::perfetto::PerfettoManager::instance().stopTracing();
-    mc::perfetto::PerfettoManager::instance().shutdown();
+    mc::profiler::ProfilerManager::instance().stopTracing();
+    mc::profiler::ProfilerManager::instance().shutdown();
 
     if (!runResult.success()) {
         std::cerr << runResult.error().message() << std::endl;

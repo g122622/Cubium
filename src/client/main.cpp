@@ -22,7 +22,7 @@
  */
 
 #include "application/ClientApplication.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
+#include "common/profiler/ProfilerManager.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <iostream>
@@ -113,9 +113,9 @@ int main(int argc, char* argv[])
 
     // 注册崩溃清理回调：崩溃时刷新 Perfetto 跟踪数据
     mc::assert::CrashHandler::setCleanupCallback([]() {
-        auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
-        perfettoManager.stopTracing();
-        perfettoManager.shutdown();
+        auto& profilerManager = mc::profiler::ProfilerManager::instance();
+        profilerManager.stopTracing();
+        profilerManager.shutdown();
         std::cerr << "Perfetto tracing stopped due to crash" << std::endl;
     });
 
@@ -190,9 +190,9 @@ int main(int argc, char* argv[])
     }
 
 HANDLE_ERROR:
-    auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
-    perfettoManager.stopTracing();
-    perfettoManager.shutdown();
+    auto& profilerManager = mc::profiler::ProfilerManager::instance();
+    profilerManager.stopTracing();
+    profilerManager.shutdown();
     std::cout << "Perfetto tracing stopped due to runtime exception!" << std::endl;
 
     return 1;

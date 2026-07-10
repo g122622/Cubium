@@ -375,6 +375,15 @@ public:
         return m_neighboursUsingThisChunk.load(std::memory_order::acquire);
     }
 
+    /**
+     * @brief 请求等待者数量（诊断用）：有多少 pending 的请求 promise/callback 挂在本 holder
+     */
+    [[nodiscard]] size_t waiterCount() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        return m_waiters.size();
+    }
+
     // === 票据与玩家追踪 ===
 
     [[nodiscard]] i32 level() const { return m_level.load(std::memory_order::acquire); }

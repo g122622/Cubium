@@ -68,7 +68,7 @@
 #include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/TimeUtils.hpp"

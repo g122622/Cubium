@@ -23,7 +23,7 @@
 
 #include "client/sound/backend/OpenALBackend.hpp"
 #include "common/core/Result.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #include <AL/al.h>
 #include <AL/alc.h>

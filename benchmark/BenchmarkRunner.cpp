@@ -25,7 +25,7 @@
 
 #include "BenchmarkCase.hpp"
 #include "BenchmarkRegistry.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 using namespace mc::trace;
 

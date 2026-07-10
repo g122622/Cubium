@@ -188,6 +188,26 @@ public:
         mc::world::chunk::SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task);
 
     /**
+     * @brief 存档命中完成通知：解除等待该 holder 的邻居的阻塞并重新调度它们
+     *
+     * 由 ServerChunkManager::_onChunkLoadComplete（存档命中分支）在 holder 经
+     * markLoadedFromStorageReady(FULL) 达到 Ready 后调用。存档命中路径不走生成任务，
+     * 故不会触发 onChunkGenComplete→notifyWaitingNeighbours；若不显式通知，经 checkNeighbour
+     * 注册到本 holder m_waitingNeighbours 的依赖邻居（如中心区块生成时 checkNeighbour 发现
+     * 本 holder 在 ResolvingStorage，schedule 返回 nullptr 挂起等待）将永久阻塞——本 holder
+     * 已就绪但邻居永不被唤醒，依赖图泄漏，表现为 worker 空闲（pending=0/running=0）但请求
+     * future 永不完成（死锁）。
+     *
+     * 与 onChunkGenComplete 的区别：本 holder 无生成任务（不 clearGenerationTask）、存档命中
+     * 未增加邻居引用计数（不 releaseNeighbourRefCounts）、holder 已达 FULL（不自推进、不
+     * _publishGeneratedChunk——存档路径已存入 m_chunks 并 _completeReadyWaiters）。仅复用
+     * notifyWaitingNeighbours 解除依赖邻居阻塞 + 释放锁后 rescheduleChunk 重新推进它们。
+     *
+     * @param holder 存档命中刚达到 Ready/FULL 的生命周期管理器
+     */
+    void onLoadedFromStorageReady(mc::world::chunk::SingleChunkLifecycleManager& holder);
+
+    /**
      * @brief 获取或创建 holder（委托给 ServerChunkManager 的 m_lifecycleManagers）
      */
     [[nodiscard]] mc::world::chunk::SingleChunkLifecycleManager& getOrCreateHolder(ChunkCoord x, ChunkCoord z);
@@ -267,18 +287,24 @@ private:
         ChunkCoord x, ChunkCoord z, mc::world::chunk::SingleChunkLifecycleManager& holder, const ChunkStatus& toStatus);
 
     /**
-     * @brief 构建邻居可变 ChunkPrimer 缓存
+     * @brief 构建邻居 holder 共享所有权缓存
      *
-     * 遍历 step.neighbourReadRadius() 范围，从各 holder 的 getChunkIfPresentUnchecked(requiredStatus)
-     * 取可变 ChunkPrimer（对齐 Moonrise StaticCache2D<GenerationChunkHolder>，存存活引用非快照拷贝），
-     * 构造 StaticChunkCache2D。调用前必须已通过 checkNeighbour 确认所有邻居就绪。
+     * 遍历 step.neighbourReadRadius() 范围，取各邻居 holder 的 shared_ptr（对齐 Moonrise
+     * StaticCache2D<GenerationChunkHolder>，存存活引用非快照拷贝），构造 StaticChunkCache2D。
+     * 调用前必须已通过 checkNeighbour 确认所有邻居就绪。
+     *
+     * 邻居 holder 的 shared_ptr 由 worker 线程在 executeStatusStep 期间持有，保证邻居 holder 及其
+     * m_currentChunk（ChunkPrimer）不被主线程 unloadChunkSync 销毁（消除裸 ChunkPrimer* 的
+     * use-after-free 竞态）。仅靠 m_neighboursUsingThisChunk 引用计数不足以防止：worker 执行
+     * executeStatusStep 时不持调度锁，主线程 cancelGeneration→removeNeighbourUsingChunk→
+     * isSafeToUnload→erase 可与 worker 解引用裸指针并发。
      *
      * 对齐 Moonrise：邻居是可变 ChunkPrimer（与中心同类型），WorldGenRegion 通过它读写邻居
      * （FEATURES writeRadius=1 写邻居、STRUCTURE_REFERENCES 读邻居结构起点）。并发安全由
      * ReentrantAreaLock 覆盖 [center±writeRadius] 保证（等价 Moonrise AreaDependentQueue）。
      */
-    [[nodiscard]] StaticChunkCache2D<mc::world::chunk::ChunkPrimer*> buildNeighbourCache(
-        ChunkCoord x, ChunkCoord z, const mc::world::chunk::ChunkStep& step);
+    [[nodiscard]] StaticChunkCache2D<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>>
+    buildNeighbourCache(ChunkCoord x, ChunkCoord z, const mc::world::chunk::ChunkStep& step);
 
     /**
      * @brief 待重调度的区块（onChunkGenComplete/cancelGeneration 在锁内收集，释放锁后 rescheduleChunk）

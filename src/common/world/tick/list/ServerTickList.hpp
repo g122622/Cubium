@@ -26,7 +26,7 @@
 #include <memory>
 
 #include "common/core/Types.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"

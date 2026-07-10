@@ -31,7 +31,7 @@ graph TB
 | GLFW | 窗口和输入事件（前向声明） |
 | spdlog | 日志输出 |
 | common/core/Types.hpp | 基础类型定义 (i32, f64 等) |
-| common/perfetto/TraceEvents.hpp | 性能追踪 |
+| common/profiler/TraceEvents.hpp | 性能追踪 |
 
 ### 使用者
 

@@ -21,7 +21,7 @@
  */
 
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include <algorithm>

@@ -22,7 +22,7 @@
  */
 
 #include "TridentContext.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <set>
 #include <spdlog/spdlog.h>

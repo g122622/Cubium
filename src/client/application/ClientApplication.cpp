@@ -58,8 +58,8 @@
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/VanillaResources.hpp"
 #include "common/resource/pack/FolderResourcePack.hpp"
@@ -101,15 +101,15 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     const bool enablePerfettoTracing = !params.benchmarkExitAfterInitialize;
     if (enablePerfettoTracing) {
         // 初始化性能追踪
-        mc::perfetto::TraceConfig traceConfig;
+        mc::profiler::TraceConfig traceConfig;
         traceConfig.outputPath = "client_trace.perfetto-trace";
         traceConfig.bufferSizeKb = 65536 * 8;
-        mc::perfetto::PerfettoManager::instance().initialize(traceConfig);
-        mc::perfetto::PerfettoManager::instance().startTracing();
+        mc::profiler::ProfilerManager::instance().initialize(traceConfig);
+        mc::profiler::ProfilerManager::instance().startTracing();
 
         // 设置进程和主线程名称
-        mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
-        mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
+        mc::profiler::ProfilerManager::instance().setProcessName("MinecraftClient");
+        mc::profiler::ProfilerManager::instance().setThreadName("ClientMainThread");
         spdlog::info("Perfetto tracing initialized");
 
         // 启动内存追踪线程
@@ -622,7 +622,7 @@ void ClientApplication::releaseRendererDependentResources()
 
 void ClientApplication::shutdown()
 {
-    // 整体 shutdown 区间。注意：本函数末尾会调用 PerfettoManager::stopTracing()/
+    // 整体 shutdown 区间。注意：本函数末尾会调用 ProfilerManager::stopTracing()/
     // shutdown()，此 RAII 事件析构触发的 END 在会话已停止后是安全 no-op
     // （SDK 的 CallIfEnabled 检测到 instances==0 即立即返回），BEGIN 与中间子事件
     // 均正常记录，符合期望。
@@ -703,8 +703,8 @@ void ClientApplication::shutdown()
         m_memoryTraceThread.stop();
 
         // 关闭性能追踪
-        mc::perfetto::PerfettoManager::instance().stopTracing();
-        mc::perfetto::PerfettoManager::instance().shutdown();
+        mc::profiler::ProfilerManager::instance().stopTracing();
+        mc::profiler::ProfilerManager::instance().shutdown();
         spdlog::info("Perfetto tracing stopped");
     }
 

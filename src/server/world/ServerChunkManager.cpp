@@ -25,7 +25,7 @@
 #include "ChunkLightingProvider.hpp"
 #include "ChunkTaskScheduler.hpp"
 #include "ServerWorld.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -63,7 +63,7 @@ namespace {
  * @param success 是否成功
  * @param chunk 返回区块
  */
-void fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, bool success, ChunkData* chunk)
+void _fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, bool success, ChunkData* chunk)
 {
     for (auto& waiter : waiters) {
         if (waiter.promise) {
@@ -322,7 +322,7 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         std::vector<SingleChunkLifecycleManager::Waiter> waiters;
         waiters.emplace_back(SingleChunkLifecycleManager::Waiter{std::move(callback), std::move(promise)});
-        fulfillWaiters(std::move(waiters), true, chunk);
+        _fulfillWaiters(std::move(waiters), true, chunk);
         return;
     }
 
@@ -495,7 +495,17 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
         if (hit) {
             auto decision = lifecycleManager.noteStorageResolved(true);
             std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
-            ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
+            // 从存档 ChunkData 创建 primer（对齐 Moonrise ChunkLoadTask 设 currentChunk）。
+            // 存档命中 holder 的 currentChunk 必须非空：经 checkNeighbour 注册为生成邻居的依赖者
+            // （如中心区块 STRUCTURE_REFERENCES/FEATURES 读邻居）会在 buildNeighbourCache 取
+            // getCurrentChunk()，若为空触发 "neighbour primer missing" 断言。primer 与 m_chunks
+            // 共享同一份 ChunkData（shareChunkData 非破坏性，不触发 toChunkData 收尾，避免 setBiomes
+            // 用 primer 未填充的 m_biomes 清空存档生物群系）。primer 构造置 chunkStatus=FULL、
+            // status=Loaded，与 markLoadedFromStorageReady(FULL) 的 currentGenStatus 一致。
+            auto primer = std::make_unique<ChunkPrimer>(std::move(loadedChunk));
+            std::shared_ptr<ChunkData> sharedData = primer->shareChunkData();
+            lifecycleManager.setCurrentChunk(std::move(primer));
+            ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(sharedData));
             if (stored && m_world) {
                 bool alreadyProcessed;
                 {
@@ -509,8 +519,17 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
                     }
                 }
             }
+            // markLoadedFromStorageReady 在 _storeChunkInMemorySync 内部完成（sourceState→Ready，
+            // currentGenStatus→FULL）。存档命中不走生成任务，故不触发 onChunkGenComplete→
+            // notifyWaitingNeighbours；经 checkNeighbour 注册到本 holder m_waitingNeighbours 的依赖邻居
+            // （如中心区块生成时 checkNeighbour 发现本 holder 在 ResolvingStorage，schedule 返回 nullptr
+            // 挂起等待）若不显式通知将永久阻塞——本 holder 已就绪但邻居永不被唤醒（死锁）。
+            // 此处对齐 onChunkGenComplete 的通知语义，解除依赖邻居阻塞并重新调度它们。
             if (decision.shouldWakeReadyWaiters) {
                 _completeReadyWaiters(lifecycleManager);
+            }
+            if (m_taskScheduler != nullptr) {
+                m_taskScheduler->onLoadedFromStorageReady(lifecycleManager);
             }
         } else {
             // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）。
@@ -543,8 +562,19 @@ void ServerChunkManager::_fanOutAttachedWaiters(
         if (hit) {
             // 命中：区块已在 m_chunks（owner 存入）。推进 SCLM 到 Ready 并唤醒等待者。
             // 不重复 _storeChunkInMemorySync（区块已在 m_chunks）。
+            // 与 owner 命中路径对称：从已发布的 ChunkData 创建 primer 设到 waiter SCLM 的
+            // currentChunk（共享所有权），否则经 checkNeighbour 注册为生成邻居的依赖者在
+            // buildNeighbourCache 取 getCurrentChunk() 为空 → "neighbour primer missing" 断言。
+            if (std::shared_ptr<ChunkData> sharedData = tryToGetChunkSharedInMem(x, z)) {
+                waiterSclm.setCurrentChunk(std::make_unique<ChunkPrimer>(std::move(sharedData)));
+            }
             waiterSclm.markLoadedFromStorageReady(ChunkStatuses::FULL);
             _completeReadyWaiters(waiterSclm);
+            // 与 owner 命中路径对称：通知经 checkNeighbour 注册到本等待者 m_waitingNeighbours
+            // 的依赖邻居解除阻塞并重新调度，否则它们永久等待一个已就绪的 holder（死锁）。
+            if (m_taskScheduler != nullptr) {
+                m_taskScheduler->onLoadedFromStorageReady(waiterSclm);
+            }
         } else {
             // 缺失/失败：走生成链路。
             _advanceChunkState(waiterSclm, decision);
@@ -563,6 +593,24 @@ void ServerChunkManager::_drainPendingLoadCompletes()
     for (auto& item : pending) {
         _onChunkLoadComplete(item.x, item.z, item.dimension, std::move(item.result), std::move(item.lifecycleHolder));
     }
+}
+
+void ServerChunkManager::_resolveStorageForScheduling(
+    SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
+{
+    // 把 Unknown holder 推进到 ResolvingStorage 并发起异步存档读取，对齐 Moonrise pristine holder
+    // 经 ChunkLoadTask 先试磁盘再回落空 ProtoChunk 的语义。无 callback/promise：纯调度驱动，
+    // 不挂请求等待者（依赖邻居已由 checkNeighbour 注册到 m_waitingNeighbours，存档解析完成后由
+    // onLoadedFromStorageReady/notifyWaitingNeighbours 解除阻塞；FULL 发布由 _storeChunkInMemorySync
+    // 内部 _completeReadyWaiters 处理已挂的请求等待者）。
+    // 优先级用 INT_MAX（不提升）：本路径由 checkNeighbour 在 worker 线程的 schedule 内调用，
+    // 不可读取 m_ticketManager.getChunkLevel（ChunkDistanceGraph.m_levels 无锁 unordered_map，
+    // worker 与主线程 processTicketUpdatesSync 并发读会数据竞争）。Unknown 邻居 holder 无直接请求，
+    // 低优先级读盘可接受；持有者后续若被 _onTicketLevelChanged 直接请求，submitRequest 会收敛到
+    // 更高优先级（数值更小）。submitRequest 见 m_requestPriority==INT_MAX 分支保持 INT_MAX。
+    constexpr i32 kNeighbourResolvePriority = std::numeric_limits<i32>::max();
+    auto decision = lifecycleManager.submitRequest(targetStatus, kNeighbourResolvePriority, {}, {});
+    _advanceChunkState(lifecycleManager, decision);
 }
 
 void ServerChunkManager::_scheduleGeneration(
@@ -588,13 +636,26 @@ void ServerChunkManager::_scheduleGeneration(
 
 void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
 {
+    // FULL 区块已发布到 m_chunks：优先用内存缓存中的 ChunkData 完成等待者（Ready 稳态路径）。
     ChunkData* chunk = tryToGetChunkInMem(lifecycleManager.x(), lifecycleManager.z());
-    fulfillWaiters(lifecycleManager.takeReadyWaiters(), chunk != nullptr, chunk);
+    if (chunk != nullptr) {
+        _fulfillWaiters(lifecycleManager.takeReadyWaiters(), true, chunk);
+        return;
+    }
+
+    // 非 FULL 但已达请求状态（StorageMissing 中间态，如请求 STRUCTURE_REFERENCES 已完成）：
+    // 区块数据在 primer 的 m_currentChunk 中，未发布到 m_chunks（仅 FULL 入 m_chunks）。
+    // takeAllWaiters 取出所有等待者（不要求 sourceState==Ready，_buildDecisionLocked 的非 Ready
+    // 已达请求状态分支已保证仅在数据就绪且无在途任务时触发），从 primer 的 ChunkData 完成它们。
+    // 与 _publishGeneratedChunk 同语义，避免 waiter 在中间态永久悬挂（死锁）。
+    ChunkPrimer* primer = lifecycleManager.getCurrentChunk();
+    ChunkData* primerData = (primer != nullptr) ? primer->getChunkData() : nullptr;
+    _fulfillWaiters(lifecycleManager.takeAllWaiters(), primerData != nullptr, primerData);
 }
 
 void ServerChunkManager::_failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters)
 {
-    fulfillWaiters(std::move(waiters), false, nullptr);
+    _fulfillWaiters(std::move(waiters), false, nullptr);
 }
 
 // ============================================================================
@@ -933,11 +994,11 @@ void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& hol
     // 中间状态不应阻止后续更高状态请求调度）。不存入 m_chunks（m_chunks 仅保留 FULL 区块，
     // 保证 tryToGetChunkInMem 快速路径不返回中间状态区块）。
     // 直接用 primer 的 ChunkData 完成等待者（promise/callback），请求者获得 primer 当前状态的 ChunkData。
-    // takeAllWaiters 取出所有等待者（无条件），fulfillWaiters 完成 promise。
+    // takeAllWaiters 取出所有等待者（无条件），_fulfillWaiters 完成 promise。
     ChunkPrimer* primer = holder.getCurrentChunk();
     ChunkData* chunkData = (primer != nullptr) ? primer->getChunkData() : nullptr;
 
-    fulfillWaiters(holder.takeAllWaiters(), chunkData != nullptr, chunkData);
+    _fulfillWaiters(holder.takeAllWaiters(), chunkData != nullptr, chunkData);
 }
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
@@ -1505,24 +1566,49 @@ size_t ServerChunkManager::pendingTaskCount() const
     return m_workerPool ? m_workerPool->pendingTaskCount() : 0;
 }
 
-void ServerChunkManager::_debugDumpStuckHolders() const
+void ServerChunkManager::_debugDumpStuckHolders()
 {
-    std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
+    // 诊断转储：无锁读取各队列 size（best-effort，仅用于测试诊断，轻微数据竞争可接受）
+    spdlog::info("[stuck] m_pendingLoadCompletes={}", m_pendingLoadCompletes.size());
+    spdlog::info("[stuck] m_pendingLoadTasks={}", m_pendingLoadTasks.size());
+    spdlog::info("[stuck] m_unloadSaveInProgress={} m_pendingUnloadFinishes={}",
+        m_unloadSaveInProgress.size(),
+        m_pendingUnloadFinishes.size());
+    std::vector<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> lifecycleManagersCopy;
+    {
+        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
+        spdlog::info("[stuck] total lifecycleManagers={}", m_lifecycleManagers.size());
+        // 拷贝一份 shared_ptr 列表，避免持锁遍历时调用 SCLM 方法（其内部另有 m_mutex，且 isWaitingForNeighbors
+        // 等可能触发断言）。shared_ptr 拷贝保证 holder 在锁外遍历期间存活。
+        lifecycleManagersCopy.reserve(m_lifecycleManagers.size());
+        for (const auto& [k, v] : m_lifecycleManagers) {
+            MC_UNUSED(k);
+            if (v) {
+                lifecycleManagersCopy.push_back(v);
+            }
+        }
+    }
     size_t stuckCount = 0;
     size_t waitingForNeighbors = 0;
     size_t hasGenTask = 0;
     size_t neighboursUsingCount = 0;
-    for (const auto& [key, lifecycleManager] : m_lifecycleManagers) {
+    size_t resolvingStorage = 0;
+    size_t notReadyWithWaiters = 0;
+    for (const auto& lifecycleManager : lifecycleManagersCopy) {
         if (!lifecycleManager) {
             continue;
         }
-        if (lifecycleManager->isSafeToUnload()) {
+        // 转储所有"未完成请求目标"或"非安全卸载"的 holder，覆盖等待异步加载/等待邻居/未卸载等卡死态
+        const bool wantsMore = lifecycleManager->getCurrentGenStatus().isBefore(lifecycleManager->requestedGenStatus());
+        const bool stuck = !lifecycleManager->isSafeToUnload() || wantsMore;
+        if (!stuck) {
             continue;
         }
         ++stuckCount;
         const bool isWaiting = lifecycleManager->isWaitingForNeighbors();
         const bool genTask = lifecycleManager->hasGenerationTask();
         const i32 neighboursUsing = lifecycleManager->neighboursUsingThisChunkCount();
+        const auto source = lifecycleManager->sourceState();
         if (isWaiting) {
             ++waitingForNeighbors;
         }
@@ -1532,11 +1618,16 @@ void ServerChunkManager::_debugDumpStuckHolders() const
         if (neighboursUsing > 0) {
             ++neighboursUsingCount;
         }
-        // 仅打印前 20 个卡住的 holder，避免日志爆炸
-        if (stuckCount <= 20) {
-            spdlog::info(
-                "[stuck] ({}, {}) genStatus={} reqStatus={} genTask={} blocking={} waiting={} neighboursUsing={} "
-                "failed={} source={}",
+        if (source == mc::world::chunk::SingleChunkLifecycleManager::SourceState::ResolvingStorage) {
+            ++resolvingStorage;
+        }
+        if (wantsMore && !lifecycleManager->isSafeToUnload()) {
+            ++notReadyWithWaiters;
+        }
+        // 仅打印前 30 个卡住的 holder，避免日志爆炸
+        if (stuckCount <= 30) {
+            spdlog::info("[stuck] ({}, {}) gen={} req={} genTask={} blocking={} waiting={} neighboursUsing={} "
+                         "failed={} source={} shouldLoad={} level={}",
                 lifecycleManager->x(),
                 lifecycleManager->z(),
                 lifecycleManager->getCurrentGenStatus().name(),
@@ -1546,14 +1637,100 @@ void ServerChunkManager::_debugDumpStuckHolders() const
                 isWaiting,
                 neighboursUsing,
                 lifecycleManager->hasFailedGeneration(),
-                static_cast<int>(lifecycleManager->sourceState()));
+                static_cast<int>(source),
+                lifecycleManager->shouldLoad(),
+                lifecycleManager->level());
         }
     }
-    spdlog::info("[stuck] 总计卡住的 holder={}，其中 waitingForNeighbors={} hasGenTask={} neighboursUsing={}",
+    spdlog::info("[stuck] 总计卡住的 holder={}，其中 waitingForNeighbors={} hasGenTask={} neighboursUsing={} "
+                 "resolvingStorage={} notReadyWithWaiters={}",
         stuckCount,
         waitingForNeighbors,
         hasGenTask,
-        neighboursUsingCount);
+        neighboursUsingCount,
+        resolvingStorage,
+        notReadyWithWaiters);
+
+    // 额外诊断：按 sourceState 与 shouldLoad 分类全部 holder，定位泄漏/卡卸载的群体。
+    // 同时转储处于 m_unloadSaveInProgress 的 holder（stage3 重试中）的 isSafeToUnload 各分量，
+    // 揭示 _finalizeUnloadAfterSave 为何持续返回 false（重试）。
+    size_t bySource[5] = {0, 0, 0, 0, 0}; // Unknown/ResolvingStorage/LoadedFromStorage/StorageMissing/Ready
+    size_t shouldLoadTrue = 0;
+    size_t safeToUnloadTrue = 0;
+    size_t hasCurrentChunk = 0;
+    std::unordered_set<u64> saveInProgressCopy;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        saveInProgressCopy = m_unloadSaveInProgress;
+    }
+    size_t unloadingDumped = 0;
+    size_t holdersWithWaiters = 0;
+    size_t totalWaiters = 0;
+    size_t waitersDumped = 0;
+    for (const auto& lifecycleManager : lifecycleManagersCopy) {
+        if (!lifecycleManager) {
+            continue;
+        }
+        const auto src = lifecycleManager->sourceState();
+        bySource[static_cast<size_t>(src)]++;
+        if (lifecycleManager->shouldLoad()) {
+            ++shouldLoadTrue;
+        }
+        if (lifecycleManager->isSafeToUnload()) {
+            ++safeToUnloadTrue;
+        }
+        if (lifecycleManager->getCurrentChunk() != nullptr) {
+            ++hasCurrentChunk;
+        }
+        const size_t wcount = lifecycleManager->waiterCount();
+        if (wcount > 0) {
+            ++holdersWithWaiters;
+            totalWaiters += wcount;
+            if (waitersDumped < 30) {
+                ++waitersDumped;
+                spdlog::info("[stuck-waiter] ({}, {}) waiters={} gen={} req={} genTask={} safe={} source={} "
+                             "shouldLoad={} level={}",
+                    lifecycleManager->x(),
+                    lifecycleManager->z(),
+                    wcount,
+                    lifecycleManager->getCurrentGenStatus().name(),
+                    lifecycleManager->requestedGenStatus().name(),
+                    lifecycleManager->hasGenerationTask(),
+                    lifecycleManager->isSafeToUnload(),
+                    static_cast<int>(src),
+                    lifecycleManager->shouldLoad(),
+                    lifecycleManager->level());
+            }
+        }
+        const u64 key = posToKey(lifecycleManager->x(), lifecycleManager->z());
+        if (saveInProgressCopy.count(key) > 0 && unloadingDumped < 20) {
+            ++unloadingDumped;
+            spdlog::info("[stuck-unload] ({}, {}) safe={} genTask={} blocking={} waiting={} neighboursUsing={} "
+                         "failed={} source={} shouldLoad={} level={}",
+                lifecycleManager->x(),
+                lifecycleManager->z(),
+                lifecycleManager->isSafeToUnload(),
+                lifecycleManager->hasGenerationTask(),
+                lifecycleManager->blockingNeighbourCount(),
+                lifecycleManager->isWaitingForNeighbors(),
+                lifecycleManager->neighboursUsingThisChunkCount(),
+                lifecycleManager->hasFailedGeneration(),
+                static_cast<int>(src),
+                lifecycleManager->shouldLoad(),
+                lifecycleManager->level());
+        }
+    }
+    spdlog::info("[stuck] source分布: Unknown={} ResolvingStorage={} StorageMissing={} LoadedFromStorage={} Ready={}",
+        bySource[0],
+        bySource[1],
+        bySource[2],
+        bySource[3],
+        bySource[4]);
+    spdlog::info("[stuck] shouldLoad=true={} isSafeToUnload=true={} hasCurrentChunk={}",
+        shouldLoadTrue,
+        safeToUnloadTrue,
+        hasCurrentChunk);
+    spdlog::info("[stuck] holdersWithWaiters={} totalWaiters={}", holdersWithWaiters, totalWaiters);
 }
 
 } // namespace mc::server

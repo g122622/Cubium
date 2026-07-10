@@ -33,7 +33,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 namespace mc {
 

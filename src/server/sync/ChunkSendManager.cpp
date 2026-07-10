@@ -23,7 +23,7 @@
 
 #include "ChunkSendManager.hpp"
 #include "common/network/sync/ChunkSync.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include <algorithm>

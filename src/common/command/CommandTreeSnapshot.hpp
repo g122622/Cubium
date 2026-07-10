@@ -27,7 +27,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <initializer_list>
 #include <queue>
 #include <unordered_map>

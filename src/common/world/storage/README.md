@@ -146,7 +146,7 @@ storage/
 - `common/core/Result.hpp` - 错误处理
 - `common/util/nbt/Nbt.hpp` - NBT 解析
 - `common/core/Types.hpp` - 基础类型（ChunkCoord, DimensionId 等）
-- `common/perfetto/TraceEvents.hpp` - 性能追踪
+- `common/profiler/TraceEvents.hpp` - 性能追踪
 - `rocksdb` - 键值存储（Native 格式）
 - `zstd` - Section 压缩
 - `zlib` - gzip 压缩/解压

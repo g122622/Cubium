@@ -31,21 +31,21 @@
 
 #include <gtest/gtest.h>
 
-#include "common/perfetto/PerfettoConfig.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerConfig.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #if MC_ENABLE_TRACING
 
-#include "common/perfetto/TraceCategories.hpp"
+#include "common/profiler/TraceCategories.hpp"
 
 namespace mc {
-namespace perfetto {
+namespace profiler {
 namespace test {
 
 using namespace mc::trace;
 
-class PerfettoManagerTest : public ::testing::Test {
+class ProfilerManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -55,11 +55,11 @@ protected:
 
     void TearDown() override
     {
-        if (PerfettoManager::instance().isInitialized()) {
-            if (PerfettoManager::instance().isEnabled()) {
-                PerfettoManager::instance().stopTracing();
+        if (ProfilerManager::instance().isInitialized()) {
+            if (ProfilerManager::instance().isEnabled()) {
+                ProfilerManager::instance().stopTracing();
             }
-            PerfettoManager::instance().shutdown();
+            ProfilerManager::instance().shutdown();
         }
     }
 
@@ -70,112 +70,112 @@ protected:
 // 基础功能测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, SingletonPattern)
+TEST_F(ProfilerManagerTest, SingletonPattern)
 {
-    auto& instance1 = PerfettoManager::instance();
-    auto& instance2 = PerfettoManager::instance();
+    auto& instance1 = ProfilerManager::instance();
+    auto& instance2 = ProfilerManager::instance();
     EXPECT_EQ(&instance1, &instance2);
 }
 
-TEST_F(PerfettoManagerTest, InitializeAndShutdown)
+TEST_F(ProfilerManagerTest, InitializeAndShutdown)
 {
-    EXPECT_FALSE(PerfettoManager::instance().isInitialized());
+    EXPECT_FALSE(ProfilerManager::instance().isInitialized());
 
-    PerfettoManager::instance().initialize(m_config);
-    EXPECT_TRUE(PerfettoManager::instance().isInitialized());
+    ProfilerManager::instance().initialize(m_config);
+    EXPECT_TRUE(ProfilerManager::instance().isInitialized());
 
-    PerfettoManager::instance().shutdown();
-    EXPECT_FALSE(PerfettoManager::instance().isInitialized());
+    ProfilerManager::instance().shutdown();
+    EXPECT_FALSE(ProfilerManager::instance().isInitialized());
 }
 
-TEST_F(PerfettoManagerTest, DoubleInitialize)
+TEST_F(ProfilerManagerTest, DoubleInitialize)
 {
-    PerfettoManager::instance().initialize(m_config);
-    EXPECT_TRUE(PerfettoManager::instance().isInitialized());
+    ProfilerManager::instance().initialize(m_config);
+    EXPECT_TRUE(ProfilerManager::instance().isInitialized());
 
-    EXPECT_NO_THROW(PerfettoManager::instance().initialize(m_config));
+    EXPECT_NO_THROW(ProfilerManager::instance().initialize(m_config));
 
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, DoubleShutdown)
+TEST_F(ProfilerManagerTest, DoubleShutdown)
 {
-    PerfettoManager::instance().initialize(m_config);
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().initialize(m_config);
+    ProfilerManager::instance().shutdown();
 
-    EXPECT_NO_THROW(PerfettoManager::instance().shutdown());
+    EXPECT_NO_THROW(ProfilerManager::instance().shutdown());
 }
 
 // ============================================================================
 // 追踪会话测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, StartStopTracing)
+TEST_F(ProfilerManagerTest, StartStopTracing)
 {
-    PerfettoManager::instance().initialize(m_config);
+    ProfilerManager::instance().initialize(m_config);
 
-    EXPECT_FALSE(PerfettoManager::instance().isEnabled());
+    EXPECT_FALSE(ProfilerManager::instance().isEnabled());
 
-    PerfettoManager::instance().startTracing();
-    EXPECT_TRUE(PerfettoManager::instance().isEnabled());
+    ProfilerManager::instance().startTracing();
+    EXPECT_TRUE(ProfilerManager::instance().isEnabled());
 
-    PerfettoManager::instance().stopTracing();
-    EXPECT_FALSE(PerfettoManager::instance().isEnabled());
+    ProfilerManager::instance().stopTracing();
+    EXPECT_FALSE(ProfilerManager::instance().isEnabled());
 
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, StartTracingWithoutInitialize)
+TEST_F(ProfilerManagerTest, StartTracingWithoutInitialize)
 {
-    EXPECT_NO_THROW(PerfettoManager::instance().startTracing());
-    EXPECT_FALSE(PerfettoManager::instance().isEnabled());
+    EXPECT_NO_THROW(ProfilerManager::instance().startTracing());
+    EXPECT_FALSE(ProfilerManager::instance().isEnabled());
 }
 
-TEST_F(PerfettoManagerTest, DoubleStartTracing)
+TEST_F(ProfilerManagerTest, DoubleStartTracing)
 {
-    PerfettoManager::instance().initialize(m_config);
-    PerfettoManager::instance().startTracing();
+    ProfilerManager::instance().initialize(m_config);
+    ProfilerManager::instance().startTracing();
 
-    EXPECT_NO_THROW(PerfettoManager::instance().startTracing());
+    EXPECT_NO_THROW(ProfilerManager::instance().startTracing());
 
-    PerfettoManager::instance().stopTracing();
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().stopTracing();
+    ProfilerManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, StopTracingWithoutStart)
+TEST_F(ProfilerManagerTest, StopTracingWithoutStart)
 {
-    PerfettoManager::instance().initialize(m_config);
+    ProfilerManager::instance().initialize(m_config);
 
-    EXPECT_NO_THROW(PerfettoManager::instance().stopTracing());
+    EXPECT_NO_THROW(ProfilerManager::instance().stopTracing());
 
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().shutdown();
 }
 
 // ============================================================================
 // Flush 测试
 // ============================================================================
 
-TEST_F(PerfettoManagerTest, Flush)
+TEST_F(ProfilerManagerTest, Flush)
 {
-    PerfettoManager::instance().initialize(m_config);
-    PerfettoManager::instance().startTracing();
+    ProfilerManager::instance().initialize(m_config);
+    ProfilerManager::instance().startTracing();
 
     // 记录一些事件（使用枚举树分类）
     MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TestEvent");
 
-    EXPECT_NO_THROW(PerfettoManager::instance().flush());
+    EXPECT_NO_THROW(ProfilerManager::instance().flush());
 
-    PerfettoManager::instance().stopTracing();
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().stopTracing();
+    ProfilerManager::instance().shutdown();
 }
 
-TEST_F(PerfettoManagerTest, FlushWithoutTracing)
+TEST_F(ProfilerManagerTest, FlushWithoutTracing)
 {
-    PerfettoManager::instance().initialize(m_config);
+    ProfilerManager::instance().initialize(m_config);
 
-    EXPECT_NO_THROW(PerfettoManager::instance().flush());
+    EXPECT_NO_THROW(ProfilerManager::instance().flush());
 
-    PerfettoManager::instance().shutdown();
+    ProfilerManager::instance().shutdown();
 }
 
 // ============================================================================
@@ -188,17 +188,17 @@ protected:
     {
         m_config.outputPath = "test_events.perfetto-trace";
         m_config.bufferSizeKb = 1024;
-        PerfettoManager::instance().initialize(m_config);
-        PerfettoManager::instance().startTracing();
+        ProfilerManager::instance().initialize(m_config);
+        ProfilerManager::instance().startTracing();
     }
 
     void TearDown() override
     {
-        if (PerfettoManager::instance().isInitialized()) {
-            if (PerfettoManager::instance().isEnabled()) {
-                PerfettoManager::instance().stopTracing();
+        if (ProfilerManager::instance().isInitialized()) {
+            if (ProfilerManager::instance().isEnabled()) {
+                ProfilerManager::instance().stopTracing();
             }
-            PerfettoManager::instance().shutdown();
+            ProfilerManager::instance().shutdown();
         }
     }
 
@@ -207,32 +207,39 @@ protected:
 
 TEST_F(TraceEventsTest, TraceScopedEventCompiles)
 {
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TestEvent"));
+    // 双轨宏展开为多条 RAII 声明（perfetto + tracy），不能塞进 EXPECT_NO_THROW 单语句参数，
+    // 直接作为语句调用验证编译与执行。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TestEvent");
+    EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, TraceScopedEventWithArguments)
 {
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithArgs", "x", 10, "y", 20));
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithString", "name", "test_name"));
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithFloat", "value", 3.14));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithArgs", "x", 10, "y", 20);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithString", "name", "test_name");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithFloat", "value", 3.14);
+    EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, TraceCounterCompiles)
 {
-    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "TestCounter", 42));
-    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "ZeroCounter", 0));
-    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "NegativeCounter", -100));
+    MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "TestCounter", 42);
+    MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "ZeroCounter", 0);
+    MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "NegativeCounter", -100);
+    EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, TraceEventBeginEnd)
 {
-    EXPECT_NO_THROW(MC_TRACE_EVENT_BEGIN(TraceEvents.Rendering.Frame, "ManualEvent"));
-    EXPECT_NO_THROW(MC_TRACE_EVENT_END(TraceEvents.Rendering.Frame));
+    MC_TRACE_EVENT_BEGIN(TraceEvents.Rendering.Frame, "ManualEvent");
+    MC_TRACE_EVENT_END(TraceEvents.Rendering.Frame);
+    EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, TraceInstantEvent)
 {
-    EXPECT_NO_THROW(MC_TRACE_INSTANT_EVENT(TraceEvents.Rendering.Frame, "InstantEvent"));
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Rendering.Frame, "InstantEvent");
+    EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, ScopedEvent)
@@ -260,11 +267,12 @@ TEST_F(TraceEventsTest, NestedScopedEvents)
 TEST_F(TraceEventsTest, EnumTreeCategories)
 {
     // 验证各子系统枚举分类都能正常编译执行
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerInit"));
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "ChunkGen"));
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "Packet"));
-    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "StorageDb"));
-    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Memory.Usage, "MemUsage", 128));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerInit");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "ChunkGen");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "Packet");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "StorageDb");
+    MC_TRACE_COUNTER(TraceEvents.Memory.Usage, "MemUsage", 128);
+    EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, MultipleEvents)
@@ -335,17 +343,17 @@ TEST_F(TraceEventsTest, SimulateServerTick)
 
 TEST_F(TraceEventsTest, SetThreadNameDoesNotThrow)
 {
-    EXPECT_NO_THROW(PerfettoManager::instance().setThreadName("MemoryTrace"));
-    EXPECT_NO_THROW(PerfettoManager::instance().setThreadName("UnknownThread"));
-    EXPECT_NO_THROW(PerfettoManager::instance().setThreadName("WithRank", 42));
-    PerfettoManager::instance().flush();
+    EXPECT_NO_THROW(ProfilerManager::instance().setThreadName("MemoryTrace"));
+    EXPECT_NO_THROW(ProfilerManager::instance().setThreadName("UnknownThread"));
+    EXPECT_NO_THROW(ProfilerManager::instance().setThreadName("WithRank", 42));
+    ProfilerManager::instance().flush();
 }
 
 TEST_F(TraceEventsTest, SetThreadNameViaMacroRoutesToManager)
 {
     // 宏应转调 Manager，不抛异常且不影响已启动的追踪会话
     EXPECT_NO_THROW(MC_TRACE_SET_THREAD_NAME("ClientMainThread"));
-    PerfettoManager::instance().flush();
+    ProfilerManager::instance().flush();
 }
 
 TEST_F(TraceEventsTest, WorkerPoolRankFormula)
@@ -377,20 +385,20 @@ TEST_F(TraceEventsTest, ThreadOrderingEndToEnd)
     // Perfetto SDK 的 SetTrackDescriptor 只缓存 descriptor，真正进 buffer 是在该
     // sequence 第一次发 track_event 时随包内联——故必须发事件才能落到文件。
     MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Warmup");
-    PerfettoManager::instance().setThreadName("MemoryTrace");
+    ProfilerManager::instance().setThreadName("MemoryTrace");
     MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "AfterName");
-    PerfettoManager::instance().flush();
+    ProfilerManager::instance().flush();
 }
 
 } // namespace test
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc
 
 #else // MC_ENABLE_TRACING == 0
 
 // 当追踪禁用时，提供一个空的测试以确保测试文件能够编译
 namespace mc {
-namespace perfetto {
+namespace profiler {
 namespace test {
 
 TEST(PerfettoDisabledTest, TracingDisabled)
@@ -404,24 +412,24 @@ TEST(PerfettoDisabledTest, TracingDisabled)
 
 TEST(PerfettoDisabledTest, ManagerStubWorks)
 {
-    // 测试禁用时的 PerfettoManager 存根实现
+    // 测试禁用时的 ProfilerManager 存根实现
     TraceConfig config;
     config.outputPath = "test_trace.perfetto-trace";
     config.bufferSizeKb = 1024;
 
     // 存根实现应该安全地什么都不做
-    EXPECT_FALSE(PerfettoManager::instance().isInitialized());
-    EXPECT_FALSE(PerfettoManager::instance().isEnabled());
+    EXPECT_FALSE(ProfilerManager::instance().isInitialized());
+    EXPECT_FALSE(ProfilerManager::instance().isEnabled());
 
     // 这些操作在禁用时应该安全地什么都不做
-    EXPECT_NO_THROW(PerfettoManager::instance().initialize(config));
-    EXPECT_NO_THROW(PerfettoManager::instance().startTracing());
-    EXPECT_NO_THROW(PerfettoManager::instance().stopTracing());
-    EXPECT_NO_THROW(PerfettoManager::instance().shutdown());
+    EXPECT_NO_THROW(ProfilerManager::instance().initialize(config));
+    EXPECT_NO_THROW(ProfilerManager::instance().startTracing());
+    EXPECT_NO_THROW(ProfilerManager::instance().stopTracing());
+    EXPECT_NO_THROW(ProfilerManager::instance().shutdown());
 }
 
 } // namespace test
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc
 
 #endif // MC_ENABLE_TRACING

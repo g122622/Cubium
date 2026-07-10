@@ -60,22 +60,33 @@ namespace TimeUtils {
 namespace detail {
 
 /**
- * @brief file_clock 与 system_clock 之间的时钟差（秒）
+ * @brief 是否可用 C++20 std::chrono::clock_cast 做时钟转换
+ *
+ * MSVC 14.4+、libstdc++ 12+、libc++ 17+ 均已实现 clock_cast。
+ * 老版 libc++（macOS 系统库）可能缺失，此时走秒级手工回退路径。
+ */
+inline constexpr bool kHasClockCast =
+#if defined(_MSC_VER)
+    true;
+#elif defined(_LIBCPP_VERSION)
+    (_LIBCPP_VERSION >= 17000);
+#else
+    true;
+#endif
+
+/**
+ * @brief file_clock 与 system_clock 的时钟差（秒），仅在无 clock_cast 的回退路径使用
  *
  * file_time_type 的 epoch 在不同平台上不同：
- * - MSVC（Windows）：file_clock epoch 为 1601-01-01，system_clock epoch 为 1970-01-01，差 11644473600 秒
- * - libc++（macOS/Linux）：file_clock 与 system_clock 共享 Unix epoch（1970-01-01），差为 0
+ * - libc++（macOS）/libstdc++ 现代版本：file_clock 与 system_clock 共享 Unix epoch（1970-01-01），差为 0
+ * - MSVC：file_clock epoch 为 1601-01-01（Windows FILETIME），差 11644473600 秒
  *
- * 通过探测两时钟对同一 time_point 的数值差，编译期确定该偏移，
- * 从而在数值层面正确转换 file_time_type <-> system_clock，
- * 避免使用 C++20 std::chrono::clock_cast（部分 libc++ 版本尚未实现）。
+ * 注意：offset 必须在秒级参与运算，禁止 offset*1e9 放入 i64（会溢出）。
  */
 inline constexpr i64 kFileClockToSystemOffsetSeconds = []() constexpr {
 #if defined(_LIBCPP_VERSION) || defined(__APPLE__)
-    // libc++ 与 libstdc++ 现代版本中 file_clock 与 system_clock 共享 Unix epoch
     return 0;
 #else
-    // MSVC：file_clock epoch 为 1601-01-01（Windows FILETIME）
     return 11644473600LL;
 #endif
 }();
@@ -85,21 +96,23 @@ inline constexpr i64 kFileClockToSystemOffsetSeconds = []() constexpr {
 /**
  * @brief 将 file_time_type 转换为 Unix 纪元秒数
  *
- * file_time_type 的 epoch 在不同平台上不同（Windows: 1601-01-01, Unix: 1970-01-01），
- * 直接使用 time_since_epoch() 会产生平台相关的值。
- * 此函数通过数值转换 + 平台偏移补偿，确保输出始终为 Unix 纪元秒数，
- * 不依赖 C++20 std::chrono::clock_cast（部分标准库尚未实现）。
+ * 优先用 C++20 std::chrono::clock_cast（标准、无溢出、正确处理闰秒），
+ * 老旧 libc++ 无 clock_cast 时回退到秒级手工补偿（避免纳秒级 i64 溢出）。
  *
  * @param ft 文件时间戳
  * @return 自 1970-01-01 00:00:00 UTC 以来的秒数
  */
 [[nodiscard]] inline i64 fileTimeToUnixSeconds(const std::filesystem::file_time_type& ft)
 {
-    // 取 file_clock 下的纳秒数值，减去平台偏移后落到 Unix epoch 基准
-    const auto fileNs = std::chrono::duration_cast<std::chrono::nanoseconds>(ft.time_since_epoch()).count();
-    const auto unixNs =
-        fileNs - std::chrono::seconds{detail::kFileClockToSystemOffsetSeconds}.count() * 1'000'000'000LL;
-    return unixNs / std::chrono::nanoseconds::period::den;
+    if constexpr (detail::kHasClockCast) {
+        // 标准路径：file_clock -> system_clock，取秒。库内部用更高精度类型，无溢出。
+        const auto sysTp = std::chrono::clock_cast<std::chrono::system_clock>(ft);
+        return static_cast<i64>(std::chrono::duration_cast<std::chrono::seconds>(sysTp.time_since_epoch()).count());
+    } else {
+        // 回退路径：在秒级做 offset 补偿。file_clock 秒值（2026 年约 1.34e10）在 i64 范围内安全。
+        const auto fileSecs = std::chrono::duration_cast<std::chrono::seconds>(ft.time_since_epoch()).count();
+        return fileSecs - detail::kFileClockToSystemOffsetSeconds;
+    }
 }
 
 /**
@@ -112,12 +125,16 @@ inline constexpr i64 kFileClockToSystemOffsetSeconds = []() constexpr {
  */
 [[nodiscard]] inline std::filesystem::file_time_type unixSecondsToFileTime(i64 unixSeconds)
 {
-    // 先在 Unix epoch 基准下构造纳秒数值，再补回平台偏移得到 file_clock 数值
-    const auto unixNs = unixSeconds * std::chrono::nanoseconds::period::den;
-    const auto fileNs =
-        unixNs + std::chrono::seconds{detail::kFileClockToSystemOffsetSeconds}.count() * 1'000'000'000LL;
-    return std::filesystem::file_time_type{
-        std::chrono::duration_cast<std::filesystem::file_time_type::duration>(std::chrono::nanoseconds{fileNs})};
+    if constexpr (detail::kHasClockCast) {
+        // 标准路径：system_clock -> file_clock
+        const auto sysTp = std::chrono::system_clock::time_point{std::chrono::seconds{unixSeconds}};
+        return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(sysTp);
+    } else {
+        // 回退路径：秒级补偿后构造 file_time_type，避免纳秒级溢出
+        const auto fileSecs = std::chrono::seconds{unixSeconds + detail::kFileClockToSystemOffsetSeconds};
+        return std::filesystem::file_time_type{
+            std::chrono::duration_cast<std::filesystem::file_time_type::duration>(fileSecs)};
+    }
 }
 
 } // namespace TimeUtils

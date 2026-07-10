@@ -33,8 +33,8 @@
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/WeatherSoundHandler.hpp"
 
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 
 #include <spdlog/spdlog.h>
@@ -533,7 +533,7 @@ void AudioService::_enqueue(Command command)
 void AudioService::_runWorker()
 {
     const std::string threadName = "AudioEngineWorker";
-    mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
+    mc::profiler::ProfilerManager::instance().setThreadName(threadName);
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "AudioService::runWorker");
 

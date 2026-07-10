@@ -23,8 +23,8 @@
 
 #include "MeshWorkerPool.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <string>
 #include <spdlog/spdlog.h>
@@ -183,7 +183,7 @@ void MeshWorkerPool::_workerLoop(i32 workerId)
     // rankBase=300 排在 ServerCompute(100+)/ServerIO(200+) 之后，组内按 workerId 升序；
     // 每组间隔 100，避免线程数 >10 时跨组相交。
     constexpr int kWorkerRankBase = 300;
-    mc::perfetto::PerfettoManager::instance().setThreadName(threadName, kWorkerRankBase + workerId);
+    mc::profiler::ProfilerManager::instance().setThreadName(threadName, kWorkerRankBase + workerId);
 
     while (true) {
         MeshWorkerTask task;

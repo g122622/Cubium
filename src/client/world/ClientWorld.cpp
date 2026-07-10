@@ -38,7 +38,7 @@
 #include "common/core/Constants.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/sync/ChunkSync.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/frustum/Frustum.hpp"

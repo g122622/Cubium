@@ -32,7 +32,7 @@
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #include <GLFW/glfw3.h>
 

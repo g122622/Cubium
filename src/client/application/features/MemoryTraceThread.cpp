@@ -22,8 +22,8 @@
  */
 
 #include "MemoryTraceThread.hpp"
-#include "common/perfetto/PerfettoConfig.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerConfig.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>

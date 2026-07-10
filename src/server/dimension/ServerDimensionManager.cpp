@@ -31,7 +31,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/crypto/Sha256.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"

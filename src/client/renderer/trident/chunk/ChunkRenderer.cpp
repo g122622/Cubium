@@ -24,7 +24,7 @@
 #include "ChunkRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "common/core/Constants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cstring>

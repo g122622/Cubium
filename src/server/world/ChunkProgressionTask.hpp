@@ -45,7 +45,7 @@ class ServerChunkManager;
  * 每个 ChunkProgressionTask 实例负责把一个区块从 currentGenStatus 推进**一步**到
  * scheduledStatus（= currentGenStatus.next()）。任务在执行器线程中：
  *   1. 从 holder 取出当前可变 ChunkPrimer（getCurrentChunk，EMPTY 加载时新建空 Primer）
- *   2. 从 m_neighbours 构建可变 WorldGenRegion（StaticChunkCache2D<ChunkPrimer*>，邻居为可变 ChunkPrimer）
+ *   2. 从 m_neighbours 构建可变 WorldGenRegion（StaticChunkCache2D<shared_ptr<SCLM>>，邻居为可变 ChunkPrimer）
  *   3. 调用 ServerChunkManager._executeStepTask(primer, scheduledStatus, region)（修改同一 primer）
  *   4. primer.setPersistedStatus(scheduledStatus); primer.setChunkStatus(scheduledStatus)
  *   5. 回调 ChunkTaskScheduler.onChunkGenComplete(holder, scheduledStatus)（推进 currentGenStatus，primer 同一对象）
@@ -53,6 +53,13 @@ class ServerChunkManager;
  * 关键不变量（对齐 Moonrise）：m_neighbours 中的每个 ChunkPrimer 都由 ChunkTaskScheduler.checkNeighbour
  * 保证已达到该步所需的 requiredStatus，因此 WorldGenRegion 的访问窗口绝不会出现 nullptr 或低状态区块。
  * 邻居是可变 ChunkPrimer（与中心同类型），FEATURES/LIGHT 写邻居合法，并发安全由 ReentrantAreaLock 保证。
+ *
+ * 邻居生命周期（对齐 Moonrise StaticCache2D<GenerationChunkHolder>）：m_neighbours 存储邻居 holder 的
+ * shared_ptr，worker 线程在 executeStatusStep 期间持有强引用，保证邻居 holder 及其 m_currentChunk（ChunkPrimer）
+ * 不被主线程 unloadChunkSync 销毁。仅靠 m_neighboursUsingThisChunk 引用计数不足以防止 use-after-free：
+ * worker 执行 executeStatusStep 时不持调度锁，主线程 cancelGeneration→removeNeighbourUsingChunk→
+ * isSafeToUnload→erase 的递减与销毁可与 worker 的裸 ChunkPrimer* 解引用并发，导致悬挂指针读（曾引发
+ * STRUCTURE_REFERENCES 读邻居 m_structureStarts 时 ACCESS_VIOLATION at 0x50）。
  */
 class ChunkProgressionTask : public util::ITask {
 public:
@@ -65,7 +72,9 @@ public:
      * @param x 区块 X
      * @param z 区块 Z
      * @param toStatus 目标状态（= currentGenStatus.next()，本任务只推进一步）
-     * @param neighbours 已确认就绪的邻居可变 ChunkPrimer 缓存（中心为 (x, z)，半径 = step.neighbourReadRadius()）
+     * @param neighbours 已确认就绪的邻居 holder 共享所有权缓存（中心为 (x, z)，半径 = step.neighbourReadRadius()）。
+     *                   worker 持此 shared_ptr 防邻居 holder 卸载销毁，executeStatusStep 从各 holder 取可变
+     * ChunkPrimer。
      * @param writeRadius 区域互斥写入半径（ChunkStep::blockStateWriteRadius()，负值视为 0）
      */
     ChunkProgressionTask(ChunkTaskScheduler& scheduler,
@@ -74,7 +83,7 @@ public:
         ChunkCoord x,
         ChunkCoord z,
         const ChunkStatus& toStatus,
-        StaticChunkCache2D<mc::world::chunk::ChunkPrimer*> neighbours,
+        StaticChunkCache2D<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> neighbours,
         i32 writeRadius);
 
     ~ChunkProgressionTask() override = default;
@@ -115,7 +124,7 @@ private:
     ChunkCoord m_x;
     ChunkCoord m_z;
     const ChunkStatus* m_toStatus;
-    StaticChunkCache2D<mc::world::chunk::ChunkPrimer*> m_neighbours;
+    StaticChunkCache2D<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_neighbours;
     i32 m_writeRadius;
 };
 

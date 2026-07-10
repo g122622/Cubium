@@ -78,6 +78,18 @@ public:
      */
     explicit ChunkPrimer(std::unique_ptr<ChunkData> data);
 
+    /**
+     * @brief 从共享所有权的 ChunkData 创建（用于存档命中扇出路径）
+     *
+     * 与 unique_ptr 版本语义一致（chunkStatus=FULL、status=Loaded、重算高度图），但接收
+     * shared_ptr，使 primer 与已发布到 m_chunks 的 ChunkData 共享所有权（不拷贝、不独占）。
+     * 用于 _fanOutAttachedWaiters 命中分支：owner 已把 ChunkData 存入 m_chunks，attached
+     * waiter SCLM 需复用同一份 ChunkData 创建 primer（设 currentChunk），避免重复存储。
+     *
+     * @param data 共享所有权的 ChunkData（必须非空）
+     */
+    explicit ChunkPrimer(std::shared_ptr<ChunkData> data);
+
     ~ChunkPrimer() override;
 
     // 禁止拷贝
@@ -510,6 +522,19 @@ public:
      */
     [[nodiscard]] ChunkData* getChunkData() noexcept { return m_data.get(); }
     [[nodiscard]] const ChunkData* getChunkData() const noexcept { return m_data.get(); }
+
+    /**
+     * @brief 共享底层 ChunkData 的所有权（非破坏性，不触发收尾）
+     *
+     * 与 toChunkData() 的区别：toChunkData() 先完成收尾（setBiomes/setFullyGenerated/
+     * setStatus/addPackedPostProcessing 等，会修改 ChunkData），用于生成 FULL 完成路径。
+     * 本方法仅返回 m_data 的共享副本，不修改任何状态，用于存档命中路径——存档加载的
+     * ChunkData 已是完整持久化状态，不应被 primer 收尾逻辑覆盖（如 setBiomes(m_biomes)
+     * 会用 primer 未填充的 m_biomes 清空存档的生物群系）。
+     *
+     * @return 共享同一份 ChunkData 的 shared_ptr
+     */
+    [[nodiscard]] std::shared_ptr<ChunkData> shareChunkData() const noexcept { return m_data; }
 
     // ============================================================================
     // 静态工具方法

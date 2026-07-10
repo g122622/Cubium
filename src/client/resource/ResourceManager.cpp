@@ -27,7 +27,7 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <cctype>
 
 // stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）

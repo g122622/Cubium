@@ -22,7 +22,7 @@
  */
 
 #include "common/world/fluid/FlowingFluid.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"

@@ -23,7 +23,7 @@
 
 #include "BenchmarkCase.hpp"
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <chrono>
 #include <limits>

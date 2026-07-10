@@ -55,7 +55,7 @@
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/ui/DefaultAsciiFont.hpp"
 #include "client/ui/Font.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>

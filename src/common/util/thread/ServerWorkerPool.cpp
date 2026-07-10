@@ -22,8 +22,8 @@
  */
 
 #include "ServerWorkerPool.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <chrono>
 #include <spdlog/spdlog.h>
@@ -390,7 +390,7 @@ void ServerWorkerPool::workerThread(i32 workerId)
     //   ServerCompute(100+) -> ServerIO(200+) -> ChunkMeshWorker(300+，见 MeshWorkerPool)。
     // 每组间隔 100，避免线程数 >10 时跨组相交。
     const int rankBase = (m_poolName == "ServerCompute") ? 100 : 200;
-    mc::perfetto::PerfettoManager::instance().setThreadName(threadName, rankBase + workerId);
+    mc::profiler::ProfilerManager::instance().setThreadName(threadName, rankBase + workerId);
 
     while (true) {
         std::shared_ptr<InternalTask> taskCopy;

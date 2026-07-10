@@ -22,7 +22,7 @@
  */
 
 #include "AutoSave.hpp"
-#include "perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "world/storage/SingleLevelStorageManager.hpp"
 #include <spdlog/spdlog.h>
 

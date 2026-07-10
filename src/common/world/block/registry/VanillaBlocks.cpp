@@ -24,7 +24,7 @@
 #include "world/block/BlockTags.hpp"
 #include "world/block/FireInfoRegistry.hpp"
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #include <spdlog/spdlog.h>
 

@@ -24,7 +24,7 @@
 #include "ServerChunkManager.hpp"
 #include "ServerWorld.hpp"
 #include "SingleChunkLifecycleManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
@@ -53,7 +53,7 @@ ChunkProgressionTask::ChunkProgressionTask(ChunkTaskScheduler& scheduler,
     ChunkCoord x,
     ChunkCoord z,
     const ChunkStatus& toStatus,
-    StaticChunkCache2D<mc::world::chunk::ChunkPrimer*> neighbours,
+    StaticChunkCache2D<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> neighbours,
     i32 writeRadius)
     : m_scheduler(scheduler)
     , m_manager(manager)
@@ -193,7 +193,11 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
         return false;
     }
 
-    // 构建 WorldGenRegion：从 StaticChunkCache2D<ChunkPrimer*> 转换为 vector<IChunk*>
+    // 构建 WorldGenRegion：从 StaticChunkCache2D<shared_ptr<SCLM>> 提取各 holder 的可变 ChunkPrimer。
+    // m_neighbours 持有邻居 holder 的 shared_ptr，保证 executeStatusStep 期间邻居 holder 及其 m_currentChunk
+    // 不被主线程 unloadChunkSync 销毁（消除裸 ChunkPrimer* 的 use-after-free 竞态，对齐 Moonrise
+    // StaticCache2D<GenerationChunkHolder> 强引用语义）。从存活的 holder 取裸 ChunkPrimer* 填充 WorldGenRegion，
+    // WorldGenRegion 只在本次调用内存活，期间 holder 因 shared_ptr 保活。
     const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
     const ChunkStep& step = pyramid.getStepTo(*m_toStatus);
     const i32 radius = m_neighbours.radius();
@@ -205,7 +209,11 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkProgressionTask::executeStatusStep::buildWorldGenRegion");
         for (i32 dz = -radius; dz <= radius; ++dz) {
             for (i32 dx = -radius; dx <= radius; ++dx) {
-                ChunkPrimer* neighbourPrimer = m_neighbours.get(m_x + dx, m_z + dz);
+                const std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>& neighbourHolder =
+                    m_neighbours.get(m_x + dx, m_z + dz);
+                // holder 由 shared_ptr 保活（构造缓存时已断言非空）；primer 由 checkNeighbour 保证就绪。
+                // 中心 holder 的 primer 上面已取并判空；邻居 holder 的 primer 由 buildNeighbourCache 断言非空。
+                ChunkPrimer* neighbourPrimer = neighbourHolder->getCurrentChunk();
                 chunks.push_back(neighbourPrimer);
             }
         }

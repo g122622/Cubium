@@ -26,7 +26,7 @@
 #include "PacketSerializer.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"

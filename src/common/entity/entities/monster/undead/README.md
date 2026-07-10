@@ -50,7 +50,7 @@ Entity
 - `shouldDrown()`：ZombieVillagerEntity 返回 false，DrownedEntity 返回 false
 - `canSpawnInLiquids()`：DrownedEntity 返回 true（增援生成时允许在水中生成），其他僵尸返回 false
 - `setCombatTask()`：WitherSkeletonEntity 重写使用近战，其他骷髅使用远程
-- `finalizeSpawn()`：ZombieEntity 覆写，设置破门能力（概率 = specialMultiplier × 0.1）、万圣节南瓜头（10月31日 25% 概率）、属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）
+- `finalizeSpawn()`：ZombieEntity 覆写，设置破门能力（概率 = specialMultiplier × 0.1）、万圣节南瓜头（10月31日 25% 概率）、属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）；DrownedEntity 覆写，在父类之后随机决定是否手持三叉戟（约 6.25%）
 - `populateDefaultEquipmentSlots()`：ZombieEntity 覆写，Hard 难度 5%/其他 1% 概率生成铁剑或铁锹
 
 ## 上下游外部依赖关系

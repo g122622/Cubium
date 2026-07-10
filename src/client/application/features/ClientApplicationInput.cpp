@@ -24,7 +24,7 @@
 #include "client/application/ClientApplication.hpp"
 #include "client/application/features/ClientApplicationHelpers.hpp"
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/Block.hpp"
 
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
