@@ -117,6 +117,21 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 - **范围过滤**：各 `broadcastXxxParticleInRange` 默认范围 256 格，遍历 `playerEntityManager()` 中所有在线玩家，跳过距离超出的玩家。对应 MC Java `ServerLevel.sendParticles()` 的距离裁剪逻辑。
 - **回调注册**：`MinecraftServer::attachWorldBindings()` 中通过 `world->setOnBroadcastXxxParticle()` 注册回调，将 `ServerWorld` 与 `MinecraftServer` 的广播方法绑定。
 
+### 8b. 方块实体数据广播链路
+方块实体数据变化后通过 `ServerWorld` 回调 + `MinecraftServer::broadcastBlockEntityInRange` 路径广播给附近客户端，对应 MC Java `PlayerList.broadcast(null, x, y, z, 64.0, dimension, new ClientboundBlockEntityDataPacket)`：
+- **触发入口**：方块实体数据变化后调用 `ServerWorld::broadcastBlockEntity(pos)`
+- **回调转发**：`ServerWorld` 通过 `m_onBroadcastBlockEntity` 回调转发给 `MinecraftServer`（避免 ServerWorld 直接依赖 MinecraftServer）
+- **回调实现**（`MinecraftServer::attachWorldBindings()` 中注册）：
+  1. `ServerWorld::getBlockEntity(pos)` 获取方块实体
+  2. `entity->getUpdateTag()` 生成 NBT 复合标签（默认实现调用 `saveToNBT()` 写入完整状态）
+  3. `BlockEntityDataPacket::serializeNbtToBytes(tag)` 序列化为 Java 版大端序字节流
+  4. 调用 `MinecraftServer::broadcastBlockEntityInRange(pos, type, nbtData, 64.0f)`
+- **范围过滤**：`broadcastBlockEntityInRange` 默认范围 64 格，遍历 `playerEntityManager()` 中所有已登录且有连接的玩家，通过 `math::distanceSq` 计算玩家与方块的距离平方，跳过超出 `rangeSq` 的玩家。封装的 `BlockEntityDataPacket`（PacketType=237）通过 `sendPacketToPlayer` 发送。
+- **使用场景**：
+  - `ServerPlayer::handleUpdateSignPacket()` — 告示牌编辑完成后广播新文本
+  - `ServerPlayer::openSignEditor()` — 打开告示牌编辑器前先发送当前内容（避免编辑器打开时覆盖已有内容）
+  - 其他需要同步方块实体数据变化的场景
+
 ### 9. 关服时玩家运行时状态回写（savePlayerRuntimeState 钩子）
 
 **问题背景**：`saveAllWorldData()` 落盘区块、level.dat、玩家缓存数据，但在线玩家的位置、生命、饥饿、经验、背包等运行时状态从未回写到 `PlayerDataManager` 缓存——`PlayerDataManager::fromPlayer()` 虽然存在但全项目无调用方，导致玩家退出后最新进度丢失。

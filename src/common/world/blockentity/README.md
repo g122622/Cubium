@@ -254,3 +254,33 @@
 - `MobSpawnerBlockEntity` — 刷怪笼生成事件（id=1, type=0）
 
 **注意：** 方块实体需要在合适的时机主动调用 `world.blockEvent()` 来触发事件广播，例如箱子在 `broadcastChestState()` 中调用。
+
+## #14. 客户端同步数据快照（getUpdateTag）
+
+`BlockEntity::getUpdateTag()` 是用于客户端同步的 NBT 快照生成方法，对应 MC Java 的 `BlockEntity.getUpdateTag(HolderLookup.Provider)`。
+
+**调用链：**
+1. 方块实体数据变化后，服务端调用 `ServerWorld::broadcastBlockEntity(pos)`
+2. `MinecraftServer::broadcastBlockEntityInRange()` 回调触发：
+   - 通过 `ServerWorld::getBlockEntity(pos)` 获取方块实体
+   - 调用 `entity->getUpdateTag()` 生成 NBT 复合标签
+   - 通过 `BlockEntityDataPacket::serializeNbtToBytes()` 序列化为 Java 版大端序字节流
+   - 封装为 `BlockEntityDataPacket`（PacketType=237）广播给 64 格范围内玩家
+3. 客户端 `NetworkClient::_handleBlockEntityData()` 接收，转发给 `ClientWorld::onBlockEntityData()`
+4. `ClientWorld` 反序列化 NBT，通过 `BlockEntityRegistry` 查找/创建实例，调用 `loadFromNBT()` 更新状态
+
+**默认实现：**
+```cpp
+nbt::CompoundTag BlockEntity::getUpdateTag() const
+{
+    nbt::CompoundTag tag;
+    saveToNBT(tag);  // 写入完整状态（含 id/x/y/z 及子类自定义字段）
+    return tag;
+}
+```
+
+**子类重写场景：** 默认实现调用 `saveToNBT()` 写入完整数据，适用于大多数方块实体。子类可重写 `getUpdateTag()` 提供精简的更新数据（例如仅同步告示牌文本、箱子物品等），以减少网络带宽占用。重写时仍需写入 `id`/`x`/`y`/`z` 公共字段以便客户端识别。
+
+**与 `saveToNBT()` 的区别：**
+- `saveToNBT()` — 用于存档持久化，写入完整状态
+- `getUpdateTag()` — 用于客户端同步，可写精简快照（默认实现复用 `saveToNBT()`）

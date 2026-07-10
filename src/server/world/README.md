@@ -289,3 +289,27 @@ data/end_dragon_fight.json
 **线程安全**：与 `requestFullChunkSync` 相同，仅在服务端主线程调用安全（内部通过 `_drainPendingLoadCompletes` 泵送避免死锁）。
 
 **使用场景**：`EndGatewayEntity::_generateExitPortal` 在末地外岛扫描区块判空时调用 `world.getOrLoadChunk()`，完整复刻 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative` 行为。其他 common 层代码需要按需加载区块时也应使用此接口，而非直接调用 `ServerChunkManager`（common 层无法依赖 server 层）。
+
+### broadcastBlockEntity 方块实体数据广播
+
+`ServerWorld::broadcastBlockEntity(const BlockPos& pos)` 是方块实体数据变化后通知客户端的入口，对应 MC Java 的 `Level.markAndNotifyBlock` → `ServerPlayerGameMode.handleBlockChanged` 链路中的 `ServerLevel.sendBlockUpdated`。
+
+**调用链**：
+1. 方块实体内部数据变化（如告示牌编辑、箱子内容更新等）后调用 `world.broadcastBlockEntity(pos)`
+2. `ServerWorld` 通过 `m_onBroadcastBlockEntity` 回调转发给上层（避免直接依赖 `MinecraftServer`）
+3. `MinecraftServer::attachWorldBindings()` 中注册的回调：
+   - 通过 `ServerWorld::getBlockEntity(pos)` 获取方块实体
+   - 调用 `entity->getUpdateTag()` 生成 NBT 复合标签
+   - 通过 `BlockEntityDataPacket::serializeNbtToBytes()` 序列化为 Java 版大端序字节流
+   - 调用 `MinecraftServer::broadcastBlockEntityInRange(pos, type, nbtData, 64.0f)` 广播
+4. `broadcastBlockEntityInRange` 将 `BlockEntityDataPacket`（PacketType=237）封装后发送给 64 格范围内的所有已登录玩家
+
+**使用场景**：
+- `ServerPlayer::handleUpdateSignPacket()` — 告示牌编辑完成后广播新文本
+- `ServerPlayer::openSignEditor()` — 打开告示牌编辑器前先发送当前内容
+- 其他需要同步方块实体数据变化的场景（如命令方块内容更新、箱子物品变化等）
+
+**注意事项**：
+- 未注册 `m_onBroadcastBlockEntity` 回调时调用 `broadcastBlockEntity()` 不会崩溃（空回调检查）。
+- 回调注册通过 `setOnBroadcastBlockEntity()` 完成，由 `MinecraftServer::attachWorldBindings()` 在世界加载时统一注册。
+- 对应的客户端接收路径：`NetworkClient::_handleBlockEntityData()` → `ClientWorld::onBlockEntityData()` → `BlockEntity::loadFromNBT()`。

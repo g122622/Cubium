@@ -147,3 +147,31 @@ if (client.isLocalConnection()) { /* 本地连接处理 */ }
 - `onEntityEffectParticle` - 实体效果粒子（携带 ARGB 颜色）
 
 分发顺序：先检查 `isBlockParticle()` → `isItemParticle()` → `isVibrationParticle()` → `isTrailParticle()` → `isEntityEffectParticle()`，均不匹配则走 `onParticle`。各回调由 `ClientApplicationNetwork` 注册，通过 `ParticleData` 走粒子数据管线创建粒子。
+
+### 9. 方块实体数据同步回调（onBlockEntityData）
+
+`NetworkClientCallbacks::onBlockEntityData` 是方块实体数据同步包（`PacketType::BlockEntityData = 237`）的客户端接收回调，对应 MC Java 的 `ClientPlayPacketListener.handleBlockEntityData()`。
+
+**回调签名**：
+```cpp
+std::function<void(const network::BlockEntityDataPacket& packet)> onBlockEntityData;
+```
+
+**处理链路**：
+1. `NetworkClient::_handleBlockEntityData(PacketDeserializer&)` 反序列化 `BlockEntityDataPacket`
+2. 触发 `onBlockEntityData(packet)` 回调
+3. `ClientApplicationNetwork` 中注册的回调转发给 `ClientWorld::onBlockEntityData(packet.pos(), packet.type(), packet.nbtData())`
+4. `ClientWorld` 反序列化 NBT 字节流，通过 `BlockEntityRegistry` 查找/创建对应类型的 `BlockEntity` 实例
+5. 调用 `BlockEntity::loadFromNBT(tag)` 更新状态
+
+**使用场景**：
+- 告示牌编辑器打开时，`ServerPlayer::openSignEditor()` 在发送 `OpenSignEditorPacket` 前先发送 `BlockEntityDataPacket`，客户端通过此回调读取当前告示牌文本
+- 告示牌编辑完成后，`ServerPlayer::handleUpdateSignPacket()` 调用 `ServerWorld::broadcastBlockEntity()` 广播新文本，所有附近客户端通过此回调更新
+- 其他方块实体数据变化（如命令方块内容、箱子物品等）的服务端→客户端同步
+
+**与 `onSignEditorOpen` 的协作**：告示牌编辑器打开时需要先接收 BlockEntity 数据（当前文本），再接收 `OpenSignEditorPacket`（打开编辑器指令）。`ClientApplicationNetwork::onSignEditorOpen` 通过 `ClientWorld::getBlockEntity(pos)` 读取已同步的 BlockEntity 状态获取当前文本，避免编辑器打开时覆盖已有内容。
+
+**注意事项**：
+- NBT 反序列化失败时 `ClientWorld::onBlockEntityData` 会记录警告日志并跳过，不创建实体。
+- 未注册类型的 BlockEntity（如 `BlockEntityType::Count`）会因 `BlockEntityRegistry::create()` 返回 `nullptr` 而跳过创建。
+- 维度切换时 `ClientWorld::clearChunks()` 会一并清空所有客户端 BlockEntity 存储。
