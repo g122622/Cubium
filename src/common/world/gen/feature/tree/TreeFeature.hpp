@@ -27,6 +27,7 @@
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include "../state/WeightedBlockStateProvider.hpp"
+#include "featuresize/FeatureSize.hpp"
 #include "foliage/FoliagePlacer.hpp"
 #include "trunk/TrunkPlacer.hpp"
 #include <memory>
@@ -63,6 +64,11 @@ struct TreeFeatureConfig : public IFeatureConfig {
 
     /// 树叶放置器
     std::unique_ptr<FoliagePlacer> foliagePlacer;
+
+    /// 最小尺寸约束（对应 MC 1.21.11 BaseTreeFeatureConfig.minimumSize）
+    /// 用于 getMaxFreeTreeHeight 阶段确定每层 y 的水平检查半径。
+    /// 若为空，TreeFeature 会使用默认的"底部细、顶部粗"退化检查逻辑。
+    std::unique_ptr<FeatureSize> minimumSize;
 
     /// 最大水深（树木不能生成在深水中）
     i32 maxWaterDepth = 0;
@@ -110,6 +116,10 @@ struct TreeFeatureConfig : public IFeatureConfig {
         if (other.foliageProvider) {
             foliageProvider = other.foliageProvider->clone();
         }
+        // 深拷贝最小尺寸约束
+        if (other.minimumSize) {
+            minimumSize = other.minimumSize->clone();
+        }
     }
 
     /**
@@ -139,6 +149,11 @@ struct TreeFeatureConfig : public IFeatureConfig {
             } else {
                 foliageProvider.reset();
             }
+            if (other.minimumSize) {
+                minimumSize = other.minimumSize->clone();
+            } else {
+                minimumSize.reset();
+            }
         }
         return *this;
     }
@@ -152,6 +167,7 @@ struct TreeFeatureConfig : public IFeatureConfig {
         , foliageProvider(std::move(other.foliageProvider))
         , trunkPlacer(std::move(other.trunkPlacer))
         , foliagePlacer(std::move(other.foliagePlacer))
+        , minimumSize(std::move(other.minimumSize))
         , maxWaterDepth(other.maxWaterDepth)
         , ignoreVines(other.ignoreVines)
         , forcePlacement(other.forcePlacement)
@@ -169,6 +185,7 @@ struct TreeFeatureConfig : public IFeatureConfig {
             foliageProvider = std::move(other.foliageProvider);
             trunkPlacer = std::move(other.trunkPlacer);
             foliagePlacer = std::move(other.foliagePlacer);
+            minimumSize = std::move(other.minimumSize);
             maxWaterDepth = other.maxWaterDepth;
             ignoreVines = other.ignoreVines;
             forcePlacement = other.forcePlacement;

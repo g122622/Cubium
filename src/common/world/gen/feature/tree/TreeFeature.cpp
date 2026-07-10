@@ -71,10 +71,33 @@ bool TreeFeature::place(
 
     // 检查是否有足够的空间放置树干。
     // forcePlacement=true 时跳过空间约束，用于部分特例树木配置。
+    // 对应 MC 1.21.11 TreeFeature.doPlace：
+    //   OptionalInt optionalint = minimumSize.minClippedHeight();
+    //   int k1 = getMaxFreeTreeHeight(...);
+    //   if (k1 >= i || (!optionalint.isEmpty() && k1 >= optionalint.getAsInt())) { ... }
+    //   else return false;
     if (!config.forcePlacement) {
         i32 availableHeight = _calculateAvailableHeight(world, trunkHeight, startPos, config);
         if (availableHeight < trunkHeight) {
-            return false;
+            // 空间不足：若配置了 minClippedHeight，且实际可用高度 >= 该值，
+            // 仍允许以裁剪后的高度生成（用于 fancy_oak 等容忍较矮空间的配置）。
+            i32 clippedHeight = availableHeight;
+            bool allowClipped = false;
+            if (config.minimumSize) {
+                auto minClippedOpt = config.minimumSize->minClippedHeight();
+                if (minClippedOpt.has_value() && clippedHeight >= minClippedOpt.value()) {
+                    allowClipped = true;
+                }
+            }
+            if (!allowClipped) {
+                return false;
+            }
+            // 使用裁剪后的高度继续生成
+            trunkHeight = clippedHeight;
+            // 裁剪后仍需满足最小高度要求
+            if (trunkHeight < config.minHeight) {
+                return false;
+            }
         }
     }
 
@@ -197,16 +220,27 @@ bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos)
 i32 TreeFeature::_calculateAvailableHeight(
     WorldGenRegion& world, i32 maxHeight, const BlockPos& startPos, const TreeFeatureConfig& config) const
 {
-    (void)config;
+    // 对应 MC 1.21.11 TreeFeature.getMaxFreeTreeHeight：
+    //   for (int i = 0; i <= trunkHeight + 1; i++) {
+    //       int j = minimumSize.getSizeAtHeight(trunkHeight, i);
+    //       for (k=-j..j) for (l=-j..j) if (!isFree || (!ignoreVines && isVine)) return i - 2;
+    //   }
+    //   return trunkHeight;
+    //
+    // 若 minimumSize 为空（不应发生，但做兜底以保持健壮性），使用退化的默认半径规则。
     BlockPos pos;
 
     for (i32 y = 0; y <= maxHeight + 1; ++y) {
-        // 树干底部只检查中心，中段检查 1 格，顶部放宽到 2 格。
-        i32 checkRadius = 1;
-        if (y == 0) {
-            checkRadius = 0;
-        } else if (y >= maxHeight - 1) {
-            checkRadius = 2;
+        i32 checkRadius = 0;
+        if (config.minimumSize) {
+            checkRadius = config.minimumSize->getSizeAtHeight(maxHeight, y);
+        } else {
+            // 兜底：原 hardcoded 规则（底部 0、中段 1、顶部 2）
+            if (y > 0 && y < maxHeight - 1) {
+                checkRadius = 1;
+            } else if (y >= maxHeight - 1) {
+                checkRadius = 2;
+            }
         }
 
         for (i32 dx = -checkRadius; dx <= checkRadius; ++dx) {

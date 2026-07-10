@@ -85,6 +85,7 @@
 #include "common/world/gen/feature/parser/BlockPredicateParser.hpp"
 #include "common/world/gen/feature/parser/BlockStateParser.hpp"
 #include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/parser/FeatureSizeParser.hpp"
 #include "common/world/gen/feature/parser/FluidStateParser.hpp"
 #include "common/world/gen/feature/parser/FoliagePlacerParser.hpp"
 #include "common/world/gen/feature/parser/RuleTestParser.hpp"
@@ -1181,8 +1182,14 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
     config->ignoreVines = getBool(configJson, "ignore_vines", false);
     // MC 的 force_dirt 对应项目 forcePlacement（跳过高度检查的强制放置语义最近）
     config->forcePlacement = getBool(configJson, "force_dirt", false);
-    // minimum_size 的 limit/lower_size/upper_size 项目 TreeFeatureConfig 未建模，暂忽略
-    // TODO: 对齐 MC minimum_size（TwoLayersFeatureSize）字段需扩展 TreeFeatureConfig。
+    // 解析 minimum_size（TwoLayersFeatureSize / ThreeLayersFeatureSize），用于 getMaxFreeTreeHeight
+    if (configJson.contains("minimum_size")) {
+        auto sizeResult = parser::FeatureSizeParser::parse(configJson["minimum_size"]);
+        if (!sizeResult.success()) {
+            return sizeResult.error();
+        }
+        config->minimumSize = std::move(sizeResult).value();
+    }
     return toBase(std::make_unique<ConfiguredTreeFeature>(std::move(config), "tree"));
 }
 

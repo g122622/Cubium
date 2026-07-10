@@ -8,6 +8,9 @@
 tree/
 ├── TreeFeature.hpp             # 树木特征主类和配置
 ├── TreeFeature.cpp             # 树木特征实现
+├── featuresize/                # 最小尺寸约束（FeatureSize）
+│   ├── FeatureSize.hpp         # 基类 + TwoLayers/ThreeLayers 子类（纯头文件）
+│   └── README.md
 ├── trunk/                      # 树干放置器
 │   ├── TrunkPlacer.hpp/cpp     # 树干放置器基类
 │   ├── BendingTrunkPlacer.hpp/cpp # 弯曲树干（杜鹃树/红树林）
@@ -39,18 +42,21 @@ TreeFeature（主入口）
             │       ├── MegaJungleTrunkPlacer
             │       ├── CherryTrunkPlacer
             │       └── BendingTrunkPlacer
-            └── FoliagePlacer（树叶放置器）
-                    ├── BlobFoliagePlacer
-                    ├── PineFoliagePlacer
-                    ├── SpruceFoliagePlacer
-                    ├── AcaciaFoliagePlacer
-                    ├── DarkOakFoliagePlacer
-                    ├── JungleFoliagePlacer
-                    ├── MegaPineFoliagePlacer
-                    ├── BushFoliagePlacer
-                    ├── FancyFoliagePlacer
-                    ├── CherryFoliagePlacer
-                    └── RandomSpreadFoliagePlacer
+            ├── FoliagePlacer（树叶放置器）
+            │       ├── BlobFoliagePlacer
+            │       ├── PineFoliagePlacer
+            │       ├── SpruceFoliagePlacer
+            │       ├── AcaciaFoliagePlacer
+            │       ├── DarkOakFoliagePlacer
+            │       ├── JungleFoliagePlacer
+            │       ├── MegaPineFoliagePlacer
+            │       ├── BushFoliagePlacer
+            │       ├── FancyFoliagePlacer
+            │       ├── CherryFoliagePlacer
+            │       └── RandomSpreadFoliagePlacer
+            └── FeatureSize（最小尺寸约束）
+                    ├── TwoLayersFeatureSize（limit/lowerSize/upperSize）
+                    └── ThreeLayersFeatureSize（limit/upperLimit/lowerSize/middleSize/upperSize）
 ```
 
 **生成流程**：`TreeFeature::place()` → `TrunkPlacer::placeTrunk()` 返回 `FoliagePosition` 列表 → `FoliagePlacer::placeFoliage()` 生成树叶
@@ -89,7 +95,9 @@ TreeFeature（主入口）
 
 ### 4. 空间检查半径与 forcePlacement
 
-`calculateAvailableHeight()` 采用分层半径（底部 0，中段 1，顶部 2）检查可替换方块。`forcePlacement=true` 会跳过该体积检查。
+`_calculateAvailableHeight()` 使用 `config.minimumSize->getSizeAtHeight(trunkHeight, y)` 决定每层 y 的水平检查半径（对应 MC 1.21.11 `TreeFeature.getMaxFreeTreeHeight`）。若 `minimumSize` 为空（未在 JSON 中配置 `minimum_size`），退化为默认规则（底部 0、中段 1、顶部 2）。`forcePlacement=true` 会跳过该体积检查。
+
+`minimumSize->minClippedHeight()` 有值时，允许实际可用高度不足 `trunkHeight` 但 >= 该值时仍生成（裁剪高度），用于 `fancy_oak` 等容忍较矮空间的配置。
 
 ### 5. TrunkPlacer 和 FoliagePlacer 必须配对
 

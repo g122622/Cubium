@@ -1177,6 +1177,7 @@ add_library(mc_common STATIC
     world/gen/feature/parser/RuleTestParser.cpp
     world/gen/feature/parser/TrunkPlacerParser.cpp
     world/gen/feature/parser/FoliagePlacerParser.cpp
+    world/gen/feature/parser/FeatureSizeParser.cpp
     world/gen/feature/parser/BlockPredicateParser.cpp
 
     world/gen/feature/ore/OreFeature.cpp
