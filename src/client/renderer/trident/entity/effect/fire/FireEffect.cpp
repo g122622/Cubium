@@ -26,6 +26,7 @@
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <cstring>
@@ -45,6 +46,12 @@ VkImageView FireEffect::s_fireTextureView = VK_NULL_HANDLE;
 VkSampler FireEffect::s_fireSampler = VK_NULL_HANDLE;
 u32 FireEffect::s_fireTextureWidth = 0;
 u32 FireEffect::s_fireTextureHeight = 0;
+
+// 动画状态初始化
+FireAnimationState FireEffect::s_fire0Animation;
+FireAnimationState FireEffect::s_fire1Animation;
+u32 FireEffect::s_fire0FrameCount = 0;
+u32 FireEffect::s_fire1FrameCount = 0;
 
 bool FireEffect::initialize(
     VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
@@ -69,6 +76,12 @@ bool FireEffect::initialize(
     if (!_createFireTexture(placeholder.pixels, placeholder.frameWidth, placeholderHeight)) {
         spdlog::warn("FireEffect: Failed to create placeholder fire texture");
     }
+
+    // 初始化动画状态（占位纹理：fire_0/fire_1 各 1 帧，无 mcmeta）
+    s_fire0FrameCount = placeholder.fire0FrameCount;
+    s_fire1FrameCount = placeholder.fire1FrameCount;
+    s_fire0Animation.init(placeholder.fire0Metadata, s_fire0FrameCount);
+    s_fire1Animation.init(placeholder.fire1Metadata, s_fire1FrameCount);
 
     s_initialized = true;
     spdlog::info("FireEffect: Initialized successfully");
@@ -101,8 +114,18 @@ bool FireEffect::loadTexture(const std::vector<IResourcePack*>& resourcePacks)
         return false;
     }
 
-    spdlog::info(
-        "FireEffect: Fire texture reloaded ({}x{}, {} frames)", data.frameWidth, data.frameHeight, data.frameCount);
+    // 重置动画状态
+    s_fire0FrameCount = data.fire0FrameCount;
+    s_fire1FrameCount = data.fire1FrameCount;
+    s_fire0Animation.init(data.fire0Metadata, s_fire0FrameCount);
+    s_fire1Animation.init(data.fire1Metadata, s_fire1FrameCount);
+
+    spdlog::info("FireEffect: Fire texture reloaded ({}x{}, {} frames total, fire0={} fire1={})",
+        data.frameWidth,
+        data.frameHeight,
+        data.frameCount,
+        s_fire0FrameCount,
+        s_fire1FrameCount);
     return true;
 }
 
@@ -118,8 +141,19 @@ void FireEffect::cleanup()
     s_physicalDevice = VK_NULL_HANDLE;
     s_commandPool = VK_NULL_HANDLE;
     s_graphicsQueue = VK_NULL_HANDLE;
+    s_fire0FrameCount = 0;
+    s_fire1FrameCount = 0;
     s_initialized = false;
     spdlog::info("FireEffect: Cleaned up");
+}
+
+void FireEffect::tick()
+{
+    if (!s_initialized) {
+        return;
+    }
+    s_fire0Animation.tick();
+    s_fire1Animation.tick();
 }
 
 void FireEffect::_destroyFireTexture()
@@ -242,16 +276,33 @@ void FireEffect::_renderFireLayers(VkCommandBuffer cmd,
     // 初始 Z 偏移
     f64 zOffset = -0.3 + static_cast<f64>(static_cast<i32>(f3)) * 0.02;
 
+    // 计算当前动画帧在纹理中的 V 坐标
+    // 纹理布局：[fire_0 全部帧][fire_1 全部帧] 纵向拼接
+    // 单帧在纹理中占的 V 范围 = 1.0 / totalFrames
+    // fire_0 起始 V 偏移 = fire0FrameIndex / totalFrames
+    // fire_1 起始 V 偏移 = (s_fire0FrameCount + fire1FrameIndex) / totalFrames
+    const u32 totalFrames = s_fire0FrameCount + s_fire1FrameCount;
+    const f32 frameVSize = (totalFrames > 0) ? (1.0f / static_cast<f32>(totalFrames)) : 1.0f;
+
+    // 当前帧索引
+    const i32 fire0FrameIdx = s_fire0Animation.currentFrameIndex();
+    const i32 fire1FrameIdx = s_fire1Animation.currentFrameIndex();
+
+    // fire_0 和 fire_1 在纹理中的起始 V 偏移
+    const f32 fire0BaseV = static_cast<f32>(fire0FrameIdx) * frameVSize;
+    const f32 fire1BaseV = static_cast<f32>(s_fire0FrameCount + fire1FrameIdx) * frameVSize;
+
     // 循环绘制多层火焰
     for (i32 layer = 0; f3 > 0.0; ++layer) {
         // 交替使用 fire_0 和 fire_1 纹理
-        u32 frameIndex = layer % 2;
+        const bool useFire1 = (layer % 2 == 1);
+        const f32 baseV = useFire1 ? fire1BaseV : fire0BaseV;
 
         // UV 坐标
         f32 u0 = 0.0f;
         f32 u1 = 1.0f;
-        f32 v0 = static_cast<f32>(frameIndex) * 0.5f;
-        f32 v1 = static_cast<f32>(frameIndex + 1) * 0.5f;
+        f32 v0 = baseV;
+        f32 v1 = baseV + frameVSize;
 
         // 每两层翻转 UV
         if ((layer / 2) % 2 == 0) {

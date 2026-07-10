@@ -2339,6 +2339,9 @@ void TridentEngine::tickTextureAnimations()
 {
     m_blockAtlasTicker.tick();
     m_itemAtlasTicker.tick();
+
+    // 火焰纹理动画推进（独立 VkImage，不经过图集，需单独 tick）
+    entity::effect::fire::FireEffect::tick();
 }
 
 void TridentEngine::uploadAnimationFrames()

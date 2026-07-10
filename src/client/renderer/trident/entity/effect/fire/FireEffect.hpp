@@ -26,6 +26,7 @@
 #include "client/renderer/trident/entity/effect/fire/FireTextureLoader.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <memory>
@@ -47,11 +48,64 @@ class EntityTextureAtlas;
 namespace client::renderer::entity::effect::fire {
 
 /**
+ * @brief 单张火焰纹理的动画播放状态
+ *
+ * 采用与 AnimatedSprite 一致的双计数器模式：
+ * m_tickCounter 累加 tick，达到 m_currentFrameTime 后切换帧。
+ * 不同帧可有独立时长（由 mcmeta frames[].time 指定）。
+ */
+struct FireAnimationState {
+    /// 动画元数据（帧序列、frametime、interpolate）
+    resource::metadata::AnimationMetadata metadata;
+    /// 该纹理的帧数（用于无自定义帧序列时模运算）
+    u32 frameCount = 0;
+    /// 当前帧在 metadata.frames 数组中的位置（无自定义序列时等同帧索引）
+    u32 frameCounter = 0;
+    /// 当前帧内已累计的 tick
+    i32 tickCounter = 0;
+    /// 当前帧持续时间（tick）
+    i32 currentFrameTime = 1;
+
+    /**
+     * @brief 从元数据和帧数初始化播放状态
+     *
+     * 若有自定义帧序列，currentFrameTime 取第一帧的 time；
+     * 否则取 metadata.frametime。
+     */
+    void init(const resource::metadata::AnimationMetadata& md, u32 frames);
+
+    /**
+     * @brief 每 tick 更新动画状态
+     *
+     * 累加 tickCounter，达到 currentFrameTime 后切换到下一帧。
+     * 帧切换采用模运算实现循环。
+     */
+    void tick();
+
+    /**
+     * @brief 获取当前帧索引
+     *
+     * 有自定义帧序列时返回 frames[frameCounter].index；
+     * 否则返回 frameCounter 本身。
+     */
+    [[nodiscard]] i32 currentFrameIndex() const noexcept;
+
+    /**
+     * @brief 获取当前帧进度（0.0-1.0）
+     *
+     * 用于插值时的进度计算。
+     */
+    [[nodiscard]] f32 frameProgress() const noexcept;
+};
+
+/**
  * @brief 着火效果渲染器
  *
  * 用于渲染实体身上的火焰效果。
  *
  * 火焰纹理使用方块纹理 fire_0.png 和 fire_1.png（动画）。
+ * 纹理布局：[fire_0 全部帧][fire_1 全部帧] 纵向拼接为单张 VkImage，
+ * 渲染时通过 UV 偏移选择当前动画帧（无需逐帧上传到 GPU）。
  */
 class FireEffect {
 public:
@@ -75,6 +129,7 @@ public:
      *
      * 必须在 initialize() 成功后调用。可安全重复调用（用于热重载）：
      * 会等待设备空闲、销毁旧纹理资源后重新创建。
+     * 同时重置动画播放状态。
      *
      * @param resourcePacks 资源包列表（按优先级从低到高）
      * @return 成功或错误
@@ -90,6 +145,14 @@ public:
      * @brief 检查是否已初始化
      */
     [[nodiscard]] static bool isInitialized();
+
+    /**
+     * @brief 每游戏 tick 更新火焰动画
+     *
+     * 推进 fire_0 和 fire_1 的帧计数器。
+     * 应在客户端主循环的 tickTextureAnimations 阶段调用。
+     */
+    static void tick();
 
     /**
      * @brief 检查实体是否在燃烧（Entity 版本）
@@ -144,7 +207,9 @@ private:
     /**
      * @brief 渲染多层火焰
      *
-     * 使用循环绘制多层火焰，每层递减尺寸
+     * 使用循环绘制多层火焰，每层递减尺寸。
+     * 偶数层使用 fire_0 纹理，奇数层使用 fire_1 纹理（MC 原版行为）。
+     * UV 的 V 坐标根据当前动画帧索引偏移。
      *
      * @param cmd 命令缓冲区
      * @param entity 实体
@@ -167,9 +232,12 @@ private:
 
     /**
      * @brief 创建火焰纹理资源
+     *
+     * 将所有帧（fire_0 + fire_1）纵向拼接上传为单张 VkImage。
+     *
      * @param pixels 像素数据
      * @param width 宽度
-     * @param height 高度
+     * @param height 总高度（所有帧拼接后的高度）
      * @return 成功或错误
      */
     static bool _createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height);
@@ -226,8 +294,15 @@ private:
     static u32 s_fireTextureWidth;
     static u32 s_fireTextureHeight;
 
-    // 火焰动画帧数
-    static constexpr u32 FIRE_FRAME_COUNT = 2;
+    // 动画状态
+    /// fire_0 的动画播放状态
+    static FireAnimationState s_fire0Animation;
+    /// fire_1 的动画播放状态
+    static FireAnimationState s_fire1Animation;
+    /// fire_0 的帧数（在纹理中的起始偏移为 0）
+    static u32 s_fire0FrameCount;
+    /// fire_1 的帧数（在纹理中的起始帧偏移为 s_fire0FrameCount）
+    static u32 s_fire1FrameCount;
 
     // 固定全亮光照值 (0xF00000 = 15728640)
     static constexpr i32 FULL_LIGHT = 15728640;

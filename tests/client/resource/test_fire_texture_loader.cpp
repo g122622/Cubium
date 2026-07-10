@@ -317,6 +317,27 @@ std::vector<u8> makePng(u32 width, u32 height, std::function<u8(u32 x, u32 y, u3
     return png;
 }
 
+// 生成空的 mcmeta JSON（默认动画：顺序播放、frametime=1）
+std::vector<u8> makeEmptyMcmeta()
+{
+    const std::string json = R"({"animation":{}})";
+    return std::vector<u8>(json.begin(), json.end());
+}
+
+// 生成自定义帧序列的 mcmeta JSON
+std::vector<u8> makeCustomFrameMcmeta(const std::vector<i32>& frameIndices)
+{
+    std::string json = R"({"animation":{"frames":[)";
+    for (size_t i = 0; i < frameIndices.size(); ++i) {
+        if (i > 0) {
+            json += ",";
+        }
+        json += std::to_string(frameIndices[i]);
+    }
+    json += R"(]}})";
+    return std::vector<u8>(json.begin(), json.end());
+}
+
 using namespace client::renderer::entity::effect::fire;
 
 TEST(FireTextureLoaderTest, ReturnsProceduralFallbackWhenNoPacks)
@@ -324,6 +345,9 @@ TEST(FireTextureLoaderTest, ReturnsProceduralFallbackWhenNoPacks)
     FireTextureData data = loadFireTextureData({});
     EXPECT_EQ(data.frameWidth, 16u);
     EXPECT_EQ(data.frameHeight, 16u);
+    // 程序化占位：fire_0 和 fire_1 各 1 帧
+    EXPECT_EQ(data.fire0FrameCount, 1u);
+    EXPECT_EQ(data.fire1FrameCount, 1u);
     EXPECT_EQ(data.frameCount, 2u);
     EXPECT_EQ(data.pixels.size(), static_cast<size_t>(16) * 16 * 2 * 4);
 }
@@ -338,6 +362,9 @@ TEST(FireTextureLoaderTest, LoadsSingleFramePngAndDuplicatesToTwoFrames)
     FireTextureData data = loadFireTextureData(packs);
     EXPECT_EQ(data.frameWidth, 1u);
     EXPECT_EQ(data.frameHeight, 1u);
+    // fire_1 复制自 fire_0，各 1 帧
+    EXPECT_EQ(data.fire0FrameCount, 1u);
+    EXPECT_EQ(data.fire1FrameCount, 1u);
     EXPECT_EQ(data.frameCount, 2u);
     EXPECT_EQ(data.pixels.size(), static_cast<size_t>(1) * 1 * 2 * 4);
 }
@@ -355,10 +382,12 @@ TEST(FireTextureLoaderTest, LoadsBothFramesFromResourcePack)
     FireTextureData data = loadFireTextureData(packs);
     ASSERT_EQ(data.frameWidth, 2u);
     ASSERT_EQ(data.frameHeight, 2u);
+    ASSERT_EQ(data.fire0FrameCount, 1u);
+    ASSERT_EQ(data.fire1FrameCount, 1u);
     ASSERT_EQ(data.frameCount, 2u);
     ASSERT_EQ(data.pixels.size(), static_cast<size_t>(2) * 2 * 2 * 4);
 
-    // 校验第一帧像素
+    // 校验第一帧（fire_0）像素
     for (u32 y = 0; y < 2; ++y) {
         for (u32 x = 0; x < 2; ++x) {
             for (u32 c = 0; c < 4; ++c) {
@@ -368,7 +397,7 @@ TEST(FireTextureLoaderTest, LoadsBothFramesFromResourcePack)
             }
         }
     }
-    // 校验第二帧像素
+    // 校验第二帧（fire_1）像素
     for (u32 y = 0; y < 2; ++y) {
         for (u32 x = 0; x < 2; ++x) {
             for (u32 c = 0; c < 4; ++c) {
@@ -380,12 +409,13 @@ TEST(FireTextureLoaderTest, LoadsBothFramesFromResourcePack)
     }
 }
 
-TEST(FireTextureLoaderTest, ExtractsFirstFrameFromAnimationStrip)
+TEST(FireTextureLoaderTest, ExtractsAllFramesFromAnimationStrip)
 {
-    // 模拟原版资源包提供的 16x512 动画条带（32 帧），应当仅取首帧 16x16
+    // 模拟原版资源包提供的 16x512 动画条带（32 帧）
+    // 每帧 16x16，每帧的所有像素设为帧索引值
     auto strip = makePng(16, 512, [](u32 x, u32 y, u32 c) -> u8 {
-        // 第 0 帧全 0xFF，其它帧不同
-        return (y < 16) ? 0xFF : static_cast<u8>((x + y + c) & 0xFF);
+        const u32 frameIdx = y / 16;
+        return static_cast<u8>(frameIdx & 0xFF);
     });
 
     auto pack = std::make_shared<InMemoryResourcePack>();
@@ -395,13 +425,24 @@ TEST(FireTextureLoaderTest, ExtractsFirstFrameFromAnimationStrip)
     FireTextureData data = loadFireTextureData(packs);
     EXPECT_EQ(data.frameWidth, 16u);
     EXPECT_EQ(data.frameHeight, 16u);
-    // 仅有 fire_0.png，fire_1.png 缺失，应当复制首帧得到 2 帧
-    EXPECT_EQ(data.frameCount, 2u);
-    EXPECT_EQ(data.pixels.size(), static_cast<size_t>(16) * 16 * 2 * 4);
+    // fire_0 有 32 帧，fire_1 复制自 fire_0 也有 32 帧
+    EXPECT_EQ(data.fire0FrameCount, 32u);
+    EXPECT_EQ(data.fire1FrameCount, 32u);
+    EXPECT_EQ(data.frameCount, 64u);
+    EXPECT_EQ(data.pixels.size(), static_cast<size_t>(16) * 16 * 64 * 4);
 
-    // 首帧应当全部是 0xFF
-    for (size_t i = 0; i < static_cast<size_t>(16) * 16 * 4; ++i) {
-        EXPECT_EQ(data.pixels[i], 0xFF) << "first frame pixel " << i << " should be 0xFF";
+    // 校验 fire_0 的每一帧像素
+    for (u32 frame = 0; frame < 32; ++frame) {
+        for (u32 y = 0; y < 16; ++y) {
+            for (u32 x = 0; x < 16; ++x) {
+                size_t idx = (static_cast<size_t>(frame) * 16 * 16 + y * 16 + x) * 4;
+                u8 expected = static_cast<u8>(frame & 0xFF);
+                for (u32 c = 0; c < 4; ++c) {
+                    EXPECT_EQ(data.pixels[idx + c], expected)
+                        << "fire_0 frame " << frame << " pixel (" << x << "," << y << ",c=" << c << ")";
+                }
+            }
+        }
     }
 }
 
@@ -438,6 +479,126 @@ TEST(FireTextureLoaderTest, ProceduralFallbackHasNonZeroPixels)
         }
     }
     EXPECT_TRUE(hasNonZero);
+}
+
+// ========== mcmeta 动画元数据测试 ==========
+
+TEST(FireTextureLoaderTest, ReadsEmptyMcmetaForAnimationStrip)
+{
+    // 提供 fire_0.png 16x512 + fire_0.png.mcmeta（空动画配置）
+    auto strip = makePng(16, 512, [](u32 x, u32 y, u32 c) -> u8 {
+        const u32 frameIdx = y / 16;
+        return static_cast<u8>(frameIdx & 0xFF);
+    });
+
+    auto pack = std::make_shared<InMemoryResourcePack>();
+    pack->add("assets/minecraft/textures/block/fire_0.png", strip);
+    pack->add("assets/minecraft/textures/block/fire_0.png.mcmeta", makeEmptyMcmeta());
+
+    std::vector<IResourcePack*> packs{pack.get()};
+    FireTextureData data = loadFireTextureData(packs);
+
+    // mcmeta 为空动画配置，默认 frametime=1，帧尺寸自动检测为 16x16
+    ASSERT_EQ(data.fire0FrameCount, 32u);
+    EXPECT_TRUE(data.fire0Metadata.isValidAnimation());
+    EXPECT_EQ(data.fire0Metadata.frametime, 1);
+    EXPECT_EQ(data.fire0Metadata.width, 16);
+    EXPECT_EQ(data.fire0Metadata.height, 16);
+    // 空帧序列表示顺序播放 0..31
+    EXPECT_TRUE(data.fire0Metadata.frames.empty());
+}
+
+TEST(FireTextureLoaderTest, ReadsCustomFrameSequenceFromMcmeta)
+{
+    // 提供 fire_0.png 16x32（2 帧）+ 自定义帧序列 mcmeta
+    // fire_0.png.mcmeta 帧序列为 [1, 0]（先播放第 1 帧再播放第 0 帧）
+    auto strip = makePng(16, 32, [](u32 x, u32 y, u32 c) -> u8 {
+        const u32 frameIdx = y / 16;
+        return static_cast<u8>(frameIdx & 0xFF);
+    });
+
+    auto pack = std::make_shared<InMemoryResourcePack>();
+    pack->add("assets/minecraft/textures/block/fire_0.png", strip);
+    pack->add("assets/minecraft/textures/block/fire_0.png.mcmeta", makeCustomFrameMcmeta({1, 0}));
+
+    std::vector<IResourcePack*> packs{pack.get()};
+    FireTextureData data = loadFireTextureData(packs);
+
+    ASSERT_EQ(data.fire0FrameCount, 2u);
+    EXPECT_TRUE(data.fire0Metadata.isValidAnimation());
+    ASSERT_EQ(data.fire0Metadata.frames.size(), 2u);
+    EXPECT_EQ(data.fire0Metadata.frames[0].index, 1);
+    EXPECT_EQ(data.fire0Metadata.frames[1].index, 0);
+}
+
+TEST(FireTextureLoaderTest, ReadsVanillaFire0McmetaFrameSequence)
+{
+    // 模拟原版 fire_0.png.mcmeta 的帧序列：[16..31, 0..15]
+    auto strip = makePng(16, 512, [](u32 x, u32 y, u32 c) -> u8 {
+        const u32 frameIdx = y / 16;
+        return static_cast<u8>(frameIdx & 0xFF);
+    });
+
+    // 构造原版 fire_0.png.mcmeta 内容
+    std::vector<i32> vanillaFrames;
+    for (i32 i = 16; i < 32; ++i) {
+        vanillaFrames.push_back(i);
+    }
+    for (i32 i = 0; i < 16; ++i) {
+        vanillaFrames.push_back(i);
+    }
+
+    auto pack = std::make_shared<InMemoryResourcePack>();
+    pack->add("assets/minecraft/textures/block/fire_0.png", strip);
+    pack->add("assets/minecraft/textures/block/fire_0.png.mcmeta", makeCustomFrameMcmeta(vanillaFrames));
+
+    // fire_1 也提供，避免被复制
+    auto fire1 = makePng(16, 512, [](u32 x, u32 y, u32 c) -> u8 {
+        const u32 frameIdx = y / 16;
+        return static_cast<u8>((frameIdx + 50) & 0xFF);
+    });
+    pack->add("assets/minecraft/textures/block/fire_1.png", fire1);
+    pack->add("assets/minecraft/textures/block/fire_1.png.mcmeta", makeEmptyMcmeta());
+
+    std::vector<IResourcePack*> packs{pack.get()};
+    FireTextureData data = loadFireTextureData(packs);
+
+    // fire_0 有 32 帧，帧序列长度 32
+    ASSERT_EQ(data.fire0FrameCount, 32u);
+    ASSERT_EQ(data.fire0Metadata.frames.size(), 32u);
+
+    // 校验帧序列：前 16 帧索引 16..31，后 16 帧索引 0..15
+    for (i32 i = 0; i < 16; ++i) {
+        EXPECT_EQ(data.fire0Metadata.frames[i].index, 16 + i) << "frame " << i;
+    }
+    for (i32 i = 0; i < 16; ++i) {
+        EXPECT_EQ(data.fire0Metadata.frames[16 + i].index, i) << "frame " << (16 + i);
+    }
+
+    // fire_1 有 32 帧，空帧序列（顺序播放）
+    ASSERT_EQ(data.fire1FrameCount, 32u);
+    EXPECT_TRUE(data.fire1Metadata.frames.empty());
+}
+
+TEST(FireTextureLoaderTest, BothTexturesShareSameFrameDimensions)
+{
+    // fire_0 和 fire_1 帧尺寸必须一致
+    auto fire0 = makePng(16, 32, [](u32, u32, u32) -> u8 { return 0; });   // 2 帧
+    auto fire1 = makePng(16, 64, [](u32, u32, u32) -> u8 { return 128; }); // 4 帧
+
+    auto pack = std::make_shared<InMemoryResourcePack>();
+    pack->add("assets/minecraft/textures/block/fire_0.png", fire0);
+    pack->add("assets/minecraft/textures/block/fire_1.png", fire1);
+
+    std::vector<IResourcePack*> packs{pack.get()};
+    FireTextureData data = loadFireTextureData(packs);
+
+    EXPECT_EQ(data.frameWidth, 16u);
+    EXPECT_EQ(data.frameHeight, 16u);
+    EXPECT_EQ(data.fire0FrameCount, 2u);
+    EXPECT_EQ(data.fire1FrameCount, 4u);
+    EXPECT_EQ(data.frameCount, 6u);
+    EXPECT_EQ(data.pixels.size(), static_cast<size_t>(16) * 16 * 6 * 4);
 }
 
 } // namespace
