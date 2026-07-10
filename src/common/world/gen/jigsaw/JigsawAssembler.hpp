@@ -45,6 +45,7 @@ namespace world {
 namespace gen {
 namespace structure {
 struct MaxDistance;
+struct DimensionPadding;
 } // namespace structure
 
 namespace feature {
@@ -101,14 +102,24 @@ public:
      * 从起始模板池开始，通过连接点 BFS 扩展结构，返回所有已放置的拼图块。
      * 使用 VoxelShape 空间追踪限制结构不超出 MaxDistance 范围、不与已放置块重叠。
      *
+     * MaxDistance 包围盒的 Y 轴会按 DimensionPadding 与世界高度限制裁剪：
+     *   - minY = max(centerY - vertical, generator.getMinY() + padding.bottom)
+     *   - maxY = min(centerY + vertical + 1, generator.getMinY() + generator.getGenDepth() - padding.top)
+     * 这保证结构不会生成到世界顶/底边界之外。
+     *
+     * 起始块安全检查：当 dimensionPadding 非空（非 ZERO）且起始块包围盒超出
+     * [generator.getMinY() + padding.bottom, generator.getMinY() + getGenDepth() - 1 - padding.top]
+     * 时直接返回空列表，避免结构生成在世界边界外。
+     *
      * @param poolRegistry 模板池注册表
      * @param startPool 起始模板池
      * @param maxDepth 最大递归深度
      * @param startPos 起始位置
      * @param rng 随机数生成器
-     * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度）
+     * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度，以及获取世界高度边界）
      * @param aliases 池别名绑定集合（可空，用于试炼密室等结构的池随机化）
      * @param maxDistance 距结构中心的最大距离约束（用于初始化 freeShape 可放置空间）
+     * @param dimensionPadding 维度填充（可空，控制结构距世界顶/底边界的最小距离）
      * @return 已放置的拼图块列表
      */
     static std::vector<PlacedPiece> assemble(TemplatePoolRegistry& poolRegistry,
@@ -118,7 +129,8 @@ public:
         math::Random& rng,
         IChunkGenerator& generator,
         const PoolAliasBindings* aliases = nullptr,
-        const structure::MaxDistance* maxDistance = nullptr);
+        const structure::MaxDistance* maxDistance = nullptr,
+        const structure::DimensionPadding* dimensionPadding = nullptr);
 
     /**
      * @brief 尝试匹配连接点并放置新拼图块

@@ -174,7 +174,8 @@ std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     BlockPos startPos(chunkX * world::CHUNK_WIDTH + 8, startY, chunkZ * world::CHUNK_WIDTH + 8);
 
     // 使用 JigsawAssembler 组装堡垒结构，maxDepth = 7
-    auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry, *startPool, 7, startPos, rng, generator);
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(
+        patternRegistry, *startPool, 7, startPos, rng, generator, nullptr, nullptr, nullptr);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     for (auto& placed : placedPieces) {

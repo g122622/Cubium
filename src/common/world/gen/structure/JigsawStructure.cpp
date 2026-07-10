@@ -198,8 +198,15 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     //   缺省时 JigsawAssembler 内部使用 MC 默认值 MaxDistance(80)。
     const structure::MaxDistance* maxDistance =
         m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
-    auto placedPieces = jigsaw::JigsawAssembler::assemble(
-        patternRegistry, *startPool, m_config.size, startPos, rng, generator, aliases, maxDistance);
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
+        *startPool,
+        m_config.size,
+        startPos,
+        rng,
+        generator,
+        aliases,
+        maxDistance,
+        &m_config.dimensionPadding);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // MC 1.21.11: 结构起点只创建片段，不写入方块

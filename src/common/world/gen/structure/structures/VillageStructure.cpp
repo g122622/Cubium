@@ -195,8 +195,8 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
 
     // 使用 JigsawAssembler 组装村庄结构
     // 组装获取 PlacedPiece 列表，包含 JigsawJunction 信息用于地形适配
-    auto placedPieces =
-        jigsaw::JigsawAssembler::assemble(patternRegistry, *startPool, m_config.size, startPos, rng, generator);
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(
+        patternRegistry, *startPool, m_config.size, startPos, rng, generator, nullptr, nullptr, nullptr);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息

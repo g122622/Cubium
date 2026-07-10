@@ -221,8 +221,15 @@ std::unique_ptr<StructureStart> TrialChambersStructure::generate(
     // 转发 maxDistanceFromCenter（配置为 116）用于初始化 freeShape 可放置空间。
     const structure::MaxDistance* maxDistance =
         m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
-    auto placedPieces = jigsaw::JigsawAssembler::assemble(
-        patternRegistry, *startPool, m_config.size, startPos, rng, generator, aliases, maxDistance);
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
+        *startPool,
+        m_config.size,
+        startPos,
+        rng,
+        generator,
+        aliases,
+        maxDistance,
+        &m_config.dimensionPadding);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     for (auto& placed : placedPieces) {

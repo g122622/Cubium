@@ -33,6 +33,7 @@
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/structure/JigsawStructure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace world {
@@ -74,7 +75,8 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     math::Random& rng,
     IChunkGenerator& generator,
     const PoolAliasBindings* aliases,
-    const structure::MaxDistance* maxDistance)
+    const structure::MaxDistance* maxDistance,
+    const structure::DimensionPadding* dimensionPadding)
 {
     std::vector<PlacedPiece> placedPieces;
     // 按优先级降序出队的待处理连接点队列（对应 MC 1.21 JigsawPlacement.Placer.placing）。
@@ -96,6 +98,21 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     Mirror mirror = Mirror::None; // 起始块不使用镜像
     auto boundingBox = JigsawTransform::calculateBoundingBox(*startPiece, startPos, rotation);
 
+    // 起始块世界高度边界检查（对应 MC 1.21 JigsawPlacement.isStartTooCloseToWorldHeightLimits）
+    // 当 DimensionPadding 非 ZERO（top/bottom 至少一个非零）时，若起始块包围盒超出
+    // [worldMinY + bottom, worldMinY + getGenDepth() - 1 - top] 则直接返回空列表，
+    // 防止结构生成在世界顶/底边界之外。
+    // DimensionPadding 为空指针或全零时跳过检查（对应 MC 的 DimensionPadding.ZERO 快速返回 false）。
+    if (dimensionPadding != nullptr && (dimensionPadding->top != 0 || dimensionPadding->bottom != 0)) {
+        const i32 worldMinY = generator.getMinY();
+        const i32 worldMaxYInclusive = worldMinY + generator.getGenDepth() - 1;
+        const i32 lowerLimit = worldMinY + dimensionPadding->bottom;
+        const i32 upperLimit = worldMaxYInclusive - dimensionPadding->top;
+        if (boundingBox.minY() < lowerLimit || boundingBox.maxY() > upperLimit) {
+            return placedPieces;
+        }
+    }
+
     PlacedPiece startPlaced;
     startPlaced.piece = startPiece->clone();
     startPlaced.position = startPos;
@@ -113,25 +130,29 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     // 后续每放置一块即从 freeShape 减去其 AABB，保证不与已放置块重叠、不超出 MaxDistance 范围。
     // maxDistance 缺省时使用 MC 默认值 MaxDistance(80)。
     // 中心点取起始块 AABB 的中心（对应 MC i = (maxX+minX)/2, j = (maxZ+minZ)/2, i1 = startPos.y）
-    // TODO(jigsaw-refactor): MaxDistance 包围盒的 Y 轴未按 DimensionPadding 与世界高度限制裁剪。
-    //   MC 1.21 在 addPieces 中将 AABB 的 Y 限制在
-    //   [max(centerY - vertical, levelMinY + dimensionPadding.bottom),
-    //    min(centerY + vertical + 1, levelMaxY + 1 - dimensionPadding.top)]，
-    //   防止结构生成超出世界高度边界。当前 assemble 未持有 DimensionPadding/LevelHeightAccessor 上下文，
-    //   故 Y 轴使用未裁剪的 [centerY - vertical, centerY + vertical + 1]。多数结构（村庄/掠夺者前哨站/
-    //   堡垒遗迹）DimensionPadding 为 0 且结构高度远小于世界高度，影响可忽略；试炼密室 DimensionPadding(10,10)
-    //   的裁剪差异仅在结构逼近世界顶/底边界时才有影响。
-    //   参考: MC 1.21 net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement.addPieces
+    //
+    // Y 轴裁剪（对应 MC 1.21 JigsawPlacement.addPieces 中的 AABB 构造）：
+    //   minY = max(centerY - vertical, worldMinY + padding.bottom)
+    //   maxY = min(centerY + vertical + 1, worldMinY + getGenDepth() - padding.top)
+    // 其中 worldMinY = generator.getMinY()，worldMinY + getGenDepth() 对应 MC 的 levelMaxY + 1（排他上界）。
+    // padding 为空指针时按 DimensionPadding(0, 0) 处理（不裁剪）。
+    // 这保证结构不会生成到世界顶/底边界之外。
     const structure::MaxDistance defaultDistance(80);
     const structure::MaxDistance& dist = (maxDistance != nullptr) ? *maxDistance : defaultDistance;
     const i32 centerX = (boundingBox.minX() + boundingBox.maxX()) / 2;
     const i32 centerZ = (boundingBox.minZ() + boundingBox.maxZ()) / 2;
     const i32 centerY = startPos.y;
+    const i32 paddingTop = (dimensionPadding != nullptr) ? dimensionPadding->top : 0;
+    const i32 paddingBottom = (dimensionPadding != nullptr) ? dimensionPadding->bottom : 0;
+    const i32 worldMinY = generator.getMinY();
+    const i32 worldMaxExclusive = worldMinY + generator.getGenDepth();
+    const i32 clippedMinY = std::max(centerY - dist.vertical, worldMinY + paddingBottom);
+    const i32 clippedMaxY = std::min(centerY + dist.vertical + 1, worldMaxExclusive - paddingTop);
     AxisAlignedBB maxDistanceAabb(static_cast<f32>(centerX - dist.horizontal),
-        static_cast<f32>(centerY - dist.vertical),
+        static_cast<f32>(clippedMinY),
         static_cast<f32>(centerZ - dist.horizontal),
         static_cast<f32>(centerX + dist.horizontal + 1),
-        static_cast<f32>(centerY + dist.vertical + 1),
+        static_cast<f32>(clippedMaxY),
         static_cast<f32>(centerZ + dist.horizontal + 1));
     VoxelShape globalFreeShape =
         Shapes::join(Shapes::create(maxDistanceAabb), Shapes::create(toAabb(boundingBox)), BooleanOps::OnlyFirst());

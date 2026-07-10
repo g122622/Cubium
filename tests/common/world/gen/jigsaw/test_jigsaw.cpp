@@ -30,6 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/jigsaw/AssemblyTypes.hpp"
 #include "common/world/gen/jigsaw/EmptyJigsawPiece.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
@@ -41,6 +42,9 @@
 #include "common/world/gen/jigsaw/SingleJigsawPiece.hpp"
 #include "common/world/gen/jigsaw/TemplatePool.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/structure/JigsawStructure.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -72,6 +76,49 @@ public:
     }
 
     std::vector<Write> writes;
+};
+
+/**
+ * @brief 可配置高度边界的区块生成器 mock
+ *
+ * 用于 JigsawAssembler::assemble 的 Y 轴裁剪与世界高度边界检查测试。
+ * 默认模拟主世界：minY=-64, genDepth=384（即 [-64, 320)）。
+ */
+class MockChunkGenerator final : public IChunkGenerator {
+public:
+    MockChunkGenerator()
+        : m_minY(world::MIN_BUILD_HEIGHT)
+        , m_genDepth(world::CHUNK_HEIGHT)
+    {}
+
+    MockChunkGenerator(i32 minY, i32 genDepth)
+        : m_minY(minY)
+        , m_genDepth(genDepth)
+    {}
+
+    [[nodiscard]] i32 getMinY() const override { return m_minY; }
+    [[nodiscard]] i32 getGenDepth() const override { return m_genDepth; }
+
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override { return 64; }
+    [[nodiscard]] u64 seed() const override { return 12345; }
+    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
+    [[nodiscard]] i32 seaLevel() const override { return m_settings.seaLevel; }
+
+    void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+    void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+    void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
+    void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
+    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
+
+private:
+    i32 m_minY;
+    i32 m_genDepth;
+    DimensionSettings m_settings = DimensionSettings::overworld();
 };
 
 } // namespace
@@ -396,4 +443,285 @@ TEST(PlacedPieceTest, JunctionStorage)
     EXPECT_EQ(piece.junctions[0].getSourceX(), 100);
     EXPECT_EQ(piece.junctions[1].getDeltaY(), -3);
     EXPECT_EQ(piece.junctions[2].getDestProjection(), JigsawPlacementBehaviour::Rigid);
+}
+
+// ============================================================================
+// JigsawAssembler::assemble 维度填充与世界高度边界测试
+// ============================================================================
+//
+// 验证 assemble() 的两项新增行为：
+// 1. isStartTooCloseToWorldHeightLimits：当 DimensionPadding 非 ZERO 且起始块包围盒
+//    超出 [worldMinY + bottom, worldMinY + genDepth - 1 - top] 时返回空列表。
+// 2. MaxDistance 包围盒 Y 轴裁剪：Y 范围被限制在
+//    [max(centerY - vertical, worldMinY + bottom),
+//     min(centerY + vertical + 1, worldMinY + genDepth - top)]。
+//
+// 测试通过构造无连接点的单块起始池，使 assemble 仅放置起始块后即结束，
+// 从而隔离地验证起始块高度检查逻辑。
+
+namespace {
+
+/**
+ * @brief 测试专用拼图块
+ *
+ * 不加载结构模板，大小与连接点完全由测试代码设置。
+ * clone() 忠实复制大小与连接点，避免 SingleJigsawPiece::clone() 重新加载模板
+ * 导致手动设置的大小丢失（测试模板名不存在时 m_size 会被置零）。
+ */
+class TestJigsawPiece final : public JigsawPiece {
+public:
+    explicit TestJigsawPiece(const BlockPos& size)
+        : JigsawPiece(JigsawPlacementBehaviour::Rigid)
+        , m_size(size)
+    {}
+
+    const std::string& getTypeName() const override { return s_typeName; }
+    std::unique_ptr<JigsawPiece> clone() const override
+    {
+        auto piece = std::make_unique<TestJigsawPiece>(m_size);
+        piece->setGroundLevelDelta(getGroundLevelDelta());
+        for (const auto& joint : m_joints) {
+            piece->addJoint(joint);
+        }
+        return piece;
+    }
+    BlockPos getSize() const override { return m_size; }
+    void setSize(const BlockPos& size) { m_size = size; }
+
+    void place(IWorldWriter& /*world*/,
+        const PlacedPiece& /*placed*/,
+        mc::world::gen::feature::template_::TemplateManager& /*templateManager*/,
+        math::Random& /*rng*/,
+        const mc::world::gen::structure::StructureBoundingBox* /*bounds*/,
+        mc::world::chunk::ChunkPrimer* /*chunk*/ = nullptr,
+        IChunkGenerator* /*generator*/ = nullptr) override
+    {}
+
+private:
+    BlockPos m_size;
+    static std::string s_typeName;
+};
+
+std::string TestJigsawPiece::s_typeName = "test_piece";
+
+/// 构造仅含一个无连接点的起始模板池
+TemplatePool makeSinglePieceStartPool(const BlockPos& size)
+{
+    TemplatePool pool(ResourceLocation("minecraft", "test_assemble_pool"), ResourceLocation("minecraft", "empty"));
+    pool.addPiece(std::make_unique<TestJigsawPiece>(size), 1);
+    return pool;
+}
+
+} // namespace
+
+/**
+ * @brief 起始块底部超出世界高度边界（DimensionPadding.bottom > 0）时应返回空列表
+ *
+ * 世界范围 [-64, 320)，DimensionPadding(0, 50) 将下界抬到 -64+50=-14。
+ * 起始块 size.y=20，startPos.y=-20，包围盒 minY=-20 < -14，应被拒绝。
+ */
+TEST(JigsawAssemblerAssembleTest, StartPieceBelowLowerLimitReturnsEmpty)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 20, 5));
+    const BlockPos startPos(0, -20, 0);
+    const mc::world::gen::structure::DimensionPadding padding(0, 50);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+
+    EXPECT_TRUE(pieces.empty());
+}
+
+/**
+ * @brief 起始块顶部超出世界高度边界（DimensionPadding.top > 0）时应返回空列表
+ *
+ * 世界范围 [-64, 320)，DimensionPadding(50, 0) 将上界降到 320-1-50=269。
+ * 起始块 size.y=20，startPos.y=260，包围盒 maxY=279 > 269，应被拒绝。
+ */
+TEST(JigsawAssemblerAssembleTest, StartPieceAboveUpperLimitReturnsEmpty)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 20, 5));
+    const BlockPos startPos(0, 260, 0);
+    const mc::world::gen::structure::DimensionPadding padding(50, 0);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+
+    EXPECT_TRUE(pieces.empty());
+}
+
+/**
+ * @brief DimensionPadding 为 ZERO（top=bottom=0）时即使起始块贴近边界也不拒绝
+ *
+ * 世界范围 [-64, 320)，DimensionPadding(0, 0)。
+ * 起始块 size.y=5，startPos.y=-64（紧贴世界底部），包围盒 minY=-64 >= -64+0=-64，应通过。
+ */
+TEST(JigsawAssemblerAssembleTest, ZeroDimensionPaddingAllowsEdgePlacement)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 5, 5));
+    const BlockPos startPos(0, -64, 0);
+    const mc::world::gen::structure::DimensionPadding padding(0, 0);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+
+    // ZERO padding 不触发边界检查，应成功放置起始块
+    EXPECT_EQ(pieces.size(), 1u);
+}
+
+/**
+ * @brief DimensionPadding 为 nullptr 时跳过边界检查
+ *
+ * 与 ZERO 等价：即使起始块贴近世界边界也不拒绝。
+ */
+TEST(JigsawAssemblerAssembleTest, NullDimensionPaddingSkipsCheck)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 5, 5));
+    const BlockPos startPos(0, -64, 0);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, nullptr);
+
+    EXPECT_EQ(pieces.size(), 1u);
+}
+
+/**
+ * @brief 起始块在 DimensionPadding 限制范围内时应成功放置
+ *
+ * 世界范围 [-64, 320)，DimensionPadding(10, 10) 将有效范围限制到 [-54, 309]。
+ * 起始块 size.y=20，startPos.y=0，包围盒 [0, 19] 完全在 [-54, 309] 内，应通过。
+ */
+TEST(JigsawAssemblerAssembleTest, StartPieceWithinPaddingSucceeds)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 20, 5));
+    const BlockPos startPos(0, 0, 0);
+    const mc::world::gen::structure::DimensionPadding padding(10, 10);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+
+    EXPECT_EQ(pieces.size(), 1u);
+    // 验证起始块包围盒正确
+    ASSERT_FALSE(pieces.empty());
+    EXPECT_EQ(pieces[0].boundingBox.minY(), 0);
+    EXPECT_EQ(pieces[0].boundingBox.maxY(), 19);
+}
+
+/**
+ * @brief MaxDistance Y 轴被 DimensionPadding 与世界底部裁剪
+ *
+ * 世界范围 [-64, 320)，DimensionPadding(0, 50)，MaxDistance(10, 10)。
+ * startPos.y=-60，未裁剪的 Y 范围为 [-70, -49]，但 worldMinY+bottom=-14，
+ * 故裁剪后 Y 范围应为 [-14, -49] —— 由于 minY > maxY（裁剪后下界高于上界），
+ * 起始块包围盒 [-60, -59] 的 minY=-60 < -14（lowerLimit），会被 isStartTooCloseToWorldHeightLimits 拒绝。
+ *
+ * 此测试验证底部裁剪生效：startPos.y=-60 + DimensionPadding.bottom=50 导致 lowerLimit=-14，
+ * 起始块 minY=-60 < -14，触发早返回。
+ */
+TEST(JigsawAssemblerAssembleTest, MaxDistanceBottomClippingRejectsStart)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 2, 5));
+    const BlockPos startPos(0, -60, 0);
+    const mc::world::gen::structure::DimensionPadding padding(0, 50);
+    const mc::world::gen::structure::MaxDistance maxDist(10, 10);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+
+    // 起始块 minY=-60 < lowerLimit=-14，被 isStartTooCloseToWorldHeightLimits 拒绝
+    EXPECT_TRUE(pieces.empty());
+}
+
+/**
+ * @brief MaxDistance Y 轴被 DimensionPadding 与世界顶部裁剪
+ *
+ * 世界范围 [-64, 320)，DimensionPadding(50, 0)，MaxDistance(10, 10)。
+ * startPos.y=315，起始块 size.y=2，包围盒 [315, 316]。
+ * upperLimit = 320 - 1 - 50 = 269，maxY=316 > 269，被拒绝。
+ */
+TEST(JigsawAssemblerAssembleTest, MaxDistanceTopClippingRejectsStart)
+{
+    MockChunkGenerator generator; // [-64, 320)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 2, 5));
+    const BlockPos startPos(0, 315, 0);
+    const mc::world::gen::structure::DimensionPadding padding(50, 0);
+    const mc::world::gen::structure::MaxDistance maxDist(10, 10);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+
+    // 起始块 maxY=316 > upperLimit=269，被拒绝
+    EXPECT_TRUE(pieces.empty());
+}
+
+/**
+ * @brief 自定义世界高度（如下界 [0, 128)）下的边界检查
+ *
+ * 下界 minY=0, genDepth=128。DimensionPadding(10, 10) 将有效范围限制到 [10, 117]。
+ * 起始块 size.y=20，startPos.y=0，包围盒 [0, 19]，minY=0 < 10，被拒绝。
+ */
+TEST(JigsawAssemblerAssembleTest, NetherLikeWorldBottomCheck)
+{
+    MockChunkGenerator netherGen(0, 128); // [0, 128)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 20, 5));
+    const BlockPos startPos(0, 0, 0);
+    const mc::world::gen::structure::DimensionPadding padding(10, 10);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, netherGen, nullptr, &maxDist, &padding);
+
+    EXPECT_TRUE(pieces.empty());
+}
+
+/**
+ * @brief 自定义世界高度（下界 [0, 128)）下起始块在范围内时成功放置
+ *
+ * 下界 minY=0, genDepth=128。DimensionPadding(10, 10) 将有效范围限制到 [10, 117]。
+ * 起始块 size.y=20，startPos.y=50，包围盒 [50, 69] 完全在 [10, 117] 内，应通过。
+ */
+TEST(JigsawAssemblerAssembleTest, NetherLikeWorldWithinBoundsSucceeds)
+{
+    MockChunkGenerator netherGen(0, 128); // [0, 128)
+    auto& registry = TemplatePoolRegistry::instance();
+    TemplatePool startPool = makeSinglePieceStartPool(BlockPos(5, 20, 5));
+    const BlockPos startPos(0, 50, 0);
+    const mc::world::gen::structure::DimensionPadding padding(10, 10);
+    const mc::world::gen::structure::MaxDistance maxDist(80);
+
+    Random rng(42);
+    auto pieces =
+        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, netherGen, nullptr, &maxDist, &padding);
+
+    EXPECT_EQ(pieces.size(), 1u);
+    ASSERT_FALSE(pieces.empty());
+    EXPECT_EQ(pieces[0].boundingBox.minY(), 50);
+    EXPECT_EQ(pieces[0].boundingBox.maxY(), 69);
 }
