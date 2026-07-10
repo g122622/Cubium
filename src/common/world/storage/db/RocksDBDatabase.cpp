@@ -22,7 +22,7 @@
  */
 
 #include "RocksDBDatabase.hpp"
-#include "../../../perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <rocksdb/db.h>

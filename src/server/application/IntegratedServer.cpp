@@ -40,8 +40,8 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/perfetto/PerfettoManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -424,7 +424,7 @@ void IntegratedServer::_mainLoop()
     using clock = std::chrono::steady_clock;
     const auto tickDuration = std::chrono::milliseconds(1000 / m_settings.tickRate.get());
 
-    mc::perfetto::PerfettoManager::instance().setThreadName("IntegratedServerThread");
+    mc::profiler::ProfilerManager::instance().setThreadName("IntegratedServerThread");
 
     spdlog::info("Integrated server started ({} TPS)", m_settings.tickRate.get());
 

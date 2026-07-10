@@ -23,7 +23,7 @@
 
 #include "PackListBase.hpp"
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
 
 #include <algorithm>

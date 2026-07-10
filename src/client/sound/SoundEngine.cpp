@@ -26,7 +26,7 @@
 #include "client/sound/SoundHandler.hpp"
 #include "client/sound/resource/SoundDefinition.hpp"
 #include "client/sound/resource/SoundRegistry.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 

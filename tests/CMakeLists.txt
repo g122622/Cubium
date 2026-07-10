@@ -1104,7 +1104,7 @@ add_executable(mc_tests
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp
     # Perfetto 娴嬭瘯锛堥泦鎴愬埌涓绘祴璇曞浠讹級
-    common/perfetto/PerfettoTest.cpp
+    common/profiler/PerfettoTest.cpp
     # Tick 绯荤粺娴嬭瘯
     common/world/tick/ServerTickListTest.cpp
     # 娴佷綋绯荤粺娴嬭瘯

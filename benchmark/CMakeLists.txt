@@ -22,7 +22,7 @@ target_link_libraries(mc_benchmarks
     PRIVATE
         mc_common
         mc_bedrock_addon
-        mc::perfetto
+        mc::profiler
         nlohmann_json::nlohmann_json
 )
 

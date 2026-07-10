@@ -22,7 +22,7 @@
  */
 
 #include "StorageTask.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <fmt/format.h>
 
 using namespace mc::trace;

@@ -36,7 +36,7 @@
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/assert/AssertAll.hpp"

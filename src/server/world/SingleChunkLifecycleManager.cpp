@@ -17,7 +17,7 @@
  */
 
 #include "SingleChunkLifecycleManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <algorithm>

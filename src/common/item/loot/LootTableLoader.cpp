@@ -23,7 +23,7 @@
 
 #include "LootTableLoader.hpp"
 #include "LootTable.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <filesystem>

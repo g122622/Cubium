@@ -22,7 +22,7 @@
  */
 
 #include "SectionCodec.hpp"
-#include "perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>

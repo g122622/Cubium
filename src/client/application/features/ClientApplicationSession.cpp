@@ -40,7 +40,7 @@
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "common/world/storage/list/WorldNameSanitizer.hpp"
 

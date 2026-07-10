@@ -23,7 +23,7 @@
 
 #include "SkyLightEngine.hpp"
 #include "common/core/Constants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
 #include "common/world/block/Block.hpp"

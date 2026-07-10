@@ -354,16 +354,22 @@ tag.put("value", 42);
 auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 ```
 
-### 性能追踪（Perfetto）
+### 性能追踪（Perfetto + Tracy 双轨）
+
+项目内置两套 profiler 后端，可独立开关、同时启用（双轨录制），对外 `MC_TRACE_*` API 宏名统一：
+
+- **Perfetto**（`MC_ENABLE_TRACING`，默认 ON）：进程内录制到 `.perfetto-trace` 文件，供 ui.perfetto.dev 分析。
+- **Tracy**（`MC_ENABLE_TRACY`，默认 ON）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看（进程内不写文件）。
+- 两者同时启用时，`MC_TRACE_*` 宏会同时向两套后端发事件；两者皆关时所有宏空展开、零开销。
 
 ### 追踪类别
 
-追踪类别参见 `src\common\perfetto\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。你只能使用这棵树上的叶子节点（如 `TraceEvents.Server.Tick`），其字符串值已在该文件的 `PERFETTO_DEFINE_CATEGORIES` 中注册。使用树外的类别会导致编译错误。
+追踪类别参见 `src\common\profiler\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。你只能使用这棵树上的叶子节点（如 `TraceEvents.Server.Tick`），其字符串值已在该文件的 `PERFETTO_DEFINE_CATEGORIES` 中注册（仅 Perfetto 后端需要注册，Tracy 侧不消费 category）。使用树外的类别会导致编译错误（仅 Perfetto 启用时）。
 
 ### 用法
 
 ```cpp
-#include "perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 // 作用域事件（推荐）；category 取自 TraceEvents 枚举树
 MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "RenderFrame");
@@ -387,7 +393,9 @@ MC_TRACE_INSTANT_EVENT(TraceEvents.Game.Tick, "SomethingHappened");
 
 可用宏：`MC_TRACE_SCOPED_EVENT`（作用域事件，最常用）、`MC_TRACE_INSTANT_EVENT`（瞬时事件）、`MC_TRACE_COUNTER`（计数器）、`MC_TRACE_EVENT_BEGIN`/`MC_TRACE_EVENT_END`（手动跨函数配对）、`MC_TRACE_SET_THREAD_NAME`（线程命名）。
 
-你必须保证传入的枚举叶节点在 `src\common\perfetto\TraceCategories.hpp` 中已注册，否则会导致编译错误。
+双轨说明：`MC_TRACE_SCOPED_EVENT` 双轨启用时同时发 Perfetto `TRACE_EVENT` 与 Tracy `ZoneScopedN`（变量名按 `__LINE__` 唯一化，允许同一作用域多个）；`MC_TRACE_COUNTER` 同时发 `TRACE_COUNTER` 与 `TracyPlot`（转 double，>2^53 大值会丢精度）；`MC_TRACE_INSTANT_EVENT`/`BEGIN`/`END` 在 Tracy 侧降级为 message 边界标记。`MC_TRACE_SET_THREAD_NAME` 转调 `ProfilerManager::setThreadName`，由门面同时写两套后端。
+
+你必须保证传入的枚举叶节点在 `src\common\profiler\TraceCategories.hpp` 中已注册，否则会导致编译错误（仅 Perfetto 后端启用时生效；Tracy 不消费 category）。
 
 ## 错误处理模式
 

@@ -22,7 +22,7 @@
  */
 
 #include "common/world/chunk/load/ChunkDistanceGraph.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
 #include <cmath>

@@ -24,7 +24,7 @@
 #include "TickManager.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"

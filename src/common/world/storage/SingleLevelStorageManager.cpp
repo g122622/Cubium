@@ -24,7 +24,7 @@
 #include "SingleLevelStorageManager.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
 #include "world/storage/backend/BedrockLDBBackend.hpp"
 #include "world/storage/backend/JavaAnvilBackend.hpp"

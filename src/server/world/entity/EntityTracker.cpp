@@ -34,7 +34,7 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"

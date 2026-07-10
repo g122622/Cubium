@@ -135,7 +135,7 @@ benchmark_results/
 ## 依赖项
 
 - `mc_common`：核心游戏逻辑
-- `mc::perfetto`：性能追踪
+- `mc::profiler`：性能追踪
 - `nlohmann_json`：JSON 解析
 
 ## 使用方法

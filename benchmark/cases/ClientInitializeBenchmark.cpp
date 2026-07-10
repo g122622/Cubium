@@ -23,7 +23,7 @@
 
 #include "../BenchmarkRegistry.hpp"
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

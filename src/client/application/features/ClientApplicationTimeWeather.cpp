@@ -24,7 +24,7 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "common/core/Constants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/dimension/DimensionRenderSettings.hpp"

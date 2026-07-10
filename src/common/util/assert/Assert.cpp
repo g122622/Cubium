@@ -29,7 +29,7 @@
 #include <iostream>
 #include <mutex>
 
-#include "common/perfetto/PerfettoManager.hpp"
+#include "common/profiler/ProfilerManager.hpp"
 
 #ifdef _WIN32
 // clang-format off
@@ -187,9 +187,9 @@ std::string AssertManager::captureStackTrace() const
 
     std::cerr << detail::formatFailureBlock(failure) << std::flush;
 
-    auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
-    perfettoManager.stopTracing();
-    perfettoManager.shutdown();
+    auto& profilerManager = mc::profiler::ProfilerManager::instance();
+    profilerManager.stopTracing();
+    profilerManager.shutdown();
     std::cout << "Perfetto tracing stopped due to assertion failure" << std::endl;
 
     std::abort();

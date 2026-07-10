@@ -22,7 +22,7 @@
  */
 
 #include "InputManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>

@@ -52,7 +52,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

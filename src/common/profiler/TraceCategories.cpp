@@ -46,7 +46,7 @@ PERFETTO_TRACK_EVENT_STATIC_STORAGE();
 #endif
 
 namespace mc {
-namespace perfetto {
+namespace profiler {
 
 void initTraceCategories()
 {
@@ -54,7 +54,7 @@ void initTraceCategories()
     // 此函数预留给未来可能的动态分类注册需求
 }
 
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc
 
 #endif // MC_ENABLE_TRACING

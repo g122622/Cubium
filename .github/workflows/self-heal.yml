@@ -48,6 +48,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # 使用 GitHub Models API 进行根因分析
       - name: Classify failure with GitHub Models
@@ -142,6 +144,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # 防循环：检查最近提交中bot提交的数量
       - name: Check bot-commit anti-loop guard

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/concurrent/ConcurrentLong2ObjectHashTable.hpp"
 #include "common/util/concurrent/LockSupport.hpp"

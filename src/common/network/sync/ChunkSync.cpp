@@ -28,7 +28,7 @@
 
 #include "ChunkSync.hpp"
 #include "../../world/WorldConstants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>

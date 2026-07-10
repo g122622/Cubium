@@ -26,7 +26,7 @@
 #include "client/renderer/util/ShaderPath.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/core/Constants.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"

@@ -22,7 +22,7 @@
  */
 
 #include "BiomeRegistry.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 
 using namespace mc::trace;

@@ -41,7 +41,7 @@
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/core/CoordConverter.hpp"

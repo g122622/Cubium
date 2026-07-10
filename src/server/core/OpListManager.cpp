@@ -23,7 +23,7 @@
 
 #include "OpListManager.hpp"
 
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <fstream>
 #include <nlohmann/json.hpp>

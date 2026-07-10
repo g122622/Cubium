@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * copies of the Software, and to permitted persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -22,41 +22,45 @@
  */
 
 /**
- * @file PerfettoManager.hpp
- * @brief Perfetto 追踪管理器
+ * @file ProfilerManager.hpp
+ * @brief 性能追踪门面（Perfetto + Tracy 双轨）
  *
- * 单例管理器，负责 Perfetto 追踪系统的生命周期管理：
- * - 初始化和关闭追踪系统
- * - 启动和停止追踪会话
- * - 切换追踪数据到文件
- * - 运行时启用/禁用追踪
+ * 单例门面，统一管理两套 profiler 后端的生命周期与进程/线程命名：
+ * - Perfetto 后端（PerfettoBackend）：TracingSession 生命周期、root track、
+ *   写 .perfetto-trace 文件，仅在 MC_ENABLE_TRACING=1 时存在。
+ * - Tracy 后端：in-memory 采集（client 自动监听 8086，需 tracy GUI 连接拉取），
+ *   不写文件、不做 start/stop/capture 管理，仅由本门面双写进程/线程名。
+ *
+ * setProcessName / setThreadName 永远同时写给两套后端（双轨命名）。
+ * 其余生命周期方法（initialize/start/stop/flush）仅作用于 Perfetto 后端——
+ * Tracy 的采集是 client 自动完成的，无需门面驱动。
  *
  * 使用方法：
  * @code
- * // 应用启动时初始化
- * mc::perfetto::TraceConfig config;
+ * // 应用启动时初始化（配置仅 Perfetto 用）
+ * mc::profiler::TraceConfig config;
  * config.outputPath = "trace.perfetto-trace";
- * mc::perfetto::PerfettoManager::instance().initialize(config);
- * mc::perfetto::PerfettoManager::instance().startTracing();
+ * mc::profiler::ProfilerManager::instance().initialize(config);
+ * mc::profiler::ProfilerManager::instance().startTracing();
  *
- * // 应用运行中记录事件
+ * // 应用运行中记录事件（双轨宏，见 TraceEvents.hpp）
  * MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Frame");
  *
  * // 应用关闭时清理
- * mc::perfetto::PerfettoManager::instance().stopTracing();
- * mc::perfetto::PerfettoManager::instance().shutdown();
+ * mc::profiler::ProfilerManager::instance().stopTracing();
+ * mc::profiler::ProfilerManager::instance().shutdown();
  * @endcode
  *
  * 注意事项：
- * - 必须在使用任何 MC_TRACE_* 宏之前调用 initialize()
- * - 必须在程序退出前调用 shutdown() 确保数据写入文件
- * - 追踪禁用时（MC_ENABLE_TRACING=0），此类展开为空操作
+ * - 追踪相关生命周期方法仅在 Perfetto 后端启用时有效；Tracy 单独启用时
+ *   这些方法为空操作，但 setProcessName/setThreadName 仍会写给 tracy。
+ * - 两个后端都关闭时（MC_PROFILER_ENABLED=0），本类展开为空操作存根。
  */
 
 #pragma once
 
 #include "../core/Types.hpp"
-#include "PerfettoConfig.hpp"
+#include "ProfilerConfig.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -64,10 +68,13 @@
 #include <vector>
 
 namespace mc {
-namespace perfetto {
+namespace profiler {
 
 /**
  * @brief 追踪配置选项
+ *
+ * 这些字段当前仅被 Perfetto 后端使用（缓冲区、文件输出、分类过滤）。
+ * Tracy 后端走 in-memory 采集，不消费此配置。
  */
 struct TraceConfig {
     /** 是否启用追踪（运行时开关） */
@@ -104,26 +111,29 @@ struct TraceConfig {
     std::vector<std::string> disabledCategories;
 };
 
-#if MC_ENABLE_TRACING
+// 前置声明 PerfettoBackend（仅在 MC_ENABLE_TRACING 时有完整定义），避免循环 include
+class PerfettoBackend;
+
+#if MC_PROFILER_ENABLED
 
 /**
- * @brief Perfetto 追踪管理器（启用追踪时的实现）
+ * @brief 性能追踪门面（启用时的实现）
  *
- * 单例模式，管理追踪系统的完整生命周期。
+ * 单例模式，持有 PerfettoBackend（若启用），并内联 Tracy 的命名双写逻辑。
  */
-class PerfettoManager {
+class ProfilerManager {
 public:
     /**
      * @brief 获取单例实例
      *
-     * @return PerfettoManager& 单例引用
+     * @return ProfilerManager& 单例引用
      */
-    static PerfettoManager& instance();
+    static ProfilerManager& instance();
 
     /**
      * @brief 初始化追踪系统
      *
-     * 必须在任何追踪事件之前调用。
+     * 必须在任何追踪事件之前调用。配置仅作用于 Perfetto 后端。
      *
      * @param config 配置选项
      * @throws std::runtime_error 如果初始化失败
@@ -141,7 +151,7 @@ public:
     /**
      * @brief 启动追踪会话
      *
-     * 开始记录追踪事件。
+     * 开始记录追踪事件（仅 Perfetto 后端）。Tracy 自动采集，无需调用。
      */
     void startTracing();
 
@@ -164,14 +174,14 @@ public:
     /**
      * @brief 检查追踪是否已启用
      *
-     * @return true 如果追踪系统已初始化且正在记录
+     * @return true 如果 Perfetto 后端已初始化且正在记录
      */
     [[nodiscard]] bool isEnabled() const noexcept;
 
     /**
      * @brief 检查追踪系统是否已初始化
      *
-     * @return true 如果已调用 initialize()
+     * @return true 如果已调用 initialize() 且后端就绪
      */
     [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
@@ -192,19 +202,18 @@ public:
     [[nodiscard]] const TraceConfig& config() const noexcept { return m_config; }
 
     /**
-     * @brief 设置当前进程名称
+     * @brief 设置当前进程名称（双轨）
      *
-     * 在 Perfetto UI 中显示有意义的进程名称，便于分析。
-     * 应在进程启动后、追踪开始前调用。
+     * 同时写入 Perfetto 与 Tracy，便于两套工具分析。应在进程启动后调用。
      *
      * @param name 进程名称
      */
     void setProcessName(const std::string& name);
 
     /**
-     * @brief 设置当前线程名称
+     * @brief 设置当前线程名称（双轨）
      *
-     * 在 Perfetto UI 中显示有意义的线程名称，便于分析。
+     * 同时写入 Perfetto（带 sibling_order_rank 查表）与 Tracy。
      * 应在线程启动后尽早调用。
      *
      * @param name 线程名称
@@ -214,10 +223,9 @@ public:
     /**
      * @brief 设置当前线程名称和排序 rank
      *
-     * 在 Perfetto UI 中显示有意义的线程名称，并控制显示顺序。
-     * 基于 PR #6219：根 track uuid=0 设 thread_ordering=EXPLICIT 后，
+     * Perfetto 侧按 PR #6219：根 track uuid=0 设 thread_ordering=EXPLICIT 后，
      * 线程按 sibling_order_rank 升序排列，值越小越靠前。
-     * 未设 rank 默认 0（排最前），故命名线程应显式给 1-100 避免意外排前。
+     * Tracy 侧仅记录线程名（不参与排序）。
      *
      * @param name 线程名称
      * @param siblingOrderRank 排序 rank（值越小越靠前，未设默认 0）
@@ -225,34 +233,35 @@ public:
     void setThreadName(const std::string& name, int siblingOrderRank);
 
 private:
-    PerfettoManager();
-    ~PerfettoManager();
+    ProfilerManager();
+    ~ProfilerManager();
 
-    PerfettoManager(const PerfettoManager&) = delete;
-    PerfettoManager& operator=(const PerfettoManager&) = delete;
+    ProfilerManager(const ProfilerManager&) = delete;
+    ProfilerManager& operator=(const ProfilerManager&) = delete;
 
     TraceConfig m_config;
     bool m_initialized = false;
     bool m_enabled = true;
     bool m_tracing = false;
 
-    /** Pimpl 模式隐藏实现细节 */
-    class Impl;
-    std::unique_ptr<Impl> m_impl;
+#if MC_ENABLE_TRACING
+    /** @brief Perfetto 后端（仅 MC_ENABLE_TRACING 时持有实例） */
+    std::unique_ptr<PerfettoBackend> m_perfetto;
+#endif
 };
 
-#else // MC_ENABLE_TRACING == 0
+#else // MC_PROFILER_ENABLED == 0
 
 /**
- * @brief Perfetto 追踪管理器（禁用追踪时的存根实现）
+ * @brief 性能追踪门面（两套后端都关闭时的存根实现）
  *
  * 所有方法展开为空操作，无任何开销。
  */
-class PerfettoManager {
+class ProfilerManager {
 public:
-    static PerfettoManager& instance() noexcept
+    static ProfilerManager& instance() noexcept
     {
-        static PerfettoManager instance;
+        static ProfilerManager instance;
         return instance;
     }
 
@@ -272,14 +281,14 @@ public:
     void setThreadName(const std::string&, int) noexcept {}
 
 private:
-    PerfettoManager() = default;
-    ~PerfettoManager() = default;
+    ProfilerManager() = default;
+    ~ProfilerManager() = default;
 
-    PerfettoManager(const PerfettoManager&) = delete;
-    PerfettoManager& operator=(const PerfettoManager&) = delete;
+    ProfilerManager(const ProfilerManager&) = delete;
+    ProfilerManager& operator=(const ProfilerManager&) = delete;
 };
 
-#endif // MC_ENABLE_TRACING
+#endif // MC_PROFILER_ENABLED
 
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc

@@ -28,7 +28,7 @@
 #include "client/ui/kagero/widget/Widget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"

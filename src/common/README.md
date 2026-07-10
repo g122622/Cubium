@@ -186,12 +186,13 @@ src/common/
 │   └── sync/                 # 同步系统
 │       └── ChunkSync.hpp
 │
-├── perfetto/                 # 性能追踪
-│   ├── PerfettoManager.hpp   # Perfetto 管理器
-│   ├── PerfettoConfig.hpp    # 配置
-│   ├── TraceEvents.hpp       # 追踪事件宏
-│   ├── TraceCategories.hpp   # 追踪类别
-│   └── CMakeLists.txt
+├── profiler/                 # 性能追踪（Perfetto + Tracy 双轨）
+│   ├── ProfilerManager.hpp   # 门面单例（管理两套后端）
+│   ├── PerfettoBackend.hpp   # Perfetto 后端
+│   ├── ProfilerConfig.hpp    # 编译时开关（MC_ENABLE_TRACING / MC_ENABLE_TRACY）
+│   ├── TraceEvents.hpp       # 追踪事件宏（双轨四种组合分支）
+│   ├── TraceCategories.hpp   # 追踪类别枚举树
+│   └── CMakeLists.txt        # perfetto_sdk + TracyClient + mc_profiler
 │
 ├── particle/                 # 粒子类型定义
 │   ├── ParticleTypes.hpp     # 粒子类型枚举 (ParticleTypeId) 及辅助函数
@@ -480,7 +481,7 @@ src/common/
 - `nlohmann_json` - JSON 解析
 - `LibArchive` - ZIP 解压
 - `ZLIB` - 压缩
-- `perfetto` - 性能追踪
+- `profiler` - 性能追踪（Perfetto + Tracy 双轨，对应 CMake target `mc_profiler`）
 
 **下游模块**:
 - `mc_client` - 客户端
@@ -523,4 +524,4 @@ src/common/
 
 7. **流体系统**: 参考 `world/fluid/FLUID_TODO.md`
 
-8. **性能追踪**: 需要编译时启用 `-DMC_ENABLE_TRACING=ON`
+8. **性能追踪**: Perfetto + Tracy 双轨，默认均启用。可用 `-DMC_ENABLE_TRACING=OFF` / `-DMC_ENABLE_TRACY=OFF` 独立关闭。详见 `profiler/README.md`。

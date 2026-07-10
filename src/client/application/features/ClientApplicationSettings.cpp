@@ -27,7 +27,7 @@
 #include "client/renderer/trident/core/TridentEngine.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 
 #include <filesystem>
 

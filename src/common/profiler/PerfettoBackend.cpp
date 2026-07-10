@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * copies of the Software, and to permitted persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -22,14 +22,19 @@
  */
 
 /**
- * @file PerfettoManager.cpp
- * @brief Perfetto 追踪管理器实现
+ * @file PerfettoBackend.cpp
+ * @brief Perfetto 后端实现
+ *
+ * 封装 Perfetto SDK 的全部交互：TracingSession 生命周期、root track
+ * descriptor（uuid=0，启用显式线程排序）、写文件、进程/线程命名。
+ * 由 ProfilerManager 门面持有，仅在 MC_ENABLE_TRACING=1 时编译。
  */
 
-#include "PerfettoManager.hpp"
-#include "TraceCategories.hpp"
+#include "PerfettoBackend.hpp"
 
 #if MC_ENABLE_TRACING
+
+#include "TraceCategories.hpp"
 
 // 禁用 Perfetto SDK 的警告
 #if defined(_MSC_VER)
@@ -49,7 +54,7 @@
 #include <spdlog/spdlog.h>
 
 namespace mc {
-namespace perfetto {
+namespace profiler {
 
 namespace {
 /**
@@ -79,11 +84,11 @@ namespace {
 } // namespace
 
 /**
- * @brief PerfettoManager 的实现细节
+ * @brief PerfettoBackend 的实现细节
  *
  * 使用 Pimpl 模式隐藏 Perfetto 特定类型。
  */
-class PerfettoManager::Impl {
+class PerfettoBackend::Impl {
 public:
     Impl() = default;
     ~Impl() = default;
@@ -91,17 +96,11 @@ public:
     std::unique_ptr<::perfetto::TracingSession> tracingSession;
 };
 
-PerfettoManager& PerfettoManager::instance()
-{
-    static PerfettoManager instance;
-    return instance;
-}
-
-PerfettoManager::PerfettoManager()
+PerfettoBackend::PerfettoBackend()
     : m_impl(std::make_unique<Impl>())
 {}
 
-PerfettoManager::~PerfettoManager()
+PerfettoBackend::~PerfettoBackend()
 {
     if (m_initialized && m_tracing) {
         stopTracing();
@@ -111,7 +110,7 @@ PerfettoManager::~PerfettoManager()
     }
 }
 
-void PerfettoManager::initialize(const TraceConfig& config)
+void PerfettoBackend::initialize(const TraceConfig& config)
 {
     if (m_initialized) {
         spdlog::warn("[Perfetto] Already initialized, skipping");
@@ -127,13 +126,12 @@ void PerfettoManager::initialize(const TraceConfig& config)
     ::perfetto::TrackEvent::Register();
 
     m_initialized = true;
-    m_enabled = config.enabled;
 
     spdlog::info("[Perfetto] Initialized with buffer size {} KB", m_config.bufferSizeKb);
     spdlog::info("[Perfetto] Output file: {}", m_config.outputPath);
 }
 
-void PerfettoManager::shutdown()
+void PerfettoBackend::shutdown()
 {
     if (!m_initialized) {
         return;
@@ -147,7 +145,7 @@ void PerfettoManager::shutdown()
     spdlog::info("[Perfetto] Shutdown complete");
 }
 
-void PerfettoManager::startTracing()
+void PerfettoBackend::startTracing()
 {
     if (!m_initialized) {
         spdlog::error("[Perfetto] Cannot start tracing: not initialized");
@@ -217,7 +215,7 @@ void PerfettoManager::startTracing()
     spdlog::info("[Perfetto] Output will be written to: {}", m_config.outputPath);
 }
 
-void PerfettoManager::stopTracing()
+void PerfettoBackend::stopTracing()
 {
     if (!m_initialized || !m_tracing) {
         return;
@@ -256,7 +254,7 @@ void PerfettoManager::stopTracing()
     spdlog::info("[Perfetto] Tracing stopped");
 }
 
-void PerfettoManager::flush()
+void PerfettoBackend::flush()
 {
     if (!m_initialized || !m_tracing) {
         return;
@@ -265,12 +263,7 @@ void PerfettoManager::flush()
     ::perfetto::TrackEvent::Flush();
 }
 
-bool PerfettoManager::isEnabled() const noexcept
-{
-    return m_initialized && m_enabled && m_tracing;
-}
-
-void PerfettoManager::setProcessName(const std::string& name)
+void PerfettoBackend::setProcessName(const std::string& name)
 {
     if (!m_initialized) {
         return;
@@ -281,7 +274,7 @@ void PerfettoManager::setProcessName(const std::string& name)
     ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ProcessTrack::Current(), desc);
 }
 
-void PerfettoManager::setThreadName(const std::string& name)
+void PerfettoBackend::setThreadName(const std::string& name)
 {
     if (!m_initialized) {
         return;
@@ -290,7 +283,7 @@ void PerfettoManager::setThreadName(const std::string& name)
     setThreadName(name, getThreadSortIndex(name));
 }
 
-void PerfettoManager::setThreadName(const std::string& name, int siblingOrderRank)
+void PerfettoBackend::setThreadName(const std::string& name, int siblingOrderRank)
 {
     if (!m_initialized) {
         return;
@@ -302,7 +295,7 @@ void PerfettoManager::setThreadName(const std::string& name, int siblingOrderRan
     ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
 }
 
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc
 
 #endif // MC_ENABLE_TRACING

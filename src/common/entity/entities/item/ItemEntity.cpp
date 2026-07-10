@@ -31,7 +31,7 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"

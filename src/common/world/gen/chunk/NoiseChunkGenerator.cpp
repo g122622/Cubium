@@ -48,7 +48,7 @@
 #include "../structure/StructureManager.hpp"
 #include "../structure/StructureSet.hpp"
 #include "../structure/placement/StructurePlacement.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <map>

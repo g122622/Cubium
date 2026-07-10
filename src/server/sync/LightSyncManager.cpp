@@ -27,7 +27,7 @@
 #undef BYTE_SIZE
 
 #include "LightSyncManager.hpp"
-#include "common/perfetto/TraceEvents.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"

@@ -48,7 +48,7 @@
 
 #pragma once
 
-#include "PerfettoConfig.hpp"
+#include "ProfilerConfig.hpp"
 
 // ============================================================================
 // 分类枚举树
@@ -241,16 +241,16 @@ PERFETTO_DEFINE_CATEGORIES(
 #endif
 
 namespace mc {
-namespace perfetto {
+namespace profiler {
 
 /**
  * @brief 初始化追踪分类
  *
- * 必须在程序启动时调用，通常由 PerfettoManager::initialize() 自动调用。
+ * 必须在程序启动时调用，通常由 ProfilerManager::initialize() 自动调用。
  */
 void initTraceCategories();
 
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc
 
 #else // MC_ENABLE_TRACING == 0
@@ -258,11 +258,11 @@ void initTraceCategories();
 // 禁用追踪时的空声明
 
 namespace mc {
-namespace perfetto {
+namespace profiler {
 
 inline void initTraceCategories() {}
 
-} // namespace perfetto
+} // namespace profiler
 } // namespace mc
 
 #endif // MC_ENABLE_TRACING
