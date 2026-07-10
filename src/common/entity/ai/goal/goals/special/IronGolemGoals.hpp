@@ -39,6 +39,10 @@ namespace entity {
 class VillagerEntity;
 }
 
+namespace test {
+class OfferFlowerGoalTestAccessor; // 测试访问器，声明为 friend 以访问 private 成员
+} // namespace test
+
 namespace entity::ai::goal {
 
 /**
@@ -193,6 +197,8 @@ private:
     // 搜索 AABB 扩展量（对应 MC inflate(6.0, 2.0, 6.0)）
     static constexpr f32 SEARCH_EXPAND_XZ = 6.0f;
     static constexpr f32 SEARCH_EXPAND_Y = 2.0f;
+
+    friend class test::OfferFlowerGoalTestAccessor;
 };
 
 /**

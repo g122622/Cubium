@@ -793,6 +793,8 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/special/DrownedGoalsTest.cpp
     # WanderingTraderGoals 流浪商人 AI 目标测试
     common/entity/ai/goal/goals/special/WanderingTraderGoalsTest.cpp
+    # OfferFlowerGift 铁傀儡赠花核心逻辑测试
+    common/entity/ai/goal/goals/special/OfferFlowerGiftTest.cpp
     # Sensors 传感器测试（VillagerHostilesSensor、AvoidEntitySensor）
     common/entity/ai/brain/sensor/SensorsTest.cpp
     # RandomPositionGenerator 随机位置生成器测试
