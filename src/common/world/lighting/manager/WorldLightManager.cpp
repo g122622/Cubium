@@ -161,30 +161,6 @@ void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
     }
 }
 
-void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::enableLightSources",
-        "chunkPos",
-        fmt::format("({}, {})", pos.x, pos.z),
-        "enable",
-        enable,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 区块列位置编码
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->setColumnEnabled(columnPos, enable);
-    }
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->setColumnEnabled(columnPos, enable);
-    }
-}
-
 // ============================================================================
 // 光照访问
 // ============================================================================
@@ -293,22 +269,6 @@ SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& po
     return nullptr;
 }
 
-void WorldLightManager::retainData(const ChunkPos& pos, bool retain)
-{
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 区块列位置编码，与 enableLightSources 保持一致
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->retainData(columnPos, retain);
-    }
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->retainData(columnPos, retain);
-    }
-}
-
 // ============================================================================
 // 区块光照初始化
 // ============================================================================
@@ -351,11 +311,6 @@ void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
         needsEdgeChecks);
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 先启用区块光源列，再执行光照计算。
-    // BlockStarLightEngine::_getSources 收集光源、_getLightEmission 读取亮度，若列未启用则光源不发光。
-    // 必须在 light() 之前 enableLightSources，否则初始光照期间所有方块光源发光为 0。
-    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
 
     // 执行天空光照计算
     if (m_skyLight != nullptr) {
@@ -405,9 +360,6 @@ void WorldLightManager::lightChunk(StarLightLightingProvider* provider, const IC
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 先启用区块光源列，再执行光照计算（与 lightChunk(chunk) 重载一致，详见 Bug A 修复说明）
-    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
-
     if (m_skyLight != nullptr) {
         m_skyLight->light(provider, chunk, needsEdgeChecks);
     }
@@ -443,9 +395,6 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 区块列位置编码
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
-
     switch (type) {
         case LightType::BLOCK: {
             if (m_blockLight == nullptr) {
@@ -478,14 +427,6 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
             i32 queueSize = m_blockLight->queuedUpdateSize();
             if (queueSize > 0) {
                 result += "[q:" + std::to_string(queueSize) + "]";
-            }
-
-            // 附加区块列状态
-            if (m_blockLight->isColumnEnabled(columnPos)) {
-                result += "[col:on]";
-            }
-            if (m_blockLight->isDataRetained(columnPos)) {
-                result += "[retained]";
             }
 
             return result;
@@ -521,14 +462,6 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
             i32 queueSize = m_skyLight->queuedUpdateSize();
             if (queueSize > 0) {
                 result += "[q:" + std::to_string(queueSize) + "]";
-            }
-
-            // 附加区块列状态
-            if (m_skyLight->isColumnEnabled(columnPos)) {
-                result += "[col:on]";
-            }
-            if (m_skyLight->isDataRetained(columnPos)) {
-                result += "[retained]";
             }
 
             return result;

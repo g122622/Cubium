@@ -120,7 +120,6 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight)
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
     // 使用 light() 方法初始化区块光照（这会设置缓存）
     engine.light(&provider, &chunk, false);
@@ -158,7 +157,6 @@ TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing)
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
     engine.light(&provider, &chunk, false);
 
@@ -196,7 +194,6 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15)
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
     // 使用 light() 方法初始化区块光照
     engine.light(&provider, &chunk, false);
@@ -235,7 +232,6 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight)
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
     // 使用 light() 方法初始化区块光照
     engine.light(&provider, &chunk, false);
@@ -275,7 +271,6 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock)
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
-    engine.setColumnEnabled(sectionPos.toColumnLong(), true);
 
     // 使用 light() 方法初始化区块光照
     engine.light(&provider, &chunk, false);

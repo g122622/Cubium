@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
@@ -112,16 +111,6 @@ public:
      */
     void updateSectionStatus(const SectionPos& pos, bool isEmpty);
 
-    /**
-     * @brief 启用/禁用区块的光源
-     *
-     * 当区块加载/卸载时调用。
-     *
-     * @param pos 区块位置
-     * @param enable 是否启用
-     */
-    void enableLightSources(const ChunkPos& pos, bool enable);
-
     // ========================================================================
     // 光照访问
     // ========================================================================
@@ -182,16 +171,6 @@ public:
      * @return 光照数组指针，如果不存在返回nullptr
      */
     [[nodiscard]] SWMRNibbleArray* getData(LightType type, const SectionPos& pos);
-
-    /**
-     * @brief 保留区块数据
-     *
-     * 防止光照数据在区块卸载时被清除。
-     *
-     * @param pos 区块位置
-     * @param retain 是否保留
-     */
-    void retainData(const ChunkPos& pos, bool retain);
 
     // ========================================================================
     // 区块光照初始化

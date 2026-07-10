@@ -23,9 +23,9 @@
 
 #include "SkyLightEngine.hpp"
 #include "common/core/Constants.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -171,12 +171,9 @@ void SkyStarLightEngine::initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32
     }
 
     if (chunkY > lowestY) {
-        // 在最高非空区块段之上，设置为全亮（仅在区块列已启用时）
+        // 在最高非空区块段之上，设置为全亮（天空光对未遮挡列填 15）
         currNibble->setNonNull();
-        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
-        if (isColumnEnabled(columnPos)) {
-            currNibble->setFull();
-        }
+        currNibble->setFull();
         return;
     }
 
@@ -199,14 +196,9 @@ void SkyStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 {
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
-        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
-        if (isDataRetained(columnPos)) {
-            // 数据被保留时使用 Hidden 状态，保持数据但停止传播
-            nibble->setHidden();
-        } else {
-            // 非保留区块列，完全清除数据
-            nibble->setNull();
-        }
+        // 天空光直接清除数据：方块破坏只会增加天空光（方块阻挡消除），
+        // 增亮传播可正确穿过 null 段，无需保留数据。
+        nibble->setNull();
     }
 }
 
@@ -814,34 +806,6 @@ const SWMRNibbleArray* SkyStarLightEngine::getData(const SectionPos& pos) const
         return nullptr;
     }
     return getNibbleFromCache(pos.x, sectionY, pos.z);
-}
-
-void SkyStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
-{
-    if (enabled) {
-        m_enabledColumns.insert(columnPos);
-    } else {
-        m_enabledColumns.erase(columnPos);
-    }
-}
-
-void SkyStarLightEngine::retainData(i64 columnPos, bool retain)
-{
-    if (retain) {
-        m_columnsToRetainDataFor.insert(columnPos);
-    } else {
-        m_columnsToRetainDataFor.erase(columnPos);
-    }
-}
-
-bool SkyStarLightEngine::isColumnEnabled(i64 columnPos) const
-{
-    return m_enabledColumns.contains(columnPos);
-}
-
-bool SkyStarLightEngine::isDataRetained(i64 columnPos) const
-{
-    return m_columnsToRetainDataFor.contains(columnPos);
 }
 
 } // namespace mc
