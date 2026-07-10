@@ -210,6 +210,8 @@ Perfetto SDK 与 Tracy 的 `TracyClient.cpp`（内联包含 10+ 个 .cpp）都�
 
 vcpkg 的 tracy port（0.13.1）编译 client 库时**不定义 `TRACY_ENABLE`**，而 tracy 所有采集符号都在 `#ifdef TRACY_ENABLE` 守卫内，消费方自行 `#define TRACY_ENABLE` 会因库里无符号而链接失败，port 也无开启该宏的 feature。故走 `third_party/tracy` git submodule + `add_subdirectory` + `set(TRACY_ENABLE ON CACHE BOOL ... FORCE)`，与 Perfetto 的 vendored 模式一致。`vcpkg.json` 不含 tracy。
 
+**版本锁定 v0.13.1（协议76）**：submodule 固定到正式 release tag `v0.13.1`（commit `05cceee0`），**不跟 master HEAD**。tracy 的 client↔GUI 协议版本必须严格匹配，否则 GUI 报 "Protocol mismatch" 拒绝连接。winget 官方包 `wolfpld.tracy`（0.13.1）是最易获取的 GUI；master HEAD 无对应预编译 GUI。升级 submodule 时须同步告知用户升级 GUI 版本。验证方式：构建后启动 client，`netstat` 应见 `0.0.0.0:8086 LISTENING`，tracy-profiler GUI 连接 `127.0.0.1:8086` 应成功。
+
 ### 13. TRACY_NO_SYSTEM_TRACING 必须设 ON（Windows）
 
 Tracy 默认在 Windows 启用 ETW context-switch 采样，需管理员权限运行，普通用户启动会异常。`profiler/CMakeLists.txt` 在 `add_subdirectory` 前 `set(TRACY_NO_SYSTEM_TRACING ON CACHE BOOL ... FORCE)` 关闭它。若需采样上下文切换，需以管理员身份运行并去掉该设置。
