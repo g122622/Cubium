@@ -1083,6 +1083,17 @@ void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 rang
 }
 
 // ========== 方块实体 ==========
+//
+// TODO: 渲染层集成待实现（数据同步层已完成）
+//
+// 本节实现了方块实体数据同步层：onBlockEntityData/getBlockEntity/removeBlockEntity/clearBlockEntities。
+// 数据可在 m_blockEntities 中正确存储和更新，告示牌编辑器等 UI 可通过 getBlockEntity 读取文本。
+//
+// 但渲染层缺失，客户端不会在世界中渲染方块实体（告示牌文本、箱子开合、信标光束等）：
+//   1. SignRenderer 尚未实现（参考 src/client/renderer/trident/blockentity/renderers/）
+//   2. BlockEntityRendererDispatcher 尚未集成到 TridentEngine::render() 主渲染循环
+//
+// 详见 ClientWorld.hpp 中「方块实体」小节的 TODO 注释。
 
 void ClientWorld::onBlockEntityData(const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData)
 {

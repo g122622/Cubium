@@ -489,6 +489,28 @@ public:
 
     // ========== 方块实体 ==========
 
+    // TODO: 渲染层集成待实现（数据同步层已完成）
+    //
+    // 当前 ClientWorld 已实现方块实体数据同步的完整链路：
+    //   NetworkClient::_handleBlockEntityData → onBlockEntityData → BlockEntityRegistry::create
+    //   → BlockEntity::loadFromNBT → m_blockEntities 存储
+    //
+    // 但渲染层尚有缺失，需后续实现：
+    //   1. SignRenderer（告示牌渲染器）尚未实现 — 需在
+    //      src/client/renderer/trident/blockentity/renderers/ 下新增 SignRenderer.hpp/cpp，
+    //      参考原版 net.minecraft.client.renderer.blockentity.SignRenderer 实现文本渲染
+    //      （正反面区分、彩色文本、发光文本、木/竹告示牌变体纹理）。
+    //   2. BlockEntityRendererDispatcher 尚未集成到主渲染循环 — 虽然
+    //      src/client/renderer/trident/blockentity/BlockEntityRendererDispatcher.hpp/cpp
+    //      已存在且 initializeDefaults() 注册了 Chest/Beacon/Banner 渲染器，但
+    //      TridentEngine::render() 中尚未调用它。需在区块渲染之后、实体渲染之前
+    //      遍历可见区块中的方块实体并调用 dispatcher->render()。
+    //      参考原版 LevelRenderer.renderLevel() 中的 blockEntityRenderDispatcher 调用。
+    //
+    // 现状：数据同步层已完工，告示牌编辑器可正常工作（通过 getBlockEntity 读取文本），
+    // 但客户端不会在世界中渲染告示牌文本（及其他未注册渲染器的方块实体）。
+    // 后续实现 SignRenderer 和 dispatcher 集成后，此 TODO 应删除。
+
     /**
      * @brief 处理服务端发来的方块实体数据更新包
      *
