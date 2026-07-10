@@ -95,8 +95,8 @@ void IronGolemEntity::registerGoals()
     // 优先级 2: 向目标移动
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::MoveTowardsTargetGoal>(this, 0.9, 32.0f));
 
-    // 优先级 5: 给村民送花
-    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::ShowVillagerFlowerGoal>(this));
+    // 优先级 5: 给村民/铜傀儡赠花
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::OfferFlowerGoal>(this));
 
     // 优先级 7: 看向玩家
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));

@@ -140,6 +140,19 @@ public:
     /// 细雪可行走标签
     static EntityTypeTag& POWDER_SNOW_WALKABLE_MOBS();
 
+    // ========== 铁傀儡赠花标签 ==========
+
+    /// 接受铁傀儡礼物的实体标签（铜傀儡）
+    /// 当铁傀儡 OfferFlowerGoal 自然结束时，若目标实体属于此标签，
+    /// 会将罂粟花装备到其天线槽（EquipmentSlot::Saddle）并标记为保整掉落。
+    /// 对应 MC 1.21.11 标签 minecraft:accepts_iron_golem_gift。
+    static EntityTypeTag& ACCEPTS_IRON_GOLEM_GIFT();
+
+    /// 铁傀儡赠花候选实体标签（村民 + #minecraft:accepts_iron_golem_gift）
+    /// 铁傀儡 OfferFlowerGoal 在白天以 1/8000 概率搜索此标签内的最近实体作为赠花目标。
+    /// 对应 MC 1.21.11 标签 minecraft:candidate_for_iron_golem_gift。
+    static EntityTypeTag& CANDIDATE_FOR_IRON_GOLEM_GIFT();
+
     /**
      * @brief 初始化所有内置标签
      *

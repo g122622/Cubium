@@ -19,7 +19,7 @@
 ├── DolphinGoals.hpp / cpp #海豚目标（跳跃、寻宝、与玩家同游、玩物品）
 ├── PhantomGoals.hpp / cpp #幻翼目标（环绕飞行、俯冲攻击）
 ├── SlimeGoals.hpp / cpp #史莱姆目标（漂浮、攻击、随机转向）
-├── IronGolemGoals.hpp / cpp #铁傀儡目标（展示花朵给村民）
+├── IronGolemGoals.hpp / cpp #铁傀儡目标（赠花给村民/铜傀儡、保护村庄、攻击）
 ├── EvokerGoals.hpp / cpp #唤魔者目标（尖牙攻击、召唤恼鬼、Wololo法术）
 ├── VexGoals.hpp / cpp #恼鬼目标（冲锋攻击、随机飞行、复制主人目标）
 ├── BeeGoals.hpp / cpp #蜜蜂目标（授粉、返回蜂巢、蛰刺攻击、作物生长促进）
@@ -81,7 +81,7 @@
 ├── PhantomOrbitPointGoal ────────── 幻翼环绕飞行
 ├── PhantomPickAttackGoal ────────── 幻翼攻击阶段选择
 ├── PhantomSweepAttackGoal ───────── 幻翼俯冲攻击
-├── ShowVillagerFlowerGoal ───────── 铁傀儡向村民展示花朵
+├── OfferFlowerGoal ─────────────── 铁傀儡向村民/铜傀儡赠花
 ├── EvokerAttackSpellGoal ────────── 唤魔者尖牙攻击
 ├── EvokerSummonSpellGoal ────────── 唤魔者召唤恼鬼
 ├── EvokerWololoSpellGoal ────────── 唤魔者蓝色羊变红

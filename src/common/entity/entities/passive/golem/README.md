@@ -102,6 +102,6 @@ golem/
 
 15. **Direction 转 yaw**：MC 的 `Direction.toYRot()` 在本项目无对应工具函数，`CopperGolemStatueBlockEntity::removeStatue` 与 `CopperGolemEntity::turnToStatue` 中手写转换：South=0, West=90, North=180, East=270。
 
-16. **铜傀儡天线槽设计**：对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA = EquipmentSlot.SADDLE`。铜傀儡头顶"天线"并非独立物品，而是 `EquipmentSlot::Saddle` 槽中持有的罂粟花（`minecraft:poppy`），由铁傀儡 `OfferFlowerGoal` 赠予（TODO：`OfferFlowerGoal` 尚未实现）。剪切时通过 `ItemTags::SHEARABLE_FROM_COPPER_GOLEM` 判断可剪性，取出 Saddle 槽物品并掉落。转雕像时由 `MobEntity::dropPreservedEquipment()` 自动掉落 Saddle 槽物品（需先 `setGuaranteedDrop(Saddle)` 标记保留，由 `OfferFlowerGoal` 调用）。
+16. **铜傀儡天线槽设计**：对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA = EquipmentSlot.SADDLE`。铜傀儡头顶"天线"并非独立物品，而是 `EquipmentSlot::Saddle` 槽中持有的罂粟花（`minecraft:poppy`），由铁傀儡 `OfferFlowerGoal` 赠予。剪切时通过 `ItemTags::SHEARABLE_FROM_COPPER_GOLEM` 判断可剪性，取出 Saddle 槽物品并掉落。转雕像时由 `MobEntity::dropPreservedEquipment()` 自动掉落 Saddle 槽物品（需先 `setGuaranteedDrop(Saddle)` 标记保留，由 `OfferFlowerGoal` 调用）。
 
 17. **EquipmentSlot::Saddle 扩展**：为支持铜傀儡天线槽，`EquipmentSlot` 枚举扩展了 `Saddle = 7`（`Count = 8`）。所有基于 `EquipmentSlot::Count` 的 `std::array` 自动扩展。`EquipmentSlotNames` 提供 `saddle` 名称映射，`ItemSlotArgument` 的 `saddle` 命名槽位映射到索引 106 → `EquipmentSlot` 索引 7。`Player::getEquipment` 的 `default` 分支返回空 `ItemStack`，因此玩家访问 Saddle 槽安全。

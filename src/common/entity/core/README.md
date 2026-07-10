@@ -580,7 +580,7 @@
         - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
         - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
     - `EquipmentSlot::Saddle` 用于铜傀儡天线槽（对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA`），
-      由铁傀儡 `OfferFlowerGoal` 装备罂粟花（TODO：`OfferFlowerGoal` 尚未实现）
+      由铁傀儡 `OfferFlowerGoal` 装备罂粟花
 
         ## #死亡掉落表(
             DeathLootTable) - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/"

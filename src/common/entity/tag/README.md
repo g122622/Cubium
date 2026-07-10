@@ -81,6 +81,8 @@ if (EntityTypeTags::IMPACT_PROJECTILES().contains(entity.getTypeId())) {
 - `NO_ANGER_FROM_WIND_CHARGE` — 风弹不激怒
 - `DISMOUNTS_UNDERWATER` — 水下强制下坐骑（马、猪、骆驼、蜘蛛、炽足兽等陆地骑乘实体，船不在其中）
 - `POWDER_SNOW_WALKABLE_MOBS` — 细雪可行走
+- `ACCEPTS_IRON_GOLEM_GIFT` — 接受铁傀儡礼物（铜傀儡），数据包加载时填充
+- `CANDIDATE_FOR_IRON_GOLEM_GIFT` — 铁傀儡赠花候选（村民 + #accepts_iron_golem_gift），数据包加载时填充
 
 ## 安全检查
 

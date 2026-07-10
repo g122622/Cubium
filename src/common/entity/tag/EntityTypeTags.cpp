@@ -346,6 +346,30 @@ EntityTypeTag& EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS()
     return *tag;
 }
 
+// ========== 铁傀儡赠花标签 ==========
+
+EntityTypeTag& EntityTypeTags::ACCEPTS_IRON_GOLEM_GIFT()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:accepts_iron_golem_gift"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:accepts_iron_golem_gift")] = std::move(t);
+    }
+    return *tag;
+}
+
+EntityTypeTag& EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:candidate_for_iron_golem_gift"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:candidate_for_iron_golem_gift")] = std::move(t);
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -384,6 +408,8 @@ void EntityTypeTags::initialize()
     NO_ANGER_FROM_WIND_CHARGE();
     DISMOUNTS_UNDERWATER();
     POWDER_SNOW_WALKABLE_MOBS();
+    ACCEPTS_IRON_GOLEM_GIFT();
+    CANDIDATE_FOR_IRON_GOLEM_GIFT();
 
     // ========== 硬编码默认标签成员 ==========
     // 这些默认值将在数据包加载时被覆盖或合并。

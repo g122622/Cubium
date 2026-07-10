@@ -30,11 +30,17 @@
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/monster/MonsterEntity.hpp"
+#include "../../../../entities/passive/golem/CopperGolemEntity.hpp"
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
+#include "../../../../tag/EntityTypeTags.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+
+#include <limits>
 
 namespace mc::entity::ai::goal {
 
@@ -230,22 +236,23 @@ f32 IronGolemAttackGoal::getAttackReachSqr(LivingEntity* target) const
     return reachWidth * reachWidth + targetWidth;
 }
 
-// ==================== ShowVillagerFlowerGoal ====================
+// ==================== OfferFlowerGoal ====================
 
-ShowVillagerFlowerGoal::ShowVillagerFlowerGoal(IronGolemEntity* ironGolem)
+OfferFlowerGoal::OfferFlowerGoal(IronGolemEntity* ironGolem)
     : m_ironGolem(ironGolem)
 {
     MC_ASSERT_RELEASE(ironGolem != nullptr);
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look});
 }
 
-bool ShowVillagerFlowerGoal::shouldExecute()
+bool OfferFlowerGoal::shouldExecute()
 {
     IWorld* world = m_ironGolem->world();
     if (!world) return false;
 
-    // 只在白天执行
-    if (!world->isDaytime()) {
+    // 只在室外明亮时执行（与 MC 1.21.11 OfferFlowerGoal.canUse() 中
+    // level().isBrightOutside() 一致；雷暴天也会让天空变暗，从而禁止赠花）
+    if (!world->isBrightOutside()) {
         return false;
     }
 
@@ -255,51 +262,147 @@ bool ShowVillagerFlowerGoal::shouldExecute()
         return false;
     }
 
-    // 在 6 格范围内搜索村民
-    Vector3 pos = m_ironGolem->position();
-
-    entity::VillagerEntity* nearestVillager = EntityUtils::findClosestEntity<entity::VillagerEntity>(
-        world, pos, SEARCH_RANGE, m_ironGolem, [](entity::VillagerEntity* villager) -> bool {
-            if (!villager) return false;
-            return villager->isAlive();
-        });
-
-    if (nearestVillager) {
-        m_villager = nearestVillager;
+    // 在铁傀儡附近的 AABB 内查找最近的可赠花候选实体
+    LivingEntity* candidate = _findNearestCandidate();
+    if (candidate) {
+        m_target = candidate;
         return true;
     }
 
     return false;
 }
 
-bool ShowVillagerFlowerGoal::shouldContinueExecuting()
+bool OfferFlowerGoal::shouldContinueExecuting()
 {
-    return m_lookTime > 0;
+    return m_tick > 0;
 }
 
-void ShowVillagerFlowerGoal::startExecuting()
+void OfferFlowerGoal::startExecuting()
 {
-    m_lookTime = LOOK_DURATION;
+    m_tick = OFFER_TICKS;
     m_ironGolem->setHoldingRose(true);
 }
 
-void ShowVillagerFlowerGoal::resetTask()
+void OfferFlowerGoal::resetTask()
 {
+    // 尝试将罂粟花赠予铜傀儡（仅在计时器自然结束时触发）
+    _tryGiftFlowerToCopperGolem();
+
     m_ironGolem->setHoldingRose(false);
-    m_villager = nullptr;
+    m_target = nullptr;
 }
 
-void ShowVillagerFlowerGoal::tick()
+void OfferFlowerGoal::tick()
 {
-    if (!m_villager) return;
-
-    auto* lookController = m_ironGolem->lookController();
-    if (lookController) {
-        lookController->setLookPositionWithEntity(*m_villager, 30.0f, 30.0f);
+    if (m_target) {
+        auto* lookController = m_ironGolem->lookController();
+        if (lookController) {
+            lookController->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+        }
     }
 
-    // 递减看向时间
-    m_lookTime--;
+    // 递减赠花计时器
+    m_tick--;
+}
+
+AxisAlignedBB OfferFlowerGoal::_getGolemSearchBox() const
+{
+    // 对应 MC 1.21.11 OfferFlowerGoal.getGolemBoundingBox()：
+    //   golem.getBoundingBox().inflate(6.0, 2.0, 6.0)
+    return m_ironGolem->boundingBox().expand(SEARCH_EXPAND_XZ, SEARCH_EXPAND_Y, SEARCH_EXPAND_XZ);
+}
+
+LivingEntity* OfferFlowerGoal::_findNearestCandidate() const
+{
+    IWorld* world = m_ironGolem->world();
+    if (!world) return nullptr;
+
+    // 当标签系统尚未初始化（如单元测试环境）时，直接返回 nullptr，
+    // 避免访问空数据。运行时由 MinecraftServer::initializeRegistries() 完成初始化。
+    if (!EntityTypeTags::isInitialized()) {
+        return nullptr;
+    }
+
+    const EntityTypeTag& candidateTag = EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT();
+    const AxisAlignedBB searchBox = _getGolemSearchBox();
+
+    // 查找搜索 AABB 内所有实体（排除铁傀儡自身）
+    auto entities = world->getEntitiesInAABB(searchBox, m_ironGolem);
+
+    LivingEntity* nearest = nullptr;
+    f32 bestDistSq = std::numeric_limits<f32>::max();
+    const Vector3 golemPos = m_ironGolem->position();
+
+    for (Entity* entity : entities) {
+        if (!entity || !entity->isAlive()) {
+            continue;
+        }
+
+        // 仅考虑 LivingEntity（村民和铜傀儡都是 LivingEntity 子类）
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (!living) {
+            continue;
+        }
+
+        // 通过 EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT 标签过滤候选实体。
+        // 与 MC Java OfferFlowerGoal.canUse() 中
+        // getNearestEntity(EntityTypeTags.CANDIDATE_FOR_IRON_GOLEM_GIFT, ...) 一致。
+        if (!candidateTag.contains(living->getTypeId())) {
+            continue;
+        }
+
+        const f32 distSq = golemPos.distanceSquared(living->position());
+        if (distSq < bestDistSq) {
+            bestDistSq = distSq;
+            nearest = living;
+        }
+    }
+
+    return nearest;
+}
+
+void OfferFlowerGoal::_tryGiftFlowerToCopperGolem()
+{
+    // 仅在计时器自然结束（m_tick 递减到 0）时赠花；
+    // 若因被抢占中断（m_tick > 0），则不赠予。
+    if (m_tick != 0) {
+        return;
+    }
+
+    if (!m_target) {
+        return;
+    }
+
+    // 目标必须是 MobEntity（铜傀儡是 MobEntity 子类，可访问装备槽 API）
+    MobEntity* mob = dynamic_cast<MobEntity*>(m_target);
+    if (!mob) {
+        return;
+    }
+
+    // 当标签系统尚未初始化时无法判断是否可接受赠花，直接返回。
+    if (!EntityTypeTags::isInitialized()) {
+        return;
+    }
+
+    // 检查目标是否属于 ACCEPTS_IRON_GOLEM_GIFT 标签（铜傀儡）
+    if (!EntityTypeTags::ACCEPTS_IRON_GOLEM_GIFT().contains(mob->getTypeId())) {
+        return;
+    }
+
+    // 铜傀儡的天线槽必须为空（尚未持有花朵）
+    if (!mob->getEquipment(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA).isEmpty()) {
+        return;
+    }
+
+    // 铁傀儡搜索 AABB 必须与目标碰撞盒相交（对应 MC stop() 中的相交检查）
+    if (!_getGolemSearchBox().intersects(mob->boundingBox())) {
+        return;
+    }
+
+    // 装备罂粟花到天线槽，并标记为保整掉落，
+    // 后续铜傀儡转雕像时由 dropPreservedEquipment() 自动掉落。
+    mob->setEquipment(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA, Items::POPPY->getDefaultInstance());
+    mob->setGuaranteedDrop(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA);
 }
 
 // ==================== DefendVillageTargetGoal ====================

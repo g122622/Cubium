@@ -63,7 +63,7 @@ class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以�
  * 天线槽设计（对应 MC 1.21.11 CopperGolem.EQUIPMENT_SLOT_ANTENNA）：
  * - 铜傀儡的"天线槽"复用 EquipmentSlot::Saddle（与 MC 原版一致）。
  * - 天线物品并非独立物品，而是罂粟花（minecraft:poppy），由铁傀儡的
- *   OfferFlowerGoal 赠予铜傀儡并装备到 Saddle 槽（TODO：OfferFlowerGoal 尚未实现）。
+ *   OfferFlowerGoal 赠予铜傀儡并装备到 Saddle 槽。
  * - 剪切时取出 Saddle 槽物品并掉落，由 ItemTags::SHEARABLE_FROM_COPPER_GOLEM 判断可剪性。
  * - 转雕像时通过 MobEntity::dropPreservedEquipment() 自动掉落 Saddle 槽物品
  *   （需先 setGuaranteedDrop(Saddle) 标记保留，由 OfferFlowerGoal 调用）。
@@ -236,7 +236,6 @@ public:
      * @brief 每tick更新
      *
      * 服务端：更新氧化状态（updateWeathering）
-     * 客户端：留作动画状态机更新的 TODO
      */
     void tick() override;
 

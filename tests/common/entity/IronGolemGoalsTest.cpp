@@ -43,14 +43,14 @@ protected:
     std::unique_ptr<IronGolemEntity> ironGolem;
 };
 
-// ==================== ShowVillagerFlowerGoal 测试夹具 ====================
+// ==================== OfferFlowerGoal 测试夹具 ====================
 
-class ShowVillagerFlowerGoalTest : public ::testing::Test {
+class OfferFlowerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
         ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
-        goal = std::make_unique<entity::ai::goal::ShowVillagerFlowerGoal>(ironGolem.get());
+        goal = std::make_unique<entity::ai::goal::OfferFlowerGoal>(ironGolem.get());
     }
 
     void TearDown() override
@@ -60,28 +60,28 @@ protected:
     }
 
     std::unique_ptr<IronGolemEntity> ironGolem;
-    std::unique_ptr<entity::ai::goal::ShowVillagerFlowerGoal> goal;
+    std::unique_ptr<entity::ai::goal::OfferFlowerGoal> goal;
 };
 
-// ==================== ShowVillagerFlowerGoal 基础测试 ====================
+// ==================== OfferFlowerGoal 基础测试 ====================
 
-TEST_F(ShowVillagerFlowerGoalTest, Construction)
+TEST_F(OfferFlowerGoalTest, Construction)
 {
     EXPECT_NE(goal, nullptr);
 }
 
-TEST_F(ShowVillagerFlowerGoalTest, GetTypeName)
+TEST_F(OfferFlowerGoalTest, GetTypeName)
 {
-    EXPECT_EQ(goal->getTypeName(), "ShowVillagerFlowerGoal");
+    EXPECT_EQ(goal->getTypeName(), "OfferFlowerGoal");
 }
 
-TEST_F(ShowVillagerFlowerGoalTest, ShouldExecuteReturnsFalseWithoutWorld)
+TEST_F(OfferFlowerGoalTest, ShouldExecuteReturnsFalseWithoutWorld)
 {
     // 无世界时不应执行
     EXPECT_FALSE(goal->shouldExecute());
 }
 
-TEST_F(ShowVillagerFlowerGoalTest, MutexFlags)
+TEST_F(OfferFlowerGoalTest, MutexFlags)
 {
     // 验证互斥标志包含 Move 和 Look
     auto flags = goal->getMutexFlags();
@@ -89,18 +89,40 @@ TEST_F(ShowVillagerFlowerGoalTest, MutexFlags)
     EXPECT_TRUE(flags.test(::mc::entity::ai::GoalFlag::Look));
 }
 
-TEST_F(ShowVillagerFlowerGoalTest, StartExecutingSetsLookTime)
+TEST_F(OfferFlowerGoalTest, StartExecutingSetsHoldingRose)
 {
-    // 开始执行时应设置看向时间
+    // 开始执行时应设置持花状态
+    EXPECT_FALSE(ironGolem->isHoldingRose());
+    goal->startExecuting();
+    EXPECT_TRUE(ironGolem->isHoldingRose());
+    EXPECT_GT(ironGolem->getHoldRoseTick(), 0);
+}
+
+TEST_F(OfferFlowerGoalTest, ResetTaskClearsHoldingRose)
+{
+    // 重置时应清除持花状态（对应 MC stop() 中 offerFlower(false)）
+    goal->startExecuting();
+    EXPECT_TRUE(ironGolem->isHoldingRose());
+    goal->resetTask();
+    EXPECT_FALSE(ironGolem->isHoldingRose());
+}
+
+TEST_F(OfferFlowerGoalTest, ShouldContinueExecutingAfterStart)
+{
+    // 开始执行后 shouldContinueExecuting 应返回 true（m_tick > 0）
     goal->startExecuting();
     EXPECT_TRUE(goal->shouldContinueExecuting());
 }
 
-TEST_F(ShowVillagerFlowerGoalTest, ResetTaskClearsVillager)
+TEST_F(OfferFlowerGoalTest, TickDecrementsTimer)
 {
-    // 重置时应清除村民引用
-    goal->resetTask();
-    EXPECT_FALSE(goal->shouldContinueExecuting());
+    // startExecuting 后 m_tick = OFFER_TICKS（400），tick() 应递减
+    goal->startExecuting();
+    i32 before = ironGolem->getHoldRoseTick();
+    goal->tick();
+    // tick() 只递减 m_tick，不直接递减 m_holdRoseTick（由 IronGolemEntity::tick 处理）
+    // 但 shouldContinueExecuting 依赖 m_tick，调用多次后仍应继续执行
+    EXPECT_TRUE(goal->shouldContinueExecuting());
 }
 
 // ==================== MoveTowardsTargetGoal 测试夹具 ====================

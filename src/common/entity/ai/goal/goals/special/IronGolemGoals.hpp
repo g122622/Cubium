@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../../../../util/AxisAlignedBB.hpp"
 #include "../../Goal.hpp"
 #include "../target/TargetGoals.hpp"
 
@@ -118,38 +119,80 @@ private:
 };
 
 /**
- * @brief 铁傀儡给村民展示花朵目标
+ * @brief 铁傀儡赠花目标
  *
- * 铁傀儡偶尔会看向附近的村民并展示手中的罂粟花。
- * 只在白天执行，概率为 1/8000。
+ * 铁傀儡偶尔会看向附近的候选实体并展示手中的罂粟花。
+ * 只在室外明亮时执行，概率为 1/8000。
+ *
+ * 候选实体由 EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT 决定（村民 + 铜傀儡）。
+ * 当赠花计时器自然结束（非被抢占中断）且目标属于
+ * EntityTypeTags::ACCEPTS_IRON_GOLEM_GIFT（铜傀儡）时，
+ * 若铜傀儡的天线槽（EquipmentSlot::Saddle）为空且与铁傀儡的碰撞盒相交，
+ * 会将罂粟花装备到铜傀儡的天线槽并标记为保整掉落，
+ * 后续铜傀儡转雕像时会自动掉落。
  */
-class ShowVillagerFlowerGoal : public Goal {
+class OfferFlowerGoal : public Goal {
 public:
     /**
      * @brief 构造函数
      * @param ironGolem 铁傀儡实体
      */
-    explicit ShowVillagerFlowerGoal(IronGolemEntity* ironGolem);
+    explicit OfferFlowerGoal(IronGolemEntity* ironGolem);
 
-    ~ShowVillagerFlowerGoal() override = default;
+    ~OfferFlowerGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
     void resetTask() override;
     void tick() override;
-    [[nodiscard]] std::string getTypeName() const override { return "ShowVillagerFlowerGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "OfferFlowerGoal"; }
 
 private:
-    IronGolemEntity* m_ironGolem;
-    entity::VillagerEntity* m_villager = nullptr;
-    i32 m_lookTime = 0;
+    /**
+     * @brief 在铁傀儡附近的赠花候选实体中查找最近的目标
+     *
+     * 使用 EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT 标签进行过滤，
+     * 搜索范围为铁傀儡碰撞盒向 X/Z 各扩展 6 格、Y 扩展 2 格的 AABB。
+     *
+     * @return 最近的候选实体指针，未找到返回 nullptr
+     */
+    [[nodiscard]] LivingEntity* _findNearestCandidate() const;
 
-    // 搜索村民范围
-    static constexpr f32 SEARCH_RANGE = 6.0f;
-    static constexpr f32 SEARCH_HEIGHT = 2.0f; // 搜索村民高度
-    static constexpr i32 LOOK_DURATION = 400;  // 看向持续时间（ticks = 20秒）
-    static constexpr i32 CHANCE = 8000;        // 执行概率倒数（1/8000）
+    /**
+     * @brief 获取赠花搜索 AABB
+     *
+     * 对应 MC 1.21.11 OfferFlowerGoal.getGolemBoundingBox()：
+     * golem.getBoundingBox().inflate(6.0, 2.0, 6.0)。
+     *
+     * @return 搜索用 AABB
+     */
+    [[nodiscard]] AxisAlignedBB _getGolemSearchBox() const;
+
+    /**
+     * @brief 若目标可接受赠花，将罂粟花装备到其天线槽
+     *
+     * 对应 MC 1.21.11 OfferFlowerGoal.stop() 中的赠花条件块：
+     * - tick 自然结束（m_tick == 0）
+     * - 目标属于 EntityTypeTags::ACCEPTS_IRON_GOLEM_GIFT
+     * - 目标天线槽（EquipmentSlot::Saddle）为空
+     * - 铁傀儡搜索 AABB 与目标碰撞盒相交
+     *
+     * 满足条件时装备罂粟花并标记保整掉落。
+     */
+    void _tryGiftFlowerToCopperGolem();
+
+    IronGolemEntity* m_ironGolem;
+    LivingEntity* m_target = nullptr;
+    i32 m_tick = 0;
+
+    // 赠花持续时间（ticks，对应 MC 1.21.11 OfferFlowerGoal.OFFER_TICKS = 400）
+    static constexpr i32 OFFER_TICKS = 400;
+    // 执行概率倒数（1/8000）
+    static constexpr i32 CHANCE = 8000;
+    // 搜索 AABB 扩展量（对应 MC inflate(6.0, 2.0, 6.0)）
+    static constexpr f32 SEARCH_EXPAND_XZ = 6.0f;
+    static constexpr f32 SEARCH_EXPAND_Y = 2.0f;
 };
 
 /**

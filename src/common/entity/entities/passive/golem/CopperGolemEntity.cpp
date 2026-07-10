@@ -436,8 +436,7 @@ void CopperGolemEntity::turnToStatue()
     // MobEntity::dropPreservedEquipment() 已实现：遍历所有装备槽（含 Saddle/天线槽），
     // 掉落标记为保留（掉落概率 > 1.0，由 setGuaranteedDrop 设置）的物品。
     // 铜傀儡天线槽（EQUIPMENT_SLOT_ANTENNA = Saddle）由铁傀儡 OfferFlowerGoal
-    // 装备罂粟花时调用 setGuaranteedDrop 标记保留（TODO: OfferFlowerGoal 尚未实现），
-    // 此处按 MC 原版调用，待 OfferFlowerGoal 实现后天线物品会自动在此掉落。
+    // 装备罂粟花时调用 setGuaranteedDrop 标记保留，转雕像时此处自动掉落。
     // 返回值为保留在实体上的装备槽位集合（谓词返回 false 的槽位，如绑定诅咒）。
     (void)dropPreservedEquipment();
 
