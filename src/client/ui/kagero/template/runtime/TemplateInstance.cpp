@@ -79,9 +79,13 @@ TemplateInstance::TemplateInstance(TemplateInstance&& other) noexcept
     , m_eventBinders(std::move(other.m_eventBinders))
     , m_defaultFactory(std::move(other.m_defaultFactory))
     , m_subscriptionIds(std::move(other.m_subscriptionIds))
+    , m_scheduler(std::move(other.m_scheduler))
 {
     other.m_compiled = nullptr;
     other.m_context = nullptr;
+
+    // 重新绑定调度器回调：原回调捕获了 other 的 this 指针，移动后需重新指向 this
+    _rebindSchedulerCallback();
 }
 
 TemplateInstance& TemplateInstance::operator=(TemplateInstance&& other) noexcept
@@ -105,9 +109,13 @@ TemplateInstance& TemplateInstance::operator=(TemplateInstance&& other) noexcept
         m_eventBinders = std::move(other.m_eventBinders);
         m_defaultFactory = std::move(other.m_defaultFactory);
         m_subscriptionIds = std::move(other.m_subscriptionIds);
+        m_scheduler = std::move(other.m_scheduler);
 
         other.m_compiled = nullptr;
         other.m_context = nullptr;
+
+        // 重新绑定调度器回调
+        _rebindSchedulerCallback();
     }
     return *this;
 }
@@ -627,6 +635,9 @@ bool TemplateInstance::instantiate()
     }
     m_subscriptionIds.clear();
 
+    // 清理调度器中遗留的待处理任务（避免重新实例化后执行到旧路径）
+    m_scheduler.cancelAll();
+
     // 实例化根节点
     const ast::DocumentNode* doc = m_compiled->astRoot();
     if (!doc) return false;
@@ -646,6 +657,9 @@ bool TemplateInstance::instantiate()
             m_context->subscribe(path, [this](const std::string& p, const binder::Value&) { notifyStateChange(p); });
         m_subscriptionIds.push_back(subId);
     }
+
+    // 绑定调度器回调：将路径入队转交给 updateBinding
+    _rebindSchedulerCallback();
 
     return true;
 }
@@ -687,10 +701,11 @@ void TemplateInstance::updateBindings()
     }
 }
 
-void TemplateInstance::updateBinding(const std::string& path)
+bool TemplateInstance::updateBinding(const std::string& path)
 {
-    if (!m_compiled || !m_context) return;
+    if (!m_compiled || !m_context) return false;
 
+    bool updated = false;
     for (const auto& plan : m_compiled->bindingPlans()) {
         if (plan.statePath != path) continue;
 
@@ -708,18 +723,46 @@ void TemplateInstance::updateBinding(const std::string& path)
         auto setterIt = m_attributeSetters.find(plan.attributeName);
         if (setterIt != m_attributeSetters.end()) {
             setterIt->second(widget, plan.attributeName, value);
+            updated = true;
         }
     }
+
+    return updated;
 }
 
 void TemplateInstance::notifyStateChange(const std::string& path)
 {
-    updateBinding(path);
+    // 将路径入队到调度器，由 tick() / flush() 统一调度执行
+    // 调度器会根据 deferredUpdate 和 batchDelayMs 决定执行时机
+    // 同路径多次入队会被去重（只保留最新）
+    m_scheduler.schedule(path, UpdateScheduler::Priority::Normal);
 }
 
 void TemplateInstance::refresh()
 {
+    // 立即执行所有待处理任务（无视延迟）
+    flushPending();
+    // 全量刷新绑定
     updateBindings();
+}
+
+u32 TemplateInstance::tick(u64 currentMs)
+{
+    return m_scheduler.tick(currentMs);
+}
+
+u32 TemplateInstance::flushPending()
+{
+    return m_scheduler.flush();
+}
+
+void TemplateInstance::_rebindSchedulerCallback()
+{
+    // 调度器回调捕获 this 指针，移动构造/赋值后需重新绑定
+    m_scheduler.setUpdateCallback([this](const std::string& path) -> bool {
+        if (!m_compiled || !m_context) return false;
+        return updateBinding(path);
+    });
 }
 
 widget::Widget* TemplateInstance::findWidgetById(const std::string& id)
@@ -743,6 +786,9 @@ std::string TemplateInstance::debugInfo() const
     oss << "  Widgets by ID: " << m_widgetById.size() << "\n";
     oss << "  Widgets by Path: " << m_widgetByPath.size() << "\n";
     oss << "  Subscriptions: " << m_subscriptionIds.size() << "\n";
+    oss << "  Scheduler pending: " << m_scheduler.pendingCount() << "\n";
+    oss << "  Scheduler deferred: " << (m_scheduler.deferredUpdate() ? "Yes" : "No") << "\n";
+    oss << "  Scheduler batchDelay: " << m_scheduler.batchDelay() << "ms\n";
     return oss.str();
 }
 

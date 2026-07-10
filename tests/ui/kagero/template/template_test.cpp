@@ -2959,7 +2959,13 @@ TEST_F(BindingContextCollectionTest, LoopVariableWithCollection)
 
 class UpdateSchedulerTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_scheduler = std::make_unique<runtime::UpdateScheduler>(); }
+    void SetUp() override
+    {
+        m_scheduler = std::make_unique<runtime::UpdateScheduler>();
+        // 默认禁用延迟更新，保持原有立即执行语义
+        // 需要测试延迟/批量行为的用例可显式启用
+        m_scheduler->setDeferredUpdate(false);
+    }
 
     std::unique_ptr<runtime::UpdateScheduler> m_scheduler;
 };
@@ -3052,21 +3058,99 @@ TEST_F(UpdateSchedulerTest, ExecuteWithCallback)
 
 TEST_F(UpdateSchedulerTest, SetBatchDelay)
 {
+    // 设置批量延迟后，任务需等到 batchDelayMs 后才会被执行
     m_scheduler->setBatchDelay(32);
-    // No direct way to verify, but should not crash
+    EXPECT_EQ(m_scheduler->batchDelay(), 32u);
+
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    // 启用延迟更新，时间 0 时调度，到期时间应为 0 + 32 = 32ms
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->schedule("player.health", runtime::UpdateScheduler::Priority::Normal);
+
+    // 在 31ms 时任务尚未到期
+    m_scheduler->tick(31);
+    EXPECT_EQ(updatedPaths.size(), 0u);
+    EXPECT_TRUE(m_scheduler->hasPending());
+
+    // 在 32ms 时任务到期，应被执行
+    m_scheduler->tick(32);
+    EXPECT_EQ(updatedPaths.size(), 1u);
+    EXPECT_FALSE(m_scheduler->hasPending());
 }
 
 TEST_F(UpdateSchedulerTest, SetMaxBatchSize)
 {
-    m_scheduler->setMaxBatchSize(50);
-    // No direct way to verify, but should not crash
+    // 设置最大批量大小后，executeBatch 一次最多执行 maxBatchSize 个路径
+    m_scheduler->setMaxBatchSize(2);
+    EXPECT_EQ(m_scheduler->maxBatchSize(), 2u);
+
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    // 禁用延迟更新，使所有任务都视为已到期
+    m_scheduler->setDeferredUpdate(false);
+    m_scheduler->schedule("path1", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("path2", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("path3", runtime::UpdateScheduler::Priority::Normal);
+
+    // executeBatch 受 maxBatchSize 限制，一次最多执行 2 个
+    u32 executed = m_scheduler->executeBatch();
+    EXPECT_EQ(executed, 2u);
+    EXPECT_EQ(updatedPaths.size(), 2u);
+
+    // 剩余 1 个任务
+    EXPECT_TRUE(m_scheduler->hasPending());
+    EXPECT_EQ(m_scheduler->pendingCount(), 1u);
+
+    // 再次执行剩余任务
+    executed = m_scheduler->executeBatch();
+    EXPECT_EQ(executed, 1u);
+    EXPECT_FALSE(m_scheduler->hasPending());
 }
 
 TEST_F(UpdateSchedulerTest, SetDeferredUpdate)
 {
-    m_scheduler->setDeferredUpdate(true);
+    // 启用延迟更新：任务受 batchDelayMs 限制
+    // 禁用延迟更新：任务立即执行（dueTimeMs 设为 0）
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    // 禁用延迟更新：executePending 立即执行所有未取消任务
     m_scheduler->setDeferredUpdate(false);
-    // No direct way to verify, but should not crash
+    EXPECT_FALSE(m_scheduler->deferredUpdate());
+    m_scheduler->setBatchDelay(1000); // 即使延迟很大，禁用后也应立即执行
+
+    m_scheduler->schedule("immediate", runtime::UpdateScheduler::Priority::Normal);
+    u32 executed = m_scheduler->executePending();
+    EXPECT_EQ(executed, 1u);
+    EXPECT_EQ(updatedPaths.size(), 1u);
+
+    // 启用延迟更新：executePending 只执行到期任务
+    m_scheduler->setDeferredUpdate(true);
+    EXPECT_TRUE(m_scheduler->deferredUpdate());
+    m_scheduler->setBatchDelay(100);
+
+    m_scheduler->schedule("deferred", runtime::UpdateScheduler::Priority::Normal);
+    // 时间未推进到 100ms，不应执行
+    m_scheduler->tick(50);
+    EXPECT_TRUE(m_scheduler->hasPending());
+    EXPECT_EQ(updatedPaths.size(), 1u);
+
+    // 时间推进到 100ms，应执行
+    m_scheduler->tick(100);
+    EXPECT_FALSE(m_scheduler->hasPending());
+    EXPECT_EQ(updatedPaths.size(), 2u);
 }
 
 TEST_F(UpdateSchedulerTest, CurrentTimestamp)
@@ -3075,6 +3159,337 @@ TEST_F(UpdateSchedulerTest, CurrentTimestamp)
     u64 ts2 = m_scheduler->currentTimestamp();
     // Timestamps should be increasing
     EXPECT_GE(ts2, ts1);
+}
+
+// ==================== UpdateScheduler 延迟/批量/Tick/Flush 测试 ====================
+
+TEST_F(UpdateSchedulerTest, TickAdvancesTimeAndExecutesDueTasks)
+{
+    // tick(currentMs) 推进调度器内部时钟并执行到期任务
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(50);
+
+    m_scheduler->schedule("task1", runtime::UpdateScheduler::Priority::Normal);
+
+    // 在 49ms 时任务尚未到期
+    m_scheduler->tick(49);
+    EXPECT_EQ(updatedPaths.size(), 0u);
+
+    // 在 50ms 时任务到期
+    m_scheduler->tick(50);
+    EXPECT_EQ(updatedPaths.size(), 1u);
+    EXPECT_EQ(updatedPaths[0], "task1");
+
+    // nowMs 应反映最近一次 tick 的时间
+    EXPECT_EQ(m_scheduler->nowMs(), 50u);
+}
+
+TEST_F(UpdateSchedulerTest, FlushExecutesAllImmediately)
+{
+    // flush() 无视延迟，立即执行所有待处理任务
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(10000); // 超大延迟
+
+    m_scheduler->schedule("high", runtime::UpdateScheduler::Priority::High);
+    m_scheduler->schedule("normal", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("low", runtime::UpdateScheduler::Priority::Low);
+
+    EXPECT_TRUE(m_scheduler->hasPending());
+
+    // flush 应立即执行所有任务，无视延迟
+    u32 executed = m_scheduler->flush();
+    EXPECT_EQ(executed, 3u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+    EXPECT_EQ(updatedPaths.size(), 3u);
+}
+
+TEST_F(UpdateSchedulerTest, DeferredUpdateDefersExecution)
+{
+    // 启用延迟更新后，任务不会立即执行，需等到 batchDelayMs 后
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(16);
+
+    m_scheduler->schedule("deferred.task", runtime::UpdateScheduler::Priority::Normal);
+
+    // executePending 在未到期时不应执行任何任务
+    u32 executed = m_scheduler->executePending();
+    EXPECT_EQ(executed, 0u);
+    EXPECT_TRUE(m_scheduler->hasPending());
+    EXPECT_EQ(updatedPaths.size(), 0u);
+}
+
+TEST_F(UpdateSchedulerTest, DeferredUpdateExecutesAfterDelay)
+{
+    // 延迟到期后，tick(currentMs) 应执行任务
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(16);
+
+    m_scheduler->schedule("task", runtime::UpdateScheduler::Priority::Normal);
+
+    m_scheduler->tick(15);
+    EXPECT_EQ(updatedPaths.size(), 0u);
+
+    m_scheduler->tick(16);
+    EXPECT_EQ(updatedPaths.size(), 1u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, DeferredUpdateDisabledExecutesImmediately)
+{
+    // 禁用延迟更新后，任务立即执行（dueTimeMs = 0）
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(false);
+    m_scheduler->setBatchDelay(10000); // 即使延迟很大
+
+    m_scheduler->schedule("immediate.task", runtime::UpdateScheduler::Priority::Normal);
+
+    u32 executed = m_scheduler->executePending();
+    EXPECT_EQ(executed, 1u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, BatchDelayDebounceTrailingEdge)
+{
+    // 同一路径多次 schedule 应被去重（trailing-edge debounce）
+    // 只保留最新任务，且只执行一次
+    int callCount = 0;
+    std::string lastPath;
+    m_scheduler->setUpdateCallback([&callCount, &lastPath](const std::string& path) -> bool {
+        ++callCount;
+        lastPath = path;
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(20);
+
+    // 同一路径连续调度 3 次
+    m_scheduler->schedule("debounced", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("debounced", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("debounced", runtime::UpdateScheduler::Priority::Normal);
+
+    // 去重发生在 executePending/executeBatch/flush/tick 内部
+    // 推进时间到到期，tick 内部会先去重再执行
+    m_scheduler->tick(20);
+
+    // 只执行一次（去重后只保留最新任务）
+    EXPECT_EQ(callCount, 1);
+    EXPECT_EQ(lastPath, "debounced");
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, DueCount)
+{
+    // dueCount(currentMs) 返回已到期但未执行的待处理任务数量
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(50);
+
+    m_scheduler->schedule("task1", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("task2", runtime::UpdateScheduler::Priority::Normal);
+
+    // 在 49ms 时，0 个到期
+    EXPECT_EQ(m_scheduler->dueCount(49), 0u);
+
+    // 在 50ms 时，2 个都到期
+    EXPECT_EQ(m_scheduler->dueCount(50), 2u);
+}
+
+TEST_F(UpdateSchedulerTest, DueCountDeferredUpdateDisabled)
+{
+    // 禁用延迟更新时，所有未取消任务都视为已到期
+    m_scheduler->setDeferredUpdate(false);
+    m_scheduler->setBatchDelay(10000);
+
+    m_scheduler->schedule("task1", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("task2", runtime::UpdateScheduler::Priority::Normal);
+
+    // 即使 currentMs=0，所有任务都视为到期
+    EXPECT_EQ(m_scheduler->dueCount(0), 2u);
+}
+
+TEST_F(UpdateSchedulerTest, ExecuteBatchRespectsDueTime)
+{
+    // executeBatch 只执行到期任务，受 maxBatchSize 限制
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(30);
+    m_scheduler->setMaxBatchSize(2);
+
+    // 先推进时钟到 30，此时还没有任务
+    m_scheduler->tick(30);
+
+    // 在 t=30 时调度任务，到期时间为 30+30=60
+    m_scheduler->schedule("task1", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("task2", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("task3", runtime::UpdateScheduler::Priority::Normal);
+
+    // 时钟仍在 30，任务到期时间为 60，未到期，executeBatch 不应执行
+    u32 executed = m_scheduler->executeBatch();
+    EXPECT_EQ(executed, 0u);
+    EXPECT_EQ(updatedPaths.size(), 0u);
+    EXPECT_TRUE(m_scheduler->hasPending());
+
+    // 推进时钟到 60，任务到期
+    // 注意：tick 会调用 executePending，会执行所有到期任务
+    // 为单独测试 executeBatch 的 maxBatchSize 限制，禁用延迟后调用
+    // 但禁用延迟会导致 executePending 执行所有任务，所以这里直接验证 executeBatch 的去重和批量语义
+    m_scheduler->setMaxBatchSize(2);
+    m_scheduler->setDeferredUpdate(false); // 使 _isDue 总是返回 true
+    executed = m_scheduler->executeBatch();
+    // executeBatch 受 maxBatchSize=2 限制，一次最多执行 2 个
+    EXPECT_EQ(executed, 2u);
+    EXPECT_EQ(updatedPaths.size(), 2u);
+    EXPECT_TRUE(m_scheduler->hasPending());
+
+    // 再次执行剩余任务
+    executed = m_scheduler->executeBatch();
+    EXPECT_EQ(executed, 1u);
+    EXPECT_EQ(updatedPaths.size(), 3u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, TickWithZeroTimeExecutesNonDeferred)
+{
+    // 禁用延迟更新时，即使 tick(0) 也应执行任务
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(false);
+    m_scheduler->schedule("task", runtime::UpdateScheduler::Priority::Normal);
+
+    u32 executed = m_scheduler->tick(0);
+    EXPECT_EQ(executed, 1u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, NowMsReflectsLastTick)
+{
+    // nowMs() 返回最近一次 tick(currentMs) 传入的时间戳
+    EXPECT_EQ(m_scheduler->nowMs(), 0u);
+
+    m_scheduler->tick(12345);
+    EXPECT_EQ(m_scheduler->nowMs(), 12345u);
+
+    m_scheduler->tick(67890);
+    EXPECT_EQ(m_scheduler->nowMs(), 67890u);
+}
+
+TEST_F(UpdateSchedulerTest, FlushOnEmptyScheduler)
+{
+    // 在空调度器上调用 flush 应安全返回 0
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool { return true; });
+
+    u32 executed = m_scheduler->flush();
+    EXPECT_EQ(executed, 0u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, TickOnEmptyScheduler)
+{
+    // 在空调度器上调用 tick 应安全返回 0
+    m_scheduler->setUpdateCallback([](const std::string&) -> bool { return true; });
+
+    u32 executed = m_scheduler->tick(1000);
+    EXPECT_EQ(executed, 0u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+    EXPECT_EQ(m_scheduler->nowMs(), 1000u);
+}
+
+TEST_F(UpdateSchedulerTest, MultiplePathsDeferredExecution)
+{
+    // 多个不同路径的任务，各自按到期时间执行
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(10);
+
+    // 第一批任务：在 t=0 调度，t=10 到期
+    m_scheduler->schedule("batch1.a", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("batch1.b", runtime::UpdateScheduler::Priority::Normal);
+
+    // 推进时间到 10，第一批应执行
+    m_scheduler->tick(10);
+    EXPECT_EQ(updatedPaths.size(), 2u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+
+    // 第二批任务：在 t=10 调度，t=20 到期
+    m_scheduler->schedule("batch2.a", runtime::UpdateScheduler::Priority::Normal);
+
+    // 在 t=15 时不应执行
+    m_scheduler->tick(15);
+    EXPECT_EQ(updatedPaths.size(), 2u);
+    EXPECT_TRUE(m_scheduler->hasPending());
+
+    // 在 t=20 时应执行
+    m_scheduler->tick(20);
+    EXPECT_EQ(updatedPaths.size(), 3u);
+    EXPECT_FALSE(m_scheduler->hasPending());
+}
+
+TEST_F(UpdateSchedulerTest, HighPriorityExecutesBeforeNormalAndLow)
+{
+    // tick(currentMs) 按 High -> Normal -> Low 顺序执行到期任务
+    std::vector<std::string> updatedPaths;
+    m_scheduler->setUpdateCallback([&updatedPaths](const std::string& path) -> bool {
+        updatedPaths.push_back(path);
+        return true;
+    });
+
+    m_scheduler->setDeferredUpdate(true);
+    m_scheduler->setBatchDelay(10);
+
+    m_scheduler->schedule("low", runtime::UpdateScheduler::Priority::Low);
+    m_scheduler->schedule("normal", runtime::UpdateScheduler::Priority::Normal);
+    m_scheduler->schedule("high", runtime::UpdateScheduler::Priority::High);
+
+    m_scheduler->tick(10);
+
+    // 执行顺序应为 High -> Normal -> Low
+    ASSERT_EQ(updatedPaths.size(), 3u);
+    EXPECT_EQ(updatedPaths[0], "high");
+    EXPECT_EQ(updatedPaths[1], "normal");
+    EXPECT_EQ(updatedPaths[2], "low");
 }
 
 // ==================== CompiledTemplate Tests ====================
@@ -4976,7 +5391,12 @@ TEST_F(BindingContextEdgeCaseTest, SetBindingIntToFloat)
 
 class UpdateSchedulerEdgeCaseTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_scheduler = std::make_unique<runtime::UpdateScheduler>(); }
+    void SetUp() override
+    {
+        m_scheduler = std::make_unique<runtime::UpdateScheduler>();
+        // 默认禁用延迟更新，保持原有立即执行语义
+        m_scheduler->setDeferredUpdate(false);
+    }
 
     std::unique_ptr<runtime::UpdateScheduler> m_scheduler;
 };

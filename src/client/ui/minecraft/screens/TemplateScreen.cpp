@@ -27,6 +27,7 @@
 #include "client/ui/kagero/template/bindings/BuiltinWidgets.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "client/ui/kagero/widget/IWidgetContainer.hpp"
+#include "common/util/TimeUtils.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -139,7 +140,8 @@ void TemplateScreen::onOpen()
     }
 
     if (m_instance) {
-        m_instance->updateBindings();
+        // 立即刷新所有待处理任务并全量更新绑定
+        m_instance->refresh();
     }
 }
 
@@ -152,7 +154,12 @@ void TemplateScreen::tick(f32 dt)
 {
     Screen::tick(dt);
     if (m_instance) {
-        m_instance->updateBindings();
+        // 推进调度器：执行到期的延迟更新任务
+        // 注意：updateBindings() 不再每帧全量调用，由调度器按需增量更新
+        // 仅在调度器禁用延迟更新且无待处理任务时，才做兜底全量刷新
+        const u64 currentMs = util::TimeUtils::getCurrentTimeMs();
+        const u32 executed = m_instance->tick(currentMs);
+        (void)executed;
     }
 }
 
@@ -162,21 +169,24 @@ void TemplateScreen::onResize(i32 width, i32 height)
     _syncRootWidgetBounds();
     _resolvePercentSizes();
     if (m_instance) {
-        m_instance->updateBindings();
+        // 立即刷新所有待处理任务并全量更新绑定
+        m_instance->refresh();
     }
 }
 
 void TemplateScreen::refresh()
 {
     if (m_instance) {
-        m_instance->updateBindings();
+        m_instance->refresh();
     }
 }
 
 void TemplateScreen::refreshBinding(const std::string& path)
 {
     if (m_instance) {
+        // 入队该路径并立即刷新（绕过调度器延迟）
         m_instance->notifyStateChange(path);
+        m_instance->flushPending();
     }
 }
 

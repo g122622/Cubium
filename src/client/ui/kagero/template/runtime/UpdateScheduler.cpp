@@ -36,7 +36,8 @@ UpdateScheduler::~UpdateScheduler()
 
 u64 UpdateScheduler::schedule(const std::string& path, Priority priority)
 {
-    auto task = std::make_unique<UpdateTask>(path, priority, m_nextTimestamp++);
+    const u64 dueTimeMs = _computeDueTime();
+    auto task = std::make_unique<UpdateTask>(path, priority, m_nextTimestamp++, dueTimeMs);
     u64 taskId = reinterpret_cast<u64>(task.get());
     m_pathToTasks[path].push_back(taskId);
     m_tasks.push_back(std::move(task));
@@ -53,6 +54,9 @@ void UpdateScheduler::cancel(u64 taskId)
             if (it != m_pathToTasks.end()) {
                 auto& ids = it->second;
                 ids.erase(std::remove(ids.begin(), ids.end(), taskId), ids.end());
+                if (ids.empty()) {
+                    m_pathToTasks.erase(it);
+                }
             }
             break;
         }
@@ -91,27 +95,24 @@ u32 UpdateScheduler::executePending()
     count += executeLowPriority();
 
     // 清理已完成的任务
-    m_tasks.erase(
-        std::remove_if(
-            m_tasks.begin(), m_tasks.end(), [](const std::unique_ptr<UpdateTask>& task) { return task->cancelled; }),
-        m_tasks.end());
+    _cleanupCancelled();
 
     return count;
 }
 
 u32 UpdateScheduler::executeHighPriority()
 {
-    return _executePriority(Priority::High);
+    return _executePriority(Priority::High, false);
 }
 
 u32 UpdateScheduler::executeNormalPriority()
 {
-    return _executePriority(Priority::Normal);
+    return _executePriority(Priority::Normal, false);
 }
 
 u32 UpdateScheduler::executeLowPriority()
 {
-    return _executePriority(Priority::Low);
+    return _executePriority(Priority::Low, false);
 }
 
 u32 UpdateScheduler::executeBatch()
@@ -125,6 +126,7 @@ u32 UpdateScheduler::executeBatch()
 
     for (const auto& task : m_tasks) {
         if (task->cancelled) continue;
+        if (!_isDue(*task, false)) continue;
         if (processedPaths.count(task->path) > 0) continue;
 
         m_updateCallback(task->path);
@@ -135,7 +137,29 @@ u32 UpdateScheduler::executeBatch()
         if (processedPaths.size() >= m_maxBatchSize) break;
     }
 
+    _cleanupCancelled();
+
     return count;
+}
+
+u32 UpdateScheduler::flush()
+{
+    _deduplicatePaths();
+
+    u32 count = 0;
+    count += _executePriority(Priority::High, true);
+    count += _executePriority(Priority::Normal, true);
+    count += _executePriority(Priority::Low, true);
+
+    _cleanupCancelled();
+
+    return count;
+}
+
+u32 UpdateScheduler::tick(u64 currentMs)
+{
+    m_nowMs = currentMs;
+    return executePending();
 }
 
 u32 UpdateScheduler::pendingCount() const
@@ -156,21 +180,38 @@ u32 UpdateScheduler::pendingCount(Priority priority) const
     return count;
 }
 
+u32 UpdateScheduler::dueCount(u64 currentMs) const
+{
+    // 禁用延迟更新时，所有未取消任务都视为已到期
+    if (!m_deferredUpdate) {
+        return pendingCount();
+    }
+
+    u32 count = 0;
+    for (const auto& task : m_tasks) {
+        if (task->cancelled) continue;
+        if (task->dueTimeMs <= currentMs) ++count;
+    }
+    return count;
+}
+
 u64 UpdateScheduler::currentTimestamp() const
 {
     return m_nextTimestamp;
 }
 
-u32 UpdateScheduler::_executePriority(Priority priority)
+u32 UpdateScheduler::_executePriority(Priority priority, bool forceDue)
 {
     if (!m_updateCallback) return 0;
 
     // 先收集要执行的任务，避免在迭代过程中修改容器
     std::vector<std::pair<u64, std::string>> tasksToExecute;
     for (const auto& task : m_tasks) {
-        if (!task->cancelled && task->priority == priority) {
-            tasksToExecute.emplace_back(reinterpret_cast<u64>(task.get()), task->path);
-        }
+        if (task->cancelled) continue;
+        if (task->priority != priority) continue;
+        if (!_isDue(*task, forceDue)) continue;
+
+        tasksToExecute.emplace_back(reinterpret_cast<u64>(task.get()), task->path);
     }
 
     // 执行任务
@@ -201,18 +242,26 @@ u32 UpdateScheduler::_executePriority(Priority priority)
     return count;
 }
 
+bool UpdateScheduler::_isDue(const UpdateTask& task, bool forceDue) const
+{
+    if (forceDue) return true;
+    if (!m_deferredUpdate) return true;
+    return task.dueTimeMs <= m_nowMs;
+}
+
 void UpdateScheduler::_deduplicatePaths()
 {
     // 对每个路径只保留最新任务
     for (auto& [path, taskIds] : m_pathToTasks) {
         if (taskIds.size() <= 1) continue;
 
-        // 找到最新任务（最高时间戳）
+        // 找到最新任务（最高 timestamp）
         u64 latestTaskId = 0;
         u64 latestTimestamp = 0;
         for (u64 taskId : taskIds) {
             for (const auto& task : m_tasks) {
-                if (reinterpret_cast<u64>(task.get()) == taskId && task->timestamp > latestTimestamp) {
+                if (reinterpret_cast<u64>(task.get()) == taskId && !task->cancelled &&
+                    task->timestamp > latestTimestamp) {
                     latestTaskId = taskId;
                     latestTimestamp = task->timestamp;
                 }
@@ -231,6 +280,43 @@ void UpdateScheduler::_deduplicatePaths()
             }
         }
     }
+}
+
+void UpdateScheduler::_cleanupCancelled()
+{
+    // 清理已取消的任务，并同步更新路径映射
+    std::unordered_map<std::string, std::vector<u64>> newPathToTasks;
+
+    m_tasks.erase(std::remove_if(m_tasks.begin(),
+                      m_tasks.end(),
+                      [&](const std::unique_ptr<UpdateTask>& task) {
+                          if (!task->cancelled) {
+                              // 保留任务：更新路径映射
+                              auto it = m_pathToTasks.find(task->path);
+                              if (it != m_pathToTasks.end()) {
+                                  auto& ids = newPathToTasks[task->path];
+                                  for (u64 id : it->second) {
+                                      if (id == reinterpret_cast<u64>(task.get())) {
+                                          ids.push_back(id);
+                                          break;
+                                      }
+                                  }
+                              }
+                              return false;
+                          }
+                          return true;
+                      }),
+        m_tasks.end());
+
+    m_pathToTasks = std::move(newPathToTasks);
+}
+
+u64 UpdateScheduler::_computeDueTime() const
+{
+    if (!m_deferredUpdate) {
+        return 0;
+    }
+    return m_nowMs + m_batchDelayMs;
 }
 
 } // namespace mc::client::ui::kagero::tpl::runtime

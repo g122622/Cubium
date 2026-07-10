@@ -453,27 +453,44 @@ StateStore::instance().set("player.inventory", inventory);
 
 ## 更新调度器
 
-`UpdateScheduler` 管理增量更新，避免频繁刷新整个模板：
+`UpdateScheduler` 管理增量更新，避免频繁刷新整个模板。
+`TemplateInstance` 内部持有一个 `UpdateScheduler` 实例，通过回调驱动 `updateBinding(path)`：
 
 ```cpp
-UpdateScheduler scheduler;
-
-// 调度更新任务
-u64 taskId = scheduler.schedule("player.health", Priority::Normal);
-
-// 执行待处理任务
-u32 executed = scheduler.executePending(&instance);
-
-// 执行特定优先级任务
-scheduler.executeHighPriority(&instance);
-scheduler.executeNormalPriority(&instance);
-scheduler.executeLowPriority(&instance);
+// TemplateInstance 内部已自动配置调度器回调
+// 外部通过 instance.scheduler() 可访问调度器进行配置
+auto& scheduler = instance.scheduler();
 
 // 配置
 scheduler.setBatchDelay(16);    // 批量更新延迟（毫秒）
 scheduler.setMaxBatchSize(100); // 最大批量大小
 scheduler.setDeferredUpdate(true);
+
+// 状态变更通知：入队路径，由调度器按延迟/优先级统一执行
+instance.notifyStateChange("player.health");
+
+// 每帧推进调度器（由 TemplateScreen::tick 自动调用）
+instance.tick(currentMs);
+
+// 立即执行所有待处理任务（无视延迟，用于屏幕关闭/强制刷新）
+instance.flushPending();
+
+// 全量刷新绑定（立即执行待处理任务 + 重新应用所有绑定计划）
+instance.refresh();
 ```
+
+### 时间模型与延迟语义
+
+- 外部通过 `tick(currentMs)` 推进调度器内部时钟（毫秒级时间戳，通常来自 `util::TimeUtils::getCurrentTimeMs()`）
+- `schedule()` 时根据 `m_deferredUpdate` 与 `m_batchDelayMs` 计算任务到期时间 `dueTimeMs`
+- `executePending()` / `tick()` 只执行 `dueTimeMs <= 当前时间` 的任务
+- `flush()` 无视延迟立即执行所有待处理任务（用于屏幕关闭、强制刷新等场景）
+
+### 批量延迟语义（trailing-edge debounce）
+
+- 同一路径的多次 `schedule` 会被 `_deduplicatePaths()` 合并，只保留最新任务
+- 启用 `deferredUpdate` 时，每次 `schedule` 会把该路径的到期时间推迟 `now + batchDelayMs`
+- 这意味着连续高频更新只会被处理一次（最后一次），避免重复刷新
 
 ## 最佳实践
 

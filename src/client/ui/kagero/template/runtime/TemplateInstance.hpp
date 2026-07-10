@@ -216,9 +216,12 @@ public:
     /**
      * @brief 更新指定路径的绑定
      *
+     * 从绑定上下文读取最新值并更新Widget
+     *
      * @param path 状态路径
+     * @return 是否更新成功（无对应绑定计划时返回 false）
      */
-    void updateBinding(const std::string& path);
+    [[nodiscard]] bool updateBinding(const std::string& path);
 
     /**
      * @brief 设置绑定上下文
@@ -236,14 +239,39 @@ public:
     /**
      * @brief 通知状态变更
      *
+     * 将路径入队到内部 UpdateScheduler，由 tick() / flush() 统一调度执行。
+     * 若调度器禁用延迟更新，则等价于立即调用 updateBinding(path)。
+     *
      * @param path 变更的状态路径
      */
     void notifyStateChange(const std::string& path);
 
     /**
      * @brief 刷新所有绑定
+     *
+     * 立即同步执行所有待处理任务，并全量刷新绑定。
      */
     void refresh();
+
+    /**
+     * @brief 每帧推进调度器
+     *
+     * 由外部（如 TemplateScreen::tick）每帧调用，传入当前毫秒时间戳。
+     * 内部驱动 UpdateScheduler::tick(currentMs) 执行到期任务。
+     *
+     * @param currentMs 当前毫秒时间戳（通常来自 TimeUtils::getCurrentTimeMs()）
+     * @return 本次 tick 执行的任务数量
+     */
+    u32 tick(u64 currentMs);
+
+    /**
+     * @brief 立即执行所有待处理任务（无视延迟）
+     *
+     * 用于屏幕关闭、强制刷新等需要立即同步的场景。
+     *
+     * @return 执行的任务数量
+     */
+    u32 flushPending();
 
     // ========== Widget查找 ==========
 
@@ -263,6 +291,19 @@ public:
      * @brief 获取实例统计信息
      */
     [[nodiscard]] std::string debugInfo() const;
+
+    // ========== 调度器配置 ==========
+
+    /**
+     * @brief 获取内部调度器（用于配置批量延迟、延迟更新等参数）
+     *
+     * 调度器由 TemplateInstance 内部持有，外部可通过此方法配置：
+     * - setBatchDelay(ms)：批量更新延迟
+     * - setMaxBatchSize(n)：最大批量大小
+     * - setDeferredUpdate(true/false)：是否启用延迟更新
+     */
+    [[nodiscard]] UpdateScheduler& scheduler() { return m_scheduler; }
+    [[nodiscard]] const UpdateScheduler& scheduler() const { return m_scheduler; }
 
 private:
     // ========== 实例化辅助方法 ==========
@@ -364,6 +405,14 @@ private:
      */
     [[nodiscard]] bool _evaluateCondition(const ast::ConditionInfo& condition) const;
 
+    /**
+     * @brief 重新绑定调度器回调
+     *
+     * 调度器回调捕获 this 指针，移动构造/赋值后需重新绑定。
+     * 也在 instantiate() 完成后初次绑定。
+     */
+    void _rebindSchedulerCallback();
+
 private:
     // Owned compiled template
     std::unique_ptr<compiler::CompiledTemplate> m_ownedCompiled;
@@ -386,6 +435,9 @@ private:
 
     // 订阅ID
     std::vector<u64> m_subscriptionIds;
+
+    // 更新调度器（管理增量更新的批量延迟和优先级调度）
+    UpdateScheduler m_scheduler;
 };
 
 } // namespace mc::client::ui::kagero::tpl::runtime
