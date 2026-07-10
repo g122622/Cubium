@@ -32,6 +32,7 @@
 #include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SetCameraPacket.hpp"
@@ -46,6 +47,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
@@ -140,6 +142,27 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
 
 void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
 {
+    // 先发送告示牌当前的 BlockEntity 数据给客户端，确保编辑器打开时能显示已有文本
+    // 对应 MC Java: SignBlock.openTextEdit() 前，客户端通过区块数据已持有 BlockEntity
+    if (m_world != nullptr) {
+        const BlockEntity* entity = m_world->getBlockEntity(pos);
+        if (entity != nullptr) {
+            nbt::CompoundTag tag = entity->getUpdateTag();
+            std::vector<u8> nbtData = network::BlockEntityDataPacket::serializeNbtToBytes(tag);
+            if (!nbtData.empty()) {
+                network::BlockEntityDataPacket bePacket(pos, entity->getType(), std::move(nbtData));
+                network::PacketSerializer bePayload;
+                bePacket.serialize(bePayload);
+                const auto beFullPacket = server::core::ConnectionManager::encapsulatePacket(
+                    network::PacketType::BlockEntityData, bePayload.buffer());
+                if (!_sendFullPacket(beFullPacket)) {
+                    spdlog::warn(
+                        "ServerPlayer: block entity data packet not sent (player={}, no connection)", username());
+                }
+            }
+        }
+    }
+
     // 向客户端发送 OpenSignEditorPacket，通知其打开告示牌编辑界面
     network::OpenSignEditorPacket packet(pos, isFrontSide);
     network::PacketSerializer payload;

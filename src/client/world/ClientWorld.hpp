@@ -50,6 +50,7 @@
 
 namespace mc {
 class ItemStack;
+class BlockEntity;
 } // namespace mc
 
 namespace mc::client {
@@ -486,6 +487,47 @@ public:
      */
     [[nodiscard]] f32 getSpawnAngle() const { return m_spawnAngle; }
 
+    // ========== 方块实体 ==========
+
+    /**
+     * @brief 处理服务端发来的方块实体数据更新包
+     *
+     * 收到 BlockEntityData 包后，根据类型在本地查找或创建对应的 BlockEntity，
+     * 并通过 loadFromNBT() 更新其状态。
+     *
+     * @param pos 方块位置
+     * @param type 方块实体类型
+     * @param nbtData NBT 字节流（Java 版大端序二进制格式）
+     */
+    void onBlockEntityData(const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData);
+
+    /**
+     * @brief 获取指定位置的方块实体
+     * @param pos 方块位置
+     * @return 方块实体指针，不存在返回 nullptr
+     */
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos);
+
+    /**
+     * @brief 获取指定位置的方块实体（const 版本）
+     * @param pos 方块位置
+     * @return 方块实体指针，不存在返回 nullptr
+     */
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const;
+
+    /**
+     * @brief 移除指定位置的方块实体
+     * @param pos 方块位置
+     */
+    void removeBlockEntity(const BlockPos& pos);
+
+    /**
+     * @brief 清空所有方块实体
+     *
+     * 用于维度切换时清空旧维度的方块实体数据。
+     */
+    void clearBlockEntities();
+
 private:
     void _rebuildMesh(ClientChunk& chunk);
     void _scheduleChunkMeshRebuild(const ChunkId& id);
@@ -546,6 +588,10 @@ private:
 
     /// 出生点偏航角（用于指南针）
     f32 m_spawnAngle = 0.0f;
+
+    /// 客户端方块实体存储（key 为 BlockPos::asLong()）
+    /// 收到 BlockEntityData 包时更新；维度切换或区块卸载时清除
+    std::unordered_map<i64, std::unique_ptr<BlockEntity>> m_blockEntities;
 
     bool m_destroyed = false;
 };

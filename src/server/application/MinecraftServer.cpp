@@ -56,6 +56,7 @@
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
+#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/packet/BlockEventPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
@@ -68,8 +69,8 @@
 #include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -568,6 +569,19 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
     world.setOnBroadcastBlockEvent([this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId) {
         broadcastBlockEventInRange(x, y, z, paramA, paramB, blockStateId);
+    });
+    world.setOnBroadcastBlockEntity([this, &world](const BlockPos& pos) {
+        // 方块实体数据变化后，获取最新 NBT 快照并广播给附近客户端
+        // 参考 MC Java: ServerLevel.sendBlockUpdated -> PlayerList.broadcast(
+        //   null, x, y, z, 64.0, dimension, new ClientboundBlockEntityDataPacket)
+        const BlockEntity* entity = world.getBlockEntity(pos);
+        if (entity == nullptr) {
+            return;
+        }
+
+        nbt::CompoundTag tag = entity->getUpdateTag();
+        std::vector<u8> nbtData = network::BlockEntityDataPacket::serializeNbtToBytes(tag);
+        broadcastBlockEntityInRange(pos, entity->getType(), nbtData);
     });
     world.setOnDestroyBlockProgress([this](EntityId breakerId, i32 x, i32 y, i32 z, i32 progress) {
         broadcastBlockBreakProgressInRange(breakerId, x, y, z, progress);
@@ -2230,19 +2244,11 @@ void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const u8* data, 
     // 标记方块实体已变更，触发区块存档保存
     signEntity->setChanged();
 
-    // TODO: 告示牌文本更新后需要广播 BlockEntity 数据给附近其他玩家，
-    // 使其他玩家能看到更新后的告示牌文本。当前项目缺少 BlockEntity 客户端同步机制：
-    //   - 无 PacketType::BlockEntityData 枚举与对应包类
-    //   - BlockEntity 基类无 getUpdatePacket()/getUpdateTag() 虚方法
-    //   - ServerWorld 无 broadcastBlockEntity(pos) 入口
-    //   - NetworkClient 无 onBlockEntityUpdate 回调
-    //   - ClientWorld 无 BlockEntity 存储与 getBlockEntity() 实现
-    //   - SignRenderer 未实现，BlockEntityRendererDispatcher 未集成到主渲染循环
-    // 实现上述子系统后，在此处调用 world->broadcastBlockEntity(signPos)。
-    // 当前编辑者自己通过 SignEditScreen 本地状态可见，单人模式下体验完整；
-    // 多人模式下其他玩家需重新加载区块才能看到更新（客户端 BlockEntity 渲染缺失，
-    // 即使重载也暂不可见）。
-    spdlog::debug("UpdateSign: player {} updated sign at ({}, {}, {})", playerId, signPos.x, signPos.y, signPos.z);
+    // 广播 BlockEntity 数据给附近其他玩家，使其能看到更新后的告示牌文本
+    // 参考 MC Java: SignBlockEntity.updateSignText -> level.sendBlockUpdated(pos, state, state, 3)
+    world->broadcastBlockEntity(signPos);
+
+    spdlog::info("UpdateSign: player {} updated sign at ({}, {}, {})", playerId, signPos.x, signPos.y, signPos.z);
 }
 
 void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
@@ -3249,6 +3255,33 @@ void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA,
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastBlockEntityInRange(
+    const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData, f32 range)
+{
+    // 参考 MC Java: PlayerList.broadcast(null, x, y, z, 64.0, dimension,
+    //   new ClientboundBlockEntityDataPacket(pos, type, tag))
+    // 方块实体数据变化后，将最新 NBT 快照发送给附近客户端
+    network::BlockEntityDataPacket packet(pos, type, nbtData);
+
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockEntityData, ser.buffer());
+
+    f32 rangeSq = range * range;
+    Vector3 fpos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+    m_playerManager->forEachPlayer([this, &fpos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, fpos.x, fpos.y, fpos.z);
         if (distSq <= rangeSq) {
             sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
         }

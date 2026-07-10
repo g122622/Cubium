@@ -397,6 +397,15 @@ void ServerWorld::blockEvent(const BlockPos& pos, const Block& block, i32 paramA
     m_blockEvents.push_back(BlockEventData{pos, &block, paramA, paramB});
 }
 
+void ServerWorld::broadcastBlockEntity(const BlockPos& pos)
+{
+    // 方块实体数据变化后，触发回调将最新 NBT 快照发送给追踪该区块的客户端
+    // 参考 MC Java: ServerLevel.sendBlockUpdated(BlockPos, BlockState, BlockState, int)
+    if (m_onBroadcastBlockEntity) {
+        m_onBroadcastBlockEntity(pos);
+    }
+}
+
 void ServerWorld::runBlockEvents()
 {
     // 参考 MC Java: ServerLevel.runBlockEvents()

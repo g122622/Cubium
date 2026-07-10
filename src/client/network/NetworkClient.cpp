@@ -733,6 +733,11 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
             break;
         }
 
+        case network::PacketType::BlockEntityData: {
+            _handleBlockEntityData(bodyDeser);
+            break;
+        }
+
             // ========== 实体包 ==========
 
         case network::PacketType::SpawnEntity: {
@@ -1211,6 +1216,19 @@ void NetworkClient::_handleSignEditorOpen(network::PacketDeserializer& deser)
 
     if (m_callbacks.onSignEditorOpen) {
         m_callbacks.onSignEditorOpen(result.value());
+    }
+}
+
+void NetworkClient::_handleBlockEntityData(network::PacketDeserializer& deser)
+{
+    auto result = network::BlockEntityDataPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize block entity data packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onBlockEntityData) {
+        m_callbacks.onBlockEntityData(result.value());
     }
 }
 

@@ -62,4 +62,12 @@ void BlockEntity::saveToNBT(nbt::CompoundTag& tag) const
     // 子类应重写此方法以保存自定义数据
 }
 
+nbt::CompoundTag BlockEntity::getUpdateTag() const
+{
+    // 默认实现：写入完整状态（含 id/x/y/z 公共字段及子类 saveToNBT 写入的自定义字段）
+    nbt::CompoundTag tag;
+    saveToNBT(tag);
+    return tag;
+}
+
 } // namespace mc

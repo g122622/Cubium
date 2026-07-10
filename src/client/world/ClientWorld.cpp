@@ -37,6 +37,7 @@
 #include "../renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "common/core/Constants.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -45,6 +46,10 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include <algorithm>
 #include <cmath>
@@ -654,6 +659,9 @@ void ClientWorld::clearChunks()
     // 4. 清空区块映射
     m_chunks.clear();
 
+    // 5. 清空方块实体（维度切换时旧维度的方块实体不再有效）
+    clearBlockEntities();
+
     spdlog::info("[ClientWorld] Cleared all chunks for dimension change");
 }
 
@@ -1072,6 +1080,68 @@ void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 rang
     const Block& block = blockState->getBlock();
     BlockPos pos(x, y, z);
     block.animateTick(*this, pos, *blockState, random);
+}
+
+// ========== 方块实体 ==========
+
+void ClientWorld::onBlockEntityData(const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData)
+{
+    // 反序列化 NBT 字节流
+    auto nbtResult = network::BlockEntityDataPacket::deserializeNbtFromBytes(nbtData);
+    if (nbtResult.failed()) {
+        spdlog::warn("ClientWorld: failed to parse BlockEntity NBT at ({}, {}, {}): {}",
+            pos.x,
+            pos.y,
+            pos.z,
+            nbtResult.error().message());
+        return;
+    }
+
+    const i64 key = pos.asLong();
+
+    // 查找或创建对应的 BlockEntity
+    auto it = m_blockEntities.find(key);
+    if (it == m_blockEntities.end()) {
+        // 通过注册表创建新实例
+        auto entity = blockentity::BlockEntityRegistry::instance().create(type, pos);
+        if (entity == nullptr) {
+            spdlog::warn("ClientWorld: failed to create BlockEntity (type={}) at ({}, {}, {})",
+                static_cast<u32>(type),
+                pos.x,
+                pos.y,
+                pos.z);
+            return;
+        }
+        it = m_blockEntities.emplace(key, std::move(entity)).first;
+    }
+
+    // 加载 NBT 数据更新状态
+    it->second->loadFromNBT(nbtResult.value());
+}
+
+BlockEntity* ClientWorld::getBlockEntity(const BlockPos& pos)
+{
+    const i64 key = pos.asLong();
+    auto it = m_blockEntities.find(key);
+    return (it != m_blockEntities.end()) ? it->second.get() : nullptr;
+}
+
+const BlockEntity* ClientWorld::getBlockEntity(const BlockPos& pos) const
+{
+    const i64 key = pos.asLong();
+    auto it = m_blockEntities.find(key);
+    return (it != m_blockEntities.end()) ? it->second.get() : nullptr;
+}
+
+void ClientWorld::removeBlockEntity(const BlockPos& pos)
+{
+    const i64 key = pos.asLong();
+    m_blockEntities.erase(key);
+}
+
+void ClientWorld::clearBlockEntities()
+{
+    m_blockEntities.clear();
 }
 
 } // namespace mc::client

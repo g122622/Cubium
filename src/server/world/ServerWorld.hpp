@@ -661,6 +661,34 @@ public:
 
     void setOnBroadcastBlockEvent(BlockEventCallback callback) { m_onBroadcastBlockEvent = std::move(callback); }
 
+    // ========== 方块实体数据广播回调 ==========
+
+    /**
+     * @brief 方块实体数据广播回调类型
+     *
+     * 当服务端方块实体数据发生变化（如告示牌文本更新）时，将最新 NBT 数据
+     * 广播给追踪该区块的客户端。参考 MC Java: Level.sendBlockUpdated。
+     * 参数：方块位置
+     */
+    using BlockEntityBroadcastCallback = std::function<void(const BlockPos& pos)>;
+
+    void setOnBroadcastBlockEntity(BlockEntityBroadcastCallback callback)
+    {
+        m_onBroadcastBlockEntity = std::move(callback);
+    }
+
+    /**
+     * @brief 广播方块实体数据更新给附近客户端
+     *
+     * 方块实体数据变化后调用，触发将最新 NBT 快照发送给追踪该区块的客户端。
+     * 实际的玩家筛选与包发送由上层（MinecraftServer）通过回调完成。
+     *
+     * 参考 MC Java: ServerLevel.sendBlockUpdated(BlockPos, BlockState, BlockState, int)
+     *
+     * @param pos 方块位置
+     */
+    void broadcastBlockEntity(const BlockPos& pos);
+
     /**
      * @brief 方块破坏进度回调类型
      *
@@ -1450,7 +1478,8 @@ private:
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;
     WorldEventCallback m_onBroadcastWorldEvent;
-    BlockEventCallback m_onBroadcastBlockEvent; ///< 方块事件广播回调
+    BlockEventCallback m_onBroadcastBlockEvent;            ///< 方块事件广播回调
+    BlockEntityBroadcastCallback m_onBroadcastBlockEntity; ///< 方块实体数据广播回调
     BlockBreakProgressCallback m_onDestroyBlockProgress;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
     RaidEventCallback m_onRaidEvent;           ///< 袭击事件回调

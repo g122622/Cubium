@@ -28,6 +28,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/connection/LocalConnection.hpp"
+#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
@@ -106,6 +107,7 @@ struct NetworkClientCallbacks {
     std::function<void(i32 selectedSlot, const std::vector<ItemStack>& items)> onPlayerInventory;
     std::function<void(const OpenContainerPacket& packet)> onOpenContainer;
     std::function<void(const network::OpenSignEditorPacket& packet)> onSignEditorOpen;
+    std::function<void(const network::BlockEntityDataPacket& packet)> onBlockEntityData;
     std::function<void(const ContainerContentPacket& packet)> onContainerContent;
     std::function<void(const ContainerSlotPacket& packet)> onContainerSlot;
     std::function<void(ContainerId containerId)> onCloseContainer;
@@ -476,6 +478,7 @@ private:
     void _handleContainerSlot(network::PacketDeserializer& deser);
     void _handleCloseContainer(network::PacketDeserializer& deser);
     void _handleSignEditorOpen(network::PacketDeserializer& deser);
+    void _handleBlockEntityData(network::PacketDeserializer& deser);
     void _handleDisconnect(network::PacketDeserializer& deser);
 
     // 实体包处理

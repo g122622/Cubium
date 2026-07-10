@@ -70,6 +70,8 @@
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/MudBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
 #include <algorithm>
@@ -535,13 +537,16 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        // TODO: 客户端没有 BlockEntity 系统，无法获取告示牌的当前文本。
-        // 当前 initialLines 硬编码为空数组，导致玩家编辑已有告示牌时会丢失现有文本
-        // （提交后服务端会用空文本覆盖原有内容）。
-        // 实现客户端 BlockEntity 存储（ClientWorld::getBlockEntity）+
-        // BlockEntity 客户端同步（PacketType::BlockEntityData）后，
-        // 应从客户端 BlockEntity 读取当前文本传入 SignEditScreen。
-        const std::array<std::string, ui::minecraft::SignEditScreen::LINE_COUNT> initialLines{};
+        // 从客户端 BlockEntity 存储读取告示牌当前文本
+        // 服务端在打开编辑器前会通过 BlockEntityData 包同步告示牌数据到客户端
+        std::array<std::string, ui::minecraft::SignEditScreen::LINE_COUNT> initialLines{};
+        const BlockEntity* entity = m_world.getBlockEntity(packet.pos());
+        if (entity != nullptr && entity->getType() == BlockEntityType::Sign) {
+            const auto* signEntity = static_cast<const blockentity::SignEntity*>(entity);
+            for (i32 i = 0; i < ui::minecraft::SignEditScreen::LINE_COUNT; ++i) {
+                initialLines[static_cast<std::size_t>(i)] = signEntity->getLineText(i);
+            }
+        }
 
         // 创建告示牌编辑屏幕
         auto signScreen = std::make_unique<ui::minecraft::SignEditScreen>(
@@ -564,6 +569,11 @@ void ClientApplication::setupNetworkCallbacks()
 
         // 添加到屏幕栈（push 会自动调用 onOpen）
         screenStack->push(std::move(signScreen));
+    };
+
+    callbacks.onBlockEntityData = [this](const network::BlockEntityDataPacket& packet) {
+        // 收到方块实体数据更新包，转发给 ClientWorld 更新本地 BlockEntity 存储
+        m_world.onBlockEntityData(packet.pos(), packet.type(), packet.nbtData());
     };
 
     callbacks.onContainerContent = [this](const ContainerContentPacket& packet) {

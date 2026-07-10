@@ -38,6 +38,7 @@
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
@@ -872,6 +873,21 @@ protected:
      * @param range 广播范围（格），默认 64 格
      */
     void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range = 64.0f);
+
+    /**
+     * @brief 广播方块实体数据更新给指定范围内的玩家
+     *
+     * 当方块实体数据变化（如告示牌文本更新）时，将最新的 NBT 快照发送给
+     * 附近客户端。对应 MC Java: PlayerList.broadcast(null, x, y, z, 64.0,
+     * dimension, new ClientboundBlockEntityDataPacket(pos, type, tag))。
+     *
+     * @param pos 方块位置
+     * @param type 方块实体类型
+     * @param nbtData NBT 字节流（Java 版大端序二进制格式）
+     * @param range 广播范围（格），默认 64 格
+     */
+    void broadcastBlockEntityInRange(
+        const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData, f32 range = 64.0f);
 
     /**
      * @brief 发送粒子给指定玩家

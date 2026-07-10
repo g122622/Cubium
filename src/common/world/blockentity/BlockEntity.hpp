@@ -134,6 +134,18 @@ public:
     virtual void saveToNBT(nbt::CompoundTag& tag) const;
 
     /**
+     * @brief 获取用于客户端同步的 NBT 数据快照
+     * @return NBT 复合标签
+     *
+     * 服务端在方块实体数据变化后通过此方法生成发送给客户端的 NBT 快照。
+     * 默认实现调用 saveToNBT() 写入完整数据（包括 id/x/y/z 公共字段），
+     * 子类可重写以提供精简的更新数据（参考 MC Java 的 getUpdateTag()）。
+     *
+     * 参考 MC Java: BlockEntity.getUpdateTag(HolderLookup.Provider)
+     */
+    [[nodiscard]] virtual nbt::CompoundTag getUpdateTag() const;
+
+    /**
      * @brief 每tick更新
      * @param world 所在世界
      *

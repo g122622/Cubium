@@ -30,6 +30,7 @@
  * 包含所有数据包相关的类。
  */
 
+#include "BlockEntityDataPacket.hpp"
 #include "CommandTreePacket.hpp"
 #include "ContainerPacketHandler.hpp"
 #include "EntityMetadataSerializer.hpp"

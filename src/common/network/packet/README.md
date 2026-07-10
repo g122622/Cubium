@@ -23,6 +23,10 @@ src/common/network/packet/
 ├── RecipePackets.hpp              # 配方同步数据包
 ├── BlockBreakAnimPacket.hpp       # 方块破坏动画包
 ├── BlockBreakAnimPacket.cpp       # 破坏动画包实现
+├── BlockEntityDataPacket.hpp      # 方块实体数据同步包 (S2C)，用于告示牌等数据更新
+├── BlockEventPacket.hpp           # 方块事件同步包 (S2C)
+├── BlockEventPacket.cpp           # 方块事件同步包实现
+├── SignPackets.hpp                # 告示牌编辑相关数据包 (打开编辑器/文本更新)
 ├── GameStateChangePacket.hpp      # 游戏状态变化包
 ├── GameStateChangePacket.cpp      # 状态变化包实现
 ├── PlayerAbilitiesPacket.hpp      # 玩家能力同步包
@@ -43,11 +47,9 @@ src/common/network/packet/
 ├── WorldBorderPacket.hpp          # 世界边界同步包
 ├── WorldBorderPacket.cpp          # 世界边界同步包实现
 ├── AdvancementPackets.hpp         # 成就系统数据包
-└── AdvancementPackets.cpp         # 成就数据包实现
+├── AdvancementPackets.cpp         # 成就数据包实现
 ├── SetCameraPacket.hpp            # 旁观者摄像机同步包 (S2C)
 ├── SetCameraPacket.cpp            # 旁观者摄像机同步包实现
-├── BlockEventPacket.hpp           # 方块事件同步包 (S2C)
-├── BlockEventPacket.cpp           # 方块事件同步包实现
 ├── ParticlePacket.hpp             # 粒子同步包 (S2C)（普通/方块/物品/EntityEffect/Vibration/Trail）
 └── ParticlePacket.cpp             # 粒子同步包实现
 ```
@@ -170,4 +172,13 @@ PacketModule.hpp (统一入口)
       - `createVibration()` / `createTrail()` - 振动/轨迹粒子，`m_optionalData` 存储目标位置等参数
     - 辅助方法：`isBlockParticle()` / `isItemParticle()` / `isEntityEffectParticle()` / `isVibrationParticle()` / `isTrailParticle()` 判断可选数据类型；`decodeBlockState()` / `decodeItemStack()` / `decodeColor()` / `decodeVibrationData()` / `decodeTrailData()` 从 `m_optionalData` 反序列化
     - **物品粒子序列化**：`createItem()` 通过 `PacketSerializer` 临时序列化 `ItemStack`，再将字节流拷贝到 `m_optionalData`；`decodeItemStack()` 用 `PacketDeserializer` 包装 `m_optionalData` 调用 `ItemStack::deserialize()` 还原
+
+12. **BlockEntityDataPacket 方块实体数据同步包**
+    - 方向：服务端→客户端 (S2C)
+    - PacketType::BlockEntityData = 237
+    - 字段：`BlockPos pos` + `BlockEntityType type` + `varuint nbtLen` + `bytes nbtData`
+    - NBT 字节流采用 Java 版大端序二进制格式（`nbt::Contexts::java`），通过 `serializeNbtToBytes()` / `deserializeNbtFromBytes()` 静态方法转换
+    - 服务端通过 `ServerWorld::broadcastBlockEntity(pos)` 触发，由 `MinecraftServer::broadcastBlockEntityInRange()` 发送给 64 格�范围内玩家
+    - 客户端由 `NetworkClient::_handleBlockEntityData()` 接收，通过 `onBlockEntityData` 回调转发给 `ClientWorld::onBlockEntityData()` 更新本地 BlockEntity 存储
+    - 对应 MC Java 的 `ClientboundBlockEntityDataPacket`
     - **判空约定**：`isItemParticle()` 要求 `requiresItemData(type) && !m_optionalData.empty()`；空 `ItemStack` 序列化后为单字节 `0x00`（present=false），仍视为有效物品粒子数据

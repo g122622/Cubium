@@ -121,6 +121,9 @@ enum class PacketType : u16 {
     // 告示牌编辑器打开包 (S->C)
     OpenSignEditor = 236, // 通知客户端打开告示牌编辑器
 
+    // 方块实体数据同步包 (S->C)
+    BlockEntityData = 237, // 同步方块实体数据（告示牌文本等）
+
     // 背包相关包 (双向)
     ContainerContent = 300,        // 容器内容同步 (S->C)
     ContainerSlot = 301,           // 单个槽位更新 (S->C)
