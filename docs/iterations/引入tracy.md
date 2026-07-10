@@ -25,6 +25,8 @@
 
 **原因**：vcpkg 的 tracy port（0.13.1）编译 client 库时**不定义 `TRACY_ENABLE`**，而 tracy 所有采集符号都在 `#ifdef TRACY_ENABLE` 守卫内（`TracyClient.cpp:16-47`）。消费方自行 `#define TRACY_ENABLE` 会因库里无符号而链接失败；port 也无开启该宏的 feature。故走 vendored submodule + `set(TRACY_ENABLE ON CACHE BOOL ... FORCE)`，与 perfetto 的 vendored 模式一致。`vcpkg.json` 不含 tracy。
 
+**版本锁定**：submodule 固定到正式 release tag **`v0.13.1`**（commit `05cceee0`，`TracyProtocol.hpp` `ProtocolVersion = 76`），**不跟 master HEAD**。原因：tracy 的 client↔GUI 协议版本必须严格匹配，否则 GUI 报 "Protocol mismatch" 拒绝连接。winget 官方包 `wolfpld.tracy`（0.13.1，协议76）是最易获取的 GUI 途径；master HEAD（曾用 `v0.13.1-1253-gac4defb4`，协议81）没有对应的预编译 GUI，用户无法连接。故锁定 v0.13.1 与官方 GUI 对齐。升级 tracy 时须同步升级用户 GUI 版本。
+
 ### 2. Tracy 录制：in-memory，不写文件
 
 **决策**：tracy client 无法进程内写文件（需外部 `tracy-capture` 连 8086 端口拉取）。`ProfilerManager` 对 tracy 不做 start/stop/capture 管理，仅做 `setProcessName`/`setThreadName` 双写。查看 tracy 数据需用 tracy GUI 连接 127.0.0.1:8086。
