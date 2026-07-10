@@ -54,6 +54,8 @@
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 using namespace mc::world;
@@ -255,7 +257,7 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     const BlockPos pos(x, y, z);
-    MC_TRACE_INSTANT("client.lighting",
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Lighting,
         "ClientWorld::setBlockState",
         "pos",
         fmt::format("({}, {}, {})", x, y, z),
@@ -542,7 +544,7 @@ void ClientWorld::_getNeighborChunks(const ChunkId& id, const ChunkData* neighbo
 
 void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data)
 {
-    MC_TRACE_EVENT("client.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ClientWorld::onChunkData",
         "chunkX",
         x,
@@ -729,7 +731,7 @@ void ClientWorld::shutdownMeshSystem()
 
 void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
 {
-    MC_TRACE_EVENT("rendering.chunk_mesh", "ClientWorld::processMeshBuildResults");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "ClientWorld::processMeshBuildResults");
 
     if (!m_meshBuildScheduler || !m_meshWorkerPool || !m_meshWorkerPool->isRunning()) {
         return;
@@ -810,7 +812,7 @@ void ClientWorld::onLightUpdate(i32 chunkX,
     bool /*trustEdges*/
 )
 {
-    MC_TRACE_EVENT("client.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Lighting,
         "ClientWorld::onLightUpdate",
         "Section",
         fmt::format("({}, {}, {})", chunkX, sectionY, chunkZ),

@@ -28,11 +28,13 @@
 
 #include <algorithm>
 
+using namespace mc::trace;
+
 namespace mc::resource {
 
 void PackRepository::loadFromSettings(const ResourcePackListOption& settings)
 {
-    MC_TRACE_EVENT("client.initialization", "PackRepository::loadFromSettings");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "PackRepository::loadFromSettings");
 
     for (const auto& entry : settings.getSortedEnabledEntries()) {
         auto result = addPack(std::filesystem::path(entry.path), entry.enabled, entry.priority);
@@ -44,7 +46,7 @@ void PackRepository::loadFromSettings(const ResourcePackListOption& settings)
 
 void PackRepository::saveToSettings(ResourcePackListOption& settings) const
 {
-    MC_TRACE_EVENT("client.resource", "PackRepository::saveToSettings");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "PackRepository::saveToSettings");
 
     std::vector<ResourcePackEntry> entries;
     {
@@ -60,7 +62,7 @@ void PackRepository::saveToSettings(ResourcePackListOption& settings) const
 
 void PackRepository::onPackListChanged()
 {
-    MC_TRACE_EVENT("client.resource", "PackRepository::onPackListChanged");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "PackRepository::onPackListChanged");
 }
 
 } // namespace mc::resource

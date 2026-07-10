@@ -28,6 +28,8 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::util {
 
 // ============================================================================
@@ -532,7 +534,7 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     ITask* taskPtr = task->task.get();
 
     // 追踪事件
-    MC_TRACE_EVENT("worker_pool",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic,
         "ExecuteTask",
         "type",
         static_cast<u8>(task->task->type()),
@@ -547,7 +549,8 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         static const std::atomic<bool> neverAbort{false};
         const std::atomic<bool>& abortSignal = task->abortSignal ? *task->abortSignal : neverAbort;
 
-        MC_TRACE_EVENT("worker_pool", "TaskExecution", "description", task->task->description());
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.WorkerPool.Generic, "TaskExecution", "description", task->task->description());
         success = task->task->execute(abortSignal);
     }
     catch (const std::exception& e) {
@@ -574,7 +577,8 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     // 回调
     if (task->callback) {
         try {
-            MC_TRACE_EVENT("worker_pool", "TaskCallback", "description", task->task->description());
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.WorkerPool.Generic, "TaskCallback", "description", task->task->description());
             task->callback(success, taskPtr);
         }
         catch (const std::exception& e) {

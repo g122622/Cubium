@@ -94,6 +94,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 namespace command {
 
@@ -105,7 +107,7 @@ CommandRegistry::CommandRegistry()
 
 Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSource& source)
 {
-    MC_TRACE_EVENT("server.network", "CommandRegistry::execute", "input", input);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "CommandRegistry::execute", "input", input);
 
     auto result = m_dispatcher.execute(input, source);
     if (result.success()) {
@@ -116,7 +118,7 @@ Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSour
 
 std::future<Suggestions> CommandRegistry::getSuggestions(const std::string& input, ServerCommandSource& source)
 {
-    MC_TRACE_EVENT("server.network", "CommandRegistry::getSuggestions", "input", input);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "CommandRegistry::getSuggestions", "input", input);
     return m_dispatcher.getSuggestions(input, source);
 }
 
@@ -132,7 +134,7 @@ std::string CommandRegistry::getCommandTreeJson() const
 
 void CommandRegistry::registerDefaults()
 {
-    MC_TRACE_EVENT("server.initialization", "CommandRegistry::registerDefaults");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "CommandRegistry::registerDefaults");
 
     if (m_defaultsRegistered) {
         return;

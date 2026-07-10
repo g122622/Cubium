@@ -27,6 +27,8 @@
 #include "BenchmarkRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
+using namespace mc::trace;
+
 namespace mc::benchmark {
 
 Result<std::vector<BenchmarkResult>> BenchmarkRunner::run(const BenchmarkConfig& config) const
@@ -34,11 +36,16 @@ Result<std::vector<BenchmarkResult>> BenchmarkRunner::run(const BenchmarkConfig&
     std::vector<BenchmarkResult> results;
     results.reserve(config.cases.size());
 
-    MC_TRACE_EVENT("benchmark.run", "RunBenchmarkSuite", "caseCount", static_cast<i32>(config.cases.size()));
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Benchmark.Run, "RunBenchmarkSuite", "caseCount", static_cast<i32>(config.cases.size()));
 
     for (const auto& caseConfig : config.cases) {
-        MC_TRACE_EVENT(
-            "benchmark.case", "RunBenchmarkCase", "case", caseConfig.name, "threadCount", caseConfig.threadCount);
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run,
+            "RunBenchmarkCase",
+            "case",
+            caseConfig.name,
+            "threadCount",
+            caseConfig.threadCount);
 
         auto benchmarkCase = BenchmarkRegistry::instance().create(caseConfig.name);
         if (benchmarkCase == nullptr) {

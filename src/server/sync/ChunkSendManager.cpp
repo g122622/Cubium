@@ -29,6 +29,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server::sync {
 
 ChunkSendManager::ChunkSendManager(
@@ -40,7 +42,7 @@ ChunkSendManager::ChunkSendManager(
 void ChunkSendManager::sendChunkToPlayers(
     ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players, bool validateTracking)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToPlayers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::sendChunkToPlayers");
 
     if (players.empty()) {
         return;
@@ -84,7 +86,7 @@ void ChunkSendManager::sendChunkToPlayers(
 
 void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::sendChunkToTrackingPlayers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::sendChunkToTrackingPlayers");
 
     auto players = m_ticketManager.getTrackingPlayers(x, z);
     sendChunkToPlayers(x, z, players, true);
@@ -92,7 +94,7 @@ void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z)
 
 void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const std::vector<PlayerId>& players)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromPlayers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::unloadChunkFromPlayers");
 
     for (PlayerId player : players) {
         if (m_onChunkUnload) {
@@ -106,7 +108,7 @@ void ChunkSendManager::unloadChunkFromPlayers(ChunkCoord x, ChunkCoord z, const 
 
 void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::unloadChunkFromTrackingPlayers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::unloadChunkFromTrackingPlayers");
 
     auto players = m_ticketManager.getTrackingPlayers(x, z);
     unloadChunkFromPlayers(x, z, players);
@@ -114,7 +116,7 @@ void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z
 
 void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::onPlayerTrackingChange");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::onPlayerTrackingChange");
 
     if (isTracking) {
         // 玩家进入区块视距范围
@@ -133,7 +135,7 @@ void ChunkSendManager::onPlayerTrackingChange(PlayerId player, ChunkCoord x, Chu
 
 void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::onChunkPreUnload");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::onChunkPreUnload");
 
     // 向所有追踪该区块的玩家发送卸载通知
     unloadChunkFromTrackingPlayers(x, z);
@@ -141,7 +143,7 @@ void ChunkSendManager::onChunkPreUnload(ChunkCoord x, ChunkCoord z)
 
 void ChunkSendManager::removePlayer(PlayerId playerId)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::removePlayer", "playerId", playerId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::removePlayer", "playerId", playerId);
 
     // 追踪状态由 ChunkLoadTicketManager 管理。
     // 这里额外清理待发送队列里的目标玩家，避免断开后仍尝试发包。
@@ -163,7 +165,7 @@ void ChunkSendManager::removePlayer(PlayerId playerId)
 void ChunkSendManager::submitChunkData(
     ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players, bool validateTracking)
 {
-    MC_TRACE_EVENT("server.lighting", "ChunkSendManager::submitChunkData");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::submitChunkData");
 
     std::sort(players.begin(), players.end());
     players.erase(std::unique(players.begin(), players.end()), players.end());
@@ -183,7 +185,7 @@ void ChunkSendManager::submitChunkData(
 
 void ChunkSendManager::processPendingSends()
 {
-    MC_TRACE_EVENT("server.chunk", "processPendingSends");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "processPendingSends");
 
     // 取出准备好的区块数据
     std::vector<ReadyChunkData> chunks;

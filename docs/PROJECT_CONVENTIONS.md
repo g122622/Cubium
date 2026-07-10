@@ -358,18 +358,17 @@ auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 
 ### 追踪类别
 
-追踪类别参见 `src\common\perfetto\TraceCategories.hpp`，你只能使用这个文件中定义好的类别。
+追踪类别参见 `src\common\perfetto\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。你只能使用这棵树上的叶子节点（如 `TraceEvents.Server.Tick`），其字符串值已在该文件的 `PERFETTO_DEFINE_CATEGORIES` 中注册。使用树外的类别会导致编译错误。
 
 ### 用法
 
 ```cpp
 #include "perfetto/TraceEvents.hpp"
 
-// 初始化
-// 作用域事件
-MC_TRACE_EVENT("rendering.frame", "RenderFrame");
+// 作用域事件（推荐）；category 取自 TraceEvents 枚举树
+MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "RenderFrame");
 
-MC_TRACE_EVENT("server.world",
+MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "MinecraftServer::handleBlockInteractionPacket",
         "pos", fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
         "playerId", playerId,
@@ -378,10 +377,17 @@ MC_TRACE_EVENT("server.world",
 });
 
 // 计数器
-MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
+MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "FPS", fps);
+
+// 瞬时事件
+MC_TRACE_INSTANT_EVENT(TraceEvents.Game.Tick, "SomethingHappened");
 ```
 
-你必须保证MC_TRACE_EVENT/MC_TRACE_COUNTER等的第一个参数在`src\common\perfetto\TraceCategories.hpp`中已经被注册，否则会导致编译错误。
+在 `.cpp` 中通常在 include 区后加 `using namespace mc::trace;`，即可直接写 `TraceEvents.Server.Tick`；在 `.hpp` 中用全限定 `::mc::trace::TraceEvents.X.Y`，不要在头文件加 `using namespace`。
+
+可用宏：`MC_TRACE_SCOPED_EVENT`（作用域事件，最常用）、`MC_TRACE_INSTANT_EVENT`（瞬时事件）、`MC_TRACE_COUNTER`（计数器）、`MC_TRACE_EVENT_BEGIN`/`MC_TRACE_EVENT_END`（手动跨函数配对）、`MC_TRACE_SET_THREAD_NAME`（线程命名）。
+
+你必须保证传入的枚举叶节点在 `src\common\perfetto\TraceCategories.hpp` 中已注册，否则会导致编译错误。
 
 ## 错误处理模式
 

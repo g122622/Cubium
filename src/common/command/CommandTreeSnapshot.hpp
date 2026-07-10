@@ -248,7 +248,7 @@ template <typename NodeT>
 template <typename S>
 [[nodiscard]] CommandTreeSnapshot buildCommandTreeSnapshot(const CommandDispatcher<S>& dispatcher)
 {
-    MC_TRACE_EVENT("server.network", "buildCommandTreeSnapshot");
+    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Server.Network, "buildCommandTreeSnapshot");
 
     CommandTreeSnapshot snapshot;
     auto root = dispatcher.getRoot();

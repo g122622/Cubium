@@ -43,6 +43,8 @@ namespace mc {
 namespace perfetto {
 namespace test {
 
+using namespace mc::trace;
+
 class PerfettoManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
@@ -158,8 +160,8 @@ TEST_F(PerfettoManagerTest, Flush)
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
-    // 记录一些事件（使用已定义的类别）
-    MC_TRACE_EVENT("rendering.frame", "TestEvent");
+    // 记录一些事件（使用枚举树分类）
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TestEvent");
 
     EXPECT_NO_THROW(PerfettoManager::instance().flush());
 
@@ -203,40 +205,40 @@ protected:
     TraceConfig m_config;
 };
 
-TEST_F(TraceEventsTest, TraceEventCompiles)
+TEST_F(TraceEventsTest, TraceScopedEventCompiles)
 {
-    EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "TestEvent"));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TestEvent"));
 }
 
-TEST_F(TraceEventsTest, TraceEventWithArguments)
+TEST_F(TraceEventsTest, TraceScopedEventWithArguments)
 {
-    EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "EventWithArgs", "x", 10, "y", 20));
-    EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "EventWithString", "name", "test_name"));
-    EXPECT_NO_THROW(MC_TRACE_EVENT("rendering.frame", "EventWithFloat", "value", 3.14));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithArgs", "x", 10, "y", 20));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithString", "name", "test_name"));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "EventWithFloat", "value", 3.14));
 }
 
 TEST_F(TraceEventsTest, TraceCounterCompiles)
 {
-    EXPECT_NO_THROW(MC_TRACE_COUNTER("rendering.frame", "TestCounter", 42));
-    EXPECT_NO_THROW(MC_TRACE_COUNTER("rendering.frame", "ZeroCounter", 0));
-    EXPECT_NO_THROW(MC_TRACE_COUNTER("rendering.frame", "NegativeCounter", -100));
+    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "TestCounter", 42));
+    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "ZeroCounter", 0));
+    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "NegativeCounter", -100));
 }
 
 TEST_F(TraceEventsTest, TraceEventBeginEnd)
 {
-    EXPECT_NO_THROW(MC_TRACE_EVENT_BEGIN("rendering.frame", "ManualEvent"));
-    EXPECT_NO_THROW(MC_TRACE_EVENT_END("rendering.frame"));
+    EXPECT_NO_THROW(MC_TRACE_EVENT_BEGIN(TraceEvents.Rendering.Frame, "ManualEvent"));
+    EXPECT_NO_THROW(MC_TRACE_EVENT_END(TraceEvents.Rendering.Frame));
 }
 
-TEST_F(TraceEventsTest, TraceInstant)
+TEST_F(TraceEventsTest, TraceInstantEvent)
 {
-    EXPECT_NO_THROW(MC_TRACE_INSTANT("rendering.frame", "InstantEvent"));
+    EXPECT_NO_THROW(MC_TRACE_INSTANT_EVENT(TraceEvents.Rendering.Frame, "InstantEvent"));
 }
 
 TEST_F(TraceEventsTest, ScopedEvent)
 {
     {
-        MC_TRACE_EVENT("rendering.frame", "ScopedEvent");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ScopedEvent");
     }
     EXPECT_TRUE(true);
 }
@@ -244,104 +246,86 @@ TEST_F(TraceEventsTest, ScopedEvent)
 TEST_F(TraceEventsTest, NestedScopedEvents)
 {
     {
-        MC_TRACE_EVENT("rendering.frame", "OuterEvent");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "OuterEvent");
         {
-            MC_TRACE_EVENT("rendering.frame", "InnerEvent1");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "InnerEvent1");
         }
         {
-            MC_TRACE_EVENT("rendering.frame", "InnerEvent2");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "InnerEvent2");
         }
     }
     EXPECT_TRUE(true);
 }
 
-TEST_F(TraceEventsTest, RenderingMacros)
+TEST_F(TraceEventsTest, EnumTreeCategories)
 {
-    EXPECT_NO_THROW(MC_TRACE_RENDERING_EVENT("RenderFrame"));
-    EXPECT_NO_THROW(MC_TRACE_RENDERING_COUNTER("FPS", 60));
-    EXPECT_NO_THROW(MC_TRACE_VULKAN_EVENT("DrawCall"));
-    EXPECT_NO_THROW(MC_TRACE_CHUNK_MESH_EVENT("BuildMesh"));
-}
-
-TEST_F(TraceEventsTest, GameTickMacros)
-{
-    EXPECT_NO_THROW(MC_TRACE_TICK_EVENT("ServerTick"));
-    EXPECT_NO_THROW(MC_TRACE_TICK_COUNTER("TPS", 20));
-    EXPECT_NO_THROW(MC_TRACE_ENTITY_EVENT("EntityUpdate"));
-    EXPECT_NO_THROW(MC_TRACE_AI_EVENT("GoalExecute"));
-}
-
-TEST_F(TraceEventsTest, WorldMacros)
-{
-    EXPECT_NO_THROW(MC_TRACE_CHUNK_GEN_EVENT("GenerateBiomes"));
-    EXPECT_NO_THROW(MC_TRACE_CHUNK_LOAD_EVENT("LoadChunk"));
-}
-
-TEST_F(TraceEventsTest, NetworkMacros)
-{
-    EXPECT_NO_THROW(MC_TRACE_NETWORK_EVENT("PacketReceived"));
+    // 验证各子系统枚举分类都能正常编译执行
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerInit"));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "ChunkGen"));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "Packet"));
+    EXPECT_NO_THROW(MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "StorageDb"));
+    EXPECT_NO_THROW(MC_TRACE_COUNTER(TraceEvents.Memory.Usage, "MemUsage", 128));
 }
 
 TEST_F(TraceEventsTest, MultipleEvents)
 {
     for (int i = 0; i < 10; ++i) {
-        MC_TRACE_EVENT("rendering.frame", "LoopEvent", "iteration", i);
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "LoopEvent", "iteration", i);
     }
     EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, SimulateFrameRendering)
 {
-    MC_TRACE_EVENT("rendering.frame", "Frame");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Frame");
 
     {
-        MC_TRACE_EVENT("rendering.frame", "HandleEvents");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "HandleEvents");
     }
 
     {
-        MC_TRACE_EVENT("rendering.frame", "Update");
-        MC_TRACE_COUNTER("game.tick", "DeltaTime", 16);
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Update");
+        MC_TRACE_COUNTER(TraceEvents.Game.Tick, "DeltaTime", 16);
     }
 
     {
-        MC_TRACE_EVENT("rendering.frame", "Render");
-        MC_TRACE_EVENT("rendering.vulkan", "BeginFrame");
-        MC_TRACE_EVENT("rendering.vulkan", "DrawCalls");
-        MC_TRACE_EVENT("rendering.vulkan", "EndFrame");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Render");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "BuildMesh");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "RenderSky");
     }
 
-    MC_TRACE_COUNTER("rendering.frame", "FPS", 60);
+    MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "FPS", 60);
     EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, SimulateChunkGeneration)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateChunk", "x", 0, "z", 0);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateChunk", "x", 0, "z", 0);
 
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes");
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise");
-    MC_TRACE_EVENT("world.chunk_gen", "BuildSurface");
-    MC_TRACE_EVENT("world.chunk_gen", "ApplyCarvers");
-    MC_TRACE_EVENT("world.chunk_gen", "PlaceFeatures");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateBiomes");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateNoise");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildSurface");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "ApplyCarvers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "PlaceFeatures");
 
-    MC_TRACE_COUNTER("world.chunk_gen", "ChunksGenerated", 1);
+    MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "ChunksGenerated", 1);
     EXPECT_TRUE(true);
 }
 
 TEST_F(TraceEventsTest, SimulateServerTick)
 {
-    MC_TRACE_EVENT("game.tick", "ServerTick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerTick");
 
     {
-        MC_TRACE_EVENT("network.packet", "PollNetwork");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "PollNetwork");
     }
 
     {
-        MC_TRACE_EVENT("game.tick", "WorldUpdate");
-        MC_TRACE_EVENT("game.entity", "UpdateEntities");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "WorldUpdate");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Game.Entity, "UpdateEntities");
     }
 
-    MC_TRACE_COUNTER("game.tick", "TPS", 20);
+    MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", 20);
     EXPECT_TRUE(true);
 }
 
@@ -392,9 +376,9 @@ TEST_F(TraceEventsTest, ThreadOrderingEndToEnd)
     // 线程 track descriptor（带 sibling_order_rank）能随首事件写入 trace buffer。
     // Perfetto SDK 的 SetTrackDescriptor 只缓存 descriptor，真正进 buffer 是在该
     // sequence 第一次发 track_event 时随包内联——故必须发事件才能落到文件。
-    MC_TRACE_EVENT("rendering.frame", "Warmup");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Warmup");
     PerfettoManager::instance().setThreadName("MemoryTrace");
-    MC_TRACE_EVENT("rendering.frame", "AfterName");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "AfterName");
     PerfettoManager::instance().flush();
 }
 
@@ -413,8 +397,8 @@ TEST(PerfettoDisabledTest, TracingDisabled)
 {
     // 当 MC_ENABLE_TRACING=0 时，追踪宏展开为空操作
     // 这些宏在 TraceEvents.hpp 中定义为 ((void)0)
-    MC_TRACE_EVENT("test", "DisabledEvent");
-    MC_TRACE_COUNTER("test", "DisabledCounter", 0);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "DisabledEvent");
+    MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "DisabledCounter", 0);
     EXPECT_TRUE(true) << "Perfetto tracing is disabled at compile time";
 }
 

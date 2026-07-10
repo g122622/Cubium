@@ -190,8 +190,8 @@ TEST_F(PerfettoManagerTest, Flush)
     PerfettoManager::instance().initialize(m_config);
     PerfettoManager::instance().startTracing();
 
-    // 记录一些事件（使用已定义的类别）
-    MC_TRACE_EVENT("rendering.frame", "TestEvent");
+    // 记录一些事件（使用枚举树分类）
+    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Rendering.Frame, "TestEvent");
 
     // 刷新应该成功
     EXPECT_NO_THROW(PerfettoManager::instance().flush());

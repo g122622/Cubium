@@ -37,6 +37,8 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 WeatherManager::WeatherManager()
@@ -47,7 +49,7 @@ WeatherManager::~WeatherManager() = default;
 
 void WeatherManager::initialize(u64 seed)
 {
-    MC_TRACE_EVENT("server.initialization", "WeatherManager::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "WeatherManager::initialize");
 
     m_random = std::make_unique<mc::math::Random>(seed);
 
@@ -70,7 +72,7 @@ void WeatherManager::initialize(u64 seed)
 
 void WeatherManager::tick()
 {
-    MC_TRACE_EVENT("server.tick", "WeatherManager::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "WeatherManager::tick");
 
     // 重置变化标志
     m_weatherChanged = false;

@@ -27,6 +27,8 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 namespace {
@@ -73,7 +75,7 @@ void InputManager::initialize(GLFWwindow* window)
 
 void InputManager::update()
 {
-    MC_TRACE_EVENT("rendering.frame", "InputManager::update");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "InputManager::update");
 
     if (m_window) {
         std::unordered_set<i32> currentMouseButtonsPressed;

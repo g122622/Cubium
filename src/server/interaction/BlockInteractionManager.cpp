@@ -50,6 +50,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server::interaction {
 
 // ============================================================================
@@ -170,7 +172,7 @@ void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryMan
 Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
     PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action)
 {
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::handleBlockInteraction",
         "pos",
         pos.toString(),
@@ -248,7 +250,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
 Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem)
 {
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::handleBlockPlacement",
         "pos",
         pos.toString(),
@@ -360,7 +362,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
 Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     PlayerId playerId, const BlockPos& pos, Hand hand, const Vector3& hitPos, Direction face)
 {
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::handleBlockUse",
         "pos",
         pos.toString(),
@@ -529,7 +531,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
 
 Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId playerId, const BlockPos& pos)
 {
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::handleBlockBreak",
         "pos",
         pos.toString(),
@@ -737,7 +739,7 @@ bool BlockInteractionManager::_wouldCollideWithPlayer(
 void BlockInteractionManager::_generateBlockDrops(
     ServerWorld& world, const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool)
 {
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::generateBlockDrops",
         "pos",
         pos.toString(),

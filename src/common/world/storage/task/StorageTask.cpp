@@ -25,6 +25,8 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include <fmt/format.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 std::unique_ptr<StorageTask> StorageTask::createLoadTask(const SectionKey& key, Executor executor)
@@ -87,7 +89,7 @@ StorageTask& StorageTask::operator=(StorageTask&& other) noexcept
 
 bool StorageTask::execute(const std::atomic<bool>& abortSignal)
 {
-    MC_TRACE_EVENT("storage.task", "StorageTask::execute", "description", m_description);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "StorageTask::execute", "description", m_description);
     return m_executor ? m_executor(abortSignal) : false;
 }
 

@@ -44,6 +44,8 @@
 #include <future>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 using mc::world::chunk::ChunkPrimer;
@@ -110,13 +112,13 @@ ServerChunkManager::~ServerChunkManager()
 
 Result<void> ServerChunkManager::initialize()
 {
-    MC_TRACE_EVENT("server.initialization", "ServerChunkManager::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerChunkManager::initialize");
     return {};
 }
 
 void ServerChunkManager::shutdown()
 {
-    MC_TRACE_EVENT("server.initialization", "ServerChunkManager::shutdown");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerChunkManager::shutdown");
 
     // 标记关闭：异步存档加载完成回调（ServerCompute 线程）检测到此标志后不再入队
     // m_pendingLoadCompletes，避免析构后回调访问悬空 this。置位必须在 cancelActiveWork 之前，
@@ -171,7 +173,8 @@ void ServerChunkManager::shutdown()
     // 但取消已使所有 holder 的 abortSignal 失效，新调度产生的任务也会立刻检测到取消
     // （holder 已 cancelActiveWork），最终队列收敛为空。
     if (m_workerPool != nullptr && m_workerPool->isRunning()) {
-        MC_TRACE_EVENT("server.initialization", "ServerChunkManager::shutdown::WaitForWorkerCompletion");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "ServerChunkManager::shutdown::WaitForWorkerCompletion");
         m_workerPool->waitForCompletion();
     }
 
@@ -307,8 +310,14 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
     ChunkCallback callback,
     std::shared_ptr<std::promise<ChunkData*>> promise)
 {
-    MC_TRACE_EVENT(
-        "server.chunk", "ServerChunkManager::_submitChunkRequest", "x", x, "z", z, "targetStatus", targetStatus.name());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
+        "ServerChunkManager::_submitChunkRequest",
+        "x",
+        x,
+        "z",
+        z,
+        "targetStatus",
+        targetStatus.name());
 
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         std::vector<SingleChunkLifecycleManager::Waiter> waiters;
@@ -643,7 +652,7 @@ SingleChunkLifecycleManager* ServerChunkManager::_doFindLifecycleManager(ChunkCo
 void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
     MC_UNUSED(oldLevel);
-    MC_TRACE_EVENT("server.chunk",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
         "ServerChunkManager::onTicketLevelChanged",
         "x",
         x,
@@ -716,7 +725,7 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
 
 void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus& status, WorldGenRegion& region)
 {
-    MC_TRACE_EVENT("server.chunk",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
         "ServerChunkManager::executeStepTask",
         "chunkX",
         chunk.x(),
@@ -874,7 +883,7 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
 
 ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer)
 {
-    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::finalizeGeneratedChunkSync", "x", x, "z", z);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::finalizeGeneratedChunkSync", "x", x, "z", z);
 
     std::vector<SpawnedEntityData> spawnedEntities;
     if (primer.spawnedEntityCount() > 0) {
@@ -907,7 +916,7 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
 
 void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
-    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::publishGeneratedChunk");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::publishGeneratedChunk");
 
     // FULL 已由 _finalizeGeneratedChunkSync 处理（存入 m_chunks + markLoadedFromStorageReady +
     // _completeReadyWaiters），此处只处理非 FULL 目标状态完成。
@@ -1298,7 +1307,8 @@ void ServerChunkManager::_checkChunkUnloading()
 
 void ServerChunkManager::updatePlayerPosition(PlayerId player, f64 x, f64 z)
 {
-    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::updatePlayerPosition", "player", player, "x", x, "z", z);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Chunk, "ServerChunkManager::updatePlayerPosition", "player", player, "x", x, "z", z);
 
     const ChunkCoord chunkX = static_cast<ChunkCoord>(std::floor(x / world::CHUNK_WIDTH));
     const ChunkCoord chunkZ = static_cast<ChunkCoord>(std::floor(z / world::CHUNK_WIDTH));

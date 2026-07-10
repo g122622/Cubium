@@ -47,6 +47,8 @@
 #include <set>
 #include <unordered_set>
 
+using namespace mc::trace;
+
 namespace mc {
 
 FlatChunkGenerator::FlatChunkGenerator(u64 seed, FlatLevelGeneratorSettings settings)
@@ -77,7 +79,7 @@ void FlatChunkGenerator::clearStructureCache()
 void FlatChunkGenerator::_initGenerationRegistries()
 {
     std::call_once(m_generationRegistriesFlag, [this]() {
-        MC_TRACE_EVENT("server.initialization", "FlatChunkGenerator::initGenerationRegistries");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "FlatChunkGenerator::initGenerationRegistries");
 
         // 初始化结构注册表和结构集合注册表
         world::gen::structure::StructureRegistry::initialize();
@@ -95,7 +97,7 @@ void FlatChunkGenerator::_initGenerationRegistries()
 
 void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "FlatGenerateStructureStarts", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "FlatGenerateStructureStarts", "x", chunk.x(), "z", chunk.z());
 
     if (!m_structureManager) {
         chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
@@ -194,7 +196,8 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
 
 void FlatChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "FlatGenerateStructureReferences", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.World.ChunkGen, "FlatGenerateStructureReferences", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21: StructureReferences 阶段
     // 扫描以当前区块为中心的 17x17 区块范围（taskRange=8），
@@ -283,7 +286,7 @@ void FlatChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& c
 
 void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "FlatPlaceFeatures", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "FlatPlaceFeatures", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21.11: 在 FEATURES 阶段开始前，从已有方块数据初始化 FINAL_HEIGHTMAPS
     chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);

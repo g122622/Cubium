@@ -38,6 +38,8 @@
 
 #include <algorithm>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 [[nodiscard]] bool ClientApplication::isCreativeModeActive() const
@@ -132,7 +134,7 @@ void ClientApplication::closeInventoryScreenIfModeMismatch()
 
 void ClientApplication::handleEvents()
 {
-    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleEvents");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::handleEvents");
 
     m_window.pollEvents();
     m_input.update();
@@ -146,7 +148,7 @@ void ClientApplication::handleEvents()
 
 [[nodiscard]] bool ClientApplication::handleUiOverlayInput()
 {
-    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleUiOverlayInput");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::handleUiOverlayInput");
 
     // 处理聊天框键盘输入（优先于游戏输入）
     // 检查聊天框是否打开
@@ -207,7 +209,7 @@ void ClientApplication::handleEvents()
 
 void ClientApplication::handleGameplayInput()
 {
-    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleGameplayInput");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::handleGameplayInput");
 
     auto* chatWidget = m_kageroEngine
         ? static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId))
@@ -222,7 +224,7 @@ void ClientApplication::handleGameplayInput()
 
 bool ClientApplication::handleGameplayShortcutInput(ui::minecraft::widgets::ChatWidget* chatWidget)
 {
-    MC_TRACE_EVENT("rendering.frame", "ClientApplication::handleGameplayShortcutInput");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::handleGameplayShortcutInput");
 
     // 检查ALT键切换鼠标捕获
     if (m_input.isKeyJustPressed(GLFW_KEY_LEFT_ALT) || m_input.isKeyJustPressed(GLFW_KEY_RIGHT_ALT)) {

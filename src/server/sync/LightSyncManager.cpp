@@ -39,6 +39,8 @@
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
+using namespace mc::trace;
+
 namespace mc::server::sync {
 
 LightSyncManager::LightSyncManager(WorldLightManager& lightManager, ServerChunkManager& chunkManager) noexcept
@@ -48,10 +50,12 @@ LightSyncManager::LightSyncManager(WorldLightManager& lightManager, ServerChunkM
 
 void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 {
-    MC_TRACE_EVENT(
-        "server.lighting", "LightSyncManager::initializeChunkLighting", "Chunk", fmt::format("({}, {})", x, z));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "LightSyncManager::initializeChunkLighting",
+        "Chunk",
+        fmt::format("({}, {})", x, z));
 
-    MC_TRACE_EVENT("server.lighting", "GetChunkData");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "GetChunkData");
     auto chunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
     if (!chunk) {
         return;
@@ -131,7 +135,7 @@ void LightSyncManager::onBlockStateChanged(i32 x, i32 y, i32 z, i32 oldLightLeve
 
 void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "LightSyncManager::markLightChanged",
         "Type",
         (type == LightType::SKY) ? "SKY" : "BLOCK",

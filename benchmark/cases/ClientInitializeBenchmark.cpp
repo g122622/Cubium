@@ -30,16 +30,18 @@
 #define NOMINMAX
 #include <Windows.h>
 #else
-#include <cstdlib>
+#include <cerrno>
 #include <csignal>
+#include <cstdlib>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <cerrno>
 #endif
 
 #include <filesystem>
 #include <string>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc::benchmark {
 namespace {
@@ -81,7 +83,7 @@ public:
 
     [[nodiscard]] Result<void> runOnce() override
     {
-        MC_TRACE_EVENT("benchmark.case", "ClientInitializeBenchmark::runOnce");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "ClientInitializeBenchmark::runOnce");
 
 #ifdef _WIN32
         std::wstring commandLine = L"\"" + m_clientExecutable.wstring() + L"\" --benchmark-exit-after-initialize";

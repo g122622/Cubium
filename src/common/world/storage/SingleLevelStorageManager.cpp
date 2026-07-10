@@ -34,6 +34,8 @@
 #include <stdexcept>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 SingleLevelStorageManager::SingleLevelStorageManager() = default;
@@ -120,7 +122,7 @@ void SingleLevelStorageManager::setIoWorkerPool(util::ServerWorkerPool* workerPo
 Result<void> SingleLevelStorageManager::open(
     const std::filesystem::path& worldPath, const SingleLevelStorageConfig& config)
 {
-    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::open", "path", worldPath.string());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::open", "path", worldPath.string());
 
     if (isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage already open");
@@ -248,7 +250,7 @@ void SingleLevelStorageManager::close()
         return;
     }
 
-    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::close");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::close");
 
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
@@ -278,7 +280,7 @@ void SingleLevelStorageManager::close()
 
 Result<size_t> SingleLevelStorageManager::flushAllDirty()
 {
-    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::flushAllDirty");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::flushAllDirty");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -315,7 +317,7 @@ Result<size_t> SingleLevelStorageManager::flushAllDirty()
 
 Result<size_t> SingleLevelStorageManager::saveAll()
 {
-    MC_TRACE_EVENT("server.world", "SingleLevelStorageManager::saveAll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::saveAll");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -1210,8 +1212,10 @@ bool SingleLevelStorageManager::_hasSectionManager(DimensionId dimension) const
 
 SectionManager* SingleLevelStorageManager::_createSectionManager(DimensionId dimension)
 {
-    MC_TRACE_EVENT(
-        "server.world", "SingleLevelStorageManager::createSectionManager", "dimension", static_cast<i32>(dimension));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "SingleLevelStorageManager::createSectionManager",
+        "dimension",
+        static_cast<i32>(dimension));
 
     SectionManager::Config config;
     config.cacheCapacity = m_config.sectionCacheCapacity;
@@ -1316,7 +1320,7 @@ Result<size_t> SingleLevelStorageManager::pruneOldBackups(size_t keepCount)
 
 void SingleLevelStorageManager::initializeAutoSave(const AutoSaveConfig& config)
 {
-    MC_TRACE_EVENT("server.initialization", "SingleLevelStorageManager::initializeAutoSave");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "SingleLevelStorageManager::initializeAutoSave");
 
     if (m_autoSaveInitialized) {
         return;

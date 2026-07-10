@@ -34,6 +34,8 @@
 #include <rocksdb/write_batch.h>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 // ============================================================================
@@ -79,7 +81,7 @@ RocksDBDatabase& RocksDBDatabase::operator=(RocksDBDatabase&& other) noexcept
 Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     const std::filesystem::path& path, const RocksDBConfig& config)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open", "path", path.string());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::open", "path", path.string());
 
     auto db = std::unique_ptr<RocksDBDatabase>(new RocksDBDatabase(path, config));
 
@@ -91,14 +93,16 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     bool dbExists = std::filesystem::exists(currentFile);
 
     if (!dbExists) {
-        MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::new", "event", "Creating new database");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::open::new", "event", "Creating new database");
         spdlog::info("Creating new database at {}", path.string());
 
         // 确保目录存在
         std::error_code ec;
         if (!std::filesystem::exists(path)) {
-            MC_TRACE_EVENT(
-                "storage.db", "RocksDBDatabase::open::create_directories", "event", "Creating database directory");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
+                "RocksDBDatabase::open::create_directories",
+                "event",
+                "Creating database directory");
 
             if (!std::filesystem::create_directories(path, ec)) {
                 return Error(
@@ -106,7 +110,8 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
             }
         }
     } else {
-        MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::existing", "event", "Opening existing database");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Storage.Db, "RocksDBDatabase::open::existing", "event", "Opening existing database");
         spdlog::info("Opening existing database at {}", path.string());
     }
 
@@ -116,7 +121,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     // 打开数据库
     std::vector<rocksdb::ColumnFamilyHandle*> cfHandles;
     {
-        MC_TRACE_EVENT("storage.db", "rocksdb::DB::Open", "path", path.string());
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "rocksdb::DB::Open", "path", path.string());
 
         rocksdb::Status status = rocksdb::DB::Open(dbOptions, path.string(), cfDescriptors, &cfHandles, &db->m_db);
         if (!status.ok()) {
@@ -145,7 +150,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
 
 Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::openReadOnly(const std::filesystem::path& path)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::openReadOnly", "path", path.string());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::openReadOnly", "path", path.string());
 
     RocksDBConfig config;
     auto db = std::unique_ptr<RocksDBDatabase>(new RocksDBDatabase(path, config));
@@ -208,7 +213,7 @@ Result<std::vector<u8>> RocksDBDatabase::get(const std::string& cfName, const st
 
 Result<std::vector<u8>> RocksDBDatabase::get(const std::string& cfName, const rocksdb::Slice& key)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::get", "cf", cfName, "keySize", key.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::get", "cf", cfName, "keySize", key.size());
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -246,7 +251,7 @@ Result<void> RocksDBDatabase::put(
 Result<void> RocksDBDatabase::put(
     const std::string& cfName, const rocksdb::Slice& key, const rocksdb::Slice& value, bool sync)
 {
-    MC_TRACE_EVENT("storage.db",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
         "RocksDBDatabase::put",
         "cf",
         cfName,
@@ -288,7 +293,7 @@ Result<void> RocksDBDatabase::del(const std::string& cfName, const std::vector<u
 
 Result<void> RocksDBDatabase::del(const std::string& cfName, const rocksdb::Slice& key)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::del", "cf", cfName, "keySize", key.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::del", "cf", cfName, "keySize", key.size());
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -311,7 +316,7 @@ Result<void> RocksDBDatabase::del(const std::string& cfName, const rocksdb::Slic
 
 bool RocksDBDatabase::exists(const std::string& cfName, const std::vector<u8>& key)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::exists", "cf", cfName, "keySize", key.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::exists", "cf", cfName, "keySize", key.size());
 
     if (!isOpen()) {
         return false;
@@ -337,7 +342,7 @@ bool RocksDBDatabase::exists(const std::string& cfName, const std::vector<u8>& k
 
 Result<void> RocksDBDatabase::writeBatch(rocksdb::WriteBatch& batch, bool sync)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::writeBatch", "count", batch.Count(), "sync", sync);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::writeBatch", "count", batch.Count(), "sync", sync);
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -360,7 +365,7 @@ Result<void> RocksDBDatabase::writeBatch(rocksdb::WriteBatch& batch, bool sync)
 Result<std::vector<Result<std::vector<u8>>>> RocksDBDatabase::multiGet(
     const std::string& cfName, const std::vector<std::vector<u8>>& keys)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::multiGet", "cf", cfName, "count", keys.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::multiGet", "cf", cfName, "count", keys.size());
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -410,7 +415,7 @@ Result<std::vector<Result<std::vector<u8>>>> RocksDBDatabase::multiGet(
 
 std::unique_ptr<rocksdb::Iterator> RocksDBDatabase::newIterator(const std::string& cfName)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::newIterator", "cf", cfName);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::newIterator", "cf", cfName);
 
     if (!isOpen()) {
         return nullptr;
@@ -428,7 +433,7 @@ std::unique_ptr<rocksdb::Iterator> RocksDBDatabase::newIterator(const std::strin
 Result<void> RocksDBDatabase::deleteRange(
     const std::string& cfName, const std::vector<u8>& startKey, const std::vector<u8>& endKey)
 {
-    MC_TRACE_EVENT("storage.db",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
         "RocksDBDatabase::deleteRange",
         "cf",
         cfName,
@@ -466,7 +471,7 @@ Result<void> RocksDBDatabase::deleteRange(
 
 const rocksdb::Snapshot* RocksDBDatabase::createSnapshot()
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::createSnapshot");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::createSnapshot");
 
     if (!isOpen()) {
         return nullptr;
@@ -477,7 +482,7 @@ const rocksdb::Snapshot* RocksDBDatabase::createSnapshot()
 
 void RocksDBDatabase::releaseSnapshot(const rocksdb::Snapshot* snapshot)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::releaseSnapshot");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::releaseSnapshot");
 
     if (isOpen() && snapshot) {
         m_db->ReleaseSnapshot(snapshot);
@@ -490,8 +495,8 @@ void RocksDBDatabase::releaseSnapshot(const rocksdb::Snapshot* snapshot)
 
 Result<u64> RocksDBDatabase::createBackup(const std::filesystem::path& backupDir, const std::string& metadata)
 {
-    MC_TRACE_EVENT(
-        "storage.db", "RocksDBDatabase::createBackup", "backupDir", backupDir.string(), "metadata", metadata);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Storage.Db, "RocksDBDatabase::createBackup", "backupDir", backupDir.string(), "metadata", metadata);
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -530,7 +535,7 @@ Result<u64> RocksDBDatabase::createBackup(const std::filesystem::path& backupDir
 Result<void> RocksDBDatabase::restoreFromBackup(
     const std::filesystem::path& backupDir, u64 backupId, const std::filesystem::path& targetDir)
 {
-    MC_TRACE_EVENT("storage.db",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
         "RocksDBDatabase::restoreFromBackup",
         "backupDir",
         backupDir.string(),
@@ -575,7 +580,7 @@ Result<void> RocksDBDatabase::restoreFromBackup(
 
 Result<void> RocksDBDatabase::compact(const std::string& cfName)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::compact", "cf", cfName);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::compact", "cf", cfName);
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -598,7 +603,8 @@ Result<void> RocksDBDatabase::compact(const std::string& cfName)
 
 Result<void> RocksDBDatabase::flush(const std::string& cfName, bool sync)
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::flush", "cf", cfName.empty() ? "(all)" : cfName, "sync", sync);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Storage.Db, "RocksDBDatabase::flush", "cf", cfName.empty() ? "(all)" : cfName, "sync", sync);
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -783,7 +789,7 @@ void RocksDBDatabase::_destroyColumnFamilyHandles()
 
 rocksdb::ColumnFamilyOptions RocksDBDatabase::_createCFOptions() const
 {
-    MC_TRACE_EVENT("storage.db", "RocksDBDatabase::createCFOptions");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::createCFOptions");
 
     return m_config.createColumnFamilyOptions();
 }

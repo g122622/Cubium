@@ -25,6 +25,8 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 
+using namespace mc::trace;
+
 namespace mc {
 namespace world {
 namespace biome {
@@ -85,7 +87,7 @@ bool BiomeRegistry::hasBiome(BiomeId id) const
 
 void BiomeRegistry::_registerDefaultBiomes()
 {
-    MC_TRACE_EVENT("server.initialization", "BiomeRegistry::_registerDefaultBiomes");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "BiomeRegistry::_registerDefaultBiomes");
 
     // 注册所有默认生物群系
 

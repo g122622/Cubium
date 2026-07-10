@@ -30,13 +30,15 @@
 #include "common/world/dimension/DimensionRenderSettings.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 void ClientApplication::updateTimeAndWeather(f32 deltaTime)
 {
     MC_ASSERT_RELEASE(m_renderer);
 
-    MC_TRACE_EVENT("rendering.frame", "UpdateTime");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "UpdateTime");
 
     constexpr i64 DAY_LENGTH_TICKS = game::DAY_LENGTH_TICKS;
 

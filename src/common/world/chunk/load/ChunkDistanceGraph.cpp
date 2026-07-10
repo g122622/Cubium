@@ -27,6 +27,8 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace mc::trace;
+
 namespace mc::world::chunk {
 
 namespace {
@@ -73,7 +75,7 @@ void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level
 
 i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkDistanceGraph::processUpdates");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkDistanceGraph::processUpdates");
 
     i32 processed = 0;
 
@@ -158,7 +160,7 @@ i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const
 
 void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
-    MC_TRACE_EVENT("server.chunk",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
         "ChunkDistanceGraph::onLevelChanged",
         "x",
         x,

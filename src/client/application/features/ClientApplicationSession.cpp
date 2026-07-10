@@ -46,6 +46,8 @@
 
 #include <GLFW/glfw3.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 // ========== 辅助函数实现 ==========
@@ -163,7 +165,7 @@ Result<void> ClientApplication::startIntegratedWorld(const WorldLaunchConfig& co
 
 Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& config)
 {
-    MC_TRACE_EVENT("client.initialization", "InitializeGameSession");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeGameSession");
 
     m_stateMachine.reportLoadingProgress("Starting server", 0.1f);
 
@@ -373,7 +375,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
 void ClientApplication::destroyGameSession()
 {
-    MC_TRACE_EVENT("client.initialization", "DestroyGameSession");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "DestroyGameSession");
 
     spdlog::info("[Session] Destroying game session");
 

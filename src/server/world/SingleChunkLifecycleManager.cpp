@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <limits>
 
+using namespace mc::trace;
+
 namespace mc::world::chunk {
 
 namespace {
@@ -86,8 +88,10 @@ ChunkPrimer* SingleChunkLifecycleManager::getChunkIfPresentUnchecked(const Chunk
 
 void SingleChunkLifecycleManager::onChunkGenComplete(const ChunkStatus& completedStatus)
 {
-    MC_TRACE_EVENT(
-        "server.chunk", "SingleChunkLifecycleManager::onChunkGenComplete", "completedStatus", completedStatus.name());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
+        "SingleChunkLifecycleManager::onChunkGenComplete",
+        "completedStatus",
+        completedStatus.name());
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // Cubium ChunkPrimer 累积式：primer 是同一对象（_executeStepTask 修改同一 primer），
     // 只需推进 m_currentGenStatus，无需重存区块（对齐 Moonrise onChunkGenComplete 的 currentGenStatus 赋值）。

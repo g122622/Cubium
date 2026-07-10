@@ -833,7 +833,7 @@ public:
 
     [[nodiscard]] static Result<ChunkDataPacket> deserialize(PacketDeserializer& deser)
     {
-        MC_TRACE_EVENT("client.network", "deserializeChunkDataPacket");
+        MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Client.Network, "deserializeChunkDataPacket");
 
         ChunkDataPacket packet;
 
@@ -845,7 +845,7 @@ public:
         if (zResult.failed()) return zResult.error();
         packet.m_z = zResult.value();
 
-        MC_TRACE_INSTANT("client.network",
+        MC_TRACE_INSTANT_EVENT(::mc::trace::TraceEvents.Client.Network,
             "readChunkCoordinates",
             [flow = ::perfetto::Flow::ProcessScoped(mc::world::chunk::ChunkPos(packet.m_x, packet.m_z).toId())](
                 ::perfetto::EventContext ctx) { flow(ctx); });

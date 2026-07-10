@@ -28,6 +28,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server::sync {
 
 EntitySyncManager::EntitySyncManager(EntityManager& entityManager)
@@ -36,7 +38,7 @@ EntitySyncManager::EntitySyncManager(EntityManager& entityManager)
 
 void EntitySyncManager::tick()
 {
-    MC_TRACE_EVENT("server.entity", "EntitySyncManager::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "EntitySyncManager::tick");
 
     // 遍历所有实体，检查是否需要同步
     for (auto& [entityId, trackData] : m_entityTrackData) {

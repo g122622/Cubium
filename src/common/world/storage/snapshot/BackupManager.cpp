@@ -28,6 +28,8 @@
 #include <rocksdb/utilities/backup_engine.h>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 // ============================================================================
@@ -58,7 +60,7 @@ BackupManager& BackupManager::operator=(BackupManager&&) noexcept = default;
 
 Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem::path& backupDir)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::open", "path", backupDir.string());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "BackupManager::open", "path", backupDir.string());
 
     // 创建备份目录
     try {
@@ -92,7 +94,7 @@ Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem
 Result<BackupID> BackupManager::createBackup(
     RocksDBDatabase& db, const std::string& name, const std::string& description)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::createBackup", "name", name);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "BackupManager::createBackup", "name", name);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -189,7 +191,8 @@ Result<std::vector<SnapshotMetadata>> BackupManager::listBackups()
 
 Result<void> BackupManager::restoreBackup(BackupID id, const std::filesystem::path& targetDir)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::restoreBackup", "id", id, "target", targetDir.string());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Storage.Task, "BackupManager::restoreBackup", "id", id, "target", targetDir.string());
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -227,7 +230,7 @@ Result<void> BackupManager::restoreBackup(BackupID id, const std::filesystem::pa
 
 Result<void> BackupManager::deleteBackup(BackupID id)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::deleteBackup", "id", id);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "BackupManager::deleteBackup", "id", id);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -245,7 +248,7 @@ Result<void> BackupManager::deleteBackup(BackupID id)
 
 Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::pruneOldBackups", "keepCount", keepCount);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "BackupManager::pruneOldBackups", "keepCount", keepCount);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");
@@ -275,7 +278,7 @@ Result<size_t> BackupManager::pruneOldBackups(size_t keepCount)
 
 Result<bool> BackupManager::verifyBackup(BackupID id)
 {
-    MC_TRACE_EVENT("storage.task.snapshot", "BackupManager::verifyBackup", "id", id);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "BackupManager::verifyBackup", "id", id);
 
     if (!m_impl->engine) {
         return Error(ErrorCode::InvalidState, "Backup engine not initialized");

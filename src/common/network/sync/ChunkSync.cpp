@@ -37,6 +37,8 @@
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
+using namespace mc::trace;
+
 namespace mc::network {
 
 // ============================================================================
@@ -45,7 +47,7 @@ namespace mc::network {
 
 Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 {
-    MC_TRACE_EVENT("client.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ChunkSerializer::serializeChunk",
         [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunk.x(), chunk.z()).toId())](
             ::perfetto::EventContext ctx) { flow(ctx); });
@@ -117,7 +119,7 @@ std::vector<u8> ChunkSerializer::serializeSection(const ChunkSection& section)
 Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
 {
-    MC_TRACE_EVENT("client.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ChunkSerializer::deserializeChunk",
         [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
@@ -164,7 +166,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
 
     const u32 biomeDataSize = biomeSizeResult.value();
     if (biomeDataSize > 0) {
-        MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk.biomes");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "ChunkSerializer::deserializeChunk.biomes");
 
         std::vector<u8> biomeData(biomeDataSize);
         auto biomeDataResult = deser.readBytesInto(biomeData.data(), biomeDataSize);
@@ -182,7 +184,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
 
     // 读取区块段
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk.section");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "ChunkSerializer::deserializeChunk.section");
 
         if ((sectionMask & (1U << i)) == 0) continue;
 

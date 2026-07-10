@@ -29,6 +29,8 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 MeshWorkerPool::MeshWorkerPool(i32 threadCount)
@@ -213,7 +215,8 @@ void MeshWorkerPool::_workerLoop(i32 workerId)
 void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
 {
     ChunkPos chunkPos(task.chunkId.x, task.chunkId.z);
-    MC_TRACE_CHUNK_MESH_EVENT("BuildMesh",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh,
+        "BuildMesh",
         "pos",
         fmt::format("({}, {})", task.chunkId.x, task.chunkId.z),
         [flow = ::perfetto::Flow::ProcessScoped(chunkPos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
@@ -237,7 +240,7 @@ void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
             neighborPtrs[i] = task.neighbors[i].get();
         }
 
-        MC_TRACE_CHUNK_MESH_EVENT("GenerateSolidMesh");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "GenerateSolidMesh");
         ChunkMesher::generateSplitMesh(
             *task.chunkData, result.solidMesh, result.transparentMesh, neighborPtrs, task.abortSignal.get());
 

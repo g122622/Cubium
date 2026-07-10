@@ -104,7 +104,7 @@ clang-format --style=file -i <path-to-file>
 - **Use `MC_ASSERT_RELEASE`** for runtime assertions, never defensive null checks that hide bugs
 - **Use `mc::math::Random`** for all random number generation, never std::mt19937
 - **Use constants from** `mc::world::`, `mc::game::`, `mc::network::` namespaces -- never hardcode magic numbers for chunk sizes, build heights, etc.
-- **Use `MC_TRACE_EVENT` / `MC_TRACE_COUNTER`** for performance tracing, ensuring the category is registered in `src/common/perfetto/TraceCategories.hpp`
+- **Use `MC_TRACE_SCOPED_EVENT` / `MC_TRACE_COUNTER`** for performance tracing. The category must be a leaf of the `mc::trace::TraceEvents` enum tree (defined in `src/common/perfetto/TraceCategories.hpp`), e.g. `MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick")`. Categories are matched at compile time, so an unregistered category fails to compile.
 - **No default parameter values** without explicit approval
 - **Anonymous namespaces** for file-local symbols instead of `static` or global namespace
 

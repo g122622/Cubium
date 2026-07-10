@@ -21,6 +21,7 @@
  */
 
 #include "common/world/gen/surface/SurfaceSystem.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -28,11 +29,12 @@
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
 #include "common/world/gen/noise/Noises.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
+using namespace mc::trace;
 
 namespace mc::world::gen::surface {
 
@@ -233,7 +235,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
     const std::function<BiomeId(i32, i32, i32)>& getBiomeAt,
     const density::NoiseChunk& noiseChunk) const
 {
-    MC_TRACE_EVENT("world.chunk_gen", "BuildSurface", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildSurface", "x", chunk.x(), "z", chunk.z());
 
     if (!m_surfaceRule) {
         return;
@@ -267,7 +269,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
     for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
         for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
-            MC_TRACE_EVENT("world.chunk_gen", "BuildSurfaceColumn", "localX", localX, "localZ", localZ);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildSurfaceColumn", "localX", localX, "localZ", localZ);
 
             const i32 worldX = startX + localX;
             const i32 worldZ = startZ + localZ;

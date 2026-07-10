@@ -46,6 +46,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -66,7 +68,7 @@ ServerDimensionManager::~ServerDimensionManager() = default;
 
 Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, WorldType overworldType)
 {
-    MC_TRACE_EVENT("server.initialization", "ServerDimensionManager::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerDimensionManager::initialize");
 
     if (m_initialized) {
         return {};
@@ -117,7 +119,7 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
 
 void ServerDimensionManager::shutdown()
 {
-    MC_TRACE_EVENT("server.initialization", "ServerDimensionManager::shutdown");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerDimensionManager::shutdown");
 
     if (!m_initialized) {
         return;

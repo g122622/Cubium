@@ -38,7 +38,7 @@ ReentrantAreaLock
 |------|------|
 | `common/core/Types.hpp` | 基础类型（`ChunkCoord`、`i32`、`u64`） |
 | `common/util/assert/AssertAll.hpp` | 断言（`MC_ASSERT_RELEASE` / `MC_ASSERT_RELEASE_MSG`） |
-| `common/perfetto/TraceEvents.hpp` | `MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::unlock")` |
+| `common/perfetto/TraceEvents.hpp` | `MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ReentrantAreaLock::unlock")` |
 | `<atomic>` / `<memory>` / `<thread>` / `<mutex>` / `<condition_variable>` | 原语与线程 |
 
 ### 下游依赖

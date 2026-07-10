@@ -42,6 +42,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -547,7 +549,7 @@ void ChunkMesher::setModelCache(BlockModelCache* cache)
 void ChunkMesher::generateMesh(
     const ChunkData& chunk, MeshData& outMesh, const ChunkData* neighbors[6], const std::atomic<bool>* abortSignal)
 {
-    MC_TRACE_CHUNK_MESH_EVENT("GenerateMesh", "phase", "mesh");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "GenerateMesh", "phase", "mesh");
 
     outMesh.clear();
 
@@ -609,7 +611,7 @@ void ChunkMesher::generateSectionMesh(const ChunkData& chunk,
     const ChunkData* neighborChunks[6],
     const std::atomic<bool>* abortSignal)
 {
-    MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh", "phase", "section");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "GenerateSectionMesh", "phase", "section");
 
     if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
         return;
@@ -1665,7 +1667,7 @@ void ChunkMesher::_simpleMeshSection(const ChunkData& chunk,
     const ChunkData* neighborChunks[6],
     const std::atomic<bool>* abortSignal)
 {
-    MC_TRACE_CHUNK_MESH_EVENT("SimplyGenerateSectionMesh", "phase", "simple");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "SimplyGenerateSectionMesh", "phase", "simple");
     // 必须有 BlockModelCache
     if (!s_modelCache) {
         spdlog::error("ChunkMesher: BlockModelCache not initialized, cannot generate mesh");
@@ -1887,7 +1889,7 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
     const ChunkData* neighborChunks[6],
     const std::atomic<bool>* abortSignal)
 {
-    MC_TRACE_CHUNK_MESH_EVENT("GreedyGenerateSectionMesh", "phase", "greedy");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "GreedyGenerateSectionMesh", "phase", "greedy");
 
     // 必须有 BlockModelCache
     if (!s_modelCache) {

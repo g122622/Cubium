@@ -40,6 +40,8 @@
 #include <cstring>
 #include <vector>
 
+using namespace mc::trace;
+
 namespace mc {
 namespace fluid {
 
@@ -241,7 +243,7 @@ FluidState FlowingFluid::getStillState(bool falling) const
 
 void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state)
 {
-    MC_TRACE_EVENT("fluid.tick",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Fluid.Tick,
         "FlowingFluid::tick",
         "position",
         pos.toString(),
@@ -385,7 +387,7 @@ i32 FlowingFluid::getTickDelay(
 
 void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidState& state)
 {
-    MC_TRACE_EVENT("fluid.tick",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Fluid.Tick,
         "FlowingFluid::flowAround",
         "position",
         pos.toString(),
@@ -419,7 +421,7 @@ void FlowingFluid::flowAround(IWorld& world, const BlockPos& pos, const FluidSta
 void FlowingFluid::spreadHorizontally(
     IWorld& world, const BlockPos& pos, const FluidState& state, const BlockState* blockState)
 {
-    MC_TRACE_EVENT("fluid.tick",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Fluid.Tick,
         "FlowingFluid::spreadHorizontally",
         "position",
         pos.toString(),
@@ -451,7 +453,7 @@ void FlowingFluid::spreadHorizontally(
 void FlowingFluid::flowInto(
     IWorld& world, const BlockPos& pos, const BlockState* blockState, Direction dir, const FluidState& state)
 {
-    MC_TRACE_EVENT("fluid.tick",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Fluid.Tick,
         "FlowingFluid::flowInto",
         "position",
         pos.toString(),

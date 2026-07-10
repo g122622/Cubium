@@ -46,6 +46,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 // ============================================================================
@@ -54,7 +56,7 @@ namespace mc::server {
 
 void ItemPickupManager::tick(ServerWorld& world, IServer& server)
 {
-    MC_TRACE_EVENT("server.entity", "ItemPickupManager::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "ItemPickupManager::tick");
 
     // 物品合并由 ItemEntity::tick 中的 _updateMerge 统一处理，此处不再重复扫描。
 
@@ -118,7 +120,7 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, IServer& server, E
 
 bool ItemPickupManager::tryPickupItem(ServerWorld& world, IServer& server, Entity& player, ItemEntity& itemEntity)
 {
-    MC_TRACE_EVENT("server.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
         "ItemPickupManager::tryPickupItem",
         "entityId",
         itemEntity.id(),

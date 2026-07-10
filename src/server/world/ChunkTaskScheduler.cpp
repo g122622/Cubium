@@ -32,6 +32,8 @@
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 using mc::world::chunk::ChunkPrimer;
@@ -368,7 +370,7 @@ bool ChunkTaskScheduler::checkNeighbour(
 
 void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
-    MC_TRACE_EVENT("server.chunk",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
         "ChunkTaskScheduler::onChunkGenComplete",
         "x",
         holder.x(),
@@ -436,7 +438,7 @@ void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder,
     // 会导致 waitForCompletion 无限循环。
     // isShuttingDown() 在持锁时求值（与原行为一致），收集到 pending，释放锁后 rescheduleChunk。
     if (!isShuttingDown() && !holder.hasFailedGeneration() && !holder.hasGenerationTask()) {
-        MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::onChunkGenComplete_rescheduleIfNeeded");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkTaskScheduler::onChunkGenComplete_rescheduleIfNeeded");
         const ChunkStatus& target = holder.requestedGenStatus();
         if (holder.getCurrentGenStatus().isBefore(target)) {
             pending.push_back({holder.x(), holder.z(), &target});
@@ -513,7 +515,8 @@ void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder, m
 
 void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder)
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::cancelGeneration", "x", holder.x(), "z", holder.z());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Chunk, "ChunkTaskScheduler::cancelGeneration", "x", holder.x(), "z", holder.z());
 
     const i32 lockRadius = 2 * getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
@@ -609,7 +612,8 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder)
 
 void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task)
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::cancelGeneration(task)", "x", holder.x(), "z", holder.z());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Chunk, "ChunkTaskScheduler::cancelGeneration(task)", "x", holder.x(), "z", holder.z());
 
     const i32 lockRadius = 2 * getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
@@ -705,7 +709,7 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, m
 void ChunkTaskScheduler::notifyWaitingNeighbours(
     SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus, std::vector<PendingReschedule>& pending)
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::notifyWaitingNeighbours");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkTaskScheduler::notifyWaitingNeighbours");
 
     // 取出等待者快照（持锁下操作，避免迭代时修改）
     const auto waiting = holder.waitingNeighbours();
@@ -747,7 +751,7 @@ void ChunkTaskScheduler::notifyWaitingNeighbours(
 void ChunkTaskScheduler::releaseNeighbourRefCounts(
     SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::releaseNeighbourRefCounts");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkTaskScheduler::releaseNeighbourRefCounts");
 
     // 遍历该步的邻居读取半径范围，对每个使用的邻居释放引用计数
     // 与 scheduleStatusStep 中的 addNeighbourUsingChunk 一一对应

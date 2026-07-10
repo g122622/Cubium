@@ -31,6 +31,8 @@
 #include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 // ============================================================================
@@ -213,7 +215,7 @@ Result<void> ChunkRenderer::updateChunk(
 
 Result<void> ChunkRenderer::_updateChunkLayer(const ChunkId& chunkId, const MeshData& meshData, ChunkRenderLayer layer)
 {
-    MC_TRACE_EVENT("rendering.frame",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame,
         "UpdateChunkLayer",
         "layer",
         static_cast<int>(layer),

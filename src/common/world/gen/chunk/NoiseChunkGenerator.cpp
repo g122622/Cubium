@@ -56,6 +56,8 @@
 #include <set>
 #include <unordered_set>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -69,7 +71,7 @@ NoiseChunkGenerator::NoiseChunkGenerator(DimensionSettings settings,
     , m_randomState(std::move(randomState))
     , m_biomeSource(std::move(biomeSource))
 {
-    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::constructor");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "NoiseChunkGenerator::constructor");
 
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
@@ -103,7 +105,7 @@ void NoiseChunkGenerator::clearStructureCache()
 
 void NoiseChunkGenerator::_initGenerationRegistries()
 {
-    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initGenerationRegistries");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "NoiseChunkGenerator::initGenerationRegistries");
 
     // 初始化结构注册表和结构集合注册表
     world::gen::structure::StructureRegistry::initialize();
@@ -116,7 +118,7 @@ void NoiseChunkGenerator::_initGenerationRegistries()
 
 void NoiseChunkGenerator::_initDensityFunctionPipeline()
 {
-    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initDensityFunctionPipeline");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "NoiseChunkGenerator::initDensityFunctionPipeline");
 
     // RandomState 由外部构造并注入（与生物群系源共享同一缓存），此处不再内部创建。
 
@@ -176,7 +178,7 @@ bool NoiseChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure:
 
 void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateStructureStarts", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateStructureStarts", "x", chunk.x(), "z", chunk.z());
 
     if (!m_structureManager) {
         chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
@@ -279,7 +281,7 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
 
 void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateStructureReferences", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateStructureReferences", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21: StructureReferences 阶段
     // 扫描以当前区块为中心的 17x17 区块范围（taskRange=8），
@@ -324,7 +326,7 @@ void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, Ch
 
 void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateBiomes", "x", chunk.x(), "z", chunk.z());
     (void)region;
 
     MC_ASSERT_RELEASE(m_randomState != nullptr);
@@ -371,7 +373,8 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     // 获取 BiomeSource 的参数列表用于生物群系查找
     auto* multiNoiseSource = dynamic_cast<world::biome::source::MultiNoiseBiomeSource*>(m_biomeSource.get());
     if (multiNoiseSource != nullptr) {
-        MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes_MultiNoiseBiomeSource", "x", chunk.x(), "z", chunk.z());
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.World.ChunkGen, "GenerateBiomes_MultiNoiseBiomeSource", "x", chunk.x(), "z", chunk.z());
 
         const auto& parameters = multiNoiseSource->parameters();
         constexpr i32 HORIZ_SIZE = 4;
@@ -395,7 +398,8 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
         }
     } else {
         // 非 MultiNoiseBiomeSource（如 EndBiomeSource），使用传统路径
-        MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes_TraditionalBiomeSource", "x", chunk.x(), "z", chunk.z());
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.World.ChunkGen, "GenerateBiomes_TraditionalBiomeSource", "x", chunk.x(), "z", chunk.z());
         m_biomeSource->fillBiomeContainer(biomes, chunkX, chunkZ);
     }
 
@@ -409,7 +413,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
 
 void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateNoise", "x", chunk.x(), "z", chunk.z());
 
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
@@ -422,7 +426,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
 
 void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "BuildSurface", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildSurface", "x", chunk.x(), "z", chunk.z());
 
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
@@ -455,7 +459,7 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
 
 void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "ApplyCarvers", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "ApplyCarvers", "x", chunk.x(), "z", chunk.z());
     const ChunkCoord targetChunkX = chunk.x();
     const ChunkCoord targetChunkZ = chunk.z();
 
@@ -540,7 +544,7 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
 
 void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "PlaceFeatures", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "PlaceFeatures", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21.11: 在 FEATURES 阶段开始前，从已有方块数据初始化 FINAL_HEIGHTMAPS
     // CARVERS 阶段切换到 FINAL_HEIGHTMAPS 后，需要从 NOISE + SURFACE 阶段的方块重新计算
@@ -908,7 +912,8 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 i32 NoiseChunkGenerator::spawnInitialMobs(
     WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "NoiseChunkGenerator::spawnInitialMobs", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.World.ChunkGen, "NoiseChunkGenerator::spawnInitialMobs", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21.11: 如果 disableMobGeneration 为 true，跳过生物生成
     if (m_settings.disableMobGeneration) {
@@ -943,7 +948,7 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
 
 void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise_DF", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateNoise_DF", "x", chunk.x(), "z", chunk.z());
 
     if (!m_randomState) {
         spdlog::warn("[NoiseChunkGenerator] generateNoise: RandomState is null for chunk ({}, {}). "
@@ -1111,7 +1116,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
 world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const
 {
-    MC_TRACE_EVENT("world.chunk_gen", "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
 
     std::vector<world::gen::density::Beardifier::Rigid> pieces;
     std::vector<world::gen::jigsaw::JigsawJunction> junctions;

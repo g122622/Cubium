@@ -64,13 +64,14 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
-#include <cmath>
-#include <spdlog/spdlog.h>
-
 // 方块纹理图集与末影人渲染器
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/renderer/monster/MonsterRenderers.hpp"
 #include "client/renderer/trident/entity/renderer/special/SpecialEntityRenderers.hpp"
+#include <cmath>
+#include <spdlog/spdlog.h>
+
+using namespace mc::trace;
 
 namespace mc::client::renderer::entity {
 
@@ -537,7 +538,7 @@ f64 EntityRendererManager::_calculateExperienceOrbBobOffset(u32 ticksExisted, f6
 
 EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
 {
-    MC_TRACE_EVENT("rendering.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Entity,
         "EntityRendererManager::getOrCreateMesh",
         "entityId",
         entity.id(),

@@ -127,6 +127,8 @@
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 namespace {
@@ -237,7 +239,7 @@ void MinecraftServer::shutdown()
 
 void MinecraftServer::tick()
 {
-    MC_TRACE_EVENT("server.tick", "MinecraftServerTick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MinecraftServerTick");
 
     if (!m_running.load()) {
         return;
@@ -245,7 +247,7 @@ void MinecraftServer::tick()
 
     // 更新时间 - 根据 doDaylightCycle 游戏规则决定是否推进日光周期
     {
-        MC_TRACE_EVENT("server.tick", "TickTime");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickTime");
 
         // 从主世界获取 doDaylightCycle 游戏规则
         // MC 1.16.5: 只有主世界的时间会受 doDaylightCycle 影响
@@ -265,7 +267,7 @@ void MinecraftServer::tick()
 
     // 清理断开连接的玩家
     if (m_tickCounter % CLEANUP_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.player", "CleanupDisconnected", "phase", "cleanup");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "CleanupDisconnected", "phase", "cleanup");
 
         std::vector<PlayerId> removedPlayers;
         m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
@@ -288,13 +290,13 @@ void MinecraftServer::tick()
 
     // 更新所有维度
     if (m_dimensionManager) {
-        MC_TRACE_EVENT("server.tick", "TickAllDimensions");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickAllDimensions");
         m_dimensionManager->tick();
     }
 
     // 函数系统 tick：执行 minecraft:tick 标签中的函数和处理调度的函数
     {
-        MC_TRACE_EVENT("server.tick", "TickFunctions");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickFunctions");
         // 创建游戏循环命令源（权限等级2，抑制输出，无关联玩家）
         command::ServerCommandSource gameLoopSource(this, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "");
 
@@ -318,7 +320,7 @@ void MinecraftServer::tick()
     }
 
     if (m_storage) {
-        MC_TRACE_EVENT("server.tick", "TickSharedStorageAutoSave");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickSharedStorageAutoSave");
         m_storage->tickAutoSave(currentTick());
     }
 
@@ -345,7 +347,7 @@ void MinecraftServer::tick()
 
     // 检查心跳超时
     if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
-        MC_TRACE_EVENT("server.network", "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
 
         u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
         auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTimeMs);
@@ -389,7 +391,7 @@ void MinecraftServer::tick()
 
 void MinecraftServer::initializeCoreManagers()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeCoreManagers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeCoreManagers");
 
     // 创建核心管理器
     m_playerManager = std::make_unique<core::PlayerManager>(m_settings.maxPlayers.get());
@@ -614,7 +616,7 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
 
 void MinecraftServer::shutdownSharedStorage()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownSharedStorage");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::shutdownSharedStorage");
 
     if (m_storage && m_storage->isOpen()) {
         m_storage->close();
@@ -624,7 +626,7 @@ void MinecraftServer::shutdownSharedStorage()
 
 Result<size_t> MinecraftServer::saveAllWorldData()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::saveAllWorldData");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::saveAllWorldData");
 
     if (!m_storage || !m_storage->isOpen()) {
         return Error(ErrorCode::InvalidState, "Shared storage not open");
@@ -706,7 +708,7 @@ Result<size_t> MinecraftServer::saveAllWorldData()
 
 Result<void> MinecraftServer::initializeWorld()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeWorld");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeWorld");
 
     // 检查维度管理器是否已初始化且主世界维度存在
     auto* overworld = m_dimensionManager->getOverworld();
@@ -779,7 +781,7 @@ Result<void> MinecraftServer::initializeWorld()
 
 void MinecraftServer::initializeInteractionManagers()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeInteractionManagers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeInteractionManagers");
 
     m_blockInteractionManager =
         std::make_unique<interaction::BlockInteractionManager>(*m_playerManager, m_lootTableManager);
@@ -849,14 +851,14 @@ void MinecraftServer::initializeInteractionManagers()
 
 void MinecraftServer::initializeSyncManagers()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeSyncManagers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeSyncManagers");
 
     // 同步管理器已移入 ServerDimension，由 ServerDimension::initialize() 创建
 }
 
 void MinecraftServer::initializeChunkSyncManagers()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeChunkSyncManagers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeChunkSyncManagers");
 
     // 区块同步管理器已移入 ServerDimension，由 ServerDimension::initialize() 创建
 }
@@ -898,53 +900,54 @@ void MinecraftServer::registerSpecialRecipes()
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries");
 
     // 初始化方块注册表
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Blocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Blocks");
         VanillaBlocks::initialize();
     }
     spdlog::info("Vanilla blocks initialized");
 
     // 初始化物品注册表
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Items");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Items");
         Items::initialize();
     }
     spdlog::info("Vanilla items initialized");
 
     // 初始化唱片机歌曲注册表（必须在 SoundEvents 初始化后）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JukeboxSongs");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::JukeboxSongs");
         JukeboxSongs::initialize();
     }
     spdlog::info("Jukebox songs initialized");
 
     // 初始化附魔注册表
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Enchantments");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Enchantments");
         item::enchant::EnchantmentRegistry::initialize();
     }
     spdlog::info("Enchantments initialized");
 
     // 初始化方块物品注册表
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::BlockItems");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::BlockItems");
         BlockItemRegistry::instance().initializeVanillaBlockItems();
     }
     spdlog::info("Block items initialized");
 
     // 初始化物品标签（必须在所有物品注册后）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ItemTags");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::ItemTags");
         item::tag::ItemTags::initialize();
     }
     spdlog::info("Item tags initialized");
 
     // 从数据包加载物品标签（追加到或替换内置默认值）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ItemTagLoader");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::ItemTagLoader");
         auto dataPackLoadResult = item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().toString());
@@ -955,14 +958,15 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 初始化发射器行为注册表
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DispenseBehaviors");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::DispenseBehaviors");
         blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
     }
     spdlog::info("Dispense item behaviors initialized");
 
     // 初始化战利品表管理器（从数据包加载）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::LootTables");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::LootTables");
         loot::LootTableLoader lootLoader(m_lootTableManager);
         auto dataPackLoadResult = lootLoader.loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
@@ -978,7 +982,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 初始化战利品谓词管理器（从数据包加载）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Predicates");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Predicates");
         loot::LootPredicateLoader predicateLoader(m_predicateManager);
         auto dataPackLoadResult = predicateLoader.loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
@@ -996,7 +1000,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 加载配方（从数据包加载）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Recipes");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Recipes");
         RecipeLoader recipeLoader;
         auto dataPackLoadResult = recipeLoader.loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
@@ -1013,7 +1017,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 加载函数（从数据包加载 .mcfunction 文件）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Functions");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Functions");
         function::FunctionLoader functionLoader(m_functionManager);
         auto funcLoadResult = functionLoader.loadFromDataPackRepository(m_dataPackList);
         if (funcLoadResult.failed()) {
@@ -1033,7 +1037,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 加载进度（从数据包加载）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Advancements");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Advancements");
         mc::advancement::AdvancementLoader advancementLoader;
         auto advancementLoadResult = advancementLoader.loadFromDataPackRepository(m_dataPackList);
         if (advancementLoadResult.failed()) {
@@ -1049,14 +1053,16 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 加载模板池（从数据包加载）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::TemplatePools");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::TemplatePools");
         size_t poolCount = world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(m_dataPackList);
         spdlog::info("Loaded {} template pools from data packs", poolCount);
     }
 
     // 加载处理器列表（从数据包加载，补充硬编码注册未覆盖的列表）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ProcessorLists");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::ProcessorLists");
         auto processorResult = world::gen::jigsaw::ProcessorListLoader::loadFromDataPackRepository(m_dataPackList);
         if (processorResult.success()) {
             spdlog::info("Loaded {} processor lists from data packs", processorResult.value());
@@ -1067,7 +1073,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 设置 JigsawAssembler 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JigsawTemplateManager");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::JigsawTemplateManager");
         world::gen::jigsaw::JigsawAssembler::getTemplateManager().setDataPackRepository(&m_dataPackList);
         spdlog::info("Jigsaw TemplateManager configured with data pack list");
     }
@@ -1078,19 +1085,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // 顺序：放置器类型 → 特征类型 → configured_feature → placed_feature →
     //       configured_carver → biome（biome 必须最后，引用上述注册表）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::PlacementRegistry");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::PlacementRegistry");
         PlacementRegistry::instance().initialize();
     }
     spdlog::info("Placement registry initialized");
 
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::FeatureTypeRegistry");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::FeatureTypeRegistry");
         world::gen::feature::initializeBuiltinFeatureTypes();
     }
     spdlog::info("Builtin feature types initialized");
 
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ConfiguredFeatures");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::ConfiguredFeatures");
         auto featureResult = world::gen::feature::ConfiguredFeatureLoader::loadFromDataPackRepository(m_dataPackList);
         if (featureResult.failed()) {
             spdlog::error("Failed to load configured features from data packs: {}", featureResult.error().toString());
@@ -1100,7 +1110,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     }
 
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::PlacedFeatures");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::PlacedFeatures");
         auto placedResult = world::gen::placement::PlacedFeatureLoader::loadFromDataPackRepository(m_dataPackList);
         if (placedResult.failed()) {
             spdlog::error("Failed to load placed features from data packs: {}", placedResult.error().toString());
@@ -1110,7 +1121,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     }
 
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ConfiguredCarvers");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::ConfiguredCarvers");
         auto carverResult = world::gen::carver::ConfiguredCarverLoader::loadFromDataPackRepository(m_dataPackList);
         if (carverResult.failed()) {
             spdlog::error("Failed to load configured carvers from data packs: {}", carverResult.error().toString());
@@ -1120,7 +1132,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     }
 
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Biomes");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Biomes");
         // 确保 BiomeFactory 构造的默认 Biome 已注册（BiomeLoader 在其上叠加 JSON 字段）
         BiomeRegistry::instance().initialize();
         auto biomeResult = world::biome::BiomeLoader::loadFromDataPackRepository(m_dataPackList);
@@ -1133,14 +1145,16 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 初始化结构标签（必须在结构集合注册后，海豚寻宝等玩法依赖此标签）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::StructureTags");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::StructureTags");
         world::gen::structure::StructureTags::initialize();
     }
     spdlog::info("Structure tags initialized");
 
     // 从数据包加载结构标签（追加到或替换内置默认值）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::StructureTagLoader");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::StructureTagLoader");
         auto dataPackLoadResult = world::gen::structure::StructureTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load structure tags from data packs: {}", dataPackLoadResult.error().toString());
@@ -1151,20 +1165,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 注册实体类型（可选）
     if (registerEntities) {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Entities");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Entities");
         entity::VanillaEntities::registerAll();
     }
 
     // 初始化实体类型标签（必须在所有实体类型注册后）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTags");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::EntityTypeTags");
         EntityTypeTags::initialize();
     }
     spdlog::info("Entity type tags initialized");
 
     // 从数据包加载实体类型标签（追加到或替换内置默认值）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTagLoader");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::EntityTypeTagLoader");
         auto dataPackLoadResult = EntityTypeTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load entity type tags from data packs: {}", dataPackLoadResult.error().toString());
@@ -1175,14 +1191,16 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 初始化伤害类型标签（用于狼铠吸收判定、伤害分类等）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DamageTypeTags");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::DamageTypeTags");
         DamageTypeTags::initialize();
     }
     spdlog::info("Damage type tags initialized");
 
     // 从数据包加载伤害类型标签（追加到或替换内置默认值）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DamageTypeTagLoader");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::DamageTypeTagLoader");
         auto dataPackLoadResult = DamageTypeTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load damage type tags from data packs: {}", dataPackLoadResult.error().toString());
@@ -1193,21 +1211,23 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
     // 初始化预定义日程（村民AI行为日程）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Schedules");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Schedules");
         entity::ai::brain::schedule::Schedule::initialize();
     }
     spdlog::info("Schedules initialized");
 
     // 初始化记忆模块类型
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::MemoryModules");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::MemoryModules");
         entity::ai::brain::memory::MemoryModuleTypes::initialize();
     }
     spdlog::info("Memory module types initialized");
 
     // 初始化村民交易配方表
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::VillagerTrades");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::VillagerTrades");
         world::village::trade::VillagerTrades::initialize();
     }
 }
@@ -1291,7 +1311,7 @@ void MinecraftServer::setupWorldCallbacks()
 
         // 设置光照变化回调：同步数据到 ChunkSection + 广播给客户端
         world->setOnLightChanged([this, serverDim](LightType type, const SectionPos& pos) {
-            MC_TRACE_INSTANT("server.lighting",
+            MC_TRACE_INSTANT_EVENT(TraceEvents.Server.Lighting,
                 "ServerWorld::OnLightChangedCallback.START",
                 "Type",
                 (type == LightType::SKY) ? "Sky" : "Block",
@@ -1331,7 +1351,7 @@ void MinecraftServer::setupWorldCallbacks()
                 broadcastLightUpdate(pos.x, pos.z, pos.y, skyLight, blockLight, false);
             }
 
-            MC_TRACE_INSTANT("server.lighting",
+            MC_TRACE_INSTANT_EVENT(TraceEvents.Server.Lighting,
                 "ServerWorld::OnLightChangedCallback.END",
                 "Type",
                 (type == LightType::SKY) ? "Sky" : "Block",
@@ -1554,11 +1574,11 @@ bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& p
 
 void MinecraftServer::shutdownManagers()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers");
 
     // 1. 保存世界数据（落盘，整个 stop 流程最重的 I/O 阶段）
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::SaveWorldData");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::SaveWorldData");
 
         if (m_storage && m_storage->isOpen()) {
             if (isSharedStorageReadonlyForeignWorld()) {
@@ -1580,7 +1600,8 @@ void MinecraftServer::shutdownManagers()
 
     // 2. 关闭成就事件处理器与脚本系统
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::ShutdownAdvancementAndScript");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::ShutdownAdvancementAndScript");
         m_advancementEventHandler.shutdown();
 
         if (m_scriptManager) {
@@ -1590,7 +1611,8 @@ void MinecraftServer::shutdownManagers()
 
     // 3. reset 交互与命令管理器
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::ResetInteractionManagers");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::ResetInteractionManagers");
         m_inventoryManager.reset();
         m_containerManager.reset();
         m_miningManager.reset();
@@ -1601,11 +1623,12 @@ void MinecraftServer::shutdownManagers()
 
     // 4. 维度 shutdown + 共享存储关闭 + reset 剩余核心管理器
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::shutdownManagers::ResetCoreManagers");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::ResetCoreManagers");
 
         // 4a. 维度管理器 shutdown（可能涉及卸载维度/世界资源）+ reset
         {
-            MC_TRACE_EVENT("server.initialization",
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
                 "MinecraftServer::shutdownManagers::ResetCoreManagers::ShutdownDimensionManager");
             if (m_dimensionManager) {
                 m_dimensionManager->shutdown();
@@ -1618,7 +1641,7 @@ void MinecraftServer::shutdownManagers()
 
         // 4c. reset 剩余核心管理器（轻量 unique_ptr 释放）
         {
-            MC_TRACE_EVENT("server.initialization",
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
                 "MinecraftServer::shutdownManagers::ResetCoreManagers::ResetRemainingManagers");
             m_gameModeManager.reset();
             m_packetHandler.reset();
@@ -1634,11 +1657,11 @@ void MinecraftServer::shutdownManagers()
 
 void MinecraftServer::tickEntities()
 {
-    MC_TRACE_EVENT("server.tick", "MinecraftServer::tickEntities()", "phase", "entities");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MinecraftServer::tickEntities()", "phase", "entities");
 
     // 遍历所有维度执行实体 tick
     m_dimensionManager->forEachDimension([this](Dimension& dim) {
-        MC_TRACE_EVENT("server.tick", "MinecraftServer::tickEntities().Dim", "dim", dim.type().name());
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MinecraftServer::tickEntities().Dim", "dim", dim.type().name());
 
         auto* serverDim = static_cast<ServerDimension*>(&dim);
         auto* world = serverDim->world();
@@ -1661,7 +1684,7 @@ void MinecraftServer::tickKeepAlive()
     u64 tick = currentTick();
     if (tick - m_lastKeepAliveTick >= KEEPALIVE_INTERVAL) {
         m_lastKeepAliveTick = tick;
-        MC_TRACE_EVENT("server.network", "SendKeepAlive", "phase", "keepalive_send");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "SendKeepAlive", "phase", "keepalive_send");
         sendKeepAliveToAll();
     }
 }
@@ -1711,7 +1734,7 @@ void MinecraftServer::sendTimeUpdate()
 
 void MinecraftServer::sendWeatherUpdate()
 {
-    MC_TRACE_EVENT("server.tick", "sendWeatherUpdate", "phase", "weather_sync");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "sendWeatherUpdate", "phase", "weather_sync");
 
     // 天气仅存在于主世界
     auto* overworld = m_dimensionManager->getOverworld();
@@ -1771,7 +1794,7 @@ void MinecraftServer::sendWeatherUpdate()
 
 void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
 {
-    MC_TRACE_EVENT("server.player", "SendInitialWeatherState", "phase", "weather_sync");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendInitialWeatherState", "phase", "weather_sync");
 
     // 天气仅存在于主世界
     auto* overworld = m_dimensionManager->getOverworld();
@@ -1804,7 +1827,7 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
 
 void MinecraftServer::sendInitialDifficultyToPlayer(PlayerId playerId)
 {
-    MC_TRACE_EVENT("server.player", "SendInitialDifficulty", "phase", "difficulty_sync");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendInitialDifficulty", "phase", "difficulty_sync");
 
     auto fullPacket = serializeDifficultyPacket();
     if (fullPacket.empty()) {
@@ -1817,7 +1840,7 @@ void MinecraftServer::sendInitialDifficultyToPlayer(PlayerId playerId)
 
 void MinecraftServer::sendKeepAliveToAll()
 {
-    MC_TRACE_EVENT("server.player", "SendKeepAlive", "phase", "keepalive_sync");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendKeepAlive", "phase", "keepalive_sync");
 
     u64 timestamp = util::TimeUtils::getCurrentTimeMs();
     u64 tick = currentTick();
@@ -1887,7 +1910,7 @@ void MinecraftServer::broadcastLightUpdate(ChunkCoord x,
     const std::vector<u8>& blockLight,
     bool trustEdges)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "BroadcastLightUpdate",
         "Section",
         fmt::format("({}, {}, {})", x, sectionY, z),
@@ -2138,8 +2161,16 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
 
 void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
 {
-    MC_TRACE_EVENT(
-        "server.world", "MinecraftServer::updateEntityTrackingForPlayer", "playerId", playerId, "x", x, "y", y, "z", z);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "MinecraftServer::updateEntityTrackingForPlayer",
+        "playerId",
+        playerId,
+        "x",
+        x,
+        "y",
+        y,
+        "z",
+        z);
 
     auto* world = getPlayerWorld(playerId);
     if (!world) {
@@ -2167,7 +2198,7 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
     const auto& packet = result.value();
     BlockPos pos(packet.x(), packet.y(), packet.z());
 
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "MinecraftServer::handleBlockInteractionPacket",
         "pos",
         pos.toString(),
@@ -2288,7 +2319,8 @@ void MinecraftServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerIn
 
 void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode gameMode)
 {
-    MC_TRACE_EVENT("server.player", "MinecraftServer::setupInitialPlayerState", "gameMode", static_cast<i32>(gameMode));
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Player, "MinecraftServer::setupInitialPlayerState", "gameMode", static_cast<i32>(gameMode));
 
     if (!player) return;
 
@@ -2311,8 +2343,16 @@ void MinecraftServer::setupInitialPlayerState(ServerPlayerData* player, GameMode
 
 void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch)
 {
-    MC_TRACE_EVENT(
-        "server.player", "MinecraftServer::sendInitialGameState", "playerId", playerId, "x", x, "y", y, "z", z);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player,
+        "MinecraftServer::sendInitialGameState",
+        "playerId",
+        playerId,
+        "x",
+        x,
+        "y",
+        y,
+        "z",
+        z);
 
     // TeleportManager::requestTeleport() 内部已经发送过 TeleportPacket。
     // 这里不能重复发送，否则客户端会在登录阶段收到两个相同 teleportId 的传送包，
@@ -2367,7 +2407,7 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
 void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
 {
-    MC_TRACE_EVENT("server.network", "MinecraftServer::sendCommandTreePacket", "playerId", playerId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "MinecraftServer::sendCommandTreePacket", "playerId", playerId);
 
     MC_ASSERT_RELEASE(m_commandRegistry != nullptr);
 
@@ -2382,7 +2422,7 @@ void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
 
 void MinecraftServer::sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel)
 {
-    MC_TRACE_EVENT("server.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "MinecraftServer::sendPermissionLevelChange",
         "playerId",
         playerId,
@@ -2423,13 +2463,13 @@ i32 MinecraftServer::resolveOpLevel(const std::string& uuid) const noexcept
 
 void MinecraftServer::stopCore()
 {
-    MC_TRACE_EVENT("server.initialization", "MinecraftServer::stopCore");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::stopCore");
 
     spdlog::info("Stopping server core...");
 
     // 停止 Worker 线程池，避免后续关服过程中继续提交任务
     {
-        MC_TRACE_EVENT("server.initialization", "MinecraftServer::stopCore::ShutdownWorkerPools");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::stopCore::ShutdownWorkerPools");
         m_computationWorkerPool.shutdown();
         m_ioWorkerPool.shutdown();
     }
@@ -2465,7 +2505,7 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
     const u8* payload = data + network::PACKET_HEADER_SIZE;
     size_t payloadSize = size - network::PACKET_HEADER_SIZE;
 
-    MC_TRACE_EVENT("server.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "DispatchPacketToHandler",
         "sessionId",
         sessionId,
@@ -2476,15 +2516,23 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
 
     switch (packetType) {
         case network::PacketType::LoginRequest: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleLoginRequestPacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleLoginRequestPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             handleLoginRequestPacket(sessionId, payload, payloadSize);
             break;
         }
 
         case network::PacketType::PlayerMove: {
-            MC_TRACE_EVENT(
-                "server.network", "HandlePlayerMovePacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandlePlayerMovePacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handlePlayerMovePacket(playerId, payload, payloadSize);
@@ -2493,8 +2541,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::BlockInteraction: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleBlockInteractionPacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleBlockInteractionPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleBlockInteractionPacket(playerId, payload, payloadSize);
@@ -2503,7 +2555,7 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::PlayerTryUseItemOnBlock: {
-            MC_TRACE_EVENT("server.network",
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
                 "HandlePlayerTryUseItemOnBlockPacket",
                 "sessionId",
                 sessionId,
@@ -2517,8 +2569,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::HotbarSelect: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleHotbarSelectPacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleHotbarSelectPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleHotbarSelectPacket(playerId, payload, payloadSize);
@@ -2527,7 +2583,7 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::CreativeInventoryAction: {
-            MC_TRACE_EVENT("server.network",
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
                 "HandleCreativeInventoryActionPacket",
                 "sessionId",
                 sessionId,
@@ -2541,8 +2597,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::ContainerClick: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleContainerClickPacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleContainerClickPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleContainerClickPacket(playerId, payload, payloadSize);
@@ -2551,8 +2611,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::CloseContainer: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleCloseContainerPacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleCloseContainerPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleCloseContainerPacket(playerId, payload, payloadSize);
@@ -2561,8 +2625,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::TeleportConfirm: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleTeleportConfirmPacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleTeleportConfirmPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleTeleportConfirmPacket(playerId, payload, payloadSize);
@@ -2571,8 +2639,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::KeepAlive: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleKeepAlivePacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleKeepAlivePacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleKeepAlivePacket(playerId, data, size);
@@ -2581,8 +2653,12 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
         }
 
         case network::PacketType::ChatMessage: {
-            MC_TRACE_EVENT(
-                "server.network", "HandleChatMessagePacket", "sessionId", sessionId, "payloadSize", payloadSize);
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleChatMessagePacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleChatMessagePacket(playerId, payload, payloadSize);

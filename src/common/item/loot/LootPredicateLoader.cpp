@@ -29,6 +29,8 @@
 #include <sstream>
 #include <nlohmann/json.hpp>
 
+using namespace mc::trace;
+
 namespace mc {
 namespace loot {
 
@@ -48,7 +50,7 @@ void LootPredicateLoader::_clearIfNeeded()
 Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromResourcePacks(
     const PackRepository& packs, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFromResourcePacks");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootPredicateLoader::loadFromResourcePacks");
 
     m_lastResult = LoadResult{};
     _clearIfNeeded();
@@ -103,7 +105,7 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromResourcePac
 Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDataPackRepository(
     const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFromDataPackRepository");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootPredicateLoader::loadFromDataPackRepository");
 
     m_lastResult = LoadResult{};
     _clearIfNeeded();
@@ -158,7 +160,8 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDataPackRep
 Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDirectory(
     const std::string& directoryPath, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFromDirectory", "directory", directoryPath);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.IO.Resource, "LootPredicateLoader::loadFromDirectory", "directory", directoryPath);
 
     if (!fs::exists(directoryPath)) {
         return Error(ErrorCode::FileNotFound, "Directory not found: " + directoryPath);
@@ -209,7 +212,7 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDirectory(
 
 Result<std::string> LootPredicateLoader::loadFile(const std::string& filePath)
 {
-    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFile", "filePath", filePath);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootPredicateLoader::loadFile", "filePath", filePath);
 
     // 从文件路径推导谓词ID
     std::string id = pathToPredicateId(filePath);
@@ -229,7 +232,7 @@ Result<std::string> LootPredicateLoader::loadFile(const std::string& filePath)
 
 Result<std::string> LootPredicateLoader::loadJson(const std::string& id, const std::string& jsonString)
 {
-    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadJson", "id", id);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootPredicateLoader::loadJson", "id", id);
 
     // 解析 JSON
     nlohmann::json json;

@@ -27,6 +27,8 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 // 静态计数器，跟踪GLFW初始化
@@ -182,7 +184,7 @@ bool Window::shouldClose() const
 
 void Window::pollEvents()
 {
-    MC_TRACE_EVENT("rendering.frame", "Window::pollEvents");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Window::pollEvents");
     glfwPollEvents();
 }
 

@@ -62,69 +62,71 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 void ClientApplication::initializeCoreRegistries()
 {
     // 初始化方块注册表
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeVanillaBlocks");
         VanillaBlocks::initialize();
         spdlog::info("Vanilla blocks initialized");
     }
 
     // 初始化物品注册表
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeVanillaItems");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeVanillaItems");
         Items::initialize();
         spdlog::info("Vanilla items initialized");
     }
 
     // 初始化唱片机歌曲注册表
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeJukeboxSongs");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeJukeboxSongs");
         JukeboxSongs::initialize();
         spdlog::info("Jukebox songs initialized");
     }
 
     // 注册实体类型
     {
-        MC_TRACE_EVENT("client.initialization", "RegisterVanillaEntities");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "RegisterVanillaEntities");
         entity::VanillaEntities::registerAll();
         spdlog::info("Entity types registered");
     }
 
     // 初始化实体类型标签（必须在所有实体类型注册后）
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeEntityTypeTags");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeEntityTypeTags");
         EntityTypeTags::initialize();
         spdlog::info("Entity type tags initialized");
     }
 
     // 初始化伤害类型标签（用于狼铠吸收判定、伤害分类等，客户端预测也需要）
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeDamageTypeTags");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeDamageTypeTags");
         DamageTypeTags::initialize();
         spdlog::info("Damage type tags initialized");
     }
 
     // 初始化方块物品注册表
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeVanillaBlockItems");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeVanillaBlockItems");
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         spdlog::info("Block items initialized");
     }
 
     // 初始化物品标签（必须在所有物品注册后）
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeItemTags");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeItemTags");
         item::tag::ItemTags::initialize();
         spdlog::info("Item tags initialized");
     }
 
     // 初始化发射器行为注册表
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeDispenseBehaviors");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeDispenseBehaviors");
         blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
         spdlog::info("Dispense item behaviors initialized");
     }
@@ -140,7 +142,7 @@ Result<void> ClientApplication::initializeWindowAndInput()
     WindowConfig windowConfig;
 
     {
-        MC_TRACE_EVENT("client.initialization", "CreateWindow");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "CreateWindow");
 
         windowConfig.width = 1280;
         windowConfig.height = 720;
@@ -218,7 +220,7 @@ Result<void> ClientApplication::initializeRenderer()
 
     // 更新渲染器纹理图集（使用 ResourceManager 构建的纹理）
     if (m_resourceManager) {
-        MC_TRACE_EVENT("client.initialization", "UpdateRendererTextureAtlas");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "UpdateRendererTextureAtlas");
 
         spdlog::info("ResourceManager exists, atlas built: {}", m_resourceManager->isAtlasBuilt());
         if (m_resourceManager->isAtlasBuilt()) {
@@ -247,10 +249,10 @@ Result<void> ClientApplication::initializeRenderer()
 
     // 初始化子渲染器
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers");
 
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::SkyRenderer");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::SkyRenderer");
             auto skyInitResult = m_renderer->initializeSkyRenderer();
             if (skyInitResult.failed()) {
                 spdlog::warn("Failed to initialize sky renderer: {}", skyInitResult.error().toString());
@@ -258,7 +260,7 @@ Result<void> ClientApplication::initializeRenderer()
         }
 
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::GuiRenderer");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::GuiRenderer");
             auto guiInitResult = m_renderer->initializeGuiRenderer();
             if (guiInitResult.failed()) {
                 spdlog::warn("Failed to initialize GUI renderer: {}", guiInitResult.error().toString());
@@ -267,7 +269,8 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化 GUI 纹理管理器（用于背包屏幕等容器GUI）
         if (m_renderer->isGuiRendererInitialized()) {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::GuiTextureManager");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::GuiTextureManager");
 
             spdlog::info("Initializing GUI texture manager...");
             m_guiTextureManager = std::make_unique<renderer::trident::gui::GuiTextureManager>();
@@ -311,7 +314,7 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 实体渲染器必须先初始化（创建 EntityPipeline）
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::EntityRenderer");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::EntityRenderer");
             auto entityInitResult = m_renderer->initializeEntityRenderer();
             if (entityInitResult.failed()) {
                 spdlog::warn("Failed to initialize entity renderer: {}", entityInitResult.error().toString());
@@ -320,7 +323,8 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 实体纹理图集在 EntityPipeline 创建后初始化
         if (m_resourceManager) {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::EntityTextureAtlas");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::EntityTextureAtlas");
             spdlog::info("Initializing entity texture atlas...");
             auto entityAtlasResult = m_renderer->initializeEntityTextureAtlas(m_resourceManager.get());
             if (entityAtlasResult.failed()) {
@@ -329,7 +333,7 @@ Result<void> ClientApplication::initializeRenderer()
         }
 
         if (m_resourceManager) {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::ItemRenderer");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::ItemRenderer");
             auto itemInitResult = m_renderer->initializeItemRenderer(m_resourceManager.get());
             if (itemInitResult.failed()) {
                 spdlog::warn("Failed to initialize item renderer: {}", itemInitResult.error().toString());
@@ -338,7 +342,7 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化雾效果管理器
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::FogManager");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::FogManager");
             auto fogInitResult = m_renderer->initializeFogManager();
             if (fogInitResult.failed()) {
                 spdlog::warn("Failed to initialize fog manager: {}", fogInitResult.error().toString());
@@ -347,7 +351,7 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化云渲染器
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::CloudRenderer");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::CloudRenderer");
             auto cloudInitResult = m_renderer->initializeCloudRenderer(m_resourceManager.get());
             if (cloudInitResult.failed()) {
                 spdlog::warn("Failed to initialize cloud renderer: {}", cloudInitResult.error().toString());
@@ -356,7 +360,7 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化粒子管理器
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::ParticleManager");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::ParticleManager");
             auto particleInitResult = m_renderer->initializeParticleManager();
             if (particleInitResult.failed()) {
                 spdlog::warn("Failed to initialize particle manager: {}", particleInitResult.error().toString());
@@ -372,7 +376,7 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化天气渲染器
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::WeatherRenderer");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::WeatherRenderer");
             auto weatherInitResult = m_renderer->initializeWeatherRenderer();
             if (weatherInitResult.failed()) {
                 spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
@@ -385,7 +389,8 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化破坏进度渲染器
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::BreakProgressRenderer");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::BreakProgressRenderer");
             auto breakProgressInitResult = m_renderer->initializeBreakProgressRenderer(m_resourceManager.get());
             if (breakProgressInitResult.failed()) {
                 spdlog::warn(
@@ -395,7 +400,8 @@ Result<void> ClientApplication::initializeRenderer()
 
         // 初始化第一人称手部渲染器
         {
-            MC_TRACE_EVENT("client.initialization", "InitializeTridentSubRenderers::FirstPersonRenderer");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::FirstPersonRenderer");
             auto firstPersonInitResult = m_renderer->initializeFirstPersonRenderer();
             if (firstPersonInitResult.failed()) {
                 spdlog::warn(
@@ -409,14 +415,14 @@ Result<void> ClientApplication::initializeRenderer()
 
 void ClientApplication::initializeUi()
 {
-    MC_TRACE_EVENT("client.initialization", "initializeUi");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "initializeUi");
 
     if (m_renderer->isGuiRendererInitialized()) {
         auto* guiFont = m_renderer->guiRenderer().font();
         if (guiFont == nullptr) {
             spdlog::error("Failed to get GUI font for KageroEngine");
         } else {
-            MC_TRACE_EVENT("client.initialization", "CreateKageroEngine");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "CreateKageroEngine");
 
             // icons.png: 心形、饥饿、盔甲、经验条等
             m_iconsAtlas = std::make_unique<renderer::trident::gui::GuiSpriteAtlas>();
@@ -448,7 +454,7 @@ void ClientApplication::initializeUi()
 
             // 从资源包加载纹理
             if (m_resourceManager && m_resourceManager->resourcePackCount() > 0) {
-                MC_TRACE_EVENT("client.initialization", "LoadGuiTexturesFromResourcePacks");
+                MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadGuiTexturesFromResourcePacks");
                 spdlog::info("[GUI] ResourceManager has {} resource packs", m_resourceManager->resourcePackCount());
 
                 // 添加启用的资源包到加载器
@@ -484,13 +490,13 @@ void ClientApplication::initializeUi()
             // 加载纹理并注册精灵
             // 关键顺序：先加载纹理（设置正确的图集尺寸），再注册精灵（计算正确的UV）
             if (hasTextureLoader) {
-                MC_TRACE_EVENT("client.initialization", "LoadGuiTextures");
+                MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadGuiTextures");
                 spdlog::info("[GUI] TextureLoader has {} resource packs", textureLoader.resourcePackCount());
 
                 // 加载 HUD/Icons 图集
                 // 优先使用 MC 1.21+ 独立精灵格式，回退到旧版 icons.png 单体图集
                 if (m_iconsAtlas) {
-                    MC_TRACE_EVENT("client.initialization", "LoadIconsAtlas");
+                    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadIconsAtlas");
                     spdlog::info("[GUI] Loading HUD/Icons atlas...");
 
                     bool iconsLoaded = false;
@@ -543,7 +549,7 @@ void ClientApplication::initializeUi()
                 // 加载 Widget 图集
                 // 优先使用 MC 1.21+ 独立精灵格式，回退到旧版 widgets.png 单体图集
                 if (m_widgetsAtlas) {
-                    MC_TRACE_EVENT("client.initialization", "LoadWidgetsAtlas");
+                    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadWidgetsAtlas");
                     spdlog::info("[GUI] Loading Widget atlas...");
 
                     bool widgetsLoaded = false;
@@ -596,7 +602,7 @@ void ClientApplication::initializeUi()
             } else {
                 // 无资源包，使用默认纹理
                 if (m_iconsAtlas) {
-                    MC_TRACE_EVENT("client.initialization", "LoadDefaultIconsTexture");
+                    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadDefaultIconsTexture");
 
                     (void)m_iconsAtlas->loadDefaultTextures();
                     // 使用默认256x256尺寸注册精灵
@@ -609,7 +615,7 @@ void ClientApplication::initializeUi()
                     }
                 }
                 if (m_widgetsAtlas) {
-                    MC_TRACE_EVENT("client.initialization", "LoadDefaultWidgetsTexture");
+                    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadDefaultWidgetsTexture");
 
                     (void)m_widgetsAtlas->loadDefaultTextures();
                     // 使用默认256x256尺寸注册精灵
@@ -636,7 +642,7 @@ void ClientApplication::initializeUi()
             if (kageroInitResult.failed()) {
                 spdlog::error("Failed to initialize KageroEngine: {}", kageroInitResult.error().toString());
             } else {
-                MC_TRACE_EVENT("client.initialization", "ConfigureKageroLayers");
+                MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ConfigureKageroLayers");
 
                 spdlog::info("KageroEngine initialized");
 
@@ -792,14 +798,14 @@ void ClientApplication::initializeUi()
 
 Result<void> ClientApplication::initializeShell(const ClientLaunchParams& params)
 {
-    MC_TRACE_EVENT("client.initialization", "InitializeShell");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeShell");
 
     // 初始化核心注册表
     initializeCoreRegistries();
 
     // 初始化资源系统
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeResources");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeResources");
         spdlog::info("Initializing resource system...");
         auto resourceResult = initializeResources();
         if (resourceResult.failed()) {

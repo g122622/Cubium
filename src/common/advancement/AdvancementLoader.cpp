@@ -30,12 +30,14 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::advancement {
 
 Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDataPackRepository(
     const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "AdvancementLoader::loadFromDataPackRepository");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "AdvancementLoader::loadFromDataPackRepository");
 
     m_lastResult = LoadResult{};
     _clearIfNeeded();

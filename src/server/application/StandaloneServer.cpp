@@ -71,6 +71,8 @@
 #include <thread>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 StandaloneServer::StandaloneServer()
@@ -609,7 +611,7 @@ void StandaloneServer::stop()
 
 void StandaloneServer::pollNetwork()
 {
-    MC_TRACE_EVENT("server.network", "PollNetwork");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "PollNetwork");
     m_tcpServer->poll();
 }
 
@@ -672,7 +674,7 @@ void StandaloneServer::_mainLoop()
     spdlog::info("Connect with port: {}", m_settings.serverPort.get());
 
     while (m_running) {
-        MC_TRACE_EVENT("server.tick", "MainLoopIteration");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MainLoopIteration");
 
         const auto currentTime = clock::now();
         const auto deltaTime = currentTime - lastTickTime;
@@ -687,8 +689,8 @@ void StandaloneServer::_mainLoop()
 
             // 追踪 TPS
             const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
-            MC_TRACE_COUNTER("server.tick", "TPS", static_cast<i64>(tps));
-            MC_TRACE_COUNTER("server.tick", "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", static_cast<i64>(tps));
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
 
             // 更新调试统计
             const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(tickElapsed).count();

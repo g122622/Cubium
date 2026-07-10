@@ -26,6 +26,8 @@
 
 #include <thread>
 
+using namespace mc::trace;
+
 namespace mc::util {
 
 // ============================================================================
@@ -53,7 +55,8 @@ ReentrantAreaLock::LockHandle ReentrantAreaLock::lock(
 {
     MC_ASSERT_RELEASE_MSG(fromX <= toX, "ReentrantAreaLock::lock: fromX > toX");
     MC_ASSERT_RELEASE_MSG(fromZ <= toZ, "ReentrantAreaLock::lock: fromZ > toZ");
-    MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::lock", "fromX", fromX, "fromZ", fromZ, "toX", toX, "toZ", toZ);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Chunk, "ReentrantAreaLock::lock", "fromX", fromX, "fromZ", fromZ, "toX", toX, "toZ", toZ);
 
     const std::thread::id currThread = std::this_thread::get_id();
     const i32 shift = m_coordinateShift;
@@ -294,7 +297,7 @@ bool ReentrantAreaLock::isHeldByCurrentThread(ChunkCoord fromX, ChunkCoord fromZ
 
 void ReentrantAreaLock::unlock(ReentrantAreaLockNode& node)
 {
-    MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::unlock");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ReentrantAreaLock::unlock");
 
     const u64 areaAffectedLen = node.m_areaAffectedLen;
     if (areaAffectedLen == 0) {

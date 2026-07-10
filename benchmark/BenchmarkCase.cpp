@@ -28,6 +28,8 @@
 #include <chrono>
 #include <limits>
 
+using namespace mc::trace;
+
 namespace mc::benchmark {
 namespace {
 
@@ -69,7 +71,8 @@ BenchmarkResult executeBenchmarkCase(IBenchmarkCase& benchmarkCase, const CaseRu
 
     const auto measurementStart = std::chrono::steady_clock::now();
     for (i32 measureIndex = 0; measureIndex < config.measurement.measuredIterations; ++measureIndex) {
-        MC_TRACE_EVENT("benchmark.case", "BenchmarkIteration", "case", config.name, "iteration", measureIndex);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Benchmark.Run, "BenchmarkIteration", "case", config.name, "iteration", measureIndex);
 
         const auto start = std::chrono::steady_clock::now();
         auto runResult = benchmarkCase.runOnce();
