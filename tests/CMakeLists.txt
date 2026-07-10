@@ -1228,6 +1228,8 @@ add_executable(mc_tests
     server/LightSyncTests.cpp
     # Kagero UI模板系统测试
     ui/kagero/template/template_test.cpp
+    # Kagero UI Value 类原生 i64/u32/f64 支持测试
+    ui/kagero/template/ValueTypesTest.cpp
     # Kagero UI内置事件测试
     ui/kagero/template/BuiltinEventsTest.cpp
     # Kagero UI内置 Widget 工厂测试（grid/slot 等属性解析与生效）

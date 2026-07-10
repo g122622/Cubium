@@ -56,11 +56,28 @@ public:
         : m_type(ValueType::Bool)
         , m_boolValue(v)
     {}
+    // 32 位整型构造（内部以 i64 存储，无损扩展）
     explicit Value(i32 v)
+        : m_type(ValueType::Integer)
+        , m_intValue(static_cast<i64>(v))
+    {}
+    // 64 位整型构造（原生支持，避免 i64 → i32 精度丢失）
+    explicit Value(i64 v)
         : m_type(ValueType::Integer)
         , m_intValue(v)
     {}
+    // 32 位无符号整型构造（内部以 i64 存储，无损）
+    explicit Value(u32 v)
+        : m_type(ValueType::Integer)
+        , m_intValue(static_cast<i64>(v))
+    {}
+    // 32 位浮点构造（内部以 f64 存储，无损扩展）
     explicit Value(f32 v)
+        : m_type(ValueType::Float)
+        , m_floatValue(static_cast<f64>(v))
+    {}
+    // 64 位浮点构造（原生支持，避免 f64 → f32 精度丢失）
+    explicit Value(f64 v)
         : m_type(ValueType::Float)
         , m_floatValue(v)
     {}
@@ -102,8 +119,16 @@ public:
 
     // 值获取
     [[nodiscard]] bool asBool() const;
+    // 返回 i32（从内部 i64 存储窄化，对超出 i32 范围的值会截断）
     [[nodiscard]] i32 asInteger() const;
+    // 返回 i64（原生精度，无截断）
+    [[nodiscard]] i64 asI64() const;
+    // 返回 u32（从内部 i64 存储窄化，对超出 u32 范围的值会截断）
+    [[nodiscard]] u32 asU32() const;
+    // 返回 f32（从内部 f64 存储窄化，对超出 f32 精度的值会损失精度）
     [[nodiscard]] f32 asFloat() const;
+    // 返回 f64（原生精度，无损失）
+    [[nodiscard]] f64 asF64() const;
     [[nodiscard]] const std::string& asString() const;
     [[nodiscard]] std::string toString() const;
 
@@ -138,7 +163,10 @@ public:
 
     // 类型转换
     [[nodiscard]] i32 toInteger() const;
+    [[nodiscard]] i64 toI64() const;
+    [[nodiscard]] u32 toU32() const;
     [[nodiscard]] f32 toFloat() const;
+    [[nodiscard]] f64 toF64() const;
     [[nodiscard]] bool toBool() const;
 
     // 比较
@@ -153,8 +181,10 @@ public:
 private:
     ValueType m_type;
     bool m_boolValue = false;
-    i32 m_intValue = 0;
-    f32 m_floatValue = 0.0f;
+    // 整型内部以 i64 存储，可无损容纳 i32/u32/i64
+    i64 m_intValue = 0;
+    // 浮点型内部以 f64 存储，可无损容纳 f32/f64
+    f64 m_floatValue = 0.0;
     std::string m_stringValue;
     std::vector<Value> m_arrayValue;
     std::unordered_map<std::string, Value> m_objectValue;
@@ -257,8 +287,17 @@ public:
         var.writeFunc = [ptr](const Value& v) {
             if constexpr (std::is_same_v<T, bool>) {
                 *ptr = v.toBool();
+            } else if constexpr (std::is_same_v<T, i64>) {
+                // i64 目标使用原生 i64 访问器，避免经 i32 中转的精度丢失
+                *ptr = v.toI64();
+            } else if constexpr (std::is_same_v<T, u32>) {
+                // u32 目标使用 i64 访问器再窄化，避免经 i32 中转对 >2^31 值的符号问题
+                *ptr = static_cast<u32>(v.toI64());
             } else if constexpr (std::is_integral_v<T>) {
                 *ptr = static_cast<T>(v.toInteger());
+            } else if constexpr (std::is_same_v<T, f64>) {
+                // f64 目标使用原生 f64 访问器，避免经 f32 中转的精度丢失
+                *ptr = v.toF64();
             } else if constexpr (std::is_floating_point_v<T>) {
                 *ptr = static_cast<T>(v.toFloat());
             } else if constexpr (std::is_same_v<T, std::string>) {
@@ -292,8 +331,17 @@ public:
         var.writeFunc = [&reactive](const Value& v) {
             if constexpr (std::is_same_v<T, bool>) {
                 reactive.set(v.toBool());
+            } else if constexpr (std::is_same_v<T, i64>) {
+                // i64 目标使用原生 i64 访问器，避免经 i32 中转的精度丢失
+                reactive.set(v.toI64());
+            } else if constexpr (std::is_same_v<T, u32>) {
+                // u32 目标使用 i64 访问器再窄化，避免经 i32 中转对 >2^31 值的符号问题
+                reactive.set(static_cast<u32>(v.toI64()));
             } else if constexpr (std::is_integral_v<T>) {
                 reactive.set(static_cast<T>(v.toInteger()));
+            } else if constexpr (std::is_same_v<T, f64>) {
+                // f64 目标使用原生 f64 访问器，避免经 f32 中转的精度丢失
+                reactive.set(v.toF64());
             } else if constexpr (std::is_floating_point_v<T>) {
                 reactive.set(static_cast<T>(v.toFloat()));
             } else if constexpr (std::is_same_v<T, std::string>) {

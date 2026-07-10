@@ -68,7 +68,7 @@ binder/
 
 `Value::fromAny` 仅支持 `bool`、`i32`、`i64`、`u32`、`f32`、`f64`、`std::string`、`const char*`、`Value`、`std::vector<Value>`、`std::unordered_map<std::string, Value>`。其他类型（如自定义结构体、`i8`/`u16` 等）会静默返回 `Null`，不会抛异常。若绑定始终拿到空值，先用 `StateStore::getAny` 确认存储的实际类型。
 
-`i64`/`u32`/`f64` 会被强制窄化为 `i32`/`f32`，可能丢失精度（代码中已标注 TODO，待 Value 类增加原生支持后消除）。
+`Value` 内部整型以 `i64` 存储、浮点型以 `f64` 存储，因此 `i64`/`u32`/`f64` 均无精度丢失。访问时按需调用 `asI64()`/`asU32()`/`asF64()`（原生精度）或 `asInteger()`/`asFloat()`（窄化为 `i32`/`f32`，对超出范围的值会截断）。
 
 ### 3. 暴露变量优先级高于 StateStore
 

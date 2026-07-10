@@ -44,19 +44,19 @@ Value Value::fromAny(const std::any& any)
         return Value(std::any_cast<i32>(any));
     }
     if (type == typeid(i64)) {
-        // TODO: i64 转为 i32 可能丢失精度，未来应在 Value 类中增加原生 i64 类型支持
-        return Value(static_cast<i32>(std::any_cast<i64>(any)));
+        // 原生 i64 支持，无精度丢失
+        return Value(std::any_cast<i64>(any));
     }
     if (type == typeid(u32)) {
-        // TODO: u32 转为 i32 可能丢失精度，未来应在 Value 类中增加原生 u32 类型支持
-        return Value(static_cast<i32>(std::any_cast<u32>(any)));
+        // 原生 u32 支持，内部以 i64 存储，无精度丢失
+        return Value(std::any_cast<u32>(any));
     }
     if (type == typeid(f32)) {
         return Value(std::any_cast<f32>(any));
     }
     if (type == typeid(f64)) {
-        // TODO: f64 转为 f32 可能丢失精度，未来应在 Value 类中增加原生 f64 类型支持
-        return Value(static_cast<f32>(std::any_cast<f64>(any)));
+        // 原生 f64 支持，无精度丢失
+        return Value(std::any_cast<f64>(any));
     }
     if (type == typeid(std::string)) {
         return Value(std::any_cast<std::string>(any));
@@ -89,7 +89,8 @@ bool Value::asBool() const
         case ValueType::Integer:
             return m_intValue != 0;
         case ValueType::Float:
-            return m_floatValue != 0.0f;
+            // m_floatValue 内部以 f64 存储，使用 0.0 比较
+            return m_floatValue != 0.0;
         case ValueType::String:
             return !m_stringValue.empty() && m_stringValue != "false";
         default:
@@ -103,7 +104,8 @@ i32 Value::asInteger() const
         case ValueType::Bool:
             return m_boolValue ? 1 : 0;
         case ValueType::Integer:
-            return m_intValue;
+            // m_intValue 内部以 i64 存储，窄化为 i32 返回（对超出 i32 范围的值会截断）
+            return static_cast<i32>(m_intValue);
         case ValueType::Float:
             return static_cast<i32>(m_floatValue);
         case ValueType::String: {
@@ -119,6 +121,35 @@ i32 Value::asInteger() const
     }
 }
 
+i64 Value::asI64() const
+{
+    switch (m_type) {
+        case ValueType::Bool:
+            return m_boolValue ? 1LL : 0LL;
+        case ValueType::Integer:
+            // 原生 i64 精度，无截断
+            return m_intValue;
+        case ValueType::Float:
+            return static_cast<i64>(m_floatValue);
+        case ValueType::String: {
+            try {
+                return std::stoll(m_stringValue);
+            }
+            catch (...) {
+                return 0;
+            }
+        }
+        default:
+            return 0;
+    }
+}
+
+u32 Value::asU32() const
+{
+    // 通过 i64 中转再窄化为 u32，避免经 i32 中转对 >2^31 值的符号问题
+    return static_cast<u32>(asI64());
+}
+
 f32 Value::asFloat() const
 {
     switch (m_type) {
@@ -127,7 +158,8 @@ f32 Value::asFloat() const
         case ValueType::Integer:
             return static_cast<f32>(m_intValue);
         case ValueType::Float:
-            return m_floatValue;
+            // m_floatValue 内部以 f64 存储，窄化为 f32 返回（对超出 f32 精度的值会损失精度）
+            return static_cast<f32>(m_floatValue);
         case ValueType::String: {
             try {
                 return std::stof(m_stringValue);
@@ -138,6 +170,29 @@ f32 Value::asFloat() const
         }
         default:
             return 0.0f;
+    }
+}
+
+f64 Value::asF64() const
+{
+    switch (m_type) {
+        case ValueType::Bool:
+            return m_boolValue ? 1.0 : 0.0;
+        case ValueType::Integer:
+            return static_cast<f64>(m_intValue);
+        case ValueType::Float:
+            // 原生 f64 精度，无损失
+            return m_floatValue;
+        case ValueType::String: {
+            try {
+                return std::stod(m_stringValue);
+            }
+            catch (...) {
+                return 0.0;
+            }
+        }
+        default:
+            return 0.0;
     }
 }
 
@@ -155,8 +210,10 @@ std::string Value::toString() const
         case ValueType::Bool:
             return m_boolValue ? "true" : "false";
         case ValueType::Integer:
+            // m_intValue 内部以 i64 存储，使用 std::to_string(long long) 重载
             return std::to_string(m_intValue);
         case ValueType::Float:
+            // m_floatValue 内部以 f64 存储，使用 std::to_string(double) 重载
             return std::to_string(m_floatValue);
         case ValueType::String:
             return m_stringValue;
@@ -192,9 +249,24 @@ i32 Value::toInteger() const
     return asInteger();
 }
 
+i64 Value::toI64() const
+{
+    return asI64();
+}
+
+u32 Value::toU32() const
+{
+    return asU32();
+}
+
 f32 Value::toFloat() const
 {
     return asFloat();
+}
+
+f64 Value::toF64() const
+{
+    return asF64();
 }
 
 bool Value::toBool() const
@@ -290,7 +362,8 @@ bool Value::operator==(const Value& other) const
     if (m_type != other.m_type) {
         // 尝试类型转换比较
         if (isNumber() && other.isNumber()) {
-            return asFloat() == other.asFloat();
+            // 使用 f64 进行跨类型比较，避免经 f32 中转对 i64 大值的精度丢失
+            return asF64() == other.asF64();
         }
         return false;
     }
