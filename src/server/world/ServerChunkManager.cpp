@@ -63,7 +63,7 @@ namespace {
  * @param success 是否成功
  * @param chunk 返回区块
  */
-void fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, bool success, ChunkData* chunk)
+void _fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, bool success, ChunkData* chunk)
 {
     for (auto& waiter : waiters) {
         if (waiter.promise) {
@@ -322,7 +322,7 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         std::vector<SingleChunkLifecycleManager::Waiter> waiters;
         waiters.emplace_back(SingleChunkLifecycleManager::Waiter{std::move(callback), std::move(promise)});
-        fulfillWaiters(std::move(waiters), true, chunk);
+        _fulfillWaiters(std::move(waiters), true, chunk);
         return;
     }
 
@@ -589,12 +589,12 @@ void ServerChunkManager::_scheduleGeneration(
 void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
 {
     ChunkData* chunk = tryToGetChunkInMem(lifecycleManager.x(), lifecycleManager.z());
-    fulfillWaiters(lifecycleManager.takeReadyWaiters(), chunk != nullptr, chunk);
+    _fulfillWaiters(lifecycleManager.takeReadyWaiters(), chunk != nullptr, chunk);
 }
 
 void ServerChunkManager::_failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters)
 {
-    fulfillWaiters(std::move(waiters), false, nullptr);
+    _fulfillWaiters(std::move(waiters), false, nullptr);
 }
 
 // ============================================================================
@@ -933,11 +933,11 @@ void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& hol
     // 中间状态不应阻止后续更高状态请求调度）。不存入 m_chunks（m_chunks 仅保留 FULL 区块，
     // 保证 tryToGetChunkInMem 快速路径不返回中间状态区块）。
     // 直接用 primer 的 ChunkData 完成等待者（promise/callback），请求者获得 primer 当前状态的 ChunkData。
-    // takeAllWaiters 取出所有等待者（无条件），fulfillWaiters 完成 promise。
+    // takeAllWaiters 取出所有等待者（无条件），_fulfillWaiters 完成 promise。
     ChunkPrimer* primer = holder.getCurrentChunk();
     ChunkData* chunkData = (primer != nullptr) ? primer->getChunkData() : nullptr;
 
-    fulfillWaiters(holder.takeAllWaiters(), chunkData != nullptr, chunkData);
+    _fulfillWaiters(holder.takeAllWaiters(), chunkData != nullptr, chunkData);
 }
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)

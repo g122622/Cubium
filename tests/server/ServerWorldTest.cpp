@@ -225,6 +225,7 @@ TEST_F(ServerWorldTest, GetChunk_AfterGeneration)
 
 TEST_F(ServerWorldTest, UnloadChunk)
 {
+    ASSERT_TRUE(world->initialize().success());
     world->chunkManager()->getChunkSync(0, 0);
     EXPECT_TRUE(world->hasChunk(0, 0));
 
@@ -250,6 +251,7 @@ TEST_F(ServerWorldTest, ChunkCount)
     // 故加载 (0,0) 后 chunkCount 远大于 1（约 23²=529，取决于视距与依赖半径）。
     // 此处用宽松断言验证“加载使区块数增加、后续加载不减少”的核心意图，
     // 而非断言精确小数值。
+    ASSERT_TRUE(world->initialize().success());
     EXPECT_EQ(world->chunkCount(), 0);
 
     world->chunkManager()->getChunkSync(0, 0);
