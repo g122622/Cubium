@@ -47,6 +47,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 EntityTracker::EntityTracker()
@@ -57,7 +59,7 @@ EntityTracker::EntityTracker()
 
 void EntityTracker::trackEntity(Entity* entity)
 {
-    MC_TRACE_EVENT("server.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
         "EntityTracker::trackEntity",
         "entityId",
         entity ? entity->id() : -1,
@@ -105,7 +107,7 @@ void EntityTracker::untrackEntity(EntityId entityId)
 
 void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
 {
-    MC_TRACE_EVENT("server.entity", "EntityTracker::untrackEntity", "entityId", entityId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "EntityTracker::untrackEntity", "entityId", entityId);
 
     std::vector<PlayerId> playersToNotify;
 
@@ -193,7 +195,7 @@ size_t EntityTracker::trackedEntityCount() const
 void EntityTracker::updatePlayerTracking(
     IServer& server, ServerWorld& world, PlayerId playerId, const Vector3& playerPos)
 {
-    MC_TRACE_EVENT("server.entity", "EntityTracker::updatePlayerTracking", "playerId", playerId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "EntityTracker::updatePlayerTracking", "playerId", playerId);
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -275,7 +277,7 @@ std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId)
 
 void EntityTracker::tick(IServer& server, ServerWorld& world)
 {
-    MC_TRACE_EVENT("server.entity", "EntityTracker::tick", "trackedCount", m_trackedEntities.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "EntityTracker::tick", "trackedCount", m_trackedEntities.size());
 
     std::vector<std::pair<EntityId, std::vector<PlayerId>>> removedEntities;
     std::vector<EntityId> entitiesToErase;

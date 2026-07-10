@@ -66,6 +66,8 @@
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::trident {
 
 namespace {
@@ -170,7 +172,7 @@ TridentEngine::~TridentEngine()
 
 Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConfig& config)
 {
-    MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentEngine::initialize");
 
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "TridentEngine already initialized");
@@ -1690,7 +1692,8 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
 
     if (!m_itemTextureAtlasInitialized) {
         if (!m_itemTextureAtlas.isValid()) {
-            MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::CreateAtlas");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Rendering.Initialization, "TridentEngine::initializeItemRenderer::CreateAtlas");
             auto createResult =
                 m_itemTextureAtlas.create(device(), physicalDevice(), commandPool(), graphicsQueue(), 4096, 4096);
             if (createResult.failed()) {
@@ -1699,7 +1702,8 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         }
 
         {
-            MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::LoadFromResourcePacks");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Rendering.Initialization, "TridentEngine::initializeItemRenderer::LoadFromResourcePacks");
             auto loadResult = m_itemTextureAtlas.loadFromResourcePacks(resourceManager->resourcePacks());
             if (loadResult.failed()) {
                 return loadResult.error();
@@ -1707,7 +1711,8 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         }
 
         {
-            MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::UploadAtlas");
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Rendering.Initialization, "TridentEngine::initializeItemRenderer::UploadAtlas");
             auto uploadResult = m_itemTextureAtlas.upload();
             if (uploadResult.failed()) {
                 return uploadResult.error();
@@ -1720,7 +1725,8 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
 
     // 创建物品渲染器
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeItemRenderer::CreateItemRenderer");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentEngine::initializeItemRenderer::CreateItemRenderer");
         m_itemRendererPtr = std::make_unique<item::ItemRenderer>();
         auto result = m_itemRendererPtr->initialize(resourceManager, &m_itemTextureAtlas);
         if (result.failed()) {
@@ -1835,7 +1841,8 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
 
     // 初始化实体纹理图集
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeEntityTextureAtlas::InitAtlas");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentEngine::initializeEntityTextureAtlas::InitAtlas");
         auto initResult = m_entityTextureAtlas.initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
         if (initResult.failed()) {
             return initResult.error();
@@ -1856,7 +1863,8 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
     // 使用新的自动发现方法加载所有实体纹理
     u32 loadedCount = 0;
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeEntityTextureAtlas::LoadTextures");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentEngine::initializeEntityTextureAtlas::LoadTextures");
         EntityTextureLoader textureLoader;
         auto loadResult = textureLoader.loadAllEntityTextures(packs, m_entityTextureAtlas);
         loadedCount = loadResult.success() ? loadResult.value() : 0;
@@ -1893,7 +1901,8 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
         spdlog::info("Total {} entity textures loaded", loadedCount);
 
         // 构建纹理图集
-        MC_TRACE_EVENT("rendering.initialization", "TridentEngine::initializeEntityTextureAtlas::BuildAtlas");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentEngine::initializeEntityTextureAtlas::BuildAtlas");
         auto buildResult = m_entityTextureAtlas.build();
         if (buildResult.failed()) {
             spdlog::warn("Failed to build entity texture atlas: {}", buildResult.error().toString());

@@ -45,6 +45,8 @@
 #include <chrono>
 #include <cmath>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // 使用序列化命名空间
@@ -131,7 +133,7 @@ bool ItemEntity::isImmuneToFire() const
 
 bool ItemEntity::hurt(DamageSource& source, f32 amount)
 {
-    MC_TRACE_EVENT("game.entity", "ItemEntity::hurt", "entityId", id(), "amount", amount);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Game.Entity, "ItemEntity::hurt", "entityId", id(), "amount", amount);
 
     // 1. 检查无敌状态
     if (isInvulnerableTo(source)) {
@@ -187,7 +189,8 @@ bool ItemEntity::hurt(DamageSource& source, f32 amount)
 
 void ItemEntity::tick()
 {
-    MC_TRACE_EVENT("game.entity", "ItemEntity::tick", "entityId", id(), "age", m_age, "count", getCount());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Game.Entity, "ItemEntity::tick", "entityId", id(), "age", m_age, "count", getCount());
 
     // 递增存活时间（Entity::tick 会在 baseTick 前递增，ItemEntity 直接调用 baseTick 需手动递增）
     m_ticksExisted++;
@@ -228,7 +231,7 @@ void ItemEntity::tick()
 
 bool ItemEntity::onPlayerPickup(Player& player)
 {
-    MC_TRACE_EVENT("game.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Game.Entity,
         "ItemEntity::onPlayerPickup",
         "entityId",
         id(),
@@ -343,7 +346,7 @@ void ItemEntity::_updateMerge()
 
 bool ItemEntity::tryMergeWith(ItemEntity& other)
 {
-    MC_TRACE_EVENT("game.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Game.Entity,
         "ItemEntity::tryMergeWith",
         "thisId",
         id(),

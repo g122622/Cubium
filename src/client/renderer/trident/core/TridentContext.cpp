@@ -32,6 +32,8 @@
 #endif
 #include <GLFW/glfw3.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::trident {
 
 // Vulkan 调试回调
@@ -132,7 +134,7 @@ TridentContext& TridentContext::operator=(TridentContext&& other) noexcept
 
 Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig& config)
 {
-    MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::initialize");
 
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "TridentContext already initialized");
@@ -142,7 +144,7 @@ Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig&
 
     // 创建 Instance
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize::CreateInstance");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::initialize::CreateInstance");
         auto instanceResult = createInstanceOnly(config);
         if (instanceResult.failed()) {
             return instanceResult.error();
@@ -151,7 +153,7 @@ Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig&
 
     // 创建 Surface
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize::CreateSurface");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::initialize::CreateSurface");
         VkSurfaceKHR surface;
         VkResult result = glfwCreateWindowSurface(m_instance, window, nullptr, &surface);
         if (result != VK_SUCCESS) {
@@ -163,7 +165,7 @@ Result<void> TridentContext::initialize(GLFWwindow* window, const TridentConfig&
 
     // 创建设备
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::initialize::CreateDevice");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::initialize::CreateDevice");
         auto deviceResult = createDevice();
         if (deviceResult.failed()) {
             destroy();
@@ -262,7 +264,7 @@ Result<void> TridentContext::createDevice()
 
     // 选择物理设备
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::PickPhysicalDevice");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::createDevice::PickPhysicalDevice");
         auto physicalResult = _pickPhysicalDevice();
         if (physicalResult.failed()) {
             return physicalResult.error();
@@ -271,7 +273,8 @@ Result<void> TridentContext::createDevice()
 
     // 创建逻辑设备
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::CreateLogicalDevice");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentContext::createDevice::CreateLogicalDevice");
         auto deviceResult = _createLogicalDevice();
         if (deviceResult.failed()) {
             return deviceResult.error();
@@ -280,7 +283,7 @@ Result<void> TridentContext::createDevice()
 
     // 获取队列
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::GetQueues");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::createDevice::GetQueues");
         vkGetDeviceQueue(m_device, m_queueFamilies.graphicsFamily.value(), 0, &m_graphicsQueue);
         vkGetDeviceQueue(m_device, m_queueFamilies.presentFamily.value(), 0, &m_presentQueue);
 
@@ -299,7 +302,7 @@ Result<void> TridentContext::createDevice()
 
     // 创建命令池（用于单次命令）
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentContext::createDevice::CreateCommandPool");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentContext::createDevice::CreateCommandPool");
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;

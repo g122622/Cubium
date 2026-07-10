@@ -36,6 +36,8 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace mc::trace;
+
 namespace {
 
 enum class MiningInputState : mc::i32 {
@@ -52,7 +54,7 @@ namespace mc::client {
 
 void ClientApplication::setupInputBindings()
 {
-    MC_TRACE_EVENT("client.initialization", "SetupInputBindings");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "SetupInputBindings");
 
     m_input.bindKeyAction(GLFW_KEY_ESCAPE, "exit");
 
@@ -113,7 +115,7 @@ void ClientApplication::setupInputBindings()
 
 void ClientApplication::setupCamera()
 {
-    MC_TRACE_EVENT("client.initialization", "SetupCamera");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "SetupCamera");
 
     CameraConfig cameraConfig;
     cameraConfig.fov = m_settings.fov.get();
@@ -152,7 +154,7 @@ void ClientApplication::cancelBreakingBlock()
     m_breakingBlockProgress = 0.0f;
     m_breakingBlockFace = Direction::None;
 
-    MC_TRACE_INSTANT("client.input.mining",
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Mining,
         "abortBreakingBlock",
         "state",
         static_cast<i32>(MiningInputState::Active),
@@ -171,7 +173,7 @@ void ClientApplication::beginBreakingBlock(
     using namespace mc::client::renderer::trident::block;
     BreakProgressManager::instance().startBreaking(m_breakingBlockPos);
 
-    MC_TRACE_INSTANT("client.input.mining",
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Mining,
         "startBreaking",
         "pos",
         fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
@@ -195,14 +197,14 @@ void ClientApplication::completeBreakingBlock(bool instantBreak)
     BreakProgressManager::instance().stopBreaking();
 
     if (instantBreak) {
-        MC_TRACE_INSTANT("client.input.mining",
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Mining,
             "instantBreak",
             "pos",
             fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
             "face",
             static_cast<i32>(m_breakingBlockFace));
     } else {
-        MC_TRACE_INSTANT("client.input.mining",
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Mining,
             "breakComplete",
             "pos",
             fmt::format("({}, {}, {})", m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z),
@@ -225,7 +227,8 @@ void ClientApplication::handleBlockMiningInput(f32 deltaTime)
 {
     static MiningInputState s_lastMiningState = MiningInputState::Active;
     auto setMiningState = [](MiningInputState state, const char* reason) {
-        MC_TRACE_INSTANT("client.input.mining", "setMiningState", "state", static_cast<i32>(state), "reason", reason);
+        MC_TRACE_INSTANT_EVENT(
+            TraceEvents.Client.Mining, "setMiningState", "state", static_cast<i32>(state), "reason", reason);
         if (s_lastMiningState != state) {
             s_lastMiningState = state;
         }
@@ -374,7 +377,7 @@ void ClientApplication::sendBlockInteraction(
         return;
     }
 
-    MC_TRACE_INSTANT("client.input.mining",
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Mining,
         "sendBlockInteraction",
         "action",
         static_cast<i32>(action),

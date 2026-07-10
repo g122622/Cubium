@@ -26,6 +26,8 @@
 #include "world/storage/SingleLevelStorageManager.hpp"
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 // ============================================================================
@@ -166,7 +168,7 @@ bool AutoSave::_shouldSave(u64 tickCount) const
 
 Result<size_t> AutoSave::_doSave(bool createSnapshot, const std::string& snapshotName)
 {
-    MC_TRACE_EVENT("storage.task.save", "AutoSave::doSave");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "AutoSave::doSave");
 
     AutoSaveConfig config;
     {

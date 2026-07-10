@@ -29,6 +29,8 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 
+using namespace mc::trace;
+
 namespace mc::benchmark {
 namespace {
 
@@ -102,7 +104,7 @@ public:
 
     [[nodiscard]] Result<void> runOnce() override
     {
-        MC_TRACE_EVENT("benchmark.case", "LightingBenchmark::runOnce");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "LightingBenchmark::runOnce");
         if (m_lightManager == nullptr) {
             return Error(ErrorCode::InvalidState, "lighting benchmark is not initialized");
         }

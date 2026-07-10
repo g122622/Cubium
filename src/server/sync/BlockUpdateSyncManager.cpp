@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <vector>
 
+using namespace mc::trace;
+
 namespace mc::server::sync {
 
 BlockUpdateSyncManager::BlockUpdateSyncManager(world::chunk::ChunkLoadTicketManager& ticketManager)
@@ -43,7 +45,8 @@ void BlockUpdateSyncManager::queueBlockUpdate(const BlockPos& pos, u32 blockStat
 
 void BlockUpdateSyncManager::flushPendingUpdates()
 {
-    MC_TRACE_EVENT("server.network", "FlushBlockUpdates", "pendingCount", m_pendingBlockUpdates.size());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Network, "FlushBlockUpdates", "pendingCount", m_pendingBlockUpdates.size());
 
     if (m_pendingBlockUpdates.empty()) {
         return;

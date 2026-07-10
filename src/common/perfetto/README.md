@@ -10,9 +10,9 @@ src/common/perfetto/
 ├── PerfettoConfig.hpp    # 编译时配置开关（总开关、子系统开关、缓冲区配置）
 ├── PerfettoManager.hpp   # 单例追踪管理器，负责生命周期管理
 ├── PerfettoManager.cpp   # 管理器实现（Pimpl 模式，追踪会话管理）
-├── TraceCategories.hpp   # 追踪分类定义（rendering.*、game.*、world.* 等）
+├── TraceCategories.hpp   # 分类枚举树（TraceEvents）+ PERFETTO_DEFINE_CATEGORIES 注册
 ├── TraceCategories.cpp   # 静态存储定义（PERFETTO_TRACK_EVENT_STATIC_STORAGE）
-└── TraceEvents.hpp       # 追踪事件便捷宏（MC_TRACE_EVENT 等）
+└── TraceEvents.hpp       # 追踪事件便捷宏（MC_TRACE_SCOPED_EVENT 等）
 ```
 
 ## 内部模块关系
@@ -38,10 +38,10 @@ TraceCategories.cpp            │
               应用代码（MC_TRACE_* 宏）
 ```
 
-- **PerfettoConfig.hpp**：定义编译时开关，控制哪些子系统启用追踪
-- **TraceCategories.hpp**：定义所有追踪分类，必须在使用前注册
+- **PerfettoConfig.hpp**：定义编译时总开关（MC_ENABLE_TRACING）与缓冲区/输出路径配置
+- **TraceCategories.hpp**：定义分类枚举树 `mc::trace::TraceEvents`（按子系统组织的 `const char*` 嵌套结构体），并通过 `PERFETTO_DEFINE_CATEGORIES` 注册所有分类。调用方只能使用枚举树叶节点
 - **PerfettoManager**：单例模式，管理追踪系统的初始化、启动、停止、文件输出
-- **TraceEvents.hpp**：封装 Perfetto 原生宏，提供统一的 MC_TRACE_* 接口
+- **TraceEvents.hpp**：封装 Perfetto 原生宏，提供统一的 MC_TRACE_* 接口（category 参数取自枚举树）
 
 ## 上下游外部依赖关系
 
@@ -132,47 +132,47 @@ target_link_libraries(mc_perfetto PRIVATE perfetto_sdk)
 
 Perfetto SDK 生成大量符号，编译时会报错 "too many sections"。CMakeLists.txt 中已配置此选项。
 
-### 6. MC_TRACE_EVENT 是 RAII 作用域事件
+### 6. MC_TRACE_SCOPED_EVENT 是 RAII 作用域事件
 
-`MC_TRACE_EVENT` 在作用域结束时自动结束事件。**同一作用域内不能有多个 MC_TRACE_EVENT**，否则会导致事件嵌套错误。每个 `MC_TRACE_EVENT` 必须放在独立的大括号作用域内：
+`MC_TRACE_SCOPED_EVENT` 在作用域结束时自动结束事件。**同一作用域内不能有多个 MC_TRACE_SCOPED_EVENT**，否则会导致事件嵌套错误。每个 `MC_TRACE_SCOPED_EVENT` 必须放在独立的大括号作用域内：
 
 ```cpp
 // 错误：同一作用域内有多个 trace event
 void processFrame() {
-    MC_TRACE_EVENT("rendering.frame", "HandleEvents");  // 不会正确结束
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "HandleEvents");  // 不会正确结束
     handleEvents();
-    MC_TRACE_EVENT("rendering.frame", "Update");  // 嵌套错误
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Update");  // 嵌套错误
     update(deltaTime);
 }
 
 // 正确：每个 trace event 放在独立的作用域内
 void processFrame() {
     {
-        MC_TRACE_EVENT("rendering.frame", "HandleEvents");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "HandleEvents");
         handleEvents();
     }
     {
-        MC_TRACE_EVENT("rendering.frame", "Update");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Update");
         update(deltaTime);
     }
     {
-        MC_TRACE_EVENT("rendering.frame", "Render");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Render");
         render();
     }
 }
 ```
 
-### 7. 不要在 Lambda 中使用 MC_TRACE_EVENT（MSVC Bug）
+### 7. 不要在 Lambda 中使用 MC_TRACE_SCOPED_EVENT（MSVC Bug）
 
-在 MSVC 中，lambda 表达式内使用 `MC_TRACE_EVENT` 宏可能导致编译器卡死或内部错误。这是 Perfetto SDK 与 MSVC 的已知兼容性问题。**改用 `spdlog::info` 等日志手段代替**。
+在 MSVC 中，lambda 表达式内使用 `MC_TRACE_SCOPED_EVENT` 宏可能导致编译器卡死或内部错误。这是 Perfetto SDK 与 MSVC 的已知兼容性问题。**改用 `spdlog::info` 等日志手段代替**。
 
 ### 8. 禁用追踪时的存根实现
 
 当 `MC_ENABLE_TRACING=0` 时，`PerfettoManager` 的所有方法仍可调用但为空操作（零开销）。无需修改调用代码。
 
-### 9. 追踪分类注册要求
+### 9. 分类必须来自枚举树且已注册
 
-你必须保证 `MC_TRACE_EVENT`/`MC_TRACE_COUNTER` 等的第一个参数（分类名）在 `TraceCategories.hpp` 中已经被注册，否则会导致编译错误。
+所有 trace 宏的第一个参数必须是 `mc::trace::TraceEvents` 枚举树的叶子节点（如 `TraceEvents.Server.Tick`），其字符串值必须在 `TraceCategories.hpp` 的 `PERFETTO_DEFINE_CATEGORIES` 中注册，否则编译错误。Perfetto SDK 在编译期用字符串内容匹配注册表（非指针比较），故枚举叶等价于字符串字面量，走静态路径、零运行时开销。**不要传 `perfetto::Category` 对象**——SDK 的 `TRACE_EVENT` 宏只接受 `const char*`，传 `Category` 对象无法编译。
 
 ### 10. vcpkg 残留头文件冲突
 

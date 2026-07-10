@@ -35,6 +35,8 @@
 #include "server/world/spawn/NaturalSpawner.hpp"
 #include <limits>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -98,8 +100,12 @@ void ServerDimension::shutdown()
 
     // per-dimension trace：m_dimensions 是 unordered_map，析构顺序不定，
     // 必须带维度 ID/名称才能在 perfetto 中区分主世界/下界/末地的卸载耗时。
-    MC_TRACE_EVENT(
-        "server.initialization", "ServerDimension::shutdown", "dim", static_cast<i32>(id()), "dimName", type().name());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
+        "ServerDimension::shutdown",
+        "dim",
+        static_cast<i32>(id()),
+        "dimName",
+        type().name());
 
     // 在世界销毁之前显式清理结构生成缓存（ServerLevel 卸载时立即清理 StructureCheck，
     // 而非等到生成器析构时才清理，避免维度卸载后缓存数据仍驻留内存）。
@@ -123,7 +129,7 @@ void ServerDimension::shutdown()
     // 销毁 ServerWorld，触发 ServerWorld::~ServerWorld() → ServerWorld::shutdown()
     // （含实体落盘 + ServerChunkManager::shutdown，是维度卸载里最重的部分）。
     {
-        MC_TRACE_EVENT("server.initialization", "ServerDimension::shutdown::DestroyWorld");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerDimension::shutdown::DestroyWorld");
         m_world.reset();
     }
 
@@ -136,7 +142,7 @@ void ServerDimension::shutdown()
 
 void ServerDimension::tick()
 {
-    MC_TRACE_EVENT("server.tick", "ServerDimension::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerDimension::tick");
 
     Dimension::tick();
 

@@ -29,6 +29,8 @@
 #include <algorithm>
 #include <fmt/format.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 WorldLightManager::WorldLightManager(StarLightLightingProvider* provider, bool hasBlockLight, bool hasSkyLight)
@@ -52,7 +54,7 @@ WorldLightManager::WorldLightManager(StarLightLightingProvider* provider, bool h
 
 void WorldLightManager::checkBlock(i32 x, i32 y, i32 z)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::checkBlock",
         "pos",
         fmt::format("({}, {}, {})", x, y, z),
@@ -80,7 +82,7 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z)
 
 void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::onBlockEmissionIncrease",
         "pos",
         fmt::format("({}, {}, {})", x, y, z),
@@ -108,7 +110,7 @@ bool WorldLightManager::hasLightWork() const
 
 i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::tick",
         "maxUpdates",
         maxUpdates,
@@ -140,7 +142,7 @@ i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBloc
 
 void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::updateSectionStatus",
         "sectionPos",
         fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
@@ -161,7 +163,7 @@ void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
 
 void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::enableLightSources",
         "chunkPos",
         fmt::format("({}, {})", pos.x, pos.z),
@@ -317,7 +319,7 @@ void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<
         return;
     }
 
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::forceLoadInChunk",
         "chunk",
         fmt::format("({}, {})", chunk->x(), chunk->z()));
@@ -341,7 +343,7 @@ void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
         return;
     }
 
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::lightChunk",
         "chunk",
         fmt::format("({}, {})", chunk->x(), chunk->z()),
@@ -368,8 +370,10 @@ void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
 
 void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ)
 {
-    MC_TRACE_EVENT(
-        "server.lighting", "WorldLightManager::checkChunkEdges", "chunk", fmt::format("({}, {})", chunkX, chunkZ));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "WorldLightManager::checkChunkEdges",
+        "chunk",
+        fmt::format("({}, {})", chunkX, chunkZ));
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -392,7 +396,7 @@ void WorldLightManager::lightChunk(StarLightLightingProvider* provider, const IC
         return;
     }
 
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "WorldLightManager::lightChunk(provider)",
         "chunk",
         fmt::format("({}, {})", chunk->x(), chunk->z()),
@@ -419,8 +423,10 @@ void WorldLightManager::lightChunk(StarLightLightingProvider* provider, const IC
 
 void WorldLightManager::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
 {
-    MC_TRACE_EVENT(
-        "server.lighting", "WorldLightManager::updateEmptinessMap", "chunk", fmt::format("({}, {})", chunkX, chunkZ));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "WorldLightManager::updateEmptinessMap",
+        "chunk",
+        fmt::format("({}, {})", chunkX, chunkZ));
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 

@@ -27,6 +27,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::trident {
 
 // ============================================================================
@@ -83,7 +85,7 @@ TridentSwapchain& TridentSwapchain::operator=(TridentSwapchain&& other) noexcept
 
 Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapChainConfig& config)
 {
-    MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentSwapchain::initialize");
 
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Swapchain already initialized");
@@ -97,7 +99,7 @@ Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapCha
     m_config = config;
 
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::initialize::CreateSwapchain");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentSwapchain::initialize::CreateSwapchain");
         auto result = _createSwapchain();
         if (result.failed()) {
             return result.error();
@@ -194,7 +196,7 @@ Result<void> TridentSwapchain::present(u32 imageIndex, VkSemaphore waitSemaphore
 
 Result<void> TridentSwapchain::_createSwapchain()
 {
-    MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Initialization, "TridentSwapchain::createSwapchain");
 
     SwapChainSupportDetails swapChainSupport = m_context->querySwapChainSupport();
 
@@ -245,7 +247,8 @@ Result<void> TridentSwapchain::_createSwapchain()
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain::CreateSwapchainKHR");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentSwapchain::createSwapchain::CreateSwapchainKHR");
         VkResult result = vkCreateSwapchainKHR(m_context->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
             return Error(ErrorCode::OperationFailed, "Failed to create swapchain: " + std::to_string(result));
@@ -263,7 +266,8 @@ Result<void> TridentSwapchain::_createSwapchain()
 
     // 创建图像视图
     {
-        MC_TRACE_EVENT("rendering.initialization", "TridentSwapchain::createSwapchain::CreateImageViews");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Rendering.Initialization, "TridentSwapchain::createSwapchain::CreateImageViews");
         auto viewResult = _createImageViews();
         if (viewResult.failed()) {
             _destroySwapchain();

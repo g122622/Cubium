@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace mc::trace;
+
 namespace mc::client::sound {
 
 // ============================================================================
@@ -651,7 +653,7 @@ Result<void> OpenALBackend::initialize()
 
     // 打开默认音频设备
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_OpenDevice", "phase", "open_device");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "OpenAL_OpenDevice", "phase", "open_device");
         m_device = alcOpenDevice(nullptr);
     }
     if (!m_device) {
@@ -660,7 +662,7 @@ Result<void> OpenALBackend::initialize()
 
     // 创建上下文
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_CreateContext", "phase", "create_context");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "OpenAL_CreateContext", "phase", "create_context");
         m_context = alcCreateContext(m_device, nullptr);
     }
     if (!m_context) {
@@ -673,7 +675,7 @@ Result<void> OpenALBackend::initialize()
 
     // 激活上下文
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_MakeContextCurrent", "phase", "make_context_current");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "OpenAL_MakeContextCurrent", "phase", "make_context_current");
         if (!alcMakeContextCurrent(m_context)) {
             alcDestroyContext(m_context);
             alcCloseDevice(m_device);

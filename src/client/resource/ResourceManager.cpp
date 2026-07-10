@@ -33,6 +33,8 @@
 // stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）
 #include <stb_image.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 namespace {
@@ -54,7 +56,7 @@ bool isAsciiWhitespace(char ch)
 
 std::string_view trimStateToken(std::string_view token)
 {
-    // MC_TRACE_EVENT("client.resource", "ResourceManager::trimStateToken");
+    // MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::trimStateToken");
 
     size_t start = 0;
     size_t end = token.size();
@@ -71,7 +73,7 @@ std::string_view trimStateToken(std::string_view token)
 
 std::string normalizeStateString(std::string_view stateStr)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::normalizeStateString");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::normalizeStateString");
 
     const std::string_view trimmed = trimStateToken(stateStr);
     if (trimmed.empty() || trimmed == "normal") {
@@ -122,7 +124,7 @@ std::string normalizeStateString(std::string_view stateStr)
 
 std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::parseStateConditions");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::parseStateConditions");
 
     std::vector<std::pair<std::string, std::string>> conditions;
 
@@ -157,7 +159,7 @@ std::vector<std::pair<std::string, std::string>> parseStateConditions(std::strin
 bool matchConditions(const std::vector<std::pair<std::string, std::string>>& conditions,
     const std::map<std::string, std::string>& properties)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::matchConditions");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::matchConditions");
 
     for (const auto& [key, value] : conditions) {
         auto it = properties.find(key);
@@ -171,7 +173,7 @@ bool matchConditions(const std::vector<std::pair<std::string, std::string>>& con
 [[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
     const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight, u32& outFrameWidth, u32& outFrameHeight)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::parseAnimatedFrameSizeFromMcmeta");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::parseAnimatedFrameSizeFromMcmeta");
 
     if (imageWidth == 0 || imageHeight == 0 || mcmetaData.empty()) {
         return false;
@@ -257,7 +259,7 @@ std::vector<u8> _generateMissingNoTexture()
 
 Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::addResourcePack");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::addResourcePack");
 
     if (!resourcePack) {
         return Error(ErrorCode::InvalidArgument, "Resource pack is null");
@@ -276,7 +278,7 @@ Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack)
 
 Result<void> ResourceManager::loadAllResources()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::loadAllResources");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::loadAllResources");
 
     // 设置模型加载器的资源包列表
     m_modelLoader.setPackRepository(m_resourcePacks);
@@ -309,7 +311,7 @@ Result<void> ResourceManager::loadAllResources()
 
 Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::buildTextureAtlas");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::buildTextureAtlas");
 
     // 收集所需纹理
     auto textures = _collectRequiredTextures();
@@ -464,7 +466,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
 const BlockAppearance* ResourceManager::getBlockAppearance(
     const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockAppearance");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getBlockAppearance");
 
     // 构建缓存键
     std::string cacheKey = blockId.toString();
@@ -547,7 +549,7 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
 
 const TextureRegion* ResourceManager::getTextureRegion(const ResourceLocation& textureLocation) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::getTextureRegion");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getTextureRegion");
 
     // 直接委托给 _findTextureRegion（已包含 MC 1.12/1.13+ 路径变体兼容查找）
     return _findTextureRegion(textureLocation);
@@ -555,7 +557,7 @@ const TextureRegion* ResourceManager::getTextureRegion(const ResourceLocation& t
 
 Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& textureLocation) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::loadTextureRGBA");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::loadTextureRGBA");
 
     if (m_resourcePacks.empty()) {
         return Error(ErrorCode::NotFound, "No resource packs available for texture: " + textureLocation.toString());
@@ -602,7 +604,7 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& 
 
 const BakedBlockModel* ResourceManager::getBakedModel(const ResourceLocation& modelLocation)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::getBakedModel");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getBakedModel");
 
     // 检查缓存
     auto it = m_bakedModels.find(modelLocation);
@@ -627,14 +629,14 @@ const BakedBlockModel* ResourceManager::getBakedModel(const ResourceLocation& mo
 
 const BlockStateDefinition* ResourceManager::getBlockState(const ResourceLocation& blockId) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::getBlockState");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getBlockState");
 
     return m_blockStateLoader.getBlockState(blockId);
 }
 
 void ResourceManager::clear()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::clear");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::clear");
 
     m_resourcePacks.clear();
     m_modelLoader.clearCache();
@@ -651,14 +653,14 @@ void ResourceManager::clear()
 
 void ResourceManager::clearResourcePacks()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::clearResourcePacks");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::clearResourcePacks");
 
     m_resourcePacks.clear();
 }
 
 Result<void> ResourceManager::reload()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::reload");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::reload");
 
     // 清除缓存但保留资源包列表
     m_modelLoader.clearCache();
@@ -675,7 +677,7 @@ Result<void> ResourceManager::reload()
 
 Result<void> ResourceManager::_bakeAllModels()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::bakeAllModels");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::bakeAllModels");
 
     // 获取所有方块状态
     auto blockStates = m_blockStateLoader.getLoadedBlockStates();
@@ -722,7 +724,7 @@ Result<void> ResourceManager::_bakeAllModels()
 
 void ResourceManager::_computeBlockAppearances()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::computeBlockAppearances");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::computeBlockAppearances");
 
     // 获取所有方块状态
     auto blockStates = m_blockStateLoader.getLoadedBlockStates();
@@ -887,7 +889,7 @@ std::string ResourceManager::getAltTexturePath(const std::string& path)
 
 const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation& texLoc) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::findTextureRegion");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::findTextureRegion");
 
     // 1. 尝试原始路径
     auto it = m_textureRegions.find(texLoc);
@@ -913,7 +915,7 @@ const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation&
 
 std::set<ResourceLocation> ResourceManager::_collectRequiredTextures() const
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::collectRequiredTextures");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::collectRequiredTextures");
 
     std::set<ResourceLocation> textures;
 
@@ -940,7 +942,7 @@ std::set<ResourceLocation> ResourceManager::_collectRequiredTextures() const
 
 ResourceLocation ResourceManager::_texturePathToLocation(std::string_view path)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::texturePathToLocation");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::texturePathToLocation");
 
     // 处理纹理路径
     // 例如: "blocks/stone" -> "minecraft:textures/blocks/stone"
@@ -961,7 +963,7 @@ ResourceLocation ResourceManager::_texturePathToLocation(std::string_view path)
 
 IResourcePack* ResourceManager::getFirstResourcePack()
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::getFirstResourcePack");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getFirstResourcePack");
 
     if (m_resourcePacks.empty()) {
         return nullptr;
@@ -971,7 +973,7 @@ IResourcePack* ResourceManager::getFirstResourcePack()
 
 IResourcePack* ResourceManager::getResourcePack(size_t index)
 {
-    MC_TRACE_EVENT("client.resource", "ResourceManager::getResourcePack");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getResourcePack");
 
     if (index >= m_resourcePacks.size()) {
         return nullptr;

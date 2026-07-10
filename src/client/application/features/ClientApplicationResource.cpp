@@ -37,6 +37,8 @@
 #include <filesystem>
 #include <memory>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 namespace {
@@ -149,7 +151,7 @@ Result<void> ClientApplication::initializeResources()
 
 void ClientApplication::reloadResources()
 {
-    MC_TRACE_EVENT("client.resource", "ReloadResources");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ReloadResources");
 
     if (!m_resourceManager) {
         return;

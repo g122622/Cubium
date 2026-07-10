@@ -33,6 +33,8 @@
 
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 using mc::world::chunk::ChunkPrimer;
@@ -160,7 +162,7 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
 
 bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSignal)
 {
-    MC_TRACE_EVENT("server.chunk",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
         "ChunkProgressionTask::executeStatusStep",
         "x",
         m_x,
@@ -200,7 +202,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
     std::vector<IChunk*> chunks;
     chunks.reserve(static_cast<size_t>(diameter) * static_cast<size_t>(diameter));
     {
-        MC_TRACE_EVENT("server.chunk", "ChunkProgressionTask::executeStatusStep::buildWorldGenRegion");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkProgressionTask::executeStatusStep::buildWorldGenRegion");
         for (i32 dz = -radius; dz <= radius; ++dz) {
             for (i32 dx = -radius; dx <= radius; ++dx) {
                 ChunkPrimer* neighbourPrimer = m_neighbours.get(m_x + dx, m_z + dz);

@@ -38,6 +38,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::trident::weather {
 
 namespace {
@@ -387,7 +389,7 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
         return;
     }
 
-    MC_TRACE_EVENT_BEGIN("rendering.weather", "WeatherRenderer::render");
+    MC_TRACE_EVENT_BEGIN(TraceEvents.Rendering.Weather, "WeatherRenderer::render");
 
     m_cameraPos = cameraPos;
     m_currentProjection = projection;
@@ -400,7 +402,7 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
     _generateWeatherGeometry(world);
 
     if (m_rainVertexCount == 0 && m_snowVertexCount == 0) {
-        MC_TRACE_EVENT_END("rendering.weather");
+        MC_TRACE_EVENT_END(TraceEvents.Rendering.Weather);
         return;
     }
 
@@ -414,7 +416,7 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
         void* data = m_vertexBufferMapped;
         if (data == nullptr) {
             spdlog::error("WeatherRenderer: vertex buffer is not persistently mapped on Apple");
-            MC_TRACE_EVENT_END("rendering.weather");
+            MC_TRACE_EVENT_END(TraceEvents.Rendering.Weather);
             return;
         }
 #else
@@ -422,7 +424,7 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
         const VkResult mapResult = vkMapMemory(m_device, m_vertexBufferMemory, 0, size, 0, &data);
         if (mapResult != VK_SUCCESS || data == nullptr) {
             spdlog::error("WeatherRenderer: failed to map vertex buffer memory: {}", static_cast<i32>(mapResult));
-            MC_TRACE_EVENT_END("rendering.weather");
+            MC_TRACE_EVENT_END(TraceEvents.Rendering.Weather);
             return;
         }
 #endif
@@ -470,7 +472,7 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
         vkCmdDraw(cmd, m_snowVertexCount, 1, 0, 0);
     }
 
-    MC_TRACE_EVENT_END("rendering.weather");
+    MC_TRACE_EVENT_END(TraceEvents.Rendering.Weather);
 }
 
 void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)

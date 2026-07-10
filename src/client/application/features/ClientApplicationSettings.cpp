@@ -31,11 +31,13 @@
 
 #include <filesystem>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 Result<void> ClientApplication::loadSettings(const std::string& path)
 {
-    MC_TRACE_EVENT("client.initialization", "LoadSettings", "path", path);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "LoadSettings", "path", path);
 
     m_settingsPath = std::filesystem::path(path);
 
@@ -64,7 +66,7 @@ Result<void> ClientApplication::loadSettings(const std::string& path)
 
 void ClientApplication::applySettings()
 {
-    MC_TRACE_EVENT("client.initialization", "ApplySettings");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ApplySettings");
 
     // 设置变更回调在 setupSettingCallbacks 中设置
     // 这里应用初始设置值
@@ -89,7 +91,7 @@ void ClientApplication::applySettings()
 
 void ClientApplication::setupSettingCallbacks()
 {
-    MC_TRACE_EVENT("client.initialization", "SetupSettingCallbacks");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "SetupSettingCallbacks");
 
     // 渲染距离变更
     m_settings.renderDistance.onChange([this](i32 value) {

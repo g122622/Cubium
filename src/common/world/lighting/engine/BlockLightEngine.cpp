@@ -32,6 +32,8 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -154,7 +156,7 @@ void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 
 void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "BlockStarLightEngine::checkBlock",
         "Position",
         fmt::format("({}, {}, {})", worldX, worldY, worldZ));
@@ -550,7 +552,7 @@ const SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) cons
 
 void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
 {
-    MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::updateEmptinessMap");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "BlockStarLightEngine::updateEmptinessMap");
 
     if (chunk == nullptr) {
         return;

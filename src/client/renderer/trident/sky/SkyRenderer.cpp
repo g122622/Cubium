@@ -36,6 +36,8 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::trident::sky {
 
 namespace {
@@ -351,7 +353,7 @@ void SkyRenderer::render(VkCommandBuffer cmd,
     m_currentFrame = frameIndex % MAX_FRAMES_IN_FLIGHT;
 
     {
-        MC_TRACE_SKY("UpdateUBO");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "UpdateUBO");
         _updateUniformBuffer(m_currentFrame);
     }
 
@@ -361,7 +363,7 @@ void SkyRenderer::render(VkCommandBuffer cmd,
 
     // 绑定描述符集
     {
-        MC_TRACE_DESCRIPTOR_BIND("SkyDescriptor");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "SkyDescriptor");
         vkCmdBindDescriptorSets(cmd,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             m_pipelineLayout,
@@ -375,7 +377,7 @@ void SkyRenderer::render(VkCommandBuffer cmd,
     // 天空渲染关键：移除视图矩阵的平移分量，只保留旋转。
     // 这使得天体（太阳/月亮/星星）始终位于"无限远"处，不会随相机移动而改变位置。
     {
-        MC_TRACE_PUSH_CONSTANTS("SkyViewProjection");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "SkyViewProjection");
         SkyPushConstants pushConstants{};
 
         // 从视图矩阵中移除平移分量，只保留旋转
@@ -392,25 +394,25 @@ void SkyRenderer::render(VkCommandBuffer cmd,
 
     // 渲染天空穹顶 (最优先，写入深度为远平面)
     {
-        MC_TRACE_SKY("SkyDome");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "SkyDome");
         _renderSkyDome(cmd);
     }
 
     // 渲染太阳
     {
-        MC_TRACE_SKY("Sun");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "Sun");
         _renderSun(cmd);
     }
 
     // 渲染月亮
     {
-        MC_TRACE_SKY("Moon");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "Moon");
         _renderMoon(cmd);
     }
 
     // 渲染星星 (夜晚可见)
     if (m_starBrightness > 0.005) {
-        MC_TRACE_SKY("Stars");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "Stars");
         _renderStars(cmd);
     }
 }

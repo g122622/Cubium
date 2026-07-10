@@ -43,6 +43,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
+using namespace mc::trace;
+
 namespace mc::benchmark {
 namespace {
 
@@ -79,7 +81,7 @@ public:
 
     [[nodiscard]] Result<void> runOnce() override
     {
-        MC_TRACE_EVENT("benchmark.case", "ChunkMeshBenchmark::runOnce");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "ChunkMeshBenchmark::runOnce");
         MeshData mesh;
         const ChunkData* neighbors[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
         ChunkMesher::generateMesh(*m_chunk, mesh, neighbors, nullptr);

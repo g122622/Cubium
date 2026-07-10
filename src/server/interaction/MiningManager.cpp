@@ -41,6 +41,8 @@
 #include "server/world/ServerWorld.hpp"
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server::interaction {
 
 // ============================================================================
@@ -87,7 +89,7 @@ void MiningManager::setInventoryManager(InventoryManager* inventoryManager)
 
 void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId)
 {
-    MC_TRACE_EVENT("server.world.mining",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Mining,
         "MiningManager::startMining",
         "playerId",
         playerId,
@@ -106,7 +108,7 @@ void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId
 
 void MiningManager::abortMining(PlayerId playerId)
 {
-    MC_TRACE_EVENT("server.world.mining", "MiningManager::abortMining", "playerId", playerId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Mining, "MiningManager::abortMining", "playerId", playerId);
 
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end()) {
@@ -146,7 +148,7 @@ void MiningManager::handleBlockInteraction(
 
 void MiningManager::tick(ServerWorld& world)
 {
-    MC_TRACE_EVENT("server.world.mining", "MiningManager::tick", "activeCount", m_miningStates.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Mining, "MiningManager::tick", "activeCount", m_miningStates.size());
 
     for (auto& [playerId, state] : m_miningStates) {
         if (!state.active) {
@@ -184,7 +186,7 @@ void MiningManager::tick(ServerWorld& world)
 
         // 检查是否完成
         if (state.progress >= 1.0f) {
-            MC_TRACE_INSTANT("server.world.mining",
+            MC_TRACE_INSTANT_EVENT(TraceEvents.Server.Mining,
                 "MiningManager::miningComplete",
                 "playerId",
                 playerId,
@@ -228,7 +230,7 @@ std::optional<BlockPos> MiningManager::getMiningPosition(PlayerId playerId) cons
 
 bool MiningManager::tryCompleteMining(PlayerId playerId, const BlockPos& pos)
 {
-    MC_TRACE_EVENT("server.world.mining",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Mining,
         "MiningManager::tryCompleteMining",
         "playerId",
         playerId,
@@ -277,7 +279,7 @@ void MiningManager::setOnMiningComplete(std::function<void(PlayerId, const Block
 
 f32 MiningManager::_calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const
 {
-    MC_TRACE_EVENT("server.world.mining",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Mining,
         "MiningManager::calculateMiningSpeed",
         "pos",
         pos.toString(),

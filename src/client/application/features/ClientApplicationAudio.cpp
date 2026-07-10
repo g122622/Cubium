@@ -40,11 +40,13 @@
 
 #include <cmath>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 Result<void> ClientApplication::initializeAudio()
 {
-    MC_TRACE_EVENT("client.initialization", "InitializeSoundSystem");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeSoundSystem");
 
     spdlog::info("Initializing sound system...");
 
@@ -166,7 +168,7 @@ void ClientApplication::updateWorldAudio()
 
     // 入水/出水音效触发
     if (m_audioService && inWater && !m_wasPlayerInWater) {
-        MC_TRACE_INSTANT("client.entity", "EnterWater");
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity, "EnterWater");
         // 入水音效
         auto enterSound = std::make_unique<sound::SoundInstance>(
             sound::SoundInstance::createGlobal(ResourceLocation("minecraft:ambient.underwater.enter"),
@@ -288,7 +290,7 @@ void ClientApplication::updateAudioPauseState()
 
 void ClientApplication::shutdownAudio()
 {
-    MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdownAudio");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdownAudio");
 
     // 清除 UI 音效回调，避免悬空指针
     ui::kagero::widget::Widget::setUiSoundCallback(nullptr);

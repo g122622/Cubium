@@ -37,6 +37,8 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -201,7 +203,7 @@ void StarLightEngine::destroyCaches()
 
 void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess)
 {
-    MC_TRACE_EVENT("server.lighting", "StarLightEngine::updateVisible", "isSkyLight", m_isSkyLight);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "StarLightEngine::updateVisible", "isSkyLight", m_isSkyLight);
 
     for (i32 index = 0, max = m_sectionCacheSize; index < max; ++index) {
         SWMRNibbleArray* nibble = m_nibbleCache[index];
@@ -222,7 +224,7 @@ void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess)
         // 与 Moonrise 一致：只调用一次 updateVisible()，避免多次调用导致状态变化
         bool updated = nibble->updateVisible();
         if (updated || shouldNotify) {
-            MC_TRACE_EVENT("server.lighting",
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
                 "InvokeMarkLightChangedCallback",
                 "chunkX",
                 chunkX,

@@ -40,7 +40,7 @@
  * mc::perfetto::PerfettoManager::instance().startTracing();
  *
  * // 应用运行中记录事件
- * MC_TRACE_EVENT("rendering.frame", "Frame");
+ * MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Frame");
  *
  * // 应用关闭时清理
  * mc::perfetto::PerfettoManager::instance().stopTracing();

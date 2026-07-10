@@ -29,6 +29,8 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 EntityManager::EntityManager()
@@ -230,7 +232,7 @@ void EntityManager::forEachEntity(const std::function<bool(const Entity*)>& call
 
 void EntityManager::tick()
 {
-    MC_TRACE_EVENT("server.tick", "EntityManager::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "EntityManager::tick");
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -238,7 +240,8 @@ void EntityManager::tick()
     for (auto& [id, entity] : m_entities) {
         // spdlog::info("Ticking entity: id={}, detail={}", id, entity->toString());
         if (!entity->isRemoved()) {
-            MC_TRACE_EVENT("server.tick", "EntityManager::tick.perEntity", "entityId", id, "name", entity->getTypeId());
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Server.Tick, "EntityManager::tick.perEntity", "entityId", id, "name", entity->getTypeId());
             entity->tick();
         }
     }

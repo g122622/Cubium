@@ -52,6 +52,8 @@
 #include <utility>
 #include <fmt/format.h>
 
+using namespace mc::trace;
+
 namespace mc::world::spawn {
 
 // ============================================================================
@@ -219,7 +221,8 @@ NaturalSpawner::NaturalSpawner()
 void NaturalSpawner::spawnInChunk(
     mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::Random& random)
 {
-    MC_TRACE_EVENT("server.entity", "NaturalSpawner::spawnInChunk", "chunkX", chunkX, "chunkZ", chunkZ);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Entity, "NaturalSpawner::spawnInChunk", "chunkX", chunkX, "chunkZ", chunkZ);
     // 获取区块的世界坐标范围
     i32 minX = world::toWorldCoord(chunkX);
     i32 minZ = world::toWorldCoord(chunkZ);
@@ -286,7 +289,7 @@ void NaturalSpawner::spawnInChunk(
 
 void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool passive)
 {
-    MC_TRACE_EVENT("server.entity", "NaturalSpawner::tick", "hostile", hostile, "passive", passive);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "NaturalSpawner::tick", "hostile", hostile, "passive", passive);
 
     // 和平模式下不生成敌对生物
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
@@ -388,7 +391,7 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
     EntityDensityManager& densityManager,
     math::Random& random)
 {
-    MC_TRACE_EVENT("server.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
         "NaturalSpawner::_spawnForClassificationInChunk",
         "classification",
         static_cast<i32>(classification));
@@ -547,7 +550,7 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
 i32 NaturalSpawner::_trySpawnAt(
     mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random)
 {
-    MC_TRACE_EVENT("server.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
         "NaturalSpawner::_trySpawnAt",
         "pos",
         fmt::format("({}, {}, {})", x, y, z),

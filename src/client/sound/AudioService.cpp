@@ -42,6 +42,8 @@
 #include <chrono>
 #include <utility>
 
+using namespace mc::trace;
+
 namespace mc::client::sound {
 
 namespace {
@@ -61,7 +63,7 @@ AudioService::~AudioService()
 
 Result<void> AudioService::initialize()
 {
-    MC_TRACE_EVENT("client.initialization", "AudioService::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "AudioService::initialize");
 
     if (m_running.load()) {
         return Error(ErrorCode::AlreadyExists, "Audio service already initialized");
@@ -85,7 +87,7 @@ Result<void> AudioService::initialize()
 
 void AudioService::shutdown()
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::shutdown");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::shutdown");
 
     if (!m_running.load() && !m_workerThread.joinable()) {
         return;
@@ -108,7 +110,7 @@ void AudioService::shutdown()
 
 void AudioService::play(std::unique_ptr<ISoundInstance> sound)
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::play");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::play");
 
     if (!sound || !m_loaded.load()) {
         return;
@@ -122,7 +124,7 @@ void AudioService::play(std::unique_ptr<ISoundInstance> sound)
 
 void AudioService::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayTicks)
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::playDelayed");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::playDelayed");
 
     if (!sound || !m_loaded.load()) {
         return;
@@ -137,7 +139,7 @@ void AudioService::playDelayed(std::unique_ptr<ISoundInstance> sound, u32 delayT
 
 void AudioService::stop(SoundInstanceId id)
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::stop");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::stop");
 
     if (!m_loaded.load()) {
         return;
@@ -151,7 +153,7 @@ void AudioService::stop(SoundInstanceId id)
 
 void AudioService::stop(const ResourceLocation& soundEventId)
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::stop", "soundEventId", soundEventId.toString());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::stop", "soundEventId", soundEventId.toString());
 
     if (!m_loaded.load()) {
         return;
@@ -165,7 +167,7 @@ void AudioService::stop(const ResourceLocation& soundEventId)
 
 void AudioService::stop(SoundCategory category)
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::stop", "category", static_cast<u8>(category));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::stop", "category", static_cast<u8>(category));
 
     if (!m_loaded.load()) {
         return;
@@ -179,7 +181,7 @@ void AudioService::stop(SoundCategory category)
 
 void AudioService::stopAll()
 {
-    MC_TRACE_EVENT("client.sound", "AudioService::stopAll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "AudioService::stopAll");
 
     if (!m_loaded.load()) {
         return;
@@ -533,7 +535,7 @@ void AudioService::_runWorker()
     const std::string threadName = "AudioEngineWorker";
     mc::perfetto::PerfettoManager::instance().setThreadName(threadName);
 
-    MC_TRACE_EVENT("client.initialization", "AudioService::runWorker");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "AudioService::runWorker");
 
     try {
         m_soundHandler = std::make_unique<SoundHandler>(m_resourcePacks);

@@ -76,6 +76,8 @@
 #include <memory>
 #include <vector>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 namespace {
@@ -158,7 +160,7 @@ std::function<void(ContainerId)> makeContainerCloseSender(NetworkClient* network
 
 void ClientApplication::setupNetworkCallbacks()
 {
-    MC_TRACE_EVENT("client.initialization", "SetupNetworkCallbacks");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "SetupNetworkCallbacks");
 
     if (!m_networkClient) return;
 
@@ -613,8 +615,14 @@ void ClientApplication::setupNetworkCallbacks()
                                   f32 vy,
                                   f32 vz,
                                   const ItemStack* itemStack) {
-        MC_TRACE_INSTANT(
-            "client.entity", "onSpawnEntity", "entityId", entityId, "typeId", typeId, "hasItem", itemStack != nullptr);
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity,
+            "onSpawnEntity",
+            "entityId",
+            entityId,
+            "typeId",
+            typeId,
+            "hasItem",
+            itemStack != nullptr);
 
         auto& entityManager = m_world.entityManager();
         ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
@@ -666,7 +674,7 @@ void ClientApplication::setupNetworkCallbacks()
         };
 
     callbacks.onEntityDestroy = [this](const std::vector<u32>& entityIds) {
-        MC_TRACE_INSTANT("client.entity", "onEntityDestroy", "count", entityIds.size());
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity, "onEntityDestroy", "count", entityIds.size());
 
         auto& entityManager = m_world.entityManager();
         for (u32 entityId : entityIds) {
@@ -706,7 +714,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityTeleport = [this](u32 entityId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch) {
-        MC_TRACE_INSTANT("client.entity", "onEntityTeleport", "entityId", entityId);
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity, "onEntityTeleport", "entityId", entityId);
 
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);
@@ -784,7 +792,8 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityMetadata = [this](u32 entityId, const std::vector<u8>& metadata) {
-        MC_TRACE_INSTANT("client.entity", "onEntityMetadata", "entityId", entityId, "size", metadata.size());
+        MC_TRACE_INSTANT_EVENT(
+            TraceEvents.Client.Entity, "onEntityMetadata", "entityId", entityId, "size", metadata.size());
 
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);

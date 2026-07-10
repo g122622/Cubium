@@ -368,7 +368,7 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks)
             if (_canTick(tick.position)) {
                 m_executedThisTick.push_back(tick);
 
-                MC_TRACE_EVENT("server.tick",
+                MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Server.Tick,
                     "ExecutingTick",
                     "position",
                     tick.position.toString(),

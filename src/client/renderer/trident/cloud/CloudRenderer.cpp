@@ -37,6 +37,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::trident::cloud {
 
 namespace {
@@ -262,7 +264,7 @@ Result<void> CloudRenderer::initialize(VkDevice device,
         return Result<void>::ok();
     }
 
-    MC_TRACE_EVENT("rendering.cloud", "CloudRenderer::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Cloud, "CloudRenderer::initialize");
 
     m_device = device;
     m_physicalDevice = physicalDevice;
@@ -485,7 +487,7 @@ void CloudRenderer::render(VkCommandBuffer cmd,
         return;
     }
 
-    MC_TRACE_EVENT("rendering.cloud", "CloudRenderer::render");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Cloud, "CloudRenderer::render");
 
     m_cameraPos = cameraPos;
 

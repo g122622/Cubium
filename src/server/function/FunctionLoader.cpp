@@ -27,6 +27,8 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 namespace function {
 
@@ -42,7 +44,7 @@ FunctionLoader::FunctionLoader(FunctionManager& manager)
 Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
     const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "FunctionLoader::loadFromDataPackRepository");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "FunctionLoader::loadFromDataPackRepository");
 
     LoadResult result{};
 
@@ -120,7 +122,7 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
 
 Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& dataPacks, LoadResult& result)
 {
-    MC_TRACE_EVENT("io.resource", "FunctionLoader::loadFunctionTags");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "FunctionLoader::loadFunctionTags");
 
     // 获取所有命名空间
     auto namespacesResult = dataPacks.getResourceNamespaces();

@@ -29,6 +29,8 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server::core {
 
 OpListManager::OpListManager() = default;
@@ -231,7 +233,7 @@ void OpListManager::clear() noexcept
 
 Result<void> OpListManager::load(const std::filesystem::path& path)
 {
-    MC_TRACE_EVENT("server.initialization", "OpListManager::load", "path", path.string());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "OpListManager::load", "path", path.string());
 
     std::lock_guard<std::mutex> lock(m_mutex);
 

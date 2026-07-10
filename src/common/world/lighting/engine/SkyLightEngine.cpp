@@ -35,6 +35,8 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 // ============================================================================
@@ -414,7 +416,7 @@ void SkyStarLightEngine::processDelayedDecreases()
 
 void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "SkyStarLightEngine::checkBlock",
         "Position",
         fmt::format("({}, {}, {})", worldX, worldY, worldZ));

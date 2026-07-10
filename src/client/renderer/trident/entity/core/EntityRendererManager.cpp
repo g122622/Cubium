@@ -66,6 +66,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client::renderer::entity {
 
 // 导入核心命名空间中的类
@@ -483,7 +485,7 @@ f64 EntityRendererManager::_calculateExperienceOrbBobOffset(u32 ticksExisted, f6
 
 EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
 {
-    MC_TRACE_EVENT("rendering.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Entity,
         "EntityRendererManager::getOrCreateMesh",
         "entityId",
         entity.id(),

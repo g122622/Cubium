@@ -83,6 +83,8 @@
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 ClientApplication::ClientApplication() = default;
@@ -116,7 +118,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         spdlog::info("Benchmark initialize-only mode enabled, skipping client perfetto tracing");
     }
 
-    MC_TRACE_EVENT("client.initialization", "ClientApplication::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::initialize");
 
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Client already initialized");
@@ -295,7 +297,7 @@ void ClientApplication::mainLoop()
     m_lastFrameTime = glfwGetTime();
 
     while (m_running && !m_window.shouldClose()) {
-        MC_TRACE_EVENT("rendering.frame", "Frame", "phase", "frame");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Frame", "phase", "frame");
 
         const auto frameStart = clock::now();
 
@@ -306,19 +308,19 @@ void ClientApplication::mainLoop()
 
         // 处理事件
         {
-            MC_TRACE_EVENT("rendering.frame", "HandleEvents", "phase", "handle_events");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "HandleEvents", "phase", "handle_events");
             handleEvents();
         }
 
         // 更新
         {
-            MC_TRACE_EVENT("rendering.frame", "Update", "phase", "update");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Update", "phase", "update");
             update(deltaTime);
         }
 
         // 渲染
         {
-            MC_TRACE_EVENT("rendering.frame", "Render", "phase", "render");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Render", "phase", "render");
             render();
         }
 
@@ -342,7 +344,7 @@ void ClientApplication::mainLoop()
         const f32 safeDeltaTime = std::max(deltaTime, 0.0001f);
         const i32 fps = static_cast<i32>(1.0f / safeDeltaTime);
         if (fps < 1000) { // 过滤掉异常值
-            MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
+            MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "FPS", fps);
         }
 #endif
 
@@ -352,7 +354,7 @@ void ClientApplication::mainLoop()
             const auto minFrameDuration = std::chrono::duration<f64>(1.0 / static_cast<f64>(fpsLimit));
             const auto frameElapsed = clock::now() - frameStart;
             if (frameElapsed < minFrameDuration) {
-                MC_TRACE_EVENT("rendering.frame", "FrameRateLimitSleep", "phase", "sleep");
+                MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "FrameRateLimitSleep", "phase", "sleep");
                 std::this_thread::sleep_for(minFrameDuration - frameElapsed);
             }
         }
@@ -549,7 +551,7 @@ void ClientApplication::update(f32 deltaTime)
 
     // 上传网格到 GPU（只处理已完成异步构建的网格）
     if (m_stateMachine.needsGameTick() && m_renderer->isChunkRendererInitialized()) {
-        MC_TRACE_EVENT("rendering.frame", "UploadMeshes");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "UploadMeshes");
 
         auto& chunkRenderer = m_renderer->chunkRenderer();
         m_world.forEachDirtyMesh([&chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
@@ -594,7 +596,7 @@ void ClientApplication::render()
 void ClientApplication::releaseRendererDependentResources()
 {
     // 这些对象内部持有 Vulkan 句柄，必须在渲染器销毁前释放。
-    MC_TRACE_EVENT("client.initialization", "ClientApplication::releaseRendererDependentResources");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::releaseRendererDependentResources");
 
     if (m_skinManager) {
         m_skinManager->shutdown();
@@ -624,7 +626,7 @@ void ClientApplication::shutdown()
     // shutdown()，此 RAII 事件析构触发的 END 在会话已停止后是安全 no-op
     // （SDK 的 CallIfEnabled 检测到 instances==0 即立即返回），BEGIN 与中间子事件
     // 均正常记录，符合期望。
-    MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown");
 
     spdlog::info("Shutting down client...");
 
@@ -636,7 +638,7 @@ void ClientApplication::shutdown()
 
     // 保存设置
     {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::SaveSettings");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::SaveSettings");
         const auto savePath =
             m_settingsPath.empty() ? GameDirectory::defaultDirectory().clientOptionsPath() : m_settingsPath;
         auto saveResult = m_settings.saveSettings(savePath);
@@ -655,14 +657,14 @@ void ClientApplication::shutdown()
 
     // 断开网络连接（如果在主菜单但有残留连接）
     if (m_networkClient) {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DisconnectNetwork");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::DisconnectNetwork");
         m_networkClient->disconnect("Client shutdown");
         m_networkClient.reset();
     }
 
     // 停止内置服务端（如果有残留）
     if (m_integratedServer) {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::StopIntegratedServer");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::StopIntegratedServer");
         m_integratedServer->stop();
         m_integratedServer.reset();
     }
@@ -672,26 +674,27 @@ void ClientApplication::shutdown()
 
     // 清理渲染器
     if (m_renderer) {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyRenderer");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::DestroyRenderer");
         m_renderer->destroy();
         m_renderer.reset();
     }
 
     // 清理玩家
     {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyPlayerAndPhysics");
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Client.Initialization, "ClientApplication::shutdown::DestroyPlayerAndPhysics");
         m_player.reset();
         m_physicsEngine.reset();
     }
 
     // 清理世界（包括关闭网格构建线程池）
     {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyWorld");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::DestroyWorld");
         m_world.destroy();
     }
 
     {
-        MC_TRACE_EVENT("client.initialization", "ClientApplication::shutdown::DestroyWindow");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::DestroyWindow");
         m_window.destroy();
     }
 

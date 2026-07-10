@@ -30,6 +30,8 @@
 
 #include <set>
 
+using namespace mc::trace;
+
 namespace mc::client::sound {
 
 SoundHandler::SoundHandler(PackRepository& resourcePacks)
@@ -109,7 +111,8 @@ Result<void> SoundHandler::reload()
             // 加载新发现的命名空间
             for (const auto& namespace_ : foundNamespaces) {
                 {
-                    MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_LoadSoundsJson", "phase", "load_sounds_json");
+                    MC_TRACE_SCOPED_EVENT(
+                        TraceEvents.Client.Sound, "SoundHandler_LoadSoundsJson", "phase", "load_sounds_json");
                     auto result = _loadSoundsJson(*pack, namespace_);
                     if (result.success()) {
                         progress.loadedEvents += result.value();

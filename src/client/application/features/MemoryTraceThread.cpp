@@ -32,6 +32,8 @@
 #include <perfetto.h>
 #endif
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 // 采样间隔：每秒 100 次 = 10ms
@@ -84,7 +86,7 @@ void MemoryTraceThread::run()
 #if MC_ENABLE_TRACING
         // 采样内存并写入追踪
         const i64 memoryMB = static_cast<i64>(util::PlatformInfo::getProcessMemoryMB());
-        MC_TRACE_COUNTER("memory", "ProcessMemory", memoryMB);
+        MC_TRACE_COUNTER(TraceEvents.Memory.Usage, "ProcessMemory", memoryMB);
 #endif
 
         // 等待下一次采样

@@ -29,6 +29,8 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace {
 
 struct TrackingChangeEvent {
@@ -245,7 +247,7 @@ void ChunkLoadTicketManager::tick()
 
 void ChunkLoadTicketManager::setViewDistance(i32 distance)
 {
-    MC_TRACE_EVENT("server.initialization", "ChunkLoadTicketManager::setViewDistance");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ChunkLoadTicketManager::setViewDistance");
 
     const i32 clampedDistance = std::clamp(distance, 2, 32);
 
@@ -289,7 +291,7 @@ void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 
 void ChunkLoadTicketManager::processUpdates()
 {
-    MC_TRACE_EVENT("server.chunk",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
         "ChunkLoadTicketManager::processUpdates",
         "dirtyChunkCount",
         m_dirtyChunks.size(),

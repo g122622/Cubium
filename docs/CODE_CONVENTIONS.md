@@ -22,13 +22,13 @@
 ```cpp
     // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
     if (m_chunkManager && pendingTasksCount >= 0) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
         m_chunkManager->tick(pendingTasksCount);
     }
-    
+
     // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
     if (m_lightManager && m_lightManager->hasLightWork()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
 
@@ -41,13 +41,13 @@
 
 ```cpp
     // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
-    MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
     MC_ASSERT_RELEASE(pendingTasksCount >= 0); // 转为断言，便于迅速暴露问题
     m_chunkManager->tick(pendingTasksCount);
-    
+
     // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
     if (m_lightManager->hasLightWork()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
 

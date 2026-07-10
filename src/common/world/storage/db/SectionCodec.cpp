@@ -28,6 +28,8 @@
 #include <spdlog/spdlog.h>
 #include <zstd.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 namespace {
@@ -205,7 +207,7 @@ void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
 
 Result<std::vector<u8>> SectionData::serialize() const
 {
-    MC_TRACE_EVENT("storage.db", "SectionData::serialize", "sectionY", static_cast<i32>(key.sectionY));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionData::serialize", "sectionY", static_cast<i32>(key.sectionY));
 
     auto validationResult = validateSectionDataLayout(*this, "SectionData::serialize");
     if (validationResult.failed()) {
@@ -309,7 +311,7 @@ Result<std::vector<u8>> SectionData::serialize() const
 
 Result<SectionData> SectionData::deserialize(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("storage.db", "SectionData::deserialize", "size", size);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionData::deserialize", "size", size);
 
     if (size < 12) {
         return Error(ErrorCode::InvalidData, "Section data too small for header");
@@ -457,7 +459,7 @@ void SectionData::computeHash()
 Result<SectionData> SectionCodec::fromChunkSection(
     const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes)
 {
-    MC_TRACE_EVENT("storage.db", "SectionCodec::fromChunkSection");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::fromChunkSection");
 
     SectionData data(key);
 
@@ -521,7 +523,7 @@ Result<SectionData> SectionCodec::fromChunkSection(
 
 Result<void> SectionCodec::toChunkSection(const SectionData& data, ChunkSection& section)
 {
-    MC_TRACE_EVENT("storage.db", "SectionCodec::toChunkSection");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::toChunkSection");
 
     auto validationResult = validateSectionDataLayout(data, "SectionCodec::toChunkSection");
     if (validationResult.failed()) {
@@ -563,7 +565,7 @@ Result<void> SectionCodec::toChunkSection(const SectionData& data, ChunkSection&
 
 Result<std::vector<u8>> SectionCodec::compress(const u8* data, size_t size, i32 compressionLevel)
 {
-    MC_TRACE_EVENT("storage.db", "SectionCodec::compress", "size", size, "level", compressionLevel);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::compress", "size", size, "level", compressionLevel);
 
     // 获取压缩后最大大小
     size_t bound = ZSTD_compressBound(size);
@@ -585,8 +587,12 @@ Result<std::vector<u8>> SectionCodec::compress(const u8* data, size_t size, i32 
 
 Result<void> SectionCodec::decompressInto(const u8* compressedData, size_t compressedSize, u8* out, size_t expectedSize)
 {
-    MC_TRACE_EVENT(
-        "storage.db", "SectionCodec::decompressInto", "compressedSize", compressedSize, "expectedSize", expectedSize);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
+        "SectionCodec::decompressInto",
+        "compressedSize",
+        compressedSize,
+        "expectedSize",
+        expectedSize);
 
     size_t result = ZSTD_decompress(out, expectedSize, compressedData, compressedSize);
 

@@ -46,6 +46,8 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 // ============================================================================
@@ -73,8 +75,12 @@ NetworkClient::~NetworkClient()
 
 Result<void> NetworkClient::connect(const NetworkClientConfig& config)
 {
-    MC_TRACE_EVENT(
-        "client.network", "NetworkClient::connect", "address", config.serverAddress, "port", config.serverPort);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
+        "NetworkClient::connect",
+        "address",
+        config.serverAddress,
+        "port",
+        config.serverPort);
 
     if (m_state != ClientState::Disconnected) {
         return Error(ErrorCode::InvalidState, "Already connected or connecting");
@@ -123,7 +129,7 @@ Result<void> NetworkClient::connect(const NetworkClientConfig& config)
 
 Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint, const NetworkClientConfig& config)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::connectLocal");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::connectLocal");
 
     if (m_state != ClientState::Disconnected) {
         return Error(ErrorCode::InvalidState, "Already connected or connecting");
@@ -149,7 +155,7 @@ Result<void> NetworkClient::connectLocal(network::LocalEndpoint* endpoint, const
 
 void NetworkClient::disconnect(const std::string& reason)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::disconnect", "reason", reason);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::disconnect", "reason", reason);
 
     if (m_state == ClientState::Disconnected) {
         return;
@@ -204,7 +210,7 @@ void NetworkClient::setCallbacks(const NetworkClientCallbacks& callbacks)
 
 void NetworkClient::sendLoginRequest()
 {
-    MC_TRACE_EVENT("network.packet", "NetworkClient::sendLoginRequest", "username", m_username);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "NetworkClient::sendLoginRequest", "username", m_username);
 
     network::LoginRequestPacket packet(m_username, network::protocol::VERSION);
 
@@ -225,7 +231,7 @@ void NetworkClient::sendLoginRequest()
 
 void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::PlayerMovePacket::MoveType type)
 {
-    MC_TRACE_EVENT("network.packet", "NetworkClient::sendPlayerMove", "type", static_cast<i32>(type));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "NetworkClient::sendPlayerMove", "type", static_cast<i32>(type));
 
     network::PlayerMovePacket packet(pos, type);
 
@@ -245,7 +251,7 @@ void NetworkClient::sendPlayerMove(const network::PlayerPosition& pos, network::
 
 void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action, i32 x, i32 y, i32 z, Direction face)
 {
-    MC_TRACE_EVENT("network.packet",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet,
         "NetworkClient::sendBlockInteraction",
         "action",
         static_cast<i32>(action),
@@ -270,7 +276,7 @@ void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action,
 
 void NetworkClient::sendBlockPlacement(i32 x, i32 y, i32 z, Direction face, f32 hitX, f32 hitY, f32 hitZ, u8 hand)
 {
-    MC_TRACE_EVENT("network.packet",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet,
         "NetworkClient::sendBlockPlacement",
         "pos",
         fmt::format("({}, {}, {})", x, y, z),
@@ -322,7 +328,7 @@ void NetworkClient::sendHotbarSelect(i32 slot)
 
 void NetworkClient::sendTeleportConfirm(u32 teleportId)
 {
-    MC_TRACE_EVENT("network.packet", "NetworkClient::sendTeleportConfirm", "teleportId", teleportId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "NetworkClient::sendTeleportConfirm", "teleportId", teleportId);
 
     network::TeleportConfirmPacket packet(teleportId);
 
@@ -356,7 +362,7 @@ void NetworkClient::sendConfirmDimensionChange(DimensionId dimension)
 
 void NetworkClient::sendKeepAlive(u64 id)
 {
-    MC_TRACE_EVENT("network.packet", "NetworkClient::sendKeepAlive", "id", id);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Network.Packet, "NetworkClient::sendKeepAlive", "id", id);
 
     network::KeepAlivePacket packet;
     packet.setTimestamp(id);
@@ -491,7 +497,7 @@ void NetworkClient::sendSteerBoat(bool leftPaddle, bool rightPaddle)
 
 void NetworkClient::poll()
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::poll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::poll");
 
     if (!m_running) return;
 
@@ -518,7 +524,7 @@ void NetworkClient::poll()
 
 void NetworkClient::_receiveLoop()
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_receiveLoop");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_receiveLoop");
 
     while (m_running) {
         try {
@@ -545,7 +551,7 @@ void NetworkClient::_receiveLoop()
 
 void NetworkClient::_processIncomingData()
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_processIncomingData");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_processIncomingData");
 
     std::vector<u8> dataToProcess;
     {
@@ -588,7 +594,7 @@ void NetworkClient::_processIncomingData()
 
 void NetworkClient::_processPacket(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_processPacket", "size", size);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_processPacket", "size", size);
 
     MC_ASSERT_RELEASE(size >= network::PACKET_HEADER_SIZE);
 
@@ -898,7 +904,7 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
 
 void NetworkClient::_sendRawData(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_sendRawData", "size", size);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_sendRawData", "size", size);
 
     if (m_localEndpoint) {
         // 本地连接模式
@@ -932,7 +938,7 @@ void NetworkClient::_setState(ClientState state)
 
 void NetworkClient::_handleKeepAlive(u64 id)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleKeepAlive", "id", id);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleKeepAlive", "id", id);
 
     m_lastKeepAliveReceived =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
@@ -947,7 +953,7 @@ void NetworkClient::_handleKeepAlive(u64 id)
 
 void NetworkClient::_handleLoginResponse(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleLoginResponse");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleLoginResponse");
 
     auto result = network::LoginResponsePacket::deserialize(deser);
     if (result.failed()) {
@@ -998,7 +1004,7 @@ void NetworkClient::_handleCommandTree(const u8* data, size_t size)
 
 void NetworkClient::_handleTeleport(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleTeleport");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleTeleport");
 
     auto result = network::TeleportPacket::deserialize(deser);
     if (result.failed()) {
@@ -1019,7 +1025,7 @@ void NetworkClient::_handleTeleport(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleChunkData(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleChunkData");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleChunkData");
 
     auto result = network::ChunkDataPacket::deserialize(deser);
     if (result.failed()) {
@@ -1031,7 +1037,7 @@ void NetworkClient::_handleChunkData(network::PacketDeserializer& deser)
     auto& packet = result.value();
 
     if (m_callbacks.onChunkData) {
-        MC_TRACE_EVENT("client.network",
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
             "NetworkClient::_handleChunkDataCallback",
             "pos",
             fmt::format("({}, {})", packet.x(), packet.z()));
@@ -1057,7 +1063,7 @@ void NetworkClient::_handleTimeUpdate(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleUnloadChunk(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleUnloadChunk");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleUnloadChunk");
 
     auto result = network::UnloadChunkPacket::deserialize(deser);
     if (result.failed()) {
@@ -1113,7 +1119,7 @@ void NetworkClient::_handleBlockUpdate(network::PacketDeserializer& deser)
 
     auto& packet = result.value();
 
-    MC_TRACE_EVENT("client.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Lighting,
         "ReceiveBlockUpdate",
         "pos",
         fmt::format("({}, {}, {})", packet.x(), packet.y(), packet.z()),
@@ -1144,7 +1150,7 @@ void NetworkClient::_handleChatMessage(network::PacketDeserializer& deser)
 
 void NetworkClient::_handlePlayerInventory(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handlePlayerInventory");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handlePlayerInventory");
 
     auto result = PlayerInventoryPacket::deserialize(deser);
     if (result.failed()) {
@@ -1216,7 +1222,7 @@ void NetworkClient::_handleCloseContainer(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleSpawnEntity(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleSpawnEntity");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleSpawnEntity");
 
     // 获取原始数据指针
     const u8* data = deser.data();
@@ -1254,7 +1260,7 @@ void NetworkClient::_handleSpawnEntity(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleSpawnMob(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleSpawnMob");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleSpawnMob");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1288,7 +1294,7 @@ void NetworkClient::_handleSpawnMob(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleEntityDestroy(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityDestroy");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleEntityDestroy");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1307,7 +1313,7 @@ void NetworkClient::_handleEntityDestroy(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleEntityMove(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityMove");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleEntityMove");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1331,7 +1337,7 @@ void NetworkClient::_handleEntityMove(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleEntityTeleport(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityTeleport");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleEntityTeleport");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1351,7 +1357,7 @@ void NetworkClient::_handleEntityTeleport(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleEntityVelocity(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityVelocity");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleEntityVelocity");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1370,7 +1376,7 @@ void NetworkClient::_handleEntityVelocity(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleExplosion(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleExplosion");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleExplosion");
 
     // ExplosionPacket::deserialize 接收原始 data/size（内部自建 PacketDeserializer）
     const u8* data = deser.data();
@@ -1390,7 +1396,7 @@ void NetworkClient::_handleExplosion(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleEntityMetadata(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityMetadata");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleEntityMetadata");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1409,7 +1415,7 @@ void NetworkClient::_handleEntityMetadata(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleEntityAnimation(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.entity", "NetworkClient::_handleEntityAnimation");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity, "NetworkClient::_handleEntityAnimation");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1479,7 +1485,7 @@ void NetworkClient::_handleCollectItem(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleGameStateChange(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleGameStateChange");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleGameStateChange");
 
     // GameStateChangePacket 使用原始数据 deserialize，需要获取底层数据
     const u8* data = deser.data();
@@ -1535,7 +1541,7 @@ void NetworkClient::_handleGameStateChange(network::PacketDeserializer& deser)
 
 void NetworkClient::_handlePlayerAbilities(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handlePlayerAbilities");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handlePlayerAbilities");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1596,7 +1602,7 @@ void NetworkClient::_handleLightUpdate(network::PacketDeserializer& deser)
     }
 
     const auto& packet = result.value();
-    MC_TRACE_EVENT("client.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Lighting,
         "NetworkClient::_handleLightUpdate",
         "Section",
         fmt::format("({}, {}, {})", packet.chunkX(), packet.sectionY(), packet.chunkZ()),
@@ -1660,7 +1666,7 @@ void NetworkClient::_handleBlockEvent(network::PacketDeserializer& deser)
 
 void NetworkClient::_handlePlaySound(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::_handlePlaySound");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "NetworkClient::_handlePlaySound");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1682,7 +1688,7 @@ void NetworkClient::_handlePlaySound(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleStopSound(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::_handleStopSound");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "NetworkClient::_handleStopSound");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1701,7 +1707,7 @@ void NetworkClient::_handleStopSound(network::PacketDeserializer& deser)
 
 void NetworkClient::_handlePlaySoundEffect(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::_handlePlaySoundEffect");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "NetworkClient::_handlePlaySoundEffect");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -1990,7 +1996,7 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.sound", "NetworkClient::_handleMovingSound");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "NetworkClient::_handleMovingSound");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -2066,7 +2072,7 @@ void NetworkClient::_handleSetCamera(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleRespawn(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleRespawn");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleRespawn");
 
     const u8* data = deser.data();
     size_t size = deser.size();
@@ -2099,7 +2105,7 @@ void NetworkClient::_handleRespawn(network::PacketDeserializer& deser)
 
 void NetworkClient::_handleDimensionInfo(network::PacketDeserializer& deser)
 {
-    MC_TRACE_EVENT("client.network", "NetworkClient::_handleDimensionInfo");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleDimensionInfo");
 
     const u8* data = deser.data();
     size_t size = deser.size();

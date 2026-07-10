@@ -28,6 +28,8 @@
 
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc {
 
 bool VanillaBlocks::s_initialized = false;
@@ -39,118 +41,118 @@ void VanillaBlocks::initialize()
     }
 
     {
-        MC_TRACE_EVENT("client.initialization", "registerBaseBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBaseBlocks");
         block_registry::registerBaseBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerBuildingBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBuildingBlocks");
         block_registry::registerBuildingBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerCaveBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCaveBlocks");
         block_registry::registerCaveBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerDeepslateBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerDeepslateBlocks");
         block_registry::registerDeepslateBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerCopperBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCopperBlocks");
         block_registry::registerCopperBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerNetherBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerNetherBlocks");
         block_registry::registerNetherBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerVegetationBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerVegetationBlocks");
         block_registry::registerVegetationBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerNaturalBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerNaturalBlocks");
         block_registry::registerNaturalBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerAgriculturalBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerAgriculturalBlocks");
         block_registry::registerAgriculturalBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerColoredBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerColoredBlocks");
         block_registry::registerColoredBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerRedstoneBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerRedstoneBlocks");
         block_registry::registerRedstoneBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerSignBannerBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerSignBannerBlocks");
         block_registry::registerSignBannerBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerBuildingVariantBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBuildingVariantBlocks");
         block_registry::registerBuildingVariantBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerCherryBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCherryBlocks");
         block_registry::registerCherryBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerBambooBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBambooBlocks");
         block_registry::registerBambooBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerTrailsBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerTrailsBlocks");
         block_registry::registerTrailsBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerSculkBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerSculkBlocks");
         block_registry::registerSculkBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerMangroveBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerMangroveBlocks");
         block_registry::registerMangroveBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerMudBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerMudBlocks");
         block_registry::registerMudBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerWildBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerWildBlocks");
         block_registry::registerWildBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerTuffBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerTuffBlocks");
         block_registry::registerTuffBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerTrialBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerTrialBlocks");
         block_registry::registerTrialBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerPaleGardenBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerPaleGardenBlocks");
         block_registry::registerPaleGardenBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerGardenBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerGardenBlocks");
         block_registry::registerGardenBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerShelfBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerShelfBlocks");
         block_registry::registerShelfBlocks();
     }
     {
-        MC_TRACE_EVENT("client.initialization", "registerCandleBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCandleBlocks");
         block_registry::registerCandleBlocks();
     }
     {
         // 花盆方块必须在所有内容物方块（花卉、树苗、蘑菇、仙人掌、下界菌、杜鹃花等）注册之后
-        MC_TRACE_EVENT("client.initialization", "registerFlowerPotBlocks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerFlowerPotBlocks");
         block_registry::registerFlowerPotBlocks();
     }
 
     // 初始化方块标签（必须在所有方块注册后）
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeBlockTags");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeBlockTags");
         spdlog::info("[VanillaBlocks] Initializing block tags...");
         BlockTags::initialize();
         spdlog::info("[VanillaBlocks] Block tags initialized");
@@ -158,7 +160,7 @@ void VanillaBlocks::initialize()
 
     // 初始化原版方块燃烧参数（必须在所有方块注册后）
     {
-        MC_TRACE_EVENT("client.initialization", "InitializeVanillaFireInfos");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeVanillaFireInfos");
         blocks::FireInfoRegistry::instance().initializeVanillaFireInfos();
         spdlog::info("[VanillaBlocks] Fire info initialized");
     }

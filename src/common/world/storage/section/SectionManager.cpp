@@ -27,6 +27,8 @@
 #include <mutex>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::world::storage {
 
 // ============================================================================
@@ -49,7 +51,7 @@ SectionManager::SectionManager(RocksDBDatabase& db, DimensionId dimension, const
 
 Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const SectionKey& key)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::loadSectionSync",
         "chunkX",
         key.chunkX,
@@ -69,7 +71,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const
     // 先检查缓存
     auto cached = m_cache.get(key);
     if (cached) {
-        MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionSync.cacheHit");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::loadSectionSync.cacheHit");
         return std::static_pointer_cast<const SectionData>(cached);
     }
 
@@ -80,7 +82,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const
 std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSectionAsync(
     const SectionKey& key, util::TaskPriority priority, std::shared_ptr<std::atomic<bool>> abortSignal)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::loadSectionAsync",
         "chunkX",
         key.chunkX,
@@ -117,7 +119,7 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
 std::future<Result<std::vector<std::shared_ptr<const SectionData>>>> SectionManager::loadSectionsAsync(
     const std::vector<SectionKey>& keys, util::TaskPriority priority, std::shared_ptr<std::atomic<bool>> abortSignal)
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsAsync", "count", keys.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::loadSectionsAsync", "count", keys.size());
 
     auto promise = std::make_shared<std::promise<Result<std::vector<std::shared_ptr<const SectionData>>>>>();
     auto future = promise->get_future();
@@ -157,10 +159,10 @@ std::future<Result<std::vector<std::shared_ptr<const SectionData>>>> SectionMana
 
     // 阶段2：未命中部分提交到 ServerIO 线程池批量读取，executor 内合并缓存命中与未命中结果
     auto _mergeExecutor = [this,
-                             missedKeys = std::move(missedKeys),
-                             missedIndexes = std::move(missedIndexes),
-                             results = std::move(results),
-                             promise](const std::atomic<bool>& abortSig) mutable {
+                              missedKeys = std::move(missedKeys),
+                              missedIndexes = std::move(missedIndexes),
+                              results = std::move(results),
+                              promise](const std::atomic<bool>& abortSig) mutable {
         if (abortSig.load(std::memory_order::acquire)) {
             promise->set_value(Error(ErrorCode::InvalidState, "Load sections batch task cancelled"));
             return false;
@@ -196,7 +198,7 @@ std::future<Result<std::vector<std::shared_ptr<const SectionData>>>> SectionMana
 Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadSectionsSync(
     const std::vector<SectionKey>& keys)
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsSync", "count", keys.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::loadSectionsSync", "count", keys.size());
 
     std::vector<std::shared_ptr<const SectionData>> results(keys.size());
     std::vector<SectionKey> missedKeys;
@@ -247,7 +249,7 @@ Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadSect
 
 Result<void> SectionManager::saveSectionSync(const SectionKey& key, const SectionData& data, bool immediate)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::saveSectionSync",
         "chunkX",
         key.chunkX,
@@ -288,7 +290,7 @@ Result<void> SectionManager::saveSectionSync(const SectionKey& key, const Sectio
 std::future<Result<void>> SectionManager::saveSectionAsync(
     const SectionKey& key, const SectionData& data, util::TaskPriority priority)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::saveSectionAsync",
         "chunkX",
         key.chunkX,
@@ -322,7 +324,7 @@ std::future<Result<void>> SectionManager::saveSectionAsync(
 
 Result<size_t> SectionManager::flushDirtySections()
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::flushDirtySections");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::flushDirtySections");
 
     // 获取所有脏Section
     auto dirtySections = m_cache.getDirtySections();
@@ -400,7 +402,7 @@ Result<size_t> SectionManager::flushDirtySections()
 
 Result<size_t> SectionManager::saveAll()
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::saveAll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::saveAll");
 
     // 获取所有缓存中的Section，确保 saveAll 真正保存全部内容。
     auto allSections = m_cache.getAllSections();
@@ -426,7 +428,7 @@ Result<size_t> SectionManager::saveAll()
 
 Result<void> SectionManager::unloadSection(const SectionKey& key)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::unloadSection",
         "chunkX",
         key.chunkX,
@@ -463,7 +465,7 @@ Result<void> SectionManager::unloadSection(const SectionKey& key)
 
 Result<void> SectionManager::unloadAll()
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::unloadAll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::unloadAll");
 
     // 保存所有脏Section
     auto flushResult = flushDirtySections();
@@ -489,7 +491,7 @@ Result<void> SectionManager::unloadAll()
 
 Result<void> SectionManager::deleteSection(const SectionKey& key)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::deleteSection",
         "chunkX",
         key.chunkX,
@@ -519,7 +521,8 @@ Result<void> SectionManager::deleteSection(const SectionKey& key)
 
 Result<size_t> SectionManager::deleteChunkSections(i32 chunkX, i32 chunkZ)
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::deleteChunkSections", "chunkX", chunkX, "chunkZ", chunkZ);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Storage.Section, "SectionManager::deleteChunkSections", "chunkX", chunkX, "chunkZ", chunkZ);
 
     // 注意：sectionY 使用有符号字节直接序列化时，字节序排序并不适合做范围删除。
     // 这里逐个删除，避免删除范围在 RocksDB 字典序下失效。
@@ -597,7 +600,7 @@ std::vector<SectionKey> SectionManager::getDirtyKeys() const
 
 Result<std::shared_ptr<const SectionData>> SectionManager::_loadFromDatabase(const SectionKey& key)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::loadFromDatabase",
         "chunkX",
         key.chunkX,
@@ -640,7 +643,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::_loadFromDatabase(con
 Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::_loadFromDatabaseBatch(
     const std::vector<SectionKey>& keys)
 {
-    MC_TRACE_EVENT("storage.section", "SectionManager::loadFromDatabaseBatch", "count", keys.size());
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section, "SectionManager::loadFromDatabaseBatch", "count", keys.size());
 
     std::vector<std::vector<u8>> keyBytesList;
     keyBytesList.reserve(keys.size());
@@ -688,7 +691,7 @@ Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::_loadFro
 
 Result<void> SectionManager::_saveToDatabase(const SectionKey& key, const SectionData& data, bool sync)
 {
-    MC_TRACE_EVENT("storage.section",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
         "SectionManager::saveToDatabase",
         "chunkX",
         key.chunkX,

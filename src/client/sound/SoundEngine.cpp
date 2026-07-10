@@ -35,6 +35,8 @@
 #include <algorithm>
 #include <chrono>
 
+using namespace mc::trace;
+
 namespace mc::client::sound {
 
 SoundEngine::SoundEngine(SoundHandler& handler, ClientSettings& settings)
@@ -57,7 +59,7 @@ Result<void> SoundEngine::initialize()
     }
 
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("SoundEngine_Initialize", "phase", "begin");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "SoundEngine_Initialize", "phase", "begin");
     }
 
     spdlog::info("[SoundEngine] Initializing sound engine...");
@@ -67,7 +69,7 @@ Result<void> SoundEngine::initialize()
     auto startLoad = std::chrono::steady_clock::now();
 
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("SoundHandler_Reload", "phase", "reload");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "SoundHandler_Reload", "phase", "reload");
         auto reloadResult = m_handler.reload();
         if (!reloadResult.success()) {
             spdlog::warn("[SoundEngine] Failed to load sound events: {}", reloadResult.error().message());
@@ -83,7 +85,7 @@ Result<void> SoundEngine::initialize()
 
     // 创建音频后端
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_Create", "phase", "create_backend");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "OpenAL_Create", "phase", "create_backend");
         m_backend = createOpenALBackend();
     }
     if (!m_backend) {
@@ -92,7 +94,7 @@ Result<void> SoundEngine::initialize()
 
     // 初始化音频后端
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("OpenAL_Initialize", "phase", "initialize_backend");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "OpenAL_Initialize", "phase", "initialize_backend");
         auto result = m_backend->initialize();
         if (!result.success()) {
             m_backend.reset();
@@ -102,7 +104,7 @@ Result<void> SoundEngine::initialize()
 
     // 创建声音加载器
     {
-        MC_TRACE_CLIENT_SOUND_EVENT("SoundLoader_Create", "phase", "create_loader");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "SoundLoader_Create", "phase", "create_loader");
         m_loader = std::make_unique<SoundLoader>(m_handler.getResourcePacks());
     }
 
@@ -142,7 +144,8 @@ void SoundEngine::shutdown()
 SoundInstanceId SoundEngine::play(std::unique_ptr<ISoundInstance> sound)
 {
     MC_ASSERT_RELEASE(sound);
-    MC_TRACE_CLIENT_SOUND_EVENT("SoundEngine::play", "sound_event", sound->getSoundEventId().toString());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Client.Sound, "SoundEngine::play", "sound_event", sound->getSoundEventId().toString());
     if (!m_loaded) {
         return 0;
     }
@@ -447,7 +450,7 @@ f32 SoundEngine::getVolume(SoundCategory category) const
 
 void SoundEngine::tick(bool isPaused)
 {
-    MC_TRACE_EVENT("client.sound", "SoundEngine::tick", "isPaused", isPaused);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Sound, "SoundEngine::tick", "isPaused", isPaused);
 
     if (!m_loaded) {
         return;

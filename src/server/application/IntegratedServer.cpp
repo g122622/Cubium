@@ -64,6 +64,8 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 namespace {
@@ -100,7 +102,7 @@ Result<void> IntegratedServer::initialize()
 
 Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 {
-    MC_TRACE_EVENT("server.initialization", "IntegratedServer::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "IntegratedServer::initialize");
 
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Server already initialized");
@@ -257,7 +259,7 @@ void IntegratedServer::shutdown()
 
 void IntegratedServer::savePlayerRuntimeState()
 {
-    MC_TRACE_EVENT("server.initialization", "IntegratedServer::savePlayerRuntimeState");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "IntegratedServer::savePlayerRuntimeState");
 
     // 外来只读存档不写盘，直接跳过
     if (isSharedStorageReadonlyForeignWorld()) {
@@ -333,7 +335,7 @@ void IntegratedServer::stop()
     // 等子阶段在各自函数内部有独立 trace，形成 slice 嵌套。
     // 注意：集成服运行在客户端进程内，trace 会话生命周期由客户端统一管理，
     // 本函数不关闭 Perfetto（与 StandaloneServer::stop() 不同）。
-    MC_TRACE_EVENT("server.initialization", "IntegratedServer::stop");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "IntegratedServer::stop");
 
     if (!m_initialized) {
         return;
@@ -349,7 +351,7 @@ void IntegratedServer::stop()
 
     // 等待服务端线程结束
     {
-        MC_TRACE_EVENT("server.initialization", "IntegratedServer::stop::JoinServerThread");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "IntegratedServer::stop::JoinServerThread");
         if (m_serverThread && m_serverThread->joinable()) {
             m_serverThread->join();
         }
@@ -363,7 +365,7 @@ void IntegratedServer::stop()
 
     // 清理玩家实体（遍历所有维度）
     {
-        MC_TRACE_EVENT("server.initialization", "IntegratedServer::stop::ClearPlayerEntities");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "IntegratedServer::stop::ClearPlayerEntities");
         m_dimensionManager->forEachDimension([this](Dimension& dim) {
             auto* serverDim = static_cast<ServerDimension*>(&dim);
             auto* world = serverDim->world();
@@ -434,7 +436,7 @@ void IntegratedServer::_mainLoop()
     m_debugStats.targetMsPerTick.store(static_cast<f32>(tickDuration.count()), std::memory_order::relaxed);
 
     while (m_running.load(std::memory_order::acquire)) {
-        MC_TRACE_EVENT("server.tick", "MainLoopIteration");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MainLoopIteration");
 
         auto startTime = clock::now();
 
@@ -467,7 +469,7 @@ void IntegratedServer::_mainLoop()
         }
 
         auto sleepTime = tickDuration - elapsed;
-        MC_TRACE_COUNTER("server.tick", "ServerTickTime", static_cast<i64>(elapsed.count()));
+        MC_TRACE_COUNTER(TraceEvents.Server.Tick, "ServerTickTime", static_cast<i64>(elapsed.count()));
 
         if (sleepTime > std::chrono::milliseconds(0)) {
             std::this_thread::sleep_for(sleepTime);
@@ -477,7 +479,7 @@ void IntegratedServer::_mainLoop()
 
 void IntegratedServer::pollNetwork()
 {
-    MC_TRACE_EVENT("server.network", "ProcessPackets");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "ProcessPackets");
     std::vector<u8> packetData;
     while (m_running.load() && m_serverEndpoint && m_serverEndpoint->receive(packetData)) {
         // 使用会话ID 0（单玩家模式只有一个客户端）
@@ -497,7 +499,7 @@ void IntegratedServer::broadcastPacket(const u8* data, size_t size)
 void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size)
 {
     (void)sessionId;
-    MC_TRACE_EVENT("server.network", "IntegratedServer::handleLoginRequestPacket");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "IntegratedServer::handleLoginRequestPacket");
 
     network::PacketDeserializer deser(data, size);
     auto result = network::LoginRequestPacket::deserialize(deser);
@@ -543,7 +545,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
     // 玩家始终在主世界生成
     {
-        MC_TRACE_EVENT("server.network",
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
             "IntegratedServer::handleLoginRequestPacket::CreatePlayerEntity",
             "username",
             username,
@@ -603,7 +605,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     // 初始化物品栏
     {
-        MC_TRACE_EVENT("server.player", "IntegratedServer::handleLoginRequestPacket::InitInventory");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "IntegratedServer::handleLoginRequestPacket::InitInventory");
 
         m_clientInventory.clear();
         m_clientInventory.setSelectedSlot(0);
@@ -641,7 +643,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size)
 {
     (void)playerId;
-    MC_TRACE_EVENT("server.network", "HandleHotbarSelect");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleHotbarSelect");
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -660,7 +662,7 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
 void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)
 {
     (void)playerId;
-    MC_TRACE_EVENT("server.network", "HandleContainerClick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleContainerClick");
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -686,7 +688,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* d
 void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size)
 {
     (void)playerId;
-    MC_TRACE_EVENT("server.network", "HandleCloseContainer");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleCloseContainer");
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -714,7 +716,7 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 void IntegratedServer::_sendLoginResponse(
     bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message)
 {
-    MC_TRACE_EVENT("server.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "IntegratedServer::_sendLoginResponse",
         "success",
         success,
@@ -735,8 +737,16 @@ void IntegratedServer::_sendLoginResponse(
 
 void IntegratedServer::_sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
 {
-    MC_TRACE_EVENT(
-        "server.network", "IntegratedServer::_sendTeleport", "x", x, "y", y, "z", z, "teleportId", teleportId);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+        "IntegratedServer::_sendTeleport",
+        "x",
+        x,
+        "y",
+        y,
+        "z",
+        z,
+        "teleportId",
+        teleportId);
 
     network::TeleportPacket packet(x, y, z, yaw, pitch, teleportId);
     network::PacketSerializer ser;
@@ -748,7 +758,7 @@ void IntegratedServer::_sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u3
 
 void IntegratedServer::_sendPlayerInventory()
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendPlayerInventory");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "IntegratedServer::_sendPlayerInventory");
 
     PlayerInventoryPacket packet(m_clientInventory);
     network::PacketSerializer ser;
@@ -760,7 +770,8 @@ void IntegratedServer::_sendPlayerInventory()
 
 void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendContainerContent", "containerId", menu.getId());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Network, "IntegratedServer::_sendContainerContent", "containerId", menu.getId());
 
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
@@ -778,7 +789,7 @@ void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
 void IntegratedServer::_sendOpenContainer(
     ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount)
 {
-    MC_TRACE_EVENT("server.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "IntegratedServer::_sendOpenContainer",
         "containerId",
         containerId,
@@ -801,7 +812,8 @@ void IntegratedServer::_sendOpenContainer(
 
 void IntegratedServer::_sendCloseContainer(ContainerId containerId)
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendCloseContainer", "containerId", containerId);
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Network, "IntegratedServer::_sendCloseContainer", "containerId", containerId);
 
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
@@ -817,7 +829,7 @@ void IntegratedServer::_sendCloseContainer(ContainerId containerId)
 
 void IntegratedServer::_sendToClient(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendToClient", "size", size);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "IntegratedServer::_sendToClient", "size", size);
 
     if (m_serverEndpoint && m_serverEndpoint->isConnected()) {
         m_serverEndpoint->send(data, size);
@@ -826,7 +838,7 @@ void IntegratedServer::_sendToClient(const u8* data, size_t size)
 
 void IntegratedServer::_sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage)
 {
-    MC_TRACE_EVENT("server.network",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "IntegratedServer::_sendBlockBreakAnim",
         "breakerId",
         breakerId,

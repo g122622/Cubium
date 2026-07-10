@@ -37,11 +37,13 @@
 #include <limits>
 #include <vector>
 
+using namespace mc::trace;
+
 namespace mc::world::spawn {
 
 void DespawnManager::tick(::mc::server::ServerWorld& world)
 {
-    MC_TRACE_EVENT("server.tick", "DespawnManager::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "DespawnManager::tick");
 
     if (!m_enabled) {
         return;

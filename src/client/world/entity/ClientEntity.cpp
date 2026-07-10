@@ -45,6 +45,8 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace mc::trace;
+
 namespace mc::client {
 
 namespace {
@@ -225,7 +227,8 @@ void ClientEntity::setVelocity(f32 x, f32 y, f32 z)
 
 void ClientEntity::setMetadata(const std::vector<u8>& metadata)
 {
-    MC_TRACE_EVENT("client.entity", "ClientEntity::setMetadata", "entityId", m_id, "size", metadata.size());
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Client.Entity, "ClientEntity::setMetadata", "entityId", m_id, "size", metadata.size());
 
     m_metadata = metadata;
     if (!m_metadata.empty()) {
@@ -401,7 +404,7 @@ void ClientEntity::syncMetadataFromDataManager()
 
 void ClientEntity::setItemStack(const ItemStack& stack)
 {
-    MC_TRACE_EVENT("client.entity",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Entity,
         "ClientEntity::setItemStack",
         "entityId",
         m_id,

@@ -36,6 +36,8 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 
+using namespace mc::trace;
+
 namespace mc::benchmark {
 
 using mc::world::chunk::ChunkPrimer;
@@ -82,7 +84,7 @@ public:
 
     [[nodiscard]] Result<void> runOnce() override
     {
-        MC_TRACE_EVENT("benchmark.case", "ChunkGenerationBenchmark::runOnce");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "ChunkGenerationBenchmark::runOnce");
         if (m_generator == nullptr) {
             return Error(ErrorCode::InvalidState, "chunk_generation benchmark is not initialized");
         }

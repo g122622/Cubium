@@ -93,6 +93,8 @@
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 using mc::LightType;
@@ -112,14 +114,14 @@ using mc::world::chunk::SectionPos;
 ServerWorld::ServerWorld(const ServerWorldConfig& config)
     : m_config(config)
 {
-    MC_TRACE_EVENT("server.initialization", "ServerWorld::Constructor", "dimension", config.dimension);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::Constructor", "dimension", config.dimension);
 }
 
 ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<ServerChunkManager> chunkManager)
     : m_config(config)
     , m_chunkManager(std::move(chunkManager))
 {
-    MC_TRACE_EVENT("server.initialization", "ServerWorld::Constructor", "dimension", config.dimension);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::Constructor", "dimension", config.dimension);
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
     m_chunkManager->setViewDistance(m_config.viewDistance);
 }
@@ -131,7 +133,7 @@ ServerWorld::~ServerWorld()
 
 Result<void> ServerWorld::initialize()
 {
-    MC_TRACE_EVENT("server.initialization", "ServerWorld::initialize");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::initialize");
     spdlog::info("Initializing server world with seed {}...", m_config.seed);
 
     if (m_initialized) {
@@ -210,14 +212,15 @@ void ServerWorld::shutdown()
     }
 
     // per-dimension 世界卸载 trace，带维度 ID 便于区分主世界/下界/末地。
-    MC_TRACE_EVENT("server.initialization", "ServerWorld::shutdown", "dim", static_cast<i32>(m_config.dimension));
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Initialization, "ServerWorld::shutdown", "dim", static_cast<i32>(m_config.dimension));
 
     spdlog::info("Shutting down server world...");
     m_initialized = false;
 
     // 先保存所有已加载区块内的实体
     if (m_storage && m_storage->isOpen() && m_chunkManager) {
-        MC_TRACE_EVENT("server.initialization", "ServerWorld::shutdown::SaveEntitiesInChunks");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::SaveEntitiesInChunks");
         m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
             auto entityIds = m_entityChunkTracker.getEntitiesInChunk(chunk.x(), chunk.z());
             if (!entityIds.empty()) {
@@ -255,7 +258,7 @@ void ServerWorld::shutdown()
 
     // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
     if (m_chunkManager) {
-        MC_TRACE_EVENT("server.initialization", "ServerWorld::shutdown::ShutdownChunkManager");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
     }
 
@@ -272,7 +275,7 @@ void ServerWorld::shutdown()
 
 Result<size_t> ServerWorld::saveAll()
 {
-    MC_TRACE_EVENT("server.world", "ServerWorld::saveAll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "ServerWorld::saveAll");
 
     if (m_storage == nullptr || !m_storage->isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -620,7 +623,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
     const BlockPos changedPos(x, y, z);
 
-    MC_TRACE_EVENT("server.world",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "ServerWorld::setBlockState",
         "x",
         x,
@@ -634,7 +637,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             ::perfetto::EventContext ctx) { flow(ctx); });
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::DebugWorldCheck", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::DebugWorldCheck", "x", x, "y", y, "z", z);
 
         // 调试世界禁止方块修改
         if (isDebugWorld()) {
@@ -647,7 +651,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     ChunkData* chunk = nullptr;
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::ChunkLookup", "chunkX", chunkX, "chunkZ", chunkZ);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::ChunkLookup", "chunkX", chunkX, "chunkZ", chunkZ);
 
         chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
         if (!chunk) {
@@ -682,7 +687,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockState* newState = nullptr;
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::CanonicalizeState", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::CanonicalizeState", "x", x, "y", y, "z", z);
 
         oldState = canonicalizeState(chunk->getBlockState(localX, y, localZ));
         newState = canonicalizeState(state);
@@ -692,7 +698,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::StateComparison", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::StateComparison", "x", x, "y", y, "z", z);
 
         if (oldState == newState) {
             return false;
@@ -708,7 +715,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     i32 newLightLevel = newState ? newState->lightLevel() : 0;
 
     {
-        MC_TRACE_EVENT("server.world",
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
             "ServerWorld::setBlockState::WriteChunk",
             "x",
             x,
@@ -728,7 +735,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::OldBlockCallbacks", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::OldBlockCallbacks", "x", x, "y", y, "z", z);
 
         // 通知村庄管理器方块移除（如果旧方块存在且不是空气）
         if (m_villageManager && !oldIsAir) {
@@ -747,7 +755,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::NewBlockCallbacks", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::NewBlockCallbacks", "x", x, "y", y, "z", z);
 
         if (m_onBlockChanged) {
             m_onBlockChanged(changedPos, currentState ? currentState->stateId() : 0u);
@@ -811,7 +820,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         {0, 0, 1, Direction::South}}};
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
 
         for (const auto& neighbor : NEIGHBOR_DELTAS) {
             const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
@@ -821,7 +831,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             const BlockState* updatedState = nullptr;
 
             {
-                MC_TRACE_EVENT("server.world",
+                MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
                     "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
                     "x",
                     neighborPos.x,
@@ -858,7 +868,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             }
 
             {
-                MC_TRACE_EVENT("server.world",
+                MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
                     "ServerWorld::setBlockState::NeighborChanged",
                     "x",
                     neighborPos.x,
@@ -876,7 +886,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     }
 
     {
-        MC_TRACE_EVENT("server.world",
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
             "ServerWorld::setBlockState::LightUpdates",
             "x",
             x,
@@ -915,7 +925,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     };
 
     {
-        MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::FluidScheduling", "x", x, "y", y, "z", z);
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::FluidScheduling", "x", x, "y", y, "z", z);
 
         scheduleFluidAt(changedPos, newState);
 
@@ -1076,19 +1087,19 @@ void ServerWorld::removeBlockEntity(const BlockPos& pos)
 // ============================================================================
 void ServerWorld::tick()
 {
-    MC_TRACE_EVENT("server.tick", "ServerWorld::tick");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick");
 
     // 时间由外部 TimeManager 管理，不再自增 tick 计数
 
     // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
     if (m_chunkManager) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::ChunkTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
         m_chunkManager->tick();
     }
 
     // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
     if (m_lightManager && m_lightManager->hasLightWork()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::LightManager");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
         m_lightManager->tick(32768, true, true);
     }
 
@@ -1098,37 +1109,37 @@ void ServerWorld::tick()
 
     // 调试世界不执行计划刻
     if (!isDebugWorld() && m_tickManager) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::TickManager");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::TickManager");
         m_tickManager->tick(currentTick);
     }
 
     // 方块实体tick - 熔炉、漏斗、刷怪笼等需要每tick更新的方块实体
     if (!isDebugWorld()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::BlockEntityTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::BlockEntityTick");
         tickBlockEntities();
     }
 
     // 方块事件处理 - 箱子开合、活塞伸缩、音符盒播放等延迟事件
     if (!isDebugWorld()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::BlockEvents");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::BlockEvents");
         runBlockEvents();
     }
 
     // 调试世界不执行随机刻
     if (!isDebugWorld()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::EnvironmentTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::EnvironmentTick");
         // 从游戏规则获取随机刻速度
         i32 randomTickSpeed = m_gameRules.getInt(world::gamerule::GameRuleKeys::RANDOM_TICK_SPEED);
         tickEnvironment(randomTickSpeed);
 
         // 降水对方块的影响（结冰和降雪）
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::PrecipitationTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::PrecipitationTick");
         tickPrecipitation(randomTickSpeed);
     }
 
     // 调试世界不执行红石清理
     if (!isDebugWorld()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::RedstoneTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::RedstoneTick");
         // 定期清理红石火把烧毁记录（每 200 tick）
         if (currentTick % 200 == 0) {
             world::redstone::RedstoneSystem::instance().cleanupBurnoutRecords(currentTick);
@@ -1147,20 +1158,20 @@ void ServerWorld::tick()
 
     // 更新村庄系统（流言衰减、边界重算等）
     if (m_villageManager) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::VillageTick");
         m_villageManager->tick(gameTime);
     }
 
     // 更新袭击系统（波次推进、掠夺者生成等）
     if (m_raidManager) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::RaidTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::RaidTick");
         m_raidManager->tick();
     }
 
     // 更新村庄围攻系统（僵尸围村）
     // 调试世界不执行村庄围攻
     if (!isDebugWorld()) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::VillageSiege");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::VillageSiege");
         m_villageSiege.tick(*this, true); // spawnHostiles = true
     }
 
@@ -1169,13 +1180,13 @@ void ServerWorld::tick()
 
     // 更新地图数据（持有地图的玩家位置追踪等）
     if (m_mapDataManager) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::MapDataTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::MapDataTick");
         m_mapDataManager->tick(*this);
     }
 
     // 更新末影龙战斗状态（仅末地维度）
     if (m_dragonFight) {
-        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::DragonFightTick");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::DragonFightTick");
         m_dragonFight->tick(*this);
     }
 
@@ -1210,7 +1221,7 @@ void ServerWorld::tickBlockEntities()
         return;
     }
 
-    MC_TRACE_EVENT("server.tick", "ServerWorld::tickBlockEntities");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickBlockEntities");
 
     // 遍历所有已加载区块，对需要tick的方块实体调用tick()
     // 快照方块实体列表以避免迭代期间修改导致的问题
@@ -1238,11 +1249,11 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
         return;
     }
 
-    MC_TRACE_EVENT("server.tick", "ServerWorld::tickEnvironment", "randomTickSpeed", randomTickSpeed);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickEnvironment", "randomTickSpeed", randomTickSpeed);
 
     // 遍历所有已加载区块
     m_chunkManager->forEachLoadedChunk([this, randomTickSpeed](ChunkData& chunk) {
-        MC_TRACE_EVENT("server.tick", "tickChunk", "x", chunk.x(), "z", chunk.z());
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "tickChunk", "x", chunk.x(), "z", chunk.z());
 
         // 获取区块起始坐标（方块坐标）
         i32 chunkX = chunk.x() * world::CHUNK_WIDTH;
@@ -1323,7 +1334,7 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
         return;
     }
 
-    MC_TRACE_EVENT("server.tick", "ServerWorld::tickPrecipitation");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickPrecipitation");
 
     const i32 maxSnowAccumulation = m_gameRules.getInt(world::gamerule::GameRuleKeys::MAX_SNOW_ACCUMULATION_HEIGHT);
     const bool isRaining = m_weatherManager && m_weatherManager->isRaining();
@@ -2197,7 +2208,7 @@ const IWorld* ServerWorld::getWorld() const noexcept
 
 void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
 {
-    MC_TRACE_EVENT("server.lighting",
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
         "ServerWorld::markLightChanged",
         "Type",
         (type == LightType::SKY) ? "Sky" : "Block",
