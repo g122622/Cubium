@@ -151,6 +151,12 @@ public:
         m_stopRequested = true;
         m_running = false;
     }
+    [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override
+    {
+        (void)port;
+        (void)allowCheats;
+        return Error(ErrorCode::Unsupported, "Test server does not support LAN publishing");
+    }
     void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
     void sendCommandTreePacket(PlayerId) override {}
     void sendPermissionLevelChange(PlayerId, i32) override {}

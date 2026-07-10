@@ -415,6 +415,10 @@ add_executable(minecraft-client
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
+    # 局域网发布所需的 TCP 网络模块（IntegratedServer::publishToLan 依赖）
+    ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp

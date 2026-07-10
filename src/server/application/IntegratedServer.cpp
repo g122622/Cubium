@@ -57,6 +57,8 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/network/TcpConnection.hpp"
+#include "server/network/TcpServer.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -327,6 +329,12 @@ void IntegratedServer::requestStop()
     if (m_connectionPair) {
         m_connectionPair->disconnect();
     }
+
+    // 通知局域网 TCP 监听器停止接受新连接
+    // 已有连接的清理在 stop() 中进行
+    if (m_lanTcpServer) {
+        m_lanTcpServer->stop();
+    }
 }
 
 void IntegratedServer::stop()
@@ -344,7 +352,7 @@ void IntegratedServer::stop()
     spdlog::info("Stopping integrated server...");
     m_running = false;
 
-    // 断开连接
+    // 断开本地连接
     if (m_connectionPair) {
         m_connectionPair->disconnect();
     }
@@ -377,6 +385,21 @@ void IntegratedServer::stop()
 
     // 停止核心组件
     stopCore();
+
+    // 关闭局域网 TCP 监听器（如果有）
+    if (m_lanTcpServer) {
+        m_lanTcpServer->stop();
+        m_lanTcpServer.reset();
+    }
+
+    // 清理远程玩家实体ID映射
+    {
+        std::lock_guard<std::mutex> lock(m_remotePlayersMutex);
+        m_remotePlayerEntityIds.clear();
+    }
+
+    m_lanPublished = false;
+    m_lanPort = 0;
 
     // 释放客户端连接
     m_clientConnection.reset();
@@ -481,15 +504,31 @@ void IntegratedServer::pollNetwork()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "ProcessPackets");
     std::vector<u8> packetData;
+    // 本地客户端数据包（sessionId = 0）
     while (m_running.load() && m_serverEndpoint && m_serverEndpoint->receive(packetData)) {
-        // 使用会话ID 0（单玩家模式只有一个客户端）
         dispatchPacket(0, packetData.data(), packetData.size());
+    }
+
+    // 远程 TCP 客户端数据包（sessionId != 0）
+    if (m_lanTcpServer) {
+        m_lanTcpServer->poll();
     }
 }
 
 void IntegratedServer::broadcastPacket(const u8* data, size_t size)
 {
+    // 本地客户端（零拷贝优化）
     _sendToClient(data, size);
+
+    // 远程 TCP 玩家（局域网发布后）
+    if (m_lanTcpServer) {
+        m_playerManager->forEachPlayer([data, size](ServerPlayerData& player) {
+            if (player.loggedIn && player.hasConnection() &&
+                player.connection.lock()->type() == network::ConnectionType::Tcp) {
+                player.send(data, size);
+            }
+        });
+    }
 }
 
 // ============================================================================
@@ -498,7 +537,12 @@ void IntegratedServer::broadcastPacket(const u8* data, size_t size)
 
 void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size)
 {
-    (void)sessionId;
+    // 双路径架构：sessionId == 0 为本地客户端，其他为远程 TCP 玩家
+    if (sessionId != 0) {
+        _handleRemoteLoginRequest(sessionId, data, size);
+        return;
+    }
+
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "IntegratedServer::handleLoginRequestPacket");
 
     network::PacketDeserializer deser(data, size);
@@ -642,12 +686,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
 void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size)
 {
-    (void)playerId;
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleHotbarSelect");
-    auto* player = _getPlayerData();
-    if (!player || !player->loggedIn) {
-        return;
-    }
 
     network::PacketDeserializer deser(data, size);
     auto result = HotbarSelectPacket::deserialize(deser);
@@ -656,22 +695,70 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
         return;
     }
 
-    m_clientInventory.setSelectedSlot(result.value().slot());
-}
+    // 远程 TCP 玩家：走 InventoryManager 多玩家路径
+    if (playerId != m_clientPlayerId) {
+        auto* player = m_playerManager->getPlayer(playerId);
+        if (!player || !player->loggedIn) {
+            return;
+        }
 
-void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)
-{
-    (void)playerId;
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleContainerClick");
+        const i32 slot = result.value().slot();
+        inventoryManager().setSelectedSlot(playerId, slot);
+
+        // 服务端回送确认包
+        HotbarSetPacket response(slot);
+        network::PacketSerializer ser;
+        response.serialize(ser);
+        const auto fullPacket =
+            core::ConnectionManager::encapsulatePacket(network::PacketType::HotbarSet, ser.buffer());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+        return;
+    }
+
+    // 本地客户端
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
     }
 
+    m_clientInventory.setSelectedSlot(result.value().slot());
+}
+
+void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleContainerClick");
+
     network::PacketDeserializer deser(data, size);
     auto result = ContainerClickPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to parse container click packet: {}", result.error().message());
+        return;
+    }
+
+    // 远程 TCP 玩家：走 ContainerManager 多玩家路径
+    if (playerId != m_clientPlayerId) {
+        auto* player = m_playerManager->getPlayer(playerId);
+        if (!player || !player->loggedIn) {
+            return;
+        }
+
+        const auto& packet = result.value();
+        auto clickResult = containerManager().handleClick(playerId,
+            packet.containerId(),
+            packet.slotIndex(),
+            static_cast<u8>(packet.button()),
+            static_cast<u8>(packet.action()),
+            packet.cursorItem());
+
+        if (clickResult.success()) {
+            inventoryManager().syncToClient(playerId);
+        }
+        return;
+    }
+
+    // 本地客户端
+    auto* player = _getPlayerData();
+    if (!player || !player->loggedIn) {
         return;
     }
 
@@ -687,17 +774,30 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* d
 
 void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size)
 {
-    (void)playerId;
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleCloseContainer");
-    auto* player = _getPlayerData();
-    if (!player || !player->loggedIn) {
-        return;
-    }
 
     network::PacketDeserializer deser(data, size);
     auto result = CloseContainerPacket::deserialize(deser);
     if (result.failed()) {
         spdlog::error("Failed to parse close container packet: {}", result.error().message());
+        return;
+    }
+
+    // 远程 TCP 玩家：走 ContainerManager 多玩家路径
+    if (playerId != m_clientPlayerId) {
+        auto* player = m_playerManager->getPlayer(playerId);
+        if (!player || !player->loggedIn) {
+            return;
+        }
+
+        containerManager().closeContainer(playerId);
+        inventoryManager().syncToClient(playerId);
+        return;
+    }
+
+    // 本地客户端
+    auto* player = _getPlayerData();
+    if (!player || !player->loggedIn) {
         return;
     }
 
@@ -878,7 +978,12 @@ i32 IntegratedServer::resolveOpLevel(const std::string& uuid) const noexcept
 
 bool IntegratedServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
 {
-    (void)player;
+    // 远程 TCP 玩家：走 ContainerManager 多玩家路径
+    if (player.playerId() != m_clientPlayerId) {
+        return containerManager().openContainer(player.playerId(), type, pos).success();
+    }
+
+    // 本地客户端
     return _openContainerMenu(type, pos);
 }
 
@@ -1062,34 +1167,303 @@ void IntegratedServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerI
 
 ItemStack IntegratedServer::getHeldItemForPlacement(PlayerId playerId)
 {
-    MC_UNUSED(playerId);
+    // 远程 TCP 玩家：走 InventoryManager
+    if (playerId != m_clientPlayerId) {
+        return inventoryManager().getHeldItem(playerId);
+    }
     return m_clientInventory.getSelectedStack();
 }
 
 i32 IntegratedServer::getSelectedHotbarSlot(PlayerId playerId)
 {
-    MC_UNUSED(playerId);
+    // 远程 TCP 玩家：走 InventoryManager
+    if (playerId != m_clientPlayerId) {
+        return inventoryManager().getSelectedSlot(playerId);
+    }
     return m_clientInventory.getSelectedSlot();
 }
 
 void IntegratedServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack)
 {
-    MC_UNUSED(playerId);
+    // 远程 TCP 玩家：走 InventoryManager
+    if (playerId != m_clientPlayerId) {
+        inventoryManager().setItem(playerId, slotIndex, stack);
+        return;
+    }
     m_clientInventory.setItem(slotIndex, stack);
 }
 
 void IntegratedServer::syncPlayerInventory(PlayerId playerId)
 {
-    MC_UNUSED(playerId);
+    // 远程 TCP 玩家：走 InventoryManager
+    if (playerId != m_clientPlayerId) {
+        inventoryManager().syncToClient(playerId);
+        return;
+    }
     _sendPlayerInventory();
 }
 
 bool IntegratedServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos)
 {
-    MC_UNUSED(playerId);
+    // 远程 TCP 玩家：走 ContainerManager
+    if (playerId != m_clientPlayerId) {
+        auto openResult = containerManager().openContainer(playerId, mc::ContainerType::Crafting, pos);
+        return openResult.success();
+    }
+
+    // 本地客户端
     MC_UNUSED(pos);
     _openCraftingTableMenu();
     return true;
+}
+
+// ============================================================================
+// 局域网发布（TCP 监听器）与远程玩家处理
+// ============================================================================
+
+Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
+{
+    // 端口范围校验
+    if (port < 1 || port > 65535) {
+        return Error(ErrorCode::InvalidArgument, "Port must be between 1 and 65535");
+    }
+
+    // 已发布检查
+    if (m_lanPublished) {
+        return Error(ErrorCode::AlreadyExists, "Server already published to LAN");
+    }
+
+    // 创建 TCP 服务器
+    m_lanTcpServer = std::make_unique<TcpServer>();
+
+    // 设置网络回调
+    m_lanTcpServer->setOnConnect([this](TcpSession* session) { _onRemoteClientConnect(session); });
+
+    m_lanTcpServer->setOnDisconnect(
+        [this](TcpSession* session, const std::string& reason) { _onRemoteClientDisconnect(session, reason); });
+
+    m_lanTcpServer->setOnPacket([this](TcpSession* session, const u8* data, size_t size) {
+        // 远程 TCP 玩家的数据包通过 sessionId != 0 分发
+        dispatchPacket(static_cast<u32>(session->id()), data, size);
+    });
+
+    // 启动服务器
+    TcpServerConfig serverConfig;
+    serverConfig.port = static_cast<u16>(port);
+    // 局域网发布通常不会有大量玩家，使用合理的默认值
+    serverConfig.maxConnections = static_cast<u32>(std::max(m_integratedSettings.maxPlayers.get(), 8));
+
+    auto serverResult = m_lanTcpServer->start(serverConfig);
+    if (serverResult.failed()) {
+        m_lanTcpServer.reset();
+        return Error(ErrorCode::InitializationFailed, "Failed to start LAN server: " + serverResult.error().message());
+    }
+
+    // 运行时切换作弊开关（不修改 level.dat 中的 allowCommands）
+    // 这样关闭局域网发布后，作弊状态会恢复到原始设置
+    m_params.allowCommands = allowCheats;
+
+    m_lanPublished = true;
+    m_lanPort = port;
+
+    spdlog::info(
+        "Integrated server published to LAN on port {} (cheats: {})", port, allowCheats ? "enabled" : "disabled");
+    return Result<void>::ok();
+}
+
+void IntegratedServer::_onRemoteClientConnect(TcpSession* session)
+{
+    spdlog::info("Remote client connected: {}:{}", session->address(), session->port());
+}
+
+void IntegratedServer::_onRemoteClientDisconnect(TcpSession* session, const std::string& reason)
+{
+    spdlog::info("Remote client disconnected: {}:{} - {}", session->address(), session->port(), reason);
+
+    // 移除远程玩家
+    PlayerId playerId = m_playerManager->getPlayerIdBySession(static_cast<u32>(session->id()));
+    if (playerId != 0) {
+        // 清理实体ID映射
+        {
+            std::lock_guard<std::mutex> lock(m_remotePlayersMutex);
+            m_remotePlayerEntityIds.erase(playerId);
+        }
+
+        // 清理玩家实体
+        auto* world = getPlayerWorld(playerId);
+        if (world != nullptr) {
+            m_playerEntityManager.removePlayerEntity(playerId, *world);
+        }
+
+        // 移除玩家会话信息
+        m_playerManager->removePlayer(playerId);
+
+        // 清理物品栏
+        inventoryManager().cleanupInventory(playerId);
+    }
+}
+
+void IntegratedServer::_sendLoginResponseToSession(TcpSession* session,
+    bool success,
+    PlayerId playerId,
+    EntityId entityId,
+    const std::string& username,
+    const std::string& message)
+{
+    bool isDebugWorld = m_dimensionManager->getOverworld() && m_dimensionManager->getOverworld()->world() &&
+        m_dimensionManager->getOverworld()->world()->isDebugWorld();
+    network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
+    network::PacketSerializer ser;
+    response.serialize(ser);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LoginResponse, ser.buffer());
+    session->send(fullPacket.data(), fullPacket.size());
+}
+
+void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, size_t size)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "IntegratedServer::_handleRemoteLoginRequest");
+
+    auto session = m_lanTcpServer ? m_lanTcpServer->getSession(sessionId) : nullptr;
+    if (!session) {
+        spdlog::warn("Session {} not found for remote login request", sessionId);
+        return;
+    }
+
+    network::PacketDeserializer deser(data, size);
+    auto result = network::LoginRequestPacket::deserialize(deser);
+
+    if (result.failed()) {
+        spdlog::warn("Failed to parse login request from session {}", sessionId);
+        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
+        session->disconnect("Invalid login request");
+        return;
+    }
+
+    auto& packet = result.value();
+    std::string username = packet.username();
+
+    spdlog::info("Remote player '{}' attempting to join from {}:{}", username, session->address(), session->port());
+
+    // 白名单检查
+    if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
+        spdlog::info("Remote player '{}' rejected: not in whitelist", username);
+        _sendLoginResponseToSession(
+            session.get(), false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
+        session->disconnect("Not in whitelist");
+        return;
+    }
+
+    // 检查玩家数量限制
+    if (m_playerManager->isFull()) {
+        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, username, "Server is full");
+        session->disconnect("Server is full");
+        return;
+    }
+
+    // 创建 TCP 连接
+    auto connection = std::make_shared<TcpConnection>(session);
+
+    // 分配玩家ID
+    PlayerId playerId = m_playerManager->nextPlayerId();
+
+    // 生成离线模式 UUID（基于用户名）
+    Uuid offlineUuid = util::generateOfflineUuid(username);
+    std::string uuidStr = util::uuidToString(offlineUuid);
+
+    // 添加玩家会话信息
+    auto* playerData = m_playerManager->addPlayer(playerId, uuidStr, username, connection);
+    if (!playerData) {
+        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
+        session->disconnect("Failed to add player");
+        return;
+    }
+
+    // 设置会话ID并建立映射
+    playerData->sessionId = sessionId;
+    playerData->ipAddress = session->address();
+    m_playerManager->mapSessionToPlayer(sessionId, playerId);
+
+    // 更新会话状态
+    session->setState(SessionState::Playing);
+
+    // 设置玩家初始状态
+    setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
+
+    // 创建玩家实体并加入世界
+    auto* overworldDim = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworldDim != nullptr && overworldDim->world() != nullptr);
+
+    Player* playerEntity = m_playerEntityManager.createPlayerEntity(playerId,
+        username,
+        *overworldDim->world(),
+        this,
+        connection,
+        static_cast<f32>(playerData->x),
+        static_cast<f32>(playerData->y),
+        static_cast<f32>(playerData->z));
+
+    if (!playerEntity) {
+        spdlog::error("Failed to create player entity for remote player {}", username);
+        m_playerManager->removePlayer(playerId);
+        _sendLoginResponseToSession(
+            session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+        session->disconnect("Failed to create player entity");
+        return;
+    }
+
+    // 建立玩家维度映射
+    m_dimensionManager->playerJoinDimension(playerId, overworldDim->id());
+
+    // 记录实体ID
+    EntityId entityId = playerEntity->id();
+    {
+        std::lock_guard<std::mutex> lock(m_remotePlayersMutex);
+        m_remotePlayerEntityIds[playerId] = entityId;
+    }
+
+    // 从 OP 列表设置玩家权限等级（远程玩家不享受主机作弊提升）
+    i32 playerPermissionLevel = resolveOpLevel(playerData->uuid);
+    playerEntity->setPermissionLevel(playerPermissionLevel);
+
+    // 从存档加载玩家数据并恢复到实体
+    auto* storage = sharedStorage();
+    if (storage) {
+        auto loadResult = storage->loadPlayer(uuidStr);
+        if (loadResult.success() && loadResult.value().has_value()) {
+            const auto& saveData = loadResult.value().value();
+            world::storage::PlayerDataManager::applyToPlayer(*playerEntity, saveData);
+            spdlog::info("Remote player '{}' loaded saved data (level {}, gameMode {})",
+                username,
+                saveData.experienceLevel,
+                static_cast<i32>(saveData.gameMode));
+        } else {
+            spdlog::info("Remote player '{}' is new, using default state", username);
+        }
+    }
+
+    // 初始化玩家物品栏（远程玩家使用 InventoryManager，不使用 m_clientInventory）
+    inventoryManager().initializeInventory(playerId);
+
+    if (playerData->gameMode == GameMode::Creative) {
+        if (auto* inventory = inventoryManager().getInventory(playerId)) {
+            fillCreativeModeInventory(*inventory);
+        }
+    }
+
+    // 发送登录成功响应
+    _sendLoginResponseToSession(session.get(), true, playerId, entityId, username, "Welcome to the LAN game!");
+
+    // 同步玩家权限等级到客户端
+    sendPermissionLevelChange(playerId, playerPermissionLevel);
+
+    // 发送初始游戏状态
+    sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
+
+    // 同步物品栏到客户端
+    inventoryManager().syncToClient(playerId);
+
+    spdlog::info("Remote player '{}' (ID: {}, EntityId: {}) joined the LAN game", username, playerId, entityId);
 }
 
 } // namespace mc::server

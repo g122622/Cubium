@@ -413,6 +413,21 @@ public:
      */
     virtual void requestStop() = 0;
 
+    // ========== 局域网发布 ==========
+
+    /**
+     * @brief 发布到局域网（仅集成服务器有效）
+     *
+     * 对应原版 MinecraftIntegratedServer 的 publishServer() 方法。
+     * 集成服务器调用后，会启动一个 TCP 监听器，允许局域网内其他玩家通过
+     * TCP 连接加入本局游戏；同时可切换作弊开关（运行时生效，不修改 level.dat）。
+     *
+     * @param port 监听端口（1-65535）
+     * @param allowCheats 是否允许作弊
+     * @return 成功返回 ok；已发布/端口占用/非集成服务器等情况返回错误
+     */
+    [[nodiscard]] virtual Result<void> publishToLan(i32 port, bool allowCheats) = 0;
+
     // ========== 粒子广播方法 ==========
 
     /**

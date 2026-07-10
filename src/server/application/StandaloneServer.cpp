@@ -1090,4 +1090,14 @@ bool StandaloneServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPo
     return openResult.success();
 }
 
+Result<void> StandaloneServer::publishToLan(i32 port, bool allowCheats)
+{
+    (void)port;
+    (void)allowCheats;
+    // 独立服务器启动时已经通过 TCP 监听对外提供服务，无法再次发布到局域网
+    return Error(ErrorCode::Unsupported,
+        "Dedicated server cannot publish to LAN: already listening on TCP port " +
+            std::to_string(m_settings.serverPort.get()));
+}
+
 } // namespace mc::server

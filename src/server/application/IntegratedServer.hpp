@@ -29,11 +29,13 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "server/network/TcpServer.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace mc::server {
 
@@ -85,20 +87,61 @@ public:
      */
     [[nodiscard]] i32 resolveOpLevel(const std::string& uuid) const noexcept override;
 
+    /**
+     * @brief 发布到局域网（仅集成服务器有效）
+     *
+     * 启动 TCP 监听器，允许局域网内其他玩家加入本局游戏；同时可切换作弊开关。
+     * 对应原版 MinecraftIntegratedServer.publishServer()。
+     *
+     * @param port 监听端口（1-65535）
+     * @param allowCheats 是否允许作弊
+     * @return 成功返回 ok；已发布/端口占用等情况返回错误
+     */
+    [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
+
 protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;
 
+    /**
+     * @brief 将会话ID转换为玩家ID
+     *
+     * 双路径架构：
+     * - sessionId == 0：本地客户端（LocalConnection），返回 m_clientPlayerId
+     * - sessionId != 0：远程 TCP 客户端，通过 PlayerManager 查询
+     *
+     * @param sessionId 会话ID
+     * @return 玩家ID，如果无效返回 0
+     */
     [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
     {
-        (void)sessionId;
-        return m_clientPlayerId;
+        if (sessionId == 0) {
+            return m_clientPlayerId;
+        }
+        return m_playerManager->getPlayerIdBySession(sessionId);
     }
 
+    /**
+     * @brief 向指定玩家发送数据包
+     *
+     * 双路径架构：
+     * - 本地客户端（playerId == m_clientPlayerId）：直接走 LocalEndpoint（零拷贝优化）
+     * - 远程 TCP 玩家：通过 ServerPlayerData::send() 走 TcpConnection
+     *
+     * @param playerId 玩家ID
+     * @param data 数据指针
+     * @param size 数据大小
+     */
     void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override
     {
         if (playerId == m_clientPlayerId) {
             _sendToClient(data, size);
+            return;
+        }
+
+        auto* player = m_playerManager->getPlayer(playerId);
+        if (player != nullptr) {
+            player->send(data, size);
         }
     }
 
@@ -176,6 +219,43 @@ private:
     void _closeCurrentContainer(bool sendClosePacket);
     void _openCraftingTableMenu();
 
+    // ========== 远程 TCP 玩家支持（局域网发布后启用）==========
+
+    /**
+     * @brief TCP 客户端连接事件回调
+     */
+    void _onRemoteClientConnect(TcpSession* session);
+
+    /**
+     * @brief TCP 客户端断开事件回调
+     */
+    void _onRemoteClientDisconnect(TcpSession* session, const std::string& reason);
+
+    /**
+     * @brief 向远程 TCP 玩家发送登录响应
+     */
+    void _sendLoginResponseToSession(TcpSession* session,
+        bool success,
+        PlayerId playerId,
+        EntityId entityId,
+        const std::string& username,
+        const std::string& message);
+
+    /**
+     * @brief 处理远程 TCP 玩家的登录请求
+     *
+     * 与本地客户端登录流程不同：
+     * - 不使用 LocalServerConnection，而是创建 TcpConnection
+     * - 不使用 m_clientInventory，而是使用 InventoryManager
+     * - 不使用 m_openMenu 等单玩家容器字段，而是使用 ContainerManager
+     * - 通过 PlayerManager 建立会话映射
+     *
+     * @param sessionId TCP 会话ID（非 0）
+     * @param data 登录请求数据包载荷
+     * @param size 数据大小
+     */
+    void _handleRemoteLoginRequest(u32 sessionId, const u8* data, size_t size);
+
     void onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory) override;
     [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
     [[nodiscard]] i32 getSelectedHotbarSlot(PlayerId playerId) override;
@@ -229,6 +309,19 @@ private:
     BlockPos m_openContainerPos;
     ContainerId m_nextContainerId = 1;
     mutable std::mutex m_clientDataMutex;
+
+    // ========== 局域网发布（TCP 监听器）==========
+    // publishToLan() 调用后创建，允许远程玩家通过 TCP 加入本局游戏。
+    // 本地客户端仍走 LocalConnection（m_connectionPair），不受此监听器影响。
+    std::unique_ptr<TcpServer> m_lanTcpServer;
+
+    // 远程玩家实体ID映射（PlayerId -> EntityId），用于快速查找
+    std::unordered_map<PlayerId, EntityId> m_remotePlayerEntityIds;
+    mutable std::mutex m_remotePlayersMutex;
+
+    // 局域网发布状态
+    bool m_lanPublished = false;
+    i32 m_lanPort = 0;
 };
 
 } // namespace mc::server

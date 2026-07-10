@@ -76,6 +76,19 @@ public:
     [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
     [[nodiscard]] bool isDedicated() const noexcept override { return false; }
 
+    // 测试桩：模拟局域网发布成功
+    [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override
+    {
+        m_publishCalled = true;
+        m_lastPort = port;
+        m_lastAllowCheats = allowCheats;
+        return Result<void>::ok();
+    }
+
+    [[nodiscard]] bool publishCalled() const noexcept { return m_publishCalled; }
+    [[nodiscard]] i32 lastPublishedPort() const noexcept { return m_lastPort; }
+    [[nodiscard]] bool lastAllowCheats() const noexcept { return m_lastAllowCheats; }
+
     // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
     // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
     // 命令走 "World not available" 分支返回 0，避免 BaseTestServer 默认实现
@@ -96,6 +109,9 @@ public:
 
 private:
     DimensionManager m_dimensionManager;
+    bool m_publishCalled = false;
+    i32 m_lastPort = 0;
+    bool m_lastAllowCheats = false;
 };
 
 TEST(DedicatedTestServerTypeTest, IsIntegratedReturnsFalse)
@@ -177,6 +193,10 @@ TEST_F(PublishCommandTest, PublishCommandSucceedsOnIntegratedServer)
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_integratedServer.publishCalled());
+    // 默认端口应为 25565
+    EXPECT_EQ(m_integratedServer.lastPublishedPort(), 25565);
+    EXPECT_FALSE(m_integratedServer.lastAllowCheats());
 }
 
 TEST_F(PublishCommandTest, PublishCommandWithCustomPort)
@@ -187,6 +207,9 @@ TEST_F(PublishCommandTest, PublishCommandWithCustomPort)
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_integratedServer.publishCalled());
+    EXPECT_EQ(m_integratedServer.lastPublishedPort(), 25566);
+    EXPECT_FALSE(m_integratedServer.lastAllowCheats());
 }
 
 TEST_F(PublishCommandTest, PublishCommandWithPortAndCheats)
@@ -197,6 +220,21 @@ TEST_F(PublishCommandTest, PublishCommandWithPortAndCheats)
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(m_integratedServer.publishCalled());
+    EXPECT_EQ(m_integratedServer.lastPublishedPort(), 25566);
+    EXPECT_TRUE(m_integratedServer.lastAllowCheats());
+}
+
+TEST_F(PublishCommandTest, PublishCommandWithCheatsOnly)
+{
+    ServerCommandSource source(&m_integratedServer, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 4);
+
+    // 仅指定 cheats 参数，端口使用默认值
+    const auto result = m_integratedServer.commandRegistry().execute("publish true", source);
+
+    // publish 命令的语法是 /publish [port] [allowCheats]，不支持仅指定 cheats
+    // "true" 会被尝试解析为 port，但 bool 类型不匹配 integer，所以应该失败
+    EXPECT_FALSE(result.success());
 }
 
 TEST_F(PublishCommandTest, PublishCommandInvalidPortTooLow)

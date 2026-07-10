@@ -70,6 +70,14 @@ public:
     [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
     [[nodiscard]] bool isDedicated() const noexcept override { return true; }
 
+    /**
+     * @brief 发布到局域网（独立服务器不支持）
+     *
+     * 独立服务器已经在启动时通过 TCP 监听对外提供服务，无需也无法再次发布到局域网。
+     * 调用此方法将返回错误。
+     */
+    [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
+
 protected:
     void pollNetwork() override;
     void broadcastPacket(const u8* data, size_t size) override;

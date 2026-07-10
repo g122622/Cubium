@@ -79,17 +79,19 @@ i32 PublishCommand::_publishToWorld(CommandContext<ServerCommandSource>& context
         allowCheats = context.getArgument<bool>("allowCheats");
     }
 
+    // 调用服务器的局域网发布接口
+    auto result = server->publishToLan(port, allowCheats);
+    if (result.failed()) {
+        source.sendError("Failed to publish world to LAN: " + result.error().message());
+        return 0;
+    }
+
     std::ostringstream ss;
     ss << "Published world to LAN on port " << port;
     if (allowCheats) {
         ss << " with cheats enabled";
     }
     source.sendMessage(ss.str());
-
-    // TODO: 实现局域网发布功能
-    // 1. 启动局域网监听
-    // 2. 设置是否允许作弊
-    // 3. 广播到局域网
 
     return 1;
 }
