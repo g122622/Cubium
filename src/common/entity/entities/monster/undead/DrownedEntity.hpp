@@ -84,7 +84,6 @@ public:
     /**
      * @brief 溺尸可以在液体中生成
      *
-     * 对应 MC 原版 Drowned.canSpawnInLiquids()。
      * 溺尸是水中生物，增援生成时允许在水中生成。
      */
     [[nodiscard]] bool canSpawnInLiquids() const override { return true; }
@@ -92,7 +91,6 @@ public:
     /**
      * @brief 溺尸不需要溺水转化（已是溺尸状态）
      *
-     * 对应 MC 原版 Drowned.shouldDrown() = false。
      * 防止溺尸反复触发溺水转化逻辑。
      */
     [[nodiscard]] bool shouldDrown() const override { return false; }
@@ -161,6 +159,23 @@ public:
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    // ========== 生成初始化 ==========
+
+    /**
+     * @brief 完成溺尸的生成初始化
+     *
+     * 在父类（僵尸）生成初始化之后，随机决定是否手持三叉戟：
+     * 约 10% 概率装主手武器，其中 10/16 为三叉戟（综合约 6.25%）。
+     * 仅在生成初始化路径中决定，未经过生成初始化的溺尸默认不持有三叉戟。
+     *
+     * @param world 世界引用
+     * @param difficulty 区域难度实例
+     * @param spawnReason 生成原因
+     */
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
 
 protected:
     void registerGoals() override;

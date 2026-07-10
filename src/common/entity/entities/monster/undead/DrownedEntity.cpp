@@ -32,6 +32,7 @@
 #include "common/entity/ai/goal/goals/special/DrownedGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -57,9 +58,9 @@ DrownedEntity::DrownedEntity(EntityId id)
     // 注册属性
     registerAttributes();
 
-    // 随机决定是否手持三叉戟
-    math::Random& rng = getRandom();
-    m_hasTrident = rng.nextInt(1, 100) <= 15; // 15% 概率
+    // 三叉戟持有状态在 finalizeSpawn() 中按生成时概率随机决定（与父类僵尸的
+    // 破门/南瓜头等生成期初始化同模式）。直接构造（未经过生成初始化）的溺尸
+    // 默认不持有三叉戟，避免构造期随机带来的不确定性。
 }
 
 std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/)
@@ -160,6 +161,22 @@ void DrownedEntity::tick()
     // 溺尸在水中时的特殊移动控制由 DrownedMoveControl 处理
     // DrownedSwimUpGoal 和 DrownedGoToBeachGoal 管理 searchingForLand 状态
     // DrownedMoveControl 读取 wantsToSwim() 来决定水中移动方式
+}
+
+void DrownedEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    // 先调用父类生成初始化（拾取物品、破门、装备附魔、属性修饰符等）
+    ZombieEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    // 随机决定是否手持三叉戟：约 10% 概率装主手武器，其中 10/16 为三叉戟
+    // （综合约 6.25%）。与局部难度无关。转化生成的溺尸不走此路径，不会重新随机。
+    math::Random& rng = getRandom();
+    if (rng.nextFloat() > 0.9f) {
+        m_hasTrident = rng.nextInt(16) < 10;
+    } else {
+        m_hasTrident = false;
+    }
 }
 
 void DrownedEntity::registerGoals()
