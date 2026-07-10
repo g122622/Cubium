@@ -136,6 +136,23 @@ public:
     void setAtlasSlot(u8 slot) { m_atlasSlot = slot; }
 
     /**
+     * @brief 获取着色颜色（ARGB）
+     *
+     * 绘制时与纹理像素做逐通道相乘，默认 `DEFAULT_TINT`（白色全不透明）等价于无着色。
+     */
+    [[nodiscard]] u32 tint() const { return m_tint; }
+
+    /**
+     * @brief 设置着色颜色（ARGB）
+     *
+     * 传递给画布后由具体渲染器在采样纹理后做颜色调制。
+     * 默认 `DEFAULT_TINT` 表示无着色。
+     *
+     * @param tint ARGB 颜色（0xAARRGGBB）
+     */
+    void setTint(u32 tint) { m_tint = tint; }
+
+    /**
      * @brief 检查纹理是否有效
      */
     [[nodiscard]] bool isValid() const { return m_imageView != VK_NULL_HANDLE; }
@@ -150,6 +167,7 @@ private:
     f32 m_u1 = 1.0f;
     f32 m_v1 = 1.0f;
     u8 m_atlasSlot = 1;                        ///< 默认使用物品图集槽位
+    u32 m_tint = DEFAULT_TINT;                 ///< 着色颜色（ARGB），默认白色全不透明
     ImageFormat m_format = ImageFormat::RGBA8; ///< 纹理像素格式
     std::string m_debugName;
 };

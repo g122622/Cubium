@@ -335,6 +335,10 @@ private:
             return false;
         }
 
+        // 应用着色（tint）：将 Widget 层维护的 m_tint 写入 TextureImage，
+        // 由画布（TridentCanvas）在调用 drawTexturedRect 时作为颜色调制传给渲染器。
+        image.setTint(m_tint);
+
         // drawImage(image, dstRect) 将整张纹理映射到 dst，
         // TextureImage 已携带精灵在图集中的 UV，故无需在此处理自定义 UV。
         ctx.drawImage(image, dst);

@@ -179,3 +179,48 @@ TEST(TextureImageTest, DefaultTintConstant)
     // 白色全不透明：ARGB = 0xFFFFFFFF
     EXPECT_EQ(0xFFFFFFFFu, TextureImage::DEFAULT_TINT);
 }
+
+// ==================== tint 成员访问测试 ====================
+
+TEST(TextureImageTest, DefaultTintIsOpaqueWhite)
+{
+    // 构造时不显式指定 tint，应默认为 DEFAULT_TINT
+    TextureImage image(VK_NULL_HANDLE, VK_NULL_HANDLE, 16, 16);
+    EXPECT_EQ(TextureImage::DEFAULT_TINT, image.tint());
+    EXPECT_EQ(0xFFFFFFFFu, image.tint());
+}
+
+TEST(TextureImageTest, SetTintUpdatesValue)
+{
+    TextureImage image(VK_NULL_HANDLE, VK_NULL_HANDLE, 16, 16);
+    image.setTint(0x80FF0000u);
+    EXPECT_EQ(0x80FF0000u, image.tint());
+}
+
+TEST(TextureImageTest, SetTintDoesNotAffectOtherState)
+{
+    const VkImageView view = reinterpret_cast<VkImageView>(0xCAFE);
+    TextureImage image(view, VK_NULL_HANDLE, 32, 48, 0.1f, 0.2f, 0.3f, 0.4f, 4, "tint_test", ImageFormat::BGRA8);
+    image.setTint(0xABCDEF12u);
+
+    // tint 修改不应影响其它纹理状态
+    EXPECT_EQ(view, image.imageView());
+    EXPECT_EQ(32, image.width());
+    EXPECT_EQ(48, image.height());
+    EXPECT_FLOAT_EQ(0.1f, image.u0());
+    EXPECT_EQ(4u, image.atlasSlot());
+    EXPECT_EQ(ImageFormat::BGRA8, image.format());
+    EXPECT_EQ("tint_test", image.debugName());
+    EXPECT_EQ(0xABCDEF12u, image.tint());
+}
+
+TEST(TextureImageTest, SetTintCanBeResetToDefault)
+{
+    TextureImage image(VK_NULL_HANDLE, VK_NULL_HANDLE, 16, 16);
+    image.setTint(0x00000000u);
+    ASSERT_EQ(0x00000000u, image.tint());
+
+    // 可恢复为默认 tint
+    image.setTint(TextureImage::DEFAULT_TINT);
+    EXPECT_EQ(TextureImage::DEFAULT_TINT, image.tint());
+}

@@ -213,7 +213,7 @@ void TridentCanvas::drawImage(const kagero::paint::IImage& image, f32 x, f32 y)
     const f32 w = static_cast<f32>(textureImage->width());
     const f32 h = static_cast<f32>(textureImage->height());
 
-    // 绘制纹理矩形，传递图集槽位
+    // 绘制纹理矩形，传递图集槽位与着色（tint）
     m_renderer.drawTexturedRect(x,
         y,
         w,
@@ -222,7 +222,7 @@ void TridentCanvas::drawImage(const kagero::paint::IImage& image, f32 x, f32 y)
         textureImage->v0(),
         textureImage->u1(),
         textureImage->v1(),
-        kagero::paint::TextureImage::DEFAULT_TINT,
+        textureImage->tint(),
         textureImage->atlasSlot());
 }
 
@@ -262,7 +262,7 @@ void TridentCanvas::drawImageRect(const kagero::paint::IImage& image, const kage
         v0,
         u1,
         v1,
-        kagero::paint::TextureImage::DEFAULT_TINT,
+        textureImage->tint(),
         textureImage->atlasSlot());
 }
 
@@ -281,8 +281,8 @@ void TridentCanvas::drawImageNine(const kagero::paint::IImage& image,
         return;
     }
 
-    // 提取颜色（如果有）
-    u32 tint = kagero::paint::TextureImage::DEFAULT_TINT;
+    // 提取颜色（如果有），否则回退到纹理自身的着色
+    u32 tint = textureImage->tint();
     if (paint != nullptr) {
         tint = _extractColor(*paint);
     }

@@ -40,6 +40,7 @@
 #include "client/renderer/trident/gui/ISpriteAtlas.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/paint/TextureImage.hpp"
 #include "client/ui/kagero/paint/contracts/ICanvas.hpp"
 #include "client/ui/kagero/paint/contracts/IImage.hpp"
 #include "client/ui/kagero/paint/contracts/IPaint.hpp"
@@ -100,6 +101,9 @@ public:
  * @brief 记录绘制调用的测试画布
  *
  * 仅覆盖 ImageWidget 测试所需调用，其余接口保持空实现。
+ *
+ * 在 drawImageRect 中尝试将 IImage 向下转型为 TextureImage，
+ * 以便捕获传递给渲染器的 tint（着色颜色）。
  */
 class RecordingCanvas final : public paint::ICanvas {
 public:
@@ -111,6 +115,8 @@ public:
         lastFilledRect = Rect{};
         lastFilledColor = 0;
         lastImageRectDst = Rect{};
+        lastImageTint = 0;
+        lastImageValid = false;
     }
 
     void drawRect(const Rect& rect, const paint::IPaint& paint) override
@@ -129,11 +135,20 @@ public:
 
     void drawImage(const paint::IImage&, f32, f32) override { imageCalled = true; }
 
-    void drawImageRect(const paint::IImage&, const Rect& src, const Rect& dst) override
+    void drawImageRect(const paint::IImage& image, const Rect& src, const Rect& dst) override
     {
         (void)src;
         imageRectCalled = true;
         lastImageRectDst = dst;
+        // 尝试向下转型为 TextureImage 以读取 tint 与有效性
+        const auto* textureImage = dynamic_cast<const paint::TextureImage*>(&image);
+        if (textureImage != nullptr) {
+            lastImageTint = textureImage->tint();
+            lastImageValid = textureImage->isValid();
+        } else {
+            lastImageTint = paint::TextureImage::DEFAULT_TINT;
+            lastImageValid = false;
+        }
     }
 
     void drawImageNine(const paint::IImage&, const Rect&, const Rect&, const paint::IPaint*) override {}
@@ -169,6 +184,8 @@ public:
     Rect lastFilledRect{};
     u32 lastFilledColor = 0;
     Rect lastImageRectDst{};
+    u32 lastImageTint = 0;
+    bool lastImageValid = false;
 };
 
 } // namespace
@@ -458,4 +475,87 @@ TEST(ImageWidgetTest, PaintWithAtlasEmptySpriteIdFallsBack)
 
     EXPECT_FALSE(canvas.imageRectCalled);
     EXPECT_TRUE(canvas.filledRectCalled);
+}
+
+// ==================== 着色（tint）渲染路径测试 ====================
+
+TEST(ImageWidgetTest, PaintDefaultTintIsAppliedToTextureImage)
+{
+    RecordingCanvas canvas;
+    PaintContext ctx(canvas);
+    FakeSpriteAtlas atlas;
+    atlas.withSprite("logo", 100, 50);
+
+    ImageWidget image("logo", 10, 20, 100, 50);
+    image.setSpriteSource(&atlas, "logo");
+
+    image.paint(ctx);
+
+    // 默认 tint 为白色全不透明，应被写入 TextureImage 并在画布捕获
+    EXPECT_TRUE(canvas.imageRectCalled);
+    EXPECT_TRUE(canvas.lastImageValid);
+    EXPECT_EQ(0xFFFFFFFFu, canvas.lastImageTint);
+}
+
+TEST(ImageWidgetTest, PaintCustomTintIsAppliedToTextureImage)
+{
+    RecordingCanvas canvas;
+    PaintContext ctx(canvas);
+    FakeSpriteAtlas atlas;
+    atlas.withSprite("logo", 100, 50);
+
+    ImageWidget image("logo", 10, 20, 100, 50);
+    image.setSpriteSource(&atlas, "logo");
+    // 红色半透明
+    image.setTint(0x80FF0000u);
+
+    image.paint(ctx);
+
+    // 自定义 tint 应被写入 TextureImage，并在 drawImageRect 时被画布读到
+    EXPECT_TRUE(canvas.imageRectCalled);
+    EXPECT_TRUE(canvas.lastImageValid);
+    EXPECT_EQ(0x80FF0000u, canvas.lastImageTint);
+}
+
+TEST(ImageWidgetTest, PaintTintPreservedAcrossMultiplePaints)
+{
+    RecordingCanvas canvas;
+    PaintContext ctx(canvas);
+    FakeSpriteAtlas atlas;
+    atlas.withSprite("logo", 100, 50);
+
+    ImageWidget image("logo", 10, 20, 100, 50);
+    image.setSpriteSource(&atlas, "logo");
+    image.setTint(0x12345678u);
+
+    // 第一次绘制
+    image.paint(ctx);
+    EXPECT_EQ(0x12345678u, canvas.lastImageTint);
+
+    // 修改 tint 后再次绘制，验证每次绘制都使用当前 m_tint
+    canvas.reset();
+    image.setTint(0xABCDEF12u);
+    image.paint(ctx);
+    EXPECT_EQ(0xABCDEF12u, canvas.lastImageTint);
+}
+
+TEST(ImageWidgetTest, PaintTintAppliedWithAutoSize)
+{
+    RecordingCanvas canvas;
+    PaintContext ctx(canvas);
+    FakeSpriteAtlas atlas;
+    atlas.withSprite("icon", 16, 16);
+
+    ImageWidget image("icon", 5, 8, 0, 0);
+    image.setSpriteSource(&atlas, "icon");
+    image.setAutoSize(true);
+    image.setTint(0xFFFF0000u);
+
+    image.paint(ctx);
+
+    // 自动尺寸路径同样应用 tint
+    EXPECT_TRUE(canvas.imageRectCalled);
+    EXPECT_EQ(16, canvas.lastImageRectDst.width);
+    EXPECT_EQ(16, canvas.lastImageRectDst.height);
+    EXPECT_EQ(0xFFFF0000u, canvas.lastImageTint);
 }
