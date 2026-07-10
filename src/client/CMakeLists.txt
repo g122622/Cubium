@@ -402,6 +402,7 @@ add_executable(minecraft-client
     ui/minecraft/screens/MessageScreen.cpp
     ui/minecraft/screens/OptionsScreen.cpp
     ui/minecraft/screens/DebugScreenWidget.cpp
+    ui/minecraft/screens/SignEditScreen.cpp
     # 客户端实体管理
     world/entity/ClientEntity.cpp
     world/entity/ClientEntityManager.cpp

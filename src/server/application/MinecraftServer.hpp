@@ -628,6 +628,18 @@ protected:
     virtual void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) = 0;
 
     /**
+     * @brief 处理告示牌文本更新数据包
+     *
+     * 客户端在告示牌编辑器关闭时发送 UpdateSignPacket。
+     * 服务端解析后更新对应 SignEntity 的文本，并清除编辑锁。
+     *
+     * @param playerId 玩家ID
+     * @param data 数据包体
+     * @param size 数据包体大小
+     */
+    void handleUpdateSignPacket(PlayerId playerId, const u8* data, size_t size);
+
+    /**
      * @brief 处理登录请求（子类实现特定逻辑）
      */
     virtual void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) = 0;

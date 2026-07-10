@@ -36,6 +36,7 @@
 #include "common/network/packet/MapDataPacket.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
@@ -104,6 +105,7 @@ struct NetworkClientCallbacks {
     std::function<void(i64 gameTime, i64 dayTime, bool daylightCycleEnabled)> onTimeUpdate;
     std::function<void(i32 selectedSlot, const std::vector<ItemStack>& items)> onPlayerInventory;
     std::function<void(const OpenContainerPacket& packet)> onOpenContainer;
+    std::function<void(const network::OpenSignEditorPacket& packet)> onSignEditorOpen;
     std::function<void(const ContainerContentPacket& packet)> onContainerContent;
     std::function<void(const ContainerSlotPacket& packet)> onContainerSlot;
     std::function<void(ContainerId containerId)> onCloseContainer;
@@ -387,6 +389,19 @@ public:
     void sendContainerClick(const ContainerClickPacket& packet);
     void sendCloseContainer(ContainerId containerId);
 
+    /**
+     * @brief 发送告示牌文本更新包
+     *
+     * 客户端在告示牌编辑器关闭时调用，将编辑后的4行文本发送给服务端。
+     *
+     * @param pos 告示牌方块位置
+     * @param lines 4行文本
+     * @param isFrontSide 是否编辑正面
+     */
+    void sendUpdateSign(const BlockPos& pos,
+        const std::array<std::string, network::UpdateSignPacket::LINE_COUNT>& lines,
+        bool isFrontSide);
+
     // 骑乘相关数据包
     /**
      * @brief 发送玩家输入包（骑乘时使用）
@@ -460,6 +475,7 @@ private:
     void _handleContainerContent(network::PacketDeserializer& deser);
     void _handleContainerSlot(network::PacketDeserializer& deser);
     void _handleCloseContainer(network::PacketDeserializer& deser);
+    void _handleSignEditorOpen(network::PacketDeserializer& deser);
     void _handleDisconnect(network::PacketDeserializer& deser);
 
     // 实体包处理

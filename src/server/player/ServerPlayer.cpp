@@ -35,6 +35,7 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SetCameraPacket.hpp"
+#include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
 #include "common/scoreboard/core/Team.hpp"
@@ -134,6 +135,21 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
 
     if (!_sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: system message not sent (player={}, no connection)", username());
+    }
+}
+
+void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
+{
+    // 向客户端发送 OpenSignEditorPacket，通知其打开告示牌编辑界面
+    network::OpenSignEditorPacket packet(pos, isFrontSide);
+    network::PacketSerializer payload;
+    packet.serialize(payload);
+
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::OpenSignEditor, payload.buffer());
+
+    if (!_sendFullPacket(fullPacket)) {
+        spdlog::warn("ServerPlayer: open sign editor packet not sent (player={}, no connection)", username());
     }
 }
 

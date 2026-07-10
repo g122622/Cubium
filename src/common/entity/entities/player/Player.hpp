@@ -1496,6 +1496,22 @@ public:
     [[nodiscard]] bool openContainer(INamedContainerProvider& provider);
 
     /**
+     * @brief 打开告示牌编辑器
+     *
+     * 当玩家右键点击可编辑的告示牌时调用。
+     * 基类默认空实现（客户端 Player 无网络能力）。
+     * ServerPlayer 重写以发送 OpenSignEditorPacket 给客户端。
+     *
+     * @param pos 告示牌方块位置
+     * @param isFrontSide 是否编辑正面
+     */
+    virtual void openSignEditor(const BlockPos& pos, bool isFrontSide)
+    {
+        MC_UNUSED(pos);
+        MC_UNUSED(isFrontSide);
+    }
+
+    /**
      * @brief 获取手持物品
      * @param hand 主手或副手
      * @return 物品堆引用

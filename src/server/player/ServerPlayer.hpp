@@ -74,6 +74,16 @@ public:
     void sendSystemMessage(const std::string& message);
 
     /**
+     * @brief 打开告示牌编辑器（重写 Player 基类）。
+     *
+     * 向客户端发送 OpenSignEditorPacket，通知其打开告示牌编辑界面。
+     *
+     * @param pos 告示牌方块位置
+     * @param isFrontSide 是否编辑正面
+     */
+    void openSignEditor(const BlockPos& pos, bool isFrontSide) override;
+
+    /**
      * @brief 发送状态消息给玩家（重写 Player 基类）。
      *
      * 通过网络发送消息到客户端。如果 actionBar 为 true，

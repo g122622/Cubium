@@ -60,6 +60,7 @@ enum class PacketType : u16 {
     EntityAction = 108,            // 实体动作 (跳跃、潜行等)
     UseEntity = 109,               // 实体交互
     SteerBoat = 110,               // 船划桨状态
+    UpdateSign = 111,              // 告示牌文本更新 (C->S)
 
     // 服务端 -> 客户端 (登录阶段)
     LoginResponse = 200,
@@ -116,6 +117,9 @@ enum class PacketType : u16 {
 
     // 方块事件包 (S->C)
     BlockEvent = 235, // 方块事件（箱子开合、活塞动画等）
+
+    // 告示牌编辑器打开包 (S->C)
+    OpenSignEditor = 236, // 通知客户端打开告示牌编辑器
 
     // 背包相关包 (双向)
     ContainerContent = 300,        // 容器内容同步 (S->C)

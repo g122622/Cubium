@@ -445,6 +445,25 @@ void NetworkClient::sendCloseContainer(ContainerId containerId)
     _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
+void NetworkClient::sendUpdateSign(
+    const BlockPos& pos, const std::array<std::string, network::UpdateSignPacket::LINE_COUNT>& lines, bool isFrontSide)
+{
+    network::UpdateSignPacket packet(pos, lines, isFrontSide);
+
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    network::PacketSerializer fullPacket;
+    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + ser.size()));
+    fullPacket.writeU16(static_cast<u16>(network::PacketType::UpdateSign));
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeBytes(ser.buffer());
+
+    _sendRawData(fullPacket.data(), fullPacket.size());
+}
+
 void NetworkClient::sendPlayerInput(f32 strafeSpeed, f32 forwardSpeed, bool jumping, bool sneaking)
 {
     network::PlayerInputPacket packet;
@@ -706,6 +725,11 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
 
         case network::PacketType::CloseContainer: {
             _handleCloseContainer(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::OpenSignEditor: {
+            _handleSignEditorOpen(bodyDeser);
             break;
         }
 
@@ -1174,6 +1198,19 @@ void NetworkClient::_handleOpenContainer(network::PacketDeserializer& deser)
 
     if (m_callbacks.onOpenContainer) {
         m_callbacks.onOpenContainer(result.value());
+    }
+}
+
+void NetworkClient::_handleSignEditorOpen(network::PacketDeserializer& deser)
+{
+    auto result = network::OpenSignEditorPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize open sign editor packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onSignEditorOpen) {
+        m_callbacks.onSignEditorOpen(result.value());
     }
 }
 

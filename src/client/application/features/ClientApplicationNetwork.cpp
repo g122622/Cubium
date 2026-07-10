@@ -38,7 +38,9 @@
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/minecraft/screens/SignEditScreen.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
+#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/AbstractContainerScreen.hpp"
 #include "client/ui/screen/CartographyScreen.hpp"
@@ -523,6 +525,40 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         ScreenManager::instance().openScreen(std::move(screen));
+    };
+
+    callbacks.onSignEditorOpen = [this](const network::OpenSignEditorPacket& packet) {
+        // 获取屏幕栈
+        auto* screenStack = getScreenStackWidget(this);
+        if (!screenStack) {
+            spdlog::warn("[Network] Cannot open sign editor: ScreenStackWidget not available");
+            return;
+        }
+
+        // 客户端没有 BlockEntity 系统，初始文本为空（与新建告示牌一致）
+        const std::array<std::string, ui::minecraft::SignEditScreen::LINE_COUNT> initialLines{};
+
+        // 创建告示牌编辑屏幕
+        auto signScreen = std::make_unique<ui::minecraft::SignEditScreen>(
+            packet.pos(),
+            initialLines,
+            packet.isFrontSide(),
+            // 提交回调：发送 UpdateSignPacket 给服务端
+            [this](const BlockPos& pos,
+                const std::array<std::string, ui::minecraft::SignEditScreen::LINE_COUNT>& lines,
+                bool isFrontSide) {
+                if (m_networkClient) {
+                    m_networkClient->sendUpdateSign(pos, lines, isFrontSide);
+                }
+            },
+            // 关闭回调：弹出屏幕栈
+            [screenStack]() { screenStack->pop(); });
+
+        // 设置屏幕大小
+        signScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
+
+        // 添加到屏幕栈（push 会自动调用 onOpen）
+        screenStack->push(std::move(signScreen));
     };
 
     callbacks.onContainerContent = [this](const ContainerContentPacket& packet) {

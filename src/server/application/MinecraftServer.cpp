@@ -65,6 +65,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/packet/SetEntityLinkPacket.hpp"
+#include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -81,6 +82,9 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
@@ -2159,6 +2163,78 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
     spdlog::info("[Chat] {}: {}", player->username, message);
 }
 
+void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    network::PacketDeserializer deser(data, size);
+    auto result = network::UpdateSignPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to parse update sign packet from player {}: {}", playerId, result.error().message());
+        return;
+    }
+
+    const auto& packet = result.value();
+    const BlockPos& signPos = packet.pos();
+
+    // 获取玩家所在维度的世界
+    ServerWorld* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::warn("UpdateSign: player {} has no world", playerId);
+        return;
+    }
+
+    // 获取告示牌方块实体
+    BlockEntity* blockEntity = world->getBlockEntity(signPos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Sign) {
+        spdlog::warn(
+            "UpdateSign: no sign entity at ({}, {}, {}) for player {}", signPos.x, signPos.y, signPos.z, playerId);
+        return;
+    }
+
+    auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+
+    // 安全检查：只有当前编辑者才能更新文本
+    // 对应 MC Java 的 SignBlockEntity.setAllowedPlayerEditor 机制
+    if (signEntity->getPlayerWhoMayEdit() != player->uuid) {
+        spdlog::warn("UpdateSign: player {} is not the allowed editor of sign at ({}, {}, {})",
+            playerId,
+            signPos.x,
+            signPos.y,
+            signPos.z);
+        return;
+    }
+
+    // 涂蜡的告示牌不允许修改文本
+    if (signEntity->isWaxed()) {
+        spdlog::warn("UpdateSign: sign at ({}, {}, {}) is waxed, ignoring update from player {}",
+            signPos.x,
+            signPos.y,
+            signPos.z,
+            playerId);
+        signEntity->clearAllowedPlayerEditor();
+        return;
+    }
+
+    // 更新4行文本
+    for (i32 i = 0; i < network::UpdateSignPacket::LINE_COUNT; ++i) {
+        signEntity->setLineFromLegacy(i, packet.lines()[static_cast<std::size_t>(i)]);
+    }
+
+    // 清除编辑锁
+    signEntity->clearAllowedPlayerEditor();
+
+    // 标记方块实体已变更，触发保存和客户端同步
+    signEntity->setChanged();
+
+    // 广播方块更新给附近玩家（确保客户端显示最新文本）
+    // 通过发送 BlockUpdate 包让所有跟踪此区块的玩家刷新告示牌方块实体数据
+    spdlog::debug("UpdateSign: player {} updated sign at ({}, {}, {})", playerId, signPos.x, signPos.y, signPos.z);
+}
+
 void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -2662,6 +2738,20 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleChatMessagePacket(playerId, payload, payloadSize);
+            }
+            break;
+        }
+
+        case network::PacketType::UpdateSign: {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleUpdateSignPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
+            PlayerId playerId = getPlayerIdForSession(sessionId);
+            if (playerId != 0) {
+                handleUpdateSignPacket(playerId, payload, payloadSize);
             }
             break;
         }

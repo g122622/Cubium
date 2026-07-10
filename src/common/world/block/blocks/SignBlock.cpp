@@ -152,10 +152,20 @@ BlockActionResult AbstractSignBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Pass;
     }
 
-    // TODO: 当告示牌编辑 UI 实现后，在此处添加：
-    //   1. 检查告示牌文本是否可编辑（hasEditableText）
-    //   2. 调用 signEntity->setAllowedPlayerEditor(player.uuid()) 设置编辑锁
-    //   3. 打开告示牌编辑界面
+    // 检查告示牌文本是否可编辑（涂蜡的告示牌不可编辑）
+    // 对应 MC Java SignBlock.useWithoutItem() 中的 hasEditableText() 检查
+    if (!signEntity->hasEditableText()) {
+        return ActionResultType::Pass;
+    }
+
+    // 设置编辑锁，防止其他玩家同时编辑
+    // 对应 MC Java SignBlock.openTextEdit() 中的 setAllowedPlayerEditor()
+    signEntity->setAllowedPlayerEditor(player.uuid());
+
+    // 打开告示牌编辑界面（发送 OpenSignEditorPacket 给客户端）
+    // 对应 MC Java SignBlock.openTextEdit() 中的 player.openTextEdit()
+    // 项目告示牌为单面文本模型，始终编辑正面
+    player.openSignEditor(pos, true);
 
     return ActionResultType::Success;
 }

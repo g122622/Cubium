@@ -132,6 +132,17 @@ public:
      */
     void setEditable(bool editable);
 
+    /**
+     * @brief 检查告示牌文本是否可编辑
+     *
+     * 对应 MC Java 的 SignBlockEntity.hasEditableText()。
+     * 仅当告示牌未涂蜡时返回 true（涂蜡后文本永久不可编辑）。
+     * 此方法用于 SignBlock 在玩家右键交互时判断是否应打开编辑器。
+     *
+     * @return 如果文本可编辑返回 true
+     */
+    [[nodiscard]] bool hasEditableText() const { return !m_waxed; }
+
     // ========== 编辑者追踪 ==========
     // 参考 MC Java 的 SignBlockEntity.playerWhoMayEdit 机制：
     // 当玩家打开告示牌编辑器时，设置其 UUID 为允许编辑者；
