@@ -20,6 +20,7 @@ src/client/ui/minecraft/screens/
 ├── ContainerScreen.hpp/cpp    # 容器界面
 ├── LoomScreen.hpp/cpp         # 织布机界面
 ├── OptionsScreen.hpp/cpp      # 设置界面
+├── SignEditScreen.hpp/cpp     # 告示牌编辑界面（4行文本输入）
 ├── DebugScreenWidget.hpp/cpp  # F3 调试屏幕
 └── README.md                  # 本文档
 ```
@@ -30,6 +31,7 @@ src/client/ui/minecraft/screens/
 - `TemplateScreen` 继承 `Screen`，支持从 `.tpl` 模板文件加载 UI 布局
 - `ScreenManager` 管理屏幕栈生命周期（push/pop/clear）、绘制顺序、事件传播
 - `DebugScreenWidget` 依赖 `ClientWorld`、`Camera`、`Player`、`ClientDimensionManager`、`DifficultyInstance`、`ParticleManager` 显示调试信息
+- `SignEditScreen` 使用 `TextFieldWidget` 实现4行文本编辑，支持 Tab/Shift+Tab 切换行、Enter 提交、ESC 取消；通过回调与网络层交互（发送 `UpdateSignPacket`）
 - 各具体屏幕（`MainMenuScreen`、`PauseScreen` 等）继承 `Screen` 或 `TemplateScreen`
 
 ## 上下游外部依赖关系

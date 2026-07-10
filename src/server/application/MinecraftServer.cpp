@@ -2227,11 +2227,21 @@ void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const u8* data, 
     // 清除编辑锁
     signEntity->clearAllowedPlayerEditor();
 
-    // 标记方块实体已变更，触发保存和客户端同步
+    // 标记方块实体已变更，触发区块存档保存
     signEntity->setChanged();
 
-    // 广播方块更新给附近玩家（确保客户端显示最新文本）
-    // 通过发送 BlockUpdate 包让所有跟踪此区块的玩家刷新告示牌方块实体数据
+    // TODO: 告示牌文本更新后需要广播 BlockEntity 数据给附近其他玩家，
+    // 使其他玩家能看到更新后的告示牌文本。当前项目缺少 BlockEntity 客户端同步机制：
+    //   - 无 PacketType::BlockEntityData 枚举与对应包类
+    //   - BlockEntity 基类无 getUpdatePacket()/getUpdateTag() 虚方法
+    //   - ServerWorld 无 broadcastBlockEntity(pos) 入口
+    //   - NetworkClient 无 onBlockEntityUpdate 回调
+    //   - ClientWorld 无 BlockEntity 存储与 getBlockEntity() 实现
+    //   - SignRenderer 未实现，BlockEntityRendererDispatcher 未集成到主渲染循环
+    // 实现上述子系统后，在此处调用 world->broadcastBlockEntity(signPos)。
+    // 当前编辑者自己通过 SignEditScreen 本地状态可见，单人模式下体验完整；
+    // 多人模式下其他玩家需重新加载区块才能看到更新（客户端 BlockEntity 渲染缺失，
+    // 即使重载也暂不可见）。
     spdlog::debug("UpdateSign: player {} updated sign at ({}, {}, {})", playerId, signPos.x, signPos.y, signPos.z);
 }
 

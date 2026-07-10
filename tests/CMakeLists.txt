@@ -556,6 +556,8 @@ add_executable(mc_tests
     common/world/block/blocks/HopperBlockTest.cpp
     # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
     common/world/block/blocks/SignBlockTest.cpp
+    # SignBlock 告示牌编辑流程核心逻辑测试（编辑者校验/涂蜡校验/文本更新）
+    common/world/block/blocks/SignBlockEditTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SnowBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
@@ -1007,6 +1009,8 @@ add_executable(mc_tests
     network/BossInfoPacketTest.cpp
     # 旁观者摄像机同步包测试
     network/SetCameraPacketTest.cpp
+    # 告示牌网络包序列化/反序列化测试
+    network/SignPacketsTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/MatchToolConditionTest.cpp
@@ -1281,6 +1285,8 @@ add_executable(mc_tests
     client/ui/minecraft/screens/CreateWorldScreenTest.cpp
     # MessageScreen 通用通知对话框回调与 ESC 关闭测试
     client/ui/minecraft/screens/MessageScreenTest.cpp
+    # SignEditScreen 告示牌编辑屏幕按键交互测试（Tab切换/Enter提交/ESC取消）
+    client/ui/minecraft/screens/SignEditScreenTest.cpp
     # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
     client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
@@ -2162,6 +2168,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/CreateWorldScreen.cpp
         # MessageScreen 测试依赖：通用通知对话框实现
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/MessageScreen.cpp
+        # SignEditScreen 测试依赖：告示牌编辑屏幕实现（Tab切换/Enter提交/ESC取消）
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/SignEditScreen.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp

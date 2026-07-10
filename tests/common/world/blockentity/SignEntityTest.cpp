@@ -402,6 +402,36 @@ TEST_F(SignEntityTest, Clone_PreservesWaxedState)
     EXPECT_TRUE(signCopy->isWaxed());
 }
 
+// ========== hasEditableText 测试 ==========
+
+TEST_F(SignEntityTest, HasEditableText_NotWaxed_ReturnsTrue)
+{
+    // 默认未涂蜡，文本可编辑
+    EXPECT_TRUE(signEntity->hasEditableText());
+}
+
+TEST_F(SignEntityTest, HasEditableText_Waxed_ReturnsFalse)
+{
+    signEntity->setWaxed(true);
+    EXPECT_FALSE(signEntity->hasEditableText());
+}
+
+TEST_F(SignEntityTest, HasEditableText_UnwaxRestoresEditable)
+{
+    signEntity->setWaxed(true);
+    EXPECT_FALSE(signEntity->hasEditableText());
+
+    signEntity->setWaxed(false);
+    EXPECT_TRUE(signEntity->hasEditableText());
+}
+
+TEST_F(SignEntityTest, HasEditableText_InitiallyTrue)
+{
+    // 新构造的 SignEntity 未涂蜡，hasEditableText 应为 true
+    SignEntity freshSign(BlockPos(0, 0, 0));
+    EXPECT_TRUE(freshSign.hasEditableText());
+}
+
 // ========== 编辑者追踪测试 ==========
 
 TEST_F(SignEntityTest, SetAllowedPlayerEditor_SetsUuid)

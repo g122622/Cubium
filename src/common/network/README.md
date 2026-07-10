@@ -40,6 +40,7 @@ network/
 │   ├── ExperiencePackets.hpp/cpp        # 经验值同步包
 │   ├── MapDataPacket.hpp/cpp            # 地图数据包
 │   ├── ParticlePacket.hpp/cpp           # 粒子效果包
+│   ├── SignPackets.hpp                  # 告示牌编辑包（OpenSignEditor S→C、UpdateSign C→S）
 │   └── README.md
 └── sync/                                # 同步层
     ├── Sync.hpp                         # 统一头文件

@@ -535,7 +535,12 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        // 客户端没有 BlockEntity 系统，初始文本为空（与新建告示牌一致）
+        // TODO: 客户端没有 BlockEntity 系统，无法获取告示牌的当前文本。
+        // 当前 initialLines 硬编码为空数组，导致玩家编辑已有告示牌时会丢失现有文本
+        // （提交后服务端会用空文本覆盖原有内容）。
+        // 实现客户端 BlockEntity 存储（ClientWorld::getBlockEntity）+
+        // BlockEntity 客户端同步（PacketType::BlockEntityData）后，
+        // 应从客户端 BlockEntity 读取当前文本传入 SignEditScreen。
         const std::array<std::string, ui::minecraft::SignEditScreen::LINE_COUNT> initialLines{};
 
         // 创建告示牌编辑屏幕

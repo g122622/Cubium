@@ -79,9 +79,10 @@ public:
 
     void paint(kagero::widget::PaintContext& ctx) override;
 
-protected:
     void onOpen() override;
     void onClose() override;
+
+protected:
     void tick(f32 dt) override;
 
 private:
