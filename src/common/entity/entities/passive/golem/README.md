@@ -115,3 +115,7 @@ golem/
 19. **铜傀儡物品运输时序**：`TransportItemsBetweenContainersGoal` 在到达容器后执行 60 tick 交互序列：tick 1 调用 `ChestEntity::startOpen(*golem)` + `setOpenedChestPos` + 设置动画状态；tick 9 播放音效（ITEM_GET/ITEM_NO_GET/ITEM_DROP/ITEM_NO_DROP）；tick 60 执行物品转移（取出最多 16 个或放入主手物品）+ `stopOpen` + `clearOpenedChestPos`。双箱场景下 `startOpen`/`stopOpen` 需在两个 ChestEntity 上分别调用（对应 MC CompoundContainer 转发）。
 
 20. **物品转移顺序差异**：MC 原版 `addItemsToContainer` 在单次遍历中同时处理空槽和可堆叠槽（遇到空槽整堆放入并返回，遇到可堆叠槽增量堆叠）；本项目 `IInventory::addItem` 默认顺序相反（先可堆叠后空槽）。`TransportItemsBetweenContainersGoal::_addItemsToContainer` 自行实现单次遍历逻辑以 1:1 对齐 MC 原版。
+
+21. **铜傀儡 Queuing 状态机**：`TransportItemsBetweenContainersGoal` 实现三状态机 Travelling → Queuing → Interacting，对应 MC `TransportItemsBetweenContainers.TransportItemState`。tick() 在 Travelling 状态下检查：若进入排队距离（3.0 格内）且 `_isAnotherMobInteractingWithTarget()` 返回 true（其他 ContainerUser 通过 `hasContainerOpen` 声明打开了目标或双箱另一半），则进入 Queuing 状态；若到达目标则进入 Interacting 状态。Queuing 状态下每 tick 检查目标是否空闲，空闲时 `_resumeTravelling()` 恢复旅行。`_isAnotherMobInteractingWithTarget` 对应 MC `isAnotherMobInteractingWithTarget` + `getConnectedTargets` + `shouldQueueForTarget`。
+
+22. **ChestEntity::_recheckOpeners 按实体交互范围筛选**：对应 MC `ContainerOpenersCounter.recheckOpeners` 与 `getEntitiesWithContainerOpen`。本项目实现分两阶段：阶段 1 用 `MAX_ACCESS_DISTANCE + 4.0 = 12.0` 的 AABB 收集候选实体（对应 MC `maxInteractionRange + 4.0`）；阶段 2 对每个候选实体用其自身的 `getContainerInteractionRange` 做距离过滤（玩家 8.0、铜傀儡 3.0），与 MC 一致。此前实现用固定 `MAX_ACCESS_DISTANCE`（8.0）搜索所有实体，会导致铜傀儡在 3~8 格外被误判为"在访问箱子"，现已修复。

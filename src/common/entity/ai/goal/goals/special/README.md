@@ -437,6 +437,27 @@ if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSp
         - 冷却：`IDLE_COOLDOWN=140` tick（运输完成后进入冷却）
         - 位置记忆：`MAX_VISITED_POSITIONS=10`（已访问位置集）、`MAX_UNREACHABLE_POSITIONS=50`（不可达位置集）
         - 交互触发距离：水平 `CLOSE_ENOUGH_TO_INTERACT_SQ=1.0`（1 格内）、垂直 `CLOSE_ENOUGH_VERTICAL=2.0`
+        - 排队距离：`CLOSE_ENOUGH_TO_QUEUE=3.0`（对应 MC `CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE`，进入此距离且目标被占用时进入 Queuing 状态）
         - 目标筛选：主手为空 → 在 `BlockTags::COPPER_CHESTS` 中找非空铜箱子（取物）；主手非空 → 在普通箱子（`VanillaBlocks::CHEST`/`TRAPPED_CHEST`）中找可堆叠箱子（放物）
         - 双箱处理：`_tickInteracting` tick 1 在目标箱子及其连通箱子（`ChestBlock::getConnectedDirection`）上分别调用 `startOpen`/`stopOpen`，对应 MC `CompoundContainer` 转发
         - 物品转移顺序：`_addItemsToContainer` 单次遍历容器，同时处理空槽（整堆放入）和可堆叠槽（增量堆叠），与 MC 原版 `addItemsToContainer` 一致（与项目 `IInventory::addItem` 默认顺序相反）
+
+    ## #26. 铜傀儡物品运输 Queuing 状态正确接入
+
+        **问题**：`TransportItemsBetweenContainersGoal` 的 Queuing 状态此前是死代码——`startExecuting()` 直接调用 `_startTravelling()` 设为 Travelling，而 `tick()` 的 Queuing 分支只是简单转回 Travelling，从未真正进入排队。
+
+        **解决**：对应 MC `TransportItemsBetweenContainers.onTravelToTarget` / `onQueuingForTarget`：
+        - `_isWithinQueuingDistance()`：检查水平距离 <= 3.0（MC `CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE`）
+        - `_isAnotherMobInteractingWithTarget()`：遍历目标（及双箱另一半）附近 8 格内的 ContainerUser，排除自身后检查 `hasContainerOpen(targetPos)`，对应 MC `isAnotherMobInteractingWithTarget` + `getConnectedTargets` + `shouldQueueForTarget`
+        - `tick()` Travelling 分支：进入排队距离且目标被占用 → `_startQueuing()`；到达目标 → `_startInteracting()`；否则继续寻路
+        - `tick()` Queuing 分支：目标空闲 → `_resumeTravelling()`；否则继续等待
+        - `_startQueuing()` 停止寻路并设为 Queuing 状态（对应 MC `startQueuing: stopInPlace + setTransportingState(QUEUING)`）
+        - `_resumeTravelling()` 重启寻路并设为 Travelling 状态（对应 MC `resumeTravelling: setTransportingState(TRAVELLING) + walkTowardsTarget`）
+
+    ## #27. ChestEntity::_recheckOpeners 按实体交互范围筛选
+
+        **问题**：`_recheckOpeners` 此前用固定 `MAX_ACCESS_DISTANCE`（8.0）搜索所有实体并做距离过滤，而 MC `ContainerOpenersCounter.getEntitiesWithContainerOpen` 使用每个 ContainerUser 自己的 `getContainerInteractionRange`（铜傀儡 3.0、玩家 8.0）做距离过滤。这导致铜傀儡在 3~8 格外仍被误判为"在访问箱子"。
+
+        **解决**：分两阶段实现，对应 MC `recheckOpeners` + `getEntitiesWithContainerOpen`：
+        - 阶段 1：用 `MAX_ACCESS_DISTANCE + 4.0 = 12.0` 的 AABB 收集候选实体（对应 MC `maxInteractionRange + 4.0`）
+        - 阶段 2：对每个候选实体按其自身交互范围过滤——Player 用 `MAX_ACCESS_DISTANCE`（8.0），其他 ContainerUser 用 `getContainerInteractionRange()`（铜傀儡 3.0）

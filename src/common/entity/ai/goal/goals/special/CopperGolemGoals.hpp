@@ -174,9 +174,52 @@ private:
     [[nodiscard]] bool _hasReachedTarget() const;
 
     /**
+     * @brief 检查铜傀儡是否已进入"可开始排队"距离
+     *
+     * 对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0：
+     *   实体到目标方块中心的水平距离 <= 3.0。
+     * 当实体进入此距离且目标被其他 ContainerUser 占用时会进入 Queuing 状态。
+     *
+     * @return 是否在排队距离内
+     */
+    [[nodiscard]] bool _isWithinQueuingDistance() const;
+
+    /**
+     * @brief 检查目标容器是否被其他 ContainerUser 占用
+     *
+     * 对应 MC TransportItemsBetweenContainers.isAnotherMobInteractingWithTarget：
+     *   getConnectedTargets(target, level).anyMatch(shouldQueueForTarget)
+     * 其中 shouldQueueForTarget 检查目标（或其双箱连通位置）的 ChestBlockEntity
+     * 的 openersCounter.getEntitiesWithContainerOpen() 是否非空。
+     *
+     * 本项目实现：遍历目标位置（及双箱另一半位置）附近的 ContainerUser 实体，
+     * 排除自身后检查是否有任何 ContainerUser.hasContainerOpen(targetPos) 为 true。
+     *
+     * @return 是否有其他实体正在与目标容器交互
+     */
+    [[nodiscard]] bool _isAnotherMobInteractingWithTarget() const;
+
+    /**
      * @brief 开始寻路前往目标方块
      */
     void _startTravelling();
+
+    /**
+     * @brief 进入排队等待状态
+     *
+     * 对应 MC TransportItemsBetweenContainers.startQueuing：
+     *   stopInPlace(mob); setTransportingState(QUEUING);
+     * 停止寻路并停留在原地，等待目标容器空闲。
+     */
+    void _startQueuing();
+
+    /**
+     * @brief 恢复寻路（从排队状态返回旅行状态）
+     *
+     * 对应 MC TransportItemsBetweenContainers.resumeTravelling：
+     *   setTransportingState(TRAVELLING); walkTowardsTarget(mob);
+     */
+    void _resumeTravelling();
 
     /**
      * @brief 进入交互状态
@@ -311,6 +354,9 @@ private:
 
     /// 垂直距离阈值（自定义，2 格高度差内可交互）
     static constexpr f64 CLOSE_ENOUGH_VERTICAL = 2.0;
+
+    /// 进入排队距离的水平阈值，对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0
+    static constexpr f64 CLOSE_ENOUGH_TO_QUEUE = 3.0;
 
     /// tick==1：开始交互
     static constexpr i32 TICK_TO_START_INTERACTION = 1;

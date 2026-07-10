@@ -28,6 +28,7 @@
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/interfaces/ContainerUser.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -117,8 +118,22 @@ bool TransportItemsBetweenContainersGoal::shouldContinueExecuting()
         }
 
         case TransportState::Queuing:
-            // 排队状态：目标仍被占用就继续等待
-            return m_destinationBlock.has_value();
+            // 排队状态：目标仍有效且仍被其他实体占用时继续等待
+            if (!m_destinationBlock.has_value()) {
+                return false;
+            }
+            // 目标方块已失效 → 停止
+            {
+                IWorld* w = m_golem->world();
+                if (w == nullptr) {
+                    return false;
+                }
+                const BlockState* state = w->getBlockState(m_destinationBlock.value());
+                if (state == nullptr || !_isValidTargetBlock(*state)) {
+                    return false;
+                }
+            }
+            return true;
 
         case TransportState::Interacting:
             // 交互中：直到完成 60 tick 序列
@@ -156,18 +171,34 @@ void TransportItemsBetweenContainersGoal::tick()
 
     switch (m_state) {
         case TransportState::Travelling:
-            // 检查是否到达目标
-            if (_hasReachedTarget()) {
+            // 对应 MC onTravelToTarget：
+            //   if (isWithinTargetDistance(3.0, ...) && isAnotherMobInteractingWithTarget(...)) {
+            //       startQueuing(...);
+            //   } else if (isWithinTargetDistance(getInteractionRange(mob), ...)) {
+            //       startOnReachedTargetInteraction(...);
+            //   } else {
+            //       walkTowardsTarget(...);
+            //   }
+            if (_isWithinQueuingDistance() && _isAnotherMobInteractingWithTarget()) {
+                // 进入排队距离且目标被其他实体占用 → 排队等待
+                _startQueuing();
+            } else if (_hasReachedTarget()) {
+                // 到达目标且未被占用 → 开始交互
                 _startInteracting();
             }
-            // 寻路过程中每 tick 检查 navigator 是否还在工作，若卡住则重试
-            // （PathNavigator 自身有 retry 机制，这里不重复）
+            // 否则继续寻路（PathNavigator 自身每 tick 推进）
             break;
 
         case TransportState::Queuing:
-            // 排队等待：检查目标是否仍被占用
-            // 本项目简化实现：不真正排队，直接转为 Travelling 重试
-            _startTravelling();
+            // 对应 MC onQueuingForTarget：
+            //   if (!isAnotherMobInteractingWithTarget(...)) {
+            //       resumeTravelling(...);
+            //   }
+            if (!_isAnotherMobInteractingWithTarget()) {
+                // 目标已空闲 → 恢复旅行（会重新进入 Travelling 分支的判断）
+                _resumeTravelling();
+            }
+            // 否则继续等待
             break;
 
         case TransportState::Interacting:
@@ -324,7 +355,99 @@ bool TransportItemsBetweenContainersGoal::_hasReachedTarget() const
     f64 dy = m_golem->y() - static_cast<f64>(target.y);
 
     // 对应 MC CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE = 1.0
+    // TODO: MC 原版 isWithinTargetDistance 使用 AABB 相交测试（考虑方块碰撞箱 + 距离膨胀），
+    //       且 getInteractionRange(mob) 在路径完成时返回 1.0、未完成时返回 0.5。
+    //       本项目简化为"到方块中心的水平距离平方 <= 1.0 + 垂直距离 <= 2.0"，
+    //       在大多数场景下行为接近，但极端情况（如斜向接近）可能有细微差异。
+    //       若后续需要更精确的复刻，可引入 AABB 相交测试和 Path 完成状态判断。
     return horizontalDistSq <= CLOSE_ENOUGH_TO_INTERACT_SQ && std::abs(dy) <= CLOSE_ENOUGH_VERTICAL;
+}
+
+bool TransportItemsBetweenContainersGoal::_isWithinQueuingDistance() const
+{
+    if (!m_destinationBlock.has_value() || m_golem == nullptr) {
+        return false;
+    }
+
+    const BlockPos& target = m_destinationBlock.value();
+    f64 dx = m_golem->x() - (static_cast<f64>(target.x) + 0.5);
+    f64 dz = m_golem->z() - (static_cast<f64>(target.z) + 0.5);
+    f64 horizontalDistSq = dx * dx + dz * dz;
+
+    // 对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0
+    return horizontalDistSq <= CLOSE_ENOUGH_TO_QUEUE * CLOSE_ENOUGH_TO_QUEUE;
+}
+
+bool TransportItemsBetweenContainersGoal::_isAnotherMobInteractingWithTarget() const
+{
+    // 对应 MC TransportItemsBetweenContainers.isAnotherMobInteractingWithTarget：
+    //   return getConnectedTargets(target, level).anyMatch(shouldQueueForTarget);
+    // 其中 shouldQueueForTarget 检查目标（或双箱连通位置）的 ChestBlockEntity
+    // 的 openersCounter.getEntitiesWithContainerOpen() 是否非空。
+    //
+    // 本项目实现：遍历目标位置（及双箱另一半位置）附近的 ContainerUser 实体，
+    // 排除自身后检查是否有任何 ContainerUser.hasContainerOpen(targetPos) 为 true。
+
+    if (!m_destinationBlock.has_value() || m_golem == nullptr) {
+        return false;
+    }
+
+    IWorld* world = m_golem->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    const BlockPos& target = m_destinationBlock.value();
+
+    // 收集需要检查的目标位置集合（目标自身 + 双箱另一半）
+    // 对应 MC getConnectedTargets：若目标方块是双箱，返回两个位置；否则只返回自身
+    std::vector<BlockPos> targetsToCheck;
+    targetsToCheck.push_back(target);
+
+    const BlockState* targetState = world->getBlockState(target);
+    if (targetState != nullptr) {
+        blockentity::ChestEntity* targetChest = _getTargetChestEntity();
+        if (targetChest != nullptr) {
+            blockentity::ChestEntity* connected = targetChest->getConnectedChest(*world);
+            if (connected != nullptr) {
+                // 双箱场景：同时检查连通的另一半
+                // 对应 MC getConnectedTargets 返回双箱两个位置
+                targetsToCheck.push_back(connected->getPos());
+            }
+        }
+    }
+
+    // 在目标位置附近搜索 ContainerUser 实体
+    // 搜索半径取 8.0（覆盖玩家和铜傀儡的最大交互范围）
+    constexpr f64 SEARCH_RADIUS = 8.0;
+    Vector3 centerPos = target.center();
+
+    std::vector<Entity*> candidates = world->getEntitiesInRange(centerPos, SEARCH_RADIUS);
+    for (Entity* entity : candidates) {
+        if (entity == nullptr || entity == m_golem) {
+            // 排除自身
+            continue;
+        }
+
+        // 排除旁观者
+        if (entity->isSpectator()) {
+            continue;
+        }
+
+        auto* containerUser = dynamic_cast<entity::ContainerUser*>(entity);
+        if (containerUser == nullptr) {
+            continue;
+        }
+
+        // 检查此 ContainerUser 是否打开了目标位置（或双箱另一半）
+        for (const BlockPos& checkPos : targetsToCheck) {
+            if (containerUser->hasContainerOpen(checkPos)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 void TransportItemsBetweenContainersGoal::_startTravelling()
@@ -341,6 +464,35 @@ void TransportItemsBetweenContainersGoal::_startTravelling()
         m_speedMultiplier);
 
     m_state = TransportState::Travelling;
+}
+
+void TransportItemsBetweenContainersGoal::_startQueuing()
+{
+    // 对应 MC TransportItemsBetweenContainers.startQueuing：
+    //   stopInPlace(mob); setTransportingState(QUEUING);
+    // 停止寻路并停留在原地，等待目标容器空闲
+    auto* mob = dynamic_cast<MobEntity*>(m_golem);
+    if (mob != nullptr && mob->navigator() != nullptr) {
+        mob->navigator()->clearPath();
+    }
+
+    m_state = TransportState::Queuing;
+}
+
+void TransportItemsBetweenContainersGoal::_resumeTravelling()
+{
+    // 对应 MC TransportItemsBetweenContainers.resumeTravelling：
+    //   setTransportingState(TRAVELLING); walkTowardsTarget(mob);
+    m_state = TransportState::Travelling;
+
+    // 重新启动寻路（对应 MC walkTowardsTarget）
+    if (m_destinationBlock.has_value()) {
+        const BlockPos& target = m_destinationBlock.value();
+        m_golem->tryMoveTo(static_cast<f64>(target.x) + 0.5,
+            static_cast<f64>(target.y),
+            static_cast<f64>(target.z) + 0.5,
+            m_speedMultiplier);
+    }
 }
 
 void TransportItemsBetweenContainersGoal::_startInteracting()

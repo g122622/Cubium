@@ -608,24 +608,32 @@ void ChestEntity::_playSound(IWorld& world, bool open)
 void ChestEntity::_recheckOpeners(IWorld& world)
 {
     // 参考 MC 1.21.11 ContainerOpenersCounter.recheckOpeners：
-    //   遍历附近所有 ContainerUser 实体（含 Player 和实现 ContainerUser 的非玩家实体如铜傀儡），
-    //   通过 hasContainerOpen 检查哪些实体仍在使用此容器，修正 m_openCount。
+    //   1. 先通过 getEntitiesWithContainerOpen 收集所有"声明打开此容器"的 ContainerUser，
+    //      其搜索 AABB 半径 = maxInteractionRange + 4.0
+    //      （maxInteractionRange 为已登记打开者的最大交互范围，铜傀儡 3.0、玩家 8.0）
+    //   2. 取所有打开者中最大的 getContainerInteractionRange 作为新的 maxInteractionRange
+    //   3. 用打开者列表的实际数量修正 openCount
     //
-    // 本项目 ContainerUser 接口与 MC 略有差异：hasContainerOpen(BlockPos) 内部判断
-    // 该实体当前打开的箱子位置（m_openedChestPos）是否匹配（含双箱另一半场景）。
+    // 本项目没有独立 ContainerOpenersCounter 类，打开者计数直接由 ChestEntity 维护。
+    // 此处模拟 MC 的两阶段流程：
+    //   阶段 1：用 MAX_ACCESS_DISTANCE（8 格，玩家上限）+ 4.0 = 12.0 的 AABB 收集候选实体
+    //   阶段 2：对每个候选实体，用其自身的 getContainerInteractionRange 做距离过滤
+    //           （玩家 8.0、铜傀儡 3.0），与 MC 一致
 
-    // 搜索范围：使用 MAX_ACCESS_DISTANCE（8 格）作为基础，兼顾 Player 的 8 格与
-    // ContainerUser 的自定义范围（铜傀儡 3.0）。MC 中实际取所有 ContainerUser 中
-    // 最大的 getContainerInteractionRange + 4.0 作为 AABB 半径，这里用 MAX_ACCESS_DISTANCE
-    // 覆盖常见情况。
-    const f32 maxDistSq = MAX_ACCESS_DISTANCE * MAX_ACCESS_DISTANCE;
+    // 阶段 1：收集候选实体
+    //   AABB 半径 = MAX_ACCESS_DISTANCE + 4.0 = 12.0，覆盖最远交互范围的 ContainerUser
+    //   （对应 MC getEntitiesWithContainerOpen 中的 maxInteractionRange + 4.0）
+    constexpr f32 CANDIDATE_SEARCH_RADIUS = MAX_ACCESS_DISTANCE + 4.0f;
     Vector3 centerPos = m_pos.center();
 
+    std::vector<Entity*> candidates = world.getEntitiesInRange(centerPos, CANDIDATE_SEARCH_RADIUS);
+
+    // 阶段 2：按每个 ContainerUser 自身的交互范围筛选
+    //   - Player：使用 MAX_ACCESS_DISTANCE（8.0）
+    //   - 其他 ContainerUser（如铜傀儡）：使用其 getContainerInteractionRange()（铜傀儡 3.0）
     i32 actualOpenCount = 0;
 
-    // 获取附近所有实体
-    std::vector<Entity*> entities = world.getEntitiesInRange(centerPos, MAX_ACCESS_DISTANCE);
-    for (Entity* entity : entities) {
+    for (Entity* entity : candidates) {
         if (entity == nullptr) {
             continue;
         }
@@ -635,14 +643,14 @@ void ChestEntity::_recheckOpeners(IWorld& world)
             continue;
         }
 
-        // 检查实体是否在访问范围内
-        if (entity->distanceSqTo(centerPos.x, centerPos.y, centerPos.z) > maxDistSq) {
-            continue;
-        }
-
         // 路径 1：玩家通过 GUI 菜单打开箱子
         auto* player = dynamic_cast<Player*>(entity);
         if (player != nullptr) {
+            // 玩家使用 MAX_ACCESS_DISTANCE（8.0）做距离过滤
+            const f64 playerDistSq = entity->distanceSqTo(centerPos.x, centerPos.y, centerPos.z);
+            if (playerDistSq > static_cast<f64>(MAX_ACCESS_DISTANCE) * static_cast<f64>(MAX_ACCESS_DISTANCE)) {
+                continue;
+            }
             if (_isOwnContainer(*player)) {
                 ++actualOpenCount;
             }
@@ -652,6 +660,13 @@ void ChestEntity::_recheckOpeners(IWorld& world)
         // 路径 2：非玩家 ContainerUser（如铜傀儡）通过 hasContainerOpen 声明打开
         auto* containerUser = dynamic_cast<entity::ContainerUser*>(entity);
         if (containerUser != nullptr) {
+            // 使用 ContainerUser 自身的交互范围做距离过滤（铜傀儡 3.0）
+            // 对应 MC ContainerOpenersCounter.getEntitiesWithContainerOpen 的过滤逻辑
+            const f64 userRange = containerUser->getContainerInteractionRange();
+            const f64 userDistSq = entity->distanceSqTo(centerPos.x, centerPos.y, centerPos.z);
+            if (userDistSq > userRange * userRange) {
+                continue;
+            }
             if (containerUser->hasContainerOpen(m_pos)) {
                 ++actualOpenCount;
             }
