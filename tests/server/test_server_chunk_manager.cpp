@@ -28,12 +28,15 @@
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <ctime>
+#include <filesystem>
 #include <future>
 #include <thread>
 #include <vector>
@@ -63,35 +66,72 @@ protected:
         config.viewDistance = 8;
         m_world = std::make_unique<ServerWorld>(config);
 
-        // 创建区块管理器
+        // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
+        // 复用 ServerWorldTest/StructureReferencesRaceTest 的模式，在临时目录打开 RocksDB 存档。
+        // 必须调用 world->initialize()：后处理测试的 _postProcessChunk 会调
+        // m_world->tickManager().scheduleFluidTick，而 m_tickManager 仅由 world->initialize() 创建，
+        // 不初始化时为空 → 解引用空指针 ACCESS_VIOLATION at 0x10（scheduleFluidTick 内 m_fluidTicks）。
+        static std::atomic<std::uint64_t> s_counter{0};
+        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
+        m_testDir = std::filesystem::temp_directory_path() / "mc_scm_test" / token;
+        std::filesystem::create_directories(m_testDir);
+
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
+        m_world->setSharedStorage(&m_storage);
+
+        // 创建区块管理器并挂到世界（与 ServerWorldTest 一致），使 world->initialize() 完整初始化
+        // m_tickManager / m_lightManager 等。m_manager 持有裸指针（所有权归 m_world）。
         auto settings = DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
         auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         auto generator =
             std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
-        m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
-        m_manager->setWorkerPool(m_workerPool.get());
+        auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
+        chunkManager->setWorkerPool(m_workerPool.get());
+        m_manager = chunkManager.get();
+        m_world->setChunkManager(std::move(chunkManager));
 
         // 设置区块加载回调计数器：每个区块完成主线程后处理（onChunkLoaded + callback）时 +1。
         // 用于验证去重：同一区块的 callback 至多触发一次（m_postProcessedChunks 保证）。
         m_manager->setChunkLoadedCallback(
             [this](ChunkCoord, ChunkCoord) { m_chunkLoadedCallCount.fetch_add(1, std::memory_order::relaxed); });
+
+        ASSERT_TRUE(m_world->initialize().success()) << "ServerWorld::initialize failed";
     }
 
     void TearDown() override
     {
-        m_manager.reset();
-        m_workerPool.reset();
+        // 先 shutdown manager（停止 worker、清任务），再 reset world（销毁 manager 与 world 子系统），
+        // 最后关存档。顺序与 StructureReferencesRaceTest 一致，避免 world 析构时 manager 仍在跑。
+        if (m_manager != nullptr) {
+            m_manager->shutdown();
+        }
+        m_workerPool->shutdown();
         m_world.reset();
+        m_workerPool.reset();
+        m_storage.close();
+        // 重试删除：Windows 上 RocksDB 后台线程可能延迟释放文件句柄。
+        for (int i = 0; i < 10; ++i) {
+            std::error_code ec;
+            std::filesystem::remove_all(m_testDir, ec);
+            if (!ec) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
 
     std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
-    std::unique_ptr<ServerChunkManager> m_manager;
+    // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
+    ServerChunkManager* m_manager = nullptr;
     // 原子计数器：ConcurrentGenerateAndUnloadRace 在非主线程调用 tick()，_drainPendingPostProcess
     // 可能从该线程触发 m_chunkLoadedCallback，故需原子访问避免数据竞争。
     std::atomic<int> m_chunkLoadedCallCount{
         0}; ///< 区块加载回调触发次数（主线程后处理 _drainPendingPostProcess 期间累加）
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
 };
 
 // ============================================================================
@@ -696,11 +736,17 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     m_manager->tick();
     ASSERT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1);
 
-    // 卸载：unloadChunkSync 清除 m_postProcessedChunks 中的 key，移除 m_chunks 中的区块。
+    // 卸载：unloadChunkSync 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
+    // m_postProcessedChunks key）由 _drainPendingUnloadFinishes 在后续 tick() 中完成。
+    // 循环 tick() 直至区块真正移出内存，匹配生产 tick 驱动的异步卸载语义。
     m_manager->unloadChunkSync(0, 0);
-    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
+    for (int i = 0; i < 200 && m_manager->hasChunkInMem(0, 0); ++i) {
+        m_manager->tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0)) << "异步卸载完成后区块应移出内存";
 
-    // 重新生成：新 ChunkData 的 isPostProcessingDone 为 false（不持久化），
+    // 重新生成：存档中 isPostProcessingDone 不持久化（重载为新 ChunkData，标志为 false），
     // 重新入队 PendingPostProcess，tick 后应再次触发回调（计数 +1）。
     m_manager->getChunkSync(0, 0);
     m_manager->tick();
