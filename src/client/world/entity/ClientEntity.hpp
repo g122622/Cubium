@@ -444,6 +444,45 @@ public:
     }
 
     /**
+     * @brief 是否在视觉上表现为游泳姿态
+     *
+     * 客户端镜像 DrownedEntity::isVisuallySwimming()（溺尸专属判定）与
+     * LivingEntity::isVisuallySwimming()（基类判定）的并集语义：
+     * - 溺尸等通过 Swimming 标志位驱动视觉游泳的实体：isSwimming() && !isRiding()
+     * - 玩家等通过 Pose 驱动的实体：isSwimming() 为 true 时也算视觉游泳
+     *
+     * 该返回值驱动 ClientEntity::tick() 中 m_swimAmount 的渐入渐出，
+     * 进而通过 getInterpolatedSwimAmount 供渲染器读取。
+     */
+    [[nodiscard]] bool isVisuallySwimming() const { return isSwimming() && !isRiding(); }
+
+    /**
+     * @brief 获取上一帧游泳动画渐变量
+     */
+    [[nodiscard]] f32 swimAmountO() const noexcept { return m_swimAmountO; }
+
+    /**
+     * @brief 获取当前帧游泳动画渐变量
+     */
+    [[nodiscard]] f32 swimAmount() const noexcept { return m_swimAmount; }
+
+    /**
+     * @brief 计算指定 partialTicks 下的插值游泳动画量
+     *
+     * 对应 MC 1.21.11 LivingEntity.getSwimAmount(float partialTick)。
+     * 渲染器（EntityRendererManager）在构建 AnimationContext 时调用此方法，
+     * 将结果写入 context.swimAmount，驱动 DrownedModel::setAngles 中的
+     * 手臂/腿部游泳覆盖动画。
+     *
+     * @param partialTicks 帧内插值因子 [0, 1)
+     * @return 插值后的游泳动画量 [0, 1]
+     */
+    [[nodiscard]] f32 getInterpolatedSwimAmount(f32 partialTicks) const noexcept
+    {
+        return m_swimAmountO + (m_swimAmount - m_swimAmountO) * partialTicks;
+    }
+
+    /**
      * @brief 是否正在乘坐载具
      */
     [[nodiscard]] bool isRiding() const { return m_riding; }
@@ -1411,6 +1450,13 @@ private:
     i32 m_swingTickCounter = 0;                      // 挥动动画计数器
     bool m_swingInProgress = false;                  // 是否正在挥动
     static constexpr i32 DEFAULT_SWING_DURATION = 6; // 默认挥动持续时间 (tick)
+
+    // 游泳动画渐变量（客户端镜像 MC LivingEntity.swimAmount / swimAmountO）
+    // 在 ClientEntity::tick() 中由 isVisuallySwimming() 驱动渐入渐出（±0.09/tick），
+    // 渲染器通过 getInterpolatedSwimAmount(partialTicks) 插值读取，
+    // 驱动 DrownedModel::setAngles 中的手臂/腿部游泳覆盖动画。
+    f32 m_swimAmount = 0.0f;
+    f32 m_swimAmountO = 0.0f;
 
     // 北极熊站立动画
     f32 m_clientSideStandAnimation0 = 0.0f;

@@ -35,6 +35,7 @@
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include <array>
 #include <memory>
@@ -1034,6 +1035,61 @@ public:
      */
     [[nodiscard]] i32 fallFlyTicks() const noexcept { return m_fallFlyTicks; }
 
+    // ========== 游泳动画 ==========
+
+    /**
+     * @brief 推进游泳动画渐变量
+     *
+     * 对应 MC 1.21.11 LivingEntity.updateSwimAmount()。
+     * 每个实体 tick 推进一次：
+     * - 先保存上一帧值 m_swimAmountO = m_swimAmount；
+     * - 若 isVisuallySwimming() 为 true，则 m_swimAmount 按 0.09 速率趋近 1.0；
+     * - 否则按 0.09 速率趋近 0.0。
+     *
+     * 该方法在 LivingEntity::tick() 中调用，客户端 ClientEntity 也会在自己的 tick 中
+     * 推进本地插值副本，以保持服务端/客户端一致的渐入渐出节奏。
+     */
+    void updateSwimAmount();
+
+    /**
+     * @brief 获取上一帧的游泳动画渐变量
+     *
+     * 用于客户端渲染插值（getInterpolatedSwimAmount 的左端点）。
+     */
+    [[nodiscard]] f32 swimAmountO() const noexcept { return m_swimAmountO; }
+
+    /**
+     * @brief 获取当前帧的游泳动画渐变量
+     *
+     * 用于客户端渲染插值（getInterpolatedSwimAmount 的右端点）。
+     */
+    [[nodiscard]] f32 swimAmount() const noexcept { return m_swimAmount; }
+
+    /**
+     * @brief 计算指定 partialTicks 下的插值游泳动画量
+     *
+     * 对应 MC 1.21.11 LivingEntity.getSwimAmount(float partialTick)。
+     * 渲染器在构建渲染状态时调用此方法，将结果写入 HumanoidRenderState.swimAmount，
+     * 驱动 DrownedModel.setupAnim 中的手臂/腿部游泳覆盖动画。
+     *
+     * @param partialTicks 帧内插值因子 [0, 1)
+     * @return 插值后的游泳动画量 [0, 1]
+     */
+    [[nodiscard]] f32 getSwimAmount(f32 partialTicks) const noexcept
+    {
+        return math::lerp(m_swimAmountO, m_swimAmount, partialTicks);
+    }
+
+    /**
+     * @brief 重写视觉游泳判定，扩展鞘翅飞行姿态
+     *
+     * 对应 MC 1.21.11 LivingEntity.isVisuallySwimming()：
+     *   return super.isVisuallySwimming() || !isFallFlying() && hasPose(FALL_FLYING);
+     * 即基类 Swimming 姿态判定成立，或者（未在飞行标志位但处于 FALL_FLYING 姿态）
+     * 时也视为视觉游泳。后者用于玩家在地面准备起飞时的爬行过渡。
+     */
+    [[nodiscard]] bool isVisuallySwimming() const override;
+
     // ========== 战斗追踪 ==========
 
     /**
@@ -1626,6 +1682,14 @@ protected:
     // 在 tick() 末尾根据 isFallFlying() 递增或归零；
     // updateFallFlying() 中以 fallFlyTicks+1 周期性触发游戏事件与装备损坏。
     i32 m_fallFlyTicks = 0;
+
+    // 游泳动画渐变量
+    // 对应 MC 1.21.11 LivingEntity.swimAmount / swimAmountO（private float）
+    // 在 tick() 中由 updateSwimAmount() 推进：视觉游泳时按 0.09 速率趋近 1.0，
+    // 否则按 0.09 速率趋近 0.0。客户端渲染器通过 getSwimAmount(partialTicks) 插值读取，
+    // 驱动 DrownedModel.setupAnim 中的手臂/腿部游泳覆盖动画。
+    f32 m_swimAmount = 0.0f;
+    f32 m_swimAmountO = 0.0f;
 
     // 箭矢计数
     i32 m_arrowCount = 0;    // 插在身上的箭矢数量

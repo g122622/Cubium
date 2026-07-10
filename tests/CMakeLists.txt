@@ -933,6 +933,8 @@ add_executable(mc_tests
     client/renderer/entity/SkeletonModelArmPoseTest.cpp
     # ZombieModel::setAngles 激怒状态手臂动画测试（aggressive=true/false、swingProgress 攻击因子、bobArms、变体继承）
     client/renderer/entity/ZombieModelArmPoseTest.cpp
+    # DrownedModel 游泳动画覆盖测试（swimAmount 渐入/手臂/腿部/头部覆盖、ThrowSpear 重应用）
+    client/renderer/entity/DrownedModelSwimAnimationTest.cpp
     # WitherModel 侧头朝向注入测试（setSideHeadRotations/setAngles 度→弧度/主头不受影响/两侧头独立）
     client/renderer/entity/WitherModelSideHeadTest.cpp
     # EntityRendererManager::_applySkeletonArmPose 契约测试（isChargingBow → BowAndArrow/Empty）

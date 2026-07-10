@@ -428,6 +428,17 @@ void ClientEntity::syncMetadataFromDataManager()
         }
     }
 
+    // 实体 flags 同步（slot 0，i8）：游泳、鞘翅飞行、潜行、疾跑、发光、着火等共用一个字节。
+    // 对应 MC 1.21.11 Entity.getSharedFlag(int) / DATA_FLAGS_ID。
+    // 此处只同步 Swimming 位（bit 4）到 ClientEntity::setSwimming，驱动：
+    //   1) refreshEyeHeight（游泳时眼睛高度降低到爬行尺寸）
+    //   2) isVisuallySwimming / swimAmount 渐入渐出（驱动 DrownedModel 游泳手臂/腿部覆盖动画）
+    // 鞘翅飞行（bit 7）已由 ClientEntity::isFallFlying() 动态读取，无需在此重复同步。
+    if (const auto flags = _readMetadata<i8>(0); flags.has_value()) {
+        const bool swimming = (*flags & static_cast<i8>(EntityFlags::Swimming)) != 0;
+        setSwimming(swimming);
+    }
+
     // 凋灵侧头目标同步：HEAD_TARGET_1/2/3 通过元数据同步自服务端 WitherEntity。
     // 客户端在 tickWitherSideHeads() 中使用这些目标 ID 查找目标实体位置，
     // 本地镜像 MC 1.21.11 WitherBoss.aiStep() 的侧头朝向计算逻辑。
@@ -661,6 +672,19 @@ void ClientEntity::tick()
     // 达到 jumpDuration 后归零并结束本次跳跃。
     // 渲染时 rabbitJumpCompletion(partialTick) 提供 [0, 1] 完成度供 RabbitModel 计算 jumpRotation。
     tickRabbitJump();
+
+    // 推进游泳动画渐变量（客户端镜像 MC LivingEntity.updateSwimAmount()）
+    // 对应 MC 1.21.11 LivingEntity.tick() 中的 this.updateSwimAmount()。
+    // 客户端不调用 LivingEntity::tick()（ClientEntity::tick 是独立的客户端 tick 路径），
+    // 因此需要在此显式推进本地 m_swimAmount/m_swimAmountO 副本，保证与服务端节奏一致。
+    // isVisuallySwimming() 的客户端判定依赖 DrownedEntity 重写：isSwimming()（来自
+    // syncMetadataFromDataManager 同步的 Swimming 标志位）&& !isRiding()。
+    m_swimAmountO = m_swimAmount;
+    if (isVisuallySwimming()) {
+        m_swimAmount = std::min(1.0f, m_swimAmount + 0.09f);
+    } else {
+        m_swimAmount = std::max(0.0f, m_swimAmount - 0.09f);
+    }
 }
 
 void ClientEntity::updateStandingAnimation()

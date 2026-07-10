@@ -187,6 +187,13 @@ void Entity::setGlowing(bool glowing)
     }
 }
 
+bool Entity::isVisuallySwimming() const
+{
+    // 基类实现：仅依赖 Swimming 姿态判定
+    // LivingEntity 重写时会额外考虑 FallFlying 姿态
+    return m_pose == EntityPose::Swimming;
+}
+
 void Entity::setAir(i32 air)
 {
     m_air = air;

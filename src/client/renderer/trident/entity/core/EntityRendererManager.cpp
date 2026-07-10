@@ -981,6 +981,12 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
     context.isRiding = entity.isRiding();
     context.swingProgress = entity.getInterpolatedSwingProgress(static_cast<f32>(context.partialTicks));
 
+    // 游泳动画渐变量（对应 MC 1.21.11 HumanoidRenderState.swimAmount =
+    // LivingEntity.getSwimAmount(partialTick)）。ClientEntity::tick 本地推进
+    // m_swimAmount/m_swimAmountO 副本，此处插值读取写入 context.swimAmount，
+    // 供 DrownedModel::setAngles 的手臂/腿部游泳覆盖动画使用。
+    context.swimAmount = entity.getInterpolatedSwimAmount(static_cast<f32>(context.partialTicks));
+
     // 北极熊站立动画
     const std::string& typeId = entity.typeId();
     if (typeId == "minecraft:polar_bear" || typeId == "polar_bear") {
@@ -1412,11 +1418,23 @@ void EntityRendererManager::_applyZombieState(
     zombieModel.setAggressive(entity.isAggressive());
     zombieModel.setSwingProgress(entity.getInterpolatedSwingProgress(static_cast<f32>(context.partialTicks)));
 
-    // 关键：重新调用 setAngles 让 setAggressive / setSwingProgress 通过
-    // animateZombieArms 逻辑生效。_createModelForEntity 在创建模型后已调用过一次
-    // setAngles，但那时 m_isAggressive 与 m_swingProgress 均为模型默认值，
-    // 攻击抬臂动画不会正确触发。此处重新 setAngles 使激怒抬臂与挥手动画在
-    // GPU 管线路径下真正生效，避免形成孤岛代码。
+    // 推送游泳动画渐变量与实际游泳状态
+    // 对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState：
+    //   p_362998_.swimAmount = p_365104_.getSwimAmount(p_363706_);
+    // 以及 HumanoidRenderState.isVisuallySwimming 的填充（来自 LivingEntity.isVisuallySwimming()）。
+    // ZombieModel/DrownedModel 通过 m_swimAnimation / m_isActuallySwimming 字段在 setAngles 中
+    // 读取这两个值。必须在 setAngles 之前推送，否则使用模型默认值（0.0/false）导致
+    // DrownedModel 的游泳手臂/腿部覆盖动画缺失。BipedModel 的 handleSwimAnimation（玩家爬行式
+    // 游泳）也会读取 m_swimAnimation，但对僵尸/溺尸而言 setAngles 不会调用 handleSwimAnimation，
+    // 因此该推送只对 DrownedModel::setAngles 中的溺尸专属覆盖动画生效。
+    zombieModel.setSwimAnimation(context.swimAmount);
+    zombieModel.setActuallySwimming(context.isSwimming);
+
+    // 关键：重新调用 setAngles 让 setAggressive / setSwingProgress / setSwimAnimation
+    // 通过 animateZombieArms / DrownedModel 覆盖逻辑生效。_createModelForEntity 在创建模型后
+    // 已调用过一次 setAngles，但那时 m_isAggressive 与 m_swingProgress 均为模型默认值，
+    // 攻击抬臂动画与游泳覆盖动画不会正确触发。此处重新 setAngles 使激怒抬臂、挥手动画、
+    // 溺尸游泳覆盖在 GPU 管线路径下真正生效，避免形成孤岛代码。
     zombieModel.setAngles(context.limbSwing,
         context.limbSwingAmount,
         context.ageInTicks,

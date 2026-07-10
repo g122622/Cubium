@@ -157,9 +157,45 @@ void DrownedEntity::tick()
 {
     ZombieEntity::tick();
 
-    // 溺尸在水中时的特殊移动控制由 DrownedMoveControl 处理
-    // DrownedSwimUpGoal 和 DrownedGoToBeachGoal 管理 searchingForLand 状态
-    // DrownedMoveControl 读取 wantsToSwim() 来决定水中移动方式
+    // 服务端推进游泳标志位
+    // 对应 MC 1.21.11 Drowned.updateSwimming()，在 Drowned.tick() 中由
+    // super.tick()（Zombie.tick → Mob.tick → LivingEntity.tick）间接触发。
+    // Cubium 将该调用显式放在 ZombieEntity::tick() 之后，确保环境状态
+    // （isInWater、areEyesInWater）已在 baseTick 中更新完毕。
+    // updateSwimAmount() 由 LivingEntity::tick() 内部调用，无需在此重复。
+    if (world() != nullptr && !world()->isClientSide()) {
+        updateSwimming();
+    }
+}
+
+void DrownedEntity::updateSwimming()
+{
+    // 对应 MC 1.21.11 Drowned.updateSwimming()
+    //   if (!this.level().isClientSide()) {
+    //       this.setSwimming(this.isEffectiveAi() && this.isUnderWater() && this.wantsToSwim());
+    //   }
+    // isEffectiveAi() 在原版排除 NoAi 实体；Cubium 不支持 NoAi，且本方法仅在服务端调用，
+    // 因此等价于恒真。isUnderWater() 在原版表示实体身体在水中，Cubium 中等价于
+    // areEyesInWater() && isInWater()（注意：DrownedEntity 重写了 canSwim() 恒返回 true，
+    // 用于"溺尸总是具备游泳能力"的移动语义，不能作为"当前是否在水下"的判定，因此这里显式
+    // 组合 areEyesInWater + isInWater）。isRiding() 排除骑乘状态，与 isVisuallySwimming 的
+    // !isPassenger() 约束一致，避免骑乘时仍置位游泳标志导致动画与骑乘姿态冲突。
+    if (world() == nullptr || world()->isClientSide()) {
+        return;
+    }
+
+    const bool underWater = areEyesInWater() && isInWater();
+    const bool shouldSwim = !isRiding() && underWater && wantsToSwim();
+    setSwimming(shouldSwim);
+}
+
+bool DrownedEntity::isVisuallySwimming() const
+{
+    // 对应 MC 1.21.11 Drowned.isVisuallySwimming()
+    //   return this.isSwimming() && !this.isPassenger();
+    // 溺尸的视觉游泳完全由 Swimming 标志位驱动（不像 LivingEntity 基类那样还考虑姿态），
+    // 且要求未骑乘其他实体。
+    return isSwimming() && !isRiding();
 }
 
 void DrownedEntity::registerGoals()

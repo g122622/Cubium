@@ -97,6 +97,36 @@ public:
      */
     [[nodiscard]] bool shouldDrown() const override { return false; }
 
+    // ========== 游泳状态同步 ==========
+
+    /**
+     * @brief 更新游泳标志位
+     *
+     * 对应 MC 1.21.11 Drowned.updateSwimming()：
+     *   if (!level.isClientSide) setSwimming(isEffectiveAi() && isUnderWater() && wantsToSwim());
+     *
+     * 仅在服务端调用：当溺尸在水中（眼与身体都在水中）、且 wantsToSwim() 为真、且未骑乘
+     * 其他实体时，置位 Swimming 标志。该标志通过 DATA_FLAGS_PARAM 同步到客户端，进而驱动
+     * isVisuallySwimming() 与 swimAmount 渐入渐出，最终触发 DrownedModel 的游泳手臂/腿部覆盖动画。
+     *
+     * isEffectiveAi() 在原版用于排除 NoAi 实体；Cubium 不支持 NoAi，且本方法仅在服务端
+     * tick 路径调用，因此等价于恒真，这里通过 isRiding() 排除骑乘状态以匹配
+     * isVisuallySwimming 的视觉约束。
+     */
+    void updateSwimming();
+
+    /**
+     * @brief 重写视觉游泳判定
+     *
+     * 对应 MC 1.21.11 Drowned.isVisuallySwimming()：
+     *   return isSwimming() && !isPassenger();
+     *
+     * 与基类 LivingEntity 不同，溺尸的视觉游泳完全由 Swimming 标志位驱动
+     * （基类还考虑 Pose::Swimming 与 FALL_FLYING 姿态），且要求未骑乘其他实体。
+     * 该返回值驱动 updateSwimAmount 的渐入渐出。
+     */
+    [[nodiscard]] bool isVisuallySwimming() const override;
+
     // ========== 装备 ==========
 
     /**

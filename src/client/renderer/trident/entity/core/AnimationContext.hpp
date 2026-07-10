@@ -120,6 +120,22 @@ struct AnimationContext {
     bool isSwimming = false;
 
     /**
+     * @brief 游泳动画渐变量（已插值）
+     *
+     * 对应 MC 1.21.11 HumanoidRenderState.swimAmount（由 LivingEntity.getSwimAmount(partialTick) 填充）。
+     * 范围 [0, 1]，0 表示完全直立，1 表示完全游泳姿态。
+     * DrownedModel::setAngles 读取此值驱动手臂/腿部的游泳覆盖动画。
+     *
+     * 数据流：服务端 DrownedEntity::updateSwimming 设置 Swimming 标志位
+     * → EntityTracker 广播 EntityMetadataPacket
+     * → ClientEntity::syncMetadataFromDataManager 调用 setSwimming
+     * → ClientEntity::tick 推进 m_swimAmount/m_swimAmountO（±0.09/tick）
+     * → EntityRendererManager::updateAnimationContext 插值写入此字段
+     * → DrownedModel::setAngles 读取并应用游泳手臂/腿部覆盖。
+     */
+    f32 swimAmount = 0.0f;
+
+    /**
      * @brief 是否正在骑乘
      */
     bool isRiding = false;

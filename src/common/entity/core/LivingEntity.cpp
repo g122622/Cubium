@@ -811,6 +811,12 @@ void LivingEntity::tick()
     } else {
         m_fallFlyTicks = 0;
     }
+
+    // 游泳动画渐变量推进
+    // 对应 MC 1.21.11 LivingEntity.tick() 中的 this.updateSwimAmount()。
+    // 注意：客户端 ClientEntity 有自己的 tick 实现，会单独推进本地副本，
+    // 因此本调用只在服务端 tick 路径生效；ClientEntity::tick 中会复刻同样的推进逻辑。
+    updateSwimAmount();
 }
 
 void LivingEntity::syncMetadataFromDataManager()
@@ -1519,6 +1525,36 @@ void LivingEntity::updateFallFlying()
             m_world->gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos, gameevent::GameEvent::Context::of(this));
         }
     }
+}
+
+void LivingEntity::updateSwimAmount()
+{
+    // 对应 MC 1.21.11 LivingEntity.updateSwimAmount()
+    //   this.swimAmountO = this.swimAmount;
+    //   if (this.isVisuallySwimming()) {
+    //       this.swimAmount = Math.min(1.0F, this.swimAmount + 0.09F);
+    //   } else {
+    //       this.swimAmount = Math.max(0.0F, this.swimAmount - 0.09F);
+    //   }
+    m_swimAmountO = m_swimAmount;
+    if (isVisuallySwimming()) {
+        m_swimAmount = std::min(1.0f, m_swimAmount + 0.09f);
+    } else {
+        m_swimAmount = std::max(0.0f, m_swimAmount - 0.09f);
+    }
+}
+
+bool LivingEntity::isVisuallySwimming() const
+{
+    // 对应 MC 1.21.11 LivingEntity.isVisuallySwimming()
+    //   return super.isVisuallySwimming() || !this.isFallFlying() && this.hasPose(Pose.FALL_FLYING);
+    // 即基类的 Swimming 姿态判定，或（未处于 FallFlying 标志但姿态为 FALL_FLYING）的过渡情形。
+    // 后者用于玩家在地面准备起飞时的爬行过渡：玩家按下跳跃准备鞘翅飞行时，
+    // 姿态先变为 FALL_FLYING 但 FallFlying 标志尚未置位，此时应视为视觉游泳以驱动爬行动画。
+    if (Entity::isVisuallySwimming()) {
+        return true;
+    }
+    return !isElytraFlying() && m_pose == EntityPose::FallFlying;
 }
 
 void LivingEntity::travelFallFlying(const Vector3& travelVec)

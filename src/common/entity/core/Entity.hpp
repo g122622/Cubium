@@ -525,6 +525,45 @@ public:
     [[nodiscard]] bool isElytraFlying() const { return hasFlag(EntityFlags::FallFlying); }
 
     /**
+     * @brief 设置实体游泳状态
+     *
+     * 通过设置 Swimming 标志位（第4位）来同步客户端与服务端的游泳状态。
+     * 该标志位会通过 DATA_FLAGS_PARAM 自动同步到客户端。
+     *
+     * @param swimming 是否正在游泳
+     */
+    void setSwimming(bool swimming)
+    {
+        if (swimming) {
+            addFlag(EntityFlags::Swimming);
+        } else {
+            removeFlag(EntityFlags::Swimming);
+        }
+    }
+
+    /**
+     * @brief 检查实体是否正在游泳
+     *
+     * 通过检查 Swimming 标志位（第4位）来判断。
+     *
+     * @return 如果正在游泳返回 true
+     */
+    [[nodiscard]] bool isSwimming() const { return hasFlag(EntityFlags::Swimming); }
+
+    /**
+     * @brief 检查实体是否在视觉上表现为游泳姿态
+     *
+     * 基类实现：当实体姿态为 Swimming 时返回 true。
+     * LivingEntity 重写此方法，额外考虑 FallFlying 姿态（与鞘翅飞行视觉重叠）。
+     * DrownedEntity 重写此方法，要求 isSwimming() 为 true 且未骑乘其他实体。
+     *
+     * 该方法用于驱动 swimAmount 的渐入渐出（updateSwimAmount）。
+     *
+     * @return 如果视觉上表现为游泳姿态返回 true
+     */
+    [[nodiscard]] virtual bool isVisuallySwimming() const;
+
+    /**
      * @brief 检查实体是否发光
      *
      * 发光效果来源：

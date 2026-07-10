@@ -52,6 +52,7 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, static_cast<f64>(wolfShakeAnim));
     hash = hashCombine(hash, static_cast<f64>(wolfInterestedAngle));
     hash = hashCombine(hash, static_cast<f64>(wolfWetShade));
+    hash = hashCombine(hash, static_cast<f64>(swimAmount));
 
     // 凋灵侧头朝向
     hash = hashCombine(hash, static_cast<f64>(witherSideHeadYaw[0]));
@@ -114,6 +115,11 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
 
     // 狼乞求角度变化
     if (checkDiff(static_cast<f64>(wolfInterestedAngle), static_cast<f64>(other.wolfInterestedAngle))) {
+        return true;
+    }
+
+    // 游泳动画渐变量变化（驱动 DrownedModel 手臂/腿部覆盖，需立即更新网格）
+    if (checkDiff(static_cast<f64>(swimAmount), static_cast<f64>(other.swimAmount))) {
         return true;
     }
 
