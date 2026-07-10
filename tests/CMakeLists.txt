@@ -969,6 +969,10 @@ add_executable(mc_tests
     client/renderer/trident/entity/pipeline/EntityPipelineBlendModeTest.cpp
     # 载具渲染器模型矩阵构建与 TNT 闪烁计算测试
     client/renderer/trident/entity/renderer/vehicle/VehicleRendererMatrixTest.cpp
+    # 特殊实体渲染器（TNT/FallingBlock）模型矩阵与闪烁测试
+    client/renderer/trident/entity/renderer/special/SpecialRendererMatrixTest.cpp
+    # BlockMeshBuilder 方块网格构建工具测试
+    client/renderer/trident/entity/util/BlockMeshBuilderTest.cpp
     # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
     client/renderer/entity/test_player_layers.cpp
     # ItemMeshBuilder 回退网格、法线变换、纹理坐标解析测试
@@ -2091,6 +2095,12 @@ target_sources(mc_tests
         # 载具渲染器（BoatRenderer / MinecartRenderer 模型矩阵构建与 TNT 闪烁）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/core/EntityRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp
+        # 特殊实体渲染器（TNTRenderer / FallingBlockRenderer 模型矩阵与闪烁）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/special/SpecialEntityRenderers.cpp
+        # 投射物模型（SpecialEntityRenderers 中 EnderCrystalRenderer 等构造函数依赖）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/projectile/ProjectileModels.cpp
+        # BlockMeshBuilder 方块网格构建工具
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/BlockMeshBuilder.cpp
         # EntityRenderer 依赖的辅助渲染器
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/ShadowRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/NameTagRenderer.cpp

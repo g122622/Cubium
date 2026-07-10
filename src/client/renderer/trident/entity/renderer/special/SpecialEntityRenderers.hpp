@@ -277,6 +277,19 @@ public:
         pipeline::EntityPipeline& pipeline) override;
 
     /**
+     * @brief 构建下落方块模型变换矩阵（行主序 4x4）
+     *
+     * 复刻 MC 1.21.11 FallingBlockRenderer.submit() 的变换链：
+     *   translate(-0.5, 0, -0.5)  // 方块中心对齐实体原点
+     *
+     * 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
+     * 实体原点位于方块底部中心，需要将方块 [0,1]^3 平移使底部中心对齐原点。
+     *
+     * @return 行主序 4x4 矩阵（std::array<f64, 16>，索引 [row*4+col]）
+     */
+    [[nodiscard]] static std::array<f64, 16> buildFallingBlockModelMatrix() noexcept;
+
+    /**
      * @brief 设置方块纹理图集引用
      *
      * 由 EntityRendererManager::setChunkTextureAtlas 注入。
@@ -359,7 +372,7 @@ public:
  * - 通过 util::BlockMeshBuilder 构建方块网格（按 BlockState* 缓存）
  * - 切换到方块纹理图集（ChunkTextureAtlas）渲染，渲染后恢复实体纹理图集
  *
- * 变换链（对齐 MC 1.21.11 TntRenderer.submit）：
+ * 变换链（对齐 MC 1.21.11 TntRenderer.submit，使用 PoseStack 右乘语义）：
  *   translate(0, 0.5, 0)       // 抬高半个方块
  *   [scale(flashScale)]        // 引信 < 10 时闪烁缩放
  *   rotateY(-90°)
@@ -368,7 +381,8 @@ public:
  *
  * 闪烁效果（对齐 MC TntRenderer / TntMinecartRenderer）：
  * - fuse < 10 时，scale = 1 + (1 - fuse/10)^4 * 0.3
- * - (fuse/5) % 2 == 0 时，通过 overlayColor 传递白色闪烁
+ * - (fuse/5) % 2 == 0 时，通过 overlayColor 通道传递白色半透明覆盖（对应 MC OverlayTexture.pack(10)）
+ *   着色器在 overlayColor.a > 0 时执行 mix(color, overlayColor.rgb, overlayColor.a) 实现白色闪烁
  */
 class TNTRenderer : public core::EntityRenderer {
 public:
@@ -387,6 +401,46 @@ public:
         VkCommandBuffer cmd,
         const core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline) override;
+
+    /**
+     * @brief 计算 TNT 闪烁缩放因子
+     *
+     * 对齐 MC 1.21.11 TntRenderer.submit() / TntMinecartRenderer.submitMinecartContents()：
+     *   if (fuseRemaining >= 0 && fuseRemaining < 10) {
+     *       f = 1 - fuseRemaining/10;
+     *       f = clamp(f, 0, 1);
+     *       f *= f; f *= f;  // 4 次方
+     *       return 1 + f * 0.3;
+     *   }
+     *   return 1;
+     *
+     * @param fuseRemaining 引信剩余 tick（已插值，fuse - partialTicks + 1）
+     * @return 缩放因子（1.0 表示无闪烁缩放）
+     */
+    [[nodiscard]] static f64 calculateTntFlashScale(f32 fuseRemaining) noexcept;
+
+    /**
+     * @brief 判断 TNT 是否处于白色闪烁帧
+     *
+     * 对齐 MC 1.21.11 TntRenderer.submit() / TntMinecartRenderer：
+     *   fuseRemaining > -1 && (int)fuseRemaining / 5 % 2 == 0
+     *
+     * @param fuseRemaining 引信剩余 tick（已插值）
+     * @return true 表示本帧应渲染白色闪烁叠加
+     */
+    [[nodiscard]] static bool isTntFlashFrame(f32 fuseRemaining) noexcept;
+
+    /**
+     * @brief 构建 TNT 模型变换矩阵（行主序 4x4）
+     *
+     * 复刻 MC 1.21.11 TntRenderer.submit() 的完整 PoseStack 变换链（右乘）：
+     *   M = translate(0, 0.5, 0) * [scale(flashScale)] * rotateY(-90°)
+     *       * translate(-0.5, -0.5, 0.5) * rotateY(90°)
+     *
+     * @param fuseRemaining 引信剩余 tick（用于计算闪烁缩放）
+     * @return 行主序 4x4 矩阵（std::array<f64, 16>，索引 [row*4+col]）
+     */
+    [[nodiscard]] static std::array<f64, 16> buildTntModelMatrix(f32 fuseRemaining) noexcept;
 
     /**
      * @brief 设置方块纹理图集引用

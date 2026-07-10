@@ -33,7 +33,8 @@ renderer/
 │   ├── ItemEntityRenderer.hpp/cpp # 物品实体渲染器
 │   └── ProjectileRenderers.hpp/cpp # 箭、三叉戟等投射物
 ├── special/                       # 特殊实体渲染器
-│   └── SpecialEntityRenderers.hpp/cpp  # 铁傀儡、雪傀儡、末影龙、幻翼、蜜蜂、狐狸等
+│   ├── SpecialEntityRenderers.hpp/cpp  # 末影水晶、潜影贝子弹、闪电、下落方块、TNT、物品展示框、画、盔甲架、烟花等
+│   └── README.md                 # 特殊渲染器实现说明（FallingBlock/TNT 变换链、闪烁公式等）
 └── vehicle/                       # 载具渲染器
     └── VehicleRenderers.hpp/cpp   # 船、矿车渲染器
 ```

@@ -447,19 +447,9 @@ void FallingBlockRenderer::renderLayersPipelineClient(::mc::client::ClientEntity
         return;
     }
 
-    // ---- 复刻 MC 1.21.11 FallingBlockRenderer.submit() 的变换链 ----
-    //   translate(-0.5, 0, -0.5)  // 方块中心对齐实体原点
-    //
-    // 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
-    // 实体位置即为方块原点位置，需要将方块中心偏移到实体位置：
-    //   方块范围 [0, 1]，中心在 (0.5, 0.5, 0.5)
-    //   translate(-0.5, 0, -0.5) 使方块底部中心对齐实体原点
-    //
-    // 注意：MC 原版使用 translate(-0.5, 0, -0.5) 而非 translate(-0.5, -0.5, -0.5)，
-    // 因为下落方块的实体原点在方块底部（y=0）。
-
-    std::array<f64, 16> modelMatrix = {
-        1.0, 0.0, 0.0, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, -0.5, 0.0, 0.0, 0.0, 1.0};
+    // 构建模型矩阵（translate(-0.5, 0, -0.5)）
+    // 对应 MC 1.21.11 FallingBlockRenderer.submit() 的变换链
+    const std::array<f64, 16> modelMatrix = buildFallingBlockModelMatrix();
 
     // 实体位置（插值）
     Vector3f position(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
@@ -489,6 +479,21 @@ void FallingBlockRenderer::renderLayersPipelineClient(::mc::client::ClientEntity
 
     (void)context;
     (void)cmd;
+}
+
+std::array<f64, 16> FallingBlockRenderer::buildFallingBlockModelMatrix() noexcept
+{
+    // 复刻 MC 1.21.11 FallingBlockRenderer.submit() 的变换链：
+    //   translate(-0.5, 0, -0.5)  // 方块中心对齐实体原点
+    //
+    // 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
+    // 实体位置即为方块原点位置，需要将方块中心偏移到实体位置：
+    //   方块范围 [0, 1]，中心在 (0.5, 0.5, 0.5)
+    //   translate(-0.5, 0, -0.5) 使方块底部中心对齐实体原点
+    //
+    // 注意：MC 原版使用 translate(-0.5, 0, -0.5) 而非 translate(-0.5, -0.5, -0.5)，
+    // 因为下落方块的实体原点在方块底部（y=0）。
+    return {1.0, 0.0, 0.0, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, -0.5, 0.0, 0.0, 0.0, 1.0};
 }
 
 pipeline::EntityMesh* FallingBlockRenderer::_getOrCreateBlockMesh(
@@ -629,72 +634,9 @@ void TNTRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
     //   fuseRemainingInTicks = entity.getFuse() - partialTicks + 1.0F
     const f32 fuseRemaining = static_cast<f32>(entity.tntFuse()) - static_cast<f32>(context.partialTicks) + 1.0f;
 
-    // ---- 复刻 MC 1.21.11 TntRenderer.submit() 的变换链 ----
-    //   translate(0, 0.5, 0)              // 抬高半个方块
-    //   [scale(flashScale)]               // 引信 < 10 时闪烁缩放
-    //   rotateY(-90°)
-    //   translate(-0.5, -0.5, 0.5)
-    //   rotateY(90°)
-    //
-    // 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
-    //
-    // MC 的 PoseStack 使用右乘：current = current * newTransform
-    // 因此最终矩阵 = T1 * [S] * R1 * T2 * R2，顶点 v 变换为 T1 * [S] * R1 * T2 * R2 * v
-    // 最右侧的 R2 最先作用于顶点。
-    //
-    // 行主序矩阵乘法 helper：result = a * b（即 a 右乘 b）
-    auto matMul = [](const std::array<f64, 16>& a, const std::array<f64, 16>& b) -> std::array<f64, 16> {
-        std::array<f64, 16> result{};
-        for (i32 row = 0; row < 4; ++row) {
-            for (i32 col = 0; col < 4; ++col) {
-                const auto idx = static_cast<std::size_t>(row * 4 + col);
-                result[idx] = 0.0;
-                for (i32 k = 0; k < 4; ++k) {
-                    result[idx] += a[static_cast<std::size_t>(row * 4 + k)] * b[static_cast<std::size_t>(k * 4 + col)];
-                }
-            }
-        }
-        return result;
-    };
-
-    // translate(0, 0.5, 0)
-    std::array<f64, 16> modelMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-
-    // 闪烁缩放：fuseRemaining < 10 时，scale = 1 + (1 - fuse/10)^4 * 0.3
-    // 对齐 MC TntRenderer.submit / TntMinecartRenderer.submitMinecartContents
-    if (fuseRemaining >= 0.0f && fuseRemaining < 10.0f) {
-        f32 f = 1.0f - fuseRemaining / 10.0f;
-        f = mc::math::clamp(f, 0.0f, 1.0f);
-        f *= f;
-        f *= f; // 4 次方
-        const f32 flashScale = 1.0f + f * 0.3f;
-        const f64 fs = static_cast<f64>(flashScale);
-        std::array<f64, 16> scaleMatrix = {fs, 0.0, 0.0, 0.0, 0.0, fs, 0.0, 0.0, 0.0, 0.0, fs, 0.0, 0.0, 0.0, 0.0, 1.0};
-        modelMatrix = matMul(modelMatrix, scaleMatrix); // current = current * S
-    }
-
-    // rotateY(-90°)：cos(-90°)=0, sin(-90°)=-1
-    {
-        const f64 c = 0.0;
-        const f64 s = -1.0;
-        std::array<f64, 16> rotMatrix = {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
-        modelMatrix = matMul(modelMatrix, rotMatrix); // current = current * R1
-    }
-
-    // translate(-0.5, -0.5, 0.5)
-    {
-        std::array<f64, 16> transMatrix = {
-            1.0, 0.0, 0.0, -0.5, 0.0, 1.0, 0.0, -0.5, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 1.0};
-        modelMatrix = matMul(modelMatrix, transMatrix); // current = current * T2
-    }
-
-    // rotateY(90°)：cos(90°)=0, sin(90°)=1
-    {
-        const f64 c = 0.0;
-        const f64 s = 1.0;
-        std::array<f64, 16> rotMatrix = {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
-        modelMatrix = matMul(modelMatrix, rotMatrix); // current = current * R2
-    }
+    // 构建模型矩阵（包含 translate + scale + rotate 变换链）
+    // 对应 MC 1.21.11 TntRenderer.submit() 的 PoseStack 变换链
+    const std::array<f64, 16> modelMatrix = buildTntModelMatrix(fuseRemaining);
 
     // 实体位置（插值）
     Vector3f position(static_cast<f32>(entity.x()), static_cast<f32>(entity.y()), static_cast<f32>(entity.z()));
@@ -713,17 +655,17 @@ void TNTRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
         pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
     }
 
-    // hurtTime 用于白色闪烁（对齐 MC TntMinecartRenderer 的 OverlayTexture.pack(10)）
-    // 当 (fuse/5) % 2 == 0 时，设置 hurtTime = 1.0 实现白色闪烁叠加
-    f32 hurtTime = 0.0f;
-    if (fuseRemaining > -1.0f) {
-        const i32 fuseInt = static_cast<i32>(fuseRemaining);
-        if (fuseInt / 5 % 2 == 0) {
-            hurtTime = 1.0f;
-        }
+    // 白色闪烁（对齐 MC TntMinecartRenderer.submitWhiteSolidBlock 的 OverlayTexture.pack(10)）
+    // MC 使用 OverlayTexture.pack(red=1, white=10) 传递白色半透明覆盖层。
+    // 本项目实体管线的 overlayColor 通道对应此机制：
+    //   着色器在 overlayColor.a > 0 时执行 mix(color, overlayColor.rgb, overlayColor.a)
+    // 当 (fuse/5) % 2 == 0 时，覆盖为白色半透明（alpha=0.5）实现白色闪烁
+    // 注意：hurtTime 通道在着色器中产生红色闪烁（vec3(1,0,0)），不适用于白色闪烁
+    if (isTntFlashFrame(fuseRemaining)) {
+        overlayColor = Vector4f(1.0f, 1.0f, 1.0f, 0.5f);
     }
 
-    pipeline.drawMesh(cmd, *mesh, modelMatrix, position, 1.0, overlayColor, hurtTime, 0.0f);
+    pipeline.drawMesh(cmd, *mesh, modelMatrix, position, 1.0, overlayColor, 0.0f, 0.0f);
 
     // 恢复实体纹理图集
     if (needAtlasSwitch && m_entityTextureAtlas != nullptr) {
@@ -731,6 +673,102 @@ void TNTRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
     }
 
     (void)cmd;
+}
+
+// 行主序 4x4 矩阵乘法 helper：result = a * b（即 a 右乘 b，对应 PoseStack 右乘语义）
+[[nodiscard]] static std::array<f64, 16> multiplyMatrix(
+    const std::array<f64, 16>& a, const std::array<f64, 16>& b) noexcept
+{
+    std::array<f64, 16> result{};
+    for (i32 row = 0; row < 4; ++row) {
+        for (i32 col = 0; col < 4; ++col) {
+            const auto idx = static_cast<std::size_t>(row * 4 + col);
+            result[idx] = 0.0;
+            for (i32 k = 0; k < 4; ++k) {
+                result[idx] += a[static_cast<std::size_t>(row * 4 + k)] * b[static_cast<std::size_t>(k * 4 + col)];
+            }
+        }
+    }
+    return result;
+}
+
+f64 TNTRenderer::calculateTntFlashScale(f32 fuseRemaining) noexcept
+{
+    // 对齐 MC 1.21.11 TntRenderer.submit() / TntMinecartRenderer.submitMinecartContents():
+    //   if (fuseRemaining >= 0 && fuseRemaining < 10) {
+    //       f = 1 - fuseRemaining/10;
+    //       f = clamp(f, 0, 1);
+    //       f *= f; f *= f;  // 4 次方
+    //       return 1 + f * 0.3;
+    //   }
+    //   return 1;
+    if (fuseRemaining < 0.0f || fuseRemaining >= 10.0f) {
+        return 1.0;
+    }
+    f32 f = 1.0f - fuseRemaining / 10.0f;
+    f = mc::math::clamp(f, 0.0f, 1.0f);
+    f *= f;
+    f *= f; // 4 次方
+    return 1.0 + static_cast<f64>(f) * 0.3;
+}
+
+bool TNTRenderer::isTntFlashFrame(f32 fuseRemaining) noexcept
+{
+    // 对齐 MC 1.21.11 TntRenderer.submit() / TntMinecartRenderer:
+    //   fuseRemaining > -1 && (int)fuseRemaining / 5 % 2 == 0
+    if (fuseRemaining <= -1.0f) {
+        return false;
+    }
+    const i32 fuseInt = static_cast<i32>(fuseRemaining);
+    return fuseInt / 5 % 2 == 0;
+}
+
+std::array<f64, 16> TNTRenderer::buildTntModelMatrix(f32 fuseRemaining) noexcept
+{
+    // 复刻 MC 1.21.11 TntRenderer.submit() 的完整 PoseStack 变换链（右乘）：
+    //   M = translate(0, 0.5, 0) * [scale(flashScale)] * rotateY(-90°)
+    //       * translate(-0.5, -0.5, 0.5) * rotateY(90°)
+    //
+    // 方块网格顶点已在 BlockMeshBuilder 中乘以 1/16 转换为世界单位（0-1 范围）。
+    // MC 的 PoseStack 使用右乘：current = current * newTransform
+    // 因此最终矩阵 = T1 * [S] * R1 * T2 * R2，顶点 v 变换为 T1 * [S] * R1 * T2 * R2 * v
+    // 最右侧的 R2 最先作用于顶点。
+
+    // translate(0, 0.5, 0)
+    std::array<f64, 16> modelMatrix = {1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+
+    // 闪烁缩放：fuseRemaining < 10 时，scale = 1 + (1 - fuse/10)^4 * 0.3
+    const f64 flashScale = calculateTntFlashScale(fuseRemaining);
+    if (flashScale != 1.0) {
+        std::array<f64, 16> scaleMatrix = {
+            flashScale, 0.0, 0.0, 0.0, 0.0, flashScale, 0.0, 0.0, 0.0, 0.0, flashScale, 0.0, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = multiplyMatrix(modelMatrix, scaleMatrix); // current = current * S
+    }
+
+    // rotateY(-90°)：cos(-90°)=0, sin(-90°)=-1
+    {
+        const f64 c = 0.0;
+        const f64 s = -1.0;
+        std::array<f64, 16> rotMatrix = {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = multiplyMatrix(modelMatrix, rotMatrix); // current = current * R1
+    }
+
+    // translate(-0.5, -0.5, 0.5)
+    {
+        std::array<f64, 16> transMatrix = {
+            1.0, 0.0, 0.0, -0.5, 0.0, 1.0, 0.0, -0.5, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = multiplyMatrix(modelMatrix, transMatrix); // current = current * T2
+    }
+
+    // rotateY(90°)：cos(90°)=0, sin(90°)=1
+    {
+        const f64 c = 0.0;
+        const f64 s = 1.0;
+        std::array<f64, 16> rotMatrix = {c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0};
+        modelMatrix = multiplyMatrix(modelMatrix, rotMatrix); // current = current * R2
+    }
+
+    return modelMatrix;
 }
 
 pipeline::EntityMesh* TNTRenderer::_getOrCreateBlockMesh(
