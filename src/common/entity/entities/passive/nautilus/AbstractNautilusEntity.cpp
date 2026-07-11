@@ -48,6 +48,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -336,7 +337,7 @@ void AbstractNautilusEntity::updateDashCooldown()
 void AbstractNautilusEntity::spawnBubbles()
 {
     // 对应 MC 1.21.11 AbstractNautilus.spawnBubbles()
-    // 根据速度大小概率性生成气泡粒子
+    // 根据速度大小概率性生成气泡粒子，双端执行（服务端广播，客户端本地生成）
     f64 speed = std::sqrt(static_cast<f64>(velocityX() * velocityX()) + static_cast<f64>(velocityY() * velocityY()) +
         static_cast<f64>(velocityZ() * velocityZ()));
     f64 bubbleProb = std::clamp(speed * 2.0, 0.15, 1.0);
@@ -344,6 +345,7 @@ void AbstractNautilusEntity::spawnBubbles()
     // 由世界生成气泡粒子
     if (m_world != nullptr && getRandom().nextFloat() < static_cast<f32>(bubbleProb)) {
         // 计算视线方向（限制俯仰角在 -10 到 10 度之间）
+        // 对应 MC 1.21.11 AbstractNautilus.spawnBubbles() 中 calculateViewVector(clampedPitch, yaw)
         // 注意：yaw()/pitch() 是本类的公开成员函数，使用别名避免局部变量遮蔽
         const f32 currentYaw = yaw();
         const f32 clampedPitch = std::clamp(pitch(), -10.0f, 10.0f);
@@ -359,18 +361,22 @@ void AbstractNautilusEntity::spawnBubbles()
         const f32 viewZ = cosYaw * cosPitch;
 
         // 气泡生成位置：实体位置后方 1.1 格、上方 0.25 格
-        const f32 bubbleX = x() - viewX * 1.1f;
-        const f32 bubbleY = y() - viewY + 0.25f;
-        const f32 bubbleZ = z() - viewZ * 1.1f;
+        const f32 bubbleX = static_cast<f32>(x()) - viewX * 1.1f;
+        const f32 bubbleY = static_cast<f32>(y()) - viewY + 0.25f;
+        const f32 bubbleZ = static_cast<f32>(z()) - viewZ * 1.1f;
 
-        // 随机偏移速度
-        const f32 spread = static_cast<f32>(0.8 * (1.0 + speed));
-        // TODO: 当粒子系统支持 BUBBLE 粒子类型时，在此生成 BUBBLE 粒子
-        // 当前粒子系统接口尚未暴露 BUBBLE 粒子生成方法，先记录位置参数
-        MC_UNUSED(bubbleX);
-        MC_UNUSED(bubbleY);
-        MC_UNUSED(bubbleZ);
-        MC_UNUSED(spread);
+        // 随机扩散速度：spread = nextDouble() * 0.8 * (1 + speed)
+        // 每个分量 (nextFloat() - 0.5) * spread，对应 MC 原版 d2/d3/d4/d5
+        math::Random& rng = getRandom();
+        const f64 spread = rng.nextDouble() * 0.8 * (1.0 + speed);
+        const f32 velX = (rng.nextFloat() - 0.5f) * static_cast<f32>(spread);
+        const f32 velY = (rng.nextFloat() - 0.5f) * static_cast<f32>(spread);
+        const f32 velZ = (rng.nextFloat() - 0.5f) * static_cast<f32>(spread);
+
+        // 生成 BUBBLE 粒子（服务端通过 ServerWorld::addParticle 广播给附近玩家，
+        // 客户端通过 ClientWorld::addParticle 本地生成）
+        m_world->addParticle(
+            particle::ParticleTypeId::Bubble, Vector3(bubbleX, bubbleY, bubbleZ), Vector3(velX, velY, velZ));
     }
 }
 
@@ -603,9 +609,19 @@ void AbstractNautilusEntity::openInventory(Player& player)
     if (m_world != nullptr && !m_world->isClientSide()) {
         if (!isBeingRidden() || isPassenger(player.id())) {
             if (isTamed()) {
-                // TODO: 当鹦鹉螺背包 ContainerMenu 系统实现后，在此打开背包 GUI
-                // 当前物品栏 SimpleInventory 已存在（m_inventory），但尚未实现
-                // NautilusContainer（类似 HorseInventoryMenu）来连接装备栏与玩家背包。
+                // TODO: 当实体背包 ContainerMenu 系统实现后，在此打开鹦鹉螺背包 GUI。
+                // 当前物品栏 SimpleInventory 已存在（m_inventory），但实体背包 GUI 链路尚未打通，
+                // 缺失以下关键组件：
+                //   1. ServerWorld::setOnOpenEntityContainer 回调未接线（MinecraftServer 未注册）
+                //   2. ContainerManager 不支持实体容器（仅支持方块容器，签名依赖 BlockPos）
+                //   3. NautilusContainer 菜单类未实现（参考 ChestContainer 模式）
+                //   4. ContainerType 枚举无动物背包类型
+                //   5. 客户端 OpenContainerPacket 处理器不支持实体容器分支
+                //   6. 客户端 NautilusInventoryScreen 未实现
+                // 与 AbstractHorseEntity::openInventory 的 TODO 是同一阻塞点，应一起收敛。
+                // MC 原版流程：openCustomInventoryScreen → ServerPlayer.openNautilusInventory
+                // → 发送 ClientboundMountScreenOpenPacket + 创建 NautilusInventoryMenu
+                // → initMenu → sendInitialData 发送 ClientboundContainerSetContentPacket。
             }
         }
     }
@@ -711,19 +727,22 @@ void AbstractNautilusEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag)
     }
 
     // 物品栏内容（鞍 + 鹦鹉螺铠甲）
+    // 使用 "Items" 列表 + Slot 索引模式保存完整 ItemStack（含附魔、耐久、自定义名称等），
+    // 与 ChestBoatEntity、LootableContainerBlockEntity、PlayerInventory 等保持一致。
+    // 空槽位不写入，与 MC 1.21.11 EntityEquipment.CODEC 的 map.values().removeIf(isEmpty) 一致。
     if (m_inventory != nullptr) {
-        // 鞍槽
-        const ItemStack& saddle = m_inventory->getItem(0);
-        if (!saddle.isEmpty()) {
-            // TODO: 当 ItemStack NBT 序列化辅助方法就绪后，在此保存物品栏内容
-            // 当前使用简化方式：仅标记槽位是否被占用
-            tag.put("SaddleItem", static_cast<i8>(1));
+        auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
+        for (i32 slot = 0; slot < getEquipmentSlotCount(); ++slot) {
+            const ItemStack& stack = m_inventory->getItem(slot);
+            if (!stack.isEmpty()) {
+                nbt::tags::compound_tag itemTag;
+                itemTag.put("Slot", static_cast<i8>(slot));
+                stack.toNbt(itemTag);
+                itemsList->value.push_back(std::move(itemTag));
+            }
         }
-
-        // 鹦鹉螺铠甲槽
-        const ItemStack& armor = m_inventory->getItem(1);
-        if (!armor.isEmpty()) {
-            tag.put("NautilusArmorItem", static_cast<i8>(1));
+        if (!itemsList->value.empty()) {
+            tag.value.insert_or_assign(nbt_keys::ITEMS, std::move(itemsList));
         }
     }
 }
@@ -739,14 +758,31 @@ Result<void> AbstractNautilusEntity::readAdditionalSaveData(const nbt::tags::com
         m_dashCooldown = *val;
     }
 
-    // TODO: 当 ItemStack NBT 序列化辅助方法就绪后，在此加载物品栏内容
-    // 当前使用简化方式：从 NBT 标记恢复槽位状态
-    // 如果存档中有鞍标记，恢复鞍（需要从 NBT 读取完整 ItemStack，当前简化处理）
-    if (nbt_helper::tryGetBool(tag, "SaddleItem").value_or(false)) {
-        // 创建一个鞍物品堆放入槽位
-        // 注意：此处需要 Items::SADDLE 已初始化
-        if (Items::SADDLE != nullptr) {
-            setEquipment(0, ItemStack(Items::SADDLE, 1));
+    // 物品栏内容
+    // 优先读取新格式 "Items" 列表（完整 ItemStack NBT），
+    // 兼容旧格式 "SaddleItem" 布尔标记（早期版本仅记录槽位占用状态）。
+    if (m_inventory != nullptr) {
+        const auto* itemsList = nbt_helper::tryGetList(tag, nbt_keys::ITEMS);
+        if (itemsList != nullptr && itemsList->element_id() == nbt::TagId::Compound) {
+            // 新格式：从 "Items" 列表读取完整 ItemStack
+            const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*itemsList);
+            for (const auto& itemTag : compoundList.value) {
+                i8 slot = 0;
+                if (auto slotOpt = nbt_helper::tryGetByte(itemTag, "Slot")) {
+                    slot = *slotOpt;
+                }
+                if (slot >= 0 && slot < getEquipmentSlotCount()) {
+                    auto stackResult = ItemStack::fromNbt(itemTag);
+                    if (stackResult.success() && !stackResult.value().isEmpty()) {
+                        setEquipment(slot, stackResult.value());
+                    }
+                }
+            }
+        } else if (nbt_helper::tryGetBool(tag, "SaddleItem").value_or(false)) {
+            // 旧格式向后兼容：仅有布尔标记，恢复为默认鞍物品
+            if (Items::SADDLE != nullptr) {
+                setEquipment(0, ItemStack(Items::SADDLE, 1));
+            }
         }
     }
 

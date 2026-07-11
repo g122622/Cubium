@@ -66,11 +66,13 @@ AbstractNautilusEntity (继承 TameableEntity + IJumpingMount + IEquipable)
 5. **骑乘者效果简化为 `WaterBreathing`** - MC 原版使用 `BREATH_OF_THE_NAUTILUS` 效果，项目未实现该效果，
    使用 `EffectType::WaterBreathing` 替代。
 
-6. **物品栏 NBT 序列化简化** - 当前仅标记槽位是否被占用，未保存完整 ItemStack NBT。
-   待 ItemStack NBT 序列化辅助方法就绪后需补全（搜索代码中的 TODO 注释定位）。
+6. **物品栏 NBT 序列化** - 使用 `Items` 列表 + Slot 索引模式保存完整 ItemStack（含附魔、耐久、自定义名称等），与 ChestBoatEntity、LootableContainerBlockEntity、PlayerInventory 保持一致。加载时优先读取 `Items` 列表，回退兼容旧版 `SaddleItem` 布尔标记。
 
-7. **气泡粒子生成未实现** - `AbstractNautilusEntity::spawnBubbles` 计算了位置参数但未调用粒子系统，
-   待粒子系统暴露 BUBBLE 粒子类型接口后补全。
+7. **气泡粒子生成** - `AbstractNautilusEntity::spawnBubbles` 通过 `IWorld::addParticle(ParticleTypeId::Bubble, ...)` 生成气泡，双端执行（服务端广播，客户端本地生成），与 MC 1.21.11 原版 `level().addParticle` 语义一致。
 
 8. **`getLookAngle()` 是 `LivingEntity` 的 protected 方法**，不是 `Entity` 的方法。在 `executeRidersJump`
    中使用时需通过 `Player&`（继承自 `LivingEntity`）访问。
+
+9. **鹦鹉螺背包 GUI 未实现** - `openInventory` 仍为 TODO，阻塞点：`ServerWorld::setOnOpenEntityContainer`
+   回调未接线、`ContainerManager` 不支持实体容器、`NautilusContainer` 菜单类未实现、客户端 Screen 未实现。
+   与 `AbstractHorseEntity::openInventory` 的 TODO 是同一阻塞点，应一起收敛。

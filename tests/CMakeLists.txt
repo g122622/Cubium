@@ -644,6 +644,8 @@ add_executable(mc_tests
     entity/PassengerSystemTests.cpp
     entity/StriderEntityTest.cpp
     entity/PigEntityTest.cpp
+    # 鹦鹉螺 NBT 序列化/气泡粒子/装备查询测试
+    entity/NautilusEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp
     entity/AttributeTests.cpp
     # Player LUCK 属性测试
