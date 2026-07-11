@@ -193,6 +193,48 @@ private:
     static bool _createFireTexture(const std::vector<u8>& pixels, u32 width, u32 height);
 
     /**
+     * @brief 生成插值帧像素数据
+     *
+     * 当 metadata.interpolate=true 时，根据 progress 在当前帧和下一帧
+     * 之间逐像素 lerp，R/G/B 三通道线性插值，A 通道保留当前帧 alpha。
+     * 算法与 MC 1.16.5 TextureAtlasSprite.InterpolationData 一致，
+     * 也与项目 AnimatedSprite::_generateInterpolatedFrame 一致。
+     *
+     * @param currentFrame 当前帧像素数据
+     * @param nextFrame 下一帧像素数据
+     * @param progress 插值进度（0.0=完全当前帧，1.0=完全下一帧）
+     * @return 插值后的像素数据
+     */
+    static std::vector<u8> _generateInterpolatedFrame(
+        const u8* currentFrame, const u8* nextFrame, u32 pixelCount, f32 progress);
+
+    /**
+     * @brief 上传火焰纹理子区域到 VkImage
+     *
+     * 通过 staging buffer 把指定矩形区域的像素上传到 s_fireTexture。
+     * 用于插值模式下每 tick 把混合后的帧像素写回 VkImage 对应位置。
+     *
+     * @param pixels 像素数据（RGBA）
+     * @param dstX 目标 X 坐标（像素）
+     * @param dstY 目标 Y 坐标（像素）
+     * @param width 区域宽度
+     * @param height 区域高度
+     * @return 成功或错误
+     */
+    static bool _uploadTextureRegion(const u8* pixels, u32 dstX, u32 dstY, u32 width, u32 height);
+
+    /**
+     * @brief 推进单个动画状态的插值帧上传
+     *
+     * 若该动画状态启用了 interpolate，则根据 frameProgress() 生成
+     * 插值帧并上传到 VkImage 的对应区域。
+     *
+     * @param state 动画状态
+     * @param isFire1 是否为 fire_1（决定 VkImage 中的 Y 偏移）
+     */
+    static void _tickInterpolation(FireAnimationState& state, bool isFire1);
+
+    /**
      * @brief 生成火焰四边形网格
      * @param x X 坐标
      * @param y Y 坐标
@@ -243,6 +285,12 @@ private:
     static VkSampler s_fireSampler;
     static u32 s_fireTextureWidth;
     static u32 s_fireTextureHeight;
+
+    // CPU 端像素副本：用于插值模式下逐像素 lerp 生成混合帧
+    // 布局与 VkImage 一致：[fire_0 全部帧][fire_1 全部帧] 纵向拼接
+    static std::vector<u8> s_firePixelsCPU;
+    // 单帧像素数（宽×高，不含通道数），用于插值帧生成
+    static u32 s_fireFramePixelCount;
 
     // 动画状态
     /// fire_0 的动画播放状态

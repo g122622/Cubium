@@ -306,5 +306,171 @@ TEST(FireAnimationStateTest, CurrentFrameIndexWithEmptySequenceReturnsCounter)
     EXPECT_EQ(state.currentFrameIndex(), 2);
 }
 
+// ========== nextFrameIndex() 测试 ==========
+
+TEST(FireAnimationStateTest, NextFrameIndexWithEmptySequenceAdvancesByOne)
+{
+    FireAnimationState state;
+    auto md = makeDefaultMetadata(1);
+    state.init(md, 4); // 4 帧顺序播放
+
+    // 初始 frameCounter=0，下一帧应为 1
+    EXPECT_EQ(state.nextFrameIndex(), 1);
+    state.tick();
+    EXPECT_EQ(state.nextFrameIndex(), 2);
+    state.tick();
+    EXPECT_EQ(state.nextFrameIndex(), 3);
+    state.tick();
+    // 推进到帧 3 后，下一帧应回绕到 0
+    EXPECT_EQ(state.nextFrameIndex(), 0);
+}
+
+TEST(FireAnimationStateTest, NextFrameIndexCyclesBackToZero)
+{
+    FireAnimationState state;
+    auto md = makeDefaultMetadata(1);
+    state.init(md, 3); // 3 帧：0, 1, 2
+
+    // 推进到最后一帧
+    state.tick(); // 0 → 1
+    state.tick(); // 1 → 2
+    EXPECT_EQ(state.currentFrameIndex(), 2);
+    // 在最后一帧时，下一帧应回绕到 0
+    EXPECT_EQ(state.nextFrameIndex(), 0);
+}
+
+TEST(FireAnimationStateTest, NextFrameIndexWithCustomSequenceFollowsOrder)
+{
+    FireAnimationState state;
+    // 帧序列 [1, 0, 2]：下一帧依次为 0, 2, 1
+    auto md = makeCustomSequenceMetadata({1, 0, 2}, 1);
+    state.init(md, 3);
+
+    // 当前帧 1，下一帧应为序列下一项的 index=0
+    EXPECT_EQ(state.currentFrameIndex(), 1);
+    EXPECT_EQ(state.nextFrameIndex(), 0);
+
+    state.tick();
+    // 当前帧 0，下一帧应为序列下一项的 index=2
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_EQ(state.nextFrameIndex(), 2);
+
+    state.tick();
+    // 当前帧 2，下一帧应回绕到序列首项 index=1
+    EXPECT_EQ(state.currentFrameIndex(), 2);
+    EXPECT_EQ(state.nextFrameIndex(), 1);
+}
+
+TEST(FireAnimationStateTest, NextFrameIndexWithSingleFrameReturnsSameIndex)
+{
+    FireAnimationState state;
+    auto md = makeDefaultMetadata(1);
+    state.init(md, 1); // 单帧
+
+    // 单帧时下一帧索引应回绕到 0（即与当前帧相同）
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_EQ(state.nextFrameIndex(), 0);
+}
+
+TEST(FireAnimationStateTest, NextFrameIndexZeroFrameCountIsSafe)
+{
+    FireAnimationState state;
+    auto md = makeDefaultMetadata(1);
+    state.init(md, 0); // frameCount=0
+
+    // frameCount=0 时 nextFrameIndex 不应崩溃，返回 0
+    EXPECT_EQ(state.nextFrameIndex(), 0);
+}
+
+TEST(FireAnimationStateTest, NextFrameIndexWithPerFrameTimeRespectsSequence)
+{
+    FireAnimationState state;
+    // 帧 0 (time=3), 帧 1 (time=2), 帧 2 (time=1)
+    auto md = makePerFrameTimeMetadata({{0, 3}, {1, 2}, {2, 1}});
+    state.init(md, 3);
+
+    // 当前帧 0，下一帧应为 1
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_EQ(state.nextFrameIndex(), 1);
+
+    // 推进 3 tick 切换到帧 1
+    state.tick();
+    state.tick();
+    state.tick();
+    EXPECT_EQ(state.currentFrameIndex(), 1);
+    EXPECT_EQ(state.nextFrameIndex(), 2);
+}
+
+// ========== interpolate 字段语义测试 ==========
+
+TEST(FireAnimationStateTest, InterpolateFlagPreservedFromMetadata)
+{
+    FireAnimationState state;
+    auto md = makeDefaultMetadata(2);
+    md.interpolate = true;
+    state.init(md, 3);
+
+    // metadata.interpolate 应被 FireAnimationState 保留
+    EXPECT_TRUE(state.metadata.interpolate);
+
+    // 即使 interpolate=true，currentFrameIndex 仍按离散逻辑返回
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    state.tick();
+    state.tick();
+    EXPECT_EQ(state.currentFrameIndex(), 1);
+}
+
+TEST(FireAnimationStateTest, InterpolateDoesNotAffectTickAdvance)
+{
+    FireAnimationState state;
+    auto md = makeDefaultMetadata(2);
+    md.interpolate = true;
+    state.init(md, 3);
+
+    // interpolate=true 不应改变 tick 推进节奏
+    // 帧 0 持续 2 tick
+    state.tick();
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_FLOAT_EQ(state.frameProgress(), 0.5f);
+
+    state.tick();
+    EXPECT_EQ(state.currentFrameIndex(), 1);
+    EXPECT_FLOAT_EQ(state.frameProgress(), 0.0f);
+}
+
+// ========== 插值场景下的 nextFrameIndex 综合测试 ==========
+
+TEST(FireAnimationStateTest, InterpolationPairCurrentAndNextFrameIndices)
+{
+    FireAnimationState state;
+    // 4 帧顺序播放，interpolate=true，frametime=3
+    auto md = makeDefaultMetadata(3);
+    md.interpolate = true;
+    state.init(md, 4);
+
+    // 帧 0 progress=0/3：当前=0，下一=1
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_EQ(state.nextFrameIndex(), 1);
+    EXPECT_FLOAT_EQ(state.frameProgress(), 0.0f);
+
+    state.tick();
+    // 帧 0 progress=1/3：当前=0，下一=1
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_EQ(state.nextFrameIndex(), 1);
+    EXPECT_FLOAT_EQ(state.frameProgress(), 1.0f / 3.0f);
+
+    state.tick();
+    // 帧 0 progress=2/3：当前=0，下一=1
+    EXPECT_EQ(state.currentFrameIndex(), 0);
+    EXPECT_EQ(state.nextFrameIndex(), 1);
+    EXPECT_FLOAT_EQ(state.frameProgress(), 2.0f / 3.0f);
+
+    state.tick();
+    // 切换到帧 1，progress 重置
+    EXPECT_EQ(state.currentFrameIndex(), 1);
+    EXPECT_EQ(state.nextFrameIndex(), 2);
+    EXPECT_FLOAT_EQ(state.frameProgress(), 0.0f);
+}
+
 } // namespace
 } // namespace mc::test

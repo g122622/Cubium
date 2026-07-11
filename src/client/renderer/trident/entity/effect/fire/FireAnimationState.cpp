@@ -70,6 +70,21 @@ i32 FireAnimationState::currentFrameIndex() const noexcept
     return metadata.frames[frameCounter % metadata.frames.size()].index;
 }
 
+i32 FireAnimationState::nextFrameIndex() const noexcept
+{
+    if (frameCount == 0) {
+        return 0;
+    }
+    // 有自定义帧序列时，下一帧位置在 frames[(frameCounter + 1) % size]
+    if (metadata.frames.empty()) {
+        // 无自定义帧序列：直接取 (frameCounter + 1) % frameCount
+        const i32 next = static_cast<i32>(frameCounter) + 1;
+        return next >= static_cast<i32>(frameCount) ? 0 : next;
+    }
+    const Size nextPos = (frameCounter + 1) % metadata.frames.size();
+    return metadata.frames[nextPos].index;
+}
+
 f32 FireAnimationState::frameProgress() const noexcept
 {
     if (currentFrameTime <= 0) {

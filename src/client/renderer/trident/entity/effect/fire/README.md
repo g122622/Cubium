@@ -31,6 +31,18 @@ fire/
 - `tickCounter` 累加 tick，达到 `currentFrameTime` 后切换帧
 - 支持每帧独立时长（mcmeta `frames[].time`）
 - 支持自定义帧序列（mcmeta `frames` 数组）和模运算循环
+- 支持插值模式（mcmeta `interpolate: true`）：`nextFrameIndex()` 返回下一帧索引，`frameProgress()` 返回当前帧进度，供 `FireEffect` 逐像素 lerp
+
+### 插值模式（interpolate=true）
+
+当 mcmeta 启用 `interpolate: true` 时，`FireEffect::tick()` 会在每 tick 根据当前帧进度（`frameProgress()`）逐像素 lerp 当前帧与下一帧，将混合结果通过 `_uploadTextureRegion()` 上传到 VkImage 的当前帧位置。渲染层（`_renderFireLayers`）仍使用离散 `currentFrameIndex()` 计算 V 偏移，因为 VkImage 中的像素已是插值后的结果。
+
+算法与 MC 1.16.5 `TextureAtlasSprite.InterpolationData` 一致：
+- R/G/B 三通道线性插值（`mc::math::lerp`）
+- A 通道不插值（保留当前帧 alpha）
+- 单帧纹理小（16×16），CPU 开销可忽略
+
+需要保留 CPU 端像素副本（`s_firePixelsCPU`）以读取原始帧像素，`loadTexture()` 和 `initialize()` 中都会填充该副本。
 
 ## 上下游外部依赖关系
 
@@ -84,7 +96,7 @@ fire/
 
 ### 1.4 动画 tick 集成
 
-`FireEffect::tick()` 由 `TridentEngine::tickTextureAnimations()` 调用，与方块/物品图集动画共享同一 tick 推进时机。由于火焰纹理所有帧已预上传，tick 仅推进帧计数器，无需在 `uploadAnimationFrames()` 中做任何上传操作。
+`FireEffect::tick()` 由 `TridentEngine::tickTextureAnimations()` 调用，与方块/物品图集动画共享同一 tick 推进时机。若任一纹理启用 interpolate，tick 还会调用 `_tickInterpolation()` 生成并上传插值帧；未启用时仅推进帧计数器，零额外开销。
 
 ### 2. Billboard 朝向
 

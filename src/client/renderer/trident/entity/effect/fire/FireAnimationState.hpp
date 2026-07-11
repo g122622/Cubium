@@ -35,10 +35,11 @@ namespace mc::client::renderer::entity::effect::fire {
  * m_tickCounter 累加 tick，达到 m_currentFrameTime 后切换帧。
  * 不同帧可有独立时长（由 mcmeta frames[].time 指定）。
  *
- * TODO: interpolate 插值尚未实现。当 metadata.interpolate=true 时，
- * 应在帧切换过程中根据 frameProgress() 计算当前帧与下一帧之间的
- * 混合 V 偏移（或在着色器中做双采样混合）。当前实现直接跳帧，
- * 不做插值。frameProgress() 已预留供未来插值实现使用。
+ * 插值（interpolate=true）已实现：FireEffect 在 tick() 中检测
+ * metadata.interpolate，若为 true 则根据 frameProgress() 逐像素
+ * lerp 当前帧与下一帧，将混合结果上传到 VkImage 对应区域。
+ * 算法与 MC 1.16.5 TextureAtlasSprite.InterpolationData 一致：
+ * R/G/B 三通道线性插值，A 通道不插值（保留当前帧 alpha）。
  *
  * 此结构独立于 FireEffect.hpp，不依赖 Vulkan，便于单元测试。
  */
@@ -79,12 +80,25 @@ struct FireAnimationState {
     [[nodiscard]] i32 currentFrameIndex() const noexcept;
 
     /**
+     * @brief 获取下一帧索引
+     *
+     * 用于插值：当 metadata.interpolate=true 时，需要知道下一帧
+     * 索引以便在当前帧和下一帧之间逐像素 lerp。
+     *
+     * 有自定义帧序列时返回 frames[(frameCounter + 1) % frames.size()].index；
+     * 否则返回 (frameCounter + 1) % frameCount。
+     *
+     * @return 下一帧索引（循环回绕到帧序列起点）
+     */
+    [[nodiscard]] i32 nextFrameIndex() const noexcept;
+
+    /**
      * @brief 获取当前帧进度（0.0-1.0）
      *
      * 表示当前帧已播放的 tick 比例。
-     * 供未来 interpolate 插值实现使用：当 metadata.interpolate=true 时，
-     * 渲染器可据此值在当前帧和下一帧之间做 UV 混合或着色器双采样。
-     * 当前未启用插值，此方法暂未被渲染路径调用。
+     * FireEffect::tick() 中检测到 metadata.interpolate=true 时，
+     * 使用此值作为 lerp 权重，逐像素混合当前帧与下一帧，
+     * 将混合结果上传到 VkImage 对应区域，产生平滑过渡。
      */
     [[nodiscard]] f32 frameProgress() const noexcept;
 };

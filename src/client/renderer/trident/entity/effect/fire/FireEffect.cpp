@@ -28,6 +28,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -46,6 +47,10 @@ VkImageView FireEffect::s_fireTextureView = VK_NULL_HANDLE;
 VkSampler FireEffect::s_fireSampler = VK_NULL_HANDLE;
 u32 FireEffect::s_fireTextureWidth = 0;
 u32 FireEffect::s_fireTextureHeight = 0;
+
+// CPU 端像素副本与帧像素数（用于插值模式下的逐像素 lerp）
+std::vector<u8> FireEffect::s_firePixelsCPU;
+u32 FireEffect::s_fireFramePixelCount = 0;
 
 // 动画状态初始化
 FireAnimationState FireEffect::s_fire0Animation;
@@ -76,6 +81,10 @@ bool FireEffect::initialize(
     if (!_createFireTexture(placeholder.pixels, placeholder.frameWidth, placeholderHeight)) {
         spdlog::warn("FireEffect: Failed to create placeholder fire texture");
     }
+
+    // 保留 CPU 端像素副本，供插值模式下逐像素 lerp 使用
+    s_firePixelsCPU = placeholder.pixels;
+    s_fireFramePixelCount = placeholder.frameWidth * placeholder.frameHeight;
 
     // 初始化动画状态（占位纹理：fire_0/fire_1 各 1 帧，无 mcmeta）
     s_fire0FrameCount = placeholder.fire0FrameCount;
@@ -114,18 +123,25 @@ bool FireEffect::loadTexture(const std::vector<IResourcePack*>& resourcePacks)
         return false;
     }
 
+    // 保留 CPU 端像素副本，供插值模式下逐像素 lerp 使用
+    s_firePixelsCPU = data.pixels;
+    s_fireFramePixelCount = data.frameWidth * data.frameHeight;
+
     // 重置动画状态
     s_fire0FrameCount = data.fire0FrameCount;
     s_fire1FrameCount = data.fire1FrameCount;
     s_fire0Animation.init(data.fire0Metadata, s_fire0FrameCount);
     s_fire1Animation.init(data.fire1Metadata, s_fire1FrameCount);
 
-    spdlog::info("FireEffect: Fire texture reloaded ({}x{}, {} frames total, fire0={} fire1={})",
+    spdlog::info("FireEffect: Fire texture reloaded ({}x{}, {} frames total, fire0={} fire1={}, interpolate0={} "
+                 "interpolate1={})",
         data.frameWidth,
         data.frameHeight,
         data.frameCount,
         s_fire0FrameCount,
-        s_fire1FrameCount);
+        s_fire1FrameCount,
+        data.fire0Metadata.interpolate,
+        data.fire1Metadata.interpolate);
     return true;
 }
 
@@ -136,6 +152,11 @@ void FireEffect::cleanup()
     }
 
     _destroyFireTexture();
+
+    // 清理 CPU 端像素副本
+    s_firePixelsCPU.clear();
+    s_firePixelsCPU.shrink_to_fit();
+    s_fireFramePixelCount = 0;
 
     s_device = VK_NULL_HANDLE;
     s_physicalDevice = VK_NULL_HANDLE;
@@ -154,6 +175,11 @@ void FireEffect::tick()
     }
     s_fire0Animation.tick();
     s_fire1Animation.tick();
+
+    // 插值模式：每 tick 根据帧进度生成插值帧并上传到 VkImage 对应区域
+    // 与 MC 1.16.5 TextureAtlasSprite.updateAnimationInterpolated 行为一致
+    _tickInterpolation(s_fire0Animation, /*isFire1=*/false);
+    _tickInterpolation(s_fire1Animation, /*isFire1=*/true);
 }
 
 void FireEffect::_destroyFireTexture()
@@ -274,9 +300,10 @@ void FireEffect::_renderFireLayers(VkCommandBuffer cmd,
     // fire_0 起始 V 偏移 = fire0FrameIndex / totalFrames
     // fire_1 起始 V 偏移 = (s_fire0FrameCount + fire1FrameIndex) / totalFrames
     //
-    // TODO: interpolate 插值未实现。当 metadata.interpolate=true 时，应在当前帧和
-    // 下一帧之间根据 frameProgress() 做 V 偏移混合或着色器双采样，产生平滑过渡。
-    // 当前实现直接使用 currentFrameIndex() 做离散帧切换，不进行插值。
+    // 插值已实现：当 metadata.interpolate=true 时，FireEffect::tick() 中
+    // 会根据 frameProgress() 逐像素 lerp 当前帧与下一帧，将混合结果上传到
+    // VkImage 的当前帧对应区域。因此这里仍然使用 currentFrameIndex() 计算
+    // 离散 V 偏移即可——VkImage 中的像素已经是插值后的结果。
     const u32 totalFrames = s_fire0FrameCount + s_fire1FrameCount;
     const f32 frameVSize = (totalFrames > 0) ? (1.0f / static_cast<f32>(totalFrames)) : 1.0f;
 
@@ -696,6 +723,273 @@ void FireEffect::_computeBillboardMatrices(const Vector3f& position, std::array<
         0.0,
         0.0,
         1.0};
+}
+
+std::vector<u8> FireEffect::_generateInterpolatedFrame(
+    const u8* currentFrame, const u8* nextFrame, u32 pixelCount, f32 progress)
+{
+    MC_ASSERT_RELEASE(currentFrame != nullptr);
+    MC_ASSERT_RELEASE(nextFrame != nullptr);
+
+    std::vector<u8> result;
+    result.reserve(static_cast<size_t>(pixelCount) * 4);
+
+    // 逐像素 lerp：R/G/B 三通道线性插值，A 通道保留当前帧 alpha
+    // 与 MC 1.16.5 TextureAtlasSprite.InterpolationData 行为一致
+    // 也与项目 AnimatedSprite::_generateInterpolatedFrame 算法一致
+    for (u32 i = 0; i < pixelCount; ++i) {
+        const size_t offset = static_cast<size_t>(i) * 4;
+
+        // R 通道
+        const f32 curR = static_cast<f32>(currentFrame[offset]);
+        const f32 nxtR = static_cast<f32>(nextFrame[offset]);
+        result.push_back(static_cast<u8>(mc::math::lerp(curR, nxtR, progress)));
+
+        // G 通道
+        const f32 curG = static_cast<f32>(currentFrame[offset + 1]);
+        const f32 nxtG = static_cast<f32>(nextFrame[offset + 1]);
+        result.push_back(static_cast<u8>(mc::math::lerp(curG, nxtG, progress)));
+
+        // B 通道
+        const f32 curB = static_cast<f32>(currentFrame[offset + 2]);
+        const f32 nxtB = static_cast<f32>(nextFrame[offset + 2]);
+        result.push_back(static_cast<u8>(mc::math::lerp(curB, nxtB, progress)));
+
+        // A 通道不插值，保留当前帧 alpha
+        result.push_back(currentFrame[offset + 3]);
+    }
+
+    return result;
+}
+
+bool FireEffect::_uploadTextureRegion(const u8* pixels, u32 dstX, u32 dstY, u32 width, u32 height)
+{
+    if (s_device == VK_NULL_HANDLE || s_fireTexture == VK_NULL_HANDLE || s_commandPool == VK_NULL_HANDLE ||
+        s_graphicsQueue == VK_NULL_HANDLE) {
+        return false;
+    }
+
+    const VkDeviceSize regionSize = static_cast<VkDeviceSize>(width) * height * 4;
+    if (regionSize == 0) {
+        return false;
+    }
+
+    // 创建 staging buffer
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = regionSize;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(s_device, &bufferInfo, nullptr, &stagingBuffer) != VK_SUCCESS) {
+        spdlog::error("FireEffect: Failed to create staging buffer for region upload");
+        return false;
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(s_device, stagingBuffer, &memRequirements);
+
+    VkPhysicalDeviceMemoryProperties memProps;
+    vkGetPhysicalDeviceMemoryProperties(s_physicalDevice, &memProps);
+
+    u32 memoryTypeIndex = UINT32_MAX;
+    for (u32 i = 0; i < memProps.memoryTypeCount; ++i) {
+        if ((memRequirements.memoryTypeBits & (1 << i)) &&
+            (memProps.memoryTypes[i].propertyFlags &
+                (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
+            memoryTypeIndex = i;
+            break;
+        }
+    }
+
+    if (memoryTypeIndex == UINT32_MAX) {
+        vkDestroyBuffer(s_device, stagingBuffer, nullptr);
+        spdlog::error("FireEffect: Failed to find host-visible memory type for region upload");
+        return false;
+    }
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+    if (vkAllocateMemory(s_device, &allocInfo, nullptr, &stagingMemory) != VK_SUCCESS) {
+        vkDestroyBuffer(s_device, stagingBuffer, nullptr);
+        spdlog::error("FireEffect: Failed to allocate staging memory for region upload");
+        return false;
+    }
+
+    vkBindBufferMemory(s_device, stagingBuffer, stagingMemory, 0);
+
+    // 填充 staging buffer
+    void* data = nullptr;
+    const VkResult mapResult = vkMapMemory(s_device, stagingMemory, 0, regionSize, 0, &data);
+    if (mapResult != VK_SUCCESS || data == nullptr) {
+        vkDestroyBuffer(s_device, stagingBuffer, nullptr);
+        vkFreeMemory(s_device, stagingMemory, nullptr);
+        spdlog::error("FireEffect: Failed to map staging memory for region upload");
+        return false;
+    }
+    std::memcpy(data, pixels, static_cast<size_t>(regionSize));
+    vkUnmapMemory(s_device, stagingMemory);
+
+    // 录制命令缓冲区
+    VkCommandBufferAllocateInfo cmdAllocInfo{};
+    cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdAllocInfo.commandPool = s_commandPool;
+    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAllocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmd;
+    vkAllocateCommandBuffers(s_device, &cmdAllocInfo, &cmd);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+
+    // 纹理已经在 SHADER_READ_ONLY_OPTIMAL 布局，需要先转换到 TRANSFER_DST_OPTIMAL
+    VkImageMemoryBarrier toTransferDst{};
+    toTransferDst.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    toTransferDst.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    toTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toTransferDst.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransferDst.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransferDst.image = s_fireTexture;
+    toTransferDst.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    toTransferDst.subresourceRange.baseMipLevel = 0;
+    toTransferDst.subresourceRange.levelCount = 1;
+    toTransferDst.subresourceRange.baseArrayLayer = 0;
+    toTransferDst.subresourceRange.layerCount = 1;
+    toTransferDst.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    toTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &toTransferDst);
+
+    // 复制指定区域到 VkImage
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0; // 紧密排列
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {static_cast<i32>(dstX), static_cast<i32>(dstY), 0};
+    region.imageExtent = {width, height, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, s_fireTexture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    // 转换回 SHADER_READ_ONLY_OPTIMAL
+    VkImageMemoryBarrier toShaderRead{};
+    toShaderRead = toTransferDst;
+    toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    toShaderRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    toShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1,
+        &toShaderRead);
+
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+
+    vkQueueSubmit(s_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(s_graphicsQueue);
+
+    vkFreeCommandBuffers(s_device, s_commandPool, 1, &cmd);
+    vkDestroyBuffer(s_device, stagingBuffer, nullptr);
+    vkFreeMemory(s_device, stagingMemory, nullptr);
+
+    return true;
+}
+
+void FireEffect::_tickInterpolation(FireAnimationState& state, bool isFire1)
+{
+    // 仅在 metadata.interpolate=true 且动画状态有效时执行
+    if (!state.metadata.interpolate || state.frameCount <= 1 || s_firePixelsCPU.empty() || s_fireFramePixelCount == 0) {
+        return;
+    }
+
+    const i32 currentIdx = state.currentFrameIndex();
+    const i32 nextIdx = state.nextFrameIndex();
+
+    // 当前帧与下一帧相同（单帧或循环同帧）时无需插值
+    if (currentIdx == nextIdx) {
+        return;
+    }
+
+    if (currentIdx < 0 || nextIdx < 0) {
+        return;
+    }
+
+    const f32 progress = state.frameProgress();
+
+    // 从 CPU 端像素副本中取出当前帧和下一帧的像素数据
+    // 纹理布局：[fire_0 全部帧][fire_1 全部帧] 纵向拼接
+    // fire_0 帧 i 的偏移：i * framePixelCount * 4
+    // fire_1 帧 i 的偏移：(s_fire0FrameCount + i) * framePixelCount * 4
+    const size_t frameByteSize = static_cast<size_t>(s_fireFramePixelCount) * 4;
+    const u32 baseOffset = isFire1 ? s_fire0FrameCount : 0;
+    const size_t currentOffset = static_cast<size_t>(baseOffset + static_cast<u32>(currentIdx)) * frameByteSize;
+    const size_t nextOffset = static_cast<size_t>(baseOffset + static_cast<u32>(nextIdx)) * frameByteSize;
+
+    if (currentOffset + frameByteSize > s_firePixelsCPU.size() || nextOffset + frameByteSize > s_firePixelsCPU.size()) {
+        return;
+    }
+
+    const u8* currentFrame = s_firePixelsCPU.data() + currentOffset;
+    const u8* nextFrame = s_firePixelsCPU.data() + nextOffset;
+
+    // 生成插值帧
+    std::vector<u8> interpolated = _generateInterpolatedFrame(currentFrame, nextFrame, s_fireFramePixelCount, progress);
+
+    if (interpolated.empty()) {
+        return;
+    }
+
+    // 计算单帧的宽高（从纹理总宽高推算）
+    // 纹理宽度 = 帧宽度，纹理高度 = frameHeight * totalFrames
+    // 帧宽度 = s_fireTextureWidth
+    // 帧高度 = s_fireTextureHeight / totalFrames
+    const u32 totalFrames = s_fire0FrameCount + s_fire1FrameCount;
+    if (totalFrames == 0 || s_fireTextureWidth == 0 || s_fireTextureHeight == 0) {
+        return;
+    }
+    const u32 frameWidth = s_fireTextureWidth;
+    const u32 frameHeight = s_fireTextureHeight / totalFrames;
+
+    // 上传插值帧到 VkImage 的当前帧位置（覆盖原当前帧像素）
+    const u32 dstX = 0;
+    const u32 dstY = (baseOffset + static_cast<u32>(currentIdx)) * frameHeight;
+
+    if (!_uploadTextureRegion(interpolated.data(), dstX, dstY, frameWidth, frameHeight)) {
+        spdlog::warn("FireEffect: Failed to upload interpolated frame for fire_{}", isFire1 ? 1 : 0);
+    }
 }
 
 } // namespace mc::client::renderer::entity::effect::fire
