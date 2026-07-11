@@ -135,6 +135,10 @@ add_library(mc_common STATIC
     entity/entities/passive/water/GlowSquidEntity.cpp
     entity/entities/passive/water/DolphinEntity.cpp
     entity/entities/passive/water/AxolotlEntity.cpp
+    # Entity - Passive Animals (nautilus)
+    entity/entities/passive/nautilus/AbstractNautilusEntity.cpp
+    entity/entities/passive/nautilus/NautilusEntity.cpp
+    entity/entities/passive/nautilus/ZombieNautilusEntity.cpp
     # Entity - Passive Animals (fish)
     entity/entities/passive/fish/AbstractFishEntity.cpp
     entity/entities/passive/fish/AbstractGroupFishEntity.cpp

@@ -25,9 +25,11 @@
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "world/IWorld.hpp"
+#include "world/WorldConstants.hpp"
 #include "world/biome/BiomeTags.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/Material.hpp"
+#include "world/block/registry/VanillaBlocks.hpp"
 #include "world/lighting/InternalLightUtils.hpp"
 #include "world/spawn/SlimeChunkChecker.hpp"
 
@@ -307,6 +309,50 @@ bool canBatSpawn(const ISpawnWorldReader& /*world*/,
 }
 
 /**
+ * @brief 鹦鹉螺生成条件检查
+ *
+ * 对应 MC 1.21.11 AbstractNautilus.checkNautilusSpawnRules：
+ * - Y >= seaLevel - 25 且 Y <= seaLevel - 5（海平面下方 5~25 格）
+ * - 下方方块为水（fluidState 是 WATER）
+ * - 上方方块为 WATER 方块
+ */
+bool canNautilusSpawn(const ISpawnWorldReader& world,
+    const Vector3i& pos,
+    const std::string& /*entityTypeId*/,
+    math::IRandom& /*random*/,
+    SpawnReason /*reason*/)
+{
+    // Y 坐标范围：[seaLevel - 25, seaLevel - 5]
+    const i32 seaLevel = world::SEA_LEVEL;
+    const i32 minY = seaLevel - 25;
+    const i32 maxY = seaLevel - 5;
+    if (pos.y < minY || pos.y > maxY) {
+        return false;
+    }
+
+    // 下方方块必须是水（通过 Material::WATER 判断）
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    if (belowState == nullptr) {
+        return false;
+    }
+    const Material& belowMaterial = belowState->getMaterial();
+    if (!belowMaterial.isLiquid() || &belowMaterial != &Material::WATER) {
+        return false;
+    }
+
+    // 上方方块必须是 WATER 方块（对应 MC Blocks.WATER）
+    const BlockState* aboveState = world.getBlockState(pos.x, pos.y + 1, pos.z);
+    if (aboveState == nullptr) {
+        return false;
+    }
+    if (!aboveState->is(VanillaBlocks::WATER)) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * @brief 怪物生成条件检查（带光照）
  *
  * 怪物需要光照等级满足 isValidLightLevel() 条件。
@@ -450,6 +496,12 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:drowned", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:guardian", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:elder_guardian", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
+    // 鹦鹉螺：带 Y 范围 + 上下方块检查的生成规则（对应 MC AbstractNautilus.checkNautilusSpawnRules）
+    registerPlacement(
+        "minecraft:nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves, canNautilusSpawn);
+    // 僵尸鹦鹉螺：MC 1.21.11 未在 SpawnPlacements 注册，仅作为溺尸骑乘者生成
+    // 这里注册为 InWater 仅用于刷怪蛋/命令生成场景
+    registerPlacement("minecraft:zombie_nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
 
     // ========== 陆生动物 ==========
     registerPlacement("minecraft:pig", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);

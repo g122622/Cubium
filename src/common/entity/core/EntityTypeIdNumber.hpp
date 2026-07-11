@@ -88,6 +88,8 @@ extern EntityTypeId SQUID;
 extern EntityTypeId GLOW_SQUID;
 extern EntityTypeId DOLPHIN;
 extern EntityTypeId AXOLOTL;
+extern EntityTypeId NAUTILUS;
+extern EntityTypeId ZOMBIE_NAUTILUS;
 
 // 环境生物
 extern EntityTypeId BAT;

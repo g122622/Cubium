@@ -178,6 +178,7 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"frog", {"entity/frog/temperate_frog", "entity/frog/warm_frog", "entity/frog/cold_frog"}},
     {"goat", {"entity/goat/goat"}},
     {"nautilus", {"entity/nautilus/nautilus"}},
+    {"zombie_nautilus", {"entity/nautilus/zombie_nautilus", "entity/nautilus/zombie_nautilus_coral"}},
     {"sniffer", {"entity/sniffer/sniffer"}},
     {"tadpole", {"entity/tadpole/tadpole"}},
     {"warden", {"entity/warden/warden"}},

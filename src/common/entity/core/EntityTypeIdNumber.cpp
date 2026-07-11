@@ -91,6 +91,8 @@ EntityTypeId SQUID = 0;
 EntityTypeId GLOW_SQUID = 0;
 EntityTypeId DOLPHIN = 0;
 EntityTypeId AXOLOTL = 0;
+EntityTypeId NAUTILUS = 0;
+EntityTypeId ZOMBIE_NAUTILUS = 0;
 
 // 环境生物
 EntityTypeId BAT = 0;
@@ -277,6 +279,8 @@ void initialize()
     GLOW_SQUID = safeGetId(registry, EntityTypes::GLOW_SQUID);
     DOLPHIN = safeGetId(registry, EntityTypes::DOLPHIN);
     AXOLOTL = safeGetId(registry, EntityTypes::AXOLOTL);
+    NAUTILUS = safeGetId(registry, EntityTypes::NAUTILUS);
+    ZOMBIE_NAUTILUS = safeGetId(registry, EntityTypes::ZOMBIE_NAUTILUS);
 
     // 被动生物 - 环境生物
     BAT = safeGetId(registry, EntityTypes::BAT);
@@ -429,6 +433,8 @@ void reset()
     GLOW_SQUID = 0;
     DOLPHIN = 0;
     AXOLOTL = 0;
+    NAUTILUS = 0;
+    ZOMBIE_NAUTILUS = 0;
     BAT = 0;
     IRON_GOLEM = 0;
     SNOW_GOLEM = 0;

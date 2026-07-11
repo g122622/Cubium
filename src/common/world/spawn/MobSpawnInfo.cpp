@@ -32,7 +32,7 @@ namespace mc::world::spawn {
 // TODO(spawn-list-alignment): 本文件下各工厂方法的 spawn list 与原版 MC Java 1.16.5
 // 仍存在若干偏差，逐项列在对应工厂方法内（搜索关键词 "TODO(spawn-list" 即可定位）。
 // 已知共性偏差汇总：
-//   1) 多个 1.16.5 实体未注册（parched、camel、nautilus、bogged、
+//   1) 多个 1.16.5 实体未注册（parched、camel、bogged、
 //      armadillo、zombie_horse 等），无法加入对应 spawn list。
 // 收敛上述任一项时，请同步删除对应的 TODO 注释。
 
@@ -152,7 +152,7 @@ MobSpawnInfo MobSpawnInfo::createOcean()
     //     + DROWNED (5,1,1) MONSTER
     //   额外：DOLPHIN (1,1,2) WATER_CREATURE
     //   注意：原版普通海洋 monster list 包含 8 条标准陆地怪物 + drowned（来自 commonSpawns→monsters + oceanSpawns 加
-    //   drowned）。 原版 1.16.5 无 nautilus/glow_squid（1.21 新增）。
+    //   drowned）。 原版 1.16.5 无 glow_squid（1.21 新增）；nautilus 在 1.21.11 加入海洋生物群系。
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
@@ -172,10 +172,11 @@ MobSpawnInfo MobSpawnInfo::createOcean()
     info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
 
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
+    // 水生生物：squid + dolphin + nautilus（原版归 WaterCreature）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 1, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
 
     // 水生环境生物：cod（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
@@ -218,6 +219,7 @@ MobSpawnInfo MobSpawnInfo::createWarmOcean()
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 4, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
 
     // 水生环境生物：pufferfish + tropical_fish（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
@@ -302,6 +304,7 @@ MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 2));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
 
     // 水生环境生物：cod + pufferfish + tropical_fish（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
@@ -384,6 +387,7 @@ MobSpawnInfo MobSpawnInfo::createColdOcean()
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 2, 1, 1));
 
     // 水生环境生物：cod + salmon（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
@@ -425,9 +429,10 @@ MobSpawnInfo MobSpawnInfo::createFrozenOcean()
     info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
 
-    // 水生生物：squid（原版归 WaterCreature，无 dolphin）
+    // 水生生物：squid + nautilus（原版归 WaterCreature，无 dolphin）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 2, 1, 1));
 
     // 水生环境生物：salmon（原版归 WaterAmbient，无 cod）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);

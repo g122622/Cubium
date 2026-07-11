@@ -43,11 +43,14 @@ namespace item::items {
  * 与 MC 1.21.11 `Item.Properties.nautilusArmor(ArmorMaterial)` 通过
  * `ArmorMaterial.createAttributes(ArmorType.BODY)` 取护甲值的语义一致。
  *
- * TODO: 实体侧集成 - 需要在 NautilusEntity/ZombieNautilusEntity 中添加：
- * - Body 装备槽位（EquipmentSlot::Body 已就绪，用于装备鹦鹉螺铠甲）
- * - 右键对鹦鹉螺使用铠甲的装备交互逻辑
- * - 鹦鹉螺铠甲渲染层（显示铠甲模型）
- * - 下界合金鹦鹉螺铠甲的防火效果（通过 FIRE_RESISTANT 标签实现）
+ * 实体侧集成已就绪（AbstractNautilusEntity）：
+ * - IEquipable 槽位 1 = Body 装备槽位，用于装备鹦鹉螺铠甲
+ * - interactMob 中处理右键对鹦鹉螺使用铠甲的装备交互逻辑
+ * - ZombieNautilusEntity::sunProtectionSlot() 返回 Body，鹦鹉螺铠甲可替代亡灵燃烧
+ * - 装备音效通过 AbstractNautilusEntity::getEquipSound(EquipmentSlot::Body) 播放
+ *
+ * TODO: 鹦鹉螺铠甲渲染层（显示铠甲模型）尚未实现，等待客户端实体渲染器扩展。
+ * TODO: 下界合金鹦鹉螺铠甲的 FIRE_RESISTANT 标签尚未在 ItemTags 中注册。
  *
  * 参考: net.minecraft.world.item.Item.Properties.nautilusArmor(ArmorMaterial) (MC 1.21.11)
  */

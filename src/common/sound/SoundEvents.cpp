@@ -865,6 +865,43 @@ const ResourceLocation ENTITY_AXOLOTL_SWIM("minecraft:entity.axolotl.swim");
 const ResourceLocation ITEM_BUCKET_FILL_AXOLOTL("minecraft:item.bucket.fill_axolotl");
 const ResourceLocation ITEM_BUCKET_EMPTY_AXOLOTL("minecraft:item.bucket.empty_axolotl");
 
+// 鹦鹉螺（成体）
+const ResourceLocation ENTITY_NAUTILUS_AMBIENT("minecraft:entity.nautilus.ambient");
+const ResourceLocation ENTITY_NAUTILUS_AMBIENT_ON_LAND("minecraft:entity.nautilus.ambient_on_land");
+const ResourceLocation ENTITY_NAUTILUS_HURT("minecraft:entity.nautilus.hurt");
+const ResourceLocation ENTITY_NAUTILUS_HURT_ON_LAND("minecraft:entity.nautilus.hurt_on_land");
+const ResourceLocation ENTITY_NAUTILUS_DEATH("minecraft:entity.nautilus.death");
+const ResourceLocation ENTITY_NAUTILUS_DEATH_ON_LAND("minecraft:entity.nautilus.death_on_land");
+const ResourceLocation ENTITY_NAUTILUS_DASH("minecraft:entity.nautilus.dash");
+const ResourceLocation ENTITY_NAUTILUS_DASH_ON_LAND("minecraft:entity.nautilus.dash_on_land");
+const ResourceLocation ENTITY_NAUTILUS_DASH_READY("minecraft:entity.nautilus.dash_ready");
+const ResourceLocation ENTITY_NAUTILUS_DASH_READY_ON_LAND("minecraft:entity.nautilus.dash_ready_on_land");
+const ResourceLocation ENTITY_NAUTILUS_EAT("minecraft:entity.nautilus.eat");
+const ResourceLocation ENTITY_NAUTILUS_SADDLE_EQUIP("minecraft:entity.nautilus.saddle_equip");
+const ResourceLocation ENTITY_NAUTILUS_SADDLE_UNDERWATER_EQUIP("minecraft:entity.nautilus.saddle_underwater_equip");
+
+// 鹦鹉螺（幼体）
+const ResourceLocation ENTITY_BABY_NAUTILUS_AMBIENT("minecraft:entity.baby_nautilus.ambient");
+const ResourceLocation ENTITY_BABY_NAUTILUS_AMBIENT_ON_LAND("minecraft:entity.baby_nautilus.ambient_on_land");
+const ResourceLocation ENTITY_BABY_NAUTILUS_HURT("minecraft:entity.baby_nautilus.hurt");
+const ResourceLocation ENTITY_BABY_NAUTILUS_HURT_ON_LAND("minecraft:entity.baby_nautilus.hurt_on_land");
+const ResourceLocation ENTITY_BABY_NAUTILUS_DEATH("minecraft:entity.baby_nautilus.death");
+const ResourceLocation ENTITY_BABY_NAUTILUS_DEATH_ON_LAND("minecraft:entity.baby_nautilus.death_on_land");
+const ResourceLocation ENTITY_BABY_NAUTILUS_EAT("minecraft:entity.baby_nautilus.eat");
+
+// 僵尸鹦鹉螺
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_AMBIENT("minecraft:entity.zombie_nautilus.ambient");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_AMBIENT_ON_LAND("minecraft:entity.zombie_nautilus.ambient_on_land");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_HURT("minecraft:entity.zombie_nautilus.hurt");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_HURT_ON_LAND("minecraft:entity.zombie_nautilus.hurt_on_land");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DEATH("minecraft:entity.zombie_nautilus.death");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DEATH_ON_LAND("minecraft:entity.zombie_nautilus.death_on_land");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH("minecraft:entity.zombie_nautilus.dash");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH_ON_LAND("minecraft:entity.zombie_nautilus.dash_on_land");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH_READY("minecraft:entity.zombie_nautilus.dash_ready");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH_READY_ON_LAND("minecraft:entity.zombie_nautilus.dash_ready_on_land");
+const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_EAT("minecraft:entity.zombie_nautilus.eat");
+
 // 鱿鱼
 const ResourceLocation ENTITY_SQUID_AMBIENT("minecraft:entity.squid.ambient");
 const ResourceLocation ENTITY_SQUID_DEATH("minecraft:entity.squid.death");

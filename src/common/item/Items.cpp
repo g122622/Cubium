@@ -5547,10 +5547,7 @@ void Items::_registerSpawnEggs()
         0x4F3E2DFF,
         ItemProperties().maxStackSize(64));
 
-    // TODO: nautilus_spawn_egg 依赖 NautilusEntity 注册实现。当前 NautilusEntity 尚未在
-    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
-    // EntityRegistry::getType("minecraft:nautilus") 查找实体会返回 nullptr，导致此刷怪蛋
-    // 右键方块/右键生物时无法生成实体。待 NautilusEntity 实现并在 VanillaEntities 中注册后生效。
+    // 鹦鹉螺刷怪蛋：NautilusEntity 已在 VanillaEntities.hpp 注册为 WaterCreature
     NAUTILUS_SPAWN_EGG = &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:nautilus_spawn_egg"),
         makeEntityTypeForSpawnEgg("minecraft:nautilus"),
         0xDB5A41FF,
@@ -5825,10 +5822,7 @@ void Items::_registerSpawnEggs()
             0x6A6A6AFF,
             ItemProperties().maxStackSize(64));
 
-    // TODO: zombie_nautilus_spawn_egg 依赖 ZombieNautilusEntity 注册实现。当前
-    // ZombieNautilusEntity 尚未在 EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg
-    // 通过 EntityRegistry::getType("minecraft:zombie_nautilus") 查找实体会返回 nullptr，导致此
-    // 刷怪蛋右键方块/右键生物时无法生成实体。待 ZombieNautilusEntity 实现并在 VanillaEntities 中注册后生效。
+    // 僵尸鹦鹉螺刷怪蛋：ZombieNautilusEntity 已在 VanillaEntities.hpp 注册为 WaterCreature
     ZOMBIE_NAUTILUS_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:zombie_nautilus_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:zombie_nautilus"),

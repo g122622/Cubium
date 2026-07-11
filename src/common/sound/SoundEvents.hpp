@@ -1007,6 +1007,43 @@ extern const ResourceLocation ENTITY_AXOLOTL_SWIM;
 extern const ResourceLocation ITEM_BUCKET_FILL_AXOLOTL;
 extern const ResourceLocation ITEM_BUCKET_EMPTY_AXOLOTL;
 
+/// 鹦鹉螺（成体）
+extern const ResourceLocation ENTITY_NAUTILUS_AMBIENT;
+extern const ResourceLocation ENTITY_NAUTILUS_AMBIENT_ON_LAND;
+extern const ResourceLocation ENTITY_NAUTILUS_HURT;
+extern const ResourceLocation ENTITY_NAUTILUS_HURT_ON_LAND;
+extern const ResourceLocation ENTITY_NAUTILUS_DEATH;
+extern const ResourceLocation ENTITY_NAUTILUS_DEATH_ON_LAND;
+extern const ResourceLocation ENTITY_NAUTILUS_DASH;
+extern const ResourceLocation ENTITY_NAUTILUS_DASH_ON_LAND;
+extern const ResourceLocation ENTITY_NAUTILUS_DASH_READY;
+extern const ResourceLocation ENTITY_NAUTILUS_DASH_READY_ON_LAND;
+extern const ResourceLocation ENTITY_NAUTILUS_EAT;
+extern const ResourceLocation ENTITY_NAUTILUS_SADDLE_EQUIP;
+extern const ResourceLocation ENTITY_NAUTILUS_SADDLE_UNDERWATER_EQUIP;
+
+/// 鹦鹉螺（幼体）
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_AMBIENT;
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_AMBIENT_ON_LAND;
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_HURT;
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_HURT_ON_LAND;
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_DEATH;
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_DEATH_ON_LAND;
+extern const ResourceLocation ENTITY_BABY_NAUTILUS_EAT;
+
+/// 僵尸鹦鹉螺
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_AMBIENT;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_AMBIENT_ON_LAND;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_HURT;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_HURT_ON_LAND;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DEATH;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DEATH_ON_LAND;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH_ON_LAND;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH_READY;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_DASH_READY_ON_LAND;
+extern const ResourceLocation ENTITY_ZOMBIE_NAUTILUS_EAT;
+
 /// 鱿鱼
 extern const ResourceLocation ENTITY_SQUID_AMBIENT;
 extern const ResourceLocation ENTITY_SQUID_DEATH;

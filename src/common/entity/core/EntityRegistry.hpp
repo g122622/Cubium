@@ -256,6 +256,8 @@ constexpr const char* SQUID = "minecraft:squid";
 constexpr const char* GLOW_SQUID = "minecraft:glow_squid";
 constexpr const char* DOLPHIN = "minecraft:dolphin";
 constexpr const char* AXOLOTL = "minecraft:axolotl";
+constexpr const char* NAUTILUS = "minecraft:nautilus";
+constexpr const char* ZOMBIE_NAUTILUS = "minecraft:zombie_nautilus";
 
 // 环境生物
 constexpr const char* BAT = "minecraft:bat";

@@ -90,6 +90,8 @@
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/entity/entities/passive/horse/ZombieHorseEntity.hpp"
+#include "common/entity/entities/passive/nautilus/NautilusEntity.hpp"
+#include "common/entity/entities/passive/nautilus/ZombieNautilusEntity.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
@@ -358,9 +360,23 @@ private:
                 .canSummon(true)
                 .build());
 
-        // TODO(spawn): nautilus 实体尚未实现。海洋生物群系数据包含其生成条目，
-        // 生成路径对未注册类型返回 nullptr 并跳过，不崩但不在世界生成。
-        // 待补 NautilusEntity + EntityTypes::NAUTILUS 后在此注册为 WaterCreature。
+        // 鹦鹉螺（活体）- 可驯服、可骑乘、可繁殖的水生动物
+        registry.registerType(EntityTypes::NAUTILUS,
+            EntityType::Builder(&NautilusEntity::create, EntityClassification::WaterCreature)
+                .size(0.9f, 0.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 僵尸鹦鹉螺 - 亡灵变体，阳光下燃烧，不可驯服/繁殖
+        registry.registerType(EntityTypes::ZOMBIE_NAUTILUS,
+            EntityType::Builder(&ZombieNautilusEntity::create, EntityClassification::WaterCreature)
+                .size(0.9f, 0.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
 
         // 美西螈
         registry.registerType(EntityTypes::AXOLOTL,
