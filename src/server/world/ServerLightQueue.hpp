@@ -36,6 +36,8 @@ class WorldLightManager;
 
 namespace mc::server {
 
+class ServerWorld;
+
 /**
  * @brief 运行时方块变更光照延迟队列
  *
@@ -72,6 +74,21 @@ public:
      * @param manager 光照管理器（执行实际传播）
      */
     void drainAndProcess(WorldLightManager& manager);
+
+    /**
+     * @brief 排空队列并提交 worker 异步传播（生产路径，③-1）
+     *
+     * 主线程 tick 调用：对每个待处理区块构造 RuntimeLightTask，经
+     * ServerChunkManager::radiusAwareExecutor() 提交到区域互斥池（writeRadius=2），
+     * worker 线程执行传播，完成后 dirty section 入 ServerWorld flush 队列，
+     * 主线程下一 tick flush visible。实现 Moonrise "compute on worker, flush on main"。
+     *
+     * 若 executor 为 nullptr（启动早期/测试环境未注入 worker 池），fallback 调
+     * 同步 drainAndProcess(manager)，保证正确性不依赖 worker 池可用性。
+     *
+     * @param world 服务端世界（取 chunkManager/lightManager、worker 任务 flush 目标）
+     */
+    void drainAndProcess(ServerWorld& world);
 
     /**
      * @brief 队列是否为空

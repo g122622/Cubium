@@ -56,6 +56,7 @@
 #include "server/world/weather/WeatherManager.hpp"
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 
@@ -983,6 +984,20 @@ public:
     [[nodiscard]] i32 getMaxBuildHeight() const noexcept override;
     [[nodiscard]] i32 getSectionCount() const noexcept override;
 
+    // ========== 运行时光照 worker flush 队列（③-1） ==========
+
+    /**
+     * @brief worker 线程入队 dirty section（待主线程 flush）
+     *
+     * RuntimeLightTask 在 worker 线程完成光照传播后调用：把 RuntimeLightingProvider
+     * 收集的 dirty section 列表入此队列。主线程下一 tick 开头 _drainPendingLightFlushes
+     * 时逐项调真正的 markLightChanged（_syncLightDataToChunk + m_onLightChanged 网络包）。
+     * 线程安全：内部持 m_pendingLightFlushesMutex。
+     *
+     * @param dirtySections worker 传播期间收集的 (光照类型, 段坐标) 列表
+     */
+    void _enqueueLightFlush(std::vector<std::pair<LightType, SectionPos>> dirtySections);
+
     // ========== 光照管理 ==========
 
     [[nodiscard]] WorldLightManager* lightManager() noexcept { return m_lightManager.get(); }
@@ -1401,6 +1416,10 @@ public:
 
 private:
     void _syncLightDataToChunk(LightType type, const SectionPos& pos);
+
+    /// 主线程 tick 开头调用：swap 出 m_pendingLightFlushes，逐项调 markLightChanged
+    void _drainPendingLightFlushes();
+
     [[nodiscard]] std::vector<std::reference_wrapper<Entity>> _collectLoadedEntitiesForSave();
     [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> _collectLoadedBlockEntitiesForSave() const;
 
@@ -1416,6 +1435,10 @@ private:
     std::unique_ptr<world::tick::TickManager> m_tickManager;
     std::unique_ptr<WorldLightManager> m_lightManager;
     ServerLightQueue m_lightQueue; ///< 运行时方块变更光照延迟队列（主线程批处理）
+
+    /// worker 完成的 dirty section 待主线程 flush 队列（③-1：worker 传播→主线程 flush visible）
+    std::mutex m_pendingLightFlushesMutex;
+    std::vector<std::pair<LightType, SectionPos>> m_pendingLightFlushes;
     std::unique_ptr<WeatherManager> m_weatherManager;
     std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;

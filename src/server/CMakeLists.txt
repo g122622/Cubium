@@ -34,6 +34,8 @@ add_executable(minecraft-server
     world/ServerChunkManager.cpp
     world/SingleChunkLifecycleManager.cpp
     world/ServerLightQueue.cpp
+    world/RuntimeLightingProvider.cpp
+    world/RuntimeLightTask.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp

@@ -183,6 +183,16 @@ public:
     }
 
     /**
+     * @brief 获取区域互斥执行器（worker 池）
+     *
+     * 返回注入的 ServerWorkerPool，供运行时光照等需要 writeRadius>0 区域互斥的
+     * worker 任务提交（RuntimeLightTask 经 submit(writeRadius=2) 串行化重叠区域
+     * nibble 写）。启动早期或测试环境未注入时返回 nullptr，调用方应 fallback 同步路径。
+     */
+    [[nodiscard]] util::ServerWorkerPool* radiusAwareExecutor() noexcept { return m_workerPool; }
+    [[nodiscard]] const util::ServerWorkerPool* radiusAwareExecutor() const noexcept { return m_workerPool; }
+
+    /**
      * @brief 获取当前已缓存的区块
      *
      * 该函数只查询内存缓存，不会触发存档解析或异步生成。

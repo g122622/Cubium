@@ -1098,12 +1098,16 @@ void ServerWorld::tick()
         m_chunkManager->tick();
     }
 
-    // 光照更新 - 先排空运行时方块变更延迟队列（按区块批量传播），
-    // 再处理引擎内部残余队列骨架（performUpdates）
+    // 光照更新 - 三阶段（③-1）：
+    //   1. flush 上一 tick worker 完成的 dirty section（主线程独占 markLightChanged）
+    //   2. 排空运行时方块变更延迟队列（提交新 worker 任务，writeRadius=2 区域互斥）
+    //   3. 处理引擎内部残余队列骨架（performUpdates）
     if (m_lightManager) {
+        _drainPendingLightFlushes();
+
         if (!m_lightQueue.empty()) {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightQueueDrain");
-            m_lightQueue.drainAndProcess(*m_lightManager);
+            m_lightQueue.drainAndProcess(*this);
         }
 
         if (m_lightManager->hasLightWork()) {
@@ -2235,6 +2239,32 @@ void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
 
     if (m_onLightChanged) {
         m_onLightChanged(type, pos);
+    }
+}
+
+void ServerWorld::_enqueueLightFlush(std::vector<std::pair<LightType, SectionPos>> dirtySections)
+{
+    // worker 线程调用：入队 dirty section，主线程 tick 统一 flush。
+    // 不去重——主线程 markLightChanged 幂等（setDirty/_syncLightDataToChunk/网络包均重复安全）。
+    std::lock_guard<std::mutex> lock(m_pendingLightFlushesMutex);
+    m_pendingLightFlushes.insert(m_pendingLightFlushes.end(),
+        std::make_move_iterator(dirtySections.begin()),
+        std::make_move_iterator(dirtySections.end()));
+}
+
+void ServerWorld::_drainPendingLightFlushes()
+{
+    // 主线程调用：swap 出队列后逐项调真正的 markLightChanged（主线程独占，安全）。
+    // swap 在锁内最小化临界区；markLightChanged 在锁外执行避免与 _enqueueLightFlush 死锁
+    // （markLightChanged 不回调 _enqueueLightFlush，无递归锁需求）
+    std::vector<std::pair<LightType, SectionPos>> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingLightFlushesMutex);
+        pending.swap(m_pendingLightFlushes);
+    }
+
+    for (const auto& [type, pos] : pending) {
+        markLightChanged(type, pos);
     }
 }
 

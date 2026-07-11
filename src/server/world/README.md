@@ -7,7 +7,9 @@
 ```
 src/server/world/
 ├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/getOrLoadChunk同步区块加载）
-├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（主线程按区块批处理，setBlockState 入队→tick drain）
+├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（按区块分组去重，tick drain→submit worker 或 fallback 同步）
+├── RuntimeLightingProvider.hpp/cpp  # 运行时光照 worker provider（继承 StarLightLightingProvider；构造时 5×5 shared_ptr 保活；markLightChanged 收集 dirty section 而非回调）
+├── RuntimeLightTask.hpp/cpp         # 运行时光照传播 worker 任务（继承 ITask；execute 调 checkBlocksWithProvider 传播→取 dirty→_enqueueLightFlush 入主线程 flush 队列）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
 ├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（NewChunkHolder 等价物：请求聚合/状态推进/等待者/双向邻居依赖）
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
@@ -189,8 +191,16 @@ NoiseChunkGenerator::randomState()  →  RandomState
 ### 光照初始化时机
 区块加载后光照未初始化会导致客户端显示错误。设置 `ChunkLoadedCallback` 在区块加载完成后初始化光照。
 
-### 运行时方块变更光照延迟队列
-`ServerWorld::setBlockState` 的光照更新**不在调用当场传播**，而是入队 `ServerLightQueue`（按区块分组、同坐标去重），在 `ServerWorld::tick` 开头批量调 `WorldLightManager::checkBlocks`（一次 `setupCaches` 处理整区块全部变更）。因此存在**最多 1 tick 的最终一致性窗口**：setBlockState 返回后到本 tick 光照 drain 之前，`getLightSubtracted` 等查询可能读到旧值。若有逻辑依赖即时光照（如方块变更回调里立即查亮度），需自行评估或改走 tick 后查询。生成阶段（LIGHT step）的光照不经过此队列，仍由 `lightChunk` 同步完成。
+### 运行时方块变更光照异步传播
+`ServerWorld::setBlockState` 的光照更新**不在调用当场传播**，而是入队 `ServerLightQueue`（按区块分组、同坐标去重）。`ServerWorld::tick` 分三段处理：
+
+1. **`_drainPendingLightFlushes()`**（主线程）：取出上一 tick worker 完成后入队的 dirty section，逐项调真正的 `markLightChanged`（`_syncLightDataToChunk` 写 nibble + `m_onLightChanged` 网络包）。
+2. **`m_lightQueue.drainAndProcess(*this)`**（主线程入队 worker）：swap 出任务表，逐区块构造 `RuntimeLightTask` 提交到 `ServerWorkerPool` 区域互斥池（writeRadius=2，与 LIGHT 生成阶段同池）。executor 为 nullptr 时 fallback 同步 `WorldLightManager::checkBlocks`。
+3. **`m_lightManager->tick(32768,...)`**：处理引擎内部残余队列。
+
+`RuntimeLightTask`（worker 线程）：持 `RuntimeLightingProvider`（5×5 `shared_ptr<ChunkData>` 保活防在途 UAF），调 `WorldLightManager::checkBlocksWithProvider`（持 `m_mutex` 串行化 nibble 单写者）完成 `propagateBlockChanges`/`updateVisible`；`updateVisible` 内部的 `markLightChanged` 经 provider 收集到 `m_dirtySections` 而非触碰主线程独占回调；任务末尾 `_enqueueLightFlush` 把 dirty section 入主线程 flush 队列。
+
+因此存在**最多 2 tick 的最终一致性窗口**：setBlockState 返回 →（tick N）submit worker → worker 完成 + 入队 dirty →（tick N+1）flush visible。`getLightSubtracted` 等查询在 flush 前可能读旧值。若有逻辑依赖即时光照（如方块变更回调里立即查亮度），需自行评估或改走 tick 后查询。生成阶段（LIGHT step）的光照不经过此队列，仍由 `lightChunk` 同步完成。
 
 ### 未初始化世界调用 setBlockState
 在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlockState()` 会在光照更新阶段触发断言。**所有需要光照的测试必须先初始化世界**。不需要光照的测试（如 `tickPrecipitation`）可以直接调用，因为 `tickPrecipitation()` 仅依赖 `m_chunkManager` 和 `m_weatherManager`，无需 `initialize()`。

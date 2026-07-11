@@ -87,6 +87,24 @@ public:
     void checkBlocks(i32 chunkX, i32 chunkZ, std::vector<BlockPos> positions);
 
     /**
+     * @brief 批量检查一个区块内多个方块的光照（使用指定 provider）
+     *
+     * 与 checkBlocks 同构，但使用调用方传入的 provider 而非 m_provider。
+     * 用于运行时方块变更在 worker 线程传播：传入 RuntimeLightingProvider
+     * （持有 5×5 shared_ptr 区块保活、markLightChanged 仅收集 dirty section
+     * 而不触碰主线程独占回调），避免 worker 直接访问主线程 ServerWorld 状态。
+     * 持 m_mutex 串行化 nibble 写——SWMRNibbleArray 更新侧为非原子单写者语义，
+     * 沿用 LIGHT 阶段已验证的 worker 加锁模式（ServerChunkManager::_executeStepTask）。
+     *
+     * @param provider 光照提供者（worker 线程的 RuntimeLightingProvider）
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param positions 待处理的方块坐标列表
+     */
+    void checkBlocksWithProvider(
+        StarLightLightingProvider* provider, i32 chunkX, i32 chunkZ, std::vector<BlockPos> positions);
+
+    /**
      * @brief 方块发光等级增加时调用
      *
      * 当方块被放置且发光等级大于0时调用。

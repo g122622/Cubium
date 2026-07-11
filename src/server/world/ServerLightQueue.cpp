@@ -22,7 +22,10 @@
  */
 
 #include "ServerLightQueue.hpp"
+#include "RuntimeLightTask.hpp"
+#include "ServerWorld.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 
@@ -35,6 +38,17 @@ namespace {
 {
     ChunkPos pos{chunkX, chunkZ};
     return pos.toId();
+}
+
+/// 从去重后的 packed long 集合还原 BlockPos 列表
+[[nodiscard]] std::vector<BlockPos> _positionsFromLongs(const std::unordered_set<i64>& longs)
+{
+    std::vector<BlockPos> positions;
+    positions.reserve(longs.size());
+    for (const i64 posLong : longs) {
+        positions.push_back(BlockPos::fromLong(posLong));
+    }
+    return positions;
 }
 
 } // namespace
@@ -71,14 +85,61 @@ void ServerLightQueue::drainAndProcess(WorldLightManager& manager)
         const i32 chunkX = chunkPos.x;
         const i32 chunkZ = chunkPos.z;
 
-        // 将去重后的 packed long 还原为 BlockPos 列表，交给批量接口
-        std::vector<BlockPos> positions;
-        positions.reserve(task.changedPositionLongs.size());
-        for (const i64 posLong : task.changedPositionLongs) {
-            positions.push_back(BlockPos::fromLong(posLong));
-        }
+        manager.checkBlocks(chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
+    }
+}
 
-        manager.checkBlocks(chunkX, chunkZ, std::move(positions));
+void ServerLightQueue::drainAndProcess(ServerWorld& world)
+{
+    if (m_chunkTasks.empty()) {
+        return;
+    }
+
+    // 主线程调用：swap 出任务表后清空
+    std::unordered_map<u64, _ChunkLightTasks> tasks;
+    tasks.swap(m_chunkTasks);
+
+    ServerChunkManager* cm = world.chunkManager();
+    WorldLightManager* lm = world.lightManager();
+
+    // executor 未注入（启动早期/测试环境）：fallback 同步路径，保证正确性
+    if (cm == nullptr || lm == nullptr) {
+        for (auto& [chunkKey, task] : tasks) {
+            if (task.changedPositionLongs.empty()) {
+                continue;
+            }
+            const ChunkPos chunkPos = ChunkPos::fromId(chunkKey);
+            lm->checkBlocks(chunkPos.x, chunkPos.z, _positionsFromLongs(task.changedPositionLongs));
+        }
+        return;
+    }
+
+    util::ServerWorkerPool* executor = cm->radiusAwareExecutor();
+    if (executor == nullptr) {
+        // worker 池未注入：fallback 同步路径
+        for (auto& [chunkKey, task] : tasks) {
+            if (task.changedPositionLongs.empty()) {
+                continue;
+            }
+            const ChunkPos chunkPos = ChunkPos::fromId(chunkKey);
+            lm->checkBlocks(chunkPos.x, chunkPos.z, _positionsFromLongs(task.changedPositionLongs));
+        }
+        return;
+    }
+
+    // 生产路径：逐区块构造 RuntimeLightTask，提交到区域互斥池（writeRadius=2）
+    // callback 为空：dirty section 在 execute 末尾经 _enqueueLightFlush 入主线程 flush 队列
+    for (auto& [chunkKey, task] : tasks) {
+        if (task.changedPositionLongs.empty()) {
+            continue;
+        }
+        const ChunkPos chunkPos = ChunkPos::fromId(chunkKey);
+        const i32 chunkX = chunkPos.x;
+        const i32 chunkZ = chunkPos.z;
+
+        auto taskPtr = std::make_unique<RuntimeLightTask>(
+            world, *lm, chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
+        executor->submit(std::move(taskPtr), /*callback=*/nullptr, chunkX, chunkZ, /*writeRadius=*/2);
     }
 }
 

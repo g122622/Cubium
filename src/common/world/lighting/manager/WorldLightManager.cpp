@@ -107,6 +107,35 @@ void WorldLightManager::checkBlocks(i32 chunkX, i32 chunkZ, std::vector<BlockPos
     }
 }
 
+void WorldLightManager::checkBlocksWithProvider(
+    StarLightLightingProvider* provider, i32 chunkX, i32 chunkZ, std::vector<BlockPos> positions)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "WorldLightManager::checkBlocksWithProvider",
+        "chunk",
+        fmt::format("({}, {})", chunkX, chunkZ),
+        "count",
+        static_cast<i64>(positions.size()));
+
+    if (positions.empty()) {
+        return;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    // 运行时方块变更不改变区块段空状态，changedSections 留空
+    std::vector<bool> changedSections;
+
+    // 使用 worker 线程的 provider，避免触碰主线程 ServerWorld 状态
+    if (m_skyLight != nullptr) {
+        m_skyLight->blocksChangedInChunk(provider, chunkX, chunkZ, positions, changedSections);
+    }
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->blocksChangedInChunk(provider, chunkX, chunkZ, positions, changedSections);
+    }
+}
+
 void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
