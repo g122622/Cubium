@@ -136,11 +136,6 @@ public:
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
-    /**
-     * @brief 检查是否可以与另一嗅探兽交配
-     *
-     * 对齐 MC Sniffer.canMate：双方状态必须在 {Idling, Scenting, FeelingHappy} 集合中。
-     */
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
 
     /**
