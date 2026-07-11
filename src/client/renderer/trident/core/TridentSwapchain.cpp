@@ -185,8 +185,9 @@ Result<void> TridentSwapchain::present(u32 imageIndex, VkSemaphore waitSemaphore
         case VK_SUBOPTIMAL_KHR:
         case VK_ERROR_OUT_OF_DATE_KHR:
             return Error(ErrorCode::InvalidState, "Swapchain out of date");
-        default:
+        default: {
             return Error(ErrorCode::Unknown, "Failed to present swapchain image: " + std::to_string(result));
+        }
     }
 }
 
