@@ -382,6 +382,7 @@ struct TreeFeatures {
     static TreeFeatureConfig tallBirchConfig();
     static TreeFeatureConfig cherryConfig();
     static TreeFeatureConfig paleOakConfig();
+    static TreeFeatureConfig azaleaConfig();
 };
 
 } // namespace mc

@@ -60,6 +60,9 @@ struct TreeGenerators {
 
     /// 苍白橡树生成器
     static SaplingBlock::TreeGenerator paleOakTree();
+
+    /// 杜鹃树生成器（用于杜鹃方块与开花杜鹃方块的骨粉生长）
+    static SaplingBlock::TreeGenerator azaleaTree();
 };
 
 } // namespace blocks

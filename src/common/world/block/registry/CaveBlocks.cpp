@@ -27,7 +27,6 @@
 #include "world/block/HarvestTool.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
-#include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/cave/AmethystBlock.hpp"
 #include "world/block/blocks/cave/AmethystClusterBlock.hpp"
 #include "world/block/blocks/cave/AzaleaBlock.hpp"
@@ -45,6 +44,8 @@
 #include "world/block/blocks/cave/RootedDirtBlock.hpp"
 #include "world/block/blocks/cave/SmallDripleafBlock.hpp"
 #include "world/block/blocks/cave/SporeBlossomBlock.hpp"
+#include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -242,20 +243,23 @@ void registerCaveBlocks()
 
     // 杜鹃花 - 灌木类方块
     CaveBlocks::AZALEA = &registry.registerBlock<blocks::AzaleaBlock>(ResourceLocation("minecraft:azalea"),
+        blocks::TreeGenerators::azaleaTree(),
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::AZALEA));
 
     // 开花的杜鹃花
     CaveBlocks::FLOWERING_AZALEA = &registry.registerBlock<blocks::FloweringAzaleaBlock>(
         ResourceLocation("minecraft:flowering_azalea"),
+        blocks::TreeGenerators::azaleaTree(),
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::FLOWERING_AZALEA));
 
     // 杜鹃花叶 - 树叶类方块，使用LeavesBlock实现距离衰减
-    CaveBlocks::AZALEA_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:azalea_leaves"),
-        BlockProperties(Material::LEAVES)
-            .hardness(0.2f)
-            .resistance(0.2f)
-            .soundType(BlockSoundTypes::AZALEA_LEAVES)
-            .tickRandomly());
+    CaveBlocks::AZALEA_LEAVES =
+        &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:azalea_leaves"),
+            BlockProperties(Material::LEAVES)
+                .hardness(0.2f)
+                .resistance(0.2f)
+                .soundType(BlockSoundTypes::AZALEA_LEAVES)
+                .tickRandomly());
 
     // 开花的杜鹃花叶
     CaveBlocks::FLOWERING_AZALEA_LEAVES =

@@ -23,8 +23,11 @@
  */
 
 #include "AzaleaBlock.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
 namespace blocks {
@@ -33,9 +36,10 @@ namespace blocks {
 // AzaleaBlock
 // ============================================================================
 
-AzaleaBlock::AzaleaBlock(const BlockProperties& properties)
+AzaleaBlock::AzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockProperties& properties)
     : Block(properties)
     , IGrowable()
+    , m_treeGenerator(std::move(treeGenerator))
 {
     // MC 1.21.11: Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
     // 上半部分：16x8像素（从Y=8到Y=16），底部茎干：4x8像素（从Y=0到Y=8）
@@ -102,11 +106,39 @@ bool AzaleaBlock::canUseBonemeal(
 
 void AzaleaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
 {
+    MC_UNUSED(random);
     MC_UNUSED(state);
 
-    // MC 1.21.11: TreeGrower.AZALEA.growTree(...)
-    // 需要 ConfiguredFeatureRegistry 在方块中可访问才能完成实现
-    // 当前占位：骨粉效果尚未接入杜鹃树 feature
+    // MC 1.21.11: performBonemeal 调用 TreeGrower.AZALEA.growTree(...)
+    // AZALEA 无 mega/flowers 变体，仅直接放置 AZALEA_TREE 配置特征。
+    if (!m_treeGenerator) {
+        return;
+    }
+
+    // 通过 IWorld::createFeatureRegion() 从已加载区块构建 WorldGenRegion
+    // ServerWorld 会重写此方法返回有效区域；客户端返回 nullptr
+    auto region = world.createFeatureRegion(pos);
+    if (region == nullptr) {
+        // 非服务器环境或周围区块未加载，无法生成树木
+        return;
+    }
+
+    // 使用世界种子和位置派生随机数种子，保证同位置生成的树形稳定
+    u64 seed = world.seed();
+    seed ^= static_cast<u64>(static_cast<i64>(pos.x)) * 3129871ULL;
+    seed ^= static_cast<u64>(static_cast<i64>(pos.y)) * 116129781ULL;
+    seed ^= static_cast<u64>(static_cast<i64>(pos.z)) * 42317861ULL;
+
+    math::Random rng(0);
+    rng.setSeedWithHash(static_cast<i64>(seed));
+
+    // MC 1.21.11: growTree 在放置前先把方块设为流体遗留状态（空气或水）
+    // 杜鹃方块无流体，直接置为空气
+    const BlockState* airState = BlockRegistry::instance().airState();
+    world.setBlockState(pos, airState, 2);
+
+    // 通过 WorldGenRegion 调用杜鹃树生成器
+    m_treeGenerator(*region, pos, rng);
 }
 
 // ========== IPlantable 接口实现 ==========
@@ -129,8 +161,8 @@ const BlockState& AzaleaBlock::getPlant(IBlockReader& world, const BlockPos& pos
 // FloweringAzaleaBlock
 // ============================================================================
 
-FloweringAzaleaBlock::FloweringAzaleaBlock(const BlockProperties& properties)
-    : AzaleaBlock(properties)
+FloweringAzaleaBlock::FloweringAzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockProperties& properties)
+    : AzaleaBlock(std::move(treeGenerator), properties)
 {
     // 与 AzaleaBlock 相同的碰撞箱
 }

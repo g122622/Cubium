@@ -36,7 +36,8 @@ Block
 ├── HangingRootsBlock → Block
 ├── PowderSnowBlock → Block, IBucketPickupHandler
 ├── RootedDirtBlock → Block
-├── AzaleaBlock → BushBlock, IGrowable
+├── AzaleaBlock → Block, IGrowable, IPlantable（骨粉生长为杜鹃树，构造时注入 TreeGenerator）
+├── FloweringAzaleaBlock → AzaleaBlock
 ├── AmethystBlock → Block
 ├── BuddingAmethystBlock → Block
 ├── AmethystClusterBlock → Block, IBucketPickupHandler
@@ -61,6 +62,8 @@ Block
 | `world/block/Material` | 材质系统 |
 | `world/block/WaterLoggableHelpers` | 含水工具函数 |
 | `world/block/BlockStateProperties` | 方块状态属性（BERRIES、AGE_0_25等） |
+| `world/block/blocks/vegetation/SaplingBlock` | TreeGenerator 类型定义（AzaleaBlock 构造参数） |
+| `world/block/blocks/vegetation/TreeGenerators` | azaleaTree() 工厂（注册时注入） |
 | `world/block/growing_plant/` | 生长植物基类（GrowingPlantHeadBlock、GrowingPlantBodyBlock） |
 | `physics/collision/CollisionShape` | 碰撞形状 |
 | `util/Direction` | 方向枚举 |
@@ -149,3 +152,12 @@ BigDripleafBlock 完整实现了红石信号交互：`neighborChanged` 和 `tick
 **碰撞形状**：`PowderSnowBlock::getCollisionShape()` 返回 `VoxelShapes::empty()`（无碰撞箱，实体可陷入），`getEntityInsideCollisionShape()` 使用默认的 `fullCube()`，确保 `onEntityCollision()` 被正确调用。
 
 **冰冻计时器递减和伤害**：由 `LivingEntity::tickFreeze()` 处理，不在 `PowderSnowBlock` 中。详见 `entity/core/README.md` 中的冰冻系统文档。
+
+### #11. AzaleaBlock / FloweringAzaleaBlock 骨粉生长为杜鹃树
+
+`AzaleaBlock` 构造函数需要注入 `SaplingBlock::TreeGenerator` 回调（由 `TreeGenerators::azaleaTree()` 提供），注册时在 `CaveBlocks.cpp` 传入。骨粉流程：
+- `canGrow`：检查上方无流体
+- `canUseBonemeal`：45% 概率成功
+- `grow`：构建 `WorldGenRegion` → 位置派生种子 → 清空方块 → 调用树生成器
+
+注意 `grow()` 需要完整类型的 `WorldGenRegion`，必须 include `world/gen/chunk/IChunkGenerator.hpp`（仅 `IWorld.hpp` 的前向声明不够 `unique_ptr` 析构）。`FloweringAzaleaBlock` 继承 `AzaleaBlock`，构造函数同样需要 `TreeGenerator` 参数。

@@ -25,6 +25,7 @@
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
 #include "common/world/block/PlantType.hpp"
+#include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -41,7 +42,12 @@ namespace blocks {
  */
 class AzaleaBlock : public Block, public IGrowable, public IPlantable {
 public:
-    explicit AzaleaBlock(const BlockProperties& properties);
+    /**
+     * @brief 构造杜鹃花丛方块
+     * @param treeGenerator 杜鹃树生成器回调（骨粉成功时调用）
+     * @param properties 方块属性
+     */
+    explicit AzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockProperties& properties);
 
     ~AzaleaBlock() override = default;
 
@@ -75,6 +81,9 @@ public:
 
     /**
      * @brief 生长为杜鹃树
+     *
+     * MC 1.21.11: performBonemeal 调用 TreeGrower.AZALEA.growTree(...)
+     * 实现流程：构建 WorldGenRegion → 派生种子 → 清空方块 → 调用树生成器
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
@@ -92,6 +101,8 @@ protected:
     [[nodiscard]] virtual bool mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
 
 private:
+    /// 杜鹃树生成器回调
+    SaplingBlock::TreeGenerator m_treeGenerator;
     CollisionShape m_shape;
 };
 
@@ -105,7 +116,12 @@ private:
  */
 class FloweringAzaleaBlock : public AzaleaBlock {
 public:
-    explicit FloweringAzaleaBlock(const BlockProperties& properties);
+    /**
+     * @brief 构造开花杜鹃花丛方块
+     * @param treeGenerator 杜鹃树生成器回调（骨粉成功时调用）
+     * @param properties 方块属性
+     */
+    explicit FloweringAzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockProperties& properties);
 
     ~FloweringAzaleaBlock() override = default;
 };

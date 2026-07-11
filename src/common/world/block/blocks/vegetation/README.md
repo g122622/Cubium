@@ -11,7 +11,7 @@ vegetation/
 ├── TallGrassBlock.hpp/cpp       # 高草/蕨类
 ├── FlowerBlock.hpp/cpp          # 花朵（蒲公英、玫瑰等）及双格花朵（丁香、牡丹等）
 ├── SaplingBlock.hpp/cpp         # 树苗（可生长成树木，通过 FeaturePlacer 构建 WorldGenRegion 调用 TreeFeature）
-├── TreeGenerators.hpp/cpp       # 树苗树木生成器工厂（为每种树苗创建 TreeGenerator 回调）
+├── TreeGenerators.hpp/cpp       # 树苗树木生成器工厂（为每种树苗创建 TreeGenerator 回调，azaleaTree() 也供 AzaleaBlock 复用）
 ├── MushroomBlock.hpp/cpp        # 蘑菇（IPlantable/Cave，MUSHROOM_GROW_BLOCK 标签判定）及巨型蘑菇方块（6方向属性）
 ├── CactusBlock.hpp/cpp          # 仙人掌（接触伤害、高度限制3格）
 ├── SugarCaneBlock.hpp/cpp       # 甘蔗（需靠近水源）

@@ -89,5 +89,10 @@ SaplingBlock::TreeGenerator TreeGenerators::paleOakTree()
     return createTreeGenerator([]() { return TreeFeatures::paleOakConfig(); });
 }
 
+SaplingBlock::TreeGenerator TreeGenerators::azaleaTree()
+{
+    return createTreeGenerator([]() { return TreeFeatures::azaleaConfig(); });
+}
+
 } // namespace blocks
 } // namespace mc

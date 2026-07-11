@@ -30,6 +30,7 @@
  * 和 TrunkPlacer 的基本行为。
  */
 
+#include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
@@ -148,6 +149,64 @@ TEST_F(NewTreeFeatureConfigTest, TallBirchConfig)
     EXPECT_STREQ(config.trunkPlacer->name(), "StraightTrunkPlacer");
     EXPECT_STREQ(config.foliagePlacer->name(), "BlobFoliagePlacer");
     EXPECT_EQ(config.minHeight, 5);
+}
+
+TEST_F(NewTreeFeatureConfigTest, AzaleaConfig)
+{
+    // 验证杜鹃树配置与 MC 1.21.11 AZALEA_TREE 一致
+    auto config = TreeFeatures::azaleaConfig();
+    ASSERT_NE(config.trunkBlock, nullptr);
+    // 杜鹃树使用橡木原木作为树干
+    EXPECT_TRUE(config.trunkBlock->is(VanillaBlocks::OAK_LOG));
+    // 杜鹃树使用加权树叶提供者，foliageBlock 可为空
+    EXPECT_TRUE(config.hasFoliageProvider());
+    EXPECT_NE(config.trunkPlacer, nullptr);
+    EXPECT_NE(config.foliagePlacer, nullptr);
+    // 弯曲树干放置器
+    EXPECT_STREQ(config.trunkPlacer->name(), "bending");
+    // 随机散布树叶放置器
+    EXPECT_STREQ(config.foliagePlacer->name(), "random_spread");
+    // 最小尺寸约束（TwoLayersFeatureSize）
+    ASSERT_NE(config.minimumSize, nullptr);
+    EXPECT_EQ(config.minimumSize->type(), FeatureSizeType::TwoLayers);
+    EXPECT_EQ(config.minHeight, 4);
+
+    // 验证加权树叶提供者包含杜鹃叶与开花杜鹃叶（权重 3:1）
+    const auto& entries = config.foliageProvider->entries();
+    EXPECT_EQ(entries.size(), 2u);
+    i32 totalWeight = 0;
+    bool hasAzaleaLeaves = false;
+    bool hasFloweringAzaleaLeaves = false;
+    for (const auto& entry : entries) {
+        totalWeight += entry.weight;
+        if (entry.state->is(block_registry::CaveBlocks::AZALEA_LEAVES)) {
+            hasAzaleaLeaves = true;
+            EXPECT_EQ(entry.weight, 3);
+        }
+        if (entry.state->is(block_registry::CaveBlocks::FLOWERING_AZALEA_LEAVES)) {
+            hasFloweringAzaleaLeaves = true;
+            EXPECT_EQ(entry.weight, 1);
+        }
+    }
+    EXPECT_TRUE(hasAzaleaLeaves);
+    EXPECT_TRUE(hasFloweringAzaleaLeaves);
+    EXPECT_EQ(totalWeight, 4);
+}
+
+TEST_F(NewTreeFeatureConfigTest, AzaleaConfigDeepCopy)
+{
+    // 验证杜鹃树配置的深拷贝（foliageProvider 和 minimumSize 都需要正确克隆）
+    auto original = TreeFeatures::azaleaConfig();
+    TreeFeatureConfig copy(original);
+
+    ASSERT_NE(copy.foliageProvider, nullptr);
+    EXPECT_NE(copy.foliageProvider.get(), original.foliageProvider.get());
+    EXPECT_EQ(copy.foliageProvider->entries().size(), original.foliageProvider->entries().size());
+    EXPECT_EQ(copy.foliageProvider->totalWeight(), original.foliageProvider->totalWeight());
+
+    ASSERT_NE(copy.minimumSize, nullptr);
+    EXPECT_NE(copy.minimumSize.get(), original.minimumSize.get());
+    EXPECT_EQ(copy.minimumSize->type(), original.minimumSize->type());
 }
 
 // ============================================================================

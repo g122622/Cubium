@@ -26,12 +26,16 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
 #include "foliage/CherryFoliagePlacer.hpp"
 #include "foliage/FoliagePlacers.hpp"
+#include "foliage/RandomSpreadFoliagePlacer.hpp"
 #include "trunk/CherryTrunkPlacer.hpp"
 #include "trunk/StraightTrunkPlacer.hpp"
 #include "trunk/TrunkPlacers.hpp"
@@ -586,6 +590,37 @@ TreeFeatureConfig TreeFeatures::paleOakConfig()
     config.foliageBlock = VanillaBlocks::getState(block_registry::PaleGardenBlocks::PALE_OAK_LEAVES);
     config.trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 2, 0);
     config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 3);
+    config.minHeight = 4;
+    return config;
+}
+
+TreeFeatureConfig TreeFeatures::azaleaConfig()
+{
+    TreeFeatureConfig config;
+    // 杜鹃树使用橡木原木作为树干
+    config.trunkBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
+
+    // 树叶使用加权提供者：杜鹃叶（权重 3）与开花杜鹃叶（权重 1）混合
+    auto foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    foliageProvider->add(VanillaBlocks::getState(block_registry::CaveBlocks::AZALEA_LEAVES), 3);
+    foliageProvider->add(VanillaBlocks::getState(block_registry::CaveBlocks::FLOWERING_AZALEA_LEAVES), 1);
+    config.foliageProvider = std::move(foliageProvider);
+
+    // 弯曲树干放置器：baseHeight=4, heightRandA=2, heightRandB=0,
+    // minHeightForLeaves=3, bendLength=UniformInt(1, 2)
+    config.trunkPlacer =
+        std::make_unique<BendingTrunkPlacer>(4, 2, 0, 3, world::gen::valueprovider::UniformInt::create(1, 2));
+
+    // 随机散布树叶放置器：
+    // radius=ConstantInt(3), offset=ConstantInt(0), foliageHeight=ConstantInt(2), leafPlacementAttempts=50
+    config.foliagePlacer = std::make_unique<RandomSpreadFoliagePlacer>(
+        FeatureSpread::of(world::gen::valueprovider::ConstantInt::create(3)),
+        FeatureSpread::of(world::gen::valueprovider::ConstantInt::create(0)),
+        world::gen::valueprovider::ConstantInt::create(2),
+        50);
+
+    // 两层特征尺寸：limit=1, lowerSize=0, upperSize=1
+    config.minimumSize = std::make_unique<TwoLayersFeatureSize>(1, 0, 1);
     config.minHeight = 4;
     return config;
 }
