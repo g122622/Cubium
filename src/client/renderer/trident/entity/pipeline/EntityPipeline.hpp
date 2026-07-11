@@ -106,6 +106,8 @@ public:
      * @param cameraDescriptorLayout 相机描述符布局
      * @param descriptorPool 描述符池
      * @param commandPool 命令池（用于缓冲区复制）
+     * @param sampleCount MSAA 采样数
+     * @param maxFramesInFlight 最大同时在飞帧数（用于 per-frame 描述符集与延迟销毁窗口）
      */
     [[nodiscard]] Result<void> initialize(VkDevice device,
         VkPhysicalDevice physicalDevice,
@@ -114,7 +116,8 @@ public:
         VkDescriptorSetLayout cameraDescriptorLayout,
         VkDescriptorPool descriptorPool,
         VkCommandPool commandPool,
-        VkSampleCountFlagBits sampleCount);
+        VkSampleCountFlagBits sampleCount,
+        u32 maxFramesInFlight);
 
     /**
      * @brief 销毁资源
@@ -127,6 +130,24 @@ public:
      * @param blendMode 混合模式（默认 Alpha）
      */
     void bind(VkCommandBuffer cmd, BlendMode blendMode = BlendMode::Alpha);
+
+    /**
+     * @brief 标记当前帧索引
+     *
+     * 实体管线为每帧维护独立的纹理描述符集（避免在飞帧读取被本帧 setTextureAtlas
+     * 改写的描述符），并在帧边界推进延迟销毁队列。必须在录制本帧实体 draw 之前调用。
+     * @param frameIndex 当前帧索引（0 .. maxFramesInFlight-1）
+     */
+    void beginFrame(u32 frameIndex);
+
+    /**
+     * @brief 处理延迟销毁队列，释放足够久未被任何在飞帧引用的缓冲区
+     *
+     * 必须在每帧 vkQueueSubmit 完成且下一帧 fence 等待之后调用，保证待释放缓冲区
+     * 已不再被任何在飞命令缓冲区引用。通常在 FrameManager::acquireNextImage 之后、
+     * 录制新帧之前调用。
+     */
+    void processPendingDestroys();
 
     /**
      * @brief 创建实体网格
@@ -176,17 +197,32 @@ public:
         f32 fullbright = 0.0f);
 
     /**
-     * @brief 绑定纹理描述符集
+     * @brief 绑定纹理描述符集（set = 1）
+     *
+     * 绑定当前帧（由 beginFrame 指定）对应的纹理描述符集。每帧独立 set，
+     * 避免在飞帧读取被本帧 setTextureAtlas 改写的描述符。
      * @param cmd 命令缓冲区
      */
     void bindTextureDescriptor(VkCommandBuffer cmd);
 
     /**
-     * @brief 设置纹理图集
-     * @param texture 图集纹理
+     * @brief 设置纹理图集（写入当前帧的纹理描述符集）
+     * @param textureView 图集纹理视图
      * @param sampler 采样器
+     *
+     * 仅更新 beginFrame 指定的当前帧 set，避免改写仍被在飞帧
+     * 命令缓冲区引用的描述符。
      */
     void setTextureAtlas(VkImageView textureView, VkSampler sampler);
+
+    /**
+     * @brief 将同一纹理图集写入所有帧的纹理描述符集
+     *
+     * 仅用于初始化阶段（尚无任何帧提交、无在飞命令缓冲区），保证每帧 set
+     * 在首次 bindTextureDescriptor 前都指向有效纹理，避免绑定未初始化描述符。
+     * 运行时切换图集必须使用 per-frame 的 setTextureAtlas。
+     */
+    void setTextureAtlasAllFrames(VkImageView textureView, VkSampler sampler);
 
     /**
      * @brief 获取管线布局
@@ -210,8 +246,26 @@ private:
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_textureDescriptorLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_textureDescriptorSet = VK_NULL_HANDLE;
+    // 每帧一个纹理描述符集。setTextureAtlas 只写当前帧 set，避免改写仍被在飞帧
+    // 命令缓冲区引用的描述符（device-lost 根因之一）。
+    std::vector<VkDescriptorSet> m_textureDescriptorSets;
     VkSampler m_textureSampler = VK_NULL_HANDLE;
+
+    u32 m_maxFramesInFlight = 1; // 在飞帧数（延迟销毁保留窗口依据）
+    u32 m_currentFrameIndex = 0; // 当前录制帧索引（beginFrame 设置）
+
+    // 延迟销毁队列：mesh 的 vertex/index buffer 不在 destroyMesh 时立即释放，
+    // 而是入队，等待足够多的帧数（>= maxFramesInFlight + 1）后再真正 vkDestroyBuffer，
+    // 保证仍被在飞命令缓冲区引用的 buffer 不会被提前释放（device-lost 根因之二）。
+    struct PendingDestroy {
+        VkBuffer vertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
+        VkBuffer indexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory indexMemory = VK_NULL_HANDLE;
+        u64 enqueueFrame = 0; // 入队时的帧计数器
+    };
+    std::vector<PendingDestroy> m_pendingDestroys;
+    u64 m_frameCounter = 0; // 单调递增帧计数器（processPendingDestroys 推进）
 
     bool m_initialized = false;
 
@@ -236,9 +290,25 @@ private:
     [[nodiscard]] Result<void> _createTextureSampler();
 
     /**
-     * @brief 创建描述符集
+     * @brief 创建描述符集（每帧一个纹理描述符集）
      */
     [[nodiscard]] Result<void> _createDescriptorSets();
+
+    /**
+     * @brief 将一个 mesh 的 GPU buffer 加入延迟销毁队列
+     *
+     * 不立即 vkDestroyBuffer，而是登记入队帧计数器，由 processPendingDestroys
+     * 在足够多帧后真正释放。调用后 mesh 的句柄被清零，调用方无需再处理。
+     */
+    void _enqueueDestroyMesh(EntityMesh& mesh);
+
+    /**
+     * @brief 立即释放 mesh 的 GPU buffer（vkDestroyBuffer/vkFreeMemory）
+     *
+     * 仅用于刚分配、尚未提交到任何命令缓冲区的 buffer（createMesh/updateMesh
+     * 失败回滚路径）。已提交过的 buffer 必须走 _enqueueDestroyMesh 延迟释放。
+     */
+    void _destroyMeshImmediate(EntityMesh& mesh);
 
     /**
      * @brief 创建图形管线

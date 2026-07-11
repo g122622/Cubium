@@ -150,6 +150,22 @@ public:
      */
     [[nodiscard]] bool isInitialized() const { return m_initialized; }
 
+    /**
+     * @brief 标记当前帧索引并推进延迟销毁队列
+     *
+     * 手臂/物品管线为每帧维护独立纹理描述符集，setTextureAtlas 仅写当前帧 set。
+     * 必须在每帧录制第一人称 draw 之前调用。
+     * @param frameIndex 当前帧索引（0 .. maxFramesInFlight-1）
+     */
+    void beginFrame(u32 frameIndex);
+
+    /**
+     * @brief 处理延迟销毁队列，释放足够久未被任何在飞帧引用的缓冲区
+     *
+     * 由 beginFrame 在上一帧 fence 等待后内部调用，外部通常无需直接调用。
+     */
+    void processPendingDestroys();
+
     // ========== 每帧更新 ==========
 
     /**

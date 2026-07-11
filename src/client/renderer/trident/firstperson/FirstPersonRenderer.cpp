@@ -171,7 +171,8 @@ Result<void> FirstPersonRenderer::initialize(VkDevice device,
         cameraDescriptorLayout,
         descriptorPool,
         commandPool,
-        sampleCount);
+        sampleCount,
+        maxFramesInFlight);
 
     if (result.failed()) {
         destroy();
@@ -185,16 +186,17 @@ Result<void> FirstPersonRenderer::initialize(VkDevice device,
         cameraDescriptorLayout,
         descriptorPool,
         commandPool,
-        sampleCount);
+        sampleCount,
+        maxFramesInFlight);
 
     if (result.failed()) {
         destroy();
         return result.error();
     }
 
-    // 设置手臂纹理图集
+    // 设置手臂纹理图集（初始化阶段无在飞帧，写入所有帧的描述符集）
     if (entityTextureAtlas && entityTextureAtlas->isBuilt()) {
-        m_armPipeline->setTextureAtlas(entityTextureAtlas->imageView(), entityTextureAtlas->sampler());
+        m_armPipeline->setTextureAtlasAllFrames(entityTextureAtlas->imageView(), entityTextureAtlas->sampler());
     }
 
     // 初始化手持物品渲染器
@@ -233,6 +235,26 @@ void FirstPersonRenderer::destroy()
     m_initialized = false;
 }
 
+void FirstPersonRenderer::beginFrame(u32 frameIndex)
+{
+    if (m_armPipeline && m_armPipeline->isInitialized()) {
+        m_armPipeline->beginFrame(frameIndex);
+    }
+    if (m_itemPipeline && m_itemPipeline->isInitialized()) {
+        m_itemPipeline->beginFrame(frameIndex);
+    }
+}
+
+void FirstPersonRenderer::processPendingDestroys()
+{
+    if (m_armPipeline && m_armPipeline->isInitialized()) {
+        m_armPipeline->processPendingDestroys();
+    }
+    if (m_itemPipeline && m_itemPipeline->isInitialized()) {
+        m_itemPipeline->processPendingDestroys();
+    }
+}
+
 void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas)
 {
     m_itemTextureAtlas = itemTextureAtlas;
@@ -241,7 +263,8 @@ void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas
     _invalidateItemMeshes();
 
     if (m_itemPipeline && m_itemTextureAtlas && m_itemTextureAtlas->isValid()) {
-        m_itemPipeline->setTextureAtlas(m_itemTextureAtlas->imageView(), m_itemTextureAtlas->sampler());
+        // 图集切换需写入所有帧的描述符集，否则在飞帧仍引用旧图集。
+        m_itemPipeline->setTextureAtlasAllFrames(m_itemTextureAtlas->imageView(), m_itemTextureAtlas->sampler());
     }
 }
 
@@ -253,7 +276,7 @@ void FirstPersonRenderer::setPlayerSkinLocation(const ResourceLocation& playerSk
     _invalidateArmMeshes();
 
     if (m_armPipeline && m_entityTextureAtlas && m_entityTextureAtlas->isBuilt()) {
-        m_armPipeline->setTextureAtlas(m_entityTextureAtlas->imageView(), m_entityTextureAtlas->sampler());
+        m_armPipeline->setTextureAtlasAllFrames(m_entityTextureAtlas->imageView(), m_entityTextureAtlas->sampler());
     }
 }
 
