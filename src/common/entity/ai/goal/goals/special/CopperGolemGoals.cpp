@@ -24,14 +24,18 @@
 #include "CopperGolemGoals.hpp"
 
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
-#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/interfaces/ContainerUser.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -342,40 +346,142 @@ blockentity::ChestEntity* TransportItemsBetweenContainersGoal::_getTargetChestEn
 
 bool TransportItemsBetweenContainersGoal::_hasReachedTarget() const
 {
+    // 对应 MC TransportItemsBetweenContainers.onTravelToTarget：
+    //   isWithinTargetDistance(getInteractionRange(mob), target, level, mob, getCenterPos(mob))
+    // 路径完成时 distance=1.0、未完成时 distance=0.5
     if (!m_destinationBlock.has_value() || m_golem == nullptr) {
         return false;
     }
-
-    const BlockPos& target = m_destinationBlock.value();
-    // 计算到目标方块中心的水平距离平方
-    f64 dx = m_golem->x() - (static_cast<f64>(target.x) + 0.5);
-    f64 dz = m_golem->z() - (static_cast<f64>(target.z) + 0.5);
-    f64 horizontalDistSq = dx * dx + dz * dz;
-
-    f64 dy = m_golem->y() - static_cast<f64>(target.y);
-
-    // 对应 MC CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE = 1.0
-    // TODO: MC 原版 isWithinTargetDistance 使用 AABB 相交测试（考虑方块碰撞箱 + 距离膨胀），
-    //       且 getInteractionRange(mob) 在路径完成时返回 1.0、未完成时返回 0.5。
-    //       本项目简化为"到方块中心的水平距离平方 <= 1.0 + 垂直距离 <= 2.0"，
-    //       在大多数场景下行为接近，但极端情况（如斜向接近）可能有细微差异。
-    //       若后续需要更精确的复刻，可引入 AABB 相交测试和 Path 完成状态判断。
-    return horizontalDistSq <= CLOSE_ENOUGH_TO_INTERACT_SQ && std::abs(dy) <= CLOSE_ENOUGH_VERTICAL;
+    return _isWithinTargetDistance(_getInteractionRange(), _getCenterPos());
 }
 
 bool TransportItemsBetweenContainersGoal::_isWithinQueuingDistance() const
 {
+    // 对应 MC TransportItemsBetweenContainers.onTravelToTarget：
+    //   isWithinTargetDistance(3.0, target, level, mob, getCenterPos(mob))
+    // 距离 <= 3.0 且 目标被其他实体占用 → 进入 Queuing
+    if (!m_destinationBlock.has_value() || m_golem == nullptr) {
+        return false;
+    }
+    return _isWithinTargetDistance(CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE, _getCenterPos());
+}
+
+bool TransportItemsBetweenContainersGoal::_isWithinContinueInteractingDistance() const
+{
+    // 对应 MC TransportItemsBetweenContainers.onReachedTarget：
+    //   isWithinTargetDistance(2.0, target, level, mob, getCenterPos(mob))
+    // 距离 > 2.0 → 中断交互、回到 Travelling
+    if (!m_destinationBlock.has_value() || m_golem == nullptr) {
+        return false;
+    }
+    return _isWithinTargetDistance(CLOSE_ENOUGH_TO_CONTINUE_INTERACTING_WITH_TARGET, _getCenterPos());
+}
+
+bool TransportItemsBetweenContainersGoal::_isWithinTargetDistance(f64 distance, const Vector3& center) const
+{
+    // 对应 MC 1.21.11 TransportItemsBetweenContainers.isWithinTargetDistance：
+    //   AABB aabb  = mob.getBoundingBox();
+    //   AABB aabb1 = AABB.ofSize(center, aabb.getXsize(), aabb.getYsize(), aabb.getZsize());
+    //   return target.state.getCollisionShape(level, target.pos).bounds()
+    //              .inflate(distance, 0.5, distance)
+    //              .move(target.pos)
+    //              .intersects(aabb1);
     if (!m_destinationBlock.has_value() || m_golem == nullptr) {
         return false;
     }
 
     const BlockPos& target = m_destinationBlock.value();
-    f64 dx = m_golem->x() - (static_cast<f64>(target.x) + 0.5);
-    f64 dz = m_golem->z() - (static_cast<f64>(target.z) + 0.5);
-    f64 horizontalDistSq = dx * dx + dz * dz;
+    IWorld* world = m_golem->world();
+    if (world == nullptr) {
+        return false;
+    }
 
-    // 对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0
-    return horizontalDistSq <= CLOSE_ENOUGH_TO_QUEUE * CLOSE_ENOUGH_TO_QUEUE;
+    // 1. 铜傀儡侧 AABB：以 center 为中心，按铜傀儡 boundingBox 的各轴尺寸构造
+    //    对应 AABB.ofSize(center, xsize, ysize, zsize)
+    const AxisAlignedBB mobBB = m_golem->boundingBox();
+    const AxisAlignedBB mobSideAABB = AxisAlignedBB::ofSize(center, mobBB.width(), mobBB.height(), mobBB.depth());
+
+    // 2. 目标方块侧 AABB：取目标方块碰撞箱的包围盒（方块本地坐标 [0,1]）
+    const BlockState* targetState = world->getBlockState(target);
+    if (targetState == nullptr) {
+        return false;
+    }
+    const CollisionShape& collisionShape = targetState->getCollisionShape();
+    if (collisionShape.isEmpty()) {
+        // 空碰撞箱（如空气）永远不会相交
+        return false;
+    }
+
+    // 取碰撞箱的包围盒（所有子盒的并包）
+    // 对应 MC VoxelShape.bounds()：取形状在每轴上的最小/最大坐标
+    const auto& boxes = collisionShape.boxes();
+    if (boxes.empty()) {
+        return false;
+    }
+    f32 shapeMinX = boxes[0].minX;
+    f32 shapeMinY = boxes[0].minY;
+    f32 shapeMinZ = boxes[0].minZ;
+    f32 shapeMaxX = boxes[0].maxX;
+    f32 shapeMaxY = boxes[0].maxY;
+    f32 shapeMaxZ = boxes[0].maxZ;
+    for (size_t i = 1; i < boxes.size(); ++i) {
+        shapeMinX = std::min(shapeMinX, boxes[i].minX);
+        shapeMinY = std::min(shapeMinY, boxes[i].minY);
+        shapeMinZ = std::min(shapeMinZ, boxes[i].minZ);
+        shapeMaxX = std::max(shapeMaxX, boxes[i].maxX);
+        shapeMaxY = std::max(shapeMaxY, boxes[i].maxY);
+        shapeMaxZ = std::max(shapeMaxZ, boxes[i].maxZ);
+    }
+    AxisAlignedBB shapeAABB(shapeMinX, shapeMinY, shapeMinZ, shapeMaxX, shapeMaxY, shapeMaxZ);
+
+    // 3. X/Z 轴膨胀 distance、Y 轴膨胀 0.5
+    //    对应 AABB.inflate(distance, 0.5, distance)
+    const f32 distF = static_cast<f32>(distance);
+    const f32 yInflateF = static_cast<f32>(TARGET_DISTANCE_Y_INFLATE);
+    shapeAABB = shapeAABB.expand(distF, yInflateF, distF);
+
+    // 4. 平移到目标方块的世界坐标
+    //    对应 AABB.move(BlockPos)：把方块坐标加到 AABB 的所有 min/max 上
+    const f32 tx = static_cast<f32>(target.x);
+    const f32 ty = static_cast<f32>(target.y);
+    const f32 tz = static_cast<f32>(target.z);
+    shapeAABB = shapeAABB.offsetted(tx, ty, tz);
+
+    // 5. 严格开区间相交测试
+    return shapeAABB.intersects(mobSideAABB);
+}
+
+Vector3 TransportItemsBetweenContainersGoal::_getCenterPos() const
+{
+    // 对应 MC TransportItemsBetweenContainers.getCenterPos(mob)：
+    //   return setMiddleYPosition(mob, mob.position());
+    // setMiddleYPosition：vec3.add(0, mob.getBoundingBox().getYsize() / 2.0, 0)
+    // 即铜傀儡脚底位置 + Y 方向上移包围盒高度的一半
+    if (m_golem == nullptr) {
+        return Vector3(0.0f, 0.0f, 0.0f);
+    }
+    const Vector3 pos = m_golem->position();
+    const AxisAlignedBB mobBB = m_golem->boundingBox();
+    const f32 halfHeight = mobBB.height() / 2.0f;
+    return Vector3(pos.x, pos.y + halfHeight, pos.z);
+}
+
+f64 TransportItemsBetweenContainersGoal::_getInteractionRange() const
+{
+    // 对应 MC TransportItemsBetweenContainers.getInteractionRange(mob)：
+    //   return hasFinishedPath(mob) ? 1.0 : 0.5;
+    // hasFinishedPath(mob)：navigator.getPath() != null && navigator.getPath().isDone()
+    if (m_golem == nullptr) {
+        return CLOSE_ENOUGH_TO_START_INTERACTING_DISTANCE;
+    }
+    auto* mob = dynamic_cast<MobEntity*>(m_golem);
+    if (mob == nullptr || mob->navigator() == nullptr) {
+        return CLOSE_ENOUGH_TO_START_INTERACTING_DISTANCE;
+    }
+    const pathfinding::Path* path = mob->navigator()->getPath();
+    const bool hasFinishedPath = (path != nullptr) && !path->empty() && path->isFinished();
+    return hasFinishedPath ? CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE
+                           : CLOSE_ENOUGH_TO_START_INTERACTING_DISTANCE;
 }
 
 bool TransportItemsBetweenContainersGoal::_isAnotherMobInteractingWithTarget() const
@@ -510,6 +616,34 @@ void TransportItemsBetweenContainersGoal::_startInteracting()
 
 void TransportItemsBetweenContainersGoal::_tickInteracting()
 {
+    // 对应 MC onReachedTarget 的"Interacting 保持判定"：
+    //   if (!isWithinTargetDistance(2.0, ...)) { onStartTravelling(mob); return; }
+    // 若铜傀儡离开了 2.0 距离阈值（例如被推开/传送/路径漂移），中断交互序列、
+    // 回到 Travelling 状态。注意：MC 的 onStartTravelling 会调用 onTravelling 回调
+    // （clearOpenedChestPos + setState(IDLE)），但不会调用 container.stopOpen——
+    // 已在 tick 1 调用过 startOpen 的容器会暂时保持打开计数，由后续交互或容器
+    // 自身清理。本项目与 MC 行为保持一致。
+    if (!_isWithinContinueInteractingDistance()) {
+        // 清除打开位置 + 重置动画状态为 Idle（对应 MC onTravelling 回调）
+        m_golem->clearOpenedChestPos();
+        m_golem->setBehaviorState(entity::CopperGolemState::Idle);
+
+        // 重置交互计数，回到 Travelling 状态（保留 m_destinationBlock）
+        m_state = TransportState::Travelling;
+        m_interactionTicks = 0;
+        m_interactionSuccess = false;
+
+        // 重新启动寻路（对应 MC onStartTravelling 之后的 walkTowardsTarget）
+        if (m_destinationBlock.has_value()) {
+            const BlockPos& target = m_destinationBlock.value();
+            m_golem->tryMoveTo(static_cast<f64>(target.x) + 0.5,
+                static_cast<f64>(target.y),
+                static_cast<f64>(target.z) + 0.5,
+                m_speedMultiplier);
+        }
+        return;
+    }
+
     ++m_interactionTicks;
 
     // 对应 MC onReachedTargetInteraction 的三个关键 tick 点

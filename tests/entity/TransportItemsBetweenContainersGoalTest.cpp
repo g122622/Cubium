@@ -80,7 +80,19 @@ public:
     [[nodiscard]] bool isPickingUpItems() const { return m_goal._isPickingUpItems(); }
     [[nodiscard]] bool hasReachedTarget() const { return m_goal._hasReachedTarget(); }
     [[nodiscard]] bool isWithinQueuingDistance() const { return m_goal._isWithinQueuingDistance(); }
+    [[nodiscard]] bool isWithinContinueInteractingDistance() const
+    {
+        return m_goal._isWithinContinueInteractingDistance();
+    }
     [[nodiscard]] bool isAnotherMobInteractingWithTarget() const { return m_goal._isAnotherMobInteractingWithTarget(); }
+
+    // 暴露私有 AABB 距离判定方法（用于直接测试 MC isWithinTargetDistance 复刻）
+    [[nodiscard]] bool isWithinTargetDistance(f64 distance, const Vector3& center) const
+    {
+        return m_goal._isWithinTargetDistance(distance, center);
+    }
+    [[nodiscard]] Vector3 getCenterPos() const { return m_goal._getCenterPos(); }
+    [[nodiscard]] f64 getInteractionRange() const { return m_goal._getInteractionRange(); }
 
     // 暴露私有物品操作方法
     void pickupItemFromContainer(IInventory& container) { m_goal._pickupItemFromContainer(container); }
@@ -768,10 +780,14 @@ TEST_F(TransportItemsGoalTestFixture, HasReachedTarget_WithinOneBlock_ReturnsTru
     // 铜傀儡站在目标箱子正上方
     golemPtr->setPosition(5.5f, 64.0f, 5.5f);
 
+    // 在目标位置放置箱子方块（AABB 相交判定需要目标方块具有非空碰撞形状）
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+    accessor.setDestinationBlock(chestPos);
     EXPECT_TRUE(accessor.hasReachedTarget());
 }
 
@@ -784,10 +800,13 @@ TEST_F(TransportItemsGoalTestFixture, HasReachedTarget_TooFar_ReturnsFalse)
     // 铜傀儡站在距目标 5 格的位置
     golemPtr->setPosition(10.5f, 64.0f, 10.5f);
 
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+    accessor.setDestinationBlock(chestPos);
     EXPECT_FALSE(accessor.hasReachedTarget());
 }
 
@@ -800,10 +819,13 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinQueuingDistance_Within3Blocks_Retu
     // 铜傀儡距目标 2 格（< 3.0 的排队阈值）
     golemPtr->setPosition(7.5f, 64.0f, 7.5f);
 
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+    accessor.setDestinationBlock(chestPos);
     EXPECT_TRUE(accessor.isWithinQueuingDistance());
 }
 
@@ -816,10 +838,13 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinQueuingDistance_Beyond3Blocks_Retu
     // 铜傀儡距目标 5 格（> 3.0 的排队阈值）
     golemPtr->setPosition(10.5f, 64.0f, 10.5f);
 
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+    accessor.setDestinationBlock(chestPos);
     EXPECT_FALSE(accessor.isWithinQueuingDistance());
 }
 
@@ -947,12 +972,15 @@ TEST_F(TransportItemsGoalTestFixture, Tick_TravellingToQueuing_TransitionsWhenOc
     auto golemB = createCopperGolem(*m_world, EntityId{2}, 6.0f, 64.0f, 6.0f);
     CopperGolemEntity* golemBPtr = golemB.get();
     m_world->spawnEntity(std::move(golemB));
-    golemBPtr->setOpenedChestPos(BlockPos(5, 64, 5));
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+    golemBPtr->setOpenedChestPos(chestPos);
 
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemAPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+    accessor.setDestinationBlock(chestPos);
     accessor.setTransportState(test::TransportItemsBetweenContainersGoalTestAccessor::STATE_TRAVELLING);
 
     accessor.tick();
@@ -967,10 +995,13 @@ TEST_F(TransportItemsGoalTestFixture, Tick_QueuingToTravelling_TransitionsWhenTa
     CopperGolemEntity* golemAPtr = golemA.get();
     m_world->spawnEntity(std::move(golemA));
 
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemAPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+    accessor.setDestinationBlock(chestPos);
     accessor.setTransportState(test::TransportItemsBetweenContainersGoalTestAccessor::STATE_QUEUING);
 
     // 没有其他实体占用目标 → 恢复 Travelling
@@ -1139,4 +1170,262 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_DoubleChest_OpensBothHalve
     const ItemStack& mainHand = golemPtr->getMainHandItem();
     EXPECT_FALSE(mainHand.isEmpty());
     EXPECT_EQ(mainHand.getCount(), 10);
+}
+
+// ============================================================================
+// AABB 距离判定测试（对应 MC 1.21.11 isWithinTargetDistance 算法复刻）
+// ============================================================================
+//
+// 以下测试验证 _isWithinTargetDistance / _getCenterPos / _getInteractionRange
+// / _isWithinContinueInteractingDistance 四个核心方法的正确性。
+//
+// 关键算法（对应 MC isWithinTargetDistance）：
+//   1. 以铜傀儡中心点构造 mobSideAABB（尺寸=铜傀儡 boundingBox 尺寸）
+//   2. 取目标方块碰撞箱包围盒，X/Z 轴膨胀 distance、Y 轴膨胀 0.5
+//   3. 平移到目标方块世界坐标
+//   4. 与 mobSideAABB 做严格开区间相交测试
+//
+// 注意：目标方块必须具有非空碰撞形状（如 CHEST 的完整方块碰撞箱），
+// 否则 _isWithinTargetDistance 永远返回 false。
+
+TEST_F(TransportItemsGoalTestFixture, GetCenterPos_ReturnsMiddleYPosition)
+{
+    // 对应 MC getCenterPos：铜傀儡脚底 Y + boundingBox 高度的一半
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    const Vector3 center = accessor.getCenterPos();
+    // X/Z 为脚底位置
+    EXPECT_FLOAT_EQ(center.x, 5.5f);
+    EXPECT_FLOAT_EQ(center.z, 5.5f);
+    // Y = 64 + height/2（铜傀儡 height=0.98 → 中心 Y=64.49）
+    EXPECT_FLOAT_EQ(center.y, 64.0f + golemPtr->boundingBox().height() / 2.0f);
+}
+
+TEST_F(TransportItemsGoalTestFixture, GetInteractionRange_NoPath_ReturnsHalfBlock)
+{
+    // 对应 MC getInteractionRange：navigator.getPath() == null 或 path 未完成 → 0.5
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    // 无路径 → 0.5
+    EXPECT_DOUBLE_EQ(accessor.getInteractionRange(), 0.5);
+}
+
+TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_EmptyCollisionShape_ReturnsFalse)
+{
+    // 目标方块为空气（空碰撞箱）→ 永远不相交
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    // 不设置任何方块 → getBlockState 返回 AIR（空碰撞形状）
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(BlockPos(5, 64, 5));
+
+    const Vector3 center = accessor.getCenterPos();
+    // 即使距离很大，空碰撞箱也应返回 false
+    EXPECT_FALSE(accessor.isWithinTargetDistance(10.0, center));
+}
+
+TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_FullChestBlock_IntersectsAtShortRange)
+{
+    // 铜傀儡紧贴目标箱子（中心距离 < 1），distance=0.5 → 应相交
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+
+    const Vector3 center = accessor.getCenterPos();
+    // distance=0.5 时仍应相交（铜傀儡 AABB 与箱子 AABB 已有重叠）
+    EXPECT_TRUE(accessor.isWithinTargetDistance(0.5, center));
+}
+
+TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_FullChestBlock_NoIntersectAtLongRange)
+{
+    // 铜傀儡远离目标箱子，distance=0.5 → 不应相交
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 20.5f, 64.0f, 20.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+
+    const Vector3 center = accessor.getCenterPos();
+    EXPECT_FALSE(accessor.isWithinTargetDistance(0.5, center));
+}
+
+TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_LargerDistance_IncludesFartherGolem)
+{
+    // 验证 distance 参数对 AABB 膨胀的影响：
+    // 铜傀儡在 (9.5, 64, 9.5)，目标箱子在 (5, 64, 5)。
+    // 箱子碰撞箱 [0,1] 膨胀后 maxX = 1 + distance + 5（方块世界坐标偏移）。
+    // 铜傀儡 mobSideAABB minX = 9.5 - 0.245 = 9.255。
+    // - distance=3.0：膨胀后 maxX=9，9.255 > 9 → 严格开区间不相交
+    // - distance=4.0：膨胀后 maxX=10，9.255 < 10 → 相交
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 9.5f, 64.0f, 9.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+
+    const Vector3 center = accessor.getCenterPos();
+    // distance=3.0 → 不相交
+    EXPECT_FALSE(accessor.isWithinTargetDistance(3.0, center));
+    // distance=4.0 → 相交
+    EXPECT_TRUE(accessor.isWithinTargetDistance(4.0, center));
+}
+
+TEST_F(TransportItemsGoalTestFixture, IsWithinContinueInteractingDistance_Within2Blocks_ReturnsTrue)
+{
+    // 铜傀儡紧贴目标箱子 → 继续交互距离 2.0 内 → 返回 true
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+    EXPECT_TRUE(accessor.isWithinContinueInteractingDistance());
+}
+
+TEST_F(TransportItemsGoalTestFixture, IsWithinContinueInteractingDistance_Beyond2Blocks_ReturnsFalse)
+{
+    // 铜傀儡距目标 5 格 → 超出继续交互距离 2.0 → 返回 false
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 10.5f, 64.0f, 10.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+    EXPECT_FALSE(accessor.isWithinContinueInteractingDistance());
+}
+
+// ============================================================================
+// 交互中断测试（_tickInteracting 在超出继续交互距离时中断交互序列）
+// ============================================================================
+
+TEST_F(TransportItemsGoalTestFixture, TickInteracting_GolemMovesAway_AbortsInteractionAndReturnsToTravelling)
+{
+    // 对应 MC onReachedTarget 的"Interacting 保持判定"：
+    //   if (!isWithinTargetDistance(2.0, ...)) { onStartTravelling(mob); return; }
+    // 铜傀儡在交互过程中被移出 2.0 距离阈值 → 中断交互、回到 Travelling、清除打开位置
+
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    golemPtr->setMainHandItem(ItemStack{});
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+    blockentity::ChestEntity* chest = m_world->placeChest(chestPos);
+    ASSERT_NE(chest, nullptr);
+
+    const Item* stick = Items::STICK;
+    ASSERT_NE(stick, nullptr);
+    chest->getInventory()->setItem(0, ItemStack(*stick, 32));
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+    accessor.setTransportState(test::TransportItemsBetweenContainersGoalTestAccessor::STATE_INTERACTING);
+
+    // 推进到 tick 1：应触发 startOpen + 记录打开位置
+    accessor.tickInteracting();
+    EXPECT_EQ(accessor.getInteractionTicks(), 1);
+    EXPECT_TRUE(golemPtr->hasContainerOpen(chestPos));
+
+    // 将铜傀儡移出继续交互距离（2.0 阈值）
+    golemPtr->setPosition(20.5f, 64.0f, 20.5f);
+
+    // 再次 tick：应中断交互
+    accessor.tickInteracting();
+
+    // 交互 tick 不应继续递增（应被重置为 0）
+    EXPECT_EQ(accessor.getInteractionTicks(), 0);
+    // 状态应回到 Travelling
+    EXPECT_EQ(accessor.getTransportState(), test::TransportItemsBetweenContainersGoalTestAccessor::STATE_TRAVELLING);
+    // 打开位置应被清除（对应 MC onTravelling 回调：clearOpenedChestPos）
+    EXPECT_FALSE(golemPtr->hasContainerOpen(chestPos));
+    // 动画状态应重置为 Idle
+    EXPECT_EQ(golemPtr->getBehaviorState(), entity::CopperGolemState::Idle);
+    // 目标方块应保留（不重新搜索）
+    EXPECT_TRUE(accessor.hasDestinationBlock());
+}
+
+TEST_F(TransportItemsGoalTestFixture, TickInteracting_GolemStaysClose_ContinuesInteractionSequence)
+{
+    // 对照测试：铜傀儡保持在继续交互距离内 → 交互序列正常推进到 tick 60
+
+    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    CopperGolemEntity* golemPtr = golem.get();
+    m_world->spawnEntity(std::move(golem));
+
+    golemPtr->setMainHandItem(ItemStack{});
+
+    BlockPos chestPos(5, 64, 5);
+    m_world->setBlock(chestPos, VanillaBlocks::CHEST->defaultState());
+    blockentity::ChestEntity* chest = m_world->placeChest(chestPos);
+    ASSERT_NE(chest, nullptr);
+
+    const Item* stick = Items::STICK;
+    ASSERT_NE(stick, nullptr);
+    chest->getInventory()->setItem(0, ItemStack(*stick, 32));
+
+    entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
+    test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
+
+    accessor.setDestinationBlock(chestPos);
+    accessor.setTransportState(test::TransportItemsBetweenContainersGoalTestAccessor::STATE_INTERACTING);
+
+    // 铜傀儡保持在原地 → 交互序列应完整推进到 tick 60
+    for (i32 i = 0; i < 60; ++i) {
+        accessor.tickInteracting();
+    }
+
+    EXPECT_EQ(accessor.getInteractionTicks(), 60);
+    // 主手应拿到 16 个 STICK
+    const ItemStack& mainHand = golemPtr->getMainHandItem();
+    EXPECT_FALSE(mainHand.isEmpty());
+    EXPECT_EQ(mainHand.getCount(), 16);
 }

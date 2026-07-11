@@ -98,6 +98,25 @@ public:
             static_cast<f32>(z + 1));
     }
 
+    /**
+     * @brief 以指定点为中心构造AABB
+     * @param center 中心点
+     * @param xSize X轴方向总尺寸（非半尺寸）
+     * @param ySize Y轴方向总尺寸
+     * @param zSize Z轴方向总尺寸
+     * @return 以 center 为中心、各轴尺寸为指定值的 AABB
+     *
+     * 对应 MC 1.21.11 AABB.ofSize(Vec3, double, double, double)。
+     * min = center - size/2，max = center + size/2。
+     */
+    [[nodiscard]] static AxisAlignedBB ofSize(const Vector3& center, f32 xSize, f32 ySize, f32 zSize) noexcept
+    {
+        const f32 hx = xSize / 2.0f;
+        const f32 hy = ySize / 2.0f;
+        const f32 hz = zSize / 2.0f;
+        return AxisAlignedBB(center.x - hx, center.y - hy, center.z - hz, center.x + hx, center.y + hy, center.z + hz);
+    }
+
     // 基本属性
     [[nodiscard]] f32 width() const noexcept { return maxX - minX; }
     [[nodiscard]] f32 height() const noexcept { return maxY - minY; }

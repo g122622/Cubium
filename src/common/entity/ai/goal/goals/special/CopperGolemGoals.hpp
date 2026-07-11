@@ -166,8 +166,11 @@ private:
     /**
      * @brief 检查铜傀儡是否已到达目标方块附近
      *
-     * 对应 MC CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE = 1.0
-     * 判定：实体到目标方块中心的水平距离 <= 1.0，且垂直距离 <= 2.0
+     * 对应 MC TransportItemsBetweenContainers.onTravelToTarget 中的
+     * "Interacting 进入判定"：isWithinTargetDistance(getInteractionRange(mob), target, level, mob, getCenterPos(mob))。
+     *
+     * getInteractionRange(mob) 在路径完成时返回 1.0、未完成时返回 0.5。
+     * 判定方式为 AABB 相交测试（考虑目标方块碰撞箱 + 距离膨胀），与 MC 1.21.11 一致。
      *
      * @return 是否已到达
      */
@@ -176,13 +179,67 @@ private:
     /**
      * @brief 检查铜傀儡是否已进入"可开始排队"距离
      *
-     * 对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0：
-     *   实体到目标方块中心的水平距离 <= 3.0。
+     * 对应 MC TransportItemsBetweenContainers.onTravelToTarget 中的
+     * "Queuing 进入判定"：isWithinTargetDistance(3.0, target, level, mob, getCenterPos(mob))。
      * 当实体进入此距离且目标被其他 ContainerUser 占用时会进入 Queuing 状态。
      *
      * @return 是否在排队距离内
      */
     [[nodiscard]] bool _isWithinQueuingDistance() const;
+
+    /**
+     * @brief 检查铜傀儡是否仍处于"可继续交互"距离
+     *
+     * 对应 MC TransportItemsBetweenContainers.onReachedTarget 中的
+     * "Interacting 保持判定"：isWithinTargetDistance(2.0, target, level, mob, getCenterPos(mob))。
+     * 若不再满足则中断交互、回到 Travelling。
+     *
+     * @return 是否仍在交互距离内
+     */
+    [[nodiscard]] bool _isWithinContinueInteractingDistance() const;
+
+    /**
+     * @brief MC isWithinTargetDistance 的复刻
+     *
+     * 算法：
+     * 1. 取铜傀儡当前 boundingBox 的 X/Y/Z 尺寸
+     * 2. 以 center 为中心、铜傀儡尺寸为各轴尺寸构造 mobSideAABB
+     *    （对应 MC AABB.ofSize(center, xsize, ysize, zsize)）
+     * 3. 取目标方块碰撞箱的包围盒（方块本地坐标 [0,1] 范围）
+     * 4. X/Z 轴膨胀 distance、Y 轴膨胀 0.5
+     * 5. 平移到目标方块的世界坐标
+     * 6. 与 mobSideAABB 做严格开区间相交测试
+     *
+     * @param distance 水平方向膨胀量（X/Z 轴）
+     * @param center 构造铜傀儡侧 AABB 的中心点（通常为铜傀儡中心位置）
+     * @return 是否在目标距离内
+     */
+    [[nodiscard]] bool _isWithinTargetDistance(f64 distance, const Vector3& center) const;
+
+    /**
+     * @brief 获取铜傀儡的"中心位置"
+     *
+     * 对应 MC TransportItemsBetweenContainers.getCenterPos(mob)：
+     *   setMiddleYPosition(mob, mob.position())
+     * 即铜傀儡脚底位置 + Y 方向上移包围盒高度的一半。
+     *
+     * @return 中心位置（X/Z 为脚底位置，Y 为包围盒中心高度）
+     */
+    [[nodiscard]] Vector3 _getCenterPos() const;
+
+    /**
+     * @brief 获取当前交互距离阈值
+     *
+     * 对应 MC TransportItemsBetweenContainers.getInteractionRange(mob)：
+     *   return hasFinishedPath(mob) ? 1.0 : 0.5;
+     * 其中 hasFinishedPath 等价于 navigator.getPath() != null && path.isDone()。
+     *
+     * 路径完成时返回 1.0（CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE），
+     * 路径未完成时返回 0.5（CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_DISTANCE）。
+     *
+     * @return 交互距离阈值
+     */
+    [[nodiscard]] f64 _getInteractionRange() const;
 
     /**
      * @brief 检查目标容器是否被其他 ContainerUser 占用
@@ -349,14 +406,20 @@ private:
     /// 不可达位置上限，对应 MC MAX_UNREACHABLE_POSITIONS = 50
     static constexpr i32 MAX_UNREACHABLE_POSITIONS = 50;
 
-    /// 到达目标开始交互的水平距离阈值，对应 MC CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE = 1.0
-    static constexpr f64 CLOSE_ENOUGH_TO_INTERACT_SQ = 1.0;
+    /// 路径未完成时的交互距离阈值，对应 MC CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_DISTANCE = 0.5
+    static constexpr f64 CLOSE_ENOUGH_TO_START_INTERACTING_DISTANCE = 0.5;
 
-    /// 垂直距离阈值（自定义，2 格高度差内可交互）
-    static constexpr f64 CLOSE_ENOUGH_VERTICAL = 2.0;
+    /// 路径完成时的交互距离阈值，对应 MC CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE = 1.0
+    static constexpr f64 CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE = 1.0;
 
-    /// 进入排队距离的水平阈值，对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0
-    static constexpr f64 CLOSE_ENOUGH_TO_QUEUE = 3.0;
+    /// 进入排队距离阈值，对应 MC CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0
+    static constexpr f64 CLOSE_ENOUGH_TO_START_QUEUING_DISTANCE = 3.0;
+
+    /// 继续交互距离阈值，对应 MC CLOSE_ENOUGH_TO_CONTINUE_INTERACTING_WITH_TARGET = 2.0
+    static constexpr f64 CLOSE_ENOUGH_TO_CONTINUE_INTERACTING_WITH_TARGET = 2.0;
+
+    /// isWithinTargetDistance 中 Y 轴固定膨胀量（MC 硬编码常量）
+    static constexpr f64 TARGET_DISTANCE_Y_INFLATE = 0.5;
 
     /// tick==1：开始交互
     static constexpr i32 TICK_TO_START_INTERACTION = 1;
