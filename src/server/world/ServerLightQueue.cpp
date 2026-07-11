@@ -102,8 +102,14 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
     ServerChunkManager* cm = world.chunkManager();
     WorldLightManager* lm = world.lightManager();
 
+    // 生产路径下 ServerWorld::tick 的 if (m_lightManager) 守卫已保证 lm 非空；
+    // lm 为空时无光照管理器可传播，直接丢弃任务（无方块变更能产生光照效果）
+    if (lm == nullptr) {
+        return;
+    }
+
     // executor 未注入（启动早期/测试环境）：fallback 同步路径，保证正确性
-    if (cm == nullptr || lm == nullptr) {
+    if (cm == nullptr) {
         for (auto& [chunkKey, task] : tasks) {
             if (task.changedPositionLongs.empty()) {
                 continue;
