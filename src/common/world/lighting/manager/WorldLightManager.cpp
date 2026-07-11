@@ -80,6 +80,33 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z)
     }
 }
 
+void WorldLightManager::checkBlocks(i32 chunkX, i32 chunkZ, std::vector<BlockPos> positions)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "WorldLightManager::checkBlocks",
+        "chunk",
+        fmt::format("({}, {})", chunkX, chunkZ),
+        "count",
+        static_cast<i64>(positions.size()));
+
+    if (positions.empty()) {
+        return;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    // 运行时方块变更不改变区块段空状态，changedSections 留空
+    std::vector<bool> changedSections;
+
+    if (m_skyLight != nullptr) {
+        m_skyLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
+    }
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
+    }
+}
+
 void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,

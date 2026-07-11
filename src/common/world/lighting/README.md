@@ -57,6 +57,7 @@ InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 
 - `common/world/IWorld.hpp` - 使用 `InternalLightUtils::calculateSkyDarkening()` 计算天空减暗
 - `common/world/dimension/Dimension.hpp` - 持有 `WorldLightManager` 实例
+- `server/world/ServerWorld.hpp` - 持有 `WorldLightManager`；运行时方块变更经 `ServerLightQueue` 延迟入队，tick 时批量调 `checkBlocks`
 - `common/world/block/blocks/mob/TurtleEggBlock.cpp` - 使用 `getCelestialAngleMC()` 判断黎明
 - `common/world/block/blocks/redstone/DaylightDetectorBlock.cpp` - 使用天体角度计算日光探测器输出
 - `client/renderer/trident/entity/util/ShadowRenderer.cpp` - 使用天体角度计算阴影
@@ -101,6 +102,7 @@ chunk 上（`IChunk::getSkyNibbles()`/`getBlockNibbles()`），chunk 被移除�
 | 方法 | 说明 |
 |------|------|
 | `getDebugInfo(LightType, SectionPos)` | 获取段级调试信息 |
+| `checkBlocks(chunkX, chunkZ, positions)` | 批量重算一个区块内多个方块变更的光照（一次 setupCaches/destroyCaches），供运行时延迟队列 tick drain 调用 |
 
 #### BlockStarLightEngine / SkyStarLightEngine
 

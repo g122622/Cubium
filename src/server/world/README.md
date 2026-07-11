@@ -7,6 +7,7 @@
 ```
 src/server/world/
 ├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/getOrLoadChunk同步区块加载）
+├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（主线程按区块批处理，setBlockState 入队→tick drain）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
 ├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（NewChunkHolder 等价物：请求聚合/状态推进/等待者/双向邻居依赖）
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
@@ -187,6 +188,9 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 ### 光照初始化时机
 区块加载后光照未初始化会导致客户端显示错误。设置 `ChunkLoadedCallback` 在区块加载完成后初始化光照。
+
+### 运行时方块变更光照延迟队列
+`ServerWorld::setBlockState` 的光照更新**不在调用当场传播**，而是入队 `ServerLightQueue`（按区块分组、同坐标去重），在 `ServerWorld::tick` 开头批量调 `WorldLightManager::checkBlocks`（一次 `setupCaches` 处理整区块全部变更）。因此存在**最多 1 tick 的最终一致性窗口**：setBlockState 返回后到本 tick 光照 drain 之前，`getLightSubtracted` 等查询可能读到旧值。若有逻辑依赖即时光照（如方块变更回调里立即查亮度），需自行评估或改走 tick 后查询。生成阶段（LIGHT step）的光照不经过此队列，仍由 `lightChunk` 同步完成。
 
 ### 未初始化世界调用 setBlockState
 在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlockState()` 会在光照更新阶段触发断言。**所有需要光照的测试必须先初始化世界**。不需要光照的测试（如 `tickPrecipitation`）可以直接调用，因为 `tickPrecipitation()` 仅依赖 `m_chunkManager` 和 `m_weatherManager`，无需 `initialize()`。

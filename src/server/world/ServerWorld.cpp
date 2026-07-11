@@ -900,11 +900,12 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             newLightLevel);
 
         if (m_lightManager) {
-            m_lightManager->checkBlock(changedPos.x, changedPos.y, changedPos.z);
-
-            if (newLightLevel > oldLightLevel) {
-                m_lightManager->onBlockEmissionIncrease(changedPos.x, changedPos.y, changedPos.z, newLightLevel);
-            }
+            // 运行时方块变更改为入队延迟处理：仅标记坐标脏，不立即传播。
+            // 光照在 tick 时批量传播（同区块多变更合并去重，一次 setupCaches）。
+            // 原同步路径 checkBlock + onBlockEmissionIncrease 已合并：
+            // 批量 blocksChangedInChunk 内部会重新读取当前方块状态并自动
+            // 处理发光等级，onBlockEmissionIncrease 仅是无用的二次 checkBlock。
+            m_lightQueue.queueBlockChange(changedPos.x, changedPos.y, changedPos.z);
         } else {
             MC_ASSERT_RELEASE(false);
         }
@@ -1097,10 +1098,18 @@ void ServerWorld::tick()
         m_chunkManager->tick();
     }
 
-    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
-    if (m_lightManager && m_lightManager->hasLightWork()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
-        m_lightManager->tick(32768, true, true);
+    // 光照更新 - 先排空运行时方块变更延迟队列（按区块批量传播），
+    // 再处理引擎内部残余队列骨架（performUpdates）
+    if (m_lightManager) {
+        if (!m_lightQueue.empty()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightQueueDrain");
+            m_lightQueue.drainAndProcess(*m_lightManager);
+        }
+
+        if (m_lightManager->hasLightWork()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
+            m_lightManager->tick(32768, true, true);
+        }
     }
 
     // 获取当前 tick

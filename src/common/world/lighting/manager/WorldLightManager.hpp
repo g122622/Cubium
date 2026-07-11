@@ -73,6 +73,20 @@ public:
     void checkBlock(i32 x, i32 y, i32 z);
 
     /**
+     * @brief 批量检查一个区块内多个方块的光照
+     *
+     * 运行时方块变更延迟队列在 tick 时调用：把同一区块内累积的全部变更坐标
+     * 一次性传入，仅做一次 setupCaches/destroyCaches 即完成全部传播，
+     * 避免逐坐标调用 checkBlock 的重复缓存开销。changedSections 留空，
+     * 因运行时方块变更不改变区块段空状态（空状态由区块加载流程维护）。
+     *
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param positions 待处理的方块坐标列表
+     */
+    void checkBlocks(i32 chunkX, i32 chunkZ, std::vector<BlockPos> positions);
+
+    /**
      * @brief 方块发光等级增加时调用
      *
      * 当方块被放置且发光等级大于0时调用。

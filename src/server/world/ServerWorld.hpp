@@ -47,6 +47,7 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerLightQueue.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/entity/EntityChunkTracker.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -1414,6 +1415,7 @@ private:
     std::unique_ptr<physics::CollisionCache> m_collisionCache;
     std::unique_ptr<world::tick::TickManager> m_tickManager;
     std::unique_ptr<WorldLightManager> m_lightManager;
+    ServerLightQueue m_lightQueue; ///< 运行时方块变更光照延迟队列（主线程批处理）
     std::unique_ptr<WeatherManager> m_weatherManager;
     std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;

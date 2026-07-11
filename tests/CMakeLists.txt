@@ -1216,6 +1216,8 @@ add_executable(mc_tests
     lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
     lighting/WorldLightManagerTest.cpp
+    # 运行时方块变更光照延迟队列批处理测试
+    lighting/ServerLightQueueTest.cpp
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
     client/renderer/trident/blockentity/ChestModelTest.cpp
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
@@ -1511,6 +1513,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -2532,6 +2535,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
