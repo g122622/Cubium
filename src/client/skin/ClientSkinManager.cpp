@@ -34,8 +34,8 @@
 namespace mc::client::skin {
 
 using ::mc::skin::DefaultSkinVariant;
-using ::mc::skin::getDefaultSkinVariants;
 using ::mc::skin::getDefaultSkinVariantForUUID;
+using ::mc::skin::getDefaultSkinVariants;
 
 ClientSkinManager::ClientSkinManager()
     : m_skinManager(std::make_unique<::mc::skin::SkinManager>(""))
@@ -62,7 +62,16 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
     m_device = device;
 
     // 初始化底层皮肤管理器
+    // 用正确的 cacheDir 重建底层 SkinManager（构造函数用的是空 cacheDir）。
+    // 重建会丢弃此前 setResourcePack/setWorkerPool 注入到旧对象的状态，
+    // 因此必须把缓存的指针重新下发给新对象，再调用 initialize()。
     m_skinManager = std::make_unique<::mc::skin::SkinManager>(cacheDir);
+    if (m_resourcePack) {
+        m_skinManager->setResourcePack(m_resourcePack);
+    }
+    if (m_workerPool) {
+        m_skinManager->setWorkerPool(m_workerPool);
+    }
     auto skinResult = m_skinManager->initialize();
     if (!skinResult.success()) {
         return skinResult.error();
