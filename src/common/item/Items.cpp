@@ -2173,7 +2173,7 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1),
             ArmorMaterials::DIAMOND);
 
-    // 下界合金鹦鹉螺铠甲 - +19 护甲，防火
+    // 下界合金鹦鹉螺铠甲 - +19 护甲，防火（通过 FIRE_RESISTANT 标签实现）
     NETHERITE_NAUTILUS_ARMOR =
         &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:netherite_nautilus_armor"),
             ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),

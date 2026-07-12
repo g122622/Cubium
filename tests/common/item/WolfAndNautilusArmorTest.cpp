@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/core/Item.hpp"
@@ -302,4 +303,50 @@ TEST_F(WolfAndNautilusArmorTest, ItemTags_PiglinLoved_ContainsGoldenNautilusArmo
     // PIGLIN_LOVED 标签应包含 golden_nautilus_armor
     ASSERT_NE(Items::GOLDEN_NAUTILUS_ARMOR, nullptr);
     EXPECT_TRUE(ItemTags::PIGLIN_LOVED().contains(Items::GOLDEN_NAUTILUS_ARMOR));
+}
+
+TEST_F(WolfAndNautilusArmorTest, ItemTags_FireResistant_ContainsNetheriteNautilusArmor)
+{
+    // FIRE_RESISTANT 标签应包含 netherite_nautilus_armor（与下界合金马铠机制一致）
+    ASSERT_NE(Items::NETHERITE_NAUTILUS_ARMOR, nullptr);
+    EXPECT_TRUE(ItemTags::FIRE_RESISTANT().contains(Items::NETHERITE_NAUTILUS_ARMOR));
+}
+
+TEST_F(WolfAndNautilusArmorTest, ItemTags_FireResistant_DoesNotContainNonNetheriteNautilusArmor)
+{
+    // 非下界合金鹦鹉螺铠甲不应在 FIRE_RESISTANT 标签中
+    ASSERT_NE(Items::COPPER_NAUTILUS_ARMOR, nullptr);
+    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::COPPER_NAUTILUS_ARMOR));
+    ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
+    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::IRON_NAUTILUS_ARMOR));
+    ASSERT_NE(Items::GOLDEN_NAUTILUS_ARMOR, nullptr);
+    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::GOLDEN_NAUTILUS_ARMOR));
+    ASSERT_NE(Items::DIAMOND_NAUTILUS_ARMOR, nullptr);
+    EXPECT_FALSE(ItemTags::FIRE_RESISTANT().contains(Items::DIAMOND_NAUTILUS_ARMOR));
+}
+
+TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_StackCannotBeHurtByFire)
+{
+    // 下界合金鹦鹉螺铠甲物品堆应免疫火焰伤害源
+    ASSERT_NE(Items::NETHERITE_NAUTILUS_ARMOR, nullptr);
+    ItemStack stack(*Items::NETHERITE_NAUTILUS_ARMOR, 1);
+    EXPECT_FALSE(stack.canBeHurtBy(DamageSources::inFire()));
+    EXPECT_FALSE(stack.canBeHurtBy(DamageSources::lava()));
+}
+
+TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_StackCanBeHurtByGenericDamage)
+{
+    // 下界合金鹦鹉螺铠甲物品堆仍可被普通伤害源伤害（仅防火）
+    ASSERT_NE(Items::NETHERITE_NAUTILUS_ARMOR, nullptr);
+    ItemStack stack(*Items::NETHERITE_NAUTILUS_ARMOR, 1);
+    EXPECT_TRUE(stack.canBeHurtBy(DamageSources::generic()));
+}
+
+TEST_F(WolfAndNautilusArmorTest, NonNetheriteNautilusArmorItem_StackCanBeHurtByFire)
+{
+    // 非下界合金鹦鹉螺铠甲物品堆不免疫火焰伤害源
+    ASSERT_NE(Items::DIAMOND_NAUTILUS_ARMOR, nullptr);
+    ItemStack stack(*Items::DIAMOND_NAUTILUS_ARMOR, 1);
+    EXPECT_TRUE(stack.canBeHurtBy(DamageSources::inFire()));
+    EXPECT_TRUE(stack.canBeHurtBy(DamageSources::lava()));
 }

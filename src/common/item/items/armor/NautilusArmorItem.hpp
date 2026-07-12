@@ -50,7 +50,9 @@ namespace item::items {
  * - 装备音效通过 AbstractNautilusEntity::getEquipSound(EquipmentSlot::Body) 播放
  *
  * TODO: 鹦鹉螺铠甲渲染层（显示铠甲模型）尚未实现，等待客户端实体渲染器扩展。
- * TODO: 下界合金鹦鹉螺铠甲的 FIRE_RESISTANT 标签尚未在 ItemTags 中注册。
+ *
+ * 下界合金鹦鹉螺铠甲额外具备防火属性（FIRE_RESISTANT 标签），与下界合金马铠机制一致，
+ * 免疫火焰/岩浆伤害。
  *
  * 参考: net.minecraft.world.item.Item.Properties.nautilusArmor(ArmorMaterial) (MC 1.21.11)
  */

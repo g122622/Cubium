@@ -548,6 +548,9 @@ void ItemTags::initialize()
     // 下界合金马铠
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_horse_armor")));
 
+    // 下界合金鹦鹉螺铠甲
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_nautilus_armor")));
+
     allTags[fireResistant->getId()] = std::move(fireResistant);
 
     // 创建 DECORATED_POT_SHERDS 标签

@@ -412,6 +412,29 @@ TEST_F(ItemTagsTest, FireResistantContainsNetheriteArmor)
     }
 }
 
+TEST_F(ItemTagsTest, FireResistantContainsNetheriteAnimalArmor)
+{
+    // 下界合金马铠与下界合金鹦鹉螺铠甲均应在防火标签中
+    const char* armorNames[] = {"netherite_horse_armor", "netherite_nautilus_armor"};
+    for (const char* name : armorNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item not found: " << name;
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Not fire resistant: " << name;
+    }
+}
+
+TEST_F(ItemTagsTest, FireResistantDoesNotContainNonNetheriteNautilusArmor)
+{
+    // 非下界合金的鹦鹉螺铠甲不应在防火标签中
+    const char* armorNames[] = {
+        "copper_nautilus_armor", "iron_nautilus_armor", "golden_nautilus_armor", "diamond_nautilus_armor"};
+    for (const char* name : armorNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item not found: " << name;
+        EXPECT_FALSE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Should not be fire resistant: " << name;
+    }
+}
+
 TEST_F(ItemTagsTest, FireResistantDoesNotContainIronItems)
 {
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_ingot"));
