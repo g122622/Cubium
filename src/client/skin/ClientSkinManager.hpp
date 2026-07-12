@@ -189,17 +189,29 @@ public:
 
     /**
      * @brief 设置资源包（用于加载默认皮肤）
+     *
+     * 必须在 initialize() 之前调用。内部会缓存指针，因为 initialize() 会用
+     * 正确的 cacheDir 重建底层 SkinManager，重建后会重新下发缓存的指针。
      */
-    void setResourcePack(IResourcePack* resourcePack) { m_skinManager->setResourcePack(resourcePack); }
+    void setResourcePack(IResourcePack* resourcePack)
+    {
+        m_resourcePack = resourcePack;
+        m_skinManager->setResourcePack(resourcePack);
+    }
 
     /**
      * @brief 注入工作线程池用于异步皮肤加载
      *
-     * 必须在 initialize() 之前调用，线程池由调用方拥有。
+     * 必须在 initialize() 之前调用，线程池由调用方拥有。同样会被缓存，
+     * 在 initialize() 重建底层 SkinManager 后重新下发。
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(::mc::util::ServerWorkerPool* workerPool) { m_skinManager->setWorkerPool(workerPool); }
+    void setWorkerPool(::mc::util::ServerWorkerPool* workerPool)
+    {
+        m_workerPool = workerPool;
+        m_skinManager->setWorkerPool(workerPool);
+    }
 
 private:
     /**
@@ -220,6 +232,10 @@ private:
 
     std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
     std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
+
+    // initialize() 会用正确的 cacheDir 重建 m_skinManager，这里缓存注入的指针以便重建后重新下发
+    IResourcePack* m_resourcePack = nullptr;
+    ::mc::util::ServerWorkerPool* m_workerPool = nullptr;
 
     // 默认皮肤区域（18 种，索引与 DefaultSkinVariant::index 一致）
     std::array<const TextureRegion*, ::mc::skin::DEFAULT_SKIN_COUNT> m_defaultSkinRegions{};
