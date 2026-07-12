@@ -378,6 +378,31 @@ public:
     void forceChunk(ChunkCoord x, ChunkCoord z, bool force);
 
     /**
+     * @brief 添加 LIGHT 票据保活区块（③-2c）
+     *
+     * 主线程调用（ServerWorld::enqueueChunkLoadLight 构造 ChunkLoadLightTask 前）。
+     * 用 TicketTypes::LIGHT + ChunkLoadLevel::Full(33) 保活区块——level<=Border(34)
+     * 使 shouldLoad true→区块不被卸载，覆盖 worker 在途 + processTicketUpdates 生效窗口。
+     * 与 RuntimeLightingProvider 的 5×5 shared_ptr 保活互补（票据保加载级别，shared_ptr 保内存）。
+     * 对齐 forceChunk 风格（registerTicket + processUpdates）。
+     *
+     * @param x 区块 X
+     * @param z 区块 Z
+     */
+    void addLightTicket(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 释放 LIGHT 票据（③-2c）
+     *
+     * 主线程调用（ServerWorld::_drainPendingChunkSends 发送后、_executeChunkLoadLight
+     * fallback 后、任务 onCancel 路径）。releaseTicket 对未持票据的 chunk 容忍（no-op）。
+     *
+     * @param x 区块 X
+     * @param z 区块 Z
+     */
+    void removeLightTicket(ChunkCoord x, ChunkCoord z);
+
+    /**
      * @brief 设置票据系统视距
      *
      * @param distance 新的视距

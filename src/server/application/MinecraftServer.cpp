@@ -68,8 +68,8 @@
 #include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -122,7 +122,6 @@
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
-#include "server/sync/LightSyncManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -1252,17 +1251,11 @@ void MinecraftServer::setupWorldCallbacks()
         //     已直接调用 m_world->onChunkLoaded。
         //   - 生成路径：ServerChunkManager::_drainPendingPostProcess 在 m_chunkLoadedCallback 之前
         //     已直接调用 m_world->onChunkLoaded。
-        //   此回调仅做光照初始化与区块发送，重复调用 onChunkLoaded 会导致实体重复生成。
-        world->chunkManager()->setChunkLoadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
-            // 初始化区块光照
-            if (auto* ls = serverDim->lightSyncManager()) {
-                ls->initializeChunkLighting(x, z);
-            }
-            // 发送区块给追踪玩家
-            if (auto* cs = serverDim->chunkSendManager()) {
-                cs->sendChunkToTrackingPlayers(x, z);
-            }
-        });
+        //   此回调仅入队区块加载光照任务（③-2b 统一异步调度），重复调用 onChunkLoaded 会导致实体重复生成。
+        //   光照由 worker 完成（ChunkLoadLightTask），完成后经发送续延队列在主线程 send——
+        //   保证 serialize 读到已光照 nibble，客户端不收全黑区块。
+        world->chunkManager()->setChunkLoadedCallback(
+            [world](ChunkCoord x, ChunkCoord z) { world->enqueueChunkLoadLight(x, z); });
 
         // 设置区块卸载回调 - 当区块即将卸载时触发
         world->chunkManager()->setChunkUnloadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
@@ -1323,10 +1316,8 @@ void MinecraftServer::setupWorldCallbacks()
                 fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
                 [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
 
-            // 通知光照同步管理器
-            if (auto* ls = serverDim->lightSyncManager()) {
-                ls->markLightChanged(type, pos);
-            }
+            // markLightChanged 已在主线程 tick _drainPendingLightFlushes 中由 ServerWorld 完成
+            // （_syncLightDataToChunk 写 ChunkSection nibble + setDirty），此处只负责广播给客户端。
 
             // 广播光照更新给客户端
             auto* lightManager = serverDim->lightManager();
@@ -1337,13 +1328,13 @@ void MinecraftServer::setupWorldCallbacks()
             std::vector<u8> skyLight;
             std::vector<u8> blockLight;
 
-            // 获取光照数据
-            if (type == LightType::SKY && lightManager->getSkyLightEngine()) {
+            // 获取光照数据（主线程读 visible 侧）
+            if (type == LightType::SKY && lightManager->hasSkyLight()) {
                 auto* data = lightManager->getData(LightType::SKY, pos);
                 if (data) {
                     skyLight = data->toByteArray();
                 }
-            } else if (type == LightType::BLOCK && lightManager->getBlockLightEngine()) {
+            } else if (type == LightType::BLOCK && lightManager->hasBlockLight()) {
                 auto* data = lightManager->getData(LightType::BLOCK, pos);
                 if (data) {
                     blockLight = data->toByteArray();

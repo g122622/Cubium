@@ -28,10 +28,6 @@
 #include <string>
 #include <vector>
 
-namespace mc {
-class WorldLightManager;
-}
-
 namespace mc::server {
 
 class ServerWorld;
@@ -41,19 +37,20 @@ class ServerWorld;
  *
  * ③-1 阶段：ServerLightQueue::drainAndProcess(ServerWorld&) 在主线程 tick 时
  * 对每个待处理区块构造本任务，提交到 ServerWorkerPool 区域互斥池
- * （writeRadius=2，与 LIGHT 生成阶段同池）。worker 线程执行：
+ * （writeRadius=2，与 LIGHT 生成阶段、ChunkLoadLightTask 同池同 writeRadius）。
+ * worker 线程执行：
  *
- * 1. 调 WorldLightManager::checkBlocksWithProvider（持 m_mutex 串行化 nibble 写），
- *    传入任务持有的 RuntimeLightingProvider。propagateBlockChanges/updateVisible
- *    在 worker 完成；updateVisible 内部的 markLightChanged 经 provider 收集到
- *    m_dirtySections 而非触碰主线程独占回调。
+ * 1. 经 WorldLightManager TLS 池获取引擎（acquire/release 配对，无引擎级锁），
+ *    传入任务持有的 RuntimeLightingProvider 调 blocksChangedInChunk。
+ *    propagateBlockChanges/updateVisible 在 worker 完成；updateVisible 内部的
+ *    markLightChanged 经 provider 收集到 m_dirtySections 而非触碰主线程独占回调。
  * 2. 取出 provider 的 dirty section 列表，经 ServerWorld::_enqueueLightFlush
  *    入主线程 flush 队列。主线程下一 tick drain 时调真正的 markLightChanged
  *    （_syncLightDataToChunk + m_onLightChanged 网络包）。
  *
  * 生命周期：m_provider 作为成员，5×5 shared_ptr 保活与任务绑定——worker 执行
- * 期间区块不被释放，任务析构自动释放引用。区域锁 writeRadius=2 防止多个光照
- * 任务并发写重叠区域 nibble（第二层保护，第一层是 m_mutex）。
+ * 期间区块不被释放，任务析构自动释放引用。区域锁 writeRadius=2 串行化重叠 5×5
+ * 区域的 nibble 写（SWMRNibbleArray 单写者语义），故无需引擎级锁。
  */
 class RuntimeLightTask : public util::ITask {
 public:
@@ -63,16 +60,11 @@ public:
      * 主线程构造（drain 入队时）：provider 在此构造并完成 5×5 保活。
      *
      * @param world 服务端世界（_enqueueLightFlush 目标、provider 构造参数）
-     * @param manager 光照管理器（checkBlocksWithProvider 执行实际传播）
      * @param chunkX 中心区块 X
      * @param chunkZ 中心区块 Z
      * @param positions 待处理的方块坐标列表（同区块去重后）
      */
-    RuntimeLightTask(ServerWorld& world,
-        WorldLightManager& manager,
-        ChunkCoord chunkX,
-        ChunkCoord chunkZ,
-        std::vector<BlockPos> positions);
+    RuntimeLightTask(ServerWorld& world, ChunkCoord chunkX, ChunkCoord chunkZ, std::vector<BlockPos> positions);
 
     // === ITask 实现 ===
     bool execute(const std::atomic<bool>& abortSignal) override;
@@ -82,7 +74,6 @@ public:
 
 private:
     ServerWorld* m_world;
-    WorldLightManager* m_manager;
     ChunkCoord m_chunkX;
     ChunkCoord m_chunkZ;
     std::vector<BlockPos> m_positions;

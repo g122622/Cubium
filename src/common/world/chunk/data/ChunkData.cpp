@@ -61,6 +61,81 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
 
 ChunkData::~ChunkData() = default;
 
+// 显式移动构造：m_lightCorrect 为 std::atomic<bool> 不可默认移动，须 load/store；
+// 其余成员逐成员移动。atomic 不参与默认移动构造，故此处显式列出全部成员。
+ChunkData::ChunkData(ChunkData&& other) noexcept
+    : m_x(other.m_x)
+    , m_z(other.m_z)
+    , m_sections(std::move(other.m_sections))
+    , m_sectionPtrs(std::move(other.m_sectionPtrs))
+    , m_heightmaps(std::move(other.m_heightmaps))
+    , m_heightmapInitialized(std::move(other.m_heightmapInitialized))
+    , m_biomes(std::move(other.m_biomes))
+    , m_inhabitedTime(other.m_inhabitedTime)
+    , m_status(other.m_status)
+    , m_fullyGenerated(other.m_fullyGenerated)
+    , m_dirty(other.m_dirty)
+    , m_loaded(other.m_loaded)
+    , m_lightCorrect(other.m_lightCorrect.load())
+    , m_skyNibbles(std::move(other.m_skyNibbles))
+    , m_blockNibbles(std::move(other.m_blockNibbles))
+    , m_skyEmptinessMap(std::move(other.m_skyEmptinessMap))
+    , m_hasSkyEmptinessMap(other.m_hasSkyEmptinessMap)
+    , m_blockEmptinessMap(std::move(other.m_blockEmptinessMap))
+    , m_hasBlockEmptinessMap(other.m_hasBlockEmptinessMap)
+    , m_skyNibblePtrs(std::move(other.m_skyNibblePtrs))
+    , m_blockNibblePtrs(std::move(other.m_blockNibblePtrs))
+    , m_nibblePtrsInitialized(other.m_nibblePtrsInitialized)
+    , m_blockEntities(std::move(other.m_blockEntities))
+    , m_loadedEntities(std::move(other.m_loadedEntities))
+    , m_postProcessingSections(std::move(other.m_postProcessingSections))
+    , m_postProcessingDone(other.m_postProcessingDone)
+    , m_gameEventListenerRegistries(std::move(other.m_gameEventListenerRegistries))
+{
+    other.m_x = 0;
+    other.m_z = 0;
+    other.m_lightCorrect.store(false);
+}
+
+// 显式移动赋值：同上，m_lightCorrect 用 load/store，其余逐成员移动赋值。
+ChunkData& ChunkData::operator=(ChunkData&& other) noexcept
+{
+    if (this != &other) {
+        m_x = other.m_x;
+        m_z = other.m_z;
+        m_sections = std::move(other.m_sections);
+        m_sectionPtrs = std::move(other.m_sectionPtrs);
+        m_heightmaps = std::move(other.m_heightmaps);
+        m_heightmapInitialized = std::move(other.m_heightmapInitialized);
+        m_biomes = std::move(other.m_biomes);
+        m_inhabitedTime = other.m_inhabitedTime;
+        m_status = other.m_status;
+        m_fullyGenerated = other.m_fullyGenerated;
+        m_dirty = other.m_dirty;
+        m_loaded = other.m_loaded;
+        m_lightCorrect.store(other.m_lightCorrect.load());
+        m_skyNibbles = std::move(other.m_skyNibbles);
+        m_blockNibbles = std::move(other.m_blockNibbles);
+        m_skyEmptinessMap = std::move(other.m_skyEmptinessMap);
+        m_hasSkyEmptinessMap = other.m_hasSkyEmptinessMap;
+        m_blockEmptinessMap = std::move(other.m_blockEmptinessMap);
+        m_hasBlockEmptinessMap = other.m_hasBlockEmptinessMap;
+        m_skyNibblePtrs = std::move(other.m_skyNibblePtrs);
+        m_blockNibblePtrs = std::move(other.m_blockNibblePtrs);
+        m_nibblePtrsInitialized = other.m_nibblePtrsInitialized;
+        m_blockEntities = std::move(other.m_blockEntities);
+        m_loadedEntities = std::move(other.m_loadedEntities);
+        m_postProcessingSections = std::move(other.m_postProcessingSections);
+        m_postProcessingDone = other.m_postProcessingDone;
+        m_gameEventListenerRegistries = std::move(other.m_gameEventListenerRegistries);
+
+        other.m_x = 0;
+        other.m_z = 0;
+        other.m_lightCorrect.store(false);
+    }
+    return *this;
+}
+
 void ChunkData::_initHeightmaps()
 {
     // 按枚举顺序为每个槽位设置正确的类型，使 m_heightmaps[type] 直接可用

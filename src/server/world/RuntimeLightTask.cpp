@@ -24,18 +24,16 @@
 
 #include "ServerWorld.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
+#include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include <fmt/format.h>
 
 namespace mc::server {
 
-RuntimeLightTask::RuntimeLightTask(ServerWorld& world,
-    WorldLightManager& manager,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
-    std::vector<BlockPos> positions)
+RuntimeLightTask::RuntimeLightTask(
+    ServerWorld& world, ChunkCoord chunkX, ChunkCoord chunkZ, std::vector<BlockPos> positions)
     : m_world(&world)
-    , m_manager(&manager)
     , m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
     , m_positions(std::move(positions))
@@ -49,9 +47,25 @@ bool RuntimeLightTask::execute(const std::atomic<bool>& abortSignal)
         return false;
     }
 
-    // worker 线程执行传播：持 m_mutex 串行化 nibble 写（SWMRNibbleArray 单写者语义）。
+    // worker 线程执行传播：经 TLS 池获取引擎（无引擎级锁），直接调 blocksChangedInChunk。
+    // 区域锁 writeRadius=2 串行化重叠 5×5 区域的 nibble 写（SWMRNibbleArray 单写者语义）。
     // provider 的 markLightChanged 收集 dirty section 而非触碰主线程回调。
-    m_manager->checkBlocksWithProvider(&m_provider, m_chunkX, m_chunkZ, std::move(m_positions));
+    // 运行时方块变更不改段空状态，changedSections 留空。
+    WorldLightManager* lightManager = m_world->lightManager();
+    MC_ASSERT_RELEASE(lightManager != nullptr);
+
+    const std::vector<bool> changedSections;
+
+    if (lightManager->hasSkyLight()) {
+        auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
+        skyEngine->blocksChangedInChunk(&m_provider, m_chunkX, m_chunkZ, m_positions, changedSections);
+        WorldLightManager::releaseSkyLightEngine(skyEngine);
+    }
+    if (lightManager->hasBlockLight()) {
+        auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
+        blockEngine->blocksChangedInChunk(&m_provider, m_chunkX, m_chunkZ, m_positions, changedSections);
+        WorldLightManager::releaseBlockLightEngine(blockEngine);
+    }
 
     // 取出 worker 收集的 dirty section，入主线程 flush 队列。
     // 主线程下一 tick _drainPendingLightFlushes 时调真正的 markLightChanged。

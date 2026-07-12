@@ -27,7 +27,9 @@
 #undef BYTE_SIZE
 
 #include "ServerWorld.hpp"
+#include "ChunkLoadLightTask.hpp"
 #include "ServerChunkManager.hpp"
+#include "server/sync/ChunkSendManager.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -1098,21 +1100,20 @@ void ServerWorld::tick()
         m_chunkManager->tick();
     }
 
-    // 光照更新 - 三阶段（③-1）：
-    //   1. flush 上一 tick worker 完成的 dirty section（主线程独占 markLightChanged）
-    //   2. 排空运行时方块变更延迟队列（提交新 worker 任务，writeRadius=2 区域互斥）
-    //   3. 处理引擎内部残余队列骨架（performUpdates）
+    // 光照更新 - 统一异步调度（③-2b）：
+    //   1. flush 上一 tick worker 完成的 dirty section（主线程独占 markLightChanged，
+    //      把 visible nibble 同步到 ChunkSection 供 send serialize 读）
+    //   2. send 上一 tick worker 完成光照的区块（serialize 读已 flush nibble + removeLightTicket）
+    //   3. 排空运行时方块变更延迟队列（提交新 worker 任务，writeRadius=2 区域互斥）
+    // 顺序关键：flush→send→drain，保证 serialize 读到已 flush nibble。
+    // 引擎已无 m_mutex——worker 写 updating 经区域锁串行（同 LIGHT 生成阶段、ChunkLoadLightTask）。
     if (m_lightManager) {
         _drainPendingLightFlushes();
+        _drainPendingChunkSends();
 
         if (!m_lightQueue.empty()) {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightQueueDrain");
             m_lightQueue.drainAndProcess(*this);
-        }
-
-        if (m_lightManager->hasLightWork()) {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
-            m_lightManager->tick(32768, true, true);
         }
     }
 
@@ -2265,6 +2266,154 @@ void ServerWorld::_drainPendingLightFlushes()
 
     for (const auto& [type, pos] : pending) {
         markLightChanged(type, pos);
+    }
+}
+
+void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
+{
+    // 主线程调用（chunkLoadedCallback）。先 add LIGHT 票据保活区块（level=Full=33，
+    // shouldLoad true→不卸载），覆盖 worker 在途 + processTicketUpdates 生效窗口。
+    // shared_ptr 5×5 保活由 RuntimeLightingProvider 构造时建立，与票据互补。
+    if (m_chunkManager) {
+        m_chunkManager->addLightTicket(x, z);
+    }
+
+    util::ServerWorkerPool* executor = m_chunkManager ? m_chunkManager->radiusAwareExecutor() : nullptr;
+    if (executor == nullptr) {
+        // 启动早期/测试环境：主线程同步执行（无 worker 池）。
+        RuntimeLightingProvider provider(*this, x, z);
+        _executeChunkLoadLight(provider, x, z);
+        return;
+    }
+
+    auto task = std::make_unique<ChunkLoadLightTask>(*this, x, z);
+    executor->submit(std::move(task), /*callback=*/nullptr, x, z, /*writeRadius=*/2);
+}
+
+void ServerWorld::_enqueueChunkSend(ChunkCoord x, ChunkCoord z)
+{
+    // worker 线程调用（ChunkLoadLightTask::execute/onCancel）：入队 chunk 坐标，
+    // 主线程 _drainPendingChunkSends 时 send + removeLightTicket。
+    std::lock_guard<std::mutex> lock(m_pendingChunkSendsMutex);
+    m_pendingChunkSends.emplace_back(x, z);
+}
+
+bool ServerWorld::hasPendingLightWork() const noexcept
+{
+    // 各队列 empty() 的瞬态无锁近似——仅供外部查询是否需继续 tick，非精确同步。
+    return !m_lightQueue.empty() || !m_pendingLightFlushes.empty() || !m_pendingChunkSends.empty();
+}
+
+void ServerWorld::_drainPendingChunkSends()
+{
+    // 主线程调用（在 _drainPendingLightFlushes 之后）：swap 出队列后逐区块 send +
+    // removeLightTicket。swap 在锁内最小化临界区；send/remove 在锁外执行。
+    std::vector<std::pair<ChunkCoord, ChunkCoord>> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingChunkSendsMutex);
+        pending.swap(m_pendingChunkSends);
+    }
+
+    if (pending.empty()) {
+        return;
+    }
+
+    sync::ChunkSendManager* sendManager = m_chunkManager ? m_chunkManager->chunkSendManager() : nullptr;
+    for (const auto& [x, z] : pending) {
+        // send serialize 读已 flush 的 ChunkSection nibble（flush 先于 send）。
+        // 区块已不在 m_chunks 时 sendChunkToTrackingPlayers 内部跳过（hasChunkInMem 校验）。
+        if (sendManager != nullptr) {
+            sendManager->sendChunkToTrackingPlayers(x, z);
+        }
+        // 释放 enqueueChunkLoadLight 时 add 的 LIGHT 票据。任务取消路径也经此释放。
+        if (m_chunkManager) {
+            m_chunkManager->removeLightTicket(x, z);
+        }
+    }
+}
+
+void ServerWorld::_executeChunkLoadLight(RuntimeLightingProvider& provider, ChunkCoord x, ChunkCoord z)
+{
+    // 主线程 fallback 路径（无 worker 池）：与 ChunkLoadLightTask::execute 同构。
+    // 中心区块取自 provider 保活范围。
+    IChunk* centerIChunk = provider.getChunkForLight(x, z);
+    if (centerIChunk == nullptr) {
+        return;
+    }
+
+    auto* chunkData = static_cast<ChunkData*>(centerIChunk);
+
+    std::vector<bool> emptySections;
+    const ChunkSection* const* sections = chunkData->getSections();
+    constexpr i32 sectionCount = world::CHUNK_SECTIONS;
+    emptySections.resize(static_cast<size_t>(sectionCount), false);
+    for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+        const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+        emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->isEmpty());
+    }
+
+    const bool isLightCorrect = chunkData->isLightCorrect();
+    const ChunkLoadStatus status = chunkData->getStatus();
+    const bool hasLightStatus = (status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded);
+
+    WorldLightManager* lightManager = m_lightManager.get();
+    MC_ASSERT_RELEASE(lightManager != nullptr);
+
+    if (isLightCorrect && hasLightStatus) {
+        if (lightManager->hasSkyLight()) {
+            auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
+            skyEngine->forceHandleEmptySectionChanges(&provider, chunkData, emptySections);
+            skyEngine->StarLightEngine::checkChunkEdges(&provider, x, z);
+            WorldLightManager::releaseSkyLightEngine(skyEngine);
+        }
+        if (lightManager->hasBlockLight()) {
+            auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
+            blockEngine->forceHandleEmptySectionChanges(&provider, chunkData, emptySections);
+            blockEngine->StarLightEngine::checkChunkEdges(&provider, x, z);
+            WorldLightManager::releaseBlockLightEngine(blockEngine);
+        }
+    } else {
+        chunkData->setLightCorrect(false);
+
+        if (lightManager->hasBlockLight()) {
+            auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
+            blockEngine->updateEmptinessMap(x, z, chunkData);
+            for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const SectionPos sectionPos(x, world::sectionIndexToCoord(sectionY), z);
+                blockEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
+            }
+            blockEngine->light(&provider, chunkData, /*needsEdgeChecks=*/true);
+            WorldLightManager::releaseBlockLightEngine(blockEngine);
+        }
+
+        if (lightManager->hasSkyLight()) {
+            auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
+            for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const SectionPos sectionPos(x, world::sectionIndexToCoord(sectionY), z);
+                skyEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
+            }
+            skyEngine->light(&provider, chunkData, /*needsEdgeChecks=*/true);
+            WorldLightManager::releaseSkyLightEngine(skyEngine);
+        }
+
+        chunkData->setLightCorrect(true);
+    }
+
+    // fallback 主线程路径：dirty section 直接调 markLightChanged（无需 flush 队列），
+    // 区块发送直接调（无需续延队列），票据释放对称 add。
+    auto dirtySections = provider.takeDirtySections();
+    for (const auto& [type, pos] : dirtySections) {
+        markLightChanged(type, pos);
+    }
+
+    sync::ChunkSendManager* sendManager = m_chunkManager ? m_chunkManager->chunkSendManager() : nullptr;
+    if (sendManager != nullptr) {
+        sendManager->sendChunkToTrackingPlayers(x, z);
+    }
+    if (m_chunkManager) {
+        m_chunkManager->removeLightTicket(x, z);
     }
 }
 

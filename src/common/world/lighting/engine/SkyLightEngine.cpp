@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -68,7 +69,7 @@ SkyStarLightEngine::SkyStarLightEngine()
     m_decreaseQueue.resize(sectionVolume);
 
     // 初始化高度图
-    m_heightMapBlockChange.fill(INT_MIN);
+    m_heightMapBlockChange.fill(std::numeric_limits<int>::min());
 }
 
 // ============================================================================
@@ -284,7 +285,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
 {
     i32 encodeOffset = m_coordinateOffset;
     i64 propagateDirection =
-        static_cast<i64>(getEverythingButDirection(LightAxisDirection::POSITIVE_Y)); // just don't check upwards
+        static_cast<i64>(_getEverythingButDirection(LightAxisDirection::POSITIVE_Y)); // just don't check upwards
 
     if (getLightLevelExtruded(worldX, startY + 1, worldZ) != game::MAX_LIGHT_LEVEL) {
         return startY;
@@ -461,7 +462,7 @@ i32 SkyStarLightEngine::calculateLightValue(
 
     for (LightAxisDirection dir : ALL_AXIS_DIRECTIONS) {
         i32 dx, dy, dz;
-        getDirectionOffset(dir, dx, dy, dz);
+        _getDirectionOffset(dir, dx, dy, dz);
 
         i32 offX = worldX + dx;
         i32 offY = worldY + dy;
@@ -485,9 +486,9 @@ i32 SkyStarLightEngine::calculateLightValue(
             // we don't read the blockstate because most of the time this is false, so using the faster
             // known transparency lookup results in a net win
             CollisionShape neighbourFaceShape =
-                neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+                neighbourState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(dir)));
             CollisionShape thisFaceShape = (conditionallyOpaqueState != nullptr)
-                ? conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir))
+                ? conditionallyOpaqueState->getFaceOcclusionShape(_getNMSDirection(dir))
                 : CollisionShape(); // 空形状
 
             // 使用 VoxelShape 进行精确的面遮挡检测
@@ -540,10 +541,10 @@ void SkyStarLightEngine::propagateBlockChanges(
     constexpr i32 heightMapSize = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
     for (i32 index = 0; index < heightMapSize; ++index) {
         i32 maxY = m_heightMapBlockChange[static_cast<size_t>(index)];
-        if (maxY == INT_MIN) {
+        if (maxY == std::numeric_limits<int>::min()) {
             continue; // 未变化
         }
-        m_heightMapBlockChange[static_cast<size_t>(index)] = INT_MIN; // 恢复默认
+        m_heightMapBlockChange[static_cast<size_t>(index)] = std::numeric_limits<int>::min(); // 恢复默认
 
         i32 columnX = (index & world::CHUNK_MASK) | (chunkX << world::CHUNK_SHIFT);
         i32 columnZ = (index >> world::CHUNK_SHIFT) | (chunkZ << world::CHUNK_SHIFT);
@@ -553,7 +554,7 @@ void SkyStarLightEngine::propagateBlockChanges(
 
         // 移除下方所有 15 级源
         i32 encodeOffset = m_coordinateOffset;
-        i32 propagateDirection = getEverythingButDirection(LightAxisDirection::POSITIVE_Y);
+        i32 propagateDirection = _getEverythingButDirection(LightAxisDirection::POSITIVE_Y);
 
         if (getLightLevelExtruded(columnX, maxPropagationY, columnZ) == game::MAX_LIGHT_LEVEL) {
             checkNullSection(columnX >> world::CHUNK_SHIFT,
@@ -624,7 +625,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
         // 尝试向邻居传播全亮（空区块段需要将全亮传播到邻居）
         for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
             i32 dx, dy, dz;
-            getDirectionOffset(dir, dx, dy, dz);
+            _getDirectionOffset(dir, dx, dy, dz);
 
             i32 neighbourX = chunkX + dx;
             i32 neighbourZ = chunkZ + dz;
@@ -757,11 +758,6 @@ void SkyStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty
     if (cacheIndex >= 0 && cacheIndex < static_cast<i32>(m_nullPropagationCheckCache.size())) {
         m_nullPropagationCheckCache[static_cast<size_t>(cacheIndex)] = isEmpty;
     }
-}
-
-u8 SkyStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
-{
-    return static_cast<u8>(getLightLevel(x, y, z));
 }
 
 void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)

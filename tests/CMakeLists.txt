@@ -1216,8 +1216,12 @@ add_executable(mc_tests
     lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
     lighting/WorldLightManagerTest.cpp
+    # 主线程读路径 visible 侧回归测试（③-2a）
+    lighting/MainThreadVisibleReadTest.cpp
     # 运行时方块变更光照延迟队列批处理测试
     lighting/ServerLightQueueTest.cpp
+    # 区块加载光照 worker 任务测试（③-2b：搬 worker + send 续延）
+    lighting/ChunkLoadLightTaskTest.cpp
     # 运行时光照 worker 传播 + 主线程 flush 并发测试（③-1）
     lighting/RuntimeLightConcurrencyTest.cpp
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
@@ -1518,6 +1522,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -1681,7 +1686,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalServerConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
@@ -2329,14 +2333,26 @@ mc_copy_runtime_dlls(mc_resource_tests)
 # 鍙戠幇娴嬭瘯
 include(GoogleTest)
 
+# 单个测试用例执行超时（秒）。ctest 跑到该时长未结束即判失败，
+# 便于及早暴露区块生成/光照等长耗时用例的 hang/flake。
+set(MC_TEST_TIMEOUT 300 CACHE STRING "单个 gtest 用例的 ctest 超时秒数")
+
 function(mc_register_gtests targetName)
     if(WIN32)
-        # Windows + clang 当前环境下 applocal.ps1 无法解析 DLL 依赖，
-        # 会导致 gtest_discover_tests 在构建阶段直接失败。
-        # 改为仅注册到 CTest，不在构建时探测测试列表，先保证整体可编译。
-        add_test(NAME ${targetName} COMMAND $<TARGET_FILE:${targetName}>)
+        # Windows + clang + 多配置生成器下，gtest_discover_tests 默认在构建期以 Release/Debug
+        # 等首个配置探测测试列表，但 applocal.ps1 未在该阶段部署 DLL → 探测二进制启动失败。
+        # 改用 DISCOVERY_MODE PRE_TEST：ctest 运行期才执行探测（此时 DLL 已随目标部署到
+        # $<TARGET_FILE_DIR>），并用 DL_PATHS 把该目录加入 DLL 搜索路径。每个用例单独注册到
+        # CTest 并附 TIMEOUT，实现"单测试 5 分钟超时"。
+        gtest_discover_tests(${targetName}
+            DISCOVERY_MODE PRE_TEST
+            DL_PATHS "$<TARGET_FILE_DIR:${targetName}>"
+            PROPERTIES TIMEOUT ${MC_TEST_TIMEOUT}
+        )
     else()
-        gtest_discover_tests(${targetName})
+        gtest_discover_tests(${targetName}
+            PROPERTIES TIMEOUT ${MC_TEST_TIMEOUT}
+        )
     endif()
 endfunction()
 
@@ -2542,6 +2558,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -2565,7 +2582,6 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp

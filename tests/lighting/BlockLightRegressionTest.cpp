@@ -118,9 +118,11 @@ TEST(BlockLightRegressionTest, EmissiveBlockPropagatesToNeighbors)
     chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
-    lightManager.updateSectionStatus(sectionPos, false);
+    auto* engine = mc::WorldLightManager::acquireBlockLightEngine();
+    engine->updateSectionStatus(sectionPos, false);
 
-    lightManager.lightChunk(&chunk, false);
+    engine->light(&provider, &chunk, false);
+    mc::WorldLightManager::releaseBlockLightEngine(engine);
 
     // Starlight nibble 数组按"光照段坐标"索引：nibbles[sectionY - m_minLightSection]。
     // 主世界 MIN_BUILD_HEIGHT=-64 → m_minSection=-4 → m_minLightSection=-5。
@@ -160,9 +162,10 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells)
     chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
-    lightManager.updateSectionStatus(sectionPos, false);
+    auto* engine = mc::WorldLightManager::acquireBlockLightEngine();
+    engine->updateSectionStatus(sectionPos, false);
 
-    lightManager.lightChunk(&chunk, false);
+    engine->light(&provider, &chunk, false);
 
     // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
@@ -173,9 +176,12 @@ TEST(BlockLightRegressionTest, RemovingSourceDarkensNearbyCells)
     mc::u8 before = nibble->getUpdating(9, 70 - 64, 8);
     EXPECT_GT(before, static_cast<mc::u8>(0));
 
-    // 移除光源并使用 checkBlock 进行增量更新
+    // 移除光源并使用 blocksChangedInChunk 进行增量更新（checkBlock 须在 setupCaches 后调，
+    // blocksChangedInChunk 是自带缓存管理的高层入口，对齐旧 WorldLightManager::checkBlock）
     chunk.setBlockState(8, 70, 8, air);
-    lightManager.checkBlock(8, 70, 8);
+    engine->blocksChangedInChunk(
+        &provider, 8 >> mc::world::CHUNK_SHIFT, 8 >> mc::world::CHUNK_SHIFT, {mc::BlockPos(8, 70, 8)}, {});
+    mc::WorldLightManager::releaseBlockLightEngine(engine);
 
     mc::u8 after = nibble->getUpdating(8, 70 - 64, 8);
     mc::u8 neighborAfter = nibble->getUpdating(9, 70 - 64, 8);
@@ -201,9 +207,10 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight)
     chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
-    lightManager.updateSectionStatus(sectionPos, false);
+    auto* engine = mc::WorldLightManager::acquireBlockLightEngine();
+    engine->updateSectionStatus(sectionPos, false);
 
-    lightManager.lightChunk(&chunk, false);
+    engine->light(&provider, &chunk, false);
 
     // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
@@ -214,9 +221,11 @@ TEST(BlockLightRegressionTest, InsertingOpaqueBlockReducesBehindLight)
     const mc::u8 before = nibble->getUpdating(10, 70 - 64, 8);
     EXPECT_GT(before, static_cast<mc::u8>(0));
 
-    // 插入不透明方块并使用 checkBlock 进行增量更新
+    // 插入不透明方块并使用 blocksChangedInChunk 进行增量更新
     chunk.setBlockState(9, 70, 8, stone);
-    lightManager.checkBlock(9, 70, 8);
+    engine->blocksChangedInChunk(
+        &provider, 9 >> mc::world::CHUNK_SHIFT, 8 >> mc::world::CHUNK_SHIFT, {mc::BlockPos(9, 70, 8)}, {});
+    mc::WorldLightManager::releaseBlockLightEngine(engine);
 
     const mc::u8 after = nibble->getUpdating(10, 70 - 64, 8);
     EXPECT_LT(after, before);
@@ -241,9 +250,10 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight)
     chunk.setBlockState(9, 70, 8, stone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
-    lightManager.updateSectionStatus(sectionPos, false);
+    auto* engine = mc::WorldLightManager::acquireBlockLightEngine();
+    engine->updateSectionStatus(sectionPos, false);
 
-    lightManager.lightChunk(&chunk, false);
+    engine->light(&provider, &chunk, false);
 
     // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
@@ -253,9 +263,11 @@ TEST(BlockLightRegressionTest, RemovingOpaqueBlockRestoresBehindLight)
 
     const mc::u8 blocked = nibble->getUpdating(10, 70 - 64, 8);
 
-    // 移除不透明方块并使用 checkBlock 进行增量更新
+    // 移除不透明方块并使用 blocksChangedInChunk 进行增量更新
     chunk.setBlockState(9, 70, 8, air);
-    lightManager.checkBlock(9, 70, 8);
+    engine->blocksChangedInChunk(
+        &provider, 9 >> mc::world::CHUNK_SHIFT, 8 >> mc::world::CHUNK_SHIFT, {mc::BlockPos(9, 70, 8)}, {});
+    mc::WorldLightManager::releaseBlockLightEngine(engine);
 
     const mc::u8 restored = nibble->getUpdating(10, 70 - 64, 8);
     EXPECT_GT(restored, blocked);
@@ -276,9 +288,11 @@ TEST(BlockLightRegressionTest, EmissionIncreaseEventQueuesPropagation)
     chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
-    lightManager.updateSectionStatus(sectionPos, false);
+    auto* engine = mc::WorldLightManager::acquireBlockLightEngine();
+    engine->updateSectionStatus(sectionPos, false);
 
-    lightManager.lightChunk(&chunk, false);
+    engine->light(&provider, &chunk, false);
+    mc::WorldLightManager::releaseBlockLightEngine(engine);
 
     // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();
@@ -305,9 +319,11 @@ TEST(BlockLightRegressionTest, CheckBlockMatchesCheckBlock)
     chunk.setBlockState(8, 70, 8, glowstone);
 
     const mc::SectionPos sectionPos(0, 4, 0);
-    lightManager.updateSectionStatus(sectionPos, false);
+    auto* engine = mc::WorldLightManager::acquireBlockLightEngine();
+    engine->updateSectionStatus(sectionPos, false);
 
-    lightManager.lightChunk(&chunk, false);
+    engine->light(&provider, &chunk, false);
+    mc::WorldLightManager::releaseBlockLightEngine(engine);
 
     // nibble 索引 = sectionY - m_minLightSection(-5) = 4 - (-5) = 9（详见首个用例注释）
     auto* nibbles = chunk.getBlockNibbles();

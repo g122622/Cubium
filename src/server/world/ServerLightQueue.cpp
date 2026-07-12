@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including limitation the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -23,10 +23,13 @@
 
 #include "ServerLightQueue.hpp"
 #include "RuntimeLightTask.hpp"
+#include "RuntimeLightingProvider.hpp"
 #include "ServerWorld.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
+#include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 
 namespace mc::server {
@@ -65,30 +68,6 @@ void ServerLightQueue::queueBlockChange(i32 x, i32 y, i32 z)
     m_chunkTasks[_chunkKey(chunkX, chunkZ)].changedPositionLongs.insert(posLong);
 }
 
-void ServerLightQueue::drainAndProcess(WorldLightManager& manager)
-{
-    if (m_chunkTasks.empty()) {
-        return;
-    }
-
-    // 取出任务表后清空，避免处理过程中嵌套入队导致无限循环
-    std::unordered_map<u64, _ChunkLightTasks> tasks;
-    tasks.swap(m_chunkTasks);
-
-    for (auto& [chunkKey, task] : tasks) {
-        if (task.changedPositionLongs.empty()) {
-            continue;
-        }
-
-        // 从区块键还原区块坐标
-        const ChunkPos chunkPos = ChunkPos::fromId(chunkKey);
-        const i32 chunkX = chunkPos.x;
-        const i32 chunkZ = chunkPos.z;
-
-        manager.checkBlocks(chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
-    }
-}
-
 void ServerLightQueue::drainAndProcess(ServerWorld& world)
 {
     if (m_chunkTasks.empty()) {
@@ -108,27 +87,37 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
         return;
     }
 
-    // executor 未注入（启动早期/测试环境）：fallback 同步路径，保证正确性
-    if (cm == nullptr) {
-        for (auto& [chunkKey, task] : tasks) {
-            if (task.changedPositionLongs.empty()) {
-                continue;
-            }
-            const ChunkPos chunkPos = ChunkPos::fromId(chunkKey);
-            lm->checkBlocks(chunkPos.x, chunkPos.z, _positionsFromLongs(task.changedPositionLongs));
-        }
-        return;
-    }
-
-    util::ServerWorkerPool* executor = cm->radiusAwareExecutor();
+    // executor 未注入（启动早期/测试环境）：fallback 主线程同步经 TLS 引擎传播。
+    // 构造 RuntimeLightingProvider 拿 5×5 keepalive，与 worker 路径同构。
+    util::ServerWorkerPool* executor = (cm != nullptr) ? cm->radiusAwareExecutor() : nullptr;
     if (executor == nullptr) {
-        // worker 池未注入：fallback 同步路径
+        const std::vector<bool> changedSections; // 运行时方块变更不改段空状态
         for (auto& [chunkKey, task] : tasks) {
             if (task.changedPositionLongs.empty()) {
                 continue;
             }
             const ChunkPos chunkPos = ChunkPos::fromId(chunkKey);
-            lm->checkBlocks(chunkPos.x, chunkPos.z, _positionsFromLongs(task.changedPositionLongs));
+            const i32 chunkX = chunkPos.x;
+            const i32 chunkZ = chunkPos.z;
+            const auto positions = _positionsFromLongs(task.changedPositionLongs);
+
+            RuntimeLightingProvider provider(world, chunkX, chunkZ);
+            if (lm->hasSkyLight()) {
+                auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
+                skyEngine->blocksChangedInChunk(&provider, chunkX, chunkZ, positions, changedSections);
+                WorldLightManager::releaseSkyLightEngine(skyEngine);
+            }
+            if (lm->hasBlockLight()) {
+                auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
+                blockEngine->blocksChangedInChunk(&provider, chunkX, chunkZ, positions, changedSections);
+                WorldLightManager::releaseBlockLightEngine(blockEngine);
+            }
+
+            // fallback 主线程路径：dirty section 直接调 markLightChanged（无需 flush 队列）
+            auto dirtySections = provider.takeDirtySections();
+            for (const auto& [type, pos] : dirtySections) {
+                world.markLightChanged(type, pos);
+            }
         }
         return;
     }
@@ -143,8 +132,8 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
         const i32 chunkX = chunkPos.x;
         const i32 chunkZ = chunkPos.z;
 
-        auto taskPtr = std::make_unique<RuntimeLightTask>(
-            world, *lm, chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
+        auto taskPtr =
+            std::make_unique<RuntimeLightTask>(world, chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
         executor->submit(std::move(taskPtr), /*callback=*/nullptr, chunkX, chunkZ, /*writeRadius=*/2);
     }
 }

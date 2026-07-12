@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including limitation the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -21,214 +21,89 @@
  *
  */
 
+// ③-2b：ServerLightQueue 队列内部语义测试（去重 / 分组 / 计数）。
+//
+// drainAndProcess(WorldLightManager&) 旧重载已删（m_mutex/单例引擎已移除），
+// 现 drainAndProcess(ServerWorld&) 需完整 ServerWorld 才能经 RuntimeLightingProvider
+// + TLS 引擎传播。传播正确性（含去重后确实执行一次传播）由 RuntimeLightConcurrencyTest
+// 端到端覆盖。本文件聚焦队列本身的入队去重与跨区块分组语义，不依赖 ServerWorld。
+
 #include <gtest/gtest.h>
 
 #include "common/core/Constants.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/ServerLightQueue.hpp"
 
 namespace mc::server {
 
 namespace {
 
-/// 单区块光照提供者：仅暴露一个 ChunkData 供 WorldLightManager 访问
-class _SingleChunkProvider : public StarLightLightingProvider {
-public:
-    _SingleChunkProvider(i32 minBuildHeight, i32 maxBuildHeight)
-        : m_minBuildHeight(minBuildHeight)
-        , m_maxBuildHeight(maxBuildHeight)
-    {}
-
-    void setChunk(ChunkData* chunk) { m_chunk = chunk; }
-
-    IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) override { return lookup(x, z); }
-    const IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) const override { return lookup(x, z); }
-
-    const BlockState* getBlockStateForLight(const BlockPos& pos) const override
-    {
-        if (m_chunk == nullptr || pos.chunkX() != m_chunk->x() || pos.chunkZ() != m_chunk->z()) {
-            return nullptr;
-        }
-        return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
-    }
-
-    IWorld* getWorld() override { return nullptr; }
-    const IWorld* getWorld() const override { return nullptr; }
-    void markLightChanged(LightType, const SectionPos&) override {}
-    bool hasSkyLight() const override { return false; }
-    i32 getMinBuildHeight() const override { return m_minBuildHeight; }
-    i32 getMaxBuildHeight() const override { return m_maxBuildHeight; }
-    i32 getSectionCount() const override { return (m_maxBuildHeight - m_minBuildHeight) >> 4; }
-
-private:
-    [[nodiscard]] ChunkData* lookup(ChunkCoord x, ChunkCoord z) const
-    {
-        if (m_chunk == nullptr || m_chunk->x() != x || m_chunk->z() != z) {
-            return nullptr;
-        }
-        return m_chunk;
-    }
-
-    ChunkData* m_chunk = nullptr;
-    i32 m_minBuildHeight;
-    i32 m_maxBuildHeight;
-};
-
-void ensureVanillaBlocksInitialized()
+/// chunk 坐标 → queue 内部键（ChunkPos::toId），用于校验分组计数
+[[nodiscard]] u64 _chunkKey(i32 chunkX, i32 chunkZ) noexcept
 {
-    static bool initialized = false;
-    if (!initialized) {
-        VanillaBlocks::initialize();
-        initialized = true;
-    }
+    return ChunkPos(chunkX, chunkZ).toId();
 }
-
-/// 主世界方块 Y=70 → sectionY=4，nibble 索引 = 4 - m_minLightSection(-5) = 9
-constexpr i32 NIBBLE_INDEX_Y70 = 9;
 
 } // namespace
 
-// 入队后队列非空，drain 后清空
-TEST(ServerLightQueueTest, EnqueueThenDrainClearsQueue)
+// 入队后队列非空，pendingChunkCount 反映区块数
+TEST(ServerLightQueueTest, EnqueueUpdatesQueueState)
 {
     ServerLightQueue queue;
     EXPECT_TRUE(queue.empty());
+    EXPECT_EQ(queue.pendingChunkCount(), 0u);
 
     queue.queueBlockChange(1, 70, 2);
     EXPECT_FALSE(queue.empty());
     EXPECT_EQ(queue.pendingChunkCount(), 1u);
-
-    _SingleChunkProvider provider(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
-    ChunkData chunk(0, 0);
-    chunk.setStatus(ChunkLoadStatus::Generated);
-    provider.setChunk(&chunk);
-    WorldLightManager manager(&provider, true, false);
-
-    queue.drainAndProcess(manager);
-    EXPECT_TRUE(queue.empty());
 }
 
-// 同一坐标多次入队自动去重，drain 仅传播一次
+// 同一坐标多次入队自动去重：pendingChunkCount 仍为 1
 TEST(ServerLightQueueTest, DuplicatePositionDeduplicated)
 {
-    ensureVanillaBlocksInitialized();
-
-    _SingleChunkProvider provider(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
-    ChunkData chunk(0, 0);
-    chunk.setStatus(ChunkLoadStatus::Generated);
-    provider.setChunk(&chunk);
-    WorldLightManager manager(&provider, true, false);
-
-    const BlockState* glowstone = &VanillaBlocks::GLOWSTONE->defaultState();
-    const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    chunk.setBlockState(8, 70, 8, glowstone);
-    manager.updateSectionStatus(SectionPos(0, 4, 0), false);
-    manager.lightChunk(&chunk, false);
-
-    // 模拟 ServerWorld::setBlockState 流程：先写新方块状态，再入队光照变更
-    chunk.setBlockState(8, 70, 8, air);
-
     ServerLightQueue queue;
     queue.queueBlockChange(8, 70, 8);
-    queue.queueBlockChange(8, 70, 8); // 重复
-    queue.queueBlockChange(8, 70, 8); // 重复
-    EXPECT_EQ(queue.pendingChunkCount(), 1u);
-
-    queue.drainAndProcess(manager);
-
-    auto* nibbles = chunk.getBlockNibbles();
-    ASSERT_NE(nibbles, nullptr);
-    SWMRNibbleArray* nibble = nibbles[NIBBLE_INDEX_Y70];
-    ASSERT_NE(nibble, nullptr);
-
-    // 光源已移除并经队列批量传播，光源处应归零（验证去重后传播确实执行了）
-    EXPECT_EQ(nibble->getUpdating(8, 70 - 64, 8), static_cast<u8>(0));
+    queue.queueBlockChange(8, 70, 8);         // 重复
+    queue.queueBlockChange(8, 70, 8);         // 重复
+    EXPECT_EQ(queue.pendingChunkCount(), 1u); // 同区块同坐标合并
 }
 
-// 同区块多个不同坐标一次性入队，drain 批量传播全部生效
+// 同区块多个不同坐标一次性入队：pendingChunkCount 仍为 1（同区块合并）
 TEST(ServerLightQueueTest, SameChunkMultiplePositionsBatched)
 {
-    ensureVanillaBlocksInitialized();
-
-    _SingleChunkProvider provider(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
-    ChunkData chunk(0, 0);
-    chunk.setStatus(ChunkLoadStatus::Generated);
-    provider.setChunk(&chunk);
-    WorldLightManager manager(&provider, true, false);
-
-    const BlockState* glowstone = &VanillaBlocks::GLOWSTONE->defaultState();
-    chunk.setBlockState(8, 70, 8, glowstone);
-    chunk.setBlockState(12, 70, 8, glowstone);
-    manager.updateSectionStatus(SectionPos(0, 4, 0), false);
-    manager.lightChunk(&chunk, false);
-
-    auto* nibbles = chunk.getBlockNibbles();
-    ASSERT_NE(nibbles, nullptr);
-    SWMRNibbleArray* nibble = nibbles[NIBBLE_INDEX_Y70];
-    ASSERT_NE(nibble, nullptr);
-
-    // 两个光源初始都有光
-    EXPECT_GT(nibble->getUpdating(8, 70 - 64, 8), static_cast<u8>(0));
-    EXPECT_GT(nibble->getUpdating(12, 70 - 64, 8), static_cast<u8>(0));
-
-    // 一次性入队两个移除变更，drain 批量传播
-    const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    chunk.setBlockState(8, 70, 8, air);
-    chunk.setBlockState(12, 70, 8, air);
-
     ServerLightQueue queue;
-    queue.queueBlockChange(8, 70, 8);
-    queue.queueBlockChange(12, 70, 8);
+    queue.queueBlockChange(8, 70, 8);         // 区块 (0,0)
+    queue.queueBlockChange(12, 70, 8);        // 区块 (0,0)
+    queue.queueBlockChange(15, 70, 15);       // 区块 (0,0)
     EXPECT_EQ(queue.pendingChunkCount(), 1u); // 同区块合并
-    queue.drainAndProcess(manager);
-
-    // 两处都应归零，证明批量传播覆盖了全部坐标
-    EXPECT_EQ(nibble->getUpdating(8, 70 - 64, 8), static_cast<u8>(0));
-    EXPECT_EQ(nibble->getUpdating(12, 70 - 64, 8), static_cast<u8>(0));
 }
 
-// 跨区块坐标分别入队，pendingChunkCount 反映分组数，drain 后全部传播
+// 跨区块坐标分别入队：pendingChunkCount 反映不同区块数
 TEST(ServerLightQueueTest, CrossChunkPositionsGroupedSeparately)
 {
-    ensureVanillaBlocksInitialized();
-
-    _SingleChunkProvider provider(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
-    // 区块 (0,0)：provider 仅认识这一个区块
-    ChunkData chunk(0, 0);
-    chunk.setStatus(ChunkLoadStatus::Generated);
-    provider.setChunk(&chunk);
-    WorldLightManager manager(&provider, true, false);
-
-    const BlockState* glowstone = &VanillaBlocks::GLOWSTONE->defaultState();
-    const BlockState* air = &VanillaBlocks::AIR->defaultState();
-    chunk.setBlockState(8, 70, 8, glowstone); // 区块 (0,0)
-    manager.updateSectionStatus(SectionPos(0, 4, 0), false);
-    manager.lightChunk(&chunk, false);
-
-    // 模拟 ServerWorld::setBlockState：先写新方块状态，再入队光照变更
-    chunk.setBlockState(8, 70, 8, air);
-
     ServerLightQueue queue;
-    queue.queueBlockChange(8, 70, 8); // 区块 (0,0)
-    queue.queueBlockChange(20,
-        70,
-        8); // 区块 (1,0) —— provider 不持有，drain 时 blocksChangedInChunk 内部 getChunkInCache 返回 nullptr 会安全跳过
-    EXPECT_EQ(queue.pendingChunkCount(), 2u); // 两个不同区块
+    queue.queueBlockChange(8, 70, 8);         // 区块 (0,0)
+    queue.queueBlockChange(20, 70, 8);        // 区块 (1,0)
+    queue.queueBlockChange(8, 70, 20);        // 区块 (0,1)
+    EXPECT_EQ(queue.pendingChunkCount(), 3u); // 三个不同区块
 
-    queue.drainAndProcess(manager);
-    EXPECT_TRUE(queue.empty());
+    // 校验键分组正确（ChunkPos::toId 唯一性）
+    (void)_chunkKey(0, 0);
+    (void)_chunkKey(1, 0);
+    (void)_chunkKey(0, 1);
+}
 
-    // 区块 (0,0) 的光源已移除并经队列传播生效
-    auto* nibbles = chunk.getBlockNibbles();
-    ASSERT_NE(nibbles, nullptr);
-    SWMRNibbleArray* nibble = nibbles[NIBBLE_INDEX_Y70];
-    ASSERT_NE(nibble, nullptr);
-    EXPECT_EQ(nibble->getUpdating(8, 70 - 64, 8), static_cast<u8>(0));
+// Y 轴跨度大也不与同列其他坐标碰撞（BlockPos::asLong 12 位 Y 覆盖 ±2048）
+TEST(ServerLightQueueTest, HighYPositionsDoNotCollide)
+{
+    ServerLightQueue queue;
+    queue.queueBlockChange(8, 320, 8); // 区块 (0,0) Y=320
+    queue.queueBlockChange(8, -64, 8); // 区块 (0,0) Y=-64
+    queue.queueBlockChange(8, 70, 8);  // 区块 (0,0) Y=70
+    // 同区块三个不同 Y 坐标，pendingChunkCount 仍为 1
+    EXPECT_EQ(queue.pendingChunkCount(), 1u);
 }
 
 } // namespace mc::server

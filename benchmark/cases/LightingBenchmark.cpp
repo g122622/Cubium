@@ -27,6 +27,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 
 using namespace mc::trace;
@@ -97,8 +98,11 @@ public:
         m_provider = std::make_unique<BenchmarkLightProvider>(m_chunk.get());
         m_lightManager = std::make_unique<WorldLightManager>(m_provider.get(), true, false);
         m_chunk->setBlockState(8, 70, 8, &VanillaBlocks::GLOWSTONE->defaultState());
-        m_lightManager->updateSectionStatus(SectionPos(0, 4, 0), false);
-        m_lightManager->lightChunk(m_chunk.get(), false);
+        // ③-2b：WorldLightManager 写方法已删，经 TLS 方块光引擎执行（无 m_mutex）。
+        auto* engine = WorldLightManager::acquireBlockLightEngine();
+        engine->updateSectionStatus(SectionPos(0, 4, 0), false);
+        engine->light(m_provider.get(), m_chunk.get(), false);
+        WorldLightManager::releaseBlockLightEngine(engine);
         return Result<void>::ok();
     }
 
@@ -108,8 +112,12 @@ public:
         if (m_lightManager == nullptr) {
             return Error(ErrorCode::InvalidState, "lighting benchmark is not initialized");
         }
-        m_lightManager->checkBlock(8, 70, 8);
-        m_lightManager->tick(1024, false, true);
+        // ③-2b：运行时方块变更经 TLS 方块光引擎的 blocksChangedInChunk（自带缓存管理）；
+        // tick 已删（残余队列随 TLS 引擎生命周期消亡）。
+        auto* engine = WorldLightManager::acquireBlockLightEngine();
+        engine->blocksChangedInChunk(
+            m_provider.get(), 8 >> world::CHUNK_SHIFT, 8 >> world::CHUNK_SHIFT, {BlockPos(8, 70, 8)}, {});
+        WorldLightManager::releaseBlockLightEngine(engine);
         return Result<void>::ok();
     }
 

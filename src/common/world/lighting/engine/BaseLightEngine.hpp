@@ -93,7 +93,7 @@ constexpr i32 ALL_DIRECTIONS_BITSET = 0x3F; // 0b111111
 /**
  * @brief 获取方向的偏移量
  */
-inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz) noexcept
+inline constexpr void _getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz) noexcept
 {
     switch (dir) {
         case LightAxisDirection::POSITIVE_X:
@@ -132,7 +132,7 @@ inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& d
 /**
  * @brief 获取方向的 NMS Direction（用于面遮挡查询）
  */
-inline constexpr Direction getNMSDirection(LightAxisDirection dir) noexcept
+inline constexpr Direction _getNMSDirection(LightAxisDirection dir) noexcept
 {
     switch (dir) {
         case LightAxisDirection::POSITIVE_X:
@@ -155,7 +155,7 @@ inline constexpr Direction getNMSDirection(LightAxisDirection dir) noexcept
  * @brief 获取相反方向
  * 偶数 XOR 1 得奇数（负方向），奇数 XOR 1 得偶数（正方向）
  */
-inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir) noexcept
+inline constexpr LightAxisDirection _getOppositeDirection(LightAxisDirection dir) noexcept
 {
     return static_cast<LightAxisDirection>(static_cast<u8>(dir) ^ 1);
 }
@@ -171,7 +171,7 @@ inline constexpr i32 getDirectionBitset(LightAxisDirection dir) noexcept
 /**
  * @brief 获取排除某方向后的位集
  */
-inline constexpr i32 getEverythingButDirection(LightAxisDirection dir) noexcept
+inline constexpr i32 _getEverythingButDirection(LightAxisDirection dir) noexcept
 {
     return ALL_DIRECTIONS_BITSET ^ getDirectionBitset(dir);
 }
@@ -179,9 +179,9 @@ inline constexpr i32 getEverythingButDirection(LightAxisDirection dir) noexcept
 /**
  * @brief 获取排除某方向及其反方向后的位集
  */
-inline constexpr i32 getEverythingButOppositeDirection(LightAxisDirection dir) noexcept
+inline constexpr i32 _getEverythingButOppositeDirection(LightAxisDirection dir) noexcept
 {
-    return ALL_DIRECTIONS_BITSET ^ (getDirectionBitset(dir) | getDirectionBitset(getOppositeDirection(dir)));
+    return ALL_DIRECTIONS_BITSET ^ (getDirectionBitset(dir) | getDirectionBitset(_getOppositeDirection(dir)));
 }
 
 /**
@@ -289,11 +289,6 @@ public:
      * @param isEmpty 是否为空
      */
     virtual void updateSectionStatus(const SectionPos& pos, bool isEmpty);
-
-    /**
-     * @brief 获取指定位置的光照等级
-     */
-    [[nodiscard]] virtual u8 getLightFor(i32 x, i32 y, i32 z) const = 0;
 
     /**
      * @brief 设置光照数据

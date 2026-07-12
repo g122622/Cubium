@@ -226,7 +226,7 @@ i32 BlockStarLightEngine::calculateLightValue(
 
     for (LightAxisDirection dir : ALL_AXIS_DIRECTIONS) {
         i32 dx, dy, dz;
-        getDirectionOffset(dir, dx, dy, dz);
+        _getDirectionOffset(dir, dx, dy, dz);
 
         i32 offX = worldX + dx;
         i32 offY = worldY + dy;
@@ -251,10 +251,10 @@ i32 BlockStarLightEngine::calculateLightValue(
             // 方块可能是条件透明的（光线无法从中传播），需要检测
             // 大多数情况下这是 false，所以使用更快的透明度查找是值得的
             CollisionShape neighbourFace =
-                neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+                neighbourState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(dir)));
             CollisionShape thisFace;
             if (conditionallyOpaqueState != nullptr) {
-                thisFace = conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir));
+                thisFace = conditionallyOpaqueState->getFaceOcclusionShape(_getNMSDirection(dir));
             }
 
             // 使用 Shapes::faceShapeOccludes 进行精确的面遮挡检测
@@ -420,11 +420,6 @@ void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmp
     // 实际的 Nibble 初始化/去初始化在 handleEmptySectionChanges 中处理
     (void)pos;
     (void)isEmpty;
-}
-
-u8 BlockStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
-{
-    return static_cast<u8>(getLightLevel(x, y, z));
 }
 
 void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)

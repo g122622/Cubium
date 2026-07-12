@@ -147,11 +147,6 @@ public:
     void updateSectionStatus(const SectionPos& pos, bool isEmpty) override;
 
     /**
-     * @brief 获取指定位置的光照等级
-     */
-    [[nodiscard]] u8 getLightFor(i32 x, i32 y, i32 z) const override;
-
-    /**
      * @brief 设置光照数据
      */
     void setData(const SectionPos& pos, const NibbleArray& array, bool retain) override;

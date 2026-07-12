@@ -444,6 +444,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
@@ -563,7 +564,6 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
     # 记分板
     ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
     ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp

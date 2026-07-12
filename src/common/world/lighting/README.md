@@ -57,7 +57,7 @@ InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 
 - `common/world/IWorld.hpp` - 使用 `InternalLightUtils::calculateSkyDarkening()` 计算天空减暗
 - `common/world/dimension/Dimension.hpp` - 持有 `WorldLightManager` 实例
-- `server/world/ServerWorld.hpp` - 持有 `WorldLightManager`；运行时方块变更经 `ServerLightQueue` 延迟入队，tick 时 submit `RuntimeLightTask` 到 worker 池异步传播（`checkBlocksWithProvider`），主线程 drain flush 队列调 `markLightChanged`
+- `server/world/ServerWorld.hpp` - 持有 `WorldLightManager`；运行时方块变更经 `ServerLightQueue` 延迟入队，tick 时 submit `RuntimeLightTask` 到 worker 池异步传播（经 TLS 引擎 `blocksChangedInChunk`），主线程 drain flush 队列调 `markLightChanged`
 - `common/world/block/blocks/mob/TurtleEggBlock.cpp` - 使用 `getCelestialAngleMC()` 判断黎明
 - `common/world/block/blocks/redstone/DaylightDetectorBlock.cpp` - 使用天体角度计算日光探测器输出
 - `client/renderer/trident/entity/util/ShadowRenderer.cpp` - 使用天体角度计算阴影
@@ -87,6 +87,19 @@ chunk 上（`IChunk::getSkyNibbles()`/`getBlockNibbles()`），chunk 被移除�
 亮度 15）——天空光对未遮挡列填满。方块光引擎无此初始化路径（方块光仅由发光方块
 自身发射，`BlockStarLightEngine::_getLightEmission()` 始终按方块自身亮度返回，无门控）。
 
+### 主线程读路径（visible 侧）
+
+主线程光照查询（`getLightSubtracted`/`getBlockLight`/`getSkyLight`/`getData`/`getDebugInfo`）
+**不经光照引擎、不持锁**，直接经 provider 取已加载区块的 nibble，读 `SWMRNibbleArray`
+的 **visible 侧**（`getVisible`，atomic acquire）。worker 传播时写 updating 侧经
+`ServerWorkerPool` 区域互斥池（writeRadius=2）串行（单写者），visible 侧由 `updateVisible`
+原子发布，主线程无锁读安全——对齐 Moonrise `StarLightInterface.getSkyLightValue`/`getRawBrightness`。
+
+`getSkyLight`/`getLightSubtracted` 的天空光分支对 null nibble（未光照段）有完整处理：经
+emptiness map 查找最低非空段，该段之上返回 15（未遮挡满亮），否则向上回溯首个非 null
+nibble 取该列天空光。这避免主线程读返回默认值（旧路径经引擎 `m_nibbleCache` 但主线程不调
+`setupCaches` → cache 空 → 读不到真实光照的既有 bug 已修复）。
+
 ### 调试信息
 
 `WorldLightManager::getDebugInfo()` 报告以下信息：
@@ -101,9 +114,19 @@ chunk 上（`IChunk::getSkyNibbles()`/`getBlockNibbles()`），chunk 被移除�
 
 | 方法 | 说明 |
 |------|------|
-| `getDebugInfo(LightType, SectionPos)` | 获取段级调试信息 |
-| `checkBlocks(chunkX, chunkZ, positions)` | 批量重算一个区块内多个方块变更的光照（一次 setupCaches/destroyCaches），供运行时延迟队列 fallback 同步路径调用 |
-| `checkBlocksWithProvider(provider, chunkX, chunkZ, positions)` | 同 `checkBlocks` 但用传入的 worker provider（`RuntimeLightingProvider`），持 `m_mutex` 串行化 nibble 单写者；供 `RuntimeLightTask` 在 worker 线程调用 |
+| `getLightSubtracted(BlockPos, skyDarkening)` | 主线程读：max(sky−skyDarkening, block)，天空光满亮短路返回 15。读 visible 侧不持锁 |
+| `getBlockLight(x, y, z)` | 主线程读方块光 visible 侧；`!m_hasBlockLight` 返回 0，区块未加载/段无数据返回 0 |
+| `getSkyLight(x, y, z)` | 主线程读天空光 visible 侧；`!m_hasSkyLight` 返回 15，null nibble 经 emptiness map 处理 |
+| `getData(LightType, SectionPos)` | 主线程读：返回区块 nibble 指针（visible 侧，`toByteArray` 读 atomic）；不经引擎缓存、不持锁 |
+| `getDebugInfo(LightType, SectionPos)` | 获取段级调试信息（读 visible 侧状态） |
+| `hasBlockLight()` / `hasSkyLight()` | 维度光照配置查询（构造时确定，如主世界两者皆有、下界仅方块光） |
+| `acquireSkyLightEngine()` / `acquireBlockLightEngine()` | 静态：获取当前线程 TLS 引擎实例（惰性构造，无引擎级锁）；供 worker 任务 / LIGHT 生成阶段调用 |
+| `releaseSkyLightEngine()` / `releaseBlockLightEngine()` | 静态：释放 TLS 引擎（no-op，线程退出时 unique_ptr 析构释放）；对齐 Moonrise try/finally 签名 |
+
+> 写方法（`checkBlock`/`lightChunk`/`updateSectionStatus`/`checkChunkEdges`/`updateEmptinessMap`/`blocksChangedInChunk`/`forceHandleEmptySectionChanges`）
+> 已**不在 `WorldLightManager` 上**——管理器只保留主线程无锁读路径 + TLS 引擎池。写操作由调用方
+> 经 `acquire*LightEngine` 取 TLS 引擎后直接调引擎方法（首参传 `StarLightLightingProvider*`），
+> 经 `ServerWorkerPool` 区域互斥池保证 nibble 单写者，无 `m_mutex`。
 
 #### BlockStarLightEngine / SkyStarLightEngine
 
@@ -211,3 +234,14 @@ chunk 上（`IChunk::getSkyNibbles()`/`getBlockNibbles()`），chunk 被移除�
 - `getCelestialAngleMC()` - MC 1.16.5 原版公式，用于游戏机制（如海龟蛋孵化判断黎明）
 
 **坑**：两者返回值在相同 `dayTime` 下不同，使用时需确认场景。
+
+### 16. light() visible 发布顺序
+
+**问题**：`StarLightEngine::light()` 用临时 nibble 数组做点亮输入，结束后 `setNibbles`
+把临时 nibble move 到区块（`ChunkData` 值语义 move，与 Moonrise 引用语义不同）。若
+`updateVisible` 在 `setNibbles` 之前或缓存仍指向已 move 置空的临时对象，则区块 nibble
+永不被发布 visible → 主线程 `getVisible` 读到 Null/0。
+
+**解决**：`setNibbles` 后必须 `setNibblesForChunkInCache(..., getNibblesOnChunk(chunk))`
+重新把引擎缓存指向区块 nibble，再 `updateVisible`。这样 `updateVisible` 作用于区块 nibble，
+`markLightChanged`→`getData`→`toByteArray` 读到的也是同一已发布 visible 数据。
