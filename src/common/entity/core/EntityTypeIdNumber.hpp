@@ -69,6 +69,7 @@ extern EntityTypeId POLAR_BEAR;
 extern EntityTypeId TURTLE;
 extern EntityTypeId BEE;
 extern EntityTypeId STRIDER;
+extern EntityTypeId SNIFFER;
 
 // 马类
 extern EntityTypeId HORSE;

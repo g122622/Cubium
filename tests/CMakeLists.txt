@@ -552,6 +552,8 @@ add_executable(mc_tests
     common/world/block/blocks/functional/BrewingStandBlockTest.cpp
     # DecoratedPotBlock 饰纹陶罐方块测试
     common/world/block/blocks/functional/DecoratedPotBlockTest.cpp
+    # SnifferEggBlock 嗅探兽蛋方块测试（孵化逻辑、嗅探兽生成）
+    common/world/block/blocks/functional/SnifferEggBlockTest.cpp
     # LayeredCauldronBlock 水炼药锅方块测试
     common/world/block/blocks/LayeredCauldronBlockTest.cpp
     common/world/block/blocks/nether/EnderChestBlockTest.cpp

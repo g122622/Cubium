@@ -73,8 +73,13 @@ public:
     /**
      * @brief 设置为幼体
      * @param child 是否为幼体
+     *
+     * @note 声明为 virtual 以允许子类（如 SnifferEntity）覆盖幼年期长度。
+     *       MC 原版通过 Mob.setBaby(int age) 在子类中覆盖，本项目将 setChild 作为
+     *       等价入口。普通动物调用此方法将年龄设置为 BABY_AGE（-24000，20 分钟），
+     *       SnifferEntity 覆盖为 SNIFFER_BABY_AGE_TICKS（-48000，40 分钟）。
      */
-    void setChild(bool child);
+    virtual void setChild(bool child);
 
     /**
      * @brief 成长（增加年龄）

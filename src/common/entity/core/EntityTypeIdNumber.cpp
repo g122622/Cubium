@@ -72,6 +72,7 @@ EntityTypeId POLAR_BEAR = 0;
 EntityTypeId TURTLE = 0;
 EntityTypeId BEE = 0;
 EntityTypeId STRIDER = 0;
+EntityTypeId SNIFFER = 0;
 
 // 马类
 EntityTypeId HORSE = 0;
@@ -260,6 +261,7 @@ void initialize()
     TURTLE = safeGetId(registry, EntityTypes::TURTLE);
     BEE = safeGetId(registry, EntityTypes::BEE);
     STRIDER = safeGetId(registry, EntityTypes::STRIDER);
+    SNIFFER = safeGetId(registry, EntityTypes::SNIFFER);
 
     // 被动生物 - 马类
     HORSE = safeGetId(registry, EntityTypes::HORSE);
@@ -418,6 +420,7 @@ void reset()
     TURTLE = 0;
     BEE = 0;
     STRIDER = 0;
+    SNIFFER = 0;
     HORSE = 0;
     DONKEY = 0;
     MULE = 0;

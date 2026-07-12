@@ -23,7 +23,11 @@
 
 #include "TrailsBlocks.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -33,17 +37,22 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/TrailsBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
+#include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include "item/context/BlockItemUseContext.hpp"
-#include "util/math/random/IRandom.hpp"
-#include "util/property/Properties.hpp"
-#include "world/IWorld.hpp"
-#include "world/block/WaterLoggableHelpers.hpp"
-#include "world/block/registry/TrailsBlocks.hpp"
-#include "world/blockentity/BlockEntity.hpp"
-#include "world/blockentity/interactive/BrushableBlockEntity.hpp"
-#include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
-#include "world/gameevent/GameEvents.hpp"
-#include "world/redstone/RedstoneSystem.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {
@@ -516,15 +525,66 @@ const CollisionShape& SnifferEggBlock::getShape(const BlockState& state) const
 
 void SnifferEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    MC_UNUSED(random);
+    // 对齐 MC SnifferEggBlock.tick：MC 原版通过 ServerLevel.scheduleTick 调用，
+    // 天然只在服务端执行。本项目 randomTick 同样只在 ServerWorld::tickEnvironment 中触发，
+    // 但为防御性编程与测试友好，仍在此显式检查 isClientSide。
+    if (world.isClientSide()) {
+        return;
+    }
 
     i32 hatch = state.get(BlockStateProperties::HATCH_0_2());
     if (hatch < 2) {
-        // 增加孵化进度
-        world.setBlockState(pos, &state.with(BlockStateProperties::HATCH_0_2(), hatch + 1), 3);
+        // 对齐 MC SnifferEggBlock.tick（非孵化完成分支）：
+        // 播放 SNIFFER_EGG_CRACK 音效并增加孵化进度
+        world.playSound(SoundEvents::SNIFFER_EGG_CRACK,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            0.7f,
+            0.9f + random.nextFloat() * 0.2f);
+        world.setBlockState(pos, &state.with(BlockStateProperties::HATCH_0_2(), hatch + 1), 2);
     } else {
-        // 孵化完成 - 生成嗅探兽实体
-        // TODO: 当实体系统完善后实现嗅探兽生成
+        // 孵化完成 - 生成嗅探兽幼体
+        // 对齐 MC SnifferEggBlock.tick（孵化完成分支）：
+        //   1. 播放 SNIFFER_EGG_HATCH 音效
+        //   2. 销毁蛋方块
+        //   3. 创建 Sniffer 实体，setBaby(true)（年龄 -48000，40 分钟）
+        //   4. snapTo(pos.center(), wrapDegrees(random * 360), 0)
+        //   5. addFreshEntity
+        world.playSound(SoundEvents::SNIFFER_EGG_HATCH,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            0.7f,
+            0.9f + random.nextFloat() * 0.2f);
+
+        // 销毁蛋方块（对齐 MC level.destroyBlock(pos, false)）
+        const BlockState* airState = BlockRegistry::instance().airState();
+        if (airState != nullptr) {
+            world.setBlockState(pos, airState, 2);
+        }
+
+        // 创建嗅探兽幼体
+        auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+        if (sniffer) {
+            // 设置为幼体（-48000 tick，40 分钟）
+            // SnifferEntity::setChild 覆盖了 AgeableEntity::setChild，设置正确的嗅探兽幼年期
+            sniffer->setChild(true);
+
+            // 对齐 MC sniffer.snapTo(vec3.x, vec3.y, vec3.z, wrapDegrees(random * 360), 0)
+            // pos.center() = (x+0.5, y+0.5, z+0.5)
+            Vector3 center = pos.center();
+            f32 yaw = math::wrapDegrees(random.nextFloat() * 360.0f);
+            sniffer->setPosition(center.x, center.y, center.z);
+            sniffer->setRotation(yaw, 0.0f);
+
+            // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+            // MC 原版使用 EntitySpawnReason.BREEDING（蛋由繁殖产生），这里使用 Natural
+            // 因为 randomTick 孵化更接近自然生成场景；不影响功能
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, pos);
+            sniffer->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Natural);
+
+            // 生成到世界
+            world.spawnEntity(std::move(sniffer));
+        }
     }
 }
 

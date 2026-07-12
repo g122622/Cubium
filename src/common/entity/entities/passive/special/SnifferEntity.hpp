@@ -99,8 +99,11 @@ public:
 
     /**
      * @brief 获取当前状态
+     *
+     * 内部以 i8 形式同步（对齐 MC EntityDataSerializers.SNIFFER_STATE 的 BYTE 底层实现），
+     * 这里在 API 层将其包装回 State 枚举。
      */
-    [[nodiscard]] State getState() const { return m_dataManager.get(DATA_STATE_PARAM); }
+    [[nodiscard]] State getState() const { return static_cast<State>(m_dataManager.get(DATA_STATE_PARAM)); }
 
     /**
      * @brief 设置当前状态
@@ -108,7 +111,7 @@ public:
      * 对齐 MC Sniffer.setState：仅更新同步数据，不触发声音/动画。
      * 若需播放对应声音（如 SNIFFER_HAPPY、SNIFFER_SNIFFING），应使用 transitionTo()。
      */
-    void setState(State state) { m_dataManager.set(DATA_STATE_PARAM, state); }
+    void setState(State state) { m_dataManager.set(DATA_STATE_PARAM, static_cast<i8>(state)); }
 
     /**
      * @brief 状态转换（带声音效果）
@@ -183,6 +186,28 @@ public:
     [[nodiscard]] f32 getBaseWidth() const override { return 1.9f; }
     [[nodiscard]] f32 getBaseHeight() const override { return 1.75f; }
 
+    // ========== 幼体设置 ==========
+
+    /**
+     * @brief 设置幼体状态
+     *
+     * 对齐 MC Sniffer.setBaby：嗅探兽幼年期为 48000 tick（40 分钟），
+     * 是普通动物（24000 tick / 20 分钟）的两倍，因此需覆盖 AgeableEntity::setChild
+     * 来设置正确的幼年期长度。
+     *
+     * @param baby 是否为幼体
+     */
+    void setChild(bool baby) override;
+
+    /**
+     * @brief 嗅探兽幼年期 tick 数（对齐 MC Sniffer.SNIFFER_BABY_AGE_TICKS = 48000，40 分钟）
+     *
+     * 嗅探兽幼年期是普通动物（AgeableEntity::BABY_AGE = -24000）的两倍，
+     * SnifferEggBlock::randomTick 孵化幼体时需通过 setChild(true) 触发本类覆盖，
+     * 以设置 -48000 的年龄值。
+     */
+    static constexpr i32 SNIFFER_BABY_AGE_TICKS = 48000;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -207,13 +232,12 @@ protected:
 private:
     // ========== 数据同步参数 ==========
     /// 对齐 MC Sniffer.DATA_STATE（SNIFFER_STATE 序列化器）
-    static entity::DataParameter<State> DATA_STATE_PARAM;
+    /// @note 项目 DataParameter 仅支持基础类型，State 以 i8（BYTE 序列化器）形式同步，
+    ///       getState()/setState() 负责 State↔i8 的转换。
+    static entity::DataParameter<i8> DATA_STATE_PARAM;
     /// 对齐 MC Sniffer.DATA_DROP_SEED_AT_TICK（INT 序列化器）
     /// @note 用于挖掘完成后掉落种子的时序控制，当前未使用，保留以兼容原版 NBT。
     static entity::DataParameter<i32> DATA_DROP_SEED_AT_TICK_PARAM;
-
-    /// 嗅探兽幼年期 tick 数（对齐 MC Sniffer.SNIFFER_BABY_AGE_TICKS = 48000，40 分钟）
-    static constexpr i32 SNIFFER_BABY_AGE_TICKS = 48000;
 
     /// 状态机最小持续时间（用于 Searching 状态播放音效，对齐 MC Sniffer.tick 中的 playSearchingSound）
     /// @note 当前仅用于 tick() 中 Searching 状态的客户端音效触发，未实际使用。

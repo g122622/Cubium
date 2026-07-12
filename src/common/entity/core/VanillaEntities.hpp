@@ -96,6 +96,7 @@
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
+#include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/entity/entities/passive/special/StriderEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
@@ -309,6 +310,18 @@ private:
         registry.registerType(EntityTypes::STRIDER,
             EntityType::Builder(&StriderEntity::create, EntityClassification::Creature)
                 .size(0.9f, 1.8f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 嗅探兽
+        // MC 1.21.11 Sniffer.getDefaultDimensions(): 宽 1.9f, 高 1.75f
+        // trackingRange: 10 (默认), updateInterval: 3 (默认)
+        // 可通过嗅探兽蛋孵化或繁殖（繁殖掉落蛋物品）获得
+        registry.registerType(EntityTypes::SNIFFER,
+            EntityType::Builder(&SnifferEntity::create, EntityClassification::Creature)
+                .size(1.9f, 1.75f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)
