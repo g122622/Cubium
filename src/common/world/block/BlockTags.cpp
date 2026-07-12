@@ -827,6 +827,15 @@ BlockTag& BlockTags::SNIFFER_DIGGABLE_BLOCK()
     return *tag;
 }
 
+BlockTag& BlockTags::SNIFFER_EGG_HATCH_BOOST()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "sniffer_egg_hatch_boost"));
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 1.21 Tricky Trials
 // ============================================================================
@@ -2532,6 +2541,11 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "mud"),
         ResourceLocation("minecraft", "muddy_mangrove_roots")});
     tags[snifferDiggableBlock->getId()] = std::move(snifferDiggableBlock);
+
+    // 嗅探兽蛋孵化加速方块标签（蛋下方为此标签方块时孵化时间 24000→12000 tick）
+    auto snifferEggHatchBoost = std::make_unique<BlockTag>(ResourceLocation("minecraft", "sniffer_egg_hatch_boost"));
+    snifferEggHatchBoost->addAll({ResourceLocation("minecraft", "moss_block")});
+    tags[snifferEggHatchBoost->getId()] = std::move(snifferEggHatchBoost);
 
     // ============================================================================
     // 1.21 Tricky Trials - 新标签

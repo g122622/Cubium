@@ -450,6 +450,9 @@ public:
     /// 嗅探兽可挖掘方块标签
     static BlockTag& SNIFFER_DIGGABLE_BLOCK();
 
+    /// 嗅探兽蛋孵化加速方块标签（下方为此标签方块时孵化时间减半）
+    static BlockTag& SNIFFER_EGG_HATCH_BOOST();
+
     // ========== 1.21 棘巧试炼 标签 ==========
 
     /// 不可被特性替换方块标签（基岩、刷怪笼、箱子等）

@@ -98,7 +98,7 @@
 │   │   ├── onBlockActivated: 物品插入后通过RedstoneSystem通知比较器更新
 │   │   └── 摇晃动画(Positive=放入/Negative=空手)触发
 │   ├── BrushableBlock(FallingBlock子类，构造接收 brushSound/brushCompletedSound 音效绑定)
-│   └── SnifferEggBlock(randomTick孵化)
+│   └── SnifferEggBlock(onBlockAdded+scheduleTick孵化，hatchBoost加速)
 ├── CandleCakeBlock(→ AbstractCandleBlock)
 │   ├── 关联蜡烛方块（m_candleBlock，食用蛋糕后放置对应蜡烛）
 │   ├── LIT 属性（仅点燃状态，无 CANDLES/BUITES）
@@ -206,24 +206,34 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
         / cpp` 包含4个方块类：
     - `ChiseledBookshelfBlock` - 雕纹书架 - `DecoratedPotBlock` - 饰纹陶罐（实现 IWaterLoggable）
     - `BrushableBlock` - 可刷方块（继承 FallingBlock，构造接收 `brushSound`/`brushCompletedSound` 音效绑定，通过 `getBrushSound()`/`getBrushCompletedSound()` 暴露给 `BrushItem::onUseTick`） - `SnifferEggBlock` -
-    嗅探兽蛋（randomTick 孵化）
+    嗅探兽蛋（onBlockAdded + scheduleTick 孵化，hatchBoost 加速）
 
     **BrushableBlock 音效绑定与方块实体**：可疑沙在 `registerTrailsBlocks()` 中绑定 `SoundEvents::BRUSH_SAND`/`BRUSH_SAND_COMPLETED`，可疑沙砾绑定 `SoundEvents::BRUSH_GRAVEL`/`BRUSH_GRAVEL_COMPLETED`。`BrushItem::onUseTick` 命中 BrushableBlock 时通过 `dynamic_cast` 获取音效，命中其他方块时回退到 `BRUSH_GENERIC`。状态属性 `DUSTED(0-3)` 记录刷扫进度，由 `BrushableBlockEntity` 驱动（详见 `world/blockentity/interactive/README.md` 第 #18 条）。
 
     **BrushableBlock 构造参数 `turnsInto`**：构造时传入刷扫完成后转换的目标方块（可疑沙→`VanillaBlocks::SAND`，可疑沙砾→`VanillaBlocks::GRAVEL`），通过 `getTurnsInto()` 暴露给 `BrushableBlockEntity::brushingCompleted()` 用于方块替换。`tick()` 重写先调用 `BrushableBlockEntity::checkReset()` 处理刷扫计数重置，再委托 `FallingBlock::tick()` 执行下落检测。
 
-    **SnifferEggBlock 孵化逻辑**：`randomTick` 实现 MC 1.21.11 `SnifferEggBlock.tick` 的完整孵化流程：
+    **SnifferEggBlock 孵化逻辑**：实现 MC 1.21.11 `SnifferEggBlock` 的完整孵化流程，采用 `onBlockAdded` + `scheduleTick` 调度（非 `randomTick`）：
     - **状态属性**：`HATCH_0_2`（0/1/2 三级孵化进度），默认 0
-    - **hatch < 2 分支**：播放 `SNIFFER_EGG_CRACK` 音效（音量 0.7，音高 0.9 + random*0.2），`HATCH` 等级 +1
-    - **hatch = 2 分支（孵化完成）**：
-      1. 播放 `SNIFFER_EGG_HATCH` 音效
-      2. 销毁蛋方块（替换为 AIR）
-      3. 创建 `SnifferEntity`，调用 `setChild(true)` 设置幼年期 -48000 tick（40 分钟）
-      4. `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` 对齐 MC `snapTo`
-      5. `finalizeSpawn(world, difficultyInstance, SpawnReason::Natural)` 进行基于难度的初始化
-      6. `world.spawnEntity(std::move(sniffer))` 生成到世界
-    - **客户端守卫**：方法入口 `if (world.isClientSide()) return;`，仅服务端执行（MC 原版通过 `ServerLevel.scheduleTick` 天然只在服务端调用，本项目 `randomTick` 由 `ServerWorld::tickEnvironment` 触发，但仍显式检查以防御性编程与测试友好）
-    - **孵化加速**（TODO）：MC 原版 `hatchBoost` 检测下方方块是否在 `BlockTags.SNIFFER_EGG_HATCH_BOOST` 标签（如苔藓），加速孵化时间（24000→12000 tick）。当前项目未实现 `onPlace` 调度 + `scheduleTick` 机制，仅依赖 `randomTick` 随机孵化，加速逻辑待后续实现。
+    - **放置调度**（`onBlockAdded`）：
+      1. 客户端守卫：`if (world.isClientSide()) return;`
+      2. 检测下方方块是否在 `BlockTags::SNIFFER_EGG_HATCH_BOOST` 标签中（`hatchBoost(world, pos)`）
+      3. 加速时广播 `WorldEvents::EGG_CRACK (3009)` 粒子事件
+      4. 孵化总时长：加速 12000 tick，常规 24000 tick；分三阶段，每段 `i/3 + [0, 300)` tick
+      5. 发出 `GameEvents::BLOCK_PLACE` 游戏事件（通知附近幽匿感测体）
+      6. `tickManager().scheduleBlockTick(pos, *this, delay, TickPriority::Normal)` 调度首个孵化 tick
+    - **tick 回调**（计划刻驱动）：
+      - **hatch < 2 分支**：播放 `SNIFFER_EGG_CRACK` 音效（音量 0.7，音高 0.9 + random*0.2），`HATCH` 等级 +1，重新查询 `hatchBoost` 并调度下一阶段 tick
+      - **hatch = 2 分支（孵化完成）**：
+        1. 播放 `SNIFFER_EGG_HATCH` 音效
+        2. 销毁蛋方块（替换为 AIR）
+        3. 创建 `SnifferEntity`，调用 `setChild(true)` 设置幼年期 -48000 tick（40 分钟）
+        4. `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` 对齐 MC `snapTo`
+        5. `finalizeSpawn(world, difficultyInstance, SpawnReason::Natural)` 进行基于难度的初始化
+        6. `world.spawnEntity(std::move(sniffer))` 生成到世界
+    - **客户端守卫**：`onBlockAdded` 与 `tick` 方法入口均显式 `if (world.isClientSide()) return;`，仅服务端执行
+    - **ticksRandomly**：返回 false，不依赖 `randomTick` 随机孵化
+    - **孵化加速**（`hatchBoost`）：检测下方方块是否在 `BlockTags::SNIFFER_EGG_HATCH_BOOST` 标签中（当前包含 `minecraft:moss_block`）。加速时孵化总时长 24000→12000 tick，并在放置时广播 `EGG_CRACK` 粒子事件
+    - **调度差异说明**：MC 原版通过 `LevelChunk.setBlockState` 在每次 `setBlock` 时调用 `onPlace`，因此 HATCH 等级变化会重新触发 `onPlace` 自动调度下一阶段 tick。本项目 `ServerWorld::setBlockState` 仅在方块类型变化时触发 `onBlockAdded`，因此 `tick` 回调中需显式重新调度下一阶段 tick 以对齐 MC 的三阶段调度时序
 
     ## #6. LecternBlock 红石脉冲机制
 

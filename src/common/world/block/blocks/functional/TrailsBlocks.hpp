@@ -279,6 +279,14 @@ private:
  *
  * 可孵化出嗅探兽生物的蛋方块。
  * 状态属性：HATCH (0-2)
+ *
+ * 孵化机制（对齐 MC 1.21.11 SnifferEggBlock）：
+ * - 放置时（onBlockAdded）通过 scheduleTick 调度孵化 tick。
+ * - 调度延迟：常规 24000/3 + [0, 300) tick；加速 12000/3 + [0, 300) tick。
+ * - 加速条件：下方方块在 BlockTags::SNIFFER_EGG_HATCH_BOOST 标签中（如苔藓块）。
+ * - tick 回调推进 HATCH 等级：0→1→2，到 2 时孵化完成生成嗅探兽幼体。
+ * - 加速放置时广播 WorldEvents::EGG_CRACK (3009) 粒子事件。
+ * - 不再依赖 randomTick，因此 ticksRandomly() 返回 false。
  */
 class SnifferEggBlock : public Block {
 public:
@@ -297,11 +305,30 @@ public:
     }
 
     /**
-     * @brief 随机Tick - 孵化进度
+     * @brief 方块放置时调度孵化 tick
+     *
+     * 检测下方方块是否在 SNIFFER_EGG_HATCH_BOOST 标签中，决定孵化总时长
+     * （12000 或 24000 tick），分三阶段调度（i / 3 + [0, 300) tick）。
+     * 加速时广播 EGG_CRACK 粒子事件，并发出 BLOCK_PLACE 游戏事件。
      */
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    /**
+     * @brief 计划刻回调 - 推进孵化进度
+     *
+     * HATCH < 2：播放 SNIFFER_EGG_CRACK 音效并 +1 等级。
+     * HATCH = 2：播放 SNIFFER_EGG_HATCH 音效，销毁蛋方块，生成嗅探兽幼体。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 检查下方方块是否为孵化加速方块
+     *
+     * @param world 方块查询接口
+     * @param pos 蛋方块位置
+     * @return 下方方块是否在 SNIFFER_EGG_HATCH_BOOST 标签中
+     */
+    [[nodiscard]] static bool hatchBoost(IWorld& world, const BlockPos& pos);
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
