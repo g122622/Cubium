@@ -246,6 +246,16 @@ void BreezeEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
+std::optional<ResourceLocation> BreezeEntity::getAmbientSound() const
+{
+    // 对齐原版 Breeze.getAmbientSound：在地面播放 IDLE_GROUND，空中播放 IDLE_AIR。
+    // sounds.json 中无 entity.breeze.ambient，仅有 idle_ground/idle_air。
+    if (onGround()) {
+        return SoundEvents::ENTITY_BREEZE_IDLE_GROUND;
+    }
+    return SoundEvents::ENTITY_BREEZE_IDLE_AIR;
+}
+
 bool BreezeEntity::canAttackType(entity::EntityTypeId typeId) const
 {
     // Breeze.canAttackType()：仅允许攻击玩家和铁傀儡

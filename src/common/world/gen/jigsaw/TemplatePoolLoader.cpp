@@ -222,7 +222,11 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
         }
     }
 
-    if (pool->isEmpty()) {
+    // minecraft:empty 是原版 Jigsaw 终止符池，其 JSON 定义为 "elements": []，
+    // 是合法的空元素列表（getRandomPiece 返回 nullptr、getShuffledPieces 返回空，
+    // 组装器据此走 fallback 链）。其余池仍要求至少一个有效元素。
+    const bool isEmptyTerminator = (name.namespace_() == "minecraft" && name.path() == "empty");
+    if (pool->isEmpty() && !isEmptyTerminator) {
         return Error(ErrorCode::InvalidData, "Template pool has no valid elements");
     }
 

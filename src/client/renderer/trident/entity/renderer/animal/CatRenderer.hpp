@@ -58,6 +58,19 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::CatEntity& entity);
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::CatEntity& entity) const;
 
+    // ========== GPU 管线支持 ==========
+
+    /**
+     * @brief 猫支持动画
+     *
+     * 重写返回 true，使 EntityRendererManager 在 renderWithPipeline 中进入
+     * Path B（ModelFactory + AnimatedMeshCache）生成主模型网格，消除“No mesh path”告警。
+     * 猫主模型的动画设置（setCatAnimState/setSitting/setLivingAnimations）由
+     * _createModelForEntity 的 cat 分支统一处理。
+     * 层渲染（颈圈等）暂未实现，保持 supportsLayers() 为基类默认 false。
+     */
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
+
 private:
     model::animal::CatModel m_model;
     model::animal::CatModel m_modelBaby;

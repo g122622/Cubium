@@ -106,6 +106,14 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+
+    /**
+     * @brief 获取环境音效
+     *
+     * 巨人无环境音，对齐原版 Giant（不 override getAmbientSound → Mob 默认 null），
+     * 避免默认拼接出不存在的 entity.giant.ambient。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 };
 
 } // namespace mc

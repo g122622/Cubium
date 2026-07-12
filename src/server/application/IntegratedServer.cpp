@@ -51,7 +51,10 @@
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
+#include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
+#include "common/world/storage/request/WorldRequests.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/core/TimeManager.hpp"
@@ -97,8 +100,20 @@ IntegratedServer::~IntegratedServer()
 
 Result<void> IntegratedServer::initialize()
 {
-    IntegratedServerParams params;
-    params.allowCommands = false;
+    IntegratedServerParams params{
+        .worldName = defaults::integratedServer::worldName,
+        .gameDirectoryRoot = "",
+        .displayName = "",
+        .seed = defaults::integratedServer::seed,
+        .defaultGameMode = GameMode::Survival,
+        .viewDistance = defaults::integratedServer::viewDistance,
+        .tickRate = defaults::integratedServer::tickRate,
+        .worldType = WorldType::Default,
+        .difficulty = Difficulty::Normal,
+        .hardcore = false,
+        .allowCommands = false,
+        .isNewWorld = false,
+    };
     return initialize(params);
 }
 
@@ -157,6 +172,31 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     auto opsResult = m_opListManager->load("ops.json");
     if (opsResult.failed()) {
         spdlog::error("No ops.json found or failed to load: {}", opsResult.error().message());
+    }
+
+    // 新世界预写初始 level.dat：quick-play 与创建世界界面两条新世界路径不经过
+    // WorldListService::createWorld，需在此补写，否则 loadLevelData 读不到 level.dat
+    // 报错，且 updateRuntimeData 保存路径也依赖已存在的 level.dat 导致运行时数据无法持久化。
+    if (m_params.isNewWorld) {
+        // 复用 WorldStoragePaths::worldDir() 计算路径，与 WorldListService/GlobalStorageManager 一致
+        world::storage::WorldStoragePaths storagePaths =
+            world::storage::WorldStoragePaths::fromGameDirectory(m_gameDirectory);
+        std::filesystem::path worldDir = storagePaths.worldDir(m_params.worldName);
+        if (!std::filesystem::exists(worldDir / "level.dat")) {
+            world::storage::CreateWorldRequest request(m_params.displayName,
+                m_params.worldName,
+                static_cast<u64>(m_params.seed),
+                m_params.worldType,
+                m_params.defaultGameMode,
+                m_params.difficulty,
+                m_params.hardcore,
+                m_params.allowCommands,
+                m_params.viewDistance);
+            auto initResult = world::storage::LevelDatCodec::writeInitial(worldDir, request);
+            if (initResult.failed()) {
+                spdlog::warn("Failed to write initial level.dat: {}", initResult.error().message());
+            }
+        }
     }
 
     auto storageInitResult = initializeSharedStorage(m_gameDirectory, params.worldName);

@@ -65,6 +65,18 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LlamaEntity& entity);
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LlamaEntity& entity) const;
 
+    // ========== GPU 管线支持 ==========
+
+    /**
+     * @brief 羊驼支持动画
+     *
+     * 重写返回 true，使 EntityRendererManager 在 renderWithPipeline 中进入
+     * Path B（ModelFactory + AnimatedMeshCache）生成主模型网格，消除“No mesh path”告警。
+     * 羊驼主模型的动画设置由 _createModelForEntity 的 llama 分支统一处理。
+     * 层渲染（背上的地毯等）暂未实现，保持 supportsLayers() 为基类默认 false。
+     */
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
+
 private:
     model::animal::LlamaModel m_model;
     model::animal::LlamaModel m_modelBaby;

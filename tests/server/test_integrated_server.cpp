@@ -76,14 +76,23 @@ protected:
         }
     }
 
-    // 构造一份指向临时目录的默认 IntegratedServerParams
+    // 构造一份指向临时目录的非新世界配置（既有世界，不写 level.dat）
     IntegratedServerParams makeConfig() const
     {
-        IntegratedServerParams config;
-        config.worldName = m_worldName;
-        config.gameDirectoryRoot = m_gameRoot.string();
-        config.allowCommands = false;
-        return config;
+        return IntegratedServerParams{
+            .worldName = m_worldName,
+            .gameDirectoryRoot = m_gameRoot.string(),
+            .displayName = m_worldName,
+            .seed = 0,
+            .defaultGameMode = GameMode::Survival,
+            .viewDistance = 6,
+            .tickRate = 20,
+            .worldType = WorldType::Default,
+            .difficulty = Difficulty::Normal,
+            .hardcore = false,
+            .allowCommands = false,
+            .isNewWorld = false,
+        };
     }
 };
 

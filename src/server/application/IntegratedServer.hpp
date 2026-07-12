@@ -46,14 +46,19 @@ namespace mc::server {
  * 运行时配置通过 ServerSettings 管理。
  */
 struct IntegratedServerParams {
-    std::string worldName = defaults::integratedServer::worldName;
+    std::string worldName;
     std::string gameDirectoryRoot;
-    i64 seed = defaults::integratedServer::seed;
-    GameMode defaultGameMode = GameMode::Survival;
-    i32 viewDistance = defaults::integratedServer::viewDistance;
-    i32 tickRate = defaults::integratedServer::tickRate;
-    WorldType worldType = WorldType::Default;
+    std::string displayName;
+    i64 seed;
+    GameMode defaultGameMode;
+    i32 viewDistance;
+    i32 tickRate;
+    WorldType worldType;
+    Difficulty difficulty;
+    bool hardcore;
     bool allowCommands; ///< 单机作弊开关，对应原版 WorldData.isAllowCommands()
+    /// 是否为新创建的世界（首次打开存档前需写入初始 level.dat）
+    bool isNewWorld;
 };
 
 /**

@@ -424,6 +424,13 @@ void BeeEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
+std::optional<ResourceLocation> BeeEntity::getAmbientSound() const
+{
+    // 蜜蜂无环境音，对齐原版 Bee.getAmbientSound 返回 null。
+    // sounds.json 中无 entity.bee.ambient，飞行音由客户端循环音效实例处理。
+    return std::nullopt;
+}
+
 // ============================================================================
 // 蜂巢验证与交互
 // ============================================================================

@@ -28,6 +28,7 @@
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
+#include "common/sound/SoundEvents.hpp"
 
 namespace mc {
 
@@ -36,6 +37,13 @@ CaveSpiderEntity::CaveSpiderEntity(EntityId id)
 {
     // 注册属性
     registerAttributes();
+}
+
+std::optional<ResourceLocation> CaveSpiderEntity::getAmbientSound() const
+{
+    // 洞穴蜘蛛复用普通蜘蛛的环境音，对齐原版 CaveSpider（继承 Spider.getAmbientSound 返回 SPIDER_AMBIENT）。
+    // sounds.json 中无 entity.cave_spider.*（洞穴蜘蛛共享 spider.* 音效），默认拼接会生成不存在的 cave_spider.ambient。
+    return SoundEvents::ENTITY_SPIDER_AMBIENT;
 }
 
 std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/)

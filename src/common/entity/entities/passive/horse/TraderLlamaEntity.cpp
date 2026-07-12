@@ -41,6 +41,7 @@
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -52,6 +53,14 @@ namespace mc {
 TraderLlamaEntity::TraderLlamaEntity(EntityId id)
     : LlamaEntity(id)
 {}
+
+std::optional<ResourceLocation> TraderLlamaEntity::getAmbientSound() const
+{
+    // 商队羊驼复用普通羊驼的环境音，对齐原版 TraderLlama（继承 Llama.getAmbientSound 返回 LLAMA_AMBIENT）。
+    // sounds.json 中无 entity.trader_llama.*（商队羊驼共享 llama.* 音效），默认拼接会生成不存在的
+    // trader_llama.ambient。
+    return SoundEvents::ENTITY_LLAMA_AMBIENT;
+}
 
 std::unique_ptr<Entity> TraderLlamaEntity::create(IWorld* /*world*/)
 {

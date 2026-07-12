@@ -113,6 +113,8 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"husk", {"entity/zombie/husk"}},
     {"drowned", {"entity/zombie/drowned"}},
     {"stray", {"entity/skeleton/stray"}},
+    // 沼骸骨（bogged）与普通骷髅同族，纹理位于 entity/skeleton/ 下而非 entity/bogged/
+    {"bogged", {"entity/skeleton/bogged"}},
     {"wither_skeleton", {"entity/skeleton/wither_skeleton"}},
     {"phantom", {"entity/phantom"}},
     {"giant", {"entity/zombie/zombie"}},

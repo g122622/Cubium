@@ -171,13 +171,20 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     // 启动内置服务端
     m_integratedServer = std::make_unique<server::IntegratedServer>();
-    server::IntegratedServerParams serverParams;
-    serverParams.gameDirectoryRoot = m_gameDirectory.root().string();
-    serverParams.seed = config.seed;
-    serverParams.viewDistance = config.viewDistance;
-    serverParams.defaultGameMode = config.defaultGameMode;
-    serverParams.worldName = config.levelId;
-    serverParams.allowCommands = config.allowCommands;
+    server::IntegratedServerParams serverParams{
+        .worldName = config.levelId,
+        .gameDirectoryRoot = m_gameDirectory.root().string(),
+        .displayName = config.displayName,
+        .seed = config.seed,
+        .defaultGameMode = config.defaultGameMode,
+        .viewDistance = config.viewDistance,
+        .tickRate = defaults::integratedServer::tickRate,
+        .worldType = config.worldType,
+        .difficulty = config.difficulty,
+        .hardcore = config.hardcore,
+        .allowCommands = config.allowCommands,
+        .isNewWorld = config.isNewWorld,
+    };
 
     auto serverResult = m_integratedServer->initialize(serverParams);
     if (serverResult.failed()) {

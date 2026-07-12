@@ -28,15 +28,17 @@ animal/
 - VillagerRenderer → `LivingRenderer<VillagerEntity, VillagerModel>`
 - CatRenderer、HorseRenderer、LlamaRenderer、OcelotRenderer、WolfRenderer → `EntityRenderer`（自行管理模型和渲染）
 
-## WolfRenderer 的 GPU 管线集成
+## WolfRenderer/CatRenderer/OcelotRenderer/HorseRenderer/LlamaRenderer 的 GPU 管线集成
 
-`WolfRenderer` 直接继承 `EntityRenderer`（而非 `LivingRenderer`），但额外重写了以下方法以进入 GPU 管线并支持层渲染：
+`WolfRenderer`、`CatRenderer`、`OcelotRenderer`、`HorseRenderer`、`LlamaRenderer` 都直接继承 `EntityRenderer`（而非 `LivingRenderer`），通过重写 `supportsAnimation()` 返回 `true` 进入 GPU 管线：
 
-- `supportsAnimation()` → `true`：使 `EntityRendererManager::renderWithPipeline` 进入 Path B（ModelFactory + AnimatedMeshCache），通过 `ModelRegistration` 已注册的 `WolfModel` 工厂生成主模型网格。狼模型的状态设置（`setAnimState`/`setLivingAnimations`/`setTint`）由 `EntityRendererManager::_createModelForEntity` 的 wolf 分支统一处理，因此 `WolfRenderer` 自身无需实现 `computeAnimationContext()`。
+- `supportsAnimation()` → `true`：使 `EntityRendererManager::renderWithPipeline` 进入 Path B（ModelFactory + AnimatedMeshCache），通过 `ModelRegistration` 已注册的模型工厂生成主模型网格，消除“No mesh path”告警。模型状态设置（`setLivingAnimations`/`setAnimState`/`setCatAnimState` 等）由 `EntityRendererManager::_createModelForEntity` 的对应分支（wolf/cat/ocelot/horse/llama）统一处理，渲染器自身无需实现 `computeAnimationContext()`。
+
+`WolfRenderer` 额外重写以支持层渲染：
 - `supportsLayers()` → `true`：使主模型网格绘制后调用 `renderLayersPipelineClient`。
 - `renderLayersPipelineClient(ClientEntity&, ...)`：分发到已注册的层（`WolfCollarLayer`），层通过 `ClientEntity` 的元数据镜像字段（`wolfTamed`/`wolfCollarColor`）读取驯服状态和颈圈颜色。
 
-> 注：`CatRenderer`/`OcelotRenderer` 当前未重写 `supportsAnimation()`，因此在 GPU 管线下不会生成主模型网格，也不会触发层渲染。TODO: 后续可按 WolfRenderer 的模式迁移。
+> 注：Cat/Ocelot/Horse/Llama 的层渲染（猫颈圈、马铠、羊驼地毯等）尚未实现，`supportsLayers()` 保持基类默认 `false`。各实体的专用状态（马的鞍/骑乘/吃草/前蹄抬起、羊驼的 hasChest、豹猫的蹲伏/逃跑）尚未同步到 `ClientEntity`，对应分支暂仅推进通用步态动画，待元数据镜像补齐后再补 `setSaddled`/`setHasChest`/`setCrouching` 等专用姿态。
 
 ## 上下游外部依赖关系
 

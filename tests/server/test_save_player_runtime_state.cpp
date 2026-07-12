@@ -166,6 +166,25 @@ protected:
         }
         return false;
     }
+
+    // 构造一份指向临时目录的非新世界配置（既有世界，不写 level.dat）
+    IntegratedServerParams makeConfig() const
+    {
+        return IntegratedServerParams{
+            .worldName = m_worldName,
+            .gameDirectoryRoot = m_gameRoot.string(),
+            .displayName = m_worldName,
+            .seed = 42,
+            .defaultGameMode = GameMode::Survival,
+            .viewDistance = 3,
+            .tickRate = 100,
+            .worldType = WorldType::Default,
+            .difficulty = Difficulty::Normal,
+            .hardcore = false,
+            .allowCommands = false,
+            .isNewWorld = false,
+        };
+    }
 };
 
 // ============================================================================
@@ -192,13 +211,7 @@ protected:
 TEST_F(SavePlayerRuntimeStateTest, StopInvokesSavePlayerRuntimeStateHook)
 {
     SaveStateSpyServer server;
-    IntegratedServerParams config;
-    config.worldName = m_worldName;
-    config.gameDirectoryRoot = m_gameRoot.string();
-    config.seed = 42;
-    config.viewDistance = 3;
-    config.tickRate = 100;
-    config.allowCommands = false;
+    IntegratedServerParams config = makeConfig();
 
     auto initResult = server.initialize(config);
     ASSERT_TRUE(initResult.success()) << initResult.error().message();
@@ -226,13 +239,7 @@ TEST_F(SavePlayerRuntimeStateTest, StopInvokesSavePlayerRuntimeStateHook)
 TEST_F(SavePlayerRuntimeStateTest, PlayerDataPersistsToRocksDBAfterStop)
 {
     SaveStateSpyServer server;
-    IntegratedServerParams config;
-    config.worldName = m_worldName;
-    config.gameDirectoryRoot = m_gameRoot.string();
-    config.seed = 42;
-    config.viewDistance = 3;
-    config.tickRate = 100;
-    config.allowCommands = false;
+    IntegratedServerParams config = makeConfig();
 
     auto initResult = server.initialize(config);
     ASSERT_TRUE(initResult.success()) << initResult.error().message();
@@ -316,13 +323,7 @@ TEST_F(SavePlayerRuntimeStateTest, PlayerDataPersistsToRocksDBAfterStop)
 TEST_F(SavePlayerRuntimeStateTest, StopWithNoPlayersDoesNotWritePlayerData)
 {
     SaveStateSpyServer server;
-    IntegratedServerParams config;
-    config.worldName = m_worldName;
-    config.gameDirectoryRoot = m_gameRoot.string();
-    config.seed = 42;
-    config.viewDistance = 3;
-    config.tickRate = 100;
-    config.allowCommands = false;
+    IntegratedServerParams config = makeConfig();
 
     auto initResult = server.initialize(config);
     ASSERT_TRUE(initResult.success()) << initResult.error().message();

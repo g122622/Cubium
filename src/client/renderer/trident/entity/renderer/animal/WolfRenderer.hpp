@@ -61,9 +61,8 @@ namespace mc::client::renderer::entity::renderer::animal {
  * - wolfTamed() ← TameableEntity::DATA_TAMED_PARAM (bool)
  * - wolfCollarColor() ← WolfEntity::DATA_COLLAR_COLOR_PARAM (i32, DyeColor)
  *
- * 注：CatRenderer、OcelotRenderer 当前未重写 supportsAnimation()，因此猫/豹猫在
- * GPU 管线下不会生成主模型网格，也不会渲染层（与 wolf 旧版本相同的问题）。
- * TODO: 待后续将 CatRenderer/OcelotRenderer 迁移到 supportsAnimation() 后移除此注。
+ * CatRenderer/OcelotRenderer/HorseRenderer/LlamaRenderer 已按相同模式重写
+ * supportsAnimation() 进入 GPU 管线（层渲染暂未实现，详见 animal/README.md）。
  */
 class WolfRenderer : public core::EntityRenderer {
 public:

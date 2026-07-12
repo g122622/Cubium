@@ -55,6 +55,18 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::OcelotEntity& entity);
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::OcelotEntity& entity) const;
 
+    // ========== GPU 管线支持 ==========
+
+    /**
+     * @brief 豹猫支持动画
+     *
+     * 重写返回 true，使 EntityRendererManager 在 renderWithPipeline 中进入
+     * Path B（ModelFactory + AnimatedMeshCache）生成主模型网格，消除“No mesh path”告警。
+     * 豹猫主模型的动画设置（setLivingAnimations）由 _createModelForEntity 的
+     * ocelot 分支统一处理。层渲染暂未实现，保持 supportsLayers() 为基类默认 false。
+     */
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
+
 private:
     model::animal::OcelotModel m_model;
     model::animal::OcelotModel m_modelBaby;

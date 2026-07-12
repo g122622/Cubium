@@ -353,6 +353,13 @@ void CopperGolemEntity::registerAttributes()
     // STEP_HEIGHT 在构造函数中通过 setStepHeight(1.0f) 设置
 }
 
+std::optional<ResourceLocation> CopperGolemEntity::getAmbientSound() const
+{
+    // 铜傀儡无环境音，对齐原版 AbstractGolem.getAmbientSound 返回 null。
+    // sounds.json 中无 entity.copper_golem.ambient。
+    return std::nullopt;
+}
+
 void CopperGolemEntity::updateWeathering(i64 currentGameTime)
 {
     // 对应 MC Java: CopperGolem.updateWeathering(ServerLevel, RandomSource, long)

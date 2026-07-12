@@ -159,6 +159,15 @@ protected:
     void registerGoals() override;
 
     /**
+     * @brief 获取环境音效
+     *
+     * 商队羊驼复用普通羊驼的环境音，对齐原版 TraderLlama（继承 Llama.getAmbientSound）。
+     * sounds.json 中无 entity.trader_llama.*（商队羊驼共享 llama.* 音效），
+     * 故不能走默认 makeSoundEventId("ambient")（会拼接出 trader_llama.ambient）。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
      * @brief NBT 序列化：写入商队羊驼特有数据
      */
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
