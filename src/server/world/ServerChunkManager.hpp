@@ -183,6 +183,16 @@ public:
     }
 
     /**
+     * @brief 获取区域互斥执行器（worker 池）
+     *
+     * 返回注入的 ServerWorkerPool，供运行时光照等需要 writeRadius>0 区域互斥的
+     * worker 任务提交（RuntimeLightTask 经 submit(writeRadius=2) 串行化重叠区域
+     * nibble 写）。启动早期或测试环境未注入时返回 nullptr，调用方应 fallback 同步路径。
+     */
+    [[nodiscard]] util::ServerWorkerPool* radiusAwareExecutor() noexcept { return m_workerPool; }
+    [[nodiscard]] const util::ServerWorkerPool* radiusAwareExecutor() const noexcept { return m_workerPool; }
+
+    /**
      * @brief 获取当前已缓存的区块
      *
      * 该函数只查询内存缓存，不会触发存档解析或异步生成。
@@ -366,6 +376,31 @@ public:
      * @param force 是否强制加载
      */
     void forceChunk(ChunkCoord x, ChunkCoord z, bool force);
+
+    /**
+     * @brief 添加 LIGHT 票据保活区块（③-2c）
+     *
+     * 主线程调用（ServerWorld::enqueueChunkLoadLight 构造 ChunkLoadLightTask 前）。
+     * 用 TicketTypes::LIGHT + ChunkLoadLevel::Full(33) 保活区块——level<=Border(34)
+     * 使 shouldLoad true→区块不被卸载，覆盖 worker 在途 + processTicketUpdates 生效窗口。
+     * 与 RuntimeLightingProvider 的 5×5 shared_ptr 保活互补（票据保加载级别，shared_ptr 保内存）。
+     * 对齐 forceChunk 风格（registerTicket + processUpdates）。
+     *
+     * @param x 区块 X
+     * @param z 区块 Z
+     */
+    void addLightTicket(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 释放 LIGHT 票据（③-2c）
+     *
+     * 主线程调用（ServerWorld::_drainPendingChunkSends 发送后、_executeChunkLoadLight
+     * fallback 后、任务 onCancel 路径）。releaseTicket 对未持票据的 chunk 容忍（no-op）。
+     *
+     * @param x 区块 X
+     * @param z 区块 Z
+     */
+    void removeLightTicket(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 设置票据系统视距

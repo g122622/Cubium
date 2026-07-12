@@ -23,31 +23,28 @@
 
 #pragma once
 
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
-#include <memory>
-#include <mutex>
+#include <string>
 
 namespace mc {
-
-// 前向声明
-namespace world::chunk {
-class IChunk;
-}
-using world::chunk::IChunk;
-namespace world::chunk {
-class ChunkData;
-}
-using world::chunk::ChunkData;
 
 /**
  * @brief 世界光照管理器
  *
- * 协调方块光照和天空光照引擎，提供统一的光照计算接口。
+ * 协调方块光照和天空光照引擎，提供主线程无锁读路径与 TLS 引擎池。
  * 根据维度配置，可能只有方块光照（如下界）或两者都有（如主世界）。
+ *
+ * 引擎调用模型（对齐 Moonrise StarLightInterface）：
+ * 引擎实例无跨 operation 持久状态——nibble/emptiness map 全挂 IChunk，
+ * 引擎只有 per-op 缓存（setupCaches 建/destroyCaches 清）+ 构造后不变的
+ * 配置常量。故引擎实例存 thread_local 池，每个 worker 线程独占一套，
+ * acquire/release 配对使用，无引擎级锁。所有光照写操作（区块加载光照、
+ * 运行时方块变更、LIGHT 生成阶段）统一经 ServerWorkerPool 区域互斥池
+ * （writeRadius=2）串行——重叠 5×5 区域的 nibble 写必被区域锁串行，
+ * 满足 SWMRNibbleArray 更新侧非原子单写者语义。
  */
 class WorldLightManager {
 public:
@@ -61,86 +58,57 @@ public:
     WorldLightManager(StarLightLightingProvider* provider, bool hasBlockLight, bool hasSkyLight);
 
     // ========================================================================
-    // 光照操作
+    // TLS 引擎池
     // ========================================================================
 
     /**
-     * @brief 检查方块的光照
+     * @brief 获取当前线程的天空光引擎（TLS）
      *
-     * 当方块状态改变时调用，重新计算该位置的光照。
-     *
-     * @param pos 方块位置
+     * 首次调用惰性构造，之后该线程复用同一实例。对齐 Moonrise
+     * StarLightInterface 的 thread_local 引擎池——每个 worker 线程独占
+     * 一套引擎，无引擎级锁，区域锁保证 nibble 写串行。
+     * 仅当 hasSkyLight() 为 true 时调用方才应获取。
      */
-    void checkBlock(i32 x, i32 y, i32 z);
+    [[nodiscard]] static SkyStarLightEngine* acquireSkyLightEngine();
 
     /**
-     * @brief 方块发光等级增加时调用
+     * @brief 释放天空光引擎（TLS，no-op）
      *
-     * 当方块被放置且发光等级大于0时调用。
-     *
-     * @param pos 方块位置
-     * @param lightLevel 发光等级
+     * 对齐 Moonrise try/finally 签名，引擎留在线程局部存储复用，
+     * 线程退出时 unique_ptr 析构释放。调用方须在 acquire 后用 try/finally
+     * 风格配对调用，确保异常路径也不遗漏（当前无异常，仍保留对称性）。
      */
-    void onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel);
+    static void releaseSkyLightEngine(SkyStarLightEngine* engine) noexcept;
 
     /**
-     * @brief 检查是否有待处理的光照工作
+     * @brief 获取当前线程的方块光引擎（TLS）
+     * @see acquireSkyLightEngine
      */
-    [[nodiscard]] bool hasLightWork() const;
+    [[nodiscard]] static BlockStarLightEngine* acquireBlockLightEngine();
 
     /**
-     * @brief 处理光照更新
-     *
-     * @param maxUpdates 最大更新数量
-     * @param updateSkyLight 是否更新天空光照
-     * @param updateBlockLight 是否更新方块光照
-     * @return 剩余更新配额
+     * @brief 释放方块光引擎（TLS，no-op）
+     * @see releaseSkyLightEngine
      */
-    i32 tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight);
+    static void releaseBlockLightEngine(BlockStarLightEngine* engine) noexcept;
 
     // ========================================================================
-    // 区块段管理
+    // 维度配置访问
     // ========================================================================
 
-    /**
-     * @brief 更新区块段状态
-     *
-     * 当区块段加载/卸载或变为空时调用。
-     *
-     * @param pos 区块段位置
-     * @param isEmpty 是否为空（没有方块）
-     */
-    void updateSectionStatus(const SectionPos& pos, bool isEmpty);
-
-    /**
-     * @brief 启用/禁用区块的光源
-     *
-     * 当区块加载/卸载时调用。
-     *
-     * @param pos 区块位置
-     * @param enable 是否启用
-     */
-    void enableLightSources(const ChunkPos& pos, bool enable);
+    [[nodiscard]] bool hasBlockLight() const noexcept { return m_hasBlockLight; }
+    [[nodiscard]] bool hasSkyLight() const noexcept { return m_hasSkyLight; }
 
     // ========================================================================
-    // 光照访问
+    // 主线程读路径（visible 侧，无锁）
     // ========================================================================
-
-    /**
-     * @brief 获取光照引擎
-     *
-     * @param type 光照类型
-     * @return 光照引擎指针，如果不存在返回nullptr
-     */
-    [[nodiscard]] BlockStarLightEngine* getBlockLightEngine();
-    [[nodiscard]] const BlockStarLightEngine* getBlockLightEngine() const;
-    [[nodiscard]] SkyStarLightEngine* getSkyLightEngine();
-    [[nodiscard]] const SkyStarLightEngine* getSkyLightEngine() const;
 
     /**
      * @brief 获取指定位置的实际亮度
      *
-     * 考虑天空减暗因子，计算最终亮度。
+     * 主线程读路径：直接从区块 nibble 数组的 visible 侧（atomic acquire）读取，
+     * 不经光照引擎、不持锁。worker 传播时写 updating 侧经区域锁串行，主线程读
+     * visible 侧原子安全（SWMRNibbleArray 双缓冲语义）。
      *
      * @param pos 方块位置
      * @param skyDarkening 天空减暗因子（0-15）
@@ -149,120 +117,39 @@ public:
     [[nodiscard]] i32 getLightSubtracted(const BlockPos& pos, i32 skyDarkening) const;
 
     /**
-     * @brief 获取方块光照等级
+     * @brief 获取方块光照等级（主线程读 visible 侧）
+     *
+     * 经 provider 取已加载区块，直接读区块 blockNibbles 的 visible 侧。
+     * 区块未加载或段无数据时返回 0。
      */
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const;
 
     /**
-     * @brief 获取天空光照等级
+     * @brief 获取天空光照等级（主线程读 visible 侧）
+     *
+     * 经 provider 取已加载区块，直接读区块 skyNibbles 的 visible 侧。
+     * 区块未加载或段无数据时返回 15（天空光默认满亮，对齐引擎 getLightLevel 默认值）。
      */
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const;
-
-    // ========================================================================
-    // 数据管理
-    // ========================================================================
-
-    /**
-     * @brief 设置光照数据
-     *
-     * 用于从存档加载光照数据。
-     *
-     * @param type 光照类型
-     * @param pos 区块段位置
-     * @param array 光照数组
-     * @param retain 是否保留（防止被覆盖）
-     */
-    void setData(LightType type, const SectionPos& pos, const NibbleArray& array, bool retain);
 
     /**
      * @brief 获取光照数据
      *
+     * 主线程读路径：经 provider 取已加载区块，直接返回区块上对应段的
+     * SWMRNibbleArray 指针（指向 visible 侧数据，toByteArray 读 atomic）。
+     * 不经引擎缓存、不持锁。
+     *
      * @param type 光照类型
      * @param pos 区块段位置
-     * @return 光照数组指针，如果不存在返回nullptr
+     * @return 光照数组指针，如果区块未加载或段越界返回 nullptr
      */
     [[nodiscard]] SWMRNibbleArray* getData(LightType type, const SectionPos& pos);
 
     /**
-     * @brief 保留区块数据
-     *
-     * 防止光照数据在区块卸载时被清除。
-     *
-     * @param pos 区块位置
-     * @param retain 是否保留
-     */
-    void retainData(const ChunkPos& pos, bool retain);
-
-    // ========================================================================
-    // 区块光照初始化
-    // ========================================================================
-
-    /**
-     * @brief 照亮区块
-     *
-     * 执行完整的光照计算，包括天空光照和方块光照传播。
-     * 用于区块加载/生成时的初始光照计算。
-     *
-     * @param chunk 要照亮的目标区块
-     * @param needsEdgeChecks 是否需要检查边缘（首次光照时为true）
-     */
-    void lightChunk(const IChunk* chunk, bool needsEdgeChecks = true);
-
-    /**
-     * @brief 照亮区块（使用指定 provider）
-     *
-     * 与上面的 lightChunk 等价，但使用调用方传入的 provider 而非 m_provider。
-     * 用于 LIGHT 生成阶段在 worker 线程执行光照：传入 ChunkLightingProvider
-     * （no-op markLightChanged，半径2邻居经 getChunkForLight fallback），
-     * 避免触碰主线程独占状态（ServerWorld::markLightChanged 的网络回调等）。
-     *
-     * @param provider 光照提供者（区块/方块状态访问 + markLightChanged 回调）
-     * @param chunk 要照亮的目标区块
-     * @param needsEdgeChecks 是否需要检查边缘
-     */
-    void lightChunk(StarLightLightingProvider* provider, const IChunk* chunk, bool needsEdgeChecks);
-
-    /**
-     * @brief 更新方块光引擎的空区块段映射（线程安全，持 m_mutex）
-     *
-     * 对齐 LightSyncManager::initializeChunkLighting 调用 BlockStarLightEngine::updateEmptinessMap，
-     * 但经 WorldLightManager 加锁，保证 LIGHT 阶段 worker 线程与主线程 tick/checkBlock 串行。
-     * 仅方块光引擎有空映射（SkyStarLightEngine 无），故只调用 m_blockLight。
-     *
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     * @param chunk 区块数据（读取各区块段空状态）
-     */
-    void updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk);
-
-    /**
-     * @brief 强制加载区块光照数据
-     *
-     * 用于已正确光照的区块，只需要重新加载光照数据到缓存，
-     * 然后检查边缘以确保与邻居区块的一致性。
-     * 不执行完整的光照计算。
-     *
-     * @param chunk 区块
-     * @param emptySections 空区块段标记数组
-     */
-    void forceLoadInChunk(const IChunk* chunk, const std::vector<bool>& emptySections);
-
-    /**
-     * @brief 检查区块边缘
-     *
-     * 当邻居区块加载时，检查并修复边缘光照不一致。
-     *
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     */
-    void checkChunkEdges(i32 chunkX, i32 chunkZ);
-
-    // ========================================================================
-    // 调试信息
-    // ========================================================================
-
-    /**
      * @brief 获取调试信息
+     *
+     * 主线程读 visible 侧状态查询（isNullVisible/isInitializedVisible 等），
+     * 反映已发布到客户端的光照数据状态，而非引擎 updating 侧的中间态。
      *
      * @param type 光照类型
      * @param pos 区块段位置
@@ -271,12 +158,32 @@ public:
     [[nodiscard]] std::string getDebugInfo(LightType type, const SectionPos& pos) const;
 
 private:
-    mutable std::recursive_mutex m_mutex;
-    std::unique_ptr<BlockStarLightEngine> m_blockLight;
-    std::unique_ptr<SkyStarLightEngine> m_skyLight;
     StarLightLightingProvider* m_provider;
     bool m_hasBlockLight;
     bool m_hasSkyLight;
+
+    /// 最小光照段坐标（= m_minSection - 1 = (minBuildHeight >> SECTION_SHIFT) - 1），
+    /// 用于主线程读 nibble 数组索引：nibbles[sectionY - m_minLightSection]。
+    /// 与引擎 BaseLightEngine::m_minLightSection 同源，构造时从 provider 维度信息计算。
+    i32 m_minLightSection;
+
+    /// 最大光照段坐标（= m_maxSection + 1 = ((maxBuildHeight - 1) >> SECTION_SHIFT) + 1），
+    /// 用于主线程读天空光时向上回溯非 null nibble 的上界。
+    i32 m_maxLightSection;
+
+    /// 最小/最大方块段坐标（建筑高度对应的段范围），用于天空光 null nibble 时
+    /// 经 emptiness map 查找最低非空段。对齐 Moonrise minSection/maxSection。
+    i32 m_minSection;
+    i32 m_maxSection;
+
+    /// 主线程读辅助：经 provider 取已加载区块上指定段的 nibble（visible 侧数据）。
+    /// 不持锁——读 visible 侧 atomic 安全。区块未加载或段越界返回 nullptr。
+    [[nodiscard]] SWMRNibbleArray* _getNibble(LightType type, const SectionPos& pos) const;
+
+    /// 主线程读辅助：对齐 Moonrise StarLightInterface.getSkyLightValue。
+    /// null nibble 时经 emptiness map 判断该段是否在最低非空段之上（之上天空光满亮 15），
+    /// 否则向上回溯找到首个非 null nibble 取其该列天空光。区块未加载返回 15。
+    [[nodiscard]] u8 _getSkyLightValue(i32 x, i32 y, i32 z) const;
 };
 
 } // namespace mc

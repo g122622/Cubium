@@ -23,9 +23,9 @@
 
 #include "SkyLightEngine.hpp"
 #include "common/core/Constants.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -68,7 +69,7 @@ SkyStarLightEngine::SkyStarLightEngine()
     m_decreaseQueue.resize(sectionVolume);
 
     // 初始化高度图
-    m_heightMapBlockChange.fill(INT_MIN);
+    m_heightMapBlockChange.fill(std::numeric_limits<int>::min());
 }
 
 // ============================================================================
@@ -171,12 +172,9 @@ void SkyStarLightEngine::initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32
     }
 
     if (chunkY > lowestY) {
-        // 在最高非空区块段之上，设置为全亮（仅在区块列已启用时）
+        // 在最高非空区块段之上，设置为全亮（天空光对未遮挡列填 15）
         currNibble->setNonNull();
-        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
-        if (isColumnEnabled(columnPos)) {
-            currNibble->setFull();
-        }
+        currNibble->setFull();
         return;
     }
 
@@ -199,14 +197,9 @@ void SkyStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 {
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
-        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
-        if (isDataRetained(columnPos)) {
-            // 数据被保留时使用 Hidden 状态，保持数据但停止传播
-            nibble->setHidden();
-        } else {
-            // 非保留区块列，完全清除数据
-            nibble->setNull();
-        }
+        // 天空光直接清除数据：方块破坏只会增加天空光（方块阻挡消除），
+        // 增亮传播可正确穿过 null 段，无需保留数据。
+        nibble->setNull();
     }
 }
 
@@ -292,7 +285,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
 {
     i32 encodeOffset = m_coordinateOffset;
     i64 propagateDirection =
-        static_cast<i64>(getEverythingButDirection(LightAxisDirection::POSITIVE_Y)); // just don't check upwards
+        static_cast<i64>(_getEverythingButDirection(LightAxisDirection::POSITIVE_Y)); // just don't check upwards
 
     if (getLightLevelExtruded(worldX, startY + 1, worldZ) != game::MAX_LIGHT_LEVEL) {
         return startY;
@@ -469,7 +462,7 @@ i32 SkyStarLightEngine::calculateLightValue(
 
     for (LightAxisDirection dir : ALL_AXIS_DIRECTIONS) {
         i32 dx, dy, dz;
-        getDirectionOffset(dir, dx, dy, dz);
+        _getDirectionOffset(dir, dx, dy, dz);
 
         i32 offX = worldX + dx;
         i32 offY = worldY + dy;
@@ -493,9 +486,9 @@ i32 SkyStarLightEngine::calculateLightValue(
             // we don't read the blockstate because most of the time this is false, so using the faster
             // known transparency lookup results in a net win
             CollisionShape neighbourFaceShape =
-                neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+                neighbourState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(dir)));
             CollisionShape thisFaceShape = (conditionallyOpaqueState != nullptr)
-                ? conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir))
+                ? conditionallyOpaqueState->getFaceOcclusionShape(_getNMSDirection(dir))
                 : CollisionShape(); // 空形状
 
             // 使用 VoxelShape 进行精确的面遮挡检测
@@ -548,10 +541,10 @@ void SkyStarLightEngine::propagateBlockChanges(
     constexpr i32 heightMapSize = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
     for (i32 index = 0; index < heightMapSize; ++index) {
         i32 maxY = m_heightMapBlockChange[static_cast<size_t>(index)];
-        if (maxY == INT_MIN) {
+        if (maxY == std::numeric_limits<int>::min()) {
             continue; // 未变化
         }
-        m_heightMapBlockChange[static_cast<size_t>(index)] = INT_MIN; // 恢复默认
+        m_heightMapBlockChange[static_cast<size_t>(index)] = std::numeric_limits<int>::min(); // 恢复默认
 
         i32 columnX = (index & world::CHUNK_MASK) | (chunkX << world::CHUNK_SHIFT);
         i32 columnZ = (index >> world::CHUNK_SHIFT) | (chunkZ << world::CHUNK_SHIFT);
@@ -561,7 +554,7 @@ void SkyStarLightEngine::propagateBlockChanges(
 
         // 移除下方所有 15 级源
         i32 encodeOffset = m_coordinateOffset;
-        i32 propagateDirection = getEverythingButDirection(LightAxisDirection::POSITIVE_Y);
+        i32 propagateDirection = _getEverythingButDirection(LightAxisDirection::POSITIVE_Y);
 
         if (getLightLevelExtruded(columnX, maxPropagationY, columnZ) == game::MAX_LIGHT_LEVEL) {
             checkNullSection(columnX >> world::CHUNK_SHIFT,
@@ -632,7 +625,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
         // 尝试向邻居传播全亮（空区块段需要将全亮传播到邻居）
         for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
             i32 dx, dy, dz;
-            getDirectionOffset(dir, dx, dy, dz);
+            _getDirectionOffset(dir, dx, dy, dz);
 
             i32 neighbourX = chunkX + dx;
             i32 neighbourZ = chunkZ + dz;
@@ -767,11 +760,6 @@ void SkyStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty
     }
 }
 
-u8 SkyStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
-{
-    return static_cast<u8>(getLightLevel(x, y, z));
-}
-
 void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)
 {
     // 设置指定区块段的光照数据
@@ -814,34 +802,6 @@ const SWMRNibbleArray* SkyStarLightEngine::getData(const SectionPos& pos) const
         return nullptr;
     }
     return getNibbleFromCache(pos.x, sectionY, pos.z);
-}
-
-void SkyStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
-{
-    if (enabled) {
-        m_enabledColumns.insert(columnPos);
-    } else {
-        m_enabledColumns.erase(columnPos);
-    }
-}
-
-void SkyStarLightEngine::retainData(i64 columnPos, bool retain)
-{
-    if (retain) {
-        m_columnsToRetainDataFor.insert(columnPos);
-    } else {
-        m_columnsToRetainDataFor.erase(columnPos);
-    }
-}
-
-bool SkyStarLightEngine::isColumnEnabled(i64 columnPos) const
-{
-    return m_enabledColumns.contains(columnPos);
-}
-
-bool SkyStarLightEngine::isDataRetained(i64 columnPos) const
-{
-    return m_columnsToRetainDataFor.contains(columnPos);
 }
 
 } // namespace mc

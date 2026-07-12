@@ -81,7 +81,6 @@ public:
     {}
     void lightChunk(mc::StarLightLightingProvider*, const mc::IChunk*, bool) override {}
 
-    [[nodiscard]] mc::u8 getLightFor(mc::i32, mc::i32, mc::i32) const override { return 0; }
     void setData(const mc::SectionPos&, const mc::NibbleArray&, bool) override {}
     [[nodiscard]] mc::SWMRNibbleArray* getData(const mc::SectionPos&) override { return nullptr; }
     [[nodiscard]] const mc::SWMRNibbleArray* getData(const mc::SectionPos&) const override { return nullptr; }

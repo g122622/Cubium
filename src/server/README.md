@@ -29,8 +29,7 @@ server/
 ├── sync/                 # 同步管理器（运行时由 ServerDimension 持有）
 │   ├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步
 │   ├── ChunkSendManager.hpp/cpp # 区块发送
-│   ├── EntitySyncManager.hpp/cpp # 实体同步
-│   └── LightSyncManager.hpp/cpp  # 光照同步
+│   └── EntitySyncManager.hpp/cpp # 实体同步
 ├── dimension/            # 维度管理
 │   ├── ServerDimension.hpp/cpp         # 服务端维度实例（持有同步管理器和刷怪管理器）
 │   └── ServerDimensionManager.hpp/cpp  # 服务端维度管理器
@@ -135,7 +134,10 @@ server/
 | `ChunkSendManager` | 区块发送、卸载通知，与 ChunkLoadTicketManager 协同 |
 | `BlockUpdateSyncManager` | 方块更新 pending 去重、tick 末统一发送 |
 | `EntitySyncManager` | 实体位置同步、生成/销毁广播 |
-| `LightSyncManager` | 光照数据同步到 ChunkSection |
+
+> 光照数据同步（`markLightChanged`/`_syncLightDataToChunk`）已由 `ServerWorld` 承担，
+> 不再有独立的 `LightSyncManager`。区块加载光照由 `server/world/ChunkLoadLightTask` 在
+> worker 线程完成后经 `ServerWorld` 续延队列回主线程 flush + send。
 
 ### world/ - 世界管理
 
@@ -149,7 +151,7 @@ server/
 - `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
 - 共享存储访问必须通过 `IServer::sharedStorage()` 进行，不再通过主世界 `ServerWorld` 绕行。
 - `NaturalSpawner` 和 `DespawnManager` 现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
-- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
+- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。（光照同步已由 `ServerWorld` 承担，无独立 `LightSyncManager`。）
 - 多维度 tick 由 `ServerDimensionManager::tick()` 统一驱动。
 
 ### dimension/ - 维度管理
@@ -158,7 +160,7 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `ServerDimension` | 维度实例，持有 ServerWorld、同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）、刷怪管理器（NaturalSpawner、DespawnManager） |
+| `ServerDimension` | 维度实例，持有 ServerWorld、同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager）、刷怪管理器（NaturalSpawner、DespawnManager） |
 | `ServerDimensionManager` | 管理所有 ServerDimension 实例，处理玩家维度切换和维度 tick 调度 |
 
 同步管理器和刷怪管理器在 `ServerDimension::initialize()` 中创建，在 `ServerDimension::tick()` 中按顺序 tick（详见 `src/server/dimension/README.md`）。
@@ -287,7 +289,7 @@ TCP 网络通信实现。
 │  │  │  ┌─────────────────────────────────────────┐  │   │    │
 │  │  │  │ sync/ 管理器（维度级，每个维度独立一套） │  │   │    │
 │  │  │  │ BlockUpdateSyncManager │ ChunkSendManager│  │   │    │
-│  │  │  │ EntitySyncManager │ LightSyncManager     │  │   │    │
+│  │  │  │ EntitySyncManager                        │  │   │    │
 │  │  │  └─────────────────────────────────────────┘  │   │    │
 │  │  │  ┌─────────────────────────────────────────┐  │   │    │
 │  │  │  │ spawn/ 管理器（维度级）                   │  │   │    │
@@ -434,13 +436,17 @@ TCP 网络通信实现。
 
 ### 3. 光照初始化
 
-区块加载后需要初始化光照：
+区块加载后光照由 `ChunkLoadLightTask` 在 worker 线程异步完成（效仿 Moonrise `ThreadedLevelLightEngine`）：
 ```cpp
-// 正确方式：通过回调自动初始化
-chunkManager.setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
-    lightSyncManager.initializeChunkLighting(x, z);
+// 正确方式：ChunkLoadedCallback 入队区块加载光照任务
+chunkManager.setChunkLoadedCallback([world](ChunkCoord x, ChunkCoord z) {
+    world->enqueueChunkLoadLight(x, z);
 });
 ```
+`enqueueChunkLoadLight` 对中心区块 add LIGHT 票据保活后，构造 `ChunkLoadLightTask` 提交到
+`ServerWorkerPool` 区域互斥池（writeRadius=2）。worker 完成后经 `ServerWorld` 续延队列回主线程
+flush（`markLightChanged` 同步 visible nibble 到 ChunkSection）+ send（`ChunkSendManager` 发包）。
+tick 顺序严格 flush → send → drain，保证客户端收到正确光照而非全黑区块。
 
 ### 4. Manager 初始化顺序
 
@@ -491,7 +497,7 @@ flowchart LR
     dim --> sync["sync/ 管理器<br/>(维度级)"]
     sync --> block["BlockUpdateSyncManager"]
     sync --> chunk["ChunkSendManager"]
-    sync --> light["LightSyncManager"]
+    sync --> entity["EntitySyncManager"]
     dim --> world["ServerWorld"]
     world --> callback["setOnBlockChanged"]
     callback --> block
@@ -504,7 +510,7 @@ flowchart LR
     style sync fill:#90be6d,stroke:#2f6f3e,color:#111
     style block fill:#bde0fe,stroke:#2563eb,color:#111
     style chunk fill:#f4a261,stroke:#b45309,color:#111
-    style light fill:#cdb4db,stroke:#6d28d9,color:#111
+    style entity fill:#cdb4db,stroke:#6d28d9,color:#111
     style world fill:#ffe8a3,stroke:#c99700,color:#111
     style callback fill:#bde0fe,stroke:#2563eb,color:#111
     style packet fill:#e9c46a,stroke:#a16207,color:#111

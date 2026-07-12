@@ -57,6 +57,7 @@ InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 
 - `common/world/IWorld.hpp` - 使用 `InternalLightUtils::calculateSkyDarkening()` 计算天空减暗
 - `common/world/dimension/Dimension.hpp` - 持有 `WorldLightManager` 实例
+- `server/world/ServerWorld.hpp` - 持有 `WorldLightManager`；运行时方块变更经 `ServerLightQueue` 延迟入队，tick 时 submit `RuntimeLightTask` 到 worker 池异步传播（经 TLS 引擎 `blocksChangedInChunk`），主线程 drain flush 队列调 `markLightChanged`
 - `common/world/block/blocks/mob/TurtleEggBlock.cpp` - 使用 `getCelestialAngleMC()` 判断黎明
 - `common/world/block/blocks/redstone/DaylightDetectorBlock.cpp` - 使用天体角度计算日光探测器输出
 - `client/renderer/trident/entity/util/ShadowRenderer.cpp` - 使用天体角度计算阴影
@@ -65,58 +66,39 @@ InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 
 ## 区块列状态管理
 
-### 概述
+光照引擎**不**维护任何区块列（column）粒度的持久化状态集合。光照数据纯挂在
+chunk 上（`IChunk::getSkyNibbles()`/`getBlockNibbles()`），chunk 被移除即光照数据消失，
+无需卸载时清理引擎内部集合。这与 Moonrise（Starlight）架构一致——Moonrise 的
+`LayerLightSectionStorage` 没有 `columnsWithSources`/`columnsToRetainQueuedDataFor`
+这类跨 chunk 生命周期的列集合。
 
-光照引擎通过区块列（column）粒度的状态标记来控制光照数据的生命周期，对应 MC Java 的
-`columnsWithSources` 和 `columnsToRetainQueuedDataFor` 集合。两个状态互相独立：
+### nibble 去初始化语义
 
-| 状态 | 集合 | 作用 | 对应 MC Java |
-|------|------|------|-------------|
-| 列启用 | `m_enabledColumns` | 控制该区块列是否有活跃光源 | `LayerLightSectionStorage.columnsWithSources` |
-| 数据保留 | `m_columnsToRetainDataFor` | 在区块卸载时保留光照数据而非清除 | `LayerLightSectionStorage.columnsToRetainQueuedDataFor` |
+`setNibbleNull()`（区块段卸载时调用）按光照类型区分：
 
-### 区块列位置编码
+| 光照类型 | 行为 | 原因 |
+|---------|------|------|
+| 天空光 | 无条件 `setNull()` | 方块破坏只会增加天空光（方块阻挡消除），增亮传播可正确穿过 null 段，无需保留数据 |
+| 方块光 | 无条件 `setHidden()` | 方块光减亮通常因方块被移除，减亮传播需要保留数据才能正确计算；Hidden 保留数据但停止传播 |
 
-区块列位置使用 64 位整数编码，格式与 MC Java `SectionPos.asLong()` 的列部分一致：
+### nibble 初始化语义
 
-- 位 [63:42] — chunkX（22 位，符号扩展后与 `& 0x3FFFFF` 掩码）
-- 位 [41:20] — chunkZ（22 位，符号扩展后与 `& 0x3FFFFF` 掩码）
-- 位 [19:0]  — 保留（用于段 Y 坐标，列级操作中为 0）
+`SkyStarLightEngine::initNibble()` 在最高非空区块段之上**无条件** `setFull()`（填充
+亮度 15）——天空光对未遮挡列填满。方块光引擎无此初始化路径（方块光仅由发光方块
+自身发射，`BlockStarLightEngine::_getLightEmission()` 始终按方块自身亮度返回，无门控）。
 
-编码公式：
+### 主线程读路径（visible 侧）
 
-```cpp
-i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42
-              | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
-```
+主线程光照查询（`getLightSubtracted`/`getBlockLight`/`getSkyLight`/`getData`/`getDebugInfo`）
+**不经光照引擎、不持锁**，直接经 provider 取已加载区块的 nibble，读 `SWMRNibbleArray`
+的 **visible 侧**（`getVisible`，atomic acquire）。worker 传播时写 updating 侧经
+`ServerWorkerPool` 区域互斥池（writeRadius=2）串行（单写者），visible 侧由 `updateVisible`
+原子发布，主线程无锁读安全——对齐 Moonrise `StarLightInterface.getSkyLightValue`/`getRawBrightness`。
 
-**一致性要求**：`enableLightSources(ChunkPos)` 中的 `pos.x/pos.z` 必须与
-`_getLightEmission` 中的 `x >> CHUNK_SHIFT / z >> CHUNK_SHIFT` 产生相同的区块坐标，
-否则列启用检查会因坐标不匹配而失效。
-
-### 列启用（Column Enabled）
-
-控制点：
-
-1. **方块光发射门控** — `BlockStarLightEngine::_getLightEmission()` 在返回发射等级前检查
-   `isColumnEnabled()`，未启用的列中发光方块的发射等级被抑制为 0（对应 MC Java
-   `BlockLightEngine.getEmission()` 中的 `lightOnInSection` 检查）。
-
-2. **天空光初始化门控** — `SkyStarLightEngine::initNibble()` 在初始化高空段时，
-   仅对已启用列执行 `setFull()`（填充亮度 15），未启用列只执行 `setNonNull()`（对应
-   MC Java `SkyLightSectionStorage.createDataLayer()` 中的 `lightOnInSection` 检查）。
-
-3. **不影响的路径** — `canUseChunk()` **不**检查列启用状态，与 MC Java 保持一致。
-   列启用仅影响光源发射和初始化行为，不影响区块可用性判断。
-
-### 数据保留（Data Retention）
-
-控制点：
-
-- `setNibbleNull()` — 当区块段被卸载时调用。若该列标记了数据保留（`isDataRetained()`），
-  则执行 `setHidden()` 而非 `setNull()`，将 nibble 数组置于 Hidden 状态而非完全清除。
-  Hidden 状态保留数据但停止光照传播，当区块重新加载时可以快速恢复（对应 MC Java
-  `LayerLightSectionStorage.markNewInconsistencies()` 中的保留路径）。
+`getSkyLight`/`getLightSubtracted` 的天空光分支对 null nibble（未光照段）有完整处理：经
+emptiness map 查找最低非空段，该段之上返回 15（未遮挡满亮），否则向上回溯首个非 null
+nibble 取该列天空光。这避免主线程读返回默认值（旧路径经引擎 `m_nibbleCache` 但主线程不调
+`setupCaches` → cache 空 → 读不到真实光照的既有 bug 已修复）。
 
 ### 调试信息
 
@@ -125,8 +107,6 @@ i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42
 - 段状态：`0` = 有完整数据（LIGHT_AND_DATA），`1` = 仅光照（LIGHT_ONLY），`2` = 空（EMPTY）
 - `[dirty]` — nibble 数据已修改未同步
 - `[q:N]` — 引擎队列中有 N 个待处理更新
-- `[col:on]` — 区块列已启用
-- `[retained]` — 区块列数据已保留
 
 ### API 一览
 
@@ -134,18 +114,24 @@ i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42
 
 | 方法 | 说明 |
 |------|------|
-| `enableLightSources(ChunkPos, bool)` | 启用/禁用区块列光源，委托至双引擎 |
-| `retainData(ChunkPos, bool)` | 保留/释放区块列光照数据，委托至双引擎 |
-| `getDebugInfo(LightType, SectionPos)` | 获取段级调试信息 |
+| `getLightSubtracted(BlockPos, skyDarkening)` | 主线程读：max(sky−skyDarkening, block)，天空光满亮短路返回 15。读 visible 侧不持锁 |
+| `getBlockLight(x, y, z)` | 主线程读方块光 visible 侧；`!m_hasBlockLight` 返回 0，区块未加载/段无数据返回 0 |
+| `getSkyLight(x, y, z)` | 主线程读天空光 visible 侧；`!m_hasSkyLight` 返回 15，null nibble 经 emptiness map 处理 |
+| `getData(LightType, SectionPos)` | 主线程读：返回区块 nibble 指针（visible 侧，`toByteArray` 读 atomic）；不经引擎缓存、不持锁 |
+| `getDebugInfo(LightType, SectionPos)` | 获取段级调试信息（读 visible 侧状态） |
+| `hasBlockLight()` / `hasSkyLight()` | 维度光照配置查询（构造时确定，如主世界两者皆有、下界仅方块光） |
+| `acquireSkyLightEngine()` / `acquireBlockLightEngine()` | 静态：获取当前线程 TLS 引擎实例（惰性构造，无引擎级锁）；供 worker 任务 / LIGHT 生成阶段调用 |
+| `releaseSkyLightEngine()` / `releaseBlockLightEngine()` | 静态：释放 TLS 引擎（no-op，线程退出时 unique_ptr 析构释放）；对齐 Moonrise try/finally 签名 |
+
+> 写方法（`checkBlock`/`lightChunk`/`updateSectionStatus`/`checkChunkEdges`/`updateEmptinessMap`/`blocksChangedInChunk`/`forceHandleEmptySectionChanges`）
+> 已**不在 `WorldLightManager` 上**——管理器只保留主线程无锁读路径 + TLS 引擎池。写操作由调用方
+> 经 `acquire*LightEngine` 取 TLS 引擎后直接调引擎方法（首参传 `StarLightLightingProvider*`），
+> 经 `ServerWorkerPool` 区域互斥池保证 nibble 单写者，无 `m_mutex`。
 
 #### BlockStarLightEngine / SkyStarLightEngine
 
 | 方法 | 说明 |
 |------|------|
-| `setColumnEnabled(i64, bool)` | 设置列启用状态 |
-| `isColumnEnabled(i64)` | 查询列启用状态 |
-| `retainData(i64, bool)` | 设置数据保留标记 |
-| `isDataRetained(i64)` | 查询数据保留标记 |
 | `getData(SectionPos) const` | 获取段 nibble 数据（只读） |
 
 ---
@@ -248,3 +234,14 @@ i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42
 - `getCelestialAngleMC()` - MC 1.16.5 原版公式，用于游戏机制（如海龟蛋孵化判断黎明）
 
 **坑**：两者返回值在相同 `dayTime` 下不同，使用时需确认场景。
+
+### 16. light() visible 发布顺序
+
+**问题**：`StarLightEngine::light()` 用临时 nibble 数组做点亮输入，结束后 `setNibbles`
+把临时 nibble move 到区块（`ChunkData` 值语义 move，与 Moonrise 引用语义不同）。若
+`updateVisible` 在 `setNibbles` 之前或缓存仍指向已 move 置空的临时对象，则区块 nibble
+永不被发布 visible → 主线程 `getVisible` 读到 Null/0。
+
+**解决**：`setNibbles` 后必须 `setNibblesForChunkInCache(..., getNibblesOnChunk(chunk))`
+重新把引擎缓存指向区块 nibble，再 `updateVisible`。这样 `updateVisible` 作用于区块 nibble，
+`markLightChanged`→`getData`→`toByteArray` 读到的也是同一已发布 visible 数据。

@@ -206,7 +206,8 @@ TEST_F(LightSyncTest, SectionPosColumnPos)
 /**
  * @brief 测试 WorldLightManager 基本创建
  *
- * 验证 WorldLightManager 可以正确创建方块光照和天空光照引擎。
+ * 验证 WorldLightManager 正确报告维度光照配置（hasBlockLight/hasSkyLight）。
+ * 引擎已改 TLS 池（③-2b），不再由管理器持有单例引擎。
  */
 TEST_F(LightSyncTest, WorldLightManagerCreation)
 {
@@ -228,23 +229,23 @@ TEST_F(LightSyncTest, WorldLightManagerCreation)
     TestLightProvider provider;
     WorldLightManager lightManager(&provider, true, true);
 
-    // 验证引擎已创建
-    EXPECT_NE(lightManager.getBlockLightEngine(), nullptr);
-    EXPECT_NE(lightManager.getSkyLightEngine(), nullptr);
+    // 验证维度配置
+    EXPECT_TRUE(lightManager.hasBlockLight());
+    EXPECT_TRUE(lightManager.hasSkyLight());
 
-    // 测试无天空光照的情况
+    // 测试无天空光照的情况（如下界）
     WorldLightManager blockOnlyManager(&provider, true, false);
-    EXPECT_NE(blockOnlyManager.getBlockLightEngine(), nullptr);
-    EXPECT_EQ(blockOnlyManager.getSkyLightEngine(), nullptr);
+    EXPECT_TRUE(blockOnlyManager.hasBlockLight());
+    EXPECT_FALSE(blockOnlyManager.hasSkyLight());
 }
 
 /**
- * @brief 测试光照数据设置和获取
+ * @brief 测试 TLS 引擎池
  *
- * 验证 WorldLightManager 在正确设置缓存环境后可以设置和获取光照数据。
- * 注意：引擎的 setData/getData 需要缓存环境，这通常在区块加载时设置。
+ * 验证 WorldLightManager 的 thread_local 引擎池（③-2b）：acquire 惰性构造、
+ * 同线程复用同一实例、release 为 no-op。对齐 Moonrise StarLightInterface 的 TLS 模型。
  */
-TEST_F(LightSyncTest, WorldLightManagerDataAccess)
+TEST_F(LightSyncTest, WorldLightManagerTLSEnginePool)
 {
     class TestLightProvider : public StarLightLightingProvider {
     public:
@@ -263,37 +264,28 @@ TEST_F(LightSyncTest, WorldLightManagerDataAccess)
     TestLightProvider provider;
     WorldLightManager lightManager(&provider, true, true);
 
-    // 设置缓存环境（模拟区块加载）
-    auto* blockEngine = lightManager.getBlockLightEngine();
-    auto* skyEngine = lightManager.getSkyLightEngine();
-    ASSERT_NE(blockEngine, nullptr);
-    ASSERT_NE(skyEngine, nullptr);
+    // acquire 惰性构造，返回非空
+    auto* skyEngine1 = WorldLightManager::acquireSkyLightEngine();
+    auto* blockEngine1 = WorldLightManager::acquireBlockLightEngine();
+    ASSERT_NE(skyEngine1, nullptr);
+    ASSERT_NE(blockEngine1, nullptr);
 
-    // 初始化缓存：以 (0, 0, 0) 为中心
-    blockEngine->setupCaches(&provider, 0, 0, 0, true, true);
-    skyEngine->setupCaches(&provider, 0, 0, 0, true, true);
+    // 同线程复用同一实例（TLS）
+    auto* skyEngine2 = WorldLightManager::acquireSkyLightEngine();
+    auto* blockEngine2 = WorldLightManager::acquireBlockLightEngine();
+    EXPECT_EQ(skyEngine1, skyEngine2);
+    EXPECT_EQ(blockEngine1, blockEngine2);
 
-    // 创建光照数据
-    NibbleArray blockLightData = NibbleArray::filled(8);
-    NibbleArray skyLightData = NibbleArray::filled(15);
+    // release 是 no-op，acquire 后实例不变
+    WorldLightManager::releaseSkyLightEngine(skyEngine1);
+    WorldLightManager::releaseBlockLightEngine(blockEngine1);
+    EXPECT_EQ(WorldLightManager::acquireSkyLightEngine(), skyEngine1);
+    EXPECT_EQ(WorldLightManager::acquireBlockLightEngine(), blockEngine1);
 
+    // getData 经 provider 取区块——provider 返回 nullptr，故读路径返回 nullptr（不崩）
     SectionPos pos(0, 0, 0);
-
-    // 设置数据
-    lightManager.setData(LightType::BLOCK, pos, blockLightData, false);
-    lightManager.setData(LightType::SKY, pos, skyLightData, false);
-
-    // 获取数据
-    SWMRNibbleArray* retrievedBlockLight = lightManager.getData(LightType::BLOCK, pos);
-    SWMRNibbleArray* retrievedSkyLight = lightManager.getData(LightType::SKY, pos);
-
-    // SkyLightEngine 的 setData 会创建新的 SWMRNibbleArray
-    // BlockLightEngine 的 setData 需要区块存在，所以可能返回 nullptr
-    // 这个测试主要验证 API 不会崩溃
-
-    // 清理缓存
-    blockEngine->destroyCaches();
-    skyEngine->destroyCaches();
+    EXPECT_EQ(lightManager.getData(LightType::BLOCK, pos), nullptr);
+    EXPECT_EQ(lightManager.getData(LightType::SKY, pos), nullptr);
 }
 
 /**

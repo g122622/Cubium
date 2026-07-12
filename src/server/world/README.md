@@ -7,6 +7,10 @@
 ```
 src/server/world/
 ├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/getOrLoadChunk同步区块加载）
+├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（按区块分组去重，tick drain→submit worker 或 fallback 同步）
+├── RuntimeLightingProvider.hpp/cpp  # 运行时/区块加载光照 worker provider（继承 StarLightLightingProvider；构造时 5×5 shared_ptr 保活；markLightChanged 收集 dirty section 而非回调）
+├── RuntimeLightTask.hpp/cpp         # 运行时光照传播 worker 任务（继承 ITask；execute 经 TLS 引擎调 blocksChangedInChunk 传播→取 dirty→_enqueueLightFlush 入主线程 flush 队列）
+├── ChunkLoadLightTask.hpp/cpp       # 区块加载光照 worker 任务（继承 ITask；execute 经 TLS 引擎 light()/forceHandleEmptySectionChanges+checkChunkEdges→取 dirty→_enqueueLightFlush + _enqueueChunkSend 续延）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
 ├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（NewChunkHolder 等价物：请求聚合/状态推进/等待者/双向邻居依赖）
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
@@ -186,7 +190,20 @@ NoiseChunkGenerator::randomState()  →  RandomState
 客户端天气不一致时检查 `hasWeatherChanged()` 并广播天气更新包。
 
 ### 光照初始化时机
-区块加载后光照未初始化会导致客户端显示错误。设置 `ChunkLoadedCallback` 在区块加载完成后初始化光照。
+区块加载后光照由 `ChunkLoadLightTask` 在 worker 线程异步完成（效仿 Moonrise `ThreadedLevelLightEngine`）。`ChunkLoadedCallback` 调 `ServerWorld::enqueueChunkLoadLight` 入队，完成后经 `ServerWorld` 续延队列回主线程 flush + send。光照未完成时发送区块会导致客户端全黑，故 send 必须在 flush 之后（见下 tick 顺序）。
+
+### 运行时方块变更光照异步传播
+`ServerWorld::setBlockState` 的光照更新**不在调用当场传播**，而是入队 `ServerLightQueue`（按区块分组、同坐标去重）。`ServerWorld::tick` 光照段顺序严格 **flush → send → drain**：
+
+1. **`_drainPendingLightFlushes()`**（主线程）：取出上一 tick worker 完成后入队的 dirty section，逐项调真正的 `markLightChanged`（`_syncLightDataToChunk` 把 visible nibble 同步到 ChunkSection + `m_onLightChanged` 网络包）。
+2. **`_drainPendingChunkSends()`**（主线程）：取出上一 tick worker 完成光照的区块坐标，调 `ChunkSendManager::sendChunkToTrackingPlayers`（serialize 读已 flush 的 ChunkSection nibble）+ `removeLightTicket` 释放 LIGHT 票据。
+3. **`m_lightQueue.drainAndProcess(*this)`**（主线程入队 worker）：swap 出任务表，逐区块构造 `RuntimeLightTask` 提交到 `ServerWorkerPool` 区域互斥池（writeRadius=2）。executor 为 nullptr 时 fallback 同步经 TLS 引擎调 `blocksChangedInChunk`。
+
+引擎已无 `m_mutex`（③-2b）：`WorldLightManager` 改 `thread_local` 引擎池（`acquireSkyLightEngine`/`acquireBlockLightEngine`），每个 worker 线程独占一套引擎，无引擎级锁。所有光照写操作（区块加载光照、运行时方块变更、LIGHT 生成阶段）统一经同一 `ServerWorkerPool` 区域互斥池（writeRadius=2），重叠 5×5 区域的 nibble 写必被区域锁串行 → 满足 `SWMRNibbleArray` 更新侧非原子单写者语义。
+
+`RuntimeLightTask` / `ChunkLoadLightTask`（worker 线程）：持 `RuntimeLightingProvider`（5×5 `shared_ptr<ChunkData>` 保活防在途 UAF），经 TLS 引擎调 `blocksChangedInChunk` / `light` / `forceHandleEmptySectionChanges`+`checkChunkEdges`；`updateVisible` 内部的 `markLightChanged` 经 provider 收集到 `m_dirtySections` 而非触碰主线程独占回调；任务末尾 `_enqueueLightFlush` 把 dirty section 入主线程 flush 队列，`ChunkLoadLightTask` 还额外 `_enqueueChunkSend` 入区块发送续延队列。
+
+因此存在**最多 2 tick 的最终一致性窗口**：setBlockState 返回 →（tick N）submit worker → worker 完成 + 入队 dirty →（tick N+1）flush visible。`getLightSubtracted` 等查询在 flush 前可能读旧值。若有逻辑依赖即时光照（如方块变更回调里立即查亮度），需自行评估或改走 tick 后查询。生成阶段（LIGHT step）的光照不经过此队列，由 `ServerChunkManager` LIGHT 分支经 TLS 引擎 `light()` 同步完成。
 
 ### 未初始化世界调用 setBlockState
 在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlockState()` 会在光照更新阶段触发断言。**所有需要光照的测试必须先初始化世界**。不需要光照的测试（如 `tickPrecipitation`）可以直接调用，因为 `tickPrecipitation()` 仅依赖 `m_chunkManager` 和 `m_weatherManager`，无需 `initialize()`。

@@ -42,7 +42,6 @@ namespace sync {
 class EntitySyncManager;
 class ChunkSendManager;
 class BlockUpdateSyncManager;
-class LightSyncManager;
 } // namespace sync
 } // namespace server
 
@@ -163,12 +162,6 @@ public:
         return m_blockUpdateSyncManager.get();
     }
 
-    /**
-     * @brief 获取光照同步管理器
-     */
-    [[nodiscard]] server::sync::LightSyncManager* lightSyncManager() { return m_lightSyncManager.get(); }
-    [[nodiscard]] const server::sync::LightSyncManager* lightSyncManager() const { return m_lightSyncManager.get(); }
-
     // ========== 生物生成 ==========
 
     /**
@@ -262,7 +255,6 @@ private:
     std::unique_ptr<server::sync::EntitySyncManager> m_entitySyncManager;
     std::unique_ptr<server::sync::ChunkSendManager> m_chunkSendManager;
     std::unique_ptr<server::sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
-    std::unique_ptr<server::sync::LightSyncManager> m_lightSyncManager;
 
     // 生物生成管理器
     std::unique_ptr<world::spawn::NaturalSpawner> m_naturalSpawner;

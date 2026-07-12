@@ -296,7 +296,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
             // k2 使用 WAY_BELOW_MIN_Y 哨兵值（MC: DimensionType.WAY_BELOW_MIN_Y = MIN_Y << 4）
             // 表示石头柱向下延伸到极深处，使得 stoneDepthBelow 计算为很大的正值
             i32 stoneDepthAbove = 0;
-            i32 waterHeight = INT_MIN;
+            i32 waterHeight = std::numeric_limits<int>::min();
             i32 stoneDepthBelowStart = world::MIN_BUILD_HEIGHT << 4; // -1024，哨兵值
 
             // 从上到下遍历列
@@ -310,7 +310,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
                 }
 
                 if (currentState->isLiquid()) {
-                    if (waterHeight == INT_MIN) {
+                    if (waterHeight == std::numeric_limits<int>::min()) {
                         waterHeight = y + 1;
                     }
                     continue;
