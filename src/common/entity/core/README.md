@@ -102,7 +102,7 @@
     / summon 命令 | Command | SummonCommand.cpp | | 陷阱骷髅马 | Trigger | SkeletonHorseEntity.cpp | | 袭击 | Event
     | Raid.cpp | | 繁殖 | Breeding | BreedGoal.cpp | | 史莱姆分裂 | Reinforcement | SlimeEntity.cpp | | 恼鬼召唤
     | MobSummons | EvokerEntity.cpp | | 蠹虫生成 | Event | InfestedBlock.cpp | | 雪傀儡 / 铁傀儡 | Event
-    | MelonPumpkinBlocks.cpp | | 海龟孵化 | Natural | TurtleEggBlock.cpp | | 远古守卫者 | Structure
+    | MelonPumpkinBlocks.cpp | | 海龟孵化 | Natural | TurtleEggBlock.cpp | | 嗅探兽蛋孵化 | Natural | TrailsBlocks.cpp（SnifferEggBlock::randomTick） | | 远古守卫者 | Structure
     | OceanMonumentPieces.cpp | | 结构模板 | Structure | Template.cpp | | 区块生成 | ChunkGeneration | ServerWorld.cpp,
           MinecraftServer.cpp | | 僵尸村民治愈 | Conversion | ZombieVillagerEntity.cpp |
 

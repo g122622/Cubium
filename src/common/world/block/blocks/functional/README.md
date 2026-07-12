@@ -212,6 +212,19 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
 
     **BrushableBlock 构造参数 `turnsInto`**：构造时传入刷扫完成后转换的目标方块（可疑沙→`VanillaBlocks::SAND`，可疑沙砾→`VanillaBlocks::GRAVEL`），通过 `getTurnsInto()` 暴露给 `BrushableBlockEntity::brushingCompleted()` 用于方块替换。`tick()` 重写先调用 `BrushableBlockEntity::checkReset()` 处理刷扫计数重置，再委托 `FallingBlock::tick()` 执行下落检测。
 
+    **SnifferEggBlock 孵化逻辑**：`randomTick` 实现 MC 1.21.11 `SnifferEggBlock.tick` 的完整孵化流程：
+    - **状态属性**：`HATCH_0_2`（0/1/2 三级孵化进度），默认 0
+    - **hatch < 2 分支**：播放 `SNIFFER_EGG_CRACK` 音效（音量 0.7，音高 0.9 + random*0.2），`HATCH` 等级 +1
+    - **hatch = 2 分支（孵化完成）**：
+      1. 播放 `SNIFFER_EGG_HATCH` 音效
+      2. 销毁蛋方块（替换为 AIR）
+      3. 创建 `SnifferEntity`，调用 `setChild(true)` 设置幼年期 -48000 tick（40 分钟）
+      4. `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` 对齐 MC `snapTo`
+      5. `finalizeSpawn(world, difficultyInstance, SpawnReason::Natural)` 进行基于难度的初始化
+      6. `world.spawnEntity(std::move(sniffer))` 生成到世界
+    - **客户端守卫**：方法入口 `if (world.isClientSide()) return;`，仅服务端执行（MC 原版通过 `ServerLevel.scheduleTick` 天然只在服务端调用，本项目 `randomTick` 由 `ServerWorld::tickEnvironment` 触发，但仍显式检查以防御性编程与测试友好）
+    - **孵化加速**（TODO）：MC 原版 `hatchBoost` 检测下方方块是否在 `BlockTags.SNIFFER_EGG_HATCH_BOOST` 标签（如苔藓），加速孵化时间（24000→12000 tick）。当前项目未实现 `onPlace` 调度 + `scheduleTick` 机制，仅依赖 `randomTick` 随机孵化，加速逻辑待后续实现。
+
     ## #6. LecternBlock 红石脉冲机制
 
     讲台的红石信号通过以下方法链实现：

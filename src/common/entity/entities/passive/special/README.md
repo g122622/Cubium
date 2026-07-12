@@ -10,6 +10,7 @@ special/
 ├── FoxEntity.hpp/cpp         # 狐狸（信任机制、叼物品、皮肤变体）
 ├── PandaEntity.hpp/cpp       # 熊猫（7种性格基因、打喷嚏、打滚）
 ├── PolarBearEntity.hpp/cpp   # 北极熊（保护幼崽、站立警告，实现 IAngerable）
+├── SnifferEntity.hpp/cpp     # 嗅探兽（蛋孵化获得、状态机、繁殖掉蛋，幼年期 48000 tick）
 ├── StriderEntity.hpp/cpp     # 炽足兽（熔岩行走、可骑乘，实现 IRideable + IEquipable）
 ├── TurtleEntity.hpp/cpp      # 海龟（出生地记忆、产卵）
 └── README.md                 # 本文档
@@ -28,6 +29,10 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 │   └── 基因系统（主基因 + 隐藏基因）
 ├── PolarBearEntity
 │   └── IAngerable (entity/interfaces/IAngerable.hpp)
+├── SnifferEntity
+│   ├── 状态机（Idling/FeelingHappy/Scenting/Sniffing/Searching/Digging/Rising）
+│   ├── setChild 覆盖（幼年期 48000 tick，是普通动物的两倍）
+│   └── 繁殖掉落嗅探兽蛋物品（当前为 spawnBaby 占位实现）
 ├── StriderEntity
 │   ├── IRideable (entity/interfaces/IRideable.hpp)
 │   └── IEquipable (entity/interfaces/IEquipable.hpp)
@@ -112,6 +117,17 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
    - 手持鞍 → 返回 Pass，委托给 SaddleItem::itemInteractionForEntity() 处理
    - 其他 → 返回 Pass
    - 创造模式下喂食不消耗物品，静默实体不播放音效
+
+### SnifferEntity 嗅探兽
+1. **幼年期长度特殊**：嗅探兽幼年期为 48000 tick（40 分钟），是普通动物（24000 tick / 20 分钟）的两倍。`setChild(bool)` 覆盖了 `AgeableEntity::setChild`，设置 `SNIFFER_BABY_AGE_TICKS = -48000`。`AgeableEntity::setChild` 因此被改为 `virtual` 以允许此覆盖。
+2. **状态机同步**：`DATA_STATE_PARAM` 使用 `DataParameter<i8>`（对齐 MC SNIFFER_STATE BYTE 序列化器），`getState()`/`setState()` 负责 `State↔i8` 转换。`transitionTo(state)` 在切换状态时播放对应音效（happy/scenting/sniffing/digging_stop）。
+3. **繁殖物品**：`isBreedingItem` 识别 `TORCHFLOWER_SEEDS` 和 `PITCHER_POD`（MC 原版使用 `ItemTags.SNIFFER_FOOD` 标签，项目无物品标签系统故直接判断）。
+4. **繁殖状态限制**：`canMateWith` 要求双方 `SnifferEntity` 且状态在 `{Idling, Scenting, FeelingHappy}` 集合内才可繁殖。
+5. **繁殖掉蛋而非幼体**：MC 原版 `Sniffer.spawnChildFromBreeding` 实际掉落 `SNIFFER_EGG` 物品而非直接生成幼体。当前项目 `Items::SNIFFER_EGG` 尚未实现，`spawnBaby` 返回幼体嗅探兽作为占位实现（TODO 待物品实现后改为掉落蛋物品）。
+6. **挖掘 AI 未实现**：MC 原版使用 Brain + MemoryModuleType.SNIFFER_EXPLORED_POSITIONS 管理挖掘状态，项目无 Brain 系统且挖掘 Goal 未实现。`transitionTo(Digging)` 中的 `DATA_DROP_SEED_AT_TICK` 设置与粒子广播留有 TODO 注释。
+7. **孵化入口**：`SnifferEggBlock::randomTick`（位于 `world/block/blocks/functional/TrailsBlocks.cpp`）在孵化等级达到 2 时调用 `setChild(true)` + `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` + `finalizeSpawn` + `spawnEntity` 生成幼体嗅探兽。
+8. **属性常量**：`MOVEMENT_SPEED = 0.1`、`MAX_HEALTH = 14.0`、`FOLLOW_RANGE = 16.0`、`SNIFFER_STEP_VOLUME = 0.15`，均对齐 MC 1.21.11 `Sniffer.createAttributes` 与 `playStepSound`。
+9. **NBT 键名**：`state`（i8，0-6 状态枚举）与 `drop_seed_at_tick`（i32，挖掘掉落种子 tick），定义于 `entity/serialization/EntityNbtKeys.hpp`，与 MC 1.21.11 `Sniffer.addAdditionalSaveData` 一致。
 
 ### TurtleEntity 海龟
 1. **出生地继承**：幼龟孵化后需要继承父母的出生地位置，否则无法返回产卵。
