@@ -20,61 +20,18 @@
  * SOFTWARE.
  */
 
-#include "world/biome/climate/Climate.hpp"
+#include "world/biome/climate/SpawnFinder.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "world/gen/density/DensityFunction.hpp"
+#include "world/biome/climate/Sampler.hpp"
+
+#include <cmath>
+#include <limits>
 
 namespace mc::world::biome::climate {
-
-// ============================================================================
-// Sampler
-// ============================================================================
-
-Sampler::Sampler(const mc::world::gen::density::DensityFunction& temperature,
-    const mc::world::gen::density::DensityFunction& humidity,
-    const mc::world::gen::density::DensityFunction& continentalness,
-    const mc::world::gen::density::DensityFunction& erosion,
-    const mc::world::gen::density::DensityFunction& depth,
-    const mc::world::gen::density::DensityFunction& weirdness)
-    : m_temperature(&temperature)
-    , m_humidity(&humidity)
-    , m_continentalness(&continentalness)
-    , m_erosion(&erosion)
-    , m_depth(&depth)
-    , m_weirdness(&weirdness)
-{}
-
-TargetPoint Sampler::sample(i32 quartX, i32 quartY, i32 quartZ) const
-{
-    // quart 坐标转换为方块坐标
-    const i32 blockX = quartX << 2;
-    const i32 blockY = quartY << 2;
-    const i32 blockZ = quartZ << 2;
-
-    return TargetPoint::fromFloats(static_cast<f32>(m_temperature->compute(blockX, blockY, blockZ)),
-        static_cast<f32>(m_humidity->compute(blockX, blockY, blockZ)),
-        static_cast<f32>(m_continentalness->compute(blockX, blockY, blockZ)),
-        static_cast<f32>(m_erosion->compute(blockX, blockY, blockZ)),
-        static_cast<f32>(m_depth->compute(blockX, blockY, blockZ)),
-        static_cast<f32>(m_weirdness->compute(blockX, blockY, blockZ)));
-}
-
-BlockPos Sampler::findSpawnPosition() const
-{
-    if (m_spawnTarget.empty()) {
-        return BlockPos(0, 0, 0);
-    }
-    return climate::findSpawnPosition(m_spawnTarget, *this);
-}
-
-// ============================================================================
-// SpawnFinder
-// ============================================================================
 
 SpawnFinder::SpawnFinder(std::vector<ParameterPoint> spawnTargets, const Sampler& sampler)
     : m_result(getSpawnPositionAndFitness(spawnTargets, sampler, 0, 0))
 {
-    // MC 1.21.11: Climate.SpawnFinder 构造函数
     // 1. 计算初始位置 (0,0) 的 fitness
     // 2. 粗搜索: 半径 512..2048, 步长 512
     // 3. 精搜索: 半径 32..512, 步长 32
@@ -94,7 +51,6 @@ BlockPos SpawnFinder::findSpawnPosition(const std::vector<ParameterPoint>& spawn
 SpawnFinder::Result SpawnFinder::getSpawnPositionAndFitness(
     const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler, i32 x, i32 z)
 {
-    // MC 1.21.11: Climate.SpawnFinder.getSpawnPositionAndFitness
     // 1. 在 (x, 0, z) 处采样气候
     // 2. 将 depth 置零（出生点在表面）
     // 3. 计算所有 spawn target 中最小的 fitness
@@ -127,7 +83,6 @@ SpawnFinder::Result SpawnFinder::getSpawnPositionAndFitness(
 void SpawnFinder::radialSearch(
     const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler, f32 maxRadius, f32 stepSize)
 {
-    // MC 1.21.11: Climate.SpawnFinder.radialSearch
     // 螺旋搜索：角度递增，半径递增
     // 角度步进 = stepSize / currentRadius（大半径时步进更细，小半径时更粗）
     // 每当角度累加超过 2π，重置角度并增大半径

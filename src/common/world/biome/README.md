@@ -38,10 +38,11 @@
 ├── BiomeManager.cpp
 ├── Biomes.hpp #生物群系系统聚合头文件
 ├── climate / #Climate 参数系统
-│   ├── Climate.hpp #Parameter,
-    ParameterPoint, TargetPoint, ParameterList,
-    Sampler
-│   ├── Climate.cpp
+│   ├── ParameterTypes.hpp #Parameter, TargetPoint, ParameterPoint, 常量, 辅助函数
+│   ├── RTree.hpp #7 维参数空间 RTree 索引模板族
+│   ├── ParameterList.hpp #ParameterList<T> 最近邻查找
+│   ├── Sampler.hpp / Sampler.cpp #气候采样器（持有 6 个密度函数）
+│   ├── SpawnFinder.hpp / SpawnFinder.cpp #出生点径向搜索
 │   └── README.md
 ├── source /
         #生物群系源实现

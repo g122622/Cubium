@@ -1787,7 +1787,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/OverworldBiomeBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/EndBiomeSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Climate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Sampler.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/SpawnFinder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/weather/WeatherUtils.cpp
         # 生物群系颜色解析器
         ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp

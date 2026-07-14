@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include <array>
 #include <memory>

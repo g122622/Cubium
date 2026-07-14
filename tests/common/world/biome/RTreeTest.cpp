@@ -32,8 +32,10 @@
  * 5. RTree 缓存优化验证
  */
 
+#include "common/world/biome/climate/RTree.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/ParameterList.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
 #include <gtest/gtest.h>
 
 namespace mc {

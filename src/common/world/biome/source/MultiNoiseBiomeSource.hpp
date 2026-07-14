@@ -23,7 +23,9 @@
 #pragma once
 
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/ParameterList.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include <memory>
 

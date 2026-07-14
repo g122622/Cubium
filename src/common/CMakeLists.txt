@@ -1122,7 +1122,8 @@ add_library(mc_common STATIC
     world/biome/BiomeTags.cpp
 
     # World - Biome - Climate
-    world/biome/climate/Climate.cpp
+    world/biome/climate/Sampler.cpp
+    world/biome/climate/SpawnFinder.cpp
 
     # World - Biome - Source
     world/biome/source/MultiNoiseBiomeSource.cpp

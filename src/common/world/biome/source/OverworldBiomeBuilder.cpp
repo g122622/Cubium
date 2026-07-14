@@ -21,7 +21,7 @@
  */
 
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
 #include <limits>
 
 namespace mc::world::biome::source {

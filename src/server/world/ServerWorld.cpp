@@ -496,9 +496,7 @@ void ServerWorld::initializeWorldSpawn()
 {
     spdlog::info("ServerWorld: Initializing world spawn point...");
 
-    // MC 1.21.11: MinecraftServer.setInitialSpawn
-    //   ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());
-    // 通过 Climate.Sampler.findSpawnPosition() 在气候空间径向搜索最佳出生区块，
+    // 通过 Sampler 在气候空间径向搜索最佳出生区块，
     // 然后在出生区块中用 SpawnLocationHelper 查找有效出生位置。
     //
     // 仅 NoiseChunkGenerator 持有 RandomState（其 Sampler 内含 spawnTarget）。

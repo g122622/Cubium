@@ -36,7 +36,7 @@
 #include "common/core/Constants.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
