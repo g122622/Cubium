@@ -23,7 +23,6 @@
 #pragma once
 
 #include "AllOfPredicate.hpp"
-#include "EnvironmentScanPredicate.hpp"
 #include "HasSturdyFacePredicate.hpp"
 #include "InsideWorldBoundsPredicate.hpp"
 #include "MatchingBlockPredicate.hpp"

@@ -31,6 +31,12 @@
 
 namespace mc::world::gen::feature::state {
 
+// TODO(数据驱动迁移未完成): state::BlockStateProvider / SimpleBlockStateProvider 是计划替换
+// mc:: 旧体系 BlockStateProvider/SimpleBlockStateProvider(Feature.hpp) 的多态基类。当前数据驱动
+// parser(BlockStateProviderParser) 尚未切换到本基类——它改用 BlockStateProviderHandle 联合体按 kind
+// 分派, 且 WeightedBlockStateProvider 未继承本基类。本文件 .cpp 未纳入 CMakeLists 编译, 基类与
+// Simple 子类零构造/零继承。待 parser 迁移到多态基类后启用, 并删除旧 mc:: 体系(Feature.hpp)。
+
 /**
  * @brief 方块状态提供者基类
  *

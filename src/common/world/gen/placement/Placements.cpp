@@ -289,34 +289,4 @@ std::vector<BlockPos> SpreadPlacement::getPositions(
     return positions;
 }
 
-// ============================================================================
-// CountExtraPlacement 实现
-// ============================================================================
-
-std::vector<BlockPos> CountExtraPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
-{
-    const auto* extraConfig = dynamic_cast<const AtSurfaceWithExtraConfig*>(&config);
-    if (!extraConfig) {
-        return {basePos};
-    }
-
-    (void)region;
-
-    // 基础数量 + 概率额外数量
-    i32 count = extraConfig->count;
-    if (random.nextFloat() < extraConfig->extraChance) {
-        count += extraConfig->extraCount;
-    }
-
-    std::vector<BlockPos> positions;
-    positions.reserve(count);
-
-    for (i32 i = 0; i < count; ++i) {
-        positions.push_back(basePos);
-    }
-
-    return positions;
-}
-
 } // namespace mc

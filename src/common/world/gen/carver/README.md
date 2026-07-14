@@ -14,8 +14,7 @@ carver/
 ├── CanyonCarver.cpp            # 峡谷雕刻器实现
 ├── NetherWorldCarver.hpp       # 下界雕刻器
 ├── NetherWorldCarver.cpp       # 下界雕刻器实现
-├── CarverConfiguration.hpp     # 配置结构体 + 工厂函数
-├── CarverConfiguration.cpp     # 配置工厂实现
+├── CarverConfiguration.hpp     # 配置结构体
 ├── CarvingContext.hpp          # 雕刻上下文（含水层引用、topMaterial）
 ├── CarvingContext.cpp          # 雕刻上下文实现（topMaterial 生物群系地表查询）
 ├── CarvingMask.hpp             # 雕刻掩码声明
@@ -23,8 +22,7 @@ carver/
 ├── ConfiguredCarverRegistry.hpp # 配置化雕刻器注册表（数据驱动，按 ResourceLocation 索引）
 ├── ConfiguredCarverRegistry.cpp # 注册表实现
 ├── ConfiguredCarverLoader.hpp  # 从数据包加载 configured_carver JSON
-├── ConfiguredCarverLoader.cpp  # Loader 实现（解析 4 个 carver config）
-└── Carvers.hpp                 # 便捷包含头文件
+└── ConfiguredCarverLoader.cpp  # Loader 实现（解析 4 个 carver config）
 ```
 
 ---
@@ -44,8 +42,6 @@ CarverConfiguration          基础配置
 ├── CaveCarverConfiguration  洞穴配置
 └── CanyonCarverConfiguration 峡谷配置
     └── CanyonShapeConfiguration 峡谷形状配置
-
-ConfiguredCarvers            默认配置工厂（createOverworldCaveConfig 等）
 ```
 
 **继承关系**：

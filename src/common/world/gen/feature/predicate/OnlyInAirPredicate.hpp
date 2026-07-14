@@ -40,18 +40,4 @@ public:
     }
 };
 
-/**
- * @brief 检查位置是否为空气或水的谓词
- *
- * 当方块状态为空、空气或液体时返回true。
- */
-class OnlyInAirOrWaterPredicate : public BlockPredicate {
-public:
-    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
-    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
-    {
-        return std::make_unique<OnlyInAirOrWaterPredicate>();
-    }
-};
-
 } // namespace mc::world::gen::feature::predicate

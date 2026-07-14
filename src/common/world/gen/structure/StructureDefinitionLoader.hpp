@@ -106,6 +106,12 @@ struct StructureDefinition {
  *
  * 加载路径: data/<namespace>/worldgen/structure/<path>.json
  */
+
+// TODO(数据驱动迁移未完成): StructureDefinitionLoader 是数据驱动结构定义加载半成品。它实现了从
+// 数据包 JSON 解析 StructureDefinition 的完整逻辑, 但尚未接入 MinecraftServer 初始化链路——当前
+// 结构注册仍走 StructureRegistry::initialize()(StructureManager.cpp) 硬编码。本加载器零生产消费者,
+// 其 .cpp 虽在 CMakeLists 编译但无任何调用入口。待完成接入(替换硬编码注册)后即为活代码。
+
 class StructureDefinitionLoader {
 public:
     /**

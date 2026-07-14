@@ -1771,7 +1771,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CaveCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CanyonCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CarvingMask.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CarverConfiguration.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/WorldCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp

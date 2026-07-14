@@ -80,6 +80,13 @@ namespace world::gen::structure {
  *
  * 加载路径: data/<namespace>/worldgen/structure_set/<path>.json
  */
+
+// TODO(数据驱动迁移未完成): StructureSetLoader 是数据驱动结构集合加载半成品。它实现了从数据包 JSON
+// 解析 StructureSet 的完整逻辑(含 random_spread / concentric_rings 放置), 但尚未接入 MinecraftServer
+// 初始化链路——当前结构集合注册仍走硬编码。本加载器零生产消费者, 其 .cpp 虽在 CMakeLists 编译但无
+// 任何调用入口(StructureSetLoader.cpp 内部调用 StructureSetRegistry 不构成活引用, 因加载器本身无人调)。
+// 待完成接入后即为活代码。
+
 class StructureSetLoader {
 public:
     /**

@@ -1101,7 +1101,6 @@ add_library(mc_common STATIC
     world/gen/carver/CarvingMask.cpp
     world/gen/carver/CaveCarver.cpp
     world/gen/carver/CanyonCarver.cpp
-    world/gen/carver/CarverConfiguration.cpp
     world/gen/carver/NetherWorldCarver.cpp
     world/gen/carver/ConfiguredCarverRegistry.cpp
     world/gen/carver/ConfiguredCarverLoader.cpp
@@ -1263,8 +1262,6 @@ add_library(mc_common STATIC
     world/gen/feature/template/RuleTest.cpp
     world/gen/feature/ruletest/PosRuleTest.cpp
     world/gen/feature/ruletest/RuleEntry.cpp
-    world/gen/feature/ruletest/StoneRuleTest.cpp
-    world/gen/feature/ruletest/DeepslateRuleTest.cpp
     world/gen/feature/template/CappedStructureProcessor.cpp
     world/gen/feature/template/ProtectedBlocksProcessor.cpp
 
