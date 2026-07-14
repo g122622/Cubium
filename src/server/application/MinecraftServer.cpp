@@ -558,6 +558,12 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
             broadcastEntityAnimationInRange(entityId, animation, entity->position());
         }
     });
+    world.setOnBroadcastHurtAnimation([this, &world](EntityId entityId, f32 hurtDir) {
+        Entity* entity = world.getEntity(entityId);
+        if (entity != nullptr) {
+            broadcastHurtAnimationInRange(entityId, hurtDir, entity->position());
+        }
+    });
     world.setOnBroadcastSetEntityLink([this, &world](EntityId entityId, EntityId linkedEntityId) {
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
@@ -3136,6 +3142,36 @@ void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 anim
     auto result = packet.serialize();
     if (result.failed()) {
         spdlog::error("Failed to serialize EntityAnimationPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
+
+    f32 rangeSq = range * range;
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastHurtAnimationInRange(EntityId entityId, f32 hurtDir, const Vector3& pos, f32 range)
+{
+    // 复用 EntityAnimationPacket 的 TakeDamage 动画通道，附加 hurtDir
+    // （ClientboundHurtAnimationPacket(id, yaw)，受害者自身与范围内追踪者均会收到）。
+    network::EntityAnimationPacket packet;
+    packet.setEntityId(static_cast<u32>(entityId));
+    packet.setAnimation(network::EntityAnimationPacket::Animation::TakeDamage);
+    packet.setHurtDir(hurtDir);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize hurt animation packet: {}", result.error().message());
         return;
     }
 

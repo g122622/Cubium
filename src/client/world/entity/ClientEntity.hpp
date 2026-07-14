@@ -411,6 +411,14 @@ public:
     void setHurtTime(i32 time) { m_hurtTime = time; }
 
     /**
+     * @brief 获取受伤方向角（度，相对实体朝向）
+     *
+     * 由服务端 hurt 动画包同步，第三人称实体渲染的 damageTilt 据此倾斜。
+     */
+    [[nodiscard]] f32 hurtDir() const { return m_hurtDir; }
+    void setHurtDir(f32 dir) { m_hurtDir = dir; }
+
+    /**
      * @brief 获取死亡时间
      * 用于渲染死亡淡出效果
      */
@@ -1428,8 +1436,9 @@ private:
     f32 m_eyeHeight = 1.62f; // 眼睛高度，默认为玩家站立眼高
 
     // 受伤和死亡状态
-    i32 m_hurtTime = 0;  // 受伤时间 (0-10)
-    i32 m_deathTime = 0; // 死亡时间
+    i32 m_hurtTime = 0;   // 受伤时间 (0-10)
+    f32 m_hurtDir = 0.0f; // 受伤方向角（度，相对实体朝向）— damageTilt 用
+    i32 m_deathTime = 0;  // 死亡时间
 
     // 行为状态
     bool m_sneaking = false;

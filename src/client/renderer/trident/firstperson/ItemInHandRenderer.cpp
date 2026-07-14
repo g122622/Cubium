@@ -72,24 +72,24 @@ Result<void> ItemInHandRenderer::initialize()
     m_transforms.firstPersonRight = ItemTransform(0.0f,
         45.0f,
         0.0f, // Y 轴旋转 45 度
-        0.0f,
-        2.5f,
-        0.0f, // Y 平移
-        0.4f,
-        0.4f,
-        0.4f // 缩放
+        1.13f,
+        3.2f,
+        1.13f, // 平移
+        0.68f,
+        0.68f,
+        0.68f // 缩放
     );
 
     // 第一人称左手（镜像右手）
     m_transforms.firstPersonLeft = ItemTransform(0.0f,
         -45.0f,
         0.0f, // Y 轴旋转 -45 度
-        0.0f,
-        2.5f,
-        0.0f,
-        0.4f,
-        0.4f,
-        0.4f);
+        -1.13f,
+        3.2f,
+        1.13f,
+        0.68f,
+        0.68f,
+        0.68f);
 
     // GUI 显示
     m_transforms.gui = ItemTransform(30.0f,
@@ -161,88 +161,6 @@ const resource::BakedItemModel* ItemInHandRenderer::getItemModel(const ItemStack
     }
 
     return cache.getItemModel(*item);
-}
-
-// ============================================================================
-// 渲染方法
-// ============================================================================
-
-void ItemInHandRenderer::renderItem(
-    MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
-{
-    if (!m_initialized || itemStack.isEmpty()) {
-        return;
-    }
-
-    // 应用变换
-    applyTransform(stack, itemStack, transformType, leftHanded);
-
-    // 检查是否为方块物品
-    const bool isBlock = isBlockItem(itemStack);
-
-    // 根据物品类型渲染
-    if (isBlock) {
-        renderBlockItem(stack, itemStack, transformType, leftHanded);
-    } else {
-        renderRegularItem(stack, itemStack, transformType, leftHanded);
-    }
-}
-
-void ItemInHandRenderer::renderBlockItem(
-    MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
-{
-    // 方块物品使用 ItemMeshBuilder::buildBlockItemMesh() 构建3D网格
-    //
-    // 渲染流程：
-    // 1. 从 ItemModelCache 获取 BakedItemModel
-    // 2. 使用 ItemMeshBuilder 构建3D网格（包含 elements 数据）
-    // 3. 模型变换已在 ItemMeshBuilder 中应用
-    //
-    // 注意：此方法目前只负责变换部分
-    // 实际的网格渲染由 FirstPersonRenderer 或 HeldItemLayer 完成
-    // 它们使用 ItemMeshBuilder::buildHeldItemMesh() 获取顶点数据
-
-    (void)stack;
-    (void)transformType;
-    (void)leftHanded;
-
-    // 获取物品模型用于验证
-    const resource::BakedItemModel* model = getItemModel(itemStack);
-    if (model == nullptr) {
-        return;
-    }
-
-    // TODO: 实现方块物品的网格渲染，当前仅负责变换部分
-    // 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成
-}
-
-void ItemInHandRenderer::renderRegularItem(
-    MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded)
-{
-    // 普通物品使用 ItemMeshBuilder::buildGeneratedMesh() 或 buildHeldItemMesh() 构建网格
-    //
-    // 渲染流程：
-    // 1. 从 ItemModelCache 获取 BakedItemModel
-    // 2. 使用 ItemMeshBuilder 根据模型类型构建网格
-    //    - Generated/Handheld: buildGeneratedMesh() - billboard 四边形
-    //    - Custom: buildCustomMesh() - 3D elements
-    // 3. 模型变换已在 ItemMeshBuilder 中应用
-    //
-    // 注意：此方法目前只负责变换部分
-    // 实际的网格渲染由 FirstPersonRenderer 或 HeldItemLayer 完成
-
-    (void)stack;
-    (void)transformType;
-    (void)leftHanded;
-
-    // 获取物品模型用于验证
-    const resource::BakedItemModel* model = getItemModel(itemStack);
-    if (model == nullptr) {
-        return;
-    }
-
-    // TODO: 实现普通物品的网格渲染，当前仅负责变换部分
-    // 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成
 }
 
 // ============================================================================
@@ -346,94 +264,27 @@ bool ItemInHandRenderer::applyTransform(
 
 void ItemInHandRenderer::applyDefaultTransform(MatrixStack& stack, TransformType transformType, bool leftHanded)
 {
-    // 获取对应的变换
+    // 物品模型未提供自定义 display 变换时的回退：使用 initialize() 中设置的默认变换。
     const ItemTransform& transform = m_transforms.getTransform(transformType);
 
-    if (transform.isDefault()) {
-        // 没有自定义变换，使用硬编码的默认值
-        switch (transformType) {
-            case TransformType::ThirdPersonRightHand:
-                // 第三人称右手：物品在手侧下方
-                stack.translate(0.0f, 3.0f, 1.0f);
-                stack.scale(0.55f, 0.55f, 0.55f);
-                break;
-
-            case TransformType::ThirdPersonLeftHand:
-                // 第三人称左手：镜像右手
-                stack.translate(0.0f, 3.0f, 1.0f);
-                stack.scale(0.55f, 0.55f, 0.55f);
-                break;
-
-            case TransformType::FirstPersonRightHand: {
-                // 第一人称右手：物品稍微倾斜
-                stack.translate(1.13f, 3.2f, 1.13f);
-                stack.rotateY(45.0f);
-                stack.rotateX(0.0f);
-                stack.scale(0.68f, 0.68f, 0.68f);
-                break;
-            }
-
-            case TransformType::FirstPersonLeftHand: {
-                // 第一人称左手：镜像右手
-                stack.translate(-1.13f, 3.2f, 1.13f);
-                stack.rotateY(-45.0f);
-                stack.rotateX(0.0f);
-                stack.scale(0.68f, 0.68f, 0.68f);
-                break;
-            }
-
-            case TransformType::Gui:
-                // GUI 显示：俯视角度
-                stack.translate(0.0f, 0.0f, 0.0f);
-                stack.rotateX(30.0f);
-                stack.rotateY(225.0f);
-                stack.scale(0.625f, 0.625f, 0.625f);
-                break;
-
-            case TransformType::Ground:
-                // 地面掉落物
-                stack.translate(0.0f, 0.0f, 0.0f);
-                stack.scale(0.25f, 0.25f, 0.25f);
-                break;
-
-            case TransformType::Fixed:
-                // 固定位置（物品展示框）
-                stack.translate(0.0f, 0.0f, 0.0f);
-                stack.scale(0.5f, 0.5f, 0.5f);
-                break;
-
-            case TransformType::Head:
-                // 头部位置
-                stack.translate(0.0f, 0.0f, 0.0f);
-                stack.rotateY(180.0f);
-                stack.scale(1.0f, 1.0f, 1.0f);
-                break;
-
-            default:
-                break;
-        }
-    } else {
-        // 使用自定义变换
-        // 左手需要镜像 Y 轴旋转和 Z 轴旋转
-        f32 rotY = transform.rotation.y;
-        f32 rotZ = transform.rotation.z;
-        if (leftHanded) {
-            rotY = -rotY;
-            rotZ = -rotZ;
-        }
-
-        // 平移（像素单位转换为方块单位，除以 16）
-        stack.translate(
-            transform.translation.x / 16.0f, transform.translation.y / 16.0f, transform.translation.z / 16.0f);
-
-        // 旋转（角度）
-        stack.rotateZ(rotZ);
-        stack.rotateY(rotY);
-        stack.rotateX(transform.rotation.x);
-
-        // 缩放
-        stack.scale(transform.scale.x, transform.scale.y, transform.scale.z);
+    // 左手需要镜像 Y 轴旋转和 Z 轴旋转
+    f32 rotY = transform.rotation.y;
+    f32 rotZ = transform.rotation.z;
+    if (leftHanded) {
+        rotY = -rotY;
+        rotZ = -rotZ;
     }
+
+    // 平移（像素单位转换为方块单位，除以 16）
+    stack.translate(transform.translation.x / 16.0f, transform.translation.y / 16.0f, transform.translation.z / 16.0f);
+
+    // 旋转（角度）
+    stack.rotateZ(rotZ);
+    stack.rotateY(rotY);
+    stack.rotateX(transform.rotation.x);
+
+    // 缩放
+    stack.scale(transform.scale.x, transform.scale.y, transform.scale.z);
 }
 
 } // namespace mc::client::renderer::trident::firstperson

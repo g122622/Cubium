@@ -942,6 +942,18 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
+    callbacks.onHurtAnimation = [this](u32 entityId, f32 hurtDir) {
+        // 同步 damageTilt 的 hurtDir：写到 ClientEntity 代理；若为本地玩家，额外写到
+        // 实际 Player 对象（第一人称 FirstPersonRenderer 从 context.player 读取 hurtTime/hurtDir）。
+        auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        if (entity != nullptr) {
+            entity->setHurtDir(hurtDir);
+        }
+        if (m_player != nullptr && m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
+            m_player->animateHurt(hurtDir);
+        }
+    };
+
     callbacks.onEntityHeadLook = [this](u32 entityId, f32 headYaw) {
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
         const EntityId eid = static_cast<EntityId>(entityId);

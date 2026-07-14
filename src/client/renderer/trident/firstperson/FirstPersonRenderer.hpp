@@ -46,7 +46,8 @@ class Player;
 
 namespace mc::client {
 class ItemTextureAtlas;
-}
+struct ChunkTextureAtlas;
+} // namespace mc::client
 
 namespace mc::client::renderer::trident::firstperson {
 
@@ -105,6 +106,14 @@ public:
 
         /// 副手使用物品的 tick 数
         i32 offHandUseCount = 0;
+
+        /// 是否启用视野摇晃（options.bobView）。开启时走路手部 PoseStack
+        /// 随相机一同摇晃；关闭时手部保持静止（与相机 bobView 联动）。
+        bool viewBobbingEnabled = true;
+
+        /// 受伤屏幕倾斜强度（options.damageTiltStrength，0-1）。
+        /// 控制 damageTilt（bobHurt）的 Z 轴旋转幅度。
+        f32 damageTiltStrength = 1.0f;
     };
 
     FirstPersonRenderer();
@@ -195,7 +204,8 @@ public:
     /**
      * @brief 重置装备进度
      *
-     * 当玩家切换手持物品时调用，触发装备动画。
+     * 对应 ItemInHandRenderer.itemUsed(hand)：使用物品完成时将该手高度置 0，
+     * 触发装备下落动画。物品切换触发的下落由 tick() 内的 target 归零自动处理。
      *
      * @param hand 手
      */
@@ -220,6 +230,17 @@ public:
     void setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas);
 
     /**
+     * @brief 设置方块纹理图集
+     *
+     * 第一人称手持方块物品（BlockItem）3D 渲染时，需切换到方块纹理图集以解析各面纹理
+     * （方块 UV 基于区块纹理图集，而非物品纹理图集）。图集生命周期由 TridentEngine
+     * 管理，渲染器仅持有裸指针。为 nullptr 时方块物品回退到物品图集渲染。
+     *
+     * @param chunkTextureAtlas 方块纹理图集指针
+     */
+    void setChunkTextureAtlas(const mc::client::ChunkTextureAtlas* chunkTextureAtlas);
+
+    /**
      * @brief 获取手持物品渲染器
      */
     [[nodiscard]] ItemInHandRenderer& itemInHandRenderer() { return m_itemInHandRenderer; }
@@ -241,16 +262,6 @@ public:
 
 private:
     // ========== 内部渲染方法 ==========
-
-    /**
-     * @brief 渲染单只手臂
-     *
-     * @param stack 矩阵栈
-     * @param side 手侧（左/右）
-     * @param equipProgress 装备进度
-     * @param swingProgress 挥动进度
-     */
-    void _renderArmFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress, f32 swingProgress);
 
     /**
      * @brief 渲染手持物品（基础版本）
@@ -295,81 +306,22 @@ private:
     /**
      * @brief 渲染地图（特殊物品）
      */
-    void _renderMapFirstPerson(
-        MatrixStack& stack, const ItemStack& mapStack, f32 pitch, f32 equipProgress, f32 swingProgress);
-
-    // ========== 变换方法 ==========
-
-    /**
-     * @brief 应用手部侧边变换
-     *
-     * 将手部放置在屏幕侧边的正确位置。
-     */
-    void _transformSideFirstPerson(MatrixStack& stack, HandSide side, f32 equipProgress);
-
-    /**
-     * @brief 应用第一人称挥动变换
-     */
-    void _transformFirstPerson(MatrixStack& stack, HandSide side, f32 swingProgress);
-
-    /**
-     * @brief 应用进食/饮用变换
-     *
-     * @param matrixStack 矩阵栈
-     * @param partialTicks 部分 tick
-     * @param side 手侧
-     * @param item 物品堆
-     * @param useCount 剩余使用时间
-     */
-    void _transformEatOrDrink(
-        MatrixStack& matrixStack, f32 partialTicks, HandSide side, const ItemStack& item, i32 useCount);
-
-    /**
-     * @brief 应用拉弓变换
-     *
-     * @param stack 矩阵栈
-     * @param partialTicks 部分 tick
-     * @param side 手侧
-     * @param useCount 使用计数
-     * @param itemStack 弓物品堆（用于获取 getUseDuration）
-     */
-    void _transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, const ItemStack& itemStack);
-
-    /**
-     * @brief 应用三叉戟投掷变换
-     *
-     * @param stack 矩阵栈
-     * @param partialTicks 部分 tick
-     * @param side 手侧
-     * @param useCount 使用计数
-     * @param itemStack 三叉戟物品堆（用于获取 getUseDuration）
-     */
-    void _transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, const ItemStack& itemStack);
-
-    /**
-     * @brief 应用弩装填变换
-     *
-     * @param stack 矩阵栈
-     * @param partialTicks 部分 tick
-     * @param side 手侧
-     * @param useCount 使用计数
-     * @param isCharged 是否已装填
-     * @param itemStack 弩物品堆（用于获取 getChargeTime）
-     */
-    void _transformCrossbow(
-        MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged, const ItemStack& itemStack);
-
-    /**
-     * @brief 计算挥动动画参数
-     *
-     * TODO: 该方法已声明但未在当前代码路径中调用，待完整客户端动画系统接入后启用。
-     */
-    [[nodiscard]] f32 _getSwingProgress(f32 partialTicks, mc::Player* player, Hand hand) const;
+    void _renderMapFirstPerson(MatrixStack& stack,
+        const ItemStack& mapStack,
+        Hand hand,
+        f32 pitch,
+        f32 equipProgress,
+        f32 swingProgress,
+        const Player& player);
 
     /**
      * @brief 确定手臂姿态
+     *
+     * @param player 玩家
+     * @param hand 手槽位
+     * @param heldItem 该手已取回的物品引用（避免每帧重复深拷贝）
      */
-    [[nodiscard]] ArmPose _determineArmPose(mc::Player* player, Hand hand) const;
+    [[nodiscard]] ArmPose _determineArmPose(mc::Player* player, Hand hand, const ItemStack& heldItem) const;
 
     // ========== GPU 资源管理 ==========
 
@@ -390,6 +342,15 @@ private:
 
     /**
      * @brief 确保手持物品网格已创建
+     *
+     * 方块物品（BlockItem）使用 BlockMeshBuilder 构建带逐面纹理的 3D 方块网格
+     * （UV 基于方块纹理图集，绘制时切换管线图集）；其余物品使用 ItemMeshBuilder
+     * 构建 3D 模型网格（原始几何，不烘焙 display 变换，由 applyTransform 在矩阵栈上施加）。
+     * bakeTransforms=false 时左右手原始几何相同，镜像在绘制阶段施加，故缓存键仅需
+     * (itemId, isBlockItem)。
+     *
+     * @param hand 手槽位
+     * @param itemStack 物品堆
      */
     void _ensureItemMesh(Hand hand, const ItemStack& itemStack);
 
@@ -409,15 +370,6 @@ private:
     void _destroyItemMeshes();
 
     /**
-     * @brief 创建或更新 GPU 缓冲区
-     *
-     * TODO: 该方法已声明但未实现，当前 GPU 缓冲区通过 EntityPipeline::createMesh 管理，
-     * 后续如果需要增量更新顶点/索引数据，应实现此方法。
-     */
-    [[nodiscard]] Result<void> _createOrUpdateBuffers(
-        const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices);
-
-    /**
      * @brief 将模型 UV 重映射到玩家皮肤图集区域
      */
     void _remapToPlayerSkinRegion(std::vector<ModelVertex>& vertices) const;
@@ -427,7 +379,7 @@ private:
     /**
      * @brief 获取玩家的主手
      */
-    [[nodiscard]] static HandSide _getPrimaryHand(mc::Player* player);
+    [[nodiscard]] static HandSide _getPrimaryHand(const mc::Player* player);
 
     /**
      * @brief 获取手持物品
@@ -467,6 +419,9 @@ private:
         EntityMesh mesh;
         bool valid = false;
         ItemId itemId = std::numeric_limits<ItemId>::max();
+        // 缓存该网格是否为方块物品（BlockItem）3D 网格。方块物品使用方块纹理图集，
+        // 绘制时需切换管线图集；该标志决定绘制阶段是否切换图集。
+        bool isBlockItem = false;
     };
 
     struct RetiredItemMesh {
@@ -484,6 +439,9 @@ private:
 
     // 物品纹理图集
     const mc::client::ItemTextureAtlas* m_itemTextureAtlas = nullptr;
+
+    // 方块纹理图集（方块物品 3D 渲染切换用）
+    const mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
 
     // 玩家皮肤纹理位置（默认：规范默认皮肤 slim/steve）
     ResourceLocation m_playerSkinLocation{"minecraft:textures/entity/player/slim/steve.png"};

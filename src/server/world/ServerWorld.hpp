@@ -625,6 +625,14 @@ public:
         m_onBroadcastEntityAnimation = std::move(callback);
     }
 
+    /// 实体受伤动画广播回调（携带 hurtDir，对应 MC ClientboundHurtAnimationPacket）。
+    using HurtAnimationCallback = std::function<void(EntityId entityId, f32 hurtDir)>;
+
+    void setOnBroadcastHurtAnimation(HurtAnimationCallback callback)
+    {
+        m_onBroadcastHurtAnimation = std::move(callback);
+    }
+
     // ========== 实体拴绳链接广播回调 ==========
 
     /**
@@ -843,6 +851,8 @@ public:
     void broadcastEntityStatus(EntityId entityId, u8 status) override;
 
     void broadcastEntityAnimation(EntityId entityId, u8 animation) override;
+
+    void broadcastHurtAnimation(EntityId entityId, f32 hurtDir) override;
 
     void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId) override;
 
@@ -1560,6 +1570,7 @@ private:
     ItemParticleBroadcastCallback m_onBroadcastItemParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
+    HurtAnimationCallback m_onBroadcastHurtAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;
     WorldEventCallback m_onBroadcastWorldEvent;
     BlockEventCallback m_onBroadcastBlockEvent;            ///< 方块事件广播回调

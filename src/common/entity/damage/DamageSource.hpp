@@ -24,7 +24,9 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../util/math/Vector3.hpp"
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace mc {
@@ -154,6 +156,14 @@ public:
      * 返回造成伤害的实体，用于 HurtByTargetGoal 等目标选择。
      */
     [[nodiscard]] virtual Entity* getTrueSource() const { return getEntity(); }
+
+    /**
+     * @brief 获取伤害来源的世界位置（DamageSource.getSourcePosition）
+     *
+     * 用于计算受伤方向（hurtDir / damageTilt）。优先返回显式记录的位置，
+     * 否则回退到直接来源实体（directSource）的位置。无实体来源时返回 nullopt。
+     */
+    [[nodiscard]] virtual std::optional<math::Vector3f> sourcePosition() const { return std::nullopt; }
 
     /**
      * @brief 是否可以绕过护甲
@@ -499,6 +509,9 @@ public:
     [[nodiscard]] Entity* directSource() const override { return m_source; }
     [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
 
+    /// 直接来源实体位置（EntityDamageSource 回退 directEntity.position()）。
+    [[nodiscard]] std::optional<math::Vector3f> sourcePosition() const override;
+
     [[nodiscard]] bool isFire() const override { return m_type == DamageType::Fireball; }
 
     [[nodiscard]] bool isProjectile() const override
@@ -652,6 +665,9 @@ public:
     [[nodiscard]] Entity* source() const override { return m_source; }
     [[nodiscard]] Entity* directSource() const override { return m_directSource; }
     [[nodiscard]] Entity* getEntity() const override { return m_source; }
+
+    /// 直接来源（投射物本身）位置（IndirectEntityDamageSource 回退 directEntity.position()）。
+    [[nodiscard]] std::optional<math::Vector3f> sourcePosition() const override;
 
     /**
      * @brief 获取真正的伤害来源

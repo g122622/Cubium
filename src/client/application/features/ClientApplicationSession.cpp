@@ -316,6 +316,8 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         renderer::trident::firstperson::FirstPersonRenderer::RenderContext renderContext;
         renderContext.player = m_player.get();
         renderContext.partialTick = partialTick;
+        renderContext.viewBobbingEnabled = m_settings.viewBobbing.get();
+        renderContext.damageTiltStrength = m_settings.damageTiltStrength.get();
 
         // 从玩家获取挥动动画状态
         const f32 partialTickF32 = static_cast<f32>(partialTick);

@@ -148,6 +148,10 @@ public:
     /// 屏幕抖动强度
     FloatOption screenShakeScale;
 
+    /// 受伤屏幕倾斜强度 (0.0-1.0, 默认 1.0)。options.damageTiltStrength，
+    /// 控制 damageTilt（bobHurt）的 Z 轴旋转幅度。
+    FloatOption damageTiltStrength;
+
     /// 雾效果密度倍率 (0.0-2.0, 默认 1.0)
     /// 1.0 = 标准雾效果, 0.0 = 禁用雾, >1.0 = 更浓的雾
     FloatOption fogDensity;

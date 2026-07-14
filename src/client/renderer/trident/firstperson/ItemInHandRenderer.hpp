@@ -77,50 +77,6 @@ public:
      */
     void destroy();
 
-    // ========== 渲染方法 ==========
-
-    /**
-     * @brief 渲染手持物品
-     *
-     * 根据变换类型渲染物品。会自动检测物品类型（方块物品或普通物品），
-     * 并应用相应的变换和渲染逻辑。
-     *
-     * @param stack 矩阵栈
-     * @param itemStack 物品堆
-     * @param transformType 变换类型
-     * @param leftHanded 是否为左手
-     */
-    void renderItem(
-        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
-
-    /**
-     * @brief 渲染方块物品
-     *
-     * TODO: 当前仅验证模型是否存在，尚未实现实际网格渲染。
-     * 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成。
-     *
-     * @param stack 矩阵栈
-     * @param itemStack 物品堆（必须是方块物品）
-     * @param transformType 变换类型
-     * @param leftHanded 是否为左手
-     */
-    void renderBlockItem(
-        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
-
-    /**
-     * @brief 渲染普通物品
-     *
-     * TODO: 当前仅验证模型是否存在，尚未实现实际网格渲染。
-     * 网格构建和渲染由 FirstPersonRenderer 或 HeldItemLayer 通过 ItemMeshBuilder 完成。
-     *
-     * @param stack 矩阵栈
-     * @param itemStack 物品堆
-     * @param transformType 变换类型
-     * @param leftHanded 是否为左手
-     */
-    void renderRegularItem(
-        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
-
     // ========== 变换应用 ==========
 
     /**
@@ -135,8 +91,7 @@ public:
      * @param leftHanded 是否为左手
      * @return 是否应用了变换
      */
-    bool applyTransform(
-        MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded = false);
+    bool applyTransform(MatrixStack& stack, const ItemStack& itemStack, TransformType transformType, bool leftHanded);
 
     /**
      * @brief 应用默认手持变换
@@ -147,7 +102,7 @@ public:
      * @param transformType 变换类型
      * @param leftHanded 是否为左手
      */
-    void applyDefaultTransform(MatrixStack& stack, TransformType transformType, bool leftHanded = false);
+    void applyDefaultTransform(MatrixStack& stack, TransformType transformType, bool leftHanded);
 
     // ========== 辅助方法 ==========
 

@@ -270,6 +270,7 @@ add_executable(minecraft-client
     renderer/trident/firstperson/PlayerModel.cpp
     renderer/trident/firstperson/FirstPersonRenderer.cpp
     renderer/trident/firstperson/ItemInHandRenderer.cpp
+    renderer/trident/firstperson/FirstPersonTransforms.cpp
     # 共享渲染组件
     renderer/mesh/MeshWorkerPool.cpp
     renderer/mesh/MeshBuildScheduler.cpp

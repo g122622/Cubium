@@ -141,7 +141,7 @@ protected:
 TEST_F(FallbackMeshTest, EmptyItemStackReturnsEmptyMesh)
 {
     mc::ItemStack emptyStack;
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(emptyStack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(emptyStack, ItemTransformType::Gui, true);
     EXPECT_TRUE(vertices.empty());
     EXPECT_TRUE(indices.empty());
 }
@@ -468,7 +468,7 @@ mc::Item* FallbackCubeTest::s_testItem = nullptr;
 TEST_F(FallbackCubeTest, HeldItemMeshGeneratesSixFaceCube)
 {
     mc::ItemStack stack(*s_testItem, 1);
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui, true);
 
     // 6面 × 4顶点 = 24 顶点
     EXPECT_EQ(vertices.size(), 24u);
@@ -484,7 +484,7 @@ TEST_F(FallbackCubeTest, HeldItemMeshGeneratesSixFaceCube)
 TEST_F(FallbackCubeTest, FallbackCubeHasAllSixNormals)
 {
     mc::ItemStack stack(*s_testItem, 1);
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui, true);
 
     ASSERT_FALSE(vertices.empty());
     ASSERT_FALSE(indices.empty());
@@ -504,7 +504,7 @@ TEST_F(FallbackCubeTest, FallbackCubeHasAllSixNormals)
 TEST_F(FallbackCubeTest, FallbackCubeHasExactlySixUniqueNormals)
 {
     mc::ItemStack stack(*s_testItem, 1);
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui, true);
 
     auto normals = collectUniqueNormals(vertices, indices);
     EXPECT_EQ(normals.size(), 6u);
@@ -519,7 +519,7 @@ TEST_F(FallbackCubeTest, FallbackCubeHasExactlySixUniqueNormals)
 TEST_F(FallbackCubeTest, FallbackCubeVertexPositionsInExpectedRange)
 {
     mc::ItemStack stack(*s_testItem, 1);
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui, true);
 
     for (const auto& v : vertices) {
         EXPECT_GE(v.position.x, -0.51f) << "Vertex X below -0.5";
@@ -537,7 +537,7 @@ TEST_F(FallbackCubeTest, FallbackCubeVertexPositionsInExpectedRange)
 TEST_F(FallbackCubeTest, FallbackCubeUVsCoverFullTextureRange)
 {
     mc::ItemStack stack(*s_testItem, 1);
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui, true);
 
     ASSERT_EQ(vertices.size(), 24u);
 
@@ -598,7 +598,7 @@ TEST(ItemTextureResolutionTest, NullAtlasDoesNotCrashGeneratedMesh)
     mc::ItemStack stack(testItem, 1);
 
     // 不应崩溃 - 如果 ItemModelCache 未初始化，走回退路径
-    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui, true);
 
     // 回退路径应成功生成网格
     EXPECT_FALSE(vertices.empty());

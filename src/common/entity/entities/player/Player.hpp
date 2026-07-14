@@ -1713,6 +1713,19 @@ public:
     void resetCooldown();
 
     /**
+     * @brief 获取物品切换缩放进度（0-1）
+     *
+     * Player.getItemSwapScale：基于独立的 itemSwapTicker，
+     * 该计时器仅在主手物品种类切换时重置（不同于攻击冷却）。
+     * 第一人称装备动画（mainHandHeight 的 target = f^3）使用此值，
+     * 使切换物品后的“举起”动画与攻击挥动解耦。
+     *
+     * @param adjustTicks 调整的 tick 数（部分 tick 补偿）
+     * @return 切换缩放进度（0-1，1 表示已稳定）
+     */
+    [[nodiscard]] f32 getItemSwapScale(f32 adjustTicks) const;
+
+    /**
      * @brief 获取上次攻击后的 tick 数
      */
     [[nodiscard]] i32 ticksSinceLastAttack() const { return m_ticksSinceLastAttack; }
@@ -2086,6 +2099,12 @@ private:
     // 攻击冷却系统
     i32 m_ticksSinceLastAttack = 0;   // 上次攻击后的 tick 数
     f32 m_offHandAttackChance = 0.0f; // 副手攻击概率（双持武器用）
+
+    // 物品切换缩放系统（对应 MC Player.itemSwapTicker + lastItemInMainHand）
+    // itemSwapTicker 每 tick 递增，仅在主手物品种类切换时重置为 0；
+    // getItemSwapScale 据此计算装备动画的“举起”进度，与攻击冷却解耦。
+    i32 m_itemSwapTicker = 0;
+    ItemStack m_lastItemInMainHand;
 
     // 钓鱼系统
     EntityId m_fishingBobber = 0; // 当前投掷的钓鱼浮标实体ID，0表示未投掷

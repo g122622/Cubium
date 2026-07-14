@@ -234,7 +234,7 @@ TEST_F(MatrixStackTest, Combined_TranslateRotate)
     const Matrix4f& matrix = stack->last();
     Vector3f translation = matrix.translation();
 
-    // 对齐 MC PoseStack 语义：current = current * R。
+    // PoseStack 右乘语义：current = current * R。
     // 先 translate 再 rotate 时，平移分量保持不变（等价于先旋转模型再平移）。
     EXPECT_NEAR(translation.x, 1.0f, 0.0001f);
     EXPECT_NEAR(translation.y, 0.0f, 0.0001f);

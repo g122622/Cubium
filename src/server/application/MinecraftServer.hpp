@@ -803,6 +803,14 @@ protected:
     void broadcastEntityAnimationInRange(EntityId entityId, u8 animation, const Vector3& pos, f32 range = 64.0f);
 
     /**
+     * @brief 向范围内玩家广播实体受伤动画（携带 hurtDir）
+     *
+     * 发送 TakeDamage 动画包并附带 hurtDir，客户端据此设置 damageTilt 屏幕倾斜方向
+     * （对应 MC ClientboundHurtAnimationPacket）。
+     */
+    void broadcastHurtAnimationInRange(EntityId entityId, f32 hurtDir, const Vector3& pos, f32 range = 64.0f);
+
+    /**
      * @brief 向范围内玩家广播实体拴绳链接变更
      *
      * 创建 SetEntityLinkPacket 并发送给指定位置附近的玩家，

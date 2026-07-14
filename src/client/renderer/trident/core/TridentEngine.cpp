@@ -1762,6 +1762,11 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
+    // 第一人称方块物品 3D 渲染需要方块纹理图集（与区块渲染共用同一图集）。
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_chunkRenderer != nullptr) {
+        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
     m_itemRendererInitialized = true;
     spdlog::info("Item renderer initialized");
     return {};
@@ -2232,6 +2237,10 @@ Result<void> TridentEngine::initializeFirstPersonRenderer()
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
+    if (m_chunkRenderer != nullptr) {
+        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
     m_firstPersonRenderer->setPlayerSkinLocation(m_localPlayerSkinLocation);
 
     m_firstPersonRendererInitialized = true;
@@ -2312,6 +2321,11 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
         // 将方块纹理图集注入到 EntityRendererManager，供末影人手持方块层（HeldBlockLayer）使用
         // 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
         m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
+    // 同步方块纹理图集到第一人称渲染器（方块物品 3D 渲染切换图集用）。
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_chunkRenderer != nullptr) {
+        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
     }
 
     // 注册动画精灵

@@ -365,6 +365,11 @@ Result<std::vector<u8>> EntityAnimationPacket::serialize() const
     PacketSerializer serializer;
     serializer.writeU32(m_entityId);
     serializer.writeU8(static_cast<u8>(m_animation));
+    // 仅 TakeDamage 动画携带 hurtDir（ClientboundHurtAnimationPacket 的 yaw 字段），
+    // 其它动画保持原两字段布局不变。
+    if (m_animation == Animation::TakeDamage) {
+        serializer.writeF32(m_hurtDir);
+    }
     return serializer.buffer();
 }
 
@@ -378,6 +383,12 @@ Result<void> EntityAnimationPacket::deserialize(const u8* data, size_t size)
     auto animResult = deserializer.readU8();
     if (!animResult.success()) return Error(animResult.error());
     m_animation = static_cast<Animation>(animResult.value());
+
+    if (m_animation == Animation::TakeDamage) {
+        auto hurtDirResult = deserializer.readF32();
+        if (!hurtDirResult.success()) return Error(hurtDirResult.error());
+        m_hurtDir = hurtDirResult.value();
+    }
 
     return {};
 }

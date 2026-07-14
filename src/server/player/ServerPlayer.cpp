@@ -900,6 +900,15 @@ bool ServerPlayer::hurt(DamageSource& source, f32 amount)
     return Player::hurt(source, amount);
 }
 
+void ServerPlayer::indicateDamage(f64 d0, f64 d1)
+{
+    // 基类设置 m_hurtDir；服务端额外广播受伤动画包（携带 hurtDir）给追踪者与受害者自己。
+    Player::indicateDamage(d0, d1);
+    if (m_world != nullptr) {
+        m_world->broadcastHurtAnimation(m_id, m_hurtDir);
+    }
+}
+
 void ServerPlayer::attack(Entity& target)
 {
     // 旁观者模式下攻击实体等同于设置旁观目标

@@ -29,7 +29,6 @@
 #include "ServerWorld.hpp"
 #include "ChunkLoadLightTask.hpp"
 #include "ServerChunkManager.hpp"
-#include "server/sync/ChunkSendManager.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -84,6 +83,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
+#include "server/sync/ChunkSendManager.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "weather/WeatherManager.hpp"
 #include <algorithm>
@@ -2626,6 +2626,13 @@ void ServerWorld::broadcastEntityAnimation(EntityId entityId, u8 animation)
 {
     if (m_onBroadcastEntityAnimation) {
         m_onBroadcastEntityAnimation(entityId, animation);
+    }
+}
+
+void ServerWorld::broadcastHurtAnimation(EntityId entityId, f32 hurtDir)
+{
+    if (m_onBroadcastHurtAnimation) {
+        m_onBroadcastHurtAnimation(entityId, hurtDir);
     }
 }
 

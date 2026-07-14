@@ -242,6 +242,8 @@ add_executable(mc_tests
     common/entity/tag/EntityTypeTagsTest.cpp
     # DamageTypeTag 伤害类型标签测试（含 DamageSource::is() 和加载器测试）
     common/entity/damage/DamageTypeTagsTest.cpp
+    # damageTilt 完整链路对齐测试（DamageSource.sourcePosition / LivingEntity.hurtDir / 网络包 hurtDir 往返）
+    common/entity/damage/DamageTiltAlignmentTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp
@@ -437,6 +439,8 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试
     common/entity/combat/CauseExtraKnockbackTest.cpp
+    # 物品切换缩放（getItemSwapScale / itemSwapTicker）测试
+    common/entity/combat/PlayerItemSwapScaleTest.cpp
     # 击退计算测试
     common/entity/combat/GetKnockbackTest.cpp
     # GameRules 游戏规则测试
@@ -1441,6 +1445,11 @@ add_executable(mc_tests
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
     client/renderer/firstperson/ItemInHandRendererTest.cpp
+    client/renderer/firstperson/FirstPersonTransformsTest.cpp
+    # D7/D9 evaluateWhichHandsToRender + isScoping 测试
+    client/renderer/firstperson/EvaluateWhichHandsToRenderTest.cpp
+    # D12 第一人称手持物品 3D 升级测试
+    client/renderer/firstperson/HeldItemMesh3DTest.cpp
     # 澹伴煶绯荤粺娴嬭瘯
     common/sound/SoundCategoryTest.cpp
     common/sound/test_sound_events.cpp
@@ -2155,6 +2164,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemInHandRenderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/FirstPersonTransforms.cpp
         # 鍖哄潡妯″瀷缂撳瓨
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp

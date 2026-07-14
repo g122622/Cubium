@@ -325,6 +325,7 @@ add_library(mc_common STATIC
     entity/combat/CombatRules.cpp
     entity/damage/CombatEntry.cpp
     entity/damage/CombatTracker.cpp
+    entity/damage/DamageSource.cpp
     entity/ai/EntitySenses.cpp
     entity/ai/controller/LookController.cpp
     entity/ai/controller/MovementController.cpp

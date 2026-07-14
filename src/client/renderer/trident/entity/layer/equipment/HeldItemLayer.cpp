@@ -111,7 +111,7 @@ void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
         auto transformType = (handSide == mc::HandSide::Right) ? item::ItemTransformType::ThirdPersonRightHand
                                                                : item::ItemTransformType::ThirdPersonLeftHand;
 
-        auto [vertices, indices] = item::ItemMeshBuilder::buildHeldItemMesh(*item, transformType);
+        auto [vertices, indices] = item::ItemMeshBuilder::buildHeldItemMesh(*item, transformType, true);
 
         if (vertices.empty() || indices.empty()) {
             return;

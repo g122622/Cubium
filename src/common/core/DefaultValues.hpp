@@ -59,6 +59,7 @@ inline constexpr f32 screenShakeScale = 1.0f;
 inline constexpr f32 fogDensity = 1.0f;
 inline constexpr i32 biomeBlendRadius = 2;
 inline constexpr bool antiAliasing = true;
+inline constexpr f32 damageTiltStrength = 1.0f;
 
 // 音频
 inline constexpr f32 masterVolume = 1.0f;

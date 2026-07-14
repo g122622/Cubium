@@ -21,57 +21,25 @@
  *
  */
 
-#pragma once
+#include "DamageSource.hpp"
 
-#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 
-namespace mc::client::renderer {
+namespace mc {
 
-/**
- * @brief 手臂姿态
- *
- * 定义手臂在不同使用状态下的姿态。
- * 用于动画系统决定手臂如何摆放。
- */
-enum class ArmPose : u8 {
-    /// 空手（无物品）
-    Empty = 0,
+// DamageSource::sourcePosition() 默认实现在头文件中（返回 nullopt）。
+// 此处仅实现需要 Entity::position() 的实体来源子类，避免在 DamageSource.hpp
+// 中引入完整 Entity 定义造成循环包含。
 
-    /// 持有普通物品
-    Item = 1,
+std::optional<math::Vector3f> EntityDamageSource::sourcePosition() const
+{
+    return (m_source != nullptr) ? std::optional<math::Vector3f>{m_source->position()} : std::nullopt;
+}
 
-    /// 格挡（盾牌）
-    Block = 2,
+std::optional<math::Vector3f> IndirectEntityDamageSource::sourcePosition() const
+{
+    // DamageSource.getSourcePosition：优先 directEntity.position()。
+    return (m_directSource != nullptr) ? std::optional<math::Vector3f>{m_directSource->position()} : std::nullopt;
+}
 
-    /// 拉弓
-    BowAndArrow = 3,
-
-    /// 投掷三叉戟
-    ThrowSpear = 4,
-
-    /// 装填弩
-    CrossbowCharge = 5,
-
-    /// 持有已装填的弩
-    CrossbowHold = 6,
-
-    /// 吃食物/喝药水
-    EatOrDrink = 7,
-
-    /// 使用地图
-    Map = 8,
-
-    /// 鞘翅飞行
-    FallFlying = 9,
-
-    /// 游泳
-    Swimming = 10,
-
-    /// 睡眠
-    Sleeping = 11,
-
-    /// 潜行
-    Sneaking = 12
-};
-
-} // namespace mc::client::renderer
+} // namespace mc

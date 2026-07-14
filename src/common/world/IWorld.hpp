@@ -1527,6 +1527,21 @@ public:
         (void)animation;
     }
 
+    /**
+     * @brief 广播实体受伤动画（携带受伤方向，对应 MC ClientboundHurtAnimationPacket）
+     *
+     * 向所有追踪该实体的玩家发送 TakeDamage 动画包并附带 hurtDir，
+     * 客户端据此设置 damageTilt 的 hurtDir（屏幕倾斜方向）。
+     *
+     * @param entityId 受伤实体ID
+     * @param hurtDir 受伤方向角（度，相对实体朝向）
+     */
+    virtual void broadcastHurtAnimation(EntityId entityId, f32 hurtDir)
+    {
+        (void)entityId;
+        (void)hurtDir;
+    }
+
     // ========== 实体拴绳链接广播 ==========
 
     /**

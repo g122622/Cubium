@@ -132,6 +132,9 @@ struct NetworkClientCallbacks {
     std::function<void(u32 entityId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch)> onEntityTeleport;
     std::function<void(const std::vector<u32>& entityIds)> onEntityDestroy;
     std::function<void(u32 entityId, u8 animation)> onEntityAnimation;
+    /// 实体受伤动画（携带 hurtDir，对应 MC ClientboundHurtAnimationPacket）。
+    /// TakeDamage 动画包会同时触发 onEntityAnimation 与本回调，本回调专供 damageTilt 使用。
+    std::function<void(u32 entityId, f32 hurtDir)> onHurtAnimation;
     std::function<void(u32 entityId, f32 headYaw)> onEntityHeadLook;
     std::function<void(u32 entityId, u8 status)> onEntityStatus;
 

@@ -630,6 +630,15 @@ void Player::tick()
     // 更新攻击冷却
     m_ticksSinceLastAttack++;
 
+    // 更新物品切换缩放计时器（对应 MC Player.tick：itemSwapTicker++ 并在主手物品种类
+    // 切换时重置）。getItemSwapScale 据此计算第一人称装备动画的“举起”进度。
+    m_itemSwapTicker++;
+    const ItemStack mainHandItem = getMainHandItem();
+    if (!m_lastItemInMainHand.isSameItem(mainHandItem)) {
+        m_itemSwapTicker = 0;
+    }
+    m_lastItemInMainHand = mainHandItem;
+
     // 更新物品冷却追踪器
     m_cooldownTracker.tick();
 
@@ -2431,6 +2440,20 @@ f32 Player::getCooledAttackStrength(f32 adjustTicks) const
 void Player::resetCooldown()
 {
     m_ticksSinceLastAttack = 0;
+}
+
+f32 Player::getItemSwapScale(f32 adjustTicks) const
+{
+    // 对应 MC Player.getItemSwapScale：clamp((itemSwapTicker + adjust) / currentItemAttackStrengthDelay, 0, 1)。
+    // itemSwapTicker 仅在主手物品种类切换时重置，与攻击冷却 ticker 解耦。
+    f32 attackSpeed = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_SPEED, 4.0));
+    if (attackSpeed <= 0.0f) {
+        attackSpeed = 4.0f;
+    }
+
+    const f32 cooldownPeriod = 20.0f / attackSpeed;
+    const f32 adjustedTicks = static_cast<f32>(m_itemSwapTicker) + adjustTicks;
+    return std::min(adjustedTicks / cooldownPeriod, 1.0f);
 }
 
 void Player::attack(Entity& target)
