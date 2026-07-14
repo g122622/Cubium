@@ -37,7 +37,6 @@ feature/
 │   ├── BasaltFeature.hpp             # 玄武岩聚合头文件
 │   ├── DeltaFeature.hpp/cpp          # 三角洲（contents/rim + size/rim_size）
 │   ├── UnderwaterMagmaFeature.hpp/cpp # 水下岩浆（Column.scan 找水柱底）
-│   ├── NetherFireFeature.hpp/cpp     # 下界火焰
 │   └── HugeFungusFeature.hpp/cpp     # 巨型菌类
 ├── ocean/                            # 海洋特征（海带/海草/珊瑚/蓝冰等）
 │   ├── KelpFeature.hpp/cpp           # 海带
@@ -47,7 +46,6 @@ feature/
 │   ├── CoralTreeFeature.hpp/cpp      # 珊瑚树变体
 │   ├── CoralMushroomFeature.hpp/cpp  # 珊瑚蘑菇变体
 │   ├── CoralClawFeature.hpp/cpp      # 珊瑚爪变体
-│   ├── OceanDecorationFeature.hpp/cpp # 海洋装饰
 │   └── BlueIceFeature.hpp/cpp        # 蓝冰
 ├── ore/                              # 矿石特征
 ├── predicate/                        # 方块谓词（条件判断）
@@ -58,7 +56,7 @@ feature/
 ├── state/                            # 方块状态提供者
 ├── template/                         # 结构模板系统
 ├── tree/                             # 树木特征（TrunkPlacer/FoliagePlacer）
-└── vegetation/                       # 植被特征（花卉/草丛/蘑菇/仙人掌/甘蔗）
+└── vegetation/                       # 植被特征（花卉/蘑菇/竹子）
 ```
 
 ## 内部模块关系
@@ -85,7 +83,6 @@ graph TB
 
     subgraph 植被系统
         B --> L[FlowerFeature]
-        B --> M[GrassFeature]
         B --> N[其他植被特征]
     end
 

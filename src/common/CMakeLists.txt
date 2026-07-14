@@ -1206,10 +1206,7 @@ add_library(mc_common STATIC
     world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.cpp
     # World - Generation - Feature - Vegetation
     world/gen/feature/vegetation/FlowerFeature.cpp
-    world/gen/feature/vegetation/GrassFeature.cpp
     world/gen/feature/vegetation/BigMushroomFeature.cpp
-    world/gen/feature/vegetation/CactusFeature.cpp
-    world/gen/feature/vegetation/SugarCaneFeature.cpp
     world/gen/feature/vegetation/BambooFeature.cpp
 
     # World - Generation - Feature - Cave
@@ -1233,7 +1230,6 @@ add_library(mc_common STATIC
     world/gen/feature/ocean/CoralTreeFeature.cpp
     world/gen/feature/ocean/CoralMushroomFeature.cpp
     world/gen/feature/ocean/CoralClawFeature.cpp
-    world/gen/feature/ocean/OceanDecorationFeature.cpp
     world/gen/feature/ocean/BlueIceFeature.cpp
 
     # World - Generation - Feature - End
@@ -1251,7 +1247,6 @@ add_library(mc_common STATIC
     world/gen/feature/nether/BasaltFeature.cpp
     world/gen/feature/nether/DeltaFeature.cpp
     world/gen/feature/nether/UnderwaterMagmaFeature.cpp
-    world/gen/feature/nether/NetherFireFeature.cpp
 
     # World - Generation - Feature - Lake
     world/gen/feature/LakeFeature.cpp

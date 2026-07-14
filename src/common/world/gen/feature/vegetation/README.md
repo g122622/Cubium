@@ -6,10 +6,7 @@
 vegetation/
 ├── BambooFeature.hpp/cpp          # 竹子特征（竹子丛林/普通丛林）
 ├── BigMushroomFeature.hpp/cpp     # 巨型蘑菇特征（棕色/红色）
-├── CactusFeature.hpp/cpp          # 仙人掌特征（沙漠/恶地）
 ├── FlowerFeature.hpp/cpp          # 花卉特征（蒲公英、虞美人、郁金香等）
-├── GrassFeature.hpp/cpp           # 草丛特征（草、蕨类、枯萎灌木）
-├── SugarCaneFeature.hpp/cpp       # 甘蔗特征（需水源）
 └── README.md                      # 本文档
 ```
 
@@ -30,31 +27,16 @@ graph TB
         FlowerFeature --> ConfiguredFeature
         FlowerFeature --> VanillaBlocks
 
-        GrassFeature --> Feature
-        GrassFeature --> ConfiguredFeature
-        GrassFeature --> VanillaBlocks
-
         BigMushroomFeature --> Feature
         BigMushroomFeature --> ConfiguredFeature
         BigMushroomFeature --> VanillaBlocks
-
-        CactusFeature --> Feature
-        CactusFeature --> ConfiguredFeature
-        CactusFeature --> VanillaBlocks
-
-        SugarCaneFeature --> Feature
-        SugarCaneFeature --> ConfiguredFeature
-        SugarCaneFeature --> VanillaBlocks
 
         BambooFeature --> Feature
         BambooFeature --> ConfiguredFeature
         BambooFeature --> VanillaBlocks
 
         VegetationFeatures --> FlowerFeature
-        VegetationFeatures --> GrassFeature
         VegetationFeatures --> BigMushroomFeature
-        VegetationFeatures --> CactusFeature
-        VegetationFeatures --> SugarCaneFeature
         VegetationFeatures --> BambooFeature
     end
 
@@ -109,10 +91,7 @@ graph LR
 | 特征类型 | 装饰阶段 | 主要生物群系 |
 |---------|---------|-------------|
 | 花卉 | VegetalDecoration | 平原、森林、繁花森林、沼泽 |
-| 草丛/蕨类 | VegetalDecoration | 所有有草地的生物群系 |
 | 巨型蘑菇 | VegetalDecoration | 沼泽、蘑菇岛 |
-| 仙人掌 | VegetalDecoration | 沙漠、恶地 |
-| 甘蔗 | VegetalDecoration | 河流、沼泽等水源附近 |
 | 竹子 | VegetalDecoration | 竹子丛林（密集+灰化土）、普通丛林（稀疏） |
 
 ## 容易踩的坑
@@ -125,18 +104,6 @@ graph LR
 
 植被特征由数据包 `configured_feature`/`placed_feature` JSON 定义，生物群系通过 `features` 数组按 `ResourceLocation`（如 `minecraft:patch_grass_plain`、`minecraft:flower_forest_flower`）引用。不再有整型 ID 或 `getAllFeaturesAndClear()` 所有权转移语义。
 
-### 3. 甘蔗没有水就不生成
-
-甘蔗特征需要周围4格有水才会生成。确保在河流、沼泽等有水源的生物群系使用甘蔗特征。
-
-### 4. 仙人掌周围不能有实体方块
-
-仙人掌检查 `hasValidSpace()` 要求周围4格都是空气。不要在密集区域使用仙人掌特征。
-
-### 5. 花卉/草丛需要草方块或泥土
-
-`isValidGround()` 只检查草方块和泥土。如果需要在其他方块上放置，需修改 `isValidGround()` 或添加新的特征类型。
-
-### 6. FlowerFeatureConfig 的 ySpread 必须显式设置
+### 3. FlowerFeatureConfig 的 ySpread 必须显式设置
 
 `FlowerFeatureConfig` 的 `ySpread` 默认值为 3，但花卉预设通常使用 `ySpread=2`。创建新的花卉配置时务必显式设置 `ySpread`，否则花卉会在 Y 方向过度扩散。偏移算法为三角形分布：`dy = nextInt(ySpread+1) - nextInt(ySpread+1)`，当 `ySpread=0` 时无 Y 偏移。

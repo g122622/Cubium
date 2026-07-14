@@ -56,8 +56,9 @@ struct SimpleBlockConfig {
 /**
  * @brief 简单方块放置特征
  *
- * 在指定位置放置单个方块，检查canSurvive条件。
- * 用于孢子花、苔藓植被等单方块放置。
+ * 在指定位置放置单个方块：先检查当前位置可替换(canBeReplaced)，再调用方块的
+ * isValidPosition(canSurvive 语义)校验下方支撑，防止落在无法支撑的位置(如草悬空)。
+ * 用于孢子花、苔藓植被、草等单方块放置。
  */
 class SimpleBlockFeature {
 public:
