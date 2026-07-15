@@ -21,7 +21,7 @@ OceanMonumentStructure::OceanMonumentStructure()
     : Structure(ResourceLocation("minecraft", "monument"))
 {}
 
-const biome::BiomeTag* OceanMonumentStructure::biomeTag() const
+const biome::BiomeTag* OceanMonumentStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_MONUMENT();
 }

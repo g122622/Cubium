@@ -788,7 +788,7 @@ MineshaftStructure::MineshaftStructure(MineshaftType type)
     m_config.probability = (type == MineshaftType::Mesa) ? 0.004f : 0.004f;
 }
 
-const biome::BiomeTag* MineshaftStructure::biomeTag() const
+const biome::BiomeTag* MineshaftStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_MINESHAFT();
 }

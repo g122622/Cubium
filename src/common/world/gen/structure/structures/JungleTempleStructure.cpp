@@ -453,7 +453,7 @@ JungleTempleStructure::JungleTempleStructure() noexcept
     : Structure(ResourceLocation("minecraft", "jungle_pyramid"))
 {}
 
-const biome::BiomeTag* JungleTempleStructure::biomeTag() const
+const biome::BiomeTag* JungleTempleStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_JUNGLE_PYRAMID();
 }

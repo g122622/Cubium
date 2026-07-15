@@ -52,7 +52,7 @@ SwampHutStructure::SwampHutStructure()
     : Structure(ResourceLocation("minecraft", "swamp_hut"))
 {}
 
-const biome::BiomeTag* SwampHutStructure::biomeTag() const
+const biome::BiomeTag* SwampHutStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_SWAMP_HUT();
 }

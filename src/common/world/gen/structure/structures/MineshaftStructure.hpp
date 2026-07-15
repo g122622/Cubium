@@ -318,14 +318,17 @@ public:
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 
-    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
+    [[nodiscard]] DecorationStage defaultDecorationStage() const override
+    {
+        return DecorationStage::UndergroundStructures;
+    }
 
     /**
      * @brief 获取结构关联的生物群系标签
      *
      * 返回 minecraft:has_structure/mineshaft 标签，用于 O(1) 生物群系查找。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 检查是否可以生成

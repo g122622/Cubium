@@ -676,9 +676,33 @@ public:
      * @brief 获取结构关联的生物群系标签
      *
      * 返回此结构可生成的生物群系标签指针。
-     * 如果标签尚未加载则返回 nullptr。
+     * 数据驱动构造（StructureTypeRegistry 工厂）时，由 setBiomeTag() 注入来自
+     * 结构定义 biomes 字段的标签；硬编码构造路径不注入，回退到 defaultBiomeTag()。
+     *
+     * 本方法为非虚：消费者（如 isValidBiome）经基类指针统一拿到数据驱动覆盖值或子类默认值。
+     * 子类改写默认值须覆盖 defaultBiomeTag()。
+     *
+     * @return 数据驱动注入的标签，或子类默认标签，均未设置则 nullptr
      */
-    [[nodiscard]] virtual const biome::BiomeTag* biomeTag() const { return nullptr; }
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const
+    {
+        return m_biomeTag != nullptr ? m_biomeTag : defaultBiomeTag();
+    }
+
+    /**
+     * @brief 子类默认的生物群系标签（硬编码）
+     *
+     * 数据驱动未注入标签时使用。默认返回 nullptr。
+     */
+    [[nodiscard]] virtual const biome::BiomeTag* defaultBiomeTag() const { return nullptr; }
+
+    /**
+     * @brief 注入数据驱动的生物群系标签
+     *
+     * 由 StructureTypeRegistry 工厂在从结构定义构造后调用，覆盖子类默认标签。
+     * 传入 nullptr 清除注入，回退到 defaultBiomeTag()。
+     */
+    void setBiomeTag(const biome::BiomeTag* tag) noexcept { m_biomeTag = tag; }
 
     /**
      * @brief 检查生物群系是否在此结构的有效生物群系中
@@ -696,8 +720,23 @@ public:
      * 控制结构周围的地形如何调整。
      * 大多数结构返回 None（无适配），Jigsaw 结构可能返回 Bury/BeardThin/BeardBox/Encapsulate。
      * Beardifier 使用此信息决定如何平滑结构周围的地形。
+     *
+     * 非虚包装：数据驱动注入（setTerrainAdaptation）优先，否则回退 defaultTerrainAdaptation()。
      */
-    [[nodiscard]] virtual TerrainAdaptation terrainAdaptation() const { return TerrainAdaptation::None; }
+    [[nodiscard]] TerrainAdaptation terrainAdaptation() const
+    {
+        return m_terrainAdaptation != TerrainAdaptation::None ? m_terrainAdaptation : defaultTerrainAdaptation();
+    }
+
+    /**
+     * @brief 子类默认的地形适配模式（硬编码）
+     */
+    [[nodiscard]] virtual TerrainAdaptation defaultTerrainAdaptation() const { return TerrainAdaptation::None; }
+
+    /**
+     * @brief 注入数据驱动的地形适配模式
+     */
+    void setTerrainAdaptation(TerrainAdaptation adaptation) noexcept { m_terrainAdaptation = adaptation; }
 
     /**
      * @brief 获取结构的装饰阶段
@@ -706,12 +745,31 @@ public:
      * 用于在 applyBiomeDecoration 中按装饰阶段交错放置结构。
      *
      * 默认返回 SurfaceStructures。
-     * 子类覆盖以返回不同的阶段：
+     * 子类覆盖 defaultDecorationStage() 以返回不同的阶段：
      * - UndergroundStructures: 废弃矿井、埋藏宝藏、试炼密室
      * - UndergroundDecoration: 下界要塞、下界化石
      * - SurfaceStructures: 所有其他结构（村庄、神殿、末地城等）
+     *
+     * 非虚包装：数据驱动注入（setDecorationStage）优先，否则回退 defaultDecorationStage()。
      */
-    [[nodiscard]] virtual DecorationStage decorationStage() const { return DecorationStage::SurfaceStructures; }
+    [[nodiscard]] DecorationStage decorationStage() const
+    {
+        return m_decorationStageSet ? m_decorationStage : defaultDecorationStage();
+    }
+
+    /**
+     * @brief 子类默认的装饰阶段（硬编码）
+     */
+    [[nodiscard]] virtual DecorationStage defaultDecorationStage() const { return DecorationStage::SurfaceStructures; }
+
+    /**
+     * @brief 注入数据驱动的装饰阶段
+     */
+    void setDecorationStage(DecorationStage stage) noexcept
+    {
+        m_decorationStage = stage;
+        m_decorationStageSet = true;
+    }
 
     /**
      * @brief 获取结构的生物生成覆盖
@@ -802,6 +860,14 @@ protected:
     [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
 
     ResourceLocation m_id; ///< 结构资源位置 ID
+
+    // 数据驱动注入字段（StructureTypeRegistry 工厂构造后设置）。
+    // 硬编码 initialize() 路径不设置这些字段，非虚访问器回退到 defaultXxx() 子类默认值。
+    const biome::BiomeTag* m_biomeTag = nullptr; ///< 数据驱动生物群系标签（覆盖 defaultBiomeTag）
+    TerrainAdaptation m_terrainAdaptation =
+        TerrainAdaptation::None; ///< 数据驱动地形适配（覆盖 defaultTerrainAdaptation）
+    DecorationStage m_decorationStage = DecorationStage::SurfaceStructures; ///< 数据驱动装饰阶段
+    bool m_decorationStageSet = false;                                      ///< m_decorationStage 是否被显式注入
 };
 
 // 片段类型常量

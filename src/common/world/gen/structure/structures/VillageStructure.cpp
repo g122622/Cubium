@@ -121,7 +121,7 @@ VillageStructure::VillageStructure(const VillageConfig& config)
     , m_config(config)
 {}
 
-const biome::BiomeTag* VillageStructure::biomeTag() const
+const biome::BiomeTag* VillageStructure::defaultBiomeTag() const
 {
     // 村庄有多个变体，每个变体对应不同的生物群系标签
     // 默认返回平原村庄标签，canGenerate() 中根据村庄类型进行详细检查

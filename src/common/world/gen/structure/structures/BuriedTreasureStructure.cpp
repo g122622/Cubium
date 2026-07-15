@@ -90,7 +90,7 @@ void BuriedTreasurePiece::generate(IWorldWriter& world,
 
 const std::string BuriedTreasureStructure::m_name = "buried_treasure";
 
-const biome::BiomeTag* BuriedTreasureStructure::biomeTag() const
+const biome::BiomeTag* BuriedTreasureStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_BURIED_TREASURE();
 }

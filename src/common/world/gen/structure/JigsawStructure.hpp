@@ -184,8 +184,11 @@ public:
 
     /**
      * @brief 获取地形适配模式
+     *
+     * 返回构造时指定的地形适配模式。基类非虚 terrainAdaptation() 在数据驱动未注入时
+     * 回退到此方法。
      */
-    [[nodiscard]] TerrainAdaptation terrainAdaptation() const noexcept override { return m_terrainAdaptation; }
+    [[nodiscard]] TerrainAdaptation defaultTerrainAdaptation() const noexcept override { return m_terrainAdaptation; }
 
     /**
      * @brief 检查是否可以在指定位置生成结构
@@ -199,11 +202,10 @@ public:
         IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 protected:
-    JigsawConfig m_config;                 ///< Jigsaw 配置
-    i32 m_startY;                          ///< 起始 Y 坐标（简单模式）
-    bool m_nearTerrain;                    ///< 是否贴近地形
-    bool m_adjustForTerrain;               ///< 是否根据地形调整
-    TerrainAdaptation m_terrainAdaptation; ///< 地形适配模式
+    JigsawConfig m_config;   ///< Jigsaw 配置
+    i32 m_startY;            ///< 起始 Y 坐标（简单模式）
+    bool m_nearTerrain;      ///< 是否贴近地形
+    bool m_adjustForTerrain; ///< 是否根据地形调整
 
     static const std::string m_name;
 };

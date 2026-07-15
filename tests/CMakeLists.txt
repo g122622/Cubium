@@ -1119,6 +1119,7 @@ add_executable(mc_tests
     common/world/gen/structure/test_mansion_grid.cpp
     common/world/gen/structure/test_structure_type_mapping.cpp
     common/world/gen/structure/test_structure_definition_loader.cpp
+    common/world/gen/structure/test_structure_type_registry.cpp
     common/world/gen/structure/StructureCheckTest.cpp
     common/world/gen/structure/StructurePieceChestDispenserTest.cpp
     common/world/gen/structure/PlaceEndPortalFramesTest.cpp

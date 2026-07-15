@@ -52,7 +52,7 @@ PillagerOutpostStructure::PillagerOutpostStructure()
           true)
 {}
 
-const biome::BiomeTag* PillagerOutpostStructure::biomeTag() const
+const biome::BiomeTag* PillagerOutpostStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_PILLAGER_OUTPOST();
 }

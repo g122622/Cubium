@@ -88,7 +88,7 @@ public:
      * 村庄有多个变体，每个变体对应不同的生物群系标签。
      * 默认返回平原村庄标签，canGenerate() 中根据村庄类型进行详细检查。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 检查是否可以生成

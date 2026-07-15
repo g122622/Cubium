@@ -23,6 +23,8 @@
 
 #include "StructureDefinitionLoader.hpp"
 
+#include "StructureManager.hpp"
+#include "StructureTypeRegistry.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -44,6 +46,9 @@ std::unordered_map<ResourceLocation, StructureDefinition*> StructureDefinitionLo
 
 Result<size_t> StructureDefinitionLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
+    // 注册内置结构类型工厂（jigsaw + 15 程序化类型），供 loadFromJson 末尾按 type 构造。
+    initializeBuiltinStructureTypes();
+
     size_t loadedCount = 0;
 
     // 获取所有命名空间
@@ -100,6 +105,9 @@ Result<size_t> StructureDefinitionLoader::loadFromDataPackRepository(const resou
 
 Result<size_t> StructureDefinitionLoader::loadFromResourcePack(const IResourcePack& pack)
 {
+    // 注册内置结构类型工厂（jigsaw + 15 程序化类型），供 loadFromJson 末尾按 type 构造。
+    initializeBuiltinStructureTypes();
+
     size_t loadedCount = 0;
 
     // 获取所有命名空间
@@ -267,6 +275,29 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         // 存储定义
         spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
         s_byId[location] = def.get();
+
+        // 数据驱动构造：按 type 工厂从已解析定义构造子类并注册到 StructureRegistry。
+        // 工厂内部深拷贝 HeightProvider/PoolAliasBindings，def 所有权保留在 s_definitions。
+        // 注意：调用方须先 initializeBuiltinStructureTypes() 注册工厂。
+        // 未注册该 type 时静默跳过（registry 未初始化或该 type 暂无 C++ 实现），
+        // 仅在工厂已注册但构造失败时 warn——避免纯解析场景（如单元测试直接调 loadFromJson）
+        // 产生噪音；生产路径 initializeBuiltinStructureTypes 已注册全部 16 type，构造失败才 warn。
+        // Result<unique_ptr> 特化的 value() 单次取值（取后内部置空），只能调一次。
+        if (StructureTypeRegistry::instance().has(def->type)) {
+            auto createResult = StructureTypeRegistry::instance().create(def->type, *def);
+            if (createResult.success()) {
+                auto structure = createResult.value();
+                if (structure) {
+                    StructureRegistry::registerStructure(std::move(structure));
+                } else {
+                    spdlog::warn(
+                        "Skipped structure '{}': factory returned null for type '{}'", location.toString(), def->type);
+                }
+            } else {
+                spdlog::warn("Skipped structure '{}': {}", location.toString(), createResult.error().message());
+            }
+        }
+
         s_definitions.push_back(std::move(def));
 
         return Result<void>::ok();

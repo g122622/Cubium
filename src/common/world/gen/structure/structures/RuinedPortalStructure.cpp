@@ -310,7 +310,7 @@ RuinedPortalStructure::RuinedPortalStructure()
     : Structure(ResourceLocation("minecraft", "ruined_portal"))
 {}
 
-const biome::BiomeTag* RuinedPortalStructure::biomeTag() const
+const biome::BiomeTag* RuinedPortalStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_STANDARD();
 }

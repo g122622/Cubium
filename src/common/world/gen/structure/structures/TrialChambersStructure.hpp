@@ -58,9 +58,12 @@ public:
     /**
      * @brief 获取试炼密室关联的生物群系标签
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
-    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
+    [[nodiscard]] DecorationStage defaultDecorationStage() const override
+    {
+        return DecorationStage::UndergroundStructures;
+    }
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;

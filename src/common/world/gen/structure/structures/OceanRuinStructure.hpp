@@ -125,7 +125,7 @@ public:
      * 海底废墟同时处理冷海和暖海两种变体，
      * 实际变体区分在 canGenerate() 中根据生物群系判断。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;

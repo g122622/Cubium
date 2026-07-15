@@ -97,7 +97,7 @@ WoodlandMansionStructure::WoodlandMansionStructure()
     : Structure(ResourceLocation("minecraft", "mansion"))
 {}
 
-const biome::BiomeTag* WoodlandMansionStructure::biomeTag() const
+const biome::BiomeTag* WoodlandMansionStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_MANSION();
 }

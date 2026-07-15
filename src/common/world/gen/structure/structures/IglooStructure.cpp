@@ -255,7 +255,7 @@ IglooStructure::IglooStructure()
     : Structure(ResourceLocation("minecraft", "igloo"))
 {}
 
-const biome::BiomeTag* IglooStructure::biomeTag() const
+const biome::BiomeTag* IglooStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_IGLOO();
 }

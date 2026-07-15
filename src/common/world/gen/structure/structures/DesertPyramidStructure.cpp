@@ -307,7 +307,7 @@ DesertPyramidStructure::DesertPyramidStructure()
     : Structure(ResourceLocation("minecraft", "desert_pyramid"))
 {}
 
-const biome::BiomeTag* DesertPyramidStructure::biomeTag() const
+const biome::BiomeTag* DesertPyramidStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_DESERT_PYRAMID();
 }
