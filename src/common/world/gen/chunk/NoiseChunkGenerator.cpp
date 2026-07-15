@@ -112,7 +112,9 @@ void NoiseChunkGenerator::_initGenerationRegistries()
     if (!world::gen::structure::StructureRegistry::isInitialized()) {
         world::gen::structure::StructureRegistry::initialize();
     }
-    world::gen::structure::StructureSetRegistry::instance().initialize();
+    if (!world::gen::structure::StructureSetRegistry::instance().isInitialized()) {
+        world::gen::structure::StructureSetRegistry::instance().initialize();
+    }
     m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
 
     // 初始化放置器注册表

@@ -94,6 +94,9 @@ public:
     /// 获取总要塞数量
     [[nodiscard]] i32 count() const { return m_count; }
 
+    /// 获取首选生物群系列表（要塞按此偏置定位）
+    [[nodiscard]] const std::vector<BiomeId>& preferredBiomes() const { return m_preferredBiomes; }
+
     /**
      * @brief 获取所有环形位置（惰性计算并缓存）
      *

@@ -80,6 +80,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeTagLoader.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -102,6 +103,8 @@
 #include "common/world/gen/placement/PlacementRegistry.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
+#include "common/world/gen/structure/StructureSet.hpp"
+#include "common/world/gen/structure/StructureSetLoader.hpp"
 #include "common/world/gen/structure/StructureTagLoader.hpp"
 #include "common/world/gen/structure/StructureTags.hpp"
 #include "common/world/gen/structure/pools/Pools.hpp"
@@ -1186,6 +1189,18 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
     }
 
+    // 从数据包加载生物群系标签（须在 Biome 注册后，结构/结构集合引用标签前）
+    // 填充 stronghold_biased_to、has_structure/* 等标签的 BiomeId 集合。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::BiomeTags");
+        auto biomeTagResult = world::biome::BiomeTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (biomeTagResult.failed()) {
+            spdlog::error("Failed to load biome tags from data packs: {}", biomeTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} biome tags from data packs", biomeTagResult.value());
+        }
+    }
+
     // 初始化结构标签（必须在结构集合注册后，海豚寻宝等玩法依赖此标签）
     {
         MC_TRACE_SCOPED_EVENT(
@@ -1204,6 +1219,23 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         } else {
             spdlog::info("Loaded {} structure tags from data packs", dataPackLoadResult.value());
         }
+    }
+
+    // 数据驱动加载结构集合（worldgen/structure_set/*.json）
+    // 顺序：结构定义（已注册）→ 生物群系标签（stronghold_biased_to 已填充）→ 结构集合
+    // （要塞集合的 preferred_biomes 依赖生物群系标签）。先 clear() 重置硬编码兜底状态，
+    // 再由 Loader 按 placement 类型构造并注册，最后 markInitialized() 置位。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::StructureSets");
+        world::gen::structure::StructureSetRegistry::instance().clear();
+        auto setResult = world::gen::structure::StructureSetLoader::loadFromDataPackRepository(m_dataPackList);
+        if (setResult.failed()) {
+            spdlog::error("Failed to load structure sets from data packs: {}", setResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} structure sets from data packs", setResult.value());
+        }
+        world::gen::structure::StructureSetRegistry::instance().markInitialized();
     }
 
     // 注册实体类型（可选）
