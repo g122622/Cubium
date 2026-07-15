@@ -100,9 +100,11 @@
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureTagLoader.hpp"
 #include "common/world/gen/structure/StructureTags.hpp"
+#include "common/world/gen/structure/pools/Pools.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
@@ -1074,12 +1076,30 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
     }
 
-    // 加载模板池（从数据包加载）
+    // 加载模板池（先注册硬编码基础池，再从数据包加载 JSON 模板池）
     {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::TemplatePools");
+        world::gen::structure::pools::Pools::initialize();
         size_t poolCount = world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(m_dataPackList);
         spdlog::info("Loaded {} template pools from data packs", poolCount);
+    }
+
+    // 数据驱动加载结构定义（worldgen/structure/*.json）
+    // 顺序：模板池 → 结构定义（jigsaw 结构引用模板池）→ … → 结构标签（依赖结构已注册）。
+    // 先 clear() 重置硬编码 initialize() 兜底写入的状态，再由 Loader 按 type 工厂构造并注册。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Structures");
+        world::gen::structure::StructureRegistry::clear();
+        auto structureResult =
+            world::gen::structure::StructureDefinitionLoader::loadFromDataPackRepository(m_dataPackList);
+        if (structureResult.failed()) {
+            spdlog::error("Failed to load structures from data packs: {}", structureResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} structures from data packs", structureResult.value());
+        }
+        // 数据驱动注册完成后置位，使区块生成器兜底守卫不再触发硬编码注册。
+        world::gen::structure::StructureRegistry::markInitialized();
     }
 
     // 加载处理器列表（从数据包加载，补充硬编码注册未覆盖的列表）

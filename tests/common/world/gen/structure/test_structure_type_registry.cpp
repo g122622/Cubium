@@ -173,16 +173,18 @@ TEST_F(StructureTypeRegistryTest, MineshaftDispatchesByVariantId)
     auto normalDef = makeDef("mineshaft", "minecraft:mineshaft");
     auto normalResult = reg.create("mineshaft", normalDef);
     ASSERT_TRUE(normalResult.success());
-    auto* normal = dynamic_cast<MineshaftStructure*>(normalResult.value().get());
+    auto normalStructure = normalResult.value(); // Result<unique_ptr>::value() 单次取值，须持有 unique_ptr
+    auto* normal = dynamic_cast<MineshaftStructure*>(normalStructure.get());
     ASSERT_NE(normal, nullptr);
     // 默认 Normal 变体（构造零参走默认 MineshaftType::Normal）
 
     auto mesaDef = makeDef("mineshaft_mesa", "minecraft:mineshaft");
     auto mesaResult = reg.create("mineshaft", mesaDef);
     ASSERT_TRUE(mesaResult.success());
-    auto* mesa = dynamic_cast<MineshaftStructure*>(mesaResult.value().get());
+    auto mesaStructure = mesaResult.value();
+    auto* mesa = dynamic_cast<MineshaftStructure*>(mesaStructure.get());
     ASSERT_NE(mesa, nullptr);
-    // mesa 与 normal 是不同实例
+    // mesa 与 normal 是不同实例（两个 unique_ptr 持有不同对象）
     EXPECT_NE(normal, mesa);
 }
 
