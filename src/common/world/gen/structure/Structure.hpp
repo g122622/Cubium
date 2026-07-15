@@ -35,6 +35,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -116,6 +117,25 @@ struct SpawnOverrides {
     SpawnOverrideType boundingBoxType = SpawnOverrideType::Full; ///< 边界框类型
     std::vector<SpawnOverrideEntry> entries;                     ///< 生成覆盖条目列表
 };
+
+/**
+ * @brief 数据驱动的结构生物生成覆盖（MC 1.21.11 StructureSpawnOverride）
+ *
+ * MC 数据包中 spawn_overrides 按 MobCategory 分键，每个类别独立指定 bounding_box 与 spawns 列表。
+ * 本结构对应原版 StructureSpawnOverride（单类别覆盖），由 StructureSpawnOverrideMap 按类别聚合。
+ * 注意：与上方平铺的 SpawnOverrides 区别——后者是早期硬编码结构（OceanMonument 等）用的单一边界框
+ * + 条目列表模型，未按类别分键；本结构为数据驱动按类别分键的规范模型。
+ *
+ * spawns 列表项当前仅解析 category/minCount/maxCount（与 SpawnOverrideEntry 同字段），
+ * 完整 SpawnerData（entity type + weight）解析待后续接入生物生成链路时补全。
+ */
+struct StructureSpawnOverride {
+    SpawnOverrideType boundingBoxType = SpawnOverrideType::Full; ///< 边界框类型（piece/full）
+    std::vector<SpawnOverrideEntry> entries;                     ///< 该类别生成覆盖条目
+};
+
+/// 数据驱动 spawn_overrides：按生物类别（"monster"/"creature"/...）索引的覆盖表
+using StructureSpawnOverrideMap = std::unordered_map<std::string, StructureSpawnOverride>;
 
 /**
  * @brief 结构片段基类
