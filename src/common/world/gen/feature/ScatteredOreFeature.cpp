@@ -24,7 +24,6 @@
 #include "ScatteredOreFeature.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/ruletest/RuleTest.hpp"
 
 #include <algorithm>
 #include <cmath>

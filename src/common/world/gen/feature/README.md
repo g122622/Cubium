@@ -52,7 +52,6 @@ feature/
 │   ├── BlockPredicate.hpp            # 谓词基类
 │   ├── Predicates.hpp                # 聚合头文件
 │   └── ...（各谓词独立文件）
-├── ruletest/                         # 规则测试（矿石匹配条件）
 ├── state/                            # 方块状态提供者
 ├── template/                         # 结构模板系统
 ├── tree/                             # 树木特征（TrunkPlacer/FoliagePlacer）
