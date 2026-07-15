@@ -323,7 +323,7 @@ std::unique_ptr<RuleEntry> makeBlockReplaceRule(const Block* inputBlock, const B
     if (inputBlock == nullptr || outputBlock == nullptr) {
         return nullptr;
     }
-    return std::make_unique<RuleEntry>(std::make_unique<BlockMatchRuleTest>(inputBlock->defaultState().blockId()),
+    return std::make_unique<RuleEntry>(std::make_unique<BlockMatchRuleTest>(inputBlock),
         std::make_unique<AlwaysTrueRuleTest>(),
         outputBlock->defaultState().stateId());
 }
@@ -334,8 +334,7 @@ std::unique_ptr<RuleEntry> makeRandomBlockReplaceRule(
     if (inputBlock == nullptr || outputBlock == nullptr) {
         return nullptr;
     }
-    return std::make_unique<RuleEntry>(
-        std::make_unique<RandomBlockMatchRuleTest>(inputBlock->defaultState().blockId(), probability),
+    return std::make_unique<RuleEntry>(std::make_unique<RandomBlockMatchRuleTest>(inputBlock, probability),
         std::make_unique<AlwaysTrueRuleTest>(),
         outputBlock->defaultState().stateId());
 }

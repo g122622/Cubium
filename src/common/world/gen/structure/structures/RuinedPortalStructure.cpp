@@ -71,7 +71,7 @@ std::unique_ptr<feature::template_::RuleEntry> makeBlockReplaceRule(const Block*
         return nullptr;
     }
     return std::make_unique<feature::template_::RuleEntry>(
-        std::make_unique<feature::template_::BlockMatchRuleTest>(inputBlock->defaultState().blockId()),
+        std::make_unique<feature::template_::BlockMatchRuleTest>(inputBlock),
         std::make_unique<feature::template_::AlwaysTrueRuleTest>(),
         outputBlock->defaultState().stateId());
 }
@@ -84,8 +84,7 @@ std::unique_ptr<feature::template_::RuleEntry> makeRandomBlockReplaceRule(
         return nullptr;
     }
     return std::make_unique<feature::template_::RuleEntry>(
-        std::make_unique<feature::template_::RandomBlockMatchRuleTest>(
-            inputBlock->defaultState().blockId(), probability),
+        std::make_unique<feature::template_::RandomBlockMatchRuleTest>(inputBlock, probability),
         std::make_unique<feature::template_::AlwaysTrueRuleTest>(),
         outputBlock->defaultState().stateId());
 }

@@ -257,28 +257,28 @@ TEST_F(RuleTestTest, StoneRuleTestClone)
 
 TEST_F(RuleTestTest, TagMatchRuleTestCreation)
 {
-    TagMatchRuleTest test("minecraft:stone");
+    TagMatchRuleTest test(ResourceLocation("minecraft:stone"));
 
-    EXPECT_EQ(test.getTagName(), "minecraft:stone");
+    EXPECT_EQ(test.getTagName(), ResourceLocation("minecraft:stone"));
     EXPECT_EQ(test.name(), "tag_match");
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTestClone)
 {
-    TagMatchRuleTest test("minecraft:logs");
+    TagMatchRuleTest test(ResourceLocation("minecraft:logs"));
     auto clone = test.clone();
 
     EXPECT_NE(clone, nullptr);
 
     TagMatchRuleTest* clonedTest = dynamic_cast<TagMatchRuleTest*>(clone.get());
     EXPECT_NE(clonedTest, nullptr);
-    EXPECT_EQ(clonedTest->getTagName(), "minecraft:logs");
+    EXPECT_EQ(clonedTest->getTagName(), ResourceLocation("minecraft:logs"));
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTestMatchesStoneTag)
 {
     // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
-    TagMatchRuleTest test("minecraft:stone");
+    TagMatchRuleTest test(ResourceLocation("minecraft:stone"));
     math::Random rng(12345);
 
     // 应该匹配 stone 标签中的方块
@@ -294,7 +294,7 @@ TEST_F(RuleTestTest, TagMatchRuleTestMatchesStoneTag)
 
 TEST_F(RuleTestTest, TagMatchRuleTestMatchesLogsTag)
 {
-    TagMatchRuleTest test("minecraft:logs");
+    TagMatchRuleTest test(ResourceLocation("minecraft:logs"));
     math::Random rng(12345);
 
     // 应该匹配 logs 标签中的方块
@@ -311,7 +311,7 @@ TEST_F(RuleTestTest, TagMatchRuleTestMatchesLogsTag)
 TEST_F(RuleTestTest, TagMatchRuleTestNonExistentTag)
 {
     // 不存在的标签应该返回 false
-    TagMatchRuleTest test("minecraft:nonexistent_tag");
+    TagMatchRuleTest test(ResourceLocation("minecraft:nonexistent_tag"));
     math::Random rng(12345);
 
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));

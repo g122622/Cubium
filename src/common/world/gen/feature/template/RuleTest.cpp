@@ -35,105 +35,6 @@ namespace feature {
 namespace template_ {
 
 // ============================================================================
-// BlockMatchRuleTest
-// ============================================================================
-
-BlockMatchRuleTest::BlockMatchRuleTest(u32 blockId)
-    : m_blockId(blockId)
-{}
-
-bool BlockMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const
-{
-    if (!state) {
-        return false;
-    }
-    // 检查方块ID是否匹配
-    return state->blockId() == m_blockId;
-}
-
-// ============================================================================
-// BlockStateMatchRuleTest
-// ============================================================================
-
-BlockStateMatchRuleTest::BlockStateMatchRuleTest(u32 stateId)
-    : m_stateId(stateId)
-{}
-
-bool BlockStateMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const
-{
-    if (!state) {
-        return false;
-    }
-    // 检查完整状态ID是否匹配
-    return state->stateId() == m_stateId;
-}
-
-// ============================================================================
-// RandomBlockMatchRuleTest
-// ============================================================================
-
-RandomBlockMatchRuleTest::RandomBlockMatchRuleTest(u32 blockId, f32 probability)
-    : m_blockId(blockId)
-    , m_probability(probability)
-{}
-
-bool RandomBlockMatchRuleTest::test(const BlockState* state, math::Random& rng) const
-{
-    if (!state) {
-        return false;
-    }
-    // 先检查方块ID
-    if (state->blockId() != m_blockId) {
-        return false;
-    }
-    // 随机决定
-    return rng.nextFloat() < m_probability;
-}
-
-// ============================================================================
-// RandomBlockStateMatchRuleTest
-// ============================================================================
-
-RandomBlockStateMatchRuleTest::RandomBlockStateMatchRuleTest(u32 stateId, f32 probability)
-    : m_stateId(stateId)
-    , m_probability(probability)
-{}
-
-bool RandomBlockStateMatchRuleTest::test(const BlockState* state, math::Random& rng) const
-{
-    if (!state) {
-        return false;
-    }
-    // 先检查状态ID
-    if (state->stateId() != m_stateId) {
-        return false;
-    }
-    // 随机决定
-    return rng.nextFloat() < m_probability;
-}
-
-// ============================================================================
-// TagMatchRuleTest
-// ============================================================================
-
-TagMatchRuleTest::TagMatchRuleTest(const ResourceLocation& tagId)
-    : m_tagId(tagId)
-{}
-
-bool TagMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) const
-{
-    if (!state) {
-        return false;
-    }
-    // 获取标签并检查方块是否在其中
-    BlockTag* tag = BlockTags::getTag(m_tagId);
-    if (!tag) {
-        return false;
-    }
-    return tag->contains(*state);
-}
-
-// ============================================================================
 // LinearPosRuleTest
 // ============================================================================
 
@@ -246,11 +147,13 @@ bool RuleEntry::matches(const BlockState* inputState,
     const BlockPos& seedPos,
     math::Random& rng) const
 {
-    // 三个条件必须全部满足
-    if (m_inputPredicate && !m_inputPredicate->test(inputState, rng)) {
+    // 三个条件必须全部满足。
+    // mc::RuleTest 为引用风格，方块状态为空时该谓词视为不匹配（结构处理器生产路径
+    // 方块状态均来自已注册方块，不会为空）。
+    if (m_inputPredicate && (inputState == nullptr || !m_inputPredicate->test(*inputState, rng))) {
         return false;
     }
-    if (m_locationPredicate && !m_locationPredicate->test(locationState, rng)) {
+    if (m_locationPredicate && (locationState == nullptr || !m_locationPredicate->test(*locationState, rng))) {
         return false;
     }
     if (m_posPredicate && !m_posPredicate->test(originalPos, worldPos, seedPos, rng)) {
