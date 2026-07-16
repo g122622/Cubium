@@ -60,21 +60,6 @@ namespace TimeUtils {
 namespace detail {
 
 /**
- * @brief 是否可用 C++20 std::chrono::clock_cast 做时钟转换
- *
- * MSVC 14.4+、libstdc++ 12+、libc++ 17+ 均已实现 clock_cast。
- * 老版 libc++（macOS 系统库）可能缺失，此时走秒级手工回退路径。
- */
-inline constexpr bool kHasClockCast =
-#if defined(_MSC_VER)
-    true;
-#elif defined(_LIBCPP_VERSION)
-    (_LIBCPP_VERSION >= 17000);
-#else
-    true;
-#endif
-
-/**
  * @brief file_clock 与 system_clock 的时钟差（秒），仅在无 clock_cast 的回退路径使用
  *
  * file_time_type 的 epoch 在不同平台上不同：
@@ -104,15 +89,15 @@ inline constexpr i64 kFileClockToSystemOffsetSeconds = []() constexpr {
  */
 [[nodiscard]] inline i64 fileTimeToUnixSeconds(const std::filesystem::file_time_type& ft)
 {
-    if constexpr (detail::kHasClockCast) {
-        // 标准路径：file_clock -> system_clock，取秒。库内部用更高精度类型，无溢出。
-        const auto sysTp = std::chrono::clock_cast<std::chrono::system_clock>(ft);
-        return static_cast<i64>(std::chrono::duration_cast<std::chrono::seconds>(sysTp.time_since_epoch()).count());
-    } else {
-        // 回退路径：在秒级做 offset 补偿。file_clock 秒值（2026 年约 1.34e10）在 i64 范围内安全。
-        const auto fileSecs = std::chrono::duration_cast<std::chrono::seconds>(ft.time_since_epoch()).count();
-        return fileSecs - detail::kFileClockToSystemOffsetSeconds;
-    }
+#if defined(__cpp_lib_clock_cast)
+    // 标准路径：file_clock -> system_clock，取秒。库内部用更高精度类型，无溢出。
+    const auto sysTp = std::chrono::clock_cast<std::chrono::system_clock>(ft);
+    return static_cast<i64>(std::chrono::duration_cast<std::chrono::seconds>(sysTp.time_since_epoch()).count());
+#else
+    // 回退路径：在秒级做 offset 补偿。file_clock 秒值（2026 年约 1.34e10）在 i64 范围内安全。
+    const auto fileSecs = std::chrono::duration_cast<std::chrono::seconds>(ft.time_since_epoch()).count();
+    return fileSecs - detail::kFileClockToSystemOffsetSeconds;
+#endif
 }
 
 /**
@@ -125,16 +110,16 @@ inline constexpr i64 kFileClockToSystemOffsetSeconds = []() constexpr {
  */
 [[nodiscard]] inline std::filesystem::file_time_type unixSecondsToFileTime(i64 unixSeconds)
 {
-    if constexpr (detail::kHasClockCast) {
-        // 标准路径：system_clock -> file_clock
-        const auto sysTp = std::chrono::system_clock::time_point{std::chrono::seconds{unixSeconds}};
-        return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(sysTp);
-    } else {
-        // 回退路径：秒级补偿后构造 file_time_type，避免纳秒级溢出
-        const auto fileSecs = std::chrono::seconds{unixSeconds + detail::kFileClockToSystemOffsetSeconds};
-        return std::filesystem::file_time_type{
-            std::chrono::duration_cast<std::filesystem::file_time_type::duration>(fileSecs)};
-    }
+#if defined(__cpp_lib_clock_cast)
+    // 标准路径：system_clock -> file_clock
+    const auto sysTp = std::chrono::system_clock::time_point{std::chrono::seconds{unixSeconds}};
+    return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(sysTp);
+#else
+    // 回退路径：秒级补偿后构造 file_time_type，避免纳秒级溢出
+    const auto fileSecs = std::chrono::seconds{unixSeconds + detail::kFileClockToSystemOffsetSeconds};
+    return std::filesystem::file_time_type{
+        std::chrono::duration_cast<std::filesystem::file_time_type::duration>(fileSecs)};
+#endif
 }
 
 } // namespace TimeUtils
