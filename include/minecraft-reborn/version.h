@@ -11,21 +11,21 @@
 #define MC_VERSION_NAME "Cubium"
 
 // ==================== Git 信息 ====================
-#define MC_GIT_COMMIT_HASH "f7b8cc9"
-#define MC_GIT_COMMIT_HASH_FULL "f7b8cc946575e2f8219fe508b78c598be3194d44"
+#define MC_GIT_COMMIT_HASH "6cf3c24"
+#define MC_GIT_COMMIT_HASH_FULL "6cf3c2418dc9b073cd2f71f54d6f4d62a4df6528"
 #define MC_GIT_BRANCH "main"
-#define MC_GIT_DIRTY
+/* #undef MC_GIT_DIRTY */
 
 // ==================== 构建信息 ====================
-#define MC_BUILD_TIME "2026-07-12T13:35:04Z"
+#define MC_BUILD_TIME "2026-07-16T15:49:59Z"
 #define MC_BUILD_TYPE "RelWithDebInfo"
-#define MC_BUILD_PLATFORM "Windows"
+#define MC_BUILD_PLATFORM "macOS"
 #define MC_BUILD_ARCH "x64"
 
 // ==================== 编译器信息 ====================
-#define MC_COMPILER_ID "Clang"
-#define MC_COMPILER_VERSION "20.1.8"
-#define MC_COMPILER_STRING "Clang 20.1.8"
+#define MC_COMPILER_ID "AppleClang"
+#define MC_COMPILER_VERSION "21.0.0.21000101"
+#define MC_COMPILER_STRING "AppleClang 21.0.0.21000101"
 
 namespace mc {
 
