@@ -82,6 +82,16 @@ public:
      * @brief 获取提供器类型名称（用于调试/序列化）
      */
     [[nodiscard]] virtual const char* getTypeName() const = 0;
+
+    /**
+     * @brief 深拷贝此高度提供器
+     *
+     * 与 IntProvider/PoolAliasBinding 一致：数据驱动工厂构造配置时需复制 def 中已解析的
+     * HeightProvider（def 所有权留在 Loader），故基类提供虚 clone()，子类逐个实现。
+     *
+     * @return 新构造的等价 HeightProvider
+     */
+    [[nodiscard]] virtual std::unique_ptr<HeightProvider> clone() const = 0;
 };
 
 // ============================================================================
@@ -112,6 +122,8 @@ public:
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "constant"; }
+
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override { return ConstantHeight::create(m_value); }
 
     [[nodiscard]] const VerticalAnchor& getValue() const { return m_value; }
 
@@ -153,6 +165,8 @@ public:
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "uniform"; }
+
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override { return UniformHeight::create(m_min, m_max); }
 
     [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
     [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
@@ -205,6 +219,11 @@ public:
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "biased_to_bottom"; }
+
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
+    {
+        return BiasedToBottomHeight::create(m_min, m_max, m_inner);
+    }
 
     [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
     [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
@@ -260,6 +279,11 @@ public:
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "very_biased_to_bottom"; }
+
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
+    {
+        return VeryBiasedToBottomHeight::create(m_min, m_max, m_inner);
+    }
 
     [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
     [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }
@@ -326,6 +350,11 @@ public:
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "trapezoid"; }
+
+    [[nodiscard]] std::unique_ptr<HeightProvider> clone() const override
+    {
+        return TrapezoidHeight::create(m_min, m_max, m_plateau);
+    }
 
     [[nodiscard]] const VerticalAnchor& getMin() const { return m_min; }
     [[nodiscard]] const VerticalAnchor& getMax() const { return m_max; }

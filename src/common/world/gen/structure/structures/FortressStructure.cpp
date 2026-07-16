@@ -382,7 +382,7 @@ FortressStructure::FortressStructure(const Config& config)
     , m_config(config)
 {}
 
-const biome::BiomeTag* FortressStructure::biomeTag() const
+const biome::BiomeTag* FortressStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_FORTRESS();
 }

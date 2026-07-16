@@ -157,32 +157,4 @@ struct CanyonCarverConfiguration : public CarverConfiguration {
     {}
 };
 
-// ============================================================================
-// 默认配置工厂函数
-// ============================================================================
-
-namespace ConfiguredCarvers {
-
-/**
- * @brief 创建主世界洞穴默认配置
- */
-CaveCarverConfiguration createOverworldCaveConfig(const BlockTag* replaceable);
-
-/**
- * @brief 创建主世界地下洞穴额外配置
- */
-CaveCarverConfiguration createOverworldCaveExtraConfig(const BlockTag* replaceable);
-
-/**
- * @brief 创建峡谷默认配置
- */
-CanyonCarverConfiguration createOverworldCanyonConfig(const BlockTag* replaceable);
-
-/**
- * @brief 创建下界洞穴默认配置
- */
-CaveCarverConfiguration createNetherCaveConfig(const BlockTag* replaceable);
-
-} // namespace ConfiguredCarvers
-
 } // namespace mc

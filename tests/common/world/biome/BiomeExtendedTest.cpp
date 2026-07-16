@@ -28,7 +28,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/SpawnFinder.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
 #include <gtest/gtest.h>
 
@@ -222,9 +222,8 @@ TEST(BiomeTemperatureCache, FrozenBiomeTemperatureModifier)
 TEST(SpawnFinder, EmptySpawnTargetReturnsOrigin)
 {
     // 空的 spawn target 应该返回 (0, 0, 0)
-    // 无法直接测试因为没有 Sampler，但可以测试 findSpawnPosition 函数
-    // 直接用空列表调用
-    // 这需要 Sampler，我们通过 Sampler::findSpawnPosition 的空列表路径间接测试
+    // SpawnFinder::findSpawnPosition 需要 Sampler（无法在此构造），
+    // 该路径由 SpawnTargetIntegrationTest 覆盖，此处仅占位。
 }
 
 TEST(SpawnFinder, ResultStructInitialization)

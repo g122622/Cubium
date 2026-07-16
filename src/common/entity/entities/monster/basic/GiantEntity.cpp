@@ -66,6 +66,13 @@ void GiantEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
 }
 
+std::optional<ResourceLocation> GiantEntity::getAmbientSound() const
+{
+    // 巨人无环境音，对齐原版 Giant（不 override → Mob 默认 null）。
+    // sounds.json 中无 entity.giant.ambient。
+    return std::nullopt;
+}
+
 f32 GiantEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
     // MC Giant.getWalkTargetValue: 返回 brightness - 0.5f（不取反）

@@ -27,7 +27,7 @@
 #include "../Feature.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include "decorator/TreeDecorator.hpp"
 
@@ -48,7 +48,7 @@ namespace tree {
  * stumpDecorators / logDecorators：树桩/倒木的装饰器列表（attached_to_logs、trunk_vine）。
  */
 struct FallenTreeConfig : public IFeatureConfig {
-    std::unique_ptr<parser::BlockStateProviderHandle> trunkProvider;
+    std::unique_ptr<state::BlockStateProvider> trunkProvider;
     std::unique_ptr<valueprovider::IntProvider> logLength;
     std::vector<std::unique_ptr<decorator::TreeDecorator>> stumpDecorators;
     std::vector<std::unique_ptr<decorator::TreeDecorator>> logDecorators;

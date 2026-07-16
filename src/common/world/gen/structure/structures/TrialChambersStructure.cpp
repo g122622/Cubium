@@ -111,7 +111,7 @@ TrialChambersStructure::TrialChambersStructure()
       )
 {}
 
-const biome::BiomeTag* TrialChambersStructure::biomeTag() const
+const biome::BiomeTag* TrialChambersStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_TRIAL_CHAMBERS();
 }

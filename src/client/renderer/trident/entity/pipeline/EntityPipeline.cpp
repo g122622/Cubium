@@ -141,7 +141,8 @@ Result<void> EntityPipeline::initialize(VkDevice device,
     VkDescriptorSetLayout cameraDescriptorLayout,
     VkDescriptorPool descriptorPool,
     VkCommandPool commandPool,
-    VkSampleCountFlagBits sampleCount)
+    VkSampleCountFlagBits sampleCount,
+    u32 maxFramesInFlight)
 {
     if (m_initialized) {
         return Result<void>::ok();
@@ -151,6 +152,9 @@ Result<void> EntityPipeline::initialize(VkDevice device,
     m_physicalDevice = physicalDevice;
 
     destroy();
+    // destroy() 会把 m_maxFramesInFlight 复位为 1，必须在 destroy 之后重新设置，
+    // 否则 _createDescriptorSets 只分配 1 个纹理描述符集。
+    m_maxFramesInFlight = std::max<u32>(1u, maxFramesInFlight);
     m_graphicsQueue = graphicsQueue;
     m_descriptorPool = descriptorPool;
     m_commandPool = commandPool;
@@ -197,6 +201,22 @@ void EntityPipeline::destroy()
         m_textureDescriptorLayout != VK_NULL_HANDLE || m_vertexStagingBuffer != VK_NULL_HANDLE ||
         m_indexStagingBuffer != VK_NULL_HANDLE;
 
+    // 立即释放所有延迟销毁队列中的缓冲区（设备销毁前无需保留在飞窗口）
+    for (auto& pending : m_pendingDestroys) {
+        if (pending.vertexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device, pending.vertexBuffer, nullptr);
+        }
+        if (pending.vertexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device, pending.vertexMemory, nullptr);
+        }
+        if (pending.indexBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device, pending.indexBuffer, nullptr);
+        }
+        if (pending.indexMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device, pending.indexMemory, nullptr);
+        }
+    }
+    m_pendingDestroys.clear();
     // 销毁管线
     if (m_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(m_device, m_pipeline, nullptr);
@@ -247,10 +267,56 @@ void EntityPipeline::destroy()
 
     _destroyReusableStagingBuffers();
 
+    // 描述符集随 descriptorPool 由所有者统一回收，这里只清空引用。
+    m_textureDescriptorSets.clear();
+
+    m_currentFrameIndex = 0;
+    m_frameCounter = 0;
+    m_maxFramesInFlight = 1;
+
     m_initialized = false;
 
     if (hadResources) {
         spdlog::info("EntityPipeline destroyed");
+    }
+}
+
+void EntityPipeline::beginFrame(u32 frameIndex)
+{
+    m_currentFrameIndex = (m_maxFramesInFlight > 0) ? (frameIndex % m_maxFramesInFlight) : 0;
+    // 推进帧计数器，使先前入队的延迟销毁条目逐步到期。
+    ++m_frameCounter;
+}
+
+void EntityPipeline::processPendingDestroys()
+{
+    if (m_pendingDestroys.empty()) {
+        return;
+    }
+
+    // 保留窗口：maxFramesInFlight + 1 帧。在飞帧最多为 maxFramesInFlight，
+    // 当前正在录制的帧再占 1 个槽位，故需等待 maxFramesInFlight + 1 帧后才可安全释放。
+    const u64 safeRetention = static_cast<u64>(m_maxFramesInFlight) + 1;
+
+    for (auto it = m_pendingDestroys.begin(); it != m_pendingDestroys.end();) {
+        const u64 age = (m_frameCounter >= it->enqueueFrame) ? (m_frameCounter - it->enqueueFrame) : 0;
+        if (age >= safeRetention) {
+            if (it->vertexBuffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device, it->vertexBuffer, nullptr);
+            }
+            if (it->vertexMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device, it->vertexMemory, nullptr);
+            }
+            if (it->indexBuffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device, it->indexBuffer, nullptr);
+            }
+            if (it->indexMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device, it->indexMemory, nullptr);
+            }
+            it = m_pendingDestroys.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 
@@ -313,7 +379,7 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
 
     result = _uploadToDeviceBuffer(vertices.data(), vertexBufferSize, mesh.vertexBuffer, true);
     if (!result.success()) {
-        destroyMesh(mesh);
+        _destroyMeshImmediate(mesh);
         return result.error();
     }
 
@@ -325,13 +391,13 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
         mesh.indexBuffer,
         mesh.indexMemory);
     if (!result.success()) {
-        destroyMesh(mesh);
+        _destroyMeshImmediate(mesh);
         return result.error();
     }
 
     result = _uploadToDeviceBuffer(indices.data(), indexBufferSize, mesh.indexBuffer, false);
     if (!result.success()) {
-        destroyMesh(mesh);
+        _destroyMeshImmediate(mesh);
         return result.error();
     }
 
@@ -404,11 +470,14 @@ Result<void> EntityPipeline::updateMesh(
     }
 
     if (needsVertexRecreate) {
-        if (mesh.vertexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device, mesh.vertexBuffer, nullptr);
-        }
-        if (mesh.vertexMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device, mesh.vertexMemory, nullptr);
+        // 旧 buffer 可能仍被在飞命令缓冲区引用，必须延迟销毁而非立即 vkDestroyBuffer，
+        // 否则 GPU 访问已释放显存会导致 VK_ERROR_DEVICE_LOST。
+        if (mesh.vertexBuffer != VK_NULL_HANDLE || mesh.vertexMemory != VK_NULL_HANDLE) {
+            PendingDestroy pending;
+            pending.vertexBuffer = mesh.vertexBuffer;
+            pending.vertexMemory = mesh.vertexMemory;
+            pending.enqueueFrame = m_frameCounter;
+            m_pendingDestroys.push_back(pending);
         }
         mesh.vertexBuffer = replacementVertexBuffer;
         mesh.vertexMemory = replacementVertexMemory;
@@ -416,11 +485,12 @@ Result<void> EntityPipeline::updateMesh(
     }
 
     if (needsIndexRecreate) {
-        if (mesh.indexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device, mesh.indexBuffer, nullptr);
-        }
-        if (mesh.indexMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device, mesh.indexMemory, nullptr);
+        if (mesh.indexBuffer != VK_NULL_HANDLE || mesh.indexMemory != VK_NULL_HANDLE) {
+            PendingDestroy pending;
+            pending.indexBuffer = mesh.indexBuffer;
+            pending.indexMemory = mesh.indexMemory;
+            pending.enqueueFrame = m_frameCounter;
+            m_pendingDestroys.push_back(pending);
         }
         mesh.indexBuffer = replacementIndexBuffer;
         mesh.indexMemory = replacementIndexMemory;
@@ -448,6 +518,35 @@ Result<void> EntityPipeline::updateMesh(
 }
 
 void EntityPipeline::destroyMesh(EntityMesh& mesh)
+{
+    // 公共销毁入口：mesh 可能已被某帧命令缓冲区引用，必须延迟释放。
+    _enqueueDestroyMesh(mesh);
+}
+
+void EntityPipeline::_enqueueDestroyMesh(EntityMesh& mesh)
+{
+    if (mesh.vertexBuffer != VK_NULL_HANDLE || mesh.vertexMemory != VK_NULL_HANDLE ||
+        mesh.indexBuffer != VK_NULL_HANDLE || mesh.indexMemory != VK_NULL_HANDLE) {
+        PendingDestroy pending;
+        pending.vertexBuffer = mesh.vertexBuffer;
+        pending.vertexMemory = mesh.vertexMemory;
+        pending.indexBuffer = mesh.indexBuffer;
+        pending.indexMemory = mesh.indexMemory;
+        pending.enqueueFrame = m_frameCounter;
+        m_pendingDestroys.push_back(std::move(pending));
+    }
+
+    mesh.vertexBuffer = VK_NULL_HANDLE;
+    mesh.vertexMemory = VK_NULL_HANDLE;
+    mesh.indexBuffer = VK_NULL_HANDLE;
+    mesh.indexMemory = VK_NULL_HANDLE;
+    mesh.vertexCount = 0;
+    mesh.indexCount = 0;
+    mesh.vertexCapacity = 0;
+    mesh.indexCapacity = 0;
+}
+
+void EntityPipeline::_destroyMeshImmediate(EntityMesh& mesh)
 {
     VkDevice device = m_device;
 
@@ -561,21 +660,27 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
 
 void EntityPipeline::bindTextureDescriptor(VkCommandBuffer cmd)
 {
-    if (m_textureDescriptorSet != VK_NULL_HANDLE) {
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1, &m_textureDescriptorSet, 0, nullptr);
+    VkDescriptorSet set = (m_currentFrameIndex < m_textureDescriptorSets.size())
+        ? m_textureDescriptorSets[m_currentFrameIndex]
+        : VK_NULL_HANDLE;
+    if (set != VK_NULL_HANDLE) {
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1, &set, 0, nullptr);
     }
 }
 
 void EntityPipeline::setTextureAtlas(VkImageView textureView, VkSampler sampler)
 {
-    if (m_textureDescriptorSet == VK_NULL_HANDLE || textureView == VK_NULL_HANDLE) {
+    VkDescriptorSet set = (m_currentFrameIndex < m_textureDescriptorSets.size())
+        ? m_textureDescriptorSets[m_currentFrameIndex]
+        : VK_NULL_HANDLE;
+    if (set == VK_NULL_HANDLE || textureView == VK_NULL_HANDLE) {
         return;
     }
 
     VkDevice device = m_device;
 
-    // 更新描述符集
+    // 仅更新当前帧的描述符集，避免改写仍被在飞帧命令缓冲区引用的描述符
+    // （device-lost 根因之一：帧内切图集时 vkUpdateDescriptorSet 撞上在飞读取）。
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = textureView;
@@ -583,7 +688,7 @@ void EntityPipeline::setTextureAtlas(VkImageView textureView, VkSampler sampler)
 
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = m_textureDescriptorSet;
+    descriptorWrite.dstSet = set;
     descriptorWrite.dstBinding = 0;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -591,6 +696,42 @@ void EntityPipeline::setTextureAtlas(VkImageView textureView, VkSampler sampler)
     descriptorWrite.pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void EntityPipeline::setTextureAtlasAllFrames(VkImageView textureView, VkSampler sampler)
+{
+    if (textureView == VK_NULL_HANDLE) {
+        return;
+    }
+
+    VkDevice device = m_device;
+    VkSampler resolvedSampler = sampler != VK_NULL_HANDLE ? sampler : m_textureSampler;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = textureView;
+    imageInfo.sampler = resolvedSampler;
+
+    std::vector<VkWriteDescriptorSet> writes;
+    writes.reserve(m_textureDescriptorSets.size());
+    for (VkDescriptorSet set : m_textureDescriptorSets) {
+        if (set == VK_NULL_HANDLE) {
+            continue;
+        }
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = set;
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pImageInfo = &imageInfo;
+        writes.push_back(descriptorWrite);
+    }
+
+    if (!writes.empty()) {
+        vkUpdateDescriptorSets(device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+    }
 }
 
 VkPipelineLayout EntityPipeline::pipelineLayout() const
@@ -657,15 +798,24 @@ Result<void> EntityPipeline::_createDescriptorSets()
 {
     VkDevice device = m_device;
 
+    // 每帧分配一个纹理描述符集。per-frame set 避免在飞帧读取被本帧 setTextureAtlas
+    // 改写的描述符（device-lost 根因之一）。
+    const u32 frameCount = std::max<u32>(1u, m_maxFramesInFlight);
+    m_textureDescriptorSets.assign(frameCount, VK_NULL_HANDLE);
+
+    // VkDescriptorSetAllocateInfo 要求 pSetLayouts 指向 descriptorSetCount 个 layout 句柄。
+    std::vector<VkDescriptorSetLayout> layouts(frameCount, m_textureDescriptorLayout);
+
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_textureDescriptorLayout;
+    allocInfo.descriptorSetCount = frameCount;
+    allocInfo.pSetLayouts = layouts.data();
 
-    VkResult result = vkAllocateDescriptorSets(device, &allocInfo, &m_textureDescriptorSet);
+    VkResult result = vkAllocateDescriptorSets(device, &allocInfo, m_textureDescriptorSets.data());
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed, "Failed to allocate texture descriptor set");
+        m_textureDescriptorSets.clear();
+        return Error(ErrorCode::InitializationFailed, "Failed to allocate texture descriptor sets");
     }
 
     return Result<void>::ok();

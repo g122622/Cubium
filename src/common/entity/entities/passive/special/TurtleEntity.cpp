@@ -85,6 +85,17 @@ bool TurtleEntity::isInWater() const
     return Entity::isInWater();
 }
 
+std::optional<ResourceLocation> TurtleEntity::getAmbientSound() const
+{
+    // 对齐原版 Turtle.getAmbientSound：仅“不在水中 + 在地面 + 非幼体”时播放陆地环境音，
+    // 其余情况（水中游泳、幼体）不播放。sounds.json 中无 entity.turtle.ambient，
+    // 仅有 entity.turtle.ambient_land，故不能走默认 makeSoundEventId("ambient")。
+    if (!isInWater() && onGround() && !isChild()) {
+        return SoundEvents::ENTITY_TURTLE_AMBIENT_LAND;
+    }
+    return std::nullopt;
+}
+
 bool TurtleEntity::isLayingEgg() const
 {
     return m_dataManager.get(DATA_LAYING_EGG_PARAM);

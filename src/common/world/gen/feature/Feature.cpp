@@ -45,7 +45,7 @@ bool AlwaysTrueRuleTest::test(const BlockState& state, math::Random& random) con
 
 std::unique_ptr<RuleTest> AlwaysTrueRuleTest::clone() const
 {
-    return std::unique_ptr<RuleTest>(const_cast<AlwaysTrueRuleTest*>(&INSTANCE));
+    return std::make_unique<AlwaysTrueRuleTest>();
 }
 
 // ============================================================================
@@ -133,16 +133,15 @@ std::unique_ptr<RuleTest> RandomBlockStateMatchRuleTest::clone() const
 // TagMatchRuleTest 实现
 // ============================================================================
 
-TagMatchRuleTest::TagMatchRuleTest(const std::string& tagName)
-    : m_tagName(tagName)
+TagMatchRuleTest::TagMatchRuleTest(const ResourceLocation& tagId)
+    : m_tagId(tagId)
 {}
 
 bool TagMatchRuleTest::test(const BlockState& state, math::Random& random) const
 {
     (void)random;
-    // 将标签名解析为 ResourceLocation 并查询 BlockTags
-    ResourceLocation tagId(m_tagName);
-    BlockTag* tag = BlockTags::getTag(tagId);
+    // 查询 BlockTags 并检查方块是否在标签中
+    BlockTag* tag = BlockTags::getTag(m_tagId);
     if (!tag) {
         return false;
     }
@@ -151,7 +150,7 @@ bool TagMatchRuleTest::test(const BlockState& state, math::Random& random) const
 
 std::unique_ptr<RuleTest> TagMatchRuleTest::clone() const
 {
-    return std::make_unique<TagMatchRuleTest>(m_tagName);
+    return std::make_unique<TagMatchRuleTest>(m_tagId);
 }
 
 // ============================================================================
@@ -191,23 +190,6 @@ bool DeepslateRuleTest::test(const BlockState& state, math::Random& random) cons
 std::unique_ptr<RuleTest> DeepslateRuleTest::clone() const
 {
     return std::make_unique<DeepslateRuleTest>();
-}
-
-// ============================================================================
-// SimpleBlockStateProvider 实现
-// ============================================================================
-
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
-{}
-
-const BlockState* SimpleBlockStateProvider::getState(math::Random& random, i32 x, i32 y, i32 z) const
-{
-    (void)random;
-    (void)x;
-    (void)y;
-    (void)z;
-    return m_state;
 }
 
 // ============================================================================

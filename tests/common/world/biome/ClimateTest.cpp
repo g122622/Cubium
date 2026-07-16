@@ -33,8 +33,9 @@
  * 6. 辅助函数 parameters() / pointParameters()
  */
 
-#include "common/world/biome/climate/Climate.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/climate/ParameterList.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
 #include <limits>
 #include <gtest/gtest.h>
 

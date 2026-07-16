@@ -76,7 +76,7 @@ bool ConfiguredNetherForestVegetationFeature::place(WorldGenRegion& region,
             continue;
         }
         // canSurvive 检查省略：下方 nylium 已确认，下界植被在此 canSurvive 恒真。
-        const BlockState* state = parser::BlockStateProviderParser::sampleState(provider, region, random, target);
+        const BlockState* state = provider.getState(region, random, target.x, target.y, target.z);
         if (state != nullptr) {
             region.setBlockState(target, state, 2);
             ++placed;

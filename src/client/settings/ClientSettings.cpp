@@ -52,6 +52,7 @@ ClientSettings::ClientSettings()
     , mipmapLevels("mipmapLevels", 0, 4, defaults::client::mipmapLevels)
     , fovEffectScale("fovEffectScale", 0.0f, 1.0f, defaults::client::fovEffectScale)
     , screenShakeScale("screenShakeScale", 0.0f, 1.0f, defaults::client::screenShakeScale)
+    , damageTiltStrength("damageTiltStrength", 0.0f, 1.0f, defaults::client::damageTiltStrength)
     , fogDensity("fogDensity", 0.0f, 2.0f, defaults::client::fogDensity)
     , ambientOcclusion("ambientOcclusion",
           {static_cast<u8>(AmbientOcclusionMode::Off),
@@ -117,6 +118,7 @@ ClientSettings::ClientSettings()
     registerOption("video", &mipmapLevels);
     registerOption("video", &fovEffectScale);
     registerOption("video", &screenShakeScale);
+    registerOption("video", &damageTiltStrength);
     registerOption("video", &fogDensity);
     registerOption("video", &ambientOcclusion);
     registerOption("video", &particles);

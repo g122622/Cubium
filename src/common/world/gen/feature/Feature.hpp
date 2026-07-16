@@ -87,17 +87,18 @@ public:
 
 /**
  * @brief 总是返回 true 的规则测试
+ *
+ * 提供单例 INSTANCE 便于共享，同时允许直接构造（结构处理器等消费者需要
+ * 独立拥有所有权时使用 std::make_unique<AlwaysTrueRuleTest>()）。
  */
 class AlwaysTrueRuleTest : public RuleTest {
 public:
     static const AlwaysTrueRuleTest INSTANCE;
 
+    AlwaysTrueRuleTest() = default;
     [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
     [[nodiscard]] const char* name() const override { return "always_true"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
-
-private:
-    AlwaysTrueRuleTest() = default;
 };
 
 // ============================================================================
@@ -203,20 +204,20 @@ private:
 /**
  * @brief 匹配方块标签的规则测试
  *
- * 当方块属于指定标签时返回 true。
+ * 当方块属于指定标签时返回 true。标签以 ResourceLocation 标识。
  */
 class TagMatchRuleTest : public RuleTest {
 public:
-    explicit TagMatchRuleTest(const std::string& tagName);
+    explicit TagMatchRuleTest(const ResourceLocation& tagId);
 
     [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
     [[nodiscard]] const char* name() const override { return "tag_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
-    [[nodiscard]] const std::string& getTagName() const { return m_tagName; }
+    [[nodiscard]] const ResourceLocation& getTagName() const { return m_tagId; }
 
 private:
-    std::string m_tagName;
+    ResourceLocation m_tagId;
 };
 
 // ============================================================================
@@ -247,41 +248,6 @@ public:
     [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
     [[nodiscard]] const char* name() const override { return "deepslate"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
-};
-
-// ============================================================================
-// BlockStateProvider - 方块状态提供者
-// ============================================================================
-
-/**
- * @brief 方块状态提供者
- *
- * 用于提供方块状态，可以是固定的或基于噪声的。
- */
-class BlockStateProvider {
-public:
-    virtual ~BlockStateProvider() = default;
-
-    /**
-     * @brief 获取方块状态
-     * @param random 随机数生成器
-     * @param pos 位置
-     * @return 方块状态
-     */
-    [[nodiscard]] virtual const BlockState* getState(math::Random& random, i32 x, i32 y, i32 z) const = 0;
-};
-
-/**
- * @brief 固定方块状态提供者
- */
-class SimpleBlockStateProvider : public BlockStateProvider {
-public:
-    explicit SimpleBlockStateProvider(const BlockState* state);
-
-    [[nodiscard]] const BlockState* getState(math::Random& random, i32 x, i32 y, i32 z) const override;
-
-private:
-    const BlockState* m_state;
 };
 
 // ============================================================================

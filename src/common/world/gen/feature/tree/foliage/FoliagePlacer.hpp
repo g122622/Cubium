@@ -28,6 +28,7 @@
 #include "../../FeatureSpread.hpp"
 #include "../trunk/TrunkPlacer.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <set>
 #include <vector>
@@ -37,9 +38,6 @@ namespace mc {
 // 前向声明
 class WorldGenRegion;
 class BlockState;
-namespace world::gen::feature::state {
-class WeightedBlockStateProvider;
-}
 
 /**
  * @brief 树叶放置器基类
@@ -80,7 +78,7 @@ public:
         std::set<BlockPos>& outFoliageBlocks);
 
     /**
-     * @brief 放置树叶（支持加权树叶提供者）
+     * @brief 放置树叶（支持树叶状态提供者）
      *
      * @param world 世界区域
      * @param random 随机数生成器
@@ -88,8 +86,8 @@ public:
      * @param foliagePositions 树叶位置列表
      * @param trunkBlocks 树干方块集合
      * @param trunkOffset 树干顶部的偏移（从树干顶部到树叶底部的距离）
-     * @param foliageBlock 默认树叶方块状态（foliageProvider 为空时使用）
-     * @param foliageProvider 加权树叶提供者（非空时优先于 foliageBlock，每个叶片独立采样）
+     * @param foliageBlock 默认树叶方块状态（放置器第一遍逐层放置使用；foliageProvider 为空时为唯一来源）
+     * @param foliageProvider 树叶状态提供者（多态，非空时第二遍按叶片独立采样，优先于 foliageBlock）
      * @param outFoliageBlocks 输出参数，放置的树叶方块位置集合
      */
     void placeFoliage(WorldGenRegion& world,
@@ -99,7 +97,7 @@ public:
         const std::set<BlockPos>& trunkBlocks,
         i32 trunkOffset,
         const BlockState* foliageBlock,
-        const world::gen::feature::state::WeightedBlockStateProvider* foliageProvider,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
         std::set<BlockPos>& outFoliageBlocks);
 
     /**

@@ -80,6 +80,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeTagLoader.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -98,11 +99,17 @@
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
+#include "common/world/gen/noise/NoiseLoader.hpp"
+#include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
+#include "common/world/gen/structure/StructureSet.hpp"
+#include "common/world/gen/structure/StructureSetLoader.hpp"
 #include "common/world/gen/structure/StructureTagLoader.hpp"
 #include "common/world/gen/structure/StructureTags.hpp"
+#include "common/world/gen/structure/pools/Pools.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
@@ -123,7 +130,6 @@
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
-#include "server/sync/LightSyncManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -557,6 +563,12 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
             broadcastEntityAnimationInRange(entityId, animation, entity->position());
+        }
+    });
+    world.setOnBroadcastHurtAnimation([this, &world](EntityId entityId, f32 hurtDir) {
+        Entity* entity = world.getEntity(entityId);
+        if (entity != nullptr) {
+            broadcastHurtAnimationInRange(entityId, hurtDir, entity->position());
         }
     });
     world.setOnBroadcastSetEntityLink([this, &world](EntityId entityId, EntityId linkedEntityId) {
@@ -1069,12 +1081,61 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
     }
 
-    // 加载模板池（从数据包加载）
+    // 从数据包加载噪声参数（worldgen/noise/*.json）
+    // 最底层依赖：density_function / noise_settings 的噪声叶子节点引用噪声名，
+    // 故必须先于一切 worldgen Loader 加载。Noises::initialize() 硬编码兜底由
+    // NoiseLoader clear() 清空后注入，markLoadedFromDatapack(true) 使 get()/has()
+    // 跳过兜底。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Noises");
+        auto noiseResult = world::gen::noise::NoiseLoader::loadFromDataPackRepository(m_dataPackList);
+        if (noiseResult.failed()) {
+            spdlog::error("Failed to load noise parameters from data packs: {}", noiseResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} noise parameters from data packs", noiseResult.value());
+        }
+    }
+
+    // 从数据包加载密度函数（worldgen/density_function/*.json）
+    // 依赖噪声（noise 叶子节点引用噪声名）。35 个 density_function 经两阶段 Holder
+    // 引用解析（前向引用 + 共享子图 + 循环检测）注册到 DensityFunctionRegistry。
+    // 噪声叶子节点解析期存 UnboundNoiseLeaf 占位，由 NoiseBindingVisitor 在
+    // RandomState 组装 NoiseRouter 时按 name-hash 绑定真实 NormalNoise（阶段3 noise_settings）。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::DensityFunctions");
+        auto dfResult = world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dfResult.failed()) {
+            spdlog::error("Failed to load density functions from data packs: {}", dfResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} density functions from data packs", dfResult.value());
+        }
+    }
+
+    // 加载模板池（先注册硬编码基础池，再从数据包加载 JSON 模板池）
     {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::TemplatePools");
+        world::gen::structure::pools::Pools::initialize();
         size_t poolCount = world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(m_dataPackList);
         spdlog::info("Loaded {} template pools from data packs", poolCount);
+    }
+
+    // 数据驱动加载结构定义（worldgen/structure/*.json）
+    // 顺序：模板池 → 结构定义（jigsaw 结构引用模板池）→ … → 结构标签（依赖结构已注册）。
+    // 先 clear() 重置硬编码 initialize() 兜底写入的状态，再由 Loader 按 type 工厂构造并注册。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Structures");
+        world::gen::structure::StructureRegistry::clear();
+        auto structureResult =
+            world::gen::structure::StructureDefinitionLoader::loadFromDataPackRepository(m_dataPackList);
+        if (structureResult.failed()) {
+            spdlog::error("Failed to load structures from data packs: {}", structureResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} structures from data packs", structureResult.value());
+        }
+        // 数据驱动注册完成后置位，使区块生成器兜底守卫不再触发硬编码注册。
+        world::gen::structure::StructureRegistry::markInitialized();
     }
 
     // 加载处理器列表（从数据包加载，补充硬编码注册未覆盖的列表）
@@ -1161,6 +1222,18 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
     }
 
+    // 从数据包加载生物群系标签（须在 Biome 注册后，结构/结构集合引用标签前）
+    // 填充 stronghold_biased_to、has_structure/* 等标签的 BiomeId 集合。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::BiomeTags");
+        auto biomeTagResult = world::biome::BiomeTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (biomeTagResult.failed()) {
+            spdlog::error("Failed to load biome tags from data packs: {}", biomeTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} biome tags from data packs", biomeTagResult.value());
+        }
+    }
+
     // 初始化结构标签（必须在结构集合注册后，海豚寻宝等玩法依赖此标签）
     {
         MC_TRACE_SCOPED_EVENT(
@@ -1179,6 +1252,23 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         } else {
             spdlog::info("Loaded {} structure tags from data packs", dataPackLoadResult.value());
         }
+    }
+
+    // 数据驱动加载结构集合（worldgen/structure_set/*.json）
+    // 顺序：结构定义（已注册）→ 生物群系标签（stronghold_biased_to 已填充）→ 结构集合
+    // （要塞集合的 preferred_biomes 依赖生物群系标签）。先 clear() 重置硬编码兜底状态，
+    // 再由 Loader 按 placement 类型构造并注册，最后 markInitialized() 置位。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::StructureSets");
+        world::gen::structure::StructureSetRegistry::instance().clear();
+        auto setResult = world::gen::structure::StructureSetLoader::loadFromDataPackRepository(m_dataPackList);
+        if (setResult.failed()) {
+            spdlog::error("Failed to load structure sets from data packs: {}", setResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} structure sets from data packs", setResult.value());
+        }
+        world::gen::structure::StructureSetRegistry::instance().markInitialized();
     }
 
     // 注册实体类型（可选）
@@ -1266,17 +1356,11 @@ void MinecraftServer::setupWorldCallbacks()
         //     已直接调用 m_world->onChunkLoaded。
         //   - 生成路径：ServerChunkManager::_drainPendingPostProcess 在 m_chunkLoadedCallback 之前
         //     已直接调用 m_world->onChunkLoaded。
-        //   此回调仅做光照初始化与区块发送，重复调用 onChunkLoaded 会导致实体重复生成。
-        world->chunkManager()->setChunkLoadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
-            // 初始化区块光照
-            if (auto* ls = serverDim->lightSyncManager()) {
-                ls->initializeChunkLighting(x, z);
-            }
-            // 发送区块给追踪玩家
-            if (auto* cs = serverDim->chunkSendManager()) {
-                cs->sendChunkToTrackingPlayers(x, z);
-            }
-        });
+        //   此回调仅入队区块加载光照任务（③-2b 统一异步调度），重复调用 onChunkLoaded 会导致实体重复生成。
+        //   光照由 worker 完成（ChunkLoadLightTask），完成后经发送续延队列在主线程 send——
+        //   保证 serialize 读到已光照 nibble，客户端不收全黑区块。
+        world->chunkManager()->setChunkLoadedCallback(
+            [world](ChunkCoord x, ChunkCoord z) { world->enqueueChunkLoadLight(x, z); });
 
         // 设置区块卸载回调 - 当区块即将卸载时触发
         world->chunkManager()->setChunkUnloadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
@@ -1337,10 +1421,8 @@ void MinecraftServer::setupWorldCallbacks()
                 fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
                 [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
 
-            // 通知光照同步管理器
-            if (auto* ls = serverDim->lightSyncManager()) {
-                ls->markLightChanged(type, pos);
-            }
+            // markLightChanged 已在主线程 tick _drainPendingLightFlushes 中由 ServerWorld 完成
+            // （_syncLightDataToChunk 写 ChunkSection nibble + setDirty），此处只负责广播给客户端。
 
             // 广播光照更新给客户端
             auto* lightManager = serverDim->lightManager();
@@ -1351,13 +1433,13 @@ void MinecraftServer::setupWorldCallbacks()
             std::vector<u8> skyLight;
             std::vector<u8> blockLight;
 
-            // 获取光照数据
-            if (type == LightType::SKY && lightManager->getSkyLightEngine()) {
+            // 获取光照数据（主线程读 visible 侧）
+            if (type == LightType::SKY && lightManager->hasSkyLight()) {
                 auto* data = lightManager->getData(LightType::SKY, pos);
                 if (data) {
                     skyLight = data->toByteArray();
                 }
-            } else if (type == LightType::BLOCK && lightManager->getBlockLightEngine()) {
+            } else if (type == LightType::BLOCK && lightManager->hasBlockLight()) {
                 auto* data = lightManager->getData(LightType::BLOCK, pos);
                 if (data) {
                     blockLight = data->toByteArray();
@@ -3145,6 +3227,36 @@ void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 anim
     auto result = packet.serialize();
     if (result.failed()) {
         spdlog::error("Failed to serialize EntityAnimationPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
+
+    f32 rangeSq = range * range;
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastHurtAnimationInRange(EntityId entityId, f32 hurtDir, const Vector3& pos, f32 range)
+{
+    // 复用 EntityAnimationPacket 的 TakeDamage 动画通道，附加 hurtDir
+    // （ClientboundHurtAnimationPacket(id, yaw)，受害者自身与范围内追踪者均会收到）。
+    network::EntityAnimationPacket packet;
+    packet.setEntityId(static_cast<u32>(entityId));
+    packet.setAnimation(network::EntityAnimationPacket::Animation::TakeDamage);
+    packet.setHurtDir(hurtDir);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize hurt animation packet: {}", result.error().message());
         return;
     }
 

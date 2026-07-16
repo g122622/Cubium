@@ -35,6 +35,8 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
+#include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -827,6 +829,10 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         // 光照针对 primer 底层 ChunkData（ChunkPrimer 未重写光照 nibble 接口）。
         // markLightChanged 由 ChunkLightingProvider 吞掉（区块尚未发布，网络回写无效且非线程安全）；
         // light() 已通过 setNibbles 将结果写入 ChunkData 的 SWMRNibbleArray。
+        //
+        // ③-2b：引擎经 TLS 池获取（acquire/release 配对，无引擎级锁）。区域锁 writeRadius=2
+        // （LIGHT 的 blockStateWriteRadius=2）串行化重叠 5×5 区域的 nibble 写，与 RuntimeLightTask、
+        // ChunkLoadLightTask 同池同 writeRadius → 可安全删 m_mutex。
         ServerWorld* world = m_world;
         WorldLightManager* lightManager = (world != nullptr) ? world->lightManager() : nullptr;
         if (lightManager == nullptr) {
@@ -837,27 +843,40 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         const ChunkCoord chunkX = chunk.x();
         const ChunkCoord chunkZ = chunk.z();
 
-        // 计算空区块段标记，更新空映射与区块段状态（与 LightSyncManager::initializeChunkLighting 的 else 分支一致）。
-        // updateEmptinessMap / updateSectionStatus / lightChunk 均经 WorldLightManager::m_mutex 串行化，
-        // 保证 worker 线程与主线程 tick/checkBlock 不并发修改引擎状态。
+        // 计算空区块段标记，更新空映射与区块段状态。
         const ChunkSection* const* sections = chunkData->getSections();
         constexpr i32 sectionCount = world::CHUNK_SECTIONS;
-        for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-            const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
-            const bool isEmpty = (section == nullptr || section->isEmpty());
-            SectionPos sectionPos(chunkX, world::sectionIndexToCoord(sectionY), chunkZ);
-            lightManager->updateSectionStatus(sectionPos, isEmpty);
-        }
-
-        // 更新方块光引擎空映射（经 WorldLightManager 加锁；仅方块光有空映射）
-        lightManager->updateEmptinessMap(chunkX, chunkZ, chunkData);
 
         // 构造光照提供者：中心+半径1邻居经 WorldGenRegion 取 ChunkPrimer 底层 ChunkData，
         // 半径2邻居 fallback 到 ServerWorld::getChunkForLight。
         ChunkLightingProvider provider(*world, region, chunkX, chunkZ);
 
         chunkData->setLightCorrect(false);
-        lightManager->lightChunk(&provider, chunkData, /*needsEdgeChecks=*/true);
+
+        if (lightManager->hasBlockLight()) {
+            auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
+            // 更新方块光引擎空映射（仅方块光有空映射）+ 段状态，再 light()
+            blockEngine->updateEmptinessMap(chunkX, chunkZ, chunkData);
+            for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const SectionPos sectionPos(chunkX, world::sectionIndexToCoord(sectionY), chunkZ);
+                blockEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
+            }
+            blockEngine->light(&provider, chunkData, /*needsEdgeChecks=*/true);
+            WorldLightManager::releaseBlockLightEngine(blockEngine);
+        }
+
+        if (lightManager->hasSkyLight()) {
+            auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
+            for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const SectionPos sectionPos(chunkX, world::sectionIndexToCoord(sectionY), chunkZ);
+                skyEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
+            }
+            skyEngine->light(&provider, chunkData, /*needsEdgeChecks=*/true);
+            WorldLightManager::releaseSkyLightEngine(skyEngine);
+        }
+
         chunkData->setLightCorrect(true);
     } else if (status == ChunkStatuses::SPAWN) {
         std::vector<SpawnedEntityData> entities;
@@ -1384,6 +1403,26 @@ void ServerChunkManager::removePlayer(PlayerId player)
 void ServerChunkManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 {
     m_ticketManager.forceChunk(x, z, force);
+}
+
+void ServerChunkManager::addLightTicket(ChunkCoord x, ChunkCoord z)
+{
+    // 主线程调用：LIGHT 票据 + Full(33) 保活区块，覆盖 worker 在途窗口。
+    // 对齐 forceChunk 风格——registerTicket 后立即 processUpdates 让距离图生效。
+    const ChunkPos pos(x, z);
+    const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
+    m_ticketManager.registerTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
+    m_ticketManager.processUpdates();
+}
+
+void ServerChunkManager::removeLightTicket(ChunkCoord x, ChunkCoord z)
+{
+    // 主线程调用：释放 LIGHT 票据。releaseTicket 对未持票据的 chunk 容忍（no-op），
+    // 故 onCancel / fallback / send 三条路径都安全调用。
+    const ChunkPos pos(x, z);
+    const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
+    m_ticketManager.releaseTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
+    m_ticketManager.processUpdates();
 }
 
 void ServerChunkManager::setViewDistance(i32 distance)

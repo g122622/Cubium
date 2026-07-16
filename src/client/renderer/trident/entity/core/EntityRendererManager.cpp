@@ -25,6 +25,10 @@
 #include "AnimatedMeshCache.hpp"
 #include "client/renderer/trident/entity/effect/fire/FireEffect.hpp"
 #include "client/renderer/trident/entity/model/ModelRegistration.hpp"
+#include "client/renderer/trident/entity/model/animal/CatModel.hpp"
+#include "client/renderer/trident/entity/model/animal/HorseModel.hpp"
+#include "client/renderer/trident/entity/model/animal/LlamaModel.hpp"
+#include "client/renderer/trident/entity/model/animal/OcelotModel.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
 #include "client/renderer/trident/entity/model/animal/RabbitModel.hpp"
 #include "client/renderer/trident/entity/model/animal/SheepModel.hpp"
@@ -1163,6 +1167,57 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
                 wolfModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
                 // 设置湿润着色（对应 MC WolfRenderer 中的 getWetShade tint）
                 wolfModel->setTint(context.wolfWetShade, context.wolfWetShade, context.wolfWetShade);
+            }
+        }
+
+        // 马及其变种（驴/骡/骷髅马/僵尸马）主模型动画
+        // 第三人称马走 GPU 管线路径，需要调用 setLivingAnimations 处理步态/姿态。
+        // ClientEntity 当前未镜像马鞍/骑乘/grassEating/rearing 等马专用状态
+        // （AbstractHorseEntity 用非 DataParameter 的本地标志位），故此处仅推进
+        // 通用步态动画，专用姿态保持模型默认值。TODO: 待马专用状态同步到客户端后补齐。
+        if (normalizedId == "horse" || normalizedId == "minecraft:horse" || normalizedId == "donkey" ||
+            normalizedId == "minecraft:donkey" || normalizedId == "mule" || normalizedId == "minecraft:mule" ||
+            normalizedId == "skeleton_horse" || normalizedId == "minecraft:skeleton_horse" ||
+            normalizedId == "zombie_horse" || normalizedId == "minecraft:zombie_horse") {
+            auto* horseModel = dynamic_cast<model::animal::HorseModel*>(model.get());
+            if (horseModel != nullptr) {
+                horseModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
+            }
+        }
+
+        // 羊驼及商队羊驼主模型动画
+        // ClientEntity 当前未镜像 hasChest 等羊驼专用状态，仅推进通用步态动画。
+        // TODO: 待羊驼专用状态同步到客户端后补齐 setHasChest。
+        if (normalizedId == "llama" || normalizedId == "minecraft:llama" || normalizedId == "trader_llama" ||
+            normalizedId == "minecraft:trader_llama") {
+            auto* llamaModel = dynamic_cast<model::animal::LlamaModel*>(model.get());
+            if (llamaModel != nullptr) {
+                llamaModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
+            }
+        }
+
+        // 猫主模型动画
+        // ClientEntity 已镜像 isCatLieDown/isCatRelaxStateOne/isSitting（由 CatEntity
+        // 的 DataParameter 同步），但缺插值量 getLieDownAmount/getRelaxStateOneAmount，
+        // 此处以 bool 转 0.0/1.0 近似。sleepPoseAmount 恒 0（无对应元数据）。
+        if (normalizedId == "cat" || normalizedId == "minecraft:cat") {
+            auto* catModel = dynamic_cast<model::animal::CatModel*>(model.get());
+            if (catModel != nullptr) {
+                const f32 lieDownAmount = entity.isCatLieDown() ? 1.0f : 0.0f;
+                const f32 relaxStateAmount = entity.isCatRelaxStateOne() ? 1.0f : 0.0f;
+                catModel->setCatAnimState(lieDownAmount, relaxStateAmount, 0.0f);
+                catModel->setSitting(entity.isSitting());
+                catModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
+            }
+        }
+
+        // 豹猫主模型动画
+        // ClientEntity 当前未镜像 crouching(pose)/fleeing 等豹猫专用状态，
+        // 仅推进通用步态动画。TODO: 待豹猫专用状态同步后补齐 setCrouching/setSprinting。
+        if (normalizedId == "ocelot" || normalizedId == "minecraft:ocelot") {
+            auto* ocelotModel = dynamic_cast<model::animal::OcelotModel*>(model.get());
+            if (ocelotModel != nullptr) {
+                ocelotModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
             }
         }
 

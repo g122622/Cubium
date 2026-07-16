@@ -183,7 +183,7 @@ ShipwreckStructure::ShipwreckStructure()
     : Structure(ResourceLocation("minecraft", "shipwreck"))
 {}
 
-const biome::BiomeTag* ShipwreckStructure::biomeTag() const
+const biome::BiomeTag* ShipwreckStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_SHIPWRECK();
 }

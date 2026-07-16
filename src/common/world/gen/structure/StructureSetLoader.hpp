@@ -80,6 +80,7 @@ namespace world::gen::structure {
  *
  * 加载路径: data/<namespace>/worldgen/structure_set/<path>.json
  */
+
 class StructureSetLoader {
 public:
     /**

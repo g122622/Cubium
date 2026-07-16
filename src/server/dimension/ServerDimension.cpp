@@ -29,7 +29,6 @@
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
-#include "server/sync/LightSyncManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/spawn/DespawnManager.hpp"
 #include "server/world/spawn/NaturalSpawner.hpp"
@@ -78,8 +77,6 @@ Result<void> ServerDimension::initialize()
         *m_world->chunkManager(), m_world->chunkManager()->ticketManager());
     m_blockUpdateSyncManager =
         std::make_unique<server::sync::BlockUpdateSyncManager>(m_world->chunkManager()->ticketManager());
-    m_lightSyncManager =
-        std::make_unique<server::sync::LightSyncManager>(*m_world->lightManager(), *m_world->chunkManager());
 
     // 设置区块发送管理器指针
     m_world->chunkManager()->setChunkSendManager(m_chunkSendManager.get());
@@ -114,7 +111,6 @@ void ServerDimension::shutdown()
     }
 
     // 清理同步管理器（必须在世界之前释放）
-    m_lightSyncManager.reset();
     m_blockUpdateSyncManager.reset();
     m_chunkSendManager.reset();
     m_entitySyncManager.reset();

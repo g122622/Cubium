@@ -62,9 +62,8 @@ Result<std::unique_ptr<RuleTest>> parse(const nlohmann::json& predicateObj)
     const std::string type = stripNamespace(predicateObj["predicate_type"].get<std::string>());
 
     if (type == "always_true") {
-        // AlwaysTrueRuleTest 构造为 private（单例 INSTANCE）；clone() 返回指向 INSTANCE 的
-        // 非拥有 unique_ptr。数据包未使用 always_true，此处仅作完整性支持。
-        return AlwaysTrueRuleTest::INSTANCE.clone();
+        // AlwaysTrueRuleTest 可直接构造；数据包未使用 always_true，此处仅作完整性支持。
+        return std::unique_ptr<RuleTest>(std::make_unique<AlwaysTrueRuleTest>());
     }
 
     if (type == "block_match") {
@@ -87,7 +86,8 @@ Result<std::unique_ptr<RuleTest>> parse(const nlohmann::json& predicateObj)
         const ResourceLocation blockLoc(predicateObj["block"].get<std::string>());
         const Block* block = BlockRegistry::instance().getBlock(blockLoc);
         if (block == nullptr) {
-            return Error(ErrorCode::NotFound, "random_block_match RuleTest: unknown block '" + blockLoc.toString() + "'");
+            return Error(
+                ErrorCode::NotFound, "random_block_match RuleTest: unknown block '" + blockLoc.toString() + "'");
         }
         const f32 probability = predicateObj["probability"].get<f32>();
         return std::unique_ptr<RuleTest>(std::make_unique<RandomBlockMatchRuleTest>(block, probability));
@@ -98,7 +98,7 @@ Result<std::unique_ptr<RuleTest>> parse(const nlohmann::json& predicateObj)
             return Error(ErrorCode::InvalidData, "tag_match RuleTest missing 'tag' string");
         }
         const std::string tag = predicateObj["tag"].get<std::string>();
-        return std::unique_ptr<RuleTest>(std::make_unique<TagMatchRuleTest>(tag));
+        return std::unique_ptr<RuleTest>(std::make_unique<TagMatchRuleTest>(ResourceLocation(tag)));
     }
 
     if (type == "block_state_match" || type == "blockstate_match") {
@@ -115,8 +115,8 @@ Result<std::unique_ptr<RuleTest>> parse(const nlohmann::json& predicateObj)
     if (type == "random_block_state_match") {
         if (!predicateObj.contains("block_state") || !predicateObj["block_state"].is_object() ||
             !predicateObj.contains("probability") || !predicateObj["probability"].is_number()) {
-            return Error(ErrorCode::InvalidData,
-                "random_block_state_match RuleTest missing 'block_state'/'probability'");
+            return Error(
+                ErrorCode::InvalidData, "random_block_state_match RuleTest missing 'block_state'/'probability'");
         }
         auto stateResult = BlockStateParser::parse(predicateObj["block_state"]);
         if (!stateResult.success()) {

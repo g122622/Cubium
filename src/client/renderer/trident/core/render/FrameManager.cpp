@@ -175,8 +175,9 @@ Result<u32> FrameManager::acquireNextImage(TridentSwapchain* swapchain)
             return m_imageIndex;
         case VK_ERROR_OUT_OF_DATE_KHR:
             return Error(ErrorCode::InvalidState, "Swapchain out of date");
-        default:
+        default: {
             return Error(ErrorCode::Unknown, "Failed to acquire swapchain image: " + std::to_string(result));
+        }
     }
 }
 

@@ -22,6 +22,7 @@
  */
 
 #include "FlatChunkGenerator.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -41,7 +42,6 @@
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
 #include "common/world/gen/structure/placement/StructurePlacement.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <map>
 #include <set>
@@ -81,9 +81,14 @@ void FlatChunkGenerator::_initGenerationRegistries()
     std::call_once(m_generationRegistriesFlag, [this]() {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "FlatChunkGenerator::initGenerationRegistries");
 
-        // 初始化结构注册表和结构集合注册表
-        world::gen::structure::StructureRegistry::initialize();
-        world::gen::structure::StructureSetRegistry::instance().initialize();
+        // 结构注册表已迁移到 MinecraftServer::initializeRegistries 数据驱动加载；
+        // 此处仅保留兜底：区块生成器若先于服务器初始化构造（如部分测试），回退硬编码注册。
+        if (!world::gen::structure::StructureRegistry::isInitialized()) {
+            world::gen::structure::StructureRegistry::initialize();
+        }
+        if (!world::gen::structure::StructureSetRegistry::instance().isInitialized()) {
+            world::gen::structure::StructureSetRegistry::instance().initialize();
+        }
         m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
 
         // 初始化放置器注册表

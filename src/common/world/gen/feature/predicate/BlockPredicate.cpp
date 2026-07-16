@@ -31,4 +31,3 @@
 #include "ReplaceablePredicate.cpp"
 #include "WouldSurvivePredicate.cpp"
 #include "InsideWorldBoundsPredicate.cpp"
-#include "EnvironmentScanPredicate.cpp"

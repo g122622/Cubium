@@ -53,14 +53,14 @@ bool mayPlaceOn(WorldGenRegion& region, const BlockPos& pos, math::Random& rando
 
 /// 对齐 MC BlockPileFeature.tryPlaceBlock：目标格为空且 mayPlaceOn 才放置。
 void tryPlaceBlock(
-    WorldGenRegion& region, const BlockPos& pos, math::Random& random, const parser::BlockStateProviderHandle& provider)
+    WorldGenRegion& region, const BlockPos& pos, math::Random& random, const state::BlockStateProvider& provider)
 {
     const BlockState* current = region.getBlockState(pos);
     const bool empty = (current == nullptr) || current->isAir();
     if (!empty || !mayPlaceOn(region, pos, random)) {
         return;
     }
-    const BlockState* state = parser::BlockStateProviderParser::sampleState(provider, region, random, pos);
+    const BlockState* state = provider.getState(region, random, pos.x, pos.y, pos.z);
     if (state != nullptr) {
         region.setBlockState(pos, state, 260);
     }

@@ -46,6 +46,7 @@
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <array>
+#include <atomic>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -68,9 +69,9 @@ public:
     ChunkData(const ChunkData&) = delete;
     ChunkData& operator=(const ChunkData&) = delete;
 
-    // 允许移动
-    ChunkData(ChunkData&&) = default;
-    ChunkData& operator=(ChunkData&&) = default;
+    // 允许移动（显式实现：m_lightCorrect 为 atomic 不可默认移动，须 load/store）
+    ChunkData(ChunkData&& other) noexcept;
+    ChunkData& operator=(ChunkData&& other) noexcept;
 
     // 位置 (IChunk 接口)
     [[nodiscard]] ChunkCoord x() const override { return m_x; }
@@ -208,13 +209,17 @@ public:
 
     /**
      * @brief 检查区块光照是否正确
+     *
+     * ③-2b：m_lightCorrect 改 atomic——worker（ChunkLoadLightTask/LIGHT 生成阶段）写、
+     * 主线程不再读（initializeChunkLighting 已搬 worker），但 SkyLightEngine::canTickChunk
+     * 在 worker 读。atomic 防御未来主线程读路径，IChunk 虚签名不变（仍 bool）。
      */
-    [[nodiscard]] bool isLightCorrect() const override { return m_lightCorrect; }
+    [[nodiscard]] bool isLightCorrect() const override { return m_lightCorrect.load(std::memory_order_acquire); }
 
     /**
      * @brief 设置区块光照正确状态
      */
-    void setLightCorrect(bool correct) override { m_lightCorrect = correct; }
+    void setLightCorrect(bool correct) override { m_lightCorrect.store(correct, std::memory_order_release); }
 
     // Starlight 光照数据存储（内部使用）
     /**
@@ -442,7 +447,8 @@ private:
     bool m_fullyGenerated = false;
     bool m_dirty = false;
     bool m_loaded = false;
-    bool m_lightCorrect = false;
+    // 光照正确标志（③-2b：atomic，worker 写 / 主线程未来可能读，见 isLightCorrect）
+    std::atomic<bool> m_lightCorrect{false};
 
     // ========================================================================
     // Starlight 光照数据

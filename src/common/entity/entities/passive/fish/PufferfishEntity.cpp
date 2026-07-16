@@ -172,10 +172,13 @@ void PufferfishEntity::_attackNearbyEnemies()
 
 std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const
 {
+    // 对齐原版 Pufferfish（继承 AbstractFish，不 override → 默认不播放水中环境音）。
+    // sounds.json 中无 entity.puffer_fish.ambient，仅在陆地播放扑腾音 FLOP。
+    // 先前在水中返回 ENTITY_PUFFER_FISH_AMBIENT 会触发 "Sound event not found" 告警。
     if (!isInWater()) {
         return SoundEvents::ENTITY_PUFFER_FISH_FLOP;
     }
-    return SoundEvents::ENTITY_PUFFER_FISH_AMBIENT;
+    return std::nullopt;
 }
 
 std::optional<ResourceLocation> PufferfishEntity::getFlopSound() const

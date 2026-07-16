@@ -35,7 +35,6 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -188,27 +187,26 @@ bool GeodeFeature::place(
                     // 调 scheduleFluidTick）负责，与 LakeFeature/SpringFeature 的处理一致。
                 } else if (d6 >= d1) {
                     const BlockState* state =
-                        parser::BlockStateProviderParser::sampleState(blocks.fillingProvider, world, random, blockpos3);
+                        blocks.fillingProvider->getState(world, random, blockpos3.x, blockpos3.y, blockpos3.z);
                     safeSetBlock(world, blockpos3, state, cannotReplace);
                 } else if (d6 >= d2) {
                     const bool alternate = random.nextFloat() < static_cast<f32>(config.useAlternateLayer0Chance);
                     const BlockState* state = alternate
-                        ? parser::BlockStateProviderParser::sampleState(
-                              blocks.alternateInnerLayerProvider, world, random, blockpos3)
-                        : parser::BlockStateProviderParser::sampleState(
-                              blocks.innerLayerProvider, world, random, blockpos3);
+                        ? blocks.alternateInnerLayerProvider->getState(
+                              world, random, blockpos3.x, blockpos3.y, blockpos3.z)
+                        : blocks.innerLayerProvider->getState(world, random, blockpos3.x, blockpos3.y, blockpos3.z);
                     safeSetBlock(world, blockpos3, state, cannotReplace);
                     if ((!config.placementsRequireLayer0Alternate || alternate) &&
                         random.nextFloat() < static_cast<f32>(config.usePotentialPlacementsChance)) {
                         potentialPlacements.push_back(blockpos3);
                     }
                 } else if (d6 >= d3) {
-                    const BlockState* state = parser::BlockStateProviderParser::sampleState(
-                        blocks.middleLayerProvider, world, random, blockpos3);
+                    const BlockState* state =
+                        blocks.middleLayerProvider->getState(world, random, blockpos3.x, blockpos3.y, blockpos3.z);
                     safeSetBlock(world, blockpos3, state, cannotReplace);
                 } else if (d6 >= d4) {
-                    const BlockState* state = parser::BlockStateProviderParser::sampleState(
-                        blocks.outerLayerProvider, world, random, blockpos3);
+                    const BlockState* state =
+                        blocks.outerLayerProvider->getState(world, random, blockpos3.x, blockpos3.y, blockpos3.z);
                     safeSetBlock(world, blockpos3, state, cannotReplace);
                 }
             }

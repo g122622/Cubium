@@ -33,6 +33,10 @@ add_executable(minecraft-server
     world/ChunkLightingProvider.cpp
     world/ServerChunkManager.cpp
     world/SingleChunkLifecycleManager.cpp
+    world/ServerLightQueue.cpp
+    world/RuntimeLightingProvider.cpp
+    world/RuntimeLightTask.cpp
+    world/ChunkLoadLightTask.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp
@@ -76,7 +80,6 @@ add_executable(minecraft-server
     sync/EntitySyncManager.cpp
     sync/BlockUpdateSyncManager.cpp
     sync/ChunkSendManager.cpp
-    sync/LightSyncManager.cpp
     # 命令系统
     command/ServerCommandSource.cpp
     command/CommandRegistry.cpp

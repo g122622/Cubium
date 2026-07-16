@@ -370,9 +370,15 @@ public:
     Animation animation() const { return m_animation; }
     void setAnimation(Animation anim) { m_animation = anim; }
 
+    /// 受伤方向角（度，相对实体朝向）。仅 TakeDamage 动画在序列化时携带，
+    /// 客户端据此设置 damageTilt 的 hurtDir（ClientboundHurtAnimationPacket.yaw）。
+    f32 hurtDir() const { return m_hurtDir; }
+    void setHurtDir(f32 dir) { m_hurtDir = dir; }
+
 private:
     u32 m_entityId = 0;
     Animation m_animation = Animation::SwingMainHand;
+    f32 m_hurtDir = 0.0f; // 仅 TakeDamage 动画写入/读取
 };
 
 /**

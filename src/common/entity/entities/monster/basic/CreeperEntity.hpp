@@ -213,6 +213,14 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 苦力怕无环境音，对齐原版 Creeper（不 override getAmbientSound → Mob 默认 null），
+     * 避免默认拼接出不存在的 entity.creeper.ambient（仅有 primed/hurt/death）。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
 private:
     // 状态变量
     i32 m_fuseTime = DEFAULT_FUSE_TIME;               // 点燃时间配置（可修改）

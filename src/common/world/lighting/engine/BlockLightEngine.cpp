@@ -22,8 +22,8 @@
  */
 
 #include "BlockLightEngine.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -139,14 +139,9 @@ void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 {
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
-        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
-        if (isDataRetained(columnPos)) {
-            // 数据被保留时使用 Hidden 状态，保持数据但停止传播
-            nibble->setHidden();
-        } else {
-            // 非保留区块列，完全清除数据
-            nibble->setNull();
-        }
+        // 方块光去初始化保留数据为 Hidden 状态：方块光减亮通常因方块被移除，
+        // 减亮传播需要保留数据才能正确计算；Hidden 保留数据但停止传播。
+        nibble->setHidden();
     }
 }
 
@@ -231,7 +226,7 @@ i32 BlockStarLightEngine::calculateLightValue(
 
     for (LightAxisDirection dir : ALL_AXIS_DIRECTIONS) {
         i32 dx, dy, dz;
-        getDirectionOffset(dir, dx, dy, dz);
+        _getDirectionOffset(dir, dx, dy, dz);
 
         i32 offX = worldX + dx;
         i32 offY = worldY + dy;
@@ -256,10 +251,10 @@ i32 BlockStarLightEngine::calculateLightValue(
             // 方块可能是条件透明的（光线无法从中传播），需要检测
             // 大多数情况下这是 false，所以使用更快的透明度查找是值得的
             CollisionShape neighbourFace =
-                neighbourState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(dir)));
+                neighbourState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(dir)));
             CollisionShape thisFace;
             if (conditionallyOpaqueState != nullptr) {
-                thisFace = conditionallyOpaqueState->getFaceOcclusionShape(getNMSDirection(dir));
+                thisFace = conditionallyOpaqueState->getFaceOcclusionShape(_getNMSDirection(dir));
             }
 
             // 使用 Shapes::faceShapeOccludes 进行精确的面遮挡检测
@@ -354,9 +349,8 @@ i32 BlockStarLightEngine::_getLightEmission(
     if (state == nullptr) {
         return 0;
     }
-    // 方块光源始终按方块自身亮度发射，不受区块列启用状态门控。
-    // column-enable 仅用于天空光（SkyStarLightEngine::initNibble 控制未遮挡列填 15），
-    // 不应门控方块光——否则初始光照时 enableLightSources 尚未调用，所有方块光源发光为 0。
+    // 方块光源始终按方块自身亮度发射：方块光无需区块列启用门控，
+    // 列启用语义仅属于天空光（SkyStarLightEngine::initNibble 控制未遮挡列填 15）。
     return state->getBlock().getLightLevel(*state) & m_emittedLightMask;
 }
 
@@ -426,11 +420,6 @@ void BlockStarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmp
     // 实际的 Nibble 初始化/去初始化在 handleEmptySectionChanges 中处理
     (void)pos;
     (void)isEmpty;
-}
-
-u8 BlockStarLightEngine::getLightFor(i32 x, i32 y, i32 z) const
-{
-    return static_cast<u8>(getLightLevel(x, y, z));
 }
 
 void BlockStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array, bool retain)
@@ -571,38 +560,6 @@ void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const Chun
         bool isEmpty = (section == nullptr || section->isEmpty());
         updateSectionStatus(SectionPos(chunkX, sectionY, chunkZ), isEmpty);
     }
-}
-
-// ============================================================================
-// 区块列管理
-// ============================================================================
-
-void BlockStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
-{
-    if (enabled) {
-        m_enabledColumns.insert(columnPos);
-    } else {
-        m_enabledColumns.erase(columnPos);
-    }
-}
-
-void BlockStarLightEngine::retainData(i64 columnPos, bool retain)
-{
-    if (retain) {
-        m_columnsToRetainDataFor.insert(columnPos);
-    } else {
-        m_columnsToRetainDataFor.erase(columnPos);
-    }
-}
-
-bool BlockStarLightEngine::isColumnEnabled(i64 columnPos) const
-{
-    return m_enabledColumns.contains(columnPos);
-}
-
-bool BlockStarLightEngine::isDataRetained(i64 columnPos) const
-{
-    return m_columnsToRetainDataFor.contains(columnPos);
 }
 
 } // namespace mc

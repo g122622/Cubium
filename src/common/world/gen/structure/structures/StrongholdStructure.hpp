@@ -66,7 +66,7 @@ public:
     /**
      * @brief 获取结构关联的生物群系标签
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 检查是否可以生成

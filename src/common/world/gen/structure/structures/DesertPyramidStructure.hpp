@@ -76,7 +76,7 @@ public:
      *
      * 返回 minecraft:has_structure/desert_pyramid 标签，用于 O(1) 生物群系查找。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 检查是否可以生成

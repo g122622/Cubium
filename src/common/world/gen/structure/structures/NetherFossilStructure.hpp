@@ -87,12 +87,15 @@ public:
     NetherFossilStructure();
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
+    [[nodiscard]] DecorationStage defaultDecorationStage() const override
+    {
+        return DecorationStage::UndergroundDecoration;
+    }
 
     /**
      * @brief 获取下界化石关联的生物群系标签
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;

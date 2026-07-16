@@ -31,10 +31,4 @@ bool OnlyInAirPredicate::test(const IWorld& world, const BlockPos& pos) const
     return state == nullptr || state->isAir();
 }
 
-bool OnlyInAirOrWaterPredicate::test(const IWorld& world, const BlockPos& pos) const
-{
-    const BlockState* state = world.getBlockState(pos);
-    return state == nullptr || state->isAir() || state->isLiquid();
-}
-
 } // namespace mc::world::gen::feature::predicate

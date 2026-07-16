@@ -95,10 +95,14 @@ public:
      *
      * @param itemStack 物品堆
      * @param transformType 变换类型
+     * @param bakeTransforms 是否将 display 变换与 getItemTransform 摄像机矩阵烘焙进顶点。
+     *        true：与第三人称 HeldItemLayer 一致，变换烘焙进顶点，调用方仅传手臂相对矩阵。
+     *        false：返回原始模型几何，由调用方在矩阵栈上单独施加 display 变换
+     *        （第一人称路径由 ItemInHandRenderer::applyTransform 拥有 display 变换，避免双重施加）。
      * @return 顶点和索引对
      */
     static std::pair<std::vector<model::ModelVertex>, std::vector<u32>> buildHeldItemMesh(
-        const ::mc::ItemStack& itemStack, ItemTransformType transformType);
+        const ::mc::ItemStack& itemStack, ItemTransformType transformType, bool bakeTransforms);
 
     /**
      * @brief 构建盔甲网格
@@ -170,11 +174,15 @@ private:
 
     /**
      * @brief 构建 3D 物品模型网格
+     *
+     * @param bakeDisplayTransform 是否将模型 display 变换烘焙进顶点。false 时返回原始几何，
+     *        由调用方在矩阵栈上单独施加 display 变换。
      */
     static void _build3DItemMesh(const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices);
+        std::vector<u32>& indices,
+        bool bakeDisplayTransform);
 
     /**
      * @brief 构建平面图标网格（Generated/Handheld 类型）
@@ -183,7 +191,8 @@ private:
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices);
+        std::vector<u32>& indices,
+        bool bakeDisplayTransform);
 
     /**
      * @brief 构建方块物品网格
@@ -192,7 +201,8 @@ private:
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices);
+        std::vector<u32>& indices,
+        bool bakeDisplayTransform);
 
     /**
      * @brief 构建自定义 3D 模型网格
@@ -201,7 +211,8 @@ private:
         const ::mc::Item& item,
         ItemTransformType transformType,
         std::vector<model::ModelVertex>& vertices,
-        std::vector<u32>& indices);
+        std::vector<u32>& indices,
+        bool bakeDisplayTransform);
 
     /**
      * @brief 构建回退网格（简单立方体）

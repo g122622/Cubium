@@ -22,9 +22,9 @@
  */
 
 #include "BaseLightEngine.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -47,7 +47,7 @@ namespace mc {
 
 namespace {
 
-std::unique_ptr<bool[]> copyEmptinessMap(const std::vector<bool>& emptinessMap, size_t targetSize)
+std::unique_ptr<bool[]> _copyEmptinessMap(const std::vector<bool>& emptinessMap, size_t targetSize)
 {
     auto rawMap = std::make_unique<bool[]>(targetSize);
     std::fill_n(rawMap.get(), targetSize, false);
@@ -269,7 +269,7 @@ void StarLightEngine::blocksChangedInChunk(StarLightLightingProvider* lightAcces
         }
         std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptinessChanges, false);
         if (!result.empty()) {
-            auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+            auto rawMap = _copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
             setEmptinessMap(chunk, rawMap.get());
         }
     }
@@ -398,7 +398,7 @@ void StarLightEngine::forceHandleEmptySectionChanges(
     // 处理空段变化，但不使用 unlit 模式
     std::vector<bool> result = handleEmptySectionChanges(lightAccess, chunk, emptySections, false);
     if (!result.empty()) {
-        auto rawMap = copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+        auto rawMap = _copyEmptinessMap(result, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
         setEmptinessMap(chunk, rawMap.get());
     }
 
@@ -443,7 +443,7 @@ void StarLightEngine::checkChunkEdge(
 
     for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
         i32 dx, dy, dz;
-        getDirectionOffset(dir, dx, dy, dz);
+        _getDirectionOffset(dir, dx, dy, dz);
 
         SWMRNibbleArray* neighbourNibble = getNibbleFromCache(chunkX + dx, chunkY, chunkZ + dz);
         if (neighbourNibble == nullptr) {
@@ -550,7 +550,7 @@ void StarLightEngine::propagateNeighbourLevels(
         }
         for (LightAxisDirection dir : ONLY_HORIZONTAL_DIRECTIONS) {
             i32 dx, dy, dz;
-            getDirectionOffset(dir, dx, dy, dz);
+            _getDirectionOffset(dir, dx, dy, dz);
 
             SWMRNibbleArray* neighbourNibble = getNibbleFromCache(chunkX + dx, currSectionY, chunkZ + dz);
             if (neighbourNibble == nullptr || !neighbourNibble->isInitializedUpdating()) {
@@ -585,7 +585,7 @@ void StarLightEngine::propagateNeighbourLevels(
             }
 
             i32 propagateDirection =
-                getDirectionBitset(getOppositeDirection(dir)); // 只想在这个方向检查向这个区块的传播
+                getDirectionBitset(_getOppositeDirection(dir)); // 只想在这个方向检查向这个区块的传播
             i32 sectionOffset = m_chunkSectionIndexOffset;
 
             for (i32 currY = currSectionY << world::CHUNK_SHIFT, maxY = currY | world::CHUNK_MASK; currY <= maxY;
@@ -672,7 +672,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
         if (!emptinessUpdate.empty()) {
             auto rawMap =
-                copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+                _copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
             setEmptinessMap(chunk, rawMap.get());
             setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
         }
@@ -680,10 +680,16 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         // 执行光照计算
         lightChunk(lightAccess, chunk, needsEdgeChecks);
 
-        // 将临时 nibble 写回区块
+        // 将临时 nibble 写回区块（move 语义：临时对象状态转移到区块 nibble，临时对象置 Null）
         setNibbles(chunk, tempNibblePtrs.data());
 
-        // 更新可见数据
+        // 重新把缓存指向区块上的 nibble（move 后区块 nibble 与临时对象是不同实例）。
+        // 对齐 Moonrise light() 顺序：setNibbles 后 updateVisible 必须作用在区块 nibble 上，
+        // 因 markLightChanged→getData→toByteArray 读区块 nibble 的 visible 侧，
+        // 若 updateVisible 仍作用已 move 置空的临时对象则区块 nibble 永不发布 visible（既有 bug）。
+        setNibblesForChunkInCache(chunkX, chunkZ, getNibblesOnChunk(chunk));
+
+        // 更新可见数据：发布区块 nibble 的 visible 侧，并经 markLightChanged 通知主线程
         updateVisible(lightAccess);
     }
     catch (...) {
@@ -1040,7 +1046,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 s_oldCheckDirections[static_cast<size_t>(directionBits)];
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
-                getDirectionOffset(propagate, dx, dy, dz);
+                _getDirectionOffset(propagate, dx, dy, dz);
 
                 i32 offX = posX + dx;
                 i32 offY = posY + dy;
@@ -1067,7 +1073,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 if (blockState->useShapeForLightOcclusion()) {
                     // 获取遮挡面
                     CollisionShape cullingFace =
-                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                        blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
                     if (cullingFace.isFullBlock()) {
                         // 完全面遮挡，无法传播
                         continue;
@@ -1094,7 +1100,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                     m_increaseQueue[static_cast<size_t>(queueLength++)] =
                         ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
                         (static_cast<u64>(targetLevel & 0xF) << 28) |
-                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
+                        (static_cast<u64>(_getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         } else {
@@ -1105,7 +1111,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
 
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
-                getDirectionOffset(propagate, dx, dy, dz);
+                _getDirectionOffset(propagate, dx, dy, dz);
 
                 i32 offX = posX + dx;
                 i32 offY = posY + dy;
@@ -1114,7 +1120,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 // 检查源方块的遮挡面
                 CollisionShape fromShape; // 空 shape
                 if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
-                    fromShape = fromBlock->getFaceOcclusionShape(getNMSDirection(propagate));
+                    fromShape = fromBlock->getFaceOcclusionShape(_getNMSDirection(propagate));
                 }
 
                 if (!fromShape.isEmpty() && fromShape.isFullBlock()) {
@@ -1142,7 +1148,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
                     CollisionShape cullingFace =
-                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                        blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
 
                     // 使用 VoxelShape 进行精确遮挡检测
                     VoxelShape fromVoxel = Shapes::fromCollisionShape(fromShape);
@@ -1170,7 +1176,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                     m_increaseQueue[static_cast<size_t>(queueLength++)] =
                         ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
                         (static_cast<u64>(targetLevel & 0xF) << 28) |
-                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
+                        (static_cast<u64>(_getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         }
@@ -1208,7 +1214,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 s_oldCheckDirections[static_cast<size_t>(directionBits)];
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
-                getDirectionOffset(propagate, dx, dy, dz);
+                _getDirectionOffset(propagate, dx, dy, dz);
 
                 i32 offX = posX + dx;
                 i32 offY = posY + dy;
@@ -1235,7 +1241,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
                     CollisionShape cullingFace =
-                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                        blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
                     if (cullingFace.isFullBlock()) {
                         // 完全面遮挡
                         continue;
@@ -1286,7 +1292,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                     m_decreaseQueue[static_cast<size_t>(queueLength++)] =
                         ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
                         (static_cast<u64>(targetLevel & 0xF) << 28) |
-                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
+                        (static_cast<u64>(_getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         } else {
@@ -1297,7 +1303,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
 
             for (LightAxisDirection propagate : directions) {
                 i32 dx, dy, dz;
-                getDirectionOffset(propagate, dx, dy, dz);
+                _getDirectionOffset(propagate, dx, dy, dz);
 
                 i32 offX = posX + dx;
                 i32 offY = posY + dy;
@@ -1306,7 +1312,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 // 检查源方块的遮挡面
                 CollisionShape fromShape; // 空 shape
                 if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
-                    fromShape = fromBlock->getFaceOcclusionShape(getNMSDirection(propagate));
+                    fromShape = fromBlock->getFaceOcclusionShape(_getNMSDirection(propagate));
                 }
 
                 if (!fromShape.isEmpty() && fromShape.isFullBlock()) {
@@ -1335,7 +1341,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 u64 flags = 0;
                 if (blockState->useShapeForLightOcclusion()) {
                     CollisionShape cullingFace =
-                        blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
+                        blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
 
                     // 使用 VoxelShape 进行精确遮挡检测
                     VoxelShape fromVoxel = Shapes::fromCollisionShape(fromShape);
@@ -1388,7 +1394,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                     m_decreaseQueue[static_cast<size_t>(queueLength++)] =
                         ((offX + (offZ << 6) + (offY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
                         (static_cast<u64>(targetLevel & 0xF) << 28) |
-                        (static_cast<u64>(getEverythingButOppositeDirection(propagate)) << 32) | flags;
+                        (static_cast<u64>(_getEverythingButOppositeDirection(propagate)) << 32) | flags;
                 }
             }
         }
@@ -1442,8 +1448,8 @@ bool StarLightEngine::isFaceOccluded(
     }
 
     // 获取面遮挡方向
-    Direction fromDir = getNMSDirection(direction);
-    Direction toDir = getNMSDirection(getOppositeDirection(direction));
+    Direction fromDir = _getNMSDirection(direction);
+    Direction toDir = _getNMSDirection(_getOppositeDirection(direction));
 
     // 获取遮挡形状
     const CollisionShape& fromCollisionShape = fromState->getOcclusionShape();

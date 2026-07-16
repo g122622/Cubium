@@ -971,6 +971,9 @@ TEST_F(TemplateTest, ProcessorList_Chain)
 
 // ============================================================================
 // RuleTest 测试
+//
+// 方块谓词已并入 mc::RuleTest（引用风格 test(const BlockState&, Random&)），
+// template_:: 下的同名类为 mc:: 的别名。位置谓词 PosRuleTest 仍属本命名空间。
 // ============================================================================
 
 TEST_F(RuleTestTest, AlwaysTrueRuleTest)
@@ -978,10 +981,10 @@ TEST_F(RuleTestTest, AlwaysTrueRuleTest)
     AlwaysTrueRuleTest test;
     math::Random rng(12345);
 
-    auto* state = BlockRegistry::instance().getBlockState(0);
-    EXPECT_TRUE(test.test(state, rng));
-    EXPECT_TRUE(test.test(nullptr, rng)); // 总是返回true
-    EXPECT_EQ(test.getTypeId(), 0u);
+    const BlockState* state = BlockRegistry::instance().getBlockState(0);
+    ASSERT_NE(state, nullptr);
+    EXPECT_TRUE(test.test(*state, rng));
+    EXPECT_EQ(test.name(), std::string("always_true"));
 }
 
 TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone)
@@ -989,48 +992,50 @@ TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone)
     AlwaysTrueRuleTest original;
     auto clone = original.clone();
 
-    EXPECT_EQ(clone->getTypeId(), original.getTypeId());
+    EXPECT_NE(clone, nullptr);
+    EXPECT_EQ(std::string(clone->name()), "always_true");
     math::Random rng(12345);
-    EXPECT_TRUE(clone->test(nullptr, rng));
+    const BlockState* state = BlockRegistry::instance().getBlockState(0);
+    ASSERT_NE(state, nullptr);
+    EXPECT_TRUE(clone->test(*state, rng));
 }
 
 TEST_F(RuleTestTest, BlockMatchRuleTest)
 {
     auto& registry = BlockRegistry::instance();
 
-    // 获取石头的方块ID
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stoneBlock, nullptr);
-    u32 stoneBlockId = stoneBlock->blockId();
 
-    BlockMatchRuleTest test(stoneBlockId);
+    BlockMatchRuleTest test(stoneBlock);
     math::Random rng(12345);
 
-    // 获取石头状态
     const BlockState* stoneState = &stoneBlock->defaultState();
-    EXPECT_TRUE(test.test(stoneState, rng));
+    EXPECT_TRUE(test.test(*stoneState, rng));
 
-    // 获取其他方块（如泥土）
     Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
     if (dirtBlock) {
         const BlockState* dirtState = &dirtBlock->defaultState();
-        EXPECT_FALSE(test.test(dirtState, rng));
+        EXPECT_FALSE(test.test(*dirtState, rng));
     }
 
-    // null 测试
-    EXPECT_FALSE(test.test(nullptr, rng));
-
-    EXPECT_EQ(test.getTypeId(), 1u);
-    EXPECT_EQ(test.blockId(), stoneBlockId);
+    EXPECT_EQ(test.getBlock(), stoneBlock);
 }
 
 TEST_F(RuleTestTest, BlockMatchRuleTest_Clone)
 {
-    BlockMatchRuleTest original(10);
+    auto& registry = BlockRegistry::instance();
+    Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stoneBlock, nullptr);
+
+    BlockMatchRuleTest original(stoneBlock);
     auto clone = original.clone();
 
-    EXPECT_EQ(clone->getTypeId(), 1u);
-    EXPECT_EQ(static_cast<BlockMatchRuleTest*>(clone.get())->blockId(), 10u);
+    EXPECT_NE(clone, nullptr);
+    EXPECT_EQ(std::string(clone->name()), "block_match");
+    auto* cloned = dynamic_cast<BlockMatchRuleTest*>(clone.get());
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_EQ(cloned->getBlock(), stoneBlock);
 }
 
 TEST_F(RuleTestTest, BlockStateMatchRuleTest)
@@ -1041,39 +1046,31 @@ TEST_F(RuleTestTest, BlockStateMatchRuleTest)
     ASSERT_NE(stoneBlock, nullptr);
 
     const BlockState* state = &stoneBlock->defaultState();
-    u32 stateId = state->stateId();
-
-    BlockStateMatchRuleTest test(stateId);
+    BlockStateMatchRuleTest test(state);
     math::Random rng(12345);
 
-    EXPECT_TRUE(test.test(state, rng));
-    EXPECT_EQ(test.getTypeId(), 2u);
-    EXPECT_EQ(test.stateId(), stateId);
+    EXPECT_TRUE(test.test(*state, rng));
 
-    // 其他状态应该不匹配
     Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
     if (dirtBlock) {
         const BlockState* dirtState = &dirtBlock->defaultState();
-        EXPECT_FALSE(test.test(dirtState, rng));
+        EXPECT_FALSE(test.test(*dirtState, rng));
     }
 }
 
 TEST_F(RuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch)
 {
-    RandomBlockMatchRuleTest test(1, 1.0f); // 100% 概率
-    math::Random rng(12345);
-
     auto& registry = BlockRegistry::instance();
     Block* block = registry.getBlock(ResourceLocation("minecraft:stone"));
-    if (block) {
-        u32 blockId = block->blockId();
-        RandomBlockMatchRuleTest test2(blockId, 1.0f);
+    ASSERT_NE(block, nullptr);
 
-        const BlockState* state = &block->defaultState();
-        // 100% 概率应该总是匹配
-        for (int i = 0; i < 10; ++i) {
-            EXPECT_TRUE(test2.test(state, rng));
-        }
+    RandomBlockMatchRuleTest test(block, 1.0f); // 100% 概率
+    const BlockState* state = &block->defaultState();
+    math::Random rng(12345);
+
+    // 100% 概率应该总是匹配
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_TRUE(test.test(*state, rng));
     }
 }
 
@@ -1081,31 +1078,31 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_NeverMatch)
 {
     auto& registry = BlockRegistry::instance();
     Block* block = registry.getBlock(ResourceLocation("minecraft:stone"));
-    if (block) {
-        u32 blockId = block->blockId();
-        RandomBlockMatchRuleTest test(blockId, 0.0f); // 0% 概率
+    ASSERT_NE(block, nullptr);
 
-        const BlockState* state = &block->defaultState();
-        math::Random rng(12345);
+    RandomBlockMatchRuleTest test(block, 0.0f); // 0% 概率
+    const BlockState* state = &block->defaultState();
+    math::Random rng(12345);
 
-        // 0% 概率应该永远不匹配
-        for (int i = 0; i < 10; ++i) {
-            EXPECT_FALSE(test.test(state, rng));
-        }
+    // 0% 概率应该永远不匹配
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_FALSE(test.test(*state, rng));
     }
 }
 
 TEST_F(RuleTestTest, RandomBlockMatchRuleTest_WrongBlock)
 {
-    RandomBlockMatchRuleTest test(999999, 1.0f); // 不存在的方块ID，100%概率
-    math::Random rng(12345);
-
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
-    if (stoneBlock) {
+    ASSERT_NE(stoneBlock, nullptr);
+
+    // 用泥土做目标规则，再拿石头状态去测：方块不匹配，即使概率 100% 也应返回 false
+    Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
+    if (dirtBlock) {
+        RandomBlockMatchRuleTest test(dirtBlock, 1.0f);
         const BlockState* state = &stoneBlock->defaultState();
-        // 方块ID不匹配，即使概率100%也应该返回false
-        EXPECT_FALSE(test.test(state, rng));
+        math::Random rng(12345);
+        EXPECT_FALSE(test.test(*state, rng));
     }
 }
 
@@ -1137,37 +1134,26 @@ TEST_F(RuleTestTest, LinearPosRuleTest_MinHeight)
 {
     // 在最小高度时使用最小概率
     LinearPosRuleTest test(0, 100, 0.0f, 1.0f);
-    math::Random rng(12345);
 
-    // 在最小高度 (Y=0)，概率为0%，应该返回false
-    // 但由于随机性，我们需要测试概率
-    // 这里测试的是边界条件
-
-    // Y=0 时，概率 = 0.0f
-    // Y=100 时，概率 = 1.0f
-    // Y=50 时，概率 = 0.5f
+    // Y=0 时，概率 = 0.0f；Y=100 时，概率 = 1.0f；Y=50 时，概率 = 0.5f
     EXPECT_EQ(test.getTypeId(), 1u);
 }
 
 TEST_F(RuleTestTest, LinearPosRuleTest_Interpolation)
 {
-    // 测试线性插值
+    // 测试线性插值：在 Y=50 时概率应为 0.5，此处仅验证函数不崩溃
     LinearPosRuleTest test(0, 100, 0.0f, 1.0f);
-
-    // 在 Y=50 时，概率应该是 0.5
-    // 我们无法直接验证概率，但可以验证函数不会崩溃
     math::Random rng(12345);
     test.test(BlockPos(0, 50, 0), BlockPos(0, 50, 0), BlockPos(0, 0, 0), rng);
 }
 
 TEST_F(RuleTestTest, LinearPosRuleTest_EqualHeights)
 {
-    // 当 minHeight == maxHeight 时，应该使用 minProbability
+    // 当 minHeight == maxHeight 时，应使用 minProbability
     LinearPosRuleTest test(50, 50, 0.5f, 1.0f);
     math::Random rng(12345);
 
-    // 无论Y坐标如何，概率都应该固定为 minProbability
-    // 这只是验证不会崩溃
+    // 无论 Y 坐标如何，概率都固定为 minProbability，此处仅验证不崩溃
     test.test(BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng);
     test.test(BlockPos(0, 100, 0), BlockPos(0, 100, 0), BlockPos(0, 0, 0), rng);
 }
@@ -1192,29 +1178,35 @@ TEST_F(RuleTestTest, RuleEntry_AllTrue)
 
     RuleEntry entry(std::move(inputTest), std::move(locationTest), std::move(posTest), 42);
 
+    // 方块状态非空时 AlwaysTrue 谓词通过
+    auto& registry = BlockRegistry::instance();
+    const BlockState* state = registry.getBlockState(0);
+    ASSERT_NE(state, nullptr);
+
     math::Random rng(12345);
-    EXPECT_TRUE(entry.matches(nullptr, nullptr, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
+    EXPECT_TRUE(entry.matches(state, state, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
     EXPECT_EQ(entry.outputStateId(), 42u);
 }
 
 TEST_F(RuleTestTest, RuleEntry_InputPredicateFails)
 {
-    auto inputTest = std::make_unique<BlockMatchRuleTest>(999999); // 不存在的方块ID
+    auto& registry = BlockRegistry::instance();
+    Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
+    Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
+    if (!stoneBlock || !dirtBlock) {
+        GTEST_SKIP() << "Required blocks not registered";
+    }
+
+    // 用泥土做输入规则，拿石头状态去测：input 谓词失败
+    auto inputTest = std::make_unique<BlockMatchRuleTest>(dirtBlock);
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
     auto posTest = std::make_unique<AlwaysTruePosRuleTest>();
 
     RuleEntry entry(std::move(inputTest), std::move(locationTest), std::move(posTest), 42);
 
+    const BlockState* state = &stoneBlock->defaultState();
     math::Random rng(12345);
-
-    // 获取一个真实的方块状态
-    auto& registry = BlockRegistry::instance();
-    Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
-    if (stoneBlock) {
-        const BlockState* state = &stoneBlock->defaultState();
-        // inputTest 会失败，因为方块ID不匹配
-        EXPECT_FALSE(entry.matches(state, nullptr, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
-    }
+    EXPECT_FALSE(entry.matches(state, state, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
 }
 
 TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor)
@@ -1224,11 +1216,28 @@ TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor)
 
     RuleEntry entry(std::move(inputTest), std::move(locationTest), 100);
 
-    // 使用两个参数的构造函数，posPredicate 应该默认为 AlwaysTruePosRuleTest
+    // 两参构造函数，posPredicate 默认为 AlwaysTruePosRuleTest
+    auto& registry = BlockRegistry::instance();
+    const BlockState* state = registry.getBlockState(0);
+    ASSERT_NE(state, nullptr);
+
     math::Random rng(12345);
-    EXPECT_TRUE(entry.matches(nullptr, nullptr, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
+    EXPECT_TRUE(entry.matches(state, state, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
     EXPECT_EQ(entry.outputStateId(), 100u);
     EXPECT_NE(entry.posPredicate(), nullptr);
+}
+
+TEST_F(RuleTestTest, RuleEntry_NullStateDoesNotMatch)
+{
+    // mc::RuleTest 为引用风格，方块状态为空时谓词视为不匹配
+    auto inputTest = std::make_unique<BlockMatchRuleTest>(VanillaBlocks::STONE);
+    auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
+    auto posTest = std::make_unique<AlwaysTruePosRuleTest>();
+
+    RuleEntry entry(std::move(inputTest), std::move(locationTest), std::move(posTest), 42);
+
+    math::Random rng(12345);
+    EXPECT_FALSE(entry.matches(nullptr, nullptr, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
 }
 
 // ============================================================================
@@ -1237,21 +1246,22 @@ TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor)
 
 TEST_F(TemplateTest, RuleStructureProcessor_NoMatch)
 {
-    // 创建一个规则，匹配不存在的方块ID
-    auto inputTest = std::make_unique<BlockMatchRuleTest>(999999);
+    auto& registry = BlockRegistry::instance();
+    Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
+    Block* dirtBlock = registry.getBlock(ResourceLocation("minecraft:dirt"));
+
+    if (!stoneBlock || !dirtBlock) {
+        GTEST_SKIP() << "Required blocks not registered";
+    }
+
+    // 输入规则匹配泥土，但传入石头状态：不匹配，保持原样
+    auto inputTest = std::make_unique<BlockMatchRuleTest>(dirtBlock);
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
 
     std::vector<std::unique_ptr<RuleEntry>> rules;
     rules.push_back(std::make_unique<RuleEntry>(std::move(inputTest), std::move(locationTest), 42));
 
     RuleStructureProcessor processor(std::move(rules));
-
-    // 使用真实方块
-    auto& registry = BlockRegistry::instance();
-    Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
-    if (!stoneBlock) {
-        GTEST_SKIP() << "Stone block not registered";
-    }
 
     BlockInfo block(BlockPos(0, 0, 0), stoneBlock->defaultState().stateId());
     PlacementSettings settings;
@@ -1274,11 +1284,10 @@ TEST_F(TemplateTest, RuleStructureProcessor_Match)
         GTEST_SKIP() << "Required blocks not registered";
     }
 
-    u32 stoneBlockId = stoneBlock->blockId();
     u32 dirtStateId = dirtBlock->defaultState().stateId();
 
     // 创建一个规则，匹配石头方块，替换为泥土
-    auto inputTest = std::make_unique<BlockMatchRuleTest>(stoneBlockId);
+    auto inputTest = std::make_unique<BlockMatchRuleTest>(stoneBlock);
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
 
     std::vector<std::unique_ptr<RuleEntry>> rules;
@@ -1308,21 +1317,17 @@ TEST_F(TemplateTest, RuleStructureProcessor_MultipleRules)
         GTEST_SKIP() << "Required blocks not registered";
     }
 
-    u32 stoneBlockId = stoneBlock->blockId();
-    u32 dirtBlockId = dirtBlock->blockId();
     u32 cobblestoneStateId = cobblestoneBlock->defaultState().stateId();
 
     std::vector<std::unique_ptr<RuleEntry>> rules;
 
     // 规则1：石头 -> 圆石
-    rules.push_back(std::make_unique<RuleEntry>(std::make_unique<BlockMatchRuleTest>(stoneBlockId),
-        std::make_unique<AlwaysTrueRuleTest>(),
-        cobblestoneStateId));
+    rules.push_back(std::make_unique<RuleEntry>(
+        std::make_unique<BlockMatchRuleTest>(stoneBlock), std::make_unique<AlwaysTrueRuleTest>(), cobblestoneStateId));
 
-    // 规则2：泥土 -> 圆石（这条规则不会被执行到，因为规则1先匹配）
-    rules.push_back(std::make_unique<RuleEntry>(std::make_unique<BlockMatchRuleTest>(dirtBlockId),
-        std::make_unique<AlwaysTrueRuleTest>(),
-        999)); // 不存在的状态ID
+    // 规则2：泥土 -> 不存在的状态ID（这条规则不会被执行到，因为规则1先匹配）
+    rules.push_back(std::make_unique<RuleEntry>(
+        std::make_unique<BlockMatchRuleTest>(dirtBlock), std::make_unique<AlwaysTrueRuleTest>(), 999));
 
     RuleStructureProcessor processor(std::move(rules));
 
@@ -1417,7 +1422,7 @@ TEST_F(TemplateTest, ProcessorChain_Integration)
 }
 
 // ============================================================================
-// TagMatchRuleTest 测试（template 命名空间版本）
+// TagMatchRuleTest 测试（template 命名空间版本，复用 mc::TagMatchRuleTest）
 // ============================================================================
 
 TEST_F(RuleTestTest, TagMatchRuleTest_MatchesStoneTag)
@@ -1427,14 +1432,14 @@ TEST_F(RuleTestTest, TagMatchRuleTest_MatchesStoneTag)
     math::Random rng(12345);
 
     // 应该匹配 stone 标签中的方块
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::STONE), rng));
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::GRANITE), rng));
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::DIORITE), rng));
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::ANDESITE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::GRANITE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIORITE), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::ANDESITE), rng));
 
     // 不应该匹配不在 stone 标签中的方块
-    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
-    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::COBBLESTONE), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::COBBLESTONE), rng));
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTest_MatchesLogsTag)
@@ -1443,14 +1448,14 @@ TEST_F(RuleTestTest, TagMatchRuleTest_MatchesLogsTag)
     math::Random rng(12345);
 
     // 应该匹配 logs 标签中的方块
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::OAK_LOG), rng));
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG), rng));
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::BIRCH_LOG), rng));
-    EXPECT_TRUE(test.test(VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::OAK_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::SPRUCE_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::BIRCH_LOG), rng));
+    EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::JUNGLE_LOG), rng));
 
     // 不应该匹配不在 logs 标签中的方块
-    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::STONE), rng));
-    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTest_NonExistentTag)
@@ -1459,7 +1464,7 @@ TEST_F(RuleTestTest, TagMatchRuleTest_NonExistentTag)
     TagMatchRuleTest test(ResourceLocation("minecraft", "nonexistent_tag"));
     math::Random rng(12345);
 
-    EXPECT_FALSE(test.test(VanillaBlocks::getState(VanillaBlocks::STONE), rng));
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTest_Clone)
@@ -1468,9 +1473,9 @@ TEST_F(RuleTestTest, TagMatchRuleTest_Clone)
     auto clone = test.clone();
 
     EXPECT_NE(clone, nullptr);
-    EXPECT_EQ(clone->getTypeId(), static_cast<u32>(RuleTestType::TagMatch));
+    EXPECT_EQ(std::string(clone->name()), "tag_match");
 
     TagMatchRuleTest* clonedTest = dynamic_cast<TagMatchRuleTest*>(clone.get());
     EXPECT_NE(clonedTest, nullptr);
-    EXPECT_EQ(clonedTest->tagId(), ResourceLocation("minecraft", "logs"));
+    EXPECT_EQ(clonedTest->getTagName(), ResourceLocation("minecraft", "logs"));
 }

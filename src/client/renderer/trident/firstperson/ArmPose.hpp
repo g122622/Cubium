@@ -74,32 +74,4 @@ enum class ArmPose : u8 {
     Sneaking = 12
 };
 
-/**
- * @brief 判断手臂姿态是否需要两手持握
- *
- * 某些物品（如弓、三叉戟）需要双手操作，
- * 当主手使用这些物品时，副手不应渲染。
- *
- * @param pose 手臂姿态
- * @return true 如果需要两手持握
- */
-[[nodiscard]] inline bool isTwoHanded(ArmPose pose)
-{
-    return pose == ArmPose::BowAndArrow || pose == ArmPose::ThrowSpear || pose == ArmPose::CrossbowCharge;
-}
-
-/**
- * @brief 判断手臂姿态是否阻止副手渲染
- *
- * 当主手使用某些物品时，副手应该隐藏或不渲染。
- *
- * @param pose 手臂姿态
- * @return true 如果副手不应渲染
- */
-[[nodiscard]] inline bool blocksOffHand(ArmPose pose)
-{
-    return pose == ArmPose::BowAndArrow || pose == ArmPose::ThrowSpear || pose == ArmPose::CrossbowCharge ||
-        pose == ArmPose::CrossbowHold;
-}
-
 } // namespace mc::client::renderer

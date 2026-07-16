@@ -298,6 +298,13 @@ void CreeperEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
+std::optional<ResourceLocation> CreeperEntity::getAmbientSound() const
+{
+    // 苦力怕无环境音，对齐原版 Creeper（不 override → Mob 默认 null）。
+    // sounds.json 中无 entity.creeper.ambient，仅有 primed/hurt/death。
+    return std::nullopt;
+}
+
 // ============================================================================
 // NBT 序列化
 // ============================================================================

@@ -73,6 +73,9 @@ struct StructureDefinition {
     LiquidSettings liquidSettings = LiquidSettings::ApplyWaterlogging; ///< 液体设置
     bool useExpansionHack = false;                                     ///< 是否使用扩展技巧
 
+    /// 数据驱动生物生成覆盖（按类别分键，对应 MC spawn_overrides）
+    StructureSpawnOverrideMap spawnOverrides;
+
     StructureDefinition() = default;
     StructureDefinition(const StructureDefinition&) = delete;
     StructureDefinition& operator=(const StructureDefinition&) = delete;
@@ -106,6 +109,7 @@ struct StructureDefinition {
  *
  * 加载路径: data/<namespace>/worldgen/structure/<path>.json
  */
+
 class StructureDefinitionLoader {
 public:
     /**
@@ -168,9 +172,20 @@ private:
     static LiquidSettings _parseLiquidSettings(const std::string& str);
 
     /**
-     * @brief 解析高度提供者 JSON
+     * @brief 解析 spawn_overrides JSON（按类别分键）
+     *
+     * 对应 MC StructureSpawnOverride.CODEC，键为生物类别（"monster"/"creature"/...），
+     * 值为 { "bounding_box": "piece"|"full", "spawns": [...] }。
+     * spawns 条目当前仅解析 minCount/maxCount，完整 SpawnerData 待后续补全。
      */
-    static std::unique_ptr<valueprovider::HeightProvider> _parseHeightProvider(const nlohmann::json& jsonObj);
+    static void _parseSpawnOverrides(const nlohmann::json& jsonObj, StructureSpawnOverrideMap& outOverrides);
+
+    /**
+     * @brief 解析 pool_aliases JSON 数组
+     *
+     * 分派三种绑定类型：direct / random / random_group，构造 jigsaw::PoolAliasBindings。
+     */
+    static void _parsePoolAliasBindings(const nlohmann::json& jsonObj, jigsaw::PoolAliasBindings& outBindings);
 
     /// 已加载的结构定义存储
     static std::vector<std::unique_ptr<StructureDefinition>> s_definitions;

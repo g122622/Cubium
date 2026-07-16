@@ -99,7 +99,9 @@ bool BlockColumnFeature::place(
     bool placedAny = false;
 
     for (size_t layerIdx = 0; layerIdx < config.layers.size(); ++layerIdx) {
-        const BlockState* layerState = config.layers[layerIdx].getState(random);
+        // 每层采样一次方块状态（坐标取该层起始格）
+        const BlockState* layerState =
+            config.layers[layerIdx].getState(region, random, current.x, current.y, current.z);
         i32 height = layerHeights[layerIdx];
 
         for (i32 h = 0; h < height; ++h) {

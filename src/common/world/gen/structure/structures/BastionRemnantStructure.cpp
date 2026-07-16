@@ -116,7 +116,7 @@ BastionRemnantStructure::BastionRemnantStructure()
     : Structure(ResourceLocation("minecraft", "bastion_remnant"))
 {}
 
-const biome::BiomeTag* BastionRemnantStructure::biomeTag() const
+const biome::BiomeTag* BastionRemnantStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_BASTION_REMNANT();
 }

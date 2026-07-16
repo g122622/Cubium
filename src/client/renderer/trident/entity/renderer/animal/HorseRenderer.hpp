@@ -42,6 +42,13 @@ namespace mc::client::renderer::entity::renderer::animal {
  * @brief 马渲染器
  *
  * 支持多种马变种（普通马、驴、骡、骷髅马、僵尸马）。
+ *
+ * GPU 管线集成：重写 supportsAnimation() 返回 true，使
+ * EntityRendererManager::renderWithPipeline 进入 Path B（ModelFactory +
+ * AnimatedMeshCache）生成主模型网格，消除“No mesh path”告警。
+ * 马模型的状态设置（setLivingAnimations）由 EntityRendererManager::
+ * _createModelForEntity 的 horse 分支统一处理。层渲染（马铠等）暂未实现，
+ * 保持 supportsLayers() 为基类默认 false。
  */
 class HorseRenderer : public core::EntityRenderer {
 public:
@@ -55,6 +62,17 @@ public:
      */
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::HorseEntity& entity);
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::HorseEntity& entity) const;
+
+    // ========== GPU 管线支持 ==========
+
+    /**
+     * @brief 马支持动画
+     *
+     * 重写返回 true，使 EntityRendererManager 在 renderWithPipeline 中进入
+     * Path B（ModelFactory + AnimatedMeshCache）生成主模型网格。
+     * 马主模型的动画设置由 _createModelForEntity 的 horse 分支统一处理。
+     */
+    [[nodiscard]] bool supportsAnimation() const override { return true; }
 
 private:
     void _setupLayers();

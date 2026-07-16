@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <climits>
+#include <limits>
 #include <mutex>
 
 namespace mc::world::gen::surface {
@@ -83,7 +84,7 @@ bool YCondition::compute(const SurfaceRuleContext& ctx) const
 
 bool WaterCondition::compute(const SurfaceRuleContext& ctx) const
 {
-    if (ctx.waterHeight() == INT_MIN) {
+    if (ctx.waterHeight() == std::numeric_limits<int>::min()) {
         return true;
     }
     const i32 y = ctx.blockY() + (m_addStoneDepth ? ctx.stoneDepthAbove() : 0);

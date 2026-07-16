@@ -25,9 +25,12 @@
 
 #include "StructureSet.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/biome/BiomeTag.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -300,12 +303,34 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseConcent
         count = placementObj["count"].get<i32>();
     }
 
-    // 解析首选生物群系（目前存为空列表，后续可通过标签系统解析）
+    // 解析首选生物群系（标签引用，如 "#minecraft:stronghold_biased_to"）。
+    // 标签由 BiomeTagLoader 从数据包 tags/worldgen/biome/*.json 填充（须先于本加载器执行）。
+    // 标签未加载或为空时 preferredBiomes 保持空（与硬编码兜底一致，要塞不做群系偏置）。
     std::vector<BiomeId> preferredBiomes;
-    if (placementObj.contains("preferred_biomes") && placementObj["preferred_biomes"].is_string()) {
-        // 标签引用如 "#minecraft:stronghold_biased_to"，后续实现标签系统时填充
-        spdlog::info("ConcentricRings preferred_biomes tag: '{}' (deferred to tag system)",
-            placementObj["preferred_biomes"].get<std::string>());
+    if (placementObj.contains("preferred_biomes")) {
+        const auto& pb = placementObj["preferred_biomes"];
+        if (pb.is_string()) {
+            std::string tagRef = pb.get<std::string>();
+            // 标签引用以 '#' 开头，去掉后得到 "namespace:path" 形式的 ResourceLocation。
+            if (!tagRef.empty() && tagRef[0] == '#') {
+                tagRef = tagRef.substr(1);
+            }
+            ResourceLocation tagLocation(tagRef);
+            if (tagLocation.isValid()) {
+                auto* tag = biome::BiomeTags::getTag(tagLocation);
+                if (tag != nullptr) {
+                    for (BiomeId id : tag->getBiomeIds()) {
+                        preferredBiomes.push_back(id);
+                    }
+                    spdlog::info("ConcentricRings preferred_biomes: resolved {} biomes from tag '{}'",
+                        preferredBiomes.size(),
+                        tagLocation.toString());
+                } else {
+                    spdlog::warn("ConcentricRings preferred_biomes: tag '{}' not registered (empty preferredBiomes)",
+                        tagLocation.toString());
+                }
+            }
+        }
     }
 
     i64 salt = 0;

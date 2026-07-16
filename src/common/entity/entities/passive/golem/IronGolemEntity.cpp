@@ -136,6 +136,13 @@ void IronGolemEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
+std::optional<ResourceLocation> IronGolemEntity::getAmbientSound() const
+{
+    // 铁傀儡无环境音，对齐原版 AbstractGolem.getAmbientSound 返回 null。
+    // sounds.json 中无 entity.iron_golem.ambient，仅 attack/step/hurt/death/repair。
+    return std::nullopt;
+}
+
 void IronGolemEntity::setHoldingRose(bool holding)
 {
     if (holding) {

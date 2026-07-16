@@ -1485,6 +1485,11 @@ void NetworkClient::_handleEntityAnimation(network::PacketDeserializer& deser)
     if (m_callbacks.onEntityAnimation) {
         m_callbacks.onEntityAnimation(packet.entityId(), static_cast<u8>(packet.animation()));
     }
+
+    // TakeDamage 动画附带 hurtDir（ClientboundHurtAnimationPacket），驱动 damageTilt。
+    if (packet.animation() == network::EntityAnimationPacket::Animation::TakeDamage && m_callbacks.onHurtAnimation) {
+        m_callbacks.onHurtAnimation(packet.entityId(), packet.hurtDir());
+    }
 }
 
 void NetworkClient::_handleEntityHeadLook(network::PacketDeserializer& deser)

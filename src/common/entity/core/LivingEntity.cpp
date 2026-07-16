@@ -34,6 +34,7 @@
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
@@ -164,6 +165,7 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         // 新的伤害，重置无敌帧
         m_lastDamage = amount;
         m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
+        // LivingEntity.hurtServer：hurtTime = hurtDuration = maxHurtTime(10)。
         m_hurtTime = m_maxHurtTime;
         actuallyHurt(source, amount);
     }
@@ -174,7 +176,38 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     // 会发送 EntityVelocityPacket 同步速度到客户端，并将标记重置为 false
     markHurt();
 
+    // 4. 计算受伤方向并触发 damageTilt 同步（hurtServer 中 indicateDamage 调用）。
+    // d0/d1 为伤害来源相对受害者在世界 XZ 平面的方向向量；无来源位置时为 0。
+    if (m_world != nullptr && amount > 0.0f) {
+        f64 d0 = 0.0;
+        f64 d1 = 0.0;
+        const auto sourcePos = source.sourcePosition();
+        if (sourcePos.has_value()) {
+            d0 = static_cast<f64>(sourcePos->x) - static_cast<f64>(x());
+            d1 = static_cast<f64>(sourcePos->z) - static_cast<f64>(z());
+        }
+        indicateDamage(d0, d1);
+    }
+
     return true;
+}
+
+void LivingEntity::indicateDamage(f64 d0, f64 d1)
+{
+    // 基类仅本地设置 hurtDir；网络广播由 ServerPlayer 重写负责。
+    // hurtDir = atan2(d1, d0) * RAD_TO_DEG - yaw。
+    m_hurtDir = static_cast<f32>(std::atan2(d1, d0) * static_cast<f64>(math::RAD_TO_DEG) - static_cast<f64>(yaw()));
+}
+
+bool LivingEntity::isScoping() const
+{
+    // 对应 MC LivingEntity.isScoping：使用中的物品是望远镜。
+    // 项目无独立 Spyglass 物品指针，按 UseAction::Spyglass 判定。
+    if (!isUsingItem() || m_activeItem.isEmpty()) {
+        return false;
+    }
+    const Item* item = m_activeItem.getItem();
+    return item != nullptr && item->getUseAction(m_activeItem) == UseAction::Spyglass;
 }
 
 void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)

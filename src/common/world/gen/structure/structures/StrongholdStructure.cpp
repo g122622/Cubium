@@ -72,7 +72,7 @@ StrongholdStructure::StrongholdStructure(const Config& config)
     , m_config(config)
 {}
 
-const biome::BiomeTag* StrongholdStructure::biomeTag() const
+const biome::BiomeTag* StrongholdStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_STRONGHOLD();
 }

@@ -190,6 +190,14 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.4f; }
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 仅在“不在水中 + 在地面 + 非幼体”三条件同时满足时播放陆地环境音，
+     * 否则不播放（水中游泳或幼体均静默），与原版 Turtle.getAmbientSound 一致。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
     // ========== 寻路权重 ==========
 
     /**

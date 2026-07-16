@@ -23,12 +23,14 @@
 
 #include "StructureDefinitionLoader.hpp"
 
+#include "StructureManager.hpp"
+#include "StructureTypeRegistry.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/gen/surface/SurfaceRules.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
+#include "common/world/gen/valueprovider/HeightProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -44,6 +46,9 @@ std::unordered_map<ResourceLocation, StructureDefinition*> StructureDefinitionLo
 
 Result<size_t> StructureDefinitionLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
+    // 注册内置结构类型工厂（jigsaw + 15 程序化类型），供 loadFromJson 末尾按 type 构造。
+    initializeBuiltinStructureTypes();
+
     size_t loadedCount = 0;
 
     // 获取所有命名空间
@@ -100,6 +105,9 @@ Result<size_t> StructureDefinitionLoader::loadFromDataPackRepository(const resou
 
 Result<size_t> StructureDefinitionLoader::loadFromResourcePack(const IResourcePack& pack)
 {
+    // 注册内置结构类型工厂（jigsaw + 15 程序化类型），供 loadFromJson 末尾按 type 构造。
+    initializeBuiltinStructureTypes();
+
     size_t loadedCount = 0;
 
     // 获取所有命名空间
@@ -187,7 +195,31 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         }
 
         if (jsonObj.contains("start_height")) {
-            def->startHeight = _parseHeightProvider(jsonObj["start_height"]);
+            // start_height 两种形式：
+            //   简写（单键锚点）：{ "absolute": 0 } / { "above_bottom": N } / { "below_top": N }
+            //     —— MC HeightProvider.CODEC 将单键锚点视作 constant，本项目同此处理。
+            //   分派（带 type）：{ "type": "minecraft:uniform", "min_inclusive": {...}, ... }
+            //     —— 委托 HeightProviderParser::parse 解析。
+            const auto& heightJson = jsonObj["start_height"];
+            if (heightJson.is_object() && heightJson.contains("type") && heightJson["type"].is_string()) {
+                auto heightResult = valueprovider::HeightProviderParser::parse(heightJson);
+                if (heightResult.success()) {
+                    def->startHeight = heightResult.value();
+                } else {
+                    spdlog::warn("Structure '{}': failed to parse start_height ({}), defaulting to absolute 0",
+                        location.toString(),
+                        heightResult.error().message());
+                }
+            } else {
+                auto anchorResult = valueprovider::HeightProviderParser::parseAnchor(heightJson);
+                if (anchorResult.success()) {
+                    def->startHeight = valueprovider::ConstantHeight::create(anchorResult.value());
+                } else {
+                    spdlog::warn("Structure '{}': failed to parse start_height anchor ({}), defaulting to absolute 0",
+                        location.toString(),
+                        anchorResult.error().message());
+                }
+            }
         }
 
         if (jsonObj.contains("project_start_to_heightmap") && jsonObj["project_start_to_heightmap"].is_string()) {
@@ -230,15 +262,42 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
             def->liquidSettings = _parseLiquidSettings(jsonObj["liquid_settings"].get<std::string>());
         }
 
+        // 解析生物生成覆盖（按类别分键）
+        if (jsonObj.contains("spawn_overrides") && jsonObj["spawn_overrides"].is_object()) {
+            _parseSpawnOverrides(jsonObj["spawn_overrides"], def->spawnOverrides);
+        }
+
         // 解析池别名
         if (jsonObj.contains("pool_aliases") && jsonObj["pool_aliases"].is_array()) {
-            // 池别名解析后续实现，目前仅记录日志
-            spdlog::info("Structure '{}': pool_aliases parsing deferred", location.toString());
+            _parsePoolAliasBindings(jsonObj["pool_aliases"], def->poolAliases);
         }
 
         // 存储定义
         spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
         s_byId[location] = def.get();
+
+        // 数据驱动构造：按 type 工厂从已解析定义构造子类并注册到 StructureRegistry。
+        // 工厂内部深拷贝 HeightProvider/PoolAliasBindings，def 所有权保留在 s_definitions。
+        // 注意：调用方须先 initializeBuiltinStructureTypes() 注册工厂。
+        // 未注册该 type 时静默跳过（registry 未初始化或该 type 暂无 C++ 实现），
+        // 仅在工厂已注册但构造失败时 warn——避免纯解析场景（如单元测试直接调 loadFromJson）
+        // 产生噪音；生产路径 initializeBuiltinStructureTypes 已注册全部 16 type，构造失败才 warn。
+        // Result<unique_ptr> 特化的 value() 单次取值（取后内部置空），只能调一次。
+        if (StructureTypeRegistry::instance().has(def->type)) {
+            auto createResult = StructureTypeRegistry::instance().create(def->type, *def);
+            if (createResult.success()) {
+                auto structure = createResult.value();
+                if (structure) {
+                    StructureRegistry::registerStructure(std::move(structure));
+                } else {
+                    spdlog::warn(
+                        "Skipped structure '{}': factory returned null for type '{}'", location.toString(), def->type);
+                }
+            } else {
+                spdlog::warn("Skipped structure '{}': {}", location.toString(), createResult.error().message());
+            }
+        }
+
         s_definitions.push_back(std::move(def));
 
         return Result<void>::ok();
@@ -316,39 +375,129 @@ LiquidSettings StructureDefinitionLoader::_parseLiquidSettings(const std::string
     }
 }
 
-std::unique_ptr<valueprovider::HeightProvider> StructureDefinitionLoader::_parseHeightProvider(
-    const nlohmann::json& jsonObj)
+namespace {
+/// 解析 bounding_box 字符串为 SpawnOverrideType（"piece"→Piece, "full"→Full, 默认 Full）
+SpawnOverrideType parseBoundingBoxType(const std::string& str)
 {
-    if (!jsonObj.is_object()) {
-        return nullptr;
+    if (str == "piece") {
+        return SpawnOverrideType::Piece;
     }
+    return SpawnOverrideType::Full; // "full" 或未知
+}
 
-    // 绝对高度: { "absolute": N }
-    if (jsonObj.contains("absolute") && jsonObj.at("absolute").is_number_integer()) {
-        i32 absoluteValue = jsonObj.at("absolute").get<i32>();
-        return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::absolute(absoluteValue));
+/// 去除 "minecraft:" 命名空间前缀
+std::string stripMinecraftPrefix(const std::string& str)
+{
+    constexpr size_t kPrefixLen = 10; // "minecraft:"
+    if (str.size() > kPrefixLen && str.substr(0, kPrefixLen) == "minecraft:") {
+        return str.substr(kPrefixLen);
     }
+    return str;
+}
+} // namespace
 
-    // 底部偏移: { "above_bottom": N }
-    if (jsonObj.contains("above_bottom") && jsonObj.at("above_bottom").is_number_integer()) {
-        i32 offset = jsonObj.at("above_bottom").get<i32>();
-        return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::aboveBottom(offset));
+void StructureDefinitionLoader::_parseSpawnOverrides(
+    const nlohmann::json& jsonObj, StructureSpawnOverrideMap& outOverrides)
+{
+    // jsonObj 形如 { "monster": { "bounding_box": "piece", "spawns": [...] }, ... }
+    for (auto it = jsonObj.begin(); it != jsonObj.end(); ++it) {
+        if (!it.value().is_object()) {
+            continue;
+        }
+        const auto& entry = it.value();
+
+        StructureSpawnOverride override;
+        if (entry.contains("bounding_box") && entry["bounding_box"].is_string()) {
+            override.boundingBoxType = parseBoundingBoxType(entry["bounding_box"].get<std::string>());
+        }
+
+        // spawns 列表：[{ "type": <entity>, "weight": N, "minCount": N, "maxCount": N }, ...]
+        // 当前仅解析 minCount/maxCount，实体类型字段（type）后续接入生物生成链路时补全。
+        if (entry.contains("spawns") && entry["spawns"].is_array()) {
+            for (const auto& spawn : entry["spawns"]) {
+                if (!spawn.is_object()) {
+                    continue;
+                }
+                SpawnOverrideEntry spawnEntry;
+                spawnEntry.minCount = spawn.value("minCount", 1);
+                spawnEntry.maxCount = spawn.value("maxCount", 1);
+                override.entries.push_back(std::move(spawnEntry));
+            }
+        }
+
+        outOverrides[it.key()] = std::move(override);
     }
+}
 
-    // 顶部偏移: { "below_top": N }
-    if (jsonObj.contains("below_top") && jsonObj.at("below_top").is_number_integer()) {
-        i32 offset = jsonObj.at("below_top").get<i32>();
-        return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::belowTop(offset));
+void StructureDefinitionLoader::_parsePoolAliasBindings(
+    const nlohmann::json& jsonObj, jigsaw::PoolAliasBindings& outBindings)
+{
+    // jsonObj 为 pool_aliases 数组，每项形如 { "type": "minecraft:direct", "alias":..., "target":... }
+    for (const auto& item : jsonObj) {
+        if (!item.is_object() || !item.contains("type")) {
+            continue;
+        }
+        const std::string type = stripMinecraftPrefix(item["type"].get<std::string>());
+
+        if (type == "direct") {
+            // { "alias": <id>, "target": <id> }
+            if (!item.contains("alias") || !item.contains("target")) {
+                spdlog::warn("pool_aliases: direct binding missing alias/target, skipped");
+                continue;
+            }
+            outBindings.addBinding(
+                std::make_unique<jigsaw::DirectPoolAliasBinding>(ResourceLocation(item["alias"].get<std::string>()),
+                    ResourceLocation(item["target"].get<std::string>())));
+        } else if (type == "random") {
+            // { "alias": <id>, "targets": [ { "data": <id>, "weight": N }, ... ] }
+            if (!item.contains("alias") || !item.contains("targets") || !item["targets"].is_array()) {
+                spdlog::warn("pool_aliases: random binding missing alias/targets, skipped");
+                continue;
+            }
+            std::vector<jigsaw::RandomPoolAliasBinding::WeightedTarget> targets;
+            for (const auto& target : item["targets"]) {
+                if (!target.is_object() || !target.contains("data")) {
+                    continue;
+                }
+                targets.push_back({ResourceLocation(target["data"].get<std::string>()), target.value("weight", 1)});
+            }
+            outBindings.addBinding(std::make_unique<jigsaw::RandomPoolAliasBinding>(
+                ResourceLocation(item["alias"].get<std::string>()), std::move(targets)));
+        } else if (type == "random_group") {
+            // { "groups": [ { "data": [ <direct bindings> ], "weight": N }, ... ] }
+            // random_group 无顶层 alias，组标识名仅用于调试，此处用占位 id。
+            if (!item.contains("groups") || !item["groups"].is_array()) {
+                spdlog::warn("pool_aliases: random_group binding missing groups, skipped");
+                continue;
+            }
+            std::vector<jigsaw::RandomGroupPoolAliasBinding::AliasGroup> groups;
+            for (const auto& group : item["groups"]) {
+                if (!group.is_object() || !group.contains("data") || !group["data"].is_array()) {
+                    continue;
+                }
+                jigsaw::RandomGroupPoolAliasBinding::AliasGroup aliasGroup;
+                for (const auto& binding : group["data"]) {
+                    if (!binding.is_object() || !binding.contains("type")) {
+                        continue;
+                    }
+                    const std::string bType = stripMinecraftPrefix(binding["type"].get<std::string>());
+                    if (bType != "direct" || !binding.contains("alias") || !binding.contains("target")) {
+                        spdlog::warn("pool_aliases: random_group non-direct binding skipped");
+                        continue;
+                    }
+                    aliasGroup.bindings.push_back(std::make_unique<jigsaw::DirectPoolAliasBinding>(
+                        ResourceLocation(binding["alias"].get<std::string>()),
+                        ResourceLocation(binding["target"].get<std::string>())));
+                }
+                aliasGroup.weight = group.value("weight", 1);
+                groups.push_back(std::move(aliasGroup));
+            }
+            outBindings.addBinding(std::make_unique<jigsaw::RandomGroupPoolAliasBinding>(
+                ResourceLocation("minecraft:random_group"), std::move(groups)));
+        } else {
+            spdlog::warn("pool_aliases: unknown binding type '{}', skipped", type);
+        }
     }
-
-    // 后续可扩展支持其他高度提供者类型：
-    // - { "uniform": { "min_inclusive": {...}, "max_inclusive": {...} } }
-    // - { "biased_to_bottom": { "min_inclusive": {...}, "max_inclusive": {...} } }
-    // - { "very_biased_to_bottom": { "min_inclusive": {...}, "max_inclusive": {...} } }
-    // - { "trapezoid": { "min_inclusive": {...}, "max_inclusive": {...}, "plateau": ... } }
-
-    spdlog::warn("Unsupported height provider format, defaulting to absolute 0");
-    return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::absolute(0));
 }
 
 } // namespace structure

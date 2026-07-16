@@ -56,7 +56,7 @@ public:
      *
      * 返回 minecraft:has_structure/monument 标签，用于 O(1) 生物群系查找。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 海洋纪念碑的生成覆盖

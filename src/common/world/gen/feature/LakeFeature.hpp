@@ -26,16 +26,14 @@
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <string>
 
 // Forward declarations
 namespace mc {
 class IWorldWriter;
-namespace world::gen::feature::state {
-class WeightedBlockStateProvider;
-}
+class IWorld;
 } // namespace mc
 
 namespace mc::world::gen::feature::lake {
@@ -44,18 +42,13 @@ namespace mc::world::gen::feature::lake {
  * @brief 湖泊特征配置
  *
  * 对应 MC 1.21.11: LakeFeature.Configuration(fluid, barrier)。
- * fluid/barrier 均为 BlockStateProvider；项目仅实现 simple/weighted 两种，
- * 故用「固定状态 + 可选加权提供者」表达。place() 时若提供者非空则按 rng 采样。
+ * fluid/barrier 均为 BlockStateProvider，运行时按其 kind 采样（simple/weighted/rule_based/...）。
  */
 struct LakeFeatureConfig {
-    /// 流体状态（simple 提供者或加权采样后的状态）
-    const BlockState* fluidState = nullptr;
-    /// 流体加权提供者（非空时优先于 fluidState 采样）
-    std::unique_ptr<state::WeightedBlockStateProvider> fluidProvider;
-    /// 边界状态（simple）
-    const BlockState* barrierState = nullptr;
-    /// 边界加权提供者（非空时优先于 barrierState 采样）
-    std::unique_ptr<state::WeightedBlockStateProvider> barrierProvider;
+    /// 流体状态提供者
+    std::unique_ptr<state::BlockStateProvider> fluidProvider;
+    /// 边界状态提供者
+    std::unique_ptr<state::BlockStateProvider> barrierProvider;
 
     LakeFeatureConfig() = default;
     ~LakeFeatureConfig() = default;
@@ -66,14 +59,14 @@ struct LakeFeatureConfig {
     LakeFeatureConfig& operator=(LakeFeatureConfig&&) noexcept = default;
 
     /**
-     * @brief 取本次放置使用的流体状态（加权则按 rng 采样）
+     * @brief 取本次放置使用的流体状态
      */
-    [[nodiscard]] const BlockState* getFluidState(math::IRandom& rng) const;
+    [[nodiscard]] const BlockState* getFluidState(const IWorld& world, math::IRandom& rng, i32 x, i32 y, i32 z) const;
 
     /**
-     * @brief 取本次放置使用的边界状态（加权则按 rng 采样）
+     * @brief 取本次放置使用的边界状态
      */
-    [[nodiscard]] const BlockState* getBarrierState(math::IRandom& rng) const;
+    [[nodiscard]] const BlockState* getBarrierState(const IWorld& world, math::IRandom& rng, i32 x, i32 y, i32 z) const;
 };
 
 /**

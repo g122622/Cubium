@@ -28,7 +28,8 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/predicate/BlockPredicate.hpp"
-#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
 #include <string>
@@ -39,41 +40,35 @@ namespace mc::world::gen::feature::cave {
 /**
  * @brief 方块柱层配置
  *
- * 定义方块柱的一层（高度+方块状态）。
- * 支持固定方块状态和加权随机方块状态提供者。
+ * 定义方块柱的一层（高度+方块状态）。方块状态由 BlockStateProvider 提供，
+ * 运行时按其 kind 采样。
  */
 struct BlockColumnLayer {
     /// 层高度提供者
     std::unique_ptr<valueprovider::IntProvider> height;
 
-    /// 层方块状态（固定状态，当 stateProvider 为空时使用）
-    const BlockState* state = nullptr;
-
-    /// 层方块状态提供者（加权随机，优先于 state）
-    std::unique_ptr<state::WeightedBlockStateProvider> stateProvider;
+    /// 层方块状态提供者（simple/weighted/rule_based/... 任意 kind）
+    std::unique_ptr<state::BlockStateProvider> stateProvider;
 
     BlockColumnLayer() = default;
     BlockColumnLayer(std::unique_ptr<valueprovider::IntProvider> h, const BlockState* s)
         : height(std::move(h))
-        , state(s)
+        , stateProvider(std::make_unique<state::SimpleBlockStateProvider>(s))
     {}
-    BlockColumnLayer(
-        std::unique_ptr<valueprovider::IntProvider> h, std::unique_ptr<state::WeightedBlockStateProvider> sp)
+    BlockColumnLayer(std::unique_ptr<valueprovider::IntProvider> h, std::unique_ptr<state::BlockStateProvider> sp)
         : height(std::move(h))
         , stateProvider(std::move(sp))
     {}
 
     /**
      * @brief 获取当前层在指定位置的方块状态
-     *
-     * 如果有 stateProvider 则使用随机选择，否则返回固定 state
      */
-    [[nodiscard]] const BlockState* getState(math::IRandom& rng) const
+    [[nodiscard]] const BlockState* getState(const IWorld& world, math::IRandom& rng, i32 x, i32 y, i32 z) const
     {
-        if (stateProvider && !stateProvider->empty()) {
-            return stateProvider->getState(rng);
+        if (stateProvider != nullptr) {
+            return stateProvider->getState(world, rng, x, y, z);
         }
-        return state;
+        return nullptr;
     }
 };
 

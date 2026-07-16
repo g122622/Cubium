@@ -381,6 +381,13 @@ void MooshroomEntity::registerGoals()
     // 哞菇没有额外行为，完全继承牛的行为
 }
 
+std::optional<ResourceLocation> MooshroomEntity::getAmbientSound() const
+{
+    // 哞菇复用牛的环境音，对齐原版 Mooshroom（继承 AbstractCow.getAmbientSound 返回 COW_AMBIENT）。
+    // 默认 makeSoundEventId 会拼接出 entity.mooshroom.ambient（sounds.json 不存在）。
+    return SoundEvents::ENTITY_COW_AMBIENT;
+}
+
 // ========== 寻路权重 ==========
 
 f32 MooshroomEntity::getPathWeight(f32 x, f32 y, f32 z) const

@@ -103,14 +103,14 @@ public:
         std::unique_ptr<DensityFunction> factor, std::unique_ptr<DensityFunction> depth);
 
     /**
-     * @brief splineWithBlending(splineFunc, blendTarget) — 带混合的样条
+     * @brief splineWithBlending(splineFunc) — 样条缓存包装
      *
-     * MC 1.21: flatCache(cache2d(lerp(blendAlpha, blendTarget, splineFunc)))
-     * 当 BlendAlpha 返回 1.0（无旧区块混合）时，结果等于 splineFunc；
-     * 当 Blender 系统实现后，BlendAlpha 在区块边界处从 1.0 过渡到 0.0，实现平滑混合
+     * MC 1.21: flatCache(cache2d(splineFunc))
+     * 旧区块混合（Blender/BlendAlpha/BlendOffset）已移除，本项目不兼容旧版存档，
+     * 因此样条输出直接缓存，无 lerp 间接层。
      */
     [[nodiscard]] static std::unique_ptr<DensityFunction> splineWithBlending(
-        std::unique_ptr<DensityFunction> splineFunc, std::unique_ptr<DensityFunction> blendTarget);
+        std::unique_ptr<DensityFunction> splineFunc);
 
     /**
      * @brief yLimitedInterpolatable(yFunction, noiseFunction, minY, maxY, outOfRangeValue)

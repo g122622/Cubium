@@ -207,7 +207,7 @@ OceanRuinStructure::OceanRuinStructure()
     : Structure(ResourceLocation("minecraft", "ocean_ruin"))
 {}
 
-const biome::BiomeTag* OceanRuinStructure::biomeTag() const
+const biome::BiomeTag* OceanRuinStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_OCEAN_RUIN_COLD();
 }

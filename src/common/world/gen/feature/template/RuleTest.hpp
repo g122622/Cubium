@@ -29,22 +29,21 @@
 #include "util/math/random/Random.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/gen/feature/Feature.hpp"
 #include <memory>
 #include <optional>
 
 namespace mc {
-
-class BlockState;
-
 namespace world {
 namespace gen {
 namespace feature {
 namespace template_ {
 
 /**
- * @brief 规则测试类型枚举
+ * @brief 位置规则测试类型枚举
  *
- * 用于序列化和类型识别
+ * 仅 PosRuleTest 用到（RuleTest 基类已并入 mc::RuleTest 引用风格）。
+ * 保留用于序列化和测试的类型识别。
  */
 enum class RuleTestType : u32 {
     AlwaysTrue = 0,
@@ -59,161 +58,21 @@ enum class RuleTestType : u32 {
     AxisAlignedLinearPos = 2
 };
 
-/**
- * @brief 方块规则测试基类
- *
- * 用于测试方块是否匹配特定条件
- */
-class RuleTest {
-public:
-    virtual ~RuleTest() = default;
+// ============================================================================
+// 方块规则测试
+//
+// 结构处理器的方块谓词统一复用 mc::RuleTest（引用风格 test(const BlockState&,
+// Random&)），不再在此重复定义。下列别名供 template_ 命名空间内代码直接引用，
+// 与 mc:: 同名（mc::AlwaysTrueRuleTest / mc::BlockMatchRuleTest 等）。
+// ============================================================================
 
-    /**
-     * @brief 测试方块状态是否匹配
-     * @param state 方块状态
-     * @param rng 随机数生成器
-     * @return 是否匹配
-     */
-    [[nodiscard]] virtual bool test(const BlockState* state, math::Random& rng) const = 0;
-
-    /**
-     * @brief 获取测试类型ID
-     */
-    [[nodiscard]] virtual u32 getTypeId() const = 0;
-
-    /**
-     * @brief 克隆测试
-     */
-    [[nodiscard]] virtual std::unique_ptr<RuleTest> clone() const = 0;
-};
-
-/**
- * @brief 总是返回 true 的规则测试
- */
-class AlwaysTrueRuleTest : public RuleTest {
-public:
-    AlwaysTrueRuleTest() = default;
-
-    [[nodiscard]] bool test(const BlockState* /*state*/, math::Random& /*rng*/) const override { return true; }
-
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AlwaysTrue); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override { return std::make_unique<AlwaysTrueRuleTest>(); }
-};
-
-/**
- * @brief 匹配特定方块的规则测试
- */
-class BlockMatchRuleTest : public RuleTest {
-public:
-    explicit BlockMatchRuleTest(u32 blockId);
-
-    [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
-
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::BlockMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
-    {
-        return std::make_unique<BlockMatchRuleTest>(m_blockId);
-    }
-
-    [[nodiscard]] u32 blockId() const { return m_blockId; }
-
-private:
-    u32 m_blockId;
-};
-
-/**
- * @brief 匹配特定方块状态的规则测试
- */
-class BlockStateMatchRuleTest : public RuleTest {
-public:
-    explicit BlockStateMatchRuleTest(u32 stateId);
-
-    [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
-
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::BlockStateMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
-    {
-        return std::make_unique<BlockStateMatchRuleTest>(m_stateId);
-    }
-
-    [[nodiscard]] u32 stateId() const { return m_stateId; }
-
-private:
-    u32 m_stateId;
-};
-
-/**
- * @brief 随机匹配特定方块的规则测试
- */
-class RandomBlockMatchRuleTest : public RuleTest {
-public:
-    RandomBlockMatchRuleTest(u32 blockId, f32 probability);
-
-    [[nodiscard]] bool test(const BlockState* state, math::Random& rng) const override;
-
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::RandomBlockMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
-    {
-        return std::make_unique<RandomBlockMatchRuleTest>(m_blockId, m_probability);
-    }
-
-    [[nodiscard]] u32 blockId() const { return m_blockId; }
-    [[nodiscard]] f32 probability() const { return m_probability; }
-
-private:
-    u32 m_blockId;
-    f32 m_probability;
-};
-
-/**
- * @brief 随机匹配特定方块状态的规则测试
- */
-class RandomBlockStateMatchRuleTest : public RuleTest {
-public:
-    RandomBlockStateMatchRuleTest(u32 stateId, f32 probability);
-
-    [[nodiscard]] bool test(const BlockState* state, math::Random& rng) const override;
-
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::RandomBlockStateMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
-    {
-        return std::make_unique<RandomBlockStateMatchRuleTest>(m_stateId, m_probability);
-    }
-
-    [[nodiscard]] u32 stateId() const { return m_stateId; }
-    [[nodiscard]] f32 probability() const { return m_probability; }
-
-private:
-    u32 m_stateId;
-    f32 m_probability;
-};
-
-/**
- * @brief 方块标签匹配规则测试
- *
- * 检查方块是否属于指定标签
- */
-class TagMatchRuleTest : public RuleTest {
-public:
-    /**
-     * @brief 构造标签匹配测试
-     * @param tagId 标签资源位置（如 "minecraft:logs"）
-     */
-    explicit TagMatchRuleTest(const ResourceLocation& tagId);
-
-    [[nodiscard]] bool test(const BlockState* state, math::Random& /*rng*/) const override;
-
-    [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::TagMatch); }
-    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override
-    {
-        return std::make_unique<TagMatchRuleTest>(m_tagId);
-    }
-
-    [[nodiscard]] const ResourceLocation& tagId() const { return m_tagId; }
-
-private:
-    ResourceLocation m_tagId;
-};
+using ::mc::AlwaysTrueRuleTest;
+using ::mc::BlockMatchRuleTest;
+using ::mc::BlockStateMatchRuleTest;
+using ::mc::RandomBlockMatchRuleTest;
+using ::mc::RandomBlockStateMatchRuleTest;
+using ::mc::RuleTest;
+using ::mc::TagMatchRuleTest;
 
 /**
  * @brief 位置规则测试基类
@@ -340,7 +199,8 @@ private:
 /**
  * @brief 规则条目
  *
- * 定义一个完整的替换规则：条件 + 输出
+ * 定义一个完整的替换规则：条件 + 输出。
+ * 方块谓词使用 mc::RuleTest（引用风格），位置谓词使用本命名空间的 PosRuleTest。
  */
 class RuleEntry {
 public:
@@ -362,6 +222,11 @@ public:
 
     /**
      * @brief 测试是否匹配规则
+     *
+     * 外部仍按指针传入（与 RuleStructureProcessor 调用点一致），内部对空指针做守卫：
+     * 方块状态为空时该谓词视为不匹配。生产路径（结构处理器）方块状态均来自已注册
+     * 方块，不会为空；指针签名仅为兼容既有调用点而保留。
+     *
      * @param inputState 输入方块状态（模板中的）
      * @param locationState 位置方块状态（世界中的）
      * @param originalPos 原始位置

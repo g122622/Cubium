@@ -680,6 +680,12 @@ extern const ResourceLocation ENTITY_BREEZE_DEFLECT;
 /// 旋风人呼啸环境音（随机间隔播放）
 extern const ResourceLocation ENTITY_BREEZE_WHIRL;
 
+/// 旋风人地面环境音（onGround 时播放）
+extern const ResourceLocation ENTITY_BREEZE_IDLE_GROUND;
+
+/// 旋风人空中环境音（不在地面时播放）
+extern const ResourceLocation ENTITY_BREEZE_IDLE_AIR;
+
 // ============================================================================
 // 重锤声音
 // ============================================================================

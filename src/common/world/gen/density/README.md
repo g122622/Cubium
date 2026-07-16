@@ -154,10 +154,8 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
 非 NoiseChunk 上下文（如 `factory::flatCache` 非 Marker 直接构造、零散 getHeight 查询）
 无区块几何，`precompute=false` 退化为单值 lastPos 缓存，保证正确性。
 
-### 10. BlendAlpha / BlendOffset / BeardifierMarker
+### 10. BeardifierMarker
 
-- `BlendAlpha`：默认返回 1.0（无旧区块混合）。在 `splineWithBlending` 中用作 `lerp(blendAlpha, blendTarget, splineFunc)` 的 alpha 参数。当 NoiseChunk 构造时有 Blender 数据时，会被替换为实际的混合 alpha 值（0.0~1.0 的 smoothstep 过渡）
-- `BlendOffset`：默认返回 0.0（无旧区块混合）。在 `splineWithBlending` 中用作 offset 的 blendTarget 参数。当有 Blender 数据时，会被替换为实际的混合偏移值
 - `BeardifierMarker`：Marker 类型，在 NoiseChunk::apply() 中替换为实际 Beardifier（当前暂返回 0.0）
 
 ### 11. preliminarySurfaceLevel
@@ -166,11 +164,7 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
 
 **影响范围**：preliminarySurfaceLevel 影响含水层水位采样（`NoiseChunk::samplePreliminarySurfaceLevel`），进而影响 `m_skipSamplingAboveY` 和含水层条带高度。海洋海平面以下的水仍由 `NoiseBasedAquifer::computeSubstance` 快速路径直接填充全局流体，与 preliminarySurfaceLevel 无关。
 
-### 12. BlendDensity
-
-当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。需要实现 BlendDensity 密度函数类和 Blender 系统后才能完整支持。
-
-### 13. NoiseChunk::cachedClimateSampler 与 spawnTarget
+### 12. NoiseChunk::cachedClimateSampler 与 spawnTarget
 
 `NoiseChunk::cachedClimateSampler(spawnTarget)` 对齐 MC 1.21.11 `NoiseChunk.cachedClimateSampler(router, spawnTarget)`，将 `spawnTarget` 传递给 `Climate::Sampler` 用于出生点查找。
 

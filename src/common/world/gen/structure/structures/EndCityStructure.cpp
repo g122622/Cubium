@@ -86,7 +86,7 @@ EndCityStructure::EndCityStructure()
     : Structure(ResourceLocation("minecraft", "end_city"))
 {}
 
-const biome::BiomeTag* EndCityStructure::biomeTag() const
+const biome::BiomeTag* EndCityStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_END_CITY();
 }

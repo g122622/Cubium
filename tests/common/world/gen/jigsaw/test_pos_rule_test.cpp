@@ -29,12 +29,12 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/ruletest/PosRuleTest.hpp"
+#include "common/world/gen/feature/template/RuleTest.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
-using namespace mc::world::gen::feature::ruletest;
+using namespace mc::world::gen::feature::template_;
 using namespace mc::world::gen::jigsaw;
 using namespace mc::math;
 
@@ -263,8 +263,11 @@ TEST_F(PosRuleTestTest, AxisAlignedLinearClone)
     EXPECT_NE(clone, nullptr);
 
     // 使用确定性概率（1.0）来测试克隆，避免随机数状态差异
-    AxisAlignedLinearPosTest testFull(/*minProbability=*/1.0f, /*maxProbability=*/1.0f,
-        /*minDistance=*/0, /*maxDistance=*/10, Axis::Y);
+    AxisAlignedLinearPosTest testFull(/*minProbability=*/1.0f,
+        /*maxProbability=*/1.0f,
+        /*minDistance=*/0,
+        /*maxDistance=*/10,
+        Axis::Y);
     auto cloneFull = testFull.clone();
 
     Random rng(42);

@@ -60,6 +60,25 @@ public:
     static void registerStructure(std::unique_ptr<Structure> structure);
 
     /**
+     * @brief 清空结构注册表
+     *
+     * 清空已注册的结构映射与列表并重置初始化标志，供数据驱动重新加载前调用
+     * （MinecraftServer::initializeRegistries 重载世界时）。不清理模板池
+     * （模板池有独立生命周期，由 Pools::initialize 自带守卫）。保留该入口后，
+     * 硬编码 initialize() 仍可作为测试/旧入口的兜底。
+     */
+    static void clear();
+
+    /**
+     * @brief 标记注册表为已初始化（数据驱动加载完成后调用）
+     *
+     * 数据驱动路径通过 StructureDefinitionLoader 注册结构，但不会像硬编码
+     * initialize() 那样置 s_initialized。加载完成后调用本方法置位，使区块
+     * 生成器的兜底守卫（if (!isInitialized()) initialize()）不再触发硬编码注册。
+     */
+    static void markInitialized();
+
+    /**
      * @brief 按资源位置获取结构
      *
      * @param id 结构资源位置

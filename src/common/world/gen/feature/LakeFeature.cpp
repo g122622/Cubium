@@ -52,37 +52,33 @@ constexpr i32 FLUID_SURFACE_Y = 4;
 }
 
 LakeFeatureConfig::LakeFeatureConfig(const LakeFeatureConfig& other)
-    : fluidState(other.fluidState)
-    , fluidProvider(other.fluidProvider ? other.fluidProvider->clone() : nullptr)
-    , barrierState(other.barrierState)
+    : fluidProvider(other.fluidProvider ? other.fluidProvider->clone() : nullptr)
     , barrierProvider(other.barrierProvider ? other.barrierProvider->clone() : nullptr)
 {}
 
 LakeFeatureConfig& LakeFeatureConfig::operator=(const LakeFeatureConfig& other)
 {
     if (this != &other) {
-        fluidState = other.fluidState;
         fluidProvider = other.fluidProvider ? other.fluidProvider->clone() : nullptr;
-        barrierState = other.barrierState;
         barrierProvider = other.barrierProvider ? other.barrierProvider->clone() : nullptr;
     }
     return *this;
 }
 
-const BlockState* LakeFeatureConfig::getFluidState(math::IRandom& rng) const
+const BlockState* LakeFeatureConfig::getFluidState(const IWorld& world, math::IRandom& rng, i32 x, i32 y, i32 z) const
 {
-    if (fluidProvider && !fluidProvider->empty()) {
-        return fluidProvider->getState(rng);
+    if (fluidProvider != nullptr) {
+        return fluidProvider->getState(world, rng, x, y, z);
     }
-    return fluidState;
+    return nullptr;
 }
 
-const BlockState* LakeFeatureConfig::getBarrierState(math::IRandom& rng) const
+const BlockState* LakeFeatureConfig::getBarrierState(const IWorld& world, math::IRandom& rng, i32 x, i32 y, i32 z) const
 {
-    if (barrierProvider && !barrierProvider->empty()) {
-        return barrierProvider->getState(rng);
+    if (barrierProvider != nullptr) {
+        return barrierProvider->getState(world, rng, x, y, z);
     }
-    return barrierState;
+    return nullptr;
 }
 
 LakeFeature::LakeFeature(LakeFeatureConfig config)
@@ -133,8 +129,8 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
         }
     }
 
-    // 本次放置使用的流体/边界状态（加权提供者按 rng 采样）
-    const BlockState* const fluidState = m_config.getFluidState(rng);
+    // 本次放置使用的流体/边界状态（按提供者采样，坐标取湖中心）
+    const BlockState* const fluidState = m_config.getFluidState(world, rng, x, y, z);
     if (fluidState == nullptr) {
         return false;
     }
@@ -190,8 +186,8 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
         }
     }
 
-    // 4. 放置边界方块（barrier 非空时）
-    const BlockState* const barrierState = m_config.getBarrierState(rng);
+    // 4. 放置边界方块（barrier 提供者非空时）
+    const BlockState* const barrierState = m_config.getBarrierState(world, rng, x, y, z);
     if (barrierState != nullptr && !barrierState->isAir()) {
         for (i32 bx = 0; bx < LAKE_DIM_X; ++bx) {
             for (i32 bz = 0; bz < LAKE_DIM_Z; ++bz) {

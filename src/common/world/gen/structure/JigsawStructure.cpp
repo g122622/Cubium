@@ -125,8 +125,11 @@ JigsawStructure::JigsawStructure(ResourceLocation id,
     , m_startY(startY)
     , m_nearTerrain(nearTerrain)
     , m_adjustForTerrain(adjustForTerrain)
-    , m_terrainAdaptation(terrainAdaptation)
-{}
+{
+    // 写入基类 m_terrainAdaptation：非 None 时由基类非虚 terrainAdaptation() 直接返回；
+    // None 时回退 defaultTerrainAdaptation()（同样返回基类成员，为 None）。
+    m_terrainAdaptation = terrainAdaptation;
+}
 
 bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {

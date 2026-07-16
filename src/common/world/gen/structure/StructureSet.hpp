@@ -133,11 +133,28 @@ public:
     /** 清除所有注册 */
     void clear();
 
+    /**
+     * @brief 是否已初始化
+     *
+     * 数据驱动加载（MinecraftServer::initializeRegistries 调 StructureSetLoader）完成后
+     * 或硬编码 initialize() 兜底后置位。区块生成器据此判断是否需要回退硬编码注册。
+     */
+    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+
+    /**
+     * @brief 标记为已初始化（数据驱动加载完成后调用）
+     *
+     * StructureSetLoader 通过 registerSet 注册结构集合但不会置 m_initialized，
+     * 加载完成后调用本方法置位，使区块生成器的兜底守卫不再触发硬编码注册。
+     */
+    void markInitialized() { m_initialized = true; }
+
 private:
     StructureSetRegistry() = default;
     std::vector<std::unique_ptr<StructureSet>> m_sets;
     std::unordered_map<ResourceLocation, StructureSet*> m_byId;
     std::unordered_map<ResourceLocation, StructureSet*> m_byStructureId; ///< 结构 ID → 所属结构集合的反向索引
+    bool m_initialized = false;
 };
 
 } // namespace mc::world::gen::structure

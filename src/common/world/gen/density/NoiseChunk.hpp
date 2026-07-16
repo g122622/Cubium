@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"

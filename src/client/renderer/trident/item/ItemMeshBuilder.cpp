@@ -80,7 +80,7 @@ resource::ItemDisplayContext toDisplayContext(ItemTransformType type)
 } // namespace
 
 std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::buildHeldItemMesh(
-    const ::mc::ItemStack& itemStack, ItemTransformType transformType)
+    const ::mc::ItemStack& itemStack, ItemTransformType transformType, bool bakeTransforms)
 {
     std::vector<model::ModelVertex> vertices;
     std::vector<u32> indices;
@@ -94,14 +94,14 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
         return {vertices, indices};
     }
 
-    // 获取物品变换
-    std::array<f64, 16> transform = getItemTransform(transformType, 0.0f, 0.0f, true);
+    // 构建 3D 物品网格。bakeTransforms=false 时，_build3DItemMesh 不烘焙 display 变换，
+    // 由调用方在矩阵栈上单独施加（第一人称路径由 ItemInHandRenderer::applyTransform 拥有）。
+    _build3DItemMesh(*item, transformType, vertices, indices, bakeTransforms);
 
-    // 构建 3D 物品网格
-    _build3DItemMesh(*item, transformType, vertices, indices);
-
-    // 应用变换
-    if (!vertices.empty()) {
+    // getItemTransform 摄像机矩阵仅在 bakeTransforms=true 时烘焙进顶点。
+    // bakeTransforms=false 时跳过，避免与调用方栈上的 display 变换双重施加。
+    if (bakeTransforms && !vertices.empty()) {
+        std::array<f64, 16> transform = getItemTransform(transformType, 0.0f, 0.0f, true);
         _transformVertices(vertices, transform);
     }
 
@@ -124,7 +124,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     }
 
     // 构建盔甲网格
-    _build3DItemMesh(*item, ItemTransformType::ThirdPersonRightHand, vertices, indices);
+    _build3DItemMesh(*item, ItemTransformType::ThirdPersonRightHand, vertices, indices, true);
 
     // 应用身体部件变换
     if (!vertices.empty()) {
@@ -152,7 +152,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     }
 
     // 构建头部物品网格
-    _build3DItemMesh(*item, ItemTransformType::Head, vertices, indices);
+    _build3DItemMesh(*item, ItemTransformType::Head, vertices, indices, true);
 
     return {vertices, indices};
 }
@@ -173,7 +173,7 @@ std::pair<std::vector<model::ModelVertex>, std::vector<u32>> ItemMeshBuilder::bu
     }
 
     // 构建地面物品网格
-    _build3DItemMesh(*item, ItemTransformType::Ground, vertices, indices);
+    _build3DItemMesh(*item, ItemTransformType::Ground, vertices, indices, true);
 
     // 应用旋转
     if (!vertices.empty() && rotation != 0.0) {
@@ -349,7 +349,8 @@ void ItemMeshBuilder::_buildItemQuad(const ::mc::client::renderer::api::TextureR
 void ItemMeshBuilder::_build3DItemMesh(const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    std::vector<u32>& indices,
+    bool bakeDisplayTransform)
 {
     // 从 ItemModelCache 获取模型
     auto& cache = resource::ItemModelCache::instance();
@@ -365,15 +366,15 @@ void ItemMeshBuilder::_build3DItemMesh(const ::mc::Item& item,
     switch (model->type) {
         case resource::ItemModelType::Generated:
         case resource::ItemModelType::Handheld:
-            _buildGeneratedMesh(*model, item, transformType, vertices, indices);
+            _buildGeneratedMesh(*model, item, transformType, vertices, indices, bakeDisplayTransform);
             break;
 
         case resource::ItemModelType::Block:
-            _buildBlockItemMesh(*model, item, transformType, vertices, indices);
+            _buildBlockItemMesh(*model, item, transformType, vertices, indices, bakeDisplayTransform);
             break;
 
         case resource::ItemModelType::Custom:
-            _buildCustomMesh(*model, item, transformType, vertices, indices);
+            _buildCustomMesh(*model, item, transformType, vertices, indices, bakeDisplayTransform);
             break;
 
         default:
@@ -386,7 +387,8 @@ void ItemMeshBuilder::_buildGeneratedMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    std::vector<u32>& indices,
+    bool bakeDisplayTransform)
 {
     // 获取纹理层
     auto layers = model.textureLayers;
@@ -451,8 +453,8 @@ void ItemMeshBuilder::_buildGeneratedMesh(const resource::BakedItemModel& model,
         indices.push_back(baseIndex + 3);
     }
 
-    // 应用模型变换
-    if (!vertices.empty()) {
+    // 应用模型 display 变换。bakeDisplayTransform=false 时跳过，由调用方在矩阵栈上施加。
+    if (bakeDisplayTransform && !vertices.empty()) {
         auto displayContext = toDisplayContext(transformType);
         const auto& transform = model.getTransform(displayContext);
         glm::mat4 mat = transform.toMatrix();
@@ -466,7 +468,8 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    std::vector<u32>& indices,
+    bool bakeDisplayTransform)
 {
     // 方块物品：从 elements 构建 3D 网格
     if (model.elements.empty()) {
@@ -570,8 +573,8 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         }
     }
 
-    // 应用模型变换
-    if (!vertices.empty()) {
+    // 应用模型 display 变换。bakeDisplayTransform=false 时跳过，由调用方在矩阵栈上施加。
+    if (bakeDisplayTransform && !vertices.empty()) {
         auto displayContext = toDisplayContext(transformType);
         const auto& transform = model.getTransform(displayContext);
         glm::mat4 mat = transform.toMatrix();
@@ -583,10 +586,11 @@ void ItemMeshBuilder::_buildCustomMesh(const resource::BakedItemModel& model,
     const ::mc::Item& item,
     ItemTransformType transformType,
     std::vector<model::ModelVertex>& vertices,
-    std::vector<u32>& indices)
+    std::vector<u32>& indices,
+    bool bakeDisplayTransform)
 {
     // 自定义物品模型使用与方块物品相同的 elements 系统，直接复用方块物品网格构建
-    _buildBlockItemMesh(model, item, transformType, vertices, indices);
+    _buildBlockItemMesh(model, item, transformType, vertices, indices, bakeDisplayTransform);
 }
 
 void ItemMeshBuilder::_buildFallbackMesh(

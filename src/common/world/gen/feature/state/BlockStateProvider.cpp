@@ -23,15 +23,30 @@
 
 #include "BlockStateProvider.hpp"
 
+#include "common/world/block/BlockState.hpp"
+
+#include <utility>
+
 namespace mc::world::gen::feature::state {
 
 SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
     : m_state(state)
 {}
 
-const BlockState* SimpleBlockStateProvider::getState(math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
+const BlockState* SimpleBlockStateProvider::getState(
+    const IWorld& /*world*/, math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
 {
     return m_state;
+}
+
+const BlockState* SimpleBlockStateProvider::asSingleState() const noexcept
+{
+    return m_state;
+}
+
+std::unique_ptr<BlockStateProvider> SimpleBlockStateProvider::clone() const
+{
+    return std::make_unique<SimpleBlockStateProvider>(m_state);
 }
 
 } // namespace mc::world::gen::feature::state

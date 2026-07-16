@@ -9,7 +9,6 @@ nether/
 ├── DeltaFeature.hpp/cpp         # 三角洲特征（contents/rim + size/rim_size）
 ├── UnderwaterMagmaFeature.hpp/cpp # 水下岩浆特征（Column.scan 找水柱底）
 ├── GlowstoneFeature.hpp/cpp     # 萤石簇特征
-├── NetherFireFeature.hpp/cpp    # 下界火焰特征（自动选择普通火/灵魂火）
 ├── HugeFungusFeature.hpp/cpp    # 巨型菌类特征
 └── README.md
 ```
@@ -39,10 +38,6 @@ nether/
 ## 4. 容易踩的坑
 
 - 特征 id 统一为 `ResourceLocation`（如 `minecraft:glowstone`、`minecraft:basalt_columns`、`minecraft:huge_fungus`），不再有整型 `FeatureIds`。下界生物群系的 `features` 数组直接以 `ResourceLocation` 引用，不会出现"指向错误特征槽位"的错配。
-- `NetherFireFeature` 的 `minHeight`/`maxHeight` 配置字段控制火焰的垂直偏移范围：
-  - `dy = nextInt(maxHeight + 1) - nextInt(minHeight + 1)`（三角分布，参考 MC Java NetherForestVegetationFeature）
-  - 默认配置使用 `minHeight=1, maxHeight=3`，火焰可在原点 Y 向上 0~3 格、向下 0~1 格
-  - 放置时自动检查 `isWithinWorldBounds` 边界
 
 ```mermaid
 flowchart LR

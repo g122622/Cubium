@@ -59,6 +59,7 @@ add_executable(mc_tests
     common/test_carver.cpp
     common/test_tree_feature.cpp
     common/test_new_tree_features.cpp
+    common/world/gen/feature/state/test_block_state_provider.cpp
     common/test_feature_size.cpp
     common/test_decoration_stage.cpp
     common/test_time.cpp
@@ -242,6 +243,8 @@ add_executable(mc_tests
     common/entity/tag/EntityTypeTagsTest.cpp
     # DamageTypeTag 伤害类型标签测试（含 DamageSource::is() 和加载器测试）
     common/entity/damage/DamageTypeTagsTest.cpp
+    # damageTilt 完整链路对齐测试（DamageSource.sourcePosition / LivingEntity.hurtDir / 网络包 hurtDir 往返）
+    common/entity/damage/DamageTiltAlignmentTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp
@@ -437,6 +440,8 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试
     common/entity/combat/CauseExtraKnockbackTest.cpp
+    # 物品切换缩放（getItemSwapScale / itemSwapTicker）测试
+    common/entity/combat/PlayerItemSwapScaleTest.cpp
     # 击退计算测试
     common/entity/combat/GetKnockbackTest.cpp
     # GameRules 游戏规则测试
@@ -1074,6 +1079,10 @@ add_executable(mc_tests
     common/world/gen/PerlinSimplexNoiseTest.cpp
     # Noises 注册表单元测试
     common/world/gen/NoisesTest.cpp
+    # NoiseLoader 数据驱动测试（加载原版数据包验证注入路径）
+    common/world/gen/NoiseLoaderDatadrivenTest.cpp
+    # DensityFunctionLoader 数据驱动测试（加载原版数据包验证 35 DF Holder 解析）
+    common/world/gen/DensityFunctionLoaderDatadrivenTest.cpp
     # JavaLegacyRandom 单元测试
     common/world/gen/JavaLegacyRandomTest.cpp
     # Xoroshiro128ppRandom 单元测试
@@ -1100,7 +1109,6 @@ add_executable(mc_tests
     common/world/gen/placement/RandomOffsetAndWaterDepthTest.cpp
     common/world/gen/placement/CountOnEveryLayerAndNoisePlacementTest.cpp
     common/world/gen/feature/predicate/MatchingPredicatesTest.cpp
-    common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/end/EndFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
@@ -1115,6 +1123,9 @@ add_executable(mc_tests
     common/world/gen/structure/test_new_structures.cpp
     common/world/gen/structure/test_mansion_grid.cpp
     common/world/gen/structure/test_structure_type_mapping.cpp
+    common/world/gen/structure/test_structure_definition_loader.cpp
+    common/world/gen/structure/test_structure_type_registry.cpp
+    common/world/gen/structure/test_structure_set_loader.cpp
     common/world/gen/structure/StructureCheckTest.cpp
     common/world/gen/structure/StructurePieceChestDispenserTest.cpp
     common/world/gen/structure/PlaceEndPortalFramesTest.cpp
@@ -1229,6 +1240,14 @@ add_executable(mc_tests
     lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
     lighting/WorldLightManagerTest.cpp
+    # 主线程读路径 visible 侧回归测试（③-2a）
+    lighting/MainThreadVisibleReadTest.cpp
+    # 运行时方块变更光照延迟队列批处理测试
+    lighting/ServerLightQueueTest.cpp
+    # 区块加载光照 worker 任务测试（③-2b：搬 worker + send 续延）
+    lighting/ChunkLoadLightTaskTest.cpp
+    # 运行时光照 worker 传播 + 主线程 flush 并发测试（③-1）
+    lighting/RuntimeLightConcurrencyTest.cpp
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
     client/renderer/trident/blockentity/ChestModelTest.cpp
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
@@ -1433,6 +1452,11 @@ add_executable(mc_tests
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
     client/renderer/firstperson/ItemInHandRendererTest.cpp
+    client/renderer/firstperson/FirstPersonTransformsTest.cpp
+    # D7/D9 evaluateWhichHandsToRender + isScoping 测试
+    client/renderer/firstperson/EvaluateWhichHandsToRenderTest.cpp
+    # D12 第一人称手持物品 3D 升级测试
+    client/renderer/firstperson/HeldItemMesh3DTest.cpp
     # 澹伴煶绯荤粺娴嬭瘯
     common/sound/SoundCategoryTest.cpp
     common/sound/test_sound_events.cpp
@@ -1524,6 +1548,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -1687,7 +1715,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalServerConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
@@ -1752,7 +1779,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CaveCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CanyonCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CarvingMask.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CarverConfiguration.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/WorldCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
@@ -1767,7 +1793,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/OverworldBiomeBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/EndBiomeSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Climate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Sampler.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/SpawnFinder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/weather/WeatherUtils.cpp
         # 生物群系颜色解析器
         ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
@@ -2144,6 +2171,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemInHandRenderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/FirstPersonTransforms.cpp
         # 鍖哄潡妯″瀷缂撳瓨
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
@@ -2338,14 +2366,26 @@ mc_copy_runtime_dlls(mc_resource_tests)
 # 鍙戠幇娴嬭瘯
 include(GoogleTest)
 
+# 单个测试用例执行超时（秒）。ctest 跑到该时长未结束即判失败，
+# 便于及早暴露区块生成/光照等长耗时用例的 hang/flake。
+set(MC_TEST_TIMEOUT 300 CACHE STRING "单个 gtest 用例的 ctest 超时秒数")
+
 function(mc_register_gtests targetName)
     if(WIN32)
-        # Windows + clang 当前环境下 applocal.ps1 无法解析 DLL 依赖，
-        # 会导致 gtest_discover_tests 在构建阶段直接失败。
-        # 改为仅注册到 CTest，不在构建时探测测试列表，先保证整体可编译。
-        add_test(NAME ${targetName} COMMAND $<TARGET_FILE:${targetName}>)
+        # Windows + clang + 多配置生成器下，gtest_discover_tests 默认在构建期以 Release/Debug
+        # 等首个配置探测测试列表，但 applocal.ps1 未在该阶段部署 DLL → 探测二进制启动失败。
+        # 改用 DISCOVERY_MODE PRE_TEST：ctest 运行期才执行探测（此时 DLL 已随目标部署到
+        # $<TARGET_FILE_DIR>），并用 DL_PATHS 把该目录加入 DLL 搜索路径。每个用例单独注册到
+        # CTest 并附 TIMEOUT，实现"单测试 5 分钟超时"。
+        gtest_discover_tests(${targetName}
+            DISCOVERY_MODE PRE_TEST
+            DL_PATHS "$<TARGET_FILE_DIR:${targetName}>"
+            PROPERTIES TIMEOUT ${MC_TEST_TIMEOUT}
+        )
     else()
-        gtest_discover_tests(${targetName})
+        gtest_discover_tests(${targetName}
+            PROPERTIES TIMEOUT ${MC_TEST_TIMEOUT}
+        )
     endif()
 endfunction()
 
@@ -2548,6 +2588,10 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -2571,7 +2615,6 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/LightSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp

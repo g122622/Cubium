@@ -325,6 +325,7 @@ add_library(mc_common STATIC
     entity/combat/CombatRules.cpp
     entity/damage/CombatEntry.cpp
     entity/damage/CombatTracker.cpp
+    entity/damage/DamageSource.cpp
     entity/ai/EntitySenses.cpp
     entity/ai/controller/LookController.cpp
     entity/ai/controller/MovementController.cpp
@@ -1052,12 +1053,16 @@ add_library(mc_common STATIC
     world/gen/noise/PerlinSimplexNoise.cpp
     world/gen/noise/NormalNoise.cpp
     world/gen/noise/Noises.cpp
+    world/gen/noise/NoiseLoader.cpp
     world/gen/noise/SimplexNoise.cpp
 
     # World - Generation - Density
     world/gen/density/BlendedNoise.cpp
     world/gen/density/CaveDensityFunctions.cpp
     world/gen/density/DensityFunctions.cpp
+    world/gen/density/DensityFunctionTypeRegistry.cpp
+    world/gen/density/DensityFunctionLoader.cpp
+    world/gen/density/DensityFunctionRegistry.cpp
     world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
     world/gen/density/NoiseRouterData.cpp
@@ -1100,7 +1105,6 @@ add_library(mc_common STATIC
     world/gen/carver/CarvingMask.cpp
     world/gen/carver/CaveCarver.cpp
     world/gen/carver/CanyonCarver.cpp
-    world/gen/carver/CarverConfiguration.cpp
     world/gen/carver/NetherWorldCarver.cpp
     world/gen/carver/ConfiguredCarverRegistry.cpp
     world/gen/carver/ConfiguredCarverLoader.cpp
@@ -1121,7 +1125,8 @@ add_library(mc_common STATIC
     world/biome/BiomeTags.cpp
 
     # World - Biome - Climate
-    world/biome/climate/Climate.cpp
+    world/biome/climate/Sampler.cpp
+    world/biome/climate/SpawnFinder.cpp
 
     # World - Biome - Source
     world/biome/source/MultiNoiseBiomeSource.cpp
@@ -1186,6 +1191,15 @@ add_library(mc_common STATIC
     world/gen/feature/parser/FeatureSizeParser.cpp
     world/gen/feature/parser/BlockPredicateParser.cpp
 
+    # World - Generation - Feature - State
+    world/gen/feature/state/BlockStateProvider.cpp
+    world/gen/feature/state/RuleBasedBlockStateProvider.cpp
+    world/gen/feature/state/RotatedBlockStateProvider.cpp
+    world/gen/feature/state/NoiseThresholdBlockStateProvider.cpp
+    world/gen/feature/state/NoiseBlockStateProvider.cpp
+    world/gen/feature/state/DualNoiseBlockStateProvider.cpp
+    world/gen/feature/state/RandomizedIntBlockStateProvider.cpp
+
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
     world/gen/feature/tree/FallenTreeFeature.cpp
@@ -1204,10 +1218,7 @@ add_library(mc_common STATIC
     world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.cpp
     # World - Generation - Feature - Vegetation
     world/gen/feature/vegetation/FlowerFeature.cpp
-    world/gen/feature/vegetation/GrassFeature.cpp
     world/gen/feature/vegetation/BigMushroomFeature.cpp
-    world/gen/feature/vegetation/CactusFeature.cpp
-    world/gen/feature/vegetation/SugarCaneFeature.cpp
     world/gen/feature/vegetation/BambooFeature.cpp
 
     # World - Generation - Feature - Cave
@@ -1231,7 +1242,6 @@ add_library(mc_common STATIC
     world/gen/feature/ocean/CoralTreeFeature.cpp
     world/gen/feature/ocean/CoralMushroomFeature.cpp
     world/gen/feature/ocean/CoralClawFeature.cpp
-    world/gen/feature/ocean/OceanDecorationFeature.cpp
     world/gen/feature/ocean/BlueIceFeature.cpp
 
     # World - Generation - Feature - End
@@ -1249,7 +1259,6 @@ add_library(mc_common STATIC
     world/gen/feature/nether/BasaltFeature.cpp
     world/gen/feature/nether/DeltaFeature.cpp
     world/gen/feature/nether/UnderwaterMagmaFeature.cpp
-    world/gen/feature/nether/NetherFireFeature.cpp
 
     # World - Generation - Feature - Lake
     world/gen/feature/LakeFeature.cpp
@@ -1264,10 +1273,6 @@ add_library(mc_common STATIC
     world/gen/feature/template/TemplateManager.cpp
     world/gen/feature/template/TemplateLoader.cpp
     world/gen/feature/template/RuleTest.cpp
-    world/gen/feature/ruletest/PosRuleTest.cpp
-    world/gen/feature/ruletest/RuleEntry.cpp
-    world/gen/feature/ruletest/StoneRuleTest.cpp
-    world/gen/feature/ruletest/DeepslateRuleTest.cpp
     world/gen/feature/template/CappedStructureProcessor.cpp
     world/gen/feature/template/ProtectedBlocksProcessor.cpp
 
@@ -1282,6 +1287,7 @@ add_library(mc_common STATIC
     world/gen/structure/StructureTag.cpp
     world/gen/structure/StructureTags.cpp
     world/gen/structure/StructureTagLoader.cpp
+    world/gen/structure/StructureTypeRegistry.cpp
     world/gen/structure/placement/StructurePlacement.cpp
     world/gen/structure/placement/RandomSpreadStructurePlacement.cpp
     world/gen/structure/placement/ConcentricRingsStructurePlacement.cpp

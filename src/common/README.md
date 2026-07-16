@@ -370,10 +370,7 @@ src/common/
     │   │   │       └── FoliagePlacers.hpp
     │   │   ├── vegetation/    # 植被
     │   │   │   ├── FlowerFeature.hpp
-    │   │   │   ├── GrassFeature.hpp
     │   │   │   ├── BigMushroomFeature.hpp
-    │   │   │   ├── CactusFeature.hpp
-    │   │   │   ├── SugarCaneFeature.hpp
     │   │   │   └── IceSpikeFeature.hpp
     │   │   ├── lake/
     │   │   │   └── LakeFeature.hpp

@@ -129,11 +129,14 @@ void StructureSetRegistry::clear()
     m_byId.clear();
     m_byStructureId.clear();
     m_sets.clear();
+    m_initialized = false;
 }
 
 void StructureSetRegistry::initialize()
 {
     clear();
+
+    m_initialized = true;
 
     // ============================================================================
     // 村庄集合（5 种变体，权重各 1）

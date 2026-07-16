@@ -26,7 +26,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"

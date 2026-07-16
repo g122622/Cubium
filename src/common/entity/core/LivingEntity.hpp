@@ -649,6 +649,40 @@ public:
      */
     [[nodiscard]] DamageSource* lastDamageSource() const { return m_lastDamageSource.get(); }
 
+    /**
+     * @brief 获取受伤方向角（LivingEntity.getHurtDir / Player.hurtDir）
+     *
+     * 度数，相对实体朝向（yaw）。由 indicateDamage 在受击时计算并设置，
+     * 客户端通过 animateHurt 接收网络同步的值。用于 damageTilt（bobHurt）渲染。
+     */
+    [[nodiscard]] virtual f32 getHurtDir() const { return m_hurtDir; }
+
+    /**
+     * @brief 获取本次受伤持续时间（LivingEntity.hurtDuration）
+     *
+     * 等于 m_maxHurtTime（受击时恒为 10），damageTilt 据此归一化 hurtTime。
+     */
+    [[nodiscard]] i32 hurtDuration() const { return m_maxHurtTime; }
+
+    /**
+     * @brief 记录受伤方向并触发网络同步（LivingEntity.indicateDamage）
+     *
+     * 基类仅设置 m_hurtDir，不做网络广播；ServerPlayer 重写以发包给受击玩家。
+     * d0/d1 为伤害来源相对受害者在世界 XZ 平面的方向向量分量。
+     */
+    virtual void indicateDamage(f64 d0, f64 d1);
+
+    /**
+     * @brief 客户端接收受伤动画时设置受伤方向与计时（LivingEntity.animateHurt）
+     *
+     * 服务端通过 hurt 动画包将 hurtDir 同步给所有追踪者（含受害者自己）。
+     */
+    virtual void animateHurt(f32 hurtDir)
+    {
+        m_hurtTime = m_maxHurtTime;
+        m_hurtDir = hurtDir;
+    }
+
     // ========== 受伤追踪（Target Goals 使用）==========
 
     /**
@@ -1179,6 +1213,13 @@ public:
      */
     [[nodiscard]] bool isUsingItem() const { return m_activeItemUseCount > 0 && !m_activeItem.isEmpty(); }
 
+    /**
+     * @brief 是否正在使用望远镜瞄准（对应 MC LivingEntity.isScoping）
+     *
+     * 使用中的物品 UseAction 为 Spyglass 时返回 true。第一人称手部渲染据此整体跳过。
+     */
+    [[nodiscard]] bool isScoping() const;
+
     // ========== 三叉戟激流攻击 ==========
 
     /**
@@ -1607,6 +1648,11 @@ protected:
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
     i32 m_hurtResistantTime = 0;                       // 无敌帧计时器
+
+    // 受伤方向（LivingEntity.hurtDuration / Player.hurtDir + getHurtDir）
+    // damageTilt（bobHurt）据此计算屏幕倾斜；hurtDir = atan2(dz,dx)*180/π - yaw。
+    // hurtDuration 复用 m_maxHurtTime（受击时恒为 10），不单独维护字段。
+    f32 m_hurtDir = 0.0f; // 受伤方向角（度，相对实体朝向）
 
     // 战斗状态
     bool m_inCombat = false;       // 是否在战斗中

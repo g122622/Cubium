@@ -780,6 +780,15 @@ Result<void> TridentEngine::render()
         VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
         m_entityRendererManager->setCameraDescriptorSet(cameraSet);
 
+        // 推进实体管线帧索引：setTextureAtlas/bindTextureDescriptor 据此选择当前帧私有
+        // 纹理描述符集，避免改写仍被在飞帧引用的描述符。
+        if (m_entityPipeline && m_entityPipeline->isInitialized()) {
+            m_entityPipeline->beginFrame(m_frameContext.frameIndex);
+            // beginFrame 已推进帧计数器，且 acquireNextImage 已等待上一帧 fence 完成，
+            // 此时释放到期缓冲区是安全的（不会再被任何在飞命令缓冲区引用）。
+            m_entityPipeline->processPendingDestroys();
+        }
+
         m_entityRenderCallback(cmd, m_partialTick);
     }
 
@@ -818,6 +827,10 @@ Result<void> TridentEngine::render()
     // 6.7 渲染第一人称手部
     if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_firstPersonRenderCallback) {
         VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
+        // 推进第一人称管线帧索引（per-frame 纹理描述符集 + 延迟销毁窗口）。
+        // acquireNextImage 已等待上一帧 fence，此时释放到期缓冲区安全。
+        m_firstPersonRenderer->beginFrame(m_frameContext.frameIndex);
+        m_firstPersonRenderer->processPendingDestroys();
         m_firstPersonRenderCallback(cmd, cameraSet, m_partialTick);
     }
 
@@ -1749,6 +1762,11 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
+    // 第一人称方块物品 3D 渲染需要方块纹理图集（与区块渲染共用同一图集）。
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_chunkRenderer != nullptr) {
+        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
     m_itemRendererInitialized = true;
     spdlog::info("Item renderer initialized");
     return {};
@@ -1785,7 +1803,8 @@ Result<void> TridentEngine::initializeEntityRenderer()
         cameraDescriptorLayout(),
         descriptorPool(),
         commandPool(),
-        m_msaaSamples);
+        m_msaaSamples,
+        maxFramesInFlight());
 
     if (pipelineResult.failed()) {
         spdlog::error("Failed to initialize entity pipeline: {}", pipelineResult.error().toString());
@@ -1927,8 +1946,11 @@ Result<void> TridentEngine::initializeEntityTextureAtlas(ResourceManager* resour
             m_entityRendererManager->setTextureAtlas(&m_entityTextureAtlas);
 
             // 设置纹理图集到 EntityPipeline
+            // 初始化阶段无在飞帧，用 AllFrames 把同一图集写入每帧的纹理描述符集，
+            // 保证每帧 set 首次 bind 前都指向有效纹理。运行时切图集走 per-frame setTextureAtlas。
             if (m_entityPipeline && m_entityPipeline->isInitialized()) {
-                m_entityPipeline->setTextureAtlas(m_entityTextureAtlas.imageView(), m_entityTextureAtlas.sampler());
+                m_entityPipeline->setTextureAtlasAllFrames(
+                    m_entityTextureAtlas.imageView(), m_entityTextureAtlas.sampler());
                 spdlog::info("Entity texture atlas bound to pipeline");
             }
 
@@ -2215,6 +2237,10 @@ Result<void> TridentEngine::initializeFirstPersonRenderer()
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
+    if (m_chunkRenderer != nullptr) {
+        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
     m_firstPersonRenderer->setPlayerSkinLocation(m_localPlayerSkinLocation);
 
     m_firstPersonRendererInitialized = true;
@@ -2295,6 +2321,11 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
         // 将方块纹理图集注入到 EntityRendererManager，供末影人手持方块层（HeldBlockLayer）使用
         // 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
         m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    }
+
+    // 同步方块纹理图集到第一人称渲染器（方块物品 3D 渲染切换图集用）。
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_chunkRenderer != nullptr) {
+        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
     }
 
     // 注册动画精灵

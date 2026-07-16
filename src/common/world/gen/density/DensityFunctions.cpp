@@ -244,16 +244,6 @@ std::unique_ptr<DensityFunction> constant(f64 value)
     return std::make_unique<Constant>(value);
 }
 
-std::unique_ptr<DensityFunction> blendAlpha()
-{
-    return std::make_unique<BlendAlpha>();
-}
-
-std::unique_ptr<DensityFunction> blendOffset()
-{
-    return std::make_unique<BlendOffset>();
-}
-
 std::unique_ptr<DensityFunction> yClampedGradient(i32 fromY, i32 toY, f64 fromValue, f64 toValue)
 {
     return std::make_unique<YClampedGradient>(fromY, toY, fromValue, toValue);

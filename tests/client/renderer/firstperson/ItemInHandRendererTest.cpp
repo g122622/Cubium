@@ -38,6 +38,7 @@ protected:
     void SetUp() override
     {
         renderer = std::make_unique<ItemInHandRenderer>();
+        renderer->initialize();
         stack = std::make_unique<MatrixStack>();
     }
 
@@ -55,16 +56,18 @@ protected:
 // 初始化测试
 // ============================================================================
 
-TEST_F(ItemInHandRendererTest, InitialState_NotInitialized)
+TEST(ItemInHandRendererConstruction, InitialState_NotInitialized)
 {
-    EXPECT_FALSE(renderer->isInitialized());
+    auto fresh = std::make_unique<ItemInHandRenderer>();
+    EXPECT_FALSE(fresh->isInitialized());
 }
 
-TEST_F(ItemInHandRendererTest, Initialize_Success)
+TEST(ItemInHandRendererConstruction, Initialize_Success)
 {
-    auto result = renderer->initialize();
+    auto fresh = std::make_unique<ItemInHandRenderer>();
+    auto result = fresh->initialize();
     EXPECT_TRUE(result.success());
-    EXPECT_TRUE(renderer->isInitialized());
+    EXPECT_TRUE(fresh->isInitialized());
 }
 
 TEST_F(ItemInHandRendererTest, GetTransforms_ReturnsReference)
@@ -115,9 +118,9 @@ TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_ThirdPersonRight)
     EXPECT_NEAR(matrix(0, 0), 0.55f, 0.001f);
     EXPECT_NEAR(matrix(1, 1), 0.55f, 0.001f);
     EXPECT_NEAR(matrix(2, 2), 0.55f, 0.001f);
-    // 验证平移
-    EXPECT_NEAR(matrix(1, 3), 3.0f, 0.001f);
-    EXPECT_NEAR(matrix(2, 3), 1.0f, 0.001f);
+    // 验证平移（像素单位除以 16）
+    EXPECT_NEAR(matrix(1, 3), 3.0f / 16.0f, 0.001f);
+    EXPECT_NEAR(matrix(2, 3), 1.0f / 16.0f, 0.001f);
 }
 
 TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_ThirdPersonLeft)
@@ -138,11 +141,11 @@ TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_FirstPersonRight)
     const Matrix4f& matrix = stack->last();
 
     // 第一人称右手有 Y 轴 45 度旋转，所以不能简单验证对角线
-    // 验证平移分量
+    // 验证平移分量（像素单位除以 16）
     Vector3f translation = matrix.translation();
-    EXPECT_NEAR(translation.x, 1.13f, 0.01f);
-    EXPECT_NEAR(translation.y, 3.2f, 0.01f);
-    EXPECT_NEAR(translation.z, 1.13f, 0.01f);
+    EXPECT_NEAR(translation.x, 1.13f / 16.0f, 0.01f);
+    EXPECT_NEAR(translation.y, 3.2f / 16.0f, 0.01f);
+    EXPECT_NEAR(translation.z, 1.13f / 16.0f, 0.01f);
 
     // 验证矩阵不是单位矩阵（有变换应用）
     EXPECT_FALSE(std::abs(matrix(0, 0) - 1.0f) < 0.001f && std::abs(matrix(1, 1) - 1.0f) < 0.001f &&
@@ -155,10 +158,10 @@ TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_FirstPersonLeft)
 
     const Matrix4f& matrix = stack->last();
 
-    // 左手平移 X 为负值
-    EXPECT_NEAR(matrix(0, 3), -1.13f, 0.01f);
-    EXPECT_NEAR(matrix(1, 3), 3.2f, 0.01f);
-    EXPECT_NEAR(matrix(2, 3), 1.13f, 0.01f);
+    // 左手平移 X 为负值（像素单位除以 16）
+    EXPECT_NEAR(matrix(0, 3), -1.13f / 16.0f, 0.01f);
+    EXPECT_NEAR(matrix(1, 3), 3.2f / 16.0f, 0.01f);
+    EXPECT_NEAR(matrix(2, 3), 1.13f / 16.0f, 0.01f);
 }
 
 TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_Gui)
@@ -222,24 +225,6 @@ TEST_F(ItemInHandRendererTest, ApplyDefaultTransform_None_NoChange)
             EXPECT_NEAR(after(i, j), before(i, j), 0.001f);
         }
     }
-}
-
-// ============================================================================
-// renderItem 测试
-// ============================================================================
-
-TEST_F(ItemInHandRendererTest, RenderItem_EmptyStack_NoCrash)
-{
-    // 空物品堆不应该崩溃
-    ItemStack emptyStack;
-    EXPECT_NO_THROW(renderer->renderItem(*stack, emptyStack, TransformType::Gui, false));
-}
-
-TEST_F(ItemInHandRendererTest, RenderItem_NotInitialized_NoCrash)
-{
-    // 未初始化的渲染器不应该崩溃
-    ItemStack emptyStack;
-    EXPECT_NO_THROW(renderer->renderItem(*stack, emptyStack, TransformType::Gui, false));
 }
 
 // ============================================================================

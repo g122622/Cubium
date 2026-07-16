@@ -98,6 +98,18 @@ void StructureRegistry::initialize()
     s_initialized = true;
 }
 
+void StructureRegistry::clear()
+{
+    getStructures().clear();
+    getStructureList().clear();
+    s_initialized = false;
+}
+
+void StructureRegistry::markInitialized()
+{
+    s_initialized = true;
+}
+
 void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure)
 {
     if (!structure) return;

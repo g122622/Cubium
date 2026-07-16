@@ -116,6 +116,15 @@ public:
 protected:
     void registerAttributes() override;
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 洞穴蜘蛛复用普通蜘蛛的环境音，对齐原版 CaveSpider（继承 Spider.getAmbientSound）。
+     * sounds.json 中无 entity.cave_spider.*（洞穴蜘蛛共享 spider.* 音效），
+     * 故不能走默认 makeSoundEventId("ambient")（会拼接出 cave_spider.ambient）。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
 private:
     i32 m_poisonDuration = 7; // 默认7秒中毒（普通难度）
 };

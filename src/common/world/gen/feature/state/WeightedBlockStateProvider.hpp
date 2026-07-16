@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #pragma once
@@ -25,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <vector>
 
@@ -50,12 +52,8 @@ struct WeightedStateEntry {
  * 也可用于树叶提供器（如杜鹃树混合杜鹃叶与开花杜鹃叶）。
  *
  * 内部使用线性扫描减权重法选择，适用于条目数较少（< 64）的场景。
- * 当 totalWeight >= 64 时，MC 原版切换到紧凑 selector，本实现暂未做此优化。
- *
- * 参考: net.minecraft.world.level.levelgen.feature.stateproviders.WeightedStateProvider
- *       net.minecraft.util.random.WeightedList
  */
-class WeightedBlockStateProvider {
+class WeightedBlockStateProvider : public BlockStateProvider {
 public:
     WeightedBlockStateProvider() = default;
 
@@ -79,15 +77,6 @@ public:
     WeightedBlockStateProvider& operator=(WeightedBlockStateProvider&&) noexcept = default;
 
     /**
-     * @brief 深拷贝当前提供者
-     * @return 新的 WeightedBlockStateProvider 实例
-     */
-    [[nodiscard]] std::unique_ptr<WeightedBlockStateProvider> clone() const
-    {
-        return std::make_unique<WeightedBlockStateProvider>(*this);
-    }
-
-    /**
      * @brief 添加加权方块状态
      * @param state 方块状态
      * @param weight 权重（必须 >= 0）
@@ -100,15 +89,18 @@ public:
 
     /**
      * @brief 获取随机方块状态
-     * @param rng 随机数生成器
+     * @param random 随机数生成器
      * @return 随机选择的方块状态；若条目为空返回 nullptr
+     *
+     * 坐标与世界参数对本提供者无意义（仅按权重随机），忽略之。
      */
-    [[nodiscard]] const BlockState* getState(math::IRandom& rng) const
+    [[nodiscard]] const BlockState* getState(
+        const IWorld& /*world*/, math::IRandom& random, i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
     {
         if (m_entries.empty() || m_totalWeight <= 0) {
             return nullptr;
         }
-        i32 remaining = rng.nextInt(m_totalWeight);
+        i32 remaining = random.nextInt(m_totalWeight);
         for (const auto& entry : m_entries) {
             remaining -= entry.weight;
             if (remaining < 0) {
@@ -116,6 +108,11 @@ public:
             }
         }
         return m_entries.back().state;
+    }
+
+    [[nodiscard]] std::unique_ptr<BlockStateProvider> clone() const override
+    {
+        return std::make_unique<WeightedBlockStateProvider>(*this);
     }
 
     /**

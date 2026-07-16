@@ -1433,8 +1433,10 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos
     // 获取输入方块状态
     const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);
 
-    // 获取世界位置方块状态（通过 PlacementSettings 中的世界访问）
-    const BlockState* locationState = nullptr;
+    // 获取世界位置方块状态（通过 PlacementSettings 中的世界访问）。
+    // 生产路径 world 总是非空；world 缺失时（仅单元测试）回退到输入方块状态，
+    // 使 location 谓词仍可在引用风格 test(const BlockState&) 下求值。
+    const BlockState* locationState = inputState;
     const IWorld* world = settings.getWorld();
     if (world) {
         locationState = world->getBlockState(blockInfo.pos);

@@ -33,9 +33,6 @@
 #include "BiomeRegistry.hpp"
 #include "BiomeSource.hpp"
 
-// Climate 参数系统
-#include "climate/Climate.hpp"
-
 // 生物群系源实现
 #include "source/EndBiomeSource.hpp"
 #include "source/MultiNoiseBiomeSource.hpp"

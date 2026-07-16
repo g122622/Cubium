@@ -11,7 +11,6 @@ ocean/
 ├── SeagrassFeature.hpp/cpp         # 海草特征（普通/高海草，多温区变体）
 ├── SeaPickleFeature.hpp/cpp        # 海泡菜特征（堆叠1-4个）
 ├── CoralFeature.hpp/cpp            # 珊瑚特征（树形/蘑菇形/爪形，活体/失活）
-├── OceanDecorationFeature.hpp/cpp  # 海洋装饰特征（潮涌核心/海龟蛋/气泡柱/海晶石部件/干海带块）
 └── BlueIceFeature.hpp/cpp          # 蓝冰簇特征（冷水/冻洋）
 ```
 
@@ -46,5 +45,4 @@ ocean/
 - **高海草状态完整性**：高海草需要同时设置上下半状态（`HALF` 属性），缺失任一状态会退化为普通海草或直接失败。
 - **温区变体同步**：海带与海草的冷/暖/深海/河流/沼泽等变体由数据包 `configured_feature`/`placed_feature` JSON 分别定义，生物群系通过 `features` 数组按 `ResourceLocation` 引用对应变体。
 - **珊瑚墙扇方向**：使用 `FACING` 指向支撑面方向，方向传反会导致后续掉落。
-- **海洋装饰依赖初始化**：`OceanDecorationFeature` 依赖多种方块状态，若 `VanillaBlocks` 未初始化会导致特征全空配置。
 - **蓝冰放置条件**：需要在海平面以下、邻接打包冰条件下扩散蓝冰，不是任意水下位置都能生成。

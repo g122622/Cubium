@@ -142,7 +142,7 @@ NetherFossilStructure::NetherFossilStructure()
     : Structure(ResourceLocation("minecraft", "nether_fossil"))
 {}
 
-const biome::BiomeTag* NetherFossilStructure::biomeTag() const
+const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_NETHER_FOSSIL();
 }

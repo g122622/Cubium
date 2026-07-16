@@ -229,6 +229,15 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 地面/空中分别播放不同环境音，对齐原版 Breeze.getAmbientSound：
+     * onGround → IDLE_GROUND，否则 → IDLE_AIR。sounds.json 中无 entity.breeze.ambient，
+     * 仅有 idle_ground/idle_air，故不能走默认 makeSoundEventId("ambient")。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
     // ========== AI 状态查询与设置 ==========
 
     /**

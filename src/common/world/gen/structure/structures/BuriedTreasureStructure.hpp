@@ -76,7 +76,7 @@ public:
      *
      * 返回 minecraft:has_structure/buried_treasure 标签，用于 O(1) 生物群系查找。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 埋藏宝藏的定位偏移
@@ -86,7 +86,10 @@ public:
      */
     [[nodiscard]] math::Vector3i locateOffset() const { return math::Vector3i(9, 0, 9); }
 
-    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
+    [[nodiscard]] DecorationStage defaultDecorationStage() const override
+    {
+        return DecorationStage::UndergroundStructures;
+    }
 
     /**
      * @brief 检查是否可以生成

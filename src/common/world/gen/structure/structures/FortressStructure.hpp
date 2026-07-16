@@ -86,7 +86,10 @@ public:
     explicit FortressStructure(const Config& config);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
+    [[nodiscard]] DecorationStage defaultDecorationStage() const override
+    {
+        return DecorationStage::UndergroundDecoration;
+    }
     [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
 
     /**
@@ -95,7 +98,7 @@ public:
      * 返回 minecraft:has_structure/nether_fortress 标签，
      * 用于判断下界要塞可生成的生物群系。
      */
-    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+    [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
      * @brief 检查是否可以生成

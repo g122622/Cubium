@@ -6,11 +6,15 @@
 
 ```
 src/server/sync/
-├── ChunkSendManager.hpp/cpp      # 区块发送管理器（区块数据发送、卸载通知）
-├── EntitySyncManager.hpp/cpp     # 实体同步管理器（位置追踪、生成/移动/销毁包）
-├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步管理器（方块变化批量发送）
-└── LightSyncManager.hpp/cpp      # 光照同步管理器（光照数据同步到 ChunkSection）
+├── ChunkSendManager.hpp/cpp       # 区块发送管理器（区块数据发送、卸载通知）
+├── EntitySyncManager.hpp/cpp      # 实体同步管理器（位置追踪、生成/移动/销毁包）
+└── BlockUpdateSyncManager.hpp/cpp # 方块更新同步管理器（方块变化批量发送）
 ```
+
+> 光照数据同步（`markLightChanged`/`_syncLightDataToChunk`）已统一由 `ServerWorld` 承担，
+> 不再有独立的 `LightSyncManager`。区块加载光照由 `server/world/ChunkLoadLightTask` 在
+> worker 线程完成后，经 `ServerWorld` 续延队列回主线程 flush + send（见
+> `server/world/README.md` 光照章节）。
 
 ## 内部模块关系
 
@@ -28,17 +32,15 @@ src/server/sync/
 │               │ 追踪  │Manager            │       │                 │
 └───────┬───────┘玩家  └─────────┬─────────┘       └────────┬────────┘
         │                          │                          │
-        │    ┌─────────────────────┴──────────────────────┐  │
-        │    │                                              │ │
-        ▼    ▼                                              ▼ ▼
+        ▼                          ▼                          ▼
 ┌─────────────────┐                                ┌─────────────────┐
-│LightSyncManager │                                │  网络层回调      │
-│                 │                                │ (发送数据包)     │
+│  ServerWorld    │                                │  网络层回调      │
+│ (光照 flush+send)│                                │ (发送数据包)     │
 └─────────────────┘                                └─────────────────┘
 ```
 
 **协作流程：**
-- 区块加载完成 → `LightSyncManager` 初始化光照 → `ChunkSendManager` 发送给追踪玩家
+- 区块加载完成 → `ChunkLoadLightTask`（worker）完成光照 → `ServerWorld` 主线程续延 flush + `ChunkSendManager` 发送给追踪玩家
 - 方块变化 → `BlockUpdateSyncManager` 缓存 → tick 末 flush 发送
 - 实体移动 → `EntitySyncManager` 检测阈值 → 发送位置更新
 
@@ -77,7 +79,7 @@ src/server/sync/
 
 ### 4. 光照数据同步时机
 
-必须在 WorldLightManager 计算完成后再调用 `syncLightDataToChunk()`，否则客户端会看到错误的照明。
+区块加载光照由 `ChunkLoadLightTask` 在 worker 线程完成，dirty section 经 `ServerWorld::_enqueueLightFlush` 入主线程 flush 队列。`ServerWorld::tick` 顺序严格 **flush → send → drain**：先 `_drainPendingLightFlushes`（`_syncLightDataToChunk` 把 visible nibble 同步到 ChunkSection），再 `_drainPendingChunkSends`（`ChunkSendManager` serialize 读已 flush 的 ChunkSection nibble）。顺序颠倒会导致客户端收到全黑区块。
 
 ### 5. 方块更新不要直接发包
 

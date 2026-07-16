@@ -25,7 +25,7 @@
 
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <string>
 
@@ -42,7 +42,7 @@ namespace world::gen::feature {
  * 对应 MC 1.21.11 NetherForestVegetationConfig{stateProvider, spreadWidth, spreadHeight}。
  */
 struct NetherForestVegetationConfig {
-    std::unique_ptr<parser::BlockStateProviderHandle> stateProvider;
+    std::unique_ptr<state::BlockStateProvider> stateProvider;
     i32 spreadWidth = 0;
     i32 spreadHeight = 0;
 

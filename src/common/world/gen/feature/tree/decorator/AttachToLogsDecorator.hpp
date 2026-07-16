@@ -25,7 +25,7 @@
 
 #include "TreeDecorator.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <vector>
 
@@ -48,15 +48,14 @@ namespace decorator {
  */
 class AttachToLogsDecorator final : public TreeDecorator {
 public:
-    AttachToLogsDecorator(f32 probability,
-        std::unique_ptr<parser::BlockStateProviderHandle> blockProvider,
-        std::vector<Direction> directions);
+    AttachToLogsDecorator(
+        f32 probability, std::unique_ptr<state::BlockStateProvider> blockProvider, std::vector<Direction> directions);
 
     void place(const TreeDecoratorContext& context) const override;
 
 private:
     f32 m_probability;
-    std::unique_ptr<parser::BlockStateProviderHandle> m_blockProvider;
+    std::unique_ptr<state::BlockStateProvider> m_blockProvider;
     std::vector<Direction> m_directions;
 };
 

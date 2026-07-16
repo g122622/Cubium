@@ -46,7 +46,9 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "server/world/RuntimeLightingProvider.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerLightQueue.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/entity/EntityChunkTracker.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -55,6 +57,7 @@
 #include "server/world/weather/WeatherManager.hpp"
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 
@@ -622,6 +625,14 @@ public:
         m_onBroadcastEntityAnimation = std::move(callback);
     }
 
+    /// 实体受伤动画广播回调（携带 hurtDir，对应 MC ClientboundHurtAnimationPacket）。
+    using HurtAnimationCallback = std::function<void(EntityId entityId, f32 hurtDir)>;
+
+    void setOnBroadcastHurtAnimation(HurtAnimationCallback callback)
+    {
+        m_onBroadcastHurtAnimation = std::move(callback);
+    }
+
     // ========== 实体拴绳链接广播回调 ==========
 
     /**
@@ -841,6 +852,8 @@ public:
 
     void broadcastEntityAnimation(EntityId entityId, u8 animation) override;
 
+    void broadcastHurtAnimation(EntityId entityId, f32 hurtDir) override;
+
     void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId) override;
 
     void broadcastExplosion(const Vector3& position,
@@ -1009,6 +1022,64 @@ public:
     [[nodiscard]] i32 getMinBuildHeight() const noexcept override;
     [[nodiscard]] i32 getMaxBuildHeight() const noexcept override;
     [[nodiscard]] i32 getSectionCount() const noexcept override;
+
+    // ========== 运行时光照 worker flush 队列（③-1） ==========
+
+    /**
+     * @brief worker 线程入队 dirty section（待主线程 flush）
+     *
+     * RuntimeLightTask / ChunkLoadLightTask 在 worker 线程完成光照传播后调用：
+     * 把 provider 收集的 dirty section 列表入此队列。主线程下一 tick 开头
+     * _drainPendingLightFlushes 时逐项调真正的 markLightChanged
+     * （_syncLightDataToChunk + m_onLightChanged 网络包）。
+     * 线程安全：内部持 m_pendingLightFlushesMutex。
+     *
+     * @param dirtySections worker 传播期间收集的 (光照类型, 段坐标) 列表
+     */
+    void _enqueueLightFlush(std::vector<std::pair<LightType, SectionPos>> dirtySections);
+
+    // ========== 区块加载光照统一调度（③-2b） ==========
+
+    /**
+     * @brief 入队区块加载光照任务（主线程调用）
+     *
+     * 由 chunkLoadedCallback 调用。对中心区块 add LIGHT 票据（level=Full 保活）后，
+     * 构造 ChunkLoadLightTask 提交到 ServerWorkerPool 区域互斥池（writeRadius=2）。
+     * 区块加载光照与运行时方块变更、LIGHT 生成阶段同池同 writeRadius，重叠 5×5 区域
+     * 的 nibble 写必被区域锁串行 → 满足 SWMRNibbleArray 单写者语义，可安全删 m_mutex。
+     *
+     * executor 为空（启动早期/测试环境）时 fallback 主线程同步执行 _executeChunkLoadLight。
+     *
+     * @param x 区块 X
+     * @param z 区块 Z
+     */
+    void enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief worker 线程入队区块发送续延（待主线程 send）
+     *
+     * ChunkLoadLightTask 在 worker 完成光照后调用：把 chunk 坐标入此队列。
+     * 主线程 tick 在 _drainPendingLightFlushes 之后、_drainPendingChunkSends 中逐项调
+     * chunkSendManager()->sendChunkToTrackingPlayers + removeLightTicket——serialize 读
+     * 已 flush 的 ChunkSection nibble，保证客户端收到正确光照而非全黑区块；
+     * removeLightTicket 释放 enqueueChunkLoadLight 时 add 的票据。
+     * 线程安全：内部持 m_pendingChunkSendsMutex。
+     *
+     * 任务被取消（onCancel）时也经此队列携带坐标回主线程 removeLightTicket，
+     * 防止票据泄漏。
+     *
+     * @param x 区块 X
+     * @param z 区块 Z
+     */
+    void _enqueueChunkSend(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 是否有待处理的光照工作
+     *
+     * 主线程调用（无锁近似，各队列 empty() 的瞬态读）。用于外部查询是否需要继续 tick。
+     * 包括：运行时方块变更延迟队列、worker flush 队列、区块发送续延队列。
+     */
+    [[nodiscard]] bool hasPendingLightWork() const noexcept;
 
     // ========== 光照管理 ==========
 
@@ -1428,6 +1499,19 @@ public:
 
 private:
     void _syncLightDataToChunk(LightType type, const SectionPos& pos);
+
+    /// 主线程 tick 开头调用：swap 出 m_pendingLightFlushes，逐项调 markLightChanged
+    void _drainPendingLightFlushes();
+
+    /// 主线程 tick 调用（在 _drainPendingLightFlushes 之后）：swap 出 m_pendingChunkSends，
+    /// 逐区块调 chunkSendManager()->sendChunkToTrackingPlayers + removeLightTicket。
+    /// 顺序关键：必须在 flush 之后——serialize 读已 flush 的 ChunkSection nibble。
+    void _drainPendingChunkSends();
+
+    /// 区块加载光照核心逻辑（worker 任务与 fallback 共用）。
+    /// 主线程 fallback 路径（executor 为空）同步调用，与 ChunkLoadLightTask::execute 同构。
+    void _executeChunkLoadLight(RuntimeLightingProvider& provider, ChunkCoord x, ChunkCoord z);
+
     [[nodiscard]] std::vector<std::reference_wrapper<Entity>> _collectLoadedEntitiesForSave();
     [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> _collectLoadedBlockEntitiesForSave() const;
 
@@ -1442,6 +1526,16 @@ private:
     std::unique_ptr<physics::CollisionCache> m_collisionCache;
     std::unique_ptr<world::tick::TickManager> m_tickManager;
     std::unique_ptr<WorldLightManager> m_lightManager;
+    ServerLightQueue m_lightQueue; ///< 运行时方块变更光照延迟队列（主线程批处理）
+
+    /// worker 完成的 dirty section 待主线程 flush 队列（③-1：worker 传播→主线程 flush visible）
+    std::mutex m_pendingLightFlushesMutex;
+    std::vector<std::pair<LightType, SectionPos>> m_pendingLightFlushes;
+
+    /// 区块加载光照完成后的区块发送续延队列（③-2b：worker 光照→主线程 send）。
+    /// worker 在 _drainPendingLightFlushes 之后 drain：send serialize 读已 flush nibble + removeLightTicket。
+    std::mutex m_pendingChunkSendsMutex;
+    std::vector<std::pair<ChunkCoord, ChunkCoord>> m_pendingChunkSends;
     std::unique_ptr<WeatherManager> m_weatherManager;
     std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;
@@ -1476,6 +1570,7 @@ private:
     ItemParticleBroadcastCallback m_onBroadcastItemParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
+    HurtAnimationCallback m_onBroadcastHurtAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;
     WorldEventCallback m_onBroadcastWorldEvent;
     BlockEventCallback m_onBroadcastBlockEvent;            ///< 方块事件广播回调

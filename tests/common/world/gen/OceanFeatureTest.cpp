@@ -31,7 +31,6 @@
 #include "world/gen/feature/ocean/BlueIceFeature.hpp"
 #include "world/gen/feature/ocean/CoralFeature.hpp"
 #include "world/gen/feature/ocean/KelpFeature.hpp"
-#include "world/gen/feature/ocean/OceanDecorationFeature.hpp"
 #include "world/gen/feature/ocean/SeaPickleFeature.hpp"
 #include "world/gen/feature/ocean/SeagrassFeature.hpp"
 
@@ -276,70 +275,6 @@ TEST_F(OceanFeatureWorldTest, SeaPickleFeaturePlacesOnLivingCoral)
         }
     }
     EXPECT_TRUE(foundSeaPickle);
-}
-
-TEST_F(OceanFeatureWorldTest, OceanDecorationFeaturePlacesOceanProps)
-{
-    // 数据驱动迁移：原 OceanDecorationFeatures::createOceanProps() 胶水已删除，
-    // 测试直接内联构造 OceanDecorationFeatureConfig（与原工厂同值）。
-    OceanDecorationFeatureConfig config;
-    config.conduitState = VanillaBlocks::getState(VanillaBlocks::CONDUIT);
-    config.driedKelpBlockState = VanillaBlocks::getState(VanillaBlocks::DRIED_KELP_BLOCK);
-    config.turtleEggState = VanillaBlocks::getState(VanillaBlocks::TURTLE_EGG);
-    config.bubbleColumnState = VanillaBlocks::getState(VanillaBlocks::BUBBLE_COLUMN);
-    config.prismarineStairsState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_STAIRS);
-    config.prismarineSlabState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE_SLAB);
-    config.prismarineState = VanillaBlocks::getState(VanillaBlocks::PRISMARINE);
-    config.magmaState = VanillaBlocks::getState(VanillaBlocks::MAGMA);
-    config.sandState = VanillaBlocks::getState(VanillaBlocks::SAND);
-    config.tries = 12;
-    config.driedKelpCount = 8;
-    config.bubbleColumnMaxHeight = 16;
-
-    OceanDecorationFeature feature;
-    math::Random random(99881);
-
-    EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
-
-    bool foundConduit = false;
-    bool foundDriedKelpBlock = false;
-    bool foundTurtleEgg = false;
-    bool foundBubbleColumn = false;
-    bool foundPrismarinePart = false;
-
-    for (i32 x = 0; x < 16; ++x) {
-        for (i32 z = 0; z < 16; ++z) {
-            for (i32 y = 40; y <= 62; ++y) {
-                const BlockState* state = getWorldBlock(x, y, z);
-                if (state == nullptr) {
-                    continue;
-                }
-
-                if (VanillaBlocks::CONDUIT != nullptr && state->is(VanillaBlocks::CONDUIT)) {
-                    foundConduit = true;
-                }
-                if (VanillaBlocks::DRIED_KELP_BLOCK != nullptr && state->is(VanillaBlocks::DRIED_KELP_BLOCK)) {
-                    foundDriedKelpBlock = true;
-                }
-                if (VanillaBlocks::TURTLE_EGG != nullptr && state->is(VanillaBlocks::TURTLE_EGG)) {
-                    foundTurtleEgg = true;
-                }
-                if (VanillaBlocks::BUBBLE_COLUMN != nullptr && state->is(VanillaBlocks::BUBBLE_COLUMN)) {
-                    foundBubbleColumn = true;
-                }
-                if ((VanillaBlocks::PRISMARINE_STAIRS != nullptr && state->is(VanillaBlocks::PRISMARINE_STAIRS)) ||
-                    (VanillaBlocks::PRISMARINE_SLAB != nullptr && state->is(VanillaBlocks::PRISMARINE_SLAB))) {
-                    foundPrismarinePart = true;
-                }
-            }
-        }
-    }
-
-    EXPECT_TRUE(foundConduit);
-    EXPECT_TRUE(foundDriedKelpBlock);
-    EXPECT_TRUE(foundTurtleEgg);
-    EXPECT_TRUE(foundBubbleColumn);
-    EXPECT_TRUE(foundPrismarinePart);
 }
 
 TEST_F(OceanFeatureWorldTest, BlueIceFeaturePlacesBlueIceInWater)

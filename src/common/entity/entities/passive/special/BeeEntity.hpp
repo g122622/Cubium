@@ -471,6 +471,14 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 蜜蜂无环境音（飞行音由客户端 BeeFlyingSoundInstance 循环处理），
+     * 对齐原版 Bee.getAmbientSound 返回 null，避免默认拼接出不存在的 entity.bee.ambient。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
 private:
     // ========== MC 1.16.5 数据参数 ==========
     // DATA_FLAGS (i8): 位标志

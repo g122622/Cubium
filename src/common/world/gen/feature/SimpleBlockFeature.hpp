@@ -24,7 +24,8 @@
 
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include <memory>
 #include <string>
 
@@ -33,22 +34,20 @@ namespace mc::world::gen::feature::cave {
 /**
  * @brief 简单方块配置
  *
- * 用于放置单个方块（如孢子花、苔藓植被）。to_place 为 BlockStateProvider：
- * simple_state_provider 取单一状态；weighted_state_provider 每次放置按权重采样。
+ * 用于放置单个方块（如孢子花、苔藓植被）。to_place 为 BlockStateProvider，
+ * 运行时按其 kind 采样（simple 直接返回、weighted 按权重、rule_based/noise 等按需）。
  */
 struct SimpleBlockConfig {
-    /// 要放置的方块状态（simple_state_provider 的单一状态；weighted 时为 nullptr）
-    const BlockState* toPlace = nullptr;
-
-    /// 加权方块状态提供者（weighted_state_provider；simple 时为 nullptr）
-    std::unique_ptr<state::WeightedBlockStateProvider> weightedProvider;
+    /// 要放置的方块状态提供者（simple/weighted/rule_based/... 任意 kind）
+    std::unique_ptr<state::BlockStateProvider> provider;
 
     /// 是否调度刻更新
     bool scheduleTick = false;
 
     SimpleBlockConfig() = default;
+    /// 由单一状态构造（内部包装为 SimpleBlockStateProvider）
     explicit SimpleBlockConfig(const BlockState* state, bool tick = false)
-        : toPlace(state)
+        : provider(std::make_unique<state::SimpleBlockStateProvider>(state))
         , scheduleTick(tick)
     {}
 };
@@ -56,8 +55,9 @@ struct SimpleBlockConfig {
 /**
  * @brief 简单方块放置特征
  *
- * 在指定位置放置单个方块，检查canSurvive条件。
- * 用于孢子花、苔藓植被等单方块放置。
+ * 在指定位置放置单个方块：先检查当前位置可替换(canBeReplaced)，再调用方块的
+ * isValidPosition(canSurvive 语义)校验下方支撑，防止落在无法支撑的位置(如草悬空)。
+ * 用于孢子花、苔藓植被、草等单方块放置。
  */
 class SimpleBlockFeature {
 public:

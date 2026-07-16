@@ -22,14 +22,25 @@
  */
 
 #include "WorldLightManager.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/lighting/IChunkLightProvider.hpp"
 #include <algorithm>
-#include <fmt/format.h>
+#include <memory>
 
-using namespace mc::trace;
+namespace {
+
+/// TLS 天空光引擎池：每个 worker 线程独占一套引擎实例。
+/// 对齐 Moonrise StarLightInterface 的 thread_local 引擎池——引擎无跨 operation
+/// 持久状态（nibble/emptiness map 全挂 IChunk，引擎只有 per-op 缓存），故线程级
+/// 单例安全复用，无引擎级锁。nibble 写串行由 ServerWorkerPool 区域锁保证。
+thread_local std::unique_ptr<mc::SkyStarLightEngine> _tlsSkyEngine;
+
+/// TLS 方块光引擎池（语义同 _tlsSkyEngine）。
+thread_local std::unique_ptr<mc::BlockStarLightEngine> _tlsBlockEngine;
+
+} // namespace
 
 namespace mc {
 
@@ -37,195 +48,71 @@ WorldLightManager::WorldLightManager(StarLightLightingProvider* provider, bool h
     : m_provider(provider)
     , m_hasBlockLight(hasBlockLight)
     , m_hasSkyLight(hasSkyLight)
+    , m_minLightSection((provider->getMinBuildHeight() >> world::SECTION_SHIFT) - 1)
+    , m_maxLightSection(((provider->getMaxBuildHeight() - 1) >> world::SECTION_SHIFT) + 1)
+    , m_minSection(provider->getMinBuildHeight() >> world::SECTION_SHIFT)
+    , m_maxSection((provider->getMaxBuildHeight() - 1) >> world::SECTION_SHIFT)
+{}
+
+// ============================================================================
+// TLS 引擎池
+// ============================================================================
+
+SkyStarLightEngine* WorldLightManager::acquireSkyLightEngine()
 {
-
-    if (hasBlockLight) {
-        m_blockLight = std::make_unique<BlockStarLightEngine>();
+    // 首次调用惰性构造，之后该线程复用同一实例。引擎构造无参数（无跨 op 状态）。
+    if (_tlsSkyEngine == nullptr) {
+        _tlsSkyEngine = std::make_unique<SkyStarLightEngine>();
     }
+    return _tlsSkyEngine.get();
+}
 
-    if (hasSkyLight) {
-        m_skyLight = std::make_unique<SkyStarLightEngine>();
+void WorldLightManager::releaseSkyLightEngine(SkyStarLightEngine* /*engine*/) noexcept
+{
+    // no-op：对齐 Moonrise try/finally 签名，引擎留在 TLS 复用，线程退出时 unique_ptr 析构释放。
+}
+
+BlockStarLightEngine* WorldLightManager::acquireBlockLightEngine()
+{
+    if (_tlsBlockEngine == nullptr) {
+        _tlsBlockEngine = std::make_unique<BlockStarLightEngine>();
     }
+    return _tlsBlockEngine.get();
+}
+
+void WorldLightManager::releaseBlockLightEngine(BlockStarLightEngine* /*engine*/) noexcept
+{
+    // no-op（见 releaseSkyLightEngine）。
 }
 
 // ============================================================================
-// 光照操作
+// 主线程读路径（visible 侧，无锁）
 // ============================================================================
-
-void WorldLightManager::checkBlock(i32 x, i32 y, i32 z)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::checkBlock",
-        "pos",
-        fmt::format("({}, {}, {})", x, y, z),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    i32 chunkX = x >> world::CHUNK_SHIFT;
-    i32 chunkZ = z >> world::CHUNK_SHIFT;
-
-    // 使用 blocksChangedInChunk 流程处理方块变化
-    std::vector<BlockPos> positions;
-    positions.emplace_back(x, y, z);
-    std::vector<bool> changedSections; // 空的，因为我们不知道段是否为空
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
-    }
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->blocksChangedInChunk(m_provider, chunkX, chunkZ, positions, changedSections);
-    }
-}
-
-void WorldLightManager::onBlockEmissionIncrease(i32 x, i32 y, i32 z, i32 lightLevel)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::onBlockEmissionIncrease",
-        "pos",
-        fmt::format("({}, {}, {})", x, y, z),
-        "lightLevel",
-        lightLevel,
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->onBlockEmissionIncrease(m_provider, x, y, z, lightLevel);
-    }
-}
-
-bool WorldLightManager::hasLightWork() const
-{
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    bool skyHasWork = m_skyLight != nullptr && m_skyLight->hasWork();
-    bool blockHasWork = m_blockLight != nullptr && m_blockLight->hasWork();
-
-    return skyHasWork || blockHasWork;
-}
-
-i32 WorldLightManager::tick(i32 maxUpdates, bool updateSkyLight, bool updateBlockLight)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::tick",
-        "maxUpdates",
-        maxUpdates,
-        "updateSkyLight",
-        updateSkyLight,
-        "updateBlockLight",
-        updateBlockLight);
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    MC_ASSERT_RELEASE_MSG(maxUpdates >= 0, "Max updates must be positive or zero");
-
-    i32 remaining = maxUpdates;
-
-    if (m_blockLight != nullptr && updateBlockLight) {
-        remaining = m_blockLight->tick(remaining, false, true);
-    }
-
-    if (m_skyLight != nullptr && updateSkyLight && remaining > 0) {
-        remaining = m_skyLight->tick(remaining, true, false);
-    }
-
-    return std::clamp(remaining, 0, maxUpdates);
-}
-
-// ============================================================================
-// 区块段管理
-// ============================================================================
-
-void WorldLightManager::updateSectionStatus(const SectionPos& pos, bool isEmpty)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::updateSectionStatus",
-        "sectionPos",
-        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
-        "isEmpty",
-        isEmpty,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toLong())](::perfetto::EventContext ctx) { flow(ctx); });
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->updateSectionStatus(pos, isEmpty);
-    }
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->updateSectionStatus(pos, isEmpty);
-    }
-}
-
-void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::enableLightSources",
-        "chunkPos",
-        fmt::format("({}, {})", pos.x, pos.z),
-        "enable",
-        enable,
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 区块列位置编码
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->setColumnEnabled(columnPos, enable);
-    }
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->setColumnEnabled(columnPos, enable);
-    }
-}
-
-// ============================================================================
-// 光照访问
-// ============================================================================
-
-BlockStarLightEngine* WorldLightManager::getBlockLightEngine()
-{
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_blockLight.get();
-}
-
-const BlockStarLightEngine* WorldLightManager::getBlockLightEngine() const
-{
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_blockLight.get();
-}
-
-SkyStarLightEngine* WorldLightManager::getSkyLightEngine()
-{
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_skyLight.get();
-}
-
-const SkyStarLightEngine* WorldLightManager::getSkyLightEngine() const
-{
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_skyLight.get();
-}
 
 i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening) const
 {
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
+    // 主线程读 visible 侧，不经引擎、不持锁。worker 写 updating 经区域锁串行，
+    // visible 侧 atomic 发布，主线程无锁读安全（SWMRNibbleArray 双缓冲语义）。
+    // 对齐 Moonrise StarLightInterface.getRawBrightness。
     i32 skyLight = 0;
-    if (m_skyLight != nullptr) {
-        skyLight = static_cast<i32>(m_skyLight->getLightFor(pos.x, pos.y, pos.z)) - skyDarkening;
+    if (m_hasSkyLight) {
+        skyLight = static_cast<i32>(_getSkyLightValue(pos.x, pos.y, pos.z)) - skyDarkening;
         skyLight = std::max(0, skyLight);
+        // 天空光满亮时方块光不可能更高，短路返回（对齐 Moonrise）
+        if (skyLight == 15) {
+            return 15;
+        }
     }
 
     i32 blockLight = 0;
-    if (m_blockLight != nullptr) {
-        blockLight = static_cast<i32>(m_blockLight->getLightFor(pos.x, pos.y, pos.z));
+    if (m_hasBlockLight) {
+        const SectionPos sectionPos(
+            pos.x >> world::CHUNK_SHIFT, pos.y >> world::SECTION_SHIFT, pos.z >> world::CHUNK_SHIFT);
+        SWMRNibbleArray* blockNibble = _getNibble(LightType::BLOCK, sectionPos);
+        if (blockNibble != nullptr) {
+            blockLight = static_cast<i32>(blockNibble->getVisible(
+                pos.x & world::CHUNK_MASK, pos.y & world::CHUNK_MASK, pos.z & world::CHUNK_MASK));
+        }
     }
 
     return std::max(blockLight, skyLight);
@@ -233,237 +120,141 @@ i32 WorldLightManager::getLightSubtracted(const BlockPos& pos, i32 skyDarkening)
 
 u8 WorldLightManager::getBlockLight(i32 x, i32 y, i32 z) const
 {
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    if (m_blockLight != nullptr) {
-        return m_blockLight->getLightFor(x, y, z);
+    if (!m_hasBlockLight) {
+        return 0;
     }
-    return 0;
+
+    const SectionPos sectionPos(x >> world::CHUNK_SHIFT, y >> world::SECTION_SHIFT, z >> world::CHUNK_SHIFT);
+    SWMRNibbleArray* nibble = _getNibble(LightType::BLOCK, sectionPos);
+    if (nibble == nullptr) {
+        return 0;
+    }
+    // 方块光 null nibble 返回 0（无光源），与 SWMRNibbleArray::getVisible 一致
+    return nibble->getVisible(x & world::CHUNK_MASK, y & world::CHUNK_MASK, z & world::CHUNK_MASK);
 }
 
 u8 WorldLightManager::getSkyLight(i32 x, i32 y, i32 z) const
 {
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    if (m_skyLight != nullptr) {
-        return m_skyLight->getLightFor(x, y, z);
+    if (!m_hasSkyLight) {
+        return 15;
     }
-    return 0;
-}
-
-// ============================================================================
-// 数据管理
-// ============================================================================
-
-void WorldLightManager::setData(LightType type, const SectionPos& pos, const NibbleArray& array, bool retain)
-{
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    switch (type) {
-        case LightType::BLOCK:
-            if (m_blockLight != nullptr) {
-                m_blockLight->setData(pos, array, retain);
-            }
-            break;
-        case LightType::SKY:
-            if (m_skyLight != nullptr) {
-                m_skyLight->setData(pos, array, retain);
-            }
-            break;
-    }
+    return _getSkyLightValue(x, y, z);
 }
 
 SWMRNibbleArray* WorldLightManager::getData(LightType type, const SectionPos& pos)
 {
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    switch (type) {
-        case LightType::BLOCK:
-            if (m_blockLight != nullptr) {
-                return m_blockLight->getData(pos);
-            }
-            break;
-        case LightType::SKY:
-            if (m_skyLight != nullptr) {
-                return m_skyLight->getData(pos);
-            }
-            break;
-    }
-    return nullptr;
+    return _getNibble(type, pos);
 }
 
-void WorldLightManager::retainData(const ChunkPos& pos, bool retain)
+SWMRNibbleArray* WorldLightManager::_getNibble(LightType type, const SectionPos& pos) const
 {
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 区块列位置编码，与 enableLightSources 保持一致
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->retainData(columnPos, retain);
+    // 主线程读：经 provider 取已加载区块，直接索引区块上的 nibble 数组。
+    // 不持锁——nibble 指针挂在区块上（稳定），其 visible 侧数据 atomic 读安全。
+    const i32 index = pos.y - m_minLightSection;
+    if (index < 0 || index >= (m_provider->getSectionCount() + 2)) {
+        return nullptr;
     }
 
-    if (m_skyLight != nullptr) {
-        m_skyLight->retainData(columnPos, retain);
-    }
-}
-
-// ============================================================================
-// 区块光照初始化
-// ============================================================================
-
-void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<bool>& emptySections)
-{
+    const IChunk* chunk = m_provider->getChunkForLight(pos.x, pos.z);
     if (chunk == nullptr) {
-        return;
+        return nullptr;
     }
 
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::forceLoadInChunk",
-        "chunk",
-        fmt::format("({}, {})", chunk->x(), chunk->z()));
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 对已正确光照的区块，只需要加载光照数据到缓存并检查边缘
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
+    SWMRNibbleArray* const* nibbles = (type == LightType::SKY) ? chunk->getSkyNibbles() : chunk->getBlockNibbles();
+    if (nibbles == nullptr) {
+        return nullptr;
     }
 
-    if (m_blockLight != nullptr) {
-        m_blockLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
-    }
+    return nibbles[index];
 }
 
-void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
+u8 WorldLightManager::_getSkyLightValue(i32 x, i32 y, i32 z) const
 {
+    // 对齐 Moonrise StarLightInterface.getSkyLightValue：
+    // null nibble（未光照段）的天空光须经 emptiness map 判断该段是否在最低非空段之上
+    // （之上天空光未遮挡满亮 15），否则向上回溯首个非 null nibble 取该列天空光。
+    // 区块未加载返回 15（对齐 Moonrise chunk==null 分支）。
+    const i32 chunkX = x >> world::CHUNK_SHIFT;
+    const i32 chunkZ = z >> world::CHUNK_SHIFT;
+    const IChunk* chunk = m_provider->getChunkForLight(chunkX, chunkZ);
     if (chunk == nullptr) {
-        return;
+        return 15;
     }
 
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::lightChunk",
-        "chunk",
-        fmt::format("({}, {})", chunk->x(), chunk->z()),
-        "needsEdgeChecks",
-        needsEdgeChecks);
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 先启用区块光源列，再执行光照计算。
-    // BlockStarLightEngine::_getSources 收集光源、_getLightEmission 读取亮度，若列未启用则光源不发光。
-    // 必须在 light() 之前 enableLightSources，否则初始光照期间所有方块光源发光为 0。
-    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
-
-    // 执行天空光照计算
-    if (m_skyLight != nullptr) {
-        m_skyLight->light(m_provider, chunk, needsEdgeChecks);
+    i32 sectionY = y >> world::SECTION_SHIFT;
+    if (sectionY > m_maxLightSection) {
+        return 15;
+    }
+    if (sectionY < m_minLightSection) {
+        sectionY = m_minLightSection;
+        y = sectionY << world::SECTION_SHIFT;
     }
 
-    // 执行方块光照计算
-    if (m_blockLight != nullptr) {
-        m_blockLight->light(m_provider, chunk, needsEdgeChecks);
-    }
-}
-
-void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::checkChunkEdges",
-        "chunk",
-        fmt::format("({}, {})", chunkX, chunkZ));
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->StarLightEngine::checkChunkEdges(m_provider, chunkX, chunkZ);
+    SWMRNibbleArray* const* nibbles = chunk->getSkyNibbles();
+    if (nibbles == nullptr) {
+        return 15;
     }
 
-    if (m_blockLight != nullptr) {
-        m_blockLight->StarLightEngine::checkChunkEdges(m_provider, chunkX, chunkZ);
-    }
-}
-
-// ============================================================================
-// 区块光照初始化（指定 provider 重载，用于 LIGHT 阶段 worker 线程）
-// ============================================================================
-
-void WorldLightManager::lightChunk(StarLightLightingProvider* provider, const IChunk* chunk, bool needsEdgeChecks)
-{
-    if (chunk == nullptr) {
-        return;
+    SWMRNibbleArray* immediate = nibbles[sectionY - m_minLightSection];
+    if (immediate != nullptr && !immediate->isNullVisible()) {
+        return immediate->getVisible(x & world::CHUNK_MASK, y & world::CHUNK_MASK, z & world::CHUNK_MASK);
     }
 
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::lightChunk(provider)",
-        "chunk",
-        fmt::format("({}, {})", chunk->x(), chunk->z()),
-        "needsEdgeChecks",
-        needsEdgeChecks);
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 先启用区块光源列，再执行光照计算（与 lightChunk(chunk) 重载一致，详见 Bug A 修复说明）
-    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->light(provider, chunk, needsEdgeChecks);
+    // null nibble：经 emptiness map 查找最低非空段
+    const bool* emptinessMap = chunk->getSkyEmptinessMap();
+    if (emptinessMap == nullptr) {
+        return 15;
     }
 
-    if (m_blockLight != nullptr) {
-        m_blockLight->light(provider, chunk, needsEdgeChecks);
+    i32 lowestY = m_minLightSection - 1;
+    for (i32 currY = m_maxSection; currY >= m_minSection; --currY) {
+        if (emptinessMap[currY - m_minSection]) {
+            continue;
+        }
+        lowestY = currY;
+        break;
     }
+
+    if (sectionY > lowestY) {
+        return 15;
+    }
+
+    // 向上回溯首个非 null nibble，取该列天空光（对齐 Moonrise：上方未遮挡段的光照下来）
+    for (i32 currY = sectionY + 1; currY <= m_maxLightSection; ++currY) {
+        SWMRNibbleArray* nibble = nibbles[currY - m_minLightSection];
+        if (nibble != nullptr && !nibble->isNullVisible()) {
+            return nibble->getVisible(x & world::CHUNK_MASK, 0, z & world::CHUNK_MASK);
+        }
+    }
+
+    return 15;
 }
 
 // ============================================================================
-// 空区块段映射（线程安全）
-// ============================================================================
-
-void WorldLightManager::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "WorldLightManager::updateEmptinessMap",
-        "chunk",
-        fmt::format("({}, {})", chunkX, chunkZ));
-
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    if (m_blockLight != nullptr) {
-        m_blockLight->updateEmptinessMap(chunkX, chunkZ, chunk);
-    }
-}
-
-// ============================================================================
-// 调试信息
+// 调试信息（读 visible 侧状态）
 // ============================================================================
 
 std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& pos) const
 {
-    std::lock_guard<std::recursive_mutex> lock(m_mutex);
-
-    // 区块列位置编码
-    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
-
+    // 主线程读 visible 侧状态，反映已发布的光照数据（对齐客户端可见状态）。
+    // 引擎已改 TLS 池——主线程引擎实例与 worker 引擎不同，queuedUpdateSize 无意义，故不再报告 [q:N]。
     switch (type) {
         case LightType::BLOCK: {
-            if (m_blockLight == nullptr) {
+            if (!m_hasBlockLight) {
                 return "BlockLight: N/A";
             }
 
-            // 获取区块段的 Nibble 数据状态
-            const SWMRNibbleArray* nibble = m_blockLight->getData(pos);
+            const SWMRNibbleArray* nibble = _getNibble(LightType::BLOCK, pos);
             std::string sectionState;
             if (nibble == nullptr) {
                 sectionState = "2"; // EMPTY - 无数据
-            } else if (nibble->isNullUpdating()) {
+            } else if (nibble->isNullVisible()) {
                 sectionState = "2"; // EMPTY - Null 状态
-            } else if (nibble->isUninitializedUpdating()) {
+            } else if (nibble->isUninitializedVisible()) {
                 sectionState = "1"; // LIGHT_ONLY - 未初始化
-            } else if (nibble->isHiddenUpdating()) {
+            } else if (nibble->isHiddenVisible()) {
                 sectionState = "1"; // LIGHT_ONLY - 隐藏状态
-            } else if (nibble->isInitializedUpdating()) {
+            } else if (nibble->isInitializedVisible()) {
                 sectionState = "0"; // LIGHT_AND_DATA - 有完整数据
             }
 
@@ -474,39 +265,24 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
                 result += "[dirty]";
             }
 
-            // 附加引擎队列状态
-            i32 queueSize = m_blockLight->queuedUpdateSize();
-            if (queueSize > 0) {
-                result += "[q:" + std::to_string(queueSize) + "]";
-            }
-
-            // 附加区块列状态
-            if (m_blockLight->isColumnEnabled(columnPos)) {
-                result += "[col:on]";
-            }
-            if (m_blockLight->isDataRetained(columnPos)) {
-                result += "[retained]";
-            }
-
             return result;
         }
         case LightType::SKY: {
-            if (m_skyLight == nullptr) {
+            if (!m_hasSkyLight) {
                 return "SkyLight: N/A";
             }
 
-            // 获取区块段的 Nibble 数据状态
-            const SWMRNibbleArray* nibble = m_skyLight->getData(pos);
+            const SWMRNibbleArray* nibble = _getNibble(LightType::SKY, pos);
             std::string sectionState;
             if (nibble == nullptr) {
                 sectionState = "2"; // EMPTY - 无数据
-            } else if (nibble->isNullUpdating()) {
+            } else if (nibble->isNullVisible()) {
                 sectionState = "2"; // EMPTY - Null 状态
-            } else if (nibble->isUninitializedUpdating()) {
+            } else if (nibble->isUninitializedVisible()) {
                 sectionState = "1"; // LIGHT_ONLY - 未初始化
-            } else if (nibble->isHiddenUpdating()) {
+            } else if (nibble->isHiddenVisible()) {
                 sectionState = "1"; // LIGHT_ONLY - 隐藏状态
-            } else if (nibble->isInitializedUpdating()) {
+            } else if (nibble->isInitializedVisible()) {
                 sectionState = "0"; // LIGHT_AND_DATA - 有完整数据
             }
 
@@ -515,20 +291,6 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
             // 附加脏标记
             if (nibble != nullptr && nibble->isDirty()) {
                 result += "[dirty]";
-            }
-
-            // 附加引擎队列状态
-            i32 queueSize = m_skyLight->queuedUpdateSize();
-            if (queueSize > 0) {
-                result += "[q:" + std::to_string(queueSize) + "]";
-            }
-
-            // 附加区块列状态
-            if (m_skyLight->isColumnEnabled(columnPos)) {
-                result += "[col:on]";
-            }
-            if (m_skyLight->isDataRetained(columnPos)) {
-                result += "[retained]";
             }
 
             return result;

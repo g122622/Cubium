@@ -21,12 +21,24 @@
  *
  */
 
+#include "TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
+
+namespace state = mc::world::gen::feature::state;
+
+namespace {
+// BaseTestWorld 默认构造为 protected，派生一个 public 构造的测试世界供采样调用。
+class RuleTestWorld : public test::BaseTestWorld {
+public:
+    RuleTestWorld() = default;
+};
+} // namespace
 
 class RuleTestTest : public ::testing::Test {
 protected:
@@ -257,28 +269,28 @@ TEST_F(RuleTestTest, StoneRuleTestClone)
 
 TEST_F(RuleTestTest, TagMatchRuleTestCreation)
 {
-    TagMatchRuleTest test("minecraft:stone");
+    TagMatchRuleTest test(ResourceLocation("minecraft:stone"));
 
-    EXPECT_EQ(test.getTagName(), "minecraft:stone");
+    EXPECT_EQ(test.getTagName(), ResourceLocation("minecraft:stone"));
     EXPECT_EQ(test.name(), "tag_match");
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTestClone)
 {
-    TagMatchRuleTest test("minecraft:logs");
+    TagMatchRuleTest test(ResourceLocation("minecraft:logs"));
     auto clone = test.clone();
 
     EXPECT_NE(clone, nullptr);
 
     TagMatchRuleTest* clonedTest = dynamic_cast<TagMatchRuleTest*>(clone.get());
     EXPECT_NE(clonedTest, nullptr);
-    EXPECT_EQ(clonedTest->getTagName(), "minecraft:logs");
+    EXPECT_EQ(clonedTest->getTagName(), ResourceLocation("minecraft:logs"));
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTestMatchesStoneTag)
 {
     // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
-    TagMatchRuleTest test("minecraft:stone");
+    TagMatchRuleTest test(ResourceLocation("minecraft:stone"));
     math::Random rng(12345);
 
     // 应该匹配 stone 标签中的方块
@@ -294,7 +306,7 @@ TEST_F(RuleTestTest, TagMatchRuleTestMatchesStoneTag)
 
 TEST_F(RuleTestTest, TagMatchRuleTestMatchesLogsTag)
 {
-    TagMatchRuleTest test("minecraft:logs");
+    TagMatchRuleTest test(ResourceLocation("minecraft:logs"));
     math::Random rng(12345);
 
     // 应该匹配 logs 标签中的方块
@@ -311,7 +323,7 @@ TEST_F(RuleTestTest, TagMatchRuleTestMatchesLogsTag)
 TEST_F(RuleTestTest, TagMatchRuleTestNonExistentTag)
 {
     // 不存在的标签应该返回 false
-    TagMatchRuleTest test("minecraft:nonexistent_tag");
+    TagMatchRuleTest test(ResourceLocation("minecraft:nonexistent_tag"));
     math::Random rng(12345);
 
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
@@ -383,11 +395,12 @@ TEST_F(RuleTestTest, OreFeatureConfigNaturalStone)
 TEST_F(RuleTestTest, SimpleBlockStateProvider)
 {
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
-    SimpleBlockStateProvider provider(stoneState);
+    state::SimpleBlockStateProvider provider(stoneState);
 
     math::Random rng(12345);
+    RuleTestWorld world;
 
     // 应该总是返回相同的状态
-    EXPECT_EQ(provider.getState(rng, 0, 0, 0), stoneState);
-    EXPECT_EQ(provider.getState(rng, 100, 50, 100), stoneState);
+    EXPECT_EQ(provider.getState(world, rng, 0, 0, 0), stoneState);
+    EXPECT_EQ(provider.getState(world, rng, 100, 50, 100), stoneState);
 }

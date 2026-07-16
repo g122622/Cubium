@@ -136,6 +136,23 @@ u32 parseOutputBlockStateId(const nlohmann::json& outputState)
 }
 
 /**
+ * @brief 从 JSON block_state 解析方块状态指针
+ *
+ * 复用 parseOutputBlockStateId 解析逻辑，再通过方块注册表回查状态指针。
+ * 用于 BlockStateMatchRuleTest / RandomBlockStateMatchRuleTest（持有 const BlockState*）。
+ *
+ * @return 方块状态指针，解析失败返回 nullptr
+ */
+const BlockState* parseOutputBlockState(const nlohmann::json& outputState)
+{
+    u32 stateId = parseOutputBlockStateId(outputState);
+    if (stateId == 0) {
+        return nullptr;
+    }
+    return BlockRegistry::instance().getBlockState(stateId);
+}
+
+/**
  * @brief 从 JSON 解析输入/位置谓词 (RuleTest)
  *
  * JSON 格式：
@@ -165,7 +182,7 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
             ResourceLocation blockLoc(predicateObj["block"].get<std::string>());
             Block* block = BlockRegistry::instance().getBlock(blockLoc);
             if (block != nullptr) {
-                return std::make_unique<BlockMatchRuleTest>(block->defaultState().blockId());
+                return std::make_unique<BlockMatchRuleTest>(block);
             }
             spdlog::warn("ProcessorListLoader: block_match: unknown block '{}'", blockLoc.toString());
         }
@@ -179,7 +196,7 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
             f32 probability = predicateObj["probability"].get<f32>();
             Block* block = BlockRegistry::instance().getBlock(blockLoc);
             if (block != nullptr) {
-                return std::make_unique<RandomBlockMatchRuleTest>(block->defaultState().blockId(), probability);
+                return std::make_unique<RandomBlockMatchRuleTest>(block, probability);
             }
             spdlog::warn("ProcessorListLoader: random_block_match: unknown block '{}'", blockLoc.toString());
         }
@@ -197,9 +214,9 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
 
     if (predicateType == "block_state_match" || predicateType == "blockstate_match") {
         if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object()) {
-            u32 stateId = parseOutputBlockStateId(predicateObj["block_state"]);
-            if (stateId != 0) {
-                return std::make_unique<BlockStateMatchRuleTest>(stateId);
+            const BlockState* state = parseOutputBlockState(predicateObj["block_state"]);
+            if (state != nullptr) {
+                return std::make_unique<BlockStateMatchRuleTest>(state);
             }
             spdlog::warn("ProcessorListLoader: block_state_match: unknown block state");
         }
@@ -209,10 +226,10 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
     if (predicateType == "random_block_state_match") {
         if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object() &&
             predicateObj.contains("probability") && predicateObj["probability"].is_number()) {
-            u32 stateId = parseOutputBlockStateId(predicateObj["block_state"]);
+            const BlockState* state = parseOutputBlockState(predicateObj["block_state"]);
             f32 probability = predicateObj["probability"].get<f32>();
-            if (stateId != 0) {
-                return std::make_unique<RandomBlockStateMatchRuleTest>(stateId, probability);
+            if (state != nullptr) {
+                return std::make_unique<RandomBlockStateMatchRuleTest>(state, probability);
             }
             spdlog::warn("ProcessorListLoader: random_block_state_match: unknown block state");
         }

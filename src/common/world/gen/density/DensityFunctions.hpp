@@ -51,46 +51,6 @@ inline constexpr i32 OVERWORLD_MIN_Y = world::MIN_BUILD_HEIGHT;
 inline constexpr i32 OVERWORLD_MAX_Y = world::MAX_BUILD_HEIGHT;
 
 // ============================================================================
-// BlendAlpha — 旧区块混合 Alpha 密度函数
-// ============================================================================
-
-/**
- * @brief 旧区块混合 Alpha 密度函数
- *
- * MC 1.21 DensityFunctions.BlendAlpha: 始终返回 1.0。
- * 用于 blendDensity 计算中的 lerp alpha 参数。
- * 当没有旧区块需要混合时，blendAlpha=1.0 表示使用新区块的密度值。
- */
-class BlendAlpha final : public DensityFunction {
-public:
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 1.0; }
-    [[nodiscard]] f64 minValue() const override { return 1.0; }
-    [[nodiscard]] f64 maxValue() const override { return 1.0; }
-
-    DENSITY_FUNCTION_MAP_ALL_LEAF(BlendAlpha)
-};
-
-// ============================================================================
-// BlendOffset — 旧区块混合偏移密度函数
-// ============================================================================
-
-/**
- * @brief 旧区块混合偏移密度函数
- *
- * MC 1.21 DensityFunctions.BlendOffset: 始终返回 0.0。
- * 用于 blendDensity 计算中的 lerp end 参数。
- * 当没有旧区块需要混合时，blendOffset=0.0 表示不偏移密度值。
- */
-class BlendOffset final : public DensityFunction {
-public:
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
-    [[nodiscard]] f64 minValue() const override { return 0.0; }
-    [[nodiscard]] f64 maxValue() const override { return 0.0; }
-
-    DENSITY_FUNCTION_MAP_ALL_LEAF(BlendOffset)
-};
-
-// ============================================================================
 // Constant — 常量密度函数
 // ============================================================================
 
@@ -465,7 +425,7 @@ private:
  * @brief 线性插值密度函数
  *
  * lerp(delta, start, end) = start + delta * (end - start)
- * MC 1.21 用于 BlendAlpha/BlendOffset 混合以及 spline 系统中的插值。
+ * MC 1.21 用于 spline 系统中的插值。
  */
 class Lerp final : public DensityFunction {
 public:
@@ -1391,6 +1351,147 @@ private:
 };
 
 // ============================================================================
+// UnboundNoiseLeaf — 数据驱动解析期噪声叶子占位
+//
+// density_function JSON 的 noise/shifted_noise/shift_a/shift_b/shift/
+// mapped_noise/weird_scaled_sampler/old_blended_noise type 在解析期无法构造真实噪声
+// 叶子（NormalNoise/BlendedNoise 需 RandomState 上下文，由 name-hash 派生）。解析期
+// 存本占位，RandomState 组装 NoiseRouter 时由 NoiseBindingVisitor 遍历树，调用
+// rs.getOrCreateRouterNoiseByName(name) 取 NormalNoise（或 old_blended_noise 走
+// fromHashOf("minecraft:terrain")），替换为真正的 NoiseDensity/ShiftedNoise/MappedNoise/
+// ShiftNoise/WeirdScaledSampler/BlendedNoise。
+//
+// 占位期 compute() 返回 0.0（组装前不应被采样）。mapAll 深拷贝自身及持有的子 DF。
+// ============================================================================
+
+/**
+ * @brief 数据驱动解析期噪声叶子占位
+ *
+ * 持有构造真实噪声叶子所需的全部参数：noise 名（RL 字符串）、缩放、可选 fromValue/toValue
+ * （MappedNoise）、可选 shiftX/Y/Z（ShiftedNoise）、可选 input（WeirdScaledSampler），
+ * OldBlendedNoise 额外用 xzFactor/yFactor/smearScaleMultiplier，
+ * 以及 Kind 标识要替换成哪个真叶子子类。
+ */
+class UnboundNoiseLeaf final : public DensityFunction {
+public:
+    enum class Kind : u8 {
+        Noise,              ///< → NoiseDensity
+        ShiftedNoise,       ///< → ShiftedNoise
+        MappedNoise,        ///< → MappedNoise
+        ShiftA,             ///< → ShiftNoise(ShiftA)
+        ShiftB,             ///< → ShiftNoise(ShiftB)
+        Shift,              ///< → ShiftNoise(Shift)
+        WeirdScaledSampler, ///< → WeirdScaledSampler
+        OldBlendedNoise     ///< → BlendedNoise（noiseName 固定 "minecraft:terrain"）
+    };
+
+    UnboundNoiseLeaf(std::string noiseName,
+        f64 xzScale,
+        f64 yScale,
+        Kind kind,
+        std::unique_ptr<DensityFunction> shiftX,
+        std::unique_ptr<DensityFunction> shiftY,
+        std::unique_ptr<DensityFunction> shiftZ,
+        std::unique_ptr<DensityFunction> input,
+        std::optional<f64> fromValue,
+        std::optional<f64> toValue,
+        WeirdScaledSamplerType weirdType,
+        f64 xzFactor,
+        f64 yFactor,
+        f64 smearScaleMultiplier)
+        : m_noiseName(std::move(noiseName))
+        , m_xzScale(xzScale)
+        , m_yScale(yScale)
+        , m_kind(kind)
+        , m_shiftX(std::move(shiftX))
+        , m_shiftY(std::move(shiftY))
+        , m_shiftZ(std::move(shiftZ))
+        , m_input(std::move(input))
+        , m_fromValue(fromValue)
+        , m_toValue(toValue)
+        , m_weirdType(weirdType)
+        , m_xzFactor(xzFactor)
+        , m_yFactor(yFactor)
+        , m_smearScaleMultiplier(smearScaleMultiplier)
+    {}
+
+    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
+    [[nodiscard]] f64 minValue() const override { return 0.0; }
+    [[nodiscard]] f64 maxValue() const override { return 0.0; }
+
+    [[nodiscard]] const std::string& noiseName() const { return m_noiseName; }
+    [[nodiscard]] f64 xzScale() const { return m_xzScale; }
+    [[nodiscard]] f64 yScale() const { return m_yScale; }
+    [[nodiscard]] Kind kind() const { return m_kind; }
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftX() const { return m_shiftX; }
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftY() const { return m_shiftY; }
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& shiftZ() const { return m_shiftZ; }
+    [[nodiscard]] const std::unique_ptr<DensityFunction>& input() const { return m_input; }
+    [[nodiscard]] std::optional<f64> fromValue() const { return m_fromValue; }
+    [[nodiscard]] std::optional<f64> toValue() const { return m_toValue; }
+    [[nodiscard]] WeirdScaledSamplerType weirdType() const { return m_weirdType; }
+    [[nodiscard]] f64 xzFactor() const { return m_xzFactor; }
+    [[nodiscard]] f64 yFactor() const { return m_yFactor; }
+    [[nodiscard]] f64 smearScaleMultiplier() const { return m_smearScaleMultiplier; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        // 深拷贝：子 DF 递归 mapAll，标量字段复制
+        auto shiftX = m_shiftX ? m_shiftX->mapAll(visitor) : nullptr;
+        auto shiftY = m_shiftY ? m_shiftY->mapAll(visitor) : nullptr;
+        auto shiftZ = m_shiftZ ? m_shiftZ->mapAll(visitor) : nullptr;
+        auto input = m_input ? m_input->mapAll(visitor) : nullptr;
+        return visitor.apply(std::make_unique<UnboundNoiseLeaf>(m_noiseName,
+            m_xzScale,
+            m_yScale,
+            m_kind,
+            std::move(shiftX),
+            std::move(shiftY),
+            std::move(shiftZ),
+            std::move(input),
+            m_fromValue,
+            m_toValue,
+            m_weirdType,
+            m_xzFactor,
+            m_yFactor,
+            m_smearScaleMultiplier));
+    }
+
+private:
+    std::string m_noiseName;
+    f64 m_xzScale;
+    f64 m_yScale;
+    Kind m_kind;
+    std::unique_ptr<DensityFunction> m_shiftX;
+    std::unique_ptr<DensityFunction> m_shiftY;
+    std::unique_ptr<DensityFunction> m_shiftZ;
+    std::unique_ptr<DensityFunction> m_input;
+    std::optional<f64> m_fromValue;
+    std::optional<f64> m_toValue;
+    WeirdScaledSamplerType m_weirdType;
+    f64 m_xzFactor;             ///< OldBlendedNoise: xz_factor
+    f64 m_yFactor;              ///< OldBlendedNoise: y_factor
+    f64 m_smearScaleMultiplier; ///< OldBlendedNoise: smear_scale_multiplier
+};
+
+/**
+ * @brief 数据驱动解析期末地岛屿占位
+ *
+ * end_islands type 解析期无参，但真实 EndIslands 需 seed（原版固定 0）。存本占位，
+ * NoiseBindingVisitor 替换为 EndIslands(0)。占位期 compute 返回 0。
+ */
+class UnboundEndIslands final : public DensityFunction {
+public:
+    UnboundEndIslands() = default;
+
+    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
+    [[nodiscard]] f64 minValue() const override { return -0.84375; }
+    [[nodiscard]] f64 maxValue() const override { return 0.5625; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(UnboundEndIslands)
+};
+
+// ============================================================================
 // FindTopSurface — 查找顶部地表密度函数
 //
 // MC 1.21.11: DensityFunctions.FindTopSurface record
@@ -1475,22 +1576,6 @@ namespace factory {
  * @brief 创建常量密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> constant(f64 value);
-
-/**
- * @brief 创建 BlendAlpha 密度函数（始终返回 1.0）
- *
- * MC 1.21 DensityFunctions.BlendAlpha: 用于旧区块混合。
- * NoiseChunk 构造时将替换为实际的 BlendAlpha 实现。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> blendAlpha();
-
-/**
- * @brief 创建 BlendOffset 密度函数（始终返回 0.0）
- *
- * MC 1.21 DensityFunctions.BlendOffset: 用于旧区块混合偏移。
- * NoiseChunk 构造时将替换为实际的 BlendOffset 实现。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> blendOffset();
 
 /**
  * @brief 创建 Y 轴钳制梯度
@@ -1605,7 +1690,7 @@ namespace factory {
  * @brief 创建线性插值密度函数
  *
  * lerp(delta, start, end) = start + delta * (end - start)
- * MC 1.21 用于 BlendAlpha/BlendOffset 混合。
+ * MC 1.21 用于 spline 系统中的插值。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     std::unique_ptr<DensityFunction> start,

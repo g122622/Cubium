@@ -24,7 +24,7 @@
 #pragma once
 
 #include "NoiseSettings.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/block/Block.hpp"
 #include <vector>
 

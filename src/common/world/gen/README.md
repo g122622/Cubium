@@ -20,8 +20,7 @@ gen/
 │   ├── NetherWorldCarver.hpp/cpp # 下界雕刻器
 │   ├── CarvingMask.hpp/cpp      # 雕刻掩码（防止重复雕刻）
 │   ├── CarvingContext.hpp        # 雕刻上下文
-│   ├── CarverConfiguration.hpp/cpp # 配置结构体 + 工厂函数
-│   └── Carvers.hpp              # 便捷包含头文件
+│   └── CarverConfiguration.hpp   # 配置结构体
 ├── chunk/                       # 区块生成器
 │   ├── IChunkGenerator.hpp/cpp  # 区块生成器接口
 │   ├── NoiseChunkGenerator.hpp/cpp # 统一噪声生成器（主世界/下界/末地）

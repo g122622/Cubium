@@ -253,11 +253,9 @@ std::unique_ptr<DensityFunction> NoiseRouterData::preliminarySurfaceLevel(
 
 std::unique_ptr<DensityFunction> NoiseRouterData::postProcess(std::unique_ptr<DensityFunction> input)
 {
-    // MC 1.21: postProcess(x) = squeeze(interpolated(blendDensity(x)) * 0.64)
-    // blendDensity 在 Blender 系统未实现时为恒等函数
-    // TODO: 实现 BlendDensity 密度函数类和 Blender 系统后，替换为完整的 blendDensity
-    auto blended = std::move(input); // blendDensity = identity for now
-    auto interpolated = factory::interpolated(std::move(blended));
+    // MC 1.21: postProcess(x) = squeeze(interpolated(x) * 0.64)
+    // 旧区块混合（blendDensity/Blender）已移除，本项目不兼容旧版存档，直接对输入做插值与缩放。
+    auto interpolated = factory::interpolated(std::move(input));
     auto scaled = factory::mul(factory::constant(0.64), std::move(interpolated));
     return factory::squeeze(std::move(scaled));
 }
@@ -332,16 +330,15 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
 
     auto offsetSpline = TerrainProvider::overworldOffset(continentsShared, erosionShared, ridgesPVShared);
     auto offsetWithGlobal = factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET), std::move(offsetSpline));
-    auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal), factory::blendOffset());
+    auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal));
     // offset 同时被 depthPlusOffset 和 preliminarySurfaceLevel 引用，转为 shared_ptr
     auto offsetShared = std::shared_ptr<DensityFunction>(std::move(offset));
 
     auto continentsForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.continents));
     auto erosionForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.erosion));
-    auto offsetForDepth = TerrainProvider::splineWithBlending(
-        factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET),
-            TerrainProvider::overworldOffset(continentsForDepthShared, erosionForDepthShared, ridgesPVShared)),
-        factory::blendOffset());
+    auto offsetForDepth =
+        TerrainProvider::splineWithBlending(factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET),
+            TerrainProvider::overworldOffset(continentsForDepthShared, erosionForDepthShared, ridgesPVShared)));
     climateForRouter.depth = factory::add(std::move(climateForRouter.depth), std::move(offsetForDepth));
 
     const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
@@ -381,7 +378,7 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
 
     auto factorSpline = TerrainProvider::overworldFactor(
         continentsForFactorShared, erosionForFactorShared, weirdnessShared, ridgesPVShared);
-    auto factor = TerrainProvider::splineWithBlending(std::move(factorSpline), factory::constant(10.0));
+    auto factor = TerrainProvider::splineWithBlending(std::move(factorSpline));
     // factor 同时被 slopedCheeseDensity 和 preliminarySurfaceLevel 引用，转为 shared_ptr
     auto factorShared = std::shared_ptr<DensityFunction>(std::move(factor));
 
@@ -409,7 +406,7 @@ NoiseRouter NoiseRouterData::overworld(const RandomState& rs, u64 seed, bool lar
 
     auto jaggednessSpline = TerrainProvider::overworldJaggedness(
         continentsForJaggedShared, erosionForJaggedShared, weirdnessShared, ridgesPVShared);
-    auto jaggedness = TerrainProvider::splineWithBlending(std::move(jaggednessSpline), factory::constant(0.0));
+    auto jaggedness = TerrainProvider::splineWithBlending(std::move(jaggednessSpline));
 
     auto depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
     auto depthPlusOffset = factory::add(std::move(depth), factory::sharedHolder(offsetShared));

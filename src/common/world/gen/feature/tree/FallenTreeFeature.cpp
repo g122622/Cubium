@@ -94,8 +94,7 @@ BlockPos FallenTreeFeature::placeLogBlock(WorldGenRegion& region,
     const std::function<const BlockState*(const BlockState*)>& stateModifier)
 {
     // MC: setBlock(pos, stateModifier.apply(trunkProvider.getState(random, pos)), 3)。
-    const BlockState* sampled =
-        parser::BlockStateProviderParser::sampleState(*config.trunkProvider, region, random, pos);
+    const BlockState* sampled = config.trunkProvider->getState(region, random, pos.x, pos.y, pos.z);
     if (sampled == nullptr) {
         return pos;
     }

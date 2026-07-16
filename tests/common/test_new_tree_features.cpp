@@ -30,6 +30,7 @@
  * 和 TrunkPlacer 的基本行为。
  */
 
+#include "TestWorldHelper.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
@@ -54,6 +55,14 @@
 #include <gtest/gtest.h>
 
 using namespace mc;
+
+namespace {
+// BaseTestWorld 默认构造为 protected，派生一个 public 构造的测试世界供采样调用。
+class TreeFeatureTestWorld : public test::BaseTestWorld {
+public:
+    TreeFeatureTestWorld() = default;
+};
+} // namespace
 
 // ============================================================================
 // 新增树木特征配置测试
@@ -172,7 +181,10 @@ TEST_F(NewTreeFeatureConfigTest, AzaleaConfig)
     EXPECT_EQ(config.minHeight, 4);
 
     // 验证加权树叶提供者包含杜鹃叶与开花杜鹃叶（权重 3:1）
-    const auto& entries = config.foliageProvider->entries();
+    const auto* weightedProvider =
+        dynamic_cast<const world::gen::feature::state::WeightedBlockStateProvider*>(config.foliageProvider.get());
+    ASSERT_NE(weightedProvider, nullptr);
+    const auto& entries = weightedProvider->entries();
     EXPECT_EQ(entries.size(), 2u);
     i32 totalWeight = 0;
     bool hasAzaleaLeaves = false;
@@ -201,8 +213,14 @@ TEST_F(NewTreeFeatureConfigTest, AzaleaConfigDeepCopy)
 
     ASSERT_NE(copy.foliageProvider, nullptr);
     EXPECT_NE(copy.foliageProvider.get(), original.foliageProvider.get());
-    EXPECT_EQ(copy.foliageProvider->entries().size(), original.foliageProvider->entries().size());
-    EXPECT_EQ(copy.foliageProvider->totalWeight(), original.foliageProvider->totalWeight());
+    const auto* copyWeighted =
+        dynamic_cast<const world::gen::feature::state::WeightedBlockStateProvider*>(copy.foliageProvider.get());
+    const auto* originalWeighted2 =
+        dynamic_cast<const world::gen::feature::state::WeightedBlockStateProvider*>(original.foliageProvider.get());
+    ASSERT_NE(copyWeighted, nullptr);
+    ASSERT_NE(originalWeighted2, nullptr);
+    EXPECT_EQ(copyWeighted->entries().size(), originalWeighted2->entries().size());
+    EXPECT_EQ(copyWeighted->totalWeight(), originalWeighted2->totalWeight());
 
     ASSERT_NE(copy.minimumSize, nullptr);
     EXPECT_NE(copy.minimumSize.get(), original.minimumSize.get());
@@ -460,8 +478,9 @@ TEST_F(NewFoliagePlacerTest, RandomSpreadFoliagePlacerNullHeightProvider)
 TEST(WeightedBlockStateProviderTest, EmptyProviderReturnsNull)
 {
     world::gen::feature::state::WeightedBlockStateProvider provider;
+    TreeFeatureTestWorld world;
     math::Random rng(42);
-    EXPECT_EQ(provider.getState(rng), nullptr);
+    EXPECT_EQ(provider.getState(world, rng, 0, 0, 0), nullptr);
     EXPECT_TRUE(provider.empty());
     EXPECT_EQ(provider.size(), 0u);
 }
@@ -472,9 +491,10 @@ TEST(WeightedBlockStateProviderTest, SingleEntryAlwaysReturnsThatState)
     world::gen::feature::state::WeightedBlockStateProvider provider;
     const BlockState* azalea = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
     provider.add(azalea, 5);
+    TreeFeatureTestWorld world;
     math::Random rng(42);
     for (int i = 0; i < 100; ++i) {
-        EXPECT_EQ(provider.getState(rng), azalea);
+        EXPECT_EQ(provider.getState(world, rng, 0, 0, 0), azalea);
     }
     EXPECT_FALSE(provider.empty());
     EXPECT_EQ(provider.size(), 1u);
@@ -491,11 +511,12 @@ TEST(WeightedBlockStateProviderTest, WeightedDistributionRoughlyProportional)
     provider.add(flowering, 1);
 
     math::Random rng(12345);
+    TreeFeatureTestWorld world;
     int azaleaCount = 0;
     int floweringCount = 0;
     constexpr int kSamples = 4000;
     for (int i = 0; i < kSamples; ++i) {
-        const BlockState* s = provider.getState(rng);
+        const BlockState* s = provider.getState(world, rng, 0, 0, 0);
         if (s == azalea) {
             ++azaleaCount;
         } else if (s == flowering) {
@@ -521,14 +542,17 @@ TEST(WeightedBlockStateProviderTest, CloneProducesIndependentCopy)
 
     auto cloned = provider.clone();
     ASSERT_NE(cloned, nullptr);
-    EXPECT_EQ(cloned->size(), 2u);
-    EXPECT_EQ(cloned->totalWeight(), 4);
+    const auto* clonedWeighted =
+        dynamic_cast<const world::gen::feature::state::WeightedBlockStateProvider*>(cloned.get());
+    ASSERT_NE(clonedWeighted, nullptr);
+    EXPECT_EQ(clonedWeighted->size(), 2u);
+    EXPECT_EQ(clonedWeighted->totalWeight(), 4);
 
     // 修改原对象不影响 clone
     const BlockState* oak = VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES);
     provider.add(oak, 10);
     EXPECT_EQ(provider.size(), 3u);
-    EXPECT_EQ(cloned->size(), 2u); // clone 不受影响
+    EXPECT_EQ(clonedWeighted->size(), 2u); // clone 不受影响
 }
 
 TEST(WeightedBlockStateProviderTest, CopyConstructorProducesIndependentCopy)
@@ -560,8 +584,9 @@ TEST(TreeFeatureConfigFoliageProviderTest, HasFoliageProviderWhenSet)
 {
     VanillaBlocks::initialize();
     TreeFeatureConfig config;
-    config.foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
-    config.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
+    auto provider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    provider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
+    config.foliageProvider = std::move(provider);
     EXPECT_TRUE(config.hasFoliageProvider());
 }
 
@@ -570,9 +595,10 @@ TEST(TreeFeatureConfigFoliageProviderTest, CopyConstructorDeepCopiesProvider)
     VanillaBlocks::initialize();
     TreeFeatureConfig original;
     original.foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
-    original.foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
-    original.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
-    original.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+    auto provider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    provider->add(VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES), 3);
+    provider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+    original.foliageProvider = std::move(provider);
 
     // 拷贝构造
     TreeFeatureConfig copied(original);
@@ -580,9 +606,14 @@ TEST(TreeFeatureConfigFoliageProviderTest, CopyConstructorDeepCopiesProvider)
     ASSERT_TRUE(original.hasFoliageProvider());
 
     // 修改 original 的 provider 不应影响 copied
-    original.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES), 5);
-    EXPECT_EQ(original.foliageProvider->size(), 3u);
-    EXPECT_EQ(copied.foliageProvider->size(), 2u);
+    auto* originalWeighted =
+        dynamic_cast<world::gen::feature::state::WeightedBlockStateProvider*>(original.foliageProvider.get());
+    ASSERT_NE(originalWeighted, nullptr);
+    originalWeighted->add(VanillaBlocks::getState(VanillaBlocks::OAK_LEAVES), 5);
+    EXPECT_EQ(originalWeighted->size(), 3u);
+    EXPECT_EQ(dynamic_cast<const world::gen::feature::state::WeightedBlockStateProvider*>(copied.foliageProvider.get())
+                  ->size(),
+        2u);
 }
 
 TEST(TreeFeatureConfigFoliageProviderTest, GetFoliageStateUsesProviderWhenPresent)
@@ -590,12 +621,14 @@ TEST(TreeFeatureConfigFoliageProviderTest, GetFoliageStateUsesProviderWhenPresen
     VanillaBlocks::initialize();
     TreeFeatureConfig config;
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
-    config.foliageProvider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
-    config.foliageProvider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+    auto provider = std::make_unique<world::gen::feature::state::WeightedBlockStateProvider>();
+    provider->add(VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES), 1);
+    config.foliageProvider = std::move(provider);
 
+    TreeFeatureTestWorld world;
     math::Random rng(42);
     // provider 优先级高于 foliageBlock
-    const BlockState* s = config.getFoliageState(rng);
+    const BlockState* s = config.getFoliageState(world, rng, 0, 0, 0);
     EXPECT_EQ(s, VanillaBlocks::getState(VanillaBlocks::FLOWERING_AZALEA_LEAVES));
 }
 
@@ -606,8 +639,9 @@ TEST(TreeFeatureConfigFoliageProviderTest, GetFoliageStateFallsBackToFoliageBloc
     config.foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
     // 不设置 foliageProvider
 
+    TreeFeatureTestWorld world;
     math::Random rng(42);
-    const BlockState* s = config.getFoliageState(rng);
+    const BlockState* s = config.getFoliageState(world, rng, 0, 0, 0);
     EXPECT_EQ(s, VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES));
 }
 

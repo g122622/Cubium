@@ -253,6 +253,15 @@ public:
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
+     * @brief 记录受伤方向并广播受伤动画包给追踪者（含受害者自己）
+     *
+     * ServerPlayer.indicateDamage：设置 hurtDir 后发送
+     * ClientboundHurtAnimationPacket（本项目复用 EntityAnimationPacket::TakeDamage + hurtDir）。
+     * 客户端据此驱动 damageTilt（bobHurt）屏幕倾斜。
+     */
+    void indicateDamage(f64 d0, f64 d1) override;
+
+    /**
      * @brief 攻击实体（重写 Player 基类）
      *
      * 旁观者模式下，攻击实体等同于设置旁观目标（调用 setCamera）。

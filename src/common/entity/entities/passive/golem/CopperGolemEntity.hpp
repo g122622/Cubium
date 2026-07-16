@@ -327,6 +327,14 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    /**
+     * @brief 获取环境音效
+     *
+     * 铜傀儡无环境音，对齐原版 AbstractGolem.getAmbientSound 返回 null，
+     * 避免默认拼接出不存在的 entity.copper_golem.ambient。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
 private:
     // ========== 私有方法 ==========
 

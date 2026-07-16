@@ -37,7 +37,8 @@
 
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/biome/climate/Climate.hpp"
+#include "common/world/biome/climate/ParameterList.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
 #include <algorithm>
 #include <set>
 #include <unordered_set>

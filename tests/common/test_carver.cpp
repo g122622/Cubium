@@ -101,60 +101,6 @@ TEST_F(CarvingMaskTest, BoundaryCheck)
 }
 
 // ============================================================================
-// CarverConfiguration 测试
-// ============================================================================
-
-class CarverConfigurationTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
-};
-
-TEST_F(CarverConfigurationTest, OverworldCaveConfig)
-{
-    const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
-    auto config = ConfiguredCarvers::createOverworldCaveConfig(replaceable);
-
-    EXPECT_FLOAT_EQ(config.probability, 0.15f);
-    EXPECT_NE(config.y, nullptr);
-    EXPECT_NE(config.yScale, nullptr);
-    EXPECT_NE(config.replaceable, nullptr);
-    EXPECT_NE(config.horizontalRadiusMultiplier, nullptr);
-    EXPECT_NE(config.verticalRadiusMultiplier, nullptr);
-    EXPECT_NE(config.floorLevel, nullptr);
-}
-
-TEST_F(CarverConfigurationTest, OverworldCaveExtraConfig)
-{
-    const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
-    auto config = ConfiguredCarvers::createOverworldCaveExtraConfig(replaceable);
-
-    EXPECT_FLOAT_EQ(config.probability, 0.07f);
-}
-
-TEST_F(CarverConfigurationTest, OverworldCanyonConfig)
-{
-    const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
-    auto config = ConfiguredCarvers::createOverworldCanyonConfig(replaceable);
-
-    EXPECT_FLOAT_EQ(config.probability, 0.01f);
-    EXPECT_NE(config.verticalRotation, nullptr);
-    EXPECT_EQ(config.shape.widthSmoothness, 3);
-    EXPECT_FLOAT_EQ(config.shape.verticalRadiusDefaultFactor, 1.0f);
-    EXPECT_FLOAT_EQ(config.shape.verticalRadiusCenterFactor, 0.0f);
-}
-
-TEST_F(CarverConfigurationTest, NetherCaveConfig)
-{
-    const BlockTag* replaceable = &BlockTags::NETHER_CARVER_REPLACEABLES();
-    auto config = ConfiguredCarvers::createNetherCaveConfig(replaceable);
-
-    EXPECT_FLOAT_EQ(config.probability, 0.2f);
-    EXPECT_NE(config.y, nullptr);
-    EXPECT_NE(config.yScale, nullptr);
-    EXPECT_NE(config.replaceable, nullptr);
-}
-
-// ============================================================================
 // WorldCarver 测试
 // ============================================================================
 
@@ -167,7 +113,15 @@ TEST_F(WorldCarverTest, CanReplaceBlockWithTag)
 {
     CaveCarver carver;
     const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
-    auto config = ConfiguredCarvers::createOverworldCaveConfig(replaceable);
+    // 手构造洞穴配置（原 ConfiguredCarvers::createOverworldCaveConfig 已随数据驱动迁移删除）
+    CaveCarverConfiguration config(0.15f,
+        UniformHeight::create(VerticalAnchor::aboveBottom(8), VerticalAnchor::absolute(180)),
+        UniformFloat::create(0.1f, 0.9f),
+        VerticalAnchor::aboveBottom(8),
+        replaceable,
+        UniformFloat::create(0.7f, 1.4f),
+        UniformFloat::create(0.8f, 1.3f),
+        UniformFloat::create(-1.0f, -0.4f));
 
     // 可雕刻的方块（在 OVERWORLD_CARVER_REPLACEABLES tag 中）
     EXPECT_TRUE(carver.canReplaceBlock(*VanillaBlocks::getState(VanillaBlocks::STONE), config));
@@ -195,7 +149,15 @@ protected:
         auto randomState = world::gen::RandomState::create(settings, 12345);
         biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         context = std::make_unique<CarvingContext>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
-        config = ConfiguredCarvers::createOverworldCaveConfig(&BlockTags::OVERWORLD_CARVER_REPLACEABLES());
+        // 手构造洞穴配置（原 ConfiguredCarvers::createOverworldCaveConfig 已随数据驱动迁移删除）
+        config = CaveCarverConfiguration(0.15f,
+            UniformHeight::create(VerticalAnchor::aboveBottom(8), VerticalAnchor::absolute(180)),
+            UniformFloat::create(0.1f, 0.9f),
+            VerticalAnchor::aboveBottom(8),
+            &BlockTags::OVERWORLD_CARVER_REPLACEABLES(),
+            UniformFloat::create(0.7f, 1.4f),
+            UniformFloat::create(0.8f, 1.3f),
+            UniformFloat::create(-1.0f, -0.4f));
     }
 
     std::unique_ptr<CaveCarver> carver;
@@ -255,7 +217,19 @@ protected:
         auto randomState = world::gen::RandomState::create(settings, 12345);
         biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
         context = std::make_unique<CarvingContext>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
-        config = ConfiguredCarvers::createOverworldCanyonConfig(&BlockTags::OVERWORLD_CARVER_REPLACEABLES());
+        // 手构造峡谷配置（原 ConfiguredCarvers::createOverworldCanyonConfig 已随数据驱动迁移删除）
+        config = CanyonCarverConfiguration(0.01f,
+            UniformHeight::create(VerticalAnchor::absolute(10), VerticalAnchor::absolute(67)),
+            ConstantFloat::create(3.0f),
+            VerticalAnchor::aboveBottom(8),
+            &BlockTags::OVERWORLD_CARVER_REPLACEABLES(),
+            UniformFloat::create(-0.125f, 0.125f),
+            CanyonShapeConfiguration(UniformFloat::create(0.75f, 1.0f),
+                TrapezoidFloat::create(0.0f, 6.0f, 2.0f),
+                3,
+                UniformFloat::create(0.75f, 1.0f),
+                1.0f,
+                0.0f));
     }
 
     std::unique_ptr<CanyonCarver> carver;
@@ -327,7 +301,15 @@ TEST(ConfiguredCarverTest, CreateAndUse)
     VanillaBlocks::initialize();
 
     auto carver = std::make_unique<CaveCarver>();
-    auto config = ConfiguredCarvers::createOverworldCaveConfig(&BlockTags::OVERWORLD_CARVER_REPLACEABLES());
+    // 手构造洞穴配置（原 ConfiguredCarvers::createOverworldCaveConfig 已随数据驱动迁移删除）
+    auto config = CaveCarverConfiguration(0.15f,
+        UniformHeight::create(VerticalAnchor::aboveBottom(8), VerticalAnchor::absolute(180)),
+        UniformFloat::create(0.1f, 0.9f),
+        VerticalAnchor::aboveBottom(8),
+        &BlockTags::OVERWORLD_CARVER_REPLACEABLES(),
+        UniformFloat::create(0.7f, 1.4f),
+        UniformFloat::create(0.8f, 1.3f),
+        UniformFloat::create(-1.0f, -0.4f));
 
     ConfiguredCarver<CaveCarver, CaveCarverConfiguration> configured(std::move(carver), std::move(config));
 
@@ -339,7 +321,15 @@ TEST(ConfiguredCarverTest, ShouldCarve)
     VanillaBlocks::initialize();
 
     auto carver = std::make_unique<CaveCarver>();
-    auto config = ConfiguredCarvers::createOverworldCaveConfig(&BlockTags::OVERWORLD_CARVER_REPLACEABLES());
+    // 手构造洞穴配置（原 ConfiguredCarvers::createOverworldCaveConfig 已随数据驱动迁移删除）
+    auto config = CaveCarverConfiguration(0.15f,
+        UniformHeight::create(VerticalAnchor::aboveBottom(8), VerticalAnchor::absolute(180)),
+        UniformFloat::create(0.1f, 0.9f),
+        VerticalAnchor::aboveBottom(8),
+        &BlockTags::OVERWORLD_CARVER_REPLACEABLES(),
+        UniformFloat::create(0.7f, 1.4f),
+        UniformFloat::create(0.8f, 1.3f),
+        UniformFloat::create(-1.0f, -0.4f));
 
     ConfiguredCarver<CaveCarver, CaveCarverConfiguration> configured(std::move(carver), std::move(config));
 
