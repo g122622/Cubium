@@ -132,6 +132,10 @@ cmake --preset macos-relwithdebinfo
 
 # 构建（-j10 使用10核心并行）
 cmake --build --preset macos-relwithdebinfo -- -j10
+
+# 运行
+export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+  build/bin/RelWithDebInfo/minecraft-client
 ```
 
 ### macOS 已知问题及解决方案
