@@ -66,15 +66,11 @@ std::unique_ptr<DensityFunction> TerrainProvider::noiseGradientDensity(
     return factory::mul(factory::constant(4.0), std::move(quarter));
 }
 
-std::unique_ptr<DensityFunction> TerrainProvider::splineWithBlending(
-    std::unique_ptr<DensityFunction> splineFunc, std::unique_ptr<DensityFunction> blendTarget)
+std::unique_ptr<DensityFunction> TerrainProvider::splineWithBlending(std::unique_ptr<DensityFunction> splineFunc)
 {
-    // MC 1.21: flatCache(cache2d(lerp(blendAlpha, blendTarget, splineFunc)))
-    // lerp(blendAlpha, blendTarget, splineFunc) = blendTarget + blendAlpha * (splineFunc - blendTarget)
-    // 当 BlendAlpha 返回 1.0（无旧区块混合）时，结果 = splineFunc，与之前简化实现等效
-    // 当 Blender 系统实现后，BlendAlpha 在区块边界处会从 1.0 过渡到 0.0，实现平滑混合
-    auto lerped = factory::lerp(factory::blendAlpha(), std::move(blendTarget), std::move(splineFunc));
-    return factory::flatCacheMarker(factory::cache2DMarker(std::move(lerped)));
+    // MC 1.21: flatCache(cache2d(splineFunc))
+    // 旧区块混合（Blender/BlendAlpha/BlendOffset）已移除，样条输出直接缓存。
+    return factory::flatCacheMarker(factory::cache2DMarker(std::move(splineFunc)));
 }
 
 std::unique_ptr<DensityFunction> TerrainProvider::yLimitedInterpolatable(std::unique_ptr<DensityFunction> yFunction,

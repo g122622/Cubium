@@ -51,46 +51,6 @@ inline constexpr i32 OVERWORLD_MIN_Y = world::MIN_BUILD_HEIGHT;
 inline constexpr i32 OVERWORLD_MAX_Y = world::MAX_BUILD_HEIGHT;
 
 // ============================================================================
-// BlendAlpha — 旧区块混合 Alpha 密度函数
-// ============================================================================
-
-/**
- * @brief 旧区块混合 Alpha 密度函数
- *
- * MC 1.21 DensityFunctions.BlendAlpha: 始终返回 1.0。
- * 用于 blendDensity 计算中的 lerp alpha 参数。
- * 当没有旧区块需要混合时，blendAlpha=1.0 表示使用新区块的密度值。
- */
-class BlendAlpha final : public DensityFunction {
-public:
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 1.0; }
-    [[nodiscard]] f64 minValue() const override { return 1.0; }
-    [[nodiscard]] f64 maxValue() const override { return 1.0; }
-
-    DENSITY_FUNCTION_MAP_ALL_LEAF(BlendAlpha)
-};
-
-// ============================================================================
-// BlendOffset — 旧区块混合偏移密度函数
-// ============================================================================
-
-/**
- * @brief 旧区块混合偏移密度函数
- *
- * MC 1.21 DensityFunctions.BlendOffset: 始终返回 0.0。
- * 用于 blendDensity 计算中的 lerp end 参数。
- * 当没有旧区块需要混合时，blendOffset=0.0 表示不偏移密度值。
- */
-class BlendOffset final : public DensityFunction {
-public:
-    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
-    [[nodiscard]] f64 minValue() const override { return 0.0; }
-    [[nodiscard]] f64 maxValue() const override { return 0.0; }
-
-    DENSITY_FUNCTION_MAP_ALL_LEAF(BlendOffset)
-};
-
-// ============================================================================
 // Constant — 常量密度函数
 // ============================================================================
 
@@ -465,7 +425,7 @@ private:
  * @brief 线性插值密度函数
  *
  * lerp(delta, start, end) = start + delta * (end - start)
- * MC 1.21 用于 BlendAlpha/BlendOffset 混合以及 spline 系统中的插值。
+ * MC 1.21 用于 spline 系统中的插值。
  */
 class Lerp final : public DensityFunction {
 public:
@@ -1477,22 +1437,6 @@ namespace factory {
 [[nodiscard]] std::unique_ptr<DensityFunction> constant(f64 value);
 
 /**
- * @brief 创建 BlendAlpha 密度函数（始终返回 1.0）
- *
- * MC 1.21 DensityFunctions.BlendAlpha: 用于旧区块混合。
- * NoiseChunk 构造时将替换为实际的 BlendAlpha 实现。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> blendAlpha();
-
-/**
- * @brief 创建 BlendOffset 密度函数（始终返回 0.0）
- *
- * MC 1.21 DensityFunctions.BlendOffset: 用于旧区块混合偏移。
- * NoiseChunk 构造时将替换为实际的 BlendOffset 实现。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> blendOffset();
-
-/**
  * @brief 创建 Y 轴钳制梯度
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> yClampedGradient(i32 fromY, i32 toY, f64 fromValue, f64 toValue);
@@ -1605,7 +1549,7 @@ namespace factory {
  * @brief 创建线性插值密度函数
  *
  * lerp(delta, start, end) = start + delta * (end - start)
- * MC 1.21 用于 BlendAlpha/BlendOffset 混合。
+ * MC 1.21 用于 spline 系统中的插值。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     std::unique_ptr<DensityFunction> start,

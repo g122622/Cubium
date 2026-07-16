@@ -235,9 +235,8 @@ private:
     /**
      * @brief postProcess 变换
      *
-     * MC 1.21: postProcess(x) = squeeze(interpolated(blendDensity(x)) * 0.64)
-     * blendDensity 在 Blender 系统未实现时为恒等函数。
-     * TODO: 实现 BlendDensity 密度函数类和 Blender 系统后，替换为完整的 blendDensity
+     * MC 1.21: postProcess(x) = squeeze(interpolated(x) * 0.64)
+     * 旧区块混合（blendDensity/Blender）已移除，本项目不兼容旧版存档。
      */
     [[nodiscard]] static std::unique_ptr<DensityFunction> postProcess(std::unique_ptr<DensityFunction> input);
 
