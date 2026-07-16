@@ -31,11 +31,17 @@ std::unordered_map<std::string, NoiseParameters> s_registry;
 
 // 线程安全的初始化守卫
 std::once_flag s_initFlag;
+
+// 数据驱动加载状态：true 时 get()/has() 跳过 initialize() 兜底
+bool s_loadedFromDatapack = false;
 } // namespace
 
 const NoiseParameters& Noises::get(const std::string& name)
 {
-    std::call_once(s_initFlag, initialize);
+    // 仅在未数据驱动加载时走 initialize() 兜底；数据驱动加载后注册表已由 NoiseLoader 注入。
+    if (!s_loadedFromDatapack) {
+        std::call_once(s_initFlag, initialize);
+    }
     auto it = s_registry.find(name);
     if (it == s_registry.end()) {
         throw std::out_of_range("Unknown noise: " + name);
@@ -45,13 +51,30 @@ const NoiseParameters& Noises::get(const std::string& name)
 
 bool Noises::has(const std::string& name)
 {
-    std::call_once(s_initFlag, initialize);
+    if (!s_loadedFromDatapack) {
+        std::call_once(s_initFlag, initialize);
+    }
     return s_registry.contains(name);
 }
 
 void Noises::registerNoise(const std::string& name, i32 firstOctave, std::vector<f64> amplitudes)
 {
     s_registry.emplace(name, NoiseParameters{firstOctave, std::move(amplitudes)});
+}
+
+void Noises::clear() noexcept
+{
+    s_registry.clear();
+}
+
+void Noises::markLoadedFromDatapack(bool loaded) noexcept
+{
+    s_loadedFromDatapack = loaded;
+}
+
+bool Noises::isLoadedFromDatapack() noexcept
+{
+    return s_loadedFromDatapack;
 }
 
 void Noises::initialize()

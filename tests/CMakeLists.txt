@@ -1079,6 +1079,8 @@ add_executable(mc_tests
     common/world/gen/PerlinSimplexNoiseTest.cpp
     # Noises 注册表单元测试
     common/world/gen/NoisesTest.cpp
+    # NoiseLoader 数据驱动测试（加载原版数据包验证注入路径）
+    common/world/gen/NoiseLoaderDatadrivenTest.cpp
     # JavaLegacyRandom 单元测试
     common/world/gen/JavaLegacyRandomTest.cpp
     # Xoroshiro128ppRandom 单元测试

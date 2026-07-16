@@ -67,8 +67,43 @@ public:
 
     /**
      * @brief 初始化注册表（首次调用时自动调用）
+     *
+     * 硬编码注册全部原版噪声参数，作为数据驱动加载未运行时的兜底
+     * （如单元测试）。运行时由 NoiseLoader 先 clear() 再从数据包注入，
+     * 并 markLoadedFromDatapack(true)，使 get()/has() 跳过本兜底。
      */
     static void initialize();
+
+    /**
+     * @brief 清空注册表
+     *
+     * 数据驱动加载（NoiseLoader）开始前调用，清空硬编码兜底值。
+     */
+    static void clear() noexcept;
+
+    /**
+     * @brief 注册命名噪声参数（数据驱动注入入口）
+     *
+     * NoiseLoader 解析 JSON 后调用本方法注入。运行时与 initialize() 兜底
+     * 互斥：若 isLoadedFromDatapack() 为 true，get()/has() 跳过 initialize()。
+     *
+     * @param name 噪声名称（如 "minecraft:temperature"）
+     * @param firstOctave 首个倍频索引
+     * @param amplitudes 倍频振幅列表
+     */
+    static void registerNoise(const std::string& name, i32 firstOctave, std::vector<f64> amplitudes);
+
+    /**
+     * @brief 标记数据驱动加载状态
+     *
+     * @param loaded true=已由 NoiseLoader 注入（跳过 initialize 兜底）；false=重置
+     */
+    static void markLoadedFromDatapack(bool loaded) noexcept;
+
+    /**
+     * @brief 是否已由数据驱动加载
+     */
+    [[nodiscard]] static bool isLoadedFromDatapack() noexcept;
 
     // ========== 气候噪声 ==========
     static constexpr const char* TEMPERATURE = "minecraft:temperature";
@@ -143,9 +178,6 @@ public:
 
     // ========== 其他噪声 ==========
     static constexpr const char* JAGGED = "minecraft:jagged";
-
-private:
-    static void registerNoise(const std::string& name, i32 firstOctave, std::vector<f64> amplitudes);
 };
 
 } // namespace mc::world::gen::noise

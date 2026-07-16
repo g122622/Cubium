@@ -99,6 +99,7 @@
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
+#include "common/world/gen/noise/NoiseLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
@@ -1076,6 +1077,21 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             for (const auto& err : result.errors) {
                 spdlog::error("Advancement error: {}", err);
             }
+        }
+    }
+
+    // 从数据包加载噪声参数（worldgen/noise/*.json）
+    // 最底层依赖：density_function / noise_settings 的噪声叶子节点引用噪声名，
+    // 故必须先于一切 worldgen Loader 加载。Noises::initialize() 硬编码兜底由
+    // NoiseLoader clear() 清空后注入，markLoadedFromDatapack(true) 使 get()/has()
+    // 跳过兜底。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::Noises");
+        auto noiseResult = world::gen::noise::NoiseLoader::loadFromDataPackRepository(m_dataPackList);
+        if (noiseResult.failed()) {
+            spdlog::error("Failed to load noise parameters from data packs: {}", noiseResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} noise parameters from data packs", noiseResult.value());
         }
     }
 

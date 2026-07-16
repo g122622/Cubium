@@ -1053,6 +1053,7 @@ add_library(mc_common STATIC
     world/gen/noise/PerlinSimplexNoise.cpp
     world/gen/noise/NormalNoise.cpp
     world/gen/noise/Noises.cpp
+    world/gen/noise/NoiseLoader.cpp
     world/gen/noise/SimplexNoise.cpp
 
     # World - Generation - Density
