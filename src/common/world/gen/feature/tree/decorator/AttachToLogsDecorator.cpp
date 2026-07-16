@@ -22,7 +22,6 @@
  */
 
 #include "AttachToLogsDecorator.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
 
 namespace mc {
 namespace world {
@@ -32,7 +31,7 @@ namespace tree {
 namespace decorator {
 
 AttachToLogsDecorator::AttachToLogsDecorator(
-    f32 probability, std::unique_ptr<parser::BlockStateProviderHandle> blockProvider, std::vector<Direction> directions)
+    f32 probability, std::unique_ptr<state::BlockStateProvider> blockProvider, std::vector<Direction> directions)
     : m_probability(probability)
     , m_blockProvider(std::move(blockProvider))
     , m_directions(std::move(directions))
@@ -56,8 +55,7 @@ void AttachToLogsDecorator::place(const TreeDecoratorContext& context) const
             m_directions[static_cast<size_t>(random.nextInt(static_cast<i32>(m_directions.size())))];
         const BlockPos target = log.offset(direction);
         if (random.nextFloat() <= m_probability && context.isAir(target)) {
-            const BlockState* state =
-                parser::BlockStateProviderParser::sampleState(*m_blockProvider, context.region(), random, target);
+            const BlockState* state = m_blockProvider->getState(context.region(), random, target.x, target.y, target.z);
             if (state != nullptr) {
                 context.setBlock(target, state);
             }

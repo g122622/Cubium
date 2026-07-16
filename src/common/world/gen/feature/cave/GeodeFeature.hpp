@@ -25,8 +25,8 @@
 
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
-#include "../parser/BlockStateProviderParser.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 
 #include <memory>
@@ -42,11 +42,11 @@ namespace mc::world::gen::feature::cave {
  * inner_placements 候选状态列表、cannot_replace 与 invalid_blocks 标签。
  */
 struct GeodeBlockSettings {
-    parser::BlockStateProviderHandle fillingProvider;
-    parser::BlockStateProviderHandle innerLayerProvider;
-    parser::BlockStateProviderHandle alternateInnerLayerProvider;
-    parser::BlockStateProviderHandle middleLayerProvider;
-    parser::BlockStateProviderHandle outerLayerProvider;
+    std::unique_ptr<state::BlockStateProvider> fillingProvider;
+    std::unique_ptr<state::BlockStateProvider> innerLayerProvider;
+    std::unique_ptr<state::BlockStateProvider> alternateInnerLayerProvider;
+    std::unique_ptr<state::BlockStateProvider> middleLayerProvider;
+    std::unique_ptr<state::BlockStateProvider> outerLayerProvider;
     std::vector<const BlockState*> innerPlacements;
     const BlockTag* cannotReplace = nullptr;
     const BlockTag* invalidBlocks = nullptr;

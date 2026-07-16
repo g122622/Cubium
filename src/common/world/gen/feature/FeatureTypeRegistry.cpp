@@ -90,6 +90,7 @@
 #include "common/world/gen/feature/parser/FoliagePlacerParser.hpp"
 #include "common/world/gen/feature/parser/RuleTestParser.hpp"
 #include "common/world/gen/feature/parser/TrunkPlacerParser.hpp"
+#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include "common/world/gen/feature/tree/FallenTreeFeature.hpp"
 #include "common/world/gen/feature/tree/TreeFeature.hpp"
 #include "common/world/gen/feature/tree/decorator/TreeDecorator.hpp"
@@ -323,7 +324,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBigMushroom(const nlohmann:
     if (!capResult.success()) {
         return capResult.error();
     }
-    const BlockState* capState = capResult.value().asSingle();
+    const BlockState* capState = capResult.value()->asSingleState();
     if (capState == nullptr) {
         return Error(ErrorCode::InvalidData, "huge_mushroom cap_provider must be simple_state_provider");
     }
@@ -331,7 +332,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBigMushroom(const nlohmann:
     if (!stemResult.success()) {
         return stemResult.error();
     }
-    const BlockState* stemState = stemResult.value().asSingle();
+    const BlockState* stemState = stemResult.value()->asSingleState();
     if (stemState == nullptr) {
         return Error(ErrorCode::InvalidData, "huge_mushroom stem_provider must be simple_state_provider");
     }
@@ -414,21 +415,10 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSimpleBlock(const nlohmann:
     if (!providerResult.success()) {
         return providerResult.error();
     }
-    auto& handle = providerResult.value();
     auto config = std::make_unique<cave::SimpleBlockConfig>();
-    if (handle.kind == parser::BlockStateProviderHandle::Kind::Simple) {
-        config->toPlace = handle.simple;
-        if (config->toPlace == nullptr) {
-            return Error(ErrorCode::InvalidData, "simple_block to_place simple_state_provider has null state");
-        }
-    } else if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted) {
-        config->weightedProvider = std::move(handle.weighted);
-        if (config->weightedProvider == nullptr || config->weightedProvider->empty()) {
-            return Error(ErrorCode::InvalidData, "simple_block to_place weighted_state_provider has no entries");
-        }
-    } else {
-        return Error(
-            ErrorCode::InvalidData, "simple_block to_place must be simple_state_provider or weighted_state_provider");
+    config->provider = providerResult.value();
+    if (config->provider == nullptr) {
+        return Error(ErrorCode::InvalidData, "simple_block to_place block state provider is null");
     }
     return toBase(std::make_unique<cave::ConfiguredSimpleBlockFeature>(std::move(config), "simple_block"));
 }
@@ -733,7 +723,7 @@ Result<const BlockTag*> parseBlockTag(const std::string& entry)
 
 /// 解析 GeodeBlockSettings 中的 BlockStateProvider 字段。
 Result<void> parseGeodeProvider(
-    const nlohmann::json& blocksJson, const char* key, parser::BlockStateProviderHandle& out)
+    const nlohmann::json& blocksJson, const char* key, std::unique_ptr<state::BlockStateProvider>& out)
 {
     if (!blocksJson.contains(key)) {
         return Error(ErrorCode::InvalidData, std::string("geode blocks missing '") + key + "'");
@@ -742,7 +732,7 @@ Result<void> parseGeodeProvider(
     if (!r.success()) {
         return r.error();
     }
-    out = std::move(r.value());
+    out = r.value();
     return {};
 }
 
@@ -938,7 +928,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createFallenTree(const nlohmann::
     if (!trunkResult.success()) {
         return trunkResult.error();
     }
-    config->trunkProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(trunkResult.value()));
+    config->trunkProvider = trunkResult.value();
 
     // log_length：IntProvider（MC codec 0..16）。
     if (!configJson.contains("log_length")) {
@@ -1148,7 +1138,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
         if (!providerResult.success()) {
             return providerResult.error();
         }
-        config->trunkBlock = providerResult.value().asSingle();
+        config->trunkBlock = providerResult.value()->asSingleState();
         if (config->trunkBlock == nullptr) {
             return Error(ErrorCode::InvalidData, "tree trunk_provider must be simple_state_provider");
         }
@@ -1158,11 +1148,12 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
         if (!providerResult.success()) {
             return providerResult.error();
         }
-        auto& handle = providerResult.value();
-        if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted) {
-            config->foliageProvider = std::move(handle.weighted);
+        auto provider = providerResult.value();
+        // simple_state_provider 降级为单一 foliageBlock；其余（weighted/rule_based 等）持有提供者。
+        if (provider->asSingleState() != nullptr) {
+            config->foliageBlock = provider->asSingleState();
         } else {
-            config->foliageBlock = handle.simple;
+            config->foliageProvider = std::move(provider);
         }
     }
     if (configJson.contains("trunk_placer")) {
@@ -1216,12 +1207,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBlockColumn(const nlohmann:
                 if (!providerResult.success()) {
                     return providerResult.error();
                 }
-                auto& handle = providerResult.value();
-                if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted) {
-                    layer.stateProvider = std::move(handle.weighted);
-                } else {
-                    layer.state = handle.simple;
-                }
+                layer.stateProvider = providerResult.value();
             }
             config->layers.push_back(std::move(layer));
         }
@@ -1274,7 +1260,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createVegetationPatch(const nlohm
         if (!groundResult.success()) {
             return groundResult.error();
         }
-        const BlockState* state = groundResult.value().asSingle();
+        const BlockState* state = groundResult.value()->asSingleState();
         if (state == nullptr) {
             return Error(ErrorCode::InvalidData,
                 "vegetation_patch ground_state must be simple_state_provider (non-single provider unsupported)");
@@ -1339,7 +1325,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRootSystem(const nlohmann::
         if (!providerResult.success()) {
             return providerResult.error();
         }
-        config->rootState = providerResult.value().asSingle();
+        config->rootState = providerResult.value()->asSingleState();
     }
     config->rootPlacementAttempts = getInt(configJson, "root_placement_attempts", 20);
     config->rootColumnMaxHeight = getInt(configJson, "root_column_max_height", 100);
@@ -1350,7 +1336,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRootSystem(const nlohmann::
         if (!providerResult.success()) {
             return providerResult.error();
         }
-        config->hangingRootState = providerResult.value().asSingle();
+        config->hangingRootState = providerResult.value()->asSingleState();
     }
     config->hangingRootPlacementAttempts = getInt(configJson, "hanging_root_placement_attempts", 3);
     config->allowedVerticalWaterForTree = getInt(configJson, "allowed_vertical_water_for_tree", 2);
@@ -1378,16 +1364,22 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createFlower(const nlohmann::json
         if (!providerResult.success()) {
             return providerResult.error();
         }
-        auto& handle = providerResult.value();
-        if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted && handle.weighted != nullptr) {
+        auto provider = providerResult.value();
+        if (provider != nullptr) {
             // 加权提供者：把所有条目状态平铺为可选花卉列表（MC random_patch 的 flower 集合语义）
-            for (const auto& entry : handle.weighted->entries()) {
-                if (entry.state != nullptr) {
-                    config->flowers.push_back(entry.state);
+            if (auto* weighted = dynamic_cast<state::WeightedBlockStateProvider*>(provider.get())) {
+                for (const auto& entry : weighted->entries()) {
+                    if (entry.state != nullptr) {
+                        config->flowers.push_back(entry.state);
+                    }
+                }
+            } else {
+                // 其余 kind（simple 等）：取单一状态
+                const BlockState* single = provider->asSingleState();
+                if (single != nullptr) {
+                    config->flowers.push_back(single);
                 }
             }
-        } else if (handle.kind == parser::BlockStateProviderHandle::Kind::Simple) {
-            config->flowers.push_back(handle.simple);
         }
     }
     return toBase(std::make_unique<ConfiguredFlowerFeature>(std::move(config), "flower"));
@@ -1458,7 +1450,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRandomPatch(const nlohmann:
 
 /**
  * @brief lake 工厂：fluid + barrier（均为 BlockStateProvider）。
- * simple 提供者取 asSingle() 填 fluidState/barrierState；weighted 填 provider。
+ * 直接持有解析得到的多态提供者；运行时由 LakeFeature 按其 kind 采样。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createLake(const nlohmann::json& configJson)
 {
@@ -1468,26 +1460,16 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createLake(const nlohmann::json& 
         if (!result.success()) {
             return result.error();
         }
-        auto& handle = result.value();
-        if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted) {
-            config.fluidProvider = std::move(handle.weighted);
-        } else {
-            config.fluidState = handle.simple;
-        }
+        config.fluidProvider = result.value();
     }
     if (configJson.contains("barrier")) {
         auto result = parser::BlockStateProviderParser::parse(configJson["barrier"]);
         if (!result.success()) {
             return result.error();
         }
-        auto& handle = result.value();
-        if (handle.kind == parser::BlockStateProviderHandle::Kind::Weighted) {
-            config.barrierProvider = std::move(handle.weighted);
-        } else {
-            config.barrierState = handle.simple;
-        }
+        config.barrierProvider = result.value();
     }
-    if (config.fluidState == nullptr && config.fluidProvider == nullptr) {
+    if (config.fluidProvider == nullptr) {
         return Error(ErrorCode::InvalidData, "lake config missing 'fluid' BlockStateProvider");
     }
     return toBase(std::make_unique<ConfiguredLakeFeature>(std::move(config), "lake"));
@@ -1791,7 +1773,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBlockPile(const nlohmann::j
         return providerResult.error();
     }
     auto config = std::make_unique<BlockPileConfig>();
-    config->stateProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value()));
+    config->stateProvider = providerResult.value();
     return toBase(std::make_unique<ConfiguredBlockPileFeature>(std::move(config), "block_pile"));
 }
 
@@ -1808,7 +1790,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createNetherForestVegetation(cons
         return providerResult.error();
     }
     auto config = std::make_unique<NetherForestVegetationConfig>();
-    config->stateProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value()));
+    config->stateProvider = providerResult.value();
     config->spreadWidth = getInt(configJson, "spread_width", 0);
     config->spreadHeight = getInt(configJson, "spread_height", 0);
     if (config->spreadWidth <= 0 || config->spreadHeight <= 0) {
@@ -1833,7 +1815,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDisk(const nlohmann::json& 
     if (!providerResult.success()) {
         return providerResult.error();
     }
-    config->stateProvider = std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value()));
+    config->stateProvider = providerResult.value();
 
     if (!configJson.contains("target")) {
         return Error(ErrorCode::InvalidData, "disk config missing 'target' predicate");

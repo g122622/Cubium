@@ -193,23 +193,6 @@ std::unique_ptr<RuleTest> DeepslateRuleTest::clone() const
 }
 
 // ============================================================================
-// SimpleBlockStateProvider 实现
-// ============================================================================
-
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
-{}
-
-const BlockState* SimpleBlockStateProvider::getState(math::Random& random, i32 x, i32 y, i32 z) const
-{
-    (void)random;
-    (void)x;
-    (void)y;
-    (void)z;
-    return m_state;
-}
-
-// ============================================================================
 // OreFeatureConfig 实现
 // ============================================================================
 

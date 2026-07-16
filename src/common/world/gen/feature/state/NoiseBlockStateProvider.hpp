@@ -21,32 +21,39 @@
  *
  */
 
-#include "BlockStateProvider.hpp"
+#pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/block/BlockState.hpp"
-
-#include <utility>
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
+#include <memory>
+#include <vector>
 
 namespace mc::world::gen::feature::state {
 
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
-{}
+/**
+ * @brief 噪声方块状态提供者
+ *
+ * 由快噪声值映射到 states 列表索引选取方块状态。
+ */
+class NoiseBlockStateProvider : public BlockStateProvider {
+public:
+    NoiseBlockStateProvider(u64 seed,
+        f32 scale,
+        std::unique_ptr<world::gen::noise::NormalNoise> noise,
+        std::vector<const BlockState*> states);
 
-const BlockState* SimpleBlockStateProvider::getState(
-    const IWorld& /*world*/, math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
-{
-    return m_state;
-}
+    [[nodiscard]] const BlockState* getState(
+        const IWorld& world, math::IRandom& random, i32 x, i32 y, i32 z) const override;
 
-const BlockState* SimpleBlockStateProvider::asSingleState() const noexcept
-{
-    return m_state;
-}
+    [[nodiscard]] std::unique_ptr<BlockStateProvider> clone() const override;
 
-std::unique_ptr<BlockStateProvider> SimpleBlockStateProvider::clone() const
-{
-    return std::make_unique<SimpleBlockStateProvider>(m_state);
-}
+private:
+    u64 m_seed;
+    f32 m_scale;
+    std::unique_ptr<world::gen::noise::NormalNoise> m_noise;
+    std::vector<const BlockState*> m_states;
+};
 
 } // namespace mc::world::gen::feature::state

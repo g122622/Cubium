@@ -35,10 +35,6 @@
 
 namespace mc {
 
-namespace world::gen::feature::parser {
-struct BlockStateProviderHandle;
-}
-
 namespace world {
 namespace gen {
 namespace feature {

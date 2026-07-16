@@ -21,32 +21,8 @@
  *
  */
 
-#include "BlockStateProvider.hpp"
+#pragma once
 
-#include "common/world/block/BlockState.hpp"
-
-#include <utility>
-
-namespace mc::world::gen::feature::state {
-
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
-{}
-
-const BlockState* SimpleBlockStateProvider::getState(
-    const IWorld& /*world*/, math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
-{
-    return m_state;
-}
-
-const BlockState* SimpleBlockStateProvider::asSingleState() const noexcept
-{
-    return m_state;
-}
-
-std::unique_ptr<BlockStateProvider> SimpleBlockStateProvider::clone() const
-{
-    return std::make_unique<SimpleBlockStateProvider>(m_state);
-}
-
-} // namespace mc::world::gen::feature::state
+// SimpleBlockStateProvider 与基类 BlockStateProvider 同在 BlockStateProvider.hpp 声明，
+// 本头文件仅为方便 include 而提供，转发到基类头文件。
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"

@@ -25,8 +25,8 @@
 
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
 #include "common/world/gen/feature/predicate/BlockPredicate.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
 #include <string>
@@ -45,7 +45,7 @@ namespace world::gen::feature {
  * stateProvider 为 RuleBasedBlockStateProvider（fallback + rules）；target 为 BlockPredicate。
  */
 struct DiskConfig {
-    std::unique_ptr<parser::BlockStateProviderHandle> stateProvider;
+    std::unique_ptr<state::BlockStateProvider> stateProvider;
     std::unique_ptr<predicate::BlockPredicate> target;
     std::unique_ptr<valueprovider::IntProvider> radius;
     i32 halfHeight = 0;

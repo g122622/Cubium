@@ -36,11 +36,11 @@ bool SimpleBlockFeature::place(
 {
     MC_UNUSED(random);
 
-    // 取本次放置的目标状态：weighted 提供者按权重采样，simple 用单一状态。
-    const BlockState* toPlace = config.toPlace;
-    if (toPlace == nullptr && config.weightedProvider != nullptr) {
-        toPlace = config.weightedProvider->getState(random);
+    // 取本次放置的目标状态：由提供者按其 kind 采样（simple 直接返回、weighted 按权重等）。
+    if (config.provider == nullptr) {
+        return false;
     }
+    const BlockState* toPlace = config.provider->getState(region, random, pos.x, pos.y, pos.z);
     if (toPlace == nullptr) {
         return false;
     }

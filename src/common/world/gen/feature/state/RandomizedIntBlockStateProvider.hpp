@@ -23,45 +23,37 @@
 
 #pragma once
 
-#include "TreeDecorator.hpp"
-#include "common/util/Direction.hpp"
+#include "common/util/property/IntegerProperty.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
-#include <vector>
+#include <string>
 
-namespace mc {
-namespace world {
-namespace gen {
-namespace feature {
-namespace tree {
-namespace decorator {
+namespace mc::world::gen::feature::state {
 
 /**
- * @brief 附着原木装饰器（MC AttachedToLogsDecorator）
+ * @brief 随机整数属性方块状态提供者
  *
- * 对每根原木：从 directions 随机选一个方向，若 nextFloat()<=probability 且
- * 该邻居为空气，则用 block_provider 采样方块放置。fallen_tree 的 log_decorators
- * 用它在倒木上方放红/棕蘑菇。
- *
- * 配置字段：probability[0.0,1.0] / block_provider(BlockStateProvider) /
- * directions(非空 Direction 列表)。
+ * 先由 source 提供者取一个方块状态，再按 property 名查找其 IntegerProperty，
+ * 用 IntProvider 采样一个整数值设置到该属性上。属性查找结果懒缓存。
  */
-class AttachToLogsDecorator final : public TreeDecorator {
+class RandomizedIntBlockStateProvider : public BlockStateProvider {
 public:
-    AttachToLogsDecorator(
-        f32 probability, std::unique_ptr<state::BlockStateProvider> blockProvider, std::vector<Direction> directions);
+    RandomizedIntBlockStateProvider(std::unique_ptr<BlockStateProvider> source,
+        std::string propertyName,
+        std::unique_ptr<world::gen::valueprovider::IntProvider> values);
 
-    void place(const TreeDecoratorContext& context) const override;
+    [[nodiscard]] const BlockState* getState(
+        const IWorld& world, math::IRandom& random, i32 x, i32 y, i32 z) const override;
+
+    [[nodiscard]] std::unique_ptr<BlockStateProvider> clone() const override;
 
 private:
-    f32 m_probability;
-    std::unique_ptr<state::BlockStateProvider> m_blockProvider;
-    std::vector<Direction> m_directions;
+    std::unique_ptr<BlockStateProvider> m_source;
+    std::string m_propertyName;
+    std::unique_ptr<world::gen::valueprovider::IntProvider> m_values;
+    /// 懒解析缓存：首次采样时按 m_propertyName 查找并缓存，之后复用。
+    mutable const IntegerProperty* m_property = nullptr;
 };
 
-} // namespace decorator
-} // namespace tree
-} // namespace feature
-} // namespace gen
-} // namespace world
-} // namespace mc
+} // namespace mc::world::gen::feature::state

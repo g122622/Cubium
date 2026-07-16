@@ -21,32 +21,30 @@
  *
  */
 
-#include "BlockStateProvider.hpp"
+#pragma once
 
-#include "common/world/block/BlockState.hpp"
-
-#include <utility>
+#include "common/world/block/Block.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 
 namespace mc::world::gen::feature::state {
 
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
-{}
+/**
+ * @brief 旋转方块提供者
+ *
+ * 取方块的默认状态并随机选取一个轴（X/Y/Z）设置 AXIS 属性；
+ * 若该方块无 AXIS 属性则原样返回默认状态。解析时仅保留 Block，丢弃 Properties。
+ */
+class RotatedBlockStateProvider : public BlockStateProvider {
+public:
+    explicit RotatedBlockStateProvider(const Block* block);
 
-const BlockState* SimpleBlockStateProvider::getState(
-    const IWorld& /*world*/, math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
-{
-    return m_state;
-}
+    [[nodiscard]] const BlockState* getState(
+        const IWorld& world, math::IRandom& random, i32 x, i32 y, i32 z) const override;
 
-const BlockState* SimpleBlockStateProvider::asSingleState() const noexcept
-{
-    return m_state;
-}
+    [[nodiscard]] std::unique_ptr<BlockStateProvider> clone() const override;
 
-std::unique_ptr<BlockStateProvider> SimpleBlockStateProvider::clone() const
-{
-    return std::make_unique<SimpleBlockStateProvider>(m_state);
-}
+private:
+    const Block* m_block;
+};
 
 } // namespace mc::world::gen::feature::state

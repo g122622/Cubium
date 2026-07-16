@@ -21,6 +21,7 @@
  *
  */
 
+#include "TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -29,10 +30,21 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include "common/world/gen/feature/ore/OreFeature.hpp"
+#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include "common/world/gen/placement/Placement.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
+
+namespace state = mc::world::gen::feature::state;
+
+namespace {
+// BaseTestWorld 默认构造为 protected，派生一个 public 构造的测试世界供采样调用。
+class OreTestWorld : public test::BaseTestWorld {
+public:
+    OreTestWorld() = default;
+};
+} // namespace
 
 // ============================================================================
 // RuleTest 测试
@@ -186,22 +198,24 @@ protected:
 
 TEST_F(BlockStateProviderTest, SimpleProvider)
 {
-    SimpleBlockStateProvider provider(&VanillaBlocks::STONE->defaultState());
+    state::SimpleBlockStateProvider provider(&VanillaBlocks::STONE->defaultState());
     math::Random random(12345);
+    OreTestWorld world;
 
-    const BlockState* state = provider.getState(random, 0, 0, 0);
+    const BlockState* state = provider.getState(world, random, 0, 0, 0);
     ASSERT_NE(state, nullptr);
     EXPECT_TRUE(state->is(VanillaBlocks::STONE));
 }
 
 TEST_F(BlockStateProviderTest, DifferentBlocks)
 {
-    SimpleBlockStateProvider grassProvider(&VanillaBlocks::GRASS_BLOCK->defaultState());
-    SimpleBlockStateProvider dirtProvider(&VanillaBlocks::DIRT->defaultState());
+    state::SimpleBlockStateProvider grassProvider(&VanillaBlocks::GRASS_BLOCK->defaultState());
+    state::SimpleBlockStateProvider dirtProvider(&VanillaBlocks::DIRT->defaultState());
     math::Random random(12345);
+    OreTestWorld world;
 
-    const BlockState* grass = grassProvider.getState(random, 0, 0, 0);
-    const BlockState* dirt = dirtProvider.getState(random, 0, 0, 0);
+    const BlockState* grass = grassProvider.getState(world, random, 0, 0, 0);
+    const BlockState* dirt = dirtProvider.getState(world, random, 0, 0, 0);
 
     ASSERT_NE(grass, nullptr);
     ASSERT_NE(dirt, nullptr);

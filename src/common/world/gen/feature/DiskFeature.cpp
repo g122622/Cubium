@@ -58,8 +58,7 @@ bool ConfiguredDiskFeature::place(WorldGenRegion& region,
             for (i32 y = topY; y > bottomY; --y) {
                 const BlockPos pos(origin.x + dx, y, origin.z + dz);
                 if (target.test(region, pos)) {
-                    const BlockState* state =
-                        parser::BlockStateProviderParser::sampleState(provider, region, random, pos);
+                    const BlockState* state = provider.getState(region, random, pos.x, pos.y, pos.z);
                     if (state != nullptr) {
                         region.setBlockState(pos, state, 2);
                         any = true;

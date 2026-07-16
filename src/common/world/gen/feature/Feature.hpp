@@ -251,41 +251,6 @@ public:
 };
 
 // ============================================================================
-// BlockStateProvider - 方块状态提供者
-// ============================================================================
-
-/**
- * @brief 方块状态提供者
- *
- * 用于提供方块状态，可以是固定的或基于噪声的。
- */
-class BlockStateProvider {
-public:
-    virtual ~BlockStateProvider() = default;
-
-    /**
-     * @brief 获取方块状态
-     * @param random 随机数生成器
-     * @param pos 位置
-     * @return 方块状态
-     */
-    [[nodiscard]] virtual const BlockState* getState(math::Random& random, i32 x, i32 y, i32 z) const = 0;
-};
-
-/**
- * @brief 固定方块状态提供者
- */
-class SimpleBlockStateProvider : public BlockStateProvider {
-public:
-    explicit SimpleBlockStateProvider(const BlockState* state);
-
-    [[nodiscard]] const BlockState* getState(math::Random& random, i32 x, i32 y, i32 z) const override;
-
-private:
-    const BlockState* m_state;
-};
-
-// ============================================================================
 // OreFeatureConfig - 矿石特征配置
 // ============================================================================
 

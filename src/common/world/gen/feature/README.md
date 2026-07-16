@@ -52,7 +52,7 @@ feature/
 │   ├── BlockPredicate.hpp            # 谓词基类
 │   ├── Predicates.hpp                # 聚合头文件
 │   └── ...（各谓词独立文件）
-├── state/                            # 方块状态提供者
+├── state/                            # 方块状态提供者（多态基类 BlockStateProvider + 8 子类，见 state/README.md）
 ├── template/                         # 结构模板系统
 ├── tree/                             # 树木特征（TrunkPlacer/FoliagePlacer）
 └── vegetation/                       # 植被特征（花卉/蘑菇/竹子）

@@ -25,7 +25,7 @@
 
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <string>
 
@@ -43,7 +43,7 @@ namespace world::gen::feature {
  */
 struct BlockPileConfig {
     /// 方块状态提供者（simple / weighted / rule_based）。nullptr 表示无效配置。
-    std::unique_ptr<parser::BlockStateProviderHandle> stateProvider;
+    std::unique_ptr<state::BlockStateProvider> stateProvider;
 
     BlockPileConfig() = default;
 };

@@ -26,7 +26,7 @@
 #include "../../../block/Block.hpp"
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
-#include "../state/WeightedBlockStateProvider.hpp"
+#include "../state/BlockStateProvider.hpp"
 #include "featuresize/FeatureSize.hpp"
 #include "foliage/FoliagePlacer.hpp"
 #include "trunk/TrunkPlacer.hpp"
@@ -42,22 +42,23 @@ class BlockState;
  *
  * 参考: net.minecraft.world.gen.feature.BaseTreeFeatureConfig
  *
- * foliageBlock 与 foliageProvider 的优先级：
- * - 若 foliageProvider 非空且非空条目，每个叶片独立采样
- * - 否则使用 foliageBlock 单一状态
- * 这与 MC 原版 TreeConfiguration.foliageProvider（始终是 BlockStateProvider）语义一致，
- * 同时保留 foliageBlock 以最小化对现有调用方的破坏。
+ * trunkBlock 为树干单一状态（trunk_provider 解析期降级，trunk 仅支持 simple）。
+ *
+ * 树叶采用双轨：
+ * - foliageBlock 为单一树叶状态，用于放置器第一遍逐层放置与坐标收集；
+ * - foliageProvider 为多态树叶状态提供者（多态基类，支持 weighted/rule_based 等），
+ *   非空时第二遍对每个叶片独立采样，用于杜鹃树等混合多种叶子的场景。
+ * 单一树叶树（橡/桦/云杉...）仅设置 foliageBlock，foliageProvider 为空。
  */
 struct TreeFeatureConfig : public IFeatureConfig {
-    /// 树干方块状态
+    /// 树干方块状态（trunk_provider 解析期降级的单一状态，trunk 仅支持 simple）
     const BlockState* trunkBlock = nullptr;
 
-    /// 树叶方块状态（单一，当 foliageProvider 为空时使用）
+    /// 树叶方块状态（单一，放置器第一遍使用；foliageProvider 为空时即唯一树叶来源）
     const BlockState* foliageBlock = nullptr;
 
-    /// 树叶方块状态提供者（加权随机，优先于 foliageBlock）
-    /// 用于杜鹃树等需要混合多种叶子方块的配置
-    std::unique_ptr<world::gen::feature::state::WeightedBlockStateProvider> foliageProvider;
+    /// 树叶方块状态提供者（多态，非空时第二遍按叶片独立采样，优先于 foliageBlock）
+    std::unique_ptr<world::gen::feature::state::BlockStateProvider> foliageProvider;
 
     /// 树干放置器
     std::unique_ptr<TrunkPlacer> trunkPlacer;
@@ -195,13 +196,10 @@ struct TreeFeatureConfig : public IFeatureConfig {
     }
 
     /**
-     * @brief 是否使用加权树叶提供者
-     * @return 若 foliageProvider 非空且至少有一个条目，返回 true
+     * @brief 是否使用树叶状态提供者
+     * @return 若 foliageProvider 非空，返回 true
      */
-    [[nodiscard]] bool hasFoliageProvider() const noexcept
-    {
-        return foliageProvider != nullptr && !foliageProvider->empty();
-    }
+    [[nodiscard]] bool hasFoliageProvider() const noexcept { return foliageProvider != nullptr; }
 
     /**
      * @brief 获取单个树叶方块状态
@@ -209,13 +207,18 @@ struct TreeFeatureConfig : public IFeatureConfig {
      * 当 foliageProvider 存在时，每次调用独立采样（用于支持加权混合叶子）。
      * 否则返回 foliageBlock。
      *
+     * @param world 世界区域
      * @param random 随机数生成器
+     * @param x 采样坐标 X
+     * @param y 采样坐标 Y
+     * @param z 采样坐标 Z
      * @return 树叶方块状态（可能为 nullptr，调用方需自行检查）
      */
-    [[nodiscard]] const BlockState* getFoliageState(math::IRandom& random) const
+    [[nodiscard]] const BlockState* getFoliageState(
+        const IWorld& world, math::IRandom& random, i32 x, i32 y, i32 z) const
     {
         if (hasFoliageProvider()) {
-            return foliageProvider->getState(random);
+            return foliageProvider->getState(world, random, x, y, z);
         }
         return foliageBlock;
     }

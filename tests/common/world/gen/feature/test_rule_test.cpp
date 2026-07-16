@@ -21,12 +21,24 @@
  *
  */
 
+#include "TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
+
+namespace state = mc::world::gen::feature::state;
+
+namespace {
+// BaseTestWorld 默认构造为 protected，派生一个 public 构造的测试世界供采样调用。
+class RuleTestWorld : public test::BaseTestWorld {
+public:
+    RuleTestWorld() = default;
+};
+} // namespace
 
 class RuleTestTest : public ::testing::Test {
 protected:
@@ -383,11 +395,12 @@ TEST_F(RuleTestTest, OreFeatureConfigNaturalStone)
 TEST_F(RuleTestTest, SimpleBlockStateProvider)
 {
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
-    SimpleBlockStateProvider provider(stoneState);
+    state::SimpleBlockStateProvider provider(stoneState);
 
     math::Random rng(12345);
+    RuleTestWorld world;
 
     // 应该总是返回相同的状态
-    EXPECT_EQ(provider.getState(rng, 0, 0, 0), stoneState);
-    EXPECT_EQ(provider.getState(rng, 100, 50, 100), stoneState);
+    EXPECT_EQ(provider.getState(world, rng, 0, 0, 0), stoneState);
+    EXPECT_EQ(provider.getState(world, rng, 100, 50, 100), stoneState);
 }

@@ -21,32 +21,36 @@
  *
  */
 
-#include "BlockStateProvider.hpp"
+#include "RotatedBlockStateProvider.hpp"
 
-#include "common/world/block/BlockState.hpp"
-
-#include <utility>
+#include "common/util/Direction.hpp"
+#include "common/world/block/blocks/RotatedPillarBlock.hpp"
 
 namespace mc::world::gen::feature::state {
 
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
+RotatedBlockStateProvider::RotatedBlockStateProvider(const Block* block)
+    : m_block(block)
 {}
 
-const BlockState* SimpleBlockStateProvider::getState(
-    const IWorld& /*world*/, math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
+const BlockState* RotatedBlockStateProvider::getState(
+    const IWorld& /*world*/, math::IRandom& random, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
 {
-    return m_state;
+    if (m_block == nullptr) {
+        return nullptr;
+    }
+    const BlockState& def = m_block->defaultState();
+    // Direction.Axis.getRandom(random) = VALUES[nextInt(3)]，三轴等概率。
+    const Axis axis = Axes::all()[static_cast<size_t>(random.nextInt(3))];
+    // trySetValue 语义：无 AXIS 属性则原样返回默认状态。
+    if (def.hasProperty(RotatedPillarBlock::AXIS())) {
+        return &def.with(RotatedPillarBlock::AXIS(), axis);
+    }
+    return &def;
 }
 
-const BlockState* SimpleBlockStateProvider::asSingleState() const noexcept
+std::unique_ptr<BlockStateProvider> RotatedBlockStateProvider::clone() const
 {
-    return m_state;
-}
-
-std::unique_ptr<BlockStateProvider> SimpleBlockStateProvider::clone() const
-{
-    return std::make_unique<SimpleBlockStateProvider>(m_state);
+    return std::make_unique<RotatedBlockStateProvider>(m_block);
 }
 
 } // namespace mc::world::gen::feature::state

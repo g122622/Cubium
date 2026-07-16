@@ -26,6 +26,7 @@
 #include "TrunkVineDecorator.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
 
 #include <algorithm>
 #include <nlohmann/json.hpp>
@@ -141,9 +142,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
             directions.push_back(dir.value());
         }
 
-        std::unique_ptr<TreeDecorator> decorator = std::make_unique<AttachToLogsDecorator>(probability,
-            std::make_unique<parser::BlockStateProviderHandle>(std::move(providerResult.value())),
-            std::move(directions));
+        std::unique_ptr<TreeDecorator> decorator = std::make_unique<AttachToLogsDecorator>(
+            probability, providerResult.value(), std::move(directions));
         return decorator;
     }
 

@@ -27,20 +27,22 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <memory>
-#include <vector>
+
+namespace mc {
+class IWorld;
+}
 
 namespace mc::world::gen::feature::state {
-
-// TODO(数据驱动迁移未完成): state::BlockStateProvider / SimpleBlockStateProvider 是计划替换
-// mc:: 旧体系 BlockStateProvider/SimpleBlockStateProvider(Feature.hpp) 的多态基类。当前数据驱动
-// parser(BlockStateProviderParser) 尚未切换到本基类——它改用 BlockStateProviderHandle 联合体按 kind
-// 分派, 且 WeightedBlockStateProvider 未继承本基类。本文件 .cpp 未纳入 CMakeLists 编译, 基类与
-// Simple 子类零构造/零继承。待 parser 迁移到多态基类后启用, 并删除旧 mc:: 体系(Feature.hpp)。
 
 /**
  * @brief 方块状态提供者基类
  *
- * 用于提供方块状态，可以是固定的或基于权重的。
+ * 数据驱动方块状态提供者体系的统一多态基类。8 种子类（Simple/Weighted/RuleBased/
+ * Rotated/NoiseThreshold/Noise/DualNoise/RandomizedInt）均继承本基类，由
+ * BlockStateProviderParser 按 JSON 的 "type" 字段构造对应子类实例。
+ *
+ * getState 统一带 IWorld 参数：RuleBased 的谓词测试与 RandomizedInt 的属性查找
+ * 需要世界上下文；其余子类忽略该参数。
  */
 class BlockStateProvider {
 public:
@@ -48,13 +50,29 @@ public:
 
     /**
      * @brief 获取方块状态
+     * @param world 世界（RuleBased 谓词测试 / RandomizedInt 属性查找用，其余子类忽略）
      * @param random 随机数生成器
      * @param x X 坐标
      * @param y Y 坐标
      * @param z Z 坐标
-     * @return 方块状态
+     * @return 方块状态；提供者无可用状态时返回 nullptr
      */
-    [[nodiscard]] virtual const BlockState* getState(math::IRandom& random, i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual const BlockState* getState(
+        const IWorld& world, math::IRandom& random, i32 x, i32 y, i32 z) const = 0;
+
+    /**
+     * @brief 取单一状态（解析期降级用）
+     *
+     * 仅 Simple 子类返回其固定状态；其余子类返回 nullptr（需随机源/世界才能采样）。
+     */
+    [[nodiscard]] virtual const BlockState* asSingleState() const noexcept { return nullptr; }
+
+    /**
+     * @brief 深拷贝当前提供者（含递归子提供者）
+     *
+     * 配置结构的拷贝构造/赋值通过 clone() 实现多态深拷贝，避免浅拷贝 double-free。
+     */
+    [[nodiscard]] virtual std::unique_ptr<BlockStateProvider> clone() const = 0;
 };
 
 /**
@@ -66,7 +84,12 @@ class SimpleBlockStateProvider : public BlockStateProvider {
 public:
     explicit SimpleBlockStateProvider(const BlockState* state);
 
-    [[nodiscard]] const BlockState* getState(math::IRandom& random, i32 x, i32 y, i32 z) const override;
+    [[nodiscard]] const BlockState* getState(
+        const IWorld& world, math::IRandom& random, i32 x, i32 y, i32 z) const override;
+
+    [[nodiscard]] const BlockState* asSingleState() const noexcept override;
+
+    [[nodiscard]] std::unique_ptr<BlockStateProvider> clone() const override;
 
 private:
     const BlockState* m_state;

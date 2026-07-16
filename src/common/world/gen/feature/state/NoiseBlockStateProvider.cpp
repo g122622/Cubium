@@ -21,32 +21,35 @@
  *
  */
 
-#include "BlockStateProvider.hpp"
+#include "NoiseBlockStateProvider.hpp"
 
-#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/state/NoiseStateUtils.hpp"
 
 #include <utility>
 
 namespace mc::world::gen::feature::state {
 
-SimpleBlockStateProvider::SimpleBlockStateProvider(const BlockState* state)
-    : m_state(state)
+NoiseBlockStateProvider::NoiseBlockStateProvider(
+    u64 seed, f32 scale, std::unique_ptr<world::gen::noise::NormalNoise> noise, std::vector<const BlockState*> states)
+    : m_seed(seed)
+    , m_scale(scale)
+    , m_noise(std::move(noise))
+    , m_states(std::move(states))
 {}
 
-const BlockState* SimpleBlockStateProvider::getState(
-    const IWorld& /*world*/, math::IRandom& /*random*/, i32 /*x*/, i32 /*y*/, i32 /*z*/) const
+const BlockState* NoiseBlockStateProvider::getState(
+    const IWorld& /*world*/, math::IRandom& /*random*/, i32 x, i32 y, i32 z) const
 {
-    return m_state;
+    if (m_noise == nullptr || m_states.empty()) {
+        return nullptr;
+    }
+    const f64 noiseValue = noise_state_utils::getNoiseValue(*m_noise, m_scale, x, y, z);
+    return noise_state_utils::getRandomStateByNoise(m_states, noiseValue);
 }
 
-const BlockState* SimpleBlockStateProvider::asSingleState() const noexcept
+std::unique_ptr<BlockStateProvider> NoiseBlockStateProvider::clone() const
 {
-    return m_state;
-}
-
-std::unique_ptr<BlockStateProvider> SimpleBlockStateProvider::clone() const
-{
-    return std::make_unique<SimpleBlockStateProvider>(m_state);
+    return std::make_unique<NoiseBlockStateProvider>(m_seed, m_scale, m_noise ? m_noise->clone() : nullptr, m_states);
 }
 
 } // namespace mc::world::gen::feature::state

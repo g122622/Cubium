@@ -1187,6 +1187,15 @@ add_library(mc_common STATIC
     world/gen/feature/parser/FeatureSizeParser.cpp
     world/gen/feature/parser/BlockPredicateParser.cpp
 
+    # World - Generation - Feature - State
+    world/gen/feature/state/BlockStateProvider.cpp
+    world/gen/feature/state/RuleBasedBlockStateProvider.cpp
+    world/gen/feature/state/RotatedBlockStateProvider.cpp
+    world/gen/feature/state/NoiseThresholdBlockStateProvider.cpp
+    world/gen/feature/state/NoiseBlockStateProvider.cpp
+    world/gen/feature/state/DualNoiseBlockStateProvider.cpp
+    world/gen/feature/state/RandomizedIntBlockStateProvider.cpp
+
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
     world/gen/feature/tree/FallenTreeFeature.cpp
