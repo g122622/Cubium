@@ -783,5 +783,15 @@ Result<void> BiomeLoader::loadFromJson(const nlohmann::json& jsonObj, const Reso
     return Result<void>::ok();
 }
 
+std::optional<BiomeId> BiomeLoader::biomeIdByName(const ResourceLocation& name)
+{
+    const auto& nameMap = biomeNameToIdMap();
+    const auto it = nameMap.find(name.path());
+    if (it == nameMap.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
+
 } // namespace world::biome
 } // namespace mc

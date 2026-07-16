@@ -24,10 +24,12 @@
 #pragma once
 
 #include "FlatLayerInfo.hpp"
+#include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 
@@ -178,6 +180,21 @@ public:
      * - addLakes: false
      */
     static FlatLevelGeneratorSettings createDefault();
+
+    /**
+     * @brief 从 flat_level_generator_preset JSON 解析平坦世界设置
+     *
+     * JSON 顶层为 { "display": ..., "settings": { biome/layers/features/lakes/structure_overrides } }。
+     * 仅解析 settings 子对象：biome(RL→BiomeId 经 BiomeLoader::biomeIdByName)、
+     * layers（每层 {block:RL, height:int}，block 经 BlockRegistry::get 取默认 BlockState）、
+     * features/lakes(bool)、structure_overrides(string|array，兼容单字符串/数组/空数组三态）。
+     *
+     * @param root 顶层 JSON 对象
+     * @param id 预设资源位置（用于错误日志）
+     * @return 平坦世界设置，或错误
+     */
+    [[nodiscard]] static Result<FlatLevelGeneratorSettings> fromJson(
+        const nlohmann::json& root, const ResourceLocation& id);
 
 private:
     std::vector<FlatLayerInfo> m_layersInfo; ///< 层定义（方块 + 高度）

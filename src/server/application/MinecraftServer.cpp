@@ -103,6 +103,7 @@
 #include "common/world/gen/noise/NoiseLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
 #include "common/world/gen/settings/NoiseSettingsLoader.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
@@ -1248,6 +1249,21 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::error("Failed to load biome tags from data packs: {}", biomeTagResult.error().toString());
         } else {
             spdlog::info("Loaded {} biome tags from data packs", biomeTagResult.value());
+        }
+    }
+
+    // 从数据包加载 flat_level_generator_preset（须在方块/biome 注册后：layers 的 block RL 经
+    // BlockRegistry 取默认 BlockState，biome RL 经 BiomeLoader::biomeIdByName 映射 BiomeId）。
+    // FlatLevelGeneratorPresetLoader 解析 9 个预设 JSON，注册到 FlatLevelGeneratorPresetRegistry，
+    // 供 ServerDimensionManager flat 分支查表构造 FlatChunkGenerator。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::FlatPresets");
+        auto flatResult = world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(m_dataPackList);
+        if (flatResult.failed()) {
+            spdlog::error("Failed to load flat_level_generator_presets from data packs: {}", flatResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} flat_level_generator_presets from data packs", flatResult.value());
         }
     }
 

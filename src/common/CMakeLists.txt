@@ -1096,6 +1096,8 @@ add_library(mc_common STATIC
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp
+    world/gen/settings/FlatLevelGeneratorPresetLoader.cpp
+    world/gen/settings/FlatLevelGeneratorPresetRegistry.cpp
     world/gen/settings/FlatLevelGeneratorSettings.cpp
     world/gen/settings/NoiseSettingsLoader.cpp
     world/gen/settings/NoiseSettingsRegistry.cpp

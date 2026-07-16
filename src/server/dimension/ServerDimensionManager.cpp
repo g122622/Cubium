@@ -41,6 +41,7 @@
 #include "common/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <algorithm>
@@ -393,9 +394,17 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
             }
 
             // 超平坦世界走 FlatChunkGenerator（不走 NoiseChunkGenerator / RandomState::create）。
-            // 阶段4 改造点 D：flat 无对应 noise_settings JSON，无法走数据驱动噪声路径。
+            // 数据驱动：查 FlatLevelGeneratorPresetRegistry 取 classic_flat 预设（原版 "Flat" 世界类型
+            // 默认映射 minecraft:flat == classic_flat）；registry 未加载时回退 createDefault()。
+            // flat 无对应 noise_settings JSON，无法走数据驱动噪声路径。
             if (m_overworldType == WorldType::Flat) {
-                generator = std::make_unique<FlatChunkGenerator>(seed, FlatLevelGeneratorSettings::createDefault());
+                FlatLevelGeneratorSettings flatSettings = FlatLevelGeneratorSettings::createDefault();
+                const auto presetId = resource::ResourceLocation("minecraft", "classic_flat");
+                const auto* preset = world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().get(presetId);
+                if (preset != nullptr) {
+                    flatSettings = *preset;
+                }
+                generator = std::make_unique<FlatChunkGenerator>(seed, std::move(flatSettings));
                 break;
             }
 

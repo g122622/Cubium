@@ -29,6 +29,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/settings/FlatLayerInfo.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
 #include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include "common/world/gen/settings/NoiseSettings.hpp"
 #include "common/world/gen/settings/ScalingSettings.hpp"
@@ -1018,6 +1019,83 @@ TEST_F(SettingsTest, DimensionSettings_OverworldSpawnTarget_MatchesOverworldBiom
         EXPECT_EQ(s.spawnTarget[i].weirdness, expected[i].weirdness);
         EXPECT_EQ(s.spawnTarget[i].offset, expected[i].offset);
     }
+}
+
+// ============================================================================
+// flat_level_generator_preset 数据驱动加载验证（阶段4）
+// ============================================================================
+//
+// FlatLevelGeneratorPresetRegistry 由 tests/main.cpp 的 WorldGenRegistryEnvironment
+// 在所有用例运行前从原版数据包加载（9 个预设）。本组测试验证：
+// - 数据驱动注册表已加载（9 个预设，含 classic_flat）
+// - classic_flat 内容与 vanilla JSON 一致（biome=Plains, 3 层, 仅 villages 结构覆盖）
+// - 三态 structure_overrides 正确解析（单字符串 classic_flat=villages；数组 the_void=[]）
+
+TEST_F(SettingsTest, FlatPresetRegistry_LoadedFromDatapacks)
+{
+    // 数据驱动加载由全局环境完成；未加载（非开发机/数据包缺失）则跳过而非误报失败。
+    if (!world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().isLoadedFromDatapack()) {
+        GTEST_SKIP() << "FlatLevelGeneratorPresetRegistry not loaded from datapacks";
+    }
+    EXPECT_TRUE(world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().isLoadedFromDatapack());
+    // 原版数据包含 9 个 flat 预设，至少应含 classic_flat。
+    EXPECT_TRUE(world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().has(
+        resource::ResourceLocation("minecraft", "classic_flat")));
+}
+
+TEST_F(SettingsTest, FlatPresetRegistry_ClassicFlat_MatchesVanillaJson)
+{
+    const auto* preset = world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().get(
+        resource::ResourceLocation("minecraft", "classic_flat"));
+    if (preset == nullptr) {
+        GTEST_SKIP() << "minecraft:classic_flat not loaded (datapacks missing)";
+    }
+    // classic_flat.json: biome=plains, features=false, lakes=false, layers=[bedrock×1,dirt×2,grass_block×1]
+    EXPECT_EQ(preset->biomeId(), Biomes::Plains);
+    EXPECT_FALSE(preset->hasDecoration());
+    EXPECT_FALSE(preset->hasLakes());
+
+    const auto& layers = preset->layersInfo();
+    ASSERT_EQ(layers.size(), 3u);
+    EXPECT_EQ(layers[0].height(), 1);
+    EXPECT_EQ(layers[1].height(), 2);
+    EXPECT_EQ(layers[2].height(), 1);
+    // 展开层列表总高 = 1+2+1 = 4
+    EXPECT_EQ(preset->layers().size(), 4u);
+
+    // classic_flat.json: structure_overrides = "minecraft:villages"（单字符串 → 1 项）
+    const auto& overrides = preset->structureOverrides();
+    ASSERT_EQ(overrides.size(), 1u);
+    EXPECT_EQ(overrides[0], resource::ResourceLocation("minecraft", "villages"));
+}
+
+TEST_F(SettingsTest, FlatPresetRegistry_TheVoid_EmptyStructureOverrides)
+{
+    // the_void.json: structure_overrides = []（空数组 → 0 项，不生成结构）
+    const auto* preset = world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().get(
+        resource::ResourceLocation("minecraft", "the_void"));
+    if (preset == nullptr) {
+        GTEST_SKIP() << "minecraft:the_void not loaded (datapacks missing)";
+    }
+    EXPECT_EQ(preset->biomeId(), Biomes::TheVoid);
+    EXPECT_TRUE(preset->hasDecoration()); // the_void features=true
+    EXPECT_TRUE(preset->structureOverrides().empty());
+    // the_void 仅一层 air → voidGen
+    EXPECT_TRUE(preset->isVoidGen());
+}
+
+TEST_F(SettingsTest, FlatPresetRegistry_TunnelersDream_ArrayStructureOverrides)
+{
+    // tunnelers_dream.json: structure_overrides = [mineshafts, strongholds]（数组 → 2 项）
+    const auto* preset = world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().get(
+        resource::ResourceLocation("minecraft", "tunnelers_dream"));
+    if (preset == nullptr) {
+        GTEST_SKIP() << "minecraft:tunnelers_dream not loaded (datapacks missing)";
+    }
+    const auto& overrides = preset->structureOverrides();
+    ASSERT_EQ(overrides.size(), 2u);
+    EXPECT_EQ(overrides[0], resource::ResourceLocation("minecraft", "mineshafts"));
+    EXPECT_EQ(overrides[1], resource::ResourceLocation("minecraft", "strongholds"));
 }
 
 } // namespace
