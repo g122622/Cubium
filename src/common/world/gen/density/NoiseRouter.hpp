@@ -36,8 +36,8 @@ namespace mc::world::gen::density {
  * 持有 15 个密度函数引用，其中 6 个用于 Climate.Sampler，
  * 1 个用于最终密度计算，其余用于洞穴和矿石生成。
  *
- * 噪声路由器的所有密度函数由外部创建并传入（通常由 NoiseRouterData 创建），
- * NoiseRouter 仅持有 unique_ptr 管理生命周期。
+ * 噪声路由器的所有密度函数由外部创建并传入（由 RandomState::create 经 NoiseBindingVisitor
+ * 从 DimensionSettings::m_routerDfs 数据驱动模板绑定创建），NoiseRouter 仅持有 unique_ptr 管理生命周期。
  */
 class NoiseRouter {
 public:

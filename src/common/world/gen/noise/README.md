@@ -71,7 +71,7 @@ util/math/random/PositionalRandomFactory.hpp  # 位置随机工厂（MC 1.18+ �
 ```
 gen/density/DensityFunctions.hpp    # 密度函数（使用 NormalNoise 和 SimplexNoise）
 gen/density/BlendedNoise.hpp        # 混合噪声密度函数（使用 PerlinNoise）
-gen/density/NoiseRouterData.hpp     # 噪声路由数据
+gen/density/NoiseBindingVisitor.cpp # 数据驱动噪声叶子绑定（经 Noises::get 取参数）
 gen/surface/SurfaceRules.hpp        # 地表规则
 gen/placement/Placements.cpp        # 放置器（噪声阈值放置）
 gen/aquifer/Aquifer.cpp             # 含水层生成

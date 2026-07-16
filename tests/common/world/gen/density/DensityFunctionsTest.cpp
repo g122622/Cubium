@@ -31,10 +31,9 @@
  */
 
 #include "common/world/gen/density/DensityFunctions.hpp"
-#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
-#include "common/world/gen/density/CaveDensityFunctions.hpp"
 #include "common/world/gen/density/TerrainProvider.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
 #include <cmath>
 #include <limits>
 #include <gtest/gtest.h>
@@ -48,15 +47,13 @@ using namespace mc::world::gen::density;
 
 namespace {
 /**
- * 创建测试用 RandomState（overworld + 固定种子）
- *
- * factory::noise 等叶子工厂现需 const RandomState& 首参以共享噪声缓存。
- * 测试中每个 factory 调用独立构造一个临时 RandomState 即可——factory 内部
- * 仅依据 derivedSeed 与参数构造噪声实例，与历史裸 seed 调用语义完全等价。
+ * 测试专用：直接用 seed 构造 NormalNoise，与旧 factory::xxx 叶子工厂产出的
+ * 噪声实例逐 bit 等价（旧实现内部即 make_shared<NormalNoise>(seed, oct, amps)）。
  */
-std::unique_ptr<world::gen::RandomState> makeRs()
+std::shared_ptr<const world::gen::noise::NormalNoise> makeTestNoise(
+    u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
 {
-    return world::gen::RandomState::create(DimensionSettings::overworld(), 42ULL);
+    return std::make_shared<world::gen::noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
 }
 
 /**
@@ -173,90 +170,6 @@ TEST(DensityFunctionsMulTest, CrossesZeroAndPositive)
 }
 
 // ============================================================================
-// CaveDensityFunctions 噪声参数测试
-// ============================================================================
-
-TEST(CaveDensityFunctionsTest, NoiseParametersMatchMC1211)
-{
-    // 验证关键噪声参数与 MC 1.21.11 对齐
-
-    // SPAGHETTI_2D_MODULATOR: firstOctave=-11, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_MODULATOR_OCTAVE, -11);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_2D_MODULATOR_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_2D_MODULATOR_AMPS[0], 1.0, 1e-10);
-
-    // SPAGHETTI_2D: firstOctave=-7, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_2D_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_2D_AMPS[0], 1.0, 1e-10);
-
-    // SPAGHETTI_2D_ELEVATION: firstOctave=-8, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_ELEVATION_OCTAVE, -8);
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_ELEVATION_AMPS[0], 1.0);
-
-    // SPAGHETTI_2D_THICKNESS: firstOctave=-11, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_THICKNESS_OCTAVE, -11);
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_THICKNESS_AMPS[0], 1.0);
-
-    // SPAGHETTI_ROUGHNESS: firstOctave=-5, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_OCTAVE, -5);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_AMPS[0], 1.0, 1e-10);
-
-    // SPAGHETTI_3D_RARITY: firstOctave=-11, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_RARITY_OCTAVE, -11);
-
-    // SPAGHETTI_3D_THICKNESS: firstOctave=-8, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_THICKNESS_OCTAVE, -8);
-
-    // SPAGHETTI_3D_1/2: firstOctave=-7, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_1_OCTAVE, -7);
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_2_OCTAVE, -7);
-
-    // CAVE_ENTRANCE: firstOctave=-7, amplitudes={0.4, 0.5, 1.0}
-    EXPECT_EQ(CaveDensityFunctions::CAVE_ENTRANCE_OCTAVE, -7);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_ENTRANCE_AMPS[0], 0.4, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_ENTRANCE_AMPS[1], 0.5, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_ENTRANCE_AMPS[2], 1.0, 1e-10);
-
-    // CAVE_LAYER: firstOctave=-8, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::CAVE_LAYER_OCTAVE, -8);
-    EXPECT_EQ(CaveDensityFunctions::CAVE_LAYER_AMPS[0], 1.0);
-
-    // CAVE_CHEESE: firstOctave=-8, amplitudes={0.5, 1.0, 2.0, 1.0, 2.0, 1.0, 0.0, 2.0, 0.0}
-    EXPECT_EQ(CaveDensityFunctions::CAVE_CHEESE_OCTAVE, -8);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[0], 0.5, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[1], 1.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[2], 2.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[6], 0.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[7], 2.0, 1e-10);
-
-    // PILLAR: firstOctave=-7, amplitudes={1.0, 1.0}
-    EXPECT_EQ(CaveDensityFunctions::PILLAR_OCTAVE, -7);
-    EXPECT_EQ(CaveDensityFunctions::PILLAR_AMPS[0], 1.0);
-    EXPECT_EQ(CaveDensityFunctions::PILLAR_AMPS[1], 1.0);
-
-    // JAGGED: firstOctave=-16, amplitudes={1.0}×17
-    EXPECT_EQ(CaveDensityFunctions::JAGGED_OCTAVE, -16);
-    EXPECT_EQ(std::size(CaveDensityFunctions::JAGGED_AMPS), 17u);
-    for (size_t i = 0; i < 17; ++i) {
-        EXPECT_NEAR(CaveDensityFunctions::JAGGED_AMPS[i], 1.0, 1e-10) << "JAGGED_AMPS[" << i << "] should be 1.0";
-    }
-
-    // ORE_VEININESS: firstOctave=-8, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEININESS_OCTAVE, -8);
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEININESS_AMPS[0], 1.0);
-
-    // ORE_VEIN_A/B: firstOctave=-7, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEIN_A_OCTAVE, -7);
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEIN_B_OCTAVE, -7);
-
-    // ORE_GAP: firstOctave=-5, amplitudes={1.0}
-    EXPECT_EQ(CaveDensityFunctions::ORE_GAP_OCTAVE, -5);
-    EXPECT_EQ(CaveDensityFunctions::ORE_GAP_AMPS[0], 1.0);
-}
-
-// ============================================================================
 // Mapped::Abs bounds 对齐测试
 // ============================================================================
 
@@ -360,7 +273,7 @@ TEST(DensityFunctionsMappedNoiseTest, BoundsFromValueLessThanToValue)
     // MC 1.21: minValue = midpoint - |halfAmplitude| * innerMaxNoise
     //          maxValue = midpoint + |halfAmplitude| * innerMaxNoise
     // 因此：minValue + maxValue = 2 * midpoint, 且 maxValue > minValue
-    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0, 0.0, 1.0);
+    auto noise = std::make_unique<MappedNoise>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0, 0.0, 1.0);
     const f64 midpoint = (0.0 + 1.0) * 0.5; // 0.5
     // 验证对称性：minValue + maxValue = 2 * midpoint
     EXPECT_NEAR(noise->minValue() + noise->maxValue(), 2.0 * midpoint, 1e-10);
@@ -377,7 +290,7 @@ TEST(DensityFunctionsMappedNoiseTest, BoundsFromValueGreaterThanToValue)
     // MC 1.21: minValue = midpoint - |halfAmplitude| * innerMaxNoise
     //          maxValue = midpoint + |halfAmplitude| * innerMaxNoise
     // 即使 fromValue > toValue（halfAmplitude 为负），bounds 仍然关于 midpoint 对称
-    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 2.0, 1.0, -0.6, -1.3);
+    auto noise = std::make_unique<MappedNoise>(makeTestNoise(42, -8, {1.0}), 2.0, 1.0, -0.6, -1.3);
     const f64 midpoint = (-0.6 + -1.3) * 0.5; // -0.95
     // 验证对称性：minValue + maxValue = 2 * midpoint
     EXPECT_NEAR(noise->minValue() + noise->maxValue(), 2.0 * midpoint, 1e-10);
@@ -391,7 +304,7 @@ TEST(DensityFunctionsMappedNoiseTest, BoundsFromValueGreaterThanToValue)
 TEST(DensityFunctionsMappedNoiseTest, BoundsEqualFromToValue)
 {
     // fromValue == toValue: halfAmplitude = 0, bounds = midpoint
-    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0, 5.0, 5.0);
+    auto noise = std::make_unique<MappedNoise>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0, 5.0, 5.0);
     EXPECT_DOUBLE_EQ(noise->minValue(), 5.0);
     EXPECT_DOUBLE_EQ(noise->maxValue(), 5.0);
 }
@@ -404,8 +317,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type1_MinValueIsZero)
 {
     // MC 1.21: Type1 minValue = 0.0（因为 compute 使用了 abs）
     auto input = constantFunc(0.5);
-    auto sampler =
-        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler = std::make_unique<WeirdScaledSampler>(
+        std::move(input), makeTestNoise(42, -7, {1.0}), WeirdScaledSamplerType::Type1);
     EXPECT_DOUBLE_EQ(sampler->minValue(), 0.0);
 }
 
@@ -413,8 +326,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type2_MinValueIsZero)
 {
     // MC 1.21: Type2 minValue = 0.0（因为 compute 使用了 abs）
     auto input = constantFunc(0.5);
-    auto sampler =
-        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type2);
+    auto sampler = std::make_unique<WeirdScaledSampler>(
+        std::move(input), makeTestNoise(42, -7, {1.0}), WeirdScaledSamplerType::Type2);
     EXPECT_DOUBLE_EQ(sampler->minValue(), 0.0);
 }
 
@@ -422,8 +335,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type1_MaxValueIsMaxRarityTimesNoise
 {
     // MC 1.21: Type1 maxValue = 2.0 * noise.maxValue()
     auto input = constantFunc(0.5);
-    auto sampler =
-        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler = std::make_unique<WeirdScaledSampler>(
+        std::move(input), makeTestNoise(42, -7, {1.0}), WeirdScaledSamplerType::Type1);
     // Type1 maxRarity = 2.0
     // maxValue = 2.0 * noise.maxValue()
     EXPECT_GT(sampler->maxValue(), 0.0);
@@ -436,10 +349,10 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type2_MaxValueGreaterThanType1)
     // 相同噪声参数下，Type2 的 maxValue 应大于 Type1
     auto input1 = constantFunc(0.5);
     auto input2 = constantFunc(0.5);
-    auto sampler1 =
-        factory::weirdScaledSampler(std::move(input1), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
-    auto sampler2 =
-        factory::weirdScaledSampler(std::move(input2), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type2);
+    auto sampler1 = std::make_unique<WeirdScaledSampler>(
+        std::move(input1), makeTestNoise(42, -7, {1.0}), WeirdScaledSamplerType::Type1);
+    auto sampler2 = std::make_unique<WeirdScaledSampler>(
+        std::move(input2), makeTestNoise(42, -7, {1.0}), WeirdScaledSamplerType::Type2);
     EXPECT_GT(sampler2->maxValue(), sampler1->maxValue());
 }
 
@@ -449,8 +362,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, RarityMapping_Type1)
     // 通过 compute 间接测试
     // 在高 rarity 下，噪声采样范围更小，值更大
     auto input = constantFunc(0.75); // 最高 rarity = 2.0
-    auto sampler =
-        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler = std::make_unique<WeirdScaledSampler>(
+        std::move(input), makeTestNoise(42, -7, {1.0}), WeirdScaledSamplerType::Type1);
     f64 result = sampler->compute(100, 100, 100);
     EXPECT_GE(result, 0.0); // 结果非负（因为 abs）
 }
@@ -616,7 +529,7 @@ TEST(DensityFunctionsShiftNoiseTest, ShiftA_CoordinateOrder)
 {
     // ShiftA: noise(x*0.25, 0, z*0.25) * 4
     // 测试 x 和 z 不对称性
-    auto shiftA = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftA = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftA);
     // 两次 compute 结果应确定性
     f64 v1 = shiftA->compute(100, 0, 200);
     f64 v2 = shiftA->compute(100, 0, 200);
@@ -629,7 +542,7 @@ TEST(DensityFunctionsShiftNoiseTest, ShiftA_CoordinateOrder)
 TEST(DensityFunctionsShiftNoiseTest, ShiftB_CoordinateSwap)
 {
     // ShiftB: noise(z*0.25, x*0.25, 0) * 4（x 和 z 交换）
-    auto shiftB = factory::shiftB(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftB = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftB);
     f64 v1 = shiftB->compute(100, 0, 200);
     f64 v2 = shiftB->compute(100, 0, 200);
     EXPECT_DOUBLE_EQ(v1, v2);
@@ -637,7 +550,7 @@ TEST(DensityFunctionsShiftNoiseTest, ShiftB_CoordinateSwap)
 
 TEST(DensityFunctionsShiftNoiseTest, MinMaxValues)
 {
-    auto shiftA = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftA = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftA);
     EXPECT_DOUBLE_EQ(shiftA->minValue(), -shiftA->maxValue()); // 对称
     EXPECT_GT(shiftA->maxValue(), 0.0);
 }
@@ -659,7 +572,7 @@ TEST(DensityFunctionsCache2DTest, CachesResult)
 TEST(DensityFunctionsCache2DTest, DifferentXZ_Recalculates)
 {
     // 使用依赖于 XZ 坐标的噪声函数来测试 Cache2D 缓存失效
-    auto input = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+    auto input = std::make_unique<NoiseDensity>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0);
     auto cache = factory::cache2D(std::move(input));
     f64 v1 = cache->compute(10, 0, 20);
     f64 v2 = cache->compute(30, 0, 40); // 不同 XZ
@@ -687,9 +600,9 @@ TEST(DensityFunctionsCache2DTest, DelegatesMinMax)
 TEST(DensityFunctionsFlatCacheTest, CachesAtQuartResolution)
 {
     // 使用依赖 XZ 的噪声函数作为输入，使不同 quart 格产生不同值。
-    auto input = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+    auto input = std::make_unique<NoiseDensity>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0);
     // 保留一份相同构造的裸输入用于交叉校验预计算值。
-    auto inputRef = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+    auto inputRef = std::make_unique<NoiseDensity>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0);
 
     // 直接构造 precompute=true 的 FlatCache，模拟 NoiseChunk::apply 注入区块几何。
     // firstQuartX=0, firstQuartZ=0, sizeXZ=4 → 覆盖 quart 坐标 [0,4]，
@@ -1009,14 +922,14 @@ TEST(DensityFunctionsEndIslandsTest, OriginValue)
 
 TEST(DensityFunctionsNoiseDensityTest, Deterministic)
 {
-    auto noise1 = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
-    auto noise2 = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+    auto noise1 = std::make_unique<NoiseDensity>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0);
+    auto noise2 = std::make_unique<NoiseDensity>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0);
     EXPECT_DOUBLE_EQ(noise1->compute(100, 50, 200), noise2->compute(100, 50, 200));
 }
 
 TEST(DensityFunctionsNoiseDensityTest, SymmetricMinMax)
 {
-    auto noise = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+    auto noise = std::make_unique<NoiseDensity>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0);
     EXPECT_DOUBLE_EQ(noise->minValue(), -noise->maxValue());
 }
 
@@ -1028,7 +941,7 @@ TEST(DensityFunctionsMappedNoiseTest, ComputeMatchesFormula)
 {
     // compute = fromValue + noise * (toValue - fromValue)
     // 当 fromValue == toValue 时，结果恒等于 fromValue
-    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0, 5.0, 5.0);
+    auto noise = std::make_unique<MappedNoise>(makeTestNoise(42, -8, {1.0}), 1.0, 1.0, 5.0, 5.0);
     EXPECT_DOUBLE_EQ(noise->compute(0, 0, 0), 5.0);
     EXPECT_DOUBLE_EQ(noise->compute(100, 50, 200), 5.0);
     EXPECT_DOUBLE_EQ(noise->minValue(), 5.0);
@@ -1041,258 +954,13 @@ TEST(DensityFunctionsMappedNoiseTest, ComputeMatchesFormula)
 
 TEST(DensityFunctionsShiftedNoiseTest, MinMaxValues)
 {
-    auto shiftX = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftY = factory::shift(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftZ = factory::shiftB(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shifted = factory::shiftedNoise(
-        *makeRs(), 42, -8, {1.0}, 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
+    auto shiftX = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftA);
+    auto shiftY = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::Shift);
+    auto shiftZ = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftB);
+    auto shifted = std::make_unique<ShiftedNoise>(
+        makeTestNoise(42, -8, {1.0}), 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
     EXPECT_DOUBLE_EQ(shifted->minValue(), -shifted->maxValue());
     EXPECT_GT(shifted->maxValue(), 0.0);
-}
-
-// ============================================================================
-// CaveDensityFunctions 噪声参数验证（修复后）
-// ============================================================================
-
-TEST(CaveDensityFunctionsTest, Spaghetti2DModulatorCorrectOctave)
-{
-    // 修复后: SPAGHETTI_2D_MODULATOR 应该是 -11, {1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_MODULATOR_OCTAVE, -11);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_2D_MODULATOR_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_2D_MODULATOR_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, Spaghetti2DCorrectOctave)
-{
-    // 修复后: SPAGHETTI_2D 应该是 -7, {1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_2D_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_2D_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, SpaghettiRoughnessCorrectAmplitudes)
-{
-    // 修复后: SPAGHETTI_ROUGHNESS 应该是 -5, {1.0}
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_OCTAVE, -5);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_AMPS[0], 1.0, 1e-10);
-}
-
-// ============================================================================
-// CaveDensityFunctions 噪声参数扩展测试
-// ============================================================================
-
-TEST(CaveDensityFunctionsTest, Spaghetti2DElevationParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_ELEVATION_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_2D_ELEVATION_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_2D_ELEVATION_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, Spaghetti2DThicknessParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_2D_THICKNESS_OCTAVE, -11);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_2D_THICKNESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_2D_THICKNESS_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, Spaghetti3DParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_RARITY_OCTAVE, -11);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_3D_RARITY_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_3D_RARITY_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_THICKNESS_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_3D_THICKNESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_3D_THICKNESS_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_1_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_3D_1_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_3D_1_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_3D_2_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_3D_2_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_3D_2_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, CaveEntranceParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::CAVE_ENTRANCE_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::CAVE_ENTRANCE_AMPS), 3u);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_ENTRANCE_AMPS[0], 0.4, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_ENTRANCE_AMPS[1], 0.5, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_ENTRANCE_AMPS[2], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, CaveLayerParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::CAVE_LAYER_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::CAVE_LAYER_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_LAYER_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, CaveCheeseParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::CAVE_CHEESE_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::CAVE_CHEESE_AMPS), 9u);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[0], 0.5, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[1], 1.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[2], 2.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[3], 1.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[4], 2.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[5], 1.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[6], 0.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[7], 2.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::CAVE_CHEESE_AMPS[8], 0.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, PillarParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::PILLAR_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::PILLAR_AMPS), 2u);
-    EXPECT_NEAR(CaveDensityFunctions::PILLAR_AMPS[0], 1.0, 1e-10);
-    EXPECT_NEAR(CaveDensityFunctions::PILLAR_AMPS[1], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::PILLAR_RARENESS_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::PILLAR_RARENESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::PILLAR_RARENESS_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::PILLAR_THICKNESS_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::PILLAR_THICKNESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::PILLAR_THICKNESS_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, NoodleParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::NOODLE_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::NOODLE_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::NOODLE_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::NOODLE_THICKNESS_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::NOODLE_THICKNESS_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::NOODLE_THICKNESS_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::NOODLE_RIDGE_A_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::NOODLE_RIDGE_A_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::NOODLE_RIDGE_A_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::NOODLE_RIDGE_B_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::NOODLE_RIDGE_B_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::NOODLE_RIDGE_B_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, OreParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEININESS_OCTAVE, -8);
-    EXPECT_NEAR(CaveDensityFunctions::ORE_VEININESS_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEIN_A_OCTAVE, -7);
-    EXPECT_NEAR(CaveDensityFunctions::ORE_VEIN_A_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::ORE_VEIN_B_OCTAVE, -7);
-    EXPECT_NEAR(CaveDensityFunctions::ORE_VEIN_B_AMPS[0], 1.0, 1e-10);
-
-    EXPECT_EQ(CaveDensityFunctions::ORE_GAP_OCTAVE, -5);
-    EXPECT_NEAR(CaveDensityFunctions::ORE_GAP_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, SurfaceDensityThreshold)
-{
-    EXPECT_NEAR(CaveDensityFunctions::SURFACE_DENSITY_THRESHOLD, 1.5625, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, SpaghettiRoughnessModulatorParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_MODULATOR_OCTAVE, -8);
-    EXPECT_EQ(std::size(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_MODULATOR_AMPS), 1u);
-    EXPECT_NEAR(CaveDensityFunctions::SPAGHETTI_ROUGHNESS_MODULATOR_AMPS[0], 1.0, 1e-10);
-}
-
-TEST(CaveDensityFunctionsTest, JaggedParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::JAGGED_OCTAVE, -16);
-    EXPECT_EQ(std::size(CaveDensityFunctions::JAGGED_AMPS), 17u);
-    for (size_t i = 0; i < 17; ++i) {
-        EXPECT_NEAR(CaveDensityFunctions::JAGGED_AMPS[i], 1.0, 1e-10) << "JAGGED_AMPS[" << i << "]";
-    }
-}
-
-TEST(CaveDensityFunctionsTest, Base3DNoiseParameters)
-{
-    EXPECT_EQ(CaveDensityFunctions::BASE_3D_NOISE_OCTAVE, -7);
-    EXPECT_EQ(std::size(CaveDensityFunctions::BASE_3D_NOISE_AMPS), 4u);
-    for (size_t i = 0; i < 4; ++i) {
-        EXPECT_NEAR(CaveDensityFunctions::BASE_3D_NOISE_AMPS[i], 1.0, 1e-10) << "BASE_3D_NOISE_AMPS[" << i << "]";
-    }
-}
-
-// ============================================================================
-// CaveDensityFunctions Builder 函数测试
-// ============================================================================
-
-TEST(CaveDensityFunctionsBuilderTest, Spaghetti2dProducesNonNull)
-{
-    auto result = CaveDensityFunctions::spaghetti2d(*makeRs(), 42);
-    ASSERT_NE(result, nullptr);
-    EXPECT_LT(result->minValue(), result->maxValue());
-}
-
-TEST(CaveDensityFunctionsBuilderTest, SpaghettiRoughnessProducesNonNull)
-{
-    auto result = CaveDensityFunctions::spaghettiRoughness(*makeRs(), 42);
-    ASSERT_NE(result, nullptr);
-    EXPECT_LT(result->minValue(), result->maxValue());
-}
-
-TEST(CaveDensityFunctionsBuilderTest, EntrancesProducesNonNull)
-{
-    auto result = CaveDensityFunctions::entrances(*makeRs(), 42);
-    ASSERT_NE(result, nullptr);
-    // entrances 结果范围应在 [-1, 1] 附近（因 clamp）
-}
-
-TEST(CaveDensityFunctionsBuilderTest, NoodleProducesNonNull)
-{
-    auto result = CaveDensityFunctions::noodle(*makeRs(), 42, -60, 320);
-    ASSERT_NE(result, nullptr);
-}
-
-TEST(CaveDensityFunctionsBuilderTest, PillarsProducesNonNull)
-{
-    auto result = CaveDensityFunctions::pillars(*makeRs(), 42);
-    ASSERT_NE(result, nullptr);
-}
-
-TEST(CaveDensityFunctionsBuilderTest, UndergroundProducesNonNull)
-{
-    auto result = CaveDensityFunctions::underground(*makeRs(), 42, -60, 320);
-    ASSERT_NE(result, nullptr);
-}
-
-TEST(CaveDensityFunctionsBuilderTest, Spaghetti2dDeterministic)
-{
-    auto r1 = CaveDensityFunctions::spaghetti2d(*makeRs(), 42);
-    auto r2 = CaveDensityFunctions::spaghetti2d(*makeRs(), 42);
-    EXPECT_DOUBLE_EQ(r1->compute(100, 50, 200), r2->compute(100, 50, 200));
-}
-
-TEST(CaveDensityFunctionsBuilderTest, DifferentSeedsDifferentResults)
-{
-    // pillars 使用 cacheOnce(mul(add(mul(pillarNoise, 2.0), pillarRareness), cube(pillarThickness)))
-    // 输出范围更广，不太可能在不同种子下产生完全相同的值
-    auto r1 = CaveDensityFunctions::pillars(*makeRs(), 42);
-    auto r2 = CaveDensityFunctions::pillars(*makeRs(), 123);
-    bool anyDifferent = false;
-    for (i32 x = 0; x < 500; x += 73) {
-        for (i32 z = 0; z < 500; z += 97) {
-            if (r1->compute(x, 0, z) != r2->compute(x, 0, z)) {
-                anyDifferent = true;
-                break;
-            }
-        }
-        if (anyDifferent) break;
-    }
-    EXPECT_TRUE(anyDifferent);
 }
 
 // ============================================================================
@@ -1629,11 +1297,11 @@ TEST(DensityFunctionsInvertTest, SmallRange)
 
 TEST(DensityFunctionsShiftedNoiseTest, ComputeDeterministic)
 {
-    auto shiftX = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftY = factory::shift(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftZ = factory::shiftB(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shifted = factory::shiftedNoise(
-        *makeRs(), 42, -8, {1.0}, 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
+    auto shiftX = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftA);
+    auto shiftY = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::Shift);
+    auto shiftZ = std::make_unique<ShiftNoise>(makeTestNoise(42, -3, {1.0, 1.0, 1.0, 0.0}), ShiftType::ShiftB);
+    auto shifted = std::make_unique<ShiftedNoise>(
+        makeTestNoise(42, -8, {1.0}), 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
     f64 v1 = shifted->compute(100, 50, 200);
     f64 v2 = shifted->compute(100, 50, 200);
     EXPECT_DOUBLE_EQ(v1, v2);

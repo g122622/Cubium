@@ -157,6 +157,42 @@ Result<std::unique_ptr<DensityFunction>> DensityFunctionLoader::resolveInline(co
     return resolveElement(element);
 }
 
+namespace {
+
+/// 加载后（registry-backed）三态解析：裸数字→Constant，字符串→注册表查 SharedHolder，对象→TypeRegistry。
+/// 供 noise_settings 的 noise_router 15 字段解析。字符串引用查 DensityFunctionRegistry（已加载）。
+Result<std::unique_ptr<DensityFunction>> resolveElementPostLoad(const json& element)
+{
+    if (element.is_number()) {
+        return factory::constant(element.get<f64>());
+    }
+    if (element.is_string()) {
+        const std::string ref = element.get<std::string>();
+        auto shared = DensityFunctionRegistry::instance().get(ResourceLocation::parse(ref));
+        if (!shared) {
+            return Error(ErrorCode::NotFound, "noise_router references unregistered density_function: '" + ref + "'");
+        }
+        return factory::sharedHolder(shared);
+    }
+    if (element.is_object()) {
+        if (!element.contains("type") || !element["type"].is_string()) {
+            return Error(ErrorCode::InvalidData, "density_function object missing 'type' string field");
+        }
+        const std::string type = element["type"].get<std::string>();
+        ResolveContext ctx;
+        ctx.resolveInline = [](const json& e) { return resolveElementPostLoad(e); };
+        return DensityFunctionTypeRegistry::instance().create(type, element, ctx);
+    }
+    return Error(ErrorCode::InvalidData, "density_function JSON element must be number, string, or object");
+}
+
+} // namespace
+
+Result<std::unique_ptr<DensityFunction>> DensityFunctionLoader::resolveHolderElement(const json& element)
+{
+    return resolveElementPostLoad(element);
+}
+
 Result<size_t> DensityFunctionLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
     // 先清空注册表与数据驱动标记，再由数据包注入

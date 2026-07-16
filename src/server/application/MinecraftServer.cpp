@@ -94,15 +94,16 @@
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/carver/ConfiguredCarverLoader.hpp"
+#include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureLoader.hpp"
 #include "common/world/gen/feature/FeatureTypeRegistry.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/noise/NoiseLoader.hpp"
-#include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/settings/NoiseSettingsLoader.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
@@ -1109,6 +1110,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::error("Failed to load density functions from data packs: {}", dfResult.error().toString());
         } else {
             spdlog::info("Loaded {} density functions from data packs", dfResult.value());
+        }
+    }
+
+    // 从数据包加载 noise_settings（worldgen/noise_settings/*.json）
+    // 依赖 density_function（noise_router 15 字段是 DF Holder，字符串引用查 DensityFunctionRegistry）。
+    // DimensionSettings::fromJson 解析 noise 4 尺寸 + 15 DF 路由模板（m_routerDfs，噪声叶子为
+    // UnboundNoiseLeaf 占位）+ surface_rule + spawn_target + 标量字段，注册到 NoiseSettingsRegistry。
+    // RandomState::create 据此走数据驱动唯一路径，经 NoiseBindingVisitor 绑定真实 NormalNoise。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::NoiseSettings");
+        auto nsResult = world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(m_dataPackList);
+        if (nsResult.failed()) {
+            spdlog::error("Failed to load noise_settings from data packs: {}", nsResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} noise_settings from data packs", nsResult.value());
         }
     }
 

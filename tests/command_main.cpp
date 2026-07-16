@@ -3,9 +3,10 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, without limitation the use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Software, and to furnished
- * to do so, subject to the following conditions:
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -14,15 +15,17 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, IN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
-// 测试程序入口：安装 CrashHandler 后运行所有 GoogleTest 用例。
-// 崩溃（SEH 异常、信号、纯虚调用、std::terminate、MC_ASSERT_RELEASE 触发的 abort）时
-// 输出调用栈，便于定位测试失败/挂起根因。参考 src/client/main.cpp 与 src/server/main.cpp。
+// mc_command_tests 程序入口：与 tests/main.cpp 对齐。
+// 注册全局 WorldGenRegistryEnvironment 在所有用例运行前加载 noise / density_function /
+// noise_settings 数据驱动注册表——RandomState::create 现为数据驱动唯一路径（查
+// NoiseSettingsRegistry），命令测试中构造 NoiseChunkGenerator/维度的用例需注册表已就绪。
+// 崩溃时输出调用栈（CrashHandler）。参考 tests/main.cpp。
 
 #include "common/core/GameDirectory.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -41,11 +44,10 @@ namespace {
 
 /// 全局测试环境：在所有用例运行前一次性加载 noise_settings 数据驱动注册表。
 ///
-/// RandomState::create 现为数据驱动唯一路径（查 NoiseSettingsRegistry），
-/// 故任何调用 create() 的测试都需 Noises / DensityFunctionRegistry / NoiseSettingsRegistry
-/// 已从原版数据包加载。注册表为进程级单例，加载一次即对全部测试可见。
-/// 数据包目录缺失时（非开发机）静默跳过——此类测试会因 registry 为空而断言失败，
-/// 属预期（CI/开发机数据包应存在）。
+/// RandomState::create 现为数据驱动唯一路径（查 NoiseSettingsRegistry），故任何调用
+/// create() 的命令测试都需 Noises / DensityFunctionRegistry / NoiseSettingsRegistry 已从
+/// 原版数据包加载。注册表为进程级单例，加载一次即对全部测试可见。数据包目录缺失时
+/// （非开发机）静默跳过——此类测试会因 registry 为空而断言失败，属预期。
 class WorldGenRegistryEnvironment : public ::testing::Environment {
 public:
     void SetUp() override
@@ -75,8 +77,7 @@ public:
 
 int main(int argc, char* argv[])
 {
-    // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用、std::terminate 等，
-    // 输出调用栈和局部变量信息到终端。多次调用安全（只安装一次）。
+    // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用、std::terminate 等，输出调用栈。
     mc::assert::CrashHandler::install();
 
     ::testing::InitGoogleTest(&argc, argv);
@@ -84,6 +85,5 @@ int main(int argc, char* argv[])
     ::testing::AddGlobalTestEnvironment(new WorldGenRegistryEnvironment());
     const int result = RUN_ALL_TESTS();
 
-    // CrashHandler 不需要 uninstall：进程即将退出，操作系统回收所有资源。
     return result;
 }

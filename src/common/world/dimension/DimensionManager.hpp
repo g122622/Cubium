@@ -41,7 +41,6 @@ namespace mc {
  * 使用示例:
  * @code
  * DimensionManager manager;
- * manager.initialize(seed);
  *
  * // 访问维度
  * Dimension* overworld = manager.getDimension(DimensionManager::OVERWORLD);
@@ -79,16 +78,7 @@ public:
     DimensionManager(DimensionManager&&) noexcept = default;
     DimensionManager& operator=(DimensionManager&&) noexcept = default;
 
-    // ========== 初始化 ==========
-
-    /**
-     * @brief 使用世界种子初始化维度
-     *
-     * 创建所有原版维度（主世界、下界、末地）。
-     *
-     * @param seed 世界种子
-     */
-    void initialize(u64 seed);
+    // ========== 生命周期 ==========
 
     /**
      * @brief 关闭维度管理器
@@ -195,11 +185,6 @@ public:
     [[nodiscard]] size_t dimensionCount() const { return m_dimensions.size(); }
 
     /**
-     * @brief 获取世界种子
-     */
-    [[nodiscard]] u64 worldSeed() const { return m_worldSeed; }
-
-    /**
      * @brief 获取默认出生维度
      *
      * 默认为主世界。
@@ -209,13 +194,7 @@ public:
 protected:
     std::unordered_map<DimensionId, std::unique_ptr<Dimension>> m_dimensions;
     std::unordered_map<std::string, DimensionId> m_nameToId;
-    u64 m_worldSeed = 0;
     bool m_initialized = false;
-
-    /**
-     * @brief 注册原版维度类型
-     */
-    void registerVanillaDimensions(u64 seed);
 };
 
 } // namespace mc

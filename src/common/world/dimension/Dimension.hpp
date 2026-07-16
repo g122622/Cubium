@@ -42,14 +42,6 @@ class WorldLightManager;
  * 将维度类型与区块生成器、生物群系提供者组合，
  * 表示一个完整的维度实例。
  *
- * 使用示例:
- * @code
- * auto dimension = Dimension::createOverworld(seed);
- * auto& type = dimension.type();
- * auto spawnPoint = dimension.spawnPoint();
- * auto biome = dimension.generator()->getBiomeSource()->getNoiseBiome(x >> 2, y >> 2, z >> 2);
- * @endcode
- *
  * @note 维度实例是不可变的，应在初始化时创建。
  */
 class Dimension {
@@ -203,23 +195,6 @@ public:
      * 子类可覆盖以实现维度特定逻辑（如天气）。
      */
     virtual void tick();
-
-    // ========== 工厂方法 ==========
-
-    /**
-     * @brief 创建主世界维度
-     */
-    static std::unique_ptr<Dimension> createOverworld(u64 seed);
-
-    /**
-     * @brief 创建下界维度
-     */
-    static std::unique_ptr<Dimension> createNether(u64 seed);
-
-    /**
-     * @brief 创建末地维度
-     */
-    static std::unique_ptr<Dimension> createTheEnd(u64 seed);
 
 protected:
     DimensionId m_id;

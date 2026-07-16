@@ -68,7 +68,7 @@ public:
      * @param randomState RandomState 引用，用于噪声查找和随机工厂
      * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth、clayBands、扩展等）
      */
-    SurfaceSystem(std::unique_ptr<SurfaceRule> surfaceRule,
+    SurfaceSystem(std::shared_ptr<SurfaceRule> surfaceRule,
         const BlockState* defaultBlock,
         const BlockState* defaultFluid,
         i32 seaLevel,
@@ -112,7 +112,7 @@ private:
         bool isDeepFrozenOcean,
         BiomeId biomeId) const;
 
-    std::unique_ptr<SurfaceRule> m_surfaceRule;
+    std::shared_ptr<SurfaceRule> m_surfaceRule;
     const BlockState* m_defaultBlock;
     const BlockState* m_defaultFluid;
     i32 m_seaLevel;

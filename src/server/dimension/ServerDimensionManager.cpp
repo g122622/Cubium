@@ -38,6 +38,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -391,17 +392,22 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
                 break;
             }
 
+            // 超平坦世界走 FlatChunkGenerator（不走 NoiseChunkGenerator / RandomState::create）。
+            // 阶段4 改造点 D：flat 无对应 noise_settings JSON，无法走数据驱动噪声路径。
+            if (m_overworldType == WorldType::Flat) {
+                generator = std::make_unique<FlatChunkGenerator>(seed, FlatLevelGeneratorSettings::createDefault());
+                break;
+            }
+
             DimensionSettings settings;
             switch (m_overworldType) {
-                case WorldType::Flat:
-                    settings = DimensionSettings::flat();
-                    break;
                 case WorldType::LargeBiomes:
                     settings = DimensionSettings::largeBiomesPreset();
                     break;
                 case WorldType::Amplified:
                     settings = DimensionSettings::amplified();
                     break;
+                case WorldType::Flat:
                 case WorldType::Default:
                 case WorldType::Debug:
                 default:

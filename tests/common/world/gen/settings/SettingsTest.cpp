@@ -390,7 +390,7 @@ TEST_F(SettingsTest, DimensionSettings_Amplified_AllFields)
     EXPECT_FALSE(s.disableMobGeneration);
     EXPECT_TRUE(s.noise.aquifersEnabled);
     EXPECT_FALSE(s.noise.useLegacyRandomSource);
-    // amplified 的 NoiseSettings 与 overworld 相同（amplified 效果由 NoiseRouterData 实现）
+    // amplified 的 NoiseSettings 与 overworld 相同（amplified 效果由数据驱动 noise_router 的 amplified 模板实现）
     EXPECT_EQ(s.noise.minY, -64);
     EXPECT_EQ(s.noise.height, 384);
     EXPECT_EQ(s.noise.sizeHorizontal, 1);

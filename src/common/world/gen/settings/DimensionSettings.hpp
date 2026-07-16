@@ -24,16 +24,51 @@
 #pragma once
 
 #include "NoiseSettings.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/block/Block.hpp"
+#include <array>
+#include <memory>
 #include <vector>
+
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明
 namespace mc {
 class BlockState;
+namespace world::gen::density {
+class DensityFunction;
 }
+namespace world::gen::surface {
+class SurfaceRule;
+}
+} // namespace mc
 
 namespace mc {
+
+/// noise_router 15 字段在 NoiseRouter 构造函数中的固定顺序（与 JSON 键名一致，下划线转 camel）。
+/// DimensionSettings::m_routerDfs 与 NoiseSettingsLoader 按此顺序填充。
+enum class RouterSlot : u8 {
+    Barrier,
+    FluidLevelFloodedness,
+    FluidLevelSpread,
+    Lava,
+    Temperature,
+    Vegetation,
+    Continents,
+    Erosion,
+    Depth,
+    Ridges,
+    PreliminarySurfaceLevel,
+    FinalDensity,
+    VeinToggle,
+    VeinRidged,
+    VeinGap,
+    Count ///< = 15
+};
+
+inline constexpr size_t ROUTER_SLOT_COUNT = static_cast<size_t>(RouterSlot::Count);
 
 /**
  * @brief 维度类型标识
@@ -83,6 +118,42 @@ struct DimensionSettings {
      */
     std::vector<world::biome::climate::ParameterPoint> spawnTarget;
 
+    // === 数据驱动扩展字段（noise_settings JSON 加载后填充）===
+
+    /**
+     * @brief 来源 noise_settings 资源位置
+     *
+     * 数据驱动唯一路径标识：RandomState::create 据此查 NoiseSettingsRegistry 取完整
+     * DimensionSettings（含 m_routerDfs 模板 + m_surfaceRule），经 NoiseBindingVisitor 绑定。
+     * 7 个 C++ 静态预设（overworld/large_biomes/amplified/nether/end/caves/floating_islands）
+     * 均挂规范 RL；flat() 不挂（超平坦走 FlatChunkGenerator，不经 create）。
+     * 空（默认）表示非数据驱动预设（仅 flat()），若误传入 create() 将断言失败。
+     */
+    resource::ResourceLocation m_noiseSettingsId;
+
+    /**
+     * @brief 数据驱动 noise_router 15 字段密度函数模板（未绑定噪声叶子）
+     *
+     * 由 NoiseSettingsLoader 从 noise_settings JSON 的 noise_router 对象解析，
+     * 每字段是 DF Holder（字符串 RL → 查 DensityFunctionRegistry；内联对象 → TypeRegistry；
+     * 裸数字 → Constant）。噪声叶子（noise/shifted_noise/.../old_blended_noise）解析期存
+     * UnboundNoiseLeaf 占位，由 RandomState::create/createRouterCopy 经 NoiseBindingVisitor
+     * 替换为真实叶子（getOrCreateNoise(name) name-hash）。
+     *
+     * shared_ptr 使得 DimensionSettings 可拷贝且 15 槽位可被多个 RandomState 共享模板。
+     * 数组索引对应 RouterSlot 枚举顺序。原版 7 个 noise_settings JSON 均提供全部 15 字段，
+     * 故加载后数组必填；RandomState::create 无 dimensionKind 兜底（数据驱动为唯一路径）。
+     */
+    std::array<std::shared_ptr<world::gen::density::DensityFunction>, ROUTER_SLOT_COUNT> m_routerDfs{};
+
+    /**
+     * @brief 数据驱动 surface_rule 根节点
+     *
+     * 由 SurfaceRuleDeserializer 从 noise_settings JSON 的 surface_rule 字段解析。
+     * 为空表示非数据驱动，RandomState::create 按 dimensionKind 走 C++ SurfaceRules::xxx() 兜底。
+     */
+    std::shared_ptr<world::gen::surface::SurfaceRule> m_surfaceRule;
+
     // === 预设 ===
 
     /**
@@ -124,6 +195,28 @@ struct DimensionSettings {
      * @brief 平坦世界设置（占位用，FlatChunkGenerator 不使用噪声生成）
      */
     static DimensionSettings flat() noexcept;
+
+    // === 数据驱动加载 ===
+
+    /**
+     * @brief 从 noise_settings JSON 解析 DimensionSettings（MC 1.21.11）
+     *
+     * 顶层 11 字段：
+     * - noise → NoiseSettings 4 尺寸字段（min_y/height/size_horizontal/size_vertical），
+     *   其余（scaling/slides/densityFactor/densityOffset 等）由 RL 推导的 dimensionKind 从
+     *   C++ 静态预设补全（用户决策：JSON 只提供 4 尺寸字段）
+     * - default_block/default_fluid → BlockStateParser
+     * - noise_router → 15 DF Holder（字符串 RL / 内联对象 / 裸数字），调 DensityFunctionLoader
+     * - surface_rule → SurfaceRuleDeserializer
+     * - spawn_target → ParameterPointCodec
+     * - sea_level/disable_mob_generation/aquifers_enabled/ore_veins_enabled/legacy_random_source → 直接字段
+     *
+     * @param root noise_settings JSON 根对象
+     * @param id 本 noise_settings 的资源位置（写入 m_noiseSettingsId）
+     * @return DimensionSettings，或错误
+     */
+    [[nodiscard]] static Result<DimensionSettings> fromJson(
+        const nlohmann::json& root, const resource::ResourceLocation& id);
 };
 
 } // namespace mc

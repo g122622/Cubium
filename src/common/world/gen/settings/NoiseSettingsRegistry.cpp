@@ -21,28 +21,45 @@
  *
  */
 
-#include "Dimension.hpp"
+#include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
 
-namespace mc {
+namespace mc::world::gen::settings {
 
-// ============================================================================
-// 构造函数
-// ============================================================================
-
-Dimension::Dimension(DimensionId id, DimensionType type, std::unique_ptr<IChunkGenerator> generator)
-    : m_id(id)
-    , m_type(std::move(type))
-    , m_generator(std::move(generator))
-{}
-
-// ============================================================================
-// 更新
-// ============================================================================
-
-void Dimension::tick()
+NoiseSettingsRegistry& NoiseSettingsRegistry::instance()
 {
-    // 基类默认无操作
-    // 子类可覆盖以实现维度特定逻辑（如末地的末影龙战斗）
+    static NoiseSettingsRegistry registry;
+    return registry;
 }
 
-} // namespace mc
+void NoiseSettingsRegistry::registerSettings(const resource::ResourceLocation& name, DimensionSettings settings)
+{
+    m_settings[name] = std::move(settings);
+}
+
+const DimensionSettings* NoiseSettingsRegistry::get(const resource::ResourceLocation& name) const
+{
+    const auto it = m_settings.find(name);
+    return it == m_settings.end() ? nullptr : &it->second;
+}
+
+bool NoiseSettingsRegistry::has(const resource::ResourceLocation& name) const
+{
+    return m_settings.find(name) != m_settings.end();
+}
+
+void NoiseSettingsRegistry::clear() noexcept
+{
+    m_settings.clear();
+}
+
+void NoiseSettingsRegistry::markLoadedFromDatapack(bool loaded) noexcept
+{
+    m_loadedFromDatapack = loaded;
+}
+
+bool NoiseSettingsRegistry::isLoadedFromDatapack() const noexcept
+{
+    return m_loadedFromDatapack;
+}
+
+} // namespace mc::world::gen::settings

@@ -23,7 +23,6 @@
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "common/world/gen/RandomState.hpp"
 #include <cmath>
 
 namespace mc::world::gen::density {
@@ -309,69 +308,11 @@ std::unique_ptr<DensityFunction> max(std::unique_ptr<DensityFunction> arg1, std:
     return std::make_unique<TwoArgument>(std::move(arg1), std::move(arg2), TwoArgumentType::Max);
 }
 
-std::unique_ptr<DensityFunction> noise(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale)
-{
-    // 共享路径：从 RandomState 缓存获取 NormalNoise，跨区块复用，避免重建 PerlinNoise 倍频置换表。
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<NoiseDensity>(std::move(normalNoise), xzScale, yScale);
-}
-
-std::unique_ptr<DensityFunction> shiftedNoise(const RandomState& rs,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    f64 xzScale,
-    f64 yScale,
-    std::unique_ptr<DensityFunction> shiftX,
-    std::unique_ptr<DensityFunction> shiftY,
-    std::unique_ptr<DensityFunction> shiftZ)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<ShiftedNoise>(
-        std::move(normalNoise), xzScale, yScale, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
-}
-
-std::unique_ptr<DensityFunction> shiftedNoise2d(const RandomState& rs,
-    std::unique_ptr<DensityFunction> shiftX,
-    std::unique_ptr<DensityFunction> shiftZ,
-    f64 xzScale,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    auto zero = factory::constant(0.0);
-    return std::make_unique<ShiftedNoise>(
-        std::move(normalNoise), xzScale, 0.0, std::move(shiftX), std::move(zero), std::move(shiftZ));
-}
-
 std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     std::unique_ptr<DensityFunction> start,
     std::unique_ptr<DensityFunction> end)
 {
     return std::make_unique<Lerp>(std::move(delta), std::move(start), std::move(end));
-}
-
-std::unique_ptr<DensityFunction> shiftA(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<ShiftNoise>(std::move(normalNoise), ShiftType::ShiftA);
-}
-
-std::unique_ptr<DensityFunction> shiftB(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<ShiftNoise>(std::move(normalNoise), ShiftType::ShiftB);
-}
-
-std::unique_ptr<DensityFunction> shift(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<ShiftNoise>(std::move(normalNoise), ShiftType::Shift);
 }
 
 std::unique_ptr<DensityFunction> rangeChoice(std::unique_ptr<DensityFunction> input,
@@ -427,17 +368,6 @@ std::unique_ptr<DensityFunction> cacheAllInCell(std::unique_ptr<DensityFunction>
     return std::make_unique<CacheAllInCell>(std::move(input));
 }
 
-std::unique_ptr<DensityFunction> weirdScaledSampler(std::unique_ptr<DensityFunction> input,
-    const RandomState& rs,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    WeirdScaledSamplerType type)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<WeirdScaledSampler>(std::move(input), std::move(normalNoise), type);
-}
-
 std::unique_ptr<DensityFunction> endIslands(u64 seed)
 {
     return std::make_unique<EndIslands>(seed);
@@ -449,25 +379,6 @@ std::unique_ptr<DensityFunction> findTopSurface(std::unique_ptr<DensityFunction>
     i32 cellHeight)
 {
     return std::make_unique<FindTopSurface>(std::move(density), std::move(upperBound), lowerBound, cellHeight);
-}
-
-std::unique_ptr<DensityFunction> blendedNoise(
-    u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
-{
-    return std::make_unique<BlendedNoise>(seed, xzScale, yScale, xzFactor, yFactor, smearScaleMultiplier);
-}
-
-std::unique_ptr<DensityFunction> mappedNoise(const RandomState& rs,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    f64 xzScale,
-    f64 yScale,
-    f64 fromValue,
-    f64 toValue)
-{
-    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
-    return std::make_unique<MappedNoise>(std::move(normalNoise), xzScale, yScale, fromValue, toValue);
 }
 
 std::unique_ptr<DensityFunction> interpolated(std::unique_ptr<DensityFunction> wrapped)

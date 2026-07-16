@@ -43,12 +43,14 @@ NoiseChunkGenerator    DebugChunkGenerator    FlatChunkGenerator
 
 ### 维度配置
 
-| 维度 | NoiseRouter | 生物群系源 | 参数 |
-|------|------------|-----------|------|
-| 主世界 | `NoiseRouterData::overworld(seed)` | `MultiNoiseBiomeSource::createOverworld()` | BlendedNoise(0.25, 0.125, 80, 160, 8) |
-| 下界 | `NoiseRouterData::nether(seed)` | `MultiNoiseBiomeSource::createNether()` | BlendedNoise(0.25, 0.375, 80, 60, 8) |
-| 末地 | `NoiseRouterData::end(seed)` | `EndBiomeSource(seed)` | BlendedNoise(0.25, 0.25, 80, 160, 4) |
-| 平坦 | N/A | `FixedBiomeSource(Plains)` | N/A |
+噪声路由（NoiseRouter）与地表规则现由数据驱动 `noise_settings` JSON 提供，经 `NoiseSettingsLoader` 加载到 `NoiseSettingsRegistry`，`RandomState::create` 据此经 `NoiseBindingVisitor` 绑定真实噪声。
+
+| 维度 | noise_settings RL | 生物群系源 | BlendedNoise 参数 |
+|------|------------------|-----------|------|
+| 主世界 | `minecraft:overworld` | `MultiNoiseBiomeSource::createOverworld()` | BlendedNoise(0.25, 0.125, 80, 160, 8) |
+| 下界 | `minecraft:nether` | `MultiNoiseBiomeSource::createNether()` | BlendedNoise(0.25, 0.375, 80, 60, 8) |
+| 末地 | `minecraft:end` | `EndBiomeSource(seed)` | BlendedNoise(0.25, 0.25, 80, 160, 4) |
+| 平坦 | N/A（走 FlatChunkGenerator） | `FixedBiomeSource(Plains)` | N/A |
 
 ## 关键算法对齐要点
 

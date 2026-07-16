@@ -122,7 +122,7 @@ private:
 /**
  * @brief Beardifier 标记密度函数 — MC 1.21 BeardifierMarker
  *
- * 在 NoiseRouterData 中作为占位符使用。
+ * BeardifierMarker 在密度函数树中作为占位符（由 DensityFunctionTypeRegistry createBeardifier 构造）。
  * 当 NoiseChunk 创建时，会被替换为实际的 Beardifier 实例。
  * 如果区块中无结构，则替换为零值常量。
  */
