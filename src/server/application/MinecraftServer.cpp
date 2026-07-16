@@ -100,6 +100,7 @@
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/noise/NoiseLoader.hpp"
+#include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
@@ -1092,6 +1093,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::error("Failed to load noise parameters from data packs: {}", noiseResult.error().toString());
         } else {
             spdlog::info("Loaded {} noise parameters from data packs", noiseResult.value());
+        }
+    }
+
+    // 从数据包加载密度函数（worldgen/density_function/*.json）
+    // 依赖噪声（noise 叶子节点引用噪声名）。35 个 density_function 经两阶段 Holder
+    // 引用解析（前向引用 + 共享子图 + 循环检测）注册到 DensityFunctionRegistry。
+    // 噪声叶子节点解析期存 UnboundNoiseLeaf 占位，由 NoiseBindingVisitor 在
+    // RandomState 组装 NoiseRouter 时按 name-hash 绑定真实 NormalNoise（阶段3 noise_settings）。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::DensityFunctions");
+        auto dfResult = world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dfResult.failed()) {
+            spdlog::error("Failed to load density functions from data packs: {}", dfResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} density functions from data packs", dfResult.value());
         }
     }
 

@@ -1060,6 +1060,9 @@ add_library(mc_common STATIC
     world/gen/density/BlendedNoise.cpp
     world/gen/density/CaveDensityFunctions.cpp
     world/gen/density/DensityFunctions.cpp
+    world/gen/density/DensityFunctionTypeRegistry.cpp
+    world/gen/density/DensityFunctionLoader.cpp
+    world/gen/density/DensityFunctionRegistry.cpp
     world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
     world/gen/density/NoiseRouterData.cpp
