@@ -95,6 +95,24 @@ private:
      * @return 密度函数，或错误
      */
     [[nodiscard]] static Result<std::unique_ptr<DensityFunction>> resolveInline(const nlohmann::json& element);
+
+public:
+    /**
+     * @brief 加载后解析 DF Holder 元素（registry-backed，供 noise_settings noise_router 用）
+     *
+     * 在 DensityFunctionLoader::loadFromDataPackRepository 完成后调用（35 个命名 DF 已在
+     * DensityFunctionRegistry）。三态分发：
+     * - 裸数字 → Constant
+     * - 裸字符串 → DensityFunctionRegistry::get(rl) → SharedHolder(共享 shared_ptr)；
+     *   未注册则报错
+     * - 对象 → DensityFunctionTypeRegistry::create（子字段经同一 registry-backed resolveInline 递归）
+     *
+     * 与加载期 resolveInline 的区别：字符串引用查注册表（已解析共享子图）而非 rawMap。
+     *
+     * @param element JSON 元素（noise_router 某字段）
+     * @return 密度函数（unique_ptr，噪声叶子为 UnboundNoiseLeaf 占位），或错误
+     */
+    [[nodiscard]] static Result<std::unique_ptr<DensityFunction>> resolveHolderElement(const nlohmann::json& element);
 };
 
 } // namespace world::gen::density

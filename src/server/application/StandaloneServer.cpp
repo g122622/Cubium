@@ -40,6 +40,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -411,8 +412,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             break;
     }
 
-    auto dimInitResult = m_dimensionManager->initialize(
-        static_cast<u64>(std::stoll(m_settings.levelSeed.get())), m_settings.viewDistance.get(), overworldType);
+    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(std::stoll(m_settings.levelSeed.get())),
+        m_settings.viewDistance.get(),
+        overworldType,
+        resource::ResourceLocation("minecraft", "default"));
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());

@@ -24,11 +24,62 @@
 // 崩溃（SEH 异常、信号、纯虚调用、std::terminate、MC_ASSERT_RELEASE 触发的 abort）时
 // 输出调用栈，便于定位测试失败/挂起根因。参考 src/client/main.cpp 与 src/server/main.cpp。
 
+#include "common/core/GameDirectory.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/CrashHandler.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/density/DensityFunctionLoader.hpp"
+#include "common/world/gen/noise/NoiseLoader.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
+#include "common/world/gen/settings/NoiseSettingsLoader.hpp"
+#include "common/world/gen/settings/WorldPresetLoader.hpp"
 
 #include <gtest/gtest.h>
 
 #include <cstdlib>
+#include <filesystem>
+
+namespace {
+
+/// 全局测试环境：在所有用例运行前一次性加载 noise_settings 数据驱动注册表。
+///
+/// RandomState::create 现为数据驱动唯一路径（查 NoiseSettingsRegistry），
+/// 故任何调用 create() 的测试都需 Noises / DensityFunctionRegistry / NoiseSettingsRegistry
+/// 已从原版数据包加载。注册表为进程级单例，加载一次即对全部测试可见。
+/// 数据包目录缺失时（非开发机）静默跳过——此类测试会因 registry 为空而断言失败，
+/// 属预期（CI/开发机数据包应存在）。
+class WorldGenRegistryEnvironment : public ::testing::Environment {
+public:
+    void SetUp() override
+    {
+        const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
+        if (!std::filesystem::exists(dataPackDir)) {
+            return;
+        }
+        mc::resource::DataPackRepository repo;
+        auto scanResult = repo.scanDirectory(dataPackDir);
+        if (!scanResult.success() || scanResult.value() == 0) {
+            return;
+        }
+        // noise_settings 的 JSON 解析会调 BlockStateParser::parse("minecraft:stone")，
+        // 依赖 BlockRegistry 已注册原版方块。VanillaBlocks::initialize() 幂等（s_initialized 守卫），
+        // 在此显式调用使本环境自包含——不依赖其它测试文件的静态全局 Environment 注册顺序。
+        mc::VanillaBlocks::initialize();
+
+        // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset（依赖拓扑）。
+        // flat preset 依赖 BlockRegistry（层方块，已由 VanillaBlocks::initialize 注册）与
+        // BiomeLoader::biomeIdByName（编译期静态 biome 名映射表），不依赖运行时 BiomeRegistry。
+        mc::world::gen::noise::NoiseLoader::loadFromDataPackRepository(repo);
+        mc::world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);
+        mc::world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(repo);
+        mc::world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(repo);
+        // world_preset 依赖 noise_settings（noise 维度存 RL）+ flat_preset（flat 维度内联 settings 复用
+        // FlatLevelGeneratorSettings::fromSettingsObject）。
+        mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(repo);
+    }
+};
+
+} // namespace
 
 int main(int argc, char* argv[])
 {
@@ -37,6 +88,8 @@ int main(int argc, char* argv[])
     mc::assert::CrashHandler::install();
 
     ::testing::InitGoogleTest(&argc, argv);
+    // 注册全局环境：在 RUN_ALL_TESTS 之前加载世界生成注册表。
+    ::testing::AddGlobalTestEnvironment(new WorldGenRegistryEnvironment());
     const int result = RUN_ALL_TESTS();
 
     // CrashHandler 不需要 uninstall：进程即将退出，操作系统回收所有资源。

@@ -29,6 +29,7 @@ CreateWorldRequest::CreateWorldRequest(std::string displayName,
     std::string requestedLevelId,
     u64 seed,
     WorldType worldType,
+    resource::ResourceLocation worldPresetId,
     GameMode gameMode,
     Difficulty difficulty,
     bool hardcore,
@@ -38,6 +39,7 @@ CreateWorldRequest::CreateWorldRequest(std::string displayName,
     , requestedLevelId(std::move(requestedLevelId))
     , seed(seed)
     , worldType(worldType)
+    , worldPresetId(std::move(worldPresetId))
     , gameMode(gameMode)
     , difficulty(difficulty)
     , hardcore(hardcore)

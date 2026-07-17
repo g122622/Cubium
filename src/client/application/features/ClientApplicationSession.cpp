@@ -180,6 +180,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         .viewDistance = config.viewDistance,
         .tickRate = defaults::integratedServer::tickRate,
         .worldType = config.worldType,
+        .worldPresetId = config.worldPresetId,
         .difficulty = config.difficulty,
         .hardcore = config.hardcore,
         .allowCommands = config.allowCommands,
@@ -638,6 +639,7 @@ void ClientApplication::showWorldSelection()
         config.displayName = entry.displayName;
         config.seed = static_cast<i64>(entry.seed);
         config.worldType = entry.worldType;
+        config.worldPresetId = entry.worldPresetId;
         config.defaultGameMode = entry.gameMode;
         config.difficulty = entry.difficulty;
         config.hardcore = entry.hardcore;
@@ -714,6 +716,7 @@ void ClientApplication::showCreateWorld()
         config.displayName = request.displayName;
         config.seed = static_cast<i64>(request.seed);
         config.worldType = request.worldType;
+        config.worldPresetId = request.worldPresetId;
         config.defaultGameMode = request.gameMode;
         config.difficulty = request.difficulty;
         config.hardcore = request.hardcore;

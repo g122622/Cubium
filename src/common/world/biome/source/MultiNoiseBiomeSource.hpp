@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #pragma once
@@ -26,7 +27,6 @@
 #include "common/world/biome/climate/ParameterList.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
-#include "common/world/gen/density/NoiseRouter.hpp"
 #include <memory>
 
 namespace mc {
@@ -46,26 +46,24 @@ namespace source {
  * @brief 基于 Climate 参数的多噪声生物群系源
  *
  * 使用 6 个气候参数（temperature, humidity, continentalness, erosion, depth, weirdness）
- * 在三维空间中采样，通过最近邻匹配确定生物群系。
- * 支持主世界和下界。
+ * 在三维空间中采样，通过最近邻匹配确定生物群系。支持主世界和下界。
  *
- * 与 NoiseChunkGenerator 共享同一个 RandomState，气候密度函数的 NormalNoise
- * 叶子跨区块复用，避免重复重建 PerlinNoise 倍频置换表。
+ * 对齐 MC 1.21.11 MultiNoiseBiomeSource：本类无状态（不持有 NoiseRouter），气候采样直接
+ * 复用 RandomState.sampler()（由 NoiseChunkGenerator 与本类共享的 RandomState 持有）。
+ * 6 个气候密度函数由 RandomState 的 NoiseRouter 管理，Sampler 仅引用其 DensityFunction 指针。
  *
- * 注意：此类拥有 NoiseRouter，Climate::Sampler 引用的 DensityFunction
- * 由 router 管理，确保生命周期正确。
+ * 生命周期约束：m_sampler 引用的 RandomState 必须在本类之前销毁。生产中 RandomState 由
+ * NoiseChunkGenerator 持有，与本类同属一个 dimension，RandomState 不会先于 biome source 销毁。
  */
 class MultiNoiseBiomeSource : public IBiomeSource {
 public:
     /**
      * @brief 构造多噪声生物群系源
-     * @param rs 世界随机状态（提供噪声缓存，与生成器共享）
+     * @param worldSeed 世界种子（IBiomeSource 基类用于 findBiome 等随机搜索）
      * @param parameters 气候参数到生物群系的映射
-     * @param router 噪声路由器（拥有权转移，内部 NormalNoise 叶子共享 rs 缓存）
+     * @param sampler 气候采样器（引用 RandomState.sampler()，生命周期由 RandomState 保证）
      */
-    MultiNoiseBiomeSource(const gen::RandomState& rs,
-        climate::ParameterList<BiomeId> parameters,
-        std::unique_ptr<gen::density::NoiseRouter> router);
+    MultiNoiseBiomeSource(u64 worldSeed, climate::ParameterList<BiomeId> parameters, const climate::Sampler& sampler);
 
     [[nodiscard]] BiomeId getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const override;
     [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override;
@@ -76,14 +74,9 @@ public:
     [[nodiscard]] const climate::ParameterList<BiomeId>& parameters() const { return m_parameters; }
 
     /**
-     * @brief 获取气候采样器
+     * @brief 获取气候采样器（引用 RandomState.sampler()）
      */
     [[nodiscard]] const climate::Sampler& sampler() const { return m_sampler; }
-
-    /**
-     * @brief 获取噪声路由器
-     */
-    [[nodiscard]] const gen::density::NoiseRouter& router() const { return *m_router; }
 
     /**
      * @brief 通过 TargetPoint 直接查找生物群系
@@ -94,9 +87,9 @@ public:
 
     /**
      * @brief 创建主世界生物群系源
-     * @param rs 世界随机状态（与生成器共享同一缓存）
-     * @param largeBiomes 是否使用大型生物群系
-     * @param amplified 是否使用放大化预设
+     * @param rs 世界随机状态（提供气候采样器，与生成器共享同一 RandomState）
+     * @param largeBiomes 是否使用大型生物群系（保留参数，对齐原版签名；气候采样由 rs.sampler() 统一）
+     * @param amplified 是否使用放大化预设（同上）
      * @return 配置好的 MultiNoiseBiomeSource
      */
     [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createOverworld(
@@ -104,15 +97,14 @@ public:
 
     /**
      * @brief 创建下界生物群系源
-     * @param rs 世界随机状态（与生成器共享同一缓存）
+     * @param rs 世界随机状态（提供气候采样器，与生成器共享同一 RandomState）
      * @return 配置好的 MultiNoiseBiomeSource
      */
     [[nodiscard]] static std::unique_ptr<MultiNoiseBiomeSource> createNether(const gen::RandomState& rs);
 
 private:
     climate::ParameterList<BiomeId> m_parameters;
-    std::unique_ptr<gen::density::NoiseRouter> m_router;
-    climate::Sampler m_sampler;
+    const climate::Sampler& m_sampler;
 };
 
 } // namespace source

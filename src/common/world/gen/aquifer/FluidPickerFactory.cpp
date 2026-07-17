@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN EVENT OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
@@ -23,11 +23,11 @@
 #include "FluidPickerFactory.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
-#include <limits>
 
 namespace mc::world::gen::aquifer {
 
-FluidPicker createOverworldFluidPicker(i32 seaLevel, const BlockState* defaultFluid)
+// 对齐 MC 1.21.11 NoiseBasedChunkGenerator.createFluidPicker：所有维度共用同一选择器。
+FluidPicker createFluidPicker(i32 seaLevel, const BlockState* defaultFluid)
 {
     const i32 lavaLevel = -54;
     const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
@@ -39,19 +39,6 @@ FluidPicker createOverworldFluidPicker(i32 seaLevel, const BlockState* defaultFl
         }
         return {seaLevel, defaultFluid};
     };
-}
-
-FluidPicker createNetherFluidPicker()
-{
-    const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
-    return [lavaState](i32, i32, i32) -> FluidStatus { return {32, lavaState}; };
-}
-
-FluidPicker createEndFluidPicker()
-{
-    // MC 1.21: End 没有流体，FluidStatus 返回空气方块状态
-    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
-    return [airState](i32, i32, i32) -> FluidStatus { return {std::numeric_limits<i32>::min(), airState}; };
 }
 
 } // namespace mc::world::gen::aquifer

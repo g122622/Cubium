@@ -27,11 +27,12 @@ gen/
 │   └── DebugChunkGenerator.hpp/cpp # 调试平坦生成器
 ├── density/                     # 密度函数系统
 │   ├── DensityFunction.hpp      # 密度函数接口
-│   ├── DensityFunctions.hpp/cpp # 密度函数实现（含 BlendedNoise、EndIslands）
+│   ├── DensityFunctions.hpp/cpp # 密度函数实现（含 BlendedNoise、EndIslands、UnboundNoiseLeaf 占位）
 │   ├── BlendedNoise.hpp/cpp     # MC 1.18+ 混合噪声密度函数
 │   ├── NoiseChunk.hpp/cpp       # 噪声区块数据
 │   ├── NoiseRouter.hpp/cpp      # 噪声路由器
-│   ├── NoiseRouterData.hpp/cpp  # 噪声路由数据
+│   ├── NoiseBindingVisitor.hpp/cpp # 数据驱动噪声叶子绑定访问器
+│   ├── DensityFunctionLoader.hpp/cpp + Registry + TypeRegistry # density_function JSON 加载
 │   └── README.md
 ├── feature/                     # 特征系统
 │   ├── Feature.hpp/cpp          # 特征基类

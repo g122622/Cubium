@@ -218,6 +218,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
                         config.displayName = entry.displayName;
                         config.seed = static_cast<i64>(entry.seed);
                         config.worldType = entry.worldType;
+                        config.worldPresetId = entry.worldPresetId;
                         config.defaultGameMode = entry.gameMode;
                         config.difficulty = entry.difficulty;
                         config.hardcore = entry.hardcore;

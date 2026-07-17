@@ -34,16 +34,25 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/crypto/Sha256.hpp"
+#include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
+#include "common/world/biome/source/FixedBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "common/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
+#include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
+#include "common/world/gen/settings/WorldPreset.hpp"
+#include "common/world/gen/settings/WorldPresetRegistry.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -66,7 +75,8 @@ ServerDimensionManager::~ServerDimensionManager() = default;
 // 初始化
 // ============================================================================
 
-Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, WorldType overworldType)
+Result<void> ServerDimensionManager::initialize(
+    u64 seed, i32 viewDistance, WorldType overworldType, resource::ResourceLocation worldPresetId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerDimensionManager::initialize");
 
@@ -77,6 +87,7 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
     m_seed = seed;
     m_viewDistance = viewDistance;
     m_overworldType = overworldType;
+    m_worldPresetId = std::move(worldPresetId);
 
     m_dimensions.clear();
 
@@ -364,86 +375,173 @@ bool ServerDimensionManager::isDimensionLoaded(DimensionId id) const
 
 std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(DimensionId id, u64 seed)
 {
-    // 创建维度类型
-    DimensionType type = DimensionType::overworld(); // 默认值
+    // 数据驱动唯一路径：查 WorldPresetRegistry 取 WorldPreset，按 id 映射维度键装配三维度。
+    // WorldPresetRegistry 未加载（数据包缺失）时回退旧 WorldType switch（仅验证期保留，5f 删旧工厂后清）。
+    const auto* worldPreset = world::gen::settings::WorldPresetRegistry::instance().get(m_worldPresetId);
+
+    // id → 维度键（world_preset JSON dimensions 的 key）
+    resource::ResourceLocation dimKey;
     switch (id) {
         case OVERWORLD:
-            type = DimensionType::overworld();
+            dimKey = resource::ResourceLocation::parse("minecraft:overworld");
             break;
         case NETHER:
-            type = DimensionType::nether();
+            dimKey = resource::ResourceLocation::parse("minecraft:the_nether");
             break;
         case THE_END:
-            type = DimensionType::theEnd();
+            dimKey = resource::ResourceLocation::parse("minecraft:the_end");
             break;
         default:
-            MC_ASSERT_RELEASE_MSG(false, "Unknown dimension id");
+            MC_ASSERT_RELEASE_MSG(false, fmt::format("Unknown dimension id {}", id).c_str());
             return nullptr;
     }
 
-    // 根据维度类型创建生成器和生物群系提供者
+    // 维度类型（DimensionType 当前非数据驱动，按 dimensionType RL 映射 3 静态工厂）
+    DimensionType type = DimensionType::overworld();
+    if (id == NETHER) {
+        type = DimensionType::nether();
+    } else if (id == THE_END) {
+        type = DimensionType::theEnd();
+    }
+
     std::unique_ptr<IChunkGenerator> generator;
 
+    if (worldPreset != nullptr) {
+        const auto dimIt = worldPreset->dimensions.find(dimKey);
+        MC_ASSERT_RELEASE_MSG(dimIt != worldPreset->dimensions.end(),
+            fmt::format("WorldPreset '{}' has no dimension '{}'", m_worldPresetId.toString(), dimKey.toString())
+                .c_str());
+        const auto& dim = dimIt->second;
+        const auto& gen = dim.generator;
+
+        switch (gen.type) {
+            case world::gen::settings::WorldPresetGenerator::Type::Noise: {
+                // 查 NoiseSettingsRegistry 取 DimensionSettings（含 m_routerDfs 模板 + m_surfaceRule）
+                const auto* settings = world::gen::settings::NoiseSettingsRegistry::instance().get(gen.noiseSettings);
+                MC_ASSERT_RELEASE_MSG(settings != nullptr,
+                    fmt::format("noise_settings '{}' not in NoiseSettingsRegistry (world_preset '{}')",
+                        gen.noiseSettings.toString(),
+                        m_worldPresetId.toString())
+                        .c_str());
+                DimensionSettings dimSettings = *settings;
+
+                // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
+                auto randomState = world::gen::RandomState::create(dimSettings, seed);
+                auto biomeSource = _createBiomeSource(gen, *randomState, seed);
+                generator = std::make_unique<NoiseChunkGenerator>(
+                    std::move(dimSettings), std::move(biomeSource), std::move(randomState));
+                break;
+            }
+            case world::gen::settings::WorldPresetGenerator::Type::Flat:
+                // flat 维度内联 settings 已在解析期产 FlatLevelGeneratorSettings（WorldPresetGenerator.flatSettings）
+                generator = std::make_unique<FlatChunkGenerator>(seed, gen.flatSettings);
+                break;
+            case world::gen::settings::WorldPresetGenerator::Type::Debug:
+                generator = std::make_unique<DebugChunkGenerator>();
+                break;
+        }
+    } else {
+        // 兜底：WorldPresetRegistry 未加载（数据包缺失/测试未加载）。保留旧 WorldType 装配。
+        spdlog::warn(
+            "WorldPreset '{}' not loaded, falling back to legacy WorldType assembly", m_worldPresetId.toString());
+        generator = _createLegacyGenerator(id, seed);
+    }
+
+    MC_ASSERT_RELEASE_MSG(
+        generator != nullptr, fmt::format("Failed to create chunk generator for dimension {}", id).c_str());
+
+    auto world = _createServerWorld(id, seed, std::move(generator));
+    auto dimension = std::make_unique<ServerDimension>(id, std::move(type), nullptr, seed, m_viewDistance);
+    dimension->setWorld(std::move(world));
+    return dimension;
+}
+
+std::unique_ptr<world::biome::IBiomeSource> ServerDimensionManager::_createBiomeSource(
+    const world::gen::settings::WorldPresetGenerator& gen, const world::gen::RandomState& rs, u64 seed)
+{
+    using BS = world::gen::settings::WorldPresetGenerator::BiomeSourceType;
+    switch (gen.biomeSourceType) {
+        case BS::MultiNoise: {
+            // preset 名映射：minecraft:overworld→createOverworld，minecraft:nether→createNether
+            // largeBiomes/amplified 由 world_preset 名推导（createOverworld 当前 (void) 丢弃，参数仅保留接口）
+            const bool isLargeBiomes = (m_worldPresetId == resource::ResourceLocation("minecraft", "large_biomes"));
+            const bool isAmplified = (m_worldPresetId == resource::ResourceLocation("minecraft", "amplified"));
+            if (gen.multiNoisePreset == resource::ResourceLocation("minecraft", "nether")) {
+                return world::biome::source::MultiNoiseBiomeSource::createNether(rs);
+            }
+            return world::biome::source::MultiNoiseBiomeSource::createOverworld(rs, isLargeBiomes, isAmplified);
+        }
+        case BS::TheEnd:
+            return std::make_unique<world::biome::source::EndBiomeSource>(rs);
+        case BS::Fixed: {
+            auto biomeId = world::biome::BiomeLoader::biomeIdByName(gen.fixedBiome);
+            MC_ASSERT_RELEASE_MSG(biomeId.has_value(),
+                fmt::format("world_preset fixed biome '{}' has no BiomeId mapping", gen.fixedBiome.toString()).c_str());
+            return std::make_unique<world::biome::source::FixedBiomeSource>(seed, biomeId.value());
+        }
+    }
+    MC_ASSERT_RELEASE_MSG(false, "Unsupported biome_source type");
+    return nullptr;
+}
+
+std::unique_ptr<IChunkGenerator> ServerDimensionManager::_createLegacyGenerator(DimensionId id, u64 seed)
+{
+    // 旧 WorldType 装配兜底（WorldPresetRegistry 未加载时）。
     switch (id) {
         case OVERWORLD: {
             if (m_overworldType == WorldType::Debug) {
-                generator = std::make_unique<DebugChunkGenerator>();
-                break;
+                return std::make_unique<DebugChunkGenerator>();
             }
-
+            if (m_overworldType == WorldType::Flat) {
+                // flat 兜底：查 FlatLevelGeneratorPresetRegistry 取 classic_flat，未加载回退 createDefault()
+                FlatLevelGeneratorSettings flatSettings = FlatLevelGeneratorSettings::createDefault();
+                const auto presetId = resource::ResourceLocation("minecraft", "classic_flat");
+                const auto* preset = world::gen::settings::FlatLevelGeneratorPresetRegistry::instance().get(presetId);
+                if (preset != nullptr) {
+                    flatSettings = *preset;
+                }
+                return std::make_unique<FlatChunkGenerator>(seed, std::move(flatSettings));
+            }
             DimensionSettings settings;
             switch (m_overworldType) {
-                case WorldType::Flat:
-                    settings = DimensionSettings::flat();
-                    break;
                 case WorldType::LargeBiomes:
                     settings = DimensionSettings::largeBiomesPreset();
                     break;
                 case WorldType::Amplified:
                     settings = DimensionSettings::amplified();
                     break;
+                case WorldType::Flat:
                 case WorldType::Default:
                 case WorldType::Debug:
                 default:
                     settings = DimensionSettings::overworld();
                     break;
             }
-
             const bool isLargeBiomes = (m_overworldType == WorldType::LargeBiomes);
             const bool isAmplified = (m_overworldType == WorldType::Amplified);
-
-            // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
-            auto randomState = mc::world::gen::RandomState::create(settings, seed);
-            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(
-                *randomState, isLargeBiomes, isAmplified);
-            generator = std::make_unique<NoiseChunkGenerator>(
+            auto randomState = world::gen::RandomState::create(settings, seed);
+            auto biomeSource =
+                world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, isLargeBiomes, isAmplified);
+            return std::make_unique<NoiseChunkGenerator>(
                 std::move(settings), std::move(biomeSource), std::move(randomState));
-            break;
         }
         case NETHER: {
             auto settings = DimensionSettings::nether();
-            auto randomState = mc::world::gen::RandomState::create(settings, seed);
-            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
-            generator = std::make_unique<NoiseChunkGenerator>(
+            auto randomState = world::gen::RandomState::create(settings, seed);
+            auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
+            return std::make_unique<NoiseChunkGenerator>(
                 std::move(settings), std::move(biomeSource), std::move(randomState));
-            break;
         }
         case THE_END: {
             auto settings = DimensionSettings::end();
-            auto randomState = mc::world::gen::RandomState::create(settings, seed);
-            auto biomeSource = std::make_unique<mc::world::biome::source::EndBiomeSource>(*randomState);
-            generator = std::make_unique<NoiseChunkGenerator>(
+            auto randomState = world::gen::RandomState::create(settings, seed);
+            auto biomeSource = std::make_unique<world::biome::source::EndBiomeSource>(*randomState);
+            return std::make_unique<NoiseChunkGenerator>(
                 std::move(settings), std::move(biomeSource), std::move(randomState));
-            break;
         }
         default:
             return nullptr;
     }
-
-    auto world = _createServerWorld(id, seed, std::move(generator));
-    auto dimension = std::make_unique<ServerDimension>(id, std::move(type), nullptr, seed, m_viewDistance);
-    dimension->setWorld(std::move(world));
-    return dimension;
 }
 
 std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(

@@ -187,6 +187,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
                 m_params.worldName,
                 static_cast<u64>(m_params.seed),
                 m_params.worldType,
+                m_params.worldPresetId,
                 m_params.defaultGameMode,
                 m_params.difficulty,
                 m_params.hardcore,
@@ -205,9 +206,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
             "Failed to initialize shared world storage: " + storageInitResult.error().message());
     }
 
-    // 初始化维度管理器
-    auto dimInitResult =
-        m_dimensionManager->initialize(static_cast<u64>(params.seed), params.viewDistance, params.worldType);
+    // 初始化维度管理器。worldPresetId 由调用方显式传入 IntegratedServerParams（数据驱动装配查 WorldPresetRegistry）。
+    auto dimInitResult = m_dimensionManager->initialize(
+        static_cast<u64>(params.seed), params.viewDistance, params.worldType, params.worldPresetId);
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());

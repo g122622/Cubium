@@ -22,10 +22,15 @@
  */
 
 #include "RandomState.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/world/gen/density/NoiseBindingVisitor.hpp"
+#include "common/world/gen/density/NoiseRouter.hpp"
 #include "common/world/gen/noise/Noises.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
-#include "density/NoiseRouterData.hpp"
+#include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
+
+#include <fmt/format.h>
 
 namespace mc::world::gen {
 
@@ -34,91 +39,110 @@ RandomState::RandomState(u64 worldSeed, const DimensionSettings& settings)
     , m_settings(settings)
 {}
 
+namespace {
+
+/// 从 m_routerDfs 模板（15 槽 UnboundNoiseLeaf 占位）经 NoiseBindingVisitor 绑定后构造 NoiseRouter。
+/// mapAll 对每个槽 DF 递归深拷贝 + 替换占位（一次完成深拷贝 + 绑定），每区块得到独立绑定树。
+/// const RandomState&：create（非 const）与 createRouterCopy（const）共用此路径；NoiseBindingVisitor
+/// 仅调用 getOrCreateNoiseShared（const，mutable 噪声缓存）+ positionalRandom() const 重载。
+density::NoiseRouter buildRouterFromTemplate(const DimensionSettings& settings, const RandomState& rs, u64 worldSeed)
+{
+    MC_ASSERT_MSG(settings.m_noiseSettingsId.isValid(),
+        "RandomState::create: DimensionSettings has no noise_settings id (flat worlds must not reach "
+        "NoiseChunkGenerator path)");
+
+    density::NoiseBindingVisitor visitor(rs, worldSeed);
+    auto barrier = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Barrier)]->mapAll(visitor);
+    auto fluidLevelFloodedness =
+        settings.m_routerDfs[static_cast<size_t>(RouterSlot::FluidLevelFloodedness)]->mapAll(visitor);
+    auto fluidLevelSpread = settings.m_routerDfs[static_cast<size_t>(RouterSlot::FluidLevelSpread)]->mapAll(visitor);
+    auto lava = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Lava)]->mapAll(visitor);
+    auto temperature = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Temperature)]->mapAll(visitor);
+    auto vegetation = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Vegetation)]->mapAll(visitor);
+    auto continents = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Continents)]->mapAll(visitor);
+    auto erosion = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Erosion)]->mapAll(visitor);
+    auto depth = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Depth)]->mapAll(visitor);
+    auto ridges = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Ridges)]->mapAll(visitor);
+    auto preliminarySurfaceLevel =
+        settings.m_routerDfs[static_cast<size_t>(RouterSlot::PreliminarySurfaceLevel)]->mapAll(visitor);
+    auto finalDensity = settings.m_routerDfs[static_cast<size_t>(RouterSlot::FinalDensity)]->mapAll(visitor);
+    auto veinToggle = settings.m_routerDfs[static_cast<size_t>(RouterSlot::VeinToggle)]->mapAll(visitor);
+    auto veinRidged = settings.m_routerDfs[static_cast<size_t>(RouterSlot::VeinRidged)]->mapAll(visitor);
+    auto veinGap = settings.m_routerDfs[static_cast<size_t>(RouterSlot::VeinGap)]->mapAll(visitor);
+
+    return density::NoiseRouter(std::move(barrier),
+        std::move(fluidLevelFloodedness),
+        std::move(fluidLevelSpread),
+        std::move(lava),
+        std::move(temperature),
+        std::move(vegetation),
+        std::move(continents),
+        std::move(erosion),
+        std::move(depth),
+        std::move(ridges),
+        std::move(preliminarySurfaceLevel),
+        std::move(finalDensity),
+        std::move(veinToggle),
+        std::move(veinRidged),
+        std::move(veinGap));
+}
+
+} // namespace
+
 std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settings, u64 worldSeed)
 {
-    auto state = std::unique_ptr<RandomState>(new RandomState(worldSeed, settings));
-
-    // 创建 NoiseRouter（根据维度类型选择预设）
-    // 三个预设均从本 RandomState 的派生种子缓存获取 NormalNoise，叶子密度函数跨区块共享。
-    switch (settings.dimensionKind) {
-        case DimensionKind::End:
-        case DimensionKind::FloatingIslands:
-            state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::end(*state, worldSeed));
-            break;
-        case DimensionKind::Nether:
-            state->m_router =
-                std::make_unique<density::NoiseRouter>(density::NoiseRouterData::nether(*state, worldSeed));
-            break;
-        case DimensionKind::Overworld:
-        case DimensionKind::LargeBiomes:
-        case DimensionKind::Amplified:
-        case DimensionKind::Caves:
-        case DimensionKind::Flat:
-        default:
-            state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::overworld(
-                *state, worldSeed, settings.largeBiomes, settings.dimensionKind == DimensionKind::Amplified));
-            break;
+    // 数据驱动唯一路径：从 NoiseSettingsRegistry 查完整 DimensionSettings（含 m_routerDfs 模板）。
+    // 传入的 settings 可能是 C++ 预设（仅带 m_noiseSettingsId）或已加载模板；统一用 registry 解析到的版本。
+    const DimensionSettings* resolved = nullptr;
+    if (settings.m_noiseSettingsId.isValid()) {
+        resolved = settings::NoiseSettingsRegistry::instance().get(settings.m_noiseSettingsId);
     }
+    // resolved 为空 = registry 未加载该 id（数据包缺失或未接入）→ 断言，数据驱动为唯一路径无兜底。
+    MC_ASSERT_RELEASE_MSG(resolved != nullptr,
+        fmt::format("RandomState::create: noise_settings '{}' not in NoiseSettingsRegistry (datapacks not loaded?)",
+            settings.m_noiseSettingsId.toString())
+            .c_str());
 
-    // 创建 Climate::Sampler（从 NoiseRouter 的 6 个气候函数）
-    // MC 1.21.11: RandomState 持有的 Sampler 用于全局气候查询（非区块上下文），
-    // 出生点查找（findSpawnPosition）通过 Sampler.spawnTarget 完成。
-    // 这里将 DimensionSettings.spawnTarget 设置到 Sampler 上，供
-    // MinecraftServer.setInitialSpawn / ServerWorld::initializeWorldSpawn 使用。
-    state->m_sampler = std::make_unique<biome::climate::Sampler>(state->m_router->createClimateSampler());
-    state->m_sampler->setSpawnTarget(settings.spawnTarget);
+    auto state = std::unique_ptr<RandomState>(new RandomState(worldSeed, *resolved));
 
-    // 创建 PositionalRandomFactory（必须在 SurfaceSystem 之前，因为 getOrCreateNoise 需要它）
-    // MC 1.21: RandomState 构造时从 worldSeed fork 出位置随机工厂
+    // 1. PositionalRandomFactory（必须在 NoiseRouter 之前初始化：buildRouterFromTemplate 经
+    //    NoiseBindingVisitor 绑定 old_blended_noise 叶子时调 positionalRandom().fromHashOf("terrain") 派生种子）。
     ::mc::math::Xoroshiro128ppRandom mainRng(worldSeed);
     state->m_positionalRandom = std::make_unique<::mc::math::PositionalRandomFactory>(mainRng.forkPositional());
 
-    // 创建 SurfaceSystem（根据维度选择表面规则）
-    // MC 1.21: 表面规则不再需要 seed — 噪声名称通过 RandomState 查找
-    std::unique_ptr<surface::SurfaceRule> surfaceRule;
-    switch (settings.dimensionKind) {
-        case DimensionKind::End:
-        case DimensionKind::FloatingIslands:
-            surfaceRule = surface::SurfaceRules::end();
-            break;
-        case DimensionKind::Nether:
-            surfaceRule = surface::SurfaceRules::nether();
-            break;
-        case DimensionKind::Overworld:
-        case DimensionKind::LargeBiomes:
-        case DimensionKind::Amplified:
-        case DimensionKind::Caves:
-        case DimensionKind::Flat:
-        default:
-            surfaceRule = surface::SurfaceRules::overworld();
-            break;
-    }
+    // 2. NoiseRouter：m_routerDfs 模板经 NoiseBindingVisitor mapAll 绑定（深拷贝 + 占位替换）。
+    state->m_router = std::make_unique<density::NoiseRouter>(buildRouterFromTemplate(*resolved, *state, worldSeed));
 
-    if (surfaceRule) {
-        // MC 1.21: SurfaceSystem 构造接收 RandomState 和 PositionalRandomFactory
-        // SurfaceSystem 从 RandomState 获取噪声实例，PositionalRandomFactory 用于 getSurfaceDepth 和 clayBands
-        ::mc::math::Xoroshiro128ppRandom surfaceRng(worldSeed);
-        auto surfacePositionalRandom = surfaceRng.forkPositional();
+    // 3. Climate.Sampler：从绑定后的 NoiseRouter 6 个气候函数构造，并设置 spawnTarget。
+    state->m_sampler = std::make_unique<biome::climate::Sampler>(state->m_router->createClimateSampler());
+    state->m_sampler->setSpawnTarget(resolved->spawnTarget);
 
-        state->m_surfaceSystem = std::make_unique<surface::SurfaceSystem>(std::move(surfaceRule),
-            settings.defaultBlock,
-            settings.defaultFluid,
-            settings.seaLevel,
-            settings.noise.minY,
-            settings.noise.height,
-            *state,
-            surfacePositionalRandom);
-    }
+    // 4. SurfaceSystem：surface_rule 必须由 noise_settings JSON 提供（数据驱动唯一路径，无兜底）。
+    //    原版 7 个 noise_settings JSON 均含 surface_rule；flat 不经 create（无此断言风险）。
+    //    数据包残缺缺 surface_rule 属数据错误，断言合理。
+    MC_ASSERT_RELEASE_MSG(resolved->m_surfaceRule,
+        fmt::format("RandomState::create: noise_settings '{}' has no surface_rule (datadriven requires all "
+                    "noise_settings to provide surface_rule)",
+            resolved->m_noiseSettingsId.toString())
+            .c_str());
+    std::shared_ptr<surface::SurfaceRule> surfaceRule = resolved->m_surfaceRule;
 
-    // 含水层随机工厂
-    // MC 1.21: RandomState 构造时从 noiseRandom.fromHashOf("minecraft:aquifer").forkPositional() 创建
+    ::mc::math::Xoroshiro128ppRandom surfaceRng(worldSeed);
+    auto surfacePositionalRandom = surfaceRng.forkPositional();
+    state->m_surfaceSystem = std::make_unique<surface::SurfaceSystem>(surfaceRule,
+        resolved->defaultBlock,
+        resolved->defaultFluid,
+        resolved->seaLevel,
+        resolved->noise.minY,
+        resolved->noise.height,
+        *state,
+        surfacePositionalRandom);
+
+    // 5. 含水层 / 矿石脉随机工厂（name-hash 派生，依赖 m_positionalRandom）。
     {
         auto aquiferRng = state->m_positionalRandom->fromHashOf("minecraft:aquifer");
         state->m_aquiferRandom = std::make_unique<::mc::math::PositionalRandomFactory>(aquiferRng->forkPositional());
     }
-
-    // 矿石脉随机工厂
-    // MC 1.21: RandomState 构造时从 noiseRandom.fromHashOf("minecraft:ore").forkPositional() 创建
     {
         auto oreRng = state->m_positionalRandom->fromHashOf("minecraft:ore");
         state->m_oreRandom = std::make_unique<::mc::math::PositionalRandomFactory>(oreRng->forkPositional());
@@ -129,23 +153,9 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
 
 density::NoiseRouter RandomState::createRouterCopy() const
 {
-    // 每个 NoiseChunk 需要自己的路由器副本，因为 mapAll() 会修改密度函数树。
-    // 但底层 NormalNoise 实例通过本 RandomState 的缓存共享，不再每区块重建 PerlinNoise 倍频置换表。
-    switch (m_settings.dimensionKind) {
-        case DimensionKind::End:
-        case DimensionKind::FloatingIslands:
-            return density::NoiseRouterData::end(*this, m_worldSeed);
-        case DimensionKind::Nether:
-            return density::NoiseRouterData::nether(*this, m_worldSeed);
-        case DimensionKind::Overworld:
-        case DimensionKind::LargeBiomes:
-        case DimensionKind::Amplified:
-        case DimensionKind::Caves:
-        case DimensionKind::Flat:
-        default:
-            return density::NoiseRouterData::overworld(
-                *this, m_worldSeed, m_settings.largeBiomes, m_settings.dimensionKind == DimensionKind::Amplified);
-    }
+    // 每区块需独立路由器副本：m_routerDfs 模板经 NoiseBindingVisitor mapAll 重新绑定（深拷贝 + 占位替换）。
+    // 底层 NormalNoise 经 getOrCreateNoiseShared 缓存共享，不每区块重建 PerlinNoise 倍频置换表。
+    return buildRouterFromTemplate(m_settings, *this, m_worldSeed);
 }
 
 noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
@@ -174,12 +184,37 @@ noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
     //    NormalNoise 构造函数会调用 rng.forkPositional() 两次来创建两个 PerlinNoise
     auto rng = m_positionalRandom->fromHashOf(name);
 
-    // 3. 创建 NormalNoise
-    auto noise = std::make_unique<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
+    // 3. 创建 NormalNoise（shared_ptr 存储，供数据驱动噪声叶子共享所有权）
+    auto noise = std::make_shared<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
 
     auto& ref = *noise;
     m_noiseCache.emplace(name, std::move(noise));
     return ref;
+}
+
+std::shared_ptr<const noise::NormalNoise> RandomState::getOrCreateNoiseShared(const std::string& name) const
+{
+    // 命中路径：shared_lock 并发读
+    {
+        std::shared_lock lock(m_noiseMutex);
+        auto it = m_noiseCache.find(name);
+        if (it != m_noiseCache.end()) {
+            return it->second;
+        }
+    }
+
+    // miss 路径：unique_lock 写入（double-check）
+    std::unique_lock lock(m_noiseMutex);
+    auto it = m_noiseCache.find(name);
+    if (it != m_noiseCache.end()) {
+        return it->second;
+    }
+
+    const noise::NoiseParameters& params = noise::Noises::get(name);
+    auto rng = m_positionalRandom->fromHashOf(name);
+    auto noise = std::make_shared<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
+    m_noiseCache.emplace(name, noise);
+    return noise;
 }
 
 ::mc::math::PositionalRandomFactory& RandomState::getOrCreateRandomFactory(const std::string& name)
@@ -207,32 +242,6 @@ noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
     auto& ref = *factory;
     m_randomFactoryCache.emplace(name, std::move(factory));
     return ref;
-}
-
-std::shared_ptr<const noise::NormalNoise> RandomState::getOrCreateRouterNoise(
-    u64 derivedSeed, i32 firstOctave, const std::vector<f64>& amplitudes) const
-{
-    // 命中路径：shared_lock 并发读
-    {
-        std::shared_lock lock(m_routerNoiseMutex);
-        auto it = m_routerNoiseCache.find(derivedSeed);
-        if (it != m_routerNoiseCache.end()) {
-            return it->second;
-        }
-    }
-
-    // miss 路径：unique_lock 写入（double-check，避免重复构造）
-    std::unique_lock lock(m_routerNoiseMutex);
-    auto it = m_routerNoiseCache.find(derivedSeed);
-    if (it != m_routerNoiseCache.end()) {
-        return it->second;
-    }
-
-    // NormalNoise 由 derivedSeed 确定性构造（NormalNoise.hpp:59 构造函数），
-    // 同 derivedSeed + firstOctave + amplitudes 产生逐 bit 等价的实例，可安全共享。
-    auto noise = std::make_shared<const noise::NormalNoise>(derivedSeed, firstOctave, amplitudes);
-    m_routerNoiseCache.emplace(derivedSeed, noise);
-    return noise;
 }
 
 } // namespace mc::world::gen

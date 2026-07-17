@@ -1093,7 +1093,7 @@ add_executable(mc_tests
     common/world/gen/BiomeManagerTest.cpp
     # Beardifier (BEARD_KERNEL + affectedBox) 和 CarvingContext 扩展单元测试
     common/world/gen/BeardifierCarvingContextTest.cpp
-    # DensityFunctions (Invert, Mul 边界值) 和 CaveDensityFunctions 噪声参数测试
+    # DensityFunctions (Invert, Mul 边界值) 噪声叶子/样条/缓存单元测试
     common/world/gen/density/DensityFunctionsTest.cpp
     # FindTopSurface 密度函数单元测试（preliminarySurfaceLevel 核心）
     common/world/gen/density/FindTopSurfaceTest.cpp
@@ -1399,8 +1399,6 @@ add_executable(mc_tests
     common/world/gen/chunk/SurfaceRuleParityTest.cpp
     # 区块内X轴高度不对称性测试
     common/world/gen/chunk/ChunkXAxisHeightTest.cpp
-    # 密度函数直接采样测试 — 隔离 NoiseChunk 插值层问题
-    common/world/gen/chunk/DensityDirectTest.cpp
     # 生成设置单元测试（NoiseSettings, DimensionSettings, FlatLayerInfo, FlatLevelGeneratorSettings等）
     common/world/gen/settings/SettingsTest.cpp
     # spawnTarget 数据流集成测试（NoiseChunk/RandomState/ServerWorld）
@@ -2560,6 +2558,7 @@ add_executable(mc_command_tests
     common/command/arguments/NbtPathTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
     common/command/arguments/Vec2ArgumentTest.cpp
+    command_main.cpp
 )
 
 target_sources(mc_command_tests
@@ -2736,7 +2735,7 @@ target_link_libraries(mc_command_tests
     PRIVATE
         mc_common
         mc_bedrock_addon
-        GTest::gtest_main
+        GTest::gtest
         spdlog::spdlog
         nlohmann_json::nlohmann_json
 )

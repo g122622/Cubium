@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/storage/list/WorldListEntry.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
@@ -87,6 +88,9 @@ struct LevelSummaryData {
     /// 世界类型
     WorldType worldType;
 
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    resource::ResourceLocation worldPresetId;
+
     /// 版本信息
     LevelVersionInfo version;
 
@@ -113,6 +117,7 @@ struct LevelSummaryData {
         bool allowCommands,
         u64 seed,
         WorldType worldType,
+        resource::ResourceLocation worldPresetId,
         LevelVersionInfo version,
         i32 storageVersion,
         i32 dataVersion,
@@ -369,9 +374,20 @@ private:
     static WorldType _parseWorldType(const nbt::tags::compound_tag& data);
 
     /**
-     * @brief 将世界类型写入 NBT
+     * @brief 从 NBT 解析世界预设资源位置（Data.Reborn.WorldPresetId）
+     *
+     * 缺失时默认 "minecraft:default"。
      */
-    static void _writeWorldType(nbt::tags::compound_tag& data, WorldType worldType);
+    static resource::ResourceLocation _parseWorldPresetId(const nbt::tags::compound_tag& data);
+
+    /**
+     * @brief 将 WorldType + worldPresetId 一并写入 Data.Reborn compound
+     *
+     * fetch-or-create Reborn compound 后一次性写 WorldType 与 WorldPresetId 两键，
+     * 避免分两次 emplace("Reborn") 造成后者静默丢弃先写者。同时写兼容字段 generatorName。
+     */
+    static void _writeReborn(
+        nbt::tags::compound_tag& data, WorldType worldType, const resource::ResourceLocation& worldPresetId);
 
     /**
      * @brief 从 NBT 解析游戏模式

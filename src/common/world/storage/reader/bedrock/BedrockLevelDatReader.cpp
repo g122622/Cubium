@@ -151,6 +151,7 @@ Result<LevelSummaryData> BedrockLevelDatReader::_parseSummary(const compound_tag
         allowCommands,
         seed,
         _parseWorldType(generatorName),
+        _parseWorldPresetId(generatorName),
         LevelVersionInfo(0, dataVersion, std::move(versionName), false),
         0,
         dataVersion,
@@ -282,6 +283,21 @@ WorldType BedrockLevelDatReader::_parseWorldType(const std::string& generatorNam
         return WorldType::Amplified;
     }
     return WorldType::Default;
+}
+
+mc::resource::ResourceLocation BedrockLevelDatReader::_parseWorldPresetId(const std::string& generatorName)
+{
+    // Bedrock level.dat 无 Data.Reborn compound，worldPresetId 按 generatorName 推导（与 worldType 对齐）。
+    if (generatorName == "flat") {
+        return mc::resource::ResourceLocation("minecraft", "flat");
+    }
+    if (generatorName == "largeBiomes") {
+        return mc::resource::ResourceLocation("minecraft", "large_biomes");
+    }
+    if (generatorName == "amplified") {
+        return mc::resource::ResourceLocation("minecraft", "amplified");
+    }
+    return mc::resource::ResourceLocation("minecraft", "default");
 }
 
 } // namespace mc::world::storage::reader::bedrock

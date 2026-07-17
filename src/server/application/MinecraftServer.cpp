@@ -94,15 +94,18 @@
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/carver/ConfiguredCarverLoader.hpp"
+#include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureLoader.hpp"
 #include "common/world/gen/feature/FeatureTypeRegistry.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/noise/NoiseLoader.hpp"
-#include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
+#include "common/world/gen/settings/NoiseSettingsLoader.hpp"
+#include "common/world/gen/settings/WorldPresetLoader.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
@@ -1112,6 +1115,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
     }
 
+    // 从数据包加载 noise_settings（worldgen/noise_settings/*.json）
+    // 依赖 density_function（noise_router 15 字段是 DF Holder，字符串引用查 DensityFunctionRegistry）。
+    // DimensionSettings::fromJson 解析 noise 4 尺寸 + 15 DF 路由模板（m_routerDfs，噪声叶子为
+    // UnboundNoiseLeaf 占位）+ surface_rule + spawn_target + 标量字段，注册到 NoiseSettingsRegistry。
+    // RandomState::create 据此走数据驱动唯一路径，经 NoiseBindingVisitor 绑定真实 NormalNoise。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::NoiseSettings");
+        auto nsResult = world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(m_dataPackList);
+        if (nsResult.failed()) {
+            spdlog::error("Failed to load noise_settings from data packs: {}", nsResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} noise_settings from data packs", nsResult.value());
+        }
+    }
+
     // 加载模板池（先注册硬编码基础池，再从数据包加载 JSON 模板池）
     {
         MC_TRACE_SCOPED_EVENT(
@@ -1231,6 +1250,37 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::error("Failed to load biome tags from data packs: {}", biomeTagResult.error().toString());
         } else {
             spdlog::info("Loaded {} biome tags from data packs", biomeTagResult.value());
+        }
+    }
+
+    // 从数据包加载 flat_level_generator_preset（须在方块/biome 注册后：layers 的 block RL 经
+    // BlockRegistry 取默认 BlockState，biome RL 经 BiomeLoader::biomeIdByName 映射 BiomeId）。
+    // FlatLevelGeneratorPresetLoader 解析 9 个预设 JSON，注册到 FlatLevelGeneratorPresetRegistry，
+    // 供 ServerDimensionManager flat 分支查表构造 FlatChunkGenerator。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::FlatPresets");
+        auto flatResult = world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(m_dataPackList);
+        if (flatResult.failed()) {
+            spdlog::error("Failed to load flat_level_generator_presets from data packs: {}", flatResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} flat_level_generator_presets from data packs", flatResult.value());
+        }
+    }
+
+    // 从数据包加载 world_preset（须在 noise_settings + flat_preset 之后：flat 维度的内联 settings
+    // 复用 FlatLevelGeneratorSettings::fromSettingsObject 依赖 BlockRegistry/BiomeLoader；noise 维度
+    // 仅存 noise_settings RL，装配期由 RandomState::create 查 NoiseSettingsRegistry）。
+    // WorldPresetLoader 解析 6 个预设 JSON，注册到 WorldPresetRegistry，
+    // 供 ServerDimensionManager 三维度装配查表。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::WorldPresets");
+        auto presetResult = world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(m_dataPackList);
+        if (presetResult.failed()) {
+            spdlog::error("Failed to load world_presets from data packs: {}", presetResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} world_presets from data packs", presetResult.value());
         }
     }
 

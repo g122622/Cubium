@@ -25,6 +25,7 @@
 
 #include "ServerDimension.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -39,6 +40,15 @@ namespace mc {
 namespace server {
 class MinecraftServer;
 }
+namespace world::gen {
+class RandomState;
+namespace settings {
+struct WorldPresetGenerator;
+} // namespace settings
+} // namespace world::gen
+namespace world::biome {
+class IBiomeSource;
+} // namespace world::biome
 
 /**
  * @brief 服务端维度管理器
@@ -83,9 +93,12 @@ public:
      *
      * @param seed 世界种子
      * @param viewDistance 视野距离
+     * @param overworldType 主世界类型（旧 WorldType 路径，仅 WorldPresetRegistry 未加载时兜底）
+     * @param worldPresetId 世界预设资源位置（如 "minecraft:default"），数据驱动装配查 WorldPresetRegistry
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(u64 seed, i32 viewDistance, WorldType overworldType = WorldType::Default);
+    [[nodiscard]] Result<void> initialize(
+        u64 seed, i32 viewDistance, WorldType overworldType, resource::ResourceLocation worldPresetId);
 
     /**
      * @brief 关闭维度管理器
@@ -258,6 +271,7 @@ private:
     u64 m_seed = 0;
     i32 m_viewDistance = 10;
     WorldType m_overworldType = WorldType::Default;
+    resource::ResourceLocation m_worldPresetId{"minecraft", "default"};
 
     // 回调
     DimensionChangeCallback m_dimensionChangeCallback;
@@ -273,6 +287,27 @@ private:
      * @return 维度实例
      */
     [[nodiscard]] std::unique_ptr<ServerDimension> _createServerDimension(DimensionId id, u64 seed);
+
+    /**
+     * @brief 按 world_preset 的 biome_source 配置创建生物群系源
+     *
+     * @param gen world_preset 生成器配置（含 biomeSourceType + multiNoisePreset/fixedBiome）
+     * @param rs 共享的 RandomState（multi_noise/the_end 取噪声采样）
+     * @param seed 世界种子（fixed 生物群系源构造用）
+     * @return 生物群系源
+     */
+    [[nodiscard]] std::unique_ptr<world::biome::IBiomeSource> _createBiomeSource(
+        const world::gen::settings::WorldPresetGenerator& gen, const world::gen::RandomState& rs, u64 seed);
+
+    /**
+     * @brief 旧 WorldType 装配兜底（WorldPresetRegistry 未加载时）
+     *
+     * @param id 维度ID
+     * @param seed 世界种子
+     * @return 区块生成器
+     */
+    [[nodiscard]] std::unique_ptr<IChunkGenerator> _createLegacyGenerator(DimensionId id, u64 seed);
+
     [[nodiscard]] std::unique_ptr<server::ServerWorld> _createServerWorld(
         DimensionId id, u64 seed, std::unique_ptr<IChunkGenerator> generator) const;
 

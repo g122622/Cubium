@@ -27,19 +27,8 @@
 namespace mc {
 
 // ============================================================================
-// 初始化
+// 生命周期
 // ============================================================================
-
-void DimensionManager::initialize(u64 seed)
-{
-    if (m_initialized) {
-        return;
-    }
-
-    m_worldSeed = seed;
-    registerVanillaDimensions(seed);
-    m_initialized = true;
-}
 
 void DimensionManager::shutdown()
 {
@@ -188,25 +177,6 @@ std::vector<DimensionId> DimensionManager::getDimensionIds() const
         ids.push_back(pair.first);
     }
     return ids;
-}
-
-// ============================================================================
-// 原版维度注册
-// ============================================================================
-
-void DimensionManager::registerVanillaDimensions(u64 seed)
-{
-    // 注册主世界
-    auto overworld = Dimension::createOverworld(seed);
-    MC_ASSERT(registerDimension(std::move(overworld)));
-
-    // 注册下界
-    auto nether = Dimension::createNether(seed);
-    MC_ASSERT(registerDimension(std::move(nether)));
-
-    // 注册末地
-    auto theEnd = Dimension::createTheEnd(seed);
-    MC_ASSERT(registerDimension(std::move(theEnd)));
 }
 
 } // namespace mc

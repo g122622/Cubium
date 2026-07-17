@@ -1058,14 +1058,13 @@ add_library(mc_common STATIC
 
     # World - Generation - Density
     world/gen/density/BlendedNoise.cpp
-    world/gen/density/CaveDensityFunctions.cpp
     world/gen/density/DensityFunctions.cpp
     world/gen/density/DensityFunctionTypeRegistry.cpp
     world/gen/density/DensityFunctionLoader.cpp
     world/gen/density/DensityFunctionRegistry.cpp
+    world/gen/density/NoiseBindingVisitor.cpp
     world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
-    world/gen/density/NoiseRouterData.cpp
     world/gen/density/TerrainProvider.cpp
     world/gen/density/Beardifier.cpp
     world/gen/density/OreVeinifier.cpp
@@ -1097,7 +1096,14 @@ add_library(mc_common STATIC
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp
+    world/gen/settings/FlatLevelGeneratorPresetLoader.cpp
+    world/gen/settings/FlatLevelGeneratorPresetRegistry.cpp
     world/gen/settings/FlatLevelGeneratorSettings.cpp
+    world/gen/settings/NoiseSettingsLoader.cpp
+    world/gen/settings/NoiseSettingsRegistry.cpp
+    world/gen/settings/WorldPreset.cpp
+    world/gen/settings/WorldPresetLoader.cpp
+    world/gen/settings/WorldPresetRegistry.cpp
 
     # World - Generation - Carvers
     world/gen/carver/WorldCarver.cpp
@@ -1125,6 +1131,7 @@ add_library(mc_common STATIC
     world/biome/BiomeTags.cpp
 
     # World - Biome - Climate
+    world/biome/climate/ParameterPointCodec.cpp
     world/biome/climate/Sampler.cpp
     world/biome/climate/SpawnFinder.cpp
 
@@ -1139,6 +1146,7 @@ add_library(mc_common STATIC
     world/gen/surface/SurfaceCondition.cpp
     world/gen/surface/SurfaceRule.cpp
     world/gen/surface/SurfaceRuleContext.cpp
+    world/gen/surface/SurfaceRuleDeserializer.cpp
     world/gen/surface/SurfaceSystem.cpp
     world/gen/surface/SurfaceRulesFactory.cpp
 

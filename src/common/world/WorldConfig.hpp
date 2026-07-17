@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <string>
 
 namespace mc {
@@ -95,6 +96,9 @@ struct WorldConfig {
 
     /// 世界类型
     WorldType worldType = WorldType::Default; // 默认使用普通世界
+
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    resource::ResourceLocation worldPresetId{"minecraft", "default"};
 
     /// 视距
     i32 viewDistance = 10;

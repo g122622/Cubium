@@ -77,6 +77,9 @@ struct WorldListEntry {
     /// 世界类型
     WorldType worldType = WorldType::Default;
 
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    resource::ResourceLocation worldPresetId{"minecraft", "default"};
+
     /// 游戏模式
     GameMode gameMode = GameMode::Survival;
 
@@ -121,6 +124,7 @@ struct WorldListEntry {
         i64 lastPlayedMs,
         u64 seed,
         WorldType worldType,
+        resource::ResourceLocation worldPresetId,
         GameMode gameMode,
         Difficulty difficulty,
         bool hardcore,
@@ -166,6 +170,11 @@ struct WorldListEntry {
         Builder& worldType(WorldType value)
         {
             m_worldType = value;
+            return *this;
+        }
+        Builder& worldPresetId(resource::ResourceLocation value)
+        {
+            m_worldPresetId = std::move(value);
             return *this;
         }
         Builder& gameMode(GameMode value)
@@ -232,6 +241,7 @@ struct WorldListEntry {
                 m_lastPlayedMs,
                 m_seed,
                 m_worldType,
+                m_worldPresetId,
                 m_gameMode,
                 m_difficulty,
                 m_hardcore,
@@ -252,6 +262,7 @@ struct WorldListEntry {
         i64 m_lastPlayedMs = 0;
         u64 m_seed = 0;
         WorldType m_worldType = WorldType::Default;
+        resource::ResourceLocation m_worldPresetId{"minecraft", "default"};
         GameMode m_gameMode = GameMode::Survival;
         Difficulty m_difficulty = Difficulty::Normal;
         bool m_hardcore = false;

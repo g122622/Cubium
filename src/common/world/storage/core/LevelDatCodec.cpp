@@ -55,6 +55,7 @@ LevelSummaryData::LevelSummaryData(std::string displayName,
     bool allowCommands,
     u64 seed,
     WorldType worldType,
+    resource::ResourceLocation worldPresetId,
     LevelVersionInfo version,
     i32 storageVersion,
     i32 dataVersion,
@@ -68,6 +69,7 @@ LevelSummaryData::LevelSummaryData(std::string displayName,
     , allowCommands(allowCommands)
     , seed(seed)
     , worldType(worldType)
+    , worldPresetId(std::move(worldPresetId))
     , version(std::move(version))
     , storageVersion(storageVersion)
     , dataVersion(dataVersion)
@@ -286,12 +288,40 @@ WorldType LevelDatCodec::_parseWorldType(const nbt::tags::compound_tag& data)
     return WorldType::Default;
 }
 
-void LevelDatCodec::_writeWorldType(nbt::tags::compound_tag& data, WorldType worldType)
+resource::ResourceLocation LevelDatCodec::_parseWorldPresetId(const nbt::tags::compound_tag& data)
 {
-    // 写入项目私有字段
-    auto rebornPtr = std::make_unique<nbt::tags::compound_tag>();
-    rebornPtr->put("WorldType", std::string(worldTypeName(worldType)));
-    data.value.emplace("Reborn", std::move(rebornPtr));
+    // 读项目私有 Data.Reborn.WorldPresetId（worldPresetId 无原版对应，仅写 Reborn compound）
+    auto rebornIt = data.value.find("Reborn");
+    if (rebornIt != data.value.end() && rebornIt->second->id() == nbt::TagId::Compound) {
+        auto& reborn = dynamic_cast<const nbt::tags::compound_tag&>(*rebornIt->second);
+        auto it = reborn.value.find("WorldPresetId");
+        if (it != reborn.value.end() && it->second->id() == nbt::TagId::String) {
+            const auto& str = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+            if (!str.empty()) {
+                return resource::ResourceLocation::parse(str);
+            }
+        }
+    }
+    return resource::ResourceLocation("minecraft", "default");
+}
+
+void LevelDatCodec::_writeReborn(
+    nbt::tags::compound_tag& data, WorldType worldType, const resource::ResourceLocation& worldPresetId)
+{
+    // fetch-or-create Data.Reborn compound，一次性写 WorldType + WorldPresetId 两键。
+    // 旧 _writeWorldType 用 emplace("Reborn", 新建 compound) 会整体替换 Reborn，
+    // 若分两次 emplace 则后者被静默丢弃——故合并为单次 fetch-or-create。
+    nbt::tags::compound_tag* reborn = nullptr;
+    auto rebornIt = data.value.find("Reborn");
+    if (rebornIt != data.value.end() && rebornIt->second->id() == nbt::TagId::Compound) {
+        reborn = &dynamic_cast<nbt::tags::compound_tag&>(*rebornIt->second);
+    } else {
+        auto rebornPtr = std::make_unique<nbt::tags::compound_tag>();
+        reborn = rebornPtr.get();
+        data.value.emplace("Reborn", std::move(rebornPtr));
+    }
+    reborn->put("WorldType", std::string(worldTypeName(worldType)));
+    reborn->put("WorldPresetId", worldPresetId.toString());
 
     // 兼容原版 generatorName
     std::string generatorName = "default";
@@ -391,6 +421,9 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
     // 解析世界类型
     WorldType worldType = _parseWorldType(data);
 
+    // 解析世界预设资源位置（Data.Reborn.WorldPresetId，缺失默认 minecraft:default）
+    resource::ResourceLocation worldPresetId = _parseWorldPresetId(data);
+
     // 解析版本信息
     i32 storageVersion = MC_ANVIL_VERSION;
     auto versionIt = data.value.find("version");
@@ -438,6 +471,7 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
         allowCommands,
         seed,
         worldType,
+        std::move(worldPresetId),
         std::move(versionInfo),
         storageVersion,
         dataVersion,
@@ -463,8 +497,8 @@ std::unique_ptr<nbt::tags::compound_tag> LevelDatCodec::_buildInitialNbt(
     data.put("allowCommands", static_cast<i8>(request.allowCommands ? 1 : 0));
     data.put("RandomSeed", static_cast<i64>(request.seed));
 
-    // 世界类型
-    _writeWorldType(data, request.worldType);
+    // 世界类型 + worldPresetId（一并写入 Data.Reborn compound）
+    _writeReborn(data, request.worldType, request.worldPresetId);
 
     // 版本信息
     data.put("version", MC_ANVIL_VERSION);

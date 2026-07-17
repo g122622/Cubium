@@ -38,7 +38,7 @@ using namespace mc::trace;
 
 namespace mc::world::gen::surface {
 
-SurfaceSystem::SurfaceSystem(std::unique_ptr<SurfaceRule> surfaceRule,
+SurfaceSystem::SurfaceSystem(std::shared_ptr<SurfaceRule> surfaceRule,
     const BlockState* defaultBlock,
     const BlockState* defaultFluid,
     i32 seaLevel,

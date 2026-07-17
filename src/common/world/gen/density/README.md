@@ -11,26 +11,30 @@ NoiseRouter 持有 15 个密度函数引用，其中 6 个用于 Climate.Sampler
 
 ```
 density/
-├── DensityFunction.hpp         — 密度函数核心接口
-├── DensityFunctions.hpp        — 所有密度函数实现类 + 工厂函数
-├── DensityFunctions.cpp        — 实现
-├── BlendedNoise.hpp            — MC 1.18+ 混合噪声密度函数（旧式三层 Perlin）
-├── BlendedNoise.cpp            — 实现
-├── Beardifier.hpp              — 结构物地形修饰器（Beard/Bury 贡献计算）
-├── Beardifier.cpp              — 实现
-├── CaveDensityFunctions.hpp    — 洞穴密度函数构建器（spaghetti/noodle/pillar/entrance/underground）
-├── CaveDensityFunctions.cpp    — 实现
-├── TerrainProvider.hpp         — 主世界地形样条数据（offset/factor/jaggedness）
-├── TerrainProvider.cpp         — 实现
-├── OreVeinifier.hpp            — 矿脉生成器（铜/铁矿脉）
-├── OreVeinifier.cpp            — 实现
-├── NoiseRouter.hpp             — 噪声路由器（持有 15 个密度函数）
-├── NoiseRouter.cpp             — 实现
-├── NoiseRouterData.hpp         — 预定义噪声配置（主世界/下界/末地）
-├── NoiseRouterData.cpp         — 实现
-├── NoiseChunk.hpp              — 区块噪声采样单元（三线性插值 + 缓存管理）
-├── NoiseChunk.cpp              — 实现
-└── README.md                   — 本文件
+├── DensityFunction.hpp              — 密度函数核心接口
+├── DensityFunctions.hpp             — 所有密度函数实现类 + 工厂函数
+├── DensityFunctions.cpp             — 实现
+├── BlendedNoise.hpp                 — MC 1.18+ 混合噪声密度函数（旧式三层 Perlin）
+├── BlendedNoise.cpp                 — 实现
+├── Beardifier.hpp                   — 结构物地形修饰器（Beard/Bury 贡献计算）
+├── Beardifier.cpp                   — 实现
+├── TerrainProvider.hpp              — 主世界地形样条数据（offset/factor/jaggedness）
+├── TerrainProvider.cpp              — 实现
+├── OreVeinifier.hpp                 — 矿脉生成器（铜/铁矿脉）
+├── OreVeinifier.cpp                 — 实现
+├── NoiseRouter.hpp                  — 噪声路由器（持有 15 个密度函数）
+├── NoiseRouter.cpp                  — 实现
+├── NoiseBindingVisitor.hpp          — 数据驱动噪声叶子绑定访问器（UnboundNoiseLeaf→真实叶子）
+├── NoiseBindingVisitor.cpp          — 实现
+├── DensityFunctionLoader.hpp        — density_function JSON 加载 + Holder 引用解析
+├── DensityFunctionLoader.cpp        — 实现
+├── DensityFunctionRegistry.hpp      — name→shared_ptr<DensityFunction> 注册表
+├── DensityFunctionRegistry.cpp      — 实现
+├── DensityFunctionTypeRegistry.hpp  — type→工厂映射（数据驱动多态分发）
+├── DensityFunctionTypeRegistry.cpp  — 实现
+├── NoiseChunk.hpp                   — 区块噪声采样单元（三线性插值 + 缓存管理）
+├── NoiseChunk.cpp                   — 实现
+└── README.md                        — 本文件
 ```
 
 ## 内部模块关系
@@ -69,7 +73,7 @@ EndIslands ──持有──→ SimplexNoise
 
 ### 被依赖
 
-- `common/world/biome/source/MultiNoiseBiomeSource` — 使用 NoiseRouter.createClimateSampler()
+- `common/world/biome/source/MultiNoiseBiomeSource` — 持 `const Sampler&`（由 `RandomState.sampler()` 提供，Sampler 内部含 NoiseRouter 的 6 个气候函数）
 - `common/world/biome/source/EndBiomeSource` — 使用 Climate.Sampler.erosion 区分末地生物群系
 - `common/world/gen/chunk/NoiseChunkGenerator` — 使用 finalDensity 地形生成
 
@@ -92,9 +96,9 @@ EndIslands ──持有──→ SimplexNoise
 
 主世界 `depthPlusOffset` 中的 `YClampedGradient` 范围为 `[MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT]`（即 [-64, 320]），toY 使用 `MAX_BUILD_HEIGHT`（320），而非 `MAX_BUILD_HEIGHT - 1`（319）。
 
-### 2. CaveDensityFunctions::entrances() 无 min(5.0) 包装
+### 2. entrances 无 min(5.0) 包装
 
-MC 原版 `entrances()` 直接返回 `add(slopedCheese, mul(5.0, entrancesFunc))` 的结果，不使用 `min(5.0, ...)` 裁剪。C++ 曾错误地添加了 `min(5.0, ...)` 包装。
+MC 原版 `entrances()` 直接返回 `add(slopedCheese, mul(5.0, entrancesFunc))` 的结果，不使用 `min(5.0, ...)` 裁剪。该密度子树现由数据驱动 `density_function` JSON（`minecraft:overworld/caves/entrances` 等）提供，经 `DensityFunctionLoader` 解析注册。
 
 ### 3. EndIslands float 精度
 
@@ -126,16 +130,16 @@ MC 1.21 使用 `midpoint ± |halfAmplitude| * noise.maxValue()` 公式：
 - `minValue = 0.0`（因为 compute 使用了 abs）
 - `maxValue = maxRarity * noise.maxValue()`，其中 Type1 的 `maxRarity = 2.0`，Type2 的 `maxRarity = 3.0`
 
-### 8. CaveDensityFunctions 噪声参数
+### 8. 洞穴噪声参数（数据驱动 noise JSON）
 
-MC 1.21.11 关键修正：
+MC 1.21.11 关键修正（参数现由数据驱动 `noise` JSON 提供，经 `NoiseLoader` 加载到 `Noises` 注册表）：
 - `SPAGHETTI_2D_MODULATOR`: firstOctave=-11（非 -2）, amplitudes={1.0}（非 {2.0, 1.0}）
 - `SPAGHETTI_2D`: firstOctave=-7（非 -2）, amplitudes={1.0}（非 {2.0, 1.0}）
 - `SPAGHETTI_ROUGHNESS`: firstOctave=-5, amplitudes={1.0}（非 {1.0, 1.0, 1.0, 1.0}）
 
-### 9. NoiseRouterData 缓存包装
+### 9. 缓存层包装（数据驱动 noise_router 模板）
 
-MC 1.21 中各密度的缓存层不同：
+MC 1.21 中各密度的缓存层不同（由数据驱动 `noise_settings` JSON 的 `noise_router` 字段经 `SurfaceRuleDeserializer`/`DensityFunctionLoader` 解析）：
 - `temperature`/`vegetation`: 不缓存（直接 shiftedNoise2d）
 - `continents`/`erosion`/`ridges`: flatCache（非 cache2D）
 - `endIslands`: 种子参数始终为 0（非世界种子）
@@ -160,7 +164,7 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
 
 ### 11. preliminarySurfaceLevel
 
-已完整实现，对齐 MC 1.21.11 `NoiseRouterData.preliminarySurfaceLevel(offset, factor, amplified)`。使用 `FindTopSurface` 密度函数从 upperBound 向下搜索 density > 0 的位置，返回第一个满足条件的 Y 坐标（cellHeight=8）。实现包含 `remap`、`offsetToDepth` 辅助函数和 `FindTopSurface` 密度函数类。`amplified` 参数通过 `slideOverworld` 影响顶部和底部 slide 范围。
+已完整实现，对齐 MC 1.21.11 `preliminarySurfaceLevel(offset, factor, amplified)`。使用 `FindTopSurface` 密度函数从 upperBound 向下搜索 density > 0 的位置，返回第一个满足条件的 Y 坐标（cellHeight=8）。实现包含 `remap`、`offsetToDepth` 辅助函数和 `FindTopSurface` 密度函数类。`amplified` 参数通过 `slideOverworld` 影响顶部和底部 slide 范围。该密度函数现由数据驱动 `noise_settings` JSON 的 `noise_router.preliminary_surface_level` 字段提供。
 
 **影响范围**：preliminarySurfaceLevel 影响含水层水位采样（`NoiseChunk::samplePreliminarySurfaceLevel`），进而影响 `m_skipSamplingAboveY` 和含水层条带高度。海洋海平面以下的水仍由 `NoiseBasedAquifer::computeSubstance` 快速路径直接填充全局流体，与 preliminarySurfaceLevel 无关。
 

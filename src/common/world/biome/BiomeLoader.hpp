@@ -25,10 +25,12 @@
 
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstddef>
+#include <optional>
 
 namespace mc {
 
@@ -97,6 +99,18 @@ public:
      * @return void 成功，或错误（仅 JSON 严重畸形时返回错误）
      */
     [[nodiscard]] static Result<void> loadFromJson(const nlohmann::json& jsonObj, const ResourceLocation& id);
+
+    /**
+     * @brief 按 biome 名（ResourceLocation 的 path，如 "plains"/"the_void"）查 BiomeId
+     *
+     * 复用本 Loader 内置的 65 项 biome 名→BiomeId 映射表，供其它数据驱动加载器
+     * （如 FlatLevelGeneratorPresetLoader 解析 flat preset 的 biome 字段）共用，
+     * 避免重复维护映射表。
+     *
+     * @param name biome 资源位置（仅 path 参与查表，namespace 忽略）
+     * @return BiomeId，或 std::nullopt（映射表中无此名）
+     */
+    [[nodiscard]] static std::optional<BiomeId> biomeIdByName(const ResourceLocation& name);
 };
 
 } // namespace world::biome

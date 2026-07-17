@@ -76,6 +76,9 @@ struct WorldLaunchConfig {
     /// 世界类型（使用 mc::WorldType）
     mc::WorldType worldType = mc::WorldType::Default;
 
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    resource::ResourceLocation worldPresetId{"minecraft", "default"};
+
     /// 默认游戏模式
     GameMode defaultGameMode = GameMode::Survival;
 

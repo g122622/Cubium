@@ -22,13 +22,6 @@
  */
 
 #include "Dimension.hpp"
-#include "../../core/Constants.hpp"
-#include "../biome/source/EndBiomeSource.hpp"
-#include "../biome/source/MultiNoiseBiomeSource.hpp"
-#include "../gen/RandomState.hpp"
-#include "../gen/chunk/NoiseChunkGenerator.hpp"
-#include "../gen/settings/DimensionSettings.hpp"
-#include "DimensionManager.hpp"
 
 namespace mc {
 
@@ -50,69 +43,6 @@ void Dimension::tick()
 {
     // 基类默认无操作
     // 子类可覆盖以实现维度特定逻辑（如末地的末影龙战斗）
-}
-
-// ============================================================================
-// 工厂方法
-// ============================================================================
-
-std::unique_ptr<Dimension> Dimension::createOverworld(u64 seed)
-{
-    DimensionType dimType = DimensionType::overworld();
-
-    // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
-    auto settings = DimensionSettings::overworld();
-    auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
-    auto generator =
-        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
-
-    auto dimension = std::make_unique<Dimension>(0, // DimensionId::Overworld
-        std::move(dimType),
-        std::move(generator));
-
-    // 主世界默认出生点（海平面高度+1）
-    dimension->m_spawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
-
-    return dimension;
-}
-
-std::unique_ptr<Dimension> Dimension::createNether(u64 seed)
-{
-    DimensionType dimType = DimensionType::nether();
-
-    // 下界使用 NoiseChunkGenerator + MultiNoiseBiomeSource，共享 RandomState
-    auto settings = DimensionSettings::nether();
-    auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
-    auto generator =
-        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
-
-    auto dimension = std::make_unique<Dimension>(DimensionManager::NETHER, std::move(dimType), std::move(generator));
-
-    // 下界默认出生点（海平面高度+1）
-    dimension->m_spawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
-
-    return dimension;
-}
-
-std::unique_ptr<Dimension> Dimension::createTheEnd(u64 seed)
-{
-    DimensionType dimType = DimensionType::theEnd();
-
-    // 末地使用 NoiseChunkGenerator + EndBiomeSource，共享 RandomState
-    auto settings = DimensionSettings::end();
-    auto randomState = world::gen::RandomState::create(settings, seed);
-    auto biomeSource = std::make_unique<world::biome::source::EndBiomeSource>(*randomState);
-    auto generator =
-        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
-
-    auto dimension = std::make_unique<Dimension>(DimensionManager::THE_END, std::move(dimType), std::move(generator));
-
-    // 末地默认出生点（末地传送门平台固定位置：x=100, y=49, z=0）
-    dimension->m_spawnPoint = Vector3d(100.0, 49.0, 0.0);
-
-    return dimension;
 }
 
 } // namespace mc

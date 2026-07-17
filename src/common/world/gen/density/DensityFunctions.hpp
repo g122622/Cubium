@@ -525,7 +525,7 @@ public:
     [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
 
     // NormalNoise::getValue 是 const 无 mutable，mapAll 前后语义等价，
-    // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateRouterNoise。
+    // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateNoiseShared。
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         return visitor.apply(std::make_unique<MappedNoise>(m_noise, m_xzScale, m_yScale, m_fromValue, m_toValue));
@@ -571,7 +571,7 @@ public:
     [[nodiscard]] f64 yScale() const { return m_yScale; }
 
     // NormalNoise::getValue 是 const 无 mutable，mapAll 前后语义等价，
-    // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateRouterNoise。
+    // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateNoiseShared。
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         return visitor.apply(std::make_unique<NoiseDensity>(m_noise, m_xzScale, m_yScale));
@@ -1238,7 +1238,7 @@ enum class MarkerType : u8 {
  * @brief 标记密度函数 — MC 1.21 DensityFunctions.Marker
  *
  * 包装一个子函数并标记其类型。
- * 在 NoiseRouterData 工厂函数中使用 Marker 代替具体缓存实现，
+ * 在数据驱动 DensityFunctionTypeRegistry 中使用 Marker 代替具体缓存实现，
  * NoiseChunk 构造时通过 wrap() 将 Marker 替换为 NoiseChunk 特定实现。
  */
 class Marker final : public DensityFunction {
@@ -1357,9 +1357,9 @@ private:
 // mapped_noise/weird_scaled_sampler/old_blended_noise type 在解析期无法构造真实噪声
 // 叶子（NormalNoise/BlendedNoise 需 RandomState 上下文，由 name-hash 派生）。解析期
 // 存本占位，RandomState 组装 NoiseRouter 时由 NoiseBindingVisitor 遍历树，调用
-// rs.getOrCreateRouterNoiseByName(name) 取 NormalNoise（或 old_blended_noise 走
-// fromHashOf("minecraft:terrain")），替换为真正的 NoiseDensity/ShiftedNoise/MappedNoise/
-// ShiftNoise/WeirdScaledSampler/BlendedNoise。
+// rs.getOrCreateNoiseShared(name) 取 NormalNoise（name-hash via fromHashOf，或
+// old_blended_noise 走 fromHashOf("minecraft:terrain")），替换为真正的 NoiseDensity/
+// ShiftedNoise/MappedNoise/ShiftNoise/WeirdScaledSampler/BlendedNoise。
 //
 // 占位期 compute() 返回 0.0（组装前不应被采样）。mapAll 深拷贝自身及持有的子 DF。
 // ============================================================================
@@ -1433,6 +1433,12 @@ public:
     [[nodiscard]] f64 xzFactor() const { return m_xzFactor; }
     [[nodiscard]] f64 yFactor() const { return m_yFactor; }
     [[nodiscard]] f64 smearScaleMultiplier() const { return m_smearScaleMultiplier; }
+
+    /// 移出子 DF 所有权（NoiseBindingVisitor 绑定 ShiftedNoise/WeirdScaledSampler 时消费本占位）
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftX() { return std::move(m_shiftX); }
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftY() { return std::move(m_shiftY); }
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseShiftZ() { return std::move(m_shiftZ); }
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseInput() { return std::move(m_input); }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -1648,45 +1654,6 @@ namespace factory {
     std::unique_ptr<DensityFunction> arg1, std::unique_ptr<DensityFunction> arg2);
 
 /**
- * @brief 创建噪声密度函数
- *
- * 从 RandomState 的派生种子缓存获取 NormalNoise，跨区块复用，
- * 避免每区块 createRouterCopy 时重建 PerlinNoise 倍频置换表。
- * derivedSeed 通常是 worldSeed ^ 噪声常量。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> noise(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale);
-
-/**
- * @brief 创建带偏移的噪声密度函数
- *
- * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise(const RandomState& rs,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    f64 xzScale,
-    f64 yScale,
-    std::unique_ptr<DensityFunction> shiftX,
-    std::unique_ptr<DensityFunction> shiftY,
-    std::unique_ptr<DensityFunction> shiftZ);
-
-/**
- * @brief 创建 2D 带偏移噪声（yScale=0, shiftY=zero）
- *
- * MC 1.21 的气候参数（temperature, vegetation, continents, erosion, ridges）
- * 均使用此函数。从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise2d(const RandomState& rs,
-    std::unique_ptr<DensityFunction> shiftX,
-    std::unique_ptr<DensityFunction> shiftZ,
-    f64 xzScale,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes);
-
-/**
  * @brief 创建线性插值密度函数
  *
  * lerp(delta, start, end) = start + delta * (end - start)
@@ -1695,30 +1662,6 @@ namespace factory {
 [[nodiscard]] std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     std::unique_ptr<DensityFunction> start,
     std::unique_ptr<DensityFunction> end);
-
-/**
- * @brief 创建 ShiftA 偏移噪声
- *
- * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftA(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes);
-
-/**
- * @brief 创建 ShiftB 偏移噪声
- *
- * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftB(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes);
-
-/**
- * @brief 创建 Shift 偏移噪声
- *
- * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> shift(
-    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes);
 
 /**
  * @brief 创建 RangeChoice 条件选择
@@ -1785,33 +1728,6 @@ namespace factory {
 [[nodiscard]] std::unique_ptr<DensityFunction> cacheAllInCell(std::unique_ptr<DensityFunction> input);
 
 /**
- * @brief 创建奇异缩放采样器
- *
- * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> weirdScaledSampler(std::unique_ptr<DensityFunction> input,
-    const RandomState& rs,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    WeirdScaledSamplerType type);
-
-/**
- * @brief 创建带输出重映射的噪声密度函数
- *
- * compute = fromValue + noise(x*xzScale, y*yScale, z*xzScale) * (toValue - fromValue)
- * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> mappedNoise(const RandomState& rs,
-    u64 derivedSeed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    f64 xzScale,
-    f64 yScale,
-    f64 fromValue,
-    f64 toValue);
-
-/**
  * @brief 创建末地岛屿密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> endIslands(u64 seed);
@@ -1833,27 +1749,9 @@ namespace factory {
     i32 cellHeight);
 
 /**
- * @brief 创建混合噪声密度函数（旧式三层 Perlin 噪声）
- *
- * MC 1.21: BlendedNoise 密度函数，用于 BASE_3D_NOISE。
- * 主世界参数: (0.25, 0.125, 80.0, 160.0, 8.0)
- * 下界参数:   (0.25, 0.375, 80.0, 60.0, 8.0)
- * 末地参数:   (0.25, 0.25, 80.0, 160.0, 4.0)
- *
- * @param seed 世界种子
- * @param xzScale XZ 方向缩放因子
- * @param yScale Y 方向缩放因子
- * @param xzFactor XZ 方向因子
- * @param yFactor Y 方向因子
- * @param smearScaleMultiplier Y 方向涂抹缩放乘数
- */
-[[nodiscard]] std::unique_ptr<DensityFunction> blendedNoise(
-    u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier);
-
-/**
  * @brief 创建标记密度函数（Interpolated 类型）
  *
- * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 NoiseInterpolator。
+ * MC 1.21: 数据驱动 DensityFunctionTypeRegistry 使用 Marker 代替直接创建 NoiseInterpolator。
  * NoiseChunk::wrap() 在构造时替换为 NoiseInterpolator。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> interpolated(std::unique_ptr<DensityFunction> wrapped);
@@ -1861,7 +1759,7 @@ namespace factory {
 /**
  * @brief 创建标记密度函数（CacheOnce 类型）
  *
- * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 CacheOnce。
+ * MC 1.21: 数据驱动 DensityFunctionTypeRegistry 使用 Marker 代替直接创建 CacheOnce。
  * NoiseChunk::wrap() 在构造时替换为带 interpolationCounter 的缓存。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> cacheOnce(std::unique_ptr<DensityFunction> wrapped);
@@ -1869,7 +1767,7 @@ namespace factory {
 /**
  * @brief 创建标记密度函数（CacheAllInCell 类型）
  *
- * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 CellCache。
+ * MC 1.21: 数据驱动 DensityFunctionTypeRegistry 使用 Marker 代替直接创建 CellCache。
  * NoiseChunk::wrap() 在构造时替换为 CellCache。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> cacheAllInCellMarker(std::unique_ptr<DensityFunction> wrapped);
@@ -1877,7 +1775,7 @@ namespace factory {
 /**
  * @brief 创建标记密度函数（FlatCache 类型）
  *
- * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 FlatCache。
+ * MC 1.21: 数据驱动 DensityFunctionTypeRegistry 使用 Marker 代替直接创建 FlatCache。
  * NoiseChunk::wrap() 在构造时替换为区块级扁平缓存。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> flatCacheMarker(std::unique_ptr<DensityFunction> wrapped);
@@ -1885,7 +1783,7 @@ namespace factory {
 /**
  * @brief 创建标记密度函数（Cache2D 类型）
  *
- * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 Cache2D。
+ * MC 1.21: 数据驱动 DensityFunctionTypeRegistry 使用 Marker 代替直接创建 Cache2D。
  * NoiseChunk::wrap() 在构造时替换为 2D 位置缓存。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> cache2DMarker(std::unique_ptr<DensityFunction> wrapped);

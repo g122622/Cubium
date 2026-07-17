@@ -39,43 +39,15 @@ namespace mc::world::gen::surface {
 /**
  * @brief SurfaceRules 工厂命名空间
  *
- * 提供创建条件和规则的便捷工厂方法，以及维度规则树构建器。
+ * 提供创建条件和规则的便捷工厂方法。
  * 对应 MC 1.21 的 SurfaceRules 静态工厂方法。
  */
 namespace SurfaceRules {
-
-// ========== 常用条件快捷方式 ==========
-
-/** ON_FLOOR: stoneDepthCheck(0, false, Floor) — 在表面 */
-[[nodiscard]] std::unique_ptr<SurfaceCondition> onFloor();
-
-/** UNDER_FLOOR: stoneDepthCheck(0, true, Floor) — 地表下方 */
-[[nodiscard]] std::unique_ptr<SurfaceCondition> underFloor();
-
-/** DEEP_UNDER_FLOOR: stoneDepthCheck(0, true, 6, Floor) — 地表深下方 */
-[[nodiscard]] std::unique_ptr<SurfaceCondition> deepUnderFloor();
-
-/** VERY_DEEP_UNDER_FLOOR: stoneDepthCheck(0, true, 30, Floor) — 地表极深下方 */
-[[nodiscard]] std::unique_ptr<SurfaceCondition> veryDeepUnderFloor();
-
-/** ON_CEILING: stoneDepthCheck(0, false, Ceiling) — 在洞穴顶部 */
-[[nodiscard]] std::unique_ptr<SurfaceCondition> onCeiling();
-
-/** UNDER_CEILING: stoneDepthCheck(0, true, Ceiling) — 洞穴顶部下方 */
-[[nodiscard]] std::unique_ptr<SurfaceCondition> underCeiling();
 
 // ========== 条件工厂 ==========
 
 [[nodiscard]] std::unique_ptr<SurfaceCondition> stoneDepthCheck(
     i32 offset, bool addSurfaceDepth, i32 secondaryDepthRange, CaveSurface surface);
-
-[[nodiscard]] std::unique_ptr<SurfaceCondition> yBlockCheck(VerticalAnchor anchor, i32 surfaceDepthMultiplier);
-
-[[nodiscard]] std::unique_ptr<SurfaceCondition> yStartCheck(VerticalAnchor anchor, i32 surfaceDepthMultiplier);
-
-[[nodiscard]] std::unique_ptr<SurfaceCondition> waterBlockCheck(i32 offset, i32 surfaceDepthMultiplier);
-
-[[nodiscard]] std::unique_ptr<SurfaceCondition> waterStartCheck(i32 offset, i32 surfaceDepthMultiplier);
 
 [[nodiscard]] std::unique_ptr<SurfaceCondition> isBiome(std::vector<BiomeId> biomes);
 
@@ -115,17 +87,6 @@ template <typename... Rules>
 }
 
 [[nodiscard]] std::unique_ptr<SurfaceRule> bandlands();
-
-// ========== 维度规则树 ==========
-
-/** 创建主世界表面规则（MC 1.21 SurfaceRuleData.overworld()） */
-[[nodiscard]] std::unique_ptr<SurfaceRule> overworld();
-
-/** 创建下界表面规则 */
-[[nodiscard]] std::unique_ptr<SurfaceRule> nether();
-
-/** 创建末地表面规则 */
-[[nodiscard]] std::unique_ptr<SurfaceRule> end();
 
 } // namespace SurfaceRules
 

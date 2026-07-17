@@ -33,6 +33,7 @@ WorldListEntry::WorldListEntry(std::string levelId,
     i64 lastPlayedMs,
     u64 seed,
     WorldType worldType,
+    resource::ResourceLocation worldPresetId,
     GameMode gameMode,
     Difficulty difficulty,
     bool hardcore,
@@ -50,6 +51,7 @@ WorldListEntry::WorldListEntry(std::string levelId,
     , lastPlayedMs(lastPlayedMs)
     , seed(seed)
     , worldType(worldType)
+    , worldPresetId(std::move(worldPresetId))
     , gameMode(gameMode)
     , difficulty(difficulty)
     , hardcore(hardcore)

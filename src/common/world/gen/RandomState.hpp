@@ -120,6 +120,19 @@ public:
     [[nodiscard]] noise::NormalNoise& getOrCreateNoise(const std::string& name);
 
     /**
+     * @brief 获取或创建命名噪声实例的共享所有权
+     *
+     * 数据驱动噪声叶子绑定（NoiseBindingVisitor）用：UnboundNoiseLeaf 替换为真实叶子
+     * （NoiseDensity/ShiftedNoise/MappedNoise/ShiftNoise/WeirdScaledSampler）时，叶子子类
+     * 持有 shared_ptr<const NormalNoise> 以跨区块 mapAll 共享。本方法返回与 getOrCreateNoise
+     * 同一实例的 shared_ptr（缓存改为 shared_ptr 存储）。
+     *
+     * @param name 噪声名称（如 "minecraft:temperature"）
+     * @return 共享的 NormalNoise 实例
+     */
+    [[nodiscard]] std::shared_ptr<const noise::NormalNoise> getOrCreateNoiseShared(const std::string& name) const;
+
+    /**
      * @brief 获取或创建命名位置随机工厂
      *
      * MC 1.21: RandomState.getOrCreateRandomFactory(Identifier)
@@ -129,24 +142,6 @@ public:
      * @return 位置随机工厂引用
      */
     [[nodiscard]] ::mc::math::PositionalRandomFactory& getOrCreateRandomFactory(const std::string& name);
-
-    /**
-     * @brief 获取或创建路由器内部噪声实例（按派生种子缓存）
-     *
-     * NoiseRouterData 构造密度函数树时，每个噪声用 derivedSeed（worldSeed ^ 常量）
-     * 唯一标识。NormalNoise::getValue 是 const 且无 mutable 缓存，mapAll 前后语义等价，
-     * 因此同一 derivedSeed 的 NormalNoise 可跨区块共享，避免每区块重建 PerlinNoise 倍频置换表。
-     *
-     * 返回 shared_ptr<const NormalNoise>：叶子密度函数（NoiseDensity/ShiftedNoise/MappedNoise）
-     * 持有共享引用，mapAll 时共享而非 clone。
-     *
-     * @param derivedSeed 派生种子（worldSeed ^ 噪声常量）
-     * @param firstOctave 首个倍频索引
-     * @param amplitudes 倍频振幅列表
-     * @return 共享的 NormalNoise 实例
-     */
-    [[nodiscard]] std::shared_ptr<const noise::NormalNoise> getOrCreateRouterNoise(
-        u64 derivedSeed, i32 firstOctave, const std::vector<f64>& amplitudes) const;
 
 private:
     RandomState(u64 worldSeed, const DimensionSettings& settings);
@@ -162,16 +157,14 @@ private:
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_positionalRandom;
 
     // MC 1.21: 噪声实例缓存（name → NormalNoise）
-    std::unordered_map<std::string, std::unique_ptr<noise::NormalNoise>> m_noiseCache;
+    // shared_ptr 存储：数据驱动噪声叶子绑定（NoiseBindingVisitor）需 shared_ptr<const NormalNoise>
+    // 共享所有权，叶子跨区块 mapAll 复用同一 NormalNoise。getOrCreateNoise 返回 NormalNoise&（*it->second）。
+    // mutable：getOrCreateNoiseShared 是 const（createRouterCopy 经 NoiseBindingVisitor 在 const 路径
+    // 调用，每区块一次，逻辑不改 RandomState 状态），噪声缓存为惰性初始化的派生状态，故允许 const 写入。
+    mutable std::unordered_map<std::string, std::shared_ptr<noise::NormalNoise>> m_noiseCache;
 
     // MC 1.21: 位置随机工厂缓存（name → PositionalRandomFactory）
     std::unordered_map<std::string, std::unique_ptr<::mc::math::PositionalRandomFactory>> m_randomFactoryCache;
-
-    // 路由器内部噪声缓存（derivedSeed → 共享 NormalNoise）
-    // NormalNoise::getValue 是 const 无 mutable，可跨区块共享。每个 derivedSeed 唯一标识一个噪声，
-    // 避免每区块 createRouterCopy 时重建 PerlinNoise 倍频置换表。
-    mutable std::unordered_map<u64, std::shared_ptr<const noise::NormalNoise>> m_routerNoiseCache;
-    mutable std::shared_mutex m_routerNoiseMutex;
 
     // 并发保护：buildSurface 在并行 worker 池上运行，多个区块会并发调用
     // getOrCreateNoise/getOrCreateRandomFactory。命中路径用 shared_lock（读），

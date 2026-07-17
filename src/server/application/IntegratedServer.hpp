@@ -54,6 +54,8 @@ struct IntegratedServerParams {
     i32 viewDistance;
     i32 tickRate;
     WorldType worldType;
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    resource::ResourceLocation worldPresetId{"minecraft", "default"};
     Difficulty difficulty;
     bool hardcore;
     bool allowCommands; ///< 单机作弊开关，对应原版 WorldData.isAllowCommands()

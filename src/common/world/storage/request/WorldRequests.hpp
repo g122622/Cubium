@@ -49,6 +49,9 @@ struct CreateWorldRequest {
     /// 世界类型
     WorldType worldType;
 
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    resource::ResourceLocation worldPresetId;
+
     /// 游戏模式
     GameMode gameMode;
 
@@ -73,6 +76,7 @@ struct CreateWorldRequest {
         std::string requestedLevelId,
         u64 seed,
         WorldType worldType,
+        resource::ResourceLocation worldPresetId,
         GameMode gameMode,
         Difficulty difficulty,
         bool hardcore,
