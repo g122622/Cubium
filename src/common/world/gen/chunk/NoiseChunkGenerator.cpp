@@ -134,25 +134,11 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
     m_cellWidth = m_settings.noise.sizeHorizontal * 4;
     m_cellHeight = m_settings.noise.sizeVertical * 4;
 
-    // MC 1.21: 缓存全局流体选择器（在 getHeight 和 _generateNoiseWithDensityFunction 中复用）
-    switch (m_settings.dimensionKind) {
-        case DimensionKind::Nether:
-            m_globalFluidPicker = world::gen::aquifer::createNetherFluidPicker();
-            break;
-        case DimensionKind::End:
-        case DimensionKind::FloatingIslands:
-            m_globalFluidPicker = world::gen::aquifer::createEndFluidPicker();
-            break;
-        case DimensionKind::Overworld:
-        case DimensionKind::LargeBiomes:
-        case DimensionKind::Amplified:
-        case DimensionKind::Caves:
-        case DimensionKind::Flat:
-        default:
-            m_globalFluidPicker =
-                world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
-            break;
-    }
+    // MC 1.21.11: 全局流体选择器对所有维度统一，仅读取 noise_settings 的 sea_level 与
+    // default_fluid（对齐 NoiseBasedChunkGenerator.createFluidPicker）。缓存后在 getHeight 与
+    // _generateNoiseWithDensityFunction 中复用；aquifers_enabled=false（下界/末地）时经
+    // Aquifer::createDisabled 使用。逐维度 minY 核对零行为差（见 FluidPickerFactory 注释）。
+    m_globalFluidPicker = world::gen::aquifer::createFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
 }
 
 // ============================================================================

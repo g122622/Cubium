@@ -347,7 +347,7 @@ Result<DimensionSettings> DimensionSettings::fromJson(const json& root, const re
             std::shared_ptr<world::gen::density::DensityFunction>(df.value().release());
     }
 
-    // 6. surface_rule（数据驱动 SurfaceRule 树；无则保留 nullptr，RandomState 走 dimensionKind 兜底）
+    // 6. surface_rule（数据驱动 SurfaceRule 树；RandomState::create 断言非空，所有 noise_settings 必须提供）
     if (root.contains("surface_rule")) {
         auto rule = world::gen::surface::SurfaceRuleDeserializer::fromJson(root["surface_rule"]);
         if (rule.failed()) {

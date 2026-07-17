@@ -184,6 +184,7 @@ Result<LevelSummaryData> JavaLevelDatReader::_parseSummary(const compound_tag& d
     GameMode gameMode = _parseGameMode(data);
     Difficulty difficulty = _parseDifficulty(data);
     WorldType worldType = _parseWorldType(data);
+    mc::resource::ResourceLocation worldPresetId = _parseWorldPresetId(data);
 
     bool hardcore = false;
     if (data.value.count("hardcore") != 0) {
@@ -203,6 +204,7 @@ Result<LevelSummaryData> JavaLevelDatReader::_parseSummary(const compound_tag& d
         allowCommands,
         seed,
         worldType,
+        std::move(worldPresetId),
         LevelVersionInfo(storageVersion, dataVersion, std::move(versionName), snapshot),
         storageVersion,
         dataVersion,
@@ -339,6 +341,23 @@ WorldType JavaLevelDatReader::_parseWorldType(const compound_tag& data)
         return WorldType::Debug;
     }
     return WorldType::Default;
+}
+
+mc::resource::ResourceLocation JavaLevelDatReader::_parseWorldPresetId(const compound_tag& data)
+{
+    // 读项目私有 Data.Reborn.WorldPresetId（worldPresetId 无原版对应，仅写 Reborn compound）。
+    auto rebornIt = data.value.find("Reborn");
+    if (rebornIt != data.value.end() && rebornIt->second->id() == mc::nbt::TagId::Compound) {
+        auto& reborn = dynamic_cast<const compound_tag&>(*rebornIt->second);
+        auto it = reborn.value.find("WorldPresetId");
+        if (it != reborn.value.end() && it->second->id() == mc::nbt::TagId::String) {
+            const auto& str = dynamic_cast<const string_tag&>(*it->second).value;
+            if (!str.empty()) {
+                return mc::resource::ResourceLocation::parse(str);
+            }
+        }
+    }
+    return mc::resource::ResourceLocation("minecraft", "default");
 }
 
 GameMode JavaLevelDatReader::_parseGameMode(const compound_tag& data)

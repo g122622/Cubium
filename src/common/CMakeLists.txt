@@ -1101,6 +1101,9 @@ add_library(mc_common STATIC
     world/gen/settings/FlatLevelGeneratorSettings.cpp
     world/gen/settings/NoiseSettingsLoader.cpp
     world/gen/settings/NoiseSettingsRegistry.cpp
+    world/gen/settings/WorldPreset.cpp
+    world/gen/settings/WorldPresetLoader.cpp
+    world/gen/settings/WorldPresetRegistry.cpp
 
     # World - Generation - Carvers
     world/gen/carver/WorldCarver.cpp

@@ -196,6 +196,20 @@ public:
     [[nodiscard]] static Result<FlatLevelGeneratorSettings> fromJson(
         const nlohmann::json& root, const ResourceLocation& id);
 
+    /**
+     * @brief 从 settings 子对象解析平坦世界设置
+     *
+     * world_preset 的 flat 维度 generator.settings 是内联的 settings 对象
+     * （{biome, layers, features, lakes, structure_overrides}，无 display 包装层），
+     * 直接复用 flat_level_generator_preset 的解析逻辑。顶层 fromJson 委托本方法。
+     *
+     * @param settingsObj settings 子对象（biome/layers/features/lakes/structure_overrides）
+     * @param id 资源位置（用于错误日志）
+     * @return 平坦世界设置，或错误
+     */
+    [[nodiscard]] static Result<FlatLevelGeneratorSettings> fromSettingsObject(
+        const nlohmann::json& settingsObj, const ResourceLocation& id);
+
 private:
     std::vector<FlatLayerInfo> m_layersInfo; ///< 层定义（方块 + 高度）
     std::vector<const BlockState*>

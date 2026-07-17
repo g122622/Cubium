@@ -150,7 +150,7 @@ struct DimensionSettings {
      * @brief 数据驱动 surface_rule 根节点
      *
      * 由 SurfaceRuleDeserializer 从 noise_settings JSON 的 surface_rule 字段解析。
-     * 为空表示非数据驱动，RandomState::create 按 dimensionKind 走 C++ SurfaceRules::xxx() 兜底。
+     * 数据驱动为唯一路径：RandomState::create 断言此字段非空（所有 noise_settings 必须提供 surface_rule）。
      */
     std::shared_ptr<world::gen::surface::SurfaceRule> m_surfaceRule;
 

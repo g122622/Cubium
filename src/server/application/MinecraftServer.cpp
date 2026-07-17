@@ -105,6 +105,7 @@
 #include "common/world/gen/placement/PlacementRegistry.hpp"
 #include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
 #include "common/world/gen/settings/NoiseSettingsLoader.hpp"
+#include "common/world/gen/settings/WorldPresetLoader.hpp"
 #include "common/world/gen/structure/StructureDefinitionLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
@@ -1264,6 +1265,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::error("Failed to load flat_level_generator_presets from data packs: {}", flatResult.error().toString());
         } else {
             spdlog::info("Loaded {} flat_level_generator_presets from data packs", flatResult.value());
+        }
+    }
+
+    // 从数据包加载 world_preset（须在 noise_settings + flat_preset 之后：flat 维度的内联 settings
+    // 复用 FlatLevelGeneratorSettings::fromSettingsObject 依赖 BlockRegistry/BiomeLoader；noise 维度
+    // 仅存 noise_settings RL，装配期由 RandomState::create 查 NoiseSettingsRegistry）。
+    // WorldPresetLoader 解析 6 个预设 JSON，注册到 WorldPresetRegistry，
+    // 供 ServerDimensionManager 三维度装配查表。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::WorldPresets");
+        auto presetResult = world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(m_dataPackList);
+        if (presetResult.failed()) {
+            spdlog::error("Failed to load world_presets from data packs: {}", presetResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} world_presets from data packs", presetResult.value());
         }
     }
 

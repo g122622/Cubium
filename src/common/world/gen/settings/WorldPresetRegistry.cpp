@@ -20,25 +20,45 @@
  * SOFTWARE.
  */
 
-#include "FluidPickerFactory.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include <algorithm>
+#include "common/world/gen/settings/WorldPresetRegistry.hpp"
 
-namespace mc::world::gen::aquifer {
+namespace mc::world::gen::settings {
 
-// 对齐 MC 1.21.11 NoiseBasedChunkGenerator.createFluidPicker：所有维度共用同一选择器。
-FluidPicker createFluidPicker(i32 seaLevel, const BlockState* defaultFluid)
+WorldPresetRegistry& WorldPresetRegistry::instance()
 {
-    const i32 lavaLevel = -54;
-    const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
-    const i32 minFluidLevel = std::min(lavaLevel, seaLevel);
-
-    return [seaLevel, lavaLevel, minFluidLevel, defaultFluid, lavaState](i32, i32 y, i32) -> FluidStatus {
-        if (y < minFluidLevel) {
-            return {lavaLevel, lavaState};
-        }
-        return {seaLevel, defaultFluid};
-    };
+    static WorldPresetRegistry registry;
+    return registry;
 }
 
-} // namespace mc::world::gen::aquifer
+void WorldPresetRegistry::registerPreset(const resource::ResourceLocation& name, WorldPreset preset)
+{
+    m_presets[name] = std::move(preset);
+}
+
+const WorldPreset* WorldPresetRegistry::get(const resource::ResourceLocation& name) const
+{
+    const auto it = m_presets.find(name);
+    return it == m_presets.end() ? nullptr : &it->second;
+}
+
+bool WorldPresetRegistry::has(const resource::ResourceLocation& name) const
+{
+    return m_presets.find(name) != m_presets.end();
+}
+
+void WorldPresetRegistry::clear() noexcept
+{
+    m_presets.clear();
+}
+
+void WorldPresetRegistry::markLoadedFromDatapack(bool loaded) noexcept
+{
+    m_loadedFromDatapack = loaded;
+}
+
+bool WorldPresetRegistry::isLoadedFromDatapack() const noexcept
+{
+    return m_loadedFromDatapack;
+}
+
+} // namespace mc::world::gen::settings

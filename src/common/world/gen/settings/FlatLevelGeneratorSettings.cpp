@@ -144,7 +144,15 @@ Result<FlatLevelGeneratorSettings> FlatLevelGeneratorSettings::fromJson(const js
     if (!root.contains("settings") || !root["settings"].is_object()) {
         return Error(ErrorCode::InvalidData, "flat preset '" + id.toString() + "' missing 'settings' object");
     }
-    const json& settingsObj = root["settings"];
+    return fromSettingsObject(root["settings"], id);
+}
+
+Result<FlatLevelGeneratorSettings> FlatLevelGeneratorSettings::fromSettingsObject(
+    const json& settingsObj, const ResourceLocation& id)
+{
+    if (!settingsObj.is_object()) {
+        return Error(ErrorCode::InvalidData, "flat settings '" + id.toString() + "' must be an object");
+    }
 
     // biome（RL → BiomeId，经 BiomeLoader 共享映射表）
     if (!settingsObj.contains("biome") || !settingsObj["biome"].is_string()) {

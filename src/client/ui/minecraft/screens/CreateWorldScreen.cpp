@@ -241,10 +241,28 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const
         viewDistance = VIEW_DISTANCE_MAX;
     }
 
+    // worldPresetId 按 UI 选定的 WorldType 推导（对齐原版 world_preset 资源位置）
+    resource::ResourceLocation worldPresetId = [worldType = m_worldType]() -> resource::ResourceLocation {
+        switch (worldType) {
+            case WorldType::Flat:
+                return resource::ResourceLocation("minecraft", "flat");
+            case WorldType::LargeBiomes:
+                return resource::ResourceLocation("minecraft", "large_biomes");
+            case WorldType::Amplified:
+                return resource::ResourceLocation("minecraft", "amplified");
+            case WorldType::Debug:
+                return resource::ResourceLocation("minecraft", "debug_all_block_states");
+            case WorldType::Default:
+            default:
+                return resource::ResourceLocation("minecraft", "default");
+        }
+    }();
+
     return world::storage::CreateWorldRequest(m_nameField ? m_nameField->text() : "New World",
         "",
         seed,
         m_worldType,
+        std::move(worldPresetId),
         m_gameMode,
         m_difficulty,
         false,

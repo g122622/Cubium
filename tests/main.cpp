@@ -32,6 +32,7 @@
 #include "common/world/gen/noise/NoiseLoader.hpp"
 #include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
 #include "common/world/gen/settings/NoiseSettingsLoader.hpp"
+#include "common/world/gen/settings/WorldPresetLoader.hpp"
 
 #include <gtest/gtest.h>
 
@@ -72,6 +73,9 @@ public:
         mc::world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);
         mc::world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(repo);
         mc::world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(repo);
+        // world_preset 依赖 noise_settings（noise 维度存 RL）+ flat_preset（flat 维度内联 settings 复用
+        // FlatLevelGeneratorSettings::fromSettingsObject）。
+        mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(repo);
     }
 };
 

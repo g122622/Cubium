@@ -73,8 +73,16 @@ protected:
         WorldStoragePaths paths(savesDir, testDir / "backups");
         WorldListService service(paths);
 
-        CreateWorldRequest request(
-            displayName, "", 12345, WorldType::Default, GameMode::Survival, Difficulty::Normal, false, false, 12);
+        CreateWorldRequest request(displayName,
+            "",
+            12345,
+            WorldType::Default,
+            resource::ResourceLocation("minecraft", "default"),
+            GameMode::Survival,
+            Difficulty::Normal,
+            false,
+            false,
+            12);
         return service.createWorld(request);
     }
 };

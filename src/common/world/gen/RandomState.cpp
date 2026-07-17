@@ -117,28 +117,15 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     state->m_sampler = std::make_unique<biome::climate::Sampler>(state->m_router->createClimateSampler());
     state->m_sampler->setSpawnTarget(resolved->spawnTarget);
 
-    // 4. SurfaceSystem：优先用数据驱动 surface_rule，无则按 dimensionKind 取 C++ SurfaceRules 兜底。
-    std::shared_ptr<surface::SurfaceRule> surfaceRule;
-    if (resolved->m_surfaceRule) {
-        surfaceRule = resolved->m_surfaceRule;
-    } else {
-        switch (resolved->dimensionKind) {
-            case DimensionKind::End:
-            case DimensionKind::FloatingIslands:
-                surfaceRule = std::shared_ptr<surface::SurfaceRule>(surface::SurfaceRules::end());
-                break;
-            case DimensionKind::Nether:
-                surfaceRule = std::shared_ptr<surface::SurfaceRule>(surface::SurfaceRules::nether());
-                break;
-            case DimensionKind::Overworld:
-            case DimensionKind::LargeBiomes:
-            case DimensionKind::Amplified:
-            case DimensionKind::Caves:
-            default:
-                surfaceRule = std::shared_ptr<surface::SurfaceRule>(surface::SurfaceRules::overworld());
-                break;
-        }
-    }
+    // 4. SurfaceSystem：surface_rule 必须由 noise_settings JSON 提供（数据驱动唯一路径，无兜底）。
+    //    原版 7 个 noise_settings JSON 均含 surface_rule；flat 不经 create（无此断言风险）。
+    //    数据包残缺缺 surface_rule 属数据错误，断言合理。
+    MC_ASSERT_RELEASE_MSG(resolved->m_surfaceRule,
+        fmt::format("RandomState::create: noise_settings '{}' has no surface_rule (datadriven requires all "
+                    "noise_settings to provide surface_rule)",
+            resolved->m_noiseSettingsId.toString())
+            .c_str());
+    std::shared_ptr<surface::SurfaceRule> surfaceRule = resolved->m_surfaceRule;
 
     ::mc::math::Xoroshiro128ppRandom surfaceRng(worldSeed);
     auto surfacePositionalRandom = surfaceRng.forkPositional();

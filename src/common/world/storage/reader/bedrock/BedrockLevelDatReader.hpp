@@ -57,6 +57,7 @@ private:
     static GameMode _parseGameMode(i32 gameType);
     static Difficulty _parseDifficulty(i32 difficulty);
     static WorldType _parseWorldType(const std::string& generatorName);
+    static mc::resource::ResourceLocation _parseWorldPresetId(const std::string& generatorName);
 };
 
 } // namespace mc::world::storage::reader::bedrock

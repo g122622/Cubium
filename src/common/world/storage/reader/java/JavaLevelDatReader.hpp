@@ -76,6 +76,7 @@ private:
     static Result<std::optional<PlayerSaveData>> _parseLocalPlayer(const mc::nbt::tags::compound_tag& data);
 
     static WorldType _parseWorldType(const mc::nbt::tags::compound_tag& data);
+    static resource::ResourceLocation _parseWorldPresetId(const mc::nbt::tags::compound_tag& data);
     static GameMode _parseGameMode(const mc::nbt::tags::compound_tag& data);
     static Difficulty _parseDifficulty(const mc::nbt::tags::compound_tag& data);
 };

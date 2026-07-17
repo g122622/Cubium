@@ -35,6 +35,7 @@
 #include "common/world/gen/noise/NoiseLoader.hpp"
 #include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
 #include "common/world/gen/settings/NoiseSettingsLoader.hpp"
+#include "common/world/gen/settings/WorldPresetLoader.hpp"
 
 #include <gtest/gtest.h>
 
@@ -67,11 +68,12 @@ public:
         // 在此显式调用使本环境自包含——不依赖其它测试文件的静态全局 Environment 注册顺序。
         mc::VanillaBlocks::initialize();
 
-        // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset（依赖拓扑）。
+        // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset → world_preset（依赖拓扑）。
         mc::world::gen::noise::NoiseLoader::loadFromDataPackRepository(repo);
         mc::world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);
         mc::world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(repo);
         mc::world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(repo);
+        mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(repo);
     }
 };
 

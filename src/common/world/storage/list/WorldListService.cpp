@@ -401,6 +401,7 @@ WorldListEntry WorldListService::_tryReadWorldSummary(const std::string& levelId
         entry.lastPlayedMs = summary.lastPlayedMs;
         entry.seed = summary.seed;
         entry.worldType = summary.worldType;
+        entry.worldPresetId = summary.worldPresetId;
         entry.gameMode = summary.gameMode;
         entry.difficulty = summary.difficulty;
         entry.hardcore = summary.hardcore;
