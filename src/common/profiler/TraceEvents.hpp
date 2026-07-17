@@ -221,6 +221,48 @@
 #endif
 
 // ============================================================================
+// 内存追踪宏
+// ============================================================================
+//
+// 分配级内存追踪，与上面的 CPU zone 事件正交。语义为「在 name 标记的内存池中
+// 分配/释放 ptr 处 size 字节」。调用方只感知 (name, ptr, size) 三元组，不关心
+// 底层由哪个分析器实现——这是高层语义化抽象，便于以后接入其他内存分析器
+// （如 jemalloc stats、Heaptrack、自研 arena 统计）时只改本文件底部分支，
+// 调用方宏签名不变。
+//
+// 当前仅 Tracy 后端提供实现（TracyAllocN/TracyFreeN，带调用栈，Tracy UI 按
+// name 分组显示）。Perfetto SDK 无等价的分配插桩 API，故 MC_ENABLE_MEMORY
+// 开启但 MC_ENABLE_TRACY 关闭时宏空展开。
+//
+// 注意事项：
+// - alloc/free 必须严格配对，ptr 必须是同一指针；错配会污染 Tracy 泄漏视图
+// - std::vector 等 realloc 容器会使旧指针失效，建议只标大块分配点（reserve/
+//   resize/构造），勿标高频小分配（如 per-vertex push_back），否则刷爆缓冲
+// - shared_ptr 析构时机不确定，对象级标记是近似；要精确需在析构函数插 free
+// - 标的是「对象级事件」：sizeof(T) 只反映外层结构体，对象内部 vector 等分配另算
+
+#if MC_ENABLE_MEMORY && MC_ENABLE_TRACY
+
+// === 内存追踪：Tracy 分配级追踪 ===
+#define MC_TRACE_MEM_ALLOC(name, ptr, size) TracyAllocN(ptr, size, name)
+#define MC_TRACE_MEM_FREE(name, ptr) TracyFreeN(ptr, name)
+
+#elif MC_ENABLE_MEMORY
+
+// === 内存追踪启用但无可用后端（Perfetto 无分配插桩 API）：空操作 ===
+// NOTE: 未来接入其他内存分析器时在此分支扩展。
+#define MC_TRACE_MEM_ALLOC(name, ptr, size) ((void)0)
+#define MC_TRACE_MEM_FREE(name, ptr) ((void)0)
+
+#else
+
+// === 内存追踪关闭：空操作，零开销 ===
+#define MC_TRACE_MEM_ALLOC(name, ptr, size) ((void)0)
+#define MC_TRACE_MEM_FREE(name, ptr) ((void)0)
+
+#endif
+
+// ============================================================================
 // 线程命名宏
 // ============================================================================
 //
