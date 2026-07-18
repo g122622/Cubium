@@ -268,11 +268,12 @@ void FirstPersonRenderer::setItemTextureAtlas(const mc::client::ItemTextureAtlas
     }
 }
 
-void FirstPersonRenderer::setChunkTextureAtlas(const mc::client::ChunkTextureAtlas* chunkTextureAtlas)
+void FirstPersonRenderer::setBlockAtlas(VkImageView imageView, VkSampler sampler)
 {
-    m_chunkTextureAtlas = chunkTextureAtlas;
+    m_blockImageView = imageView;
+    m_blockSampler = sampler;
 
-    // 方块物品 3D 网格 UV 基于方块纹理图集，图集切换后强制重建避免 UV 失效。
+    // 方块物品 3D 网格 UV 基于 blocks atlas，图集切换后强制重建避免 UV 失效。
     _invalidateItemMeshes();
 }
 
@@ -527,12 +528,11 @@ void FirstPersonRenderer::render(VkCommandBuffer cmd, VkDescriptorSet cameraDesc
             0,
             nullptr);
 
-        // 方块物品 3D 网格 UV 基于方块纹理图集，绘制前切换管线图集，
+        // 方块物品 3D 网格 UV 基于 blocks atlas，绘制前切换管线图集，
         // 绘制后恢复为物品纹理图集（与第三人称 HeldBlockLayer 同模式）。
-        const bool needAtlasSwitch =
-            itemMeshState.isBlockItem && m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid;
+        const bool needAtlasSwitch = itemMeshState.isBlockItem && m_blockImageView != VK_NULL_HANDLE;
         if (needAtlasSwitch) {
-            m_itemPipeline->setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
+            m_itemPipeline->setTextureAtlas(m_blockImageView, m_blockSampler);
         }
         m_itemPipeline->bindTextureDescriptor(cmd);
         const auto itemModelMatrix = toModelMatrix(itemStack.last());

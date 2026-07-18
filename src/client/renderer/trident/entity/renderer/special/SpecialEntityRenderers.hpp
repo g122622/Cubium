@@ -28,14 +28,11 @@
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include <memory>
 #include <unordered_map>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class BlockState;
 } // namespace mc
-
-namespace mc::client {
-struct ChunkTextureAtlas;
-} // namespace mc::client
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityTextureAtlas;
@@ -252,7 +249,7 @@ public:
  * - 在 renderLayersPipelineClient 中完成全部渲染（不使用 PipelineMeshProvider 主网格路径）
  * - 从 ClientEntity::fallingBlockState() 读取方块状态
  * - 通过 util::BlockMeshBuilder 构建方块网格（按 BlockState* 缓存）
- * - 切换到方块纹理图集（ChunkTextureAtlas）渲染，渲染后恢复实体纹理图集
+ * - 切换到 blocks atlas 渲染，渲染后恢复实体纹理图集
  *
  * 变换链（对齐 MC 1.21.11 FallingBlockRenderer.submit）：
  *   translate(-0.5, 0, -0.5)  // 方块中心对齐实体原点
@@ -290,12 +287,16 @@ public:
     [[nodiscard]] static std::array<f64, 16> buildFallingBlockModelMatrix() noexcept;
 
     /**
-     * @brief 设置方块纹理图集引用
+     * @brief 设置方块图集（blocks atlas 的 GPU 句柄）引用
      *
-     * 由 EntityRendererManager::setChunkTextureAtlas 注入。
-     * 用于在渲染时切换 EntityPipeline 的纹理图集到方块纹理图集。
+     * 由 EntityRendererManager::setBlockAtlas 注入。
+     * 用于在渲染时切换 EntityPipeline 的纹理图集到 blocks atlas。
      */
-    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas) { m_chunkTextureAtlas = atlas; }
+    void setBlockAtlas(VkImageView imageView, VkSampler sampler)
+    {
+        m_blockImageView = imageView;
+        m_blockSampler = sampler;
+    }
 
     /**
      * @brief 设置实体纹理图集引用
@@ -311,7 +312,8 @@ private:
     [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(
         pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState);
 
-    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    VkImageView m_blockImageView = VK_NULL_HANDLE;
+    VkSampler m_blockSampler = VK_NULL_HANDLE;
     const pipeline::EntityTextureAtlas* m_entityTextureAtlas = nullptr;
     std::unordered_map<const ::mc::BlockState*, std::unique_ptr<pipeline::EntityMesh>> m_blockMeshCache;
 };
@@ -370,7 +372,7 @@ public:
  * - 从 ClientEntity::tntBlockState() 读取方块状态（默认 TNT）
  * - 从 ClientEntity::tntFuse() 读取引信剩余 tick
  * - 通过 util::BlockMeshBuilder 构建方块网格（按 BlockState* 缓存）
- * - 切换到方块纹理图集（ChunkTextureAtlas）渲染，渲染后恢复实体纹理图集
+ * - 切换到 blocks atlas 渲染，渲染后恢复实体纹理图集
  *
  * 变换链（对齐 MC 1.21.11 TntRenderer.submit，使用 PoseStack 右乘语义）：
  *   translate(0, 0.5, 0)       // 抬高半个方块
@@ -443,9 +445,13 @@ public:
     [[nodiscard]] static std::array<f64, 16> buildTntModelMatrix(f32 fuseRemaining) noexcept;
 
     /**
-     * @brief 设置方块纹理图集引用
+     * @brief 设置方块图集（blocks atlas 的 GPU 句柄）引用
      */
-    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas) { m_chunkTextureAtlas = atlas; }
+    void setBlockAtlas(VkImageView imageView, VkSampler sampler)
+    {
+        m_blockImageView = imageView;
+        m_blockSampler = sampler;
+    }
 
     /**
      * @brief 设置实体纹理图集引用
@@ -459,7 +465,8 @@ private:
     [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(
         pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState);
 
-    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    VkImageView m_blockImageView = VK_NULL_HANDLE;
+    VkSampler m_blockSampler = VK_NULL_HANDLE;
     const pipeline::EntityTextureAtlas* m_entityTextureAtlas = nullptr;
     std::unordered_map<const ::mc::BlockState*, std::unique_ptr<pipeline::EntityMesh>> m_blockMeshCache;
 };

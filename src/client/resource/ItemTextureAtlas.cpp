@@ -22,9 +22,9 @@
  */
 
 #include "ItemTextureAtlas.hpp"
-#include "ResourceManager.hpp"
 #include "TextureAtlasBuilder.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/resource/atlas/TexturePathVariant.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -49,9 +49,9 @@ Result<void> loadTexturePixels(IResourcePack& pack,
     u32& outFrameWidth,
     u32& outFrameHeight)
 {
-    std::string pngPath = location.toFilePath(resource::PackType::ClientResources, "png");
+    std::string pngPath = location.toFilePath(mc::resource::PackType::ClientResources, "png");
     pngPath.erase(0, std::string("assets/").size());
-    const auto readResult = pack.readResource(resource::PackType::ClientResources, pngPath);
+    const auto readResult = pack.readResource(mc::resource::PackType::ClientResources, pngPath);
     if (readResult.failed()) {
         return readResult.error();
     }
@@ -75,11 +75,11 @@ Result<void> loadTexturePixels(IResourcePack& pack,
     outFrameHeight = outHeight;
 
     const std::string mcmetaPath = pngPath + ".mcmeta";
-    if (pack.hasResource(resource::PackType::ClientResources, mcmetaPath)) {
-        const auto mcmetaResult = pack.readResource(resource::PackType::ClientResources, mcmetaPath);
+    if (pack.hasResource(mc::resource::PackType::ClientResources, mcmetaPath)) {
+        const auto mcmetaResult = pack.readResource(mc::resource::PackType::ClientResources, mcmetaPath);
         if (mcmetaResult.success()) {
             const auto metadata =
-                resource::metadata::AnimationMetadata::fromMcmeta(mcmetaResult.value(), outWidth, outHeight);
+                mc::resource::metadata::AnimationMetadata::fromMcmeta(mcmetaResult.value(), outWidth, outHeight);
             if (metadata.width > 0 && metadata.height > 0) {
                 outFrameWidth = static_cast<u32>(metadata.width);
                 outFrameHeight = static_cast<u32>(metadata.height);
@@ -344,7 +344,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
 
     // 遍历所有物品并尝试加载纹理。
     // 规则：优先 textures/item/<item>，若是方块物品再回退到 block 纹理。
-    // 使用 ResourceManager::getAltTexturePath() 集中化路径变体转换，消除硬编码回退逻辑。
+    // 使用 TexturePathVariant::getAltTexturePath() 集中化路径变体转换，消除硬编码回退逻辑。
     ItemRegistry::instance().forEachItem([&](Item& item) {
         const ResourceLocation& itemId = item.itemLocation();
         const ResourceLocation atlasKey(itemId.namespace_(), "textures/item/" + itemId.path());
@@ -353,7 +353,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
         std::vector<ResourceLocation> sourceCandidates;
         sourceCandidates.push_back(atlasKey);
 
-        std::string altItemPath = ResourceManager::getAltTexturePath(atlasKey.path());
+        std::string altItemPath = resource::atlas::TexturePathVariant::getAltTexturePath(atlasKey.path());
         if (!altItemPath.empty()) {
             sourceCandidates.emplace_back(itemId.namespace_(), std::move(altItemPath));
         }
@@ -364,7 +364,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
             ResourceLocation blockLoc(blockId.namespace_(), "textures/block/" + blockId.path());
             sourceCandidates.push_back(blockLoc);
 
-            std::string altBlockPath = ResourceManager::getAltTexturePath(blockLoc.path());
+            std::string altBlockPath = resource::atlas::TexturePathVariant::getAltTexturePath(blockLoc.path());
             if (!altBlockPath.empty()) {
                 sourceCandidates.emplace_back(blockId.namespace_(), std::move(altBlockPath));
             }
@@ -415,7 +415,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
         m_regionsByLocation[ResourceLocation(itemId.namespace_(), "item/" + itemId.path())] = region;
 
         // 使用 getAltTexturePath() 自动注册路径变体别名（如 textures/items/ 旧版路径）
-        std::string altItemPath = ResourceManager::getAltTexturePath(atlasKey.path());
+        std::string altItemPath = resource::atlas::TexturePathVariant::getAltTexturePath(atlasKey.path());
         if (!altItemPath.empty()) {
             m_regionsByLocation[ResourceLocation(itemId.namespace_(), std::move(altItemPath))] = region;
         }
@@ -428,7 +428,7 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
             ResourceLocation blockTextureLoc(blockId.namespace_(), "textures/block/" + blockId.path());
             m_regionsByLocation[blockTextureLoc] = region;
 
-            std::string altBlockPath = ResourceManager::getAltTexturePath(blockTextureLoc.path());
+            std::string altBlockPath = resource::atlas::TexturePathVariant::getAltTexturePath(blockTextureLoc.path());
             if (!altBlockPath.empty()) {
                 m_regionsByLocation[ResourceLocation(blockId.namespace_(), std::move(altBlockPath))] = region;
             }

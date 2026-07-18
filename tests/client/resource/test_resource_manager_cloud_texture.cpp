@@ -254,7 +254,11 @@ TEST(ResourceManagerTextureDecodeTest, WaterModelWithParticleTextureKeepsParticl
 
     ASSERT_TRUE(manager.addResourcePack(pack).success());
     ASSERT_TRUE(manager.loadAllResources().success());
-    ASSERT_TRUE(manager.buildTextureAtlas().success());
+
+    // computeBlockAppearances 需要一个纹理区域查询回调（生产环境由 AtlasManager 提供）。
+    // 本测试关注水面外观（无面纹理），传空回调即可——回调返回 nullptr 时面纹理为空，
+    // particle 路径不参与区域查询。
+    manager.computeBlockAppearances({});
 
     const auto* appearance = manager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
     ASSERT_NE(appearance, nullptr);

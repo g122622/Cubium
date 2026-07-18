@@ -63,7 +63,7 @@ monster/
 - **末影人状态更新（CPU 路径）**：`EndermanRenderer::render()` 需要先调用 `_updateEndermanState()` 更新模型状态（携带方块、尖叫），再调用基类 `render()`。这是 CPU 渲染路径。
 - **末影人状态更新（GPU 管线路径）**：`EntityRendererManager::_createModelForEntity` 中的 enderman 分支通过 `ClientEntity::endermanHeldBlockState()`/`endermanScreaming()` 推送 `setCarrying`/`setAttacking` 到 `EndermanModel`，对应 CPU 路径的 `_updateEndermanState`。
 - **末影人手持方块层调用链**：`EntityRendererManager::renderWithPipeline` → `EndermanRenderer::renderLayersPipelineClient(ClientEntity&, ...)` → `HeldBlockLayer::shouldRender/renderPipeline`。`HeldBlockLayer` 是 `LayerRenderer<ClientEntity>`，通过 `ClientEntity::endermanHeldBlockState()` 读取镜像字段（由 `EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM` 同步）。
-- **末影人纹理图集注入**：`EndermanRenderer::setTextureAtlas`（实体图集）和 `setChunkTextureAtlas`（方块图集）将图集指针传递给 `HeldBlockLayer`。方块图集来自 `ChunkRenderer::textureAtlas()`，通过 `EntityRendererManager::setChunkTextureAtlas` 注入。`HeldBlockLayer` 渲染方块前切换到方块图集，渲染后恢复为实体图集。
+- **末影人纹理图集注入**：`EndermanRenderer::setTextureAtlas`（实体图集）和 `setBlockAtlas`（方块图集句柄）将图集传递给 `HeldBlockLayer`。方块图集句柄来自 `TridentEngine` 持有的 AtlasManager blocks atlas，通过 `EntityRendererManager::setBlockAtlas` 注入。`HeldBlockLayer` 渲染方块前切换到方块图集，渲染后恢复为实体图集。
 - **阴影大小设置**：在构造函数中通过 `setShadowSize()` 设置，不同实体阴影大小不同（如蜘蛛 0.7，史莱姆 0.25，潜影贝/蠹虫/末影螨为 0）
 - **纹理路径**：使用 `ResourceLocation("minecraft", "textures/entity/...")` 格式，注意纹理路径与 MC 1.16.5 一致
 - **渲染器复用**：部分渲染器可复用同一模型但不同纹理（如 `WitherSkeletonRenderer` 复用 `SkeletonModel`）

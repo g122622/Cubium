@@ -27,11 +27,9 @@
 #include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/texture/AnimatedSprite.hpp"
-#include "client/renderer/trident/core/texture/TextureAtlasTicker.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/resource/ResourceManager.hpp"
-#include "client/resource/TextureAtlasBuilder.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include <functional>
@@ -73,6 +71,9 @@ class FrameManager;
 class DescriptorManager;
 class UniformManager;
 class TridentPipeline;
+class AtlasManagerOwner; // PIMPL：持有 resource::atlas::AtlasManager，避免本头引入
+                         // mc::client::resource::atlas 命名空间（会破坏 FireAnimationState.hpp
+                         // 中 resource::metadata 的父作用域查找）
 
 // 子命名空间的前置声明
 namespace gui {
@@ -498,6 +499,11 @@ public:
     [[nodiscard]] const ItemTextureAtlas& itemTextureAtlas() const;
 
     /**
+     * @brief 统一图集管理器状态（数据驱动）
+     */
+    [[nodiscard]] bool isAtlasManagerInitialized() const { return m_atlasManagerInitialized; }
+
+    /**
      * @brief 获取实体渲染器管理器
      */
     [[nodiscard]] entity::EntityRendererManager& entityRendererManager();
@@ -594,6 +600,35 @@ public:
     [[nodiscard]] Result<void> initializeEntityTextureAtlas(ResourceManager* resourceManager);
 
     /**
+     * @brief 初始化统一图集管理器（数据驱动）
+     *
+     * 用 ResourceManager 的资源包加载 blocks/items 等图集，并把 blocks atlas
+     * 的 GPU 句柄绑定到 chunk 渲染管线及依赖方（实体手持方块/第一人称等）。
+     */
+    [[nodiscard]] Result<void> initializeAtlasManager(ResourceManager* resourceManager);
+
+    /**
+     * @brief 重载统一图集管理器（资源包热重载时调用）
+     *
+     * 重新设置资源包引用并重建 blocks/items 图集，随后重新绑定 chunk 管线纹理。
+     */
+    [[nodiscard]] Result<void> reloadAtlasManager(ResourceManager* resourceManager);
+
+    /**
+     * @brief 获取 blocks atlas 的纹理区域查询回调
+     *
+     * 返回绑定到 AtlasManager::findSpriteByTexturePath 的回调，接受
+     * `minecraft:textures/block/stone` 这类完整纹理路径，返回其在 blocks atlas
+     * 中的 UV 区域；未找到返回 nullptr。
+     *
+     * 用于 ResourceManager::computeBlockAppearances 与 BlockModelCache 的液体面
+     * 纹理查询——避免在 RM/BlockModelCache 头引入 AtlasManager 命名空间。
+     *
+     * AtlasManager 未初始化或 blocks atlas 未加载时返回空回调（查询恒返回 nullptr）。
+     */
+    [[nodiscard]] std::function<const TextureRegion*(const ResourceLocation&)> blockTextureRegionLookup() const;
+
+    /**
      * @brief 初始化雾效果管理器
      */
     [[nodiscard]] Result<void> initializeFogManager();
@@ -616,10 +651,12 @@ public:
     /**
      * @brief 初始化破坏进度渲染器
      *
-     * @param resourceManager 资源管理器（允许为空；为空时使用程序生成的默认纹理）
+     * 纹理（blocks atlas 的 destroy_stage_N sprite）与阶段 UV 区域查询由
+     * `_bindBlockAtlasToChunkPipeline` 在 AtlasManager 加载 blocks atlas 后注入。
+     *
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initializeBreakProgressRenderer(ResourceManager* resourceManager);
+    [[nodiscard]] Result<void> initializeBreakProgressRenderer();
 
     /**
      * @brief 初始化第一人称手部渲染器
@@ -643,11 +680,6 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> reloadFireTexture(ResourceManager* resourceManager);
-
-    /**
-     * @brief 更新纹理图集
-     */
-    [[nodiscard]] Result<void> updateTextureAtlas(const AtlasBuildResult& atlasResult);
 
     /**
      * @brief 每游戏tick更新动画纹理状态
@@ -679,11 +711,6 @@ public:
      * @brief 获取 GUI 缩放倍率
      */
     [[nodiscard]] f64 guiScaleFactor() const { return m_guiScaleFactor; }
-
-    /**
-     * @brief 获取纹理区域
-     */
-    [[nodiscard]] const TextureRegion* getTextureRegion(const ResourceLocation& location) const;
 
 private:
     // 核心组件
@@ -766,11 +793,13 @@ private:
     ItemTextureAtlas m_itemTextureAtlas;
     EntityTextureAtlas m_entityTextureAtlas;
     ResourceLocation m_localPlayerSkinLocation{"minecraft:textures/entity/player/slim/steve.png"};
-    std::map<ResourceLocation, TextureRegion> m_textureRegions;
 
-    // 动画纹理管理
-    TextureAtlasTicker m_blockAtlasTicker;
-    TextureAtlasTicker m_itemAtlasTicker;
+    // 统一图集管理器（数据驱动）
+    // 用 PIMPL（AtlasManagerOwner）隐藏 resource::atlas::AtlasManager，避免本头引入
+    // mc::client::resource::atlas 命名空间（会破坏 FireAnimationState.hpp 中
+    // resource::metadata 的父作用域查找）
+    std::unique_ptr<AtlasManagerOwner> m_atlasManager;
+    bool m_atlasManagerInitialized = false;
 
     // 子渲染器初始化状态
     bool m_chunkRendererInitialized = false;
@@ -797,6 +826,16 @@ private:
 
     // 内部方法
     [[nodiscard]] Result<void> _recreateSwapchain();
+
+    /**
+     * @brief 把 AtlasManager 拥有的 blocks atlas 的 imageView/sampler 写入
+     *        chunk 纹理描述符集，并下发给依赖 blocks atlas 的子渲染器
+     *        （实体手持方块、第一人称手持方块、破坏叠加）。
+     *
+     * 在 initializeAtlasManager / reloadAtlasManager 加载完 blocks atlas 后调用。
+     * 若 blocks atlas 尚未加载则跳过。
+     */
+    void _bindBlockAtlasToChunkPipeline();
 };
 
 } // namespace mc::client::renderer::trident

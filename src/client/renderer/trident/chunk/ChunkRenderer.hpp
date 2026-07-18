@@ -84,26 +84,6 @@ struct FenceManager {
     void destroy(VkDevice device, VkCommandPool commandPool);
 };
 
-// 纹理图集 - 使用原始 Vulkan handles
-struct ChunkTextureAtlas {
-    VkImage image = VK_NULL_HANDLE;
-    VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkImageView imageView = VK_NULL_HANDLE;
-    VkSampler sampler = VK_NULL_HANDLE;
-    u32 width = 0;
-    u32 height = 0;
-    u32 tileSize = 16;
-    u32 tilesPerRow = 0;
-    f64 tileU = 0.0f;
-    f64 tileV = 0.0f;
-    bool isValid = false;
-
-    void destroy(VkDevice device);
-
-    [[nodiscard]] TextureRegion getRegion(u32 tileX, u32 tileY) const;
-    [[nodiscard]] TextureRegion getRegion(u32 tileIndex) const;
-};
-
 // 区块渲染器
 class ChunkRenderer {
 public:
@@ -162,29 +142,6 @@ public:
     void removeChunk(const ChunkId& chunkId);
 
     void clearChunks();
-
-    // 纹理图集
-    [[nodiscard]] Result<void> loadTextureAtlas(const u8* pixelData, u32 width, u32 height, u32 tileSize);
-
-    /**
-     * @brief 上传纹理图集子区域数据
-     *
-     * 用于动画纹理帧更新，只更新图集中指定区域的像素。
-     *
-     * @param pixelData RGBA8 像素数据
-     * @param size 数据大小（字节）
-     * @param offsetX 目标区域在图集中的 X 偏移（像素）
-     * @param offsetY 目标区域在图集中的 Y 偏移（像素）
-     * @param width 区域宽度（像素）
-     * @param height 区域高度（像素）
-     * @param rowLength 源数据行长度（像素），0 表示使用 width
-     * @return 成功或错误
-     */
-    [[nodiscard]] Result<void> uploadTextureRegion(
-        const void* pixelData, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength);
-
-    ChunkTextureAtlas& textureAtlas() { return m_textureAtlas; }
-    const ChunkTextureAtlas& textureAtlas() const { return m_textureAtlas; }
 
     // 渲染
     void render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
@@ -273,9 +230,6 @@ private:
     u32 m_totalVertices = 0;
     u32 m_totalIndices = 0;
 
-    // 纹理图集
-    ChunkTextureAtlas m_textureAtlas;
-
     // 暂存缓冲区
     VkBuffer m_stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_stagingMemory = VK_NULL_HANDLE;
@@ -320,12 +274,6 @@ private:
 
     // 查找内存类型
     [[nodiscard]] Result<u32> _findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
-
-    // 创建纹理图集
-    [[nodiscard]] Result<void> _createTextureAtlas(u32 width, u32 height);
-
-    // 上传纹理数据
-    [[nodiscard]] Result<void> _uploadTextureData(const u8* pixelData, u32 width, u32 height);
 };
 
 } // namespace mc::client

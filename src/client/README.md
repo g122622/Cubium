@@ -36,8 +36,8 @@ src/client/
 │   ├── BlockModelCache.hpp/cpp       # 模型缓存
 │   ├── TextureAtlasBuilder.hpp/cpp   # 纹理图集构建器
 │   ├── ItemTextureAtlas.hpp/cpp      # 物品纹理图集
-│   ├── EntityTextureLoader.hpp/cpp   # 实体纹理加载器
-│   └── DestroyStageTextures.hpp/cpp  # 破坏阶段纹理
+│   ├── atlas/                        # 统一图集数据驱动子系统（AtlasManager，对齐 MC 1.21.11 TextureManager）
+│   └── EntityTextureLoader.hpp/cpp   # 实体纹理加载器
 ├── settings/              # 客户端设置
 │   └── ClientSettings.hpp/cpp
 ├── ui/                    # 用户界面（详见 ui/README.md）

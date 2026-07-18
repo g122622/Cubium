@@ -155,10 +155,11 @@ void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtl
     }
 }
 
-void EntityRendererManager::setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas)
+void EntityRendererManager::setBlockAtlas(VkImageView imageView, VkSampler sampler)
 {
-    m_chunkTextureAtlas = atlas;
-    // 将方块纹理图集注入到所有需要的渲染器
+    m_blockImageView = imageView;
+    m_blockSampler = sampler;
+    // 将 blocks atlas 句柄注入到所有需要的渲染器
     // - EndermanRenderer: 用于 HeldBlockLayer（末影人手持方块）
     // - FallingBlockRenderer: 用于下落方块渲染
     // - TNTRenderer: 用于 TNT 实体方块渲染
@@ -166,13 +167,13 @@ void EntityRendererManager::setChunkTextureAtlas(const ::mc::client::ChunkTextur
     // 末影人渲染器
     auto* endermanRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::ENDERMAN);
     if (auto* endermanRenderer = dynamic_cast<renderer::monster::EndermanRenderer*>(endermanRendererRaw)) {
-        endermanRenderer->setChunkTextureAtlas(atlas);
+        endermanRenderer->setBlockAtlas(imageView, sampler);
     }
 
     // 下落方块渲染器
     auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::FALLING_BLOCK);
     if (auto* fallingBlockRenderer = dynamic_cast<renderer::special::FallingBlockRenderer*>(fallingBlockRendererRaw)) {
-        fallingBlockRenderer->setChunkTextureAtlas(atlas);
+        fallingBlockRenderer->setBlockAtlas(imageView, sampler);
         // 同时注入实体纹理图集（用于渲染后恢复）
         if (m_textureAtlas != nullptr) {
             fallingBlockRenderer->setEntityTextureAtlas(m_textureAtlas);
@@ -182,7 +183,7 @@ void EntityRendererManager::setChunkTextureAtlas(const ::mc::client::ChunkTextur
     // TNT 渲染器
     auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::TNT);
     if (auto* tntRenderer = dynamic_cast<renderer::special::TNTRenderer*>(tntRendererRaw)) {
-        tntRenderer->setChunkTextureAtlas(atlas);
+        tntRenderer->setBlockAtlas(imageView, sampler);
         // 同时注入实体纹理图集（用于渲染后恢复）
         if (m_textureAtlas != nullptr) {
             tntRenderer->setEntityTextureAtlas(m_textureAtlas);

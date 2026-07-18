@@ -36,10 +36,6 @@ namespace mc {
 class BlockState;
 } // namespace mc
 
-namespace mc::client {
-struct ChunkTextureAtlas;
-} // namespace mc::client
-
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;
 class EntityTextureAtlas;
@@ -71,10 +67,10 @@ namespace mc::client::renderer::entity::layer::entity {
  * - 按 `BlockState*` 缓存网格，避免重复构建
  *
  * 纹理图集切换：
- * - 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
- * - 渲染前通过 `EntityPipeline::setTextureAtlas` 切换到方块纹理图集
+ * - 方块纹理 UV 基于 blocks atlas，而非实体纹理图集
+ * - 渲染前通过 `EntityPipeline::setTextureAtlas` 切换到 blocks atlas
  * - 渲染后通过 `EntityPipeline::setTextureAtlas` 恢复为实体纹理图集
- * - 方块纹理图集引用通过 `setChunkTextureAtlas` 注入（来自 `ChunkRenderer::textureAtlas()`）
+ * - blocks atlas 句柄通过 `setBlockAtlas` 注入（来自 AtlasManager 的 blocks atlas）
  * - 实体纹理图集引用通过 `setEntityTextureAtlas` 注入（来自 `EntityRendererManager::textureAtlas()`）
  *
  * 调用链：
@@ -105,14 +101,19 @@ public:
     [[nodiscard]] bool shouldRender(const ::mc::client::ClientEntity& entity) const override;
 
     /**
-     * @brief 设置方块纹理图集引用
+     * @brief 设置方块图集（blocks atlas 的 GPU 句柄）引用
      *
-     * 用于在渲染时切换 EntityPipeline 的纹理图集到方块纹理图集，
+     * 用于在渲染时切换 EntityPipeline 的纹理图集到 blocks atlas，
      * 以便正确采样方块纹理 UV。
      *
-     * @param atlas 方块纹理图集指针（可为 nullptr 表示未注入，此时跳过渲染）
+     * @param imageView blocks atlas 的图像视图（VK_NULL_HANDLE 表示未注入，此时跳过渲染）
+     * @param sampler   blocks atlas 的采样器
      */
-    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas) { m_chunkTextureAtlas = atlas; }
+    void setBlockAtlas(VkImageView imageView, VkSampler sampler)
+    {
+        m_blockImageView = imageView;
+        m_blockSampler = sampler;
+    }
 
     /**
      * @brief 设置实体纹理图集引用
@@ -175,8 +176,9 @@ private:
     [[nodiscard]] pipeline::EntityMesh* _getOrCreateBlockMesh(
         pipeline::EntityPipeline& pipeline, const ::mc::BlockState& blockState);
 
-    // 方块纹理图集引用（弱引用，由 EndermanRenderer 通过 setChunkTextureAtlas 注入）
-    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    // blocks atlas 的 GPU 句柄（弱引用，由 EndermanRenderer 通过 setBlockAtlas 注入）
+    VkImageView m_blockImageView = VK_NULL_HANDLE;
+    VkSampler m_blockSampler = VK_NULL_HANDLE;
 
     // 实体纹理图集引用（弱引用，由 EndermanRenderer 通过 setEntityTextureAtlas 注入）
     // 渲染方块后用于恢复 EntityPipeline 的纹理图集到实体纹理图集

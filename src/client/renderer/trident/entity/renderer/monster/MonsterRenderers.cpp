@@ -222,11 +222,11 @@ void EndermanRenderer::setTextureAtlas(const pipeline::EntityTextureAtlas* atlas
     }
 }
 
-void EndermanRenderer::setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas)
+void EndermanRenderer::setBlockAtlas(VkImageView imageView, VkSampler sampler)
 {
-    // 将方块纹理图集传递给 HeldBlockLayer，供其在渲染方块时切换纹理图集
+    // 将 blocks atlas 句柄传递给 HeldBlockLayer，供其在渲染方块时切换纹理图集
     if (m_heldBlockLayer != nullptr) {
-        m_heldBlockLayer->setChunkTextureAtlas(atlas);
+        m_heldBlockLayer->setBlockAtlas(imageView, sampler);
     }
 }
 

@@ -24,7 +24,6 @@
 #include "ResourceManager.hpp"
 #include "ItemModelCache.hpp"
 #include "common/resource/pack/FolderResourcePack.hpp"
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 #include "common/profiler/TraceEvents.hpp"
@@ -170,91 +169,6 @@ bool matchConditions(const std::vector<std::pair<std::string, std::string>>& con
     return true;
 }
 
-[[nodiscard]] bool parseAnimatedFrameSizeFromMcmeta(
-    const std::vector<u8>& mcmetaData, u32 imageWidth, u32 imageHeight, u32& outFrameWidth, u32& outFrameHeight)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::parseAnimatedFrameSizeFromMcmeta");
-
-    if (imageWidth == 0 || imageHeight == 0 || mcmetaData.empty()) {
-        return false;
-    }
-
-    try {
-        const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
-        const auto json = nlohmann::json::parse(jsonText);
-
-        if (!json.is_object() || !json.contains("animation") || !json["animation"].is_object()) {
-            return false;
-        }
-
-        const auto& animation = json["animation"];
-        const i32 configuredWidth = animation.value("width", 0);
-        const i32 configuredHeight = animation.value("height", 0);
-
-        // 未配置时默认使用方形帧（frame = imageWidth）
-        // 仅配置单边时，另一边沿用同值
-        i32 frameWidth = configuredWidth;
-        i32 frameHeight = configuredHeight;
-
-        if (frameWidth <= 0 && frameHeight <= 0) {
-            frameWidth = static_cast<i32>(imageWidth);
-            frameHeight = static_cast<i32>(imageWidth);
-        } else if (frameWidth <= 0) {
-            frameWidth = frameHeight;
-        } else if (frameHeight <= 0) {
-            frameHeight = frameWidth;
-        }
-
-        if (frameWidth <= 0 || frameHeight <= 0) {
-            return false;
-        }
-
-        if (frameWidth > static_cast<i32>(imageWidth) || frameHeight > static_cast<i32>(imageHeight)) {
-            return false;
-        }
-
-        if ((imageWidth % static_cast<u32>(frameWidth)) != 0 || (imageHeight % static_cast<u32>(frameHeight)) != 0) {
-            return false;
-        }
-
-        outFrameWidth = static_cast<u32>(frameWidth);
-        outFrameHeight = static_cast<u32>(frameHeight);
-        return true;
-    }
-    catch (const nlohmann::json::exception&) {
-        return false;
-    }
-}
-
-/**
- * @brief 动态生成 missingno 纹理（紫黑棋盘格）
- *
- * 当纹理资源包中找不到 missingno 纹理时，通过代码生成经典的
- * 16×16 紫黑棋盘格替代纹理，避免出现纹理缺失警告。
- *
- * @return 16×16 RGBA8 像素数据
- */
-std::vector<u8> _generateMissingNoTexture()
-{
-    constexpr u32 SIZE = 16;
-    constexpr u32 TILE = 8; // 每个棋盘格 8×8 像素
-    constexpr u8 PURPLE_R = 128, PURPLE_G = 0, PURPLE_B = 128;
-    constexpr u8 BLACK_R = 0, BLACK_G = 0, BLACK_B = 0;
-
-    std::vector<u8> pixels(SIZE * SIZE * 4);
-    for (u32 y = 0; y < SIZE; ++y) {
-        for (u32 x = 0; x < SIZE; ++x) {
-            const u32 idx = (y * SIZE + x) * 4;
-            const bool isPurple = ((x / TILE) + (y / TILE)) % 2 == 0;
-            pixels[idx + 0] = isPurple ? PURPLE_R : BLACK_R;
-            pixels[idx + 1] = isPurple ? PURPLE_G : BLACK_G;
-            pixels[idx + 2] = isPurple ? PURPLE_B : BLACK_B;
-            pixels[idx + 3] = 255; // 完全不透明
-        }
-    }
-    return pixels;
-}
-
 } // namespace
 
 Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack)
@@ -296,8 +210,8 @@ Result<void> ResourceManager::loadAllResources()
     // 烘焙模型
     static_cast<void>(_bakeAllModels());
 
-    // 注意：computeBlockAppearances 在 buildTextureAtlas 后调用
-    // 因为需要纹理区域数据
+    // 注意：computeBlockAppearances 不在此调用——纹理区域已迁移到 AtlasManager，
+    // 需由调用方在 AtlasManager 加载完 blocks atlas 后显式调用 computeBlockAppearances(regionLookup)。
 
     // 初始化物品模型缓存
     client::resource::ItemModelCache::instance().initialize(m_resourcePacks);
@@ -307,160 +221,6 @@ Result<void> ResourceManager::loadAllResources()
         m_bakedModels.size());
 
     return Result<void>::ok();
-}
-
-Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::buildTextureAtlas");
-
-    // 收集所需纹理
-    auto textures = _collectRequiredTextures();
-
-    spdlog::info("Collecting {} textures for atlas", textures.size());
-
-    TextureAtlasBuilder builder;
-    builder.setMaxSize(4096, 4096);
-    builder.setPadding(0);
-
-    // 统计
-    size_t addedCount = 0;
-    size_t failedCount = 0;
-    std::vector<std::string> failedTextures;
-
-    for (const auto& texLoc : textures) {
-        bool added = false;
-
-        // 构建候选路径列表：原始路径 + MC 1.12/1.13+ 路径变体
-        std::vector<ResourceLocation> candidates;
-        candidates.push_back(texLoc);
-
-        std::string altPath = getAltTexturePath(texLoc.path());
-        if (!altPath.empty()) {
-            candidates.emplace_back(texLoc.namespace_(), std::move(altPath));
-        }
-
-        // 遍历候选路径和资源包（后添加的优先级更高）
-        for (const auto& candidateLoc : candidates) {
-            if (added) {
-                break;
-            }
-
-            for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend() && !added; ++it) {
-                auto& pack = *it;
-                std::string relativePath = candidateLoc.toFilePath(resource::PackType::ClientResources, "png");
-                relativePath.erase(0, std::string("assets/").size());
-
-                if (!pack->hasResource(resource::PackType::ClientResources, relativePath)) {
-                    continue;
-                }
-
-                auto readResult = pack->readResource(resource::PackType::ClientResources, relativePath);
-                if (!readResult.success()) {
-                    continue;
-                }
-
-                int width = 0;
-                int height = 0;
-                int channels = 0;
-                stbi_uc* pixels = stbi_load_from_memory(readResult.value().data(),
-                    static_cast<int>(readResult.value().size()),
-                    &width,
-                    &height,
-                    &channels,
-                    4);
-
-                if (pixels) {
-                    std::vector<u8> pixelData(pixels, pixels + width * height * 4);
-                    stbi_image_free(pixels);
-
-                    u32 frameWidth = static_cast<u32>(width);
-                    u32 frameHeight = static_cast<u32>(height);
-
-                    const std::string mcmetaPath = relativePath + ".mcmeta";
-                    if (pack->hasResource(resource::PackType::ClientResources, mcmetaPath)) {
-                        const auto mcmetaResult = pack->readResource(resource::PackType::ClientResources, mcmetaPath);
-                        if (mcmetaResult.success()) {
-                            static_cast<void>(parseAnimatedFrameSizeFromMcmeta(mcmetaResult.value(),
-                                static_cast<u32>(width),
-                                static_cast<u32>(height),
-                                frameWidth,
-                                frameHeight));
-                        }
-                    }
-
-                    // 使用原始 texLoc 作为图集键（而非候选路径），保持一致性
-                    builder.addTextureFrame(
-                        texLoc, pixelData, static_cast<u32>(width), static_cast<u32>(height), frameWidth, frameHeight);
-                    added = true;
-                    addedCount++;
-                }
-            }
-        }
-
-        if (!added) {
-            // missingno 纹理：动态生成紫黑棋盘格替代纹理
-            if (texLoc == ResourceLocation("minecraft", "textures/missingno")) {
-                constexpr u32 MISSINGNO_SIZE = 16;
-                auto pixelData = _generateMissingNoTexture();
-                builder.addTextureFrame(
-                    texLoc, pixelData, MISSINGNO_SIZE, MISSINGNO_SIZE, MISSINGNO_SIZE, MISSINGNO_SIZE);
-                addedCount++;
-            } else {
-                failedTextures.push_back(
-                    texLoc.toString() + " -> " + texLoc.toFilePath(resource::PackType::ClientResources, "png"));
-                failedCount++;
-            }
-        }
-    }
-
-    spdlog::info("Texture atlas: {} added, {} failed", addedCount, failedCount);
-
-    // 输出失败纹理的详细信息
-    if (failedCount > 0) {
-        spdlog::warn("Failed textures (first 50 of {}):", failedCount);
-        for (size_t i = 0; i < std::min(failedTextures.size(), size_t(50)); ++i) {
-            spdlog::warn("  - {}", failedTextures[i]);
-        }
-    }
-
-    // 构建图集
-    auto result = builder.build();
-    if (result.failed()) {
-        return result.error();
-    }
-
-    // 缓存结果
-    m_atlasResult = result.value();
-    m_textureRegions = m_atlasResult.regions;
-    m_atlasBuilt = true;
-
-    // 注册 MC 1.12/1.13+ 路径变体别名
-    // 例如：如果图集中存在 minecraft:textures/block/stone，则同时注册
-    // minecraft:textures/blocks/stone 指向同一纹理区域，反之亦然。
-    // 这样无论模型使用哪种路径格式，都能通过直接查找找到纹理。
-    {
-        std::vector<std::pair<ResourceLocation, TextureRegion>> aliases;
-        for (const auto& [loc, region] : m_textureRegions) {
-            std::string altPath = getAltTexturePath(loc.path());
-            if (!altPath.empty()) {
-                ResourceLocation altLoc(loc.namespace_(), std::move(altPath));
-                // 仅在别名不存在时添加，避免覆盖已有纹理
-                if (m_textureRegions.find(altLoc) == m_textureRegions.end()) {
-                    aliases.emplace_back(std::move(altLoc), region);
-                }
-            }
-        }
-        for (auto& [altLoc, region] : aliases) {
-            m_textureRegions.emplace(std::move(altLoc), std::move(region));
-        }
-    }
-
-    // 构建纹理图集后计算方块外观（这样纹理区域可用）
-    _computeBlockAppearances();
-
-    spdlog::info("ResourceManager: {} appearances computed", m_blockAppearances.size());
-
-    return m_atlasResult;
 }
 
 const BlockAppearance* ResourceManager::getBlockAppearance(
@@ -545,14 +305,6 @@ const BlockAppearance* ResourceManager::getBlockAppearance(
     }
 
     return nullptr;
-}
-
-const TextureRegion* ResourceManager::getTextureRegion(const ResourceLocation& textureLocation) const
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getTextureRegion");
-
-    // 直接委托给 _findTextureRegion（已包含 MC 1.12/1.13+ 路径变体兼容查找）
-    return _findTextureRegion(textureLocation);
 }
 
 Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& textureLocation) const
@@ -643,9 +395,6 @@ void ResourceManager::clear()
     m_blockStateLoader.clearCache();
     m_bakedModels.clear();
     m_blockAppearances.clear();
-    m_textureRegions.clear();
-    m_atlasResult = AtlasBuildResult();
-    m_atlasBuilt = false;
 
     // 清理物品模型缓存
     client::resource::ItemModelCache::instance().cleanup();
@@ -667,9 +416,6 @@ Result<void> ResourceManager::reload()
     m_blockStateLoader.clearCache();
     m_bakedModels.clear();
     m_blockAppearances.clear();
-    m_textureRegions.clear();
-    m_atlasResult = AtlasBuildResult();
-    m_atlasBuilt = false;
 
     // 重新加载所有资源
     return loadAllResources();
@@ -722,7 +468,8 @@ Result<void> ResourceManager::_bakeAllModels()
     return Result<void>::ok();
 }
 
-void ResourceManager::_computeBlockAppearances()
+void ResourceManager::computeBlockAppearances(
+    const std::function<const TextureRegion*(const ResourceLocation&)>& regionLookup)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::computeBlockAppearances");
 
@@ -731,6 +478,10 @@ void ResourceManager::_computeBlockAppearances()
 
     u32 totalAppearances = 0;
     u32 appearancesWithTextures = 0;
+
+    // regionLookup 可能为空（AtlasManager 未加载或单元测试环境无 Vulkan），
+    // 此时跳过纹理区域查询——方块外观仍构建，只是面纹理/粒子纹理为空。
+    const bool hasLookup = static_cast<bool>(regionLookup);
 
     for (const auto& blockId : blockStates) {
         const auto* def = m_blockStateLoader.getBlockState(blockId);
@@ -778,8 +529,8 @@ void ResourceManager::_computeBlockAppearances()
                     // 转换纹理路径为完整的 textures/ 路径
                     ResourceLocation fullTexLoc = _texturePathToLocation(texLoc.path());
 
-                    // 使用 compat 层查找纹理区域
-                    const TextureRegion* region = _findTextureRegion(fullTexLoc);
+                    // 使用注入的 regionLookup 查找纹理区域（查 AtlasManager 的 blocks atlas regions）
+                    const TextureRegion* region = hasLookup ? regionLookup(fullTexLoc) : nullptr;
 
                     if (region) {
                         // 保留首层纹理用于兼容旧逻辑
@@ -800,7 +551,7 @@ void ResourceManager::_computeBlockAppearances()
             if (particleIt != bakedModel.textures.end()) {
                 // particleIt->second 已经被 resolveTextureReferences 解析为实际的 ResourceLocation
                 ResourceLocation fullParticleTexLoc = _texturePathToLocation(particleIt->second.path());
-                const TextureRegion* particleRegion = _findTextureRegion(fullParticleTexLoc);
+                const TextureRegion* particleRegion = hasLookup ? regionLookup(fullParticleTexLoc) : nullptr;
                 if (particleRegion) {
                     appearance.particleTexture = *particleRegion;
                     appearance.particleTextureLocation = fullParticleTexLoc;
@@ -818,126 +569,6 @@ void ResourceManager::_computeBlockAppearances()
     }
 
     spdlog::info("computeBlockAppearances: {} total, {} with textures", totalAppearances, appearancesWithTextures);
-}
-
-std::string ResourceManager::getAltTexturePath(const std::string& path)
-{
-    constexpr std::string_view blockModern = "textures/block/";
-    constexpr std::string_view blockLegacy = "textures/blocks/";
-    constexpr std::string_view itemModern = "textures/item/";
-    constexpr std::string_view itemLegacy = "textures/items/";
-
-    if (path.size() > blockModern.size() && path.compare(0, blockModern.size(), blockModern) == 0) {
-        // Modern (1.13+) -> Legacy (1.12): textures/block/ -> textures/blocks/
-        return "textures/blocks/" + path.substr(blockModern.size());
-    }
-    if (path.size() > blockLegacy.size() && path.compare(0, blockLegacy.size(), blockLegacy) == 0) {
-        // Legacy (1.12) -> Modern (1.13+): textures/blocks/ -> textures/block/
-        return "textures/block/" + path.substr(blockLegacy.size());
-    }
-    if (path.size() > itemModern.size() && path.compare(0, itemModern.size(), itemModern) == 0) {
-        // Modern (1.13+) -> Legacy (1.12): textures/item/ -> textures/items/
-        return "textures/items/" + path.substr(itemModern.size());
-    }
-    if (path.size() > itemLegacy.size() && path.compare(0, itemLegacy.size(), itemLegacy) == 0) {
-        // Legacy (1.12) -> Modern (1.13+): textures/items/ -> textures/item/
-        return "textures/item/" + path.substr(itemLegacy.size());
-    }
-
-    // 实体纹理路径变体：MC 1.13+ 子目录格式 <-> MC 1.12 扁平格式
-    // 例如：textures/entity/pig/pig.png -> textures/entity/pig.png
-    //       textures/entity/pig.png    -> textures/entity/pig/pig.png
-    //       textures/entity/pig/pig    -> textures/entity/pig
-    //       textures/entity/pig        -> textures/entity/pig/pig
-    constexpr std::string_view entityPrefix = "textures/entity/";
-    if (path.size() > entityPrefix.size() && path.compare(0, entityPrefix.size(), entityPrefix) == 0) {
-        std::string_view afterPrefix(path.data() + entityPrefix.size(), path.size() - entityPrefix.size());
-        auto slashPos = afterPrefix.find('/');
-        if (slashPos != std::string_view::npos) {
-            // 子目录格式：textures/entity/<name>/<filename>
-            // 检查 <name> 与 <filename> 是否相同（不含扩展名）
-            std::string_view dirName = afterPrefix.substr(0, slashPos);
-            std::string_view fileName = afterPrefix.substr(slashPos + 1);
-            // 提取扩展名（如 .png）以便在转换后保留
-            std::string_view extension;
-            auto dotPos = fileName.rfind('.');
-            if (dotPos != std::string_view::npos) {
-                extension = fileName.substr(dotPos);
-                fileName = fileName.substr(0, dotPos);
-            }
-            if (dirName == fileName) {
-                // textures/entity/<name>/<name>[.ext] -> textures/entity/<name>[.ext]
-                return std::string(entityPrefix) + std::string(dirName) + std::string(extension);
-            }
-        } else {
-            // 扁平格式：textures/entity/<name>[.ext]
-            // -> textures/entity/<name>/<name>[.ext]
-            std::string_view namePart = afterPrefix;
-            std::string_view extension;
-            auto dotPos = afterPrefix.rfind('.');
-            if (dotPos != std::string_view::npos) {
-                namePart = afterPrefix.substr(0, dotPos);
-                extension = afterPrefix.substr(dotPos);
-            }
-            return std::string(entityPrefix) + std::string(namePart) + "/" + std::string(namePart) +
-                std::string(extension);
-        }
-    }
-
-    return {};
-}
-
-const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation& texLoc) const
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::findTextureRegion");
-
-    // 1. 尝试原始路径
-    auto it = m_textureRegions.find(texLoc);
-    if (it != m_textureRegions.end()) {
-        return &it->second;
-    }
-
-    // 2. 尝试 MC 1.12/1.13+ 路径变体兼容查找
-    //    MC 1.13+ 使用 textures/block/ 和 textures/item/（单数）
-    //    MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）
-    //    当原始路径未找到时，自动尝试对应的另一种路径形式。
-    std::string altPath = getAltTexturePath(texLoc.path());
-    if (!altPath.empty()) {
-        ResourceLocation altLoc(texLoc.namespace_(), std::move(altPath));
-        it = m_textureRegions.find(altLoc);
-        if (it != m_textureRegions.end()) {
-            return &it->second;
-        }
-    }
-
-    return nullptr;
-}
-
-std::set<ResourceLocation> ResourceManager::_collectRequiredTextures() const
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::collectRequiredTextures");
-
-    std::set<ResourceLocation> textures;
-
-    // 从烘焙模型收集纹理
-    for (const auto& [loc, model] : m_bakedModels) {
-        for (const auto& [name, texLoc] : model.textures) {
-            // 跳过纹理变量引用（以 # 开头的值）
-            std::string texPath = texLoc.path();
-            if (!texPath.empty() && texPath[0] == '#') {
-                // 纹理变量引用，不应该出现在烘焙模型中
-                spdlog::warn(
-                    "Texture variable reference found in baked model {}: {}={}", loc.toString(), name, texPath);
-                continue;
-            }
-
-            // 转换为纹理路径
-            ResourceLocation textureLoc = _texturePathToLocation(texPath);
-            textures.insert(textureLoc);
-        }
-    }
-
-    return textures;
 }
 
 ResourceLocation ResourceManager::_texturePathToLocation(std::string_view path)

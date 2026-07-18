@@ -249,6 +249,16 @@ std::vector<u8> toBytes(std::string_view content)
     return std::vector<u8>(content.begin(), content.end());
 }
 
+// 测试用纹理区域查询回调：生产环境由 AtlasManager 的 blocks atlas 提供，
+// 此处无 Vulkan 设备，无法构造 AtlasManager。ChunkMesher 的液体面生成只需
+// 查询回调返回非空 TextureRegion 即可产生顶点（测试只校验拓扑/索引数，
+// 不关心具体 UV），故返回一个静态占位区域。
+std::function<const TextureRegion*(const ResourceLocation&)> makeTestRegionLookup()
+{
+    static const TextureRegion placeholderRegion(0.0, 0.0, 1.0, 1.0);
+    return [](const ResourceLocation&) -> const TextureRegion* { return &placeholderRegion; };
+}
+
 struct MeshBounds {
     f32 minX = std::numeric_limits<f32>::max();
     f32 minY = std::numeric_limits<f32>::max();
@@ -663,10 +673,13 @@ protected:
         m_resourceManager = std::make_unique<ResourceManager>();
         ASSERT_TRUE(m_resourceManager->addResourcePack(createLiquidResourcePack()).success());
         ASSERT_TRUE(m_resourceManager->loadAllResources().success());
-        ASSERT_TRUE(m_resourceManager->buildTextureAtlas().success());
+
+        m_regionLookup = makeTestRegionLookup();
+        m_resourceManager->computeBlockAppearances(m_regionLookup);
 
         m_modelCache = std::make_unique<BlockModelCache>();
         ASSERT_TRUE(m_modelCache->initialize(*m_resourceManager));
+        m_modelCache->setRegionLookup(m_regionLookup);
         ChunkMesher::setModelCache(m_modelCache.get());
 
         m_chunk = std::make_unique<ChunkData>(0, 0);
@@ -682,6 +695,7 @@ protected:
 
     std::unique_ptr<ResourceManager> m_resourceManager;
     std::unique_ptr<BlockModelCache> m_modelCache;
+    std::function<const TextureRegion*(const ResourceLocation&)> m_regionLookup;
     std::unique_ptr<ChunkData> m_chunk;
 
     BlockModelCache* m_originalModelCache = nullptr;
@@ -743,10 +757,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_PlacesWaterIntoTransparentLayer)
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
     ASSERT_TRUE(resourceManager.loadAllResources().success());
-    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    auto regionLookup = makeTestRegionLookup();
+    resourceManager.computeBlockAppearances(regionLookup);
 
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
+    modelCache.setRegionLookup(regionLookup);
 
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
@@ -796,10 +813,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterUsesTranslucentVertexAlpha)
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
     ASSERT_TRUE(resourceManager.loadAllResources().success());
-    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    auto regionLookup = makeTestRegionLookup();
+    resourceManager.computeBlockAppearances(regionLookup);
 
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
+    modelCache.setRegionLookup(regionLookup);
 
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
@@ -843,10 +863,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstSeagrass)
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
     ASSERT_TRUE(resourceManager.loadAllResources().success());
-    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    auto regionLookup = makeTestRegionLookup();
+    resourceManager.computeBlockAppearances(regionLookup);
 
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
+    modelCache.setRegionLookup(regionLookup);
 
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
@@ -881,10 +904,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_WaterCullsFaceAgainstKelpPlant)
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
     ASSERT_TRUE(resourceManager.loadAllResources().success());
-    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    auto regionLookup = makeTestRegionLookup();
+    resourceManager.computeBlockAppearances(regionLookup);
 
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
+    modelCache.setRegionLookup(regionLookup);
 
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
@@ -919,10 +945,13 @@ TEST_F(ChunkMesherWithModelCacheTest, SplitMesh_ShallowWaterLowersSurfaceHeight)
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(std::move(pack)).success());
     ASSERT_TRUE(resourceManager.loadAllResources().success());
-    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    auto regionLookup = makeTestRegionLookup();
+    resourceManager.computeBlockAppearances(regionLookup);
 
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
+    modelCache.setRegionLookup(regionLookup);
 
     BlockModelCache* oldModelCache = ChunkMesher::modelCache();
     const bool oldGreedy = ChunkMesher::isGreedyMeshingEnabled();
@@ -1024,7 +1053,9 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
     ResourceManager resourceManager;
     ASSERT_TRUE(resourceManager.addResourcePack(pack).success());
     ASSERT_TRUE(resourceManager.loadAllResources().success());
-    ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
+
+    auto regionLookup = makeTestRegionLookup();
+    resourceManager.computeBlockAppearances(regionLookup);
 
     const BlockAppearance* waterAppearance =
         resourceManager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
@@ -1033,6 +1064,7 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
 
     BlockModelCache modelCache;
     ASSERT_TRUE(modelCache.initialize(resourceManager));
+    modelCache.setRegionLookup(regionLookup);
 
     const auto& waterState = VanillaBlocks::WATER->defaultState();
     EXPECT_EQ(modelCache.getBlockAppearance(&waterState), modelCache.getBlockAppearance(waterState.stateId()));

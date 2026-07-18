@@ -6,15 +6,22 @@
 
 ```
 src/client/resource/
-├── ResourceManager.hpp/cpp      # 资源管理器核心入口，协调各加载器；含 getAltTexturePath() 路径变体兼容方法
+├── ResourceManager.hpp/cpp      # 资源管理器核心入口，协调各加载器
 ├── BlockModelLoader.hpp/cpp     # 方块模型 JSON 解析，支持继承和纹理变量
 ├── BlockStateLoader.hpp/cpp     # 方块状态 JSON 解析，管理状态到模型映射
 ├── BlockModelCache.hpp/cpp      # 连接 BlockRegistry 和 ResourceManager 的缓存层
 ├── ItemModelLoader.hpp/cpp      # 物品模型加载器
 ├── ItemModelCache.hpp/cpp       # 物品模型缓存
-├── TextureAtlasBuilder.hpp/cpp  # 纹理图集构建器，Skyline 算法打包
-├── ItemTextureAtlas.hpp/cpp     # 物品纹理图集管理
-├── DestroyStageTextures.hpp/cpp # 破坏阶段纹理（10个阶段）
+├── TextureAtlasBuilder.hpp/cpp  # 纹理图集构建器，Skyline 算法打包（被 AtlasManager 调用）
+├── ItemTextureAtlas.hpp/cpp     # 物品纹理图集管理（迁移中，逐步接入 AtlasManager）
+├── atlas/                        # 统一图集数据驱动子系统（对齐 MC 1.21.11 TextureManager）
+│   ├── AtlasManager.hpp/cpp     # 核心编排：JSON sources → resolve → stitch → upload
+│   ├── AtlasHandle.hpp/cpp      # Vulkan 图集资源句柄（image/view/sampler）
+│   ├── AtlasConfigLoader.hpp/cpp# atlases/<id>.json 解析 + 多包 sources 拼接
+│   ├── SpriteLoader.hpp/cpp     # SpriteSource run + resolve 像素（5 种 source 类型）
+│   ├── Sources.hpp/cpp          # 5 种 SpriteSource 实现
+│   ├── TexturePathVariant.hpp/cpp # 路径变体转换工具（原 ResourceManager::getAltTexturePath）
+│   └── MissingNo.hpp/cpp        # missingno 兜底 sprite
 └── EntityTextureLoader.hpp/cpp  # 实体纹理加载器（含 Misc 类别实体如经验球的特殊加载路径）
 ```
 
@@ -24,17 +31,17 @@ src/client/resource/
 ResourceManager（核心入口，协调所有加载器）
     ├── BlockStateLoader（blockstates/*.json 解析）
     ├── BlockModelLoader（models/block/*.json 解析）
-    ├── TextureAtlasBuilder（纹理打包）
-    └── BlockModelCache（状态→外观缓存）
-            ├── ItemTextureAtlas（物品纹理）
-            ├── DestroyStageTextures（破坏纹理）
-            └── EntityTextureLoader（实体纹理）
+    ├── TextureAtlasBuilder（纹理打包，由 AtlasManager 调用）
+    └── BlockModelCache（状态→外观缓存，纹理区域来自 AtlasManager）
+AtlasManager（数据驱动统一图集，由 TridentEngine 持有）
+    ├── 加载 blocks/items/... 图集（atlases/*.json 定义 sources）
+    └── 提供 findSprite/findSpriteByTexturePath region lookup，注入 ResourceManager/BlockModelCache
 ```
 
 **数据流**：
 1. `ResourceManager` 添加资源包 → 调用 `loadAllResources()` 加载方块状态和模型
-2. `buildTextureAtlas()` 将分散纹理打包成大图集，生成 UV 映射
-3. `BlockModelCache.initialize()` 遍历 BlockRegistry 构建状态ID→外观映射
+2. `AtlasManager` 读 `atlases/<id>.json` 驱动 sources 收集 sprite、resolve 像素、TextureAtlasBuilder 打包、上传 GPU，生成 UV 区域映射
+3. `ClientApplication::initializeBlockAssets()` 用 AtlasManager 的 region lookup 调 `computeBlockAppearances()`，再 `BlockModelCache.initialize()` 遍历 BlockRegistry 构建状态ID→外观映射
 4. 区块渲染时通过 `BlockModelCache.getBlockAppearance(state)` O(1) 获取外观
 
 ## 物品模型预加载
@@ -147,20 +154,25 @@ BlockModelLoader::resolveTextureReferences(baked.textures);
 
 ### 2. 纹理路径兼容性
 
-MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。ResourceManager 通过 `getAltTexturePath()` 集中管理路径变体转换，在以下三个层面自动处理兼容性：
+MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。路径变体转换由
+`resource::atlas::TexturePathVariant::getAltTexturePath()` 集中提供（原 `ResourceManager::getAltTexturePath`），
+AtlasManager 的 `findSpriteWithVariant` / `findSpriteByTexturePath` 在查询层自动回退：
 
-1. **图集构建阶段**（`buildTextureAtlas()`）：当原始路径在资源包中找不到纹理时，自动尝试变体路径加载；构建完成后，将路径变体别名注册到 `m_textureRegions`，确保后续直接查找即可命中。
-2. **纹理查找阶段**（`_findTextureRegion()` / `getTextureRegion()`）：查找纹理区域时，原始路径未命中则自动尝试对应的变体路径。
-3. **集中化工具方法**（`getAltTexturePath()`）：公共静态方法，支持以下路径变体互转：
+1. **图集内部 sprite 名**：严格使用原版单数约定（`block/stone`，无 `textures/` 前缀），由 sources 生成。
+2. **查询层回退**（`findSpriteByTexturePath`）：先剥 `textures/` 前缀得 sprite 名，再 `findSpriteWithVariant`
+   用 `getAltTexturePath` 计算变体路径二次查找，覆盖模型 JSON 使用旧复数路径的情况。
+3. **集中化工具方法**（`TexturePathVariant::getAltTexturePath`）：静态方法，支持以下路径变体互转：
    - `textures/block/` ↔ `textures/blocks/`（MC 1.13+ 单数 ↔ MC 1.12 复数）
    - `textures/item/` ↔ `textures/items/`（MC 1.13+ 单数 ↔ MC 1.12 复数）
    - `textures/entity/<name>/<name>` ↔ `textures/entity/<name>`（MC 1.13+ 子目录 ↔ MC 1.12 扁平格式）
 
-   所有模块（`DestroyStageTextures`、`ItemTextureAtlas`、`EntityTextureLoader`、`EntityTextureAtlas`）均复用此方法，消除了独立的路径变体回退逻辑。
+   `ItemTextureAtlas`、`EntityTextureLoader`、`EntityTextureAtlas` 在自身加载链中复用此方法。
 
 ### 3. 模型烘焙依赖顺序
 
-`BlockAppearance` 需要 `TextureRegion`，必须先调用 `buildTextureAtlas()` 再调用 `computeBlockAppearances()`。ResourceManager 内部已正确处理此顺序。
+`BlockAppearance` 需要 `TextureRegion`，必须先由 AtlasManager 加载 blocks atlas，再用其 region lookup
+调用 `computeBlockAppearances()`，最后 `BlockModelCache.initialize()`。`ClientApplication::initializeBlockAssets()`
+已按此顺序串联（在 `initializeAtlasManager` 之后执行）。
 
 ### 4. 方块状态属性字符串格式
 
@@ -174,9 +186,13 @@ MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。Resource
 
 `upload()` 必须在 Vulkan 设备就绪后调用，且需要有效的命令池和图形队列。确保在 `create()` 后调用。
 
-### 7. 破坏纹理格式转换
+### 7. 破坏纹理来源
 
-原版破坏纹理是灰度图，需要转换为着色器期望格式。DestroyStageTextures 自动处理：`crackIntensity = 255 - luminance`。
+破坏阶段纹理（`destroy_stage_0..9`）现由 AtlasManager 的 blocks atlas 统一管理：`blocks.json` 的
+directory source（`prefix=block/`、source=`block`）扫描 `textures/block/destroy_stage_*.png` 生成
+sprite `block/destroy_stage_N`。`BreakProgressRenderer` 通过 stage region lookup
+（`findSpriteByTexturePath("textures/block/destroy_stage_<N>")`）取每阶段 UV，按破坏进度逐级叠加。
+原版破坏纹理是灰度图，着色器侧 DST_COLOR*SRC_COLOR 乘法混合完成裂纹渲染。
 
 ### 8. 模型继承循环
 

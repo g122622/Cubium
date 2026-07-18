@@ -37,6 +37,7 @@
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace mc {
 class Entity;
@@ -48,7 +49,6 @@ struct TextureRegion;
 
 namespace mc::client {
 class ClientEntity;
-struct ChunkTextureAtlas;
 } // namespace mc::client
 
 namespace mc::client::renderer::entity::model {
@@ -217,15 +217,16 @@ public:
     [[nodiscard]] pipeline::EntityTextureAtlas* itemTextureAtlas() { return m_itemTextureAtlas; }
 
     /**
-     * @brief 设置方块纹理图集（用于末影人手持方块渲染）
+     * @brief 设置方块图集（blocks atlas 的 GPU 句柄，用于末影人手持方块渲染）
      *
-     * 方块纹理图集（ChunkTextureAtlas）来自 ChunkRenderer，用于末影人手持方块层
-     * （HeldBlockLayer）的方块纹理采样。在 ChunkRenderer 初始化图集后调用此方法，
-     * 将图集指针注入到所有需要访问方块纹理的渲染器（如 EndermanRenderer）。
+     * blocks atlas 来自 AtlasManager，用于末影人手持方块层（HeldBlockLayer）
+     * 的方块纹理采样。在 AtlasManager 加载完 blocks atlas 后调用此方法，
+     * 将句柄注入到所有需要访问方块纹理的渲染器（如 EndermanRenderer）。
      *
-     * @param atlas 方块纹理图集指针（来自 ChunkRenderer::textureAtlas()）
+     * @param imageView blocks atlas 的图像视图
+     * @param sampler   blocks atlas 的采样器
      */
-    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas);
+    void setBlockAtlas(VkImageView imageView, VkSampler sampler);
 
     /**
      * @brief 获取实体纹理图集（只读）
@@ -324,8 +325,9 @@ private:
     const pipeline::EntityTextureAtlas* m_textureAtlas = nullptr;
     pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr; // 用于 ItemEntity 渲染
 
-    // 方块纹理图集（来自 ChunkRenderer，用于末影人手持方块层）
-    const ::mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    // blocks atlas 的 GPU 句柄（来自 AtlasManager，用于末影人手持方块层）
+    VkImageView m_blockImageView = VK_NULL_HANDLE;
+    VkSampler m_blockSampler = VK_NULL_HANDLE;
 
     // 相机描述符集（set = 0）
     VkDescriptorSet m_cameraDescriptorSet = VK_NULL_HANDLE;

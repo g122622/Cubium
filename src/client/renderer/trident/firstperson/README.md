@@ -18,13 +18,13 @@ firstperson/
 
 ## 模块关系
 
-- `TridentEngine` 负责初始化第一人称渲染器，并在每帧传入相机描述符集与 partial tick；同时注入 `ItemTextureAtlas`（普通物品）与 `ChunkTextureAtlas`（方块物品 3D 渲染切换图集）。
+- `TridentEngine` 负责初始化第一人称渲染器，并在每帧传入相机描述符集与 partial tick；同时注入 `ItemTextureAtlas`（普通物品）与 AtlasManager 的 blocks atlas 句柄（方块物品 3D 渲染切换图集，经 `setBlockAtlas` 下发）。
 - `FirstPersonRenderer` 读取 `Player`、`PlayerInventory` 和 `ItemStack`，决定手臂姿态与手持物品表现。
 - `FirstPersonTransforms` 承载所有与 MC 1.21.11 `ItemInHandRenderer`/`GameRenderer` 对齐的纯变换算法（手臂定位、挥动、弓/弩/三叉戟蓄力、地图倾斜、视野摇晃 `bobView`、伤害倾斜 `bobHurt`、双手渲染选择 `evaluateWhichHandsToRender`），可在无 Vulkan 依赖下单元测试。
 - `ItemInHandRenderer` 从 `ItemModelCache` 获取物品模型的 display 变换并应用到矩阵栈（第一人称 display 变换的唯一施加点）。
 - `EntityPipeline` 负责创建、绑定和销毁手臂/物品对应的 Vulkan 网格资源。
 - `ItemMeshBuilder`（`trident/item/`）构建普通物品的 3D 模型网格；`BlockMeshBuilder`（`entity/util/`）构建方块物品的 3D 方块网格（逐面纹理）。
-- `EntityTextureAtlas` 提供玩家皮肤区域，`ItemTextureAtlas` 提供普通物品 UV 区域，`ChunkTextureAtlas` 提供方块物品各面纹理 UV。
+- `EntityTextureAtlas` 提供玩家皮肤区域，`ItemTextureAtlas` 提供普通物品 UV 区域，AtlasManager 的 blocks atlas 提供方块物品各面纹理 UV。
 - `MatrixStack` 负责把相机朝向、bobView、bobHurt、挥手动画和持物变换组合成最终模型矩阵。
 
 ## 上下游依赖关系
@@ -34,7 +34,7 @@ firstperson/
 - **ModelRenderer**: 模型部件渲染器
 - **ItemModelCache**: 物品模型缓存单例
 - **ItemTextureAtlas**: 物品纹理图集（普通物品 3D 网格 UV）
-- **ChunkTextureAtlas**: 方块纹理图集（方块物品 3D 网格 UV，绘制时切换）
+- **AtlasManager blocks atlas**: 方块纹理图集（方块物品 3D 网格 UV，绘制时切换；句柄由 `TridentEngine` 经 `setBlockAtlas` 注入）
 - **ItemMeshBuilder / BlockMeshBuilder**: 3D 物品/方块网格构建
 - **EntityTextureAtlas**: 实体纹理图集（玩家皮肤）
 - **TridentEngine**: 渲染引擎

@@ -27,6 +27,7 @@
 #include "client/resource/ResourceManager.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
+#include <functional>
 #include <memory>
 #include <unordered_map>
 
@@ -43,7 +44,6 @@ namespace mc {
  * ResourceManager rm;
  * rm.addResourcePack(pack);
  * rm.loadAllResources();
- * rm.buildTextureAtlas();
  *
  * BlockModelCache cache;
  * cache.initialize(rm);
@@ -162,6 +162,29 @@ public:
      */
     [[nodiscard]] ResourceManager* resourceManager() const { return m_resourceManager; }
 
+    // ========================================================================
+    // 纹理区域查询（供 ChunkMesher 液体路径等使用，查 AtlasManager 的图集 regions）
+    // ========================================================================
+
+    using RegionLookup = std::function<const TextureRegion*(const ResourceLocation&)>;
+
+    /**
+     * @brief 设置纹理区域查询回调
+     *
+     * 由 ClientApplication 在 AtlasManager 加载完图集后注入（通常绑定到
+     * AtlasManager::findSpriteWithVariant）。ChunkMesher 液体面纹理区域查询经此回调。
+     *
+     * @param lookup 完整纹理资源位置 → UV 区域指针，未找到返回 nullptr
+     */
+    void setRegionLookup(RegionLookup lookup) { m_regionLookup = std::move(lookup); }
+
+    /**
+     * @brief 查询纹理区域
+     * @param textureLocation 完整纹理资源位置
+     * @return 区域指针，未找到返回 nullptr
+     */
+    [[nodiscard]] const TextureRegion* regionLookup(const ResourceLocation& textureLocation) const;
+
 private:
     // 状态 ID -> 外观指针的缓存
     std::unordered_map<u32, const BlockAppearance*> m_stateCache;
@@ -171,6 +194,9 @@ private:
 
     // 资源管理器引用
     ResourceManager* m_resourceManager = nullptr;
+
+    // 纹理区域查询回调（查 AtlasManager 的图集 regions）
+    RegionLookup m_regionLookup;
 
     // 是否已初始化
     bool m_initialized = false;

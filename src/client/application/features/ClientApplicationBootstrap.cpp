@@ -218,34 +218,10 @@ Result<void> ClientApplication::initializeRenderer()
     // 将相机设置给渲染器
     m_renderer->setCamera(&m_camera);
 
-    // 更新渲染器纹理图集（使用 ResourceManager 构建的纹理）
-    if (m_resourceManager) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "UpdateRendererTextureAtlas");
-
-        spdlog::info("ResourceManager exists, atlas built: {}", m_resourceManager->isAtlasBuilt());
-        if (m_resourceManager->isAtlasBuilt()) {
-            const auto& atlasResult = m_resourceManager->atlasResult();
-            spdlog::info("Atlas pixels size: {}, width: {}, height: {}",
-                atlasResult.pixels.size(),
-                atlasResult.width,
-                atlasResult.height);
-            if (!atlasResult.pixels.empty()) {
-                spdlog::info("Updating renderer texture atlas...");
-                auto atlasUpdateResult = m_renderer->updateTextureAtlas(atlasResult);
-                if (atlasUpdateResult.failed()) {
-                    spdlog::error("Failed to update texture atlas: {}", atlasUpdateResult.error().toString());
-                } else {
-                    spdlog::info("Renderer texture atlas updated from resource pack");
-                }
-            } else {
-                spdlog::warn("Atlas pixels empty, skipping renderer update");
-            }
-        } else {
-            spdlog::warn("Atlas not built, skipping renderer update");
-        }
-    } else {
-        spdlog::warn("ResourceManager is null, skipping texture atlas update");
-    }
+    // 注：纹理图集已迁移到 AtlasManager（数据驱动）。
+    // blocks atlas 在下方 initializeAtlasManager 中加载并绑定到 chunk 管线；
+    // 方块外观的 region lookup 与 BlockModelCache 在 initializeAtlasManager 之后由
+    // initializeBlockAssets 统一构建。
 
     // 初始化子渲染器
     {
@@ -340,6 +316,25 @@ Result<void> ClientApplication::initializeRenderer()
             }
         }
 
+        // 初始化统一图集管理器（数据驱动）。
+        // 加载 blocks/items 图集并把 blocks atlas 绑定到 chunk 管线及依赖方
+        // （破坏叠加/实体手持方块/第一人称）。
+        if (m_resourceManager) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::AtlasManager");
+            auto atlasManagerResult = m_renderer->initializeAtlasManager(m_resourceManager.get());
+            if (atlasManagerResult.failed()) {
+                spdlog::warn("Failed to initialize atlas manager: {}", atlasManagerResult.error().toString());
+            }
+
+            // blocks atlas 就绪后立即构建方块外观与 BlockModelCache
+            // （方块外观的纹理区域来自 AtlasManager 的 blocks atlas region lookup）。
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::BlockAssets");
+            auto blockAssetsResult = initializeBlockAssets();
+            if (blockAssetsResult.failed()) {
+                spdlog::warn("Failed to initialize block assets: {}", blockAssetsResult.error().toString());
+            }
+        }
+
         // 初始化雾效果管理器
         {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::FogManager");
@@ -391,7 +386,7 @@ Result<void> ClientApplication::initializeRenderer()
         {
             MC_TRACE_SCOPED_EVENT(
                 TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::BreakProgressRenderer");
-            auto breakProgressInitResult = m_renderer->initializeBreakProgressRenderer(m_resourceManager.get());
+            auto breakProgressInitResult = m_renderer->initializeBreakProgressRenderer();
             if (breakProgressInitResult.failed()) {
                 spdlog::warn(
                     "Failed to initialize break progress renderer: {}", breakProgressInitResult.error().toString());
