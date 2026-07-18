@@ -37,7 +37,7 @@ using namespace mc::trace;
 namespace mc::client {
 
 // 采样间隔：每秒 100 次 = 10ms
-static constexpr auto SAMPLE_INTERVAL = std::chrono::milliseconds(10);
+static constexpr auto SAMPLE_INTERVAL = std::chrono::milliseconds(1);
 
 MemoryTraceThread::MemoryTraceThread() = default;
 
