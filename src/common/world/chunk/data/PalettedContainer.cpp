@@ -619,7 +619,7 @@ void PalettedContainer::fromFlat(const u32* data, i32 count)
     d.storage.assign(static_cast<size_t>(_storageWordCount(bits)), 0);
     d.bits = bits;
     d.mode = mode;
-    d.palette = sorted; // 调色板按排序顺序
+    d.palette.assign(sorted.begin(), sorted.end()); // 调色板按排序顺序（跨分配器拷贝）
     d.paletteSize = uniqueCount;
     d.hashMap.clear();
     d.hashMapCapacity = 0;
@@ -714,7 +714,7 @@ const u32* PalettedContainer::rawPalette() const
     return m_data->rawPalettePtr;
 }
 
-const std::vector<u64>& PalettedContainer::storage() const
+const std::vector<u64, PaletteStorageAlloc<u64>>& PalettedContainer::storage() const
 {
     return m_data->storage;
 }

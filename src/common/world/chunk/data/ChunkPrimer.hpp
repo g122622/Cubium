@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -96,9 +97,9 @@ public:
     ChunkPrimer(const ChunkPrimer&) = delete;
     ChunkPrimer& operator=(const ChunkPrimer&) = delete;
 
-    // 允许移动
-    ChunkPrimer(ChunkPrimer&&) noexcept = default;
-    ChunkPrimer& operator=(ChunkPrimer&&) noexcept = default;
+    // 允许移动（显式实现：对象追踪守卫不可移动，须在 body 重绑定）
+    ChunkPrimer(ChunkPrimer&& other) noexcept;
+    ChunkPrimer& operator=(ChunkPrimer&& other) noexcept;
 
     // ============================================================================
     // IChunk 接口实现
@@ -557,6 +558,11 @@ public:
         BlockCoord& z) noexcept;
 
 private:
+    // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
+    // move ctor/assign 显式「释放旧地址 + 分配新地址」重绑定（守卫不可移动）。
+    // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
+    ::mc::profiler::TracyObjectTracker<"ChunkPrimer"> m_memTrack;
+
     ChunkCoord m_x;
     ChunkCoord m_z;
 

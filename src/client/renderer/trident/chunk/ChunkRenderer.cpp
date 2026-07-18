@@ -36,6 +36,39 @@ using namespace mc::trace;
 namespace mc::client {
 
 // ============================================================================
+// GPU 内存追踪辅助
+// ============================================================================
+//
+// ChunkGpuBuffer 的 vertexMemory/indexMemory 是 GPU 句柄成员，其生命周期跨越
+// 「_createBuffer 写入 → 替换路径字段级转移到 oldBuffer → destroy 释放」，地址
+// （成员存储地址）随宿主对象走。这里用手动 MC_TRACE_MEM_ALLOC/FREE 宏追踪这些
+// 稳定地址（vkAllocateMemory/vkFreeMemory 严格一对一），用 helper 封装保证配对。
+//
+// Tracy 按 name 指针区分内存池（见 tracy 手册 3.1.2 节），故 name 必须是同一字面量
+// 的稳定指针。下面用文件作用域 const char* const 变量持有，保证 alloc/free 传入同一指针。
+
+namespace {
+
+/// 顶点缓冲区 GPU 内存池名
+const char* const kGpuPoolChunkVtx = "ChunkVtx";
+/// 索引缓冲区 GPU 内存池名
+const char* const kGpuPoolChunkIdx = "ChunkIdx";
+
+/// 登记一次 GPU 内存分配。memPtr 指向 ChunkGpuBuffer 中存储 VkDeviceMemory 句柄的成员地址。
+void trackGpuAlloc(VkDeviceMemory* memPtr, VkDeviceSize size, const char* name)
+{
+    MC_TRACE_MEM_ALLOC(name, memPtr, size);
+}
+
+/// 登记一次 GPU 内存释放。调用方须保证 memPtr 对应的 alloc 已发（即 *memPtr != VK_NULL_HANDLE）。
+void trackGpuFree(VkDeviceMemory* memPtr, const char* name)
+{
+    MC_TRACE_MEM_FREE(name, memPtr);
+}
+
+} // namespace
+
+// ============================================================================
 // ChunkGpuBuffer 实现
 // ============================================================================
 
@@ -46,6 +79,9 @@ void ChunkGpuBuffer::destroy(VkDevice device)
         indexBuffer = VK_NULL_HANDLE;
     }
     if (indexMemory != VK_NULL_HANDLE) {
+        // GPU 内存追踪：与 _createChunkBuffer 中的 alloc 严格一对一（同一 &indexMemory 地址）。
+        // 守卫保证仅对已 alloc 的句柄 free，避免未分配（NULL_HANDLE）时误 free。
+        trackGpuFree(&indexMemory, kGpuPoolChunkIdx);
         vkFreeMemory(device, indexMemory, nullptr);
         indexMemory = VK_NULL_HANDLE;
     }
@@ -54,6 +90,8 @@ void ChunkGpuBuffer::destroy(VkDevice device)
         vertexBuffer = VK_NULL_HANDLE;
     }
     if (vertexMemory != VK_NULL_HANDLE) {
+        // GPU 内存追踪：与 _createChunkBuffer 中的 alloc 严格一对一（同一 &vertexMemory 地址）。
+        trackGpuFree(&vertexMemory, kGpuPoolChunkVtx);
         vkFreeMemory(device, vertexMemory, nullptr);
         vertexMemory = VK_NULL_HANDLE;
     }
@@ -81,6 +119,9 @@ void ChunkTextureAtlas::destroy(VkDevice device)
         image = VK_NULL_HANDLE;
     }
     if (memory != VK_NULL_HANDLE) {
+        // GPU 内存追踪：与 _createTextureAtlas 中的 alloc 严格一对一（同一 &memory 地址）。
+        // 守卫保证仅对已 alloc 的句柄 free，避免首次创建（memory 为 null）时误 free。
+        MC_TRACE_MEM_FREE("ChunkAtlas", &memory);
         vkFreeMemory(device, memory, nullptr);
         memory = VK_NULL_HANDLE;
     }
@@ -332,12 +373,19 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     if (needNewVertex) {
         if (buffer.vertexBuffer != VK_NULL_HANDLE) {
             // 延迟销毁旧缓冲区，避免 GPU 仍在使用时被提前释放导致 device lost
+            // GPU 内存追踪：追踪权随句柄走。先释放旧地址 &buffer.vertexMemory（对应上一次
+            // alloc），句柄值转移给 oldBuffer 后在新地址 &oldBuffer->vertexMemory 重新登记
+            // alloc，使后续 oldBuffer->destroy 的 free 能正确配对。
+            trackGpuFree(&buffer.vertexMemory, kGpuPoolChunkVtx);
+
             auto oldBuffer = std::make_unique<ChunkGpuBuffer>();
             oldBuffer->vertexBuffer = buffer.vertexBuffer;
             oldBuffer->vertexMemory = buffer.vertexMemory;
             oldBuffer->chunkId = buffer.chunkId;
             oldBuffer->vertexCount = oldVertexCount;
             oldBuffer->isValid = true;
+
+            trackGpuAlloc(&oldBuffer->vertexMemory, vertexSize, kGpuPoolChunkVtx);
 
             {
                 std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
@@ -361,18 +409,28 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
             return Error(
                 ErrorCode::InitializationFailed, "Failed to create vertex buffer: " + result.error().message());
         }
+
+        // GPU 内存追踪：_createBuffer 已 vkAllocateMemory 写入 buffer.vertexMemory，
+        // 在 &buffer.vertexMemory 登记新句柄 alloc。与 destroy / 下一次替换的 free 配对。
+        trackGpuAlloc(&buffer.vertexMemory, vertexSize, kGpuPoolChunkVtx);
     }
 
     // 创建索引缓冲区
     if (needNewIndex) {
         if (buffer.indexBuffer != VK_NULL_HANDLE) {
             // 延迟销毁旧缓冲区，避免 GPU 仍在使用时被提前释放导致 device lost
+            // GPU 内存追踪：追踪权随句柄走。先释放旧地址 &buffer.indexMemory，句柄转移给
+            // oldBuffer 后在新地址 &oldBuffer->indexMemory 重新登记 alloc。
+            trackGpuFree(&buffer.indexMemory, kGpuPoolChunkIdx);
+
             auto oldBuffer = std::make_unique<ChunkGpuBuffer>();
             oldBuffer->indexBuffer = buffer.indexBuffer;
             oldBuffer->indexMemory = buffer.indexMemory;
             oldBuffer->chunkId = buffer.chunkId;
             oldBuffer->indexCount = oldIndexCount;
             oldBuffer->isValid = true;
+
+            trackGpuAlloc(&oldBuffer->indexMemory, indexSize, kGpuPoolChunkIdx);
 
             {
                 std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
@@ -393,8 +451,16 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
             buffer.indexMemory);
 
         if (result.failed()) {
+            // 失败清理：vertex 已 alloc 成功（&buffer.vertexMemory 已登记），此处 destroy 释放
+            // vertex 句柄并对应 free 配对；index 句柄因创建失败仍为 NULL_HANDLE，destroy 守卫跳过。
+            // 避免 GPU 句柄与追踪事件泄漏（调用方不会再 destroy 本 buffer），杜绝堆地址复用导致的
+            // Tracy MemAllocTwice 硬失败。
+            buffer.destroy(m_device);
             return Error(ErrorCode::InitializationFailed, "Failed to create index buffer: " + result.error().message());
         }
+
+        // GPU 内存追踪：_createBuffer 已 vkAllocateMemory 写入 buffer.indexMemory，登记 alloc。
+        trackGpuAlloc(&buffer.indexMemory, indexSize, kGpuPoolChunkIdx);
     }
 
     // 上传数据
@@ -425,6 +491,8 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
 
         if (result.failed()) {
             _endSingleTimeCommands(commandBuffer);
+            // 失败清理：vertex/index 句柄均已 alloc 登记，destroy 释放并配对 free，避免泄漏。
+            buffer.destroy(m_device);
             return Error(ErrorCode::OperationFailed, "Failed to create staging buffer");
         }
     }
@@ -434,6 +502,8 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     VkResult mapResult = vkMapMemory(m_device, m_stagingMemory, 0, stagingLayout.totalSize, 0, &mapped);
     if (mapResult != VK_SUCCESS || mapped == nullptr) {
         _endSingleTimeCommands(commandBuffer);
+        // 失败清理：同上，destroy 释放已登记的 vertex/index alloc。
+        buffer.destroy(m_device);
         return Error(ErrorCode::OperationFailed, "Failed to map staging buffer memory");
     }
 
@@ -522,6 +592,15 @@ Result<void> ChunkRenderer::_createTextureAtlas(u32 width, u32 height)
 
     if (imageResult.failed()) {
         return imageResult.error();
+    }
+
+    // GPU 内存追踪：ChunkRenderer 不可移动，&m_textureAtlas.memory 地址稳定，无 move 风险。
+    // createImage 内部已 vkAllocateMemory 写入 m_textureAtlas.memory，此处查 requirements
+    // 取真实 size 后登记 alloc。与 ChunkTextureAtlas::destroy 中的 free 严格一对一。
+    {
+        VkMemoryRequirements memRequirements{};
+        vkGetImageMemoryRequirements(m_device, m_textureAtlas.image, &memRequirements);
+        MC_TRACE_MEM_ALLOC("ChunkAtlas", &m_textureAtlas.memory, memRequirements.size);
     }
 
     // 创建图像视图

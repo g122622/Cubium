@@ -80,7 +80,8 @@ entity::DataParameter<i32> Entity::DATA_TICKS_FROZEN_PARAM = entity::EntityDataM
 // ============================================================================
 
 Entity::Entity(EntityId id, IWorld* world)
-    : m_id(id)
+    : m_memTrack(this)
+    , m_id(id)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_prevPosition(0.0f, 0.0f, 0.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)

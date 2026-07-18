@@ -110,20 +110,73 @@ thread_local std::vector<u8> g_decompressScratch;
 // ============================================================================
 
 SectionData::SectionData()
+    : m_memTrack(this)
 {
     initializeDefaults();
 }
 
 SectionData::SectionData(const SectionKey& key)
-    : key(key)
+    : m_memTrack(this)
+    , key(key)
 {
     initializeDefaults();
 }
 
 SectionData::SectionData(i32 chunkX, i32 chunkZ, i8 sectionY, DimensionId dimension)
-    : key(chunkX, chunkZ, sectionY, dimension)
+    : m_memTrack(this)
+    , key(chunkX, chunkZ, sectionY, dimension)
 {
     initializeDefaults();
+}
+
+SectionData::SectionData(const SectionData& other)
+    : m_memTrack(this) // 新对象新地址，bind this 发 alloc（守卫不可拷贝，故显式构造+绑定）
+    , key(other.key)
+    , blockStates(other.blockStates)
+    , nonEmptyBlockCount(other.nonEmptyBlockCount)
+    , biomes(other.biomes)
+    , skyLight(other.skyLight)
+    , blockLight(other.blockLight)
+    , dataVersion(other.dataVersion)
+    , contentHash(other.contentHash)
+{}
+
+SectionData::SectionData(SectionData&& other) noexcept
+    : m_memTrack() // 默认构造为非活跃，body 中重绑定
+    , key(other.key)
+    , blockStates(std::move(other.blockStates))
+    , nonEmptyBlockCount(other.nonEmptyBlockCount)
+    , biomes(std::move(other.biomes))
+    , skyLight(std::move(other.skyLight))
+    , blockLight(std::move(other.blockLight))
+    , dataVersion(other.dataVersion)
+    , contentHash(other.contentHash)
+{
+    // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
+    // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
+    // 堆复用该地址时触发 MemAllocTwice 硬失败。
+    other.m_memTrack.unbind();
+    m_memTrack.bind(this);
+}
+
+SectionData& SectionData::operator=(SectionData&& other) noexcept
+{
+    if (this != &other) {
+        key = other.key;
+        blockStates = std::move(other.blockStates);
+        nonEmptyBlockCount = other.nonEmptyBlockCount;
+        biomes = std::move(other.biomes);
+        skyLight = std::move(other.skyLight);
+        blockLight = std::move(other.blockLight);
+        dataVersion = other.dataVersion;
+        contentHash = other.contentHash;
+
+        // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
+        m_memTrack.unbind();
+        other.m_memTrack.unbind();
+        m_memTrack.bind(this);
+    }
+    return *this;
 }
 
 void SectionData::initializeDefaults()

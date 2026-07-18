@@ -34,6 +34,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/PalettedContainer.hpp"
@@ -53,6 +54,12 @@ public:
 
     ChunkSection();
     ~ChunkSection() = default;
+
+    // 不可拷贝（含对象追踪守卫）；显式移动（守卫不可移动，须在 body 重绑定）
+    ChunkSection(const ChunkSection&) = delete;
+    ChunkSection& operator=(const ChunkSection&) = delete;
+    ChunkSection(ChunkSection&& other) noexcept;
+    ChunkSection& operator=(ChunkSection&& other) noexcept;
 
     // 方块访问 (使用状态ID)
     [[nodiscard]] u32 getBlockStateId(i32 x, i32 y, i32 z) const;
@@ -135,6 +142,11 @@ public:
     void fillBlockLight(u8 light) { m_blockLight.fill(light); }
 
 private:
+    // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
+    // move ctor/assign 显式「释放旧地址 + 分配新地址」重绑定（守卫不可移动）。
+    // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
+    ::mc::profiler::TracyObjectTracker<"ChunkSection"> m_memTrack;
+
     // 调色板压缩存储方块状态 ID（SingleValue/Linear/HashMap/Flat 自适应）
     // 替代原扁平 std::vector<u32> (16 KB/段)，典型段内存降至 2-4 KB
     PalettedContainer m_blockStates;

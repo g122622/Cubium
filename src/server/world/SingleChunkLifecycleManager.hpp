@@ -20,6 +20,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
@@ -489,6 +490,11 @@ private:
      * @brief 根据当前内部状态构造调度决策（只读，无副作用）
      */
     [[nodiscard]] EnqueueDecision _buildDecisionLocked() const;
+
+    // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。本类不可移动
+    // （含 mutex 与 atomic），故无需 move 重绑定，ctor 初始化列表绑定 this 即可。
+    // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
+    ::mc::profiler::TracyObjectTracker<"ChunkHolder"> m_memTrack;
 
     ChunkCoord m_x;
     ChunkCoord m_z;

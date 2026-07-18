@@ -43,10 +43,47 @@ namespace mc::world::chunk {
 // ============================================================================
 
 ChunkSection::ChunkSection()
-    : m_blockStates()                     // PalettedContainer 默认 SingleValue(0=空气)
+    : m_memTrack(this)
+    , m_blockStates()                     // PalettedContainer 默认 SingleValue(0=空气)
     , m_skyLight(NibbleArray::filled(15)) // 默认天空光照全亮
     , m_blockLight()                      // 默认方块光照无光（空数组，返回0）
 {}
+
+ChunkSection::ChunkSection(ChunkSection&& other) noexcept
+    : m_memTrack() // 默认构造为非活跃，body 中重绑定
+    , m_blockStates(std::move(other.m_blockStates))
+    , m_skyLight(std::move(other.m_skyLight))
+    , m_blockLight(std::move(other.m_blockLight))
+    , m_blockCount(other.m_blockCount)
+    , m_needsRecalculate(other.m_needsRecalculate)
+    , m_blockTickRefCount(other.m_blockTickRefCount)
+    , m_fluidRefCount(other.m_fluidRefCount)
+{
+    // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
+    // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
+    // 堆复用该地址时触发 MemAllocTwice 硬失败。
+    other.m_memTrack.unbind();
+    m_memTrack.bind(this);
+}
+
+ChunkSection& ChunkSection::operator=(ChunkSection&& other) noexcept
+{
+    if (this != &other) {
+        m_blockStates = std::move(other.m_blockStates);
+        m_skyLight = std::move(other.m_skyLight);
+        m_blockLight = std::move(other.m_blockLight);
+        m_blockCount = other.m_blockCount;
+        m_needsRecalculate = other.m_needsRecalculate;
+        m_blockTickRefCount = other.m_blockTickRefCount;
+        m_fluidRefCount = other.m_fluidRefCount;
+
+        // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
+        m_memTrack.unbind();
+        other.m_memTrack.unbind();
+        m_memTrack.bind(this);
+    }
+    return *this;
+}
 
 void ChunkSection::_updateCounters(u32 oldStateId, u32 newStateId)
 {

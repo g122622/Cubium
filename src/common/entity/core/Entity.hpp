@@ -40,6 +40,7 @@
 #include "EntitySize.hpp"
 #include "EntityTypeIdNumber.hpp"
 #include "MoverType.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include <array>
 #include <functional>
 #include <memory>
@@ -2582,6 +2583,12 @@ protected:
      * @return 声音事件ID，无效类型返回空
      */
     [[nodiscard]] std::optional<ResourceLocation> makeSoundEventId(std::string_view suffix) const;
+
+    // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。Entity 不可移动
+    // （EntityDataManager 含 std::mutex），故无需 move 重绑定，ctor 初始化列表绑定 this
+    // 即可，一次插桩覆盖所有派生类（LivingEntity/MobEntity/Player 等）。仅 MC_ENABLE_MEMORY
+    // && MC_ENABLE_TRACY 时发事件，其余分支空操作。
+    ::mc::profiler::TracyObjectTracker<"Entity"> m_memTrack;
 
     EntityId m_id;
     std::string m_uuid;     // UUID 字符串

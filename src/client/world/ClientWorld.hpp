@@ -31,6 +31,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
@@ -62,8 +63,29 @@ class ParticleManager;
 
 /**
  * @brief 客户端区块数据
+ * TODO 提取到单独的文件中
+ *
+ * 含对象级内存追踪守卫（m_memTrack），故非聚合体：构造在 .cpp 中定义（默认构造
+ * 绑定 this 发 alloc，析构发 free），move ctor/assign 显式重绑定。内部 MeshData 的
+ * vector 缓冲区另由 "ChunkMesh" 分配器追踪，与此对象级追踪互补。
  */
 struct ClientChunk {
+private:
+    // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
+    // move ctor/assign 显式「释放旧地址 + 分配新地址」重绑定（守卫不可移动）。
+    // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
+    // 声明于数据成员之前，使 ctor 初始化列表可将其置于首位（满足 -Wreorder-ctor）。
+    ::mc::profiler::TracyObjectTracker<"ClientChunk"> m_memTrack;
+
+public:
+    ClientChunk();
+    ~ClientChunk();
+
+    ClientChunk(const ClientChunk&) = delete;
+    ClientChunk& operator=(const ClientChunk&) = delete;
+    ClientChunk(ClientChunk&& other) noexcept;
+    ClientChunk& operator=(ClientChunk&& other) noexcept;
+
     ChunkId chunkId;
     std::shared_ptr<ChunkData> data;
     MeshData solidMesh;

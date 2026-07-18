@@ -26,6 +26,7 @@
 #include "SectionKey.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
@@ -120,9 +121,20 @@ struct SectionData {
     static constexpr u32 CURRENT_DATA_VERSION = 1;
 
     // ========================================================================
+    // 对象级内存追踪
+    // ========================================================================
+private:
+    // 绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由 move ctor/assign 显式
+    // 「释放旧地址 + 分配新地址」重绑定（守卫不可移动）。仅 MC_ENABLE_MEMORY &&
+    // MC_ENABLE_TRACY 时发事件。sizeof(SectionData) 只含外层结构体，绝对值偏低但
+    // 能正确反映 SectionCache LRU 中 section 的驻留数量波动。
+    // 声明于数据成员之前，使 ctor 初始化列表可将其置于首位（满足 -Wreorder-ctor）。
+    ::mc::profiler::TracyObjectTracker<"SectionCache"> m_memTrack;
+
+    // ========================================================================
     // 数据成员
     // ========================================================================
-
+public:
     /// Section标识
     SectionKey key;
 
@@ -163,6 +175,13 @@ struct SectionData {
      * @brief 从坐标构造
      */
     SectionData(i32 chunkX, i32 chunkZ, i8 sectionY, DimensionId dimension = 0);
+
+    // 不可拷贝赋值（含对象追踪守卫）；提供显式拷贝构造（产生新对象，bind 新地址）；
+    // 显式移动（守卫不可移动，须在 body 重绑定）
+    SectionData(const SectionData& other);
+    SectionData& operator=(const SectionData&) = delete;
+    SectionData(SectionData&& other) noexcept;
+    SectionData& operator=(SectionData&& other) noexcept;
 
     // ========================================================================
     // 数据访问

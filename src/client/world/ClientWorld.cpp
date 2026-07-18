@@ -80,6 +80,58 @@ f32 chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId
 
 } // namespace
 
+// ============================================================================
+// ClientChunk 实现
+// ============================================================================
+
+ClientChunk::ClientChunk()
+    : m_memTrack(this)
+{}
+
+ClientChunk::~ClientChunk() = default; // 守卫自动发 free
+
+ClientChunk::ClientChunk(ClientChunk&& other) noexcept
+    : m_memTrack() // 默认构造为非活跃，body 中重绑定
+    , chunkId(other.chunkId)
+    , data(std::move(other.data))
+    , solidMesh(std::move(other.solidMesh))
+    , transparentMesh(std::move(other.transparentMesh))
+    , hasMeshResult(other.hasMeshResult)
+    , needsMeshUpdate(other.needsMeshUpdate)
+    , meshRebuildPending(other.meshRebuildPending)
+    , isLoaded(other.isLoaded)
+    , activeMeshTaskId(other.activeMeshTaskId)
+    , lastWorkerId(other.lastWorkerId)
+{
+    // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
+    // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
+    // 堆复用该地址时触发 MemAllocTwice 硬失败。
+    other.m_memTrack.unbind();
+    m_memTrack.bind(this);
+}
+
+ClientChunk& ClientChunk::operator=(ClientChunk&& other) noexcept
+{
+    if (this != &other) {
+        chunkId = other.chunkId;
+        data = std::move(other.data);
+        solidMesh = std::move(other.solidMesh);
+        transparentMesh = std::move(other.transparentMesh);
+        hasMeshResult = other.hasMeshResult;
+        needsMeshUpdate = other.needsMeshUpdate;
+        meshRebuildPending = other.meshRebuildPending;
+        isLoaded = other.isLoaded;
+        activeMeshTaskId = other.activeMeshTaskId;
+        lastWorkerId = other.lastWorkerId;
+
+        // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
+        m_memTrack.unbind();
+        other.m_memTrack.unbind();
+        m_memTrack.bind(this);
+    }
+    return *this;
+}
+
 ClientWorld::ClientWorld() = default;
 
 ClientWorld::~ClientWorld()

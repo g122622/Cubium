@@ -71,7 +71,8 @@ void initializeAllHeightmaps(std::unordered_map<HeightmapType, Heightmap>& heigh
 // ============================================================================
 
 ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
-    : m_x(x)
+    : m_memTrack(this)
+    , m_x(x)
     , m_z(z)
     , m_data(std::make_shared<ChunkData>(x, z))
     , m_chunkStatus(&ChunkStatuses::EMPTY)
@@ -81,7 +82,8 @@ ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
 }
 
 ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
-    : m_x(data->x())
+    : m_memTrack(this)
+    , m_x(data->x())
     , m_z(data->z())
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
@@ -93,7 +95,8 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
 }
 
 ChunkPrimer::ChunkPrimer(std::shared_ptr<ChunkData> data)
-    : m_x(data->x())
+    : m_memTrack(this)
+    , m_x(data->x())
     , m_z(data->z())
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
@@ -530,5 +533,59 @@ mc::world::gen::density::NoiseChunk& ChunkPrimer::getOrCreateNoiseChunk(
 }
 
 ChunkPrimer::~ChunkPrimer() = default;
+
+ChunkPrimer::ChunkPrimer(ChunkPrimer&& other) noexcept
+    : m_memTrack() // 默认构造为非活跃，body 中重绑定
+    , m_x(other.m_x)
+    , m_z(other.m_z)
+    , m_data(std::move(other.m_data))
+    , m_chunkStatus(other.m_chunkStatus)
+    , m_persistedStatus(other.m_persistedStatus)
+    , m_status(other.m_status)
+    , m_modified(other.m_modified)
+    , m_biomes(std::move(other.m_biomes))
+    , m_heightmaps(std::move(other.m_heightmaps))
+    , m_lightPositions(std::move(other.m_lightPositions))
+    , m_spawnedEntities(std::move(other.m_spawnedEntities))
+    , m_structureStarts(std::move(other.m_structureStarts))
+    , m_structureReferences(std::move(other.m_structureReferences))
+    , m_carvingMask(std::move(other.m_carvingMask))
+    , m_postProcessingSections(std::move(other.m_postProcessingSections))
+    , m_noiseChunk(std::move(other.m_noiseChunk))
+{
+    // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
+    // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
+    // 堆复用该地址时触发 MemAllocTwice 硬失败。
+    other.m_memTrack.unbind();
+    m_memTrack.bind(this);
+}
+
+ChunkPrimer& ChunkPrimer::operator=(ChunkPrimer&& other) noexcept
+{
+    if (this != &other) {
+        m_x = other.m_x;
+        m_z = other.m_z;
+        m_data = std::move(other.m_data);
+        m_chunkStatus = other.m_chunkStatus;
+        m_persistedStatus = other.m_persistedStatus;
+        m_status = other.m_status;
+        m_modified = other.m_modified;
+        m_biomes = std::move(other.m_biomes);
+        m_heightmaps = std::move(other.m_heightmaps);
+        m_lightPositions = std::move(other.m_lightPositions);
+        m_spawnedEntities = std::move(other.m_spawnedEntities);
+        m_structureStarts = std::move(other.m_structureStarts);
+        m_structureReferences = std::move(other.m_structureReferences);
+        m_carvingMask = std::move(other.m_carvingMask);
+        m_postProcessingSections = std::move(other.m_postProcessingSections);
+        m_noiseChunk = std::move(other.m_noiseChunk);
+
+        // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
+        m_memTrack.unbind();
+        other.m_memTrack.unbind();
+        m_memTrack.bind(this);
+    }
+    return *this;
+}
 
 } // namespace mc::world::chunk

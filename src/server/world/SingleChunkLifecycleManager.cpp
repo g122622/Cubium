@@ -41,7 +41,8 @@ namespace {
 // ============================================================================
 
 SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z)
-    : m_x(x)
+    : m_memTrack(this)
+    , m_x(x)
     , m_z(z)
 {}
 

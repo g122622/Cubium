@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 
 #include <array>
 #include <cstdint>
@@ -33,6 +34,18 @@
 #include <vector>
 
 namespace mc::world::chunk {
+
+// ============================================================================
+// 内存追踪：调色板内部 vector 用 TracyTrackingAlloc 追踪（按池分组）
+//   - storage / hashMap 用 "ChunkPaletteStorage"（u64/u32 位存储与哈希槽）
+//   - palette 用 "ChunkPalette"（u32 调色板值）
+// 分配器 is_always_equal=true，无状态，不影响 move 语义（PalettedContainer 仅 move
+// unique_ptr<Data>，不触碰内部 vector）。仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件。
+// ============================================================================
+template <typename T>
+using PaletteStorageAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkPaletteStorage">;
+template <typename T>
+using PaletteAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkPalette">;
 
 // ============================================================================
 // 调色板容器 — 方块状态存储的内存优化替代方案
@@ -193,7 +206,7 @@ public:
     /**
      * @brief 获取位存储数据（只读，用于高级序列化）
      */
-    [[nodiscard]] const std::vector<u64>& storage() const;
+    [[nodiscard]] const std::vector<u64, PaletteStorageAlloc<u64>>& storage() const;
 
     /**
      * @brief 估算内存占用（字节）
@@ -219,7 +232,7 @@ private:
 
         // 位存储（小端，LSB-first）
         // SingleValue 模式下为空；其他模式存储调色板索引
-        std::vector<u64> storage;
+        std::vector<u64, PaletteStorageAlloc<u64>> storage;
 
         // 位数（每个条目占用的 bit 数）
         i32 bits = 0;
@@ -229,7 +242,7 @@ private:
         // Linear: 按插入顺序
         // HashMap: 稀疏数组（index → value），配 m_paletteSize 使用
         // Flat: 空（stateId 直接存于 storage）
-        std::vector<u32> palette;
+        std::vector<u32, PaletteAlloc<u32>> palette;
 
         // 实际调色板条目数（HashMap 模式下可能 < palette.size()）
         i32 paletteSize = 0;
@@ -243,9 +256,9 @@ private:
 
         // HashMap 专用：反向映射 stateId → paletteIndex
         // 使用开放寻址哈希表，避免 std::unordered_map 开销
-        std::vector<u32> hashMap; // 哈希槽，存储 (paletteIndex + 1)，0 表示空
-        i32 hashMapCapacity = 0;  // 哈希表容量（2 的幂）
-        i32 hashMapMask = 0;      // hashMapCapacity - 1
+        std::vector<u32, PaletteStorageAlloc<u32>> hashMap; // 哈希槽，存储 (paletteIndex + 1)，0 表示空
+        i32 hashMapCapacity = 0;                            // 哈希表容量（2 的幂）
+        i32 hashMapMask = 0;                                // hashMapCapacity - 1
 
         Data() = default;
 
