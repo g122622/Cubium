@@ -31,8 +31,12 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/Direction.hpp"
+#include <array>
 #include <map>
 #include <memory>
+#include <optional>
+#include <vector>
 
 namespace mc {
 
@@ -42,6 +46,16 @@ namespace mc {
  * @brief 方块外观信息
  *
  * 包含渲染方块所需的所有数据
+ *
+ * 面相关字段（faceTextures / faceTextureLocations / faceTintIndices /
+ * faceTextureLayers）以扁平数组存储，索引 = Directions::index(dir)
+ *（Down=0..East=5）。每个槽位为 std::optional：nullopt 表示该方向无数据，
+ * 等价于原先 std::map<std::string, T> 用方向名作键、count==0 判定不存在的语义。
+ *
+ * 写入路径（_computeBlockAppearances / _createMissingAppearance）只写 6 个方向，
+ * 从不写 "side"/"all"。原 map 读取处的 "side"/"all" 键查找因此永不命中，
+ * 属历史遗留防御逻辑；改 array 后各查找仅按精确 Direction 取，行为与原 map
+ * 完全等价（cross 植物的 north→south / west→east 选择仍由调用方显式级联实现）。
  */
 struct BlockAppearance {
     struct FaceTextureLayer {
@@ -50,16 +64,119 @@ struct BlockAppearance {
     };
 
     std::vector<ModelElement> elements;
-    std::map<std::string, TextureRegion> faceTextures;                      // 方向 -> 纹理区域
-    std::map<std::string, ResourceLocation> faceTextureLocations;           // 方向 -> 纹理资源位置
-    std::map<std::string, i32> faceTintIndices;                             // 方向 -> tintindex（仅存储 >= 0）
-    std::map<std::string, std::vector<FaceTextureLayer>> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
-    TextureRegion particleTexture = {0.0, 0.0, 1.0, 1.0};                   // 模型中 textures.particle 指定的粒子纹理
-    ResourceLocation particleTextureLocation;                               // 粒子纹理的资源位置
-    bool hasParticleTexture = false;                                        // 是否有有效的粒子纹理
-    i32 xRotation = 0;                                                      // X轴旋转
-    i32 yRotation = 0;                                                      // Y轴旋转
+    std::array<std::optional<TextureRegion>, 6> faceTextures;                      // 方向 -> 纹理区域
+    std::array<std::optional<ResourceLocation>, 6> faceTextureLocations;           // 方向 -> 纹理资源位置
+    std::array<std::optional<i32>, 6> faceTintIndices;                             // 方向 -> tintindex（仅存储 >= 0）
+    std::array<std::optional<std::vector<FaceTextureLayer>>, 6> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
+    TextureRegion particleTexture = {0.0, 0.0, 1.0, 1.0}; // 模型中 textures.particle 指定的粒子纹理
+    ResourceLocation particleTextureLocation;             // 粒子纹理的资源位置
+    bool hasParticleTexture = false;                      // 是否有有效的粒子纹理
+    i32 xRotation = 0;                                    // X轴旋转
+    i32 yRotation = 0;                                    // Y轴旋转
     bool uvLock = false;
+
+    /**
+     * @brief 是否存在任意面纹理（替代原 faceTextures.empty() 的语义取反）
+     */
+    [[nodiscard]] bool hasAnyFaceTexture() const
+    {
+        for (const auto& t : faceTextures) {
+            if (t.has_value()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief 是否存在任意多层纹理（替代原 faceTextureLayers.empty() 的语义取反）
+     */
+    [[nodiscard]] bool hasAnyFaceTextureLayer() const
+    {
+        for (const auto& l : faceTextureLayers) {
+            if (l.has_value() && !l->empty()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief 按精确方向取多层纹理（等价于原 map.find(directionName)）
+     * @return 指向内部 vector 的指针，该方向无数据返回 nullptr
+     */
+    [[nodiscard]] const std::vector<FaceTextureLayer>* findFaceTextureLayers(Direction dir) const
+    {
+        const size_t idx = Directions::index(dir);
+        if (idx < 6 && faceTextureLayers[idx] && !faceTextureLayers[idx]->empty()) {
+            return &(*faceTextureLayers[idx]);
+        }
+        return nullptr;
+    }
+
+    /**
+     * @brief 按精确方向取单层纹理区域（等价于原 map.find(directionName)）
+     * @return 纹理区域指针，该方向无数据返回 nullptr
+     */
+    [[nodiscard]] const TextureRegion* findFaceTexture(Direction dir) const
+    {
+        const size_t idx = Directions::index(dir);
+        if (idx < 6 && faceTextures[idx]) {
+            return &(*faceTextures[idx]);
+        }
+        return nullptr;
+    }
+
+    /**
+     * @brief 按方向取 tintindex（等价于原 map.find(directionName)）
+     * @return tintindex，未找到返回 -1
+     */
+    [[nodiscard]] i32 findFaceTintIndex(Direction dir) const
+    {
+        const size_t idx = Directions::index(dir);
+        if (idx < 6 && faceTintIndices[idx]) {
+            return *faceTintIndices[idx];
+        }
+        return -1;
+    }
+
+    /**
+     * @brief 按方向取纹理资源位置（等价于原 map.find(directionName)）
+     * @return 资源位置指针，该方向无数据返回 nullptr
+     */
+    [[nodiscard]] const ResourceLocation* findFaceTextureLocation(Direction dir) const
+    {
+        const size_t idx = Directions::index(dir);
+        if (idx < 6 && faceTextureLocations[idx]) {
+            return &(*faceTextureLocations[idx]);
+        }
+        return nullptr;
+    }
+
+    /**
+     * @brief 收集所有存在纹理的方向（用于粒子随机选面）
+     * @return 方向列表（按 Down..East 顺序）
+     */
+    [[nodiscard]] std::vector<Direction> collectFacesWithTexture() const
+    {
+        std::vector<Direction> result;
+        for (size_t i = 0; i < 6; ++i) {
+            if (faceTextures[i]) {
+                result.push_back(Directions::fromIndex(i));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * @brief 取首个存在纹理资源位置的方向（用于回退，等价于原 map.begin()）
+     * @return 方向，无任何面返回 Direction::None
+     */
+    [[nodiscard]] Direction firstFaceWithTextureLocation() const
+    {
+        for (size_t i = 0; i < 6; ++i) {
+            if (faceTextureLocations[i]) {
+                return Directions::fromIndex(i);
+            }
+        }
+        return Direction::None;
+    }
 };
 
 /**

@@ -747,11 +747,11 @@ void ResourceManager::_computeBlockAppearances()
                     }
                     const auto& face = *faceOpt;
                     const Direction dir = Directions::fromIndex(i);
-                    std::string dirStr = directionToString(dir);
+                    const size_t idx = Directions::index(dir);
 
                     // 保留 tintindex（仅记录有着色需求的面）
-                    if (face.tintIndex >= 0 && !appearance.faceTintIndices.count(dirStr)) {
-                        appearance.faceTintIndices[dirStr] = face.tintIndex;
+                    if (face.tintIndex >= 0 && !appearance.faceTintIndices[idx]) {
+                        appearance.faceTintIndices[idx] = face.tintIndex;
                     }
 
                     ResourceLocation texLoc = bakedModel.resolveTexture(face.texture);
@@ -764,13 +764,16 @@ void ResourceManager::_computeBlockAppearances()
 
                     if (region) {
                         // 保留首层纹理用于兼容旧逻辑
-                        if (!appearance.faceTextures.count(dirStr)) {
-                            appearance.faceTextures[dirStr] = *region;
-                            appearance.faceTextureLocations[dirStr] = fullTexLoc;
+                        if (!appearance.faceTextures[idx]) {
+                            appearance.faceTextures[idx] = *region;
+                            appearance.faceTextureLocations[idx] = fullTexLoc;
                         }
 
                         // 收集全部层，支持草方块侧面 overlay 等多层模型
-                        appearance.faceTextureLayers[dirStr].push_back(
+                        if (!appearance.faceTextureLayers[idx]) {
+                            appearance.faceTextureLayers[idx].emplace();
+                        }
+                        appearance.faceTextureLayers[idx]->push_back(
                             BlockAppearance::FaceTextureLayer{*region, face.tintIndex});
                     }
                 }
@@ -790,7 +793,7 @@ void ResourceManager::_computeBlockAppearances()
             }
 
             totalAppearances++;
-            if (!appearance.faceTextures.empty()) {
+            if (appearance.hasAnyFaceTexture()) {
                 appearancesWithTextures++;
             }
 

@@ -422,21 +422,31 @@ TEST_F(DiggingParticleTest, BlockAppearance_ParticleTexture_SetAndAccess)
 
 TEST_F(DiggingParticleTest, BlockAppearance_FaceTextureLocations_EmptyByDefault)
 {
-    // 验证面纹理位置映射默认为空
+    // 验证面纹理位置映射默认为空（所有方向均无值）
     BlockAppearance appearance;
-    EXPECT_TRUE(appearance.faceTextureLocations.empty());
+    EXPECT_EQ(appearance.firstFaceWithTextureLocation(), Direction::None);
 }
 
 TEST_F(DiggingParticleTest, BlockAppearance_FaceTextureLocations_SetAndAccess)
 {
     // 验证可以设置和访问面纹理位置映射
     BlockAppearance appearance;
-    appearance.faceTextureLocations["up"] = ResourceLocation("minecraft:textures/block/stone");
-    appearance.faceTextureLocations["north"] = ResourceLocation("minecraft:textures/block/dirt");
+    appearance.faceTextureLocations[Directions::index(Direction::Up)] =
+        ResourceLocation("minecraft:textures/block/stone");
+    appearance.faceTextureLocations[Directions::index(Direction::North)] =
+        ResourceLocation("minecraft:textures/block/dirt");
 
-    EXPECT_EQ(appearance.faceTextureLocations.size(), 2u);
-    EXPECT_EQ(appearance.faceTextureLocations["up"].toString(), "minecraft:textures/block/stone");
-    EXPECT_EQ(appearance.faceTextureLocations["north"].toString(), "minecraft:textures/block/dirt");
+    // 共设置 2 个方向
+    size_t setCount = 0;
+    for (size_t i = 0; i < 6; ++i) {
+        if (appearance.faceTextureLocations[i]) ++setCount;
+    }
+    EXPECT_EQ(setCount, 2u);
+
+    ASSERT_NE(appearance.findFaceTextureLocation(Direction::Up), nullptr);
+    EXPECT_EQ(appearance.findFaceTextureLocation(Direction::Up)->toString(), "minecraft:textures/block/stone");
+    ASSERT_NE(appearance.findFaceTextureLocation(Direction::North), nullptr);
+    EXPECT_EQ(appearance.findFaceTextureLocation(Direction::North)->toString(), "minecraft:textures/block/dirt");
 }
 
 TEST_F(DiggingParticleTest, GetTextureLocation_WithoutModelCache_ReturnsDefault)

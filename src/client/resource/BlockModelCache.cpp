@@ -232,26 +232,17 @@ void BlockModelCache::_createMissingAppearance()
     // 第一个位置 (0,0) 是缺失纹理，UV 坐标是 (0, 0, 1/16, 1/16)
     constexpr f32 tileUV = 1.0f / 16.0f;
     TextureRegion missingRegion(0.0f, 0.0f, tileUV, tileUV);
-    m_missingAppearance->faceTextures["down"] = missingRegion;
-    m_missingAppearance->faceTextures["up"] = missingRegion;
-    m_missingAppearance->faceTextures["north"] = missingRegion;
-    m_missingAppearance->faceTextures["south"] = missingRegion;
-    m_missingAppearance->faceTextures["west"] = missingRegion;
-    m_missingAppearance->faceTextures["east"] = missingRegion;
+    ResourceLocation missingLoc("minecraft:textures/block/missing");
+    for (Direction dir : Directions::all()) {
+        const size_t idx = Directions::index(dir);
+        m_missingAppearance->faceTextures[idx] = missingRegion;
+        m_missingAppearance->faceTextureLocations[idx] = missingLoc;
+    }
 
     // 缺失模型的粒子纹理与面纹理一致
     m_missingAppearance->particleTexture = missingRegion;
-    m_missingAppearance->particleTextureLocation = ResourceLocation("minecraft:textures/block/missing");
+    m_missingAppearance->particleTextureLocation = missingLoc;
     m_missingAppearance->hasParticleTexture = true;
-
-    // 缺失模型的各面纹理资源位置
-    ResourceLocation missingLoc("minecraft:textures/block/missing");
-    m_missingAppearance->faceTextureLocations["down"] = missingLoc;
-    m_missingAppearance->faceTextureLocations["up"] = missingLoc;
-    m_missingAppearance->faceTextureLocations["north"] = missingLoc;
-    m_missingAppearance->faceTextureLocations["south"] = missingLoc;
-    m_missingAppearance->faceTextureLocations["west"] = missingLoc;
-    m_missingAppearance->faceTextureLocations["east"] = missingLoc;
 }
 
 } // namespace mc

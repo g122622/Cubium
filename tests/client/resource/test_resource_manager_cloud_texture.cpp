@@ -258,8 +258,8 @@ TEST(ResourceManagerTextureDecodeTest, WaterModelWithParticleTextureKeepsParticl
 
     const auto* appearance = manager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
     ASSERT_NE(appearance, nullptr);
-    EXPECT_TRUE(appearance->faceTextures.empty());
-    EXPECT_TRUE(appearance->faceTextureLayers.empty());
+    EXPECT_TRUE(!appearance->hasAnyFaceTexture());
+    EXPECT_TRUE(!appearance->hasAnyFaceTextureLayer());
 }
 
 } // namespace mc::test

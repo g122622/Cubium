@@ -35,52 +35,12 @@
 namespace mc::client::renderer::entity::util {
 
 // ---------------------------------------------------------------------------
-// 辅助：方向 -> 面名（与 BlockAppearance::faceTextures 的键一致）
-// ---------------------------------------------------------------------------
-static const char* directionToFaceName(Direction dir)
-{
-    switch (dir) {
-        case Direction::Down:
-            return "down";
-        case Direction::Up:
-            return "up";
-        case Direction::North:
-            return "north";
-        case Direction::South:
-            return "south";
-        case Direction::West:
-            return "west";
-        case Direction::East:
-            return "east";
-        default:
-            return nullptr;
-    }
-}
-
-// ---------------------------------------------------------------------------
 // 辅助：从 BlockAppearance 查找指定方向的纹理区域（带 side/all 回退）
 // 复刻 ChunkMesher::collectFaceLayers 的查找逻辑
 // ---------------------------------------------------------------------------
 static const TextureRegion* resolveFaceTexture(const BlockAppearance& appearance, Direction dir)
 {
-    const char* name = directionToFaceName(dir);
-    if (name == nullptr) {
-        return nullptr;
-    }
-
-    auto it = appearance.faceTextures.find(name);
-    if (it != appearance.faceTextures.end()) {
-        return &it->second;
-    }
-    it = appearance.faceTextures.find("side");
-    if (it != appearance.faceTextures.end()) {
-        return &it->second;
-    }
-    it = appearance.faceTextures.find("all");
-    if (it != appearance.faceTextures.end()) {
-        return &it->second;
-    }
-    return nullptr;
+    return appearance.findFaceTexture(dir);
 }
 
 void BlockMeshBuilder::buildBlockMesh(

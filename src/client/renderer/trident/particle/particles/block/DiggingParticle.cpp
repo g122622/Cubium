@@ -53,34 +53,27 @@ constexpr f64 DEFAULT_V1 = 1.0;
  *
  * @param appearance 方块外观
  * @param rng 随机数生成器
- * @return 纹理区域和面名称，如果没有可用纹理返回 nullopt
+ * @return 纹理区域和面方向，如果没有可用纹理返回 nullopt
  */
-std::optional<std::pair<TextureRegion, std::string>> selectRandomFaceTexture(
+std::optional<std::pair<TextureRegion, Direction>> selectRandomFaceTexture(
     const BlockAppearance* appearance, math::Random& rng)
 {
-    if (!appearance || appearance->faceTextures.empty()) {
+    if (!appearance) {
         return std::nullopt;
     }
 
-    // 收集所有可用的面名称
-    std::vector<std::string> faceNames;
-    for (const auto& [name, region] : appearance->faceTextures) {
-        if (!name.empty()) {
-            faceNames.push_back(name);
-        }
-    }
-
-    if (faceNames.empty()) {
+    // 收集所有存在纹理的面方向
+    std::vector<Direction> faceDirs = appearance->collectFacesWithTexture();
+    if (faceDirs.empty()) {
         return std::nullopt;
     }
 
     // 随机选择一个面
-    size_t randomIndex = static_cast<size_t>(rng.nextInt(static_cast<i32>(faceNames.size())));
-    const std::string& selectedFace = faceNames[randomIndex];
+    size_t randomIndex = static_cast<size_t>(rng.nextInt(static_cast<i32>(faceDirs.size())));
+    const Direction selectedDir = faceDirs[randomIndex];
 
-    auto it = appearance->faceTextures.find(selectedFace);
-    if (it != appearance->faceTextures.end()) {
-        return std::make_pair(it->second, selectedFace);
+    if (const TextureRegion* tex = appearance->findFaceTexture(selectedDir)) {
+        return std::make_pair(*tex, selectedDir);
     }
 
     return std::nullopt;
@@ -318,14 +311,16 @@ void DiggingParticle::_initializeBlockTexture()
             m_hasValidTexture = true;
 
             // 从面纹理位置映射中获取选中面的纹理资源位置
-            const auto& faceName = textureResult->second;
-            auto locIt = appearance->faceTextureLocations.find(faceName);
-            if (locIt != appearance->faceTextureLocations.end()) {
-                m_textureLocation = locIt->second;
-            } else if (!appearance->faceTextureLocations.empty()) {
-                m_textureLocation = appearance->faceTextureLocations.begin()->second;
+            const Direction selectedDir = textureResult->second;
+            if (const ResourceLocation* loc = appearance->findFaceTextureLocation(selectedDir)) {
+                m_textureLocation = *loc;
             } else {
-                m_textureLocation = ResourceLocation("minecraft:block/stone");
+                const Direction fallbackDir = appearance->firstFaceWithTextureLocation();
+                if (fallbackDir != Direction::None) {
+                    m_textureLocation = *appearance->findFaceTextureLocation(fallbackDir);
+                } else {
+                    m_textureLocation = ResourceLocation("minecraft:block/stone");
+                }
             }
         } else {
             m_hasValidTexture = false;
@@ -531,14 +526,16 @@ void BlockMarkerParticle::_initializeBlockTexture()
             m_textureRegion = textureResult->first;
             m_hasValidTexture = true;
 
-            const auto& faceName = textureResult->second;
-            auto locIt = appearance->faceTextureLocations.find(faceName);
-            if (locIt != appearance->faceTextureLocations.end()) {
-                m_textureLocation = locIt->second;
-            } else if (!appearance->faceTextureLocations.empty()) {
-                m_textureLocation = appearance->faceTextureLocations.begin()->second;
+            const Direction selectedDir = textureResult->second;
+            if (const ResourceLocation* loc = appearance->findFaceTextureLocation(selectedDir)) {
+                m_textureLocation = *loc;
             } else {
-                m_textureLocation = ResourceLocation("minecraft:block/stone");
+                const Direction fallbackDir = appearance->firstFaceWithTextureLocation();
+                if (fallbackDir != Direction::None) {
+                    m_textureLocation = *appearance->findFaceTextureLocation(fallbackDir);
+                } else {
+                    m_textureLocation = ResourceLocation("minecraft:block/stone");
+                }
             }
         } else {
             m_hasValidTexture = false;
@@ -754,14 +751,16 @@ void BlockCrumbleParticle::_initializeBlockTexture()
             m_textureRegion = textureResult->first;
             m_hasValidTexture = true;
 
-            const auto& faceName = textureResult->second;
-            auto locIt = appearance->faceTextureLocations.find(faceName);
-            if (locIt != appearance->faceTextureLocations.end()) {
-                m_textureLocation = locIt->second;
-            } else if (!appearance->faceTextureLocations.empty()) {
-                m_textureLocation = appearance->faceTextureLocations.begin()->second;
+            const Direction selectedDir = textureResult->second;
+            if (const ResourceLocation* loc = appearance->findFaceTextureLocation(selectedDir)) {
+                m_textureLocation = *loc;
             } else {
-                m_textureLocation = ResourceLocation("minecraft:block/stone");
+                const Direction fallbackDir = appearance->firstFaceWithTextureLocation();
+                if (fallbackDir != Direction::None) {
+                    m_textureLocation = *appearance->findFaceTextureLocation(fallbackDir);
+                } else {
+                    m_textureLocation = ResourceLocation("minecraft:block/stone");
+                }
             }
         } else {
             m_hasValidTexture = false;

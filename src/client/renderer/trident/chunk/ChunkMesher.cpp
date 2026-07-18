@@ -192,63 +192,30 @@ struct LiquidFaceLayerCacheState {
 
 thread_local LiquidFaceLayerCacheState t_liquidFaceLayerCache;
 
-[[nodiscard]] std::vector<FaceLayerRenderData> collectFaceLayers(
-    const BlockAppearance* appearance, const std::string& faceName)
+[[nodiscard]] std::vector<FaceLayerRenderData> collectFaceLayers(const BlockAppearance* appearance, Direction faceDir)
 {
     if (!appearance) {
         return {};
     }
 
-    const auto tryLayerKey = [&](const std::string& key) -> std::vector<FaceLayerRenderData> {
-        auto it = appearance->faceTextureLayers.find(key);
-        if (it == appearance->faceTextureLayers.end() || it->second.empty()) {
-            return {};
+    // 多层纹理：按精确方向取（等价于原 map.find(directionName)）
+    if (const auto* layers = appearance->findFaceTextureLayers(faceDir)) {
+        std::vector<FaceLayerRenderData> result;
+        result.reserve(layers->size());
+        for (const auto& layer : *layers) {
+            result.push_back(FaceLayerRenderData{layer.texture, layer.tintIndex});
         }
-
-        std::vector<FaceLayerRenderData> layers;
-        layers.reserve(it->second.size());
-        for (const auto& layer : it->second) {
-            layers.push_back(FaceLayerRenderData{layer.texture, layer.tintIndex});
-        }
-        return layers;
-    };
-
-    if (auto layers = tryLayerKey(faceName); !layers.empty()) {
-        return layers;
-    }
-    if (auto layers = tryLayerKey("side"); !layers.empty()) {
-        return layers;
-    }
-    if (auto layers = tryLayerKey("all"); !layers.empty()) {
-        return layers;
+        return result;
     }
 
-    auto texIt = appearance->faceTextures.find(faceName);
-    std::string resolvedKey = faceName;
-    if (texIt == appearance->faceTextures.end()) {
-        texIt = appearance->faceTextures.find("side");
-        resolvedKey = "side";
-        if (texIt == appearance->faceTextures.end()) {
-            texIt = appearance->faceTextures.find("all");
-            resolvedKey = "all";
-            if (texIt == appearance->faceTextures.end()) {
-                return {};
-            }
-        }
+    // 单层纹理 faceTextures：按精确方向取，tint 同方向
+    const TextureRegion* tex = appearance->findFaceTexture(faceDir);
+    if (tex == nullptr) {
+        return {};
     }
 
-    i32 tintIndex = -1;
-    auto tintIt = appearance->faceTintIndices.find(resolvedKey);
-    if (tintIt != appearance->faceTintIndices.end()) {
-        tintIndex = tintIt->second;
-    } else {
-        tintIt = appearance->faceTintIndices.find(faceName);
-        if (tintIt != appearance->faceTintIndices.end()) {
-            tintIndex = tintIt->second;
-        }
-    }
-
-    return {FaceLayerRenderData{texIt->second, tintIndex}};
+    const i32 tintIndex = appearance->findFaceTintIndex(faceDir);
+    return {FaceLayerRenderData{*tex, tintIndex}};
 }
 
 [[nodiscard]] std::vector<FaceLayerRenderData> collectLiquidFaceLayers(const BlockState* block, Face face)
@@ -1069,32 +1036,13 @@ void ChunkMesher::_addFaceFromAppearance(MeshData& mesh,
     }
 
     // 查找面的纹理
-    std::string faceName;
-    switch (face) {
-        case Face::Bottom:
-            faceName = "down";
-            break;
-        case Face::Top:
-            faceName = "up";
-            break;
-        case Face::North:
-            faceName = "north";
-            break;
-        case Face::South:
-            faceName = "south";
-            break;
-        case Face::West:
-            faceName = "west";
-            break;
-        case Face::East:
-            faceName = "east";
-            break;
-        default:
-            return;
+    if (static_cast<u8>(face) >= 6) {
+        return;
     }
+    const Direction faceDir = faceToDirection(face);
 
     auto faceLayers = block != nullptr && block->isLiquid() ? collectLiquidFaceLayers(block, face)
-                                                            : collectFaceLayers(appearance, faceName);
+                                                            : collectFaceLayers(appearance, faceDir);
     if (faceLayers.empty()) {
         return;
     }
@@ -1205,32 +1153,13 @@ void ChunkMesher::_addFaceFromAppearanceSmooth(MeshData& mesh,
     }
 
     // 查找面的纹理
-    std::string faceName;
-    switch (face) {
-        case Face::Bottom:
-            faceName = "down";
-            break;
-        case Face::Top:
-            faceName = "up";
-            break;
-        case Face::North:
-            faceName = "north";
-            break;
-        case Face::South:
-            faceName = "south";
-            break;
-        case Face::West:
-            faceName = "west";
-            break;
-        case Face::East:
-            faceName = "east";
-            break;
-        default:
-            return;
+    if (static_cast<u8>(face) >= 6) {
+        return;
     }
+    const Direction faceDir = faceToDirection(face);
 
     auto faceLayers = block != nullptr && block->isLiquid() ? collectLiquidFaceLayers(block, face)
-                                                            : collectFaceLayers(appearance, faceName);
+                                                            : collectFaceLayers(appearance, faceDir);
     if (faceLayers.empty()) {
         return;
     }
@@ -1382,17 +1311,14 @@ void ChunkMesher::_addCrossedPlantGeometry(MeshData& mesh,
         return;
     }
 
-    auto layerA = collectFaceLayers(appearance, "north");
+    auto layerA = collectFaceLayers(appearance, Direction::North);
     if (layerA.empty()) {
-        layerA = collectFaceLayers(appearance, "south");
-    }
-    if (layerA.empty()) {
-        layerA = collectFaceLayers(appearance, "all");
+        layerA = collectFaceLayers(appearance, Direction::South);
     }
 
-    auto layerB = collectFaceLayers(appearance, "west");
+    auto layerB = collectFaceLayers(appearance, Direction::West);
     if (layerB.empty()) {
-        layerB = collectFaceLayers(appearance, "east");
+        layerB = collectFaceLayers(appearance, Direction::East);
     }
     if (layerB.empty()) {
         layerB = layerA;
@@ -1532,31 +1458,12 @@ void ChunkMesher::_addShapeGeometryFromAppearance(MeshData& mesh,
             }
         }
 
-        std::string faceName;
-        switch (face) {
-            case Face::Bottom:
-                faceName = "down";
-                break;
-            case Face::Top:
-                faceName = "up";
-                break;
-            case Face::North:
-                faceName = "north";
-                break;
-            case Face::South:
-                faceName = "south";
-                break;
-            case Face::West:
-                faceName = "west";
-                break;
-            case Face::East:
-                faceName = "east";
-                break;
-            default:
-                continue;
+        if (static_cast<u8>(face) >= 6) {
+            continue;
         }
+        const Direction faceDir = faceToDirection(face);
 
-        auto faceLayers = collectFaceLayers(appearance, faceName);
+        auto faceLayers = collectFaceLayers(appearance, faceDir);
         if (faceLayers.empty()) {
             continue;
         }
@@ -1752,7 +1659,7 @@ void ChunkMesher::_simpleMeshSection(const ChunkData& chunk,
                 }
 
                 // 检查外观是否有效
-                if (appearance->elements.empty() && appearance->faceTextures.empty() && !block->isLiquid()) {
+                if (appearance->elements.empty() && !appearance->hasAnyFaceTexture() && !block->isLiquid()) {
                     continue;
                 }
 
@@ -2057,7 +1964,7 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
             return cell;
         }
 
-        if (appearance->elements.empty() && appearance->faceTextures.empty() && !block->isLiquid()) {
+        if (appearance->elements.empty() && !appearance->hasAnyFaceTexture() && !block->isLiquid()) {
             return cell;
         }
 
@@ -2065,31 +1972,12 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
             return cell;
         }
 
-        std::string faceName;
-        switch (face) {
-            case Face::Bottom:
-                faceName = "down";
-                break;
-            case Face::Top:
-                faceName = "up";
-                break;
-            case Face::North:
-                faceName = "north";
-                break;
-            case Face::South:
-                faceName = "south";
-                break;
-            case Face::West:
-                faceName = "west";
-                break;
-            case Face::East:
-                faceName = "east";
-                break;
-            default:
-                return cell;
+        if (static_cast<u8>(face) >= 6) {
+            return cell;
         }
+        const Direction faceDir = faceToDirection(face);
 
-        auto faceLayers = collectFaceLayers(appearance, faceName);
+        auto faceLayers = collectFaceLayers(appearance, faceDir);
         if (faceLayers.empty()) {
             faceLayers = collectLiquidFaceLayers(block, face);
         }
