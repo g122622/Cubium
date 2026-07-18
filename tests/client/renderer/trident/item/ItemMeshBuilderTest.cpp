@@ -789,7 +789,7 @@ TEST(ElementRotationMathTest, BuildElementRotationMatrixPreservesOrigin)
 {
     ::mc::ModelRotation rotation;
     rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotation.axis = "y";
+    rotation.axis = ::mc::Axis::Y;
     rotation.angle = 90.0f;
     rotation.rescale = false;
 
@@ -821,7 +821,7 @@ TEST(ElementRotationMathTest, BuildElementRotationMatrixWithRescale)
 {
     ::mc::ModelRotation rotation;
     rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotation.axis = "y";
+    rotation.axis = ::mc::Axis::Y;
     rotation.angle = 45.0f;
     rotation.rescale = true;
 
@@ -854,7 +854,7 @@ TEST(ElementRotationMathTest, BuildElementRotationMatrixZeroAngleIsIdentity)
 {
     ::mc::ModelRotation rotation;
     rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotation.axis = "y";
+    rotation.axis = ::mc::Axis::Y;
     rotation.angle = 0.0f;
     rotation.rescale = false;
 
@@ -907,7 +907,7 @@ TEST(ElementRotationMathTest, EulerXYZSingleAxisMatchesAxisAngle)
     // axis+angle 格式
     ::mc::ModelRotation rotAxisAngle;
     rotAxisAngle.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotAxisAngle.axis = "y";
+    rotAxisAngle.axis = ::mc::Axis::Y;
     rotAxisAngle.angle = angleDeg;
     rotAxisAngle.rescale = false;
 
@@ -943,7 +943,7 @@ TEST(ElementRotationMathTest, EulerXYZSingleAxisXMatchesAxisAngle)
 
     ::mc::ModelRotation rotAxisAngle;
     rotAxisAngle.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotAxisAngle.axis = "x";
+    rotAxisAngle.axis = ::mc::Axis::X;
     rotAxisAngle.angle = angleDeg;
     rotAxisAngle.rescale = false;
 
@@ -977,7 +977,7 @@ TEST(ElementRotationMathTest, EulerXYZSingleAxisZMatchesAxisAngle)
 
     ::mc::ModelRotation rotAxisAngle;
     rotAxisAngle.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotAxisAngle.axis = "z";
+    rotAxisAngle.axis = ::mc::Axis::Z;
     rotAxisAngle.angle = angleDeg;
     rotAxisAngle.rescale = false;
 
@@ -1068,7 +1068,7 @@ TEST(ElementRotationMathTest, EulerXYZRescaleWithSingleAxis)
     // axis+angle 格式 + rescale
     ::mc::ModelRotation rotAA;
     rotAA.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotAA.axis = "y";
+    rotAA.axis = ::mc::Axis::Y;
     rotAA.angle = angleDeg;
     rotAA.rescale = true;
 
@@ -1306,7 +1306,7 @@ TEST(ElementRotationIntegrationTest, CrossModelElementY45WithRescale)
     // 直接通过 buildElementRotationMatrix 验证旋转矩阵和顶点变换逻辑
     ::mc::ModelRotation rotation;
     rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotation.axis = "y";
+    rotation.axis = ::mc::Axis::Y;
     rotation.angle = 45.0f;
     rotation.rescale = true;
 
@@ -1343,7 +1343,7 @@ TEST(ElementRotationIntegrationTest, NoRotationElementPreservesVertices)
     // 零角度旋转应返回恒等矩阵
     ::mc::ModelRotation rotation;
     rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotation.axis = "y";
+    rotation.axis = ::mc::Axis::Y;
     rotation.angle = 0.0f;
     rotation.rescale = false;
 
@@ -1365,7 +1365,7 @@ TEST(ElementRotationIntegrationTest, XAxis22_5DegreeRotation)
 {
     ::mc::ModelRotation rotation;
     rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
-    rotation.axis = "x";
+    rotation.axis = ::mc::Axis::X;
     rotation.angle = -22.5f;
     rotation.rescale = false;
 

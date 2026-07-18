@@ -92,8 +92,8 @@ struct ModelRotation {
     glm::vec3 origin{8.0f, 8.0f, 8.0f}; // 旋转中心
 
     // --- 传统 axis+angle 格式 ---
-    std::string axis = "y"; // x, y, z
-    f32 angle = 0.0f;       // -45, -22.5, 0, 22.5, 45
+    Axis axis = Axis::Y; // x, y, z
+    f32 angle = 0.0f;    // -45, -22.5, 0, 22.5, 45
 
     // --- EulerXYZ 格式（MC 1.21.11 新增）---
     bool isEulerXYZ = false; // 是否使用 EulerXYZ 旋转格式

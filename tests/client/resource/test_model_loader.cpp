@@ -330,7 +330,7 @@ TEST(ParseElementTest, ParsesElementWithRotation)
     EXPECT_FLOAT_EQ(elem.rotation.origin.x, 8.0f);
     EXPECT_FLOAT_EQ(elem.rotation.origin.y, 8.0f);
     EXPECT_FLOAT_EQ(elem.rotation.origin.z, 8.0f);
-    EXPECT_EQ(elem.rotation.axis, "y");
+    EXPECT_EQ(elem.rotation.axis, Axis::Y);
     EXPECT_FLOAT_EQ(elem.rotation.angle, 45.0f);
     EXPECT_TRUE(elem.rotation.rescale);
 }
@@ -515,7 +515,7 @@ TEST(ParseRotationTest, ParsesFullRotation)
     EXPECT_FLOAT_EQ(rot.origin.x, 8.0f);
     EXPECT_FLOAT_EQ(rot.origin.y, 8.0f);
     EXPECT_FLOAT_EQ(rot.origin.z, 8.0f);
-    EXPECT_EQ(rot.axis, "x");
+    EXPECT_EQ(rot.axis, Axis::X);
     EXPECT_FLOAT_EQ(rot.angle, -22.5f);
     EXPECT_TRUE(rot.rescale);
     // axis+angle 格式时，EulerXYZ 字段应为默认值
@@ -530,7 +530,7 @@ TEST(ParseRotationTest, DefaultValues)
     auto j = nlohmann::json::parse("{}");
     auto rot = BlockModelLoader::parseRotation(j);
     EXPECT_FLOAT_EQ(rot.origin.x, 8.0f); // 默认 8,8,8
-    EXPECT_EQ(rot.axis, "y");            // 默认 "y"
+    EXPECT_EQ(rot.axis, Axis::Y);        // 默认 Y 轴
     EXPECT_FLOAT_EQ(rot.angle, 0.0f);    // 默认 0
     EXPECT_FALSE(rot.rescale);           // 默认 false
     EXPECT_FALSE(rot.isEulerXYZ);        // 默认 axis+angle 格式
@@ -570,7 +570,7 @@ TEST(ParseRotationTest, EulerXYZFullRotation)
     EXPECT_TRUE(rot.rescale);
 
     // axis+angle 字段应为默认值
-    EXPECT_EQ(rot.axis, "y");
+    EXPECT_EQ(rot.axis, Axis::Y);
     EXPECT_FLOAT_EQ(rot.angle, 0.0f);
 }
 
@@ -624,7 +624,7 @@ TEST(ParseRotationTest, AxisAngleTakesPrecedenceOverEulerXYZ)
 
     // axis+angle 格式优先
     EXPECT_FALSE(rot.isEulerXYZ);
-    EXPECT_EQ(rot.axis, "x");
+    EXPECT_EQ(rot.axis, Axis::X);
     EXPECT_FLOAT_EQ(rot.angle, 45.0f);
     // EulerXYZ 字段应保持默认
     EXPECT_FLOAT_EQ(rot.rotX, 0.0f);
@@ -642,7 +642,7 @@ TEST(ParseRotationTest, AxisWithoutAngleIsAxisAngleFormat)
     auto rot = BlockModelLoader::parseRotation(j);
 
     EXPECT_FALSE(rot.isEulerXYZ);
-    EXPECT_EQ(rot.axis, "z");
+    EXPECT_EQ(rot.axis, Axis::Z);
     EXPECT_FLOAT_EQ(rot.angle, 0.0f);
 }
 

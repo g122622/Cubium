@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cctype>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 
@@ -807,12 +808,17 @@ ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
         rot.rotY = hasY ? json["y"].get<f32>() : 0.0f;
         rot.rotZ = hasZ ? json["z"].get<f32>() : 0.0f;
         // 重置 axis+angle 的默认值，保持语义清晰
-        rot.axis = "y";
+        rot.axis = Axis::Y;
         rot.angle = 0.0f;
     } else {
         // 传统 axis+angle 格式
         if (hasAxis) {
-            rot.axis = json["axis"].get<std::string>();
+            const auto axisOpt = Axes::fromName(json["axis"].get<std::string>());
+            if (axisOpt) {
+                rot.axis = *axisOpt;
+            } else {
+                spdlog::warn("Unknown rotation axis '{}', fallback to Y", json["axis"].get<std::string>());
+            }
         }
         if (hasAngle) {
             rot.angle = json["angle"].get<f32>();

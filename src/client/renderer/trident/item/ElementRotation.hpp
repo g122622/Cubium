@@ -106,13 +106,18 @@ inline glm::mat4 buildElementRotationMatrix(const ModelRotation& rotation, f64 s
         f32 angleRad = glm::radians(rotation.angle);
         glm::vec3 axisVec;
 
-        if (rotation.axis == "x") {
-            axisVec = glm::vec3(1.0f, 0.0f, 0.0f);
-        } else if (rotation.axis == "z") {
-            axisVec = glm::vec3(0.0f, 0.0f, 1.0f);
-        } else {
-            // 默认为 Y 轴
-            axisVec = glm::vec3(0.0f, 1.0f, 0.0f);
+        switch (rotation.axis) {
+            case Axis::X:
+                axisVec = glm::vec3(1.0f, 0.0f, 0.0f);
+                break;
+            case Axis::Z:
+                axisVec = glm::vec3(0.0f, 0.0f, 1.0f);
+                break;
+            case Axis::Y:
+            default:
+                // 默认为 Y 轴
+                axisVec = glm::vec3(0.0f, 1.0f, 0.0f);
+                break;
         }
 
         // 构建纯旋转矩阵
