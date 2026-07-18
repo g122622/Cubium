@@ -602,38 +602,6 @@ Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& 
     return Error(ErrorCode::NotFound, "Texture not found in any resource pack: " + textureLocation.toString());
 }
 
-const BakedBlockModel* ResourceManager::getBakedModel(const ResourceLocation& modelLocation)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getBakedModel");
-
-    // 检查缓存
-    auto it = m_bakedModels.find(modelLocation);
-    if (it != m_bakedModels.end()) {
-        return &it->second;
-    }
-
-    // 烘焙模型
-    // 首先需要设置资源包
-    if (!m_resourcePacks.empty()) {
-        static_cast<void>(m_modelLoader.loadFromResourcePack(*m_resourcePacks[0]));
-    }
-
-    auto result = m_modelLoader.bakeModel(modelLocation);
-    if (result.failed()) {
-        return nullptr;
-    }
-
-    m_bakedModels[modelLocation] = result.value();
-    return &m_bakedModels[modelLocation];
-}
-
-const BlockStateDefinition* ResourceManager::getBlockState(const ResourceLocation& blockId) const
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::getBlockState");
-
-    return m_blockStateLoader.getBlockState(blockId);
-}
-
 void ResourceManager::clear()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::clear");

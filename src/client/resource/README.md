@@ -164,7 +164,7 @@ MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。Resource
 
 ### 4. 方块状态属性字符串格式
 
-属性字符串必须按字母顺序排列才能匹配。BlockStateLoader 使用 `_propertiesToStateStr()` 自动排序。
+属性字符串必须按字母顺序排列才能匹配。`BlockStateDefinition::_normalizeStateKey()` 在解析时自动排序，`ResourceManager::getBlockAppearance` 的回退匹配也按排序后的属性键比较。
 
 ### 5. 纹理图集尺寸限制
 

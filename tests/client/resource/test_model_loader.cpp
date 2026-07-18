@@ -275,41 +275,6 @@ TEST_F(BlockStateLoaderTest, LoadBlockStates)
     EXPECT_FALSE(loadedStates.empty());
 }
 
-TEST_F(BlockStateLoaderTest, GetOakLogVariant)
-{
-    if (!packInitialized) {
-        GTEST_SKIP() << "Resource pack not available";
-    }
-
-    BlockStateLoader loader;
-    auto result = loader.loadFromResourcePack(*pack);
-    ASSERT_TRUE(result.success());
-
-    ResourceLocation oakLog("minecraft:oak_log");
-    const auto* variant = loader.getVariant(oakLog, "axis=y");
-    if (variant) {
-        EXPECT_EQ(variant->model.toString(), "minecraft:block/oak_log");
-    }
-}
-
-TEST_F(BlockStateLoaderTest, GetCobblestoneVariant)
-{
-    if (!packInitialized) {
-        GTEST_SKIP() << "Resource pack not available";
-    }
-
-    BlockStateLoader loader;
-    auto result = loader.loadFromResourcePack(*pack);
-    ASSERT_TRUE(result.success());
-
-    ResourceLocation cobblestone("minecraft:cobblestone");
-    const auto* variant = loader.getVariant(cobblestone, "normal");
-    if (variant) {
-        // cobblestone有多个变体，选择第一个
-        EXPECT_TRUE(variant->model.path().find("cobblestone") != std::string::npos);
-    }
-}
-
 // ============================================================================
 // BlockModelLoader 静态方法单元测试
 // ============================================================================

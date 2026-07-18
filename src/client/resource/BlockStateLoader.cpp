@@ -24,57 +24,9 @@
 #include "BlockStateLoader.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
-#include <algorithm>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
-
-namespace {
-
-std::vector<std::pair<std::string, std::string>> parseStateConditions(std::string_view stateStr)
-{
-    std::vector<std::pair<std::string, std::string>> conditions;
-
-    if (stateStr.empty() || stateStr == "normal") {
-        return conditions;
-    }
-
-    size_t start = 0;
-    while (start < stateStr.size()) {
-        size_t end = stateStr.find(',', start);
-        if (end == std::string_view::npos) {
-            end = stateStr.size();
-        }
-
-        std::string_view token(stateStr.data() + start, end - start);
-        size_t eq = token.find('=');
-        if (eq != std::string_view::npos) {
-            std::string key(token.substr(0, eq));
-            std::string value(token.substr(eq + 1));
-            if (!key.empty()) {
-                conditions.emplace_back(std::move(key), std::move(value));
-            }
-        }
-
-        start = end + 1;
-    }
-
-    return conditions;
-}
-
-bool matchesProperties(const std::vector<std::pair<std::string, std::string>>& conditions,
-    const std::map<std::string, std::string>& properties)
-{
-    for (const auto& [key, value] : conditions) {
-        auto it = properties.find(key);
-        if (it == properties.end() || it->second != value) {
-            return false;
-        }
-    }
-    return true;
-}
-
-} // namespace
 
 namespace mc {
 
@@ -138,62 +90,6 @@ const BlockStateDefinition* BlockStateLoader::getBlockState(const ResourceLocati
     return nullptr;
 }
 
-const BlockStateVariant* BlockStateLoader::getVariant(const ResourceLocation& blockId, std::string_view stateStr) const
-{
-    auto* def = getBlockState(blockId);
-    if (!def) {
-        return nullptr;
-    }
-
-    const VariantList* list = def->getVariants(stateStr);
-    if (!list || list->variants.empty()) {
-        return nullptr;
-    }
-
-    return &list->select();
-}
-
-const BlockStateVariant* BlockStateLoader::getVariant(
-    const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const
-{
-    std::string stateStr = _propertiesToStateStr(properties);
-
-    // 先尝试精确匹配
-    if (const auto* variant = getVariant(blockId, stateStr)) {
-        return variant;
-    }
-
-    // 回退：允许 JSON 只声明部分属性（与 Java 版匹配策略一致）
-    const auto* def = getBlockState(blockId);
-    if (!def) {
-        return nullptr;
-    }
-
-    const VariantList* bestList = nullptr;
-    size_t bestSpecificity = 0;
-    bool hasMatch = false;
-
-    for (const auto& [variantKey, list] : def->getAllVariants()) {
-        const auto conditions = parseStateConditions(variantKey);
-        if (!matchesProperties(conditions, properties)) {
-            continue;
-        }
-
-        const size_t specificity = conditions.size();
-        if (!hasMatch || specificity > bestSpecificity) {
-            bestList = &list;
-            bestSpecificity = specificity;
-            hasMatch = true;
-        }
-    }
-
-    if (!bestList || bestList->variants.empty()) {
-        return nullptr;
-    }
-
-    return &bestList->select();
-}
-
 void BlockStateLoader::clearCache()
 {
     m_blockStates.clear();
@@ -206,28 +102,6 @@ std::vector<ResourceLocation> BlockStateLoader::getLoadedBlockStates() const
 
     for (const auto& [loc, def] : m_blockStates) {
         result.push_back(loc);
-    }
-
-    return result;
-}
-
-std::string BlockStateLoader::_propertiesToStateStr(const std::map<std::string, std::string>& properties)
-{
-    if (properties.empty()) {
-        return "normal";
-    }
-
-    std::string result;
-
-    // 按键排序以保证一致性
-    std::vector<std::pair<std::string, std::string>> sortedProps(properties.begin(), properties.end());
-    std::sort(sortedProps.begin(), sortedProps.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-
-    for (size_t i = 0; i < sortedProps.size(); ++i) {
-        if (i > 0) {
-            result += ",";
-        }
-        result += sortedProps[i].first + "=" + sortedProps[i].second;
     }
 
     return result;

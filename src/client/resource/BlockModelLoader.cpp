@@ -508,20 +508,6 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
     return baked;
 }
 
-bool BlockModelLoader::hasModel(const ResourceLocation& location) const
-{
-    return m_unbakedModels.find(location) != m_unbakedModels.end();
-}
-
-const UnbakedBlockModel* BlockModelLoader::getUnbakedModel(const ResourceLocation& location) const
-{
-    auto it = m_unbakedModels.find(location);
-    if (it != m_unbakedModels.end()) {
-        return &it->second;
-    }
-    return nullptr;
-}
-
 void BlockModelLoader::clearCache()
 {
     m_unbakedModels.clear();

@@ -235,12 +235,6 @@ public:
     // 烘焙模型 (解析所有父模型和纹理引用)
     [[nodiscard]] Result<BakedBlockModel> bakeModel(const ResourceLocation& location);
 
-    // 检查模型是否已加载
-    [[nodiscard]] bool hasModel(const ResourceLocation& location) const;
-
-    // 获取未烘焙模型
-    [[nodiscard]] const UnbakedBlockModel* getUnbakedModel(const ResourceLocation& location) const;
-
     // 清除缓存
     void clearCache();
 

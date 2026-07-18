@@ -47,14 +47,6 @@ public:
     // 获取方块状态定义
     [[nodiscard]] const BlockStateDefinition* getBlockState(const ResourceLocation& blockId) const;
 
-    // 获取方块状态的模型变体
-    // stateStr格式: "axis=y,facing=north" 或 "normal"
-    [[nodiscard]] const BlockStateVariant* getVariant(const ResourceLocation& blockId, std::string_view stateStr) const;
-
-    // 根据方块属性获取模型变体
-    [[nodiscard]] const BlockStateVariant* getVariant(
-        const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const;
-
     // 清除缓存
     void clearCache();
 
@@ -63,9 +55,6 @@ public:
 
 private:
     std::map<ResourceLocation, BlockStateDefinition> m_blockStates;
-
-    // 将属性映射转换为状态字符串
-    [[nodiscard]] static std::string _propertiesToStateStr(const std::map<std::string, std::string>& properties);
 };
 
 } // namespace mc

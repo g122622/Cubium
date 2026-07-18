@@ -167,35 +167,9 @@ public:
      */
     [[nodiscard]] Result<DecodedTexture> loadTextureRGBA(const ResourceLocation& textureLocation) const;
 
-    /**
-     * @brief 获取已烘焙的模型
-     * @param modelLocation 模型资源位置
-     * @return 烘焙模型指针，找不到返回 nullptr
-     */
-    [[nodiscard]] const BakedBlockModel* getBakedModel(const ResourceLocation& modelLocation);
-
-    /**
-     * @brief 获取方块状态定义
-     * @param blockId 方块资源位置
-     * @return 方块状态定义指针，找不到返回 nullptr
-     */
-    [[nodiscard]] const BlockStateDefinition* getBlockState(const ResourceLocation& blockId) const;
-
     // ========================================================================
     // 访问器
     // ========================================================================
-
-    /**
-     * @brief 获取模型加载器
-     */
-    [[nodiscard]] BlockModelLoader& modelLoader() { return m_modelLoader; }
-    [[nodiscard]] const BlockModelLoader& modelLoader() const { return m_modelLoader; }
-
-    /**
-     * @brief 获取方块状态加载器
-     */
-    [[nodiscard]] BlockStateLoader& blockStateLoader() { return m_blockStateLoader; }
-    [[nodiscard]] const BlockStateLoader& blockStateLoader() const { return m_blockStateLoader; }
 
     /**
      * @brief 获取纹理图集构建结果
