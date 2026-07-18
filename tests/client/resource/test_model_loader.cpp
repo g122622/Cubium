@@ -303,11 +303,11 @@ TEST(ParseElementTest, ParsesBasicElement)
     EXPECT_FLOAT_EQ(elem.to.x, 16.0f);
     EXPECT_FLOAT_EQ(elem.to.y, 16.0f);
     EXPECT_FLOAT_EQ(elem.to.z, 16.0f);
-    EXPECT_EQ(elem.faces.size(), 3u);
-    EXPECT_EQ(elem.faces.at(Direction::North).texture, "#all");
-    EXPECT_EQ(elem.faces.at(Direction::South).texture, "#all");
-    EXPECT_EQ(elem.faces.at(Direction::Up).texture, "#top");
-    EXPECT_EQ(elem.faces.at(Direction::Up).uv.rotation, 90);
+    EXPECT_EQ(elem.faceCount(), 3u);
+    EXPECT_EQ(elem.at(Direction::North)->texture, "#all");
+    EXPECT_EQ(elem.at(Direction::South)->texture, "#all");
+    EXPECT_EQ(elem.at(Direction::Up)->texture, "#top");
+    EXPECT_EQ(elem.at(Direction::Up)->uv.rotation, 90);
 }
 
 TEST(ParseElementTest, ParsesElementWithRotation)
@@ -363,10 +363,10 @@ TEST(ParseElementTest, ParsesFaceWithCullfaceAndTintindex)
     ASSERT_TRUE(result.success());
 
     const auto& elem = result.value();
-    EXPECT_EQ(elem.faces.at(Direction::Down).cullFace, Direction::Down);
-    EXPECT_EQ(elem.faces.at(Direction::Down).tintIndex, 0);
-    EXPECT_EQ(elem.faces.at(Direction::Up).cullFace, Direction::Up);
-    EXPECT_EQ(elem.faces.at(Direction::Up).tintIndex, 1);
+    EXPECT_EQ(elem.at(Direction::Down)->cullFace, Direction::Down);
+    EXPECT_EQ(elem.at(Direction::Down)->tintIndex, 0);
+    EXPECT_EQ(elem.at(Direction::Up)->cullFace, Direction::Up);
+    EXPECT_EQ(elem.at(Direction::Up)->tintIndex, 1);
 }
 
 TEST(ParseElementTest, ParsesFaceWithExplicitUV)
@@ -382,11 +382,11 @@ TEST(ParseElementTest, ParsesFaceWithExplicitUV)
     auto result = BlockModelLoader::parseElement(j);
     ASSERT_TRUE(result.success());
 
-    const auto& face = result.value().faces.at(Direction::North);
-    EXPECT_FLOAT_EQ(face.uv.u0, 2.0f);
-    EXPECT_FLOAT_EQ(face.uv.v0, 3.0f);
-    EXPECT_FLOAT_EQ(face.uv.u1, 14.0f);
-    EXPECT_FLOAT_EQ(face.uv.v1, 13.0f);
+    const auto& face = result.value().at(Direction::North);
+    EXPECT_FLOAT_EQ(face->uv.u0, 2.0f);
+    EXPECT_FLOAT_EQ(face->uv.v0, 3.0f);
+    EXPECT_FLOAT_EQ(face->uv.u1, 14.0f);
+    EXPECT_FLOAT_EQ(face->uv.v1, 13.0f);
 }
 
 TEST(ParseElementTest, EmptyJsonReturnsDefaultElement)
@@ -399,7 +399,7 @@ TEST(ParseElementTest, EmptyJsonReturnsDefaultElement)
     // 默认 from/to 为 (0,0,0) 到 (16,16,16)
     EXPECT_FLOAT_EQ(elem.from.x, 0.0f);
     EXPECT_FLOAT_EQ(elem.to.x, 16.0f);
-    EXPECT_TRUE(elem.faces.empty());
+    EXPECT_FALSE(elem.hasAnyFace());
     EXPECT_TRUE(elem.shade); // 默认 shade = true
 }
 
@@ -413,12 +413,12 @@ TEST(ComputeDefaultUVsTest, ComputesDefaultUVForNorthFace)
     ModelFace face;
     face.texture = "#all";
     // UV 未指定，为默认值 (0, 0, 16, 16, rotation=0) -> isDefault() 返回 true
-    elem.faces[Direction::North] = face;
+    elem.at(Direction::North) = face;
 
     BlockModelLoader::computeDefaultUVs(elem);
 
     // North face 默认 UV: u0=16-to.x=0, v0=16-to.y=0, u1=16-from.x=16, v1=16-from.y=16
-    const auto& uv = elem.faces.at(Direction::North).uv;
+    const auto& uv = elem.at(Direction::North)->uv;
     EXPECT_FLOAT_EQ(uv.u0, 0.0f);
     EXPECT_FLOAT_EQ(uv.v0, 0.0f);
     EXPECT_FLOAT_EQ(uv.u1, 16.0f);
@@ -432,12 +432,12 @@ TEST(ComputeDefaultUVsTest, ComputesDefaultUVForDownFace)
     elem.to = {12.0f, 8.0f, 12.0f};
     ModelFace face;
     face.texture = "#down";
-    elem.faces[Direction::Down] = face;
+    elem.at(Direction::Down) = face;
 
     BlockModelLoader::computeDefaultUVs(elem);
 
     // Down face 默认 UV: u0=from.x=4, v0=16-to.z=4, u1=to.x=12, v1=16-from.z=12
-    const auto& uv = elem.faces.at(Direction::Down).uv;
+    const auto& uv = elem.at(Direction::Down)->uv;
     EXPECT_FLOAT_EQ(uv.u0, 4.0f);
     EXPECT_FLOAT_EQ(uv.v0, 4.0f);
     EXPECT_FLOAT_EQ(uv.u1, 12.0f);
@@ -455,12 +455,12 @@ TEST(ComputeDefaultUVsTest, DoesNotOverrideExplicitUV)
     face.uv.v0 = 3.0f;
     face.uv.u1 = 14.0f;
     face.uv.v1 = 13.0f;
-    elem.faces[Direction::North] = face;
+    elem.at(Direction::North) = face;
 
     BlockModelLoader::computeDefaultUVs(elem);
 
     // 显式 UV 不应被覆盖
-    const auto& uv = elem.faces.at(Direction::North).uv;
+    const auto& uv = elem.at(Direction::North)->uv;
     EXPECT_FLOAT_EQ(uv.u0, 2.0f);
     EXPECT_FLOAT_EQ(uv.v0, 3.0f);
     EXPECT_FLOAT_EQ(uv.u1, 14.0f);

@@ -122,7 +122,13 @@ void BlockMeshBuilder::buildBlockMesh(
         }
 
         // 为每个面生成顶点
-        for (const auto& [dir, face] : element.faces) {
+        for (size_t i = 0; i < element.faces.size(); ++i) {
+            const auto& faceOpt = element.faces[i];
+            if (!faceOpt.has_value()) {
+                continue;
+            }
+            const auto& face = *faceOpt;
+            const Direction dir = Directions::fromIndex(i);
             // 从 BlockAppearance 的 faceTextures 中查找该方向的纹理区域
             // （face.texture 是纹理变量名如 "#all"，需要解析为图集中的 TextureRegion）
             const TextureRegion* region = resolveFaceTexture(*appearance, dir);

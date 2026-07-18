@@ -1346,8 +1346,11 @@ bool ChunkMesher::_isCrossLikeAppearance(const BlockAppearance* appearance)
     // 交叉模型通常只有水平四个方向面（无上下）
     bool hasHorizontalFace = false;
     for (const auto& element : appearance->elements) {
-        for (const auto& [dir, face] : element.faces) {
-            (void)face;
+        for (size_t i = 0; i < element.faces.size(); ++i) {
+            if (!element.faces[i].has_value()) {
+                continue;
+            }
+            const Direction dir = Directions::fromIndex(i);
             if (dir == Direction::Up || dir == Direction::Down) {
                 return false;
             }

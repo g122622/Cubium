@@ -28,8 +28,10 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/Direction.hpp"
+#include <array>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include <glm/glm.hpp>
@@ -120,13 +122,52 @@ struct ModelRotation {
 
 /**
  * @brief 模型元素 (对应JSON中的elements数组元素)
+ *
+ * faces 以扁平数组存储，索引 = Directions::index(dir)（Down=0..East=5）。
+ * 每个槽位为 std::optional<ModelFace>：nullopt 表示该方向无面，
+ * 等价于原先 std::map<Direction, ModelFace> 的 count(dir)==0 语义，
+ * 但避免了红黑树节点的逐面堆分配（6 个固定方向用树是浪费）。
  */
 struct ModelElement {
-    glm::vec3 from{0.0f, 0.0f, 0.0f};     // 起始坐标 (0-16)
-    glm::vec3 to{16.0f, 16.0f, 16.0f};    // 结束坐标 (0-16)
-    std::map<Direction, ModelFace> faces; // 各面数据
-    ModelRotation rotation;               // 旋转
-    bool shade = true;                    // 是否计算阴影
+    glm::vec3 from{0.0f, 0.0f, 0.0f};                // 起始坐标 (0-16)
+    glm::vec3 to{16.0f, 16.0f, 16.0f};               // 结束坐标 (0-16)
+    std::array<std::optional<ModelFace>, 6> faces{}; // 各面数据，索引 = Directions::index(dir)
+    ModelRotation rotation;                          // 旋转
+    bool shade = true;                               // 是否计算阴影
+
+    /**
+     * @brief 有效面数（替代原 map.size()）
+     */
+    [[nodiscard]] size_t faceCount() const
+    {
+        size_t n = 0;
+        for (const auto& f : faces) {
+            if (f.has_value()) ++n;
+        }
+        return n;
+    }
+
+    /**
+     * @brief 是否存在任意面（替代原 map.empty() 的语义取反）
+     */
+    [[nodiscard]] bool hasAnyFace() const
+    {
+        for (const auto& f : faces) {
+            if (f.has_value()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief 按方向访问面（可写）
+     * @note 返回 optional 引用；调用方写入时需 emplace 赋值，如 elem.at(dir) = face;
+     */
+    std::optional<ModelFace>& at(Direction d) { return faces[Directions::index(d)]; }
+
+    /**
+     * @brief 按方向访问面（只读）
+     */
+    [[nodiscard]] const std::optional<ModelFace>& at(Direction d) const { return faces[Directions::index(d)]; }
 };
 
 /**

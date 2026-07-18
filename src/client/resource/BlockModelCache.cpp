@@ -218,7 +218,7 @@ void BlockModelCache::_createMissingAppearance()
         ModelFace modelFace;
         modelFace.texture = "#missing";
         modelFace.uv = {0.0f, 0.0f, 16.0f, 16.0f};
-        element.faces[dir] = modelFace;
+        element.at(dir) = modelFace;
     }
 
     m_missingAppearance->elements.push_back(element);

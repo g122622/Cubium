@@ -740,7 +740,13 @@ void ResourceManager::_computeBlockAppearances()
 
             // 解析面纹理
             for (const auto& element : bakedModel.elements) {
-                for (const auto& [dir, face] : element.faces) {
+                for (size_t i = 0; i < element.faces.size(); ++i) {
+                    const auto& faceOpt = element.faces[i];
+                    if (!faceOpt.has_value()) {
+                        continue;
+                    }
+                    const auto& face = *faceOpt;
+                    const Direction dir = Directions::fromIndex(i);
                     std::string dirStr = directionToString(dir);
 
                     // 保留 tintindex（仅记录有着色需求的面）

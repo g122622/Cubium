@@ -495,7 +495,13 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         }
 
         // 为每个面生成顶点
-        for (const auto& [dir, face] : element.faces) {
+        for (size_t i = 0; i < element.faces.size(); ++i) {
+            const auto& faceOpt = element.faces[i];
+            if (!faceOpt.has_value()) {
+                continue;
+            }
+            const auto& face = *faceOpt;
+            const Direction dir = Directions::fromIndex(i);
             f32 u0 = face.uv.u0 / 16.0f;
             f32 v0 = face.uv.v0 / 16.0f;
             f32 u1 = face.uv.u1 / 16.0f;

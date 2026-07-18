@@ -516,8 +516,14 @@ void BlockModelLoader::clearCache()
 
 void BlockModelLoader::computeDefaultUVs(ModelElement& elem)
 {
-    for (auto& [dir, face] : elem.faces) {
+    for (size_t i = 0; i < elem.faces.size(); ++i) {
+        auto& faceOpt = elem.faces[i];
+        if (!faceOpt.has_value()) {
+            continue;
+        }
+        auto& face = *faceOpt;
         if (face.uv.isDefault()) {
+            const Direction dir = Directions::fromIndex(i);
             // 根据面的方向计算默认UV
             switch (dir) {
                 case Direction::Down:
@@ -711,7 +717,7 @@ Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
             if (dir != Direction::None) {
                 auto result = parseFace(it.value(), dir);
                 if (result.success()) {
-                    elem.faces[dir] = result.value();
+                    elem.at(dir) = result.value();
                 }
             }
         }
