@@ -1816,6 +1816,19 @@ Result<void> TridentEngine::initializeAtlasManager(ResourceManager* resourceMana
 
     m_atlasManagerInitialized = true;
 
+    // 初始化区块渲染器（chunk pipeline + 纹理描述符集）。
+    // 旧的 block atlas 系统（updateTextureAtlas）曾在此处顺带初始化 chunk renderer；
+    // 数据驱动改造删除了该路径，故此处显式初始化，确保 m_chunkRendererInitialized 就绪，
+    // 否则渲染帧的区块绘制守卫恒为 false，方块不会渲染。
+    // 必须在 _bindBlockAtlasToChunkPipeline 之前完成：后者写入此处分配的 m_chunkTextureDescriptorSet。
+    if (!m_chunkRendererInitialized) {
+        auto chunkResult = initializeChunkRenderer();
+        if (chunkResult.failed()) {
+            spdlog::warn("Failed to initialize chunk renderer: {}", chunkResult.error().toString());
+            return chunkResult.error();
+        }
+    }
+
     // 把 blocks atlas 的 GPU 句柄绑定到 chunk 管线及依赖方
     _bindBlockAtlasToChunkPipeline();
 
