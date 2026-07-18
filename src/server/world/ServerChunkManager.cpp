@@ -432,7 +432,7 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
                 std::lock_guard<std::mutex> lock(self->m_pendingLoadCompletesMutex);
                 self->m_pendingLoadCompletes.push_back(std::move(item));
                 if (self->m_pendingLoadCompletes.size() > PENDING_LOAD_COMPLETES_WARN_THRESHOLD) {
-                    spdlog::warn("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
+                    spdlog::info("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
                         self->m_pendingLoadCompletes.size(),
                         PENDING_LOAD_COMPLETES_WARN_THRESHOLD);
                 }
@@ -497,6 +497,11 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
         if (hit) {
             auto decision = lifecycleManager.noteStorageResolved(true);
             std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
+            // 对象级内存标记：sizeof(ChunkData) 仅反映外层结构体，区块内部 vector/生物群系
+            // 等动态分配另算。此处只标 alloc 不标 free——shared_ptr 析构时机不确定（邻居
+            // primer 共享持有），近似 free 会污染 Tracy 泄漏视图；ChunkCache 分配本就常驻，
+            // 只标 alloc 恰好反映其驻留特性。
+            MC_TRACE_MEM_ALLOC("ChunkCache", loadedChunk.get(), sizeof(ChunkData));
             // 从存档 ChunkData 创建 primer（对齐 Moonrise ChunkLoadTask 设 currentChunk）。
             // 存档命中 holder 的 currentChunk 必须非空：经 checkNeighbour 注册为生成邻居的依赖者
             // （如中心区块 STRUCTURE_REFERENCES/FEATURES 读邻居）会在 buildNeighbourCache 取

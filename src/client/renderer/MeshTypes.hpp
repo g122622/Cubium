@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <array>
 #include <vector>
 
@@ -115,6 +116,8 @@ struct MeshData {
 
     void clear()
     {
+        MC_TRACE_MEM_FREE("ChunkMesh", vertices.data());
+        MC_TRACE_MEM_FREE("ChunkMesh", indices.data());
         vertices.clear();
         indices.clear();
     }
@@ -123,6 +126,10 @@ struct MeshData {
     {
         vertices.reserve(vertexCount);
         indices.reserve(indexCount);
+        // reserve 后向量可能 realloc，用当前 data() 标记此次分配快照。
+        // vector 内部多次 realloc 会使旧指针失效，此处为粗粒度标记，足以观察池整体趋势。
+        MC_TRACE_MEM_ALLOC("ChunkMesh", vertices.data(), vertices.capacity() * sizeof(Vertex));
+        MC_TRACE_MEM_ALLOC("ChunkMesh", indices.data(), indices.capacity() * sizeof(u32));
     }
 
     [[nodiscard]] bool empty() const { return vertices.empty(); }

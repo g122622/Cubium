@@ -48,7 +48,7 @@
  * 通过 CMake 选项 MC_ENABLE_TRACING 控制。
  */
 #ifndef MC_ENABLE_TRACING
-#define MC_ENABLE_TRACING 1
+#define MC_ENABLE_TRACING 0
 #endif
 
 // ============================================================================
@@ -66,6 +66,24 @@
  */
 #ifndef MC_ENABLE_TRACY
 #define MC_ENABLE_TRACY 0
+#endif
+
+// ============================================================================
+// 内存追踪开关（独立于 CPU 追踪，默认关闭）
+// ============================================================================
+
+/**
+ * @brief 内存分配追踪开关
+ *
+ * 与 CPU zone 追踪正交：每次 alloc/free 都带调用栈捕获，开销显著，
+ * 故独立开关按需开启，不在常规 profiling 构建里默认启用。
+ * 仅 Tracy 后端提供实现（TracyAllocN/TracyFreeN）；需同时 MC_ENABLE_TRACY=1
+ * 才真正生效，否则 MC_TRACE_MEM_* 宏空展开。
+ *
+ * 通过 CMake 选项 MC_ENABLE_MEMORY 控制。
+ */
+#ifndef MC_ENABLE_MEMORY
+#define MC_ENABLE_MEMORY 0
 #endif
 
 // ============================================================================

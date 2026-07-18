@@ -28,6 +28,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
@@ -249,6 +250,7 @@ Result<void> ItemTextureAtlas::create(VkDevice device,
 
     // Initialize pixel buffer (transparent)
     m_pixels.resize(static_cast<size_t>(width) * height * 4, 0);
+    MC_TRACE_MEM_ALLOC("TextureAtlas", m_pixels.data(), m_pixels.size());
 
     return {};
 }
@@ -284,6 +286,7 @@ void ItemTextureAtlas::destroy()
     m_width = 0;
     m_height = 0;
     m_uploaded = false;
+    MC_TRACE_MEM_FREE("TextureAtlas", m_pixels.data());
     m_pixels.clear();
     m_regionsByItemId.clear();
     m_regionsByLocation.clear();

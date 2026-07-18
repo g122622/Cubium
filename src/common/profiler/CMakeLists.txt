@@ -105,6 +105,12 @@ if(MC_ENABLE_TRACING OR MC_ENABLE_TRACY)
         target_compile_definitions(mc_profiler PUBLIC MC_ENABLE_TRACY=1)
     endif()
 
+    # 内存追踪：纯宏，无独立源文件。仅当 MC_ENABLE_MEMORY 且 MC_ENABLE_TRACY 同时
+    # 开启时才透传定义（Tracy 是唯一实现后端），否则 MC_TRACE_MEM_* 宏空展开。
+    if(MC_ENABLE_MEMORY AND MC_ENABLE_TRACY)
+        target_compile_definitions(mc_profiler PUBLIC MC_ENABLE_MEMORY=1)
+    endif()
+
     # 设置 C++20 标准
     target_compile_features(mc_profiler PUBLIC cxx_std_20)
 

@@ -145,6 +145,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 7. 引入trace之前，必须检查当前文件是否包含了 `#include "common/profiler/TraceEvents.hpp"` 如果没有包含，则需要增加这个包含语句。
 8. 建议进入相关函数，然后在函数内部顶部加trace，这样能避免外层函数全是trace，影响可读性。除非相关逻辑没有被封装为函数，时才可以在外层函数加trace。
 9. 【命名空间】`.cpp` 文件通常在 include 区之后加一行 `using namespace mc::trace;`，即可直接写 `TraceEvents.Server.Tick`；`.hpp` 文件用全限定 `::mc::trace::TraceEvents.X.Y`，不要在头文件加 `using namespace`。
+10. 【内存追踪】`MC_TRACE_MEM_ALLOC/FREE` 是分配级追踪，由独立的 CMake 开关 `MC_ENABLE_MEMORY` 控制（默认 OFF，须同时 `MC_ENABLE_TRACY=ON`）。它与 CPU zone 事件正交，详见下方「内存追踪」章节。
 
 ## 可用宏速查
 
@@ -153,6 +154,45 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 - `MC_TRACE_COUNTER(category, name, value)` — 计数器（value 须为 int64_t）
 - `MC_TRACE_EVENT_BEGIN(category, name, ...)` / `MC_TRACE_EVENT_END(category)` — 手动跨函数配对
 - `MC_TRACE_SET_THREAD_NAME(name)` — 线程命名
+- `MC_TRACE_MEM_ALLOC(name, ptr, size)` — 内存分配事件（分配级追踪，按 name 分组）
+- `MC_TRACE_MEM_FREE(name, ptr)` — 内存释放事件
+
+## 内存追踪
+
+除上面的 CPU zone 事件外，项目还提供**分配级内存追踪**，由独立的 CMake 开关 `MC_ENABLE_MEMORY` 控制（默认 OFF，与 Tracy 正交）。它记录每次分配/释放的 (指针, 字节数, 调用栈)，在 Tracy UI 的内存视图中按 `name` 分组显示池的增长曲线与热点。仅 Tracy 后端提供实现，故须同时 `MC_ENABLE_TRACY=ON`。这与 `MemoryTraceThread`（后台线程 100Hz 采样进程整体 RSS）互补：前者是分配级精细追踪，后者是粗粒度整体采样。
+
+宏签名：
+
+- `MC_TRACE_MEM_ALLOC(name, ptr, size)` — 在 `name` 池中标记 `ptr` 处分配了 `size` 字节
+- `MC_TRACE_MEM_FREE(name, ptr)` — 在 `name` 池中标记 `ptr` 处释放
+
+`name` 是内存池标签（字符串字面量，如 `"ChunkMesh"`、`"ChunkCache"`、`"TextureAtlas"`），Tracy 按此分组；`ptr` 是实际分配返回的指针；alloc/free 必须严格配对且指针一致。
+
+```cpp
+// 一次性大块分配（最干净的配对，适合校准基准）
+Result<void> ItemTextureAtlas::create(...)
+{
+    m_pixels.resize(static_cast<size_t>(width) * height * 4, 0);
+    MC_TRACE_MEM_ALLOC("TextureAtlas", m_pixels.data(), m_pixels.size());
+    return {};
+}
+
+void ItemTextureAtlas::destroy()
+{
+    // ...
+    MC_TRACE_MEM_FREE("TextureAtlas", m_pixels.data());
+    m_pixels.clear();
+}
+```
+
+注意事项：
+
+1. 【必须】alloc/free 严格配对，`ptr` 必须是同一指针。错配会污染 Tracy 泄漏视图。
+2. 【必须】只标大块分配点（`reserve`/`resize`/对象构造），勿标高频小分配（如 per-vertex `push_back`），否则刷爆 Tracy 缓冲并拖慢性能。
+3. `std::vector` 等 realloc 容器会使旧指针失效。粗粒度标记（每次 `reserve` 一个快照）足以观察池整体趋势；要精确追踪需 RAII 守卫或自定义分配器。
+4. `shared_ptr` 析构时机不确定（多个持有者），对象级标记是近似。若配对困难，可只标 alloc——常驻分配（如区块缓存）本就该在泄漏视图中持续存活，反而更诚实。
+5. `sizeof(T)` 只反映外层结构体大小，对象内部 `vector` 等动态分配另算。标的本质是「对象级事件」。
+6. 内存追踪宏同样需要 `#include "common/profiler/TraceEvents.hpp"`。
 
 ## 任务开始前
 
