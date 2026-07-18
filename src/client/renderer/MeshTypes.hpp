@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/profiler/TraceEvents.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include <array>
 #include <vector>
 
@@ -35,6 +35,13 @@ using VertexScalar = f32;
 #else
 using VertexScalar = f64;
 #endif
+
+// 区块网格缓冲区的追踪分配器：截获 vector 每次 allocate/deallocate（含 realloc 的
+// 成对 free+alloc），自动维持 Tracy 的「同一指针严格一对一 alloc/free」不变量。
+// 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支透传 std::allocator。
+// 详见 common/profiler/MemoryTracking.hpp。
+template <typename T>
+using ChunkMeshAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkMesh">;
 
 // ============================================================================
 // 顶点格式
@@ -111,13 +118,11 @@ constexpr u32 INDICES_PER_FACE = 6;
 // ============================================================================
 
 struct MeshData {
-    std::vector<Vertex> vertices;
-    std::vector<u32> indices;
+    std::vector<Vertex, ChunkMeshAlloc<Vertex>> vertices;
+    std::vector<u32, ChunkMeshAlloc<u32>> indices;
 
     void clear()
     {
-        MC_TRACE_MEM_FREE("ChunkMesh", vertices.data());
-        MC_TRACE_MEM_FREE("ChunkMesh", indices.data());
         vertices.clear();
         indices.clear();
     }
@@ -126,10 +131,6 @@ struct MeshData {
     {
         vertices.reserve(vertexCount);
         indices.reserve(indexCount);
-        // reserve 后向量可能 realloc，用当前 data() 标记此次分配快照。
-        // vector 内部多次 realloc 会使旧指针失效，此处为粗粒度标记，足以观察池整体趋势。
-        MC_TRACE_MEM_ALLOC("ChunkMesh", vertices.data(), vertices.capacity() * sizeof(Vertex));
-        MC_TRACE_MEM_ALLOC("ChunkMesh", indices.data(), indices.capacity() * sizeof(u32));
     }
 
     [[nodiscard]] bool empty() const { return vertices.empty(); }

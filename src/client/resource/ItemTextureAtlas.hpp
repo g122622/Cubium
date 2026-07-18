@@ -39,6 +39,13 @@ class Item;
 
 namespace client {
 
+// 纹理图集像素缓冲区的追踪分配器：截获 m_pixels 每次 allocate/deallocate（含
+// realloc 与 shrink_to_fit 的成对 free+alloc），自动维持 Tracy 的「同一指针严格
+// 一对一 alloc/free」不变量。仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件。
+// 详见 common/profiler/MemoryTracking.hpp。
+template <typename T>
+using TextureAtlasAlloc = ::mc::profiler::TracyTrackingAlloc<T, "TextureAtlas">;
+
 /**
  * @brief 物品纹理图集
  *
@@ -235,7 +242,7 @@ private:
     std::unordered_map<ResourceLocation, TextureRegion> m_regionsByLocation;
 
     // 待上传的像素数据
-    std::vector<u8> m_pixels;
+    std::vector<u8, TextureAtlasAlloc<u8>> m_pixels;
 
     /**
      * @brief 创建图像

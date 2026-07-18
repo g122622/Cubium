@@ -571,10 +571,12 @@ void ClientApplication::update(f32 deltaTime)
                 // 上传成功后释放 CPU 侧网格缓存，避免与 GPU 数据重复占用内存。
                 chunk.solidMesh.clear();
                 chunk.transparentMesh.clear();
-                std::vector<Vertex>().swap(chunk.solidMesh.vertices);
-                std::vector<u32>().swap(chunk.solidMesh.indices);
-                std::vector<Vertex>().swap(chunk.transparentMesh.vertices);
-                std::vector<u32>().swap(chunk.transparentMesh.indices);
+                // swap 临时对象以释放容量（等价 shrink_to_fit）。vertices/indices 使用
+                // ChunkMeshAlloc 追踪分配器，临时对象须为同类型才能 swap。
+                std::vector<Vertex, ChunkMeshAlloc<Vertex>>().swap(chunk.solidMesh.vertices);
+                std::vector<u32, ChunkMeshAlloc<u32>>().swap(chunk.solidMesh.indices);
+                std::vector<Vertex, ChunkMeshAlloc<Vertex>>().swap(chunk.transparentMesh.vertices);
+                std::vector<u32, ChunkMeshAlloc<u32>>().swap(chunk.transparentMesh.indices);
             } else {
                 spdlog::error("Failed to update chunk mesh: {}", result.error().toString());
             }

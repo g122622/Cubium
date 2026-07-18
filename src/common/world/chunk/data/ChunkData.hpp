@@ -37,6 +37,7 @@
 #pragma push_macro("BYTE_SIZE")
 #undef BYTE_SIZE
 #endif
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
@@ -420,6 +421,13 @@ public:
     void removeGameEventListenerRegistry(i32 sectionY);
 
 private:
+    // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
+    // move ctor/assign 显式「释放旧地址 + 分配新地址」重绑定（守卫不可移动），避免
+    // move 后旧地址仍留在 Tracy 活跃集、被堆复用时触发 MemAllocTwice 硬失败。
+    // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
+    // 详见 common/profiler/MemoryTracking.hpp。
+    ::mc::profiler::TracyObjectTracker<"ChunkCache"> m_memTrack;
+
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
 

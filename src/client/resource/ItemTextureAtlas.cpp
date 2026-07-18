@@ -28,7 +28,6 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
@@ -250,7 +249,6 @@ Result<void> ItemTextureAtlas::create(VkDevice device,
 
     // Initialize pixel buffer (transparent)
     m_pixels.resize(static_cast<size_t>(width) * height * 4, 0);
-    MC_TRACE_MEM_ALLOC("TextureAtlas", m_pixels.data(), m_pixels.size());
 
     return {};
 }
@@ -286,7 +284,6 @@ void ItemTextureAtlas::destroy()
     m_width = 0;
     m_height = 0;
     m_uploaded = false;
-    MC_TRACE_MEM_FREE("TextureAtlas", m_pixels.data());
     m_pixels.clear();
     m_regionsByItemId.clear();
     m_regionsByLocation.clear();
@@ -395,7 +392,10 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
     // Update atlas size
     m_width = atlas.width;
     m_height = atlas.height;
-    m_pixels = atlas.pixels;
+    // atlas.pixels 是普通 std::vector<u8>（TextureAtlasBuilder 产物），与 m_pixels 的
+    // 追踪分配器类型不同，无法直接赋值；用迭代器范围 assign 拷贝（分配由 m_pixels 的
+    // 追踪分配器经 Tracy 截获）
+    m_pixels.assign(atlas.pixels.begin(), atlas.pixels.end());
 
     // Store texture regions
     for (const auto& pair : atlas.regions) {

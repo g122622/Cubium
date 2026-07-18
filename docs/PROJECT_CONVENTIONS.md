@@ -445,7 +445,7 @@ MC_UNUSED(unusedParam);
 
 ## 依赖项
 
-- **spdlog** - 日志。注意：spdlog::debug和spdlog::trace的日志级别不允许使用，它们会降低性能。只允许用info以及以上级别的日志。
+- **spdlog** - 日志。
 - **nlohmann-json** - JSON 解析
 - **asio** - 网络（异步 I/O）
 - **GTest** - 测试框架
@@ -488,8 +488,6 @@ namespace attribute {
 enum class Operation : u8 { ... };
 }}}
 ```
-
-## 日志级别必须使用至少info，因为目前未开放debug级别的日志，debug级别日志看不到。
 
 ## 函数参数和配置结构体不允许使用、设置默认值，因为大量的默认值会导致数据流变得难以理解，难以追踪某个值是如何被设置的、是某层默认的还是外部传入的，增加理解和调试难度。若不得不增加默认值，必须征求我的同意。
 

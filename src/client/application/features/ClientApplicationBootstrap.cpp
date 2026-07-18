@@ -511,7 +511,7 @@ void ClientApplication::initializeUi()
                             m_iconsAtlas->atlasWidth(),
                             m_iconsAtlas->atlasHeight());
                     } else {
-                        spdlog::info("[GUI] Sprite atlas build failed or empty, trying legacy icons.png...");
+                        spdlog::warn("[GUI] Sprite atlas build failed or empty, trying legacy icons.png...");
                     }
 
                     // 回退到旧版 icons.png 单体图集
@@ -564,7 +564,7 @@ void ClientApplication::initializeUi()
                             m_widgetsAtlas->atlasWidth(),
                             m_widgetsAtlas->atlasHeight());
                     } else {
-                        spdlog::info("[GUI] Sprite atlas build failed or empty, trying legacy widgets.png...");
+                        spdlog::warn("[GUI] Sprite atlas build failed or empty, trying legacy widgets.png...");
                     }
 
                     // 回退到旧版 widgets.png 单体图集

@@ -46,13 +46,15 @@ namespace mc::world::chunk {
 // ============================================================================
 
 ChunkData::ChunkData()
+    : m_memTrack(this)
 {
     _initHeightmaps();
     initLightData();
 }
 
 ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
-    : m_x(x)
+    : m_memTrack(this)
+    , m_x(x)
     , m_z(z)
 {
     _initHeightmaps();
@@ -95,6 +97,11 @@ ChunkData::ChunkData(ChunkData&& other) noexcept
     other.m_x = 0;
     other.m_z = 0;
     other.m_lightCorrect.store(false);
+    // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
+    // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
+    // 堆复用该地址时触发 MemAllocTwice 硬失败。
+    other.m_memTrack.unbind();
+    m_memTrack.bind(this);
 }
 
 // 显式移动赋值：同上，m_lightCorrect 用 load/store，其余逐成员移动赋值。
@@ -132,6 +139,10 @@ ChunkData& ChunkData::operator=(ChunkData&& other) noexcept
         other.m_x = 0;
         other.m_z = 0;
         other.m_lightCorrect.store(false);
+        // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
+        m_memTrack.unbind();
+        other.m_memTrack.unbind();
+        m_memTrack.bind(this);
     }
     return *this;
 }

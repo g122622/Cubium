@@ -21,7 +21,8 @@ src/common/profiler/
 ├── PerfettoBackend.cpp   # Perfetto 后端实现：TracingSession 生命周期 / root track / 写文件 / sibling_order_rank
 ├── TraceCategories.hpp   # 分类枚举树 mc::trace::TraceEvents + PERFETTO_DEFINE_CATEGORIES 注册
 ├── TraceCategories.cpp   # 静态存储定义（PERFETTO_TRACK_EVENT_STATIC_STORAGE，仅 MC_ENABLE_TRACING）
-└── TraceEvents.hpp       # MC_TRACE_* 双轨宏（四种开关组合分支）
+├── TraceEvents.hpp       # MC_TRACE_* 双轨宏（四种开关组合分支）+ MC_TRACE_MEM_ALLOC/FREE 手动内存宏
+└── MemoryTracking.hpp    # 分配级内存追踪安全工具：TracyTrackingAlloc（vector 追踪）+ TracyObjectTracker（对象守卫）
 ```
 
 ## 架构（两层门面）
@@ -215,6 +216,19 @@ vcpkg 的 tracy port（0.13.1）编译 client 库时**不定义 `TRACY_ENABLE`**
 ### 13. TRACY_NO_SYSTEM_TRACING 必须设 ON（Windows）
 
 Tracy 默认在 Windows 启用 ETW context-switch 采样，需管理员权限运行，普通用户启动会异常。`profiler/CMakeLists.txt` 在 `add_subdirectory` 前 `set(TRACY_NO_SYSTEM_TRACING ON CACHE BOOL ... FORCE)` 关闭它。若需采样上下文切换，需以管理员身份运行并去掉该设置。
+
+### 14. 内存追踪不能绑 `vector::data()` / `shared_ptr::get()`（Tracy 硬失败）
+
+`MC_TRACE_MEM_ALLOC/FREE` 与 `TracyTrackingAlloc`/`TracyObjectTracker` 都受 Tracy 硬不变量约束：对每个 `(name, ptr)`，alloc 与 free 必须严格一对一，`ptr` 须是一次真实堆分配的返回值。违反 → `MemAllocTwice`（"already tracked and not freed"）或 `MemFree` → **终止整个会话，无 flag 可关闭**（`TRACY_IGNORE_MEMORY_FAULTS` 只压 MemFree）。
+
+**绝对不要**用手动宏标 `std::vector::data()`（`reserve` 不 realloc 时同指针重复 alloc、`clear` 不释放不改 `data()`、realloc 旧指针静默失效）、`shared_ptr::get()`（析构时机不定、只 alloc 不 free 后地址被堆复用）。这些都会必然触发硬失败。
+
+**正确工具**（`MemoryTracking.hpp`，自动维持不变量）：
+- 追踪 `std::vector` 内部缓冲区 → `TracyTrackingAlloc<T, "Name">`（截获每次 allocate/deallocate，含 realloc 成对 free+alloc）
+- 追踪对象驻留 → `TracyObjectTracker<"Name">` 成员守卫（ctor bind(this) 发 alloc、dtor 发 free；move 时宿主须显式 `unbind()` 源 + `bind(this)` 目标，见 `ChunkData` 实现）
+- 手动宏仅留给纯 C 式 malloc/free 且能精确捕获 free 的极少数场景
+
+`TracyTrackingAlloc` 有两个模板参数（`T` + NTTP `kName`），MSVC STL 的 `allocator_traits` 默认 rebind（`_Replace_first_parameter`）处理不了多参数/含 NTTP 分配器，**必须显式提供 `template<class U> struct rebind`**，否则 vector 实例化报 "_Replace_first_parameters undefined"。
 
 ### 14. Tracy 仅 in-memory，不写文件
 
