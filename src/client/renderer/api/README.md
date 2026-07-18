@@ -13,15 +13,12 @@ api/
 ├── CullMode.hpp                 # 面剔除模式、正面朝向、光栅化状态定义
 ├── IRenderEngine.hpp            # 渲染引擎主接口（核心入口点）
 ├── TridentApi.hpp               # 统一头文件（包含所有 API）
-├── Types.hpp                    # 顶点格式、方块朝向、枚举类型定义
-├── Types.cpp                    # BlockGeometry 命名空间辅助函数实现
+├── Types.hpp                    # 缓冲区类型枚举（BufferUsage/MemoryType/IndexType）
 ├── buffer/
 │   └── IBuffer.hpp              # 缓冲区接口（顶点、索引、Uniform、暂存）
 ├── camera/
 │   ├── CameraConfig.hpp         # 相机配置结构（FOV、宽高比、裁剪面等）
 │   └── ICamera.hpp              # 相机接口（视图/投影矩阵控制）
-├── mesh/
-│   └── MeshData.hpp             # 网格数据结构（顶点/索引缓冲区封装）
 ├── pipeline/
 │   ├── IPipeline.hpp            # 渲染管线、管线布局、描述符集接口
 │   ├── RenderState.hpp          # 渲染状态组合（Blend+Depth+Rasterizer）
@@ -52,8 +49,7 @@ api/
 │   IBuffer     │     │  BlendMode    │     │   ICamera     │
 │  （缓冲区）    │     │  CompareOp    │     │   IPipeline   │
 │               │     │   CullMode    │     │   ITexture    │
-└───────────────┘     └───────────────┘     │   MeshData    │
-                                            └───────────────┘
+└───────────────┘     └───────────────┘     └───────────────┘
 ```
 
 **依赖链**：
@@ -137,7 +133,7 @@ vertex.v = region.v0;
 
 ### 6. 顶点格式与着色器布局不匹配
 
-CPU 端的 `Vertex` 结构体必须与着色器中的顶点输入布局严格一致（位置、法线、UV、颜色、光照的顺序和类型）。
+CPU 端的 `Vertex` 结构体（定义于 `client/renderer/MeshTypes.hpp`，由区块管线直接消费）必须与着色器中的顶点输入布局严格一致（位置、UV、颜色、光照的顺序和类型）。
 
 ### 7. 深度缓冲精度问题（z-fighting）
 

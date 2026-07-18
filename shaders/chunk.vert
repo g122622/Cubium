@@ -5,18 +5,15 @@
 // 顶点输入 - 与Vertex结构匹配
 #ifdef __APPLE__
 layout(location = 0) in vec3 inPosition;
-layout(location = 2) in vec3 inNormal;
 layout(location = 4) in vec2 inTexCoord;
 #else
 layout(location = 0) in dvec3 inPosition;
-layout(location = 2) in dvec3 inNormal;
 layout(location = 4) in dvec2 inTexCoord;
 #endif
 layout(location = 5) in vec4 inColor;
 layout(location = 6) in uint inLight;
 
 // 输出到片段着色器
-layout(location = 0) out vec3 fragNormal;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec4 fragColor;
 layout(location = 3) out float fragSkyLight;
@@ -49,7 +46,6 @@ void main() {
     viewNoTranslation[3] = vec4(0.0, 0.0, 0.0, 1.0);
 
     gl_Position = camera.projection * viewNoTranslation * pc.model * vec4(relativePos, 1.0);
-    fragNormal = vec3(inNormal);
     fragTexCoord = vec2(inTexCoord);
     fragColor = inColor;
     fragSkyLight = float((inLight >> 4) & 0xFu) / 15.0;

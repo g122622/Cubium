@@ -27,8 +27,8 @@
 #include "client/resource/ResourceManager.hpp"
 #include "client/world/color/BiomeColors.hpp"
 #include "client/world/color/blend/ChunkBiomeAccessor.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/shape/Shapes.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -136,12 +136,12 @@ private:
     switch (pass) {
         case MeshPass::TransparentOnly:
             // 透明层通常比实心层稀疏得多，给更小的初始容量可以显著降低 split mesh 峰值。
-            return std::clamp(nonAirBlockCount / 8, static_cast<size_t>(256), static_cast<size_t>(4096));
+            return std::clamp(nonAirBlockCount / 8, static_cast<size_t>(256), static_cast<size_t>(2048));
         case MeshPass::SolidOnly:
         case MeshPass::All:
         default:
             return std::clamp(
-                nonAirBlockCount * static_cast<size_t>(2), static_cast<size_t>(1024), static_cast<size_t>(16384));
+                nonAirBlockCount * static_cast<size_t>(2), static_cast<size_t>(1024), static_cast<size_t>(8192));
     }
 }
 
@@ -508,9 +508,6 @@ void emitLiquidFace(MeshData& mesh,
             faceVerts[i] = Vertex(x + faceVertices[i * 3 + 0] + faceNormal[0] * layerOffset,
                 y + faceVertices[i * 3 + 1] + faceNormal[1] * layerOffset,
                 z + faceVertices[i * 3 + 2] + faceNormal[2] * layerOffset,
-                faceNormal[0],
-                faceNormal[1],
-                faceNormal[2],
                 uvs[i][0],
                 uvs[i][1],
                 shadedColor,
@@ -1171,9 +1168,6 @@ void ChunkMesher::_addFaceFromAppearance(MeshData& mesh,
             faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
                 y + vertices[i * 3 + 1] + normal[1] * layerOffset,
                 z + vertices[i * 3 + 2] + normal[2] * layerOffset,
-                normal[0],
-                normal[1],
-                normal[2],
                 uvs[i][0],
                 uvs[i][1],
                 shadedColor,
@@ -1324,9 +1318,6 @@ void ChunkMesher::_addFaceFromAppearanceSmooth(MeshData& mesh,
             faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
                 y + vertices[i * 3 + 1] + normal[1] * layerOffset,
                 z + vertices[i * 3 + 2] + normal[2] * layerOffset,
-                normal[0],
-                normal[1],
-                normal[2],
                 uvs[i][0],
                 uvs[i][1],
                 color,
@@ -1439,9 +1430,6 @@ void ChunkMesher::_addCrossedPlantGeometry(MeshData& mesh,
                 verts[i] = Vertex(positions[src][0] + normal[0] * layerOffset,
                     positions[src][1] + normal[1] * layerOffset,
                     positions[src][2] + normal[2] * layerOffset,
-                    normal[0],
-                    normal[1],
-                    normal[2],
                     uvs[i][0],
                     uvs[i][1],
                     color,
@@ -1639,9 +1627,6 @@ void ChunkMesher::_addShapeGeometryFromAppearance(MeshData& mesh,
                 faceVerts[i] = Vertex(positions[i][0] + normal[0] * layerOffset,
                     positions[i][1] + normal[1] * layerOffset,
                     positions[i][2] + normal[2] * layerOffset,
-                    normal[0],
-                    normal[1],
-                    normal[2],
                     uvs[i][0],
                     uvs[i][1],
                     shadedColor,
@@ -2240,9 +2225,6 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
                 faceVerts[i] = Vertex(positions[i][0] + normal[0] * layerOffset,
                     positions[i][1] + normal[1] * layerOffset,
                     positions[i][2] + normal[2] * layerOffset,
-                    normal[0],
-                    normal[1],
-                    normal[2],
                     uvs[i][0],
                     uvs[i][1],
                     color,

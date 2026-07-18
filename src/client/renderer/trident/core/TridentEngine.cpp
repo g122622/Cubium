@@ -1567,18 +1567,16 @@ Result<void> TridentEngine::initializeChunkRenderer()
     bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     pipelineConfig.vertexBindings.push_back(bindingDesc);
 
-    std::array<VkVertexInputAttributeDescription, 5> attrs{};
+    std::array<VkVertexInputAttributeDescription, 4> attrs{};
 #ifdef __APPLE__
     attrs[0] = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<u32>(offsetof(Vertex, x))};
-    attrs[1] = {2, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<u32>(offsetof(Vertex, nx))};
-    attrs[2] = {4, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<u32>(offsetof(Vertex, u))};
+    attrs[1] = {4, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<u32>(offsetof(Vertex, u))};
 #else
     attrs[0] = {0, 0, VK_FORMAT_R64G64B64_SFLOAT, static_cast<u32>(offsetof(Vertex, x))};
-    attrs[1] = {2, 0, VK_FORMAT_R64G64B64_SFLOAT, static_cast<u32>(offsetof(Vertex, nx))};
-    attrs[2] = {4, 0, VK_FORMAT_R64G64_SFLOAT, static_cast<u32>(offsetof(Vertex, u))};
+    attrs[1] = {4, 0, VK_FORMAT_R64G64_SFLOAT, static_cast<u32>(offsetof(Vertex, u))};
 #endif
-    attrs[3] = {5, 0, VK_FORMAT_R8G8B8A8_UNORM, static_cast<u32>(offsetof(Vertex, color))};
-    attrs[4] = {6, 0, VK_FORMAT_R8_UINT, static_cast<u32>(offsetof(Vertex, light))};
+    attrs[2] = {5, 0, VK_FORMAT_R8G8B8A8_UNORM, static_cast<u32>(offsetof(Vertex, color))};
+    attrs[3] = {6, 0, VK_FORMAT_R8_UINT, static_cast<u32>(offsetof(Vertex, light))};
     pipelineConfig.vertexAttributes.assign(attrs.begin(), attrs.end());
 
     pipelineConfig.descriptorSetLayouts = {

@@ -31,7 +31,6 @@
 #include "camera/ICamera.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "mesh/MeshData.hpp"
 #include "pipeline/IPipeline.hpp"
 #include "pipeline/RenderState.hpp"
 #include "pipeline/RenderType.hpp"

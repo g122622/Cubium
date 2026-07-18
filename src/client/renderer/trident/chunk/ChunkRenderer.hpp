@@ -32,7 +32,6 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <unordered_map>
 #include <vector>
 #include <glm/vec3.hpp>
@@ -60,28 +59,10 @@ struct ChunkGpuBuffer {
     void destroy(VkDevice device);
 };
 
-// 待上传的网格数据
-struct PendingMeshUpload {
-    ChunkId chunkId;
-    MeshData meshData;
-    u64 submitTime = 0; // 提交时间戳（用于超时检测）
-};
-
 // 待销毁的缓冲区（用于延迟销毁）
 struct PendingBufferDestroy {
     std::unique_ptr<ChunkGpuBuffer> buffer;
     u64 frameIndex; // 创建时的帧号，用于计算延迟销毁
-};
-
-// Fence 管理器（用于非阻塞上传）
-struct FenceManager {
-    std::vector<VkFence> fences;
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::vector<bool> inUse;
-    u32 nextIndex = 0;
-
-    void cleanup(VkDevice device, VkCommandPool commandPool);
-    void destroy(VkDevice device, VkCommandPool commandPool);
 };
 
 // 纹理图集 - 使用原始 Vulkan handles
@@ -210,35 +191,6 @@ public:
         const glm::dvec3& cameraPosition,
         bool sortBackToFront = true);
 
-    // ========== 异步 GPU 上传 ==========
-
-    /**
-     * @brief 提交网格上传请求
-     *
-     * 将网格数据添加到待上传队列，非阻塞调用。
-     * 实际上传在 processPendingUploads() 中执行。
-     *
-     * @param chunkId 区块 ID
-     * @param meshData 网格数据（会被移动）
-     */
-    void submitMeshUpload(const ChunkId& chunkId, MeshData&& meshData);
-
-    /**
-     * @brief 处理待上传的网格数据
-     *
-     * 每帧调用一次，处理最多 maxPerFrame 个待上传网格。
-     * 使用 fence 实现非阻塞上传，避免 GPU 等待。
-     *
-     * @param maxPerFrame 每帧最多处理数量（默认 4）
-     * @return 实际处理的数量
-     */
-    u32 processPendingUploads(u32 maxPerFrame = 4);
-
-    /**
-     * @brief 获取待上传队列大小
-     */
-    [[nodiscard]] size_t pendingUploadCount() const;
-
     /**
      * @brief 处理延迟销毁队列
      *
@@ -281,17 +233,6 @@ private:
     VkDeviceMemory m_stagingMemory = VK_NULL_HANDLE;
     VkDeviceSize m_stagingBufferSize = 16 * 1024 * 1024; // 16MB
     void* m_stagingMapped = nullptr;
-
-    // ========== 异步上传支持 ==========
-
-    // 待上传队列
-    std::queue<PendingMeshUpload> m_pendingUploads;
-    mutable std::mutex m_pendingMutex;
-    u64 m_uploadTimestamp = 0;
-
-    // Fence 管理（用于非阻塞上传）
-    FenceManager m_fenceManager;
-    static constexpr u32 MAX_IN_FLIGHT_UPLOADS = 8; // 最大同时上传数量
 
     // 延迟销毁队列
     std::vector<PendingBufferDestroy> m_pendingDestroys;

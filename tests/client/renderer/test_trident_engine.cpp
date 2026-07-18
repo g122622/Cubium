@@ -36,8 +36,8 @@
  * - DimensionRenderSettings 维度渲染设置（云高度等）
  */
 
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/api/Types.hpp"
-#include "client/renderer/api/mesh/MeshData.hpp"
 #include "client/renderer/trident/cloud/CloudRenderer.hpp"
 #include "client/renderer/trident/core/Trident.hpp"
 #include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
@@ -425,10 +425,10 @@ TEST_F(TridentBufferTest, VertexBufferUploadViaStaging)
     ASSERT_TRUE(vbo.create(s_context, sizeof(Vertex) * 4, sizeof(Vertex)).success());
 
     // 创建测试顶点数据
-    Vertex vertices[4] = {{0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
-        {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f},
-        {1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f}};
+    Vertex vertices[4] = {{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0xFFFFFFFF, 255},
+        {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0xFFFFFFFF, 255},
+        {1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF, 255},
+        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF, 255}};
 
     // 上传到暂存缓冲区
     auto result = staging.upload(vertices, sizeof(vertices));
@@ -479,10 +479,10 @@ TEST_F(TridentBufferTest, VertexBufferDirectUpload)
     ASSERT_TRUE(vbo.create(s_context, bufferSize, sizeof(Vertex)).success());
 
     // 创建测试顶点数据
-    Vertex vertices[4] = {{0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
-        {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f},
-        {1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f}};
+    Vertex vertices[4] = {{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0xFFFFFFFF, 255},
+        {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0xFFFFFFFF, 255},
+        {1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF, 255},
+        {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF, 255}};
 
     // 使用 upload() 方法直接上传
     auto result = vbo.upload(vertices, sizeof(vertices), 0);
@@ -504,7 +504,7 @@ TEST_F(TridentBufferTest, VertexBufferDirectUploadWithOffset)
     EXPECT_TRUE(result.success()) << "First upload should succeed: " << result.error().message();
 
     // 再上传后 4 个顶点（带偏移）
-    Vertex vertices2[4] = {{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}};
+    Vertex vertices2[4] = {{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0xFFFFFFFF, 255}};
     result = vbo.upload(vertices2, sizeof(vertices2), sizeof(vertices1));
     EXPECT_TRUE(result.success()) << "Second upload with offset should succeed: " << result.error().message();
 
@@ -1327,10 +1327,10 @@ TEST_F(ExtendedMeshDataTest, AddMultipleFaces)
     MeshData mesh;
 
     for (int i = 0; i < 6; ++i) { // 立方体的 6 个面
-        std::array<Vertex, 4> faceVertices = {Vertex(0, 0, 0, 0, 1, 0, 0, 0),
-            Vertex(1, 0, 0, 0, 1, 0, 1, 0),
-            Vertex(1, 1, 0, 0, 1, 0, 1, 1),
-            Vertex(0, 1, 0, 0, 1, 0, 0, 1)};
+        std::array<Vertex, 4> faceVertices = {Vertex(0, 0, 0, 0, 0, 0xFFFFFFFF, 255),
+            Vertex(1, 0, 0, 1, 0, 0xFFFFFFFF, 255),
+            Vertex(1, 1, 0, 1, 1, 0xFFFFFFFF, 255),
+            Vertex(0, 1, 0, 0, 1, 0xFFFFFFFF, 255)};
         mesh.addFace(faceVertices, i * 4);
     }
 

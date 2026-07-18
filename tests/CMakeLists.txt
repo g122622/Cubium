@@ -2090,8 +2090,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 澶╀綋璁＄畻
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/sky/CelestialCalculations.cpp
-        # Trident 渲染 API 层
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/api/Types.cpp
         # 射线检测
         ${CMAKE_SOURCE_DIR}/src/common/util/math/ray/Raycast.cpp
         # 设置系统
@@ -2442,7 +2440,6 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/UniformManager.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/DescriptorManager.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/RenderPassManager.cpp
-            # Trident API 灞?            ${CMAKE_SOURCE_DIR}/src/client/renderer/api/Types.cpp
             # 璧勬簮鍔犺浇
             ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp

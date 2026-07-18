@@ -73,6 +73,8 @@ struct ClientChunk {
     bool meshRebuildPending = false;
     bool isLoaded = false;
     u64 activeMeshTaskId = 0;
+    /// 构建该 chunk 最新网格的 worker 索引，上传后按此把 MeshData 归还对应 worker 桶复用 capacity。
+    i32 lastWorkerId = -1;
 };
 
 /**
@@ -270,6 +272,7 @@ public:
     void processMeshBuildResults(u32 maxPerFrame);
 
     [[nodiscard]] const MeshWorkerPool* meshWorkerPool() const { return m_meshWorkerPool.get(); }
+    [[nodiscard]] MeshWorkerPool* meshWorkerPool() { return m_meshWorkerPool.get(); }
     [[nodiscard]] const MeshBuildScheduler* meshBuildScheduler() const { return m_meshBuildScheduler.get(); }
 
     [[nodiscard]] ClientEntityManager& entityManager() { return m_entityManager; }

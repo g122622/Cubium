@@ -132,17 +132,6 @@ Result<void> ChunkRenderer::initialize(
 
 void ChunkRenderer::destroy()
 {
-    // 清空待上传队列
-    {
-        std::lock_guard<std::mutex> lock(m_pendingMutex);
-        while (!m_pendingUploads.empty()) {
-            m_pendingUploads.pop();
-        }
-    }
-
-    // 清理 Fence 管理器
-    m_fenceManager.destroy(m_device, m_commandPool);
-
     // 销毁所有区块缓冲区
     for (auto& pair : m_chunkBuffers) {
         if (pair.second) {
@@ -858,61 +847,6 @@ void ChunkRenderer::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
 }
 
-// ============================================================================
-// 异步 GPU 上传
-// ============================================================================
-
-void ChunkRenderer::submitMeshUpload(const ChunkId& chunkId, MeshData&& meshData)
-{
-    PendingMeshUpload upload;
-    upload.chunkId = chunkId;
-    upload.meshData = std::move(meshData);
-    upload.submitTime = m_uploadTimestamp++;
-
-    std::lock_guard<std::mutex> lock(m_pendingMutex);
-    m_pendingUploads.push(std::move(upload));
-}
-
-u32 ChunkRenderer::processPendingUploads(u32 maxPerFrame)
-{
-    // 首先检查已完成的 fence，回收资源
-    m_fenceManager.cleanup(m_device, m_commandPool);
-
-    u32 processed = 0;
-
-    while (processed < maxPerFrame) {
-        PendingMeshUpload upload;
-
-        {
-            std::lock_guard<std::mutex> lock(m_pendingMutex);
-            if (m_pendingUploads.empty()) {
-                break;
-            }
-            upload = std::move(m_pendingUploads.front());
-            m_pendingUploads.pop();
-        }
-
-        // 同步上传
-        auto result = updateChunk(upload.chunkId, upload.meshData);
-        if (result.success()) {
-            ++processed;
-        } else {
-            spdlog::warn("Failed to upload mesh for chunk ({}, {}): {}",
-                upload.chunkId.x,
-                upload.chunkId.z,
-                result.error().message());
-        }
-    }
-
-    return processed;
-}
-
-size_t ChunkRenderer::pendingUploadCount() const
-{
-    std::lock_guard<std::mutex> lock(m_pendingMutex);
-    return m_pendingUploads.size();
-}
-
 void ChunkRenderer::processPendingDestroys(u32 framesToKeep)
 {
     std::lock_guard<std::mutex> lock(m_pendingDestroysMutex);
@@ -935,47 +869,6 @@ void ChunkRenderer::processPendingDestroys(u32 framesToKeep)
             ++it;
         }
     }
-}
-
-// ============================================================================
-// Fence 管理器
-// ============================================================================
-
-void FenceManager::cleanup(VkDevice device, VkCommandPool commandPool)
-{
-    for (size_t i = 0; i < inUse.size(); ++i) {
-        if (inUse[i] && fences[i] != VK_NULL_HANDLE) {
-            VkResult result = vkGetFenceStatus(device, fences[i]);
-            if (result == VK_SUCCESS) {
-                vkDestroyFence(device, fences[i], nullptr);
-                fences[i] = VK_NULL_HANDLE;
-
-                if (commandBuffers[i] != VK_NULL_HANDLE) {
-                    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffers[i]);
-                    commandBuffers[i] = VK_NULL_HANDLE;
-                }
-
-                inUse[i] = false;
-            }
-        }
-    }
-}
-
-void FenceManager::destroy(VkDevice device, VkCommandPool commandPool)
-{
-    for (size_t i = 0; i < fences.size(); ++i) {
-        if (fences[i] != VK_NULL_HANDLE) {
-            vkWaitForFences(device, 1, &fences[i], VK_TRUE, UINT64_MAX);
-            vkDestroyFence(device, fences[i], nullptr);
-        }
-        if (commandBuffers[i] != VK_NULL_HANDLE) {
-            vkFreeCommandBuffers(device, commandPool, 1, &commandBuffers[i]);
-        }
-    }
-    fences.clear();
-    commandBuffers.clear();
-    inUse.clear();
-    nextIndex = 0;
 }
 
 } // namespace mc::client

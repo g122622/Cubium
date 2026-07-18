@@ -28,6 +28,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <spdlog/spdlog.h>

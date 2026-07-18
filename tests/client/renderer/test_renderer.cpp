@@ -488,14 +488,11 @@ TEST(Vertex, Construction)
 
 TEST(Vertex, ParameterizedConstruction)
 {
-    Vertex v(1.0f, 2.0f, 3.0f, 0.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0xFF0000FF, 10);
+    Vertex v(1.0f, 2.0f, 3.0f, 0.5f, 0.5f, 0xFF0000FF, 10);
 
     EXPECT_DOUBLE_EQ(v.x, 1.0);
     EXPECT_DOUBLE_EQ(v.y, 2.0);
     EXPECT_DOUBLE_EQ(v.z, 3.0);
-    EXPECT_DOUBLE_EQ(v.nx, 0.0);
-    EXPECT_DOUBLE_EQ(v.ny, 1.0);
-    EXPECT_DOUBLE_EQ(v.nz, 0.0);
     EXPECT_DOUBLE_EQ(v.u, 0.5);
     EXPECT_DOUBLE_EQ(v.v, 0.5);
     EXPECT_EQ(v.color, 0xFF0000FFu);

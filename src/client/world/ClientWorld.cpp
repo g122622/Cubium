@@ -752,10 +752,16 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
         [this](MeshWorkerResult&& result) {
             ClientChunk* chunk = getChunk(result.chunkId);
             if (!chunk) {
+                // chunk 已卸载：结果网格未进入 chunk，归还 capacity 给原 worker 桶。
+                m_meshWorkerPool->recycle(
+                    result.workerId, std::move(result.solidMesh), std::move(result.transparentMesh));
                 return;
             }
 
             if (chunk->activeMeshTaskId != 0 && result.taskId != chunk->activeMeshTaskId) {
+                // 过期结果（已被更新的任务取代）：归还 capacity 给原 worker 桶。
+                m_meshWorkerPool->recycle(
+                    result.workerId, std::move(result.solidMesh), std::move(result.transparentMesh));
                 return;
             }
 
@@ -764,6 +770,9 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
             if (result.cancelled || !result.success) {
                 chunk->meshRebuildPending = false;
                 chunk->activeMeshTaskId = 0;
+                // 取消/失败：结果网格未进入 chunk，归还 capacity（取消时空壳归还最有价值）。
+                m_meshWorkerPool->recycle(
+                    result.workerId, std::move(result.solidMesh), std::move(result.transparentMesh));
                 if (shouldResubmit) {
                     _requestChunkMeshRebuild(result.chunkId);
                 }
@@ -779,6 +788,7 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
 
             chunk->solidMesh = std::move(result.solidMesh);
             chunk->transparentMesh = std::move(result.transparentMesh);
+            chunk->lastWorkerId = result.workerId;
             chunk->meshRebuildPending = false;
             chunk->hasMeshResult = true;
             chunk->needsMeshUpdate = true;

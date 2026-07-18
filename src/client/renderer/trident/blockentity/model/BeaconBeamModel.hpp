@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "client/renderer/api/mesh/MeshData.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/blockentity/processing/BeaconEntity.hpp"

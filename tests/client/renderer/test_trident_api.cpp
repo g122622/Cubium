@@ -21,6 +21,7 @@
  *
  */
 
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/api/TridentApi.hpp"
 #include <gtest/gtest.h>
 
@@ -28,7 +29,14 @@
 #define EXPECT_FLOAT_EQ EXPECT_DOUBLE_EQ
 
 using namespace mc;
+// api 层的 BlendState/DepthState/RenderState/RenderType/Face/BlockGeometry 等类型
+// 在本测试中被大量使用，统一引入 api 命名空间。api::Vertex 已删除，Vertex 解析到
+// mc::Vertex 无歧义；Face/BlockGeometry 解析到 api 版（与 mc 版定义平行，行为一致）。
+// 注意 TextureRegion：mc::（MeshTypes.hpp 精简版）与 api::（含 full()/width()/operator==）
+// 各有一份且非镜像（api 版是活跃契约，mc 版供 ChunkTextureAtlas 内部用）。本测试的
+// TextureRegionTest 测 api 版，用别名 api:: 全限定消歧。
 using namespace mc::client::renderer::api;
+namespace api = mc::client::renderer::api;
 
 // ============================================================================
 // Types 测试
@@ -45,9 +53,6 @@ TEST_F(TypesTest, VertexDefaultValues)
     EXPECT_FLOAT_EQ(v.x, 0.0f);
     EXPECT_FLOAT_EQ(v.y, 0.0f);
     EXPECT_FLOAT_EQ(v.z, 0.0f);
-    EXPECT_FLOAT_EQ(v.nx, 0.0f);
-    EXPECT_FLOAT_EQ(v.ny, 0.0f);
-    EXPECT_FLOAT_EQ(v.nz, 0.0f);
     EXPECT_FLOAT_EQ(v.u, 0.0f);
     EXPECT_FLOAT_EQ(v.v, 0.0f);
     EXPECT_EQ(v.color, 0xFFFFFFFFu);
@@ -56,23 +61,14 @@ TEST_F(TypesTest, VertexDefaultValues)
 
 TEST_F(TypesTest, VertexParameterizedConstructor)
 {
-    Vertex v(1.0f, 2.0f, 3.0f, 0.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0x80808080, 128);
+    Vertex v(1.0f, 2.0f, 3.0f, 0.5f, 0.5f, 0x80808080, 128);
     EXPECT_FLOAT_EQ(v.x, 1.0f);
     EXPECT_FLOAT_EQ(v.y, 2.0f);
     EXPECT_FLOAT_EQ(v.z, 3.0f);
-    EXPECT_FLOAT_EQ(v.nx, 0.0f);
-    EXPECT_FLOAT_EQ(v.ny, 1.0f);
-    EXPECT_FLOAT_EQ(v.nz, 0.0f);
     EXPECT_FLOAT_EQ(v.u, 0.5f);
     EXPECT_FLOAT_EQ(v.v, 0.5f);
     EXPECT_EQ(v.color, 0x80808080u);
     EXPECT_EQ(v.light, 128u);
-}
-
-TEST_F(TypesTest, VertexStride)
-{
-    // Vertex 应该有固定的大小，用于顶点缓冲区布局
-    EXPECT_EQ(Vertex::stride(), sizeof(Vertex));
 }
 
 TEST_F(TypesTest, FaceEnumValues)
@@ -396,7 +392,7 @@ protected:
 
 TEST_F(TextureRegionTest, DefaultValues)
 {
-    TextureRegion region;
+    api::TextureRegion region;
     EXPECT_FLOAT_EQ(region.u0, 0.0f);
     EXPECT_FLOAT_EQ(region.v0, 0.0f);
     EXPECT_FLOAT_EQ(region.u1, 1.0f);
@@ -405,7 +401,7 @@ TEST_F(TextureRegionTest, DefaultValues)
 
 TEST_F(TextureRegionTest, ParameterizedConstructor)
 {
-    TextureRegion region(0.25f, 0.5f, 0.75f, 1.0f);
+    api::TextureRegion region(0.25f, 0.5f, 0.75f, 1.0f);
     EXPECT_FLOAT_EQ(region.u0, 0.25f);
     EXPECT_FLOAT_EQ(region.v0, 0.5f);
     EXPECT_FLOAT_EQ(region.u1, 0.75f);
@@ -414,14 +410,14 @@ TEST_F(TextureRegionTest, ParameterizedConstructor)
 
 TEST_F(TextureRegionTest, WidthHeight)
 {
-    TextureRegion region(0.0f, 0.0f, 0.5f, 0.5f);
+    api::TextureRegion region(0.0f, 0.0f, 0.5f, 0.5f);
     EXPECT_FLOAT_EQ(region.width(), 0.5f);
     EXPECT_FLOAT_EQ(region.height(), 0.5f);
 }
 
 TEST_F(TextureRegionTest, FullRegion)
 {
-    auto region = TextureRegion::full();
+    auto region = api::TextureRegion::full();
     EXPECT_FLOAT_EQ(region.u0, 0.0f);
     EXPECT_FLOAT_EQ(region.v0, 0.0f);
     EXPECT_FLOAT_EQ(region.u1, 1.0f);
@@ -430,9 +426,9 @@ TEST_F(TextureRegionTest, FullRegion)
 
 TEST_F(TextureRegionTest, EqualityComparison)
 {
-    TextureRegion r1(0.0f, 0.0f, 1.0f, 1.0f);
-    TextureRegion r2(0.0f, 0.0f, 1.0f, 1.0f);
-    TextureRegion r3(0.5f, 0.5f, 1.0f, 1.0f);
+    api::TextureRegion r1(0.0f, 0.0f, 1.0f, 1.0f);
+    api::TextureRegion r2(0.0f, 0.0f, 1.0f, 1.0f);
+    api::TextureRegion r3(0.5f, 0.5f, 1.0f, 1.0f);
 
     EXPECT_EQ(r1, r2);
     EXPECT_NE(r1, r3);
@@ -470,24 +466,14 @@ TEST_F(MeshDataTest, Reserve)
 TEST_F(MeshDataTest, AddFace)
 {
     MeshData mesh;
-    std::array<Vertex, 4> faceVertices = {Vertex(0, 0, 0, 0, 1, 0, 0, 0),
-        Vertex(1, 0, 0, 0, 1, 0, 1, 0),
-        Vertex(1, 1, 0, 0, 1, 0, 1, 1),
-        Vertex(0, 1, 0, 0, 1, 0, 0, 1)};
+    std::array<Vertex, 4> faceVertices = {Vertex(0, 0, 0, 0, 0, 0xFFFFFFFF, 255),
+        Vertex(1, 0, 0, 1, 0, 0xFFFFFFFF, 255),
+        Vertex(1, 1, 0, 1, 1, 0xFFFFFFFF, 255),
+        Vertex(0, 1, 0, 0, 1, 0xFFFFFFFF, 255)};
 
     mesh.addFace(faceVertices, 0);
     EXPECT_EQ(mesh.vertexCount(), 4u);
     EXPECT_EQ(mesh.indexCount(), 6u);
-}
-
-TEST_F(MeshDataTest, VertexIndexDataSize)
-{
-    MeshData mesh;
-    mesh.vertices.resize(100);
-    mesh.indices.resize(300);
-
-    EXPECT_EQ(mesh.vertexDataSize(), 100 * sizeof(Vertex));
-    EXPECT_EQ(mesh.indexDataSize(), 300 * sizeof(u32));
 }
 
 // ============================================================================
@@ -501,43 +487,11 @@ protected:
 
 TEST_F(CameraConfigTest, DefaultValues)
 {
-    CameraConfig config;
+    mc::client::renderer::api::CameraConfig config;
     // CameraConfig 字段均为 f64，使用 EXPECT_DOUBLE_EQ 避免 float→double 提升导致的精度不一致。
     EXPECT_DOUBLE_EQ(config.fov, 70.0);
     EXPECT_DOUBLE_EQ(config.aspectRatio, 16.0 / 9.0);
     EXPECT_DOUBLE_EQ(config.nearPlane, 0.1);
     EXPECT_DOUBLE_EQ(config.farPlane, 1000.0);
-    EXPECT_EQ(config.projectionMode, ProjectionMode::Perspective);
-}
-
-// ============================================================================
-// ChunkMeshData 测试
-// ============================================================================
-
-class ChunkMeshDataTest : public ::testing::Test {
-protected:
-    void SetUp() override {}
-};
-
-TEST_F(ChunkMeshDataTest, Clear)
-{
-    ChunkMeshData chunkMesh;
-    chunkMesh.solidMesh.vertices.push_back(Vertex());
-    chunkMesh.translucentMesh.vertices.push_back(Vertex());
-
-    chunkMesh.clear();
-    EXPECT_TRUE(chunkMesh.solidMesh.empty());
-    EXPECT_TRUE(chunkMesh.translucentMesh.empty());
-}
-
-TEST_F(ChunkMeshDataTest, TotalCounts)
-{
-    ChunkMeshData chunkMesh;
-    chunkMesh.solidMesh.vertices.resize(100);
-    chunkMesh.solidMesh.indices.resize(200);
-    chunkMesh.translucentMesh.vertices.resize(50);
-    chunkMesh.translucentMesh.indices.resize(100);
-
-    EXPECT_EQ(chunkMesh.totalVertexCount(), 150u);
-    EXPECT_EQ(chunkMesh.totalIndexCount(), 300u);
+    EXPECT_EQ(config.projectionMode, mc::client::renderer::api::ProjectionMode::Perspective);
 }

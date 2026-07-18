@@ -55,7 +55,7 @@ struct PipelineDesc {
     RenderState renderState;
 
     // 顶点输入描述 (简化版，实际可能需要更详细的描述)
-    u32 vertexStride = sizeof(Vertex);
+    u32 vertexStride;
 
     // 描述符集布局描述
     struct DescriptorSetLayout {

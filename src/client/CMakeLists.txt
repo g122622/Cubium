@@ -26,7 +26,7 @@ add_executable(minecraft-client
     input/InputManager.cpp
     settings/ClientSettings.cpp
     # Trident 渲染引擎 API 层
-    renderer/api/Types.cpp
+    # (Types.hpp 只含 enum class 声明，无 .cpp 实现)
     # Trident 渲染引擎核心 (Vulkan 实现)
     renderer/trident/core/TridentContext.cpp
     renderer/trident/core/TridentSwapchain.cpp

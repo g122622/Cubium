@@ -58,6 +58,7 @@ struct MeshWorkerTask {
 struct MeshWorkerResult {
     ChunkId chunkId;
     u64 taskId = 0;
+    i32 workerId = -1; // 构建该结果的 worker 索引，主线程归还 MeshData 时按此分桶
     MeshData solidMesh;
     MeshData transparentMesh;
     bool success = false;
@@ -89,6 +90,18 @@ public:
 
     void drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount);
 
+    /**
+     * @brief 归还已上传完毕的 MeshData，供对应 worker 下次构建复用其 capacity。
+     *
+     * 主线程在上传 GPU 后调用，按 workerId 分桶入池；池满或 workerId 无效时直接析构释放。
+     * 归还前会对异常膨胀的 capacity 做 shrink_to_fit，防止峰值 capacity 永久驻留。
+     *
+     * @param workerId 构建该 MeshData 的 worker 索引（来自 MeshWorkerResult::workerId）
+     * @param solid 实心层网格（已 clear，capacity 可复用）
+     * @param transparent 透明层网格（已 clear，capacity 可复用）
+     */
+    void recycle(i32 workerId, MeshData&& solid, MeshData&& transparent);
+
     [[nodiscard]] size_t queuedTaskCount() const;
     [[nodiscard]] size_t runningTaskCount() const;
     [[nodiscard]] size_t completedTaskCount() const;
@@ -99,11 +112,37 @@ private:
         MeshWorkerTask task;
     };
 
+    /// 每桶缓存的 MeshData 上限（solid/transparent 各算一个槽位）。
+    /// worker 数通常 2-8，每桶 2 个足够吸收稳态归还抖动，超出直接析构释放。
+    static constexpr size_t kRecycleSlotsPerBucket = 2;
+
+    /// 容量膨胀防护阈值（顶点数）。任务 5 将 Solid reserve 上限降为 8192 faces = 32768 顶点，
+    /// 取其 1.5 倍作防护：超过此 capacity 且远大于实际 size 时触发 shrink_to_fit，
+    /// 防止某次峰值后超大 capacity 永久驻留池里。
+    static constexpr size_t kMaxReuseVertexCapacity = 49152;
+    static constexpr size_t kMaxReuseIndexCapacity = kMaxReuseVertexCapacity * 6 / 4;
+
+    /// 每 worker 一个回收桶，主线程按 workerId 归还、worker 自取，桶内一把锁。
+    /// 桶含 std::mutex（不可拷贝/移动），故用 unique_ptr 持有：vector 本身可重分配，
+    /// 而 bucket 地址稳定（worker 自取时只索引不持有指针，安全）。
+    struct RecycleBucket {
+        std::vector<MeshData> solidSlots;
+        std::vector<MeshData> transparentSlots;
+        std::mutex mutex;
+    };
+
     void _workerLoop(i32 workerId);
-    void _executeTask(const MeshWorkerTask& task);
+    void _executeTask(i32 workerId, const MeshWorkerTask& task);
 
     [[nodiscard]] static bool _isCancelled(const MeshWorkerTask& task);
     [[nodiscard]] static i32 _getOptimalThreadCount();
+
+    /// 从指定 worker 桶取出一个带历史 capacity 的 MeshData；桶空则默认构造（capacity=0）。
+    [[nodiscard]] MeshData _acquireRecycled(i32 workerId, bool transparent);
+    /// 归还单个 MeshData 入桶前做膨胀防护，桶满则不入池（右值参析构释放）。
+    void _recycleOne(i32 workerId, bool transparent, MeshData&& data);
+    /// capacity 异常膨胀时 shrink_to_fit，其余情况保留 capacity 供复用。
+    static void _shrinkIfBloated(MeshData& data);
 
     std::vector<std::thread> m_workers;
     i32 m_threadCount = 0;
@@ -114,6 +153,8 @@ private:
 
     std::queue<MeshWorkerResult> m_completedQueue;
     mutable std::mutex m_completedMutex;
+
+    std::vector<std::unique_ptr<RecycleBucket>> m_recycleBuckets; // size == m_threadCount
 
     std::atomic<size_t> m_runningTaskCount{0};
     std::atomic<bool> m_running{false};

@@ -18,8 +18,6 @@ src/client/renderer/
 │   ├── camera/
 │   │   ├── CameraConfig.hpp      # 相机配置结构
 │   │   └── ICamera.hpp           # 相机接口
-│   ├── mesh/
-│   │   └── MeshData.hpp          # 网格数据结构
 │   ├── pipeline/
 │   │   ├── IPipeline.hpp         # 管线接口
 │   │   ├── RenderState.hpp       # 渲染状态（混合/深度/剔除）

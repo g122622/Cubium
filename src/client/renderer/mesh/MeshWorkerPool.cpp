@@ -35,7 +35,12 @@ namespace mc::client {
 
 MeshWorkerPool::MeshWorkerPool(i32 threadCount)
     : m_threadCount(threadCount > 0 ? threadCount : _getOptimalThreadCount())
-{}
+{
+    m_recycleBuckets.reserve(m_threadCount);
+    for (i32 i = 0; i < m_threadCount; ++i) {
+        m_recycleBuckets.emplace_back(std::make_unique<RecycleBucket>());
+    }
+}
 
 MeshWorkerPool::~MeshWorkerPool()
 {
@@ -57,6 +62,12 @@ void MeshWorkerPool::start()
 
     m_runningTaskCount.store(0, std::memory_order::release);
     m_stop.store(false, std::memory_order::release);
+
+    // 支持 shutdown 后重启：回收桶已在 shutdown() 清空，这里按线程数重建。
+    m_recycleBuckets.reserve(m_threadCount);
+    for (i32 i = 0; i < m_threadCount; ++i) {
+        m_recycleBuckets.emplace_back(std::make_unique<RecycleBucket>());
+    }
 
     m_workers.reserve(m_threadCount);
     for (i32 i = 0; i < m_threadCount; ++i) {
@@ -82,6 +93,9 @@ void MeshWorkerPool::shutdown()
     }
 
     m_workers.clear();
+
+    // workers 已全部 join，无人再访问回收桶；清空释放桶内残留 MeshData 的 capacity。
+    m_recycleBuckets.clear();
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
@@ -207,12 +221,12 @@ void MeshWorkerPool::_workerLoop(i32 workerId)
         }
 
         m_runningTaskCount.fetch_add(1, std::memory_order::acq_rel);
-        _executeTask(task);
+        _executeTask(workerId, task);
         m_runningTaskCount.fetch_sub(1, std::memory_order::acq_rel);
     }
 }
 
-void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
+void MeshWorkerPool::_executeTask(i32 workerId, const MeshWorkerTask& task)
 {
     ChunkPos chunkPos(task.chunkId.x, task.chunkId.z);
     MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh,
@@ -224,8 +238,14 @@ void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
     MeshWorkerResult result;
     result.chunkId = task.chunkId;
     result.taskId = task.taskId;
+    result.workerId = workerId;
     result.success = false;
     result.cancelled = false;
+
+    // 从本 worker 的回收桶取出带历史 capacity 的 MeshData，避免每次从 0 重新 reserve。
+    // generateSplitMesh 内部的 clear()(只清 size)+ reserve()(capacity 足够时 no-op)会自动复用。
+    result.solidMesh = _acquireRecycled(workerId, false);
+    result.transparentMesh = _acquireRecycled(workerId, true);
 
     if (_isCancelled(task)) {
         result.cancelled = true;
@@ -263,6 +283,66 @@ void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
     {
         std::lock_guard<std::mutex> lock(m_completedMutex);
         m_completedQueue.push(std::move(result));
+    }
+}
+
+// ============================================================================
+// MeshData 回收池（free-list）
+// ============================================================================
+
+void MeshWorkerPool::recycle(i32 workerId, MeshData&& solid, MeshData&& transparent)
+{
+    // pool 未运行或 workerId 越界（老数据/边界）：直接析构释放，不进池。
+    // 右值参在函数返回时析构，Tracy 对其 vector 缓冲区发对应 free，正确。
+    if (!isRunning() || workerId < 0 || workerId >= static_cast<i32>(m_recycleBuckets.size())) {
+        return;
+    }
+
+    _recycleOne(workerId, false, std::move(solid));
+    _recycleOne(workerId, true, std::move(transparent));
+}
+
+MeshData MeshWorkerPool::_acquireRecycled(i32 workerId, bool transparent)
+{
+    if (workerId < 0 || workerId >= static_cast<i32>(m_recycleBuckets.size())) {
+        return {};
+    }
+
+    RecycleBucket& bucket = *m_recycleBuckets[workerId];
+    std::lock_guard<std::mutex> lock(bucket.mutex);
+    std::vector<MeshData>& slots = transparent ? bucket.transparentSlots : bucket.solidSlots;
+    if (slots.empty()) {
+        return {};
+    }
+    MeshData out = std::move(slots.back());
+    slots.pop_back();
+    return out;
+}
+
+void MeshWorkerPool::_recycleOne(i32 workerId, bool transparent, MeshData&& data)
+{
+    _shrinkIfBloated(data);
+
+    RecycleBucket& bucket = *m_recycleBuckets[workerId];
+    std::lock_guard<std::mutex> lock(bucket.mutex);
+    std::vector<MeshData>& slots = transparent ? bucket.transparentSlots : bucket.solidSlots;
+    if (slots.size() >= kRecycleSlotsPerBucket) {
+        // 桶满：不进池，data 在函数返回时析构释放。
+        return;
+    }
+    slots.push_back(std::move(data));
+}
+
+void MeshWorkerPool::_shrinkIfBloated(MeshData& data)
+{
+    // 两条件同时满足才 shrink：capacity 超阈值 且 远大于实际 size(4 倍以上)。
+    // 归还时 data 已 clear()(size=0)，条件退化为「超阈值即 shrink」——空壳不该带超大 capacity 入池。
+    // shrink_to_fit 会触发 Tracy 成对 free(旧大块)+alloc(新小块)，严格一对一，不变量保持。
+    if (data.vertices.capacity() > kMaxReuseVertexCapacity && data.vertices.capacity() > data.vertices.size() * 4) {
+        data.vertices.shrink_to_fit();
+    }
+    if (data.indices.capacity() > kMaxReuseIndexCapacity && data.indices.capacity() > data.indices.size() * 4) {
+        data.indices.shrink_to_fit();
     }
 }
 

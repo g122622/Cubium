@@ -555,7 +555,7 @@ void ClientApplication::update(f32 deltaTime)
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "UploadMeshes");
 
         auto& chunkRenderer = m_renderer->chunkRenderer();
-        m_world.forEachDirtyMesh([&chunkRenderer](const ChunkId& id, ClientChunk& chunk) {
+        m_world.forEachDirtyMesh([&chunkRenderer, this](const ChunkId& id, ClientChunk& chunk) {
             // 两层都为空时，清理 GPU 缓冲并结束本次更新。
             if (chunk.solidMesh.empty() && chunk.transparentMesh.empty()) {
                 chunkRenderer.removeChunk(id);
@@ -568,15 +568,13 @@ void ClientApplication::update(f32 deltaTime)
             if (result.success()) {
                 chunk.needsMeshUpdate = false;
 
-                // 上传成功后释放 CPU 侧网格缓存，避免与 GPU 数据重复占用内存。
+                // 上传成功后把 CPU 侧网格归还给原 worker 的回收桶，复用其 capacity，
+                // 避免下次构建从 0 重新 reserve。仅 clear()(保留 capacity)即可入池；
+                // 回收桶内 _shrinkIfBloated 会对异常膨胀的 capacity 做 shrink。
                 chunk.solidMesh.clear();
                 chunk.transparentMesh.clear();
-                // swap 临时对象以释放容量（等价 shrink_to_fit）。vertices/indices 使用
-                // ChunkMeshAlloc 追踪分配器，临时对象须为同类型才能 swap。
-                std::vector<Vertex, ChunkMeshAlloc<Vertex>>().swap(chunk.solidMesh.vertices);
-                std::vector<u32, ChunkMeshAlloc<u32>>().swap(chunk.solidMesh.indices);
-                std::vector<Vertex, ChunkMeshAlloc<Vertex>>().swap(chunk.transparentMesh.vertices);
-                std::vector<u32, ChunkMeshAlloc<u32>>().swap(chunk.transparentMesh.indices);
+                m_world.meshWorkerPool()->recycle(
+                    chunk.lastWorkerId, std::move(chunk.solidMesh), std::move(chunk.transparentMesh));
             } else {
                 spdlog::error("Failed to update chunk mesh: {}", result.error().toString());
             }
