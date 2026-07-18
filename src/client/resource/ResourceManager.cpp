@@ -460,6 +460,13 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
 
     spdlog::info("ResourceManager: {} appearances computed", m_blockAppearances.size());
 
+    // 外观已计算完毕，加载期中间缓存（未烘焙模型、已烘焙模型、方块状态定义）不再被运行时访问——
+    // 运行时渲染走 BlockModelCache::getBlockAppearance(stateId) 直接查 m_blockAppearances。
+    // 释放这三块以降低运行时驻留内存（合计数十~上百 MB）。
+    m_bakedModels.clear();
+    m_modelLoader.clearCache();
+    m_blockStateLoader.clearCache();
+
     return m_atlasResult;
 }
 
