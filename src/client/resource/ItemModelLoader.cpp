@@ -637,4 +637,9 @@ void ItemModelLoader::clearCache()
     m_bakedModels.clear();
 }
 
+void ItemModelLoader::clearUnbakedModels()
+{
+    m_unbakedModels.clear();
+}
+
 } // namespace mc::client::resource

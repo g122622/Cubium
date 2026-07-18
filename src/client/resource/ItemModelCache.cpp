@@ -57,6 +57,10 @@ bool ItemModelCache::initialize(const std::vector<ResourcePackPtr>& resourcePack
         spdlog::warn("ItemModelCache: loadAllModels failed: {}", preloadResult.error().message());
     }
 
+    // 预烘焙完成后释放未烘焙模型缓存：运行时只查 m_bakedModels，延迟兜底路径
+    // (bakeModel) 会按需重新 loadModel 回填，故 m_unbakedModels 已无驻留必要。
+    m_loader->clearUnbakedModels();
+
     return true;
 }
 

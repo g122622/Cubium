@@ -228,8 +228,20 @@ public:
 
     /**
      * @brief 清除缓存
+     *
+     * 同时清除未烘焙与已烘焙缓存（用于资源重载）。
      */
     void clearCache();
+
+    /**
+     * @brief 仅清除未烘焙模型缓存
+     *
+     * loadAllModels 预烘焙后，运行时 getModel/getItemModel 只查 m_bakedModels；
+     * 延迟兜底路径（bakeModel）会重新调 loadModel 从资源包按需回填 m_unbakedModels，
+     * 故预烘焙完成后可安全释放 m_unbakedModels 以降低运行时内存。
+     * 注意：不能误用 clearCache()，那会连 m_bakedModels 一起清空，导致运行时模型丢失。
+     */
+    void clearUnbakedModels();
 
 private:
     // 按值持有资源包列表（ResourcePackPtr 为 shared_ptr，拷贝增引用计数）。
