@@ -45,6 +45,8 @@ namespace {
 
 void addBuiltinFolderPackIfPresent(ResourceManager& resourceManager, const std::filesystem::path& builtinPackDir)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ClientApplication::addBuiltinFolderPackIfPresent");
+
     if (!std::filesystem::exists(builtinPackDir)) {
         spdlog::info("Built-in resource pack directory not found, skipping: {}", builtinPackDir.string());
         return;
@@ -64,6 +66,8 @@ void addBuiltinFolderPackIfPresent(ResourceManager& resourceManager, const std::
 
 Result<void> ClientApplication::initializeResources()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ClientApplication::initializeResources");
+
     // 1. 创建 ResourceManager 并首先添加内置资源包（最低优先级）
     m_resourceManager = std::make_unique<ResourceManager>();
 

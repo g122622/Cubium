@@ -22,9 +22,12 @@
  */
 
 #include "BlockStateLoader.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
+
+using namespace mc::trace;
 
 namespace {
 
@@ -77,6 +80,8 @@ namespace mc {
 
 Result<void> BlockStateLoader::loadFromResourcePack(IResourcePack& resourcePack)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "BlockStateLoader::loadFromResourcePack");
+
     // 列出所有方块状态文件
     auto result = resourcePack.listResources(resource::PackType::ClientResources, "minecraft/blockstates", "json");
 

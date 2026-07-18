@@ -22,11 +22,14 @@
  */
 
 #include "BlockModelLoader.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cctype>
 #include <nlohmann/json.hpp>
+
+using namespace mc::trace;
 
 namespace {
 
@@ -354,6 +357,8 @@ std::string BlockStateDefinition::_normalizeStateKey(std::string_view stateKey)
 
 Result<void> BlockModelLoader::loadFromResourcePack(IResourcePack& resourcePack)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "BlockModelLoader::loadFromResourcePack");
+
     auto result = resourcePack.listResources(resource::PackType::ClientResources, "minecraft/models/block", "json");
 
     if (result.failed()) {

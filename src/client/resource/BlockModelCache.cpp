@@ -26,7 +26,10 @@
 
 #include <spdlog/spdlog.h>
 
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+
+using namespace mc::trace;
 
 namespace mc {
 namespace {
@@ -73,6 +76,8 @@ std::map<std::string, std::string> parsePropertiesString(std::string_view proper
 
 bool BlockModelCache::initialize(ResourceManager& resourceManager)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "BlockModelCache::initialize");
+
     spdlog::info("Initializing BlockModelCache...");
 
     m_resourceManager = &resourceManager;

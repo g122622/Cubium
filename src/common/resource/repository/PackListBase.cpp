@@ -30,6 +30,8 @@
 #include <set>
 #include <shared_mutex>
 
+using namespace mc::trace;
+
 namespace mc::resource {
 
 namespace {
@@ -55,6 +57,8 @@ PackListBase::PackListBase(PackType defaultType)
 
 Result<size_t> PackListBase::scanDirectory(const std::filesystem::path& dir)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "PackListBase::scanDirectory");
+
     if (!std::filesystem::exists(dir)) {
         return static_cast<size_t>(0);
     }

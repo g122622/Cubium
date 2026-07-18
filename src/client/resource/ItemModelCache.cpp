@@ -23,8 +23,11 @@
 
 #include "ItemModelCache.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <spdlog/spdlog.h>
+
+using namespace mc::trace;
 
 namespace mc::client::resource {
 
@@ -39,6 +42,8 @@ bool ItemModelCache::initialize(const std::vector<ResourcePackPtr>& resourcePack
     if (m_initialized) {
         return true;
     }
+
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ItemModelCache::initialize");
 
     MC_ASSERT(!resourcePacks.empty());
 
