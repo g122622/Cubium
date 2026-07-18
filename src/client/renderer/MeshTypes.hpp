@@ -30,11 +30,10 @@
 
 namespace mc {
 
-#ifdef __APPLE__
+// 顶点位置/UV 用 f32：x/y/z 是区块局部坐标（0~256），大世界偏移由已是 f32 的推送常量
+// chunkRelativeOffset 承担（见 chunk.vert）。原 Windows 走 f64 仅因驱动双精度路径未带来精度
+// 收益（shader 第一行即 vec3(inPosition) 降为 f32），传输纯浪费，故统一为 f32。
 using VertexScalar = f32;
-#else
-using VertexScalar = f64;
-#endif
 
 // 区块网格缓冲区的追踪分配器：截获 vector 每次 allocate/deallocate（含 realloc 的
 // 成对 free+alloc），自动维持 Tracy 的「同一指针严格一对一 alloc/free」不变量。
@@ -48,13 +47,13 @@ using ChunkMeshAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkMesh">;
 // ============================================================================
 
 struct Vertex {
-    VertexScalar x = 0.0, y = 0.0, z = 0.0; // 位置
-    VertexScalar u = 0.0, v = 0.0;          // 纹理坐标
-    u32 color = 0xFFFFFFFF;                 // 顶点颜色 (RGBA)
-    u8 light = 255;                         // 光照 (R8_UNORM 编码，0-255)
+    VertexScalar x = 0.0f, y = 0.0f, z = 0.0f; // 位置
+    VertexScalar u = 0.0f, v = 0.0f;           // 纹理坐标
+    u32 color = 0xFFFFFFFF;                    // 顶点颜色 (RGBA)
+    u8 light = 255;                            // 光照 (R8_UNORM 编码，0-255)
 
     Vertex() = default;
-    Vertex(f64 px, f64 py, f64 pz, f64 tu, f64 tv, u32 col, u8 l)
+    Vertex(VertexScalar px, VertexScalar py, VertexScalar pz, VertexScalar tu, VertexScalar tv, u32 col, u8 l)
         : x(px)
         , y(py)
         , z(pz)
@@ -99,7 +98,7 @@ constexpr u32 INDICES_PER_FACE = 6;
 [[nodiscard]] std::array<f64, 12> getFaceVertices(Face face);
 
 // 获取标准面的索引 (两个三角形)
-[[nodiscard]] std::array<u32, 6> getFaceIndices();
+[[nodiscard]] std::array<u16, 6> getFaceIndices();
 
 // 获取面的方向向量 (用于邻居检测)
 [[nodiscard]] std::array<i32, 3> getFaceDirection(Face face);
@@ -115,7 +114,7 @@ constexpr u32 INDICES_PER_FACE = 6;
 
 struct MeshData {
     std::vector<Vertex, ChunkMeshAlloc<Vertex>> vertices;
-    std::vector<u32, ChunkMeshAlloc<u32>> indices;
+    std::vector<u16, ChunkMeshAlloc<u16>> indices;
 
     void clear()
     {
@@ -136,7 +135,7 @@ struct MeshData {
     [[nodiscard]] size_t indexCount() const { return indices.size(); }
 
     // 添加一个面 (4个顶点 + 6个索引)
-    void addFace(const std::array<Vertex, 4>& faceVertices, u32 baseIndex);
+    void addFace(const std::array<Vertex, 4>& faceVertices, u16 baseIndex);
 };
 
 // ============================================================================

@@ -73,7 +73,7 @@ std::array<f64, 12> getFaceVertices(Face face)
     }
 }
 
-std::array<u32, 6> getFaceIndices()
+std::array<u16, 6> getFaceIndices()
 {
     // 两个三角形组成一个四边形
     // 顶点顺序: 0-1-2, 0-2-3
@@ -113,7 +113,7 @@ bool shouldRenderFace(Face face, bool neighborOpaque)
 // MeshData 实现
 // ============================================================================
 
-void MeshData::addFace(const std::array<Vertex, 4>& faceVertices, u32 baseIndex)
+void MeshData::addFace(const std::array<Vertex, 4>& faceVertices, u16 baseIndex)
 {
     // 添加顶点
     for (const auto& v : faceVertices) {
@@ -122,8 +122,8 @@ void MeshData::addFace(const std::array<Vertex, 4>& faceVertices, u32 baseIndex)
 
     // 添加索引
     auto faceIndices = BlockGeometry::getFaceIndices();
-    for (u32 idx : faceIndices) {
-        indices.push_back(baseIndex + idx);
+    for (u16 idx : faceIndices) {
+        indices.push_back(static_cast<u16>(baseIndex + idx));
     }
 }
 

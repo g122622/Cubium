@@ -338,7 +338,7 @@ TEST(BlockGeometry, FaceIndices)
     EXPECT_EQ(indices.size(), 6u); // 2三角形 * 3索引
 
     // 索引应该在0-3范围内
-    for (u32 idx : indices) {
+    for (u16 idx : indices) {
         EXPECT_LT(idx, 4u);
     }
 

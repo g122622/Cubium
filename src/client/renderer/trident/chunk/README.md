@@ -51,3 +51,6 @@ flowchart TD
 - **贪婪网格 AO 回退**：贪婪网格在平滑 AO 路径会回退到逐面路径，这是预期行为，不是 bug。
 - **液体面剔除逻辑**：液体面剔除不能只看透明度；像海草、海带茎这类没有实体碰撞体积的水下植物也要吞掉相邻水面，否则会出现多余的水贴图边缘。
 - **默认着色颜色**：`ChunkMesher::getDefaultBlockTintColor()` 用于没有世界/位置信息时的颜色解析（如末馆人持有方块），参考 MC 1.16.5 `BlockColors.getColor(state, null, null, 0)`。
+- **顶点/索引格式**：`Vertex` 用 f32（位置+UV，28B/顶点），`MeshData::indices` 用 u16。单区块顶点数上限远低于 65535，u16 安全；改大区块尺寸或放开 reserve 上限时须复核。顶点位置是区块局部坐标，大世界偏移由 f32 推送常量 `chunkRelativeOffset` 承担，不要再改回 f64。
+- **GPU 缓冲区容量池**：`ChunkRenderer` 用 free-list 复用冷却完成的 buffer（`_acquireFromFreeList`/`_releaseToFreeList`）。旧 buffer 先入 `m_pendingDestroys` 冷却 `framesToKeep` 帧（等在飞帧 draw 完成），到期后转入 free-list 供 best-fit 复用，而非直接销毁。`m_pendingDestroysMutex` 是 `std::recursive_mutex`（`processPendingDestroys` 持锁调 `_releaseToFreeList`），free-list 与 pending 共用此锁。改 `_createChunkBuffer` 时注意：复用路径不发 `trackGpuAlloc`（在 `_acquireFromFreeList` 内发），失败清理走 `buffer.destroy`。
+- **Tracy GPU 内存追踪权转移**：buffer 句柄跨对象流转（活跃→pending→free-list→复用活跃）时，Tracy 的 alloc/free 绑定在"当前持有句柄对象的 `&vertexMemory`/`&indexMemory` 地址"上，每次跨对象转移必须 free 旧地址 + alloc 新地址，否则触发 `MemAllocTwice`/`MemFree` 硬失败。`size` 记 capacity（请求 size）。

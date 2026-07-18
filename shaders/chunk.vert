@@ -3,13 +3,8 @@
 // 区块顶点着色器
 
 // 顶点输入 - 与Vertex结构匹配
-#ifdef __APPLE__
 layout(location = 0) in vec3 inPosition;
 layout(location = 4) in vec2 inTexCoord;
-#else
-layout(location = 0) in dvec3 inPosition;
-layout(location = 4) in dvec2 inTexCoord;
-#endif
 layout(location = 5) in vec4 inColor;
 layout(location = 6) in uint inLight;
 
@@ -39,14 +34,15 @@ out gl_PerVertex {
 };
 
 void main() {
-    // 在 CPU 侧预先计算区块相对相机偏移，避免 dvec 推送常量在部分驱动上的不稳定行为。
-    vec3 relativePos = vec3(inPosition) + pc.chunkRelativeOffset.xyz;
+    // 在 CPU 侧预先计算区块相对相机偏移。顶点位置是区块局部坐标（0~256），与 f32 推送常量
+    // chunkRelativeOffset 相加得到相对相机的世界坐标，避免大世界坐标精度问题。
+    vec3 relativePos = inPosition + pc.chunkRelativeOffset.xyz;
 
     mat4 viewNoTranslation = camera.view;
     viewNoTranslation[3] = vec4(0.0, 0.0, 0.0, 1.0);
 
     gl_Position = camera.projection * viewNoTranslation * pc.model * vec4(relativePos, 1.0);
-    fragTexCoord = vec2(inTexCoord);
+    fragTexCoord = inTexCoord;
     fragColor = inColor;
     fragSkyLight = float((inLight >> 4) & 0xFu) / 15.0;
     fragBlockLight = float(inLight & 0xFu) / 15.0;

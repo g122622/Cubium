@@ -505,23 +505,23 @@ void emitLiquidFace(MeshData& mesh,
 
         std::array<Vertex, 4> faceVerts;
         for (size_t i = 0; i < 4; ++i) {
-            faceVerts[i] = Vertex(x + faceVertices[i * 3 + 0] + faceNormal[0] * layerOffset,
-                y + faceVertices[i * 3 + 1] + faceNormal[1] * layerOffset,
-                z + faceVertices[i * 3 + 2] + faceNormal[2] * layerOffset,
-                uvs[i][0],
-                uvs[i][1],
+            faceVerts[i] = Vertex(static_cast<f32>(x + faceVertices[i * 3 + 0] + faceNormal[0] * layerOffset),
+                static_cast<f32>(y + faceVertices[i * 3 + 1] + faceNormal[1] * layerOffset),
+                static_cast<f32>(z + faceVertices[i * 3 + 2] + faceNormal[2] * layerOffset),
+                static_cast<f32>(uvs[i][0]),
+                static_cast<f32>(uvs[i][1]),
                 shadedColor,
                 packedLight);
         }
 
-        u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+        u16 baseIndex = static_cast<u16>(mesh.vertices.size());
         for (const auto& vertex : faceVerts) {
             mesh.vertices.push_back(vertex);
         }
 
         const auto indices = BlockGeometry::getFaceIndices();
-        for (u32 index : indices) {
-            mesh.indices.push_back(baseIndex + index);
+        for (u16 index : indices) {
+            mesh.indices.push_back(static_cast<u16>(baseIndex + index));
         }
     }
 }
@@ -1165,24 +1165,24 @@ void ChunkMesher::_addFaceFromAppearance(MeshData& mesh,
 
         std::array<Vertex, 4> faceVerts;
         for (size_t i = 0; i < 4; ++i) {
-            faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
-                y + vertices[i * 3 + 1] + normal[1] * layerOffset,
-                z + vertices[i * 3 + 2] + normal[2] * layerOffset,
-                uvs[i][0],
-                uvs[i][1],
+            faceVerts[i] = Vertex(static_cast<f32>(x + vertices[i * 3 + 0] + normal[0] * layerOffset),
+                static_cast<f32>(y + vertices[i * 3 + 1] + normal[1] * layerOffset),
+                static_cast<f32>(z + vertices[i * 3 + 2] + normal[2] * layerOffset),
+                static_cast<f32>(uvs[i][0]),
+                static_cast<f32>(uvs[i][1]),
                 shadedColor,
                 packedLight);
         }
 
         // 添加顶点和索引
-        u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+        u16 baseIndex = static_cast<u16>(mesh.vertices.size());
         for (const auto& v : faceVerts) {
             mesh.vertices.push_back(v);
         }
 
         auto indices = BlockGeometry::getFaceIndices();
-        for (u32 idx : indices) {
-            mesh.indices.push_back(baseIndex + idx);
+        for (u16 idx : indices) {
+            mesh.indices.push_back(static_cast<u16>(baseIndex + idx));
         }
     }
 }
@@ -1315,24 +1315,24 @@ void ChunkMesher::_addFaceFromAppearanceSmooth(MeshData& mesh,
             const f32 finalShade = std::clamp(ao * faceShade, 0.0f, 1.0f);
             const u32 color = applyBlockAlpha(applyShadeToPackedColor(tintColor, finalShade), block);
 
-            faceVerts[i] = Vertex(x + vertices[i * 3 + 0] + normal[0] * layerOffset,
-                y + vertices[i * 3 + 1] + normal[1] * layerOffset,
-                z + vertices[i * 3 + 2] + normal[2] * layerOffset,
-                uvs[i][0],
-                uvs[i][1],
+            faceVerts[i] = Vertex(static_cast<f32>(x + vertices[i * 3 + 0] + normal[0] * layerOffset),
+                static_cast<f32>(y + vertices[i * 3 + 1] + normal[1] * layerOffset),
+                static_cast<f32>(z + vertices[i * 3 + 2] + normal[2] * layerOffset),
+                static_cast<f32>(uvs[i][0]),
+                static_cast<f32>(uvs[i][1]),
                 color,
                 packedLight);
         }
 
         // 添加顶点和索引
-        u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+        u16 baseIndex = static_cast<u16>(mesh.vertices.size());
         for (const auto& v : faceVerts) {
             mesh.vertices.push_back(v);
         }
 
         auto indices = BlockGeometry::getFaceIndices();
-        for (u32 idx : indices) {
-            mesh.indices.push_back(baseIndex + idx);
+        for (u16 idx : indices) {
+            mesh.indices.push_back(static_cast<u16>(baseIndex + idx));
         }
     }
 }
@@ -1427,23 +1427,23 @@ void ChunkMesher::_addCrossedPlantGeometry(MeshData& mesh,
             std::array<Vertex, 4> verts;
             for (size_t i = 0; i < 4; ++i) {
                 const size_t src = reverse ? (3 - i) : i;
-                verts[i] = Vertex(positions[src][0] + normal[0] * layerOffset,
-                    positions[src][1] + normal[1] * layerOffset,
-                    positions[src][2] + normal[2] * layerOffset,
-                    uvs[i][0],
-                    uvs[i][1],
+                verts[i] = Vertex(static_cast<f32>(positions[src][0] + normal[0] * layerOffset),
+                    static_cast<f32>(positions[src][1] + normal[1] * layerOffset),
+                    static_cast<f32>(positions[src][2] + normal[2] * layerOffset),
+                    static_cast<f32>(uvs[i][0]),
+                    static_cast<f32>(uvs[i][1]),
                     color,
                     packedLight);
             }
 
-            const u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+            const u16 baseIndex = static_cast<u16>(mesh.vertices.size());
             for (const auto& v : verts) {
                 mesh.vertices.push_back(v);
             }
 
             const auto indices = BlockGeometry::getFaceIndices();
-            for (u32 idx : indices) {
-                mesh.indices.push_back(baseIndex + idx);
+            for (u16 idx : indices) {
+                mesh.indices.push_back(static_cast<u16>(baseIndex + idx));
             }
         };
 
@@ -1624,23 +1624,23 @@ void ChunkMesher::_addShapeGeometryFromAppearance(MeshData& mesh,
 
             std::array<Vertex, 4> faceVerts;
             for (size_t i = 0; i < 4; ++i) {
-                faceVerts[i] = Vertex(positions[i][0] + normal[0] * layerOffset,
-                    positions[i][1] + normal[1] * layerOffset,
-                    positions[i][2] + normal[2] * layerOffset,
-                    uvs[i][0],
-                    uvs[i][1],
+                faceVerts[i] = Vertex(static_cast<f32>(positions[i][0] + normal[0] * layerOffset),
+                    static_cast<f32>(positions[i][1] + normal[1] * layerOffset),
+                    static_cast<f32>(positions[i][2] + normal[2] * layerOffset),
+                    static_cast<f32>(uvs[i][0]),
+                    static_cast<f32>(uvs[i][1]),
                     shadedColor,
                     packedLight);
             }
 
-            const u32 baseIndex = static_cast<u32>(mesh.vertices.size());
+            const u16 baseIndex = static_cast<u16>(mesh.vertices.size());
             for (const auto& vert : faceVerts) {
                 mesh.vertices.push_back(vert);
             }
 
             const auto indices = BlockGeometry::getFaceIndices();
-            for (u32 idx : indices) {
-                mesh.indices.push_back(baseIndex + idx);
+            for (u16 idx : indices) {
+                mesh.indices.push_back(static_cast<u16>(baseIndex + idx));
             }
         }
     }
@@ -2222,23 +2222,23 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
 
             std::array<Vertex, 4> faceVerts;
             for (size_t i = 0; i < 4; ++i) {
-                faceVerts[i] = Vertex(positions[i][0] + normal[0] * layerOffset,
-                    positions[i][1] + normal[1] * layerOffset,
-                    positions[i][2] + normal[2] * layerOffset,
-                    uvs[i][0],
-                    uvs[i][1],
+                faceVerts[i] = Vertex(static_cast<f32>(positions[i][0] + normal[0] * layerOffset),
+                    static_cast<f32>(positions[i][1] + normal[1] * layerOffset),
+                    static_cast<f32>(positions[i][2] + normal[2] * layerOffset),
+                    static_cast<f32>(uvs[i][0]),
+                    static_cast<f32>(uvs[i][1]),
                     color,
                     packedLight);
             }
 
-            const u32 baseIndex = static_cast<u32>(outMesh.vertices.size());
+            const u16 baseIndex = static_cast<u16>(outMesh.vertices.size());
             for (const auto& vert : faceVerts) {
                 outMesh.vertices.push_back(vert);
             }
 
             const auto indices = BlockGeometry::getFaceIndices();
-            for (u32 idx : indices) {
-                outMesh.indices.push_back(baseIndex + idx);
+            for (u16 idx : indices) {
+                outMesh.indices.push_back(static_cast<u16>(baseIndex + idx));
             }
         }
     };

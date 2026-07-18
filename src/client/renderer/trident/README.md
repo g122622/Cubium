@@ -154,9 +154,9 @@ TridentEngine（主引擎）
 
 ### 区块网格内存泄漏
 
-**问题**：频繁加载/卸载区块可能导致内存增长。
+**问题**：频繁加载/卸载区块可能导致内存增长；每次 `updateChunk` 新建 GPU buffer、旧 buffer 延迟销毁，峰期新旧共存会令显存翻倍。
 
-**解决**：使用对象池管理 GPU 缓冲区，ChunkRenderer 应使用缓冲区池。
+**解决**：`ChunkRenderer` 已实现 free-list 容量池（见 chunk/README.md）——冷却完成的 buffer 按容量入池，下次 `updateChunk` 优先 best-fit 复用整 buffer，避免重复 `vkAllocateMemory` 与峰期翻倍。顶点格式统一为 f32（28B/顶点）、索引用 u16，进一步压低稳态显存。
 
 ### 验证层性能影响
 
