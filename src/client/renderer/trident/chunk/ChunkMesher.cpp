@@ -180,12 +180,12 @@ struct CachedLiquidFaceLayers {
 };
 
 struct LiquidFaceLayerCacheState {
-    ResourceManager* resourceManager = nullptr;
+    BlockModelCache* modelCache = nullptr;
     std::unordered_map<const BlockState*, CachedLiquidFaceLayers> layersByBlockState;
 
-    void reset(ResourceManager* currentResourceManager)
+    void reset(BlockModelCache* currentModelCache)
     {
-        resourceManager = currentResourceManager;
+        modelCache = currentModelCache;
         layersByBlockState.clear();
     }
 };
@@ -225,13 +225,12 @@ thread_local LiquidFaceLayerCacheState t_liquidFaceLayerCache;
     }
 
     BlockModelCache* modelCache = ChunkMesher::modelCache();
-    if (modelCache == nullptr || modelCache->resourceManager() == nullptr) {
+    if (modelCache == nullptr) {
         return {};
     }
 
-    ResourceManager* resourceManager = modelCache->resourceManager();
-    if (t_liquidFaceLayerCache.resourceManager != resourceManager) {
-        t_liquidFaceLayerCache.reset(resourceManager);
+    if (t_liquidFaceLayerCache.modelCache != modelCache) {
+        t_liquidFaceLayerCache.reset(modelCache);
     }
 
     auto cacheIt = t_liquidFaceLayerCache.layersByBlockState.find(block);
@@ -248,8 +247,9 @@ thread_local LiquidFaceLayerCacheState t_liquidFaceLayerCache;
         const ResourceLocation stillTexture(blockLocation.namespace_(), "textures/block/" + stillName);
         const ResourceLocation flowTexture(blockLocation.namespace_(), "textures/block/" + flowName);
 
-        const TextureRegion* stillRegion = resourceManager->getTextureRegion(stillTexture);
-        const TextureRegion* flowRegion = resourceManager->getTextureRegion(flowTexture);
+        // 液体纹理区域查 AtlasManager 的 blocks atlas regions（经 BlockModelCache 回调透传）
+        const TextureRegion* stillRegion = modelCache->regionLookup(stillTexture);
+        const TextureRegion* flowRegion = modelCache->regionLookup(flowTexture);
 
         if (stillRegion == nullptr) {
             stillRegion = flowRegion;

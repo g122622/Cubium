@@ -10,8 +10,8 @@ layout(location = 2) in float fragViewDistance;
 
 layout(location = 0) out vec4 outColor;
 
-// 描述符集 1 - 破坏纹理图集采样器
-// 图集布局：2行5列，共10个阶段（destroy_stage_0 ~ destroy_stage_9）
+// 描述符集 1 - 破坏纹理采样器（blocks atlas）
+// 每个 destroy_stage_N sprite 的 UV 已在 CPU 端烘进顶点，fragTexCoord 即绝对 UV。
 layout(set = 1, binding = 0) uniform sampler2D breakAtlas;
 
 // 描述符集 2 - 雾 UBO
@@ -23,33 +23,16 @@ layout(set = 2, binding = 0) uniform FogUBO {
     vec4 fogColor;
 } fog;
 
-// 推送常量 - 与顶点着色器共享
+// 推送常量 - 与顶点着色器共享（仅 blockPos，破坏阶段已烘进 UV）
 layout(push_constant) uniform PushConstants {
     vec3 blockPos;
-    float damageStage;  // 0-9
+    float pad;
 } pc;
 
 void main() {
-    // 计算破坏阶段对应的UV坐标
-    // 图集布局：2行5列
-    // 阶段 0-4 在第一行，阶段 5-9 在第二行
-    int stage = int(pc.damageStage);
-    int col = stage % 5;
-    int row = stage / 5;
-
-    // 每个单元的UV尺寸
-    float cellWidth = 1.0 / 5.0;
-    float cellHeight = 1.0 / 2.0;
-
-    // 计算该阶段的UV起点
-    float u0 = float(col) * cellWidth;
-    float v0 = float(row) * cellHeight;
-
-    // 计算最终UV坐标
-    vec2 uv = vec2(u0 + fragTexCoord.x * cellWidth, v0 + fragTexCoord.y * cellHeight);
-
-    // 采样破坏纹理
-    vec4 breakColor = texture(breakAtlas, uv);
+    // 破坏阶段 UV 已在 CPU 端按 block/destroy_stage_<stage> 区域烘进顶点，
+    // 直接用 fragTexCoord 采样 blocks atlas。
+    vec4 breakColor = texture(breakAtlas, fragTexCoord);
 
     // 破坏纹理是黑色裂纹，alpha表示可见度
     // 最终颜色 = 原色 * (1 - alpha) + 黑色 * alpha

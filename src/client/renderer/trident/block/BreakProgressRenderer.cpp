@@ -25,12 +25,9 @@
 #include "BreakProgressManager.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
-#include "client/resource/DestroyStageTextures.hpp"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -100,10 +97,10 @@ bool BreakProgressRenderer::initialize(const Config& config, VkSampleCountFlagBi
         return false;
     }
 
-    // 上传纹理图集
-    if (!_uploadTextureAtlas()) {
-        spdlog::error("BreakProgressRenderer: Failed to upload texture atlas");
-        return false;
+    // 纹理由 setBlockAtlas / setStageRegionLookup 在 AtlasManager 加载 blocks atlas 后注入。
+    // 若此时已注入 blocks atlas 句柄则立即写入描述符。
+    if (m_blockImageView != VK_NULL_HANDLE && m_blockSampler != VK_NULL_HANDLE) {
+        _writeBlockAtlasDescriptor(m_blockImageView, m_blockSampler);
     }
 
     m_initialized = true;
@@ -122,49 +119,35 @@ void BreakProgressRenderer::cleanup()
     // 等待设备空闲
     vkDeviceWaitIdle(device);
 
-    // 销毁纹理资源
-    vkDestroySampler(device, m_textureSampler, nullptr);
-    m_textureSampler = VK_NULL_HANDLE;
-    vkDestroyImageView(device, m_textureImageView, nullptr);
-    m_textureImageView = VK_NULL_HANDLE;
-    vkDestroyImage(device, m_textureImage, nullptr);
-    m_textureImage = VK_NULL_HANDLE;
-    vkFreeMemory(device, m_textureImageMemory, nullptr);
-    m_textureImageMemory = VK_NULL_HANDLE;
-
-    // 销毁暂存缓冲区
-    vkDestroyBuffer(device, m_stagingBuffer, nullptr);
-    m_stagingBuffer = VK_NULL_HANDLE;
-    vkFreeMemory(device, m_stagingBufferMemory, nullptr);
-    m_stagingBufferMemory = VK_NULL_HANDLE;
-
-    // 销毁顶点缓冲区
+    // 顶点缓冲区
     vkDestroyBuffer(device, m_vertexBuffer, nullptr);
     m_vertexBuffer = VK_NULL_HANDLE;
     vkFreeMemory(device, m_vertexBufferMemory, nullptr);
     m_vertexBufferMemory = VK_NULL_HANDLE;
 
-    // 销毁索引缓冲区
+    // 索引缓冲区
     vkDestroyBuffer(device, m_indexBuffer, nullptr);
     m_indexBuffer = VK_NULL_HANDLE;
     vkFreeMemory(device, m_indexBufferMemory, nullptr);
     m_indexBufferMemory = VK_NULL_HANDLE;
 
-    // 销毁描述符
+    // 描述符（纹理图集 view/sampler 由 AtlasManager 拥有，不在此释放）
     m_descriptorSet = VK_NULL_HANDLE;
     vkDestroyDescriptorPool(device, m_descriptorPool, nullptr);
     m_descriptorPool = VK_NULL_HANDLE;
     vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
     m_descriptorSetLayout = VK_NULL_HANDLE;
 
-    // 销毁管线
+    // 管线
     vkDestroyPipeline(device, m_pipeline, nullptr);
     m_pipeline = VK_NULL_HANDLE;
     vkDestroyPipelineLayout(device, m_pipelineLayout, nullptr);
     m_pipelineLayout = VK_NULL_HANDLE;
 
-    // 清理纹理资源
-    DestroyStageTextures::instance().cleanup();
+    // 清理注入的引用（不释放 GPU 资源，所有权归 AtlasManager）
+    m_blockImageView = VK_NULL_HANDLE;
+    m_blockSampler = VK_NULL_HANDLE;
+    m_stageRegionLookup = nullptr;
 
     m_initialized = false;
     spdlog::info("BreakProgressRenderer: Cleaned up");
@@ -212,14 +195,24 @@ void BreakProgressRenderer::updateMesh(const Vector3& cameraPos)
         return;
     }
 
-    // 生成顶点数据（局部坐标）
+    // 生成顶点数据（局部坐标 + 按破坏阶段烘焙的 UV）
     std::vector<Vertex> vertices;
     std::vector<u32> indices;
     vertices.reserve(requiredVertices);
     indices.reserve(requiredIndices);
 
+    // UV 兜底区域：regionLookup 未注入或查不到时用全区域（采样结果会是某个实际 sprite 或
+    // blocks atlas 左上角像素，仍可渲染，不会越界）。
+    const TextureRegion fallbackRegion(0.0, 0.0, 1.0, 1.0);
+
     for (size_t i = 0; i < m_progressEntries.size(); ++i) {
-        _generateCubeMesh(i, vertices, indices);
+        const u8 stage = m_progressEntries[i].stage;
+        const TextureRegion* stageRegion = nullptr;
+        if (m_stageRegionLookup) {
+            stageRegion = m_stageRegionLookup(stage);
+        }
+        const TextureRegion& region = (stageRegion != nullptr) ? *stageRegion : fallbackRegion;
+        _generateCubeMesh(i, region, vertices, indices);
     }
 
     // 更新缓冲区
@@ -268,9 +261,10 @@ void BreakProgressRenderer::render(
     vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     // 推送常量结构体（与着色器匹配）
+    // vec3 blockPos + pad → 16 字节。破坏阶段 UV 已烘进顶点，不再传 damageStage。
     struct PushConstants {
         f32 blockPosX, blockPosY, blockPosZ;
-        f32 damageStage;
+        f32 pad;
     };
 
     // 为每个破坏进度设置推送常量并绘制
@@ -279,7 +273,7 @@ void BreakProgressRenderer::render(
         pc.blockPosX = static_cast<f32>(entry.position.x);
         pc.blockPosY = static_cast<f32>(entry.position.y);
         pc.blockPosZ = static_cast<f32>(entry.position.z);
-        pc.damageStage = static_cast<f32>(entry.stage);
+        pc.pad = 0.0f;
 
         vkCmdPushConstants(commandBuffer,
             m_pipelineLayout,
@@ -473,7 +467,7 @@ bool BreakProgressRenderer::_createPipeline(VkSampleCountFlagBits sampleCount)
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(f32) * 4; // vec3 blockPos + float damageStage
+    pushConstantRange.size = sizeof(f32) * 4; // vec3 blockPos + pad（破坏阶段 UV 已烘进顶点）
 
     // 创建纹理描述符布局
     VkDescriptorSetLayoutBinding textureBinding{};
@@ -630,186 +624,32 @@ bool BreakProgressRenderer::_createDescriptorSets()
     return true;
 }
 
-bool BreakProgressRenderer::_uploadTextureAtlas()
+// ============================================================================
+// blocks atlas 注入
+// ============================================================================
+
+void BreakProgressRenderer::setBlockAtlas(VkImageView imageView, VkSampler sampler)
 {
-    auto& textures = DestroyStageTextures::instance();
+    m_blockImageView = imageView;
+    m_blockSampler = sampler;
 
-    // 初始化纹理资源（使用 ResourceManager 加载资源包纹理）
-    if (!textures.initialize(m_config.resourceManager)) {
-        spdlog::error("BreakProgressRenderer: Failed to initialize destroy stage textures");
-        return false;
+    // 若已初始化则立即（重）写描述符；否则在 initialize 末尾按已注入句柄写入。
+    if (m_initialized && m_descriptorSet != VK_NULL_HANDLE && imageView != VK_NULL_HANDLE &&
+        sampler != VK_NULL_HANDLE) {
+        _writeBlockAtlasDescriptor(imageView, sampler);
+    }
+}
+
+void BreakProgressRenderer::_writeBlockAtlasDescriptor(VkImageView imageView, VkSampler sampler)
+{
+    if (m_descriptorSet == VK_NULL_HANDLE || imageView == VK_NULL_HANDLE || sampler == VK_NULL_HANDLE) {
+        return;
     }
 
-    const auto& atlasData = textures.getAtlasData();
-    u32 width = textures.atlasWidth();
-    u32 height = textures.atlasHeight();
-
-    spdlog::info("BreakProgressRenderer: Uploading texture atlas ({}x{})", width, height);
-
-    // 创建暂存缓冲区
-    VkDeviceSize imageSize = width * height * 4;
-
-    auto stagingResult = ::mc::client::renderer::VulkanUtils::createBuffer(m_config.device,
-        m_config.physicalDevice,
-        imageSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_stagingBuffer,
-        m_stagingBufferMemory);
-
-    if (!stagingResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to create staging buffer: {}", stagingResult.error().message());
-        return false;
-    }
-
-    // 复制数据到暂存缓冲区
-    void* data = nullptr;
-    const VkResult mapResult = vkMapMemory(m_config.device, m_stagingBufferMemory, 0, imageSize, 0, &data);
-    if (mapResult != VK_SUCCESS || data == nullptr) {
-        vkDestroyBuffer(m_config.device, m_stagingBuffer, nullptr);
-        vkFreeMemory(m_config.device, m_stagingBufferMemory, nullptr);
-        spdlog::error("BreakProgressRenderer: Failed to map staging buffer memory: {}", static_cast<i32>(mapResult));
-        return false;
-    }
-    std::memcpy(data, atlasData.data(), imageSize);
-    vkUnmapMemory(m_config.device, m_stagingBufferMemory);
-
-    // 创建图像
-    auto imageResult = ::mc::client::renderer::VulkanUtils::createImage(m_config.device,
-        m_config.physicalDevice,
-        width,
-        height,
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_textureImage,
-        m_textureImageMemory);
-
-    if (!imageResult.success()) {
-        spdlog::error("BreakProgressRenderer: Failed to create texture image: {}", imageResult.error().message());
-        return false;
-    }
-
-    // 转换图像布局并复制
-    VkCommandBufferAllocateInfo cmdAllocInfo{};
-    cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAllocInfo.commandPool = m_config.commandPool;
-    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdAllocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer cmd;
-    vkAllocateCommandBuffers(m_config.device, &cmdAllocInfo, &cmd);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmd, &beginInfo);
-
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = m_textureImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
-        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
-
-    vkCmdCopyBufferToImage(cmd, m_stagingBuffer, m_textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-    vkCmdPipelineBarrier(cmd,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &barrier);
-
-    vkEndCommandBuffer(cmd);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
-
-    vkQueueSubmit(m_config.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(m_config.graphicsQueue);
-
-    vkFreeCommandBuffers(m_config.device, m_config.commandPool, 1, &cmd);
-
-    // 创建图像视图
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = m_textureImage;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-
-    if (vkCreateImageView(m_config.device, &viewInfo, nullptr, &m_textureImageView) != VK_SUCCESS) {
-        return false;
-    }
-
-    // 创建采样器
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxAnisotropy = 1.0f;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-
-    if (vkCreateSampler(m_config.device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
-        return false;
-    }
-
-    // 更新描述符集
     VkDescriptorImageInfo descriptorImageInfo{};
     descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    descriptorImageInfo.imageView = m_textureImageView;
-    descriptorImageInfo.sampler = m_textureSampler;
+    descriptorImageInfo.imageView = imageView;
+    descriptorImageInfo.sampler = sampler;
 
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -821,9 +661,6 @@ bool BreakProgressRenderer::_uploadTextureAtlas()
     descriptorWrite.pImageInfo = &descriptorImageInfo;
 
     vkUpdateDescriptorSets(m_config.device, 1, &descriptorWrite, 0, nullptr);
-
-    spdlog::info("BreakProgressRenderer: Texture atlas uploaded");
-    return true;
 }
 
 // ============================================================================
@@ -831,7 +668,7 @@ bool BreakProgressRenderer::_uploadTextureAtlas()
 // ============================================================================
 
 void BreakProgressRenderer::_generateCubeMesh(
-    size_t cubeIndex, std::vector<Vertex>& vertices, std::vector<u32>& indices)
+    size_t cubeIndex, const TextureRegion& stageRegion, std::vector<Vertex>& vertices, std::vector<u32>& indices)
 {
     // 生成立方体顶点（局部坐标 0-1 范围）
     // 方块位置通过 push constants 传入着色器
@@ -840,42 +677,49 @@ void BreakProgressRenderer::_generateCubeMesh(
     constexpr f32 x0 = -EXPAND, y0 = -EXPAND, z0 = -EXPAND;
     constexpr f32 x1 = 1.0f + EXPAND, y1 = 1.0f + EXPAND, z1 = 1.0f + EXPAND;
 
-    // 6个面，每面4个顶点
+    // 把该破坏阶段在 blocks atlas 中的 UV 区域映射到每面 0..1 局部 UV。
+    const f32 u0 = static_cast<f32>(stageRegion.u0);
+    const f32 u1 = static_cast<f32>(stageRegion.u1);
+    const f32 v0 = static_cast<f32>(stageRegion.v0);
+    const f32 v1 = static_cast<f32>(stageRegion.v1);
+
+    // 局部 UV (lu, lv) ∈ {0,1} → 绝对 UV = u0 + lu*(u1-u0), v0 + lv*(v1-v0)
+    // 6个面，每面4个顶点。UV 顺序与原 0..1 布局一致（保持朝向不变）。
     // 底面 (y = y0)
-    vertices.push_back({x0, y0, z0, 0.0f, 0.0f});
-    vertices.push_back({x1, y0, z0, 1.0f, 0.0f});
-    vertices.push_back({x1, y0, z1, 1.0f, 1.0f});
-    vertices.push_back({x0, y0, z1, 0.0f, 1.0f});
+    vertices.push_back({x0, y0, z0, u0, v0});
+    vertices.push_back({x1, y0, z0, u1, v0});
+    vertices.push_back({x1, y0, z1, u1, v1});
+    vertices.push_back({x0, y0, z1, u0, v1});
 
     // 顶面 (y = y1)
-    vertices.push_back({x0, y1, z0, 0.0f, 0.0f});
-    vertices.push_back({x0, y1, z1, 1.0f, 0.0f});
-    vertices.push_back({x1, y1, z1, 1.0f, 1.0f});
-    vertices.push_back({x1, y1, z0, 0.0f, 1.0f});
+    vertices.push_back({x0, y1, z0, u0, v0});
+    vertices.push_back({x0, y1, z1, u1, v0});
+    vertices.push_back({x1, y1, z1, u1, v1});
+    vertices.push_back({x1, y1, z0, u0, v1});
 
     // 前面 (z = z1)
-    vertices.push_back({x0, y0, z1, 0.0f, 0.0f});
-    vertices.push_back({x1, y0, z1, 1.0f, 0.0f});
-    vertices.push_back({x1, y1, z1, 1.0f, 1.0f});
-    vertices.push_back({x0, y1, z1, 0.0f, 1.0f});
+    vertices.push_back({x0, y0, z1, u0, v0});
+    vertices.push_back({x1, y0, z1, u1, v0});
+    vertices.push_back({x1, y1, z1, u1, v1});
+    vertices.push_back({x0, y1, z1, u0, v1});
 
     // 后面 (z = z0)
-    vertices.push_back({x1, y0, z0, 0.0f, 0.0f});
-    vertices.push_back({x0, y0, z0, 1.0f, 0.0f});
-    vertices.push_back({x0, y1, z0, 1.0f, 1.0f});
-    vertices.push_back({x1, y1, z0, 0.0f, 1.0f});
+    vertices.push_back({x1, y0, z0, u0, v0});
+    vertices.push_back({x0, y0, z0, u1, v0});
+    vertices.push_back({x0, y1, z0, u1, v1});
+    vertices.push_back({x1, y1, z0, u0, v1});
 
     // 右面 (x = x1)
-    vertices.push_back({x1, y0, z1, 0.0f, 0.0f});
-    vertices.push_back({x1, y0, z0, 1.0f, 0.0f});
-    vertices.push_back({x1, y1, z0, 1.0f, 1.0f});
-    vertices.push_back({x1, y1, z1, 0.0f, 1.0f});
+    vertices.push_back({x1, y0, z1, u0, v0});
+    vertices.push_back({x1, y0, z0, u1, v0});
+    vertices.push_back({x1, y1, z0, u1, v1});
+    vertices.push_back({x1, y1, z1, u0, v1});
 
     // 左面 (x = x0)
-    vertices.push_back({x0, y0, z0, 0.0f, 0.0f});
-    vertices.push_back({x0, y0, z1, 1.0f, 0.0f});
-    vertices.push_back({x0, y1, z1, 1.0f, 1.0f});
-    vertices.push_back({x0, y1, z0, 0.0f, 1.0f});
+    vertices.push_back({x0, y0, z0, u0, v0});
+    vertices.push_back({x0, y0, z1, u1, v0});
+    vertices.push_back({x0, y1, z1, u1, v1});
+    vertices.push_back({x0, y1, z0, u0, v1});
 
     // 每面6个索引（2个三角形）
     u32 baseVertex = static_cast<u32>(cubeIndex * VERTICES_PER_CUBE);

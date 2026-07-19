@@ -53,6 +53,7 @@
 #include "client/renderer/util/ShaderPath.hpp"
 #include "client/resource/EntityTextureLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
+#include "client/resource/atlas/AtlasManager.hpp"
 #include "client/ui/DefaultAsciiFont.hpp"
 #include "client/ui/Font.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -154,6 +155,21 @@ private:
 };
 
 } // anonymous namespace
+
+/**
+ * @brief AtlasManager 的 PIMPL 持有者
+ *
+ * TridentEngine.hpp 仅前置声明 AtlasManagerOwner（在 mc::client::renderer::trident 命名空间），
+ * 避免在头文件中引入 mc::client::resource::atlas 命名空间——后者会污染 FireAnimationState.hpp
+ * 中 resource::metadata 的父作用域查找（mc::client::resource 提前存在导致查找停止）。
+ * 真正的 resource::atlas::AtlasManager 仅在本 .cpp 内通过此 owner 持有与操作。
+ */
+class AtlasManagerOwner {
+public:
+    resource::atlas::AtlasManager manager;
+
+    AtlasManagerOwner() = default;
+};
 
 // ============================================================================
 // 构造/析构
@@ -380,7 +396,8 @@ void TridentEngine::destroy()
 
     m_itemTextureAtlas.destroy();
     m_entityTextureAtlas.destroy();
-    m_textureRegions.clear();
+    m_atlasManager.reset();
+    m_atlasManagerInitialized = false;
 
     m_chunkRendererInitialized = false;
     m_skyRendererInitialized = false;
@@ -1755,14 +1772,97 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
-    // 第一人称方块物品 3D 渲染需要方块纹理图集（与区块渲染共用同一图集）。
-    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_chunkRenderer != nullptr) {
-        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
-    }
+    // 第一人称方块物品 3D 渲染需要 blocks atlas（与区块渲染共用同一图集）。
+    _bindBlockAtlasToChunkPipeline();
 
     m_itemRendererInitialized = true;
     spdlog::info("Item renderer initialized");
     return {};
+}
+
+Result<void> TridentEngine::initializeAtlasManager(ResourceManager* resourceManager)
+{
+    if (m_atlasManagerInitialized) {
+        return {};
+    }
+    if (!resourceManager) {
+        return Error(ErrorCode::NullPointer, "ResourceManager is null");
+    }
+
+    spdlog::info("Initializing atlas manager (data-driven)...");
+
+    if (!m_atlasManager) {
+        m_atlasManager = std::make_unique<AtlasManagerOwner>();
+    }
+    m_atlasManager->manager.initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
+    m_atlasManager->manager.setResourcePacks(&resourceManager->resourcePacks());
+
+    // 加载 blocks/items 图集；blocks atlas 驱动方块网格/破坏叠加/手持方块渲染。
+    const std::vector<ResourceLocation> atlasIds = {
+        ResourceLocation("minecraft", "blocks"),
+        ResourceLocation("minecraft", "items"),
+    };
+    auto loadResult = m_atlasManager->manager.loadAll(atlasIds);
+    if (loadResult.failed()) {
+        spdlog::warn("AtlasManager loadAll failed: {}", loadResult.error().message());
+    }
+
+    m_atlasManagerInitialized = true;
+
+    // 初始化区块渲染器（chunk pipeline + 纹理描述符集）。
+    // 旧的 block atlas 系统（updateTextureAtlas）曾在此处顺带初始化 chunk renderer；
+    // 数据驱动改造删除了该路径，故此处显式初始化，确保 m_chunkRendererInitialized 就绪，
+    // 否则渲染帧的区块绘制守卫恒为 false，方块不会渲染。
+    // 必须在 _bindBlockAtlasToChunkPipeline 之前完成：后者写入此处分配的 m_chunkTextureDescriptorSet。
+    if (!m_chunkRendererInitialized) {
+        auto chunkResult = initializeChunkRenderer();
+        if (chunkResult.failed()) {
+            spdlog::warn("Failed to initialize chunk renderer: {}", chunkResult.error().toString());
+            return chunkResult.error();
+        }
+    }
+
+    // 把 blocks atlas 的 GPU 句柄绑定到 chunk 管线及依赖方
+    _bindBlockAtlasToChunkPipeline();
+
+    spdlog::info("Atlas manager initialized");
+    return {};
+}
+
+Result<void> TridentEngine::reloadAtlasManager(ResourceManager* resourceManager)
+{
+    if (!m_atlasManagerInitialized || !m_atlasManager) {
+        return initializeAtlasManager(resourceManager);
+    }
+    if (!resourceManager) {
+        return Error(ErrorCode::NullPointer, "ResourceManager is null");
+    }
+
+    m_atlasManager->manager.setResourcePacks(&resourceManager->resourcePacks());
+    const std::vector<ResourceLocation> atlasIds = {
+        ResourceLocation("minecraft", "blocks"),
+        ResourceLocation("minecraft", "items"),
+    };
+    auto reloadResult = m_atlasManager->manager.reload(atlasIds);
+    if (reloadResult.failed()) {
+        spdlog::warn("AtlasManager reload failed: {}", reloadResult.error().message());
+    }
+
+    // 重新绑定 blocks atlas（GPU 句柄可能已变）
+    _bindBlockAtlasToChunkPipeline();
+    return {};
+}
+
+std::function<const TextureRegion*(const ResourceLocation&)> TridentEngine::blockTextureRegionLookup() const
+{
+    if (!m_atlasManagerInitialized || !m_atlasManager) {
+        return {};
+    }
+    // 捕获 AtlasManager 裸指针（其生命周期与 TridentEngine 一致），避免悬挂引用。
+    const resource::atlas::AtlasManager* atlasManagerPtr = &m_atlasManager->manager;
+    return [atlasManagerPtr](const ResourceLocation& textureLocation) -> const TextureRegion* {
+        return atlasManagerPtr->findSpriteByTexturePath(textureLocation);
+    };
 }
 
 Result<void> TridentEngine::initializeEntityRenderer()
@@ -1835,13 +1935,11 @@ Result<void> TridentEngine::initializeEntityRenderer()
     m_entityRendererInitialized = true;
     spdlog::info("Entity renderer initialized");
 
-    // 若方块纹理图集已加载（ChunkRenderer 已初始化），注入到 EntityRendererManager
-    // 供末影人手持方块层（HeldBlockLayer）使用
-    // 注意：initializeEntityRenderer 可能在 ChunkRenderer 初始化之前或之后调用，
-    //       此处处理"之后"的情况；"之前"的情况由加载方块纹理图集的位置处理
-    if (m_chunkRendererInitialized && m_chunkRenderer) {
-        m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
-    }
+    // 若 blocks atlas 已加载，注入到 EntityRendererManager
+    // 供末影人手持方块层（HeldBlockLayer）使用。
+    // initializeEntityRenderer 与 AtlasManager 的相对顺序不确定，此处覆盖"atlas 已加载"的情况；
+    // 反之由 initializeAtlasManager 内的 _bindBlockAtlasToChunkPipeline 覆盖。
+    _bindBlockAtlasToChunkPipeline();
 
     return {};
 }
@@ -2151,7 +2249,7 @@ const weather::WeatherRenderer& TridentEngine::weatherRenderer() const
     return *m_weatherRenderer;
 }
 
-Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* resourceManager)
+Result<void> TridentEngine::initializeBreakProgressRenderer()
 {
     if (m_breakProgressRendererInitialized) {
         return {};
@@ -2172,7 +2270,6 @@ Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* res
     config.cameraLayout = cameraDescriptorLayout();
     config.fogLayout = fogDescriptorLayout();
     config.maxFramesInFlight = MAX_FRAMES_IN_FLIGHT;
-    config.resourceManager = resourceManager;
 
     if (!m_breakProgressRenderer->initialize(config, m_msaaSamples)) {
         m_breakProgressRenderer.reset();
@@ -2180,6 +2277,10 @@ Result<void> TridentEngine::initializeBreakProgressRenderer(ResourceManager* res
     }
 
     m_breakProgressRendererInitialized = true;
+
+    // 注入 blocks atlas 句柄与破坏阶段 region 查询回调（若 AtlasManager 已加载 blocks atlas）。
+    _bindBlockAtlasToChunkPipeline();
+
     spdlog::info("Break progress renderer initialized");
     return {};
 }
@@ -2230,9 +2331,8 @@ Result<void> TridentEngine::initializeFirstPersonRenderer()
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
-    if (m_chunkRenderer != nullptr) {
-        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
-    }
+    // 第一人称方块物品 3D 渲染需要 blocks atlas（若已加载）。
+    _bindBlockAtlasToChunkPipeline();
 
     m_firstPersonRenderer->setPlayerSkinLocation(m_localPlayerSkinLocation);
 
@@ -2254,48 +2354,48 @@ const firstperson::FirstPersonRenderer& TridentEngine::firstPersonRenderer() con
     return *m_firstPersonRenderer;
 }
 
-Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResult)
+void TridentEngine::tickTextureAnimations()
 {
-    if (!m_initialized) {
-        return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
+    // 统一图集管理器聚合所有图集（blocks/items/…）的动画 ticker
+    if (m_atlasManagerInitialized && m_atlasManager) {
+        m_atlasManager->manager.tickAnimations();
     }
 
-    if (atlasResult.pixels.empty()) {
-        return Error(ErrorCode::InvalidArgument, "Atlas result has no pixel data");
+    // 火焰纹理动画推进（独立 VkImage，不经过图集，需单独 tick）
+    entity::effect::fire::FireEffect::tick();
+}
+
+void TridentEngine::uploadAnimationFrames()
+{
+    if (!m_atlasManagerInitialized || !m_atlasManager) {
+        return;
+    }
+    // 统一图集管理器把所有图集 ticker 待上传帧上传到各自 AtlasHandle
+    m_atlasManager->manager.uploadPendingAnimationFrames();
+}
+
+void TridentEngine::_bindBlockAtlasToChunkPipeline()
+{
+    if (!m_atlasManagerInitialized || !m_atlasManager) {
+        return;
     }
 
-    spdlog::info(
-        "Updating texture atlas: {}x{}, {} regions", atlasResult.width, atlasResult.height, atlasResult.regions.size());
-
-    // 保存纹理区域映射
-    m_textureRegions = atlasResult.regions;
-
-    // 初始化区块渲染器（如果尚未初始化）
-    if (!m_chunkRendererInitialized) {
-        auto chunkResult = initializeChunkRenderer();
-        if (chunkResult.failed()) {
-            spdlog::warn("Failed to initialize chunk renderer: {}", chunkResult.error().toString());
-            return chunkResult.error();
-        }
+    const ResourceLocation blocksAtlasId("minecraft", "blocks");
+    const resource::atlas::AtlasEntry* blocksEntry = m_atlasManager->manager.findAtlas(blocksAtlasId);
+    if (blocksEntry == nullptr || !blocksEntry->handle.isValid()) {
+        spdlog::warn("_bindBlockAtlasToChunkPipeline: blocks atlas not loaded yet, skipping");
+        return;
     }
 
-    // 加载纹理图集到区块渲染器
-    auto loadResult = m_chunkRenderer->loadTextureAtlas(atlasResult.pixels.data(),
-        atlasResult.width,
-        atlasResult.height,
-        static_cast<u32>(::mc::world::CHUNK_WIDTH) // tileSize
-    );
-    if (loadResult.failed()) {
-        spdlog::error("Failed to load texture atlas to chunk renderer: {}", loadResult.error().toString());
-        return loadResult.error();
-    }
+    VkImageView imageView = blocksEntry->handle.imageView();
+    VkSampler sampler = blocksEntry->handle.sampler();
 
-    // 更新区块纹理描述符（set = 1, binding = 0）
+    // 写入 chunk 纹理描述符集（set = 1, binding = 0）
     if (m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_chunkRenderer->textureAtlas().imageView;
-        imageInfo.sampler = m_chunkRenderer->textureAtlas().sampler;
+        imageInfo.imageView = imageView;
+        imageInfo.sampler = sampler;
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -2309,126 +2409,24 @@ Result<void> TridentEngine::updateTextureAtlas(const AtlasBuildResult& atlasResu
         vkUpdateDescriptorSets(device(), 1, &descriptorWrite, 0, nullptr);
     }
 
-    // 更新实体管线的纹理（如果已初始化）
+    // 下发给依赖 blocks atlas 的子渲染器
     if (m_entityRendererInitialized && m_entityRendererManager) {
-        // 将方块纹理图集注入到 EntityRendererManager，供末影人手持方块层（HeldBlockLayer）使用
-        // 方块纹理 UV 基于方块纹理图集（ChunkTextureAtlas），而非实体纹理图集
-        m_entityRendererManager->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+        m_entityRendererManager->setBlockAtlas(imageView, sampler);
     }
-
-    // 同步方块纹理图集到第一人称渲染器（方块物品 3D 渲染切换图集用）。
-    if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_chunkRenderer != nullptr) {
-        m_firstPersonRenderer->setChunkTextureAtlas(&m_chunkRenderer->textureAtlas());
+    if (m_firstPersonRendererInitialized && m_firstPersonRenderer) {
+        m_firstPersonRenderer->setBlockAtlas(imageView, sampler);
     }
-
-    // 注册动画精灵
-    if (!atlasResult.animations.empty()) {
-        // 清除旧的动画 ticker
-        m_blockAtlasTicker.clear();
-
-        for (const auto& anim : atlasResult.animations) {
-            // 将 AnimationDescriptor 转换为 AnimatedSprite
-            std::vector<AnimatedSprite::FrameData> frames;
-            frames.reserve(anim.framePixels.size());
-            for (const auto& frameData : anim.framePixels) {
-                AnimatedSprite::FrameData frame;
-                frame.pixels = frameData;
-                frame.width = anim.frameWidth;
-                frame.height = anim.frameHeight;
-                frames.push_back(std::move(frame));
-            }
-
-            auto sprite = std::make_shared<AnimatedSprite>(anim.metadata, std::move(frames), anim.atlasX, anim.atlasY);
-            sprite->setLocation(anim.location);
-            m_blockAtlasTicker.registerAnimatedSprite(std::move(sprite));
-        }
-
-        spdlog::info("Registered {} animated textures for block atlas", atlasResult.animations.size());
-    }
-
-    spdlog::info("Texture atlas updated successfully");
-    return {};
-}
-
-const TextureRegion* TridentEngine::getTextureRegion(const ResourceLocation& location) const
-{
-    auto it = m_textureRegions.find(location);
-    if (it != m_textureRegions.end()) {
-        return &it->second;
-    }
-    return nullptr;
-}
-
-void TridentEngine::tickTextureAnimations()
-{
-    m_blockAtlasTicker.tick();
-    m_itemAtlasTicker.tick();
-
-    // 火焰纹理动画推进（独立 VkImage，不经过图集，需单独 tick）
-    entity::effect::fire::FireEffect::tick();
-}
-
-void TridentEngine::uploadAnimationFrames()
-{
-    if (m_blockAtlasTicker.empty() && m_itemAtlasTicker.empty()) {
-        return;
-    }
-
-    auto* tridentContext = m_context.get();
-    if (!tridentContext) {
-        return;
-    }
-
-    // 上传方块图集动画帧
-    if (!m_blockAtlasTicker.empty() && m_chunkRendererInitialized && m_chunkRenderer) {
-        auto& ticker = m_blockAtlasTicker;
-        for (size_t i = 0; i < ticker.spriteCount(); ++i) {
-            auto* sprite = ticker.getSprite(i);
-            if (sprite && sprite->needsUpload()) {
-                const auto& frameData = sprite->currentFramePixels();
-                if (!frameData.empty()) {
-                    auto result = m_chunkRenderer->uploadTextureRegion(frameData.data(),
-                        frameData.size(),
-                        sprite->atlasX(),
-                        sprite->atlasY(),
-                        sprite->frameWidth(),
-                        sprite->frameHeight(),
-                        sprite->frameWidth());
-                    if (result.failed()) {
-                        spdlog::warn("Failed to upload block atlas animation frame for {}: {}",
-                            sprite->location().toString(),
-                            result.error().message());
-                    }
-                    sprite->markUploaded();
-                }
-            }
-        }
-    }
-
-    // 上传物品图集动画帧
-    if (!m_itemAtlasTicker.empty() && m_itemTextureAtlasInitialized) {
-        auto& ticker = m_itemAtlasTicker;
-        for (size_t i = 0; i < ticker.spriteCount(); ++i) {
-            auto* sprite = ticker.getSprite(i);
-            if (sprite && sprite->needsUpload()) {
-                const auto& frameData = sprite->currentFramePixels();
-                if (!frameData.empty()) {
-                    auto result = m_itemTextureAtlas.uploadRegion(frameData.data(),
-                        frameData.size(),
-                        sprite->atlasX(),
-                        sprite->atlasY(),
-                        sprite->frameWidth(),
-                        sprite->frameHeight(),
-                        sprite->frameWidth());
-                    if (result.failed()) {
-                        spdlog::warn("Failed to upload item atlas animation frame for {}: {}",
-                            sprite->location().toString(),
-                            result.error().message());
-                    }
-                    sprite->markUploaded();
-                }
-            }
-        }
+    if (m_breakProgressRendererInitialized && m_breakProgressRenderer) {
+        m_breakProgressRenderer->setBlockAtlas(imageView, sampler);
+        // 注入破坏阶段纹理区域查询回调：block/destroy_stage_<stage> 的 UV 区域。
+        // blocks atlas 的 directory source（block/）已收入 destroy_stage_0..9.png 作为
+        // sprite block/destroy_stage_N；findSpriteByTexturePath 剥掉 textures/ 前缀即可命中。
+        // 捕获 AtlasManager 裸指针（其生命周期与 TridentEngine 一致），避免悬挂引用。
+        const resource::atlas::AtlasManager* atlasManagerPtr = &m_atlasManager->manager;
+        m_breakProgressRenderer->setStageRegionLookup([atlasManagerPtr](u8 stage) -> const TextureRegion* {
+            const std::string spritePath = "textures/block/destroy_stage_" + std::to_string(stage);
+            return atlasManagerPtr->findSpriteByTexturePath(ResourceLocation("minecraft", spritePath));
+        });
     }
 }
 

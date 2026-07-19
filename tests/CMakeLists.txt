@@ -1002,6 +1002,9 @@ add_executable(mc_tests
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp
+    # 统一图集数据驱动（AtlasSource 体系 + Loader）
+    client/resource/atlas/AtlasSourceTest.cpp
+    client/resource/atlas/AtlasConfigLoaderTest.cpp
     client/resource/TextureAtlasBuilderTest.cpp
     client/resource/AnimationTextureTest.cpp
     client/resource/test_resource_manager_cloud_texture.cpp
@@ -2177,6 +2180,15 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemTextureAtlas.cpp
+        # 统一图集数据驱动（替换硬编码图集系统的纹理收集层）
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/AtlasSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/AtlasSourceParser.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/AtlasConfigLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/IdentifierPattern.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/MissingNo.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/Sources.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/SpriteLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/TexturePathVariant.cpp
 
         ${CMAKE_SOURCE_DIR}/src/common/resource/VanillaResources.cpp
         # Kagero UI 模板系统（仅核心解析组件）
@@ -2326,6 +2338,7 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/TexturePathVariant.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp

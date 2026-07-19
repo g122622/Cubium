@@ -46,7 +46,6 @@ class Player;
 
 namespace mc::client {
 class ItemTextureAtlas;
-struct ChunkTextureAtlas;
 } // namespace mc::client
 
 namespace mc::client::renderer::trident::firstperson {
@@ -230,15 +229,17 @@ public:
     void setItemTextureAtlas(const mc::client::ItemTextureAtlas* itemTextureAtlas);
 
     /**
-     * @brief 设置方块纹理图集
+     * @brief 设置方块图集（blocks atlas 的 GPU 句柄）
      *
-     * 第一人称手持方块物品（BlockItem）3D 渲染时，需切换到方块纹理图集以解析各面纹理
-     * （方块 UV 基于区块纹理图集，而非物品纹理图集）。图集生命周期由 TridentEngine
-     * 管理，渲染器仅持有裸指针。为 nullptr 时方块物品回退到物品图集渲染。
+     * 第一人称手持方块物品（BlockItem）3D 渲染时，需切换到 blocks atlas 以解析各面纹理
+     * （方块 UV 基于 blocks atlas，而非物品纹理图集）。句柄生命周期由 TridentEngine
+     * 通过 AtlasManager 管理，渲染器仅持有裸句柄。imageView 为 VK_NULL_HANDLE 时
+     * 方块物品回退到物品图集渲染。
      *
-     * @param chunkTextureAtlas 方块纹理图集指针
+     * @param imageView blocks atlas 的图像视图
+     * @param sampler   blocks atlas 的采样器
      */
-    void setChunkTextureAtlas(const mc::client::ChunkTextureAtlas* chunkTextureAtlas);
+    void setBlockAtlas(VkImageView imageView, VkSampler sampler);
 
     /**
      * @brief 获取手持物品渲染器
@@ -440,8 +441,9 @@ private:
     // 物品纹理图集
     const mc::client::ItemTextureAtlas* m_itemTextureAtlas = nullptr;
 
-    // 方块纹理图集（方块物品 3D 渲染切换用）
-    const mc::client::ChunkTextureAtlas* m_chunkTextureAtlas = nullptr;
+    // blocks atlas 的 GPU 句柄（方块物品 3D 渲染切换用）
+    VkImageView m_blockImageView = VK_NULL_HANDLE;
+    VkSampler m_blockSampler = VK_NULL_HANDLE;
 
     // 玩家皮肤纹理位置（默认：规范默认皮肤 slim/steve）
     ResourceLocation m_playerSkinLocation{"minecraft:textures/entity/player/slim/steve.png"};

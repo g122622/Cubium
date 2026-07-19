@@ -41,9 +41,6 @@ namespace mc {
 class Entity;
 class LivingEntity;
 
-namespace client {
-struct ChunkTextureAtlas;
-} // namespace client
 } // namespace mc
 
 namespace mc::client::renderer::entity::renderer::monster {
@@ -139,7 +136,7 @@ private:
  * - EntityRendererManager 在调用 renderLayersPipelineClient 前，会通过 setTextureAtlas
  *   将实体纹理图集注入到本渲染器，本渲染器再通过 setEntityTextureAtlas 传递给 HeldBlockLayer，
  *   供其在渲染方块后恢复 EntityPipeline 的纹理图集到实体纹理图集。
- * - 方块纹理图集通过 setChunkTextureAtlas 注入（由 EntityRendererManager 在初始化时设置）。
+ * - blocks atlas 通过 setBlockAtlas 注入（由 EntityRendererManager 在初始化时设置）。
  */
 class EndermanRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::EndermanModel> {
 public:
@@ -177,15 +174,16 @@ public:
     void setTextureAtlas(const pipeline::EntityTextureAtlas* atlas) override;
 
     /**
-     * @brief 设置方块纹理图集
+     * @brief 设置方块图集（blocks atlas 的 GPU 句柄）
      *
-     * 由 EntityRendererManager 在初始化时调用，将方块纹理图集注入到本渲染器。
+     * 由 EntityRendererManager 在初始化时调用，将 blocks atlas 句柄注入到本渲染器。
      * 本渲染器将其传递给 HeldBlockLayer，供其在渲染方块时切换 EntityPipeline
-     * 的纹理图集到方块纹理图集。
+     * 的纹理图集到 blocks atlas。
      *
-     * @param atlas 方块纹理图集指针
+     * @param imageView blocks atlas 的图像视图
+     * @param sampler   blocks atlas 的采样器
      */
-    void setChunkTextureAtlas(const ::mc::client::ChunkTextureAtlas* atlas);
+    void setBlockAtlas(VkImageView imageView, VkSampler sampler);
 
 private:
     void _setupLayers();

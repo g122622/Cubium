@@ -137,6 +137,7 @@ void BlockModelCache::clear()
     m_stateCache.clear();
     m_missingAppearance.reset();
     m_resourceManager = nullptr;
+    m_regionLookup = nullptr;
     m_initialized = false;
 }
 
@@ -190,6 +191,14 @@ const BlockAppearance* BlockModelCache::getBlockAppearance(u32 blockId, const st
 const BlockAppearance* BlockModelCache::getMissingAppearance() const
 {
     return m_missingAppearance.get();
+}
+
+const TextureRegion* BlockModelCache::regionLookup(const ResourceLocation& textureLocation) const
+{
+    if (!m_regionLookup) {
+        return nullptr;
+    }
+    return m_regionLookup(textureLocation);
 }
 
 // ============================================================================

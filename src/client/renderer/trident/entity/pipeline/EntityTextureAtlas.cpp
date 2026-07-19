@@ -23,7 +23,7 @@
 
 #include "EntityTextureAtlas.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
-#include "client/resource/ResourceManager.hpp"
+#include "client/resource/atlas/TexturePathVariant.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <cstring>
 #include <fstream>
@@ -489,10 +489,10 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
     mc::IResourcePack& pack, const ResourceLocation& location, std::vector<u8>& outData, u32& outWidth, u32& outHeight)
 {
     // 尝试直接加载（使用文件路径格式）
-    std::string filePath = location.toFilePath(resource::PackType::ClientResources);
+    std::string filePath = location.toFilePath(mc::resource::PackType::ClientResources);
     filePath.erase(0, std::string("assets/").size());
 
-    auto result = pack.readResource(resource::PackType::ClientResources, filePath);
+    auto result = pack.readResource(mc::resource::PackType::ClientResources, filePath);
     if (result.success()) {
         auto& data = result.value();
         int width, height, channels;
@@ -511,13 +511,13 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
     // 例如：textures/entity/pig/pig -> textures/entity/pig
     //       textures/entity/pig     -> textures/entity/pig/pig
     //       textures/block/stone    -> textures/blocks/stone
-    std::string altPath = ResourceManager::getAltTexturePath(location.path());
+    std::string altPath = resource::atlas::TexturePathVariant::getAltTexturePath(location.path());
     if (!altPath.empty()) {
         ResourceLocation altLoc(location.namespace_(), altPath);
-        std::string altFilePath = altLoc.toFilePath(resource::PackType::ClientResources);
+        std::string altFilePath = altLoc.toFilePath(mc::resource::PackType::ClientResources);
         altFilePath.erase(0, std::string("assets/").size());
 
-        result = pack.readResource(resource::PackType::ClientResources, altFilePath);
+        result = pack.readResource(mc::resource::PackType::ClientResources, altFilePath);
         if (result.success()) {
             auto& data = result.value();
             int width, height, channels;
@@ -538,7 +538,7 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
     std::string texturePath = location.path();
     if (texturePath.find("textures/") == 0) {
         std::string directPath = location.namespace_() + "/" + texturePath;
-        result = pack.readResource(resource::PackType::ClientResources, directPath);
+        result = pack.readResource(mc::resource::PackType::ClientResources, directPath);
         if (result.success()) {
             auto& data = result.value();
             int width, height, channels;

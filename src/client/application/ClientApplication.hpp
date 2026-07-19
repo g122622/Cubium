@@ -359,6 +359,10 @@ private:
     // 初始化资源系统
     [[nodiscard]] Result<void> initializeResources();
 
+    // 初始化方块资产（computeBlockAppearances + BlockModelCache）。
+    // 必须在 initializeAtlasManager 之后调用——方块外观的纹理区域来自 AtlasManager 的 blocks atlas。
+    [[nodiscard]] Result<void> initializeBlockAssets();
+
     // 初始化音频系统
     [[nodiscard]] Result<void> initializeAudio();
 

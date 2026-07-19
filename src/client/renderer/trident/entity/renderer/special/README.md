@@ -49,7 +49,7 @@ special/
 │   ├── entity.fallingBlockState() 读取方块状态                    │
 │   ├── BlockMeshBuilder::buildBlockMesh() 构建方块网格             │
 │   ├── buildFallingBlockModelMatrix() translate(-0.5,0,-0.5)      │
-│   ├── 切换到 ChunkTextureAtlas 渲染后恢复 EntityTextureAtlas      │
+│   ├── 切换到 blocks atlas（AtlasManager）后恢复 EntityTextureAtlas │
 │   └── drawMesh(overlayColor=方块tint)                             │
 │                                                                  │
 │ TNTRenderer                                                      │
@@ -59,7 +59,7 @@ special/
 │   ├── buildTntModelMatrix(fuse) 完整 PoseStack 变换链             │
 │   │   └── 内部调用 calculateTntFlashScale(fuse) 应用闪烁缩放      │
 │   ├── isTntFlashFrame(fuse) 判定白色闪烁帧                        │
-│   ├── 切换到 ChunkTextureAtlas 渲染后恢复 EntityTextureAtlas      │
+│   ├── 切换到 blocks atlas（AtlasManager）后恢复 EntityTextureAtlas │
 │   └── drawMesh(overlayColor=tint或白色0.5alpha)                   │
 │                                                                  │
 │ LightningBoltRenderer                                            │
@@ -80,7 +80,7 @@ special/
 | `pipeline/EntityTextureAtlas.hpp` | 实体纹理图集（渲染后恢复） |
 | `util/BlockMeshBuilder.hpp` | 方块网格构建（FallingBlock/TNT 复用） |
 | `trident/chunk/ChunkMesher.hpp` | `getDefaultBlockTintColor()` 方块着色颜色 |
-| `trident/chunk/ChunkRenderer.hpp` | `ChunkTextureAtlas` 方块纹理图集结构 |
+| `trident/chunk/ChunkRenderer.hpp` | 方块渲染管线（破坏进度等） |
 | `model/projectile/ProjectileModels.hpp` | 末影水晶/潜影贝子弹等模型 |
 | `client/world/entity/ClientEntity.hpp` | 客户端实体（fallingBlockState/tntBlockState/tntFuse） |
 | `common/entity/entities/effect/EffectEntities.hpp` | 闪电/区域效果云等实体类型 |
@@ -93,7 +93,7 @@ special/
 | 模块 | 用途 |
 |------|------|
 | `renderer/RendererRegistration.cpp` | 通过工厂注册所有特殊实体渲染器 |
-| `core/EntityRendererManager.cpp` | 调用 `renderLayersPipelineClient()` / 注入 `ChunkTextureAtlas` / `EntityTextureAtlas` |
+| `core/EntityRendererManager.cpp` | 调用 `renderLayersPipelineClient()` / 注入 blocks atlas 句柄（`setBlockAtlas`）/ `EntityTextureAtlas` |
 
 ## FallingBlockRenderer 实现要点
 
@@ -125,7 +125,7 @@ M = translate(-0.5, 0, -0.5)
 
 ### 纹理图集切换
 
-方块纹理 UV 基于 `ChunkTextureAtlas`（区块纹理图集），而非实体纹理图集。渲染前通过 `pipeline.setTextureAtlas()` 切换，渲染后恢复为 `EntityTextureAtlas`，避免污染后续实体渲染。
+方块纹理 UV 基于 AtlasManager 的 blocks atlas，而非实体纹理图集。渲染前通过 `pipeline.setTextureAtlas()` 切换（blocks atlas 句柄经 `setBlockAtlas` 注入），渲染后恢复为 `EntityTextureAtlas`，避免污染后续实体渲染。
 
 ## TNTRenderer 实现要点
 
@@ -219,7 +219,7 @@ MC `PoseStack` 使用右乘语义：`current = current * newTransform`，因此�
 
 ### 2. 纹理图集切换必须配对
 
-`FallingBlockRenderer` / `TNTRenderer` 渲染前切换到 `ChunkTextureAtlas`，渲染后必须恢复 `EntityTextureAtlas`。如果忘记恢复，后续实体渲染会使用错误的纹理图集导致贴图错乱。
+`FallingBlockRenderer` / `TNTRenderer` 渲染前切换到 blocks atlas（AtlasManager），渲染后必须恢复 `EntityTextureAtlas`。如果忘记恢复，后续实体渲染会使用错误的纹理图集导致贴图错乱。
 
 ### 3. 方块网格按 BlockState* 缓存
 

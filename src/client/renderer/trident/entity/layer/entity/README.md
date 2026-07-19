@@ -53,7 +53,7 @@ entity/
 
 3. **HeldBlockLayer 使用 ClientEntity 而非 EndermanEntity**：`HeldBlockLayer` 模板参数为 `ClientEntity`，通过 `entity.endermanHeldBlockState()` 读取元数据镜像字段（由 `ClientEntity::syncMetadataFromDataManager` 从 `EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM` 同步）。这是因为 `EndermanRenderer::renderLayersPipelineClient` 直接接收 `ClientEntity&`，层无需访问服务端 `EndermanEntity`。
 
-4. **HeldBlockLayer 纹理图集切换**：方块纹理 UV 基于方块纹理图集（`ChunkTextureAtlas`），而非实体纹理图集。渲染前通过 `setChunkTextureAtlas` 注入方块图集，通过 `setEntityTextureAtlas` 注入实体图集。渲染时切换到方块图集，渲染后恢复为实体图集，避免污染后续实体渲染。两个图集指针由 `EndermanRenderer::setTextureAtlas`/`setChunkTextureAtlas` 注入，最终来源为 `EntityRendererManager::setTextureAtlas`/`setChunkTextureAtlas`。
+4. **HeldBlockLayer 纹理图集切换**：方块纹理 UV 基于 AtlasManager 的 blocks atlas，而非实体纹理图集。渲染前通过 `setBlockAtlas`（注入 blocks atlas 的 imageView/sampler 句柄）与 `setEntityTextureAtlas`（注入实体图集）准备图集。渲染时切换到方块图集，渲染后恢复为实体图集，避免污染后续实体渲染。两个图集句柄由 `EndermanRenderer::setTextureAtlas`/`setBlockAtlas` 注入，最终来源为 `EntityRendererManager::setTextureAtlas`/`setBlockAtlas`（blocks atlas 句柄来自 `TridentEngine` 持有的 AtlasManager）。
 
 5. **HeldBlockLayer 网格缓存**：按 `BlockState*` 指针缓存方块网格（`std::unordered_map<const BlockState*, std::unique_ptr<EntityMesh>>`），方块状态指针来自 `BlockRegistry` 是稳定的。缓存随 `HeldBlockLayer` 实例生命周期销毁（即 `EndermanRenderer` 销毁时自动清理）。
 

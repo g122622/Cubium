@@ -20,9 +20,10 @@ layout(set = 0, binding = 0) uniform CameraUBO {
 } camera;
 
 // 推送常量 - 方块位置
+// 破坏阶段 UV 已在 CPU 端烘进顶点（inTexCoord 即绝对 UV），不再需要 damageStage。
 layout(push_constant) uniform PushConstants {
-    vec3 blockPos;      // 方块在世界空间中的位置
-    float damageStage;  // 破坏阶段 (0-9)，用于选择纹理
+    vec3 blockPos;  // 方块在世界空间中的位置
+    float pad;      // 对齐填充（与 CPU 端 16 字节布局匹配）
 } pc;
 
 out gl_PerVertex {

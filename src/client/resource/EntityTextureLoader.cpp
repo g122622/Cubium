@@ -22,7 +22,7 @@
  */
 
 #include "EntityTextureLoader.hpp"
-#include "ResourceManager.hpp"
+#include "client/resource/atlas/TexturePathVariant.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
@@ -472,7 +472,7 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::st
 
     // 使用 getAltTexturePath() 自动计算 MC 1.12 扁平格式变体
     // 例如：textures/entity/pig/pig -> textures/entity/pig
-    std::string altPath = ResourceManager::getAltTexturePath(modernLoc.path());
+    std::string altPath = resource::atlas::TexturePathVariant::getAltTexturePath(modernLoc.path());
     if (!altPath.empty()) {
         paths.emplace_back("minecraft", std::move(altPath));
     }

@@ -25,7 +25,6 @@
 
 #include "BlockModelLoader.hpp"
 #include "BlockStateLoader.hpp"
-#include "TextureAtlasBuilder.hpp"
 #include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -33,6 +32,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/Direction.hpp"
 #include <array>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -245,12 +245,6 @@ public:
      */
     [[nodiscard]] Result<void> reload();
 
-    /**
-     * @brief 构建纹理图集
-     * @return 图集构建结果
-     */
-    [[nodiscard]] Result<AtlasBuildResult> buildTextureAtlas();
-
     // ========================================================================
     // 资源查询
     // ========================================================================
@@ -263,13 +257,6 @@ public:
      */
     [[nodiscard]] const BlockAppearance* getBlockAppearance(
         const ResourceLocation& blockId, const std::map<std::string, std::string>& properties) const;
-
-    /**
-     * @brief 获取纹理区域
-     * @param textureLocation 纹理资源位置
-     * @return 纹理区域指针，找不到返回 nullptr
-     */
-    [[nodiscard]] const TextureRegion* getTextureRegion(const ResourceLocation& textureLocation) const;
 
     /**
      * @brief 按资源包优先级读取并解码 PNG 纹理
@@ -289,20 +276,16 @@ public:
     // ========================================================================
 
     /**
-     * @brief 获取纹理图集构建结果
+     * @brief 获取模型加载器
      */
-    [[nodiscard]] const AtlasBuildResult& atlasResult() const { return m_atlasResult; }
+    [[nodiscard]] BlockModelLoader& modelLoader() { return m_modelLoader; }
+    [[nodiscard]] const BlockModelLoader& modelLoader() const { return m_modelLoader; }
 
     /**
-     * @brief 检查图集是否已构建
+     * @brief 获取方块状态加载器
      */
-    [[nodiscard]] bool isAtlasBuilt() const { return m_atlasBuilt; }
-
-    /**
-     * @brief 获取纹理区域映射（用于测试）
-     */
-    [[nodiscard]] std::map<ResourceLocation, TextureRegion>& textureRegions() { return m_textureRegions; }
-    [[nodiscard]] const std::map<ResourceLocation, TextureRegion>& textureRegions() const { return m_textureRegions; }
+    [[nodiscard]] BlockStateLoader& blockStateLoader() { return m_blockStateLoader; }
+    [[nodiscard]] const BlockStateLoader& blockStateLoader() const { return m_blockStateLoader; }
 
     /**
      * @brief 获取第一个资源包（用于纹理加载）
@@ -318,13 +301,8 @@ public:
     [[nodiscard]] IResourcePack* getResourcePack(size_t index);
 
     // ========================================================================
-    // 配置
+    // 缓存管理
     // ========================================================================
-
-    /**
-     * @brief 设置是否在烘焙模型时自动构建图集
-     */
-    void setAutoBuildAtlas(bool enable) { m_autoBuildAtlas = enable; }
 
     /**
      * @brief 清除所有缓存
@@ -332,26 +310,19 @@ public:
     void clear();
 
     // ========================================================================
-    // 路径兼容性工具
+    // 方块外观计算
     // ========================================================================
 
     /**
-     * @brief 获取 MC 1.12/1.13+ 路径变体的替代路径
+     * @brief 计算所有方块状态的外观（面纹理区域、粒子纹理等）
      *
-     * MC 1.13+ 使用 textures/block/ 和 textures/item/（单数），
-     * MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）。
-     * 此方法在两种格式之间互相转换，用于纹理查找的兼容回退。
+     * 纹理区域由外部注入的 regionLookup 回调提供（通常绑定到
+     * AtlasManager::findSpriteWithVariant，查 blocks atlas 的 regions），
+     * 因此必须在 AtlasManager 加载完 blocks atlas 之后调用。
      *
-     * 此外，还支持实体纹理的子目录/扁平格式互转：
-     *   textures/entity/<name>/<name>[.ext] -> textures/entity/<name>[.ext]
-     *   textures/entity/<name>[.ext]        -> textures/entity/<name>/<name>[.ext]
-     * 注意：实体路径转换会保留文件扩展名（如 .png），仅在目录名与文件名
-     * （不含扩展名）相同时才执行转换。
-     *
-     * @param path 纹理路径（例如 "textures/block/stone" 或 "textures/entity/pig/pig.png"）
-     * @return 对应的替代路径，如果路径不匹配已知前缀则返回空字符串
+     * @param regionLookup 完整纹理资源位置（如 minecraft:textures/block/stone）→ UV 区域指针，未找到返回 nullptr
      */
-    [[nodiscard]] static std::string getAltTexturePath(const std::string& path);
+    void computeBlockAppearances(const std::function<const TextureRegion*(const ResourceLocation&)>& regionLookup);
 
 private:
     std::vector<ResourcePackPtr> m_resourcePacks;
@@ -364,32 +335,11 @@ private:
     // 方块外观缓存
     std::map<std::string, BlockAppearance> m_blockAppearances;
 
-    // 纹理图集区域映射
-    std::map<ResourceLocation, TextureRegion> m_textureRegions;
-
-    // 已构建的图集
-    AtlasBuildResult m_atlasResult;
-
-    bool m_autoBuildAtlas = true;
-    bool m_atlasBuilt = false;
-
     // 烘焙所有模型
     [[nodiscard]] Result<void> _bakeAllModels();
 
-    // 计算方块外观
-    void _computeBlockAppearances();
-
-    // 收集所有需要的纹理
-    [[nodiscard]] std::set<ResourceLocation> _collectRequiredTextures() const;
-
     // 将纹理路径转换为资源位置
     [[nodiscard]] static ResourceLocation _texturePathToLocation(std::string_view path);
-
-    // 使用 compat 层查找纹理区域（支持 MC 1.12/1.13+ 路径变体）
-    // 优先尝试原始路径，若未找到则自动尝试 MC 1.12/1.13+ 路径变体：
-    //   textures/block/ ↔ textures/blocks/
-    //   textures/item/  ↔ textures/items/
-    [[nodiscard]] const TextureRegion* _findTextureRegion(const ResourceLocation& texLoc) const;
 };
 
 } // namespace mc

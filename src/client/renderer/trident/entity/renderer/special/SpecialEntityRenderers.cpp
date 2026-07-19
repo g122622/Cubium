@@ -462,12 +462,12 @@ void FallingBlockRenderer::renderLayersPipelineClient(::mc::client::ClientEntity
     const f32 a = static_cast<f32>((tintColor >> 24) & 0xFFu) / 255.0f;
     Vector4f overlayColor(r, g, b, a);
 
-    // ---- 切换到方块纹理图集 ----
-    // 方块纹理 UV 基于区块纹理图集（ChunkTextureAtlas），而非实体纹理图集。
+    // ---- 切换到 blocks atlas ----
+    // 方块纹理 UV 基于 blocks atlas，而非实体纹理图集。
     // 渲染前切换到方块图集，渲染后恢复为实体图集，避免污染后续实体渲染。
-    const bool needAtlasSwitch = (m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid);
+    const bool needAtlasSwitch = (m_blockImageView != VK_NULL_HANDLE);
     if (needAtlasSwitch) {
-        pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
+        pipeline.setTextureAtlas(m_blockImageView, m_blockSampler);
     }
 
     pipeline.drawMesh(cmd, *mesh, modelMatrix, position, 1.0, overlayColor, 0.0f, 0.0f);
@@ -649,10 +649,10 @@ void TNTRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
     const f32 a = static_cast<f32>((tintColor >> 24) & 0xFFu) / 255.0f;
     Vector4f overlayColor(r, g, b, a);
 
-    // ---- 切换到方块纹理图集 ----
-    const bool needAtlasSwitch = (m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid);
+    // ---- 切换到 blocks atlas ----
+    const bool needAtlasSwitch = (m_blockImageView != VK_NULL_HANDLE);
     if (needAtlasSwitch) {
-        pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
+        pipeline.setTextureAtlas(m_blockImageView, m_blockSampler);
     }
 
     // 白色闪烁（对齐 MC TntMinecartRenderer.submitWhiteSolidBlock 的 OverlayTexture.pack(10)）

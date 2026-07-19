@@ -118,30 +118,14 @@ Result<void> ClientApplication::initializeResources()
             spdlog::info("Loaded {} resource packs", m_resourceManager->resourcePackCount());
         }
 
-        // 6. 构建纹理图集
-        auto atlasResult = m_resourceManager->buildTextureAtlas();
-        if (atlasResult.failed()) {
-            spdlog::warn("Failed to build texture atlas: {}", atlasResult.error().toString());
-        } else {
-            spdlog::info("Built texture atlas: {}x{}, {} textures",
-                atlasResult.value().width,
-                atlasResult.value().height,
-                atlasResult.value().regions.size());
-        }
+        // 注：方块外观的纹理区域已迁移到 AtlasManager（数据驱动 blocks atlas）。
+        // computeBlockAppearances + BlockModelCache 必须在 initializeAtlasManager 之后
+        // 调用（见 initializeBlockAssets），此处不再构建旧纹理图集。
     } else {
         spdlog::info("No resource packs found, using default resources (missing model)");
     }
 
-    // 7. 初始化 BlockModelCache（即使没有资源包也要初始化，使用缺失模型）
-    if (m_modelCache.initialize(*m_resourceManager)) {
-        spdlog::info("Block model cache initialized with {} appearances", m_modelCache.cachedAppearanceCount());
-        // 设置 ChunkMesher 使用 BlockModelCache
-        ChunkMesher::setModelCache(&m_modelCache);
-    } else {
-        spdlog::warn("Failed to initialize block model cache");
-    }
-
-    // 8. 设置资源包变更回调
+    // 6. 设置资源包变更回调
     m_resourcePackList.onChange([this]() {
         spdlog::info("Resource packs changed, reloading...");
         reloadResources();
@@ -149,6 +133,37 @@ Result<void> ClientApplication::initializeResources()
             m_audioService->reloadSoundDefinitions();
         }
     });
+
+    return Result<void>::ok();
+}
+
+Result<void> ClientApplication::initializeBlockAssets()
+{
+    // 方块外观的纹理区域来自 AtlasManager 的 blocks atlas（数据驱动）。
+    // 此方法必须在 initializeAtlasManager 之后调用：先用 AtlasManager 的 region lookup
+    // 计算方块外观，再把同一 lookup 注入 BlockModelCache 供液体面纹理查询，最后构建缓存。
+    if (!m_resourceManager) {
+        return Error(ErrorCode::NullPointer, "ResourceManager is null");
+    }
+
+    auto regionLookup = m_renderer ? m_renderer->blockTextureRegionLookup()
+                                   : std::function<const TextureRegion*(const ResourceLocation&)>{};
+    if (!regionLookup) {
+        spdlog::warn("initializeBlockAssets: blocks atlas region lookup unavailable (AtlasManager not loaded)");
+    }
+
+    m_resourceManager->computeBlockAppearances(regionLookup);
+
+    // 初始化 BlockModelCache（即使没有资源包也要初始化，使用缺失模型）
+    if (m_modelCache.initialize(*m_resourceManager)) {
+        spdlog::info("Block model cache initialized with {} appearances", m_modelCache.cachedAppearanceCount());
+        // 注入 region lookup（液体面纹理查询走 AtlasManager 的 blocks atlas）
+        m_modelCache.setRegionLookup(regionLookup);
+        // 设置 ChunkMesher 使用 BlockModelCache
+        ChunkMesher::setModelCache(&m_modelCache);
+    } else {
+        spdlog::warn("Failed to initialize block model cache");
+    }
 
     return Result<void>::ok();
 }
@@ -192,23 +207,23 @@ void ClientApplication::reloadResources()
             return;
         }
 
-        // 重新构建纹理图集
-        auto atlasResult = m_resourceManager->buildTextureAtlas();
-        if (atlasResult.failed()) {
-            spdlog::error("Failed to rebuild texture atlas: {}", atlasResult.error().toString());
-            return;
-        }
-
-        // 重建模型缓存
-        if (m_modelCache.rebuild(*m_resourceManager)) {
-            spdlog::info("Reloaded resources: {} appearances cached", m_modelCache.cachedAppearanceCount());
-        }
-
         if (m_renderer) {
-            auto atlasUpdateResult = m_renderer->updateTextureAtlas(atlasResult.value());
-            if (atlasUpdateResult.failed()) {
-                spdlog::error(
-                    "Failed to update renderer texture atlas after reload: {}", atlasUpdateResult.error().toString());
+            // 重载统一图集管理器（数据驱动）：重建 blocks/items 图集并重新绑定 chunk 管线纹理。
+            // reloadAtlasManager 内部调 _bindBlockAtlasToChunkPipeline，会刷新破坏叠加/
+            // 实体手持方块/第一人称的 blocks atlas 句柄与破坏阶段 region lookup。
+            if (m_renderer->isAtlasManagerInitialized()) {
+                auto atlasReloadResult = m_renderer->reloadAtlasManager(m_resourceManager.get());
+                if (atlasReloadResult.failed()) {
+                    spdlog::warn("Failed to reload atlas manager: {}", atlasReloadResult.error().toString());
+                }
+            }
+
+            // 用重载后的 blocks atlas region lookup 重算方块外观 + 重建模型缓存。
+            auto regionLookup = m_renderer->blockTextureRegionLookup();
+            m_resourceManager->computeBlockAppearances(regionLookup);
+            if (m_modelCache.rebuild(*m_resourceManager)) {
+                m_modelCache.setRegionLookup(regionLookup);
+                spdlog::info("Reloaded resources: {} appearances cached", m_modelCache.cachedAppearanceCount());
             }
 
             auto reloadCloudResult = m_renderer->reloadCloudTexture(m_resourceManager.get());

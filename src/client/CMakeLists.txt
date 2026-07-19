@@ -286,7 +286,17 @@ add_executable(minecraft-client
     resource/ItemModelLoader.cpp
     resource/ItemModelCache.cpp
     resource/EntityTextureLoader.cpp
-    resource/DestroyStageTextures.cpp
+    # 统一图集数据驱动（替换上述硬编码图集系统的纹理收集层）
+    resource/atlas/AtlasSource.cpp
+    resource/atlas/AtlasSourceParser.cpp
+    resource/atlas/AtlasConfigLoader.cpp
+    resource/atlas/AtlasHandle.cpp
+    resource/atlas/AtlasManager.cpp
+    resource/atlas/IdentifierPattern.cpp
+    resource/atlas/MissingNo.cpp
+    resource/atlas/Sources.cpp
+    resource/atlas/SpriteLoader.cpp
+    resource/atlas/TexturePathVariant.cpp
     # 声音系统
     sound/resource/SoundDefinition.cpp
     sound/resource/SoundRegistry.cpp

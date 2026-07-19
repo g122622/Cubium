@@ -160,13 +160,13 @@ void HeldBlockLayer::_renderBlockPipeline(::mc::client::ClientEntity& entity,
     // 因此通过外部注入的 m_entityTextureAtlas 指针来恢复。
     //
     // 流程：
-    //   1. 渲染前：若方块纹理图集可用，切换 EntityPipeline 到方块纹理图集
+    //   1. 渲染前：若 blocks atlas 可用，切换 EntityPipeline 到 blocks atlas
     //   2. 绘制方块网格
     //   3. 渲染后：若实体纹理图集可用，恢复 EntityPipeline 到实体纹理图集
     //              （避免污染后续实体渲染）
-    const bool needAtlasSwitch = (m_chunkTextureAtlas != nullptr && m_chunkTextureAtlas->isValid);
+    const bool needAtlasSwitch = (m_blockImageView != VK_NULL_HANDLE);
     if (needAtlasSwitch) {
-        pipeline.setTextureAtlas(m_chunkTextureAtlas->imageView, m_chunkTextureAtlas->sampler);
+        pipeline.setTextureAtlas(m_blockImageView, m_blockSampler);
     }
 
     pipeline.drawMesh(cmd, *mesh, blockTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
