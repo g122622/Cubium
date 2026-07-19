@@ -24,6 +24,12 @@ cmake --build --preset macos-relwithdebinfo -- -j10
 
 如果仍然对于构建过程存在疑难问题，可参考`docs/BUILD.md`
 
+## 运行
+
+`./build/bin/RelWithDebInfo/minecraft-client --quick-play-new`
+
+运行过程中的日志也会一并输出到控制台，如果你要抓日志来调试，请编译后直接执行上述命令即可，尽量不要让用户手动去执行。
+
 ## 代码格式化
 
 提交代码之前，必须使用clang-format对你修改的文件进行格式化：
