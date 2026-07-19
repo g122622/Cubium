@@ -88,7 +88,7 @@ struct LevelSummaryData {
     /// 世界类型
     WorldType worldType;
 
-    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:normal"）
     resource::ResourceLocation worldPresetId;
 
     /// 版本信息
@@ -376,7 +376,7 @@ private:
     /**
      * @brief 从 NBT 解析世界预设资源位置（Data.Reborn.WorldPresetId）
      *
-     * 缺失时默认 "minecraft:default"。
+     * 缺失时默认 "minecraft:normal"。
      */
     static resource::ResourceLocation _parseWorldPresetId(const nbt::tags::compound_tag& data);
 

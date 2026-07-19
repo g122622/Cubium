@@ -415,7 +415,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(std::stoll(m_settings.levelSeed.get())),
         m_settings.viewDistance.get(),
         overworldType,
-        resource::ResourceLocation("minecraft", "default"));
+        resource::ResourceLocation("minecraft", "normal"));
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());

@@ -97,8 +97,8 @@ struct WorldConfig {
     /// 世界类型
     WorldType worldType = WorldType::Default; // 默认使用普通世界
 
-    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
-    resource::ResourceLocation worldPresetId{"minecraft", "default"};
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:normal"）
+    resource::ResourceLocation worldPresetId{"minecraft", "normal"};
 
     /// 视距
     i32 viewDistance = 10;

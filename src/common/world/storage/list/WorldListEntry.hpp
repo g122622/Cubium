@@ -77,8 +77,8 @@ struct WorldListEntry {
     /// 世界类型
     WorldType worldType = WorldType::Default;
 
-    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
-    resource::ResourceLocation worldPresetId{"minecraft", "default"};
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:normal"）
+    resource::ResourceLocation worldPresetId{"minecraft", "normal"};
 
     /// 游戏模式
     GameMode gameMode = GameMode::Survival;
@@ -262,7 +262,7 @@ struct WorldListEntry {
         i64 m_lastPlayedMs = 0;
         u64 m_seed = 0;
         WorldType m_worldType = WorldType::Default;
-        resource::ResourceLocation m_worldPresetId{"minecraft", "default"};
+        resource::ResourceLocation m_worldPresetId{"minecraft", "normal"};
         GameMode m_gameMode = GameMode::Survival;
         Difficulty m_difficulty = Difficulty::Normal;
         bool m_hardcore = false;

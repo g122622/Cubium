@@ -297,7 +297,7 @@ mc::resource::ResourceLocation BedrockLevelDatReader::_parseWorldPresetId(const 
     if (generatorName == "amplified") {
         return mc::resource::ResourceLocation("minecraft", "amplified");
     }
-    return mc::resource::ResourceLocation("minecraft", "default");
+    return mc::resource::ResourceLocation("minecraft", "normal");
 }
 
 } // namespace mc::world::storage::reader::bedrock

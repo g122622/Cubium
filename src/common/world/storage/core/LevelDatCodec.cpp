@@ -302,7 +302,7 @@ resource::ResourceLocation LevelDatCodec::_parseWorldPresetId(const nbt::tags::c
             }
         }
     }
-    return resource::ResourceLocation("minecraft", "default");
+    return resource::ResourceLocation("minecraft", "normal");
 }
 
 void LevelDatCodec::_writeReborn(
@@ -421,7 +421,7 @@ Result<LevelSummaryData> LevelDatCodec::parseSummary(const nbt::tags::compound_t
     // 解析世界类型
     WorldType worldType = _parseWorldType(data);
 
-    // 解析世界预设资源位置（Data.Reborn.WorldPresetId，缺失默认 minecraft:default）
+    // 解析世界预设资源位置（Data.Reborn.WorldPresetId，缺失默认 minecraft:normal）
     resource::ResourceLocation worldPresetId = _parseWorldPresetId(data);
 
     // 解析版本信息

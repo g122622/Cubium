@@ -94,7 +94,7 @@ public:
      * @param seed 世界种子
      * @param viewDistance 视野距离
      * @param overworldType 主世界类型（旧 WorldType 路径，仅 WorldPresetRegistry 未加载时兜底）
-     * @param worldPresetId 世界预设资源位置（如 "minecraft:default"），数据驱动装配查 WorldPresetRegistry
+     * @param worldPresetId 世界预设资源位置（如 "minecraft:normal"），数据驱动装配查 WorldPresetRegistry
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> initialize(
@@ -271,7 +271,7 @@ private:
     u64 m_seed = 0;
     i32 m_viewDistance = 10;
     WorldType m_overworldType = WorldType::Default;
-    resource::ResourceLocation m_worldPresetId{"minecraft", "default"};
+    resource::ResourceLocation m_worldPresetId{"minecraft", "normal"};
 
     // 回调
     DimensionChangeCallback m_dimensionChangeCallback;

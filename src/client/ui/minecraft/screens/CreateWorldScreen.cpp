@@ -254,7 +254,7 @@ world::storage::CreateWorldRequest CreateWorldScreen::buildRequest() const
                 return resource::ResourceLocation("minecraft", "debug_all_block_states");
             case WorldType::Default:
             default:
-                return resource::ResourceLocation("minecraft", "default");
+                return resource::ResourceLocation("minecraft", "normal");
         }
     }();
 

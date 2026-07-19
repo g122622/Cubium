@@ -49,7 +49,7 @@ struct CreateWorldRequest {
     /// 世界类型
     WorldType worldType;
 
-    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:default"）
+    /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:normal"）
     resource::ResourceLocation worldPresetId;
 
     /// 游戏模式

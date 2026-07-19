@@ -357,7 +357,7 @@ mc::resource::ResourceLocation JavaLevelDatReader::_parseWorldPresetId(const com
             }
         }
     }
-    return mc::resource::ResourceLocation("minecraft", "default");
+    return mc::resource::ResourceLocation("minecraft", "normal");
 }
 
 GameMode JavaLevelDatReader::_parseGameMode(const compound_tag& data)

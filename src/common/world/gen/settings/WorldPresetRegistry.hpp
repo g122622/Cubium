@@ -48,7 +48,7 @@ public:
      *
      * WorldPresetLoader 解析完一个 JSON 后调用。
      *
-     * @param name 资源位置（如 "minecraft:default"，对应 normal.json）
+     * @param name 资源位置（如 "minecraft:normal"，对应 normal.json）
      * @param preset 世界预设
      */
     void registerPreset(const resource::ResourceLocation& name, WorldPreset preset);
