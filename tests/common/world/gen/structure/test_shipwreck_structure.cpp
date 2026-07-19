@@ -112,7 +112,7 @@ TEST_F(ShipwreckStructureTest, Piece_RotationVariants)
 
 TEST_F(ShipwreckStructureTest, Structure_BasicProperties)
 {
-    ShipwreckStructure structure;
+    ShipwreckStructure structure(ResourceLocation("minecraft", "shipwreck"));
 
     EXPECT_EQ(structure.name(), "shipwreck");
     ASSERT_NE(structure.biomeTag(), nullptr);
@@ -120,7 +120,7 @@ TEST_F(ShipwreckStructureTest, Structure_BasicProperties)
 
 TEST_F(ShipwreckStructureTest, Structure_ValidBiomeTag)
 {
-    ShipwreckStructure structure;
+    ShipwreckStructure structure(ResourceLocation("minecraft", "shipwreck"));
     const auto* tag = structure.biomeTag();
     ASSERT_NE(tag, nullptr);
 
@@ -307,7 +307,7 @@ TEST_F(ShipwreckStructureTest, TemplateVariants_Degraded)
 
 TEST_F(ShipwreckStructureTest, Config_SetAndGet)
 {
-    ShipwreckStructure structure;
+    ShipwreckStructure structure(ResourceLocation("minecraft", "shipwreck"));
 
     ShipwreckConfig config;
     config.isBeached = true;

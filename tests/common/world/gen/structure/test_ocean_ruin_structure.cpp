@@ -115,7 +115,7 @@ TEST_F(OceanRuinStructureTest, Piece_RotationVariants)
 
 TEST_F(OceanRuinStructureTest, Structure_BasicProperties)
 {
-    OceanRuinStructure structure;
+    OceanRuinStructure structure(ResourceLocation("minecraft", "ocean_ruin"));
 
     EXPECT_EQ(structure.name(), "ocean_ruin");
     ASSERT_NE(structure.biomeTag(), nullptr);
@@ -123,7 +123,7 @@ TEST_F(OceanRuinStructureTest, Structure_BasicProperties)
 
 TEST_F(OceanRuinStructureTest, Structure_ValidBiomeTag)
 {
-    OceanRuinStructure structure;
+    OceanRuinStructure structure(ResourceLocation("minecraft", "ocean_ruin"));
     const auto* tag = structure.biomeTag();
     ASSERT_NE(tag, nullptr);
 

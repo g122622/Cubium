@@ -203,7 +203,7 @@ private:
 
 TEST_F(NewStructuresTest, Igloo_NameAndBiomeTag)
 {
-    IglooStructure structure;
+    IglooStructure structure(ResourceLocation("minecraft", "igloo"));
 
     EXPECT_EQ(structure.name(), "Igloo");
 
@@ -217,7 +217,7 @@ TEST_F(NewStructuresTest, Igloo_NameAndBiomeTag)
 
 TEST_F(NewStructuresTest, Igloo_CanGenerate)
 {
-    IglooStructure structure;
+    IglooStructure structure(ResourceLocation("minecraft", "igloo"));
     StructureTestWorld world;
     math::Random rng(12345);
 
@@ -264,7 +264,7 @@ TEST_F(NewStructuresTest, Igloo_PieceConstruction)
 
 TEST_F(NewStructuresTest, SwampHut_NameAndBiomeTag)
 {
-    SwampHutStructure structure;
+    SwampHutStructure structure(ResourceLocation("minecraft", "swamp_hut"));
 
     EXPECT_EQ(structure.name(), "Swamp_Hut");
 
@@ -276,7 +276,7 @@ TEST_F(NewStructuresTest, SwampHut_NameAndBiomeTag)
 
 TEST_F(NewStructuresTest, SwampHut_CanGenerate)
 {
-    SwampHutStructure structure;
+    SwampHutStructure structure(ResourceLocation("minecraft", "swamp_hut"));
     StructureTestWorld world;
     math::Random rng(12345);
 
@@ -314,7 +314,7 @@ TEST_F(NewStructuresTest, SwampHut_PieceConstruction)
 
 TEST_F(NewStructuresTest, NetherFossil_NameAndBiomeTag)
 {
-    NetherFossilStructure structure;
+    NetherFossilStructure structure(ResourceLocation("minecraft", "nether_fossil"));
 
     EXPECT_EQ(structure.name(), "Nether_Fossil");
 
@@ -342,7 +342,7 @@ TEST_F(NewStructuresTest, NetherFossil_PieceConstruction)
 
 TEST_F(NewStructuresTest, PillagerOutpost_NameAndBiomeTag)
 {
-    PillagerOutpostStructure structure;
+    PillagerOutpostStructure structure(ResourceLocation("minecraft", "pillager_outpost"));
 
     EXPECT_EQ(structure.name(), "Pillager_Outpost");
 
@@ -358,7 +358,7 @@ TEST_F(NewStructuresTest, PillagerOutpost_NameAndBiomeTag)
 
 TEST_F(NewStructuresTest, EndCity_NameAndBiomeTag)
 {
-    EndCityStructure structure;
+    EndCityStructure structure(ResourceLocation("minecraft", "end_city"));
 
     EXPECT_EQ(structure.name(), "End_City");
 
@@ -389,7 +389,7 @@ TEST_F(NewStructuresTest, EndCity_PieceConstruction)
 
 TEST_F(NewStructuresTest, WoodlandMansion_NameAndBiomeTag)
 {
-    WoodlandMansionStructure structure;
+    WoodlandMansionStructure structure(ResourceLocation("minecraft", "mansion"));
 
     EXPECT_EQ(structure.name(), "Woodland_Mansion");
 
@@ -418,7 +418,7 @@ TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
 
 TEST_F(NewStructuresTest, BastionRemnant_NameAndBiomeTag)
 {
-    BastionRemnantStructure structure;
+    BastionRemnantStructure structure(ResourceLocation("minecraft", "bastion_remnant"));
 
     EXPECT_EQ(structure.name(), "bastion_remnant");
 
@@ -437,13 +437,13 @@ TEST_F(NewStructuresTest, BastionRemnant_NameAndBiomeTag)
 
 TEST_F(NewStructuresTest, AllStructures_HaveValidBiomeTags)
 {
-    IglooStructure igloo;
-    SwampHutStructure swampHut;
-    NetherFossilStructure netherFossil;
-    PillagerOutpostStructure outpost;
-    EndCityStructure endCity;
-    WoodlandMansionStructure mansion;
-    BastionRemnantStructure bastion;
+    IglooStructure igloo(ResourceLocation("minecraft", "igloo"));
+    SwampHutStructure swampHut(ResourceLocation("minecraft", "swamp_hut"));
+    NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"));
+    PillagerOutpostStructure outpost(ResourceLocation("minecraft", "pillager_outpost"));
+    EndCityStructure endCity(ResourceLocation("minecraft", "end_city"));
+    WoodlandMansionStructure mansion(ResourceLocation("minecraft", "mansion"));
+    BastionRemnantStructure bastion(ResourceLocation("minecraft", "bastion_remnant"));
 
     // 所有结构应该有有效的生物群系标签
     EXPECT_NE(igloo.biomeTag(), nullptr);
@@ -457,13 +457,13 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidBiomeTags)
 
 TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
 {
-    IglooStructure igloo;
-    SwampHutStructure swampHut;
-    NetherFossilStructure netherFossil;
-    PillagerOutpostStructure outpost;
-    EndCityStructure endCity;
-    WoodlandMansionStructure mansion;
-    BastionRemnantStructure bastion;
+    IglooStructure igloo(ResourceLocation("minecraft", "igloo"));
+    SwampHutStructure swampHut(ResourceLocation("minecraft", "swamp_hut"));
+    NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"));
+    PillagerOutpostStructure outpost(ResourceLocation("minecraft", "pillager_outpost"));
+    EndCityStructure endCity(ResourceLocation("minecraft", "end_city"));
+    WoodlandMansionStructure mansion(ResourceLocation("minecraft", "mansion"));
+    BastionRemnantStructure bastion(ResourceLocation("minecraft", "bastion_remnant"));
 
     // 名称应该非空
     EXPECT_FALSE(igloo.name().empty());
@@ -482,7 +482,7 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
 TEST_F(NewStructuresTest, PillagerOutpost_VillageDetection)
 {
     // 测试前哨站结构的基本属性
-    PillagerOutpostStructure outpost;
+    PillagerOutpostStructure outpost(ResourceLocation("minecraft", "pillager_outpost"));
 
     // 前哨站应有有效的生物群系标签
     EXPECT_NE(outpost.biomeTag(), nullptr);
@@ -494,7 +494,7 @@ TEST_F(NewStructuresTest, PillagerOutpost_VillageDetection)
 
 TEST_F(NewStructuresTest, Stronghold_NameAndBiomeTag)
 {
-    StrongholdStructure structure;
+    StrongholdStructure structure(ResourceLocation("minecraft", "stronghold"));
 
     EXPECT_EQ(structure.name(), "stronghold");
     // 要塞使用特殊的位置计算（ConcentricRingsStructurePlacement）
@@ -569,7 +569,7 @@ TEST_F(NewStructuresTest, StrongholdPieces_WeightInitialization)
 
 TEST_F(NewStructuresTest, Stronghold_CanGenerateIsNotUniversal)
 {
-    StrongholdStructure structure;
+    StrongholdStructure structure(ResourceLocation("minecraft", "stronghold"));
     StructureTestWorld world;
     FixedBiomeChunkGenerator generator(Plains);
     math::Random rng(12345);
@@ -587,7 +587,7 @@ TEST_F(NewStructuresTest, Stronghold_CanGenerateIsNotUniversal)
 
 TEST_F(NewStructuresTest, DesertPyramid_NameAndBiomeTag)
 {
-    DesertPyramidStructure structure;
+    DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
 
     EXPECT_EQ(structure.name(), "desert_pyramid");
 
@@ -601,7 +601,7 @@ TEST_F(NewStructuresTest, DesertPyramid_NameAndBiomeTag)
 
 TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_DesertBiome_Allowed)
 {
-    DesertPyramidStructure structure;
+    DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
     StructureTestWorld world;
     math::Random rng(12345);
 
@@ -612,7 +612,7 @@ TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_DesertBiome_Allowed)
 
 TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_NonDesertBiome_Rejected)
 {
-    DesertPyramidStructure structure;
+    DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
     StructureTestWorld world;
     math::Random rng(12345);
 
@@ -626,7 +626,7 @@ TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_NonDesertBiome_Rejected)
 
 TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BelowSeaLevel_Rejected)
 {
-    DesertPyramidStructure structure;
+    DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
     StructureTestWorld world;
     math::Random rng(12345);
 
@@ -645,7 +645,7 @@ TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BelowSeaLevel_Rejected)
 
 TEST_F(NewStructuresTest, JungleTemple_NameAndBiomeTag)
 {
-    JungleTempleStructure structure;
+    JungleTempleStructure structure(ResourceLocation("minecraft", "jungle_pyramid"));
 
     EXPECT_EQ(structure.name(), "jungle_temple");
 
@@ -657,7 +657,7 @@ TEST_F(NewStructuresTest, JungleTemple_NameAndBiomeTag)
 
 TEST_F(NewStructuresTest, OceanMonument_NameAndBiomeTag)
 {
-    OceanMonumentStructure structure;
+    OceanMonumentStructure structure(ResourceLocation("minecraft", "monument"));
 
     EXPECT_EQ(structure.name(), "ocean_monument");
 

@@ -82,8 +82,8 @@ public:
         i32 maxRange = 112;  ///< 最大扩展范围
     };
 
-    FortressStructure();
-    explicit FortressStructure(const Config& config);
+    explicit FortressStructure(ResourceLocation id);
+    FortressStructure(ResourceLocation id, const Config& config);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] DecorationStage defaultDecorationStage() const override

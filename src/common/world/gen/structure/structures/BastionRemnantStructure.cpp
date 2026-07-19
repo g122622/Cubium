@@ -112,8 +112,8 @@ constexpr i32 BASTION_WEIGHTS[] = {4, 2, 2, 2}; // units, stables, treasure, bri
 
 } // anonymous namespace
 
-BastionRemnantStructure::BastionRemnantStructure()
-    : Structure(ResourceLocation("minecraft", "bastion_remnant"))
+BastionRemnantStructure::BastionRemnantStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* BastionRemnantStructure::defaultBiomeTag() const

@@ -48,8 +48,8 @@ const std::string SwampHutStructure::s_name = "Swamp_Hut";
 const SpawnOverrides SwampHutStructure::s_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
 
-SwampHutStructure::SwampHutStructure()
-    : Structure(ResourceLocation("minecraft", "swamp_hut"))
+SwampHutStructure::SwampHutStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* SwampHutStructure::defaultBiomeTag() const

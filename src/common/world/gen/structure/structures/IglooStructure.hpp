@@ -101,7 +101,7 @@ private:
  */
 class IglooStructure : public Structure {
 public:
-    IglooStructure();
+    explicit IglooStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
 

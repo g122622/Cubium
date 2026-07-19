@@ -203,8 +203,8 @@ void OceanRuinPiece::generate(IWorldWriter& world,
 // OceanRuinStructure
 // ============================================================================
 
-OceanRuinStructure::OceanRuinStructure()
-    : Structure(ResourceLocation("minecraft", "ocean_ruin"))
+OceanRuinStructure::OceanRuinStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* OceanRuinStructure::defaultBiomeTag() const

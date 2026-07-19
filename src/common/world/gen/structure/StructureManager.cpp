@@ -73,27 +73,26 @@ void StructureRegistry::initialize()
     // 初始化 Jigsaw 模板池
     pools::Pools::initialize();
 
-    // 注册原版结构
-    // 所有子类已迁移到 ResourceLocation 构造函数
-    registerStructure(std::make_unique<RuinedPortalStructure>());
-    registerStructure(std::make_unique<BuriedTreasureStructure>());
-    registerStructure(std::make_unique<MineshaftStructure>());
-    registerStructure(std::make_unique<VillageStructure>());
-    registerStructure(std::make_unique<StrongholdStructure>());
-    registerStructure(std::make_unique<DesertPyramidStructure>());
-    registerStructure(std::make_unique<JungleTempleStructure>());
-    registerStructure(std::make_unique<OceanMonumentStructure>());
-    registerStructure(std::make_unique<ShipwreckStructure>());
-    registerStructure(std::make_unique<OceanRuinStructure>());
-    registerStructure(std::make_unique<FortressStructure>());
-    registerStructure(std::make_unique<IglooStructure>());
-    registerStructure(std::make_unique<SwampHutStructure>());
-    registerStructure(std::make_unique<NetherFossilStructure>());
-    registerStructure(std::make_unique<PillagerOutpostStructure>());
-    registerStructure(std::make_unique<WoodlandMansionStructure>());
-    registerStructure(std::make_unique<EndCityStructure>());
-    registerStructure(std::make_unique<BastionRemnantStructure>());
-    registerStructure(std::make_unique<TrialChambersStructure>());
+    // 注册原版结构（兜底路径：数据驱动未加载时使用，键为结构类型基础名）
+    registerStructure(std::make_unique<RuinedPortalStructure>(ResourceLocation("minecraft", "ruined_portal")));
+    registerStructure(std::make_unique<BuriedTreasureStructure>(ResourceLocation("minecraft", "buried_treasure")));
+    registerStructure(std::make_unique<MineshaftStructure>(ResourceLocation("minecraft", "mineshaft")));
+    registerStructure(std::make_unique<VillageStructure>(ResourceLocation("minecraft", "village")));
+    registerStructure(std::make_unique<StrongholdStructure>(ResourceLocation("minecraft", "stronghold")));
+    registerStructure(std::make_unique<DesertPyramidStructure>(ResourceLocation("minecraft", "desert_pyramid")));
+    registerStructure(std::make_unique<JungleTempleStructure>(ResourceLocation("minecraft", "jungle_pyramid")));
+    registerStructure(std::make_unique<OceanMonumentStructure>(ResourceLocation("minecraft", "monument")));
+    registerStructure(std::make_unique<ShipwreckStructure>(ResourceLocation("minecraft", "shipwreck")));
+    registerStructure(std::make_unique<OceanRuinStructure>(ResourceLocation("minecraft", "ocean_ruin")));
+    registerStructure(std::make_unique<FortressStructure>(ResourceLocation("minecraft", "fortress")));
+    registerStructure(std::make_unique<IglooStructure>(ResourceLocation("minecraft", "igloo")));
+    registerStructure(std::make_unique<SwampHutStructure>(ResourceLocation("minecraft", "swamp_hut")));
+    registerStructure(std::make_unique<NetherFossilStructure>(ResourceLocation("minecraft", "nether_fossil")));
+    registerStructure(std::make_unique<PillagerOutpostStructure>(ResourceLocation("minecraft", "pillager_outpost")));
+    registerStructure(std::make_unique<WoodlandMansionStructure>(ResourceLocation("minecraft", "mansion")));
+    registerStructure(std::make_unique<EndCityStructure>(ResourceLocation("minecraft", "end_city")));
+    registerStructure(std::make_unique<BastionRemnantStructure>(ResourceLocation("minecraft", "bastion_remnant")));
+    registerStructure(std::make_unique<TrialChambersStructure>(ResourceLocation("minecraft", "trial_chambers")));
 
     s_initialized = true;
 }

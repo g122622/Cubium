@@ -44,7 +44,7 @@ namespace structure {
  */
 class SwampHutStructure : public Structure {
 public:
-    SwampHutStructure();
+    explicit SwampHutStructure(ResourceLocation id);
     ~SwampHutStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }

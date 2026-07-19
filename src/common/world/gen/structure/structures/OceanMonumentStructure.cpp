@@ -17,8 +17,8 @@ const std::string OceanMonumentStructure::m_name = "ocean_monument";
 const SpawnOverrides OceanMonumentStructure::m_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 4, 4}}};
 
-OceanMonumentStructure::OceanMonumentStructure()
-    : Structure(ResourceLocation("minecraft", "monument"))
+OceanMonumentStructure::OceanMonumentStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* OceanMonumentStructure::defaultBiomeTag() const

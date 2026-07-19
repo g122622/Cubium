@@ -47,7 +47,7 @@ namespace structure {
  */
 class OceanMonumentStructure : public Structure {
 public:
-    OceanMonumentStructure();
+    explicit OceanMonumentStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 

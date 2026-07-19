@@ -138,8 +138,8 @@ void NetherFossilPiece::generate(IWorldWriter& world,
 // NetherFossilStructure
 // ============================================================================
 
-NetherFossilStructure::NetherFossilStructure()
-    : Structure(ResourceLocation("minecraft", "nether_fossil"))
+NetherFossilStructure::NetherFossilStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const

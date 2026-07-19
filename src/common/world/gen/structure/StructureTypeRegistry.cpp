@@ -184,16 +184,16 @@ Result<std::unique_ptr<Structure>> createJigsaw(const StructureDefinition& def)
     const std::string& p = def.id.path();
 
     if (p == "pillager_outpost") {
-        return toBase(std::make_unique<PillagerOutpostStructure>());
+        return toBase(std::make_unique<PillagerOutpostStructure>(def.id));
     }
     if (p == "trial_chambers") {
-        return toBase(std::make_unique<TrialChambersStructure>());
+        return toBase(std::make_unique<TrialChambersStructure>(def.id));
     }
     if (p == "bastion_remnant") {
-        return toBase(std::make_unique<BastionRemnantStructure>());
+        return toBase(std::make_unique<BastionRemnantStructure>(def.id));
     }
     if (p.rfind("village", 0) == 0) { // village / village_desert / ...
-        return toBase(std::make_unique<VillageStructure>(villageTypeFromId(def.id)));
+        return toBase(std::make_unique<VillageStructure>(def.id, villageTypeFromId(def.id)));
     }
 
     // 裸 JigsawStructure：必须提供 start_pool（默认 ResourceLocation 命名空间为 "minecraft"、
@@ -213,16 +213,16 @@ Result<std::unique_ptr<Structure>> createMineshaft(const StructureDefinition& de
 {
     // mineshaft_type: normal（默认）/ mesa。def.id 路径 "mineshaft" 或 "mineshaft_mesa"。
     if (def.id.path() == "mineshaft_mesa") {
-        return toBase(std::make_unique<MineshaftStructure>(MineshaftType::Mesa));
+        return toBase(std::make_unique<MineshaftStructure>(def.id, MineshaftType::Mesa));
     }
-    return toBase(std::make_unique<MineshaftStructure>(MineshaftType::Normal));
+    return toBase(std::make_unique<MineshaftStructure>(def.id, MineshaftType::Normal));
 }
 
 /// 程序化零参构造子类工厂（无变体分流，运行时按生物群系判定变体）
 template <typename T>
-Result<std::unique_ptr<Structure>> createZeroArg(const StructureDefinition& /*def*/)
+Result<std::unique_ptr<Structure>> createZeroArg(const StructureDefinition& def)
 {
-    return toBase(std::make_unique<T>());
+    return toBase(std::make_unique<T>(def.id));
 }
 
 } // namespace

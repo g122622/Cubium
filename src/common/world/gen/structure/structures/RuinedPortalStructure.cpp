@@ -305,8 +305,8 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
 // RuinedPortalStructure
 // ============================================================================
 
-RuinedPortalStructure::RuinedPortalStructure()
-    : Structure(ResourceLocation("minecraft", "ruined_portal"))
+RuinedPortalStructure::RuinedPortalStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* RuinedPortalStructure::defaultBiomeTag() const

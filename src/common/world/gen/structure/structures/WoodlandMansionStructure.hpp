@@ -49,7 +49,7 @@ class MansionPlacer;
  */
 class WoodlandMansionStructure : public Structure {
 public:
-    WoodlandMansionStructure();
+    explicit WoodlandMansionStructure(ResourceLocation id);
     ~WoodlandMansionStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }

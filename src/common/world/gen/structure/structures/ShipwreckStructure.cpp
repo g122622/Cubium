@@ -179,8 +179,8 @@ void ShipwreckPiece::generate(IWorldWriter& world,
 // ShipwreckStructure
 // ============================================================================
 
-ShipwreckStructure::ShipwreckStructure()
-    : Structure(ResourceLocation("minecraft", "shipwreck"))
+ShipwreckStructure::ShipwreckStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* ShipwreckStructure::defaultBiomeTag() const

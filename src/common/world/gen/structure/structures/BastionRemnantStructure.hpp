@@ -41,7 +41,7 @@ namespace structure {
  */
 class BastionRemnantStructure : public Structure {
 public:
-    BastionRemnantStructure();
+    explicit BastionRemnantStructure(ResourceLocation id);
     ~BastionRemnantStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }

@@ -61,7 +61,7 @@ class IGenerator;
  */
 class EndCityStructure : public Structure {
 public:
-    EndCityStructure();
+    explicit EndCityStructure(ResourceLocation id);
     ~EndCityStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }

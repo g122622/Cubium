@@ -67,7 +67,7 @@ private:
  */
 class DesertPyramidStructure : public Structure {
 public:
-    DesertPyramidStructure();
+    explicit DesertPyramidStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 

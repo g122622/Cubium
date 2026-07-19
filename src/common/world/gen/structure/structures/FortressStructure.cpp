@@ -373,12 +373,12 @@ const std::string FortressStructure::m_name = "fortress";
 const SpawnOverrides FortressStructure::s_spawnOverrides = {
     SpawnOverrideType::Piece, {SpawnOverrideEntry{"monster", 2, 4}}};
 
-FortressStructure::FortressStructure()
-    : Structure(ResourceLocation("minecraft", "fortress"))
+FortressStructure::FortressStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
-FortressStructure::FortressStructure(const Config& config)
-    : Structure(ResourceLocation("minecraft", "fortress"))
+FortressStructure::FortressStructure(ResourceLocation id, const Config& config)
+    : Structure(std::move(id))
     , m_config(config)
 {}
 

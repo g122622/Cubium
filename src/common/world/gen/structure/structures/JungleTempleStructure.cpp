@@ -449,8 +449,8 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
 
 const std::string JungleTempleStructure::m_name = "jungle_temple";
 
-JungleTempleStructure::JungleTempleStructure() noexcept
-    : Structure(ResourceLocation("minecraft", "jungle_pyramid"))
+JungleTempleStructure::JungleTempleStructure(ResourceLocation id) noexcept
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* JungleTempleStructure::defaultBiomeTag() const

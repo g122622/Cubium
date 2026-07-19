@@ -63,12 +63,12 @@ using namespace mc::Biomes;
 
 const std::string StrongholdStructure::m_name = "stronghold";
 
-StrongholdStructure::StrongholdStructure()
-    : Structure(ResourceLocation("minecraft", "stronghold"))
+StrongholdStructure::StrongholdStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
-StrongholdStructure::StrongholdStructure(const Config& config)
-    : Structure(ResourceLocation("minecraft", "stronghold"))
+StrongholdStructure::StrongholdStructure(ResourceLocation id, const Config& config)
+    : Structure(std::move(id))
     , m_config(config)
 {}
 

@@ -40,7 +40,7 @@ namespace structure {
  */
 class PillagerOutpostStructure : public JigsawStructure {
 public:
-    PillagerOutpostStructure();
+    explicit PillagerOutpostStructure(ResourceLocation id);
     ~PillagerOutpostStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }

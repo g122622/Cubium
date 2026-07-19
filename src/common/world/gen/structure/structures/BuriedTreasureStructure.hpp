@@ -65,8 +65,8 @@ private:
  */
 class BuriedTreasureStructure : public Structure {
 public:
-    BuriedTreasureStructure()
-        : Structure(ResourceLocation("minecraft", "buried_treasure"))
+    explicit BuriedTreasureStructure(ResourceLocation id)
+        : Structure(std::move(id))
     {}
 
     [[nodiscard]] const std::string& name() const override { return m_name; }

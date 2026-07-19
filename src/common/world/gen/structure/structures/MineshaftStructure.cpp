@@ -781,8 +781,8 @@ const std::string MineshaftStructure::m_name = "mineshaft";
 const std::vector<BiomeId> MineshaftStructure::m_mesaBiomes = {
     Biomes::Badlands, Biomes::BadlandsPlateau, Biomes::ErodedBadlands, Biomes::WoodedBadlandsPlateau};
 
-MineshaftStructure::MineshaftStructure(MineshaftType type)
-    : Structure(ResourceLocation("minecraft", "mineshaft"))
+MineshaftStructure::MineshaftStructure(ResourceLocation id, MineshaftType type)
+    : Structure(std::move(id))
 {
     m_config.type = type;
     m_config.probability = (type == MineshaftType::Mesa) ? 0.004f : 0.004f;

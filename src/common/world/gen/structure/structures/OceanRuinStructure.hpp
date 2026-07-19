@@ -114,7 +114,7 @@ private:
  */
 class OceanRuinStructure : public Structure {
 public:
-    OceanRuinStructure();
+    explicit OceanRuinStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 

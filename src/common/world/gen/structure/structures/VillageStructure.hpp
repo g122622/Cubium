@@ -77,8 +77,8 @@ struct VillageConfig {
  */
 class VillageStructure : public Structure {
 public:
-    explicit VillageStructure(VillageType type = VillageType::Plains);
-    explicit VillageStructure(const VillageConfig& config);
+    explicit VillageStructure(ResourceLocation id, VillageType type = VillageType::Plains);
+    explicit VillageStructure(ResourceLocation id, const VillageConfig& config);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 

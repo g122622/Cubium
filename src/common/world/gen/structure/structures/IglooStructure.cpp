@@ -251,8 +251,8 @@ void IglooPiece::_generateBottom(IWorldWriter& world, math::Random& rng, const S
 // IglooStructure
 // ============================================================================
 
-IglooStructure::IglooStructure()
-    : Structure(ResourceLocation("minecraft", "igloo"))
+IglooStructure::IglooStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* IglooStructure::defaultBiomeTag() const

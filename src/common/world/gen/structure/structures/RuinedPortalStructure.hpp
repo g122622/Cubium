@@ -142,7 +142,7 @@ enum class RuinedPortalType : u8 {
  */
 class RuinedPortalStructure : public Structure {
 public:
-    RuinedPortalStructure();
+    explicit RuinedPortalStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
 

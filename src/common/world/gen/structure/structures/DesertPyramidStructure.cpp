@@ -303,8 +303,8 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
 
 const std::string DesertPyramidStructure::m_name = "desert_pyramid";
 
-DesertPyramidStructure::DesertPyramidStructure()
-    : Structure(ResourceLocation("minecraft", "desert_pyramid"))
+DesertPyramidStructure::DesertPyramidStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* DesertPyramidStructure::defaultBiomeTag() const

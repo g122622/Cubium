@@ -58,8 +58,8 @@ public:
         i32 maxY = 40;     ///< 最高 Y 坐标
     };
 
-    StrongholdStructure();
-    explicit StrongholdStructure(const Config& config);
+    explicit StrongholdStructure(ResourceLocation id);
+    StrongholdStructure(ResourceLocation id, const Config& config);
 
     [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
 

@@ -84,7 +84,7 @@ private:
  */
 class NetherFossilStructure : public Structure {
 public:
-    NetherFossilStructure();
+    explicit NetherFossilStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
     [[nodiscard]] DecorationStage defaultDecorationStage() const override

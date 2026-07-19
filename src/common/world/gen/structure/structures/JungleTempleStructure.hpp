@@ -68,7 +68,7 @@ private:
  */
 class JungleTempleStructure : public Structure {
 public:
-    JungleTempleStructure() noexcept;
+    explicit JungleTempleStructure(ResourceLocation id) noexcept;
 
     [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
 

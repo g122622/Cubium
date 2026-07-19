@@ -99,7 +99,7 @@ private:
  */
 class ShipwreckStructure : public Structure {
 public:
-    ShipwreckStructure();
+    explicit ShipwreckStructure(ResourceLocation id);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 

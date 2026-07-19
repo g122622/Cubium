@@ -93,8 +93,8 @@ static Direction rotationToSouth(feature::template_::Rotation rotation)
 
 const std::string WoodlandMansionStructure::s_name = "Woodland_Mansion";
 
-WoodlandMansionStructure::WoodlandMansionStructure()
-    : Structure(ResourceLocation("minecraft", "mansion"))
+WoodlandMansionStructure::WoodlandMansionStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* WoodlandMansionStructure::defaultBiomeTag() const

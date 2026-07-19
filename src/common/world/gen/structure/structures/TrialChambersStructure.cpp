@@ -93,8 +93,8 @@ private:
 
 } // anonymous namespace
 
-TrialChambersStructure::TrialChambersStructure()
-    : JigsawStructure(ResourceLocation("minecraft", "trial_chambers"),
+TrialChambersStructure::TrialChambersStructure(ResourceLocation id)
+    : JigsawStructure(std::move(id),
           JigsawConfig(ResourceLocation("minecraft", "trial_chambers/chamber/end"),
               20, // maxDepth = 20
               valueprovider::UniformHeight::create(

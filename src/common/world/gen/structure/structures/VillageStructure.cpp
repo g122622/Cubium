@@ -110,14 +110,14 @@ using namespace mc::Biomes;
 
 const std::string VillageStructure::m_name = "village";
 
-VillageStructure::VillageStructure(VillageType type)
-    : Structure(ResourceLocation("minecraft", "village"))
+VillageStructure::VillageStructure(ResourceLocation id, VillageType type)
+    : Structure(std::move(id))
 {
     m_config.type = type;
 }
 
-VillageStructure::VillageStructure(const VillageConfig& config)
-    : Structure(ResourceLocation("minecraft", "village"))
+VillageStructure::VillageStructure(ResourceLocation id, const VillageConfig& config)
+    : Structure(std::move(id))
     , m_config(config)
 {}
 

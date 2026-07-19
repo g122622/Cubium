@@ -82,8 +82,8 @@ feature::template_::Rotation addRotation(feature::template_::Rotation a, feature
 
 const std::string EndCityStructure::s_name = "End_City";
 
-EndCityStructure::EndCityStructure()
-    : Structure(ResourceLocation("minecraft", "end_city"))
+EndCityStructure::EndCityStructure(ResourceLocation id)
+    : Structure(std::move(id))
 {}
 
 const biome::BiomeTag* EndCityStructure::defaultBiomeTag() const

@@ -50,7 +50,7 @@ namespace structure {
  */
 class TrialChambersStructure : public JigsawStructure {
 public:
-    TrialChambersStructure();
+    explicit TrialChambersStructure(ResourceLocation id);
     ~TrialChambersStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }

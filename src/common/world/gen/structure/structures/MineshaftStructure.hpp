@@ -314,7 +314,7 @@ private:
  */
 class MineshaftStructure : public Structure {
 public:
-    explicit MineshaftStructure(MineshaftType type = MineshaftType::Normal);
+    explicit MineshaftStructure(ResourceLocation id, MineshaftType type = MineshaftType::Normal);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
 

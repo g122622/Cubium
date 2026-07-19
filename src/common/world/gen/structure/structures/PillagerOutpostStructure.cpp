@@ -44,12 +44,9 @@ const std::string PillagerOutpostStructure::s_name = "Pillager_Outpost";
 const SpawnOverrides PillagerOutpostStructure::s_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
 
-PillagerOutpostStructure::PillagerOutpostStructure()
-    : JigsawStructure(ResourceLocation("minecraft", "pillager_outpost"),
-          JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7),
-          0,
-          true,
-          true)
+PillagerOutpostStructure::PillagerOutpostStructure(ResourceLocation id)
+    : JigsawStructure(
+          std::move(id), JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7), 0, true, true)
 {}
 
 const biome::BiomeTag* PillagerOutpostStructure::defaultBiomeTag() const

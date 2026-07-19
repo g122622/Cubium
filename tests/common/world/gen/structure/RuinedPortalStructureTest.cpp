@@ -174,7 +174,7 @@ TEST_F(RuinedPortalStructureTest, PieceStoresAllLocationValues)
 
 TEST_F(RuinedPortalStructureTest, GenerateProducesValidStartWithRuinedPortalPiece)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Plains);
     math::Random rng(54321);
 
@@ -201,7 +201,7 @@ TEST_F(RuinedPortalStructureTest, GenerateProducesValidStartWithRuinedPortalPiec
 
 TEST_F(RuinedPortalStructureTest, DesertBiomeProducesDesertConfiguration)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Desert);
     math::Random rng(111);
 
@@ -219,7 +219,7 @@ TEST_F(RuinedPortalStructureTest, DesertBiomeProducesDesertConfiguration)
 
 TEST_F(RuinedPortalStructureTest, JungleBiomeProducesJungleConfiguration)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Jungle);
     math::Random rng(222);
 
@@ -237,7 +237,7 @@ TEST_F(RuinedPortalStructureTest, JungleBiomeProducesJungleConfiguration)
 
 TEST_F(RuinedPortalStructureTest, SwampBiomeProducesSwampConfiguration)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Swamp);
     math::Random rng(333);
 
@@ -255,7 +255,7 @@ TEST_F(RuinedPortalStructureTest, SwampBiomeProducesSwampConfiguration)
 
 TEST_F(RuinedPortalStructureTest, OceanBiomeProducesOceanConfiguration)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Ocean);
     math::Random rng(444);
 
@@ -277,7 +277,7 @@ TEST_F(RuinedPortalStructureTest, OceanBiomeProducesOceanConfiguration)
 
 TEST_F(RuinedPortalStructureTest, ColdBiomeSetsColdFlag)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(SnowyPlains);
     math::Random rng(555);
 
@@ -292,7 +292,7 @@ TEST_F(RuinedPortalStructureTest, ColdBiomeSetsColdFlag)
 
 TEST_F(RuinedPortalStructureTest, NonColdBiomeDoesNotSetColdFlag)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Plains);
     math::Random rng(666);
 
@@ -489,7 +489,7 @@ TEST_F(RuinedPortalStructureTest, NetherrackReplacementProbabilityApproximately7
 
 TEST_F(RuinedPortalStructureTest, JungleMossinessValueIsHigh)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Jungle);
     math::Random rng(777);
 
@@ -504,7 +504,7 @@ TEST_F(RuinedPortalStructureTest, JungleMossinessValueIsHigh)
 
 TEST_F(RuinedPortalStructureTest, DesertMossinessValueIsZero)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Desert);
     math::Random rng(888);
 
@@ -525,7 +525,7 @@ TEST_F(RuinedPortalStructureTest, DesertMossinessValueIsZero)
 
 TEST_F(RuinedPortalStructureTest, StandardTypeDoesNotSetReplaceWithBlackstone)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Plains);
     math::Random rng(999);
 
@@ -545,7 +545,7 @@ TEST_F(RuinedPortalStructureTest, StandardTypeDoesNotSetReplaceWithBlackstone)
 
 TEST_F(RuinedPortalStructureTest, MultipleGenerationsProduceConsistentConfiguration)
 {
-    RuinedPortalStructure structure;
+    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
     FixedBiomeChunkGenerator generator(Swamp);
 
     for (u64 seed = 1; seed <= 20; ++seed) {
