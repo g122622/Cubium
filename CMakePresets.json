@@ -84,6 +84,42 @@
       }
     },
     {
+      "name": "windows-clang-relwithdebinfo-noprof",
+      "displayName": "Windows Clang RelWithDebInfo (no profiler)",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build-noprof",
+      "installDir": "${sourceDir}/dist-noprof",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF",
+        "MC_ENABLE_TRACING": "OFF",
+        "MC_ENABLE_TRACY": "OFF",
+        "MC_ENABLE_MEMORY": "OFF"
+      }
+    },
+    {
+      "name": "windows-clang-release-noprof",
+      "displayName": "Windows Clang Release (no profiler, distributable)",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build-release-noprof",
+      "installDir": "${sourceDir}/dist-release-noprof",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "OFF",
+        "MC_BUILD_BENCHMARKS": "OFF",
+        "MC_ENABLE_SANITIZERS": "OFF",
+        "MC_ENABLE_VULKAN_VALIDATION": "OFF",
+        "MC_ENABLE_TRACING": "OFF",
+        "MC_ENABLE_TRACY": "OFF",
+        "MC_ENABLE_MEMORY": "OFF"
+      }
+    },
+    {
       "name": "macos-debug",
       "displayName": "macOS Debug",
       "inherits": "macos-base",
@@ -162,6 +198,18 @@
     {
       "name": "windows-clang-release",
       "configurePreset": "windows-clang-release",
+      "configuration": "Release",
+      "jobs": 16
+    },
+    {
+      "name": "windows-clang-relwithdebinfo-noprof",
+      "configurePreset": "windows-clang-relwithdebinfo-noprof",
+      "configuration": "RelWithDebInfo",
+      "jobs": 16
+    },
+    {
+      "name": "windows-clang-release-noprof",
+      "configurePreset": "windows-clang-release-noprof",
       "configuration": "Release",
       "jobs": 16
     },

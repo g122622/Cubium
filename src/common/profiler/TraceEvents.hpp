@@ -79,6 +79,12 @@
 #pragma once
 
 #include "ProfilerConfig.hpp"
+#include "TraceCategories.hpp"
+
+// 注：TraceCategories.hpp 无条件定义 mc::trace::TraceEvents 枚举树（仅依赖
+// ProfilerConfig.hpp，不依赖 perfetto/tracy）。这里无条件 include，确保即便
+// 两个后端皆关（noprof 构建），业务代码中的 `using namespace mc::trace;` 仍能
+// 解析——否则空展开的 MC_TRACE_* 宏虽无开销，但残留的 using 声明会导致编译失败。
 
 // ============================================================================
 // 头文件包含

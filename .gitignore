@@ -3,6 +3,8 @@ build/
 dist/
 out/
 cmake-build-*/
+build-noprof/
+build-release-noprof/
 
 # IDE directories
 .idea/
