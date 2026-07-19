@@ -74,6 +74,11 @@ u64 PlatformInfo::getProcessPeakMemoryMB()
     return getProcessPeakMemoryMBWindows();
 }
 
+u64 PlatformInfo::getProcessCommitMB()
+{
+    return getProcessCommitMBWindows();
+}
+
 std::string PlatformInfo::getPlatformName()
 {
     return getPlatformNameWindows();
@@ -174,6 +179,18 @@ u64 PlatformInfo::getProcessPeakMemoryMBWindows()
     return 0;
 }
 
+u64 PlatformInfo::getProcessCommitMBWindows()
+{
+    // PagefileUsage 是进程的提交量（commit charge），单位字节。
+    // 与 WorkingSetSize（驻留物理 RAM）互补：释放堆后提交量更及时回落，
+    // 用于评估结构优化是否真实降低占用（工作集受页面复用影响常纹丝不动）。
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return pmc.PagefileUsage / (1024 * 1024);
+    }
+    return 0;
+}
+
 std::string PlatformInfo::getPlatformNameWindows()
 {
     OSVERSIONINFOEXA osvi;
@@ -230,6 +247,11 @@ u64 PlatformInfo::getProcessMemoryMB()
 u64 PlatformInfo::getProcessPeakMemoryMB()
 {
     return getProcessPeakMemoryMBLinux();
+}
+
+u64 PlatformInfo::getProcessCommitMB()
+{
+    return getProcessCommitMBLinux();
 }
 
 std::string PlatformInfo::getPlatformName()
@@ -355,6 +377,31 @@ u64 PlatformInfo::getProcessPeakMemoryMBLinux()
     return 0;
 }
 
+u64 PlatformInfo::getProcessCommitMBLinux()
+{
+    // VmSize 是进程总虚拟内存（含换出、未驻留页），语义对应 Windows 的提交量。
+    // 与 VmRSS（驻留物理 RAM）互补：释放堆后 VmSize 更及时回落。
+    std::ifstream status("/proc/self/status");
+    if (status.is_open()) {
+        std::string line;
+        while (std::getline(status, line)) {
+            if (line.find("VmSize:") == 0) {
+                size_t pos = line.find(':');
+                if (pos != std::string::npos) {
+                    std::string value = line.substr(pos + 1);
+                    size_t numStart = value.find_first_not_of(" \t");
+                    size_t numEnd = value.find_first_of(" \tk", numStart);
+                    if (numStart != std::string::npos) {
+                        u64 kb = std::stoull(value.substr(numStart, numEnd - numStart));
+                        return kb / 1024;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 std::string PlatformInfo::getPlatformNameLinux()
 {
     std::ifstream osRelease("/etc/os-release");
@@ -400,6 +447,11 @@ u64 PlatformInfo::getProcessMemoryMB()
 u64 PlatformInfo::getProcessPeakMemoryMB()
 {
     return getProcessPeakMemoryMBMacOS();
+}
+
+u64 PlatformInfo::getProcessCommitMB()
+{
+    return getProcessCommitMBMacOS();
 }
 
 std::string PlatformInfo::getPlatformName()
@@ -500,6 +552,18 @@ u64 PlatformInfo::getProcessMemoryMBMacOS()
 
     if (task_info(mach_task_self(), TASK_BASIC_INFO_64, reinterpret_cast<task_info_t>(&info), &count) == KERN_SUCCESS) {
         return info.resident_size / (1024 * 1024);
+    }
+    return 0;
+}
+
+u64 PlatformInfo::getProcessCommitMBMacOS()
+{
+    // virtual_size 是进程总虚拟内存，语义对应 Windows 的提交量。
+    task_basic_info_64 info;
+    mach_msg_type_number_t count = TASK_BASIC_INFO_64_COUNT;
+
+    if (task_info(mach_task_self(), TASK_BASIC_INFO_64, reinterpret_cast<task_info_t>(&info), &count) == KERN_SUCCESS) {
+        return info.virtual_size / (1024 * 1024);
     }
     return 0;
 }

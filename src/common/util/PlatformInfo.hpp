@@ -115,6 +115,19 @@ public:
     static u64 getProcessPeakMemoryMB();
 
     /**
+     * @brief 获取当前进程已提交内存（commit charge）使用量 (MB)
+     *
+     * 与 getProcessMemoryMB()（工作集）互补：工作集是当前驻留物理 RAM 的页，
+     * 提交量是进程向 OS 申请保留的总虚拟内存（含换出页、未驻留页）。释放堆内存后
+     * 提交量通常比工作集更及时回落，故更适合用于评估结构优化是否真实降低占用。
+     *
+     * Windows: 使用 GetProcessMemoryInfo (PagefileUsage)
+     * Linux: 读取 /proc/self/status (VmSize)
+     * macOS: 使用 task_info (virtual_size)
+     */
+    static u64 getProcessCommitMB();
+
+    /**
      * @brief 从Vulkan设备属性提取GPU信息
      *
      * @param properties Vulkan物理设备属性
@@ -142,18 +155,21 @@ private:
     static CpuInfo getCpuInfoWindows();
     static u64 getProcessMemoryMBWindows();
     static u64 getProcessPeakMemoryMBWindows();
+    static u64 getProcessCommitMBWindows();
     static std::string getPlatformNameWindows();
 #elif defined(__linux__)
     static MemoryInfo getMemoryInfoLinux();
     static CpuInfo getCpuInfoLinux();
     static u64 getProcessMemoryMBLinux();
     static u64 getProcessPeakMemoryMBLinux();
+    static u64 getProcessCommitMBLinux();
     static std::string getPlatformNameLinux();
 #elif defined(__APPLE__)
     static MemoryInfo getMemoryInfoMacOS();
     static CpuInfo getCpuInfoMacOS();
     static u64 getProcessMemoryMBMacOS();
     static u64 getProcessPeakMemoryMBMacOS();
+    static u64 getProcessCommitMBMacOS();
     static std::string getPlatformNameMacOS();
 #endif
 };

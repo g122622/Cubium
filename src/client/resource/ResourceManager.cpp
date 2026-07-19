@@ -24,6 +24,7 @@
 #include "ResourceManager.hpp"
 #include "ItemModelCache.hpp"
 #include "common/resource/pack/FolderResourcePack.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -38,6 +39,41 @@ using namespace mc::trace;
 namespace mc {
 
 namespace {
+
+/**
+ * @brief 进程内存快照（MB），用于阶段边界打点
+ *
+ * commit = 提交量（PagefileUsage / VmSize / virtual_size），ws = 工作集。
+ * 阶段入口/出口各采一次，用 MC_TRACE_INSTANT_EVENT 打出绝对值，
+ * 相邻边界点相减即为该阶段的内存增量 Δ。
+ */
+struct _MemorySnapshot {
+    i64 commitMB = 0;
+    i64 wsMB = 0;
+};
+
+// 采样当前进程内存快照。两个口径都采，便于在 trace 中对照工作集与提交量。
+_MemorySnapshot _snapshotMemory()
+{
+    return _MemorySnapshot{static_cast<i64>(util::PlatformInfo::getProcessCommitMB()),
+        static_cast<i64>(util::PlatformInfo::getProcessMemoryMB())};
+}
+
+// 阶段内存增量输出到控制台。与 MC_TRACE_INSTANT_EVENT 并列：profiler 关闭时
+// （基线测量场景）trace event 空展开，仅靠 spdlog 保留数据，故必须双写。
+void _logPhaseMemory(std::string_view phase, const _MemorySnapshot& before, const _MemorySnapshot& after)
+{
+    const i64 commitDelta = after.commitMB - before.commitMB;
+    const i64 wsDelta = after.wsMB - before.wsMB;
+    spdlog::info("[MemPhase] {} | commit {}->{} (Δ{:+}MB) | ws {}->{} (Δ{:+}MB)",
+        phase,
+        before.commitMB,
+        after.commitMB,
+        commitDelta,
+        before.wsMB,
+        after.wsMB,
+        wsDelta);
+}
 
 bool isAsciiWhitespace(char ch)
 {
@@ -283,18 +319,63 @@ Result<void> ResourceManager::loadAllResources()
     // 设置模型加载器的资源包列表
     m_modelLoader.setPackRepository(m_resourcePacks);
 
-    // 加载方块状态
-    for (auto& pack : m_resourcePacks) {
-        static_cast<void>(m_blockStateLoader.loadFromResourcePack(*pack));
+    // 阶段1：加载方块状态（BlockStateLoader::loadFromResourcePack）
+    {
+        const _MemorySnapshot before = _snapshotMemory();
+        for (auto& pack : m_resourcePacks) {
+            static_cast<void>(m_blockStateLoader.loadFromResourcePack(*pack));
+        }
+        const _MemorySnapshot after = _snapshotMemory();
+        _logPhaseMemory("BlockStateLoader::loadFromResourcePack", before, after);
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+            "Phase::BlockStateLoader::loadFromResourcePack",
+            "commitBeforeMB",
+            before.commitMB,
+            "commitAfterMB",
+            after.commitMB,
+            "commitDeltaMB",
+            after.commitMB - before.commitMB,
+            "wsDeltaMB",
+            after.wsMB - before.wsMB);
     }
 
-    // 加载模型 (按需加载，不预加载)
-    for (auto& pack : m_resourcePacks) {
-        static_cast<void>(m_modelLoader.loadFromResourcePack(*pack));
+    // 阶段2：加载方块模型（BlockModelLoader::loadFromResourcePack，按需加载）
+    {
+        const _MemorySnapshot before = _snapshotMemory();
+        for (auto& pack : m_resourcePacks) {
+            static_cast<void>(m_modelLoader.loadFromResourcePack(*pack));
+        }
+        const _MemorySnapshot after = _snapshotMemory();
+        _logPhaseMemory("BlockModelLoader::loadFromResourcePack", before, after);
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+            "Phase::BlockModelLoader::loadFromResourcePack",
+            "commitBeforeMB",
+            before.commitMB,
+            "commitAfterMB",
+            after.commitMB,
+            "commitDeltaMB",
+            after.commitMB - before.commitMB,
+            "wsDeltaMB",
+            after.wsMB - before.wsMB);
     }
 
-    // 烘焙模型
-    static_cast<void>(_bakeAllModels());
+    // 阶段3：烘焙模型（_bakeAllModels）
+    {
+        const _MemorySnapshot before = _snapshotMemory();
+        static_cast<void>(_bakeAllModels());
+        const _MemorySnapshot after = _snapshotMemory();
+        _logPhaseMemory("bakeAllModels", before, after);
+        MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+            "Phase::bakeAllModels",
+            "commitBeforeMB",
+            before.commitMB,
+            "commitAfterMB",
+            after.commitMB,
+            "commitDeltaMB",
+            after.commitMB - before.commitMB,
+            "wsDeltaMB",
+            after.wsMB - before.wsMB);
+    }
 
     // 注意：computeBlockAppearances 在 buildTextureAtlas 后调用
     // 因为需要纹理区域数据
@@ -312,6 +393,8 @@ Result<void> ResourceManager::loadAllResources()
 Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::buildTextureAtlas");
+
+    const _MemorySnapshot phaseBefore = _snapshotMemory();
 
     // 收集所需纹理
     auto textures = _collectRequiredTextures();
@@ -463,9 +546,37 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     // 外观已计算完毕，加载期中间缓存（未烘焙模型、已烘焙模型、方块状态定义）不再被运行时访问——
     // 运行时渲染走 BlockModelCache::getBlockAppearance(stateId) 直接查 m_blockAppearances。
     // 释放这三块以降低运行时驻留内存（合计数十~上百 MB）。
+    const _MemorySnapshot releaseBefore = _snapshotMemory();
     m_bakedModels.clear();
     m_modelLoader.clearCache();
     m_blockStateLoader.clearCache();
+    const _MemorySnapshot releaseAfter = _snapshotMemory();
+    _logPhaseMemory("buildTextureAtlas::ReleaseDeadCache", releaseBefore, releaseAfter);
+    // 验证死缓存释放是否反映在提交量上：若 releaseDelta≈0，说明堆未归还页面，
+    // 解释了"结构优化后工作集看不出下降"的现象。
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+        "Phase::buildTextureAtlas::ReleaseDeadCache",
+        "commitBeforeMB",
+        releaseBefore.commitMB,
+        "commitAfterMB",
+        releaseAfter.commitMB,
+        "commitDeltaMB",
+        releaseAfter.commitMB - releaseBefore.commitMB,
+        "wsDeltaMB",
+        releaseAfter.wsMB - releaseBefore.wsMB);
+
+    const _MemorySnapshot phaseAfter = _snapshotMemory();
+    _logPhaseMemory("buildTextureAtlas", phaseBefore, phaseAfter);
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+        "Phase::buildTextureAtlas",
+        "commitBeforeMB",
+        phaseBefore.commitMB,
+        "commitAfterMB",
+        phaseAfter.commitMB,
+        "commitDeltaMB",
+        phaseAfter.commitMB - phaseBefore.commitMB,
+        "wsDeltaMB",
+        phaseAfter.wsMB - phaseBefore.wsMB);
 
     return m_atlasResult;
 }
@@ -701,6 +812,8 @@ void ResourceManager::_computeBlockAppearances()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Resource, "ResourceManager::computeBlockAppearances");
 
+    const _MemorySnapshot before = _snapshotMemory();
+
     // 获取所有方块状态
     auto blockStates = m_blockStateLoader.getLoadedBlockStates();
 
@@ -802,6 +915,19 @@ void ResourceManager::_computeBlockAppearances()
     }
 
     spdlog::info("computeBlockAppearances: {} total, {} with textures", totalAppearances, appearancesWithTextures);
+
+    const _MemorySnapshot after = _snapshotMemory();
+    _logPhaseMemory("computeBlockAppearances", before, after);
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+        "Phase::computeBlockAppearances",
+        "commitBeforeMB",
+        before.commitMB,
+        "commitAfterMB",
+        after.commitMB,
+        "commitDeltaMB",
+        after.commitMB - before.commitMB,
+        "wsDeltaMB",
+        after.wsMB - before.wsMB);
 }
 
 std::string ResourceManager::getAltTexturePath(const std::string& path)

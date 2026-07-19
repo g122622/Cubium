@@ -27,6 +27,7 @@
 #include <spdlog/spdlog.h>
 
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 using namespace mc::trace;
@@ -80,6 +81,12 @@ bool BlockModelCache::initialize(ResourceManager& resourceManager)
 
     spdlog::info("Initializing BlockModelCache...");
 
+    // 阶段4：BlockModelCache::initialize。注意本阶段自身只构建轻量 m_stateCache
+    // （~180KB），其入口时上游 buildTextureAtlas 产出的 m_blockAppearances /
+    // m_atlasResult.pixels 已驻留，故阶段 Δ 主要反映上游内存，非本缓存自身。
+    const i64 commitBefore = static_cast<i64>(util::PlatformInfo::getProcessCommitMB());
+    const i64 wsBefore = static_cast<i64>(util::PlatformInfo::getProcessMemoryMB());
+
     m_resourceManager = &resourceManager;
 
     // 创建缺失模型外观
@@ -90,6 +97,26 @@ bool BlockModelCache::initialize(ResourceManager& resourceManager)
 
     m_initialized = true;
     spdlog::info("BlockModelCache initialized: {} appearances cached", m_stateCache.size());
+
+    const i64 commitAfter = static_cast<i64>(util::PlatformInfo::getProcessCommitMB());
+    const i64 wsAfter = static_cast<i64>(util::PlatformInfo::getProcessMemoryMB());
+    spdlog::info("[MemPhase] BlockModelCache::initialize | commit {}->{} (Δ{:+}MB) | ws {}->{} (Δ{:+}MB)",
+        commitBefore,
+        commitAfter,
+        commitAfter - commitBefore,
+        wsBefore,
+        wsAfter,
+        wsAfter - wsBefore);
+    MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Resource,
+        "Phase::BlockModelCache::initialize",
+        "commitBeforeMB",
+        commitBefore,
+        "commitAfterMB",
+        commitAfter,
+        "commitDeltaMB",
+        commitAfter - commitBefore,
+        "wsDeltaMB",
+        wsAfter - wsBefore);
 
     return true;
 }

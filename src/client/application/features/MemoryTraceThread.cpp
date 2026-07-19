@@ -84,9 +84,15 @@ void MemoryTraceThread::run()
 
     while (!m_stop.load(std::memory_order::acquire)) {
 #if MC_ENABLE_TRACING
-        // 采样内存并写入追踪
+        // 采样内存并写入追踪。同时采两种口径：
+        // - ProcessMemory：工作集（WorkingSetSize），当前驻留物理 RAM 的页。
+        // - ProcessCommit：提交量（PagefileUsage），进程向 OS 申请保留的总虚拟内存。
+        // 工作集受页面复用影响，释放堆后常纹丝不动；提交量更及时反映结构优化是否
+        // 真实降低占用。两者并列便于在 Tracy/Perfetto 中对照分析。
         const i64 memoryMB = static_cast<i64>(util::PlatformInfo::getProcessMemoryMB());
+        const i64 commitMB = static_cast<i64>(util::PlatformInfo::getProcessCommitMB());
         MC_TRACE_COUNTER(TraceEvents.Memory.Usage, "ProcessMemory", memoryMB);
+        MC_TRACE_COUNTER(TraceEvents.Memory.Usage, "ProcessCommit", commitMB);
 #endif
 
         // 等待下一次采样
