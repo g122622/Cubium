@@ -23,9 +23,8 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
 #include "../../IGrowable.hpp"
+#include "SnowyDirtBlock.hpp"
 
 namespace mc {
 
@@ -33,7 +32,6 @@ namespace mc {
 class IWorld;
 class BlockPos;
 class BlockState;
-class BlockItemUseContext;
 
 namespace math {
 class IRandom;
@@ -44,12 +42,12 @@ namespace blocks {
 /**
  * @brief 可蔓延的雪覆盖泥土方块基类
  *
- * 这是草方块和菌丝的基类，提供蔓延和退化机制：
+ * 这是草方块和菌丝的基类，在 SnowyDirtBlock（持有 SNOWY 属性、放置/邻居更新同步雪状态）
+ * 之上额外提供蔓延和退化机制：
  * - 当光照不足时退化成泥土
  * - 当光照足够时向周围泥土蔓延
- * - 支持 SNOWY 属性，表示顶部是否覆盖雪
  */
-class SpreadableSnowyDirtBlock : public Block {
+class SpreadableSnowyDirtBlock : public SnowyDirtBlock {
 public:
     explicit SpreadableSnowyDirtBlock(BlockProperties properties);
 
@@ -66,42 +64,6 @@ public:
      * @brief 是否响应随机刻
      */
     [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
-
-    /**
-     * @brief 获取放置时的方块状态
-     *
-     * 根据放置位置上方是否有雪设置 SNOWY 属性。
-     *
-     * @param context 放置上下文
-     * @return 方块状态
-     */
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    /**
-     * @brief 方块更新后处理
-     *
-     * 当上方方块变化时更新 SNOWY 属性。
-     *
-     * @param state 当前方块状态
-     * @param facing 更新的方向
-     * @param facingState 邻居状态
-     * @param world 世界
-     * @param currentPos 当前方块位置
-     * @param facingPos 邻居位置
-     * @return 更新后的状态
-     */
-    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
-    /**
-     * @brief 获取 SNOWY 属性
-     * @return SNOWY 布尔属性引用
-     */
-    [[nodiscard]] static const BooleanProperty& SNOWY() { return BlockStateProperties::SNOWY(); }
 
 protected:
     /**

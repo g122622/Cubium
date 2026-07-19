@@ -29,6 +29,7 @@
 #include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/dirt/SnowyDirtBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
@@ -309,7 +310,8 @@ void registerBaseBlocks()
     // ========== 泥土变种 ==========
     BaseBlocks::COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:coarse_dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
-    BaseBlocks::PODZOL = &registry.registerBlock<SimpleBlock>(
+    // podzol 持有 SNOWY 属性（原版 SnowyDirtBlock，不蔓延），故用 SnowyDirtBlock 而非 SimpleBlock
+    BaseBlocks::PODZOL = &registry.registerBlock<blocks::SnowyDirtBlock>(
         ResourceLocation("minecraft:podzol"), BlockProperties(Material::EARTH).hardness(0.5f));
 
     // ========== 砂岩系列 ==========

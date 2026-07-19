@@ -23,8 +23,8 @@
 
 #include "common/world/gen/surface/SurfaceRuleDeserializer.hpp"
 
-#include "common/world/biome/Biome.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/gen/feature/parser/BlockStateParser.hpp"
 #include "common/world/gen/surface/CaveSurface.hpp"
 #include "common/world/gen/surface/SurfaceCondition.hpp"
@@ -133,17 +133,18 @@ Result<CaveSurface> parseSurfaceType(const json& j, std::string_view field)
     return Error(ErrorCode::InvalidData, "surface_rule stone_depth: surface_type must be 'floor' or 'ceiling'");
 }
 
-/// biome RL 字符串 → BiomeId（镜像 BiomeTagLoader::resolveBiomeId：剥 minecraft: 后按 name 匹配注册表）
+/// biome RL 字符串 → BiomeId
+///
+/// 复用 BiomeLoader 内置的 65 项 biome 名→BiomeId 映射表（含 11 个 1.18+ 重命名 biome 别名）。
+/// 这样做有两个好处：
+/// 1. 不依赖 BiomeRegistry 的填充状态——surface_rule 在 NoiseSettingsLoader 加载期
+///    反序列化，早于 BiomeRegistry::initialize()，此时 allBiomes() 仍为空，直接遍历注册表
+///    会让所有 biome 都匹配失败。
+/// 2. 绕开 Biome 内部 m_name——部分老 biome 的 m_name 仍是 1.16.5 旧名（如 stone_shore），
+///    而 surface_rule JSON 用的是 1.18+ 新名（如 stony_shore），直接比 m_name 会失配。
 std::optional<BiomeId> resolveBiomeId(const std::string& biomeName)
 {
-    const std::string name = stripNamespace(biomeName);
-    const auto& allBiomes = world::biome::BiomeRegistry::instance().allBiomes();
-    for (const auto& biome : allBiomes) {
-        if (biome.name() == name) {
-            return biome.id();
-        }
-    }
-    return std::nullopt;
+    return world::biome::BiomeLoader::biomeIdByName(ResourceLocation(biomeName));
 }
 
 // 前向声明：规则与条件递归

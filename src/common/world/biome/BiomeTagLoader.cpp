@@ -22,7 +22,7 @@
  */
 
 #include "BiomeTagLoader.hpp"
-#include "BiomeRegistry.hpp"
+#include "BiomeLoader.hpp"
 #include "BiomeTags.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
@@ -43,30 +43,16 @@ namespace mc::world::biome {
 /**
  * @brief 根据生物群系名称解析 BiomeId
  *
- * 遍历 BiomeRegistry 中的所有已注册生物群系，
- * 找到名称匹配的生物群系并返回其 ID。
+ * 复用 BiomeLoader 内置的 65 项 biome 名→BiomeId 映射表（含 11 个 1.18+ 重命名 biome 别名），
+ * 绕开 Biome 内部 m_name——部分老 biome 的 m_name 仍是 1.16.5 旧名（如 stone_shore），
+ * 而数据包 tag JSON 用的是 1.18+ 新名（如 stony_shore），直接比 m_name 会失配。
  *
  * @param biomeName 生物群系名称（如 "minecraft:desert" 或 "desert"）
  * @return 对应的 BiomeId，未找到则返回空
  */
 static std::optional<BiomeId> resolveBiomeId(const std::string& biomeName)
 {
-    // 提取路径部分（去掉命名空间前缀）
-    std::string name = biomeName;
-    const std::string prefix = "minecraft:";
-    if (name.size() > prefix.size() && name.substr(0, prefix.size()) == prefix) {
-        name = name.substr(prefix.size());
-    }
-
-    // 在注册表中查找匹配名称的生物群系
-    const auto& allBiomes = BiomeRegistry::instance().allBiomes();
-    for (const auto& biome : allBiomes) {
-        if (biome.name() == name) {
-            return biome.id();
-        }
-    }
-
-    return std::nullopt;
+    return BiomeLoader::biomeIdByName(ResourceLocation(biomeName));
 }
 
 /**

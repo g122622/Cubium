@@ -8,7 +8,8 @@
 dirt/
 ├── README.md                        # 本文档
 ├── MudBlock.hpp/cpp                 # 泥巴方块（碰撞箱略矮，14/16格高，不可路径寻找）
-└── SpreadableSnowyDirtBlock.hpp/cpp # 可蔓延泥土基类定义（草方块、菌丝的基类）
+├── SnowyDirtBlock.hpp/cpp           # 雪覆盖泥土基类（持有 SNOWY 属性，不蔓延；podzol 直接使用）
+└── SpreadableSnowyDirtBlock.hpp/cpp # 可蔓延泥土基类（继承 SnowyDirtBlock，草方块、菌丝的基类）
 ```
 
 ## 内部模块关系
@@ -16,13 +17,19 @@ dirt/
 ```
 Block
 ├── MudBlock                          # 泥巴方块（碰撞箱14/16格高，不可路径寻找）
-└── SpreadableSnowyDirtBlock         # 可蔓延的雪覆盖泥土基类（带 SNOWY 属性）
-    ├── GrassBlock                   # 草方块（蔓延和退化机制）
-    └── MyceliumBlock                # 菌丝方块（蔓延和退化机制）
+└── SnowyDirtBlock                    # 雪覆盖泥土基类（持有 SNOWY 属性 + 放置/邻居更新同步雪状态，不蔓延）
+    └── SpreadableSnowyDirtBlock      # 可蔓延的雪覆盖泥土基类（在基类之上加蔓延/退化）
+        ├── GrassBlock                # 草方块（蔓延和退化机制）
+        └── MyceliumBlock             # 菌丝方块（蔓延和退化机制）
 ```
 
-**SpreadableSnowyDirtBlock 核心职责**：
+**SnowyDirtBlock 核心职责**：
 - 管理 SNOWY 属性（表示顶部是否覆盖雪）
+- 放置时根据上方是否有雪设置 SNOWY（getStateForPlacement）
+- 邻居更新时同步 SNOWY（updatePostPlacement，仅响应上方方块变化）
+- 不含蔓延/退化逻辑；podzol 等不蔓延但需要 SNOWY 的方块直接用本类
+
+**SpreadableSnowyDirtBlock 核心职责**（继承自 SnowyDirtBlock）：
 - 实现蔓延机制（光照充足时向周围泥土蔓延）
 - 实现退化机制（光照不足时退化成泥土）
 
@@ -65,6 +72,7 @@ Block
 | 模块 | 用途 |
 |------|------|
 | `VanillaBlocks` | 注册 GRASS_BLOCK、MYCELIUM 方块 |
+| `BaseBlocks` | 注册 PODZOL 方块（直接用 SnowyDirtBlock，不蔓延） |
 | 世界生成 | 草方块和菌丝的生物群系生成 |
 | 渲染系统 | 草方块和菌丝的模型渲染（SNOWY 属性影响纹理） |
 

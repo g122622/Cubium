@@ -23,11 +23,9 @@
 
 #include "SpreadableSnowyDirtBlock.hpp"
 #include "../../../../core/Constants.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/StateContainer.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../biome/BiomeGenerationSettings.hpp"
@@ -52,19 +50,10 @@ namespace mc::blocks {
 // ============================================================================
 
 SpreadableSnowyDirtBlock::SpreadableSnowyDirtBlock(BlockProperties properties)
-    : Block(std::move(properties))
+    : SnowyDirtBlock(std::move(properties))
 {
-    // 创建状态容器，添加 SNOWY 属性
-    auto container = StateContainer<Block, BlockState>::Builder(*this).add(SNOWY()).create(
-        [this](const Block& block,
-            std::vector<size_t> values,
-            const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-            const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
-    createBlockState(std::move(container));
-
-    // 设置默认状态：无雪
-    setDefaultState(defaultState().with(SNOWY(), false));
+    // SNOWY 属性、默认状态、放置/邻居更新同步由基类 SnowyDirtBlock 负责，
+    // 此处仅保留蔓延/退化所需的状态。
 }
 
 void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
@@ -112,38 +101,6 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
             }
         }
     }
-}
-
-BlockState SpreadableSnowyDirtBlock::getStateForPlacement(BlockItemUseContext& context)
-{
-    // 检查放置位置上方是否有雪块或雪层
-    const IWorld& world = context.getWorld();
-    const BlockPos pos = context.placementPos();
-    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
-
-    // 检查 SNOW_BLOCK 或 SNOW（任意层数）
-    const bool hasSnow =
-        aboveState != nullptr && (aboveState->is(VanillaBlocks::SNOW_BLOCK) || aboveState->is(VanillaBlocks::SNOW));
-
-    return defaultState().with(SNOWY(), hasSnow);
-}
-
-BlockState SpreadableSnowyDirtBlock::updatePostPlacement(const BlockState& state,
-    Direction facing,
-    const BlockState& facingState,
-    IWorld& world,
-    const BlockPos& currentPos,
-    const BlockPos& facingPos)
-{
-    // 只有上方方块变化时才更新 SNOWY 状态
-    if (facing == Direction::Up) {
-        // 检查上方是否为雪块或雪层
-        const bool hasSnow = facingState.is(VanillaBlocks::SNOW_BLOCK) || facingState.is(VanillaBlocks::SNOW);
-        return state.with(SNOWY(), hasSnow);
-    }
-
-    return state;
 }
 
 bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& pos, const BlockState& state)
