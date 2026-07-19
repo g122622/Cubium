@@ -371,6 +371,15 @@ public:
         m_arrayIndex = arrayIndex;
     }
 
+    /**
+     * @brief 绑定到所属的 NoiseChunk
+     * 在 NoiseChunk::apply() 注册 CacheOnce 时调用。
+     * 用于复刻原版 Java CacheOnce.compute 的 FunctionContext != NoiseChunk.this 身份检查：
+     * 非 NoiseChunk 采样上下文（如 FlatCache 预计算、generateBiomes/buildSurface/applyCarvers
+     * 等非插值路径）时委托给 m_input，绕过缓存。
+     */
+    void bindNoiseChunk(class NoiseChunk* noiseChunk) { m_noiseChunk = noiseChunk; }
+
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         auto newInput = m_input->mapAll(visitor);
@@ -382,6 +391,8 @@ private:
     const u64* m_interpolationCounter = nullptr;
     const u64* m_arrayInterpolationCounter = nullptr;
     const i32* m_arrayIndex = nullptr;
+    /// 所属的 NoiseChunk（用于 interpolating() 判断是否处于采样上下文）
+    class NoiseChunk* m_noiseChunk = nullptr;
     mutable u64 m_lastCounter = 0;
     mutable f64 m_lastValue = 0.0;
     mutable u64 m_lastArrayCounter = 0;

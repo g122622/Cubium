@@ -297,13 +297,22 @@ CacheOnce::CacheOnce(std::unique_ptr<DensityFunction> input)
 f64 CacheOnce::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
     // MC 1.21 CacheOnce.compute():
-    // 1. 如果不在 NoiseChunk 上下文：委托
+    // 1. 如果不在 NoiseChunk 上下文：委托（已实现，对齐 Java FunctionContext != NoiseChunk.this）
     // 2. 如果 lastArray != null && lastArrayCounter == arrayInterpolationCounter：
     //    返回 lastArray[arrayIndex] — 数组级缓存命中
     // 3. 如果 lastCounter == interpolationCounter：返回 lastValue — 位置级缓存命中
     // 4. 否则计算、缓存、返回
 
     if (m_interpolationCounter != nullptr) {
+        // 身份检查：非 NoiseChunk 采样上下文时委托给原始函数，绕过缓存。
+        // 原版 Java 通过 FunctionContext != NoiseChunk.this 判断；Cubium 以 interpolating()
+        // 区分采样窗口（仅在 initializeForFirstCellX 与 stopInterpolation 之间为 true）。
+        // FlatCache 预计算（构造期 mapAll）、generateBiomes/buildSurface/applyCarvers 等非插值
+        // 路径 interpolating()==false → 委托，避免误命中位置级缓存返回过期 m_lastValue=0.0。
+        if (m_noiseChunk != nullptr && !m_noiseChunk->interpolating()) {
+            return m_input->compute(blockX, blockY, blockZ);
+        }
+
         // 数组级缓存（在 fillSlice/selectCellYZ 期间有效）
         if (!m_lastArray.empty() && m_arrayInterpolationCounter != nullptr &&
             m_lastArrayCounter == *m_arrayInterpolationCounter && m_arrayIndex != nullptr) {
@@ -414,6 +423,7 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
                 auto cacheOnce = std::make_unique<CacheOnce>(std::move(filler));
                 cacheOnce->bindInterpolationCounter(
                     &m_interpolationCounter, &m_arrayInterpolationCounter, &m_arrayIndex);
+                cacheOnce->bindNoiseChunk(this);
                 return cacheOnce;
             }
             case MarkerType::FlatCache: {

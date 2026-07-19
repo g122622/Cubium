@@ -31,6 +31,7 @@
 #include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
 
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::gen {
 
@@ -52,6 +53,9 @@ density::NoiseRouter buildRouterFromTemplate(const DimensionSettings& settings, 
         "NoiseChunkGenerator path)");
 
     density::NoiseBindingVisitor visitor(rs, worldSeed);
+
+    auto continents = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Continents)]->mapAll(visitor);
+
     auto barrier = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Barrier)]->mapAll(visitor);
     auto fluidLevelFloodedness =
         settings.m_routerDfs[static_cast<size_t>(RouterSlot::FluidLevelFloodedness)]->mapAll(visitor);
@@ -59,7 +63,6 @@ density::NoiseRouter buildRouterFromTemplate(const DimensionSettings& settings, 
     auto lava = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Lava)]->mapAll(visitor);
     auto temperature = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Temperature)]->mapAll(visitor);
     auto vegetation = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Vegetation)]->mapAll(visitor);
-    auto continents = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Continents)]->mapAll(visitor);
     auto erosion = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Erosion)]->mapAll(visitor);
     auto depth = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Depth)]->mapAll(visitor);
     auto ridges = settings.m_routerDfs[static_cast<size_t>(RouterSlot::Ridges)]->mapAll(visitor);

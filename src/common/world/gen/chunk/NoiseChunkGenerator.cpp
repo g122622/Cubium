@@ -343,7 +343,8 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, beardifierDf]() {
         // 将 shared_ptr 中的 Beardifier 移动到 unique_ptr 中传入 NoiseChunk
         auto beardifierUnique = std::make_unique<world::gen::density::Beardifier>(std::move(*beardifierDf));
-        auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+        auto routerCopy = m_randomState->createRouterCopy();
+        auto nc = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
             m_cellWidth,
             m_cellHeight,
             cellCountY,
