@@ -31,6 +31,7 @@
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
+#include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/ui/minecraft/screens/LoadingScreen.hpp"
 #include "client/ui/minecraft/screens/MainMenuScreen.hpp"
 #include "client/ui/minecraft/screens/MessageScreen.hpp"
@@ -373,6 +374,22 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     }
     spdlog::info("[Session] Player created at (8, 50, 8)");
 
+    // 将玩家回绑到 HUD / 调试屏幕。
+    // 这两个 widget 在 initializeUi() 阶段（早于会话创建）就已建好，
+    // 当时 m_player 尚为空，setPlayer 是空操作；此处玩家就绪后必须补绑，
+    // 否则 HudWidget::paint() 会因 m_player == nullptr 永久早退导致 HUD 不渲染。
+    if (m_kageroEngine) {
+        auto* hudWidget = static_cast<ui::minecraft::widgets::HudWidget*>(m_kageroEngine->getLayer(m_hudLayerId));
+        if (hudWidget != nullptr) {
+            hudWidget->setPlayer(m_player.get());
+        }
+        auto* debugWidget =
+            static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId));
+        if (debugWidget != nullptr) {
+            debugWidget->setPlayer(m_player.get());
+        }
+    }
+
     m_stateMachine.reportLoadingProgress("Preparing renderer", 0.8f);
 
     // 更新渲染器设置
@@ -389,11 +406,16 @@ void ClientApplication::destroyGameSession()
 
     spdlog::info("[Session] Destroying game session");
 
-    // 1. 清理 HUD 引用
+    // 1. 清理 HUD / 调试屏幕的玩家引用（与 initializeGameSession 中的回绑对称）
     if (m_kageroEngine) {
         auto* hudWidget = static_cast<ui::minecraft::widgets::HudWidget*>(m_kageroEngine->getLayer(m_hudLayerId));
-        if (hudWidget) {
+        if (hudWidget != nullptr) {
             hudWidget->setPlayer(nullptr);
+        }
+        auto* debugWidget =
+            static_cast<ui::minecraft::DebugScreenWidget*>(m_kageroEngine->getLayer(m_debugScreenLayerId));
+        if (debugWidget != nullptr) {
+            debugWidget->setPlayer(nullptr);
         }
     }
 
