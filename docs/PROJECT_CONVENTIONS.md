@@ -489,6 +489,26 @@ enum class Operation : u8 { ... };
 }}}
 ```
 
+## 容易踩的坑
+
+本节记录项目中反复出现、难以排查的陷阱。新增同类代码前务必先核对这里，避免重蹈覆辙。各子目录 README 的"容易踩的坑"章节记录更局部的坑，本节只收录跨模块、影响面大的通用坑。
+
+### 1. 高度图 +1 语义：`ctx.getHeight` vs `getTopBlockY`
+
+MC 1.21.11 生成期间，`WorldGenContext.getHeight(...)` 走 `WorldGenRegion.getHeight`，其实现为 `chunk.getHeight(...) + 1`（`WorldGenRegion.java:404-407`），即返回"最高方块上方一格空气的 Y"（blockY+1），**不是方块本身 Y**。而 `ChunkAccess.getHeight` 返回 blockY（`getFirstAvailable-1`）。
+
+项目的 `WorldGenRegion::getTopBlockY` 转发 `ChunkPrimer::getTopBlockY`，返回 blockY（等价 MC `ChunkAccess.getHeight`），**少了这个 +1**。因此：**凡是对应 MC `ctx.getHeight(...)` 调用的 placement/feature 代码，必须对 `getTopBlockY` 结果 +1**。
+
+漏掉 +1 的典型后果：`HeightmapPlacement` 返回草方块本身 Y → `TreeFeature` 的 `startPos` 落在草方块上 → `_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2 → 所有依赖 heightmap 的 feature（含全部树木）判定"空间不足"而生成失败，且**无任何报错**（feature 失败本就是常态，静默返回 false）。目前已 +1 的有 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement`；新增同类代码务必核对 MC 源码确认调用方是否走 `WorldGenRegion.getHeight`。
+
+### 2. random_selector / simple_random_selector 子特征引用是 PlacedFeature id
+
+MC 1.21.11 中 `RandomFeatureConfiguration.features[]` / `default` 是 `WeightedPlacedFeature` / `Holder<PlacedFeature>`，即 **PlacedFeature 引用**，命中后调用其 `place(origin)`（先走该 PlacedFeature 自带的 placement 链，再放置其配置化特征）。**不是 ConfiguredFeature 引用**。
+
+项目的数据包存在两种写法（均合法）：(1) 字符串 id 指向已注册 placed_feature（如 `"minecraft:spruce_checked"`、`"minecraft:oak_checked"`）；(2) 内联对象 `{"feature":"<configured_id>","placement":[]}`，加载器提取出 configured id（如 `"minecraft:oak_bees_005"`，无对应 placed_feature 文件）。
+
+若错误地仅按 `ConfiguredFeatureRegistry` 解析这些 id，则所有以 placed_feature id 作 default 的 trees_*（snowy/taiga/jungle/savanna/water/windswept_hills 等）都会因注册表查不到而 `default-miss` 静默失败，**整个生物群系的树木都不生成，且无报错**。正确做法：解析子特征 id 时**先查 `PlacedFeatureRegistry`，未命中再查 `ConfiguredFeatureRegistry`** 兜底（见 `RandomSelectorFeature.cpp` 的 `dispatchChildFeature`）。新增同类 selector feature 必须沿用此双注册表解析。
+
 ## 函数参数和配置结构体不允许使用、设置默认值，因为大量的默认值会导致数据流变得难以理解，难以追踪某个值是如何被设置的、是某层默认的还是外部传入的，增加理解和调试难度。若不得不增加默认值，必须征求我的同意。
 
 ## 任务进行过程中，遇到不懂的可以随时派出子代理进行核查，而不是亲自查找文件以节省上下文。我必须看到你派出了子代理，而不是一个人独自做！

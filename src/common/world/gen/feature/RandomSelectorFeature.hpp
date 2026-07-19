@@ -35,8 +35,11 @@ namespace mc::world::gen::feature {
  * @brief 加权特征条目
  *
  * 对应 MC 1.21.11 WeightedPlacedFeature{feature, chance}。
- * featureId 为内联 PlacedFeature 中 "feature" 字段提取的 configured_feature id
- * （placement 链由父 PlacedFeature 走完，此处直接委派）。
+ * featureId 为 PlacedFeature 引用 id（字符串形式直接指向已注册 placed_feature，
+ * 如 "minecraft:spruce_checked"）或内联 PlacedFeature 的 {"feature":..,"placement":[]}
+ * 中提取的 configured_feature id（如 "minecraft:oak_bees_005"）。place() 时按 id 先查
+ * PlacedFeatureRegistry、未命中再查 ConfiguredFeatureRegistry 委派放置（见
+ * RandomSelectorFeature.cpp 的 dispatchChildFeature）。
  */
 struct WeightedFeatureEntry {
     ResourceLocation featureId;

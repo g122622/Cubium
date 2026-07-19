@@ -197,3 +197,11 @@ NBT 模板文件路径格式：`data/<namespace>/structure/<path>.nbt`
 ### 10. FeatureSorter 成环断言
 
 `FeatureSorter::buildFeaturesPerStep` 检测到 feature 依赖环时会通过 `MC_ASSERT_RELEASE_MSG(false, ...)` 中断生成（与原版 `IllegalStateException` 语义一致），断言消息包含环节点链和生物群系来源诊断信息。成环属于数据包配置错误，必须在数据包层面修复 feature 依赖关系，不能依赖排序器容错。
+
+### 11. random_selector / simple_random_selector 子特征引用是 PlacedFeature id
+
+**问题**：`RandomSelectorFeature` 的 `features[].feature` / `default` 引用，在 MC 1.21.11 中是 `WeightedPlacedFeature` / `Holder<PlacedFeature>`，即 **PlacedFeature 引用**，命中后调用其 `place(origin)`（先走该 PlacedFeature 自带的 placement 链，再放置其配置化特征）。若错误地仅按 `ConfiguredFeatureRegistry` 解析这些 id，则所有以 placed_feature id 作 default 的 trees_*（snowy/taiga/jungle/savanna/water/windswept_hills 等用 `oak_checked`/`spruce_checked` 作 default）都会 `default-miss`，树木不生成。
+
+**数据包两种写法**（均为合法 vanilla 形式）：(1) 字符串 id 指向已注册 placed_feature（如 `"minecraft:spruce_checked"`）；(2) 内联对象 `{"feature":"<configured_id>","placement":[]}`，加载器提取出 configured id（如 `"minecraft:oak_bees_005"`，无对应 placed_feature 文件）。
+
+**解决**：`RandomSelectorFeature::place`（及 `SimpleRandomSelectorFeature`）解析子特征 id 时，**先查 `PlacedFeatureRegistry`，未命中再查 `ConfiguredFeatureRegistry`** 兜底（见 `RandomSelectorFeature.cpp` 的 `dispatchChildFeature`）。新增同类 selector feature 必须沿用此双注册表解析，不能只查单一注册表。注意：嵌套 placed_feature 会重跑其 placement 链，若其含 `in_square`/`heightmap` 会二次随机化坐标——核对子 placed_feature 的 placement 链是否仅含过滤类（如 `block_predicate_filter`），避免坐标被覆盖。

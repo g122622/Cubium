@@ -245,6 +245,14 @@ chain->setNext(heightRange);
 
 **解决**：新版配置支持更灵活的分布（均匀、三角形、正态等），建议迁移到 Provider 模式。
 
+### 9. HeightmapPlacement 必须对 getTopBlockY 结果 +1
+
+**问题**：`HeightmapPlacement::getPositions` 若直接返回 `region.getTopBlockY(...)`（= 最高方块本身 Y，草方块 Y），则依赖 heightmap 的 feature（含全部树木）全部生成失败——`TreeFeature` 的 `startPos` 落在草方块上，`_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2，判定"空间不足"。
+
+**根因**：MC 1.21.11 中生成期间 `ctx.getHeight(...)` 走 `WorldGenRegion.getHeight`，其实现为 `chunk.getHeight(...) + 1`（`WorldGenRegion.java:404-407`），即返回"最高方块上方一格空气的 Y"（blockY+1），而非方块本身。而 `ChunkAccess.getHeight` 返回 blockY（`getFirstAvailable-1`）。项目的 `WorldGenRegion::getTopBlockY` 转发 `ChunkPrimer::getTopBlockY`，返回 blockY（等价 MC `ChunkAccess.getHeight`），**缺这个 +1**。
+
+**解决**：所有对应 MC `ctx.getHeight(...)` 的 placement，必须对 `getTopBlockY` 结果 +1。目前 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement` 均已 +1；新增同类 placement 时务必核对 MC 源码中 `ctx.getHeight` 的调用方是否走 `WorldGenRegion.getHeight`（+1 语义），若是则必须 +1。
+
 ---
 
 ## 与 MC 1.21.11 的对应关系

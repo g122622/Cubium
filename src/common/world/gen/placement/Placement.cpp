@@ -303,12 +303,23 @@ std::vector<BlockPos> HeightmapPlacement::getPositions(
     // MC 1.21.11: HeightmapPlacement.getPositions
     //   int k = ctx.getHeight(this.heightmap, x, z);
     //   return k > ctx.getMinY() ? Stream.of(new BlockPos(x, k, z)) : Stream.of();
-    // 用 config 指定的高度图类型查列高，k > minY 才返回，无回退。
-    const i32 topY = region.getTopBlockY(basePos.x, basePos.z, heightmapConfig.heightmap);
-    if (topY <= region.getMinBuildHeight()) {
+    //
+    // 关键语义：生成期间 ctx.getHeight 走 WorldGenRegion.getHeight，其实现为
+    //   chunk.getHeight(...) + 1   （WorldGenRegion.java:404-407）
+    // 即返回"最高方块上方一格空气的 Y"（blockY + 1），而非方块本身 Y。
+    // 项目的 WorldGenRegion::getTopBlockY 转发 ChunkPrimer::getTopBlockY，返回的是
+    // 方块本身 Y（blockY，等价 MC ChunkAccess.getHeight 的 getFirstAvailable-1），
+    // 因此这里必须 +1 才能与 MC 一致。
+    //
+    // 若漏掉这个 +1，HeightmapPlacement 返回草方块本身的 Y，TreeFeature 的 startPos
+    // 落在草方块上，_calculateAvailableHeight 在 i=0 检查草方块（不可替换）立即返回 -2，
+    // 所有依赖 heightmap 的 feature（含全部树木）都会因"空间不足"而生成失败。
+    const i32 blockY = region.getTopBlockY(basePos.x, basePos.z, heightmapConfig.heightmap);
+    const i32 k = blockY + 1;
+    if (k <= region.getMinBuildHeight()) {
         return {};
     }
-    return {BlockPos(basePos.x, topY, basePos.z)};
+    return {BlockPos(basePos.x, k, basePos.z)};
 }
 
 // ============================================================================

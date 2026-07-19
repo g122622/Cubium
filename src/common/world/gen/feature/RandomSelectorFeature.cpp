@@ -26,8 +26,44 @@
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
+#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 
 namespace mc::world::gen::feature {
+
+namespace {
+/// @brief 解析 random_selector 子特征引用并委派放置。
+///
+/// MC 1.21.11 中 RandomFeatureConfiguration.features[]/default 均为 PlacedFeature 引用，
+/// 命中时调用其 place(origin)——即先走该 PlacedFeature 自带的 placement 链，再放置其配置化特征。
+///
+/// 项目数据包存在两种写法（均为合法 vanilla 形式）：
+///  - 字符串 id 指向已注册的 placed_feature（如 "minecraft:spruce_checked"、"minecraft:oak_checked"）；
+///  - 内联对象 {"feature":"<configured_id>","placement":[]}，加载器提取出 configured id
+///    （如 "minecraft:oak_bees_005"，无对应 placed_feature 文件）。
+/// 因此这里先查 PlacedFeatureRegistry（vanilla 主路径，会重跑子链），未命中再查
+/// ConfiguredFeatureRegistry（兼容内联 configured 形式，空 placement 等价直接放置）。
+/// 两者都未命中视为引用错误，返回 false。
+bool dispatchChildFeature(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos,
+    const ResourceLocation& id)
+{
+    if (const PlacedFeature* placed = PlacedFeatureRegistry::instance().get(id); placed != nullptr) {
+        return placed->place(region, chunk, generator, random, pos);
+    }
+    if (const ConfiguredFeatureBase* configured = ConfiguredFeatureRegistry::instance().get(id);
+        configured != nullptr) {
+        return configured->place(region, chunk, generator, random, pos);
+    }
+    // 引用的子特征既不在 placed 也不在 configured 注册表中：数据错误，静默失败。
+    // （历史原因：此处曾只查 configured 注册表，导致所有以 placed_feature id 作 default
+    //  的 trees_*（snowy/taiga/jungle/savanna/water/...）全部 default-miss，树木不生成。）
+    return false;
+}
+} // namespace
 
 // ============================================================================
 // RandomSelectorFeature
@@ -44,20 +80,12 @@ bool RandomSelectorFeature::place(WorldGenRegion& region,
     // nextFloat() ∈ [0.0, 1.0)，故 chance=1.0 必触发，chance=0.0 必不触发。
     for (const auto& entry : config.features) {
         if (random.nextFloat() < entry.chance) {
-            const ConfiguredFeatureBase* feature = ConfiguredFeatureRegistry::instance().get(entry.featureId);
-            if (feature == nullptr) {
-                return false;
-            }
-            return feature->place(region, chunk, generator, random, pos);
+            return dispatchChildFeature(region, chunk, generator, random, pos, entry.featureId);
         }
     }
 
     // 全部未命中，走 default
-    const ConfiguredFeatureBase* fallback = ConfiguredFeatureRegistry::instance().get(config.defaultFeatureId);
-    if (fallback == nullptr) {
-        return false;
-    }
-    return fallback->place(region, chunk, generator, random, pos);
+    return dispatchChildFeature(region, chunk, generator, random, pos, config.defaultFeatureId);
 }
 
 // ============================================================================
