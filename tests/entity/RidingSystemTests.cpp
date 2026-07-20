@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "entity/core/BoostHelper.hpp"
+#include "common/entity/interfaces/BoostHelper.hpp"
 #include "entity/core/DataParameter.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
 #include "entity/entities/passive/horse/AbstractHorseEntity.hpp"

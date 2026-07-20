@@ -28,8 +28,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
-#include "entity/core/VanillaEntities.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
+#include "entity/registry/VanillaEntities.hpp"
 
 namespace mc {
 namespace test {

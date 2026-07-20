@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/tag/EntityTypeTag.hpp"
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"

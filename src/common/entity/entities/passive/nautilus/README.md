@@ -40,7 +40,7 @@ AbstractNautilusEntity (继承 TameableEntity + IJumpingMount + IEquipable)
 - `common/sound/SoundEvents` - ENTITY_NAUTILUS_* / ENTITY_BABY_NAUTILUS_* / ENTITY_ZOMBIE_NAUTILUS_*
 
 **被依赖：**
-- `common/entity/core/VanillaEntities.hpp` - 实体注册（NAUTILUS + ZOMBIE_NAUTILUS）
+- `common/entity/registry/VanillaEntities.hpp` - 实体注册（NAUTILUS + ZOMBIE_NAUTILUS）
 - `common/entity/core/EntityTypeIdNumber` - 实体类型 ID 常量
 - `common/entity/core/EntitySpawnPlacementRegistry.cpp` - 生成规则（nautilus 带 Y 范围谓词）
 - `common/world/spawn/MobSpawnInfo.cpp` - 海洋生物群系 spawn 条目（ocean/lukewarmOcean/warmOcean/coldOcean/frozenOcean）

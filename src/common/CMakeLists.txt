@@ -75,13 +75,13 @@ add_library(mc_common STATIC
     entity/core/EntityType.cpp
     entity/core/EntityTypeIdNumber.cpp
     entity/core/EntityClassification.cpp
-    entity/core/EntitySpawnPlacementRegistry.cpp
     entity/core/LivingEntity.cpp
     entity/core/MobEntity.cpp
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
-    entity/core/Crackiness.cpp
+    # Entity Registry - 原版实体类型批量注册
+    entity/registry/VanillaEntities.cpp
     entity/tag/EntityTypeTag.cpp
     entity/tag/EntityTypeTags.cpp
     entity/tag/EntityTypeTagLoader.cpp
@@ -119,6 +119,7 @@ add_library(mc_common STATIC
     # Entity - Passive Animals (tamable)
     entity/entities/passive/tamable/TameableEntity.cpp
     entity/entities/passive/tamable/WolfEntity.cpp
+    entity/entities/passive/tamable/Crackiness.cpp
     entity/entities/passive/tamable/CatEntity.cpp
     entity/entities/passive/tamable/OcelotEntity.cpp
     entity/entities/passive/tamable/ParrotEntity.cpp
@@ -640,6 +641,7 @@ add_library(mc_common STATIC
     world/gamerule/GameRules.cpp
 
     # World - Spawn
+    world/spawn/EntitySpawnPlacementRegistry.cpp
     world/spawn/MobSpawnInfo.cpp
     world/spawn/SlimeChunkChecker.cpp
 

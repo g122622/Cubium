@@ -122,7 +122,7 @@ AnimalEntity
 
 ### 下游依赖（依赖本模块）
 
-- `common/entity/core/VanillaEntities.hpp` - 实体注册
+- `common/entity/registry/VanillaEntities.hpp` - 实体注册
 - `client/renderer/trident/entity/renderer/animal/HorseRenderer.hpp` - 马渲染器
 - `client/renderer/trident/entity/renderer/animal/LlamaRenderer.hpp` - 羊驼渲染器
 - `common/item/items/armor/HorseArmorItem.hpp` - 马铠物品

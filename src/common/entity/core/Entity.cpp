@@ -277,12 +277,8 @@ bool Entity::hasTag(const std::string& tag) const
 
 std::string Entity::getTypeId() const
 {
-    // 返回实体类型标识符，如果未设置则返回 "minecraft:unknown"
-    if (!m_typeId.empty()) {
-        return m_typeId;
-    }
-
-    return "minecraft:unknown";
+    // 返回实体类型标识符；未设置时返回空串，由调用方判断，不编造占位值
+    return m_typeId;
 }
 
 entity::EntityTypeId Entity::typeId() const

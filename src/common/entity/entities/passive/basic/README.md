@@ -61,7 +61,7 @@ AgeableEntity (父类)
 - `entity/effect/EffectType` - 药水效果类型（迷之炖菜效果枚举）
 
 **下游依赖（使用本目录）：**
-- `entity/core/VanillaEntities.hpp` - 注册所有实体类型
+- `entity/registry/VanillaEntities.hpp` - 注册所有实体类型
 - `item/items/special/BucketItem` - 挤奶交互（牛）
 - `item/crafting/special/ArmorDyeRecipe` - 羊毛染色
 - `entity/ai/goal/goals/BreedGoal` - 繁殖目标

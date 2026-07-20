@@ -29,8 +29,8 @@
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/DrownedGoals.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
-#include "entity/core/VanillaEntities.hpp"
 #include "entity/entities/monster/undead/DrownedEntity.hpp"
+#include "entity/registry/VanillaEntities.hpp"
 
 namespace mc {
 namespace test {

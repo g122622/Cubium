@@ -31,7 +31,6 @@
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -40,6 +39,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 #include <cmath>
 

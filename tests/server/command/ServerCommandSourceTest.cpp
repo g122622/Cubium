@@ -35,7 +35,7 @@
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"

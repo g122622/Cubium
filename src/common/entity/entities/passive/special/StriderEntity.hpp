@@ -24,10 +24,10 @@
 #pragma once
 
 #include "../../../../core/Types.hpp"
-#include "../../../core/BoostHelper.hpp"
 #include "../../../interfaces/IEquipable.hpp"
 #include "../../../interfaces/IRideable.hpp"
 #include "../basic/AnimalEntity.hpp"
+#include "common/entity/interfaces/BoostHelper.hpp"
 #include <cmath>
 #include <memory>
 

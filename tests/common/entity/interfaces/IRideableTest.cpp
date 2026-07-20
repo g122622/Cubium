@@ -38,8 +38,8 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+#include "common/entity/interfaces/BoostHelper.hpp"
 #include "entity/attribute/Attributes.hpp"
-#include "entity/core/BoostHelper.hpp"
 #include "entity/core/EntityDataManager.hpp"
 #include "entity/core/MobEntity.hpp"
 #include "entity/interfaces/IRideable.hpp"

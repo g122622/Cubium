@@ -34,12 +34,12 @@
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/special/FoxGoals.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
-#include "entity/core/VanillaEntities.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/passive/basic/ChickenEntity.hpp"
 #include "entity/entities/passive/basic/RabbitEntity.hpp"
 #include "entity/entities/passive/special/FoxEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
+#include "entity/registry/VanillaEntities.hpp"
 
 namespace mc {
 namespace test {

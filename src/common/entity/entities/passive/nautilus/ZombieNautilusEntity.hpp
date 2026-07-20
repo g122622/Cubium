@@ -29,8 +29,8 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>
 #include <optional>
 

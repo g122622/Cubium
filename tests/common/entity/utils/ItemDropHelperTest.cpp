@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"

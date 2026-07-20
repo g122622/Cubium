@@ -363,6 +363,21 @@ public:
 private:
     friend class EntityRegistry;
 
+    /**
+     * @brief 绑定实体类型的数字ID与资源位置名
+     *
+     * 仅由 EntityRegistry::registerType 在注册时调用，用于把注册顺序分配的数字 ID
+     * 与权威的资源位置字符串注入到 EntityType。封装写权，避免外部 const_cast。
+     *
+     * @param id 注册表分配的数字 ID
+     * @param name 资源位置（如 minecraft:pig）
+     */
+    void bindIdentity(EntityTypeId id, std::string name)
+    {
+        m_id = id;
+        m_name = std::move(name);
+    }
+
     EntityFactory m_factory;
     EntityClassification m_classification = EntityClassification::Misc;
     EntitySize m_size = EntitySize::flexible(0.6f, 1.8f);

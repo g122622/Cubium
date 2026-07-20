@@ -353,9 +353,9 @@ TEST(EntityType, CreateInjectsRegisteredTypeId)
 TEST(Entity, DefaultTypeIdIsUnknown)
 {
     // Entity created without a factory has no type ID set
-    // getTypeId() returns "minecraft:unknown" for untyped entities
+    // getTypeId() returns empty string for untyped entities (no fabricated placeholder)
     Entity entity(EntityId(1));
-    EXPECT_EQ(entity.getTypeId(), "minecraft:unknown");
+    EXPECT_TRUE(entity.getTypeId().empty());
     EXPECT_EQ(entity.typeId(), 0);
 }
 

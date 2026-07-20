@@ -24,9 +24,9 @@
 #pragma once
 
 #include "../../../core/Types.hpp"
-#include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include "../../../util/math/random/IRandom.hpp"
+#include "../../../world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "../../biome/Biome.hpp"
 #include "../../spawn/MobSpawnInfo.hpp"
 #include <memory>

@@ -23,8 +23,8 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

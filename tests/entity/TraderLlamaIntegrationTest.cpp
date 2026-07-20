@@ -45,10 +45,10 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

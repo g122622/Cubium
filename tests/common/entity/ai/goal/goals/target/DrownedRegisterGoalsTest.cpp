@@ -29,10 +29,10 @@
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
-#include "entity/core/VanillaEntities.hpp"
 #include "entity/entities/monster/undead/DrownedEntity.hpp"
 #include "entity/entities/monster/undead/ZombieEntity.hpp"
 #include "entity/entities/passive/water/AxolotlEntity.hpp"
+#include "entity/registry/VanillaEntities.hpp"
 
 namespace mc {
 namespace test {

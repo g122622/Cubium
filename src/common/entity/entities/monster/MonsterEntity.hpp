@@ -26,11 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/interfaces/IMob.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <optional>
 
 namespace mc {

@@ -25,9 +25,9 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/illager/RavagerEntity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"

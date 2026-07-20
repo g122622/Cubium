@@ -25,12 +25,12 @@
 
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
 #include "common/entity/entities/monster/breeze/BreezeEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 
 using namespace mc;
 using namespace mc::entity;

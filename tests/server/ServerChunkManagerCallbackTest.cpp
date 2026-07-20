@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"

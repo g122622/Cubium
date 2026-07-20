@@ -95,8 +95,7 @@ public:
         EntityTypeId id = m_nextId++;
 
         // 设置ID和名称
-        const_cast<EntityTypeId&>(type.m_id) = id;
-        const_cast<std::string&>(type.m_name) = resourceLocation;
+        type.bindIdentity(id, resourceLocation);
 
         // 存储
         m_types.push_back(std::move(type));
@@ -131,20 +130,6 @@ public:
             return nullptr;
         }
         return getType(it->second);
-    }
-
-    /**
-     * @brief 通过ID获取实体类型
-     * @param id 实体类型ID
-     * @return 实体类型引用
-     * @throws std::out_of_range 如果ID无效
-     */
-    [[nodiscard]] const EntityType& getTypeOrThrow(EntityTypeId id) const
-    {
-        if (id == 0 || id > static_cast<EntityTypeId>(m_types.size())) {
-            throw std::out_of_range("Invalid entity type ID: " + std::to_string(id));
-        }
-        return m_types[static_cast<size_t>(id - 1)];
     }
 
     /**
@@ -196,19 +181,6 @@ private:
     EntityTypeId m_nextId;
     mutable std::mutex m_mutex;
 };
-
-/**
- * @brief 辅助宏：注册实体类型
- *
- * 使用方式：
- * @code
- * REGISTER_ENTITY_TYPE("minecraft:pig", EntityType::Builder(PigEntity::create, EntityClassification::Creature)
- *     .size(0.9f, 0.9f)
- *     .trackingRange(10)
- *     .build());
- * @endcode
- */
-#define REGISTER_ENTITY_TYPE(name, type) ::mc::entity::EntityRegistry::instance().registerType(name, type)
 
 /**
  * @brief 内置实体类型常量

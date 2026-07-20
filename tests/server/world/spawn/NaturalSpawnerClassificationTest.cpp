@@ -30,7 +30,7 @@
 
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include <gtest/gtest.h>
 

@@ -44,11 +44,11 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -656,8 +656,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_EmptyHand_ReturnsPass)
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-    auto result =
-        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+    auto result = tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
     // 空手应该返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -765,8 +764,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_NonIgnitionItem_ReturnsPass)
     // Player 的 getHeldItem 默认为空物品堆，空手应返回 Pass
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-    auto result =
-        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+    auto result = tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
     EXPECT_EQ(m_world.spawnedTNTCount(), 0);

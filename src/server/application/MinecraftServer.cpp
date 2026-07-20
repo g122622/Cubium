@@ -30,13 +30,12 @@
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/damage/tag/DamageTypeTagLoader.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
@@ -71,6 +70,7 @@
 #include "common/particle/ParticleTypes.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -115,6 +115,7 @@
 #include "common/world/gen/structure/pools/Pools.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/world/storage/save/AutoSave.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -1258,11 +1259,12 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // FlatLevelGeneratorPresetLoader 解析 9 个预设 JSON，注册到 FlatLevelGeneratorPresetRegistry，
     // 供 ServerDimensionManager flat 分支查表构造 FlatChunkGenerator。
     {
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::FlatPresets");
-        auto flatResult = world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(m_dataPackList);
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::FlatPresets");
+        auto flatResult =
+            world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(m_dataPackList);
         if (flatResult.failed()) {
-            spdlog::error("Failed to load flat_level_generator_presets from data packs: {}", flatResult.error().toString());
+            spdlog::error(
+                "Failed to load flat_level_generator_presets from data packs: {}", flatResult.error().toString());
         } else {
             spdlog::info("Loaded {} flat_level_generator_presets from data packs", flatResult.value());
         }
@@ -1274,8 +1276,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // WorldPresetLoader 解析 6 个预设 JSON，注册到 WorldPresetRegistry，
     // 供 ServerDimensionManager 三维度装配查表。
     {
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::WorldPresets");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::WorldPresets");
         auto presetResult = world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(m_dataPackList);
         if (presetResult.failed()) {
             spdlog::error("Failed to load world_presets from data packs: {}", presetResult.error().toString());

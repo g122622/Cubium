@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "DataParameter.hpp"
-#include "EntityDataManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 namespace mc {

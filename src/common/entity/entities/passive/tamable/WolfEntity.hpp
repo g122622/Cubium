@@ -25,8 +25,8 @@
 
 #include "TameableEntity.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/core/Crackiness.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/entities/passive/tamable/Crackiness.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <memory>

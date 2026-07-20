@@ -30,7 +30,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -46,6 +45,7 @@
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <cmath>
 #include <limits>

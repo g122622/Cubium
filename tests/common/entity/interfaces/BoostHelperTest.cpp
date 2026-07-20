@@ -33,7 +33,7 @@
 
 #include <gtest/gtest.h>
 
-#include "entity/core/BoostHelper.hpp"
+#include "common/entity/interfaces/BoostHelper.hpp"
 #include "entity/core/EntityDataManager.hpp"
 #include "util/math/random/Random.hpp"
 #include "util/nbt/Nbt.hpp"

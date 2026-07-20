@@ -16,8 +16,8 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/world/gamerule/GameRule.hpp"
 #include "common/world/gamerule/GameRules.hpp"

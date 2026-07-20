@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
 namespace world {

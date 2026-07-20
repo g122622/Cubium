@@ -54,7 +54,7 @@ Entity (core/Entity.hpp)
 - `common/world/redstone/RedstoneSystem.hpp` - 红石系统（updateComparators）
 
 **被谁依赖**：
-- `common/entity/core/VanillaEntities.hpp` - 实体类型注册
+- `common/entity/registry/VanillaEntities.hpp` - 实体类型注册
 - 服务端世界（实体生成、tick调度）
 - 红石系统（ItemFrameEntity 的 `getAnalogOutput()`）
 

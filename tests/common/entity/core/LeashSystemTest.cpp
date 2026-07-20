@@ -25,12 +25,12 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/IMob.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"

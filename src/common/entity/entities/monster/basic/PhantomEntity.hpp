@@ -26,10 +26,10 @@
 #include <memory>
 
 #include "common/core/Types.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/FlyingEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <optional>
 
 namespace mc {

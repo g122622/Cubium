@@ -25,7 +25,7 @@
 
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/sound/AudioService.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/profiler/TraceEvents.hpp"

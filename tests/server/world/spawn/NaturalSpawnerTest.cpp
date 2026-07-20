@@ -22,8 +22,8 @@
  */
 
 #include "server/world/spawn/NaturalSpawner.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <array>
 #include <cmath>

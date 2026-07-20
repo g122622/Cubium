@@ -26,7 +26,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -40,6 +39,7 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>

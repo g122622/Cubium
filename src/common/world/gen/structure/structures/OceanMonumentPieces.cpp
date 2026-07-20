@@ -1,7 +1,6 @@
 #include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -9,6 +8,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <array>
 

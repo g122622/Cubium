@@ -25,10 +25,10 @@
 #include "../../util/math/MathConstants.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../world/IWorld.hpp"
-#include "../core/BoostHelper.hpp"
 #include "../core/Entity.hpp"
 #include "../core/MobEntity.hpp"
 #include "../entities/player/Player.hpp"
+#include "common/entity/interfaces/BoostHelper.hpp"
 #include <cmath>
 
 namespace mc {

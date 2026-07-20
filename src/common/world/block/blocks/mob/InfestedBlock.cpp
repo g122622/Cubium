@@ -24,7 +24,6 @@
 #include "InfestedBlock.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -33,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
 namespace blocks {

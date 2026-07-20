@@ -28,8 +28,8 @@
 #include "../ai/goal/GoalSelector.hpp"
 #include "../ai/pathfinding/PathNodeType.hpp"
 #include "../combat/DifficultyInstance.hpp"
-#include "EntitySpawnPlacementRegistry.hpp"
 #include "LivingEntity.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <array>
 #include <functional>
 #include <limits>

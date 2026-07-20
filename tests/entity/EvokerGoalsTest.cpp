@@ -26,8 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 

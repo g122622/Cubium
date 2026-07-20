@@ -26,7 +26,7 @@
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"

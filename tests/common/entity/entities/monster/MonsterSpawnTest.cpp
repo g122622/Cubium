@@ -24,11 +24,11 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 using namespace mc;
 using namespace mc::entity;

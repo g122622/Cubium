@@ -35,10 +35,10 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {

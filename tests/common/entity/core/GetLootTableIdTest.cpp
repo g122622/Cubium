@@ -63,8 +63,7 @@ public:
 TEST(GetLootTableIdTest, EmptyTypeIdReturnsEmpty)
 {
     // Entity 构造时 m_typeId 为空，getLootTableId() 检查内部 m_typeId，
-    // 为空时返回空字符串。注意 getTypeId() 会返回 "minecraft:unknown" 作为默认值，
-    // 但 getLootTableId() 直接检查 m_typeId.empty()。
+    // 为空时返回空字符串。getTypeId() 对未设类型实体也返回空串。
     Entity entity(EntityId(1));
     EXPECT_TRUE(entity.getLootTableId().empty());
 }

@@ -32,11 +32,11 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../combat/DifficultyInstance.hpp"
 #include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
 

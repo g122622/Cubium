@@ -36,7 +36,6 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -56,6 +55,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/IWorldSpawnAdapter.hpp"
 
 namespace mc {

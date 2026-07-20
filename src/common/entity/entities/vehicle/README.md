@@ -53,7 +53,7 @@ Entity (基类)
 
 | 模块 | 用途 |
 |------|------|
-| `entity/core/VanillaEntities.hpp` | 实体类型注册 |
+| `entity/registry/VanillaEntities.hpp` | 实体类型注册 |
 | `item/items/vehicle/BoatItem.hpp` | 放置船的物品 |
 | `item/items/vehicle/MinecartItem.hpp` | 放置矿车的物品 |
 | `world/block/dispense/` | 发射器行为（放置车辆） |

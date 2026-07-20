@@ -21,7 +21,7 @@
  *
  */
 
-#include "entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"

@@ -27,10 +27,10 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/spawn/SlimeChunkChecker.hpp"
 #include "core/Types.hpp"
-#include "entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/block/Block.hpp"
 #include "world/lighting/InternalLightUtils.hpp"
+#include "world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <gtest/gtest.h>
 
 #include <unordered_map>

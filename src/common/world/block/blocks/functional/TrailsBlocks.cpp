@@ -26,7 +26,6 @@
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
@@ -53,6 +52,7 @@
 #include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include <memory>

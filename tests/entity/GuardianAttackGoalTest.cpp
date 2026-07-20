@@ -29,9 +29,9 @@
 #include "common/entity/ai/goal/goals/special/GuardianAttackGoal.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/math/random/Random.hpp"
 
 using namespace mc;

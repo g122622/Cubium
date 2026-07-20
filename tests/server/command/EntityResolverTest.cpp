@@ -34,8 +34,8 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
@@ -1352,7 +1352,7 @@ TEST_F(EntityResolverTest, NearestPlayerSelectorReturnsClosestPlayer)
     auto result = EntityResolver::resolve(source, selector);
     ASSERT_EQ(result.size(), 1u);
     // Alice 距离控制台(0,0,0)更近
-    // 注意：createPlayerEntity 创建的 ServerPlayer 的 typeId 为 "minecraft:unknown"（未通过 EntityType 工厂创建），
+    // 注意：createPlayerEntity 创建的 ServerPlayer 的 typeId 为空（未通过 EntityType 工厂创建），
     // 因此不能通过 getTypeId() 判断是否为玩家，但 EntityResolver 的 @p 选择器确实返回了最近的玩家实体
     EXPECT_NE(result[0], nullptr);
 }
@@ -1391,7 +1391,7 @@ TEST_F(EntityResolverTest, RandomPlayerSelectorReturnsOnePlayer)
 
     auto result = EntityResolver::resolve(source, selector);
     ASSERT_EQ(result.size(), 1u);
-    // 注意：createPlayerEntity 创建的 ServerPlayer 的 typeId 为 "minecraft:unknown"
+    // 注意：createPlayerEntity 创建的 ServerPlayer 的 typeId 为空
     EXPECT_NE(result[0], nullptr);
     // 验证返回的是玩家实体（通过 dynamic_cast）
     EXPECT_NE(dynamic_cast<Player*>(result[0]), nullptr);

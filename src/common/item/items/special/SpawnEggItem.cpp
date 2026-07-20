@@ -26,7 +26,6 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -38,6 +37,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
 namespace item {

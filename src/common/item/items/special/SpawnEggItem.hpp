@@ -24,9 +24,9 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>
 
 namespace mc {

@@ -35,12 +35,12 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
 namespace entity {

@@ -35,7 +35,6 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
@@ -48,6 +47,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <cmath>
 
 namespace mc {

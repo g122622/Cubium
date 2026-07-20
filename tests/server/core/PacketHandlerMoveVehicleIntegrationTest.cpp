@@ -37,9 +37,9 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/network/connection/LocalConnection.hpp"
 #include "common/network/connection/LocalServerConnection.hpp"
 #include "common/network/packet/EntityPackets.hpp"

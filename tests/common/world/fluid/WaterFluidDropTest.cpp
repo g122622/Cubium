@@ -25,8 +25,8 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/loot/LootPool.hpp"

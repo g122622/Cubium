@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/entity/core/Crackiness.hpp"
+#include "common/entity/entities/passive/tamable/Crackiness.hpp"
 
 using namespace mc;
 using namespace mc::entity;

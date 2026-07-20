@@ -24,7 +24,8 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include <memory>

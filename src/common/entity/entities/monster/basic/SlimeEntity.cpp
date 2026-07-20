@@ -33,13 +33,13 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../combat/DifficultyInstance.hpp"
 #include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../core/EntityType.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>

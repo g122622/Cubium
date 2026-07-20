@@ -26,7 +26,6 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -37,6 +36,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 
 namespace mc {

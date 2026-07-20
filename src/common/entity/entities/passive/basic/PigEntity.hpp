@@ -26,7 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "AnimalEntity.hpp"
-#include "common/entity/core/BoostHelper.hpp"
+#include "common/entity/interfaces/BoostHelper.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
 #include <memory>

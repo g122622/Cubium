@@ -56,8 +56,8 @@
 #include "../serialization/NbtHelper.hpp"
 #include "../utils/ItemDropHelper.hpp"
 #include "EntityRegistry.hpp"
-#include "EntitySpawnPlacementRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 #include "common/world/block/BlockPos.hpp"
 

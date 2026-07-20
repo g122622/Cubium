@@ -19,15 +19,17 @@
 ├── EntityPose.hpp #实体姿态枚举（站立、潜行、游泳、睡眠等）
 ├── EntitySize.hpp #实体尺寸定义（宽度、高度、眼睛高度）
 ├── EntityClassification.hpp / cpp #实体分类（怪物、动物、环境等）
-├── EntitySpawnPlacementRegistry.hpp /
-        cpp #生成位置规则、SpawnReason枚举
 ├── EntityUtils.hpp #模板型实体工具函数（搜索、距离）
 ├── DataParameter.hpp #数据参数定义（网络同步用）
 ├── MoverType.hpp #移动类型枚举（自移、活塞、玩家、弹射物等）
-├── BoostHelper.hpp #可骑乘实体的鞍和加速管理（猪、炽足兽等）
-├── VanillaEntities.hpp #原版实体类型注册声明
 └── README.md
 ```
+
+注：以下文件已按职责迁移至更合适的目录：
+- `VanillaEntities.hpp/cpp`（原版实体类型批量注册）→ `common/entity/registry/`
+- `EntitySpawnPlacementRegistry.hpp/cpp`（生成位置规则）→ `common/world/spawn/`
+- `BoostHelper.hpp`（可骑乘实体加速辅助）→ `common/entity/interfaces/`
+- `Crackiness.hpp/cpp`（狼铠裂纹渲染）→ `common/entity/entities/passive/tamable/`
 
         ##内部模块关系
 
@@ -45,12 +47,7 @@
 
         辅助类依赖关系： -
     Entity → EntityDataManager → DataParameter（数据同步） - Entity → EntitySize → AxisAlignedBB（碰撞箱） -
-    EntityRegistry → EntityType → EntityTypeIdNumber（类型注册） - BoostHelper → EntityDataManager（鞍和加速状态同步） -
-    EntitySpawnPlacementRegistry → SpawnReason（生成规则判断） -
-    EntitySpawnPlacementRegistry → ISpawnWorldReader（世界状态查询接口） -
-    EntitySpawnPlacementRegistry → BiomeTags（生物群系标签查询，如地表史莱姆生成） -
-    EntitySpawnPlacementRegistry → InternalLightUtils（月相、光照计算） -
-    EntitySpawnPlacementRegistry → SlimeChunkChecker（史莱姆区块判断）
+    EntityRegistry → EntityType → EntityTypeIdNumber（类型注册）
 ```
 
     ##上下游外部依赖关系

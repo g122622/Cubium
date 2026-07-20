@@ -25,12 +25,12 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/StrayEntity.hpp"
 #include "common/entity/entities/monster/undead/WitherSkeletonEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"

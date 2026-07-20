@@ -176,6 +176,8 @@ add_executable(mc_tests
     common/entity/entities/passive/tamable/WolfEntityTest.cpp
     common/entity/entities/passive/tamable/ParrotEntityTest.cpp
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp
+    # Crackiness 裂纹程度追踪器测试（狼铠裂纹渲染）
+    common/entity/entities/passive/tamable/CrackinessTest.cpp
     # BegGoal 驯服物品乞求测试
     entity/BegGoalTest.cpp
     # CatEntity 猫实体测试（驯服物品、繁殖物品、CatTemptGoal、CatAvoidPlayerGoal）
@@ -295,8 +297,6 @@ add_executable(mc_tests
     common/entity/entities/effect/EnderCrystalHealTest.cpp
     # MonsterEntity 生成位置检查测试
     common/entity/entities/monster/MonsterSpawnTest.cpp
-    # BoostHelper NBT 序列化测试
-    common/entity/core/BoostHelperTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
     common/entity/core/LivingEntityArrowCountTest.cpp
     # LivingEntity 吸收值 getter/setter 和边界 clamping 测试
@@ -328,6 +328,8 @@ add_executable(mc_tests
     entity/PlayerAttackTest.cpp
     # IRideable 速度设置逻辑测试
     common/entity/interfaces/IRideableTest.cpp
+    # BoostHelper NBT 序列化测试（可骑乘实体加速辅助）
+    common/entity/interfaces/BoostHelperTest.cpp
     # DamageSource isExplosion() 和 isFire() 测试
     common/entity/damage/DamageSourceExplosionTest.cpp
     # 冰冻系统测试（DamageType::Freeze、冰冻状态计算、冰冻标签、冰冻游戏规则）
@@ -420,8 +422,6 @@ add_executable(mc_tests
     common/entity/core/MobEntityInteractTest.cpp
     # MobEntity 寻路惩罚值测试（setPathfindingMalus/getPathfindingMalus/shouldPassengersInheritMalus）
     common/entity/core/PathfindingMalusTest.cpp
-    # Crackiness 裂纹程度追踪器测试
-    common/entity/core/CrackinessTest.cpp
     # Entity 持久化随机数生成器测试（getRandom() 返回引用、独立 RNG、状态连续性、const 可调用性）
     common/entity/core/EntityRandomTest.cpp
     # MobEntity 序列化测试（掉落概率、死亡掉落表、拴绳数据 NBT 序列化）
