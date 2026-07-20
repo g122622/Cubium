@@ -82,6 +82,9 @@ class LootTableManager; // 前向声明
 
 namespace server {
 
+// 前向声明
+class IServer;
+
 // ============================================================================
 // 服务端世界配置
 // ============================================================================
@@ -159,6 +162,20 @@ public:
     [[nodiscard]] bool isStorageOpen() const { return m_storage != nullptr && m_storage->isOpen(); }
 
     void setSharedStorage(world::storage::SingleLevelStorageManager* storage);
+
+    // ========== 服务器接口（用于实体销毁广播等） ==========
+
+    /**
+     * @brief 注入服务器接口
+     *
+     * 由 MinecraftServer 在世界创建后设置，供 ServerWorld 在主动移除实体
+     * （removeEntity / 区块卸载）时通过 EntityTracker 向追踪玩家发送
+     * destroy 包。未设置时实体销毁只能依赖 EntityTracker::tick 下一轮补发，
+     * 存在 ID 复用风险下会漏发（现 ID 已不复用，此处主动发送以消除时序窗口）。
+     */
+    void setServer(IServer* server) { m_server = server; }
+    [[nodiscard]] IServer* server() noexcept { return m_server; }
+    [[nodiscard]] const IServer* server() const noexcept { return m_server; }
 
     /**
      * @brief 触发共享存储执行全量保存
@@ -1519,6 +1536,7 @@ private:
 private:
     ServerWorldConfig m_config;
     world::storage::SingleLevelStorageManager* m_storage = nullptr; ///< 世界级共享单存档存储门面（不拥有）
+    IServer* m_server = nullptr;                                    ///< 服务器接口（不拥有，由 MinecraftServer 注入）
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;

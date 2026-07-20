@@ -184,15 +184,17 @@ public:
 
     /**
      * @brief 分配新的实体ID
+     *
+     * ID 单调递增、永不复用。u64 空间实际不可能耗尽，不复用可避免：
+     * 旧实体死亡后其 ID 被新实体复用，导致客户端缓存的旧 ClientEntity
+     * （typeId 不可变、网格按 ID 缓存）被错误地套用到新实体上，渲染成
+     * 旧类型（如掉落物/下落方块显示成猪、僵尸马）。同时 EntityTracker
+     * 按 ID 追踪，ID 复用会让追踪器把新实体误判为"还活着的旧实体"，
+     * 从而不发旧实体的 destroy 包。
+     *
      * @return 新的实体ID
      */
     EntityInstanceId allocateId();
-
-    /**
-     * @brief 释放实体ID（供重用）
-     * @param id 要释放的ID
-     */
-    void releaseId(EntityInstanceId id);
 
 private:
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
@@ -200,7 +202,6 @@ private:
     std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
     std::unordered_map<std::string, Entity*> m_uuidToEntity; // UUID 到实体的索引
     EntityInstanceId m_nextId = 1;
-    std::vector<EntityInstanceId> m_freeIds; // 可重用的ID池
 
     // 内部方法（假设已持有锁）
     void _removeDeadEntitiesInternal();

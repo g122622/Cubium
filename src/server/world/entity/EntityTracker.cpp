@@ -209,6 +209,13 @@ void EntityTracker::updatePlayerTracking(
         Entity* entity = world.entityManager().getEntity(entityId);
         if (!entity) continue;
 
+        // 跳过玩家自身实体：本地玩家由 login 包直接建立，不应再收到自己的
+        // SpawnEntity/SpawnMob 包，否则客户端 spawnEntity 会撞已存在的本地玩家
+        // 触发 "Entity with ID already exists" warning，并误把自身位置回写。
+        if (auto* player = dynamic_cast<Player*>(entity); player && player->playerId() == playerId) {
+            continue;
+        }
+
         // 获取实体追踪范围
         i32 trackingRange = m_trackingDistance; // 默认使用全局追踪距离
 

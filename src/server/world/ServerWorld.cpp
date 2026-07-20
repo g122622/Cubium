@@ -80,6 +80,7 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/storage/entity/EntityStorageManager.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include "server/application/IServer.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
@@ -1950,10 +1951,17 @@ EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
 // 以确保实体追踪器和区块跟踪器状态正确更新。
 std::unique_ptr<Entity> ServerWorld::removeEntity(EntityInstanceId id)
 {
+    // 先向追踪玩家发送 destroy 包并取消追踪：必须在 EntityManager 移除实体之前完成，
+    // 否则客户端缓存的旧 ClientEntity（typeId 不可变、网格按 ID 缓存）可能残留，
+    // 在后续同 ID 实体生成时被错误复用渲染（虽然 ID 已不复用，主动发包消除时序窗口）。
+    if (m_server) {
+        m_entityTracker.untrackEntity(*m_server, id);
+    } else {
+        m_entityTracker.untrackEntity(id);
+    }
+
     auto entity = m_entityManager.removeEntity(id);
     if (entity) {
-        // 从追踪器中移除
-        m_entityTracker.untrackEntity(id);
         // 从区块跟踪器中移除
         m_entityChunkTracker.onEntityRemoved(id);
     } else {
@@ -2188,13 +2196,17 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
         }
     }
 
-    // 从世界移除实体（同时取消追踪和区块归属）
+    // 从世界移除实体（先发 destroy 包并取消追踪，再从 EntityManager 移除并注销区块归属）
     for (EntityInstanceId id : entityIds) {
-        m_entityChunkTracker.onEntityRemoved(id);
-        auto entity = m_entityManager.removeEntity(id);
-        if (entity) {
+        // 向追踪玩家发送 destroy 包并取消追踪（必须在实体被移除前完成）
+        if (m_server) {
+            m_entityTracker.untrackEntity(*m_server, id);
+        } else {
             m_entityTracker.untrackEntity(id);
         }
+
+        m_entityChunkTracker.onEntityRemoved(id);
+        m_entityManager.removeEntity(id);
     }
 }
 

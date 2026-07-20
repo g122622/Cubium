@@ -34,9 +34,7 @@ using namespace mc::trace;
 
 namespace mc {
 
-EntityManager::EntityManager()
-    : m_nextId(1)
-{}
+EntityManager::EntityManager() {}
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 {
@@ -91,7 +89,6 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
     }
 
     m_entities.erase(it);
-    releaseId(id);
 
     return entity;
 }
@@ -262,8 +259,6 @@ void EntityManager::_removeDeadEntitiesInternal()
     // 内部方法，假设已持有锁
     for (auto it = m_entities.begin(); it != m_entities.end();) {
         if (it->second->isRemoved()) {
-            EntityInstanceId id = it->first;
-
             // 维护 UUID 索引
             const std::string& uuid = it->second->uuid();
             if (!uuid.empty()) {
@@ -274,7 +269,6 @@ void EntityManager::_removeDeadEntitiesInternal()
             }
 
             it = m_entities.erase(it);
-            releaseId(id);
         } else {
             ++it;
         }
@@ -284,20 +278,8 @@ void EntityManager::_removeDeadEntitiesInternal()
 EntityInstanceId EntityManager::allocateId()
 {
     // 内部方法，假设已持有锁
-    if (!m_freeIds.empty()) {
-        EntityInstanceId id = m_freeIds.back();
-        m_freeIds.pop_back();
-        return id;
-    }
+    // ID 单调递增、永不复用（见头文件说明）。
     return m_nextId++;
-}
-
-void EntityManager::releaseId(EntityInstanceId id)
-{
-    // 内部方法，假设已持有锁
-    if (id > 0 && id < m_nextId) {
-        m_freeIds.push_back(id);
-    }
 }
 
 std::unordered_map<entity::EntityClassification, i32> EntityManager::countEntitiesByClassification() const

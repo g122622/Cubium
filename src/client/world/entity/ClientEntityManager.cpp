@@ -33,11 +33,13 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityInstanceId id, const std::s
 {
     // 检查是否已存在
     if (m_entities.find(id) != m_entities.end()) {
+        spdlog::warn("ClientEntityManager::spawnEntity: Entity with ID {} already exists, skipping spawn", id);
         return nullptr;
     }
 
     // 不能创建与本地玩家ID相同的实体
     if (id == m_localPlayerEntityId) {
+        spdlog::warn("ClientEntityManager::spawnEntity: Cannot spawn entity with the same ID as local player (ID {})", id);
         return nullptr;
     }
 

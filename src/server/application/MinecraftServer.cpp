@@ -1401,6 +1401,9 @@ void MinecraftServer::setupWorldCallbacks()
             return;
         }
 
+        // 注入服务器接口，供 ServerWorld 在主动移除实体（removeEntity / 区块卸载）时
+        // 通过 EntityTracker 向追踪玩家发送 destroy 包。
+        world->setServer(this);
         // 设置区块加载回调 - 当区块加载/生成完成时触发
         // 注：onChunkLoaded（加载区块内实体）由调用方负责，不在此回调内调用：
         //   - 存档加载路径：ServerChunkManager::_resolveChunkSourceSync 在 m_chunkLoadedCallback 之前
