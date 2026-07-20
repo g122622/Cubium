@@ -333,7 +333,7 @@ void initialize()
     WANDERING_TRADER = registry.getType(EntityTypeKeys::WANDERING_TRADER);
 
     // 其他实体
-    // PLAYER 由 Player 类自行管理，不在此初始化
+    PLAYER = registry.getType(EntityTypeKeys::PLAYER);
     ITEM = registry.getType(EntityTypeKeys::ITEM);
     EXPERIENCE_ORB = registry.getType(EntityTypeKeys::EXPERIENCE_ORB);
 

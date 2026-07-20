@@ -90,7 +90,7 @@ using pipeline::EntityTextureAtlas;
 namespace {
 
 // 标准常量
-inline constexpr f64 MODEL_Y_OFFSET = 1.501;
+inline constexpr f64 MODEL_Y_OFFSET = 0;
 inline constexpr f64 MODEL_SCALE = 1.0 / 16.0;
 inline constexpr f64 MODEL_MESH_SCALE = 1.0;
 

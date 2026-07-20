@@ -934,6 +934,18 @@ void VanillaEntities::doRegisterAll()
             .canSummon(true)
             .build());
 
+    // ========== 玩家 ==========
+    // Player 由 ServerPlayerEntityManager 直接 new（构造需 username，且服务端用 ServerPlayer 子类），
+    // 不走注册表工厂，故 factory 为 nullptr。注册仅为让 Player 纳入统一类型层：
+    // Player 构造时 setTypeId("minecraft:player")，使 entityType()/getTypeId() 与
+    // VanillaEntityTypeKeys::PLAYER 指针/字符串比较均可正确识别玩家（拾取、骑乘、目标选择等）。
+    registry.registerType(EntityTypeKeys::PLAYER,
+        EntityType::Builder(nullptr, EntityClassification::Misc)
+            .size(0.6f, 1.8f)
+            .trackingRange(32)
+            .updateInterval(0)
+            .build());
+
     // ========== 物品 ==========
     registry.registerType(EntityTypeKeys::ITEM,
         EntityType::Builder(&ItemEntity::create, EntityClassification::Misc)

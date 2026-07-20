@@ -50,6 +50,7 @@
 #include "../../attribute/AttributeModifierUUIDs.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
+#include "../../core/EntityRegistry.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/item/ItemEntity.hpp"
@@ -132,6 +133,11 @@ Player::Player(EntityInstanceId id, const std::string& username)
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
 {
+    // 绑定玩家类型标识。Player 在 EntityRegistry 中注册为 "minecraft:player"
+    // （factory=nullptr，Player 不走注册表工厂）。此处仅设置 m_typeId，entityType()
+    // 首次访问时懒查表填充指针，与 VanillaEntityTypeKeys::PLAYER 同源可指针比较。
+    setTypeId(entity::EntityTypeKeys::PLAYER);
+
     // 注册玩家属性
     registerAttributes();
 
