@@ -32,6 +32,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace mc::client::skin {
 
@@ -188,15 +189,16 @@ public:
     // ========== 资源包设置 ==========
 
     /**
-     * @brief 设置资源包（用于加载默认皮肤）
+     * @brief 设置资源包列表（用于加载默认皮肤及资源包内皮肤）
      *
-     * 必须在 initialize() 之前调用。内部会缓存指针，因为 initialize() 会用
-     * 正确的 cacheDir 重建底层 SkinManager，重建后会重新下发缓存的指针。
+     * 必须在 initialize() 之前调用。内部会缓存列表，因为 initialize() 会用
+     * 正确的 cacheDir 重建底层 SkinManager，重建后会重新下发缓存的列表。
+     * 列表顺序为添加顺序（低→高优先级），查找时反向遍历（后添加的优先）。
      */
-    void setResourcePack(IResourcePack* resourcePack)
+    void setResourcePacks(std::vector<::mc::IResourcePack*> resourcePacks)
     {
-        m_resourcePack = resourcePack;
-        m_skinManager->setResourcePack(resourcePack);
+        m_resourcePacks = std::move(resourcePacks);
+        m_skinManager->setResourcePacks(m_resourcePacks);
     }
 
     /**
@@ -233,8 +235,8 @@ private:
     std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
     std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
 
-    // initialize() 会用正确的 cacheDir 重建 m_skinManager，这里缓存注入的指针以便重建后重新下发
-    IResourcePack* m_resourcePack = nullptr;
+    // initialize() 会用正确的 cacheDir 重建 m_skinManager，这里缓存注入的列表以便重建后重新下发
+    std::vector<::mc::IResourcePack*> m_resourcePacks;
     ::mc::util::ServerWorkerPool* m_workerPool = nullptr;
 
     // 默认皮肤区域（18 种，索引与 DefaultSkinVariant::index 一致）

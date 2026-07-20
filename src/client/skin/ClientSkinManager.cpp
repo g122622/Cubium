@@ -63,11 +63,11 @@ Result<void> ClientSkinManager::initialize(VkDevice device,
 
     // 初始化底层皮肤管理器
     // 用正确的 cacheDir 重建底层 SkinManager（构造函数用的是空 cacheDir）。
-    // 重建会丢弃此前 setResourcePack/setWorkerPool 注入到旧对象的状态，
-    // 因此必须把缓存的指针重新下发给新对象，再调用 initialize()。
+    // 重建会丢弃此前 setResourcePacks/setWorkerPool 注入到旧对象的状态，
+    // 因此必须把缓存的列表重新下发给新对象，再调用 initialize()。
     m_skinManager = std::make_unique<::mc::skin::SkinManager>(cacheDir);
-    if (m_resourcePack) {
-        m_skinManager->setResourcePack(m_resourcePack);
+    if (!m_resourcePacks.empty()) {
+        m_skinManager->setResourcePacks(m_resourcePacks);
     }
     if (m_workerPool) {
         m_skinManager->setWorkerPool(m_workerPool);

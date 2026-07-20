@@ -36,9 +36,7 @@
 
 namespace mc::skin {
 
-FileSkinLoader::FileSkinLoader(IResourcePack* resourcePack)
-    : m_resourcePack(resourcePack)
-{}
+FileSkinLoader::FileSkinLoader() = default;
 
 FileSkinLoader::~FileSkinLoader()
 {
@@ -268,27 +266,41 @@ Result<SkinLoadResult> FileSkinLoader::_loadFromFilesystem(const std::string& pa
 
 Result<SkinLoadResult> FileSkinLoader::_loadFromResourcePack(const ResourceLocation& location)
 {
-    if (!m_resourcePack) {
+    if (m_resourcePacks.empty()) {
         return Error(ErrorCode::NotInitialized, "No resource pack available");
     }
 
     SkinLoadResult result;
 
-    // 从资源包读取
+    // 从资源包读取（按优先级反向遍历，后添加的优先）
     // toFilePath(PackType) 返回 "assets/namespace/path" 格式，
     // readResource 需要相对于 PackType 根目录的路径（不含 "assets/" 前缀）
     std::string resourcePath = location.toFilePath(resource::PackType::ClientResources);
     resourcePath.erase(0, std::string("assets/").size());
 
-    auto readResult = m_resourcePack->readResource(resource::PackType::ClientResources, resourcePath);
-    if (!readResult.success()) {
-        return readResult.error();
+    std::vector<u8> pngData;
+    for (auto packIt = m_resourcePacks.rbegin(); packIt != m_resourcePacks.rend(); ++packIt) {
+        IResourcePack* pack = *packIt;
+        if (pack == nullptr) {
+            continue;
+        }
+        if (!pack->hasResource(resource::PackType::ClientResources, resourcePath)) {
+            continue;
+        }
+        auto readResult = pack->readResource(resource::PackType::ClientResources, resourcePath);
+        if (!readResult.success() || readResult.value().empty()) {
+            continue;
+        }
+        pngData = std::move(readResult.value());
+        break;
     }
 
-    auto& data = readResult.value();
+    if (pngData.empty()) {
+        return Error(ErrorCode::NotFound, "Skin not found in any resource pack: " + location.toString());
+    }
 
     // 验证和转换
-    auto validateResult = _validateAndConvertSkin(data);
+    auto validateResult = _validateAndConvertSkin(pngData);
     if (!validateResult.success()) {
         return validateResult.error();
     }

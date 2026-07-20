@@ -79,14 +79,19 @@ SkinCache 的所有公共方法通过 `m_entriesMutex` 保证线程安全。元�
 
 ### DefaultSkinProvider 加载真实皮肤
 
-`_loadBuiltinSkins()` 通过注入的 `IResourcePack` 从资源包读取 18 种默认皮肤 PNG 纹理
+`_loadBuiltinSkins()` 通过注入的资源包列表从资源包读取 18 种默认皮肤 PNG 纹理
 （路径 `textures/entity/player/{slim|wide}/{name}.png`），使用 `stb_image` 解码为 64×64
 RGBA 像素数据存入 `m_skinData`。
 
-**生命周期约束**：必须在 `initialize()` 调用之前通过 `setResourcePack()` 注入资源包，
+**生命周期约束**：必须在 `initialize()` 调用之前通过 `setResourcePacks()` 注入资源包列表，
 否则 `_loadBuiltinSkins()` 会因无资源包可用而回退到零像素占位数据。注入链路为：
-`ClientApplicationSession` → `ClientSkinManager::setResourcePack()` →
-`SkinManager::setResourcePack()` → `DefaultSkinProvider::setResourcePack()`。
+`ClientApplicationSession` → `ClientSkinManager::setResourcePacks()` →
+`SkinManager::setResourcePacks()` → `DefaultSkinProvider::setResourcePacks()` /
+`FileSkinLoader::setResourcePacks()`。
+
+**查找策略**：按资源包优先级反向遍历（后添加的优先，`rbegin→rend`），与 `ResourceManager`
+纹理加载惯例一致。必须注入完整列表而非仅首个 pack——内置 vanilla `InMemoryResourcePack`
+只注册了模型/方块状态 JSON，player 皮肤 PNG 实际位于磁盘资源包，需遍历所有 pack 才能命中。
 
 **容错策略**：单个变体加载失败仅记录警告并跳过，对应 `m_skinData[i]` 保持零像素占位
 数据，整体 `initialize()` 不返回错误，保持与原 fallback 语义一致的容错性。

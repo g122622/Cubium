@@ -117,9 +117,9 @@ private:
     std::unordered_map<std::string, std::vector<u8>> m_resources;
 };
 
-/// 生成 64x64 全不透明红色 RGBA 像素的 PNG 字节流
+/// 生成 64x64 指定纯色 RGBA 像素的 PNG 字节流
 /// 使用最简 PNG 结构：IHDR + IDAT（zlib 1 块，stored 块无压缩）+ IEND
-std::vector<u8> makeSolidRed64x64Png()
+std::vector<u8> makeSolidColor64x64Png(u8 r, u8 g, u8 b, u8 a)
 {
     // PNG 签名
     static const u8 kSignature[] = {137, 80, 78, 71, 13, 10, 26, 10};
@@ -167,19 +167,19 @@ std::vector<u8> makeSolidRed64x64Png()
     for (size_t y = 0; y < 64; ++y) {
         idatData.push_back(0); // filter byte: None
         for (size_t x = 0; x < 64; ++x) {
-            idatData.push_back(255); // R
-            idatData.push_back(0);   // G
-            idatData.push_back(0);   // B
-            idatData.push_back(255); // A
+            idatData.push_back(r); // R
+            idatData.push_back(g); // G
+            idatData.push_back(b); // B
+            idatData.push_back(a); // A
         }
     }
-    // Adler-32 校验和（按字节计算）
-    u32 a = 1, b = 0;
+    // Adler-32 校验和（按字节计算）。变量名加 adler 前缀避免与函数参数 r/g/b/a 重名遮蔽
+    u32 adlerA = 1, adlerB = 0;
     for (size_t i = 2; i < idatData.size(); ++i) { // 跳过 zlib header 2 字节
-        a = (a + idatData[i]) % 65521;
-        b = (b + a) % 65521;
+        adlerA = (adlerA + idatData[i]) % 65521;
+        adlerB = (adlerB + adlerA) % 65521;
     }
-    u32 adler32 = (b << 16) | a;
+    u32 adler32 = (adlerB << 16) | adlerA;
     idatData.push_back(static_cast<u8>((adler32 >> 24) & 0xFF));
     idatData.push_back(static_cast<u8>((adler32 >> 16) & 0xFF));
     idatData.push_back(static_cast<u8>((adler32 >> 8) & 0xFF));
@@ -487,6 +487,12 @@ std::vector<u8> makeSolidRed64x64Png()
     return png;
 }
 
+/// 生成 64x64 全不透明红色 RGBA 像素的 PNG 字节流（makeSolidColor64x64Png 的便捷包装）
+std::vector<u8> makeSolidRed64x64Png()
+{
+    return makeSolidColor64x64Png(255, 0, 0, 255);
+}
+
 /// 为 18 个默认皮肤变体在内存资源包中注入纯红色 64x64 PNG
 void populateAllDefaultSkinPngs(InMemoryResourcePack& pack)
 {
@@ -523,7 +529,7 @@ TEST(DefaultSkinProviderTest, InitializeWithResourcePackLoadsRealPixels)
     populateAllDefaultSkinPngs(pack);
 
     DefaultSkinProvider provider;
-    provider.setResourcePack(&pack);
+    provider.setResourcePacks({&pack});
     auto result = provider.initialize();
     ASSERT_TRUE(result.success());
 
@@ -554,7 +560,7 @@ TEST(DefaultSkinProviderTest, InitializeWithPartialResourcePackLoadsAvailablePix
     pack.add(path, makeSolidRed64x64Png());
 
     DefaultSkinProvider provider;
-    provider.setResourcePack(&pack);
+    provider.setResourcePacks({&pack});
     auto result = provider.initialize();
     ASSERT_TRUE(result.success());
 
@@ -577,12 +583,62 @@ TEST(DefaultSkinProviderTest, InitializeWithPartialResourcePackLoadsAvailablePix
     }
 }
 
-TEST(DefaultSkinProviderTest, SetResourcePackReturnsInjectedPointer)
+TEST(DefaultSkinProviderTest, SetResourcePacksReturnsInjectedList)
 {
     InMemoryResourcePack pack;
     DefaultSkinProvider provider;
-    provider.setResourcePack(&pack);
-    EXPECT_EQ(&pack, provider.resourcePack());
+    provider.setResourcePacks({&pack});
+    const auto& packs = provider.resourcePacks();
+    ASSERT_EQ(1u, packs.size());
+    EXPECT_EQ(&pack, packs[0]);
+}
+
+TEST(DefaultSkinProviderTest, MultiplePacksLaterAddedWinsByPriority)
+{
+    // 模拟生产场景：index 0 内存包不含 player 皮肤 PNG（查询全部 not-found），
+    // index 1 磁盘包含全部 18 个变体。注入完整列表后应命中 index 1 的真实像素，
+    // 而不是回退零像素。这正是本次修复的核心回归保障。
+    InMemoryResourcePack lowPriorityPack;  // 模拟内存包：不注册任何皮肤
+    InMemoryResourcePack highPriorityPack; // 模拟磁盘包：注册全部 18 个变体
+    populateAllDefaultSkinPngs(highPriorityPack);
+
+    DefaultSkinProvider provider;
+    provider.setResourcePacks({&lowPriorityPack, &highPriorityPack});
+    auto result = provider.initialize();
+    ASSERT_TRUE(result.success());
+
+    // 全部 18 个变体都应来自高优先级包的红色像素，而非零像素回退
+    for (size_t i = 0; i < DEFAULT_SKIN_COUNT; ++i) {
+        const auto& data = provider.getSkinData(i);
+        EXPECT_EQ(64u * 64u * 4u, data.size());
+        EXPECT_EQ(255, data[0]) << "Variant " << i << " R";
+        EXPECT_EQ(0, data[1]) << "Variant " << i << " G";
+        EXPECT_EQ(0, data[2]) << "Variant " << i << " B";
+        EXPECT_EQ(255, data[3]) << "Variant " << i << " A";
+    }
+}
+
+TEST(DefaultSkinProviderTest, MultiplePacksOverridePrecedenceWithinSameVariant)
+{
+    // 两个包都提供 slim/steve（索引 6），但颜色不同。
+    // 后添加的包（高优先级）应胜出：绿色覆盖红色。
+    InMemoryResourcePack redPack;
+    InMemoryResourcePack greenPack;
+    const auto& variants = getDefaultSkinVariants();
+    std::string path = variants[6].textureLocation().toFilePath(resource::PackType::ClientResources);
+    redPack.add(path, makeSolidColor64x64Png(255, 0, 0, 255));   // 红色，低优先级
+    greenPack.add(path, makeSolidColor64x64Png(0, 255, 0, 255)); // 绿色，高优先级
+
+    DefaultSkinProvider provider;
+    provider.setResourcePacks({&redPack, &greenPack});
+    auto result = provider.initialize();
+    ASSERT_TRUE(result.success());
+
+    const auto& steveData = provider.getSkinData(6);
+    EXPECT_EQ(0, steveData[0]) << "R should be overridden to green";
+    EXPECT_EQ(255, steveData[1]) << "G from high-priority pack";
+    EXPECT_EQ(0, steveData[2]);
+    EXPECT_EQ(255, steveData[3]);
 }
 
 TEST(DefaultSkinProviderTest, GetDefaultSkinReturnsValidLocation)

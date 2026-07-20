@@ -31,6 +31,7 @@
 #include <filesystem>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::skin {
 
@@ -51,9 +52,10 @@ class FileSkinLoader : public ISkinLoader {
 public:
     /**
      * @brief 构造文件加载器
-     * @param resourcePack 资源包（可选，用于加载内置皮肤）
+     *
+     * 资源包列表通过 setResourcePacks 注入（用于加载内置皮肤）。
      */
-    explicit FileSkinLoader(IResourcePack* resourcePack = nullptr);
+    FileSkinLoader();
 
     ~FileSkinLoader() override;
 
@@ -79,13 +81,15 @@ public:
     void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
 
     /**
-     * @brief 设置资源包（用于从资源包加载皮肤）
+     * @brief 设置资源包列表（用于从资源包加载皮肤）
      *
      * 资源包由调用方拥有，必须保证生命周期长于本加载器。
+     * 列表顺序为添加顺序（低→高优先级），查找时反向遍历（后添加的优先），
+     * 与 ResourceManager 的纹理加载惯例一致。
      *
-     * @param resourcePack 资源包指针（非所有权）
+     * @param resourcePacks 资源包指针列表（非所有权）
      */
-    void setResourcePack(IResourcePack* resourcePack) { m_resourcePack = resourcePack; }
+    void setResourcePacks(std::vector<IResourcePack*> resourcePacks) { m_resourcePacks = std::move(resourcePacks); }
 
 private:
     /**
@@ -121,7 +125,7 @@ private:
      */
     void _decrementPending();
 
-    IResourcePack* m_resourcePack = nullptr;
+    std::vector<IResourcePack*> m_resourcePacks;
     bool m_initialized = false;
 
     // 异步加载基础设施

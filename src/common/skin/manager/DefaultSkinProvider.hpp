@@ -47,15 +47,16 @@ namespace mc::skin {
  * 皮肤名称列表：alex, ari, efe, kai, makena, noor, steve, sunny, zuri
  * 纹理路径格式：minecraft:textures/entity/player/{slim|wide}/{name}.png
  *
- * 生命周期约束：必须在 initialize() 调用之前通过 setResourcePack 注入资源包，
+ * 生命周期约束：必须在 initialize() 调用之前通过 setResourcePacks 注入资源包列表，
  * 否则 _loadBuiltinSkins 会因无资源包可用而回退到零像素占位数据。
+ * 查找策略：按资源包优先级反向遍历（后添加的优先），与纹理/模型加载一致。
  */
 class DefaultSkinProvider {
 public:
     /**
      * @brief 初始化默认皮肤
      *
-     * 加载内置的 18 种默认皮肤数据。需要先通过 setResourcePack 注入资源包。
+     * 加载内置的 18 种默认皮肤数据。需要先通过 setResourcePacks 注入资源包列表。
      *
      * @return 成功或错误
      */
@@ -138,43 +139,45 @@ public:
     // ========== 资源包设置 ==========
 
     /**
-     * @brief 设置资源包（用于从资源包加载默认皮肤 PNG 纹理）
+     * @brief 设置资源包列表（用于从资源包加载默认皮肤 PNG 纹理）
      *
      * 必须在 initialize() 调用之前设置，否则 _loadBuiltinSkins 将无法读取
      * `textures/entity/player/{slim|wide}/{name}.png` 资源，回退到零像素占位数据。
+     * 列表顺序为添加顺序（低→高优先级），查找时反向遍历（后添加的优先），
+     * 与 ResourceManager 的纹理加载惯例一致。
      *
-     * @param resourcePack 资源包指针（非所有权，调用方保证生命周期）
+     * @param resourcePacks 资源包指针列表（非所有权，调用方保证生命周期）
      */
-    void setResourcePack(IResourcePack* resourcePack) { m_resourcePack = resourcePack; }
+    void setResourcePacks(std::vector<IResourcePack*> resourcePacks) { m_resourcePacks = std::move(resourcePacks); }
 
     /**
-     * @brief 获取已设置的资源包
+     * @brief 获取已设置的资源包列表
      */
-    [[nodiscard]] IResourcePack* resourcePack() const noexcept { return m_resourcePack; }
+    [[nodiscard]] const std::vector<IResourcePack*>& resourcePacks() const noexcept { return m_resourcePacks; }
 
 private:
     /**
      * @brief 加载内置皮肤数据
      *
-     * 遍历 18 个默认皮肤变体，从资源包读取 PNG 字节，
+     * 遍历 18 个默认皮肤变体，从资源包列表按优先级读取 PNG 字节，
      * 用 stb_image 解码为 RGBA 像素后存入 m_skinData。
      * 单个变体加载失败仅记录警告并跳过，整体不失败（保持 initialize 容错语义）。
      */
     Result<void> _loadBuiltinSkins();
 
     /**
-     * @brief 从资源包加载单个皮肤变体的 PNG 纹理
+     * @brief 从资源包列表按优先级加载单个皮肤变体的 PNG 纹理
      *
      * @param variant 默认皮肤变体
-     * @return 解码后的 RGBA 像素数据，失败时返回空 vector
+     * @return 解码后的 RGBA 像素数据，所有资源包都未命中时返回空 vector
      */
     [[nodiscard]] std::vector<u8> _loadSkinFromResourcePack(const DefaultSkinVariant& variant) const;
 
     /// 18 种默认皮肤的 RGBA 像素数据（索引与 DefaultSkinVariant::index 一致）
     std::array<std::vector<u8>, DEFAULT_SKIN_COUNT> m_skinData;
 
-    /// 资源包指针（非所有权），用于加载默认皮肤 PNG 纹理
-    IResourcePack* m_resourcePack = nullptr;
+    /// 资源包指针列表（非所有权，添加顺序=优先级从低到高），用于加载默认皮肤 PNG 纹理
+    std::vector<IResourcePack*> m_resourcePacks;
 
     bool m_initialized = false;
 };

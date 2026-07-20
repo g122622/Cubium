@@ -206,10 +206,19 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     // 初始化皮肤管理器
     m_skinManager = std::make_unique<skin::ClientSkinManager>();
-    // 必须在 initialize() 之前注入资源包，否则 DefaultSkinProvider 无法从
-    // 资源包读取 18 种默认皮肤 PNG 纹理，回退到零像素占位数据
+    // 必须在 initialize() 之前注入全部资源包，否则 DefaultSkinProvider 无法从
+    // 资源包读取 18 种默认皮肤 PNG 纹理，回退到零像素占位数据。
+    // 注入完整列表（而非仅首个 pack）是因为内置 vanilla InMemoryResourcePack
+    // 只注册了模型/方块状态 JSON，player 皮肤 PNG 实际位于磁盘 Vanilla 文件夹包，
+    // 必须按优先级遍历所有 pack 才能命中。
     if (m_resourceManager && m_resourceManager->resourcePackCount() > 0) {
-        m_skinManager->setResourcePack(m_resourceManager->getFirstResourcePack());
+        const auto& packs = m_resourceManager->resourcePacks();
+        std::vector<::mc::IResourcePack*> packPtrs;
+        packPtrs.reserve(packs.size());
+        for (const auto& pack : packs) {
+            packPtrs.push_back(pack.get());
+        }
+        m_skinManager->setResourcePacks(std::move(packPtrs));
     } else {
         spdlog::warn("[Session] No resource pack available, default skin textures will fall back to zero-pixel data");
     }

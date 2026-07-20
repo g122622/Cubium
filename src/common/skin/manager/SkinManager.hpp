@@ -40,6 +40,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::skin {
 
@@ -207,20 +208,22 @@ public:
     // ========== 资源包设置 ==========
 
     /**
-     * @brief 设置资源包（用于加载默认皮肤）
+     * @brief 设置资源包列表（用于加载默认皮肤及资源包内皮肤）
      *
-     * 必须在 initialize() 调用之前设置，否则 DefaultSkinProvider 将无法
-     * 从资源包读取默认皮肤 PNG 纹理，回退到零像素占位数据。
+     * 必须在 initialize() 调用之前设置，否则 DefaultSkinProvider / FileSkinLoader
+     * 将无法从资源包读取皮肤 PNG 纹理，回退到零像素占位数据或加载失败。
+     * 列表顺序为添加顺序（低→高优先级），查找时反向遍历（后添加的优先），
+     * 与 ResourceManager 的纹理加载惯例一致。
      *
-     * @param resourcePack 资源包指针（非所有权，调用方保证生命周期）
+     * @param resourcePacks 资源包指针列表（非所有权，调用方保证生命周期）
      */
-    void setResourcePack(IResourcePack* resourcePack)
+    void setResourcePacks(std::vector<IResourcePack*> resourcePacks)
     {
-        m_resourcePack = resourcePack;
+        m_resourcePacks = std::move(resourcePacks);
         // 同步给 DefaultSkinProvider，确保后续 initialize 时能读取
-        m_defaultSkinProvider->setResourcePack(resourcePack);
+        m_defaultSkinProvider->setResourcePacks(m_resourcePacks);
         // 同步给 FileSkinLoader（用于从资源包加载皮肤）
-        m_fileLoader->setResourcePack(resourcePack);
+        m_fileLoader->setResourcePacks(m_resourcePacks);
     }
 
     // ========== 线程池设置 ==========
@@ -286,7 +289,7 @@ private:
     mutable std::mutex m_playerInfosMutex;
     std::unordered_map<std::string, std::shared_ptr<PlayerSkinInfo>> m_playerInfos; // key: uuid string
 
-    IResourcePack* m_resourcePack = nullptr;
+    std::vector<IResourcePack*> m_resourcePacks;
 
     std::atomic<bool> m_initialized{false};
     std::atomic<bool> m_shuttingDown{false};
