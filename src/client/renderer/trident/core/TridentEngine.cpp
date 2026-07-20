@@ -578,6 +578,13 @@ Result<void> TridentEngine::render()
         m_frameContext.viewProjectionMatrix = m_frameContext.projectionMatrix * m_frameContext.viewMatrix;
         m_uniformManager->updateCamera(
             m_frameContext.viewMatrix, m_frameContext.projectionMatrix, m_frameContext.frameIndex);
+
+        // 每帧更新视锥体（用于实体/粒子视锥剔除）。
+        // setCamera() 仅在 bootstrap 调用一次，若不在此处每帧刷新，
+        // m_frustum 会永远停留在初始相机位置 (8,50,8)+yaw45°，
+        // 导致玩家移动后实体视锥剔除用过期视锥，近处实体被误剔除（掉落物不可见）。
+        m_frustum.extractFromMatrix(m_frameContext.viewProjectionMatrix);
+        m_frustum.setCameraPosition(m_frameContext.camera->position());
     }
 
     // 3. 渲染天空
@@ -1772,6 +1779,21 @@ Result<void> TridentEngine::initializeItemRenderer(ResourceManager* resourceMana
         m_firstPersonRenderer->setItemTextureAtlas(&m_itemTextureAtlas);
     }
 
+    // 注入物品纹理图集给 EntityRendererManager，供 ItemEntity 渲染（纹理绑定 + UV 重映射）。
+    // initializeItemRenderer 晚于 initializeEntityRenderer 调用，故在此延迟注入。
+    // setItemTextureAtlas 只赋值不清缓存，需手动 clearMeshes() 清掉此前用 nullptr 图集生成的旧
+    // ItemEntity 网格（UV 为默认 (0,1)²），强制下次 getOrCreateMesh 用新图集重做 _remapItemEntityUv。
+    if (m_entityRendererInitialized && m_entityRendererManager && m_itemTextureAtlas.isValid()) {
+        m_entityRendererManager->setItemTextureAtlas(&m_itemTextureAtlas);
+        m_entityRendererManager->clearMeshes();
+    } else {
+        spdlog::warn(
+            "EntityRendererManager item atlas injection skipped: entityRendererInit={} manager={} atlasValid={}",
+            m_entityRendererInitialized,
+            (bool)m_entityRendererManager,
+            m_itemTextureAtlas.isValid());
+    }
+
     // 第一人称方块物品 3D 渲染需要 blocks atlas（与区块渲染共用同一图集）。
     _bindBlockAtlasToChunkPipeline();
 
@@ -1881,9 +1903,11 @@ Result<void> TridentEngine::initializeEntityRenderer()
     // 初始化默认实体渲染器
     m_entityRendererManager->initializeDefaults();
 
-    // 设置实体纹理图集（用于UV重映射）
-    // 注意：物品纹理图集是 ItemTextureAtlas 类型，而 EntityRendererManager 需要 EntityTextureAtlas 类型
-    // 物品实体渲染通过 initializeEntityTextureAtlas() 设置的 entity texture atlas 进行
+    // 设置实体纹理图集（用于UV重映射）。
+    // 注意：物品纹理图集（ItemTextureAtlas）在本函数 initializeItemRenderer() 中加载，
+    // 而 initializeItemRenderer() 晚于 initializeEntityRenderer() 调用
+    // （见 ClientApplicationBootstrap.cpp:294/305/313 顺序）。故 EntityRendererManager 的
+    // 物品图集注入放在本函数末尾延迟进行，不在此处。
     // 创建并初始化实体渲染管线
     if (!m_entityPipeline) {
         m_entityPipeline = std::make_unique<EntityPipeline>();

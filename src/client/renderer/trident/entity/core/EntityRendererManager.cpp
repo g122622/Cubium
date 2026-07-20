@@ -74,6 +74,7 @@
 #include "client/renderer/trident/entity/renderer/monster/MonsterRenderers.hpp"
 #include "client/renderer/trident/entity/renderer/special/SpecialEntityRenderers.hpp"
 #include <cmath>
+#include <unordered_set>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -253,7 +254,9 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     bool isExperienceOrb = (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB);
 
     // 对于 ItemEntity，使用 ItemTextureAtlas
-    if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isBuilt()) {
+    if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isValid() && m_itemTextureAtlas->isUploaded()) {
+        // ItemTextureAtlas 用 isValid()+isUploaded() 判定就绪：
+        // isValid() 仅检查 m_image!=NULL（_createImage 后即 true，早于 upload），故需额外 isUploaded()
         // 绑定物品纹理图集
         m_pipeline->setTextureAtlas(m_itemTextureAtlas->imageView(), m_itemTextureAtlas->sampler());
     }
@@ -339,8 +342,8 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
             itemLayerCount = renderer::projectile::ItemEntityRenderer::getItemCountForRender(itemStack->getCount());
         }
 
-        // Y 翻转
-        modelMatrix[5] = -1.0f;
+        // billboard 顶点 y∈[0.25,0.5] 已在地面以上正确象限，无需 Y 翻转。
+        // Y 翻转是给"模型坐标系 Y 向上"的生物 .geo 模型用的（见普通实体分支 scale(-1,-1,1)+translate(0,1.501,0)）。
 
         // 应用 Y 轴旋转（物品自转）
         f64 rotRad = rotation * static_cast<f64>(math::DEG_TO_RAD);
@@ -378,8 +381,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         // ExperienceOrb 特殊渲染：应用浮动动画、动态大小和颜色动画
         f64 bobOffset = _calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
 
-        // Y 翻转
-        modelMatrix[5] = -1.0f;
+        // billboard 顶点 y∈[0.25,0.5] 已在地面以上正确象限，无需 Y 翻转（同 ItemEntity）。
 
         // 获取经验值以确定大小
         i32 xpValue = entity.xpValue();
@@ -698,13 +700,8 @@ void EntityRendererManager::initializeDefaults()
     // 注册所有渲染器（使用工厂注册表模式）
     renderer::initializeRendererRegistration();
 
-    // ItemEntity 渲染器需要设置 itemTextureAtlas
-    auto* itemRenderer = _getOrCreateRenderer(::mc::entity::EntityTypes::ITEM);
-    if (auto* itemEntityRenderer = dynamic_cast<renderer::projectile::ItemEntityRenderer*>(itemRenderer)) {
-        if (m_itemTextureAtlas) {
-            itemEntityRenderer->setItemTextureAtlas(m_itemTextureAtlas);
-        }
-    }
+    // 注意：ItemEntity 的物品纹理图集由 TridentEngine::initializeItemRenderer() 末尾
+    // 通过 setItemTextureAtlas() 注入（initializeItemRenderer 晚于 initializeEntityRenderer 调用）。
 }
 
 EntityRenderer* EntityRendererManager::_getOrCreateRenderer(const std::string& typeId)
@@ -817,21 +814,21 @@ void EntityRendererManager::_remapItemEntityUv(ClientEntity& entity, std::vector
         return;
     }
 
-    // 尝试获取物品纹理区域
-    // itemId() returns u16, use itemLocation() which returns ResourceLocation that can be converted to string
-    const ResourceLocation& itemId = item->itemLocation();
-    const TextureRegion* region = m_itemTextureAtlas->getRegion(itemId.toString());
-    if (!region) {
-        // 尝试使用 item/ 路径
-        ResourceLocation itemPath(itemId.namespace_(), "item/" + itemId.path());
-        region = m_itemTextureAtlas->getRegion(itemPath.toString());
-        if (!region) {
-            ResourceLocation itemTexturePath(itemId.namespace_(), "textures/item/" + itemId.path());
-            region = m_itemTextureAtlas->getRegion(itemTexturePath.toString());
-        }
-    }
+    // ItemTextureAtlas 注册时（ItemTextureAtlas.cpp）已用 item.itemId() 建 m_regionsByItemId 索引，
+    // 直接按 itemId 查询即可命中。注意：不能用 getItemTexture(item->itemLocation())，
+    // 因为 m_regionsByLocation 的 key 是 "textures/item/<path>" 与 "item/<path>"，不含裸 "<path>"，会落空。
+    const TextureRegion* region = m_itemTextureAtlas->getItemTexture(item->itemId());
 
     if (!region) {
+        // 按 itemId 去重的一次性 warn：同一物品缺失只报一次，避免每帧每实体刷屏
+        static std::unordered_set<ItemId> s_warnedItemIds;
+        const ItemId itemId = item->itemId();
+        if (s_warnedItemIds.insert(itemId).second) {
+            spdlog::warn("EntityRendererManager: ItemTextureAtlas 缺失物品 {} (itemId={}) 的纹理区域，"
+                         "ItemEntity 将显示为无图集采样色块",
+                item->itemLocation().toString(),
+                static_cast<u32>(itemId));
+        }
         return;
     }
 

@@ -49,6 +49,7 @@ struct TextureRegion;
 
 namespace mc::client {
 class ClientEntity;
+class ItemTextureAtlas;
 } // namespace mc::client
 
 namespace mc::client::renderer::entity::model {
@@ -208,13 +209,17 @@ public:
 
     /**
      * @brief 设置物品纹理图集（用于 ItemEntity 渲染）
+     *
+     * ItemTextureAtlas 在 TridentEngine::initializeItemRenderer() 中加载并注入。
+     * 注意：与 setTextureAtlas 不同，本方法只赋值不清缓存——
+     * 调用方需在图集首次注入后手动 clearMeshes()，强制旧 ItemEntity 网格重做 UV 映射。
      */
-    void setItemTextureAtlas(pipeline::EntityTextureAtlas* itemAtlas) { m_itemTextureAtlas = itemAtlas; }
+    void setItemTextureAtlas(::mc::client::ItemTextureAtlas* itemAtlas) { m_itemTextureAtlas = itemAtlas; }
 
     /**
      * @brief 获取物品纹理图集
      */
-    [[nodiscard]] pipeline::EntityTextureAtlas* itemTextureAtlas() { return m_itemTextureAtlas; }
+    [[nodiscard]] ::mc::client::ItemTextureAtlas* itemTextureAtlas() { return m_itemTextureAtlas; }
 
     /**
      * @brief 设置方块图集（blocks atlas 的 GPU 句柄，用于末影人手持方块渲染）
@@ -323,7 +328,7 @@ private:
     // 管线
     pipeline::EntityPipeline* m_pipeline = nullptr;
     const pipeline::EntityTextureAtlas* m_textureAtlas = nullptr;
-    pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr; // 用于 ItemEntity 渲染
+    ::mc::client::ItemTextureAtlas* m_itemTextureAtlas = nullptr; // 用于 ItemEntity 渲染
 
     // blocks atlas 的 GPU 句柄（来自 AtlasManager，用于末影人手持方块层）
     VkImageView m_blockImageView = VK_NULL_HANDLE;

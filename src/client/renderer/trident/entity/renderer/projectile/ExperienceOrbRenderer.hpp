@@ -59,7 +59,7 @@ namespace client::renderer::entity::renderer::projectile {
  * - Alpha: 128
  *
  * 关键实现细节：
- * - 浮动偏移: sin((age + partialTick) / 20.0) * 0.1 + 0.3
+ * - 浮动偏移: sin((age + partialTick) / 20.0) * 0.1 + 0.05
  * - Billboard: 始终面向摄像机
  * - 光照: getBlockLight() = max(worldLight, 7)，通过 fullbright 因子 7/15 ≈ 0.467 实现
  * - 阴影: shadowRadius = 0.15, shadowStrength = 0.75
@@ -117,7 +117,7 @@ public:
      * @brief 计算浮动偏移
      *
      * 经验球在 Y 轴上下浮动，频率比 ItemEntity 慢（/20.0 而非 /10.0），
-     * 基础高度偏移比 ItemEntity 高（0.3 而非 0.1）。
+     * 基础高度偏移 0.05（billboard 不做 Y 翻转，故基线较低）。
      *
      * @param ticksExisted 实体存活时间
      * @param partialTick 部分 tick
@@ -150,9 +150,11 @@ public:
     static void calculateIconUV(i32 iconIndex, f64& u0, f64& v0, f64& u1, f64& v1);
 
     // 动画常量
-    static constexpr f64 BOB_FREQUENCY = 0.05;   // 浮动速度（1/20 弧度/tick）
-    static constexpr f64 BOB_AMPLITUDE = 0.1;    // 浮动高度幅度
-    static constexpr f64 BOB_BASE = 0.3;         // 基础高度偏移
+    static constexpr f64 BOB_FREQUENCY = 0.05; // 浮动速度（1/20 弧度/tick）
+    static constexpr f64 BOB_AMPLITUDE = 0.1;  // 浮动高度幅度
+    // 基础高度偏移：billboard 不做 Y 翻转（顶点 y∈[0.25,0.5] 已在地面以上），
+    // 此值配合 BOB_AMPLITUDE 让经验球浮在地面附近。
+    static constexpr f64 BOB_BASE = 0.05;
     static constexpr f64 BASE_SIZE = 0.25;       // 基础大小
     static constexpr f64 SIZE_INCREMENT = 0.015; // 每级大小增量
 

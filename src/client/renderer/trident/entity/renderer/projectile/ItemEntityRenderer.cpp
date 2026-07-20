@@ -23,8 +23,6 @@
 
 #include "ItemEntityRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
-#include "common/item/core/Item.hpp"
-#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
@@ -74,34 +72,6 @@ i32 ItemEntityRenderer::getItemCountForRender(i32 count)
     } else {
         return 5;
     }
-}
-
-const TextureRegion* ItemEntityRenderer::_getItemTextureRegion(const ItemStack& stack) const
-{
-    if (stack.isEmpty() || m_itemTextureAtlas == nullptr) {
-        return nullptr;
-    }
-
-    const Item* item = stack.getItem();
-
-    // 尝试使用资源路径获取纹理
-    const ResourceLocation& itemId = item->itemLocation();
-
-    // 尝试 "item/" 前缀
-    ResourceLocation itemPath(itemId.namespace_(), "item/" + itemId.path());
-    const TextureRegion* region = m_itemTextureAtlas->getRegion(itemPath);
-    if (region != nullptr) {
-        return region;
-    }
-
-    // 尝试完整路径
-    ResourceLocation itemTexturePath(itemId.namespace_(), "textures/item/" + itemId.path());
-    region = m_itemTextureAtlas->getRegion(itemTexturePath);
-    if (region != nullptr) {
-        return region;
-    }
-
-    return nullptr;
 }
 
 } // namespace mc::client::renderer::entity::renderer::projectile

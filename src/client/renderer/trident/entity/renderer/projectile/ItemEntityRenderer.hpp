@@ -24,13 +24,9 @@
 #pragma once
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
-#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
 
 namespace mc {
-
-class ItemStack;
-struct TextureRegion;
 
 namespace client::renderer::entity::renderer::projectile {
 
@@ -68,12 +64,6 @@ public:
      */
     void renderShadow(Entity& entity, f64 partialTicks) override;
 
-    /**
-     * @brief 设置物品纹理图集
-     * @param atlas 物品纹理图集
-     */
-    void setItemTextureAtlas(pipeline::EntityTextureAtlas* atlas) { m_itemTextureAtlas = atlas; }
-
     [[nodiscard]] static f64 calculateBobOffset(u32 ticksExisted, f64 partialTick, f32 hoverStart);
 
     /**
@@ -100,15 +90,6 @@ public:
     [[nodiscard]] static i32 getItemCountForRender(i32 count);
 
 private:
-    /**
-     * @brief 获取物品纹理区域
-     * @param stack 物品堆
-     * @return 纹理区域指针，如果不存在返回 nullptr
-     */
-    [[nodiscard]] const TextureRegion* _getItemTextureRegion(const ItemStack& stack) const;
-
-    pipeline::EntityTextureAtlas* m_itemTextureAtlas = nullptr;
-
     /// 浮动动画周期除数
     static constexpr f64 BOB_PERIOD = 10.0;
     /// 浮动振幅
@@ -117,8 +98,9 @@ private:
     static constexpr f64 BOB_BASE = 0.1;
     /// 旋转动画周期除数
     static constexpr f64 ROTATION_PERIOD = 20.0;
-    /// 地面变换Y偏移
-    static constexpr f64 GROUND_TRANSFORM_Y_OFFSET = 0.25;
+    // 地面变换Y偏移：billboard 不做 Y 翻转（顶点已在地面以上），此偏移设为 0；
+    // 物品悬浮高度由 BOB_BASE 提供，配合 BOB_AMPLITUDE 形成上下浮动。
+    static constexpr f64 GROUND_TRANSFORM_Y_OFFSET = 0.0;
 };
 
 } // namespace client::renderer::entity::renderer::projectile
