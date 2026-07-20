@@ -31,7 +31,6 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractIllagerEntity.hpp"
@@ -39,6 +38,7 @@
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -50,7 +50,7 @@ namespace mc {
 // TraderLlamaEntity
 // ============================================================================
 
-TraderLlamaEntity::TraderLlamaEntity(EntityId id)
+TraderLlamaEntity::TraderLlamaEntity(EntityInstanceId id)
     : LlamaEntity(id)
 {}
 
@@ -64,7 +64,7 @@ std::optional<ResourceLocation> TraderLlamaEntity::getAmbientSound() const
 
 std::unique_ptr<Entity> TraderLlamaEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<TraderLlamaEntity>(EntityId(0));
+    return std::make_unique<TraderLlamaEntity>(EntityInstanceId(0));
 }
 
 bool TraderLlamaEntity::canDespawn(double /*distanceToClosestPlayer*/) const noexcept
@@ -125,7 +125,7 @@ void TraderLlamaEntity::registerGoals()
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<ZombieEntity>>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
                 // 排除僵尸猪灵
-                return entity != nullptr && entity->typeId() != entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+                return entity != nullptr && entity->entityType() != entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
             }));
 
     // 目标优先级 2：攻击灾厄村民

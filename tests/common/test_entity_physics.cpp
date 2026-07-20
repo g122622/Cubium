@@ -44,7 +44,7 @@ using namespace mc;
  */
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity(EntityId id = 1)
+    TestLivingEntity(EntityInstanceId id = 1)
         : LivingEntity(id, nullptr)
     {
         // 设置默认属性

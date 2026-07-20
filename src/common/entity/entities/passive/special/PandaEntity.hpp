@@ -74,7 +74,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    PandaEntity(EntityId id);
+    PandaEntity(EntityInstanceId id);
     ~PandaEntity() override = default;
 
     // 禁止拷贝

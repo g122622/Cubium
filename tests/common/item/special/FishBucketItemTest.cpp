@@ -60,7 +60,7 @@ public:
         throw std::runtime_error("FishBucketTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         // 保存鱼实体指针用于验证
         if (entity != nullptr) {
@@ -95,7 +95,7 @@ public:
     }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     i32 m_spawnedFishCount = 0;
     std::optional<bool> m_lastSpawnedFishFromBucket;
 };
@@ -157,7 +157,7 @@ TEST_F(FishBucketItemTest, TropicalFishBucketItemLocation)
 TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn)
 {
     // 创建鳕鱼并验证 FromBucket 标签影响消失行为
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     cod.setWorld(m_world.get());
 
     // 默认情况下不是从桶放出的
@@ -174,7 +174,7 @@ TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn)
 
 TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
 
     // 默认情况下，鱼可以消失（没有自定义名称）
     EXPECT_TRUE(cod.canDespawn(128.0));
@@ -192,10 +192,10 @@ TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn)
 
 TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket)
 {
-    CodEntity cod(EntityId(1));
-    SalmonEntity salmon(EntityId(2));
-    PufferfishEntity pufferfish(EntityId(3));
-    TropicalFishEntity tropicalFish(EntityId(4));
+    CodEntity cod(EntityInstanceId(1));
+    SalmonEntity salmon(EntityInstanceId(2));
+    PufferfishEntity pufferfish(EntityInstanceId(3));
+    TropicalFishEntity tropicalFish(EntityInstanceId(4));
 
     // 所有鱼类默认不是从桶放出的
     EXPECT_FALSE(cod.isFromBucket());
@@ -217,7 +217,7 @@ TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket)
 
 TEST_F(FishBucketItemTest, FromBucketAndRidingBothPreventDespawn)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     cod.setWorld(m_world.get());
 
     // 默认情况下不在骑乘状态，FromBucket 也是 false

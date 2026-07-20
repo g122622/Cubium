@@ -87,7 +87,7 @@ i32 VillagerData::getExperienceForLevel(i32 level)
 // AbstractVillagerEntity
 // ============================================================================
 
-AbstractVillagerEntity::AbstractVillagerEntity(EntityId id)
+AbstractVillagerEntity::AbstractVillagerEntity(EntityInstanceId id)
     : AgeableEntity(id)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(8)) // 8格库存
 {}

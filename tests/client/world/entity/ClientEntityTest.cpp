@@ -47,7 +47,7 @@ protected:
         Items::initialize();
     }
 
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "test_entity"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "test_entity"); }
 
     void TearDown() override { entity.reset(); }
 
@@ -56,8 +56,8 @@ protected:
 
 TEST_F(ClientEntityTest, InitialState)
 {
-    EXPECT_EQ(entity->id(), EntityId(1));
-    EXPECT_EQ(entity->typeId(), "test_entity");
+    EXPECT_EQ(entity->id(), EntityInstanceId(1));
+    EXPECT_EQ(entity->getTypeId(), "test_entity");
     EXPECT_EQ(entity->position(), Vector3(0.0f, 0.0f, 0.0f));
     EXPECT_EQ(entity->targetPosition(), Vector3(0.0f, 0.0f, 0.0f));
     EXPECT_EQ(entity->yaw(), 0.0f);
@@ -667,7 +667,7 @@ TEST_F(ClientEntityTest, PartialTickConsistencyMultipleCalls)
 
 class ClientEntityOcelotSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:ocelot"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:ocelot"); }
 
     void TearDown() override { entity.reset(); }
 
@@ -716,7 +716,7 @@ TEST_F(ClientEntityOcelotSyncTest, TrustingState_SyncFromDataManager)
 
 class ClientEntityWolfSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:wolf"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wolf"); }
 
     void TearDown() override { entity.reset(); }
 
@@ -1006,7 +1006,7 @@ protected:
         mc::entity::VanillaEntities::registerAll();
     }
 
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:pig"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:pig"); }
 
     void TearDown() override { entity.reset(); }
 
@@ -1016,7 +1016,7 @@ protected:
 TEST_F(ClientEntityEyeHeightTest, DefaultEyeHeightIsPlayerStanding)
 {
     // 使用未注册 typeId 创建的实体默认使用玩家站立眼高
-    ClientEntity unknownEntity(EntityId(99), "minecraft:unknown_entity");
+    ClientEntity unknownEntity(EntityInstanceId(99), "minecraft:unknown_entity");
     EXPECT_FLOAT_EQ(unknownEntity.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 }
 
@@ -1039,7 +1039,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightFromRegistry)
 TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerStanding)
 {
     // 玩家站立眼高 = 1.62
-    ClientEntity player(EntityId(2), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(2), mc::entity::EntityTypeKeys::PLAYER);
     player.refreshEyeHeight();
     EXPECT_FLOAT_EQ(player.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 }
@@ -1047,7 +1047,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerStanding)
 TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSneaking)
 {
     // 玩家蹲伏眼高 = 1.27
-    ClientEntity player(EntityId(3), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(3), mc::entity::EntityTypeKeys::PLAYER);
     player.setSneaking(true);
     EXPECT_FLOAT_EQ(player.eyeHeight(), 1.27f);
 }
@@ -1055,7 +1055,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSneaking)
 TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSwimming)
 {
     // 玩家游泳眼高 = 0.4
-    ClientEntity player(EntityId(4), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(4), mc::entity::EntityTypeKeys::PLAYER);
     player.setSwimming(true);
     EXPECT_FLOAT_EQ(player.eyeHeight(), 0.4f);
 }
@@ -1063,7 +1063,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSwimming)
 TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSleeping)
 {
     // 玩家睡眠眼高 = 0.2
-    ClientEntity player(EntityId(5), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(5), mc::entity::EntityTypeKeys::PLAYER);
     player.setSleeping(true);
     EXPECT_FLOAT_EQ(player.eyeHeight(), 0.2f);
 }
@@ -1073,7 +1073,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerFallFlying)
     // 玩家鞘翅飞行眼高 = 0.4（与游泳相同）
     // 注意：isFallFlying() 从元数据读取，此处使用 setSwimming 模拟
     // 因为 setSneaking/setSwimming/setSleeping 都触发 refreshEyeHeight
-    ClientEntity player(EntityId(6), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(6), mc::entity::EntityTypeKeys::PLAYER);
     // 鞘翅飞行状态下眼高与游泳相同
     // 由于 isFallFlying() 依赖元数据，此处测试游泳状态即可
     player.setSwimming(true);
@@ -1083,7 +1083,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerFallFlying)
 TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSneakingOverridesSwimming)
 {
     // 同时蹲伏和游泳时，蹲伏优先（因为后设置的 sneaking 会覆盖）
-    ClientEntity player(EntityId(7), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(7), mc::entity::EntityTypeKeys::PLAYER);
     player.setSwimming(true);
     EXPECT_FLOAT_EQ(player.eyeHeight(), 0.4f);
     player.setSneaking(true);
@@ -1099,7 +1099,7 @@ TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSneakingOverridesSwimmin
 TEST_F(ClientEntityEyeHeightTest, RefreshEyeHeightPlayerSleepOverridesAll)
 {
     // 睡眠优先级最高
-    ClientEntity player(EntityId(8), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(8), mc::entity::EntityTypeKeys::PLAYER);
     player.setSwimming(true);
     player.setSneaking(true);
     player.setSleeping(true);
@@ -1117,7 +1117,7 @@ TEST_F(ClientEntityEyeHeightTest, ChildEntityEyeHeightHalved)
 TEST_F(ClientEntityEyeHeightTest, ChildPlayerEyeHeightNotHalved)
 {
     // 玩家不使用注册表眼高减半逻辑，而是使用固定姿态眼高
-    ClientEntity player(EntityId(9), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(9), mc::entity::EntityTypeKeys::PLAYER);
     player.setChild(true);
     // 玩家子实体走 Player 分支，不经过 child * 0.5 逻辑
     EXPECT_FLOAT_EQ(player.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
@@ -1126,7 +1126,7 @@ TEST_F(ClientEntityEyeHeightTest, ChildPlayerEyeHeightNotHalved)
 TEST_F(ClientEntityEyeHeightTest, SetSneakingTriggersRefresh)
 {
     // 玩家从站立切换到蹲伏应自动刷新眼高
-    ClientEntity player(EntityId(10), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(10), mc::entity::EntityTypeKeys::PLAYER);
     EXPECT_FLOAT_EQ(player.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 
     player.setSneaking(true);
@@ -1138,7 +1138,7 @@ TEST_F(ClientEntityEyeHeightTest, SetSneakingTriggersRefresh)
 
 TEST_F(ClientEntityEyeHeightTest, SetSwimmingTriggersRefresh)
 {
-    ClientEntity player(EntityId(11), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(11), mc::entity::EntityTypeKeys::PLAYER);
     EXPECT_FLOAT_EQ(player.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 
     player.setSwimming(true);
@@ -1150,7 +1150,7 @@ TEST_F(ClientEntityEyeHeightTest, SetSwimmingTriggersRefresh)
 
 TEST_F(ClientEntityEyeHeightTest, SetSleepingTriggersRefresh)
 {
-    ClientEntity player(EntityId(12), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(12), mc::entity::EntityTypeKeys::PLAYER);
     EXPECT_FLOAT_EQ(player.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 
     player.setSleeping(true);
@@ -1176,7 +1176,7 @@ TEST_F(ClientEntityEyeHeightTest, SetChildTriggersRefresh)
 TEST_F(ClientEntityEyeHeightTest, NoRefreshOnSameValue)
 {
     // 设置相同的值不应触发 refreshEyeHeight（优化：值未变化时跳过）
-    ClientEntity player(EntityId(13), mc::entity::EntityTypes::PLAYER);
+    ClientEntity player(EntityInstanceId(13), mc::entity::EntityTypeKeys::PLAYER);
     EXPECT_FLOAT_EQ(player.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 
     // 设置相同的 sneaking 值（false -> false），眼高不变
@@ -1187,15 +1187,15 @@ TEST_F(ClientEntityEyeHeightTest, NoRefreshOnSameValue)
 TEST_F(ClientEntityEyeHeightTest, DifferentEntityTypesHaveDifferentEyeHeights)
 {
     // 不同实体类型应有不同的注册表眼高
-    ClientEntity pig(EntityId(20), "minecraft:pig");
+    ClientEntity pig(EntityInstanceId(20), "minecraft:pig");
     pig.refreshEyeHeight();
     f32 pigEyeHeight = pig.eyeHeight();
 
-    ClientEntity cow(EntityId(21), "minecraft:cow");
+    ClientEntity cow(EntityInstanceId(21), "minecraft:cow");
     cow.refreshEyeHeight();
     f32 cowEyeHeight = cow.eyeHeight();
 
-    ClientEntity chicken(EntityId(22), "minecraft:chicken");
+    ClientEntity chicken(EntityInstanceId(22), "minecraft:chicken");
     chicken.refreshEyeHeight();
     f32 chickenEyeHeight = chicken.eyeHeight();
 
@@ -1212,14 +1212,14 @@ TEST_F(ClientEntityEyeHeightTest, DifferentEntityTypesHaveDifferentEyeHeights)
 TEST_F(ClientEntityEyeHeightTest, EyeHeightInitialValueBeforeRefresh)
 {
     // ClientEntity 默认眼高为玩家站立眼高 1.62
-    ClientEntity freshEntity(EntityId(30), "minecraft:creeper");
+    ClientEntity freshEntity(EntityInstanceId(30), "minecraft:creeper");
     EXPECT_FLOAT_EQ(freshEntity.eyeHeight(), mc::game::PLAYER_EYE_HEIGHT);
 }
 
 TEST_F(ClientEntityEyeHeightTest, DimensionsInitializedWithDefault)
 {
     // ClientEntity 默认尺寸为玩家尺寸
-    ClientEntity freshEntity(EntityId(31), "minecraft:sheep");
+    ClientEntity freshEntity(EntityInstanceId(31), "minecraft:sheep");
     EXPECT_FLOAT_EQ(freshEntity.width(), 0.6f);
     EXPECT_FLOAT_EQ(freshEntity.height(), 1.8f);
 }
@@ -1236,7 +1236,7 @@ TEST_F(ClientEntityEyeHeightTest, DimensionsInitializedWithDefault)
 
 class ClientEntityRabbitJumpTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:rabbit"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:rabbit"); }
 
     void TearDown() override { entity.reset(); }
 

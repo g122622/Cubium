@@ -137,7 +137,7 @@ std::unique_ptr<entity::ProjectileEntity> FireChargeItem::asProjectile(IWorld& w
             auto config = getDispenseConfig();
             fireball->setAcceleration(directionX * config.power, directionY * config.power, directionZ * config.power);
         }
-        entity->setTypeId(entity::EntityTypes::SMALL_FIREBALL);
+        entity->setTypeId(entity::EntityTypeKeys::SMALL_FIREBALL);
     }
     // SmallFireballEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
     return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));

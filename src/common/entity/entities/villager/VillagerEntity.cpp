@@ -53,6 +53,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -106,7 +107,7 @@ std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/)
     return std::make_unique<VillagerEntity>(0);
 }
 
-VillagerEntity::VillagerEntity(EntityId id)
+VillagerEntity::VillagerEntity(EntityInstanceId id)
     : AbstractVillagerEntity(id)
     , m_brain(std::make_unique<VillagerBrain>())
 {
@@ -1102,7 +1103,7 @@ std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/)
     return std::make_unique<WanderingTraderEntity>(0);
 }
 
-WanderingTraderEntity::WanderingTraderEntity(EntityId id)
+WanderingTraderEntity::WanderingTraderEntity(EntityInstanceId id)
     : AbstractVillagerEntity(id)
 {
     m_despawnDelay = 48000; // 40分钟 = 48000 ticks
@@ -1157,14 +1158,14 @@ void WanderingTraderEntity::spawnLlamas()
         f64 spawnY = y();
 
         // 创建商队羊驼
-        auto llama = std::make_unique<TraderLlamaEntity>(EntityId(0));
+        auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0));
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 
         // 生成羊驼并在生成后将拴绳绑定到流浪商人
         // 注意：setLeashedToEntity 需要实体已拥有有效的 UUID，
         // 因此拴绳绑定必须在 spawnEntity() 之后执行
-        EntityId llamaId = m_world->spawnEntity(std::move(llama));
+        EntityInstanceId llamaId = m_world->spawnEntity(std::move(llama));
         Entity* spawnedLlama = m_world->getEntity(llamaId);
         if (spawnedLlama != nullptr) {
             auto* traderLlama = dynamic_cast<TraderLlamaEntity*>(spawnedLlama);
@@ -1222,10 +1223,10 @@ void WanderingTraderEntity::registerGoals()
             0.5,  // 近距离速度
             [](const LivingEntity* entity) -> bool {
                 return entity != nullptr &&
-                    (entity->typeId() == entity::EntityTypeIdNumber::ZOMBIE ||
-                        entity->typeId() == entity::EntityTypeIdNumber::DROWNED ||
-                        entity->typeId() == entity::EntityTypeIdNumber::HUSK ||
-                        entity->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN);
+                    (entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIE ||
+                        entity->entityType() == entity::VanillaEntityTypeKeys::DROWNED ||
+                        entity->entityType() == entity::VanillaEntityTypeKeys::HUSK ||
+                        entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN);
             }));
 
     // AvoidEntityGoal - 躲避掠夺者
@@ -1235,7 +1236,7 @@ void WanderingTraderEntity::registerGoals()
             0.5,   // 远距离速度
             0.5,   // 近距离速度
             [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PILLAGER;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PILLAGER;
             }));
 
     // AvoidEntityGoal - 躲避唤魔者
@@ -1245,7 +1246,7 @@ void WanderingTraderEntity::registerGoals()
             0.5,   // 远距离速度
             0.5,   // 近距离速度
             [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::EVOKER;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::EVOKER;
             }));
 
     // AvoidEntityGoal - 躲避卫道士
@@ -1255,7 +1256,7 @@ void WanderingTraderEntity::registerGoals()
             0.5,  // 远距离速度
             0.5,  // 近距离速度
             [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::VINDICATOR;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::VINDICATOR;
             }));
 
     // AvoidEntityGoal - 躲避恼鬼
@@ -1265,7 +1266,7 @@ void WanderingTraderEntity::registerGoals()
             0.5,  // 远距离速度
             0.5,  // 近距离速度
             [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::VEX;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::VEX;
             }));
 
     // AvoidEntityGoal - 躲避幻术师
@@ -1275,7 +1276,7 @@ void WanderingTraderEntity::registerGoals()
             0.5,   // 远距离速度
             0.5,   // 近距离速度
             [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::ILLUSIONER;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::ILLUSIONER;
             }));
 
     // AvoidEntityGoal - 躲避疣猪兽
@@ -1285,7 +1286,7 @@ void WanderingTraderEntity::registerGoals()
             0.5,   // 远距离速度
             0.5,   // 近距离速度
             [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::ZOGLIN;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::ZOGLIN;
             }));
 
     // PanicGoal - 恐慌逃跑

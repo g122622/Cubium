@@ -39,7 +39,15 @@
 #include <vector>
 
 namespace mc {
+
 class BlockState;
+
+namespace entity {
+// 前向声明：EntityType 完整定义在 common/entity/core/EntityType.hpp，
+// ClientEntity 仅持有其 const 指针（m_entityType 缓存）并按名查询。
+class EntityType;
+} // namespace entity
+
 } // namespace mc
 
 namespace mc::client {
@@ -62,7 +70,7 @@ public:
      * @param id 实体ID
      * @param typeId 实体类型标识符（如 "pig", "cow"）
      */
-    ClientEntity(EntityId id, const std::string& typeId);
+    ClientEntity(EntityInstanceId id, const std::string& typeId);
     ~ClientEntity() = default;
 
     // 禁止拷贝
@@ -75,8 +83,29 @@ public:
 
     // ========== 基本信息 ==========
 
-    [[nodiscard]] EntityId id() const { return m_id; }
-    [[nodiscard]] const std::string& typeId() const { return m_typeId; }
+    [[nodiscard]] EntityInstanceId id() const { return m_id; }
+
+    /**
+     * @brief 获取实体类型标识符字符串
+     * @return 资源位置（如 "minecraft:pig"），用于渲染键、资源解析、显示
+     *
+     * 与服务端 Entity::getTypeId() 命名统一。字符串用途（渲染查找、ResourceLocation
+     * 解析、调试显示）请用本方法；类型判等请用 entityType() 指针比较。
+     */
+    [[nodiscard]] const std::string& getTypeId() const { return m_typeId; }
+
+    /**
+     * @brief 获取实体类型的运行时指针（懒查询）
+     *
+     * @return 指向 EntityRegistry 内部 EntityType 对象的 const 指针；若 m_typeId
+     *         为空或注册表未注册该类型（如部分模组实体），返回 nullptr。
+     *
+     * 指针稳定性：返回值指向 EntityRegistry::m_types（std::deque）内对象，
+     * 与 VanillaEntityTypeKeys::* 同源，地址稳定，可安全用于指针比较。
+     * 与服务端 Entity::entityType() 行为一致。
+     */
+    [[nodiscard]] const entity::EntityType* entityType() const;
+
     [[nodiscard]] const std::string& uuid() const { return m_uuid; }
     void setUuid(const std::string& uuid) { m_uuid = uuid; }
 
@@ -499,8 +528,8 @@ public:
     /**
      * @brief 获取正在骑乘的载具ID
      */
-    [[nodiscard]] EntityId vehicleId() const { return m_vehicleId; }
-    void setVehicleId(EntityId vehicleId) { m_vehicleId = vehicleId; }
+    [[nodiscard]] EntityInstanceId vehicleId() const { return m_vehicleId; }
+    void setVehicleId(EntityInstanceId vehicleId) { m_vehicleId = vehicleId; }
 
     /**
      * @brief 获取乘客列表（如果此实体是载具）
@@ -1388,12 +1417,15 @@ public:
      *
      * @param entityLookup 实体查找回调，返回指定 ID 的 ClientEntity 指针（可能为 nullptr）
      */
-    void tickWitherSideHeads(const std::function<const ClientEntity*(EntityId)>& entityLookup);
+    void tickWitherSideHeads(const std::function<const ClientEntity*(EntityInstanceId)>& entityLookup);
 
 private:
     // 基本信息
-    EntityId m_id;
+    EntityInstanceId m_id;
     std::string m_typeId;
+    // 缓存的 EntityType 指针，由 entityType() 懒查询填充。mutable 以支持
+    // const 方法内的懒查询。指向 EntityRegistry::m_types 内对象，地址稳定。
+    mutable const entity::EntityType* m_entityType = nullptr;
     std::string m_uuid;
 
     // 位置
@@ -1448,7 +1480,7 @@ private:
     bool m_sleeping = false; // 睡眠状态
     bool m_onFire = false;
     bool m_invisible = false;
-    EntityId m_vehicleId = 0;             // 正在骑乘的载具ID
+    EntityInstanceId m_vehicleId = 0;     // 正在骑乘的载具ID
     std::vector<u32> m_passengers;        // 乘客列表（如果此实体是载具）
     BlockPos m_sleepingPosition{0, 0, 0}; // 睡眠位置（床的方块位置）
 

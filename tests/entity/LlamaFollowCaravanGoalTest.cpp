@@ -76,7 +76,7 @@ public:
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(0); }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(0); }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
@@ -110,14 +110,14 @@ private:
  *
  * 注意：直接构造的 LlamaEntity 不会通过注册表工厂初始化 typeId，
  * 导致 LlamaFollowCaravanGoal::shouldExecute() 中的类型过滤
- * (type != EntityTypeIdNumber::LLAMA && type != EntityTypeIdNumber::TRADER_LLAMA)
+ * (type != VanillaEntityTypeKeys::LLAMA && type != VanillaEntityTypeKeys::TRADER_LLAMA)
  * 会跳过该实体。这里显式设置 typeId 为 minecraft:llama。
  */
 std::unique_ptr<LlamaEntity> createLlama(
-    EntityId id, CaravanTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
+    EntityInstanceId id, CaravanTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
     auto llama = std::make_unique<LlamaEntity>(id);
-    llama->setTypeId(entity::EntityTypes::LLAMA);
+    llama->setTypeId(entity::EntityTypeKeys::LLAMA);
     llama->setWorld(&world);
     llama->setPosition(x, y, z);
     return llama;
@@ -138,8 +138,8 @@ std::unique_ptr<entity::ai::goal::LlamaFollowCaravanGoal> createCaravanGoal(Llam
 TEST(LlamaCaravanTest, JoinCaravan_SetsHeadAndTail)
 {
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
 
     // llama2 加入 llama1 的商队
     llama2->joinCaravan(llama1.get());
@@ -153,8 +153,8 @@ TEST(LlamaCaravanTest, JoinCaravan_SetsHeadAndTail)
 TEST(LlamaCaravanTest, LeaveCaravan_ClearsHeadAndTail)
 {
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
 
     llama2->joinCaravan(llama1.get());
     llama2->leaveCaravan();
@@ -169,9 +169,9 @@ TEST(LlamaCaravanTest, ThreeLlamaCaravanChain)
 {
     // 三只羊驼形成链式商队：llama1 <- llama2 <- llama3
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
-    auto llama3 = createLlama(EntityId(3), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
+    auto llama3 = createLlama(EntityInstanceId(3), world);
 
     llama2->joinCaravan(llama1.get());
     llama3->joinCaravan(llama2.get());
@@ -198,9 +198,9 @@ TEST(LlamaCaravanTest, JoinCaravan_OverwritesPreviousTail)
 {
     // llama1 已有 llama2 作为尾部，llama3 加入会覆盖 llama1 的尾部
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
-    auto llama3 = createLlama(EntityId(3), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
+    auto llama3 = createLlama(EntityInstanceId(3), world);
 
     llama2->joinCaravan(llama1.get());
     // llama3 也加入 llama1（在 shouldExecute 中不会发生，因为 llama1.hasCaravanTail() 为 true）
@@ -222,7 +222,7 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsFalseWhenLeashed)
 {
     // 被拴住的羊驼不能发起加入商队
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
     auto goal = createCaravanGoal(llama.get());
 
     // 将羊驼拴在栅栏上
@@ -236,9 +236,9 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsFalseWhenAlreadyInCaravan)
 {
     // 已在商队中的羊驼不能加入新商队
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
-    auto llama3 = createLlama(EntityId(3), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
+    auto llama3 = createLlama(EntityInstanceId(3), world);
     auto goal = createCaravanGoal(llama3.get());
 
     // llama3 已加入 llama2 的商队
@@ -251,7 +251,7 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsFalseWhenNoNearbyLlamas)
 {
     // 附近没有羊驼时不能加入商队
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
     auto goal = createCaravanGoal(llama.get());
 
     // 世界中没有其他羊驼
@@ -264,9 +264,9 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsFalseWhenCandidateNotLeashedAndNoLea
 {
     // 候选羊驼未被拴住，且链上没有拴住的羊驼，商队无效
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
-    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
-    auto llama3 = createLlama(EntityId(3), world, 10.0f, 64.0f, 0.0f);
+    auto llama1 = createLlama(EntityInstanceId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityInstanceId(2), world, 5.0f, 64.0f, 0.0f);
+    auto llama3 = createLlama(EntityInstanceId(3), world, 10.0f, 64.0f, 0.0f);
     auto goal = createCaravanGoal(llama3.get());
 
     // llama1 未被拴住，没有商队
@@ -285,8 +285,8 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsTrueWhenCandidateIsLeashed)
 {
     // 第二阶段搜索：被拴住的羊驼可以作为商队头领
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
-    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
+    auto llama1 = createLlama(EntityInstanceId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityInstanceId(2), world, 5.0f, 64.0f, 0.0f);
     auto goal = createCaravanGoal(llama2.get());
 
     // llama1 被拴在栅栏上
@@ -306,9 +306,9 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsTrueWhenChainHeadIsLeashed)
 {
     // 第一阶段搜索：商队链头的羊驼被拴住
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
-    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
-    auto llama3 = createLlama(EntityId(3), world, 10.0f, 64.0f, 0.0f);
+    auto llama1 = createLlama(EntityInstanceId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityInstanceId(2), world, 5.0f, 64.0f, 0.0f);
+    auto llama3 = createLlama(EntityInstanceId(3), world, 10.0f, 64.0f, 0.0f);
     auto goal = createCaravanGoal(llama3.get());
 
     // llama1 被拴住，llama2 跟随 llama1
@@ -329,8 +329,8 @@ TEST(LlamaCaravanTest, ShouldExecute_ReturnsFalseWhenCandidateTooClose)
 {
     // 距离太近（< 2格）不加入
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
-    auto llama2 = createLlama(EntityId(2), world, 0.5f, 64.0f, 0.0f);
+    auto llama1 = createLlama(EntityInstanceId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityInstanceId(2), world, 0.5f, 64.0f, 0.0f);
     auto goal = createCaravanGoal(llama2.get());
 
     // llama1 被拴住
@@ -350,9 +350,9 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ReturnsFalseWhenChainHeadNotLeash
 {
     // 商队链头未被拴住时，继续执行返回 false
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
-    auto llama3 = createLlama(EntityId(3), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
+    auto llama3 = createLlama(EntityInstanceId(3), world);
     auto goal = createCaravanGoal(llama3.get());
 
     // 构建商队：llama1 <- llama2 <- llama3
@@ -369,9 +369,9 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ReturnsTrueWhenChainHeadIsLeashed
 {
     // 商队链头被拴住时，继续执行返回 true
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
-    auto llama3 = createLlama(EntityId(3), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
+    auto llama3 = createLlama(EntityInstanceId(3), world);
     auto goal = createCaravanGoal(llama3.get());
 
     // 构建商队：llama1(拴住) <- llama2 <- llama3
@@ -386,8 +386,8 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ReturnsFalseWhenHeadIsDead)
 {
     // 头领被移除时，继续执行返回 false
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
     auto goal = createCaravanGoal(llama2.get());
 
     llama1->setLeashedToFence(BlockPos(0, 64, 0));
@@ -402,7 +402,7 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ReturnsFalseWhenHeadIsDead)
 TEST(LlamaCaravanTest, ShouldContinueExecuting_ReturnsFalseWhenNotInCaravan)
 {
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
     auto goal = createCaravanGoal(llama.get());
 
     // 未加入商队
@@ -418,9 +418,9 @@ TEST(LlamaCaravanTest, Tick_DoesNotMoveWhenLeashedToFence)
     // 被拴在栅栏柱上的羊驼在 tick() 中不应移动
     // tick() 在 isLeashed() && leaseFencePos().has_value() 时早返回
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
-    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
-    auto llama3 = createLlama(EntityId(3), world, 10.0f, 64.0f, 0.0f);
+    auto llama1 = createLlama(EntityInstanceId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityInstanceId(2), world, 5.0f, 64.0f, 0.0f);
+    auto llama3 = createLlama(EntityInstanceId(3), world, 10.0f, 64.0f, 0.0f);
     auto goal = createCaravanGoal(llama3.get());
 
     // llama1 被拴住，构建商队链
@@ -445,8 +445,8 @@ TEST(LlamaCaravanTest, Tick_DoesNotCrashWhenLeashedToEntity)
     // 被拴在实体上（非栅栏）的羊驼在 tick() 中应执行正常的跟随逻辑
     // leashFencePos() 为空，tick() 不会早返回
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
-    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
+    auto llama1 = createLlama(EntityInstanceId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityInstanceId(2), world, 5.0f, 64.0f, 0.0f);
     auto goal = createCaravanGoal(llama2.get());
 
     // llama1 被拴在实体上（非栅栏）
@@ -465,7 +465,7 @@ TEST(LlamaCaravanTest, Tick_DoesNotMoveWhenNotInCaravan)
 {
     // 不在商队中的羊驼调用 tick() 应安全返回
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
     auto goal = createCaravanGoal(llama.get());
 
     EXPECT_NO_THROW(goal->tick());
@@ -475,7 +475,7 @@ TEST(LlamaCaravanTest, Tick_LeashFencePosEmptyWhenLeashedToEntity)
 {
     // 验证被拴在实体上时 leaseFencePos() 为空（tick() 不会因栅栏检查早返回）
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
 
     llama->setLeashedToEntity("entity-uuid");
     EXPECT_TRUE(llama->isLeashed());
@@ -486,7 +486,7 @@ TEST(LlamaCaravanTest, Tick_LeashFencePosSetWhenLeashedToFence)
 {
     // 验证被拴在栅栏上时 leaseFencePos() 有值（tick() 会因栅栏检查早返回）
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
 
     llama->setLeashedToFence(BlockPos(10, 64, 10));
     EXPECT_TRUE(llama->isLeashed());
@@ -507,7 +507,7 @@ TEST(LlamaCaravanTest, FirstIsLeashed_DeepChainStillFindsLeashedHead)
     // 创建 9 只羊驼
     std::vector<std::unique_ptr<LlamaEntity>> llamas;
     for (int i = 0; i < 9; ++i) {
-        llamas.push_back(createLlama(EntityId(i + 1), world));
+        llamas.push_back(createLlama(EntityInstanceId(i + 1), world));
     }
 
     // 第 1 只被拴住
@@ -539,7 +539,7 @@ TEST(LlamaCaravanTest, FirstIsLeashed_TooDeepChainReturnsFalse)
     // 创建 11 只羊驼
     std::vector<std::unique_ptr<LlamaEntity>> llamas;
     for (int i = 0; i < 11; ++i) {
-        llamas.push_back(createLlama(EntityId(i + 1), world));
+        llamas.push_back(createLlama(EntityInstanceId(i + 1), world));
     }
 
     // 第 1 只被拴住
@@ -567,7 +567,7 @@ TEST(LlamaCaravanTest, FirstIsLeashed_ExactMaxLength)
     // 创建 9 只羊驼（MAX_CARAVAN_LENGTH + 1 = 链头 + 8 跟随者）
     std::vector<std::unique_ptr<LlamaEntity>> llamas;
     for (int i = 0; i < 9; ++i) {
-        llamas.push_back(createLlama(EntityId(i + 1), world));
+        llamas.push_back(createLlama(EntityInstanceId(i + 1), world));
     }
 
     // 第 1 只被拴住
@@ -594,9 +594,9 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_LeashedToFence_StillValid)
     // 被拴在栅栏上的羊驼仍在商队中时，shouldContinueExecuting 仍返回 true
     // （tick 中会跳过移动，但 shouldContinueExecuting 不会因此返回 false）
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
-    auto llama3 = createLlama(EntityId(3), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
+    auto llama3 = createLlama(EntityInstanceId(3), world);
     auto goal = createCaravanGoal(llama3.get());
 
     // llama1 被拴住，llama2 跟随 llama1，llama3 跟随 llama2
@@ -620,8 +620,8 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ChainHeadLeashedToEntity)
 {
     // 链头被拴在实体上时，商队有效
     CaravanTestWorld world;
-    auto llama1 = createLlama(EntityId(1), world);
-    auto llama2 = createLlama(EntityId(2), world);
+    auto llama1 = createLlama(EntityInstanceId(1), world);
+    auto llama2 = createLlama(EntityInstanceId(2), world);
     auto goal = createCaravanGoal(llama2.get());
 
     llama1->setLeashedToEntity("wandering-trader-uuid");
@@ -637,7 +637,7 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ChainHeadLeashedToEntity)
 TEST(LlamaCaravanTest, TraderLlamaCanBeLeashedToFence)
 {
     CaravanTestWorld world;
-    auto traderLlama = std::make_unique<TraderLlamaEntity>(EntityId(1));
+    auto traderLlama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(1));
     traderLlama->setWorld(&world);
 
     EXPECT_FALSE(traderLlama->isLeashed());
@@ -669,7 +669,7 @@ TEST(LlamaFollowCaravanGoalConstantsTest, ConstantsAreCorrect)
 TEST(LlamaFollowCaravanGoalTypeTest, TypeNameIsCorrect)
 {
     CaravanTestWorld world;
-    auto llama = createLlama(EntityId(1), world);
+    auto llama = createLlama(EntityInstanceId(1), world);
     auto goal = createCaravanGoal(llama.get());
 
     EXPECT_EQ(goal->getTypeName(), "LlamaFollowCaravanGoal");

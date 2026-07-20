@@ -29,6 +29,7 @@
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -243,22 +244,24 @@ void MobSensor<E>::update(IWorld* world, E* entity)
 // ============================================================================
 
 template <typename E>
-std::unordered_map<entity::EntityTypeId, f32> VillagerHostilesSensor<E>::createHostileDistanceMap()
+std::unordered_map<const entity::EntityType*, f32> VillagerHostilesSensor<E>::createHostileDistanceMap()
 {
     // 参考原版 VillagerHostilesSensor.ACCEPTABLE_DISTANCE_FROM_HOSTILES
     // 每种敌对生物有独立的检测距离阈值，而非统一使用 MobEntity 判断
+    // key 为注册表内 const EntityType* 指针，与 VillagerHostilesSensor 调用方
+    // entity->entityType() 同源（均来自 EntityRegistry::m_types），可安全指针 hash/比较。
     return {
-        {entity::EntityTypeIdNumber::DROWNED, 8.0f},
-        {entity::EntityTypeIdNumber::EVOKER, 12.0f},
-        {entity::EntityTypeIdNumber::HUSK, 8.0f},
-        {entity::EntityTypeIdNumber::ILLUSIONER, 12.0f},
-        {entity::EntityTypeIdNumber::PILLAGER, 15.0f},
-        {entity::EntityTypeIdNumber::RAVAGER, 12.0f},
-        {entity::EntityTypeIdNumber::VEX, 8.0f},
-        {entity::EntityTypeIdNumber::VINDICATOR, 10.0f},
-        {entity::EntityTypeIdNumber::ZOGLIN, 10.0f},
-        {entity::EntityTypeIdNumber::ZOMBIE, 8.0f},
-        {entity::EntityTypeIdNumber::ZOMBIE_VILLAGER, 8.0f},
+        {entity::VanillaEntityTypeKeys::DROWNED, 8.0f},
+        {entity::VanillaEntityTypeKeys::EVOKER, 12.0f},
+        {entity::VanillaEntityTypeKeys::HUSK, 8.0f},
+        {entity::VanillaEntityTypeKeys::ILLUSIONER, 12.0f},
+        {entity::VanillaEntityTypeKeys::PILLAGER, 15.0f},
+        {entity::VanillaEntityTypeKeys::RAVAGER, 12.0f},
+        {entity::VanillaEntityTypeKeys::VEX, 8.0f},
+        {entity::VanillaEntityTypeKeys::VINDICATOR, 10.0f},
+        {entity::VanillaEntityTypeKeys::ZOGLIN, 10.0f},
+        {entity::VanillaEntityTypeKeys::ZOMBIE, 8.0f},
+        {entity::VanillaEntityTypeKeys::ZOMBIE_VILLAGER, 8.0f},
     };
 }
 
@@ -266,7 +269,11 @@ template <typename E>
 f32 VillagerHostilesSensor<E>::getHostileDetectionRange(const LivingEntity* entity)
 {
     static const auto hostileMap = createHostileDistanceMap();
-    auto it = hostileMap.find(entity->typeId());
+    const entity::EntityType* type = entity->entityType();
+    if (type == nullptr) {
+        return 0.0f;
+    }
+    auto it = hostileMap.find(type);
     if (it != hostileMap.end()) {
         return it->second;
     }

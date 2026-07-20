@@ -55,7 +55,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    EndermanEntity(EntityId id);
+    EndermanEntity(EntityInstanceId id);
     ~EndermanEntity() override = default;
 
     // 禁止拷贝

@@ -33,7 +33,7 @@
 
 namespace mc {
 
-SquidEntity::SquidEntity(EntityId id)
+SquidEntity::SquidEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {
     // 注册 AI 目标

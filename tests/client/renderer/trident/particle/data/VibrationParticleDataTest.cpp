@@ -198,45 +198,45 @@ TEST_F(VibrationParticleDataTest, MoveConstruction)
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_SetsTargetEntityId)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     EXPECT_TRUE(data.isEntitySource());
     EXPECT_FALSE(data.isBlockSource());
     EXPECT_EQ(data.kind(), VibrationParticleData::TargetKind::Entity);
-    EXPECT_EQ(data.targetEntityId(), EntityId(42));
+    EXPECT_EQ(data.targetEntityId(), EntityInstanceId(42));
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_SetsYOffset)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     EXPECT_FLOAT_EQ(data.yOffset(), 2.5f);
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_SetsArrivalInTicks)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     EXPECT_EQ(data.arrivalInTicks(), 15);
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_GetTypeReturnsVibration)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     EXPECT_EQ(data.getType(), ParticleTypeId::Vibration);
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_GetTypeNameReturnsVibrationName)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     EXPECT_EQ(data.getTypeName(), "minecraft:vibration");
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_GetParametersContainsEntityId)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     auto params = data.getParameters();
 
@@ -249,7 +249,7 @@ TEST_F(VibrationParticleDataTest, EntityConstruction_GetParametersContainsEntity
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_CloneReturnsIdenticalCopy)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
 
     auto cloned = data.clone();
 
@@ -260,29 +260,29 @@ TEST_F(VibrationParticleDataTest, EntityConstruction_CloneReturnsIdenticalCopy)
     ASSERT_NE(clonedVibration, nullptr);
 
     EXPECT_TRUE(clonedVibration->isEntitySource());
-    EXPECT_EQ(clonedVibration->targetEntityId(), EntityId(42));
+    EXPECT_EQ(clonedVibration->targetEntityId(), EntityInstanceId(42));
     EXPECT_FLOAT_EQ(clonedVibration->yOffset(), 2.5f);
     EXPECT_EQ(clonedVibration->arrivalInTicks(), arrivalTicks);
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_CopyConstruction)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
     VibrationParticleData copy(data);
 
     EXPECT_TRUE(copy.isEntitySource());
-    EXPECT_EQ(copy.targetEntityId(), EntityId(42));
+    EXPECT_EQ(copy.targetEntityId(), EntityInstanceId(42));
     EXPECT_FLOAT_EQ(copy.yOffset(), 2.5f);
     EXPECT_EQ(copy.arrivalInTicks(), arrivalTicks);
 }
 
 TEST_F(VibrationParticleDataTest, EntityConstruction_MoveConstruction)
 {
-    VibrationParticleData data(EntityId(42), 2.5f, arrivalTicks);
+    VibrationParticleData data(EntityInstanceId(42), 2.5f, arrivalTicks);
     VibrationParticleData moved(std::move(data));
 
     EXPECT_TRUE(moved.isEntitySource());
-    EXPECT_EQ(moved.targetEntityId(), EntityId(42));
+    EXPECT_EQ(moved.targetEntityId(), EntityInstanceId(42));
     EXPECT_FLOAT_EQ(moved.yOffset(), 2.5f);
     EXPECT_EQ(moved.arrivalInTicks(), arrivalTicks);
 }

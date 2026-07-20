@@ -51,7 +51,7 @@ public:
     using LivingEntity::getEquipment;
     using LivingEntity::setEquipment;
 
-    PigEntity(EntityId id);
+    PigEntity(EntityInstanceId id);
     ~PigEntity() override = default;
 
     /**

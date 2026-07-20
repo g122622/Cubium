@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <functional>
@@ -66,20 +66,20 @@ public:
      *
      * 如果实体ID为0，将自动分配新ID
      */
-    EntityId addEntity(std::unique_ptr<Entity> entity);
+    EntityInstanceId addEntity(std::unique_ptr<Entity> entity);
 
     /**
      * @brief 移除实体
      * @param id 实体ID
      * @return 被移除的实体指针（调用者获得所有权），如果不存在返回nullptr
      */
-    std::unique_ptr<Entity> removeEntity(EntityId id);
+    std::unique_ptr<Entity> removeEntity(EntityInstanceId id);
 
     /**
      * @brief 检查实体是否存在
      * @param id 实体ID
      */
-    [[nodiscard]] bool hasEntity(EntityId id) const;
+    [[nodiscard]] bool hasEntity(EntityInstanceId id) const;
 
     /**
      * @brief 获取实体数量
@@ -93,8 +93,8 @@ public:
      * @param id 实体ID
      * @return 实体指针，如果不存在返回nullptr
      */
-    [[nodiscard]] Entity* getEntity(EntityId id);
-    [[nodiscard]] const Entity* getEntity(EntityId id) const;
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id);
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const;
 
     /**
      * @brief 通过UUID获取实体
@@ -135,10 +135,10 @@ public:
 
     /**
      * @brief 获取指定类型的所有实体
-     * @param typeId 实体类型ID (来自 EntityTypeIdNumber)
+     * @param typeId 实体类型字符串 (来自 EntityTypeKeys)
      * @return 实体列表
      */
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const;
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& typeId) const;
 
     /**
      * @brief 按分类统计实体数量
@@ -186,21 +186,21 @@ public:
      * @brief 分配新的实体ID
      * @return 新的实体ID
      */
-    EntityId allocateId();
+    EntityInstanceId allocateId();
 
     /**
      * @brief 释放实体ID（供重用）
      * @param id 要释放的ID
      */
-    void releaseId(EntityId id);
+    void releaseId(EntityInstanceId id);
 
 private:
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
     mutable std::recursive_mutex m_mutex;
-    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
     std::unordered_map<std::string, Entity*> m_uuidToEntity; // UUID 到实体的索引
-    EntityId m_nextId = 1;
-    std::vector<EntityId> m_freeIds; // 可重用的ID池
+    EntityInstanceId m_nextId = 1;
+    std::vector<EntityInstanceId> m_freeIds; // 可重用的ID池
 
     // 内部方法（假设已持有锁）
     void _removeDeadEntitiesInternal();

@@ -58,7 +58,7 @@ namespace {
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(IWorld* world = nullptr)
-        : Player(EntityId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer")
     {
         registerAttributes();
         setHealth(maxHealth());

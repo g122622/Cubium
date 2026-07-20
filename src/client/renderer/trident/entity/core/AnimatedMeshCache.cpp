@@ -35,7 +35,7 @@ AnimatedMeshCache::~AnimatedMeshCache()
     clear(nullptr);
 }
 
-pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
+pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityInstanceId entityId,
     model::EntityModel& model,
     const std::string& typeId,
     const AnimationContext& state,
@@ -159,7 +159,7 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityId entityId,
     return entry.created ? &entry.mesh : nullptr;
 }
 
-void AnimatedMeshCache::removeEntity(EntityId entityId, pipeline::EntityPipeline* pipeline)
+void AnimatedMeshCache::removeEntity(EntityInstanceId entityId, pipeline::EntityPipeline* pipeline)
 {
     auto it = m_cache.find(entityId);
     if (it != m_cache.end()) {

@@ -158,7 +158,7 @@ GUI 精灵图集需要按正确顺序初始化：
 
 ### 14. 网络回调状态维护
 
-`ClientApplicationNetwork.cpp` 里的网络回调必须同时维护世界、实体、容器和经验状态。本地玩家、远程玩家、普通实体、经验球和当前打开的容器屏幕都要分别同步，不能把回调留成只接收不落地的空壳。铁傀儡的攻击/持花状态通过 `onEntityStatus` 回调处理（`IronGolemAttack`、`IronGolemHoldRose`、`IronGolemStopRose`），必须同时更新 `ClientEntity` 的对应字段和播放音效。TNT矿车的引信状态也通过 `onEntityStatus` 回调处理（`EatBlock` status 10），客户端根据 `typeId() == TNT_MINECART` 区分，调用 `setFuseTimer(80)`，音效由服务端 `_ignite()` 中 `playSound()` 播放。世界事件（`onWorldEvent` 回调）由 `_handleWorldEvent()` 处理，根据事件ID播放音效和生成粒子效果，事件常量定义在 `common/world/WorldEvents.hpp`。
+`ClientApplicationNetwork.cpp` 里的网络回调必须同时维护世界、实体、容器和经验状态。本地玩家、远程玩家、普通实体、经验球和当前打开的容器屏幕都要分别同步，不能把回调留成只接收不落地的空壳。铁傀儡的攻击/持花状态通过 `onEntityStatus` 回调处理（`IronGolemAttack`、`IronGolemHoldRose`、`IronGolemStopRose`），必须同时更新 `ClientEntity` 的对应字段和播放音效。TNT矿车的引信状态也通过 `onEntityStatus` 回调处理（`EatBlock` status 10），客户端根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分，调用 `setFuseTimer(80)`，音效由服务端 `_ignite()` 中 `playSound()` 播放。世界事件（`onWorldEvent` 回调）由 `_handleWorldEvent()` 处理，根据事件ID播放音效和生成粒子效果，事件常量定义在 `common/world/WorldEvents.hpp`。
 
 ### 15. NaturalSpawner 密度管理器
 

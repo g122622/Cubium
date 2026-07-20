@@ -97,10 +97,10 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         Entity* rawPtr = entity.get();
-        EntityId id = static_cast<EntityId>(m_spawnedEntities.size() + 1);
+        EntityInstanceId id = static_cast<EntityInstanceId>(m_spawnedEntities.size() + 1);
         m_spawnedEntities.push_back(std::move(entity));
         m_spawnedEntityPtrs.push_back(rawPtr);
         return id;

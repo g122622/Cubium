@@ -941,7 +941,7 @@ protected:
     /// 创建一只蜜蜂并绑定到世界
     std::unique_ptr<BeeEntity> makeBee()
     {
-        auto bee = std::make_unique<BeeEntity>(EntityId(1));
+        auto bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
         bee->setWorld(&world_);
         return bee;
     }
@@ -1046,14 +1046,14 @@ TEST_F(EyeblossomBeeCollisionTest, NonBeeEntity_DoesNotApplyPoison)
     const BlockState& state = openBlock_->defaultState();
 
     struct NonBeeAnimal : public AnimalEntity {
-        explicit NonBeeAnimal(EntityId id)
+        explicit NonBeeAnimal(EntityInstanceId id)
             : AnimalEntity(id)
         {}
         // AnimalEntity::spawnBaby 是纯虚，必须实现
         std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }
     };
 
-    NonBeeAnimal animal(EntityId(2));
+    NonBeeAnimal animal(EntityInstanceId(2));
     animal.setWorld(&world_);
 
     EXPECT_FALSE(animal.hasEffect(entity::effect::EffectType::Poison));

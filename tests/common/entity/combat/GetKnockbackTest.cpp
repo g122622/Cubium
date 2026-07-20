@@ -45,7 +45,7 @@ public:
 
 class KnockbackTestEntity : public LivingEntity {
 public:
-    explicit KnockbackTestEntity(EntityId id)
+    explicit KnockbackTestEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -65,7 +65,7 @@ public:
 
 class KnockbackTestMob : public MobEntity {
 public:
-    explicit KnockbackTestMob(EntityId id)
+    explicit KnockbackTestMob(EntityInstanceId id)
         : MobEntity(id)
     {
         registerAttributes();

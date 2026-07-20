@@ -47,13 +47,13 @@ using namespace mc::entity;
 class TestLeashMobEntity : public MobEntity {
 public:
     TestLeashMobEntity()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
     }
 
-    explicit TestLeashMobEntity(EntityId id)
+    explicit TestLeashMobEntity(EntityInstanceId id)
         : MobEntity(id)
     {
         registerAttributes();
@@ -107,7 +107,7 @@ protected:
 
 TEST_F(LeashSystemTest, MobInitiallyNotLeashed)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
     EXPECT_FALSE(pig->isLeashed());
@@ -117,7 +117,7 @@ TEST_F(LeashSystemTest, MobInitiallyNotLeashed)
 
 TEST_F(LeashSystemTest, SetLeashedToEntity_SetsLeashedState)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
     const std::string playerUuid = "test-player-uuid-1234";
@@ -131,7 +131,7 @@ TEST_F(LeashSystemTest, SetLeashedToEntity_SetsLeashedState)
 
 TEST_F(LeashSystemTest, SetLeashedToFence_SetsLeashedState)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
     BlockPos fencePos(10, 64, 20);
@@ -145,7 +145,7 @@ TEST_F(LeashSystemTest, SetLeashedToFence_SetsLeashedState)
 
 TEST_F(LeashSystemTest, ClearLeash_ClearsAllLeashState)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
     pig->setLeashedToEntity("test-uuid");
@@ -159,7 +159,7 @@ TEST_F(LeashSystemTest, ClearLeash_ClearsAllLeashState)
 
 TEST_F(LeashSystemTest, DropLeash_ClearsLeashState)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
     pig->setLeashedToEntity("test-uuid");
@@ -172,13 +172,13 @@ TEST_F(LeashSystemTest, DropLeash_ClearsLeashState)
 
 TEST_F(LeashSystemTest, CanBeLeashed_PassiveMobReturnsTrue)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     EXPECT_TRUE(pig->canBeLeashed());
 }
 
 TEST_F(LeashSystemTest, CanBeLeashed_HostileMobReturnsFalse)
 {
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     EXPECT_FALSE(zombie->canBeLeashed());
 }
 
@@ -188,9 +188,9 @@ TEST_F(LeashSystemTest, CanBeLeashed_HostileMobReturnsFalse)
 
 TEST_F(LeashSystemTest, ProcessInitialInteract_LeadLeashesPig)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -216,9 +216,9 @@ TEST_F(LeashSystemTest, ProcessInitialInteract_LeadLeashesPig)
 
 TEST_F(LeashSystemTest, ProcessInitialInteract_LeadLeashesPig_CreativeModeNoConsume)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Creative);
 
@@ -237,9 +237,9 @@ TEST_F(LeashSystemTest, ProcessInitialInteract_LeadLeashesPig_CreativeModeNoCons
 
 TEST_F(LeashSystemTest, ProcessInitialInteract_LeadUnleashesAlreadyLeashedPig)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -259,9 +259,9 @@ TEST_F(LeashSystemTest, ProcessInitialInteract_LeadUnleashesAlreadyLeashedPig)
 
 TEST_F(LeashSystemTest, ProcessInitialInteract_LeadCannotLeashHostileMob)
 {
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     zombie->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 设置玩家手持拴绳
@@ -277,9 +277,9 @@ TEST_F(LeashSystemTest, ProcessInitialInteract_LeadCannotLeashHostileMob)
 
 TEST_F(LeashSystemTest, ProcessInitialInteract_EmptyHandDoesNotLeash)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 空手不应拴住生物
@@ -305,7 +305,7 @@ TEST_F(LeashSystemTest, LeashKnotEntityAttachDetach)
     entity::LeashKnotEntity knot;
 
     // 创建测试实体用于绑定
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     Entity* rawPig = pig.get();
 
     // 绑定
@@ -341,7 +341,7 @@ TEST_F(LeashSystemTest, ItemFrameProcessInitialInteract_PlaceItem)
 {
     entity::ItemFrameEntity itemFrame;
     itemFrame.setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 展示框初始为空
@@ -361,7 +361,7 @@ TEST_F(LeashSystemTest, ItemFrameProcessInitialInteract_RotateItem)
 {
     entity::ItemFrameEntity itemFrame;
     itemFrame.setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 先放入物品
@@ -379,7 +379,7 @@ TEST_F(LeashSystemTest, ItemFrameProcessInitialInteract_SneakRemoveItem)
 {
     entity::ItemFrameEntity itemFrame;
     itemFrame.setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 先放入物品
@@ -426,7 +426,7 @@ TEST_F(LeashSystemTest, ItemFrameAnalogOutput_WithItem_ReturnsRotationPlusOne)
 
 TEST_F(LeashSystemTest, LeashDataNbtSerialization_EntityLeash)
 {
-    auto mob = std::make_unique<TestLeashMobEntity>(EntityId(1));
+    auto mob = std::make_unique<TestLeashMobEntity>(EntityInstanceId(1));
 
     // 设置拴绳绑定到实体
     mob->setLeashedToEntity("550e8400-e29b-41d4-a716-446655440000");
@@ -438,7 +438,7 @@ TEST_F(LeashSystemTest, LeashDataNbtSerialization_EntityLeash)
     mob->addAdditionalSaveData(tag);
 
     // 反序列化到新实体
-    auto mob2 = std::make_unique<TestLeashMobEntity>(EntityId(2));
+    auto mob2 = std::make_unique<TestLeashMobEntity>(EntityInstanceId(2));
     auto result = mob2->readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -453,7 +453,7 @@ TEST_F(LeashSystemTest, LeashDataNbtSerialization_EntityLeash)
 
 TEST_F(LeashSystemTest, LeashDataNbtSerialization_FenceLeash)
 {
-    auto mob = std::make_unique<TestLeashMobEntity>(EntityId(1));
+    auto mob = std::make_unique<TestLeashMobEntity>(EntityInstanceId(1));
 
     // 设置拴绳绑定到栅栏
     BlockPos fencePos(100, 64, -200);
@@ -466,7 +466,7 @@ TEST_F(LeashSystemTest, LeashDataNbtSerialization_FenceLeash)
     mob->addAdditionalSaveData(tag);
 
     // 反序列化到新实体
-    auto mob2 = std::make_unique<TestLeashMobEntity>(EntityId(2));
+    auto mob2 = std::make_unique<TestLeashMobEntity>(EntityInstanceId(2));
     auto result = mob2->readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -479,7 +479,7 @@ TEST_F(LeashSystemTest, LeashDataNbtSerialization_FenceLeash)
 
 TEST_F(LeashSystemTest, LeashDataNbtSerialization_NoLeash)
 {
-    auto mob = std::make_unique<TestLeashMobEntity>(EntityId(1));
+    auto mob = std::make_unique<TestLeashMobEntity>(EntityInstanceId(1));
 
     // 不设置拴绳
     EXPECT_FALSE(mob->isLeashed());
@@ -489,7 +489,7 @@ TEST_F(LeashSystemTest, LeashDataNbtSerialization_NoLeash)
     mob->addAdditionalSaveData(tag);
 
     // 反序列化到新实体
-    auto mob2 = std::make_unique<TestLeashMobEntity>(EntityId(2));
+    auto mob2 = std::make_unique<TestLeashMobEntity>(EntityInstanceId(2));
     auto result = mob2->readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -557,10 +557,10 @@ protected:
 TEST_F(LeashEntityTest, TickLeash_DelayedBindEntityResolvesWhenEntityAvailable)
 {
     // 模拟从 NBT 加载后延迟绑定场景：拴绳目标实体尚未加载
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 手动设置拴绳状态（模拟 NBT 加载后的延迟绑定状态）
@@ -591,7 +591,7 @@ TEST_F(LeashEntityTest, TickLeash_DelayedBindEntityResolvesWhenEntityAvailable)
 TEST_F(LeashEntityTest, TickLeash_DelayedBindEntityTimesOut)
 {
     // 模拟从 NBT 加载后延迟绑定场景：拴绳目标实体永远不加载
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
     // 手动设置拴绳状态（模拟 NBT 加载后的延迟绑定状态）
@@ -619,12 +619,12 @@ TEST_F(LeashEntityTest, TickLeash_DelayedBindEntityTimesOut)
 TEST_F(LeashEntityTest, TickLeash_UsesUuidIndexForHolderLookup)
 {
     // 测试 tickLeash 在正常情况下使用 UUID 索引查找持有者
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
     // 设置猪的位置
     pig->setPosition(0.0f, 64.0f, 0.0f);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     // 设置玩家位置（在拴绳范围内）
     player->setPosition(5.0f, 64.0f, 0.0f);
@@ -644,7 +644,7 @@ TEST_F(LeashEntityTest, TickLeash_UsesUuidIndexForHolderLookup)
 TEST_F(LeashEntityTest, TickLeash_DropsLeashWhenHolderNotFoundByUuid)
 {
     // 测试 tickLeash 在找不到持有者时掉落拴绳
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
     pig->setPosition(0.0f, 64.0f, 0.0f);
 
@@ -665,10 +665,10 @@ TEST_F(LeashEntityTest, TickLeash_DropsLeashWhenHolderNotFoundByUuid)
 TEST_F(LeashEntityTest, SetLeashedToEntity_UsesUuidIndexForBroadcast)
 {
     // 测试 setLeashedToEntity 使用 UUID 索引查找持有者进行广播
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 注册玩家到 UUID 索引

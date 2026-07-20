@@ -22,7 +22,7 @@
 #pragma once
 
 #include "GolemEntity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include <memory>
 
 namespace mc {
@@ -50,7 +50,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    IronGolemEntity(EntityId id);
+    IronGolemEntity(EntityInstanceId id);
     ~IronGolemEntity() override = default;
 
     // 禁止拷贝
@@ -176,7 +176,7 @@ public:
      * @param typeId 实体类型ID
      * @return 是否可以攻击
      */
-    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+    [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
 
 protected:
     // ========== AI 目标注册 ==========

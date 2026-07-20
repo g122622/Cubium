@@ -428,7 +428,7 @@ TEST_F(MagmaBlockTest, MagmaBlock_TickCreatesBubbleColumn)
  */
 class HotFloorTrackingEntity : public LivingEntity {
 public:
-    HotFloorTrackingEntity(EntityId id, IWorld* world = nullptr)
+    HotFloorTrackingEntity(EntityInstanceId id, IWorld* world = nullptr)
         : LivingEntity(id, world)
         , m_hurtCount(0)
         , m_lastDamageType(static_cast<DamageType>(255))
@@ -471,7 +471,7 @@ TEST_F(MagmaBlockTest, OnEntityWalk_LivingEntity_TakesHotFloorDamage)
     BlockPos magmaPos(0, 0, 0);
 
     // 创建追踪伤害的活体实体
-    HotFloorTrackingEntity entity(EntityId(1), &world);
+    HotFloorTrackingEntity entity(EntityInstanceId(1), &world);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -497,7 +497,7 @@ TEST_F(MagmaBlockTest, OnEntityWalk_SneakingEntity_NoDamage)
     BlockPos magmaPos(0, 0, 0);
 
     // 创建潜行中的实体（isSteppingCarefully() 返回 true）
-    HotFloorTrackingEntity entity(EntityId(1), &world);
+    HotFloorTrackingEntity entity(EntityInstanceId(1), &world);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
     entity.setSneaking(true);

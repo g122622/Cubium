@@ -29,13 +29,14 @@
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
-#include "entity/core/EntityTypeIdNumber.hpp"
+#include "entity/core/EntityRegistry.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/registry/VanillaEntities.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "util/Direction.hpp"
@@ -414,10 +415,10 @@ public:
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
     [[nodiscard]] bool isThundering() const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
@@ -483,7 +484,7 @@ private:
  */
 class MockLivingEntity : public LivingEntity {
 public:
-    MockLivingEntity(EntityId id)
+    MockLivingEntity(EntityInstanceId id)
         : LivingEntity(id, nullptr)
     {}
 
@@ -498,7 +499,7 @@ public:
  */
 class MockPlayer : public Player {
 public:
-    MockPlayer(EntityId id)
+    MockPlayer(EntityInstanceId id)
         : Player(id, "TestPlayer")
     {}
 
@@ -531,7 +532,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_PlayerCanTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建玩家实体
-    MockPlayer player(EntityId(1));
+    MockPlayer player(EntityInstanceId(1));
     player.setPosition(5.5f, 1.0f, 5.5f);
 
     // 玩家走过应该能踩破蛋（但有概率性，这里主要验证不会崩溃）
@@ -555,7 +556,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_TurtleCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建海龟实体
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setPosition(5.5f, 1.0f, 5.5f);
 
     // 海龟走过不应该踩破蛋
@@ -577,7 +578,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建僵尸实体（僵尸不会踩破海龟蛋）
-    MockLivingEntity zombie(EntityId(1));
+    MockLivingEntity zombie(EntityInstanceId(1));
     zombie.setPosition(5.5f, 5.0f, 5.5f);
 
     // 僵尸摔落在蛋上
@@ -599,7 +600,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建尸壳实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity husk(EntityId(1));
+    MockLivingEntity husk(EntityInstanceId(1));
     husk.setPosition(5.5f, 5.0f, 5.5f);
 
     // 尸壳摔落在蛋上
@@ -620,7 +621,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建溺尸实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity drowned(EntityId(1));
+    MockLivingEntity drowned(EntityInstanceId(1));
     drowned.setPosition(5.5f, 5.0f, 5.5f);
 
     // 溺尸摔落在蛋上
@@ -641,7 +642,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建蝙蝠实体（蝙蝠不能踩破蛋）
-    MockLivingEntity bat(EntityId(1));
+    MockLivingEntity bat(EntityInstanceId(1));
     bat.setPosition(5.5f, 5.0f, 5.5f);
 
     // 蝙蝠摔落在蛋上
@@ -662,7 +663,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_NonLivingEntityCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建物品实体（非 LivingEntity，不能踩破蛋）
-    Entity item(EntityId(1));
+    Entity item(EntityInstanceId(1));
     item.setPosition(5.5f, 5.0f, 5.5f);
 
     // 物品摔落在蛋上
@@ -749,9 +750,9 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        // 注册原版实体类型，使 EntityTypeIdNumber::SILVERFISH 全局缓存与注册表一致。
+        // 注册原版实体类型，使 VanillaEntityTypeKeys::SILVERFISH 全局缓存与注册表一致。
         // 本夹具 SpawnAfterBreak_SpawnsSilverfish_OnServer 用例断言
-        // spawned->typeId() == EntityTypeIdNumber::SILVERFISH，二者必须来自同一
+        // spawned->entityType() == VanillaEntityTypeKeys::SILVERFISH，二者必须来自同一
         // 已初始化注册表，避免依赖前置测试的隐式注册状态（测试顺序污染）。
         // VanillaEntities::registerAll() 幂等且线程安全，无异常风险。
         entity::VanillaEntities::registerAll();
@@ -779,7 +780,7 @@ TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_SpawnsSilverfish_OnServ
     // 验证生成的实体类型
     Entity* spawned = world_.getSpawnedEntity(0);
     ASSERT_NE(spawned, nullptr);
-    EXPECT_EQ(spawned->typeId(), entity::EntityTypeIdNumber::SILVERFISH);
+    EXPECT_EQ(spawned->getTypeId(), entity::EntityTypeKeys::SILVERFISH);
 }
 
 TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoesNotSpawn_OnClient)
@@ -981,7 +982,7 @@ TEST_F(InfestedBlockStaticTest, RegisterInfestedBlock_MultipleMappings)
  */
 class DamageTrackingLivingEntity : public LivingEntity {
 public:
-    DamageTrackingLivingEntity(EntityId id, IWorld* world = nullptr)
+    DamageTrackingLivingEntity(EntityInstanceId id, IWorld* world = nullptr)
         : LivingEntity(id, world)
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
@@ -1035,7 +1036,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_NoDamage)
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1058,7 +1059,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_ClientSide_NoDamage)
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1081,7 +1082,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_NonLivingEntity_NoDamag
     world_.setBlockAt(pos, &state);
 
     // 创建非生物实体（物品实体）
-    Entity item(EntityId(1));
+    Entity item(EntityInstanceId(1));
     item.setPosition(0.5f, 0.0f, 0.5f);
 
     // 触发碰撞 - 不应该崩溃
@@ -1101,7 +1102,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_NoDa
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1125,7 +1126,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBlock_NoDir
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1148,17 +1149,17 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_No
     world_.setBlockAt(pos, &state);
 
     // 测试不同类型的生物实体
-    // 注意：EntityTypeIdNumber 在未初始化注册表时值为 0，这里只测试伤害逻辑
-    std::vector<entity::EntityTypeId> entityTypeIds = {
-        entity::EntityTypeIdNumber::PIG,
-        entity::EntityTypeIdNumber::COW,
-        entity::EntityTypeIdNumber::ZOMBIE,
-        entity::EntityTypeIdNumber::SKELETON,
-        entity::EntityTypeIdNumber::PLAYER,
+    // 这里只测试伤害逻辑，类型名仅用于失败日志标识
+    std::vector<std::string> entityTypeIds = {
+        entity::EntityTypeKeys::PIG,
+        entity::EntityTypeKeys::COW,
+        entity::EntityTypeKeys::ZOMBIE,
+        entity::EntityTypeKeys::SKELETON,
+        entity::EntityTypeKeys::PLAYER,
     };
 
     for (size_t i = 0; i < entityTypeIds.size(); ++i) {
-        DamageTrackingLivingEntity entity(EntityId(static_cast<u32>(i + 1)), &world_);
+        DamageTrackingLivingEntity entity(EntityInstanceId(static_cast<u32>(i + 1)), &world_);
         entity.setPosition(0.5f, 0.0f, 0.5f);
         entity.setHealth(20.0f);
 

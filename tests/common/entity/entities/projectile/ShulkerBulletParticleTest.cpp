@@ -45,7 +45,7 @@ using namespace mc::entity;
  */
 class ShulkerBulletParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_bullet = std::make_unique<ShulkerBulletEntity>(EntityId(1)); }
+    void SetUp() override { m_bullet = std::make_unique<ShulkerBulletEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<ShulkerBulletEntity> m_bullet;
 };
@@ -154,7 +154,7 @@ TEST_F(ShulkerBulletParticleParamsTest, ExplosionParticleVelocity_IsZero)
 
 class EvokerFangsParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_fangs = std::make_unique<EvokerFangsEntity>(EntityId(1)); }
+    void SetUp() override { m_fangs = std::make_unique<EvokerFangsEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<EvokerFangsEntity> m_fangs;
 };
@@ -195,7 +195,7 @@ TEST_F(EvokerFangsParticleTest, GetAnimationProgress_ReturnsValidRange)
 
 class FishingBobberParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_bobber = std::make_unique<FishingBobberEntity>(EntityId(1)); }
+    void SetUp() override { m_bobber = std::make_unique<FishingBobberEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<FishingBobberEntity> m_bobber;
 };
@@ -237,7 +237,7 @@ TEST_F(FishingBobberParticleTest, IsInOpenWater_InitiallyFalse)
 
 class LlamaSpitParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_spit = std::make_unique<LlamaSpitEntity>(EntityId(1)); }
+    void SetUp() override { m_spit = std::make_unique<LlamaSpitEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<LlamaSpitEntity> m_spit;
 };
@@ -258,7 +258,7 @@ TEST_F(LlamaSpitParticleTest, DefaultValues_AreCorrect)
 
 class EyeOfEnderParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_eye = std::make_unique<EyeOfEnderEntity>(EntityId(1)); }
+    void SetUp() override { m_eye = std::make_unique<EyeOfEnderEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<EyeOfEnderEntity> m_eye;
 };

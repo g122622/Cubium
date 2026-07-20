@@ -371,7 +371,7 @@ TEST_F(PointedDripstoneBlockTest, TipMerge_NotTipForStalagmiteDamage)
 class DamageTrackingEntity final : public LivingEntity {
 public:
     explicit DamageTrackingEntity(IWorld* world = nullptr)
-        : LivingEntity(EntityId(1), world)
+        : LivingEntity(EntityInstanceId(1), world)
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
         , m_lastDamageType(static_cast<DamageType>(255))

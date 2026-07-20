@@ -85,7 +85,7 @@ private:
 
 private:
     VillagerEntity* m_villager;
-    EntityId m_lookTargetId;
+    EntityInstanceId m_lookTargetId;
     i32 m_lookTime = 0;
 
     enum class TargetType : u8 { Villager, Player, Cat, Creature };

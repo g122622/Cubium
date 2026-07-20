@@ -1043,7 +1043,7 @@ struct BlockPosHasher {
  * - getBlockState(i32,i32,i32): 返回预设状态（支持按位置映射）
  * - getFluidState(i32,i32,i32): 返回预设流体状态
  * - playEvent: 记录播放的事件
- * - spawnEntity: 记录生成的实体（返回 EntityId）
+ * - spawnEntity: 记录生成的实体（返回 EntityInstanceId）
  * - tickManager: 提供可用的 DummyTickManager
  * - isUltraWarm: 可配置（默认 false，用于下界蒸发测试）
  */
@@ -1092,13 +1092,13 @@ public:
         m_playedEvents.push_back({eventId, pos, data});
     }
 
-    // --- spawnEntity: 记录实体并返回 EntityId ---
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    // --- spawnEntity: 记录实体并返回 EntityInstanceId ---
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId typeId = entity->typeId();
+        std::string typeId = entity->getTypeId();
         m_spawnedEntityTypes.push_back(typeId);
         m_spawnedEntities.push_back(std::move(entity));
-        return EntityId(0);
+        return EntityInstanceId(0);
     }
 
     // --- tickManager: 提供可用的 DummyTickManager ---
@@ -1125,7 +1125,7 @@ public:
     const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
     const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
     const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const { return m_playedEvents; }
-    const std::vector<mc::entity::EntityTypeId>& spawnedEntityTypes() const { return m_spawnedEntityTypes; }
+    const std::vector<std::string>& spawnedEntityTypes() const { return m_spawnedEntityTypes; }
 
     // --- 检查是否有指定事件ID的记录 ---
     bool hasEvent(i32 eventId) const
@@ -1155,7 +1155,7 @@ private:
     const BlockState* m_lastSetBlockState = nullptr;
     i32 m_setBlockStateCallCount = 0;
     std::vector<std::tuple<i32, BlockPos, i32>> m_playedEvents;
-    std::vector<mc::entity::EntityTypeId> m_spawnedEntityTypes;
+    std::vector<std::string> m_spawnedEntityTypes;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::unordered_map<BlockPos, const BlockState*, BlockPosHasher> m_blockStateMap;
     std::unordered_map<BlockPos, const fluid::FluidState*, BlockPosHasher> m_fluidStateMap;

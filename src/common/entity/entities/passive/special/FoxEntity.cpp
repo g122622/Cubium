@@ -47,17 +47,17 @@
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityTypeIdNumber.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../entities/item/ItemEntity.hpp"
 #include "../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 
 namespace mc {
 
-FoxEntity::FoxEntity(EntityId id)
+FoxEntity::FoxEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册 AI 目标
@@ -594,8 +594,8 @@ void FoxEntity::registerGoals()
             1.4,  // 远距离逃跑速度
             [](const LivingEntity* entity) -> bool {
                 if (entity == nullptr) return false;
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::WOLF || type == entity::EntityTypeIdNumber::POLAR_BEAR;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::WOLF || type == entity::VanillaEntityTypeKeys::POLAR_BEAR;
             }));
 
     // 优先级 5: 跟踪猎物（扑击的前置阶段）
@@ -664,8 +664,8 @@ void FoxEntity::registerGoals()
             10,    // chance = 10（随机检查间隔）
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::CHICKEN || type == entity::EntityTypeIdNumber::RABBIT;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::CHICKEN || type == entity::VanillaEntityTypeKeys::RABBIT;
             }));
 
     // 优先级 4: 攻击幼年海龟（陆地上不在水中的幼体）
@@ -686,10 +686,10 @@ void FoxEntity::registerGoals()
             20,    // chance = 20（比陆地猎物更低的检查频率）
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
-                auto type = entity->typeId();
+                auto type = entity->entityType();
                 // 仅攻击群居鱼类：鳕鱼、鲑鱼、热带鱼（不包括河豚）
-                return type == entity::EntityTypeIdNumber::COD || type == entity::EntityTypeIdNumber::SALMON ||
-                    type == entity::EntityTypeIdNumber::TROPICAL_FISH;
+                return type == entity::VanillaEntityTypeKeys::COD || type == entity::VanillaEntityTypeKeys::SALMON ||
+                    type == entity::VanillaEntityTypeKeys::TROPICAL_FISH;
             }));
 }
 

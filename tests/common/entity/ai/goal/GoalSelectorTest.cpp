@@ -52,7 +52,7 @@ public:
 
 class GoalSelectorRemoveGoalsOfTypeTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { pig.reset(); }
 
@@ -184,7 +184,7 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveAllGoals_ClearsEverything)
 
 class GoalSelectorBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { pig.reset(); }
 

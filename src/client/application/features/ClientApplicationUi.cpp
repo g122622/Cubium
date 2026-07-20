@@ -32,6 +32,7 @@
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceEvents.hpp"
 
 #include <GLFW/glfw3.h>
@@ -313,10 +314,10 @@ void ClientApplication::handleMouseAndMovementInput()
 
         // 如果骑乘的是船，发送划桨状态
         // 划桨状态：左桨 = 左移或前进，右桨 = 右移或前进
-        EntityId vehicleId = m_player->getVehicle();
+        EntityInstanceId vehicleId = m_player->getVehicle();
         if (vehicleId != INVALID_ENTITY_ID) {
             ClientEntity* vehicle = m_world.entityManager().getEntity(vehicleId);
-            if (vehicle != nullptr && vehicle->typeId() == mc::entity::EntityTypes::BOAT) {
+            if (vehicle != nullptr && vehicle->entityType() == mc::entity::VanillaEntityTypeKeys::BOAT) {
                 bool leftPaddle = (strafe < 0.0f) || (forward > 0.0f);  // A or W
                 bool rightPaddle = (strafe > 0.0f) || (forward > 0.0f); // D or W
                 m_networkClient->sendSteerBoat(leftPaddle, rightPaddle);

@@ -45,7 +45,7 @@ protected:
     void SetUp() override
     {
         // Player 构造需要注册全局属性，此处直接构造
-        player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
     }
 
     void TearDown() override { player.reset(); }
@@ -137,7 +137,7 @@ TEST_F(ImpulseContextTest, ApplyPostImpulseGraceTime_ZeroMeansNoGraceTime)
 TEST_F(ImpulseContextTest, ResetCurrentImpulseContext_ClearsAll)
 {
     player->setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
-    player->setCurrentExplosionCause(EntityId(42));
+    player->setCurrentExplosionCause(EntityInstanceId(42));
     player->setIgnoreFallDamageFromCurrentImpulse(true);
 
     player->resetCurrentImpulseContext();
@@ -164,7 +164,7 @@ TEST_F(ImpulseContextTest, TryReset_SucceedsWhenGraceTimeIsZero)
 {
     // 不设置宽限期时（graceTime == 0），tryReset 应该重置
     player->setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
-    player->setCurrentExplosionCause(EntityId(42));
+    player->setCurrentExplosionCause(EntityInstanceId(42));
     // 不调用 setIgnoreFallDamageFromCurrentImpulse(true)，所以宽限期为 0
 
     player->tryResetCurrentImpulseContext();
@@ -256,7 +256,7 @@ TEST_F(ImpulseContextTest, GraceTimePreventsTryReset)
 {
     // 设置宽限期后，tryReset 无效
     player->setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
-    player->setCurrentExplosionCause(EntityId(42));
+    player->setCurrentExplosionCause(EntityInstanceId(42));
     player->setIgnoreFallDamageFromCurrentImpulse(true);
 
     // 宽限期期间多次 tryReset 都不应重置
@@ -266,14 +266,14 @@ TEST_F(ImpulseContextTest, GraceTimePreventsTryReset)
 
     EXPECT_TRUE(player->isIgnoringFallDamageFromCurrentImpulse());
     EXPECT_TRUE(player->currentImpulseImpactPos().has_value());
-    EXPECT_EQ(player->currentExplosionCause(), EntityId(42));
+    EXPECT_EQ(player->currentExplosionCause(), EntityInstanceId(42));
 }
 
 TEST_F(ImpulseContextTest, NoGraceTime_AllowsTryReset)
 {
     // 没有宽限期时，tryReset 立即重置
     player->setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
-    player->setCurrentExplosionCause(EntityId(42));
+    player->setCurrentExplosionCause(EntityInstanceId(42));
     // 不调用 setIgnoreFallDamageFromCurrentImpulse(true)，宽限期为 0
 
     player->tryResetCurrentImpulseContext();
@@ -318,14 +318,14 @@ TEST_F(ImpulseContextTest, ResetThenReapply_NewContextIsIndependent)
 {
     // 重置后再设置新的冲量上下文，应该完全独立
     player->setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
-    player->setCurrentExplosionCause(EntityId(42));
+    player->setCurrentExplosionCause(EntityInstanceId(42));
     player->setIgnoreFallDamageFromCurrentImpulse(true);
 
     player->resetCurrentImpulseContext();
 
     // 设置新的冲量上下文
     player->setCurrentImpulseImpactPos(Vector3(200.0f, 70.0f, 300.0f));
-    player->setCurrentExplosionCause(EntityId(99));
+    player->setCurrentExplosionCause(EntityInstanceId(99));
     player->setIgnoreFallDamageFromCurrentImpulse(true);
 
     auto impactPos = player->currentImpulseImpactPos();
@@ -333,7 +333,7 @@ TEST_F(ImpulseContextTest, ResetThenReapply_NewContextIsIndependent)
     EXPECT_FLOAT_EQ(impactPos->x, 200.0f);
     EXPECT_FLOAT_EQ(impactPos->y, 70.0f);
     EXPECT_FLOAT_EQ(impactPos->z, 300.0f);
-    EXPECT_EQ(player->currentExplosionCause(), EntityId(99));
+    EXPECT_EQ(player->currentExplosionCause(), EntityInstanceId(99));
     EXPECT_TRUE(player->isIgnoringFallDamageFromCurrentImpulse());
     EXPECT_TRUE(player->isInPostImpulseGraceTime());
 }

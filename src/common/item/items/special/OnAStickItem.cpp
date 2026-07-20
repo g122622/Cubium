@@ -46,7 +46,7 @@ ItemActionResult OnAStickItem::onItemRightClick(IWorld& world, Player& player, H
     ItemStack& heldItem = player.getHeldItem(hand);
 
     // 检查玩家是否正在骑乘
-    EntityId vehicleId = player.getVehicle();
+    EntityInstanceId vehicleId = player.getVehicle();
     if (vehicleId == INVALID_ENTITY_ID) {
         // 玩家没有骑乘任何实体
         return ItemActionResult::pass(heldItem);

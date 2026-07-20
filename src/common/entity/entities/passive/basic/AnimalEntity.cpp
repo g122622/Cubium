@@ -49,7 +49,7 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-AnimalEntity::AnimalEntity(EntityId id)
+AnimalEntity::AnimalEntity(EntityInstanceId id)
     : AgeableEntity(id)
 {
     // 注册属性
@@ -128,7 +128,7 @@ bool AnimalEntity::canMateWith(const AnimalEntity& other) const
     }
 
     // 使用实体类型比较（避免 RTTI 开销）
-    if (typeId() != other.typeId()) {
+    if (entityType() != other.entityType()) {
         return false;
     }
 

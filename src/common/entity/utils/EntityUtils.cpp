@@ -27,7 +27,7 @@ namespace mc {
 
 namespace EntityUtils {
 
-// 注：legacyTypeToTypeId 已删除，LegacyEntityType 枚举已迁移到 EntityTypeIdNumber 命名空间
+// 注：legacyTypeToTypeId 已删除，LegacyEntityType 枚举已迁移到 VanillaEntityTypeKeys 命名空间
 // 实体类型ID现在通过 Entity::getTypeId() 获取，由 EntityRegistry 在创建实体时通过 setTypeId() 设置
 
 } // namespace EntityUtils

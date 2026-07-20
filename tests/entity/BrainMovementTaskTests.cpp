@@ -39,7 +39,7 @@
 #include "common/world/block/BlockPos.hpp"
 
 using mc::BlockPos;
-using mc::EntityId;
+using mc::EntityInstanceId;
 using mc::GlobalPos;
 using mc::i64;
 using mc::Vector3;
@@ -237,7 +237,7 @@ protected:
 
 TEST_F(MovementTaskTest, MoveToTargetTaskShouldNotExecuteWithoutWalkTarget)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -253,7 +253,7 @@ TEST_F(MovementTaskTest, MoveToTargetTaskShouldNotExecuteWithoutWalkTarget)
 
 TEST_F(MovementTaskTest, MoveToTargetTaskShouldExecuteWithWalkTarget)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -274,7 +274,7 @@ TEST_F(MovementTaskTest, MoveToTargetTaskShouldExecuteWithWalkTarget)
 
 TEST_F(MovementTaskTest, MoveToTargetTaskShouldNotExecuteWhenAlreadyClose)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(10.5f, 64.5f, 10.5f);
 
@@ -294,7 +294,7 @@ TEST_F(MovementTaskTest, MoveToTargetTaskShouldNotExecuteWhenAlreadyClose)
 
 TEST_F(MovementTaskTest, ChaseTaskShouldNotExecuteWithoutAttackTarget)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -307,7 +307,7 @@ TEST_F(MovementTaskTest, ChaseTaskShouldNotExecuteWithoutAttackTarget)
 
 TEST_F(MovementTaskTest, FleeTaskShouldNotExecuteWithoutAvoidTarget)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -320,7 +320,7 @@ TEST_F(MovementTaskTest, FleeTaskShouldNotExecuteWithoutAvoidTarget)
 
 TEST_F(MovementTaskTest, FindHiddenBlockTaskShouldNotExecuteWithoutHurtOrBell)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -333,7 +333,7 @@ TEST_F(MovementTaskTest, FindHiddenBlockTaskShouldNotExecuteWithoutHurtOrBell)
 
 TEST_F(MovementTaskTest, LookAtEntityTaskShouldNotExecuteWhenLookTargetPresent)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -352,7 +352,7 @@ TEST_F(MovementTaskTest, LookAtEntityTaskShouldNotExecuteWhenLookTargetPresent)
 
 TEST_F(MovementTaskTest, StrollTaskShouldNotExecuteWhenWalkTargetPresent)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 

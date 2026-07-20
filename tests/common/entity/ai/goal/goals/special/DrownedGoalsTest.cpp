@@ -28,9 +28,9 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/DrownedGoals.hpp"
-#include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/entities/monster/undead/DrownedEntity.hpp"
 #include "entity/registry/VanillaEntities.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 namespace test {
@@ -43,7 +43,7 @@ protected:
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
-        drowned = std::make_unique<DrownedEntity>(EntityId(1));
+        drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1));
     }
 
     void TearDown() override { drowned.reset(); }
@@ -175,7 +175,7 @@ TEST_F(DrownedGoalsTest, DrownedSwimUpGoal_ShouldNotExecuteWithoutWorld)
 
 TEST_F(DrownedGoalsTest, StartAndResetManagingSearchingForLand)
 {
-    auto drowned = std::make_unique<DrownedEntity>(EntityId(1));
+    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::DrownedSwimUpGoal>(drowned.get(), 1.0, 63);
 
     // startExecuting 应设置 searchingForLand 为 true

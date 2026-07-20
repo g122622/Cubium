@@ -248,7 +248,7 @@ private:
 class TNTEntity : public Entity {
 public:
     TNTEntity();
-    explicit TNTEntity(EntityId id);
+    explicit TNTEntity(EntityInstanceId id);
     ~TNTEntity() override = default;
 
     /**

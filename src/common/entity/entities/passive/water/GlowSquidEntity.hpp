@@ -63,7 +63,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    GlowSquidEntity(EntityId id);
+    GlowSquidEntity(EntityInstanceId id);
     ~GlowSquidEntity() override = default;
 
     // 禁止拷贝和移动

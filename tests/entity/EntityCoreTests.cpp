@@ -334,7 +334,7 @@ TEST(EntityType, CreateInjectsRegisteredTypeId)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityId(0)); };
+    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); };
 
     auto registerResult = registry.registerType(
         "test:spawned_entity", entity::EntityType::Builder(factory, EntityClassification::Misc).build());
@@ -354,19 +354,20 @@ TEST(Entity, DefaultTypeIdIsUnknown)
 {
     // Entity created without a factory has no type ID set
     // getTypeId() returns empty string for untyped entities (no fabricated placeholder)
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     EXPECT_TRUE(entity.getTypeId().empty());
-    EXPECT_EQ(entity.typeId(), 0);
+    EXPECT_EQ(entity.entityType(), nullptr);
 }
 
 TEST(Entity, ExplicitTypeIdCanBeSet)
 {
-    Entity testEntity(EntityId(1));
+    Entity testEntity(EntityInstanceId(1));
     testEntity.setTypeId("minecraft:custom_entity");
 
     EXPECT_EQ(testEntity.getTypeId(), "minecraft:custom_entity");
-    // typeId() returns 0 until EntityTypeIdNumber::initialize() is called
-    // and the type is registered in the registry
+    // entityType() 返回 nullptr，直到该类型在注册表中注册
+    // （自定义类型未注册，懒查询 getType 返回 nullptr）
+    EXPECT_EQ(testEntity.entityType(), nullptr);
 }
 
 // ============================================================================
@@ -398,7 +399,7 @@ TEST(EntityRegistry, RegisterType)
     registry.clear();
 }
 
-TEST(EntityRegistry, GetTypeById)
+TEST(EntityRegistry, GetTypeByName)
 {
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
@@ -409,35 +410,13 @@ TEST(EntityRegistry, GetTypeById)
         "test:cow", entity::EntityType::Builder(factory, EntityClassification::Creature).size(0.9f, 0.9f).build());
     ASSERT_TRUE(result.success());
 
-    const entity::EntityType* found = registry.getType(result.value());
+    const entity::EntityType* found = registry.getType("test:cow");
     ASSERT_NE(found, nullptr);
     EXPECT_EQ(found->classification(), EntityClassification::Creature);
     EXPECT_EQ(found->name(), "test:cow");
 
-    // 无效ID
-    const entity::EntityType* notFound = registry.getType(static_cast<entity::EntityTypeId>(999));
-    EXPECT_EQ(notFound, nullptr);
-
-    registry.clear();
-}
-
-TEST(EntityRegistry, GetTypeByName)
-{
-    EntityRegistry& registry = EntityRegistry::instance();
-    registry.clear();
-
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
-
-    auto result = registry.registerType(
-        "test:zombie", entity::EntityType::Builder(factory, EntityClassification::Monster).size(0.6f, 1.95f).build());
-    ASSERT_TRUE(result.success());
-
-    const entity::EntityType* found = registry.getType("test:zombie");
-    ASSERT_NE(found, nullptr);
-    EXPECT_EQ(found->classification(), EntityClassification::Monster);
-
-    // 不存在的名称
-    const entity::EntityType* notFound = registry.getType("test:skeleton");
+    // 无效名称
+    const entity::EntityType* notFound = registry.getType("test:nonexistent");
     EXPECT_EQ(notFound, nullptr);
 
     registry.clear();
@@ -699,14 +678,14 @@ TEST(EntityDataManager, UniqueIds)
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(100))
+        : MobEntity(EntityInstanceId(100))
     {}
 };
 
 TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
 {
     TestMobEntity vehicle;
-    Entity rider(EntityId(101));
+    Entity rider(EntityInstanceId(101));
 
     EXPECT_EQ(vehicle.isBeingRidden(), vehicle.hasPassengers());
     EXPECT_FALSE(rider.isRiding());
@@ -741,7 +720,7 @@ TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
 class TestInteractableEntity : public Entity {
 public:
     TestInteractableEntity()
-        : Entity(EntityId(1))
+        : Entity(EntityInstanceId(1))
         , m_processInitialInteractCalled(false)
         , m_applyPlayerInteractionCalled(false)
         , m_lastHitPosition(0.0f, 0.0f, 0.0f)
@@ -799,7 +778,7 @@ TEST(EntityInteractionTest, VirtualMethodsCanBeOverridden)
     TestInteractableEntity entity;
 
     // 验证实体创建成功
-    EXPECT_EQ(entity.id(), EntityId(1));
+    EXPECT_EQ(entity.id(), EntityInstanceId(1));
 }
 
 /**
@@ -894,5 +873,5 @@ TEST(EntityInteractionTest, PolymorphicCallWorks)
     Entity* basePtr = &derivedEntity;
 
     // 验证基类指针指向正确的对象
-    EXPECT_EQ(basePtr->id(), EntityId(1));
+    EXPECT_EQ(basePtr->id(), EntityInstanceId(1));
 }

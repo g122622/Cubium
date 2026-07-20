@@ -213,15 +213,18 @@ private:
     void _mainLoop();
 
     // 发送数据包
-    void _sendLoginResponse(
-        bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
+    void _sendLoginResponse(bool success,
+        PlayerId playerId,
+        EntityInstanceId entityId,
+        const std::string& username,
+        const std::string& message);
     void _sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void _sendPlayerInventory();
     void _sendContainerContent(const AbstractContainerMenu& menu);
     void _sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
     void _sendCloseContainer(ContainerId containerId);
     void _sendToClient(const u8* data, size_t size);
-    void _sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage);
+    void _sendBlockBreakAnim(EntityInstanceId breakerId, i32 x, i32 y, i32 z, i8 stage);
     [[nodiscard]] bool _openContainerMenu(ContainerType type, const BlockPos& pos);
     void _closeCurrentContainer(bool sendClosePacket);
     void _openCraftingTableMenu();
@@ -244,7 +247,7 @@ private:
     void _sendLoginResponseToSession(TcpSession* session,
         bool success,
         PlayerId playerId,
-        EntityId entityId,
+        EntityInstanceId entityId,
         const std::string& username,
         const std::string& message);
 
@@ -300,7 +303,7 @@ private:
     PlayerId m_clientPlayerId = 0;
 
     // 客户端玩家实体ID
-    EntityId m_clientEntityId = INVALID_ENTITY_ID;
+    EntityInstanceId m_clientEntityId = INVALID_ENTITY_ID;
 
     // 玩家实体管理器
     ServerPlayerEntityManager m_playerEntityManager;
@@ -322,8 +325,8 @@ private:
     // 本地客户端仍走 LocalConnection（m_connectionPair），不受此监听器影响。
     std::unique_ptr<TcpServer> m_lanTcpServer;
 
-    // 远程玩家实体ID映射（PlayerId -> EntityId），用于快速查找
-    std::unordered_map<PlayerId, EntityId> m_remotePlayerEntityIds;
+    // 远程玩家实体ID映射（PlayerId -> EntityInstanceId），用于快速查找
+    std::unordered_map<PlayerId, EntityInstanceId> m_remotePlayerEntityIds;
     mutable std::mutex m_remotePlayersMutex;
 
     // 局域网发布状态

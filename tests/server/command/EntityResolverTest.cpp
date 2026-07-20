@@ -128,7 +128,7 @@ public:
     [[nodiscard]] ServerWorld* world() const { return m_world; }
 
     // 在测试世界中生成实体
-    EntityId spawnEntity(std::unique_ptr<Entity> entity)
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity)
     {
         if (!m_world) {
             return 0;
@@ -268,12 +268,12 @@ TEST_F(EntityResolverTest, NearestPlayerSelectorWithNoPlayersReturnsEmpty)
 
 TEST_F(EntityResolverTest, TypeFilterMatchesExactType)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -289,12 +289,12 @@ TEST_F(EntityResolverTest, TypeFilterMatchesExactType)
 
 TEST_F(EntityResolverTest, TypeFilterMatchesWithoutNamespace)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -309,12 +309,12 @@ TEST_F(EntityResolverTest, TypeFilterMatchesWithoutNamespace)
 
 TEST_F(EntityResolverTest, TypeFilterNegatedExcludesType)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -330,12 +330,12 @@ TEST_F(EntityResolverTest, TypeFilterNegatedExcludesType)
 
 TEST_F(EntityResolverTest, TypeFilterNegatedWithoutNamespace)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -351,7 +351,7 @@ TEST_F(EntityResolverTest, TypeFilterNegatedWithoutNamespace)
 
 TEST_F(EntityResolverTest, TypeFilterNoMatchReturnsEmpty)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -370,13 +370,13 @@ TEST_F(EntityResolverTest, TypeFilterNoMatchReturnsEmpty)
 
 TEST_F(EntityResolverTest, TagFilterMatchesEntityWithTag)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     pig->addTag("test_tag");
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -392,13 +392,13 @@ TEST_F(EntityResolverTest, TagFilterMatchesEntityWithTag)
 
 TEST_F(EntityResolverTest, TagFilterNegatedExcludesEntityWithTag)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     pig->addTag("excluded");
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -414,14 +414,14 @@ TEST_F(EntityResolverTest, TagFilterNegatedExcludesEntityWithTag)
 
 TEST_F(EntityResolverTest, TagFilterMultipleTagsAllRequired)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     pig->addTag("tag_a");
     pig->addTag("tag_b");
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     zombie->addTag("tag_a");
@@ -439,14 +439,14 @@ TEST_F(EntityResolverTest, TagFilterMultipleTagsAllRequired)
 
 TEST_F(EntityResolverTest, TagFilterMixedPositiveAndNegative)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     pig->addTag("included");
     pig->addTag("excluded");
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     zombie->addTag("included");
@@ -468,17 +468,17 @@ TEST_F(EntityResolverTest, TagFilterMixedPositiveAndNegative)
 
 TEST_F(EntityResolverTest, DistanceFilterBasicRange)
 {
-    auto near = createEntityByType(EntityTypes::PIG);
+    auto near = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(near, nullptr);
     near->setPosition(5.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(near));
 
-    auto mid = createEntityByType(EntityTypes::PIG);
+    auto mid = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(mid, nullptr);
     mid->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(mid));
 
-    auto far = createEntityByType(EntityTypes::PIG);
+    auto far = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(far, nullptr);
     far->setPosition(50.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(far));
@@ -495,7 +495,7 @@ TEST_F(EntityResolverTest, DistanceFilterBasicRange)
 
 TEST_F(EntityResolverTest, DistanceFilterExactBoundary)
 {
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(10.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(entity));
@@ -511,7 +511,7 @@ TEST_F(EntityResolverTest, DistanceFilterExactBoundary)
 
 TEST_F(EntityResolverTest, DistanceFilterOutsideRange)
 {
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(5.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(entity));
@@ -527,12 +527,12 @@ TEST_F(EntityResolverTest, DistanceFilterOutsideRange)
 
 TEST_F(EntityResolverTest, VolumeFilterDxDyDz)
 {
-    auto inside = createEntityByType(EntityTypes::PIG);
+    auto inside = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(inside, nullptr);
     inside->setPosition(5.0f, 5.0f, 5.0f);
     m_server.spawnEntity(std::move(inside));
 
-    auto outside = createEntityByType(EntityTypes::ZOMBIE);
+    auto outside = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(outside, nullptr);
     outside->setPosition(15.0f, 5.0f, 5.0f);
     m_server.spawnEntity(std::move(outside));
@@ -550,7 +550,7 @@ TEST_F(EntityResolverTest, VolumeFilterDxDyDz)
 
 TEST_F(EntityResolverTest, VolumeFilterNegativeDx)
 {
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(3.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(entity));
@@ -568,7 +568,7 @@ TEST_F(EntityResolverTest, VolumeFilterNegativeDx)
 
 TEST_F(EntityResolverTest, VolumeFilterBoundaryInclusive)
 {
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(10.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(entity));
@@ -588,7 +588,7 @@ TEST_F(EntityResolverTest, VolumeFilterOnlyDxFindsEntityAtY0)
     // MC 原版行为验证：仅 dx 时，dy/dz 默认 delta=0
     // AABB Y 范围为 [refY, refY+1]，Z 范围为 [refZ, refZ+1]
     // 实体在原点 Y=0 应被选中
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(5.0f, 0.5f, 0.5f);
     m_server.spawnEntity(std::move(entity));
@@ -606,7 +606,7 @@ TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionEntityOverlap)
     // AABB 相交检查：实体碰撞箱与选择 AABB 部分重叠时应被选中
     // 猪的碰撞箱宽度约 0.9，高度约 0.9
     // 将猪放在 x=10.5（刚好在 AABB 边界外，但碰撞箱延伸到 x=10.05，仍与 AABB [0,11] 相交）
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(10.5f, 0.0f, 0.5f);
     m_server.spawnEntity(std::move(entity));
@@ -624,7 +624,7 @@ TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionEntityOverlap)
 TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionEntityOutsideAABB)
 {
     // 实体碰撞箱完全在选择 AABB 之外时不应被选中
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(15.0f, 0.0f, 0.5f);
     m_server.spawnEntity(std::move(entity));
@@ -644,7 +644,7 @@ TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionLargeEntity)
     // 这里用僵尸测试（碰撞箱约 0.6 x 1.95 x 0.6）
     // 将僵尸放在 x=0.0，AABB 为 x∈[0, 1]
     // 僵尸碰撞箱 x 约 [-0.3, 0.3]，与 AABB [0, 1] 在 x=0 处相交
-    auto entity = createEntityByType(EntityTypes::ZOMBIE);
+    auto entity = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(0.0f, 0.0f, 0.5f);
     m_server.spawnEntity(std::move(entity));
@@ -662,12 +662,12 @@ TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionLargeEntity)
 TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionWithPositionOverride)
 {
     // 使用 x/y/z 覆盖参考坐标，验证 AABB 在绝对坐标下的正确构造
-    auto inside = createEntityByType(EntityTypes::PIG);
+    auto inside = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(inside, nullptr);
     inside->setPosition(105.0f, 5.0f, 5.0f);
     m_server.spawnEntity(std::move(inside));
 
-    auto outside = createEntityByType(EntityTypes::PIG);
+    auto outside = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(outside, nullptr);
     outside->setPosition(95.0f, 5.0f, 5.0f);
     m_server.spawnEntity(std::move(outside));
@@ -690,7 +690,7 @@ TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionWithPositionOverride)
 TEST_F(EntityResolverTest, VolumeFilterSelfSelectorWithDx)
 {
     // @s 选择器也支持体积过滤
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "TestPlayer");
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
     serverPlayerEntity->setPosition(5.0f, 64.0f, 5.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -720,12 +720,12 @@ TEST_F(EntityResolverTest, VolumeFilterSelfSelectorWithDx)
 TEST_F(EntityResolverTest, VolumeFilterDistanceMaxCreatesCubicAABB)
 {
     // 无 dx/dy/dz 但有 distance 最大值时，应构造立方体 AABB
-    auto inside = createEntityByType(EntityTypes::PIG);
+    auto inside = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(inside, nullptr);
     inside->setPosition(3.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(inside));
 
-    auto outside = createEntityByType(EntityTypes::PIG);
+    auto outside = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(outside, nullptr);
     outside->setPosition(20.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(outside));
@@ -744,7 +744,7 @@ TEST_F(EntityResolverTest, VolumeFilterDistanceMaxCreatesCubicAABB)
 TEST_F(EntityResolverTest, VolumeFilterNegativeDeltasReversedAABB)
 {
     // 负值 dx：AABB 范围反向扩展
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(3.0f, 0.5f, 0.5f);
     m_server.spawnEntity(std::move(entity));
@@ -764,17 +764,17 @@ TEST_F(EntityResolverTest, VolumeFilterNegativeDeltasReversedAABB)
 
 TEST_F(EntityResolverTest, SortNearest)
 {
-    auto near = createEntityByType(EntityTypes::PIG);
+    auto near = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(near, nullptr);
     near->setPosition(5.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(near));
 
-    auto mid = createEntityByType(EntityTypes::PIG);
+    auto mid = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(mid, nullptr);
     mid->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(mid));
 
-    auto far = createEntityByType(EntityTypes::PIG);
+    auto far = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(far, nullptr);
     far->setPosition(50.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(far));
@@ -792,17 +792,17 @@ TEST_F(EntityResolverTest, SortNearest)
 
 TEST_F(EntityResolverTest, SortFurthest)
 {
-    auto near = createEntityByType(EntityTypes::PIG);
+    auto near = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(near, nullptr);
     near->setPosition(5.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(near));
 
-    auto mid = createEntityByType(EntityTypes::PIG);
+    auto mid = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(mid, nullptr);
     mid->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(mid));
 
-    auto far = createEntityByType(EntityTypes::PIG);
+    auto far = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(far, nullptr);
     far->setPosition(50.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(far));
@@ -821,7 +821,7 @@ TEST_F(EntityResolverTest, SortFurthest)
 TEST_F(EntityResolverTest, SortRandomReturnsAllEntities)
 {
     for (int i = 0; i < 5; ++i) {
-        auto pig = createEntityByType(EntityTypes::PIG);
+        auto pig = createEntityByType(EntityTypeKeys::PIG);
         ASSERT_NE(pig, nullptr);
         pig->setPosition(static_cast<f32>(i * 10), 0.0f, 0.0f);
         m_server.spawnEntity(std::move(pig));
@@ -838,7 +838,7 @@ TEST_F(EntityResolverTest, SortRandomReturnsAllEntities)
 TEST_F(EntityResolverTest, SortArbitraryReturnsAllEntities)
 {
     for (int i = 0; i < 3; ++i) {
-        auto pig = createEntityByType(EntityTypes::PIG);
+        auto pig = createEntityByType(EntityTypeKeys::PIG);
         ASSERT_NE(pig, nullptr);
         pig->setPosition(static_cast<f32>(i * 10), 0.0f, 0.0f);
         m_server.spawnEntity(std::move(pig));
@@ -859,7 +859,7 @@ TEST_F(EntityResolverTest, SortArbitraryReturnsAllEntities)
 TEST_F(EntityResolverTest, LimitRestrictsResultCount)
 {
     for (int i = 0; i < 10; ++i) {
-        auto pig = createEntityByType(EntityTypes::PIG);
+        auto pig = createEntityByType(EntityTypeKeys::PIG);
         ASSERT_NE(pig, nullptr);
         pig->setPosition(static_cast<f32>(i), 0.0f, 0.0f);
         m_server.spawnEntity(std::move(pig));
@@ -876,7 +876,7 @@ TEST_F(EntityResolverTest, LimitRestrictsResultCount)
 TEST_F(EntityResolverTest, LimitWithSortNearest)
 {
     for (int i = 0; i < 10; ++i) {
-        auto pig = createEntityByType(EntityTypes::PIG);
+        auto pig = createEntityByType(EntityTypeKeys::PIG);
         ASSERT_NE(pig, nullptr);
         pig->setPosition(static_cast<f32>(i * 10), 0.0f, 0.0f);
         m_server.spawnEntity(std::move(pig));
@@ -896,7 +896,7 @@ TEST_F(EntityResolverTest, LimitWithSortNearest)
 
 TEST_F(EntityResolverTest, LimitZeroReturnsAll)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -911,7 +911,7 @@ TEST_F(EntityResolverTest, LimitZeroReturnsAll)
 
 TEST_F(EntityResolverTest, LimitLargerThanResultReturnsAll)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -926,12 +926,12 @@ TEST_F(EntityResolverTest, LimitLargerThanResultReturnsAll)
 
 TEST_F(EntityResolverTest, LimitOneWithSortFurthest)
 {
-    auto near = createEntityByType(EntityTypes::PIG);
+    auto near = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(near, nullptr);
     near->setPosition(5.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(near));
 
-    auto far = createEntityByType(EntityTypes::ZOMBIE);
+    auto far = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(far, nullptr);
     far->setPosition(50.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(far));
@@ -963,12 +963,12 @@ TEST_F(EntityResolverTest, EmptyWorldReturnsEmptyForAllSelectors)
 
 TEST_F(EntityResolverTest, ResolveSingleReturnsFirstEntity)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
-    EntityId pigId = m_server.spawnEntity(std::move(pig));
+    EntityInstanceId pigId = m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(10.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -993,18 +993,18 @@ TEST_F(EntityResolverTest, ResolveSingleReturnsNullptrWhenNoEntities)
 
 TEST_F(EntityResolverTest, MultipleEntityTypesWithCombinedFilters)
 {
-    auto pig1 = createEntityByType(EntityTypes::PIG);
+    auto pig1 = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig1, nullptr);
     pig1->setPosition(5.0f, 0.0f, 0.0f);
     pig1->addTag("friendly");
     m_server.spawnEntity(std::move(pig1));
 
-    auto pig2 = createEntityByType(EntityTypes::PIG);
+    auto pig2 = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig2, nullptr);
     pig2->setPosition(10.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(pig2));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(15.0f, 0.0f, 0.0f);
     zombie->addTag("friendly");
@@ -1055,12 +1055,12 @@ TEST_F(EntityResolverTest, ItemEntityType)
 
 TEST_F(EntityResolverTest, AllEntitiesIncludesAllTypes)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(10.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1083,12 +1083,12 @@ TEST_F(EntityResolverTest, AllEntitiesIncludesAllTypes)
 
 TEST_F(EntityResolverTest, CustomPositionOverridesSourcePosition)
 {
-    auto near = createEntityByType(EntityTypes::PIG);
+    auto near = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(near, nullptr);
     near->setPosition(100.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(near));
 
-    auto far = createEntityByType(EntityTypes::PIG);
+    auto far = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(far, nullptr);
     far->setPosition(200.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(far));
@@ -1112,7 +1112,7 @@ TEST_F(EntityResolverTest, CustomPositionOverridesSourcePosition)
 
 TEST_F(EntityResolverTest, DistanceFilter3D)
 {
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(3.0f, 4.0f, 0.0f); // 距离原点 5.0 (3²+4²=25, sqrt=5)
     m_server.spawnEntity(std::move(entity));
@@ -1128,7 +1128,7 @@ TEST_F(EntityResolverTest, DistanceFilter3D)
 
 TEST_F(EntityResolverTest, DistanceFilter3DOutside)
 {
-    auto entity = createEntityByType(EntityTypes::PIG);
+    auto entity = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(entity, nullptr);
     entity->setPosition(3.0f, 4.0f, 0.0f); // 距离原点 5.0
     m_server.spawnEntity(std::move(entity));
@@ -1148,22 +1148,22 @@ TEST_F(EntityResolverTest, DistanceFilter3DOutside)
 
 TEST_F(EntityResolverTest, CombinedTypeAndDistanceAndSortAndLimit)
 {
-    auto pig1 = createEntityByType(EntityTypes::PIG);
+    auto pig1 = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig1, nullptr);
     pig1->setPosition(5.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(pig1));
 
-    auto pig2 = createEntityByType(EntityTypes::PIG);
+    auto pig2 = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig2, nullptr);
     pig2->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(pig2));
 
-    auto pig3 = createEntityByType(EntityTypes::PIG);
+    auto pig3 = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig3, nullptr);
     pig3->setPosition(25.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(pig3));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(3.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1187,13 +1187,13 @@ TEST_F(EntityResolverTest, CombinedTypeAndDistanceAndSortAndLimit)
 
 TEST_F(EntityResolverTest, NameFilterMatchesCustomName)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     pig->setCustomName("TestPig");
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1209,13 +1209,13 @@ TEST_F(EntityResolverTest, NameFilterMatchesCustomName)
 
 TEST_F(EntityResolverTest, NameFilterNegatedExcludesNamedEntity)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     pig->setCustomName("Excluded");
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1231,7 +1231,7 @@ TEST_F(EntityResolverTest, NameFilterNegatedExcludesNamedEntity)
 
 TEST_F(EntityResolverTest, NameFilterNoMatchReturnsEmpty)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -1252,12 +1252,12 @@ TEST_F(EntityResolverTest, TeamFilterNoTeamExcludedByTeamFilter)
 {
     // 非玩家实体默认不在任何队伍中（getTeam() 返回 nullptr）
     // team=red 应该排除不在 red 队伍中的实体
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1275,12 +1275,12 @@ TEST_F(EntityResolverTest, TeamFilterNegatedIncludesEntitiesWithoutTeam)
 {
     // team=!red — 排除在 red 队伍中的实体
     // 没有队伍的实体不在 red 中，因此不应被排除
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
 
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1528,7 +1528,7 @@ TEST_F(EntityResolverTest, GamemodeFilterNegatedExcludesCreative)
 TEST_F(EntityResolverTest, GamemodeFilterExcludesNonPlayerEntities)
 {
     // gamemode= 过滤只适用于玩家，非玩家实体应被排除
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -1582,7 +1582,7 @@ TEST_F(EntityResolverTest, LevelFilterMatchesPlayerLevel)
 TEST_F(EntityResolverTest, LevelFilterExcludesNonPlayerEntities)
 {
     // level= 过滤只适用于玩家，非玩家实体应被排除
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -1620,7 +1620,7 @@ TEST_F(EntityResolverTest, SelfSelectorWithPlayerSource)
 
     // 创建 mc::ServerPlayer 实体并生成到世界中
     // 注意：需要使用 mc::ServerPlayer 而非 mc::server::ServerPlayer（StatisticsManager 中的前向声明）
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "TestPlayer");
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -1639,7 +1639,7 @@ TEST_F(EntityResolverTest, SelfSelectorWithPlayerSource)
 TEST_F(EntityResolverTest, SelfSelectorWithDistanceFilter)
 {
     // 创建 mc::ServerPlayer 并作为命令源
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "TestPlayer");
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();

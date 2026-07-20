@@ -230,7 +230,7 @@ void ServerWorld::shutdown()
                 if (entityStorage) {
                     std::vector<std::reference_wrapper<Entity>> entitiesToSave;
                     entitiesToSave.reserve(entityIds.size());
-                    for (EntityId id : entityIds) {
+                    for (EntityInstanceId id : entityIds) {
                         Entity* entity = m_entityManager.getEntity(id);
                         if (entity) {
                             entitiesToSave.emplace_back(*entity);
@@ -359,7 +359,7 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
     }
 }
 
-void ServerWorld::destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress)
+void ServerWorld::destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress)
 {
     if (m_onDestroyBlockProgress) {
         m_onDestroyBlockProgress(breakerId, pos.x, pos.y, pos.z, progress);
@@ -1818,7 +1818,7 @@ std::vector<Entity*> ServerWorld::getPlayers() const
     return m_entityManager.getPlayers();
 }
 
-std::vector<Entity*> ServerWorld::getEntitiesByType(entity::EntityTypeId typeId) const
+std::vector<Entity*> ServerWorld::getEntitiesByType(const std::string& typeId) const
 {
     return m_entityManager.getEntitiesByType(typeId);
 }
@@ -1921,14 +1921,14 @@ f64 ServerWorld::getClosestPlayerDistanceSq(const Vector3& pos) const
 // 实体管理
 // ============================================================================
 
-EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
+EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
 {
     if (!entity) {
         return 0;
     }
 
     entity->setWorld(this);
-    EntityId id = m_entityManager.addEntity(std::move(entity));
+    EntityInstanceId id = m_entityManager.addEntity(std::move(entity));
 
     Entity* addedEntity = m_entityManager.getEntity(id);
     if (addedEntity) {
@@ -1948,7 +1948,7 @@ EntityId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
 // 注意：此方法不仅移除实体，还负责取消追踪和区块归属注销。
 // 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
 // 以确保实体追踪器和区块跟踪器状态正确更新。
-std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
+std::unique_ptr<Entity> ServerWorld::removeEntity(EntityInstanceId id)
 {
     auto entity = m_entityManager.removeEntity(id);
     if (entity) {
@@ -1963,12 +1963,12 @@ std::unique_ptr<Entity> ServerWorld::removeEntity(EntityId id)
 }
 
 // IWorld 接口实现：委托给 EntityManager
-Entity* ServerWorld::getEntity(EntityId id)
+Entity* ServerWorld::getEntity(EntityInstanceId id)
 {
     return m_entityManager.getEntity(id);
 }
 
-const Entity* ServerWorld::getEntity(EntityId id) const
+const Entity* ServerWorld::getEntity(EntityInstanceId id) const
 {
     return m_entityManager.getEntity(id);
 }
@@ -2029,7 +2029,7 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
             mobEntity->finalizeSpawn(*this, difficultyInstance, world::spawn::SpawnReason::ChunkGeneration);
         }
 
-        EntityId entityId = m_entityManager.addEntity(std::move(entity));
+        EntityInstanceId entityId = m_entityManager.addEntity(std::move(entity));
         if (entityId != 0) {
             Entity* addedEntity = m_entityManager.getEntity(entityId);
             if (addedEntity) {
@@ -2060,7 +2060,7 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
                 continue;
             }
 
-            EntityId id = spawnEntity(std::move(entityPtr));
+            EntityInstanceId id = spawnEntity(std::move(entityPtr));
             if (id == 0) {
                 spdlog::warn("Failed to spawn chunk-loaded entity for chunk ({}, {})", x, z);
                 continue;
@@ -2109,7 +2109,7 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         ChunkCoord entityCx = CoordConverter::blockToChunk(entityPtr->x());
         ChunkCoord entityCz = CoordConverter::blockToChunk(entityPtr->z());
 
-        EntityId id = spawnEntity(std::move(entityPtr));
+        EntityInstanceId id = spawnEntity(std::move(entityPtr));
         if (id == 0) {
             spdlog::warn("Failed to spawn storage-loaded entity for chunk ({}, {})", x, z);
             continue;
@@ -2143,7 +2143,7 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     if (!m_storage || !m_storage->isOpen()) {
         // 存储不可用时，仅移除实体（不保存）
         auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
-        for (EntityId id : entityIds) {
+        for (EntityInstanceId id : entityIds) {
             removeEntity(id);
         }
         return;
@@ -2152,7 +2152,7 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     auto* entityStorage = m_storage->entityStorage();
     if (!entityStorage) {
         auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
-        for (EntityId id : entityIds) {
+        for (EntityInstanceId id : entityIds) {
             removeEntity(id);
         }
         return;
@@ -2173,7 +2173,7 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     std::vector<std::reference_wrapper<Entity>> entitiesToSave;
     entitiesToSave.reserve(entityIds.size());
 
-    for (EntityId id : entityIds) {
+    for (EntityInstanceId id : entityIds) {
         Entity* entity = m_entityManager.getEntity(id);
         if (entity) {
             entitiesToSave.emplace_back(*entity);
@@ -2189,7 +2189,7 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     }
 
     // 从世界移除实体（同时取消追踪和区块归属）
-    for (EntityId id : entityIds) {
+    for (EntityInstanceId id : entityIds) {
         m_entityChunkTracker.onEntityRemoved(id);
         auto entity = m_entityManager.removeEntity(id);
         if (entity) {
@@ -2613,28 +2613,28 @@ bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) con
     return true;
 }
 
-void ServerWorld::broadcastEntityStatus(EntityId entityId, u8 status)
+void ServerWorld::broadcastEntityStatus(EntityInstanceId entityId, u8 status)
 {
     if (m_onBroadcastEntityStatus) {
         m_onBroadcastEntityStatus(entityId, status);
     }
 }
 
-void ServerWorld::broadcastEntityAnimation(EntityId entityId, u8 animation)
+void ServerWorld::broadcastEntityAnimation(EntityInstanceId entityId, u8 animation)
 {
     if (m_onBroadcastEntityAnimation) {
         m_onBroadcastEntityAnimation(entityId, animation);
     }
 }
 
-void ServerWorld::broadcastHurtAnimation(EntityId entityId, f32 hurtDir)
+void ServerWorld::broadcastHurtAnimation(EntityInstanceId entityId, f32 hurtDir)
 {
     if (m_onBroadcastHurtAnimation) {
         m_onBroadcastHurtAnimation(entityId, hurtDir);
     }
 }
 
-void ServerWorld::broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId)
+void ServerWorld::broadcastSetEntityLink(EntityInstanceId entityId, EntityInstanceId linkedEntityId)
 {
     if (m_onBroadcastSetEntityLink) {
         m_onBroadcastSetEntityLink(entityId, linkedEntityId);
@@ -2788,7 +2788,7 @@ void ServerWorld::updateAllPlayersSleepingFlag()
     bool allSleeping = true;
 
     // 获取所有玩家实体
-    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
+    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeKeys::PLAYER);
     if (players.empty()) {
         m_allPlayersSleeping = false;
         return;
@@ -2849,7 +2849,7 @@ void ServerWorld::checkSleepStatus()
 void ServerWorld::wakeUpAllPlayers()
 {
     // 获取所有玩家实体并唤醒
-    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
+    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeKeys::PLAYER);
     for (Entity* entity : players) {
         Player* player = dynamic_cast<Player*>(entity);
         if (player != nullptr && player->isSleeping()) {

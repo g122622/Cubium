@@ -93,7 +93,7 @@ public:
      * @param id 实体ID
      * @param world 世界指针（可选）
      */
-    LivingEntity(EntityId id, IWorld* world = nullptr);
+    LivingEntity(EntityInstanceId id, IWorld* world = nullptr);
 
     ~LivingEntity() override = default;
 

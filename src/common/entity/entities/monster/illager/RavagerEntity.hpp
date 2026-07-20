@@ -48,7 +48,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    RavagerEntity(EntityId id);
+    RavagerEntity(EntityInstanceId id);
     ~RavagerEntity() override = default;
 
     // 禁止拷贝

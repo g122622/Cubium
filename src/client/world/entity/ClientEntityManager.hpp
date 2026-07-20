@@ -64,7 +64,7 @@ public:
      * @param typeId 实体类型标识符
      * @return 创建的实体指针，如果ID已存在则返回nullptr
      */
-    [[nodiscard]] ClientEntity* spawnEntity(EntityId id, const std::string& typeId);
+    [[nodiscard]] ClientEntity* spawnEntity(EntityInstanceId id, const std::string& typeId);
 
     /**
      * @brief 创建本地玩家实体
@@ -77,7 +77,8 @@ public:
      * @param username 用户名
      * @return 创建的实体指针
      */
-    [[nodiscard]] ClientEntity* spawnLocalPlayer(EntityId entityId, PlayerId playerId, const std::string& username);
+    [[nodiscard]] ClientEntity* spawnLocalPlayer(
+        EntityInstanceId entityId, PlayerId playerId, const std::string& username);
 
     /**
      * @brief 移除实体
@@ -86,20 +87,20 @@ public:
      *
      * 注意：不能移除本地玩家实体。如果尝试移除本地玩家，返回 false。
      */
-    bool removeEntity(EntityId id);
+    bool removeEntity(EntityInstanceId id);
 
     /**
      * @brief 获取实体
      * @param id 实体ID
      * @return 实体指针，如果不存在则返回nullptr
      */
-    [[nodiscard]] ClientEntity* getEntity(EntityId id);
-    [[nodiscard]] const ClientEntity* getEntity(EntityId id) const;
+    [[nodiscard]] ClientEntity* getEntity(EntityInstanceId id);
+    [[nodiscard]] const ClientEntity* getEntity(EntityInstanceId id) const;
 
     /**
      * @brief 检查实体是否存在
      */
-    [[nodiscard]] bool hasEntity(EntityId id) const;
+    [[nodiscard]] bool hasEntity(EntityInstanceId id) const;
 
     /**
      * @brief 移除所有实体（不包括本地玩家）
@@ -124,7 +125,7 @@ public:
      * @brief 获取本地玩家的实体ID
      * @return 实体ID，未设置返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityId localPlayerEntityId() const { return m_localPlayerEntityId; }
+    [[nodiscard]] EntityInstanceId localPlayerEntityId() const { return m_localPlayerEntityId; }
 
     /**
      * @brief 获取本地玩家的玩家ID
@@ -137,7 +138,7 @@ public:
      * @param entityId 实体ID
      * @return true 如果是本地玩家
      */
-    [[nodiscard]] bool isLocalPlayer(EntityId entityId) const;
+    [[nodiscard]] bool isLocalPlayer(EntityInstanceId entityId) const;
 
     /**
      * @brief 检查是否已设置本地玩家
@@ -179,7 +180,7 @@ public:
      * @param typeId 实体类型标识符
      * @return 实体ID列表
      */
-    [[nodiscard]] std::vector<EntityId> getEntitiesByType(const std::string& typeId) const;
+    [[nodiscard]] std::vector<EntityInstanceId> getEntitiesByType(const std::string& typeId) const;
 
     /**
      * @brief 获取指定范围内的实体
@@ -189,7 +190,7 @@ public:
      * @param radius 半径
      * @return 范围内的实体ID列表
      */
-    [[nodiscard]] std::vector<EntityId> getEntitiesInRange(f32 x, f32 y, f32 z, f32 radius) const;
+    [[nodiscard]] std::vector<EntityInstanceId> getEntitiesInRange(f32 x, f32 y, f32 z, f32 radius) const;
 
     // ========== 更新 ==========
 
@@ -240,13 +241,13 @@ public:
 
 private:
     // 实体存储
-    std::unordered_map<EntityId, std::unique_ptr<ClientEntity>> m_entities;
+    std::unordered_map<EntityInstanceId, std::unique_ptr<ClientEntity>> m_entities;
 
     // 待移除的实体列表
-    std::vector<EntityId> m_entitiesToRemove;
+    std::vector<EntityInstanceId> m_entitiesToRemove;
 
     // 本地玩家信息
-    EntityId m_localPlayerEntityId = INVALID_ENTITY_ID;
+    EntityInstanceId m_localPlayerEntityId = INVALID_ENTITY_ID;
     PlayerId m_localPlayerId = 0;
 
     // 固定频率 tick 累积器

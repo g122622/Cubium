@@ -90,7 +90,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    MobEntity(EntityId id);
+    MobEntity(EntityInstanceId id);
 
     ~MobEntity() override;
 
@@ -938,10 +938,10 @@ public:
      * - Phantom: 重新允许攻击恶魂（幻翼本身会飞行）
      * - Breeze: 只能攻击玩家和铁傀儡（白名单模式）
      *
-     * @param typeId 目标实体类型ID
+     * @param type 目标实体类型
      * @return 是否可以攻击该类型的实体
      */
-    [[nodiscard]] virtual bool canAttackType(entity::EntityTypeId typeId) const;
+    [[nodiscard]] virtual bool canAttackType(const entity::EntityType& type) const;
 
     // ========== 攻击 ==========
 

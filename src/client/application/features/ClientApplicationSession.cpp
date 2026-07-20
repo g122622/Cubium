@@ -373,7 +373,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     m_physicsEngine = std::make_unique<PhysicsEngine>(m_world);
 
     // 创建玩家
-    m_player = std::make_unique<Player>(static_cast<EntityId>(1), m_settings.username.get());
+    m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), m_settings.username.get());
     m_player->setPosition(8.0, 50.0, 8.0);
     m_player->setPhysicsEngine(m_physicsEngine.get());
     m_player->setGameMode(config.defaultGameMode);

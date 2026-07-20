@@ -26,9 +26,9 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../serialization/EntityNbtKeys.hpp"
 #include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
@@ -63,7 +63,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-SpearEntity::SpearEntity(EntityId id)
+SpearEntity::SpearEntity(EntityInstanceId id)
     : AbstractArrowEntity(id)
 {
     // 长矛投掷命中伤害与三叉戟一致（8.0）
@@ -93,7 +93,7 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
     // 创建伤害来源：投掷长矛伤害（使用 DamageType::Spear 类型）
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        bool isPlayer = shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        bool isPlayer = shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Spear, shooter, this, isPlayer);
     } else {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Spear, this, this, false);

@@ -295,7 +295,7 @@ protected:
     std::shared_ptr<LocalServerConnection> m_connection;
     Player* m_player = nullptr;
     Entity* m_boat = nullptr;
-    EntityId m_boatId = 0;
+    EntityInstanceId m_boatId = 0;
 };
 
 // ============================================================================
@@ -421,9 +421,9 @@ TEST_F(PacketHandlerMoveVehicleIntegrationTest, CollidingWithNewEntity_Rollbacks
     const Vector3 oldPos = m_boat->position(); // (0, 200, 0)
 
     // 在目标位置 (5, 200, 5) 放一个可碰撞实体（默认 canBeCollidedWith() = true）
-    auto obstacle = std::make_unique<Entity>(EntityId{100}, m_server.world());
+    auto obstacle = std::make_unique<Entity>(EntityInstanceId{100}, m_server.world());
     obstacle->setPosition(5.0f, 200.0f, 5.0f);
-    EntityId obstacleId = m_server.world()->spawnEntity(std::move(obstacle));
+    EntityInstanceId obstacleId = m_server.world()->spawnEntity(std::move(obstacle));
     ASSERT_NE(obstacleId, 0);
 
     // 客户端请求移动到障碍物位置
@@ -452,7 +452,7 @@ TEST_F(PacketHandlerMoveVehicleIntegrationTest, CollidingWithNewEntity_Rollbacks
 
 class NonCollidableObstacleEntity : public Entity {
 public:
-    explicit NonCollidableObstacleEntity(EntityId id, IWorld* world)
+    explicit NonCollidableObstacleEntity(EntityInstanceId id, IWorld* world)
         : Entity(id, world)
     {}
 
@@ -466,9 +466,9 @@ TEST_F(PacketHandlerMoveVehicleIntegrationTest, NonCollidableObstacle_DoesNotTri
     const Vector3 oldPos = m_boat->position(); // (0, 200, 0)
 
     // 在目标位置放一个不可碰撞实体（canBeCollidedWith = false）
-    auto obstacle = std::make_unique<NonCollidableObstacleEntity>(EntityId{101}, m_server.world());
+    auto obstacle = std::make_unique<NonCollidableObstacleEntity>(EntityInstanceId{101}, m_server.world());
     obstacle->setPosition(2.0f, 200.0f, 2.0f);
-    EntityId obstacleId = m_server.world()->spawnEntity(std::move(obstacle));
+    EntityInstanceId obstacleId = m_server.world()->spawnEntity(std::move(obstacle));
     ASSERT_NE(obstacleId, 0);
 
     // 客户端请求移动到障碍物位置

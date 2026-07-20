@@ -87,10 +87,10 @@ public:
     [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
     void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // TickManager interface
@@ -178,7 +178,7 @@ protected:
 
 TEST_F(MooshroomEntityTest, DefaultType_IsRed)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
     EXPECT_TRUE(mooshroom.isRed());
     EXPECT_FALSE(mooshroom.isBrown());
@@ -186,7 +186,7 @@ TEST_F(MooshroomEntityTest, DefaultType_IsRed)
 
 TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Brown);
@@ -203,7 +203,7 @@ TEST_F(MooshroomEntityTest, SetMooshroomType_ChangesType)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false); // 服务端不生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -220,7 +220,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -237,7 +237,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -255,7 +255,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(true); // 客户端生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -275,7 +275,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false); // 服务端不生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -292,7 +292,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
 
 TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBounds)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(true);
     mooshroom.setWorld(&m_world);
 
@@ -331,7 +331,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBou
 
 TEST_F(MooshroomEntityTest, InheritsFromCowEntity)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     // 验证哞菇继承自牛
     CowEntity* cow = dynamic_cast<CowEntity*>(&mooshroom);
@@ -344,7 +344,7 @@ TEST_F(MooshroomEntityTest, InheritsFromCowEntity)
 
 TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     // 哞菇总是可以被剪毛
     EXPECT_TRUE(mooshroom.isShearable());
@@ -354,7 +354,7 @@ TEST_F(MooshroomEntityTest, IsShearable_ReturnsTrue)
 
 TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false); // 服务端模式
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -378,7 +378,7 @@ TEST_F(MooshroomEntityTest, Shear_ReturnsRedMushrooms_WhenRed)
 
 TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -399,7 +399,7 @@ TEST_F(MooshroomEntityTest, Shear_ReturnsBrownMushrooms_WhenBrown)
 
 TEST_F(MooshroomEntityTest, Shear_PlaysShearSound)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false);
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -417,7 +417,7 @@ TEST_F(MooshroomEntityTest, Shear_PlaysShearSound)
 
 TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     m_world.setClientSide(false); // 服务端也生成粒子
     mooshroom.setWorld(&m_world);
     mooshroom.setPosition(100.0, 64.0, 100.0);
@@ -436,7 +436,7 @@ TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
 
 TEST_F(MooshroomEntityTest, StewEffect_DefaultEmpty)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     // 默认情况下没有迷之炖菜效果
     EXPECT_FALSE(mooshroom.hasStewEffect());
@@ -446,7 +446,7 @@ TEST_F(MooshroomEntityTest, StewEffect_DefaultEmpty)
 
 TEST_F(MooshroomEntityTest, StewEffect_SetAndClear)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     // 设置效果
     mooshroom.setStewEffect(entity::effect::EffectType::NightVision, 4);
@@ -463,7 +463,7 @@ TEST_F(MooshroomEntityTest, StewEffect_SetAndClear)
 
 TEST_F(MooshroomEntityTest, StewEffect_BrownMooshroomCanStoreEffect)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
 
     // 棕色哞菇可以存储效果
@@ -474,7 +474,7 @@ TEST_F(MooshroomEntityTest, StewEffect_BrownMooshroomCanStoreEffect)
 
 TEST_F(MooshroomEntityTest, StewEffect_RedMooshroomCanStoreEffect)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
     mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
 
     // 红色哞菇也可以存储效果（虽然在正常游戏中只有棕色哞菇会被喂食花朵）
@@ -486,10 +486,10 @@ TEST_F(MooshroomEntityTest, StewEffect_RedMooshroomCanStoreEffect)
 
 TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom)
 {
-    MooshroomEntity parent1(EntityId(1));
+    MooshroomEntity parent1(EntityInstanceId(1));
     parent1.setPosition(100.0, 64.0, 100.0);
 
-    MooshroomEntity parent2(EntityId(2));
+    MooshroomEntity parent2(EntityInstanceId(2));
     parent2.setPosition(102.0, 64.0, 100.0);
 
     // 繁殖
@@ -506,11 +506,11 @@ TEST_F(MooshroomEntityTest, SpawnBaby_CreatesMooshroom)
 
 TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType)
 {
-    MooshroomEntity parent1(EntityId(1));
+    MooshroomEntity parent1(EntityInstanceId(1));
     parent1.setMooshroomType(MooshroomEntity::MooshroomType::Red);
     parent1.setPosition(100.0, 64.0, 100.0);
 
-    MooshroomEntity parent2(EntityId(2));
+    MooshroomEntity parent2(EntityInstanceId(2));
     parent2.setMooshroomType(MooshroomEntity::MooshroomType::Red);
     parent2.setPosition(102.0, 64.0, 100.0);
 
@@ -530,10 +530,10 @@ TEST_F(MooshroomEntityTest, SpawnBaby_InheritsParentType)
 
 TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent)
 {
-    MooshroomEntity parent1(EntityId(1));
+    MooshroomEntity parent1(EntityInstanceId(1));
     parent1.setPosition(100.0, 64.0, 100.0);
 
-    MooshroomEntity parent2(EntityId(2));
+    MooshroomEntity parent2(EntityInstanceId(2));
 
     // 繁殖
     auto baby = parent1.spawnBaby(parent2);
@@ -551,7 +551,7 @@ TEST_F(MooshroomEntityTest, SpawnBaby_PositionNearParent)
 
 TEST_F(MooshroomEntityTest, ImplementsIShearable)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     // 验证实现 IShearable 接口
     entity::IShearable* shearable = dynamic_cast<entity::IShearable*>(&mooshroom);
@@ -564,14 +564,14 @@ TEST_F(MooshroomEntityTest, ImplementsIShearable)
 TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_DefaultType)
 {
     // 默认红色哞菇，无迷之炖菜效果
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
 
     // 序列化
     nbt::tags::compound_tag tag;
     original.addAdditionalSaveData(tag);
 
     // 反序列化到新实体
-    MooshroomEntity loaded(EntityId(2));
+    MooshroomEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -585,7 +585,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_DefaultType)
 
 TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_BrownType)
 {
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
     original.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
 
     // 序列化
@@ -593,7 +593,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_BrownType)
     original.addAdditionalSaveData(tag);
 
     // 反序列化
-    MooshroomEntity loaded(EntityId(2));
+    MooshroomEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -603,7 +603,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_BrownType)
 
 TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_StewEffect)
 {
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
     original.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
     original.setStewEffect(entity::effect::EffectType::NightVision, 4);
 
@@ -612,7 +612,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_StewEffect)
     original.addAdditionalSaveData(tag);
 
     // 反序列化
-    MooshroomEntity loaded(EntityId(2));
+    MooshroomEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -624,13 +624,13 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_StewEffect)
 TEST_F(MooshroomEntityTest, NBT_Serialization_StewEffect_InstantEffect)
 {
     // 瞬间效果（如饱和）的持续时间也可以正确序列化
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
     original.setStewEffect(entity::effect::EffectType::Saturation, 0);
 
     nbt::tags::compound_tag tag;
     original.addAdditionalSaveData(tag);
 
-    MooshroomEntity loaded(EntityId(2));
+    MooshroomEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -644,7 +644,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_MissingKeys_Defaults)
     // 空 NBT 标签应该保留默认值
     nbt::tags::compound_tag emptyTag;
 
-    MooshroomEntity loaded(EntityId(1));
+    MooshroomEntity loaded(EntityInstanceId(1));
     auto result = loaded.readAdditionalSaveData(emptyTag);
     EXPECT_TRUE(result.success());
 
@@ -658,7 +658,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_MissingKeys_Defaults)
 TEST_F(MooshroomEntityTest, NBT_Serialization_TypeKey_ByteValue)
 {
     // 验证 Type 键值正确写入（应为 i8）
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
     original.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
 
     nbt::tags::compound_tag tag;
@@ -673,7 +673,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_TypeKey_ByteValue)
 TEST_F(MooshroomEntityTest, NBT_Serialization_StewEffectKey_Structure)
 {
     // 验证 StewEffect 复合标签结构正确
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
     original.setStewEffect(entity::effect::EffectType::FireResistance, 4);
 
     nbt::tags::compound_tag tag;
@@ -696,7 +696,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_StewEffectKey_Structure)
 TEST_F(MooshroomEntityTest, NBT_Serialization_NoStewEffect_NoTag)
 {
     // 没有迷之炖菜效果时不应该写入 StewEffect 标签
-    MooshroomEntity original(EntityId(1));
+    MooshroomEntity original(EntityInstanceId(1));
     // 默认无效果
 
     nbt::tags::compound_tag tag;
@@ -711,7 +711,7 @@ TEST_F(MooshroomEntityTest, NBT_Serialization_NoStewEffect_NoTag)
 
 TEST_F(MooshroomEntityTest, StewEffect_Overwrite)
 {
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     // 先设置一个效果
     mooshroom.setStewEffect(entity::effect::EffectType::NightVision, 4);
@@ -726,7 +726,7 @@ TEST_F(MooshroomEntityTest, StewEffect_Overwrite)
 TEST_F(MooshroomEntityTest, StewEffect_MultipleEffectTypes)
 {
     // 验证各种效果类型都能正确设置
-    MooshroomEntity mooshroom(EntityId(1));
+    MooshroomEntity mooshroom(EntityInstanceId(1));
 
     const std::vector<entity::effect::EffectType> effectTypes = {
         entity::effect::EffectType::Saturation,

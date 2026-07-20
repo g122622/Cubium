@@ -39,6 +39,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -69,22 +70,22 @@ public:
     BoatFrictionTestWorld() = default;
 
     void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }
-    void removeTestEntity(EntityId id) { m_testEntities.erase(id); }
+    void removeTestEntity(EntityInstanceId id) { m_testEntities.erase(id); }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId id = entity->id();
+        EntityInstanceId id = entity->id();
         m_testEntities[id] = entity.get();
         m_ownedEntities.push_back(std::move(entity));
         return id;
@@ -100,7 +101,7 @@ public:
     }
 
 private:
-    std::map<EntityId, Entity*> m_testEntities;
+    std::map<EntityInstanceId, Entity*> m_testEntities;
     std::vector<std::unique_ptr<Entity>> m_ownedEntities;
 };
 
@@ -108,7 +109,7 @@ class BoatLandFrictionTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        // 注册所有实体类型以使 EntityTypeIdNumber 常量有效
+        // 注册所有实体类型以使 VanillaEntityTypeKeys 常量有效
         entity::VanillaEntities::registerAll();
     }
 
@@ -142,7 +143,7 @@ protected:
 TEST_F(BoatLandFrictionTest, PlayerPassenger_BoatGlideFieldHalved_VelocityUsesOriginalFriction)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
-    boat->setId(EntityId(1));
+    boat->setId(EntityInstanceId(1));
     boat->setWorld(m_world.get());
     boat->setPosition(0.0f, 64.0f, 0.0f);
     boat->setStatus(entity::BoatStatus::OnLand);
@@ -152,10 +153,10 @@ TEST_F(BoatLandFrictionTest, PlayerPassenger_BoatGlideFieldHalved_VelocityUsesOr
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
     // 创建 Player 乘客
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
-    // 设置类型ID以使 typeId() 返回正确的 PLAYER 类型标识
-    player->setTypeId(entity::EntityTypes::PLAYER);
+    // 设置类型ID以使 entityType() 返回正确的 PLAYER 类型指针
+    player->setTypeId(entity::EntityTypeKeys::PLAYER);
 
     // 注册实体到测试世界
     m_world->addTestEntity(boat.get());
@@ -165,7 +166,7 @@ TEST_F(BoatLandFrictionTest, PlayerPassenger_BoatGlideFieldHalved_VelocityUsesOr
     ASSERT_TRUE(player->startRiding(*boat));
 
     // 验证 Player 确实是控制乘客
-    EntityId controllerId = boat->getControllingPassenger();
+    EntityInstanceId controllerId = boat->getControllingPassenger();
     EXPECT_EQ(controllerId, player->id()) << "Player should be the controlling passenger";
 
     // 保存初始速度
@@ -195,7 +196,7 @@ TEST_F(BoatLandFrictionTest, PlayerPassenger_BoatGlideFieldHalved_VelocityUsesOr
 TEST_F(BoatLandFrictionTest, NonPlayerPassenger_FrictionNotHalved)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
-    boat->setId(EntityId(1));
+    boat->setId(EntityInstanceId(1));
     boat->setWorld(m_world.get());
     boat->setPosition(0.0f, 64.0f, 0.0f);
     boat->setStatus(entity::BoatStatus::OnLand);
@@ -203,10 +204,10 @@ TEST_F(BoatLandFrictionTest, NonPlayerPassenger_FrictionNotHalved)
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
     // 创建 Zombie 乘客（非 Player）
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(2));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(2));
     zombie->setWorld(m_world.get());
-    // 设置类型ID以使 typeId() 返回正确的 ZOMBIE 类型标识（非 PLAYER）
-    zombie->setTypeId(entity::EntityTypes::ZOMBIE);
+    // 设置类型ID以使 entityType() 返回正确的 ZOMBIE 类型指针（非 PLAYER）
+    zombie->setTypeId(entity::EntityTypeKeys::ZOMBIE);
 
     // 注册实体到测试世界
     m_world->addTestEntity(boat.get());
@@ -216,13 +217,13 @@ TEST_F(BoatLandFrictionTest, NonPlayerPassenger_FrictionNotHalved)
     ASSERT_TRUE(zombie->startRiding(*boat));
 
     // 验证 Zombie 是控制乘客
-    EntityId controllerId = boat->getControllingPassenger();
+    EntityInstanceId controllerId = boat->getControllingPassenger();
     EXPECT_EQ(controllerId, zombie->id()) << "Zombie should be the controlling passenger";
 
     // 验证 Zombie 不是 Player 类型
     Entity* controller = m_world->getEntity(controllerId);
     ASSERT_NE(controller, nullptr);
-    EXPECT_NE(controller->typeId(), entity::EntityTypeIdNumber::PLAYER) << "Zombie should not be a Player type";
+    EXPECT_NE(controller->entityType(), entity::VanillaEntityTypeKeys::PLAYER) << "Zombie should not be a Player type";
 
     // 保存初始速度
     Vector3 velBefore = boat->velocity();
@@ -248,7 +249,7 @@ TEST_F(BoatLandFrictionTest, NonPlayerPassenger_FrictionNotHalved)
 TEST_F(BoatLandFrictionTest, NoPassenger_FrictionNotHalved)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
-    boat->setId(EntityId(1));
+    boat->setId(EntityInstanceId(1));
     boat->setWorld(m_world.get());
     boat->setPosition(0.0f, 64.0f, 0.0f);
     boat->setStatus(entity::BoatStatus::OnLand);
@@ -287,7 +288,7 @@ TEST_F(BoatLandFrictionTest, NoWorld_FrictionNotHalved)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
     // 不设置世界指针
-    boat->setId(EntityId(1));
+    boat->setId(EntityInstanceId(1));
     boat->setStatus(entity::BoatStatus::OnLand);
     boat->setBoatGlide(0.6f);
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
@@ -316,12 +317,12 @@ TEST_F(BoatLandFrictionTest, NoWorld_FrictionNotHalved)
 TEST_F(BoatLandFrictionTest, GetControllingPassenger_ReturnsFirstPassenger)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
-    boat->setId(EntityId(1));
+    boat->setId(EntityInstanceId(1));
     boat->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
-    player->setTypeId(entity::EntityTypes::PLAYER);
+    player->setTypeId(entity::EntityTypeKeys::PLAYER);
 
     m_world->addTestEntity(boat.get());
     m_world->addTestEntity(player.get());
@@ -347,15 +348,15 @@ TEST_F(BoatLandFrictionTest, GetControllingPassenger_ReturnsFirstPassenger)
 TEST_F(BoatLandFrictionTest, InWater_FrictionUnaffectedByPlayerPassenger)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
-    boat->setId(EntityId(1));
+    boat->setId(EntityInstanceId(1));
     boat->setWorld(m_world.get());
     boat->setPosition(0.0f, 64.0f, 0.0f);
     boat->setStatus(entity::BoatStatus::InWater);
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
-    player->setTypeId(entity::EntityTypes::PLAYER);
+    player->setTypeId(entity::EntityTypeKeys::PLAYER);
 
     m_world->addTestEntity(boat.get());
     m_world->addTestEntity(player.get());

@@ -53,7 +53,7 @@ namespace world::village::raid {
  */
 struct RaidWave {
     i32 waveNumber = 0;
-    std::vector<EntityId> raiders;
+    std::vector<EntityInstanceId> raiders;
     i32 spawnCount = 0;
     i32 totalToSpawn = 0;
     bool spawned = false;
@@ -66,12 +66,12 @@ struct RaidWave {
  * 记录参与袭击的玩家及其贡献，用于在袭击胜利时给予奖励。
  */
 struct RaidParticipant {
-    Uuid uuid;            ///< 玩家 UUID
-    EntityId entityId;    ///< 玩家实体 ID（可能失效）
-    i32 contribution = 0; ///< 贡献值（击杀袭击者数量）
+    Uuid uuid;                 ///< 玩家 UUID
+    EntityInstanceId entityId; ///< 玩家实体 ID（可能失效）
+    i32 contribution = 0;      ///< 贡献值（击杀袭击者数量）
 
     RaidParticipant() = default;
-    RaidParticipant(Uuid playerUuid, EntityId id)
+    RaidParticipant(Uuid playerUuid, EntityInstanceId id)
         : uuid(playerUuid)
         , entityId(id)
         , contribution(0)
@@ -175,7 +175,7 @@ public:
      *
      * @warning 该列表只表示当前 Raid 追踪到的实体，不保证实体仍然存在于世界中。
      */
-    [[nodiscard]] const std::vector<EntityId>& raiders() const { return m_raiders; }
+    [[nodiscard]] const std::vector<EntityInstanceId>& raiders() const { return m_raiders; }
 
     /**
      * @brief 获取仍被追踪为存活的袭击者数量。
@@ -189,14 +189,14 @@ public:
      *
      * @note 重复加入会被忽略，以保持列表去重。
      */
-    void addRaider(EntityId raider);
+    void addRaider(EntityInstanceId raider);
 
     /**
      * @brief 从袭击追踪列表移除实体。
      *
      * @param raider 袭击者实体 ID。
      */
-    void removeRaider(EntityId raider);
+    void removeRaider(EntityInstanceId raider);
 
     /**
      * @brief 处理袭击者死亡事件。
@@ -206,7 +206,7 @@ public:
      *
      * @note 当前仅更新 Raid 内部状态，战利品和村庄声望尚未接入。
      */
-    void onRaiderDeath(EntityId raider, IWorld& world);
+    void onRaiderDeath(EntityInstanceId raider, IWorld& world);
 
     /**
      * @brief 启动下一波。
@@ -321,7 +321,7 @@ public:
      * @param playerUuid 玩家 UUID。
      * @param entityId 玩家实体 ID。
      */
-    void addHero(Uuid playerUuid, EntityId entityId);
+    void addHero(Uuid playerUuid, EntityInstanceId entityId);
 
     /**
      * @brief 检查玩家是否为英雄。
@@ -426,7 +426,7 @@ private:
      * @param pos 生成方块坐标。
      * @return 新实体 ID，失败时返回 0。
      */
-    EntityId _spawnRaider(IWorld& world, RaiderType type, BlockPos pos);
+    EntityInstanceId _spawnRaider(IWorld& world, RaiderType type, BlockPos pos);
 
     /**
      * @brief 查找本次波次的生成位置。
@@ -445,7 +445,7 @@ private:
     i64 m_startTime = 0;
     i64 m_ticksActive = 0;
     i64 m_lastWaveTime = 0;
-    std::vector<EntityId> m_raiders;
+    std::vector<EntityInstanceId> m_raiders;
     std::vector<RaidWave> m_waves;
     Difficulty m_difficulty = Difficulty::Normal;
     i32 m_badOmenLevel = 1;

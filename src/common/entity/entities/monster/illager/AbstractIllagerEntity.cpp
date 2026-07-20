@@ -25,7 +25,7 @@
 
 namespace mc {
 
-AbstractIllagerEntity::AbstractIllagerEntity(EntityId id)
+AbstractIllagerEntity::AbstractIllagerEntity(EntityInstanceId id)
     : AbstractRaiderEntity(id)
 {}
 

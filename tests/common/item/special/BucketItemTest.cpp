@@ -57,7 +57,7 @@ public:
         throw std::runtime_error("MilkingTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(entity.get());
         // 不实际存储实体，返回临时ID
@@ -79,7 +79,7 @@ public:
     [[nodiscard]] const std::optional<ResourceLocation>& lastPlayedSound() const { return m_lastPlayedSound; }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
     std::optional<ResourceLocation> m_lastPlayedSound;
 };

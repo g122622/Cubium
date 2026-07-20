@@ -104,7 +104,7 @@ public:
      * @param entityId 实体ID
      * @param yOffset Y轴偏移（如眼睛高度）
      */
-    EntityPositionSource(EntityId entityId, f32 yOffset = 0.0f)
+    EntityPositionSource(EntityInstanceId entityId, f32 yOffset = 0.0f)
         : m_entityId(entityId)
         , m_yOffset(yOffset)
     {}
@@ -113,11 +113,11 @@ public:
 
     [[nodiscard]] const char* type() const noexcept override { return "entity"; }
 
-    [[nodiscard]] EntityId entityId() const noexcept { return m_entityId; }
+    [[nodiscard]] EntityInstanceId entityId() const noexcept { return m_entityId; }
     [[nodiscard]] f32 yOffset() const noexcept { return m_yOffset; }
 
 private:
-    EntityId m_entityId;
+    EntityInstanceId m_entityId;
     f32 m_yOffset;
 };
 

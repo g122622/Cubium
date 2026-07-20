@@ -98,7 +98,7 @@ public:
      * @param y Y坐标
      * @param z Z坐标
      */
-    ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z);
+    ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z);
 
     /**
      * @brief 构造物品实体（带投掷速度）
@@ -111,7 +111,7 @@ public:
      * @param vy Y方向速度
      * @param vz Z方向速度
      */
-    ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
+    ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
 
     ~ItemEntity() override = default;
 
@@ -275,12 +275,6 @@ public:
      * @param other 另一个物品实体
      */
     [[nodiscard]] bool canMergeWith(const ItemEntity& other) const;
-
-    // ========== 序列化 ==========
-
-    void serialize(network::PacketSerializer& ser) const;
-    [[nodiscard]] static Result<std::unique_ptr<ItemEntity>> deserialize(
-        network::PacketDeserializer& deser, EntityId id);
 
     // ========== NBT 序列化 ==========
 

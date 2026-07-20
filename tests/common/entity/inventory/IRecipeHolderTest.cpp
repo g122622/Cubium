@@ -178,7 +178,7 @@ protected:
 TEST_F(IRecipeHolderTest, NullRecipe_ReturnsTrue)
 {
     // 空配方应该直接返回 true
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     bool result = holder_->canUseRecipe(*world_, player, nullptr);
     EXPECT_TRUE(result);
@@ -189,7 +189,7 @@ TEST_F(IRecipeHolderTest, DynamicRecipe_ReturnsTrue)
 {
     // 动态配方应该直接返回 true，不受有限合成规则影响
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     bool result = holder_->canUseRecipe(*world_, player, dynamicRecipe_.get());
     EXPECT_TRUE(result);
@@ -200,7 +200,7 @@ TEST_F(IRecipeHolderTest, DynamicRecipe_WithLimitedCraftingOff_ReturnsTrue)
 {
     // 有限合成关闭时，动态配方也应该返回 true
     world_->setLimitedCrafting(false);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     bool result = holder_->canUseRecipe(*world_, player, dynamicRecipe_.get());
     EXPECT_TRUE(result);
@@ -215,7 +215,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOff_UnlockedRecipe_ReturnsTrue)
 {
     // 有限合成关闭时，无论配方是否解锁都应该返回 true
     world_->setLimitedCrafting(false);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 配方未解锁，但有限合成关闭
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
@@ -227,7 +227,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOff_LockedRecipe_ReturnsTrue)
 {
     // 有限合成关闭时，锁定配方也应该返回 true
     world_->setLimitedCrafting(false);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 配方未解锁，但有限合成关闭，应该允许使用
     bool result = holder_->canUseRecipe(*world_, player, anotherRecipe_.get());
@@ -242,7 +242,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOn_UnlockedRecipe_ReturnsTrue)
 {
     // 有限合成开启，但配方已解锁，应该返回 true
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 解锁配方
     player.getRecipeBook().unlock(normalRecipe_->getId());
@@ -256,7 +256,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOn_LockedRecipe_ReturnsFalse)
 {
     // 有限合成开启，配方未解锁，应该返回 false
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 配方未解锁
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
@@ -269,7 +269,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOn_PartiallyUnlockedRecipes)
 {
     // 有限合成开启，部分配方解锁
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 只解锁 normalRecipe_，anotherRecipe_ 未解锁
     player.getRecipeBook().unlock(normalRecipe_->getId());
@@ -291,7 +291,7 @@ TEST_F(IRecipeHolderTest, MultipleUnlocks_StillWorks)
 {
     // 多次解锁同一个配方不应该有问题
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 多次解锁
     player.getRecipeBook().unlock(normalRecipe_->getId());
@@ -306,7 +306,7 @@ TEST_F(IRecipeHolderTest, LockAfterUnlock_BlocksRecipe)
 {
     // 解锁后再锁定，应该不可用
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 解锁然后锁定
     player.getRecipeBook().unlock(normalRecipe_->getId());
@@ -324,7 +324,7 @@ TEST_F(IRecipeHolderTest, RecipeUsedSetAfterSuccessfulUse)
 {
     // 成功使用配方后，getRecipeUsed() 应该返回该配方
     world_->setLimitedCrafting(false);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     holder_->canUseRecipe(*world_, player, normalRecipe_.get());
     EXPECT_EQ(holder_->getRecipeUsed(), normalRecipe_.get());
@@ -338,7 +338,7 @@ TEST_F(IRecipeHolderTest, RecipeUsedNotSetAfterFailedUse)
 {
     // 失败时不应设置 recipeUsed
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 配方未解锁，应该失败
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
@@ -355,7 +355,7 @@ TEST_F(IRecipeHolderTest, RecipeUsedNotSetAfterFailedUse)
 TEST_F(IRecipeHolderTest, DefaultLimitedCrafting_IsFalse)
 {
     // 默认情况下，doLimitedCrafting 应该是 false
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 不设置任何规则，使用默认值
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
@@ -370,7 +370,7 @@ TEST_F(IRecipeHolderTest, MultipleRecipes_MixedUnlockState)
 {
     // 多个配方，部分解锁部分未解锁
     world_->setLimitedCrafting(true);
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 只解锁 normalRecipe_
     player.getRecipeBook().unlock(normalRecipe_->getId());
@@ -384,7 +384,7 @@ TEST_F(IRecipeHolderTest, MultipleRecipes_MixedUnlockState)
 TEST_F(IRecipeHolderTest, ToggleLimitedCrafting_AffectsAvailability)
 {
     // 切换有限合成规则影响配方可用性
-    ServerPlayer player(EntityId(1), "TestPlayer");
+    ServerPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 配方未解锁
 
@@ -408,7 +408,7 @@ TEST_F(IRecipeHolderTest, ToggleLimitedCrafting_AffectsAvailability)
 TEST_F(IRecipeHolderTest, OnCrafting_WithNormalRecipe_UnlocksRecipe)
 {
     // 使用普通配方合成后，应该触发配方解锁
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
 
     // 设置使用的配方
     holder_->setRecipeUsed(normalRecipe_.get());
@@ -425,7 +425,7 @@ TEST_F(IRecipeHolderTest, OnCrafting_WithDynamicRecipe_NotCleared)
 {
     // 使用动态配方合成后，recipeUsed 不应被清除
     // 参考 MC 1.16.5: onCrafting() 只对非动态配方清除 recipeUsed
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
 
     // 设置使用的动态配方
     holder_->setRecipeUsed(dynamicRecipe_.get());
@@ -440,7 +440,7 @@ TEST_F(IRecipeHolderTest, OnCrafting_WithDynamicRecipe_NotCleared)
 TEST_F(IRecipeHolderTest, OnCrafting_WithNullRecipe_DoesNothing)
 {
     // 空配方调用 onCrafting 不应该崩溃
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
 
     holder_->setRecipeUsed(nullptr);
     holder_->onCrafting(player);

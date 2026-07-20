@@ -29,7 +29,7 @@
 
 namespace mc {
 
-CreatureEntity::CreatureEntity(EntityId id)
+CreatureEntity::CreatureEntity(EntityInstanceId id)
     : MobEntity(id)
 {}
 

@@ -921,7 +921,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     // 记录 entityId
-    EntityId entityId = playerEntity->id();
+    EntityInstanceId entityId = playerEntity->id();
     m_playerEntityIds[playerId] = entityId;
 
     // 从 OP 列表设置玩家权限等级
@@ -1049,7 +1049,7 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 void StandaloneServer::_sendLoginResponse(TcpSession* session,
     bool success,
     PlayerId playerId,
-    EntityId entityId,
+    EntityInstanceId entityId,
     const std::string& username,
     const std::string& message)
 {

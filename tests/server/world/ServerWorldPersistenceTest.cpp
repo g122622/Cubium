@@ -109,7 +109,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     auto entity = std::make_unique<Entity>(0, world.get());
     entity->setTypeId("minecraft:unknown");
     entity->setPosition(1.0f, 64.0f, 1.0f);
-    EntityId entityId = world->spawnEntity(std::move(entity));
+    EntityInstanceId entityId = world->spawnEntity(std::move(entity));
     ASSERT_NE(entityId, 0);
 
     auto blockEntity = std::make_unique<CraftingTableEntity>(BlockPos(1, 64, 1));
@@ -139,7 +139,7 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
     auto entity = std::make_unique<Entity>(0, world.get());
     entity->setTypeId("minecraft:unknown");
     entity->setPosition(1.0f, 64.0f, 1.0f);
-    EntityId entityId = world->spawnEntity(std::move(entity));
+    EntityInstanceId entityId = world->spawnEntity(std::move(entity));
     ASSERT_NE(entityId, 0);
 
     world->tick();

@@ -75,7 +75,7 @@
 
 namespace mc::client::renderer::entity::renderer {
 
-namespace ET = ::mc::entity::EntityTypes;
+namespace ET = ::mc::entity::EntityTypeKeys;
 namespace factory = core;
 
 void initializeRendererRegistration()

@@ -39,7 +39,7 @@ namespace {
 
 TEST(IllusionerEntityTest, Construction)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // 验证幻术师尺寸（继承自 AbstractIllagerEntity）
     EXPECT_FLOAT_EQ(illusioner.width(), 0.6f);
@@ -53,7 +53,7 @@ TEST(IllusionerEntityTest, Construction)
 
 TEST(IllusionerEntityTest, Attributes)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // MC 幻术师属性
     EXPECT_FLOAT_EQ(static_cast<f32>(illusioner.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)), 32.0f);
@@ -65,7 +65,7 @@ TEST(IllusionerEntityTest, Attributes)
 
 TEST(IllusionerEntityTest, EyeHeight)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // MC 幻术师眼睛高度 1.62
     EXPECT_FLOAT_EQ(illusioner.eyeHeight(), 1.62f);
@@ -83,7 +83,7 @@ TEST(IllusionerEntityTest, CreateFactory)
 
 TEST(IllusionerEntityTest, IRangedAttackMobInterface)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // 验证实现了 IRangedAttackMob 接口
     auto* rangedAttackMob = dynamic_cast<entity::IRangedAttackMob*>(&illusioner);
@@ -97,7 +97,7 @@ TEST(IllusionerEntityTest, IRangedAttackMobInterface)
 
 TEST(IllusionerEntityTest, CanRangedAttack_WhenNotSpellcasting)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // 不在施法状态时可以进行远程攻击
     EXPECT_FALSE(illusioner.isSpellcasting());
@@ -106,7 +106,7 @@ TEST(IllusionerEntityTest, CanRangedAttack_WhenNotSpellcasting)
 
 TEST(IllusionerEntityTest, CanRangedAttack_WhenSpellcasting)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // 开始施法后不能进行远程攻击
     illusioner.setSpellType(SpellcastingIllagerEntity::SpellType::Blindness);
@@ -121,7 +121,7 @@ TEST(IllusionerEntityTest, CanRangedAttack_WhenSpellcasting)
 
 TEST(IllusionerEntityTest, SpellcastingState)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // 默认不施法
     EXPECT_FALSE(illusioner.isSpellcasting());
@@ -148,7 +148,7 @@ TEST(IllusionerEntityTest, SpellcastingState)
 
 TEST(IllusionerEntityTest, IsCasting_AliasForIsSpellcasting)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // isCasting() 是 isSpellcasting() 的别名
     EXPECT_EQ(illusioner.isCasting(), illusioner.isSpellcasting());
@@ -164,7 +164,7 @@ TEST(IllusionerEntityTest, IsCasting_AliasForIsSpellcasting)
 
 TEST(IllusionerEntityTest, IllusionOffsets_NoTransition_ReturnsTargetOffsets)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // 当 m_clientSideIllusionTicks <= 0 时，应直接返回 m_illusionOffsets[1]
     // 默认情况下 m_clientSideIllusionTicks = 0，所以应返回默认偏移（零向量）
@@ -339,7 +339,7 @@ TEST(IllusionerEntityTest, ArrowVelocity_IsCorrect)
 
 TEST(IllusionerEntityTest, AttackInterval_IsCorrect)
 {
-    IllusionerEntity illusioner(EntityId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1));
 
     // MC 1.21.11: 幻术师攻击间隔 20 ticks
     EXPECT_EQ(illusioner.getAttackInterval(), 20);

@@ -49,7 +49,7 @@ std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/)
     return std::make_unique<PigEntity>(0);
 }
 
-PigEntity::PigEntity(EntityId id)
+PigEntity::PigEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册 AI 目标

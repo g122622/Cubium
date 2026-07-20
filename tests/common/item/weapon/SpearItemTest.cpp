@@ -60,7 +60,7 @@ public:
         throw std::runtime_error("SpearTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
@@ -76,7 +76,7 @@ public:
     [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
     std::vector<std::unique_ptr<Entity>> m_ownedEntities;
 };
@@ -86,7 +86,7 @@ private:
  */
 class TestSpearEntity : public entity::SpearEntity {
 public:
-    explicit TestSpearEntity(EntityId id)
+    explicit TestSpearEntity(EntityInstanceId id)
         : SpearEntity(id)
     {}
 
@@ -299,7 +299,7 @@ TEST_F(SpearItemTest, Throw_SufficientCharge_SpawnsEntityAndConsumesDurability)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -322,7 +322,7 @@ TEST_F(SpearItemTest, Throw_InsufficientCharge_DoesNothing)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -344,7 +344,7 @@ TEST_F(SpearItemTest, Throw_CreativeMode_DoesNotConsumeStack)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -366,7 +366,7 @@ TEST_F(SpearItemTest, Throw_CreativeMode_SetsCreativeOnlyPickup)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -387,7 +387,7 @@ TEST_F(SpearItemTest, Throw_SurvivalMode_SetsAllowedPickup)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -408,7 +408,7 @@ TEST_F(SpearItemTest, Throw_SpawnedEntityIsSpearEntity)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::DIAMOND_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -440,7 +440,7 @@ TEST_F(SpearItemTest, Throw_NonPlayerEntity_DoesNothing)
     // 改为测试：onPlayerStoppedUsing 对 Player 传入 nullptr world 不会崩溃（健壮性）。
     // 但 world 是引用，无法传 nullptr。所以此用例改为验证蓄力边界 chargeTicks == MIN_CHARGE_TICKS。
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -464,7 +464,7 @@ TEST_F(SpearItemTest, OnRightClick_SetsActiveHand)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -485,7 +485,7 @@ TEST_F(SpearItemTest, OnRightClick_DamagedNearBreak_PreventsUse)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -510,14 +510,14 @@ TEST_F(SpearItemTest, HitEntity_ConsumesOneDurability)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player attacker(EntityId(1), "Attacker");
+    Player attacker(EntityInstanceId(1), "Attacker");
     attacker.setPosition(0.0f, 64.0f, 0.0f);
     attacker.setWorld(&m_world);
     attacker.setGameMode(GameMode::Survival);
 
     ItemStack stack(Items::IRON_SPEAR, 1);
     // 用一个简单的 LivingEntity 作为 target（这里用 Player 模拟）
-    Player target(EntityId(2), "Target");
+    Player target(EntityInstanceId(2), "Target");
     target.setPosition(1.0f, 64.0f, 0.0f);
     target.setWorld(&m_world);
 
@@ -532,7 +532,7 @@ TEST_F(SpearItemTest, HitEntity_BreaksAtZeroDurability)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player attacker(EntityId(1), "Attacker");
+    Player attacker(EntityInstanceId(1), "Attacker");
     attacker.setPosition(0.0f, 64.0f, 0.0f);
     attacker.setWorld(&m_world);
     attacker.setGameMode(GameMode::Survival);
@@ -540,7 +540,7 @@ TEST_F(SpearItemTest, HitEntity_BreaksAtZeroDurability)
     ItemStack stack(Items::IRON_SPEAR, 1);
     // 设耐久为 maxDamage - 1 = 249，再消耗 1 就损坏
     stack.setDamage(249);
-    Player target(EntityId(2), "Target");
+    Player target(EntityInstanceId(2), "Target");
     target.setPosition(1.0f, 64.0f, 0.0f);
     target.setWorld(&m_world);
 
@@ -556,13 +556,13 @@ TEST_F(SpearItemTest, HitEntity_BreaksAtZeroDurability)
 TEST_F(SpearItemTest, Pickup_InGround_AllowedStatus_AddsToInventory)
 {
     // 插地的长矛，PickupStatus::Allowed，可被玩家拾取
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setInGround(true);
     spear.setPickupStatus(entity::PickupStatus::Allowed);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -576,13 +576,13 @@ TEST_F(SpearItemTest, Pickup_InGround_AllowedStatus_AddsToInventory)
 TEST_F(SpearItemTest, Pickup_NotInGround_Fails)
 {
     // 未插地（飞行中）的长矛不能被拾取
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setInGround(false); // 飞行中
     spear.setPickupStatus(entity::PickupStatus::Allowed);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -595,13 +595,13 @@ TEST_F(SpearItemTest, Pickup_NotInGround_Fails)
 TEST_F(SpearItemTest, Pickup_DisallowedStatus_Fails)
 {
     // PickupStatus::Disallowed 时无法拾取
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setInGround(true);
     spear.setPickupStatus(entity::PickupStatus::Disallowed);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -614,13 +614,13 @@ TEST_F(SpearItemTest, Pickup_DisallowedStatus_Fails)
 TEST_F(SpearItemTest, Pickup_CreativeOnly_SurvivalPlayerFails)
 {
     // CreativeOnly 状态下，生存模式玩家无法拾取
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setInGround(true);
     spear.setPickupStatus(entity::PickupStatus::CreativeOnly);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -633,13 +633,13 @@ TEST_F(SpearItemTest, Pickup_CreativeOnly_SurvivalPlayerFails)
 TEST_F(SpearItemTest, Pickup_CreativeOnly_CreativePlayerSucceeds)
 {
     // CreativeOnly 状态下，创造模式玩家可以拾取
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setInGround(true);
     spear.setPickupStatus(entity::PickupStatus::CreativeOnly);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -652,14 +652,14 @@ TEST_F(SpearItemTest, Pickup_CreativeOnly_CreativePlayerSucceeds)
 TEST_F(SpearItemTest, Pickup_ArrowShake_Fails)
 {
     // 处于抖动状态（arrowShake > 0）时无法拾取
-    TestSpearEntity spear(EntityId(10));
+    TestSpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setInGround(true);
     spear.setPickupStatus(entity::PickupStatus::Allowed);
     spear.setArrowShakeForTest(5); // 抖动 5 tick
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -680,7 +680,7 @@ TEST_F(SpearItemTest, Throw_DamagedSpear_StillThrowsUntilNearBreak)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -701,7 +701,7 @@ TEST_F(SpearItemTest, Throw_DurabilityAtMaxDamage_PreventsStart)
     auto* spearItem = dynamic_cast<item::SpearItem*>(Items::GOLDEN_SPEAR);
     ASSERT_NE(spearItem, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -719,13 +719,13 @@ TEST_F(SpearItemTest, Throw_DurabilityAtMaxDamage_PreventsStart)
 TEST_F(SpearItemTest, Pickup_EmptySpearStack_FailsSilently)
 {
     // 物品堆为空时拾取不崩溃，也不添加到背包
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setWorld(&m_world);
     // 默认 m_spearStack 为空
     spear.setInGround(true);
     spear.setPickupStatus(entity::PickupStatus::Allowed);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -743,13 +743,13 @@ TEST_F(SpearItemTest, Pickup_EmptySpearStack_FailsSilently)
 TEST_F(SpearItemTest, NbtRoundTrip_PreservesItemStack)
 {
     // 验证 NBT 序列化/反序列化后长矛物品堆保持一致
-    entity::SpearEntity spear1(EntityId(10));
+    entity::SpearEntity spear1(EntityInstanceId(10));
     spear1.setItemStack(ItemStack(Items::DIAMOND_SPEAR, 1));
 
     nbt::tags::compound_tag tag;
     spear1.addAdditionalSaveData(tag);
 
-    entity::SpearEntity spear2(EntityId(11));
+    entity::SpearEntity spear2(EntityInstanceId(11));
     auto result = spear2.readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -760,7 +760,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesItemStack)
 TEST_F(SpearItemTest, NbtRoundTrip_PreservesDamageAndPickupStatus)
 {
     // 验证伤害值和拾取状态在往返后保持一致
-    entity::SpearEntity spear1(EntityId(10));
+    entity::SpearEntity spear1(EntityInstanceId(10));
     spear1.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear1.setDamage(12.5f);
     spear1.setPickupStatus(entity::PickupStatus::CreativeOnly);
@@ -768,7 +768,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesDamageAndPickupStatus)
     nbt::tags::compound_tag tag;
     spear1.addAdditionalSaveData(tag);
 
-    entity::SpearEntity spear2(EntityId(11));
+    entity::SpearEntity spear2(EntityInstanceId(11));
     auto result = spear2.readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -779,7 +779,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesDamageAndPickupStatus)
 TEST_F(SpearItemTest, NbtRoundTrip_PreservesInGroundAndDealtDamage)
 {
     // 验证插地状态和已造成伤害标志在往返后保持一致
-    entity::SpearEntity spear1(EntityId(10));
+    entity::SpearEntity spear1(EntityInstanceId(10));
     spear1.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear1.setInGround(true);
     // 模拟已造成伤害（onEntityHit 会设置 m_dealtDamage = true）
@@ -794,7 +794,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesInGroundAndDealtDamage)
     ASSERT_TRUE(dealtDamage.has_value());
     EXPECT_FALSE(*dealtDamage);
 
-    entity::SpearEntity spear2(EntityId(11));
+    entity::SpearEntity spear2(EntityInstanceId(11));
     auto result = spear2.readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -805,7 +805,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesInGroundAndDealtDamage)
 TEST_F(SpearItemTest, NbtRoundTrip_PreservesCriticalAndPierceLevel)
 {
     // 验证暴击和穿透等级在往返后保持一致
-    entity::SpearEntity spear1(EntityId(10));
+    entity::SpearEntity spear1(EntityInstanceId(10));
     spear1.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear1.setCritical(true);
     spear1.setPierceLevel(3);
@@ -813,7 +813,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesCriticalAndPierceLevel)
     nbt::tags::compound_tag tag;
     spear1.addAdditionalSaveData(tag);
 
-    entity::SpearEntity spear2(EntityId(11));
+    entity::SpearEntity spear2(EntityInstanceId(11));
     auto result = spear2.readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -824,13 +824,13 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesCriticalAndPierceLevel)
 TEST_F(SpearItemTest, NbtRoundTrip_DefaultValues)
 {
     // 默认值序列化/反序列化应保持默认值
-    entity::SpearEntity spear1(EntityId(10));
+    entity::SpearEntity spear1(EntityInstanceId(10));
     spear1.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
 
     nbt::tags::compound_tag tag;
     spear1.addAdditionalSaveData(tag);
 
-    entity::SpearEntity spear2(EntityId(11));
+    entity::SpearEntity spear2(EntityInstanceId(11));
     auto result = spear2.readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -848,7 +848,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_DefaultValues)
 TEST_F(SpearItemTest, NbtDeserialize_EmptyTag_KeepsDefaults)
 {
     // 空的 NBT tag 反序列化应保持默认值，不崩溃
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
 
     nbt::tags::compound_tag emptyTag;
     auto result = spear.readAdditionalSaveData(emptyTag);
@@ -864,7 +864,7 @@ TEST_F(SpearItemTest, NbtDeserialize_EmptyTag_KeepsDefaults)
 TEST_F(SpearItemTest, NbtSerialize_WritesAllExpectedKeys)
 {
     // 验证 NBT 序列化写入了所有预期键
-    entity::SpearEntity spear(EntityId(10));
+    entity::SpearEntity spear(EntityInstanceId(10));
     spear.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
     spear.setDamage(8.0f);
     spear.setPickupStatus(entity::PickupStatus::Allowed);
@@ -897,7 +897,7 @@ TEST_F(SpearItemTest, NbtSerialize_WritesAllExpectedKeys)
 TEST_F(SpearItemTest, NbtRoundTrip_PreservesDurabilityDamage)
 {
     // 验证物品堆的耐久度（Damage 子标签）在往返后保持一致
-    entity::SpearEntity spear1(EntityId(10));
+    entity::SpearEntity spear1(EntityInstanceId(10));
     ItemStack stack(Items::IRON_SPEAR, 1);
     stack.setDamage(150);
     spear1.setItemStack(stack);
@@ -905,7 +905,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesDurabilityDamage)
     nbt::tags::compound_tag tag;
     spear1.addAdditionalSaveData(tag);
 
-    entity::SpearEntity spear2(EntityId(11));
+    entity::SpearEntity spear2(EntityInstanceId(11));
     auto result = spear2.readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 

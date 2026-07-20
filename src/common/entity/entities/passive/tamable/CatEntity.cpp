@@ -135,7 +135,7 @@ bool CatEntity::CatAvoidPlayerGoal::shouldContinueExecuting()
 // CatEntity 实现
 // ============================================================================
 
-CatEntity::CatEntity(EntityId id)
+CatEntity::CatEntity(EntityInstanceId id)
     : TameableEntity(id)
 {
     // 随机设置皮肤类型

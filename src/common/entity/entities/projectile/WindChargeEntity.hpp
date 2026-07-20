@@ -66,7 +66,7 @@ public:
      * @brief 构造风弹弹射物
      * @param id 实体ID
      */
-    explicit WindChargeEntity(EntityId id);
+    explicit WindChargeEntity(EntityInstanceId id);
 
     /**
      * @brief 工厂方法

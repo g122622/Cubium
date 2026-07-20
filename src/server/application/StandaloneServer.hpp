@@ -179,7 +179,7 @@ private:
     void _sendLoginResponse(TcpSession* session,
         bool success,
         PlayerId playerId,
-        EntityId entityId,
+        EntityInstanceId entityId,
         const std::string& username,
         const std::string& message);
 
@@ -197,8 +197,8 @@ private:
     // 玩家实体管理器
     ServerPlayerEntityManager m_playerEntityManager;
 
-    // PlayerId -> EntityId 映射（用于快速查找）
-    std::unordered_map<PlayerId, EntityId> m_playerEntityIds;
+    // PlayerId -> EntityInstanceId 映射（用于快速查找）
+    std::unordered_map<PlayerId, EntityInstanceId> m_playerEntityIds;
 };
 
 } // namespace mc::server

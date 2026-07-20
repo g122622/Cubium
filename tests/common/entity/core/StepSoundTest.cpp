@@ -104,7 +104,7 @@ private:
 class TestStepSoundEntity : public Entity {
 public:
     TestStepSoundEntity(IWorld* world = nullptr)
-        : Entity(EntityId(1), world)
+        : Entity(EntityInstanceId(1), world)
     {}
 
     // 暴露 playStepSound 等受保护方法

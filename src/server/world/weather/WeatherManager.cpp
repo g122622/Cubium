@@ -24,8 +24,8 @@
 #include "WeatherManager.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -272,7 +272,7 @@ std::pair<bool, BlockPos> WeatherManager::trySpawnLightning()
     // 过滤出玩家
     std::vector<Entity*> playerEntities;
     for (Entity* entity : entities) {
-        if (entity && entity->typeId() == entity::EntityTypeIdNumber::PLAYER && entity->isAlive()) {
+        if (entity && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER && entity->isAlive()) {
             playerEntities.push_back(entity);
         }
     }
@@ -360,11 +360,11 @@ BlockPos WeatherManager::_findLightningTargetAround(const BlockPos& pos) const
     for (Entity* entity : entities) {
         if (entity && entity->isAlive()) {
             // 检查是否为生物实体（LivingEntity 或其子类）
-            // 使用 EntityTypeId 来判断
-            entity::EntityTypeId type = entity->typeId();
+            // 使用实体类型指针来判断
+            const entity::EntityType* type = entity->entityType();
             // 排除玩家和一些特殊实体
-            if (type != entity::EntityTypeIdNumber::PLAYER && type != entity::EntityTypeIdNumber::ITEM &&
-                type != entity::EntityTypeIdNumber::EXPERIENCE_ORB && type != 0) {
+            if (type != entity::VanillaEntityTypeKeys::PLAYER && type != entity::VanillaEntityTypeKeys::ITEM &&
+                type != entity::VanillaEntityTypeKeys::EXPERIENCE_ORB && type != nullptr) {
                 // 检查实体是否可以看到天空
                 BlockPos entityPos(
                     static_cast<i32>(entity->x()), static_cast<i32>(entity->y()), static_cast<i32>(entity->z()));

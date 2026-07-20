@@ -42,7 +42,7 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-NautilusEntity::NautilusEntity(EntityId id)
+NautilusEntity::NautilusEntity(EntityInstanceId id)
     : AbstractNautilusEntity(id)
 {
     // 显式调用 registerData()，注册同步数据参数

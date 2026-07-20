@@ -48,14 +48,14 @@ namespace mc {
 // ============================================================================
 
 ExperienceOrbEntity::ExperienceOrbEntity(i32 xpValue)
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
     , m_xpValue(std::clamp(xpValue, 1, MAX_ORB_SIZE))
 {
     _initData();
 }
 
 ExperienceOrbEntity::ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32 xpValue)
-    : Entity(EntityId(0), world)
+    : Entity(EntityInstanceId(0), world)
     , m_xpValue(std::clamp(xpValue, 1, MAX_ORB_SIZE))
 {
     setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));

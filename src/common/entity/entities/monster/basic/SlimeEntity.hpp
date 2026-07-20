@@ -57,7 +57,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    SlimeEntity(EntityId id);
+    SlimeEntity(EntityInstanceId id);
     ~SlimeEntity() override = default;
 
     // 禁止拷贝

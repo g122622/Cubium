@@ -48,7 +48,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    EndermiteEntity(EntityId id);
+    EndermiteEntity(EntityInstanceId id);
     ~EndermiteEntity() noexcept override = default;
 
     // ========== 生命周期 ==========
@@ -92,7 +92,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    SilverfishEntity(EntityId id);
+    SilverfishEntity(EntityInstanceId id);
     ~SilverfishEntity() noexcept override = default;
 
     // ========== 生命周期 ==========

@@ -30,7 +30,7 @@
 
 namespace mc {
 
-ElderGuardianEntity::ElderGuardianEntity(EntityId id)
+ElderGuardianEntity::ElderGuardianEntity(EntityInstanceId id)
     : GuardianEntity(id)
 {
     // 注册属性
@@ -39,7 +39,7 @@ ElderGuardianEntity::ElderGuardianEntity(EntityId id)
 
 std::unique_ptr<Entity> ElderGuardianEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ElderGuardianEntity>(EntityId(0));
+    return std::make_unique<ElderGuardianEntity>(EntityInstanceId(0));
 }
 
 void ElderGuardianEntity::tick()

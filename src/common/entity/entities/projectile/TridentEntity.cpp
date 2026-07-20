@@ -30,10 +30,10 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../core/EntityRegistry.hpp"
-#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -53,7 +53,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-TridentEntity::TridentEntity(EntityId id)
+TridentEntity::TridentEntity(EntityInstanceId id)
     : AbstractArrowEntity(id)
 {
     m_damage = 8.0f; // 三叉戟伤害更高
@@ -215,7 +215,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     // 创建伤害来源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        bool isPlayer = shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        bool isPlayer = shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, shooter, this, isPlayer);
     } else {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, this, this, false);
@@ -253,7 +253,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
             if (isThundering && canSeeSky) {
                 // 创建闪电实体
                 auto lightning = std::make_unique<entity::LightningBoltEntity>();
-                lightning->setTypeId(EntityTypes::LIGHTNING_BOLT);
+                lightning->setTypeId(EntityTypeKeys::LIGHTNING_BOLT);
                 lightning->setPosition(target->x(), target->y(), target->z());
 
                 // 设置触发者

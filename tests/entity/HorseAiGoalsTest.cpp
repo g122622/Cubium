@@ -88,7 +88,7 @@ public:
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(0); }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(0); }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -146,7 +146,7 @@ int getTotalGoalCount(const entity::ai::GoalSelector& selector)
 TEST(AbstractHorseAiGoalsTest, HasSwimGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // SwimGoal 应该在优先级 0
@@ -157,7 +157,7 @@ TEST(AbstractHorseAiGoalsTest, HasSwimGoal)
 TEST(AbstractHorseAiGoalsTest, HasPanicGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // PanicGoal 应该在优先级 1
@@ -168,7 +168,7 @@ TEST(AbstractHorseAiGoalsTest, HasPanicGoal)
 TEST(AbstractHorseAiGoalsTest, HasRunAroundLikeCrazyGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // RunAroundLikeCrazyGoal 应该在优先级 1
@@ -179,7 +179,7 @@ TEST(AbstractHorseAiGoalsTest, HasRunAroundLikeCrazyGoal)
 TEST(AbstractHorseAiGoalsTest, HasBreedGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // BreedGoal 应该在优先级 2
@@ -190,7 +190,7 @@ TEST(AbstractHorseAiGoalsTest, HasBreedGoal)
 TEST(AbstractHorseAiGoalsTest, HasFollowParentGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // FollowParentGoal 应该在优先级 4
@@ -201,7 +201,7 @@ TEST(AbstractHorseAiGoalsTest, HasFollowParentGoal)
 TEST(AbstractHorseAiGoalsTest, HasWaterAvoidingRandomWalkingGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // WaterAvoidingRandomWalkingGoal 应该在优先级 6
@@ -212,7 +212,7 @@ TEST(AbstractHorseAiGoalsTest, HasWaterAvoidingRandomWalkingGoal)
 TEST(AbstractHorseAiGoalsTest, HasLookAtGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // LookAtGoal 应该在优先级 7
@@ -223,7 +223,7 @@ TEST(AbstractHorseAiGoalsTest, HasLookAtGoal)
 TEST(AbstractHorseAiGoalsTest, HasLookRandomlyGoal)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // LookRandomlyGoal 应该在优先级 8
@@ -234,7 +234,7 @@ TEST(AbstractHorseAiGoalsTest, HasLookRandomlyGoal)
 TEST(AbstractHorseAiGoalsTest, TotalGoalCount)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // MC 1.16.5: AbstractHorseEntity 注册了 8 个目标
@@ -249,7 +249,7 @@ TEST(AbstractHorseAiGoalsTest, TotalGoalCount)
 TEST(DonkeyAiGoalsTest, InheritsAllAbstractHorseGoals)
 {
     HorseAiGoalsTestWorld world;
-    auto donkey = std::make_unique<DonkeyEntity>(EntityId(1));
+    auto donkey = std::make_unique<DonkeyEntity>(EntityInstanceId(1));
     donkey->setWorld(&world);
 
     // 驴应该继承 AbstractHorseEntity 的所有 AI 目标
@@ -266,7 +266,7 @@ TEST(DonkeyAiGoalsTest, InheritsAllAbstractHorseGoals)
 TEST(DonkeyAiGoalsTest, TotalGoalCount)
 {
     HorseAiGoalsTestWorld world;
-    auto donkey = std::make_unique<DonkeyEntity>(EntityId(1));
+    auto donkey = std::make_unique<DonkeyEntity>(EntityInstanceId(1));
     donkey->setWorld(&world);
 
     // MC 1.16.5: DonkeyEntity 不添加额外目标，应该有 8 个目标
@@ -281,7 +281,7 @@ TEST(DonkeyAiGoalsTest, TotalGoalCount)
 TEST(MuleAiGoalsTest, InheritsAllAbstractHorseGoals)
 {
     HorseAiGoalsTestWorld world;
-    auto mule = std::make_unique<MuleEntity>(EntityId(1));
+    auto mule = std::make_unique<MuleEntity>(EntityInstanceId(1));
     mule->setWorld(&world);
 
     // 骡应该继承 AbstractHorseEntity 的所有 AI 目标
@@ -298,7 +298,7 @@ TEST(MuleAiGoalsTest, InheritsAllAbstractHorseGoals)
 TEST(MuleAiGoalsTest, TotalGoalCount)
 {
     HorseAiGoalsTestWorld world;
-    auto mule = std::make_unique<MuleEntity>(EntityId(1));
+    auto mule = std::make_unique<MuleEntity>(EntityInstanceId(1));
     mule->setWorld(&world);
 
     // MC 1.16.5: MuleEntity 不添加额外目标，应该有 8 个目标
@@ -314,7 +314,7 @@ TEST(MuleAiGoalsTest, TotalGoalCount)
 TEST(HorseAiGoalsTest, InheritsAllAbstractHorseGoals)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // 马应该继承 AbstractHorseEntity 的所有 AI 目标
@@ -331,7 +331,7 @@ TEST(HorseAiGoalsTest, InheritsAllAbstractHorseGoals)
 TEST(HorseAiGoalsTest, TotalGoalCount)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     // MC 1.16.5: HorseEntity 不添加额外目标，应该有 8 个目标
@@ -346,7 +346,7 @@ TEST(HorseAiGoalsTest, TotalGoalCount)
 TEST(AbstractHorseAiGoalsTest, PriorityOrdering)
 {
     HorseAiGoalsTestWorld world;
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(&world);
 
     const auto& goals = horse->goalSelector().getAllGoals();
@@ -391,7 +391,7 @@ TEST(AbstractHorseAiGoalsTest, PriorityOrdering)
 TEST(LlamaAiGoalsTest, InheritsAbstractHorseGoals)
 {
     HorseAiGoalsTestWorld world;
-    auto llama = std::make_unique<LlamaEntity>(EntityId(1));
+    auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1));
     llama->setWorld(&world);
 
     // 羊驼应该继承 AbstractHorseEntity 的基础 AI 目标
@@ -408,7 +408,7 @@ TEST(LlamaAiGoalsTest, InheritsAbstractHorseGoals)
 TEST(LlamaAiGoalsTest, BaseGoalCount)
 {
     HorseAiGoalsTestWorld world;
-    auto llama = std::make_unique<LlamaEntity>(EntityId(1));
+    auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1));
     llama->setWorld(&world);
 
     // 继承自 AbstractHorseEntity: 8 个目标

@@ -75,7 +75,7 @@ public:
      * @param type 矿车类型
      * @param id 实体ID
      */
-    AbstractMinecartEntity(Type type, EntityId id);
+    AbstractMinecartEntity(Type type, EntityInstanceId id);
 
     /**
      * @brief 构造函数（用于工厂创建）
@@ -458,7 +458,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    RideableMinecartEntity(EntityId id)
+    RideableMinecartEntity(EntityInstanceId id)
         : AbstractMinecartEntity(Type::Rideable, id)
     {}
 
@@ -482,7 +482,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    ChestMinecartEntity(EntityId id);
+    ChestMinecartEntity(EntityInstanceId id);
 
     /**
      * @brief 箱子矿车有额外的摩擦力
@@ -566,7 +566,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    FurnaceMinecartEntity(EntityId id)
+    FurnaceMinecartEntity(EntityInstanceId id)
         : AbstractMinecartEntity(Type::Furnace, id)
     {}
 
@@ -656,7 +656,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    TNTMinecartEntity(EntityId id)
+    TNTMinecartEntity(EntityInstanceId id)
         : AbstractMinecartEntity(Type::TNT, id)
     {}
 
@@ -768,7 +768,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    HopperMinecartEntity(EntityId id);
+    HopperMinecartEntity(EntityInstanceId id);
     ~HopperMinecartEntity() override = default;
 
     void tick() override;
@@ -874,7 +874,7 @@ private:
  */
 class CommandBlockMinecartEntity : public AbstractMinecartEntity {
 public:
-    CommandBlockMinecartEntity(EntityId id)
+    CommandBlockMinecartEntity(EntityInstanceId id)
         : AbstractMinecartEntity(Type::CommandBlock, id)
     {}
 
@@ -959,7 +959,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    SpawnerMinecartEntity(EntityId id);
+    SpawnerMinecartEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 

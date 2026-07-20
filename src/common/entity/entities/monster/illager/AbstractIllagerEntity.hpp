@@ -65,7 +65,7 @@ public:
      * @param type 实体类型
      * @param id 实体ID
      */
-    AbstractIllagerEntity(EntityId id);
+    AbstractIllagerEntity(EntityInstanceId id);
     ~AbstractIllagerEntity() override = default;
 
     // 禁止拷贝

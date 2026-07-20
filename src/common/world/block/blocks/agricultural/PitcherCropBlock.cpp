@@ -24,8 +24,8 @@
 #include "PitcherCropBlock.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/Properties.hpp"
@@ -401,7 +401,7 @@ void PitcherCropBlock::onEntityCollision(
     }
 
     // 仅 Ravager 触发破坏（对应 MC Java: entity instanceof Ravager）
-    if (entity.typeId() != entity::EntityTypeIdNumber::RAVAGER) {
+    if (entity.entityType() != entity::VanillaEntityTypeKeys::RAVAGER) {
         return;
     }
 

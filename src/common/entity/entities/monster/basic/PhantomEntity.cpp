@@ -44,10 +44,10 @@ namespace mc {
 
 std::unique_ptr<Entity> PhantomEntity::create(IWorld* world)
 {
-    return std::make_unique<PhantomEntity>(EntityId(0));
+    return std::make_unique<PhantomEntity>(EntityInstanceId(0));
 }
 
-PhantomEntity::PhantomEntity(EntityId id)
+PhantomEntity::PhantomEntity(EntityInstanceId id)
     : FlyingEntity(id)
 {
     // 幻翼在阳光下燃烧
@@ -129,7 +129,7 @@ void PhantomEntity::finalizeSpawn(
     setPhantomSize(0);
 }
 
-bool PhantomEntity::canAttackType(entity::EntityTypeId /*typeId*/) const
+bool PhantomEntity::canAttackType(const entity::EntityType& /*type*/) const
 {
     // 覆盖 Mob 基类排除恶魂的限制，幻翼本身是飞行生物，可以攻击空中目标
     return true;

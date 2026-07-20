@@ -54,7 +54,7 @@ public:
      * @brief 构造商队羊驼
      * @param id 实体 ID
      */
-    TraderLlamaEntity(EntityId id);
+    TraderLlamaEntity(EntityInstanceId id);
 
     ~TraderLlamaEntity() override = default;
 

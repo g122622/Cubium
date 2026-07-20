@@ -661,7 +661,7 @@ private:
 class TestLivingEntityForLocation : public LivingEntity {
 public:
     TestLivingEntityForLocation()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerData();
         registerAttributes();
@@ -672,7 +672,7 @@ public:
      * @brief 测试辅助方法：设置骑乘状态
      * Entity::setVehicle() 是 protected 方法，测试中通过此辅助方法访问
      */
-    void setVehicleForTest(EntityId vehicle) { setVehicle(vehicle); }
+    void setVehicleForTest(EntityInstanceId vehicle) { setVehicle(vehicle); }
 };
 
 } // namespace
@@ -1573,7 +1573,7 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWhenRiding)
     m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
 
     // 设置骑乘状态（模拟骑在另一个实体上）
-    m_entity->setVehicleForTest(EntityId(42));
+    m_entity->setVehicleForTest(EntityInstanceId(42));
     ASSERT_TRUE(m_entity->isRiding());
 
     // 在地面且在灵魂沙上，但骑乘中 → 灵魂疾行不应激活

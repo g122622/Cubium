@@ -90,10 +90,10 @@ public:
 
     // ========== 实体管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // ========== 游戏规则 ==========
@@ -222,7 +222,7 @@ TEST_F(EntityDropItemGameRuleTest, RideableMinecart_DropItem_WhenEntityDropsEnab
 {
     ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
 
-    entity::RideableMinecartEntity minecart(EntityId(1));
+    entity::RideableMinecartEntity minecart(EntityInstanceId(1));
     minecart.setWorld(&m_world);
     minecart.setPosition(0.0, 0.0, 0.0);
 
@@ -240,7 +240,7 @@ TEST_F(EntityDropItemGameRuleTest, RideableMinecart_DropItem_WhenEntityDropsDisa
 {
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
 
-    entity::RideableMinecartEntity minecart(EntityId(1));
+    entity::RideableMinecartEntity minecart(EntityInstanceId(1));
     minecart.setWorld(&m_world);
     minecart.setPosition(0.0, 0.0, 0.0);
 
@@ -264,7 +264,7 @@ TEST_F(EntityDropItemGameRuleTest, ChestMinecart_DropItem_WhenEntityDropsEnabled
 {
     ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
 
-    entity::ChestMinecartEntity minecart(EntityId(1));
+    entity::ChestMinecartEntity minecart(EntityInstanceId(1));
     minecart.setWorld(&m_world);
     minecart.setPosition(0.0, 0.0, 0.0);
 
@@ -289,7 +289,7 @@ TEST_F(EntityDropItemGameRuleTest, ChestMinecart_DropItem_WhenEntityDropsDisable
 {
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
 
-    entity::ChestMinecartEntity minecart(EntityId(1));
+    entity::ChestMinecartEntity minecart(EntityInstanceId(1));
     minecart.setWorld(&m_world);
     minecart.setPosition(0.0, 0.0, 0.0);
 
@@ -319,7 +319,7 @@ TEST_F(EntityDropItemGameRuleTest, HopperMinecart_DropItem_WhenEntityDropsEnable
 {
     ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
 
-    entity::HopperMinecartEntity minecart(EntityId(1));
+    entity::HopperMinecartEntity minecart(EntityInstanceId(1));
     minecart.setWorld(&m_world);
     minecart.setPosition(0.0, 0.0, 0.0);
 
@@ -344,7 +344,7 @@ TEST_F(EntityDropItemGameRuleTest, HopperMinecart_DropItem_WhenEntityDropsDisabl
 {
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
 
-    entity::HopperMinecartEntity minecart(EntityId(1));
+    entity::HopperMinecartEntity minecart(EntityInstanceId(1));
     minecart.setWorld(&m_world);
     minecart.setPosition(0.0, 0.0, 0.0);
 

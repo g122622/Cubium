@@ -48,16 +48,16 @@ struct EntitySoundState {
     bool isRemoved = false;
     bool isChild = false;
     bool isFallFlying = false;
-    bool isAngry = false;       // 用于蜜蜂
-    f32 attackAnimScale = 0.0f; // 用于守卫者攻击动画进度 (0.0-1.0)
-    EntityId entityId{0};       // 实体ID，用于查找状态
+    bool isAngry = false;         // 用于蜜蜂
+    f32 attackAnimScale = 0.0f;   // 用于守卫者攻击动画进度 (0.0-1.0)
+    EntityInstanceId entityId{0}; // 实体ID，用于查找状态
 
     // 守卫者攻击目标状态
-    EntityId targetEntityId{0}; // 守卫者的攻击目标ID（0表示无目标）
+    EntityInstanceId targetEntityId{0}; // 守卫者的攻击目标ID（0表示无目标）
 
     // 矿车相关状态
-    EntityId vehicleId{0}; // 玩家正在骑乘的载具ID（用于矿车声音）
-    bool isRiding = false; // 是否正在骑乘
+    EntityInstanceId vehicleId{0}; // 玩家正在骑乘的载具ID（用于矿车声音）
+    bool isRiding = false;         // 是否正在骑乘
 };
 
 /**
@@ -89,7 +89,7 @@ public:
      * @param entityId 实体ID
      * @param state 实体状态快照
      */
-    void updateEntityState(EntityId entityId, const EntitySoundState& state);
+    void updateEntityState(EntityInstanceId entityId, const EntitySoundState& state);
 
     /**
      * @brief 移除实体状态
@@ -98,7 +98,7 @@ public:
      *
      * @param entityId 实体ID
      */
-    void removeEntityState(EntityId entityId);
+    void removeEntityState(EntityInstanceId entityId);
 
     /**
      * @brief 处理实体生成事件
@@ -107,14 +107,14 @@ public:
      * @param entityId 实体ID
      * @param typeId 实体类型ID
      */
-    void onEntitySpawn(SoundEngine& engine, EntityId entityId, const std::string& typeId);
+    void onEntitySpawn(SoundEngine& engine, EntityInstanceId entityId, const std::string& typeId);
 
     /**
      * @brief 处理实体移除事件
      *
      * @param entityId 移除的实体ID
      */
-    void onEntityRemove(EntityId entityId);
+    void onEntityRemove(EntityInstanceId entityId);
 
     /**
      * @brief 处理玩家鞘翅飞行状态变化
@@ -123,7 +123,7 @@ public:
      * @param playerId 玩家实体ID
      * @param isFlying 是否正在鞘翅飞行
      */
-    void onPlayerElytraFlyingChanged(SoundEngine& engine, EntityId playerId, bool isFlying);
+    void onPlayerElytraFlyingChanged(SoundEngine& engine, EntityInstanceId playerId, bool isFlying);
 
     /**
      * @brief 处理守卫者攻击事件
@@ -133,7 +133,7 @@ public:
      * @param engine 声音引擎
      * @param entityId 守卫者实体ID
      */
-    void onGuardianAttack(SoundEngine& engine, EntityId entityId);
+    void onGuardianAttack(SoundEngine& engine, EntityInstanceId entityId);
 
     /**
      * @brief 处理守卫者攻击目标变化
@@ -144,7 +144,7 @@ public:
      * @param entityId 守卫者实体ID
      * @param targetEntityId 攻击目标实体ID（0表示无目标）
      */
-    void onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId);
+    void onGuardianTargetChanged(EntityInstanceId entityId, EntityInstanceId targetEntityId);
 
     /**
      * @brief 播放移动声音
@@ -161,7 +161,7 @@ public:
     void playMovingSound(SoundEngine& engine,
         const ResourceLocation& soundEventId,
         SoundCategory category,
-        EntityId entityId,
+        EntityInstanceId entityId,
         f32 volume,
         f32 pitch);
 
@@ -189,7 +189,7 @@ public:
      * @param entityId 实体ID
      * @return 状态指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] const EntitySoundState* getEntityState(EntityId entityId) const;
+    [[nodiscard]] const EntitySoundState* getEntityState(EntityInstanceId entityId) const;
 
     /**
      * @brief 获取实体状态（可变）
@@ -199,24 +199,24 @@ public:
      * @param entityId 实体ID
      * @return 状态指针，如果不存在返回 nullptr
      */
-    [[nodiscard]] EntitySoundState* getMutableEntityState(EntityId entityId);
+    [[nodiscard]] EntitySoundState* getMutableEntityState(EntityInstanceId entityId);
 
 private:
     /**
      * @brief 检查并创建声音
      */
-    void _checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId);
+    void _checkAndCreateSound(SoundEngine& engine, EntityInstanceId entityId, const std::string& typeId);
 
     // 实体状态快照（从主线程更新，在音频线程读取）
     // 使用读写锁保护跨线程访问
     mutable std::shared_mutex m_stateMutex;
-    std::unordered_map<EntityId, EntitySoundState> m_entityStates;
+    std::unordered_map<EntityInstanceId, EntitySoundState> m_entityStates;
 
     // 活动的声音实例（按实体ID索引）- 仅在音频线程访问
-    std::unordered_map<EntityId, SoundInstanceId> m_activeSounds;
+    std::unordered_map<EntityInstanceId, SoundInstanceId> m_activeSounds;
 
     // 已生成的实体类型（用于跟踪哪些实体需要声音）- 仅在音频线程访问
-    std::unordered_map<EntityId, std::string> m_entityTypes;
+    std::unordered_map<EntityInstanceId, std::string> m_entityTypes;
 };
 
 } // namespace mc::client::sound

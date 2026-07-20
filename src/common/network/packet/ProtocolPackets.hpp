@@ -213,7 +213,7 @@ public:
     LoginResponsePacket() = default;
     LoginResponsePacket(bool success,
         PlayerId playerId,
-        EntityId entityId,
+        EntityInstanceId entityId,
         const std::string& username,
         const std::string& message = "",
         bool isDebugWorld = false,
@@ -230,7 +230,7 @@ public:
     // Getters
     bool success() const { return m_success; }
     PlayerId playerId() const { return m_playerId; }
-    EntityId entityId() const { return m_entityId; }
+    EntityInstanceId entityId() const { return m_entityId; }
     const std::string& username() const { return m_username; }
     const std::string& message() const { return m_message; }
     bool isDebugWorld() const { return m_isDebugWorld; }
@@ -239,7 +239,7 @@ public:
     // Setters
     void setSuccess(bool success) { m_success = success; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
-    void setEntityId(EntityId id) { m_entityId = id; }
+    void setEntityId(EntityInstanceId id) { m_entityId = id; }
     void setUsername(const std::string& username) { m_username = username; }
     void setMessage(const std::string& message) { m_message = message; }
     void setIsDebugWorld(bool isDebugWorld) { m_isDebugWorld = isDebugWorld; }
@@ -297,7 +297,7 @@ public:
 private:
     bool m_success = false;
     PlayerId m_playerId = 0;
-    EntityId m_entityId = INVALID_ENTITY_ID;
+    EntityInstanceId m_entityId = INVALID_ENTITY_ID;
     std::string m_username;
     std::string m_message;
     bool m_isDebugWorld = false;

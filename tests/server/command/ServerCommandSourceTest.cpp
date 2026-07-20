@@ -107,7 +107,7 @@ public:
     [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId) override { return m_world; }
     [[nodiscard]] ServerWorld* world() const { return m_world; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity)
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity)
     {
         if (!m_world) {
             return 0;
@@ -179,7 +179,7 @@ TEST_F(ServerCommandSourceTest, EntityReturnsNullptrForConsoleSource)
 TEST_F(ServerCommandSourceTest, EntityReturnsPlayerPointerWhenConstructedWithPlayer)
 {
     // 使用 ServerPlayer 构造命令源时，entity() 应返回指向该玩家的 Entity 指针
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -195,7 +195,7 @@ TEST_F(ServerCommandSourceTest, EntityReturnsPlayerPointerWhenConstructedWithPla
 TEST_F(ServerCommandSourceTest, EntityReturnsExplicitEntityWhenProvided)
 {
     // 使用显式 entity 参数构造命令源
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -236,7 +236,7 @@ TEST_F(ServerCommandSourceTest, EntityOrExceptionThrowsCorrectErrorType)
 TEST_F(ServerCommandSourceTest, EntityOrExceptionReturnsReferenceWhenEntityIsSet)
 {
     // 玩家命令源调用 entityOrException() 应返回实体引用
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -250,7 +250,7 @@ TEST_F(ServerCommandSourceTest, EntityOrExceptionReturnsReferenceWhenEntityIsSet
 TEST_F(ServerCommandSourceTest, EntityOrExceptionReturnsNonPlayerEntityReference)
 {
     // 非玩家实体命令源调用 entityOrException() 应返回该实体引用
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -271,7 +271,7 @@ TEST_F(ServerCommandSourceTest, WithEntitySetsEntityPointer)
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EXPECT_EQ(source.entity(), nullptr);
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -287,7 +287,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithServerPlayerUpdatesPlayerAndPlayer
     EXPECT_EQ(source.player(), nullptr);
     EXPECT_EQ(source.playerId(), 0);
 
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "Alice");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "Alice");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -304,7 +304,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithServerPlayerUpdatesName)
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EXPECT_EQ(source.name(), "Console");
 
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "Bob");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "Bob");
     serverPlayer->setPlayerId(7);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -316,7 +316,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithServerPlayerUpdatesName)
 TEST_F(ServerCommandSourceTest, WithEntityWithNonPlayerEntityPreservesPlayer)
 {
     // withEntity() 传入非玩家实体时，m_player 和 m_playerId 应保持不变
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "Alice");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "Alice");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -326,7 +326,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithNonPlayerEntityPreservesPlayer)
     EXPECT_EQ(source.playerId(), 42);
 
     // 使用非玩家实体调用 withEntity()
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -343,7 +343,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithCustomNamedEntityUpdatesName)
     // withEntity() 传入有自定义名称的非玩家实体时，名称应为自定义名称
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setCustomName("Piggy");
     Entity* pigPtr = pig.get();
@@ -358,7 +358,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithUnnamedEntityUsesTypeId)
     // withEntity() 传入没有自定义名称的非玩家实体时，名称应为类型ID
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -370,7 +370,7 @@ TEST_F(ServerCommandSourceTest, WithEntityWithUnnamedEntityUsesTypeId)
 TEST_F(ServerCommandSourceTest, WithEntityPreservesOtherFields)
 {
     // withEntity() 不应改变位置、旋转、维度、权限等级等字段
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(1);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -378,7 +378,7 @@ TEST_F(ServerCommandSourceTest, WithEntityPreservesOtherFields)
     ServerCommandSource source(
         &m_server, playerPtr, 0, Vector3d(10.0, 64.0, 20.0), Vector2f(90.0f, 45.0f), 3, 1, "TestPlayer");
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -403,7 +403,7 @@ TEST_F(ServerCommandSourceTest, WithEntityDoesNotModifyOriginalSource)
     EXPECT_EQ(source.entity(), nullptr);
     EXPECT_EQ(source.name(), "Console");
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -429,7 +429,7 @@ TEST_F(ServerCommandSourceTest, WithPlayerUpdatesEntityPointer)
     EXPECT_EQ(source.entity(), nullptr);
     EXPECT_EQ(source.player(), nullptr);
 
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -442,7 +442,7 @@ TEST_F(ServerCommandSourceTest, WithPlayerUpdatesEntityPointer)
 TEST_F(ServerCommandSourceTest, WithPlayerWithNullptrClearsEntity)
 {
     // withPlayer(nullptr) 应同时清除 m_entity
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -462,7 +462,7 @@ TEST_F(ServerCommandSourceTest, WithPlayerWithNullptrClearsEntity)
 TEST_F(ServerCommandSourceTest, ConstructorDefaultsEntityToPlayerWhenEntityIsNullptr)
 {
     // 当 entity 参数为 nullptr 且 player 非 nullptr 时，entity 应默认为 static_cast<Entity*>(player)
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -477,12 +477,12 @@ TEST_F(ServerCommandSourceTest, ConstructorDefaultsEntityToPlayerWhenEntityIsNul
 TEST_F(ServerCommandSourceTest, ConstructorWithExplicitEntityOverridesPlayerDefault)
 {
     // 当显式传入 entity 参数时，应使用传入的 entity 而非 player
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "TestPlayer");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -510,14 +510,14 @@ TEST_F(ServerCommandSourceTest, ExecuteAsNonPlayerEntityScenario)
 {
     // 模拟 /execute as @e[type=pig] 场景：
     // 原始源是玩家，withEntity() 后 entity 指向猪，但 player 仍指向原始玩家
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "Alice");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "Alice");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
 
     ServerCommandSource playerSource(&m_server, playerPtr, 0, Vector3d(10, 64, 10), Vector2f(0, 0), 2, 42, "Alice");
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(50.0f, 64.0f, 50.0f);
     Entity* pigPtr = pig.get();
@@ -542,14 +542,14 @@ TEST_F(ServerCommandSourceTest, ChainedWithEntityAndWithPosition)
 {
     // 模拟 /execute as @e[type=pig] at @s run ...
     // 先 withEntity()，再 withPosition()
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "Alice");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "Alice");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
 
     ServerCommandSource playerSource(&m_server, playerPtr, 0, Vector3d(10, 64, 10), Vector2f(0, 0), 2, 42, "Alice");
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));
@@ -570,7 +570,7 @@ TEST_F(ServerCommandSourceTest, ChainedWithEntityAndWithPosition)
 TEST_F(ServerCommandSourceTest, WithEntityThenWithPlayerBackToPlayerEntity)
 {
     // 先 withEntity(非玩家实体)，然后 withPlayer(玩家) 切回玩家
-    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityId(1), "Alice");
+    auto serverPlayer = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "Alice");
     serverPlayer->setPlayerId(42);
     auto* playerPtr = serverPlayer.get();
     m_server.spawnEntity(std::move(serverPlayer));
@@ -580,7 +580,7 @@ TEST_F(ServerCommandSourceTest, WithEntityThenWithPlayerBackToPlayerEntity)
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     Entity* pigPtr = pig.get();
     m_server.spawnEntity(std::move(pig));

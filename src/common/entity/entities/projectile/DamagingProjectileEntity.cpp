@@ -30,7 +30,7 @@
 namespace mc {
 namespace entity {
 
-DamagingProjectileEntity::DamagingProjectileEntity(EntityId id)
+DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id)
     : ProjectileEntity(id)
 {
     setNoGravity(true);

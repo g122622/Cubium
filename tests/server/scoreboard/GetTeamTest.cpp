@@ -53,7 +53,7 @@ namespace entity {
 // 测试用实体类，用于测试基类 getTeam() 行为
 class TestEntity : public Entity {
 public:
-    TestEntity(EntityId id)
+    TestEntity(EntityInstanceId id)
         : Entity(id, nullptr)
     {}
 };

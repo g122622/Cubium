@@ -45,7 +45,7 @@ namespace {
  */
 class TestThrowableEntity : public entity::ThrowableEntity {
 public:
-    explicit TestThrowableEntity(EntityId id)
+    explicit TestThrowableEntity(EntityInstanceId id)
         : ThrowableEntity(id)
     {
         // 设置碰撞箱
@@ -97,7 +97,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -107,7 +107,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {

@@ -52,7 +52,7 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
         return nullptr;
     }
 
-    // 创建服务端玩家实体（EntityId 暂时为 0，由 EntityManager 分配）
+    // 创建服务端玩家实体（EntityInstanceId 暂时为 0，由 EntityManager 分配）
     // 使用 mc::ServerPlayer（而非基类 Player），以便：
     // - PlayerAdvancements、StatisticsManager、ServerRecipeBook 等服务端状态就位
     // - Player::asServerPlayer() 返回有效指针，打通成就触发、命令系统、选择器等路径
@@ -80,8 +80,8 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     player->setWorld(&world);
     player->setConnection(std::move(connection));
 
-    // 加入世界实体池（EntityManager 会分配 EntityId）
-    EntityId entityId = world.spawnEntity(std::move(player));
+    // 加入世界实体池（EntityManager 会分配 EntityInstanceId）
+    EntityInstanceId entityId = world.spawnEntity(std::move(player));
     if (entityId == INVALID_ENTITY_ID) {
         spdlog::error("ServerPlayerEntityManager: Failed to spawn player entity for {}", username);
         return nullptr;
@@ -108,7 +108,8 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     m_playerToEntity[playerId] = entityId;
     m_entityToPlayer[entityId] = playerId;
 
-    spdlog::info("ServerPlayerEntityManager: Created player {} (PlayerId={}, EntityId={}) at ({:.1f}, {:.1f}, {:.1f})",
+    spdlog::info(
+        "ServerPlayerEntityManager: Created player {} (PlayerId={}, EntityInstanceId={}) at ({:.1f}, {:.1f}, {:.1f})",
         username,
         playerId,
         entityId,
@@ -129,7 +130,7 @@ void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorl
         return;
     }
 
-    EntityId entityId = it->second;
+    EntityInstanceId entityId = it->second;
 
     // 从实体追踪器移除
     world.entityTracker().untrackEntity(entityId);
@@ -141,7 +142,7 @@ void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorl
     m_playerToEntity.erase(it);
     m_entityToPlayer.erase(entityId);
 
-    spdlog::info("ServerPlayerEntityManager: Removed player {} (EntityId={})", playerId, entityId);
+    spdlog::info("ServerPlayerEntityManager: Removed player {} (EntityInstanceId={})", playerId, entityId);
 }
 
 void ServerPlayerEntityManager::clearAll(ServerWorld& world)
@@ -160,7 +161,7 @@ void ServerPlayerEntityManager::clearAll(ServerWorld& world)
     spdlog::info("ServerPlayerEntityManager: Cleared all player entities");
 }
 
-EntityId ServerPlayerEntityManager::getPlayerEntityId(PlayerId playerId) const
+EntityInstanceId ServerPlayerEntityManager::getPlayerEntityId(PlayerId playerId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -171,7 +172,7 @@ EntityId ServerPlayerEntityManager::getPlayerEntityId(PlayerId playerId) const
     return it->second;
 }
 
-PlayerId ServerPlayerEntityManager::getPlayerIdByEntityId(EntityId entityId) const
+PlayerId ServerPlayerEntityManager::getPlayerIdByEntityId(EntityInstanceId entityId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -184,7 +185,7 @@ PlayerId ServerPlayerEntityManager::getPlayerIdByEntityId(EntityId entityId) con
 
 Player* ServerPlayerEntityManager::getPlayerEntity(PlayerId playerId, ServerWorld& world) const
 {
-    EntityId entityId = getPlayerEntityId(playerId);
+    EntityInstanceId entityId = getPlayerEntityId(playerId);
     if (entityId == INVALID_ENTITY_ID) {
         return nullptr;
     }

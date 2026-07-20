@@ -81,7 +81,7 @@ private:
 class TestAvoidCreature : public CreatureEntity {
 public:
     TestAvoidCreature()
-        : CreatureEntity(EntityId(1))
+        : CreatureEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

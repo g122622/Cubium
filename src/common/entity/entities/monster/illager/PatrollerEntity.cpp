@@ -28,7 +28,7 @@
 
 namespace mc {
 
-PatrollerEntity::PatrollerEntity(EntityId id)
+PatrollerEntity::PatrollerEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {}
 

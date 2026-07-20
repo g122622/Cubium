@@ -82,10 +82,10 @@ public:
 
     void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
@@ -124,7 +124,7 @@ protected:
         m_world = std::make_unique<ZombieTestWorld>();
 
         // 创建僵尸
-        m_zombie = std::make_unique<ZombieEntity>(EntityId(1));
+        m_zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
         m_zombie->setWorld(m_world.get());
         m_zombie->setPosition(0.0, 64.0, 0.0);
     }
@@ -357,7 +357,7 @@ TEST_F(ZombieEntityTest, ConvertToDrownedResetsConversionState)
 TEST_F(ZombieEntityTest, ConvertToDrownedWithoutWorld)
 {
     // 创建没有世界的僵尸
-    auto zombieNoWorld = std::make_unique<ZombieEntity>(EntityId(2));
+    auto zombieNoWorld = std::make_unique<ZombieEntity>(EntityInstanceId(2));
 
     // 不应该崩溃
     zombieNoWorld->convertToDrowned();
@@ -593,14 +593,14 @@ TEST_F(ZombieEntityTest, DoMobSpawningGameruleDisablesReinforcement)
 TEST_F(ZombieEntityTest, DrownedShouldNotDrown)
 {
     // 溺尸不应该触发溺水转化（已经是溺尸状态）
-    auto drowned = std::make_unique<DrownedEntity>(EntityId(100));
+    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(100));
     EXPECT_FALSE(drowned->shouldDrown());
 }
 
 TEST_F(ZombieEntityTest, DrownedCanSpawnInLiquids)
 {
     // 溺尸可以在液体中生成（增援生成时允许在水中）
-    auto drowned = std::make_unique<DrownedEntity>(EntityId(101));
+    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(101));
     EXPECT_TRUE(drowned->canSpawnInLiquids());
 }
 

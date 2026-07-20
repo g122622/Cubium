@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -35,7 +36,6 @@
 #include "world/IWorld.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/special/SpongeBlock.hpp"
 #include "world/block/blocks/special/WetSpongeBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -123,7 +123,7 @@ public:
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         MC_UNUSED(entity);
         return 0;

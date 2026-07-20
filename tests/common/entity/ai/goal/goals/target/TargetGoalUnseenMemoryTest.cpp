@@ -27,9 +27,9 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
-#include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
 #include "entity/registry/VanillaEntities.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 namespace test {
@@ -57,7 +57,7 @@ private:
  */
 class TestPigEntity : public PigEntity {
 public:
-    explicit TestPigEntity(EntityId id)
+    explicit TestPigEntity(EntityInstanceId id)
         : PigEntity(id)
     {}
 
@@ -110,11 +110,11 @@ protected:
 
         world = std::make_unique<UnseenMemoryTestWorld>();
 
-        pig = std::make_unique<TestPigEntity>(EntityId(1));
+        pig = std::make_unique<TestPigEntity>(EntityInstanceId(1));
         pig->setWorld(world.get());
         pig->setPosition(0.0f, 64.0f, 0.0f);
 
-        attacker = std::make_unique<TestPigEntity>(EntityId(2));
+        attacker = std::make_unique<TestPigEntity>(EntityInstanceId(2));
         attacker->setWorld(world.get());
         attacker->setPosition(5.0f, 64.0f, 0.0f);
 
@@ -228,11 +228,11 @@ protected:
 
         world = std::make_unique<UnseenMemoryTestWorld>();
 
-        pig = std::make_unique<TestPigEntity>(EntityId(1));
+        pig = std::make_unique<TestPigEntity>(EntityInstanceId(1));
         pig->setWorld(world.get());
         pig->setPosition(0.0f, 64.0f, 0.0f);
 
-        attacker = std::make_unique<TestPigEntity>(EntityId(2));
+        attacker = std::make_unique<TestPigEntity>(EntityInstanceId(2));
         attacker->setWorld(world.get());
         attacker->setPosition(5.0f, 64.0f, 0.0f);
 

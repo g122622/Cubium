@@ -296,17 +296,17 @@ void onEffectEnd() {
 
 鸡的 `tick()` 生成鸡蛋物品实体后必须立即重置计时器，否则会批量发射鸡蛋。
 
-### 13. Entity::typeId() 类型比较
+### 13. Entity::entityType() 类型比较
 
-旧代码使用 `LegacyEntityType` 枚举进行类型比较，现已废弃。使用新的 `typeId()` 方法和 `EntityTypeIdNumber` 命名空间：
+旧代码使用 `LegacyEntityType` 枚举进行类型比较，现已废弃。使用 `entityType()` 方法和 `VanillaEntityTypeKeys` 命名空间（`const EntityType*` 指针别名，指针比较）：
 ```cpp
 // 新代码
-if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
+if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
     // ...
 }
 ```
 
-**注意**：`EntityTypeIdNumber` 变量在 `VanillaEntities::registerAll()` 后初始化。
+**注意**：`VanillaEntityTypeKeys` 指针在 `VanillaEntities::registerAll()` 后由 `initialize()` 填充。`entityType()` 懒查询注册表并缓存，返回的指针与 `VanillaEntityTypeKeys::*` 同源（均来自 `EntityRegistry::m_types`），可安全指针比较。
 
 ### 14. EntityMetadataPacket 同步
 
@@ -375,9 +375,9 @@ if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
 | RavagerEntity | 1.0f |
 | TurtleEntity | 1.0f |
 
-### 26. EntityTypeIdNumber 初始化时机
+### 26. VanillaEntityTypeKeys 初始化时机
 
-`EntityTypeIdNumber` 变量在 `VanillaEntities::registerAll()` 后初始化，确保在实体类型注册后使用。
+`VanillaEntityTypeKeys` 指针别名在 `VanillaEntities::registerAll()` 后由 `VanillaEntityTypeKeys::initialize()` 填充，确保在实体类型注册后使用。
 
 ### 27. 铁傀儡攻击/持花状态同步
 
@@ -393,7 +393,7 @@ if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
 TNT矿车引燃涉及服务端、网络包、客户端三端同步，与铁傀儡状态同步模式一致：
 - **服务端**：`TNTMinecartEntity::_ignite()` 通过 `IWorld::broadcastEntityStatus()` 广播 `EntityStatusPacket::Status::EatBlock(10)`，并调用 `Entity::playSound(ENTITY_TNT_PRIMED)` 播放音效
 - **网络包**：`EntityPackets.hpp` 中 `EntityStatusPacket::Status::EatBlock` 被羊吃草和TNT矿车引燃共用（status code 10）
-- **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+- **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
 
 修改引燃逻辑或新增共用 status code 的实体状态时，三端必须同步更新。
 

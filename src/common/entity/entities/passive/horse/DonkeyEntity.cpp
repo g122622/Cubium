@@ -32,7 +32,7 @@
 
 namespace mc {
 
-DonkeyEntity::DonkeyEntity(EntityId id)
+DonkeyEntity::DonkeyEntity(EntityInstanceId id)
     : AbstractChestedHorseEntity(id)
 {
     setJumpStrength(0.5f);

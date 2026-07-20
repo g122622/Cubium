@@ -44,7 +44,7 @@ protected:
     void SetUp() override
     {
         // 创建海豚实体
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
     }
 
     void TearDown() override { dolphin.reset(); }

@@ -51,7 +51,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    SquidEntity(EntityId id);
+    SquidEntity(EntityInstanceId id);
     ~SquidEntity() override = default;
 
     // 禁止拷贝

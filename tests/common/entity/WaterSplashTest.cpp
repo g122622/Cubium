@@ -123,9 +123,9 @@ public:
     }
 
     [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] Entity* getEntity(EntityId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityId) const override { return nullptr; }
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -159,7 +159,7 @@ private:
 class TestEntity : public Entity {
 public:
     TestEntity(IWorld* world)
-        : Entity(EntityId(1), world)
+        : Entity(EntityInstanceId(1), world)
     {
         // 初始化实体
         m_position = Vector3(100.0f, 64.0f, 200.0f);
@@ -180,7 +180,7 @@ public:
 class TestPlayer : public Player {
 public:
     TestPlayer(IWorld* world)
-        : Player(EntityId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer")
     {
         setWorld(world);
         m_position = Vector3(100.0f, 64.0f, 200.0f);

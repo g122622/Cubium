@@ -29,7 +29,7 @@ namespace mc::client::sound {
 MovingTickableSound::MovingTickableSound(const ResourceLocation& soundEventId,
     SoundCategory category,
     const EntitySoundHandler* handler,
-    EntityId entityId,
+    EntityInstanceId entityId,
     f32 volume,
     f32 pitch)
     : TickableSound(soundEventId,

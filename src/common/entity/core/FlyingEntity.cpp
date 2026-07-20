@@ -32,7 +32,7 @@
 
 namespace mc {
 
-FlyingEntity::FlyingEntity(EntityId id)
+FlyingEntity::FlyingEntity(EntityInstanceId id)
     : MobEntity(id)
 {
     // 飞行生物默认不受重力影响

@@ -30,7 +30,7 @@
 
 namespace mc {
 
-GiantEntity::GiantEntity(EntityId id)
+GiantEntity::GiantEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 巨人体型巨大 - 通过 width()/height() 设置
@@ -38,7 +38,7 @@ GiantEntity::GiantEntity(EntityId id)
 
 std::unique_ptr<Entity> GiantEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<GiantEntity>(EntityId(0));
+    return std::make_unique<GiantEntity>(EntityInstanceId(0));
 }
 
 void GiantEntity::tick()

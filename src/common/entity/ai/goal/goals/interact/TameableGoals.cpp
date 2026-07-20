@@ -22,11 +22,11 @@
  */
 
 #include "TameableGoals.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -264,7 +264,7 @@ bool BegGoal::shouldExecute()
     f32 closestDistance = m_maxDistance * m_maxDistance; // 使用平方距离比较
 
     for (Entity* entity : entities) {
-        if (entity == nullptr || entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
+        if (entity == nullptr || entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
             continue;
         }
 

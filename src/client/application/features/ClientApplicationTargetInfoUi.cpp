@@ -52,7 +52,7 @@ void ClientApplication::updateTargetInfoUi()
             m_world.entityManager(),
             m_raycastResult,
             5.0f,
-            [this](EntityId entityId) -> std::string {
+            [this](EntityInstanceId entityId) -> std::string {
                 const auto it = m_knownPlayerNames.find(static_cast<PlayerId>(entityId));
                 if (it == m_knownPlayerNames.end()) {
                     return {};

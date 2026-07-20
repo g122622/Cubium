@@ -29,7 +29,7 @@
 
 namespace mc {
 
-SalmonEntity::SalmonEntity(EntityId id)
+SalmonEntity::SalmonEntity(EntityInstanceId id)
     : AbstractGroupFishEntity(id)
 {}
 

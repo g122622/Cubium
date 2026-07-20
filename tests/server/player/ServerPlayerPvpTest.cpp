@@ -122,7 +122,7 @@ private:
 
 class TestServerPlayer : public ServerPlayer {
 public:
-    explicit TestServerPlayer(EntityId id, const std::string& name)
+    explicit TestServerPlayer(EntityInstanceId id, const std::string& name)
         : ServerPlayer(id, name)
     {}
 
@@ -147,8 +147,8 @@ protected:
         m_world = std::make_unique<mc::server::ServerWorld>(mc::server::ServerWorldConfig{});
 
         // 创建 TestServerPlayer 并设置世界
-        m_attacker = std::make_unique<TestServerPlayer>(EntityId(1), "Attacker");
-        m_target = std::make_unique<TestServerPlayer>(EntityId(2), "Target");
+        m_attacker = std::make_unique<TestServerPlayer>(EntityInstanceId(1), "Attacker");
+        m_target = std::make_unique<TestServerPlayer>(EntityInstanceId(2), "Target");
         m_attacker->setWorld(m_world.get());
         m_target->setWorld(m_world.get());
 
@@ -290,7 +290,7 @@ TEST_F(ServerPlayerCanHarmPlayerTest, TogglePvpRule)
 TEST_F(ServerPlayerCanHarmPlayerTest, NullWorld_FallsBackToBaseClass)
 {
     // 当世界指针为空时，跳过 PvP 规则检查，委托给基类
-    auto player = std::make_unique<TestServerPlayer>(EntityId(3), "NoWorldPlayer");
+    auto player = std::make_unique<TestServerPlayer>(EntityInstanceId(3), "NoWorldPlayer");
     // 不设置世界，m_world 为 nullptr
     // 基类 Player::canHarmPlayer 无队伍时返回 true
     EXPECT_TRUE(player->canHarmPlayer(*m_target));
@@ -331,8 +331,8 @@ protected:
     {
         m_world = std::make_unique<mc::server::ServerWorld>(mc::server::ServerWorldConfig{});
 
-        m_attacker = std::make_unique<TestServerPlayer>(EntityId(1), "Attacker");
-        m_target = std::make_unique<TestServerPlayer>(EntityId(2), "Target");
+        m_attacker = std::make_unique<TestServerPlayer>(EntityInstanceId(1), "Attacker");
+        m_target = std::make_unique<TestServerPlayer>(EntityInstanceId(2), "Target");
         m_attacker->setWorld(m_world.get());
         m_target->setWorld(m_world.get());
 
@@ -446,7 +446,7 @@ TEST_F(ServerPlayerHurtPvpTest, IndirectPlayerDamage_PvpEnabled_AllowsDamage)
 TEST_F(ServerPlayerHurtPvpTest, NullWorld_PlayerAttack_AllowsDamage)
 {
     // 攻击者无世界指针时，canHarmPlayer 委托给基类（无 PvP 规则检查）
-    auto attackerNoWorld = std::make_unique<TestServerPlayer>(EntityId(3), "NoWorldAttacker");
+    auto attackerNoWorld = std::make_unique<TestServerPlayer>(EntityInstanceId(3), "NoWorldAttacker");
     // 不设置世界，m_world 为 nullptr
     auto source = DamageSources::playerAttack(attackerNoWorld.get());
     bool result = m_target->hurt(source, 5.0f);

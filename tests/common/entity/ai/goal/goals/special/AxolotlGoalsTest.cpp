@@ -24,9 +24,9 @@
 
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/AxolotlGoals.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 namespace {
@@ -152,10 +152,10 @@ protected:
 TEST_F(AxolotlTargetGoalTest, AlwaysTargetHostileMobs)
 {
     // 始终攻击的目标实体类型 ID
-    // 验证 EntityTypeIdNumber 常量存在
-    (void)entity::EntityTypeIdNumber::DROWNED;
-    (void)entity::EntityTypeIdNumber::GUARDIAN;
-    (void)entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+    // 验证 VanillaEntityTypeKeys 常量存在
+    (void)entity::VanillaEntityTypeKeys::DROWNED;
+    (void)entity::VanillaEntityTypeKeys::GUARDIAN;
+    (void)entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
 }
 
 /**
@@ -171,11 +171,11 @@ TEST_F(AxolotlTargetGoalTest, AlwaysTargetHostileMobs)
 TEST_F(AxolotlTargetGoalTest, HuntingTargetsWithCooldownCheck)
 {
     // 狩猎目标实体类型 ID
-    (void)entity::EntityTypeIdNumber::TROPICAL_FISH;
-    (void)entity::EntityTypeIdNumber::PUFFERFISH;
-    (void)entity::EntityTypeIdNumber::SALMON;
-    (void)entity::EntityTypeIdNumber::COD;
-    (void)entity::EntityTypeIdNumber::SQUID;
+    (void)entity::VanillaEntityTypeKeys::TROPICAL_FISH;
+    (void)entity::VanillaEntityTypeKeys::PUFFERFISH;
+    (void)entity::VanillaEntityTypeKeys::SALMON;
+    (void)entity::VanillaEntityTypeKeys::COD;
+    (void)entity::VanillaEntityTypeKeys::SQUID;
 }
 
 /**

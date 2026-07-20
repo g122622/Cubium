@@ -44,7 +44,7 @@ protected:
 
     void SetUp() override
     {
-        m_entity = std::make_unique<LivingEntity>(EntityId(1));
+        m_entity = std::make_unique<LivingEntity>(EntityInstanceId(1));
         m_entity->registerData();
         m_entity->registerAttributes();
         // LivingEntity::registerAttributes() 不注册以下属性（由子类注册），

@@ -200,7 +200,7 @@ public:
         mc::world::spawn::SpawnReason spawnReason) override;
 
 protected:
-    AbstractSkeletonEntity(EntityId id);
+    AbstractSkeletonEntity(EntityInstanceId id);
 
     void registerGoals() override;
     void registerAttributes() override;

@@ -51,7 +51,7 @@ VibrationSignalParticle::VibrationSignalParticle(
 }
 
 VibrationSignalParticle::VibrationSignalParticle(
-    const glm::vec3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks)
+    const glm::vec3& pos, EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks)
     : Particle(pos, glm::vec3(0.0f))
     , m_kind(TargetKind::Entity)
     , m_targetEntityId(targetEntityId)
@@ -89,7 +89,7 @@ std::unique_ptr<Particle> VibrationSignalParticle::createWithTarget(
 }
 
 std::unique_ptr<Particle> VibrationSignalParticle::createWithEntityTarget(
-    const glm::vec3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks)
+    const glm::vec3& pos, EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks)
 {
     return std::make_unique<VibrationSignalParticle>(pos, targetEntityId, yOffset, arrivalInTicks);
 }

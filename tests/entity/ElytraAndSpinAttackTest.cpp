@@ -49,7 +49,7 @@ using namespace mc::entity;
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1), nullptr)
+        : LivingEntity(EntityInstanceId(1), nullptr)
     {
         // 注册数据参数
         registerData();

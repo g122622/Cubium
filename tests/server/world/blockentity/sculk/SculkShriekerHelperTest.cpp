@@ -465,7 +465,7 @@ TEST_F(SculkShriekerHelperConstantsTest, WardenSoundByLevel)
  */
 class TestProjectileEntity : public mc::entity::ProjectileEntity {
 public:
-    explicit TestProjectileEntity(EntityId id)
+    explicit TestProjectileEntity(EntityInstanceId id)
         : ProjectileEntity(id)
     {}
 };
@@ -480,13 +480,13 @@ class TryGetPlayerTestWorld : public test::BaseTestWorld {
 public:
     TryGetPlayerTestWorld() = default;
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second.get() : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second.get() : nullptr;
@@ -512,7 +512,7 @@ public:
     void registerEntity(std::unique_ptr<Entity> entity)
     {
         Entity* raw = entity.get();
-        EntityId id = raw->id();
+        EntityInstanceId id = raw->id();
         std::string uuid = raw->uuid();
         raw->setWorld(this);
         m_uuidToEntity[uuid] = raw;
@@ -520,7 +520,7 @@ public:
     }
 
 private:
-    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
     std::unordered_map<std::string, Entity*> m_uuidToEntity;
 };
 
@@ -537,7 +537,7 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, NullptrEntityReturnsNullptr)
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, DirectPlayerReturnsPlayer)
 {
-    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
     Player* rawPlayer = player.get();
     world.registerEntity(std::move(player));
 
@@ -548,7 +548,7 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, DirectPlayerReturnsPlayer)
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, NonPlayerEntityReturnsNullptr)
 {
-    auto entity = std::make_unique<LivingEntity>(EntityId(2));
+    auto entity = std::make_unique<LivingEntity>(EntityInstanceId(2));
     Entity* rawEntity = entity.get();
     world.registerEntity(std::move(entity));
 
@@ -559,8 +559,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, NonPlayerEntityReturnsNullptr)
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerIsPlayer)
 {
     // 创建载具实体和玩家乘客
-    auto vehicle = std::make_unique<LivingEntity>(EntityId(10));
-    auto player = std::make_unique<Player>(EntityId(11), "RiderPlayer");
+    auto vehicle = std::make_unique<LivingEntity>(EntityInstanceId(10));
+    auto player = std::make_unique<Player>(EntityInstanceId(11), "RiderPlayer");
     Player* rawPlayer = player.get();
 
     // 先注册实体到世界（startRiding 需要世界引用来查找实体）
@@ -580,8 +580,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerIsPlayer)
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerNotPlayerReturnsNullptr)
 {
     // 创建载具实体和非玩家乘客
-    auto vehicle = std::make_unique<LivingEntity>(EntityId(20));
-    auto passenger = std::make_unique<LivingEntity>(EntityId(21));
+    auto vehicle = std::make_unique<LivingEntity>(EntityInstanceId(20));
+    auto passenger = std::make_unique<LivingEntity>(EntityInstanceId(21));
 
     // 先注册实体到世界
     Entity* rawVehicle = vehicle.get();
@@ -600,9 +600,9 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerNotPlayerReturns
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithPlayerShooterReturnsPlayer)
 {
     // 创建投射物和射手玩家
-    auto player = std::make_unique<Player>(EntityId(30), "ShooterPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(30), "ShooterPlayer");
     Player* rawPlayer = player.get();
-    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(31));
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityInstanceId(31));
     Entity* rawProjectile = projectile.get();
 
     // 先注册玩家到世界
@@ -622,8 +622,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithPlayerShooterReturnsPl
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNonPlayerShooterReturnsNullptr)
 {
     // 创建投射物和非玩家射手
-    auto shooter = std::make_unique<LivingEntity>(EntityId(40));
-    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(41));
+    auto shooter = std::make_unique<LivingEntity>(EntityInstanceId(40));
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityInstanceId(41));
     Entity* rawProjectile = projectile.get();
 
     // 先注册射手到世界
@@ -643,7 +643,7 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNonPlayerShooterReturn
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNoShooterReturnsNullptr)
 {
     // 创建投射物（无射手）
-    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(50));
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityInstanceId(50));
     Entity* rawProjectile = projectile.get();
     world.registerEntity(std::move(projectile));
 
@@ -655,10 +655,10 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNoShooterReturnsNullpt
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithPlayerOwnerReturnsPlayer)
 {
     // 创建物品实体和所有者玩家
-    auto player = std::make_unique<Player>(EntityId(60), "OwnerPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(60), "OwnerPlayer");
     Player* rawPlayer = player.get();
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(61), emptyStack, 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(61), emptyStack, 0.0f, 0.0f, 0.0f);
     Entity* rawItemEntity = itemEntity.get();
 
     // 先注册玩家到世界
@@ -677,10 +677,10 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithPlayerOwnerReturnsPlay
 TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNonPlayerOwnerReturnsNullptr)
 {
     // 创建物品实体和非玩家所有者
-    auto owner = std::make_unique<LivingEntity>(EntityId(70));
+    auto owner = std::make_unique<LivingEntity>(EntityInstanceId(70));
     owner->setUuid("non-player-owner-uuid");
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(71), emptyStack, 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(71), emptyStack, 0.0f, 0.0f, 0.0f);
     Entity* rawItemEntity = itemEntity.get();
 
     // 先注册所有者到世界
@@ -699,7 +699,7 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNoOwnerReturnsNullptr)
 {
     // 创建物品实体（无所有者）
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(80), emptyStack, 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(80), emptyStack, 0.0f, 0.0f, 0.0f);
     Entity* rawItemEntity = itemEntity.get();
     world.registerEntity(std::move(itemEntity));
 
@@ -712,7 +712,7 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithOwnerNotInWorldReturns
 {
     // 创建物品实体，所有者UUID已设置但对应实体不存在于世界中
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(90), emptyStack, 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(90), emptyStack, 0.0f, 0.0f, 0.0f);
     Entity* rawItemEntity = itemEntity.get();
     world.registerEntity(std::move(itemEntity));
 

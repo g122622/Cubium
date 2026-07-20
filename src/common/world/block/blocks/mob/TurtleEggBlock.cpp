@@ -26,8 +26,8 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -188,7 +188,7 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
 
         // 为每个蛋生成一只小海龟
         for (i32 i = 0; i < eggs; ++i) {
-            auto turtle = std::make_unique<TurtleEntity>(EntityId(0));
+            auto turtle = std::make_unique<TurtleEntity>(EntityInstanceId(0));
             if (turtle) {
                 // 设置为幼体（-24000 ticks = 20分钟）
                 turtle->setChild(true);
@@ -249,10 +249,10 @@ bool TurtleEggBlock::_canTrample(IWorld& world, Entity& entity) const
     // 海龟和蝙蝠不能踩破蛋
 
     // 获取实体类型
-    entity::EntityTypeId type = entity.typeId();
+    const entity::EntityType* type = entity.entityType();
 
     // 海龟和蝙蝠不能踩破蛋
-    if (type == entity::EntityTypeIdNumber::TURTLE || type == entity::EntityTypeIdNumber::BAT) {
+    if (type == entity::VanillaEntityTypeKeys::TURTLE || type == entity::VanillaEntityTypeKeys::BAT) {
         return false;
     }
 
@@ -265,7 +265,7 @@ bool TurtleEggBlock::_canTrample(IWorld& world, Entity& entity) const
     }
 
     // 玩家总是可以踩破
-    if (type == entity::EntityTypeIdNumber::PLAYER) {
+    if (type == entity::VanillaEntityTypeKeys::PLAYER) {
         return true;
     }
 
@@ -319,10 +319,10 @@ bool TurtleEggBlock::_isZombieType(Entity& entity) const
 {
     // 检查实体是否为僵尸类（僵尸、尸壳、溺尸等会踩破海龟蛋）
     // 骷髅、流浪者、凋灵骷髅虽然是亡灵，但不是僵尸类，不会踩破蛋
-    entity::EntityTypeId type = entity.typeId();
+    const entity::EntityType* type = entity.entityType();
 
-    if (type == entity::EntityTypeIdNumber::ZOMBIE || type == entity::EntityTypeIdNumber::HUSK ||
-        type == entity::EntityTypeIdNumber::DROWNED) {
+    if (type == entity::VanillaEntityTypeKeys::ZOMBIE || type == entity::VanillaEntityTypeKeys::HUSK ||
+        type == entity::VanillaEntityTypeKeys::DROWNED) {
         return true;
     }
     return false;

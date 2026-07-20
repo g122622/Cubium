@@ -97,16 +97,16 @@ sensor/
 **依赖（上游）**：
 - `entity/core/MobEntity.hpp` - 生物实体基类
 - `entity/core/LivingEntity.hpp` - 活体实体基类
-- `entity/core/EntityTypeIdNumber.hpp` - 实体类型ID缓存（VillagerHostilesSensor 使用）
+- `entity/registry/VanillaEntityTypeKeys.hpp` - 实体类型指针缓存（VillagerHostilesSensor 使用）
 - `entity/interfaces/IMob.hpp` - 敌对标记接口（AvoidEntitySensor 使用）
 - `entity/entities/passive/tamable/TameableEntity.hpp` - 驯服实体接口（OwnerHurtBySensor 使用）
 - `world/IWorld.hpp` - 世界访问
 
 ## 容易踩的坑
 
-### 1. VillagerHostilesSensor 依赖 EntityTypeIdNumber 初始化
+### 1. VillagerHostilesSensor 依赖 VanillaEntityTypeKeys 初始化
 
-`EntityTypeIdNumber` 中的变量在 `VanillaEntities::registerAll()` 之后才有值。如果在实体注册前使用 `VillagerHostilesSensor`，距离映射表中的类型 ID 将为 0，导致所有敌对生物都无法被检测到。
+`VanillaEntityTypeKeys` 中的指针在 `VanillaEntities::registerAll()` 之后才有值。如果在实体注册前使用 `VillagerHostilesSensor`，距离映射表中的类型指针将为 nullptr，导致所有敌对生物都无法被检测到。
 
 ### 2. MobSensor 不再设置 NEAREST_HOSTILE
 

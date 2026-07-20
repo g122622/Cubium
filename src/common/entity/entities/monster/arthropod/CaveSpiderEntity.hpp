@@ -49,7 +49,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    CaveSpiderEntity(EntityId id);
+    CaveSpiderEntity(EntityInstanceId id);
 
     ~CaveSpiderEntity() override = default;
 

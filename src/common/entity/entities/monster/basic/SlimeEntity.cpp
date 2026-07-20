@@ -46,7 +46,7 @@
 
 namespace mc {
 
-SlimeEntity::SlimeEntity(EntityId id)
+SlimeEntity::SlimeEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 史莱姆不在阳光下燃烧
@@ -61,7 +61,7 @@ SlimeEntity::SlimeEntity(EntityId id)
 
 std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SlimeEntity>(EntityId(0));
+    return std::make_unique<SlimeEntity>(EntityInstanceId(0));
 }
 
 void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)
@@ -332,7 +332,7 @@ void SlimeEntity::performSplit()
 
     // 获取实体类型来创建新实例
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* slimeType = registry.getType(entity::EntityTypes::SLIME);
+    const entity::EntityType* slimeType = registry.getType(entity::EntityTypeKeys::SLIME);
 
     if (!slimeType || !slimeType->canSummon()) {
         spdlog::warn("SlimeEntity: Slime entity type not found or not summonable");

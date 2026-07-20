@@ -80,7 +80,7 @@ constexpr i32 NAUSEA_DURATION = 200; // 10秒
 // 构造函数
 // ============================================================================
 
-ZombieVillagerEntity::ZombieVillagerEntity(EntityId id)
+ZombieVillagerEntity::ZombieVillagerEntity(EntityInstanceId id)
     : ZombieEntity(id)
 {
     // 僵尸村民比普通僵尸慢
@@ -96,7 +96,7 @@ ZombieVillagerEntity::ZombieVillagerEntity(EntityId id)
 
 std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ZombieVillagerEntity>(EntityId(0));
+    return std::make_unique<ZombieVillagerEntity>(EntityInstanceId(0));
 }
 
 // ============================================================================
@@ -244,7 +244,7 @@ void ZombieVillagerEntity::finishConverting()
         newEntity = villagerType->create(m_world);
     } else {
         // 回退：直接创建 VillagerEntity
-        newEntity = std::make_unique<entity::VillagerEntity>(EntityId(0));
+        newEntity = std::make_unique<entity::VillagerEntity>(EntityInstanceId(0));
     }
 
     if (!newEntity) {
@@ -312,7 +312,7 @@ void ZombieVillagerEntity::finishConverting()
 
     // 释放所有权并生成到世界
     newEntity.release();
-    EntityId newId = m_world->spawnEntity(std::unique_ptr<Entity>(villager));
+    EntityInstanceId newId = m_world->spawnEntity(std::unique_ptr<Entity>(villager));
 
     if (newId == 0) {
         spdlog::error("ZombieVillagerEntity::finishConverting: failed to spawn villager entity");

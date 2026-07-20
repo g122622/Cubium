@@ -105,7 +105,7 @@ Result<void> EntityDeserializer::attachPassengers(Entity& vehicle, IWorld& world
         }
 
         // 把乘客 spawn 进世界，由 world 分配真实 id
-        EntityId passengerId = world.spawnEntity(std::move(passenger));
+        EntityInstanceId passengerId = world.spawnEntity(std::move(passenger));
         if (passengerId == 0) {
             return Error(ErrorCode::InvalidState, "Failed to spawn deserialized passenger entity");
         }

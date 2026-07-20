@@ -996,7 +996,7 @@ void NetworkClient::_handleLoginResponse(network::PacketDeserializer& deser)
     auto& response = result.value();
     if (response.success()) {
         m_playerId = response.playerId();
-        EntityId entityId = response.entityId();
+        EntityInstanceId entityId = response.entityId();
         _setState(ClientState::Playing);
 
         spdlog::info(
@@ -1919,7 +1919,7 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
             f64 targetX = packet.x();
             f64 targetY = packet.y();
             f64 targetZ = packet.z();
-            EntityId targetEntityId = INVALID_ENTITY_ID;
+            EntityInstanceId targetEntityId = INVALID_ENTITY_ID;
             f32 yOffset = 0.0f;
             const u8 targetKind = static_cast<u8>(target->kind);
             if (target->kind == network::ParticlePacket::VibrationTarget::Kind::Block) {

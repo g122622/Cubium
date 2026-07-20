@@ -41,6 +41,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -52,7 +53,7 @@
 
 namespace mc {
 
-EvokerEntity::EvokerEntity(EntityId id)
+EvokerEntity::EvokerEntity(EntityInstanceId id)
     : SpellcastingIllagerEntity(id)
 {
     registerAttributes();
@@ -60,7 +61,7 @@ EvokerEntity::EvokerEntity(EntityId id)
 
 std::unique_ptr<Entity> EvokerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EvokerEntity>(EntityId(0));
+    return std::make_unique<EvokerEntity>(EntityInstanceId(0));
 }
 
 void EvokerEntity::startCasting(i32 spellType)
@@ -183,7 +184,7 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
         f32 groundY = static_cast<f32>(blockPos.y) + shapeMaxY;
 
         // 创建唤魔者尖牙实体
-        auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityId(0));
+        auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityInstanceId(0));
         fangs->setPosition(posX, groundY, posZ);
         fangs->setRotation(angle * math::RAD_TO_DEG, 0.0f);
         fangs->setWarmupDelay(warmupDelay);
@@ -215,7 +216,7 @@ void EvokerEntity::summonVex()
         BlockPos spawnPos(static_cast<i32>(x()) + offsetX, static_cast<i32>(y()) + 1, static_cast<i32>(z()) + offsetZ);
 
         // 创建恼鬼实体
-        auto vex = std::make_unique<VexEntity>(EntityId(0));
+        auto vex = std::make_unique<VexEntity>(EntityInstanceId(0));
         vex->setPosition(static_cast<f32>(spawnPos.x), static_cast<f32>(spawnPos.y), static_cast<f32>(spawnPos.z));
         vex->setRotation(0.0f, 0.0f);
 
@@ -262,14 +263,14 @@ void EvokerEntity::registerGoals()
     goalSelector().addGoal(1, new entity::ai::goal::EvokerCastingSpellGoal(this));
     goalSelector().addGoal(
         2, new entity::ai::goal::AvoidEntityGoal(this, 8.0f, 0.6, 1.0, [](const LivingEntity* e) -> bool {
-            return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return e != nullptr && e->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
     goalSelector().addGoal(4, new entity::ai::goal::EvokerSummonSpellGoal(this));
     goalSelector().addGoal(5, new entity::ai::goal::EvokerAttackSpellGoal(this));
     goalSelector().addGoal(6, new entity::ai::goal::EvokerWololoSpellGoal(this));
     goalSelector().addGoal(8, new entity::ai::goal::RandomWalkingGoal(this, 0.6));
     goalSelector().addGoal(9, new entity::ai::goal::LookAtGoal(this, 3.0f, 1.0f, [](const LivingEntity* e) -> bool {
-        return e != nullptr && e->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        return e != nullptr && e->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
     }));
     goalSelector().addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* e) -> bool {
         return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;

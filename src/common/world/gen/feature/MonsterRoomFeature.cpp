@@ -42,10 +42,10 @@ namespace {
 
 /// MOBS 数组：zombie 出现两次，使选取概率为 skeleton:1/4, zombie:1/2, spider:1/4。
 const std::array<ResourceLocation, 4> MOBS = {
-    ResourceLocation(mc::entity::EntityTypes::SKELETON),
-    ResourceLocation(mc::entity::EntityTypes::ZOMBIE),
-    ResourceLocation(mc::entity::EntityTypes::ZOMBIE),
-    ResourceLocation(mc::entity::EntityTypes::SPIDER),
+    ResourceLocation(mc::entity::EntityTypeKeys::SKELETON),
+    ResourceLocation(mc::entity::EntityTypeKeys::ZOMBIE),
+    ResourceLocation(mc::entity::EntityTypeKeys::ZOMBIE),
+    ResourceLocation(mc::entity::EntityTypeKeys::SPIDER),
 };
 
 /// SIMPLE_DUNGEON 战利品表（项目无常量类，用字面量）。

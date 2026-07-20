@@ -212,7 +212,7 @@ protected:
     void SetUp() override
     {
         Items::initialize();
-        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }
 

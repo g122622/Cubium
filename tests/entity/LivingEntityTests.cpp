@@ -119,14 +119,14 @@ private:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(2))
+        : MobEntity(EntityInstanceId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
         // makeSoundEventId 由 typeId 构造音效 ID（minecraft:entity.<type>.<suffix>），
         // 直接构造的实体 m_typeId 为空会导致 getHurtSound/getDeathSound/
         // getAmbientSound 返回 nullopt。设为 minecraft:cow 使音效测试可验证。
-        setTypeId(entity::EntityTypes::COW);
+        setTypeId(entity::EntityTypeKeys::COW);
     }
 };
 
@@ -139,14 +139,14 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
         // makeSoundEventId 由 typeId 构造音效 ID，直接构造的实体 m_typeId 为空
         // 会导致 getHurtSound/getDeathSound 返回 nullopt。设为 minecraft:player
         // 使 HurtPlaysSound/DeathPlaysSound 可验证（对齐 commit 8bb41781b 策略）。
-        setTypeId(entity::EntityTypes::PLAYER);
+        setTypeId(entity::EntityTypeKeys::PLAYER);
     }
 };
 
@@ -429,7 +429,7 @@ TEST(LivingEntityTest, MobFallsWhenSupportIsRemoved)
     VanillaBlocks::initialize();
 
     GroundSupportWorld world;
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&world);
     mob.setPosition(0.3f, 1.0f, 0.3f);
 
@@ -550,7 +550,7 @@ TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
     class TestMonster : public MonsterEntity {
     public:
         TestMonster()
-            : MonsterEntity(EntityId(1))
+            : MonsterEntity(EntityInstanceId(1))
         {
             // C++ 虚方法在基类构造中只 dispatch 到基类版本，LivingEntity 构造调用的
             // registerAttributes 不会派发到 MonsterEntity::registerAttributes，故需在此
@@ -850,7 +850,7 @@ TEST(LivingEntityTest, CanBreatheUnderwater_Default)
 class TestUndeadEntity : public LivingEntity {
 public:
     TestUndeadEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

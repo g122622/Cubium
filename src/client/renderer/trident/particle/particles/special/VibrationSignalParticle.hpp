@@ -76,7 +76,7 @@ public:
      * @param yOffset Y 轴偏移（如眼睛高度）
      * @param arrivalInTicks 到达目标位置的 tick 数（即粒子生命周期）
      */
-    VibrationSignalParticle(const glm::vec3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
+    VibrationSignalParticle(const glm::vec3& pos, EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     /**
      * @brief 工厂函数（标准粒子工厂，用于 ParticleRegistry 注册）
@@ -110,7 +110,7 @@ public:
      * @param arrivalInTicks 到达目标的 tick 数
      */
     static std::unique_ptr<Particle> createWithEntityTarget(
-        const glm::vec3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
+        const glm::vec3& pos, EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     void tick(mc::client::ClientWorld* world) override;
 
@@ -144,11 +144,11 @@ private:
     /// 最大亮度光照值（skyLight=15, blockLight=15 的组合值）
     static constexpr u32 FULL_BRIGHTNESS = 15728880;
 
-    TargetKind m_kind = TargetKind::Block;         ///< 目标来源类型
-    Vector3d m_targetPosition;                     ///< 方块来源的目标位置（世界坐标）
-    EntityId m_targetEntityId = INVALID_ENTITY_ID; ///< 实体来源的目标实体 ID
-    f32 m_yOffset = 0.0f;                          ///< 实体来源的 Y 轴偏移
-    i32 m_arrivalInTicks;                          ///< 到达目标的总 tick 数（生命周期）
+    TargetKind m_kind = TargetKind::Block;                 ///< 目标来源类型
+    Vector3d m_targetPosition;                             ///< 方块来源的目标位置（世界坐标）
+    EntityInstanceId m_targetEntityId = INVALID_ENTITY_ID; ///< 实体来源的目标实体 ID
+    f32 m_yOffset = 0.0f;                                  ///< 实体来源的 Y 轴偏移
+    i32 m_arrivalInTicks;                                  ///< 到达目标的总 tick 数（生命周期）
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

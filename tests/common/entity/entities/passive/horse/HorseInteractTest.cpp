@@ -92,11 +92,11 @@ protected:
  */
 TEST_F(HorseInteractTest, ChildHorseReturnsBaseClassResult)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setChild(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 幼年马交互结果应该是基类 AnimalEntity::interactMob 的返回值（Pass）
@@ -109,11 +109,11 @@ TEST_F(HorseInteractTest, ChildHorseReturnsBaseClassResult)
  */
 TEST_F(HorseInteractTest, TameSneakingPlayerOpensInventory)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setSneaking(true);
 
@@ -127,10 +127,10 @@ TEST_F(HorseInteractTest, TameSneakingPlayerOpensInventory)
  */
 TEST_F(HorseInteractTest, UntamedEmptyHandTriggersRide)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 空手交互未驯服的马应该触发 doPlayerRide，返回 Success
@@ -143,11 +143,11 @@ TEST_F(HorseInteractTest, UntamedEmptyHandTriggersRide)
  */
 TEST_F(HorseInteractTest, TamedEmptyHandTriggersRide)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     auto result = horse->interactMob(*player, Hand::MainHand);
@@ -159,11 +159,11 @@ TEST_F(HorseInteractTest, TamedEmptyHandTriggersRide)
  */
 TEST_F(HorseInteractTest, TameSneakingPlayerDoesNotRide)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setSneaking(true);
 
@@ -190,11 +190,11 @@ TEST_F(HorseInteractTest, EquipHorseArmorOnTamedHorse)
         GTEST_SKIP() << "IRON_HORSE_ARMOR not registered";
     }
 
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 马初始没有护甲
@@ -230,10 +230,10 @@ TEST_F(HorseInteractTest, EquipHorseArmorOnTamedHorse)
  */
 TEST_F(HorseInteractTest, DoPlayerRideDoesNotCrash)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 调用 doPlayerRide 不应该崩溃
@@ -254,11 +254,11 @@ TEST_F(HorseInteractTest, TamedHorseFoodPriorityOverRide)
         GTEST_SKIP() << "GOLDEN_CARROT not registered";
     }
 
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 设置手持金胡萝卜
@@ -275,10 +275,10 @@ TEST_F(HorseInteractTest, TamedHorseFoodPriorityOverRide)
  */
 TEST_F(HorseInteractTest, UntamedHorseTriggersRideOnEmptyHand)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     auto result = horse->interactMob(*player, Hand::MainHand);
@@ -298,11 +298,11 @@ TEST_F(HorseInteractTest, TamedDonkeyWithChestEquipsChest)
         GTEST_SKIP() << "CHEST not registered";
     }
 
-    auto donkey = std::make_unique<DonkeyEntity>(EntityId(1));
+    auto donkey = std::make_unique<DonkeyEntity>(EntityInstanceId(1));
     donkey->setWorld(m_world.get());
     donkey->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 驴初始没有箱子
@@ -332,11 +332,11 @@ TEST_F(HorseInteractTest, UntamedDonkeyWithChestGetsAngry)
         GTEST_SKIP() << "CHEST not registered";
     }
 
-    auto donkey = std::make_unique<DonkeyEntity>(EntityId(1));
+    auto donkey = std::make_unique<DonkeyEntity>(EntityInstanceId(1));
     donkey->setWorld(m_world.get());
     // 驴未驯服
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 设置手持箱子
@@ -360,12 +360,12 @@ TEST_F(HorseInteractTest, TamedDonkeyWithExistingChestCannotEquipAgain)
         GTEST_SKIP() << "CHEST not registered";
     }
 
-    auto donkey = std::make_unique<DonkeyEntity>(EntityId(1));
+    auto donkey = std::make_unique<DonkeyEntity>(EntityInstanceId(1));
     donkey->setWorld(m_world.get());
     donkey->setTame(true);
     donkey->setChest(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 设置手持箱子
@@ -394,10 +394,10 @@ TEST_F(HorseInteractTest, ChestEquippingExpandsInventorySize)
         GTEST_SKIP() << "CHEST not registered";
     }
 
-    auto donkey = std::make_unique<DonkeyEntity>(EntityId(1));
+    auto donkey = std::make_unique<DonkeyEntity>(EntityInstanceId(1));
     donkey->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 初始没有箱子
@@ -430,7 +430,7 @@ TEST_F(HorseInteractTest, ChestEquippingExpandsInventorySize)
  */
 TEST_F(HorseInteractTest, LlamaCannotEquipSaddle)
 {
-    auto llama = std::make_unique<LlamaEntity>(EntityId(1));
+    auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1));
     EXPECT_FALSE(llama->canEquipSaddle());
 }
 
@@ -439,7 +439,7 @@ TEST_F(HorseInteractTest, LlamaCannotEquipSaddle)
  */
 TEST_F(HorseInteractTest, LlamaHasArmorSlot)
 {
-    auto llama = std::make_unique<LlamaEntity>(EntityId(1));
+    auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1));
     EXPECT_TRUE(llama->hasArmorSlot());
 }
 
@@ -452,7 +452,7 @@ TEST_F(HorseInteractTest, LlamaFoodItemDetection)
         GTEST_SKIP() << "WHEAT not registered";
     }
 
-    auto llama = std::make_unique<LlamaEntity>(EntityId(1));
+    auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1));
     llama->setWorld(m_world.get());
 
     ItemStack wheatStack(Items::WHEAT, 1);
@@ -469,7 +469,7 @@ TEST_F(HorseInteractTest, LlamaHayBlockFoodItem)
         GTEST_SKIP() << "HAY_BLOCK not registered";
     }
 
-    auto llama = std::make_unique<LlamaEntity>(EntityId(1));
+    auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1));
     llama->setWorld(m_world.get());
 
     ItemStack hayStack(Items::HAY_BLOCK, 1);
@@ -489,11 +489,11 @@ TEST_F(HorseInteractTest, LlamaHayBlockFoodItem)
  */
 TEST_F(HorseInteractTest, BeingRiddenHorseDelegatesToBaseClass)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 空手交互已驯服的马应该触发骑乘
@@ -510,11 +510,11 @@ TEST_F(HorseInteractTest, TamedHorseWithArmorEquipsArmor)
         GTEST_SKIP() << "IRON_HORSE_ARMOR not registered";
     }
 
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 手持铁马铠
@@ -538,11 +538,11 @@ TEST_F(HorseInteractTest, TamedHorseWithArmorEquipsArmor)
  */
 TEST_F(HorseInteractTest, OpenInventoryDoesNotCrash)
 {
-    auto horse = std::make_unique<HorseEntity>(EntityId(1));
+    auto horse = std::make_unique<HorseEntity>(EntityInstanceId(1));
     horse->setWorld(m_world.get());
     horse->setTame(true);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 调用 openInventory 不应该崩溃

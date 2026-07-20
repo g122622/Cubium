@@ -49,7 +49,7 @@ namespace mc {
 
 using namespace entity::serialization::nbt_helper;
 
-MooshroomEntity::MooshroomEntity(EntityId id)
+MooshroomEntity::MooshroomEntity(EntityInstanceId id)
     : CowEntity(id)
 {
     // 默认红色哞菇

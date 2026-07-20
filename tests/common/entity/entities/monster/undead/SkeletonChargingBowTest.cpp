@@ -108,7 +108,7 @@ TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Sk
 {
     // AbstractSkeletonEntity 构造函数显式调用 registerData()（参考 WolfEntity 模式），
     // 注册 DATA_CHARGING_BOW_PARAM，默认值 false。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
@@ -118,7 +118,7 @@ TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Sk
 
 TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Stray)
 {
-    auto stray = std::make_unique<StrayEntity>(EntityId(1));
+    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(1));
     stray->setWorld(m_world.get());
 
     const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
@@ -128,7 +128,7 @@ TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_St
 
 TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Bogged)
 {
-    auto bogged = std::make_unique<BoggedEntity>(EntityId(1));
+    auto bogged = std::make_unique<BoggedEntity>(EntityInstanceId(1));
     bogged->setWorld(m_world.get());
 
     const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
@@ -140,7 +140,7 @@ TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Wi
 {
     // 凋灵骷髅不持弓（走 MeleeAttackGoal），但仍继承 AbstractSkeletonEntity 的 registerData，
     // DATA_CHARGING_BOW_PARAM 会注册但永远不会被设置为 true（不持弓、不拉弓）。
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1));
     witherSkeleton->setWorld(m_world.get());
 
     const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
@@ -154,13 +154,13 @@ TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Wi
 
 TEST_F(SkeletonChargingBowTest, IsChargingBow_DefaultFalse)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     EXPECT_FALSE(skeleton->isChargingBow()) << "拉弓状态默认应为 false";
 }
 
 TEST_F(SkeletonChargingBowTest, SetChargingBow_True_ReadsBackTrue)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
 
     skeleton->setChargingBow(true);
     EXPECT_TRUE(skeleton->isChargingBow());
@@ -168,7 +168,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_True_ReadsBackTrue)
 
 TEST_F(SkeletonChargingBowTest, SetChargingBow_False_ReadsBackFalse)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setChargingBow(true);
 
     skeleton->setChargingBow(false);
@@ -177,7 +177,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_False_ReadsBackFalse)
 
 TEST_F(SkeletonChargingBowTest, SetChargingBow_ToggleBackAndForth)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
 
     skeleton->setChargingBow(true);
     EXPECT_TRUE(skeleton->isChargingBow());
@@ -197,7 +197,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_True_MarksDirty)
 {
     // setChargingBow 通过 m_dataManager.set 写入 DataParameter。
     // EntityTracker 监测 hasDirtyData() 并自动广播到客户端。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     auto& dm = skeleton->dataManager();
     dm.clearDirty(); // 清除构造期间可能的脏标记
 
@@ -208,7 +208,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_True_MarksDirty)
 TEST_F(SkeletonChargingBowTest, SetChargingBow_SameValue_NotDirty)
 {
     // 设置相同值不应标记脏数据（EntityDataManager::set 的契约）
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setChargingBow(true);
     auto& dm = skeleton->dataManager();
     dm.clearDirty();
@@ -219,7 +219,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_SameValue_NotDirty)
 
 TEST_F(SkeletonChargingBowTest, SetChargingBow_False_AfterTrue_MarksDirty)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setChargingBow(true);
     auto& dm = skeleton->dataManager();
     dm.clearDirty();
@@ -234,9 +234,9 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_False_AfterTrue_MarksDirty)
 
 TEST_F(SkeletonChargingBowTest, GetChargingBowParamId_ConsistentAcrossInstances)
 {
-    auto skeleton1 = std::make_unique<SkeletonEntity>(EntityId(1));
-    auto skeleton2 = std::make_unique<SkeletonEntity>(EntityId(2));
-    auto stray = std::make_unique<StrayEntity>(EntityId(3));
+    auto skeleton1 = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
+    auto skeleton2 = std::make_unique<SkeletonEntity>(EntityInstanceId(2));
+    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(3));
 
     // DATA_CHARGING_BOW_PARAM 是静态成员，所有实例共享同一个参数 ID
     const u16 id1 = AbstractSkeletonEntity::getChargingBowParamId();
@@ -257,7 +257,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_WritesToDataManager)
 {
     // 验证 setChargingBow 确实通过 DataParameter::set 写入，
     // 而非写入某个孤立的成员变量。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
 
     skeleton->setChargingBow(true);
 
@@ -274,7 +274,7 @@ TEST_F(SkeletonChargingBowTest, SetChargingBow_WritesToDataManager)
 TEST_F(SkeletonChargingBowTest, IsChargingBow_ReadsFromDataManager)
 {
     // 反向验证：直接通过 DataParameter 写入，isChargingBow 应读到新值。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
 
     // 构造一个与服务端 DATA_CHARGING_BOW_PARAM 相同 ID 的参数键
     const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
@@ -305,7 +305,7 @@ TEST_F(SkeletonChargingBowTest, Tick_Preconditions_IsUsingItemDefaultFalse)
     // 验证 tick() 中 nowCharging 计算的前置条件：
     // 未调用 setActiveHand 时 isUsingItem() 必须返回 false，
     // 因此 nowCharging = false && ... = false，不会误设 chargingBow。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     EXPECT_FALSE(skeleton->isUsingItem()) << "未调用 setActiveHand 时 isUsingItem 应为 false";
@@ -316,7 +316,7 @@ TEST_F(SkeletonChargingBowTest, Tick_Preconditions_BowEquipped_MainHandReturnsBo
     // 验证持弓时 getMainHandItem().getItem() == Items::BOW，
     // 配合 setActiveHand(MainHand) 后 isUsingItem=true，
     // tick() 中 nowCharging 计算应为 true。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 装备弓
@@ -332,7 +332,7 @@ TEST_F(SkeletonChargingBowTest, Tick_Preconditions_NoBow_MainHandNotBow)
 {
     // 空手时 getMainHandItem().getItem() == nullptr，不等于 Items::BOW，
     // 即使 isUsingItem=true，nowCharging 也为 false。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     const auto& mainHand = skeleton->getMainHandItem();
@@ -344,7 +344,7 @@ TEST_F(SkeletonChargingBowTest, Tick_Preconditions_SetActiveHand_MarksUsingItem)
 {
     // 持弓并调用 setActiveHand(MainHand) 后，isUsingItem 应返回 true。
     // 此时 tick() 中 nowCharging = true && (BOW==BOW) = true。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     ASSERT_NE(Items::BOW, nullptr);
@@ -372,7 +372,7 @@ TEST_F(SkeletonChargingBowTest, AttackEntityWithRangedAttack_Preconditions_Charg
     // attackEntityWithRangedAttack 开头调用 setChargingBow(false)。
     // 验证拉弓状态可通过 setChargingBow(false) 重置，
     // 这是 attackEntityWithRangedAttack 射击后重置拉弓的基础。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setChargingBow(true);
     ASSERT_TRUE(skeleton->isChargingBow());
 
@@ -386,7 +386,7 @@ TEST_F(SkeletonChargingBowTest, AttackEntityWithRangedAttack_Preconditions_Charg
 
 TEST_F(SkeletonChargingBowTest, Stray_ChargingBow_InheritsFromAbstractSkeleton)
 {
-    auto stray = std::make_unique<StrayEntity>(EntityId(1));
+    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(1));
     EXPECT_FALSE(stray->isChargingBow());
 
     stray->setChargingBow(true);
@@ -398,7 +398,7 @@ TEST_F(SkeletonChargingBowTest, Stray_ChargingBow_InheritsFromAbstractSkeleton)
 
 TEST_F(SkeletonChargingBowTest, Bogged_ChargingBow_InheritsFromAbstractSkeleton)
 {
-    auto bogged = std::make_unique<BoggedEntity>(EntityId(1));
+    auto bogged = std::make_unique<BoggedEntity>(EntityInstanceId(1));
     EXPECT_FALSE(bogged->isChargingBow());
 
     bogged->setChargingBow(true);
@@ -413,7 +413,7 @@ TEST_F(SkeletonChargingBowTest, WitherSkeleton_ChargingBow_InheritsButNeverSet)
     // 凋灵骷髅继承 DATA_CHARGING_BOW_PARAM（hasParam=true），
     // 但因不持弓（走 MeleeAttackGoal），tick 中 nowCharging 永远为 false，
     // setChargingBow(true) 永远不会被调用。
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1));
     EXPECT_FALSE(witherSkeleton->isChargingBow());
 
     // 验证参数已注册（继承自 AbstractSkeletonEntity）

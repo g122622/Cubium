@@ -42,7 +42,7 @@ namespace block {
  * @brief 单个方块的破坏进度状态
  */
 struct BlockBreakProgress {
-    EntityId breakerId;
+    EntityInstanceId breakerId;
     BlockPos position;
     u8 damageStage = 0; // 0-9, 0=刚开始, 9=即将破坏
     u64 creationTick = 0;
@@ -85,8 +85,8 @@ public:
     [[nodiscard]] u8 getLocalDamageStage() const { return m_localDamageStage; }
 
     // 远程玩家挖掘进度（多人游戏）
-    void updateRemoteProgress(EntityId breakerId, const BlockPos& pos, i8 stage, u64 currentTick);
-    void removeRemoteProgress(EntityId breakerId);
+    void updateRemoteProgress(EntityInstanceId breakerId, const BlockPos& pos, i8 stage, u64 currentTick);
+    void removeRemoteProgress(EntityInstanceId breakerId);
     void clearRemoteProgress();
 
     // 查询接口
@@ -117,7 +117,7 @@ private:
 
     void _cleanupStaleProgress(u64 currentTick);
     void _updatePositionIndex(const BlockBreakProgress& progress);
-    void _removeFromPositionIndex(const BlockPos& pos, EntityId breakerId);
+    void _removeFromPositionIndex(const BlockPos& pos, EntityInstanceId breakerId);
 
     // 本地玩家状态
     bool m_localBreaking = false;
@@ -126,8 +126,8 @@ private:
     u8 m_localDamageStage = 0;
 
     // 远程玩家状态（多人游戏）
-    std::unordered_map<EntityId, BlockBreakProgress> m_remoteProgressByEntity;
-    std::unordered_map<BlockPos, std::vector<EntityId>> m_remoteProgressByPos;
+    std::unordered_map<EntityInstanceId, BlockBreakProgress> m_remoteProgressByEntity;
+    std::unordered_map<BlockPos, std::vector<EntityInstanceId>> m_remoteProgressByPos;
     u64 m_currentTick = 0;
 
     // 击打音效回调

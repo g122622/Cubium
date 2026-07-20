@@ -50,7 +50,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    GhastEntity(EntityId id);
+    GhastEntity(EntityInstanceId id);
     ~GhastEntity() override = default;
 
     // ========== 飞行特性 ==========
@@ -118,7 +118,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    MagmaCubeEntity(EntityId id);
+    MagmaCubeEntity(EntityInstanceId id);
     ~MagmaCubeEntity() override = default;
 
     // ========== 体型 ==========
@@ -187,7 +187,7 @@ protected:
  */
 class AbstractPiglinEntity : public MonsterEntity {
 public:
-    AbstractPiglinEntity(EntityId id);
+    AbstractPiglinEntity(EntityInstanceId id);
     ~AbstractPiglinEntity() override = default;
 
     // ========== 猪灵状态 ==========
@@ -222,7 +222,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    PiglinEntity(EntityId id);
+    PiglinEntity(EntityInstanceId id);
     ~PiglinEntity() override = default;
 
     // ========== 交易相关 ==========
@@ -306,7 +306,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    PiglinBruteEntity(EntityId id);
+    PiglinBruteEntity(EntityInstanceId id);
     ~PiglinBruteEntity() override = default;
 
 protected:
@@ -328,7 +328,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    ZombifiedPiglinEntity(EntityId id);
+    ZombifiedPiglinEntity(EntityInstanceId id);
     ~ZombifiedPiglinEntity() override = default;
 
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
@@ -364,7 +364,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    HoglinEntity(EntityId id);
+    HoglinEntity(EntityInstanceId id);
     ~HoglinEntity() override = default;
 
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
@@ -415,7 +415,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    ZoglinEntity(EntityId id);
+    ZoglinEntity(EntityInstanceId id);
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
@@ -439,7 +439,7 @@ public:
      * 此方法由 TargetGoal::isSuitableTarget() 自动调用，
      * 同时 registerGoals() 中的 TargetPredicate 也会进行同样的过滤。
      */
-    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+    [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
 
     void tick() override;
     bool attackLivingTarget(LivingEntity& target);

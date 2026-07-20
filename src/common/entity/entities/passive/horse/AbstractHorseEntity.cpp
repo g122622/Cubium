@@ -40,6 +40,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
@@ -64,7 +65,7 @@ namespace mc {
 // MC 1.21.11 数据参数定义 - 必须在命名空间级别定义静态成员
 entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM = entity::EntityDataManager::createKey<i8>();
 
-AbstractHorseEntity::AbstractHorseEntity(EntityId id)
+AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // MC 1.16.5: AbstractHorseEntity 构造函数中设置 stepHeight = 1.0F
@@ -687,7 +688,7 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
     Entity::updatePassengerPosition(passenger);
 
     // 如果乘客是 MobEntity，同步 renderYawOffset
-    if (passenger.typeId() == entity::EntityTypeIdNumber::PLAYER) {
+    if (passenger.entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
         // 对于玩家，不需要同步 renderYawOffset（玩家自己管理朝向）
     } else {
         // 对于其他 MobEntity，同步 renderYawOffset

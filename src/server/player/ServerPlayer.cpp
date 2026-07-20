@@ -70,7 +70,7 @@
 
 namespace mc {
 
-ServerPlayer::ServerPlayer(EntityId id, const std::string& name)
+ServerPlayer::ServerPlayer(EntityInstanceId id, const std::string& name)
     : Player(id, name)
 {
     initAdvancements();
@@ -732,7 +732,7 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     // 清除乘客（复制列表以避免迭代时修改）
     if (hasPassengers()) {
         auto passengers = getPassengers(); // 复制
-        for (EntityId passengerId : passengers) {
+        for (EntityInstanceId passengerId : passengers) {
             if (m_world != nullptr) {
                 if (Entity* passenger = m_world->getEntity(passengerId)) {
                     passenger->stopRiding();
@@ -944,7 +944,8 @@ bool ServerPlayer::setCamera(Entity* target)
     return true;
 }
 
-void ServerPlayer::onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId)
+void ServerPlayer::onCameraEntityChanged(
+    std::optional<EntityInstanceId> oldCameraId, std::optional<EntityInstanceId> newCameraId)
 {
     // 当摄像机目标变更时：
     // 1. 如果有新的旁观目标，将玩家传送到目标实体位置
@@ -965,7 +966,7 @@ void ServerPlayer::onCameraEntityChanged(std::optional<EntityId> oldCameraId, st
 
     // 发送 SetCameraPacket 给客户端
     // cameraEntityId 为玩家自身 ID 时表示恢复正常视角
-    u32 cameraId = newCameraId.value_or(static_cast<EntityId>(id()));
+    u32 cameraId = newCameraId.value_or(static_cast<EntityInstanceId>(id()));
     _sendSetCameraPacket(cameraId);
 
     spdlog::info("ServerPlayer: player {} spectating entity {}",
@@ -987,7 +988,7 @@ void ServerPlayer::tickSpectator()
         return;
     }
 
-    EntityId cameraEntityId = getCameraEntityId().value();
+    EntityInstanceId cameraEntityId = getCameraEntityId().value();
 
     // 获取目标实体
     if (m_world == nullptr) {

@@ -37,7 +37,7 @@ namespace test {
 
 class LookAtGoalTypeFilterTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { pig.reset(); }
 

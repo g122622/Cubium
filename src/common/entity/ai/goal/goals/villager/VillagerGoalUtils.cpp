@@ -123,10 +123,11 @@ bool throwHalfStackToTarget(VillagerEntity* villager,
             vz += (rng.nextFloat() - 0.5f) * 0.3f;
 
             // 生成物品实体
-            auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), throwStack, spawnX, spawnY, spawnZ, vx, vy, vz);
+            auto itemEntity =
+                std::make_unique<ItemEntity>(EntityInstanceId(0), throwStack, spawnX, spawnY, spawnZ, vx, vy, vz);
 
             // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-            itemEntity->setTypeId(EntityTypes::ITEM);
+            itemEntity->setTypeId(EntityTypeKeys::ITEM);
 
             // 设置拾取延迟（防止村民立即捡回自己扔出的物品）
             static constexpr i32 ITEM_THROW_PICKUP_DELAY = 40; // 2秒

@@ -54,7 +54,7 @@ public:
      * @param typeId 实体类型ID
      * @return 本地化名称键（如 entity.minecraft.pig）
      */
-    static std::string getLocalizedNameKey(EntityTypeId typeId);
+    static std::string getLocalizedNameKey(const std::string& typeId);
 
 private:
     /**

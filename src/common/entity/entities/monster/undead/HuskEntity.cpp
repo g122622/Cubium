@@ -26,7 +26,7 @@
 
 namespace mc {
 
-HuskEntity::HuskEntity(EntityId id)
+HuskEntity::HuskEntity(EntityInstanceId id)
     : ZombieEntity(id)
 {
     // 注册属性
@@ -35,7 +35,7 @@ HuskEntity::HuskEntity(EntityId id)
 
 std::unique_ptr<Entity> HuskEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<HuskEntity>(EntityId(0));
+    return std::make_unique<HuskEntity>(EntityInstanceId(0));
 }
 
 void HuskEntity::registerAttributes()

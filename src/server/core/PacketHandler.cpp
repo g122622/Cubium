@@ -338,7 +338,7 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
     player->setSneaking(packet.isSneaking());
 
     // 获取载具实体
-    EntityId vehicleId = player->getVehicle();
+    EntityInstanceId vehicleId = player->getVehicle();
     if (vehicleId == INVALID_ENTITY_ID) {
         return PacketHandleResult::Success;
     }
@@ -349,7 +349,7 @@ PacketHandleResult PacketHandler::handlePlayerInput(u32 sessionId, const u8* dat
     }
 
     // 检查玩家是否是载具的控制者
-    EntityId controllerId = vehicle->getControllingPassenger();
+    EntityInstanceId controllerId = vehicle->getControllingPassenger();
     if (controllerId != player->id()) {
         // 玩家不是控制者，不处理输入
         return PacketHandleResult::Success;
@@ -421,7 +421,7 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
     }
 
     // 验证玩家是否是载具的控制者
-    EntityId controllerId = vehicle->getControllingPassenger();
+    EntityInstanceId controllerId = vehicle->getControllingPassenger();
     if (controllerId != player->id()) {
         // 玩家不是控制者，忽略移动请求
         return PacketHandleResult::Success;
@@ -626,7 +626,7 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
         case network::EntityActionType::StartRidingJump:
             // 开始马跳跃蓄力
             if (player->isRiding()) {
-                EntityId vehicleId = player->getVehicle();
+                EntityInstanceId vehicleId = player->getVehicle();
                 Entity* vehicle = world->getEntity(vehicleId);
                 if (vehicle != nullptr) {
                     auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
@@ -641,7 +641,7 @@ PacketHandleResult PacketHandler::handleEntityAction(u32 sessionId, const u8* da
         case network::EntityActionType::StopRidingJump:
             // 停止马跳跃蓄力（释放跳跃键）
             if (player->isRiding()) {
-                EntityId vehicleId = player->getVehicle();
+                EntityInstanceId vehicleId = player->getVehicle();
                 Entity* vehicle = world->getEntity(vehicleId);
                 if (vehicle != nullptr) {
                     auto* jumpingMount = dynamic_cast<entity::IJumpingMount*>(vehicle);
@@ -730,7 +730,7 @@ PacketHandleResult PacketHandler::handleSteerBoat(u32 sessionId, const u8* data,
     }
 
     // 获取载具实体
-    EntityId vehicleId = player->getVehicle();
+    EntityInstanceId vehicleId = player->getVehicle();
     if (vehicleId == INVALID_ENTITY_ID) {
         return PacketHandleResult::Success;
     }

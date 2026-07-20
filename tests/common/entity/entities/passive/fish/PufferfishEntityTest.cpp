@@ -51,7 +51,7 @@ protected:
     void SetUp() override
     {
         // 创建河豚实体
-        pufferfish = std::make_unique<PufferfishEntity>(EntityId(0));
+        pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0));
     }
 
     void TearDown() override { pufferfish.reset(); }
@@ -327,7 +327,7 @@ TEST_F(PufferfishEntityTest, EyeHeight_HasCorrectValue)
 
 class PuffGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { pufferfish = std::make_unique<PufferfishEntity>(EntityId(0)); }
+    void SetUp() override { pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0)); }
 
     void TearDown() override { pufferfish.reset(); }
 
@@ -517,8 +517,9 @@ TEST_F(PufferfishEntityTest, PoisonDamage_FullyPuffed_Damage3)
 
 TEST_F(PufferfishEntityTest, EntityType_IsPufferfish)
 {
-    // 验证实体类型
-    EXPECT_EQ(pufferfish->typeId(), entity::EntityTypeIdNumber::Unknown); // 使用默认构造，未注册时为 Unknown
+    // 验证实体类型：直接构造（未经注册表工厂）的实体 typeId 为空，
+    // entityType() 懒查询注册表返回 nullptr。
+    EXPECT_EQ(pufferfish->entityType(), nullptr);
 }
 
 TEST_F(PufferfishEntityTest, MaxHealth_IsCorrect)
@@ -534,5 +535,5 @@ TEST_F(PufferfishEntityTest, Create_ReturnsValidEntity)
     // 创建工厂方法
     auto entity = PufferfishEntity::create(nullptr);
     EXPECT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::Unknown);
+    EXPECT_EQ(entity->entityType(), nullptr);
 }

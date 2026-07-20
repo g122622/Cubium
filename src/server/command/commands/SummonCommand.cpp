@@ -123,7 +123,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     }
 
     // 生成实体
-    EntityId spawnedId = world->spawnEntity(std::move(entity));
+    EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
         source.sendError("commands.summon.failed.spawnFailed");
         return 0;
@@ -200,7 +200,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     }
 
     // 生成实体
-    EntityId spawnedId = world->spawnEntity(std::move(entity));
+    EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
         source.sendError("commands.summon.failed.spawnFailed");
         return 0;

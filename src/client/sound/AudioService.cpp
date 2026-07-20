@@ -388,7 +388,7 @@ void AudioService::onEntitySpawn(u32 entityId, const std::string& typeId, f32 x,
     // 更新实体状态快照
     EntitySoundState state;
     state.position = glm::vec3(x, y, z);
-    m_entitySoundHandler->updateEntityState(static_cast<EntityId>(entityId), state);
+    m_entitySoundHandler->updateEntityState(static_cast<EntityInstanceId>(entityId), state);
 
     // 发送生成事件
     Command command;
@@ -411,7 +411,7 @@ void AudioService::onEntityRemove(u32 entityId)
     _enqueue(std::move(command));
 
     // 清理状态快照
-    m_entitySoundHandler->removeEntityState(static_cast<EntityId>(entityId));
+    m_entitySoundHandler->removeEntityState(static_cast<EntityInstanceId>(entityId));
 }
 
 void AudioService::onPlayerElytraFlyingChanged(u32 entityId, bool isFlying)
@@ -421,7 +421,7 @@ void AudioService::onPlayerElytraFlyingChanged(u32 entityId, bool isFlying)
     }
 
     // 更新状态快照
-    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityInstanceId>(entityId))) {
         state->isFallFlying = isFlying;
     }
 
@@ -440,7 +440,7 @@ void AudioService::onEntityAngerStateChanged(u32 entityId, bool isAngry)
     }
 
     // 更新状态快照中的愤怒状态
-    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityInstanceId>(entityId))) {
         state->isAngry = isAngry;
     }
 }
@@ -452,7 +452,7 @@ void AudioService::updateEntityPosition(u32 entityId, f32 x, f32 y, f32 z, f32 v
     }
 
     // 更新状态快照中的位置和速度
-    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityInstanceId>(entityId))) {
         state->position = glm::vec3(x, y, z);
         state->velocity = glm::vec3(vx, vy, vz);
     }
@@ -478,8 +478,8 @@ void AudioService::updateGuardianTarget(u32 entityId, u32 targetEntityId)
     }
 
     // 更新状态快照中的目标
-    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
-        state->targetEntityId = static_cast<EntityId>(targetEntityId);
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityInstanceId>(entityId))) {
+        state->targetEntityId = static_cast<EntityInstanceId>(targetEntityId);
     }
 
     // 发送目标更新到音频线程
@@ -514,9 +514,9 @@ void AudioService::updateEntityRidingState(u32 entityId, bool isRiding, u32 vehi
     }
 
     // 更新状态快照中的骑乘状态
-    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityId>(entityId))) {
+    if (auto* state = m_entitySoundHandler->getMutableEntityState(static_cast<EntityInstanceId>(entityId))) {
         state->isRiding = isRiding;
-        state->vehicleId = static_cast<EntityId>(vehicleId);
+        state->vehicleId = static_cast<EntityInstanceId>(vehicleId);
     }
 }
 
@@ -782,20 +782,20 @@ void AudioService::_processCommand(Command& command)
         case CommandType::EntitySpawn:
             if (m_entitySoundHandler && m_soundEngine) {
                 m_entitySoundHandler->onEntitySpawn(
-                    *m_soundEngine, static_cast<EntityId>(command.entityId), command.entityTypeId);
+                    *m_soundEngine, static_cast<EntityInstanceId>(command.entityId), command.entityTypeId);
             }
             break;
 
         case CommandType::EntityRemove:
             if (m_entitySoundHandler) {
-                m_entitySoundHandler->onEntityRemove(static_cast<EntityId>(command.entityId));
+                m_entitySoundHandler->onEntityRemove(static_cast<EntityInstanceId>(command.entityId));
             }
             break;
 
         case CommandType::ElytraFlyingChanged:
             if (m_entitySoundHandler && m_soundEngine) {
                 m_entitySoundHandler->onPlayerElytraFlyingChanged(
-                    *m_soundEngine, static_cast<EntityId>(command.entityId), command.isFlying);
+                    *m_soundEngine, static_cast<EntityInstanceId>(command.entityId), command.isFlying);
             }
             break;
 
@@ -810,15 +810,15 @@ void AudioService::_processCommand(Command& command)
         case CommandType::GuardianAttack:
             // 守卫者攻击事件：创建 GuardianSound
             if (m_entitySoundHandler && m_soundEngine) {
-                m_entitySoundHandler->onGuardianAttack(*m_soundEngine, static_cast<EntityId>(command.entityId));
+                m_entitySoundHandler->onGuardianAttack(*m_soundEngine, static_cast<EntityInstanceId>(command.entityId));
             }
             break;
 
         case CommandType::GuardianTargetUpdate:
             // 守卫者目标更新：更新 attackAnimScale
             if (m_entitySoundHandler) {
-                m_entitySoundHandler->onGuardianTargetChanged(
-                    static_cast<EntityId>(command.entityId), static_cast<EntityId>(command.targetEntityId));
+                m_entitySoundHandler->onGuardianTargetChanged(static_cast<EntityInstanceId>(command.entityId),
+                    static_cast<EntityInstanceId>(command.targetEntityId));
             }
             break;
 
@@ -833,7 +833,7 @@ void AudioService::_processCommand(Command& command)
                 m_entitySoundHandler->playMovingSound(*m_soundEngine,
                     command.soundEventId,
                     command.category,
-                    static_cast<EntityId>(command.entityId),
+                    static_cast<EntityInstanceId>(command.entityId),
                     command.volume,
                     command.pitch);
             }

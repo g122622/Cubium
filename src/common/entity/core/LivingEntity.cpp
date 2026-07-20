@@ -87,7 +87,7 @@ entity::DataParameter<i32> LivingEntity::DATA_ARROW_COUNT_PARAM = entity::Entity
 // 构造函数
 // ============================================================================
 
-LivingEntity::LivingEntity(EntityId id, IWorld* world)
+LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world)
     : Entity(id, world)
     , m_combatTracker(this)
 {
@@ -2148,7 +2148,7 @@ void LivingEntity::updateAirSupply()
         // 当乘客眼睛位置在水中时，如果所骑乘的载具类型属于 dismounts_underwater 标签，
         // 则强制乘客下坐骑。马、猪、骆驼等陆地骑乘实体会强制下坐骑，船则不会。
         if (isRiding()) {
-            EntityId vehicleId = getVehicle();
+            EntityInstanceId vehicleId = getVehicle();
             if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
                 Entity* vehicle = m_world->getEntity(vehicleId);
                 if (vehicle != nullptr && vehicle->dismountsUnderwater()) {

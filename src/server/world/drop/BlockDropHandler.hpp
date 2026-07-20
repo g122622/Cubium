@@ -120,7 +120,7 @@ public:
      * @param throwerUuid 投掷者UUID（防止立即拾取）
      * @return 生成的实体ID列表
      */
-    static std::vector<EntityId> spawnDrops(server::ServerWorld& world,
+    static std::vector<EntityInstanceId> spawnDrops(server::ServerWorld& world,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
         const std::string& throwerUuid = "");
@@ -131,7 +131,7 @@ public:
      * 与 spawnDrops(ServerWorld&, ...) 逻辑一致，但直接写入 EntityManager，
      * 避免 IntegratedServer 依赖 ServerWorld。
      */
-    static std::vector<EntityId> spawnDrops(EntityManager& entityManager,
+    static std::vector<EntityInstanceId> spawnDrops(EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,

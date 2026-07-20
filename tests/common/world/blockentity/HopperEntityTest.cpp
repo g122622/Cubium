@@ -584,7 +584,7 @@ protected:
 TEST_F(CaptureItemTest, FullCapture_RemovesItemEntity)
 {
     // 物品完全被捕获时，物品实体应该被移除
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
     EXPECT_TRUE(itemEntity->isAlive());
 
     bool result = HopperEntity::captureItem(m_inventory.get(), itemEntity.get());
@@ -605,7 +605,7 @@ TEST_F(CaptureItemTest, PartialCapture_WhenSlotCanAcceptAll)
     // 第5格为空
 
     // 尝试捕获10个钻石，全部放入空槽
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
 
     bool result = HopperEntity::captureItem(m_inventory.get(), itemEntity.get());
 
@@ -621,7 +621,7 @@ TEST_F(CaptureItemTest, NoCapture_ReturnsFalse)
         m_inventory->setItem(i, ItemStack(m_diamond, 64));
     }
 
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
 
     bool result = HopperEntity::captureItem(m_inventory.get(), itemEntity.get());
 
@@ -632,7 +632,7 @@ TEST_F(CaptureItemTest, NoCapture_ReturnsFalse)
 
 TEST_F(CaptureItemTest, NullInventory_ReturnsFalse)
 {
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
 
     bool result = HopperEntity::captureItem(nullptr, itemEntity.get());
 
@@ -650,7 +650,7 @@ TEST_F(CaptureItemTest, DeadItemEntity_ReturnsFalse)
 {
     // MC Java: HopperBlockEntity.addItem 仅检查 isAlive()，不检查 pickupDelay
     // 已死亡的物品实体不应被捕获
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
     itemEntity->remove(); // 标记为已死亡
 
     bool result = HopperEntity::captureItem(m_inventory.get(), itemEntity.get());
@@ -662,7 +662,7 @@ TEST_F(CaptureItemTest, ItemWithPickupDelay_CanStillBeCaptured)
 {
     // MC Java 行为: 漏斗不检查 pickupDelay，只有玩家拾取才检查
     // 即使物品有拾取延迟，漏斗也应该能捕获它
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 20.5f, 30.5f);
     itemEntity->setPickupDelay(100); // 设置100 tick 拾取延迟
 
     // 确认 pickupDelay 生效（玩家不能拾取）
@@ -984,7 +984,7 @@ protected:
 TEST_F(CaptureItemEdgeCaseTest, SingleItemCapture_Success)
 {
     auto inventory = std::make_unique<SimpleInventory>(5);
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 1), 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 1), 0.0f, 0.0f, 0.0f);
 
     bool result = HopperEntity::captureItem(inventory.get(), itemEntity.get());
 
@@ -996,7 +996,7 @@ TEST_F(CaptureItemEdgeCaseTest, SingleItemCapture_Success)
 TEST_F(CaptureItemEdgeCaseTest, MaxStackSizeCapture_Success)
 {
     auto inventory = std::make_unique<SimpleInventory>(5);
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 64), 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 64), 0.0f, 0.0f, 0.0f);
 
     bool result = HopperEntity::captureItem(inventory.get(), itemEntity.get());
 
@@ -1009,7 +1009,7 @@ TEST_F(CaptureItemEdgeCaseTest, StackLargerThanMaxStackSize_CapturedInEmptySlot)
 {
     // setItem 不强制执行最大堆叠限制，所以超过64的物品堆会直接放入一个空槽
     auto inventory = std::make_unique<SimpleInventory>(5);
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 128), 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 128), 0.0f, 0.0f, 0.0f);
 
     bool result = HopperEntity::captureItem(inventory.get(), itemEntity.get());
 
@@ -1027,7 +1027,7 @@ TEST_F(CaptureItemEdgeCaseTest, FullInventory_ReturnsFalse)
         inventory->setItem(i, ItemStack(m_diamond, 64));
     }
 
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 5), 0.0f, 0.0f, 0.0f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 5), 0.0f, 0.0f, 0.0f);
 
     bool result = HopperEntity::captureItem(inventory.get(), itemEntity.get());
 
@@ -1085,7 +1085,7 @@ TEST_F(GetCaptureItemsTest, WorldWithItemEntity_ReturnsItemEntity)
     ASSERT_EQ(hopper->getWorld(), &world);
 
     // 设置一个物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     auto items = HopperEntity::getCaptureItems(*hopper);
@@ -1104,8 +1104,8 @@ TEST_F(GetCaptureItemsTest, DeadItemEntityNotReturned)
     hopper->tick(world);
     ASSERT_EQ(hopper->getWorld(), &world);
 
-    auto aliveItem = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
-    auto deadItem = std::make_unique<ItemEntity>(EntityId(2), ItemStack(m_diamond, 5), 0.5f, 0.5f, 0.5f);
+    auto aliveItem = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
+    auto deadItem = std::make_unique<ItemEntity>(EntityInstanceId(2), ItemStack(m_diamond, 5), 0.5f, 0.5f, 0.5f);
     deadItem->remove(); // 标记为死亡
 
     world.setEntitiesInAABB({aliveItem.get(), deadItem.get()});
@@ -1126,7 +1126,7 @@ TEST_F(GetCaptureItemsTest, ItemWithPickupDelayStillReturned)
     hopper->tick(world);
     ASSERT_EQ(hopper->getWorld(), &world);
 
-    auto delayedItem = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
+    auto delayedItem = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
     delayedItem->setPickupDelay(100);           // 设置拾取延迟
     EXPECT_FALSE(delayedItem->canBePickedUp()); // 玩家不能拾取
 
@@ -1151,7 +1151,7 @@ TEST_F(GetCaptureItemsTest, NonItemEntitiesNotReturned)
 
     // 只有物品实体，没有其他类型实体（这里无法创建非 ItemEntity 的 Entity，
     // 但可以测试空实体列表和只有 ItemEntity 的情况）
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     auto items = HopperEntity::getCaptureItems(*hopper);
@@ -1303,7 +1303,7 @@ protected:
 TEST_F(CaptureItemIntegrationTest, CaptureIntoHopperEntityInventory)
 {
     // 使用 HopperEntity 自身的背包来测试 captureItem
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 32), 0.5f, 0.5f, 0.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 32), 0.5f, 0.5f, 0.5f);
 
     bool result = HopperEntity::captureItem(hopper_->getInventory(), itemEntity.get());
 
@@ -1320,7 +1320,7 @@ TEST_F(CaptureItemIntegrationTest, CaptureIntoFullHopper_ReturnsFalse)
         hopper_->getInventory()->setItem(i, ItemStack(m_diamond, 64));
     }
 
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_iron, 10), 0.5f, 0.5f, 0.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_iron, 10), 0.5f, 0.5f, 0.5f);
 
     bool result = HopperEntity::captureItem(hopper_->getInventory(), itemEntity.get());
 
@@ -1336,7 +1336,7 @@ TEST_F(CaptureItemIntegrationTest, PartialCaptureIntoAlmostFullHopper)
         hopper_->getInventory()->setItem(i, ItemStack(m_iron, 64));
     }
     // 第5格空
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 0.5f, 0.5f, 0.5f);
 
     bool result = HopperEntity::captureItem(hopper_->getInventory(), itemEntity.get());
 
@@ -1442,7 +1442,7 @@ TEST_F(HopperSelfLoopTest, PullItems_CaptureItemsUsesGetHopperInventory)
     ASSERT_EQ(hopper->getWorld(), &world);
 
     // 在收集区域放置一个物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     // pullItems 应该能通过 getHopperInventory() 获取到漏斗背包并成功捕获
@@ -1515,7 +1515,7 @@ TEST_F(HopperDoesNotBlockTest, PullItems_StoneAboveWithItemEntity_BlocksSuction)
     world.setBlockState(BlockPos(10, 21, 30), &stone->defaultState());
 
     // 在漏斗收集区域放置物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     // 石头阻挡漏斗吸取，即使有物品实体也返回 false
@@ -1549,7 +1549,7 @@ TEST_F(HopperDoesNotBlockTest, PullItems_BeehiveAboveWithItemEntity_AllowsSuctio
     world.setBlockState(BlockPos(10, 21, 30), &beehive->defaultState());
 
     // 在漏斗收集区域放置物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     // 蜂箱不阻挡漏斗，物品实体应被成功吸取
@@ -1586,7 +1586,7 @@ TEST_F(HopperDoesNotBlockTest, PullItems_BeeNestAboveWithItemEntity_AllowsSuctio
     world.setBlockState(BlockPos(10, 21, 30), &beeNest->defaultState());
 
     // 在漏斗收集区域放置物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     // 蜂巢不阻挡漏斗，物品实体应被成功吸取
@@ -1613,7 +1613,7 @@ TEST_F(HopperDoesNotBlockTest, PullItems_NoBlockAboveWithItemEntity_AllowsSuctio
 
     // 上方无方块
     // 在漏斗收集区域放置物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
     world.setEntitiesInAABB({itemEntity.get()});
 
     // 无阻挡，物品实体应被成功吸取

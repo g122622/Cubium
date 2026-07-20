@@ -87,13 +87,13 @@ void EntitySyncManager::tick()
     }
 }
 
-EntityId EntitySyncManager::spawnEntity(std::unique_ptr<Entity> entity)
+EntityInstanceId EntitySyncManager::spawnEntity(std::unique_ptr<Entity> entity)
 {
     if (!entity) {
         return 0;
     }
 
-    EntityId entityId = entity->id();
+    EntityInstanceId entityId = entity->id();
     Vector3 pos = entity->position();
     f32 yaw = entity->yaw();
     f32 pitch = entity->pitch();
@@ -121,7 +121,7 @@ EntityId EntitySyncManager::spawnEntity(std::unique_ptr<Entity> entity)
     return entityId;
 }
 
-std::unique_ptr<Entity> EntitySyncManager::removeEntity(EntityId entityId)
+std::unique_ptr<Entity> EntitySyncManager::removeEntity(EntityInstanceId entityId)
 {
     Entity* entity = m_entityManager.getEntity(entityId);
 
@@ -141,7 +141,7 @@ std::unique_ptr<Entity> EntitySyncManager::removeEntity(EntityId entityId)
     return removedEntity;
 }
 
-void EntitySyncManager::forceFullUpdate(EntityId entityId)
+void EntitySyncManager::forceFullUpdate(EntityInstanceId entityId)
 {
     auto it = m_entityTrackData.find(entityId);
     if (it != m_entityTrackData.end()) {
@@ -149,7 +149,7 @@ void EntitySyncManager::forceFullUpdate(EntityId entityId)
     }
 }
 
-bool EntitySyncManager::_needsSync(EntityId entityId) const
+bool EntitySyncManager::_needsSync(EntityInstanceId entityId) const
 {
     auto it = m_entityTrackData.find(entityId);
     if (it != m_entityTrackData.end()) {
@@ -158,14 +158,14 @@ bool EntitySyncManager::_needsSync(EntityId entityId) const
     return false;
 }
 
-void EntitySyncManager::_broadcastEntityMove(EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch)
+void EntitySyncManager::_broadcastEntityMove(EntityInstanceId entityId, const Vector3& pos, f32 yaw, f32 pitch)
 {
     if (m_onEntityMove) {
         m_onEntityMove(entityId, pos, yaw, pitch);
     }
 }
 
-void EntitySyncManager::_broadcastEntitySpawn(EntityId entityId, const Entity& entity)
+void EntitySyncManager::_broadcastEntitySpawn(EntityInstanceId entityId, const Entity& entity)
 {
     // 通过回调发送实体生成包（由 MinecraftServer 设置）
     if (m_onEntitySpawn) {
@@ -173,7 +173,7 @@ void EntitySyncManager::_broadcastEntitySpawn(EntityId entityId, const Entity& e
     }
 }
 
-void EntitySyncManager::_broadcastEntityRemove(EntityId entityId)
+void EntitySyncManager::_broadcastEntityRemove(EntityInstanceId entityId)
 {
     // 通过回调发送实体移除包（由 MinecraftServer 设置）
     if (m_onEntityRemove) {
@@ -181,27 +181,27 @@ void EntitySyncManager::_broadcastEntityRemove(EntityId entityId)
     }
 }
 
-void EntitySyncManager::setOnEntitySpawn(std::function<void(EntityId, const Entity&)> callback)
+void EntitySyncManager::setOnEntitySpawn(std::function<void(EntityInstanceId, const Entity&)> callback)
 {
     m_onEntitySpawn = std::move(callback);
 }
 
-void EntitySyncManager::setOnEntityRemove(std::function<void(EntityId)> callback)
+void EntitySyncManager::setOnEntityRemove(std::function<void(EntityInstanceId)> callback)
 {
     m_onEntityRemove = std::move(callback);
 }
 
-void EntitySyncManager::setOnEntityMove(std::function<void(EntityId, const Vector3&, f32, f32)> callback)
+void EntitySyncManager::setOnEntityMove(std::function<void(EntityInstanceId, const Vector3&, f32, f32)> callback)
 {
     m_onEntityMove = std::move(callback);
 }
 
-void EntitySyncManager::setOnEntityStatus(std::function<void(EntityId, u8)> callback)
+void EntitySyncManager::setOnEntityStatus(std::function<void(EntityInstanceId, u8)> callback)
 {
     m_onEntityStatus = std::move(callback);
 }
 
-void EntitySyncManager::broadcastEntityStatus(EntityId entityId, u8 status)
+void EntitySyncManager::broadcastEntityStatus(EntityInstanceId entityId, u8 status)
 {
     if (m_onEntityStatus) {
         m_onEntityStatus(entityId, status);

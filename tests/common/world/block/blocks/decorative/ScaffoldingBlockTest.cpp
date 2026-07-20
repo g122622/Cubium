@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/misc/MiscEntities.hpp"
@@ -38,7 +39,6 @@
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
@@ -121,12 +121,12 @@ public:
         return fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (m_spawnEntityFail || !entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        EntityId id = EntityId(++m_nextEntityId);
+        EntityInstanceId id = EntityInstanceId(++m_nextEntityId);
         m_entities.push_back(std::move(entity));
         m_spawnedEntityCount++;
         return id;

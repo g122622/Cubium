@@ -29,7 +29,7 @@
 
 namespace mc {
 
-ZombieHorseEntity::ZombieHorseEntity(EntityId id)
+ZombieHorseEntity::ZombieHorseEntity(EntityInstanceId id)
     : AbstractHorseEntity(id)
 {
     // 僵尸马默认已驯服

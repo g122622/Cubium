@@ -790,7 +790,7 @@ void TrialSpawnerBlockEntity::spawnMob(IWorld& world)
     std::string entityUuid = entity->uuid();
 
     // 8. 添加实体到世界
-    EntityId id = world.spawnEntity(std::move(entity));
+    EntityInstanceId id = world.spawnEntity(std::move(entity));
     if (id == INVALID_ENTITY_ID) {
         // 生成失败
         m_nextSpawnEntityId = ResourceLocation();

@@ -284,10 +284,10 @@ void DrownedEntity::registerGoals()
     // 添加溺尸专用的 HurtByTargetGoal（排除同类溺尸，不警醒僵尸猪灵）
     auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true,
         [](const LivingEntity* attacker) -> bool {
-            return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
+            return attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::DROWNED;
         });
     hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
-        return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
     });
     m_targetSelector.addGoal(1, std::move(hurtByTarget));
 }
@@ -295,7 +295,7 @@ void DrownedEntity::registerGoals()
 
 ### 7. alertOthers 同类型过滤机制
 
-**重要**: `startExecuting()` 中的 alertOthers 逻辑使用 `ally->typeId() == m_mob->typeId()` 进行同类型过滤，这与 MC Java 的 `getEntitiesOfClass(this.mob.getClass(), ...)` 行为一致——只警醒与被攻击实体**完全相同类型**的实体。
+**重要**: `startExecuting()` 中的 alertOthers 逻辑使用 `ally->entityType() == m_mob->entityType()` 进行同类型过滤，这与 MC Java 的 `getEntitiesOfClass(this.mob.getClass(), ...)` 行为一致——只警醒与被攻击实体**完全相同类型**的实体。
 
 **影响**:
 - `setAlertOthers(ZombifiedPiglin 排除谓词)` 在 ZombieEntity 上：由于 typeId 过滤只返回同为 Zombie 的实体，ZombifiedPiglin 本身不会被选中，因此排除谓词在此场景下不会被触发。这在 MC Java 中也是同样的行为。

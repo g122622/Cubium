@@ -58,7 +58,7 @@ public:
         throw std::runtime_error("ProjectileItemTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(entity.get());
         return ++m_lastEntityId;
@@ -73,7 +73,7 @@ public:
     [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
 };
 

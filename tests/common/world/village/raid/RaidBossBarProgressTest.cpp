@@ -85,10 +85,10 @@ public:
     void setBadOmenLevel(i32 level) { m_raid.m_badOmenLevel = level; }
 
     /// @brief 通过公开接口 addRaider 添加追踪 ID。
-    void addRaider(EntityId id) { m_raid.addRaider(id); }
+    void addRaider(EntityInstanceId id) { m_raid.addRaider(id); }
 
     /// @brief 通过公开接口 removeRaider 移除追踪 ID。
-    void removeRaider(EntityId id) { m_raid.removeRaider(id); }
+    void removeRaider(EntityInstanceId id) { m_raid.removeRaider(id); }
 
     /// @brief 暴露内部 raiders 列表大小，便于断言死亡后是否被正确移除。
     [[nodiscard]] size_t trackedRaidersCount() const { return m_raid.raiders().size(); }
@@ -123,13 +123,13 @@ protected:
      */
     class RaidBossBarTestWorld final : public ::mc::test::BaseTestWorld {
     public:
-        [[nodiscard]] Entity* getEntity(EntityId id) override
+        [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
         {
             const auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second.get() : nullptr;
         }
 
-        [[nodiscard]] const Entity* getEntity(EntityId id) const override
+        [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
         {
             const auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second.get() : nullptr;
@@ -142,7 +142,7 @@ protected:
         void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
         /// @brief 注册一个裸 LivingEntity 并指定初始血量。
-        EntityId addLivingEntityWithHealth(EntityId id, f32 health)
+        EntityInstanceId addLivingEntityWithHealth(EntityInstanceId id, f32 health)
         {
             auto entity = std::make_unique<LivingEntity>(id, nullptr);
             entity->registerData();
@@ -153,7 +153,7 @@ protected:
         }
 
         /// @brief 注册一个非 LivingEntity 的纯 Entity，用于测试 dynamic_cast 失败分支。
-        EntityId addBareEntity(EntityId id)
+        EntityInstanceId addBareEntity(EntityInstanceId id)
         {
             auto entity = std::make_unique<Entity>(id, nullptr);
             m_entities[static_cast<u64>(id)] = std::move(entity);
@@ -161,10 +161,10 @@ protected:
         }
 
         /// @brief 从世界中移除实体，模拟实体已离开世界（getEntity 返回 nullptr）。
-        void removeEntity(EntityId id) { m_entities.erase(static_cast<u64>(id)); }
+        void removeEntity(EntityInstanceId id) { m_entities.erase(static_cast<u64>(id)); }
 
         /// @brief 直接修改已注册实体的血量。
-        void setEntityHealth(EntityId id, f32 health)
+        void setEntityHealth(EntityInstanceId id, f32 health)
         {
             const auto it = m_entities.find(static_cast<u64>(id));
             ASSERT_NE(it, m_entities.end());
@@ -254,9 +254,9 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_AllRaidersAlive_ReturnsOne)
     m_accessor->setStatus(RaidStatus::Ongoing);
     m_accessor->setRaidCooldownTicks(0);
 
-    constexpr EntityId id1{1001};
-    constexpr EntityId id2{1002};
-    constexpr EntityId id3{1003};
+    constexpr EntityInstanceId id1{1001};
+    constexpr EntityInstanceId id2{1002};
+    constexpr EntityInstanceId id3{1003};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_world.addLivingEntityWithHealth(id2, 20.0f);
     m_world.addLivingEntityWithHealth(id3, 20.0f);
@@ -277,8 +277,8 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_HalfRaidersDead_ReturnsHalfProgres
     m_accessor->setStatus(RaidStatus::Ongoing);
     m_accessor->setRaidCooldownTicks(0);
 
-    constexpr EntityId id1{2001};
-    constexpr EntityId id2{2002};
+    constexpr EntityInstanceId id1{2001};
+    constexpr EntityInstanceId id2{2002};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_world.addLivingEntityWithHealth(id2, 20.0f);
     m_accessor->addRaider(id1);
@@ -299,8 +299,8 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_AllRaidersAtZeroHealth_ReturnsZero
     m_accessor->setStatus(RaidStatus::Ongoing);
     m_accessor->setRaidCooldownTicks(0);
 
-    constexpr EntityId id1{3001};
-    constexpr EntityId id2{3002};
+    constexpr EntityInstanceId id1{3001};
+    constexpr EntityInstanceId id2{3002};
     m_world.addLivingEntityWithHealth(id1, 0.0f);
     m_world.addLivingEntityWithHealth(id2, 0.0f);
     m_accessor->addRaider(id1);
@@ -319,9 +319,9 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_PartialRaidersAtZeroHealth_OnlyCou
     m_accessor->setStatus(RaidStatus::Ongoing);
     m_accessor->setRaidCooldownTicks(0);
 
-    constexpr EntityId id1{4001};
-    constexpr EntityId id2{4002};
-    constexpr EntityId id3{4003};
+    constexpr EntityInstanceId id1{4001};
+    constexpr EntityInstanceId id2{4002};
+    constexpr EntityInstanceId id3{4003};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_world.addLivingEntityWithHealth(id2, 10.0f);
     m_world.addLivingEntityWithHealth(id3, 0.0f);
@@ -395,7 +395,7 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_CooldownTakesPrecedenceOverCombat)
     m_accessor->setRaidCooldownTicks(100);
     m_accessor->setTotalHealth(60.0f);
 
-    constexpr EntityId id1{5001};
+    constexpr EntityInstanceId id1{5001};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_accessor->addRaider(id1);
 
@@ -417,16 +417,16 @@ TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_EmptyRaiders_ReturnsZer
 TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_EntityNotInWorld_ReturnsZero)
 {
     // raiders 列表中存在 ID，但世界中没有该实体（已离开世界）。
-    m_accessor->addRaider(EntityId(6001));
+    m_accessor->addRaider(EntityInstanceId(6001));
     EXPECT_FLOAT_EQ(m_accessor->getHealthOfLivingRaiders(m_world), 0.0f);
 }
 
 TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_EntityRemovedFromWorldMidRaid_ExcludedFromSum)
 {
     // 三个袭击者各 20 血。移除其中一个后，存活血量应为 40。
-    constexpr EntityId id1{7001};
-    constexpr EntityId id2{7002};
-    constexpr EntityId id3{7003};
+    constexpr EntityInstanceId id1{7001};
+    constexpr EntityInstanceId id2{7002};
+    constexpr EntityInstanceId id3{7003};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_world.addLivingEntityWithHealth(id2, 20.0f);
     m_world.addLivingEntityWithHealth(id3, 20.0f);
@@ -446,8 +446,8 @@ TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_NonLivingEntity_Skipped
     // raiders 列表中包含一个非 LivingEntity 的纯 Entity，应被 dynamic_cast 跳过。
     // 注意：LivingEntity 默认 maxHealth = 20，setHealth 会被 clamp 到 [0, 20]，
     // 因此这里使用 20.0f 而非 25.0f 以避免 clamp 干扰断言。
-    constexpr EntityId id1{8001};
-    constexpr EntityId id2{8002};
+    constexpr EntityInstanceId id1{8001};
+    constexpr EntityInstanceId id2{8002};
     m_world.addBareEntity(id1); // 纯 Entity
     m_world.addLivingEntityWithHealth(id2, 20.0f);
     m_accessor->addRaider(id1);
@@ -460,8 +460,8 @@ TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_NonLivingEntity_Skipped
 TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_DeadEntityAtZeroHealth_Excluded)
 {
     // 一个满血袭击者 + 一个 0 血袭击者（已死），存活血量应只算满血者。
-    constexpr EntityId id1{9001};
-    constexpr EntityId id2{9002};
+    constexpr EntityInstanceId id1{9001};
+    constexpr EntityInstanceId id2{9002};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_world.addLivingEntityWithHealth(id2, 0.0f);
     m_accessor->addRaider(id1);
@@ -473,7 +473,7 @@ TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_DeadEntityAtZeroHealth_
 TEST_F(RaidBossBarProgressTest, GetHealthOfLivingRaiders_HealthChangesAfterSpawn_ReflectedInSum)
 {
     // 模拟袭击者被攻击：初始 20 血，受伤降到 5，存活血量应实时反映。
-    constexpr EntityId id1{10001};
+    constexpr EntityInstanceId id1{10001};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_accessor->addRaider(id1);
 
@@ -497,7 +497,7 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_LivingHealthExceedsTotal_ClampedTo
     m_accessor->setRaidCooldownTicks(0);
     m_accessor->setTotalHealth(10.0f);
 
-    constexpr EntityId id1{11001};
+    constexpr EntityInstanceId id1{11001};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_accessor->addRaider(id1);
 
@@ -535,7 +535,7 @@ TEST_F(RaidBossBarProgressTest, OnRaiderDeath_LastRaiderDead_StartsCooldown)
     m_accessor->setDifficulty(Difficulty::Normal);
     m_accessor->setBadOmenLevel(1);
 
-    constexpr EntityId id1{12001};
+    constexpr EntityInstanceId id1{12001};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_accessor->addRaider(id1);
     m_accessor->setTotalHealth(20.0f);
@@ -557,7 +557,7 @@ TEST_F(RaidBossBarProgressTest, OnRaiderDeath_LastRaiderDeadNoMoreWaves_Triggers
     m_accessor->setDifficulty(Difficulty::Hard);
     m_accessor->setBadOmenLevel(1);
 
-    constexpr EntityId id1{13001};
+    constexpr EntityInstanceId id1{13001};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_accessor->addRaider(id1);
     m_accessor->setTotalHealth(20.0f);
@@ -575,7 +575,7 @@ TEST_F(RaidBossBarProgressTest, UpdateBossBar_AfterCooldownStarted_ProgressRefle
     m_accessor->setDifficulty(Difficulty::Normal);
     m_accessor->setBadOmenLevel(1);
 
-    constexpr EntityId id1{14001};
+    constexpr EntityInstanceId id1{14001};
     m_world.addLivingEntityWithHealth(id1, 20.0f);
     m_accessor->addRaider(id1);
     m_accessor->setTotalHealth(20.0f);

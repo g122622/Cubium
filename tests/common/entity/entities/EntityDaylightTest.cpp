@@ -122,13 +122,13 @@ public:
 
     // 实体管理（用于测试船骑乘）
     void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }
-    void removeTestEntity(EntityId id) { m_testEntities.erase(id); }
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    void removeTestEntity(EntityInstanceId id) { m_testEntities.erase(id); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_testEntities.find(id);
         return it != m_testEntities.end() ? it->second : nullptr;
@@ -142,7 +142,7 @@ public:
     {
         throw std::runtime_error("EntityTestWorld::tickManager not implemented");
     }
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
 
 private:
     i64 m_dayTime;
@@ -151,7 +151,7 @@ private:
     bool m_canSeeSky;
     bool m_isRaining;
     std::optional<f32> m_brightness;
-    std::map<EntityId, Entity*> m_testEntities;
+    std::map<EntityInstanceId, Entity*> m_testEntities;
 };
 
 } // namespace
@@ -176,7 +176,7 @@ TEST_F(IsInDaylightTest, ReturnsFalseAtNight)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(1.0f);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -189,7 +189,7 @@ TEST_F(IsInDaylightTest, ReturnsFalseWhenSkyNotVisible)
     m_world->setCanSeeSky(false); // 天空不可见
     m_world->setBrightness(1.0f);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -202,7 +202,7 @@ TEST_F(IsInDaylightTest, ReturnsFalseWithLowBrightness)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.3f); // 低亮度
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -216,7 +216,7 @@ TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.8f); // 高亮度
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -255,7 +255,7 @@ TEST_F(PhantomEntityDaylightTest, DoesNotBurnAtNight)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.2f);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -265,7 +265,7 @@ TEST_F(PhantomEntityDaylightTest, DoesNotBurnAtNight)
 
 TEST_F(PhantomEntityDaylightTest, SizeAffectsDimensions)
 {
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
 
     // 默认尺寸 0
     EXPECT_EQ(phantom.getPhantomSize(), 0);
@@ -281,7 +281,7 @@ TEST_F(PhantomEntityDaylightTest, SizeAffectsDimensions)
 
 TEST_F(PhantomEntityDaylightTest, SizeAffectsAttackDamage)
 {
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
 
     // 尺寸 0 -> 基础伤害 6.0
     phantom.setPhantomSize(0);
@@ -294,7 +294,7 @@ TEST_F(PhantomEntityDaylightTest, SizeAffectsAttackDamage)
 
 TEST_F(PhantomEntityDaylightTest, AttackPhaseDefaultIsCircle)
 {
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     EXPECT_EQ(phantom.getAttackPhase(), PhantomEntity::AttackPhase::CIRCLE);
 }
 
@@ -364,7 +364,7 @@ TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition)
 {
     m_world->setBrightness(0.75f);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -374,7 +374,7 @@ TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition)
 
 TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld)
 {
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     // 不设置世界
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -386,7 +386,7 @@ TEST_F(GetBrightnessTest, UsesEyeHeightForPosition)
 {
     m_world->setBrightness(0.9f);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(10.0f, 64.0f, 20.0f);
 
@@ -465,7 +465,7 @@ protected:
     void setupBoatRiding(const Vector3& phantomPos, const Vector3* boatPos = nullptr)
     {
         // 创建幻翼
-        m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
+        m_phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1));
         m_phantom->setWorld(m_world.get());
         m_phantom->setPosition(phantomPos.x, phantomPos.y, phantomPos.z);
         m_world->addTestEntity(m_phantom.get());
@@ -473,7 +473,7 @@ protected:
         // 如果需要船
         if (boatPos != nullptr) {
             m_boat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
-            m_boat->setId(EntityId(2));
+            m_boat->setId(EntityInstanceId(2));
             m_boat->setWorld(m_world.get()); // 设置世界指针，这样船可以正常工作
             m_boat->setPosition(boatPos->x, boatPos->y, boatPos->z);
             m_world->addTestEntity(m_boat.get());
@@ -513,7 +513,7 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
     m_world->setBrightness(0.8f);
 
     // 创建幻翼
-    m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
+    m_phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1));
     m_phantom->setWorld(m_world.get());
     m_phantom->setPosition(0.0f, 64.0f, 0.0f);
     m_world->addTestEntity(m_phantom.get());
@@ -521,13 +521,13 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingBoatPositionOffsetUp)
     // 创建船
     Vector3 boatPos(0.0f, 63.0f, 0.0f);
     m_boat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
-    m_boat->setId(EntityId(2));
+    m_boat->setId(EntityInstanceId(2));
     m_boat->setWorld(m_world.get());
     m_boat->setPosition(boatPos.x, boatPos.y, boatPos.z);
     m_world->addTestEntity(m_boat.get());
 
     // 验证船实体创建正确
-    EXPECT_EQ(m_boat->id(), EntityId(2));
+    EXPECT_EQ(m_boat->id(), EntityInstanceId(2));
     EXPECT_NE(m_boat->getStatus(), entity::BoatStatus::UnderWater) << "Boat should not be underwater";
 
     // 验证 dynamic_cast 能正确识别 BoatEntity
@@ -556,7 +556,7 @@ TEST_F(BoatRidingDaylightTest, PhantomRidingNonBoatNoPositionOffset)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.8f);
 
-    m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
+    m_phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1));
     m_phantom->setWorld(m_world.get());
     m_phantom->setPosition(0.0f, 64.0f, 0.0f);
     m_world->addTestEntity(m_phantom.get());
@@ -575,9 +575,9 @@ TEST_F(BoatRidingDaylightTest, BoatEntityCreatedCorrectly)
 {
     // 验证船实体创建正确
     m_boat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK);
-    m_boat->setId(EntityId(1));
+    m_boat->setId(EntityInstanceId(1));
 
-    EXPECT_EQ(m_boat->id(), EntityId(1));
+    EXPECT_EQ(m_boat->id(), EntityInstanceId(1));
 
     // 验证 dynamic_cast 可以正确识别 BoatEntity
     Entity* entityPtr = m_boat.get();
@@ -618,7 +618,7 @@ TEST_F(IsInDaylightWetTest, ReturnsFalseWhenRaining)
     m_world->setBrightness(0.8f);
     m_world->setRaining(true);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -634,7 +634,7 @@ TEST_F(IsInDaylightWetTest, ReturnsFalseWhenNotRainingAndNotInWater)
     m_world->setBrightness(0.8f);
     m_world->setRaining(false);
 
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -671,7 +671,7 @@ TEST_F(BurnUndeadTest, BurnsWhenNoHelmetInDaylight)
     // 因此需要使用不同的 entityId 来获得不同的随机值
     bool caughtFire = false;
     for (int i = 0; i < 200; ++i) {
-        ZombieEntity zombie(EntityId(i + 1));
+        ZombieEntity zombie(EntityInstanceId(i + 1));
         zombie.setWorld(m_world.get());
         zombie.setPosition(0.0f, 64.0f, 0.0f);
         zombie.setBurnsInDaylight(true);
@@ -691,7 +691,7 @@ TEST_F(BurnUndeadTest, DoesNotBurnAtNight)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.0f);
 
-    ZombieEntity zombie(EntityId(1));
+    ZombieEntity zombie(EntityInstanceId(1));
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.0f, 64.0f, 0.0f);
     zombie.setBurnsInDaylight(true);
@@ -718,7 +718,7 @@ TEST_F(BurnUndeadTest, HelmetPreventsBurningAndTakesDamage)
     // 验证：当防护槽位有可损坏物品时，实体不会燃烧
     bool anyProtection = false;
     for (int i = 0; i < 200; ++i) {
-        ZombieEntity zombie(EntityId(i + 100));
+        ZombieEntity zombie(EntityInstanceId(i + 100));
         zombie.setWorld(m_world.get());
         zombie.setPosition(0.0f, 64.0f, 0.0f);
         zombie.setBurnsInDaylight(true);
@@ -756,7 +756,7 @@ TEST_F(BurnUndeadTest, NonDamageableHelmetAlsoPreventsBurning)
     // 即使物品不可损坏，只要防护槽位有物品，实体也不会燃烧
     bool anyProtection = false;
     for (int i = 0; i < 200; ++i) {
-        ZombieEntity zombie(EntityId(i + 300));
+        ZombieEntity zombie(EntityInstanceId(i + 300));
         zombie.setWorld(m_world.get());
         zombie.setPosition(0.0f, 64.0f, 0.0f);
         zombie.setBurnsInDaylight(true);
@@ -779,7 +779,7 @@ TEST_F(BurnUndeadTest, DoesNotBurnWhenRaining)
     m_world->setBrightness(0.8f);
     m_world->setRaining(true);
 
-    ZombieEntity zombie(EntityId(1));
+    ZombieEntity zombie(EntityInstanceId(1));
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.0f, 64.0f, 0.0f);
     zombie.setBurnsInDaylight(true);
@@ -805,21 +805,21 @@ protected:
 TEST_F(SunProtectionSlotTest, DefaultSlotIsHead)
 {
     // 默认防护槽位为头部
-    ZombieEntity zombie(EntityId(1));
+    ZombieEntity zombie(EntityInstanceId(1));
     EXPECT_EQ(zombie.sunProtectionSlot(), EquipmentSlot::Head);
 }
 
 TEST_F(SunProtectionSlotTest, ZombieHorseUsesChestSlot)
 {
     // 僵尸马覆写防护槽位为胸甲槽位
-    ZombieHorseEntity horse(EntityId(1));
+    ZombieHorseEntity horse(EntityInstanceId(1));
     EXPECT_EQ(horse.sunProtectionSlot(), EquipmentSlot::Chest);
 }
 
 TEST_F(SunProtectionSlotTest, PhantomUsesDefaultHeadSlot)
 {
     // 幻翼使用默认头部槽位
-    PhantomEntity phantom(EntityId(1));
+    PhantomEntity phantom(EntityInstanceId(1));
     EXPECT_EQ(phantom.sunProtectionSlot(), EquipmentSlot::Head);
 }
 
@@ -853,7 +853,7 @@ TEST_F(ZombieHorseBurnTest, BurnsInDaylightWithoutProtection)
     // 使用不同 entityId 避免随机种子固定
     bool caughtFire = false;
     for (int i = 0; i < 500; ++i) {
-        ZombieHorseEntity horse(EntityId(i + 1));
+        ZombieHorseEntity horse(EntityInstanceId(i + 1));
         horse.setWorld(m_world.get());
         horse.setPosition(0.0f, 64.0f, 0.0f);
         EXPECT_EQ(horse.sunProtectionSlot(), EquipmentSlot::Chest);
@@ -873,7 +873,7 @@ TEST_F(ZombieHorseBurnTest, DoesNotBurnAtNight)
     m_world->setCanSeeSky(true);
     m_world->setBrightness(0.0f);
 
-    ZombieHorseEntity horse(EntityId(1));
+    ZombieHorseEntity horse(EntityInstanceId(1));
     horse.setWorld(m_world.get());
     horse.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -885,7 +885,7 @@ TEST_F(ZombieHorseBurnTest, SunProtectionSlotIsChest)
 {
     // 验证僵尸马的阳光防护槽位为 Chest（对应马铠/胸甲槽位）
     // 这意味着当 Chest 槽位有可损坏物品时，物品承受耐久损耗而非实体燃烧
-    ZombieHorseEntity horse(EntityId(1));
+    ZombieHorseEntity horse(EntityInstanceId(1));
     EXPECT_EQ(horse.sunProtectionSlot(), EquipmentSlot::Chest);
 }
 
@@ -897,7 +897,7 @@ TEST_F(ZombieHorseBurnTest, DoesNotBurnWhenRaining)
     m_world->setBrightness(0.8f);
     m_world->setRaining(true);
 
-    ZombieHorseEntity horse(EntityId(1));
+    ZombieHorseEntity horse(EntityInstanceId(1));
     horse.setWorld(m_world.get());
     horse.setPosition(0.0f, 64.0f, 0.0f);
 

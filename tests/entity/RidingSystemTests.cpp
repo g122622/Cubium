@@ -202,7 +202,8 @@ class MinecartEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        minecart = std::make_unique<AbstractMinecartEntity>(AbstractMinecartEntity::Type::Rideable, EntityId(1));
+        minecart =
+            std::make_unique<AbstractMinecartEntity>(AbstractMinecartEntity::Type::Rideable, EntityInstanceId(1));
     }
 
     std::unique_ptr<AbstractMinecartEntity> minecart;
@@ -279,7 +280,7 @@ TEST_F(MinecartEntityTest, ApplyForce)
 
 class FurnaceMinecartEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { furnaceMinecart = std::make_unique<FurnaceMinecartEntity>(EntityId(1)); }
+    void SetUp() override { furnaceMinecart = std::make_unique<FurnaceMinecartEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<FurnaceMinecartEntity> furnaceMinecart;
 };
@@ -314,7 +315,7 @@ TEST_F(FurnaceMinecartEntityTest, AddFuel)
 
 class HopperMinecartEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { hopperMinecart = std::make_unique<HopperMinecartEntity>(EntityId(1)); }
+    void SetUp() override { hopperMinecart = std::make_unique<HopperMinecartEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<HopperMinecartEntity> hopperMinecart;
 };

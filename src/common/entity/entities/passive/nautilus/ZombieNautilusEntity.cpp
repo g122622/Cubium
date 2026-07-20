@@ -46,7 +46,7 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-ZombieNautilusEntity::ZombieNautilusEntity(EntityId id)
+ZombieNautilusEntity::ZombieNautilusEntity(EntityInstanceId id)
     : AbstractNautilusEntity(id)
 {
     // 显式调用 registerData()，注册同步数据参数

@@ -486,7 +486,7 @@ protected:
         bread_ = getOrRegisterTestItem("minecraft:bread");
         diamond_ = getOrRegisterTestItem("minecraft:diamond");
 
-        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }
 
@@ -667,7 +667,7 @@ protected:
         bread_ = getOrRegisterTestItem("minecraft:bread");
         diamond_ = getOrRegisterTestItem("minecraft:diamond");
 
-        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }
 

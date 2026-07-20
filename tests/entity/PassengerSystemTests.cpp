@@ -67,21 +67,21 @@ TEST(PassengerSystemTest, DefaultGetMaxPassengersIsOne)
 TEST(PassengerSystemTest, OminousItemSpawnerDoesNotTriggerPressurePlate)
 {
     // OminousItemSpawner 不触发压力板
-    OminousItemSpawnerEntity spawner(EntityId(1));
+    OminousItemSpawnerEntity spawner(EntityInstanceId(1));
     EXPECT_TRUE(spawner.doesEntityNotTriggerPressurePlate());
 }
 
 TEST(PassengerSystemTest, OminousItemSpawnerCannotAcceptPassengers)
 {
     // OminousItemSpawner 不能接受任何乘客
-    OminousItemSpawnerEntity spawner(EntityId(1));
+    OminousItemSpawnerEntity spawner(EntityInstanceId(1));
     EXPECT_FALSE(spawner.couldAcceptPassenger());
 }
 
 TEST(PassengerSystemTest, OminousItemSpawnerCannotAddPassenger)
 {
     // OminousItemSpawner 不能添加任何乘客
-    OminousItemSpawnerEntity spawner(EntityId(1));
+    OminousItemSpawnerEntity spawner(EntityInstanceId(1));
     EXPECT_FALSE(spawner.canAddPassenger(spawner));
 }
 
@@ -113,7 +113,7 @@ TEST(PassengerSystemTest, ArmorStandMarkerModeDoesNotTriggerPressurePlate)
 TEST(PassengerSystemTest, BatDoesNotTriggerPressurePlate)
 {
     // 蝙蝠不触发压力板
-    BatEntity bat(EntityId(1));
+    BatEntity bat(EntityInstanceId(1));
     EXPECT_TRUE(bat.doesEntityNotTriggerPressurePlate());
 }
 

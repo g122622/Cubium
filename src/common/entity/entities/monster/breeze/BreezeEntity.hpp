@@ -141,7 +141,7 @@ public:
      * @brief 构造旋风人
      * @param id 实体ID
      */
-    explicit BreezeEntity(EntityId id);
+    explicit BreezeEntity(EntityInstanceId id);
 
     ~BreezeEntity() override = default;
 
@@ -182,7 +182,7 @@ public:
      * Breeze.canAttackType() 仅允许攻击玩家和铁傀儡。
      * 旋风人采用白名单模式，只攻击这两种实体类型。
      */
-    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+    [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
 
     /**
      * @brief 获取此旋风人对指定弹射物的偏转类型

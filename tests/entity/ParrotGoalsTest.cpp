@@ -44,7 +44,7 @@ namespace {
 class TestFlyingCreature : public CreatureEntity {
 public:
     TestFlyingCreature()
-        : CreatureEntity(EntityId(1))
+        : CreatureEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -63,7 +63,7 @@ public:
 class TestMob : public MobEntity {
 public:
     TestMob()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -81,7 +81,7 @@ public:
 
 class LandOnOwnersShoulderGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { parrot = std::make_unique<ParrotEntity>(EntityId(1)); }
+    void SetUp() override { parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { parrot.reset(); }
 
@@ -314,7 +314,7 @@ protected:
     void SetUp() override
     {
         Items::initialize();
-        parrot = std::make_unique<ParrotEntity>(EntityId(1));
+        parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1));
     }
 
     void TearDown() override { parrot.reset(); }

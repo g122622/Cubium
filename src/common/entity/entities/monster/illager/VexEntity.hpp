@@ -46,7 +46,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    VexEntity(EntityId id);
+    VexEntity(EntityInstanceId id);
     ~VexEntity() override = default;
 
     // 禁止拷贝

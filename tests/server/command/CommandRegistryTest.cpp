@@ -121,7 +121,7 @@ public:
     /**
      * @brief 在测试世界中生成一个 id 等于 playerId 的 ServerPlayer 实体。
      *
-     * SpectateCommand 会通过 `world->getEntity(static_cast<EntityId>(spectatorId))`
+     * SpectateCommand 会通过 `world->getEntity(static_cast<EntityInstanceId>(spectatorId))`
      * 查找旁观者实体，并要求该实体能 dynamic_cast 为 ServerPlayer。addTestPlayer
      * 仅在 PlayerManager 注册玩家数据，不会在世界中创建实体，因此旁观相关测试需要
      * 额外调用本方法补足实体。
@@ -132,7 +132,7 @@ public:
      */
     ServerPlayer* spawnTestPlayerEntity(PlayerId playerId, const std::string& username)
     {
-        auto player = std::make_unique<ServerPlayer>(static_cast<EntityId>(playerId), username);
+        auto player = std::make_unique<ServerPlayer>(static_cast<EntityInstanceId>(playerId), username);
         player->setPlayerId(playerId);
         auto* raw = player.get();
         m_world->spawnEntity(std::move(player));
@@ -644,13 +644,13 @@ TEST_F(CommandRegistryServerTest, SpectateCommandAcceptsSpectatorGameMode)
     // 并 dynamic_cast 为 ServerPlayer，因此需要生成 id==playerId 的 ServerPlayer 实体。
     // 注意：不能同时用 playerEntityManager().createPlayerEntity 注册第二个玩家作为目标——
     // EntityManager::allocateId 会从 1 开始自增，与手动指定的 id==1 实体冲突并覆盖。
-    // 因此旁观目标也以显式 EntityId 生成（此处使用 1000 避免冲突）。
+    // 因此旁观目标也以显式 EntityInstanceId 生成（此处使用 1000 避免冲突）。
     auto* steveEntity = m_server.spawnTestPlayerEntity(1, "Steve");
     ASSERT_NE(steveEntity, nullptr);
 
     // 生成旁观目标实体（普通 Player 即可，SpectateCommand 仅要求目标是 Entity*）。
     // 使用 @e[name=Alex,limit=1] 按名称选中目标，避免 “Cannot spectate yourself”。
-    auto targetEntity = std::make_unique<Player>(EntityId(1000), "Alex");
+    auto targetEntity = std::make_unique<Player>(EntityInstanceId(1000), "Alex");
     targetEntity->setPosition(5.0f, 64.0f, 0.0f);
     m_server.world()->spawnEntity(std::move(targetEntity));
 

@@ -354,13 +354,13 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entityLookup.find(id);
         return it != m_entityLookup.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entityLookup.find(id);
         return it != m_entityLookup.end() ? it->second : nullptr;
@@ -380,11 +380,11 @@ public:
         }
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntityCount++;
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     void gameEvent(
@@ -439,7 +439,7 @@ public:
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
-    std::unordered_map<EntityId, Entity*> m_entityLookup;
+    std::unordered_map<EntityInstanceId, Entity*> m_entityLookup;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
     bool m_gameEventFired = false;
@@ -469,7 +469,7 @@ protected:
     /// 创建玩家并关联到测试世界
     std::unique_ptr<Player> createPlayer()
     {
-        auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+        auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
         player->setWorld(&m_world);
         m_world.registerEntity(player.get());
         return player;
@@ -508,8 +508,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithPottableItem_PlacesPottedBlock_Ser
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result =
-        flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 验证方块被替换为 potted_poppy
@@ -542,8 +541,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithPottableItem_ClientSide_ReturnsSuc
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result =
-        flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 客户端返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -599,8 +597,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithEmptyHand_ReturnsConsume)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result =
-        flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
@@ -675,8 +672,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsPass)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result =
-        flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 非 BlockItem 物品应返回 Pass（交给其他处理器）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -705,8 +701,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsPass)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result =
-        flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 不可盆栽的 BlockItem 应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);

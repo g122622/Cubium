@@ -235,14 +235,14 @@ public:
     [[nodiscard]] bool isRaining() const override { return m_isRaining; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_canRainAt; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         (void)entity;
         ++m_spawnedEntityCount;
         return m_spawnEntityResult;
     }
 
-    void setSpawnEntityResult(EntityId result) { m_spawnEntityResult = result; }
+    void setSpawnEntityResult(EntityInstanceId result) { m_spawnEntityResult = result; }
 
     void setSeed(u64 seed) { m_seed = seed; }
 
@@ -306,7 +306,7 @@ private:
     u64 m_seed = 0;
     bool m_isRaining = false;
     bool m_canRainAt = false;
-    EntityId m_spawnEntityResult = 1;
+    EntityInstanceId m_spawnEntityResult = 1;
     i32 m_spawnedEntityCount = 0;
 };
 

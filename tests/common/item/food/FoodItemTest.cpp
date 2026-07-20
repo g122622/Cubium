@@ -83,10 +83,10 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -140,7 +140,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_GetsFoodEffect_Spider
 
     TestFoodItem testFoodItem(&spiderEyeFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -171,7 +171,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_MultipleEffects)
 
     TestFoodItem testFoodItem(&pufferfishFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -209,7 +209,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_NoEffectFoodNoEffect)
 
     TestFoodItem testFoodItem(&appleFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -232,7 +232,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_ProbabilisticEffect)
     constexpr int maxAttempts = 30;
 
     for (int i = 0; i < maxAttempts; ++i) {
-        MobEntity mob(static_cast<EntityId>(100 + i));
+        MobEntity mob(static_cast<EntityInstanceId>(100 + i));
         mob.setWorld(&m_world);
         mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -265,7 +265,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_MushroomStew_ReturnsBowl)
         GTEST_SKIP() << "MUSHROOM_STEW or BOWL item not registered";
     }
 
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -290,7 +290,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_FoodItemWithNoContainer_ShrinksAndReturnsEm
     item::food::Food appleFood(4, 0.3f); // 无效果、无容器物品
     TestFoodItem testFoodItem(&appleFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -314,7 +314,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_PlayerGetsHungerAndEffects_NonPlayerGetsOnl
     TestFoodItem testFoodItem(&spiderEyeFood, ItemProperties().maxStackSize(64));
 
     // 玩家食用
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&m_world);
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -331,7 +331,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_PlayerGetsHungerAndEffects_NonPlayerGetsOnl
     EXPECT_TRUE(player.hasEffect(entity::effect::EffectType::Poison));
 
     // 非玩家实体食用
-    MobEntity mob(EntityId(2));
+    MobEntity mob(EntityInstanceId(2));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -354,7 +354,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_ContainerItem_NonPlayer_ReturnsBowl)
     item::food::Food stewFood(6, 0.6f); // 蘑菇煲食物属性
     TestFoodItem testStewItem(&stewFood, ItemProperties().maxStackSize(1).containerItem(Items::BOWL));
 
-    MobEntity mob(EntityId(1));
+    MobEntity mob(EntityInstanceId(1));
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 

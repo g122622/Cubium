@@ -25,7 +25,8 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -107,10 +108,10 @@ public:
      * 用于测试 _scanState 中的末影龙检测逻辑。
      * 默认返回空列表（无实体），可通过 setMockDragon() 添加模拟末影龙。
      */
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const override
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& typeId) const override
     {
         std::vector<Entity*> result;
-        if (typeId == entity::EntityTypeIdNumber::ENDER_DRAGON && m_mockDragon != nullptr) {
+        if (typeId == entity::EntityTypeKeys::ENDER_DRAGON && m_mockDragon != nullptr) {
             result.push_back(m_mockDragon.get());
         }
         return result;
@@ -819,19 +820,19 @@ TEST_F(EndDragonFightTest, ScanStateNoDragonSetsDragonKilled)
 
     // 由于测试世界 hasChunk 返回 false，竞技场未加载，tick 不会触发扫描
     // 但我们可以验证 getEntitiesByType 默认返回空列表
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     EXPECT_TRUE(dragons.empty());
 }
 
 TEST_F(EndDragonFightTest, ScanStateWithDragonRecordsUUID)
 {
     // 模拟一条末影龙实体
-    auto dragon = std::make_unique<Entity>(EntityId(100));
+    auto dragon = std::make_unique<Entity>(EntityInstanceId(100));
     std::string dragonUUID = dragon->uuid();
     m_world.setMockDragon(std::move(dragon));
 
     // 验证 getEntitiesByType 能找到末影龙
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
     EXPECT_EQ(dragons[0]->uuid(), dragonUUID);
 
@@ -851,14 +852,14 @@ TEST_F(EndDragonFightTest, ScanStateWithDragonRecordsUUID)
 TEST_F(EndDragonFightTest, ScanStateDragonWithoutPortalDiscardsDragon)
 {
     // 有龙但无传送门时，龙应被 discard（标记为已移除）
-    auto dragon = std::make_unique<Entity>(EntityId(100));
+    auto dragon = std::make_unique<Entity>(EntityInstanceId(100));
     EXPECT_FALSE(dragon->isRemoved());
 
     Entity* rawDragon = dragon.get();
     m_world.setMockDragon(std::move(dragon));
 
     // 验证龙实体存在且未被移除
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
     EXPECT_FALSE(dragons[0]->isRemoved());
 
@@ -897,9 +898,9 @@ TEST_F(EndDragonFightTest, DefaultGetEntitiesByTypeReturnsEmpty)
     // DragonFightTestWorld 的基类 BaseTestWorld 的 getEntitiesByType
     // 默认实现应返回空列表（通过 DragonFightTestWorld 的覆写验证）
     // 当未设置模拟龙时，应返回空列表
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     EXPECT_TRUE(dragons.empty());
 
-    auto players = m_world.getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
+    auto players = m_world.getEntitiesByType(entity::EntityTypeKeys::PLAYER);
     EXPECT_TRUE(players.empty());
 }

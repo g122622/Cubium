@@ -87,7 +87,7 @@ void setChargingBowParam(ClientEntity& entity, bool value)
 class ClientEntitySkeletonSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:skeleton"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:skeleton"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -170,7 +170,7 @@ TEST_F(ClientEntitySkeletonSyncTest, SyncFromDataManager_ReadsCorrectParamId)
 class ClientEntityStraySyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:stray"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:stray"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -205,7 +205,7 @@ TEST_F(ClientEntityStraySyncTest, SyncFromDataManager_False_KeepsChargingBowFals
 class ClientEntityBoggedSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:bogged"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:bogged"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -244,7 +244,7 @@ protected:
 
 TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Skeleton_WithoutPrefix_SyncsChargingBow)
 {
-    ClientEntity entity(EntityId(1), "skeleton");
+    ClientEntity entity(EntityInstanceId(1), "skeleton");
     EXPECT_FALSE(entity.isChargingBow());
 
     registerChargingBowParam(entity, false);
@@ -255,7 +255,7 @@ TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Skeleton_WithoutPrefix_SyncsChar
 
 TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Stray_WithoutPrefix_SyncsChargingBow)
 {
-    ClientEntity entity(EntityId(1), "stray");
+    ClientEntity entity(EntityInstanceId(1), "stray");
     EXPECT_FALSE(entity.isChargingBow());
 
     registerChargingBowParam(entity, false);
@@ -266,7 +266,7 @@ TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Stray_WithoutPrefix_SyncsChargin
 
 TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Bogged_WithoutPrefix_SyncsChargingBow)
 {
-    ClientEntity entity(EntityId(1), "bogged");
+    ClientEntity entity(EntityInstanceId(1), "bogged");
     EXPECT_FALSE(entity.isChargingBow());
 
     registerChargingBowParam(entity, false);
@@ -288,7 +288,7 @@ TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Bogged_WithoutPrefix_SyncsChargi
 class ClientEntityWitherSkeletonSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:wither_skeleton"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wither_skeleton"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -316,7 +316,7 @@ TEST_F(ClientEntityWitherSkeletonSyncTest, SyncFromDataManager_DoesNotReadChargi
 
 TEST(ClientEntityNonSkeletonSyncTest, Zombie_DoesNotSyncChargingBow)
 {
-    ClientEntity entity(EntityId(1), "minecraft:zombie");
+    ClientEntity entity(EntityInstanceId(1), "minecraft:zombie");
     EXPECT_FALSE(entity.isChargingBow());
 
     registerChargingBowParam(entity, false);
@@ -327,7 +327,7 @@ TEST(ClientEntityNonSkeletonSyncTest, Zombie_DoesNotSyncChargingBow)
 
 TEST(ClientEntityNonSkeletonSyncTest, Player_DoesNotSyncChargingBow)
 {
-    ClientEntity entity(EntityId(1), "minecraft:player");
+    ClientEntity entity(EntityInstanceId(1), "minecraft:player");
     EXPECT_FALSE(entity.isChargingBow());
 
     registerChargingBowParam(entity, false);

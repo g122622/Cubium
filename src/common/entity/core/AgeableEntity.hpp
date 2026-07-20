@@ -40,7 +40,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    AgeableEntity(EntityId id) noexcept;
+    AgeableEntity(EntityInstanceId id) noexcept;
     ~AgeableEntity() override = default;
 
     // 禁止拷贝

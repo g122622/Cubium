@@ -36,7 +36,7 @@ namespace mc::client {
  * ## 设计原则
  *
  * - PlayerId：网络会话标识，用于认证、权限、网络路由
- * - EntityId：世界实体标识，用于实体系统内部
+ * - EntityInstanceId：世界实体标识，用于实体系统内部
  * - 两者是独立的标识符，不能互换或强转
  *
  * ## 使用场景
@@ -97,7 +97,7 @@ public:
      * @pre playerId != 0
      * @pre entityId != INVALID_ENTITY_ID
      */
-    void setIdentity(PlayerId playerId, EntityId entityId);
+    void setIdentity(PlayerId playerId, EntityInstanceId entityId);
 
     /**
      * @brief 清除本地玩家身份
@@ -127,7 +127,7 @@ public:
      *
      * @return 实体ID，未设置时返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityId entityId() const;
+    [[nodiscard]] EntityInstanceId entityId() const;
 
     /**
      * @brief 检查给定的实体ID是否是本地玩家
@@ -138,7 +138,7 @@ public:
      * @param entityId 要检查的实体ID
      * @return true 如果是本地玩家的实体ID
      */
-    [[nodiscard]] bool isLocalPlayerEntity(EntityId entityId) const;
+    [[nodiscard]] bool isLocalPlayerEntity(EntityInstanceId entityId) const;
 
     /**
      * @brief 检查给定的玩家ID是否是本地玩家
@@ -152,7 +152,7 @@ public:
 
 private:
     PlayerId m_playerId = 0;
-    EntityId m_entityId = INVALID_ENTITY_ID;
+    EntityInstanceId m_entityId = INVALID_ENTITY_ID;
     bool m_hasIdentity = false;
 };
 

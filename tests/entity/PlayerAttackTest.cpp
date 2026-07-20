@@ -101,7 +101,7 @@ private:
 class MockEntityWithTeamForSweep : public Entity {
 public:
     MockEntityWithTeamForSweep()
-        : Entity(EntityId(1))
+        : Entity(EntityInstanceId(1))
     {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }

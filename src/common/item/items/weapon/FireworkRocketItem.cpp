@@ -50,7 +50,7 @@ std::unique_ptr<entity::ProjectileEntity> FireworkRocketItem::asProjectile(IWorl
             // 设置烟花物品数据（飞行时间、爆炸效果等）
             firework->setFireworkItem(stack);
         }
-        entity->setTypeId(entity::EntityTypes::FIREWORK_ROCKET);
+        entity->setTypeId(entity::EntityTypeKeys::FIREWORK_ROCKET);
     }
     // FireworkRocketEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
     return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));

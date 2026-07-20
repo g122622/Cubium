@@ -45,7 +45,7 @@ public:
      * @brief 构造鳕鱼实体
      * @param id 实体 ID
      */
-    CodEntity(EntityId id);
+    CodEntity(EntityInstanceId id);
     ~CodEntity() override = default;
 
     CodEntity(const CodEntity&) = delete;

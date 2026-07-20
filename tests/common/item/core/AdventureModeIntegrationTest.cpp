@@ -108,7 +108,7 @@ protected:
 TEST_F(PlayerMayInteractAdventureTest, AdventureMode_NoCanPlaceOn_ReturnsFalse)
 {
     // 冒险模式下没有 CanPlaceOn 标签的物品不能与方块交互
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -122,7 +122,7 @@ TEST_F(PlayerMayInteractAdventureTest, AdventureMode_NoCanPlaceOn_ReturnsFalse)
 TEST_F(PlayerMayInteractAdventureTest, AdventureMode_EmptyHand_ReturnsFalse)
 {
     // 冒险模式下空手不能交互
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -135,7 +135,7 @@ TEST_F(PlayerMayInteractAdventureTest, AdventureMode_EmptyHand_ReturnsFalse)
 TEST_F(PlayerMayInteractAdventureTest, SurvivalMode_AlwaysReturnsTrue)
 {
     // 生存模式始终允许交互
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Survival);
 
@@ -148,7 +148,7 @@ TEST_F(PlayerMayInteractAdventureTest, SurvivalMode_AlwaysReturnsTrue)
 TEST_F(PlayerMayInteractAdventureTest, CreativeMode_AlwaysReturnsTrue)
 {
     // 创造模式始终允许交互
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Creative);
 
@@ -161,7 +161,7 @@ TEST_F(PlayerMayInteractAdventureTest, CreativeMode_AlwaysReturnsTrue)
 TEST_F(PlayerMayInteractAdventureTest, SpectatorMode_AlwaysReturnsFalse)
 {
     // 旁观模式始终禁止交互
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Spectator);
 
@@ -178,7 +178,7 @@ TEST_F(PlayerMayInteractAdventureTest, SpectatorMode_AlwaysReturnsFalse)
 TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnExactMatch_ReturnsTrue)
 {
     // 主手物品的 CanPlaceOn 标签匹配目标方块
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -200,7 +200,7 @@ TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnExactMatch_ReturnsTrue
 TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnNoMatch_ReturnsFalse)
 {
     // 主手物品的 CanPlaceOn 标签不匹配目标方块
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -226,7 +226,7 @@ TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnNoMatch_ReturnsFalse)
 TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnTagMatch_ReturnsTrue)
 {
     // 主手物品的 CanPlaceOn 标签使用 #minecraft:dirt 匹配
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -247,7 +247,7 @@ TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnTagMatch_ReturnsTrue)
 TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnTagNoMatch_ReturnsFalse)
 {
     // 主手物品的 CanPlaceOn 标签使用 #minecraft:logs 不匹配 stone
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -272,7 +272,7 @@ TEST_F(PlayerMayInteractAdventureTest, MainHand_CanPlaceOnTagNoMatch_ReturnsFals
 TEST_F(PlayerMayInteractAdventureTest, OffHand_CanPlaceOnMatch_ReturnsTrue)
 {
     // 副手物品的 CanPlaceOn 标签匹配目标方块（主手无 CanPlaceOn）
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -298,7 +298,7 @@ TEST_F(PlayerMayInteractAdventureTest, OffHand_CanPlaceOnMatch_ReturnsTrue)
 TEST_F(PlayerMayInteractAdventureTest, OffHand_CanPlaceOnNoMatch_MainHandNoCanPlaceOn_ReturnsFalse)
 {
     // 副手物品的 CanPlaceOn 不匹配，主手也无 CanPlaceOn
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -322,7 +322,7 @@ TEST_F(PlayerMayInteractAdventureTest, OffHand_CanPlaceOnNoMatch_MainHandNoCanPl
 TEST_F(PlayerMayInteractAdventureTest, BothHands_CanPlaceOn_MainHandMatches)
 {
     // 双手都有 CanPlaceOn，主手匹配
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -347,7 +347,7 @@ TEST_F(PlayerMayInteractAdventureTest, BothHands_CanPlaceOn_MainHandMatches)
 TEST_F(PlayerMayInteractAdventureTest, BothHands_CanPlaceOn_OffHandMatches)
 {
     // 双手都有 CanPlaceOn，主手不匹配但副手匹配
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -372,7 +372,7 @@ TEST_F(PlayerMayInteractAdventureTest, BothHands_CanPlaceOn_OffHandMatches)
 TEST_F(PlayerMayInteractAdventureTest, BothHands_CanPlaceOn_NeitherMatches)
 {
     // 双手都有 CanPlaceOn，但都不匹配
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 
@@ -401,7 +401,7 @@ TEST_F(PlayerMayInteractAdventureTest, BothHands_CanPlaceOn_NeitherMatches)
 TEST_F(PlayerMayInteractAdventureTest, AdventureMode_AirBlock_ReturnsFalse)
 {
     // 冒险模式下对空气方块交互返回 false（空气不应被交互）
-    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
 

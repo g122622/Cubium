@@ -102,7 +102,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     explicit TestLivingEntity(IWorld* world = nullptr)
-        : LivingEntity(EntityId(1), world)
+        : LivingEntity(EntityInstanceId(1), world)
     {
         setHealth(20.0f);
     }
@@ -295,7 +295,7 @@ TEST(BlockCollisionTest, CactusDoesNotDamageNonLivingEntity)
     world.setBlockAt(BlockPos(0, 0, 0), &cactusState);
 
     // 使用普通 Entity（非 LivingEntity）
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(0.5f, 0.5f, 0.5f);
 

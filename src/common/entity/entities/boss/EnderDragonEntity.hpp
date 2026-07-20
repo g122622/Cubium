@@ -56,7 +56,7 @@ namespace entity {
  */
 class BossEntity : public MobEntity {
 public:
-    explicit BossEntity(EntityId id);
+    explicit BossEntity(EntityInstanceId id);
     ~BossEntity() override = default;
 
     // ========== Boss 特有功能 ==========
@@ -125,7 +125,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EnderDragonPartEntity(EntityId id);
+    explicit EnderDragonPartEntity(EntityInstanceId id);
 
     ~EnderDragonPartEntity() override = default;
 
@@ -204,7 +204,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EnderDragonEntity(EntityId id);
+    explicit EnderDragonEntity(EntityInstanceId id);
 
     ~EnderDragonEntity() override = default;
 

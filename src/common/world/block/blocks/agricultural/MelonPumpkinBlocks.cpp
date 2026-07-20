@@ -367,7 +367,7 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
 
     // 生成雪傀儡实体
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* snowGolemType = registry.getType(entity::EntityTypes::SNOW_GOLEM);
+    const entity::EntityType* snowGolemType = registry.getType(entity::EntityTypeKeys::SNOW_GOLEM);
     if (snowGolemType != nullptr) {
         std::unique_ptr<Entity> entity = snowGolemType->create(&world);
         if (entity != nullptr) {
@@ -431,7 +431,7 @@ void CarvedPumpkinBlock::spawnIronGolem(
 
     // 生成铁傀儡实体
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* ironGolemType = registry.getType(entity::EntityTypes::IRON_GOLEM);
+    const entity::EntityType* ironGolemType = registry.getType(entity::EntityTypeKeys::IRON_GOLEM);
     if (ironGolemType != nullptr) {
         std::unique_ptr<Entity> entity = ironGolemType->create(&world);
         if (entity != nullptr) {
@@ -587,7 +587,7 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
 
     // 步骤 3: 在南瓜头部位置生成铜傀儡
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypes::COPPER_GOLEM);
+    const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypeKeys::COPPER_GOLEM);
     if (copperGolemType != nullptr) {
         std::unique_ptr<Entity> entity = copperGolemType->create(&world);
         if (entity != nullptr) {

@@ -56,19 +56,19 @@ namespace {
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
     }
 
-    explicit TestMobEntity(EntityId id)
+    explicit TestMobEntity(EntityInstanceId id)
         : MobEntity(id)
     {
         registerAttributes();
     }
 
     // 暴露 protected setVehicle 供测试设置骑乘关系
-    void setVehicleForTest(EntityId vehicle) { setVehicle(vehicle); }
+    void setVehicleForTest(EntityInstanceId vehicle) { setVehicle(vehicle); }
 };
 
 } // namespace
@@ -194,7 +194,7 @@ TEST(PathfindingMalusTest, ShouldPassengersInheritMalus_DefaultFalse)
 TEST(PathfindingMalusTest, ShouldPassengersInheritMalus_PigEntityDefaultFalse)
 {
     // 通过具体实体类型验证默认行为
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     EXPECT_FALSE(pig->shouldPassengersInheritMalus());
 }
 
@@ -218,25 +218,25 @@ protected:
 
 TEST_F(CopperGolemMalusTest, DangerFire_InitializedTo16)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::DangerFire), 16.0f);
 }
 
 TEST_F(CopperGolemMalusTest, DangerOther_InitializedTo16)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::DangerOther), 16.0f);
 }
 
 TEST_F(CopperGolemMalusTest, DamageFire_InitializedToNegative1)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::DamageFire), -1.0f);
 }
 
 TEST_F(CopperGolemMalusTest, OtherTypes_UseDefaultValues)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
 
     // 未显式设置的类型应保持默认代价
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::Water), 8.0f);
@@ -255,12 +255,12 @@ public:
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
     // 覆写 getEntity 以支持 getVehicle() → Entity* 解引用
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         const auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         const auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
@@ -274,14 +274,14 @@ public:
     }
 
 private:
-    std::unordered_map<EntityId, Entity*> m_entities;
+    std::unordered_map<EntityInstanceId, Entity*> m_entities;
 };
 
 // 测试用 MobEntity 子类，重写 shouldPassengersInheritMalus 返回 true
 class InheritMalusMob : public MobEntity {
 public:
     InheritMalusMob()
-        : MobEntity(EntityId(2))
+        : MobEntity(EntityInstanceId(2))
     {
         registerAttributes();
         // 模拟炽足兽（Strider）：乘客继承 malus
@@ -301,7 +301,7 @@ TEST(PathfindingMalusInheritTest, PassengerInheritsVehicleMalus_WhenInheritFlagT
     // 我们使用 InheritMalusTestWorld 来提供实体查询能力。
     InheritMalusTestWorld world;
 
-    TestMobEntity passenger(EntityId(1));
+    TestMobEntity passenger(EntityInstanceId(1));
     passenger.setWorld(&world);
 
     InheritMalusMob vehicle;
@@ -322,10 +322,10 @@ TEST(PathfindingMalusInheritTest, PassengerUsesOwnMalus_WhenInheritFlagFalse)
     // 当载具 shouldPassengersInheritMalus=false（默认）时，乘客使用自己的 malus
     InheritMalusTestWorld world;
 
-    TestMobEntity passenger(EntityId(1));
+    TestMobEntity passenger(EntityInstanceId(1));
     passenger.setWorld(&world);
 
-    TestMobEntity vehicle(EntityId(2));
+    TestMobEntity vehicle(EntityInstanceId(2));
     vehicle.setWorld(&world);
     vehicle.setPathfindingMalus(PathNodeType::Lava, 0.0f); // 载具允许岩浆
 

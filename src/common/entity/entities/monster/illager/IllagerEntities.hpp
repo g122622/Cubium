@@ -59,7 +59,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    PillagerEntity(EntityId id);
+    PillagerEntity(EntityInstanceId id);
     ~PillagerEntity() override = default;
 
     // 禁止拷贝
@@ -142,7 +142,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    VindicatorEntity(EntityId id);
+    VindicatorEntity(EntityInstanceId id);
     ~VindicatorEntity() override = default;
 
     // 禁止拷贝

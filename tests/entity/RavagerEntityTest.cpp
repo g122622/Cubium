@@ -76,10 +76,10 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
@@ -126,7 +126,7 @@ protected:
 TEST_F(RavagerEntityTest, BasicProperties_AreCorrect)
 {
     // MC 1.16.5 劫掠兽属性验证
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 尺寸验证
@@ -142,7 +142,7 @@ TEST_F(RavagerEntityTest, Attributes_AreCorrect)
 {
     // MC 1.16.5 劫掠兽属性值验证
     // 构造函数中已调用 registerAttributes
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 属性验证
@@ -177,7 +177,7 @@ TEST_F(RavagerEntityTest, Constants_AreCorrect)
 
 TEST_F(RavagerEntityTest, InitialState_IsCorrect)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 初始状态：无攻击、无眩晕、无咆哮
@@ -209,12 +209,12 @@ protected:
 
 TEST_F(RavagerAttackStateTest, AttackEntityAsMob_SetsAttackTick)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
     ravager->setPosition(0.0, 64.0, 0.0);
 
     // 创建目标玩家
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
 
@@ -228,11 +228,11 @@ TEST_F(RavagerAttackStateTest, AttackEntityAsMob_SetsAttackTick)
 
 TEST_F(RavagerAttackStateTest, MovementBlocked_WhenAttacking)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 设置攻击状态
-    ravager->attackEntityAsMob(*std::make_unique<Player>(EntityId(2), "TestPlayer"));
+    ravager->attackEntityAsMob(*std::make_unique<Player>(EntityInstanceId(2), "TestPlayer"));
 
     // 攻击时移动被阻塞
     EXPECT_TRUE(ravager->isMovementBlocked());
@@ -240,7 +240,7 @@ TEST_F(RavagerAttackStateTest, MovementBlocked_WhenAttacking)
 
 TEST_F(RavagerAttackStateTest, MovementBlocked_WhenStunned)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 手动设置眩晕状态（实际由 constructKnockBackVector 触发）
@@ -251,7 +251,7 @@ TEST_F(RavagerAttackStateTest, MovementBlocked_WhenStunned)
 
 TEST_F(RavagerAttackStateTest, MovementBlocked_WhenRoaring)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 初始状态不阻塞
@@ -274,7 +274,7 @@ protected:
 
 TEST_F(RavagerTickTest, AttackTick_CanBeSetAndDecrement)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
     ravager->setPosition(0.0, 64.0, 0.0);
 
@@ -283,7 +283,7 @@ TEST_F(RavagerTickTest, AttackTick_CanBeSetAndDecrement)
     EXPECT_FALSE(ravager->isAttacking());
 
     // 设置攻击状态
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
     ravager->attackEntityAsMob(*player);
@@ -295,7 +295,7 @@ TEST_F(RavagerTickTest, AttackTick_CanBeSetAndDecrement)
 
 TEST_F(RavagerTickTest, StunTick_CanBeSet)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 眩晕初始值为 0
@@ -305,7 +305,7 @@ TEST_F(RavagerTickTest, StunTick_CanBeSet)
 
 TEST_F(RavagerTickTest, RoarTick_CanBeSet)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 咆哮初始值为 0
@@ -326,7 +326,7 @@ protected:
 
 TEST_F(RavagerBlockBreakTest, CanBreakBlocks_DefaultTrue)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     EXPECT_TRUE(ravager->canBreakBlocks());
@@ -334,7 +334,7 @@ TEST_F(RavagerBlockBreakTest, CanBreakBlocks_DefaultTrue)
 
 TEST_F(RavagerBlockBreakTest, CanBreakBlocks_CanBeDisabled)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     ravager->setCanBreakBlocks(false);
@@ -357,11 +357,11 @@ protected:
 
 TEST_F(RavagerVisibilityTest, CanSee_NormalCase)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
     ravager->setPosition(0.0, 64.0, 0.0);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
 
@@ -385,7 +385,7 @@ protected:
 TEST_F(RavagerExperienceTest, ExperienceValue_IsCorrect)
 {
     // MC 1.16.5: 劫掠兽掉落 20 经验值
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(m_world.get());
 
     // 经验值在 registerAttributes 中设置

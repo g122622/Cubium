@@ -35,6 +35,7 @@
 #include "../../core/DataParameter.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "../passive/basic/AnimalEntity.hpp"
 #include <cmath>
@@ -85,7 +86,7 @@ std::unique_ptr<Entity> BoatEntity::create(IWorld* /*world*/)
 }
 
 BoatEntity::BoatEntity(Type type)
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
     , m_type(type)
 {
     // 设置尺寸通过 width()/height()
@@ -250,10 +251,10 @@ void BoatEntity::updateMotion()
             // 速度乘以的是原始 f（未减半），字段减半的效果在下一 tick 被 getStatus() 覆盖。
             // 此处保持语义一致：friction 保持原始值用于速度衰减，m_boatGlide 减半作为字段副作用。
             {
-                EntityId controllerId = getControllingPassenger();
+                EntityInstanceId controllerId = getControllingPassenger();
                 if (controllerId != INVALID_ENTITY_ID && m_world) {
                     Entity* controller = m_world->getEntity(controllerId);
-                    if (controller != nullptr && controller->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+                    if (controller != nullptr && controller->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
                         m_boatGlide /= 2.0f;
                     }
                 }
@@ -587,7 +588,7 @@ void BoatEntity::updateAllPassengerPositions()
     }
 
     for (size_t i = 0; i < m_passengers.size(); ++i) {
-        EntityId passengerId = m_passengers[i];
+        EntityInstanceId passengerId = m_passengers[i];
         Entity* passenger = m_world->getEntity(passengerId);
         if (passenger == nullptr) {
             continue;

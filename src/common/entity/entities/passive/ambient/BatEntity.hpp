@@ -51,7 +51,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    BatEntity(EntityId id);
+    BatEntity(EntityInstanceId id);
     ~BatEntity() override = default;
 
     // 禁止拷贝

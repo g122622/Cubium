@@ -371,7 +371,7 @@ TEST_F(UuidTest, UuidStringFormat)
 // Mock LivingEntity for testing
 class MockLivingEntityForConduit : public LivingEntity {
 public:
-    explicit MockLivingEntityForConduit(EntityId id)
+    explicit MockLivingEntityForConduit(EntityInstanceId id)
         : LivingEntity(id, nullptr)
     {
         registerAttributes();
@@ -382,7 +382,7 @@ public:
 // Mock Mob Entity (implements IMob interface)
 class MockMobEntityForConduit : public LivingEntity, public entity::IMob {
 public:
-    explicit MockMobEntityForConduit(EntityId id)
+    explicit MockMobEntityForConduit(EntityInstanceId id)
         : LivingEntity(id, nullptr)
     {
         registerAttributes();
@@ -393,7 +393,7 @@ public:
 // Mock non-LivingEntity (for testing UUID match but wrong type)
 class MockNonLivingEntityForConduit : public Entity {
 public:
-    explicit MockNonLivingEntityForConduit(EntityId id)
+    explicit MockNonLivingEntityForConduit(EntityInstanceId id)
         : Entity(id, nullptr)
     {}
 };

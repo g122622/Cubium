@@ -207,7 +207,7 @@ TEST_F(DetectorRailComparatorTest, UnpoweredRail_WithMinecart_ReturnsZero)
     m_world.setBlockAt(pos, &unpoweredState);
 
     // 添加一个满的箱子矿车
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
@@ -249,7 +249,7 @@ TEST_F(DetectorRailComparatorTest, PoweredRail_ChestMinecart_ReturnsContainerSig
     BlockPos pos(5, 64, 10);
     m_world.setBlockAt(pos, &poweredState);
 
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     // 放一个物品，信号应为1
@@ -272,7 +272,7 @@ TEST_F(DetectorRailComparatorTest, PoweredRail_FullChestMinecart_ReturnsFifteen)
     BlockPos pos(5, 64, 10);
     m_world.setBlockAt(pos, &poweredState);
 
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
@@ -298,12 +298,12 @@ TEST_F(DetectorRailComparatorTest, PoweredRail_CommandBlockMinecart_PriorityOver
     m_world.setBlockAt(pos, &poweredState);
 
     // 同时放置命令方块矿车和箱子矿车
-    CommandBlockMinecartEntity command(EntityId(1));
+    CommandBlockMinecartEntity command(EntityInstanceId(1));
     command.setSuccessCount(7);
     command.setPosition(5.5f, 64.0f, 10.5f);
     m_world.addEntity(&command);
 
-    ChestMinecartEntity chest(EntityId(2));
+    ChestMinecartEntity chest(EntityInstanceId(2));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
@@ -329,7 +329,7 @@ TEST_F(DetectorRailComparatorTest, PoweredRail_RideableMinecart_ReturnsZero)
     BlockPos pos(5, 64, 10);
     m_world.setBlockAt(pos, &poweredState);
 
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
     rideable.setPosition(5.5f, 64.0f, 10.5f);
     m_world.addEntity(&rideable);
 
@@ -347,7 +347,7 @@ TEST_F(DetectorRailComparatorTest, PoweredRail_TNTMinecart_ReturnsZero)
     BlockPos pos(5, 64, 10);
     m_world.setBlockAt(pos, &poweredState);
 
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
     tnt.setPosition(5.5f, 64.0f, 10.5f);
     m_world.addEntity(&tnt);
 
@@ -365,7 +365,7 @@ TEST_F(DetectorRailComparatorTest, PoweredRail_FurnaceMinecart_ReturnsZero)
     BlockPos pos(5, 64, 10);
     m_world.setBlockAt(pos, &poweredState);
 
-    FurnaceMinecartEntity furnace(EntityId(1));
+    FurnaceMinecartEntity furnace(EntityInstanceId(1));
     furnace.setPosition(5.5f, 64.0f, 10.5f);
     m_world.addEntity(&furnace);
 

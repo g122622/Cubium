@@ -46,7 +46,7 @@ std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/)
     return std::make_unique<CowEntity>(0);
 }
 
-CowEntity::CowEntity(EntityId id)
+CowEntity::CowEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册 AI 目标

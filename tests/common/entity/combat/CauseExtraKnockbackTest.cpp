@@ -39,7 +39,7 @@ namespace {
 
 class TestLivingEntity : public LivingEntity {
 public:
-    explicit TestLivingEntity(EntityId id)
+    explicit TestLivingEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -54,7 +54,7 @@ public:
 
 class TestPlayer : public Player {
 public:
-    explicit TestPlayer(EntityId id)
+    explicit TestPlayer(EntityInstanceId id)
         : Player(id, "TestPlayer")
     {
         registerAttributes();

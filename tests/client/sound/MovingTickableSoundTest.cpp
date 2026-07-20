@@ -62,10 +62,10 @@ TEST_F(MovingTickableSoundTest, BasicConstruction)
     // 先设置实体状态
     EntitySoundState state;
     state.position = glm::vec3(100.0f, 64.0f, 200.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Weather, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Weather, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     EXPECT_EQ(sound.getSoundEventId(), testLocation);
     EXPECT_EQ(sound.getCategory(), SoundCategory::Weather);
@@ -81,10 +81,10 @@ TEST_F(MovingTickableSoundTest, PositionTracking)
     // 设置初始位置
     EntitySoundState state;
     state.position = glm::vec3(10.0f, 20.0f, 30.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     // 初始位置是 (0, 0, 0)，tick 后更新为实体位置
     sound.tick();
@@ -94,7 +94,7 @@ TEST_F(MovingTickableSoundTest, PositionTracking)
 
     // 更新实体位置
     state.position = glm::vec3(50.0f, 70.0f, 90.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     // 再次 tick 后位置更新
     sound.tick();
@@ -108,17 +108,17 @@ TEST_F(MovingTickableSoundTest, StopsWhenEntityRemoved)
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
     state.isRemoved = false;
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     EXPECT_FALSE(sound.isDone());
     sound.tick();
     EXPECT_FALSE(sound.isDone());
 
     // 标记实体为移除
-    handler->onEntityRemove(static_cast<EntityId>(1));
+    handler->onEntityRemove(static_cast<EntityInstanceId>(1));
     sound.tick();
 
     // 声音应该被标记为完成
@@ -129,12 +129,12 @@ TEST_F(MovingTickableSoundTest, StopsWhenHandlerNull)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(testLocation,
         SoundCategory::Neutral,
         nullptr, // null handler
-        static_cast<EntityId>(1),
+        static_cast<EntityInstanceId>(1),
         1.0f,
         1.0f);
 
@@ -150,7 +150,7 @@ TEST_F(MovingTickableSoundTest, StopsWhenEntityNotFound)
     MovingTickableSound sound(testLocation,
         SoundCategory::Neutral,
         handler.get(),
-        static_cast<EntityId>(999), // 不存在的实体
+        static_cast<EntityInstanceId>(999), // 不存在的实体
         1.0f,
         1.0f);
 
@@ -162,10 +162,10 @@ TEST_F(MovingTickableSoundTest, AttenuationSettings)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 0.5f, 1.2f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 0.5f, 1.2f);
 
     // 移动声音使用线性衰减
     EXPECT_EQ(sound.getAttenuationType(), AttenuationType::Linear);
@@ -179,10 +179,10 @@ TEST_F(MovingTickableSoundTest, CustomVolumeAndPitch)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 0.75f, 0.9f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 0.75f, 0.9f);
 
     EXPECT_FLOAT_EQ(sound.getVolume(), 0.75f);
     EXPECT_FLOAT_EQ(sound.getPitch(), 0.9f);
@@ -367,18 +367,18 @@ TEST_F(EntitySoundStateExtendedTest, RidingState)
 {
     EntitySoundState state;
     state.isRiding = true;
-    state.vehicleId = static_cast<EntityId>(42);
+    state.vehicleId = static_cast<EntityInstanceId>(42);
 
     EXPECT_TRUE(state.isRiding);
-    EXPECT_EQ(state.vehicleId, static_cast<EntityId>(42));
+    EXPECT_EQ(state.vehicleId, static_cast<EntityInstanceId>(42));
 }
 
 TEST_F(EntitySoundStateExtendedTest, TargetEntityId)
 {
     EntitySoundState state;
-    state.targetEntityId = static_cast<EntityId>(100);
+    state.targetEntityId = static_cast<EntityInstanceId>(100);
 
-    EXPECT_EQ(state.targetEntityId, static_cast<EntityId>(100));
+    EXPECT_EQ(state.targetEntityId, static_cast<EntityInstanceId>(100));
 }
 
 TEST_F(EntitySoundStateExtendedTest, AttackAnimScale)
@@ -584,9 +584,9 @@ TEST_F(EntitySoundHandlerIntegrationTest, UpdateEntityPosition)
     state.position = glm::vec3(10.0f, 20.0f, 30.0f);
     state.velocity = glm::vec3(1.0f, 0.0f, -1.0f);
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FLOAT_EQ(retrieved->position.x, 10.0f);
     EXPECT_FLOAT_EQ(retrieved->position.y, 20.0f);
@@ -598,14 +598,14 @@ TEST_F(EntitySoundHandlerIntegrationTest, MultipleUpdatesSameEntity)
     // 第一次更新
     EntitySoundState state1;
     state1.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state1);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state1);
 
     // 第二次更新（覆盖）
     EntitySoundState state2;
     state2.position = glm::vec3(100.0f, 50.0f, 25.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state2);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state2);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FLOAT_EQ(retrieved->position.x, 100.0f);
     EXPECT_FLOAT_EQ(retrieved->position.y, 50.0f);
@@ -618,23 +618,23 @@ TEST_F(EntitySoundHandlerIntegrationTest, RidingStateTracking)
     EntitySoundState playerState;
     playerState.position = glm::vec3(10.0f, 0.0f, 10.0f);
     playerState.isRiding = true;
-    playerState.vehicleId = static_cast<EntityId>(100);
-    handler->updateEntityState(static_cast<EntityId>(1), playerState);
+    playerState.vehicleId = static_cast<EntityInstanceId>(100);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), playerState);
 
     // 设置矿车状态
     EntitySoundState minecartState;
     minecartState.position = glm::vec3(10.0f, 0.0f, 10.0f);
     minecartState.velocity = glm::vec3(0.5f, 0.0f, 0.0f);
-    handler->updateEntityState(static_cast<EntityId>(100), minecartState);
+    handler->updateEntityState(static_cast<EntityInstanceId>(100), minecartState);
 
     // 验证骑乘状态
-    const EntitySoundState* player = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* player = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(player, nullptr);
     EXPECT_TRUE(player->isRiding);
-    EXPECT_EQ(player->vehicleId, static_cast<EntityId>(100));
+    EXPECT_EQ(player->vehicleId, static_cast<EntityInstanceId>(100));
 
     // 验证矿车状态
-    const EntitySoundState* minecart = handler->getEntityState(static_cast<EntityId>(100));
+    const EntitySoundState* minecart = handler->getEntityState(static_cast<EntityInstanceId>(100));
     ASSERT_NE(minecart, nullptr);
     EXPECT_FLOAT_EQ(minecart->velocity.x, 0.5f);
 }
@@ -660,10 +660,10 @@ TEST_F(MovingTickableSoundBoundaryTest, PositionAtWorldBoundary)
     // 测试世界边界位置
     EntitySoundState state;
     state.position = glm::vec3(30000000.0f, 256.0f, -30000000.0f); // 世界边界
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Weather, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Weather, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     sound.tick();
     EXPECT_FLOAT_EQ(sound.getX(), 30000000.0f);
@@ -676,10 +676,10 @@ TEST_F(MovingTickableSoundBoundaryTest, PositionAtNegativeCoordinates)
 {
     EntitySoundState state;
     state.position = glm::vec3(-100.5f, -64.0f, -200.75f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     sound.tick();
     EXPECT_FLOAT_EQ(sound.getX(), -100.5f);
@@ -690,15 +690,15 @@ TEST_F(MovingTickableSoundBoundaryTest, PositionAtNegativeCoordinates)
 TEST_F(MovingTickableSoundBoundaryTest, RapidPositionUpdates)
 {
     EntitySoundState state;
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     // 快速更新位置 100 次
     for (int i = 0; i < 100; ++i) {
         state.position = glm::vec3(static_cast<f32>(i * 10), static_cast<f32>(i * 5), static_cast<f32>(i * 2));
-        handler->updateEntityState(static_cast<EntityId>(1), state);
+        handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
         sound.tick();
 
         EXPECT_FLOAT_EQ(sound.getX(), static_cast<f32>(i * 10));
@@ -712,10 +712,10 @@ TEST_F(MovingTickableSoundBoundaryTest, MultipleTicksWithoutPositionUpdate)
 {
     EntitySoundState state;
     state.position = glm::vec3(50.0f, 64.0f, 100.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     // 第一次 tick 更新位置
     sound.tick();
@@ -735,12 +735,12 @@ TEST_F(MovingTickableSoundBoundaryTest, ZeroVolumeSound)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(testLocation,
         SoundCategory::Neutral,
         handler.get(),
-        static_cast<EntityId>(1),
+        static_cast<EntityInstanceId>(1),
         0.0f, // 零音量
         1.0f);
 
@@ -754,12 +754,12 @@ TEST_F(MovingTickableSoundBoundaryTest, HighVolumeSound)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(testLocation,
         SoundCategory::Neutral,
         handler.get(),
-        static_cast<EntityId>(1),
+        static_cast<EntityInstanceId>(1),
         10.0f, // 高音量
         1.0f);
 
@@ -771,17 +771,17 @@ TEST_F(MovingTickableSoundBoundaryTest, PitchRange)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     // 低音调
     MovingTickableSound soundLow(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 0.1f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 0.1f);
     soundLow.tick();
     EXPECT_FLOAT_EQ(soundLow.getPitch(), 0.1f);
 
     // 高音调
     MovingTickableSound soundHigh(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 2.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 2.0f);
     soundHigh.tick();
     EXPECT_FLOAT_EQ(soundHigh.getPitch(), 2.0f);
 }
@@ -790,7 +790,7 @@ TEST_F(MovingTickableSoundBoundaryTest, DifferentSoundCategories)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     // 测试不同声音类别
     SoundCategory categories[] = {SoundCategory::Master,
@@ -805,7 +805,7 @@ TEST_F(MovingTickableSoundBoundaryTest, DifferentSoundCategories)
         SoundCategory::Voice};
 
     for (auto category : categories) {
-        MovingTickableSound sound(testLocation, category, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        MovingTickableSound sound(testLocation, category, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
         sound.tick();
         EXPECT_EQ(sound.getCategory(), category);
         EXPECT_FALSE(sound.isDone());
@@ -828,8 +828,8 @@ TEST_F(EntitySoundStateBoundaryTest, LargeEntityId)
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
 
-    // 最大 EntityId
-    EntityId maxId = static_cast<EntityId>(0xFFFFFFFF);
+    // 最大 EntityInstanceId
+    EntityInstanceId maxId = static_cast<EntityInstanceId>(0xFFFFFFFF);
     handler->updateEntityState(maxId, state);
 
     const EntitySoundState* retrieved = handler->getEntityState(maxId);
@@ -842,9 +842,9 @@ TEST_F(EntitySoundStateBoundaryTest, ZeroEntityId)
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
 
-    handler->updateEntityState(static_cast<EntityId>(0), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(0), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(0));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(0));
     ASSERT_NE(retrieved, nullptr);
 }
 
@@ -853,9 +853,9 @@ TEST_F(EntitySoundStateBoundaryTest, VelocityAtMaximum)
     EntitySoundState state;
     state.velocity = glm::vec3(1000.0f, 500.0f, -1000.0f); // 极端速度
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FLOAT_EQ(retrieved->velocity.x, 1000.0f);
     EXPECT_FLOAT_EQ(retrieved->velocity.y, 500.0f);
@@ -871,9 +871,9 @@ TEST_F(EntitySoundStateBoundaryTest, AllFlagsSet)
     state.isAngry = true;
     state.isRiding = true;
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_TRUE(retrieved->isChild);
     EXPECT_TRUE(retrieved->isFallFlying);
@@ -886,17 +886,17 @@ TEST_F(EntitySoundStateBoundaryTest, AttackAnimationScale)
 {
     EntitySoundState state;
     state.attackAnimScale = 0.0f;
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FLOAT_EQ(retrieved->attackAnimScale, 0.0f);
 
     // 更新为最大值
     state.attackAnimScale = 1.0f;
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FLOAT_EQ(retrieved->attackAnimScale, 1.0f);
 }
@@ -910,12 +910,12 @@ TEST_F(EntitySoundStateBoundaryTest, ConcurrentUpdates)
         EntitySoundState state;
         state.position = glm::vec3(static_cast<f32>(i));
         state.velocity = glm::vec3(static_cast<f32>(i * 0.1f));
-        handler->updateEntityState(static_cast<EntityId>(i), state);
+        handler->updateEntityState(static_cast<EntityInstanceId>(i), state);
     }
 
     // 验证所有实体状态正确存储
     for (int i = 0; i < NUM_ENTITIES; ++i) {
-        const EntitySoundState* state = handler->getEntityState(static_cast<EntityId>(i));
+        const EntitySoundState* state = handler->getEntityState(static_cast<EntityInstanceId>(i));
         ASSERT_NE(state, nullptr) << "Entity " << i << " not found";
         EXPECT_FLOAT_EQ(state->position.x, static_cast<f32>(i));
         EXPECT_FLOAT_EQ(state->velocity.x, static_cast<f32>(i * 0.1f));
@@ -1139,10 +1139,10 @@ TEST_F(TickableSoundLifecycleTest, SoundStartsNotDone)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     EXPECT_FALSE(sound.isDone());
     EXPECT_TRUE(sound.isLooping());
@@ -1153,17 +1153,17 @@ TEST_F(TickableSoundLifecycleTest, SoundStopsWhenEntityRemoved)
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
     state.isRemoved = false;
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     // 正常 tick
     sound.tick();
     EXPECT_FALSE(sound.isDone());
 
     // 标记实体移除
-    handler->onEntityRemove(static_cast<EntityId>(1));
+    handler->onEntityRemove(static_cast<EntityInstanceId>(1));
     sound.tick();
 
     // 声音应该停止
@@ -1175,16 +1175,16 @@ TEST_F(TickableSoundLifecycleTest, SoundStopsWhenStateRemoved)
 {
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
     MovingTickableSound sound(
-        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(1), 1.0f, 1.0f);
+        testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(1), 1.0f, 1.0f);
 
     sound.tick();
     EXPECT_FALSE(sound.isDone());
 
     // 完全移除状态
-    handler->removeEntityState(static_cast<EntityId>(1));
+    handler->removeEntityState(static_cast<EntityInstanceId>(1));
     sound.tick();
 
     // 声音应该停止（找不到实体状态）
@@ -1197,13 +1197,14 @@ TEST_F(TickableSoundLifecycleTest, MultipleSoundsForDifferentEntities)
     for (int i = 1; i <= 5; ++i) {
         EntitySoundState state;
         state.position = glm::vec3(static_cast<f32>(i * 100));
-        handler->updateEntityState(static_cast<EntityId>(i), state);
+        handler->updateEntityState(static_cast<EntityInstanceId>(i), state);
     }
 
     // 为每个实体创建声音
     std::vector<MovingTickableSound> sounds;
     for (int i = 1; i <= 5; ++i) {
-        sounds.emplace_back(testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityId>(i), 1.0f, 1.0f);
+        sounds.emplace_back(
+            testLocation, SoundCategory::Neutral, handler.get(), static_cast<EntityInstanceId>(i), 1.0f, 1.0f);
     }
 
     // 所有声音应该正常工作
@@ -1213,7 +1214,7 @@ TEST_F(TickableSoundLifecycleTest, MultipleSoundsForDifferentEntities)
     }
 
     // 移除一个实体
-    handler->onEntityRemove(static_cast<EntityId>(3));
+    handler->onEntityRemove(static_cast<EntityInstanceId>(3));
 
     // 只有第三个声音应该停止
     for (size_t i = 0; i < sounds.size(); ++i) {
@@ -1242,7 +1243,7 @@ TEST_F(MinecartSoundRidingTest, EntitySoundStateRidingFields)
     // 验证 EntitySoundState 的骑乘字段默认值
     EntitySoundState state;
     EXPECT_FALSE(state.isRiding);
-    EXPECT_EQ(state.vehicleId, static_cast<EntityId>(0));
+    EXPECT_EQ(state.vehicleId, static_cast<EntityInstanceId>(0));
 }
 
 TEST_F(MinecartSoundRidingTest, EntitySoundStateRidingSetAndGet)
@@ -1251,14 +1252,14 @@ TEST_F(MinecartSoundRidingTest, EntitySoundStateRidingSetAndGet)
     EntitySoundState playerState;
     playerState.position = glm::vec3(10.0f, 0.0f, 10.0f);
     playerState.isRiding = true;
-    playerState.vehicleId = static_cast<EntityId>(42);
+    playerState.vehicleId = static_cast<EntityInstanceId>(42);
 
-    handler->updateEntityState(static_cast<EntityId>(1), playerState);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), playerState);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_TRUE(retrieved->isRiding);
-    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityId>(42));
+    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityInstanceId>(42));
 }
 
 TEST_F(MinecartSoundRidingTest, RidingStateUpdateClearsVehicleId)
@@ -1267,25 +1268,25 @@ TEST_F(MinecartSoundRidingTest, RidingStateUpdateClearsVehicleId)
     EntitySoundState ridingState;
     ridingState.position = glm::vec3(10.0f, 0.0f, 10.0f);
     ridingState.isRiding = true;
-    ridingState.vehicleId = static_cast<EntityId>(42);
-    handler->updateEntityState(static_cast<EntityId>(1), ridingState);
+    ridingState.vehicleId = static_cast<EntityInstanceId>(42);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), ridingState);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_TRUE(retrieved->isRiding);
-    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityId>(42));
+    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityInstanceId>(42));
 
     // 更新为未骑乘状态
     EntitySoundState notRidingState;
     notRidingState.position = glm::vec3(10.0f, 0.0f, 10.0f);
     notRidingState.isRiding = false;
-    notRidingState.vehicleId = static_cast<EntityId>(0);
-    handler->updateEntityState(static_cast<EntityId>(1), notRidingState);
+    notRidingState.vehicleId = static_cast<EntityInstanceId>(0);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), notRidingState);
 
-    retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FALSE(retrieved->isRiding);
-    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityId>(0));
+    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityInstanceId>(0));
 }
 
 TEST_F(MinecartSoundRidingTest, PlayerRidingWrongVehicleShouldStopSound)
@@ -1295,9 +1296,9 @@ TEST_F(MinecartSoundRidingTest, PlayerRidingWrongVehicleShouldStopSound)
     // 这是 MinecartSound.cpp 中修复的核心逻辑：
     // !playerState->isRiding || playerState->vehicleId != m_minecartId
 
-    const EntityId playerId = static_cast<EntityId>(1);
-    const EntityId minecartA = static_cast<EntityId>(100);
-    const EntityId minecartB = static_cast<EntityId>(200);
+    const EntityInstanceId playerId = static_cast<EntityInstanceId>(1);
+    const EntityInstanceId minecartA = static_cast<EntityInstanceId>(100);
+    const EntityInstanceId minecartB = static_cast<EntityInstanceId>(200);
 
     // 设置玩家骑乘矿车 A
     EntitySoundState playerState;
@@ -1323,13 +1324,13 @@ TEST_F(MinecartSoundRidingTest, PlayerRidingWrongVehicleShouldStopSound)
 TEST_F(MinecartSoundRidingTest, PlayerNotRidingShouldStopSound)
 {
     // 场景：玩家未骑乘时，应该停止矿车内部声音
-    const EntityId playerId = static_cast<EntityId>(1);
-    const EntityId minecartId = static_cast<EntityId>(100);
+    const EntityInstanceId playerId = static_cast<EntityInstanceId>(1);
+    const EntityInstanceId minecartId = static_cast<EntityInstanceId>(100);
 
     EntitySoundState playerState;
     playerState.position = glm::vec3(10.0f, 0.0f, 10.0f);
     playerState.isRiding = false;
-    playerState.vehicleId = static_cast<EntityId>(0);
+    playerState.vehicleId = static_cast<EntityInstanceId>(0);
     handler->updateEntityState(playerId, playerState);
 
     const EntitySoundState* player = handler->getEntityState(playerId);

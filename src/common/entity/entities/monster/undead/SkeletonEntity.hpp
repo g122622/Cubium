@@ -37,7 +37,7 @@ namespace mc {
  */
 class SkeletonEntity : public AbstractSkeletonEntity {
 public:
-    SkeletonEntity(EntityId id);
+    SkeletonEntity(EntityInstanceId id);
     ~SkeletonEntity() override = default;
 
     SkeletonEntity(const SkeletonEntity&) = delete;

@@ -64,14 +64,14 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (auto* itemEntity = dynamic_cast<ItemEntity*>(entity.get())) {
             m_spawnedStacks.push_back(itemEntity->getItemStack());
         }
 
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     [[nodiscard]] const std::vector<ItemStack>& spawnedStacks() const { return m_spawnedStacks; }
@@ -105,7 +105,7 @@ protected:
 
 TEST_F(ChickenEntityTest, Tick_EmitsEggItemAfterTimerExpires)
 {
-    ChickenEntity chicken(EntityId(1));
+    ChickenEntity chicken(EntityInstanceId(1));
     chicken.setWorld(&m_world);
     chicken.setPosition(0.5f, 64.0f, 0.5f);
 

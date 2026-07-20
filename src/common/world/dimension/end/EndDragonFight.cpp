@@ -26,12 +26,12 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -398,7 +398,7 @@ void EndDragonFight::_findOrCreateDragon(IWorld& world)
     //   else { this.dragonUUID = list.get(0).getUUID(); }
 
     // 仅取存活的末影龙（MC 原版 getDragons() 内部过滤 isAlive）
-    std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
 
     // 过滤已死亡/已移除的实体（防御性，正常情况下 getEntitiesByType 不返回死亡实体）
     dragons.erase(
@@ -427,7 +427,7 @@ Entity* EndDragonFight::_createNewDragon(IWorld& world)
 
     // 1. 从实体注册表获取末影龙 EntityType
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* dragonType = registry.getType(entity::EntityTypes::ENDER_DRAGON);
+    const entity::EntityType* dragonType = registry.getType(entity::EntityTypeKeys::ENDER_DRAGON);
     if (dragonType == nullptr) {
         spdlog::warn("EndDragonFight: Ender dragon entity type not registered, cannot create new dragon.");
         return nullptr;
@@ -459,11 +459,11 @@ Entity* EndDragonFight::_createNewDragon(IWorld& world)
 
     // 5. 在 spawnEntity 之前记录 UUID 和原始指针，因为 spawnEntity 会 transfer ownership
     const std::string newDragonUUID = dragonEntity->uuid();
-    // 保留原始 Entity 指针，spawnEntity 后通过 EntityId 二次校验取回
+    // 保留原始 Entity 指针，spawnEntity 后通过 EntityInstanceId 二次校验取回
     Entity* spawnedDragonPtr = dragonEntity.get();
 
     // 6. 加入世界（ServerWorld::spawnEntity 内部完成 ID 分配、EntityTracker 注册、区块跟踪）
-    const EntityId spawnedId = world.spawnEntity(std::move(dragonEntity));
+    const EntityInstanceId spawnedId = world.spawnEntity(std::move(dragonEntity));
     if (spawnedId == 0) {
         spdlog::warn("EndDragonFight: Failed to spawn new dragon (spawnEntity returned 0).");
         return nullptr;
@@ -511,7 +511,7 @@ void EndDragonFight::_scanState(IWorld& world)
 
     // 检查世界中是否存在末影龙实体
     // 对应 MC Java: EndDragonFight.scanState() 中 this.level.getDragons()
-    auto dragons = world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
 
     if (dragons.empty()) {
         // 没有末影龙实体 -> 龙已死亡
@@ -815,7 +815,7 @@ void EndDragonFight::_updateCrystalCount(IWorld& world)
         const AxisAlignedBB topBox = spike.getTopBoundingBox();
         std::vector<Entity*> entities = world.getEntitiesInAABB(topBox, nullptr);
         for (Entity* entity : entities) {
-            if (entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::END_CRYSTAL) {
+            if (entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::END_CRYSTAL) {
                 ++m_crystalsAlive;
             }
         }
@@ -880,7 +880,7 @@ void EndDragonFight::tryRespawn(IWorld& world)
 
         bool foundCrystal = false;
         for (Entity* entity : entities) {
-            if (entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::END_CRYSTAL) {
+            if (entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::END_CRYSTAL) {
                 auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(entity);
                 if (crystal != nullptr) {
                     respawnCrystals.push_back(crystal);
@@ -1032,7 +1032,7 @@ void EndDragonFight::onCrystalDestroyed(IWorld& world, entity::EnderCrystalEntit
     //         enderdragon.onCrystalDestroyed(this.level, p_64083_, p_64083_.blockPosition(), p_64084_);
     //     }
     if (!m_dragonUUID.empty()) {
-        std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+        std::vector<Entity*> dragons = world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
         for (Entity* entity : dragons) {
             if (entity == nullptr || entity->uuid() != m_dragonUUID) {
                 continue;
@@ -1058,7 +1058,7 @@ void EndDragonFight::resetSpikeCrystals(IWorld& world)
         const AxisAlignedBB topBox = spike.getTopBoundingBox();
         std::vector<Entity*> entities = world.getEntitiesInAABB(topBox, nullptr);
         for (Entity* entity : entities) {
-            if (entity == nullptr || entity->typeId() != entity::EntityTypeIdNumber::END_CRYSTAL) {
+            if (entity == nullptr || entity->entityType() != entity::VanillaEntityTypeKeys::END_CRYSTAL) {
                 continue;
             }
             auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(entity);

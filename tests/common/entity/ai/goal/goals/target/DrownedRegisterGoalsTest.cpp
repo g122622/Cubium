@@ -28,11 +28,11 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
-#include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/entities/monster/undead/DrownedEntity.hpp"
 #include "entity/entities/monster/undead/ZombieEntity.hpp"
 #include "entity/entities/passive/water/AxolotlEntity.hpp"
 #include "entity/registry/VanillaEntities.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 namespace test {
@@ -44,7 +44,7 @@ namespace test {
  */
 class TestDrownedEntity : public DrownedEntity {
 public:
-    explicit TestDrownedEntity(EntityId id)
+    explicit TestDrownedEntity(EntityInstanceId id)
         : DrownedEntity(id)
     {}
 
@@ -61,7 +61,7 @@ public:
  */
 class TestZombieEntity : public ZombieEntity {
 public:
-    explicit TestZombieEntity(EntityId id)
+    explicit TestZombieEntity(EntityInstanceId id)
         : ZombieEntity(id)
     {}
 
@@ -77,7 +77,7 @@ class DrownedRegisterGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 初始化方块和实体注册表，确保 EntityTypeIdNumber 有正确的 typeId
+        // 初始化方块和实体注册表，确保 VanillaEntityTypeKeys 有正确的 typeId
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
     }
@@ -88,7 +88,7 @@ protected:
 TEST_F(DrownedRegisterGoalsTest, DrownedHasExactlyOneHurtByTargetGoal)
 {
     // 创建溺尸实体
-    auto drowned = std::make_unique<TestDrownedEntity>(EntityId(1));
+    auto drowned = std::make_unique<TestDrownedEntity>(EntityInstanceId(1));
 
     // 检查目标选择器中的 HurtByTargetGoal 数量
     // DrownedEntity::registerGoals() 先调用父类注册一个，再移除后添加一个
@@ -105,7 +105,7 @@ TEST_F(DrownedRegisterGoalsTest, DrownedHasExactlyOneHurtByTargetGoal)
 TEST_F(DrownedRegisterGoalsTest, ZombieHasExactlyOneHurtByTargetGoal)
 {
     // 创建僵尸实体作为对照组
-    auto zombie = std::make_unique<TestZombieEntity>(EntityId(2));
+    auto zombie = std::make_unique<TestZombieEntity>(EntityInstanceId(2));
 
     i32 hurtByTargetCount = 0;
     for (const auto& pg : zombie->testTargetSelector().getAllGoals()) {
@@ -118,8 +118,8 @@ TEST_F(DrownedRegisterGoalsTest, ZombieHasExactlyOneHurtByTargetGoal)
 
 TEST_F(DrownedRegisterGoalsTest, DrownedAndZombieBothHaveTargetGoals)
 {
-    auto drowned = std::make_unique<TestDrownedEntity>(EntityId(1));
-    auto zombie = std::make_unique<TestZombieEntity>(EntityId(2));
+    auto drowned = std::make_unique<TestDrownedEntity>(EntityInstanceId(1));
+    auto zombie = std::make_unique<TestZombieEntity>(EntityInstanceId(2));
 
     // 两者都应该有目标选择器中的目标
     EXPECT_GT(drowned->testTargetSelector().getAllGoals().size(), 0u) << "DrownedEntity should have target goals";
@@ -129,7 +129,7 @@ TEST_F(DrownedRegisterGoalsTest, DrownedAndZombieBothHaveTargetGoals)
 TEST_F(DrownedRegisterGoalsTest, DrownedTargetGoalsIncludeNearestAttackableTargetForPlayer)
 {
     // 验证溺尸有攻击玩家的目标（NearestAttackableTargetGoal<Player>）
-    auto drowned = std::make_unique<TestDrownedEntity>(EntityId(1));
+    auto drowned = std::make_unique<TestDrownedEntity>(EntityInstanceId(1));
 
     bool hasPlayerTarget = false;
     for (const auto& pg : drowned->testTargetSelector().getAllGoals()) {
@@ -148,7 +148,7 @@ TEST_F(DrownedRegisterGoalsTest, DrownedHasNearestAttackableTargetGoalForAxolotl
     // DrownedEntity 继承了 ZombieEntity 的目标，并添加了 AxolotlEntity 目标
     // 验证溺尸有比僵尸更多的目标选择器目标（至少多了 Axolotl 和自定义 Player 目标）
     // 注意：溺尸的 Player 目标会替换僵尸的（相同优先级2），但 Axolotl 是新增的
-    auto drowned = std::make_unique<TestDrownedEntity>(EntityId(1));
+    auto drowned = std::make_unique<TestDrownedEntity>(EntityInstanceId(1));
 
     i32 targetGoalCount = 0;
     i32 hurtByTargetCount = 0;
@@ -169,7 +169,7 @@ TEST_F(DrownedRegisterGoalsTest, DrownedHasNearestAttackableTargetGoalForAxolotl
 TEST_F(DrownedRegisterGoalsTest, ZombieTargetGoalCount)
 {
     // 对照组：普通僵尸应有目标选择器目标
-    auto zombie = std::make_unique<TestZombieEntity>(EntityId(2));
+    auto zombie = std::make_unique<TestZombieEntity>(EntityInstanceId(2));
 
     i32 hurtByTargetCount = 0;
     for (const auto& pg : zombie->testTargetSelector().getAllGoals()) {

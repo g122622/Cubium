@@ -38,7 +38,7 @@ public:
      * @brief 构造肩膀乘坐实体
      * @param id 实体 ID
      */
-    ShoulderRidingEntity(EntityId id)
+    ShoulderRidingEntity(EntityInstanceId id)
         : TameableEntity(id)
     {}
 

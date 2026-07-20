@@ -238,7 +238,7 @@ TEST_F(PiglinBruteEntityTest, FireImmunity)
  */
 TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
     EXPECT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<ZombifiedPiglinEntity*>(entity.get()), nullptr);
 }
@@ -248,7 +248,7 @@ TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
  */
 TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
     EXPECT_TRUE(entity->isImmuneToFire());
 }
 
@@ -257,7 +257,7 @@ TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
  */
 TEST_F(ZombifiedPiglinEntityTest, AngerState)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
     auto* zombifiedPiglin = entity.get();
 
     // 默认不愤怒
@@ -456,8 +456,8 @@ TEST_F(PiglinEntityTest, IsChildOverridesEntityVirtual)
 }
 
 // ============================================================================
-// 实体类型测试 - 类型ID通过 EntityTypeIdNumber 验证
+// 实体类型测试 - 类型ID通过 VanillaEntityTypeKeys 验证
 // ============================================================================
 
-// 注：LegacyEntityType 枚举已废弃，实体类型现在通过 EntityTypeIdNumber 验证
-// 上述测试已经通过 EntityTypeIdNumber::PIGLIN 等验证了类型ID
+// 注：LegacyEntityType 枚举已废弃，实体类型现在通过 VanillaEntityTypeKeys 验证
+// 上述测试已经通过 VanillaEntityTypeKeys::PIGLIN 等验证了类型ID

@@ -161,10 +161,10 @@ public:
         m_gameEvents.push_back({&event, pos, context});
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
@@ -204,7 +204,7 @@ private:
     std::vector<GameEventRecord> m_gameEvents;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     u64 m_seed = 0;
 };
 
@@ -878,7 +878,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
     // 创建玩家（空手）
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
 
     const BlockState* state = world.getBlockState(pos);
@@ -930,7 +930,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnWaxedStatueRetur
     world.setBlockState(pos, &VanillaBlocks::WAXED_COPPER_GOLEM_STATUE->defaultState());
 
     // 创建玩家并设置手持铁斧
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -966,7 +966,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnExposedStatueRet
 
     world.setBlockState(pos, &VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1021,7 +1021,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueSpawns
     world.setBlockEntity(pos, be.release());
 
     // 创建玩家并设置手持铁斧
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1080,7 +1080,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueDamage
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
     world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1114,7 +1114,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueNoBloc
     // 放置方块但不创建方块实体
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1160,7 +1160,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeFacingDirectionsCo
         world.setBlockState(pos, &placedState);
         world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
 
-        Player player(EntityId(1), "TestPlayer");
+        Player player(EntityInstanceId(1), "TestPlayer");
         player.setWorld(&world);
         player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1191,7 +1191,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueGolemI
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
     world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1219,7 +1219,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHandOnBaseStatue
 
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
 
     const BlockState* state = world.getBlockState(pos);
@@ -1253,7 +1253,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses
     // 起始姿态：Standing
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&world);
 
     BlockRaycastResult hit;

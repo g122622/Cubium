@@ -69,7 +69,7 @@ constexpr f32 LAVA_BUOYANCY = 0.05f;        // 熔岩浮力
 
 } // namespace
 
-StriderEntity::StriderEntity(EntityId id)
+StriderEntity::StriderEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 设置 AI 导航优先级

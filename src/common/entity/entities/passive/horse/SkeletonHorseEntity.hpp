@@ -53,7 +53,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    SkeletonHorseEntity(EntityId id);
+    SkeletonHorseEntity(EntityInstanceId id);
     ~SkeletonHorseEntity() override = default;
 
     // 禁止拷贝

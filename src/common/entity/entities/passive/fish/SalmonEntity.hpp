@@ -45,7 +45,7 @@ public:
      * @brief 构造鲑鱼实体
      * @param id 实体 ID
      */
-    SalmonEntity(EntityId id);
+    SalmonEntity(EntityInstanceId id);
     ~SalmonEntity() override = default;
 
     SalmonEntity(const SalmonEntity&) = delete;

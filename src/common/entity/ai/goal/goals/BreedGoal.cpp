@@ -195,7 +195,7 @@ void BreedGoal::spawnBaby()
                     std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
 
                 // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-                xpOrb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+                xpOrb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
 
                 // 添加随机速度
                 f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;

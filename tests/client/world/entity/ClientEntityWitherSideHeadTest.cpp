@@ -92,18 +92,18 @@ protected:
     void SetUp() override
     {
         // 创建凋灵 ClientEntity
-        m_wither = std::make_unique<ClientEntity>(EntityId(1), "minecraft:wither");
+        m_wither = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wither");
         // 凋灵眼高 2.0（用于目标实体 eyeHeight 计算）
         m_wither->setEyeHeight(2.0f);
     }
 
     void TearDown() override { m_wither.reset(); }
 
-    /// @brief 创建一个目标 ClientEntity 并返回其 EntityId
-    EntityId makeTargetClientEntity(f32 x, f32 y, f32 z, f32 eyeHeight = 1.62f)
+    /// @brief 创建一个目标 ClientEntity 并返回其 EntityInstanceId
+    EntityInstanceId makeTargetClientEntity(f32 x, f32 y, f32 z, f32 eyeHeight = 1.62f)
     {
-        EntityId id = m_nextTargetId;
-        m_nextTargetId = EntityId(static_cast<u32>(m_nextTargetId) + 1);
+        EntityInstanceId id = m_nextTargetId;
+        m_nextTargetId = EntityInstanceId(static_cast<u32>(m_nextTargetId) + 1);
         auto target = std::make_unique<ClientEntity>(id, "minecraft:player");
         target->setPosition(x, y, z);
         target->setEyeHeight(eyeHeight);
@@ -112,7 +112,7 @@ protected:
     }
 
     /// @brief 实体查找回调，模拟 ClientEntityManager::getEntity
-    const ClientEntity* lookupEntity(EntityId id) const
+    const ClientEntity* lookupEntity(EntityInstanceId id) const
     {
         auto it = m_targets.find(id);
         if (it == m_targets.end()) {
@@ -122,8 +122,8 @@ protected:
     }
 
     std::unique_ptr<ClientEntity> m_wither;
-    std::unordered_map<EntityId, std::unique_ptr<ClientEntity>> m_targets;
-    EntityId m_nextTargetId = EntityId(100);
+    std::unordered_map<EntityInstanceId, std::unique_ptr<ClientEntity>> m_targets;
+    EntityInstanceId m_nextTargetId = EntityInstanceId(100);
 };
 
 // ============================================================================
@@ -206,7 +206,7 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_YawConvergesTowardTarget)
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
     // 创建目标实体
-    EntityId targetId = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
+    EntityInstanceId targetId = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
 
     // 直接设置 m_witherHeadTargetId[1]（左头目标）
     // 通过元数据同步设置
@@ -216,7 +216,8 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_YawConvergesTowardTarget)
     m_wither->syncMetadataFromDataManager();
 
     // 用 lambda 捕获 this 提供实体查找
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
 
     // 侧头1 yaw 朝 0° 逼近，初始也是 0°，diff=0，yaw 保持 0°
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f);
@@ -230,14 +231,15 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_YawRateLimitedTo10DegreesPerTi
     m_wither->setRotation(0.0f, 0.0f);
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId targetId = makeTargetClientEntity(1.3f, 64.0f, -20.0f, 2.2f);
+    EntityInstanceId targetId = makeTargetClientEntity(1.3f, 64.0f, -20.0f, 2.2f);
 
     registerHeadTargetParam(*m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);
     setHeadTargetParam(
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), static_cast<i32>(static_cast<u32>(targetId)));
     m_wither->syncMetadataFromDataManager();
 
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
 
     // yaw 从 0 朝 -180 逼近，限速 10°/tick
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), -10.0f, 0.01f);
@@ -252,14 +254,15 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_PitchRateLimitedTo40DegreesPer
     m_wither->setRotation(0.0f, 0.0f);
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId targetId = makeTargetClientEntity(1.3f, 60.0f, 0.1f, 2.2f);
+    EntityInstanceId targetId = makeTargetClientEntity(1.3f, 60.0f, 0.1f, 2.2f);
 
     registerHeadTargetParam(*m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);
     setHeadTargetParam(
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), static_cast<i32>(static_cast<u32>(targetId)));
     m_wither->syncMetadataFromDataManager();
 
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
 
     // pitch 限速 40°/tick，从 0 朝 88.57 逼近，第一次 tick = 40
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadPitch(0, 1.0f), 40.0f, 0.01f);
@@ -270,7 +273,7 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_MultipleTicks_ConvergesToTarge
     m_wither->setRotation(0.0f, 0.0f);
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId targetId = makeTargetClientEntity(1.3f, 64.0f, -20.0f, 2.2f);
+    EntityInstanceId targetId = makeTargetClientEntity(1.3f, 64.0f, -20.0f, 2.2f);
 
     registerHeadTargetParam(*m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);
     setHeadTargetParam(
@@ -279,7 +282,8 @@ TEST_F(ClientEntityWitherSideHeadTest, WithTarget_MultipleTicks_ConvergesToTarge
 
     // 推进 20 tick（10°/tick * 18 = 180°，足够收敛）
     for (i32 i = 0; i < 20; ++i) {
-        m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+        m_wither->tickWitherSideHeads(
+            [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
     }
 
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), -180.0f, 1.0f);
@@ -301,7 +305,7 @@ TEST_F(ClientEntityWitherSideHeadTest, TargetIdPositive_ButLookupReturnsNull_Fal
     m_wither->syncMetadataFromDataManager();
 
     // lookup 回调始终返回 nullptr
-    m_wither->tickWitherSideHeads([](EntityId) -> const ClientEntity* { return nullptr; });
+    m_wither->tickWitherSideHeads([](EntityInstanceId) -> const ClientEntity* { return nullptr; });
 
     // 无目标分支：yaw 朝 bodyRot=30 逼近 10°/tick
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 10.0f, 0.01f);
@@ -380,8 +384,8 @@ TEST_F(ClientEntityWitherSideHeadTest, TwoSideHeads_IndependentTargets)
     m_wither->setRotation(0.0f, 0.0f);
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId target1Id = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
-    EntityId target2Id = makeTargetClientEntity(-1.3f, 64.0f, -20.0f, 2.2f);
+    EntityInstanceId target1Id = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
+    EntityInstanceId target2Id = makeTargetClientEntity(-1.3f, 64.0f, -20.0f, 2.2f);
 
     // HEAD_TARGET_2 = 侧头1（左头），HEAD_TARGET_3 = 侧头2（右头）
     registerHeadTargetParam(*m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);
@@ -392,7 +396,8 @@ TEST_F(ClientEntityWitherSideHeadTest, TwoSideHeads_IndependentTargets)
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget3ParamId(), static_cast<i32>(static_cast<u32>(target2Id)));
     m_wither->syncMetadataFromDataManager();
 
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
 
     // 侧头1 朝 +Z（targetYaw=0），yaw 保持 0
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f);
@@ -411,19 +416,21 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_HEAD_TARGET_2_PopulatesLeftH
     m_wither->setRotation(0.0f, 0.0f);
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId targetId = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
+    EntityInstanceId targetId = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
 
     registerHeadTargetParam(*m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);
     setHeadTargetParam(
         *m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), static_cast<i32>(static_cast<u32>(targetId)));
 
     // 同步前：无目标 → yaw 保持 0
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
     EXPECT_FLOAT_EQ(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f);
 
     // 同步后：侧头1 有目标在 +Z（targetYaw=0），yaw 仍保持 0（diff=0）
     m_wither->syncMetadataFromDataManager();
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
 
     // yaw 仍为 0（targetYaw=0, current=0, diff=0）
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f);
@@ -448,7 +455,7 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_ReadsCorrectParamId)
     m_wither->setRotation(0.0f, 0.0f);
     m_wither->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId targetId = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
+    EntityInstanceId targetId = makeTargetClientEntity(1.3f, 64.0f, 20.0f, 2.2f);
 
     registerHeadTargetParam(*m_wither, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);
     setHeadTargetParam(
@@ -463,7 +470,8 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_ReadsCorrectParamId)
 
     // 应读取 HEAD_TARGET_2 而非 otherParam
     // 侧头1 有目标在 +Z（targetYaw=0），yaw 保持 0（而非朝 bodyRot 逼近）
-    m_wither->tickWitherSideHeads([this](EntityId id) -> const ClientEntity* { return this->lookupEntity(id); });
+    m_wither->tickWitherSideHeads(
+        [this](EntityInstanceId id) -> const ClientEntity* { return this->lookupEntity(id); });
     EXPECT_NEAR(m_wither->getInterpolatedWitherSideHeadYaw(0, 1.0f), 0.0f, 0.5f)
         << "应读取 HEAD_TARGET_2 而非其他 i32 参数";
 }
@@ -474,7 +482,7 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_ReadsCorrectParamId)
 
 TEST(ClientEntityWitherSideHeadTypeIdTest, WitherWithoutPrefix_SyncsHeadTarget)
 {
-    ClientEntity wither(EntityId(1), "wither");
+    ClientEntity wither(EntityInstanceId(1), "wither");
     wither.setRotation(0.0f, 0.0f);
     wither.setPosition(0.0f, 64.0f, 0.0f);
     wither.setEyeHeight(2.0f);
@@ -493,7 +501,7 @@ TEST(ClientEntityWitherSideHeadTypeIdTest, WitherWithoutPrefix_SyncsHeadTarget)
 
 TEST(ClientEntityWitherSideHeadTypeIdTest, NonWither_DoesNotSyncHeadTarget)
 {
-    ClientEntity zombie(EntityId(1), "minecraft:zombie");
+    ClientEntity zombie(EntityInstanceId(1), "minecraft:zombie");
 
     // 即使注册了 HEAD_TARGET_2 参数，zombie 的 syncMetadataFromDataManager 也不应读取
     registerHeadTargetParam(zombie, ::mc::entity::WitherEntity::getHeadTarget2ParamId(), 0);

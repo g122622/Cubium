@@ -89,9 +89,9 @@ public:
         m_particles.push_back({type, pos, velocity});
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityId) const override { return nullptr; }
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
 
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
@@ -123,7 +123,7 @@ std::unique_ptr<nbt::tags::compound_tag> saveToNbt(const NautilusEntity& entity)
  */
 std::unique_ptr<NautilusEntity> loadFromNbt(const nbt::tags::compound_tag& tag)
 {
-    auto entity = std::make_unique<NautilusEntity>(EntityId(2));
+    auto entity = std::make_unique<NautilusEntity>(EntityInstanceId(2));
     auto result = entity->readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success()) << "readAdditionalSaveData should succeed";
     return entity;
@@ -137,10 +137,9 @@ std::unique_ptr<NautilusEntity> loadFromNbt(const nbt::tags::compound_tag& tag)
  */
 class TestableNautilusEntity : public NautilusEntity {
 public:
-    explicit TestableNautilusEntity(EntityId id)
+    explicit TestableNautilusEntity(EntityInstanceId id)
         : NautilusEntity(id)
-    {
-    }
+    {}
 
     using NautilusEntity::spawnBubbles;
 };
@@ -158,7 +157,7 @@ protected:
 
 TEST_F(NautilusNbtTest, EmptyInventory_DoesNotWriteItemsKey)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     auto tag = saveToNbt(original);
 
@@ -169,7 +168,7 @@ TEST_F(NautilusNbtTest, EmptyInventory_DoesNotWriteItemsKey)
 
 TEST_F(NautilusNbtTest, SaddleOnly_RoundTrip)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     ASSERT_NE(Items::SADDLE, nullptr);
     original.setEquipment(0, ItemStack(*Items::SADDLE, 1));
@@ -198,7 +197,7 @@ TEST_F(NautilusNbtTest, SaddleOnly_RoundTrip)
 
 TEST_F(NautilusNbtTest, ArmorOnly_RoundTrip)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
     original.setEquipment(1, ItemStack(*Items::IRON_NAUTILUS_ARMOR, 1));
@@ -220,7 +219,7 @@ TEST_F(NautilusNbtTest, ArmorOnly_RoundTrip)
 
 TEST_F(NautilusNbtTest, SaddleAndArmor_RoundTrip)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     ASSERT_NE(Items::SADDLE, nullptr);
     ASSERT_NE(Items::DIAMOND_NAUTILUS_ARMOR, nullptr);
@@ -262,7 +261,7 @@ TEST_F(NautilusNbtTest, DashCooldown_RoundTrip)
 
 TEST_F(NautilusNbtTest, DashCooldown_NotSerializedWhenZero)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     // 冷却为 0 时不应写入
     auto tag = saveToNbt(original);
@@ -273,7 +272,7 @@ TEST_F(NautilusNbtTest, DashCooldown_NotSerializedWhenZero)
 
 TEST_F(NautilusNbtTest, ItemsKey_UsesCompoundList)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     ASSERT_NE(Items::SADDLE, nullptr);
     original.setEquipment(0, ItemStack(*Items::SADDLE, 1));
@@ -287,7 +286,7 @@ TEST_F(NautilusNbtTest, ItemsKey_UsesCompoundList)
 
 TEST_F(NautilusNbtTest, SlotIndex_PreservedInNbt)
 {
-    NautilusEntity original(EntityId(1));
+    NautilusEntity original(EntityInstanceId(1));
 
     ASSERT_NE(Items::SADDLE, nullptr);
     ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
@@ -353,7 +352,7 @@ protected:
     {
         Items::initialize();
         world = std::make_unique<NautilusTestWorld>();
-        nautilus = std::make_unique<TestableNautilusEntity>(EntityId(1));
+        nautilus = std::make_unique<TestableNautilusEntity>(EntityInstanceId(1));
         nautilus->setWorld(world.get());
     }
 
@@ -505,13 +504,13 @@ protected:
 
 TEST_F(NautilusEquipmentTest, IsSaddled_FalseByDefault)
 {
-    NautilusEntity n(EntityId(1));
+    NautilusEntity n(EntityInstanceId(1));
     EXPECT_FALSE(n.isSaddled());
 }
 
 TEST_F(NautilusEquipmentTest, IsSaddled_TrueAfterEquipSaddle)
 {
-    NautilusEntity n(EntityId(1));
+    NautilusEntity n(EntityInstanceId(1));
     ASSERT_NE(Items::SADDLE, nullptr);
     n.setEquipment(0, ItemStack(*Items::SADDLE, 1));
     EXPECT_TRUE(n.isSaddled());
@@ -519,13 +518,13 @@ TEST_F(NautilusEquipmentTest, IsSaddled_TrueAfterEquipSaddle)
 
 TEST_F(NautilusEquipmentTest, GetEquipmentSlotCount_ReturnsTwo)
 {
-    NautilusEntity n(EntityId(1));
+    NautilusEntity n(EntityInstanceId(1));
     EXPECT_EQ(n.getEquipmentSlotCount(), 2);
 }
 
 TEST_F(NautilusEquipmentTest, SetEquipment_SaddleSlot)
 {
-    NautilusEntity n(EntityId(1));
+    NautilusEntity n(EntityInstanceId(1));
     ASSERT_NE(Items::SADDLE, nullptr);
     n.setEquipment(0, ItemStack(*Items::SADDLE, 1));
 
@@ -537,7 +536,7 @@ TEST_F(NautilusEquipmentTest, SetEquipment_SaddleSlot)
 
 TEST_F(NautilusEquipmentTest, SetEquipment_ArmorSlot)
 {
-    NautilusEntity n(EntityId(1));
+    NautilusEntity n(EntityInstanceId(1));
     ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
     n.setEquipment(1, ItemStack(*Items::IRON_NAUTILUS_ARMOR, 1));
 

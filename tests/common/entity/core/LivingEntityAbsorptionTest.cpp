@@ -36,7 +36,7 @@ class LivingEntityAbsorptionTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_living = std::make_unique<LivingEntity>(EntityId(1));
+        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1));
         m_living->registerData();
         m_living->registerAttributes();
         m_living->setHealth(m_living->maxHealth());

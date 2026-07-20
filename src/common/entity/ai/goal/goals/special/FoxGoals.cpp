@@ -28,7 +28,6 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -36,6 +35,7 @@
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -111,10 +111,10 @@ bool FoxPassiveGoal::hasAlertableTarget() const
             continue;
         }
 
-        auto type = living->typeId();
+        auto type = living->entityType();
 
         // 鸡、兔子 -> 警觉
-        if (type == entity::EntityTypeIdNumber::CHICKEN || type == entity::EntityTypeIdNumber::RABBIT) {
+        if (type == entity::VanillaEntityTypeKeys::CHICKEN || type == entity::VanillaEntityTypeKeys::RABBIT) {
             return true;
         }
 
@@ -162,8 +162,8 @@ bool FoxFollowTargetGoal::shouldExecute()
         return false;
     }
 
-    auto type = target->typeId();
-    if (type != entity::EntityTypeIdNumber::CHICKEN && type != entity::EntityTypeIdNumber::RABBIT) {
+    auto type = target->entityType();
+    if (type != entity::VanillaEntityTypeKeys::CHICKEN && type != entity::VanillaEntityTypeKeys::RABBIT) {
         return false;
     }
 
@@ -910,7 +910,7 @@ bool FoxFindItemsGoal::shouldExecute()
 
     for (Entity* entity : nearbyEntities) {
         // 只关注物品实体
-        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::ITEM) {
             continue;
         }
 
@@ -969,7 +969,7 @@ ItemEntity* FoxFindItemsGoal::_findNearestItem() const
 
     for (Entity* entity : nearbyEntities) {
         // 只关注物品实体
-        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::ITEM) {
             continue;
         }
 

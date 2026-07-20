@@ -131,7 +131,7 @@ protected:
     [[nodiscard]] const char* getSpellPrepareSoundId() const override;
 
 private:
-    EntityId m_lastTargetId = 0; ///< 上一个失明目标的实体ID
+    EntityInstanceId m_lastTargetId = 0; ///< 上一个失明目标的实体ID
 
     static constexpr i32 WARMUP_TIME = 20;         ///< 准备时间 20 ticks
     static constexpr i32 CASTING_TIME = 20;        ///< 施法持续时间 20 ticks

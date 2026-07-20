@@ -112,7 +112,7 @@ private:
  */
 class TestMinecartEntity : public RideableMinecartEntity {
 public:
-    explicit TestMinecartEntity(EntityId id = EntityId(1))
+    explicit TestMinecartEntity(EntityInstanceId id = EntityInstanceId(1))
         : RideableMinecartEntity(id)
     {}
 

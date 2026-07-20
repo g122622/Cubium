@@ -48,7 +48,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    GolemEntity(EntityId id);
+    GolemEntity(EntityInstanceId id);
     ~GolemEntity() override = default;
 
     // 禁止拷贝

@@ -143,7 +143,7 @@ public:
      * @brief 移除实体网格
      * @param entityId 实体ID
      */
-    void removeMesh(EntityId entityId);
+    void removeMesh(EntityInstanceId entityId);
 
     /**
      * @brief 移除实体的所有网格（静态+动画）
@@ -151,7 +151,7 @@ public:
      * 在实体 despawn 时调用，同时清理静态和动画缓存。
      * @param entityId 实体ID
      */
-    void removeEntityMeshes(EntityId entityId);
+    void removeEntityMeshes(EntityInstanceId entityId);
 
     /**
      * @brief 清除所有实体网格
@@ -297,7 +297,7 @@ public:
      * @param localPlayerEntityId 本地玩家的实体 ID（用于在 ClientEntity 中识别）
      * @param accessor 返回本地 Player 指针的回调（可能返回 nullptr）
      */
-    void setLocalPlayerAccessor(EntityId localPlayerEntityId, std::function<::mc::Player*()> accessor)
+    void setLocalPlayerAccessor(EntityInstanceId localPlayerEntityId, std::function<::mc::Player*()> accessor)
     {
         m_localPlayerEntityId = localPlayerEntityId;
         m_localPlayerAccessor = std::move(accessor);
@@ -320,7 +320,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<core::EntityRenderer>> m_renderers;
 
     // 静态实体网格缓存（用于非动画实体，如 ItemEntity、ExperienceOrb）
-    std::unordered_map<EntityId, StaticMeshEntry> m_meshes;
+    std::unordered_map<EntityInstanceId, StaticMeshEntry> m_meshes;
 
     // 动画实体网格缓存（用于动画实体）
     std::unique_ptr<core::AnimatedMeshCache> m_animatedMeshCache;
@@ -347,7 +347,7 @@ private:
     bool m_renderNameTags = true;
 
     // 本地玩家访问器（用于第三人称玩家 GPU 管线路径读取 use-item 状态）
-    EntityId m_localPlayerEntityId = INVALID_ENTITY_ID;
+    EntityInstanceId m_localPlayerEntityId = INVALID_ENTITY_ID;
     std::function<::mc::Player*()> m_localPlayerAccessor;
 
     /**

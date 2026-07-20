@@ -56,7 +56,7 @@
 #include "../serialization/NbtHelper.hpp"
 #include "../utils/ItemDropHelper.hpp"
 #include "EntityRegistry.hpp"
-#include "EntityTypeIdNumber.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 #include "common/world/block/BlockPos.hpp"
@@ -66,7 +66,7 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<i8> MobEntity::DATA_MOB_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
 
-MobEntity::MobEntity(EntityId id)
+MobEntity::MobEntity(EntityInstanceId id)
     : LivingEntity(id)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
     , m_moveController(std::make_unique<entity::ai::controller::MovementController>(this))
@@ -176,7 +176,7 @@ f32 MobEntity::getPathfindingMalus(entity::ai::pathfinding::PathNodeType pathTyp
 
     const MobEntity* malusSource = this;
 
-    const EntityId vehicleId = getVehicle();
+    const EntityInstanceId vehicleId = getVehicle();
     if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
         const Entity* vehicle = m_world->getEntity(vehicleId);
         const MobEntity* vehicleMob = dynamic_cast<const MobEntity*>(vehicle);
@@ -418,7 +418,7 @@ bool MobEntity::isInDaylight() const
     // 如果实体骑乘船，检测位置向上偏移一格
     // 原因：船在水面上，生物坐在船中位置较低，需要向上偏移才能正确检测天空可见性
     if (isRiding()) {
-        EntityId vehicleId = getVehicle();
+        EntityInstanceId vehicleId = getVehicle();
         if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
             const Entity* vehicle = m_world->getEntity(vehicleId);
             if (vehicle != nullptr && dynamic_cast<const entity::BoatEntity*>(vehicle) != nullptr) {
@@ -468,13 +468,15 @@ void MobEntity::burnUndead()
     }
 }
 
-bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
+bool MobEntity::canAttackType(const entity::EntityType& type) const
 {
     // 对应 MC 原版 Mob.canAttackType()
     // MC 原版基类排除恶魂：return p_21399_ != EntityType.GHAST;
     // 恶魂悬浮在下界高空，大多数近战型 Mob 无法接近恶魂，
     // 将恶魂排除在攻击目标之外可以避免 Mob 徒劳地试图攻击一个它们够不着的敌人
-    return typeId != entity::EntityTypeIdNumber::GHAST;
+    // 指针比较：调用方传入的 type 必来自注册表（entityType() 解引用），与
+    // VanillaEntityTypeKeys::GHAST 同源，可安全指针比较。
+    return &type != entity::VanillaEntityTypeKeys::GHAST;
 }
 
 bool MobEntity::attackEntityAsMob(LivingEntity& target)
@@ -881,7 +883,7 @@ void MobEntity::clearLeash()
 {
     // 广播拴绳解除给客户端（必须在清除状态之前发送，因为需要被拴实体的ID）
     if (m_isLeashed && m_world != nullptr && !m_world->isClientSide()) {
-        m_world->broadcastSetEntityLink(id(), EntityId(0));
+        m_world->broadcastSetEntityLink(id(), EntityInstanceId(0));
     }
 
     m_isLeashed = false;

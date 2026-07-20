@@ -163,7 +163,8 @@ private:
      * @param entityId 实体ID
      * @param collectorId 拾取者实体ID
      */
-    void _sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount);
+    void _sendCollectItem(
+        IServer& server, EntityInstanceId entityId, EntityInstanceId collectorId, i32 pickupItemCount);
 };
 
 } // namespace server

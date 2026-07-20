@@ -46,7 +46,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    WaterMobEntity(EntityId id);
+    WaterMobEntity(EntityInstanceId id);
     ~WaterMobEntity() override = default;
 
     // 禁止拷贝

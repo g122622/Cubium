@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -49,9 +50,9 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        // 注册原版实体类型，使 EntityTypeIdNumber::ITEM 全局缓存与注册表一致。
+        // 注册原版实体类型，使 VanillaEntityTypeKeys::ITEM 全局缓存与注册表一致。
         // 本文件 SpawnItemEntities_SetsTypeIdToItem 等用例断言
-        // entity->typeId() == EntityTypeIdNumber::ITEM，二者必须来自同一已初始化
+        // entity->entityType() == VanillaEntityTypeKeys::ITEM，二者必须来自同一已初始化
         // 注册表，避免依赖前置测试的隐式注册状态（测试顺序污染）。
         // VanillaEntities::registerAll() 幂等且线程安全，无异常风险。
         entity::VanillaEntities::registerAll();
@@ -296,7 +297,7 @@ TEST_F(ItemDropHelperTest, SpawnWithThrowerUuid)
     ASSERT_NE(entity, nullptr);
 
     // 验证实体类型是物品
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
+    EXPECT_EQ(entity->entityType(), entity::VanillaEntityTypeKeys::ITEM);
 }
 
 // ============================================================================

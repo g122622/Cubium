@@ -54,7 +54,7 @@ public:
      * @param id 实体ID。
      * @param name 玩家名称。
      */
-    ServerPlayer(EntityId id, const std::string& name);
+    ServerPlayer(EntityInstanceId id, const std::string& name);
     ServerPlayer(ServerPlayer&& other) noexcept = default;
     ServerPlayer& operator=(ServerPlayer&& other) noexcept = default;
     ~ServerPlayer() override = default;
@@ -122,7 +122,8 @@ public:
      * @param oldCameraId 变更前的摄像机目标实体ID
      * @param newCameraId 变更后的摄像机目标实体ID
      */
-    void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) override;
+    void onCameraEntityChanged(
+        std::optional<EntityInstanceId> oldCameraId, std::optional<EntityInstanceId> newCameraId) override;
 
     /**
      * @brief 同步经验状态到客户端。

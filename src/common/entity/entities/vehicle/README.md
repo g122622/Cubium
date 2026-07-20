@@ -101,7 +101,7 @@ Entity (基类)
 - **shouldSourceDestroy**：`hurt()` 中当 `_damageSourceIgnitesTnt()` 返回 true 时，即使伤害未超过阈值也触发 `dropItem()`
 - **服务端**：`_ignite()` 设置 `m_fuse = 80`，调用 `broadcastEntityStatus(EatBlock)` 通知客户端，调用 `playSound(ENTITY_TNT_PRIMED)` 播放音效
 - **网络**：`EntityStatusPacket` 使用 status code 10 (`EatBlock`)，此状态码被羊吃草和TNT矿车引燃共用
-- **客户端**：`onEntityStatus` 回调根据 `typeId() == TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+- **客户端**：`onEntityStatus` 回调根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
 - `Entity::playSound()` 自动检查 `isSilent()`，无需手动判断
 - 修改引燃或新增实体状态处理时，三端（服务端实体、网络包、客户端回调）必须同步更新
 
@@ -152,7 +152,7 @@ Entity (基类)
 - 仅采样碰撞箱与船底有交集的方块
 - 返回值：所有有效方块滑度的平均值（`Block::getSlipperiness()`），无有效方块时返回 0
 - 冰（0.98）和蓝冰（0.989）提供更高的滑度，使船在冰面上滑行更远
-- `updateMotion()` 中陆地摩擦力减半的条件检查控制乘客是否为 Player（通过 `getControllingPassenger()` + `typeId() == EntityTypeIdNumber::PLAYER`）
+- `updateMotion()` 中陆地摩擦力减半的条件检查控制乘客是否为 Player（通过 `getControllingPassenger()` + `entityType() == VanillaEntityTypeKeys::PLAYER`）
 
 ### 9. 铁轨形状与移动
 

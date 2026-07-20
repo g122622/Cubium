@@ -101,7 +101,7 @@ private:
 class TestAttackerEntity : public LivingEntity {
 public:
     TestAttackerEntity()
-        : LivingEntity(EntityId(2))
+        : LivingEntity(EntityInstanceId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -132,7 +132,7 @@ public:
 
 class GlowSquidEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_glowSquid = std::make_unique<TestableGlowSquidEntity>(EntityId(1)); }
+    void SetUp() override { m_glowSquid = std::make_unique<TestableGlowSquidEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { m_glowSquid.reset(); }
 
@@ -218,7 +218,7 @@ TEST_F(GlowSquidEntityTest, NbtRoundTrip_DefaultValue)
     EXPECT_EQ(*val, 0);
 
     // 加载到新实体
-    TestableGlowSquidEntity loaded(EntityId(3));
+    TestableGlowSquidEntity loaded(EntityInstanceId(3));
     auto result = loaded.readAdditionalSaveData(tag);
     ASSERT_TRUE(result.success()) << result.error().toString();
     EXPECT_EQ(loaded.getDarkTicksRemaining(), 0);
@@ -237,7 +237,7 @@ TEST_F(GlowSquidEntityTest, NbtRoundTrip_NonDefaultValue)
     ASSERT_TRUE(val.has_value());
     EXPECT_EQ(*val, 100);
 
-    TestableGlowSquidEntity loaded(EntityId(3));
+    TestableGlowSquidEntity loaded(EntityInstanceId(3));
     auto result = loaded.readAdditionalSaveData(tag);
     ASSERT_TRUE(result.success()) << result.error().toString();
     EXPECT_EQ(loaded.getDarkTicksRemaining(), 100);
@@ -250,7 +250,7 @@ TEST_F(GlowSquidEntityTest, NbtRoundTrip_EmptyNbtUsesDefault)
 {
     nbt::tags::compound_tag emptyTag;
 
-    TestableGlowSquidEntity loaded(EntityId(3));
+    TestableGlowSquidEntity loaded(EntityInstanceId(3));
     auto result = loaded.readAdditionalSaveData(emptyTag);
     ASSERT_TRUE(result.success()) << result.error().toString();
     EXPECT_EQ(loaded.getDarkTicksRemaining(), 0);
@@ -284,7 +284,7 @@ TEST_F(GlowSquidEntityTest, NbtRoundTrip_MultipleCycles)
         nbt::tags::compound_tag tag;
         m_glowSquid->addAdditionalSaveData(tag);
 
-        TestableGlowSquidEntity loaded(EntityId(3 + i));
+        TestableGlowSquidEntity loaded(EntityInstanceId(3 + i));
         auto result = loaded.readAdditionalSaveData(tag);
         ASSERT_TRUE(result.success()) << result.error().toString();
         ASSERT_EQ(loaded.getDarkTicksRemaining(), 42);
@@ -395,7 +395,7 @@ TEST_F(GlowSquidEntityTest, GetInkParticle_ReturnsGlowSquidInk)
     EXPECT_EQ(m_glowSquid->getInkParticle(), particle::ParticleTypeId::GlowSquidInk);
 
     // 对比基类 SquidEntity 返回 SquidInk
-    SquidEntity squid(EntityId(5));
+    SquidEntity squid(EntityInstanceId(5));
     EXPECT_EQ(squid.getInkParticle(), particle::ParticleTypeId::SquidInk);
 }
 
@@ -447,7 +447,7 @@ TEST_F(GlowSquidEntityTest, RegisterData_BaseClassParamsPreserved)
     // 这里验证 GlowSquid 构造后所有层级参数均存在
 
     // 验证没有抛出异常即说明 registerData 链式调用正常
-    TestableGlowSquidEntity entity(EntityId(10));
+    TestableGlowSquidEntity entity(EntityInstanceId(10));
 
     // DarkTicksRemaining 参数存在
     EXPECT_TRUE(entity.dataManager().hasParam(GlowSquidEntity::getDarkTicksRemainingParamId()));
@@ -464,9 +464,9 @@ TEST_F(GlowSquidEntityTest, RegisterData_BaseClassParamsPreserved)
  */
 TEST_F(GlowSquidEntityTest, RegisterData_ParamIdConsistentAcrossInstances)
 {
-    TestableGlowSquidEntity a(EntityId(1));
-    TestableGlowSquidEntity b(EntityId(2));
-    TestableGlowSquidEntity c(EntityId(3));
+    TestableGlowSquidEntity a(EntityInstanceId(1));
+    TestableGlowSquidEntity b(EntityInstanceId(2));
+    TestableGlowSquidEntity c(EntityInstanceId(3));
 
     const u16 id = GlowSquidEntity::getDarkTicksRemainingParamId();
 

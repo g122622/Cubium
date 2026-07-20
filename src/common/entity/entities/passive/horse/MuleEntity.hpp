@@ -40,7 +40,7 @@ public:
      * @brief 构造骡实体
      * @param id 实体 ID
      */
-    MuleEntity(EntityId id);
+    MuleEntity(EntityInstanceId id);
     ~MuleEntity() override = default;
 
     MuleEntity(const MuleEntity&) = delete;

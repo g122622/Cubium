@@ -72,8 +72,8 @@ void InfestedBlock::spawnAfterBreak(
     }
 
     // 创建蠹虫实体
-    auto silverfish = std::make_unique<SilverfishEntity>(EntityId(0));
-    silverfish->setTypeId(entity::EntityTypes::SILVERFISH);
+    auto silverfish = std::make_unique<SilverfishEntity>(EntityInstanceId(0));
+    silverfish->setTypeId(entity::EntityTypeKeys::SILVERFISH);
 
     // 设置位置（方块中心）
     silverfish->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);

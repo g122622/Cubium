@@ -38,7 +38,7 @@
 
 namespace mc {
 
-SkeletonHorseEntity::SkeletonHorseEntity(EntityId id)
+SkeletonHorseEntity::SkeletonHorseEntity(EntityInstanceId id)
     : AbstractHorseEntity(id)
 {
     // 骷髅马默认已驯服
@@ -105,7 +105,8 @@ void SkeletonHorseEntity::triggerTrap()
     i32 extraHorses = (difficulty == Difficulty::Hard) ? 3 : 0;
 
     // 4. 获取骷髅实体类型
-    const entity::EntityType* skeletonType = entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON);
+    const entity::EntityType* skeletonType =
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::SKELETON);
     if (skeletonType == nullptr) {
         return;
     }
@@ -158,7 +159,7 @@ void SkeletonHorseEntity::triggerTrap()
         skeletonEntity->setHurtResistantTime(60);
 
         // 生成骷髅到世界
-        EntityId skeletonId = world->spawnEntity(std::move(skeleton));
+        EntityInstanceId skeletonId = world->spawnEntity(std::move(skeleton));
 
         // 让骷髅骑上这匹马
         if (skeletonId != INVALID_ENTITY_ID) {
@@ -173,7 +174,7 @@ void SkeletonHorseEntity::triggerTrap()
     for (i32 i = 0; i < extraHorses; ++i) {
         // 创建额外的骷髅马
         const entity::EntityType* skeletonHorseType =
-            entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON_HORSE);
+            entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::SKELETON_HORSE);
         if (skeletonHorseType == nullptr) {
             continue;
         }
@@ -258,10 +259,10 @@ void SkeletonHorseEntity::triggerTrap()
         extraSkeletonEntity->setHurtResistantTime(60);
 
         // 生成额外骷髅马
-        EntityId extraHorseId = world->spawnEntity(std::move(extraHorse));
+        EntityInstanceId extraHorseId = world->spawnEntity(std::move(extraHorse));
         if (extraHorseId != INVALID_ENTITY_ID) {
             // 生成骷髅并让它骑上骷髅马
-            EntityId extraSkeletonId = world->spawnEntity(std::move(extraSkeleton));
+            EntityInstanceId extraSkeletonId = world->spawnEntity(std::move(extraSkeleton));
             if (extraSkeletonId != INVALID_ENTITY_ID) {
                 Entity* spawnedHorse = world->getEntity(extraHorseId);
                 Entity* spawnedSkeleton = world->getEntity(extraSkeletonId);

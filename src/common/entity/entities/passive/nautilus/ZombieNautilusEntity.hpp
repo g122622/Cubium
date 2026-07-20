@@ -68,7 +68,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit ZombieNautilusEntity(EntityId id);
+    explicit ZombieNautilusEntity(EntityInstanceId id);
 
     ~ZombieNautilusEntity() override = default;
 

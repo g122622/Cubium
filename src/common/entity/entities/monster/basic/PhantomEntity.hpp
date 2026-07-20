@@ -67,7 +67,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    PhantomEntity(EntityId id);
+    PhantomEntity(EntityInstanceId id);
     ~PhantomEntity() override = default;
 
     // 禁止拷贝
@@ -161,7 +161,7 @@ public:
      * 覆盖 Mob 基类排除恶魂的限制，因为幻翼本身是飞行生物，
      * 具备攻击空中目标的能力。
      */
-    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+    [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
 
     /**
      * @brief 获取眼睛高度

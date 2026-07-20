@@ -60,7 +60,7 @@ namespace {
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

@@ -128,10 +128,10 @@ public:
         return *m_tickManagerPtr;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         MC_UNUSED(entity);
-        return EntityId(0);
+        return EntityInstanceId(0);
     }
 
     // 测试辅助方法

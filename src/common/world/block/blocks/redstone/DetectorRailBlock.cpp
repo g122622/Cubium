@@ -24,8 +24,8 @@
 #include "DetectorRailBlock.hpp"
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"

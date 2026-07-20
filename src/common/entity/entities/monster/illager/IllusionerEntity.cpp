@@ -39,6 +39,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -50,7 +51,7 @@
 
 namespace mc {
 
-IllusionerEntity::IllusionerEntity(EntityId id)
+IllusionerEntity::IllusionerEntity(EntityInstanceId id)
     : SpellcastingIllagerEntity(id)
 {
     // 初始化镜像分身偏移数组为零向量
@@ -64,7 +65,7 @@ IllusionerEntity::IllusionerEntity(EntityId id)
 
 std::unique_ptr<Entity> IllusionerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<IllusionerEntity>(EntityId(0));
+    return std::make_unique<IllusionerEntity>(EntityInstanceId(0));
 }
 
 void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
@@ -227,7 +228,7 @@ void IllusionerEntity::registerGoals()
     m_goalSelector.addGoal(
         9, std::make_unique<entity::ai::goal::LookAtGoal>(this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
-            return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 10: 看向生物
@@ -235,7 +236,7 @@ void IllusionerEntity::registerGoals()
         10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             // 看向所有 MobEntity
-            return entity->typeId() != entity::EntityTypeIdNumber::PLAYER;
+            return entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 目标选择器 (targetSelector)

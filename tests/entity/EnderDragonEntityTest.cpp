@@ -109,7 +109,7 @@ public:
         return {};
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         for (auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -119,7 +119,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -129,11 +129,11 @@ public:
         return nullptr;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        if (!entity) return EntityId(0);
-        EntityId id = m_nextEntityId;
-        m_nextEntityId = EntityId(static_cast<u32>(m_nextEntityId) + 1);
+        if (!entity) return EntityInstanceId(0);
+        EntityInstanceId id = m_nextEntityId;
+        m_nextEntityId = EntityInstanceId(static_cast<u32>(m_nextEntityId) + 1);
         entity->setId(id);
         entity->setWorld(this);
 
@@ -199,7 +199,7 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_entities;
     std::vector<XpOrbRecord> m_spawnedXpOrbs;
-    EntityId m_nextEntityId = EntityId(1);
+    EntityInstanceId m_nextEntityId = EntityInstanceId(1);
     u64 m_currentTick = 0;
     world::gamerule::GameRules m_gameRules;
     Player* m_closestPlayer = nullptr;
@@ -230,7 +230,7 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_HeadDamage_NoReduction)
     // 非头部伤害公式为 damage / 4 + min(damage, 1)
     // 头部伤害 = 原始伤害值
 
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
@@ -241,7 +241,7 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_HeadDamage_NoReduction)
     f32 healthBefore = dragon.health();
 
     // 创建头部部件
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     bool result = dragon.attackEntityPartFrom(&headPart, explosionDmg, 10.0f);
@@ -258,14 +258,14 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_NonHeadDamage_ReducedFormula)
     // 例如：damage=10 时，非头部伤害 = 10/4 + min(10, 1) = 2.5 + 1 = 3.5
     // 头部伤害 = 10
 
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
     auto explosionDmg = DamageSources::explosion();
 
     // 身体部件受到伤害 - 应该减少
-    entity::EnderDragonPartEntity bodyPart(EntityId(2));
+    entity::EnderDragonPartEntity bodyPart(EntityInstanceId(2));
     bodyPart.setPart(entity::EnderDragonPartEntity::Part::Body);
 
     f32 healthBefore = dragon.health();
@@ -303,11 +303,11 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_DamageReduction_Formula)
 TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_OnlyPlayerAndExplosionDamage)
 {
     // MC 原版：末影龙只接受玩家攻击和爆炸伤害
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     f32 healthBefore = dragon.health();
@@ -340,15 +340,15 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_OnlyPlayerAndExplosionDamage)
 TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_PlayerAttackAccepted)
 {
     // 玩家攻击伤害应该被接受
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     // 创建一个玩家作为攻击者
-    auto player = std::make_unique<Player>(EntityId(3), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(3), "TestPlayer");
     player->setWorld(m_world.get());
     Player* playerPtr = player.get();
     m_world->spawnEntity(std::move(player));
@@ -363,15 +363,15 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_PlayerAttackAccepted)
 TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_MobAttackRejected)
 {
     // 非玩家的生物攻击应该被拒绝
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     // 创建另一个龙作为攻击者
-    auto otherDragon = std::make_unique<entity::EnderDragonEntity>(EntityId(3));
+    auto otherDragon = std::make_unique<entity::EnderDragonEntity>(EntityInstanceId(3));
     otherDragon->setWorld(m_world.get());
     Entity* mobPtr = otherDragon.get();
     m_world->spawnEntity(std::move(otherDragon));
@@ -387,11 +387,11 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_MobAttackRejected)
 TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_LowDamageIgnored)
 {
     // 伤害低于 0.01 应该被忽略
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     auto explosionDmg = DamageSources::explosion();
@@ -417,7 +417,7 @@ TEST_F(EnderDragonEntityTest, DamageSources_Explosion_NoEntity)
 TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithSource)
 {
     // 带来源实体的爆炸伤害
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     auto dmg = DamageSources::explosion(&dragon);
     EXPECT_TRUE(dmg.isExplosion());
     EXPECT_TRUE(dmg.isEntitySource());
@@ -427,8 +427,8 @@ TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithSource)
 TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithSourceAndCause)
 {
     // 带来源实体和造成者的爆炸伤害（末影水晶被玩家破坏的场景）
-    entity::EnderDragonEntity dragon(EntityId(1));
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     Player* playerPtr = player.get();
 
     auto dmg = DamageSources::explosion(&dragon, playerPtr);
@@ -488,7 +488,7 @@ TEST_F(EnderDragonEntityTest, BlockTags_DragonTransparent_DoesNotContainRegularB
 
 TEST_F(EnderDragonEntityTest, BossAttributes_DefaultValues)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
 
     // 末影龙属性
@@ -499,7 +499,7 @@ TEST_F(EnderDragonEntityTest, BossAttributes_DefaultValues)
 
 TEST_F(EnderDragonEntityTest, BossName_DefaultName)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     EXPECT_EQ(dragon.getBossName(), "Ender Dragon");
     EXPECT_FALSE(dragon.hasCustomName());
@@ -507,7 +507,7 @@ TEST_F(EnderDragonEntityTest, BossName_DefaultName)
 
 TEST_F(EnderDragonEntityTest, BossName_CustomName)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
 
     dragon.setCustomName("Test Dragon");
@@ -518,25 +518,25 @@ TEST_F(EnderDragonEntityTest, BossName_CustomName)
 TEST_F(EnderDragonEntityTest, HealthBarRange_Is256)
 {
     // MC 原版：末影龙生命条可见范围为 256 格
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(dragon.getHealthBarRange(), 256.0f);
 }
 
 TEST_F(EnderDragonEntityTest, IsNonBoss_ReturnsFalse)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     EXPECT_FALSE(dragon.isNonBoss());
 }
 
 TEST_F(EnderDragonEntityTest, Phase_DefaultIsHoldingPattern)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     EXPECT_EQ(dragon.phase(), entity::EnderDragonEntity::Phase::HoldingPattern);
 }
 
 TEST_F(EnderDragonEntityTest, Phase_SetAndGet)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     dragon.setPhase(entity::EnderDragonEntity::Phase::ChargingPlayer);
     EXPECT_EQ(dragon.phase(), entity::EnderDragonEntity::Phase::ChargingPlayer);
@@ -551,7 +551,7 @@ TEST_F(EnderDragonEntityTest, Phase_SetAndGet)
 
 TEST_F(EnderDragonEntityTest, IsDying_Check)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     EXPECT_FALSE(dragon.isDying());
 
@@ -561,7 +561,7 @@ TEST_F(EnderDragonEntityTest, IsDying_Check)
 
 TEST_F(EnderDragonEntityTest, IsSitting_Check)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     EXPECT_FALSE(dragon.isSitting());
 
@@ -580,7 +580,7 @@ TEST_F(EnderDragonEntityTest, IsSitting_Check)
 
 TEST_F(EnderDragonEntityTest, DragonParts_Initialized)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     // 龙部件应该被初始化
     const auto& parts = dragon.getDragonParts();
@@ -590,7 +590,7 @@ TEST_F(EnderDragonEntityTest, DragonParts_Initialized)
 
 TEST_F(EnderDragonEntityTest, EnderCrystal_ClosestCrystal)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     // 初始状态无最近水晶
     EXPECT_EQ(dragon.closestEnderCrystal(), nullptr);
@@ -607,7 +607,7 @@ TEST_F(EnderDragonEntityTest, EnderCrystal_ClosestCrystal)
 
 TEST_F(EnderDragonEntityTest, AttackTarget_SetAndGet)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     EXPECT_EQ(dragon.getAttackTarget(), nullptr);
 
@@ -618,15 +618,15 @@ TEST_F(EnderDragonEntityTest, AttackTarget_SetAndGet)
 TEST_F(EnderDragonEntityTest, PotionImmunity)
 {
     // 末影龙免疫药水效果
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     // isPotionApplicable 应该总是返回 false
     // 注意：完整测试需要创建 EffectInstance 对象
 }
 
 TEST_F(EnderDragonEntityTest, CanBeRidden_ReturnsFalse)
 {
-    entity::EnderDragonEntity dragon(EntityId(1));
-    entity::EnderDragonEntity otherDragon(EntityId(2));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
+    entity::EnderDragonEntity otherDragon(EntityInstanceId(2));
     EXPECT_FALSE(dragon.canBeRidden(otherDragon));
 }
 
@@ -661,7 +661,7 @@ TEST_F(EnderDragonEntityTest, NonHeadDamageReduction_MCOriginalFormula)
 TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenNotClosestCrystal)
 {
     // 当被破坏的水晶不是龙绑定的最近水晶时，龙不应该受到伤害
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
     dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -688,7 +688,7 @@ TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenNotClosestCrystal)
 TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_ClearsClosestCrystalWhenDestroyed)
 {
     // 当被破坏的水晶是龙绑定的最近水晶时，应清除引用
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
     dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -711,7 +711,7 @@ TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_PlayerFallbackToGetClosestPlaye
     // MC 原版：当 source.getEntity() 不是 Player 时，搜索最近的玩家
     // DragonTestWorld 的 getClosestPlayer 返回 m_closestPlayer
 
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
     dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -720,7 +720,7 @@ TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_PlayerFallbackToGetClosestPlaye
     dragon.setClosestEnderCrystal(&crystal);
 
     // 设置 fallback 玩家
-    auto player = std::make_unique<Player>(EntityId(10), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(10), "TestPlayer");
     player->setWorld(m_world.get());
     Player* playerPtr = player.get();
     m_world->setClosestPlayerForTest(playerPtr);
@@ -740,7 +740,7 @@ TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_PlayerFallbackToGetClosestPlaye
 TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenDead)
 {
     // 龙死亡时不应受到水晶伤害
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -759,7 +759,7 @@ TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenDead)
 TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenCrystalTooFar)
 {
     // 水晶在回血范围外，龙不应受伤
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
     dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -784,19 +784,19 @@ TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenCrystalTooFar)
 TEST_F(EnderDragonEntityTest, IsSlowed_InitiallyFalse)
 {
     // 初始状态 m_slowed 应为 false
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     EXPECT_FALSE(dragon.isSlowed());
 }
 
 TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_DyingDragonRejectsDamage)
 {
     // 死亡中的龙不应受伤
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     auto explosionDmg = DamageSources::explosion();
@@ -811,11 +811,11 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_InvulnerableToSource)
 {
     // 对特定伤害来源免疫时不应受伤
     // 注意：isInvulnerableTo 依赖具体实现，此处验证方法不崩溃
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     // 摔落伤害应被拒绝（不是玩家攻击也不是爆炸）
@@ -827,11 +827,11 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_InvulnerableToSource)
 TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_ExplosionDamageAccepted)
 {
     // 爆炸伤害应被接受
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(2));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(2));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
     auto explosionDmg = DamageSources::explosion();
@@ -848,18 +848,18 @@ TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_HeadVsBodyDamage)
     // 头部和身体伤害对比
     // MC 原版：头部伤害 = 原始伤害，身体伤害 = damage / 4 + min(damage, 1)
     // 身体伤害更低，所以身体受伤后血量更高
-    entity::EnderDragonEntity dragon1(EntityId(1));
+    entity::EnderDragonEntity dragon1(EntityInstanceId(1));
     dragon1.setWorld(m_world.get());
     dragon1.setHealth(200.0f);
 
-    entity::EnderDragonEntity dragon2(EntityId(2));
+    entity::EnderDragonEntity dragon2(EntityInstanceId(2));
     dragon2.setWorld(m_world.get());
     dragon2.setHealth(200.0f);
 
-    entity::EnderDragonPartEntity headPart(EntityId(3));
+    entity::EnderDragonPartEntity headPart(EntityInstanceId(3));
     headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
 
-    entity::EnderDragonPartEntity bodyPart(EntityId(4));
+    entity::EnderDragonPartEntity bodyPart(EntityInstanceId(4));
     bodyPart.setPart(entity::EnderDragonPartEntity::Part::Body);
 
     auto explosionDmg1 = DamageSources::explosion();
@@ -924,7 +924,7 @@ TEST_F(EnderDragonEntityTest, BlockTags_DragonTransparent_LightBlock)
 TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithNullCause)
 {
     // explosion(crystal, nullptr) - 水晶爆炸，无玩家归属
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     auto dmg = DamageSources::explosion(&dragon, nullptr);
 
     EXPECT_TRUE(dmg.isExplosion());
@@ -937,8 +937,8 @@ TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithNullCause)
 TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithPlayerCause)
 {
     // explosion(crystal, player) - 水晶被玩家破坏
-    entity::EnderDragonEntity dragon(EntityId(1));
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     Player* playerPtr = player.get();
 
     auto dmg = DamageSources::explosion(&dragon, playerPtr);
@@ -975,7 +975,7 @@ TEST_F(EnderDragonEntityTest, DragonBlockDestruction_Rules)
 TEST_F(EnderDragonEntityTest, DragonParts_HeadNeckBodyInitialized)
 {
     // 龙的头、颈、身部件必须被初始化，因为 _collideWithEntities 依赖它们
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
 
     const auto& parts = dragon.getDragonParts();
     EXPECT_EQ(parts.size(), 8u);
@@ -997,7 +997,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_DeathTicksIncrementsWhenDying)
 {
     // 验证死亡阶段下 tick 会推进 deathTicks
     // MC: this.dragonDeathTime++;
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1014,7 +1014,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_ParticleRangeBounds_180To200)
     // 验证爆炸粒子的生成范围是 [180, 200]（对齐 MC）
     // 旧实现使用 m_deathTicks > 180（遗漏 180 tick），新实现使用 >= 180 && <= 200
     // 这里通过 deathTicks 推进验证逻辑路径不崩溃即可（粒子在 mock world 中是空操作）
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1039,7 +1039,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_CompletesAt200Ticks)
     //         this.remove(Entity.RemovalReason.KILLED);
     //         this.gameEvent(GameEvent.ENTITY_DIE);
     //     }
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1068,7 +1068,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_PhasedXpDrop_8PercentEvery5TicksAfter1
     // 首次击杀 totalXP = 12000，每次掉落 floor(12000 * 0.08) = 960
     // 阶段性掉落时刻：155, 160, 165, ..., 195（共 9 次）
     // 预期总阶段性经验 = 9 * 960 = 8640
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1101,7 +1101,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_PhasedXpDrop_FirstKillTotalBefore200)
     // 验证首次击杀（totalXP=12000）在 200 tick 前的阶段性经验掉落总额
     // 155, 160, 165, 170, 175, 180, 185, 190, 195 共 9 次，每次 960
     // 阶段性总额 = 9 * 960 = 8640
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1129,7 +1129,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_FinalXpDrop_20PercentAt200Ticks)
     // 阶段性掉落时刻：155, 160, ..., 195, 200 共 10 次 × 960 = 9600
     // 最终掉落：2400
     // 总计 = 9600 + 2400 = 12000（即 totalXP 的 100%，与 MC 原版一致）
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1161,7 +1161,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_SubsequentKillXpAmount)
     // 本测试验证有 EndDragonFight 且 previouslyKilled=true 的场景。
     // 由于 DragonTestWorld::dragonFight() 返回 nullptr，此处仅验证无 fight 时
     // totalXP = 12000（首次击杀），作为 previouslyKilled=false 的回归保护。
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1183,7 +1183,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_NoXpDropWhenDoMobLootFalse)
     // Cubium 使用 DO_MOB_LOOT（对应 MC 1.21.11 的 mob_drops）
     //
     // 强化断言：不仅验证龙被移除，还验证整个 200 tick 流程中无任何经验球生成。
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1210,7 +1210,7 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_XpDropEnabledByDefault)
 {
     // 验证 doMobLoot=true（默认）时会掉落经验
     // 作为 NoXpDropWhenDoMobLootFalse 的对照测试
-    entity::EnderDragonEntity dragon(EntityId(1));
+    entity::EnderDragonEntity dragon(EntityInstanceId(1));
     dragon.setWorld(m_world.get());
     dragon.setHealth(0.0f);
     dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
@@ -1245,13 +1245,13 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_SubpartsMoveWithDragon)
     // 注意：死亡龙跳过了 _updateDragonParts()（在 tick() 中 isDying() 时跳过），
     // 因此部件仅受 _onDeathUpdate() 的 setPosition 影响。非死亡龙的部件受
     // _updateDragonParts() 影响，跟随龙的重力下落。两组的差异即为死亡动画效果。
-    entity::EnderDragonEntity dyingDragon(EntityId(1));
+    entity::EnderDragonEntity dyingDragon(EntityInstanceId(1));
     dyingDragon.setWorld(m_world.get());
     dyingDragon.setHealth(0.0f);
     dyingDragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
     dyingDragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
 
-    entity::EnderDragonEntity aliveDragon(EntityId(2));
+    entity::EnderDragonEntity aliveDragon(EntityInstanceId(2));
     aliveDragon.setWorld(m_world.get());
     aliveDragon.setHealth(100.0f);
     aliveDragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
@@ -1311,13 +1311,13 @@ TEST_F(EnderDragonEntityTest, DeathUpdate_DragonRisesDuringDeathAnimation)
     // 注意：龙同时受 LivingEntity::travel() 重力影响会下落，因此测试采用
     // 对照组方式：比较死亡龙与非死亡龙在相同 tick 后的 Y 坐标差值，
     // 死亡龙应比非死亡龙高约 10 * 0.1 = 1.0（死亡动画的净上升量）。
-    entity::EnderDragonEntity dyingDragon(EntityId(1));
+    entity::EnderDragonEntity dyingDragon(EntityInstanceId(1));
     dyingDragon.setWorld(m_world.get());
     dyingDragon.setHealth(0.0f);
     dyingDragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
     dyingDragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
 
-    entity::EnderDragonEntity aliveDragon(EntityId(2));
+    entity::EnderDragonEntity aliveDragon(EntityInstanceId(2));
     aliveDragon.setWorld(m_world.get());
     aliveDragon.setHealth(100.0f); // 非死亡状态
     aliveDragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));

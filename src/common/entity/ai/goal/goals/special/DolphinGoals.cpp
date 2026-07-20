@@ -22,7 +22,6 @@
  */
 
 #include "DolphinGoals.hpp"
-#include "../../../../../entity/core/EntityTypeIdNumber.hpp"
 #include "../../../../../entity/core/LivingEntity.hpp"
 #include "../../../../../entity/core/MobEntity.hpp"
 #include "../../../../../entity/effect/EffectInstance.hpp"
@@ -30,6 +29,7 @@
 #include "../../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../../entity/entities/passive/water/DolphinEntity.hpp"
 #include "../../../../../entity/entities/player/Player.hpp"
+#include "../../../../../entity/registry/VanillaEntityTypeKeys.hpp"
 #include "../../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../network/packet/EntityPackets.hpp"
@@ -684,7 +684,7 @@ ItemEntity* PlayWithItemsGoal::_findNearbyItem() const
         }
 
         // 检查是否是物品实体
-        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::ITEM) {
             continue;
         }
 
@@ -870,12 +870,12 @@ Player* FollowBoatGoal::_findPlayerDrivingBoat()
         }
 
         // 检查是否是船
-        if (entity->typeId() != entity::EntityTypeIdNumber::BOAT) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::BOAT) {
             continue;
         }
 
         // 获取船的控制乘客
-        EntityId controllerId = entity->getControllingPassenger();
+        EntityInstanceId controllerId = entity->getControllingPassenger();
         if (controllerId == 0) {
             continue;
         }

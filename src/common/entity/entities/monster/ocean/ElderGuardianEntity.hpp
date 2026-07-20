@@ -46,7 +46,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    ElderGuardianEntity(EntityId id);
+    ElderGuardianEntity(EntityInstanceId id);
 
     ~ElderGuardianEntity() override = default;
 

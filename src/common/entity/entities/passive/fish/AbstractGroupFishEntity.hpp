@@ -42,7 +42,7 @@ public:
      * @brief 构造群游鱼类实体
      * @param id 实体 ID
      */
-    AbstractGroupFishEntity(EntityId id)
+    AbstractGroupFishEntity(EntityInstanceId id)
         : AbstractFishEntity(id)
     {}
 

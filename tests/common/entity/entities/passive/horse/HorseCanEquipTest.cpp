@@ -59,7 +59,7 @@ protected:
  */
 TEST_F(HorseEntityCanEquipTest, CanEquipSaddleInSlot0)
 {
-    HorseEntity horse(EntityId(0));
+    HorseEntity horse(EntityInstanceId(0));
 
     // 空物品应该允许放入任何槽位
     EXPECT_TRUE(horse.canEquip(ItemStack::EMPTY, 0));
@@ -80,7 +80,7 @@ TEST_F(HorseEntityCanEquipTest, CanEquipSaddleInSlot0)
  */
 TEST_F(HorseEntityCanEquipTest, CanEquipHorseArmorInSlot1)
 {
-    HorseEntity horse(EntityId(0));
+    HorseEntity horse(EntityInstanceId(0));
 
     // HorseEntity 支持马铠槽位
     EXPECT_TRUE(horse.hasArmorSlot());
@@ -97,7 +97,7 @@ TEST_F(HorseEntityCanEquipTest, CanEquipHorseArmorInSlot1)
  */
 TEST_F(HorseEntityCanEquipTest, CannotEquipNonHorseArmorInSlot1)
 {
-    HorseEntity horse(EntityId(0));
+    HorseEntity horse(EntityInstanceId(0));
 
     // 普通物品不应该允许放入马铠槽位
     if (Items::IRON_INGOT != nullptr) {
@@ -113,7 +113,7 @@ TEST_F(HorseEntityCanEquipTest, CannotEquipNonHorseArmorInSlot1)
  */
 TEST_F(HorseEntityCanEquipTest, LlamaCannotEquipSaddle)
 {
-    LlamaEntity llama(EntityId(0));
+    LlamaEntity llama(EntityInstanceId(0));
 
     // 羊驼不能装备鞍
     EXPECT_FALSE(llama.canEquipSaddle());
@@ -131,7 +131,7 @@ TEST_F(HorseEntityCanEquipTest, LlamaCannotEquipSaddle)
  */
 TEST_F(HorseEntityCanEquipTest, LlamaCanEquipCarpetInSlot1)
 {
-    LlamaEntity llama(EntityId(0));
+    LlamaEntity llama(EntityInstanceId(0));
 
     // 羊驼支持装饰槽位
     EXPECT_TRUE(llama.hasArmorSlot());
@@ -150,8 +150,8 @@ TEST_F(HorseEntityCanEquipTest, LlamaCanEquipCarpetInSlot1)
  */
 TEST_F(HorseEntityCanEquipTest, DonkeyAndMuleCannotEquipArmor)
 {
-    DonkeyEntity donkey(EntityId(0));
-    MuleEntity mule(EntityId(0));
+    DonkeyEntity donkey(EntityInstanceId(0));
+    MuleEntity mule(EntityInstanceId(0));
 
     // 驴和骡不支持马铠槽位
     EXPECT_FALSE(donkey.hasArmorSlot());
@@ -170,8 +170,8 @@ TEST_F(HorseEntityCanEquipTest, DonkeyAndMuleCannotEquipArmor)
  */
 TEST_F(HorseEntityCanEquipTest, DonkeyAndMuleCanEquipSaddle)
 {
-    DonkeyEntity donkey(EntityId(0));
-    MuleEntity mule(EntityId(0));
+    DonkeyEntity donkey(EntityInstanceId(0));
+    MuleEntity mule(EntityInstanceId(0));
 
     // 驴和骡可以装备鞍
     EXPECT_TRUE(donkey.canEquipSaddle());
@@ -191,8 +191,8 @@ TEST_F(HorseEntityCanEquipTest, DonkeyAndMuleCanEquipSaddle)
  */
 TEST_F(HorseEntityCanEquipTest, SkeletonAndZombieHorseCannotEquipArmor)
 {
-    SkeletonHorseEntity skeletonHorse(EntityId(0));
-    ZombieHorseEntity zombieHorse(EntityId(0));
+    SkeletonHorseEntity skeletonHorse(EntityInstanceId(0));
+    ZombieHorseEntity zombieHorse(EntityInstanceId(0));
 
     // 骷髅马和僵尸马不支持马铠槽位
     EXPECT_FALSE(skeletonHorse.hasArmorSlot());
@@ -204,8 +204,8 @@ TEST_F(HorseEntityCanEquipTest, SkeletonAndZombieHorseCannotEquipArmor)
  */
 TEST_F(HorseEntityCanEquipTest, SkeletonAndZombieHorseCanEquipSaddle)
 {
-    SkeletonHorseEntity skeletonHorse(EntityId(0));
-    ZombieHorseEntity zombieHorse(EntityId(0));
+    SkeletonHorseEntity skeletonHorse(EntityInstanceId(0));
+    ZombieHorseEntity zombieHorse(EntityInstanceId(0));
 
     // 骷髅马和僵尸马可以装备鞍
     EXPECT_TRUE(skeletonHorse.canEquipSaddle());
@@ -222,7 +222,7 @@ TEST_F(HorseEntityCanEquipTest, SkeletonAndZombieHorseCanEquipSaddle)
  */
 TEST_F(HorseEntityCanEquipTest, InvalidSlotReturnsFalse)
 {
-    HorseEntity horse(EntityId(0));
+    HorseEntity horse(EntityInstanceId(0));
 
     // 无效槽位应该返回 false
     EXPECT_FALSE(horse.canEquip(ItemStack::EMPTY, -1));
@@ -238,9 +238,9 @@ TEST_F(HorseEntityCanEquipTest, InvalidSlotReturnsFalse)
  */
 TEST_F(HorseEntityCanEquipTest, EmptyStackAlwaysAllowed)
 {
-    HorseEntity horse(EntityId(0));
-    LlamaEntity llama(EntityId(0));
-    DonkeyEntity donkey(EntityId(0));
+    HorseEntity horse(EntityInstanceId(0));
+    LlamaEntity llama(EntityInstanceId(0));
+    DonkeyEntity donkey(EntityInstanceId(0));
 
     // 空物品应该允许放入任何有效槽位（用于清空槽位）
     EXPECT_TRUE(horse.canEquip(ItemStack::EMPTY, 0));

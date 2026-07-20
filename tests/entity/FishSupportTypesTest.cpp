@@ -96,8 +96,8 @@ private:
 
 TEST(AbstractGroupFishEntityTest, FollowerJoinAndLeaveUpdatesLeaderState)
 {
-    CodEntity leader(EntityId(1));
-    SalmonEntity follower(EntityId(2));
+    CodEntity leader(EntityInstanceId(1));
+    SalmonEntity follower(EntityInstanceId(2));
 
     EXPECT_FALSE(leader.isGroupLeader());
     EXPECT_EQ(leader.getGroupSize(), 1);
@@ -121,8 +121,8 @@ TEST(AbstractGroupFishEntityTest, FollowerJoinAndLeaveUpdatesLeaderState)
 
 TEST(AbstractGroupFishEntityTest, UsesVanillaLeaderRangeAndClearsDeadLeaderOnTick)
 {
-    CodEntity leader(EntityId(1));
-    TropicalFishEntity follower(EntityId(2));
+    CodEntity leader(EntityInstanceId(1));
+    TropicalFishEntity follower(EntityInstanceId(2));
 
     leader.setPosition(0.0f, 62.0f, 0.0f);
     follower.setPosition(11.0f, 62.0f, 0.0f);
@@ -143,10 +143,10 @@ TEST(AbstractGroupFishEntityTest, UsesVanillaLeaderRangeAndClearsDeadLeaderOnTic
 
 TEST(FishSupportTypesTest, SchoolingFishUseGroupLayerButPufferfishDoesNot)
 {
-    CodEntity cod(EntityId(1));
-    SalmonEntity salmon(EntityId(2));
-    TropicalFishEntity tropicalFish(EntityId(3));
-    PufferfishEntity pufferfish(EntityId(4));
+    CodEntity cod(EntityInstanceId(1));
+    SalmonEntity salmon(EntityInstanceId(2));
+    TropicalFishEntity tropicalFish(EntityInstanceId(3));
+    PufferfishEntity pufferfish(EntityInstanceId(4));
 
     EXPECT_NE(dynamic_cast<AbstractGroupFishEntity*>(&cod), nullptr);
     EXPECT_NE(dynamic_cast<AbstractGroupFishEntity*>(&salmon), nullptr);
@@ -179,8 +179,8 @@ protected:
 TEST_F(FollowSchoolLeaderGoalTest, ShouldNotExecuteWhenIsGroupLeader)
 {
     // 创建两条鳕鱼
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower = std::make_unique<CodEntity>(EntityId(2));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower = std::make_unique<CodEntity>(EntityInstanceId(2));
 
     leader->setWorld(m_world.get());
     follower->setWorld(m_world.get());
@@ -199,8 +199,8 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldNotExecuteWhenIsGroupLeader)
 
 TEST_F(FollowSchoolLeaderGoalTest, ShouldExecuteWhenHasGroupLeader)
 {
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower = std::make_unique<CodEntity>(EntityId(2));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower = std::make_unique<CodEntity>(EntityInstanceId(2));
 
     leader->setWorld(m_world.get());
     follower->setWorld(m_world.get());
@@ -221,8 +221,8 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldExecuteWhenHasGroupLeader)
 
 TEST_F(FollowSchoolLeaderGoalTest, ShouldContinueExecutingWhenInRange)
 {
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower = std::make_unique<CodEntity>(EntityId(2));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower = std::make_unique<CodEntity>(EntityInstanceId(2));
 
     leader->setWorld(m_world.get());
     follower->setWorld(m_world.get());
@@ -242,8 +242,8 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldContinueExecutingWhenInRange)
 
 TEST_F(FollowSchoolLeaderGoalTest, ShouldNotContinueExecutingWhenOutOfRange)
 {
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower = std::make_unique<CodEntity>(EntityId(2));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower = std::make_unique<CodEntity>(EntityInstanceId(2));
 
     leader->setWorld(m_world.get());
     follower->setWorld(m_world.get());
@@ -263,8 +263,8 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldNotContinueExecutingWhenOutOfRange)
 
 TEST_F(FollowSchoolLeaderGoalTest, ShouldLeaveGroupOnReset)
 {
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower = std::make_unique<CodEntity>(EntityId(2));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower = std::make_unique<CodEntity>(EntityInstanceId(2));
 
     leader->setWorld(m_world.get());
     follower->setWorld(m_world.get());
@@ -288,9 +288,9 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldLeaveGroupOnReset)
 TEST_F(FollowSchoolLeaderGoalTest, ShouldFindGroupToJoin)
 {
     // 创建一个可扩群的首领
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower1 = std::make_unique<CodEntity>(EntityId(2));
-    auto follower2 = std::make_unique<CodEntity>(EntityId(3));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower1 = std::make_unique<CodEntity>(EntityInstanceId(2));
+    auto follower2 = std::make_unique<CodEntity>(EntityInstanceId(3));
 
     leader->setWorld(m_world.get());
     follower1->setWorld(m_world.get());
@@ -327,7 +327,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldFindGroupToJoin)
 TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize)
 {
     // SalmonEntity 最大群体大小为 5
-    auto leader = std::make_unique<SalmonEntity>(EntityId(1));
+    auto leader = std::make_unique<SalmonEntity>(EntityInstanceId(1));
     std::vector<std::unique_ptr<SalmonEntity>> followers;
 
     leader->setWorld(m_world.get());
@@ -337,7 +337,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize)
 
     // 创建并加入 4 条鱼（达到最大群体大小 5）
     for (int i = 0; i < 4; ++i) {
-        auto follower = std::make_unique<SalmonEntity>(static_cast<EntityId>(i + 2));
+        auto follower = std::make_unique<SalmonEntity>(static_cast<EntityInstanceId>(i + 2));
         follower->setWorld(m_world.get());
         follower->setPosition(static_cast<f32>(i + 1), 62.0f, 0.0f);
         follower->joinGroup(*leader);
@@ -349,7 +349,7 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize)
     EXPECT_FALSE(leader->canGroupGrow()); // 已满员
 
     // 创建第 6 条鱼
-    auto extraFollower = std::make_unique<SalmonEntity>(EntityId(10));
+    auto extraFollower = std::make_unique<SalmonEntity>(EntityInstanceId(10));
     extraFollower->setWorld(m_world.get());
     extraFollower->setPosition(5.0f, 62.0f, 0.0f);
     entities.push_back(extraFollower.get());
@@ -369,10 +369,10 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize)
 
 TEST_F(FollowSchoolLeaderGoalTest, RecruitFollowersWorks)
 {
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower1 = std::make_unique<CodEntity>(EntityId(2));
-    auto follower2 = std::make_unique<CodEntity>(EntityId(3));
-    auto follower3 = std::make_unique<CodEntity>(EntityId(4));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower1 = std::make_unique<CodEntity>(EntityInstanceId(2));
+    auto follower2 = std::make_unique<CodEntity>(EntityInstanceId(3));
+    auto follower3 = std::make_unique<CodEntity>(EntityInstanceId(4));
 
     leader->setWorld(m_world.get());
 
@@ -392,8 +392,8 @@ TEST_F(FollowSchoolLeaderGoalTest, RecruitFollowersWorks)
 
 TEST_F(FollowSchoolLeaderGoalTest, MoveToGroupLeaderWorks)
 {
-    auto leader = std::make_unique<CodEntity>(EntityId(1));
-    auto follower = std::make_unique<CodEntity>(EntityId(2));
+    auto leader = std::make_unique<CodEntity>(EntityInstanceId(1));
+    auto follower = std::make_unique<CodEntity>(EntityInstanceId(2));
 
     leader->setWorld(m_world.get());
     follower->setWorld(m_world.get());
@@ -418,7 +418,7 @@ TEST_F(FollowSchoolLeaderGoalTest, MoveToGroupLeaderWorks)
 TEST(FishSwimGoalSafetyTest, RandomSwimmingGoalReturnsFalseWhenBlockStateIsUnavailable)
 {
     auto world = std::make_unique<TestFishWorld>();
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     cod.setWorld(world.get());
     cod.setPosition(0.0f, 62.0f, 0.0f);
     cod.setInWater(true);
@@ -430,7 +430,7 @@ TEST(FishSwimGoalSafetyTest, RandomSwimmingGoalReturnsFalseWhenBlockStateIsUnava
 TEST(FishSwimGoalSafetyTest, FishSwimGoalReturnsFalseWhenBlockStateIsUnavailable)
 {
     auto world = std::make_unique<TestFishWorld>();
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     cod.setWorld(world.get());
     cod.setPosition(0.0f, 62.0f, 0.0f);
     cod.setInWater(true);
@@ -454,20 +454,20 @@ protected:
 
 TEST_F(AbstractFishEntityFromBucketTest, DefaultFromBucketIsFalse)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     EXPECT_FALSE(cod.isFromBucket());
 }
 
 TEST_F(AbstractFishEntityFromBucketTest, SetFromBucketToTrue)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     cod.setFromBucket(true);
     EXPECT_TRUE(cod.isFromBucket());
 }
 
 TEST_F(AbstractFishEntityFromBucketTest, SetFromBucketToFalse)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
     cod.setFromBucket(true);
     cod.setFromBucket(false);
     EXPECT_FALSE(cod.isFromBucket());
@@ -475,7 +475,7 @@ TEST_F(AbstractFishEntityFromBucketTest, SetFromBucketToFalse)
 
 TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishPreventsDespawn)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
 
     // 默认情况下，鱼不在被骑乘状态，preventDespawn 返回 false
     EXPECT_FALSE(cod.preventDespawn());
@@ -491,7 +491,7 @@ TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishPreventsDespawn)
 
 TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishCannotDespawn)
 {
-    CodEntity cod(EntityId(1));
+    CodEntity cod(EntityInstanceId(1));
 
     // 默认情况下，鱼可以消失（没有自定义名称）
     EXPECT_TRUE(cod.canDespawn(128.0));
@@ -510,10 +510,10 @@ TEST_F(AbstractFishEntityFromBucketTest, FromBucketFishCannotDespawn)
 TEST_F(AbstractFishEntityFromBucketTest, AllFishTypesSupportFromBucket)
 {
     // 测试所有鱼类实体都支持 FromBucket
-    CodEntity cod(EntityId(1));
-    SalmonEntity salmon(EntityId(2));
-    PufferfishEntity pufferfish(EntityId(3));
-    TropicalFishEntity tropicalFish(EntityId(4));
+    CodEntity cod(EntityInstanceId(1));
+    SalmonEntity salmon(EntityInstanceId(2));
+    PufferfishEntity pufferfish(EntityInstanceId(3));
+    TropicalFishEntity tropicalFish(EntityInstanceId(4));
 
     // 所有鱼类默认不是从桶放出的
     EXPECT_FALSE(cod.isFromBucket());

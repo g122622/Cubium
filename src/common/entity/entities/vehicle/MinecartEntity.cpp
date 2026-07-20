@@ -30,6 +30,7 @@
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -88,7 +89,7 @@ entity::DataParameter<bool> AbstractMinecartEntity::DATA_SHOW_BLOCK_PARAM =
 // AbstractMinecartEntity
 // ============================================================================
 
-AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityId id)
+AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityInstanceId id)
     : Entity(id)
     , m_type(type)
 {
@@ -97,7 +98,7 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityId id)
 }
 
 AbstractMinecartEntity::AbstractMinecartEntity(Type type)
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
     , m_type(type)
 {
     registerData();
@@ -325,7 +326,7 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
     const auto& passengers = getPassengers();
     if (!passengers.empty()) {
         Entity* passenger = worldPtr->getEntity(passengers[0]);
-        if (passenger != nullptr && passenger->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+        if (passenger != nullptr && passenger->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
             // 获取乘客的移动输入速度
             f64 passengerSpeedSq =
                 passenger->velocityX() * passenger->velocityX() + passenger->velocityZ() * passenger->velocityZ();
@@ -657,15 +658,15 @@ void AbstractMinecartEntity::_handleEntityCollisions()
             continue;
         }
 
-        auto entityType = entity->typeId();
+        auto entityType = entity->entityType();
 
         // 跳过玩家（玩家碰撞由其他逻辑处理）
-        if (entityType == entity::EntityTypeIdNumber::PLAYER) {
+        if (entityType == entity::VanillaEntityTypeKeys::PLAYER) {
             continue;
         }
 
         // 矿车间碰撞处理
-        if (entityType == entity::EntityTypeIdNumber::MINECART) {
+        if (entityType == entity::VanillaEntityTypeKeys::MINECART) {
             AbstractMinecartEntity* otherCart = static_cast<AbstractMinecartEntity*>(entity);
 
             // 计算碰撞方向
@@ -998,7 +999,7 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
     // 8. 检查攻击者是否为创造模式玩家
     bool isCreative = false;
     Entity* attacker = source.source();
-    if (attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+    if (attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
         Player* player = static_cast<Player*>(attacker);
         isCreative = player->isCreative();
     }
@@ -1026,7 +1027,7 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
 
 std::unique_ptr<Entity> RideableMinecartEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<RideableMinecartEntity>(EntityId(0));
+    return std::make_unique<RideableMinecartEntity>(EntityInstanceId(0));
 }
 
 void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
@@ -1041,7 +1042,7 @@ void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
         const auto& passengerIds = getPassengers();
         IWorld* worldPtr = Entity::world();
         if (worldPtr) {
-            for (EntityId passengerId : passengerIds) {
+            for (EntityInstanceId passengerId : passengerIds) {
                 Entity* passenger = worldPtr->getEntity(passengerId);
                 if (passenger) {
                     // 停止骑行
@@ -1058,10 +1059,10 @@ void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
 
 std::unique_ptr<Entity> ChestMinecartEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ChestMinecartEntity>(EntityId(0));
+    return std::make_unique<ChestMinecartEntity>(EntityInstanceId(0));
 }
 
-ChestMinecartEntity::ChestMinecartEntity(EntityId id)
+ChestMinecartEntity::ChestMinecartEntity(EntityInstanceId id)
     : AbstractMinecartEntity(Type::Chest, id)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
 {}
@@ -1162,7 +1163,7 @@ i32 ChestMinecartEntity::getComparatorOutput() const
 
 std::unique_ptr<Entity> FurnaceMinecartEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<FurnaceMinecartEntity>(EntityId(0));
+    return std::make_unique<FurnaceMinecartEntity>(EntityInstanceId(0));
 }
 
 void FurnaceMinecartEntity::tick()
@@ -1298,7 +1299,7 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
 
 std::unique_ptr<Entity> TNTMinecartEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<TNTMinecartEntity>(EntityId(0));
+    return std::make_unique<TNTMinecartEntity>(EntityInstanceId(0));
 }
 
 void TNTMinecartEntity::tick()
@@ -1557,10 +1558,10 @@ void TNTMinecartEntity::_explode(f32 speedFactor, const DamageSource* damageSour
 
 std::unique_ptr<Entity> HopperMinecartEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<HopperMinecartEntity>(EntityId(0));
+    return std::make_unique<HopperMinecartEntity>(EntityInstanceId(0));
 }
 
-HopperMinecartEntity::HopperMinecartEntity(EntityId id)
+HopperMinecartEntity::HopperMinecartEntity(EntityInstanceId id)
     : AbstractMinecartEntity(Type::Hopper, id)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
 {}
@@ -1862,13 +1863,13 @@ void CommandBlockMinecartEntity::_executeCommand()
 // SpawnerMinecartEntity
 // ============================================================================
 
-SpawnerMinecartEntity::SpawnerMinecartEntity(EntityId id)
+SpawnerMinecartEntity::SpawnerMinecartEntity(EntityInstanceId id)
     : AbstractMinecartEntity(Type::Spawner, id)
 {}
 
 std::unique_ptr<Entity> SpawnerMinecartEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SpawnerMinecartEntity>(EntityId(0));
+    return std::make_unique<SpawnerMinecartEntity>(EntityInstanceId(0));
 }
 
 void SpawnerMinecartEntity::tick()

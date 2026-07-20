@@ -69,7 +69,7 @@ private:
 
 private:
     VillagerEntity* m_villager;
-    EntityId m_targetItem;
+    EntityInstanceId m_targetItem;
     static constexpr f32 PICKUP_RANGE = 32.0f;   // 搜索范围
     static constexpr f32 PICKUP_DISTANCE = 1.5f; // 拾取距离
 };

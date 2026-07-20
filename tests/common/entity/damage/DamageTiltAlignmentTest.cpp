@@ -41,8 +41,8 @@ struct HurtFixture {
     HurtFixture()
     {
         world = std::make_unique<mc::server::ServerWorld>(mc::server::ServerWorldConfig{});
-        victim = std::make_unique<ServerPlayer>(EntityId(1), "Victim");
-        attacker = std::make_unique<ServerPlayer>(EntityId(2), "Attacker");
+        victim = std::make_unique<ServerPlayer>(EntityInstanceId(1), "Victim");
+        attacker = std::make_unique<ServerPlayer>(EntityInstanceId(2), "Attacker");
         // ServerPlayer::setWorld 仅设置派生类的 ServerPlayer::m_world（用于广播等），
         // LivingEntity::hurt 读取的是基类 Entity::m_world，需显式设置基类引用。
         victim->setWorld(world.get());
@@ -76,7 +76,7 @@ TEST(DamageSourcePositionTest, IndirectEntityDamageSourceReturnsDirectSourcePosi
     // shooter 在 (10,0,10)，箭矢（directSource）在 (1,0,0)。
     // MC getSourcePosition 回退 directEntity.position()，故应返回箭矢位置而非射手。
     f.attacker->setPosition(10.0f, 0.0f, 10.0f);
-    ServerPlayer arrowProxy(EntityId(3), "Arrow");
+    ServerPlayer arrowProxy(EntityInstanceId(3), "Arrow");
     arrowProxy.setWorld(f.world.get());
     arrowProxy.setPosition(1.0f, 0.0f, 0.0f);
     auto src = DamageSources::arrow(&arrowProxy, f.attacker.get(), false);

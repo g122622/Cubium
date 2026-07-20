@@ -27,7 +27,7 @@
 
 namespace mc {
 
-MuleEntity::MuleEntity(EntityId id)
+MuleEntity::MuleEntity(EntityInstanceId id)
     : AbstractChestedHorseEntity(id)
 {
     setJumpStrength(0.5f);

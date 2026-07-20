@@ -48,7 +48,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit LlamaSpitEntity(EntityId id);
+    explicit LlamaSpitEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -96,7 +96,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit FishingBobberEntity(EntityId id);
+    explicit FishingBobberEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -167,7 +167,7 @@ public:
      * @brief 获取被钩住的实体ID（用于网络同步）
      * @return 实体ID，如果没有则返回 0
      */
-    [[nodiscard]] EntityId getCaughtEntityId() const { return m_caughtEntityId; }
+    [[nodiscard]] EntityInstanceId getCaughtEntityId() const { return m_caughtEntityId; }
 
     /**
      * @brief 获取 DATA_HOOKED_ENTITY_PARAM 的参数 ID（客户端元数据同步用）
@@ -314,19 +314,19 @@ private:
      */
     void _syncCaughtEntityId();
 
-    Player* m_angler = nullptr;       // 钓鱼者
-    Entity* m_caughtEntity = nullptr; // 被钩住的实体
-    EntityId m_caughtEntityId = 0;    // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
-    State m_state = State::Flying;    // 当前状态
-    i32 m_ticksCaughtDelay = 0;       // 咬钩等待计时器
-    i32 m_ticksCatchableDelay = 0;    // 鱼接近计时器
-    i32 m_ticksCatchable = 0;         // 可捕获窗口期
-    f32 m_fishAngle = 0.0f;           // 鱼的角度（用于动画）
-    bool m_inOpenWater = false;       // 是否在开放水域
-    i32 m_luckBonus = 0;              // 海之眷顾附魔等级
-    i32 m_speedBonus = 0;             // 饵钓附魔等级
-    i32 m_outOfWaterTime = 0;         // 离开水的时间计数器
-    i32 m_lifetime = 0;               // 存在时间
+    Player* m_angler = nullptr;            // 钓鱼者
+    Entity* m_caughtEntity = nullptr;      // 被钩住的实体
+    EntityInstanceId m_caughtEntityId = 0; // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
+    State m_state = State::Flying;         // 当前状态
+    i32 m_ticksCaughtDelay = 0;            // 咬钩等待计时器
+    i32 m_ticksCatchableDelay = 0;         // 鱼接近计时器
+    i32 m_ticksCatchable = 0;              // 可捕获窗口期
+    f32 m_fishAngle = 0.0f;                // 鱼的角度（用于动画）
+    bool m_inOpenWater = false;            // 是否在开放水域
+    i32 m_luckBonus = 0;                   // 海之眷顾附魔等级
+    i32 m_speedBonus = 0;                  // 饵钓附魔等级
+    i32 m_outOfWaterTime = 0;              // 离开水的时间计数器
+    i32 m_lifetime = 0;                    // 存在时间
 
     // ========== 网络同步数据参数 ==========
     // 对应 MC 1.21.11 FishingHook 的 DATA_HOOKED_ENTITY / DATA_BITING。
@@ -359,7 +359,7 @@ public:
     /**
      * @brief 默认构造函数
      */
-    explicit ShulkerBulletEntity(EntityId id);
+    explicit ShulkerBulletEntity(EntityInstanceId id);
 
     /**
      * @brief 带目标的构造函数
@@ -463,7 +463,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EvokerFangsEntity(EntityId id);
+    explicit EvokerFangsEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -570,7 +570,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EyeOfEnderEntity(EntityId id);
+    explicit EyeOfEnderEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 
@@ -634,7 +634,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit FireworkRocketEntity(EntityId id);
+    explicit FireworkRocketEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 

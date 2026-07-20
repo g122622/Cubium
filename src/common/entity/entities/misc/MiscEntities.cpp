@@ -62,7 +62,7 @@ namespace entity {
     ::mc::entity::EntityDataManager::createKey<i32>();
 
 FallingBlockEntity::FallingBlockEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {
     // 显式调用 registerData() 注册同步数据参数
     // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
@@ -462,7 +462,7 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     ::mc::entity::EntityDataManager::createKey<i32>();
 
 TNTEntity::TNTEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {
     // 显式调用 registerData() 注册同步数据参数
     // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
@@ -471,7 +471,7 @@ TNTEntity::TNTEntity()
     registerData();
 }
 
-TNTEntity::TNTEntity(EntityId id)
+TNTEntity::TNTEntity(EntityInstanceId id)
     : Entity(id)
 {
     // 显式调用 registerData() 注册同步数据参数（同上）

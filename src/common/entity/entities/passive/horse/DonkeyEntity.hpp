@@ -44,7 +44,7 @@ public:
      * @brief 构造驴实体
      * @param id 实体 ID
      */
-    DonkeyEntity(EntityId id);
+    DonkeyEntity(EntityInstanceId id);
     ~DonkeyEntity() override = default;
 
     DonkeyEntity(const DonkeyEntity&) = delete;

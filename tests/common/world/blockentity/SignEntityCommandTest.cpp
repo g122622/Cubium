@@ -218,14 +218,14 @@ protected:
 TEST_F(PlayerAsServerPlayerTest, Player_ReturnsNullptr)
 {
     // 普通 Player 应返回 nullptr
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     EXPECT_EQ(player.asServerPlayer(), nullptr);
 }
 
 TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis)
 {
     // ServerPlayer 应返回 this
-    ServerPlayer serverPlayer(EntityId(1), "TestServerPlayer");
+    ServerPlayer serverPlayer(EntityInstanceId(1), "TestServerPlayer");
     EXPECT_EQ(serverPlayer.asServerPlayer(), &serverPlayer);
 
     const ServerPlayer& constServerPlayer = serverPlayer;
@@ -235,7 +235,7 @@ TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis)
 TEST_F(PlayerAsServerPlayerTest, ServerPlayerThroughBasePointer_Works)
 {
     // 通过基类指针调用
-    ServerPlayer serverPlayer(EntityId(1), "TestServerPlayer");
+    ServerPlayer serverPlayer(EntityInstanceId(1), "TestServerPlayer");
     Player* basePtr = &serverPlayer;
 
     EXPECT_EQ(basePtr->asServerPlayer(), &serverPlayer);

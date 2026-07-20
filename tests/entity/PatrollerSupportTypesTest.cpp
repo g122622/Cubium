@@ -41,7 +41,7 @@ TEST(PatrollerSupportTypesTest, RaidersInheritPatrollerBase)
 
 TEST(PatrollerSupportTypesTest, PatrolStateTracksLeaderAndTarget)
 {
-    PillagerEntity pillager(EntityId(1));
+    PillagerEntity pillager(EntityInstanceId(1));
     const BlockPos patrolTarget(12, 64, -8);
 
     EXPECT_FALSE(pillager.isPatrolling());
@@ -59,7 +59,7 @@ TEST(PatrollerSupportTypesTest, PatrolStateTracksLeaderAndTarget)
 
 TEST(PatrollerSupportTypesTest, ResetPatrolTargetCreatesNewTarget)
 {
-    VindicatorEntity vindicator(EntityId(2));
+    VindicatorEntity vindicator(EntityInstanceId(2));
 
     vindicator.setPosition(20.0f, 70.0f, -15.0f);
     vindicator.resetPatrolTarget();

@@ -262,7 +262,7 @@ namespace {
 /// @brief 测试用 LivingEntity 桩，可控制 isAlive/getTypeId/position
 class MockLivingEntity : public LivingEntity {
 public:
-    explicit MockLivingEntity(EntityId id = 1)
+    explicit MockLivingEntity(EntityInstanceId id = 1)
         : LivingEntity(id, nullptr)
     {}
 

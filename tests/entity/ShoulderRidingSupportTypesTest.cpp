@@ -31,7 +31,7 @@ namespace {
 
 TEST(ShoulderRidingEntityTest, ParrotUsesShoulderRidingLayer)
 {
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
 
     EXPECT_NE(dynamic_cast<ShoulderRidingEntity*>(&parrot), nullptr);
     EXPECT_FALSE(parrot.isOnShoulder());
@@ -40,7 +40,7 @@ TEST(ShoulderRidingEntityTest, ParrotUsesShoulderRidingLayer)
 
 TEST(ShoulderRidingEntityTest, RequiresCooldownTameStateAndStandingBeforeMounting)
 {
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
 
     EXPECT_FALSE(parrot.canSitOnShoulder());
     EXPECT_FALSE(parrot.mountShoulder(42));

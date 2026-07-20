@@ -22,10 +22,11 @@
  */
 
 #include "ItemPickupManager.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -61,7 +62,7 @@ void ItemPickupManager::tick(ServerWorld& world, IServer& server)
     // 物品合并由 ItemEntity::tick 中的 _updateMerge 统一处理，此处不再重复扫描。
 
     // 获取所有玩家实体并检查拾取
-    auto players = world.entityManager().getEntitiesByType(entity::EntityTypeIdNumber::PLAYER);
+    auto players = world.entityManager().getEntitiesByType(entity::EntityTypeKeys::PLAYER);
     for (Entity* entity : players) {
         if (entity && entity->isAlive()) {
             checkPlayerPickup(world, server, *entity);
@@ -95,7 +96,7 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, IServer& server, E
         }
 
         // 只处理物品实体
-        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::ITEM) {
             continue;
         }
 
@@ -136,7 +137,7 @@ bool ItemPickupManager::tryPickupItem(ServerWorld& world, IServer& server, Entit
     }
 
     // 检查是否是玩家
-    if (player.typeId() != entity::EntityTypeIdNumber::PLAYER) {
+    if (player.entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
         return false;
     }
 
@@ -174,7 +175,7 @@ f32 ItemPickupManager::_calculatePickupRange(const Entity& player) const
     f32 range = PICKUP_RANGE;
 
     // 潜行时范围缩小
-    if (player.typeId() == entity::EntityTypeIdNumber::PLAYER) {
+    if (player.entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
         const Player* playerEntity = static_cast<const Player*>(&player);
         if (playerEntity->isSneaking()) {
             range = PICKUP_RANGE_SNEAKING;
@@ -289,7 +290,8 @@ void ItemPickupManager::_sendItemEntityUpdate(ServerWorld& world, IServer& serve
 // _sendCollectItem
 // ============================================================================
 
-void ItemPickupManager::_sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount)
+void ItemPickupManager::_sendCollectItem(
+    IServer& server, EntityInstanceId entityId, EntityInstanceId collectorId, i32 pickupItemCount)
 {
     network::CollectItemPacket collectPacket;
     collectPacket.setCollectedEntityId(static_cast<u32>(entityId));

@@ -250,7 +250,7 @@ bool SculkShriekerHelper::_trySummonWarden(ServerWorld& world, const BlockPos& p
             // 跳过生成规则检查，因为监守者是特殊召唤而非自然生成
 
             // 生成到世界中
-            EntityId id = world.spawnEntity(std::move(wardenEntity));
+            EntityInstanceId id = world.spawnEntity(std::move(wardenEntity));
             if (id != 0) {
                 // 召唤成功
                 // 注意：MC 原版中召唤监守者后不重置方块实体的 warningLevel，
@@ -313,7 +313,7 @@ bool SculkShriekerHelper::_hasNearbyWarden(ServerWorld& world, const BlockPos& p
         }
         // 优先使用 EntityType 指针比较（高效），回退到字符串类型ID比较
         if (wardenType != nullptr) {
-            if (entity->typeId() == wardenType->id()) {
+            if (entity->entityType() == wardenType) {
                 return true;
             }
         } else {
@@ -470,7 +470,7 @@ Player* SculkShriekerHelper::tryGetPlayer(IWorld& world, const Entity* entity)
     }
 
     // 2. 载具上的玩家：检查实体的控制乘客是否为玩家
-    EntityId controllingPassengerId = entity->getControllingPassenger();
+    EntityInstanceId controllingPassengerId = entity->getControllingPassenger();
     if (controllingPassengerId != INVALID_ENTITY_ID) {
         Entity* passenger = world.getEntity(controllingPassengerId);
         if (passenger != nullptr) {

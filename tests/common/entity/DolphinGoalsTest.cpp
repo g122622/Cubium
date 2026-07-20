@@ -47,7 +47,7 @@ protected:
     void SetUp() override
     {
         // 创建海豚实体
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
     }
 
     void TearDown() override { dolphin.reset(); }
@@ -127,7 +127,7 @@ class DolphinJumpGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
         goal = std::make_unique<DolphinJumpGoal>(dolphin.get(), 10);
     }
 
@@ -201,7 +201,7 @@ class SwimToTreasureGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
         goal = std::make_unique<SwimToTreasureGoal>(dolphin.get());
     }
 
@@ -293,7 +293,7 @@ class SwimWithPlayerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
         goal = std::make_unique<SwimWithPlayerGoal>(dolphin.get(), 4.0);
     }
 
@@ -353,7 +353,7 @@ class PlayWithItemsGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
         goal = std::make_unique<PlayWithItemsGoal>(dolphin.get());
     }
 
@@ -556,7 +556,7 @@ class FollowBoatGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        dolphin = std::make_unique<DolphinEntity>(EntityId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
         goal = std::make_unique<FollowBoatGoal>(dolphin.get());
     }
 

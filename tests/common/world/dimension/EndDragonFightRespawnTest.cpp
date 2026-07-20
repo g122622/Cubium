@@ -36,10 +36,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -110,24 +110,24 @@ public:
 
     // ========== 实体管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        const EntityId id = m_nextEntityId;
-        m_nextEntityId = EntityId(static_cast<u64>(m_nextEntityId) + 1);
+        const EntityInstanceId id = m_nextEntityId;
+        m_nextEntityId = EntityInstanceId(static_cast<u64>(m_nextEntityId) + 1);
         entity->setId(id);
         entity->setWorld(this);
         m_entities.push_back(std::move(entity));
         return id;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const override
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& typeId) const override
     {
         std::vector<Entity*> result;
         for (const auto& entity : m_entities) {
-            if (entity->typeId() == typeId && !entity->isRemoved()) {
+            if (entity->getTypeId() == typeId && !entity->isRemoved()) {
                 result.push_back(entity.get());
             }
         }
@@ -151,7 +151,7 @@ public:
         return result;
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         for (auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -161,7 +161,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -201,7 +201,7 @@ public:
     entity::EnderCrystalEntity* spawnCrystalAt(i32 x, i32 y, i32 z)
     {
         auto& registry = entity::EntityRegistry::instance();
-        const entity::EntityType* type = registry.getType(entity::EntityTypes::END_CRYSTAL);
+        const entity::EntityType* type = registry.getType(entity::EntityTypeKeys::END_CRYSTAL);
         if (type == nullptr) {
             return nullptr;
         }
@@ -251,7 +251,7 @@ private:
     }
 
     std::vector<std::unique_ptr<Entity>> m_entities;
-    EntityId m_nextEntityId = EntityId(1);
+    EntityInstanceId m_nextEntityId = EntityInstanceId(1);
     EndDragonFight* m_fight = nullptr;
 
     struct PlayEventCall {
@@ -542,7 +542,7 @@ TEST_F(EndDragonFightRespawnTest, TickSummoningDragon_AtTime100_AdvancesToEndAnd
     EXPECT_FALSE(fight.isRespawning());
     EXPECT_FALSE(fight.respawnStage().has_value());
     // 应创建新龙
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     EXPECT_EQ(dragons.size(), 1u);
     // 应触发爆炸（4 个水晶各爆炸一次）
     EXPECT_GE(m_world.explosionCount(), 4u);
@@ -791,7 +791,7 @@ TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_ThrowsOrCleared)
     EXPECT_FALSE(fight.respawnStage().has_value());
     EXPECT_FALSE(fight.isDragonKilled());
     // 新龙应被创建
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     EXPECT_EQ(dragons.size(), 1u);
 }
 
@@ -848,7 +848,7 @@ TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_FiresSummonedEntityForEach
         actualPlayers.insert(pid);
         // 实体指针应为新生成的末影龙（非空）
         EXPECT_NE(entityPtr, nullptr);
-        EXPECT_EQ(entityPtr->typeId(), entity::EntityTypeIdNumber::ENDER_DRAGON);
+        EXPECT_EQ(entityPtr->getTypeId(), entity::EntityTypeKeys::ENDER_DRAGON);
     }
     EXPECT_EQ(actualPlayers, trackedPlayers);
 }
@@ -869,7 +869,7 @@ TEST_F(EndDragonFightRespawnTest, SetRespawnStage_End_WithNoBossBarPlayers_DoesN
     // 无玩家时不应触发任何回调
     EXPECT_TRUE(m_world.summonedEntityCalls().empty());
     // 但新龙仍应被创建
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     EXPECT_EQ(dragons.size(), 1u);
 }
 

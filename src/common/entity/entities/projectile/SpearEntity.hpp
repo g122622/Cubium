@@ -51,7 +51,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit SpearEntity(EntityId id);
+    explicit SpearEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 

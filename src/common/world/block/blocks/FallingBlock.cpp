@@ -99,7 +99,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     }
 
     auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
-    fallingEntity->setTypeId(entity::EntityTypes::FALLING_BLOCK);
+    fallingEntity->setTypeId(entity::EntityTypeKeys::FALLING_BLOCK);
     fallingEntity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
     fallingEntity->setBlockId(currentState->blockId());
@@ -109,7 +109,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     // 调用开始下落回调
     onStartFalling(world, pos, *fallingEntity);
 
-    const EntityId entityId = world.spawnEntity(std::move(fallingEntity));
+    const EntityInstanceId entityId = world.spawnEntity(std::move(fallingEntity));
     if (entityId == 0) {
         world.setBlockState(pos, currentState, 3);
     }

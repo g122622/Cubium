@@ -66,12 +66,12 @@ public:
     void setDifficulty(Difficulty diff) { m_difficulty = diff; }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        EntityId id = EntityId(++m_nextEntityId);
+        EntityInstanceId id = EntityInstanceId(++m_nextEntityId);
         entity->setId(id);
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
@@ -598,7 +598,7 @@ TEST_F(MobSpawnerTickTest, Tick_NoEntityId_DoesNothing)
 TEST_F(MobSpawnerTickTest, Tick_NoPlayerNearby_DoesNotSpawn)
 {
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
     spawner_->setRequiredPlayerRange(16);
 
     // 没有玩家附近
@@ -612,7 +612,7 @@ TEST_F(MobSpawnerTickTest, Tick_RequiredPlayerRangeZero_SpawnsWithoutPlayer)
 {
     // requiredPlayerRange = 0 时，无需玩家也能生成
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
     spawner_->setRequiredPlayerRange(0);
     spawner_->setMinSpawnDelay(0);
     spawner_->setMaxSpawnDelay(0);
@@ -635,11 +635,11 @@ TEST_F(MobSpawnerTickTest, Tick_RequiredPlayerRangeZero_SpawnsWithoutPlayer)
 TEST_F(MobSpawnerTickTest, Tick_PlayerNearby_AllowsSpawning)
 {
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
     spawner_->setRequiredPlayerRange(16);
 
     // 创建一个模拟玩家（只要 getEntitiesInRange 返回的指针能 dynamic_cast 为 Player*）
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     world_->setEntitiesInRangeResult({&player});
     world_->setSeed(12345);
     world_->setCurrentTick(100);
@@ -651,11 +651,11 @@ TEST_F(MobSpawnerTickTest, Tick_PlayerNearby_AllowsSpawning)
 TEST_F(MobSpawnerTickTest, Tick_DelayCountdown)
 {
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
     spawner_->setMinSpawnDelay(5);
     spawner_->setMaxSpawnDelay(5);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     world_->setEntitiesInRangeResult({&player});
     world_->setSeed(12345);
     world_->setCurrentTick(100);
@@ -672,9 +672,9 @@ TEST_F(MobSpawnerTickTest, Tick_SpawnDelayMinusOne_ResetsDelay)
 {
     // spawnDelay = -1 应重置延迟
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     world_->setEntitiesInRangeResult({&player});
     world_->setSeed(12345);
     world_->setCurrentTick(100);
@@ -959,12 +959,12 @@ public:
         return m_entitiesInRange;
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        EntityId id = EntityId(++m_nextEntityId);
+        EntityInstanceId id = EntityInstanceId(++m_nextEntityId);
         entity->setId(id);
         m_ownedEntities.push_back(std::move(entity));
         return id;
@@ -1022,7 +1022,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightInRange_AllowsSpawn)
 
     // 需要设置一个已注册的实体类型才能测试
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1042,7 +1042,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightOutOfRange_BlocksSpawn
     world_->setSkyLightValue(15);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1062,7 +1062,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_SkyLightOutOfRange_BlocksSpawn)
     world_->setSkyLightValue(8);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1082,7 +1082,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BothLightInRanges_AllowsSpawn)
     world_->setSkyLightValue(0);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1098,7 +1098,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_DefaultRanges_AllowAllLight)
     world_->setSkyLightValue(15);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1117,12 +1117,12 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_MonsterPeacefulDifficulty_Blocks
 
     // 僵尸是 Monster 分类
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::ZOMBIE), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::ZOMBIE), rng);
 
     // 由于 _spawnEntities 中在 CustomSpawnRules 检查之前先判断难度，
     // 非和平分类在和平难度下直接返回 false，不会到达 _isValidSpawnPosition
     // 这里测试的是 _spawnEntities 层面的逻辑，通过 tick 测试来验证
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     world_->setEntitiesInRangeResult({&player});
     spawner_->setRequiredPlayerRange(0);
     spawner_->setMinSpawnDelay(0);
@@ -1150,7 +1150,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_PeacefulCreature_PeacefulDifficu
 
     // 猪是 Creature 分类（和平生物），即使和平难度也允许
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     // 光照在范围内，和平生物在和平难度下允许生成
     EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
@@ -1162,7 +1162,7 @@ TEST_F(SpawnPositionLightTest, NoCustomSpawnRules_UsesDefaultSpawnRules)
     // 猪的放置类型是 OnGround，默认世界 getBlockState 返回 nullptr（视为空气）
     // 所以 OnGround 检查会失败（脚下没有固体方块）
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     // 不设置 CustomSpawnRules，_isValidSpawnPosition 会走 SpawnPlacements 路径
     // BaseTestWorld 的 getBlockState 返回 nullptr，OnGround 检查需要脚下有固体方块
@@ -1185,7 +1185,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightAtExactBoundary_Allows
     world_->setSkyLightValue(10);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1205,7 +1205,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightAtMinBoundary_AllowsSp
     world_->setSkyLightValue(10);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1225,7 +1225,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightBelowMin_BlocksSpawn)
     world_->setSkyLightValue(10);
 
     math::Random rng(42);
-    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
     EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
@@ -1251,7 +1251,7 @@ protected:
         spawner_->setSpawnRange(1);
 
         math::Random rng(42);
-        spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+        spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
         world_->setSeed(12345);
         world_->setCurrentTick(100);
@@ -1384,7 +1384,7 @@ protected:
         spawner_->setCustomSpawnRules(rules);
 
         math::Random rng(42);
-        spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+        spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
         world_->setSeed(12345);
         world_->setCurrentTick(100);
@@ -1418,8 +1418,8 @@ TEST_F(MobSpawnerE2ESpawnTest, Tick_SpawnsPigEntity_EndToEnd)
     EXPECT_NE(dynamic_cast<const MobEntity*>(spawned.front()), nullptr);
 
     // 断言 4：spawnEntity 返回的 id 已正确写入实体（非 0 表示成功）
-    //   MobSpawnerTestWorld::spawnEntity 通过 setId(EntityId(++m_nextEntityId)) 设置 id
-    EXPECT_NE(spawned.front()->id(), EntityId(0));
+    //   MobSpawnerTestWorld::spawnEntity 通过 setId(EntityInstanceId(++m_nextEntityId)) 设置 id
+    EXPECT_NE(spawned.front()->id(), EntityInstanceId(0));
 }
 
 TEST_F(MobSpawnerE2ESpawnTest, Tick_MultipleTicks_SpawnsMultipleEntities)
@@ -1483,7 +1483,7 @@ TEST_F(MobSpawnerE2ESpawnTest, Tick_ZombieSpawn_FinalizeSpawnCalledWithSpawnerRe
 
     // 切换实体类型为 Zombie（Monster 分类，MonsterEntity 派生）
     math::Random rng(7);
-    zSpawner->setEntityId(ResourceLocation(entity::EntityTypes::ZOMBIE), rng);
+    zSpawner->setEntityId(ResourceLocation(entity::EntityTypeKeys::ZOMBIE), rng);
 
     // 难度设为 Normal，确保 Monster 类生物允许生成
     // （CustomSpawnRules 路径下，非和平生物仅在和平难度被拒绝）
@@ -1524,7 +1524,7 @@ TEST_F(MobSpawnerE2ESpawnTest, Tick_PeacefulDifficulty_MonsterSpawnRejected)
 
     // 切换实体类型为 Zombie（Monster 分类）
     math::Random rng(7);
-    zSpawner->setEntityId(ResourceLocation(entity::EntityTypes::ZOMBIE), rng);
+    zSpawner->setEntityId(ResourceLocation(entity::EntityTypeKeys::ZOMBIE), rng);
 
     // 难度设为 Peaceful，CustomSpawnRules 路径下应拒绝 Monster 类生物
     world_->setDifficulty(Difficulty::Peaceful);

@@ -114,7 +114,7 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
     }
 
     // 不能旁观自己
-    if (static_cast<EntityId>(spectatorId) == targetEntity->id()) {
+    if (static_cast<EntityInstanceId>(spectatorId) == targetEntity->id()) {
         source.sendError("Cannot spectate yourself");
         return 0;
     }
@@ -132,7 +132,7 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
         return 0;
     }
 
-    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityId>(spectatorId));
+    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityInstanceId>(spectatorId));
     if (spectatorEntity == nullptr) {
         source.sendError("Spectator entity not found");
         return 0;
@@ -198,7 +198,7 @@ i32 SpectateCommand::_stopSpectating(CommandContext<ServerCommandSource>& contex
         return 0;
     }
 
-    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityId>(spectatorId));
+    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityInstanceId>(spectatorId));
     if (spectatorEntity == nullptr) {
         source.sendError("Player entity not found");
         return 0;

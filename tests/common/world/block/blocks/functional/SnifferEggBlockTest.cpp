@@ -26,9 +26,9 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -64,7 +64,7 @@ public:
     SnifferEggTestWorld()
     {
         VanillaBlocks::initialize();
-        // 注册原版实体类型，使 EntityTypeIdNumber::SNIFFER 全局缓存与注册表一致。
+        // 注册原版实体类型，使 VanillaEntityTypeKeys::SNIFFER 全局缓存与注册表一致。
         entity::VanillaEntities::registerAll();
         // 构造真实 TickManager 以支持 onBlockAdded 调度测试
         m_tickManager = std::make_unique<world::tick::TickManager>(*this);
@@ -103,10 +103,10 @@ public:
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
     [[nodiscard]] bool isThundering() const override { return false; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
@@ -596,7 +596,7 @@ protected:
 
 TEST_F(SnifferEntityTest, SetChild_True_SetsAgeToNegative48000)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
 
     // 初始年龄为 0（成体）
     EXPECT_EQ(sniffer->getGrowingAge(), 0);
@@ -612,7 +612,7 @@ TEST_F(SnifferEntityTest, SetChild_True_SetsAgeToNegative48000)
 
 TEST_F(SnifferEntityTest, SetChild_False_SetsAgeToZero)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     sniffer->setChild(true);
     ASSERT_TRUE(sniffer->isChild());
 
@@ -626,13 +626,13 @@ TEST_F(SnifferEntityTest, SetChild_False_SetsAgeToZero)
 
 TEST_F(SnifferEntityTest, GetState_InitialStateIsIdling)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     EXPECT_EQ(sniffer->getState(), SnifferEntity::State::Idling);
 }
 
 TEST_F(SnifferEntityTest, SetState_UpdatesState)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
 
     sniffer->setState(SnifferEntity::State::Digging);
     EXPECT_EQ(sniffer->getState(), SnifferEntity::State::Digging);
@@ -646,7 +646,7 @@ TEST_F(SnifferEntityTest, SetState_UpdatesState)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_TorchflowerSeeds_ReturnsTrue)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
 
     // 火把花种子是嗅探兽食物
     if (Items::TORCHFLOWER_SEEDS != nullptr) {
@@ -657,7 +657,7 @@ TEST_F(SnifferEntityTest, IsBreedingItem_TorchflowerSeeds_ReturnsTrue)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsTrue)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
 
     // 瓶草荚果是嗅探兽食物
     if (Items::PITCHER_POD != nullptr) {
@@ -668,7 +668,7 @@ TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsTrue)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_OtherItem_ReturnsFalse)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
 
     // 小麦不是嗅探兽食物
     if (Items::WHEAT != nullptr) {
@@ -679,33 +679,33 @@ TEST_F(SnifferEntityTest, IsBreedingItem_OtherItem_ReturnsFalse)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     ItemStack empty;
     EXPECT_FALSE(sniffer->isBreedingItem(empty));
 }
 
 TEST_F(SnifferEntityTest, EyeHeight_AdultReturns105)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     // 默认成体
     EXPECT_FLOAT_EQ(sniffer->eyeHeight(), 1.05f);
 }
 
 TEST_F(SnifferEntityTest, EyeHeight_BabyReturns525)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     sniffer->setChild(true);
     EXPECT_FLOAT_EQ(sniffer->eyeHeight(), 0.525f);
 }
 
 TEST_F(SnifferEntityTest, GetBaseWidth_Returns19)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     EXPECT_FLOAT_EQ(sniffer->getBaseWidth(), 1.9f);
 }
 
 TEST_F(SnifferEntityTest, GetBaseHeight_Returns175)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
     EXPECT_FLOAT_EQ(sniffer->getBaseHeight(), 1.75f);
 }

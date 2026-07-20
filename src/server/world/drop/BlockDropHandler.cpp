@@ -115,12 +115,12 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
     return drops;
 }
 
-std::vector<EntityId> BlockDropHandler::spawnDrops(server::ServerWorld& world,
+std::vector<EntityInstanceId> BlockDropHandler::spawnDrops(server::ServerWorld& world,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
     const std::string& throwerUuid)
 {
-    std::vector<EntityId> spawnedEntities;
+    std::vector<EntityInstanceId> spawnedEntities;
 
     if (drops.empty()) {
         return spawnedEntities;
@@ -133,13 +133,13 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(server::ServerWorld& world,
     return ItemDropHelper::spawnItemEntities(&world, pos, drops, random, throwerUuid);
 }
 
-std::vector<EntityId> BlockDropHandler::spawnDrops(EntityManager& entityManager,
+std::vector<EntityInstanceId> BlockDropHandler::spawnDrops(EntityManager& entityManager,
     PhysicsEngine* physicsEngine,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
     const std::string& throwerUuid)
 {
-    std::vector<EntityId> spawnedEntities;
+    std::vector<EntityInstanceId> spawnedEntities;
 
     if (drops.empty()) {
         return spawnedEntities;
@@ -161,7 +161,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(EntityManager& entityManager,
         auto itemEntity = std::make_unique<ItemEntity>(0, stack, centerX, centerY, centerZ);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-        itemEntity->setTypeId(entity::EntityTypes::ITEM);
+        itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
 
         // 使用 ItemDropHelper 统一随机速度计算
         Vector3 velocity = ItemDropHelper::getBlockDropVelocity(random);
@@ -177,7 +177,7 @@ std::vector<EntityId> BlockDropHandler::spawnDrops(EntityManager& entityManager,
             itemEntity->setPhysicsEngine(physicsEngine);
         }
 
-        EntityId entityId = entityManager.addEntity(std::move(itemEntity));
+        EntityInstanceId entityId = entityManager.addEntity(std::move(itemEntity));
         if (entityId != 0) {
             spawnedEntities.push_back(entityId);
         }
@@ -341,11 +341,11 @@ i32 BlockDropHandler::spawnOreExperience(
         auto orb = std::make_unique<ExperienceOrbEntity>(&world, centerX, centerY, centerZ, xpValue);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-        orb->setTypeId(entity::EntityTypes::EXPERIENCE_ORB);
+        orb->setTypeId(entity::EntityTypeKeys::EXPERIENCE_ORB);
 
         orb->setPickupDelay(10);
 
-        const EntityId entityId = world.spawnEntity(std::move(orb));
+        const EntityInstanceId entityId = world.spawnEntity(std::move(orb));
         if (entityId != 0) {
             ++spawnedCount;
         }
@@ -383,7 +383,7 @@ i32 BlockDropHandler::spawnOreExperience(
         auto orb = std::make_unique<ExperienceOrbEntity>(xpValue);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-        orb->setTypeId(entity::EntityTypes::EXPERIENCE_ORB);
+        orb->setTypeId(entity::EntityTypeKeys::EXPERIENCE_ORB);
 
         // 设置位置
         orb->setPosition(centerX, centerY, centerZ);
@@ -401,7 +401,7 @@ i32 BlockDropHandler::spawnOreExperience(
             orb->setPhysicsEngine(physicsEngine);
         }
 
-        EntityId entityId = entityManager.addEntity(std::move(orb));
+        EntityInstanceId entityId = entityManager.addEntity(std::move(orb));
         if (entityId != 0) {
             spawnedCount++;
         }

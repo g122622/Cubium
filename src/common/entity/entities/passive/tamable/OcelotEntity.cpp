@@ -64,7 +64,7 @@ entity::DataParameter<bool> OcelotEntity::DATA_FLEEING_PARAM = entity::EntityDat
 
 // ==================== OcelotEntity ====================
 
-OcelotEntity::OcelotEntity(EntityId id)
+OcelotEntity::OcelotEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册 AI 目标

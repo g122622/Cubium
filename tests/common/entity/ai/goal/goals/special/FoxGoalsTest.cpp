@@ -60,7 +60,7 @@ public:
 
 class FoxGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { fox.reset(); }
 
@@ -379,7 +379,7 @@ TEST_F(FoxGoalsTest, FoxRevengeGoal_UsesGetPlayersNotAABBSearch)
 
 class FoxEntityStateTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { fox.reset(); }
 
@@ -563,7 +563,7 @@ TEST_F(FoxEntityStateTest, WakeUp)
 
 class FoxEntityTrustTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { fox.reset(); }
 
@@ -640,7 +640,7 @@ TEST_F(FoxEntityTrustTest, DuplicateTrust)
 
 class FoxEntitySoundTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { fox.reset(); }
 
@@ -678,7 +678,7 @@ TEST_F(FoxEntitySoundTest, DeathSound)
 
 class FoxEntityBreedTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { fox.reset(); }
 
@@ -822,7 +822,7 @@ protected:
         Items::initialize();
 
         m_world = std::make_unique<FoxBerryTestWorld>();
-        m_fox = std::make_unique<FoxEntity>(EntityId(1));
+        m_fox = std::make_unique<FoxEntity>(EntityInstanceId(1));
         m_fox->setWorld(m_world.get());
         m_fox->setPosition(0.0, 64.0, 0.0);
     }
@@ -961,7 +961,7 @@ TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingDefault_IsTrue)
  */
 class TestFoxEntityForTargets : public FoxEntity {
 public:
-    explicit TestFoxEntityForTargets(EntityId id)
+    explicit TestFoxEntityForTargets(EntityInstanceId id)
         : FoxEntity(id)
     {}
 
@@ -980,7 +980,7 @@ protected:
 TEST_F(FoxTargetGoalsTest, FoxHasFoxRevengeGoal)
 {
     // FoxEntity::registerGoals() 注册了 FoxRevengeGoal（优先级3）
-    TestFoxEntityForTargets fox(EntityId(1));
+    TestFoxEntityForTargets fox(EntityInstanceId(1));
 
     i32 revengeGoalCount = 0;
     for (const auto& pg : fox.testTargetSelector().getAllGoals()) {
@@ -995,7 +995,7 @@ TEST_F(FoxTargetGoalsTest, FoxHasFoxRevengeGoal)
 TEST_F(FoxTargetGoalsTest, FoxHasPreyTargetGoalsForChickenAndRabbit)
 {
     // FoxEntity::registerGoals() 在优先级4注册了攻击鸡和兔子的目标
-    TestFoxEntityForTargets fox(EntityId(1));
+    TestFoxEntityForTargets fox(EntityInstanceId(1));
 
     i32 chickenRabbitGoalCount = 0;
     for (const auto& pg : fox.testTargetSelector().getAllGoals()) {
@@ -1015,7 +1015,7 @@ TEST_F(FoxTargetGoalsTest, FoxHasPreyTargetGoalsForChickenAndRabbit)
 TEST_F(FoxTargetGoalsTest, FoxHasNearestAttackableTargetGoalForTurtle)
 {
     // FoxEntity::registerGoals() 注册了 NearestAttackableTargetGoal<TurtleEntity>
-    TestFoxEntityForTargets fox(EntityId(1));
+    TestFoxEntityForTargets fox(EntityInstanceId(1));
 
     i32 turtleGoalCount = 0;
     for (const auto& pg : fox.testTargetSelector().getAllGoals()) {
@@ -1030,7 +1030,7 @@ TEST_F(FoxTargetGoalsTest, FoxHasNearestAttackableTargetGoalForTurtle)
 TEST_F(FoxTargetGoalsTest, FoxRevengeGoalStartExecutingSetsAggroedAndWakesUp)
 {
     // FoxRevengeGoal::startExecuting() 应设置 foxAggroed=true 和唤醒狐狸
-    TestFoxEntityForTargets fox(EntityId(1));
+    TestFoxEntityForTargets fox(EntityInstanceId(1));
     FoxSimpleTestWorld world;
     fox.setWorld(&world);
     fox.setSleeping(true);
@@ -1050,9 +1050,9 @@ TEST_F(FoxTargetGoalsTest, FoxRevengeGoalStartExecutingSetsAggroedAndWakesUp)
 
 TEST_F(FoxTargetGoalsTest, FoxRevengeGoalTrustIdConsistencyUsesPlayerId)
 {
-    // 验证信任系统使用 PlayerId 而非 EntityId
+    // 验证信任系统使用 PlayerId 而非 EntityInstanceId
     // 信任玩家存储的是 PlayerId (u64)，检查时应使用 player->playerId()
-    TestFoxEntityForTargets fox(EntityId(1));
+    TestFoxEntityForTargets fox(EntityInstanceId(1));
 
     u64 testPlayerId = 12345ULL;
     fox.addTrustedPlayer(testPlayerId);

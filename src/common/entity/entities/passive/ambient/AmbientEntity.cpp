@@ -26,7 +26,7 @@
 
 namespace mc {
 
-AmbientEntity::AmbientEntity(EntityId id)
+AmbientEntity::AmbientEntity(EntityInstanceId id)
     : MobEntity(id)
 {
     // 注册属性

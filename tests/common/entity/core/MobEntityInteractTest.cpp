@@ -67,9 +67,9 @@ public:
     void setClientSide(bool clientSide) { m_clientSide = clientSide; }
 
     // 捕获 spawnEntity 调用以便测试断言幼体生成
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId id = ++m_nextEntityId;
+        EntityInstanceId id = ++m_nextEntityId;
         if (entity != nullptr) {
             entity->setId(id);
             m_spawnedEntities.push_back(std::move(entity));
@@ -86,7 +86,7 @@ public:
 private:
     Difficulty m_difficulty = Difficulty::Normal;
     bool m_clientSide = false;
-    EntityId m_nextEntityId = EntityId(100);
+    EntityInstanceId m_nextEntityId = EntityInstanceId(100);
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
 };
 
@@ -118,7 +118,7 @@ TEST_F(MobEntityInteractTest, CanBeLeashed_NonHostileMobReturnsTrue)
 {
     // PigEntity 继承自 AnimalEntity -> AgeableEntity -> CreatureEntity -> MobEntity
     // 不实现 IMob，所以 canBeLeashed() 应返回 true
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     EXPECT_TRUE(pig->canBeLeashed()) << "PigEntity (passive mob) should be leashable";
 }
 
@@ -126,15 +126,15 @@ TEST_F(MobEntityInteractTest, CanBeLeashed_HostileMobReturnsFalse)
 {
     // ZombieEntity 继承自 MonsterEntity，MonsterEntity 继承 IMob
     // 所以 canBeLeashed() 应返回 false
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     EXPECT_FALSE(zombie->canBeLeashed()) << "ZombieEntity (hostile mob implementing IMob) should not be leashable";
 }
 
 TEST_F(MobEntityInteractTest, CanBeLeashed_IMobInterfaceCheck)
 {
     // 验证 canBeLeashed() 的底层 IMob 判断逻辑
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(2));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(2));
 
     // ZombieEntity 实现了 IMob（通过 MonsterEntity）
     EXPECT_NE(dynamic_cast<const IMob*>(zombie.get()), nullptr) << "ZombieEntity should implement IMob interface";
@@ -149,9 +149,9 @@ TEST_F(MobEntityInteractTest, CanBeLeashed_IMobInterfaceCheck)
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_DeadEntityReturnsPass)
 {
     // 已死亡的实体应返回 Pass
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 移除实体模拟死亡状态
@@ -165,9 +165,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_DeadEntityReturnsPass)
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_EmptyHandCallsInteractMob)
 {
     // 空手交互应该调用 interactMob（基类返回 Pass），然后传递到 LivingEntity
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     auto result = pig->processInitialInteract(*player, Hand::MainHand);
@@ -180,9 +180,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_EmptyHandCallsInteractMob)
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagWithoutNameReturnsPass)
 {
     // 未命名的命名牌应对 MobEntity 返回 Pass（NameTagItem::itemInteractionForEntity 返回 false）
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 创建一个没有自定义名称的命名牌
@@ -203,9 +203,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagWithoutNameReturnsPa
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagWithNameNamesEntity)
 {
     // 有自定义名称的命名牌应该成功命名实体
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -234,9 +234,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagWithNameNamesEntity)
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagCreativeNoConsume)
 {
     // 创造模式下命名牌命名不消耗物品
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Creative);
 
@@ -257,9 +257,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagCreativeNoConsume)
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagPersistence)
 {
     // 使用命名牌命名后实体应变为持久化
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     EXPECT_FALSE(pig->isNoDespawnRequired()) << "PigEntity should not require persistence by default";
@@ -278,9 +278,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_LeadItemOnLeashableMobDoesN
 {
     // 拴绳在可拴住的生物上使用时，当前代码只是检查了条件但没有实现完整逻辑
     // 验证不会崩溃
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 设置拴绳到玩家主手
@@ -296,9 +296,9 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_LeadItemOnLeashableMobDoesN
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_LeadItemOnHostileMobDoesNotCrash)
 {
     // 拴绳在敌对生物上使用也不会崩溃
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     zombie->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     ItemStack leadStack(Items::LEAD, 1);
@@ -318,12 +318,12 @@ TEST_F(MobEntityInteractTest, AgeableEntity_TypeCheck)
     // 验证 PigEntity 是 AgeableEntity（可生成幼体的前提条件）
     // _spawnOffspringFromSpawnEgg 要求目标实体类型是 AgeableEntity 子类，
     // 否则 dynamic_cast<AgeableEntity*> 返回 nullptr，无法设置幼体状态
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     EXPECT_NE(dynamic_cast<AgeableEntity*>(pig.get()), nullptr)
         << "PigEntity should be an AgeableEntity (required for spawn egg baby creation)";
 
     // 验证 ZombieEntity 不是 AgeableEntity（不可生成幼体）
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(2));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(2));
     EXPECT_EQ(dynamic_cast<AgeableEntity*>(zombie.get()), nullptr) << "ZombieEntity should NOT be an AgeableEntity";
 }
 
@@ -341,11 +341,11 @@ TEST_F(MobEntityInteractTest, AgeableEntity_TypeCheck)
 TEST_F(MobEntityInteractTest, SpawnEgg_MatchingTypeSpawnsBabyAndConsumesItem)
 {
     // 刷怪蛋类型匹配时（猪刷怪蛋作用于猪），应成功生成幼体并消耗一个刷怪蛋
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setTypeId("minecraft:pig");
     pig->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -380,11 +380,11 @@ TEST_F(MobEntityInteractTest, SpawnEgg_MatchingTypeSpawnsBabyAndConsumesItem)
 TEST_F(MobEntityInteractTest, SpawnEgg_MismatchedTypeReturnsPass)
 {
     // 刷怪蛋类型不匹配时（牛刷怪蛋作用于猪），应返回 Pass 且不生成幼体、不消耗物品
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setTypeId("minecraft:pig");
     pig->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -411,11 +411,11 @@ TEST_F(MobEntityInteractTest, SpawnEgg_NonAgeableEntityReturnsPass)
 {
     // 非 AgeableEntity 实体（如 ZombieEntity）使用匹配类型刷怪蛋应返回 Pass
     // _spawnOffspringFromSpawnEgg 中 dynamic_cast<AgeableEntity*> 返回 nullptr，返回 false
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     zombie->setTypeId("minecraft:zombie");
     zombie->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -441,11 +441,11 @@ TEST_F(MobEntityInteractTest, SpawnEgg_NonAgeableEntityReturnsPass)
 TEST_F(MobEntityInteractTest, SpawnEgg_CreativeModeDoesNotConsumeItem)
 {
     // 创造模式下刷怪蛋生成幼体但不消耗物品
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setTypeId("minecraft:pig");
     pig->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Creative);
 
@@ -471,11 +471,11 @@ TEST_F(MobEntityInteractTest, SpawnEgg_ClientSidePredictsSuccess)
     // 客户端预测：isClientSide() == true 时直接返回 Success，不生成实体、不消耗物品
     m_world->setClientSide(true);
 
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setTypeId("minecraft:pig");
     pig->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setGameMode(GameMode::Survival);
 
@@ -504,23 +504,23 @@ TEST_F(MobEntityInteractTest, SpawnEgg_ClientSidePredictsSuccess)
 TEST_F(MobEntityInteractTest, CanDespawn_HostileMobReturnsTrue)
 {
     // MonsterEntity (ZombieEntity) 默认 canDespawn 返回 true
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     EXPECT_TRUE(zombie->canDespawn(0.0)) << "MonsterEntity should be able to despawn by default";
 }
 
 TEST_F(MobEntityInteractTest, PreventDespawn_DefaultReturnsFalse)
 {
     // 默认情况下 preventDespawn 返回 isRiding()，未骑乘时为 false
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     EXPECT_FALSE(pig->preventDespawn()) << "Non-riding entity should not prevent despawn by default";
 }
 
 TEST_F(MobEntityInteractTest, PersistenceRequired_AfterNaming)
 {
     // 被命名牌命名后应该需要持久化
-    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
     pig->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     EXPECT_FALSE(pig->isNoDespawnRequired());
@@ -541,9 +541,9 @@ TEST_F(MobEntityInteractTest, PersistenceRequired_AfterNaming)
 TEST_F(MobEntityInteractTest, InteractMob_BaseMobEntityReturnsPass)
 {
     // MobEntity 基类的 interactMob 应返回 Pass
-    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
     zombie->setWorld(m_world.get());
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
 
     // 直接调用 interactMob（不是 processInitialInteract）
@@ -562,9 +562,9 @@ TEST_F(MobEntityInteractTest, InteractMob_BaseMobEntityReturnsPass)
 TEST_F(MobEntityInteractTest, ProcessInitialInteract_NameTagOnPlayerReturnsPass)
 {
     // 命名牌不能对玩家使用，NameTagItem::itemInteractionForEntity 对 Player 返回 false
-    auto targetPlayer = std::make_unique<Player>(EntityId(1), "TargetPlayer");
+    auto targetPlayer = std::make_unique<Player>(EntityInstanceId(1), "TargetPlayer");
     targetPlayer->setWorld(m_world.get());
-    auto sourcePlayer = std::make_unique<Player>(EntityId(2), "SourcePlayer");
+    auto sourcePlayer = std::make_unique<Player>(EntityInstanceId(2), "SourcePlayer");
     sourcePlayer->setWorld(m_world.get());
 
     ItemStack nameTagStack(Items::NAME_TAG, 1);

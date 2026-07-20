@@ -72,7 +72,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit AbstractNautilusEntity(EntityId id);
+    explicit AbstractNautilusEntity(EntityInstanceId id);
 
     ~AbstractNautilusEntity() override = default;
 

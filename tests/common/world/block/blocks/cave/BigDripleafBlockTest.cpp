@@ -75,7 +75,10 @@ public:
         return 15;
     }
 
-    [[nodiscard]] i32 getWeakPower(const BlockState&, IWorld&, const BlockPos&, Direction) const noexcept override { return 15; }
+    [[nodiscard]] i32 getWeakPower(const BlockState&, IWorld&, const BlockPos&, Direction) const noexcept override
+    {
+        return 15;
+    }
 };
 
 // ============================================================================
@@ -104,7 +107,7 @@ public:
 class TestEntity final : public Entity {
 public:
     explicit TestEntity(IWorld& world)
-        : Entity(EntityId(1), &world)
+        : Entity(EntityInstanceId(1), &world)
     {}
 
     // 测试辅助：设置位置

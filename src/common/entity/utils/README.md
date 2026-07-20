@@ -26,7 +26,7 @@ ItemDropHelper（物品掉落工具）
     └── spawnItemEntities()         # 批量生成物品实体
 
 EntityUtils（已废弃）
-    └── 空命名空间，原 legacyTypeToTypeId 已迁移到 EntityTypeIdNumber
+    └── 空命名空间，原 legacyTypeToTypeId 已迁移到 VanillaEntityTypeKeys
 ```
 
 ## 上下游依赖关系

@@ -325,8 +325,8 @@ void CrossbowItem::_fireProjectiles(
         // 检查是否是烟花火箭
         if (item == Items::FIREWORK_ROCKET) {
             // 创建烟花火箭实体
-            auto firework = std::make_unique<entity::FireworkRocketEntity>(EntityId(0));
-            firework->setTypeId(entity::EntityTypes::FIREWORK_ROCKET);
+            auto firework = std::make_unique<entity::FireworkRocketEntity>(EntityInstanceId(0));
+            firework->setTypeId(entity::EntityTypeKeys::FIREWORK_ROCKET);
             firework->setWorld(&world);
             firework->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.15f, shooter.z());
             firework->setShooter(&shooter);

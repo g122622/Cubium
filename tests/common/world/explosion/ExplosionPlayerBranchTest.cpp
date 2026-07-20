@@ -121,7 +121,7 @@ protected:
 TEST_F(ExplosionPlayerBranchTest, PlayerVelocity_UnchangedAfterExplosion)
 {
     // 验证修复后：爆炸中玩家服务端速度不变（击退通过 ExplosionPacket 由客户端应用）
-    Player player(EntityId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -145,7 +145,7 @@ TEST_F(ExplosionPlayerBranchTest, PlayerVelocity_UnchangedAfterExplosion)
 TEST_F(ExplosionPlayerBranchTest, Player_HurtMarkedClearedAfterExplosion)
 {
     // 验证玩家分支清除 hurtMarked（防止 EntityTracker 发送 EntityVelocityPacket）
-    Player player(EntityId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -163,7 +163,7 @@ TEST_F(ExplosionPlayerBranchTest, Player_HurtMarkedClearedAfterExplosion)
 TEST_F(ExplosionPlayerBranchTest, Player_AddedToKnockbackMap)
 {
     // 验证 playerKnockback 映射保存击退向量
-    Player player(EntityId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -184,7 +184,7 @@ TEST_F(ExplosionPlayerBranchTest, Player_AddedToKnockbackMap)
 TEST_F(ExplosionPlayerBranchTest, SpectatorPlayer_NotInKnockbackMap)
 {
     // 旁观模式玩家不受击退也不受伤害
-    Player player(EntityId(2), "SpectatorPlayer");
+    Player player(EntityInstanceId(2), "SpectatorPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Spectator);
@@ -200,7 +200,7 @@ TEST_F(ExplosionPlayerBranchTest, SpectatorPlayer_NotInKnockbackMap)
 TEST_F(ExplosionPlayerBranchTest, CreativeFlyingPlayer_NotInKnockbackMap)
 {
     // 创造模式飞行中玩家不受击退
-    Player player(EntityId(2), "CreativeFlyingPlayer");
+    Player player(EntityInstanceId(2), "CreativeFlyingPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -222,7 +222,7 @@ TEST_F(ExplosionPlayerBranchTest, CreativeFlyingPlayer_NotInKnockbackMap)
 
 class TestLivingEntity final : public LivingEntity {
 public:
-    explicit TestLivingEntity(EntityId id)
+    explicit TestLivingEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -243,7 +243,7 @@ TEST_F(ExplosionPlayerBranchTest, NonPlayerLivingEntity_VelocityChangedAndHurtMa
     //   impact = (1 - 0.0625) * 1.0 = 0.9375
     //   knockback = 0.9375（无爆炸保护附魔）
     // 因此击退必然被应用。
-    TestLivingEntity entity(EntityId(2));
+    TestLivingEntity entity(EntityInstanceId(2));
     entity.setPosition(0.5f, 64.0f, 0.0f);
     entity.setWorld(&m_world);
     m_world.setEntities({&entity});
@@ -285,13 +285,13 @@ TEST_F(ExplosionPlayerBranchTest, PlayerKnockback_UsesEPFReducedVector)
     // 完整的 EPF 衰减数值测试由 CombatRulesEPFTest 与 ExplosionIntegrationTest 中的
     // 公式测试覆盖；本测试聚焦于「两条分支使用同一计算」的契约。
 
-    Player player(EntityId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
     m_world.setEntities({&player});
 
-    TestLivingEntity nonPlayer(EntityId(3));
+    TestLivingEntity nonPlayer(EntityInstanceId(3));
     nonPlayer.setPosition(0.5f, 64.0f, 0.0f);
     nonPlayer.setWorld(&m_world);
     m_world.setEntities({&player, &nonPlayer});

@@ -153,7 +153,7 @@ public:
     static constexpr i32 JUMP_COOLDOWN = 10;          // 跳跃冷却(ticks)
     static constexpr f32 SNEAK_EDGE_DISTANCE = 0.05f; // 潜行边缘检测距离
 
-    Player(EntityId id, const std::string& username);
+    Player(EntityInstanceId id, const std::string& username);
     ~Player() override;
 
     // 禁止拷贝
@@ -228,7 +228,7 @@ public:
      *
      * @return 旁观目标的实体ID，或 std::nullopt 表示正常视角
      */
-    [[nodiscard]] std::optional<EntityId> getCameraEntityId() const { return m_cameraEntityId; }
+    [[nodiscard]] std::optional<EntityInstanceId> getCameraEntityId() const { return m_cameraEntityId; }
 
     /**
      * @brief 检查当前是否正在旁观某个实体
@@ -247,7 +247,7 @@ public:
      *
      * @param entityId 旁观目标的实体ID，或 std::nullopt 恢复正常视角
      */
-    void setCameraEntityId(std::optional<EntityId> entityId);
+    void setCameraEntityId(std::optional<EntityInstanceId> entityId);
 
     /**
      * @brief 摄像机目标变更通知
@@ -259,7 +259,9 @@ public:
      * @param oldCameraId 变更前的摄像机目标实体ID（std::nullopt 表示正常视角）
      * @param newCameraId 变更后的摄像机目标实体ID（std::nullopt 表示恢复正常视角）
      */
-    virtual void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) {}
+    virtual void onCameraEntityChanged(
+        std::optional<EntityInstanceId> oldCameraId, std::optional<EntityInstanceId> newCameraId)
+    {}
 
     // ========== 幽匿尖啸体警告追踪 ==========
 
@@ -1241,13 +1243,13 @@ public:
      * @brief 获取当前爆炸原因实体ID
      * @return 实体ID，0 表示无
      */
-    [[nodiscard]] EntityId currentExplosionCause() const { return m_currentExplosionCause; }
+    [[nodiscard]] EntityInstanceId currentExplosionCause() const { return m_currentExplosionCause; }
 
     /**
      * @brief 设置当前爆炸原因实体ID
      * @param entityId 实体ID
      */
-    void setCurrentExplosionCause(EntityId entityId) { m_currentExplosionCause = entityId; }
+    void setCurrentExplosionCause(EntityInstanceId entityId) { m_currentExplosionCause = entityId; }
 
     /**
      * @brief 计算重锤砸地攻击的冲击位置
@@ -1736,13 +1738,13 @@ public:
      * @brief 获取钓鱼浮标实体ID
      * @return 钓鱼浮标实体ID，0表示未投掷
      */
-    [[nodiscard]] EntityId fishingBobber() const { return m_fishingBobber; }
+    [[nodiscard]] EntityInstanceId fishingBobber() const { return m_fishingBobber; }
 
     /**
      * @brief 设置钓鱼浮标实体ID
      * @param bobberId 浮标实体ID，0表示清除
      */
-    void setFishingBobber(EntityId bobberId) { m_fishingBobber = bobberId; }
+    void setFishingBobber(EntityInstanceId bobberId) { m_fishingBobber = bobberId; }
 
     /**
      * @brief 检查是否正在钓鱼
@@ -2107,7 +2109,7 @@ private:
     ItemStack m_lastItemInMainHand;
 
     // 钓鱼系统
-    EntityId m_fishingBobber = 0; // 当前投掷的钓鱼浮标实体ID，0表示未投掷
+    EntityInstanceId m_fishingBobber = 0; // 当前投掷的钓鱼浮标实体ID，0表示未投掷
 
     // 冲量坠落伤害免疫上下文
     // 当玩家执行重锤砸地攻击或被风弹爆炸击中时，这些字段记录冲量上下文，
@@ -2115,14 +2117,14 @@ private:
     // 冲量上下文字段已通过 addAdditionalSaveData/readAdditionalSaveData 和 PlayerSaveData 实现持久化。
     // 注意：m_currentExplosionCause 不序列化到 NBT（MC Java 中为运行时瞬时引用，不持久化）。
     std::optional<Vector3> m_currentImpulseImpactPos;  ///< 冲量冲击位置（砸地/爆炸位置）
-    EntityId m_currentExplosionCause = 0;              ///< 引起冲量的实体ID（用于进度触发，运行时瞬时状态，不持久化）
+    EntityInstanceId m_currentExplosionCause = 0;      ///< 引起冲量的实体ID（用于进度触发，运行时瞬时状态，不持久化）
     bool m_ignoreFallDamageFromCurrentImpulse = false; ///< 是否忽略当前冲量的坠落伤害
     i32 m_currentImpulseContextResetGraceTime = 0;     ///< 冲量上下文重置宽限期（tick）
 
     // 旁观者跟踪系统
     // 当前旁观目标实体ID。std::nullopt 表示正常视角（摄像机跟踪自身）。
     // 在旁观者模式下，玩家的视角将跟随目标实体的位置和旋转。
-    std::optional<EntityId> m_cameraEntityId;
+    std::optional<EntityInstanceId> m_cameraEntityId;
 
     // 幽匿尖啸体警告追踪系统
     // 记录玩家在深暗之域中被幽匿尖啸体警告的等级和冷却时间

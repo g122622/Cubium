@@ -631,7 +631,7 @@ i32 NaturalSpawner::_trySpawnAt(
         }
 
         // 生成实体到世界
-        EntityId entityId = world.spawnEntity(std::move(entity));
+        EntityInstanceId entityId = world.spawnEntity(std::move(entity));
         if (entityId != INVALID_ENTITY_ID) {
             ++spawned;
         }

@@ -60,7 +60,7 @@ TEST_F(RaidHeroTrackingTest, AddHero_AddsUuidToHeroesSet)
 {
     Raid raid(1, nullptr);
 
-    raid.addHero(uuid1, EntityId(100));
+    raid.addHero(uuid1, EntityInstanceId(100));
 
     EXPECT_TRUE(raid.isHero(uuid1));
     EXPECT_FALSE(raid.isHero(uuid2));
@@ -70,8 +70,8 @@ TEST_F(RaidHeroTrackingTest, AddHero_DoesNotDuplicateEntries)
 {
     Raid raid(1, nullptr);
 
-    raid.addHero(uuid1, EntityId(100));
-    raid.addHero(uuid1, EntityId(101)); // 相同 UUID，不同 EntityId
+    raid.addHero(uuid1, EntityInstanceId(100));
+    raid.addHero(uuid1, EntityInstanceId(101)); // 相同 UUID，不同 EntityInstanceId
 
     EXPECT_TRUE(raid.isHero(uuid1));
     const auto& heroes = raid.heroes();
@@ -82,9 +82,9 @@ TEST_F(RaidHeroTrackingTest, AddHero_MultipleHeroes)
 {
     Raid raid(1, nullptr);
 
-    raid.addHero(uuid1, EntityId(100));
-    raid.addHero(uuid2, EntityId(200));
-    raid.addHero(uuid3, EntityId(300));
+    raid.addHero(uuid1, EntityInstanceId(100));
+    raid.addHero(uuid2, EntityInstanceId(200));
+    raid.addHero(uuid3, EntityInstanceId(300));
 
     EXPECT_TRUE(raid.isHero(uuid1));
     EXPECT_TRUE(raid.isHero(uuid2));
@@ -106,8 +106,8 @@ TEST_F(RaidHeroTrackingTest, Heroes_ReturnsAllHeroUuids)
 {
     Raid raid(1, nullptr);
 
-    raid.addHero(uuid1, EntityId(100));
-    raid.addHero(uuid2, EntityId(200));
+    raid.addHero(uuid1, EntityInstanceId(100));
+    raid.addHero(uuid2, EntityInstanceId(200));
 
     const auto& heroes = raid.heroes();
 
@@ -121,7 +121,7 @@ TEST_F(RaidHeroTrackingTest, AddContribution_IncreasesContribution)
 {
     Raid raid(1, nullptr);
 
-    raid.addHero(uuid1, EntityId(100));
+    raid.addHero(uuid1, EntityInstanceId(100));
     raid.addContribution(uuid1, 1);
     raid.addContribution(uuid1, 2);
 
@@ -151,9 +151,9 @@ TEST_F(RaidHeroTrackingTest, MultipleHeroesWithDifferentContributions)
 {
     Raid raid(1, nullptr);
 
-    raid.addHero(uuid1, EntityId(100));
-    raid.addHero(uuid2, EntityId(200));
-    raid.addHero(uuid3, EntityId(300));
+    raid.addHero(uuid1, EntityInstanceId(100));
+    raid.addHero(uuid2, EntityInstanceId(200));
+    raid.addHero(uuid3, EntityInstanceId(300));
 
     raid.addContribution(uuid1, 5);
     raid.addContribution(uuid2, 10);

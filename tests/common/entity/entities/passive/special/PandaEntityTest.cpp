@@ -82,10 +82,10 @@ public:
     [[nodiscard]] bool isClientSide() const override { return false; }
 
     // 生成实体（返回假ID）
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return EntityId(static_cast<i32>(m_spawnedEntities.size()));
+        return EntityInstanceId(static_cast<i32>(m_spawnedEntities.size()));
     }
 
     // 记录粒子生成
@@ -141,7 +141,7 @@ private:
  */
 class TestablePandaEntity : public PandaEntity {
 public:
-    TestablePandaEntity(EntityId id)
+    TestablePandaEntity(EntityInstanceId id)
         : PandaEntity(id)
     {}
 
@@ -155,7 +155,7 @@ TEST(PandaEntityPersonalityTest, RandomizePersonalityGeneratesValidGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     auto personality = panda.getPersonality();
     EXPECT_GE(static_cast<u8>(personality), 0);
@@ -182,7 +182,7 @@ TEST(PandaEntityPersonalityAccessorsTest, SetAndGetPersonality)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     panda.setPersonality(PandaEntity::Personality::Lazy);
     EXPECT_EQ(panda.getPersonality(), PandaEntity::Personality::Lazy);
@@ -219,7 +219,7 @@ TEST(PandaEntityStateTest, SetAndGetSneezing)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     EXPECT_FALSE(panda.isSneezing());
 
@@ -234,7 +234,7 @@ TEST(PandaEntityStateTest, SetAndGetSneezeTimer)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     EXPECT_EQ(panda.getSneezeTimer(), 0);
 
@@ -249,7 +249,7 @@ TEST(PandaEntityStateTest, SetAndGetRolling)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     EXPECT_FALSE(panda.isRolling());
 
@@ -264,7 +264,7 @@ TEST(PandaEntityStateTest, SetAndGetEating)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     EXPECT_FALSE(panda.isEating());
 
@@ -279,7 +279,7 @@ TEST(PandaEntityStateTest, SetAndGetLying)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     EXPECT_FALSE(panda.isLying());
 
@@ -296,7 +296,7 @@ TEST(PandaEntityEyeHeightTest, AdultHasCorrectEyeHeight)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setChild(false);
 
     EXPECT_FLOAT_EQ(panda.eyeHeight(), 1.2f);
@@ -306,7 +306,7 @@ TEST(PandaEntityEyeHeightTest, ChildHasCorrectEyeHeight)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setChild(true);
 
     EXPECT_FLOAT_EQ(panda.eyeHeight(), 0.6f);
@@ -344,7 +344,7 @@ protected:
 
 TEST_F(PandaEntitySneezeTest, PlaysSneezeSoundOnComplete)
 {
-    TestablePandaEntity panda(EntityId(1));
+    TestablePandaEntity panda(EntityInstanceId(1));
     panda.setWorld(&m_world);
     panda.setPosition(0.0, 64.0, 0.0);
 
@@ -358,7 +358,7 @@ TEST_F(PandaEntitySneezeTest, PlaysSneezeSoundOnComplete)
 
 TEST_F(PandaEntitySneezeTest, SpawnsSneezeParticle)
 {
-    TestablePandaEntity panda(EntityId(1));
+    TestablePandaEntity panda(EntityInstanceId(1));
     panda.setWorld(&m_world);
     panda.setPosition(100.0, 64.0, 100.0);
 
@@ -372,7 +372,7 @@ TEST_F(PandaEntitySneezeTest, SpawnsSneezeParticle)
 
 TEST_F(PandaEntitySneezeTest, NoEffectWithoutWorld)
 {
-    TestablePandaEntity panda(EntityId(1));
+    TestablePandaEntity panda(EntityInstanceId(1));
     // 没有设置 world
 
     // 执行打喷嚏完成 - 不应该崩溃
@@ -386,7 +386,7 @@ TEST_F(PandaEntitySneezeTest, DoesNotSpawnEntityOnClientSide)
 {
     // 注意：PandaTestWorld 默认 isClientSide() 返回 false
     // 这里我们无法直接 mock isClientSide，所以这个测试验证服务端路径
-    TestablePandaEntity panda(EntityId(1));
+    TestablePandaEntity panda(EntityInstanceId(1));
     panda.setWorld(&m_world);
     panda.setPosition(0.0, 64.0, 0.0);
 
@@ -400,7 +400,7 @@ TEST_F(PandaEntitySneezeTest, DoesNotSpawnEntityOnClientSide)
 
 TEST_F(PandaEntitySneezeTest, ParticlePositionAtPandaHead)
 {
-    TestablePandaEntity panda(EntityId(1));
+    TestablePandaEntity panda(EntityInstanceId(1));
     panda.setWorld(&m_world);
     panda.setPosition(50.0, 64.0, 50.0);
 
@@ -419,7 +419,7 @@ TEST_F(PandaEntitySneezeTest, ParticlePositionAtPandaHead)
 TEST_F(PandaEntitySneezeTest, NearbyAdultPandasCanJump)
 {
     // 创建一个成年熊猫
-    TestablePandaEntity sneezingPanda(EntityId(1));
+    TestablePandaEntity sneezingPanda(EntityInstanceId(1));
     sneezingPanda.setWorld(&m_world);
     sneezingPanda.setPosition(0.0, 64.0, 0.0);
 
@@ -442,7 +442,7 @@ TEST(PandaEntityGeneTest, GetAndSetMainGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     panda.setMainGene(3);
     EXPECT_EQ(panda.getMainGene(), 3);
@@ -455,7 +455,7 @@ TEST(PandaEntityGeneTest, GetAndSetHiddenGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     panda.setHiddenGene(2);
     EXPECT_EQ(panda.getHiddenGene(), 2);
@@ -468,7 +468,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_AggressiveDominant)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     // MC 1.16.5 Gene.func_221101_b() 规则：
     // 如果主基因是显性的（Aggressive），直接返回主基因
@@ -489,7 +489,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_LazyAggressiveCombo)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     // MC 1.16.5: Lazy + Aggressive 组合表达为 Aggressive（好斗是显性的）
     // 参考: Gene.func_221101_b()
@@ -505,7 +505,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_NormalMainGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     // 普通基因作为主基因
     panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Normal));
@@ -524,7 +524,7 @@ TEST(PandaEntityGeneTest, GetOneOfGenesRandomly)
 
     math::Random rng(12345);
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setMainGene(2);
     panda.setHiddenGene(4);
 
@@ -537,7 +537,7 @@ TEST(PandaEntityGeneTest, UpdatePersonalityFromGenes)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
     panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Normal));
@@ -561,11 +561,11 @@ protected:
 
 TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_CreatesChildPanda)
 {
-    PandaEntity mother(EntityId(1));
+    PandaEntity mother(EntityInstanceId(1));
     mother.setWorld(&m_world);
     mother.setPosition(0.0f, 64.0f, 0.0f);
 
-    PandaEntity father(EntityId(2));
+    PandaEntity father(EntityInstanceId(2));
     father.setWorld(&m_world);
 
     auto baby = mother.spawnBaby(father);
@@ -580,11 +580,11 @@ TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_CreatesChildPanda)
 
 TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_PositionNearMother)
 {
-    PandaEntity mother(EntityId(1));
+    PandaEntity mother(EntityInstanceId(1));
     mother.setWorld(&m_world);
     mother.setPosition(100.0f, 64.0f, 200.0f);
 
-    PandaEntity father(EntityId(2));
+    PandaEntity father(EntityInstanceId(2));
 
     auto baby = mother.spawnBaby(father);
 
@@ -602,13 +602,13 @@ TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_PositionNearMother)
 
 TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_InheritsGenes)
 {
-    PandaEntity mother(EntityId(1));
+    PandaEntity mother(EntityInstanceId(1));
     mother.setWorld(&m_world);
     mother.setPosition(0.0f, 64.0f, 0.0f);
     mother.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
     mother.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Lazy));
 
-    PandaEntity father(EntityId(2));
+    PandaEntity father(EntityInstanceId(2));
     father.setMainGene(static_cast<u8>(PandaEntity::Personality::Playful));
     father.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Worried));
 
@@ -628,14 +628,14 @@ TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_InheritsGenes)
 
 TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_BothParents)
 {
-    PandaEntity child(EntityId(3));
+    PandaEntity child(EntityInstanceId(3));
     child.setWorld(&m_world);
 
-    PandaEntity father(EntityId(1));
+    PandaEntity father(EntityInstanceId(1));
     father.setMainGene(2);
     father.setHiddenGene(3);
 
-    PandaEntity mother(EntityId(2));
+    PandaEntity mother(EntityInstanceId(2));
     mother.setMainGene(4);
     mother.setHiddenGene(5);
 
@@ -650,10 +650,10 @@ TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_BothParents)
 
 TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_FatherOnly)
 {
-    PandaEntity child(EntityId(3));
+    PandaEntity child(EntityInstanceId(3));
     child.setWorld(&m_world);
 
-    PandaEntity father(EntityId(1));
+    PandaEntity father(EntityInstanceId(1));
     father.setMainGene(1);
     father.setHiddenGene(2);
 
@@ -673,7 +673,7 @@ TEST(PandaEntityRollTest, SetAndGetRollTimer)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     EXPECT_EQ(panda.getRollTimer(), 0);
 
@@ -688,7 +688,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenIdle)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     // 初始状态，所有行为状态都是 false
     EXPECT_TRUE(panda.canPerformAction());
@@ -698,7 +698,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenSneezing)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setSneezing(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -708,7 +708,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenRolling)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setRolling(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -718,7 +718,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenEating)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setEating(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -728,7 +728,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenLying)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
     panda.setLying(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -738,7 +738,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityId(1));
+    PandaEntity panda(EntityInstanceId(1));
 
     // 任何一个状态为 true 就不能执行动作
     panda.setSneezing(true);

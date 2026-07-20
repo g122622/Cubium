@@ -90,7 +90,7 @@ void setMobFlagsParam(ClientEntity& entity, i8 value)
 class ClientEntityZombieAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:zombie"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -197,7 +197,7 @@ TEST_F(ClientEntityZombieAggressiveSyncTest, SyncFromDataManager_AllFlagsSet_Bit
 class ClientEntityHuskAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:husk"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:husk"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -214,7 +214,7 @@ TEST_F(ClientEntityHuskAggressiveSyncTest, SyncFromDataManager_FlagSet_SetsIsAgg
 class ClientEntityDrownedAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:drowned"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:drowned"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -231,7 +231,7 @@ TEST_F(ClientEntityDrownedAggressiveSyncTest, SyncFromDataManager_FlagSet_SetsIs
 class ClientEntityZombieVillagerAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:zombie_villager"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie_villager"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -251,7 +251,7 @@ TEST_F(ClientEntityZombieVillagerAggressiveSyncTest, SyncFromDataManager_FlagSet
 
 TEST(ClientEntityAggressiveTypeIdNormalizeTest, Zombie_WithoutPrefix_SyncsAggressive)
 {
-    ClientEntity entity(EntityId(1), "zombie");
+    ClientEntity entity(EntityInstanceId(1), "zombie");
     EXPECT_FALSE(entity.isAggressive());
 
     registerMobFlagsParam(entity, static_cast<i8>(0));
@@ -267,7 +267,7 @@ TEST(ClientEntityAggressiveTypeIdNormalizeTest, Zombie_WithoutPrefix_SyncsAggres
 TEST(ClientEntityGenericMobAggressiveSyncTest, Skeleton_SyncsAggressive)
 {
     // 骷髅也是 MobEntity 子类，DATA_MOB_FLAGS_PARAM 通用同步
-    ClientEntity entity(EntityId(1), "minecraft:skeleton");
+    ClientEntity entity(EntityInstanceId(1), "minecraft:skeleton");
     EXPECT_FALSE(entity.isAggressive());
 
     registerMobFlagsParam(entity, static_cast<i8>(0));
@@ -278,7 +278,7 @@ TEST(ClientEntityGenericMobAggressiveSyncTest, Skeleton_SyncsAggressive)
 
 TEST(ClientEntityGenericMobAggressiveSyncTest, Creeper_SyncsAggressive)
 {
-    ClientEntity entity(EntityId(1), "minecraft:creeper");
+    ClientEntity entity(EntityInstanceId(1), "minecraft:creeper");
     EXPECT_FALSE(entity.isAggressive());
 
     registerMobFlagsParam(entity, static_cast<i8>(0));

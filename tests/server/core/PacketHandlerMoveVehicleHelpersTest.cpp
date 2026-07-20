@@ -63,12 +63,12 @@ namespace {
 /// 测试用实体：默认 canBeCollidedWith() 返回 true（与 Entity 默认行为一致）
 class TestVehicleEntity : public Entity {
 public:
-    explicit TestVehicleEntity(EntityId id)
+    explicit TestVehicleEntity(EntityInstanceId id)
         : Entity(id)
     {}
 
     /// 带 World 的构造：用于需要骑乘链遍历的测试（isRidingSameEntity 需要 m_world）
-    explicit TestVehicleEntity(EntityId id, IWorld* world)
+    explicit TestVehicleEntity(EntityInstanceId id, IWorld* world)
         : Entity(id, world)
     {}
 
@@ -78,7 +78,7 @@ public:
 /// 测试用实体：重写 canBeCollidedWith() 返回 false（模拟不可碰撞实体，如掉落物）
 class NonCollidableTestEntity : public Entity {
 public:
-    explicit NonCollidableTestEntity(EntityId id)
+    explicit NonCollidableTestEntity(EntityInstanceId id)
         : Entity(id)
     {}
 
@@ -95,20 +95,20 @@ public:
 
     /// 由测试用例填充：在 getEntity 调用时返回的实体映射
     /// （用于支持 isRidingSameEntity 通过 world->getEntity 遍历骑乘链）
-    std::unordered_map<EntityId, Entity*> m_entityRegistry;
+    std::unordered_map<EntityInstanceId, Entity*> m_entityRegistry;
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
     {
         return m_injectedEntities;
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         const auto it = m_entityRegistry.find(id);
         return it != m_entityRegistry.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         const auto it = m_entityRegistry.find(id);
         return it != m_entityRegistry.end() ? it->second : nullptr;
@@ -160,7 +160,7 @@ TEST(PacketHandlerMoveVehicleHelpersTest, SendVehicleMoveCorrection_SendsPacketW
     f.setUp();
 
     // 构造一个载具实体并设置朝向
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(10.0f, 64.0f, 20.0f);
     vehicle.setRotation(90.0f, 45.0f);
 
@@ -201,7 +201,7 @@ TEST(PacketHandlerMoveVehicleHelpersTest, SendVehicleMoveCorrection_ReturnsFalse
     PlayerManager playerManager(20);
     ConnectionManager connectionManager(playerManager);
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
     vehicle.setRotation(0.0f, 0.0f);
 
@@ -221,7 +221,7 @@ TEST(PacketHandlerMoveVehicleHelpersTest, SendVehicleMoveCorrection_UsesVehicleR
     ConnectionFixture f;
     f.setUp();
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 0.0f, 0.0f); // 载具当前在原点
     vehicle.setRotation(180.0f, -30.0f);   // 朝向
 
@@ -257,7 +257,7 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Retur
     CollisionTestWorld world;
     world.m_injectedEntities = {}; // 空世界
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
     const AxisAlignedBB oldAABB = vehicle.boundingBox();
     const Vector3 targetPos(1.0f, 64.0f, 1.0f);
@@ -269,11 +269,11 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Retur
 {
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
 
     // 在目标位置放一个可碰撞实体
-    TestVehicleEntity obstacle(EntityId{2});
+    TestVehicleEntity obstacle(EntityInstanceId{2});
     obstacle.setPosition(1.0f, 64.0f, 1.0f);
     world.m_injectedEntities = {&obstacle};
 
@@ -288,11 +288,11 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Retur
 {
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
 
     // 在目标位置放一个不可碰撞实体（canBeCollidedWith() 返回 false）
-    NonCollidableTestEntity obstacle(EntityId{2});
+    NonCollidableTestEntity obstacle(EntityInstanceId{2});
     obstacle.setPosition(1.0f, 64.0f, 1.0f);
     world.m_injectedEntities = {&obstacle};
 
@@ -307,7 +307,7 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Exclu
 {
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
 
     // 将 vehicle 自身注入世界实体集合（模拟 getEntitiesInAABB 返回 vehicle 的情况）
@@ -325,7 +325,7 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Skips
 {
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
 
     // 注入一个 nullptr（模拟 EntityManager 返回空槽位的情况）
@@ -342,13 +342,13 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Retur
 {
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
 
-    NonCollidableTestEntity nonCollidable(EntityId{2});
+    NonCollidableTestEntity nonCollidable(EntityInstanceId{2});
     nonCollidable.setPosition(1.0f, 64.0f, 1.0f);
 
-    TestVehicleEntity collidable(EntityId{3});
+    TestVehicleEntity collidable(EntityInstanceId{3});
     collidable.setPosition(1.0f, 64.0f, 1.0f);
 
     // 混合：[nullptr, 不可碰撞, 可碰撞, vehicle自身]
@@ -367,10 +367,10 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_ZeroM
     // 此时 targetAABB 应等于 oldAABB（grow border 后），仍查询该范围内的实体
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicle(EntityId{1});
+    TestVehicleEntity vehicle(EntityInstanceId{1});
     vehicle.setPosition(5.0f, 64.0f, 5.0f);
 
-    TestVehicleEntity obstacle(EntityId{2});
+    TestVehicleEntity obstacle(EntityInstanceId{2});
     obstacle.setPosition(5.0f, 64.0f, 5.0f); // 与 vehicle 重叠
     world.m_injectedEntities = {&obstacle};
 
@@ -393,15 +393,15 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Filte
     CollisionTestWorld world;
 
     // 用带 World 的构造创建实体，使 isRidingSameEntity 能通过 world->getEntity 遍历骑乘链
-    TestVehicleEntity vehicle(EntityId{1}, &world);
+    TestVehicleEntity vehicle(EntityInstanceId{1}, &world);
     vehicle.setPosition(0.0f, 64.0f, 0.0f);
 
-    TestVehicleEntity passenger(EntityId{2}, &world);
+    TestVehicleEntity passenger(EntityInstanceId{2}, &world);
     passenger.setPosition(0.0f, 64.0f, 0.0f); // 与 vehicle 重叠
 
     // 注册到世界的实体映射，使 world->getEntity 能解析
-    world.m_entityRegistry[EntityId{1}] = &vehicle;
-    world.m_entityRegistry[EntityId{2}] = &passenger;
+    world.m_entityRegistry[EntityInstanceId{1}] = &vehicle;
+    world.m_entityRegistry[EntityInstanceId{2}] = &passenger;
 
     // 建立骑乘关系：passenger 骑上 vehicle（同一条骑乘链）
     ASSERT_TRUE(passenger.startRiding(vehicle));
@@ -428,18 +428,18 @@ TEST(PacketHandlerMoveVehicleHelpersTest, IsEntityCollidingWithAnythingNew_Filte
     // 互相不应碰撞。
     CollisionTestWorld world;
 
-    TestVehicleEntity vehicleB(EntityId{1}, &world);
+    TestVehicleEntity vehicleB(EntityInstanceId{1}, &world);
     vehicleB.setPosition(0.0f, 64.0f, 0.0f);
 
-    TestVehicleEntity middleA(EntityId{2}, &world);
+    TestVehicleEntity middleA(EntityInstanceId{2}, &world);
     middleA.setPosition(0.0f, 64.0f, 0.0f);
 
-    TestVehicleEntity passengerC(EntityId{3}, &world);
+    TestVehicleEntity passengerC(EntityInstanceId{3}, &world);
     passengerC.setPosition(1.0f, 64.0f, 1.0f); // 与 vehicle 的目标位置重叠
 
-    world.m_entityRegistry[EntityId{1}] = &vehicleB;
-    world.m_entityRegistry[EntityId{2}] = &middleA;
-    world.m_entityRegistry[EntityId{3}] = &passengerC;
+    world.m_entityRegistry[EntityInstanceId{1}] = &vehicleB;
+    world.m_entityRegistry[EntityInstanceId{2}] = &middleA;
+    world.m_entityRegistry[EntityInstanceId{3}] = &passengerC;
 
     // 建立链：middleA 骑 vehicleB，passengerC 骑 middleA
     ASSERT_TRUE(middleA.startRiding(vehicleB));

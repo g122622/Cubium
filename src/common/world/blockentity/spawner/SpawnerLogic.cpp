@@ -264,8 +264,8 @@ bool SpawnerLogic::spawnEntities(IWorld& world, f64 centerX, f64 centerY, f64 ce
         }
 
         // 添加到世界
-        EntityId id = world.spawnEntity(std::move(entity));
-        if (id != EntityId(0)) {
+        EntityInstanceId id = world.spawnEntity(std::move(entity));
+        if (id != EntityInstanceId(0)) {
             spawnedAny = true;
         }
     }

@@ -40,18 +40,18 @@ using namespace mc;
 
 TEST(Entity, Construction)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     EXPECT_EQ(entity.id(), 1u);
-    // 直接构造的 Entity 未 setTypeId，typeId() 返回 0（对齐 EntityCoreTests DefaultTypeIdIsUnknown）
-    EXPECT_EQ(entity.typeId(), 0);
+    // 直接构造的 Entity 未 setTypeId，entityType() 懒查询返回 nullptr（对齐 EntityCoreTests DefaultTypeIdIsUnknown）
+    EXPECT_EQ(entity.entityType(), nullptr);
     EXPECT_FALSE(entity.uuid().empty());
     EXPECT_FALSE(entity.isRemoved());
 }
 
 TEST(Entity, Position)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     entity.setPosition(100.5, 64.0, -200.25);
     EXPECT_FLOAT_EQ(entity.x(), 100.5f);
@@ -66,7 +66,7 @@ TEST(Entity, Position)
 
 TEST(Entity, Rotation)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     entity.setRotation(90.0f, 45.0f);
     EXPECT_FLOAT_EQ(entity.yaw(), 90.0f);
@@ -75,7 +75,7 @@ TEST(Entity, Rotation)
 
 TEST(Entity, Velocity)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     entity.setVelocity(1.0, 2.0, 3.0);
     auto vel = entity.velocity();
@@ -86,7 +86,7 @@ TEST(Entity, Velocity)
 
 TEST(Entity, Move)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     entity.setPosition(0.0, 0.0, 0.0);
 
     entity.move(10.0, 5.0, -3.0);
@@ -97,7 +97,7 @@ TEST(Entity, Move)
 
 TEST(Entity, Rotate)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     entity.setRotation(0.0f, 0.0f);
 
     entity.rotate(90.0f, 45.0f);
@@ -114,7 +114,7 @@ TEST(Entity, Rotate)
 
 TEST(Entity, BoundingBox)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     entity.setPosition(0.0, 0.0, 0.0);
 
     auto box = entity.boundingBox();
@@ -124,7 +124,7 @@ TEST(Entity, BoundingBox)
 
 TEST(Entity, Flags)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     entity.addFlag(EntityFlags::OnFire);
     EXPECT_TRUE(entity.hasFlag(EntityFlags::OnFire));
@@ -140,7 +140,7 @@ TEST(Entity, Flags)
 
 TEST(Entity, Tick)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     EXPECT_EQ(entity.ticksExisted(), 0u);
 
@@ -879,7 +879,7 @@ TEST(Player, LastDeathLocationNetherDimension)
 
 TEST(Entity, PortalCooldown)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // 初始状态：冷却为0，可以传送
     EXPECT_EQ(entity.portalCooldown(), 0);
@@ -901,7 +901,7 @@ TEST(Entity, PortalCooldown)
 
 TEST(Entity, PortalTime)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // 初始状态：传送门时间为0
     EXPECT_EQ(entity.portalTime(), 0);
@@ -922,7 +922,7 @@ TEST(Entity, PortalTime)
 
 TEST(Entity, GetMaxInPortalTime)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     // MC 1.16.5: 非玩家实体基类返回 0
     // 检查条件 portalCounter++ >= 0 第一次进入就满足
     // 实际效果：非玩家实体需要 1 tick 传送
@@ -935,7 +935,7 @@ TEST(Entity, GetMaxInPortalTime)
 
 TEST(Entity, TickPortalNotInPortal)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     entity.setPortalTime(10);
 
     // 不在传送门中时，传送门时间递减
@@ -949,7 +949,7 @@ TEST(Entity, TickPortalNotInPortal)
 
 TEST(Entity, TickPortalNotInPortalZero)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     entity.setPortalTime(2);
 
     // 传送门时间不会低于0
@@ -964,7 +964,7 @@ TEST(Entity, TickPortalNotInPortalZero)
 
 TEST(Entity, TickPortalInPortal)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // MC 1.16.5: 非玩家实体基类 getMaxInPortalTime() 返回 0
     // 检查条件 portalCounter++ > maxPortalTime
@@ -982,7 +982,7 @@ TEST(Entity, TickPortalInPortal)
 
 TEST(Entity, TickPortalInPortalWithCooldown)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // 有冷却时不能传送
     entity.setInPortal(true);
@@ -1060,7 +1060,7 @@ TEST(Entity, TickPortalPlayerInterrupted)
 
 TEST(Entity, PortalPos)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     BlockPos portalPos(100, 64, 200);
 
     entity.setPortalPos(portalPos);
@@ -1071,7 +1071,7 @@ TEST(Entity, PortalPos)
 
 TEST(Entity, TickPortalCooldownDecrement)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // 设置冷却
     entity.triggerPortalCooldown();
@@ -1088,7 +1088,7 @@ TEST(Entity, TickPortalCooldownDecrement)
 
 TEST(Entity, OnPortalTriggered)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // 设置传送门状态
     entity.setInPortal(true);
@@ -1106,7 +1106,7 @@ TEST(Entity, OnPortalTriggered)
 
 TEST(Entity, RemoveMarksEntityAsRemoved)
 {
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     EXPECT_FALSE(entity.isRemoved());
 
     entity.remove();
@@ -1118,7 +1118,7 @@ TEST(Entity, DiscardMarksEntityAsRemoved)
     // discard() 与 remove() 一样将实体标记为已移除，
     // 但不触发掉落物、经验等死亡相关逻辑。
     // 对应 MC Java 的 Entity.discard()。
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
     EXPECT_FALSE(entity.isRemoved());
     EXPECT_TRUE(entity.isAlive());
 
@@ -1130,8 +1130,8 @@ TEST(Entity, DiscardMarksEntityAsRemoved)
 TEST(Entity, RemoveAndDiscardBothMarkRemoved)
 {
     // remove() 和 discard() 都应将 isRemoved() 设为 true、isAlive() 设为 false
-    Entity entity1(EntityId(1));
-    Entity entity2(EntityId(2));
+    Entity entity1(EntityInstanceId(1));
+    Entity entity2(EntityInstanceId(2));
 
     entity1.remove();
     entity2.discard();

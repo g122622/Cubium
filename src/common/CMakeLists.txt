@@ -73,7 +73,6 @@ add_library(mc_common STATIC
     entity/utils/EntityUtils.cpp
     entity/utils/ItemDropHelper.cpp
     entity/core/EntityType.cpp
-    entity/core/EntityTypeIdNumber.cpp
     entity/core/EntityClassification.cpp
     entity/core/LivingEntity.cpp
     entity/core/MobEntity.cpp
@@ -82,6 +81,7 @@ add_library(mc_common STATIC
     entity/core/FlyingEntity.cpp
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
+    entity/registry/VanillaEntityTypeKeys.cpp
     entity/tag/EntityTypeTag.cpp
     entity/tag/EntityTypeTags.cpp
     entity/tag/EntityTypeTagLoader.cpp

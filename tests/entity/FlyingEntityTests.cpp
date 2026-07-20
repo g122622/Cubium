@@ -46,7 +46,7 @@ namespace {
 class TestFlyingEntity : public FlyingEntity {
 public:
     TestFlyingEntity()
-        : FlyingEntity(EntityId(1))
+        : FlyingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

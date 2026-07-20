@@ -37,12 +37,12 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
@@ -73,7 +73,7 @@ const std::string ZOMBIE_RANDOM_SPAWN_BONUS_ID = "zombie_random_spawn_bonus";
 const std::string RANDOM_SPAWN_BONUS_ID = "random_spawn_bonus";
 } // namespace
 
-ZombieEntity::ZombieEntity(EntityId id)
+ZombieEntity::ZombieEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 僵尸可以在阳光下燃烧
@@ -88,7 +88,7 @@ ZombieEntity::ZombieEntity(EntityId id)
 
 std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ZombieEntity>(EntityId(0));
+    return std::make_unique<ZombieEntity>(EntityInstanceId(0));
 }
 
 std::optional<ResourceLocation> ZombieEntity::getAmbientSound() const
@@ -315,7 +315,7 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         reinforcement->setAttackTarget(&target);
 
         // 生成到世界
-        EntityId spawnedId = world.spawnEntity(std::move(newEntity));
+        EntityInstanceId spawnedId = world.spawnEntity(std::move(newEntity));
         if (spawnedId == 0) {
             continue;
         }
@@ -436,7 +436,7 @@ void ZombieEntity::registerGoals()
     // 优先级 8: 看向玩家
     m_goalSelector.addGoal(
         8, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 8: 随机看向
@@ -449,7 +449,7 @@ void ZombieEntity::registerGoals()
         auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true);
         hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
             // MC 原版使用精确类匹配（== ZombifiedPiglin.class），不警醒僵尸猪灵
-            return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+            return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
         });
         m_targetSelector.addGoal(1, std::move(hurtByTarget));
     }
@@ -513,7 +513,7 @@ void ZombieEntity::convertToDrowned()
         newEntity = drownedType->create(worldPtr);
     } else {
         // 回退：直接创建实体类
-        newEntity = std::make_unique<DrownedEntity>(EntityId(0));
+        newEntity = std::make_unique<DrownedEntity>(EntityInstanceId(0));
     }
 
     DrownedEntity* drowned = dynamic_cast<DrownedEntity*>(newEntity.get());
@@ -554,7 +554,7 @@ void ZombieEntity::convertToDrowned()
 
     // 9. 释放所有权并生成到世界
     newEntity.release();
-    EntityId newId = worldPtr->spawnEntity(std::unique_ptr<Entity>(drowned));
+    EntityInstanceId newId = worldPtr->spawnEntity(std::unique_ptr<Entity>(drowned));
 
     if (newId == 0) {
         // 生成失败，删除实体

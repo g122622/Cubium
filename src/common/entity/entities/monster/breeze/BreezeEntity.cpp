@@ -32,12 +32,12 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -54,7 +54,7 @@
 
 namespace mc {
 
-BreezeEntity::BreezeEntity(EntityId id)
+BreezeEntity::BreezeEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     registerGoals();
@@ -66,7 +66,7 @@ BreezeEntity::BreezeEntity(EntityId id)
 
 std::unique_ptr<Entity> BreezeEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<BreezeEntity>(EntityId(0));
+    return std::make_unique<BreezeEntity>(EntityInstanceId(0));
 }
 
 void BreezeEntity::tick()
@@ -256,11 +256,12 @@ std::optional<ResourceLocation> BreezeEntity::getAmbientSound() const
     return SoundEvents::ENTITY_BREEZE_IDLE_AIR;
 }
 
-bool BreezeEntity::canAttackType(entity::EntityTypeId typeId) const
+bool BreezeEntity::canAttackType(const entity::EntityType& type) const
 {
     // Breeze.canAttackType()：仅允许攻击玩家和铁傀儡
     // 旋风人采用白名单模式，其余所有实体类型都不能被攻击
-    return typeId == entity::EntityTypeIdNumber::PLAYER || typeId == entity::EntityTypeIdNumber::IRON_GOLEM;
+    // 指针比较：type 必来自注册表，与 VanillaEntityTypeKeys::* 同源
+    return &type == entity::VanillaEntityTypeKeys::PLAYER || &type == entity::VanillaEntityTypeKeys::IRON_GOLEM;
 }
 
 ProjectileDeflection BreezeEntity::deflection(const entity::ProjectileEntity& projectile) const
@@ -313,7 +314,7 @@ void BreezeEntity::shootWindCharge()
     const f32 dz = static_cast<f32>(static_cast<f64>(m_attackTarget->z()) - static_cast<f64>(firingPos.z));
 
     // 创建风弹弹射物实体（通过发射者类型自动判定为旋风人风弹）
-    auto entity = std::make_unique<entity::WindChargeEntity>(EntityId(0));
+    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0));
     entity->setWorld(m_world);
     entity->setPosition(firingPos.x, firingPos.y, firingPos.z);
     entity->setShooter(this);

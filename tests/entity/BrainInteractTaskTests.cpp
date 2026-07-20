@@ -38,7 +38,7 @@
 #include "common/world/block/BlockPos.hpp"
 
 using mc::BlockPos;
-using mc::EntityId;
+using mc::EntityInstanceId;
 using mc::GlobalPos;
 using mc::i64;
 using mc::ItemStack;
@@ -235,7 +235,7 @@ protected:
 // 测试：VillagerEntity 的 Brain 注册了必要的交互记忆模块
 TEST_F(VillagerBrainIntegrationTest, VillagerBrainRegistersDoorMemories)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     auto& brain = villager.brain();
 
     // InteractWithDoorTask 需要这些记忆模块
@@ -248,7 +248,7 @@ TEST_F(VillagerBrainIntegrationTest, VillagerBrainRegistersDoorMemories)
 // 测试：VillagerEntity 的 Brain 注册了交互目标记忆
 TEST_F(VillagerBrainIntegrationTest, VillagerBrainRegistersInteractionTargetMemory)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     auto& brain = villager.brain();
 
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::INTERACTION_TARGET, MemoryModuleStatus::REGISTERED))
@@ -283,7 +283,7 @@ protected:
 // 测试：InteractWithDoorTask 在没有记忆时不应执行
 TEST_F(InteractTaskStatusTest, InteractWithDoorTaskNoMemory)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -297,7 +297,7 @@ TEST_F(InteractTaskStatusTest, InteractWithDoorTaskNoMemory)
 // 测试：VillagerInteractTask 在没有 INTERACTION_TARGET 时不应执行
 TEST_F(InteractTaskStatusTest, VillagerInteractTaskNoTarget)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -311,7 +311,7 @@ TEST_F(InteractTaskStatusTest, VillagerInteractTaskNoTarget)
 // 测试：TemptTask 在没有 TEMPTING_PLAYER 时不应执行
 TEST_F(InteractTaskStatusTest, TemptTaskNoPlayer)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -325,7 +325,7 @@ TEST_F(InteractTaskStatusTest, TemptTaskNoPlayer)
 // 测试：FollowParentTask 在没有 NEAREST_VISIBLE_ADULT 时不应执行
 TEST_F(InteractTaskStatusTest, FollowParentTaskNoAdult)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 

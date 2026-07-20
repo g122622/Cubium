@@ -93,7 +93,7 @@ private:
 
 private:
     VillagerEntity* m_villager;
-    EntityId m_targetVillagerId;
+    EntityInstanceId m_targetVillagerId;
     i32 m_interactCooldown = 0;
     static constexpr i32 INTERACTION_DURATION = 100;  // 交互持续时间
     static constexpr f32 INTERACTION_DISTANCE = 5.0f; // 交互距离

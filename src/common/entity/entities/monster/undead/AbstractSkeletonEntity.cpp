@@ -37,13 +37,13 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -59,7 +59,7 @@ namespace mc {
 entity::DataParameter<bool> AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM =
     entity::EntityDataManager::createKey<bool>();
 
-AbstractSkeletonEntity::AbstractSkeletonEntity(EntityId id)
+AbstractSkeletonEntity::AbstractSkeletonEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 战斗目标不再在构造函数中创建，而是在 setCombatTask() 中按需创建。
@@ -247,7 +247,7 @@ void AbstractSkeletonEntity::registerGoals()
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 6.0f, 1.0, 1.2, [](const LivingEntity* entity) -> bool {
                 if (!entity) return false;
-                return entity->typeId() == entity::EntityTypeIdNumber::WOLF;
+                return entity->entityType() == entity::VanillaEntityTypeKeys::WOLF;
             }));
 
     // 优先级 4: 战斗目标（通过 setCombatTask() 动态添加）

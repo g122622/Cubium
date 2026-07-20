@@ -136,7 +136,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_MultipleIncrements)
 TEST_F(AwardCustomStatTest, PlayerBaseClass_AwardCustomStat_DoesNotCrash)
 {
     // Player 基类的 awardCustomStat 是空实现，调用不应崩溃
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 1));
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::SLEEP_IN_BED), 100));
 }
@@ -250,7 +250,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_UnregisteredStatId)
 TEST_F(AwardCustomStatTest, PlayerBaseClass_AwardCustomStat_WithZeroAndNegative)
 {
     // Player 基类的空实现对任何参数都不应崩溃
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 0));
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), -1));
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation("minecraft:fake_stat"), 100));

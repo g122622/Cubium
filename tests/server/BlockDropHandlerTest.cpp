@@ -25,6 +25,7 @@
 
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -44,8 +45,8 @@ void ensureRegistriesInitialized()
     std::call_once(s_once, [] {
         VanillaBlocks::initialize();
         Items::initialize();
-        // 注册原版实体类型，使 EntityTypeIdNumber::ITEM 全局缓存与注册表一致。
-        // 本文件多个用例断言 entity->typeId() == EntityTypeIdNumber::ITEM，
+        // 注册原版实体类型，使 VanillaEntityTypeKeys::ITEM 全局缓存与注册表一致。
+        // 本文件多个用例断言 entity->entityType() == VanillaEntityTypeKeys::ITEM，
         // 二者必须来自同一已初始化注册表，避免依赖前置测试的隐式注册状态
         // （测试顺序污染）。VanillaEntities::registerAll() 幂等且线程安全，无异常风险。
         entity::VanillaEntities::registerAll();
@@ -76,7 +77,7 @@ TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities)
 
     const Entity* entity = entityManager.getEntity(spawned[0]);
     ASSERT_NE(entity, nullptr);
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
+    EXPECT_EQ(entity->entityType(), entity::VanillaEntityTypeKeys::ITEM);
 }
 
 TEST(BlockDropHandlerTest, SpawnDropsEmptyListReturnsEmpty)
@@ -110,10 +111,10 @@ TEST(BlockDropHandlerTest, SpawnDropsMultipleItems)
     EXPECT_EQ(entityManager.entityCount(), 2u);
 
     // 验证所有实体都是物品实体
-    for (EntityId id : spawned) {
+    for (EntityInstanceId id : spawned) {
         const Entity* entity = entityManager.getEntity(id);
         ASSERT_NE(entity, nullptr);
-        EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
+        EXPECT_EQ(entity->entityType(), entity::VanillaEntityTypeKeys::ITEM);
     }
 }
 
@@ -135,7 +136,7 @@ TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay)
     ASSERT_NE(entity, nullptr);
 
     // 验证是物品实体
-    EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
+    EXPECT_EQ(entity->entityType(), entity::VanillaEntityTypeKeys::ITEM);
 
     // 验证拾取延迟被设置
     const auto* itemEntity = dynamic_cast<const ItemEntity*>(entity);

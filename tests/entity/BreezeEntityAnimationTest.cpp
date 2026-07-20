@@ -89,7 +89,7 @@ private:
 
 class BreezeEntityTest : public ::testing::Test {
 protected:
-    BreezeEntity m_breeze{EntityId(1)};
+    BreezeEntity m_breeze{EntityInstanceId(1)};
     test::BreezeEntityTestAccessor m_accessor{m_breeze};
 
     void SetUp() override
@@ -461,7 +461,7 @@ TEST_F(BreezeEntityTest, EyeHeight_Is152)
 //
 // 注意：canAttackType 的完整测试在 tests/entity/CanAttackTypeTest.cpp 中，
 // 该测试套件通过 SetUpTestSuite 调用 VanillaEntities::registerAll() 初始化
-// 实体类型 ID。本测试集不初始化注册表（EntityTypeIdNumber::* 默认为 0），
+// 实体类型 ID。本测试集不初始化注册表（VanillaEntityTypeKeys::* 默认为 0），
 // 因此 canAttackType 的白名单比较在此会失效（所有类型 ID 都为 0），
 // 完整的 canAttackType 行为验证由 CanAttackTypeTest 负责。
 //

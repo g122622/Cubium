@@ -553,8 +553,8 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         }
 
         // 尝试添加到世界
-        EntityId id = world.spawnEntity(std::move(entity));
-        if (id != EntityId(0)) {
+        EntityInstanceId id = world.spawnEntity(std::move(entity));
+        if (id != EntityInstanceId(0)) {
             spawnedAny = true;
         }
     }

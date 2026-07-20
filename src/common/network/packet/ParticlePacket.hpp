@@ -220,7 +220,8 @@ public:
      * @param yOffset 实体位置的 Y 轴偏移（如眼睛高度）
      * @param arrivalInTicks 到达目标的 tick 数
      */
-    static ParticlePacket createVibration(const Vector3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
+    static ParticlePacket createVibration(
+        const Vector3& pos, EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     /**
      * @brief 创建轨迹粒子包（带目标位置、颜色和持续时间）
@@ -260,7 +261,7 @@ public:
         BlockPos blockPos{};
 
         // kind == Entity 时有效：目标实体 ID 与 Y 轴偏移
-        EntityId entityId = INVALID_ENTITY_ID;
+        EntityInstanceId entityId = INVALID_ENTITY_ID;
         f32 yOffset = 0.0f;
     };
 

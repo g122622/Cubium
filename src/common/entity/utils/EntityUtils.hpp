@@ -35,7 +35,7 @@ namespace mc {
  */
 namespace EntityUtils {
 
-// 注：legacyTypeToTypeId 已删除，LegacyEntityType 枚举已迁移到 EntityTypeIdNumber 命名空间
+// 注：legacyTypeToTypeId 已删除，LegacyEntityType 枚举已迁移到 VanillaEntityTypeKeys 命名空间
 
 } // namespace EntityUtils
 

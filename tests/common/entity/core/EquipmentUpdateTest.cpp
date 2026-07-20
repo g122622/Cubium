@@ -54,7 +54,7 @@ public:
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void broadcastEntityStatus(EntityId, u8) override {}
+    void broadcastEntityStatus(EntityInstanceId, u8) override {}
 };
 
 // ============================================================================
@@ -64,7 +64,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerData();
         registerAttributes();
@@ -80,7 +80,7 @@ public:
 class TestLivingEntityWithAttack : public LivingEntity {
 public:
     TestLivingEntityWithAttack()
-        : LivingEntity(EntityId(2))
+        : LivingEntity(EntityInstanceId(2))
     {
         registerData();
         registerAttributes();

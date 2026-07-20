@@ -24,8 +24,8 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
@@ -147,25 +147,25 @@ TEST_F(MonsterSpawnTest, SpawnReasonFromName)
     EXPECT_EQ(getSpawnReasonByName(""), SpawnReason::Natural);
 }
 
-// ==================== EntityTypeIdNumber 测试 ====================
+// ==================== VanillaEntityTypeKeys 测试 ====================
 
 /**
  * @brief 测试怪物类型ID
  *
- * 验证 EntityTypeIdNumber 中的怪物类型ID常量存在
+ * 验证 VanillaEntityTypeKeys 中的怪物类型ID常量存在
  */
 TEST_F(MonsterSpawnTest, MonsterEntityTypes)
 {
     // 验证怪物类型ID常量存在（编译/链接期即证明符号存在）。
     // 这些 ID 是 extern 全局，由 VanillaEntities::registerAll() 经
-    // EntityTypeIdNumber::initialize() 填充：未注册时为 0、注册后为非零。
+    // VanillaEntityTypeKeys::initialize() 填充：未注册时为 0、注册后为非零。
     // 故不断言具体值，避免依赖测试执行顺序/registerAll 副作用（全量套件中
     // 其他用例已触发 registerAll，使 ZOMBIE 等不再为 0，原 EXPECT_EQ(...,0) 失败）。
-    EXPECT_TRUE(&entity::EntityTypeIdNumber::ZOMBIE != nullptr);
-    EXPECT_TRUE(&entity::EntityTypeIdNumber::SKELETON != nullptr);
-    EXPECT_TRUE(&entity::EntityTypeIdNumber::CREEPER != nullptr);
-    EXPECT_TRUE(&entity::EntityTypeIdNumber::ENDERMAN != nullptr);
-    EXPECT_TRUE(&entity::EntityTypeIdNumber::SPIDER != nullptr);
+    EXPECT_TRUE(&entity::VanillaEntityTypeKeys::ZOMBIE != nullptr);
+    EXPECT_TRUE(&entity::VanillaEntityTypeKeys::SKELETON != nullptr);
+    EXPECT_TRUE(&entity::VanillaEntityTypeKeys::CREEPER != nullptr);
+    EXPECT_TRUE(&entity::VanillaEntityTypeKeys::ENDERMAN != nullptr);
+    EXPECT_TRUE(&entity::VanillaEntityTypeKeys::SPIDER != nullptr);
 }
 
 // ==================== 位置检查逻辑测试 ====================

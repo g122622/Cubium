@@ -49,6 +49,7 @@
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -74,7 +75,7 @@ namespace mc {
 //   调整跳跃高度（0.2/0.3/0.5）。项目当前 LivingEntity::jump() 为非虚函数且使用
 //   m_jumpUpwardsMotion，重写跳跃力度需要更大的架构改动，暂留待未来处理。
 
-RabbitEntity::RabbitEntity(EntityId id)
+RabbitEntity::RabbitEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 替换为兔子专属的跳跃/移动控制器（对应 MC Rabbit 构造函数中：
@@ -590,7 +591,7 @@ void RabbitEntity::registerGoals()
             2.2,   // nearSpeed
             [this](const LivingEntity* entity) -> bool {
                 if (isKillerRabbit()) return false;
-                return entity->typeId() == entity::EntityTypeIdNumber::WOLF;
+                return entity->entityType() == entity::VanillaEntityTypeKeys::WOLF;
             }));
 
     // 优先级 2: 逃离怪物（4格，速度2.2）- 杀手兔不逃离

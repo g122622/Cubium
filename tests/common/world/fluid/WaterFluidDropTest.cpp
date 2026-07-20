@@ -27,6 +27,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/loot/LootPool.hpp"
@@ -144,18 +145,18 @@ public:
 
     // ========== Entity 管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
         entity->setWorld(this);
-        EntityId id = m_entityManager.addEntity(std::move(entity));
+        EntityInstanceId id = m_entityManager.addEntity(std::move(entity));
         return id;
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override { return m_entityManager.getEntity(id); }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override { return m_entityManager.getEntity(id); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override { return m_entityManager.getEntity(id); }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override { return m_entityManager.getEntity(id); }
 
     // ========== 掉落表管理器 ==========
 
@@ -189,8 +190,8 @@ void ensureRegistriesInitialized()
     std::call_once(s_once, [] {
         fluid::FluidRegistry::instance().initialize();
         VanillaBlocks::initialize();
-        // 注册原版实体类型，确保 EntityTypeIdNumber::ITEM 等全局缓存与注册表一致。
-        // 本测试断言 entity->typeId() == EntityTypeIdNumber::ITEM，二者必须来自同一
+        // 注册原版实体类型，确保 VanillaEntityTypeKeys::ITEM 等全局缓存与注册表一致。
+        // 本测试断言 entity->entityType() == VanillaEntityTypeKeys::ITEM，二者必须来自同一
         // 已初始化的实体注册表，避免依赖前置测试的隐式注册状态（测试顺序污染）。
         entity::VanillaEntities::registerAll();
         // 用 try/catch 包裹 Items::initialize()，吸收旗帜物品双注册异常。
@@ -293,10 +294,10 @@ TEST(WaterFluidDropTest, ItemDropHelperSpawnEntities)
     EXPECT_EQ(world.entityCount(), 2u);
 
     // 验证物品实体的类型
-    for (EntityId id : spawnedIds) {
+    for (EntityInstanceId id : spawnedIds) {
         Entity* entity = world.getEntity(id);
         ASSERT_NE(entity, nullptr);
-        EXPECT_EQ(entity->typeId(), entity::EntityTypeIdNumber::ITEM);
+        EXPECT_EQ(entity->entityType(), entity::VanillaEntityTypeKeys::ITEM);
     }
 }
 

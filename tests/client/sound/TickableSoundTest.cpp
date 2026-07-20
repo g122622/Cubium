@@ -183,9 +183,9 @@ TEST_F(EntitySoundHandlerTest, UpdateEntityState)
     state.isChild = false;
     state.isFallFlying = false;
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FLOAT_EQ(retrieved->position.x, 10.0f);
     EXPECT_FLOAT_EQ(retrieved->position.y, 20.0f);
@@ -199,16 +199,16 @@ TEST_F(EntitySoundHandlerTest, RemoveEntityState)
     EntitySoundState state;
     state.position = glm::vec3(0.0f);
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
-    EXPECT_NE(handler->getEntityState(static_cast<EntityId>(1)), nullptr);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
+    EXPECT_NE(handler->getEntityState(static_cast<EntityInstanceId>(1)), nullptr);
 
-    handler->removeEntityState(static_cast<EntityId>(1));
-    EXPECT_EQ(handler->getEntityState(static_cast<EntityId>(1)), nullptr);
+    handler->removeEntityState(static_cast<EntityInstanceId>(1));
+    EXPECT_EQ(handler->getEntityState(static_cast<EntityInstanceId>(1)), nullptr);
 }
 
 TEST_F(EntitySoundHandlerTest, GetNonExistentState)
 {
-    const EntitySoundState* state = handler->getEntityState(static_cast<EntityId>(999));
+    const EntitySoundState* state = handler->getEntityState(static_cast<EntityInstanceId>(999));
     EXPECT_EQ(state, nullptr);
 }
 
@@ -218,15 +218,15 @@ TEST_F(EntitySoundHandlerTest, OnEntityRemove)
     state.position = glm::vec3(0.0f);
     state.isRemoved = false;
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
-    EXPECT_NE(handler->getEntityState(static_cast<EntityId>(1)), nullptr);
-    EXPECT_FALSE(handler->getEntityState(static_cast<EntityId>(1))->isRemoved);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
+    EXPECT_NE(handler->getEntityState(static_cast<EntityInstanceId>(1)), nullptr);
+    EXPECT_FALSE(handler->getEntityState(static_cast<EntityInstanceId>(1))->isRemoved);
 
-    handler->onEntityRemove(static_cast<EntityId>(1));
+    handler->onEntityRemove(static_cast<EntityInstanceId>(1));
 
     // onEntityRemove 标记实体为已移除，但不会清除状态
     // 状态会被 removeEntityState 清除
-    const EntitySoundState* removedState = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* removedState = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(removedState, nullptr);
     EXPECT_TRUE(removedState->isRemoved);
 }
@@ -238,17 +238,17 @@ TEST_F(EntitySoundHandlerTest, StopAll)
     EntitySoundState state2;
     state2.position = glm::vec3(100.0f, 0.0f, 0.0f);
 
-    handler->updateEntityState(static_cast<EntityId>(1), state1);
-    handler->updateEntityState(static_cast<EntityId>(2), state2);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state1);
+    handler->updateEntityState(static_cast<EntityInstanceId>(2), state2);
 
-    EXPECT_NE(handler->getEntityState(static_cast<EntityId>(1)), nullptr);
-    EXPECT_NE(handler->getEntityState(static_cast<EntityId>(2)), nullptr);
+    EXPECT_NE(handler->getEntityState(static_cast<EntityInstanceId>(1)), nullptr);
+    EXPECT_NE(handler->getEntityState(static_cast<EntityInstanceId>(2)), nullptr);
 
     handler->stopAll();
 
     // stopAll 清理所有状态
-    EXPECT_EQ(handler->getEntityState(static_cast<EntityId>(1)), nullptr);
-    EXPECT_EQ(handler->getEntityState(static_cast<EntityId>(2)), nullptr);
+    EXPECT_EQ(handler->getEntityState(static_cast<EntityInstanceId>(1)), nullptr);
+    EXPECT_EQ(handler->getEntityState(static_cast<EntityInstanceId>(2)), nullptr);
 }
 
 TEST_F(EntitySoundHandlerTest, MultipleEntityStates)
@@ -256,11 +256,11 @@ TEST_F(EntitySoundHandlerTest, MultipleEntityStates)
     for (int i = 1; i <= 10; ++i) {
         EntitySoundState state;
         state.position = glm::vec3(static_cast<float>(i));
-        handler->updateEntityState(static_cast<EntityId>(i), state);
+        handler->updateEntityState(static_cast<EntityInstanceId>(i), state);
     }
 
     for (int i = 1; i <= 10; ++i) {
-        const EntitySoundState* state = handler->getEntityState(static_cast<EntityId>(i));
+        const EntitySoundState* state = handler->getEntityState(static_cast<EntityInstanceId>(i));
         ASSERT_NE(state, nullptr);
         EXPECT_FLOAT_EQ(state->position.x, static_cast<float>(i));
     }
@@ -272,17 +272,17 @@ TEST_F(EntitySoundHandlerTest, FallFlyingState)
     state.position = glm::vec3(0.0f);
     state.isFallFlying = false;
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_FALSE(retrieved->isFallFlying);
 
     // 更新为 FallFlying
     state.isFallFlying = true;
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_TRUE(retrieved->isFallFlying);
 }
@@ -293,9 +293,9 @@ TEST_F(EntitySoundHandlerTest, ChildState)
     state.position = glm::vec3(0.0f);
     state.isChild = true;
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_TRUE(retrieved->isChild);
 }
@@ -306,9 +306,9 @@ TEST_F(EntitySoundHandlerTest, AngryState)
     state.position = glm::vec3(0.0f);
     state.isAngry = true;
 
-    handler->updateEntityState(static_cast<EntityId>(1), state);
+    handler->updateEntityState(static_cast<EntityInstanceId>(1), state);
 
-    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityInstanceId>(1));
     ASSERT_NE(retrieved, nullptr);
     EXPECT_TRUE(retrieved->isAngry);
 }

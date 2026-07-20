@@ -13,7 +13,6 @@
 ├── AgeableEntity.hpp / cpp #成长系统基类（幼体→成体）
 ├── EntityType.hpp / cpp #实体类型定义
 ├── EntityRegistry.hpp #实体注册表（工厂模式创建实体）
-├── EntityTypeIdNumber.hpp / cpp #实体类型ID常量（网络同步用）
 ├── EntityDataManager.hpp #实体数据同步管理（客户端 -
     服务端数据同步）
 ├── EntityPose.hpp #实体姿态枚举（站立、潜行、游泳、睡眠等）
@@ -27,6 +26,7 @@
 
 注：以下文件已按职责迁移至更合适的目录：
 - `VanillaEntities.hpp/cpp`（原版实体类型批量注册）→ `common/entity/registry/`
+- `VanillaEntityTypeKeys.hpp/cpp`（原版实体类型指针缓存 `const EntityType*`）→ `common/entity/registry/`
 - `EntitySpawnPlacementRegistry.hpp/cpp`（生成位置规则）→ `common/world/spawn/`
 - `BoostHelper.hpp`（可骑乘实体加速辅助）→ `common/entity/interfaces/`
 - `Crackiness.hpp/cpp`（狼铠裂纹渲染）→ `common/entity/entities/passive/tamable/`
@@ -47,7 +47,7 @@
 
         辅助类依赖关系： -
     Entity → EntityDataManager → DataParameter（数据同步） - Entity → EntitySize → AxisAlignedBB（碰撞箱） -
-    EntityRegistry → EntityType → EntityTypeIdNumber（类型注册）
+    EntityRegistry → EntityType → VanillaEntityTypeKeys（类型注册）
 ```
 
     ##上下游外部依赖关系
@@ -484,8 +484,8 @@
         安全传送，自动查找地面 - `randomTeleport(range, playEffects, avoidFluid)` - 随机传送 -
         传送会自动重置运动向量
 
-        ## #类型标识符获取 - `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量 - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容） -
-        新代码应使用 `typeId()`
+        ## #类型标识符获取 - `entityType()` 返回 `const EntityType*`（懒缓存），可直接与 `VanillaEntityTypeKeys` 命名空间中的指针常量比较 - `getTypeId()` 返回 `const std::string&`（如 `"minecraft:pig"`，用于字符串型查询如 `getEntitiesByType()`） - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容） -
+        新代码应使用 `entityType()` 做指针比较，或 `getTypeId()` 做字符串查询
 
             ## #战利品表ID获取（getLootTableId）
 
@@ -768,7 +768,7 @@
             0.8x 音调。
 
             ## #canAttackType 攻击类型判断
-            - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()` -
+            - `canAttackType(const entity::EntityType& type)` — 对应 MC 原版 `Mob.canAttackType()` -
             基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob
             徒劳地试图攻击一个它们够不着的敌人
             - 子类重写以限制攻击目标类型，例如： - `IronGolemEntity::

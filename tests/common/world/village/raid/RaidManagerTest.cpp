@@ -72,12 +72,12 @@ protected:
         [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
         void setCurrentTick(u64 tick) { m_currentTick = tick; }
 
-        [[nodiscard]] Entity* getEntity(EntityId id) override
+        [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
         {
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;
         }
-        [[nodiscard]] const Entity* getEntity(EntityId id) const override
+        [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
         {
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;
@@ -222,12 +222,12 @@ protected:
             return true;
         }
 
-        [[nodiscard]] Entity* getEntity(EntityId id) override
+        [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
         {
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;
         }
-        [[nodiscard]] const Entity* getEntity(EntityId id) const override
+        [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
         {
             auto it = m_entities.find(static_cast<u64>(id));
             return it != m_entities.end() ? it->second : nullptr;

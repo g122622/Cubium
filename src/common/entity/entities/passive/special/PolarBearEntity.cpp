@@ -114,7 +114,7 @@ private:
 
 // ==================== PolarBearEntity ====================
 
-PolarBearEntity::PolarBearEntity(EntityId id)
+PolarBearEntity::PolarBearEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     registerGoals();

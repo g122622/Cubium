@@ -48,7 +48,7 @@ public:
      * @brief 构造马实体
      * @param id 实体 ID
      */
-    HorseEntity(EntityId id);
+    HorseEntity(EntityInstanceId id);
     ~HorseEntity() override = default;
 
     HorseEntity(const HorseEntity&) = delete;

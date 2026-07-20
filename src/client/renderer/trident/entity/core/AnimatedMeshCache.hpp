@@ -66,7 +66,7 @@ public:
      * @param pipeline 渲染管线（用于创建/更新网格）
      * @return 指向网格的指针，如果创建失败返回 nullptr
      */
-    pipeline::EntityMesh* getOrUpdateMesh(EntityId entityId,
+    pipeline::EntityMesh* getOrUpdateMesh(EntityInstanceId entityId,
         model::EntityModel& model,
         const std::string& typeId,
         const AnimationContext& state,
@@ -75,7 +75,7 @@ public:
     /**
      * @brief 移除实体的缓存网格
      */
-    void removeEntity(EntityId entityId, pipeline::EntityPipeline* pipeline);
+    void removeEntity(EntityInstanceId entityId, pipeline::EntityPipeline* pipeline);
 
     /**
      * @brief 清除所有缓存
@@ -117,7 +117,7 @@ private:
     };
 
     /// 实体 ID -> 缓存条目
-    std::unordered_map<EntityId, CacheEntry> m_cache;
+    std::unordered_map<EntityInstanceId, CacheEntry> m_cache;
 
     /// UV 重映射回调
     UvRemapFunc m_uvRemapFunc;

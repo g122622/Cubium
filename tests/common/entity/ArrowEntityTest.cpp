@@ -56,7 +56,7 @@ protected:
 
 TEST_F(ArrowEntityTest, AddEffect_SingleEffect_StoredCorrectly)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 添加单个药水效果
     entity::effect::EffectInstance poisonEffect(entity::effect::EffectType::Poison, 200, 1);
@@ -73,7 +73,7 @@ TEST_F(ArrowEntityTest, AddEffect_SingleEffect_StoredCorrectly)
 
 TEST_F(ArrowEntityTest, AddEffect_MultipleEffects_AllStored)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 添加多个药水效果
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 0));
@@ -91,7 +91,7 @@ TEST_F(ArrowEntityTest, AddEffect_MultipleEffects_AllStored)
 
 TEST_F(ArrowEntityTest, SetEffects_ReplacesExistingEffects)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 添加初始效果
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 0));
@@ -111,13 +111,13 @@ TEST_F(ArrowEntityTest, SetEffects_ReplacesExistingEffects)
 
 TEST_F(ArrowEntityTest, HasEffects_NoEffects_ReturnsFalse)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
     EXPECT_FALSE(arrow->hasEffects());
 }
 
 TEST_F(ArrowEntityTest, HasEffects_WithEffects_ReturnsTrue)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 0));
     EXPECT_TRUE(arrow->hasEffects());
 }
@@ -128,13 +128,13 @@ TEST_F(ArrowEntityTest, HasEffects_WithEffects_ReturnsTrue)
 
 TEST_F(ArrowEntityTest, Color_DefaultIsWhite)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
     EXPECT_EQ(arrow->color(), 0xFFFFFFFF);
 }
 
 TEST_F(ArrowEntityTest, SetColor_StoresCorrectly)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 设置红色 (ARGB 格式)
     arrow->setColor(0xFFFF0000);
@@ -151,7 +151,7 @@ TEST_F(ArrowEntityTest, SetColor_StoresCorrectly)
 
 TEST_F(ArrowEntityTest, SetColor_CustomPotionColor)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 设置自定义颜色 (如中毒的绿色)
     u32 poisonColor = 0x4E9331FF;
@@ -165,7 +165,7 @@ TEST_F(ArrowEntityTest, SetColor_CustomPotionColor)
 
 TEST_F(ArrowEntityTest, GetArrowStack_NoEffects_ReturnsRegularArrow)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 无效果的箭矢应返回普通箭矢
     ItemStack stack = arrow->getArrowStack();
@@ -176,7 +176,7 @@ TEST_F(ArrowEntityTest, GetArrowStack_NoEffects_ReturnsRegularArrow)
 
 TEST_F(ArrowEntityTest, GetArrowStack_WithEffects_ReturnsTippedArrow)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 添加药水效果
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 0));
@@ -190,7 +190,7 @@ TEST_F(ArrowEntityTest, GetArrowStack_WithEffects_ReturnsTippedArrow)
 
 TEST_F(ArrowEntityTest, GetArrowStack_EffectsStoredInNBT)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 添加药水效果
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 200, 1));
@@ -214,7 +214,7 @@ TEST_F(ArrowEntityTest, GetArrowStack_EffectsStoredInNBT)
 
 TEST_F(ArrowEntityTest, GetArrowStack_ColorStoredInNBT)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 设置颜色和效果
     arrow->setColor(0xFF5733FF); // 自定义颜色
@@ -232,7 +232,7 @@ TEST_F(ArrowEntityTest, GetArrowStack_ColorStoredInNBT)
 
 TEST_F(ArrowEntityTest, GetArrowStack_NoColorDefaultNotStored)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     // 只添加效果，不设置颜色
     arrow->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, 100, 0));
@@ -290,13 +290,13 @@ TEST_F(ArrowEntityTest, ColorCalculation_MultipleEffects_Average)
 
 TEST_F(ArrowEntityTest, Glowing_DefaultFalse)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
     EXPECT_FALSE(arrow->isGlowing());
 }
 
 TEST_F(ArrowEntityTest, SetGlowing_StoresCorrectly)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
 
     arrow->setGlowing(true);
     EXPECT_TRUE(arrow->isGlowing());
@@ -311,13 +311,13 @@ TEST_F(ArrowEntityTest, SetGlowing_StoresCorrectly)
 
 TEST_F(ArrowEntityTest, SpectralArrow_DefaultDamage)
 {
-    auto spectralArrow = std::make_unique<SpectralArrowEntity>(EntityId(1));
+    auto spectralArrow = std::make_unique<SpectralArrowEntity>(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(spectralArrow->damage(), 2.0f);
 }
 
 TEST_F(ArrowEntityTest, SpectralArrow_GetArrowStack_ReturnsSpectralArrow)
 {
-    auto spectralArrow = std::make_unique<SpectralArrowEntity>(EntityId(1));
+    auto spectralArrow = std::make_unique<SpectralArrowEntity>(EntityInstanceId(1));
     ItemStack stack = spectralArrow->getArrowStack();
     ASSERT_NE(stack.getItem(), nullptr);
     EXPECT_EQ(stack.getItem(), Items::SPECTRAL_ARROW);
@@ -381,7 +381,7 @@ TEST_F(ArrowEntityTest, ColorRGBExtraction_PoisonGreen)
 
 TEST_F(ArrowEntityTest, ColorRGBExtraction_DefaultColorIsWhite)
 {
-    auto arrow = std::make_unique<ArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<ArrowEntity>(EntityInstanceId(1));
     u32 color = arrow->color();
 
     // 默认颜色是白色 (0xFFFFFFFF)

@@ -58,7 +58,7 @@ public:
         throw std::runtime_error("WeaponTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
@@ -80,7 +80,7 @@ public:
     }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
     std::vector<std::unique_ptr<Entity>> m_ownedEntities;
 };

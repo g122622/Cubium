@@ -24,11 +24,11 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "entity/entities/passive/special/PandaEntity.hpp"
 #include "item/Items.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace test {
@@ -41,7 +41,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(EntityId(1));
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1));
     }
 
     void TearDown() override { panda.reset(); }
@@ -215,7 +215,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(EntityId(1));
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1));
     }
 
     void TearDown() override { panda.reset(); }
@@ -300,7 +300,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(EntityId(1));
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1));
     }
 
     void TearDown() override { panda.reset(); }

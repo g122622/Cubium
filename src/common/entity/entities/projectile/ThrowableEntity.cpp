@@ -43,7 +43,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-ThrowableEntity::ThrowableEntity(EntityId id)
+ThrowableEntity::ThrowableEntity(EntityInstanceId id)
     : ProjectileEntity(id)
 {}
 

@@ -67,7 +67,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    RabbitEntity(EntityId id);
+    RabbitEntity(EntityInstanceId id);
     ~RabbitEntity() override = default;
 
     // 禁止拷贝

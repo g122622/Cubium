@@ -30,7 +30,7 @@
 
 namespace mc {
 
-BatEntity::BatEntity(EntityId id)
+BatEntity::BatEntity(EntityInstanceId id)
     : AmbientEntity(id)
 {
     // 注册 AI 目标

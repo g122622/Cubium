@@ -33,6 +33,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -41,7 +42,7 @@
 
 namespace mc {
 
-IronGolemEntity::IronGolemEntity(EntityId id)
+IronGolemEntity::IronGolemEntity(EntityInstanceId id)
     : GolemEntity(id)
 {
     // 铁傀儡可以走上1格高的方块
@@ -211,20 +212,20 @@ void IronGolemEntity::playAttackSound(LivingEntity& /*target*/)
     // 此方法保留为空，避免基类和AI目标中重复播放
 }
 
-bool IronGolemEntity::canAttackType(entity::EntityTypeId typeId) const
+bool IronGolemEntity::canAttackType(const entity::EntityType& type) const
 {
     // 玩家创建的铁傀儡不攻击玩家
-    if (isPlayerCreated() && typeId == entity::EntityTypeIdNumber::PLAYER) {
+    if (isPlayerCreated() && &type == entity::VanillaEntityTypeKeys::PLAYER) {
         return false;
     }
 
     // 铁傀儡不攻击苦力怕
-    if (typeId == entity::EntityTypeIdNumber::CREEPER) {
+    if (&type == entity::VanillaEntityTypeKeys::CREEPER) {
         return false;
     }
 
     // 其他情况由父类处理
-    return MobEntity::canAttackType(typeId);
+    return MobEntity::canAttackType(type);
 }
 
 } // namespace mc

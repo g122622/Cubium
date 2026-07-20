@@ -29,11 +29,11 @@
 #include "PhantomGoals.hpp"
 
 #include "common/core/Constants.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -533,7 +533,7 @@ bool PhantomSweepAttackGoal::_checkForCats()
     bool foundCat = false;
     for (Entity* entity : entities) {
         // 检查是否为猫实体（使用 typeId 快速匹配）
-        if (entity->typeId() == entity::EntityTypeIdNumber::CAT && entity->isAlive()) {
+        if (entity->entityType() == entity::VanillaEntityTypeKeys::CAT && entity->isAlive()) {
             CatEntity* cat = static_cast<CatEntity*>(entity);
             cat->hiss();
             foundCat = true;

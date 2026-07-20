@@ -177,7 +177,7 @@ Block
 **行为**：`PitcherCropBlock::onEntityCollision` 实现 MC Java `PitcherCropBlock#entityInside` 的 Ravager 破坏作物逻辑。当满足以下全部条件时，方块会被破坏并掉落物品：
 
 1. 服务端执行（`world.isClientSide() == false`，对应 MC Java `world instanceof ServerLevel`）
-2. 实体为 Ravager（`entity.typeId() == EntityTypeIdNumber::RAVAGER`，对应 `entity instanceof Ravager`）
+2. 实体为 Ravager（`entity.entityType() == VanillaEntityTypeKeys::RAVAGER`，对应 `entity instanceof Ravager`）
 3. `mobGriefing` 游戏规则为 `true`
 
 **实现要点**：项目无 `IWorld::destroyBlock` 方法，采用 `setBlockState(pos, air, 3) + spawnAfterBreak(...)` 的等价模式，与 `RavagerEntity::_breakLeavesOnCollision` / `EnderDragonEntity::_destroyBlocksInAABB` 一致。破坏前需保存 `state.getBlock()` 引用，因为 `setBlockState` 后 `state` 引用可能失效。

@@ -33,12 +33,12 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -46,7 +46,7 @@
 
 namespace mc {
 
-DrownedEntity::DrownedEntity(EntityId id)
+DrownedEntity::DrownedEntity(EntityInstanceId id)
     : ZombieEntity(id)
 {
     // 溺尸可以走上1格高的方块
@@ -65,7 +65,7 @@ DrownedEntity::DrownedEntity(EntityId id)
 
 std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<DrownedEntity>(EntityId(0));
+    return std::make_unique<DrownedEntity>(EntityInstanceId(0));
 }
 
 bool DrownedEntity::isInWater() const
@@ -118,7 +118,7 @@ void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charg
     }
 
     // 创建三叉戟实体
-    auto trident = std::make_unique<entity::TridentEntity>(EntityId(0));
+    auto trident = std::make_unique<entity::TridentEntity>(EntityInstanceId(0));
     if (trident == nullptr) {
         return;
     }
@@ -229,11 +229,11 @@ void DrownedEntity::registerGoals()
         auto hurtByTarget =
             std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
                 // 不反击同类溺尸
-                return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
+                return attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::DROWNED;
             });
         hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
             // 不警醒僵尸猪灵
-            return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+            return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
         });
         m_targetSelector.addGoal(1, std::move(hurtByTarget));
     }

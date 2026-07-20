@@ -49,8 +49,8 @@ public:
 TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 {
     EntitySensesTestWorld world;
-    MobEntity observer(EntityId(1));
-    MobEntity target(EntityId(2));
+    MobEntity observer(EntityInstanceId(1));
+    MobEntity target(EntityInstanceId(2));
     observer.setWorld(&world);
     target.setWorld(&world);
 
@@ -67,8 +67,8 @@ TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 TEST(EntitySensesTest, CacheClearsOnTick)
 {
     EntitySensesTestWorld world;
-    MobEntity observer(EntityId(3));
-    MobEntity target(EntityId(4));
+    MobEntity observer(EntityInstanceId(3));
+    MobEntity target(EntityInstanceId(4));
     observer.setWorld(&world);
     target.setWorld(&world);
 
@@ -87,8 +87,8 @@ TEST(EntitySensesTest, CacheClearsOnTick)
 TEST(EntitySensesTest, InvisibleEntityIsCachedWithinSameTick)
 {
     EntitySensesTestWorld world;
-    MobEntity observer(EntityId(5));
-    MobEntity target(EntityId(6));
+    MobEntity observer(EntityInstanceId(5));
+    MobEntity target(EntityInstanceId(6));
     observer.setWorld(&world);
     target.setWorld(&world);
 
@@ -104,7 +104,7 @@ TEST(EntitySensesTest, InvisibleEntityIsCachedWithinSameTick)
 
 TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
 {
-    MobEntity resetMob(EntityId(7));
+    MobEntity resetMob(EntityInstanceId(7));
     resetMob.setRotation(45.0f, 15.0f);
 
     entity::ai::controller::LookController resetController(&resetMob);
@@ -114,7 +114,7 @@ TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
     // MC 1.16.5: 俯仰角重置为0.0f（当shouldResetPitch返回true时）
     EXPECT_FLOAT_EQ(resetMob.pitch(), 0.0f);
 
-    MobEntity lockedMob(EntityId(8));
+    MobEntity lockedMob(EntityInstanceId(8));
     lockedMob.setRotation(45.0f, 15.0f);
 
     NoResetLookController lockedController(&lockedMob);

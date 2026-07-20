@@ -83,10 +83,10 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
@@ -123,19 +123,19 @@ public:
     }
 
     // 追踪 broadcastEntityStatus 调用
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_lastBroadcastEntityId = entityId;
         m_lastBroadcastStatus = status;
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
     [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
     [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
     void resetBroadcastTracking()
     {
-        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastEntityId = EntityInstanceId(0);
         m_lastBroadcastStatus = 0;
         m_broadcastCount = 0;
     }
@@ -167,7 +167,7 @@ private:
     i32 m_soundPlayCount = 0;
 
     // 广播追踪
-    EntityId m_lastBroadcastEntityId{0};
+    EntityInstanceId m_lastBroadcastEntityId{0};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;
 
@@ -195,7 +195,7 @@ protected:
 TEST_F(CatEntityTestFixture, IsTameItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鳕鱼驯服
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(cat.isTameItem(codStack));
@@ -204,7 +204,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Cod_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsTameItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鲑鱼驯服
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(cat.isTameItem(salmonStack));
@@ -213,7 +213,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Salmon_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
 {
     // MC 1.16.5: 骨头不能驯服猫（骨头用于驯服狼）
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack boneStack(Items::BONE, 1);
     EXPECT_FALSE(cat.isTameItem(boneStack));
@@ -222,7 +222,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsTameItem_Seeds_ReturnsFalse)
 {
     // MC 1.16.5: 种子不能驯服猫（种子用于驯服鹦鹉）
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack wheatSeedsStack(Items::WHEAT_SEEDS, 1);
     EXPECT_FALSE(cat.isTameItem(wheatSeedsStack));
@@ -231,7 +231,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_Seeds_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsTameItem_CookedFish_ReturnsFalse)
 {
     // MC 1.16.5: 熟鱼不能驯服猫
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack cookedCodStack(Items::COOKED_COD, 1);
     ItemStack cookedSalmonStack(Items::COOKED_SALMON, 1);
@@ -242,7 +242,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_CookedFish_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsTameItem_NullItem_ReturnsFalse)
 {
     // 空物品应该返回 false
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isTameItem(emptyStack));
@@ -255,7 +255,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_NullItem_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鳕鱼繁殖
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(cat.isBreedingItem(codStack));
@@ -264,7 +264,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_Cod_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 猫用生鲑鱼繁殖
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(cat.isBreedingItem(salmonStack));
@@ -273,7 +273,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_Salmon_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 {
     // MC 1.16.5: 骨头不能用于繁殖猫
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack boneStack(Items::BONE, 1);
     EXPECT_FALSE(cat.isBreedingItem(boneStack));
@@ -282,7 +282,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsBreedingItem_CookedFish_ReturnsFalse)
 {
     // MC 1.16.5: 熟鱼不能用于繁殖猫
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack cookedCodStack(Items::COOKED_COD, 1);
     ItemStack cookedSalmonStack(Items::COOKED_SALMON, 1);
@@ -297,7 +297,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_CookedFish_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsFoodItem_Cod_ReturnsTrue)
 {
     // MC 1.16.5: 生鳕鱼可以用来喂养猫（治疗）
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack codStack(Items::COD, 1);
     EXPECT_TRUE(cat.isFoodItem(codStack));
@@ -306,7 +306,7 @@ TEST_F(CatEntityTestFixture, IsFoodItem_Cod_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsFoodItem_Salmon_ReturnsTrue)
 {
     // MC 1.16.5: 生鲑鱼可以用来喂养猫（治疗）
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack salmonStack(Items::SALMON, 1);
     EXPECT_TRUE(cat.isFoodItem(salmonStack));
@@ -315,7 +315,7 @@ TEST_F(CatEntityTestFixture, IsFoodItem_Salmon_ReturnsTrue)
 TEST_F(CatEntityTestFixture, IsFoodItem_Bone_ReturnsFalse)
 {
     // MC 1.16.5: 骨头不能用来喂养猫
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack boneStack(Items::BONE, 1);
     EXPECT_FALSE(cat.isFoodItem(boneStack));
@@ -328,7 +328,7 @@ TEST_F(CatEntityTestFixture, IsFoodItem_Bone_ReturnsFalse)
 TEST_F(CatEntityTestFixture, CatType_RandomlySet)
 {
     // 构造函数会随机设置皮肤类型
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     // 验证皮肤类型在有效范围内 (0-10)
     u8 typeValue = static_cast<u8>(cat.getCatType());
     EXPECT_LE(typeValue, 10);
@@ -336,7 +336,7 @@ TEST_F(CatEntityTestFixture, CatType_RandomlySet)
 
 TEST_F(CatEntityTestFixture, CatType_SetAndGet)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     cat.setCatType(CatEntity::CatType::Siamese);
     EXPECT_EQ(cat.getCatType(), CatEntity::CatType::Siamese);
@@ -351,7 +351,7 @@ TEST_F(CatEntityTestFixture, CatType_SetAndGet)
 TEST_F(CatEntityTestFixture, CatType_AllTypesValid)
 {
     // 验证所有皮肤类型都可以设置
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     for (u8 i = 0; i <= 10; ++i) {
         cat.setCatType(static_cast<CatEntity::CatType>(i));
@@ -365,20 +365,20 @@ TEST_F(CatEntityTestFixture, CatType_AllTypesValid)
 
 TEST_F(CatEntityTestFixture, TamedState_DefaultIsFalse)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isTamed());
 }
 
 TEST_F(CatEntityTestFixture, TamedState_SetTrue)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(true);
     EXPECT_TRUE(cat.isTamed());
 }
 
 TEST_F(CatEntityTestFixture, TamedState_SetFalse)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(true);
     EXPECT_TRUE(cat.isTamed());
 
@@ -392,20 +392,20 @@ TEST_F(CatEntityTestFixture, TamedState_SetFalse)
 
 TEST_F(CatEntityTestFixture, SittingState_DefaultIsFalse)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, SittingState_SetTrue)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setSitting(true);
     EXPECT_TRUE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, SittingState_Toggle)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isSitting());
 
     cat.toggleSitting();
@@ -421,14 +421,14 @@ TEST_F(CatEntityTestFixture, SittingState_Toggle)
 
 TEST_F(CatEntityTestFixture, EyeHeight_Adult)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setChild(false);
     EXPECT_FLOAT_EQ(cat.eyeHeight(), 0.35f);
 }
 
 TEST_F(CatEntityTestFixture, EyeHeight_Child)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setChild(true);
     EXPECT_FLOAT_EQ(cat.eyeHeight(), 0.2f);
 }
@@ -441,7 +441,7 @@ TEST_F(CatEntityTestFixture, Size_ConstantsValid)
 {
     // MC 1.16.5: 猫的尺寸常量
     // 验证实体构造成功，说明尺寸常量有效
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isTamed());
 }
 
@@ -451,8 +451,8 @@ TEST_F(CatEntityTestFixture, Size_ConstantsValid)
 
 TEST_F(CatEntityTestFixture, SpawnBaby_ReturnsCatEntity)
 {
-    CatEntity parent1(EntityId(0));
-    CatEntity parent2(EntityId(1));
+    CatEntity parent1(EntityInstanceId(0));
+    CatEntity parent2(EntityInstanceId(1));
 
     parent1.setPosition(100.0, 64.0, 200.0);
 
@@ -473,7 +473,7 @@ TEST_F(CatEntityTestFixture, SpawnBaby_ReturnsCatEntity)
 TEST_F(CatEntityTestFixture, CatTemptGoal_UntamedCat_Registered)
 {
     // MC 1.16.5: 未驯服的猫应该有 TemptGoal
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(false);
 
     // 验证实体状态正确
@@ -483,7 +483,7 @@ TEST_F(CatEntityTestFixture, CatTemptGoal_UntamedCat_Registered)
 TEST_F(CatEntityTestFixture, CatTemptGoal_TamedCat_StillRegistered)
 {
     // MC 1.16.5: 驯服后 TemptGoal 仍然注册，但 shouldExecute 返回 false
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(true);
 
     // 验证实体状态正确
@@ -497,7 +497,7 @@ TEST_F(CatEntityTestFixture, CatTemptGoal_TamedCat_StillRegistered)
 TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_UntamedCat_Registered)
 {
     // MC 1.16.5: 未驯服的猫应该有 AvoidPlayerGoal
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(false);
 
     // 验证实体状态正确
@@ -507,7 +507,7 @@ TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_UntamedCat_Registered)
 TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_TamedCat_Removed)
 {
     // MC 1.16.5: 驯服后 AvoidPlayerGoal 应该被移除
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(true);
 
     // 验证实体状态正确
@@ -521,7 +521,7 @@ TEST_F(CatEntityTestFixture, CatAvoidPlayerGoal_TamedCat_Removed)
 TEST_F(CatEntityTestFixture, SetupTamedAI_Tamed_RemovesAvoidPlayerGoal)
 {
     // MC 1.16.5: 驯服后应该移除 AvoidPlayerGoal
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     // 初始状态：未驯服
     EXPECT_FALSE(cat.isTamed());
@@ -534,7 +534,7 @@ TEST_F(CatEntityTestFixture, SetupTamedAI_Tamed_RemovesAvoidPlayerGoal)
 TEST_F(CatEntityTestFixture, SetupTamedAI_UntamedToTamedToUntamed)
 {
     // MC 1.16.5: 测试驯服状态的切换
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     // 未驯服
     cat.setTamed(false);
@@ -556,7 +556,7 @@ TEST_F(CatEntityTestFixture, SetupTamedAI_UntamedToTamedToUntamed)
 TEST_F(CatEntityTestFixture, TameItem_Equals_BreedingItem)
 {
     // MC 1.16.5: 猫的驯服物品和繁殖物品相同
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack codStack(Items::COD, 1);
     ItemStack salmonStack(Items::SALMON, 1);
@@ -582,7 +582,7 @@ TEST_F(CatEntityTestFixture, TameItem_Equals_BreedingItem)
 TEST_F(CatEntityTestFixture, Polymorphism_IsTameItem)
 {
     // 验证通过基类指针调用 isTameItem 正确工作
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     TameableEntity* tameable = &cat;
 
     ItemStack codStack(Items::COD, 1);
@@ -595,7 +595,7 @@ TEST_F(CatEntityTestFixture, Polymorphism_IsTameItem)
 TEST_F(CatEntityTestFixture, Polymorphism_IsBreedingItem)
 {
     // 验证通过基类指针调用 isBreedingItem 正确工作
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     AnimalEntity* animal = &cat;
 
     ItemStack codStack(Items::COD, 1);
@@ -612,7 +612,7 @@ TEST_F(CatEntityTestFixture, Polymorphism_IsBreedingItem)
 TEST_F(CatEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 {
     // 空物品堆应该返回 false
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isTameItem(emptyStack));
@@ -621,7 +621,7 @@ TEST_F(CatEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
     // 空物品堆应该返回 false
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isBreedingItem(emptyStack));
@@ -630,7 +630,7 @@ TEST_F(CatEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 TEST_F(CatEntityTestFixture, IsFoodItem_EmptyStack_ReturnsFalse)
 {
     // 空物品堆应该返回 false
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(cat.isFoodItem(emptyStack));
@@ -643,13 +643,13 @@ TEST_F(CatEntityTestFixture, IsFoodItem_EmptyStack_ReturnsFalse)
 TEST_F(CatEntityTestFixture, CollarColor_DefaultIsRed)
 {
     // MC 原版：猫的默认项圈颜色是红色
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
 }
 
 TEST_F(CatEntityTestFixture, CollarColor_SetAndGet)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     cat.setCollarColor(DyeColor::Blue);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Blue);
@@ -664,7 +664,7 @@ TEST_F(CatEntityTestFixture, CollarColor_SetAndGet)
 TEST_F(CatEntityTestFixture, CollarColor_AllColorsValid)
 {
     // 验证所有染料颜色都可以设置
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     for (u8 i = 0; i < static_cast<u8>(DyeColor::Count); ++i) {
         cat.setCollarColor(static_cast<DyeColor>(i));
@@ -679,7 +679,7 @@ TEST_F(CatEntityTestFixture, CollarColor_AllColorsValid)
 TEST_F(CatEntityTestFixture, DyeColorMapping_CommonDyes)
 {
     // 验证常见染料物品的颜色映射（通过 interactMob 间接测试）
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     // 验证物品指针有效
     EXPECT_NE(Items::RED_DYE, nullptr);
@@ -695,11 +695,11 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_WithCod_ReturnsSuccessAndPla
 {
     // 未驯服的猫用生鳕鱼交互：应该消耗物品、播放声音、尝试驯服
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
@@ -723,7 +723,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_WithCod_ReturnsSuccessAndPla
 
     // 应该有广播（TamingSucceeded 或 TamingFailed）
     EXPECT_EQ(world.getBroadcastCount(), 1);
-    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityId(1));
+    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityInstanceId(1));
     u8 status = world.getLastBroadcastStatus();
     bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
         status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
@@ -734,11 +734,11 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_WithSalmon_ReturnsSuccessAnd
 {
     // 未驯服的猫用生鲑鱼交互
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack salmonStack(Items::SALMON, 10);
@@ -761,11 +761,11 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_CreativeMode_NoConsumption)
 {
     // 创造模式下生鱼不被消耗
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
@@ -785,12 +785,12 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_SilentCat_NoSound)
 {
     // 静音猫不应该播放声音
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setSilent(true);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -808,11 +808,11 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_NonFoodItem_PassesToParent)
 {
     // 未驯服的猫用非食物物品交互，交给父类处理
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     ItemStack appleStack(Items::APPLE, 10);
     player.inventory().setItem(0, appleStack);
@@ -831,11 +831,11 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_OffHandCod)
 {
     // 副手生鳕鱼测试
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
 
@@ -863,11 +863,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessOr
 {
     // 驯服尝试：验证广播为成功或失败之一
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -890,7 +890,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamingSuccess_SetsOwnerAndSitting)
     // 驯服成功场景 - 直接验证状态设置
     CatTestWorld world;
 
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     EXPECT_FALSE(cat.isTamed());
@@ -912,14 +912,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeOwner_ChangesCollarColor)
 {
     // 已驯服的猫 + 染料 + 主人 → 改变项圈颜色
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red); // 默认红色
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL); // 主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -943,14 +943,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeNonOwner_NoCollarChange)
 {
     // 已驯服的猫 + 染料 + 非主人 → 不改变项圈颜色
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
 
-    Player player(EntityId(2), "OtherPlayer");
+    Player player(EntityInstanceId(2), "OtherPlayer");
     player.setPlayerId(99999ULL); // 非主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -974,14 +974,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeSameColor_NoConsumption)
 {
     // 已驯服的猫 + 相同颜色染料 + 主人 → 不消耗物品
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     // 默认红色项圈
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::RED_DYE, 10);
@@ -1007,13 +1007,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealDye_WhiteCollar)
 {
     // 骨粉作为白色染料
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack boneMealStack(Items::BONE_MEAL, 10);
@@ -1031,13 +1031,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacDye_BlackCollar)
 {
     // 墨囊作为黑色染料
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack inkSacStack(Items::INK_SAC, 10);
@@ -1055,13 +1055,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeCreativeMode_NoConsumption)
 {
     // 创造模式下染料不消耗
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = true;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -1088,14 +1088,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodDamaged_HealsAndPlaysSound
 {
     // 已驯服的猫 + 生鱼 + 未满血 → 治疗并播放声音
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setHealth(5.0f); // 未满血（猫满血 10.0f）
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
@@ -1124,14 +1124,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_DoesNotHeal)
 {
     // 已驯服的猫 + 食物 + 满血 → 跳过治疗分支，进入繁殖/坐下分支
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setHealth(cat.maxHealth()); // 满血
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
@@ -1153,14 +1153,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_SalmonFood_Heals)
 {
     // 生鲑鱼治疗测试
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setHealth(5.0f); // 受伤
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack salmonStack(Items::SALMON, 10);
@@ -1178,14 +1178,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodCreativeMode_NoConsumption
 {
     // 创造模式下喂食不消耗物品
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setHealth(5.0f);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
@@ -1208,7 +1208,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_SilentFoodHeal_NoSound)
 {
     // 静音猫喂食不播放声音
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
@@ -1216,7 +1216,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_SilentFoodHeal_NoSound)
     cat.setHealth(5.0f);
     cat.setSilent(true);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1238,13 +1238,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_OwnerEmptyHand_TogglesSitting)
 {
     // 已驯服的猫 + 主人 + 空手 → 切换坐下/站起
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     // 空手（不设置任何物品）
     ItemStack emptyStack(nullptr, 0);
@@ -1270,13 +1270,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_OwnerNonFoodNonDyeItem_Toggles
 {
     // 已驯服的猫 + 主人 + 非食物非染料物品 → 切换坐下/站起
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     ItemStack dirtStack(Items::DIRT, 10);
     player.inventory().setItem(0, dirtStack);
@@ -1302,14 +1302,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwner_CannotInteract)
     // AnimalEntity 基类处理且不检查所有权（任何玩家均可喂食动物繁殖），
     // 因此非主人喂食仍会进入求爱状态并消耗物品。本用例验证该原版行为。
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setHealth(cat.maxHealth()); // 满血，跳过治疗分支
 
-    Player player(EntityId(2), "OtherPlayer");
+    Player player(EntityInstanceId(2), "OtherPlayer");
     player.setPlayerId(99999ULL); // 非主人
     player.abilities().creativeMode = false;
 
@@ -1333,13 +1333,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwnerDye_NoCollarChange)
 {
     // 已驯服的猫 + 非主人 + 染料 → 不改变项圈颜色
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
 
-    Player player(EntityId(2), "OtherPlayer");
+    Player player(EntityInstanceId(2), "OtherPlayer");
     player.setPlayerId(99999ULL); // 非主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -1367,11 +1367,11 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_EmptyHand_PassesToParent)
 {
     // 未驯服的猫 + 空手 → 交给父类处理
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     ItemStack emptyStack(nullptr, 0);
     player.inventory().setItem(0, emptyStack);
@@ -1390,7 +1390,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_EmptyHand_PassesToParent)
 TEST_F(CatEntityTestFixture, OnTamed_SetsHealthAndGiftTimer)
 {
     // MC 原版：猫驯服后生命值设为 10.0
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isTamed());
     EXPECT_FLOAT_EQ(cat.health(), 10.0f);
 
@@ -1408,7 +1408,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_AdultBreedable_
 {
     // 已驯服的成年猫 + 食物 + 满血 + 可繁殖 → 进入求爱状态
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
@@ -1417,7 +1417,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_AdultBreedable_
     EXPECT_FALSE(cat.isChild());    // 成年
     EXPECT_TRUE(cat.canBreed());    // 可繁殖
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
@@ -1446,14 +1446,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_AdultBreedable_
 {
     // 创造模式下繁殖不消耗物品
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setHealth(cat.maxHealth());
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
@@ -1477,7 +1477,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodChild_AcceleratesGrowth)
 {
     // 已驯服的幼年猫 + 食物 → 加速成长
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
@@ -1485,7 +1485,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodChild_AcceleratesGrowth)
     cat.setChild(true); // 设为幼体
     EXPECT_TRUE(cat.isChild());
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
@@ -1517,14 +1517,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodChild_CreativeMode_NoConsu
 {
     // 创造模式下幼年猫喂食不消耗物品
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(12345ULL);
     cat.setChild(true);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
@@ -1547,7 +1547,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodChild_CreativeMode_NoConsu
 TEST_F(CatEntityTestFixture, Serialization_CatTypePreserved)
 {
     // 验证猫皮肤类型可以正确设置和获取
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     cat.setCatType(CatEntity::CatType::Siamese);
     EXPECT_EQ(cat.getCatType(), CatEntity::CatType::Siamese);
@@ -1559,7 +1559,7 @@ TEST_F(CatEntityTestFixture, Serialization_CatTypePreserved)
 TEST_F(CatEntityTestFixture, Serialization_CollarColorPreserved)
 {
     // 验证项圈颜色可以正确设置和获取
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     cat.setCollarColor(DyeColor::Purple);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Purple);
@@ -1571,7 +1571,7 @@ TEST_F(CatEntityTestFixture, Serialization_CollarColorPreserved)
 TEST_F(CatEntityTestFixture, Serialization_TamedStatePreserved)
 {
     // 验证驯服状态可以正确设置和获取
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     cat.setTamed(true);
     EXPECT_TRUE(cat.isTamed());
@@ -1583,7 +1583,7 @@ TEST_F(CatEntityTestFixture, Serialization_TamedStatePreserved)
 TEST_F(CatEntityTestFixture, Serialization_OwnerIdPreserved)
 {
     // 验证主人 ID 可以正确设置和获取
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
 
     cat.setOwnerId(12345u);
     EXPECT_TRUE(cat.isOwner(12345u));
@@ -1597,7 +1597,7 @@ TEST_F(CatEntityTestFixture, Serialization_OwnerIdPreserved)
 TEST_F(CatEntityTestFixture, AmbientSound_Tamed)
 {
     // MC 原版：驯服后的猫使用 ENTITY_CAT_AMBIENT
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(true);
 
     auto sound = cat.getAmbientSound();
@@ -1609,7 +1609,7 @@ TEST_F(CatEntityTestFixture, AmbientSound_Tamed)
 TEST_F(CatEntityTestFixture, AmbientSound_Untamed)
 {
     // MC 原版：未驯服的猫使用 ENTITY_CAT_STRAY_AMBIENT
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     cat.setTamed(false);
 
     auto sound = cat.getAmbientSound();
@@ -1620,7 +1620,7 @@ TEST_F(CatEntityTestFixture, AmbientSound_Untamed)
 
 TEST_F(CatEntityTestFixture, HurtSound)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     EnvironmentalDamage damage = DamageSources::generic();
     auto sound = cat.getHurtSound(damage);
     ASSERT_TRUE(sound.has_value());
@@ -1629,7 +1629,7 @@ TEST_F(CatEntityTestFixture, HurtSound)
 
 TEST_F(CatEntityTestFixture, DeathSound)
 {
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     auto sound = cat.getDeathSound();
     ASSERT_TRUE(sound.has_value());
     EXPECT_EQ(sound.value(), SoundEvents::ENTITY_CAT_DEATH);
@@ -1644,7 +1644,7 @@ TEST_F(CatEntityTestFixture, Hiss_PlaysHissSound)
     // MC 原版：Cat.hiss() 播放 ENTITY_CAT_HISS 音效
     // 当幻翼检测到附近的猫时，会调用此方法
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
@@ -1662,7 +1662,7 @@ TEST_F(CatEntityTestFixture, Hiss_SilentCat_DoesNotPlaySound)
     // 静音的猫不应该播放嘶嘶声
     // playSound 内部会检查 isSilent()，如果为 true 则不播放
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setSilent(true);
@@ -1680,7 +1680,7 @@ TEST_F(CatEntityTestFixture, Hiss_PitchVariation)
     // MC 原版：hiss() 的音调带有随机变化 [0.8, 1.2]
     // 多次调用 hiss() 应该都能正常执行（不崩溃）
     CatTestWorld world;
-    CatEntity cat(EntityId(1));
+    CatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
 
@@ -1700,7 +1700,7 @@ TEST_F(CatEntityTestFixture, Hiss_WithoutWorld_DoesNotCrash)
 {
     // 没有世界时 hiss() 不应崩溃
     // playSound 内部会检查 m_world == nullptr，如果为 null 则返回
-    CatEntity cat(EntityId(0));
+    CatEntity cat(EntityInstanceId(0));
     // cat 没有 world
 
     EXPECT_NO_THROW({ cat.hiss(); });
@@ -1715,7 +1715,7 @@ TEST_F(CatEntityTestFixture, Hiss_WithoutWorld_DoesNotCrash)
  */
 class TestCatEntity : public CatEntity {
 public:
-    explicit TestCatEntity(EntityId id)
+    explicit TestCatEntity(EntityInstanceId id)
         : CatEntity(id)
     {}
 
@@ -1734,7 +1734,7 @@ protected:
 TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForRabbit)
 {
     // CatEntity::registerGoals() 注册了 NonTamedTargetGoal<RabbitEntity>
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     i32 nonTamedRabbitGoalCount = 0;
     for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
@@ -1749,7 +1749,7 @@ TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForRabbit)
 TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForTurtle)
 {
     // CatEntity::registerGoals() 注册了 NonTamedTargetGoal<TurtleEntity>（仅攻击陆地上的幼年海龟）
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     i32 nonTamedTurtleGoalCount = 0;
     for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
@@ -1765,7 +1765,7 @@ TEST_F(CatTargetGoalsTest, CatTargetGoalsOnlyActiveWhenUntamed)
 {
     // NonTamedTargetGoal 只在未驯服时激活
     // 验证驯服后的猫实体中 NonTamedTargetGoal 目标仍然注册（但不执行）
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     cat.setTamed(true);
 
     bool hasNonTamedGoal = false;
@@ -1782,7 +1782,7 @@ TEST_F(CatTargetGoalsTest, CatTargetGoalsOnlyActiveWhenUntamed)
 TEST_F(CatTargetGoalsTest, CatTargetGoalsCount)
 {
     // CatEntity 应有 2 个 NonTamedTargetGoal（兔子 + 海龟）+ 1 个 HurtByTargetGoal
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     i32 targetGoalCount = 0;
     for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
@@ -1805,7 +1805,7 @@ TEST_F(CatTargetGoalsTest, CatTargetGoalsCount)
  */
 class AnimTestCatEntity : public CatEntity {
 public:
-    explicit AnimTestCatEntity(EntityId id)
+    explicit AnimTestCatEntity(EntityInstanceId id)
         : CatEntity(id)
     {}
 
@@ -1818,13 +1818,13 @@ public:
 TEST_F(CatEntityTestFixture, LieDownState_DefaultFalse)
 {
     // 猫初始时不应处于躺下状态
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isLieDown());
 }
 
 TEST_F(CatEntityTestFixture, LieDownState_SetAndGet)
 {
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
     cat.setLieDown(true);
     EXPECT_TRUE(cat.isLieDown());
     cat.setLieDown(false);
@@ -1834,13 +1834,13 @@ TEST_F(CatEntityTestFixture, LieDownState_SetAndGet)
 TEST_F(CatEntityTestFixture, RelaxStateOne_DefaultFalse)
 {
     // 猫初始时不应处于放松状态
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isRelaxStateOne());
 }
 
 TEST_F(CatEntityTestFixture, RelaxStateOne_SetAndGet)
 {
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
     cat.setRelaxStateOne(true);
     EXPECT_TRUE(cat.isRelaxStateOne());
     cat.setRelaxStateOne(false);
@@ -1851,7 +1851,7 @@ TEST_F(CatEntityTestFixture, LieDownAmount_Interpolation)
 {
     // 验证躺下动画插值公式：lerp(prev, current, partialTick)
     // 注意：需要移除AI目标以防止目标系统干扰手动设置的 lieDown 状态
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
 
     // 初始值为 0
     EXPECT_FLOAT_EQ(cat.getLieDownAmount(0.0f), 0.0f);
@@ -1860,7 +1860,7 @@ TEST_F(CatEntityTestFixture, LieDownAmount_Interpolation)
 
     // 使用 CatTestWorld 进行 tick 测试
     CatTestWorld world;
-    AnimTestCatEntity catWithWorld(EntityId(1));
+    AnimTestCatEntity catWithWorld(EntityInstanceId(1));
     catWithWorld.setWorld(&world);
     catWithWorld.setTypeId("minecraft:cat");
     // 移除所有AI目标，防止目标系统重置 lieDown 状态
@@ -1880,7 +1880,7 @@ TEST_F(CatEntityTestFixture, LieDownAmount_Interpolation)
 TEST_F(CatEntityTestFixture, RelaxStateOneAmount_Interpolation)
 {
     CatTestWorld world;
-    AnimTestCatEntity cat(EntityId(1));
+    AnimTestCatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     // 移除所有AI目标，防止目标系统干扰
@@ -1900,7 +1900,7 @@ TEST_F(CatEntityTestFixture, RelaxStateOneAmount_Interpolation)
 TEST_F(CatEntityTestFixture, LieDownAmount_DecreasesWhenNotLying)
 {
     CatTestWorld world;
-    AnimTestCatEntity cat(EntityId(1));
+    AnimTestCatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     // 移除所有AI目标，防止目标系统干扰
@@ -1925,7 +1925,7 @@ TEST_F(CatEntityTestFixture, LieDownAmount_Bounded)
 {
     // 躺下动画进度应在 [0, 1] 范围内
     CatTestWorld world;
-    AnimTestCatEntity cat(EntityId(1));
+    AnimTestCatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     // 移除所有AI目标，防止目标系统干扰
@@ -1942,14 +1942,14 @@ TEST_F(CatEntityTestFixture, LieDownAmount_Bounded)
 TEST_F(CatEntityTestFixture, LieDownAmountTail_Interpolation)
 {
     // 躺下尾巴动画也应有插值支持
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
     EXPECT_FLOAT_EQ(cat.getLieDownAmountTail(0.0f), 0.0f);
     EXPECT_FLOAT_EQ(cat.getLieDownAmountTail(1.0f), 0.0f);
 }
 
 TEST_F(CatEntityTestFixture, LyingOnTopOfSleepingPlayer_DefaultFalse)
 {
-    AnimTestCatEntity cat(EntityId(0));
+    AnimTestCatEntity cat(EntityInstanceId(0));
     EXPECT_FALSE(cat.isLyingOnTopOfSleepingPlayer());
 }
 
@@ -1964,7 +1964,7 @@ TEST_F(CatEntityTestFixture, PurrSound_WhenLying)
 {
     // 躺下时每 5 tick 播放呼噜声
     CatTestWorld world;
-    AnimTestCatEntity cat(EntityId(1));
+    AnimTestCatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setLieDown(true);
@@ -1984,7 +1984,7 @@ TEST_F(CatEntityTestFixture, PurrSound_WhenRelaxing)
 {
     // 放松时也播放呼噜声
     CatTestWorld world;
-    AnimTestCatEntity cat(EntityId(1));
+    AnimTestCatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setRelaxStateOne(true);
@@ -2002,7 +2002,7 @@ TEST_F(CatEntityTestFixture, NoPurrSound_WhenNotLyingOrRelaxing)
 {
     // 非躺下/放松状态不应播放呼噜声
     CatTestWorld world;
-    AnimTestCatEntity cat(EntityId(1));
+    AnimTestCatEntity cat(EntityInstanceId(1));
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     // 默认未躺下/未放松

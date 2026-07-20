@@ -44,6 +44,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -56,7 +57,7 @@ namespace mc {
 entity::DataParameter<bool> TurtleEntity::DATA_HAS_EGG_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<bool> TurtleEntity::DATA_LAYING_EGG_PARAM = entity::EntityDataManager::createKey<bool>();
 
-TurtleEntity::TurtleEntity(EntityId id)
+TurtleEntity::TurtleEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 海龟可以走上1格高的方块
@@ -248,7 +249,7 @@ void TurtleEntity::registerGoals()
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 9: 随机游荡（只在陆地上）

@@ -45,7 +45,7 @@ using namespace entity::serialization;
 // 构造函数
 // ============================================================================
 
-OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityId id)
+OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityInstanceId id)
     : Entity(id)
 {
     // 实体穿透方块，不受碰撞影响
@@ -58,13 +58,13 @@ OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityId id)
 
 std::unique_ptr<Entity> OminousItemSpawnerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<OminousItemSpawnerEntity>(EntityId(0));
+    return std::make_unique<OminousItemSpawnerEntity>(EntityInstanceId(0));
 }
 
 std::unique_ptr<Entity> OminousItemSpawnerEntity::createWithItem(IWorld& world, const ItemStack& stack)
 {
     // 创建实体、设置随机延迟 [60, 120] ticks、设置物品
-    auto entity = std::make_unique<OminousItemSpawnerEntity>(EntityId(0));
+    auto entity = std::make_unique<OminousItemSpawnerEntity>(EntityInstanceId(0));
     entity->m_spawnItemAfterTicks = world.getRandom().nextInt(SPAWN_ITEM_DELAY_MIN, SPAWN_ITEM_DELAY_MAX);
     entity->m_item = stack;
     return entity;
@@ -197,14 +197,14 @@ void OminousItemSpawnerEntity::spawnItem()
     } else {
         // 普通物品：创建物品实体自然掉落
         auto itemEntity = std::make_unique<ItemEntity>(
-            EntityId(0), itemStack, static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
+            EntityInstanceId(0), itemStack, static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-        itemEntity->setTypeId(EntityTypes::ITEM);
+        itemEntity->setTypeId(EntityTypeKeys::ITEM);
 
         ItemEntity* rawPtr = itemEntity.get();
-        EntityId entityId = m_world->spawnEntity(std::move(itemEntity));
-        if (entityId != EntityId(0)) {
+        EntityInstanceId entityId = m_world->spawnEntity(std::move(itemEntity));
+        if (entityId != EntityInstanceId(0)) {
             spawnedEntity = rawPtr;
         }
     }
@@ -247,8 +247,8 @@ Entity* OminousItemSpawnerEntity::spawnProjectile(
 
     // 将弹射物添加到世界（需在 shoot 之前，因为 shoot 可能访问世界引用）
     entity::ProjectileEntity* projectile = dynamic_cast<entity::ProjectileEntity*>(entity.get());
-    EntityId entityId = world.spawnEntity(std::move(entity));
-    if (entityId == EntityId(0) || projectile == nullptr) {
+    EntityInstanceId entityId = world.spawnEntity(std::move(entity));
+    if (entityId == EntityInstanceId(0) || projectile == nullptr) {
         return nullptr;
     }
 

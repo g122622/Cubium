@@ -108,13 +108,13 @@ public:
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
@@ -123,7 +123,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
@@ -538,7 +538,7 @@ TEST_F(TNTEntityTest, NoGravityMode)
 TEST_F(TNTEntityTest, EntityRegistration)
 {
     auto& registry = EntityRegistry::instance();
-    const EntityType* tntType = registry.getType(EntityTypes::TNT);
+    const EntityType* tntType = registry.getType(EntityTypeKeys::TNT);
 
     ASSERT_NE(tntType, nullptr);
     EXPECT_TRUE(tntType->isValid());

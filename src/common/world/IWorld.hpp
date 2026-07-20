@@ -417,7 +417,7 @@ public:
      * @param pos 方块位置
      * @param progress 破坏进度 (0-9 表示阶段，-1 表示移除动画)
      */
-    virtual void destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress)
+    virtual void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress)
     {
         (void)breakerId;
         (void)pos;
@@ -800,7 +800,7 @@ public:
      * 默认实现返回 0（不支持生成实体）。
      * ServerWorld 会重写此方法以实际生成实体。
      */
-    virtual EntityId spawnEntity(std::unique_ptr<Entity> entity);
+    virtual EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity);
 
     /**
      * @brief 通过ID获取实体
@@ -809,12 +809,12 @@ public:
      *
      * 默认实现返回 nullptr。
      */
-    [[nodiscard]] virtual Entity* getEntity(EntityId id)
+    [[nodiscard]] virtual Entity* getEntity(EntityInstanceId id)
     {
         (void)id;
         return nullptr;
     }
-    [[nodiscard]] virtual const Entity* getEntity(EntityId id) const
+    [[nodiscard]] virtual const Entity* getEntity(EntityInstanceId id) const
     {
         (void)id;
         return nullptr;
@@ -874,10 +874,10 @@ public:
      * 返回世界中所有匹配指定实体类型ID的存活实体。
      * ServerWorld 通过 EntityManager 实现此方法。
      *
-     * @param typeId 实体类型ID（来自 EntityTypeIdNumber）
+     * @param typeId 实体类型字符串（来自 EntityTypeKeys，如 "minecraft:ender_dragon"）
      * @return 匹配类型的实体列表
      */
-    [[nodiscard]] virtual std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const
+    [[nodiscard]] virtual std::vector<Entity*> getEntitiesByType(const std::string& typeId) const
     {
         (void)typeId;
         return {};
@@ -1506,7 +1506,7 @@ public:
      * @param entityId 实体ID
      * @param status 状态码（如 EntityStatusPacket::Status::GuardianAttack）
      */
-    virtual void broadcastEntityStatus(EntityId entityId, u8 status)
+    virtual void broadcastEntityStatus(EntityInstanceId entityId, u8 status)
     {
         (void)entityId;
         (void)status;
@@ -1521,7 +1521,7 @@ public:
      * @param entityId 实体ID
      * @param animation 动画类型（如 EntityAnimationPacket::Animation::CriticalEffect）
      */
-    virtual void broadcastEntityAnimation(EntityId entityId, u8 animation)
+    virtual void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation)
     {
         (void)entityId;
         (void)animation;
@@ -1536,7 +1536,7 @@ public:
      * @param entityId 受伤实体ID
      * @param hurtDir 受伤方向角（度，相对实体朝向）
      */
-    virtual void broadcastHurtAnimation(EntityId entityId, f32 hurtDir)
+    virtual void broadcastHurtAnimation(EntityInstanceId entityId, f32 hurtDir)
     {
         (void)entityId;
         (void)hurtDir;
@@ -1553,7 +1553,7 @@ public:
      * @param entityId 被拴实体的ID
      * @param linkedEntityId 拴绳持有者实体ID（0 表示解除拴绳）
      */
-    virtual void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId)
+    virtual void broadcastSetEntityLink(EntityInstanceId entityId, EntityInstanceId linkedEntityId)
     {
         (void)entityId;
         (void)linkedEntityId;

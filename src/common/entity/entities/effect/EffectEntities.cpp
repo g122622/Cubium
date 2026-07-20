@@ -34,6 +34,7 @@
 #include "../../serialization/EntityNbtKeys.hpp"
 #include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
@@ -115,7 +116,7 @@ void applyInstantEffect(
 // ==================== EnderCrystalEntity ====================
 
 EnderCrystalEntity::EnderCrystalEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {}
 
 std::unique_ptr<Entity> EnderCrystalEntity::create(IWorld* /*world*/)
@@ -192,7 +193,7 @@ void EnderCrystalEntity::healDragon()
         }
 
         // 检查是否为末影龙
-        if (entity->typeId() == entity::EntityTypeIdNumber::ENDER_DRAGON) {
+        if (entity->entityType() == entity::VanillaEntityTypeKeys::ENDER_DRAGON) {
             f32 dx = static_cast<f32>(entity->x() - x());
             f32 dy = static_cast<f32>(entity->y() - y());
             f32 dz = static_cast<f32>(entity->z() - z());
@@ -247,7 +248,7 @@ bool EnderCrystalEntity::hurt(DamageSource& source, f32 /*amount*/)
     }
     // 2. 末影龙造成的伤害无效（避免龙误伤自己的水晶）
     Entity* attacker = source.getEntity();
-    if (attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::ENDER_DRAGON) {
+    if (attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::ENDER_DRAGON) {
         return false;
     }
     // 3. 仅在尚未移除时执行破坏流程（防止递归爆炸重复触发）
@@ -282,7 +283,7 @@ bool EnderCrystalEntity::hurt(DamageSource& source, f32 /*amount*/)
 // ==================== LightningBoltEntity ====================
 
 LightningBoltEntity::LightningBoltEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {
     // 闪电总是可见，即使不在视锥内
 }
@@ -509,7 +510,7 @@ void LightningBoltEntity::_damageEntities()
 // ==================== AreaEffectCloudEntity ====================
 
 AreaEffectCloudEntity::AreaEffectCloudEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {
     // 药水云无碰撞
     setNoClip(true);
@@ -681,7 +682,7 @@ void AreaEffectCloudEntity::_applyEffects()
         }
 
         // 检查是否在重应用延迟中
-        EntityId entityId = entity->id();
+        EntityInstanceId entityId = entity->id();
         if (m_reapplicationMap.find(entityId) != m_reapplicationMap.end()) {
             continue;
         }
@@ -935,7 +936,7 @@ Result<void> AreaEffectCloudEntity::readAdditionalSaveData(const nbt::tags::comp
 // ==================== ArmorStandEntity ====================
 
 ArmorStandEntity::ArmorStandEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {}
 
 std::unique_ptr<Entity> ArmorStandEntity::create(IWorld* /*world*/)

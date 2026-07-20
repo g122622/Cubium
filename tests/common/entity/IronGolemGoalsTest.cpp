@@ -24,6 +24,8 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "entity/ai/goal/goals/special/IronGolemGoals.hpp"
@@ -36,7 +38,7 @@ namespace test {
 
 class IronGolemGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityId(1)); }
+    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { ironGolem.reset(); }
 
@@ -49,7 +51,7 @@ class OfferFlowerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
         goal = std::make_unique<entity::ai::goal::OfferFlowerGoal>(ironGolem.get());
     }
 
@@ -131,7 +133,7 @@ class MoveTowardsTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
         goal = std::make_unique<entity::ai::goal::MoveTowardsTargetGoal>(ironGolem.get(), 0.9, 32.0f);
     }
 
@@ -172,7 +174,13 @@ TEST_F(MoveTowardsTargetGoalTest, MutexFlags)
 
 class IronGolemEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityId(1)); }
+    void SetUp() override
+    {
+        // 注册原版实体类型，使 VanillaEntityTypeKeys 指针非空，可解引用传入 canAttackType。
+        // registerAll() 幂等且线程安全，多次调用无副作用。
+        entity::VanillaEntities::registerAll();
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    }
 
     void TearDown() override { ironGolem.reset(); }
 
@@ -218,16 +226,15 @@ TEST_F(IronGolemEntityTest, CanAttackType)
 {
     // 玩家创建的铁傀儡不攻击玩家
     ironGolem->setPlayerCreated(true);
-    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::PLAYER));
+    EXPECT_FALSE(ironGolem->canAttackType(*entity::VanillaEntityTypeKeys::PLAYER));
 
     // 铁傀儡不攻击苦力怕
-    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::CREEPER));
+    EXPECT_FALSE(ironGolem->canAttackType(*entity::VanillaEntityTypeKeys::CREEPER));
 
-    // 注意：canAttackType 对非 PLAYER/非 CREEPER 类型返回 true，
-    // 但在单元测试环境中 EntityTypeIdNumber 的 extern 变量均为默认值 0，
-    // ZOMBIE == CREEPER == 0，因此无法在此测试"可以攻击其他实体"。
-    // 使用不可能的 ID 值测试默认行为
-    EXPECT_TRUE(ironGolem->canAttackType(entity::EntityTypeId(999)));
+    // 非玩家创建的铁傀儡默认允许攻击（除苦力怕和玩家创建者外的类型）
+    // 使用 EntityType::UNKNOWN 测试默认行为：UNKNOWN 不等于 PLAYER/CREEPER/GHAST，应允许攻击
+    ironGolem->setPlayerCreated(false);
+    EXPECT_TRUE(ironGolem->canAttackType(entity::EntityType::UNKNOWN));
 }
 
 TEST_F(IronGolemEntityTest, IAngerableInterface)
@@ -258,7 +265,7 @@ TEST_F(IronGolemEntityTest, Dimensions)
 
 class GolemEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { golem = std::make_unique<IronGolemEntity>(EntityId(1)); }
+    void SetUp() override { golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { golem.reset(); }
 

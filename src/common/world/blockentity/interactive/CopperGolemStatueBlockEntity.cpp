@@ -24,9 +24,9 @@
 #include "CopperGolemStatueBlockEntity.hpp"
 
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
@@ -67,7 +67,7 @@ std::unique_ptr<Entity> CopperGolemStatueBlockEntity::removeStatue(const BlockSt
 
     // 通过实体注册表获取铜傀儡实体类型并创建实例
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypes::COPPER_GOLEM);
+    const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypeKeys::COPPER_GOLEM);
     if (copperGolemType == nullptr) {
         return nullptr;
     }

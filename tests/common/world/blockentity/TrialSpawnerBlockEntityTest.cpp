@@ -700,12 +700,12 @@ public:
         return it == m_blockEntities.end() ? nullptr : it->second;
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        EntityId id = EntityId(++m_nextEntityId);
+        EntityInstanceId id = EntityInstanceId(++m_nextEntityId);
         entity->setId(id);
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
@@ -1368,12 +1368,12 @@ public:
     void clearBlocks() { m_blockStates.clear(); }
 
     // 实体生成存根
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        EntityId id = EntityId(++m_nextEntityId);
+        EntityInstanceId id = EntityInstanceId(++m_nextEntityId);
         entity->setId(id);
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));

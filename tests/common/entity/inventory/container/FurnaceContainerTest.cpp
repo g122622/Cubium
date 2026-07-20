@@ -579,7 +579,7 @@ protected:
         Items::initialize();
 
         // 创建玩家
-        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
         player_->setExperience(0, 0.0f, 0); // 初始经验为 0（等级、进度、总经验）
 
         // 创建熔炉背包

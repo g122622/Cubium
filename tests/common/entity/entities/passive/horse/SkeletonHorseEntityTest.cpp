@@ -38,7 +38,7 @@ protected:
     void SetUp() override
     {
         // 创建骷髅马实例
-        m_horse = std::make_unique<SkeletonHorseEntity>(EntityId(0));
+        m_horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(0));
     }
 
     std::unique_ptr<SkeletonHorseEntity> m_horse;

@@ -113,7 +113,7 @@ public:
      * 3. 实体是投射物且发射者是玩家 -> 返回发射者
      * 4. 实体是掉落物品且所有者是玩家 -> 返回所有者
      *
-     * @param world 世界引用（用于通过 EntityId/UUID 查找实体）
+     * @param world 世界引用（用于通过 EntityInstanceId/UUID 查找实体）
      * @param entity 触发实体
      */
     static Player* tryGetPlayer(IWorld& world, const Entity* entity);

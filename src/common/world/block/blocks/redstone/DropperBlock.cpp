@@ -148,7 +148,7 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     f32 vz = static_cast<f32>(Directions::zOffset(facing)) * DROP_SPEED;
 
     // 创建物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), dispensedStack, x, y, z, vx, vy, vz);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), dispensedStack, x, y, z, vx, vy, vz);
 
     // 设置拾取延迟
     itemEntity->setPickupDelay(10);

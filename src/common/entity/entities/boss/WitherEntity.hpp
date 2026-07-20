@@ -125,7 +125,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit WitherEntity(EntityId id);
+    explicit WitherEntity(EntityInstanceId id);
 
     ~WitherEntity() noexcept override = default;
 

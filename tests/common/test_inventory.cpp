@@ -57,7 +57,7 @@ namespace {
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -634,7 +634,7 @@ TEST_F(SlotTest, ArmorSlotOnlyAcceptsMatchingArmorType)
 TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForEmptySlot)
 {
     ArmorSlot headSlot(m_inventory.get(), InventorySlots::ARMOR_HEAD, 0, 0, ArmorSlot::ArmorType::Head);
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
 
     // 空槽位应该总是可以拾取
     EXPECT_TRUE(headSlot.mayPickup(player));
@@ -651,7 +651,7 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForCreativePlayer)
     ArmorSlot headSlot(m_inventory.get(), InventorySlots::ARMOR_HEAD, 0, 0, ArmorSlot::ArmorType::Head);
     m_inventory->setItem(InventorySlots::ARMOR_HEAD, ItemStack(helmet));
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setGameMode(GameMode::Creative);
 
     // 创造模式玩家可以取下任何护甲
@@ -669,7 +669,7 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsTrueForNormalArmor)
     ArmorSlot chestSlot(m_inventory.get(), InventorySlots::ARMOR_CHEST, 0, 0, ArmorSlot::ArmorType::Chest);
     m_inventory->setItem(InventorySlots::ARMOR_CHEST, ItemStack(chestplate));
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setGameMode(GameMode::Survival);
 
     // 普通护甲（无绑定诅咒）可以取下
@@ -691,14 +691,14 @@ TEST_F(SlotTest, ArmorSlotMayPickupReturnsFalseForBindingCurseArmor)
     cursedBoots.addEnchantment("minecraft:binding_curse", 1);
     m_inventory->setItem(InventorySlots::ARMOR_FEET, cursedBoots);
 
-    Player survivalPlayer(EntityId(1), "SurvivalPlayer");
+    Player survivalPlayer(EntityInstanceId(1), "SurvivalPlayer");
     survivalPlayer.setGameMode(GameMode::Survival);
 
     // 生存模式玩家无法取下绑定诅咒的护甲
     EXPECT_FALSE(feetSlot.mayPickup(survivalPlayer));
 
     // 创造模式玩家可以取下绑定诅咒的护甲
-    Player creativePlayer(EntityId(2), "CreativePlayer");
+    Player creativePlayer(EntityInstanceId(2), "CreativePlayer");
     creativePlayer.setGameMode(GameMode::Creative);
     EXPECT_TRUE(feetSlot.mayPickup(creativePlayer));
 }
@@ -721,7 +721,7 @@ TEST_F(SlotTest, ArmorSlotMayPickupWithMultipleEnchantments)
     multiEnchantedLeggings.addEnchantment("minecraft:mending", 1);
     m_inventory->setItem(InventorySlots::ARMOR_LEGS, multiEnchantedLeggings);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setGameMode(GameMode::Survival);
 
     // 绑定诅咒存在时无法取下
@@ -1032,7 +1032,7 @@ TEST_F(PlayerInventoryNewMethodsTest, TickDoesNotCrashOnNullWorld)
 {
     // 即使有 player 但 world 为 nullptr，也应该安全返回
     ArmorTestWorld world;
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
 
     PlayerInventory inventory(&player);
     EXPECT_NO_THROW(inventory.tick());

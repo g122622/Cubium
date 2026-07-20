@@ -34,6 +34,7 @@
 #include "common/entity/entities/monster/arthropod/CaveSpiderEntity.hpp"
 #include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -78,10 +79,10 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // 测试辅助方法
@@ -117,7 +118,7 @@ protected:
 TEST_F(SpiderEntityTest, BasicProperties_AreCorrect)
 {
     // MC 1.16.5 蜘蛛属性验证
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     spider->setWorld(m_world.get());
 
     // 尺寸验证
@@ -135,7 +136,7 @@ TEST_F(SpiderEntityTest, BasicProperties_AreCorrect)
 TEST_F(SpiderEntityTest, Attributes_AreCorrect)
 {
     // MC 1.16.5 蜘蛛属性值验证
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     spider->setWorld(m_world.get());
 
     // 属性验证
@@ -150,7 +151,7 @@ TEST_F(SpiderEntityTest, Attributes_AreCorrect)
 
 TEST_F(SpiderEntityTest, ShouldNotBurnInDaylight)
 {
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     spider->setWorld(m_world.get());
 
     // MC 1.16.5: 蜘蛛不在阳光下燃烧
@@ -171,12 +172,12 @@ protected:
 TEST_F(SpiderLightLevelTest, AttackInDarkness_LightLevelBelow7)
 {
     // MC 1.16.5: 蜘蛛在光照等级 < 7 时攻击
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     spider->setWorld(m_world.get());
     spider->setPosition(0.0f, 64.0f, 0.0f);
 
     // 创建测试玩家
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setPosition(2.0f, 64.0f, 0.0f);
 
@@ -195,11 +196,11 @@ TEST_F(SpiderLightLevelTest, AttackInDarkness_LightLevelBelow7)
 TEST_F(SpiderLightLevelTest, NoAttackInBright_LightLevel7AndAbove)
 {
     // MC 1.16.5: 蜘蛛在光照等级 >= 7 时不攻击
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     spider->setWorld(m_world.get());
     spider->setPosition(0.0f, 64.0f, 0.0f);
 
-    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
     player->setWorld(m_world.get());
     player->setPosition(2.0f, 64.0f, 0.0f);
 
@@ -271,7 +272,7 @@ TEST_F(SpiderAttackGoalTest, ShouldNotExecute_WhenRidden)
     // 蜘蛛被骑乘时（骷髅蜘蛛骑士）不应该执行攻击目标
 
     // 验证逻辑: isBeingRidden() 检查
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     spider->setWorld(m_world.get());
 
     // 初始状态：没有被骑乘
@@ -330,9 +331,9 @@ TEST_F(SpiderTargetGoalTest, SelectTarget_InDarkness)
     // this.targetSelector.addGoal(2, new SpiderEntity.TargetGoal<>(this, PlayerEntity.class));
     // this.targetSelector.addGoal(3, new SpiderEntity.TargetGoal<>(this, IronGolemEntity.class));
 
-    std::vector<entity::EntityTypeId> validTargetTypes = {
-        entity::EntityTypeIdNumber::PLAYER,
-        // entity::EntityTypeIdNumber::IRON_GOLEM, // 待实现
+    std::vector<const entity::EntityType*> validTargetTypes = {
+        entity::VanillaEntityTypeKeys::PLAYER,
+        // entity::VanillaEntityTypeKeys::IRON_GOLEM, // 待实现
     };
 
     EXPECT_EQ(validTargetTypes.size(), 1);
@@ -352,7 +353,7 @@ protected:
 TEST_F(CaveSpiderEntityTest, BasicProperties_AreCorrect)
 {
     // MC 1.16.5 洞穴蜘蛛属性验证
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
     caveSpider->setWorld(m_world.get());
 
     // 尺寸验证（比普通蜘蛛小）
@@ -371,7 +372,7 @@ TEST_F(CaveSpiderEntityTest, BasicProperties_AreCorrect)
 TEST_F(CaveSpiderEntityTest, Attributes_AreCorrect)
 {
     // MC 1.16.5 洞穴蜘蛛属性值验证
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
     caveSpider->setWorld(m_world.get());
 
     // 属性验证（生命值比普通蜘蛛少）
@@ -386,7 +387,7 @@ TEST_F(CaveSpiderEntityTest, Attributes_AreCorrect)
 
 TEST_F(CaveSpiderEntityTest, PoisonDuration_CanBeSet)
 {
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
 
     // 默认值
     EXPECT_EQ(caveSpider->getPoisonDuration(), 7);
@@ -413,7 +414,7 @@ TEST_F(CaveSpiderPoisonTest, NoPoisonOnPeaceful)
     // 简单难度：无中毒
     m_world->setDifficulty(Difficulty::Peaceful);
 
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
     caveSpider->setWorld(m_world.get());
 
     // 简单难度下不应该有中毒效果
@@ -434,7 +435,7 @@ TEST_F(CaveSpiderPoisonTest, SevenSecondsPoisonOnNormal)
     // MC 1.16.5: 普通难度 7 秒中毒
     m_world->setDifficulty(Difficulty::Normal);
 
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
     caveSpider->setWorld(m_world.get());
 
     EXPECT_EQ(m_world->difficulty(), Difficulty::Normal);
@@ -452,7 +453,7 @@ TEST_F(CaveSpiderPoisonTest, FifteenSecondsPoisonOnHard)
     // MC 1.16.5: 困难难度 15 秒中毒
     m_world->setDifficulty(Difficulty::Hard);
 
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
     caveSpider->setWorld(m_world.get());
 
     EXPECT_EQ(m_world->difficulty(), Difficulty::Hard);
@@ -496,7 +497,7 @@ class SpiderInheritanceTest : public ::testing::Test {};
 TEST_F(SpiderInheritanceTest, SpiderInheritsFromMonster)
 {
     // 蜘蛛继承自 MonsterEntity
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
     MonsterEntity* monster = dynamic_cast<MonsterEntity*>(spider.get());
     EXPECT_NE(monster, nullptr);
 }
@@ -504,7 +505,7 @@ TEST_F(SpiderInheritanceTest, SpiderInheritsFromMonster)
 TEST_F(SpiderInheritanceTest, CaveSpiderInheritsFromSpider)
 {
     // 洞穴蜘蛛继承自蜘蛛
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(1));
     SpiderEntity* spider = dynamic_cast<SpiderEntity*>(caveSpider.get());
     EXPECT_NE(spider, nullptr);
 
@@ -579,8 +580,8 @@ protected:
 TEST_F(SpiderComparisonTest, SizeDifference)
 {
     // 洞穴蜘蛛比普通蜘蛛小
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(2));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(2));
 
     // 宽度对比
     EXPECT_GT(spider->width(), caveSpider->width());
@@ -596,8 +597,8 @@ TEST_F(SpiderComparisonTest, SizeDifference)
 TEST_F(SpiderComparisonTest, HealthDifference)
 {
     // 洞穴蜘蛛生命值比普通蜘蛛少
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(2));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(2));
     spider->setWorld(m_world.get());
     caveSpider->setWorld(m_world.get());
 
@@ -612,8 +613,8 @@ TEST_F(SpiderComparisonTest, HealthDifference)
 TEST_F(SpiderComparisonTest, BothCanClimb)
 {
     // 两种蜘蛛都能攀爬
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(2));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(2));
 
     EXPECT_TRUE(spider->canClimb());
     EXPECT_TRUE(caveSpider->canClimb());
@@ -622,8 +623,8 @@ TEST_F(SpiderComparisonTest, BothCanClimb)
 TEST_F(SpiderComparisonTest, BothDoNotBurnInDaylight)
 {
     // 两种蜘蛛都不在阳光下燃烧
-    auto spider = std::make_unique<SpiderEntity>(EntityId(1));
-    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityId(2));
+    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1));
+    auto caveSpider = std::make_unique<CaveSpiderEntity>(EntityInstanceId(2));
 
     EXPECT_FALSE(spider->shouldBurnInDaylight());
     EXPECT_FALSE(caveSpider->shouldBurnInDaylight());

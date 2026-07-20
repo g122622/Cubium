@@ -41,6 +41,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
@@ -66,7 +67,7 @@ entity::DataParameter<bool> AbstractNautilusEntity::DATA_DASH_PARAM = entity::En
 // 构造函数
 // ============================================================================
 
-AbstractNautilusEntity::AbstractNautilusEntity(EntityId id)
+AbstractNautilusEntity::AbstractNautilusEntity(EntityInstanceId id)
     : TameableEntity(id)
 {
     // 设置步进高度，鹦鹉螺可以走上 1 格高的方块
@@ -691,7 +692,7 @@ void AbstractNautilusEntity::registerGoals()
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(
         6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 7: 随机看向

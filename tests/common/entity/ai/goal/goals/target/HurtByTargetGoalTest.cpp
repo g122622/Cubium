@@ -27,10 +27,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
-#include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
 #include "entity/registry/VanillaEntities.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 namespace test {
@@ -39,7 +39,7 @@ namespace test {
 
 class HurtByTargetGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     void TearDown() override { pig.reset(); }
 
@@ -62,7 +62,7 @@ TEST_F(HurtByTargetGoalTest, Constructor_WithIgnoreDamagePredicate)
 {
     auto goal =
         std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true, [](const LivingEntity* attacker) -> bool {
-            return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::GUARDIAN;
+            return attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::GUARDIAN;
         });
     EXPECT_NE(goal, nullptr);
 }
@@ -71,7 +71,7 @@ TEST_F(HurtByTargetGoalTest, SetAlertOthers_ReturnsReference)
 {
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
     auto& ref = goal->setAlertOthers([](const LivingEntity* ally) -> bool {
-        return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
     });
     EXPECT_EQ(&ref, goal.get());
 }
@@ -80,7 +80,7 @@ TEST_F(HurtByTargetGoalTest, SetAlertOthers_EnablesAlertAllies)
 {
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     goal->setAlertOthers([](const LivingEntity* ally) -> bool {
-        return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
     });
     SUCCEED();
 }
@@ -89,8 +89,8 @@ TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithLambda)
 {
     auto dolphinPredicate = [](const LivingEntity* attacker) -> bool {
         if (!attacker) return false;
-        auto type = attacker->typeId();
-        return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+        const entity::EntityType* type = attacker->entityType();
+        return type == entity::VanillaEntityTypeKeys::GUARDIAN || type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
     };
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true, dolphinPredicate);
     EXPECT_NE(goal, nullptr);
@@ -108,7 +108,7 @@ TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithRaiderCheck)
 TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithTypeIdCheck)
 {
     auto sameTypePredicate = [](const LivingEntity* attacker) -> bool {
-        return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::SHULKER;
+        return attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::SHULKER;
     };
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true, sameTypePredicate);
     EXPECT_NE(goal, nullptr);
@@ -118,7 +118,7 @@ TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndAlertOthers)
 {
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true);
     goal->setAlertOthers([](const LivingEntity* ally) -> bool {
-        return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
     });
     EXPECT_NE(goal, nullptr);
 }
@@ -126,11 +126,11 @@ TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndAlertOthers)
 TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndIgnoreAlert)
 {
     auto drownedPredicate = [](const LivingEntity* attacker) -> bool {
-        return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
+        return attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::DROWNED;
     };
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true, drownedPredicate);
     goal->setAlertOthers([](const LivingEntity* ally) -> bool {
-        return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
     });
     EXPECT_NE(goal, nullptr);
 }
@@ -163,7 +163,7 @@ private:
  */
 class TestPigEntity : public PigEntity {
 public:
-    explicit TestPigEntity(EntityId id)
+    explicit TestPigEntity(EntityInstanceId id)
         : PigEntity(id)
     {}
 
@@ -174,19 +174,19 @@ class HurtByTargetBehaviorTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 初始化方块和实体注册表，确保 EntityTypeIdNumber 有正确的 typeId
+        // 初始化方块和实体注册表，确保 VanillaEntityTypeKeys 有正确的 typeId
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
 
         world = std::make_unique<HurtByTargetTestWorld>();
 
         // 创建被攻击者（猪）
-        pig = std::make_unique<TestPigEntity>(EntityId(1));
+        pig = std::make_unique<TestPigEntity>(EntityInstanceId(1));
         pig->setWorld(world.get());
         pig->setPosition(0.0f, 64.0f, 0.0f);
 
         // 创建攻击者（另一只猪）
-        attacker = std::make_unique<TestPigEntity>(EntityId(2));
+        attacker = std::make_unique<TestPigEntity>(EntityInstanceId(2));
         attacker->setWorld(world.get());
         attacker->setPosition(5.0f, 64.0f, 0.0f);
 
@@ -232,9 +232,9 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_IgnoreDamagePredicate_ExcludesAtt
     pig->setLastHurtBy(attacker.get());
 
     // 使用排除谓词排除所有 PigEntity 类型的攻击者
-    auto pigTypeId = pig->typeId();
+    const entity::EntityType* pigTypeId = pig->entityType();
     auto ignorePig = [pigTypeId](const LivingEntity* entity) -> bool {
-        return entity != nullptr && entity->typeId() == pigTypeId;
+        return entity != nullptr && entity->entityType() == pigTypeId;
     };
 
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false, ignorePig);
@@ -250,8 +250,8 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_IgnoreDamagePredicate_AllowsOther
     // 使用排除谓词只排除守卫者类型（攻击者是猪，不在排除范围内）
     auto ignoreGuardian = [](const LivingEntity* entity) -> bool {
         if (!entity) return false;
-        auto type = entity->typeId();
-        return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+        const entity::EntityType* type = entity->entityType();
+        return type == entity::VanillaEntityTypeKeys::GUARDIAN || type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
     };
 
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false, ignoreGuardian);
@@ -338,7 +338,7 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_NearbySameTypeGetTar
     pig->setLastHurtBy(attacker.get());
 
     // 创建一个附近的同类实体（盟友）
-    auto ally = std::make_unique<TestPigEntity>(EntityId(3));
+    auto ally = std::make_unique<TestPigEntity>(EntityInstanceId(3));
     ally->setWorld(world.get());
     ally->setPosition(2.0f, 64.0f, 0.0f);
 
@@ -364,7 +364,7 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_IgnoreAlertPredicate
     pig->setLastHurtBy(attacker.get());
 
     // 创建一个附近的同类实体（盟友）
-    auto ally = std::make_unique<TestPigEntity>(EntityId(3));
+    auto ally = std::make_unique<TestPigEntity>(EntityInstanceId(3));
     ally->setWorld(world.get());
     ally->setPosition(2.0f, 64.0f, 0.0f);
 
@@ -374,10 +374,10 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_IgnoreAlertPredicate
     // 创建带 setAlertOthers 排除谓词的 goal
     // 排除谓词返回 true 表示不警醒该盟友
     // 这里排除所有与猪同类（typeId 相同）的盟友
-    auto pigTypeId = pig->typeId();
+    const entity::EntityType* pigTypeId = pig->entityType();
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true);
     goal->setAlertOthers([pigTypeId](const LivingEntity* allyEntity) -> bool {
-        return allyEntity != nullptr && allyEntity->typeId() == pigTypeId;
+        return allyEntity != nullptr && allyEntity->entityType() == pigTypeId;
     });
 
     ASSERT_TRUE(goal->shouldExecute());
@@ -395,7 +395,7 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_NoAlertAllies_NearbySameTypeNotT
     pig->setLastHurtBy(attacker.get());
 
     // 创建一个附近的同类实体（盟友）
-    auto ally = std::make_unique<TestPigEntity>(EntityId(3));
+    auto ally = std::make_unique<TestPigEntity>(EntityInstanceId(3));
     ally->setWorld(world.get());
     ally->setPosition(2.0f, 64.0f, 0.0f);
 

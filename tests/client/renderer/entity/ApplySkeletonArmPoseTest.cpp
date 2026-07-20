@@ -105,7 +105,7 @@ protected:
         m_model->setMainHand(HS::Right);
         m_model->setSwingingHand(HS::Right);
 
-        m_entity = std::make_unique<mc::client::ClientEntity>(mc::EntityId(1), "minecraft:skeleton");
+        m_entity = std::make_unique<mc::client::ClientEntity>(mc::EntityInstanceId(1), "minecraft:skeleton");
         m_context = std::make_unique<AnimationContext>();
         m_context->limbSwing = 0.0;
         m_context->limbSwingAmount = 0.0;

@@ -53,7 +53,7 @@ public:
     /**
      * @brief 获取挖掘者实体ID
      */
-    [[nodiscard]] EntityId breakerEntityId() const { return m_breakerEntityId; }
+    [[nodiscard]] EntityInstanceId breakerEntityId() const { return m_breakerEntityId; }
 
     /**
      * @brief 获取方块位置
@@ -74,7 +74,7 @@ public:
     /**
      * @brief 设置挖掘者实体ID
      */
-    void setBreakerEntityId(EntityId id) { m_breakerEntityId = id; }
+    void setBreakerEntityId(EntityInstanceId id) { m_breakerEntityId = id; }
 
     /**
      * @brief 设置方块位置
@@ -100,7 +100,7 @@ public:
     /**
      * @brief 创建更新破坏进度的包
      */
-    [[nodiscard]] static BlockBreakAnimPacket createUpdate(EntityId breakerId, const BlockPos& pos, u8 stage)
+    [[nodiscard]] static BlockBreakAnimPacket createUpdate(EntityInstanceId breakerId, const BlockPos& pos, u8 stage)
     {
         BlockBreakAnimPacket packet;
         packet.setBreakerEntityId(breakerId);
@@ -112,7 +112,7 @@ public:
     /**
      * @brief 创建移除破坏效果的包
      */
-    [[nodiscard]] static BlockBreakAnimPacket createRemove(EntityId breakerId, const BlockPos& pos)
+    [[nodiscard]] static BlockBreakAnimPacket createRemove(EntityInstanceId breakerId, const BlockPos& pos)
     {
         BlockBreakAnimPacket packet;
         packet.setBreakerEntityId(breakerId);
@@ -127,7 +127,7 @@ public:
     size_t expectedSize() const override;
 
 private:
-    EntityId m_breakerEntityId = 0;
+    EntityInstanceId m_breakerEntityId = 0;
     BlockPos m_position;
     i8 m_stage = 0;
 };

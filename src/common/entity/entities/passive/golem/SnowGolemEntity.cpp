@@ -54,7 +54,7 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-SnowGolemEntity::SnowGolemEntity(EntityId id)
+SnowGolemEntity::SnowGolemEntity(EntityInstanceId id)
     : GolemEntity(id)
 {
     // 注册 AI 目标

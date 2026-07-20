@@ -50,7 +50,7 @@ using entity::RayTraceResultType;
  */
 class CountingProjectile : public entity::ProjectileEntity {
 public:
-    explicit CountingProjectile(EntityId id)
+    explicit CountingProjectile(EntityInstanceId id)
         : ProjectileEntity(id)
     {}
 
@@ -67,7 +67,7 @@ protected:
  */
 class DeflectingEntity : public Entity {
 public:
-    explicit DeflectingEntity(EntityId id)
+    explicit DeflectingEntity(EntityInstanceId id)
         : Entity(id)
     {
         setTypeId("minecraft:shulker");
@@ -84,7 +84,7 @@ public:
  */
 class NonDeflectingEntity : public Entity {
 public:
-    explicit NonDeflectingEntity(EntityId id)
+    explicit NonDeflectingEntity(EntityInstanceId id)
         : Entity(id)
     {
         setTypeId("minecraft:zombie");
@@ -101,7 +101,7 @@ public:
  */
 class CustomDeflectionEntity : public Entity {
 public:
-    explicit CustomDeflectionEntity(EntityId id)
+    explicit CustomDeflectionEntity(EntityInstanceId id)
         : Entity(id)
     {
         setTypeId("minecraft:custom_deflector");
@@ -134,20 +134,20 @@ public:
         }
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
 
 private:
-    std::unordered_map<EntityId, Entity*> m_entities;
+    std::unordered_map<EntityInstanceId, Entity*> m_entities;
 };
 
 // ============================================================================
@@ -194,8 +194,8 @@ TEST_F(ProjectileDeflectionTest, DeflectionEnumValues)
 TEST_F(ProjectileDeflectionTest, DefaultDeflectionNoneForNonTaggedEntity)
 {
     // 不属于 DEFLECTS_PROJECTILES 标签的实体默认返回 None
-    NonDeflectingEntity entity(EntityId(1));
-    CountingProjectile projectile(EntityId(2));
+    NonDeflectingEntity entity(EntityInstanceId(1));
+    CountingProjectile projectile(EntityInstanceId(2));
 
     EXPECT_EQ(entity.deflection(projectile), ProjectileDeflection::None);
 }
@@ -203,8 +203,8 @@ TEST_F(ProjectileDeflectionTest, DefaultDeflectionNoneForNonTaggedEntity)
 TEST_F(ProjectileDeflectionTest, DefaultDeflectionReverseForTaggedEntity)
 {
     // 属于 DEFLECTS_PROJECTILES 标签的实体（如潜影贝）默认返回 Reverse
-    DeflectingEntity entity(EntityId(1));
-    CountingProjectile projectile(EntityId(2));
+    DeflectingEntity entity(EntityInstanceId(1));
+    CountingProjectile projectile(EntityInstanceId(2));
 
     EXPECT_EQ(entity.deflection(projectile), ProjectileDeflection::Reverse);
 }
@@ -216,10 +216,10 @@ TEST_F(ProjectileDeflectionTest, DefaultDeflectionReverseForTaggedEntity)
 TEST_F(ProjectileDeflectionTest, BreezeDeflectsNonWindChargeProjectiles)
 {
     // 旋风人偏转非风弹投射物
-    BreezeEntity breeze(EntityId(1));
+    BreezeEntity breeze(EntityInstanceId(1));
     breeze.setTypeId("minecraft:breeze");
     breeze.setWorld(m_world.get());
-    CountingProjectile projectile(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(2));
 
     ProjectileDeflection result = breeze.deflection(projectile);
     EXPECT_EQ(result, ProjectileDeflection::Reverse);
@@ -228,9 +228,9 @@ TEST_F(ProjectileDeflectionTest, BreezeDeflectsNonWindChargeProjectiles)
 TEST_F(ProjectileDeflectionTest, BreezeDoesNotDeflectWindCharge)
 {
     // 旋风人不偏转风弹
-    BreezeEntity breeze(EntityId(1));
+    BreezeEntity breeze(EntityInstanceId(1));
     breeze.setWorld(m_world.get());
-    entity::WindChargeEntity windCharge(EntityId(2));
+    entity::WindChargeEntity windCharge(EntityInstanceId(2));
 
     ProjectileDeflection result = breeze.deflection(windCharge);
     EXPECT_EQ(result, ProjectileDeflection::None);
@@ -242,8 +242,8 @@ TEST_F(ProjectileDeflectionTest, BreezeDoesNotDeflectWindCharge)
 
 TEST_F(ProjectileDeflectionTest, ReverseDeflectionModifiesVelocity)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setVelocity(1.0f, 2.0f, 3.0f);
     Vector3 originalVelocity = projectile.velocity();
@@ -260,8 +260,8 @@ TEST_F(ProjectileDeflectionTest, ReverseDeflectionModifiesVelocity)
 
 TEST_F(ProjectileDeflectionTest, ReverseDeflectionModifiesYaw)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setVelocity(1.0f, 0.0f, 0.0f);
     const f32 originalYaw = 45.0f;
@@ -283,9 +283,9 @@ TEST_F(ProjectileDeflectionTest, ReverseDeflectionModifiesYaw)
 
 TEST_F(ProjectileDeflectionTest, ReverseDeflectionChangesShooter)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity originalShooter(EntityId(2));
-    NonDeflectingEntity deflector(EntityId(3));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity originalShooter(EntityInstanceId(2));
+    NonDeflectingEntity deflector(EntityInstanceId(3));
 
     projectile.setWorld(m_world.get());
     m_world->registerEntity(&originalShooter);
@@ -308,8 +308,8 @@ TEST_F(ProjectileDeflectionTest, ReverseDeflectionChangesShooter)
 
 TEST_F(ProjectileDeflectionTest, AimDeflectSetsVelocityToDeflectorLookDirection)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     // 设置弹射物初始速度（5.0 m/s 向 +X 方向）
     projectile.setVelocity(5.0f, 0.0f, 0.0f);
@@ -328,8 +328,8 @@ TEST_F(ProjectileDeflectionTest, AimDeflectSetsVelocityToDeflectorLookDirection)
 
 TEST_F(ProjectileDeflectionTest, AimDeflectChangesShooter)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
     m_world->registerEntity(&deflector);
@@ -347,8 +347,8 @@ TEST_F(ProjectileDeflectionTest, AimDeflectChangesShooter)
 
 TEST_F(ProjectileDeflectionTest, MomentumDeflectUsesDeflectorVelocity)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setVelocity(5.0f, 0.0f, 0.0f);
     deflector.setVelocity(0.0f, 0.0f, 2.0f);
@@ -363,8 +363,8 @@ TEST_F(ProjectileDeflectionTest, MomentumDeflectUsesDeflectorVelocity)
 
 TEST_F(ProjectileDeflectionTest, MomentumDeflectWithZeroVelocityLeavesVelocityUnchanged)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setVelocity(5.0f, 0.0f, 0.0f);
     deflector.setVelocity(0.0f, 0.0f, 0.0f); // 偏转者静止
@@ -383,8 +383,8 @@ TEST_F(ProjectileDeflectionTest, MomentumDeflectWithZeroVelocityLeavesVelocityUn
 
 TEST_F(ProjectileDeflectionTest, NoneDeflectionReturnsFalse)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     bool result = applyProjectileDeflection(ProjectileDeflection::None, projectile, deflector);
     EXPECT_FALSE(result);
@@ -396,8 +396,8 @@ TEST_F(ProjectileDeflectionTest, NoneDeflectionReturnsFalse)
 
 TEST_F(ProjectileDeflectionTest, DeflectMethodReturnsFalseForNone)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     bool result = projectile.deflect(ProjectileDeflection::None, deflector);
     EXPECT_FALSE(result);
@@ -405,8 +405,8 @@ TEST_F(ProjectileDeflectionTest, DeflectMethodReturnsFalseForNone)
 
 TEST_F(ProjectileDeflectionTest, DeflectMethodReturnsTrueForReverse)
 {
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
     m_world->registerEntity(&deflector);
@@ -421,7 +421,7 @@ TEST_F(ProjectileDeflectionTest, DeflectCallsOnDeflection)
 {
     class DeflectionTrackingProjectile : public entity::ProjectileEntity {
     public:
-        explicit DeflectionTrackingProjectile(EntityId id)
+        explicit DeflectionTrackingProjectile(EntityInstanceId id)
             : ProjectileEntity(id)
         {}
 
@@ -438,8 +438,8 @@ TEST_F(ProjectileDeflectionTest, DeflectCallsOnDeflection)
         }
     };
 
-    DeflectionTrackingProjectile projectile(EntityId(1));
-    NonDeflectingEntity deflector(EntityId(2));
+    DeflectionTrackingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
     m_world->registerEntity(&deflector);
@@ -465,8 +465,8 @@ TEST_F(ProjectileDeflectionTest, DeflectCallsOnDeflection)
 TEST_F(ProjectileDeflectionTest, OnImpactDeflectionPreventsEntityHit)
 {
     // 当实体返回非 None 偏转类型时，onImpact 不调用 onEntityHit
-    CountingProjectile projectile(EntityId(1));
-    DeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    DeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
 
@@ -481,8 +481,8 @@ TEST_F(ProjectileDeflectionTest, OnImpactDeflectionPreventsEntityHit)
 TEST_F(ProjectileDeflectionTest, OnImpactNoDeflectionCallsEntityHit)
 {
     // 当实体返回 None 偏转类型时，onImpact 正常调用 onEntityHit
-    CountingProjectile projectile(EntityId(1));
-    NonDeflectingEntity target(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    NonDeflectingEntity target(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
 
@@ -497,8 +497,8 @@ TEST_F(ProjectileDeflectionTest, OnImpactNoDeflectionCallsEntityHit)
 TEST_F(ProjectileDeflectionTest, OnImpactCustomDeflectionPreventsEntityHit)
 {
     // 使用自定义偏转行为的实体
-    CountingProjectile projectile(EntityId(1));
-    CustomDeflectionEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    CustomDeflectionEntity deflector(EntityInstanceId(2));
     deflector.customDeflection = ProjectileDeflection::Reverse;
 
     projectile.setWorld(m_world.get());
@@ -514,8 +514,8 @@ TEST_F(ProjectileDeflectionTest, OnImpactCustomDeflectionPreventsEntityHit)
 TEST_F(ProjectileDeflectionTest, OnImpactCustomNoneDeflectionCallsEntityHit)
 {
     // 自定义偏转实体返回 None，正常调用 onEntityHit
-    CountingProjectile projectile(EntityId(1));
-    CustomDeflectionEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    CustomDeflectionEntity deflector(EntityInstanceId(2));
     deflector.customDeflection = ProjectileDeflection::None;
 
     projectile.setWorld(m_world.get());
@@ -533,8 +533,8 @@ TEST_F(ProjectileDeflectionTest, OnImpactCustomNoneDeflectionCallsEntityHit)
 
 TEST_F(ProjectileDeflectionTest, SameDeflectorCannotDeflectTwiceInARow)
 {
-    CountingProjectile projectile(EntityId(1));
-    DeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    DeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
     projectile.setVelocity(1.0f, 0.0f, 0.0f);
@@ -556,9 +556,9 @@ TEST_F(ProjectileDeflectionTest, SameDeflectorCannotDeflectTwiceInARow)
 
 TEST_F(ProjectileDeflectionTest, DifferentDeflectorCanDeflectSequentially)
 {
-    CountingProjectile projectile(EntityId(1));
-    DeflectingEntity deflector1(EntityId(2));
-    DeflectingEntity deflector2(EntityId(3));
+    CountingProjectile projectile(EntityInstanceId(1));
+    DeflectingEntity deflector1(EntityInstanceId(2));
+    DeflectingEntity deflector2(EntityInstanceId(3));
 
     projectile.setWorld(m_world.get());
     projectile.setVelocity(1.0f, 0.0f, 0.0f);
@@ -578,8 +578,8 @@ TEST_F(ProjectileDeflectionTest, DifferentDeflectorCanDeflectSequentially)
 TEST_F(ProjectileDeflectionTest, SameDeflectorTwiceDoesNotCallDeflectAgain)
 {
     // 验证同一实体连续偏转时，deflect() 不会被再次调用（速度不变）
-    CountingProjectile projectile(EntityId(1));
-    DeflectingEntity deflector(EntityId(2));
+    CountingProjectile projectile(EntityInstanceId(1));
+    DeflectingEntity deflector(EntityInstanceId(2));
 
     projectile.setWorld(m_world.get());
     projectile.setVelocity(2.0f, 0.0f, 0.0f);
@@ -608,7 +608,7 @@ TEST_F(ProjectileDeflectionTest, SameDeflectorTwiceDoesNotCallDeflectAgain)
 
 TEST_F(ProjectileDeflectionTest, OnImpactBlockHitDoesNotTriggerDeflection)
 {
-    CountingProjectile projectile(EntityId(1));
+    CountingProjectile projectile(EntityInstanceId(1));
 
     RayTraceResult blockResult = RayTraceResult::block(Vector3(0.0f, 0.0f, 0.0f), BlockPos(0, 0, 0), Direction::Up);
 
@@ -622,7 +622,7 @@ TEST_F(ProjectileDeflectionTest, OnImpactBlockHitDoesNotTriggerDeflection)
 
 TEST_F(ProjectileDeflectionTest, OnImpactMissDoesNotTriggerDeflection)
 {
-    CountingProjectile projectile(EntityId(1));
+    CountingProjectile projectile(EntityInstanceId(1));
     projectile.setVelocity(1.0f, 2.0f, 3.0f);
 
     RayTraceResult missResult = RayTraceResult::miss();

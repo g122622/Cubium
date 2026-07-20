@@ -57,7 +57,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    ZombieEntity(EntityId id);
+    ZombieEntity(EntityInstanceId id);
     ~ZombieEntity() override = default;
 
     // 禁止拷贝

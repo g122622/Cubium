@@ -63,7 +63,7 @@ public:
      * @brief 构造热带鱼实体
      * @param id 实体 ID
      */
-    TropicalFishEntity(EntityId id);
+    TropicalFishEntity(EntityInstanceId id);
     ~TropicalFishEntity() override = default;
 
     TropicalFishEntity(const TropicalFishEntity&) = delete;

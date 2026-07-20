@@ -72,7 +72,7 @@ public:
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -84,26 +84,26 @@ public:
     }
 
     // 实体状态广播追踪
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_lastBroadcastEntityId = entityId;
         m_lastBroadcastStatus = status;
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
     [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
     [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
     void resetBroadcastTracking()
     {
-        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastEntityId = EntityInstanceId(0);
         m_lastBroadcastStatus = 0;
         m_broadcastCount = 0;
     }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
-    EntityId m_lastBroadcastEntityId{0};
+    EntityInstanceId m_lastBroadcastEntityId{0};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;
 };
@@ -117,8 +117,8 @@ TEST(HorseBreedingTest, Horse_CanMateWithHorse)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse1(EntityId(1));
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse1(EntityInstanceId(1));
+    HorseEntity horse2(EntityInstanceId(2));
     horse1.setWorld(&world);
     horse2.setWorld(&world);
 
@@ -135,8 +135,8 @@ TEST(HorseBreedingTest, Horse_CanMateWithDonkey)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
-    DonkeyEntity donkey(EntityId(2));
+    HorseEntity horse(EntityInstanceId(1));
+    DonkeyEntity donkey(EntityInstanceId(2));
     horse.setWorld(&world);
     donkey.setWorld(&world);
 
@@ -154,8 +154,8 @@ TEST(HorseBreedingTest, Horse_CannotMateWithLlama)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
-    LlamaEntity llama(EntityId(2));
+    HorseEntity horse(EntityInstanceId(1));
+    LlamaEntity llama(EntityInstanceId(2));
     horse.setWorld(&world);
     llama.setWorld(&world);
 
@@ -173,7 +173,7 @@ TEST(HorseBreedingTest, Horse_CannotMateWithItself)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 不能与自己交配
@@ -185,8 +185,8 @@ TEST(HorseBreedingTest, Horse_CannotMateWhenInLove)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse1(EntityId(1));
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse1(EntityInstanceId(1));
+    HorseEntity horse2(EntityInstanceId(2));
     horse1.setWorld(&world);
     horse2.setWorld(&world);
 
@@ -208,8 +208,8 @@ TEST(HorseBreedingTest, Horse_CannotMateAsChild)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse1(EntityId(1));
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse1(EntityInstanceId(1));
+    HorseEntity horse2(EntityInstanceId(2));
     horse1.setWorld(&world);
     horse2.setWorld(&world);
 
@@ -230,8 +230,8 @@ TEST(HorseBreedingTest, Horse_SpawnBabyWithHorse_ProducesHorse)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse1(EntityId(1));
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse1(EntityInstanceId(1));
+    HorseEntity horse2(EntityInstanceId(2));
     horse1.setWorld(&world);
     horse2.setWorld(&world);
 
@@ -255,8 +255,8 @@ TEST(HorseBreedingTest, Horse_SpawnBabyWithDonkey_ProducesMule)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
-    DonkeyEntity donkey(EntityId(2));
+    HorseEntity horse(EntityInstanceId(1));
+    DonkeyEntity donkey(EntityInstanceId(2));
     horse.setWorld(&world);
     donkey.setWorld(&world);
 
@@ -284,8 +284,8 @@ TEST(HorseBreedingTest, Donkey_CanMateWithDonkey)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    DonkeyEntity donkey1(EntityId(1));
-    DonkeyEntity donkey2(EntityId(2));
+    DonkeyEntity donkey1(EntityInstanceId(1));
+    DonkeyEntity donkey2(EntityInstanceId(2));
     donkey1.setWorld(&world);
     donkey2.setWorld(&world);
 
@@ -301,8 +301,8 @@ TEST(HorseBreedingTest, Donkey_CanMateWithHorse)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    DonkeyEntity donkey(EntityId(1));
-    HorseEntity horse(EntityId(2));
+    DonkeyEntity donkey(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(2));
     donkey.setWorld(&world);
     horse.setWorld(&world);
 
@@ -322,8 +322,8 @@ TEST(HorseBreedingTest, Donkey_SpawnBabyWithDonkey_ProducesDonkey)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    DonkeyEntity donkey1(EntityId(1));
-    DonkeyEntity donkey2(EntityId(2));
+    DonkeyEntity donkey1(EntityInstanceId(1));
+    DonkeyEntity donkey2(EntityInstanceId(2));
     donkey1.setWorld(&world);
     donkey2.setWorld(&world);
 
@@ -347,8 +347,8 @@ TEST(HorseBreedingTest, Donkey_SpawnBabyWithHorse_ProducesMule)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    DonkeyEntity donkey(EntityId(1));
-    HorseEntity horse(EntityId(2));
+    DonkeyEntity donkey(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(2));
     donkey.setWorld(&world);
     horse.setWorld(&world);
 
@@ -376,8 +376,8 @@ TEST(HorseBreedingTest, Llama_CanMateWithLlama)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama1(EntityId(1));
-    LlamaEntity llama2(EntityId(2));
+    LlamaEntity llama1(EntityInstanceId(1));
+    LlamaEntity llama2(EntityInstanceId(2));
     llama1.setWorld(&world);
     llama2.setWorld(&world);
 
@@ -393,8 +393,8 @@ TEST(HorseBreedingTest, Llama_CannotMateWithHorse)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
-    HorseEntity horse(EntityId(2));
+    LlamaEntity llama(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(2));
     llama.setWorld(&world);
     horse.setWorld(&world);
 
@@ -411,8 +411,8 @@ TEST(HorseBreedingTest, Llama_CannotMateWithDonkey)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
-    DonkeyEntity donkey(EntityId(2));
+    LlamaEntity llama(EntityInstanceId(1));
+    DonkeyEntity donkey(EntityInstanceId(2));
     llama.setWorld(&world);
     donkey.setWorld(&world);
 
@@ -433,8 +433,8 @@ TEST(HorseBreedingTest, Llama_SpawnBaby_ProducesLlama)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama1(EntityId(1));
-    LlamaEntity llama2(EntityId(2));
+    LlamaEntity llama1(EntityInstanceId(1));
+    LlamaEntity llama2(EntityInstanceId(2));
     llama1.setWorld(&world);
     llama2.setWorld(&world);
 
@@ -471,7 +471,7 @@ TEST(HorseBreedingTest, Horse_IsBreedingItem_GoldenApple)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     ItemStack stack(Items::GOLDEN_APPLE, 1);
@@ -485,7 +485,7 @@ TEST(HorseBreedingTest, Horse_IsBreedingItem_GoldenCarrot)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     ItemStack stack(Items::GOLDEN_CARROT, 1);
@@ -499,7 +499,7 @@ TEST(HorseBreedingTest, Horse_IsBreedingItem_Wheat)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     ItemStack stack(Items::WHEAT, 1);
@@ -514,7 +514,7 @@ TEST(HorseBreedingTest, Llama_IsBreedingItem_HayBlock)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     ItemStack stack(Items::HAY_BLOCK, 1);
@@ -528,7 +528,7 @@ TEST(HorseBreedingTest, Llama_IsBreedingItem_Wheat)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     ItemStack stack(Items::WHEAT, 1);
@@ -546,7 +546,7 @@ TEST(HorseBreedingTest, Mule_CannotBreed)
     VanillaBlocks::initialize();
 
     HorseBreedingTestWorld world;
-    MuleEntity mule(EntityId(1));
+    MuleEntity mule(EntityInstanceId(1));
     mule.setWorld(&world);
 
     // 骡是不育的
@@ -567,7 +567,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenApple_TriggersBreeding)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 成体，可以繁殖
@@ -591,7 +591,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenCarrot_TriggersBreeding)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setGrowingAge(0);
@@ -612,7 +612,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_Wheat_NoBreeding)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setGrowingAge(0);
@@ -643,7 +643,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_TriggersBreeding)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     llama.setGrowingAge(0);
@@ -665,7 +665,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_Wheat_NoBreeding)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     llama.setGrowingAge(0);
@@ -688,7 +688,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenApple_IncreasesTemper)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setGrowingAge(0);
@@ -710,7 +710,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_GoldenCarrot_IncreasesTemper)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setGrowingAge(0);
@@ -732,7 +732,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_Wheat_IncreasesTemper)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     llama.setGrowingAge(0);
@@ -754,7 +754,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_IncreasesTemper)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     llama.setGrowingAge(0);
@@ -780,7 +780,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_AcceleratesGrowth)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 幼体
@@ -804,7 +804,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_HayBlock_AcceleratesGrowth)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     llama.setChild(true);
@@ -831,7 +831,7 @@ TEST(HorseBreedingTest, Horse_HandleEating_Heals)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setGrowingAge(0);
@@ -859,7 +859,7 @@ TEST(HorseBreedingTest, Llama_HandleEating_Heals)
     Items::initialize();
 
     HorseBreedingTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     llama.setGrowingAge(0);

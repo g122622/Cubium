@@ -97,7 +97,7 @@ bool IWorld::containsAnyLiquid(const AxisAlignedBB& box) const
     return false;
 }
 
-EntityId IWorld::spawnEntity(std::unique_ptr<Entity> entity)
+EntityInstanceId IWorld::spawnEntity(std::unique_ptr<Entity> entity)
 {
     (void)entity;
     // 默认实现：不支持生成实体

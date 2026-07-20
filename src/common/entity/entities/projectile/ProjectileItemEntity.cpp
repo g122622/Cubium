@@ -54,7 +54,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 // ProjectileItemEntity
 // ============================================================================
 
-ProjectileItemEntity::ProjectileItemEntity(EntityId id)
+ProjectileItemEntity::ProjectileItemEntity(EntityInstanceId id)
     : ThrowableEntity(id)
 {}
 
@@ -68,7 +68,7 @@ void ProjectileItemEntity::tick()
 // SnowballEntity
 // ============================================================================
 
-SnowballEntity::SnowballEntity(EntityId id)
+SnowballEntity::SnowballEntity(EntityInstanceId id)
     : ProjectileItemEntity(id)
 {}
 
@@ -122,7 +122,7 @@ void SnowballEntity::onImpact(const RayTraceResult& /*result*/)
 // EggEntity
 // ============================================================================
 
-EggEntity::EggEntity(EntityId id)
+EggEntity::EggEntity(EntityInstanceId id)
     : ProjectileItemEntity(id)
 {}
 
@@ -182,7 +182,7 @@ bool EggEntity::_tryHatchChicken()
 // EnderPearlEntity
 // ============================================================================
 
-EnderPearlEntity::EnderPearlEntity(EntityId id)
+EnderPearlEntity::EnderPearlEntity(EntityInstanceId id)
     : ProjectileItemEntity(id)
 {}
 
@@ -238,7 +238,7 @@ void EnderPearlEntity::onImpact(const RayTraceResult& result)
 // PotionEntity
 // ============================================================================
 
-PotionEntity::PotionEntity(EntityId id)
+PotionEntity::PotionEntity(EntityInstanceId id)
     : ProjectileItemEntity(id)
 {}
 
@@ -331,7 +331,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
             auto cloud = std::make_unique<AreaEffectCloudEntity>();
 
             // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-            cloud->setTypeId(EntityTypes::AREA_EFFECT_CLOUD);
+            cloud->setTypeId(EntityTypeKeys::AREA_EFFECT_CLOUD);
 
             cloud->setWorld(m_world);
             cloud->setPosition(x(), y(), z());
@@ -378,7 +378,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
 // ExperienceBottleEntity
 // ============================================================================
 
-ExperienceBottleEntity::ExperienceBottleEntity(EntityId id)
+ExperienceBottleEntity::ExperienceBottleEntity(EntityInstanceId id)
     : ProjectileItemEntity(id)
 {}
 
@@ -404,7 +404,7 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
             auto orb = std::make_unique<ExperienceOrbEntity>(1);
 
             // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-            orb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+            orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
 
             orb->setPosition(m_position.x + (rng.nextFloat() - 0.5f) * 0.5f,
                 m_position.y + 0.5f,

@@ -38,7 +38,6 @@
 #include "EntityDataManager.hpp"
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
-#include "EntityTypeIdNumber.hpp"
 #include "MoverType.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include <array>
@@ -58,8 +57,9 @@ class DamageSource;
 
 namespace entity {
 
-// 前向声明 EntityTypeId
-using EntityTypeId = u16;
+// 前向声明：EntityType 完整定义在 EntityType.hpp，Entity 仅持有其 const 指针
+// （m_entityType 缓存）并按名查询，无需在此引入完整定义。
+class EntityType;
 
 } // namespace entity
 
@@ -145,7 +145,7 @@ public:
      * @param id 实体ID
      * @param world 世界指针（可选）
      */
-    Entity(EntityId id, IWorld* world = nullptr);
+    Entity(EntityInstanceId id, IWorld* world = nullptr);
     virtual ~Entity() = default;
 
     // 禁止拷贝
@@ -168,14 +168,14 @@ public:
 
     // ========== 基本属性 ==========
 
-    [[nodiscard]] EntityId id() const { return m_id; }
+    [[nodiscard]] EntityInstanceId id() const { return m_id; }
     /**
      * @brief 设置实体ID
      *
      * 仅由EntityManager在分配ID时调用。
      * 不应该在其他地方使用。
      */
-    void setId(EntityId id) { m_id = id; }
+    void setId(EntityInstanceId id) { m_id = id; }
     [[nodiscard]] const std::string& uuid() const { return m_uuid; }
     void setUuid(const std::string& uuid) { m_uuid = uuid; }
 
@@ -189,21 +189,39 @@ public:
      * @brief 设置实体类型标识符
      *
      * 当实体由注册表工厂创建时，调用方应传入注册名（如 minecraft:pig）。
+     * 同时失效缓存的 EntityType 指针，由 entityType() 在首次访问时懒查询。
+     *
+     * @note 存在 20+ 处在注册表就绪前调用本方法的路径（如 WitherEntity 构造期
+     *       对 skull 子实体 setTypeId），故不在此立即查表，而由 entityType() 懒查询。
      */
-    void setTypeId(const std::string& typeId) { m_typeId = typeId; }
+    void setTypeId(const std::string& typeId)
+    {
+        m_typeId = typeId;
+        m_entityType = nullptr; // 失效缓存，由 entityType() 懒查询重建
+    }
 
     /**
-     * @brief 获取实体类型数字ID
-     * @return 实体类型数字ID，用于快速类型比较
+     * @brief 获取实体类型的运行时指针（懒查询）
      *
-     * 使用示例：
+     * @return 指向 EntityRegistry 内部 EntityType 对象的 const 指针；若 m_typeId
+     *         为空或注册表未注册该类型，返回 nullptr。
+     *
+     * 指针稳定性：返回值指向 EntityRegistry::m_types（std::deque）内的对象，
+     * 与 VanillaEntityTypeKeys::* 指针别名同源，在注册表未被 clear() 前地址稳定，
+     * 可安全用于指针比较（热路径比 operator== 字符串比较更快）。
+     *
+     * 懒查询：首次调用时按 m_typeId 查注册表并缓存，后续直接返回缓存。应对
+     * "先 setTypeId 后 registerAll" 的初始化顺序——此时首次查询可能返回 nullptr，
+     * 待注册表就绪后下次查询会重新填充。
+     *
+     * 类型判等推荐用法：
      * @code
-     * if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
-     *     // 处理猪
+     * if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
+     *     // 处理猪（指针比较）
      * }
      * @endcode
      */
-    [[nodiscard]] entity::EntityTypeId typeId() const;
+    [[nodiscard]] const entity::EntityType* entityType() const;
 
     /**
      * @brief 获取实体的默认战利品表ID
@@ -1994,7 +2012,7 @@ public:
      * @brief 获取乘客列表
      * @return 乘客实体ID列表
      */
-    [[nodiscard]] const std::vector<EntityId>& getPassengers() const { return m_passengers; }
+    [[nodiscard]] const std::vector<EntityInstanceId>& getPassengers() const { return m_passengers; }
 
     /**
      * @brief 检查是否有乘客
@@ -2010,7 +2028,7 @@ public:
      * @brief 获取所骑乘的车辆
      * @return 车辆实体ID，如果没有则返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityId getVehicle() const { return m_vehicle; }
+    [[nodiscard]] EntityInstanceId getVehicle() const { return m_vehicle; }
 
     /**
      * @brief 检查是否正在骑乘
@@ -2021,7 +2039,7 @@ public:
      * @brief 检查指定实体是否是乘客
      * @param entityId 实体ID
      */
-    [[nodiscard]] bool isPassenger(EntityId entityId) const;
+    [[nodiscard]] bool isPassenger(EntityInstanceId entityId) const;
 
     /**
      * @brief 添加乘客到本载具
@@ -2189,7 +2207,7 @@ public:
      * @brief 获取第一个乘客
      * @return 第一个乘客的实体ID，如果没有则返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityId getFirstPassenger() const
+    [[nodiscard]] EntityInstanceId getFirstPassenger() const
     {
         return m_passengers.empty() ? INVALID_ENTITY_ID : m_passengers.front();
     }
@@ -2200,7 +2218,7 @@ public:
      *
      * 子类可重写此方法以返回不同的控制乘客
      */
-    [[nodiscard]] virtual EntityId getControllingPassenger() const { return getFirstPassenger(); }
+    [[nodiscard]] virtual EntityInstanceId getControllingPassenger() const { return getFirstPassenger(); }
 
     /**
      * @brief 检查是否可以由乘客控制方向
@@ -2590,9 +2608,13 @@ protected:
     // && MC_ENABLE_TRACY 时发事件，其余分支空操作。
     ::mc::profiler::TracyObjectTracker<"Entity"> m_memTrack;
 
-    EntityId m_id;
-    std::string m_uuid;     // UUID 字符串
-    std::string m_typeId;   // 资源标识符（如 minecraft:pig）
+    EntityInstanceId m_id;
+    std::string m_uuid;   // UUID 字符串
+    std::string m_typeId; // 资源标识符（如 minecraft:pig）
+    // 缓存的 EntityType 指针，由 entityType() 懒查询填充。mutable 以支持
+    // const 方法内的懒查询。指向 EntityRegistry::m_types 内对象，地址稳定。
+    // 声明于 m_typeId 之后，与 m_memTrack 布局约束兼容（m_memTrack 须居数据成员前）。
+    mutable const entity::EntityType* m_entityType = nullptr;
     Vector3 m_position;     // 当前位置
     Vector3 m_prevPosition; // 上一帧位置
     Vector3 m_velocity;     // 速度
@@ -2695,9 +2717,9 @@ protected:
     i32 m_lastCrystalSoundPlayTick = 0; ///< 上次播放紫水晶铃声的游戏刻
 
     // 乘客/骑乘系统
-    std::vector<EntityId> m_passengers;     // 乘客列表
-    EntityId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
-    i32 m_rideCooldown = 0;                 // 骑乘冷却（tick），用于防止快速上下骑乘
+    std::vector<EntityInstanceId> m_passengers;     // 乘客列表
+    EntityInstanceId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
+    i32 m_rideCooldown = 0;                         // 骑乘冷却（tick），用于防止快速上下骑乘
 
     // 反序列化阶段暂存的 Passengers NBT 列表。主实体被 spawnEntity 注入世界、拿到真实 id 后，
     // 由 EntityDeserializer::attachPassengers 递归 spawn 乘客并 startRiding，保证乘客的 m_vehicle
@@ -2707,7 +2729,7 @@ protected:
     /**
      * @brief 设置车辆（内部方法）
      */
-    void setVehicle(EntityId vehicle) { m_vehicle = vehicle; }
+    void setVehicle(EntityInstanceId vehicle) { m_vehicle = vehicle; }
 
     /**
      * @brief 序列化子类特有数据

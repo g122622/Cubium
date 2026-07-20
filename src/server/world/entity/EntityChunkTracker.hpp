@@ -56,7 +56,7 @@ public:
      * @param newCx 新区块X坐标
      * @param newCz 新区块Z坐标
      */
-    void onEntityMoved(EntityId id, ChunkCoord oldCx, ChunkCoord oldCz, ChunkCoord newCx, ChunkCoord newCz);
+    void onEntityMoved(EntityInstanceId id, ChunkCoord oldCx, ChunkCoord oldCz, ChunkCoord newCx, ChunkCoord newCz);
 
     /**
      * @brief 实体添加到世界时注册
@@ -65,14 +65,14 @@ public:
      * @param cx 区块X坐标
      * @param cz 区块Z坐标
      */
-    void onEntityAdded(EntityId id, ChunkCoord cx, ChunkCoord cz);
+    void onEntityAdded(EntityInstanceId id, ChunkCoord cx, ChunkCoord cz);
 
     /**
      * @brief 实体从世界移除时注销
      *
      * @param id 实体ID
      */
-    void onEntityRemoved(EntityId id);
+    void onEntityRemoved(EntityInstanceId id);
 
     /**
      * @brief 获取区块内所有实体ID
@@ -81,7 +81,7 @@ public:
      * @param cz 区块Z坐标
      * @return 实体ID列表
      */
-    [[nodiscard]] std::vector<EntityId> getEntitiesInChunk(ChunkCoord cx, ChunkCoord cz) const;
+    [[nodiscard]] std::vector<EntityInstanceId> getEntitiesInChunk(ChunkCoord cx, ChunkCoord cz) const;
 
     /**
      * @brief 获取实体所在区块坐标
@@ -89,7 +89,7 @@ public:
      * @param id 实体ID
      * @return 区块坐标（如果实体未注册返回 std::nullopt）
      */
-    [[nodiscard]] std::optional<std::pair<ChunkCoord, ChunkCoord>> getEntityChunk(EntityId id) const;
+    [[nodiscard]] std::optional<std::pair<ChunkCoord, ChunkCoord>> getEntityChunk(EntityInstanceId id) const;
 
     /**
      * @brief 获取被跟踪的实体总数
@@ -103,10 +103,10 @@ public:
 
 private:
     /** 实体ID → 区块坐标映射 */
-    std::unordered_map<EntityId, std::pair<ChunkCoord, ChunkCoord>> m_entityChunks;
+    std::unordered_map<EntityInstanceId, std::pair<ChunkCoord, ChunkCoord>> m_entityChunks;
 
     /** 区块坐标 → 实体ID集合映射 */
-    std::unordered_map<i64, std::unordered_set<EntityId>> m_chunkEntities;
+    std::unordered_map<i64, std::unordered_set<EntityInstanceId>> m_chunkEntities;
 
     /**
      * @brief 将区块坐标打包为 i64 键

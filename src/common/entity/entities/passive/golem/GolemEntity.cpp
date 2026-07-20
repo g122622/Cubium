@@ -27,7 +27,7 @@
 
 namespace mc {
 
-GolemEntity::GolemEntity(EntityId id)
+GolemEntity::GolemEntity(EntityInstanceId id)
     : CreatureEntity(id)
 {
     // 注册属性

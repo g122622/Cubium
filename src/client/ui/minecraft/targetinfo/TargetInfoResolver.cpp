@@ -121,7 +121,7 @@ struct SegmentAabbHit {
 [[nodiscard]] std::string makeEntityTitle(
     const ClientEntity& entity, const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
-    const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
+    const ResourceLocation typeLocation = ResourceLocation::parse(entity.getTypeId());
     const std::string typePath = typeLocation.path();
 
     if (typePath == "player") {
@@ -163,11 +163,11 @@ struct SegmentAabbHit {
     std::vector<std::string> details;
     details.reserve(4);
 
-    details.emplace_back("Type: " + entity.typeId());
+    details.emplace_back("Type: " + entity.getTypeId());
     details.emplace_back("Entity ID: " + std::to_string(entity.id()));
     details.emplace_back("Distance: " + formatDistance(distance));
 
-    const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
+    const ResourceLocation typeLocation = ResourceLocation::parse(entity.getTypeId());
     if (typeLocation.path() == "item" && entity.hasItem()) {
         const ItemStack* stack = entity.itemStack();
         if (stack != nullptr && stack->getItem() != nullptr) {
@@ -213,7 +213,7 @@ struct SegmentAabbHit {
 [[nodiscard]] TargetInfoSnapshot makeEntitySnapshot(
     const ClientEntity& entity, f32 distance, const TargetInfoResolver::PlayerNameLookup& playerNameLookup)
 {
-    const ResourceLocation typeLocation = ResourceLocation::parse(entity.typeId());
+    const ResourceLocation typeLocation = ResourceLocation::parse(entity.getTypeId());
     const std::string typePath = typeLocation.path();
 
     std::string title = makeEntityTitle(entity, playerNameLookup);

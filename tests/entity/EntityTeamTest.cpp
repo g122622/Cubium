@@ -109,7 +109,7 @@ private:
 class MockEntityWithTeam : public Entity {
 public:
     MockEntityWithTeam()
-        : Entity(EntityId(1))
+        : Entity(EntityInstanceId(1))
     {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }
@@ -372,7 +372,7 @@ TEST_F(EntityTeamTest, IsAlliedTo_ConsidersEntityAsAlly_OverrideWorks)
         MockTameableWithOwnerTeam()
             : MockEntityWithTeam()
         {
-            // 给一个不同的 EntityId 以避免与 m_entityNoTeam 冲突
+            // 给一个不同的 EntityInstanceId 以避免与 m_entityNoTeam 冲突
         }
 
         // 模拟：已驯服的动物继承主人的队伍
@@ -386,7 +386,7 @@ TEST_F(EntityTeamTest, IsAlliedTo_ConsidersEntityAsAlly_OverrideWorks)
     };
 
     auto tameable = std::make_unique<MockTameableWithOwnerTeam>();
-    m_entity1->setTeam(m_team1.get()); // 主人在 red 队
+    m_entity1->setTeam(m_team1.get());     // 主人在 red 队
     tameable->setOwnerTeam(m_team1.get()); // 驯服动物继承主人的队伍
 
     // 驯服动物与主人在同一队伍 → 盟友

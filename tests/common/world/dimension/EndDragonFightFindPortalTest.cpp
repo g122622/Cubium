@@ -91,20 +91,20 @@ public:
 
     // ========== 实体管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        const EntityId id = m_nextEntityId;
-        m_nextEntityId = EntityId(static_cast<u64>(m_nextEntityId) + 1);
+        const EntityInstanceId id = m_nextEntityId;
+        m_nextEntityId = EntityInstanceId(static_cast<u64>(m_nextEntityId) + 1);
         entity->setId(id);
         entity->setWorld(this);
         m_entities.push_back(std::move(entity));
         return id;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId /*typeId*/) const override { return {}; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& /*typeId*/) const override { return {}; }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
         const AxisAlignedBB& /*box*/, const Entity* /*exclude*/) const override
@@ -112,7 +112,7 @@ public:
         return {};
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         for (auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -122,7 +122,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -134,7 +134,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<Entity>> m_entities;
-    EntityId m_nextEntityId = EntityId(1);
+    EntityInstanceId m_nextEntityId = EntityInstanceId(1);
 };
 
 } // namespace mc::test

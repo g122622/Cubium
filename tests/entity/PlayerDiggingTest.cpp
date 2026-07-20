@@ -60,7 +60,7 @@ protected:
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 创建玩家
-        m_player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        m_player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
         m_player->setGameMode(GameMode::Survival);
         // 设置玩家在地面（避免空中挖掘惩罚）
         m_player->setOnGround(true);

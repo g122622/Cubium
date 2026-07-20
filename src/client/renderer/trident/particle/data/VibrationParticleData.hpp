@@ -71,7 +71,7 @@ public:
      * @param yOffset Y 轴偏移（如眼睛高度）
      * @param arrivalInTicks 粒子到达目标的剩余 tick 数
      */
-    VibrationParticleData(EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks);
+    VibrationParticleData(EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks);
 
     ~VibrationParticleData() override = default;
 
@@ -128,7 +128,7 @@ public:
      *
      * @return 目标实体 ID
      */
-    [[nodiscard]] EntityId targetEntityId() const noexcept { return m_targetEntityId; }
+    [[nodiscard]] EntityInstanceId targetEntityId() const noexcept { return m_targetEntityId; }
 
     /**
      * @brief 获取 Y 轴偏移（实体来源）
@@ -150,10 +150,10 @@ public:
 
 private:
     TargetKind m_kind = TargetKind::Block;
-    Vector3d m_targetPosition;                     ///< 方块来源的目标位置（世界坐标）
-    EntityId m_targetEntityId = INVALID_ENTITY_ID; ///< 实体来源的目标实体 ID
-    f32 m_yOffset = 0.0f;                          ///< 实体来源的 Y 轴偏移
-    i32 m_arrivalInTicks = 0;                      ///< 到达目标的剩余 tick 数
+    Vector3d m_targetPosition;                             ///< 方块来源的目标位置（世界坐标）
+    EntityInstanceId m_targetEntityId = INVALID_ENTITY_ID; ///< 实体来源的目标实体 ID
+    f32 m_yOffset = 0.0f;                                  ///< 实体来源的 Y 轴偏移
+    i32 m_arrivalInTicks = 0;                              ///< 到达目标的剩余 tick 数
 };
 
 } // namespace mc::client::renderer::trident::particle::data

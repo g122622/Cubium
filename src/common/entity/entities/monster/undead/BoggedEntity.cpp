@@ -25,7 +25,7 @@
 
 namespace mc {
 
-BoggedEntity::BoggedEntity(EntityId id)
+BoggedEntity::BoggedEntity(EntityInstanceId id)
     : AbstractSkeletonEntity(id)
 {
     registerGoals();
@@ -37,7 +37,7 @@ BoggedEntity::BoggedEntity(EntityId id)
 
 std::unique_ptr<Entity> BoggedEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<BoggedEntity>(EntityId(0));
+    return std::make_unique<BoggedEntity>(EntityInstanceId(0));
 }
 
 void BoggedEntity::registerAttributes()

@@ -63,7 +63,7 @@ private:
 
 private:
     VillagerEntity* m_villager;
-    EntityId m_hostileEntity;
+    EntityInstanceId m_hostileEntity;
     BlockPos m_fleeTarget;
     static constexpr f32 FLEE_RANGE = 8.0f;     // 敌对生物触发距离
     static constexpr f32 FLEE_DISTANCE = 16.0f; // 逃跑距离

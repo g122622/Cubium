@@ -26,9 +26,9 @@
 #include "CopperGolemTypes.hpp"
 #include "GolemEntity.hpp"
 #include "common/core/Result.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/interfaces/ContainerUser.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
@@ -95,7 +95,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit CopperGolemEntity(EntityId id);
+    explicit CopperGolemEntity(EntityInstanceId id);
 
     ~CopperGolemEntity() override = default;
 

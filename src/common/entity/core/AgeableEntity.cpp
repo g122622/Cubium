@@ -32,7 +32,7 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-AgeableEntity::AgeableEntity(EntityId id) noexcept
+AgeableEntity::AgeableEntity(EntityInstanceId id) noexcept
     : CreatureEntity(id)
 {}
 

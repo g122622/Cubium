@@ -35,7 +35,7 @@ namespace {
 // 简单的测试用 LivingEntity 子类，用于测试 hurtMarked 机制
 class TestHurtEntity final : public LivingEntity {
 public:
-    explicit TestHurtEntity(EntityId id)
+    explicit TestHurtEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();

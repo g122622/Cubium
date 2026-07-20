@@ -86,9 +86,9 @@ public:
     }
 
     [[nodiscard]] u64 currentTick() const override { return 0; }
-    [[nodiscard]] Entity* getEntity(EntityId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityId) const override { return nullptr; }
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -123,7 +123,7 @@ private:
 class TestDamagingProjectile : public DamagingProjectileEntity {
 public:
     TestDamagingProjectile(IWorld* world)
-        : DamagingProjectileEntity(EntityId(1))
+        : DamagingProjectileEntity(EntityInstanceId(1))
     {
         setWorld(world);
         m_position = Vector3(100.0f, 64.0f, 200.0f);
@@ -156,7 +156,7 @@ public:
 class TestDragonFireball : public DragonFireballEntity {
 public:
     TestDragonFireball(IWorld* world)
-        : DragonFireballEntity(EntityId(1))
+        : DragonFireballEntity(EntityInstanceId(1))
     {
         setWorld(world);
         m_position = Vector3(100.0f, 64.0f, 200.0f);

@@ -31,6 +31,7 @@
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 #include "util/math/MathConstants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -40,7 +41,7 @@
 
 namespace mc {
 
-EndermanEntity::EndermanEntity(EntityId id)
+EndermanEntity::EndermanEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 末影人不在阳光下燃烧
@@ -83,7 +84,7 @@ void EndermanEntity::registerData()
 
 std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EndermanEntity>(EntityId(0));
+    return std::make_unique<EndermanEntity>(EntityInstanceId(0));
 }
 
 std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
@@ -392,7 +393,7 @@ void EndermanEntity::registerGoals()
     m_goalSelector.addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 8: 随机看向

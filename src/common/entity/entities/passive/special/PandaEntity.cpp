@@ -43,7 +43,7 @@
 
 namespace mc {
 
-PandaEntity::PandaEntity(EntityId id)
+PandaEntity::PandaEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 随机生成性格

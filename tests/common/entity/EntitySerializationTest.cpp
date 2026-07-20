@@ -17,23 +17,23 @@ public:
         , m_tickManager(*this)
     {}
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         MC_ASSERT_RELEASE(entity != nullptr);
-        const EntityId id = m_nextId++;
+        const EntityInstanceId id = m_nextId++;
         entity->setId(id);
         entity->setWorld(this);
         m_entities.emplace(id, std::move(entity));
         return id;
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(id);
         return it == m_entities.end() ? nullptr : it->second.get();
     }
 
-    const Entity* getEntity(EntityId id) const override
+    const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(id);
         return it == m_entities.end() ? nullptr : it->second.get();
@@ -73,8 +73,8 @@ public:
     const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
 private:
-    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
-    EntityId m_nextId = 1;
+    std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
+    EntityInstanceId m_nextId = 1;
     math::Random m_random{12345};
     world::tick::TickManager m_tickManager;
     world::border::WorldBorder m_worldBorder;
@@ -180,7 +180,7 @@ TEST(EntitySerializationTest, AttachPassengersAfterSpawnBindsRealVehicleId)
     ASSERT_TRUE(vehicle->hasPendingPassengersNbt());
 
     TestSerializationWorld world;
-    EntityId vehicleId = world.spawnEntity(std::move(vehicle));
+    EntityInstanceId vehicleId = world.spawnEntity(std::move(vehicle));
     ASSERT_NE(vehicleId, 0);
 
     Entity* spawnedVehicle = world.getEntity(vehicleId);
@@ -230,7 +230,7 @@ TEST(EntitySerializationTest, AttachPassengersHandlesNestedPassengers)
     ASSERT_TRUE(vehicle->hasPendingPassengersNbt());
 
     TestSerializationWorld world;
-    EntityId vehicleId = world.spawnEntity(std::move(vehicle));
+    EntityInstanceId vehicleId = world.spawnEntity(std::move(vehicle));
     ASSERT_NE(vehicleId, 0);
 
     Entity* spawnedVehicle = world.getEntity(vehicleId);
@@ -242,7 +242,7 @@ TEST(EntitySerializationTest, AttachPassengersHandlesNestedPassengers)
     // 验证第一层：vehicle 的乘客是 passenger1
     EXPECT_TRUE(spawnedVehicle->hasPassengers());
     ASSERT_EQ(spawnedVehicle->getPassengers().size(), 1u);
-    EntityId passenger1Id = spawnedVehicle->getPassengers()[0];
+    EntityInstanceId passenger1Id = spawnedVehicle->getPassengers()[0];
     EXPECT_NE(passenger1Id, 0);
 
     Entity* passenger1 = world.getEntity(passenger1Id);
@@ -252,7 +252,7 @@ TEST(EntitySerializationTest, AttachPassengersHandlesNestedPassengers)
     // 验证第二层：passenger1 的乘客是 passenger2
     EXPECT_TRUE(passenger1->hasPassengers());
     ASSERT_EQ(passenger1->getPassengers().size(), 1u);
-    EntityId passenger2Id = passenger1->getPassengers()[0];
+    EntityInstanceId passenger2Id = passenger1->getPassengers()[0];
     EXPECT_NE(passenger2Id, 0);
 
     Entity* passenger2 = world.getEntity(passenger2Id);
@@ -284,7 +284,7 @@ TEST(EntitySerializationTest, AttachPassengersNoOpWhenNoPendingPassengers)
     EXPECT_FALSE(vehicle->hasPendingPassengersNbt());
 
     TestSerializationWorld world;
-    EntityId vehicleId = world.spawnEntity(std::move(vehicle));
+    EntityInstanceId vehicleId = world.spawnEntity(std::move(vehicle));
     ASSERT_NE(vehicleId, 0);
 
     Entity* spawnedVehicle = world.getEntity(vehicleId);
@@ -317,14 +317,14 @@ TEST(EntitySerializationTest, SerializeDeserializeRoundTripPreservesPassengers)
     auto vehicle = std::make_unique<Entity>(0, &setupWorld);
     vehicle->setTypeId("test:entity");
     vehicle->setPosition(Vector3(1.0, 2.0, 3.0));
-    EntityId vehicleId = setupWorld.spawnEntity(std::move(vehicle));
+    EntityInstanceId vehicleId = setupWorld.spawnEntity(std::move(vehicle));
     ASSERT_NE(vehicleId, 0);
 
     // 创建乘客并建立骑乘关系
     auto passenger = std::make_unique<Entity>(0, &setupWorld);
     passenger->setTypeId("test:entity");
     passenger->setPosition(Vector3(1.0, 2.0, 3.0));
-    EntityId passengerId = setupWorld.spawnEntity(std::move(passenger));
+    EntityInstanceId passengerId = setupWorld.spawnEntity(std::move(passenger));
     ASSERT_NE(passengerId, 0);
 
     Entity* setupVehicle = setupWorld.getEntity(vehicleId);
@@ -350,7 +350,7 @@ TEST(EntitySerializationTest, SerializeDeserializeRoundTripPreservesPassengers)
     EXPECT_TRUE(loadedVehicle->hasPendingPassengersNbt());
 
     // spawn 主实体并挂载乘客
-    EntityId loadedVehicleId = loadWorld.spawnEntity(std::move(loadedVehicle));
+    EntityInstanceId loadedVehicleId = loadWorld.spawnEntity(std::move(loadedVehicle));
     ASSERT_NE(loadedVehicleId, 0);
 
     Entity* spawnedVehicle = loadWorld.getEntity(loadedVehicleId);

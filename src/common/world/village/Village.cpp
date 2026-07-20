@@ -24,6 +24,7 @@
 #include "Village.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
@@ -200,8 +201,8 @@ void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfIntere
     std::vector<u64> villagersToRemove;
 
     for (u64 villagerId : m_villagers) {
-        // 通过 EntityId 获取实体
-        Entity* entity = world.getEntity(static_cast<EntityId>(villagerId));
+        // 通过 EntityInstanceId 获取实体
+        Entity* entity = world.getEntity(static_cast<EntityInstanceId>(villagerId));
 
         if (entity == nullptr) {
             // 实体不存在（已卸载或死亡），标记移除
@@ -216,7 +217,7 @@ void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfIntere
         }
 
         // 检查是否为村民实体
-        if (entity->typeId() != entity::EntityTypeIdNumber::VILLAGER) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::VILLAGER) {
             // 不是村民（可能是数据错误），移除
             villagersToRemove.push_back(villagerId);
             continue;

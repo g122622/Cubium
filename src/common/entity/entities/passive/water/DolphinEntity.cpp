@@ -37,10 +37,10 @@
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -54,7 +54,7 @@
 
 namespace mc {
 
-DolphinEntity::DolphinEntity(EntityId id)
+DolphinEntity::DolphinEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {
     // 设置空气值（4800 tick = 4分钟）
@@ -243,7 +243,7 @@ void DolphinEntity::registerGoals()
     // 优先级 5: 看向玩家和跳跃
     m_goalSelector.addGoal(
         5, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::DolphinJumpGoal>(this, 10));
 
@@ -259,9 +259,9 @@ void DolphinEntity::registerGoals()
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
             this, 8.0f, 1.0, 1.0, [](const LivingEntity* entity) -> bool {
                 if (!entity) return false;
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::GUARDIAN ||
-                    type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::GUARDIAN ||
+                    type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
             }));
 
     // 目标选择器
@@ -271,8 +271,9 @@ void DolphinEntity::registerGoals()
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
             if (!attacker) return false;
-            auto type = attacker->typeId();
-            return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+            auto type = attacker->entityType();
+            return type == entity::VanillaEntityTypeKeys::GUARDIAN ||
+                type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
         }));
 }
 

@@ -473,10 +473,10 @@ void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Directio
     vy += rng.nextGaussian(0.0f, INACCURACY);
     vz += rng.nextGaussian(0.0f, INACCURACY);
 
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), stack, x, y, z, vx, vy, vz);
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), stack, x, y, z, vx, vy, vz);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-    itemEntity->setTypeId(entity::EntityTypes::ITEM);
+    itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
 
     itemEntity->setPickupDelay(10);
     world.spawnEntity(std::move(itemEntity));

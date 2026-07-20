@@ -63,7 +63,7 @@ public:
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void broadcastEntityStatus(EntityId, u8) override {}
+    void broadcastEntityStatus(EntityInstanceId, u8) override {}
 };
 
 } // namespace
@@ -84,7 +84,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<PiglinAiGoldTestWorld>();
-        m_player = std::make_unique<Player>(static_cast<EntityId>(1), "GoldArmorTestPlayer");
+        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "GoldArmorTestPlayer");
         m_player->setWorld(m_world.get());
     }
 

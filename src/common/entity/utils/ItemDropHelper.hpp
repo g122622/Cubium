@@ -198,7 +198,7 @@ public:
      * @param throwerUuid 投掷者UUID
      * @return 生成的实体ID列表
      */
-    static std::vector<EntityId> spawnItemEntities(IWorld* world,
+    static std::vector<EntityInstanceId> spawnItemEntities(IWorld* world,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
         math::Random& rng,

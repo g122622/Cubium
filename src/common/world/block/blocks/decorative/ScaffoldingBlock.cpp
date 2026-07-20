@@ -203,7 +203,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
             if (airState != nullptr && world.setBlockState(pos, airState, 3)) {
                 // 创建下落实体
                 auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
-                fallingEntity->setTypeId(entity::EntityTypes::FALLING_BLOCK);
+                fallingEntity->setTypeId(entity::EntityTypeKeys::FALLING_BLOCK);
                 fallingEntity->setPosition(
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
                 fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
@@ -212,7 +212,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
                 // 脚手架下落时不伤害实体
                 fallingEntity->setHurtEntities(false);
 
-                const EntityId entityId = world.spawnEntity(std::move(fallingEntity));
+                const EntityInstanceId entityId = world.spawnEntity(std::move(fallingEntity));
                 if (entityId == 0) {
                     // 生成失败，恢复方块
                     world.setBlockState(pos, currentState, 3);

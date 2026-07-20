@@ -37,7 +37,7 @@
 #include "common/world/block/BlockPos.hpp"
 
 using mc::BlockPos;
-using mc::EntityId;
+using mc::EntityInstanceId;
 using mc::i64;
 using mc::LivingEntity;
 using mc::Vector3;
@@ -126,7 +126,7 @@ protected:
 // 测试：AttackTask 在没有 ATTACK_TARGET 记忆时不应执行
 TEST_F(AttackTaskTest, ShouldNotExecuteWithoutAttackTarget)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -146,7 +146,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWithoutAttackTarget)
 // 测试：AttackTask 在有 ATTACK_COOLING_DOWN 记忆时不应执行
 TEST_F(AttackTaskTest, ShouldNotExecuteWhenCoolingDown)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -156,7 +156,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenCoolingDown)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 设置攻击目标（僵尸靠近村民）
-    ZombieEntity zombie(EntityId(2));
+    ZombieEntity zombie(EntityInstanceId(2));
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -174,7 +174,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenCoolingDown)
 // 测试：AttackTask 在所有条件满足时应执行
 TEST_F(AttackTaskTest, ShouldExecuteWhenAllConditionsMet)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -184,7 +184,7 @@ TEST_F(AttackTaskTest, ShouldExecuteWhenAllConditionsMet)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 设置攻击目标（僵尸紧挨村民，在近战攻击范围内）
-    ZombieEntity zombie(EntityId(2));
+    ZombieEntity zombie(EntityInstanceId(2));
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.5f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -200,7 +200,7 @@ TEST_F(AttackTaskTest, ShouldExecuteWhenAllConditionsMet)
 // 测试：AttackTask 执行后设置 ATTACK_COOLING_DOWN 记忆
 TEST_F(AttackTaskTest, SetsCoolingDownAfterAttack)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -210,7 +210,7 @@ TEST_F(AttackTaskTest, SetsCoolingDownAfterAttack)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 设置攻击目标
-    ZombieEntity zombie(EntityId(2));
+    ZombieEntity zombie(EntityInstanceId(2));
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.5f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -231,7 +231,7 @@ TEST_F(AttackTaskTest, SetsCoolingDownAfterAttack)
 // 测试：AttackTask 是单次触发型任务，shouldContinueExecuting 返回 false
 TEST_F(AttackTaskTest, IsSingleShotTask)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -241,7 +241,7 @@ TEST_F(AttackTaskTest, IsSingleShotTask)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 设置攻击目标
-    ZombieEntity zombie(EntityId(2));
+    ZombieEntity zombie(EntityInstanceId(2));
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.5f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -260,7 +260,7 @@ TEST_F(AttackTaskTest, IsSingleShotTask)
 // 测试：AttackTask 在目标太远时不应执行
 TEST_F(AttackTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -270,7 +270,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 设置攻击目标（僵尸距离较远，超出近战攻击范围）
-    ZombieEntity zombie(EntityId(2));
+    ZombieEntity zombie(EntityInstanceId(2));
     zombie.setWorld(m_world.get());
     zombie.setPosition(10.0f, 64.0f, 0.0f); // 距离 10 格，超出近战范围
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -289,7 +289,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
 // 距离 < sqrt(2.04) ≈ 1.428 时可攻击
 TEST_F(AttackTaskTest, AttackRangeCalculation)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -304,7 +304,7 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
 
     // 测试1: 在攻击范围内（距离 1.0）
     {
-        ZombieEntity zombie(EntityId(2));
+        ZombieEntity zombie(EntityInstanceId(2));
         zombie.setWorld(m_world.get());
         zombie.setPosition(1.0f, 64.0f, 0.0f);
         brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -319,7 +319,7 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
 
     // 测试2: 刚好在攻击范围外（距离 1.5，距离平方 = 2.25 > 2.04）
     {
-        ZombieEntity zombie3(EntityId(3));
+        ZombieEntity zombie3(EntityInstanceId(3));
         zombie3.setWorld(m_world.get());
         zombie3.setPosition(1.5f, 64.0f, 0.0f);
         brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie3);
@@ -365,7 +365,7 @@ protected:
 // 测试：VillagerEntity Brain 注册了 ATTACK_COOLING_DOWN 记忆模块
 TEST_F(AttackTaskIntegrationTest, VillagerBrainRegistersAttackCoolingDownMemory)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     auto& brain = villager.brain();
 
     // AttackTask 需要 ATTACK_COOLING_DOWN 记忆模块已注册
@@ -376,7 +376,7 @@ TEST_F(AttackTaskIntegrationTest, VillagerBrainRegistersAttackCoolingDownMemory)
 // 测试：VillagerEntity Brain 注册了 ATTACK_TARGET 记忆模块
 TEST_F(AttackTaskIntegrationTest, VillagerBrainRegistersAttackTargetMemory)
 {
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     auto& brain = villager.brain();
 
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::REGISTERED))
@@ -387,14 +387,14 @@ TEST_F(AttackTaskIntegrationTest, VillagerBrainRegistersAttackTargetMemory)
 TEST_F(AttackTaskIntegrationTest, AttackTaskWithVillagerBrain)
 {
     ActionTaskTestWorld world;
-    VillagerEntity villager(EntityId(1));
+    VillagerEntity villager(EntityInstanceId(1));
     villager.setWorld(&world);
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
     auto& brain = villager.brain();
 
     // 设置攻击目标（僵尸靠近村民）
-    ZombieEntity zombie(EntityId(2));
+    ZombieEntity zombie(EntityInstanceId(2));
     zombie.setWorld(&world);
     zombie.setPosition(0.5f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);

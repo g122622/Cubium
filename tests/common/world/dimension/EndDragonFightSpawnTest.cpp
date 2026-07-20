@@ -32,9 +32,9 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -93,13 +93,13 @@ public:
 
     // ========== 实体管理 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         if (!entity) {
-            return EntityId(0);
+            return EntityInstanceId(0);
         }
-        const EntityId id = m_nextEntityId;
-        m_nextEntityId = EntityId(static_cast<u64>(m_nextEntityId) + 1);
+        const EntityInstanceId id = m_nextEntityId;
+        m_nextEntityId = EntityInstanceId(static_cast<u64>(m_nextEntityId) + 1);
         entity->setId(id);
         entity->setWorld(this);
         // 跟踪末影龙实体的生成
@@ -110,18 +110,18 @@ public:
         return id;
     }
 
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const override
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& typeId) const override
     {
         std::vector<Entity*> result;
         for (const auto& entity : m_entities) {
-            if (entity->typeId() == typeId && !entity->isRemoved()) {
+            if (entity->getTypeId() == typeId && !entity->isRemoved()) {
                 result.push_back(entity.get());
             }
         }
         return result;
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         for (auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -131,7 +131,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -144,11 +144,11 @@ public:
     // ========== 测试辅助方法 ==========
 
     /// 注入一个已存在的末影龙实体（模拟从存档加载的龙），返回其 UUID
-    /// 使用 EntityRegistry 工厂创建，确保 typeId() 正确返回 ENDER_DRAGON
+    /// 使用 EntityRegistry 工厂创建，确保 getTypeId() 正确返回 ENDER_DRAGON
     std::string injectExistingDragon()
     {
         auto& registry = entity::EntityRegistry::instance();
-        const entity::EntityType* dragonType = registry.getType(entity::EntityTypes::ENDER_DRAGON);
+        const entity::EntityType* dragonType = registry.getType(entity::EntityTypeKeys::ENDER_DRAGON);
         if (dragonType == nullptr) {
             return std::string();
         }
@@ -157,7 +157,7 @@ public:
             return std::string();
         }
         const std::string uuid = dragonEntity->uuid();
-        dragonEntity->setId(EntityId(100 + static_cast<u64>(m_entities.size())));
+        dragonEntity->setId(EntityInstanceId(100 + static_cast<u64>(m_entities.size())));
         m_entities.push_back(std::move(dragonEntity));
         return uuid;
     }
@@ -183,7 +183,7 @@ private:
 
     std::vector<std::unique_ptr<Entity>> m_entities;
     std::vector<Entity*> m_spawnedDragons;
-    EntityId m_nextEntityId = EntityId(1);
+    EntityInstanceId m_nextEntityId = EntityInstanceId(1);
 };
 
 } // namespace mc::test
@@ -225,7 +225,7 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SpawnsDragonEntity)
     EXPECT_FALSE(accessor.dragonKilled());
 
     // 应在世界中生成一个末影龙实体
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
     EXPECT_EQ(dragons[0]->uuid(), accessor.dragonUUID());
     // 返回的指针应指向世界中生成的同一实体
@@ -239,7 +239,7 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SetsSpawnPosition)
 
     accessor.createNewDragon(m_world);
 
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
 
     // 龙应在 (0, DRAGON_SPAWN_Y, 0) 生成
@@ -256,7 +256,7 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SetsRandomYawInRange)
 
     accessor.createNewDragon(m_world);
 
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
 
     // yaw 应在 [0, 360) 范围内
@@ -274,7 +274,7 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_SetsHoldingPatternPhase)
 
     accessor.createNewDragon(m_world);
 
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
 
     auto* dragon = dynamic_cast<entity::EnderDragonEntity*>(dragons[0]);
@@ -289,7 +289,7 @@ TEST_F(EndDragonFightSpawnTest, CreateNewDragon_DragonHasFullHealth)
 
     accessor.createNewDragon(m_world);
 
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
 
     auto* dragon = dynamic_cast<entity::EnderDragonEntity*>(dragons[0]);
@@ -338,7 +338,7 @@ TEST_F(EndDragonFightSpawnTest, FindOrCreateDragon_NoExistingDragon_CreatesNew)
     EXPECT_FALSE(accessor.dragonUUID().empty());
     EXPECT_FALSE(accessor.dragonKilled());
 
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
 }
 
@@ -357,7 +357,7 @@ TEST_F(EndDragonFightSpawnTest, FindOrCreateDragon_ExistingDragon_ReusesUUID)
     EXPECT_FALSE(accessor.dragonKilled());
 
     // 世界中应仍只有一条龙（未重复生成）
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
     EXPECT_EQ(dragons[0]->uuid(), existingUUID);
 }
@@ -400,7 +400,7 @@ TEST_F(EndDragonFightSpawnTest, FindOrCreateDragon_ExistingRemovedDragon_Creates
 
     // 注入一条龙并将其标记为已移除（模拟 discard 后的状态）
     const std::string removedUUID = m_world.injectExistingDragon();
-    auto dragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto dragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(dragons.size(), 1u);
     dragons[0]->discard();
     EXPECT_TRUE(dragons[0]->isRemoved());
@@ -412,7 +412,7 @@ TEST_F(EndDragonFightSpawnTest, FindOrCreateDragon_ExistingRemovedDragon_Creates
     EXPECT_NE(accessor.dragonUUID(), removedUUID);
 
     // getEntitiesByType 也应过滤已移除的龙，仅返回新生成的龙
-    auto remainingDragons = m_world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+    auto remainingDragons = m_world.getEntitiesByType(entity::EntityTypeKeys::ENDER_DRAGON);
     ASSERT_EQ(remainingDragons.size(), 1u);
     EXPECT_EQ(remainingDragons[0]->uuid(), accessor.dragonUUID());
 }

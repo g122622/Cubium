@@ -117,7 +117,7 @@ public:
         }
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         (void)entity;
         return ++m_lastEntityId;
@@ -155,7 +155,7 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
     std::vector<SoundRecord> m_sounds;
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
 };
 
 // ============================================================================
@@ -213,7 +213,7 @@ private:
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_EmptyHandAndEmptyShelf_ReturnsPass)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 玩家手持空
     player.inventory().getSelectedStackRef() = ItemStack();
 
@@ -230,7 +230,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_EmptyHandAndEmptySh
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaceItem_ReturnsSuccessWithTransformedItem)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 玩家手持 5 个石头
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
@@ -268,7 +268,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaceItem_ReturnsSu
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_SwapItem_ReturnsSuccessWithTransformedItem)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 玩家手持 3 个石头
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
@@ -302,7 +302,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_SwapItem_ReturnsSuc
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_TakeItem_ReturnsSuccessWithTransformedItem)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 玩家空手
     player.inventory().getSelectedStackRef() = ItemStack();
 
@@ -333,7 +333,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_TakeItem_ReturnsSuc
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_OffHand_ReturnsPass)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
     player.inventory().getSelectedStackRef() = ItemStack(*stone, 5);
@@ -350,7 +350,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_OffHand_ReturnsPass)
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaysPlaceItemSound)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
     player.inventory().getSelectedStackRef() = ItemStack(*stone, 5);
@@ -376,7 +376,7 @@ TEST_F(ShelfBlockInteractionTest,
     OnBlockActivated_Powered_SwapHotbar_SelectedItemChanged_ReturnsSuccessWithTransformedItem)
 {
     setPowered();
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 选中热栏槽位 6（会被交换）
     player.inventory().setSelectedSlot(6);
 
@@ -419,7 +419,7 @@ TEST_F(ShelfBlockInteractionTest,
     OnBlockActivated_Powered_SwapHotbar_SelectedItemUnchanged_ReturnsSuccessWithoutTransformedItem)
 {
     setPowered();
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 选中热栏槽位 6（会被交换）
     player.inventory().setSelectedSlot(6);
 
@@ -457,7 +457,7 @@ TEST_F(ShelfBlockInteractionTest,
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Powered_NoSwap_ReturnsConsume)
 {
     setPowered();
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     // 选中热栏槽位 6
     player.inventory().setSelectedSlot(6);
 

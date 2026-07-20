@@ -24,10 +24,10 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/monster/illager/RavagerEntity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -1028,9 +1028,9 @@ const BlockState placeMaturePitcherCrop(PitcherCropTestWorld& world, const Block
 // 辅助：构造 RavagerEntity 并设置 typeId
 std::unique_ptr<RavagerEntity> createRavager(PitcherCropTestWorld& world)
 {
-    auto ravager = std::make_unique<RavagerEntity>(EntityId(1));
+    auto ravager = std::make_unique<RavagerEntity>(EntityInstanceId(1));
     ravager->setWorld(&world);
-    // 显式设置 typeId 字符串，使 entity.typeId() 返回 RAVAGER
+    // 显式设置 typeId 字符串，使 entity.entityType() 懒查询返回 RAVAGER 类型指针
     // （RavagerEntity 构造函数不会自动设置 typeId，需通过 EntityType::create 或显式 setTypeId）
     ravager->setTypeId("minecraft:ravager");
     return ravager;
@@ -1039,7 +1039,7 @@ std::unique_ptr<RavagerEntity> createRavager(PitcherCropTestWorld& world)
 // 辅助：构造 PigEntity 作为非 Ravager 对照
 std::unique_ptr<PigEntity> createPig(PitcherCropTestWorld& world)
 {
-    auto pig = std::make_unique<PigEntity>(EntityId(2));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(2));
     pig->setWorld(&world);
     pig->setTypeId("minecraft:pig");
     return pig;

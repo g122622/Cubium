@@ -60,7 +60,7 @@ protected:
 TEST_F(EntityManagerUuidTest, GetEntityByUuid_BasicLookup)
 {
     // 创建一个实体并添加到管理器
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
@@ -70,7 +70,7 @@ TEST_F(EntityManagerUuidTest, GetEntityByUuid_BasicLookup)
     const std::string uuid = pig->uuid();
     EXPECT_FALSE(uuid.empty()) << "实体UUID不应为空";
 
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
     EXPECT_NE(id, 0u);
 
     // 通过UUID查找
@@ -89,12 +89,12 @@ TEST_F(EntityManagerUuidTest, GetEntityByUuid_NotFound)
 
 TEST_F(EntityManagerUuidTest, GetEntityByUuid_ConstVersion)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     const std::string uuid = pig->uuid();
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     // const版本查找
     const EntityManager& constManager = m_manager;
@@ -109,7 +109,7 @@ TEST_F(EntityManagerUuidTest, GetEntityByUuid_ConstVersion)
 
 TEST_F(EntityManagerUuidTest, HasEntityWithUuid_ExistingEntity)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
@@ -130,7 +130,7 @@ TEST_F(EntityManagerUuidTest, HasEntityWithUuid_NonExistingUuid)
 
 TEST_F(EntityManagerUuidTest, AddEntity_UpdatesUuidIndex)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加多个实体，UUID索引应全部正确
@@ -152,9 +152,9 @@ TEST_F(EntityManagerUuidTest, AddEntity_UpdatesUuidIndex)
 
 TEST_F(EntityManagerUuidTest, AddEntity_DifferentTypesAllIndexed)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
-    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
-    const EntityType* sheepType = EntityRegistry::instance().getType(EntityTypes::SHEEP);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
+    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypeKeys::COW);
+    const EntityType* sheepType = EntityRegistry::instance().getType(EntityTypeKeys::SHEEP);
     ASSERT_NE(pigType, nullptr);
     ASSERT_NE(cowType, nullptr);
     ASSERT_NE(sheepType, nullptr);
@@ -182,12 +182,12 @@ TEST_F(EntityManagerUuidTest, AddEntity_DifferentTypesAllIndexed)
 
 TEST_F(EntityManagerUuidTest, RemoveEntity_ClearsUuidIndex)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     const std::string uuid = pig->uuid();
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     // 确认UUID存在
     EXPECT_TRUE(m_manager.hasEntityWithUuid(uuid));
@@ -204,7 +204,7 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_ClearsUuidIndex)
 
 TEST_F(EntityManagerUuidTest, RemoveEntity_OnlyRemovesOwnUuid)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加两个实体
@@ -212,8 +212,8 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_OnlyRemovesOwnUuid)
     auto pig2 = pigType->create(nullptr);
     std::string uuid1 = pig1->uuid();
     std::string uuid2 = pig2->uuid();
-    EntityId id1 = m_manager.addEntity(std::move(pig1));
-    EntityId id2 = m_manager.addEntity(std::move(pig2));
+    EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
+    EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
     // 移除第一个实体
     m_manager.removeEntity(id1);
@@ -242,7 +242,7 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_NonexistentId_NoCrash)
 
 TEST_F(EntityManagerUuidTest, RemoveDeadEntities_ClearsUuidIndex)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加两个实体
@@ -250,8 +250,8 @@ TEST_F(EntityManagerUuidTest, RemoveDeadEntities_ClearsUuidIndex)
     auto pig2 = pigType->create(nullptr);
     std::string uuid1 = pig1->uuid();
     std::string uuid2 = pig2->uuid();
-    EntityId id1 = m_manager.addEntity(std::move(pig1));
-    EntityId id2 = m_manager.addEntity(std::move(pig2));
+    EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
+    EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
     // 标记第一个实体为已移除
     Entity* entity1 = m_manager.getEntity(id1);
@@ -279,7 +279,7 @@ TEST_F(EntityManagerUuidTest, RemoveDeadEntities_ClearsUuidIndex)
 
 TEST_F(EntityManagerUuidTest, AddEntity_DuplicateUuid_OverrideMapping)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 手动设置相同UUID的两个实体
@@ -291,8 +291,8 @@ TEST_F(EntityManagerUuidTest, AddEntity_DuplicateUuid_OverrideMapping)
     pig1->setUuid(sharedUuid);
     pig2->setUuid(sharedUuid);
 
-    EntityId id1 = m_manager.addEntity(std::move(pig1));
-    EntityId id2 = m_manager.addEntity(std::move(pig2));
+    EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
+    EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
     // UUID索引应指向最后添加的实体（覆盖行为）
     Entity* found = m_manager.getEntityByUuid(sharedUuid);
@@ -307,7 +307,7 @@ TEST_F(EntityManagerUuidTest, AddEntity_DuplicateUuid_OverrideMapping)
 
 TEST_F(EntityManagerUuidTest, RemoveEntity_DuplicateUuid_NoAccidentalDelete)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 手动设置相同UUID的两个实体
@@ -318,8 +318,8 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_DuplicateUuid_NoAccidentalDelete)
     pig1->setUuid(sharedUuid);
     pig2->setUuid(sharedUuid);
 
-    EntityId id1 = m_manager.addEntity(std::move(pig1));
-    EntityId id2 = m_manager.addEntity(std::move(pig2));
+    EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
+    EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
     // 移除第一个实体（UUID索引指向第二个实体）
     m_manager.removeEntity(id1);
@@ -339,14 +339,14 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_DuplicateUuid_NoAccidentalDelete)
 
 TEST_F(EntityManagerUuidTest, AddEntity_EmptyUuid_NotIndexed)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     // 强制设置空UUID
     pig->setUuid("");
 
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     // 实体应该被成功添加
     EXPECT_TRUE(m_manager.hasEntity(id));
@@ -362,11 +362,11 @@ TEST_F(EntityManagerUuidTest, AddEntity_EmptyUuid_NotIndexed)
 
 TEST_F(EntityManagerUuidTest, GetEntityByUuid_ConsistentWithGetEntity)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加多个实体
-    std::vector<EntityId> ids;
+    std::vector<EntityInstanceId> ids;
     std::vector<std::string> uuids;
     for (int i = 0; i < 10; ++i) {
         auto pig = pigType->create(nullptr);
@@ -392,7 +392,7 @@ TEST_F(EntityManagerUuidTest, GetEntityByUuid_ConsistentWithGetEntity)
 
 TEST_F(EntityManagerUuidTest, GetEntityByUuid_ManyEntities)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加100个实体
@@ -420,13 +420,13 @@ TEST_F(EntityManagerUuidTest, GetEntityByUuid_ManyEntities)
 
 TEST_F(EntityManagerUuidTest, RemoveAndReAdd_UuidIndexRestored)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加实体
     auto pig = pigType->create(nullptr);
     const std::string uuid = pig->uuid();
-    EntityId id1 = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id1 = m_manager.addEntity(std::move(pig));
     EXPECT_TRUE(m_manager.hasEntityWithUuid(uuid));
 
     // 移除实体
@@ -436,7 +436,7 @@ TEST_F(EntityManagerUuidTest, RemoveAndReAdd_UuidIndexRestored)
     // 添加新实体（新UUID）
     auto pig2 = pigType->create(nullptr);
     const std::string uuid2 = pig2->uuid();
-    EntityId id2 = m_manager.addEntity(std::move(pig2));
+    EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
     EXPECT_TRUE(m_manager.hasEntityWithUuid(uuid2));
 
     // 原UUID仍不存在

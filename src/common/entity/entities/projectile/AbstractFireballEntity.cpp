@@ -42,11 +42,11 @@
 namespace mc {
 namespace entity {
 
-AbstractFireballEntity::AbstractFireballEntity(EntityId id)
+AbstractFireballEntity::AbstractFireballEntity(EntityInstanceId id)
     : DamagingProjectileEntity(id)
 {}
 
-FireballEntity::FireballEntity(EntityId id)
+FireballEntity::FireballEntity(EntityInstanceId id)
     : AbstractFireballEntity(id)
 {
     setDamage(6.0f);
@@ -114,7 +114,7 @@ void FireballEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-SmallFireballEntity::SmallFireballEntity(EntityId id)
+SmallFireballEntity::SmallFireballEntity(EntityInstanceId id)
     : AbstractFireballEntity(id)
 {
     setDamage(5.0f);
@@ -190,7 +190,7 @@ void SmallFireballEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-DragonFireballEntity::DragonFireballEntity(EntityId id)
+DragonFireballEntity::DragonFireballEntity(EntityInstanceId id)
     : AbstractFireballEntity(id)
 {
     setDamage(12.0f);
@@ -228,7 +228,7 @@ void DragonFireballEntity::_createDragonBreathCloud()
     auto cloud = std::make_unique<AreaEffectCloudEntity>();
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-    cloud->setTypeId(EntityTypes::AREA_EFFECT_CLOUD);
+    cloud->setTypeId(EntityTypeKeys::AREA_EFFECT_CLOUD);
 
     cloud->setWorld(worldPtr);
     cloud->setPosition(x(), y(), z());
@@ -278,7 +278,7 @@ particle::ParticleTypeId DragonFireballEntity::getParticleType() const
     return particle::ParticleTypeId::DragonBreath;
 }
 
-WitherSkullEntity::WitherSkullEntity(EntityId id)
+WitherSkullEntity::WitherSkullEntity(EntityInstanceId id)
     : AbstractFireballEntity(id)
 {
     setDamage(8.0f);

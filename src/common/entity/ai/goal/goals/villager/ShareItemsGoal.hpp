@@ -94,7 +94,7 @@ private:
 
 private:
     VillagerEntity* m_villager;
-    EntityId m_targetVillagerId;
+    EntityInstanceId m_targetVillagerId;
     i32 m_shareCooldown = 0;
     static constexpr f32 SHARE_DISTANCE = 2.0f; // 分享距离
     static constexpr i32 SHARE_COOLDOWN = 200;  // 分享冷却

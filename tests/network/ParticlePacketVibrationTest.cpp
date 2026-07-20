@@ -30,7 +30,7 @@
 using namespace mc::network;
 using namespace mc::client::renderer::trident::particle;
 using mc::BlockPos;
-using mc::EntityId;
+using mc::EntityInstanceId;
 using mc::f32;
 using mc::f64;
 using mc::i32;
@@ -109,7 +109,7 @@ TEST(ParticlePacketVibrationTest, CreateVibrationEntity_SetsCorrectType)
 {
     Vector3 pos(10.0f, 64.0f, -20.0f);
 
-    auto packet = ParticlePacket::createVibration(pos, EntityId(42), 1.5f, 15);
+    auto packet = ParticlePacket::createVibration(pos, EntityInstanceId(42), 1.5f, 15);
 
     EXPECT_EQ(packet.particleType(), ParticleTypeId::Vibration);
 }
@@ -118,7 +118,7 @@ TEST(ParticlePacketVibrationTest, CreateVibrationEntity_HasOptionalData)
 {
     Vector3 pos(0.0f, 0.0f, 0.0f);
 
-    auto packet = ParticlePacket::createVibration(pos, EntityId(42), 1.5f, 10);
+    auto packet = ParticlePacket::createVibration(pos, EntityInstanceId(42), 1.5f, 10);
 
     EXPECT_FALSE(packet.optionalData().empty());
     // 格式: VarInt(1) + VarInt entityId + f32 yOffset + VarInt arrivalInTicks
@@ -242,13 +242,13 @@ TEST(ParticlePacketVibrationTest, DecodeVibrationTargetEntity_ReturnsCorrectEnti
 {
     Vector3 pos(10.0f, 64.0f, -20.0f);
 
-    auto packet = ParticlePacket::createVibration(pos, EntityId(42), 1.5f, 15);
+    auto packet = ParticlePacket::createVibration(pos, EntityInstanceId(42), 1.5f, 15);
 
     auto decoded = packet.decodeVibrationTarget();
     ASSERT_TRUE(decoded.has_value());
 
     EXPECT_EQ(decoded->kind, ParticlePacket::VibrationTarget::Kind::Entity);
-    EXPECT_EQ(decoded->entityId, EntityId(42));
+    EXPECT_EQ(decoded->entityId, EntityInstanceId(42));
     EXPECT_FLOAT_EQ(decoded->yOffset, 1.5f);
 }
 
@@ -256,13 +256,13 @@ TEST(ParticlePacketVibrationTest, DecodeVibrationTargetEntity_ZeroEntityIdAndOff
 {
     Vector3 pos(0.0f, 0.0f, 0.0f);
 
-    auto packet = ParticlePacket::createVibration(pos, EntityId(0), 0.0f, 5);
+    auto packet = ParticlePacket::createVibration(pos, EntityInstanceId(0), 0.0f, 5);
 
     auto decoded = packet.decodeVibrationTarget();
     ASSERT_TRUE(decoded.has_value());
 
     EXPECT_EQ(decoded->kind, ParticlePacket::VibrationTarget::Kind::Entity);
-    EXPECT_EQ(decoded->entityId, EntityId(0));
+    EXPECT_EQ(decoded->entityId, EntityInstanceId(0));
     EXPECT_FLOAT_EQ(decoded->yOffset, 0.0f);
 }
 
@@ -271,12 +271,12 @@ TEST(ParticlePacketVibrationTest, DecodeVibrationTargetEntity_LargeEntityId)
     Vector3 pos(0.0f, 0.0f, 0.0f);
 
     // VarInt 可表示的最大 32 位有符号整数
-    auto packet = ParticlePacket::createVibration(pos, EntityId(2000000000), 2.0f, 10);
+    auto packet = ParticlePacket::createVibration(pos, EntityInstanceId(2000000000), 2.0f, 10);
 
     auto decoded = packet.decodeVibrationTarget();
     ASSERT_TRUE(decoded.has_value());
 
-    EXPECT_EQ(decoded->entityId, EntityId(2000000000));
+    EXPECT_EQ(decoded->entityId, EntityInstanceId(2000000000));
     EXPECT_FLOAT_EQ(decoded->yOffset, 2.0f);
 }
 
@@ -299,7 +299,7 @@ TEST(ParticlePacketVibrationTest, DecodeVibrationArrivalInTicks_ReturnsCorrectTi
 {
     Vector3 pos(10.0f, 64.0f, -20.0f);
 
-    auto packet = ParticlePacket::createVibration(pos, EntityId(42), 1.5f, 20);
+    auto packet = ParticlePacket::createVibration(pos, EntityInstanceId(42), 1.5f, 20);
 
     auto decoded = packet.decodeVibrationArrivalInTicks();
     ASSERT_TRUE(decoded.has_value());
@@ -395,7 +395,7 @@ TEST(ParticlePacketVibrationTest, SerializeDeserialize_VibrationPacket_Entity)
 {
     Vector3 pos(10.0f, 64.0f, -20.0f);
 
-    auto original = ParticlePacket::createVibration(pos, EntityId(42), 1.5f, 20);
+    auto original = ParticlePacket::createVibration(pos, EntityInstanceId(42), 1.5f, 20);
 
     auto result = original.serialize();
     ASSERT_TRUE(result.success()) << result.error().message();
@@ -409,7 +409,7 @@ TEST(ParticlePacketVibrationTest, SerializeDeserialize_VibrationPacket_Entity)
     auto decodedTarget = deserialized.decodeVibrationTarget();
     ASSERT_TRUE(decodedTarget.has_value());
     EXPECT_EQ(decodedTarget->kind, ParticlePacket::VibrationTarget::Kind::Entity);
-    EXPECT_EQ(decodedTarget->entityId, EntityId(42));
+    EXPECT_EQ(decodedTarget->entityId, EntityInstanceId(42));
     EXPECT_FLOAT_EQ(decodedTarget->yOffset, 1.5f);
 
     auto decodedTicks = deserialized.decodeVibrationArrivalInTicks();
@@ -510,15 +510,15 @@ TEST(ParticlePacketVibrationTest, VibrationDataRoundTrip_MultipleEntityPackets)
 {
     struct TestCase {
         Vector3 pos;
-        EntityId entityId;
+        EntityInstanceId entityId;
         f32 yOffset;
         i32 ticks;
     };
 
     std::vector<TestCase> cases = {
-        {Vector3(0.0f, 0.0f, 0.0f), EntityId(1), 0.0f, 5},
-        {Vector3(100.0f, -64.0f, 200.0f), EntityId(12345), 2.5f, 20},
-        {Vector3(1.5f, 2.5f, 3.5f), EntityId(2000000000), -1.0f, 1},
+        {Vector3(0.0f, 0.0f, 0.0f), EntityInstanceId(1), 0.0f, 5},
+        {Vector3(100.0f, -64.0f, 200.0f), EntityInstanceId(12345), 2.5f, 20},
+        {Vector3(1.5f, 2.5f, 3.5f), EntityInstanceId(2000000000), -1.0f, 1},
     };
 
     for (const auto& tc : cases) {

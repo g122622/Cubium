@@ -27,7 +27,7 @@
 
 namespace mc {
 
-AbstractRaiderEntity::AbstractRaiderEntity(EntityId id)
+AbstractRaiderEntity::AbstractRaiderEntity(EntityInstanceId id)
     : PatrollerEntity(id)
 {}
 

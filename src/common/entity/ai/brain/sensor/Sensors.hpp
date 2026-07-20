@@ -25,12 +25,12 @@
 
 #include "Sensor.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/IMob.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
@@ -197,7 +197,7 @@ private:
     /**
      * @brief 初始化村民敌对生物距离映射表
      */
-    static std::unordered_map<entity::EntityTypeId, f32> createHostileDistanceMap();
+    static std::unordered_map<const entity::EntityType*, f32> createHostileDistanceMap();
 };
 
 /**

@@ -150,7 +150,7 @@ protected:
 
 TEST_F(SheepEntityTest, InitialState)
 {
-    SheepEntity sheep(EntityId(1));
+    SheepEntity sheep(EntityInstanceId(1));
 
     // 初始状态
     EXPECT_FALSE(sheep.isSheared());
@@ -160,7 +160,7 @@ TEST_F(SheepEntityTest, InitialState)
 
 TEST_F(SheepEntityTest, SetFleeceColor)
 {
-    SheepEntity sheep(EntityId(1));
+    SheepEntity sheep(EntityInstanceId(1));
 
     sheep.setFleeceColor(DyeColor::Red);
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::Red);
@@ -171,7 +171,7 @@ TEST_F(SheepEntityTest, SetFleeceColor)
 
 TEST_F(SheepEntityTest, SetSheared)
 {
-    SheepEntity sheep(EntityId(1));
+    SheepEntity sheep(EntityInstanceId(1));
 
     EXPECT_FALSE(sheep.isSheared());
     EXPECT_TRUE(sheep.isShearable());
@@ -187,7 +187,7 @@ TEST_F(SheepEntityTest, SetSheared)
 
 TEST_F(SheepEntityTest, ChildCannotBeSheared)
 {
-    SheepEntity sheep(EntityId(1));
+    SheepEntity sheep(EntityInstanceId(1));
     sheep.setChild(true);
 
     EXPECT_FALSE(sheep.isShearable());
@@ -195,7 +195,7 @@ TEST_F(SheepEntityTest, ChildCannotBeSheared)
 
 TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
 {
-    SheepEntity sheep(EntityId(1));
+    SheepEntity sheep(EntityInstanceId(1));
     sheep.setSheared(true);
 
     EXPECT_TRUE(sheep.isSheared());
@@ -207,7 +207,7 @@ TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
 
 TEST_F(SheepEntityTest, EatGrassBonusAcceleratesChildGrowth)
 {
-    SheepEntity sheep(EntityId(1));
+    SheepEntity sheep(EntityInstanceId(1));
     sheep.setChild(true);
     sheep.setGrowingAge(-24000); // 幼羊，-24000 ticks
 
@@ -323,19 +323,19 @@ public:
     }
 
     // 实体状态广播追踪
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_lastBroadcastEntityId = entityId;
         m_lastBroadcastStatus = status;
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
     [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
     [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
     void resetBroadcastTracking()
     {
-        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastEntityId = EntityInstanceId(0);
         m_lastBroadcastStatus = 0;
         m_broadcastCount = 0;
     }
@@ -360,7 +360,7 @@ private:
     i32 m_lastEventId = -1;
     BlockPos m_lastEventPos{0, 0, 0};
     i32 m_lastEventData = 0;
-    EntityId m_lastBroadcastEntityId{0};
+    EntityInstanceId m_lastBroadcastEntityId{0};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;
 };
@@ -371,7 +371,7 @@ private:
 class TestMobEntity final : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

@@ -69,12 +69,12 @@ public:
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
@@ -109,11 +109,11 @@ private:
  */
 class TestVillagerEntity : public Entity {
 public:
-    TestVillagerEntity(EntityId id, IWorld* world = nullptr)
+    TestVillagerEntity(EntityInstanceId id, IWorld* world = nullptr)
         : Entity(id, world)
     {
         // 设置实体类型为村民
-        setTypeId(entity::EntityTypes::VILLAGER);
+        setTypeId(entity::EntityTypeKeys::VILLAGER);
     }
 
     void tick() override { /* 空实现 */ }
@@ -143,7 +143,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerWithinRange_UpdatesLastSeenTim
     Village village(BlockPos(0, 64, 0));
 
     // 创建测试村民并添加到村庄
-    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager->setPosition(10.0f, 64.0f, 10.0f); // 在村庄范围内
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
@@ -165,7 +165,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerOutOfRange_RemovedAfterTimeout
     Village village(BlockPos(0, 64, 0));
 
     // 创建测试村民
-    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager->setPosition(10.0f, 64.0f, 10.0f); // 初始在范围内
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
@@ -199,7 +199,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_EntityRemoved_RemovedFromVillage)
     Village village(BlockPos(0, 64, 0));
 
     // 创建村民并添加到村庄
-    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager->setPosition(10.0f, 64.0f, 10.0f);
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
@@ -225,7 +225,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_NonVillagerEntity_RemovedFromVillage)
     Village village(BlockPos(0, 64, 0));
 
     // 创建一个非村民实体（使用 Unknown 类型）
-    auto nonVillager = std::make_unique<Entity>(EntityId(1), &m_world);
+    auto nonVillager = std::make_unique<Entity>(EntityInstanceId(1), &m_world);
     nonVillager->setPosition(10.0f, 64.0f, 10.0f);
     m_world.addTestEntity(nonVillager.get(), 1);
 
@@ -246,7 +246,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_RemovedEntity_RemovedFromVillage)
     // 测试 isRemoved() 为 true 的实体应从村庄中移除
     Village village(BlockPos(0, 64, 0));
 
-    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager->setPosition(10.0f, 64.0f, 10.0f); // 在村庄范围内
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
@@ -272,7 +272,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_OutOfRangeNewVillager_GetsGracePeriod)
     // 测试新加入的村民如果在村庄范围外，会获得超时宽限期而不是立即被移除
     Village village(BlockPos(0, 64, 0));
 
-    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager->setPosition(200.0f, 64.0f, 200.0f); // 初始就在村庄范围外
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
@@ -307,7 +307,7 @@ TEST_F(VillageTickTest, TickVillagerCheck_VillagerRemoved_ReleasesPOI)
     m_poiStorage.registerPOI(bedPos, poi::PointOfInterestType::BedRed);
 
     // 创建村民并占用床位
-    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager->setPosition(5.0f, 64.0f, 5.0f);
     m_world.addTestEntity(villager.get(), 1);
     village.addVillager(1);
@@ -344,17 +344,17 @@ TEST_F(VillageTickTest, TickVillagerCheck_MultipleVillagers_OnlyRemovesTimedOut)
     Village village(BlockPos(0, 64, 0));
 
     // 创建多个村民
-    auto villager1 = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    auto villager1 = std::make_unique<TestVillagerEntity>(EntityInstanceId(1), &m_world);
     villager1->setPosition(10.0f, 64.0f, 10.0f);
     m_world.addTestEntity(villager1.get(), 1);
     village.addVillager(1);
 
-    auto villager2 = std::make_unique<TestVillagerEntity>(EntityId(2), &m_world);
+    auto villager2 = std::make_unique<TestVillagerEntity>(EntityInstanceId(2), &m_world);
     villager2->setPosition(20.0f, 64.0f, 20.0f);
     m_world.addTestEntity(villager2.get(), 2);
     village.addVillager(2);
 
-    auto villager3 = std::make_unique<TestVillagerEntity>(EntityId(3), &m_world);
+    auto villager3 = std::make_unique<TestVillagerEntity>(EntityInstanceId(3), &m_world);
     villager3->setPosition(30.0f, 64.0f, 30.0f);
     m_world.addTestEntity(villager3.get(), 3);
     village.addVillager(3);

@@ -38,7 +38,7 @@ namespace {
 class TestEntity : public Entity {
 public:
     TestEntity()
-        : Entity(EntityId(1))
+        : Entity(EntityInstanceId(1))
     {
         // 初始化尺寸
         refreshDimensions();
@@ -53,7 +53,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         setHealth(maxHealth());
     }

@@ -208,7 +208,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit AbstractArrowEntity(EntityId id);
+    explicit AbstractArrowEntity(EntityInstanceId id);
 
     /**
      * @brief 箭矢命中实体时的处理
@@ -271,7 +271,7 @@ protected:
     bool m_dealtDamage = false; // 是否已造成伤害（三叉戟用）
 
     // 穿透追踪（使用 unordered_set 实现 O(1) 查找）
-    std::unordered_set<EntityId> m_piercedEntities;
+    std::unordered_set<EntityInstanceId> m_piercedEntities;
 
     // 命中的方块状态
     std::optional<BlockState> m_inBlockState;
@@ -293,7 +293,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit ArrowEntity(EntityId id);
+    explicit ArrowEntity(EntityInstanceId id);
 
     /**
      * @brief 从发射者创建
@@ -391,7 +391,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit SpectralArrowEntity(EntityId id);
+    explicit SpectralArrowEntity(EntityInstanceId id);
 
     // ========== Entity 接口重写 ==========
 

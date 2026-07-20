@@ -122,7 +122,7 @@ protected:
     virtual void switchSound() = 0;
 
     EntitySoundHandler* m_handler = nullptr;
-    EntityId m_entityId;
+    EntityInstanceId m_entityId;
     bool m_isAngry;
 };
 
@@ -255,7 +255,7 @@ public:
 
 private:
     EntitySoundHandler* m_handler = nullptr;
-    EntityId m_entityId;
+    EntityInstanceId m_entityId;
     i32 m_clientSideAttackTime = 0;
 
     static constexpr i32 ATTACK_DURATION = 80;
@@ -335,7 +335,7 @@ public:
 
 private:
     EntitySoundHandler* m_handler = nullptr;
-    EntityId m_entityId;
+    EntityInstanceId m_entityId;
     i32 m_time = 0;
 };
 
@@ -345,21 +345,21 @@ private:
 
 EntitySoundHandler::EntitySoundHandler() = default;
 
-void EntitySoundHandler::updateEntityState(EntityId entityId, const EntitySoundState& state)
+void EntitySoundHandler::updateEntityState(EntityInstanceId entityId, const EntitySoundState& state)
 {
     std::unique_lock lock(m_stateMutex);
     m_entityStates[entityId] = state;
     m_entityStates[entityId].entityId = entityId;
 }
 
-void EntitySoundHandler::removeEntityState(EntityId entityId)
+void EntitySoundHandler::removeEntityState(EntityInstanceId entityId)
 {
     std::unique_lock lock(m_stateMutex);
     m_entityStates.erase(entityId);
     m_entityTypes.erase(entityId);
 }
 
-void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, const std::string& typeId)
+void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityInstanceId entityId, const std::string& typeId)
 {
     // 记录实体类型
     m_entityTypes[entityId] = typeId;
@@ -373,7 +373,7 @@ void EntitySoundHandler::onEntitySpawn(SoundEngine& engine, EntityId entityId, c
     }
 }
 
-void EntitySoundHandler::onEntityRemove(EntityId entityId)
+void EntitySoundHandler::onEntityRemove(EntityInstanceId entityId)
 {
     // 标记实体为已移除
     {
@@ -388,7 +388,7 @@ void EntitySoundHandler::onEntityRemove(EntityId entityId)
     m_activeSounds.erase(entityId);
 }
 
-void EntitySoundHandler::onPlayerElytraFlyingChanged(SoundEngine& engine, EntityId playerId, bool isFlying)
+void EntitySoundHandler::onPlayerElytraFlyingChanged(SoundEngine& engine, EntityInstanceId playerId, bool isFlying)
 {
     std::shared_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(playerId);
@@ -440,7 +440,7 @@ void EntitySoundHandler::tick(SoundEngine& engine)
     // 由于此代码在 SoundEngine::tick() 的活动声音更新之后执行，
     // 新声音在同一帧内就播放，实现了无缝切换
     for (auto it = m_activeSounds.begin(); it != m_activeSounds.end();) {
-        EntityId entityId = it->first;
+        EntityInstanceId entityId = it->first;
         SoundInstanceId soundId = it->second;
 
         // 获取声音实例检查是否完成
@@ -480,21 +480,21 @@ void EntitySoundHandler::stopAll()
     m_entityTypes.clear();
 }
 
-const EntitySoundState* EntitySoundHandler::getEntityState(EntityId entityId) const
+const EntitySoundState* EntitySoundHandler::getEntityState(EntityInstanceId entityId) const
 {
     std::shared_lock lock(m_stateMutex);
     auto it = m_entityStates.find(entityId);
     return it != m_entityStates.end() ? &it->second : nullptr;
 }
 
-EntitySoundState* EntitySoundHandler::getMutableEntityState(EntityId entityId)
+EntitySoundState* EntitySoundHandler::getMutableEntityState(EntityInstanceId entityId)
 {
     std::unique_lock lock(m_stateMutex);
     auto it = m_entityStates.find(entityId);
     return it != m_entityStates.end() ? &it->second : nullptr;
 }
 
-void EntitySoundHandler::_checkAndCreateSound(SoundEngine& engine, EntityId entityId, const std::string& typeId)
+void EntitySoundHandler::_checkAndCreateSound(SoundEngine& engine, EntityInstanceId entityId, const std::string& typeId)
 {
     std::shared_lock lock(m_stateMutex);
     auto stateIt = m_entityStates.find(entityId);
@@ -539,7 +539,7 @@ void EntitySoundHandler::_checkAndCreateSound(SoundEngine& engine, EntityId enti
                 SoundInstanceId ridingSoundId = engine.play(std::move(ridingSound));
                 if (ridingSoundId != 0) {
                     // 使用复合键存储骑乘声音
-                    m_activeSounds[static_cast<EntityId>(static_cast<u32>(playerId) | RIDING_SOUND_KEY_MASK)] =
+                    m_activeSounds[static_cast<EntityInstanceId>(static_cast<u32>(playerId) | RIDING_SOUND_KEY_MASK)] =
                         ridingSoundId;
                 }
             }
@@ -547,7 +547,7 @@ void EntitySoundHandler::_checkAndCreateSound(SoundEngine& engine, EntityId enti
     }
 }
 
-void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId)
+void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityInstanceId entityId)
 {
     // 检查是否已有守卫者声音
     auto soundIt = m_activeSounds.find(entityId);
@@ -593,7 +593,7 @@ void EntitySoundHandler::onGuardianAttack(SoundEngine& engine, EntityId entityId
     }
 }
 
-void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId targetEntityId)
+void EntitySoundHandler::onGuardianTargetChanged(EntityInstanceId entityId, EntityInstanceId targetEntityId)
 {
     // 如果目标变为 0，停止守卫者声音
     if (targetEntityId == 0) {
@@ -617,13 +617,13 @@ void EntitySoundHandler::onGuardianTargetChanged(EntityId entityId, EntityId tar
 void EntitySoundHandler::playMovingSound(SoundEngine& engine,
     const ResourceLocation& soundEventId,
     SoundCategory category,
-    EntityId entityId,
+    EntityInstanceId entityId,
     f32 volume,
     f32 pitch)
 {
     // 检查是否已有该实体的移动声音
     // 使用特殊的键来区分移动声音和其他声音
-    EntityId movingSoundKey = static_cast<EntityId>(static_cast<u32>(entityId) | MOVING_SOUND_KEY_MASK);
+    EntityInstanceId movingSoundKey = static_cast<EntityInstanceId>(static_cast<u32>(entityId) | MOVING_SOUND_KEY_MASK);
     auto soundIt = m_activeSounds.find(movingSoundKey);
     if (soundIt != m_activeSounds.end()) {
         // 已有移动声音，先停止

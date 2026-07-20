@@ -38,7 +38,7 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> TameableEntity::DATA_TAMED_PARAM = entity::EntityDataManager::createKey<bool>();
 
-TameableEntity::TameableEntity(EntityId id)
+TameableEntity::TameableEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册属性

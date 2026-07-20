@@ -26,7 +26,6 @@
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
-#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
@@ -52,7 +51,7 @@ std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/)
     return std::make_unique<ChickenEntity>(0);
 }
 
-ChickenEntity::ChickenEntity(EntityId id)
+ChickenEntity::ChickenEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册属性

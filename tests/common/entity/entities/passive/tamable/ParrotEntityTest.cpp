@@ -75,10 +75,10 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
@@ -115,19 +115,19 @@ public:
     }
 
     // 追踪 broadcastEntityStatus 调用
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_lastBroadcastEntityId = entityId;
         m_lastBroadcastStatus = status;
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
     [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
     [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
     void resetBroadcastTracking()
     {
-        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastEntityId = EntityInstanceId(0);
         m_lastBroadcastStatus = 0;
         m_broadcastCount = 0;
     }
@@ -141,7 +141,7 @@ private:
     i32 m_soundPlayCount = 0;
 
     // 广播追踪
-    EntityId m_lastBroadcastEntityId{0};
+    EntityInstanceId m_lastBroadcastEntityId{0};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;
 };
@@ -164,7 +164,7 @@ protected:
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_WheatSeeds_ReturnsTrue)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 小麦种子可以驯服鹦鹉
     ItemStack stack(Items::WHEAT_SEEDS, 1);
@@ -173,7 +173,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_WheatSeeds_ReturnsTrue)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_PumpkinSeeds_ReturnsTrue)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 南瓜种子可以驯服鹦鹉
     ItemStack stack(Items::PUMPKIN_SEEDS, 1);
@@ -182,7 +182,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_PumpkinSeeds_ReturnsTrue)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_MelonSeeds_ReturnsTrue)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 西瓜种子可以驯服鹦鹉
     ItemStack stack(Items::MELON_SEEDS, 1);
@@ -191,7 +191,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_MelonSeeds_ReturnsTrue)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_BeetrootSeeds_ReturnsTrue)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 甜菜种子可以驯服鹦鹉
     ItemStack stack(Items::BEETROOT_SEEDS, 1);
@@ -204,7 +204,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_BeetrootSeeds_ReturnsTrue)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_Wheat_ReturnsFalse)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 小麦不能驯服鹦鹉
     ItemStack stack(Items::WHEAT, 1);
@@ -213,7 +213,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Wheat_ReturnsFalse)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 骨头不能驯服鹦鹉（骨头用于驯服狼）
     ItemStack stack(Items::BONE, 1);
@@ -222,7 +222,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Bone_ReturnsFalse)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_Cod_ReturnsFalse)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 生鳕鱼不能驯服鹦鹉（生鳕鱼用于驯服猫）
     ItemStack stack(Items::COD, 1);
@@ -231,7 +231,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Cod_ReturnsFalse)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_Apple_ReturnsFalse)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 苹果不能驯服鹦鹉
     ItemStack stack(Items::APPLE, 1);
@@ -244,7 +244,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_Apple_ReturnsFalse)
 
 TEST_F(ParrotEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 空物品堆不能驯服
     ItemStack emptyStack(nullptr, 0);
@@ -258,7 +258,7 @@ TEST_F(ParrotEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 
 TEST_F(ParrotEntityTestFixture, IsBreedingItem_AnyItem_ReturnsFalse)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 鹦鹉不能繁殖，任何物品都返回 false
     ItemStack wheatSeeds(Items::WHEAT_SEEDS, 1);
@@ -273,8 +273,8 @@ TEST_F(ParrotEntityTestFixture, IsBreedingItem_AnyItem_ReturnsFalse)
 
 TEST_F(ParrotEntityTestFixture, SpawnBaby_ReturnsNullptr)
 {
-    ParrotEntity parent1(EntityId(0));
-    ParrotEntity parent2(EntityId(0));
+    ParrotEntity parent1(EntityInstanceId(0));
+    ParrotEntity parent2(EntityInstanceId(0));
 
     // 鹦鹉不能生成幼体
     auto baby = parent1.spawnBaby(parent2);
@@ -287,7 +287,7 @@ TEST_F(ParrotEntityTestFixture, SpawnBaby_ReturnsNullptr)
 
 TEST_F(ParrotEntityTestFixture, Variant_CanBeSetAndGet)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     parrot.setVariant(ParrotEntity::ParrotVariant::Blue);
     EXPECT_EQ(parrot.getVariant(), ParrotEntity::ParrotVariant::Blue);
@@ -304,7 +304,7 @@ TEST_F(ParrotEntityTestFixture, Variant_CanBeSetAndGet)
 
 TEST_F(ParrotEntityTestFixture, RandomizeVariant_SetsValidVariant)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     parrot.randomizeVariant();
 
@@ -320,7 +320,7 @@ TEST_F(ParrotEntityTestFixture, RandomizeVariant_SetsValidVariant)
 
 TEST_F(ParrotEntityTestFixture, Flying_CanBeSetAndCleared)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 初始不飞行
     EXPECT_FALSE(parrot.isFlying());
@@ -336,7 +336,7 @@ TEST_F(ParrotEntityTestFixture, Flying_CanBeSetAndCleared)
 
 TEST_F(ParrotEntityTestFixture, CanFly_AlwaysReturnsTrue)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 鹦鹉始终可以飞
     EXPECT_TRUE(parrot.canFly());
@@ -348,7 +348,7 @@ TEST_F(ParrotEntityTestFixture, CanFly_AlwaysReturnsTrue)
 
 TEST_F(ParrotEntityTestFixture, Imitation_CanBeSetAndQueried)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 初始不模仿
     EXPECT_FALSE(parrot.isImitating());
@@ -370,13 +370,13 @@ TEST_F(ParrotEntityTestFixture, Imitation_CanBeSetAndQueried)
 TEST_F(ParrotEntityTestFixture, TamedState_DefaultFalse)
 {
     // 鹦鹉默认未驯服
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     EXPECT_FALSE(parrot.isTamed());
 }
 
 TEST_F(ParrotEntityTestFixture, TamedState_CanBeSet)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 设置为已驯服
     parrot.setTamed(true);
@@ -389,7 +389,7 @@ TEST_F(ParrotEntityTestFixture, TamedState_CanBeSet)
 
 TEST_F(ParrotEntityTestFixture, OwnerId_CanBeSetAndQueried)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 默认无主人
     EXPECT_FALSE(parrot.getOwnerId().has_value());
@@ -415,13 +415,13 @@ TEST_F(ParrotEntityTestFixture, OwnerId_CanBeSetAndQueried)
 TEST_F(ParrotEntityTestFixture, SittingState_DefaultFalse)
 {
     // 鹦鹉默认不坐下
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     EXPECT_FALSE(parrot.isSitting());
 }
 
 TEST_F(ParrotEntityTestFixture, SittingState_CanBeSet)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 设置坐下
     parrot.setSitting(true);
@@ -434,7 +434,7 @@ TEST_F(ParrotEntityTestFixture, SittingState_CanBeSet)
 
 TEST_F(ParrotEntityTestFixture, ToggleSitting_SwitchesState)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     // 切换坐下
     parrot.toggleSitting();
@@ -452,13 +452,13 @@ TEST_F(ParrotEntityTestFixture, ToggleSitting_SwitchesState)
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_DefaultNotOnShoulder)
 {
     // 默认不在肩膀上
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     EXPECT_FALSE(parrot.isOnShoulder());
 }
 
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_CanSitOnShoulder_WhenTamed)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     parrot.setWorld(&m_world);
 
     // 未驯服时不能坐在肩膀上
@@ -488,7 +488,7 @@ TEST_F(ParrotEntityTestFixture, ShoulderRiding_CanSitOnShoulder_WhenTamed)
 
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_CannotSitOnShoulder_WhenSitting)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     parrot.setWorld(&m_world);
     parrot.setTamed(true);
     parrot.setSitting(true);
@@ -505,7 +505,7 @@ TEST_F(ParrotEntityTestFixture, ShoulderRiding_CannotSitOnShoulder_WhenSitting)
 
 TEST_F(ParrotEntityTestFixture, ShoulderRiding_DismountShoulder_ResetsState)
 {
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     parrot.setWorld(&m_world);
     parrot.setTamed(true);
 
@@ -537,7 +537,7 @@ TEST_F(ParrotEntityTestFixture, Attributes_CorrectValues)
     // MAX_HEALTH = 6.0
     // MOVEMENT_SPEED = 0.2
     // FLYING_SPEED = 0.4
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
 
     f64 maxHealth = parrot.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH, 0.0);
     EXPECT_DOUBLE_EQ(maxHealth, 6.0);
@@ -556,7 +556,7 @@ TEST_F(ParrotEntityTestFixture, Attributes_CorrectValues)
 TEST_F(ParrotEntityTestFixture, EyeHeight_CorrectValue)
 {
     // MC 1.16.5: 鹦鹉眼睛高度 = 0.25
-    ParrotEntity parrot(EntityId(0));
+    ParrotEntity parrot(EntityInstanceId(0));
     EXPECT_FLOAT_EQ(parrot.eyeHeight(), 0.25f);
 }
 
@@ -569,11 +569,11 @@ TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithWheatSeeds_PlaysEa
 {
     // 未驯服的鹦鹉用小麦种子交互，应该播放吃东西声音
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 创建玩家并设置手持物品
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
     player.inventory().setSelectedSlot(0);
@@ -596,10 +596,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithPumpkinSeeds_Plays
 {
     // 未驯服的鹦鹉用南瓜种子交互
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     ItemStack seedStack(Items::PUMPKIN_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
     player.inventory().setSelectedSlot(0);
@@ -617,10 +617,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithMelonSeeds_PlaysEa
 {
     // 未驯服的鹦鹉用西瓜种子交互
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     ItemStack seedStack(Items::MELON_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
     player.inventory().setSelectedSlot(0);
@@ -638,10 +638,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_WithBeetrootSeeds_Play
 {
     // 未驯服的鹦鹉用甜菜种子交互
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     ItemStack seedStack(Items::BEETROOT_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
     player.inventory().setSelectedSlot(0);
@@ -662,11 +662,11 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingSuccess_BroadcastsSuccessStatu
     ParrotTestWorld world;
 
     // 创建鹦鹉并设置世界
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 创建玩家
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
 
     // 验证成功驯服后的状态
@@ -682,11 +682,11 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
     // 驯服失败场景 - 广播烟雾粒子
     // 注意：测试通过后验证广播状态是 TamingFailed
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 创建玩家
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
 
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
@@ -700,7 +700,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
 
     // 应该有广播（成功或失败）
     EXPECT_EQ(world.getBroadcastCount(), 1);
-    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityId(1));
+    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityInstanceId(1));
 
     // 广播状态应该是 TamingSucceeded(7) 或 TamingFailed(6)
     u8 status = world.getLastBroadcastStatus();
@@ -713,10 +713,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_ItemConsumption_NonCreativeMode)
 {
     // 非创造模式下，交互应该消耗物品
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.abilities().creativeMode = false; // 非创造模式
 
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
@@ -738,10 +738,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_ItemConsumption_CreativeMode_NoConsu
 {
     // 创造模式下，交互不应该消耗物品
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.abilities().creativeMode = true; // 创造模式
 
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
@@ -763,7 +763,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_TogglesSitting)
 {
     // 已驯服的鹦鹉交互切换坐下状态
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 设置为已驯服
@@ -771,7 +771,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_TogglesSitting)
     parrot.setOwnerId(12345ULL);
 
     // 创建主人玩家
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     player.setPlayerId(12345ULL);
 
     // 交互不需要物品（已驯服）
@@ -792,7 +792,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_OtherPlayerCannotToggle)
 {
     // 已驯服的鹦鹉，非主人不能切换坐下状态
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 设置为已驯服，主人是玩家 12345
@@ -800,7 +800,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_OtherPlayerCannotToggle)
     parrot.setOwnerId(12345ULL);
 
     // 创建另一个玩家
-    Player otherPlayer(EntityId(2), "OtherPlayer");
+    Player otherPlayer(EntityInstanceId(2), "OtherPlayer");
     otherPlayer.setPlayerId(99999ULL);
 
     // 非主人交互 - 应该返回 Pass（调用父类）
@@ -813,10 +813,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_UntamedParrot_NonSeedItem_PassesToPa
 {
     // 未驯服的鹦鹉用非种子物品交互，应该传递给父类
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
 
     // 使用非种子物品（苹果）
     ItemStack appleStack(Items::APPLE, 10);
@@ -840,11 +840,11 @@ TEST_F(ParrotEntityTestFixture, InteractMob_SilentParrot_NoSoundPlayed)
 {
     // 静音的鹦鹉不应该播放声音
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
     parrot.setSilent(true); // 设置静音
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
     player.inventory().setSelectedSlot(0);
@@ -862,10 +862,10 @@ TEST_F(ParrotEntityTestFixture, InteractMob_OffHand_UsesOffHandItem)
 {
     // 副手交互测试
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
 
     // 主手放苹果（非驯服物品），副手放种子
     ItemStack appleStack(Items::APPLE, 10);
@@ -890,7 +890,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingSuccess_UpdatesOwner)
     // 驯服成功后应该设置主人
     // 这个测试验证驯服成功时的状态更新
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 初始状态
@@ -914,13 +914,13 @@ TEST_F(ParrotEntityTestFixture, InteractMob_ClientSide_NoBroadcast)
     // 注意：当前测试世界的 isClientSide() 返回 false
     // 此测试验证服务端行为
     ParrotTestWorld world;
-    ParrotEntity parrot(EntityId(1));
+    ParrotEntity parrot(EntityInstanceId(1));
     parrot.setWorld(&world);
 
     // 验证世界是服务端
     EXPECT_FALSE(world.isClientSide());
 
-    Player player(EntityId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer");
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
     player.inventory().setSelectedSlot(0);

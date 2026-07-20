@@ -55,9 +55,9 @@ protected:
 
     void TearDown() override
     {
-        // 清理实体注册表。clear() 同时会重置全局 EntityTypeIdNumber::* 缓存
-        // （见 EntityTypeIdNumber::reset），保证"注册表空 ⇔ ID 缓存全 0"不变量，
-        // 避免后续测试因 typeId()==0 与 EntityTypeIdNumber::ITEM=旧值 比较失败。
+        // 清理实体注册表。clear() 同时会重置全局 VanillaEntityTypeKeys::* 缓存
+        // （见 VanillaEntityTypeKeys::reset），保证"注册表空 ⇔ 指针缓存全 nullptr"不变量，
+        // 避免后续测试因 entityType()==nullptr 与 VanillaEntityTypeKeys::ITEM=旧值 比较失败。
         EntityRegistry::instance().clear();
     }
 
@@ -66,9 +66,9 @@ protected:
         auto& registry = EntityRegistry::instance();
 
         // 注册测试猪
-        registry.registerType(EntityTypes::PIG,
+        registry.registerType(EntityTypeKeys::PIG,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityId(0)); },
+                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
                 EntityClassification::Creature)
                 .size(0.9f, 0.9f)
                 .trackingRange(10)
@@ -76,9 +76,9 @@ protected:
                 .build());
 
         // 注册测试牛
-        registry.registerType(EntityTypes::COW,
+        registry.registerType(EntityTypeKeys::COW,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityId(0)); },
+                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
                 EntityClassification::Creature)
                 .size(0.9f, 1.4f)
                 .trackingRange(10)
@@ -86,9 +86,9 @@ protected:
                 .build());
 
         // 注册测试羊
-        registry.registerType(EntityTypes::SHEEP,
+        registry.registerType(EntityTypeKeys::SHEEP,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityId(0)); },
+                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
                 EntityClassification::Creature)
                 .size(0.9f, 1.3f)
                 .trackingRange(10)
@@ -96,9 +96,9 @@ protected:
                 .build());
 
         // 注册测试鸡
-        registry.registerType(EntityTypes::CHICKEN,
+        registry.registerType(EntityTypeKeys::CHICKEN,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityId(0)); },
+                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
                 EntityClassification::Creature)
                 .size(0.4f, 0.7f)
                 .trackingRange(10)
@@ -218,20 +218,20 @@ TEST_F(ChunkSpawnIntegrationTest, EntityRegistryLookup)
     auto& registry = EntityRegistry::instance();
 
     // 验证注册的实体类型
-    const EntityType* pigType = registry.getType(EntityTypes::PIG);
+    const EntityType* pigType = registry.getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
     EXPECT_EQ(pigType->classification(), EntityClassification::Creature);
     EXPECT_TRUE(pigType->canSummon());
 
-    const EntityType* cowType = registry.getType(EntityTypes::COW);
+    const EntityType* cowType = registry.getType(EntityTypeKeys::COW);
     ASSERT_NE(cowType, nullptr);
     EXPECT_EQ(cowType->classification(), EntityClassification::Creature);
 
-    const EntityType* sheepType = registry.getType(EntityTypes::SHEEP);
+    const EntityType* sheepType = registry.getType(EntityTypeKeys::SHEEP);
     ASSERT_NE(sheepType, nullptr);
     EXPECT_EQ(sheepType->classification(), EntityClassification::Creature);
 
-    const EntityType* chickenType = registry.getType(EntityTypes::CHICKEN);
+    const EntityType* chickenType = registry.getType(EntityTypeKeys::CHICKEN);
     ASSERT_NE(chickenType, nullptr);
     EXPECT_EQ(chickenType->classification(), EntityClassification::Creature);
 }
@@ -241,7 +241,7 @@ TEST_F(ChunkSpawnIntegrationTest, EntityCreation)
 {
     auto& registry = EntityRegistry::instance();
 
-    const EntityType* pigType = registry.getType(EntityTypes::PIG);
+    const EntityType* pigType = registry.getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 创建实体
@@ -452,7 +452,7 @@ TEST_F(ChunkSpawnIntegrationTest, EntityTypeCanSummon)
     EXPECT_FALSE(unsummonable->canSummon());
 
     // 验证之前注册的可召唤实体
-    const EntityType* pigType = registry.getType(EntityTypes::PIG);
+    const EntityType* pigType = registry.getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
     EXPECT_TRUE(pigType->canSummon());
 }
@@ -463,11 +463,11 @@ TEST_F(ChunkSpawnIntegrationTest, EntityTypeClassification)
     auto& registry = EntityRegistry::instance();
 
     // 验证所有注册的动物都是 Creature 分类
-    const EntityType* pigType = registry.getType(EntityTypes::PIG);
+    const EntityType* pigType = registry.getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
     EXPECT_EQ(pigType->classification(), EntityClassification::Creature);
 
-    const EntityType* cowType = registry.getType(EntityTypes::COW);
+    const EntityType* cowType = registry.getType(EntityTypeKeys::COW);
     ASSERT_NE(cowType, nullptr);
     EXPECT_EQ(cowType->classification(), EntityClassification::Creature);
 

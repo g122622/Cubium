@@ -39,7 +39,7 @@ namespace {
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -54,10 +54,10 @@ public:
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty d) { m_difficulty = d; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size() + 100);
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size() + 100);
     }
 
     // 获取生成的 ItemEntity 数量

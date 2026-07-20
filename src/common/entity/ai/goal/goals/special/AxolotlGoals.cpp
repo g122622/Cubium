@@ -24,12 +24,12 @@
 
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 namespace entity {
@@ -96,20 +96,21 @@ AxolotlTargetGoal::AxolotlTargetGoal(AxolotlEntity* axolotl)
                   return false;
               }
 
-              auto typeId = target->typeId();
+              auto typeId = target->entityType();
 
               // 始终攻击的敌对目标：溺尸、守卫者、远古守卫者
-              if (typeId == entity::EntityTypeIdNumber::DROWNED || typeId == entity::EntityTypeIdNumber::GUARDIAN ||
-                  typeId == entity::EntityTypeIdNumber::ELDER_GUARDIAN) {
+              if (typeId == entity::VanillaEntityTypeKeys::DROWNED ||
+                  typeId == entity::VanillaEntityTypeKeys::GUARDIAN ||
+                  typeId == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN) {
                   return true;
               }
 
               // 狩猎目标（无冷却时）：鱼类和鱿鱼
               if (axolotl != nullptr && !axolotl->hasHuntingCooldown()) {
-                  if (typeId == entity::EntityTypeIdNumber::TROPICAL_FISH ||
-                      typeId == entity::EntityTypeIdNumber::PUFFERFISH ||
-                      typeId == entity::EntityTypeIdNumber::SALMON || typeId == entity::EntityTypeIdNumber::COD ||
-                      typeId == entity::EntityTypeIdNumber::SQUID) {
+                  if (typeId == entity::VanillaEntityTypeKeys::TROPICAL_FISH ||
+                      typeId == entity::VanillaEntityTypeKeys::PUFFERFISH ||
+                      typeId == entity::VanillaEntityTypeKeys::SALMON || typeId == entity::VanillaEntityTypeKeys::COD ||
+                      typeId == entity::VanillaEntityTypeKeys::SQUID) {
                       return true;
                   }
               }

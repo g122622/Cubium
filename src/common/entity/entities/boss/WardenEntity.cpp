@@ -29,10 +29,10 @@
 #include "../../attribute/Attributes.hpp"
 #include "../../core/Entity.hpp"
 #include "../../core/EntityDataManager.hpp"
-#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <algorithm>
 
@@ -52,14 +52,14 @@ DataParameter<i32> WardenEntity::CLIENT_ANGER_LEVEL = EntityDataManager::createK
 
 std::unique_ptr<Entity> WardenEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<WardenEntity>(EntityId(0));
+    return std::make_unique<WardenEntity>(EntityInstanceId(0));
 }
 
 // ============================================================================
 // 构造函数
 // ============================================================================
 
-WardenEntity::WardenEntity(EntityId id)
+WardenEntity::WardenEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // MC 1.21.11 Warden 构造函数: this.xpReward = 5
@@ -229,7 +229,7 @@ void WardenEntity::registerGoals()
 
     // 优先级 8: 看向玩家
     m_goalSelector.addGoal(8, new ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-        return entity != nullptr && entity->typeId() == EntityTypeIdNumber::PLAYER;
+        return entity != nullptr && entity->entityType() == VanillaEntityTypeKeys::PLAYER;
     }));
 
     // 优先级 8: 随机看向

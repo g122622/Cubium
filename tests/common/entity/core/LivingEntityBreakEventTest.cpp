@@ -46,7 +46,7 @@ namespace {
 class BreakEventTestWorld final : public test::BaseTestWorld {
 public:
     struct StatusRecord {
-        EntityId entityId;
+        EntityInstanceId entityId;
         u8 status;
     };
 
@@ -58,7 +58,7 @@ public:
         f32 pitch;
     };
 
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_statusRecords.push_back(StatusRecord{entityId, status});
     }
@@ -102,7 +102,7 @@ private:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(42))
+        : LivingEntity(EntityInstanceId(42))
     {
         registerData();
         registerAttributes();
@@ -145,7 +145,7 @@ TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventMainHand)
 {
     m_living->broadcastBreakEvent(EquipmentSlot::MainHand);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(m_world->statusRecords()[0].entityId, EntityId(42));
+    EXPECT_EQ(m_world->statusRecords()[0].entityId, EntityInstanceId(42));
     EXPECT_EQ(m_world->statusRecords()[0].status,
         static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakMainHand));
 }
@@ -223,7 +223,7 @@ TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenBroadcastsStatus)
 
     // 应广播装备破损状态码
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(m_world->statusRecords()[0].entityId, EntityId(42));
+    EXPECT_EQ(m_world->statusRecords()[0].entityId, EntityInstanceId(42));
     EXPECT_EQ(
         m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakHead));
 }

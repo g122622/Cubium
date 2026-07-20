@@ -38,7 +38,7 @@ namespace {
  */
 class TestRideableEntity : public Entity {
 public:
-    explicit TestRideableEntity(EntityId id)
+    explicit TestRideableEntity(EntityInstanceId id)
         : Entity(id)
     {}
 
@@ -53,7 +53,7 @@ public:
  */
 class TestProjectile : public entity::ProjectileEntity {
 public:
-    explicit TestProjectile(EntityId id)
+    explicit TestProjectile(EntityInstanceId id)
         : ProjectileEntity(id)
     {}
 
@@ -76,20 +76,20 @@ public:
         }
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
 
 private:
-    std::unordered_map<EntityId, Entity*> m_entities;
+    std::unordered_map<EntityInstanceId, Entity*> m_entities;
 };
 
 // ============================================================================
@@ -109,8 +109,8 @@ protected:
  */
 TEST_F(CanHitEntityTest, CannotHitRemovedEntity)
 {
-    TestProjectile projectile(EntityId(1));
-    TestRideableEntity target(EntityId(2));
+    TestProjectile projectile(EntityInstanceId(1));
+    TestRideableEntity target(EntityInstanceId(2));
 
     target.remove();
 
@@ -122,8 +122,8 @@ TEST_F(CanHitEntityTest, CannotHitRemovedEntity)
  */
 TEST_F(CanHitEntityTest, CanHitCollidableAliveEntity)
 {
-    TestProjectile projectile(EntityId(1));
-    TestRideableEntity target(EntityId(2));
+    TestProjectile projectile(EntityInstanceId(1));
+    TestRideableEntity target(EntityInstanceId(2));
 
     // 活着的可碰撞实体可以被命中
     EXPECT_TRUE(projectile.canHitEntity(target));
@@ -142,8 +142,8 @@ TEST_F(CanHitEntityTest, CanHitCollidableAliveEntity)
  */
 TEST_F(CanHitEntityTest, CannotHitShooterBeforeLeaving)
 {
-    TestRideableEntity shooter(EntityId(1));
-    TestProjectile projectile(EntityId(2));
+    TestRideableEntity shooter(EntityInstanceId(1));
+    TestProjectile projectile(EntityInstanceId(2));
 
     // 设置世界并注册实体，以便 getShooter() 能找到发射者
     shooter.setWorld(m_world.get());
@@ -165,8 +165,8 @@ TEST_F(CanHitEntityTest, CannotHitShooterBeforeLeaving)
  */
 TEST_F(CanHitEntityTest, CanHitAnyEntityWhenNoShooter)
 {
-    TestRideableEntity target(EntityId(2));
-    TestProjectile projectile(EntityId(3));
+    TestRideableEntity target(EntityInstanceId(2));
+    TestProjectile projectile(EntityInstanceId(3));
 
     // 不设置发射者，可以命中任何可碰撞实体
     EXPECT_TRUE(projectile.canHitEntity(target));
@@ -180,9 +180,9 @@ TEST_F(CanHitEntityTest, CanHitAnyEntityWhenNoShooter)
  */
 TEST_F(CanHitEntityTest, CanHitEntityNotOnSameVehicle)
 {
-    TestRideableEntity shooter(EntityId(1));
-    TestRideableEntity target(EntityId(2));
-    TestProjectile projectile(EntityId(3));
+    TestRideableEntity shooter(EntityInstanceId(1));
+    TestRideableEntity target(EntityInstanceId(2));
+    TestProjectile projectile(EntityInstanceId(3));
 
     // 设置世界并注册实体
     shooter.setWorld(m_world.get());
@@ -207,13 +207,13 @@ TEST_F(CanHitEntityTest, CanHitEntityNotOnSameVehicle)
 TEST_F(CanHitEntityTest, CannotHitEntityOnSameVehicle)
 {
     entity::BoatEntity vehicle(entity::BoatEntity::Type::OAK);
-    // BoatEntity 默认 EntityId 为 0，等同于 INVALID_ENTITY_ID，
+    // BoatEntity 默认 EntityInstanceId 为 0，等同于 INVALID_ENTITY_ID，
     // 会导致骑乘系统无法正常工作，需要设置为有效的非零 ID
-    vehicle.setId(EntityId(100));
+    vehicle.setId(EntityInstanceId(100));
 
-    TestRideableEntity shooter(EntityId(10));
-    TestRideableEntity target(EntityId(11));
-    TestProjectile projectile(EntityId(12));
+    TestRideableEntity shooter(EntityInstanceId(10));
+    TestRideableEntity target(EntityInstanceId(11));
+    TestProjectile projectile(EntityInstanceId(12));
 
     // 所有实体需要设置到世界中，以便 startRiding/getEntity 正常工作
     vehicle.setWorld(m_world.get());
@@ -254,7 +254,7 @@ TEST_F(CanHitEntityTest, CannotHitNonCollidableEntity)
 {
     class NonCollidableEntity : public Entity {
     public:
-        explicit NonCollidableEntity(EntityId id)
+        explicit NonCollidableEntity(EntityInstanceId id)
             : Entity(id)
         {}
         [[nodiscard]] f32 width() const override { return 0.6f; }
@@ -263,8 +263,8 @@ TEST_F(CanHitEntityTest, CannotHitNonCollidableEntity)
         [[nodiscard]] bool canBeCollidedWith() const override { return false; }
     };
 
-    TestProjectile projectile(EntityId(1));
-    NonCollidableEntity target(EntityId(2));
+    TestProjectile projectile(EntityInstanceId(1));
+    NonCollidableEntity target(EntityInstanceId(2));
 
     // canBeCollidedWith() 返回 false → canBeHitByProjectile() 返回 false → canHitEntity 返回 false
     EXPECT_FALSE(target.canBeHitByProjectile());
@@ -281,7 +281,7 @@ TEST_F(CanHitEntityTest, CannotHitDeadEntity)
 {
     class DeadEntity : public Entity {
     public:
-        explicit DeadEntity(EntityId id)
+        explicit DeadEntity(EntityInstanceId id)
             : Entity(id)
         {}
         [[nodiscard]] f32 width() const override { return 0.6f; }
@@ -291,8 +291,8 @@ TEST_F(CanHitEntityTest, CannotHitDeadEntity)
         [[nodiscard]] bool isAlive() const override { return false; }
     };
 
-    TestProjectile projectile(EntityId(1));
-    DeadEntity target(EntityId(2));
+    TestProjectile projectile(EntityInstanceId(1));
+    DeadEntity target(EntityInstanceId(2));
 
     // isAlive() 返回 false → canBeHitByProjectile() 返回 false → canHitEntity 返回 false
     EXPECT_FALSE(target.canBeHitByProjectile());
@@ -307,8 +307,8 @@ TEST_F(CanHitEntityTest, CannotHitDeadEntity)
  */
 TEST_F(CanHitEntityTest, CanHitByProjectileWhenCollidableAndAlive)
 {
-    TestRideableEntity target(EntityId(2));
-    TestProjectile projectile(EntityId(1));
+    TestRideableEntity target(EntityInstanceId(2));
+    TestProjectile projectile(EntityInstanceId(1));
 
     EXPECT_TRUE(target.canBeHitByProjectile());
     EXPECT_TRUE(projectile.canHitEntity(target));

@@ -39,7 +39,7 @@ TEST(EntityRandom, SameEntityReturnsSameRandomInstance)
 {
     // 同一实体多次调用 getRandom() 应返回同一对象的引用，
     // 保证随机数序列的连续性
-    Entity entity(EntityId(1));
+    Entity entity(EntityInstanceId(1));
 
     // 第一次调用获取一个随机数
     i32 first = entity.getRandom().nextInt(1000);
@@ -58,8 +58,8 @@ TEST(EntityRandom, SameEntityReturnsSameRandomInstance)
 TEST(EntityRandom, DifferentEntitiesHaveIndependentRNG)
 {
     // 不同实体应拥有独立的随机数生成器
-    Entity entityA(EntityId(1));
-    Entity entityB(EntityId(2));
+    Entity entityA(EntityInstanceId(1));
+    Entity entityB(EntityInstanceId(2));
 
     // 两个实体的 getRandom() 返回不同对象的引用
     math::Random& rngA = entityA.getRandom();
@@ -83,7 +83,7 @@ TEST(EntityRandom, RandomStatePersistsAcrossCalls)
     // 实体的随机数生成器状态应在调用之间持续保存
     // 对比旧实现：旧 MobEntity::getRandom() 每次按值返回新对象，
     // 同一 tick 内多次调用会产生相同序列
-    Entity entity(EntityId(42));
+    Entity entity(EntityInstanceId(42));
 
     // 连续调用多次，产生一个序列
     i32 vals[10];
@@ -106,7 +106,7 @@ TEST(EntityRandom, ConstEntityCanCallGetRandom)
 {
     // const 实体也应能调用 getRandom()（返回 mutable 引用），
     // 因为随机数生成是逻辑操作而非状态查询
-    const Entity entity(EntityId(5));
+    const Entity entity(EntityInstanceId(5));
 
     // 应能编译且运行正常
     math::Random& rng = entity.getRandom();
@@ -122,7 +122,7 @@ TEST(EntityRandom, MobEntityInheritsGetRandomFromEntity)
 {
     // MobEntity 不再有独立的 getRandom()，应继承 Entity 基类的实现
     // 返回的引用应指向同一对象
-    MobEntity mob(EntityId(10));
+    MobEntity mob(EntityInstanceId(10));
 
     math::Random& ref1 = mob.getRandom();
     math::Random& ref2 = mob.getRandom();
@@ -140,8 +140,8 @@ TEST(EntityRandom, UUIDGeneratedFromEntityRandom)
 {
     // Entity 构造函数使用 m_random 生成 UUID，
     // 不同实体的 UUID 应该不同
-    Entity e1(EntityId(1));
-    Entity e2(EntityId(2));
+    Entity e1(EntityInstanceId(1));
+    Entity e2(EntityInstanceId(2));
     EXPECT_NE(e1.uuid(), e2.uuid());
 
     // UUID 不应为空
@@ -153,8 +153,8 @@ TEST(EntityRandom, SameEntityIdDifferentInstancesGetDifferentSequences)
 {
     // 即使两个实体的 ID 相同，由于构造时间戳不同，
     // 它们的随机数生成器种子也应不同（高分辨率时钟参与种子生成）
-    Entity e1(EntityId(1));
-    Entity e2(EntityId(1));
+    Entity e1(EntityInstanceId(1));
+    Entity e2(EntityInstanceId(1));
 
     // 由于时钟种子参与，即使 ID 相同，序列也应不同
     // 注意：在极端情况下时钟精度不足时可能相同，但实践中不应出现
@@ -169,7 +169,7 @@ TEST(EntityRandom, SameEntityIdDifferentInstancesGetDifferentSequences)
 TEST(EntityRandom, RandomProducesValidIntRange)
 {
     // 验证 nextInt(bound) 在合法范围内
-    Entity entity(EntityId(100));
+    Entity entity(EntityInstanceId(100));
 
     constexpr i32 bound = 50;
     for (int i = 0; i < 100; ++i) {
@@ -182,7 +182,7 @@ TEST(EntityRandom, RandomProducesValidIntRange)
 TEST(EntityRandom, RandomProducesValidFloatRange)
 {
     // 验证 nextFloat() 在 [0.0, 1.0) 范围内
-    Entity entity(EntityId(200));
+    Entity entity(EntityInstanceId(200));
 
     for (int i = 0; i < 100; ++i) {
         f32 val = entity.getRandom().nextFloat();
@@ -194,7 +194,7 @@ TEST(EntityRandom, RandomProducesValidFloatRange)
 TEST(EntityRandom, RandomProducesValidDoubleRange)
 {
     // 验证 nextDouble() 在 [0.0, 1.0) 范围内
-    Entity entity(EntityId(300));
+    Entity entity(EntityInstanceId(300));
 
     for (int i = 0; i < 100; ++i) {
         f64 val = entity.getRandom().nextDouble();

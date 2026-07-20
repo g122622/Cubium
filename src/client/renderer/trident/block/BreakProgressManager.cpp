@@ -98,7 +98,8 @@ void BreakProgressManager::stopBreaking()
     m_localDamageStage = 0;
 }
 
-void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockPos& pos, i8 stage, u64 currentTick)
+void BreakProgressManager::updateRemoteProgress(
+    EntityInstanceId breakerId, const BlockPos& pos, i8 stage, u64 currentTick)
 {
     if (stage < 0 || stage > static_cast<i8>(MAX_DAMAGE_STAGE)) {
         removeRemoteProgress(breakerId);
@@ -130,7 +131,7 @@ void BreakProgressManager::updateRemoteProgress(EntityId breakerId, const BlockP
     }
 }
 
-void BreakProgressManager::removeRemoteProgress(EntityId breakerId)
+void BreakProgressManager::removeRemoteProgress(EntityInstanceId breakerId)
 {
     auto it = m_remoteProgressByEntity.find(breakerId);
     if (it != m_remoteProgressByEntity.end()) {
@@ -158,7 +159,7 @@ u8 BreakProgressManager::getDamageStage(const BlockPos& pos) const
 
     auto posIt = m_remoteProgressByPos.find(pos);
     if (posIt != m_remoteProgressByPos.end()) {
-        for (EntityId breakerId : posIt->second) {
+        for (EntityInstanceId breakerId : posIt->second) {
             auto entityIt = m_remoteProgressByEntity.find(breakerId);
             if (entityIt != m_remoteProgressByEntity.end()) {
                 if (!hasProgress || entityIt->second.damageStage > maxStage) {
@@ -178,7 +179,7 @@ std::vector<const BlockBreakProgress*> BreakProgressManager::getProgressAtPos(co
 
     auto posIt = m_remoteProgressByPos.find(pos);
     if (posIt != m_remoteProgressByPos.end()) {
-        for (EntityId breakerId : posIt->second) {
+        for (EntityInstanceId breakerId : posIt->second) {
             auto entityIt = m_remoteProgressByEntity.find(breakerId);
             if (entityIt != m_remoteProgressByEntity.end()) {
                 result.push_back(&entityIt->second);
@@ -297,7 +298,7 @@ bool BreakProgressManager::hasProgressAt(const BlockPos& pos) const
 
 void BreakProgressManager::_cleanupStaleProgress(u64 currentTick)
 {
-    std::vector<EntityId> toRemove;
+    std::vector<EntityInstanceId> toRemove;
 
     for (const auto& [breakerId, progress] : m_remoteProgressByEntity) {
         if (currentTick - progress.lastUpdateTick > PROGRESS_TIMEOUT_TICKS) {
@@ -305,7 +306,7 @@ void BreakProgressManager::_cleanupStaleProgress(u64 currentTick)
         }
     }
 
-    for (EntityId breakerId : toRemove) {
+    for (EntityInstanceId breakerId : toRemove) {
         removeRemoteProgress(breakerId);
     }
 }
@@ -314,7 +315,7 @@ void BreakProgressManager::_updatePositionIndex(const BlockBreakProgress& progre
 {
     auto& entityList = m_remoteProgressByPos[progress.position];
 
-    for (EntityId id : entityList) {
+    for (EntityInstanceId id : entityList) {
         if (id == progress.breakerId) {
             return;
         }
@@ -323,7 +324,7 @@ void BreakProgressManager::_updatePositionIndex(const BlockBreakProgress& progre
     entityList.push_back(progress.breakerId);
 }
 
-void BreakProgressManager::_removeFromPositionIndex(const BlockPos& pos, EntityId breakerId)
+void BreakProgressManager::_removeFromPositionIndex(const BlockPos& pos, EntityInstanceId breakerId)
 {
     auto posIt = m_remoteProgressByPos.find(pos);
     if (posIt != m_remoteProgressByPos.end()) {

@@ -63,7 +63,7 @@ namespace {
 
 class TestLivingEntity : public LivingEntity {
 public:
-    explicit TestLivingEntity(EntityId id, IWorld* world = nullptr)
+    explicit TestLivingEntity(EntityInstanceId id, IWorld* world = nullptr)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -82,7 +82,7 @@ public:
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(IWorld* world)
-        : Player(EntityId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer")
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -123,7 +123,7 @@ protected:
 
 TEST_F(EntityFreezeIntegrationTest, FreezeState_InitialValues)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     EXPECT_EQ(entity.getTicksFrozen(), 0);
     EXPECT_FALSE(entity.isFullyFrozen());
     EXPECT_FALSE(entity.isFreezing());
@@ -134,7 +134,7 @@ TEST_F(EntityFreezeIntegrationTest, FreezeState_InitialValues)
 
 TEST_F(EntityFreezeIntegrationTest, FreezeState_SetTicksFrozen)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(70);
     EXPECT_EQ(entity.getTicksFrozen(), 70);
@@ -154,7 +154,7 @@ TEST_F(EntityFreezeIntegrationTest, FreezeState_SetTicksFrozen)
 
 TEST_F(EntityFreezeIntegrationTest, FreezeState_ClearFreeze)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     entity.setTicksFrozen(100);
     EXPECT_TRUE(entity.isFreezing());
 
@@ -166,7 +166,7 @@ TEST_F(EntityFreezeIntegrationTest, FreezeState_ClearFreeze)
 
 TEST_F(EntityFreezeIntegrationTest, FreezeState_SetIsInPowderSnow)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     EXPECT_FALSE(entity.isInPowderSnow());
 
     entity.setIsInPowderSnow(true);
@@ -178,7 +178,7 @@ TEST_F(EntityFreezeIntegrationTest, FreezeState_SetIsInPowderSnow)
 
 TEST_F(EntityFreezeIntegrationTest, FreezeState_GetTicksRequiredToFreeze)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     EXPECT_EQ(entity.getTicksRequiredToFreeze(), Entity::BASE_TICKS_REQUIRED_TO_FREEZE);
     EXPECT_EQ(entity.getTicksRequiredToFreeze(), 140);
 }
@@ -189,13 +189,13 @@ TEST_F(EntityFreezeIntegrationTest, FreezeState_GetTicksRequiredToFreeze)
 
 TEST_F(EntityFreezeIntegrationTest, CanFreeze_DefaultLivingEntity)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     EXPECT_TRUE(entity.canFreeze());
 }
 
 TEST_F(EntityFreezeIntegrationTest, CanFreeze_LeatherArmorImmunity)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     EXPECT_TRUE(entity.canFreeze());
 
@@ -220,7 +220,7 @@ TEST_F(EntityFreezeIntegrationTest, CanFreeze_LeatherArmorImmunity)
 
 TEST_F(EntityFreezeIntegrationTest, TickFreeze_TimerDecrementWhenNotInPowderSnow)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(100);
     EXPECT_EQ(entity.getTicksFrozen(), 100);
@@ -241,7 +241,7 @@ TEST_F(EntityFreezeIntegrationTest, TickFreeze_TimerDecrementWhenNotInPowderSnow
 
 TEST_F(EntityFreezeIntegrationTest, TickFreeze_TimerDecrementToZeroButNotBelow)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(3);
     entity.setTicksFrozen(std::max(0, entity.getTicksFrozen() - 2));
@@ -260,7 +260,7 @@ TEST_F(EntityFreezeIntegrationTest, TickFreeze_TimerDecrementToZeroButNotBelow)
 
 TEST_F(EntityFreezeIntegrationTest, BaseTick_ResetsIsInPowderSnow)
 {
-    TestLivingEntity entity(EntityId(1));
+    TestLivingEntity entity(EntityInstanceId(1));
 
     // 不设置 world，baseTick 需要访问 world 但很多方法会做 null 检查
     // 仅测试 isInPowderSnow 的重置逻辑
@@ -278,7 +278,7 @@ TEST_F(EntityFreezeIntegrationTest, BaseTick_ResetsIsInPowderSnow)
 
 TEST_F(EntityFreezeIntegrationTest, IgniteForTicks_ClearsFreeze)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(100);
     EXPECT_TRUE(entity.isFreezing());
@@ -290,7 +290,7 @@ TEST_F(EntityFreezeIntegrationTest, IgniteForTicks_ClearsFreeze)
 
 TEST_F(EntityFreezeIntegrationTest, IgniteForSeconds_ClearsFreeze)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(140);
     EXPECT_TRUE(entity.isFullyFrozen());
@@ -303,7 +303,7 @@ TEST_F(EntityFreezeIntegrationTest, IgniteForSeconds_ClearsFreeze)
 
 TEST_F(EntityFreezeIntegrationTest, IgniteForTicks_ClearsFreezeRegardlessOfFireValue)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(100);
     entity.igniteForTicks(20);
@@ -318,7 +318,7 @@ TEST_F(EntityFreezeIntegrationTest, IgniteForTicks_ClearsFreezeRegardlessOfFireV
 
 TEST_F(EntityFreezeIntegrationTest, FrostModifier_RemoveFrostRemovesModifier)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     // 手动设置冰冻并添加减速修饰符（模拟 tryAddFrost 在有地面方块时的行为）
     entity.setTicksFrozen(70); // 50% 冰冻
@@ -346,7 +346,7 @@ TEST_F(EntityFreezeIntegrationTest, FrostModifier_RemoveFrostRemovesModifier)
 
 TEST_F(EntityFreezeIntegrationTest, FrostModifier_FrostAmountCalculation)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     auto* speedAttr = entity.attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     ASSERT_NE(speedAttr, nullptr);
@@ -378,7 +378,7 @@ TEST_F(EntityFreezeIntegrationTest, FrostModifier_FrostAmountCalculation)
 
 TEST_F(EntityFreezeIntegrationTest, FrostModifier_ClearFreezeRemovesModifier)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(100);
 
@@ -478,7 +478,7 @@ TEST_F(EntityFreezeIntegrationTest, PlayerIsInvulnerableTo_OtherDamageNotAffecte
 
 TEST_F(EntityFreezeIntegrationTest, LivingEntity_IsNotAffectedByFreezeDamageGameRule)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     auto freezeSource = DamageSources::freeze();
 
@@ -510,7 +510,7 @@ TEST_F(EntityFreezeIntegrationTest, FreezeDamage_IsFreezingDetection)
 
 TEST_F(EntityFreezeIntegrationTest, FreezePercent_Calculation)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     const i32 required = Entity::BASE_TICKS_REQUIRED_TO_FREEZE; // 140
 
     entity.setTicksFrozen(0);
@@ -531,7 +531,7 @@ TEST_F(EntityFreezeIntegrationTest, FreezePercent_Calculation)
 
 TEST_F(EntityFreezeIntegrationTest, IsFullyFrozen_Threshold)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     const i32 required = Entity::BASE_TICKS_REQUIRED_TO_FREEZE; // 140
 
     entity.setTicksFrozen(required - 1);
@@ -546,7 +546,7 @@ TEST_F(EntityFreezeIntegrationTest, IsFullyFrozen_Threshold)
 
 TEST_F(EntityFreezeIntegrationTest, IsFreezing_AnyPositiveValue)
 {
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
 
     entity.setTicksFrozen(0);
     EXPECT_FALSE(entity.isFreezing());
@@ -594,7 +594,7 @@ TEST_F(EntityFreezeIntegrationTest, CanFreeze_CreativePlayerCanFreeze)
 TEST_F(EntityFreezeIntegrationTest, CanFreeze_NonPlayerEntityDefaultNotSpectator)
 {
     // 非 Player 实体的 isSpectator() 默认返回 false，可以冰冻
-    TestLivingEntity entity(EntityId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world);
     EXPECT_FALSE(entity.isSpectator());
     EXPECT_TRUE(entity.canFreeze());
 }

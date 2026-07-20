@@ -377,11 +377,14 @@ TEST_F(AbstractMinecartDropTest, AllDamageTypes_CorrectClassification)
  */
 class TestArrowEntity : public AbstractArrowEntity {
 public:
-    TestArrowEntity(EntityId id)
+    TestArrowEntity(EntityInstanceId id)
         : AbstractArrowEntity(id)
     {}
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TestArrowEntity>(EntityId(0)); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<TestArrowEntity>(EntityInstanceId(0));
+    }
 
     // 提供纯虚函数的最小化实现
     void tick() override { Entity::tick(); }
@@ -415,7 +418,7 @@ protected:
 TEST_F(TNTMinecartArrowTest, NonBurningArrow_DoesNotIgnite)
 {
     // 创建测试箭矢实体
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
 
     // 未设置燃烧状态
     EXPECT_FALSE(arrow->isOnFire()) << "Arrow should not be on fire initially";
@@ -438,7 +441,7 @@ TEST_F(TNTMinecartArrowTest, NonBurningArrow_DoesNotIgnite)
 TEST_F(TNTMinecartArrowTest, BurningArrow_IgnitesTNT)
 {
     // 创建测试箭矢实体
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
 
     // 设置燃烧状态（100 ticks = 5秒）
     arrow->setFire(100);
@@ -470,7 +473,7 @@ TEST_F(TNTMinecartArrowTest, BurningArrow_IgnitesTNT)
 TEST_F(TNTMinecartArrowTest, ArrowVelocity_AffectsExplosionPower)
 {
     // 创建测试箭矢实体
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
     arrow->setFire(100); // 燃烧
 
     // 测试不同速度
@@ -514,7 +517,7 @@ TEST_F(TNTMinecartArrowTest, ArrowVelocity_AffectsExplosionPower)
 TEST_F(TNTMinecartArrowTest, DynamicCast_IdentifiesArrowEntity)
 {
     // 创建测试箭矢实体
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
 
     // 通过 Entity* 指针进行 dynamic_cast
     Entity* entityPtr = arrow.get();
@@ -535,7 +538,7 @@ TEST_F(TNTMinecartArrowTest, DynamicCast_IdentifiesArrowEntity)
 TEST_F(TNTMinecartArrowTest, OtherFireProjectiles_CompatibleDetection)
 {
     // 创建测试箭矢实体（不燃烧）
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
     EXPECT_FALSE(arrow->isOnFire());
 
     // 创建火球伤害源（带火焰和投射物属性）
@@ -558,7 +561,7 @@ TEST_F(TNTMinecartArrowTest, OtherFireProjectiles_CompatibleDetection)
 TEST_F(TNTMinecartArrowTest, SpectralArrow_CanIgnite)
 {
     // 光灵箭也是 AbstractArrowEntity 的子类
-    auto spectralArrow = std::make_unique<TestArrowEntity>(EntityId(2));
+    auto spectralArrow = std::make_unique<TestArrowEntity>(EntityInstanceId(2));
 
     // 设置燃烧状态
     spectralArrow->setFire(100);
@@ -580,7 +583,7 @@ TEST_F(TNTMinecartArrowTest, SpectralArrow_CanIgnite)
  */
 TEST_F(TNTMinecartArrowTest, SetFire_OnlyIncreases)
 {
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
 
     // 初始状态
     EXPECT_EQ(arrow->fire(), 0);
@@ -616,7 +619,7 @@ TEST_F(TNTMinecartArrowTest, SetFire_OnlyIncreases)
  */
 TEST_F(TNTMinecartArrowTest, NegativeFire_NotOnFire)
 {
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
 
     // 设置负值（免疫期）
     arrow->forceFireTicks(-10);
@@ -689,7 +692,7 @@ TEST_F(TNTDamageSourceIgnitesTest, NormalDamage_DoesNotIgniteTNT)
 TEST_F(TNTDamageSourceIgnitesTest, FireProjectile_IgnitesTNT)
 {
     // 火焰投射物伤害：isProjectile() && isFire() → 能点燃
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
     Entity* shooter = nullptr;
     IndirectEntityDamageSource fireballDamage = DamageSources::fireball(arrow.get(), shooter, false);
     fireballDamage.setProjectile();
@@ -725,7 +728,7 @@ protected:
 TEST_F(TNTIgnitionSourceTest, IndirectEntityDamageSource_Construction)
 {
     // 创建模拟实体
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
     Entity* shooter = nullptr;
 
     // 创建间接伤害源（模拟箭矢伤害）
@@ -779,8 +782,8 @@ TEST_F(TNTIgnitionSourceTest, NullSource_NoIgnitionSource)
 TEST_F(TNTIgnitionSourceTest, EntityExplosionDamage_Attribution)
 {
     // 创建模拟实体（作为爆炸源）
-    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
-    auto shooter = std::make_unique<TestArrowEntity>(EntityId(2));
+    auto arrow = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
+    auto shooter = std::make_unique<TestArrowEntity>(EntityInstanceId(2));
 
     // 模拟实体爆炸伤害
     EntityDamageSource explosionDamage = DamageSources::explosion(shooter.get());
@@ -805,8 +808,8 @@ TEST_F(TNTIgnitionSourceTest, EntityExplosionDamage_Attribution)
  */
 TEST_F(TNTIgnitionSourceTest, Clone_PreservesAttributes)
 {
-    auto shooter = std::make_unique<TestArrowEntity>(EntityId(1));
-    auto tntMinecart = std::make_unique<TestArrowEntity>(EntityId(2));
+    auto shooter = std::make_unique<TestArrowEntity>(EntityInstanceId(1));
+    auto tntMinecart = std::make_unique<TestArrowEntity>(EntityInstanceId(2));
 
     auto ignitionSource =
         std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, shooter.get(), tntMinecart.get());

@@ -76,10 +76,22 @@ i32 readVarIntRaw(const u8* data, size_t size, size_t& offset)
 }
 } // namespace
 
-ClientEntity::ClientEntity(EntityId id, const std::string& typeId)
+ClientEntity::ClientEntity(EntityInstanceId id, const std::string& typeId)
     : m_id(id)
     , m_typeId(typeId)
 {}
+
+const entity::EntityType* ClientEntity::entityType() const
+{
+    // 懒查询：缓存未命中且 m_typeId 非空时，按名查注册表填充。
+    // 返回指针指向 EntityRegistry::m_types 内对象，与 VanillaEntityTypeKeys::* 同源，
+    // 地址稳定（deque 不失效），可安全指针比较。与服务端 Entity::entityType() 一致。
+    // 注意：客户端实体类型可能未注册（模组实体），此时返回 nullptr。
+    if (m_entityType == nullptr && !m_typeId.empty()) {
+        m_entityType = entity::EntityRegistry::instance().getType(m_typeId);
+    }
+    return m_entityType;
+}
 
 void ClientEntity::setInterpolationSpeed(f32 speed)
 {
@@ -244,7 +256,7 @@ void ClientEntity::setMetadata(const std::vector<u8>& metadata)
 void ClientEntity::syncMetadataFromDataManager()
 {
     // 物品实体特殊处理
-    if (m_typeId == entity::EntityTypes::ITEM || m_typeId == "minecraft:item") {
+    if (m_typeId == entity::EntityTypeKeys::ITEM || m_typeId == "minecraft:item") {
         if (const auto count = _readMetadata<i32>(ItemEntity::DATA_ITEM_COUNT_PARAM.id()); count.has_value()) {
             if (m_itemStack != nullptr && m_itemStack->getCount() != *count) {
                 ItemStack updated = *m_itemStack;
@@ -908,7 +920,7 @@ void ClientEntity::refreshEyeHeight()
 
     // 玩家实体根据姿态调整眼高
     // 玩家 type ID 包括 minecraft:player
-    if (m_typeId == entity::EntityTypes::PLAYER || m_typeId == "minecraft:player" || m_typeId == "player") {
+    if (m_typeId == entity::EntityTypeKeys::PLAYER || m_typeId == "minecraft:player" || m_typeId == "player") {
         if (m_sleeping) {
             m_eyeHeight = 0.2f;
         } else if (m_swimming || isFallFlying()) {
@@ -929,7 +941,7 @@ void ClientEntity::refreshEyeHeight()
     m_eyeHeight = baseEyeHeight;
 }
 
-void ClientEntity::tickWitherSideHeads(const std::function<const ClientEntity*(EntityId)>& entityLookup)
+void ClientEntity::tickWitherSideHeads(const std::function<const ClientEntity*(EntityInstanceId)>& entityLookup)
 {
     // 镜像 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 的侧头朝向计算。
     // 客户端不运行 WitherEntity::aiStep()（ClientEntity 是独立代理类），
@@ -951,7 +963,7 @@ void ClientEntity::tickWitherSideHeads(const std::function<const ClientEntity*(E
         // j=0 对应侧头 1（左头，HEAD_TARGET_2），j=1 对应侧头 2（右头，HEAD_TARGET_3）
         const i32 targetId = m_witherHeadTargetId[j + 1];
         const ClientEntity* targetEntity =
-            (targetId > 0 && entityLookup) ? entityLookup(static_cast<EntityId>(targetId)) : nullptr;
+            (targetId > 0 && entityLookup) ? entityLookup(static_cast<EntityInstanceId>(targetId)) : nullptr;
 
         if (targetEntity != nullptr) {
             // 计算头部位置（对应 MC WitherBoss.getHeadX/Y/Z(j+1)）

@@ -501,7 +501,7 @@ private:
                 world, static_cast<f64>(owner->x()), static_cast<f64>(owner->y()), static_cast<f64>(owner->z()), 1);
 
             // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-            xpOrb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+            xpOrb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
 
             f32 vx = (rng.nextFloat() - 0.5f) * 0.2f;
             f32 vy = rng.nextFloat() * 0.2f;

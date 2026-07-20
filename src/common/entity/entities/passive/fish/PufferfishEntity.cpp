@@ -42,7 +42,7 @@ namespace mc {
 // DataParameter 定义
 entity::DataParameter<i32> PufferfishEntity::DATA_PUFF_STATE_PARAM = entity::EntityDataManager::createKey<i32>();
 
-PufferfishEntity::PufferfishEntity(EntityId id)
+PufferfishEntity::PufferfishEntity(EntityInstanceId id)
     : AbstractFishEntity(id)
 {}
 

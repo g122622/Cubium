@@ -42,7 +42,7 @@
 
 namespace mc {
 
-WitchEntity::WitchEntity(EntityId id)
+WitchEntity::WitchEntity(EntityInstanceId id)
     : AbstractRaiderEntity(id)
 {
     // 注册 AI 目标
@@ -54,7 +54,7 @@ WitchEntity::WitchEntity(EntityId id)
 
 std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<WitchEntity>(EntityId(0));
+    return std::make_unique<WitchEntity>(EntityInstanceId(0));
 }
 
 // ========== 药水决策逻辑 ==========
@@ -354,7 +354,7 @@ void WitchEntity::_throwPotionAt(LivingEntity* target, entity::effect::EffectTyp
     f32 horizontalDist = std::sqrt(static_cast<f32>(dx * dx + dz * dz));
 
     // 创建药水实体
-    auto potion = std::make_unique<entity::PotionEntity>(EntityId(0));
+    auto potion = std::make_unique<entity::PotionEntity>(EntityInstanceId(0));
     potion->setWorld(worldPtr);
 
     // 设置发射者

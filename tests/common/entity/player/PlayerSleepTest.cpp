@@ -45,7 +45,7 @@ namespace {
  */
 class PlayerSleepTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
 
     void TearDown() override { player.reset(); }
 

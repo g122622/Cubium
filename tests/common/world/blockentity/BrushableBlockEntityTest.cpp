@@ -180,10 +180,10 @@ public:
     }
 
     // ========== spawnEntity 追踪 ==========
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return EntityId(static_cast<u64>(m_spawnedEntities.size()));
+        return EntityInstanceId(static_cast<u64>(m_spawnedEntities.size()));
     }
     [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
 
@@ -354,7 +354,7 @@ protected:
         entity_->setLootTable(ResourceLocation("minecraft", "archaeology/test_brush"), 42LL);
 
         // 创建 LivingEntity（brush 需要 LivingEntity&）
-        livingEntity_ = std::make_unique<LivingEntity>(EntityId(1), &world_);
+        livingEntity_ = std::make_unique<LivingEntity>(EntityInstanceId(1), &world_);
     }
 
     BrushableTestWorld world_;
@@ -649,7 +649,7 @@ protected:
         entity_->setWorld(&world_);
         entity_->setLootTable(ResourceLocation("minecraft", "archaeology/test_reset"), 42LL);
 
-        livingEntity_ = std::make_unique<LivingEntity>(EntityId(1), &world_);
+        livingEntity_ = std::make_unique<LivingEntity>(EntityInstanceId(1), &world_);
     }
 
     // 辅助：将 brushCount 增加到指定值（每次间隔 10 tick 避免冷却）

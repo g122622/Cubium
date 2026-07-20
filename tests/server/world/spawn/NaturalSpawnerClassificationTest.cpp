@@ -60,34 +60,34 @@ void expectClassification(const char* entityTypeId, EntityClassification expecte
 
 TEST_F(NaturalSpawnerClassificationTest, SalmonIsWaterAmbient)
 {
-    expectClassification(EntityTypes::SALMON, EntityClassification::WaterAmbient);
+    expectClassification(EntityTypeKeys::SALMON, EntityClassification::WaterAmbient);
 }
 
 TEST_F(NaturalSpawnerClassificationTest, CodIsWaterAmbient)
 {
-    expectClassification(EntityTypes::COD, EntityClassification::WaterAmbient);
+    expectClassification(EntityTypeKeys::COD, EntityClassification::WaterAmbient);
 }
 
 TEST_F(NaturalSpawnerClassificationTest, PufferfishIsWaterAmbient)
 {
-    expectClassification(EntityTypes::PUFFERFISH, EntityClassification::WaterAmbient);
+    expectClassification(EntityTypeKeys::PUFFERFISH, EntityClassification::WaterAmbient);
 }
 
 TEST_F(NaturalSpawnerClassificationTest, TropicalFishIsWaterAmbient)
 {
-    expectClassification(EntityTypes::TROPICAL_FISH, EntityClassification::WaterAmbient);
+    expectClassification(EntityTypeKeys::TROPICAL_FISH, EntityClassification::WaterAmbient);
 }
 
 // ========== 鱿鱼/海豚等应保持 WaterCreature ==========
 
 TEST_F(NaturalSpawnerClassificationTest, SquidIsWaterCreature)
 {
-    expectClassification(EntityTypes::SQUID, EntityClassification::WaterCreature);
+    expectClassification(EntityTypeKeys::SQUID, EntityClassification::WaterCreature);
 }
 
 TEST_F(NaturalSpawnerClassificationTest, DolphinIsWaterCreature)
 {
-    expectClassification(EntityTypes::DOLPHIN, EntityClassification::WaterCreature);
+    expectClassification(EntityTypeKeys::DOLPHIN, EntityClassification::WaterCreature);
 }
 
 // ========== 容量计数的分类必须与生成分类一致（这是无限生成根因的关键测试） ==========
@@ -99,7 +99,7 @@ TEST_F(NaturalSpawnerClassificationTest, DolphinIsWaterCreature)
 
 TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMatchesSpawnCategoryForSalmon)
 {
-    const EntityType* salmonType = EntityRegistry::instance().getType(EntityTypes::SALMON);
+    const EntityType* salmonType = EntityRegistry::instance().getType(EntityTypeKeys::SALMON);
     ASSERT_NE(salmonType, nullptr);
 
     constexpr i32 kSalmonCount = 30;
@@ -120,9 +120,9 @@ TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMatchesSpawnCatego
 
 TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMixedFish)
 {
-    const EntityType* codType = EntityRegistry::instance().getType(EntityTypes::COD);
-    const EntityType* salmonType = EntityRegistry::instance().getType(EntityTypes::SALMON);
-    const EntityType* squidType = EntityRegistry::instance().getType(EntityTypes::SQUID);
+    const EntityType* codType = EntityRegistry::instance().getType(EntityTypeKeys::COD);
+    const EntityType* salmonType = EntityRegistry::instance().getType(EntityTypeKeys::SALMON);
+    const EntityType* squidType = EntityRegistry::instance().getType(EntityTypeKeys::SQUID);
     ASSERT_NE(codType, nullptr);
     ASSERT_NE(salmonType, nullptr);
     ASSERT_NE(squidType, nullptr);

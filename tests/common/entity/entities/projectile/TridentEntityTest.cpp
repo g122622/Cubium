@@ -52,7 +52,7 @@ using entity::PickupStatus;
  */
 class TestableTridentEntity : public entity::TridentEntity {
 public:
-    explicit TestableTridentEntity(EntityId id)
+    explicit TestableTridentEntity(EntityInstanceId id)
         : TridentEntity(id)
     {}
 
@@ -80,7 +80,7 @@ public:
         : m_random(12345)
     {}
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -90,7 +90,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -115,9 +115,9 @@ public:
         return result;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId id = entity->id();
+        EntityInstanceId id = entity->id();
         m_entities.push_back(std::move(entity));
         return id;
     }
@@ -182,7 +182,7 @@ protected:
     void TearDown() override { m_world.reset(); }
 
     /// 创建一个可测试的三叉戟实体并设置基本属性
-    TestableTridentEntity& createTrident(EntityId id = EntityId(1))
+    TestableTridentEntity& createTrident(EntityInstanceId id = EntityInstanceId(1))
     {
         auto& trident = m_world->addEntity<TestableTridentEntity>(id);
         trident.setPosition(0.0, 64.0, 0.0);
@@ -195,7 +195,7 @@ protected:
     }
 
     /// 创建一个玩家实体
-    Player& createPlayer(EntityId id = EntityId(100), const std::string& name = "TestPlayer")
+    Player& createPlayer(EntityInstanceId id = EntityInstanceId(100), const std::string& name = "TestPlayer")
     {
         auto& player = m_world->addEntity<Player>(id, name);
         player.setPosition(10.0, 64.0, 0.0);
@@ -367,7 +367,7 @@ TEST_F(TridentLoyaltyTest, ShouldReturnToThrower_ShooterDiesAndRespawns)
     EXPECT_FALSE(trident._shouldReturnToThrower());
 
     // 模拟重生：创建新射手实体并重新设置
-    auto& player2 = createPlayer(EntityId(200), "RespawnedPlayer");
+    auto& player2 = createPlayer(EntityInstanceId(200), "RespawnedPlayer");
     trident.setShooter(&player2);
     EXPECT_TRUE(player2.isAlive());
     EXPECT_TRUE(trident._shouldReturnToThrower());
@@ -533,7 +533,7 @@ TEST_F(TridentLoyaltyTest, LoyaltyTrident_RespawnedShooterCanReturn)
     EXPECT_FALSE(trident._shouldReturnToThrower());
 
     // 创建新的射手（模拟重生）- 新实体存活
-    auto& player2 = createPlayer(EntityId(200), "RespawnedPlayer");
+    auto& player2 = createPlayer(EntityInstanceId(200), "RespawnedPlayer");
     trident.setShooter(&player2);
     EXPECT_TRUE(player2.isAlive());
     EXPECT_TRUE(trident._shouldReturnToThrower());

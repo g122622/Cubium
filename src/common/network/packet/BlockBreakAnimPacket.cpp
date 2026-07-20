@@ -69,7 +69,7 @@ Result<void> BlockBreakAnimPacket::deserialize(const u8* data, size_t size)
     if (!idResult.success()) {
         return idResult.error();
     }
-    m_breakerEntityId = static_cast<EntityId>(idResult.value());
+    m_breakerEntityId = static_cast<EntityInstanceId>(idResult.value());
 
     // 读取方块位置
     auto xResult = deserializer.readI32();

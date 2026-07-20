@@ -92,8 +92,8 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         i32 speedBonus = enchant::EnchantmentHelper::getEnchantmentLevel(rodStack, &enchant::AllEnchantments::LURE);
 
         // 创建浮标实体
-        auto bobber = std::make_unique<entity::FishingBobberEntity>(EntityId(0));
-        bobber->setTypeId(entity::EntityTypes::FISHING_BOBBER);
+        auto bobber = std::make_unique<entity::FishingBobberEntity>(EntityInstanceId(0));
+        bobber->setTypeId(entity::EntityTypeKeys::FISHING_BOBBER);
         bobber->setWorld(&world);
         bobber->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
         bobber->setShooter(&player);
@@ -105,7 +105,7 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, BOBBER_VELOCITY, BOBBER_INACCURACY);
 
         // 生成实体并记录ID
-        EntityId bobberId = bobber->id();
+        EntityInstanceId bobberId = bobber->id();
         world.spawnEntity(std::move(bobber));
         player.setFishingBobber(bobberId);
 
@@ -126,7 +126,7 @@ bool FishingRodItem::hasBobber(Player& player)
 
 entity::FishingBobberEntity* FishingRodItem::getBobber(Player& player)
 {
-    EntityId bobberId = player.fishingBobber();
+    EntityInstanceId bobberId = player.fishingBobber();
     if (bobberId == 0) {
         return nullptr;
     }

@@ -318,33 +318,33 @@ protected:
 TEST_F(MinecartComparatorOutputTest, RideableMinecart_ReturnsZero)
 {
     // 普通矿车没有比较器信号输出
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
     EXPECT_EQ(rideable.getComparatorOutput(), 0);
 }
 
 TEST_F(MinecartComparatorOutputTest, FurnaceMinecart_ReturnsZero)
 {
     // 熔炉矿车没有比较器信号输出
-    FurnaceMinecartEntity furnace(EntityId(2));
+    FurnaceMinecartEntity furnace(EntityInstanceId(2));
     EXPECT_EQ(furnace.getComparatorOutput(), 0);
 }
 
 TEST_F(MinecartComparatorOutputTest, TNTMinecart_ReturnsZero)
 {
     // TNT矿车没有比较器信号输出
-    TNTMinecartEntity tnt(EntityId(3));
+    TNTMinecartEntity tnt(EntityInstanceId(3));
     EXPECT_EQ(tnt.getComparatorOutput(), 0);
 }
 
 TEST_F(MinecartComparatorOutputTest, ChestMinecart_Empty_ReturnsZero)
 {
-    ChestMinecartEntity chest(EntityId(10));
+    ChestMinecartEntity chest(EntityInstanceId(10));
     EXPECT_EQ(chest.getComparatorOutput(), 0);
 }
 
 TEST_F(MinecartComparatorOutputTest, ChestMinecart_WithItems_ReturnsNonZero)
 {
-    ChestMinecartEntity chest(EntityId(11));
+    ChestMinecartEntity chest(EntityInstanceId(11));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
 
@@ -355,7 +355,7 @@ TEST_F(MinecartComparatorOutputTest, ChestMinecart_WithItems_ReturnsNonZero)
 
 TEST_F(MinecartComparatorOutputTest, ChestMinecart_Full_ReturnsFifteen)
 {
-    ChestMinecartEntity chest(EntityId(12));
+    ChestMinecartEntity chest(EntityInstanceId(12));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
 
@@ -368,13 +368,13 @@ TEST_F(MinecartComparatorOutputTest, ChestMinecart_Full_ReturnsFifteen)
 
 TEST_F(MinecartComparatorOutputTest, HopperMinecart_Empty_ReturnsZero)
 {
-    HopperMinecartEntity hopper(EntityId(20));
+    HopperMinecartEntity hopper(EntityInstanceId(20));
     EXPECT_EQ(hopper.getComparatorOutput(), 0);
 }
 
 TEST_F(MinecartComparatorOutputTest, HopperMinecart_WithItems_ReturnsNonZero)
 {
-    HopperMinecartEntity hopper(EntityId(21));
+    HopperMinecartEntity hopper(EntityInstanceId(21));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
 
@@ -385,7 +385,7 @@ TEST_F(MinecartComparatorOutputTest, HopperMinecart_WithItems_ReturnsNonZero)
 
 TEST_F(MinecartComparatorOutputTest, HopperMinecart_Full_ReturnsFifteen)
 {
-    HopperMinecartEntity hopper(EntityId(22));
+    HopperMinecartEntity hopper(EntityInstanceId(22));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
 
@@ -399,14 +399,14 @@ TEST_F(MinecartComparatorOutputTest, HopperMinecart_Full_ReturnsFifteen)
 TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_DefaultSuccessCount_ReturnsZero)
 {
     // 默认成功次数为0
-    CommandBlockMinecartEntity command(EntityId(30));
+    CommandBlockMinecartEntity command(EntityInstanceId(30));
     EXPECT_EQ(command.getComparatorOutput(), 0);
 }
 
 TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SetSuccessCount_ReturnsCorrectValue)
 {
     // 设置成功次数后返回对应值
-    CommandBlockMinecartEntity command(EntityId(31));
+    CommandBlockMinecartEntity command(EntityInstanceId(31));
     command.setSuccessCount(5);
     EXPECT_EQ(command.getComparatorOutput(), 5);
 }
@@ -414,14 +414,14 @@ TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SetSuccessCount_Return
 TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SuccessCountCappedAtFifteen)
 {
     // 成功次数上限为15
-    CommandBlockMinecartEntity command(EntityId(32));
+    CommandBlockMinecartEntity command(EntityInstanceId(32));
     command.setSuccessCount(100);
     EXPECT_EQ(command.getComparatorOutput(), 15);
 }
 
 TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SuccessCountOne)
 {
-    CommandBlockMinecartEntity command(EntityId(33));
+    CommandBlockMinecartEntity command(EntityInstanceId(33));
     command.setSuccessCount(1);
     EXPECT_EQ(command.getComparatorOutput(), 1);
 }
@@ -591,7 +591,7 @@ TEST_F(GetEntitySignalTest, SingleChestMinecart_ReturnsSignal)
 {
     // 一个箱子矿车在位置上，应返回非零信号
     EntityTestWorld world;
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     chest.setInventoryItem(0, ItemStack(*diamond, 64));
@@ -608,7 +608,7 @@ TEST_F(GetEntitySignalTest, RideableMinecart_ReturnsZero)
 {
     // 普通矿车比较器输出为0
     EntityTestWorld world;
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
     world.addEntity(&rideable);
 
     BlockPos pos(0, 0, 0);
@@ -619,7 +619,7 @@ TEST_F(GetEntitySignalTest, CommandBlockMinecart_ReturnsSuccessCount)
 {
     // 命令方块矿车返回成功次数
     EntityTestWorld world;
-    CommandBlockMinecartEntity command(EntityId(1));
+    CommandBlockMinecartEntity command(EntityInstanceId(1));
     command.setSuccessCount(10);
     world.addEntity(&command);
 
@@ -632,12 +632,12 @@ TEST_F(GetEntitySignalTest, MultipleEntities_ReturnsMaxSignal)
     // 多个实体时返回最大信号
     EntityTestWorld world;
 
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     chest.setInventoryItem(0, ItemStack(*diamond, 1)); // 信号1
 
-    CommandBlockMinecartEntity command(EntityId(2));
+    CommandBlockMinecartEntity command(EntityInstanceId(2));
     command.setSuccessCount(7); // 信号7
 
     world.addEntity(&chest);
@@ -651,7 +651,7 @@ TEST_F(GetEntitySignalTest, FullChestMinecart_ReturnsMaxSignal)
 {
     // 满的箱子矿车返回15
     EntityTestWorld world;
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
@@ -667,7 +667,7 @@ TEST_F(GetEntitySignalTest, FullHopperMinecart_ReturnsMaxSignal)
 {
     // 满的漏斗矿车返回15
     EntityTestWorld world;
-    HopperMinecartEntity hopper(EntityId(1));
+    HopperMinecartEntity hopper(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     for (i32 i = 0; i < HopperMinecartEntity::INVENTORY_SIZE; ++i) {
@@ -698,7 +698,7 @@ TEST_F(GetEntitySignalTest, AABBOverload_ReturnsSameAsBlockPosOverload)
 {
     // AABB 重载应与 BlockPos 重载返回相同结果
     EntityTestWorld world;
-    ChestMinecartEntity chest(EntityId(1));
+    ChestMinecartEntity chest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
@@ -730,7 +730,7 @@ TEST_F(GetEntitySignalTest, AABBOverload_FiltersByPosition)
     EntityTestWorld world;
 
     // 创建两个矿车，一个在原点 (0,0,0)，一个在远处 (100,0,0)
-    ChestMinecartEntity nearbyChest(EntityId(1));
+    ChestMinecartEntity nearbyChest(EntityInstanceId(1));
     Item* diamond = ensureTestItem("diamond");
     ASSERT_NE(diamond, nullptr);
     // 填满全部27格，信号15
@@ -739,7 +739,7 @@ TEST_F(GetEntitySignalTest, AABBOverload_FiltersByPosition)
     }
     nearbyChest.setPosition(0.5f, 0.5f, 0.5f); // 在 AABB 内
 
-    CommandBlockMinecartEntity farCommand(EntityId(2));
+    CommandBlockMinecartEntity farCommand(EntityInstanceId(2));
     farCommand.setSuccessCount(10);             // 信号10
     farCommand.setPosition(100.0f, 0.0f, 0.0f); // 在 AABB 外
 

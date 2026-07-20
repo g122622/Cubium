@@ -146,7 +146,7 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
     }
 
     // 创建物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), // ID 将由世界分配
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), // ID 将由世界分配
         stack,
         static_cast<f32>(x),
         static_cast<f32>(y),
@@ -156,7 +156,7 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
         vz);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-    itemEntity->setTypeId(entity::EntityTypes::ITEM);
+    itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
 
     // 设置拾取延迟
     itemEntity->setPickupDelay(pickupDelay);
@@ -170,8 +170,8 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
     ItemEntity* result = itemEntity.get();
 
     // 生成到世界
-    EntityId entityId = world->spawnEntity(std::move(itemEntity));
-    if (entityId == EntityId(0)) {
+    EntityInstanceId entityId = world->spawnEntity(std::move(itemEntity));
+    if (entityId == EntityInstanceId(0)) {
         return nullptr; // 生成失败
     }
 
@@ -188,13 +188,13 @@ ItemEntity* ItemDropHelper::spawnItemAtEntity(
     return spawnItemEntity(entity->world(), stack, entity->x(), entity->y() + offsetY, entity->z(), rng, pickupDelay);
 }
 
-std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
+std::vector<EntityInstanceId> ItemDropHelper::spawnItemEntities(IWorld* world,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
     math::Random& rng,
     const std::string& throwerUuid)
 {
-    std::vector<EntityId> spawnedEntities;
+    std::vector<EntityInstanceId> spawnedEntities;
 
     if (world == nullptr || drops.empty()) {
         return spawnedEntities;
@@ -219,7 +219,7 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
         Vector3 velocity = getBlockDropVelocity(rng);
 
         // 创建物品实体
-        auto itemEntity = std::make_unique<ItemEntity>(EntityId(0),
+        auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0),
             stack,
             static_cast<f32>(offsetX),
             static_cast<f32>(offsetY),
@@ -229,7 +229,7 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
             velocity.z);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-        itemEntity->setTypeId(entity::EntityTypes::ITEM);
+        itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
 
         // 设置拾取延迟
         itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);
@@ -240,8 +240,8 @@ std::vector<EntityId> ItemDropHelper::spawnItemEntities(IWorld* world,
         }
 
         // 生成到世界
-        EntityId entityId = world->spawnEntity(std::move(itemEntity));
-        if (entityId != EntityId(0)) {
+        EntityInstanceId entityId = world->spawnEntity(std::move(itemEntity));
+        if (entityId != EntityInstanceId(0)) {
             spawnedEntities.push_back(entityId);
         }
     }

@@ -47,7 +47,7 @@
 #include "../serialization/NbtHelper.hpp"
 #include "../tag/EntityTypeTags.hpp"
 #include "EntityRegistry.hpp"
-#include "EntityTypeIdNumber.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -79,7 +79,7 @@ entity::DataParameter<i32> Entity::DATA_TICKS_FROZEN_PARAM = entity::EntityDataM
 // Entity 实现
 // ============================================================================
 
-Entity::Entity(EntityId id, IWorld* world)
+Entity::Entity(EntityInstanceId id, IWorld* world)
     : m_memTrack(this)
     , m_id(id)
     , m_position(0.0f, 0.0f, 0.0f)
@@ -281,16 +281,15 @@ std::string Entity::getTypeId() const
     return m_typeId;
 }
 
-entity::EntityTypeId Entity::typeId() const
+const entity::EntityType* Entity::entityType() const
 {
-    // 通过类型字符串查询注册表获取数字ID
-    if (!m_typeId.empty()) {
-        const entity::EntityType* type = entity::EntityRegistry::instance().getType(m_typeId);
-        if (type != nullptr) {
-            return type->id();
-        }
+    // 懒查询：缓存未命中且 m_typeId 非空时，按名查注册表填充。
+    // 返回指针指向 EntityRegistry::m_types 内对象，与 VanillaEntityTypeKeys::* 同源，
+    // 地址稳定（deque 不失效），可安全指针比较。
+    if (m_entityType == nullptr && !m_typeId.empty()) {
+        m_entityType = entity::EntityRegistry::instance().getType(m_typeId);
     }
-    return 0; // 未知类型返回 0
+    return m_entityType;
 }
 
 std::string Entity::getLootTableId() const
@@ -1001,7 +1000,7 @@ void Entity::propagateFallToPassengers(f32 distance, f32 damageMultiplier, const
     // 拷贝乘客列表后再遍历，避免乘客在 causeFallDamage 过程中死亡
     // 导致从 m_passengers 移除时迭代器失效
     auto passengers = m_passengers;
-    for (EntityId passengerId : passengers) {
+    for (EntityInstanceId passengerId : passengers) {
         Entity* passenger = m_world->getEntity(passengerId);
         if (passenger != nullptr) {
             passenger->causeFallDamage(distance, damageMultiplier, source);
@@ -1428,9 +1427,9 @@ void Entity::applyPhysics(f32 /*deltaTime*/)
 // 乘客/骑乘系统
 // ============================================================================
 
-bool Entity::isPassenger(EntityId entityId) const
+bool Entity::isPassenger(EntityInstanceId entityId) const
 {
-    for (EntityId passenger : m_passengers) {
+    for (EntityInstanceId passenger : m_passengers) {
         if (passenger == entityId) {
             return true;
         }
@@ -1484,12 +1483,13 @@ bool Entity::addPassenger(Entity& passenger)
 
     // 服务端玩家优先插入列表头部
     bool isServerSide = m_world && !m_world->isClientSide();
-    bool isPlayer = passenger.typeId() == entity::EntityTypeIdNumber::PLAYER;
-    EntityId controllingId = getControllingPassenger();
+    bool isPlayer = passenger.entityType() == entity::VanillaEntityTypeKeys::PLAYER;
+    EntityInstanceId controllingId = getControllingPassenger();
     bool controllingIsPlayer = false;
     if (controllingId != INVALID_ENTITY_ID && m_world) {
         Entity* controlling = m_world->getEntity(controllingId);
-        controllingIsPlayer = controlling != nullptr && controlling->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        controllingIsPlayer =
+            controlling != nullptr && controlling->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
     }
 
     if (isServerSide && isPlayer && !controllingIsPlayer) {
@@ -1560,7 +1560,7 @@ bool Entity::startRiding(Entity& vehicle)
     // 1. 不能骑乘自己
     // 对齐 MC Java：原版 startRiding 通过 this.vehicle == p_19966_ 的对象引用比较
     // 间接拒绝自骑（vehicle 字段不可能指向自身），并未单独按 id 判定。
-    // 本项目以 EntityId 关联，INVALID_ENTITY_ID == 0，新建实体 id 可能为 0，
+    // 本项目以 EntityInstanceId 关联，INVALID_ENTITY_ID == 0，新建实体 id 可能为 0，
     // 若按 id 比较则两个 id 均为 0 的不同实体会被误判为"自骑"而拒绝（反序列化
     // Passengers 时 vehicle 尚未 spawn、id 仍为 0 即触发此坑）。故改用对象地址比较，
     // 既精确拒绝真正的自骑，又消除 id==INVALID_ENTITY_ID 的歧义。
@@ -1588,7 +1588,7 @@ bool Entity::startRiding(Entity& vehicle)
     if (m_world) {
         Entity* current = &vehicle;
         while (current != nullptr) {
-            EntityId currentVehicle = current->getVehicle();
+            EntityInstanceId currentVehicle = current->getVehicle();
             if (currentVehicle == INVALID_ENTITY_ID) {
                 break;
             }
@@ -1667,7 +1667,7 @@ void Entity::removePassengers()
 
     // 从后向前遍历，避免索引问题
     for (i32 i = static_cast<i32>(m_passengers.size()) - 1; i >= 0; --i) {
-        EntityId passengerId = m_passengers[i];
+        EntityInstanceId passengerId = m_passengers[i];
         Entity* passenger = m_world->getEntity(passengerId);
         if (passenger != nullptr) {
             passenger->stopRiding();
@@ -1711,7 +1711,7 @@ Entity* Entity::getLowestRidingEntity()
 {
     Entity* entity = this;
     while (entity->isRiding()) {
-        EntityId vehicleId = entity->getVehicle();
+        EntityInstanceId vehicleId = entity->getVehicle();
         if (vehicleId == INVALID_ENTITY_ID) {
             break;
         }
@@ -1733,7 +1733,7 @@ const Entity* Entity::getLowestRidingEntity() const
 {
     const Entity* entity = this;
     while (entity->isRiding()) {
-        EntityId vehicleId = entity->getVehicle();
+        EntityInstanceId vehicleId = entity->getVehicle();
         if (vehicleId == INVALID_ENTITY_ID) {
             break;
         }
@@ -1768,11 +1768,11 @@ bool Entity::isRidingOrBeingRiddenBy(const Entity& other) const
     // 向下搜索：检查 other 是否是 this 的间接乘客
     // （other 骑乘 this，或 other 骑乘 this 的某个乘客，以此类推）
     {
-        std::vector<EntityId> toCheck(m_passengers.begin(), m_passengers.end());
-        std::unordered_set<EntityId> visited;
+        std::vector<EntityInstanceId> toCheck(m_passengers.begin(), m_passengers.end());
+        std::unordered_set<EntityInstanceId> visited;
 
         while (!toCheck.empty()) {
-            EntityId passengerId = toCheck.back();
+            EntityInstanceId passengerId = toCheck.back();
             toCheck.pop_back();
 
             if (passengerId == other.id()) {
@@ -1795,8 +1795,8 @@ bool Entity::isRidingOrBeingRiddenBy(const Entity& other) const
     // 向上搜索：检查 other 是否是 this 的间接载具
     // （this 骑乘 other，或 this 的载具骑乘 other，以此类推）
     {
-        EntityId currentVehicle = m_vehicle;
-        std::unordered_set<EntityId> visited;
+        EntityInstanceId currentVehicle = m_vehicle;
+        std::unordered_set<EntityInstanceId> visited;
 
         while (currentVehicle != INVALID_ENTITY_ID) {
             if (currentVehicle == other.id()) {
@@ -1849,7 +1849,7 @@ void Entity::updatePassengers()
     }
 
     // 遍历所有乘客并更新位置
-    for (EntityId passengerId : m_passengers) {
+    for (EntityInstanceId passengerId : m_passengers) {
         Entity* passenger = m_world->getEntity(passengerId);
         if (passenger == nullptr) {
             continue;
@@ -1906,7 +1906,7 @@ void Entity::applyOrientationToEntity(Entity& passenger)
 
 bool Entity::canPassengerSteer() const
 {
-    EntityId controllerId = getControllingPassenger();
+    EntityInstanceId controllerId = getControllingPassenger();
     if (controllerId == INVALID_ENTITY_ID) {
         return false;
     }
@@ -1916,7 +1916,7 @@ bool Entity::canPassengerSteer() const
         Entity* controller = m_world->getEntity(controllerId);
         if (controller != nullptr) {
             // 检查控制者是否是玩家
-            if (controller->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+            if (controller->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
                 // 玩家需要检查是否是本地玩家
                 Player* player = dynamic_cast<Player*>(controller);
                 if (player != nullptr) {
@@ -2435,7 +2435,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     // 此处仅保存 passenger 的原始位置，反序列化时由 readFromNBT 直接读取。
     if (hasPassengers() && m_world != nullptr) {
         auto passengersList = std::make_unique<nbt::tags::compound_list_tag>();
-        for (EntityId passengerId : m_passengers) {
+        for (EntityInstanceId passengerId : m_passengers) {
             Entity* passenger = m_world->getEntity(passengerId);
             if (passenger == nullptr) {
                 continue;

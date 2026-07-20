@@ -235,7 +235,7 @@ protected:
  * @code
  * class MinecartSound : public TickableSound {
  * public:
- *     MinecartSound(EntityId entityId, const ResourceLocation& soundEventId)
+ *     MinecartSound(EntityInstanceId entityId, const ResourceLocation& soundEventId)
  *         : TickableSound(soundEventId, SoundCategory::Hostile)
  *         , m_entityId(entityId)
  *     {
@@ -253,7 +253,7 @@ protected:
  *     }
  *
  * private:
- *     EntityId m_entityId;
+ *     EntityInstanceId m_entityId;
  * };
  * @endcode
  */

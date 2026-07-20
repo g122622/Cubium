@@ -32,6 +32,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -46,7 +47,7 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-CreeperEntity::CreeperEntity(EntityId id)
+CreeperEntity::CreeperEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 苦力怕不在阳光下燃烧
@@ -61,7 +62,7 @@ CreeperEntity::CreeperEntity(EntityId id)
 
 std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<CreeperEntity>(EntityId(0));
+    return std::make_unique<CreeperEntity>(EntityInstanceId(0));
 }
 
 std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const
@@ -250,8 +251,8 @@ void CreeperEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 if (!entity) return false;
                 // 检查是否为猫或豹猫
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::CAT || type == entity::EntityTypeIdNumber::OCELOT;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::CAT || type == entity::VanillaEntityTypeKeys::OCELOT;
             }));
 
     // 优先级 4: 近战攻击（用于接近玩家）
@@ -265,7 +266,7 @@ void CreeperEntity::registerGoals()
         6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
             // 只看向玩家
-            return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 6: 随机看向
@@ -281,7 +282,7 @@ void CreeperEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 // 苦力怕只攻击玩家
                 if (!entity) return false;
-                return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+                return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
             }));
 
     // 优先级 2: 被攻击后反击

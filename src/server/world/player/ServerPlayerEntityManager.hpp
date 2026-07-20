@@ -49,12 +49,12 @@ namespace mc::server {
  * - 实体创建（ServerPlayer 对象）
  * - 世界实体池管理（EntityManager）
  * - 实体追踪（EntityTracker）
- * - PlayerId ↔ EntityId 双向映射
+ * - PlayerId ↔ EntityInstanceId 双向映射
  *
  * ## 设计原则
  *
  * - PlayerId：网络会话标识，由 PlayerManager 分配
- * - EntityId：世界实体标识，由 EntityManager 分配
+ * - EntityInstanceId：世界实体标识，由 EntityManager 分配
  * - 玩家实体被纳入世界实体池，与其他实体统一管理
  * - EntityTracker 追踪玩家实体，自动同步给其他玩家
  * - createPlayerEntity 创建的是 ServerPlayer（而非基类 Player），
@@ -93,11 +93,11 @@ public:
      * 此方法执行以下操作：
      * 1. 创建 ServerPlayer 对象（携带 PlayerAdvancements、末影箱回调等服务端特有状态）
      * 2. 设置玩家的 PlayerId
-     * 3. 将玩家加入世界的 EntityManager（分配 EntityId）
+     * 3. 将玩家加入世界的 EntityManager（分配 EntityInstanceId）
      * 4. 注入服务端上下文：setServer、setWorld、setConnection，
      *    使成就触发、网络发包、末影箱自动保存等路径立即可用
      * 5. 将玩家加入 EntityTracker（开始同步）
-     * 6. 建立 PlayerId ↔ EntityId 映射
+     * 6. 建立 PlayerId ↔ EntityInstanceId 映射
      *
      * @param playerId 玩家ID（由 PlayerManager 分配）
      * @param username 用户名
@@ -128,7 +128,7 @@ public:
      * 此方法执行以下操作：
      * 1. 从 EntityTracker 移除追踪
      * 2. 从 EntityManager 移除实体
-     * 3. 清除 PlayerId ↔ EntityId 映射
+     * 3. 清除 PlayerId ↔ EntityInstanceId 映射
      *
      * @param playerId 玩家ID
      * @param world 世界引用
@@ -147,18 +147,18 @@ public:
     // ========== 查询 ==========
 
     /**
-     * @brief 获取玩家的 EntityId
+     * @brief 获取玩家的 EntityInstanceId
      * @param playerId 玩家ID
-     * @return EntityId，未找到返回 INVALID_ENTITY_ID
+     * @return EntityInstanceId，未找到返回 INVALID_ENTITY_ID
      */
-    [[nodiscard]] EntityId getPlayerEntityId(PlayerId playerId) const;
+    [[nodiscard]] EntityInstanceId getPlayerEntityId(PlayerId playerId) const;
 
     /**
-     * @brief 通过 EntityId 获取 PlayerId
+     * @brief 通过 EntityInstanceId 获取 PlayerId
      * @param entityId 实体ID
      * @return PlayerId，未找到返回 0
      */
-    [[nodiscard]] PlayerId getPlayerIdByEntityId(EntityId entityId) const;
+    [[nodiscard]] PlayerId getPlayerIdByEntityId(EntityInstanceId entityId) const;
 
     /**
      * @brief 获取玩家的实体指针
@@ -194,11 +194,11 @@ public:
 private:
     mutable std::mutex m_mutex;
 
-    /// PlayerId → EntityId 映射
-    std::unordered_map<PlayerId, EntityId> m_playerToEntity;
+    /// PlayerId → EntityInstanceId 映射
+    std::unordered_map<PlayerId, EntityInstanceId> m_playerToEntity;
 
-    /// EntityId → PlayerId 映射
-    std::unordered_map<EntityId, PlayerId> m_entityToPlayer;
+    /// EntityInstanceId → PlayerId 映射
+    std::unordered_map<EntityInstanceId, PlayerId> m_entityToPlayer;
 };
 
 } // namespace mc::server

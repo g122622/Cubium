@@ -79,7 +79,7 @@
 
 namespace mc::client::renderer::entity::model {
 
-namespace ET = ::mc::entity::EntityTypes;
+namespace ET = ::mc::entity::EntityTypeKeys;
 
 void initializeModelRegistration()
 {

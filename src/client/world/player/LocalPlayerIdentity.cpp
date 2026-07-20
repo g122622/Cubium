@@ -26,7 +26,7 @@
 
 namespace mc::client {
 
-void LocalPlayerIdentity::setIdentity(PlayerId playerId, EntityId entityId)
+void LocalPlayerIdentity::setIdentity(PlayerId playerId, EntityInstanceId entityId)
 {
     MC_ASSERT_RELEASE(playerId != 0);
     MC_ASSERT_RELEASE(entityId != INVALID_ENTITY_ID);
@@ -53,12 +53,12 @@ PlayerId LocalPlayerIdentity::playerId() const
     return m_playerId;
 }
 
-EntityId LocalPlayerIdentity::entityId() const
+EntityInstanceId LocalPlayerIdentity::entityId() const
 {
     return m_entityId;
 }
 
-bool LocalPlayerIdentity::isLocalPlayerEntity(EntityId entityId) const
+bool LocalPlayerIdentity::isLocalPlayerEntity(EntityInstanceId entityId) const
 {
     return m_hasIdentity && entityId == m_entityId;
 }

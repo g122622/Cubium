@@ -14,10 +14,10 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/controller/PhantomLookController.hpp"
 #include "entity/ai/controller/PhantomMovementController.hpp"
-#include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/entities/monster/basic/PhantomEntity.hpp"
 #include "entity/entities/passive/tamable/CatEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 #include <unordered_map>
 #include <gtest/gtest.h>
 
@@ -28,7 +28,7 @@ using namespace mc::entity::ai::goal;
 
 class PhantomEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityId(0)); }
+    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0)); }
 
     void TearDown() override { phantom.reset(); }
 
@@ -129,7 +129,7 @@ class PhantomAttackPlayerTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0));
         goal = std::make_unique<PhantomAttackPlayerTargetGoal>(phantom.get());
     }
 
@@ -167,7 +167,7 @@ class PhantomOrbitPointGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0));
         goal = std::make_unique<PhantomOrbitPointGoal>(phantom.get());
     }
 
@@ -224,7 +224,7 @@ class PhantomPickAttackGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0));
         goal = std::make_unique<PhantomPickAttackGoal>(phantom.get());
     }
 
@@ -271,7 +271,7 @@ class PhantomSweepAttackGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0));
         goal = std::make_unique<PhantomSweepAttackGoal>(phantom.get());
     }
 
@@ -336,7 +336,7 @@ class PhantomGoalsIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        phantom = std::make_unique<PhantomEntity>(EntityId(0));
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0));
         targetGoal = std::make_unique<PhantomAttackPlayerTargetGoal>(phantom.get());
         orbitGoal = std::make_unique<PhantomOrbitPointGoal>(phantom.get());
         pickGoal = std::make_unique<PhantomPickAttackGoal>(phantom.get());
@@ -523,9 +523,9 @@ public:
         return &VanillaBlocks::AIR->defaultState();
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId id = entity->id();
+        EntityInstanceId id = entity->id();
         m_entities[id] = std::move(entity);
         return id;
     }
@@ -568,7 +568,7 @@ public:
     }
 
 private:
-    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
     ResourceLocation m_lastSoundId;
     i32 m_soundPlayCount = 0;
 };
@@ -580,18 +580,18 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        mc::entity::EntityTypeIdNumber::initialize();
+        mc::entity::VanillaEntityTypeKeys::initialize();
 
         m_world = std::make_unique<PhantomCatTestWorld>();
 
         // 创建幻翼并设置到测试世界
-        m_phantom = std::make_unique<PhantomEntity>(EntityId(1));
+        m_phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1));
         m_phantom->setWorld(m_world.get());
         m_phantom->setTypeId("minecraft:phantom");
         m_phantom->setPosition(0.0, 64.0, 0.0);
 
         // 创建玩家作为攻击目标，使 shouldContinueExecuting() 能通过目标检查
-        m_player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+        m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
         m_player->setWorld(m_world.get());
         m_player->setTypeId("minecraft:player");
         m_player->setPosition(10.0, 64.0, 10.0);
@@ -628,7 +628,7 @@ TEST_F(PhantomCheckForCatsTest, NoCat_ReturnsTrue_ContinuesAttack)
 TEST_F(PhantomCheckForCatsTest, WithCat_ReturnsFalse_StopsAttack)
 {
     // 附近有猫时，幻翼应该停止攻击（shouldContinueExecuting 返回 false）
-    auto cat = std::make_unique<CatEntity>(EntityId(2));
+    auto cat = std::make_unique<CatEntity>(EntityInstanceId(2));
     cat->setWorld(m_world.get());
     cat->setTypeId("minecraft:cat");
     cat->setPosition(5.0, 64.0, 5.0); // 在幻翼附近（16格范围内）
@@ -642,7 +642,7 @@ TEST_F(PhantomCheckForCatsTest, WithCat_ReturnsFalse_StopsAttack)
 TEST_F(PhantomCheckForCatsTest, WithCat_ResetTask_SetsCirclePhase)
 {
     // 当猫驱赶幻翼时，resetTask 应该将攻击阶段切换为 CIRCLE 并清除目标
-    auto cat = std::make_unique<CatEntity>(EntityId(2));
+    auto cat = std::make_unique<CatEntity>(EntityInstanceId(2));
     cat->setWorld(m_world.get());
     cat->setTypeId("minecraft:cat");
     cat->setPosition(5.0, 64.0, 5.0);
@@ -665,7 +665,7 @@ TEST_F(PhantomCheckForCatsTest, WithCat_PlaysHissSound)
 {
     // 猫在检测范围内时应该播放嘶嘶声
     // 注意：hiss() 调用的是 cat 自身的 playSound，猫的 world 必须正确设置
-    auto cat = std::make_unique<CatEntity>(EntityId(2));
+    auto cat = std::make_unique<CatEntity>(EntityInstanceId(2));
     cat->setWorld(m_world.get());
     cat->setTypeId("minecraft:cat");
     cat->setPosition(5.0, 64.0, 5.0);
@@ -686,7 +686,7 @@ TEST_F(PhantomCheckForCatsTest, MultipleCats_AllHiss)
 {
     // 多只猫时，每只猫都应该发出嘶嘶声
     for (int i = 0; i < 3; ++i) {
-        auto cat = std::make_unique<CatEntity>(EntityId(static_cast<u32>(10 + i)));
+        auto cat = std::make_unique<CatEntity>(EntityInstanceId(static_cast<u32>(10 + i)));
         cat->setWorld(m_world.get());
         cat->setTypeId("minecraft:cat");
         cat->setPosition(static_cast<f64>(i * 3), 64.0, 0.0);
@@ -705,7 +705,7 @@ TEST_F(PhantomCheckForCatsTest, MultipleCats_AllHiss)
 TEST_F(PhantomCheckForCatsTest, DeadCat_DoesNotTrigger)
 {
     // 已移除的猫不应该触发驱赶
-    auto cat = std::make_unique<CatEntity>(EntityId(2));
+    auto cat = std::make_unique<CatEntity>(EntityInstanceId(2));
     cat->setWorld(m_world.get());
     cat->setTypeId("minecraft:cat");
     cat->setPosition(5.0, 64.0, 5.0);
@@ -723,7 +723,7 @@ TEST_F(PhantomCheckForCatsTest, DistantCat_DoesNotTrigger)
     // 幻翼位于 (0, 64, 0)，碰撞箱约 0.9x0.5x0.9
     // grow(16) 后搜索范围约 (-16, 48, -16) 到 (16.9, 80.5, 16.9)
     // 猫放在 (100, 64, 100)，远超搜索范围
-    auto cat = std::make_unique<CatEntity>(EntityId(2));
+    auto cat = std::make_unique<CatEntity>(EntityInstanceId(2));
     cat->setWorld(m_world.get());
     cat->setTypeId("minecraft:cat");
     cat->setPosition(100.0, 64.0, 100.0);
@@ -738,7 +738,7 @@ TEST_F(PhantomCheckForCatsTest, NullWorld_ReturnsTrue)
 {
     // 无世界时 _checkForCats 返回 true（继续攻击）
     // 但 shouldContinueExecuting 因无目标在前面返回 false
-    auto phantomNoWorld = std::make_unique<PhantomEntity>(EntityId(1));
+    auto phantomNoWorld = std::make_unique<PhantomEntity>(EntityInstanceId(1));
     auto goalNoWorld = std::make_unique<PhantomSweepAttackGoal>(phantomNoWorld.get());
     EXPECT_FALSE(goalNoWorld->shouldContinueExecuting()); // false 因为没有目标
 
@@ -785,40 +785,40 @@ TEST_F(PhantomEntityTest, Constructor_InstallsPhantomLookController)
 TEST_F(PhantomEntityTest, UniqueFlapOffset_BasedOnEntityId)
 {
     // m_uniqueFlapOffset = id % TICKS_PER_FLAP (25)
-    // EntityId(0) => offset 0
-    auto phantom0 = std::make_unique<PhantomEntity>(EntityId(0));
+    // EntityInstanceId(0) => offset 0
+    auto phantom0 = std::make_unique<PhantomEntity>(EntityInstanceId(0));
     // 通过 isFlapping() 在 ticksExisted=0 时验证：offset 0 意味着 (0+0)%25==0 => isFlapping
     EXPECT_TRUE(phantom0->isFlapping());
 
-    // EntityId(1) => offset 1 => (0+1)%25==1 != 0 => not flapping at tick 0
-    auto phantom1 = std::make_unique<PhantomEntity>(EntityId(1));
+    // EntityInstanceId(1) => offset 1 => (0+1)%25==1 != 0 => not flapping at tick 0
+    auto phantom1 = std::make_unique<PhantomEntity>(EntityInstanceId(1));
     EXPECT_FALSE(phantom1->isFlapping());
 
-    // EntityId(25) => offset 0 => isFlapping at tick 0
-    auto phantom25 = std::make_unique<PhantomEntity>(EntityId(25));
+    // EntityInstanceId(25) => offset 0 => isFlapping at tick 0
+    auto phantom25 = std::make_unique<PhantomEntity>(EntityInstanceId(25));
     EXPECT_TRUE(phantom25->isFlapping());
 
-    // EntityId(30) => offset 5 => not flapping at tick 0
-    auto phantom30 = std::make_unique<PhantomEntity>(EntityId(30));
+    // EntityInstanceId(30) => offset 5 => not flapping at tick 0
+    auto phantom30 = std::make_unique<PhantomEntity>(EntityInstanceId(30));
     EXPECT_FALSE(phantom30->isFlapping());
 }
 
 TEST_F(PhantomEntityTest, IsFlapping_PeriodicBehavior)
 {
     // isFlapping() 在 ticksExisted 周期性地返回 true
-    // 对于 EntityId(0)，offset=0，周期为 25 tick
+    // 对于 EntityInstanceId(0)，offset=0，周期为 25 tick
     // ticksExisted=0 => (0+0)%25==0 => true
     // ticksExisted=1 => (1+0)%25==1 => false
     // ticksExisted=24 => (24+0)%25==24 => false
     // ticksExisted=25 => (25+0)%25==0 => true
     //
     // 注意：isFlapping() 读取 m_ticksExisted，初始为 0，我们无法直接修改
-    // 但可以通过构造函数的 EntityId 验证周期性逻辑
-    auto phantom0 = std::make_unique<PhantomEntity>(EntityId(0));
+    // 但可以通过构造函数的 EntityInstanceId 验证周期性逻辑
+    auto phantom0 = std::make_unique<PhantomEntity>(EntityInstanceId(0));
     EXPECT_TRUE(phantom0->isFlapping());
 
-    // EntityId(24) => offset=24 => (0+24)%25==24 != 0 => false at tick 0
-    auto phantom24 = std::make_unique<PhantomEntity>(EntityId(24));
+    // EntityInstanceId(24) => offset=24 => (0+24)%25==24 != 0 => false at tick 0
+    auto phantom24 = std::make_unique<PhantomEntity>(EntityInstanceId(24));
     EXPECT_FALSE(phantom24->isFlapping());
 }
 
@@ -832,8 +832,8 @@ TEST_F(PhantomEntityTest, CanAttackType_ReturnsTrue)
 {
     // 幻翼覆盖了基类的限制，可以攻击任何类型
     // 基类 MobEntity::canAttackType 排除了 Ghast，但幻翼返回 true
-    EXPECT_TRUE(phantom->canAttackType(entity::EntityTypeId(0)));
-    EXPECT_TRUE(phantom->canAttackType(entity::EntityTypeId(100)));
+    EXPECT_TRUE(phantom->canAttackType(entity::EntityType::UNKNOWN));
+    EXPECT_TRUE(phantom->canAttackType(entity::EntityType::UNKNOWN));
 }
 
 TEST_F(PhantomEntityTest, Dimensions_ScaleWithSize)
@@ -965,7 +965,7 @@ TEST_F(PhantomEntityTest, AngleDifference_LargeAngle)
 
 class PhantomLookControllerTest : public ::testing::Test {
 protected:
-    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityId(0)); }
+    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0)); }
     void TearDown() override { phantom.reset(); }
 
     std::unique_ptr<PhantomEntity> phantom;

@@ -44,7 +44,7 @@ using namespace mc::entity::ai::goal;
 
 class MoveToLavaGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityId(0)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(0)); }
 
     void TearDown() override { strider.reset(); }
 
@@ -121,7 +121,7 @@ TEST_F(MoveToLavaGoalTest, Constants_MatchMC1165)
 
 class StriderEntityGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityId(0)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(0)); }
 
     void TearDown() override { strider.reset(); }
 

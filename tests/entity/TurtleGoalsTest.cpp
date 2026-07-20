@@ -162,7 +162,7 @@ TEST_F(TurtleGoHomeGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleGoHomeGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsChild)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(true);
     turtle.setHomePos(BlockPos(0, 64, 0));
 
@@ -173,7 +173,7 @@ TEST_F(TurtleGoHomeGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsChild)
 
 TEST_F(TurtleGoHomeGoalTest, ShouldExecute_ReturnsTrue_WhenHasEggAndHasHome)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
     turtle.setHasEgg(true);
     turtle.setHomePos(BlockPos(100, 64, 100));
@@ -185,7 +185,7 @@ TEST_F(TurtleGoHomeGoalTest, ShouldExecute_ReturnsTrue_WhenHasEggAndHasHome)
 
 TEST_F(TurtleGoHomeGoalTest, ShouldExecute_ReturnsFalse_WhenHasEggButNoHome)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
     turtle.setHasEgg(true);
     // 没有出生地
@@ -202,7 +202,7 @@ TEST_F(TurtleGoHomeGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenTurtleIsNu
 
 TEST_F(TurtleGoHomeGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNoHomePos)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
 
     TurtleGoHomeGoal goal(&turtle, 1.0);
@@ -212,7 +212,7 @@ TEST_F(TurtleGoHomeGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNoHomePos)
 
 TEST_F(TurtleGoHomeGoalTest, StartExecuting_SetsGoingHomeFlag)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
     turtle.setHasEgg(true);
     turtle.setHomePos(BlockPos(0, 64, 0));
@@ -225,7 +225,7 @@ TEST_F(TurtleGoHomeGoalTest, StartExecuting_SetsGoingHomeFlag)
 
 TEST_F(TurtleGoHomeGoalTest, ResetTask_ClearsGoingHomeFlag)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
     turtle.setHasEgg(true);
     turtle.setHomePos(BlockPos(0, 64, 0));
@@ -240,7 +240,7 @@ TEST_F(TurtleGoHomeGoalTest, ResetTask_ClearsGoingHomeFlag)
 TEST_F(TurtleGoHomeGoalTest, MutexFlags_IsMove)
 {
     // TurtleGoHomeGoal 只使用 Move 标志
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleGoHomeGoal goal(&turtle, 1.0);
 
     const auto& flags = goal.getMutexFlags();
@@ -251,7 +251,7 @@ TEST_F(TurtleGoHomeGoalTest, MutexFlags_IsMove)
 
 TEST_F(TurtleGoHomeGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleGoHomeGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleGoHomeGoal");
 }
@@ -277,7 +277,7 @@ TEST_F(TurtleLayEggGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleLayEggGoalTest, ShouldExecute_ReturnsFalse_WhenNoEgg)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setHasEgg(false);
     turtle.setHomePos(BlockPos(0, 64, 0));
     turtle.setPosition(0.0f, 64.0f, 0.0f);
@@ -288,7 +288,7 @@ TEST_F(TurtleLayEggGoalTest, ShouldExecute_ReturnsFalse_WhenNoEgg)
 
 TEST_F(TurtleLayEggGoalTest, ShouldExecute_ReturnsFalse_WhenNoHomePos)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setHasEgg(true);
     // 没有出生地
 
@@ -298,7 +298,7 @@ TEST_F(TurtleLayEggGoalTest, ShouldExecute_ReturnsFalse_WhenNoHomePos)
 
 TEST_F(TurtleLayEggGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNoEgg)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setHasEgg(false);
 
     TurtleLayEggGoal goal(&turtle, 1.0);
@@ -307,7 +307,7 @@ TEST_F(TurtleLayEggGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNoEgg)
 
 TEST_F(TurtleLayEggGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNoHomePos)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setHasEgg(true);
 
     TurtleLayEggGoal goal(&turtle, 1.0);
@@ -317,7 +317,7 @@ TEST_F(TurtleLayEggGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNoHomePos)
 TEST_F(TurtleLayEggGoalTest, MutexFlags_IsMoveAndLook)
 {
     // TurtleLayEggGoal 使用 Move 和 Look 标志
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleLayEggGoal goal(&turtle, 1.0);
 
     const auto& flags = goal.getMutexFlags();
@@ -327,7 +327,7 @@ TEST_F(TurtleLayEggGoalTest, MutexFlags_IsMoveAndLook)
 
 TEST_F(TurtleLayEggGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleLayEggGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleLayEggGoal");
 }
@@ -353,7 +353,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setGoingHome(true);
     turtle.setInWater(true);
 
@@ -363,7 +363,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 
 TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setHasEgg(true);
     turtle.setInWater(true);
 
@@ -373,7 +373,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 
 TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenNotInWater)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(false);
 
     TurtleTravelGoal goal(&turtle, 1.0);
@@ -382,7 +382,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenNotInWater)
 
 TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsTrue_WhenInWaterAndNoEggAndNotGoingHome)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
     turtle.setHasEgg(false);
     turtle.setGoingHome(false);
@@ -393,7 +393,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsTrue_WhenInWaterAndNoEggAndNot
 
 TEST_F(TurtleTravelGoalTest, StartExecuting_SetsTravellingFlag)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
     turtle.setHasEgg(false);
     turtle.setGoingHome(false);
@@ -406,7 +406,7 @@ TEST_F(TurtleTravelGoalTest, StartExecuting_SetsTravellingFlag)
 
 TEST_F(TurtleTravelGoalTest, ResetTask_ClearsTravellingFlag)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
 
     TurtleTravelGoal goal(&turtle, 1.0);
@@ -418,7 +418,7 @@ TEST_F(TurtleTravelGoalTest, ResetTask_ClearsTravellingFlag)
 
 TEST_F(TurtleTravelGoalTest, MutexFlags_IsMove)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleTravelGoal goal(&turtle, 1.0);
 
     const auto& flags = goal.getMutexFlags();
@@ -427,7 +427,7 @@ TEST_F(TurtleTravelGoalTest, MutexFlags_IsMove)
 
 TEST_F(TurtleTravelGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleTravelGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleTravelGoal");
 }
@@ -453,7 +453,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenAlreadyInWater)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
     turtle.setGoingHome(false);
     turtle.setHasEgg(false);
@@ -464,7 +464,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenAlreadyInWater)
 
 TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(false);
     turtle.setGoingHome(true);
 
@@ -474,7 +474,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 
 TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(false);
     turtle.setHasEgg(true);
     turtle.setGoingHome(false);
@@ -485,7 +485,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 
 TEST_F(TurtleGoToWaterGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenInWater)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
 
     TurtleGoToWaterGoal goal(&turtle, 1.0);
@@ -500,7 +500,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenNullTur
 
 TEST_F(TurtleGoToWaterGoalTest, MutexFlags_IsMove)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleGoToWaterGoal goal(&turtle, 1.0);
 
     const auto& flags = goal.getMutexFlags();
@@ -509,7 +509,7 @@ TEST_F(TurtleGoToWaterGoalTest, MutexFlags_IsMove)
 
 TEST_F(TurtleGoToWaterGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleGoToWaterGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleGoToWaterGoal");
 }
@@ -535,7 +535,7 @@ TEST_F(TurtleMateGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleMateGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
     turtle.setHasEgg(true);
     turtle.setInLove(false);
@@ -546,7 +546,7 @@ TEST_F(TurtleMateGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 
 TEST_F(TurtleMateGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleMateGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleMateGoal");
 }
@@ -572,7 +572,7 @@ TEST_F(TurtlePanicGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtlePanicGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtlePanicGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtlePanicGoal");
 }
@@ -598,7 +598,7 @@ TEST_F(TurtleTemptGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleTemptGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleTemptGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleTemptGoal");
 }
@@ -643,7 +643,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 
 TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenInWater)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
 
     TurtleWanderGoal goal(&turtle, 1.0, 100);
@@ -652,7 +652,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenInWater)
 
 TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(false);
     turtle.setGoingHome(true);
 
@@ -662,7 +662,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 
 TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(false);
     turtle.setGoingHome(false);
     turtle.setHasEgg(true);
@@ -673,7 +673,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 
 TEST_F(TurtleWanderGoalTest, GetTypeName_ReturnsCorrectName)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleWanderGoal goal(&turtle, 1.0, 100);
     EXPECT_EQ(goal.getTypeName(), "TurtleWanderGoal");
 }
@@ -695,7 +695,7 @@ TEST_F(TurtleGoalPriorityTest, PanicGoal_HasHighestPriority)
 {
     // MC 1.16.5: PanicGoal 优先级为 0（最高）
     // 在 TurtleEntity::registerGoals() 中注册为优先级 0
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     // 验证目标选择器中存在 PanicGoal
     // 注意：这里只验证 Goal 可以正确创建
     TurtlePanicGoal goal(&turtle, 1.2);
@@ -705,7 +705,7 @@ TEST_F(TurtleGoalPriorityTest, PanicGoal_HasHighestPriority)
 TEST_F(TurtleGoalPriorityTest, MateAndLayEggGoal_HaveSamePriority)
 {
     // MC 1.16.5: MateGoal 和 LayEggGoal 共享优先级 1
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
 
     TurtleMateGoal mateGoal(&turtle, 1.0);
     TurtleLayEggGoal layEggGoal(&turtle, 1.0);
@@ -717,7 +717,7 @@ TEST_F(TurtleGoalPriorityTest, MateAndLayEggGoal_HaveSamePriority)
 TEST_F(TurtleGoalPriorityTest, TemptGoal_HasPriority2)
 {
     // MC 1.16.5: TemptGoal 优先级为 2
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleTemptGoal goal(&turtle, 1.1);
     EXPECT_EQ(goal.getTypeName(), "TurtleTemptGoal");
 }
@@ -725,7 +725,7 @@ TEST_F(TurtleGoalPriorityTest, TemptGoal_HasPriority2)
 TEST_F(TurtleGoalPriorityTest, GoToWaterGoal_HasPriority3)
 {
     // MC 1.16.5: GoToWaterGoal 优先级为 3
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleGoToWaterGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleGoToWaterGoal");
 }
@@ -733,7 +733,7 @@ TEST_F(TurtleGoalPriorityTest, GoToWaterGoal_HasPriority3)
 TEST_F(TurtleGoalPriorityTest, GoHomeGoal_HasPriority4)
 {
     // MC 1.16.5: GoHomeGoal 优先级为 4
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleGoHomeGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleGoHomeGoal");
 }
@@ -741,7 +741,7 @@ TEST_F(TurtleGoalPriorityTest, GoHomeGoal_HasPriority4)
 TEST_F(TurtleGoalPriorityTest, TravelGoal_HasPriority7)
 {
     // MC 1.16.5: TravelGoal 优先级为 7
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleTravelGoal goal(&turtle, 1.0);
     EXPECT_EQ(goal.getTypeName(), "TurtleTravelGoal");
 }
@@ -749,7 +749,7 @@ TEST_F(TurtleGoalPriorityTest, TravelGoal_HasPriority7)
 TEST_F(TurtleGoalPriorityTest, WanderGoal_HasPriority9)
 {
     // MC 1.16.5: WanderGoal 优先级为 9
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtleWanderGoal goal(&turtle, 1.0, 100);
     EXPECT_EQ(goal.getTypeName(), "TurtleWanderGoal");
 }
@@ -770,7 +770,7 @@ protected:
 TEST_F(TurtleGoalsEdgeCaseTest, TurtleGoHomeGoal_DistanceCalculation)
 {
     // 测试距离计算边界情况
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setChild(false);
     turtle.setHasEgg(true);
 
@@ -790,7 +790,7 @@ TEST_F(TurtleGoalsEdgeCaseTest, TurtleGoHomeGoal_DistanceCalculation)
 TEST_F(TurtleGoalsEdgeCaseTest, TurtleLayEggGoal_DistanceCheck)
 {
     // 测试产卵距离检查边界情况
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setHasEgg(true);
 
     // 设置出生地
@@ -811,7 +811,7 @@ TEST_F(TurtleGoalsEdgeCaseTest, TurtleLayEggGoal_DistanceCheck)
 TEST_F(TurtleGoalsEdgeCaseTest, TurtleTravelGoal_StateChanges)
 {
     // 测试旅行目标的状态变化
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(true);
     turtle.setHasEgg(false);
     turtle.setGoingHome(false);
@@ -829,7 +829,7 @@ TEST_F(TurtleGoalsEdgeCaseTest, TurtleTravelGoal_StateChanges)
 TEST_F(TurtleGoalsEdgeCaseTest, TurtleWanderGoal_ChanceParameter)
 {
     // 测试漫步概率参数
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     turtle.setInWater(false);
     turtle.setGoingHome(false);
     turtle.setHasEgg(false);
@@ -860,7 +860,7 @@ protected:
 
 TEST_F(TurtleGoalsSpeedTest, TurtleGoHomeGoal_SpeedParameter)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
 
     TurtleGoHomeGoal goal1(&turtle, 1.0);
     TurtleGoHomeGoal goal2(&turtle, 2.0);
@@ -872,7 +872,7 @@ TEST_F(TurtleGoalsSpeedTest, TurtleGoHomeGoal_SpeedParameter)
 
 TEST_F(TurtleGoalsSpeedTest, TurtleTravelGoal_SpeedParameter)
 {
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
 
     TurtleTravelGoal goal1(&turtle, 1.0);
     TurtleTravelGoal goal2(&turtle, 0.5);
@@ -885,7 +885,7 @@ TEST_F(TurtleGoalsSpeedTest, TurtleTravelGoal_SpeedParameter)
 TEST_F(TurtleGoalsSpeedTest, TurtlePanicGoal_HigherSpeed)
 {
     // MC 1.16.5: 恐慌逃跑速度更高 (1.2)
-    TurtleEntity turtle(EntityId(1));
+    TurtleEntity turtle(EntityInstanceId(1));
     TurtlePanicGoal goal(&turtle, 1.2);
 
     EXPECT_EQ(goal.getTypeName(), "TurtlePanicGoal");

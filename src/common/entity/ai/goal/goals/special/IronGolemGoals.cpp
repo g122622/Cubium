@@ -25,7 +25,6 @@
 #include "../../../../../util/assert/AssertMacros.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
@@ -34,6 +33,7 @@
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
+#include "../../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../../tag/EntityTypeTags.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
@@ -499,7 +499,8 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
             }
 
             // 检查实体类型是否可攻击（canAttackType 排除苦力怕等）
-            if (!m_golem->canAttackType(candidate->typeId())) {
+            const entity::EntityType* candidateType = candidate->entityType();
+            if (candidateType == nullptr || !m_golem->canAttackType(*candidateType)) {
                 return false;
             }
 

@@ -169,7 +169,7 @@ protected:
  */
 TEST_F(OpenWaterCheckTest, EmptyWorldReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -233,7 +233,7 @@ TEST_F(OpenWaterCheckTest, WaterTypeEnumValues)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Air)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 66.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -250,7 +250,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Air)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_WaterSource)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -269,7 +269,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_WaterSource)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Stone)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -286,7 +286,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Stone)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Nullptr)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -306,7 +306,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Nullptr)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_FullWaterSource)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -324,7 +324,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_FullWaterSource)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_WaterWithAirAbove)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -344,7 +344,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_WaterWithAirAbove)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_AirAtBottomReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -364,7 +364,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_AirAtBottomReturnsFalse)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_StoneInWaterReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -386,7 +386,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_StoneInWaterReturnsFalse)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_WaterAirWaterReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1));
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 

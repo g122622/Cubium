@@ -52,7 +52,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    DrownedEntity(EntityId id);
+    DrownedEntity(EntityInstanceId id);
 
     ~DrownedEntity() override = default;
 

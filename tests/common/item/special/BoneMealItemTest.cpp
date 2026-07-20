@@ -182,7 +182,7 @@ public:
         throw std::runtime_error("SeagrassTestWorld::worldBorder not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity>) override { return ++m_lastEntityId; }
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return ++m_lastEntityId; }
 
     void addParticle(
         particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3& = Vector3(0, 0, 0), u32 = 1) override
@@ -208,7 +208,7 @@ public:
 private:
     std::unique_ptr<ChunkData> m_chunk;
     math::Random m_random;
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
 };
 
 // ========== SeagrassBlock IGrowable 测试（用于 BoneMealItem 集成测试）==========

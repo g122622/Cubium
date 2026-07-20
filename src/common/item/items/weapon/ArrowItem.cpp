@@ -84,7 +84,7 @@ std::unique_ptr<entity::ProjectileEntity> ArrowItem::asProjectile(IWorld& world,
         if (arrow) {
             arrow->setPickupStatus(entity::PickupStatus::Allowed);
         }
-        entity->setTypeId(entity::EntityTypes::ARROW);
+        entity->setTypeId(entity::EntityTypeKeys::ARROW);
     }
     // ArrowEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
     return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));

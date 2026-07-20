@@ -87,7 +87,7 @@ public:
      * @param pos 方块位置
      * @param entityId 用于广播动画的实体ID（破坏者ID）
      */
-    void startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId = 0);
+    void startMining(PlayerId playerId, const BlockPos& pos, EntityInstanceId entityId = 0);
 
     /**
      * @brief 中止挖掘
@@ -144,14 +144,14 @@ public:
     void setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i32, i32, i8)> callback);
 
     /**
-     * @brief 设置 EntityId 解析器
+     * @brief 设置 EntityInstanceId 解析器
      *
-     * MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityId 作为 breakerId。
-     * 通过此解析器将 PlayerId 转换为 EntityId。
+     * MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityInstanceId 作为 breakerId。
+     * 通过此解析器将 PlayerId 转换为 EntityInstanceId。
      *
      * @param resolver 解析函数 (playerId) -> entityId，未找到返回 INVALID_ENTITY_ID
      */
-    void setEntityIdResolver(std::function<EntityId(PlayerId)> resolver);
+    void setEntityIdResolver(std::function<EntityInstanceId(PlayerId)> resolver);
 
     /**
      * @brief 设置挖掘完成回调
@@ -229,7 +229,7 @@ private:
         u8 lastStage = 255; // 上次广播的阶段 (0-9)
         bool active = false;
         u64 startTick = 0;
-        EntityId breakerId = 0; // 用于广播动画
+        EntityInstanceId breakerId = 0; // 用于广播动画
     };
 
     core::PlayerManager& m_playerManager;
@@ -239,7 +239,7 @@ private:
 
     std::function<void(PlayerId, i32, i32, i32, i8)> m_onBreakAnimBroadcast;
     std::function<void(PlayerId, const BlockPos&)> m_onMiningComplete;
-    std::function<EntityId(PlayerId)> m_entityIdResolver; ///< PlayerId -> EntityId 解析器
+    std::function<EntityInstanceId(PlayerId)> m_entityIdResolver; ///< PlayerId -> EntityInstanceId 解析器
 };
 
 } // namespace mc::server::interaction

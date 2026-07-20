@@ -68,7 +68,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit ProjectileItemEntity(EntityId id);
+    explicit ProjectileItemEntity(EntityInstanceId id);
 
     // 物品堆
     ItemStack m_itemStack;
@@ -89,7 +89,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit SnowballEntity(EntityId id);
+    explicit SnowballEntity(EntityInstanceId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -113,7 +113,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EggEntity(EntityId id);
+    explicit EggEntity(EntityInstanceId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -144,7 +144,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EnderPearlEntity(EntityId id);
+    explicit EnderPearlEntity(EntityInstanceId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -168,7 +168,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit PotionEntity(EntityId id);
+    explicit PotionEntity(EntityInstanceId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -204,7 +204,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit ExperienceBottleEntity(EntityId id);
+    explicit ExperienceBottleEntity(EntityInstanceId id);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 

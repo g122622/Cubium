@@ -68,7 +68,7 @@ public:
      * @brief 构造不祥物品生成器
      * @param id 实体ID
      */
-    explicit OminousItemSpawnerEntity(EntityId id);
+    explicit OminousItemSpawnerEntity(EntityInstanceId id);
 
     ~OminousItemSpawnerEntity() override = default;
 

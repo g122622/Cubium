@@ -223,7 +223,7 @@ protected:
      */
     std::unique_ptr<entity::EnderDragonEntity> makeDragon(const std::string& uuid, f32 health = 200.0f)
     {
-        auto dragon = std::make_unique<entity::EnderDragonEntity>(EntityId(1));
+        auto dragon = std::make_unique<entity::EnderDragonEntity>(EntityInstanceId(1));
         dragon->setUuid(uuid);
         dragon->setHealth(health);
         return dragon;

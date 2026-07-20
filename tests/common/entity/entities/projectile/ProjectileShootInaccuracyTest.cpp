@@ -58,7 +58,7 @@ namespace {
 /// 测试用弹射物子类（ProjectileEntity 是抽象类，需要实现纯虚函数）
 class TestProjectile : public ProjectileEntity {
 public:
-    explicit TestProjectile(EntityId id)
+    explicit TestProjectile(EntityInstanceId id)
         : ProjectileEntity(id)
     {}
 
@@ -74,7 +74,7 @@ public:
 TEST(ProjectileShootInaccuracyTest, ZeroInaccuracy_ProducesExactVelocity)
 {
     // inaccuracy=0 时，速度方向应与输入方向一致，大小严格等于 velocity 参数
-    TestProjectile p(EntityId(1));
+    TestProjectile p(EntityInstanceId(1));
 
     // 沿 +X 方向射击
     p.shoot(1.0f, 0.0f, 0.0f, 1.5f, 0.0f);
@@ -88,7 +88,7 @@ TEST(ProjectileShootInaccuracyTest, ZeroInaccuracy_ProducesExactVelocity)
 TEST(ProjectileShootInaccuracyTest, ZeroInaccuracy_NormalizedDirection)
 {
     // 非单位方向向量应被归一化，速度大小仍等于 velocity 参数
-    TestProjectile p(EntityId(1));
+    TestProjectile p(EntityInstanceId(1));
 
     // 方向向量 (2, 0, 0) 长度为 2，应归一化为 (1, 0, 0)
     p.shoot(2.0f, 0.0f, 0.0f, 1.0f, 0.0f);
@@ -113,13 +113,13 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_MatchesPositiveAbsoluteVa
     // 对应 MC 原版行为：triangle 分布对称，负 inaccuracy 与正 inaccuracy 等效。
 
     // 正 inaccuracy=7（对应 Hard 难度旋风人风弹散布绝对值）
-    TestProjectile pPositive(EntityId(1));
+    TestProjectile pPositive(EntityInstanceId(1));
     pPositive.shoot(1.0f, 0.0f, 0.0f, 1.0f, 7.0f);
     const Vector3 positiveVelocity = pPositive.velocity();
 
     // 负 inaccuracy=-7（对应 Hard 难度旋风人风弹散布原始值）
     // 使用相同的实体 ID，createRandomFromEntity 种子相同
-    TestProjectile pNegative(EntityId(1));
+    TestProjectile pNegative(EntityInstanceId(1));
     pNegative.shoot(1.0f, 0.0f, 0.0f, 1.0f, -7.0f);
     const Vector3 negativeVelocity = pNegative.velocity();
 
@@ -152,12 +152,12 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_MatchesPositive_ForAllBre
 
     for (const auto& tc : cases) {
         // 正值对照
-        TestProjectile pPositive(EntityId(1));
+        TestProjectile pPositive(EntityInstanceId(1));
         pPositive.shoot(1.0f, 0.0f, 0.0f, 0.7f, tc.absInaccuracy);
         const Vector3 positiveVelocity = pPositive.velocity();
 
         // 负值
-        TestProjectile pNegative(EntityId(1));
+        TestProjectile pNegative(EntityInstanceId(1));
         pNegative.shoot(1.0f, 0.0f, 0.0f, 0.7f, tc.inaccuracy);
         const Vector3 negativeVelocity = pNegative.velocity();
 
@@ -175,7 +175,7 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_DoesNotReverseDirection)
 {
     // 负 inaccuracy 不应导致方向向量反转
     // 即使 inaccuracy 为负，shoot 后的速度方向仍应与输入方向同向
-    TestProjectile p(EntityId(1));
+    TestProjectile p(EntityInstanceId(1));
 
     // 沿 +X 方向射击，负 inaccuracy
     p.shoot(1.0f, 0.0f, 0.0f, 1.0f, -5.0f);
@@ -188,7 +188,7 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_DoesNotReverseDirection)
 TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_DoesNotReverseDirection_ForHardDifficulty)
 {
     // 验证 Hard 难度（inaccuracy=-7，绝对值最大）下方向也不反转
-    TestProjectile p(EntityId(1));
+    TestProjectile p(EntityInstanceId(1));
 
     p.shoot(1.0f, 0.0f, 0.0f, 0.7f, -7.0f);
 
@@ -200,7 +200,7 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_DoesNotReverseDirection_F
 {
     // 验证即使 inaccuracy 绝对值很大（如 -14，对应弓/弩 Peaceful 难度散布绝对值），
     // 方向也不会反转
-    TestProjectile p(EntityId(1));
+    TestProjectile p(EntityInstanceId(1));
 
     p.shoot(1.0f, 0.0f, 0.0f, 1.0f, -14.0f);
 
@@ -219,12 +219,12 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_AppliesSpread)
     // 由于高斯分布有理论概率产生接近 0 的偏移，使用较大 inaccuracy 确保偏移可见
 
     // inaccuracy=0 的基准速度
-    TestProjectile pZero(EntityId(1));
+    TestProjectile pZero(EntityInstanceId(1));
     pZero.shoot(1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     const Vector3 zeroVelocity = pZero.velocity();
 
     // inaccuracy=-7 的速度（Hard 难度旋风人风弹）
-    TestProjectile pNegative(EntityId(1));
+    TestProjectile pNegative(EntityInstanceId(1));
     pNegative.shoot(1.0f, 0.0f, 0.0f, 1.0f, -7.0f);
     const Vector3 negativeVelocity = pNegative.velocity();
 
@@ -239,11 +239,11 @@ TEST(ProjectileShootInaccuracyTest, NegativeInaccuracy_AppliesSpread)
 TEST(ProjectileShootInaccuracyTest, PositiveInaccuracy_AppliesSpread)
 {
     // 对照测试：正 inaccuracy 同样应用散布
-    TestProjectile pZero(EntityId(1));
+    TestProjectile pZero(EntityInstanceId(1));
     pZero.shoot(1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     const Vector3 zeroVelocity = pZero.velocity();
 
-    TestProjectile pPositive(EntityId(1));
+    TestProjectile pPositive(EntityInstanceId(1));
     pPositive.shoot(1.0f, 0.0f, 0.0f, 1.0f, 7.0f);
     const Vector3 positiveVelocity = pPositive.velocity();
 
@@ -281,7 +281,7 @@ TEST(ProjectileShootInaccuracyTest, BreezeWindChargeScenario_AllDifficulties)
     };
 
     for (const auto& scenario : scenarios) {
-        TestProjectile p(EntityId(1));
+        TestProjectile p(EntityInstanceId(1));
         // 模拟旋风人射击：速度 0.7，方向 +X
         p.shoot(1.0f, 0.0f, 0.0f, 0.7f, scenario.inaccuracy);
 
@@ -300,14 +300,14 @@ TEST(ProjectileShootInaccuracyTest, ShootFrom_WithNegativeInaccuracy_DoesNotCras
     // 使用一个简单的 Entity 作为 shooter
     class SimpleShooter : public Entity {
     public:
-        explicit SimpleShooter(EntityId id)
+        explicit SimpleShooter(EntityInstanceId id)
             : Entity(id)
         {}
         [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_shooter"; }
     };
 
-    SimpleShooter shooter(EntityId(1));
-    TestProjectile p(EntityId(2));
+    SimpleShooter shooter(EntityInstanceId(1));
+    TestProjectile p(EntityInstanceId(2));
 
     // pitch=0, yaw=0, pitchOffset=0 → 方向 (0, 0, 1)
     // 负 inaccuracy 应正常处理

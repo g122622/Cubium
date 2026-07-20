@@ -51,7 +51,7 @@
 
 namespace mc {
 
-RavagerEntity::RavagerEntity(EntityId id)
+RavagerEntity::RavagerEntity(EntityInstanceId id)
     : AbstractRaiderEntity(id)
 {
     // 劫掠兽可以走上1格高的方块
@@ -73,7 +73,7 @@ RavagerEntity::RavagerEntity(EntityId id)
 
 std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<RavagerEntity>(EntityId(0));
+    return std::make_unique<RavagerEntity>(EntityInstanceId(0));
 }
 
 void RavagerEntity::tick()

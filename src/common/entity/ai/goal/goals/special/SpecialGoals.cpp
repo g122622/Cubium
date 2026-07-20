@@ -28,7 +28,6 @@
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../core/CreatureEntity.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../damage/DamageSource.hpp"
@@ -43,6 +42,7 @@
 #include "../../../../entities/passive/tamable/WolfEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
+#include "../../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../EntitySenses.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
@@ -218,7 +218,7 @@ void RunAroundLikeCrazyGoal::tick()
         if (!passenger) return;
 
         // 检查是否为玩家
-        if (passenger->typeId() != entity::EntityTypeIdNumber::PLAYER) return;
+        if (passenger->entityType() != entity::VanillaEntityTypeKeys::PLAYER) return;
 
         ::mc::Player* player = static_cast<::mc::Player*>(passenger);
 
@@ -313,7 +313,7 @@ bool PuffGoal::_isEnemy(const LivingEntity* entity)
     if (!entity) return false;
 
     // 检查是否为玩家
-    if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+    if (entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
         // 需要使用 dynamic_cast 安全转换
         const Player* player = dynamic_cast<const Player*>(entity);
         if (player) {
@@ -326,12 +326,12 @@ bool PuffGoal::_isEnemy(const LivingEntity* entity)
     }
 
     // 检查实体类型是否为水生生物
-    entity::EntityTypeId type = entity->typeId();
+    const entity::EntityType* type = entity->entityType();
     // 水生生物 - 不是敌人
-    if (type == entity::EntityTypeIdNumber::COD || type == entity::EntityTypeIdNumber::SALMON ||
-        type == entity::EntityTypeIdNumber::PUFFERFISH || type == entity::EntityTypeIdNumber::TROPICAL_FISH ||
-        type == entity::EntityTypeIdNumber::SQUID || type == entity::EntityTypeIdNumber::DOLPHIN ||
-        type == entity::EntityTypeIdNumber::TURTLE) {
+    if (type == entity::VanillaEntityTypeKeys::COD || type == entity::VanillaEntityTypeKeys::SALMON ||
+        type == entity::VanillaEntityTypeKeys::PUFFERFISH || type == entity::VanillaEntityTypeKeys::TROPICAL_FISH ||
+        type == entity::VanillaEntityTypeKeys::SQUID || type == entity::VanillaEntityTypeKeys::DOLPHIN ||
+        type == entity::VanillaEntityTypeKeys::TURTLE) {
         return false;
     }
     // 其他所有生物都是敌人（包括怪物、陆地动物等）
@@ -401,8 +401,8 @@ bool LlamaFollowCaravanGoal::shouldExecute()
 
     // 第一阶段：寻找已在商队中但无尾部的羊驼（商队链末尾的羊驼）
     for (Entity* entity : entities) {
-        entity::EntityTypeId type = entity->typeId();
-        if (type != entity::EntityTypeIdNumber::LLAMA && type != entity::EntityTypeIdNumber::TRADER_LLAMA) {
+        const entity::EntityType* type = entity->entityType();
+        if (type != entity::VanillaEntityTypeKeys::LLAMA && type != entity::VanillaEntityTypeKeys::TRADER_LLAMA) {
             continue;
         }
 
@@ -423,8 +423,8 @@ bool LlamaFollowCaravanGoal::shouldExecute()
     // 第二阶段：如果没有找到商队尾部的羊驼，寻找被拴住且无尾部的羊驼
     if (bestCandidate == nullptr) {
         for (Entity* entity : entities) {
-            entity::EntityTypeId type = entity->typeId();
-            if (type != entity::EntityTypeIdNumber::LLAMA && type != entity::EntityTypeIdNumber::TRADER_LLAMA) {
+            const entity::EntityType* type = entity->entityType();
+            if (type != entity::VanillaEntityTypeKeys::LLAMA && type != entity::VanillaEntityTypeKeys::TRADER_LLAMA) {
                 continue;
             }
 
@@ -620,7 +620,7 @@ bool LlamaDefendTargetGoal::shouldExecute()
 
     for (Entity* entity : entities) {
         // 只检查狼
-        if (entity->typeId() != entity::EntityTypeIdNumber::WOLF) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::WOLF) {
             continue;
         }
 
@@ -695,7 +695,7 @@ bool TriggerSkeletonTrapGoal::shouldExecute()
 
     for (Entity* entity : entities) {
         // 只检查玩家
-        if (entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
             continue;
         }
 

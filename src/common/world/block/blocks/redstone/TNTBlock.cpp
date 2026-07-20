@@ -244,7 +244,7 @@ bool TNTBlock::prime(IWorld& world, const BlockPos& pos, LivingEntity* igniter)
 
     // 生成点燃的TNT实体
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
+    const entity::EntityType* tntType = registry.getType(entity::EntityTypeKeys::TNT);
 
     if (tntType != nullptr && tntType->isValid()) {
         auto tntEntity = tntType->create(&world);
@@ -328,7 +328,7 @@ void TNTBlock::onBlockExploded(
     // 对应 MC Java 的 TntBlock.wasExploded()
     if (!world.isClientSide() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         auto& registry = entity::EntityRegistry::instance();
-        const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
+        const entity::EntityType* tntType = registry.getType(entity::EntityTypeKeys::TNT);
 
         if (tntType != nullptr && tntType->isValid()) {
             auto tntEntity = tntType->create(&world);

@@ -252,7 +252,7 @@ class BoatRendererMatrixTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:boat");
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:boat");
         renderer = std::make_unique<BoatRenderer>(BoatType::Oak);
     }
 
@@ -362,7 +362,7 @@ class MinecartRendererMatrixTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:minecart");
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:minecart");
         renderer = std::make_unique<MinecartRenderer>();
     }
 
@@ -445,7 +445,7 @@ TEST_F(MinecartRendererMatrixTest, HurtShakeAppliedWhenRollingAmplitudePositive)
 TEST_F(MinecartRendererMatrixTest, TntMinecartAppliesFlashScaleWhenFuseLow)
 {
     // TNT 矿车 + fuse = 5 -> 应用缩放
-    entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:tnt_minecart");
+    entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:tnt_minecart");
     entity->setRotation(0.0f, 0.0f);
     entity->setFuseTimer(5);
 
@@ -475,7 +475,7 @@ TEST_F(MinecartRendererMatrixTest, TntMinecartAppliesFlashScaleWhenFuseLow)
 TEST_F(MinecartRendererMatrixTest, TntMinecartFlashFrameSetsHurtTime)
 {
     // TNT 矿车 + fuse = 0 -> 闪烁帧 (0/5=0, 0%2=0 -> true)
-    entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:tnt_minecart");
+    entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:tnt_minecart");
     entity->setRotation(0.0f, 0.0f);
     entity->setFuseTimer(0);
 
@@ -492,7 +492,7 @@ TEST_F(MinecartRendererMatrixTest, TntMinecartFlashFrameSetsHurtTime)
 TEST_F(MinecartRendererMatrixTest, TntMinecartUnprimedNoFlash)
 {
     // TNT 矿车 + fuse = -1（未点燃） -> 不缩放、不闪烁
-    entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:tnt_minecart");
+    entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:tnt_minecart");
     entity->setRotation(0.0f, 0.0f);
     entity->setFuseTimer(-1);
 

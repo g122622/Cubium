@@ -92,7 +92,7 @@ private:
 class TestAnimalEntity final : public AnimalEntity {
 public:
     TestAnimalEntity()
-        : AnimalEntity(EntityId(1))
+        : AnimalEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -116,7 +116,7 @@ protected:
 class TestMonsterEntity final : public MonsterEntity {
 public:
     TestMonsterEntity()
-        : MonsterEntity(EntityId(2))
+        : MonsterEntity(EntityInstanceId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -136,7 +136,7 @@ protected:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(EntityId(3))
+        : CreatureEntity(EntityInstanceId(3))
     {
         registerAttributes();
         setHealth(maxHealth());

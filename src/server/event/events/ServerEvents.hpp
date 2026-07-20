@@ -364,16 +364,16 @@ struct ItemDropEvent : ServerEvent {
  * @brief 物品使用事件
  */
 struct ItemUseEvent : ServerEvent {
-    PlayerId playerId;                    ///< 玩家ID
-    ItemStack item;                       ///< 使用的物品
-    std::optional<BlockPos> targetBlock;  ///< 目标方块（可能为null）
-    std::optional<EntityId> targetEntity; ///< 目标实体（可能为null）
+    PlayerId playerId;                            ///< 玩家ID
+    ItemStack item;                               ///< 使用的物品
+    std::optional<BlockPos> targetBlock;          ///< 目标方块（可能为null）
+    std::optional<EntityInstanceId> targetEntity; ///< 目标实体（可能为null）
 
     ItemUseEvent(u64 tick,
         PlayerId pid,
         const ItemStack& i,
         const std::optional<BlockPos>& block,
-        const std::optional<EntityId>& entity)
+        const std::optional<EntityInstanceId>& entity)
         : ServerEvent(tick)
         , playerId(pid)
         , item(i)

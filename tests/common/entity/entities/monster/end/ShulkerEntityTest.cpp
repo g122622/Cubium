@@ -60,10 +60,10 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return EntityId(static_cast<u32>(m_spawnedEntities.size()));
+        return EntityInstanceId(static_cast<u32>(m_spawnedEntities.size()));
     }
 
     void advanceTick() { m_currentTick++; }
@@ -106,7 +106,7 @@ private:
 
 TEST(ShulkerEntityTest, Construction)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 验证默认状态
     EXPECT_EQ(shulker.getShellState(), ShulkerEntity::ShellState::Closed);
@@ -130,7 +130,7 @@ TEST(ShulkerEntityTest, CreateFactory)
 
 TEST(ShulkerEntityTest, ExperienceValue)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     // MC 1.16.5: 潜影贝掉落 5 点经验
     EXPECT_EQ(shulker.experienceValue(), 5);
 }
@@ -141,7 +141,7 @@ TEST(ShulkerEntityTest, ExperienceValue)
 
 TEST(ShulkerEntityTest, ShellStateTransitions)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 初始状态：闭合
     EXPECT_EQ(shulker.getShellState(), ShulkerEntity::ShellState::Closed);
@@ -176,7 +176,7 @@ TEST(ShulkerEntityTest, ShellStateTransitions)
 
 TEST(ShulkerEntityTest, PeekAmountAnimation)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 初始开壳程度为 0
     EXPECT_FLOAT_EQ(shulker.getPeekAmount(), 0.0f);
@@ -199,7 +199,7 @@ TEST(ShulkerEntityTest, PeekAmountAnimation)
 
 TEST(ShulkerEntityTest, AttachmentFacing)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 默认朝向
     EXPECT_EQ(shulker.getAttachmentFacing(), Direction::Down);
@@ -217,7 +217,7 @@ TEST(ShulkerEntityTest, AttachmentFacing)
 
 TEST(ShulkerEntityTest, AttachmentPosition)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 设置附着位置
     BlockPos pos(10, 20, 30);
@@ -231,7 +231,7 @@ TEST(ShulkerEntityTest, AttachmentPosition)
 
 TEST(ShulkerEntityTest, AttackCooldown)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 初始冷却为 0
     EXPECT_EQ(shulker.getAttackCooldown(), 0);
@@ -247,7 +247,7 @@ TEST(ShulkerEntityTest, AttackCooldown)
 
 TEST(ShulkerEntityTest, ImmuneWhenClosed)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 闭合时免疫
     EXPECT_EQ(shulker.getShellState(), ShulkerEntity::ShellState::Closed);
@@ -268,7 +268,7 @@ TEST(ShulkerEntityTest, ImmuneWhenClosed)
 
 TEST(ShulkerEntityTest, Color)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 默认颜色是紫色
     EXPECT_EQ(shulker.getColor(), ShulkerEntity::ShulkerColor::Purple);
@@ -287,7 +287,7 @@ TEST(ShulkerEntityTest, Color)
 
 TEST(ShulkerBulletEntityTest, Construction)
 {
-    entity::ShulkerBulletEntity bullet(EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityInstanceId(1));
 
     // 验证子弹尺寸
     // MC 1.16.5: 潜影贝子弹是 0.3125 x 0.3125 的小型投射物
@@ -297,7 +297,7 @@ TEST(ShulkerBulletEntityTest, Construction)
 
 TEST(ShulkerBulletEntityTest, Direction)
 {
-    entity::ShulkerBulletEntity bullet(EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityInstanceId(1));
 
     // 默认方向是 Up
     EXPECT_EQ(bullet.direction(), Direction::Up);
@@ -305,7 +305,7 @@ TEST(ShulkerBulletEntityTest, Direction)
 
 TEST(ShulkerBulletEntityTest, CanBeCollidedWith)
 {
-    entity::ShulkerBulletEntity bullet(EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityInstanceId(1));
 
     // 子弹可以被碰撞（玩家可以击中它）
     EXPECT_TRUE(bullet.canBeCollidedWith());
@@ -313,7 +313,7 @@ TEST(ShulkerBulletEntityTest, CanBeCollidedWith)
 
 TEST(ShulkerBulletEntityTest, NotBurning)
 {
-    entity::ShulkerBulletEntity bullet(EntityId(1));
+    entity::ShulkerBulletEntity bullet(EntityInstanceId(1));
 
     // 子弹不会燃烧
     EXPECT_FALSE(bullet.isBurning());
@@ -325,7 +325,7 @@ TEST(ShulkerBulletEntityTest, NotBurning)
 
 TEST(ShulkerEntityTest, AmbientSoundWhenClosed)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 闭合时不播放环境音效
     auto ambientSound = shulker.getAmbientSound();
@@ -334,7 +334,7 @@ TEST(ShulkerEntityTest, AmbientSoundWhenClosed)
 
 TEST(ShulkerEntityTest, AmbientSoundWhenOpen)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 打开后可以播放环境音效
     shulker.openShell();
@@ -347,7 +347,7 @@ TEST(ShulkerEntityTest, AmbientSoundWhenOpen)
 
 TEST(ShulkerEntityTest, DeathSound)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 测试死亡音效
     auto deathSound = shulker.getDeathSound();
@@ -360,7 +360,7 @@ TEST(ShulkerEntityTest, DeathSound)
 
 TEST(ShulkerEntityTest, DoesNotBurnInDaylight)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 潜影贝不会在日光下燃烧
     EXPECT_FALSE(shulker.shouldBurnInDaylight());
@@ -372,7 +372,7 @@ TEST(ShulkerEntityTest, DoesNotBurnInDaylight)
 
 TEST(ShulkerEntityTest, AttackingState)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 初始不攻击
     EXPECT_FALSE(shulker.isAttacking());
@@ -392,7 +392,7 @@ TEST(ShulkerEntityTest, AttackingState)
 TEST(ShulkerEntityTest, ShootBulletWithoutTargetDoesNothing)
 {
     // 没有攻击目标时不会发射子弹
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
 
     // 没有设置世界和攻击目标
     shulker.shootBullet();
@@ -407,7 +407,7 @@ TEST(ShulkerEntityTest, ShootBulletWithoutTargetDoesNothing)
 
 TEST(ShulkerNearestAttackGoalTest, Construction)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::ShulkerNearestAttackGoal>(&shulker);
     EXPECT_NE(goal, nullptr);
     EXPECT_EQ(goal->getTypeName(), "ShulkerNearestAttackGoal");
@@ -416,7 +416,7 @@ TEST(ShulkerNearestAttackGoalTest, Construction)
 TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteWithoutWorld)
 {
     // 没有世界时，不应执行
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     entity::ai::goal::ShulkerNearestAttackGoal goal(&shulker);
 
     // 没有设置世界，shouldExecute 应返回 false
@@ -433,10 +433,10 @@ TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteOnPeacefulDifficulty)
         [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
         [[nodiscard]] u64 currentTick() const override { return m_tick; }
         void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-        EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+        EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
         {
             m_entities.push_back(std::move(entity));
-            return EntityId(static_cast<u32>(m_entities.size()));
+            return EntityInstanceId(static_cast<u32>(m_entities.size()));
         }
         [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
         [[nodiscard]] const world::tick::TickManager& tickManager() const override
@@ -451,7 +451,7 @@ TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteOnPeacefulDifficulty)
     };
 
     auto world = std::make_unique<PeacefulTestWorld>();
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     shulker.setWorld(world.get());
 
     entity::ai::goal::ShulkerNearestAttackGoal goal(&shulker);
@@ -466,7 +466,7 @@ TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteOnPeacefulDifficulty)
 
 TEST(ShulkerDefenseAttackGoalTest, Construction)
 {
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::ShulkerDefenseAttackGoal>(&shulker);
     EXPECT_NE(goal, nullptr);
     EXPECT_EQ(goal->getTypeName(), "ShulkerDefenseAttackGoal");
@@ -475,7 +475,7 @@ TEST(ShulkerDefenseAttackGoalTest, Construction)
 TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutTeam)
 {
     // 潜影贝没有队伍时，防御攻击目标不应执行
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     entity::ai::goal::ShulkerDefenseAttackGoal goal(&shulker);
 
     // 没有队伍（getTeam() 返回 nullptr），shouldExecute 应返回 false
@@ -489,7 +489,7 @@ TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutWorld)
     // 使用带可设置队伍的潜影贝子类
     class ShulkerWithTeam final : public ShulkerEntity {
     public:
-        ShulkerWithTeam(EntityId id)
+        ShulkerWithTeam(EntityInstanceId id)
             : ShulkerEntity(id)
         {}
         void setTeam(scoreboard::Team* team) { m_team = team; }
@@ -555,7 +555,7 @@ TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutWorld)
     };
 
     MockTeam team("test_team");
-    ShulkerWithTeam shulker(EntityId(1));
+    ShulkerWithTeam shulker(EntityInstanceId(1));
     shulker.setTeam(&team);
     EXPECT_NE(shulker.getTeam(), nullptr);
 
@@ -571,7 +571,7 @@ TEST(ShulkerDefenseAttackGoalTest, IMobPredicateFiltersCorrectly)
     // IMob 实体（如 ZombieEntity）应通过过滤，非 IMob 实体应被排除
 
     // 验证 MonsterEntity 实现了 IMob 接口
-    ShulkerEntity shulker(EntityId(1)); // MonsterEntity -> IMob
+    ShulkerEntity shulker(EntityInstanceId(1)); // MonsterEntity -> IMob
     const auto* imob = dynamic_cast<const entity::IMob*>(&shulker);
     EXPECT_NE(imob, nullptr) << "ShulkerEntity (MonsterEntity) 应该实现 IMob 接口";
 
@@ -592,7 +592,7 @@ TEST(ShulkerEntityTest, RegisterGoalsContainsDefenseAttackGoal)
     // 优先级1: HurtByTargetGoal
     // 优先级2: ShulkerNearestAttackGoal
     // 优先级3: ShulkerDefenseAttackGoal
-    ShulkerEntity shulker(EntityId(1));
+    ShulkerEntity shulker(EntityInstanceId(1));
     // registerGoals 在构造期间被调用
     // 验证 shulker 的 targetSelector 已注册目标
     // 由于 GoalSelector API 限制，间接验证：确认 DefenseAttackGoal 可以被构造和查询类型名

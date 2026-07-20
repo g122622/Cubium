@@ -24,11 +24,11 @@
 #include "HangingEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -50,11 +50,11 @@ namespace entity {
 // ==================== HangingEntity ====================
 
 HangingEntity::HangingEntity()
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
 {}
 
 HangingEntity::HangingEntity(BlockPos pos, Direction direction)
-    : Entity(EntityId(0))
+    : Entity(EntityInstanceId(0))
     , m_hangingPos(pos)
     , m_direction(direction)
 {
@@ -471,9 +471,9 @@ LeashKnotEntity* LeashKnotEntity::getOrCreateKnot(IWorld& world, const BlockPos&
     // 创建新的拴绳结
     auto newKnot = std::make_unique<LeashKnotEntity>(pos, HangingEntity::Direction::SOUTH);
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-    newKnot->setTypeId(EntityTypes::LEASH_KNOT);
+    newKnot->setTypeId(EntityTypeKeys::LEASH_KNOT);
     auto* rawPtr = newKnot.get();
-    EntityId id = world.spawnEntity(std::move(newKnot));
+    EntityInstanceId id = world.spawnEntity(std::move(newKnot));
     if (id == INVALID_ENTITY_ID) {
         return nullptr;
     }

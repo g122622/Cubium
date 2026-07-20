@@ -39,10 +39,11 @@
 #include "../../../core/LivingEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "../../../registry/VanillaEntityTypeKeys.hpp"
 
 namespace mc {
 
-GuardianEntity::GuardianEntity(EntityId id)
+GuardianEntity::GuardianEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 注册 AI 目标
@@ -54,7 +55,7 @@ GuardianEntity::GuardianEntity(EntityId id)
 
 std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<GuardianEntity>(EntityId(0));
+    return std::make_unique<GuardianEntity>(EntityInstanceId(0));
 }
 
 bool GuardianEntity::isInWater() const
@@ -105,15 +106,16 @@ void GuardianEntity::registerGoals()
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
-            return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 8: 看向同类守卫者 (12格内，低频率)
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 12.0f, 0.01f, [](const LivingEntity* entity) -> bool {
             if (!entity) return false;
-            auto type = entity->typeId();
-            return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+            auto type = entity->entityType();
+            return type == entity::VanillaEntityTypeKeys::GUARDIAN ||
+                type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN;
         }));
 
     // 优先级 9: 随机看向
@@ -133,9 +135,9 @@ void GuardianEntity::registerGoals()
                 }
 
                 // 类型筛选: 只攻击玩家或鱿鱼
-                auto type = candidate->typeId();
-                bool isPlayer = (type == entity::EntityTypeIdNumber::PLAYER);
-                bool isSquid = (type == entity::EntityTypeIdNumber::SQUID);
+                auto type = candidate->entityType();
+                bool isPlayer = (type == entity::VanillaEntityTypeKeys::PLAYER);
+                bool isSquid = (type == entity::VanillaEntityTypeKeys::SQUID);
                 if (!isPlayer && !isSquid) {
                     return false;
                 }

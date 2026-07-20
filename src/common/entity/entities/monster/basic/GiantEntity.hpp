@@ -47,7 +47,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    GiantEntity(EntityId id);
+    GiantEntity(EntityInstanceId id);
     ~GiantEntity() override = default;
 
     // 禁止拷贝

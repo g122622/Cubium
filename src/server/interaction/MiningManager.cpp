@@ -87,7 +87,7 @@ void MiningManager::setInventoryManager(InventoryManager* inventoryManager)
 // 核心方法
 // ============================================================================
 
-void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityId entityId)
+void MiningManager::startMining(PlayerId playerId, const BlockPos& pos, EntityInstanceId entityId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Mining,
         "MiningManager::startMining",
@@ -126,8 +126,8 @@ void MiningManager::handleBlockInteraction(
 {
     switch (action) {
         case network::BlockInteractionAction::StartDestroyBlock: {
-            // 通过解析器获取正确的 EntityId（PlayerId != EntityId）
-            EntityId entityId = 0;
+            // 通过解析器获取正确的 EntityInstanceId（PlayerId != EntityInstanceId）
+            EntityInstanceId entityId = 0;
             if (m_entityIdResolver) {
                 entityId = m_entityIdResolver(playerId);
             }
@@ -263,7 +263,7 @@ void MiningManager::setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i3
     m_onBreakAnimBroadcast = std::move(callback);
 }
 
-void MiningManager::setEntityIdResolver(std::function<EntityId(PlayerId)> resolver)
+void MiningManager::setEntityIdResolver(std::function<EntityInstanceId(PlayerId)> resolver)
 {
     m_entityIdResolver = std::move(resolver);
 }

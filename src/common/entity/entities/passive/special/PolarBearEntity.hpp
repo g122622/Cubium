@@ -67,7 +67,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    PolarBearEntity(EntityId id);
+    PolarBearEntity(EntityInstanceId id);
     ~PolarBearEntity() override = default;
 
     // 禁止拷贝

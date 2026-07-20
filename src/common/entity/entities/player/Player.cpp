@@ -50,7 +50,6 @@
 #include "../../attribute/AttributeModifierUUIDs.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
-#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/item/ItemEntity.hpp"
@@ -59,6 +58,7 @@
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../inventory/INamedContainerProvider.hpp"
 #include "../../inventory/Slot.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../serialization/EntityNbtKeys.hpp"
 #include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
@@ -127,7 +127,7 @@ constexpr f32 PLAYER_POSE_FIT_EPSILON = 1.0e-4f;
 // Player 实现
 // ============================================================================
 
-Player::Player(EntityId id, const std::string& username)
+Player::Player(EntityInstanceId id, const std::string& username)
     : LivingEntity(id)
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
@@ -162,12 +162,12 @@ void Player::setPosition(f32 x, f32 y, f32 z)
     m_swimSoundVolume = 0.0f;
 }
 
-void Player::setCameraEntityId(std::optional<EntityId> entityId)
+void Player::setCameraEntityId(std::optional<EntityInstanceId> entityId)
 {
     if (m_cameraEntityId == entityId) {
         return;
     }
-    std::optional<EntityId> oldCameraId = m_cameraEntityId;
+    std::optional<EntityInstanceId> oldCameraId = m_cameraEntityId;
     m_cameraEntityId = entityId;
     onCameraEntityChanged(oldCameraId, entityId);
 }
@@ -1410,7 +1410,7 @@ Result<std::unique_ptr<Player>> Player::deserialize(network::PacketDeserializer&
     if (usernameResult.failed()) return usernameResult.error();
     std::string username = usernameResult.value();
 
-    auto player = std::make_unique<Player>(static_cast<EntityId>(playerId), username);
+    auto player = std::make_unique<Player>(static_cast<EntityInstanceId>(playerId), username);
     player->m_playerId = playerId;
 
     // 位置
@@ -1782,7 +1782,7 @@ void Player::onExplosionHit(Entity* cause)
 
     // 只有风弹引起的爆炸才启用坠落伤害免疫
     // 对应 MC ServerPlayer.onExplosionHit 中对 WindCharge 实体类型的检查
-    bool isWindCharge = cause != nullptr && cause->typeId() == entity::EntityTypeIdNumber::WIND_CHARGE;
+    bool isWindCharge = cause != nullptr && cause->entityType() == entity::VanillaEntityTypeKeys::WIND_CHARGE;
     setIgnoreFallDamageFromCurrentImpulse(isWindCharge);
 }
 

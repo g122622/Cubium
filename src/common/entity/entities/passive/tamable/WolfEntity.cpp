@@ -53,6 +53,7 @@
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/passive/tamable/Crackiness.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
@@ -82,7 +83,7 @@ entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDa
 entity::DataParameter<i32> WolfEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<i32> WolfEntity::DATA_ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
 
-WolfEntity::WolfEntity(EntityId id)
+WolfEntity::WolfEntity(EntityInstanceId id)
     : TameableEntity(id)
 {
     // 注册 AI 目标
@@ -891,8 +892,8 @@ void WolfEntity::registerGoals()
                 // 只在未驯服时避开羊驼
                 if (isTamed()) return false;
                 // 检查是否是羊驼
-                if (entity->typeId() != entity::EntityTypeIdNumber::LLAMA &&
-                    entity->typeId() != entity::EntityTypeIdNumber::TRADER_LLAMA) {
+                if (entity->entityType() != entity::VanillaEntityTypeKeys::LLAMA &&
+                    entity->entityType() != entity::VanillaEntityTypeKeys::TRADER_LLAMA) {
                     return false;
                 }
                 // 检查羊驼的强度
@@ -950,9 +951,9 @@ void WolfEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
                 // 羊、兔子、狐狸
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::SHEEP || type == entity::EntityTypeIdNumber::RABBIT ||
-                    type == entity::EntityTypeIdNumber::FOX;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::SHEEP || type == entity::VanillaEntityTypeKeys::RABBIT ||
+                    type == entity::VanillaEntityTypeKeys::FOX;
             }));
 
     // 优先级 6: 未驯服时攻击幼海龟（不在水中）
@@ -977,9 +978,10 @@ void WolfEntity::registerGoals()
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
                 // 骷髅、流浪者、凋灵骷髅
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::SKELETON || type == entity::EntityTypeIdNumber::STRAY ||
-                    type == entity::EntityTypeIdNumber::WITHER_SKELETON;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::SKELETON ||
+                    type == entity::VanillaEntityTypeKeys::STRAY ||
+                    type == entity::VanillaEntityTypeKeys::WITHER_SKELETON;
             }));
 
     // 优先级 8: 愤怒重置目标（驯服后未设置攻击目标时重置愤怒状态）

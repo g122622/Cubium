@@ -59,7 +59,7 @@ namespace mc {
 // CopperGolemEntity 实现
 // ============================================================================
 
-CopperGolemEntity::CopperGolemEntity(EntityId id)
+CopperGolemEntity::CopperGolemEntity(EntityInstanceId id)
     : GolemEntity(id)
 {
     // 对应 MC 1.21.11 CopperGolem 构造函数：

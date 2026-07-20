@@ -27,11 +27,11 @@
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/GuardianAttackGoal.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/random/Random.hpp"
 
 using namespace mc;
@@ -40,7 +40,7 @@ using namespace mc;
 // GuardianAttackGoal 常量和配置测试
 // ============================================================================
 
-// 确保原版实体类型注册表已初始化，使 EntityTypeIdNumber::PLAYER / SQUID / ZOMBIE 等
+// 确保原版实体类型注册表已初始化，使 VanillaEntityTypeKeys::PLAYER / SQUID / ZOMBIE 等
 // 全局缓存持有互不相同的非 0 值。本文件 TargetTypes_PlayerAndSquidOnly 用例构造
 // validTargets/invalidTargets 列表，并以 `type == PLAYER || type == SQUID` 判定，
 // 若全部 ID 为 0 则 ZOMBIE 等会被误判为“有效目标”，导致 EXPECT_FALSE 失败。
@@ -94,26 +94,26 @@ TEST_F(GuardianAttackGoalTest, TargetTypes_PlayerAndSquidOnly)
     //     && p_test_1_.getDistanceSq(this.parentEntity) > 9.0D;
 
     // 验证目标类型筛选逻辑
-    std::vector<entity::EntityTypeId> validTargets = {
-        entity::EntityTypeIdNumber::PLAYER, entity::EntityTypeIdNumber::SQUID};
+    std::vector<const entity::EntityType*> validTargets = {
+        entity::VanillaEntityTypeKeys::PLAYER, entity::VanillaEntityTypeKeys::SQUID};
 
-    std::vector<entity::EntityTypeId> invalidTargets = {entity::EntityTypeIdNumber::ZOMBIE,
-        entity::EntityTypeIdNumber::SKELETON,
-        entity::EntityTypeIdNumber::COW,
-        entity::EntityTypeIdNumber::PIG,
-        entity::EntityTypeIdNumber::DOLPHIN,  // 同为水生生物，但不被攻击
-        entity::EntityTypeIdNumber::GUARDIAN, // 同类
-        entity::EntityTypeIdNumber::ELDER_GUARDIAN};
+    std::vector<const entity::EntityType*> invalidTargets = {entity::VanillaEntityTypeKeys::ZOMBIE,
+        entity::VanillaEntityTypeKeys::SKELETON,
+        entity::VanillaEntityTypeKeys::COW,
+        entity::VanillaEntityTypeKeys::PIG,
+        entity::VanillaEntityTypeKeys::DOLPHIN,  // 同为水生生物，但不被攻击
+        entity::VanillaEntityTypeKeys::GUARDIAN, // 同类
+        entity::VanillaEntityTypeKeys::ELDER_GUARDIAN};
 
     // 验证有效目标
     for (auto type : validTargets) {
-        bool isValid = (type == entity::EntityTypeIdNumber::PLAYER || type == entity::EntityTypeIdNumber::SQUID);
+        bool isValid = (type == entity::VanillaEntityTypeKeys::PLAYER || type == entity::VanillaEntityTypeKeys::SQUID);
         EXPECT_TRUE(isValid) << "Expected valid target type";
     }
 
     // 验证无效目标
     for (auto type : invalidTargets) {
-        bool isValid = (type == entity::EntityTypeIdNumber::PLAYER || type == entity::EntityTypeIdNumber::SQUID);
+        bool isValid = (type == entity::VanillaEntityTypeKeys::PLAYER || type == entity::VanillaEntityTypeKeys::SQUID);
         EXPECT_FALSE(isValid) << "Expected invalid target type";
     }
 }
@@ -204,10 +204,10 @@ TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate)
     // 这与我们实现 selectTarget() 的逻辑一致
 
     // 模拟目标筛选谓词
-    auto guardianTargetPredicate = [](entity::EntityTypeId type, f64 distSq) -> bool {
+    auto guardianTargetPredicate = [](const entity::EntityType* type, f64 distSq) -> bool {
         // 类型筛选
-        bool isPlayer = (type == entity::EntityTypeIdNumber::PLAYER);
-        bool isSquid = (type == entity::EntityTypeIdNumber::SQUID);
+        bool isPlayer = (type == entity::VanillaEntityTypeKeys::PLAYER);
+        bool isSquid = (type == entity::VanillaEntityTypeKeys::SQUID);
         if (!isPlayer && !isSquid) {
             return false;
         }
@@ -221,21 +221,21 @@ TEST_F(GuardianAttackGoalTest, EntityUtils_FindClosestEntity_Predicate)
     };
 
     // 测试玩家在有效距离
-    EXPECT_TRUE(guardianTargetPredicate(entity::EntityTypeIdNumber::PLAYER, 10.0)); // 3.16 格
+    EXPECT_TRUE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::PLAYER, 10.0)); // 3.16 格
 
     // 测试玩家太近
-    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::PLAYER, 8.0)); // 2.83 格
+    EXPECT_FALSE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::PLAYER, 8.0)); // 2.83 格
 
     // 测试玩家正好在边界
-    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::PLAYER, 9.0)); // 正好 3 格
+    EXPECT_FALSE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::PLAYER, 9.0)); // 正好 3 格
 
     // 测试鱿鱼在有效距离
-    EXPECT_TRUE(guardianTargetPredicate(entity::EntityTypeIdNumber::SQUID, 16.0)); // 4 格
+    EXPECT_TRUE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::SQUID, 16.0)); // 4 格
 
     // 测试其他生物被排除
-    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::ZOMBIE, 10.0));
-    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::DOLPHIN, 10.0));
-    EXPECT_FALSE(guardianTargetPredicate(entity::EntityTypeIdNumber::GUARDIAN, 10.0));
+    EXPECT_FALSE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::ZOMBIE, 10.0));
+    EXPECT_FALSE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::DOLPHIN, 10.0));
+    EXPECT_FALSE(guardianTargetPredicate(entity::VanillaEntityTypeKeys::GUARDIAN, 10.0));
 }
 
 // ============================================================================

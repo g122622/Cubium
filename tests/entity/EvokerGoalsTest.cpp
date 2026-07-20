@@ -25,9 +25,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 
@@ -44,7 +44,7 @@ using namespace mc::math;
 // 注意：完整的集成测试需要 Mock 世界和实体系统。
 // 这里测试常量和核心逻辑。
 
-// 确保原版实体类型注册表已初始化，使 EntityTypeIdNumber::VEX / EVOKER / PLAYER 等
+// 确保原版实体类型注册表已初始化，使 VanillaEntityTypeKeys::VEX / EVOKER / PLAYER 等
 // 全局缓存持有非 0 值。本文件存在 EXPECT_NE(VEX, Unknown/EVOKER/PLAYER) 断言，
 // 依赖各类型 ID 互不相同；若未初始化（全部为 0）这些断言会失败。
 // 仅做一次注册（VanillaEntities::registerAll 幂等且线程安全），无异常风险。
@@ -61,7 +61,7 @@ TEST_F(EvokerGoalsTest, VexEntityType_IsCorrect)
 {
     // 验证 Vex 实体类型已正确定义
     // 这是 countNearbyVexes() 功能的前提条件
-    EXPECT_NE(static_cast<u32>(entity::EntityTypeIdNumber::VEX), static_cast<u32>(entity::EntityTypeIdNumber::Unknown));
+    EXPECT_NE(entity::VanillaEntityTypeKeys::VEX, entity::VanillaEntityTypeKeys::Unknown);
     // Vex 的网络 ID 是 82
 }
 
@@ -256,13 +256,13 @@ TEST_F(EvokerGoalsTest, FangsAttack_WarmupDelay_IsCorrect)
 TEST_F(EvokerGoalsTest, EntityType_VexIsNotEvoker)
 {
     // 验证 Vex 和 Evoker 是不同的实体类型
-    EXPECT_NE(static_cast<u32>(entity::EntityTypeIdNumber::VEX), static_cast<u32>(entity::EntityTypeIdNumber::EVOKER));
+    EXPECT_NE(entity::VanillaEntityTypeKeys::VEX, entity::VanillaEntityTypeKeys::EVOKER);
 }
 
 TEST_F(EvokerGoalsTest, EntityType_VexIsNotPlayer)
 {
     // 验证 Vex 不是玩家类型
-    EXPECT_NE(static_cast<u32>(entity::EntityTypeIdNumber::VEX), static_cast<u32>(entity::EntityTypeIdNumber::PLAYER));
+    EXPECT_NE(entity::VanillaEntityTypeKeys::VEX, entity::VanillaEntityTypeKeys::PLAYER);
 }
 
 // ============================================================================

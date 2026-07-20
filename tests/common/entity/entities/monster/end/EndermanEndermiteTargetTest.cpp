@@ -89,20 +89,20 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId id = entity->id();
+        EntityInstanceId id = entity->id();
         m_entities[id] = std::move(entity);
         return id;
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second.get() : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second.get() : nullptr;
@@ -136,7 +136,7 @@ public:
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
-    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
     u64 m_currentTick = 0;
 };
 
@@ -147,7 +147,7 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
-        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(1));
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1));
         endermite->setWorld(world.get());
     }
 
@@ -193,12 +193,12 @@ protected:
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
         // 创建末影人
-        enderman = std::make_unique<EndermanEntity>(static_cast<EntityId>(1));
+        enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(1));
         enderman->setWorld(world.get());
         enderman->setPosition(0.0, 64.0, 0.0);
 
         // 创建末影螨
-        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(2));
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2));
         endermite->setWorld(world.get());
         endermite->setPosition(5.0, 64.0, 0.0); // 末影人5格外
     }
@@ -265,13 +265,13 @@ protected:
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
         // 创建末影螨（玩家生成）
-        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(1));
+        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1));
         playerSpawnedEndermite->setWorld(world.get());
         playerSpawnedEndermite->setPosition(5.0, 64.0, 0.0);
         playerSpawnedEndermite->setSpawnedByPlayer(true);
 
         // 创建末影螨（自然生成）
-        naturalEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityId>(2));
+        naturalEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2));
         naturalEndermite->setWorld(world.get());
         naturalEndermite->setPosition(5.0, 64.0, 0.0);
         naturalEndermite->setSpawnedByPlayer(false);
@@ -339,7 +339,7 @@ TEST_F(EndermiteTargetPredicateTest, PredicateRejectsNonEndermite)
     };
 
     // 创建一个末影人作为非末影螨实体
-    auto enderman = std::make_unique<EndermanEntity>(static_cast<EntityId>(3));
+    auto enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(3));
     enderman->setWorld(world.get());
     enderman->setPosition(5.0, 64.0, 0.0);
 
@@ -354,7 +354,7 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
-        enderman = std::make_unique<EndermanEntity>(static_cast<EntityId>(1));
+        enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(1));
         enderman->setWorld(world.get());
     }
 

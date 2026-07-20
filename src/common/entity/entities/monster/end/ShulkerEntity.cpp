@@ -34,6 +34,7 @@
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/projectile/OtherProjectiles.hpp"
+#include "entity/registry/VanillaEntityTypeKeys.hpp"
 #include "sound/SoundEvents.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
@@ -53,7 +54,7 @@ static const std::string COVERED_ARMOR_BONUS_ID = "shulker_covered_armor_bonus";
 // ShulkerEntity 实现
 // ============================================================================
 
-ShulkerEntity::ShulkerEntity(EntityId id)
+ShulkerEntity::ShulkerEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 潜影贝不移动
@@ -62,7 +63,7 @@ ShulkerEntity::ShulkerEntity(EntityId id)
 
 std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ShulkerEntity>(EntityId(0));
+    return std::make_unique<ShulkerEntity>(EntityInstanceId(0));
 }
 
 void ShulkerEntity::updatePeekTicks(i32 peekTicks)
@@ -294,16 +295,17 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
         Entity* attacker = source.directSource();
         // 检查是否是投射物
         if (attacker != nullptr) {
-            auto type = attacker->typeId();
+            auto type = attacker->entityType();
             // 投射物类型：箭、三叉戟、火球等
-            if (type == entity::EntityTypeIdNumber::ARROW || type == entity::EntityTypeIdNumber::SPECTRAL_ARROW ||
-                type == entity::EntityTypeIdNumber::TRIDENT || type == entity::EntityTypeIdNumber::FIREBALL ||
-                type == entity::EntityTypeIdNumber::SMALL_FIREBALL ||
-                type == entity::EntityTypeIdNumber::DRAGON_FIREBALL ||
-                type == entity::EntityTypeIdNumber::WITHER_SKULL || type == entity::EntityTypeIdNumber::SNOWBALL ||
-                type == entity::EntityTypeIdNumber::EGG || type == entity::EntityTypeIdNumber::ENDER_PEARL ||
-                type == entity::EntityTypeIdNumber::POTION || type == entity::EntityTypeIdNumber::LLAMA_SPIT ||
-                type == entity::EntityTypeIdNumber::SHULKER_BULLET) {
+            if (type == entity::VanillaEntityTypeKeys::ARROW || type == entity::VanillaEntityTypeKeys::SPECTRAL_ARROW ||
+                type == entity::VanillaEntityTypeKeys::TRIDENT || type == entity::VanillaEntityTypeKeys::FIREBALL ||
+                type == entity::VanillaEntityTypeKeys::SMALL_FIREBALL ||
+                type == entity::VanillaEntityTypeKeys::DRAGON_FIREBALL ||
+                type == entity::VanillaEntityTypeKeys::WITHER_SKULL ||
+                type == entity::VanillaEntityTypeKeys::SNOWBALL || type == entity::VanillaEntityTypeKeys::EGG ||
+                type == entity::VanillaEntityTypeKeys::ENDER_PEARL || type == entity::VanillaEntityTypeKeys::POTION ||
+                type == entity::VanillaEntityTypeKeys::LLAMA_SPIT ||
+                type == entity::VanillaEntityTypeKeys::SHULKER_BULLET) {
                 return false;
             }
         }
@@ -345,7 +347,7 @@ void ShulkerEntity::registerGoals()
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
             // MC 原版使用 this.getClass()，即 Shulker.class
             // 潜影贝不会反击同类
-            return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::SHULKER;
+            return attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::SHULKER;
         }));
     // 优先级2: 攻击最近的玩家（和平难度下不执行）
     targetSelector().addGoal(2, std::make_unique<entity::ai::goal::ShulkerNearestAttackGoal>(this));

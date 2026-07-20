@@ -69,7 +69,7 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 
 - **检测活跃出口传送门**: 扫描原点周围 17×17 区块范围内的 END_PORTAL 方块。如果找到，说明龙曾被击杀过，设置 `previouslyKilled = true`
 - **创建非激活讲台**: 如果未找到活跃出口传送门且不存在讲台结构，创建非激活讲台（不含传送门方块）
-- **检测末影龙存活**: 通过 `IWorld::getEntitiesByType(EntityTypeIdNumber::ENDER_DRAGON)` 查询末影龙实体：
+- **检测末影龙存活**: 通过 `IWorld::getEntitiesByType(EntityTypeKeys::ENDER_DRAGON)` 查询末影龙实体：
   - 无末影龙 → `dragonKilled = true`
   - 有末影龙 → 记录其 UUID，`dragonKilled = false`；若无传送门则 `discard()` 该龙（无效状态）
   - 安全修正：若 `!previouslyKilled && dragonKilled`，强制 `dragonKilled = false`
@@ -121,7 +121,7 @@ EndDragonFight 持有一个 `IDragonBossBar` 实例（默认 `NullDragonBossBar`
 
 对应 MC Java `EndDragonFight.findOrCreateDragon()`：
 
-1. 通过 `IWorld::getEntitiesByType(EntityTypeIdNumber::ENDER_DRAGON)` 查找已存在的末影龙
+1. 通过 `IWorld::getEntitiesByType(EntityTypeKeys::ENDER_DRAGON)` 查找已存在的末影龙
 2. 过滤已移除（`isRemoved()`）的实体（防御性）
 3. 若存在存活龙：记录其 UUID 到 `m_dragonUUID`，设置 `dragonKilled = false`，不重复生成
 4. 若不存在：调用 `_createNewDragon()` 创建新龙

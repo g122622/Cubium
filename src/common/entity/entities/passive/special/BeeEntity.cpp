@@ -65,7 +65,7 @@ entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM = entity::EntityDataManag
 // 构造与生命周期
 // ============================================================================
 
-BeeEntity::BeeEntity(EntityId id)
+BeeEntity::BeeEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册 AI 目标

@@ -33,6 +33,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/blocks/mob/InfestedBlock.hpp"
@@ -46,10 +47,10 @@ namespace mc {
 
 std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<EndermiteEntity>(EntityId(0));
+    return std::make_unique<EndermiteEntity>(EntityInstanceId(0));
 }
 
-EndermiteEntity::EndermiteEntity(EntityId id)
+EndermiteEntity::EndermiteEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 末影螨不在阳光下燃烧
@@ -90,7 +91,7 @@ void EndermiteEntity::registerGoals()
     goalSelector().addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
     goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
@@ -105,7 +106,7 @@ void EndermiteEntity::registerGoals()
         new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
                 // 攻击最近的玩家
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
             }));
 }
 
@@ -124,10 +125,10 @@ void EndermiteEntity::registerAttributes()
 
 std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<SilverfishEntity>(EntityId(0));
+    return std::make_unique<SilverfishEntity>(EntityInstanceId(0));
 }
 
-SilverfishEntity::SilverfishEntity(EntityId id)
+SilverfishEntity::SilverfishEntity(EntityInstanceId id)
     : MonsterEntity(id)
     , m_summonGoal(nullptr)
 {
@@ -181,7 +182,7 @@ void SilverfishEntity::registerGoals()
     goalSelector().addGoal(6, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
     goalSelector().addGoal(
         7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
     goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
@@ -190,7 +191,7 @@ void SilverfishEntity::registerGoals()
     targetSelector().addGoal(2,
         new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
             }));
 }
 

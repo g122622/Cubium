@@ -25,6 +25,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -37,7 +38,7 @@ EntityManager::EntityManager()
     : m_nextId(1)
 {}
 
-EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity)
+EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 {
     if (!entity) {
         return 0;
@@ -45,7 +46,7 @@ EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    EntityId id = entity->id();
+    EntityInstanceId id = entity->id();
 
     // 如果ID为0或已存在，分配新ID
     if (id == 0 || m_entities.find(id) != m_entities.end()) {
@@ -68,7 +69,7 @@ EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity)
     return id;
 }
 
-std::unique_ptr<Entity> EntityManager::removeEntity(EntityId id)
+std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -95,7 +96,7 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityId id)
     return entity;
 }
 
-bool EntityManager::hasEntity(EntityId id) const
+bool EntityManager::hasEntity(EntityInstanceId id) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_entities.find(id) != m_entities.end();
@@ -107,14 +108,14 @@ size_t EntityManager::entityCount() const
     return m_entities.size();
 }
 
-Entity* EntityManager::getEntity(EntityId id)
+Entity* EntityManager::getEntity(EntityInstanceId id)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_entities.find(id);
     return it != m_entities.end() ? it->second.get() : nullptr;
 }
 
-const Entity* EntityManager::getEntity(EntityId id) const
+const Entity* EntityManager::getEntity(EntityInstanceId id) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_entities.find(id);
@@ -196,13 +197,13 @@ std::vector<Entity*> EntityManager::getEntitiesInRange(const Vector3& pos, f32 r
     return result;
 }
 
-std::vector<Entity*> EntityManager::getEntitiesByType(entity::EntityTypeId typeId) const
+std::vector<Entity*> EntityManager::getEntitiesByType(const std::string& typeId) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
     for (const auto& [id, entity] : m_entities) {
-        if (entity->typeId() == typeId && !entity->isRemoved()) {
+        if (entity->getTypeId() == typeId && !entity->isRemoved()) {
             result.push_back(entity.get());
         }
     }
@@ -261,7 +262,7 @@ void EntityManager::_removeDeadEntitiesInternal()
     // 内部方法，假设已持有锁
     for (auto it = m_entities.begin(); it != m_entities.end();) {
         if (it->second->isRemoved()) {
-            EntityId id = it->first;
+            EntityInstanceId id = it->first;
 
             // 维护 UUID 索引
             const std::string& uuid = it->second->uuid();
@@ -280,18 +281,18 @@ void EntityManager::_removeDeadEntitiesInternal()
     }
 }
 
-EntityId EntityManager::allocateId()
+EntityInstanceId EntityManager::allocateId()
 {
     // 内部方法，假设已持有锁
     if (!m_freeIds.empty()) {
-        EntityId id = m_freeIds.back();
+        EntityInstanceId id = m_freeIds.back();
         m_freeIds.pop_back();
         return id;
     }
     return m_nextId++;
 }
 
-void EntityManager::releaseId(EntityId id)
+void EntityManager::releaseId(EntityInstanceId id)
 {
     // 内部方法，假设已持有锁
     if (id > 0 && id < m_nextId) {
@@ -366,7 +367,7 @@ std::vector<Entity*> EntityManager::getPlayers() const
     std::vector<Entity*> result;
 
     for (const auto& [id, entity] : m_entities) {
-        if (entity && !entity->isRemoved() && entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+        if (entity && !entity->isRemoved() && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
             result.push_back(entity.get());
         }
     }

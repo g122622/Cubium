@@ -702,7 +702,7 @@ public:
         m_sounds.push_back({sound, category, pos, volume, pitch});
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         (void)entity;
         return ++m_lastEntityId;
@@ -751,7 +751,7 @@ private:
     std::vector<std::unique_ptr<BlockState>> m_storedStates;
     std::vector<SoundRecord> m_sounds;
     const BlockState* m_airState;
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     u64 m_seed = 12345;
 };
 
@@ -783,7 +783,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_IncreasesFoodLevel)
 
     // 创建生存模式玩家（默认饥饿值20，canEat=false）
     // 需要降低饥饿值才能 canEat
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
     player.foodStats().setFoodLevel(18); // 低于20，canEat(true) 返回 true
@@ -794,8 +794,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_IncreasesFoodLevel)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    auto result =
-        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 应该成功吃蛋糕
     EXPECT_EQ(result, ActionResultType::Success);
@@ -818,7 +817,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_FullHunger_ReturnsPass)
     m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
 
     // 创建满饥饿值的生存模式玩家 → canEat(false) 返回 false
-    Player player(EntityId(2), "TestPlayer2");
+    Player player(EntityInstanceId(2), "TestPlayer2");
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
     // 默认 foodLevel=20，canEat(false) = false
@@ -827,8 +826,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_FullHunger_ReturnsPass)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    auto result =
-        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 满饥饿值 → Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -849,7 +847,7 @@ TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
     m_world.setBlockDirectly(BlockPos(5, 10, 5), litState);
 
     // 创建生存模式玩家
-    Player player(EntityId(3), "TestPlayer3");
+    Player player(EntityInstanceId(3), "TestPlayer3");
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
 
@@ -859,8 +857,7 @@ TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
         BlockRaycastResult::hit(Vector3(5.5f, 10.7f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState().with(BlockStateProperties::LIT(), true);
-    auto result =
-        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 应该成功熄灭
     EXPECT_EQ(result, ActionResultType::Success);
@@ -885,7 +882,7 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
     m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
 
     // 创建创造模式玩家 → canEat(false) 返回 false
-    Player player(EntityId(4), "TestPlayer4");
+    Player player(EntityInstanceId(4), "TestPlayer4");
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
 
@@ -893,8 +890,7 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    auto result =
-        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 创造模式不能吃蛋糕 → Pass
     EXPECT_EQ(result, ActionResultType::Pass);

@@ -128,10 +128,10 @@ public:
         return m_nearbyEntities;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size() + 100);
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size() + 100);
     }
 
     /// 设置 _findNearestCandidate 的搜索结果
@@ -153,8 +153,8 @@ private:
 /// 创建铁傀儡并设置世界和位置
 std::unique_ptr<IronGolemEntity> createIronGolem(OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
-    auto golem = std::make_unique<IronGolemEntity>(EntityId(1));
-    golem->setTypeId(entity::EntityTypes::IRON_GOLEM);
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    golem->setTypeId(entity::EntityTypeKeys::IRON_GOLEM);
     golem->setWorld(&world);
     golem->setPosition(x, y, z);
     return golem;
@@ -162,10 +162,10 @@ std::unique_ptr<IronGolemEntity> createIronGolem(OfferFlowerTestWorld& world, f3
 
 /// 创建铜傀儡并设置类型ID、世界和位置
 std::unique_ptr<CopperGolemEntity> createCopperGolem(
-    EntityId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
+    EntityInstanceId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
     auto golem = std::make_unique<CopperGolemEntity>(id);
-    golem->setTypeId(entity::EntityTypes::COPPER_GOLEM);
+    golem->setTypeId(entity::EntityTypeKeys::COPPER_GOLEM);
     golem->setWorld(&world);
     golem->setPosition(x, y, z);
     return golem;
@@ -173,10 +173,10 @@ std::unique_ptr<CopperGolemEntity> createCopperGolem(
 
 /// 创建村民并设置类型ID、世界和位置
 std::unique_ptr<entity::VillagerEntity> createVillager(
-    EntityId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
+    EntityInstanceId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
     auto villager = std::make_unique<entity::VillagerEntity>(id);
-    villager->setTypeId(entity::EntityTypes::VILLAGER);
+    villager->setTypeId(entity::EntityTypeKeys::VILLAGER);
     villager->setWorld(&world);
     villager->setPosition(x, y, z);
     return villager;
@@ -184,10 +184,10 @@ std::unique_ptr<entity::VillagerEntity> createVillager(
 
 /// 创建玩家并设置类型ID、世界和位置
 std::unique_ptr<Player> createPlayer(
-    EntityId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
+    EntityInstanceId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
     auto player = std::make_unique<Player>(id, std::string("TestPlayer"));
-    player->setTypeId(entity::EntityTypes::PLAYER);
+    player->setTypeId(entity::EntityTypeKeys::PLAYER);
     player->setWorld(&world);
     player->setPosition(x, y, z);
     return player;
@@ -305,7 +305,7 @@ TEST_F(OfferFlowerGiftTest, EquipmentSlotAntenna_IsSaddle)
 TEST_F(OfferFlowerGiftTest, TryGift_TickNotZero_DoesNotGift)
 {
     // 设置一个有效的铜傀儡目标
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
 
     // m_tick > 0 表示被抢占中断（未自然结束），不应赠花
@@ -318,7 +318,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_TickNotZero_DoesNotGift)
 
 TEST_F(OfferFlowerGiftTest, TryGift_TickPositive_DoesNotGift)
 {
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
 
     // m_tick = 1（刚被抢占）
@@ -349,7 +349,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_NullTarget_DoesNotGift)
 TEST_F(OfferFlowerGiftTest, TryGift_TargetNotMobEntity_DoesNotGift)
 {
     // Player 是 LivingEntity 但不是 MobEntity，不应赠花
-    auto player = createPlayer(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto player = createPlayer(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, player.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0);
 
@@ -366,7 +366,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_VillagerNotInAcceptsTag_DoesNotGift)
 {
     // 村民在 CANDIDATE_FOR_IRON_GOLEM_GIFT 标签中，但不在 ACCEPTS_IRON_GOLEM_GIFT 标签中
     // （ACCEPTS 标签只包含 copper_golem），因此不应赠花
-    auto villager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto villager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, villager.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0);
 
@@ -380,7 +380,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_VillagerNotInAcceptsTag_DoesNotGift)
 
 TEST_F(OfferFlowerGiftTest, TryGift_AntennaSlotOccupied_DoesNotGift)
 {
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0);
 
@@ -403,7 +403,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_AabbNotIntersecting_DoesNotGift)
     // 铁傀儡在 (0, 64, 0)，搜索 AABB = boundingBox.expand(6, 2, 6)
     // 铁傀儡宽度 1.4，所以搜索 AABB 约为 (-6.7, 62, -6.7) ~ (6.7, 66, 6.7)
     // 将铜傀儡放在 (20, 64, 0) 远超搜索范围
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 20.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 20.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0);
 
@@ -418,7 +418,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_AabbNotIntersecting_DoesNotGift)
 TEST_F(OfferFlowerGiftTest, TryGift_AllConditionsMet_GiftsPoppy)
 {
     // 铜傀儡在铁傀儡附近（搜索 AABB 范围内，且 AABB 相交）
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0); // 计时器自然结束
 
@@ -439,7 +439,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_AllConditionsMet_GiftsPoppy)
 TEST_F(OfferFlowerGiftTest, TryGift_CopperGolemAdjacent_GiftsPoppy)
 {
     // 铜傀儡紧贴铁傀儡（距离 0.5 格，AABB 必然相交）
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 0.5f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 0.5f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0);
 
@@ -456,7 +456,7 @@ TEST_F(OfferFlowerGiftTest, TryGift_CopperGolemAdjacent_GiftsPoppy)
 TEST_F(OfferFlowerGiftTest, ResetTask_TickZero_GiftsFlowerToCopperGolem)
 {
     // 模拟自然结束：startExecuting 设置 m_tick=400，然后 tick() 400 次让 m_tick 递减到 0
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
 
     m_goal->startExecuting(); // m_tick = 400, setHoldingRose(true)
@@ -482,7 +482,7 @@ TEST_F(OfferFlowerGiftTest, ResetTask_TickZero_GiftsFlowerToCopperGolem)
 TEST_F(OfferFlowerGiftTest, ResetTask_TickNotZero_DoesNotGiftFlower)
 {
     // 模拟被抢占中断：startExecuting 后只 tick 少量次数，m_tick > 0 时被 resetTask
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
 
     m_goal->startExecuting(); // m_tick = 400
@@ -516,7 +516,7 @@ TEST_F(OfferFlowerGiftTest, ResetTask_NullTarget_DoesNotCrash)
 TEST_F(OfferFlowerGiftTest, ResetTask_VillagerTarget_DoesNotGiftVillager)
 {
     // 目标是村民（不在 ACCEPTS_IRON_GOLEM_GIFT 标签中），resetTask 不应赠花
-    auto villager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto villager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, villager.get());
 
     m_goal->startExecuting();
@@ -557,7 +557,7 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_EmptyWorld_ReturnsNull)
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_NoCandidateEntities_ReturnsNull)
 {
     // 附近只有玩家（不在 CANDIDATE_FOR_IRON_GOLEM_GIFT 标签中）
-    auto player = createPlayer(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto player = createPlayer(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {player.get()};
     m_world->setNearbyEntities(entities);
 
@@ -567,7 +567,7 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_NoCandidateEntities_ReturnsNull
 
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_VillagerInTag_ReturnsVillager)
 {
-    auto villager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto villager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {villager.get()};
     m_world->setNearbyEntities(entities);
 
@@ -578,7 +578,7 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_VillagerInTag_ReturnsVillager)
 
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_CopperGolemInTag_ReturnsCopperGolem)
 {
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {copperGolem.get()};
     m_world->setNearbyEntities(entities);
 
@@ -590,8 +590,8 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_CopperGolemInTag_ReturnsCopperG
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_MultipleCandidates_ReturnsNearest)
 {
     // 两个村民，一个近一个远，应返回最近的
-    auto nearVillager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
-    auto farVillager = createVillager(EntityId(3), *m_world, 5.0f, 64.0f, 0.0f);
+    auto nearVillager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto farVillager = createVillager(EntityInstanceId(3), *m_world, 5.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {farVillager.get(), nearVillager.get()};
     m_world->setNearbyEntities(entities);
 
@@ -603,9 +603,9 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_MultipleCandidates_ReturnsNeare
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_MixedEntities_FiltersByTag)
 {
     // 混合实体：玩家（不在标签中）、村民（在标签中）、铜傀儡（在标签中）
-    auto player = createPlayer(EntityId(2), *m_world, 0.5f, 64.0f, 0.0f);
-    auto villager = createVillager(EntityId(3), *m_world, 1.0f, 64.0f, 0.0f);
-    auto copperGolem = createCopperGolem(EntityId(4), *m_world, 2.0f, 64.0f, 0.0f);
+    auto player = createPlayer(EntityInstanceId(2), *m_world, 0.5f, 64.0f, 0.0f);
+    auto villager = createVillager(EntityInstanceId(3), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(4), *m_world, 2.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {player.get(), villager.get(), copperGolem.get()};
     m_world->setNearbyEntities(entities);
 
@@ -618,11 +618,11 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_MixedEntities_FiltersByTag)
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_DeadEntity_Skipped)
 {
     // 死亡的村民应被跳过
-    auto deadVillager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto deadVillager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     deadVillager->remove(); // 标记为已移除（isAlive() 返回 false）
     EXPECT_FALSE(deadVillager->isAlive());
 
-    auto aliveVillager = createVillager(EntityId(3), *m_world, 3.0f, 64.0f, 0.0f);
+    auto aliveVillager = createVillager(EntityInstanceId(3), *m_world, 3.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {deadVillager.get(), aliveVillager.get()};
     m_world->setNearbyEntities(entities);
 
@@ -634,7 +634,7 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_DeadEntity_Skipped)
 TEST_F(OfferFlowerGiftTest, FindNearestCandidate_NullEntityInList_Skipped)
 {
     // 列表中包含 nullptr，应被跳过不崩溃
-    auto villager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto villager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {nullptr, villager.get(), nullptr};
     m_world->setNearbyEntities(entities);
 
@@ -679,7 +679,7 @@ TEST_F(OfferFlowerGiftTest, GiftedPoppy_DropsOnTurnToStatue)
 {
     // 验证赠花后，铜傀儡通过 dropPreservedEquipment() 会掉落罂粟花
     // 这对应 MC 1.21.11 CopperGolem.turnToStatue() 中的 dropPreservedEquipment(serverLevel)
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     test::OfferFlowerGoalTestAccessor::setTarget(*m_goal, copperGolem.get());
     test::OfferFlowerGoalTestAccessor::setTick(*m_goal, 0);
 
@@ -705,7 +705,7 @@ TEST_F(OfferFlowerGiftTest, GiftedPoppy_DropsOnTurnToStatue)
 TEST_F(OfferFlowerGiftTest, NonGiftedPoppy_NotDroppedOnTurnToStatue)
 {
     // 未赠花的铜傀儡，dropPreservedEquipment 不应掉落任何东西
-    auto copperGolem = createCopperGolem(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto copperGolem = createCopperGolem(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
 
     // 不赠花，直接调用 dropPreservedEquipment
     size_t entityCountBefore = m_world->spawnedEntityCount();
@@ -760,7 +760,7 @@ TEST_F(OfferFlowerGiftTest, FindNearestCandidate_TagsInitialized_WorksCorrectly)
     // 验证标签系统已初始化（SetUpTestSuite 中调用 EntityTypeTags::initialize()）
     EXPECT_TRUE(EntityTypeTags::isInitialized());
 
-    auto villager = createVillager(EntityId(2), *m_world, 1.0f, 64.0f, 0.0f);
+    auto villager = createVillager(EntityInstanceId(2), *m_world, 1.0f, 64.0f, 0.0f);
     std::vector<Entity*> entities = {villager.get()};
     m_world->setNearbyEntities(entities);
 

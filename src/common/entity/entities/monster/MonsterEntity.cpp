@@ -37,7 +37,7 @@
 
 namespace mc {
 
-MonsterEntity::MonsterEntity(EntityId id)
+MonsterEntity::MonsterEntity(EntityInstanceId id)
     : CreatureEntity(id)
 {
     // 怪物默认经验值为 5

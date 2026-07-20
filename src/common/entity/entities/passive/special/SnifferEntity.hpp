@@ -75,7 +75,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    SnifferEntity(EntityId id);
+    SnifferEntity(EntityInstanceId id);
     ~SnifferEntity() override = default;
 
     // 禁止拷贝

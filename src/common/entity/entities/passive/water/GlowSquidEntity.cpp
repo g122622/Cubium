@@ -40,7 +40,7 @@ using namespace mc::entity::serialization;
 entity::DataParameter<i32> GlowSquidEntity::DATA_DARK_TICKS_REMAINING_PARAM =
     entity::EntityDataManager::createKey<i32>();
 
-GlowSquidEntity::GlowSquidEntity(EntityId id)
+GlowSquidEntity::GlowSquidEntity(EntityInstanceId id)
     : SquidEntity(id)
 {
     // 显式调用 registerData() 注册同步数据参数。

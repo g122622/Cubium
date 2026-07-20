@@ -46,7 +46,7 @@ public:
      * @brief 构造鱼类实体
      * @param id 实体 ID
      */
-    AbstractFishEntity(EntityId id);
+    AbstractFishEntity(EntityInstanceId id);
     ~AbstractFishEntity() override = default;
 
     AbstractFishEntity(const AbstractFishEntity&) = delete;

@@ -61,7 +61,7 @@ public:
     {
         throw std::runtime_error("EffectTestWorld::tickManager not implemented");
     }
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
 };
 
 class HungerEffectTest : public ::testing::Test {
@@ -80,7 +80,7 @@ protected:
 TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer)
 {
     // 创建玩家并设置世界
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -103,7 +103,7 @@ TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer)
 
 TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -122,7 +122,7 @@ TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore)
 
 TEST_F(HungerEffectTest, HungerEffectIIIIncreasesExhaustionMore)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -143,7 +143,7 @@ TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer)
 {
     // 饥饿效果对非玩家实体不应该做任何事情
     // 这个测试验证 tick 不会崩溃
-    MobEntity mob(EntityId(2));
+    MobEntity mob(EntityInstanceId(2));
     mob.setWorld(m_world.get());
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -155,7 +155,7 @@ TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer)
 
 TEST_F(HungerEffectTest, HungerEffectMultipleTicks)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 

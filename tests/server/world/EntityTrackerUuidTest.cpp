@@ -42,7 +42,7 @@ using namespace mc::server;
 
 class TestEntity : public Entity {
 public:
-    TestEntity(EntityId id)
+    TestEntity(EntityInstanceId id)
         : Entity(id)
     {
         setPosition(0.0f, 64.0f, 0.0f);
@@ -53,7 +53,7 @@ public:
 
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity(EntityId id)
+    TestLivingEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -65,7 +65,7 @@ public:
 
 class TestMobEntity : public MobEntity {
 public:
-    TestMobEntity(EntityId id)
+    TestMobEntity(EntityInstanceId id)
         : MobEntity(id)
     {
         registerAttributes();
@@ -76,7 +76,7 @@ public:
 // 测试用敌对生物实体（实现 IMob）
 class TestMonsterEntity : public MonsterEntity {
 public:
-    TestMonsterEntity(EntityId id)
+    TestMonsterEntity(EntityInstanceId id)
         : MonsterEntity(id)
     {
         registerAttributes();

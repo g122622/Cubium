@@ -66,7 +66,7 @@ namespace {
 class AnimationCaptureWorld final : public test::BaseTestWorld {
 public:
     struct AnimationRecord {
-        EntityId entityId;
+        EntityInstanceId entityId;
         u8 animation;
     };
 
@@ -76,7 +76,7 @@ public:
 
     [[nodiscard]] const AnimationRecord& lastAnimation() const { return *m_lastAnimation; }
 
-    void broadcastEntityAnimation(EntityId entityId, u8 animation) override
+    void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation) override
     {
         m_lastAnimation = AnimationRecord{entityId, animation};
     }
@@ -97,7 +97,7 @@ class ClientSideTestWorld final : public test::BaseTestWorld {
 public:
     [[nodiscard]] bool isClientSide() const override { return true; }
 
-    void broadcastEntityAnimation(EntityId /*entityId*/, u8 /*animation*/) override { ++m_broadcastCallCount; }
+    void broadcastEntityAnimation(EntityInstanceId /*entityId*/, u8 /*animation*/) override { ++m_broadcastCallCount; }
 
     [[nodiscard]] i32 broadcastCallCount() const { return m_broadcastCallCount; }
 
@@ -114,7 +114,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

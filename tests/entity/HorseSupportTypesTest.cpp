@@ -34,10 +34,10 @@ namespace {
 
 TEST(AbstractChestedHorseEntityTest, CoversChestHorseSubtypesButNotPlainHorse)
 {
-    HorseEntity horse(EntityId(1));
-    DonkeyEntity donkey(EntityId(2));
-    MuleEntity mule(EntityId(3));
-    LlamaEntity llama(EntityId(4));
+    HorseEntity horse(EntityInstanceId(1));
+    DonkeyEntity donkey(EntityInstanceId(2));
+    MuleEntity mule(EntityInstanceId(3));
+    LlamaEntity llama(EntityInstanceId(4));
 
     EXPECT_EQ(dynamic_cast<AbstractChestedHorseEntity*>(&horse), nullptr);
     EXPECT_NE(dynamic_cast<AbstractChestedHorseEntity*>(&donkey), nullptr);
@@ -47,9 +47,9 @@ TEST(AbstractChestedHorseEntityTest, CoversChestHorseSubtypesButNotPlainHorse)
 
 TEST(AbstractChestedHorseEntityTest, UsesVanillaStyleChestInventorySizing)
 {
-    DonkeyEntity donkey(EntityId(1));
-    MuleEntity mule(EntityId(2));
-    LlamaEntity llama(EntityId(3));
+    DonkeyEntity donkey(EntityInstanceId(1));
+    MuleEntity mule(EntityInstanceId(2));
+    LlamaEntity llama(EntityInstanceId(3));
 
     EXPECT_FALSE(donkey.hasChest());
     EXPECT_EQ(donkey.getInventorySize(), 2);
@@ -74,7 +74,7 @@ TEST(AbstractChestedHorseEntityTest, UsesVanillaStyleChestInventorySizing)
 
 TEST(HorseSupportTypesTest, LlamaStrengthIsClampedToVanillaRange)
 {
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
 
     llama.setStrength(0);
     EXPECT_EQ(llama.getStrength(), 1);

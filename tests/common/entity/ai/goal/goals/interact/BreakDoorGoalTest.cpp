@@ -80,7 +80,7 @@ public:
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
 
-    void destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress) override
+    void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override
     {
         m_breakProgressEvents.push_back({breakerId, pos, progress});
     }
@@ -106,7 +106,7 @@ public:
 
     // 方块破坏进度追踪
     struct BreakProgressEvent {
-        EntityId breakerId;
+        EntityInstanceId breakerId;
         BlockPos pos;
         i32 progress;
     };
@@ -140,7 +140,7 @@ private:
 class TestBreakDoorMob final : public MobEntity {
 public:
     TestBreakDoorMob()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -659,7 +659,7 @@ TEST_F(BreakDoorGoalTest, DestroyBlockProgressTracking)
     world.setDifficulty(Difficulty::Normal);
 
     BlockPos testPos(5, 10, 15);
-    EntityId breakerId(42);
+    EntityInstanceId breakerId(42);
 
     // 模拟发送破坏进度
     world.destroyBlockProgress(breakerId, testPos, 0);
@@ -682,7 +682,7 @@ TEST_F(BreakDoorGoalTest, DestroyBlockProgressRemove)
     world.setDifficulty(Difficulty::Normal);
 
     BlockPos testPos(3, 7, 11);
-    EntityId breakerId(99);
+    EntityInstanceId breakerId(99);
 
     world.destroyBlockProgress(breakerId, testPos, 3);
     world.destroyBlockProgress(breakerId, testPos, -1); // 移除

@@ -33,7 +33,7 @@ VibrationParticleData::VibrationParticleData(const Vector3d& targetPosition, i32
     , m_arrivalInTicks(arrivalInTicks)
 {}
 
-VibrationParticleData::VibrationParticleData(EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks)
+VibrationParticleData::VibrationParticleData(EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks)
     : m_kind(TargetKind::Entity)
     , m_targetEntityId(targetEntityId)
     , m_yOffset(yOffset)

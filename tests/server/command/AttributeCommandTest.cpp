@@ -131,7 +131,7 @@ public:
     [[nodiscard]] ServerWorld* world() const { return m_world; }
 
     // 在测试世界中生成实体
-    EntityId spawnEntity(std::unique_ptr<Entity> entity)
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity)
     {
         if (!m_world) {
             return 0;
@@ -249,7 +249,7 @@ TEST_F(AttributeCommandTest, GetAttributeWithNoEntitiesReturnsZero)
 
 TEST_F(AttributeCommandTest, GetZombieMaxHealth)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -263,7 +263,7 @@ TEST_F(AttributeCommandTest, GetZombieMaxHealth)
 
 TEST_F(AttributeCommandTest, GetZombieMaxHealthWithScale)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -277,7 +277,7 @@ TEST_F(AttributeCommandTest, GetZombieMaxHealthWithScale)
 
 TEST_F(AttributeCommandTest, SetZombieBaseMaxHealth)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -295,7 +295,7 @@ TEST_F(AttributeCommandTest, SetZombieBaseMaxHealth)
 
 TEST_F(AttributeCommandTest, GetZombieBaseMaxHealth)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -310,7 +310,7 @@ TEST_F(AttributeCommandTest, GetZombieBaseMaxHealth)
 
 TEST_F(AttributeCommandTest, GetZombieBaseMaxHealthWithScale)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -325,7 +325,7 @@ TEST_F(AttributeCommandTest, GetZombieBaseMaxHealthWithScale)
 
 TEST_F(AttributeCommandTest, ResetZombieBaseMaxHealth)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -352,7 +352,7 @@ TEST_F(AttributeCommandTest, ResetZombieBaseMaxHealth)
 
 TEST_F(AttributeCommandTest, AddModifierToZombie)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -372,7 +372,7 @@ TEST_F(AttributeCommandTest, AddModifierToZombie)
 
 TEST_F(AttributeCommandTest, AddModifierWithScale)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -391,7 +391,7 @@ TEST_F(AttributeCommandTest, AddModifierWithScale)
 
 TEST_F(AttributeCommandTest, AddMultiplyBaseModifier)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -404,7 +404,7 @@ TEST_F(AttributeCommandTest, AddMultiplyBaseModifier)
 
 TEST_F(AttributeCommandTest, AddMultiplyTotalModifier)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -417,7 +417,7 @@ TEST_F(AttributeCommandTest, AddMultiplyTotalModifier)
 
 TEST_F(AttributeCommandTest, RemoveModifierFromZombie)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -435,7 +435,7 @@ TEST_F(AttributeCommandTest, RemoveModifierFromZombie)
 
 TEST_F(AttributeCommandTest, RemoveNonExistentModifierFails)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -448,7 +448,7 @@ TEST_F(AttributeCommandTest, RemoveNonExistentModifierFails)
 
 TEST_F(AttributeCommandTest, AddDuplicateModifierFails)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -468,7 +468,7 @@ TEST_F(AttributeCommandTest, AddDuplicateModifierFails)
 
 TEST_F(AttributeCommandTest, GetNonExistentModifierValueFails)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -486,7 +486,7 @@ TEST_F(AttributeCommandTest, GetNonExistentModifierValueFails)
 TEST_F(AttributeCommandTest, AttributeOnNonLivingEntityReturnsError)
 {
     // ItemEntity 不是 LivingEntity，使用 @e 选择 ItemEntity
-    auto item = createEntityByType(EntityTypes::ITEM);
+    auto item = createEntityByType(EntityTypeKeys::ITEM);
     ASSERT_NE(item, nullptr);
     item->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(item));
@@ -501,7 +501,7 @@ TEST_F(AttributeCommandTest, AttributeOnNonLivingEntityReturnsError)
 TEST_F(AttributeCommandTest, AttributeOnArmorStandReturnsError)
 {
     // ArmorStandEntity 不是 LivingEntity（本项目实现如此）
-    auto armorStand = createEntityByType(EntityTypes::ARMOR_STAND);
+    auto armorStand = createEntityByType(EntityTypeKeys::ARMOR_STAND);
     ASSERT_NE(armorStand, nullptr);
     armorStand->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(armorStand));
@@ -515,7 +515,7 @@ TEST_F(AttributeCommandTest, AttributeOnArmorStandReturnsError)
 TEST_F(AttributeCommandTest, AttributeOnExperienceOrbReturnsError)
 {
     // ExperienceOrbEntity 不是 LivingEntity
-    auto orb = createEntityByType(EntityTypes::EXPERIENCE_ORB);
+    auto orb = createEntityByType(EntityTypeKeys::EXPERIENCE_ORB);
     ASSERT_NE(orb, nullptr);
     orb->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(orb));
@@ -533,12 +533,12 @@ TEST_F(AttributeCommandTest, AttributeOnExperienceOrbReturnsError)
 TEST_F(AttributeCommandTest, GetAttributeFromMixedEntitiesSelectsLivingEntity)
 {
     // 同时生成僵尸（LivingEntity）和掉落物（非 LivingEntity）
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    auto item = createEntityByType(EntityTypes::ITEM);
+    auto item = createEntityByType(EntityTypeKeys::ITEM);
     ASSERT_NE(item, nullptr);
     item->setPosition(10.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(item));
@@ -558,7 +558,7 @@ TEST_F(AttributeCommandTest, GetAttributeFromMixedEntitiesSelectsLivingEntity)
 
 TEST_F(AttributeCommandTest, GetPigMaxHealth)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -573,7 +573,7 @@ TEST_F(AttributeCommandTest, GetPigMaxHealth)
 
 TEST_F(AttributeCommandTest, GetHorseJumpStrength)
 {
-    auto horse = createEntityByType(EntityTypes::HORSE);
+    auto horse = createEntityByType(EntityTypeKeys::HORSE);
     ASSERT_NE(horse, nullptr);
     horse->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(horse));
@@ -588,7 +588,7 @@ TEST_F(AttributeCommandTest, GetHorseJumpStrength)
 
 TEST_F(AttributeCommandTest, SetPigMaxHealthAndVerify)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -612,7 +612,7 @@ TEST_F(AttributeCommandTest, SetPigMaxHealthAndVerify)
 
 TEST_F(AttributeCommandTest, GetAttributeWithoutNamespace)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -625,7 +625,7 @@ TEST_F(AttributeCommandTest, GetAttributeWithoutNamespace)
 
 TEST_F(AttributeCommandTest, GetAttributeWithShortName)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -642,7 +642,7 @@ TEST_F(AttributeCommandTest, GetAttributeWithShortName)
 
 TEST_F(AttributeCommandTest, UnknownAttributeReturnsZero)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -655,7 +655,7 @@ TEST_F(AttributeCommandTest, UnknownAttributeReturnsZero)
 
 TEST_F(AttributeCommandTest, EntityLacksSpecificAttributeReturnsZero)
 {
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -674,7 +674,7 @@ TEST_F(AttributeCommandTest, EntityLacksSpecificAttributeReturnsZero)
 
 TEST_F(AttributeCommandTest, SetBaseValueOutOfRangeFails)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -688,7 +688,7 @@ TEST_F(AttributeCommandTest, SetBaseValueOutOfRangeFails)
 
 TEST_F(AttributeCommandTest, SetBaseValueAtMinBoundarySucceeds)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -706,7 +706,7 @@ TEST_F(AttributeCommandTest, SetBaseValueAtMinBoundarySucceeds)
 
 TEST_F(AttributeCommandTest, GetMultipleAttributeTypes)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -729,7 +729,7 @@ TEST_F(AttributeCommandTest, GetMultipleAttributeTypes)
 TEST_F(AttributeCommandTest, SelfSelectorWithServerPlayer)
 {
     // 创建一个 ServerPlayer 并作为命令源
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "TestPlayer");
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -747,7 +747,7 @@ TEST_F(AttributeCommandTest, SelfSelectorWithServerPlayer)
 
 TEST_F(AttributeCommandTest, SelfSelectorSetBaseHealth)
 {
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "TestPlayer");
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -773,12 +773,12 @@ TEST_F(AttributeCommandTest, SelfSelectorSetBaseHealth)
 
 TEST_F(AttributeCommandTest, TypeFilterSelectsZombieNotPig)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(5.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
@@ -798,7 +798,7 @@ TEST_F(AttributeCommandTest, TypeFilterSelectsZombieNotPig)
 
 TEST_F(AttributeCommandTest, TypeFilterWithoutNamespace)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -816,7 +816,7 @@ TEST_F(AttributeCommandTest, TypeFilterWithoutNamespace)
 
 TEST_F(AttributeCommandTest, GetAttributeFeedbackContainsValue)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -830,7 +830,7 @@ TEST_F(AttributeCommandTest, GetAttributeFeedbackContainsValue)
 
 TEST_F(AttributeCommandTest, BaseSetFeedback)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -843,7 +843,7 @@ TEST_F(AttributeCommandTest, BaseSetFeedback)
 
 TEST_F(AttributeCommandTest, BaseResetFeedback)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -874,12 +874,12 @@ TEST_F(AttributeCommandTest, AllPlayersSelectorWithNoPlayersReturnsZero)
 TEST_F(AttributeCommandTest, AllEntitiesSelectorWithMultipleEntitiesFails)
 {
     // @e 选择多个实体时，EntityResolver::resolveSingle 应返回 nullptr（因为多于 1 个）
-    auto zombie1 = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie1 = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie1, nullptr);
     zombie1->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie1));
 
-    auto zombie2 = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie2 = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie2, nullptr);
     zombie2->setPosition(10.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie2));
@@ -897,7 +897,7 @@ TEST_F(AttributeCommandTest, AllEntitiesSelectorWithMultipleEntitiesFails)
 TEST_F(AttributeCommandTest, PlayerAttributeUsesUsername)
 {
     // ServerPlayer 有 username，_getEntityDisplayName 应返回 username
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "Steve");
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "Steve");
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -915,7 +915,7 @@ TEST_F(AttributeCommandTest, PlayerAttributeUsesUsername)
 TEST_F(AttributeCommandTest, CustomNameEntityAttribute)
 {
     // 设置自定义名称的实体
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     zombie->setCustomName("CustomZombie");
@@ -931,7 +931,7 @@ TEST_F(AttributeCommandTest, CustomNameEntityAttribute)
 TEST_F(AttributeCommandTest, DefaultNameEntityAttribute)
 {
     // 没有自定义名称的实体使用 getTypeId()
-    auto pig = createEntityByType(EntityTypes::PIG);
+    auto pig = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(pig, nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
     // 不设置自定义名称
@@ -949,7 +949,7 @@ TEST_F(AttributeCommandTest, DefaultNameEntityAttribute)
 
 TEST_F(AttributeCommandTest, SetAttributeWithFloatValue)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -962,7 +962,7 @@ TEST_F(AttributeCommandTest, SetAttributeWithFloatValue)
 
 TEST_F(AttributeCommandTest, SetKnockbackResistance)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -975,7 +975,7 @@ TEST_F(AttributeCommandTest, SetKnockbackResistance)
 
 TEST_F(AttributeCommandTest, SetArmor)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -988,7 +988,7 @@ TEST_F(AttributeCommandTest, SetArmor)
 
 TEST_F(AttributeCommandTest, SetLuck)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1006,7 +1006,7 @@ TEST_F(AttributeCommandTest, SetLuck)
 
 TEST_F(AttributeCommandTest, GetZombieSpawnReinforcements)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
@@ -1020,7 +1020,7 @@ TEST_F(AttributeCommandTest, GetZombieSpawnReinforcements)
 
 TEST_F(AttributeCommandTest, SetZombieSpawnReinforcements)
 {
-    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));

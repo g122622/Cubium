@@ -23,7 +23,7 @@ src/common/world/entity/
 | `Entity` | `common/entity/core/Entity.hpp` | 实体基类 |
 | `EntityDataManager` | `common/entity/core/EntityDataManager.hpp` | 实体数据同步 |
 | `EntityClassification` | `common/entity/core/EntityClassification.hpp` | 实体分类枚举 |
-| `EntityTypeIdNumber` | `common/entity/core/EntityTypeIdNumber.hpp` | 实体类型ID常量 |
+| `VanillaEntityTypeKeys` | `common/entity/registry/VanillaEntityTypeKeys.hpp` | 实体类型指针缓存（const EntityType*） |
 | `EntityRegistry` | `common/entity/core/EntityRegistry.hpp` | 实体类型注册表 |
 | `Vector3` | `common/util/math/Vector3.hpp` | 3D向量（位置、速度） |
 | `AxisAlignedBB` | `common/util/AxisAlignedBB.hpp` | 碰撞箱 |

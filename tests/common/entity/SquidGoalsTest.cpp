@@ -133,9 +133,9 @@ public:
         m_particles.push_back({type, pos, velocity});
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId) override { return nullptr; }
-    [[nodiscard]] const Entity* getEntity(EntityId) const override { return nullptr; }
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return EntityId(1); }
+    [[nodiscard]] Entity* getEntity(EntityInstanceId) override { return nullptr; }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId) const override { return nullptr; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(1); }
 
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
@@ -161,7 +161,7 @@ private:
 
 class SquidEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { squid = std::make_unique<SquidEntity>(EntityId(0)); }
+    void SetUp() override { squid = std::make_unique<SquidEntity>(EntityInstanceId(0)); }
 
     void TearDown() override { squid.reset(); }
 
@@ -224,7 +224,7 @@ class SquidMoveRandomGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        squid = std::make_unique<SquidEntity>(EntityId(0));
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(0));
         goal = std::make_unique<SquidMoveRandomGoal>(squid.get());
     }
 
@@ -282,7 +282,7 @@ class SquidFleeGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        squid = std::make_unique<SquidEntity>(EntityId(0));
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(0));
         goal = std::make_unique<SquidFleeGoal>(squid.get());
     }
 
@@ -395,13 +395,13 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<SquidTestWorld>();
-        squid = std::make_unique<SquidEntity>(EntityId(1));
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(1));
         squid->setWorld(world.get());
         squid->setInWater(true);
         squid->setPosition(0.0f, 64.0f, 0.0f);
 
         // 创建攻击者实体并设置复仇目标
-        attacker = std::make_unique<SquidEntity>(EntityId(2));
+        attacker = std::make_unique<SquidEntity>(EntityInstanceId(2));
         attacker->setWorld(world.get());
         attacker->setPosition(1.0f, 64.0f, 0.0f); // 距离鱿鱼 1 格
         squid->setLastHurtBy(attacker.get());

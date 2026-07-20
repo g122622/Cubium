@@ -113,7 +113,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -123,7 +123,7 @@ public:
 class TestRabbitEntity final : public RabbitEntity {
 public:
     TestRabbitEntity()
-        : RabbitEntity(EntityId(2))
+        : RabbitEntity(EntityInstanceId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -133,7 +133,7 @@ public:
 class TestWolfEntity final : public WolfEntity {
 public:
     TestWolfEntity()
-        : WolfEntity(EntityId(3))
+        : WolfEntity(EntityInstanceId(3))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -228,7 +228,7 @@ TEST(AnimalSoundTest, WolfAmbientSound_UsesVanillaVariants)
 
     bool foundLowHealthAmbient = false;
     for (u64 entityId = 1; entityId <= 512; ++entityId) {
-        wolf.setId(static_cast<EntityId>(entityId));
+        wolf.setId(static_cast<EntityInstanceId>(entityId));
         auto sound = wolf.getAmbientSound();
         if (!sound.has_value()) {
             continue;

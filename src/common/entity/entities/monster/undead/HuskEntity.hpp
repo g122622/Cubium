@@ -45,7 +45,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    HuskEntity(EntityId id);
+    HuskEntity(EntityInstanceId id);
 
     ~HuskEntity() override = default;
 

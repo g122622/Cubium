@@ -461,7 +461,7 @@ TEST_F(SignEntityTest, ClearAllowedPlayerEditor_ClearsUuid)
 TEST_F(SignEntityTest, OtherPlayerIsEditing_NoEditor_ReturnsFalse)
 {
     // 没有编辑者时，otherPlayerIsEditing 对任何玩家都返回 false
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setUuid("player-uuid-1");
     EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
 }
@@ -469,7 +469,7 @@ TEST_F(SignEntityTest, OtherPlayerIsEditing_NoEditor_ReturnsFalse)
 TEST_F(SignEntityTest, OtherPlayerIsEditing_SamePlayer_ReturnsFalse)
 {
     // 当前玩家就是编辑者时，otherPlayerIsEditing 返回 false
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setUuid("player-uuid-1");
     signEntity->setAllowedPlayerEditor("player-uuid-1");
     EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
@@ -478,7 +478,7 @@ TEST_F(SignEntityTest, OtherPlayerIsEditing_SamePlayer_ReturnsFalse)
 TEST_F(SignEntityTest, OtherPlayerIsEditing_DifferentPlayer_ReturnsTrue)
 {
     // 另一个玩家是编辑者时，otherPlayerIsEditing 返回 true
-    Player interactingPlayer(EntityId(2), "InteractingPlayer");
+    Player interactingPlayer(EntityInstanceId(2), "InteractingPlayer");
     interactingPlayer.setUuid("interacting-uuid");
     signEntity->setAllowedPlayerEditor("editor-uuid");
     EXPECT_TRUE(signEntity->otherPlayerIsEditing(interactingPlayer));
@@ -486,7 +486,7 @@ TEST_F(SignEntityTest, OtherPlayerIsEditing_DifferentPlayer_ReturnsTrue)
 
 TEST_F(SignEntityTest, OtherPlayerIsEditing_AfterClear_ReturnsFalse)
 {
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setUuid("player-uuid-1");
     signEntity->setAllowedPlayerEditor("editor-uuid");
     EXPECT_TRUE(signEntity->otherPlayerIsEditing(player));
@@ -632,7 +632,7 @@ TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerOffline_ReturnsTrue)
 TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerNearby_ReturnsFalse)
 {
     // 玩家在告示牌附近（告示牌位于 10,64,20，中心为 10.5,64.5,20.5）
-    Player player(EntityId(1), "NearbyPlayer");
+    Player player(EntityInstanceId(1), "NearbyPlayer");
     player.setUuid("nearby-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 20.5f)); // 在告示牌中心位置
     world.registerPlayer(player);
@@ -643,7 +643,7 @@ TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerNearby_ReturnsFalse)
 TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerFarAway_ReturnsTrue)
 {
     // 玩家距离告示牌很远（告示牌在 10,64,20，玩家在 100,64,20）
-    Player player(EntityId(1), "FarPlayer");
+    Player player(EntityInstanceId(1), "FarPlayer");
     player.setUuid("far-uuid");
     player.setPosition(Vector3(100.0f, 64.0f, 20.0f));
     world.registerPlayer(player);
@@ -655,7 +655,7 @@ TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerAtExactLimit_Returns
 {
     // 玩家恰好在最大交互距离内（MAX_EDIT_DISTANCE = 8.0）
     // 告示牌中心：(10.5, 64.5, 20.5)，玩家位于距离 < 8.0 的位置
-    Player player(EntityId(1), "LimitPlayer");
+    Player player(EntityInstanceId(1), "LimitPlayer");
     player.setUuid("limit-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 25.0f)); // 距离 ≈ 4.5 < 8.0
     world.registerPlayer(player);
@@ -666,7 +666,7 @@ TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerAtExactLimit_Returns
 TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerJustBeyondLimit_ReturnsTrue)
 {
     // 玩家刚好超出最大交互距离
-    Player player(EntityId(1), "BeyondPlayer");
+    Player player(EntityInstanceId(1), "BeyondPlayer");
     player.setUuid("beyond-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 30.0f)); // 距离 ≈ 9.5 > 8.0
     world.registerPlayer(player);
@@ -677,7 +677,7 @@ TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerJustBeyondLimit_Retu
 TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerDisconnected_ReturnsTrue)
 {
     // 玩家注册后断开连接（从 UUID 映射中移除）
-    Player player(EntityId(1), "DisconnectPlayer");
+    Player player(EntityInstanceId(1), "DisconnectPlayer");
     player.setUuid("disconnect-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 20.5f)); // 附近
     world.registerPlayer(player);
@@ -707,7 +707,7 @@ TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerGoesOffline)
 TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerMovesTooFar)
 {
     // 设置编辑者（附近玩家）
-    Player player(EntityId(1), "EditorPlayer");
+    Player player(EntityInstanceId(1), "EditorPlayer");
     player.setUuid("editor-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 20.5f)); // 在告示牌附近
     world.registerPlayer(player);
@@ -731,7 +731,7 @@ TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerMovesTooFar)
 TEST_F(SignEntityEditorTest, Tick_DoesNotClearEditorWhenPlayerStaysNearby)
 {
     // 设置编辑者（附近玩家）
-    Player player(EntityId(1), "EditorPlayer");
+    Player player(EntityInstanceId(1), "EditorPlayer");
     player.setUuid("editor-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 20.5f));
     world.registerPlayer(player);
@@ -748,7 +748,7 @@ TEST_F(SignEntityEditorTest, Tick_DoesNotClearEditorWhenPlayerStaysNearby)
 
 TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerDisconnects)
 {
-    Player player(EntityId(1), "EditorPlayer");
+    Player player(EntityInstanceId(1), "EditorPlayer");
     player.setUuid("editor-uuid");
     player.setPosition(Vector3(10.5f, 64.5f, 20.5f));
     world.registerPlayer(player);
@@ -780,7 +780,7 @@ TEST_F(SignEntityEditorTest, Tick_NoEditor_DoesNothing)
 TEST_F(SignEntityEditorTest, OtherPlayerIsEditing_PlayerWithEmptyUuid)
 {
     // 玩家 UUID 为空时，otherPlayerIsEditing 应正确处理
-    Player player(EntityId(1), "EmptyUuidPlayer");
+    Player player(EntityInstanceId(1), "EmptyUuidPlayer");
     // Entity 默认 UUID 为空字符串
     signEntity->setAllowedPlayerEditor("");
     EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
@@ -791,9 +791,9 @@ TEST_F(SignEntityEditorTest, OtherPlayerIsEditing_PlayerWithEmptyUuid)
 
 TEST_F(SignEntityEditorTest, OtherPlayerIsEditing_SwitchBetweenPlayers)
 {
-    Player player1(EntityId(1), "Player1");
+    Player player1(EntityInstanceId(1), "Player1");
     player1.setUuid("uuid-1");
-    Player player2(EntityId(2), "Player2");
+    Player player2(EntityInstanceId(2), "Player2");
     player2.setUuid("uuid-2");
 
     // 无编辑者时，两个玩家都不被阻止

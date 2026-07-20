@@ -73,7 +73,7 @@ constexpr f32 SNIFFER_STEP_VOLUME = 0.15f;
 
 // ========== 构造函数 ==========
 
-SnifferEntity::SnifferEntity(EntityId id)
+SnifferEntity::SnifferEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册 AI 目标
@@ -169,7 +169,7 @@ bool SnifferEntity::canMateWith(const AnimalEntity& other) const
     if (this == &other) {
         return false;
     }
-    if (typeId() != other.typeId()) {
+    if (entityType() != other.entityType()) {
         return false;
     }
     // 检查双方状态是否允许繁殖

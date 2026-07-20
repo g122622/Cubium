@@ -61,69 +61,69 @@ public:
      * @param entity 实体指针（所有权转移）
      * @return 实体ID
      */
-    EntityId spawnEntity(std::unique_ptr<Entity> entity);
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity);
 
     /**
      * @brief 移除实体并通知客户端
      * @param entityId 实体ID
      * @return 被移除的实体指针
      */
-    std::unique_ptr<Entity> removeEntity(EntityId entityId);
+    std::unique_ptr<Entity> removeEntity(EntityInstanceId entityId);
 
     /**
      * @brief 强制发送完整更新
      * @param entityId 实体ID
      */
-    void forceFullUpdate(EntityId entityId);
+    void forceFullUpdate(EntityInstanceId entityId);
 
     /**
      * @brief 设置实体生成回调
      */
-    void setOnEntitySpawn(std::function<void(EntityId, const Entity&)> callback);
+    void setOnEntitySpawn(std::function<void(EntityInstanceId, const Entity&)> callback);
 
     /**
      * @brief 设置实体移除回调
      */
-    void setOnEntityRemove(std::function<void(EntityId)> callback);
+    void setOnEntityRemove(std::function<void(EntityInstanceId)> callback);
 
     /**
      * @brief 设置实体移动回调
      */
-    void setOnEntityMove(std::function<void(EntityId, const Vector3&, f32, f32)> callback);
+    void setOnEntityMove(std::function<void(EntityInstanceId, const Vector3&, f32, f32)> callback);
 
     /**
      * @brief 设置实体状态回调
      * @param callback 回调函数 (entityId, status)
      */
-    void setOnEntityStatus(std::function<void(EntityId, u8)> callback);
+    void setOnEntityStatus(std::function<void(EntityInstanceId, u8)> callback);
 
     /**
      * @brief 广播实体状态
      * @param entityId 实体ID
      * @param status 状态码
      */
-    void broadcastEntityStatus(EntityId entityId, u8 status);
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status);
 
 private:
     /**
      * @brief 检查实体是否需要同步
      */
-    [[nodiscard]] bool _needsSync(EntityId entityId) const;
+    [[nodiscard]] bool _needsSync(EntityInstanceId entityId) const;
 
     /**
      * @brief 广播实体移动
      */
-    void _broadcastEntityMove(EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch);
+    void _broadcastEntityMove(EntityInstanceId entityId, const Vector3& pos, f32 yaw, f32 pitch);
 
     /**
      * @brief 广播实体生成
      */
-    void _broadcastEntitySpawn(EntityId entityId, const Entity& entity);
+    void _broadcastEntitySpawn(EntityInstanceId entityId, const Entity& entity);
 
     /**
      * @brief 广播实体移除
      */
-    void _broadcastEntityRemove(EntityId entityId);
+    void _broadcastEntityRemove(EntityInstanceId entityId);
 
 private:
     /**
@@ -141,12 +141,12 @@ private:
 
     EntityManager& m_entityManager;
 
-    std::unordered_map<EntityId, EntityTrackData> m_entityTrackData;
+    std::unordered_map<EntityInstanceId, EntityTrackData> m_entityTrackData;
 
-    std::function<void(EntityId, const Entity&)> m_onEntitySpawn;
-    std::function<void(EntityId)> m_onEntityRemove;
-    std::function<void(EntityId, const Vector3&, f32, f32)> m_onEntityMove;
-    std::function<void(EntityId, u8)> m_onEntityStatus;
+    std::function<void(EntityInstanceId, const Entity&)> m_onEntitySpawn;
+    std::function<void(EntityInstanceId)> m_onEntityRemove;
+    std::function<void(EntityInstanceId, const Vector3&, f32, f32)> m_onEntityMove;
+    std::function<void(EntityInstanceId, u8)> m_onEntityStatus;
 };
 
 } // namespace sync

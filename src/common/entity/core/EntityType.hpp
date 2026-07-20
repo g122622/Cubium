@@ -48,14 +48,6 @@ using mc::u16;
 using mc::u32;
 
 /**
- * @brief 实体类型ID
- *
- * 用于唯一标识实体类型的数字ID。
- * 正整数ID由注册表自动分配，负数ID保留给特殊用途。
- */
-using EntityTypeId = u16;
-
-/**
  * @brief 实体类型标志
  *
  * 定义实体类型的各种属性标志
@@ -330,11 +322,6 @@ public:
     [[nodiscard]] bool canSummon() const { return hasFlag(EntityFlags::CanSummon); }
 
     /**
-     * @brief 获取ID
-     */
-    [[nodiscard]] EntityTypeId id() const { return m_id; }
-
-    /**
      * @brief 获取名称
      */
     [[nodiscard]] const std::string& name() const { return m_name; }
@@ -356,27 +343,34 @@ public:
 
     /**
      * @brief 比较操作符
+     *
+     * 按权威的资源位置名判等。跨注册表/跨副本的对象只要 m_name 相同即视为同一类型，
+     * 适用于 SpawnEggItem 等持有值副本的场景。热路径的类型比较请直接用指针比较
+     * （entityType() 与 VanillaEntityTypeKeys::* 同源于注册表容器）。
      */
-    bool operator==(const EntityType& other) const { return m_id == other.m_id; }
-    bool operator!=(const EntityType& other) const { return m_id != other.m_id; }
+    bool operator==(const EntityType& other) const { return m_name == other.m_name; }
+    bool operator!=(const EntityType& other) const { return m_name != other.m_name; }
+
+    /**
+     * @brief 未知/空实体类型哨兵
+     *
+     * 默认构造产物：m_factory=nullptr、m_name=""。用于替代旧的数字哨兵，
+     * 在测试与默认值场景中表示“尚未指定实体类型”。定义在 EntityType.cpp。
+     */
+    static const EntityType UNKNOWN;
 
 private:
     friend class EntityRegistry;
 
     /**
-     * @brief 绑定实体类型的数字ID与资源位置名
+     * @brief 绑定实体类型的资源位置名
      *
-     * 仅由 EntityRegistry::registerType 在注册时调用，用于把注册顺序分配的数字 ID
-     * 与权威的资源位置字符串注入到 EntityType。封装写权，避免外部 const_cast。
+     * 仅由 EntityRegistry::registerType 在注册时调用，用于把权威的资源位置字符串
+     * 注入到 EntityType。封装写权，避免外部 const_cast。
      *
-     * @param id 注册表分配的数字 ID
      * @param name 资源位置（如 minecraft:pig）
      */
-    void bindIdentity(EntityTypeId id, std::string name)
-    {
-        m_id = id;
-        m_name = std::move(name);
-    }
+    void bindIdentity(std::string name) { m_name = std::move(name); }
 
     EntityFactory m_factory;
     EntityClassification m_classification = EntityClassification::Misc;
@@ -384,14 +378,9 @@ private:
     i32 m_trackingRange = 5;
     i32 m_updateInterval = 3;
     EntityFlags m_flags = EntityFlags::Serializable;
-    EntityTypeId m_id = 0;
     std::string m_name;
 };
 
 } // namespace entity
-
-// 注意：不使用 using EntityType = entity::EntityType;
-// 因为 Constants.hpp 中已有 entity::EntityTypeId 枚举
-// 使用时请明确使用 mc::entity::EntityType
 
 } // namespace mc

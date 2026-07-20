@@ -75,7 +75,7 @@ public:
     // Stub implementations
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -95,20 +95,20 @@ private:
 // 具体的 AnimalEntity 子类用于测试
 class TestAnimalEntity : public AnimalEntity {
 public:
-    TestAnimalEntity(EntityId id)
+    TestAnimalEntity(EntityInstanceId id)
         : AnimalEntity(id)
     {}
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override
     {
-        return std::make_unique<TestAnimalEntity>(EntityId(0));
+        return std::make_unique<TestAnimalEntity>(EntityInstanceId(0));
     }
 };
 
 // 具体的 MonsterEntity 子类用于测试
 class TestMonsterEntity : public MonsterEntity {
 public:
-    TestMonsterEntity(EntityId id)
+    TestMonsterEntity(EntityInstanceId id)
         : MonsterEntity(id)
     {}
 };
@@ -123,7 +123,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsHighScoreOnGrassBlock)
     world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
     world.setBrightness(1.0f);
 
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     animal.setWorld(&world);
 
     // 脚下是草方块，应该返回 10.0F
@@ -139,7 +139,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsBrightnessMinusHalfOnNonGrassBlock)
     world.setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     world.setBrightness(1.0f);
 
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     animal.setWorld(&world);
 
     // 脚下是石头，亮度 1.0，应该返回 1.0 - 0.5 = 0.5F
@@ -155,7 +155,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsNegativeScoreInDarkness)
     world.setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
     world.setBrightness(0.0f);
 
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     animal.setWorld(&world);
 
     // 脚下是石头，亮度 0.0，应该返回 0.0 - 0.5 = -0.5F
@@ -167,7 +167,7 @@ TEST(AnimalEntityGetPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     VanillaBlocks::initialize();
 
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     // 没有 world，应该返回 0.0f
     f32 weight = animal.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -183,7 +183,7 @@ TEST(AnimalEntityGetPathWeightTest, PrefersGrassOverHighBrightness)
     world.setBlock(0, 63, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
     world.setBrightness(0.0f);
 
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     animal.setWorld(&world);
 
     f32 grassWeight = animal.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -209,7 +209,7 @@ TEST(MonsterEntityGetPathWeightTest, PrefersDarkness)
     PathWeightTestWorld world;
     world.setBrightness(0.0f); // 完全黑暗
 
-    TestMonsterEntity monster(EntityId(1));
+    TestMonsterEntity monster(EntityInstanceId(1));
     monster.setWorld(&world);
 
     // 亮度 0.0，应该返回 0.5 - 0.0 = 0.5F
@@ -224,7 +224,7 @@ TEST(MonsterEntityGetPathWeightTest, DislikesBrightness)
     PathWeightTestWorld world;
     world.setBrightness(1.0f); // 完全明亮
 
-    TestMonsterEntity monster(EntityId(1));
+    TestMonsterEntity monster(EntityInstanceId(1));
     monster.setWorld(&world);
 
     // 亮度 1.0，应该返回 0.5 - 1.0 = -0.5F
@@ -236,7 +236,7 @@ TEST(MonsterEntityGetPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     VanillaBlocks::initialize();
 
-    TestMonsterEntity monster(EntityId(1));
+    TestMonsterEntity monster(EntityInstanceId(1));
     // 没有 world，应该返回 0.0f
     f32 weight = monster.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -249,7 +249,7 @@ TEST(MonsterEntityGetPathWeightTest, MediumBrightness)
     PathWeightTestWorld world;
     world.setBrightness(0.5f);
 
-    TestMonsterEntity monster(EntityId(1));
+    TestMonsterEntity monster(EntityInstanceId(1));
     monster.setWorld(&world);
 
     // 亮度 0.5，应该返回 0.5 - 0.5 = 0.0F
@@ -263,7 +263,7 @@ TEST(MonsterEntityGetPathWeightTest, SlightlyDarkPreferredOverBright)
 
     PathWeightTestWorld world;
 
-    TestMonsterEntity monster(EntityId(1));
+    TestMonsterEntity monster(EntityInstanceId(1));
     monster.setWorld(&world);
 
     // 较暗位置
@@ -289,25 +289,25 @@ TEST(MonsterEntityGetPathWeightTest, SlightlyDarkPreferredOverBright)
  */
 class LoveHeartTestWorld final : public test::BaseTestWorld {
 public:
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_lastBroadcastEntityId = entityId;
         m_lastBroadcastStatus = status;
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
     [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
     [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
     void resetBroadcastTracking()
     {
-        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastEntityId = EntityInstanceId(0);
         m_lastBroadcastStatus = 0;
         m_broadcastCount = 0;
     }
 
 private:
-    EntityId m_lastBroadcastEntityId{0};
+    EntityInstanceId m_lastBroadcastEntityId{0};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;
 };
@@ -315,7 +315,7 @@ private:
 TEST(AnimalEntitySetInLoveTest, BroadcastsLoveHeartStatus)
 {
     LoveHeartTestWorld world;
-    TestAnimalEntity animal(EntityId(42));
+    TestAnimalEntity animal(EntityInstanceId(42));
     animal.setWorld(&world);
 
     world.resetBroadcastTracking();
@@ -325,14 +325,14 @@ TEST(AnimalEntitySetInLoveTest, BroadcastsLoveHeartStatus)
 
     // 验证广播了正确状态
     EXPECT_EQ(world.getBroadcastCount(), 1);
-    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityId(42));
+    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityInstanceId(42));
     EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::LoveHeart));
 }
 
 TEST(AnimalEntitySetInLoveTest, SetInLoveWithoutWorldDoesNotCrash)
 {
     // 没有 world 的实体调用 setInLove 不应崩溃
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     EXPECT_NO_THROW(animal.setInLove(999));
 
     // 验证 love 状态确实被设置了
@@ -342,7 +342,7 @@ TEST(AnimalEntitySetInLoveTest, SetInLoveWithoutWorldDoesNotCrash)
 TEST(AnimalEntitySetInLoveTest, SetInLoveSetsTimerAndLoveCause)
 {
     LoveHeartTestWorld world;
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     animal.setWorld(&world);
 
     animal.setInLove(12345);
@@ -355,7 +355,7 @@ TEST(AnimalEntitySetInLoveTest, SetInLoveSetsTimerAndLoveCause)
 TEST(AnimalEntitySetInLoveTest, ResetInLoveClearsState)
 {
     LoveHeartTestWorld world;
-    TestAnimalEntity animal(EntityId(1));
+    TestAnimalEntity animal(EntityInstanceId(1));
     animal.setWorld(&world);
 
     animal.setInLove(0);

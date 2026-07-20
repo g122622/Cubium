@@ -48,11 +48,11 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/boss/WardenAngerLevel.hpp"
 #include "common/entity/entities/boss/WardenEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -80,8 +80,8 @@ protected:
                     .updateInterval(3)
                     .canSummon(true)
                     .build());
-            // 初始化 EntityTypeIdNumber 缓存
-            entity::EntityTypeIdNumber::WARDEN = registry.getType("minecraft:warden")->id();
+            // 初始化 VanillaEntityTypeKeys 缓存
+            entity::VanillaEntityTypeKeys::WARDEN = registry.getType("minecraft:warden");
         }
     }
 };
@@ -104,13 +104,13 @@ TEST_F(WardenEntityTest, EntityType_CanSummon_IsTrue)
     EXPECT_TRUE(wardenType->canSummon());
 }
 
-TEST_F(WardenEntityTest, EntityType_IdCachedInEntityTypeIdNumber)
+TEST_F(WardenEntityTest, EntityType_IdCachedInVanillaEntityTypeKeys)
 {
-    // 确保 EntityTypeIdNumber::WARDEN 与注册表中的 ID 一致
+    // 确保 VanillaEntityTypeKeys::WARDEN 与注册表中的类型指针一致（同源指针别名）
     const entity::EntityType* wardenType = entity::EntityRegistry::instance().getType("minecraft:warden");
     ASSERT_NE(wardenType, nullptr);
-    EXPECT_EQ(entity::EntityTypeIdNumber::WARDEN, wardenType->id());
-    EXPECT_NE(entity::EntityTypeIdNumber::WARDEN, 0);
+    EXPECT_EQ(entity::VanillaEntityTypeKeys::WARDEN, wardenType);
+    EXPECT_NE(entity::VanillaEntityTypeKeys::WARDEN, nullptr);
 }
 
 // ========== 工厂方法测试 ==========
@@ -134,7 +134,7 @@ TEST_F(WardenEntityTest, Create_ReturnsWardenEntityType)
 
 TEST_F(WardenEntityTest, Dimensions_MatchMCJavaValues)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.width(), 0.9f);
     EXPECT_FLOAT_EQ(warden.height(), 2.9f);
     EXPECT_FLOAT_EQ(warden.eyeHeight(), 2.4f);
@@ -144,37 +144,37 @@ TEST_F(WardenEntityTest, Dimensions_MatchMCJavaValues)
 
 TEST_F(WardenEntityTest, Attributes_MaxHealth_Is500)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.maxHealth(), 500.0f);
 }
 
 TEST_F(WardenEntityTest, Attributes_AttackDamage_Is30)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.attributes().getValue(entity::attribute::Attributes::ATTACK_DAMAGE), 30.0f);
 }
 
 TEST_F(WardenEntityTest, Attributes_MovementSpeed_Is0_3)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED), 0.3f);
 }
 
 TEST_F(WardenEntityTest, Attributes_KnockbackResistance_Is1_0)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.attributes().getValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE), 1.0f);
 }
 
 TEST_F(WardenEntityTest, Attributes_AttackKnockback_Is1_5)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.attributes().getValue(entity::attribute::Attributes::ATTACK_KNOCKBACK), 1.5f);
 }
 
 TEST_F(WardenEntityTest, Attributes_FollowRange_Is24)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(warden.attributes().getValue(entity::attribute::Attributes::FOLLOW_RANGE), 24.0f);
 }
 
@@ -183,21 +183,21 @@ TEST_F(WardenEntityTest, Attributes_FollowRange_Is24)
 TEST_F(WardenEntityTest, IsNonBoss_ReturnsFalse)
 {
     // 监守者不参与普通怪物的生成限制
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FALSE(warden.isNonBoss());
 }
 
 TEST_F(WardenEntityTest, PreventDespawn_ReturnsTrue)
 {
     // 监守者永不自然消失（对应 MC Warden.removeWhenFarAway() == false）
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_TRUE(warden.preventDespawn());
 }
 
 TEST_F(WardenEntityTest, IsDespawnPeaceful_ReturnsTrue)
 {
     // 和平难度下监守者消失（继承自 MonsterEntity）
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_TRUE(warden.isDespawnPeaceful());
 }
 
@@ -206,7 +206,7 @@ TEST_F(WardenEntityTest, IsDespawnPeaceful_ReturnsTrue)
 TEST_F(WardenEntityTest, DampensVibrations_ReturnsTrue)
 {
     // 对应 MC 1.21.11 Warden.dampensVibrations() == true
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_TRUE(warden.dampensVibrations());
 }
 
@@ -214,7 +214,7 @@ TEST_F(WardenEntityTest, DampensVibrations_ReturnsTrue)
 
 TEST_F(WardenEntityTest, OnLivingFall_ReturnsFalse_NoFallDamage)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_FALSE(warden.onLivingFall(10.0f, 1.0f));
     EXPECT_FALSE(warden.onLivingFall(0.0f, 1.0f));
 }
@@ -223,14 +223,14 @@ TEST_F(WardenEntityTest, OnLivingFall_ReturnsFalse_NoFallDamage)
 
 TEST_F(WardenEntityTest, IsInvulnerableTo_Drown_ReturnsTrue)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EnvironmentalDamage source = DamageSources::drown();
     EXPECT_TRUE(warden.isInvulnerableTo(source));
 }
 
 TEST_F(WardenEntityTest, IsInvulnerableTo_Wither_ReturnsTrue)
 {
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EnvironmentalDamage source = DamageSources::wither();
     EXPECT_TRUE(warden.isInvulnerableTo(source));
 }
@@ -240,7 +240,7 @@ TEST_F(WardenEntityTest, IsInvulnerableTo_Wither_ReturnsTrue)
 TEST_F(WardenEntityTest, GetAmbientSound_Calmed_ReturnsWardenAmbient)
 {
     // 初始怒气为 0 → Calmed → WARDEN_AMBIENT
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     auto sound = warden.getAmbientSound();
     ASSERT_TRUE(sound.has_value());
     EXPECT_EQ(sound->toString(), SoundEvents::ENTITY_WARDEN_AMBIENT.toString());
@@ -249,7 +249,7 @@ TEST_F(WardenEntityTest, GetAmbientSound_Calmed_ReturnsWardenAmbient)
 TEST_F(WardenEntityTest, GetAmbientSound_Agitated_ReturnsWardenAgitated)
 {
     // 怒气 40-79 → Agitated → WARDEN_AGITATED
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(50);
     auto sound = warden.getAmbientSound();
     ASSERT_TRUE(sound.has_value());
@@ -259,7 +259,7 @@ TEST_F(WardenEntityTest, GetAmbientSound_Agitated_ReturnsWardenAgitated)
 TEST_F(WardenEntityTest, GetAmbientSound_Angry_ReturnsWardenAngry)
 {
     // 怒气 ≥ 80 → Angry → WARDEN_ANGRY
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(80);
     auto sound = warden.getAmbientSound();
     ASSERT_TRUE(sound.has_value());
@@ -269,7 +269,7 @@ TEST_F(WardenEntityTest, GetAmbientSound_Angry_ReturnsWardenAngry)
 TEST_F(WardenEntityTest, GetHurtSound_ReturnsWardenHurt)
 {
     // MC 1.21.11 Warden.getHurtSound() 返回 SoundEvents.WARDEN_HURT
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EnvironmentalDamage source = DamageSources::generic();
     auto sound = warden.getHurtSound(source);
     ASSERT_TRUE(sound.has_value());
@@ -279,7 +279,7 @@ TEST_F(WardenEntityTest, GetHurtSound_ReturnsWardenHurt)
 TEST_F(WardenEntityTest, GetDeathSound_ReturnsWardenDeath)
 {
     // MC 1.21.11 Warden.getDeathSound() 返回 SoundEvents.WARDEN_DEATH
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     auto sound = warden.getDeathSound();
     ASSERT_TRUE(sound.has_value());
     EXPECT_EQ(sound->toString(), SoundEvents::ENTITY_WARDEN_DEATH.toString());
@@ -290,7 +290,7 @@ TEST_F(WardenEntityTest, GetDeathSound_ReturnsWardenDeath)
 TEST_F(WardenEntityTest, ExperienceValue_Is5)
 {
     // MC 1.21.11 Warden 构造函数: this.xpReward = 5
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_EQ(warden.experienceValue(), 5);
 }
 
@@ -299,7 +299,7 @@ TEST_F(WardenEntityTest, ExperienceValue_Is5)
 TEST_F(WardenEntityTest, AngerLevel_Initial_IsCalmed)
 {
     // 新生成的监守者怒气为 0，对应 Calmed 等级
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Calmed);
     EXPECT_EQ(warden.getClientAngerLevel(), 0);
 }
@@ -307,7 +307,7 @@ TEST_F(WardenEntityTest, AngerLevel_Initial_IsCalmed)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseBelow40_StaysCalmed)
 {
     // 怒气 < 40 → Calmed
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(39);
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Calmed);
     EXPECT_EQ(warden.getClientAngerLevel(), 39);
@@ -316,7 +316,7 @@ TEST_F(WardenEntityTest, AngerLevel_IncreaseBelow40_StaysCalmed)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseTo40_BecomesAgitated)
 {
     // 怒气 = 40 → Agitated（阈值边界）
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(40);
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Agitated);
     EXPECT_EQ(warden.getClientAngerLevel(), 40);
@@ -325,7 +325,7 @@ TEST_F(WardenEntityTest, AngerLevel_IncreaseTo40_BecomesAgitated)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseTo79_StaysAgitated)
 {
     // 怒气 40-79 → Agitated
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(79);
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Agitated);
 }
@@ -333,7 +333,7 @@ TEST_F(WardenEntityTest, AngerLevel_IncreaseTo79_StaysAgitated)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseTo80_BecomesAngry)
 {
     // 怒气 = 80 → Angry（阈值边界）
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(80);
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Angry);
     EXPECT_EQ(warden.getClientAngerLevel(), 80);
@@ -342,7 +342,7 @@ TEST_F(WardenEntityTest, AngerLevel_IncreaseTo80_BecomesAngry)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseBeyondLimit_ClampedTo150)
 {
     // 怒气上限 150（防止无限增长）
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(1000);
     EXPECT_EQ(warden.getClientAngerLevel(), 150);
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Angry);
@@ -351,7 +351,7 @@ TEST_F(WardenEntityTest, AngerLevel_IncreaseBeyondLimit_ClampedTo150)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseMultipleTimes_Accumulates)
 {
     // 多次增加怒气应累加
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(30);
     warden.increaseAnger(30);
     EXPECT_EQ(warden.getClientAngerLevel(), 60);
@@ -364,7 +364,7 @@ TEST_F(WardenEntityTest, AngerLevel_IncreaseMultipleTimes_Accumulates)
 TEST_F(WardenEntityTest, AngerLevel_ClearAnger_ResetsToZero)
 {
     // clearAnger() 应将怒气归零
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(100);
     ASSERT_EQ(warden.getClientAngerLevel(), 100);
     warden.clearAnger();
@@ -375,7 +375,7 @@ TEST_F(WardenEntityTest, AngerLevel_ClearAnger_ResetsToZero)
 TEST_F(WardenEntityTest, AngerLevel_IncreaseNegative_NoEffect)
 {
     // increaseAnger 负数应无效果
-    entity::WardenEntity warden(EntityId(1));
+    entity::WardenEntity warden(EntityInstanceId(1));
     warden.increaseAnger(-10);
     EXPECT_EQ(warden.getClientAngerLevel(), 0);
     EXPECT_EQ(warden.getAngerLevel(), entity::WardenAngerLevel::Calmed);

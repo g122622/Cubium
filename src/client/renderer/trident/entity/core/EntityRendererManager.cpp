@@ -145,12 +145,12 @@ void EntityRendererManager::setTextureAtlas(const EntityTextureAtlas* textureAtl
     // 将实体纹理图集注入到方块渲染器（用于渲染方块后恢复纹理图集）
     // - FallingBlockRenderer: 渲染下落方块后恢复
     // - TNTRenderer: 渲染 TNT 方块后恢复
-    auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::FALLING_BLOCK);
+    auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypeKeys::FALLING_BLOCK);
     if (auto* fallingBlockRenderer = dynamic_cast<renderer::special::FallingBlockRenderer*>(fallingBlockRendererRaw)) {
         fallingBlockRenderer->setEntityTextureAtlas(textureAtlas);
     }
 
-    auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::TNT);
+    auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypeKeys::TNT);
     if (auto* tntRenderer = dynamic_cast<renderer::special::TNTRenderer*>(tntRendererRaw)) {
         tntRenderer->setEntityTextureAtlas(textureAtlas);
     }
@@ -166,13 +166,13 @@ void EntityRendererManager::setBlockAtlas(VkImageView imageView, VkSampler sampl
     // - TNTRenderer: 用于 TNT 实体方块渲染
 
     // 末影人渲染器
-    auto* endermanRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::ENDERMAN);
+    auto* endermanRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypeKeys::ENDERMAN);
     if (auto* endermanRenderer = dynamic_cast<renderer::monster::EndermanRenderer*>(endermanRendererRaw)) {
         endermanRenderer->setBlockAtlas(imageView, sampler);
     }
 
     // 下落方块渲染器
-    auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::FALLING_BLOCK);
+    auto* fallingBlockRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypeKeys::FALLING_BLOCK);
     if (auto* fallingBlockRenderer = dynamic_cast<renderer::special::FallingBlockRenderer*>(fallingBlockRendererRaw)) {
         fallingBlockRenderer->setBlockAtlas(imageView, sampler);
         // 同时注入实体纹理图集（用于渲染后恢复）
@@ -182,7 +182,7 @@ void EntityRendererManager::setBlockAtlas(VkImageView imageView, VkSampler sampl
     }
 
     // TNT 渲染器
-    auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypes::TNT);
+    auto* tntRendererRaw = _getOrCreateRenderer(::mc::entity::EntityTypeKeys::TNT);
     if (auto* tntRenderer = dynamic_cast<renderer::special::TNTRenderer*>(tntRendererRaw)) {
         tntRenderer->setBlockAtlas(imageView, sampler);
         // 同时注入实体纹理图集（用于渲染后恢复）
@@ -249,9 +249,9 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 
     // 检查是否为 ItemEntity 或 ExperienceOrb
-    std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-    bool isItemEntity = (normalizedType == ::mc::entity::EntityTypes::ITEM);
-    bool isExperienceOrb = (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB);
+    std::string normalizedType = normalizeEntityTypeId(entity.getTypeId());
+    bool isItemEntity = (normalizedType == ::mc::entity::EntityTypeKeys::ITEM);
+    bool isExperienceOrb = (normalizedType == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB);
 
     // 对于 ItemEntity，使用 ItemTextureAtlas
     if (isItemEntity && m_itemTextureAtlas && m_itemTextureAtlas->isValid() && m_itemTextureAtlas->isUploaded()) {
@@ -262,7 +262,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
     }
 
     // 获取渲染器
-    EntityRenderer* renderer = _getOrCreateRenderer(entity.typeId());
+    EntityRenderer* renderer = _getOrCreateRenderer(entity.getTypeId());
 
     // 获取或创建网格
     EntityMesh* mesh = nullptr;
@@ -551,15 +551,15 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
         "entityId",
         entity.id(),
         "typeId",
-        entity.typeId(),
+        entity.getTypeId(),
         "itemRenderStateVersion",
         entity.itemRenderStateVersion());
 
-    EntityId id = entity.id();
+    EntityInstanceId id = entity.id();
     auto it = m_meshes.find(id);
 
     if (it != m_meshes.end()) {
-        if (normalizeEntityTypeId(entity.typeId()) == ::mc::entity::EntityTypes::ITEM &&
+        if (normalizeEntityTypeId(entity.getTypeId()) == ::mc::entity::EntityTypeKeys::ITEM &&
             it->second.itemRenderStateVersion != entity.itemRenderStateVersion()) {
             updateMesh(entity);
             it = m_meshes.find(id);
@@ -569,8 +569,8 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
         }
 
         // 检查经验球的图标索引是否变化（XP 值合并后图标可能变化）
-        std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-        if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+        std::string normalizedType = normalizeEntityTypeId(entity.getTypeId());
+        if (normalizedType == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB) {
             i32 currentIconIndex = mc::entity::experience::utils::getOrbSize(entity.xpValue());
             if (it->second.xpOrbIconIndex != currentIconIndex) {
                 updateMesh(entity);
@@ -588,15 +588,15 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
 
-    if (!_generateModelMesh(entity.typeId(), vertices, indices)) {
+    if (!_generateModelMesh(entity.getTypeId(), vertices, indices)) {
         return nullptr;
     }
 
     // 对于 ItemEntity，使用 ItemTextureAtlas 进行 UV 重映射
-    std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-    if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
+    std::string normalizedType = normalizeEntityTypeId(entity.getTypeId());
+    if (normalizedType == ::mc::entity::EntityTypeKeys::ITEM) {
         _remapItemEntityUv(entity, vertices);
-    } else if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+    } else if (normalizedType == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB) {
         // ExperienceOrb 使用精灵图集中的特定图标，需要根据 XP 值选择正确的子区域
         if (m_textureAtlas && m_textureAtlas->isBuilt()) {
             _remapExperienceOrbUv(entity.xpValue(), *m_textureAtlas, vertices);
@@ -623,8 +623,8 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     meshEntry.mesh.posY = entity.y();
     meshEntry.mesh.posZ = entity.z();
     meshEntry.itemRenderStateVersion =
-        normalizedType == ::mc::entity::EntityTypes::ITEM ? entity.itemRenderStateVersion() : 0;
-    meshEntry.xpOrbIconIndex = normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB
+        normalizedType == ::mc::entity::EntityTypeKeys::ITEM ? entity.itemRenderStateVersion() : 0;
+    meshEntry.xpOrbIconIndex = normalizedType == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB
         ? mc::entity::experience::utils::getOrbSize(entity.xpValue())
         : -1;
 
@@ -634,7 +634,7 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
 
 void EntityRendererManager::updateMesh(ClientEntity& entity)
 {
-    EntityId id = entity.id();
+    EntityInstanceId id = entity.id();
     auto it = m_meshes.find(id);
 
     if (it == m_meshes.end()) {
@@ -645,14 +645,14 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
     std::vector<ModelVertex> vertices;
     std::vector<u32> indices;
 
-    if (!_generateModelMesh(entity.typeId(), vertices, indices)) {
+    if (!_generateModelMesh(entity.getTypeId(), vertices, indices)) {
         return;
     }
 
-    std::string normalizedType = normalizeEntityTypeId(entity.typeId());
-    if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
+    std::string normalizedType = normalizeEntityTypeId(entity.getTypeId());
+    if (normalizedType == ::mc::entity::EntityTypeKeys::ITEM) {
         _remapItemEntityUv(entity, vertices);
-    } else if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+    } else if (normalizedType == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB) {
         // ExperienceOrb 使用精灵图集中的特定图标
         if (m_textureAtlas && m_textureAtlas->isBuilt()) {
             _remapExperienceOrbUv(entity.xpValue(), *m_textureAtlas, vertices);
@@ -662,15 +662,15 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
     }
 
     (void)m_pipeline->updateMesh(it->second.mesh, vertices, indices);
-    if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
+    if (normalizedType == ::mc::entity::EntityTypeKeys::ITEM) {
         it->second.itemRenderStateVersion = entity.itemRenderStateVersion();
     }
-    if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+    if (normalizedType == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB) {
         it->second.xpOrbIconIndex = mc::entity::experience::utils::getOrbSize(entity.xpValue());
     }
 }
 
-void EntityRendererManager::removeMesh(EntityId entityId)
+void EntityRendererManager::removeMesh(EntityInstanceId entityId)
 {
     auto it = m_meshes.find(entityId);
     if (it != m_meshes.end()) {
@@ -681,7 +681,7 @@ void EntityRendererManager::removeMesh(EntityId entityId)
     }
 }
 
-void EntityRendererManager::removeEntityMeshes(EntityId entityId)
+void EntityRendererManager::removeEntityMeshes(EntityInstanceId entityId)
 {
     // 清理静态网格
     removeMesh(entityId);
@@ -732,17 +732,17 @@ bool EntityRendererManager::_generateModelMesh(
     // 规范化实体类型ID，统一使用命名空间格式进行比较
     std::string normalizedId = normalizeEntityTypeId(typeId);
 
-    // 使用 EntityTypes 常量进行比较
+    // 使用 EntityTypeKeys 常量进行比较
 
     // 只有 ItemEntity 和 ExperienceOrb 使用静态网格
     // 所有生物实体都使用动画网格路径（通过 _createModelForEntity）
-    if (normalizedId == ::mc::entity::EntityTypes::ITEM) {
+    if (normalizedId == ::mc::entity::EntityTypeKeys::ITEM) {
         // ItemEntity 使用简单的四边形网格
         // 物品图标会在渲染时根据 ItemStack 动态获取纹理
         _generateBillboardMesh(vertices, indices, 0.25, 0.25);
         return true;
     }
-    if (normalizedId == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+    if (normalizedId == ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB) {
         // ExperienceOrb 使用简单的四边形网格（billboard）
         // 颜色会根据经验和时间动态变化
         _generateBillboardMesh(vertices, indices, 0.25, 0.25);
@@ -885,7 +885,7 @@ void EntityRendererManager::_remapExperienceOrbUv(
 
     // 查找经验球纹理在图集中的区域
     const TextureRegion* region = nullptr;
-    const auto texturePaths = EntityTextureLoader::getTexturePaths(::mc::entity::EntityTypes::EXPERIENCE_ORB);
+    const auto texturePaths = EntityTextureLoader::getTexturePaths(::mc::entity::EntityTypeKeys::EXPERIENCE_ORB);
     for (const auto& path : texturePaths) {
         region = textureAtlas.getRegion(path);
         if (region) {
@@ -932,14 +932,14 @@ bool EntityRendererManager::_usesAnimatedMesh(const std::string& normalizedTypeI
 {
     // ItemEntity 和 ExperienceOrb 使用静态网格
     // 所有生物实体使用动画网格
-    return normalizedTypeId != ::mc::entity::EntityTypes::ITEM &&
-        normalizedTypeId != ::mc::entity::EntityTypes::EXPERIENCE_ORB;
+    return normalizedTypeId != ::mc::entity::EntityTypeKeys::ITEM &&
+        normalizedTypeId != ::mc::entity::EntityTypeKeys::EXPERIENCE_ORB;
 }
 
 std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity(
     ClientEntity& entity, core::AnimationContext& context)
 {
-    std::string normalizedId = normalizeEntityTypeId(entity.typeId());
+    std::string normalizedId = normalizeEntityTypeId(entity.getTypeId());
 
     // 从 ClientEntity 读取动画状态
     // limbSwing = entity.limbSwing - entity.limbSwingAmount * (1.0 - partialTicks)
@@ -991,7 +991,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
     context.swimAmount = entity.getInterpolatedSwimAmount(static_cast<f32>(context.partialTicks));
 
     // 北极熊站立动画
-    const std::string& typeId = entity.typeId();
+    const std::string& typeId = entity.getTypeId();
     if (typeId == "minecraft:polar_bear" || typeId == "polar_bear") {
         context.standingProgress = entity.getStandingAnimationScale(static_cast<f32>(context.partialTicks));
     } else {
@@ -1580,7 +1580,7 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
         return nullptr;
     }
 
-    std::string normalizedId = normalizeEntityTypeId(entity.typeId());
+    std::string normalizedId = normalizeEntityTypeId(entity.getTypeId());
 
     // 设置 UV 重映射回调
     m_animatedMeshCache->setUvRemapFunc(
@@ -1598,7 +1598,7 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateProviderMesh(
         return nullptr;
     }
 
-    EntityId entityId = entity.id();
+    EntityInstanceId entityId = entity.id();
     auto it = m_meshes.find(entityId);
 
     if (it != m_meshes.end()) {

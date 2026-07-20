@@ -347,7 +347,7 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
     [[nodiscard]] std::vector<Entity*> getPlayers() const override;
-    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const override;
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(const std::string& typeId) const override;
 
     // ========== 最近玩家查询 ==========
 
@@ -448,7 +448,7 @@ public:
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
 
-    void destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress) override;
+    void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override;
 
     // ========== 游戏事件 ==========
 
@@ -605,7 +605,7 @@ public:
      * 当服务端需要广播实体状态事件给玩家时调用。
      * 参数：实体ID、状态码
      */
-    using EntityStatusCallback = std::function<void(EntityId entityId, u8 status)>;
+    using EntityStatusCallback = std::function<void(EntityInstanceId entityId, u8 status)>;
 
     void setOnBroadcastEntityStatus(EntityStatusCallback callback) { m_onBroadcastEntityStatus = std::move(callback); }
 
@@ -618,7 +618,7 @@ public:
      * @param entityId 实体ID
      * @param animation 动画类型
      */
-    using EntityAnimationCallback = std::function<void(EntityId entityId, u8 animation)>;
+    using EntityAnimationCallback = std::function<void(EntityInstanceId entityId, u8 animation)>;
 
     void setOnBroadcastEntityAnimation(EntityAnimationCallback callback)
     {
@@ -626,7 +626,7 @@ public:
     }
 
     /// 实体受伤动画广播回调（携带 hurtDir，对应 MC ClientboundHurtAnimationPacket）。
-    using HurtAnimationCallback = std::function<void(EntityId entityId, f32 hurtDir)>;
+    using HurtAnimationCallback = std::function<void(EntityInstanceId entityId, f32 hurtDir)>;
 
     void setOnBroadcastHurtAnimation(HurtAnimationCallback callback)
     {
@@ -641,7 +641,7 @@ public:
      * 当拴绳状态变更时广播给客户端，用于绳索渲染同步。
      * 参数：被拴实体ID、持有者实体ID（0=解除拴绳）
      */
-    using SetEntityLinkCallback = std::function<void(EntityId entityId, EntityId linkedEntityId)>;
+    using SetEntityLinkCallback = std::function<void(EntityInstanceId entityId, EntityInstanceId linkedEntityId)>;
 
     void setOnBroadcastSetEntityLink(SetEntityLinkCallback callback)
     {
@@ -707,7 +707,8 @@ public:
      * 对应 MC Java 中的 ServerLevel.destroyBlockProgress()。
      * 参数：破坏者实体ID、位置、进度（0-9 阶段，-1 移除）
      */
-    using BlockBreakProgressCallback = std::function<void(EntityId breakerId, i32 x, i32 y, i32 z, i32 progress)>;
+    using BlockBreakProgressCallback =
+        std::function<void(EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress)>;
 
     void setOnDestroyBlockProgress(BlockBreakProgressCallback callback)
     {
@@ -848,13 +849,13 @@ public:
 
     // ========== 实体状态广播 (IWorld override) ==========
 
-    void broadcastEntityStatus(EntityId entityId, u8 status) override;
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override;
 
-    void broadcastEntityAnimation(EntityId entityId, u8 animation) override;
+    void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation) override;
 
-    void broadcastHurtAnimation(EntityId entityId, f32 hurtDir) override;
+    void broadcastHurtAnimation(EntityInstanceId entityId, f32 hurtDir) override;
 
-    void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId) override;
+    void broadcastSetEntityLink(EntityInstanceId entityId, EntityInstanceId linkedEntityId) override;
 
     void broadcastExplosion(const Vector3& position,
         f32 strength,
@@ -955,10 +956,10 @@ public:
      * @param id 要移除的实体ID
      * @return 被移除的实体所有权，如果实体不存在返回 nullptr
      */
-    std::unique_ptr<Entity> removeEntity(EntityId id);
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override;
-    [[nodiscard]] Entity* getEntity(EntityId id) override;
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override;
+    std::unique_ptr<Entity> removeEntity(EntityInstanceId id);
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override;
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override;
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override;
     [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override;
     [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override;
 

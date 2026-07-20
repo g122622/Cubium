@@ -83,10 +83,10 @@ public:
 
     void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
@@ -125,7 +125,7 @@ protected:
         m_world = std::make_unique<ZombieVillagerTestWorld>();
 
         // 创建僵尸村民
-        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityId(1));
+        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(1));
         m_zombieVillager->setWorld(m_world.get());
         m_zombieVillager->setPosition(0.0, 64.0, 0.0);
     }
@@ -370,10 +370,10 @@ public:
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty d) { m_difficulty = d; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size() + 100);
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size() + 100);
     }
 
     [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
@@ -404,7 +404,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<ZombieVillagerEquipmentTestWorld>();
-        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityId(1));
+        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(1));
         m_zombieVillager->setWorld(m_world.get());
         m_zombieVillager->setPosition(0.0, 64.0, 0.0);
     }

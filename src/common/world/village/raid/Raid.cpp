@@ -81,7 +81,7 @@ i32 Raid::getAliveRaidersCount() const
  *
  * @param raider 袭击者实体 ID。
  */
-void Raid::addRaider(EntityId raider)
+void Raid::addRaider(EntityInstanceId raider)
 {
     if (std::find(m_raiders.begin(), m_raiders.end(), raider) == m_raiders.end()) {
         m_raiders.push_back(raider);
@@ -93,7 +93,7 @@ void Raid::addRaider(EntityId raider)
  *
  * @param raider 袭击者实体 ID。
  */
-void Raid::removeRaider(EntityId raider)
+void Raid::removeRaider(EntityInstanceId raider)
 {
     const auto it = std::find(m_raiders.begin(), m_raiders.end(), raider);
     if (it != m_raiders.end()) {
@@ -111,7 +111,7 @@ void Raid::removeRaider(EntityId raider)
  *       与 Java 版 1.21.11 Raid#tick() 中 `raidCooldownTicks = 300` 一致。
  *       该冷却值会被 _updateBossBar() 用于渲染 Boss 栏的"冷却条"进度。
  */
-void Raid::onRaiderDeath(EntityId raider, IWorld& world)
+void Raid::onRaiderDeath(EntityInstanceId raider, IWorld& world)
 {
     removeRaider(raider);
 
@@ -182,7 +182,7 @@ void Raid::spawnRaiders(IWorld& world)
         const BlockPos pos(
             static_cast<BlockCoord>(basePos.x + offsetX), basePos.y, static_cast<BlockCoord>(basePos.z + offsetZ));
 
-        const EntityId raider = _spawnRaider(world, type, pos);
+        const EntityInstanceId raider = _spawnRaider(world, type, pos);
         if (raider != 0) {
             addRaider(raider);
             waveData.raiders.push_back(raider);
@@ -410,7 +410,7 @@ void Raid::_updateBossBar(IWorld& world)
 f32 Raid::_getHealthOfLivingRaiders(IWorld& world) const
 {
     f32 total = 0.0f;
-    for (const EntityId id : m_raiders) {
+    for (const EntityInstanceId id : m_raiders) {
         const Entity* const entity = world.getEntity(id);
         if (entity == nullptr) {
             continue;
@@ -501,7 +501,7 @@ RaiderType Raid::_selectRaiderType(i32 waveNum, i32 index, i32 total) const
  * @param pos 生成位置。
  * @return 实体 ID，失败返回 0。
  */
-EntityId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
+EntityInstanceId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
 {
     std::unique_ptr<Entity> entity;
 
@@ -538,7 +538,7 @@ EntityId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
         mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
     }
 
-    const EntityId id = world.spawnEntity(std::move(entity));
+    const EntityInstanceId id = world.spawnEntity(std::move(entity));
     if (id != 0) {
         Entity* const spawnedEntity = world.getEntity(id);
         if (auto* const raider = dynamic_cast<AbstractRaiderEntity*>(spawnedEntity)) {
@@ -577,7 +577,7 @@ std::optional<BlockPos> Raid::_findSpawnPosition(IWorld& world) const
 /**
  * @brief 添加英雄（参与袭击的玩家）。
  */
-void Raid::addHero(Uuid playerUuid, EntityId entityId)
+void Raid::addHero(Uuid playerUuid, EntityInstanceId entityId)
 {
     if (m_heroes.find(playerUuid) == m_heroes.end()) {
         m_heroes.insert(playerUuid);

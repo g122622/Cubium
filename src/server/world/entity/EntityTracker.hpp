@@ -46,7 +46,7 @@ class IServer;
  * 存储单个实体的追踪状态，包括哪些玩家正在追踪它。
  */
 struct TrackedEntity {
-    EntityId entityId;
+    EntityInstanceId entityId;
     std::unordered_set<PlayerId> trackingPlayers; // 正在追踪此实体的玩家
     Vector3 lastPosition;                         // 上次同步的位置
     f32 lastYaw = 0.0f;                           // 上次同步的偏航角
@@ -84,20 +84,20 @@ public:
      * @brief 停止追踪一个实体
      * @param entityId 实体ID
      */
-    void untrackEntity(EntityId entityId);
+    void untrackEntity(EntityInstanceId entityId);
 
     /**
      * @brief 停止追踪实体并向当前追踪玩家发送销毁包
      * @param server 服务器接口
      * @param entityId 实体ID
      */
-    void untrackEntity(IServer& server, EntityId entityId);
+    void untrackEntity(IServer& server, EntityInstanceId entityId);
 
     /**
      * @brief 检查实体是否正在被追踪
      * @param entityId 实体ID
      */
-    [[nodiscard]] bool isTracking(EntityId entityId) const;
+    [[nodiscard]] bool isTracking(EntityInstanceId entityId) const;
 
     /**
      * @brief 获取被追踪的实体数量
@@ -130,7 +130,7 @@ public:
      * @param playerId 玩家ID
      * @return 实体ID列表
      */
-    [[nodiscard]] std::vector<EntityId> getPlayerTrackedEntities(PlayerId playerId) const;
+    [[nodiscard]] std::vector<EntityInstanceId> getPlayerTrackedEntities(PlayerId playerId) const;
 
     // ========== 更新 ==========
 
@@ -181,8 +181,8 @@ private:
      * @param playerId 玩家ID
      * @param entityId 实体ID
      */
-    void _sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId);
-    void _sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId);
+    void _sendDestroyPacket(IServer& server, PlayerId playerId, EntityInstanceId entityId);
+    void _sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityInstanceId entityId);
 
     /**
      * @brief 发送实体移动包给玩家
@@ -215,7 +215,7 @@ public:
     /**
      * @brief 向当前追踪该实体的所有玩家稳定广播销毁包。
      */
-    void broadcastDestroyToTrackingPlayers(IServer& server, EntityId entityId);
+    void broadcastDestroyToTrackingPlayers(IServer& server, EntityInstanceId entityId);
 
     /**
      * @brief 向当前追踪该实体的所有玩家重发完整的 item spawn 状态。
@@ -228,10 +228,10 @@ private:
     mutable std::mutex m_mutex;
 
     /// 被追踪的实体 (entityId -> TrackedEntity)
-    std::unordered_map<EntityId, TrackedEntity> m_trackedEntities;
+    std::unordered_map<EntityInstanceId, TrackedEntity> m_trackedEntities;
 
     /// 每个玩家追踪的实体集合 (playerId -> entityIds)
-    std::unordered_map<PlayerId, std::unordered_set<EntityId>> m_playerTrackedEntities;
+    std::unordered_map<PlayerId, std::unordered_set<EntityInstanceId>> m_playerTrackedEntities;
 
     /// 追踪距离（区块）
     i32 m_trackingDistance = 10;

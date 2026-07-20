@@ -40,7 +40,7 @@ namespace mc {
  */
 class StrayEntity : public AbstractSkeletonEntity {
 public:
-    StrayEntity(EntityId id);
+    StrayEntity(EntityInstanceId id);
 
     ~StrayEntity() override = default;
 

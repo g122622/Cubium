@@ -964,7 +964,7 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
 
         // 创建掉落方块实体
         auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
-        fallingEntity->setTypeId(entity::EntityTypes::FALLING_BLOCK);
+        fallingEntity->setTypeId(entity::EntityTypeKeys::FALLING_BLOCK);
         fallingEntity->setPosition(static_cast<f32>(currentPos.x) + 0.5f,
             static_cast<f32>(currentPos.y),
             static_cast<f32>(currentPos.z) + 0.5f);

@@ -416,8 +416,8 @@ private:
     [[nodiscard]] static u32 _calculateEffectsColor(const std::vector<effect::EffectInstance>& effects);
 
     // 效果配置
-    std::vector<effect::EffectInstance> m_effects; ///< 效果列表
-    std::map<EntityId, i32> m_reapplicationMap;    ///< 重应用延迟映射（实体ID -> 下次可应用时间）
+    std::vector<effect::EffectInstance> m_effects;      ///< 效果列表
+    std::map<EntityInstanceId, i32> m_reapplicationMap; ///< 重应用延迟映射（实体ID -> 下次可应用时间）
 
     f32 m_radius = 3.0f;        ///< 当前半径
     f32 m_initialRadius = 3.0f; ///< 初始半径

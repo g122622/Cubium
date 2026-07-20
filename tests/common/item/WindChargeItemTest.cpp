@@ -54,7 +54,7 @@ public:
         throw std::runtime_error("WindChargeTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(entity.get());
         return ++m_lastEntityId;
@@ -69,7 +69,7 @@ public:
     [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
 };
 
@@ -115,7 +115,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_SpawnsEntity_CreativeMode
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -140,7 +140,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_ConsumesItem_SurvivalMode
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -165,7 +165,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_SetsCooldown)
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -185,7 +185,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_FailsDuringCooldown)
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -215,7 +215,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_CanUseAgain_AfterCooldownExpires)
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -246,13 +246,13 @@ TEST_F(WindChargeItemTest, WindChargeItem_CanUseAgain_AfterCooldownExpires)
 
 TEST_F(WindChargeItemTest, WindChargeEntity_CanBeCreated)
 {
-    entity::WindChargeEntity windCharge(EntityId(1));
+    entity::WindChargeEntity windCharge(EntityInstanceId(1));
     EXPECT_TRUE(windCharge.isAlive());
 }
 
 TEST_F(WindChargeItemTest, WindChargeEntity_GravityIsCorrect)
 {
-    entity::WindChargeEntity windCharge(EntityId(1));
+    entity::WindChargeEntity windCharge(EntityInstanceId(1));
     // 风弹重力应与 ThrowableEntity 默认值一致
     EXPECT_FLOAT_EQ(windCharge.getGravity(), 0.03f);
 }

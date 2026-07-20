@@ -81,10 +81,10 @@ public:
         m_gameEvents.push_back({&event, pos, context});
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
@@ -134,7 +134,7 @@ protected:
     {
         VanillaBlocks::initialize();
         VanillaEntities::registerAll();
-        golem_ = std::make_unique<CopperGolemEntity>(EntityId(1));
+        golem_ = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
     }
 
     std::unique_ptr<CopperGolemEntity> golem_;
@@ -513,7 +513,7 @@ TEST_F(CopperGolemEntityTest, NBT_RoundTrip_PreservesWeatherState)
     nbt::tags::compound_tag saveTag;
     golem_->addAdditionalSaveData(saveTag);
 
-    auto golem2 = std::make_unique<CopperGolemEntity>(EntityId(2));
+    auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2));
     auto result = golem2->readAdditionalSaveData(saveTag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -528,7 +528,7 @@ TEST_F(CopperGolemEntityTest, NBT_ReadResetsBehaviorStateToIdle)
     nbt::tags::compound_tag saveTag;
     golem_->addAdditionalSaveData(saveTag);
 
-    auto golem2 = std::make_unique<CopperGolemEntity>(EntityId(2));
+    auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2));
     golem2->setBehaviorState(CopperGolemState::DroppingItem);
     auto result = golem2->readAdditionalSaveData(saveTag);
     EXPECT_TRUE(static_cast<bool>(result));
@@ -549,7 +549,7 @@ TEST_F(CopperGolemEntityTest, NBT_AllWeatherStateStrings_RoundTrip)
     };
 
     for (const auto& c : cases) {
-        auto golem = std::make_unique<CopperGolemEntity>(EntityId(1));
+        auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
         golem->setWeatherState(c.state);
 
         nbt::tags::compound_tag tag;
@@ -559,7 +559,7 @@ TEST_F(CopperGolemEntityTest, NBT_AllWeatherStateStrings_RoundTrip)
         ASSERT_TRUE(strVal.has_value());
         EXPECT_EQ(*strVal, c.str) << "Failed for weather state " << static_cast<i32>(c.state);
 
-        auto golem2 = std::make_unique<CopperGolemEntity>(EntityId(2));
+        auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2));
         auto result = golem2->readAdditionalSaveData(tag);
         EXPECT_TRUE(static_cast<bool>(result));
         EXPECT_EQ(golem2->getWeatherState(), c.state);

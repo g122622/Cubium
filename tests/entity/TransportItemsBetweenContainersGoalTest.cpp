@@ -187,12 +187,12 @@ public:
         // 空实现：测试不关心音效
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         Entity* raw = entity.get();
         m_spawnedEntities.push_back(std::move(entity));
         m_allEntities.push_back(raw);
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
@@ -274,11 +274,14 @@ private:
 // 辅助函数：创建铜傀儡并设置世界和位置
 // ============================================================================
 
-std::unique_ptr<CopperGolemEntity> createCopperGolem(
-    TransportItemsTestWorld& world, EntityId id = EntityId{1}, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
+std::unique_ptr<CopperGolemEntity> createCopperGolem(TransportItemsTestWorld& world,
+    EntityInstanceId id = EntityInstanceId{1},
+    f32 x = 0.0f,
+    f32 y = 64.0f,
+    f32 z = 0.0f)
 {
     auto golem = std::make_unique<CopperGolemEntity>(id);
-    golem->setTypeId(entity::EntityTypes::COPPER_GOLEM);
+    golem->setTypeId(entity::EntityTypeKeys::COPPER_GOLEM);
     golem->setWorld(&world);
     golem->setPosition(x, y, z);
     return golem;
@@ -865,12 +868,12 @@ TEST_F(TransportItemsGoalTestFixture, IsAnotherMobInteracting_NoOtherMob_Returns
 TEST_F(TransportItemsGoalTestFixture, IsAnotherMobInteracting_OtherMobHasContainerOpen_ReturnsTrue)
 {
     // 铜傀儡 A 是 Goal 拥有者
-    auto golemA = createCopperGolem(*m_world, EntityId{1}, 0.0f, 64.0f, 0.0f);
+    auto golemA = createCopperGolem(*m_world, EntityInstanceId{1}, 0.0f, 64.0f, 0.0f);
     CopperGolemEntity* golemAPtr = golemA.get();
     m_world->spawnEntity(std::move(golemA));
 
     // 铜傀儡 B 已打开目标箱子
-    auto golemB = createCopperGolem(*m_world, EntityId{2}, 2.0f, 64.0f, 2.0f);
+    auto golemB = createCopperGolem(*m_world, EntityInstanceId{2}, 2.0f, 64.0f, 2.0f);
     CopperGolemEntity* golemBPtr = golemB.get();
     m_world->spawnEntity(std::move(golemB));
 
@@ -886,11 +889,11 @@ TEST_F(TransportItemsGoalTestFixture, IsAnotherMobInteracting_OtherMobHasContain
 
 TEST_F(TransportItemsGoalTestFixture, IsAnotherMobInteracting_OtherMobOpenedDifferentChest_ReturnsFalse)
 {
-    auto golemA = createCopperGolem(*m_world, EntityId{1}, 0.0f, 64.0f, 0.0f);
+    auto golemA = createCopperGolem(*m_world, EntityInstanceId{1}, 0.0f, 64.0f, 0.0f);
     CopperGolemEntity* golemAPtr = golemA.get();
     m_world->spawnEntity(std::move(golemA));
 
-    auto golemB = createCopperGolem(*m_world, EntityId{2}, 2.0f, 64.0f, 2.0f);
+    auto golemB = createCopperGolem(*m_world, EntityInstanceId{2}, 2.0f, 64.0f, 2.0f);
     CopperGolemEntity* golemBPtr = golemB.get();
     m_world->spawnEntity(std::move(golemB));
 
@@ -964,12 +967,12 @@ TEST_F(TransportItemsGoalTestFixture, StartInteracting_SetsStateToInteracting)
 TEST_F(TransportItemsGoalTestFixture, Tick_TravellingToQueuing_TransitionsWhenOccupiedAndWithinQueueRange)
 {
     // 铜傀儡 A：Goal 拥有者，在排队距离内（2 格）
-    auto golemA = createCopperGolem(*m_world, EntityId{1}, 7.5f, 64.0f, 7.5f);
+    auto golemA = createCopperGolem(*m_world, EntityInstanceId{1}, 7.5f, 64.0f, 7.5f);
     CopperGolemEntity* golemAPtr = golemA.get();
     m_world->spawnEntity(std::move(golemA));
 
     // 铜傀儡 B：已占用目标箱子
-    auto golemB = createCopperGolem(*m_world, EntityId{2}, 6.0f, 64.0f, 6.0f);
+    auto golemB = createCopperGolem(*m_world, EntityInstanceId{2}, 6.0f, 64.0f, 6.0f);
     CopperGolemEntity* golemBPtr = golemB.get();
     m_world->spawnEntity(std::move(golemB));
 
@@ -991,7 +994,7 @@ TEST_F(TransportItemsGoalTestFixture, Tick_TravellingToQueuing_TransitionsWhenOc
 
 TEST_F(TransportItemsGoalTestFixture, Tick_QueuingToTravelling_TransitionsWhenTargetFreed)
 {
-    auto golemA = createCopperGolem(*m_world, EntityId{1}, 7.5f, 64.0f, 7.5f);
+    auto golemA = createCopperGolem(*m_world, EntityInstanceId{1}, 7.5f, 64.0f, 7.5f);
     CopperGolemEntity* golemAPtr = golemA.get();
     m_world->spawnEntity(std::move(golemA));
 
@@ -1016,7 +1019,7 @@ TEST_F(TransportItemsGoalTestFixture, Tick_QueuingToTravelling_TransitionsWhenTa
 
 TEST_F(TransportItemsGoalTestFixture, TickInteracting_Tick1_OpensContainerAndSetsAnimation)
 {
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1051,7 +1054,7 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_Tick1_OpensContainerAndSet
 
 TEST_F(TransportItemsGoalTestFixture, TickInteracting_Tick9_PlaysSound)
 {
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1084,7 +1087,7 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_Tick9_PlaysSound)
 
 TEST_F(TransportItemsGoalTestFixture, TickInteracting_Tick60_TransfersItemsAndClosesContainer)
 {
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1133,7 +1136,7 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_DoubleChest_OpensBothHalve
     // 由于测试环境搭建双箱比较复杂（需要正确的 ChestType 和 facing），
     // 这里通过直接调用 _startInteracting + _tickInteracting 验证转发逻辑
 
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1191,7 +1194,7 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_DoubleChest_OpensBothHalve
 TEST_F(TransportItemsGoalTestFixture, GetCenterPos_ReturnsMiddleYPosition)
 {
     // 对应 MC getCenterPos：铜傀儡脚底 Y + boundingBox 高度的一半
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1209,7 +1212,7 @@ TEST_F(TransportItemsGoalTestFixture, GetCenterPos_ReturnsMiddleYPosition)
 TEST_F(TransportItemsGoalTestFixture, GetInteractionRange_NoPath_ReturnsHalfBlock)
 {
     // 对应 MC getInteractionRange：navigator.getPath() == null 或 path 未完成 → 0.5
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1223,7 +1226,7 @@ TEST_F(TransportItemsGoalTestFixture, GetInteractionRange_NoPath_ReturnsHalfBloc
 TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_EmptyCollisionShape_ReturnsFalse)
 {
     // 目标方块为空气（空碰撞箱）→ 永远不相交
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1242,7 +1245,7 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_EmptyCollisionShape
 TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_FullChestBlock_IntersectsAtShortRange)
 {
     // 铜傀儡紧贴目标箱子（中心距离 < 1），distance=0.5 → 应相交
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1262,7 +1265,7 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_FullChestBlock_Inte
 TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_FullChestBlock_NoIntersectAtLongRange)
 {
     // 铜傀儡远离目标箱子，distance=0.5 → 不应相交
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 20.5f, 64.0f, 20.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 20.5f, 64.0f, 20.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1286,7 +1289,7 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_LargerDistance_Incl
     // 铜傀儡 mobSideAABB minX = 9.5 - 0.245 = 9.255。
     // - distance=3.0：膨胀后 maxX=9，9.255 > 9 → 严格开区间不相交
     // - distance=4.0：膨胀后 maxX=10，9.255 < 10 → 相交
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 9.5f, 64.0f, 9.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 9.5f, 64.0f, 9.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1308,7 +1311,7 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinTargetDistance_LargerDistance_Incl
 TEST_F(TransportItemsGoalTestFixture, IsWithinContinueInteractingDistance_Within2Blocks_ReturnsTrue)
 {
     // 铜傀儡紧贴目标箱子 → 继续交互距离 2.0 内 → 返回 true
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1325,7 +1328,7 @@ TEST_F(TransportItemsGoalTestFixture, IsWithinContinueInteractingDistance_Within
 TEST_F(TransportItemsGoalTestFixture, IsWithinContinueInteractingDistance_Beyond2Blocks_ReturnsFalse)
 {
     // 铜傀儡距目标 5 格 → 超出继续交互距离 2.0 → 返回 false
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 10.5f, 64.0f, 10.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 10.5f, 64.0f, 10.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1349,7 +1352,7 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_GolemMovesAway_AbortsInter
     //   if (!isWithinTargetDistance(2.0, ...)) { onStartTravelling(mob); return; }
     // 铜傀儡在交互过程中被移出 2.0 距离阈值 → 中断交互、回到 Travelling、清除打开位置
 
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 
@@ -1397,7 +1400,7 @@ TEST_F(TransportItemsGoalTestFixture, TickInteracting_GolemStaysClose_ContinuesI
 {
     // 对照测试：铜傀儡保持在继续交互距离内 → 交互序列正常推进到 tick 60
 
-    auto golem = createCopperGolem(*m_world, EntityId{1}, 5.5f, 64.0f, 5.5f);
+    auto golem = createCopperGolem(*m_world, EntityInstanceId{1}, 5.5f, 64.0f, 5.5f);
     CopperGolemEntity* golemPtr = golem.get();
     m_world->spawnEntity(std::move(golem));
 

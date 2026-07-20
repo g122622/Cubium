@@ -70,7 +70,7 @@ std::unique_ptr<entity::ProjectileEntity> SpectralArrowItem::asProjectile(IWorld
 {
     auto entity = entity::SpectralArrowEntity::create(&world);
     if (entity) {
-        entity->setTypeId(entity::EntityTypes::SPECTRAL_ARROW);
+        entity->setTypeId(entity::EntityTypeKeys::SPECTRAL_ARROW);
         entity->setPosition(position.x, position.y, position.z);
         auto* arrow = dynamic_cast<entity::SpectralArrowEntity*>(entity.get());
         if (arrow) {

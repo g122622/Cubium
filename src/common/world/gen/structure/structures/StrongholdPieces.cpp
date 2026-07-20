@@ -1372,7 +1372,7 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
                 BlockEntity* blockEntity = iworld->getBlockEntity(spawnerPos);
                 if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
                     auto* mobSpawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
-                    mobSpawner->setEntityId(ResourceLocation(entity::EntityTypes::SILVERFISH), rng);
+                    mobSpawner->setEntityId(ResourceLocation(entity::EntityTypeKeys::SILVERFISH), rng);
                 }
             }
         }

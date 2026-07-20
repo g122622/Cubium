@@ -196,7 +196,7 @@ TEST_F(BlazeHoverBehaviorTest, IsWaterSensitive_ReturnsTrue)
     // MC 1.21.11: Blaze.isSensitiveToWater() 返回 true
     // tick() 中水伤害条件为 isWaterSensitive() && isWet()，
     // 对齐 MC 原版 LivingEntity.baseTick() 的逻辑
-    BlazeEntity blaze(EntityId(0));
+    BlazeEntity blaze(EntityInstanceId(0));
     EXPECT_TRUE(blaze.isWaterSensitive());
 }
 

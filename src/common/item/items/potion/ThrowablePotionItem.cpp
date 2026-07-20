@@ -72,10 +72,10 @@ void ThrowablePotionItem::playThrowSound(Player& player) const
 std::unique_ptr<entity::ProjectileEntity> ThrowablePotionItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& stack) const
 {
-    auto entity = std::make_unique<entity::PotionEntity>(EntityId(0));
+    auto entity = std::make_unique<entity::PotionEntity>(EntityInstanceId(0));
     entity->setItemStack(stack);
     entity->setLingering(isLingering());
-    entity->setTypeId(entity::EntityTypes::POTION);
+    entity->setTypeId(entity::EntityTypeKeys::POTION);
     return entity;
 }
 

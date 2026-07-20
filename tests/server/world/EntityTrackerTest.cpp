@@ -40,7 +40,7 @@ using namespace mc::server;
 
 class TestEntity : public Entity {
 public:
-    TestEntity(EntityId id)
+    TestEntity(EntityInstanceId id)
         : Entity(id)
     {
         // 设置位置
@@ -52,7 +52,7 @@ public:
 
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity(EntityId id)
+    TestLivingEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -64,7 +64,7 @@ public:
 
 class TestMobEntity : public MobEntity {
 public:
-    TestMobEntity(EntityId id)
+    TestMobEntity(EntityInstanceId id)
         : MobEntity(id)
     {
         registerAttributes();
@@ -221,7 +221,7 @@ TEST_F(EntityTrackerTest, ConcurrentTrackUntrack)
     // 并发追踪和取消追踪
     for (size_t i = 0; i < 10; ++i) {
         threads.emplace_back([this, i]() {
-            const EntityId entityId = static_cast<EntityId>(i);
+            const EntityInstanceId entityId = static_cast<EntityInstanceId>(i);
             TestEntity entity(entityId);
             tracker->trackEntity(&entity);
             tracker->isTracking(entityId);
@@ -245,7 +245,7 @@ TEST_F(EntityTrackerTest, ConcurrentTrackAndCount)
     // 并发追踪和计数
     for (size_t i = 0; i < 10; ++i) {
         threads.emplace_back([this, i, &successCount]() {
-            const EntityId entityId = static_cast<EntityId>(i);
+            const EntityInstanceId entityId = static_cast<EntityInstanceId>(i);
             TestEntity entity(entityId);
             tracker->trackEntity(&entity);
 

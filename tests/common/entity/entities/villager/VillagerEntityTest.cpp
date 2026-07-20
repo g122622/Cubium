@@ -79,12 +79,12 @@ public:
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
     }
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(static_cast<u64>(id));
         return it != m_entities.end() ? it->second : nullptr;
@@ -102,9 +102,9 @@ public:
         throw std::runtime_error("VillagerTestWorld::tickManager not implemented");
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        EntityId id = entity->id();
+        EntityInstanceId id = entity->id();
         m_spawnedEntities.push_back(std::move(entity));
         return id;
     }
@@ -132,7 +132,7 @@ protected:
         VanillaBlocks::initialize();
         VanillaEntities::registerAll();
         m_world = std::make_unique<VillagerTestWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -152,7 +152,7 @@ protected:
 TEST_F(VillagerEntityTest, ReleaseAllPois_NoWorld_EarlyReturn)
 {
     // 村民没有世界时应安全返回
-    VillagerEntity orphanVillager(EntityId(2));
+    VillagerEntity orphanVillager(EntityInstanceId(2));
     // 不调用 setWorld，m_world 为 nullptr
     orphanVillager.releaseAllPois();
     // 不崩溃即可

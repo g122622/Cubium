@@ -2915,28 +2915,28 @@ void Items::_registerBuckets()
     // 鱼桶
     // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
     COD_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:cod_bucket"),
-        mc::entity::EntityTypes::COD,
+        mc::entity::EntityTypeKeys::COD,
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 鲑鱼桶
     SALMON_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:salmon_bucket"),
-        mc::entity::EntityTypes::SALMON,
+        mc::entity::EntityTypeKeys::SALMON,
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 河豚桶
     PUFFERFISH_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:pufferfish_bucket"),
-        mc::entity::EntityTypes::PUFFERFISH,
+        mc::entity::EntityTypeKeys::PUFFERFISH,
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 热带鱼桶
     TROPICAL_FISH_BUCKET =
         &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:tropical_fish_bucket"),
-            mc::entity::EntityTypes::TROPICAL_FISH,
+            mc::entity::EntityTypeKeys::TROPICAL_FISH,
             ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 美西螈桶
     AXOLOTL_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:axolotl_bucket"),
-        mc::entity::EntityTypes::AXOLOTL,
+        mc::entity::EntityTypeKeys::AXOLOTL,
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 牛奶桶 - 清除所有药水效果

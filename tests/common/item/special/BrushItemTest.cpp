@@ -84,7 +84,7 @@ namespace {
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -97,7 +97,7 @@ public:
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(IWorld* world = nullptr)
-        : Player(EntityId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer")
     {
         registerAttributes();
         setHealth(maxHealth());

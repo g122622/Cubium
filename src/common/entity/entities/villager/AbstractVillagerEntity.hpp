@@ -147,7 +147,7 @@ class AbstractVillagerEntity : public AgeableEntity,
                                public INamedContainerProvider,
                                public world::village::trade::IMerchant {
 public:
-    AbstractVillagerEntity(EntityId id);
+    AbstractVillagerEntity(EntityInstanceId id);
     ~AbstractVillagerEntity() override = default;
 
     // ========== Entity 接口重写 ==========

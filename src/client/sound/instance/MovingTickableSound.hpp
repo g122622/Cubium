@@ -51,7 +51,7 @@ public:
     MovingTickableSound(const ResourceLocation& soundEventId,
         SoundCategory category,
         const EntitySoundHandler* handler,
-        EntityId entityId,
+        EntityInstanceId entityId,
         f32 volume,
         f32 pitch);
 
@@ -72,7 +72,7 @@ public:
 
 private:
     const EntitySoundHandler* m_handler;
-    EntityId m_entityId;
+    EntityInstanceId m_entityId;
 };
 
 } // namespace mc::client::sound

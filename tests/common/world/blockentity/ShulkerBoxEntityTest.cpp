@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
@@ -36,7 +37,6 @@
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
@@ -527,7 +527,7 @@ TEST_F(ShulkerBoxEntityTest, CanOpen_WhenBlocked_ReturnsFalse)
     world.setBlockState(10, 20, 30, state);
 
     // 模拟有实体阻挡
-    Entity dummyEntity(EntityId(1));
+    Entity dummyEntity(EntityInstanceId(1));
     world.setEntitiesInAabbResult({&dummyEntity});
 
     // 验证无法打开

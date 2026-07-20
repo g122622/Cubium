@@ -182,9 +182,9 @@ public:
      * 用法示例：海豚不对守卫者反击
      * @code
      * HurtByTargetGoal(this, true, [](const LivingEntity* attacker) {
-     *     auto type = attacker->typeId();
-     *     return type == EntityTypeIdNumber::GUARDIAN ||
-     *            type == EntityTypeIdNumber::ELDER_GUARDIAN;
+     *     auto type = attacker->entityType();
+     *     return type == VanillaEntityTypeKeys::GUARDIAN ||
+     *            type == VanillaEntityTypeKeys::ELDER_GUARDIAN;
      * })
      * @endcode
      */
@@ -209,7 +209,7 @@ public:
      * @code
      * HurtByTargetGoal(this, true)
      *     .setAlertOthers([](const LivingEntity* ally) {
-     *         return ally->typeId() == EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+     *         return ally->entityType() == VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
      *     })
      * @endcode
      */

@@ -115,7 +115,7 @@ private:
 class MockEntityWithTeam : public Entity {
 public:
     MockEntityWithTeam()
-        : Entity(EntityId(1))
+        : Entity(EntityInstanceId(1))
     {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }
@@ -255,14 +255,14 @@ protected:
 TEST_F(TameableGetTeamTest, UntamedTameable_NoTeam)
 {
     // 未驯服的动物没有队伍
-    WolfEntity wolf(EntityId(1));
+    WolfEntity wolf(EntityInstanceId(1));
     EXPECT_EQ(wolf.getTeam(), nullptr);
 }
 
 TEST_F(TameableGetTeamTest, TamedWithoutOwner_NoTeam)
 {
     // 已驯服但没有主人（找不到玩家）时没有队伍
-    WolfEntity wolf(EntityId(1));
+    WolfEntity wolf(EntityInstanceId(1));
     wolf.setTamed(true);
     wolf.setOwnerId(99999); // 不存在的玩家ID
     // 没有世界，getOwner() 返回 nullptr，因此继承不到队伍
@@ -272,7 +272,7 @@ TEST_F(TameableGetTeamTest, TamedWithoutOwner_NoTeam)
 TEST_F(TameableGetTeamTest, UntamedDoesNotInheritTeam)
 {
     // 未驯服的动物不应继承任何队伍
-    WolfEntity wolf(EntityId(1));
+    WolfEntity wolf(EntityInstanceId(1));
     EXPECT_EQ(wolf.getTeam(), nullptr);
     EXPECT_EQ(const_cast<const WolfEntity&>(wolf).getTeam(), nullptr);
 }
@@ -285,7 +285,7 @@ class WolfWantsToAttackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_wolf = std::make_unique<WolfEntity>(EntityId(1));
+        m_wolf = std::make_unique<WolfEntity>(EntityInstanceId(1));
         m_wolf->setTamed(true);
     }
 
@@ -297,21 +297,21 @@ protected:
 TEST_F(WolfWantsToAttackTest, NeverAttackCreeper)
 {
     // 狼不应攻击苦力怕
-    CreeperEntity creeper(EntityId(2));
+    CreeperEntity creeper(EntityInstanceId(2));
     EXPECT_FALSE(m_wolf->wantsToAttack(creeper, nullptr));
 }
 
 TEST_F(WolfWantsToAttackTest, NeverAttackGhast)
 {
     // 狼不应攻击恶魂
-    GhastEntity ghast(EntityId(2));
+    GhastEntity ghast(EntityInstanceId(2));
     EXPECT_FALSE(m_wolf->wantsToAttack(ghast, nullptr));
 }
 
 TEST_F(WolfWantsToAttackTest, AttackUntamedWolf)
 {
     // 狼应攻击未驯服的狼
-    WolfEntity untamedWolf(EntityId(2));
+    WolfEntity untamedWolf(EntityInstanceId(2));
     // untamedWolf 默认 isTamed() == false
     EXPECT_TRUE(m_wolf->wantsToAttack(untamedWolf, nullptr));
 }
@@ -319,7 +319,7 @@ TEST_F(WolfWantsToAttackTest, AttackUntamedWolf)
 TEST_F(WolfWantsToAttackTest, DontAttackTamedWolfWithSameOwner)
 {
     // 不攻击同主人的已驯服狼
-    WolfEntity otherWolf(EntityId(2));
+    WolfEntity otherWolf(EntityInstanceId(2));
     otherWolf.setTamed(true);
     otherWolf.setOwnerId(42);
 
@@ -336,7 +336,7 @@ TEST_F(WolfWantsToAttackTest, TameableDefaultWantsToAttack)
     // 注意：TameableEntity 是抽象类，我们用 WolfEntity 来间接验证
     // 对于非特殊实体，狼应该允许攻击
     // 例如：狼应攻击羊
-    SheepEntity sheep(EntityId(2));
+    SheepEntity sheep(EntityInstanceId(2));
     EXPECT_TRUE(m_wolf->wantsToAttack(sheep, nullptr));
 }
 
@@ -344,18 +344,18 @@ TEST_F(WolfWantsToAttackTest, UntamedWolfAllowAttackAllByDefault)
 {
     // 未驯服的狼也遵循 wantsToAttack 规则（苦力怕等仍不攻击）
     m_wolf->setTamed(false);
-    CreeperEntity creeper(EntityId(2));
+    CreeperEntity creeper(EntityInstanceId(2));
     EXPECT_FALSE(m_wolf->wantsToAttack(creeper, nullptr));
 
     // 但可以攻击羊
-    SheepEntity sheep(EntityId(3));
+    SheepEntity sheep(EntityInstanceId(3));
     EXPECT_TRUE(m_wolf->wantsToAttack(sheep, nullptr));
 }
 
 TEST_F(WolfWantsToAttackTest, DontAttackTamedHorse)
 {
     // 狼不应攻击已驯服的马
-    HorseEntity horse(EntityId(2));
+    HorseEntity horse(EntityInstanceId(2));
     horse.setTame(true);
     EXPECT_FALSE(m_wolf->wantsToAttack(horse, nullptr));
 }
@@ -371,7 +371,7 @@ TEST(ResetAngerGoalUniversalAngerTest, ShouldExecuteChecksGameRule)
     // 且 _shouldGetRevengeOnPlayer() 为 true
 
     // 由于末影人没有世界，getGameRules() 返回 nullptr，shouldExecute 返回 false
-    EndermanEntity enderman(EntityId(1));
+    EndermanEntity enderman(EntityInstanceId(1));
     ResetAngerGoal<EndermanEntity> goal(&enderman, false);
 
     // 没有世界 → getGameRules() 为空 → shouldExecute 返回 false
@@ -387,7 +387,7 @@ TEST(ResetAngerGoalUniversalAngerTest, GameRuleRequired)
 
     // 当没有世界时（无法获取游戏规则），shouldExecute 返回 false
     // 这意味着即使末影人设置了复仇目标，也不会执行
-    EndermanEntity enderman(EntityId(1));
+    EndermanEntity enderman(EntityInstanceId(1));
     enderman.setAngry(true);
     enderman.setAngerTime(100);
     ResetAngerGoal<EndermanEntity> goal(&enderman, false);

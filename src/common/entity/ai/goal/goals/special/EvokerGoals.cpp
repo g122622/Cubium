@@ -25,10 +25,10 @@
 
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -193,7 +193,7 @@ i32 EvokerSummonSpellGoal::_countNearbyVexes() const
             continue;
         }
         // 检查是否为恼鬼实体
-        if (entity->typeId() == entity::EntityTypeIdNumber::VEX) {
+        if (entity->entityType() == entity::VanillaEntityTypeKeys::VEX) {
             vexCount++;
         }
     }
@@ -334,7 +334,7 @@ SheepEntity* EvokerWololoSpellGoal::_findBlueSheep() const
             continue;
         }
         // 检查是否为羊实体
-        if (entity->typeId() == entity::EntityTypeIdNumber::SHEEP) {
+        if (entity->entityType() == entity::VanillaEntityTypeKeys::SHEEP) {
             SheepEntity* sheep = static_cast<SheepEntity*>(entity);
             // 检查羊毛颜色是否为蓝色
             if (sheep->getFleeceColor() == DyeColor::Blue) {

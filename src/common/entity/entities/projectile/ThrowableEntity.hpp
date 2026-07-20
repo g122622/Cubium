@@ -57,7 +57,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit ThrowableEntity(EntityId id);
+    explicit ThrowableEntity(EntityInstanceId id);
 };
 
 } // namespace entity

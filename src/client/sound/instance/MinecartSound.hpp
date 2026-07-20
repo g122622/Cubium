@@ -63,7 +63,7 @@ public:
 
 private:
     EntitySoundHandler* m_handler = nullptr;
-    EntityId m_entityId;
+    EntityInstanceId m_entityId;
     f32 m_distance = 0.0f; // 音量平滑距离值
 };
 
@@ -104,8 +104,8 @@ public:
 
 private:
     EntitySoundHandler* m_handler = nullptr;
-    EntityId m_playerId;
-    EntityId m_minecartId;
+    EntityInstanceId m_playerId;
+    EntityInstanceId m_minecartId;
 };
 
 } // namespace mc::client::sound

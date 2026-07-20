@@ -37,7 +37,7 @@ protected:
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
 
-        m_player = std::make_unique<Player>(static_cast<EntityId>(1), "TestPlayer");
+        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer");
     }
 
     void TearDown() override { m_player.reset(); }

@@ -25,9 +25,9 @@
 
 #include "EntityType.hpp"
 #include "common/core/Result.hpp"
+#include <deque>
 #include <mutex>
 #include <unordered_map>
-#include <vector>
 
 namespace mc {
 
@@ -39,18 +39,22 @@ using mc::Error;
 using mc::ErrorCode;
 using mc::Result;
 
-// 前向声明：EntityTypeIdNumber::reset() 由 clear() 调用以同步重置全局 ID 缓存，
-// 保证"注册表空 ⇔ ID 缓存全 0"不变量。定义在 EntityTypeIdNumber.cpp，
-// 此处仅声明避免循环包含（EntityTypeIdNumber.hpp 经由其它路径可能依赖本头）。
-namespace EntityTypeIdNumber {
+// 前向声明：VanillaEntityTypeKeys::reset() 由 clear() 调用以同步重置全局类型指针缓存，
+// 保证"注册表空 ⇔ 指针缓存全 nullptr"不变量。定义在 VanillaEntityTypeKeys.cpp，
+// 此处仅声明避免循环包含（VanillaEntityTypeKeys.hpp 经由其它路径可能依赖本头）。
+namespace VanillaEntityTypeKeys {
 void reset();
-} // namespace EntityTypeIdNumber
+} // namespace VanillaEntityTypeKeys
 
 /**
  * @brief 实体类型注册表
  *
  * 管理所有实体类型的注册和查询。
- * 支持通过ID、名称或命名空间ID查询实体类型。
+ * 支持通过名称查询实体类型，返回指向注册表内部对象的稳定 const EntityType* 指针。
+ *
+ * 指针稳定性：内部容器使用 std::deque<EntityType>，push_back 不会使已注册对象的
+ * 地址失效，因此 getType() 返回的 const EntityType* 与 VanillaEntityTypeKeys::* 别名
+ * 在注册表未被 clear() 前始终有效，可安全用于指针比较。
  *
  * 使用方式：
  * @code
@@ -81,41 +85,27 @@ public:
      * @return 注册结果
      *
      * 如果资源位置已存在，返回错误。
+     * 注册成功后，type 被存入 deque，其地址保持稳定（供 VanillaEntityTypeKeys 与
+     * Entity::entityType() 缓存持有）。
      */
-    Result<EntityTypeId> registerType(const std::string& resourceLocation, EntityType type)
+    Result<void> registerType(const std::string& resourceLocation, EntityType type)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // 检查是否已存在
-        if (m_nameToId.find(resourceLocation) != m_nameToId.end()) {
+        if (m_nameToIndex.find(resourceLocation) != m_nameToIndex.end()) {
             return Error(ErrorCode::AlreadyExists, "Entity type already registered: " + resourceLocation);
         }
 
-        // 分配ID
-        EntityTypeId id = m_nextId++;
+        // 绑定权威资源位置名
+        type.bindIdentity(resourceLocation);
 
-        // 设置ID和名称
-        type.bindIdentity(id, resourceLocation);
-
-        // 存储
+        // 存入 deque（地址稳定，不失效已有对象）
+        const size_t index = m_types.size();
         m_types.push_back(std::move(type));
-        m_nameToId[resourceLocation] = id;
+        m_nameToIndex[resourceLocation] = index;
 
-        return id;
-    }
-
-    /**
-     * @brief 通过ID获取实体类型
-     * @param id 实体类型ID
-     * @return 实体类型指针，不存在返回nullptr
-     */
-    [[nodiscard]] const EntityType* getType(EntityTypeId id) const
-    {
-        // ID 从 1 开始，vector 索引从 0 开始
-        if (id == 0 || id > static_cast<EntityTypeId>(m_types.size())) {
-            return nullptr;
-        }
-        return &m_types[static_cast<size_t>(id - 1)];
+        return {};
     }
 
     /**
@@ -125,11 +115,11 @@ public:
      */
     [[nodiscard]] const EntityType* getType(const std::string& name) const
     {
-        auto it = m_nameToId.find(name);
-        if (it == m_nameToId.end()) {
+        auto it = m_nameToIndex.find(name);
+        if (it == m_nameToIndex.end()) {
             return nullptr;
         }
-        return getType(it->second);
+        return &m_types[it->second];
     }
 
     /**
@@ -137,12 +127,18 @@ public:
      * @param name 资源位置
      * @return 是否存在
      */
-    [[nodiscard]] bool hasType(const std::string& name) const { return m_nameToId.find(name) != m_nameToId.end(); }
+    [[nodiscard]] bool hasType(const std::string& name) const
+    {
+        return m_nameToIndex.find(name) != m_nameToIndex.end();
+    }
 
     /**
      * @brief 获取所有已注册的实体类型
+     *
+     * 返回 deque 引用，元素地址在注册表未被 clear() 前稳定。
+     * 调用方仅用于迭代（如 EntityTextureLoader 遍历全部类型生成贴图）。
      */
-    [[nodiscard]] const std::vector<EntityType>& getAllTypes() const { return m_types; }
+    [[nodiscard]] const std::deque<EntityType>& getAllTypes() const { return m_types; }
 
     /**
      * @brief 获取已注册的实体类型数量
@@ -152,17 +148,16 @@ public:
     /**
      * @brief 清空所有注册（仅用于测试）
      *
-     * 同时调用 EntityTypeIdNumber::reset() 重置全局缓存的实体类型 ID，
-     * 保证"注册表空 ⇔ ID 缓存全 0"不变量，避免 clear() 后 typeId()==0
-     * 与 EntityTypeIdNumber::ITEM=旧值 比较失败的测试顺序污染。
+     * 顺序：先调用 VanillaEntityTypeKeys::reset() 清空全局指针缓存（避免悬垂），
+     * 再清空 m_types 析构对象。保证"注册表空 ⇔ 指针缓存全 nullptr"不变量，
+     * 避免 clear() 后残留旧指针导致的测试顺序污染。
      */
     void clear()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+        VanillaEntityTypeKeys::reset(); // 先清缓存指针，防悬垂
         m_types.clear();
-        m_nameToId.clear();
-        m_nextId = 1; // 从1开始，0保留
-        EntityTypeIdNumber::reset();
+        m_nameToIndex.clear();
     }
 
     // 禁止拷贝和移动
@@ -172,22 +167,21 @@ public:
     EntityRegistry& operator=(EntityRegistry&&) = delete;
 
 private:
-    EntityRegistry()
-        : m_nextId(1)
-    {} // 0保留给无效ID
+    EntityRegistry() = default;
 
-    std::vector<EntityType> m_types;
-    std::unordered_map<std::string, EntityTypeId> m_nameToId;
-    EntityTypeId m_nextId;
+    std::deque<EntityType> m_types;
+    std::unordered_map<std::string, size_t> m_nameToIndex;
     mutable std::mutex m_mutex;
 };
 
 /**
- * @brief 内置实体类型常量
+ * @brief 内置实体类型资源位置常量
  *
- * 定义常用实体类型的资源位置
+ * 定义常用实体类型的资源位置字符串（如 "minecraft:pig"），供注册与查询使用。
+ * 运行时类型判等请优先使用 VanillaEntityTypeKeys（const EntityType* 指针别名，
+ * 由 VanillaEntities::registerAll() 初始化，指针比较）。
  */
-namespace EntityTypes {
+namespace EntityTypeKeys {
 // 普通动物
 constexpr const char* PIG = "minecraft:pig";
 constexpr const char* COW = "minecraft:cow";
@@ -338,7 +332,7 @@ constexpr const char* OMINOUS_ITEM_SPAWNER = "minecraft:ominous_item_spawner";
 constexpr const char* PAINTING = "minecraft:painting";
 constexpr const char* ITEM_FRAME = "minecraft:item_frame";
 constexpr const char* LEASH_KNOT = "minecraft:leash_knot";
-} // namespace EntityTypes
+} // namespace EntityTypeKeys
 
 } // namespace entity
 } // namespace mc

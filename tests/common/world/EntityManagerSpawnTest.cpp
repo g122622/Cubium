@@ -55,7 +55,7 @@ namespace {
 class ReentrantQueryEntity final : public Entity {
 public:
     explicit ReentrantQueryEntity(EntityManager* manager)
-        : Entity(EntityId(0), nullptr)
+        : Entity(EntityInstanceId(0), nullptr)
         , m_manager(manager)
     {}
 
@@ -82,42 +82,42 @@ private:
 TEST_F(EntityManagerSpawnTest, AddEntity)
 {
     // 创建一个猪实体
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     ASSERT_NE(pig, nullptr);
 
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
     EXPECT_NE(id, 0u);
     EXPECT_TRUE(m_manager.hasEntity(id));
 }
 
 TEST_F(EntityManagerSpawnTest, AddMultipleEntities)
 {
-    std::vector<EntityId> ids;
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    std::vector<EntityInstanceId> ids;
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     for (int i = 0; i < 5; ++i) {
         auto pig = pigType->create(nullptr);
-        EntityId id = m_manager.addEntity(std::move(pig));
+        EntityInstanceId id = m_manager.addEntity(std::move(pig));
         ids.push_back(id);
     }
 
     EXPECT_EQ(m_manager.entityCount(), 5u);
 
-    for (EntityId id : ids) {
+    for (EntityInstanceId id : ids) {
         EXPECT_TRUE(m_manager.hasEntity(id));
     }
 }
 
 TEST_F(EntityManagerSpawnTest, AddDifferentEntityTypes)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
-    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
-    const EntityType* sheepType = EntityRegistry::instance().getType(EntityTypes::SHEEP);
-    const EntityType* chickenType = EntityRegistry::instance().getType(EntityTypes::CHICKEN);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
+    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypeKeys::COW);
+    const EntityType* sheepType = EntityRegistry::instance().getType(EntityTypeKeys::SHEEP);
+    const EntityType* chickenType = EntityRegistry::instance().getType(EntityTypeKeys::CHICKEN);
 
     ASSERT_NE(pigType, nullptr);
     ASSERT_NE(cowType, nullptr);
@@ -129,10 +129,10 @@ TEST_F(EntityManagerSpawnTest, AddDifferentEntityTypes)
     auto sheep = sheepType->create(nullptr);
     auto chicken = chickenType->create(nullptr);
 
-    EntityId pigId = m_manager.addEntity(std::move(pig));
-    EntityId cowId = m_manager.addEntity(std::move(cow));
-    EntityId sheepId = m_manager.addEntity(std::move(sheep));
-    EntityId chickenId = m_manager.addEntity(std::move(chicken));
+    EntityInstanceId pigId = m_manager.addEntity(std::move(pig));
+    EntityInstanceId cowId = m_manager.addEntity(std::move(cow));
+    EntityInstanceId sheepId = m_manager.addEntity(std::move(sheep));
+    EntityInstanceId chickenId = m_manager.addEntity(std::move(chicken));
 
     EXPECT_EQ(m_manager.entityCount(), 4u);
 
@@ -148,13 +148,13 @@ TEST_F(EntityManagerSpawnTest, AddDifferentEntityTypes)
 
 TEST_F(EntityManagerSpawnTest, GetEntity)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     pig->setPosition(10.0f, 64.0f, 20.0f);
 
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     Entity* entity = m_manager.getEntity(id);
     ASSERT_NE(entity, nullptr);
@@ -171,13 +171,13 @@ TEST_F(EntityManagerSpawnTest, GetEntityNotFound)
 
 TEST_F(EntityManagerSpawnTest, GetEntityByType)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
-    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
+    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypeKeys::COW);
     ASSERT_NE(pigType, nullptr);
     ASSERT_NE(cowType, nullptr);
 
-    EntityId pigId = m_manager.addEntity(pigType->create(nullptr));
-    EntityId cowId = m_manager.addEntity(cowType->create(nullptr));
+    EntityInstanceId pigId = m_manager.addEntity(pigType->create(nullptr));
+    EntityInstanceId cowId = m_manager.addEntity(cowType->create(nullptr));
 
     EXPECT_TRUE(m_manager.hasEntity(pigId));
     EXPECT_TRUE(m_manager.hasEntity(cowId));
@@ -190,11 +190,11 @@ TEST_F(EntityManagerSpawnTest, GetEntityByType)
 
 TEST_F(EntityManagerSpawnTest, RemoveEntity)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     EXPECT_TRUE(m_manager.hasEntity(id));
 
@@ -213,13 +213,13 @@ TEST_F(EntityManagerSpawnTest, RemoveNonExistentEntity)
 
 TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
-    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
+    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypeKeys::COW);
     ASSERT_NE(pigType, nullptr);
     ASSERT_NE(cowType, nullptr);
 
     auto pig = pigType->create(nullptr);
-    EntityId id1 = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id1 = m_manager.addEntity(std::move(pig));
     EXPECT_TRUE(m_manager.hasEntity(id1));
     EXPECT_EQ(m_manager.entityCount(), 1u);
 
@@ -228,7 +228,7 @@ TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain)
     EXPECT_EQ(m_manager.entityCount(), 0u);
 
     auto cow = cowType->create(nullptr);
-    EntityId id2 = m_manager.addEntity(std::move(cow));
+    EntityInstanceId id2 = m_manager.addEntity(std::move(cow));
     EXPECT_TRUE(m_manager.hasEntity(id2));
     EXPECT_EQ(m_manager.entityCount(), 1u);
 }
@@ -239,14 +239,14 @@ TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain)
 
 TEST_F(EntityManagerSpawnTest, EntityPositionAfterSpawn)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     pig->setPosition(100.5f, 65.0f, -50.5f);
     pig->setRotation(90.0f, 45.0f);
 
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     Entity* entity = m_manager.getEntity(id);
     ASSERT_NE(entity, nullptr);
@@ -265,7 +265,7 @@ TEST_F(EntityManagerSpawnTest, SpawnFromSpawnedEntityData)
 {
     // 模拟从区块生成获取的 SpawnedEntityData
     SpawnedEntityData data;
-    data.entityTypeId = EntityTypes::COW;
+    data.entityTypeId = EntityTypeKeys::COW;
     data.x = 50.0f;
     data.y = 64.0f;
     data.z = 100.0f;
@@ -280,7 +280,7 @@ TEST_F(EntityManagerSpawnTest, SpawnFromSpawnedEntityData)
 
     entity->setPosition(data.x, data.y, data.z);
 
-    EntityId id = m_manager.addEntity(std::move(entity));
+    EntityInstanceId id = m_manager.addEntity(std::move(entity));
 
     Entity* spawned = m_manager.getEntity(id);
     ASSERT_NE(spawned, nullptr);
@@ -296,7 +296,7 @@ TEST_F(EntityManagerSpawnTest, BatchSpawnFromSpawnedEntityData)
     // 创建多个实体数据
     for (int i = 0; i < 3; ++i) {
         SpawnedEntityData data;
-        data.entityTypeId = EntityTypes::CHICKEN;
+        data.entityTypeId = EntityTypeKeys::CHICKEN;
         data.x = static_cast<f32>(i * 10);
         data.y = 64.0f;
         data.z = static_cast<f32>(i * 10);
@@ -304,7 +304,7 @@ TEST_F(EntityManagerSpawnTest, BatchSpawnFromSpawnedEntityData)
     }
 
     // 批量生成实体
-    std::vector<EntityId> ids;
+    std::vector<EntityInstanceId> ids;
     for (const auto& data : spawnedEntities) {
         auto* entityType = EntityRegistry::instance().getType(data.entityTypeId);
         if (entityType && entityType->canSummon()) {
@@ -324,13 +324,13 @@ TEST_F(EntityManagerSpawnTest, BatchSpawnFromSpawnedEntityData)
 
 TEST_F(EntityManagerSpawnTest, MobEntityIsLivingEntity)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     pig->setPosition(0.0f, 64.0f, 0.0f);
 
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     Entity* entity = m_manager.getEntity(id);
     ASSERT_NE(entity, nullptr);
@@ -342,11 +342,11 @@ TEST_F(EntityManagerSpawnTest, MobEntityIsLivingEntity)
 
 TEST_F(EntityManagerSpawnTest, AnimalEntityIsMobEntity)
 {
-    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypes::COW);
+    const EntityType* cowType = EntityRegistry::instance().getType(EntityTypeKeys::COW);
     ASSERT_NE(cowType, nullptr);
 
     auto cow = cowType->create(nullptr);
-    EntityId id = m_manager.addEntity(std::move(cow));
+    EntityInstanceId id = m_manager.addEntity(std::move(cow));
 
     Entity* entity = m_manager.getEntity(id);
     ASSERT_NE(entity, nullptr);
@@ -366,11 +366,11 @@ TEST_F(EntityManagerSpawnTest, AnimalEntityIsMobEntity)
 
 TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     // 添加多个实体并记录ID
-    std::vector<EntityId> ids;
+    std::vector<EntityInstanceId> ids;
     for (int i = 0; i < 5; ++i) {
         auto pig = pigType->create(nullptr);
         ids.push_back(m_manager.addEntity(std::move(pig)));
@@ -379,7 +379,7 @@ TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities)
     EXPECT_EQ(m_manager.entityCount(), 5u);
 
     // 逐个移除
-    for (EntityId id : ids) {
+    for (EntityInstanceId id : ids) {
         EXPECT_TRUE(m_manager.hasEntity(id));
         m_manager.removeEntity(id);
         EXPECT_FALSE(m_manager.hasEntity(id));
@@ -390,12 +390,12 @@ TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities)
 
 TEST_F(EntityManagerSpawnTest, TickAllowsReentrantRangeQuery)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto queryEntity = std::make_unique<ReentrantQueryEntity>(&m_manager);
     queryEntity->setPosition(0.0f, 64.0f, 0.0f);
-    EntityId queryEntityId = m_manager.addEntity(std::move(queryEntity));
+    EntityInstanceId queryEntityId = m_manager.addEntity(std::move(queryEntity));
 
     auto pig = pigType->create(nullptr);
     ASSERT_NE(pig, nullptr);
@@ -411,12 +411,12 @@ TEST_F(EntityManagerSpawnTest, TickAllowsReentrantRangeQuery)
 
 TEST_F(EntityManagerSpawnTest, ForEachAllowsReentrantQueries)
 {
-    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypes::PIG);
+    const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr);
     ASSERT_NE(pig, nullptr);
-    EntityId id = m_manager.addEntity(std::move(pig));
+    EntityInstanceId id = m_manager.addEntity(std::move(pig));
 
     bool callbackInvoked = false;
     m_manager.forEachEntity([this, id, &callbackInvoked](Entity*) {

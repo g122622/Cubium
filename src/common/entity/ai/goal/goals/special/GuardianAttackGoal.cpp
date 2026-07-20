@@ -28,12 +28,12 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -101,7 +101,7 @@ void GuardianAttackGoal::startExecuting()
     m_tickCounter = -10;
 
     // 检测是否为远古守卫者
-    m_isElder = (m_guardian->typeId() == entity::EntityTypeIdNumber::ELDER_GUARDIAN);
+    m_isElder = (m_guardian->entityType() == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN);
 
     // 清除路径
     m_guardian->navigator()->clearPath();
@@ -227,9 +227,9 @@ LivingEntity* GuardianAttackGoal::_selectTarget() const
             }
 
             // 2. 类型筛选: 只攻击玩家或鱿鱼
-            entity::EntityTypeId type = candidate->typeId();
-            bool isPlayer = (type == entity::EntityTypeIdNumber::PLAYER);
-            bool isSquid = (type == entity::EntityTypeIdNumber::SQUID);
+            const entity::EntityType* type = candidate->entityType();
+            bool isPlayer = (type == entity::VanillaEntityTypeKeys::PLAYER);
+            bool isSquid = (type == entity::VanillaEntityTypeKeys::SQUID);
             if (!isPlayer && !isSquid) {
                 return false;
             }

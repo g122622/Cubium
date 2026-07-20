@@ -73,7 +73,7 @@ public:
     /**
      * @brief 构造函数
      */
-    VillagerEntity(EntityId id);
+    VillagerEntity(EntityInstanceId id);
 
     ~VillagerEntity() noexcept override = default;
 
@@ -499,7 +499,7 @@ public:
     /**
      * @brief 构造函数
      */
-    WanderingTraderEntity(EntityId id);
+    WanderingTraderEntity(EntityInstanceId id);
 
     ~WanderingTraderEntity() noexcept override = default;
 

@@ -43,7 +43,7 @@ class ProjectileHelperTestWorld : public test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -53,7 +53,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -110,7 +110,7 @@ private:
 
 class TestTargetEntity : public Entity {
 public:
-    TestTargetEntity(EntityId id, bool collidable)
+    TestTargetEntity(EntityInstanceId id, bool collidable)
         : Entity(id)
         , m_collidable(collidable)
     {}
@@ -123,14 +123,14 @@ private:
 
 class RotationProbeEntity : public Entity {
 public:
-    explicit RotationProbeEntity(EntityId id)
+    explicit RotationProbeEntity(EntityInstanceId id)
         : Entity(id)
     {}
 };
 
 class ExposedProjectileEntity : public entity::ProjectileEntity {
 public:
-    explicit ExposedProjectileEntity(EntityId id)
+    explicit ExposedProjectileEntity(EntityInstanceId id)
         : ProjectileEntity(id)
     {}
 

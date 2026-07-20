@@ -246,7 +246,7 @@ Entity (core/Entity.hpp)
 
 ### 实体类型标识符
 
-使用 `entity->typeId()` 与 `EntityTypeIdNumber` 命名空间常量比较，不要使用已废弃的 `LegacyEntityType` 枚举。`EntityTypeIdNumber` 变量在 `VanillaEntities::registerAll()` 后初始化，确保在实体类型注册后使用。
+使用 `entity->entityType()` 与 `VanillaEntityTypeKeys` 命名空间常量比较，不要使用已废弃的 `LegacyEntityType` 枚举。`VanillaEntityTypeKeys` 中的指针在 `VanillaEntities::registerAll()` 后初始化，确保在实体类型注册后使用。
 
 ### 继承层次与接口
 

@@ -34,11 +34,12 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include <memory>
 
 namespace mc {
 
-VexEntity::VexEntity(EntityId id)
+VexEntity::VexEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 恼鬼使用专用的飞行移动控制器
@@ -50,7 +51,7 @@ VexEntity::VexEntity(EntityId id)
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<VexEntity>(EntityId(0));
+    return std::make_unique<VexEntity>(EntityInstanceId(0));
 }
 
 void VexEntity::tick()
@@ -93,7 +94,7 @@ void VexEntity::registerGoals()
     // 优先级 9: 看向玩家（距离3格，概率1.0）
     m_goalSelector.addGoal(
         9, std::make_unique<entity::ai::goal::LookAtGoal>(this, 3.0f, 1.0f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 10: 看向生物（距离8格）

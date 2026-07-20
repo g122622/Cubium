@@ -38,7 +38,7 @@ namespace mc {
  */
 class ChickenEntity : public AnimalEntity {
 public:
-    ChickenEntity(EntityId id);
+    ChickenEntity(EntityInstanceId id);
     ~ChickenEntity() noexcept override = default;
 
     /**

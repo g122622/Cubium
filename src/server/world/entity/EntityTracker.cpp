@@ -70,7 +70,7 @@ void EntityTracker::trackEntity(Entity* entity)
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    EntityId entityId = entity->id();
+    EntityInstanceId entityId = entity->id();
     if (m_trackedEntities.find(entityId) != m_trackedEntities.end()) {
         return; // 已经在追踪
     }
@@ -85,7 +85,7 @@ void EntityTracker::trackEntity(Entity* entity)
     m_trackedEntities[entityId] = tracked;
 }
 
-void EntityTracker::untrackEntity(EntityId entityId)
+void EntityTracker::untrackEntity(EntityInstanceId entityId)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -105,7 +105,7 @@ void EntityTracker::untrackEntity(EntityId entityId)
     m_trackedEntities.erase(it);
 }
 
-void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
+void EntityTracker::untrackEntity(IServer& server, EntityInstanceId entityId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "EntityTracker::untrackEntity", "entityId", entityId);
 
@@ -135,7 +135,7 @@ void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
     }
 }
 
-void EntityTracker::broadcastDestroyToTrackingPlayers(IServer& server, EntityId entityId)
+void EntityTracker::broadcastDestroyToTrackingPlayers(IServer& server, EntityInstanceId entityId)
 {
     std::vector<PlayerId> trackingPlayers;
     {
@@ -180,7 +180,7 @@ void EntityTracker::broadcastItemEntityResync(IServer& server, const Entity& ent
     }
 }
 
-bool EntityTracker::isTracking(EntityId entityId) const
+bool EntityTracker::isTracking(EntityInstanceId entityId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_trackedEntities.find(entityId) != m_trackedEntities.end();
@@ -201,8 +201,8 @@ void EntityTracker::updatePlayerTracking(
 
     // 获取玩家当前追踪的实体集合
     auto& trackedSet = m_playerTrackedEntities[playerId];
-    std::vector<EntityId> toStartTracking;
-    std::vector<EntityId> toStopTracking;
+    std::vector<EntityInstanceId> toStartTracking;
+    std::vector<EntityInstanceId> toStopTracking;
 
     // 检查所有被追踪的实体
     for (auto& [entityId, tracked] : m_trackedEntities) {
@@ -223,7 +223,7 @@ void EntityTracker::updatePlayerTracking(
     }
 
     // 开始追踪新实体
-    for (EntityId entityId : toStartTracking) {
+    for (EntityInstanceId entityId : toStartTracking) {
         Entity* entity = world.entityManager().getEntity(entityId);
         if (entity) {
             _sendSpawnPacket(server, playerId, entity);
@@ -233,7 +233,7 @@ void EntityTracker::updatePlayerTracking(
     }
 
     // 停止追踪实体
-    for (EntityId entityId : toStopTracking) {
+    for (EntityInstanceId entityId : toStopTracking) {
         _sendDestroyPacket(server, playerId, entityId);
         trackedSet.erase(entityId);
         m_trackedEntities[entityId].trackingPlayers.erase(playerId);
@@ -250,7 +250,7 @@ void EntityTracker::removePlayer(PlayerId playerId)
     }
 
     // 从所有实体的追踪玩家列表中移除此玩家
-    for (EntityId entityId : trackedSet->second) {
+    for (EntityInstanceId entityId : trackedSet->second) {
         auto it = m_trackedEntities.find(entityId);
         if (it != m_trackedEntities.end()) {
             it->second.trackingPlayers.erase(playerId);
@@ -260,15 +260,15 @@ void EntityTracker::removePlayer(PlayerId playerId)
     m_playerTrackedEntities.erase(trackedSet);
 }
 
-std::vector<EntityId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId) const
+std::vector<EntityInstanceId> EntityTracker::getPlayerTrackedEntities(PlayerId playerId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::vector<EntityId> result;
+    std::vector<EntityInstanceId> result;
     auto it = m_playerTrackedEntities.find(playerId);
     if (it != m_playerTrackedEntities.end()) {
         result.reserve(it->second.size());
-        for (EntityId entityId : it->second) {
+        for (EntityInstanceId entityId : it->second) {
             result.push_back(entityId);
         }
     }
@@ -279,8 +279,8 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity, "EntityTracker::tick", "trackedCount", m_trackedEntities.size());
 
-    std::vector<std::pair<EntityId, std::vector<PlayerId>>> removedEntities;
-    std::vector<EntityId> entitiesToErase;
+    std::vector<std::pair<EntityInstanceId, std::vector<PlayerId>>> removedEntities;
+    std::vector<EntityInstanceId> entitiesToErase;
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -349,7 +349,7 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
             }
         }
 
-        for (EntityId entityId : entitiesToErase) {
+        for (EntityInstanceId entityId : entitiesToErase) {
             for (auto& [_, trackedSet] : m_playerTrackedEntities) {
                 trackedSet.erase(entityId);
             }
@@ -514,13 +514,13 @@ void EntityTracker::_sendMetadataPacket(
     }
 }
 
-void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId)
+void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, EntityInstanceId entityId)
 {
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
     network::EntityDestroyPacket packet;
-    packet.addEntityId(static_cast<u32>(entityId)); // EntityId 转 u32（协议限制）
+    packet.addEntityId(static_cast<u32>(entityId)); // EntityInstanceId 转 u32（协议限制）
 
     auto result = packet.serialize();
     if (result.success()) {
@@ -536,7 +536,8 @@ void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, Entit
     }
 }
 
-void EntityTracker::_sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId)
+void EntityTracker::_sendDestroyPacket(
+    IServer& server, const std::vector<PlayerId>& playerIds, EntityInstanceId entityId)
 {
     for (PlayerId playerId : playerIds) {
         _sendDestroyPacket(server, playerId, entityId);
@@ -552,7 +553,7 @@ void EntityTracker::_sendMovePacket(IServer& server, PlayerId playerId, Entity* 
 
     // 发送传送包（完整位置）
     network::EntityTeleportPacket packet;
-    packet.setEntityId(static_cast<u32>(entity->id())); // EntityId 转 u32（协议限制）
+    packet.setEntityId(static_cast<u32>(entity->id())); // EntityInstanceId 转 u32（协议限制）
     packet.setPosition(entity->x(), entity->y(), entity->z());
     packet.setRotation(entity->yaw(), entity->pitch());
     packet.setOnGround(entity->onGround());

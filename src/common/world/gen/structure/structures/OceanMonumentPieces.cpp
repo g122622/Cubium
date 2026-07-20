@@ -268,7 +268,7 @@ bool OceanMonumentPiece::spawnElderGuardian(
         mobEntity->finalizeSpawn(*fullWorld, difficultyInstance, world::spawn::SpawnReason::Structure);
     }
 
-    return fullWorld->spawnEntity(std::move(elder)) != EntityId(0);
+    return fullWorld->spawnEntity(std::move(elder)) != EntityInstanceId(0);
 }
 
 OceanMonumentDoubleXRoom::OceanMonumentDoubleXRoom(Direction direction, OceanMonumentRoomDefinition* room)

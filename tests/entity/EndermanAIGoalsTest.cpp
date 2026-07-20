@@ -46,7 +46,7 @@ using namespace mc::entity::ai;
 class TestCreature : public CreatureEntity {
 public:
     TestCreature()
-        : CreatureEntity(EntityId(1))
+        : CreatureEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -175,7 +175,7 @@ protected:
     void SetUp() override
     {
         // 使用已实例化的 EndermanEntity
-        enderman = std::make_unique<EndermanEntity>(EntityId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
     }
 
     void TearDown() override { enderman.reset(); }
@@ -271,7 +271,7 @@ class EndermanAIGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(EntityId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
         // registerAttributes 在构造函数中已调用
     }
 

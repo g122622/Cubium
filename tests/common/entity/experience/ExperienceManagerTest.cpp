@@ -35,7 +35,7 @@ class ExperienceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
         // 使用 Player 内部的 ExperienceManager
         manager = &player->experienceManager();
     }

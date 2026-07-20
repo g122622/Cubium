@@ -722,7 +722,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     _sendPlayerInventory();
 
     spdlog::info(
-        "Player '{}' (PlayerId={}, EntityId={}) joined the game", username, m_clientPlayerId, m_clientEntityId);
+        "Player '{}' (PlayerId={}, EntityInstanceId={}) joined the game", username, m_clientPlayerId, m_clientEntityId);
 }
 
 void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size)
@@ -855,7 +855,7 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // ============================================================================
 
 void IntegratedServer::_sendLoginResponse(
-    bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message)
+    bool success, PlayerId playerId, EntityInstanceId entityId, const std::string& username, const std::string& message)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "IntegratedServer::_sendLoginResponse",
@@ -977,7 +977,7 @@ void IntegratedServer::_sendToClient(const u8* data, size_t size)
     }
 }
 
-void IntegratedServer::_sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage)
+void IntegratedServer::_sendBlockBreakAnim(EntityInstanceId breakerId, i32 x, i32 y, i32 z, i8 stage)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "IntegratedServer::_sendBlockBreakAnim",
@@ -1347,7 +1347,7 @@ void IntegratedServer::_onRemoteClientDisconnect(TcpSession* session, const std:
 void IntegratedServer::_sendLoginResponseToSession(TcpSession* session,
     bool success,
     PlayerId playerId,
-    EntityId entityId,
+    EntityInstanceId entityId,
     const std::string& username,
     const std::string& message)
 {
@@ -1464,7 +1464,7 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
     m_dimensionManager->playerJoinDimension(playerId, overworldDim->id());
 
     // 记录实体ID
-    EntityId entityId = playerEntity->id();
+    EntityInstanceId entityId = playerEntity->id();
     {
         std::lock_guard<std::mutex> lock(m_remotePlayersMutex);
         m_remotePlayerEntityIds[playerId] = entityId;
@@ -1511,7 +1511,7 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
     // 同步物品栏到客户端
     inventoryManager().syncToClient(playerId);
 
-    spdlog::info("Remote player '{}' (ID: {}, EntityId: {}) joined the LAN game", username, playerId, entityId);
+    spdlog::info("Remote player '{}' (ID: {}, EntityInstanceId: {}) joined the LAN game", username, playerId, entityId);
 }
 
 } // namespace mc::server

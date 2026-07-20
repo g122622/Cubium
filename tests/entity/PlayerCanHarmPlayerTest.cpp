@@ -119,7 +119,7 @@ private:
 class CanHarmPlayerMockPlayer : public Player {
 public:
     explicit CanHarmPlayerMockPlayer(const std::string& name = "TestPlayer")
-        : Player(EntityId(1), name)
+        : Player(EntityInstanceId(1), name)
     {}
 
     void setMockTeam(scoreboard::Team* team) { m_mockTeam = team; }

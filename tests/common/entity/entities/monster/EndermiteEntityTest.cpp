@@ -74,10 +74,10 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // TickManager interface (stubbed for tests)
@@ -121,7 +121,7 @@ TEST_F(EndermiteEntityTest, Create_ReturnsValidEntity)
 
 TEST_F(EndermiteEntityTest, Constructor_SetsCorrectDefaults)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     endermite.setWorld(&m_world);
 
     // 验证不在阳光下燃烧
@@ -136,7 +136,7 @@ TEST_F(EndermiteEntityTest, Constructor_SetsCorrectDefaults)
 
 TEST_F(EndermiteEntityTest, Attributes_HaveCorrectValues)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     endermite.setWorld(&m_world);
     // registerAttributes 在 MonsterEntity 构造函数中被调用
 
@@ -153,7 +153,7 @@ TEST_F(EndermiteEntityTest, Attributes_HaveCorrectValues)
 
 TEST_F(EndermiteEntityTest, LifetimeIncrements_OnTick_WhenNotPersistent)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     endermite.setWorld(&m_world);
 
     // 未持久化的末影螨
@@ -171,7 +171,7 @@ TEST_F(EndermiteEntityTest, LifetimeIncrements_OnTick_WhenNotPersistent)
 
 TEST_F(EndermiteEntityTest, DoesNotDespawn_WhenPersistent)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     endermite.setWorld(&m_world);
 
     // 设置为持久化
@@ -190,7 +190,7 @@ TEST_F(EndermiteEntityTest, DoesNotDespawn_WhenPersistent)
 
 TEST_F(EndermiteEntityTest, Despawns_After2400Ticks_WhenNotPersistent)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     endermite.setWorld(&m_world);
 
     // 确认未持久化
@@ -226,13 +226,13 @@ TEST_F(EndermiteEntityTest, DespawnTime_Is2400Ticks)
 
 TEST_F(EndermiteEntityTest, SpawnedByPlayer_DefaultFalse)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     EXPECT_FALSE(endermite.isSpawnedByPlayer());
 }
 
 TEST_F(EndermiteEntityTest, SpawnedByPlayer_CanBeSet)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
 
     endermite.setSpawnedByPlayer(true);
     EXPECT_TRUE(endermite.isSpawnedByPlayer());
@@ -245,7 +245,7 @@ TEST_F(EndermiteEntityTest, SpawnedByPlayer_CanBeSet)
 
 TEST_F(EndermiteEntityTest, Goals_RegisteredCorrectly)
 {
-    EndermiteEntity endermite(EntityId(1));
+    EndermiteEntity endermite(EntityInstanceId(1));
     endermite.setWorld(&m_world);
 
     // 验证 goalSelector 和 targetSelector 不为空
@@ -272,7 +272,7 @@ TEST_F(SilverfishEntityTest, Create_ReturnsValidEntity)
 
 TEST_F(SilverfishEntityTest, Constructor_SetsCorrectDefaults)
 {
-    SilverfishEntity silverfish(EntityId(1));
+    SilverfishEntity silverfish(EntityInstanceId(1));
     silverfish.setWorld(&m_world);
 
     // 验证不在阳光下燃烧
@@ -287,7 +287,7 @@ TEST_F(SilverfishEntityTest, Constructor_SetsCorrectDefaults)
 
 TEST_F(SilverfishEntityTest, Attributes_HaveCorrectValues)
 {
-    SilverfishEntity silverfish(EntityId(1));
+    SilverfishEntity silverfish(EntityInstanceId(1));
     silverfish.setWorld(&m_world);
     // registerAttributes 在 MonsterEntity 构造函数中被调用
 
@@ -302,7 +302,7 @@ TEST_F(SilverfishEntityTest, Attributes_HaveCorrectValues)
 
 TEST_F(SilverfishEntityTest, SummonCooldown_InitializedToZero)
 {
-    SilverfishEntity silverfish(EntityId(1));
+    SilverfishEntity silverfish(EntityInstanceId(1));
     silverfish.setWorld(&m_world);
 
     // 召唤冷却初始化为 0
@@ -316,7 +316,7 @@ TEST_F(SilverfishEntityTest, SummonCooldown_InitializedToZero)
 
 TEST_F(SilverfishEntityTest, NotifySummonCooldown_SetsCooldown)
 {
-    SilverfishEntity silverfish(EntityId(1));
+    SilverfishEntity silverfish(EntityInstanceId(1));
     silverfish.setWorld(&m_world);
 
     // 调用通知方法设置冷却
@@ -328,7 +328,7 @@ TEST_F(SilverfishEntityTest, NotifySummonCooldown_SetsCooldown)
 
 TEST_F(SilverfishEntityTest, Goals_RegisteredCorrectly)
 {
-    SilverfishEntity silverfish(EntityId(1));
+    SilverfishEntity silverfish(EntityInstanceId(1));
     silverfish.setWorld(&m_world);
 
     // 验证注册不会崩溃（registerGoals 在构造函数中被调用）
@@ -337,7 +337,7 @@ TEST_F(SilverfishEntityTest, Goals_RegisteredCorrectly)
 
 TEST_F(SilverfishEntityTest, Tick_SyncsRenderYawOffset)
 {
-    SilverfishEntity silverfish(EntityId(1));
+    SilverfishEntity silverfish(EntityInstanceId(1));
     silverfish.setWorld(&m_world);
 
     // 设置旋转角度

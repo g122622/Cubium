@@ -118,7 +118,7 @@ AnimationState 字段说明：
 
 **依赖本模块的地方：**
 - `VanillaEntities::registerAll()` — 注册旋风人实体类型
-- `EntityTypeIdNumber` — 旋风人实体类型ID缓存
+- `VanillaEntityTypeKeys` — 旋风人实体类型指针缓存
 
 **本模块依赖：**
 - `MonsterEntity` — 敌对生物基类

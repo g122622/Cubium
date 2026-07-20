@@ -79,7 +79,7 @@ std::unique_ptr<entity::ProjectileEntity> TippedArrowItem::asProjectile(IWorld& 
 {
     auto entity = entity::ArrowEntity::create(&world);
     if (entity) {
-        entity->setTypeId(entity::EntityTypes::ARROW);
+        entity->setTypeId(entity::EntityTypeKeys::ARROW);
         entity->setPosition(position.x, position.y, position.z);
         auto* arrow = dynamic_cast<entity::ArrowEntity*>(entity.get());
         if (arrow) {

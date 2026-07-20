@@ -55,7 +55,7 @@ public:
      * @param type 实体类型。
      * @param id 实体 ID。
      */
-    AbstractRaiderEntity(EntityId id);
+    AbstractRaiderEntity(EntityInstanceId id);
 
     ~AbstractRaiderEntity() override = default;
     AbstractRaiderEntity(const AbstractRaiderEntity&) = delete;

@@ -24,9 +24,9 @@
 #include "WindChargeEntity.hpp"
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -79,13 +79,13 @@ constexpr f32 WIND_BURST_PITCH = 1.0f;
 // 构造函数
 // ============================================================================
 
-WindChargeEntity::WindChargeEntity(EntityId id)
+WindChargeEntity::WindChargeEntity(EntityInstanceId id)
     : ThrowableEntity(id)
 {}
 
 std::unique_ptr<Entity> WindChargeEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<WindChargeEntity>(EntityId(0));
+    return std::make_unique<WindChargeEntity>(EntityInstanceId(0));
 }
 
 // ============================================================================
@@ -104,7 +104,7 @@ void WindChargeEntity::onEntityHit(const RayTraceResult& result)
         // 与 MC 1.21.11 一致：风爆伤害不绕过护甲（不在 DamageTypeTags::BYPASSES_ARMOR 中）
         // 对应 MC: DamageSources.windCharge(this, target)
         Entity* shooter = getShooter();
-        bool isPlayer = shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        bool isPlayer = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         auto damageSource = DamageSources::windBurst(this, shooter, isPlayer);
         living->hurt(damageSource, PLAYER_DAMAGE);
     }
@@ -145,7 +145,7 @@ f32 WindChargeEntity::getExplosionRadius() const
     // 玩家投掷风弹：半径 1.2
     // 旋风人投掷风弹：半径 3.0
     Entity* shooter = getShooter();
-    if (shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::BREEZE) {
+    if (shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::BREEZE) {
         return BREEZE_EXPLOSION_RADIUS;
     }
     return PLAYER_EXPLOSION_RADIUS;
@@ -156,7 +156,7 @@ f32 WindChargeEntity::getKnockbackMultiplier() const
     // 玩家投掷风弹：击退乘数 1.22
     // 旋风人投掷风弹：默认 1.0
     Entity* shooter = getShooter();
-    if (shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::BREEZE) {
+    if (shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::BREEZE) {
         return BREEZE_KNOCKBACK_MULTIPLIER;
     }
     return PLAYER_KNOCKBACK_MULTIPLIER;
@@ -291,7 +291,7 @@ void WindChargeEntity::applyWindBurst()
             // 风弹对玩家造成 1 点风爆伤害（与 onEntityHit 中的伤害一致）
             // 对应 MC: DamageSources.windCharge(this, target)
             Entity* shooter = getShooter();
-            bool isPlayerShooter = shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            bool isPlayerShooter = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
             auto damageSource = DamageSources::windBurst(this, shooter, isPlayerShooter);
             player->hurt(damageSource, PLAYER_DAMAGE);
 
@@ -394,7 +394,7 @@ void WindChargeEntity::_playWindBurstSound(const Vector3& pos) const
     // 玩家风弹使用 ENTITY_WIND_CHARGE_WIND_BURST
     // 旋风人风弹使用 ENTITY_BREEZE_WIND_CHARGE_BURST
     Entity* shooter = getShooter();
-    bool isBreeze = shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::BREEZE;
+    bool isBreeze = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::BREEZE;
 
     const ResourceLocation& soundEvent =
         isBreeze ? SoundEvents::ENTITY_BREEZE_WIND_CHARGE_BURST : SoundEvents::ENTITY_WIND_CHARGE_WIND_BURST;

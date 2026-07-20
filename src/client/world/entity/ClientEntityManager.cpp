@@ -29,7 +29,7 @@
 
 namespace mc::client {
 
-ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& typeId)
+ClientEntity* ClientEntityManager::spawnEntity(EntityInstanceId id, const std::string& typeId)
 {
     // 检查是否已存在
     if (m_entities.find(id) != m_entities.end()) {
@@ -61,7 +61,8 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& t
     return ptr;
 }
 
-ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId playerId, const std::string& username)
+ClientEntity* ClientEntityManager::spawnLocalPlayer(
+    EntityInstanceId entityId, PlayerId playerId, const std::string& username)
 {
     // 如果已有本地玩家，先清除
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
@@ -69,7 +70,7 @@ ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId 
     }
 
     // 创建本地玩家实体
-    auto entity = std::make_unique<ClientEntity>(entityId, mc::entity::EntityTypes::PLAYER);
+    auto entity = std::make_unique<ClientEntity>(entityId, mc::entity::EntityTypeKeys::PLAYER);
     auto* ptr = entity.get();
 
     // 玩家实体使用标准尺寸和站立眼高
@@ -86,7 +87,7 @@ ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId 
     return ptr;
 }
 
-bool ClientEntityManager::removeEntity(EntityId id)
+bool ClientEntityManager::removeEntity(EntityInstanceId id)
 {
     // 不能移除本地玩家
     if (id == m_localPlayerEntityId) {
@@ -104,7 +105,7 @@ bool ClientEntityManager::removeEntity(EntityId id)
     return true;
 }
 
-ClientEntity* ClientEntityManager::getEntity(EntityId id)
+ClientEntity* ClientEntityManager::getEntity(EntityInstanceId id)
 {
     auto it = m_entities.find(id);
     if (it == m_entities.end()) {
@@ -113,7 +114,7 @@ ClientEntity* ClientEntityManager::getEntity(EntityId id)
     return it->second.get();
 }
 
-const ClientEntity* ClientEntityManager::getEntity(EntityId id) const
+const ClientEntity* ClientEntityManager::getEntity(EntityInstanceId id) const
 {
     auto it = m_entities.find(id);
     if (it == m_entities.end()) {
@@ -122,7 +123,7 @@ const ClientEntity* ClientEntityManager::getEntity(EntityId id) const
     return it->second.get();
 }
 
-bool ClientEntityManager::hasEntity(EntityId id) const
+bool ClientEntityManager::hasEntity(EntityInstanceId id) const
 {
     return m_entities.find(id) != m_entities.end();
 }
@@ -170,7 +171,7 @@ const ClientEntity* ClientEntityManager::localPlayer() const
     return getEntity(m_localPlayerEntityId);
 }
 
-bool ClientEntityManager::isLocalPlayer(EntityId entityId) const
+bool ClientEntityManager::isLocalPlayer(EntityInstanceId entityId) const
 {
     return entityId == m_localPlayerEntityId;
 }
@@ -213,26 +214,26 @@ void ClientEntityManager::forEachRemoteEntity(std::function<void(ClientEntity&)>
 
 void ClientEntityManager::removeDeadEntities()
 {
-    for (EntityId id : m_entitiesToRemove) {
+    for (EntityInstanceId id : m_entitiesToRemove) {
         m_entities.erase(id);
     }
     m_entitiesToRemove.clear();
 }
 
-std::vector<EntityId> ClientEntityManager::getEntitiesByType(const std::string& typeId) const
+std::vector<EntityInstanceId> ClientEntityManager::getEntitiesByType(const std::string& typeId) const
 {
-    std::vector<EntityId> result;
+    std::vector<EntityInstanceId> result;
     for (const auto& [id, entity] : m_entities) {
-        if (entity && entity->isAlive() && entity->typeId() == typeId) {
+        if (entity && entity->isAlive() && entity->getTypeId() == typeId) {
             result.push_back(id);
         }
     }
     return result;
 }
 
-std::vector<EntityId> ClientEntityManager::getEntitiesInRange(f32 x, f32 y, f32 z, f32 radius) const
+std::vector<EntityInstanceId> ClientEntityManager::getEntitiesInRange(f32 x, f32 y, f32 z, f32 radius) const
 {
-    std::vector<EntityId> result;
+    std::vector<EntityInstanceId> result;
     f32 radiusSq = radius * radius;
 
     for (const auto& [id, entity] : m_entities) {
@@ -268,12 +269,12 @@ void ClientEntityManager::tick()
             // 凋灵侧头朝向：客户端不运行 WitherEntity::aiStep()，
             // 在此调用 tickWitherSideHeads 本地镜像 MC 1.21.11 WitherBoss.aiStep()
             // 的侧头朝向计算逻辑。仅对凋灵实体有效。
-            const std::string& typeId = entity->typeId();
+            const std::string& typeId = entity->getTypeId();
             if (typeId == "minecraft:wither" || typeId == "wither") {
                 // 实体查找回调：通过 this->getEntity(id) 查找目标实体
                 // 使用引用捕获 this，避免拷贝；回调在当前 tick 内立即使用，生命周期安全。
                 entity->tickWitherSideHeads(
-                    [this](EntityId targetId) -> const ClientEntity* { return this->getEntity(targetId); });
+                    [this](EntityInstanceId targetId) -> const ClientEntity* { return this->getEntity(targetId); });
             }
         }
     }

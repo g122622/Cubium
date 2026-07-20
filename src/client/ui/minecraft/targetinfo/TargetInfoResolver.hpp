@@ -39,7 +39,7 @@ namespace mc::client::ui::minecraft::targetinfo {
 
 class TargetInfoResolver {
 public:
-    using PlayerNameLookup = std::function<std::string(EntityId)>;
+    using PlayerNameLookup = std::function<std::string(EntityInstanceId)>;
 
     /**
      * @brief 解析玩家当前注视目标的信息

@@ -50,7 +50,7 @@ std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/)
     return std::make_unique<SheepEntity>(0);
 }
 
-SheepEntity::SheepEntity(EntityId id)
+SheepEntity::SheepEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
     // 注册属性

@@ -35,12 +35,12 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/property/Properties.hpp"
 #include "world/GlobalPos.hpp"
 #include "world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
 #include "world/dimension/DimensionType.hpp"
 
@@ -168,7 +168,7 @@ TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInEnd)
  */
 class TestPlayer final : public mc::Player {
 public:
-    TestPlayer(EntityId id, const std::string& name)
+    TestPlayer(EntityInstanceId id, const std::string& name)
         : mc::Player(id, name)
     {
         abilities().creativeMode = false;
@@ -195,7 +195,7 @@ public:
 // 测试玩家重生点设置
 TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointCanBeSet)
 {
-    TestPlayer player(EntityId(1), "TestPlayer");
+    TestPlayer player(EntityInstanceId(1), "TestPlayer");
     BlockPos spawnPos(100, 64, -200);
 
     // 初始没有重生点
@@ -213,7 +213,7 @@ TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointCanBeSet)
 // 测试玩家重生点的 forced 参数
 TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointForcedParameter)
 {
-    TestPlayer player(EntityId(1), "TestPlayer");
+    TestPlayer player(EntityInstanceId(1), "TestPlayer");
     BlockPos spawnPos(50, 70, 100);
 
     // 设置 forced = false
@@ -228,7 +228,7 @@ TEST_F(RespawnAnchorBlockTest, PlayerSpawnPointForcedParameter)
 // 测试清除重生点
 TEST_F(RespawnAnchorBlockTest, ClearSpawnPoint)
 {
-    TestPlayer player(EntityId(1), "TestPlayer");
+    TestPlayer player(EntityInstanceId(1), "TestPlayer");
     BlockPos spawnPos(10, 20, 30);
 
     // 设置重生点
@@ -255,7 +255,7 @@ TEST_F(RespawnAnchorBlockTest, GlobalPosWithNetherDimension)
 // 测试重生点位置和维度正确对应
 TEST_F(RespawnAnchorBlockTest, SpawnPointPositionAndDimensionMatch)
 {
-    TestPlayer player(EntityId(1), "TestPlayer");
+    TestPlayer player(EntityInstanceId(1), "TestPlayer");
 
     // 下界重生点
     BlockPos netherPos(10, 20, 30);

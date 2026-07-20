@@ -34,7 +34,7 @@
 
 namespace mc {
 
-WaterMobEntity::WaterMobEntity(EntityId id)
+WaterMobEntity::WaterMobEntity(EntityInstanceId id)
     : CreatureEntity(id)
 {
     // 注册属性

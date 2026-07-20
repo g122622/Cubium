@@ -48,7 +48,7 @@ namespace {
  */
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity(EntityId id, IWorld* world = nullptr)
+    TestLivingEntity(EntityInstanceId id, IWorld* world = nullptr)
         : LivingEntity(id, world)
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
@@ -86,7 +86,7 @@ protected:
  */
 class FireImmuneTestEntity : public TestLivingEntity {
 public:
-    FireImmuneTestEntity(EntityId id, IWorld* world = nullptr)
+    FireImmuneTestEntity(EntityInstanceId id, IWorld* world = nullptr)
         : TestLivingEntity(id, world)
         , m_immuneToFire(true)
     {}
@@ -164,7 +164,7 @@ protected:
 TEST_F(FireBlockCollisionTest, Entity_GetFireTimer_EqualsFire)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     // 初始值应为 0
     EXPECT_EQ(entity.fire(), 0);
@@ -184,7 +184,7 @@ TEST_F(FireBlockCollisionTest, Entity_GetFireTimer_EqualsFire)
 TEST_F(FireBlockCollisionTest, Entity_SetFire_OnlyIncreases)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     // 设置初始火焰
     entity.setFire(100); // 100 ticks
@@ -202,7 +202,7 @@ TEST_F(FireBlockCollisionTest, Entity_SetFire_OnlyIncreases)
 TEST_F(FireBlockCollisionTest, Entity_ForceFireTicks_SetsDirectly)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     entity.setFire(200);
     EXPECT_EQ(entity.fire(), 200);
@@ -223,7 +223,7 @@ TEST_F(FireBlockCollisionTest, Entity_ForceFireTicks_SetsDirectly)
 TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_DefaultFalse)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     // 默认情况下，实体不免疫火焰（取决于 EntityType）
     // TestLivingEntity 没有注册到 EntityRegistry，所以默认返回 false
@@ -233,7 +233,7 @@ TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_DefaultFalse)
 TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_Overrideable)
 {
     FireTestWorld world;
-    FireImmuneTestEntity immuneEntity(EntityId(1), &world);
+    FireImmuneTestEntity immuneEntity(EntityInstanceId(1), &world);
 
     // 默认免疫
     EXPECT_TRUE(immuneEntity.isImmuneToFire());
@@ -252,7 +252,7 @@ TEST_F(FireBlockCollisionTest, Entity_IsImmuneToFire_Overrideable)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmuneEntity_NoDamage)
 {
     FireTestWorld world;
-    FireImmuneTestEntity entity(EntityId(1), &world);
+    FireImmuneTestEntity entity(EntityInstanceId(1), &world);
     entity.setImmuneToFire(true);
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
@@ -269,7 +269,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmuneEntity_NoDamage)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_NormalEntity_TakesDamage)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
     entity.setHealth(20.0f); // 设置生命值
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
@@ -287,7 +287,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NormalEntity_TakesDamage)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
@@ -310,7 +310,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
@@ -335,7 +335,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_NegativeTimerIgnites)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
@@ -359,7 +359,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NegativeTimerIgnites)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionIgnites)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
@@ -380,7 +380,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_FirstCollisionIgnites)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_SoulFire_HigherDamage)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
     entity.setHealth(20.0f);
 
     ASSERT_NE(VanillaBlocks::SOUL_FIRE, nullptr);
@@ -402,7 +402,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases)
     FireTestWorld world;
 
     // Entity 基类不是 LivingEntity，不会受到伤害
-    Entity entity(EntityId(1), &world);
+    Entity entity(EntityInstanceId(1), &world);
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);
     const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
@@ -421,7 +421,7 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases)
 TEST_F(FireBlockCollisionTest, OnEntityCollision_MultipleCollisions_EachTick)
 {
     FireTestWorld world;
-    TestLivingEntity entity(EntityId(1), &world);
+    TestLivingEntity entity(EntityInstanceId(1), &world);
     entity.setHealth(100.0f); // 高生命值以承受多次伤害
 
     ASSERT_NE(VanillaBlocks::FIRE, nullptr);

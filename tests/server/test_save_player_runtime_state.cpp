@@ -87,7 +87,7 @@ std::vector<u8> buildLoginRequestPacket(const std::string& username)
 struct ParsedLoginResponse {
     bool success = false;
     PlayerId playerId = 0;
-    EntityId entityId = INVALID_ENTITY_ID;
+    EntityInstanceId entityId = INVALID_ENTITY_ID;
     std::string username;
     bool parsed = false;
 };

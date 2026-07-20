@@ -84,7 +84,7 @@ private:
 
 private:
     VillagerEntity* m_villager;
-    EntityId m_partnerId;
+    EntityInstanceId m_partnerId;
     i32 m_breedTicks = 0;
     static constexpr i32 BREED_TICKS = 60; // 繁殖动画时长
     static constexpr f32 BREED_DISTANCE = 2.0f;

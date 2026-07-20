@@ -36,12 +36,12 @@ using mc::math::PI;
 using mc::math::PI_DOUBLE;
 
 /// TNT 矿车类型 ID 字符串（用于 typeId 比较）
-constexpr const char* TNT_MINECART_TYPE = ::mc::entity::EntityTypes::TNT_MINECART;
+constexpr const char* TNT_MINECART_TYPE = ::mc::entity::EntityTypeKeys::TNT_MINECART;
 
 /// 从 ClientEntity 读取类型 ID（去掉 minecraft: 前缀的简短形式也兼容）
 [[nodiscard]] bool isTntMinecart(const ::mc::client::ClientEntity& entity) noexcept
 {
-    const std::string& tid = entity.typeId();
+    const std::string& tid = entity.getTypeId();
     return tid == TNT_MINECART_TYPE || tid == "tnt_minecart";
 }
 

@@ -36,7 +36,7 @@ namespace mc {
  */
 class EvokerEntity : public SpellcastingIllagerEntity {
 public:
-    EvokerEntity(EntityId id);
+    EvokerEntity(EntityInstanceId id);
     ~EvokerEntity() override = default;
 
     EvokerEntity(const EvokerEntity&) = delete;

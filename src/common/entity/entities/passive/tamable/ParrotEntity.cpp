@@ -46,7 +46,7 @@
 
 namespace mc {
 
-ParrotEntity::ParrotEntity(EntityId id)
+ParrotEntity::ParrotEntity(EntityInstanceId id)
     : ShoulderRidingEntity(id)
 {
     randomizeVariant();

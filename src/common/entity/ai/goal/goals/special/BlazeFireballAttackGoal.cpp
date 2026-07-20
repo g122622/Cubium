@@ -28,11 +28,11 @@
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -220,7 +220,7 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
             math::Random& rng = m_blaze->world()->getRandom();
 
             // 创建并发射小火球
-            auto fireball = std::make_unique<SmallFireballEntity>(EntityId(0));
+            auto fireball = std::make_unique<SmallFireballEntity>(EntityInstanceId(0));
 
             // 设置世界
             fireball->setWorld(m_blaze->world());

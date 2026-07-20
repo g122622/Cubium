@@ -53,14 +53,14 @@ public:
         throw std::runtime_error("ArmorTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(entity.get());
         m_ownedEntities.push_back(std::move(entity));
         return ++m_lastEntityId;
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         for (auto* e : m_spawnedEntities) {
             if (e && e->id() == static_cast<u32>(id)) return e;
@@ -68,7 +68,7 @@ public:
         return nullptr;
     }
 
-    const Entity* getEntity(EntityId id) const override
+    const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto* e : m_spawnedEntities) {
             if (e && e->id() == static_cast<u32>(id)) return e;
@@ -87,7 +87,7 @@ public:
     }
 
 private:
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
     std::vector<std::unique_ptr<Entity>> m_ownedEntities;
 };

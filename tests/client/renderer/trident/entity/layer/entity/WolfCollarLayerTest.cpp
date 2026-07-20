@@ -269,7 +269,7 @@ protected:
     void SetUp() override
     {
         // 创建一个 minecraft:wolf 类型的 ClientEntity
-        entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:wolf");
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wolf");
     }
 
     void TearDown() override { entity.reset(); }

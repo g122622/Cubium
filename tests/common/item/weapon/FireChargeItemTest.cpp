@@ -124,7 +124,7 @@ public:
         m_sounds.push_back({sound, category, pos, volume, pitch});
     }
 
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         (void)entity;
         return ++m_lastEntityId;
@@ -161,7 +161,7 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<SoundRecord> m_sounds;
     const BlockState* m_airState;
-    EntityId m_lastEntityId = 0;
+    EntityInstanceId m_lastEntityId = 0;
 };
 
 // ============================================================================
@@ -474,7 +474,7 @@ TEST_F(FireChargeItemTest, OnItemUse_CreativeMode_DoesNotConsumeItem)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     // 创造模式玩家
-    Player player(EntityId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer");
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
 
@@ -513,7 +513,7 @@ TEST_F(FireChargeItemTest, OnItemUse_SurvivalMode_ConsumesItem)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     // 生存模式玩家
-    Player player(EntityId(2), "TestPlayer2");
+    Player player(EntityInstanceId(2), "TestPlayer2");
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
 

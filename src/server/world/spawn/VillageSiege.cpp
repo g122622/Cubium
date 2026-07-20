@@ -214,7 +214,7 @@ bool VillageSiege::_spawnZombie(server::ServerWorld& world)
 
     // 使用实体注册表创建僵尸
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* zombieType = registry.getType(entity::EntityTypes::ZOMBIE);
+    const entity::EntityType* zombieType = registry.getType(entity::EntityTypeKeys::ZOMBIE);
 
     if (!zombieType || !zombieType->canSummon()) {
         spdlog::warn("VillageSiege: Zombie entity type not found or not summonable");
@@ -248,7 +248,7 @@ bool VillageSiege::_spawnZombie(server::ServerWorld& world)
     }
 
     // 生成实体到世界
-    const EntityId entityId = world.spawnEntity(std::move(entity));
+    const EntityInstanceId entityId = world.spawnEntity(std::move(entity));
 
     if (entityId == 0) {
         spdlog::warn("VillageSiege: Failed to spawn zombie entity");

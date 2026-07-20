@@ -62,14 +62,14 @@ TEST(PositionSourceTest, BlockPositionSource_Type)
 
 TEST(PositionSourceTest, EntityPositionSource_Type)
 {
-    EntityPositionSource source(EntityId(42), 0.0f);
+    EntityPositionSource source(EntityInstanceId(42), 0.0f);
     EXPECT_STREQ(source.type(), "entity");
 }
 
 TEST(PositionSourceTest, EntityPositionSource_Accessors)
 {
-    EntityPositionSource source(EntityId(100), 1.62f);
-    EXPECT_EQ(source.entityId(), EntityId(100));
+    EntityPositionSource source(EntityInstanceId(100), 1.62f);
+    EXPECT_EQ(source.entityId(), EntityInstanceId(100));
     EXPECT_FLOAT_EQ(source.yOffset(), 1.62f);
 }
 

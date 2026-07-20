@@ -59,7 +59,7 @@ namespace {
 class TestRideableEntity : public MobEntity, public IRideable {
 public:
     TestRideableEntity()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
         , m_saddled(false)
         , m_steeringSpeed(0.1f)
         , m_travelCalled(false)

@@ -83,7 +83,7 @@ public:
         (void)data;
     }
 
-    void destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress) override
+    void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override
     {
         (void)breakerId;
         (void)pos;
@@ -114,7 +114,7 @@ private:
 class TestOpenDoorMob final : public MobEntity {
 public:
     TestOpenDoorMob()
-        : MobEntity(EntityId(1))
+        : MobEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

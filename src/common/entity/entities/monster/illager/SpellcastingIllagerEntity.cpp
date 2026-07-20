@@ -29,7 +29,7 @@
 
 namespace mc {
 
-SpellcastingIllagerEntity::SpellcastingIllagerEntity(EntityId id)
+SpellcastingIllagerEntity::SpellcastingIllagerEntity(EntityInstanceId id)
     : AbstractIllagerEntity(id)
 {}
 

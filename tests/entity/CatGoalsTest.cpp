@@ -44,7 +44,7 @@ namespace {
  */
 class TestCatEntity : public CatEntity {
 public:
-    explicit TestCatEntity(EntityId id)
+    explicit TestCatEntity(EntityInstanceId id)
         : CatEntity(id)
     {}
 
@@ -60,20 +60,20 @@ protected:
 
 TEST_F(CatLieOnBedGoalTest, Construction_DoesNotCrash)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     EXPECT_NO_THROW({ auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1); });
 }
 
 TEST_F(CatLieOnBedGoalTest, TypeName)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1);
     EXPECT_EQ(goal->getTypeName(), "CatLieOnBedGoal");
 }
 
 TEST_F(CatLieOnBedGoalTest, MutexFlags)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1);
 
     // CatLieOnBedGoal 应该有 Jump 和 Move 标志
@@ -87,7 +87,7 @@ TEST_F(CatLieOnBedGoalTest, MutexFlags)
 TEST_F(CatLieOnBedGoalTest, ShouldExecute_ReturnsFalse_WhenNotTamed)
 {
     // 未驯服的猫不应寻找床
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     // 默认未驯服
     auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1);
     EXPECT_FALSE(goal->shouldExecute());
@@ -96,7 +96,7 @@ TEST_F(CatLieOnBedGoalTest, ShouldExecute_ReturnsFalse_WhenNotTamed)
 TEST_F(CatLieOnBedGoalTest, ShouldExecute_ReturnsFalse_WhenSitting)
 {
     // 坐下的猫不应寻找床
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     cat.setTamed(true);
     cat.setSitting(true);
     auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1);
@@ -106,7 +106,7 @@ TEST_F(CatLieOnBedGoalTest, ShouldExecute_ReturnsFalse_WhenSitting)
 TEST_F(CatLieOnBedGoalTest, ShouldExecute_ReturnsFalse_WhenAlreadyLying)
 {
     // 已躺下的猫不应重新寻找床
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     cat.setTamed(true);
     cat.setLieDown(true);
     auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1);
@@ -123,7 +123,7 @@ TEST_F(CatLieOnBedGoalTest, ShouldExecute_ReturnsFalse_NullCat)
 TEST_F(CatLieOnBedGoalTest, ResetTask_ClearsLieDown)
 {
     // resetTask 应清除躺下状态
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     cat.setTamed(true);
     cat.setLieDown(true);
     auto goal = std::make_unique<entity::ai::goal::CatLieOnBedGoal>(&cat, 1.1);
@@ -140,20 +140,20 @@ protected:
 
 TEST_F(CatRelaxOnOwnerGoalTest, Construction_DoesNotCrash)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     EXPECT_NO_THROW({ auto goal = std::make_unique<entity::ai::goal::CatRelaxOnOwnerGoal>(&cat, 0.6); });
 }
 
 TEST_F(CatRelaxOnOwnerGoalTest, TypeName)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::CatRelaxOnOwnerGoal>(&cat, 0.6);
     EXPECT_EQ(goal->getTypeName(), "CatRelaxOnOwnerGoal");
 }
 
 TEST_F(CatRelaxOnOwnerGoalTest, MutexFlags)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     auto goal = std::make_unique<entity::ai::goal::CatRelaxOnOwnerGoal>(&cat, 0.6);
 
     // CatRelaxOnOwnerGoal 应该有 Jump, Move, Look 标志
@@ -166,7 +166,7 @@ TEST_F(CatRelaxOnOwnerGoalTest, MutexFlags)
 
 TEST_F(CatRelaxOnOwnerGoalTest, ShouldExecute_ReturnsFalse_WhenNotTamed)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     // 默认未驯服
     auto goal = std::make_unique<entity::ai::goal::CatRelaxOnOwnerGoal>(&cat, 0.6);
     EXPECT_FALSE(goal->shouldExecute());
@@ -174,7 +174,7 @@ TEST_F(CatRelaxOnOwnerGoalTest, ShouldExecute_ReturnsFalse_WhenNotTamed)
 
 TEST_F(CatRelaxOnOwnerGoalTest, ShouldExecute_ReturnsFalse_WhenSitting)
 {
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     cat.setTamed(true);
     cat.setSitting(true);
     auto goal = std::make_unique<entity::ai::goal::CatRelaxOnOwnerGoal>(&cat, 0.6);
@@ -196,7 +196,7 @@ TEST_F(CatRelaxOnOwnerGoalTest, ShouldContinueExecuting_ReturnsFalse_NullCat)
 TEST_F(CatRelaxOnOwnerGoalTest, ResetTask_ClearsStates)
 {
     // resetTask 应清除躺下和放松状态
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
     cat.setTamed(true);
     cat.setLieDown(true);
     cat.setRelaxStateOne(true);
@@ -236,7 +236,7 @@ protected:
 TEST_F(CatGoalRegistrationTest, CatHasCatLieOnBedGoal)
 {
     // CatEntity::registerGoals() 应注册 CatLieOnBedGoal
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     bool hasLieOnBedGoal = false;
     for (const auto& pg : cat.testGoalSelector().getAllGoals()) {
@@ -252,7 +252,7 @@ TEST_F(CatGoalRegistrationTest, CatHasCatLieOnBedGoal)
 TEST_F(CatGoalRegistrationTest, CatHasCatRelaxOnOwnerGoal)
 {
     // CatEntity::registerGoals() 应注册 CatRelaxOnOwnerGoal
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     bool hasRelaxGoal = false;
     for (const auto& pg : cat.testGoalSelector().getAllGoals()) {
@@ -268,7 +268,7 @@ TEST_F(CatGoalRegistrationTest, CatHasCatRelaxOnOwnerGoal)
 TEST_F(CatGoalRegistrationTest, CatLieOnBedGoalPriority)
 {
     // CatLieOnBedGoal 应在优先级 5
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     bool found = false;
     for (const auto& pg : cat.testGoalSelector().getAllGoals()) {
@@ -285,7 +285,7 @@ TEST_F(CatGoalRegistrationTest, CatLieOnBedGoalPriority)
 TEST_F(CatGoalRegistrationTest, CatRelaxOnOwnerGoalPriority)
 {
     // CatRelaxOnOwnerGoal 应在优先级 3
-    TestCatEntity cat(EntityId(1));
+    TestCatEntity cat(EntityInstanceId(1));
 
     bool found = false;
     for (const auto& pg : cat.testGoalSelector().getAllGoals()) {

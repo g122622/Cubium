@@ -38,7 +38,7 @@ TEST(DamagingProjectileSupportTypesTest, FireballLayerInheritsDamagingProjectile
 
 TEST(DamagingProjectileSupportTypesTest, FireballDefaultsComeFromDamagingProjectileBase)
 {
-    entity::FireballEntity fireball(EntityId(1));
+    entity::FireballEntity fireball(EntityInstanceId(1));
 
     EXPECT_FLOAT_EQ(fireball.damage(), 6.0f);
     EXPECT_TRUE(fireball.canBeCollidedWith());
@@ -47,7 +47,7 @@ TEST(DamagingProjectileSupportTypesTest, FireballDefaultsComeFromDamagingProject
 
 TEST(DamagingProjectileSupportTypesTest, TickAppliesAccelerationUsingVanillaStyleMotionFactor)
 {
-    entity::FireballEntity fireball(EntityId(1));
+    entity::FireballEntity fireball(EntityInstanceId(1));
     fireball.setPosition(0.0f, 64.0f, 0.0f);
     fireball.setVelocity(1.0f, 0.0f, 0.0f);
     fireball.setAcceleration(0.1f, 0.0f, 0.0f);

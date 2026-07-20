@@ -46,7 +46,7 @@ namespace {
 
 } // namespace
 
-HorseEntity::HorseEntity(EntityId id)
+HorseEntity::HorseEntity(EntityInstanceId id)
     : AbstractHorseEntity(id)
 {
     randomizeAppearance();

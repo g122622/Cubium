@@ -51,7 +51,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    GuardianEntity(EntityId id);
+    GuardianEntity(EntityInstanceId id);
     ~GuardianEntity() override = default;
 
     // 禁止拷贝
@@ -92,12 +92,12 @@ public:
     /**
      * @brief 获取目标实体ID
      */
-    [[nodiscard]] EntityId getTargetEntity() const { return m_targetEntity; }
+    [[nodiscard]] EntityInstanceId getTargetEntity() const { return m_targetEntity; }
 
     /**
      * @brief 设置目标实体
      */
-    void setTargetEntity(EntityId id) { m_targetEntity = id; }
+    void setTargetEntity(EntityInstanceId id) { m_targetEntity = id; }
 
     // ========== 尖刺 ==========
 
@@ -180,7 +180,7 @@ private:
     // 激光攻击
     bool m_laserCharging = false;
     i32 m_laserChargeTime = 0;
-    EntityId m_targetEntity = 0;
+    EntityInstanceId m_targetEntity = 0;
 
     // 尖刺
     bool m_spikesRetracted = false;

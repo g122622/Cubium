@@ -77,7 +77,7 @@ constexpr i32 LLAMA_ATTACK_INTERVAL = 40;         // 攻击间隔 ticks
 // 构造函数
 // ============================================================================
 
-LlamaEntity::LlamaEntity(EntityId id)
+LlamaEntity::LlamaEntity(EntityInstanceId id)
     : AbstractChestedHorseEntity(id)
 {
     randomizeAppearance();
@@ -321,7 +321,7 @@ void LlamaEntity::_spit(LivingEntity* target)
     }
 
     // 创建口水实体
-    auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(EntityId(0));
+    auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(EntityInstanceId(0));
 
     // 设置发射者
     spitEntity->setShooter(this);

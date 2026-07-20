@@ -29,8 +29,8 @@
 
 #include "common/core/Constants.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
@@ -291,7 +291,7 @@ void EndSpikeFeature::placeSpike(
     // 在柱顶创建末影水晶实体
     // MC: EndCrystal endcrystal = EntityType.END_CRYSTAL.create(level, STRUCTURE);
     auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* crystalType = registry.getType(entity::EntityTypes::END_CRYSTAL);
+    const entity::EntityType* crystalType = registry.getType(entity::EntityTypeKeys::END_CRYSTAL);
     if (crystalType != nullptr) {
         std::unique_ptr<Entity> crystalEntity = crystalType->create(&world);
         if (crystalEntity != nullptr) {

@@ -30,7 +30,7 @@
 
 namespace mc {
 
-TropicalFishEntity::TropicalFishEntity(EntityId id)
+TropicalFishEntity::TropicalFishEntity(EntityInstanceId id)
     : AbstractGroupFishEntity(id)
 {
     randomizeVariant();

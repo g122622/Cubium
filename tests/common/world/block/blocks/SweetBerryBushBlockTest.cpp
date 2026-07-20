@@ -30,11 +30,11 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"
@@ -238,7 +238,7 @@ private:
 class TestLivingEntity : public LivingEntity {
 public:
     explicit TestLivingEntity(const std::string& typeId = "minecraft:player")
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         setTypeId(typeId);
         setHealth(maxHealth());
@@ -253,7 +253,7 @@ public:
 class TestFoxEntity : public LivingEntity {
 public:
     TestFoxEntity()
-        : LivingEntity(EntityId(2))
+        : LivingEntity(EntityInstanceId(2))
     {
         setTypeId("minecraft:fox");
         setHealth(maxHealth());
@@ -266,7 +266,7 @@ public:
 class TestBeeEntity : public LivingEntity {
 public:
     TestBeeEntity()
-        : LivingEntity(EntityId(3))
+        : LivingEntity(EntityInstanceId(3))
     {
         setTypeId("minecraft:bee");
         setHealth(maxHealth());

@@ -37,11 +37,11 @@
 #include "../../../../../world/gameevent/GameEvents.hpp"
 #include "../../../../../world/gamerule/GameRules.hpp"
 #include "../../../../core/Entity.hpp"
-#include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/monster/end/EndermanEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
+#include "../../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include <cmath>
@@ -67,7 +67,7 @@ bool EndermanStareGoal::shouldExecute()
     m_targetPlayer = m_enderman->getAttackTarget();
 
     // 检查是否是玩家
-    if (m_targetPlayer == nullptr || m_targetPlayer->typeId() != entity::EntityTypeIdNumber::PLAYER) {
+    if (m_targetPlayer == nullptr || m_targetPlayer->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
         return false;
     }
 

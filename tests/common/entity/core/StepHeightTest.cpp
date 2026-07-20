@@ -41,7 +41,7 @@ namespace {
  */
 class TestEntity : public Entity {
 public:
-    TestEntity(EntityId id = EntityId(0))
+    TestEntity(EntityInstanceId id = EntityInstanceId(0))
         : Entity(id)
     {}
 
@@ -53,7 +53,7 @@ public:
  */
 class TestLivingEntity : public LivingEntity {
 public:
-    TestLivingEntity(EntityId id = EntityId(0))
+    TestLivingEntity(EntityInstanceId id = EntityInstanceId(0))
         : LivingEntity(id)
     {}
 
@@ -122,7 +122,7 @@ TEST(StepHeightTest, LivingEntityCanOverrideStepHeight)
 
 TEST(StepHeightTest, IronGolemEntityStepHeightIsOne)
 {
-    IronGolemEntity entity(EntityId(0));
+    IronGolemEntity entity(EntityInstanceId(0));
     // MC 1.16.5: IronGolemEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -148,7 +148,7 @@ TEST(StepHeightTest, AbstractHorseEntityStepHeightIsOne)
 
 TEST(StepHeightTest, EndermanEntityStepHeightIsOne)
 {
-    EndermanEntity entity(EntityId(0));
+    EndermanEntity entity(EntityInstanceId(0));
     // MC 1.16.5: EndermanEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -159,7 +159,7 @@ TEST(StepHeightTest, EndermanEntityStepHeightIsOne)
 
 TEST(StepHeightTest, DrownedEntityStepHeightIsOne)
 {
-    DrownedEntity entity(EntityId(0));
+    DrownedEntity entity(EntityInstanceId(0));
     // MC 1.16.5: DrownedEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -170,7 +170,7 @@ TEST(StepHeightTest, DrownedEntityStepHeightIsOne)
 
 TEST(StepHeightTest, RavagerEntityStepHeightIsOne)
 {
-    RavagerEntity entity(EntityId(0));
+    RavagerEntity entity(EntityInstanceId(0));
     // MC 1.16.5: RavagerEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }
@@ -181,7 +181,7 @@ TEST(StepHeightTest, RavagerEntityStepHeightIsOne)
 
 TEST(StepHeightTest, TurtleEntityStepHeightIsOne)
 {
-    TurtleEntity entity(EntityId(0));
+    TurtleEntity entity(EntityInstanceId(0));
     // MC 1.16.5: TurtleEntity 构造函数中设置 stepHeight = 1.0F
     EXPECT_FLOAT_EQ(entity.stepHeight(), 1.0f);
 }

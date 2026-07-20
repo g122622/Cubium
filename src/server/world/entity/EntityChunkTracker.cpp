@@ -30,7 +30,7 @@ namespace mc::server {
 // ============================================================================
 
 void EntityChunkTracker::onEntityMoved(
-    EntityId id, ChunkCoord oldCx, ChunkCoord oldCz, ChunkCoord newCx, ChunkCoord newCz)
+    EntityInstanceId id, ChunkCoord oldCx, ChunkCoord oldCz, ChunkCoord newCx, ChunkCoord newCz)
 {
     // 如果区块没变，不做任何操作
     if (oldCx == newCx && oldCz == newCz) {
@@ -53,14 +53,14 @@ void EntityChunkTracker::onEntityMoved(
     m_entityChunks[id] = {newCx, newCz};
 }
 
-void EntityChunkTracker::onEntityAdded(EntityId id, ChunkCoord cx, ChunkCoord cz)
+void EntityChunkTracker::onEntityAdded(EntityInstanceId id, ChunkCoord cx, ChunkCoord cz)
 {
     i64 key = _packChunkPos(cx, cz);
     m_chunkEntities[key].insert(id);
     m_entityChunks[id] = {cx, cz};
 }
 
-void EntityChunkTracker::onEntityRemoved(EntityId id)
+void EntityChunkTracker::onEntityRemoved(EntityInstanceId id)
 {
     auto it = m_entityChunks.find(id);
     if (it == m_entityChunks.end()) {
@@ -81,21 +81,21 @@ void EntityChunkTracker::onEntityRemoved(EntityId id)
     m_entityChunks.erase(it);
 }
 
-std::vector<EntityId> EntityChunkTracker::getEntitiesInChunk(ChunkCoord cx, ChunkCoord cz) const
+std::vector<EntityInstanceId> EntityChunkTracker::getEntitiesInChunk(ChunkCoord cx, ChunkCoord cz) const
 {
-    std::vector<EntityId> result;
+    std::vector<EntityInstanceId> result;
     i64 key = _packChunkPos(cx, cz);
     auto it = m_chunkEntities.find(key);
     if (it != m_chunkEntities.end()) {
         result.reserve(it->second.size());
-        for (EntityId id : it->second) {
+        for (EntityInstanceId id : it->second) {
             result.push_back(id);
         }
     }
     return result;
 }
 
-std::optional<std::pair<ChunkCoord, ChunkCoord>> EntityChunkTracker::getEntityChunk(EntityId id) const
+std::optional<std::pair<ChunkCoord, ChunkCoord>> EntityChunkTracker::getEntityChunk(EntityInstanceId id) const
 {
     auto it = m_entityChunks.find(id);
     if (it != m_entityChunks.end()) {

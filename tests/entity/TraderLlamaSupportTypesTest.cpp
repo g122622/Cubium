@@ -49,7 +49,7 @@ public:
 
 TEST(TraderLlamaEntityTest, InheritsFromLlamaAndExposesTraderFlag)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
 
     EXPECT_NE(dynamic_cast<LlamaEntity*>(&traderLlama), nullptr);
     EXPECT_TRUE(traderLlama.isTraderLlama());
@@ -58,13 +58,13 @@ TEST(TraderLlamaEntityTest, InheritsFromLlamaAndExposesTraderFlag)
 
 TEST(TraderLlamaEntityTest, DefaultDespawnDelayIsCorrect)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     EXPECT_EQ(traderLlama.getDespawnDelay(), TraderLlamaEntity::DEFAULT_DESPAWN_DELAY);
 }
 
 TEST(TraderLlamaEntityTest, SetDespawnDelay)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setDespawnDelay(100);
     EXPECT_EQ(traderLlama.getDespawnDelay(), 100);
 
@@ -77,7 +77,7 @@ TEST(TraderLlamaEntityTest, SetDespawnDelay)
 
 TEST(TraderLlamaEntityTest, SyncDespawnDelayFromTrader)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     // 同步流浪商人的消失倒计时，羊驼的倒计时 = 商人倒计时 - 1
     traderLlama.syncDespawnDelayFromTrader(48000);
     EXPECT_EQ(traderLlama.getDespawnDelay(), 47999);
@@ -91,7 +91,7 @@ TEST(TraderLlamaEntityTest, SyncDespawnDelayFromTrader)
 
 TEST(TraderLlamaEntityTest, IsTraderLlamaFlag)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     EXPECT_TRUE(traderLlama.isTraderLlama());
 
     // TraderLlamaEntity 可以向上转型为 LlamaEntity
@@ -105,7 +105,7 @@ TEST(TraderLlamaEntityTest, IsTraderLlamaFlag)
 
 TEST(TraderLlamaEntityTest, CanDespawnReturnsTrueWhenUntamedAndUnleashed)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     // 默认状态：未驯服、未拴绳、无骑乘者
     EXPECT_TRUE(traderLlama.canDespawn(128.0));
     EXPECT_TRUE(traderLlama.canDespawn(0.0));
@@ -113,7 +113,7 @@ TEST(TraderLlamaEntityTest, CanDespawnReturnsTrueWhenUntamedAndUnleashed)
 
 TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenTamed)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setTame(true);
     EXPECT_FALSE(traderLlama.canDespawn(128.0));
     EXPECT_FALSE(traderLlama.canDespawn(0.0));
@@ -121,7 +121,7 @@ TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenTamed)
 
 TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenLeashedToFence)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     // 拴在栅栏上
     traderLlama.setLeashedToFence(BlockPos(0, 64, 0));
     EXPECT_TRUE(traderLlama.isLeashed());
@@ -130,7 +130,7 @@ TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenLeashedToFence)
 
 TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenLeashedToEntity)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     // 拴在实体上（使用一个模拟的 UUID）
     traderLlama.setLeashedToEntity("550e8400-e29b-41d4-a716-446655440000");
     EXPECT_TRUE(traderLlama.isLeashed());
@@ -140,7 +140,7 @@ TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenLeashedToEntity)
 TEST(TraderLlamaEntityTest, CanDespawnTamedOverridesLeashed)
 {
     // 即使被拴住，驯服的商队羊驼也不应消失
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setTame(true);
     traderLlama.setLeashedToFence(BlockPos(0, 64, 0));
     EXPECT_FALSE(traderLlama.canDespawn(0.0));
@@ -149,7 +149,7 @@ TEST(TraderLlamaEntityTest, CanDespawnTamedOverridesLeashed)
 TEST(TraderLlamaEntityTest, CanDespawnUnleashedUntamedReturnsTrue)
 {
     // 未驯服、未拴绳的商队羊驼在任意距离都可以消失
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     EXPECT_TRUE(traderLlama.canDespawn(32.0));
     EXPECT_TRUE(traderLlama.canDespawn(128.0));
     EXPECT_TRUE(traderLlama.canDespawn(0.0));
@@ -161,7 +161,7 @@ TEST(TraderLlamaEntityTest, CanDespawnUnleashedUntamedReturnsTrue)
 
 TEST(TraderLlamaEntityTest, NbtSerialization_DespawnDelayRoundTrip)
 {
-    TestTraderLlamaEntity entity(EntityId(1));
+    TestTraderLlamaEntity entity(EntityInstanceId(1));
     entity.setDespawnDelay(12345);
 
     // 序列化
@@ -173,7 +173,7 @@ TEST(TraderLlamaEntityTest, NbtSerialization_DespawnDelayRoundTrip)
     EXPECT_EQ(savedDelay, 12345);
 
     // 反序列化到新实体
-    TestTraderLlamaEntity loaded(EntityId(2));
+    TestTraderLlamaEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getDespawnDelay(), 12345);
@@ -181,7 +181,7 @@ TEST(TraderLlamaEntityTest, NbtSerialization_DespawnDelayRoundTrip)
 
 TEST(TraderLlamaEntityTest, NbtSerialization_DefaultDespawnDelay)
 {
-    TestTraderLlamaEntity entity(EntityId(1));
+    TestTraderLlamaEntity entity(EntityInstanceId(1));
     // 默认值 47999
 
     nbt::tags::compound_tag tag;
@@ -196,7 +196,7 @@ TEST(TraderLlamaEntityTest, NbtSerialization_MissingDespawnDelayKeyUsesDefault)
     // 反序列化一个不包含 DespawnDelay 的空 NBT
     nbt::tags::compound_tag emptyTag;
 
-    TestTraderLlamaEntity entity(EntityId(1));
+    TestTraderLlamaEntity entity(EntityInstanceId(1));
     // 先设置一个非默认值
     entity.setDespawnDelay(999);
     // 反序列化空标签时，tryGetInt 在找不到键时不修改 m_despawnDelay
@@ -208,13 +208,13 @@ TEST(TraderLlamaEntityTest, NbtSerialization_MissingDespawnDelayKeyUsesDefault)
 
 TEST(TraderLlamaEntityTest, NbtSerialization_ZeroDespawnDelay)
 {
-    TestTraderLlamaEntity entity(EntityId(1));
+    TestTraderLlamaEntity entity(EntityInstanceId(1));
     entity.setDespawnDelay(0);
 
     nbt::tags::compound_tag tag;
     entity.addAdditionalSaveData(tag);
 
-    TestTraderLlamaEntity loaded(EntityId(2));
+    TestTraderLlamaEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getDespawnDelay(), 0);
@@ -222,13 +222,13 @@ TEST(TraderLlamaEntityTest, NbtSerialization_ZeroDespawnDelay)
 
 TEST(TraderLlamaEntityTest, NbtSerialization_NegativeDespawnDelay)
 {
-    TestTraderLlamaEntity entity(EntityId(1));
+    TestTraderLlamaEntity entity(EntityInstanceId(1));
     entity.setDespawnDelay(-10);
 
     nbt::tags::compound_tag tag;
     entity.addAdditionalSaveData(tag);
 
-    TestTraderLlamaEntity loaded(EntityId(2));
+    TestTraderLlamaEntity loaded(EntityInstanceId(2));
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getDespawnDelay(), -10);
@@ -240,20 +240,20 @@ TEST(TraderLlamaEntityTest, NbtSerialization_NegativeDespawnDelay)
 
 TEST(TraderLlamaEntityTest, IsNotLeashedByDefault)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     EXPECT_FALSE(traderLlama.isLeashed());
 }
 
 TEST(TraderLlamaEntityTest, IsLeashedAfterSetLeashedToFence)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setLeashedToFence(BlockPos(10, 64, 20));
     EXPECT_TRUE(traderLlama.isLeashed());
 }
 
 TEST(TraderLlamaEntityTest, IsLeashedAfterSetLeashedToEntity)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setLeashedToEntity("550e8400-e29b-41d4-a716-446655440000");
     EXPECT_TRUE(traderLlama.isLeashed());
     EXPECT_TRUE(traderLlama.leashHolderUuid().has_value());
@@ -262,7 +262,7 @@ TEST(TraderLlamaEntityTest, IsLeashedAfterSetLeashedToEntity)
 
 TEST(TraderLlamaEntityTest, ClearLeashRemovesLeashState)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setLeashedToFence(BlockPos(10, 64, 20));
     EXPECT_TRUE(traderLlama.isLeashed());
 
@@ -273,7 +273,7 @@ TEST(TraderLlamaEntityTest, ClearLeashRemovesLeashState)
 TEST(TraderLlamaEntityTest, GetLeashHolderEntityReturnsNullWithoutWorld)
 {
     // getLeashHolderEntity() 在没有 world 时返回 nullptr
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     traderLlama.setLeashedToEntity("550e8400-e29b-41d4-a716-446655440000");
     // 没有 world，无法查找实体
     EXPECT_EQ(traderLlama.getLeashHolderEntity(), nullptr);
@@ -281,7 +281,7 @@ TEST(TraderLlamaEntityTest, GetLeashHolderEntityReturnsNullWithoutWorld)
 
 TEST(TraderLlamaEntityTest, LeashHolderUuidPreservedAfterSetLeashedToEntity)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     const std::string testUuid = "12345678-1234-1234-1234-123456789abc";
     traderLlama.setLeashedToEntity(testUuid);
     EXPECT_TRUE(traderLlama.isLeashed());
@@ -295,7 +295,7 @@ TEST(TraderLlamaEntityTest, LeashHolderUuidPreservedAfterSetLeashedToEntity)
 
 TEST(TraderLlamaEntityTest, DefaultDespawnDelayIs47999)
 {
-    TraderLlamaEntity traderLlama(EntityId(1));
+    TraderLlamaEntity traderLlama(EntityInstanceId(1));
     EXPECT_EQ(traderLlama.getDespawnDelay(), 47999);
     EXPECT_EQ(traderLlama.getDespawnDelay(), TraderLlamaEntity::DEFAULT_DESPAWN_DELAY);
 }

@@ -66,11 +66,11 @@ namespace {
 
 class StructureTestWorld : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         MC_UNUSED(entity);
         ++m_spawnedEntityCount;
-        return EntityId(static_cast<u32>(m_spawnedEntityCount));
+        return EntityInstanceId(static_cast<u32>(m_spawnedEntityCount));
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override

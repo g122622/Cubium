@@ -236,7 +236,7 @@ ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const BlockPo
 
 // static
 ParticlePacket ParticlePacket::createVibration(
-    const Vector3& pos, EntityId targetEntityId, f32 yOffset, i32 arrivalInTicks)
+    const Vector3& pos, EntityInstanceId targetEntityId, f32 yOffset, i32 arrivalInTicks)
 {
     // 构建振动粒子包：粒子类型为 Vibration，无偏移，数量为 1
     ParticlePacket packet(particle::ParticleTypeId::Vibration,
@@ -302,7 +302,7 @@ std::optional<ParticlePacket::VibrationTarget> ParticlePacket::decodeVibrationTa
             if (!yOffsetResult.success()) {
                 return std::nullopt;
             }
-            target.entityId = static_cast<EntityId>(entityIdResult.value());
+            target.entityId = static_cast<EntityInstanceId>(entityIdResult.value());
             target.yOffset = yOffsetResult.value();
             break;
         }

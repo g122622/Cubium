@@ -92,7 +92,7 @@ protected:
 // 简单的 LivingEntity 子类，仅用于测试装备相关功能
 class TestLivingEntity final : public LivingEntity {
 public:
-    explicit TestLivingEntity(EntityId id)
+    explicit TestLivingEntity(EntityInstanceId id)
         : LivingEntity(id)
     {
         registerAttributes();
@@ -103,7 +103,7 @@ public:
 
 TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsMainHandWhenHoldingBowInMainHand)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 设置主手为弓
@@ -117,7 +117,7 @@ TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsMainHandWhenHoldingBo
 
 TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsOffHandWhenBowNotInMainHand)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 主手为空 -> 应返回 OffHand
@@ -127,7 +127,7 @@ TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsOffHandWhenBowNotInMa
 
 TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsMainHandForOtherItems)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 设置主手为石剑
@@ -145,7 +145,7 @@ TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_ReturnsMainHandForOtherItems
 
 TEST_F(SkeletonCombatTaskTest, GetWeaponHoldingHand_OffHandBowReturnsOffHand)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 主手空，副手持弓
@@ -263,7 +263,7 @@ TEST_F(SkeletonCombatTaskTest, WitherSkeletonCanUseNonMeleeWeapon_AlwaysFalse)
 
 TEST_F(SkeletonCombatTaskTest, CombinedLogic_RangedSkeletonHoldingBow)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 模拟普通骷髅持弓
@@ -287,7 +287,7 @@ TEST_F(SkeletonCombatTaskTest, CombinedLogic_RangedSkeletonHoldingBow)
 
 TEST_F(SkeletonCombatTaskTest, CombinedLogic_SkeletonHoldingSword)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 模拟骷髅持剑
@@ -309,7 +309,7 @@ TEST_F(SkeletonCombatTaskTest, CombinedLogic_SkeletonHoldingSword)
 
 TEST_F(SkeletonCombatTaskTest, CombinedLogic_SkeletonOffHandHoldingBow)
 {
-    auto entity = std::make_unique<TestLivingEntity>(EntityId(1));
+    auto entity = std::make_unique<TestLivingEntity>(EntityInstanceId(1));
     entity->setWorld(m_world.get());
 
     // 模拟骷髅主手空、副手持弓
@@ -340,13 +340,13 @@ TEST_F(SkeletonCombatTaskTest, CombinedLogic_SkeletonOffHandHoldingBow)
 TEST_F(SkeletonCombatTaskTest, SkeletonEntity_ConstructsWithoutCrash)
 {
     // 验证 SkeletonEntity 可以正常构造，setCombatTask() 不会导致崩溃
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     EXPECT_NE(skeleton, nullptr);
 }
 
 TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetWorldAndSetCombatTask)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 构造时 setCombatTask() 已被调用，world 为 nullptr 时默认选择远程
@@ -357,7 +357,7 @@ TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetWorldAndSetCombatTask)
 
 TEST_F(SkeletonCombatTaskTest, SkeletonEntity_CanUseNonMeleeWeapon)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
 
     // 弓的 UseAction 是 Bow，canUseNonMeleeWeapon 应返回 true
     ItemStack bowStack(*Items::BOW, 1);
@@ -370,7 +370,7 @@ TEST_F(SkeletonCombatTaskTest, SkeletonEntity_CanUseNonMeleeWeapon)
 
 TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetEquipmentTriggersCombatTaskUpdate)
 {
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 设置主手为弓 -> setCombatTask 应选择远程攻击
@@ -391,7 +391,7 @@ TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetEquipmentTriggersCombatTaskUpda
 
 TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_CanUseNonMeleeWeaponAlwaysFalse)
 {
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1));
 
     // 凋灵骷髅对任何物品都返回 false，包括弓
     ItemStack bowStack(*Items::BOW, 1);
@@ -406,7 +406,7 @@ TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_CanUseNonMeleeWeaponAlwaysFa
 
 TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_SetCombatTaskAlwaysMelee)
 {
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1));
     witherSkeleton->setWorld(m_world.get());
 
     // 即使给凋灵骷髅装备弓，也应该使用近战
@@ -419,7 +419,7 @@ TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_SetCombatTaskAlwaysMelee)
 
 TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_SetEquipmentBowStillMelee)
 {
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1));
     witherSkeleton->setWorld(m_world.get());
 
     // 给凋灵骷髅装备弓（通过基类引用调用 setEquipment）
@@ -433,7 +433,7 @@ TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_SetEquipmentBowStillMelee)
 TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetEquipmentArmorSlotNoEffect)
 {
     // 装甲槽位变更不应触发 setCombatTask
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 设置头盔槽位（通过基类引用调用 setEquipment）
@@ -448,7 +448,7 @@ TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetEquipmentArmorSlotNoEffect)
 TEST_F(SkeletonCombatTaskTest, SkeletonEntity_ClientSideSetEquipmentNoCombatTaskUpdate)
 {
     // 客户端侧不应触发 setCombatTask
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     m_world->setClientSide(true);
     skeleton->setWorld(m_world.get());
 
@@ -480,7 +480,7 @@ TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_HardDifficulty)
 {
     // 困难难度下，骷髅的最小攻击间隔应为 getHardAttackInterval() = 20 ticks
     m_world->setDifficulty(Difficulty::Hard);
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 验证 getHardAttackInterval 和 getAttackInterval 返回值
@@ -495,7 +495,7 @@ TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_NormalDifficulty)
 {
     // 普通难度下，骷髅的最小攻击间隔应为 getAttackInterval() = 40 ticks
     m_world->setDifficulty(Difficulty::Normal);
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 在普通难度下 setCombatTask 不应崩溃
@@ -506,7 +506,7 @@ TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_EasyDifficulty)
 {
     // 简单难度下，骷髅的最小攻击间隔应为 getAttackInterval() = 40 ticks
     m_world->setDifficulty(Difficulty::Easy);
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     skeleton->setCombatTask();
@@ -517,7 +517,7 @@ TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_PeacefulDifficulty)
     // 和平难度下，骷髅的最小攻击间隔应为 getAttackInterval() = 40 ticks
     // （和平难度下怪物不会生成，但如果存在则仍使用非困难间隔）
     m_world->setDifficulty(Difficulty::Peaceful);
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     skeleton->setCombatTask();
@@ -527,7 +527,7 @@ TEST_F(SkeletonCombatTaskTest, StrayEntity_DefaultAttackIntervalsMatchSkeleton)
 {
     // MC 1.21.11 中 Stray 不覆盖 getHardAttackInterval/getAttackInterval，
     // 使用与 Skeleton 相同的基类默认值 (20/40)
-    auto stray = std::make_unique<StrayEntity>(EntityId(1));
+    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(1));
     EXPECT_EQ(stray->getHardAttackInterval(), 20);
     EXPECT_EQ(stray->getAttackInterval(), 40);
 }
@@ -536,7 +536,7 @@ TEST_F(SkeletonCombatTaskTest, WitherSkeleton_AttackIntervalsNotUsedForMelee)
 {
     // 凋灵骷髅始终使用近战，攻击间隔方法不影响其战斗行为
     // 但方法仍返回基类值，以便未来可能的扩展
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1));
     EXPECT_EQ(witherSkeleton->getHardAttackInterval(), 20);
     EXPECT_EQ(witherSkeleton->getAttackInterval(), 40);
 }
@@ -546,7 +546,7 @@ TEST_F(SkeletonCombatTaskTest, EquipmentChangeReassessesIntervalOnHard)
     // 在困难难度下，装备变更后重新评估战斗目标时
     // 应使用困难难度的攻击间隔
     m_world->setDifficulty(Difficulty::Hard);
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
     skeleton->setWorld(m_world.get());
 
     // 设置主手为弓 -> 远程攻击，困难难度间隔

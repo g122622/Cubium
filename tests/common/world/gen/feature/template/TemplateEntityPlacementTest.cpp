@@ -84,10 +84,10 @@ public:
         return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
@@ -186,7 +186,7 @@ TEST_F(TemplateEntityPlacementTest, EntityBase_SetYBodyRot_DefaultNoOp)
 {
     // Entity 基类的 setYBodyRot/setYHeadRot 默认为空实现，但 LivingEntity 重写后会写入字段。
     // 通过 Entity* 基类指针调用应正确分发到 LivingEntity 重写。
-    PigEntity pig(EntityId(1));
+    PigEntity pig(EntityInstanceId(1));
     Entity* basePtr = &pig;
 
     basePtr->setYBodyRot(45.0f);
@@ -199,7 +199,7 @@ TEST_F(TemplateEntityPlacementTest, EntityBase_SetYBodyRot_DefaultNoOp)
 
 TEST_F(TemplateEntityPlacementTest, LivingEntity_SetYBodyRot_WritesRenderYawOffset)
 {
-    PigEntity pig(EntityId(1));
+    PigEntity pig(EntityInstanceId(1));
     LivingEntity* living = &pig;
 
     living->setYBodyRot(90.0f);
@@ -452,7 +452,7 @@ TEST_F(TemplateEntityPlacementTest, ReadFromNbt_SyncsBodyHeadToYaw)
 {
     // 验证 Entity::readFromNBT 加载 Rotation 后会同步 body/head rotation 到 yaw
     // 对齐 MC 1.21.11 Entity#load 中的 setYHeadRot(getYRot()) / setYBodyRot(getYRot())
-    PigEntity pig(EntityId(1));
+    PigEntity pig(EntityInstanceId(1));
 
     // 构造 NBT：Rotation=[123.0, 0.0]
     nbt::CompoundTag tag;

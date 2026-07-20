@@ -60,7 +60,7 @@ public:
      * @brief 构造羊驼实体
      * @param id 实体 ID
      */
-    LlamaEntity(EntityId id);
+    LlamaEntity(EntityInstanceId id);
     ~LlamaEntity() override = default;
 
     LlamaEntity(const LlamaEntity&) = delete;

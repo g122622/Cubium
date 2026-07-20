@@ -281,7 +281,7 @@ protected:
      * @brief 构造函数（子类调用）
      * @param id 实体ID
      */
-    explicit ProjectileEntity(EntityId id);
+    explicit ProjectileEntity(EntityInstanceId id);
 
     /**
      * @brief 更新旋转（根据速度方向）
@@ -316,13 +316,13 @@ protected:
     RayTraceResult rayTraceBlocks(const Vector3& start, const Vector3& end);
 
     // 发射者信息
-    std::string m_shooterUuid;                      // 发射者UUID
-    EntityId m_shooterEntityId = INVALID_ENTITY_ID; // 发射者实体ID
-    bool m_leftShooter = false;                     // 是否已离开发射者
-    bool m_noGravity = false;                       // 是否不受重力
+    std::string m_shooterUuid;                              // 发射者UUID
+    EntityInstanceId m_shooterEntityId = INVALID_ENTITY_ID; // 发射者实体ID
+    bool m_leftShooter = false;                             // 是否已离开发射者
+    bool m_noGravity = false;                               // 是否不受重力
 
     /// 上一个偏转此弹射物的实体ID，防止同一实体连续偏转
-    EntityId m_lastDeflectedById = INVALID_ENTITY_ID;
+    EntityInstanceId m_lastDeflectedById = INVALID_ENTITY_ID;
 };
 
 } // namespace entity

@@ -45,7 +45,7 @@ protected:
     void SetUp() override
     {
         // 创建蝙蝠实体
-        bat = std::make_unique<BatEntity>(EntityId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
     }
 
     void TearDown() override { bat.reset(); }
@@ -101,7 +101,7 @@ class BatRandomFlyGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bat = std::make_unique<BatEntity>(EntityId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
         goal = std::make_unique<BatRandomFlyGoal>(bat.get());
     }
 
@@ -173,7 +173,7 @@ class BatRestGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bat = std::make_unique<BatEntity>(EntityId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
         goal = std::make_unique<BatRestGoal>(bat.get());
     }
 
@@ -263,7 +263,7 @@ class BatGoalsIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bat = std::make_unique<BatEntity>(EntityId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
         flyGoal = std::make_unique<BatRandomFlyGoal>(bat.get());
         restGoal = std::make_unique<BatRestGoal>(bat.get());
     }

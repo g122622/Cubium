@@ -52,7 +52,7 @@ public:
     }
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void broadcastEntityStatus(EntityId, u8) override {}
+    void broadcastEntityStatus(EntityInstanceId, u8) override {}
 };
 
 // ============================================================================
@@ -62,7 +62,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityId(1))
+        : LivingEntity(EntityInstanceId(1))
     {
         registerData();
         registerAttributes();
@@ -77,7 +77,7 @@ public:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityId(2))
+        : MobEntity(EntityInstanceId(2))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -367,7 +367,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<MutableEquipmentTestWorld>();
-        m_player = std::make_unique<Player>(static_cast<EntityId>(10), "TestPlayer");
+        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(10), "TestPlayer");
         m_player->setWorld(m_world.get());
     }
 

@@ -64,7 +64,7 @@ public:
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 
-    EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -75,19 +75,19 @@ public:
         throw std::runtime_error("AbstractHorseTestWorld::tickManager not implemented");
     }
 
-    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {
         m_lastBroadcastEntityId = entityId;
         m_lastBroadcastStatus = status;
         m_broadcastCount++;
     }
 
-    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] EntityInstanceId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
     [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
-    EntityId m_lastBroadcastEntityId{EntityId(0)};
+    EntityInstanceId m_lastBroadcastEntityId{EntityInstanceId(0)};
     u8 m_lastBroadcastStatus = 0;
     i32 m_broadcastCount = 0;
 };
@@ -101,7 +101,7 @@ TEST(AbstractHorseAnimationTest, CanPerformRearing_DefaultIsTrue)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 马默认可以扬蹄
@@ -113,7 +113,7 @@ TEST(AbstractHorseAnimationTest, CanPerformRearing_LlamaReturnsFalse)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     // 羊驼不能扬蹄
@@ -125,7 +125,7 @@ TEST(AbstractHorseAnimationTest, CanPerformRearing_SkeletonHorseReturnsTrue)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    SkeletonHorseEntity skeletonHorse(EntityId(1));
+    SkeletonHorseEntity skeletonHorse(EntityInstanceId(1));
     skeletonHorse.setWorld(&world);
 
     // 骷髅马可以扬蹄
@@ -137,7 +137,7 @@ TEST(AbstractHorseAnimationTest, CanPerformRearing_ZombieHorseReturnsTrue)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    ZombieHorseEntity zombieHorse(EntityId(1));
+    ZombieHorseEntity zombieHorse(EntityInstanceId(1));
     zombieHorse.setWorld(&world);
 
     // 僵尸马可以扬蹄
@@ -153,7 +153,7 @@ TEST(AbstractHorseAnimationTest, CanEatGrass_DefaultIsTrue)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 马默认可以吃草
@@ -165,7 +165,7 @@ TEST(AbstractHorseAnimationTest, CanEatGrass_LlamaReturnsTrue)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     // 羊驼可以吃草
@@ -177,7 +177,7 @@ TEST(AbstractHorseAnimationTest, CanEatGrass_SkeletonHorseReturnsFalse)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    SkeletonHorseEntity skeletonHorse(EntityId(1));
+    SkeletonHorseEntity skeletonHorse(EntityInstanceId(1));
     skeletonHorse.setWorld(&world);
 
     // 骷髅马不能吃草
@@ -189,7 +189,7 @@ TEST(AbstractHorseAnimationTest, CanEatGrass_ZombieHorseReturnsFalse)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    ZombieHorseEntity zombieHorse(EntityId(1));
+    ZombieHorseEntity zombieHorse(EntityInstanceId(1));
     zombieHorse.setWorld(&world);
 
     // 僵尸马不能吃草
@@ -205,7 +205,7 @@ TEST(AbstractHorseAnimationTest, MakeHorseRear_SetsRearingFlag)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isRearing());
@@ -220,7 +220,7 @@ TEST(AbstractHorseAnimationTest, MakeHorseRear_ClearsEatingWhenRearing)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setEating(true);
@@ -238,7 +238,7 @@ TEST(AbstractHorseAnimationTest, MakeHorseRear_LlamaCannotRear)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    LlamaEntity llama(EntityId(1));
+    LlamaEntity llama(EntityInstanceId(1));
     llama.setWorld(&world);
 
     EXPECT_FALSE(llama.isRearing());
@@ -254,7 +254,7 @@ TEST(AbstractHorseAnimationTest, ClearRearing_ClearsRearingState)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.makeHorseRear();
@@ -269,7 +269,7 @@ TEST(AbstractHorseAnimationTest, MakeMad_TriggersRearingAndSound)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isRearing());
@@ -284,7 +284,7 @@ TEST(AbstractHorseAnimationTest, MakeMad_DoesNotRearIfAlreadyRearing)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 先扬蹄
@@ -307,7 +307,7 @@ TEST(AbstractHorseAnimationTest, OpenMouth_SetsMouthOpenFlag)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isMouthOpen());
@@ -325,7 +325,7 @@ TEST(AbstractHorseOwnerTest, HasOwner_ReturnsFalseByDefault)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
 
     EXPECT_FALSE(horse.hasOwner());
     EXPECT_TRUE(horse.getOwnerUuid().empty());
@@ -335,7 +335,7 @@ TEST(AbstractHorseOwnerTest, SetOwnerUuid_UpdatesOwner)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
 
     const std::string testUuid = "0123456789abcdef0123456789abcdef";
     horse.setOwnerUuid(testUuid);
@@ -348,7 +348,7 @@ TEST(AbstractHorseOwnerTest, SetOwnerUuid_AutoTames)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     EXPECT_FALSE(horse.isTame());
 
     const std::string testUuid = "0123456789abcdef0123456789abcdef";
@@ -362,7 +362,7 @@ TEST(AbstractHorseOwnerTest, ClearOwnerUuid_ClearsOwner)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
 
     const std::string testUuid = "0123456789abcdef0123456789abcdef";
     horse.setOwnerUuid(testUuid);
@@ -377,7 +377,7 @@ TEST(AbstractHorseOwnerTest, GetOwner_ReturnsNullptrWithoutWorld)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
 
     const std::string testUuid = "0123456789abcdef0123456789abcdef";
     horse.setOwnerUuid(testUuid);
@@ -394,7 +394,7 @@ TEST(AbstractHorseNbtTest, OwnerUuid_RoundTrip)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     const std::string testUuid = "0123456789abcdef0123456789abcdef";
     horse.setOwnerUuid(testUuid);
     horse.setTame(true);
@@ -411,7 +411,7 @@ TEST(AbstractHorseNbtTest, OwnerUuid_RoundTrip)
     EXPECT_TRUE(leastVal.has_value());
 
     // 反序列化到新实体
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse2(EntityInstanceId(2));
     auto result = horse2.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -424,13 +424,13 @@ TEST(AbstractHorseNbtTest, Temper_RoundTrip)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.increaseTemper(50);
 
     nbt::tags::compound_tag tag;
     horse.addAdditionalSaveData(tag);
 
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse2(EntityInstanceId(2));
     auto result = horse2.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -441,14 +441,14 @@ TEST(AbstractHorseNbtTest, TameAndSaddle_RoundTrip)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setTame(true);
     horse.setSaddle(true);
 
     nbt::tags::compound_tag tag;
     horse.addAdditionalSaveData(tag);
 
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse2(EntityInstanceId(2));
     auto result = horse2.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -460,14 +460,14 @@ TEST(AbstractHorseNbtTest, EatingAndBred_RoundTrip)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setEating(true);
     horse.setBred(true);
 
     nbt::tags::compound_tag tag;
     horse.addAdditionalSaveData(tag);
 
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse2(EntityInstanceId(2));
     auto result = horse2.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -479,13 +479,13 @@ TEST(AbstractHorseNbtTest, JumpStrengthAndSpeed_RoundTrip)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setJumpStrength(0.75f);
 
     nbt::tags::compound_tag tag;
     horse.addAdditionalSaveData(tag);
 
-    HorseEntity horse2(EntityId(2));
+    HorseEntity horse2(EntityInstanceId(2));
     auto result = horse2.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 
@@ -496,7 +496,7 @@ TEST(AbstractHorseNbtTest, ClearOwnerUuid_NotSerializedWhenEmpty)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.clearOwnerUuid();
 
     nbt::tags::compound_tag tag;
@@ -514,7 +514,7 @@ TEST(AbstractHorseNbtTest, UntamedHorse_DoesNotWriteTameTag)
 {
     VanillaBlocks::initialize();
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setTame(false);
 
     nbt::tags::compound_tag tag;
@@ -535,7 +535,7 @@ TEST(AbstractHorseOwnerTest, SetTamedBy_SetsOwnerAndTame)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 创建一个模拟玩家（使用 Player 需要太多依赖，这里只测试 UUID 设置）
@@ -558,7 +558,7 @@ TEST(AbstractHorseStateTest, SetEating_UpdatesFlag)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isEating());
@@ -575,7 +575,7 @@ TEST(AbstractHorseStateTest, SetRearing_ClearsEating)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     horse.setEating(true);
@@ -591,7 +591,7 @@ TEST(AbstractHorseStateTest, SetMouthOpen_UpdatesFlag)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isMouthOpen());
@@ -608,7 +608,7 @@ TEST(AbstractHorseStateTest, SetBred_UpdatesFlag)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isBred());
@@ -629,7 +629,7 @@ TEST(AbstractHorseAnimationTest, Tick_OpenMouthCounter_ClosesMouthAfter30Ticks)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 打开嘴巴
@@ -653,7 +653,7 @@ TEST(AbstractHorseAnimationTest, Tick_JumpRearingCounter_ClearsRearingAfterCount
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 触发扬蹄，计数器设为 20
@@ -677,7 +677,7 @@ TEST(AbstractHorseAnimationTest, Tick_EatingCounter_StopsEatingAfter50Ticks)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 设置吃草状态
@@ -699,7 +699,7 @@ TEST(AbstractHorseAnimationTest, Tick_TailCounter_ResetsAfter8Ticks)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 设置尾巴计数器（模拟 aiStep 中 1/200 触发）
@@ -727,7 +727,7 @@ TEST(AbstractHorseAnimationTest, Tick_SprintCounter_ResetsAfter300Ticks)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // sprintCounter 默认为 0，不会触发递增
@@ -751,7 +751,7 @@ TEST(AbstractHorseAiStepTest, AiStep_GrassEatingTrigger_SetsEatingOnGrassBlock)
     // 实体默认在 y=0，onPos() 返回 y=-1，所以我们设置 y=-1 的方块
     world.setBlock(0, -1, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
     horse.setPosition(0.5f, 0.0f, 0.5f);
     // 禁用重力：测试世界没有方块碰撞，马会因为重力掉落导致 onPos() 变化，
@@ -782,7 +782,7 @@ TEST(AbstractHorseAiStepTest, AiStep_GrassEatingTrigger_DoesNotTriggerWithoutGra
     AbstractHorseTestWorld world;
     // 不放置草方块（默认为 AIR）
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
     horse.setPosition(0.5f, 0.0f, 0.5f);
 
@@ -806,7 +806,7 @@ TEST(AbstractHorseAiStepTest, AiStep_SkeletonHorseCannotEatGrass)
     AbstractHorseTestWorld world;
     world.setBlock(0, -1, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
-    SkeletonHorseEntity skeletonHorse(EntityId(1));
+    SkeletonHorseEntity skeletonHorse(EntityInstanceId(1));
     skeletonHorse.setWorld(&world);
     skeletonHorse.setPosition(0.5f, 0.0f, 0.5f);
 
@@ -827,7 +827,7 @@ TEST(AbstractHorseAiStepTest, AiStep_NaturalHealing_HealsOverTime)
     VanillaBlocks::initialize();
 
     AbstractHorseTestWorld world;
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
 
     // 设置马的生命值低于最大值
@@ -855,7 +855,7 @@ TEST(AbstractHorseAiStepTest, AiStep_EatingStopsAfter50Ticks)
     AbstractHorseTestWorld world;
     world.setBlock(0, -1, 0, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
-    HorseEntity horse(EntityId(1));
+    HorseEntity horse(EntityInstanceId(1));
     horse.setWorld(&world);
     horse.setPosition(0.5f, 0.0f, 0.5f);
     // 禁用重力：防止马掉落导致 onPos() 变化，确保吃草检查在正确位置查找

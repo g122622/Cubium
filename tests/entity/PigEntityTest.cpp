@@ -40,7 +40,7 @@ namespace {
 
 class PigEntityEquipableTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -145,7 +145,7 @@ TEST_F(PigEntityEquipableTest, CannotEquipToInvalidSlot)
 
 class PigEntityRideableTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -223,7 +223,7 @@ TEST_F(PigEntityRideableTest, SaddleSyncRequiresWorldContext)
 
 class PigEntityBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
 
     std::unique_ptr<PigEntity> pig;
 };

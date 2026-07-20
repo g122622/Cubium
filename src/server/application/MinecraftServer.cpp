@@ -442,7 +442,7 @@ void MinecraftServer::initializeCoreManagers()
                 if (dimension == nullptr || dimension->world() == nullptr) {
                     continue;
                 }
-                Entity* entity = dimension->world()->getEntity(static_cast<EntityId>(playerId));
+                Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
                 if (entity == nullptr) {
                     continue;
                 }
@@ -465,7 +465,7 @@ void MinecraftServer::initializeCoreManagers()
                 if (dimension == nullptr || dimension->world() == nullptr) {
                     continue;
                 }
-                Entity* entity = dimension->world()->getEntity(static_cast<EntityId>(playerId));
+                Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
                 if (entity == nullptr) {
                     continue;
                 }
@@ -557,25 +557,25 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
         [this](particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack) {
             broadcastItemParticleInRange(type, pos, velocity, itemStack);
         });
-    world.setOnBroadcastEntityStatus([this, &world](EntityId entityId, u8 status) {
+    world.setOnBroadcastEntityStatus([this, &world](EntityInstanceId entityId, u8 status) {
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
             broadcastEntityStatusInRange(entityId, status, entity->position());
         }
     });
-    world.setOnBroadcastEntityAnimation([this, &world](EntityId entityId, u8 animation) {
+    world.setOnBroadcastEntityAnimation([this, &world](EntityInstanceId entityId, u8 animation) {
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
             broadcastEntityAnimationInRange(entityId, animation, entity->position());
         }
     });
-    world.setOnBroadcastHurtAnimation([this, &world](EntityId entityId, f32 hurtDir) {
+    world.setOnBroadcastHurtAnimation([this, &world](EntityInstanceId entityId, f32 hurtDir) {
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
             broadcastHurtAnimationInRange(entityId, hurtDir, entity->position());
         }
     });
-    world.setOnBroadcastSetEntityLink([this, &world](EntityId entityId, EntityId linkedEntityId) {
+    world.setOnBroadcastSetEntityLink([this, &world](EntityInstanceId entityId, EntityInstanceId linkedEntityId) {
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
             broadcastSetEntityLinkInRange(entityId, linkedEntityId, entity->position());
@@ -599,7 +599,7 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
         std::vector<u8> nbtData = network::BlockEntityDataPacket::serializeNbtToBytes(tag);
         broadcastBlockEntityInRange(pos, entity->getType(), nbtData);
     });
-    world.setOnDestroyBlockProgress([this](EntityId breakerId, i32 x, i32 y, i32 z, i32 progress) {
+    world.setOnDestroyBlockProgress([this](EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress) {
         broadcastBlockBreakProgressInRange(breakerId, x, y, z, progress);
     });
     world.setOnBroadcastExplosion([this](const Vector3& position,
@@ -847,15 +847,15 @@ void MinecraftServer::initializeInteractionManagers()
         (void)result;
     });
 
-    // 设置 EntityId 解析器：将 PlayerId 转换为正确的 EntityId
-    // MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityId 作为 breakerId
+    // 设置 EntityInstanceId 解析器：将 PlayerId 转换为正确的 EntityInstanceId
+    // MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityInstanceId 作为 breakerId
     m_miningManager->setEntityIdResolver(
-        [this](PlayerId playerId) -> EntityId { return playerEntityManager().getPlayerEntityId(playerId); });
+        [this](PlayerId playerId) -> EntityInstanceId { return playerEntityManager().getPlayerEntityId(playerId); });
 
     // 设置破坏动画广播回调：将挖掘进度通过 ServerWorld::destroyBlockProgress 广播给其他玩家
     // 对应 MC Java: ServerPlayerGameMode 中调用 level.destroyBlockProgress(entityId, pos, stage)
     m_miningManager->setOnBreakAnimBroadcast([this](PlayerId playerId, i32 x, i32 y, i32 z, i8 stage) {
-        EntityId entityId = playerEntityManager().getPlayerEntityId(playerId);
+        EntityInstanceId entityId = playerEntityManager().getPlayerEntityId(playerId);
         if (entityId == INVALID_ENTITY_ID) {
             return;
         }
@@ -1457,7 +1457,7 @@ void MinecraftServer::setupWorldCallbacks()
                     mobEntity->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::ChunkGeneration);
                 }
 
-                const EntityId spawnedId = world->spawnEntity(std::move(entity));
+                const EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
                 MC_UNUSED(spawnedId);
             }
         });
@@ -1537,18 +1537,18 @@ void MinecraftServer::setupWorldCallbacks()
 
         // 设置实体同步回调
         if (auto* es = serverDim->entitySyncManager()) {
-            es->setOnEntitySpawn([this, serverDim](EntityId entityId, const Entity& entity) {
+            es->setOnEntitySpawn([this, serverDim](EntityInstanceId entityId, const Entity& entity) {
                 MC_UNUSED(entityId);
                 MC_UNUSED(entity);
                 // 实体生成广播由 EntityTracker 处理
             });
 
-            es->setOnEntityRemove([this, serverDim](EntityId entityId) {
+            es->setOnEntityRemove([this, serverDim](EntityInstanceId entityId) {
                 MC_UNUSED(entityId);
                 // 实体移除广播由 EntityTracker 处理
             });
 
-            es->setOnEntityMove([this, serverDim](EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch) {
+            es->setOnEntityMove([this, serverDim](EntityInstanceId entityId, const Vector3& pos, f32 yaw, f32 pitch) {
                 MC_UNUSED(entityId);
                 MC_UNUSED(pos);
                 MC_UNUSED(yaw);
@@ -1556,7 +1556,7 @@ void MinecraftServer::setupWorldCallbacks()
                 // 实体移动广播由 EntityTracker 处理
             });
 
-            es->setOnEntityStatus([this, serverDim](EntityId entityId, u8 status) {
+            es->setOnEntityStatus([this, serverDim](EntityInstanceId entityId, u8 status) {
                 MC_UNUSED(entityId);
                 MC_UNUSED(status);
                 // 实体状态广播由 EntityTracker 处理
@@ -3242,7 +3242,7 @@ void MinecraftServer::broadcastParticleInRange(u32 type,
     broadcastParticleInRange(particleType, pos, velocity, offset, count, range);
 }
 
-void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range)
+void MinecraftServer::broadcastEntityStatusInRange(EntityInstanceId entityId, u8 status, const Vector3& pos, f32 range)
 {
     network::EntityStatusPacket packet;
     packet.setEntityId(static_cast<u32>(entityId));
@@ -3269,7 +3269,8 @@ void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status,
     });
 }
 
-void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 animation, const Vector3& pos, f32 range)
+void MinecraftServer::broadcastEntityAnimationInRange(
+    EntityInstanceId entityId, u8 animation, const Vector3& pos, f32 range)
 {
     network::EntityAnimationPacket packet;
     packet.setEntityId(static_cast<u32>(entityId));
@@ -3296,7 +3297,8 @@ void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 anim
     });
 }
 
-void MinecraftServer::broadcastHurtAnimationInRange(EntityId entityId, f32 hurtDir, const Vector3& pos, f32 range)
+void MinecraftServer::broadcastHurtAnimationInRange(
+    EntityInstanceId entityId, f32 hurtDir, const Vector3& pos, f32 range)
 {
     // 复用 EntityAnimationPacket 的 TakeDamage 动画通道，附加 hurtDir
     // （ClientboundHurtAnimationPacket(id, yaw)，受害者自身与范围内追踪者均会收到）。
@@ -3327,7 +3329,7 @@ void MinecraftServer::broadcastHurtAnimationInRange(EntityId entityId, f32 hurtD
 }
 
 void MinecraftServer::broadcastSetEntityLinkInRange(
-    EntityId entityId, EntityId linkedEntityId, const Vector3& pos, f32 range)
+    EntityInstanceId entityId, EntityInstanceId linkedEntityId, const Vector3& pos, f32 range)
 {
     network::SetEntityLinkPacket packet(static_cast<u32>(entityId), static_cast<u32>(linkedEntityId));
 
@@ -3452,7 +3454,7 @@ void MinecraftServer::broadcastBlockEntityInRange(
 }
 
 void MinecraftServer::broadcastBlockBreakProgressInRange(
-    EntityId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range)
+    EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range)
 {
     // 对应 MC Java: ServerLevel.destroyBlockProgress()
     // 发送 BlockBreakAnimPacket 给范围内的玩家
@@ -3473,7 +3475,7 @@ void MinecraftServer::broadcastBlockBreakProgressInRange(
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockBreakAnim, result.value());
 
-    // 将 breakerId (EntityId) 转换为 PlayerId，用于排除破坏者自身
+    // 将 breakerId (EntityInstanceId) 转换为 PlayerId，用于排除破坏者自身
     PlayerId breakerPlayerId = playerEntityManager().getPlayerIdByEntityId(breakerId);
 
     f32 rangeSq = range * range;

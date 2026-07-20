@@ -52,6 +52,7 @@
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
@@ -169,7 +170,7 @@ void ClientApplication::setupNetworkCallbacks()
 
     NetworkClientCallbacks callbacks;
 
-    callbacks.onLoginSuccess = [this](PlayerId playerId, EntityId entityId, const std::string& username) {
+    callbacks.onLoginSuccess = [this](PlayerId playerId, EntityInstanceId entityId, const std::string& username) {
         spdlog::info("Login successful: playerId={}, entityId={}, username={}", playerId, entityId, username);
 
         // 设置本地玩家身份
@@ -309,8 +310,8 @@ void ClientApplication::setupNetworkCallbacks()
         auto& entityManager = m_world.entityManager();
 
         // 远程玩家使用 playerId 作为 entityId（服务端在 EntityTracker 中这样处理）
-        const EntityId entityId = static_cast<EntityId>(playerId);
-        ClientEntity* entity = entityManager.spawnEntity(entityId, mc::entity::EntityTypes::PLAYER);
+        const EntityInstanceId entityId = static_cast<EntityInstanceId>(playerId);
+        ClientEntity* entity = entityManager.spawnEntity(entityId, mc::entity::EntityTypeKeys::PLAYER);
         if (!entity) {
             entity = entityManager.getEntity(entityId);
         }
@@ -329,7 +330,7 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         // 远程玩家：移除实体
-        m_world.entityManager().removeEntity(static_cast<EntityId>(playerId));
+        m_world.entityManager().removeEntity(static_cast<EntityInstanceId>(playerId));
     };
 
     callbacks.onBlockUpdate = [this](i32 x, i32 y, i32 z, u32 blockStateId) {
@@ -364,7 +365,7 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityId>(playerId));
+        ClientEntity* entity = m_world.entityManager().getEntity(static_cast<EntityInstanceId>(playerId));
         if (!entity) {
             return;
         }
@@ -675,9 +676,9 @@ void ClientApplication::setupNetworkCallbacks()
             itemStack != nullptr);
 
         auto& entityManager = m_world.entityManager();
-        ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
+        ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityInstanceId>(entityId), typeId);
         if (!entity) {
-            entity = entityManager.getEntity(static_cast<EntityId>(entityId));
+            entity = entityManager.getEntity(static_cast<EntityInstanceId>(entityId));
         }
 
         if (!entity) {
@@ -688,7 +689,7 @@ void ClientApplication::setupNetworkCallbacks()
         entity->setRotation(yaw, pitch);
         entity->setVelocity(vx, vy, vz);
 
-        if (typeId == mc::entity::EntityTypes::ITEM) {
+        if (typeId == mc::entity::EntityTypeKeys::ITEM) {
             if (itemStack) {
                 entity->setItemStack(*itemStack);
             }
@@ -703,9 +704,9 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onSpawnMob =
         [this](u32 entityId, const std::string& typeId, f32 x, f32 y, f32 z, f32 yaw, f32 pitch, f32 headYaw) {
             auto& entityManager = m_world.entityManager();
-            ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityId>(entityId), typeId);
+            ClientEntity* entity = entityManager.spawnEntity(static_cast<EntityInstanceId>(entityId), typeId);
             if (!entity) {
-                entity = entityManager.getEntity(static_cast<EntityId>(entityId));
+                entity = entityManager.getEntity(static_cast<EntityInstanceId>(entityId));
             }
 
             if (!entity) {
@@ -729,16 +730,16 @@ void ClientApplication::setupNetworkCallbacks()
         auto& entityManager = m_world.entityManager();
         for (u32 entityId : entityIds) {
             // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
-            if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
+            if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityInstanceId>(entityId))) {
                 continue;
             }
 
             // 清理实体渲染网格（静态+动画），避免 Vulkan 资源泄漏
             if (m_renderer) {
-                m_renderer->entityRendererManager().removeEntityMeshes(static_cast<EntityId>(entityId));
+                m_renderer->entityRendererManager().removeEntityMeshes(static_cast<EntityInstanceId>(entityId));
             }
 
-            entityManager.removeEntity(static_cast<EntityId>(entityId));
+            entityManager.removeEntity(static_cast<EntityInstanceId>(entityId));
 
             // 通知音频系统实体移除
             if (m_audioService) {
@@ -749,7 +750,7 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onEntityMove = [this](u32 entityId, f32 deltaX, f32 deltaY, f32 deltaZ) {
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
-        const EntityId eid = static_cast<EntityId>(entityId);
+        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             return;
         }
@@ -767,7 +768,7 @@ void ClientApplication::setupNetworkCallbacks()
         MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity, "onEntityTeleport", "entityId", entityId);
 
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
-        const EntityId eid = static_cast<EntityId>(entityId);
+        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             return;
         }
@@ -785,7 +786,7 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onEntityVelocity = [this](u32 entityId, i16 vx, i16 vy, i16 vz) {
         const f32 scale = 1.0f / 8000.0f;
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
-        const EntityId eid = static_cast<EntityId>(entityId);
+        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             if (m_player) {
                 m_player->setVelocity(
@@ -846,7 +847,7 @@ void ClientApplication::setupNetworkCallbacks()
             TraceEvents.Client.Entity, "onEntityMetadata", "entityId", entityId, "size", metadata.size());
 
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
-        const EntityId eid = static_cast<EntityId>(entityId);
+        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             return;
         }
@@ -879,7 +880,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onEntityAnimation = [this](u32 entityId, u8 animation) {
-        auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        auto* entity = m_world.entityManager().getEntity(static_cast<EntityInstanceId>(entityId));
         if (!entity) {
             return;
         }
@@ -945,18 +946,18 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onHurtAnimation = [this](u32 entityId, f32 hurtDir) {
         // 同步 damageTilt 的 hurtDir：写到 ClientEntity 代理；若为本地玩家，额外写到
         // 实际 Player 对象（第一人称 FirstPersonRenderer 从 context.player 读取 hurtTime/hurtDir）。
-        auto* entity = m_world.entityManager().getEntity(static_cast<EntityId>(entityId));
+        auto* entity = m_world.entityManager().getEntity(static_cast<EntityInstanceId>(entityId));
         if (entity != nullptr) {
             entity->setHurtDir(hurtDir);
         }
-        if (m_player != nullptr && m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
+        if (m_player != nullptr && m_localIdentity.isLocalPlayerEntity(static_cast<EntityInstanceId>(entityId))) {
             m_player->animateHurt(hurtDir);
         }
     };
 
     callbacks.onEntityHeadLook = [this](u32 entityId, f32 headYaw) {
         // 使用 LocalPlayerIdentity 判断是否是本地玩家实体
-        const EntityId eid = static_cast<EntityId>(entityId);
+        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
         if (m_localIdentity.isLocalPlayerEntity(eid)) {
             return;
         }
@@ -1042,7 +1043,7 @@ void ClientApplication::setupNetworkCallbacks()
                 // 状态 10: 吃草/方块动画（羊低头吃草）或 TNT 矿车引燃
                 if (entity != nullptr) {
                     // TNT 矿车收到 status 10 时设置引信值
-                    if (entity->typeId() == mc::entity::EntityTypes::TNT_MINECART) {
+                    if (entity->entityType() == mc::entity::VanillaEntityTypeKeys::TNT_MINECART) {
                         entity->setFuseTimer(80);
                     } else {
                         entity->setEatAnimationTimer(40);
@@ -1056,7 +1057,7 @@ void ClientApplication::setupNetworkCallbacks()
                 // 时广播 byte 8，客户端收到后开始甩水动画。
                 // 客户端甩水进度由 ClientEntity::tick() 推进（每 tick +0.05）。
                 if (entity != nullptr) {
-                    const std::string& typeId = entity->typeId();
+                    const std::string& typeId = entity->getTypeId();
                     if (typeId == "minecraft:wolf" || typeId == "wolf") {
                         entity->setWolfShaking(true);
                         entity->setWolfIsWet(true);
@@ -1071,7 +1072,7 @@ void ClientApplication::setupNetworkCallbacks()
                 // 对应 MC Wolf.tick() 第 327-330 行：甩水中再次接触水时广播 byte 56，
                 // 客户端收到后立即取消甩水动画。
                 if (entity != nullptr) {
-                    const std::string& typeId = entity->typeId();
+                    const std::string& typeId = entity->getTypeId();
                     if (typeId == "minecraft:wolf" || typeId == "wolf") {
                         entity->setWolfShaking(false);
                         entity->setWolfShakeAnim(0.0f);
@@ -1086,7 +1087,7 @@ void ClientApplication::setupNetworkCallbacks()
                 // 客户端收到后启动 jumpDuration=10 计时器，用于 RabbitModel 计算 jumpRotation
                 // （参考 MC Rabbit.handleEntityEvent(byte 1)：jumpDuration=10; jumpTicks=0;）
                 if (entity != nullptr) {
-                    const std::string& typeId = entity->typeId();
+                    const std::string& typeId = entity->getTypeId();
                     if (typeId == "minecraft:rabbit" || typeId == "rabbit") {
                         entity->setRabbitJumpStart();
                     }
@@ -1156,7 +1157,7 @@ void ClientApplication::setupNetworkCallbacks()
             // HoglinAttack 和 IronGolemAttack 的值都是 4，只需写一个 case
             case static_cast<u8>(EntityStatusPacket::Status::IronGolemAttack): {
                 if (entity != nullptr) {
-                    const std::string& typeId = entity->typeId();
+                    const std::string& typeId = entity->getTypeId();
                     if (typeId == "minecraft:hoglin" || typeId == "hoglin" || typeId == "minecraft:zoglin" ||
                         typeId == "zoglin") {
                         // 疣猪兽/僵尸疣兽攻击动画
@@ -1169,7 +1170,7 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 // 播放攻击音效：根据实体类型选择不同音效
                 if (m_audioService && entity != nullptr) {
-                    const std::string& typeId = entity->typeId();
+                    const std::string& typeId = entity->getTypeId();
                     if (typeId == "minecraft:hoglin" || typeId == "hoglin") {
                         auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_HOGLIN_ATTACK,
                             mc::sound::SoundCategory::Hostile,
@@ -1327,7 +1328,7 @@ void ClientApplication::setupNetworkCallbacks()
                 i32 permLevel = EntityStatusPacket::toPermissionLevel(status);
                 if (permLevel >= 0) {
                     // 权限等级变更，仅对本机玩家生效
-                    if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
+                    if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityInstanceId>(entityId))) {
                         if (m_player) {
                             spdlog::info("Permission level changed to {}", permLevel);
                             m_player->setPermissionLevel(permLevel);
@@ -1389,7 +1390,7 @@ void ClientApplication::setupNetworkCallbacks()
         m_world.onLightUpdate(chunkX, chunkZ, sectionY, skyLight, blockLight, trustEdges);
     };
 
-    callbacks.onBlockBreakAnim = [this](EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage) {
+    callbacks.onBlockBreakAnim = [this](EntityInstanceId breakerEntityId, i32 x, i32 y, i32 z, i8 stage) {
         using namespace mc::client::renderer::trident::block;
         auto& manager = BreakProgressManager::instance();
 
@@ -1495,10 +1496,10 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onSpawnExperienceOrb = [this](u32 entityId, f64 x, f64 y, f64 z, i16 xpValue) {
         auto& entityManager = m_world.entityManager();
-        ClientEntity* entity =
-            entityManager.spawnEntity(static_cast<EntityId>(entityId), mc::entity::EntityTypes::EXPERIENCE_ORB);
+        ClientEntity* entity = entityManager.spawnEntity(
+            static_cast<EntityInstanceId>(entityId), mc::entity::EntityTypeKeys::EXPERIENCE_ORB);
         if (!entity) {
-            entity = entityManager.getEntity(static_cast<EntityId>(entityId));
+            entity = entityManager.getEntity(static_cast<EntityInstanceId>(entityId));
         }
 
         if (!entity) {
@@ -1553,7 +1554,7 @@ void ClientApplication::setupNetworkCallbacks()
                                         f64 targetX,
                                         f64 targetY,
                                         f64 targetZ,
-                                        EntityId targetEntityId,
+                                        EntityInstanceId targetEntityId,
                                         f32 yOffset,
                                         i32 arrivalInTicks) {
         if (!m_world.particleManager()) {
@@ -1793,8 +1794,8 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onSetPassengers = [this](u32 entityId, const std::vector<u32>& passengerIds) {
         // 处理乘客变化：更新实体的骑乘状态
 
-        const EntityId localPlayerEntityId = m_localIdentity.entityId();
-        const EntityId vehicleEntityId = static_cast<EntityId>(entityId);
+        const EntityInstanceId localPlayerEntityId = m_localIdentity.entityId();
+        const EntityInstanceId vehicleEntityId = static_cast<EntityInstanceId>(entityId);
 
         // 获取载具实体和旧乘客列表
         ClientEntity* vehicleEntity = m_world.entityManager().getEntity(vehicleEntityId);
@@ -1813,7 +1814,8 @@ void ClientApplication::setupNetworkCallbacks()
                 }
             }
             if (!stillPassenger) {
-                ClientEntity* oldPassenger = m_world.entityManager().getEntity(static_cast<EntityId>(oldPassengerId));
+                ClientEntity* oldPassenger =
+                    m_world.entityManager().getEntity(static_cast<EntityInstanceId>(oldPassengerId));
                 if (oldPassenger) {
                     oldPassenger->setVehicleId(0);
                 }
@@ -1831,7 +1833,7 @@ void ClientApplication::setupNetworkCallbacks()
             if (passengerId == static_cast<u32>(localPlayerEntityId)) {
                 localPlayerIsRiding = true;
             }
-            ClientEntity* passenger = m_world.entityManager().getEntity(static_cast<EntityId>(passengerId));
+            ClientEntity* passenger = m_world.entityManager().getEntity(static_cast<EntityInstanceId>(passengerId));
             if (passenger) {
                 passenger->setVehicleId(vehicleEntityId);
             }
@@ -1859,7 +1861,7 @@ void ClientApplication::setupNetworkCallbacks()
     callbacks.onSetCamera = [this](u32 cameraEntityId) {
         // 设置客户端的摄像机跟踪目标实体
         // cameraEntityId 为本地玩家自身 ID 时表示恢复正常视角
-        const EntityId localPlayerEntityId = m_localIdentity.entityId();
+        const EntityInstanceId localPlayerEntityId = m_localIdentity.entityId();
 
         if (cameraEntityId == static_cast<u32>(localPlayerEntityId)) {
             // 恢复自身视角
@@ -1870,7 +1872,7 @@ void ClientApplication::setupNetworkCallbacks()
         } else {
             // 跟踪目标实体
             if (m_player) {
-                m_player->setCameraEntityId(static_cast<EntityId>(cameraEntityId));
+                m_player->setCameraEntityId(static_cast<EntityInstanceId>(cameraEntityId));
             }
             spdlog::info("SetCamera: spectating entity {}", cameraEntityId);
         }
@@ -1989,13 +1991,13 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onVehicleMove = [this](f64 x, f64 y, f64 z, f32 yaw, f32 pitch) {
         // 获取本地玩家正在骑乘的载具
-        const EntityId localPlayerEntityId = m_localIdentity.entityId();
+        const EntityInstanceId localPlayerEntityId = m_localIdentity.entityId();
         ClientEntity* localPlayer = m_world.entityManager().getEntity(localPlayerEntityId);
         if (!localPlayer) {
             return;
         }
 
-        EntityId vehicleId = localPlayer->vehicleId();
+        EntityInstanceId vehicleId = localPlayer->vehicleId();
         if (vehicleId == 0) {
             return;
         }
@@ -2016,7 +2018,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     callbacks.onSleep = [this](u32 entityId, bool isSleeping, i32 bedX, i32 bedY, i32 bedZ) {
-        const EntityId eid = static_cast<EntityId>(entityId);
+        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
 
         // 本地玩家睡眠状态
         if (m_localIdentity.isLocalPlayerEntity(eid)) {

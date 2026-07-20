@@ -38,13 +38,13 @@
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -111,7 +111,7 @@ public:
         return result;
     }
 
-    Entity* getEntity(EntityId id) override
+    Entity* getEntity(EntityInstanceId id) override
     {
         for (auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -121,7 +121,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         for (const auto& entity : m_entities) {
             if (entity->id() == id) {
@@ -131,11 +131,11 @@ public:
         return nullptr;
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        if (!entity) return EntityId(0);
-        EntityId id = m_nextEntityId;
-        m_nextEntityId = EntityId(static_cast<u32>(m_nextEntityId) + 1);
+        if (!entity) return EntityInstanceId(0);
+        EntityInstanceId id = m_nextEntityId;
+        m_nextEntityId = EntityInstanceId(static_cast<u32>(m_nextEntityId) + 1);
         entity->setId(id);
         entity->setWorld(this);
         m_entities.push_back(std::move(entity));
@@ -205,7 +205,7 @@ public:
     void clearEntities()
     {
         m_entities.clear();
-        m_nextEntityId = EntityId(1);
+        m_nextEntityId = EntityInstanceId(1);
     }
 
     /// 获取所有骷髅实体
@@ -213,7 +213,7 @@ public:
     {
         std::vector<SkeletonEntity*> result;
         for (const auto& entity : m_entities) {
-            if (entity && entity->typeId() == entity::EntityTypeIdNumber::SKELETON) {
+            if (entity && entity->entityType() == entity::VanillaEntityTypeKeys::SKELETON) {
                 auto* skeleton = dynamic_cast<SkeletonEntity*>(entity.get());
                 if (skeleton) {
                     result.push_back(skeleton);
@@ -228,7 +228,7 @@ public:
     {
         std::vector<SkeletonHorseEntity*> result;
         for (const auto& entity : m_entities) {
-            if (entity && entity->typeId() == entity::EntityTypeIdNumber::SKELETON_HORSE) {
+            if (entity && entity->entityType() == entity::VanillaEntityTypeKeys::SKELETON_HORSE) {
                 auto* horse = dynamic_cast<SkeletonHorseEntity*>(entity.get());
                 if (horse) {
                     result.push_back(horse);
@@ -240,7 +240,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<Entity>> m_entities;
-    EntityId m_nextEntityId = EntityId(1);
+    EntityInstanceId m_nextEntityId = EntityInstanceId(1);
     u64 m_currentTick = 0;
     i64 m_dayTime = 6000; // 正午
     Difficulty m_difficulty = Difficulty::Normal;
@@ -279,12 +279,13 @@ protected:
 TEST_F(SkeletonHorseTrapIntegrationTest, EntityTypes_Registered)
 {
     // 验证骷髅实体类型已注册
-    const entity::EntityType* skeletonType = entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON);
+    const entity::EntityType* skeletonType =
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::SKELETON);
     EXPECT_NE(skeletonType, nullptr) << "SKELETON entity type should be registered";
 
     // 验证骷髅马实体类型已注册
     const entity::EntityType* skeletonHorseType =
-        entity::EntityRegistry::instance().getType(entity::EntityTypes::SKELETON_HORSE);
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::SKELETON_HORSE);
     EXPECT_NE(skeletonHorseType, nullptr) << "SKELETON_HORSE entity type should be registered";
 }
 
@@ -301,7 +302,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, EntityTypes_Registered)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NormalDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -321,7 +322,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NormalDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -338,7 +339,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NonTrapHorse_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(false);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -354,7 +355,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NonTrapHorse_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SkeletonEquipment_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -369,7 +370,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SkeletonEquipment_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, Tick_TrapHorse_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -389,7 +390,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, Tick_TrapHorse_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_EasyDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -403,7 +404,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_EasyDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NoWorld_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     // 不设置世界
 
@@ -417,7 +418,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NoWorld_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, JumpStrength_DefaultValue)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
 
     // 骷髅马默认跳跃强度应该是 1.0
     EXPECT_FLOAT_EQ(horse->getJumpStrength(), 1.0f);
@@ -428,7 +429,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, JumpStrength_DefaultValue)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, IsTame_DefaultTrue)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
 
     // 骷髅马默认已驯服
     EXPECT_TRUE(horse->isTame());
@@ -439,7 +440,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, IsTame_DefaultTrue)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, SetTrap_RegistersAndRemovesGoal)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
 
     // 初始状态：无陷阱
     EXPECT_FALSE(horse->isTrap());
@@ -476,7 +477,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstants_MatchMC1165)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstructor_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
 
     // 创建 Goal 应该不崩溃
@@ -499,12 +500,12 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SpawnsLightningEntity)
 {
     m_world->setDifficulty(Difficulty::Normal);
 
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(100, 64, 200));
 
     // 将骷髅马放入世界
-    EntityId horseId = m_world->spawnEntity(std::move(horse));
+    EntityInstanceId horseId = m_world->spawnEntity(std::move(horse));
 
     // 获取世界中的骷髅马指针
     Entity* horseEntity = m_world->getEntity(horseId);
@@ -556,11 +557,11 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_LightningIsE
 {
     m_world->setDifficulty(Difficulty::Hard);
 
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
-    EntityId horseId = m_world->spawnEntity(std::move(horse));
+    EntityInstanceId horseId = m_world->spawnEntity(std::move(horse));
     Entity* horseEntity = m_world->getEntity(horseId);
     ASSERT_NE(horseEntity, nullptr);
 

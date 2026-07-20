@@ -42,10 +42,10 @@ using namespace mc;
 namespace {
 
 /**
- * @brief MiningManager 回调与 EntityId 解析器测试夹具
+ * @brief MiningManager 回调与 EntityInstanceId 解析器测试夹具
  *
  * 轻量级测试夹具，不依赖 ServerWorld::initialize()。
- * 仅测试 MiningManager 的回调机制和 EntityId 解析器，
+ * 仅测试 MiningManager 的回调机制和 EntityInstanceId 解析器，
  * 不需要 tick() 和方块状态查询。
  */
 class MiningManagerCallbackTest : public ::testing::Test {
@@ -112,18 +112,18 @@ protected:
 };
 
 // ============================================================================
-// EntityId 解析器测试
+// EntityInstanceId 解析器测试
 // ============================================================================
 
 TEST_F(MiningManagerCallbackTest, EntityIdResolverIsUsedInStartMining)
 {
-    // 验证 handleBlockInteraction 使用 entityIdResolver 获取 EntityId，
-    // 而非直接将 PlayerId 当作 EntityId（这是一个曾经的 bug 修复）
-    static constexpr EntityId kExpectedEntityId = 42;
+    // 验证 handleBlockInteraction 使用 entityIdResolver 获取 EntityInstanceId，
+    // 而非直接将 PlayerId 当作 EntityInstanceId（这是一个曾经的 bug 修复）
+    static constexpr EntityInstanceId kExpectedEntityId = 42;
     bool resolverCalled = false;
     PlayerId capturedPlayerId = 0;
 
-    m_miningManager->setEntityIdResolver([&](PlayerId pid) -> EntityId {
+    m_miningManager->setEntityIdResolver([&](PlayerId pid) -> EntityInstanceId {
         resolverCalled = true;
         capturedPlayerId = pid;
         return kExpectedEntityId;
@@ -144,7 +144,7 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverIsUsedInStartMining)
 TEST_F(MiningManagerCallbackTest, EntityIdResolverNotCalledWhenNotSet)
 {
     // 不设置 entityIdResolver 时，handleBlockInteraction 不应崩溃
-    // startMining 将使用默认 EntityId=0
+    // startMining 将使用默认 EntityInstanceId=0
     m_miningManager->handleBlockInteraction(
         m_playerId, BlockPos(5, 63, 10), network::BlockInteractionAction::StartDestroyBlock);
 
@@ -157,7 +157,7 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverNotCalledWhenNotSet)
 TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsInvalidEntityId)
 {
     // 当 entityIdResolver 返回 INVALID_ENTITY_ID (0) 时，startMining 应正常工作
-    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityId { return INVALID_ENTITY_ID; });
+    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityInstanceId { return INVALID_ENTITY_ID; });
 
     m_miningManager->handleBlockInteraction(
         m_playerId, BlockPos(5, 63, 10), network::BlockInteractionAction::StartDestroyBlock);
@@ -170,7 +170,7 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsInvalidEntityId)
 
 TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsDifferentIdsForDifferentPlayers)
 {
-    // 验证解析器能为不同玩家返回不同的 EntityId
+    // 验证解析器能为不同玩家返回不同的 EntityInstanceId
     // 添加第二个玩家
     auto connection2 = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
     constexpr PlayerId player2Id = 2;
@@ -188,7 +188,7 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsDifferentIdsForDifferen
     m_inventoryManager->initializeInventory(player2Id);
 
     // 设置解析器：player1 -> entityId 100, player2 -> entityId 200
-    m_miningManager->setEntityIdResolver([](PlayerId pid) -> EntityId {
+    m_miningManager->setEntityIdResolver([](PlayerId pid) -> EntityInstanceId {
         if (pid == 1) return 100;
         if (pid == 2) return 200;
         return INVALID_ENTITY_ID;
@@ -370,7 +370,7 @@ TEST_F(MiningManagerCallbackTest, MultipleStartMiningOverwritesPrevious)
 TEST_F(MiningManagerCallbackTest, SetEntityIdResolverCanBeNull)
 {
     // 设置解析器后可以设置空解析器（std::function 可以为空）
-    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityId { return 42; });
+    m_miningManager->setEntityIdResolver([](PlayerId) -> EntityInstanceId { return 42; });
 
     m_miningManager->handleBlockInteraction(
         m_playerId, BlockPos(5, 63, 10), network::BlockInteractionAction::StartDestroyBlock);
@@ -379,7 +379,7 @@ TEST_F(MiningManagerCallbackTest, SetEntityIdResolverCanBeNull)
     // 设置空解析器
     m_miningManager->setEntityIdResolver(nullptr);
 
-    // 再次开始挖掘不应崩溃（使用默认 EntityId=0）
+    // 再次开始挖掘不应崩溃（使用默认 EntityInstanceId=0）
     m_miningManager->handleBlockInteraction(
         m_playerId, BlockPos(5, 63, 10), network::BlockInteractionAction::StartDestroyBlock);
     EXPECT_TRUE(m_miningManager->isMining(m_playerId));

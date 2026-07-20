@@ -790,7 +790,7 @@ protected:
      * @param pos 实体位置
      * @param range 广播范围（格），默认 64 格
      */
-    void broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range = 64.0f);
+    void broadcastEntityStatusInRange(EntityInstanceId entityId, u8 status, const Vector3& pos, f32 range = 64.0f);
 
     /**
      * @brief 广播实体动画事件给范围内玩家
@@ -800,7 +800,8 @@ protected:
      * @param pos 实体位置
      * @param range 广播范围（格），默认 64 格
      */
-    void broadcastEntityAnimationInRange(EntityId entityId, u8 animation, const Vector3& pos, f32 range = 64.0f);
+    void broadcastEntityAnimationInRange(
+        EntityInstanceId entityId, u8 animation, const Vector3& pos, f32 range = 64.0f);
 
     /**
      * @brief 向范围内玩家广播实体受伤动画（携带 hurtDir）
@@ -808,7 +809,7 @@ protected:
      * 发送 TakeDamage 动画包并附带 hurtDir，客户端据此设置 damageTilt 屏幕倾斜方向
      * （对应 MC ClientboundHurtAnimationPacket）。
      */
-    void broadcastHurtAnimationInRange(EntityId entityId, f32 hurtDir, const Vector3& pos, f32 range = 64.0f);
+    void broadcastHurtAnimationInRange(EntityInstanceId entityId, f32 hurtDir, const Vector3& pos, f32 range = 64.0f);
 
     /**
      * @brief 向范围内玩家广播实体拴绳链接变更
@@ -822,7 +823,7 @@ protected:
      * @param range 广播范围（格），默认 64 格
      */
     void broadcastSetEntityLinkInRange(
-        EntityId entityId, EntityId linkedEntityId, const Vector3& pos, f32 range = 64.0f);
+        EntityInstanceId entityId, EntityInstanceId linkedEntityId, const Vector3& pos, f32 range = 64.0f);
 
     // ========== 世界事件广播方法 ==========
 
@@ -864,7 +865,8 @@ protected:
      * @param progress 破坏进度 (0-9 表示阶段，-1 表示移除动画)
      * @param range 广播范围（格），默认 32 格（MC Java 使用 1024 = 32^2）
      */
-    void broadcastBlockBreakProgressInRange(EntityId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range = 32.0f);
+    void broadcastBlockBreakProgressInRange(
+        EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range = 32.0f);
 
     /**
      * @brief 广播方块事件给指定范围内的玩家

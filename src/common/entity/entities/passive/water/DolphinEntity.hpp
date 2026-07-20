@@ -79,7 +79,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    DolphinEntity(EntityId id);
+    DolphinEntity(EntityInstanceId id);
     ~DolphinEntity() override = default;
 
     // 禁止拷贝

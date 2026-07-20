@@ -57,8 +57,8 @@ entity::ProjectileItemEntity* SnowballItem::createProjectile(
 std::unique_ptr<entity::ProjectileEntity> SnowballItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::SnowballEntity>(EntityId(0));
-    entity->setTypeId(entity::EntityTypes::SNOWBALL);
+    auto entity = std::make_unique<entity::SnowballEntity>(EntityInstanceId(0));
+    entity->setTypeId(entity::EntityTypeKeys::SNOWBALL);
     return entity;
 }
 
@@ -87,8 +87,8 @@ entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& p
 std::unique_ptr<entity::ProjectileEntity> EggItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::EggEntity>(EntityId(0));
-    entity->setTypeId(entity::EntityTypes::EGG);
+    auto entity = std::make_unique<entity::EggEntity>(EntityInstanceId(0));
+    entity->setTypeId(entity::EntityTypeKeys::EGG);
     return entity;
 }
 
@@ -118,8 +118,8 @@ entity::ProjectileItemEntity* EnderPearlItem::createProjectile(
 std::unique_ptr<entity::ProjectileEntity> EnderPearlItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::EnderPearlEntity>(EntityId(0));
-    entity->setTypeId(entity::EntityTypes::ENDER_PEARL);
+    auto entity = std::make_unique<entity::EnderPearlEntity>(EntityInstanceId(0));
+    entity->setTypeId(entity::EntityTypeKeys::ENDER_PEARL);
     return entity;
 }
 
@@ -149,8 +149,8 @@ entity::ProjectileItemEntity* ExperienceBottleItem::createProjectile(
 std::unique_ptr<entity::ProjectileEntity> ExperienceBottleItem::createProjectileEntity(
     IWorld& /*world*/, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::ExperienceBottleEntity>(EntityId(0));
-    entity->setTypeId(entity::EntityTypes::EXPERIENCE_BOTTLE);
+    auto entity = std::make_unique<entity::ExperienceBottleEntity>(EntityInstanceId(0));
+    entity->setTypeId(entity::EntityTypeKeys::EXPERIENCE_BOTTLE);
     return entity;
 }
 

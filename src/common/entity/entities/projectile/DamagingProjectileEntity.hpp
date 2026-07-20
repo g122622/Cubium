@@ -69,7 +69,7 @@ public:
     [[nodiscard]] f32 getCollisionBorderSize() const override { return 1.0f; }
 
 protected:
-    explicit DamagingProjectileEntity(EntityId id);
+    explicit DamagingProjectileEntity(EntityInstanceId id);
 
     [[nodiscard]] virtual bool isFiery() const { return true; }
     [[nodiscard]] virtual f32 getMotionFactor() const { return 0.95f; }

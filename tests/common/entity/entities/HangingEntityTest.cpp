@@ -330,13 +330,13 @@ public:
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
@@ -345,7 +345,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
@@ -383,7 +383,7 @@ private:
 class TestHangingMobEntity : public MobEntity {
 public:
     TestHangingMobEntity()
-        : MobEntity(EntityId(200))
+        : MobEntity(EntityInstanceId(200))
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -569,13 +569,13 @@ public:
         m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
     }
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {
@@ -584,7 +584,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         size_t index = static_cast<size_t>(id) - 1;
         if (index < m_spawnedEntities.size()) {

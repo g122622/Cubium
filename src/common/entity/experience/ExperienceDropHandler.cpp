@@ -174,7 +174,7 @@ ExperienceOrbEntity* ExperienceDropHandler::_createExperienceOrb(
     auto orb = std::make_unique<ExperienceOrbEntity>(world, x, y, z, xpValue);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-    orb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+    orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
 
     // 设置初始速度
     orb->setVelocity(vx, vy, vz);
@@ -183,8 +183,8 @@ ExperienceOrbEntity* ExperienceDropHandler::_createExperienceOrb(
     ExperienceOrbEntity* orbPtr = orb.get();
 
     // 生成实体到世界
-    EntityId entityId = world->spawnEntity(std::move(orb));
-    if (entityId == EntityId(0)) {
+    EntityInstanceId entityId = world->spawnEntity(std::move(orb));
+    if (entityId == EntityInstanceId(0)) {
         // 生成失败
         return nullptr;
     }

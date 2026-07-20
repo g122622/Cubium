@@ -47,6 +47,7 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/interfaces/ICrossbowUser.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
@@ -65,10 +66,10 @@ namespace mc {
 // GhastEntity
 std::unique_ptr<Entity> GhastEntity::create(IWorld* world)
 {
-    return std::make_unique<GhastEntity>(EntityId(0));
+    return std::make_unique<GhastEntity>(EntityInstanceId(0));
 }
 
-GhastEntity::GhastEntity(EntityId id)
+GhastEntity::GhastEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     setBurnsInDaylight(false);
@@ -128,7 +129,7 @@ void GhastEntity::shootFireball()
     const f32 dz = static_cast<f32>(target->z() - fireballZ);
 
     // 创建火球实体
-    auto fireball = std::make_unique<entity::FireballEntity>(EntityId(0));
+    auto fireball = std::make_unique<entity::FireballEntity>(EntityInstanceId(0));
     fireball->setShooter(this);
     fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
 
@@ -186,10 +187,10 @@ void GhastEntity::registerAttributes()
 // MagmaCubeEntity
 std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world)
 {
-    return std::make_unique<MagmaCubeEntity>(EntityId(0));
+    return std::make_unique<MagmaCubeEntity>(EntityInstanceId(0));
 }
 
-MagmaCubeEntity::MagmaCubeEntity(EntityId id)
+MagmaCubeEntity::MagmaCubeEntity(EntityInstanceId id)
     : SlimeEntity(id)
 {
     // 岩浆怪不在阳光下燃烧
@@ -282,7 +283,7 @@ void MagmaCubeEntity::alterSquishAmount()
 }
 
 // AbstractPiglinEntity
-AbstractPiglinEntity::AbstractPiglinEntity(EntityId id)
+AbstractPiglinEntity::AbstractPiglinEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     setBurnsInDaylight(false);
@@ -302,10 +303,10 @@ void AbstractPiglinEntity::registerGoals()
 // PiglinEntity
 std::unique_ptr<Entity> PiglinEntity::create(IWorld* world)
 {
-    return std::make_unique<PiglinEntity>(EntityId(0));
+    return std::make_unique<PiglinEntity>(EntityInstanceId(0));
 }
 
-PiglinEntity::PiglinEntity(EntityId id)
+PiglinEntity::PiglinEntity(EntityInstanceId id)
     : AbstractPiglinEntity(id)
 {}
 
@@ -362,7 +363,7 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
     f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(m_world->difficulty());
 
     // 创建箭矢实体
-    auto arrow = std::make_unique<entity::ArrowEntity>(EntityId(0));
+    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0));
     arrow->setWorld(m_world);
     arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);
@@ -421,9 +422,9 @@ void PiglinEntity::registerGoals()
             this, 24.0f, 1.0, 1.2, entity::ai::goal::AvoidEntityGoal::EntityPredicate([](const LivingEntity* entity) {
                 if (!entity || !entity->isAlive()) return false;
                 // 避开僵尸猪灵和僵尸疣兽
-                auto type = entity->typeId();
-                return type == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN ||
-                    type == entity::EntityTypeIdNumber::ZOGLIN;
+                auto type = entity->entityType();
+                return type == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN ||
+                    type == entity::VanillaEntityTypeKeys::ZOGLIN;
             })));
 
     // 优先级 4: 避开排斥方块（猪灵害怕灵魂火、灵魂火把、灵魂灯笼、灵魂营火、诡异菌等）
@@ -626,10 +627,10 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
 // PiglinBruteEntity
 std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world)
 {
-    return std::make_unique<PiglinBruteEntity>(EntityId(0));
+    return std::make_unique<PiglinBruteEntity>(EntityInstanceId(0));
 }
 
-PiglinBruteEntity::PiglinBruteEntity(EntityId id)
+PiglinBruteEntity::PiglinBruteEntity(EntityInstanceId id)
     : AbstractPiglinEntity(id)
 {}
 
@@ -676,10 +677,10 @@ void PiglinBruteEntity::registerAttributes()
 // ZombifiedPiglinEntity
 std::unique_ptr<Entity> ZombifiedPiglinEntity::create(IWorld* /*world*/)
 {
-    return std::make_unique<ZombifiedPiglinEntity>(EntityId(0));
+    return std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
 }
 
-ZombifiedPiglinEntity::ZombifiedPiglinEntity(EntityId id)
+ZombifiedPiglinEntity::ZombifiedPiglinEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     setBurnsInDaylight(false);
@@ -736,10 +737,10 @@ void ZombifiedPiglinEntity::registerAttributes()
 // HoglinEntity
 std::unique_ptr<Entity> HoglinEntity::create(IWorld* world)
 {
-    return std::make_unique<HoglinEntity>(EntityId(0));
+    return std::make_unique<HoglinEntity>(EntityInstanceId(0));
 }
 
-HoglinEntity::HoglinEntity(EntityId id)
+HoglinEntity::HoglinEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     setBurnsInDaylight(false);
@@ -898,10 +899,10 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
 // ZoglinEntity
 std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world)
 {
-    return std::make_unique<ZoglinEntity>(EntityId(0));
+    return std::make_unique<ZoglinEntity>(EntityInstanceId(0));
 }
 
-ZoglinEntity::ZoglinEntity(EntityId id)
+ZoglinEntity::ZoglinEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     registerAttributes();
@@ -967,11 +968,11 @@ void ZoglinEntity::registerGoals()
             std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
                 this, true, 10, entity::ai::goal::TargetPredicate([](const LivingEntity* entity) {
                     if (!entity || !entity->isAlive()) return false;
-                    auto type = entity->typeId();
+                    auto type = entity->entityType();
                     // 排除僵尸疣兽自己
-                    if (type == entity::EntityTypeIdNumber::ZOGLIN) return false;
+                    if (type == entity::VanillaEntityTypeKeys::ZOGLIN) return false;
                     // 排除苦力怕（MC 原版 Zoglin 不攻击 Creeper）
-                    if (type == entity::EntityTypeIdNumber::CREEPER) return false;
+                    if (type == entity::VanillaEntityTypeKeys::CREEPER) return false;
                     return true;
                 })));
     }
@@ -993,16 +994,16 @@ void ZoglinEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
-bool ZoglinEntity::canAttackType(entity::EntityTypeId typeId) const
+bool ZoglinEntity::canAttackType(const entity::EntityType& type) const
 {
     // MC 原版 Zoglin.isTargetable 排除 Zoglin 和 Creeper
-    if (typeId == entity::EntityTypeIdNumber::ZOGLIN) {
+    if (&type == entity::VanillaEntityTypeKeys::ZOGLIN) {
         return false;
     }
-    if (typeId == entity::EntityTypeIdNumber::CREEPER) {
+    if (&type == entity::VanillaEntityTypeKeys::CREEPER) {
         return false;
     }
-    return MonsterEntity::canAttackType(typeId);
+    return MonsterEntity::canAttackType(type);
 }
 
 } // namespace mc

@@ -84,7 +84,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit WardenEntity(EntityId id);
+    explicit WardenEntity(EntityInstanceId id);
 
     ~WardenEntity() noexcept override = default;
 

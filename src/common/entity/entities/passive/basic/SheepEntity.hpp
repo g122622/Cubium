@@ -49,7 +49,7 @@ class Block;
  */
 class SheepEntity : public AnimalEntity, public entity::IShearable {
 public:
-    SheepEntity(EntityId id);
+    SheepEntity(EntityInstanceId id);
     ~SheepEntity() override = default;
 
     /**

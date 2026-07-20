@@ -24,11 +24,11 @@
 #include "AbstractArrowEntity.hpp"
 
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -63,7 +63,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 // AbstractArrowEntity
 // ============================================================================
 
-AbstractArrowEntity::AbstractArrowEntity(EntityId id)
+AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id)
     : ProjectileEntity(id)
 {
     m_noGravity = false;
@@ -282,7 +282,7 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     // 创建伤害来源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
-        bool isPlayer = shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        bool isPlayer = shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, shooter, this, isPlayer);
     } else {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, this, this, false);
@@ -470,7 +470,7 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
 // ArrowEntity
 // ============================================================================
 
-ArrowEntity::ArrowEntity(EntityId id)
+ArrowEntity::ArrowEntity(EntityInstanceId id)
     : AbstractArrowEntity(id)
 {
     m_damage = 2.0f;
@@ -484,7 +484,7 @@ std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/)
 std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shooter, IWorld* world)
 {
     auto arrow = std::make_unique<ArrowEntity>(0);
-    arrow->setTypeId(EntityTypes::ARROW);
+    arrow->setTypeId(EntityTypeKeys::ARROW);
     arrow->setWorld(world);
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
     arrow->setShooter(&shooter);
@@ -573,7 +573,7 @@ ItemStack ArrowEntity::getArrowStack() const
 // SpectralArrowEntity
 // ============================================================================
 
-SpectralArrowEntity::SpectralArrowEntity(EntityId id)
+SpectralArrowEntity::SpectralArrowEntity(EntityInstanceId id)
     : AbstractArrowEntity(id)
 {
     m_damage = 2.0f;

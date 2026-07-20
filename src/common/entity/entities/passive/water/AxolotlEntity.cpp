@@ -34,13 +34,13 @@
 #include "common/entity/ai/goal/goals/special/AxolotlGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -49,7 +49,7 @@
 
 namespace mc {
 
-AxolotlEntity::AxolotlEntity(EntityId id)
+AxolotlEntity::AxolotlEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {
     // 设置空气值（6000 tick = 5分钟）
@@ -194,7 +194,7 @@ void AxolotlEntity::registerGoals()
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(
         6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+            return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 7: 随机看向
@@ -270,7 +270,7 @@ void AxolotlEntity::_checkSupportingEffects()
         DamageSource* lastDamage = target->lastDamageSource();
         if (lastDamage != nullptr) {
             Entity* attacker = lastDamage->getEntity();
-            if (attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+            if (attacker != nullptr && attacker->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
                 auto* player = static_cast<Player*>(attacker);
                 // 检查该玩家是否在美西螈附近20格范围内
                 auto* world = this->world();

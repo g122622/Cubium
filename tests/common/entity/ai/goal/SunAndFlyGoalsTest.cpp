@@ -78,7 +78,7 @@ private:
 class TestCreature : public CreatureEntity {
 public:
     TestCreature()
-        : CreatureEntity(EntityId(1))
+        : CreatureEntity(EntityInstanceId(1))
     {
         registerAttributes();
         setHealth(maxHealth());

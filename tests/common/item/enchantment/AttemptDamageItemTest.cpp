@@ -52,7 +52,7 @@ using namespace mc::item::enchant;
 class DamageTestLivingEntity : public LivingEntity {
 public:
     explicit DamageTestLivingEntity(IWorld* world = nullptr)
-        : LivingEntity(EntityId(1), world)
+        : LivingEntity(EntityInstanceId(1), world)
     {
         registerData();
         registerAttributes();

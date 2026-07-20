@@ -28,6 +28,10 @@
 namespace mc {
 namespace entity {
 
+// 未知/空实体类型哨兵：默认构造（m_factory=nullptr, m_name=""），
+// 替代旧的数字哨兵，用于测试与默认值场景。
+const EntityType EntityType::UNKNOWN{};
+
 EntityType::~EntityType() = default;
 
 std::unique_ptr<Entity> EntityType::create(IWorld* world) const

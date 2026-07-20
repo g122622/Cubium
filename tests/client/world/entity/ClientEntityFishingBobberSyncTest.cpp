@@ -95,7 +95,7 @@ void setBitingParam(ClientEntity& entity, bool value)
 
 class ClientEntityFishingBobberSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:fishing_bobber"); }
+    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:fishing_bobber"); }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -201,7 +201,7 @@ TEST_F(ClientEntityFishingBobberSyncTest, SyncWithoutRegisteredParams_DoesNotCra
 
 TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsHookedEntity)
 {
-    ClientEntity entity(EntityId(1), "fishing_bobber");
+    ClientEntity entity(EntityInstanceId(1), "fishing_bobber");
     registerFishingParams(entity);
     setHookedEntityParam(entity, 43);
     entity.syncMetadataFromDataManager();
@@ -210,7 +210,7 @@ TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsHookedEnti
 
 TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsBiting)
 {
-    ClientEntity entity(EntityId(1), "fishing_bobber");
+    ClientEntity entity(EntityInstanceId(1), "fishing_bobber");
     registerFishingParams(entity);
     setBitingParam(entity, true);
     entity.syncMetadataFromDataManager();
@@ -223,7 +223,7 @@ TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsBiting)
 
 TEST(ClientEntityNonFishingBobberSyncTest, Zombie_DoesNotSyncFishingParams)
 {
-    ClientEntity entity(EntityId(1), "minecraft:zombie");
+    ClientEntity entity(EntityInstanceId(1), "minecraft:zombie");
     registerFishingParams(entity);
     setHookedEntityParam(entity, 43);
     setBitingParam(entity, true);
@@ -261,7 +261,7 @@ protected:
         serverManager->registerParam(bitingParam, false);
 
         // 客户端实体
-        clientEntity = std::make_unique<ClientEntity>(EntityId(1), "minecraft:fishing_bobber");
+        clientEntity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:fishing_bobber");
     }
 
     void TearDown() override

@@ -91,7 +91,7 @@ constexpr i32 MIN_CATCHABLE_TICKS = 20; // 最小捕获窗口 (1秒)
 constexpr i32 MAX_CATCHABLE_TICKS = 40; // 最大捕获窗口 (2秒)
 } // namespace
 
-LlamaSpitEntity::LlamaSpitEntity(EntityId id)
+LlamaSpitEntity::LlamaSpitEntity(EntityInstanceId id)
     : ThrowableEntity(id)
 {}
 
@@ -137,7 +137,7 @@ void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
 entity::DataParameter<i32> FishingBobberEntity::DATA_HOOKED_ENTITY_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<bool> FishingBobberEntity::DATA_BITING_PARAM = entity::EntityDataManager::createKey<bool>();
 
-FishingBobberEntity::FishingBobberEntity(EntityId id)
+FishingBobberEntity::FishingBobberEntity(EntityInstanceId id)
     : Entity(id)
 {
     m_noGravity = false;
@@ -646,7 +646,7 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
             std::make_unique<ExperienceOrbEntity>(m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-        orb->setTypeId(EntityTypes::EXPERIENCE_ORB);
+        orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
 
         // 设置拾取延迟
         orb->setPickupDelay(10);
@@ -823,7 +823,7 @@ void FishingBobberEntity::_syncCaughtEntityId()
 // ShulkerBulletEntity
 // ============================================================================
 
-ShulkerBulletEntity::ShulkerBulletEntity(EntityId id)
+ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id)
     : ProjectileEntity(id)
     , m_direction(Direction::Up)
     , m_targetDelta(0.0, 0.0, 0.0)
@@ -1175,7 +1175,7 @@ void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
 // EvokerFangsEntity
 // ============================================================================
 
-EvokerFangsEntity::EvokerFangsEntity(EntityId id)
+EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id)
     : Entity(id)
 {
     m_warmupDelay = 0;
@@ -1377,7 +1377,7 @@ Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound
 // EyeOfEnderEntity
 // ============================================================================
 
-EyeOfEnderEntity::EyeOfEnderEntity(EntityId id)
+EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id)
     : Entity(id)
 {
     m_noGravity = false;
@@ -1434,7 +1434,7 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 // FireworkRocketEntity
 // ============================================================================
 
-FireworkRocketEntity::FireworkRocketEntity(EntityId id)
+FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id)
     : ProjectileEntity(id)
     , m_fireworkItem(Items::AIR, 0) // 初始化为空物品
 {

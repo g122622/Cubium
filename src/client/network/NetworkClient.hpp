@@ -90,7 +90,7 @@ struct NetworkClientCallbacks {
     std::function<void(const std::string& error)> onError;
 
     // 登录事件
-    std::function<void(PlayerId playerId, EntityId entityId, const std::string& username)> onLoginSuccess;
+    std::function<void(PlayerId playerId, EntityInstanceId entityId, const std::string& username)> onLoginSuccess;
     std::function<void(const std::string& reason)> onLoginFailed;
     std::function<void(const std::string& treeJson)> onCommandTree;
 
@@ -176,7 +176,7 @@ struct NetworkClientCallbacks {
         onLightUpdate;
 
     // 方块破坏动画事件
-    std::function<void(EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage)> onBlockBreakAnim;
+    std::function<void(EntityInstanceId breakerEntityId, i32 x, i32 y, i32 z, i8 stage)> onBlockBreakAnim;
 
     // 方块事件（箱子开合、活塞动画等）
     std::function<void(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId)> onBlockEvent;
@@ -236,7 +236,7 @@ struct NetworkClientCallbacks {
         f64 targetX,
         f64 targetY,
         f64 targetZ,
-        EntityId targetEntityId,
+        EntityInstanceId targetEntityId,
         f32 yOffset,
         i32 arrivalInTicks)>
         onVibrationParticle;

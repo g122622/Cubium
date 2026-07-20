@@ -66,24 +66,24 @@ using namespace item;
  */
 class StickItemTestWorld final : public test::BaseTestWorld {
 public:
-    [[nodiscard]] Entity* getEntity(EntityId id) override
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
     {
         auto it = m_entities.find(id);
         return it != m_entities.end() ? it->second : nullptr;
     }
 
-    void registerEntity(EntityId id, Entity* entity) { m_entities[id] = entity; }
+    void registerEntity(EntityInstanceId id, Entity* entity) { m_entities[id] = entity; }
 
     void clearEntities() { m_entities.clear(); }
 
 private:
-    std::unordered_map<EntityId, Entity*> m_entities;
+    std::unordered_map<EntityInstanceId, Entity*> m_entities;
 };
 
 /**
@@ -291,7 +291,7 @@ TEST_F(OnAStickItemTest, EntityIdMatching)
 TEST_F(OnAStickItemTest, PigCanBeSteeredRequiresSaddleAndPlayer)
 {
     // 创建猪实体
-    PigEntity pig(EntityId(1));
+    PigEntity pig(EntityInstanceId(1));
 
     // 无鞍且无乘客时不能控制
     // 注意：BoostHelper 未初始化，hasSaddle() 返回 false
@@ -307,7 +307,7 @@ TEST_F(OnAStickItemTest, PigCanBeSteeredRequiresSaddleAndPlayer)
 TEST_F(OnAStickItemTest, StriderCanBeSteeredRequiresSaddleAndPlayer)
 {
     // 创建炽足兽实体
-    StriderEntity strider(EntityId(1));
+    StriderEntity strider(EntityInstanceId(1));
 
     // 无鞍且无乘客时不能控制
     // 注意：BoostHelper 未初始化，hasSaddle() 返回 false

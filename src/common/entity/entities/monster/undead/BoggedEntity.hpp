@@ -42,7 +42,7 @@ namespace mc {
  */
 class BoggedEntity : public AbstractSkeletonEntity {
 public:
-    BoggedEntity(EntityId id);
+    BoggedEntity(EntityInstanceId id);
 
     ~BoggedEntity() override = default;
 

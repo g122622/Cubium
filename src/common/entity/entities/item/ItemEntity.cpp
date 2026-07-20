@@ -23,16 +23,16 @@
 
 #include "common/entity/entities/item/ItemEntity.hpp"
 
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -75,7 +75,7 @@ std::unique_ptr<Entity> ItemEntity::create(IWorld* /*world*/)
 // 构造函数
 // ============================================================================
 
-ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
+ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z)
     : Entity(id)
     , m_itemStack(stack)
 {
@@ -91,7 +91,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
     m_velocity.z = rng.nextFloat(-0.1f, 0.1f);
 }
 
-ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
+ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
     : Entity(id)
     , m_itemStack(stack)
 {
@@ -312,7 +312,7 @@ void ItemEntity::_updateMerge()
 
     for (Entity* entity : nearbyEntities) {
         // 只处理物品实体
-        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::ITEM) {
             continue;
         }
 
@@ -537,104 +537,6 @@ void ItemEntity::_applyLavaPhysics()
     // 因此需要在此处手动调用岩浆点燃和伤害
     lavaIgnite();
     lavaHurt();
-}
-
-// ============================================================================
-// 序列化
-// ============================================================================
-
-void ItemEntity::serialize(network::PacketSerializer& ser) const
-{
-    // 实体类型和ID
-    ser.writeU32(static_cast<u32>(entity::EntityTypeIdNumber::ITEM));
-    ser.writeU32(static_cast<u32>(m_id));
-
-    // 位置（网络协议使用 f64）
-    ser.writeF64(static_cast<f64>(m_position.x));
-    ser.writeF64(static_cast<f64>(m_position.y));
-    ser.writeF64(static_cast<f64>(m_position.z));
-
-    // 速度（网络协议使用 f64）
-    ser.writeF64(static_cast<f64>(m_velocity.x));
-    ser.writeF64(static_cast<f64>(m_velocity.y));
-    ser.writeF64(static_cast<f64>(m_velocity.z));
-
-    // 旋转
-    ser.writeF32(m_yaw);
-    ser.writeF32(m_pitch);
-
-    // 物品堆
-    m_itemStack.serialize(ser);
-
-    // 额外数据
-    ser.writeI32(m_age);
-    ser.writeI32(m_pickupDelay);
-    ser.writeI32(m_lifetime);
-    ser.writeBool(m_unpickable);
-}
-
-Result<std::unique_ptr<ItemEntity>> ItemEntity::deserialize(network::PacketDeserializer& deser, EntityId id)
-{
-
-    // 读取位置（网络协议使用 f64）
-    auto xResult = deser.readF64();
-    if (xResult.failed()) return xResult.error();
-    f32 x = static_cast<f32>(xResult.value());
-
-    auto yResult = deser.readF64();
-    if (yResult.failed()) return yResult.error();
-    f32 y = static_cast<f32>(yResult.value());
-
-    auto zResult = deser.readF64();
-    if (zResult.failed()) return zResult.error();
-    f32 z = static_cast<f32>(zResult.value());
-
-    // 读取速度（网络协议使用 f64）
-    auto vxResult = deser.readF64();
-    if (vxResult.failed()) return vxResult.error();
-    f32 vx = static_cast<f32>(vxResult.value());
-
-    auto vyResult = deser.readF64();
-    if (vyResult.failed()) return vyResult.error();
-    f32 vy = static_cast<f32>(vyResult.value());
-
-    auto vzResult = deser.readF64();
-    if (vzResult.failed()) return vzResult.error();
-    f32 vz = static_cast<f32>(vzResult.value());
-
-    // 读取旋转
-    auto yawResult = deser.readF32();
-    if (yawResult.failed()) return yawResult.error();
-
-    auto pitchResult = deser.readF32();
-    if (pitchResult.failed()) return pitchResult.error();
-
-    // 读取物品堆
-    auto stackResult = ItemStack::deserialize(deser);
-    if (stackResult.failed()) return stackResult.error();
-
-    auto entity = std::make_unique<ItemEntity>(id, stackResult.value(), x, y, z);
-    entity->setVelocity(vx, vy, vz);
-    entity->setRotation(yawResult.value(), pitchResult.value());
-
-    // 读取额外数据
-    auto ageResult = deser.readI32();
-    if (ageResult.failed()) return ageResult.error();
-    entity->m_age = ageResult.value();
-
-    auto delayResult = deser.readI32();
-    if (delayResult.failed()) return delayResult.error();
-    entity->m_pickupDelay = delayResult.value();
-
-    auto lifetimeResult = deser.readI32();
-    if (lifetimeResult.failed()) return lifetimeResult.error();
-    entity->m_lifetime = lifetimeResult.value();
-
-    auto unpickableResult = deser.readBool();
-    if (unpickableResult.failed()) return unpickableResult.error();
-    entity->m_unpickable = unpickableResult.value();
-
-    return entity;
 }
 
 // ============================================================================

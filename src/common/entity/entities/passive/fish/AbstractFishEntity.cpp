@@ -29,13 +29,14 @@
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../player/Player.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc {
 
-AbstractFishEntity::AbstractFishEntity(EntityId id)
+AbstractFishEntity::AbstractFishEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {
     // 设置鱼类最大空气供应量（480 ticks = 24秒）
@@ -68,7 +69,7 @@ void AbstractFishEntity::registerGoals()
                     return false;
                 }
                 // 只躲避玩家
-                if (entity->typeId() != entity::EntityTypeIdNumber::PLAYER) {
+                if (entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
                     return false;
                 }
                 // 不躲避旁观者模式和创造模式玩家

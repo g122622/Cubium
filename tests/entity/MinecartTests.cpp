@@ -89,7 +89,7 @@ protected:
 
 TEST_F(ChestMinecartEntityTest, Constructor_CreatesEmptyInventory)
 {
-    ChestMinecartEntity minecart(EntityId(1));
+    ChestMinecartEntity minecart(EntityInstanceId(1));
 
     EXPECT_EQ(minecart.getContainerSize(), ChestMinecartEntity::INVENTORY_SIZE);
     EXPECT_EQ(ChestMinecartEntity::INVENTORY_SIZE, 27); // 3行 x 9列
@@ -98,7 +98,7 @@ TEST_F(ChestMinecartEntityTest, Constructor_CreatesEmptyInventory)
 
 TEST_F(ChestMinecartEntityTest, GetInventoryItem_ReturnsEmptyForInvalidSlot)
 {
-    ChestMinecartEntity minecart(EntityId(1));
+    ChestMinecartEntity minecart(EntityInstanceId(1));
 
     // 越界访问应返回空物品堆
     EXPECT_TRUE(minecart.getInventoryItem(-1).isEmpty());
@@ -107,7 +107,7 @@ TEST_F(ChestMinecartEntityTest, GetInventoryItem_ReturnsEmptyForInvalidSlot)
 
 TEST_F(ChestMinecartEntityTest, ClearInventory_WorksCorrectly)
 {
-    ChestMinecartEntity minecart(EntityId(1));
+    ChestMinecartEntity minecart(EntityInstanceId(1));
 
     // 验证库存操作基本功能
     EXPECT_TRUE(minecart.isInventoryEmpty());
@@ -119,7 +119,7 @@ TEST_F(ChestMinecartEntityTest, ClearInventory_WorksCorrectly)
 
 TEST_F(ChestMinecartEntityTest, RemoveInventoryItem_WorksCorrectly)
 {
-    ChestMinecartEntity minecart(EntityId(1));
+    ChestMinecartEntity minecart(EntityInstanceId(1));
 
     // 越界访问应返回空物品堆
     EXPECT_TRUE(minecart.removeInventoryItem(-1, 1).isEmpty());
@@ -131,7 +131,7 @@ TEST_F(ChestMinecartEntityTest, RemoveInventoryItem_WorksCorrectly)
 
 TEST_F(ChestMinecartEntityTest, GetInventory_ReturnsNonNullptr)
 {
-    ChestMinecartEntity minecart(EntityId(1));
+    ChestMinecartEntity minecart(EntityInstanceId(1));
 
     IInventory* inventory = minecart.getInventory();
     ASSERT_NE(inventory, nullptr);
@@ -150,22 +150,22 @@ protected:
 
 TEST_F(AbstractMinecartEntityTest, Constructor_SetsCorrectType)
 {
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
     EXPECT_EQ(rideable.getMinecartType(), AbstractMinecartEntity::Type::Rideable);
 
-    ChestMinecartEntity chest(EntityId(2));
+    ChestMinecartEntity chest(EntityInstanceId(2));
     EXPECT_EQ(chest.getMinecartType(), AbstractMinecartEntity::Type::Chest);
 
-    FurnaceMinecartEntity furnace(EntityId(3));
+    FurnaceMinecartEntity furnace(EntityInstanceId(3));
     EXPECT_EQ(furnace.getMinecartType(), AbstractMinecartEntity::Type::Furnace);
 
-    TNTMinecartEntity tnt(EntityId(4));
+    TNTMinecartEntity tnt(EntityInstanceId(4));
     EXPECT_EQ(tnt.getMinecartType(), AbstractMinecartEntity::Type::TNT);
 
-    HopperMinecartEntity hopper(EntityId(5));
+    HopperMinecartEntity hopper(EntityInstanceId(5));
     EXPECT_EQ(hopper.getMinecartType(), AbstractMinecartEntity::Type::Hopper);
 
-    CommandBlockMinecartEntity command(EntityId(6));
+    CommandBlockMinecartEntity command(EntityInstanceId(6));
     EXPECT_EQ(command.getMinecartType(), AbstractMinecartEntity::Type::CommandBlock);
 }
 
@@ -180,30 +180,30 @@ TEST_F(AbstractMinecartEntityTest, GetSlopeAdjustment_ReturnsCorrectValue)
 
 TEST_F(AbstractMinecartEntityTest, GetMaxSpeed_ReturnsDefault)
 {
-    RideableMinecartEntity minecart(EntityId(1));
+    RideableMinecartEntity minecart(EntityInstanceId(1));
     // MC 1.16.5: 默认最大速度 0.4D
     EXPECT_FLOAT_EQ(minecart.getMaxSpeed(), 0.4f);
 }
 
 TEST_F(AbstractMinecartEntityTest, FurnaceMinecart_HasSlowerSpeed)
 {
-    FurnaceMinecartEntity furnace(EntityId(1));
+    FurnaceMinecartEntity furnace(EntityInstanceId(1));
     // MC 1.16.5: 熔炉矿车最大速度 0.2D
     EXPECT_FLOAT_EQ(furnace.getMaxSpeed(), 0.2f);
 }
 
 TEST_F(AbstractMinecartEntityTest, IsActivated_DefaultFalse)
 {
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
     EXPECT_FALSE(rideable.isActivated());
 
-    FurnaceMinecartEntity furnace(EntityId(2));
+    FurnaceMinecartEntity furnace(EntityInstanceId(2));
     EXPECT_FALSE(furnace.isActivated());
 }
 
 TEST_F(AbstractMinecartEntityTest, FurnaceMinecart_FuelSystem)
 {
-    FurnaceMinecartEntity furnace(EntityId(1));
+    FurnaceMinecartEntity furnace(EntityInstanceId(1));
 
     // 初始燃料为 0
     EXPECT_EQ(furnace.getFuel(), 0);
@@ -221,7 +221,7 @@ TEST_F(AbstractMinecartEntityTest, FurnaceMinecart_FuelSystem)
 
 TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeSystem)
 {
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
 
     // 初始未点燃
     EXPECT_FALSE(tnt.isPrimed());
@@ -233,7 +233,7 @@ TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeSystem)
 
 TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeDefaultFuse)
 {
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
 
     // 默认引信时间为 80 ticks
     tnt.prime();
@@ -242,7 +242,7 @@ TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeDefaultFuse)
 
 TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeCustomFuse)
 {
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
 
     // 自定义引信时间
     tnt.prime(40);
@@ -251,7 +251,7 @@ TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeCustomFuse)
 
 TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeNegativeFuseNotPrimed)
 {
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
 
     // 负值 fuse 不应视为引燃状态
     tnt.prime(-1);
@@ -345,17 +345,17 @@ protected:
 TEST_F(MinecartSpeedTest, GetMaxSpeed_ReturnsDefaultForAllTypes)
 {
     // 基础最大速度常量
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
     EXPECT_FLOAT_EQ(rideable.getMaxSpeed(), 0.4f);
 
-    FurnaceMinecartEntity furnace(EntityId(2));
+    FurnaceMinecartEntity furnace(EntityInstanceId(2));
     EXPECT_FLOAT_EQ(furnace.getMaxSpeed(), 0.2f);
 }
 
 TEST_F(MinecartSpeedTest, GetMaxSpeedWithRail_OffRail_ReturnsGetMaxSpeed)
 {
     // 不在铁轨上时，getMaxSpeedWithRail 应返回 getMaxSpeed
-    RideableMinecartEntity minecart(EntityId(1));
+    RideableMinecartEntity minecart(EntityInstanceId(1));
     EXPECT_FALSE(minecart.isOnRail());
     EXPECT_FLOAT_EQ(minecart.getMaxSpeedWithRail(), minecart.getMaxSpeed());
 }
@@ -364,7 +364,7 @@ TEST_F(MinecartSpeedTest, GetMaxSpeedWithRail_DefaultGameRule_YieldsCorrectSpeed
 {
     // 默认 max_minecart_speed=8, 实际速度=8/20.0=0.4
     // 与旧版 DEFAULT_MAX_SPEED 一致
-    RideableMinecartEntity minecart(EntityId(1));
+    RideableMinecartEntity minecart(EntityInstanceId(1));
     // 在铁轨上时，如果无世界指针，回退到 getMaxSpeed()
     EXPECT_FLOAT_EQ(minecart.getMaxSpeedWithRail(), minecart.getMaxSpeed());
 }
@@ -381,7 +381,7 @@ protected:
 
 TEST_F(ActivatorRailCallbackTest, HopperMinecart_ActivatorRailDisablesHopper)
 {
-    HopperMinecartEntity hopper(EntityId(1));
+    HopperMinecartEntity hopper(EntityInstanceId(1));
 
     // 初始状态：漏斗未被禁用
     EXPECT_FALSE(hopper.isDisabled());
@@ -397,7 +397,7 @@ TEST_F(ActivatorRailCallbackTest, HopperMinecart_ActivatorRailDisablesHopper)
 
 TEST_F(ActivatorRailCallbackTest, HopperMinecart_StaysDisabledAfterLeavingRail)
 {
-    HopperMinecartEntity hopper(EntityId(1));
+    HopperMinecartEntity hopper(EntityInstanceId(1));
 
     // 充能激活铁轨禁用漏斗
     hopper.onActivatorRailPass(0, 0, 0, true);
@@ -410,7 +410,7 @@ TEST_F(ActivatorRailCallbackTest, HopperMinecart_StaysDisabledAfterLeavingRail)
 
 TEST_F(ActivatorRailCallbackTest, TNTMinecart_ActivatorRailIgnitesOnPowered)
 {
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
 
     // 初始未点燃
     EXPECT_FALSE(tnt.isPrimed());
@@ -422,7 +422,7 @@ TEST_F(ActivatorRailCallbackTest, TNTMinecart_ActivatorRailIgnitesOnPowered)
 
 TEST_F(ActivatorRailCallbackTest, TNTMinecart_UnpoweredRailDoesNotIgnite)
 {
-    TNTMinecartEntity tnt(EntityId(1));
+    TNTMinecartEntity tnt(EntityInstanceId(1));
 
     // 未充能激活铁轨不应点燃TNT
     tnt.onActivatorRailPass(0, 0, 0, false);
@@ -433,7 +433,7 @@ TEST_F(ActivatorRailCallbackTest, RideableMinecart_ActivatorRailEjectsPassengers
 {
     // 乘骑矿车在充能激活铁轨上弹出乘客
     // 此测试验证 onActivatorRailPass 不会崩溃
-    RideableMinecartEntity rideable(EntityId(1));
+    RideableMinecartEntity rideable(EntityInstanceId(1));
 
     // 无乘客时调用不应崩溃
     rideable.onActivatorRailPass(0, 0, 0, true);
@@ -442,7 +442,7 @@ TEST_F(ActivatorRailCallbackTest, RideableMinecart_ActivatorRailEjectsPassengers
 
 TEST_F(ActivatorRailCallbackTest, CommandBlockMinecart_ExecutesOnRisingEdge)
 {
-    CommandBlockMinecartEntity cmd(EntityId(1));
+    CommandBlockMinecartEntity cmd(EntityInstanceId(1));
 
     // 充能激活铁轨的上升沿执行命令
     cmd.onActivatorRailPass(0, 0, 0, true);
@@ -454,7 +454,7 @@ TEST_F(ActivatorRailCallbackTest, CommandBlockMinecart_ExecutesOnRisingEdge)
 
 TEST_F(ActivatorRailCallbackTest, FurnaceMinecart_UpdatesPushDirectionOnPowered)
 {
-    FurnaceMinecartEntity furnace(EntityId(1));
+    FurnaceMinecartEntity furnace(EntityInstanceId(1));
 
     // 熔炉矿车在充能激活铁轨上更新推动方向
     // 此测试验证 onActivatorRailPass 不会崩溃

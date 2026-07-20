@@ -264,8 +264,8 @@ void VillagerBreedGoal::_spawnChild()
         auto child = m_villager->createChild();
         if (child && m_villager->world()) {
             child->setPosition(m_villager->x(), m_villager->y(), m_villager->z());
-            // spawnEntity 返回服务端分配的 EntityId，可能不同于移动前的 id
-            EntityId childId = m_villager->world()->spawnEntity(std::move(child));
+            // spawnEntity 返回服务端分配的 EntityInstanceId，可能不同于移动前的 id
+            EntityInstanceId childId = m_villager->world()->spawnEntity(std::move(child));
 
             // MC原版 VillagerMakeLove.breed: 幼年村民出生后对其广播爱心粒子 (byte)12
             m_villager->world()->broadcastEntityStatus(

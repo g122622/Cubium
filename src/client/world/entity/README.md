@@ -112,7 +112,7 @@ ClientEntity
 
 11. **TNT矿车引信计时器不走元数据同步**：
     - TNT矿车的 `fuseTimer` 通过 `EntityStatusPacket::Status::EatBlock` (status code 10) 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
-    - 客户端在 `onEntityStatus` 回调中根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+    - 客户端在 `onEntityStatus` 回调中根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
     - `ClientEntity::tick()` 中递减 `m_fuseTimer`
     - 与铁傀儡状态同步模式一致：服务端 `broadcastEntityStatus()` → 网络包 → 客户端回调设置字段
 

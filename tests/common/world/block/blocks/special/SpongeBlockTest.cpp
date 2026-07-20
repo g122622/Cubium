@@ -32,6 +32,7 @@
  * - 海绵吸水后应变为湿润海绵
  */
 
+#include "common/world/block/blocks/special/SpongeBlock.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
@@ -43,7 +44,6 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/LiquidBlock.hpp"
-#include "common/world/block/blocks/special/SpongeBlock.hpp"
 #include "common/world/block/blocks/special/WetSpongeBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -139,12 +139,12 @@ public:
 
     // ========== 实体生成 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntityCount++;
         m_lastSpawnedEntityPos = entity ? entity->position() : Vector3();
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // ========== LootTableManager ==========
@@ -589,11 +589,11 @@ public:
 
     // ========== 实体生成 ==========
 
-    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntityCount++;
         m_spawnedEntities.push_back(std::move(entity));
-        return static_cast<EntityId>(m_spawnedEntities.size());
+        return static_cast<EntityInstanceId>(m_spawnedEntities.size());
     }
 
     // ========== LootTableManager ==========
