@@ -226,15 +226,16 @@ glm::vec4 CelestialCalculations::calculateFogColor(f64 celestialAngle, f64 rainS
     return glm::vec4(fogColor, 1.0f);
 }
 
-f64 CelestialCalculations::calculateStarBrightness(f64 celestialAngle)
+f64 CelestialCalculations::calculateStarBrightness(f64 celestialAngle, f64 rainStrength)
 {
-    // MC 风格的星空亮度曲线：
+    // 星空亮度曲线：
     // f = 1 - (cos(angle * TAU) * 2 + 0.25)
     // clamp 到 [0,1] 后平方再缩放。
     const f64 angleRad = celestialAngle * mc::math::TAU_F;
     f64 brightness = 1.0 - (std::cos(angleRad) * 2.0 + 0.25);
     brightness = glm::clamp(brightness, 0.0, 1.0);
-    return brightness * brightness * 0.5;
+    // 下雨时星星不可见
+    return brightness * brightness * 0.5 * (1.0 - rainStrength);
 }
 
 } // namespace mc::client

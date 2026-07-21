@@ -47,6 +47,7 @@ struct TextureRegion;
 
 namespace mc::client {
 class ChunkRenderer;
+class ClientWorld;
 class Font;
 } // namespace mc::client
 
@@ -87,6 +88,10 @@ class SkyRenderer;
 
 namespace fog {
 class FogManager;
+}
+
+namespace light {
+class LightTextureManager;
 }
 
 namespace cloud {
@@ -295,6 +300,21 @@ public:
     void updateWeather(f64 rainStrength, f64 thunderStrength);
 
     /**
+     * @brief 注入客户端世界
+     *
+     * 供雾距、lightmap 等需要在渲染帧查询相机位置 skyLight/biome 的子系统使用。
+     * 仅缓存指针，调用方需保证 world 生命周期覆盖后续渲染帧。
+     *
+     * @param world 客户端世界（可为 nullptr 解绑）
+     */
+    void setClientWorld(mc::client::ClientWorld* world);
+
+    /**
+     * @brief 获取已注入的客户端世界
+     */
+    [[nodiscard]] mc::client::ClientWorld* clientWorld() const { return m_clientWorld; }
+
+    /**
      * @brief 设置闪电闪烁亮度
      *
      * 当闪电击中时，天空会短暂变亮。
@@ -302,6 +322,15 @@ public:
      * @param brightness 闪电闪烁亮度 (0.0-1.0)，0表示无效果
      */
     void setLightningFlashBrightness(f64 brightness);
+
+    /**
+     * @brief 设置维度环境光
+     *
+     * 主世界 0.0，下界 0.2，末地 0.0。用于光照贴图与天空亮度下限计算。
+     *
+     * @param ambientLight 环境光强度 (0.0-1.0)
+     */
+    void setAmbientLight(f64 ambientLight);
 
     /**
      * @brief 运行时切换 VSync（会触发交换链重建）
@@ -546,6 +575,15 @@ public:
     [[nodiscard]] bool isWeatherRendererInitialized() const { return m_weatherRendererInitialized; }
 
     /**
+     * @brief 获取光照贴图管理器
+     *
+     * 维护 16×16 光照贴图纹理，每帧按天气/时间/维度参数重建，供天气渲染器采样。
+     */
+    [[nodiscard]] light::LightTextureManager& lightTextureManager();
+    [[nodiscard]] const light::LightTextureManager& lightTextureManager() const;
+    [[nodiscard]] bool isLightTextureManagerInitialized() const { return m_lightTextureManagerInitialized; }
+
+    /**
      * @brief 获取破坏进度渲染器
      */
     [[nodiscard]] block::BreakProgressRenderer& breakProgressRenderer();
@@ -647,7 +685,15 @@ public:
     /**
      * @brief 初始化天气渲染器
      */
-    [[nodiscard]] Result<void> initializeWeatherRenderer();
+    [[nodiscard]] Result<void> initializeWeatherRenderer(ResourceManager* resourceManager);
+
+    /**
+     * @brief 初始化光照贴图管理器
+     *
+     * 创建 16×16 光照贴图纹理资源并完成首次上传。成功后会把图像视图与采样器
+     * 注入天气渲染器（setLightmap），使其改用 lightmap 采样而非标量光照回退。
+     */
+    [[nodiscard]] Result<void> initializeLightTextureManager();
 
     /**
      * @brief 初始化破坏进度渲染器
@@ -746,6 +792,10 @@ private:
     // 天气状态
     f64 m_rainStrength = 0.0f;
     f64 m_thunderStrength = 0.0f;
+    f64 m_lightningFlashBrightness = 0.0f; ///< 闪电闪烁亮度（0..1，驱动光照贴图增亮）
+
+    // 维度环境光（主世界 0.0，下界 0.2，末地 0.0），供光照贴图下限
+    f64 m_ambientLight = 0.0f;
 
     // 可配置渲染参数（由 options.json 驱动）
     i32 m_renderDistanceChunks = 12;
@@ -784,8 +834,12 @@ private:
     std::unique_ptr<cloud::CloudRenderer> m_cloudRenderer;
     std::unique_ptr<particle::ParticleManager> m_particleManager;
     std::unique_ptr<weather::WeatherRenderer> m_weatherRenderer;
+    std::unique_ptr<light::LightTextureManager> m_lightTextureManager;
     std::unique_ptr<block::BreakProgressRenderer> m_breakProgressRenderer;
     std::unique_ptr<firstperson::FirstPersonRenderer> m_firstPersonRenderer;
+
+    // 客户端世界（由外部注入，供雾距/lightmap 等子系统查询相机 skyLight/biome，可为空）
+    mc::client::ClientWorld* m_clientWorld = nullptr;
 
     // 实体渲染管线（独立于区块管线）
     std::unique_ptr<EntityPipeline> m_entityPipeline;
@@ -817,6 +871,7 @@ private:
     bool m_cloudRendererInitialized = false;
     bool m_particleManagerInitialized = false;
     bool m_weatherRendererInitialized = false;
+    bool m_lightTextureManagerInitialized = false;
     bool m_breakProgressRendererInitialized = false;
     bool m_firstPersonRendererInitialized = false;
 

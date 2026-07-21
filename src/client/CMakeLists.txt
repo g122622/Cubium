@@ -47,6 +47,8 @@ add_executable(minecraft-client
     renderer/trident/cloud/CloudRenderer.cpp
     # 天气渲染模块
     renderer/trident/weather/WeatherRenderer.cpp
+    # 光照贴图模块（16×16 lightmap，供天气渲染采样）
+    renderer/trident/light/LightTextureManager.cpp
     # 粒子系统
     renderer/trident/particle/Particle.cpp
     renderer/trident/particle/ParticleManager.cpp

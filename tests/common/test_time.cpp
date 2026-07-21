@@ -385,14 +385,14 @@ TEST(CelestialCalculationsTest, SunriseFacingFactorUsesHorizontalDirectionOnly)
 TEST(CelestialCalculationsTest, StarBrightnessNoonZero)
 {
     f32 angle = CelestialCalculations::calculateCelestialAngle(6000);
-    f32 brightness = CelestialCalculations::calculateStarBrightness(angle);
+    f32 brightness = CelestialCalculations::calculateStarBrightness(angle, 0.0);
     EXPECT_LT(brightness, 0.1f);
 }
 
 TEST(CelestialCalculationsTest, StarBrightnessMidnightVisible)
 {
     f32 angle = CelestialCalculations::calculateCelestialAngle(18000);
-    f32 brightness = CelestialCalculations::calculateStarBrightness(angle);
+    f32 brightness = CelestialCalculations::calculateStarBrightness(angle, 0.0);
     // 午夜时星星亮度应 >= 0.5
     EXPECT_GE(brightness, 0.5f);
 }
@@ -401,7 +401,7 @@ TEST(CelestialCalculationsTest, StarBrightnessInRange)
 {
     for (i64 t = 0; t <= 24000; t += 1000) {
         f32 angle = CelestialCalculations::calculateCelestialAngle(t);
-        f32 brightness = CelestialCalculations::calculateStarBrightness(angle);
+        f32 brightness = CelestialCalculations::calculateStarBrightness(angle, 0.0);
         EXPECT_GE(brightness, 0.0f);
         EXPECT_LE(brightness, 1.0f);
     }

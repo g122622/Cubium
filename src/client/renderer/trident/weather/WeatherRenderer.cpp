@@ -24,9 +24,11 @@
 #include "WeatherRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/core/Constants.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -46,6 +48,11 @@ namespace {
 
 using namespace WeatherRenderConstants;
 
+// R16G16_UNORM 把 u16 映射到 0..1。光照等级 0..15 经此系数放大后，
+// shader 端解码即得 blockLight/16、skyLight/16（lightmap 采样 UV，0..~0.94）。
+// 用 16 而非 15：lightmap 是 16×16 网格，UV = lightLevel/16 才精确命中对应纹素。
+constexpr u16 LIGHT_VALUE_SCALE = 65535 / 16; // = 4096，16*4096=65535
+
 // 天气 UBO 结构
 struct WeatherUBO {
     alignas(16) glm::mat4 projection;
@@ -54,6 +61,7 @@ struct WeatherUBO {
     alignas(4) f32 partialTick;
     alignas(4) f32 rainStrength;
     alignas(4) f32 thunderStrength;
+    alignas(4) f32 useLightmap; // >0.5 时采样 lightmap，否则回退标量 max(blockLight,skyLight)
 };
 
 // 初始化随机偏移数组
@@ -145,7 +153,8 @@ Result<void> WeatherRenderer::initialize(VkDevice device,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
     VkExtent2D extent,
-    VkSampleCountFlagBits sampleCount)
+    VkSampleCountFlagBits sampleCount,
+    mc::ResourceManager* resourceManager)
 {
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "WeatherRenderer already initialized");
@@ -157,6 +166,7 @@ Result<void> WeatherRenderer::initialize(VkDevice device,
     m_graphicsQueue = graphicsQueue;
     m_renderPass = renderPass;
     m_extent = extent;
+    m_resourceManager = resourceManager;
 
     // 创建资源
     auto result = _createVertexBuffer();
@@ -184,7 +194,7 @@ Result<void> WeatherRenderer::initialize(VkDevice device,
         return result.error();
     }
 
-    result = _createTextures();
+    result = _createTextures(m_resourceManager);
     if (!result.success()) {
         return result.error();
     }
@@ -449,8 +459,14 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
     // 渲染雨
     if (m_rainVertexCount > 0) {
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rainPipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[frameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_pipelineLayout,
+            0,
+            1,
+            &m_rainDescriptorSets[frameIndex],
+            0,
+            nullptr);
 
         VkBuffer vertexBuffers[] = {m_vertexBuffer};
         VkDeviceSize offsets[] = {0};
@@ -462,8 +478,14 @@ void WeatherRenderer::_render(VkCommandBuffer cmd,
     // 渲染雪
     if (m_snowVertexCount > 0) {
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_snowPipeline);
-        vkCmdBindDescriptorSets(
-            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[frameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_pipelineLayout,
+            0,
+            1,
+            &m_snowDescriptorSets[frameIndex],
+            0,
+            nullptr);
 
         VkBuffer vertexBuffers[] = {m_vertexBuffer};
         VkDeviceSize offsets[] = {m_rainVertices.size() * sizeof(WeatherVertex)};
@@ -587,16 +609,16 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 
                 // 光照采样
                 // 使用 l2 = max(groundY, cameraY) 作为采样高度
-                u16 lightU = 240;
-                u16 lightV = 240;
+                u16 lightU = 15 * LIGHT_VALUE_SCALE;
+                u16 lightV = 15 * LIGHT_VALUE_SCALE;
 
                 if (world) {
                     u8 skyLight = world->getSkyLight(x, l2, z);
                     u8 blockLight = world->getBlockLight(x, l2, z);
 
-                    // 0-15 范围的光照值，乘以 16 得到 0-240 范围
-                    lightU = static_cast<u16>(blockLight) << 4; // U = blockLight
-                    lightV = static_cast<u16>(skyLight) << 4;   // V = skyLight
+                    // 0..15 光照等级放大到 UNORM 全域，shader 解码得 blockLight/15、skyLight/15
+                    lightU = static_cast<u16>(blockLight) * LIGHT_VALUE_SCALE;
+                    lightV = static_cast<u16>(skyLight) * LIGHT_VALUE_SCALE;
                 }
 
                 // 高度范围 (j2 = 下边界, k2 = 上边界)
@@ -619,7 +641,7 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 
                 v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5);
                 v1.y = static_cast<f32>(topY - m_cameraPos.y);
-                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
+                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
                 v1.u = 1.0f;
                 v1.v = static_cast<f32>(bottomY * 0.25 + texOffset);
                 v1.r = 1.0f;
@@ -643,7 +665,7 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 
                 v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5);
                 v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
-                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
+                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
                 v3.u = 0.0f;
                 v3.v = static_cast<f32>(topY * 0.25 + texOffset);
                 v3.r = 1.0f;
@@ -674,21 +696,22 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
                 f64 snowFade = (1.0 - f4 * f4) * 0.3 + 0.5;
                 f64 snowAlpha = snowFade * m_rainStrength;
 
-                // 雪花光照采样（需要更亮的光照效果）
-                // 增强公式: skyLight = (rawSky * 3 + 240) / 4, blockLight = (rawBlock * 9 + 240) / 4
-                u16 lightU = 240;
-                u16 lightV = 240;
+                // 雪花光照采样：对齐原版 WeatherEffectRenderer 的增强公式 (light*3+15)/4，
+                // 提亮暗处光照等级，使雪花在弱光下仍可见。
+                u16 lightU = 15 * LIGHT_VALUE_SCALE;
+                u16 lightV = 15 * LIGHT_VALUE_SCALE;
 
                 if (world) {
                     u8 skyLight = world->getSkyLight(x, l2, z);
                     u8 blockLight = world->getBlockLight(x, l2, z);
 
-                    u16 rawSkyLight = static_cast<u16>(skyLight) << 4;     // 0-240
-                    u16 rawBlockLight = static_cast<u16>(blockLight) << 4; // 0-240
+                    u16 rawSkyLight = static_cast<u16>(skyLight) * LIGHT_VALUE_SCALE;
+                    u16 rawBlockLight = static_cast<u16>(blockLight) * LIGHT_VALUE_SCALE;
 
-                    // 增强公式: V = (skyLight*3+240)/4, U = (blockLight*9+240)/4
-                    lightV = static_cast<u16>((rawSkyLight * 3 + 240) / 4);
-                    lightU = static_cast<u16>((rawBlockLight * 9 + 240) / 4);
+                    // 增强公式: V = (skyLight*3+满量程)/4, U = (blockLight*3+满量程)/4
+                    u16 fullScale = 15 * LIGHT_VALUE_SCALE;
+                    lightV = static_cast<u16>((rawSkyLight * 3 + fullScale) / 4);
+                    lightU = static_cast<u16>((rawBlockLight * 3 + fullScale) / 4);
                 }
 
                 // 高度范围 (j2 = 下边界, k2 = 上边界)
@@ -711,7 +734,7 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 
                 v1.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x + offsetX + 0.5);
                 v1.y = static_cast<f32>(topY - m_cameraPos.y);
-                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
+                v1.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
                 v1.u = static_cast<f32>(1.0 + texOffsetX);
                 v1.v = static_cast<f32>(bottomY * 0.25 + texOffsetY + texOffsetYExtra);
                 v1.r = 1.0f;
@@ -735,7 +758,7 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
 
                 v3.x = static_cast<f32>(static_cast<f64>(x) - m_cameraPos.x - offsetX + 0.5);
                 v3.y = static_cast<f32>(bottomY - m_cameraPos.y);
-                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z - offsetZ + 0.5);
+                v3.z = static_cast<f32>(static_cast<f64>(z) - m_cameraPos.z + offsetZ + 0.5);
                 v3.u = static_cast<f32>(0.0 + texOffsetX);
                 v3.v = static_cast<f32>(topY * 0.25 + texOffsetY + texOffsetYExtra);
                 v3.r = 1.0f;
@@ -861,7 +884,15 @@ Result<void> WeatherRenderer::_createDescriptorSetLayout()
     samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     samplerBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboBinding, samplerBinding};
+    // Binding 2: Lightmap Sampler（由 LightTextureManager 提供）
+    VkDescriptorSetLayoutBinding lightmapBinding = {};
+    lightmapBinding.binding = 2;
+    lightmapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    lightmapBinding.descriptorCount = 1;
+    lightmapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightmapBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboBinding, samplerBinding, lightmapBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -881,7 +912,8 @@ Result<void> WeatherRenderer::_createDescriptorPool()
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 2; // 雨和雪两个纹理
+    // 雨雪纹理 + 雨雪光照贴图，每帧各一套
+    poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 4;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -898,37 +930,46 @@ Result<void> WeatherRenderer::_createDescriptorPool()
 
 Result<void> WeatherRenderer::_createDescriptorSets()
 {
-    // 创建雨和雪两套描述符集
+    // 雨和雪各一套 descriptor set，每套 MAX_FRAMES_IN_FLIGHT 个，共 4 个
     std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT * 2> layouts = {
         m_descriptorSetLayout, m_descriptorSetLayout, m_descriptorSetLayout, m_descriptorSetLayout};
 
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT; // 先创建第一套
+    allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT * 2;
     allocInfo.pSetLayouts = layouts.data();
 
-    if (vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSets) != VK_SUCCESS) {
+    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT * 2> allocatedSets = {
+        VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
+    if (vkAllocateDescriptorSets(m_device, &allocInfo, allocatedSets.data()) != VK_SUCCESS) {
         return Error(ErrorCode::InitializationFailed, "Failed to allocate descriptor sets");
     }
+    for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        m_rainDescriptorSets[i] = allocatedSets[i];
+        m_snowDescriptorSets[i] = allocatedSets[MAX_FRAMES_IN_FLIGHT + i];
+    }
 
-    // 更新描述符集（先更新 Uniform Buffer，纹理在创建后再更新）
+    // 绑定 Uniform Buffer（雨/雪两套 set 共用同一 UBO，UBO 内容与天气类型无关）
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffers[i];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(WeatherUBO);
 
-        VkWriteDescriptorSet descriptorWrite = {};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
+        std::array<VkWriteDescriptorSet, 2> writes = {};
+        for (u32 w = 0; w < 2; ++w) {
+            writes[w].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[w].dstBinding = 0;
+            writes[w].dstArrayElement = 0;
+            writes[w].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writes[w].descriptorCount = 1;
+            writes[w].pBufferInfo = &bufferInfo;
+        }
+        writes[0].dstSet = m_rainDescriptorSets[i];
+        writes[1].dstSet = m_snowDescriptorSets[i];
 
-        vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(m_device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
     return {};
@@ -1140,20 +1181,92 @@ Result<void> WeatherRenderer::_createPipelines(VkSampleCountFlagBits sampleCount
     return {};
 }
 
-Result<void> WeatherRenderer::_createTextures()
+Result<void> WeatherRenderer::_createTextures(mc::ResourceManager* resourceManager)
 {
-    // 生成雨纹理
-    auto rainData = _generateRainTexture(TEXTURE_SIZE, TEXTURE_SIZE);
-    auto result = _createTextureFromData(
-        rainData, TEXTURE_SIZE, TEXTURE_SIZE, m_rainTexture, m_rainTextureMemory, m_rainTextureView);
+    // 重建时先释放旧纹理与采样器，避免泄漏
+    if (m_textureSampler != VK_NULL_HANDLE) {
+        vkDestroySampler(m_device, m_textureSampler, nullptr);
+        m_textureSampler = VK_NULL_HANDLE;
+    }
+    if (m_rainTextureView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_device, m_rainTextureView, nullptr);
+        m_rainTextureView = VK_NULL_HANDLE;
+    }
+    if (m_rainTexture != VK_NULL_HANDLE) {
+        vkDestroyImage(m_device, m_rainTexture, nullptr);
+        m_rainTexture = VK_NULL_HANDLE;
+    }
+    if (m_rainTextureMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, m_rainTextureMemory, nullptr);
+        m_rainTextureMemory = VK_NULL_HANDLE;
+    }
+    if (m_snowTextureView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_device, m_snowTextureView, nullptr);
+        m_snowTextureView = VK_NULL_HANDLE;
+    }
+    if (m_snowTexture != VK_NULL_HANDLE) {
+        vkDestroyImage(m_device, m_snowTexture, nullptr);
+        m_snowTexture = VK_NULL_HANDLE;
+    }
+    if (m_snowTextureMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_device, m_snowTextureMemory, nullptr);
+        m_snowTextureMemory = VK_NULL_HANDLE;
+    }
+
+    // 雨纹理：优先从资源包加载，失败回退程序化纹理
+    std::vector<u8> rainData;
+    u32 rainWidth = TEXTURE_SIZE;
+    u32 rainHeight = TEXTURE_SIZE;
+    const mc::resource::ResourceLocation rainLocation("minecraft:textures/environment/rain");
+    if (resourceManager != nullptr) {
+        auto rainLoad = resourceManager->loadTextureRGBA(rainLocation);
+        if (rainLoad.success()) {
+            rainData = std::move(rainLoad.value().pixels);
+            rainWidth = rainLoad.value().width;
+            rainHeight = rainLoad.value().height;
+            spdlog::info(
+                "Rain texture loaded from resource pack: {} ({}x{})", rainLocation.toString(), rainWidth, rainHeight);
+        } else {
+            spdlog::warn("Failed to load rain texture from resource packs: {}. Falling back to procedural texture.",
+                rainLoad.error().toString());
+        }
+    }
+    if (rainData.empty()) {
+        rainData = _generateRainTexture(TEXTURE_SIZE, TEXTURE_SIZE);
+        rainWidth = TEXTURE_SIZE;
+        rainHeight = TEXTURE_SIZE;
+    }
+    auto result =
+        _createTextureFromData(rainData, rainWidth, rainHeight, m_rainTexture, m_rainTextureMemory, m_rainTextureView);
     if (!result.success()) {
         return result.error();
     }
 
-    // 生成雪纹理
-    auto snowData = _generateSnowTexture(TEXTURE_SIZE, TEXTURE_SIZE);
-    result = _createTextureFromData(
-        snowData, TEXTURE_SIZE, TEXTURE_SIZE, m_snowTexture, m_snowTextureMemory, m_snowTextureView);
+    // 雪纹理：同上
+    std::vector<u8> snowData;
+    u32 snowWidth = TEXTURE_SIZE;
+    u32 snowHeight = TEXTURE_SIZE;
+    const mc::resource::ResourceLocation snowLocation("minecraft:textures/environment/snow");
+    if (resourceManager != nullptr) {
+        auto snowLoad = resourceManager->loadTextureRGBA(snowLocation);
+        if (snowLoad.success()) {
+            snowData = std::move(snowLoad.value().pixels);
+            snowWidth = snowLoad.value().width;
+            snowHeight = snowLoad.value().height;
+            spdlog::info(
+                "Snow texture loaded from resource pack: {} ({}x{})", snowLocation.toString(), snowWidth, snowHeight);
+        } else {
+            spdlog::warn("Failed to load snow texture from resource packs: {}. Falling back to procedural texture.",
+                snowLoad.error().toString());
+        }
+    }
+    if (snowData.empty()) {
+        snowData = _generateSnowTexture(TEXTURE_SIZE, TEXTURE_SIZE);
+        snowWidth = TEXTURE_SIZE;
+        snowHeight = TEXTURE_SIZE;
+    }
+    result =
+        _createTextureFromData(snowData, snowWidth, snowHeight, m_snowTexture, m_snowTextureMemory, m_snowTextureView);
     if (!result.success()) {
         return result.error();
     }
@@ -1181,26 +1294,78 @@ Result<void> WeatherRenderer::_createTextures()
         return Error(ErrorCode::InitializationFailed, "Failed to create weather texture sampler");
     }
 
-    // 更新描述符集绑定纹理
-    for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        VkDescriptorImageInfo imageInfo = {};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_rainTextureView; // 默认绑定雨纹理
-        imageInfo.sampler = m_textureSampler;
+    // 更新描述符集绑定纹理（雨/雪各自绑定自己的纹理）
+    _updateTextureDescriptors();
+    return {};
+}
 
-        VkWriteDescriptorSet descriptorWrite = {};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSets[i];
-        descriptorWrite.dstBinding = 1;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+Result<void> WeatherRenderer::reloadTexture(mc::ResourceManager* resourceManager)
+{
+    if (!m_initialized) {
+        return Error(ErrorCode::NotInitialized, "WeatherRenderer is not initialized");
     }
 
-    return {};
+    vkDeviceWaitIdle(m_device);
+    return _createTextures(resourceManager);
+}
+
+void WeatherRenderer::_updateTextureDescriptors()
+{
+    for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        VkDescriptorImageInfo rainImageInfo = {};
+        rainImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        rainImageInfo.imageView = m_rainTextureView;
+        rainImageInfo.sampler = m_textureSampler;
+
+        VkDescriptorImageInfo snowImageInfo = {};
+        snowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        snowImageInfo.imageView = m_snowTextureView;
+        snowImageInfo.sampler = m_textureSampler;
+
+        // 光照贴图：未注入时用雨纹理占位（descriptor 必须有有效 view），shader 通过标志回退标量光照
+        VkImageView lightmapView = (m_lightmapView != VK_NULL_HANDLE) ? m_lightmapView : m_rainTextureView;
+        VkSampler lightmapSampler = (m_lightmapSampler != VK_NULL_HANDLE) ? m_lightmapSampler : m_textureSampler;
+        VkDescriptorImageInfo lightmapImageInfo = {};
+        lightmapImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        lightmapImageInfo.imageView = lightmapView;
+        lightmapImageInfo.sampler = lightmapSampler;
+
+        std::array<VkWriteDescriptorSet, 4> writes = {};
+        // binding 1：雨/雪纹理
+        for (u32 w = 0; w < 2; ++w) {
+            writes[w].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[w].dstBinding = 1;
+            writes[w].dstArrayElement = 0;
+            writes[w].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[w].descriptorCount = 1;
+        }
+        writes[0].dstSet = m_rainDescriptorSets[i];
+        writes[0].pImageInfo = &rainImageInfo;
+        writes[1].dstSet = m_snowDescriptorSets[i];
+        writes[1].pImageInfo = &snowImageInfo;
+        // binding 2：光照贴图（雨/雪共用同一 lightmap）
+        for (u32 w = 2; w < 4; ++w) {
+            writes[w].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[w].dstBinding = 2;
+            writes[w].dstArrayElement = 0;
+            writes[w].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[w].descriptorCount = 1;
+            writes[w].pImageInfo = &lightmapImageInfo;
+        }
+        writes[2].dstSet = m_rainDescriptorSets[i];
+        writes[3].dstSet = m_snowDescriptorSets[i];
+
+        vkUpdateDescriptorSets(m_device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+    }
+}
+
+void WeatherRenderer::setLightmap(VkImageView lightmapView, VkSampler lightmapSampler)
+{
+    m_lightmapView = lightmapView;
+    m_lightmapSampler = lightmapSampler;
+    if (m_initialized) {
+        _updateTextureDescriptors();
+    }
 }
 
 void WeatherRenderer::_updateUniformBuffer(u32 frameIndex)
@@ -1212,6 +1377,7 @@ void WeatherRenderer::_updateUniformBuffer(u32 frameIndex)
     ubo.partialTick = static_cast<f32>(m_partialTick);
     ubo.rainStrength = static_cast<f32>(m_rainStrength);
     ubo.thunderStrength = static_cast<f32>(m_thunderStrength);
+    ubo.useLightmap = (m_lightmapView != VK_NULL_HANDLE) ? 1.0f : 0.0f;
 
     std::memcpy(m_uniformBuffersMapped[frameIndex], &ubo, sizeof(ubo));
 }

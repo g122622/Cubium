@@ -187,7 +187,7 @@ public:
      *
      * 夜晚亮度高，白天不可见。
      */
-    [[nodiscard]] static f64 calculateStarBrightness(f64 celestialAngle);
+    [[nodiscard]] static f64 calculateStarBrightness(f64 celestialAngle, f64 rainStrength);
 
     /**
      * @brief 获取星星生成种子

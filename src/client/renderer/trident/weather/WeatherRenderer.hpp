@@ -34,6 +34,10 @@ namespace mc::client {
 class ClientWorld;
 }
 
+namespace mc {
+class ResourceManager;
+}
+
 namespace mc::client::renderer::trident::weather {
 
 // 天气渲染常量
@@ -104,7 +108,8 @@ public:
         VkQueue graphicsQueue,
         VkRenderPass renderPass,
         VkExtent2D extent,
-        VkSampleCountFlagBits sampleCount);
+        VkSampleCountFlagBits sampleCount,
+        mc::ResourceManager* resourceManager);
 
     /**
      * @brief 销毁所有资源
@@ -118,9 +123,30 @@ public:
      */
     [[nodiscard]] Result<void> onResize(VkExtent2D extent);
 
+    /**
+     * @brief 热更新雨/雪纹理资源
+     *
+     * 从资源包重新读取 rain.png/snow.png 并替换 GPU 纹理，资源包加载失败时回退程序化纹理。
+     *
+     * @param resourceManager 资源管理器
+     * @return 成功或错误
+     * @warning 需要��渲染器已初始化后调用。
+     */
+    [[nodiscard]] Result<void> reloadTexture(mc::ResourceManager* resourceManager);
+
     // ========================================================================
     // 更新与渲染
     // ========================================================================
+
+    /**
+     * @brief 注入光照贴图纹理（由 LightTextureManager 提供）
+     *
+     * 注入后雨雪渲染将采样 lightmap 取代标量光照。未注入时回退标量 max(blockLight,skyLight)。
+     *
+     * @param lightmapView 光照贴图图像视图
+     * @param lightmapSampler 光照贴图采样器
+     */
+    void setLightmap(VkImageView lightmapView, VkSampler lightmapSampler);
 
     /**
      * @brief 设置图形模式
@@ -274,7 +300,10 @@ private:
     [[nodiscard]] Result<void> _createDescriptorSets();
     [[nodiscard]] Result<void> _createPipelineLayout();
     [[nodiscard]] Result<void> _createPipelines(VkSampleCountFlagBits sampleCount);
-    [[nodiscard]] Result<void> _createTextures();
+    [[nodiscard]] Result<void> _createTextures(mc::ResourceManager* resourceManager);
+
+    /// @brief 将雨/雪纹理写入各自的 descriptor set（binding 1）
+    void _updateTextureDescriptors();
 
     void _updateUniformBuffer(u32 frameIndex);
 
@@ -317,6 +346,9 @@ private:
     VkExtent2D m_extent = {0, 0};
     bool m_initialized = false;
 
+    // 资源管理器（用于加载 rain.png/snow.png，可为空）
+    mc::ResourceManager* m_resourceManager = nullptr;
+
     // 描述符
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
@@ -337,6 +369,10 @@ private:
 
     VkSampler m_textureSampler = VK_NULL_HANDLE;
 
+    // 光照贴图（由 LightTextureManager 注入，未注入时回退标量光照）
+    VkImageView m_lightmapView = VK_NULL_HANDLE;
+    VkSampler m_lightmapSampler = VK_NULL_HANDLE;
+
     // 顶点缓冲区（动态更新）
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
@@ -348,7 +384,9 @@ private:
     VkBuffer m_uniformBuffers[MAX_FRAMES_IN_FLIGHT] = {VK_NULL_HANDLE, VK_NULL_HANDLE};
     VkDeviceMemory m_uniformBuffersMemory[MAX_FRAMES_IN_FLIGHT] = {VK_NULL_HANDLE, VK_NULL_HANDLE};
     void* m_uniformBuffersMapped[MAX_FRAMES_IN_FLIGHT] = {nullptr, nullptr};
-    VkDescriptorSet m_descriptorSets[MAX_FRAMES_IN_FLIGHT] = {VK_NULL_HANDLE, VK_NULL_HANDLE};
+    // 雨/雪各持一套 descriptor set（复用同一 UBO，但 binding 1 绑定各自纹理）
+    VkDescriptorSet m_rainDescriptorSets[MAX_FRAMES_IN_FLIGHT] = {VK_NULL_HANDLE, VK_NULL_HANDLE};
+    VkDescriptorSet m_snowDescriptorSets[MAX_FRAMES_IN_FLIGHT] = {VK_NULL_HANDLE, VK_NULL_HANDLE};
 
     // 天气状态
     f64 m_rainStrength = 0.0f;

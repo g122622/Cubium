@@ -1,7 +1,6 @@
 #version 450
 
 // 天气顶点着色器
-// 参考 MC 1.16.5 WorldRenderer.renderRainSnow()
 
 // 顶点输入
 layout(location = 0) in vec3 inPosition;
@@ -17,6 +16,7 @@ layout(set = 0, binding = 0) uniform WeatherUBO {
     float partialTick;
     float rainStrength;
     float thunderStrength;
+    float useLightmap;
 } ubo;
 
 // 输出到片段着色器

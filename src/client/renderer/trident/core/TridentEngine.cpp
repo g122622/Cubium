@@ -47,6 +47,7 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "client/renderer/trident/light/LightTextureManager.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "client/renderer/trident/sky/SkyRenderer.hpp"
@@ -57,9 +58,12 @@
 #include "client/resource/atlas/AtlasManager.hpp"
 #include "client/ui/DefaultAsciiFont.hpp"
 #include "client/ui/Font.hpp"
+#include "client/world/ClientWorld.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/biome/Biome.hpp"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
@@ -383,6 +387,12 @@ void TridentEngine::destroy()
         m_cloudRenderer.reset();
     }
 
+    // 销毁光照贴图管理器（在天气渲染器之前，因天气渲染器持有其纹理视图引用）
+    if (m_lightTextureManager) {
+        m_lightTextureManager->destroy();
+        m_lightTextureManager.reset();
+    }
+
     // 销毁天气渲染器
     if (m_weatherRenderer) {
         m_weatherRenderer->destroy();
@@ -434,6 +444,7 @@ void TridentEngine::destroy()
     m_cloudRendererInitialized = false;
     m_particleManagerInitialized = false;
     m_weatherRendererInitialized = false;
+    m_lightTextureManagerInitialized = false;
     m_breakProgressRendererInitialized = false;
     m_firstPersonRendererInitialized = false;
 
@@ -629,6 +640,22 @@ Result<void> TridentEngine::render()
     if (m_skyRendererInitialized && m_skyRendererPtr) {
         m_skyRendererPtr->update(m_dayTime, m_gameTime, m_partialTick, m_rainStrength, m_thunderStrength);
 
+        // 更新光照贴图：天空色/太阳强度来自 SkyRenderer，雨雷衰减降低天空光因子，
+        // 闪电闪烁通过 darkenWorldAmount 增亮，维度环境光作为亮度下限。
+        if (m_lightTextureManagerInitialized && m_lightTextureManager) {
+            light::LightmapInputs inputs;
+            const glm::vec4& sky = m_skyRendererPtr->skyColor();
+            inputs.skyLightColor = glm::vec3(sky);
+            inputs.sunIntensity = static_cast<f32>(m_skyRendererPtr->sunIntensity());
+            // 天空光因子：太阳强度为主，雨/雷暴衰减天空光（对齐原版 rain/thunder 降亮）
+            const f32 weatherDim = static_cast<f32>(1.0 - 0.5 * m_rainStrength - 0.5 * m_thunderStrength);
+            inputs.skyLightFactor =
+                static_cast<f32>(m_skyRendererPtr->sunIntensity()) * std::clamp(weatherDim, 0.0f, 1.0f);
+            inputs.ambientLight = static_cast<f32>(m_ambientLight);
+            inputs.darkenWorldAmount = static_cast<f32>(m_lightningFlashBrightness);
+            m_lightTextureManager->updateLightTexture(inputs);
+        }
+
         glm::dvec3 cameraPos(0.0);
         glm::dvec3 cameraForward(0.0, 0.0, -1.0);
         if (m_frameContext.camera) {
@@ -661,12 +688,29 @@ Result<void> TridentEngine::render()
         } else {
             // 陆地上的雾效果
             m_fogManager->resetToLand();
+
+            // 查询相机位置的 skyLight 与生物群系降水属性，供雨天雾距缩短计算
+            f32 cameraSkyLight = 15.0f;
+            bool cameraBiomeHasPrecip = true;
+            if (m_clientWorld != nullptr && m_frameContext.camera) {
+                const glm::dvec3 camPos = m_frameContext.camera->position();
+                const i32 cx = static_cast<i32>(std::floor(camPos.x));
+                const i32 cy = static_cast<i32>(std::floor(camPos.y));
+                const i32 cz = static_cast<i32>(std::floor(camPos.z));
+                cameraSkyLight = static_cast<f32>(m_clientWorld->getSkyLight(cx, cy, cz));
+                if (const Biome* biome = m_clientWorld->getBiomeAtBlock(cx, cy, cz); biome != nullptr) {
+                    cameraBiomeHasPrecip = biome->hasPrecipitation();
+                }
+            }
+
             m_fogManager->update(m_renderDistanceChunks,
                 m_rainStrength,
                 m_thunderStrength,
                 m_landFogDensity,
                 m_skyRendererPtr->fogColor(),
-                glm::vec3(cameraPos));
+                glm::vec3(cameraPos),
+                cameraSkyLight,
+                cameraBiomeHasPrecip);
         }
     }
 
@@ -1249,11 +1293,22 @@ void TridentEngine::updateWeather(f64 rainStrength, f64 thunderStrength)
     m_thunderStrength = thunderStrength;
 }
 
+void TridentEngine::setClientWorld(mc::client::ClientWorld* world)
+{
+    m_clientWorld = world;
+}
+
 void TridentEngine::setLightningFlashBrightness(f64 brightness)
 {
+    m_lightningFlashBrightness = std::clamp(brightness, 0.0, 1.0);
     if (m_skyRendererInitialized && m_skyRendererPtr) {
         m_skyRendererPtr->setLightningFlashBrightness(brightness);
     }
+}
+
+void TridentEngine::setAmbientLight(f64 ambientLight)
+{
+    m_ambientLight = std::clamp(ambientLight, 0.0, 1.0);
 }
 
 Result<void> TridentEngine::setVSyncEnabled(bool enabled)
@@ -2275,7 +2330,7 @@ const particle::ParticleManager& TridentEngine::particleManager() const
 // 天气渲染器
 // ============================================================================
 
-Result<void> TridentEngine::initializeWeatherRenderer()
+Result<void> TridentEngine::initializeWeatherRenderer(ResourceManager* resourceManager)
 {
     if (m_weatherRendererInitialized) {
         return {};
@@ -2287,8 +2342,14 @@ Result<void> TridentEngine::initializeWeatherRenderer()
         m_weatherRenderer = std::make_unique<weather::WeatherRenderer>();
     }
 
-    auto result = m_weatherRenderer->initialize(
-        device(), physicalDevice(), commandPool(), graphicsQueue(), renderPass(), swapchainExtent(), m_msaaSamples);
+    auto result = m_weatherRenderer->initialize(device(),
+        physicalDevice(),
+        commandPool(),
+        graphicsQueue(),
+        renderPass(),
+        swapchainExtent(),
+        m_msaaSamples,
+        resourceManager);
 
     if (result.failed()) {
         m_weatherRenderer.reset();
@@ -2311,6 +2372,47 @@ weather::WeatherRenderer& TridentEngine::weatherRenderer()
 const weather::WeatherRenderer& TridentEngine::weatherRenderer() const
 {
     return *m_weatherRenderer;
+}
+
+Result<void> TridentEngine::initializeLightTextureManager()
+{
+    if (m_lightTextureManagerInitialized) {
+        return {};
+    }
+
+    spdlog::info("Initializing light texture manager...");
+
+    if (!m_lightTextureManager) {
+        m_lightTextureManager = std::make_unique<light::LightTextureManager>();
+    }
+
+    auto result = m_lightTextureManager->initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
+    if (result.failed()) {
+        m_lightTextureManager.reset();
+        return result.error();
+    }
+
+    // 注入光照贴图到天气渲染器：之后天气渲染改用 lightmap 采样而非标量回退
+    if (m_weatherRendererInitialized && m_weatherRenderer) {
+        m_weatherRenderer->setLightmap(m_lightTextureManager->textureView(), m_lightTextureManager->textureSampler());
+    }
+
+    m_lightTextureManagerInitialized = true;
+    spdlog::info("Light texture manager initialized");
+    return {};
+}
+
+light::LightTextureManager& TridentEngine::lightTextureManager()
+{
+    if (!m_lightTextureManager) {
+        m_lightTextureManager = std::make_unique<light::LightTextureManager>();
+    }
+    return *m_lightTextureManager;
+}
+
+const light::LightTextureManager& TridentEngine::lightTextureManager() const
+{
+    return *m_lightTextureManager;
 }
 
 Result<void> TridentEngine::initializeBreakProgressRenderer()

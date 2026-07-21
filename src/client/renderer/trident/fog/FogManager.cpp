@@ -23,6 +23,7 @@
 
 #include "FogManager.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -152,8 +153,13 @@ void FogManager::update(i32 renderDistanceChunks,
     f64 thunderStrength,
     f64 landFogDensity,
     const glm::vec4& skyFogColor,
-    const glm::vec3& cameraPos)
+    const glm::vec3& cameraPos,
+    f32 cameraSkyLight,
+    bool cameraBiomeHasPrecip)
 {
+    MC_UNUSED(thunderStrength);
+    MC_UNUSED(cameraPos);
+
     if (!m_initialized) {
         return;
     }
@@ -165,11 +171,6 @@ void FogManager::update(i32 renderDistanceChunks,
     if (m_currentFogMode == FogMode::Linear) {
         _calculateLinearFog(renderDistance);
 
-        // 天气影响：雨和雷暴会减少可视距离
-        const f64 weatherFactor = 1.0f - (rainStrength * 0.3f) - (thunderStrength * 0.2f);
-        m_fogUBO.fogStart = static_cast<f32>(m_fogUBO.fogStart * weatherFactor);
-        m_fogUBO.fogEnd = static_cast<f32>(m_fogUBO.fogEnd * weatherFactor);
-
         // 用户设置影响：video.fogDensity = 1.0 时保持当前效果
         // - 0.0：更清晰（雾更远）
         // - 2.0：更浓（雾更近）
@@ -177,6 +178,18 @@ void FogManager::update(i32 renderDistanceChunks,
         const f64 distanceScale = std::clamp(2.0 - clampedLandFogDensity, 0.25, 2.0);
         m_fogUBO.fogStart = static_cast<f32>(m_fogUBO.fogStart * distanceScale);
         m_fogUBO.fogEnd = static_cast<f32>(m_fogUBO.fogEnd * distanceScale);
+
+        // 雨天雾距缩短（对齐原版 AtmosphericFogEnvironment.rainFogMultiplier）：
+        // 相机 skyLight 越高（白天/空旷）雨天雾越浓；夜间 skyLight<=8 时不缩短。
+        // 降水群系全额，非降水群系减半（沙漠等雨天不起雾）。
+        const f32 skyFactor = std::clamp((cameraSkyLight - 8.0f) / 7.0f, 0.0f, 1.0f);
+        const f32 target = static_cast<f32>(rainStrength) * skyFactor * (cameraBiomeHasPrecip ? 1.0f : 0.5f);
+        m_rainFogMultiplier += (target - m_rainFogMultiplier) * 0.2f;
+
+        const f32 rainStartOffset = -160.0f * m_rainFogMultiplier;
+        const f32 rainEndOffset = -256.0f * m_rainFogMultiplier;
+        m_fogUBO.fogStart = static_cast<f32>(std::max(0.0f, m_fogUBO.fogStart + rainStartOffset));
+        m_fogUBO.fogEnd = static_cast<f32>(std::max(96.0f, m_fogUBO.fogEnd + rainEndOffset));
     }
 
     // 设置雾颜色（从天空颜色获取）

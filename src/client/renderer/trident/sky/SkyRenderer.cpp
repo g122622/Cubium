@@ -328,7 +328,7 @@ void SkyRenderer::update(i64 dayTime, i64 gameTime, f64 partialTick, f64 rainStr
     }
 
     // 计算星星亮度
-    m_starBrightness = client::CelestialCalculations::calculateStarBrightness(m_celestialAngle);
+    m_starBrightness = client::CelestialCalculations::calculateStarBrightness(m_celestialAngle, m_rainStrength);
 }
 
 // ============================================================================

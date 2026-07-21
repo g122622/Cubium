@@ -24,11 +24,15 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/dimension/DimensionRenderSettings.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
+#include <cmath>
 
 using namespace mc::trace;
 
@@ -51,6 +55,9 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
         m_renderDayTime = (m_renderDayTime + 1) % DAY_LENGTH_TICKS;
 
         m_world.weather().tickLightningFlash();
+
+        // 雨天生成地面雨滴粒子
+        _tickRainParticles();
     }
 
     // 当有服务端同步时，逐渐纠正到服务端时间（避免跳变）
@@ -93,6 +100,60 @@ void ClientApplication::updateTimeAndWeather(f32 deltaTime)
     updateCloudHeight();
 }
 
+void ClientApplication::_tickRainParticles()
+{
+    // 对齐原版 WeatherEffectRenderer.tickRainParticles：仅在下雨时按密度在相机附近
+    // 随机选取列，查 MotionBlocking 高度图取地面顶部 Y，校验生物群系降水与温度后生成雨滴。
+    const f32 rainLevel = m_world.weather().rainStrength();
+    if (rainLevel <= 0.0f) {
+        return;
+    }
+
+    constexpr i32 WEATHER_RADIUS = 10;
+    constexpr f32 RAIN_DENSITY = 0.225f;
+
+    // 粒子数 = 0.225 * (2*radius+1)^2 * rainLevel^2
+    const i32 sideLen = 2 * WEATHER_RADIUS + 1;
+    const i32 particleCount =
+        static_cast<i32>(RAIN_DENSITY * static_cast<f32>(sideLen * sideLen) * rainLevel * rainLevel);
+    if (particleCount <= 0) {
+        return;
+    }
+
+    const glm::dvec3 camPos = m_camera.position();
+    const i32 camX = static_cast<i32>(std::floor(camPos.x));
+    const i32 camY = static_cast<i32>(std::floor(camPos.y));
+    const i32 camZ = static_cast<i32>(std::floor(camPos.z));
+
+    for (i32 i = 0; i < particleCount; ++i) {
+        // 随机偏移 [-radius, radius]
+        const i32 dx = m_random.nextInt(WEATHER_RADIUS) - m_random.nextInt(WEATHER_RADIUS);
+        const i32 dz = m_random.nextInt(WEATHER_RADIUS) - m_random.nextInt(WEATHER_RADIUS);
+        const i32 px = camX + dx;
+        const i32 pz = camZ + dz;
+
+        const i32 topY = m_world.getTopBlockY(mc::world::chunk::HeightmapType::MotionBlocking, px, pz);
+        // 地面需在相机 ±radius 高度范围内
+        if (topY <= camY - WEATHER_RADIUS || topY >= camY + WEATHER_RADIUS) {
+            continue;
+        }
+
+        const mc::Biome* biome = m_world.getBiomeAtBlock(px, topY, pz);
+        if (biome == nullptr || !biome->hasPrecipitation()) {
+            continue;
+        }
+
+        // 仅在足够温暖的群系生成雨滴；寒冷群系为雪，由 tickSnowParticles 处理（TODO）。
+        if (!biome->warmEnoughToRain(px, topY, pz, mc::world::SEA_LEVEL)) {
+            continue;
+        }
+
+        const mc::Vector3 pos(static_cast<f32>(px) + 0.5f, static_cast<f32>(topY) + 0.1f, static_cast<f32>(pz) + 0.5f);
+        const mc::Vector3 vel(0.0f, 0.0f, 0.0f);
+        m_world.addParticle(mc::particle::ParticleTypeId::Rain, pos, vel);
+    }
+}
+
 void ClientApplication::updateCloudHeight()
 {
     MC_ASSERT_RELEASE(m_renderer);
@@ -105,6 +166,14 @@ void ClientApplication::updateCloudHeight()
     // 注意：由于项目使用 -ffast-math，NaN 检测不可靠，
     // 因此使用显式的 hasClouds 布尔字段
     m_renderer->setCloudHeight(static_cast<f64>(settings.cloudHeight), settings.hasClouds);
+
+    // 同步维度环境光到渲染器，供光照贴图亮度下限使用。
+    // 主世界/末地 0.0，下界 0.1（与 DimensionType 注册一致）。
+    f64 ambientLight = 0.0;
+    if (currentDim == static_cast<DimensionId>(MapDimensionId::Nether)) {
+        ambientLight = 0.1;
+    }
+    m_renderer->setAmbientLight(ambientLight);
 }
 
 world::DimensionRenderSettings ClientApplication::getDimensionRenderSettings(DimensionId dimensionId) const

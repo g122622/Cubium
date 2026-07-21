@@ -369,16 +369,32 @@ Result<void> ClientApplication::initializeRenderer()
             }
         }
 
+        // 注入 ClientWorld 到 TridentEngine，供雾距/lightmap 等子系统在渲染帧查询相机
+        // skyLight/biome。此时 world 对象已构造（值成员），指针稳定；world.initialize 在
+        // connect 阶段才调用，查询方法在后续渲染帧使用时数据已就绪。
+        m_renderer->setClientWorld(&m_world);
+
         // 初始化天气渲染器
         {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::WeatherRenderer");
-            auto weatherInitResult = m_renderer->initializeWeatherRenderer();
+            auto weatherInitResult = m_renderer->initializeWeatherRenderer(m_resourceManager.get());
             if (weatherInitResult.failed()) {
                 spdlog::warn("Failed to initialize weather renderer: {}", weatherInitResult.error().toString());
             } else {
                 // 设置图形模式（Fancy/Fast）
                 const bool isFancy = m_settings.graphics.get() == static_cast<u8>(GraphicsMode::Fancy);
                 m_renderer->weatherRenderer().setFancyGraphics(isFancy);
+            }
+        }
+
+        // 初始化光照贴图管理器（在天气渲染器之后：成功后会把 lightmap 视图/采样器
+        // 注入天气渲染器，使雨天雨雪改用 16×16 lightmap 采样而非标量光照回退）
+        {
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::LightTextureManager");
+            auto lightInitResult = m_renderer->initializeLightTextureManager();
+            if (lightInitResult.failed()) {
+                spdlog::warn("Failed to initialize light texture manager: {}", lightInitResult.error().toString());
             }
         }
 

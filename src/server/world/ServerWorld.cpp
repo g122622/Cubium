@@ -34,6 +34,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
@@ -1173,6 +1174,18 @@ void ServerWorld::tick()
     // 调试世界不执行天气 tick
     if (!isDebugWorld() && m_weatherManager) {
         m_weatherManager->tick();
+
+        // 雷暴时尝试生成闪电实体（trySpawnLightning 内部已含 isThundering/isRaining、概率、
+        // canRainAt、canSeeSky 判定）
+        auto [ok, pos] = m_weatherManager->trySpawnLightning();
+        if (ok) {
+            auto bolt = entity::LightningBoltEntity::create(this);
+            bolt->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+            EntityInstanceId boltId = spawnEntity(std::move(bolt));
+            if (boltId == 0) {
+                spdlog::warn("Failed to spawn lightning bolt at ({}, {}, {})", pos.x, pos.y, pos.z);
+            }
+        }
     }
 
     // 检查全员睡眠状态

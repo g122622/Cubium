@@ -391,6 +391,9 @@ private:
     // 更新云高度（根据当前维度）
     void updateCloudHeight();
 
+    // 雨天按密度在相机附近生成雨滴粒子（对齐原版 WeatherEffectRenderer.tickRainParticles）
+    void _tickRainParticles();
+
     // 获取维度渲染设置
     [[nodiscard]] world::DimensionRenderSettings getDimensionRenderSettings(DimensionId dimensionId) const;
 

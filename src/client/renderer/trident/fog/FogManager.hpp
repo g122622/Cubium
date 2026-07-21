@@ -92,13 +92,17 @@ public:
      * @param thunderStrength 雷暴强度 (0.0-1.0)
      * @param skyFogColor 天空雾颜色（来自 SkyRenderer）
      * @param cameraPos 相机位置（用于高度雾）
+     * @param cameraSkyLight 相机所在方块的天空光照等级 (0-15)，影响雨天雾距缩短程度
+     * @param cameraBiomeHasPrecip 相机所在生物群系是否降水，降水群系雨天雾更浓
      */
     void update(i32 renderDistanceChunks,
         f64 rainStrength,
         f64 thunderStrength,
         f64 landFogDensity,
         const glm::vec4& skyFogColor,
-        const glm::vec3& cameraPos);
+        const glm::vec3& cameraPos,
+        f32 cameraSkyLight,
+        bool cameraBiomeHasPrecip);
 
     /**
      * @brief 设置雾模式
@@ -205,6 +209,9 @@ private:
 
     // 当前雾模式
     FogMode m_currentFogMode = FogMode::Linear;
+
+    // 雨天雾距缩短倍率（平滑插值状态，对齐原版 AtmosphericFogEnvironment.rainFogMultiplier）
+    f32 m_rainFogMultiplier = 0.0f;
 };
 
 } // namespace mc::client::renderer::trident::fog
