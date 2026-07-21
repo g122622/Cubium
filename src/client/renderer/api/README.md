@@ -15,7 +15,9 @@ api/
 ├── TridentApi.hpp               # 统一头文件（包含所有 API）
 ├── Types.hpp                    # 缓冲区类型枚举（BufferUsage/MemoryType/IndexType）
 ├── buffer/
-│   └── IBuffer.hpp              # 缓冲区接口（顶点、索引、Uniform、暂存）
+│   ├── IBuffer.hpp              # 缓冲区接口（顶点、索引、Uniform）
+│   ├── IStagingBufferPool.hpp   # 统一暂存缓冲池接口 + StagingHandle 句柄
+│   └── OffsetAllocatorHeader.hpp # OffsetAllocator（三方）头文件包装（补 #pragma once）
 ├── camera/
 │   ├── CameraConfig.hpp         # 相机配置结构（FOV、宽高比、裁剪面等）
 │   └── ICamera.hpp              # 相机接口（视图/投影矩阵控制）

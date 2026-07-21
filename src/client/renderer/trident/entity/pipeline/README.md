@@ -63,15 +63,19 @@ namespace mc::client::renderer::entity::pipeline {
 
 ## 容易踩的坑
 
-### 1. 网格更新时的容量复用
+### 1. mega-buffer 子分配
 
-`updateMesh()` 在容量足够时仅上传新数据，不再销毁重建 GPU 缓冲区。如果顶点/索引数量超过容量，会自动扩容。但频繁扩容会影响性能，建议在创建网格时预估合适的容量。
+`EntityPipeline` 不再为每个 mesh 独占 `VkBuffer`+`VkDeviceMemory`，而是在统一的 vertex（32MB/段）/index（8MB/段）mega-buffer 段内用 OffsetAllocator 子分配一段连续区间。`EntityMesh` 只保存所属段的 `VkBuffer` + 段内 `vertexOffset`/`indexOffset` + `Allocation`/`segmentIndex`/`alignedSize`（供延迟回收）。`createMesh`/`updateMesh` 每次都重新子分配新区间，旧区间入 `m_pendingDestroys` 延迟归还。段 `VkBuffer`/`VkDeviceMemory` 仅在 `destroy()` 释放，容量不足追加新段（OffsetAllocator 不可 resize，多段规避数据迁移）。
 
-### 2. 可复用暂存缓冲区
+### 2. 统一暂存上传
 
-管线内部使用长期存在的暂存缓冲区（`m_vertexStagingBuffer`, `m_indexStagingBuffer`）进行顶点/索引上传，避免每次更新都调用 `vkAllocateMemory`。但这意味着管线销毁时必须正确清理这些缓冲区。
+`createMesh`/`updateMesh` 经 `m_context->stagingPool()` 同步上传（`stage`→`memcpy`→`copyToBuffer`→`release`），不再自建 staging buffer。`initialize` 首参为 `TridentContext*`，由 `TridentEngine` 注入 `context()`。池未就绪时报 `staging pool not available` 错误，无 fallback。旧的 `_ensureReusableStagingBuffer`/`_uploadToDeviceBuffer`/`_copyBuffer`/`_beginSingleTimeCommands`/`_endSingleTimeCommands` 及 `m_vertexStagingBuffer`/`m_indexStagingBuffer` 已全部删除。
 
-### 3. 纹理图集路径格式
+### 3. 延迟归还与守恒断言
+
+mesh 替换/销毁时旧子分配区间不立即 free，而是入队等过 `maxFramesInFlight+1` 帧后由 `processPendingDestroys` 归还（保证仍被在飞命令缓冲区引用的区间不被提前复用，device-lost 根因）。`_freeAllocation` 内有守恒断言 `storageReport().totalFreeSpace == localFreeBytes`。`destroy()` 先回收延迟队列再销毁段；存在所有者未 `destroyMesh` 的 live mesh（如 `SpecialEntityRenderers` 的 `blockMeshCache`）时，关闭期记泄漏告警但不致命（设备已 idle、整段 VkBuffer 即将销毁）。
+
+### 4. 纹理图集路径格式
 
 `EntityTextureAtlas` 支持多种纹理路径格式：
 - `minecraft:textures/entity/pig/pig.png` - 完整路径
@@ -80,15 +84,15 @@ namespace mc::client::renderer::entity::pipeline {
 
 内部会尝试多种路径回退，但建议使用完整路径以避免歧义。
 
-### 4. 纹理图集运行时重建
+### 5. 纹理图集运行时重建
 
 `EntityTextureAtlas` 支持运行时添加新纹理并重建图集（`rebuild()`），但这是昂贵操作。应批量添加纹理后一次性重建，避免频繁调用 `rebuild()`。
 
-### 5. 描述符集绑定顺序
+### 6. 描述符集绑定顺序
 
 渲染时必须先调用 `bind(cmd)` 绑定管线，再调用 `bindTextureDescriptor(cmd)` 绑定纹理描述符集。顺序错误会导致渲染异常或验证层错误。
 
-### 6. BlendMode 选择
+### 7. BlendMode 选择
 
 `EntityPipeline::bind()` 支持多种混合模式：
 - `BlendMode::None` - 无混合（blendEnable=VK_FALSE），用于不透明/剪切实体渲染，对应 MC Java 的 withoutBlend()
@@ -99,18 +103,18 @@ namespace mc::client::renderer::entity::pipeline {
 
 选择错误的混合模式会导致渲染效果不正确。所有管线共享相同的着色器、管线布局、顶点输入和光栅化状态，仅颜色混合状态（和 Lines 的输入装配）不同。管线创建失败时仅记录警告并回退到 Alpha 混合，不影响其他管线初始化。
 
-### 7. EntityMesh 生命周期
+### 8. EntityMesh 生命周期
 
 `EntityPipeline` 不管理 `EntityMesh` 的生命周期，调用者需要：
 - 使用 `createMesh()` 创建网格后持有返回的 `EntityMesh`
-- 在不需要时调用 `destroyMesh()` 释放 GPU 资源
+- 在不需要时调用 `destroyMesh()` 释放 GPU 资源（将子分配区间入延迟归还队列）
 - 不要在管线销毁后访问 `EntityMesh`
 
-### 8. Vulkan 资源销毁顺序
+### 9. Vulkan 资源销毁顺序
 
 `EntityPipeline` 和 `EntityTextureAtlas` 都持有 Vulkan 资源，必须在设备销毁前调用 `destroy()` 方法。典型的销毁顺序：
 ```cpp
-pipeline.destroy();      // 先销毁管线
+pipeline.destroy();      // 先销毁管线（mega-buffer 段随之销毁）
 atlas.destroy();         // 再销毁图集
 // 最后销毁 Vulkan 设备
 ```

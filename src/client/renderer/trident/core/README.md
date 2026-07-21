@@ -34,10 +34,10 @@ TridentEngine（主入口）
 ├── TridentContext（Vulkan 上下文，被所有组件依赖）
 ├── TridentSwapchain（交换链，依赖 Context）
 ├── buffer/TridentBuffer（缓冲区，依赖 Context）
-│   ├── TridentStagingBuffer
 │   ├── TridentVertexBuffer
 │   ├── TridentIndexBuffer
 │   └── TridentUniformBuffer
+├── buffer/TridentStagingBufferPool（统一暂存缓冲池，依赖 Context + OffsetAllocator，注入 Context 供所有上传点复用）
 ├── pipeline/TridentPipeline（管线，依赖 Context 和 DescriptorManager）
 ├── render/（渲染管理器）
 │   ├── DescriptorManager（依赖 Context）
@@ -68,7 +68,7 @@ TridentEngine（主入口）
 
 ## 容易踩的坑
 
-1. **缓冲区上传**：顶点和索引缓冲区使用 DEVICE_LOCAL 内存，不能直接映射。必须通过 `upload()` 方法使用暂存缓冲区上传数据。详见 [buffer/README.md](buffer/README.md)。
+1. **缓冲区上传**：顶点和索引缓冲区使用 DEVICE_LOCAL 内存，不能直接映射。`upload()` 经 `TridentContext::stagingPool()` 统一暂存缓冲池同步上传，不再每次新建临时 staging buffer。详见 [buffer/README.md](buffer/README.md)。
 
 2. **命令缓冲区泄漏**：`beginSingleTimeCommands()` 返回的命令缓冲区必须通过 `endSingleTimeCommands()` 提交，否则会泄漏命令缓冲区。
 
