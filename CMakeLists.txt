@@ -264,6 +264,24 @@ configure_file(
     @ONLY
 )
 
+# ============================================================
+# OffsetAllocator - GPU buffer 子分配器（vendored submodule, third_party/OffsetAllocator）
+# O(1) TLSF 风格 1D offset 分配器，用于 StagingPool 与 mega-buffer 子分配。
+# 上游 CMakeLists.txt 依赖项目私有 setup_target_libs()，无法直接 add_subdirectory，
+# 故直接编 offsetAllocator.cpp 进独立 STATIC lib，暴露头文件路径。
+# ============================================================
+add_library(mc_offset_allocator STATIC
+    ${CMAKE_SOURCE_DIR}/third_party/OffsetAllocator/offsetAllocator.cpp)
+target_include_directories(mc_offset_allocator PUBLIC
+    ${CMAKE_SOURCE_DIR}/third_party/OffsetAllocator)
+target_compile_features(mc_offset_allocator PUBLIC cxx_std_20)
+# OffsetAllocator 为 prototype 三方库，单独关闭警告以免污染构建输出
+if(MSVC)
+    target_compile_options(mc_offset_allocator PRIVATE /W0 /permissive-)
+else()
+    target_compile_options(mc_offset_allocator PRIVATE -w)
+endif()
+
 # 子项目
 add_subdirectory(src/common)
 

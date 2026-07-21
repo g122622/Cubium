@@ -24,6 +24,7 @@
 #include "TridentTexture.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -238,29 +239,14 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level)
         return Error(ErrorCode::InvalidArgument, "Invalid data pointer or size");
     }
 
-    // 创建暂存缓冲区
-    TridentStagingBuffer stagingBuffer;
-    auto result = stagingBuffer.create(m_context, size);
-    if (result.failed()) {
-        return result;
-    }
+    // 通过统一暂存缓冲池上传：stage → memcpy → 单次命令录制 buffer→image → release
+    auto* pool = m_context->stagingPool();
+    auto handle = pool->stage(size);
+    MC_ASSERT_RELEASE_MSG(handle.valid, "TridentTexture::upload: staging pool out of space");
+    std::memcpy(handle.mappedPtr, data, static_cast<size_t>(size));
 
-    // 映射并复制数据
-    void* mapped = stagingBuffer.map();
-    if (!mapped) {
-        stagingBuffer.destroy();
-        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer");
-    }
-
-    std::memcpy(mapped, data, size);
-    stagingBuffer.unmap();
-
-    // 获取单次命令缓冲区
     VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
-    if (cmd == VK_NULL_HANDLE) {
-        stagingBuffer.destroy();
-        return Error(ErrorCode::OperationFailed, "Failed to begin command buffer");
-    }
+    MC_ASSERT_RELEASE(cmd != VK_NULL_HANDLE);
 
     // 转换到传输布局
     transitionLayout(cmd,
@@ -271,7 +257,7 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level)
 
     // 复制缓冲区到图像
     VkBufferImageCopy region{};
-    region.bufferOffset = 0;
+    region.bufferOffset = handle.offset;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -281,7 +267,8 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level)
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {m_width, m_height, 1};
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer.buffer(), m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(
+        cmd, static_cast<VkBuffer>(pool->backingBuffer(0)), m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // 转换到着色器只读布局
     transitionLayout(cmd,
@@ -291,7 +278,7 @@ Result<void> TridentTexture::upload(const void* data, u64 size, u32 level)
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     m_context->endSingleTimeCommands(cmd);
-    stagingBuffer.destroy();
+    pool->release(handle);
 
     return {};
 }
@@ -327,29 +314,15 @@ Result<void> TridentTexture::uploadRegion(
     const u32 mipWidth = width >> level;
     const u32 mipHeight = height >> level;
 
-    // 创建暂存缓冲区
-    TridentStagingBuffer stagingBuffer;
-    auto result = stagingBuffer.create(m_context, size);
-    if (result.failed()) {
-        return result;
-    }
-
-    // 映射并复制数据
-    void* mapped = stagingBuffer.map();
-    if (!mapped) {
-        stagingBuffer.destroy();
-        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer");
-    }
-
-    std::memcpy(mapped, data, size);
-    stagingBuffer.unmap();
+    // 通过统一暂存缓冲池上传子区域：stage → memcpy → 单次命令录制 buffer→image → release
+    auto* pool = m_context->stagingPool();
+    auto handle = pool->stage(size);
+    MC_ASSERT_RELEASE_MSG(handle.valid, "TridentTexture::uploadRegion: staging pool out of space");
+    std::memcpy(handle.mappedPtr, data, static_cast<size_t>(size));
 
     // 获取单次命令缓冲区
     VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
-    if (cmd == VK_NULL_HANDLE) {
-        stagingBuffer.destroy();
-        return Error(ErrorCode::OperationFailed, "Failed to begin command buffer");
-    }
+    MC_ASSERT_RELEASE(cmd != VK_NULL_HANDLE);
 
     // 如果纹理当前不在传输目标布局，需要转换
     // 对于动画纹理更新，纹理应该已经在 SHADER_READ_ONLY_OPTIMAL 布局
@@ -364,7 +337,7 @@ Result<void> TridentTexture::uploadRegion(
     // 设置缓冲区到图像的复制区域
     // bufferRowLength 和 bufferImageHeight 实现源数据布局指定功能
     VkBufferImageCopy region{};
-    region.bufferOffset = 0;
+    region.bufferOffset = handle.offset;
     region.bufferRowLength = rowLength; // 0 表示使用 width（紧密排列）
     region.bufferImageHeight = 0;       // 对于 2D 纹理始终为 0
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -374,7 +347,8 @@ Result<void> TridentTexture::uploadRegion(
     region.imageOffset = {static_cast<i32>(mipOffsetX), static_cast<i32>(mipOffsetY), 0};
     region.imageExtent = {mipWidth, mipHeight, 1};
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer.buffer(), m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(
+        cmd, static_cast<VkBuffer>(pool->backingBuffer(0)), m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // 转换回着色器只读布局
     transitionLayout(cmd,
@@ -384,7 +358,7 @@ Result<void> TridentTexture::uploadRegion(
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     m_context->endSingleTimeCommands(cmd);
-    stagingBuffer.destroy();
+    pool->release(handle);
 
     return {};
 }

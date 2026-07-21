@@ -2448,6 +2448,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/TridentSwapchain.cpp
             # Trident 缓冲区
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/buffer/TridentBuffer.cpp
+            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/buffer/TridentStagingBufferPool.cpp
             # Trident 绾圭悊
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/texture/TridentTexture.cpp
             # Trident 绠＄嚎
@@ -2500,6 +2501,7 @@ if(MC_BUILD_CLIENT)
         PRIVATE
             mc_common
             mc_bedrock_addon
+            mc_offset_allocator
             GTest::gtest_main
             glfw
             Vulkan::Vulkan

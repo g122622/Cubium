@@ -32,6 +32,7 @@ add_executable(minecraft-client
     renderer/trident/core/TridentSwapchain.cpp
     renderer/trident/core/TridentEngine.cpp
     renderer/trident/core/buffer/TridentBuffer.cpp
+    renderer/trident/core/buffer/TridentStagingBufferPool.cpp
     renderer/trident/core/texture/TridentTexture.cpp
     renderer/trident/core/texture/AnimatedSprite.cpp
     renderer/trident/core/texture/TextureAtlasTicker.cpp
@@ -619,6 +620,7 @@ target_link_libraries(minecraft-client
         glfw
         Vulkan::Vulkan
         OpenAL::OpenAL
+        mc_offset_allocator
 )
 
 if(WIN32)

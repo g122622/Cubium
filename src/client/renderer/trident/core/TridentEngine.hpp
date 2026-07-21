@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/api/IRenderEngine.hpp"
+#include "client/renderer/api/buffer/IStagingBufferPool.hpp"
 #include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/texture/AnimatedSprite.hpp"
@@ -772,6 +773,9 @@ private:
 
     // 子渲染器
     std::unique_ptr<ChunkRenderer> m_chunkRenderer;
+
+    // 统一暂存缓冲池（OffsetAllocator 子分配），由所有上传路径复用
+    std::unique_ptr<api::IStagingBufferPool> m_stagingPool;
     std::unique_ptr<sky::SkyRenderer> m_skyRendererPtr;
     std::unique_ptr<gui::GuiRenderer> m_guiRendererPtr;
     std::unique_ptr<item::ItemRenderer> m_itemRendererPtr;

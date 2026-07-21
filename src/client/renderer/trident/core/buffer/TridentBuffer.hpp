@@ -87,53 +87,6 @@ protected:
 };
 
 /**
- * @brief 暂存缓冲区
- *
- * 用于 CPU 到 GPU 的数据传输。
- */
-class TridentStagingBuffer : public api::IStagingBuffer {
-public:
-    TridentStagingBuffer();
-    ~TridentStagingBuffer() override;
-
-    // 禁止拷贝
-    TridentStagingBuffer(const TridentStagingBuffer&) = delete;
-    TridentStagingBuffer& operator=(const TridentStagingBuffer&) = delete;
-
-    // 允许移动
-    TridentStagingBuffer(TridentStagingBuffer&& other) noexcept;
-    TridentStagingBuffer& operator=(TridentStagingBuffer&& other) noexcept;
-
-    /**
-     * @brief 创建暂存缓冲区
-     */
-    [[nodiscard]] Result<void> create(TridentContext* context, u64 size);
-
-    // IBuffer 接口实现
-    void destroy() override;
-    [[nodiscard]] u64 size() const override { return m_size; }
-    [[nodiscard]] api::BufferUsage usage() const override { return api::BufferUsage::Staging; }
-    [[nodiscard]] bool isValid() const override { return m_buffer != VK_NULL_HANDLE; }
-    [[nodiscard]] void* map() override;
-    void unmap() override;
-    [[nodiscard]] Result<void> upload(const void* data, u64 size, u64 offset = 0) override;
-
-    // IStagingBuffer 接口实现
-    [[nodiscard]] Result<void> copyTo(void* commandBuffer, api::IBuffer* dstBuffer, u64 size) override;
-    [[nodiscard]] void* nativeHandle() const override { return m_buffer; }
-
-    // Vulkan 特有访问器
-    [[nodiscard]] VkBuffer buffer() const { return m_buffer; }
-
-private:
-    TridentContext* m_context = nullptr;
-    VkBuffer m_buffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_memory = VK_NULL_HANDLE;
-    VkDeviceSize m_size = 0;
-    void* m_mapped = nullptr;
-};
-
-/**
  * @brief 顶点缓冲区
  */
 class TridentVertexBuffer : public api::IVertexBuffer {

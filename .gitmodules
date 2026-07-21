@@ -1,3 +1,6 @@
 [submodule "third_party/tracy"]
 	path = third_party/tracy
 	url = https://github.com/wolfpld/tracy.git
+[submodule "third_party/OffsetAllocator"]
+	path = third_party/OffsetAllocator
+	url = https://github.com/sebbbi/OffsetAllocator.git

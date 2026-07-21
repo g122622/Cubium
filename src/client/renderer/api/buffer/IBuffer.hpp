@@ -150,21 +150,4 @@ public:
     [[nodiscard]] virtual u32 frameCount() const = 0;
 };
 
-/**
- * @brief 暂存缓冲区接口
- *
- * 用于CPU到GPU的数据传输。
- */
-class IStagingBuffer : public IBuffer {
-public:
-    /**
-     * @brief 将数据复制到目标缓冲区
-     * @param commandBuffer 命令缓冲区
-     * @param dstBuffer 目标缓冲区
-     * @param size 复制大小
-     * @return 成功或错误
-     */
-    [[nodiscard]] virtual Result<void> copyTo(void* commandBuffer, IBuffer* dstBuffer, u64 size) = 0;
-};
-
 } // namespace mc::client::renderer::api

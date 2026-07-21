@@ -41,6 +41,7 @@
 #include "client/renderer/trident/cloud/CloudRenderer.hpp"
 #include "client/renderer/trident/core/Trident.hpp"
 #include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
+#include "client/renderer/trident/core/buffer/TridentStagingBufferPool.hpp"
 #include "client/renderer/trident/core/pipeline/TridentPipeline.hpp"
 #include "client/renderer/trident/core/render/DescriptorManager.hpp"
 #include "client/renderer/trident/core/render/FrameManager.hpp"
@@ -69,6 +70,7 @@ class TridentTestBase : public ::testing::Test {
 protected:
     static GLFWwindow* s_window;
     static TridentContext* s_context;
+    static TridentStagingBufferPool* s_stagingPool;
 
     static void SetUpTestSuite()
     {
@@ -95,10 +97,26 @@ protected:
 
         auto result = s_context->initialize(s_window, config);
         ASSERT_TRUE(result.success()) << "Failed to initialize TridentContext: " << result.error().message();
+
+        // 创建并注入统一暂存缓冲池（buffer/texture 上传路径依赖 s_context->stagingPool()）
+        s_stagingPool = new TridentStagingBufferPool();
+        result = s_stagingPool->initialize(s_context, 16ull * 1024 * 1024, config.maxFramesInFlight);
+        ASSERT_TRUE(result.success()) << "Failed to initialize staging pool: " << result.error().message();
+        s_context->setStagingPool(s_stagingPool);
     }
 
     static void TearDownTestSuite()
     {
+        // 先解绑并销毁暂存池
+        if (s_context && s_stagingPool) {
+            s_context->setStagingPool(nullptr);
+        }
+        if (s_stagingPool) {
+            s_stagingPool->destroy();
+            delete s_stagingPool;
+            s_stagingPool = nullptr;
+        }
+
         // 清理上下文
         if (s_context) {
             s_context->destroy();
@@ -133,6 +151,7 @@ protected:
 // 静态成员定义
 GLFWwindow* TridentTestBase::s_window = nullptr;
 TridentContext* TridentTestBase::s_context = nullptr;
+TridentStagingBufferPool* TridentTestBase::s_stagingPool = nullptr;
 
 // ============================================================================
 // TridentConfig 测试
@@ -417,9 +436,8 @@ TEST_F(TridentBufferTest, CreateVertexBuffer)
 
 TEST_F(TridentBufferTest, VertexBufferUploadViaStaging)
 {
-    // VertexBuffer 是设备本地内存，需要使用 StagingBuffer 来传输数据
-    TridentStagingBuffer staging;
-    ASSERT_TRUE(staging.create(s_context, sizeof(Vertex) * 4).success());
+    // VertexBuffer 是设备本地内存，通过统一暂存缓冲池上传
+    ASSERT_NE(s_context->stagingPool(), nullptr);
 
     TridentVertexBuffer vbo;
     ASSERT_TRUE(vbo.create(s_context, sizeof(Vertex) * 4, sizeof(Vertex)).success());
@@ -430,20 +448,15 @@ TEST_F(TridentBufferTest, VertexBufferUploadViaStaging)
         {1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF, 255},
         {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF, 255}};
 
-    // 上传到暂存缓冲区
-    auto result = staging.upload(vertices, sizeof(vertices));
+    // 通过池：stage → memcpy → copyToBuffer（内部 submit+wait）→ release
+    auto* pool = s_context->stagingPool();
+    auto handle = pool->stage(sizeof(vertices));
+    ASSERT_TRUE(handle.valid) << "staging pool out of space";
+    std::memcpy(handle.mappedPtr, vertices, sizeof(vertices));
+    auto result = pool->copyToBuffer(handle, vbo.buffer(), 0);
     EXPECT_TRUE(result.success()) << result.error().message();
+    pool->release(handle);
 
-    // 使用命令缓冲区复制到顶点缓冲区
-    VkCommandBuffer cmd = s_context->beginSingleTimeCommands();
-    ASSERT_NE(cmd, VK_NULL_HANDLE);
-
-    result = staging.copyTo(cmd, &vbo, sizeof(vertices));
-    EXPECT_TRUE(result.success()) << result.error().message();
-
-    s_context->endSingleTimeCommands(cmd);
-
-    staging.destroy();
     vbo.destroy();
 }
 
@@ -554,29 +567,23 @@ TEST_F(TridentBufferTest, CreateIndexBuffer)
 
 TEST_F(TridentBufferTest, IndexBufferUploadViaStaging)
 {
-    // IndexBuffer 是设备本地内存，需要使用 StagingBuffer 来传输数据
-    TridentStagingBuffer staging;
-    ASSERT_TRUE(staging.create(s_context, sizeof(u32) * 6).success());
+    // IndexBuffer 是设备本地内存，通过统一暂存缓冲池上传
+    ASSERT_NE(s_context->stagingPool(), nullptr);
 
     TridentIndexBuffer ibo;
     ASSERT_TRUE(ibo.create(s_context, sizeof(u32) * 6, IndexType::U32).success());
 
     u32 indices[6] = {0, 1, 2, 0, 2, 3};
 
-    // 上传到暂存缓冲区
-    auto result = staging.upload(indices, sizeof(indices));
+    // 通过池：stage → memcpy → copyToBuffer（内部 submit+wait）→ release
+    auto* pool = s_context->stagingPool();
+    auto handle = pool->stage(sizeof(indices));
+    ASSERT_TRUE(handle.valid) << "staging pool out of space";
+    std::memcpy(handle.mappedPtr, indices, sizeof(indices));
+    auto result = pool->copyToBuffer(handle, ibo.buffer(), 0);
     EXPECT_TRUE(result.success()) << result.error().message();
+    pool->release(handle);
 
-    // 使用命令缓冲区复制到索引缓冲区
-    VkCommandBuffer cmd = s_context->beginSingleTimeCommands();
-    ASSERT_NE(cmd, VK_NULL_HANDLE);
-
-    result = staging.copyTo(cmd, &ibo, sizeof(indices));
-    EXPECT_TRUE(result.success()) << result.error().message();
-
-    s_context->endSingleTimeCommands(cmd);
-
-    staging.destroy();
     ibo.destroy();
 }
 
@@ -686,47 +693,40 @@ TEST_F(TridentBufferTest, UniformBufferUpload)
     ubo.destroy();
 }
 
-TEST_F(TridentBufferTest, CreateStagingBuffer)
+TEST_F(TridentBufferTest, StagingPoolAllocateAndRelease)
 {
-    TridentStagingBuffer staging;
+    // 池分配 → 释放后空闲空间应守恒恢复
+    auto* pool = s_context->stagingPool();
+    ASSERT_NE(pool, nullptr);
+    const u64 freeBefore = pool->totalFreeSpace();
 
-    auto result = staging.create(s_context, 4096);
-    EXPECT_TRUE(result.success()) << result.error().message();
-    EXPECT_TRUE(staging.isValid());
-    EXPECT_EQ(staging.size(), 4096u);
-    EXPECT_EQ(staging.usage(), BufferUsage::Staging);
+    auto handle = pool->stage(4096);
+    ASSERT_TRUE(handle.valid) << "staging pool out of space";
+    EXPECT_EQ(handle.size, 4096u);
+    EXPECT_NE(handle.mappedPtr, nullptr);
+    EXPECT_GT(pool->totalFreeSpace() + 4096, pool->totalFreeSpace()); // 占用后空闲减少
 
-    staging.destroy();
-    EXPECT_FALSE(staging.isValid());
+    pool->release(handle);
+    EXPECT_EQ(pool->totalFreeSpace(), freeBefore) << "release 后空闲空间未守恒恢复";
 }
 
-TEST_F(TridentBufferTest, StagingBufferUploadAndCopy)
+TEST_F(TridentBufferTest, StagingPoolCopyToVertexBuffer)
 {
-    // 创建暂存缓冲区
-    TridentStagingBuffer staging;
-    ASSERT_TRUE(staging.create(s_context, sizeof(Vertex) * 4).success());
+    // 池 stage → memcpy → copyToBuffer → release 端到端
+    auto* pool = s_context->stagingPool();
+    ASSERT_NE(pool, nullptr);
 
-    // 创建目标顶点缓冲区
     TridentVertexBuffer vbo;
     ASSERT_TRUE(vbo.create(s_context, sizeof(Vertex) * 4, sizeof(Vertex)).success());
 
-    // 上传数据到暂存缓冲区
     Vertex vertices[4] = {};
-    auto result = staging.upload(vertices, sizeof(vertices));
+    auto handle = pool->stage(sizeof(vertices));
+    ASSERT_TRUE(handle.valid) << "staging pool out of space";
+    std::memcpy(handle.mappedPtr, vertices, sizeof(vertices));
+    auto result = pool->copyToBuffer(handle, vbo.buffer(), 0);
     EXPECT_TRUE(result.success()) << result.error().message();
+    pool->release(handle);
 
-    // 开始命令缓冲区
-    VkCommandBuffer cmd = s_context->beginSingleTimeCommands();
-    ASSERT_NE(cmd, VK_NULL_HANDLE);
-
-    // 从暂存缓冲区复制到顶点缓冲区
-    result = staging.copyTo(cmd, &vbo, sizeof(vertices));
-    EXPECT_TRUE(result.success()) << result.error().message();
-
-    // 提交命令
-    s_context->endSingleTimeCommands(cmd);
-
-    staging.destroy();
     vbo.destroy();
 }
 

@@ -32,7 +32,6 @@ namespace mc::client::renderer::trident {
 
 // 前向声明
 class TridentContext;
-class TridentStagingBuffer;
 
 /**
  * @brief Vulkan 纹理实现

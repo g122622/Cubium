@@ -30,6 +30,7 @@
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/TridentSwapchain.hpp"
 #include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
+#include "client/renderer/trident/core/buffer/TridentStagingBufferPool.hpp"
 #include "client/renderer/trident/core/pipeline/TridentPipeline.hpp"
 #include "client/renderer/trident/core/render/DescriptorManager.hpp"
 #include "client/renderer/trident/core/render/FrameManager.hpp"
@@ -305,6 +306,24 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
     // 初始化帧上下文
     m_frameContext = api::FrameContext{};
 
+    // 7. 创建统一暂存缓冲池（OffsetAllocator 子分配），供所有上传路径复用
+    m_stagingPool = std::make_unique<TridentStagingBufferPool>();
+    constexpr u64 kInitialStagingCapacity = 64 * 1024 * 1024; // 64MB 起步，溢出走 fallback
+    auto stagingResult = m_stagingPool->initialize(m_context.get(), kInitialStagingCapacity, config.maxFramesInFlight);
+    if (stagingResult.failed()) {
+        m_uniformManager.reset();
+        m_descriptorManager.reset();
+        m_frameManager.reset();
+        m_renderPassManager.reset();
+        m_swapchain.reset();
+        m_context->destroy();
+        m_context.reset();
+        m_stagingPool.reset();
+        return stagingResult.error();
+    }
+    // 注入到 Context，供各上传点经 m_context->stagingPool() 访问
+    m_context->setStagingPool(m_stagingPool.get());
+
     m_initialized = true;
     spdlog::info("Renderer AA config: enabled={}, samples={}", config.enableAntiAliasing, m_config.msaaSamples);
     spdlog::info("TridentEngine initialized successfully");
@@ -418,6 +437,14 @@ void TridentEngine::destroy()
     m_firstPersonRenderCallback = nullptr;
 
     // 按相反顺序销毁
+    // 暂存池须在 context 销毁前释放（依赖 context 的设备），并在所有上传路径之后
+    if (m_context) {
+        m_context->setStagingPool(nullptr);
+    }
+    if (m_stagingPool) {
+        m_stagingPool->destroy();
+        m_stagingPool.reset();
+    }
     m_uniformManager.reset();
     m_descriptorManager.reset();
     m_frameManager.reset();
@@ -463,6 +490,12 @@ Result<void> TridentEngine::beginFrame()
 
     m_frameContext.imageIndex = imageResult.value();
     m_frameContext.frameIndex = m_frameManager->currentFrameIndex();
+
+    // 回收上一轮同 slot 的异步 staging 分配：此刻 acquireNextImage 已等待该 slot fence，
+    // 上一轮该帧提交的 GPU 命令已完成，回收其 staging 区间是安全的。
+    if (m_stagingPool) {
+        m_stagingPool->recycleFrame(m_frameContext.frameIndex);
+    }
 
     // 开始帧录制
     m_frameManager->beginFrame();

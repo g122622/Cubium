@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/api/TridentApi.hpp"
+#include "client/renderer/api/buffer/IStagingBufferPool.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -219,6 +220,20 @@ public:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
     /**
+     * @brief 获取统一暂存缓冲池
+     *
+     * 由 TridentEngine 在初始化时注入，供所有上传路径（图集子区域、顶点/索引缓冲、
+     * mega-buffer 段等）复用，消除散落的"每次上传新建 staging buffer"反模式。
+     * 初始化完成前返回 nullptr。
+     */
+    [[nodiscard]] api::IStagingBufferPool* stagingPool() const { return m_stagingPool; }
+
+    /**
+     * @brief 注入统一暂存缓冲池（由 TridentEngine 调用）
+     */
+    void setStagingPool(api::IStagingBufferPool* pool) { m_stagingPool = pool; }
+
+    /**
      * @brief 检查是否启用验证层
      */
     [[nodiscard]] bool isValidationEnabled() const { return m_validationEnabled; }
@@ -261,6 +276,9 @@ private:
     VkDevice m_device = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE; // 单次命令池
+
+    // 统一暂存缓冲池（由 TridentEngine 拥有并注入，Context 不负责其生命周期）
+    api::IStagingBufferPool* m_stagingPool = nullptr;
 
     // 队列
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;

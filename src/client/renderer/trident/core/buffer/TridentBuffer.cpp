@@ -23,6 +23,7 @@
 
 #include "TridentBuffer.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -204,184 +205,6 @@ Result<u32> TridentBuffer::findMemoryType(u32 typeFilter, VkMemoryPropertyFlags 
 }
 
 // ============================================================================
-// TridentStagingBuffer 实现
-// ============================================================================
-
-TridentStagingBuffer::TridentStagingBuffer() = default;
-
-TridentStagingBuffer::~TridentStagingBuffer()
-{
-    destroy();
-}
-
-TridentStagingBuffer::TridentStagingBuffer(TridentStagingBuffer&& other) noexcept
-    : m_context(other.m_context)
-    , m_buffer(other.m_buffer)
-    , m_memory(other.m_memory)
-    , m_size(other.m_size)
-    , m_mapped(other.m_mapped)
-{
-    other.m_context = nullptr;
-    other.m_buffer = VK_NULL_HANDLE;
-    other.m_memory = VK_NULL_HANDLE;
-    other.m_size = 0;
-    other.m_mapped = nullptr;
-}
-
-TridentStagingBuffer& TridentStagingBuffer::operator=(TridentStagingBuffer&& other) noexcept
-{
-    if (this != &other) {
-        destroy();
-        m_context = other.m_context;
-        m_buffer = other.m_buffer;
-        m_memory = other.m_memory;
-        m_size = other.m_size;
-        m_mapped = other.m_mapped;
-
-        other.m_context = nullptr;
-        other.m_buffer = VK_NULL_HANDLE;
-        other.m_memory = VK_NULL_HANDLE;
-        other.m_size = 0;
-        other.m_mapped = nullptr;
-    }
-    return *this;
-}
-
-Result<void> TridentStagingBuffer::create(TridentContext* context, u64 size)
-{
-    if (!context) {
-        return Error(ErrorCode::NullPointer, "Context is null");
-    }
-
-    m_context = context;
-    m_size = size;
-
-    VkDevice device = m_context->device();
-
-    // 创建暂存缓冲区
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &m_buffer);
-    if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OutOfMemory, "Failed to create staging buffer: " + std::to_string(result));
-    }
-
-    // 获取内存需求
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, m_buffer, &memRequirements);
-
-    // 查找主机可见内存
-    auto typeResult = m_context->findMemoryType(
-        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    if (typeResult.failed()) {
-        vkDestroyBuffer(device, m_buffer, nullptr);
-        m_buffer = VK_NULL_HANDLE;
-        return typeResult.error();
-    }
-
-    // 分配内存
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = typeResult.value();
-
-    result = vkAllocateMemory(device, &allocInfo, nullptr, &m_memory);
-    if (result != VK_SUCCESS) {
-        vkDestroyBuffer(device, m_buffer, nullptr);
-        m_buffer = VK_NULL_HANDLE;
-        return Error(ErrorCode::OutOfMemory, "Failed to allocate staging buffer memory: " + std::to_string(result));
-    }
-
-    vkBindBufferMemory(device, m_buffer, m_memory, 0);
-    return {};
-}
-
-void TridentStagingBuffer::destroy()
-{
-    if (m_buffer == VK_NULL_HANDLE) return;
-
-    VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
-    if (device == VK_NULL_HANDLE) return;
-
-    if (m_mapped) {
-        vkUnmapMemory(device, m_memory);
-        m_mapped = nullptr;
-    }
-
-    vkDestroyBuffer(device, m_buffer, nullptr);
-    vkFreeMemory(device, m_memory, nullptr);
-
-    m_buffer = VK_NULL_HANDLE;
-    m_memory = VK_NULL_HANDLE;
-    m_size = 0;
-    m_context = nullptr;
-}
-
-void* TridentStagingBuffer::map()
-{
-    if (m_buffer == VK_NULL_HANDLE || !m_context) return nullptr;
-    if (m_mapped) return m_mapped;
-
-    VkResult result = vkMapMemory(m_context->device(), m_memory, 0, m_size, 0, &m_mapped);
-    if (result != VK_SUCCESS) {
-        return nullptr;
-    }
-
-    return m_mapped;
-}
-
-void TridentStagingBuffer::unmap()
-{
-    if (m_mapped && m_context) {
-        vkUnmapMemory(m_context->device(), m_memory);
-        m_mapped = nullptr;
-    }
-}
-
-Result<void> TridentStagingBuffer::upload(const void* data, u64 size, u64 offset)
-{
-    if (size + offset > m_size) {
-        return Error(ErrorCode::OutOfRange, "Upload size exceeds buffer size");
-    }
-
-    void* mapped = map();
-    if (!mapped) {
-        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer");
-    }
-
-    std::memcpy(static_cast<u8*>(mapped) + offset, data, size);
-    return {};
-}
-
-Result<void> TridentStagingBuffer::copyTo(void* commandBuffer, api::IBuffer* dstBuffer, u64 size)
-{
-    if (!m_buffer || !dstBuffer || !commandBuffer) {
-        return Error(ErrorCode::InvalidArgument, "Invalid buffer or command buffer");
-    }
-
-    VkBuffer dstVkBuffer = static_cast<VkBuffer>(dstBuffer->nativeHandle());
-    if (dstVkBuffer == VK_NULL_HANDLE) {
-        return Error(ErrorCode::InvalidArgument, "Destination buffer is not valid");
-    }
-
-    VkCommandBuffer cmd = static_cast<VkCommandBuffer>(commandBuffer);
-
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = 0;
-    copyRegion.size = size > 0 ? size : m_size;
-
-    vkCmdCopyBuffer(cmd, m_buffer, dstVkBuffer, 1, &copyRegion);
-
-    return {};
-}
-
-// ============================================================================
 // TridentVertexBuffer 实现
 // ============================================================================
 
@@ -528,37 +351,14 @@ Result<void> TridentVertexBuffer::upload(const void* data, u64 size, u64 offset)
         return Error(ErrorCode::OutOfRange, "Upload range exceeds buffer size");
     }
 
-    // 创建暂存缓冲区
-    TridentStagingBuffer stagingBuffer;
-    auto result = stagingBuffer.create(m_context, size);
-    if (result.failed()) {
-        return result;
-    }
-
-    // 上传数据到暂存缓冲区
-    result = stagingBuffer.upload(data, size, 0);
-    if (result.failed()) {
-        stagingBuffer.destroy();
-        return result;
-    }
-
-    // 获取命令缓冲区
-    VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
-
-    // 复制暂存缓冲区到顶点缓冲区
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = offset;
-    copyRegion.size = size;
-    vkCmdCopyBuffer(cmd, stagingBuffer.buffer(), m_buffer, 1, &copyRegion);
-
-    // 提交并等待完成
-    m_context->endSingleTimeCommands(cmd);
-
-    // 清理暂存缓冲区
-    stagingBuffer.destroy();
-
-    return {};
+    // 通过统一暂存缓冲池上传：stage → memcpy → copyToBuffer（内部单次命令+等待 fence）→ release
+    auto* pool = m_context->stagingPool();
+    auto handle = pool->stage(size);
+    MC_ASSERT_RELEASE_MSG(handle.valid, "TridentVertexBuffer::upload: staging pool out of space");
+    std::memcpy(handle.mappedPtr, data, static_cast<size_t>(size));
+    auto copyResult = pool->copyToBuffer(handle, m_buffer, offset);
+    pool->release(handle);
+    return copyResult;
 }
 
 u32 TridentVertexBuffer::vertexCount() const
@@ -718,37 +518,14 @@ Result<void> TridentIndexBuffer::upload(const void* data, u64 size, u64 offset)
         return Error(ErrorCode::OutOfRange, "Upload range exceeds buffer size");
     }
 
-    // 创建暂存缓冲区
-    TridentStagingBuffer stagingBuffer;
-    auto result = stagingBuffer.create(m_context, size);
-    if (result.failed()) {
-        return result;
-    }
-
-    // 上传数据到暂存缓冲区
-    result = stagingBuffer.upload(data, size, 0);
-    if (result.failed()) {
-        stagingBuffer.destroy();
-        return result;
-    }
-
-    // 获取命令缓冲区
-    VkCommandBuffer cmd = m_context->beginSingleTimeCommands();
-
-    // 复制暂存缓冲区到索引缓冲区
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = offset;
-    copyRegion.size = size;
-    vkCmdCopyBuffer(cmd, stagingBuffer.buffer(), m_buffer, 1, &copyRegion);
-
-    // 提交并等待完成
-    m_context->endSingleTimeCommands(cmd);
-
-    // 清理暂存缓冲区
-    stagingBuffer.destroy();
-
-    return {};
+    // 通过统一暂存缓冲池上传：stage → memcpy → copyToBuffer（内部单次命令+等待 fence）→ release
+    auto* pool = m_context->stagingPool();
+    auto handle = pool->stage(size);
+    MC_ASSERT_RELEASE_MSG(handle.valid, "TridentIndexBuffer::upload: staging pool out of space");
+    std::memcpy(handle.mappedPtr, data, static_cast<size_t>(size));
+    auto copyResult = pool->copyToBuffer(handle, m_buffer, offset);
+    pool->release(handle);
+    return copyResult;
 }
 
 void TridentIndexBuffer::bind(void* commandBuffer)
