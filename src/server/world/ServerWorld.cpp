@@ -561,8 +561,10 @@ void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& 
         m_timeManager->setDayTime(runtimeData.dayTime);
     }
 
+    // level.dat 中 SpawnY 语义为"脚下方块 Y"，玩家脚位置需 +1 站在方块上方，
+    // 与 initializeWorldSpawn 的 (spawnPos.y + 1.0) 语义保持一致。
     m_worldSpawnPoint = Vector3d(static_cast<f64>(runtimeData.spawnX) + 0.5,
-        static_cast<f64>(runtimeData.spawnY),
+        static_cast<f64>(runtimeData.spawnY) + 1.0,
         static_cast<f64>(runtimeData.spawnZ) + 0.5);
     m_spawnAngle = runtimeData.spawnAngle;
 

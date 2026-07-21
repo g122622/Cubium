@@ -689,9 +689,10 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         i64 dayTime = m_timeManager->dayTime();
 
         // 获取出生点
+        // worldSpawnPoint 是玩家脚位置（方块上方），level.dat 的 SpawnY 语义为脚下方块 Y，需 -1。
         Vector3d spawnPoint = world->worldSpawnPoint();
         i32 spawnX = static_cast<i32>(std::floor(spawnPoint.x));
-        i32 spawnY = static_cast<i32>(std::floor(spawnPoint.y));
+        i32 spawnY = static_cast<i32>(std::floor(spawnPoint.y)) - 1;
         i32 spawnZ = static_cast<i32>(std::floor(spawnPoint.z));
         f32 spawnAngle = world->spawnAngle();
 
@@ -722,7 +723,8 @@ Result<size_t> MinecraftServer::saveAllWorldData()
             rainTime,
             raining,
             thunderTime,
-            thundering);
+            thundering,
+            m_spawnInitializedThisSession);
 
         if (levelResult.failed()) {
             spdlog::error("Failed to save level.dat: {}", levelResult.error().message());
@@ -765,28 +767,40 @@ Result<void> MinecraftServer::initializeWorld()
             m_timeManager->setGameTime(runtimeData.gameTime);
             m_timeManager->setDayTime(runtimeData.dayTime);
 
-            m_dimensionManager->forEachDimension([&runtimeData](Dimension& dim) {
+            m_dimensionManager->forEachDimension([&](Dimension& dim) {
                 auto* serverDim = static_cast<ServerDimension*>(&dim);
                 auto* world = serverDim->world();
                 if (world == nullptr) {
                     return;
                 }
 
-                if (serverDim->id() == 0) {
-                    world->applyLevelRuntimeData(runtimeData);
-                } else {
+                // 仅主世界持有世界出生点（消费方只读主世界 worldSpawnPoint）。
+                // 下界/末地无独立 spawn，不再调 initializeWorldSpawn。
+                if (serverDim->id() != 0) {
+                    return;
+                }
+
+                // 先恢复 level.dat 中的运行时数据（时间/天气/spawnAngle/出生点占位等）
+                world->applyLevelRuntimeData(runtimeData);
+
+                // level.dat 未初始化时，计算真实出生点覆盖新世界模板的 (0,0,0) 占位。
+                // 老存档（initialized=true）直接信任存档中的 SpawnX/Y/Z。
+                if (!runtimeData.initialized) {
                     world->initializeWorldSpawn();
                 }
+                m_spawnInitializedThisSession = true;
             });
         } else {
             spdlog::warn("Failed to load level runtime data: {}", runtimeDataResult.error().message());
-            m_dimensionManager->forEachDimension([](Dimension& dim) {
+            // level.dat 读取失败：视为未初始化，仅主世界计算出生点。
+            m_dimensionManager->forEachDimension([&](Dimension& dim) {
                 auto* serverDim = static_cast<ServerDimension*>(&dim);
                 auto* world = serverDim->world();
-                if (world != nullptr) {
+                if (world != nullptr && serverDim->id() == 0) {
                     world->initializeWorldSpawn();
                 }
             });
+            m_spawnInitializedThisSession = true;
         }
 
         // 加载调度事件

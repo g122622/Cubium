@@ -22,9 +22,9 @@
  */
 
 #include "SingleLevelStorageManager.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
 #include "world/storage/backend/BedrockLDBBackend.hpp"
 #include "world/storage/backend/JavaAnvilBackend.hpp"
@@ -1042,7 +1042,8 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
     i32 rainTime,
     bool raining,
     i32 thunderTime,
-    bool thundering)
+    bool thundering,
+    bool initialized)
 {
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -1065,7 +1066,8 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
             rainTime,
             raining,
             thunderTime,
-            thundering);
+            thundering,
+            initialized);
     }
 
     // 外来格式：只读，不保存

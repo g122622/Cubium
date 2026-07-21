@@ -181,3 +181,5 @@ storage/
 11. **缓存命中和批量读取必须分开处理**：先查缓存，只把 miss 交给数据库，不要把所有 key 都无脑送进 `MultiGet`
 12. **批量读取返回顺序必须稳定**：上层 `loadChunk()` 依赖返回顺序与 `sectionY` 顺序一致
 13. **`loadPlayer("~local_player")` 是约定**：本地玩家通过这个特殊字符串读取，Java 从 `Data.Player`，Bedrock 从 `~local_player` 键
+14. **`initialized` 字段必须落盘**：`saveLevelData` / `updateRuntimeData` 的 `initialized` 参数由 `MinecraftServer::m_spawnInitializedThisSession` 提供。新世界首次启动经 `initializeWorldSpawn` 计算出生点后，shutdown 必须写 `initialized=1`，否则每次重启都会重算出生点（虽幂等但浪费）。`saveLevelData` 仅在 shutdown 调用一次，`/save-all` 不刷新该字段。
+15. **SpawnY 是脚下方块 Y**：level.dat 的 `SpawnY` 语义为脚下方块 Y，非玩家脚位置。`ServerWorld::applyLevelRuntimeData` 读取时 +1 转为玩家脚位置（方块上方），`MinecraftServer::saveAllWorldData` 写盘时 -1 转回。读写转换分属 server 层，存储层只存原始整数。

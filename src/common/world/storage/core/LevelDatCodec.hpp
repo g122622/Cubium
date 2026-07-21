@@ -292,6 +292,7 @@ public:
      * @param raining 是否正在下雨
      * @param thunderTime 雷暴剩余时间（刻）
      * @param thundering 是否正在雷暴
+     * @param initialized 世界是否已完成首次出生点初始化（false 时下次启动会重新计算出生点）
      * @return 成功返回空，失败返回错误
      */
     static Result<void> updateRuntimeData(const std::filesystem::path& worldDir,
@@ -305,7 +306,8 @@ public:
         i32 rainTime,
         bool raining,
         i32 thunderTime,
-        bool thundering);
+        bool thundering,
+        bool initialized);
 
     /**
      * @brief 从 level.dat 读取调度事件列表

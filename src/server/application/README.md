@@ -82,7 +82,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 1. `initializeRegistries()` - 方块、物品、配方
 2. `initializeCoreManagers()` - PlayerManager, ConnectionManager 等
 3. 创建 World, ChunkManager, LightManager
-4. `initializeWorld()` - 命令注册、CommandStorage 初始化
+4. `initializeWorld()` - 命令注册、CommandStorage 初始化、加载 level.dat 运行时数据并按 `initialized` 字段决定主世界出生点（未初始化则调 `ServerWorld::initializeWorldSpawn` 计算真实出生点，否则信任存档值），设置 `m_spawnInitializedThisSession` 供 shutdown 落盘
 5. `initializeInteractionManagers()` - 交互管理器
 6. `ServerDimension::initialize()` - 创建同步管理器和刷怪管理器
 7. `setupWorldCallbacks()` - 世界事件回调

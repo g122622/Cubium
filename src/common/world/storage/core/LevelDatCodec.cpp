@@ -796,7 +796,8 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     i32 rainTime,
     bool raining,
     i32 thunderTime,
-    bool thundering)
+    bool thundering,
+    bool initialized)
 {
     std::unique_ptr<nbt::tags::compound_tag> root;
     nbt::tags::compound_tag* data = nullptr;
@@ -822,6 +823,9 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     data->put("raining", static_cast<i8>(raining ? 1 : 0));
     data->put("thunderTime", thunderTime);
     data->put("thundering", static_cast<i8>(thundering ? 1 : 0));
+
+    // 更新初始化标志：true 表示世界已完成首次出生点计算，下次启动不再重算
+    data->put("initialized", static_cast<i8>(initialized ? 1 : 0));
 
     // 更新最后游玩时间
     auto now = std::chrono::system_clock::now();

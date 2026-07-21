@@ -513,6 +513,8 @@ TEST_F(SingleLevelStorageManagerTest, CloseDoesNotPersistLevelDataWithoutExplici
         EXPECT_EQ(levelData.spawnX, 0);
         EXPECT_EQ(levelData.spawnY, 0);
         EXPECT_EQ(levelData.spawnZ, 0);
+        // writeInitial 写入未初始化标志：新世界首次启动应重算出生点
+        EXPECT_FALSE(levelData.initialized);
 
         reopened.close();
     }
@@ -539,7 +541,7 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         auto writeInitialResult = LevelDatCodec::writeInitial(testDir, request);
         ASSERT_TRUE(writeInitialResult.success()) << writeInitialResult.error().message();
 
-        auto saveResult = bootstrap.saveLevelData(10, 20, 1, 64, 2, 30.0f, 40, 50, true, 60, false);
+        auto saveResult = bootstrap.saveLevelData(10, 20, 1, 64, 2, 30.0f, 40, 50, true, 60, false, true);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         bootstrap.close();
     }
@@ -552,7 +554,7 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         auto openResult = readonlyStorage.open(testDir, readonlyConfig);
         ASSERT_TRUE(openResult.success()) << openResult.error().message();
 
-        auto saveResult = readonlyStorage.saveLevelData(999, 888, 10, 70, 11, 12.0f, 13, 14, false, 15, true);
+        auto saveResult = readonlyStorage.saveLevelData(999, 888, 10, 70, 11, 12.0f, 13, 14, false, 15, true, false);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         readonlyStorage.close();
     }
@@ -576,9 +578,70 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         EXPECT_TRUE(levelData.raining);
         EXPECT_EQ(levelData.thunderTime, 60);
         EXPECT_FALSE(levelData.thundering);
+        // 第一次 saveLevelData 传 initialized=true 已落盘；只读模式的第二次调用不应覆盖
+        EXPECT_TRUE(levelData.initialized);
 
         reopened.close();
     }
+}
+
+// 验证 saveLevelData 的 initialized 参数能正确落盘并被 loadLevelData 读回。
+// 覆盖 initialized 字段在 true/false 两种取值下的往返一致性。
+TEST_F(SingleLevelStorageManagerTest, SaveLevelData_PersistsInitializedFlag)
+{
+    auto writeInitial = [&] {
+        SingleLevelStorageManager storage;
+        SingleLevelStorageConfig config;
+        auto openResult = storage.open(testDir, config);
+        EXPECT_TRUE(openResult.success()) << openResult.error().message();
+
+        CreateWorldRequest request("test-world",
+            "test-world",
+            12345,
+            WorldType::Default,
+            resource::ResourceLocation("minecraft", "default"),
+            GameMode::Survival,
+            Difficulty::Normal,
+            false,
+            false,
+            10);
+        auto result = LevelDatCodec::writeInitial(testDir, request);
+        EXPECT_TRUE(result.success()) << result.error().message();
+        storage.close();
+    };
+
+    auto saveInitialized = [&](bool initialized) {
+        SingleLevelStorageManager storage;
+        SingleLevelStorageConfig config;
+        auto openResult = storage.open(testDir, config);
+        EXPECT_TRUE(openResult.success()) << openResult.error().message();
+        auto saveResult = storage.saveLevelData(0, 0, 0, 0, 0, 0.0f, 0, 0, false, 0, false, initialized);
+        EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
+        storage.close();
+    };
+
+    auto loadInitialized = [&]() -> bool {
+        SingleLevelStorageManager storage;
+        SingleLevelStorageConfig config;
+        auto openResult = storage.open(testDir, config);
+        EXPECT_TRUE(openResult.success()) << openResult.error().message();
+        auto levelDataResult = storage.loadLevelData();
+        EXPECT_TRUE(levelDataResult.success()) << levelDataResult.error().message();
+        storage.close();
+        return levelDataResult.value().initialized;
+    };
+
+    // 新世界模板：initialized=false
+    writeInitial();
+    EXPECT_FALSE(loadInitialized());
+
+    // 落盘 initialized=true：读回应为 true
+    saveInitialized(true);
+    EXPECT_TRUE(loadInitialized());
+
+    // 再落盘 initialized=false：读回应为 false
+    saveInitialized(false);
+    EXPECT_FALSE(loadInitialized());
 }
 
 } // namespace

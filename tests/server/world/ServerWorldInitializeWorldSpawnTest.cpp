@@ -44,6 +44,7 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -51,6 +52,28 @@ using namespace mc;
 using namespace mc::server;
 
 namespace {
+
+// 构造最小可用的 LevelRuntimeData，仅 spawn 相关字段由参数指定，其余取默认/零值。
+// 用于 applyLevelRuntimeData 的单元测试，避免每个用例重复 LevelSummaryData 的冗长构造。
+world::storage::LevelRuntimeData _makeRuntimeData(i32 spawnX, i32 spawnY, i32 spawnZ, f32 spawnAngle, bool initialized)
+{
+    world::storage::LevelSummaryData summary("test",
+        0,
+        GameMode::Survival,
+        Difficulty::Normal,
+        false,
+        false,
+        0,
+        WorldType::Default,
+        resource::ResourceLocation("minecraft", "default"),
+        world::storage::LevelVersionInfo(19133, 2586, "test", false),
+        19133,
+        2586,
+        world::storage::WorldCompatibility::Current,
+        "");
+    return world::storage::LevelRuntimeData(
+        std::move(summary), spawnX, spawnY, spawnZ, spawnAngle, 0, 0, 0, 0, false, 0, false, initialized, false);
+}
 
 class ServerWorldInitializeWorldSpawnTest : public ::testing::Test {
 protected:
@@ -266,6 +289,59 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, MultipleInitializeWorldSpawnCallsIde
     EXPECT_DOUBLE_EQ(spawn1.x, spawn2.x);
     EXPECT_DOUBLE_EQ(spawn1.y, spawn2.y);
     EXPECT_DOUBLE_EQ(spawn1.z, spawn2.z);
+}
+
+// ============================================================================
+// 4. applyLevelRuntimeData Y 语义与字段保留测试
+// ============================================================================
+
+TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_YIsBlockTop)
+{
+    // level.dat 中 SpawnY 语义为脚下方块 Y，applyLevelRuntimeData 应 +1 转为玩家脚位置（方块上方）。
+    // spawnY=63（脚下方块）→ worldSpawnPoint().y=64（站方块上）。
+    auto world = createOverworldWorld(12345ULL);
+    ASSERT_TRUE(world->initialize().success());
+
+    auto runtimeData = _makeRuntimeData(0, 63, 0, 0.0f, true);
+    world->applyLevelRuntimeData(runtimeData);
+
+    const auto spawn = world->worldSpawnPoint();
+    EXPECT_DOUBLE_EQ(spawn.x, 0.5);
+    EXPECT_DOUBLE_EQ(spawn.y, 64.0);
+    EXPECT_DOUBLE_EQ(spawn.z, 0.5);
+}
+
+TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_PreservesSpawnAngle)
+{
+    // applyLevelRuntimeData 应保留 level.dat 中的 spawnAngle，不被覆盖。
+    auto world = createOverworldWorld(12345ULL);
+    ASSERT_TRUE(world->initialize().success());
+
+    auto runtimeData = _makeRuntimeData(0, 64, 0, 90.0f, true);
+    world->applyLevelRuntimeData(runtimeData);
+
+    EXPECT_FLOAT_EQ(world->spawnAngle(), 90.0f);
+}
+
+TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_ThenInitializeWorldSpawnOverwritesSpawn)
+{
+    // 验证修复后的调用顺序：先 applyLevelRuntimeData（设模板 spawn），
+    // 再 initializeWorldSpawn 覆盖为真实出生点。apply 设的占位 spawn 不应残留。
+    auto world = createOverworldWorld(12345ULL);
+    ASSERT_TRUE(world->initialize().success());
+
+    // apply 模板数据（spawnY=0 占位，initialized=false）
+    auto runtimeData = _makeRuntimeData(0, 0, 0, 0.0f, false);
+    world->applyLevelRuntimeData(runtimeData);
+    const auto spawnAfterApply = world->worldSpawnPoint();
+    EXPECT_DOUBLE_EQ(spawnAfterApply.y, 1.0); // 0 + 1，模板占位
+
+    // initializeWorldSpawn 覆盖为真实出生点
+    world->initializeWorldSpawn();
+    const auto spawnAfterInit = world->worldSpawnPoint();
+
+    // 真实出生点 y 应在海平面附近或以上，且与模板占位 (0.5, 1.0, 0.5) 不同
+    EXPECT_GE(spawnAfterInit.y, static_cast<f64>(world::SEA_LEVEL));
 }
 
 } // namespace

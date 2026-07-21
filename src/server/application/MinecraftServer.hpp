@@ -1090,6 +1090,12 @@ protected:
     world::storage::GlobalStorageManager m_globalStorage;
     std::unique_ptr<world::storage::SingleLevelStorageManager> m_storage;
 
+    // 本次会话主世界出生点是否已就绪。
+    // 新世界首次启动（level.dat initialized=false）经 initializeWorldSpawn 计算后置 true；
+    // 老存档（initialized=true）启动时直接置 true。shutdown 时由 saveAllWorldData 写回 level.dat 的
+    // initialized 字段。注意：与 ServerWorld::m_initialized（子系统就绪标志）语义无关，不可复用。
+    bool m_spawnInitializedThisSession = false;
+
     // 维度管理器
     std::unique_ptr<ServerDimensionManager> m_dimensionManager;
 
