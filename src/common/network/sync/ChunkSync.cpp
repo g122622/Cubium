@@ -29,8 +29,10 @@
 #include "ChunkSync.hpp"
 #include "../../world/WorldConstants.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include <algorithm>
 #include <array>
+#include <climits>
 #include <cmath>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -40,6 +42,37 @@
 using namespace mc::trace;
 
 namespace mc::network {
+
+// ============================================================================
+// 高度图网络同步辅助
+// ============================================================================
+
+// 扩展块携带的 final 高度图类型（含 WorldSurface，按位掩码序）。
+// WorldSurface 虽已有独立的 256 字节 u8 块（向后兼容，但有损且 deserialize 曾跳过），
+// 仍在此以 i16 无损重传，保证客户端负 Y / Y>255 场景下 WorldSurface 也准确。
+constexpr std::array<HeightmapType, 5> FINAL_HEIGHTMAP_TYPES = {
+    HeightmapType::WorldSurface,
+    HeightmapType::OceanFloor,
+    HeightmapType::MotionBlocking,
+    HeightmapType::MotionBlockingNoLeaves,
+    HeightmapType::LightBlocking,
+};
+
+// 哨兵：高度图原始存储为 NO_BLOCK_SENTINEL（MIN_BUILD_HEIGHT-1，主世界 -65）时，
+// 网络上用 INT16_MIN 标记"该列无方块"（与磁盘格式 ChunkData::serialize 一致）。
+constexpr i16 HEIGHTMAP_NETWORK_SENTINEL = INT16_MIN;
+
+// 把高度图原始值（Y+1 或 NO_BLOCK_SENTINEL）转为网络 i16
+[[nodiscard]] static i16 encodeHeightmapValue(BlockCoord raw)
+{
+    return raw == Heightmap::NO_BLOCK_SENTINEL ? HEIGHTMAP_NETWORK_SENTINEL : static_cast<i16>(raw);
+}
+
+// 把网络 i16 转回高度图原始值
+[[nodiscard]] static BlockCoord decodeHeightmapValue(i16 encoded)
+{
+    return encoded == HEIGHTMAP_NETWORK_SENTINEL ? Heightmap::NO_BLOCK_SENTINEL : static_cast<BlockCoord>(encoded);
+}
 
 // ============================================================================
 // ChunkSerializer 实现
@@ -56,6 +89,17 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     const u32 sectionMask = calculateSectionMask(chunk);
 
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
+
+    // 计算扩展高度图块：1 字节存在位掩码 + 每个已初始化 final 类型 256×sizeof(i16) 字节
+    u8 heightmapPresenceMask = 0;
+    size_t heightmapExtraSize = 1;
+    for (size_t i = 0; i < FINAL_HEIGHTMAP_TYPES.size(); ++i) {
+        if (chunk.isHeightmapInitialized(FINAL_HEIGHTMAP_TYPES[i])) {
+            heightmapPresenceMask |= static_cast<u8>(1U << i);
+            heightmapExtraSize += heightmapSize * sizeof(i16);
+        }
+    }
+
     size_t expectedSize = 4 + 4 + 4 + heightmapSize + 4 + biomeData.size();
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if ((sectionMask & (1U << i)) == 0) continue;
@@ -65,6 +109,8 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 
         expectedSize += 2 + calculateSectionSize(*section);
     }
+    expectedSize += 8;                  // inhabitedTime (i64)
+    expectedSize += heightmapExtraSize; // 扩展高度图块
 
     PacketSerializer ser(expectedSize);
 
@@ -75,7 +121,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     // 写入区块段位掩码
     ser.writeU32(sectionMask);
 
-    // 写入高度图
+    // 写入高度图（向后兼容的有损 WorldSurface u8 块；扩展块以 i16 无损重传全部 final 类型）
     std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> heightmapData{};
     for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
         for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
@@ -107,6 +153,18 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 
     // 写入居住时间（8字节）
     ser.writeI64(chunk.inhabitedTime());
+
+    // 写入扩展高度图块（位于包尾，旧客户端读 inhabitedTime 后停止，自动忽略）
+    ser.writeU8(heightmapPresenceMask);
+    for (size_t i = 0; i < FINAL_HEIGHTMAP_TYPES.size(); ++i) {
+        if ((heightmapPresenceMask & static_cast<u8>(1U << i)) == 0) {
+            continue;
+        }
+        const auto& data = chunk.getHeightmapData(FINAL_HEIGHTMAP_TYPES[i]);
+        for (size_t j = 0; j < data.size(); ++j) {
+            ser.writeI16(encodeHeightmapValue(data[j]));
+        }
+    }
 
     return std::move(ser.buffer());
 }
@@ -151,9 +209,10 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     }
     u32 sectionMask = maskResult.value();
 
-    // 跳过高度图 (256 bytes)
-    std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> heightmapData{};
-    auto heightmapResult = deser.readBytesInto(heightmapData);
+    // 读取向后兼容的有损 WorldSurface u8 块（256 字节）。
+    // 扩展块存在时优先用其 i16 无损值覆盖；不存在时回退此块（有损，负 Y/Y>255 截断）。
+    std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> legacyHeightmapData{};
+    auto heightmapResult = deser.readBytesInto(legacyHeightmapData);
     if (heightmapResult.failed()) {
         return heightmapResult.error();
     }
@@ -221,6 +280,48 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         }
     }
 
+    // 读取扩展高度图块（位于包尾，旧服务端无此块时 remaining==0，跳过回退有损 u8 块）
+    bool hasExtendedWorldSurface = false;
+    if (deser.hasRemaining(sizeof(u8))) {
+        auto maskResult = deser.readU8();
+        if (maskResult.success()) {
+            const u8 presenceMask = maskResult.value();
+            for (size_t i = 0; i < FINAL_HEIGHTMAP_TYPES.size(); ++i) {
+                if ((presenceMask & static_cast<u8>(1U << i)) == 0) {
+                    continue;
+                }
+                constexpr size_t count = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
+                std::array<BlockCoord, Heightmap::SIZE> heights{};
+                bool decodeOk = true;
+                for (size_t j = 0; j < count; ++j) {
+                    auto vResult = deser.readI16();
+                    if (vResult.failed()) {
+                        decodeOk = false;
+                        break;
+                    }
+                    heights[j] = decodeHeightmapValue(vResult.value());
+                }
+                if (!decodeOk) {
+                    break;
+                }
+                chunk->setHeightmapFromStorage(FINAL_HEIGHTMAP_TYPES[i], heights);
+                if (FINAL_HEIGHTMAP_TYPES[i] == HeightmapType::WorldSurface) {
+                    hasExtendedWorldSurface = true;
+                }
+            }
+        }
+    }
+
+    // 扩展块无 WorldSurface 时回退有损 u8 块（旧服务端兼容）。
+    // u8 存的是最高方块 Y（getHighestBlock，无方块为 0），还原为 Y+1；u8=0 歧义按"Y=0 处有方块"处理。
+    if (!hasExtendedWorldSurface) {
+        std::array<BlockCoord, Heightmap::SIZE> heights{};
+        for (size_t j = 0; j < legacyHeightmapData.size(); ++j) {
+            heights[j] = static_cast<BlockCoord>(legacyHeightmapData[j]) + 1;
+        }
+        chunk->setHeightmapFromStorage(HeightmapType::WorldSurface, heights);
+    }
+
     chunk->setFullyGenerated(true);
     chunk->setLoaded(true);
 
@@ -237,7 +338,7 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
     // 必须与 serializeChunk 的实际写入严格一致，逐字段镜像：
     //   i32 chunkX(4) + i32 chunkZ(4) + u32 sectionMask(4) + 高度图(256)
     //   + u32 生物群系长度(4) + 生物群系数据 + 每个非空 section: u16 长度前缀(2) + sectionData
-    //   + i64 inhabitedTime(8)
+    //   + i64 inhabitedTime(8) + 扩展高度图块(1 字节掩码 + 每个已初始化 final 类型 256×2)
     // 注意 section 的纳入条件是“存在且非空”（与 calculateSectionMask/serializeChunk 一致），
     // 否则空 section 会被位掩码排除，这里却计入，导致预测偏大。
     const size_t biomeDataSize = chunk.getBiomes().serialize().size();
@@ -260,6 +361,14 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
         if (!section) continue;
 
         size += 2 + calculateSectionSize(*section); // u16 长度前缀 + sectionData
+    }
+
+    // 扩展高度图块：1 字节掩码 + 每个已初始化 final 类型 256×sizeof(i16)
+    size += 1;
+    for (HeightmapType type : FINAL_HEIGHTMAP_TYPES) {
+        if (chunk.isHeightmapInitialized(type)) {
+            size += heightmapSize * sizeof(i16);
+        }
     }
 
     return size;

@@ -198,14 +198,10 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
     section->setBlockState(x, localY, z, state);
     m_dirty = true;
 
-    // 更新高度图（WorldSurface 槽位作为快速查询缓存）
-    // currentTop 为最高方块 Y（Heightmap 存储 Y+1，故 getHeight-1；无方块时为 MIN_BUILD_HEIGHT-1）
-    const BlockCoord rawHeight = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)].getHeight(x, z);
-    const BlockCoord currentTop =
-        rawHeight != Heightmap::NO_BLOCK_SENTINEL ? rawHeight - 1 : mc::world::MIN_BUILD_HEIGHT - 1;
-    if (y >= currentTop) {
-        updateHeightMap(x, z);
-    }
+    // 任意 final 高度图都可能受本次改方块影响（WorldSurface/OceanFloor/MotionBlocking/
+    // MotionBlockingNoLeaves/LightBlocking 最高点各异，且删方块需下降），
+    // 整列重算保证一致（此前仅按 WorldSurface 最高点判断，漏触发改动低于顶点的情况）。
+    updateHeightMap(x, z);
 }
 
 u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
@@ -247,14 +243,8 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
     section->setBlockStateId(x, localY, z, stateId);
     m_dirty = true;
 
-    // 更新高度图（WorldSurface 槽位作为快速查询缓存）
-    // currentTop 为最高方块 Y（Heightmap 存储 Y+1，故 getHeight-1；无方块时为 MIN_BUILD_HEIGHT-1）
-    const BlockCoord rawHeight = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)].getHeight(x, z);
-    const BlockCoord currentTop =
-        rawHeight != Heightmap::NO_BLOCK_SENTINEL ? rawHeight - 1 : mc::world::MIN_BUILD_HEIGHT - 1;
-    if (y >= currentTop) {
-        updateHeightMap(x, z);
-    }
+    // 任意 final 高度图都可能受本次改方块影响，整列重算保证一致（见 setBlockState 同款说明）。
+    updateHeightMap(x, z);
 }
 
 BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const
@@ -318,18 +308,35 @@ BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) con
 
 void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z)
 {
-    // 从上向下查找最高的非空气方块，写入 WorldSurface 高度图槽位
-    Heightmap& worldSurface = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];
+    // 运行时改方块后整列重算所有 final 高度图。此前仅重算 WorldSurface，其余 final 类型
+    // （OceanFloor/MotionBlocking/MotionBlockingNoLeaves/LightBlocking）冻结在生成或加载快照，
+    // 导致挖放方块后雨水遮挡、实体生成等查询读到陈旧值。所有运行时改方块入口都汇聚于
+    // setBlockState/setBlockStateId，在此底层重算即可全覆盖。
+    constexpr std::array<HeightmapType, 5> FINAL_TYPES = {
+        HeightmapType::WorldSurface,
+        HeightmapType::OceanFloor,
+        HeightmapType::MotionBlocking,
+        HeightmapType::MotionBlockingNoLeaves,
+        HeightmapType::LightBlocking,
+    };
+
+    // 重置各 final 槽位为"无方块"哨兵，并标记已初始化
+    for (HeightmapType type : FINAL_TYPES) {
+        const size_t typeIndex = static_cast<size_t>(type);
+        m_heightmaps[typeIndex].setAll(Heightmap::NO_BLOCK_SENTINEL);
+        m_heightmapInitialized[typeIndex] = true;
+    }
+
+    // 自顶向下扫描，每个非空气方块交给各 Heightmap::update（内部 _isOpaque 决定是否计入）
     for (BlockCoord y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = getBlockState(x, y, z);
-        if (state && !state->isAir()) {
-            // Heightmap 内部存储 Y+1（上方空气方块位置）
-            worldSurface.setHeight(x, z, y + 1);
-            return;
+        if (!state || state->isAir()) {
+            continue;
+        }
+        for (HeightmapType type : FINAL_TYPES) {
+            m_heightmaps[static_cast<size_t>(type)].update(x, y, z, state);
         }
     }
-    // 无方块：设置为哨兵值（getHeight 返回此值表示无方块）
-    worldSurface.setHeight(x, z, Heightmap::NO_BLOCK_SENTINEL);
 }
 
 ChunkSection* ChunkData::getSection(i32 index)

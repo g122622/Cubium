@@ -125,6 +125,28 @@ public:
      */
     void setHeightmapFromStorage(HeightmapType type, const std::array<BlockCoord, Heightmap::SIZE>& data);
 
+    /**
+     * @brief 读取指定类型高度图的原始存储数据（Y+1 或 NO_BLOCK_SENTINEL）
+     *
+     * 与 getTopBlockY 不同，此方法返回 Heightmap 内部存储语义（最高方块 Y+1，
+     * NO_BLOCK_SENTINEL 表示无方块），不做"无方块与 MIN_BUILD_HEIGHT 处有方块"的歧义合并，
+     * 供序列化/网络同步无损还原使用。未初始化的类型返回其当前槽位内容（通常为哨兵）。
+     */
+    [[nodiscard]] const std::array<BlockCoord, Heightmap::SIZE>& getHeightmapData(HeightmapType type) const
+    {
+        return m_heightmaps[static_cast<size_t>(type)].getData();
+    }
+
+    /**
+     * @brief 查询指定类型高度图槽位是否已被显式填充
+     *
+     * 序列化侧据此决定是否写该类型（未初始化的类型无有效数据，跳过以节省带宽）。
+     */
+    [[nodiscard]] bool isHeightmapInitialized(HeightmapType type) const
+    {
+        return m_heightmapInitialized[static_cast<size_t>(type)];
+    }
+
     // 区块状态 (IChunk 接口)
     [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
     void setStatus(ChunkLoadStatus status) override { m_status = status; }

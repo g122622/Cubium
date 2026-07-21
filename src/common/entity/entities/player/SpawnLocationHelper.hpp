@@ -160,37 +160,14 @@ private:
     }
 
     /**
-     * @brief 按原版高度图语义匹配当前方块
+     * @brief 按高度图语义匹配当前方块
+     *
+     * 判定逻辑统一委托 Heightmap::isOpaqueForType，避免与 Heightmap 内部判定复制漂移
+     * （历史上两份复制曾各自演化导致出生点与高度图判定不一致）。
      */
     [[nodiscard]] static bool _matchesHeightmap(HeightmapType type, const BlockState* state)
     {
-        if (state == nullptr) {
-            return false;
-        }
-
-        const Block& block = state->owner();
-
-        switch (type) {
-            case HeightmapType::WorldSurface:
-            case HeightmapType::WorldSurfaceWG:
-                return !block.isAir(*state);
-
-            case HeightmapType::OceanFloor:
-            case HeightmapType::OceanFloorWG:
-                return block.isSolid(*state);
-
-            case HeightmapType::MotionBlocking:
-                return block.isSolid(*state) || state->isLiquid();
-
-            case HeightmapType::MotionBlockingNoLeaves:
-                return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
-                    (&block.material() != &Material::PLANT);
-
-            case HeightmapType::LightBlocking:
-                return block.isSolid(*state) && state->getOpacity() > 0;
-            default:
-                return false;
-        }
+        return Heightmap::isOpaqueForType(type, state);
     }
 };
 

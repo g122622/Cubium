@@ -24,6 +24,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/registry/NaturalBlocks.hpp"
 
 namespace mc::world::chunk {
 
@@ -82,40 +83,66 @@ void Heightmap::setData(const std::array<BlockCoord, SIZE>& data)
 
 bool Heightmap::_isOpaque(const BlockState* state) const
 {
+    return isOpaqueForType(m_type, state);
+}
+
+bool Heightmap::isOpaqueForType(HeightmapType type, const BlockState* state)
+{
     if (!state) {
         return false;
     }
 
-    // 获取方块
     const Block& block = state->owner();
 
-    switch (m_type) {
+    switch (type) {
         case HeightmapType::WorldSurface:
         case HeightmapType::WorldSurfaceWG:
-            // 最高非空气方块
+            // 原版 NOT_AIR
             return !block.isAir(*state);
 
         case HeightmapType::OceanFloor:
         case HeightmapType::OceanFloorWG:
-            // 最高固体方块（排除水、岩浆等流体）
-            return block.isSolid(*state);
+            // 原版 MATERIAL_MOTION_BLOCKING = blocksMotion()
+            return _blocksMotion(block, *state);
 
         case HeightmapType::MotionBlocking:
-            // 阻挡运动的方块（固体、水、岩浆等流体）
-            return block.isSolid(*state) || state->isLiquid();
+            // 原版 blocksMotion() || !fluidState.isEmpty()
+            // 项目用 isLiquid() 近似流体判定（仅方块自身是水/岩浆；
+            // 含水方块中的源水未计入，见 TODO）
+            return _blocksMotion(block, *state) || state->isLiquid();
 
         case HeightmapType::MotionBlockingNoLeaves:
-            // 阻挡运动但不包括树叶
-            return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
-                (&block.material() != &Material::PLANT);
+            // 原版 (blocksMotion() || hasFluid) && !(block instanceof LeavesBlock)
+            return (_blocksMotion(block, *state) || state->isLiquid()) && _isNotLeaf(block);
 
         case HeightmapType::LightBlocking:
-            // 阻挡光照的方块（不透明方块，透明度 > 0）
-            return block.isSolid(*state) && state->getOpacity() > 0;
+            // 原版 getOpacity(state) > 0（纯挡光判定，无 isSolid 前置；
+            // 前置 isSolid 会错误排除树叶等"非 solid 但 opacity>0"的方块）
+            return state->getOpacity() > 0;
 
         default:
             return !block.isAir(*state);
     }
+}
+
+bool Heightmap::_blocksMotion(const Block& block, const BlockState& state)
+{
+    // 近似原版 blocksMotion() = isSolid() && block != COBWEB && block != BAMBOO_SAPLING。
+    // 项目无 blocksMotion() 方法，用 isSolid + Block 指针排除蜘蛛网近似。
+    // bamboo_sapling 用 Material::REPLACEABLE_PLANT（isSolid=false）天然不命中，无需特判。
+    // TODO: 原版还排除 BAMBOO_SAPLING；项目该方块 isSolid 已为 false，无需显式排除。
+    if (!block.isSolid(state)) {
+        return false;
+    }
+    return &block != block_registry::NaturalBlocks::COBWEB;
+}
+
+bool Heightmap::_isNotLeaf(const Block& block)
+{
+    // 原版 !(block instanceof LeavesBlock)。项目按 Material::LEAVES 指针比较（轻量，无需 RTTI）。
+    // 注意：项目树叶注册时带 .notSolid()，isSolid=false，已被 _blocksMotion 过滤；
+    // 此处排除是防御性的，确保 NoLeaves 语义明确。
+    return &block.material() != &Material::LEAVES;
 }
 
 } // namespace mc::world::chunk

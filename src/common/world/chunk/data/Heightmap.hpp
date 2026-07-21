@@ -29,9 +29,10 @@
 #include <optional>
 #include <string>
 
-// BlockState 在 mc 命名空间中定义
+// BlockState / Block 在 mc 命名空间中定义
 namespace mc {
 class BlockState;
+class Block;
 } // namespace mc
 
 namespace mc::world::chunk {
@@ -129,6 +130,19 @@ public:
 
     [[nodiscard]] HeightmapType getType() const { return m_type; }
 
+    /**
+     * @brief 按高度图类型判定方块是否计入该高度图
+     *
+     * 高度图判定逻辑的唯一权威入口。供 SpawnLocationHelper、NoiseChunkGenerator 等
+     * 外部复用，避免判定逻辑多处复制后漂移（历史上 Heightmap::_isOpaque、
+     * SpawnLocationHelper::_matchesHeightmap、NoiseChunkGenerator 内联 lambda 三处
+     * 复制曾因各自演化而语义不一致）。
+     *
+     * @param type 高度图类型
+     * @param state 方块状态（可为 nullptr，返回 false）
+     */
+    [[nodiscard]] static bool isOpaqueForType(HeightmapType type, const BlockState* state);
+
 private:
     HeightmapType m_type;
     std::array<BlockCoord, SIZE> m_heights;
@@ -137,6 +151,22 @@ private:
      * @brief 检查方块是否影响此高度图
      */
     [[nodiscard]] bool _isOpaque(const BlockState* state) const;
+
+    /**
+     * @brief 近似原版 blocksMotion() = isSolid() && block != COBWEB
+     *
+     * 项目无 blocksMotion() 方法，用 isSolid + Block 指针排除蜘蛛网近似。
+     * bamboo_sapling 用 REPLACEABLE_PLANT（isSolid=false）天然不命中，无需特判。
+     */
+    [[nodiscard]] static bool _blocksMotion(const Block& block, const BlockState& state);
+
+    /**
+     * @brief 是否非树叶方块（原版 !(block instanceof LeavesBlock)）
+     *
+     * 项目树叶 isSolid=false 已被上层 _blocksMotion 过滤，但 NoLeaves 仍需显式排除。
+     * 按 Material::LEAVES 指针比较（轻量，无需 RTTI）。
+     */
+    [[nodiscard]] static bool _isNotLeaf(const Block& block);
 };
 
 /**

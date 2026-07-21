@@ -768,29 +768,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     noiseChunk->initializeForFirstCellX();
     noiseChunk->advanceCellX(0);
 
-    auto matchesHeightmap = [type](const BlockState* state) -> bool {
-        if (!state || state->isAir()) {
-            return false;
-        }
-        const Block& block = state->owner();
-        switch (type) {
-            case HeightmapType::WorldSurface:
-            case HeightmapType::WorldSurfaceWG:
-                return true;
-            case HeightmapType::OceanFloor:
-            case HeightmapType::OceanFloorWG:
-                return block.isSolid(*state);
-            case HeightmapType::MotionBlocking:
-                return block.isSolid(*state) || state->isLiquid();
-            case HeightmapType::MotionBlockingNoLeaves:
-                return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
-                    (&block.material() != &Material::PLANT);
-            case HeightmapType::LightBlocking:
-                return block.isSolid(*state) && state->getOpacity() > 0;
-            default:
-                return true;
-        }
-    };
+    // 判定逻辑统一委托 Heightmap::isOpaqueForType，避免与 Heightmap 内部判定复制漂移。
+    auto matchesHeightmap = [type](const BlockState* state) -> bool { return Heightmap::isOpaqueForType(type, state); };
 
     for (i32 cellY = cellCountY - 1; cellY >= 0; --cellY) {
         // MC 1.21: iterateNoiseColumn 使用 selectCellYZ 而非 selectCellXYZ

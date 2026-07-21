@@ -392,6 +392,14 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
     // 确保高度图已更新
     updateAllHeightmaps();
 
+    // 同步 primer 的全部高度图到 ChunkData。此前 primer 的 m_heightmaps（map）与
+    // m_data 的 m_heightmaps（array）是两套存储，生成路径只更新 primer 侧，
+    // 导致 ChunkData 的 final 槽位 m_heightmapInitialized 恒为 false、getTopBlockY 回退 WorldSurface。
+    // setHeightmapFromStorage 绕过 _isOpaque 整列写入并标记已初始化。
+    for (const auto& [type, heightmap] : m_heightmaps) {
+        m_data->setHeightmapFromStorage(type, heightmap.getData());
+    }
+
     // 标记为完全生成
     m_data->setBiomes(m_biomes);
     m_data->setFullyGenerated(true);
