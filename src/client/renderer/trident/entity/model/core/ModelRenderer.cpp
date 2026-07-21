@@ -92,16 +92,37 @@ ModelBox::ModelBox(i32 texOffX,
     posY2 = y + height;
     posZ2 = z + depth;
 
+    // 保存重算 UV 所需的原始参数
+    m_texOffX = texOffX;
+    m_texOffY = texOffY;
+    m_boxWidth = width;
+    m_boxHeight = height;
+    m_boxDepth = depth;
+    m_deltaX = deltaX;
+    m_deltaY = deltaY;
+    m_deltaZ = deltaZ;
+    m_mirror = mirror;
+
+    // 用初始纹理尺寸/偏移构建 6 面
+    rebuildQuads(texWidth, texHeight, texOffX, texOffY);
+}
+
+void ModelBox::rebuildQuads(f64 texWidth, f64 texHeight, i32 texOffX, i32 texOffY)
+{
+    // 固化本次重算使用的纹理偏移
+    m_texOffX = texOffX;
+    m_texOffY = texOffY;
+
     // 应用膨胀（防止Z-fighting）
-    f64 x1 = x - deltaX;
-    f64 y1 = y - deltaY;
-    f64 z1 = z - deltaZ;
-    f64 x2 = posX2 + deltaX;
-    f64 y2 = posY2 + deltaY;
-    f64 z2 = posZ2 + deltaZ;
+    f64 x1 = posX1 - m_deltaX;
+    f64 y1 = posY1 - m_deltaY;
+    f64 z1 = posZ1 - m_deltaZ;
+    f64 x2 = posX2 + m_deltaX;
+    f64 y2 = posY2 + m_deltaY;
+    f64 z2 = posZ2 + m_deltaZ;
 
     // 如果镜像，交换X方向
-    if (mirror) {
+    if (m_mirror) {
         std::swap(x1, x2);
     }
 
@@ -124,16 +145,16 @@ ModelBox::ModelBox(i32 texOffX,
     // - 下底面(Y-): width x depth
     // - 上顶面(Y+): width x depth
 
-    f64 f4 = static_cast<f64>(texOffX);                                 // 西面U起点
-    f64 f5 = static_cast<f64>(texOffX + depth);                         // 下底面U起点
-    f64 f6 = static_cast<f64>(texOffX + depth + width);                 // 北面U起点
-    f64 f7 = static_cast<f64>(texOffX + depth + width + width);         // 上顶面U起点
-    f64 f8 = static_cast<f64>(texOffX + depth + width + depth);         // 东面U起点
-    f64 f9 = static_cast<f64>(texOffX + depth + width + depth + width); // 南面U起点
+    f64 f4 = static_cast<f64>(texOffX);                                                     // 西面U起点
+    f64 f5 = static_cast<f64>(texOffX + m_boxDepth);                                        // 下底面U起点
+    f64 f6 = static_cast<f64>(texOffX + m_boxDepth + m_boxWidth);                           // 北面U起点
+    f64 f7 = static_cast<f64>(texOffX + m_boxDepth + m_boxWidth + m_boxWidth);              // 上顶面U起点
+    f64 f8 = static_cast<f64>(texOffX + m_boxDepth + m_boxWidth + m_boxDepth);              // 东面U起点
+    f64 f9 = static_cast<f64>(texOffX + m_boxDepth + m_boxWidth + m_boxDepth + m_boxWidth); // 南面U起点
 
-    f64 f10 = static_cast<f64>(texOffY);                  // 上部分V起点
-    f64 f11 = static_cast<f64>(texOffY + depth);          // 中部分V起点
-    f64 f12 = static_cast<f64>(texOffY + depth + height); // 下部分V起点
+    f64 f10 = static_cast<f64>(texOffY);                            // 上部分V起点
+    f64 f11 = static_cast<f64>(texOffY + m_boxDepth);               // 中部分V起点
+    f64 f12 = static_cast<f64>(texOffY + m_boxDepth + m_boxHeight); // 下部分V起点
 
     // 定义法线方向
     Vector3f normalEast(1.0f, 0.0f, 0.0f);   // 东面 X+
@@ -156,7 +177,7 @@ ModelBox::ModelBox(i32 texOffX,
         texWidth,
         texHeight,
         normalEast,
-        mirror);
+        m_mirror);
 
     // 西面 (X-) - quads[1]
     quads[1] = TexturedQuad({v0, v4, v7, v3}, // 左下后, 左下前, 左上前, 左上后
@@ -167,7 +188,7 @@ ModelBox::ModelBox(i32 texOffX,
         texWidth,
         texHeight,
         normalWest,
-        mirror);
+        m_mirror);
 
     // 下底面 (Y-) - quads[2]
     quads[2] = TexturedQuad({v5, v4, v0, v1}, // 右下前, 左下前, 左下后, 右下后
@@ -178,7 +199,7 @@ ModelBox::ModelBox(i32 texOffX,
         texWidth,
         texHeight,
         normalDown,
-        mirror);
+        m_mirror);
 
     // 上顶面 (Y+) - quads[3]
     quads[3] = TexturedQuad({v2, v3, v7, v6}, // 右上后, 左上后, 左上前, 右上前
@@ -189,7 +210,7 @@ ModelBox::ModelBox(i32 texOffX,
         texWidth,
         texHeight,
         normalUp,
-        mirror);
+        m_mirror);
 
     // 北面 (Z-) - quads[4]
     quads[4] = TexturedQuad({v1, v0, v3, v2}, // 右下后, 左下后, 左上后, 右上后
@@ -200,7 +221,7 @@ ModelBox::ModelBox(i32 texOffX,
         texWidth,
         texHeight,
         normalNorth,
-        mirror);
+        m_mirror);
 
     // 南面 (Z+) - quads[5]
     quads[5] = TexturedQuad({v4, v5, v6, v7}, // 左下前, 右下前, 右上前, 左上前
@@ -211,7 +232,7 @@ ModelBox::ModelBox(i32 texOffX,
         texWidth,
         texHeight,
         normalSouth,
-        mirror);
+        m_mirror);
 }
 
 // ============================================================================
@@ -226,12 +247,26 @@ void ModelRenderer::setTextureSize(i32 width, i32 height)
 {
     m_textureWidth = static_cast<f64>(width);
     m_textureHeight = static_cast<f64>(height);
+
+    // 回溯重算已有盒子的 UV：纹理尺寸变更后，原按旧尺寸归一化的 UV 已固化在
+    // 顶点里，必须用新尺寸重新归一化。每个盒子沿用其构造时的纹理偏移。
+    // 不递归子部件——子部件有自己的独立纹理尺寸（如 PlayerModel 的披风 64×32）。
+    for (auto& box : m_boxes) {
+        box.rebuildQuads(m_textureWidth, m_textureHeight, box.texOffX(), box.texOffY());
+    }
 }
 
 ModelRenderer& ModelRenderer::setTextureOffset(i32 offsetX, i32 offsetY)
 {
     m_textureOffsetX = offsetX;
     m_textureOffsetY = offsetY;
+
+    // 回溯重算已有盒子的 UV：纹理偏移变更后，把所有已有盒子的偏移统一刷成
+    // 新值并重算。仅影响"建完盒子后再调 setTextureOffset"的场景（如 PlayerModel
+    // 左腿在基类建盒后改偏移到 (16,48)），这正是期望行为。
+    for (auto& box : m_boxes) {
+        box.rebuildQuads(m_textureWidth, m_textureHeight, offsetX, offsetY);
+    }
     return *this;
 }
 

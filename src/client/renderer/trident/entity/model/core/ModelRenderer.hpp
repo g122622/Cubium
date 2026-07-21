@@ -92,6 +92,10 @@ struct TexturedQuad {
  *
  * 每个盒子有6个面，每面是一个TexturedQuad。
  * UV坐标根据纹理偏移自动计算。
+ *
+ * 构造时保存 texOff/width/height/depth/mirror 原始参数，使 setTextureSize /
+ * setTextureOffset 改变纹理尺寸/偏移后能经 rebuildQuads 回溯重算 6 面 UV，
+ * 修复"纹理尺寸变更不传播到已建盒子"的固化时序问题。
  */
 struct ModelBox {
     f64 posX1, posY1, posZ1;           // 最小角
@@ -129,6 +133,41 @@ struct ModelBox {
         f64 texWidth = 64.0,
         f64 texHeight = 32.0,
         bool mirror = false);
+
+    /**
+     * @brief 用新的纹理尺寸/偏移重算 6 面 UV
+     *
+     * 位置/法线不变，仅按新 texWidth/texHeight 重新归一化每个面四边形的 UV，
+     * 并把新偏移固化为本盒子的纹理偏移。供 ModelRenderer::setTextureSize /
+     * setTextureOffset 在改变字段后回溯重算已有盒子 UV。
+     *
+     * @param texWidth 新纹理宽度
+     * @param texHeight 新纹理高度
+     * @param texOffX 新纹理偏移X（覆盖构造时的偏移）
+     * @param texOffY 新纹理偏移Y
+     */
+    void rebuildQuads(f64 texWidth, f64 texHeight, i32 texOffX, i32 texOffY);
+
+    /**
+     * @brief 获取构造/重算时固化的纹理偏移X
+     */
+    [[nodiscard]] i32 texOffX() const { return m_texOffX; }
+    /**
+     * @brief 获取构造/重算时固化的纹理偏移Y
+     */
+    [[nodiscard]] i32 texOffY() const { return m_texOffY; }
+
+private:
+    // 构造时固化的 UV 相关原始参数，供 rebuildQuads 重算使用
+    i32 m_texOffX = 0;     // 纹理偏移X
+    i32 m_texOffY = 0;     // 纹理偏移Y
+    f64 m_boxWidth = 0.0;  // 盒子宽度（X方向，像素布局用）
+    f64 m_boxHeight = 0.0; // 盒子高度（Y方向）
+    f64 m_boxDepth = 0.0;  // 盒子深度（Z方向）
+    f64 m_deltaX = 0.0;    // X方向膨胀（重算顶点位置用）
+    f64 m_deltaY = 0.0;    // Y方向膨胀
+    f64 m_deltaZ = 0.0;    // Z方向膨胀
+    bool m_mirror = false; // 镜像
 };
 
 /**

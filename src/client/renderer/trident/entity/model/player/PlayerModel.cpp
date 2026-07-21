@@ -36,6 +36,18 @@ PlayerModel::PlayerModel(f64 scale, bool slimArms)
     // 玩家使用 64x64 纹理（包含外层）
     setTextureSize(64, 64);
 
+    // 基类 BipedModel::setupParts 用 ModelRenderer 默认 64×32 固化了 7 个部件的
+    // 盒子 UV，此处对每个基类部件补设 64×64 触发 ModelRenderer::setTextureSize 的
+    // 回溯重算，把已固化 UV 按 64×64 重新归一化。手臂（arm）在 _setup*Arms 中
+    // clearBoxes 重建，其重算无实际作用但保持字段一致。
+    m_bipedHead->setTextureSize(64, 64);
+    m_bipedHeadwear->setTextureSize(64, 64);
+    m_bipedBody->setTextureSize(64, 64);
+    m_bipedRightArm->setTextureSize(64, 64);
+    m_bipedLeftArm->setTextureSize(64, 64);
+    m_bipedRightLeg->setTextureSize(64, 64);
+    m_bipedLeftLeg->setTextureSize(64, 64);
+
     // 基类 BipedModel 已设置基础部件
     // 这里需要根据手臂类型重新设置手臂尺寸
     if (m_slimArms) {
@@ -55,7 +67,10 @@ PlayerModel::PlayerModel(f64 scale, bool slimArms)
 void PlayerModel::_setupStandardArms()
 {
     // 标准手臂：左臂 4x12x4，纹理位置 (32, 48)，旋转点 (5, 2, 0)
+    // clearBoxes 清除基类 BipedModel 用 (40,16) 建的盒子，避免与玩家左臂 (32,48)
+    // 盒子共存导致双臂重叠渲染。
     if (m_leftArm) {
+        m_leftArm->clearBoxes();
         m_leftArm->setTextureSize(64, 64);
         m_leftArm->setTextureOffset(32, 48);
         m_leftArm->addBox(-1.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, 0.0f);
@@ -64,6 +79,7 @@ void PlayerModel::_setupStandardArms()
 
     // 右臂：4x12x4，纹理位置 (40, 16)，旋转点 (-5, 2, 0)
     if (m_rightArm) {
+        m_rightArm->clearBoxes();
         m_rightArm->setTextureSize(64, 64);
         m_rightArm->setTextureOffset(40, 16);
         m_rightArm->addBox(-3.0f, -2.0f, -2.0f, 4.0f, 12.0f, 4.0f, 0.0f);
@@ -81,7 +97,9 @@ void PlayerModel::_setupStandardArms()
 void PlayerModel::_setupSlimArms()
 {
     // 纤细手臂：左臂 3x12x4，纹理位置 (32, 48)，旋转点 (5, 2.5, 0)
+    // clearBoxes 清除基类盒子，避免双臂重叠（见 _setupStandardArms 注释）。
     if (m_leftArm) {
+        m_leftArm->clearBoxes();
         m_leftArm->setTextureSize(64, 64);
         m_leftArm->setTextureOffset(32, 48);
         m_leftArm->addBox(-1.0f, -2.0f, -2.0f, 3.0f, 12.0f, 4.0f, 0.0f);
@@ -90,6 +108,7 @@ void PlayerModel::_setupSlimArms()
 
     // 右臂：3x12x4，纹理位置 (40, 16)，旋转点 (-5, 2.5, 0)
     if (m_rightArm) {
+        m_rightArm->clearBoxes();
         m_rightArm->setTextureSize(64, 64);
         m_rightArm->setTextureOffset(40, 16);
         m_rightArm->addBox(-2.0f, -2.0f, -2.0f, 3.0f, 12.0f, 4.0f, 0.0f);
