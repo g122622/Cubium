@@ -29,7 +29,10 @@ void main() {
     fragColor = inColor;
     fragLightmap = inLightmap;
 
-    // C++ 代码中顶点位置已经是相对于相机的（视图空间位置）
-    // 所以只需要应用投影矩阵，不需要再乘以视图矩阵
-    gl_Position = ubo.projection * vec4(inPosition, 1.0);
+    // C++ 端顶点位置已是世界坐标减相机平移 (worldPos - cameraPos)，
+    // 仅保留相对相机的世界朝向（雨滴在世界空间始终垂直下落）。
+    // 这里只取 view 的旋转部分（丢弃其平移列，否则会多减一次 cameraPos），
+    // 使旋转相机时雨滴按世界垂直方向正确透视，而非钉在屏幕上。
+    mat3 viewRotation = mat3(ubo.view);
+    gl_Position = ubo.projection * mat4(viewRotation) * vec4(inPosition, 1.0);
 }
