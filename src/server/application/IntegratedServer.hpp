@@ -24,6 +24,7 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
+#include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -216,6 +217,7 @@ private:
     void _sendLoginResponse(bool success,
         PlayerId playerId,
         EntityInstanceId entityId,
+        const Uuid& uuid,
         const std::string& username,
         const std::string& message);
     void _sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
@@ -248,6 +250,7 @@ private:
         bool success,
         PlayerId playerId,
         EntityInstanceId entityId,
+        const Uuid& uuid,
         const std::string& username,
         const std::string& message);
 

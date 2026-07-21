@@ -206,6 +206,13 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     // 初始化皮肤管理器
     m_skinManager = std::make_unique<skin::ClientSkinManager>();
+    // 注入渲染器实体纹理图集与玩家身份注册表。
+    // 渲染器图集（TridentEngine::initializeEntityTextureAtlas 已在 Bootstrap 阶段构建完成）
+    // 是玩家皮肤动态区域上传的目标图集——与 PlayerRenderer/AnimatedMeshCache 采样的是同一张，
+    // 消除旧实现中 ClientSkinManager 自建孤儿图集导致的 UV 断裂（彩色乱码根因）。
+    // 身份注册表用于 getSkinRegionForEntity 按 entityId→UUID 反查皮肤区域。
+    m_skinManager->setTextureAtlas(&m_renderer->entityTextureAtlas());
+    m_skinManager->setIdentityRegistry(&m_identityRegistry);
     // 必须在 initialize() 之前注入全部资源包，否则 DefaultSkinProvider 无法从
     // 资源包读取 18 种默认皮肤 PNG 纹理，回退到零像素占位数据。
     // 注入完整列表（而非仅首个 pack）是因为内置 vanilla InMemoryResourcePack
@@ -233,6 +240,10 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         // 皮肤管理器初始化失败不是致命错误
     } else {
         spdlog::info("[Session] Skin manager initialized");
+        // 注入皮肤区域提供者到实体渲染管理器，供 _remapUvToAtlasRegion 的玩家分支
+        // 按 entityId 查动态皮肤区域。注入在 initialize 成功后进行：失败时皮肤未就绪，
+        // 注入空 provider 会让所有玩家回退默认实体纹理路径（无皮肤）。
+        m_renderer->entityRendererManager().setSkinRegionProvider(m_skinManager.get());
     }
 
     m_stateMachine.reportLoadingProgress("Logging in", 0.4f);
@@ -315,6 +326,14 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
             m_localIdentity.entityId(), [this]() -> ::mc::Player* { return m_player.get(); });
 
         m_world.entityManager().forEachEntity([&](client::ClientEntity& entity) {
+            // 本地玩家回填：ClientEntity 的 isRightHanded/playerModelParts 尚未走网络同步
+            // （DATA_PLAYER_MAIN_HAND / DATA_PLAYER_MODE_CUSTOMISATION 未实现），渲染前从真实
+            // Player 复制，供 HeldItemLayer（主手判定）等层 GPU 管线路径读取。
+            // 远程玩家维持默认值（右撇子 + 全部件显示）。
+            if (m_player && entity.id() == m_localIdentity.entityId()) {
+                entity.setRightHanded(m_player->isRightHanded());
+                entity.setPlayerModelParts(m_player->playerModelParts());
+            }
             m_renderer->entityRendererManager().renderWithPipeline(cmd, entity, partialTick, frustum);
         });
     });
@@ -430,6 +449,8 @@ void ClientApplication::destroyGameSession()
 
     // 2. 清理皮肤管理器
     if (m_skinManager) {
+        // 先解除实体渲染管理器对皮肤管理器的引用，避免 reset 后悬垂。
+        m_renderer->entityRendererManager().setSkinRegionProvider(nullptr);
         m_skinManager->shutdown();
         m_skinManager.reset();
     }

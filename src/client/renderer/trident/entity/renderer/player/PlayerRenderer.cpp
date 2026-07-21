@@ -22,21 +22,9 @@
  */
 
 #include "PlayerRenderer.hpp"
-#include "PlayerArmPoseResolver.hpp"
-#include "client/renderer/trident/entity/layer/cosmetic/CapeLayer.hpp"
-#include "client/renderer/trident/entity/layer/cosmetic/ElytraLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeadLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
-#include "client/renderer/trident/entity/model/base/ElytraSpeedValue.hpp"
-#include "common/entity/entities/player/Player.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/items/weapon/CrossbowItem.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include <spdlog/spdlog.h>
-
-// 使用命名空间简化代码
-using namespace mc::client::renderer::entity::layer;
 
 namespace mc::client::renderer::entity::renderer::player {
 
@@ -54,299 +42,53 @@ PlayerRenderer::PlayerRenderer(bool slimArms)
 
 void PlayerRenderer::render(Entity& entity, f64 partialTicks)
 {
-    auto& player = static_cast<::mc::Player&>(entity);
-
-    // 设置模型可见性（含弩装填进度参数）
-    setModelVisibilities(player, partialTicks);
-
-    // 计算动画参数
-    f64 limbSwing = getLimbSwing(player, partialTicks);
-    f64 limbSwingAmount = getLimbSwingAmount(player, partialTicks);
-    f64 ageInTicks = getAgeInTicks(player) + partialTicks;
-    f64 headYaw = getHeadYaw(player, partialTicks);
-    f64 headPitch = getHeadPitch(player, partialTicks);
-    f64 scale = 1.0 / 16.0;
-
-    // 设置模型动画参数
-    m_model.setAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, scale);
-
-    // 渲染模型
-    m_model.render(scale);
-
-    // 渲染阴影
-    if (m_shadowSize > 0.0) {
-        renderShadow(entity, partialTicks);
-    }
+    // CPU 渲染路径已弃用：第三人称玩家由 renderWithPipeline → GPU 管线渲染。
+    // 保留空实现仅满足基类纯虚契约，避免误用时静默无输出。
+    (void)entity;
+    (void)partialTicks;
 }
 
-void PlayerRenderer::renderLayersPipeline(
-    Entity& entity, VkCommandBuffer cmd, const core::AnimationContext& context, pipeline::EntityPipeline& pipeline)
+void PlayerRenderer::renderLayersPipelineClient(::mc::client::ClientEntity& entity,
+    VkCommandBuffer cmd,
+    const core::AnimationContext& context,
+    pipeline::EntityPipeline& pipeline)
 {
-    auto& player = static_cast<::mc::Player&>(entity);
-
-    // 在渲染层之前，将纹理传递给需要的层渲染器
-    // 由于层渲染器存储在基类指针向量中，我们需要使用 dynamic_cast 来设置纹理
+    // 分发到已注册的层（HeldItemLayer/HeadLayer）
+    // 对应 MC 1.21.11 RenderLayer 遍历调用 submit() 的逻辑
     for (auto& layer : m_layers) {
-        if (layer && layer->shouldRender(player)) {
-            // 尝试设置纹理（如果层支持）
-            // CapeLayer
-            if (m_capeRegion) {
-                auto* capeLayer = dynamic_cast<cosmetic::CapeLayer*>(layer.get());
-                if (capeLayer) {
-                    capeLayer->setCapeTexture(m_capeRegion);
-                }
-            }
-            // ElytraLayer
-            if (m_elytraRegion || m_capeRegion) {
-                auto* elytraLayer = dynamic_cast<cosmetic::ElytraLayer<::mc::Player>*>(layer.get());
-                if (elytraLayer) {
-                    if (m_elytraRegion) {
-                        elytraLayer->setElytraTexture(m_elytraRegion);
-                    }
-                    if (m_capeRegion) {
-                        elytraLayer->setCapeTexture(m_capeRegion);
-                    }
-                }
-            }
-
-            layer->renderPipeline(player, cmd, context, pipeline);
+        if (layer && layer->shouldRender(entity)) {
+            layer->renderPipeline(entity, cmd, context, pipeline);
         }
     }
-}
-
-void PlayerRenderer::renderRightArm(::mc::Player& player, f64 partialTicks)
-{
-    // 设置模型可见性（含弩装填进度参数）
-    setModelVisibilities(player, partialTicks);
-
-    // 重置动画状态
-    m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
-    m_model.setSwingProgress(0.0f);
-    m_model.setCrouching(false);
-    m_model.setSwimming(false);
-    // 重置游泳动画（来自 BipedModel）
-    m_model.setSwimAnimation(0.0f);
-    // 重置鞘翅飞行状态：第一人称手臂渲染不应受鞘翅速度因子影响
-    m_model.setFallFlying(false);
-    m_model.setSpeedValue(1.0f);
-
-    // 仅渲染右臂和右袖
-    m_model.renderRightArm(1.0 / 16.0);
-
-    (void)player;
-    (void)partialTicks;
-}
-
-void PlayerRenderer::renderLeftArm(::mc::Player& player, f64 partialTicks)
-{
-    // 设置模型可见性（含弩装填进度参数）
-    setModelVisibilities(player, partialTicks);
-
-    // 重置动画状态
-    m_model.setAngles(0.0, 0.0, 0.0, 0.0, 0.0, 1.0 / 16.0);
-    m_model.setSwingProgress(0.0f);
-    m_model.setCrouching(false);
-    m_model.setSwimming(false);
-    // 重置游泳动画（来自 BipedModel）
-    m_model.setSwimAnimation(0.0f);
-    // 重置鞘翅飞行状态：第一人称手臂渲染不应受鞘翅速度因子影响
-    m_model.setFallFlying(false);
-    m_model.setSpeedValue(1.0f);
-
-    // 仅渲染左臂和左袖
-    m_model.renderLeftArm(1.0 / 16.0);
-
-    (void)player;
-    (void)partialTicks;
-}
-
-void PlayerRenderer::computeAnimationContext(::mc::Player& player, f64 partialTicks, core::AnimationContext& context)
-{
-    context.partialTicks = partialTicks;
-    context.limbSwing = getLimbSwing(player, partialTicks);
-    context.limbSwingAmount = getLimbSwingAmount(player, partialTicks);
-    context.ageInTicks = getAgeInTicks(player);
-    context.netHeadYaw = getHeadYaw(player, partialTicks);
-    context.headPitch = getHeadPitch(player, partialTicks);
-    context.scale = 1.0 / 16.0;
-    context.computeHash();
-}
-
-void PlayerRenderer::setModelVisibilities(::mc::Player& player, f64 partialTicks)
-{
-    // 本方法在 CPU 渲染路径（render/renderRightArm/renderLeftArm）中被调用。
-    // 第三人称 GPU 管线路径不经过此处，弩参数由
-    // EntityRendererManager::_applyPlayerCrossbowState 单独填充。
-    // TODO: 远程玩家的 use-item 状态网络同步未实现，远程玩家在 GPU 管线路径下
-    //       弩装填/持握动画暂不生效（详见 _applyPlayerCrossbowState 中的 TODO）。
-
-    // 默认显示所有部件
-    m_model.setAllVisible(true);
-
-    // 解析双手姿态（含双手协调与主/副手映射）
-    // 参考 MC 1.21.11 AvatarRenderer.getArmPose 与 setModelVisibilities 协调逻辑
-    const auto poses = PlayerArmPoseResolver::resolveArmPoses(player);
-    m_model.setArmPose(poses.leftArmPose, poses.rightArmPose); // (left, right)
-
-    // 设置主手和挥动手，供 BipedModel::setAngles 双臂协调逻辑使用
-    m_model.setMainHand(player.isRightHanded() ? model::HandSide::Right : model::HandSide::Left);
-    if (player.isSwingInProgress()) {
-        m_model.setSwingingHand(player.swingingHand() == ::mc::Hand::MainHand
-                ? (player.isRightHanded() ? model::HandSide::Right : model::HandSide::Left)
-                : (player.isRightHanded() ? model::HandSide::Left : model::HandSide::Right));
-    }
-
-    // 根据 PlayerModelPart 设置外层皮肤部件可见性
-    // 注意：Cape 由 CapeLayer 单独处理
-
-    // 使用 PlayerModel::setModelVisibilitiesFromFlags 设置所有外层皮肤部件
-    m_model.setModelVisibilitiesFromFlags(player.playerModelParts());
-
-    // 设置蹲伏状态
-    m_model.setCrouching(player.isSneaking());
-
-    // 设置游泳状态
-    m_model.setSwimming(player.isSwimming());
-
-    // 设置鞘翅飞行状态与速度因子（对应 MC 1.21.11 HumanoidMobRenderer.extractHumanoidRenderState
-    // 中 isFallFlying / speedValue 的填充逻辑）
-    // speedValue = (velocity.lengthSqr() / 0.2)^3，钳制到 [1.0, +∞)；非飞行时为 1.0
-    // 用作手臂/腿部摆动振幅的除数（见 BipedModel::setAngles）
-    {
-        const bool isFallFlying = player.isElytraFlying();
-        const f32 lengthSq = player.velocity().lengthSquared();
-        const f32 speedValue = model::elytra::computeSpeedValue(isFallFlying, lengthSq);
-        m_model.setFallFlying(isFallFlying);
-        m_model.setSpeedValue(speedValue);
-        // 推送服务端 fallFlyTicks 给 BipedModel（MC 1.21.11 渲染器不读取此字段，
-        // 但 Cubium 保留推送以支持未来扩展和与 LivingEntity 状态机一致性检查）
-        m_model.setElytraFlyingTicks(player.fallFlyTicks());
-    }
-
-    // 设置弩装填动画参数（对应 MC 1.21 HumanoidMobRenderer.extractHumanoidRenderState
-    // 中 maxCrossbowChargeDuration / ticksUsingItem 的填充逻辑）
-    // 仅当玩家正在使用物品且使用的是弩时才计算有效进度，否则将进度归零
-    f32 ticksUsingItem = 0.0f;
-    f32 maxChargeDuration = 0.0f;
-    if (player.isUsingItem()) {
-        const ::mc::ItemStack& activeStack = player.getActiveItem();
-        const ::mc::Item* activeItem = activeStack.getItem();
-        if (activeItem == ::mc::Items::CROSSBOW) {
-            // maxCrossbowChargeDuration = CrossbowItem.getChargeTime(stack)
-            maxChargeDuration = static_cast<f32>(::mc::item::CrossbowItem::getChargeTime(activeStack));
-            // ticksUsingItem = useDuration - useItemRemaining + partialTick
-            // Cubium 中 CrossbowItem::getUseDuration = getChargeTime + 3
-            const i32 useDuration = activeItem->getUseDuration(activeStack);
-            const i32 remaining = player.getItemInUseCount();
-            const i32 elapsed = useDuration - remaining;
-            ticksUsingItem = static_cast<f32>(elapsed) + static_cast<f32>(partialTicks);
-        }
-    }
-    m_model.setMaxCrossbowChargeDuration(maxChargeDuration);
-    m_model.setCrossbowChargeTicks(ticksUsingItem);
-}
-
-model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, ::mc::Hand hand)
-{
-    // 委托给 PlayerArmPoseResolver，保持 PlayerRenderer 接口不变
-    return PlayerArmPoseResolver::determineArmPose(player, hand);
-}
-
-f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const
-{
-    f64 limbSwingAmount = static_cast<f64>(player.limbSwingAmount());
-    f64 result = static_cast<f64>(player.limbSwing()) - limbSwingAmount * (1.0 - partialTicks);
-    return result;
-}
-
-f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const
-{
-    f64 prevAmount = static_cast<f64>(player.prevLimbSwingAmount());
-    f64 amount = static_cast<f64>(player.limbSwingAmount());
-    f64 result = prevAmount + (amount - prevAmount) * partialTicks;
-
-    // 限制最大值为 1.0
-    if (result > 1.0) {
-        result = 1.0;
-    }
-
-    return result;
-}
-
-f64 PlayerRenderer::getHeadYaw(::mc::Player& player, f64 partialTicks) const
-{
-    // 头部偏航角（相对于身体）
-    f64 bodyYaw = static_cast<f64>(player.prevRenderYawOffset()) +
-        (static_cast<f64>(player.renderYawOffset()) - static_cast<f64>(player.prevRenderYawOffset())) * partialTicks;
-    f64 headYaw = static_cast<f64>(player.prevRotationYawHead()) +
-        (static_cast<f64>(player.rotationYawHead()) - static_cast<f64>(player.prevRotationYawHead())) * partialTicks;
-    f64 diff = headYaw - bodyYaw;
-
-    // 归一化到 -180 到 180
-    while (diff < -180.0)
-        diff += 360.0;
-    while (diff > 180.0)
-        diff -= 360.0;
-
-    return diff;
-}
-
-f64 PlayerRenderer::getHeadPitch(::mc::Player& player, f64 partialTicks) const
-{
-    // 头部俯仰角
-    f64 prevPitch = player.prevPitch();
-    f64 pitch = player.pitch();
-    return prevPitch + (pitch - prevPitch) * partialTicks;
-}
-
-f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const
-{
-    // 年龄（用于空闲动画），加上 partialTicks 用于帧间插值
-    return static_cast<f64>(player.ticksExisted());
-}
-
-ResourceLocation PlayerRenderer::getEntityTexture(::mc::Player& entity)
-{
-    // 返回玩家皮肤纹理位置
-    // 如果设置了自定义纹理，使用纹理区域的位置
-    // 否则返回规范默认皮肤 (slim/steve)
-    (void)entity;
-    if (m_skinRegion) {
-        // 使用皮肤纹理区域的位置
-        return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
-    }
-    // 返回规范默认皮肤 (MC 1.21.1: slim/steve，索引 6)
-    return ResourceLocation("minecraft:textures/entity/player/slim/steve.png");
-}
-
-ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) const
-{
-    (void)entity;
-    if (m_skinRegion) {
-        return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
-    }
-    return ResourceLocation("minecraft:textures/entity/player/slim/steve.png");
 }
 
 void PlayerRenderer::_setupLayers()
 {
-    // 添加层渲染器
-
-    // 创建手持物品层渲染器（主手和副手）
-    // 传入 *this 让 HeldItemLayer 通过 IEntityRenderer::getModel() 获取 PlayerModel，
-    // 使 PlayerModel::translateHand 的多态 override 生效（纤细手臂偏移等）。
-    m_layers.push_back(std::make_unique<equipment::HeldItemLayer<::mc::Player, model::player::PlayerModel>>(*this));
+    // 手持物品层（主手/副手）：传入 *this 让 HeldItemLayer 通过
+    // IEntityRenderer::getModel() 获取 PlayerModel，使 PlayerModel::translateHand
+    // 的多态 override 生效（纤细手臂偏移等）。
+    m_layers.push_back(
+        std::make_unique<layer::equipment::HeldItemLayer<::mc::client::ClientEntity, model::player::PlayerModel>>(
+            *this));
 
     // 头部物品层（头盔等）
-    m_layers.push_back(std::make_unique<equipment::HeadLayer<::mc::Player, model::player::PlayerModel>>(*this));
-
-    // 披风层
-    m_layers.push_back(std::make_unique<cosmetic::CapeLayer>());
-
-    // 鞘翅层
-    m_layers.push_back(std::make_unique<cosmetic::ElytraLayer<::mc::Player>>());
+    m_layers.push_back(
+        std::make_unique<layer::equipment::HeadLayer<::mc::client::ClientEntity, model::player::PlayerModel>>(*this));
 
     spdlog::info("PlayerRenderer: Layer setup complete ({} layers registered)", m_layers.size());
+}
+
+ResourceLocation PlayerRenderer::getEntityTexture(::mc::client::ClientEntity& entity)
+{
+    (void)entity;
+    // 玩家皮肤区域由 UvRemapFunc 按 entityId 解析，此处仅返回规范默认皮肤位置。
+    return ResourceLocation("minecraft:textures/entity/player/slim/steve.png");
+}
+
+ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::client::ClientEntity& entity) const
+{
+    (void)entity;
+    return ResourceLocation("minecraft:textures/entity/player/slim/steve.png");
 }
 
 } // namespace mc::client::renderer::entity::renderer::player

@@ -121,6 +121,43 @@ public:
         const std::vector<u8>& pixels, u32 width, u32 height, const ResourceLocation& location);
 
     /**
+     * @brief 注入动态区域（运行时上传像素到图集子区域，不重建图集）
+     *
+     * 用于玩家皮肤等运行时才有的纹理。在 build() 后调用，将像素上传到图集
+     * 预留的动态区域（静态纹理布局之下），VkImage/VkImageView 句柄不变，
+     * descriptor set 无需更新，EntityPipeline 无需重新绑定。
+     *
+     * 区域按纵向 shelf 策略分配（从 m_dynamicOffsetY 起，每次追加在已用高度之后）。
+     * 空间不足时返回 nullptr 并记录 warn，调用方应回退到默认皮肤区域。
+     *
+     * @param location 图集中的资源位置键（如 player_skin:<uuid-hex>）
+     * @param width 宽度（像素）
+     * @param height 高度（像素）
+     * @param rgbaPixels RGBA 像素数据，大小须为 width*height*4
+     * @return 注入区域的指针；失败返回 nullptr
+     */
+    [[nodiscard]] const TextureRegion* injectRegion(
+        const ResourceLocation& location, u32 width, u32 height, const u8* rgbaPixels);
+
+    /**
+     * @brief 移除动态区域
+     *
+     * 仅移除区域映射与名称记录，不回收像素空间（简单策略；玩家数量有限可接受）。
+     * 触发 contentVersion 自增，使 AnimatedMeshCache 重做 UV。
+     *
+     * @param location 图集中的资源位置键
+     */
+    void removeDynamicRegion(const ResourceLocation& location);
+
+    /**
+     * @brief 图集内容版本号
+     *
+     * 每次 injectRegion/removeDynamicRegion 自增。用于 AnimatedMeshCache
+     * 检测皮肤区域变化并重做 UV（见 AnimationContext::skinRegionVersion）。
+     */
+    [[nodiscard]] u32 contentVersion() const { return m_contentVersion; }
+
+    /**
      * @brief 是否需要重建
      *
      * 如果在构建后添加了新纹理，返回 true。
@@ -215,6 +252,15 @@ private:
     // 纹理区域映射
     std::unordered_map<ResourceLocation, TextureRegion> m_regions;
 
+    // 动态区域（运行时注入的皮肤等）
+    u32 m_dynamicOffsetY = 0;                       // 动态区域起始 Y（静态布局结束处）
+    u32 m_dynamicUsedHeight = 0;                    // 动态区域已用高度（单调递增，不回收）
+    u32 m_contentVersion = 0;                       // 内容版本号，inject/remove 自增
+    std::vector<ResourceLocation> m_dynamicRegions; // 动态区域名记录，用于区分静态/动态
+
+    /// build() 时为动态区域预留的高度（像素），能容纳约 DYNAMIC_RESERVE_HEIGHT/textureSize 行皮肤
+    static constexpr u32 DYNAMIC_RESERVE_HEIGHT = 2048;
+
     bool m_initialized = false;
     bool m_built = false;
     bool m_needsRebuild = false;
@@ -248,6 +294,23 @@ private:
      * @brief 上传纹理数据到图像
      */
     [[nodiscard]] Result<void> _uploadTextureData(const std::vector<u8>& data);
+
+    /**
+     * @brief 上传像素到图集子区域（动态区域注入用）
+     *
+     * 将 width×height 的像素上传到 (offsetX, offsetY) 子区域。
+     * 图像在 SHADER_READ_ONLY 与 TRANSFER_DST 之间转换，VkImage 句柄不变。
+     */
+    [[nodiscard]] Result<void> _uploadRegion(const u8* pixels, u32 offsetX, u32 offsetY, u32 width, u32 height);
+
+    /**
+     * @brief 转换图像布局（单次命令内）
+     */
+    void _transitionImageLayout(VkCommandBuffer cmd,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout,
+        VkPipelineStageFlags srcStage,
+        VkPipelineStageFlags dstStage);
 
     /**
      * @brief 查找内存类型

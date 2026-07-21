@@ -43,8 +43,7 @@ namespace mc::client::renderer::entity::model {
  * ```
  *
  * 抽取为自由函数便于在 GPU 管线路径（`EntityRendererManager::_applyBipedElytraState`）
- * 与 CPU 路径（`PlayerRenderer::setModelVisibilities`）共用，并在单元测试中
- * 直接验证公式分支，无需依赖 Vulkan/`EntityRendererManager` 链接。
+ * 共用，并在单元测试中直接验证公式分支，无需依赖 Vulkan/`EntityRendererManager` 链接。
  */
 namespace elytra {
 

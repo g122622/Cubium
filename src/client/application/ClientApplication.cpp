@@ -325,16 +325,6 @@ void ClientApplication::mainLoop()
             render();
         }
 
-        // 重建皮肤纹理图集（如果有新皮肤）
-        if (m_skinManager && m_skinManager->needsAtlasRebuild()) {
-            auto rebuildResult = m_skinManager->rebuildAtlas();
-            if (rebuildResult.failed()) {
-                spdlog::warn("Failed to rebuild skin atlas: {}", rebuildResult.error().toString());
-            } else {
-                spdlog::info("Skin atlas rebuilt successfully");
-            }
-        }
-
         // 清理本帧的瞬时输入状态
         m_input.endFrame();
 

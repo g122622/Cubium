@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/util/color/DyeColor.hpp"
@@ -1277,6 +1278,37 @@ public:
      */
     void setIsAggressive(bool aggressive) { m_isAggressive = aggressive; }
 
+    // ========== 玩家渲染状态（供 PlayerRenderer 层 GPU 管线路径读取） ==========
+    //
+    // 这两个字段当前未通过网络元数据同步（MC 的 DATA_PLAYER_MODE_CUSTOMISATION /
+    // DATA_PLAYER_MAIN_HAND 在本项目尚未实现协议同步）。本地玩家由
+    // ClientApplicationSession 在每帧渲染前从真实 Player 对象回填（保证第三人称本地
+    // 玩家层渲染正确）；远程玩家保持默认值（右撇子 + 全部件显示），与离线/单人默认
+    // 皮肤场景一致。待玩家元数据协议补齐后在 syncMetadataFromDataManager 中刷新。
+
+    /**
+     * @brief 是否右撇子（主手为右手）
+     *
+     * 由 HeldItemLayer 读取以决定主/副手物品映射到左右手的渲染槽。
+     * @return true 右撇子（默认）；本地玩家由真实 Player 回填
+     */
+    [[nodiscard]] bool isRightHanded() const { return m_rightHanded; }
+    void setRightHanded(bool rightHanded) { m_rightHanded = rightHanded; }
+
+    /**
+     * @brief 玩家皮肤部件可见性位掩码（PlayerModelPart）
+     *
+     * 由 CapeLayer/PlayerModel 读取以决定披风/外套等外层部件是否渲染。
+     * 默认 PLAYER_MODEL_PARTS_ALL_MASK（全部件显示）。
+     * @return 部件位掩码
+     */
+    [[nodiscard]] u8 playerModelParts() const { return m_playerModelParts; }
+    void setPlayerModelParts(u8 mask) { m_playerModelParts = mask; }
+    [[nodiscard]] bool isWearing(PlayerModelPart part) const
+    {
+        return (m_playerModelParts & getPlayerModelPartMask(part)) != 0;
+    }
+
     // ========== 钓鱼浮标状态 ==========
 
     /**
@@ -1598,6 +1630,10 @@ private:
     // 对应 MC 1.21.11 Mob.isAggressive()。由 MeleeAttackGoal 等攻击目标在 start/reset 时设置，
     // 驱动 ZombieModel 的空手攻击抬臂动画（animateZombieArms）。
     bool m_isAggressive = false; ///< 是否处于激怒状态（驱动 ZombieModel 攻击手臂动画）
+
+    // 玩家渲染状态（供 PlayerRenderer 层 GPU 管线路径读取，见 isRightHanded/playerModelParts 注释）
+    bool m_rightHanded = true;                           ///< 右撇子（默认）；本地玩家由真实 Player 回填
+    u8 m_playerModelParts = PLAYER_MODEL_PARTS_ALL_MASK; ///< 皮肤部件位掩码（默认全部件显示）
 
     // 兔子跳跃动画状态（对应 MC 1.21.11 Rabbit.jumpTicks / jumpDuration）
     // 收到 RabbitJump(1) 状态包时启动；由 tickRabbitJump() 在 ClientEntity::tick() 中推进

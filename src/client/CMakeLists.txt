@@ -326,6 +326,7 @@ add_executable(minecraft-client
     # 地图渲染
     renderer/map/MapRenderer.cpp
     world/player/LocalPlayerIdentity.cpp
+    world/player/PlayerIdentityRegistry.cpp
     world/color/BiomeColors.cpp
     world/color/blend/BiomeColorCache.cpp
     world/color/blend/BiomeColorBlender.cpp
@@ -420,10 +421,13 @@ add_executable(minecraft-client
     world/entity/ClientEntityManager.cpp
     # 本地玩家身份
     world/player/LocalPlayerIdentity.cpp
+    # 玩家身份注册表（UUID↔entityId↔username 多向映射）
+    world/player/PlayerIdentityRegistry.cpp
     # 客户端玩家预测器
     world/player/ClientPlayerPredictor.cpp
     # 客户端皮肤系统
     skin/ClientSkinManager.cpp
+    skin/SkinTextureUploader.cpp
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp

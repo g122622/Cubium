@@ -23,19 +23,15 @@
 
 #pragma once
 
-#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
-#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <vector>
-
-namespace mc {
-class Player;
-}
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline; // 前向声明
@@ -46,27 +42,42 @@ namespace mc::client::renderer::entity::renderer::player {
 /**
  * @brief 玩家渲染器
  *
- * 支持标准手臂和纤细手臂两种模式。
+ * 第三人称玩家走 GPU 管线路径（EntityRendererManager::renderWithPipeline）：
+ * 1. supportsAnimation() 返回 true → Path B（ModelFactory + AnimatedMeshCache）
+ *    主模型由 ModelFactory::createModel("minecraft:player") 创建，动画状态由
+ *    EntityRendererManager::_createModelForEntity + _applyPlayerCrossbowState 统一填充
+ *    （本地玩家通过 m_localPlayerAccessor 回填 use-item/ArmPose/主手/蹲伏/游泳）。
+ * 2. supportsLayers() 返回 true → 主模型绘制后调用 renderLayersPipelineClient，
+ *    分发到本渲染器注册的层（HeldItemLayer/HeadLayer，均基于 ClientEntity）。
  *
- * Player 继承自 LivingEntity，拥有 limbSwing/limbSwingAmount 等动画字段，
- * 可直接使用 LivingEntity 的访问器获取步态动画参数。
+ * 皮肤区域选择不在本渲染器完成：AnimatedMeshCache 的 UvRemapFunc 按 entityId
+ * 经 PlayerSkinRegionProvider 查询动态图集区域（见 EntityRendererManager），
+ * 因此 PlayerRenderer 是无每玩家实例状态的单例——所有皮肤/装备状态都从
+ * ClientEntity 每帧读取，符合"单例不能存每玩家状态"的约束。
+ *
+ * 披风(CapeLayer)/鞘翅(ElytraLayer)本阶段不接入：项目无 cape/elytra 默认资源，
+ * 两层的 shouldRender 恒为 false，接入亦不渲染。待资源就绪后再注册并补 ClientEntity
+ * 的 isWearingCape/elytra 纹理区域查询。
  */
 class PlayerRenderer : public core::EntityRenderer,
-                       public core::IEntityRenderer<::mc::Player, model::player::PlayerModel> {
+                       public core::IEntityRenderer<::mc::client::ClientEntity, model::player::PlayerModel> {
 public:
-    using core::EntityRenderer::computeAnimationContext;
-
     /**
      * @brief 构造函数
      * @param slimArms 是否使用纤细手臂
      */
-    explicit PlayerRenderer(bool slimArms = false);
+    explicit PlayerRenderer(bool slimArms);
     ~PlayerRenderer() override = default;
 
+    /**
+     * @brief CPU 渲染路径入口（已弃用，保留满足基类纯虚）
+     *
+     * 第三人称玩家实际由 renderWithPipeline → GPU 管线渲染，不经此入口。
+     */
     void render(Entity& entity, f64 partialTicks) override;
 
     /**
-     * @brief 玩家渲染器支持动画
+     * @brief 玩家渲染器支持动画（进入 GPU 管线 Path B）
      */
     [[nodiscard]] bool supportsAnimation() const override { return true; }
 
@@ -76,22 +87,15 @@ public:
     [[nodiscard]] bool supportsLayers() const override { return true; }
 
     /**
-     * @brief 渲染层（GPU管线路径）
+     * @brief 渲染层（GPU管线路径，ClientEntity 版本）
+     *
+     * 分发到已注册的层（HeldItemLayer/HeadLayer）。
+     * 对应 MC 1.21.11 RenderLayer 遍历调用 submit() 的逻辑。
      */
-    void renderLayersPipeline(Entity& entity,
+    void renderLayersPipelineClient(::mc::client::ClientEntity& entity,
         VkCommandBuffer cmd,
         const core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline) override;
-
-    /**
-     * @brief 渲染右手臂（第一人称）
-     */
-    void renderRightArm(::mc::Player& player, f64 partialTicks);
-
-    /**
-     * @brief 渲染左手臂（第一人称）
-     */
-    void renderLeftArm(::mc::Player& player, f64 partialTicks);
 
     /**
      * @brief 获取是否使用纤细手臂
@@ -99,125 +103,19 @@ public:
     [[nodiscard]] bool hasSlimArms() const { return m_slimArms; }
 
     /**
-     * @brief 获取模型
+     * @brief 获取模型（IEntityRenderer 接口，供层渲染器获取父模型）
      */
     [[nodiscard]] model::player::PlayerModel& getModel() override { return m_model; }
     [[nodiscard]] const model::player::PlayerModel& getModel() const override { return m_model; }
 
     /**
-     * @brief 获取实体纹理（IEntityRenderer 接口）
-     * @param entity 玩家实体
-     * @return 皮肤纹理资源位置
-     */
-    [[nodiscard]] ResourceLocation getEntityTexture(::mc::Player& entity) override;
-    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::Player& entity) const override;
-
-    /**
-     * @brief 设置皮肤纹理区域
-     * @param region 皮肤纹理区域（可为 nullptr 使用默认皮肤）
-     */
-    void setSkinTexture(const TextureRegion* region) { m_skinRegion = region; }
-
-    /**
-     * @brief 设置披风纹理区域
-     * @param region 披风纹理区域（可为 nullptr）
-     */
-    void setCapeTexture(const TextureRegion* region) { m_capeRegion = region; }
-
-    /**
-     * @brief 设置鞘翅纹理区域
-     * @param region 鞘翅纹理区域（可为 nullptr）
-     */
-    void setElytraTexture(const TextureRegion* region) { m_elytraRegion = region; }
-
-    /**
-     * @brief 获取皮肤纹理区域
-     */
-    [[nodiscard]] const TextureRegion* getSkinTexture() const { return m_skinRegion; }
-
-    /**
-     * @brief 获取披风纹理区域
-     */
-    [[nodiscard]] const TextureRegion* getCapeTexture() const { return m_capeRegion; }
-
-    /**
-     * @brief 获取鞘翅纹理区域
-     */
-    [[nodiscard]] const TextureRegion* getElytraTexture() const { return m_elytraRegion; }
-
-    // ========== 层渲染器管理 ==========
-
-    /**
-     * @brief 添加层渲染器（使用 LayerRenderer<Player> 模板）
-     */
-    template <typename TLayer, typename... TArgs>
-    void addLayer(TArgs&&... args)
-    {
-        m_layers.push_back(std::make_unique<TLayer>(std::forward<TArgs>(args)...));
-    }
-
-    /**
-     * @brief 获取层渲染器数量
-     */
-    [[nodiscard]] size_t getLayerCount() const { return m_layers.size(); }
-
-protected:
-    /**
-     * @brief 设置模型可见性（含弩装填进度参数）
+     * @brief 获取实体纹理（IEntityRenderer 接口契约实现）
      *
-     * 根据玩家设置显示/隐藏各部件，并计算弩装填动画所需的：
-     * - maxCrossbowChargeDuration（CrossbowItem.getChargeTime）
-     * - ticksUsingItem（useDuration - useItemRemaining + partialTick）
-     *
-     * 对应 MC 1.21 HumanoidMobRenderer.extractHumanoidRenderState 中
-     * maxCrossbowChargeDuration / ticksUsingItem 的填充逻辑。
-     *
-     * @param player 玩家实体
-     * @param partialTicks 部分刻（用于 ticksUsingItem 插值）
+     * 玩家皮肤区域由 EntityRendererManager 的 UvRemapFunc 按 entityId 经
+     * PlayerSkinRegionProvider 解析，不经此方法。返回规范默认皮肤位置仅为满足接口契约。
      */
-    void setModelVisibilities(::mc::Player& player, f64 partialTicks);
-
-    /**
-     * @brief 确定指定手的手臂姿态
-     *
-     * 根据玩家手持物品和使用状态返回对应的手臂姿态。
-     * 参考 MC 1.21.11 AvatarRenderer.getArmPose。
-     *
-     * @param player 玩家实体
-     * @param hand 要查询的手（主手或副手）
-     * @return 对应的 ArmPose
-     */
-    [[nodiscard]] model::player::ArmPose determineArmPose(::mc::Player& player, ::mc::Hand hand);
-
-    /**
-     * @brief 计算动画上下文
-     */
-    void computeAnimationContext(::mc::Player& player, f64 partialTicks, core::AnimationContext& context);
-
-    /**
-     * @brief 计算步态动画周期
-     */
-    [[nodiscard]] f64 getLimbSwing(::mc::Player& player, f64 partialTicks) const;
-
-    /**
-     * @brief 计算步态动画强度
-     */
-    [[nodiscard]] f64 getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const;
-
-    /**
-     * @brief 获取头部偏航角
-     */
-    [[nodiscard]] f64 getHeadYaw(::mc::Player& player, f64 partialTicks) const;
-
-    /**
-     * @brief 获取头部俯仰角
-     */
-    [[nodiscard]] f64 getHeadPitch(::mc::Player& player, f64 partialTicks) const;
-
-    /**
-     * @brief 获取年龄（tick）
-     */
-    [[nodiscard]] f64 getAgeInTicks(::mc::Player& player) const;
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::client::ClientEntity& entity) override;
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::client::ClientEntity& entity) const override;
 
 private:
     void _setupLayers();
@@ -225,13 +123,8 @@ private:
     model::player::PlayerModel m_model;
     bool m_slimArms; // 是否使用纤细手臂
 
-    // 层渲染器 - 使用 LayerRenderer<Player> 模板类型
-    std::vector<std::unique_ptr<layer::core::LayerRenderer<::mc::Player>>> m_layers;
-
-    // 皮肤纹理区域
-    const TextureRegion* m_skinRegion = nullptr;
-    const TextureRegion* m_capeRegion = nullptr;
-    const TextureRegion* m_elytraRegion = nullptr;
+    // 层渲染器 - 基于 ClientEntity，第三人称玩家图层（手持物品/头盔）由此分发
+    std::vector<std::unique_ptr<layer::core::LayerRenderer<::mc::client::ClientEntity>>> m_layers;
 };
 
 } // namespace mc::client::renderer::entity::renderer::player

@@ -3,10 +3,10 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * in the Software without including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -23,57 +23,72 @@
 
 #pragma once
 
-#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
+#include "SkinTextureUploader.hpp"
+#include "client/renderer/trident/entity/core/PlayerSkinRegionProvider.hpp"
+#include "client/world/player/PlayerIdentityRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include "common/skin/manager/SkinManager.hpp"
 #include <array>
 #include <memory>
-#include <mutex>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 namespace mc::client::skin {
 
 /**
- * @brief 客户端皮肤管理器
+ * @brief 客户端皮肤管理器（薄 facade + PlayerSkinRegionProvider 实现）
  *
- * 扩展 SkinManager，添加：
- * - GPU 纹理管理
- * - EntityTextureAtlas 集成
- * - PlayerRenderer 纹理绑定
+ * 职责聚合（每个职责由独立服务承担，本类仅编排）：
+ * - 玩家档案/缓存/异步加载：common 层 SkinManager（m_skinManager）
+ * - 默认皮肤像素/选型：common 层 DefaultSkinProvider（m_skinManager 持有）
+ * - GPU 纹理上传到实体图集：SkinTextureUploader（m_uploader）
+ * - UUID↔entityId 映射：PlayerIdentityRegistry（注入，m_identityRegistry）
  *
- * 使用示例：
- * @code
- * ClientSkinManager skinManager;
- * skinManager.initialize(device, physicalDevice, commandPool, graphicsQueue);
+ * 关键架构修复：不再自建孤儿 EntityTextureAtlas。皮肤纹理统一上传到渲染器唯一的
+ * 实体纹理图集（由 setTextureAtlas 注入），PlayerRenderer/AnimatedMeshCache 从同一
+ * 图集采样，消除"两个图集"导致的彩色乱码。
  *
- * // 注册玩家皮肤
- * auto result = skinManager.registerPlayerSkin(profile);
- *
- * // 获取纹理区域
- * auto* region = skinManager.getSkinRegion(uuid);
- * renderer.setSkinTexture(region);
- * @endcode
+ * 实现 PlayerSkinRegionProvider：EntityRendererManager 的 UvRemapFunc 玩家分支调用
+ * getSkinRegionForEntity(entityId)，本类按 entityId→UUID→皮肤区域解析：
+ *   1. PlayerIdentityRegistry.uuidOf(entityId) 取 UUID
+ *   2. 若 PlayerSkinInfo 有自定义皮肤像素 → SkinTextureUploader.getOrCreateRegion 懒上传
+ *   3. 否则回退 SkinTextureUploader.getDefaultRegion(uuid)（loadDefaultSkins 时已注入）
+ *   4. 非 playerId/皮肤未就绪 → nullptr（调用方回退默认实体纹理路径）
  */
-class ClientSkinManager {
+class ClientSkinManager : public renderer::entity::core::PlayerSkinRegionProvider {
 public:
     ClientSkinManager();
-    ~ClientSkinManager();
+    ~ClientSkinManager() override;
 
     // 禁止拷贝
     ClientSkinManager(const ClientSkinManager&) = delete;
     ClientSkinManager& operator=(const ClientSkinManager&) = delete;
 
     /**
+     * @brief 注入渲染器唯一的实体纹理图集
+     *
+     * 必须在 initialize() 之前调用。图集须已 build()。图集生命周期由 TridentEngine 管理。
+     */
+    void setTextureAtlas(renderer::entity::pipeline::EntityTextureAtlas* atlas) { m_uploader.setTextureAtlas(atlas); }
+
+    /**
+     * @brief 注入玩家身份注册表（UUID↔entityId 映射）
+     *
+     * 必须在 getSkinRegionForEntity 被调用前注入。生命周期由 ClientApplicationSession 管理。
+     */
+    void setIdentityRegistry(PlayerIdentityRegistry* registry) { m_identityRegistry = registry; }
+
+    /**
      * @brief 初始化客户端皮肤管理器
      *
-     * @param device Vulkan 设备
-     * @param physicalDevice 物理设备
-     * @param commandPool 命令池
-     * @param graphicsQueue 图形队列
-     * @param cacheDir 缓存目录路径（如 ~/minecraft_reborn/cache/skins）
+     * 重建底层 SkinManager（用正确 cacheDir），重新下发缓存的资源包/线程池，
+     * 加载 18 种默认皮肤像素并上传到注入的实体图集动态区域。
+     *
+     * @param device Vulkan 设备（保留参数，未来基于 device 的纹理管理扩展用）
+     * @param physicalDevice 物理设备（未使用，保留对称性）
+     * @param commandPool 命令池（未使用，injectRegion 内部自管 staging）
+     * @param graphicsQueue 图形队列（未使用）
+     * @param cacheDir 皮肤缓存目录路径
      * @return 成功或错误
      */
     Result<void> initialize(VkDevice device,
@@ -92,33 +107,13 @@ public:
     /**
      * @brief 注册玩家皮肤
      *
-     * 加载皮肤并上传到 GPU。
+     * 获取或创建 PlayerSkinInfo，触发异步加载。自定义皮肤像素就绪后由
+     * getSkinRegionForEntity 懒上传到图集。
      *
      * @param profile 玩家档案
-     * @return 皮肤纹理 ResourceLocation
+     * @return 皮肤纹理 ResourceLocation（默认皮肤 location 或自定义 location）
      */
     Result<ResourceLocation> registerPlayerSkin(const ::mc::skin::GameProfile& profile);
-
-    /**
-     * @brief 获取玩家皮肤纹理区域
-     * @param uuid 玩家UUID
-     * @return 纹理区域，不存在返回默认皮肤区域
-     */
-    [[nodiscard]] const TextureRegion* getSkinRegion(const std::array<u8, 16>& uuid) const;
-
-    /**
-     * @brief 获取玩家披风纹理区域
-     * @param uuid 玩家UUID
-     * @return 纹理区域，无披风返回 nullptr
-     */
-    [[nodiscard]] const TextureRegion* getCapeRegion(const std::array<u8, 16>& uuid) const;
-
-    /**
-     * @brief 获取玩家鞘翅纹理区域
-     * @param uuid 玩家UUID
-     * @return 纹理区域，无鞘翅返回 nullptr
-     */
-    [[nodiscard]] const TextureRegion* getElytraRegion(const std::array<u8, 16>& uuid) const;
 
     /**
      * @brief 获取玩家皮肤类型
@@ -132,59 +127,23 @@ public:
      */
     [[nodiscard]] std::shared_ptr<::mc::skin::PlayerSkinInfo> getPlayerInfo(const std::array<u8, 16>& uuid) const;
 
-    // ========== 默认皮肤 ==========
-
     /**
-     * @brief 获取指定 UUID 对应的默认皮肤纹理区域
-     * @param uuid 玩家UUID
-     * @return 纹理区域，不存在返回规范默认皮肤区域
-     */
-    [[nodiscard]] const TextureRegion* getDefaultSkinRegion(const std::array<u8, 16>& uuid) const;
-
-    /**
-     * @brief 获取 Steve 皮肤纹理区域（向后兼容）
-     */
-    [[nodiscard]] const TextureRegion* getSteveSkinRegion() const { return m_defaultSkinRegions[15]; }
-
-    /**
-     * @brief 获取 Alex 皮肤纹理区域（向后兼容）
-     */
-    [[nodiscard]] const TextureRegion* getAlexSkinRegion() const { return m_defaultSkinRegions[0]; }
-
-    // ========== 纹理图集 ==========
-
-    /**
-     * @brief 获取皮肤纹理图集
-     */
-    [[nodiscard]] const renderer::entity::pipeline::EntityTextureAtlas& textureAtlas() const { return *m_textureAtlas; }
-
-    /**
-     * @brief 获取可修改的纹理图集引用
-     */
-    renderer::entity::pipeline::EntityTextureAtlas& textureAtlas() { return *m_textureAtlas; }
-
-    /**
-     * @brief 检查纹理图集是否需要重建
-     */
-    [[nodiscard]] bool needsAtlasRebuild() const { return m_textureAtlas->needsRebuild(); }
-
-    /**
-     * @brief 重建纹理图集
+     * @brief 移除玩家皮肤信息（玩家离线）
      *
-     * 在新皮肤添加后调用，重新打包所有皮肤纹理。
-     * 注意：此操作可能较慢，应在合适的时机调用。
-     *
-     * @return 成功或错误
+     * 联动 SkinTextureUploader.removeRegion，同步释放图集动态区域（修复旧实现
+     * removePlayerInfo 不同步 region 的 bug）。
      */
-    Result<void> rebuildAtlas();
+    void removePlayerInfo(const std::array<u8, 16>& uuid);
 
-    // ========== 底层管理器访问 ==========
+    // ========== PlayerSkinRegionProvider 实现 ==========
 
     /**
-     * @brief 获取底层皮肤管理器
+     * @brief 按 entityId 查询玩家皮肤区域（渲染层调用入口）
+     *
+     * 解析链：entityId → UUID →（自定义皮肤像素懒上传 or 默认皮肤区域）。
+     * 非玩家或皮肤未就绪返回 nullptr。
      */
-    [[nodiscard]] ::mc::skin::SkinManager& skinManager() { return *m_skinManager; }
-    [[nodiscard]] const ::mc::skin::SkinManager& skinManager() const { return *m_skinManager; }
+    [[nodiscard]] const TextureRegion* getSkinRegionForEntity(EntityInstanceId entityId) const override;
 
     // ========== 资源包设置 ==========
 
@@ -217,43 +176,18 @@ public:
 
 private:
     /**
-     * @brief 加载默认皮肤到图集
+     * @brief 上传 18 种默认皮肤变体到图集动态区域
      */
-    Result<void> _loadDefaultSkins();
-
-    /**
-     * @brief 上传皮肤 PNG 数据到图集
-     */
-    Result<ResourceLocation> _uploadSkinToAtlas(
-        const std::vector<u8>& pngData, const ResourceLocation& preferredLocation);
-
-    /**
-     * @brief UUID 转字符串键
-     */
-    [[nodiscard]] static std::string _uuidToKey(const std::array<u8, 16>& uuid);
+    void _uploadDefaultSkins();
 
     std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
-    std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
+    SkinTextureUploader m_uploader;
+    PlayerIdentityRegistry* m_identityRegistry = nullptr;
 
     // initialize() 会用正确的 cacheDir 重建 m_skinManager，这里缓存注入的列表以便重建后重新下发
     std::vector<::mc::IResourcePack*> m_resourcePacks;
     ::mc::util::ServerWorkerPool* m_workerPool = nullptr;
 
-    // 默认皮肤区域（18 种，索引与 DefaultSkinVariant::index 一致）
-    std::array<const TextureRegion*, ::mc::skin::DEFAULT_SKIN_COUNT> m_defaultSkinRegions{};
-
-    // UUID -> 纹理区域映射
-    mutable std::mutex m_regionMutex;
-    std::unordered_map<std::string, const TextureRegion*> m_skinRegions;
-    std::unordered_map<std::string, const TextureRegion*> m_capeRegions;
-    std::unordered_map<std::string, const TextureRegion*> m_elytraRegions;
-
-    // TODO: m_pendingSkins 仅被 clear()，从未实际使用，待实现皮肤异步上传队列
-    std::vector<std::pair<ResourceLocation, std::vector<u8>>> m_pendingSkins;
-    mutable std::mutex m_pendingMutex;
-
-    // TODO: m_device 仅被赋值和重置，从未实际使用，待实现基于 VkDevice 的纹理管理
-    VkDevice m_device = VK_NULL_HANDLE;
     bool m_initialized = false;
 };
 

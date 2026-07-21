@@ -26,11 +26,13 @@
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/Vector4.hpp"
+#include <type_traits>
 #include <unordered_map>
 #include <spdlog/spdlog.h>
 
@@ -55,6 +57,8 @@ void HeldItemLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
 
     bool isRightHanded = true; // 默认右手为主手
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        isRightHanded = entity.isRightHanded();
+    } else if constexpr (std::is_same_v<std::remove_cv_t<TEntity>, ::mc::client::ClientEntity>) {
         isRightHanded = entity.isRightHanded();
     }
 
@@ -142,6 +146,9 @@ void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
         deathTime = static_cast<f32>(entity.deathTime());
+    } else if constexpr (std::is_same_v<std::remove_cv_t<TEntity>, ::mc::client::ClientEntity>) {
+        hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
+        deathTime = static_cast<f32>(entity.deathTime());
     }
 
     pipeline.drawMesh(
@@ -152,11 +159,14 @@ template <typename TEntity, typename TModel>
 const ItemStack* HeldItemLayer<TEntity, TModel>::getHeldItem(const TEntity& entity, mc::Hand hand) const
 {
     // 从实体获取手持物品
-    // LivingEntity 有 getEquipment 方法
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
+        // LivingEntity 通过 EquipmentSlot::getEquipment 统一槽位访问
         using EquipmentSlot = ::mc::EquipmentSlot;
         auto slot = (hand == mc::Hand::MainHand) ? EquipmentSlot::MainHand : EquipmentSlot::OffHand;
         return &entity.getEquipment(slot);
+    } else if constexpr (std::is_same_v<std::remove_cv_t<TEntity>, ::mc::client::ClientEntity>) {
+        // ClientEntity 用具名访问器（避免引入 LivingEntity.hpp 重依赖）
+        return (hand == mc::Hand::MainHand) ? entity.getMainHandItem() : entity.getOffHandItem();
     }
     return nullptr;
 }
@@ -259,5 +269,6 @@ void HeldItemLayer<TEntity, TModel>::computeItemTransform(
 template class HeldItemLayer<::mc::LivingEntity, model::BipedModel>;
 template class HeldItemLayer<::mc::Player, model::BipedModel>;
 template class HeldItemLayer<::mc::Player, model::player::PlayerModel>;
+template class HeldItemLayer<::mc::client::ClientEntity, model::player::PlayerModel>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

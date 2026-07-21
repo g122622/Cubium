@@ -26,6 +26,7 @@
 #include "client/renderer/trident/entity/core/AnimatedMeshCache.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/core/PlayerSkinRegionProvider.hpp"
 #include "client/renderer/trident/entity/core/RendererFactory.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
@@ -208,6 +209,15 @@ public:
     void setTextureAtlas(const pipeline::EntityTextureAtlas* textureAtlas);
 
     /**
+     * @brief 设置玩家皮肤区域提供者（用于按 entityId 重映射玩家 UV）
+     *
+     * 由 ClientSkinManager facade 实现（依赖反转，避免渲染层依赖皮肤层具体类）。
+     * _remapUvToAtlasRegion 在玩家分支调用此接口查皮肤区域；非玩家或皮肤未就绪
+     * 时返回 nullptr，回退到默认实体纹理路径。
+     */
+    void setSkinRegionProvider(const core::PlayerSkinRegionProvider* provider) { m_skinRegionProvider = provider; }
+
+    /**
      * @brief 设置物品纹理图集（用于 ItemEntity 渲染）
      *
      * ItemTextureAtlas 在 TridentEngine::initializeItemRenderer() 中加载并注入。
@@ -328,6 +338,7 @@ private:
     // 管线
     pipeline::EntityPipeline* m_pipeline = nullptr;
     const pipeline::EntityTextureAtlas* m_textureAtlas = nullptr;
+    const core::PlayerSkinRegionProvider* m_skinRegionProvider = nullptr;
     ::mc::client::ItemTextureAtlas* m_itemTextureAtlas = nullptr; // 用于 ItemEntity 渲染
 
     // blocks atlas 的 GPU 句柄（来自 AtlasManager，用于末影人手持方块层）
@@ -391,8 +402,14 @@ private:
 
     /**
      * @brief 将模型局部UV映射到图集区域
+     *
+     * @param entityId 实体 ID（玩家实体按此查皮肤区域；非玩家不使用）
+     * @param normalizedTypeId 归一化实体类型 ID（非玩家走默认实体纹理路径）
+     * @param vertices 顶点数据（会被修改）
      */
-    void _remapUvToAtlasRegion(const std::string& normalizedTypeId, std::vector<model::ModelVertex>& vertices) const;
+    void _remapUvToAtlasRegion(EntityInstanceId entityId,
+        const std::string& normalizedTypeId,
+        std::vector<model::ModelVertex>& vertices) const;
 
     /**
      * @brief 将 ExperienceOrb 的 UV 映射到精灵图集中对应的图标区域

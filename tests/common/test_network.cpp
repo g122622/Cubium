@@ -496,7 +496,11 @@ TEST(LoginRequestPacket, InvalidUsername)
 
 TEST(LoginResponsePacket, SerializeDeserialize)
 {
-    LoginResponsePacket original(true, 12345, 100, "TestPlayer", "Welcome!");
+    Uuid testUuid{};
+    for (size_t i = 0; i < testUuid.size(); ++i) {
+        testUuid[i] = static_cast<u8>(i + 1);
+    }
+    LoginResponsePacket original(true, 12345, 100, testUuid, "TestPlayer", "Welcome!");
 
     PacketSerializer ser;
     original.serialize(ser);
@@ -508,6 +512,7 @@ TEST(LoginResponsePacket, SerializeDeserialize)
     EXPECT_TRUE(result.value().success());
     EXPECT_EQ(result.value().playerId(), 12345u);
     EXPECT_EQ(result.value().entityId(), 100u);
+    EXPECT_EQ(result.value().uuid(), testUuid);
     EXPECT_EQ(result.value().username(), "TestPlayer");
     EXPECT_EQ(result.value().message(), "Welcome!");
 }

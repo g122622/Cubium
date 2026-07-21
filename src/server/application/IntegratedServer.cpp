@@ -591,7 +591,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     if (result.failed()) {
         spdlog::warn("Failed to parse login request");
-        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
+        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, Uuid{}, "", "Invalid login request");
         return;
     }
 
@@ -603,7 +603,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 白名单检查（白名单启用时拒绝不在名单中的玩家）
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
-        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
+        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, Uuid{}, username, "You are not whitelisted on this server!");
         return;
     }
 
@@ -620,7 +620,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 添加玩家会话信息
     auto* playerData = m_playerManager->addPlayer(m_clientPlayerId, uuidStr, username, m_clientConnection);
     if (!playerData) {
-        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
+        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, offlineUuid, username, "Failed to add player");
         return;
     }
 
@@ -651,7 +651,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         if (!playerEntity) {
             spdlog::error("Failed to create player entity for {}", username);
             m_playerManager->removePlayer(m_clientPlayerId);
-            _sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+            _sendLoginResponse(false, 0, INVALID_ENTITY_ID, offlineUuid, username, "Failed to create player entity");
             return;
         }
 
@@ -710,8 +710,9 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         }
     }
 
-    // 发送登录成功响应（包含 playerId 和 entityId）
-    _sendLoginResponse(true, m_clientPlayerId, m_clientEntityId, username, "Welcome to singleplayer world!");
+    // 发送登录成功响应（包含 playerId 和 entityId 和 uuid）
+    _sendLoginResponse(
+        true, m_clientPlayerId, m_clientEntityId, offlineUuid, username, "Welcome to singleplayer world!");
 
     // 同步玩家权限等级到客户端（同时发送 EntityStatusPacket 和命令树）
     sendPermissionLevelChange(m_clientPlayerId, playerPermissionLevel);
@@ -854,8 +855,12 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // 数据包发送
 // ============================================================================
 
-void IntegratedServer::_sendLoginResponse(
-    bool success, PlayerId playerId, EntityInstanceId entityId, const std::string& username, const std::string& message)
+void IntegratedServer::_sendLoginResponse(bool success,
+    PlayerId playerId,
+    EntityInstanceId entityId,
+    const Uuid& uuid,
+    const std::string& username,
+    const std::string& message)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
         "IntegratedServer::_sendLoginResponse",
@@ -868,7 +873,7 @@ void IntegratedServer::_sendLoginResponse(
 
     auto* overworldForLogin = m_dimensionManager->getOverworld();
     bool isDebugWorld = overworldForLogin && overworldForLogin->world() && overworldForLogin->world()->isDebugWorld();
-    network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
+    network::LoginResponsePacket response(success, playerId, entityId, uuid, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
 
@@ -1348,12 +1353,13 @@ void IntegratedServer::_sendLoginResponseToSession(TcpSession* session,
     bool success,
     PlayerId playerId,
     EntityInstanceId entityId,
+    const Uuid& uuid,
     const std::string& username,
     const std::string& message)
 {
     bool isDebugWorld = m_dimensionManager->getOverworld() && m_dimensionManager->getOverworld()->world() &&
         m_dimensionManager->getOverworld()->world()->isDebugWorld();
-    network::LoginResponsePacket response(success, playerId, entityId, username, message, isDebugWorld);
+    network::LoginResponsePacket response(success, playerId, entityId, uuid, username, message, isDebugWorld);
     network::PacketSerializer ser;
     response.serialize(ser);
 
@@ -1383,7 +1389,7 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
 
     if (result.failed()) {
         spdlog::warn("Failed to parse login request from session {}", sessionId);
-        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
+        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, "", "Invalid login request");
         session->disconnect("Invalid login request");
         return;
     }
@@ -1397,14 +1403,14 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Remote player '{}' rejected: not in whitelist", username);
         _sendLoginResponseToSession(
-            session.get(), false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
+            session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, username, "You are not whitelisted on this server!");
         session->disconnect("Not in whitelist");
         return;
     }
 
     // 检查玩家数量限制
     if (m_playerManager->isFull()) {
-        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, username, "Server is full");
+        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, username, "Server is full");
         session->disconnect("Server is full");
         return;
     }
@@ -1422,7 +1428,8 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
     // 添加玩家会话信息
     auto* playerData = m_playerManager->addPlayer(playerId, uuidStr, username, connection);
     if (!playerData) {
-        _sendLoginResponseToSession(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
+        _sendLoginResponseToSession(
+            session.get(), false, 0, INVALID_ENTITY_ID, offlineUuid, username, "Failed to add player");
         session->disconnect("Failed to add player");
         return;
     }
@@ -1455,7 +1462,7 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
         spdlog::error("Failed to create player entity for remote player {}", username);
         m_playerManager->removePlayer(playerId);
         _sendLoginResponseToSession(
-            session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+            session.get(), false, 0, INVALID_ENTITY_ID, offlineUuid, username, "Failed to create player entity");
         session->disconnect("Failed to create player entity");
         return;
     }
@@ -1500,7 +1507,8 @@ void IntegratedServer::_handleRemoteLoginRequest(u32 sessionId, const u8* data, 
     }
 
     // 发送登录成功响应
-    _sendLoginResponseToSession(session.get(), true, playerId, entityId, username, "Welcome to the LAN game!");
+    _sendLoginResponseToSession(
+        session.get(), true, playerId, entityId, offlineUuid, username, "Welcome to the LAN game!");
 
     // 同步玩家权限等级到客户端
     sendPermissionLevelChange(playerId, playerPermissionLevel);

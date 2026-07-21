@@ -27,6 +27,7 @@
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
+#include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
@@ -34,6 +35,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>
+#include <type_traits>
 #include <unordered_map>
 #include <spdlog/spdlog.h>
 
@@ -127,6 +129,9 @@ void HeadLayer<TEntity, TModel>::renderHeadItemPipeline(TEntity& entity,
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
         deathTime = static_cast<f32>(entity.deathTime());
+    } else if constexpr (std::is_same_v<std::remove_cv_t<TEntity>, ::mc::client::ClientEntity>) {
+        hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f;
+        deathTime = static_cast<f32>(entity.deathTime());
     }
 
     pipeline.drawMesh(
@@ -139,6 +144,9 @@ const ItemStack* HeadLayer<TEntity, TModel>::getHeadItem(const TEntity& entity) 
     // 从实体获取头部装备
     if constexpr (std::is_base_of_v<::mc::LivingEntity, TEntity>) {
         return &entity.getEquipment(::mc::EquipmentSlot::Head);
+    } else if constexpr (std::is_same_v<std::remove_cv_t<TEntity>, ::mc::client::ClientEntity>) {
+        // ClientEntity 用具名访问器
+        return entity.getHeadArmor();
     }
     return nullptr;
 }
@@ -183,5 +191,6 @@ void HeadLayer<TEntity, TModel>::computeHeadTransform(f32 headYaw, f32 headPitch
 // 显式实例化常用类型
 template class HeadLayer<::mc::LivingEntity, ::mc::client::renderer::entity::model::BipedModel>;
 template class HeadLayer<::mc::Player, ::mc::client::renderer::entity::model::player::PlayerModel>;
+template class HeadLayer<::mc::client::ClientEntity, ::mc::client::renderer::entity::model::player::PlayerModel>;
 
 } // namespace mc::client::renderer::entity::layer::equipment

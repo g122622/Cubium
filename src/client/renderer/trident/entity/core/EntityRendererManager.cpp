@@ -60,6 +60,7 @@
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -602,8 +603,8 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
             _remapExperienceOrbUv(entity.xpValue(), *m_textureAtlas, vertices);
         }
     } else {
-        // 普通实体使用实体纹理图集
-        _remapUvToAtlasRegion(normalizedType, vertices);
+        // 普通实体使用实体纹理图集（玩家分支按 id 查动态皮肤区域）
+        _remapUvToAtlasRegion(id, normalizedType, vertices);
     }
 
     // 创建GPU网格
@@ -658,7 +659,7 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
             _remapExperienceOrbUv(entity.xpValue(), *m_textureAtlas, vertices);
         }
     } else {
-        _remapUvToAtlasRegion(normalizedType, vertices);
+        _remapUvToAtlasRegion(id, normalizedType, vertices);
     }
 
     (void)m_pipeline->updateMesh(it->second.mesh, vertices, indices);
@@ -845,18 +846,28 @@ void EntityRendererManager::_remapItemEntityUv(ClientEntity& entity, std::vector
 }
 
 void EntityRendererManager::_remapUvToAtlasRegion(
-    const std::string& normalizedTypeId, std::vector<ModelVertex>& vertices) const
+    EntityInstanceId entityId, const std::string& normalizedTypeId, std::vector<ModelVertex>& vertices) const
 {
     if (!m_textureAtlas || !m_textureAtlas->isBuilt() || vertices.empty()) {
         return;
     }
 
+    // 玩家分支：按 entityId 查动态皮肤区域（皮肤纹理上传到本图集，非 ClientSkinManager 孤儿图集）。
+    // PlayerSkinRegionProvider 实现内部判定"该 entityId 是否玩家 + 皮肤是否就绪"，
+    // 非玩家或未就绪返回 nullptr，回退到下方默认实体纹理路径。
     const TextureRegion* region = nullptr;
-    const auto texturePaths = EntityTextureLoader::getTexturePaths(normalizedTypeId);
-    for (const auto& path : texturePaths) {
-        region = m_textureAtlas->getRegion(path);
-        if (region) {
-            break;
+    if (m_skinRegionProvider) {
+        region = m_skinRegionProvider->getSkinRegionForEntity(entityId);
+    }
+
+    // 非玩家分支：按 typeId 查默认实体纹理路径
+    if (!region) {
+        const auto texturePaths = EntityTextureLoader::getTexturePaths(normalizedTypeId);
+        for (const auto& path : texturePaths) {
+            region = m_textureAtlas->getRegion(path);
+            if (region) {
+                break;
+            }
         }
     }
 
@@ -1080,6 +1091,14 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
     } else {
         context.witherSideHeadYaw.fill(0.0f);
         context.witherSideHeadPitch.fill(0.0f);
+    }
+
+    // 皮肤区域版本号：玩家实体记录图集 contentVersion（动态皮肤区域增删触发重做 UV）；
+    // 非玩家写入常量 0，避免他人换肤波及非玩家实体的 mesh 重做。
+    if (entity.entityType() == ::mc::entity::VanillaEntityTypeKeys::PLAYER) {
+        context.skinRegionVersion = m_textureAtlas ? m_textureAtlas->contentVersion() : 0;
+    } else {
+        context.skinRegionVersion = 0;
     }
 
     // 计算哈希
@@ -1369,7 +1388,7 @@ void EntityRendererManager::_applyPlayerCrossbowState(
     //       2. ClientEntity 增加 m_activeHand / m_activeItem / m_activeItemUseCount 字段
     //          及其元数据同步逻辑（DATA_LIVING_FLAGS_PARAM bit 0/1）
     //       3. 此处通过 entity.activeHand() / entity.activeItem() / entity.getItemInUseCount()
-    //          读取，与 PlayerRenderer::setModelVisibilities 中的逻辑合并到公共工具函数
+    //          读取，与 _applyPlayerCrossbowState 中本地玩家的 use-item 读取逻辑合并到公共工具函数
     ::mc::Player* localPlayer =
         (m_localPlayerAccessor && entity.id() == m_localPlayerEntityId) ? m_localPlayerAccessor() : nullptr;
 
@@ -1582,10 +1601,10 @@ pipeline::EntityMesh* EntityRendererManager::getOrCreateAnimatedMesh(
 
     std::string normalizedId = normalizeEntityTypeId(entity.getTypeId());
 
-    // 设置 UV 重映射回调
+    // 设置 UV 重映射回调（按 entityId 识别玩家皮肤区域，非玩家走 typeId 默认路径）
     m_animatedMeshCache->setUvRemapFunc(
-        [this, normalizedId](const std::string& typeId, std::vector<ModelVertex>& vertices) {
-            _remapUvToAtlasRegion(typeId, vertices);
+        [this](EntityInstanceId entityId, const std::string& typeId, std::vector<ModelVertex>& vertices) {
+            _remapUvToAtlasRegion(entityId, typeId, vertices);
         });
 
     return m_animatedMeshCache->getOrUpdateMesh(entity.id(), model, normalizedId, context, *m_pipeline);

@@ -170,32 +170,36 @@ void ClientApplication::setupNetworkCallbacks()
 
     NetworkClientCallbacks callbacks;
 
-    callbacks.onLoginSuccess = [this](PlayerId playerId, EntityInstanceId entityId, const std::string& username) {
-        spdlog::info("Login successful: playerId={}, entityId={}, username={}", playerId, entityId, username);
+    callbacks.onLoginSuccess =
+        [this](PlayerId playerId, EntityInstanceId entityId, const Uuid& uuid, const std::string& username) {
+            spdlog::info("Login successful: playerId={}, entityId={}, username={}", playerId, entityId, username);
 
-        // 设置本地玩家身份
-        m_localIdentity.setIdentity(playerId, entityId);
+            // 设置本地玩家身份
+            m_localIdentity.setIdentity(playerId, entityId);
+            // 注册本地玩家身份（UUID 来自扩展后的 LoginResponsePacket）
+            m_identityRegistry.registerLocalPlayer(entityId, playerId, uuid, username);
 
-        // 创建本地玩家实体
-        auto& entityManager = m_world.entityManager();
-        ClientEntity* playerEntity = entityManager.spawnLocalPlayer(entityId, playerId, username);
-        if (playerEntity) {
-            spdlog::info("Local player entity created: entityId={}", entityId);
-        }
+            // 创建本地玩家实体
+            auto& entityManager = m_world.entityManager();
+            ClientEntity* playerEntity = entityManager.spawnLocalPlayer(entityId, playerId, username);
+            if (playerEntity) {
+                spdlog::info("Local player entity created: entityId={}", entityId);
+            }
 
-        // 初始化玩家预测器
-        m_predictor = std::make_unique<ClientPlayerPredictor>();
+            // 初始化玩家预测器
+            m_predictor = std::make_unique<ClientPlayerPredictor>();
 
-        if (m_player) {
-            m_player->setPlayerId(playerId);
-        }
-        m_knownPlayerNames[playerId] = username;
-    };
+            if (m_player) {
+                m_player->setPlayerId(playerId);
+            }
+            m_knownPlayerNames[playerId] = username;
+        };
 
     callbacks.onLoginFailed = [this](const std::string& reason) {
         spdlog::error("Login failed: {}", reason);
 
         m_knownPlayerNames.clear();
+        m_identityRegistry.clear();
         if (m_commandManager) {
             m_commandManager->clear();
         }
@@ -222,6 +226,7 @@ void ClientApplication::setupNetworkCallbacks()
 
         // 清除本地玩家身份
         m_localIdentity.clear();
+        m_identityRegistry.clear();
 
         // 清除本地玩家实体
         m_world.entityManager().clearLocalPlayer();
@@ -309,8 +314,12 @@ void ClientApplication::setupNetworkCallbacks()
         // 远程玩家：创建或更新实体
         auto& entityManager = m_world.entityManager();
 
-        // 远程玩家使用 playerId 作为 entityId（服务端在 EntityTracker 中这样处理）
+        // 远程玩家使用 playerId 作为 entityId（服务端在 EntityTracker 中这样处理）。
+        // 此处通过 PlayerIdentityRegistry 登记身份，避免散落的 static_cast 反模式，
+        // 并与 PlayerListEntry 的 UUID 关联（供渲染层按 entityId 查皮肤区域）。
         const EntityInstanceId entityId = static_cast<EntityInstanceId>(playerId);
+        m_identityRegistry.registerNetworkPlayer(entityId, playerId, username);
+
         ClientEntity* entity = entityManager.spawnEntity(entityId, mc::entity::EntityTypeKeys::PLAYER);
         if (!entity) {
             entity = entityManager.getEntity(entityId);
@@ -329,8 +338,10 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        // 远程玩家：移除实体
-        m_world.entityManager().removeEntity(static_cast<EntityInstanceId>(playerId));
+        // 远程玩家：移除实体与身份登记
+        const EntityInstanceId entityId = static_cast<EntityInstanceId>(playerId);
+        m_identityRegistry.removeByEntityId(entityId);
+        m_world.entityManager().removeEntity(entityId);
     };
 
     callbacks.onBlockUpdate = [this](i32 x, i32 y, i32 z, u32 blockStateId) {
@@ -1757,6 +1768,9 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         for (const auto& entry : entries) {
+            // 登记 UUID↔username（与已注册的网络玩家实体关联，供渲染层按 entityId 查 UUID）
+            m_identityRegistry.registerPlayerListUuid(entry.uuid, entry.name);
+
             // 创建玩家档案并注册皮肤
             ::mc::skin::GameProfile profile(entry.uuid, entry.name);
             for (const auto& prop : entry.properties) {
@@ -1769,7 +1783,9 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onPlayerListRemove = [this](const std::vector<std::array<u8, 16>>& uuids) {
         for (const auto& uuid : uuids) {
-            m_skinManager->skinManager().removePlayerInfo(uuid);
+            // 联动清理：皮肤信息（含图集动态区域，见 ClientSkinManager::removePlayerInfo）+ 身份登记
+            m_skinManager->removePlayerInfo(uuid);
+            m_identityRegistry.removeByUuid(uuid);
         }
     };
 

@@ -906,6 +906,7 @@ add_executable(mc_tests
     # SculkShriekerHelper 幽匿尖啸体辅助函数测试
     server/world/blockentity/sculk/SculkShriekerHelperTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
+    client/world/player/PlayerIdentityRegistryTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
     client/world/entity/ClientEntityTest.cpp
     # ClientEntity 骷髅拉弓状态元数据同步测试（skeleton/stray/bogged/wither_skeleton）
@@ -2102,6 +2103,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/player/PlayerIdentityRegistry.cpp
         # 维度管理
         ${CMAKE_SOURCE_DIR}/src/client/dimension/ClientDimensionManager.cpp
         # 网格构建线程池
@@ -2256,6 +2258,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/skin/network/PlayerSkinInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/common/skin/network/SkinPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/client/skin/ClientSkinManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/skin/SkinTextureUploader.cpp
         # 澹伴煶绯荤粺 - Client
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundDefinition.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundRegistry.cpp

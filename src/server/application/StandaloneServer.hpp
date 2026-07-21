@@ -24,6 +24,7 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
+#include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/GameDirectory.hpp"
 #include "server/network/TcpServer.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -180,6 +181,7 @@ private:
         bool success,
         PlayerId playerId,
         EntityInstanceId entityId,
+        const Uuid& uuid,
         const std::string& username,
         const std::string& message);
 

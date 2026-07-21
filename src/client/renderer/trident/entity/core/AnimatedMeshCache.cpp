@@ -104,7 +104,7 @@ pipeline::EntityMesh* AnimatedMeshCache::getOrUpdateMesh(EntityInstanceId entity
 
         // 应用 UV 重映射（如果设置）
         if (m_uvRemapFunc) {
-            m_uvRemapFunc(typeId, vertices);
+            m_uvRemapFunc(entityId, typeId, vertices);
         }
 
         // 检查网格是否有效

@@ -303,7 +303,7 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     u32 rowCount = static_cast<u32>((m_textures.size() + texturesPerRow - 1) / texturesPerRow);
 
     m_width = texturesPerRow * m_textureSize;
-    m_height = rowCount * m_textureSize;
+    u32 staticHeight = rowCount * m_textureSize;
 
     // 确保尺寸是2的幂次方（有利于GPU）
     auto nextPowerOf2 = [](u32 n) {
@@ -314,9 +314,18 @@ Result<EntityAtlasBuildResult> EntityTextureAtlas::build()
     };
 
     m_width = nextPowerOf2(m_width);
-    m_height = nextPowerOf2(m_height);
+    // 静态布局高度先单独 round up，作为动态区域起始 Y；再为动态区域预留空间
+    m_dynamicOffsetY = nextPowerOf2(staticHeight);
+    m_dynamicUsedHeight = 0;
+    m_height = nextPowerOf2(m_dynamicOffsetY + DYNAMIC_RESERVE_HEIGHT);
+    // 宽度至少能容纳一个纹理槽位
+    if (m_width < m_textureSize) m_width = m_textureSize;
 
-    spdlog::info("Building entity texture atlas: {}x{} ({} textures)", m_width, m_height, m_textures.size());
+    spdlog::info("Building entity texture atlas: {}x{} ({} textures, dynamic reserve from Y={})",
+        m_width,
+        m_height,
+        m_textures.size(),
+        m_dynamicOffsetY);
 
     // 创建图像
     auto result = _createImage(m_width, m_height);
@@ -759,6 +768,187 @@ void EntityTextureAtlas::_endSingleTimeCommands(VkCommandBuffer cmd)
 {
     // 使用 fence 版本，避免阻塞整个 GPU 队列
     ::mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
+}
+
+void EntityTextureAtlas::_transitionImageLayout(VkCommandBuffer cmd,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkPipelineStageFlags srcStage,
+    VkPipelineStageFlags dstStage)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = m_image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    if (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    } else if (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    } else {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = 0;
+    }
+
+    vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
+Result<void> EntityTextureAtlas::_uploadRegion(const u8* pixels, u32 offsetX, u32 offsetY, u32 width, u32 height)
+{
+    if (pixels == nullptr) {
+        return Error(ErrorCode::NullPointer, "Entity atlas region pixel data is null");
+    }
+    if (m_image == VK_NULL_HANDLE) {
+        return Error(ErrorCode::InvalidState, "Entity atlas not built");
+    }
+    if (width == 0 || height == 0) {
+        return Error(ErrorCode::InvalidArgument, "Entity atlas region dimensions must be non-zero");
+    }
+
+    const VkDeviceSize size = static_cast<VkDeviceSize>(width) * height * 4;
+
+    // 创建暂存缓冲区
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+    auto bufferResult = renderer::VulkanUtils::createBuffer(m_device,
+        m_physicalDevice,
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingMemory);
+    if (!bufferResult.success()) {
+        return bufferResult.error();
+    }
+
+    // 映射并复制数据
+    void* mapped = nullptr;
+    VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, size, 0, &mapped);
+    if (mapResult != VK_SUCCESS || mapped == nullptr) {
+        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+        vkFreeMemory(m_device, stagingMemory, nullptr);
+        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer for entity atlas region upload");
+    }
+    std::memcpy(mapped, pixels, static_cast<size_t>(size));
+    vkUnmapMemory(m_device, stagingMemory);
+
+    // 录制命令：SHADER_READ_ONLY → TRANSFER_DST → copy → SHADER_READ_ONLY
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
+
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = width;
+    region.bufferImageHeight = height;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {static_cast<int32_t>(offsetX), static_cast<int32_t>(offsetY), 0};
+    region.imageExtent = {width, height, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    _endSingleTimeCommands(cmd);
+
+    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_device, stagingMemory, nullptr);
+
+    return {};
+}
+
+const TextureRegion* EntityTextureAtlas::injectRegion(
+    const ResourceLocation& location, u32 width, u32 height, const u8* rgbaPixels)
+{
+    if (!m_built) {
+        spdlog::warn("EntityTextureAtlas::injectRegion called before build: {}", location.toString());
+        return nullptr;
+    }
+    if (rgbaPixels == nullptr) {
+        spdlog::warn("EntityTextureAtlas::injectRegion null pixels: {}", location.toString());
+        return nullptr;
+    }
+    if (width > m_width) {
+        spdlog::warn("EntityTextureAtlas::injectRegion width {} exceeds atlas width {}: {}",
+            width,
+            m_width,
+            location.toString());
+        return nullptr;
+    }
+
+    // 纵向 shelf 分配：新区域放在 m_dynamicOffsetY + m_dynamicUsedHeight
+    const u32 offsetY = m_dynamicOffsetY + m_dynamicUsedHeight;
+    if (offsetY + height > m_height) {
+        spdlog::warn("EntityTextureAtlas::injectRegion dynamic reserve exhausted "
+                     "(need Y={}, atlas height={}): {}",
+            offsetY + height,
+            m_height,
+            location.toString());
+        return nullptr;
+    }
+
+    auto uploadResult = _uploadRegion(rgbaPixels, 0, offsetY, width, height);
+    if (!uploadResult.success()) {
+        spdlog::warn("EntityTextureAtlas::injectRegion upload failed: {} ({})",
+            location.toString(),
+            uploadResult.error().toString());
+        return nullptr;
+    }
+
+    TextureRegion region;
+    region.u0 = 0.0;
+    region.v0 = static_cast<f64>(offsetY) / static_cast<f64>(m_height);
+    region.u1 = static_cast<f64>(width) / static_cast<f64>(m_width);
+    region.v1 = static_cast<f64>(offsetY + height) / static_cast<f64>(m_height);
+
+    const auto [it, inserted] = m_regions.try_emplace(location, region);
+    if (!inserted) {
+        // 同名区域已存在（幂等重注入），仅更新 UV
+        it->second = region;
+    } else {
+        m_dynamicRegions.push_back(location);
+    }
+
+    m_dynamicUsedHeight += height;
+    ++m_contentVersion;
+    return &it->second;
+}
+
+void EntityTextureAtlas::removeDynamicRegion(const ResourceLocation& location)
+{
+    auto it = m_regions.find(location);
+    if (it == m_regions.end()) {
+        return;
+    }
+    // 仅移除动态区域；静态区域（build 时加入）不受影响
+    auto dynIt = std::find(m_dynamicRegions.begin(), m_dynamicRegions.end(), location);
+    if (dynIt == m_dynamicRegions.end()) {
+        return;
+    }
+    m_dynamicRegions.erase(dynIt);
+    m_regions.erase(it);
+    ++m_contentVersion;
 }
 
 } // namespace mc::client::renderer::entity::pipeline

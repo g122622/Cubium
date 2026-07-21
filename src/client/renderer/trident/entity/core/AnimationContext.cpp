@@ -68,6 +68,9 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, isRiding ? 1.0 : 0.0);
     hash = hashCombine(hash, isAngry ? 1.0 : 0.0);
 
+    // 皮肤区域版本号（玩家实体皮肤动态区域变更时触发 mesh 重做 UV）
+    hash = hashCombine(hash, static_cast<f64>(skinRegionVersion));
+
     stateHash = hash;
 }
 

@@ -91,8 +91,10 @@ public:
      * @brief 设置 UV 重映射回调
      *
      * 用于将模型局部 UV 映射到纹理图集区域。
+     * 回调接收 entityId（玩家实体按此查皮肤区域）与 typeId（非玩家走类型纹理路径）。
      */
-    using UvRemapFunc = std::function<void(const std::string&, std::vector<model::ModelVertex>&)>;
+    using UvRemapFunc =
+        std::function<void(EntityInstanceId entityId, const std::string& typeId, std::vector<model::ModelVertex>&)>;
     void setUvRemapFunc(UvRemapFunc func) { m_uvRemapFunc = std::move(func); }
 
 private:

@@ -90,7 +90,8 @@ struct NetworkClientCallbacks {
     std::function<void(const std::string& error)> onError;
 
     // 登录事件
-    std::function<void(PlayerId playerId, EntityInstanceId entityId, const std::string& username)> onLoginSuccess;
+    std::function<void(PlayerId playerId, EntityInstanceId entityId, const Uuid& uuid, const std::string& username)>
+        onLoginSuccess;
     std::function<void(const std::string& reason)> onLoginFailed;
     std::function<void(const std::string& treeJson)> onCommandTree;
 

@@ -1003,7 +1003,7 @@ void NetworkClient::_handleLoginResponse(network::PacketDeserializer& deser)
             "[NetworkClient::_handleLoginResponse] Login successful: playerId={}, entityId={}", m_playerId, entityId);
 
         if (m_callbacks.onLoginSuccess) {
-            m_callbacks.onLoginSuccess(m_playerId, entityId, response.username());
+            m_callbacks.onLoginSuccess(m_playerId, entityId, response.uuid(), response.username());
         }
         if (m_callbacks.onConnected) {
             m_callbacks.onConnected();

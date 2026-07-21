@@ -97,6 +97,18 @@ struct AnimationContext {
      */
     u32 stateHash = 0;
 
+    /**
+     * @brief 皮肤区域版本号（仅玩家实体有意义）
+     *
+     * 镜像 EntityTextureAtlas::contentVersion()。皮肤动态区域 inject/remove 时
+     * 图集 contentVersion 自增，EntityRendererManager 每帧将其写入此字段。
+     * 折入 stateHash 后，皮肤区域变更会触发 AnimatedMeshCache 重做 UV
+     *（原地更新，零 GPU 重分配）。
+     *
+     * 非玩家实体此字段恒为 0（图集 contentVersion 初始值），不影响其 mesh 缓存。
+     */
+    u32 skinRegionVersion = 0;
+
     // ========== 特殊状态 ==========
 
     /**

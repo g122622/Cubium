@@ -43,6 +43,7 @@
 #include "client/world/ClientWorld.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "client/world/player/LocalPlayerIdentity.hpp"
+#include "client/world/player/PlayerIdentityRegistry.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
@@ -465,6 +466,10 @@ private:
 
     // 本地玩家身份（playerId ↔ entityId 映射）
     LocalPlayerIdentity m_localIdentity;
+
+    // 玩家身份注册表（UUID ↔ entityId ↔ playerId ↔ username 多向映射，
+    // 消除 static_cast<EntityInstanceId>(playerId) 反模式，供渲染层与皮肤层按 entityId 查 UUID）
+    PlayerIdentityRegistry m_identityRegistry;
 
     // 客户端玩家预测器
     std::unique_ptr<ClientPlayerPredictor> m_predictor;

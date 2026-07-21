@@ -24,6 +24,7 @@
 #pragma once
 
 #include "PacketSerializer.hpp"
+#include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -31,6 +32,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include <algorithm>
 #include <memory>
 
 namespace mc::network {
@@ -203,10 +205,12 @@ private:
  * - 登录成功/失败状态
  * - 玩家ID（网络会话标识）
  * - 实体ID（世界实体标识）
+ * - 玩家UUID（离线模式由服务端 generateOfflineUuid 生成）
  * - 用户名
  * - 初始维度
  *
  * 重要：playerId 和 entityId 是独立的标识符，不能互换。
+ * UUID 是玩家持久身份标识，用于皮肤/玩家列表等需要跨会话标识的场景。
  */
 class LoginResponsePacket {
 public:
@@ -214,6 +218,7 @@ public:
     LoginResponsePacket(bool success,
         PlayerId playerId,
         EntityInstanceId entityId,
+        const Uuid& uuid,
         const std::string& username,
         const std::string& message = "",
         bool isDebugWorld = false,
@@ -221,6 +226,7 @@ public:
         : m_success(success)
         , m_playerId(playerId)
         , m_entityId(entityId)
+        , m_uuid(uuid)
         , m_username(username)
         , m_message(message)
         , m_isDebugWorld(isDebugWorld)
@@ -231,6 +237,7 @@ public:
     bool success() const { return m_success; }
     PlayerId playerId() const { return m_playerId; }
     EntityInstanceId entityId() const { return m_entityId; }
+    const Uuid& uuid() const { return m_uuid; }
     const std::string& username() const { return m_username; }
     const std::string& message() const { return m_message; }
     bool isDebugWorld() const { return m_isDebugWorld; }
@@ -240,6 +247,7 @@ public:
     void setSuccess(bool success) { m_success = success; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
     void setEntityId(EntityInstanceId id) { m_entityId = id; }
+    void setUuid(const Uuid& uuid) { m_uuid = uuid; }
     void setUsername(const std::string& username) { m_username = username; }
     void setMessage(const std::string& message) { m_message = message; }
     void setIsDebugWorld(bool isDebugWorld) { m_isDebugWorld = isDebugWorld; }
@@ -251,6 +259,7 @@ public:
         ser.writeBool(m_success);
         ser.writeU64(m_playerId);
         ser.writeU64(m_entityId);
+        ser.writeBytes(m_uuid.data(), m_uuid.size());
         ser.writeString(m_username);
         ser.writeString(m_message);
         ser.writeBool(m_isDebugWorld);
@@ -272,6 +281,13 @@ public:
         auto entityIdResult = deser.readU64();
         if (entityIdResult.failed()) return entityIdResult.error();
         packet.m_entityId = entityIdResult.value();
+
+        auto uuidResult = deser.readBytes(packet.m_uuid.size());
+        if (uuidResult.success()) {
+            const auto& bytes = uuidResult.value();
+            const size_t copyLen = bytes.size() < packet.m_uuid.size() ? bytes.size() : packet.m_uuid.size();
+            std::copy_n(bytes.begin(), copyLen, packet.m_uuid.begin());
+        }
 
         auto usernameResult = deser.readString();
         if (usernameResult.failed()) return usernameResult.error();
@@ -298,6 +314,7 @@ private:
     bool m_success = false;
     PlayerId m_playerId = 0;
     EntityInstanceId m_entityId = INVALID_ENTITY_ID;
+    Uuid m_uuid{};
     std::string m_username;
     std::string m_message;
     bool m_isDebugWorld = false;
