@@ -234,7 +234,8 @@ void EntityManager::tick()
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 更新所有实体
+    // 1. 更新所有实体。期间 goal 通过 isAlive() 检测上一 tick 入 graveyard 的目标
+    //    （对象仍存活、m_removed=true）并 resetTask 清空裸指针，避免悬垂解引用。
     for (auto& [id, entity] : m_entities) {
         // spdlog::info("Ticking entity: id={}, detail={}", id, entity->toString());
         if (!entity->isRemoved()) {
@@ -244,13 +245,19 @@ void EntityManager::tick()
         }
     }
 
-    // 移除死亡实体
+    // 2. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
+    //    必须在 entity tick 之后：若放开头，graveyard 实体在 goal 跑 shouldContinueExecuting 前就析构了。
+    m_graveyard.clear();
+
+    // 3. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
     _removeDeadEntitiesInternal();
 }
 
 void EntityManager::removeDeadEntities()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // 与 tick 时序对齐：先释放上一批 graveyard，再收集本批死亡实体入 graveyard。
+    m_graveyard.clear();
     _removeDeadEntitiesInternal();
 }
 
@@ -259,7 +266,7 @@ void EntityManager::_removeDeadEntitiesInternal()
     // 内部方法，假设已持有锁
     for (auto it = m_entities.begin(); it != m_entities.end();) {
         if (it->second->isRemoved()) {
-            // 维护 UUID 索引
+            // 维护 UUID 索引（erase 时同步清，不等 graveyard 析构时才清）
             const std::string& uuid = it->second->uuid();
             if (!uuid.empty()) {
                 auto uuidIt = m_uuidToEntity.find(uuid);
@@ -268,7 +275,10 @@ void EntityManager::_removeDeadEntitiesInternal()
                 }
             }
 
-            it = m_entities.erase(it);
+            // 延迟析构：实体对象入 graveyard，下一 tick 末尾才真正析构。
+            // 避免持裸指针的 goal 在本 tick 末尾或下 tick 开头解引用悬垂内存。
+            m_graveyard.push_back(std::move(it->second));
+            it = m_entities.erase(it); // it->second 已被 move 成 nullptr，erase 仅移除 map 条目
         } else {
             ++it;
         }

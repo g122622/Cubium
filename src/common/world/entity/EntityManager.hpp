@@ -201,6 +201,12 @@ private:
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
     std::unordered_map<std::string, Entity*> m_uuidToEntity; // UUID 到实体的索引
+
+    // 延迟析构队列：本 tick 移除的实体先暂存于此，下一 tick 末尾（entity tick 之后）再析构。
+    // 目的：给持有裸实体指针的 goal 一帧时间通过 isAlive() 检查并 reset 指针，
+    // 避免 use-after-free（LookAtGoal::shouldContinueExecuting 等解引用已被 erase 析构的目标）。
+    std::vector<std::unique_ptr<Entity>> m_graveyard;
+
     EntityInstanceId m_nextId = 1;
 
     // 内部方法（假设已持有锁）
