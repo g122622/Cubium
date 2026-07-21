@@ -97,10 +97,8 @@ public:
      *                  顺序: -X, +X, -Z, +Z, -Y, +Y (可以是nullptr)
      * @param abortSignal 协作取消信号（可为空）
      */
-    static void generateMesh(const ChunkData& chunk,
-        MeshData& outMesh,
-        const ChunkData* neighbors[6],
-        const std::atomic<bool>* abortSignal);
+    static void generateMesh(
+        const ChunkData& chunk, MeshData& outMesh, const ChunkData* neighbors[6], const std::atomic<bool>* abortSignal);
 
     /**
      * @brief 生成分层区块网格（实心层 + 半透明层）
@@ -388,8 +386,10 @@ private:
     static LightingMode s_lightingMode;
     static std::array<u32, 65536> s_grassColorMap;
     static std::array<u32, 65536> s_foliageColorMap;
+    static std::array<u32, 65536> s_dryFoliageColorMap;
     static bool s_grassColorMapLoaded;
     static bool s_foliageColorMapLoaded;
+    static bool s_dryFoliageColorMapLoaded;
     static client::BiomeColorBlender s_biomeColorBlender;
 };
 

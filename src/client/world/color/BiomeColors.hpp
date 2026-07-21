@@ -61,6 +61,21 @@ public:
 };
 
 /**
+ * @brief 干枯植被颜色解析器
+ *
+ * 对应原版 BiomeColors.DRY_FOLIAGE_COLOR_RESOLVER，仅用于 leaf_litter 着色。
+ * 从生物群系获取干枯植被颜色：
+ * 1. 如果生物群系有 dryFoliageColor 覆盖，使用覆盖颜色
+ * 2. 否则使用 dry_foliage colormap（返回 0xFFFFFFFF 标记，由调用方处理）
+ *
+ * 与 grass/foliage 不同，dry foliage 没有沼泽/恶地等修改器分支。
+ */
+class DryFoliageColorResolver : public ColorResolver {
+public:
+    [[nodiscard]] u32 getColor(const Biome& biome, f64 x, f64 z) const noexcept override;
+};
+
+/**
  * @brief 水颜色解析器
  *
  * 从生物群系获取水体颜色。
@@ -94,6 +109,12 @@ public:
     [[nodiscard]] static const ColorResolver& foliageColorResolver();
 
     /**
+     * @brief 获取干枯植被颜色解析器
+     * @return 干枯植被颜色解析器单例引用
+     */
+    [[nodiscard]] static const ColorResolver& dryFoliageColorResolver();
+
+    /**
      * @brief 获取水颜色解析器
      * @return 水颜色解析器单例引用
      */
@@ -125,6 +146,7 @@ private:
     // 单例实例
     static std::unique_ptr<GrassColorResolver> s_grassColorResolver;
     static std::unique_ptr<FoliageColorResolver> s_foliageColorResolver;
+    static std::unique_ptr<DryFoliageColorResolver> s_dryFoliageColorResolver;
     static std::unique_ptr<WaterColorResolver> s_waterColorResolver;
 };
 

@@ -76,7 +76,7 @@ public:
      *
      * 用于缓存管理，避免频繁的类型识别
      */
-    enum class ResolverId : size_t { Grass = 0, Foliage = 1, Water = 2, Count = 3 };
+    enum class ResolverId : size_t { Grass = 0, Foliage = 1, Water = 2, DryFoliage = 3, Count = 4 };
 
     /**
      * @brief 生物群系访问接口
@@ -152,6 +152,12 @@ public:
      * @param colorMap 256x256 颜色映射表指针（调用方保证生命周期）
      */
     void setFoliageColorMap(const std::array<u32, 65536>* colorMap) { m_foliageColorMap = colorMap; }
+
+    /**
+     * @brief 设置干枯植被颜色映射表
+     * @param colorMap 256x256 颜色映射表指针（调用方保证生命周期）
+     */
+    void setDryFoliageColorMap(const std::array<u32, 65536>* colorMap) { m_dryFoliageColorMap = colorMap; }
 
     // ========================================================================
     // 颜色获取
@@ -255,6 +261,7 @@ private:
     // Colormap 指针（由 ChunkMesher 管理）
     const std::array<u32, 65536>* m_grassColorMap = nullptr;
     const std::array<u32, 65536>* m_foliageColorMap = nullptr;
+    const std::array<u32, 65536>* m_dryFoliageColorMap = nullptr;
 
     // 工作缓冲区（避免频繁分配）
     std::vector<u32> m_colorBuffer;

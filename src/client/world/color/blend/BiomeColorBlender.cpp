@@ -193,6 +193,8 @@ u32 BiomeColorBlender::_getDefaultColor(ResolverId resolverId) noexcept
             return 0x48B518; // FoliageColors.getDefault()
         case ResolverId::Water:
             return 0x3F76E4; // 默认水颜色
+        case ResolverId::DryFoliage:
+            return 0x5C3C32; // DryFoliageColor.FOLIAGE_DRY_DEFAULT
         default:
             return 0xFFFFFF;
     }
@@ -207,6 +209,8 @@ const std::array<u32, 65536>* BiomeColorBlender::_getColorMap(ResolverId resolve
             return m_foliageColorMap;
         case ResolverId::Water:
             return nullptr; // 水不需要 colormap
+        case ResolverId::DryFoliage:
+            return m_dryFoliageColorMap;
         default:
             return nullptr;
     }
@@ -224,6 +228,9 @@ BiomeColorBlender::ResolverId BiomeColorBlender::getResolverId(const ColorResolv
     }
     if (dynamic_cast<const WaterColorResolver*>(&resolver)) {
         return ResolverId::Water;
+    }
+    if (dynamic_cast<const DryFoliageColorResolver*>(&resolver)) {
+        return ResolverId::DryFoliage;
     }
 
     // 默认返回草颜色

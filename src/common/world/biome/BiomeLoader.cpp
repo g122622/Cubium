@@ -277,7 +277,7 @@ void applyEffects(Biome& biome, const nlohmann::json& jsonObj)
     BiomeEffects::Builder builder;
 
     // sky_color / fog_color / water_color / water_fog_color
-    // foliage_color / grass_color / grass_color_modifier
+    // foliage_color / grass_color / grass_color_modifier / dry_foliage_color
     if (auto skyColorStr = readString(effectsJson, "sky_color")) {
         if (auto color = parseColor(*skyColorStr); color.success()) {
             builder.skyColor(color.value());
@@ -306,6 +306,11 @@ void applyEffects(Biome& biome, const nlohmann::json& jsonObj)
     if (auto grassColorStr = readString(effectsJson, "grass_color")) {
         if (auto color = parseColor(*grassColorStr); color.success()) {
             builder.grassColor(color.value());
+        }
+    }
+    if (auto dryFoliageColorStr = readString(effectsJson, "dry_foliage_color")) {
+        if (auto color = parseColor(*dryFoliageColorStr); color.success()) {
+            builder.dryFoliageColor(color.value());
         }
     }
     if (auto modifierStr = readString(effectsJson, "grass_color_modifier")) {

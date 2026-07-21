@@ -169,15 +169,22 @@ TEST(BiomeColorsTest, ResolverSingletons)
     // 测试解析器单例是否正常工作
     const auto& grassResolver = BiomeColors::grassColorResolver();
     const auto& foliageResolver = BiomeColors::foliageColorResolver();
+    const auto& dryFoliageResolver = BiomeColors::dryFoliageColorResolver();
     const auto& waterResolver = BiomeColors::waterColorResolver();
 
     EXPECT_NE(&grassResolver, nullptr);
     EXPECT_NE(&foliageResolver, nullptr);
+    EXPECT_NE(&dryFoliageResolver, nullptr);
     EXPECT_NE(&waterResolver, nullptr);
 
     // 再次获取应该是同一个实例
     const auto& grassResolver2 = BiomeColors::grassColorResolver();
+    const auto& dryFoliageResolver2 = BiomeColors::dryFoliageColorResolver();
     EXPECT_EQ(&grassResolver, &grassResolver2);
+    EXPECT_EQ(&dryFoliageResolver, &dryFoliageResolver2);
+
+    // 不同解析器应为不同实例
+    EXPECT_NE(&dryFoliageResolver, &foliageResolver);
 }
 
 /**
@@ -326,6 +333,54 @@ TEST(FoliageColorResolverTest, BadlandsFoliage)
 
     // 恶地树叶应返回固定颜色
     EXPECT_EQ(resolver.getColor(badlandsBiome, 0.0, 0.0), BiomeEffects::BADLANDS_FOLIAGE_COLOR);
+}
+
+/**
+ * @brief 测试 DryFoliageColorResolver - 基本解析
+ *
+ * 对应原版 BiomeColors.DRY_FOLIAGE_COLOR_RESOLVER：
+ * - 有 dryFoliageColor 覆盖时返回覆盖色
+ * - 无覆盖时返回 0xFFFFFFFF 标记，由调用方走 dry_foliage colormap
+ */
+TEST(DryFoliageColorResolverTest, BasicResolution)
+{
+    DryFoliageColorResolver resolver;
+
+    // 无覆盖颜色时返回 colormap 标记
+    BiomeEffects defaultEffects;
+    TestBiomeForColor defaultBiome(defaultEffects);
+    EXPECT_EQ(resolver.getColor(defaultBiome, 0.0, 0.0), 0xFFFFFFFF);
+
+    // 有覆盖颜色时返回覆盖色
+    BiomeEffects overrideEffects = BiomeEffects::Builder().dryFoliageColor(0x123456).build();
+    TestBiomeForColor overrideBiome(overrideEffects);
+    EXPECT_EQ(resolver.getColor(overrideBiome, 0.0, 0.0), 0x123456);
+}
+
+/**
+ * @brief 测试 DryFoliageColorResolver - 不受 grassColorModifier 影响
+ *
+ * 与 grass/foliage 不同，dry foliage 没有沼泽/恶地修改器分支：
+ * 即使设置了 grassColorModifier，无 dryFoliageColor 覆盖仍返回 colormap 标记。
+ */
+TEST(DryFoliageColorResolverTest, IgnoresGrassColorModifier)
+{
+    DryFoliageColorResolver resolver;
+
+    BiomeEffects swampEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::Swamp).build();
+    TestBiomeForColor swampBiome(swampEffects);
+    // 沼泽修改器不应影响干枯植被：无覆盖即返回 colormap 标记
+    EXPECT_EQ(resolver.getColor(swampBiome, 100.0, 200.0), 0xFFFFFFFF);
+
+    BiomeEffects badlandsEffects = BiomeEffects::Builder().grassColorModifier(GrassColorModifier::Badlands).build();
+    TestBiomeForColor badlandsBiome(badlandsEffects);
+    EXPECT_EQ(resolver.getColor(badlandsBiome, 0.0, 0.0), 0xFFFFFFFF);
+
+    // 覆盖色优先于修改器
+    BiomeEffects overrideWithModifier =
+        BiomeEffects::Builder().dryFoliageColor(0xABCDEF).grassColorModifier(GrassColorModifier::Swamp).build();
+    TestBiomeForColor overrideBiome(overrideWithModifier);
+    EXPECT_EQ(resolver.getColor(overrideBiome, 100.0, 200.0), 0xABCDEF);
 }
 
 /**

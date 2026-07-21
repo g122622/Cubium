@@ -35,6 +35,7 @@ namespace client {
 
 std::unique_ptr<GrassColorResolver> BiomeColors::s_grassColorResolver;
 std::unique_ptr<FoliageColorResolver> BiomeColors::s_foliageColorResolver;
+std::unique_ptr<DryFoliageColorResolver> BiomeColors::s_dryFoliageColorResolver;
 std::unique_ptr<WaterColorResolver> BiomeColors::s_waterColorResolver;
 
 // === GrassColorResolver ===
@@ -119,6 +120,20 @@ u32 WaterColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcep
     return biome.effects().waterColor();
 }
 
+// === DryFoliageColorResolver ===
+
+u32 DryFoliageColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcept
+{
+    // 1. 检查是否有覆盖颜色
+    auto overrideColor = biome.effects().dryFoliageColor();
+    if (overrideColor.has_value()) {
+        return overrideColor.value();
+    }
+    // 2. 使用 dry_foliage colormap（返回标记值，由调用方处理）
+    // 干枯植被没有沼泽/恶地等修改器分支，无覆盖即走 colormap
+    return 0xFFFFFFFF;
+}
+
 // === BiomeColors ===
 
 const ColorResolver& BiomeColors::grassColorResolver()
@@ -135,6 +150,14 @@ const ColorResolver& BiomeColors::foliageColorResolver()
         s_foliageColorResolver = std::make_unique<FoliageColorResolver>();
     }
     return *s_foliageColorResolver;
+}
+
+const ColorResolver& BiomeColors::dryFoliageColorResolver()
+{
+    if (!s_dryFoliageColorResolver) {
+        s_dryFoliageColorResolver = std::make_unique<DryFoliageColorResolver>();
+    }
+    return *s_dryFoliageColorResolver;
 }
 
 const ColorResolver& BiomeColors::waterColorResolver()

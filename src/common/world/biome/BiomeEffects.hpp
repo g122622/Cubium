@@ -146,7 +146,8 @@ public:
     static constexpr u32 BADLANDS_GRASS_COLOR = 0x90814D;   ///< 恶地草颜色
     static constexpr u32 BADLANDS_FOLIAGE_COLOR = 0x9E814D; ///< 恶地树叶颜色
 
-    static constexpr u32 DEFAULT_DRY_FOLIAGE_COLOR = 0xAEB05E; ///< 默认干燥树叶颜色
+    // 对齐 MC 1.21.11 DryFoliageColor.FOLIAGE_DRY_DEFAULT (-10732494 → RGB 0x5C3C32)
+    static constexpr u32 DEFAULT_DRY_FOLIAGE_COLOR = 0x5C3C32; ///< 默认干燥树叶颜色 (暗棕)
 
     /**
      * @brief Builder 模式用于构建 BiomeEffects

@@ -56,8 +56,10 @@ bool ChunkMesher::s_lightingEnabled = true;
 LightingMode ChunkMesher::s_lightingMode = LightingMode::Smooth;
 std::array<u32, 65536> ChunkMesher::s_grassColorMap{};
 std::array<u32, 65536> ChunkMesher::s_foliageColorMap{};
+std::array<u32, 65536> ChunkMesher::s_dryFoliageColorMap{};
 bool ChunkMesher::s_grassColorMapLoaded = false;
 bool ChunkMesher::s_foliageColorMapLoaded = false;
+bool ChunkMesher::s_dryFoliageColorMapLoaded = false;
 client::BiomeColorBlender ChunkMesher::s_biomeColorBlender;
 
 namespace {
@@ -889,6 +891,17 @@ u32 ChunkMesher::_resolveTintColorBlended(const client::ChunkBiomeAccessor& acce
         return packRgb(foliageColor);
     }
 
+    // 干枯植被（原版仅 leaf_litter 使用 dry foliage resolver）
+    if (block->is(VanillaBlocks::LEAF_LITTER)) {
+        const u32 dryFoliageColor = s_biomeColorBlender.getBlendedColorCached(accessor,
+            worldX,
+            worldY,
+            worldZ,
+            client::BiomeColors::dryFoliageColorResolver(),
+            client::BiomeColorBlender::ResolverId::DryFoliage);
+        return packRgb(dryFoliageColor);
+    }
+
     // 草色系：使用颜色混合器（混合器会处理 colormap）
     const u32 grassColor = s_biomeColorBlender.getBlendedColorCached(accessor,
         worldX,
@@ -932,13 +945,17 @@ void ChunkMesher::_refreshBiomeColorMaps()
 {
     s_grassColorMapLoaded = _tryLoadColorMap("minecraft:textures/colormap/grass", s_grassColorMap);
     s_foliageColorMapLoaded = _tryLoadColorMap("minecraft:textures/colormap/foliage", s_foliageColorMap);
+    s_dryFoliageColorMapLoaded = _tryLoadColorMap("minecraft:textures/colormap/dry_foliage", s_dryFoliageColorMap);
 
     // 设置 BiomeColorBlender 的 colormap 指针
     s_biomeColorBlender.setGrassColorMap(s_grassColorMapLoaded ? &s_grassColorMap : nullptr);
     s_biomeColorBlender.setFoliageColorMap(s_foliageColorMapLoaded ? &s_foliageColorMap : nullptr);
+    s_biomeColorBlender.setDryFoliageColorMap(s_dryFoliageColorMapLoaded ? &s_dryFoliageColorMap : nullptr);
 
-    spdlog::info(
-        "ChunkMesher: Biome color maps loaded (grass={}, foliage={})", s_grassColorMapLoaded, s_foliageColorMapLoaded);
+    spdlog::info("ChunkMesher: Biome color maps loaded (grass={}, foliage={}, dry_foliage={})",
+        s_grassColorMapLoaded,
+        s_foliageColorMapLoaded,
+        s_dryFoliageColorMapLoaded);
 }
 
 void ChunkMesher::setBiomeBlendRadius(i32 radius)
@@ -997,6 +1014,17 @@ u32 ChunkMesher::getDefaultBlockTintColor(const BlockState* block)
         }
         // 默认树叶颜色
         return packRgb(0x48B518); // FoliageColors.getDefault()
+    }
+
+    // 干枯植被（原版仅 leaf_litter 使用 dry foliage resolver）
+    if (block->is(VanillaBlocks::LEAF_LITTER)) {
+        if (s_dryFoliageColorMapLoaded) {
+            // colormap 中心点索引: (128 << 8) | 128 = 32896
+            // 对应 temperature=0.5, humidity=0.5
+            return packRgb(s_dryFoliageColorMap[32896]);
+        }
+        // 默认干枯植被颜色
+        return packRgb(world::biome::BiomeEffects::DEFAULT_DRY_FOLIAGE_COLOR); // DryFoliageColor.FOLIAGE_DRY_DEFAULT
     }
 
     // 草方块和其他需要草颜色的方块
