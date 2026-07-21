@@ -22,6 +22,7 @@
  */
 
 #include "ChunkRenderer.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "common/core/Constants.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -39,10 +40,11 @@ namespace mc::client {
 // GPU 内存追踪辅助
 // ============================================================================
 //
-// ChunkGpuBuffer 的 vertexMemory/indexMemory 是 GPU 句柄成员，其生命周期跨越
-// 「_createBuffer 写入 → 替换路径字段级转移到 oldBuffer → destroy 释放」，地址
-// （成员存储地址）随宿主对象走。这里用手动 MC_TRACE_MEM_ALLOC/FREE 宏追踪这些
-// 稳定地址（vkAllocateMemory/vkFreeMemory 严格一对一），用 helper 封装保证配对。
+// Tracy GPU 显存追踪现在按 mega-buffer 段级登记（每段一次 vkAllocateMemory）。
+// 段的 &segment.memory 地址在段生命周期内稳定，alloc（_createSegment）与
+// free（destroy 段销毁）严格一对一。子分配级不再单独追踪——OffsetAllocator 的
+// 守恒断言（_freeAllocation 内 storageReport().totalFreeSpace == localFreeBytes）
+// 已覆盖子分配正确性，Tracy 的二级堆追踪 API 不适用于 GPU 子分配。
 //
 // Tracy 按 name 指针区分内存池（见 tracy 手册 3.1.2 节），故 name 必须是同一字面量
 // 的稳定指针。下面用文件作用域 const char* const 变量持有，保证 alloc/free 传入同一指针。
@@ -54,7 +56,7 @@ const char* const kGpuPoolChunkVtx = "ChunkVtx";
 /// 索引缓冲区 GPU 内存池名
 const char* const kGpuPoolChunkIdx = "ChunkIdx";
 
-/// 登记一次 GPU 内存分配。memPtr 指向 ChunkGpuBuffer 中存储 VkDeviceMemory 句柄的成员地址。
+/// 登记一次 GPU 内存分配。memPtr 指向 MegaBufferSegment 中存储 VkDeviceMemory 句柄的成员地址。
 void trackGpuAlloc(VkDeviceMemory* memPtr, VkDeviceSize size, const char* name)
 {
     MC_TRACE_MEM_ALLOC(name, memPtr, size);
@@ -69,38 +71,6 @@ void trackGpuFree(VkDeviceMemory* memPtr, const char* name)
 } // namespace
 
 // ============================================================================
-// ChunkGpuBuffer 实现
-// ============================================================================
-
-void ChunkGpuBuffer::destroy(VkDevice device)
-{
-    if (indexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-        indexBuffer = VK_NULL_HANDLE;
-    }
-    if (indexMemory != VK_NULL_HANDLE) {
-        // GPU 内存追踪：与 _createChunkBuffer 中的 alloc 严格一对一（同一 &indexMemory 地址）。
-        // 守卫保证仅对已 alloc 的句柄 free，避免未分配（NULL_HANDLE）时误 free。
-        trackGpuFree(&indexMemory, kGpuPoolChunkIdx);
-        vkFreeMemory(device, indexMemory, nullptr);
-        indexMemory = VK_NULL_HANDLE;
-    }
-    if (vertexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-        vertexBuffer = VK_NULL_HANDLE;
-    }
-    if (vertexMemory != VK_NULL_HANDLE) {
-        // GPU 内存追踪：与 _createChunkBuffer 中的 alloc 严格一对一（同一 &vertexMemory 地址）。
-        trackGpuFree(&vertexMemory, kGpuPoolChunkVtx);
-        vkFreeMemory(device, vertexMemory, nullptr);
-        vertexMemory = VK_NULL_HANDLE;
-    }
-    indexCount = 0;
-    vertexCount = 0;
-    isValid = false;
-}
-
-// ============================================================================
 // ChunkRenderer 实现
 // ============================================================================
 
@@ -111,9 +81,14 @@ ChunkRenderer::~ChunkRenderer()
     destroy();
 }
 
-Result<void> ChunkRenderer::initialize(
-    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, u32 maxChunks)
+Result<void> ChunkRenderer::initialize(renderer::trident::TridentContext* context,
+    VkDevice device,
+    VkPhysicalDevice physicalDevice,
+    VkCommandPool commandPool,
+    VkQueue graphicsQueue,
+    u32 maxChunks)
 {
+    m_context = context;
     m_device = device;
     m_physicalDevice = physicalDevice;
     m_commandPool = commandPool;
@@ -128,58 +103,70 @@ Result<void> ChunkRenderer::initialize(
 
 void ChunkRenderer::destroy()
 {
-    // 销毁所有区块缓冲区
+    // 关闭阶段：强制归还所有仍在延迟队列中的子分配区间（绕过帧延迟窗口）。
+    // 此刻设备即将销毁，延迟窗口已无意义，但守恒断言要求段内 localUsedBytes 归零，
+    // 故先归还再销毁 VkBuffer。注意：仍存在"所有者从未触发回收的 live 区间"
+    // （_createChunkBuffer 替换时旧区间已入队，但 removeChunk/clearChunks 移除后若未
+    // 过 framesToKeep 帧就在此 destroy）——其区间在此归还。
+    // 同时把所有仍活跃的区块缓冲区区间也入队并立即归还（TridentEngine::destroy 直接
+    // 调 destroy 而非 clearChunks，活跃区块的区间需在此一并归还，避免关闭期泄漏告警）。
     for (auto& pair : m_chunkBuffers) {
         if (pair.second) {
-            pair.second->destroy(m_device);
+            _enqueueDestroy(*pair.second);
         }
     }
     m_chunkBuffers.clear();
     m_totalVertices = 0;
     m_totalIndices = 0;
 
-    // 清理延迟销毁队列
-    {
-        std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-        for (auto& pending : m_pendingDestroys) {
-            if (pending.buffer) {
-                pending.buffer->destroy(m_device);
-            }
+    for (const auto& pending : m_pendingDestroys) {
+        if (pending.hasVertex && pending.vertexSegmentIndex < m_vertexSegments.size()) {
+            _freeAllocation(
+                m_vertexSegments[pending.vertexSegmentIndex], pending.vertexAllocation, pending.vertexAlignedSize);
         }
-        m_pendingDestroys.clear();
+        if (pending.hasIndex && pending.indexSegmentIndex < m_indexSegments.size()) {
+            _freeAllocation(
+                m_indexSegments[pending.indexSegmentIndex], pending.indexAllocation, pending.indexAlignedSize);
+        }
     }
+    m_pendingDestroys.clear();
 
-    // 销毁 free-list 中所有缓存 buffer（真销毁，配对 Tracy free）
-    _destroyFreeList();
+    // 关闭阶段清理：所有子分配区间随段 VkBuffer 一并销毁，无需再归还给 OffsetAllocator。
+    // 若某段仍有 localUsedBytes != 0，说明存在所有者在关闭时未触发回收的 live 区间
+    // （如进程退出时区块仍活跃）。设备已 idle 且整段 VkBuffer 即将销毁，此为关闭期
+    // 可接受的丢弃；记录泄漏量但不视为致命错误（运行期的真实泄漏由 _freeAllocation
+    // 的守恒断言在渲染期间捕获）。
+    auto destroySegments = [this](std::vector<MegaBufferSegment>& segments, const char* tracyPoolName) {
+        for (auto& seg : segments) {
+            if (seg.localUsedBytes != 0) {
+                spdlog::warn("ChunkRenderer: {} mega-buffer segment leaked {} bytes at shutdown "
+                             "(chunk owner did not recycle before renderer teardown)",
+                    tracyPoolName,
+                    seg.localUsedBytes);
+            }
+            if (seg.memory != VK_NULL_HANDLE) {
+                // 与 _createSegment 中的 alloc 严格一对一（同一 &seg.memory 地址）。
+                trackGpuFree(&seg.memory, tracyPoolName);
+            }
+            if (seg.buffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device, seg.buffer, nullptr);
+            }
+            if (seg.memory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device, seg.memory, nullptr);
+            }
+            seg.allocator.reset();
+        }
+        segments.clear();
+    };
+    destroySegments(m_vertexSegments, kGpuPoolChunkVtx);
+    destroySegments(m_indexSegments, kGpuPoolChunkIdx);
 
-    // 销毁暂存缓冲区
-    if (m_stagingBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, m_stagingBuffer, nullptr);
-        m_stagingBuffer = VK_NULL_HANDLE;
-    }
-    if (m_stagingMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device, m_stagingMemory, nullptr);
-        m_stagingMemory = VK_NULL_HANDLE;
-    }
-
+    m_context = nullptr;
     m_device = VK_NULL_HANDLE;
     m_physicalDevice = VK_NULL_HANDLE;
     m_commandPool = VK_NULL_HANDLE;
     m_graphicsQueue = VK_NULL_HANDLE;
-}
-
-Result<void> ChunkRenderer::_createBuffer(VkDeviceSize size,
-    VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties,
-    VkBuffer& buffer,
-    VkDeviceMemory& memory)
-{
-    return renderer::VulkanUtils::createBuffer(m_device, m_physicalDevice, size, usage, properties, buffer, memory);
-}
-
-Result<u32> ChunkRenderer::_findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
-{
-    return renderer::VulkanUtils::findMemoryType(m_physicalDevice, typeFilter, properties);
+    m_destroyFrameCounter = 0;
 }
 
 Result<void> ChunkRenderer::updateChunk(const ChunkId& chunkId, const MeshData& meshData)
@@ -215,14 +202,8 @@ Result<void> ChunkRenderer::_updateChunkLayer(const ChunkId& chunkId, const Mesh
             m_totalVertices -= it->second->vertexCount;
             m_totalIndices -= it->second->indexCount;
 
-            {
-                std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-                PendingBufferDestroy pending;
-                pending.buffer = std::move(it->second);
-                pending.frameIndex = m_destroyFrameCounter;
-                m_pendingDestroys.push_back(std::move(pending));
-            }
-
+            // 旧子分配区间延迟归还（仍可能被在飞命令缓冲区引用）
+            _enqueueDestroy(*it->second);
             m_chunkBuffers.erase(it);
         }
         return {};
@@ -271,30 +252,17 @@ void ChunkRenderer::removeChunk(const ChunkId& chunkId)
         m_totalVertices -= it->second->vertexCount;
         m_totalIndices -= it->second->indexCount;
 
-        {
-            std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-            PendingBufferDestroy pending;
-            pending.buffer = std::move(it->second);
-            pending.frameIndex = m_destroyFrameCounter;
-            m_pendingDestroys.push_back(std::move(pending));
-        }
-
+        _enqueueDestroy(*it->second);
         m_chunkBuffers.erase(it);
     }
 }
 
 void ChunkRenderer::clearChunks()
 {
-    // 将所有缓冲区移入延迟销毁队列
-    {
-        std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-        for (auto& pair : m_chunkBuffers) {
-            if (pair.second && pair.second->isValid) {
-                PendingBufferDestroy pending;
-                pending.buffer = std::move(pair.second);
-                pending.frameIndex = m_destroyFrameCounter;
-                m_pendingDestroys.push_back(std::move(pending));
-            }
+    // 将所有缓冲区的子分配区间移入延迟归还队列
+    for (auto& pair : m_chunkBuffers) {
+        if (pair.second && pair.second->isValid) {
+            _enqueueDestroy(*pair.second);
         }
     }
 
@@ -316,163 +284,62 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     const u32 oldVertexCount = buffer.vertexCount;
     const u32 oldIndexCount = buffer.indexCount;
 
-    VkDeviceSize vertexSize = static_cast<VkDeviceSize>(meshData.vertices.size() * sizeof(Vertex));
-    VkDeviceSize indexSize = static_cast<VkDeviceSize>(meshData.indices.size() * sizeof(u16));
+    const u64 vertexUploadSize = sizeof(Vertex) * meshData.vertices.size();
+    const u64 indexUploadSize = sizeof(u16) * meshData.indices.size();
+    const u64 vertexAlignedSize = _alignUp(vertexUploadSize);
+    const u64 indexAlignedSize = _alignUp(indexUploadSize);
 
-    // 旧 buffer（vertex+index 一起）摘入延迟销毁队列：等在飞帧 draw 完成后（processPendingDestroys
-    // 到期）转入 free-list 供复用，而非直接销毁。这样既避免原地覆写与在飞帧并发访问的 device lost
-    // 风险，又能复用容量、消除峰期新旧 buffer 共存翻倍。
+    // 旧子分配区间延迟归还（仍可能被在飞命令缓冲区引用）。
+    // mega-buffer 子分配大小在分配时固定，updateChunk 每次都重新子分配新区间
+    // （不复用旧区间，避免原地覆写与在飞帧并发访问的 device lost 风险），旧区间
+    // 入队等过 framesToKeep 帧后由 processPendingDestroys 归还给 OffsetAllocator 复用。
     if (buffer.vertexBuffer != VK_NULL_HANDLE || buffer.indexBuffer != VK_NULL_HANDLE) {
-        // GPU 内存追踪：追踪权随句柄走。先 free 旧持有地址（&buffer.vertexMemory/&indexMemory），
-        // 句柄值转移给 oldBuffer 后在新地址重新登记 alloc，使后续 processPendingDestroys →
-        // _releaseToFreeList 的 free/alloc 转移能正确配对。size 用 capacity（反映 buffer 真实占用）。
-        if (buffer.vertexMemory != VK_NULL_HANDLE) {
-            trackGpuFree(&buffer.vertexMemory, kGpuPoolChunkVtx);
-        }
-        if (buffer.indexMemory != VK_NULL_HANDLE) {
-            trackGpuFree(&buffer.indexMemory, kGpuPoolChunkIdx);
-        }
-
-        auto oldBuffer = std::make_unique<ChunkGpuBuffer>();
-        oldBuffer->vertexBuffer = buffer.vertexBuffer;
-        oldBuffer->vertexMemory = buffer.vertexMemory;
-        oldBuffer->indexBuffer = buffer.indexBuffer;
-        oldBuffer->indexMemory = buffer.indexMemory;
-        oldBuffer->vertexCapacity = buffer.vertexCapacity;
-        oldBuffer->indexCapacity = buffer.indexCapacity;
-        oldBuffer->chunkId = buffer.chunkId;
-        oldBuffer->vertexCount = oldVertexCount;
-        oldBuffer->indexCount = oldIndexCount;
-        oldBuffer->isValid = true;
-
-        if (oldBuffer->vertexMemory != VK_NULL_HANDLE) {
-            trackGpuAlloc(&oldBuffer->vertexMemory, oldBuffer->vertexCapacity, kGpuPoolChunkVtx);
-        }
-        if (oldBuffer->indexMemory != VK_NULL_HANDLE) {
-            trackGpuAlloc(&oldBuffer->indexMemory, oldBuffer->indexCapacity, kGpuPoolChunkIdx);
-        }
-
-        {
-            std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-            PendingBufferDestroy pending;
-            pending.buffer = std::move(oldBuffer);
-            pending.frameIndex = m_destroyFrameCounter;
-            m_pendingDestroys.push_back(std::move(pending));
-        }
-
-        buffer.vertexBuffer = VK_NULL_HANDLE;
-        buffer.vertexMemory = VK_NULL_HANDLE;
-        buffer.indexBuffer = VK_NULL_HANDLE;
-        buffer.indexMemory = VK_NULL_HANDLE;
-        buffer.vertexCapacity = 0;
-        buffer.indexCapacity = 0;
+        _enqueueDestroy(buffer);
     }
 
-    // 优先从 free-list 复用整 buffer（vertex+index 一起），避免重复 vkAllocateMemory。
-    // 未命中时退回 _createBuffer 新建。两种路径都需后续 staging 重传 data。
-    const bool reused = _acquireFromFreeList(vertexSize, indexSize, buffer);
+    // vertex mega-buffer 段子分配
+    auto vtxResult = _subAllocate(m_vertexSegments,
+        kVertexSegmentCapacity,
+        vertexAlignedSize,
+        buffer.vertexSegmentIndex,
+        buffer.vertexAllocation);
+    if (!vtxResult.success()) {
+        buffer = {};
+        return vtxResult.error();
+    }
+    buffer.vertexBuffer = m_vertexSegments[buffer.vertexSegmentIndex].buffer;
+    buffer.vertexOffset = buffer.vertexAllocation.offset;
+    buffer.vertexAlignedSize = vertexAlignedSize;
 
-    if (!reused) {
-        auto vtxResult = _createBuffer(vertexSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            buffer.vertexBuffer,
-            buffer.vertexMemory);
-
-        if (vtxResult.failed()) {
-            return Error(
-                ErrorCode::InitializationFailed, "Failed to create vertex buffer: " + vtxResult.error().message());
-        }
-
-        // GPU 内存追踪：_createBuffer 已 vkAllocateMemory 写入 buffer.vertexMemory，登记 alloc。
-        trackGpuAlloc(&buffer.vertexMemory, vertexSize, kGpuPoolChunkVtx);
-        buffer.vertexCapacity = vertexSize;
-
-        auto idxResult = _createBuffer(indexSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            buffer.indexBuffer,
-            buffer.indexMemory);
-
-        if (idxResult.failed()) {
-            // 失败清理：vertex 已 alloc 成功（&buffer.vertexMemory 已登记），此处 destroy 释放
-            // vertex 句柄并对应 free 配对；index 句柄因创建失败仍为 NULL_HANDLE，destroy 守卫跳过。
-            // 避免 GPU 句柄与追踪事件泄漏（调用方不会再 destroy 本 buffer），杜绝堆地址复用导致的
-            // Tracy MemAllocTwice 硬失败。
-            buffer.destroy(m_device);
-            return Error(
-                ErrorCode::InitializationFailed, "Failed to create index buffer: " + idxResult.error().message());
-        }
-
-        // GPU 内存追踪：_createBuffer 已 vkAllocateMemory 写入 buffer.indexMemory，登记 alloc。
-        trackGpuAlloc(&buffer.indexMemory, indexSize, kGpuPoolChunkIdx);
-        buffer.indexCapacity = indexSize;
+    auto uploadResult =
+        _uploadViaStagingPool(meshData.vertices.data(), vertexUploadSize, buffer.vertexBuffer, buffer.vertexOffset);
+    if (!uploadResult.success()) {
+        // 刚分配、尚未提交到任何命令缓冲区，立即归还区间。
+        _freeAllocation(m_vertexSegments[buffer.vertexSegmentIndex], buffer.vertexAllocation, vertexAlignedSize);
+        buffer = {};
+        return uploadResult.error();
     }
 
-    // 上传数据
-    auto cmdResult = _beginSingleTimeCommands();
-    if (!cmdResult.success()) {
-        buffer.destroy(m_device);
-        return cmdResult.error();
+    // index mega-buffer 段子分配
+    auto idxResult = _subAllocate(
+        m_indexSegments, kIndexSegmentCapacity, indexAlignedSize, buffer.indexSegmentIndex, buffer.indexAllocation);
+    if (!idxResult.success()) {
+        _freeAllocation(m_vertexSegments[buffer.vertexSegmentIndex], buffer.vertexAllocation, vertexAlignedSize);
+        buffer = {};
+        return idxResult.error();
     }
-    VkCommandBuffer commandBuffer = cmdResult.value();
+    buffer.indexBuffer = m_indexSegments[buffer.indexSegmentIndex].buffer;
+    buffer.indexOffset = buffer.indexAllocation.offset;
+    buffer.indexAlignedSize = indexAlignedSize;
 
-    // 使用分段上传布局，确保顶点和索引在暂存缓冲区内不重叠
-    const StagingCopyLayout stagingLayout = buildStagingCopyLayout(vertexSize, indexSize);
-
-    // 确保暂存缓冲区足够大
-    if (stagingLayout.totalSize > m_stagingBufferSize || m_stagingBuffer == VK_NULL_HANDLE) {
-        // 销毁旧的暂存缓冲区
-        if (m_stagingBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device, m_stagingBuffer, nullptr);
-            vkFreeMemory(m_device, m_stagingMemory, nullptr);
-        }
-
-        m_stagingBufferSize = std::max(stagingLayout.totalSize, static_cast<VkDeviceSize>(16 * 1024 * 1024));
-        auto result = _createBuffer(m_stagingBufferSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            m_stagingBuffer,
-            m_stagingMemory);
-
-        if (result.failed()) {
-            _endSingleTimeCommands(commandBuffer);
-            // 失败清理：vertex/index 句柄均已 alloc 登记，destroy 释放并配对 free，避免泄漏。
-            buffer.destroy(m_device);
-            return Error(ErrorCode::OperationFailed, "Failed to create staging buffer");
-        }
+    uploadResult =
+        _uploadViaStagingPool(meshData.indices.data(), indexUploadSize, buffer.indexBuffer, buffer.indexOffset);
+    if (!uploadResult.success()) {
+        _freeAllocation(m_vertexSegments[buffer.vertexSegmentIndex], buffer.vertexAllocation, vertexAlignedSize);
+        _freeAllocation(m_indexSegments[buffer.indexSegmentIndex], buffer.indexAllocation, indexAlignedSize);
+        buffer = {};
+        return uploadResult.error();
     }
-
-    // 一次映射，分别写入顶点段和索引段，避免覆盖导致网格损坏
-    void* mapped = nullptr;
-    VkResult mapResult = vkMapMemory(m_device, m_stagingMemory, 0, stagingLayout.totalSize, 0, &mapped);
-    if (mapResult != VK_SUCCESS || mapped == nullptr) {
-        _endSingleTimeCommands(commandBuffer);
-        // 失败清理：同上，destroy 释放已登记的 vertex/index alloc。
-        buffer.destroy(m_device);
-        return Error(ErrorCode::OperationFailed, "Failed to map staging buffer memory");
-    }
-
-    u8* stagingBytes = static_cast<u8*>(mapped);
-    std::memcpy(stagingBytes + stagingLayout.vertexOffset, meshData.vertices.data(), static_cast<size_t>(vertexSize));
-    std::memcpy(stagingBytes + stagingLayout.indexOffset, meshData.indices.data(), static_cast<size_t>(indexSize));
-    vkUnmapMemory(m_device, m_stagingMemory);
-
-    // 复制顶点数据
-    VkBufferCopy vertexCopy{};
-    vertexCopy.srcOffset = stagingLayout.vertexOffset;
-    vertexCopy.dstOffset = 0;
-    vertexCopy.size = vertexSize;
-    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.vertexBuffer, 1, &vertexCopy);
-
-    // 复制索引数据
-    VkBufferCopy indexCopy{};
-    indexCopy.srcOffset = stagingLayout.indexOffset;
-    indexCopy.dstOffset = 0;
-    indexCopy.size = indexSize;
-    vkCmdCopyBuffer(commandBuffer, m_stagingBuffer, buffer.indexBuffer, 1, &indexCopy);
-
-    _endSingleTimeCommands(commandBuffer);
 
     buffer.indexCount = static_cast<u32>(meshData.indices.size());
     buffer.vertexCount = static_cast<u32>(meshData.vertices.size());
@@ -488,6 +355,37 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     m_totalIndices += buffer.indexCount;
 
     return {};
+}
+
+void ChunkRenderer::_enqueueDestroy(ChunkGpuBuffer& buffer)
+{
+    PendingBufferDestroy pending;
+    if (buffer.vertexBuffer != VK_NULL_HANDLE) {
+        pending.vertexAllocation = buffer.vertexAllocation;
+        pending.vertexAlignedSize = buffer.vertexAlignedSize;
+        pending.vertexSegmentIndex = buffer.vertexSegmentIndex;
+        pending.hasVertex = true;
+    }
+    if (buffer.indexBuffer != VK_NULL_HANDLE) {
+        pending.indexAllocation = buffer.indexAllocation;
+        pending.indexAlignedSize = buffer.indexAlignedSize;
+        pending.indexSegmentIndex = buffer.indexSegmentIndex;
+        pending.hasIndex = true;
+    }
+    pending.frameIndex = m_destroyFrameCounter;
+    m_pendingDestroys.push_back(std::move(pending));
+
+    buffer.vertexBuffer = VK_NULL_HANDLE;
+    buffer.indexBuffer = VK_NULL_HANDLE;
+    buffer.vertexOffset = 0;
+    buffer.indexOffset = 0;
+    buffer.vertexAllocation = {};
+    buffer.indexAllocation = {};
+    buffer.vertexAlignedSize = 0;
+    buffer.indexAlignedSize = 0;
+    buffer.vertexSegmentIndex = 0;
+    buffer.indexSegmentIndex = 0;
+    buffer.isValid = false;
 }
 
 void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pipelineLayout*/)
@@ -506,9 +404,9 @@ void ChunkRenderer::render(VkCommandBuffer commandBuffer, VkPipelineLayout /*pip
         }
 
         VkBuffer vertexBuffers[] = {buffer->vertexBuffer};
-        VkDeviceSize offsets[] = {0};
+        VkDeviceSize offsets[] = {buffer->vertexOffset};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, buffer->indexOffset, VK_INDEX_TYPE_UINT16);
 
         vkCmdDrawIndexed(commandBuffer,
             buffer->indexCount,
@@ -539,9 +437,9 @@ void ChunkRenderer::render(
         }
 
         VkBuffer vertexBuffers[] = {buffer->vertexBuffer};
-        VkDeviceSize offsets[] = {0};
+        VkDeviceSize offsets[] = {buffer->vertexOffset};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, buffer->indexOffset, VK_INDEX_TYPE_UINT16);
 
         vkCmdDrawIndexed(commandBuffer,
             buffer->indexCount,
@@ -598,57 +496,35 @@ void ChunkRenderer::renderTransparent(VkCommandBuffer commandBuffer,
         }
 
         VkBuffer vertexBuffers[] = {buffer->vertexBuffer};
-        VkDeviceSize offsets[] = {0};
+        VkDeviceSize offsets[] = {buffer->vertexOffset};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, buffer->indexBuffer, buffer->indexOffset, VK_INDEX_TYPE_UINT16);
 
         vkCmdDrawIndexed(commandBuffer, buffer->indexCount, 1, 0, 0, 0);
     }
 }
 
-Result<VkCommandBuffer> ChunkRenderer::_beginSingleTimeCommands()
-{
-    VkCommandBuffer cmd = renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
-    if (cmd == VK_NULL_HANDLE) {
-        return Error(ErrorCode::OperationFailed, "Failed to allocate command buffer");
-    }
-    return cmd;
-}
-
-void ChunkRenderer::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
-{
-    // 使用 fence 版本，避免阻塞整个 GPU 队列
-    renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
-}
-
 void ChunkRenderer::processPendingDestroys(u32 framesToKeep)
 {
-    std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
+    if (m_pendingDestroys.empty()) {
+        // 即便队列为空也推进帧计数器，保证后续入队条目的 age 计算正确。
+        ++m_destroyFrameCounter;
+        return;
+    }
 
-    // 递增帧计数器
-    u64 currentCounter = m_destroyFrameCounter++;
+    const u64 currentCounter = m_destroyFrameCounter++;
 
-    // 冷却完成的缓冲区转入 free-list 供复用，而非直接销毁。
-    // 此时已过 framesToKeep 帧（远超 MAX_FRAMES_IN_FLIGHT），在飞帧 draw 早已完成，
-    // buffer 既可销毁也可安全复用。
-    auto it = m_pendingDestroys.begin();
-    while (it != m_pendingDestroys.end()) {
-        u64 frameDiff = currentCounter >= it->frameIndex ? currentCounter - it->frameIndex
-                                                         : (UINT64_MAX - it->frameIndex) + currentCounter + 1;
+    // 归还已冷却足够帧数的子分配区间。此时已过 framesToKeep 帧（远超 MAX_FRAMES_IN_FLIGHT），
+    // 在飞帧 draw 早已完成，区间可安全归还给 OffsetAllocator 复用。VkBuffer 段本身不销毁。
+    for (auto it = m_pendingDestroys.begin(); it != m_pendingDestroys.end();) {
+        const u64 age = (currentCounter >= it->frameIndex) ? (currentCounter - it->frameIndex) : 0;
 
-        if (frameDiff >= framesToKeep) {
-            if (it->buffer) {
-                ChunkGpuBuffer& b = *it->buffer;
-                // GPU 内存追踪：追踪权从 oldBuffer 地址转移到 free-list entry 地址。
-                // 先 free oldBuffer 持有地址，_releaseToFreeList 内部在 entry 新地址上重新 alloc。
-                if (b.vertexMemory != VK_NULL_HANDLE) {
-                    trackGpuFree(&b.vertexMemory, kGpuPoolChunkVtx);
-                }
-                if (b.indexMemory != VK_NULL_HANDLE) {
-                    trackGpuFree(&b.indexMemory, kGpuPoolChunkIdx);
-                }
-                _releaseToFreeList(
-                    b.vertexBuffer, b.vertexMemory, b.indexBuffer, b.indexMemory, b.vertexCapacity, b.indexCapacity);
+        if (age >= framesToKeep) {
+            if (it->hasVertex && it->vertexSegmentIndex < m_vertexSegments.size()) {
+                _freeAllocation(m_vertexSegments[it->vertexSegmentIndex], it->vertexAllocation, it->vertexAlignedSize);
+            }
+            if (it->hasIndex && it->indexSegmentIndex < m_indexSegments.size()) {
+                _freeAllocation(m_indexSegments[it->indexSegmentIndex], it->indexAllocation, it->indexAlignedSize);
             }
             it = m_pendingDestroys.erase(it);
         } else {
@@ -657,119 +533,124 @@ void ChunkRenderer::processPendingDestroys(u32 framesToKeep)
     }
 }
 
-bool ChunkRenderer::_acquireFromFreeList(VkDeviceSize vertexSize, VkDeviceSize indexSize, ChunkGpuBuffer& out)
+u64 ChunkRenderer::_alignUp(u64 size)
 {
-    std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
+    return (size + kSubAllocAlign - 1) & ~(kSubAllocAlign - 1);
+}
 
-    // best-fit：lower_bound 找首个 vertexCapacity >= vertexSize 的候选。
-    auto it = m_freeList.lower_bound(vertexSize);
-    while (it != m_freeList.end()) {
-        FreeListEntry& entry = it->second;
-        // vertex 满足后校验 index（二者按比例增长，通常同时满足；不满足则继续找更大的候选）。
-        if (entry.indexCapacity >= indexSize) {
-            // 命中：句柄转移到 out，Tracy 追踪权从 entry 地址转移到 out 地址。
-            // size 沿用 entry 的 capacity（反映 buffer 真实占用，与新 data size 可能不同）。
-            trackGpuFree(&entry.vertexMemory, kGpuPoolChunkVtx);
-            trackGpuFree(&entry.indexMemory, kGpuPoolChunkIdx);
+Result<void> ChunkRenderer::_createSegment(
+    MegaBufferSegment& segment, VkDeviceSize capacity, VkBufferUsageFlags usage, const char* tracyPoolName)
+{
+    segment.capacity = capacity;
+    auto result = renderer::VulkanUtils::createBuffer(m_device,
+        m_physicalDevice,
+        capacity,
+        usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        segment.buffer,
+        segment.memory);
+    if (!result.success()) {
+        return result.error();
+    }
 
-            out.vertexBuffer = entry.vertexBuffer;
-            out.vertexMemory = entry.vertexMemory;
-            out.indexBuffer = entry.indexBuffer;
-            out.indexMemory = entry.indexMemory;
-            out.vertexCapacity = entry.vertexCapacity;
-            out.indexCapacity = entry.indexCapacity;
+    // GPU 内存追踪：段级登记（每段一次 vkAllocateMemory，与 destroy 中段销毁的 free 一对一）。
+    trackGpuAlloc(&segment.memory, capacity, tracyPoolName);
 
-            trackGpuAlloc(&out.vertexMemory, entry.vertexCapacity, kGpuPoolChunkVtx);
-            trackGpuAlloc(&out.indexMemory, entry.indexCapacity, kGpuPoolChunkIdx);
+    // OffsetAllocator 容量上限为 u32；段容量 128MB/32MB 远在范围内。
+    segment.allocator = std::make_unique<OffsetAllocator::Allocator>(static_cast<u32>(capacity));
+    segment.localUsedBytes = 0;
+    segment.localFreeBytes = capacity;
+    return Result<void>::ok();
+}
 
-            m_freeListTotalBytes -= (entry.vertexCapacity + entry.indexCapacity);
-            m_freeList.erase(it);
-            return true;
+Result<void> ChunkRenderer::_subAllocate(std::vector<MegaBufferSegment>& segments,
+    VkDeviceSize segmentCapacity,
+    u64 alignedSize,
+    u32& outSegmentIndex,
+    OffsetAllocator::Allocation& outAllocation)
+{
+    if (alignedSize == 0) {
+        return Error(ErrorCode::InvalidArgument, "ChunkRenderer::_subAllocate: zero size");
+    }
+
+    // 在已有段中寻找可容纳的空闲区间
+    // 注：OffsetAllocator::allocate 仅接受 size，无 align 参数。因所有请求经 _alignUp
+    // 向上取整到 kSubAllocAlign=16，且段从对齐的偏移 0 起按 16 倍数切分，
+    // 返回 offset 保持 16 倍数对齐（满足顶点/索引绑定偏移要求）。
+    for (u32 i = 0; i < segments.size(); ++i) {
+        auto& seg = segments[i];
+        OffsetAllocator::Allocation alloc = seg.allocator->allocate(static_cast<u32>(alignedSize));
+        if (alloc.offset != OffsetAllocator::Allocation::NO_SPACE) {
+            outSegmentIndex = i;
+            outAllocation = alloc;
+            seg.localUsedBytes += alignedSize;
+            seg.localFreeBytes -= alignedSize;
+            return Result<void>::ok();
         }
-        ++it;
     }
-    return false;
+
+    // 所有段均无足够连续空间，追加新段
+    // 若单次请求超过段容量，按对齐大小向上取整作为新段容量（罕见，如巨型区块网格）
+    const VkDeviceSize newCapacity = std::max<VkDeviceSize>(segmentCapacity, alignedSize);
+    MegaBufferSegment newSeg;
+    const VkBufferUsageFlags usage =
+        (&segments == &m_vertexSegments) ? VK_BUFFER_USAGE_VERTEX_BUFFER_BIT : VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    const char* poolName = (&segments == &m_vertexSegments) ? kGpuPoolChunkVtx : kGpuPoolChunkIdx;
+    auto result = _createSegment(newSeg, newCapacity, usage, poolName);
+    if (!result.success()) {
+        return result.error();
+    }
+    segments.push_back(std::move(newSeg));
+    auto& seg = segments.back();
+
+    OffsetAllocator::Allocation alloc = seg.allocator->allocate(static_cast<u32>(alignedSize));
+    if (alloc.offset == OffsetAllocator::Allocation::NO_SPACE) {
+        return Error(ErrorCode::OutOfMemory, "ChunkRenderer::_subAllocate: fresh segment rejected allocation");
+    }
+    outSegmentIndex = static_cast<u32>(segments.size() - 1);
+    outAllocation = alloc;
+    seg.localUsedBytes += alignedSize;
+    seg.localFreeBytes -= alignedSize;
+    return Result<void>::ok();
 }
 
-void ChunkRenderer::_releaseToFreeList(VkBuffer vertexBuffer,
-    VkDeviceMemory vertexMemory,
-    VkBuffer indexBuffer,
-    VkDeviceMemory indexMemory,
-    VkDeviceSize vertexCapacity,
-    VkDeviceSize indexCapacity)
+void ChunkRenderer::_freeAllocation(
+    MegaBufferSegment& segment, const OffsetAllocator::Allocation& alloc, u64 alignedSize)
 {
-    std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-
-    const VkDeviceSize incomingBytes = vertexCapacity + indexCapacity;
-
-    // 超 limit 前先按 FIFO 淘汰最旧条目（真销毁），为新条目腾位。
-    // 淘汰需配对 Tracy free（entry 当初从 pending 转入时在新地址 alloc 过）。
-    while (!m_freeList.empty() &&
-        (m_freeList.size() >= kFreeListMaxCount || m_freeListTotalBytes + incomingBytes > kFreeListMaxBytes)) {
-        auto oldest = m_freeList.begin();
-        for (auto scan = m_freeList.begin(); scan != m_freeList.end(); ++scan) {
-            if (scan->second.enlistSeq < oldest->second.enlistSeq) {
-                oldest = scan;
-            }
-        }
-        m_freeListTotalBytes -= (oldest->second.vertexCapacity + oldest->second.indexCapacity);
-        _destroyFreeListEntry(oldest->second);
-        m_freeList.erase(oldest);
+    if (alloc.offset == OffsetAllocator::Allocation::NO_SPACE) {
+        return;
     }
+    segment.allocator->free(alloc);
+    segment.localUsedBytes -= alignedSize;
+    segment.localFreeBytes += alignedSize;
 
-    FreeListEntry entry;
-    entry.vertexBuffer = vertexBuffer;
-    entry.vertexMemory = vertexMemory;
-    entry.indexBuffer = indexBuffer;
-    entry.indexMemory = indexMemory;
-    entry.vertexCapacity = vertexCapacity;
-    entry.indexCapacity = indexCapacity;
-    entry.enlistSeq = m_freeListEnlistCounter++;
-    m_freeListTotalBytes += incomingBytes;
-
-    // multimap 节点地址稳定（不 move），在入池后的稳定地址上重新登记 Tracy alloc，
-    // 与调用方（processPendingDestroys）先 free 旧地址配对。multimap::emplace 总是成功，返回 iterator。
-    auto nodeIt = m_freeList.emplace(entry.vertexCapacity, std::move(entry));
-    FreeListEntry& stored = nodeIt->second;
-    if (stored.vertexMemory != VK_NULL_HANDLE) {
-        trackGpuAlloc(&stored.vertexMemory, stored.vertexCapacity, kGpuPoolChunkVtx);
-    }
-    if (stored.indexMemory != VK_NULL_HANDLE) {
-        trackGpuAlloc(&stored.indexMemory, stored.indexCapacity, kGpuPoolChunkIdx);
-    }
+    // 守恒断言：OffsetAllocator 报告的空闲空间应与本地记账一致
+    const u64 reported = segment.allocator->storageReport().totalFreeSpace;
+    MC_ASSERT_RELEASE_MSG(reported == segment.localFreeBytes,
+        "ChunkRenderer mega-buffer segment conservation mismatch: OffsetAllocator free space disagrees with local "
+        "bookkeeping");
 }
 
-void ChunkRenderer::_destroyFreeListEntry(FreeListEntry& entry)
+Result<void> ChunkRenderer::_uploadViaStagingPool(
+    const void* sourceData, u64 size, VkBuffer dstBuffer, VkDeviceSize dstOffset)
 {
-    // 真销毁：vkDestroy + vkFree + Tracy free 配对（entry 地址上的 alloc 在入池时已登记）。
-    if (entry.vertexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, entry.vertexBuffer, nullptr);
-        entry.vertexBuffer = VK_NULL_HANDLE;
+    if (sourceData == nullptr || dstBuffer == VK_NULL_HANDLE || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "ChunkRenderer::_uploadViaStagingPool: invalid arguments");
     }
-    if (entry.vertexMemory != VK_NULL_HANDLE) {
-        trackGpuFree(&entry.vertexMemory, kGpuPoolChunkVtx);
-        vkFreeMemory(m_device, entry.vertexMemory, nullptr);
-        entry.vertexMemory = VK_NULL_HANDLE;
-    }
-    if (entry.indexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, entry.indexBuffer, nullptr);
-        entry.indexBuffer = VK_NULL_HANDLE;
-    }
-    if (entry.indexMemory != VK_NULL_HANDLE) {
-        trackGpuFree(&entry.indexMemory, kGpuPoolChunkIdx);
-        vkFreeMemory(m_device, entry.indexMemory, nullptr);
-        entry.indexMemory = VK_NULL_HANDLE;
-    }
-}
 
-void ChunkRenderer::_destroyFreeList()
-{
-    std::lock_guard<std::recursive_mutex> lock(m_pendingDestroysMutex);
-    for (auto& pair : m_freeList) {
-        _destroyFreeListEntry(pair.second);
+    auto* pool = m_context ? m_context->stagingPool() : nullptr;
+    if (pool == nullptr) {
+        return Error(ErrorCode::NotInitialized, "ChunkRenderer: staging pool not available");
     }
-    m_freeList.clear();
-    m_freeListTotalBytes = 0;
+
+    auto handle = pool->stage(size);
+    if (!handle.valid) {
+        return Error(ErrorCode::OutOfMemory, "ChunkRenderer: staging pool out of space");
+    }
+    std::memcpy(handle.mappedPtr, sourceData, static_cast<size_t>(size));
+    auto result = pool->copyToBuffer(handle, dstBuffer, dstOffset);
+    pool->release(handle);
+    return result;
 }
 
 } // namespace mc::client

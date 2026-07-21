@@ -1584,7 +1584,8 @@ Result<void> TridentEngine::initializeChunkRenderer()
         m_chunkRenderer = std::make_unique<ChunkRenderer>();
     }
 
-    auto result = m_chunkRenderer->initialize(device(),
+    auto result = m_chunkRenderer->initialize(context(),
+        device(),
         physicalDevice(),
         commandPool(),
         graphicsQueue(),
