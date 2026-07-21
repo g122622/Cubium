@@ -8,8 +8,8 @@
 ice/
 ├── IceBlock.hpp             # 声明 IceBlock、PackedIceBlock、BlueIceBlock、FrostedIceBlock 四种冰系方块
 ├── IceBlock.cpp             # 实现冰和霜冰的融化逻辑、玩家破坏后是否留水的判断
-├── SnowBlock.hpp            # 声明 SnowBlock 雪层方块（1-8层）
-├── SnowBlock.cpp            # 实现雪层融化掉落、放置存活判断、邻居更新支撑检查
+├── SnowBlock.hpp            # 声明 SnowBlock 雪层方块（1-8层）及 SHAPES 形状数组
+├── SnowBlock.cpp            # 实现雪层 SHAPES 形状数组（LAYERS 相关渲染/碰撞/支撑形状）、融化掉落、放置存活判断、邻居更新支撑检查
 └── README.md
 ```
 
@@ -63,3 +63,6 @@ ice/
 - **霜冰的 tick 和 randomTick 使用不同的光照计算**：`tick()` 使用 `getMaxLocalRawBrightness`（主世界考虑天气衰减的天空光照），`randomTick()` 仅检查方块光照（与 IceBlock 一致）
 - **`isValidPosition` 使用 `IBlockReader` 接口，而 `_canSurvive` 和 `canSurviveAt` 使用 `IWorld` 接口**：两个版本逻辑一致但接口不同，修改时需同步更新
 - **`isFaceFull` 不需要 `IWorld` 和 `BlockPos` 参数**：只检查碰撞形状的几何属性，不依赖世界状态
+- **`SHAPES[8]`（layers=8 渲染形状）必须用 `CollisionShape::fullBlock()` 而非 `box(0,0,0,1,1,1)`**：后者产生 `Type::SimpleBox`（`isFullBlock()=false`），会让 ChunkMesher 走 shape fallback 路径、光照遮挡语义错误；前者才是 `Type::FullBlock`，走高效完整方块路径且光照正确
+- **雪层碰撞形状比渲染形状矮 1 层**：`getShape` 用 `SHAPES[layers]`，`getCollisionShape` 用 `SHAPES[layers-1]`（layers=1 无碰撞，layers=8 碰撞高度 14 像素）。`getBlockSupportShape` 与 `getShape` 一致用 `SHAPES[layers]`
+- **雪层侧面纹理会被纵向压缩**：ChunkMesher 的 shape fallback 用整张纹理 UV 贴到矮几何体上，1 层雪侧面纹理被压成 1/8 高。当前仅修复高度，纹理压缩（需 MC 多层纹理映射）作为后续 TODO

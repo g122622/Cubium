@@ -653,4 +653,111 @@ TEST_F(SnowBlockTest, TicksRandomly_ReturnsTrue)
     EXPECT_TRUE(VanillaBlocks::SNOW->ticksRandomly());
 }
 
+// ============================================================================
+// 形状测试
+// ============================================================================
+
+TEST_F(SnowBlockTest, GetShape_Layer1_HeightIs2Pixels)
+{
+    // layers=1 渲染形状高度应为 2 像素（0.125）
+    const BlockState& defaultState = VanillaBlocks::SNOW->defaultState();
+    ASSERT_EQ(defaultState.get(SnowBlock::LAYERS()), 1);
+
+    const CollisionShape& shape = VanillaBlocks::SNOW->getShape(defaultState);
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const AxisAlignedBB& box = shape.boxes().front();
+    EXPECT_FLOAT_EQ(box.maxY, 2.0f / 16.0f) << "Layer 1 render shape maxY should be 2/16 (0.125)";
+}
+
+TEST_F(SnowBlockTest, GetShape_Layer4_HeightIsHalfBlock)
+{
+    // layers=4 渲染形状高度应为 8 像素（0.5，半方块）
+    const BlockState& state4 = VanillaBlocks::SNOW->defaultState().with(SnowBlock::LAYERS(), 4);
+    const CollisionShape& shape = VanillaBlocks::SNOW->getShape(state4);
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const AxisAlignedBB& box = shape.boxes().front();
+    EXPECT_FLOAT_EQ(box.maxY, 8.0f / 16.0f) << "Layer 4 render shape maxY should be 8/16 (0.5)";
+}
+
+TEST_F(SnowBlockTest, GetShape_Layer8_IsFullBlock)
+{
+    // layers=8 渲染形状应为完整方块（FullBlock 类型），让 ChunkMesher 走完整方块路径
+    const BlockState& state8 = VanillaBlocks::SNOW->defaultState().with(SnowBlock::LAYERS(), 8);
+    const CollisionShape& shape = VanillaBlocks::SNOW->getShape(state8);
+
+    EXPECT_TRUE(shape.isFullBlock()) << "Layer 8 render shape should be FullBlock";
+}
+
+TEST_F(SnowBlockTest, GetShape_Layers1To7_AreNotFullBlock)
+{
+    // layers 1-7 渲染形状应为 SimpleBox（非 FullBlock），以便按层数渲染矮高度
+    const BlockState& base = VanillaBlocks::SNOW->defaultState();
+    for (i32 layers = 1; layers <= 7; ++layers) {
+        const BlockState& state = base.with(SnowBlock::LAYERS(), layers);
+        const CollisionShape& shape = VanillaBlocks::SNOW->getShape(state);
+        EXPECT_FALSE(shape.isFullBlock()) << "Layer " << layers << " should not be FullBlock";
+        EXPECT_EQ(shape.boxCount(), 1u) << "Layer " << layers << " should have exactly 1 box";
+        EXPECT_FLOAT_EQ(shape.boxes().front().maxY, static_cast<f32>(layers * 2) / 16.0f)
+            << "Layer " << layers << " maxY should be " << (layers * 2) << "/16";
+    }
+}
+
+TEST_F(SnowBlockTest, GetCollisionShape_Layer1_IsEmpty)
+{
+    // layers=1 碰撞形状应为空（无碰撞，实体可踩过）
+    const BlockState& defaultState = VanillaBlocks::SNOW->defaultState();
+    const CollisionShape& shape = VanillaBlocks::SNOW->getCollisionShape(defaultState);
+
+    EXPECT_TRUE(shape.isEmpty()) << "Layer 1 collision shape should be empty (no collision)";
+}
+
+TEST_F(SnowBlockTest, GetCollisionShape_Layer8_HeightIs14Pixels)
+{
+    // layers=8 碰撞形状高度应为 14 像素（0.875），比渲染形状矮 1 层
+    const BlockState& state8 = VanillaBlocks::SNOW->defaultState().with(SnowBlock::LAYERS(), 8);
+    const CollisionShape& shape = VanillaBlocks::SNOW->getCollisionShape(state8);
+
+    ASSERT_EQ(shape.boxCount(), 1u);
+    EXPECT_FLOAT_EQ(shape.boxes().front().maxY, 14.0f / 16.0f)
+        << "Layer 8 collision shape maxY should be 14/16 (0.875)";
+}
+
+TEST_F(SnowBlockTest, GetCollisionShape_LessThanShape)
+{
+    // 碰撞形状应比渲染形状矮 1 层：layers=4 时碰撞 6px < 渲染 8px
+    const BlockState& state4 = VanillaBlocks::SNOW->defaultState().with(SnowBlock::LAYERS(), 4);
+    const CollisionShape& renderShape = VanillaBlocks::SNOW->getShape(state4);
+    const CollisionShape& collisionShape = VanillaBlocks::SNOW->getCollisionShape(state4);
+
+    ASSERT_EQ(renderShape.boxCount(), 1u);
+    ASSERT_EQ(collisionShape.boxCount(), 1u);
+    EXPECT_LT(collisionShape.boxes().front().maxY, renderShape.boxes().front().maxY)
+        << "Collision shape should be shorter than render shape";
+    EXPECT_FLOAT_EQ(collisionShape.boxes().front().maxY, 6.0f / 16.0f)
+        << "Layer 4 collision maxY should be 6/16 (one layer below 8/16)";
+}
+
+TEST_F(SnowBlockTest, GetBlockSupportShape_EqualsShape)
+{
+    // 支撑形状应与渲染形状一致
+    const BlockState& state5 = VanillaBlocks::SNOW->defaultState().with(SnowBlock::LAYERS(), 5);
+    const CollisionShape& shape = VanillaBlocks::SNOW->getShape(state5);
+    const CollisionShape& supportShape = VanillaBlocks::SNOW->getBlockSupportShape(state5);
+
+    ASSERT_EQ(shape.boxCount(), 1u);
+    ASSERT_EQ(supportShape.boxCount(), 1u);
+    EXPECT_FLOAT_EQ(supportShape.boxes().front().maxY, shape.boxes().front().maxY)
+        << "Support shape should equal render shape";
+    EXPECT_FLOAT_EQ(supportShape.boxes().front().maxY, 10.0f / 16.0f) << "Layer 5 support maxY should be 10/16";
+}
+
+TEST_F(SnowBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+{
+    // 雪层应使用形状进行光照遮挡检测
+    const BlockState& defaultState = VanillaBlocks::SNOW->defaultState();
+    EXPECT_TRUE(VanillaBlocks::SNOW->useShapeForLightOcclusion(defaultState));
+}
+
 } // namespace

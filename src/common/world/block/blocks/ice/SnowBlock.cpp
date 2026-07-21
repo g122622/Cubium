@@ -31,6 +31,9 @@
 #include "../../Block.hpp"
 #include "../../BlockTags.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+
+#include <array>
 
 namespace mc::blocks {
 
@@ -44,6 +47,27 @@ namespace {
 constexpr i32 MELT_LIGHT_LEVEL = 11;
 
 } // namespace
+
+// ============================================================================
+// 静态形状数组
+// ============================================================================
+
+/// 按 LAYERS 索引的形状数组（索引 0-8）。
+/// SHAPES[i] = box(0,0,0, 16, i*2, 16)（像素坐标），即高度 = i*2 像素。
+/// - SHAPES[0] 为空形状：layers=1 的碰撞形状（无碰撞，可踩过）
+/// - SHAPES[1..7]：layers 1-7 的渲染形状（2/4/.../14 像素高）
+/// - SHAPES[8] 为完整方块：layers=8 的渲染形状
+const std::array<CollisionShape, 9> SnowBlock::SHAPES = {
+    CollisionShape::empty(),                                             // [0] 碰撞用（layers=1 时无碰撞）
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 2.0f, 16.0f),  // [1] layers=1 渲染 2px
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 4.0f, 16.0f),  // [2] layers=2 渲染 4px
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 6.0f, 16.0f),  // [3] layers=3 渲染 6px
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f),  // [4] layers=4 渲染 8px（半方块）
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 10.0f, 16.0f), // [5] layers=5 渲染 10px
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 12.0f, 16.0f), // [6] layers=6 渲染 12px
+    CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 14.0f, 16.0f), // [7] layers=7 渲染 14px / layers=8 碰撞 14px
+    CollisionShape::fullBlock()                                          // [8] layers=8 渲染完整方块
+};
 
 // ============================================================================
 // SnowBlock 实现
@@ -200,6 +224,28 @@ bool SnowBlock::canSurviveAt(const IWorld& world, const BlockPos& pos)
 
     // 4. 检查下方方块的碰撞形状上面是否完全覆盖
     return Block::isFaceFull(belowState->getCollisionShape(), Direction::Up);
+}
+
+// ============================================================================
+// 形状
+// ============================================================================
+
+const CollisionShape& SnowBlock::getShape(const BlockState& state) const
+{
+    // 渲染形状按 LAYERS 索引：layers=1→SHAPES[1](2px)，layers=8→SHAPES[8](完整方块)
+    return SHAPES[static_cast<size_t>(state.get(LAYERS()))];
+}
+
+const CollisionShape& SnowBlock::getCollisionShape(const BlockState& state) const
+{
+    // 碰撞形状比渲染形状矮 1 层：layers=1→SHAPES[0](空，无碰撞)，layers=8→SHAPES[7](14px)
+    return SHAPES[static_cast<size_t>(state.get(LAYERS())) - 1];
+}
+
+const CollisionShape& SnowBlock::getBlockSupportShape(const BlockState& state) const
+{
+    // 支撑形状与渲染形状一致
+    return SHAPES[static_cast<size_t>(state.get(LAYERS()))];
 }
 
 } // namespace mc::blocks

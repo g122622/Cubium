@@ -257,7 +257,7 @@ void registerBaseBlocks()
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
-        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid().noCollision());
+        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid());
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(

@@ -590,6 +590,7 @@ add_executable(mc_tests
     common/world/block/blocks/PlantTypeTest.cpp
     common/world/block/blocks/MushroomBlockTest.cpp
     common/world/block/blocks/dirt/MudBlockTest.cpp
+    common/world/block/blocks/dirt/DirtPathBlockTest.cpp
     common/world/block/blocks/cave/GlowLichenBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp

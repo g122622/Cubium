@@ -31,6 +31,7 @@
 #include "world/block/blocks/coral/CoralBlock.hpp"
 #include "world/block/blocks/decorative/TorchBlock.hpp"
 #include "world/block/blocks/decorative/WallTorchBlock.hpp"
+#include "world/block/blocks/dirt/DirtPathBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
@@ -140,7 +141,7 @@ void registerNaturalBlocks()
         BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 草径
-    NaturalBlocks::GRASS_PATH = &registry.registerBlock<SimpleBlock>(
+    NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(
         ResourceLocation("minecraft:dirt_path"), BlockProperties(Material::EARTH).hardness(0.65f));
 
     // 浮冰 - 不透明，不融化

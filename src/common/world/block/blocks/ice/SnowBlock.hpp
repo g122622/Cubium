@@ -26,6 +26,8 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../../util/property/StateContainer.hpp"
 #include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include <array>
 
 namespace mc {
 
@@ -127,6 +129,41 @@ public:
         return state.get(LAYERS()) == 8 ? 0.2f : 1.0f;
     }
 
+    // ========== 形状 ==========
+
+    /**
+     * @brief 获取渲染形状
+     *
+     * 按 LAYERS 属性返回对应高度：每层 2 像素（0.125 方块）。
+     * layers=8 返回完整方块。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取碰撞形状
+     *
+     * 碰撞形状比渲染形状矮 1 层：layers=1 无碰撞，layers=8 碰撞高度为 14 像素。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取方块支撑形状
+     *
+     * 与渲染形状一致（按 LAYERS 高度）。
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
+
+    /**
+     * @brief 是否使用形状进行光照遮挡检测
+     *
+     * 雪层为非完整方块，光照引擎使用精确形状做遮挡传播。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
 private:
     /**
      * @brief 检查雪层是否可以在指定位置存活（IWorld版本）
@@ -134,6 +171,10 @@ private:
      * 供updatePostPlacement使用，避免IWorld到IBlockReader的向下转型。
      */
     [[nodiscard]] bool _canSurvive(IWorld& world, const BlockPos& pos) const;
+
+    /// 按 LAYERS 索引的形状数组（索引 0-8）。
+    /// SHAPES[i] 高度 = i*2 像素；SHAPES[0] 为空（layers=1 碰撞用），SHAPES[8] 为完整方块。
+    static const std::array<CollisionShape, 9> SHAPES;
 };
 
 } // namespace blocks

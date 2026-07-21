@@ -7,6 +7,7 @@
 ```
 dirt/
 ├── README.md                        # 本文档
+├── DirtPathBlock.hpp/cpp            # 草径方块（渲染+碰撞均15/16格高，不可路径寻找；转变泥土逻辑TODO）
 ├── MudBlock.hpp/cpp                 # 泥巴方块（碰撞箱略矮，14/16格高，不可路径寻找）
 ├── SnowyDirtBlock.hpp/cpp           # 雪覆盖泥土基类（持有 SNOWY 属性，不蔓延；podzol 直接使用）
 └── SpreadableSnowyDirtBlock.hpp/cpp # 可蔓延泥土基类（继承 SnowyDirtBlock，草方块、菌丝的基类）
@@ -16,6 +17,7 @@ dirt/
 
 ```
 Block
+├── DirtPathBlock                    # 草径方块（渲染+碰撞15/16格高，不可路径寻找）
 ├── MudBlock                          # 泥巴方块（碰撞箱14/16格高，不可路径寻找）
 └── SnowyDirtBlock                    # 雪覆盖泥土基类（持有 SNOWY 属性 + 放置/邻居更新同步雪状态，不蔓延）
     └── SpreadableSnowyDirtBlock      # 可蔓延的雪覆盖泥土基类（在基类之上加蔓延/退化）
@@ -81,6 +83,12 @@ Block
 ### 1. MudBlock 碰撞箱略矮
 
 泥巴的碰撞箱只有 14/16 格高（而非完整方块的 16/16），实体走在上面会略微下沉。但方块支持形状和视觉遮挡形状仍为完整方块，这意味着其他方块可以放在泥巴上方而不悬空。
+
+### 2. DirtPathBlock 形状与转变泥土逻辑
+
+草径（dirt_path）的渲染形状与碰撞形状**均为 15/16 格高**（顶部矮 1 像素），与 FarmlandBlock 不同——FarmlandBlock 的碰撞形状是完整方块，只有渲染形状是 15/16。因碰撞箱矮，DirtPathBlock 同 MudBlock 一样必须显式重写 `allowsMovement` 返回 false，否则实体会把草径当可通过路径。
+
+转变泥土逻辑（上方落入实体或放置方块时变回泥土）**尚未实现**（hpp/cpp 中已标 TODO），当前仅修复渲染高度。
 
 ### 2. SNOWY 属性更新时机
 
