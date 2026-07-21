@@ -24,11 +24,10 @@
 #pragma once
 
 #include "client/renderer/api/buffer/IStagingBufferPool.hpp"
+#include "client/renderer/api/buffer/OffsetAllocatorHeader.hpp" // OffsetAllocator::Allocator / Allocation（带 include guard 包装，禁止直接引上游头）
 #include <memory>
 #include <mutex>
 #include <vector>
-
-#include "offsetAllocator.hpp" // OffsetAllocator::Allocator / Allocation
 
 #include <vulkan/vulkan.h>
 

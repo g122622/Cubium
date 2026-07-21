@@ -48,6 +48,10 @@ namespace mc::client {
 class ItemTextureAtlas;
 } // namespace mc::client
 
+namespace mc::client::renderer::trident {
+class TridentContext;
+} // namespace mc::client::renderer::trident
+
 namespace mc::client::renderer::trident::firstperson {
 
 // 导入类型
@@ -127,6 +131,7 @@ public:
     /**
      * @brief 初始化渲染器
      *
+     * @param context Trident 上下文（用于访问统一暂存缓冲池 stagingPool()）
      * @param device Vulkan 设备
      * @param physicalDevice Vulkan 物理设备
      * @param commandPool 命令池
@@ -137,7 +142,8 @@ public:
      * @param entityTextureAtlas 实体纹理图集（玩家皮肤）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(VkDevice device,
+    [[nodiscard]] Result<void> initialize(trident::TridentContext* context,
+        VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkCommandPool commandPool,
         VkQueue graphicsQueue,

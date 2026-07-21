@@ -361,6 +361,11 @@ void TridentEngine::destroy()
     }
 
     // 销毁实体管线（必须在 EntityRendererManager 之前）
+    // 先把所有 live 动画 mesh 入延迟归还队列，使 EntityPipeline::destroy 的守恒断言成立
+    // （否则销毁时段内仍有未归还的子分配）。设备已 idle，无在飞帧引用。
+    if (m_entityRendererManager) {
+        m_entityRendererManager->clearAnimatedMeshes();
+    }
     if (m_entityPipeline) {
         m_entityPipeline->destroy();
         m_entityPipeline.reset();
@@ -1946,7 +1951,8 @@ Result<void> TridentEngine::initializeEntityRenderer()
         m_entityPipeline = std::make_unique<EntityPipeline>();
     }
 
-    auto pipelineResult = m_entityPipeline->initialize(device(),
+    auto pipelineResult = m_entityPipeline->initialize(context(),
+        device(),
         physicalDevice(),
         graphicsQueue(),
         renderPass(),
@@ -2367,7 +2373,8 @@ Result<void> TridentEngine::initializeFirstPersonRenderer()
         m_firstPersonRenderer = std::make_unique<firstperson::FirstPersonRenderer>();
     }
 
-    auto result = m_firstPersonRenderer->initialize(device(),
+    auto result = m_firstPersonRenderer->initialize(context(),
+        device(),
         physicalDevice(),
         commandPool(),
         graphicsQueue(),

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/api/buffer/OffsetAllocatorHeader.hpp" // OffsetAllocator::Allocator / Allocation（带 include guard 包装）
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -32,6 +33,10 @@
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+
+namespace mc::client::renderer::trident {
+class TridentContext;
+}
 
 namespace mc::client::renderer::entity::pipeline {
 
@@ -61,17 +66,28 @@ enum class BlendMode : u8 {
 /**
  * @brief 实体网格数据
  *
- * 存储单个实体的GPU缓冲区
+ * 不再为每个 mesh 独占 VkBuffer+VkDeviceMemory，而是在统一的 vertex/index
+ * mega-buffer 段内子分配一段连续区间。vertexBuffer/indexBuffer 保存所属段的
+ * VkBuffer（drawMesh 直接绑定），vertexOffset/indexOffset 为段内偏移。
+ * allocation/segmentIndex/alignedSize 供延迟回收时归还给 OffsetAllocator。
+ *
+ * vertexBuffer == VK_NULL_HANDLE 表示该 mesh 当前未持有任何 GPU 区间（空 mesh）。
  */
 struct EntityMesh {
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexMemory = VK_NULL_HANDLE;
+    VkBuffer vertexBuffer = VK_NULL_HANDLE; // 所属 vertex mega-buffer 段的 VkBuffer
+    VkBuffer indexBuffer = VK_NULL_HANDLE;  // 所属 index mega-buffer 段的 VkBuffer
+    VkDeviceSize vertexOffset = 0;          // vertex 段内偏移（字节）
+    VkDeviceSize indexOffset = 0;           // index 段内偏移（字节）
     u32 indexCount = 0;
     u32 vertexCount = 0;
-    u32 vertexCapacity = 0;
-    u32 indexCapacity = 0;
+
+    // 子分配记账（延迟回收时归还给对应段的 OffsetAllocator）
+    OffsetAllocator::Allocation vertexAllocation{};
+    OffsetAllocator::Allocation indexAllocation{};
+    u64 vertexAlignedSize = 0; // 对齐后的 vertex 区间大小（含 padding，free 用）
+    u64 indexAlignedSize = 0;  // 对齐后的 index 区间大小
+    u32 vertexSegmentIndex = 0;
+    u32 indexSegmentIndex = 0;
 
     // 实体位置（用于更新）
     f64 posX = 0.0f;
@@ -84,7 +100,7 @@ struct EntityMesh {
  *
  * 管理实体渲染的Vulkan资源：
  * - 管线状态
- * - 顶点/索引缓冲区
+ * - 顶点/索引 mega-buffer 子分配（OffsetAllocator）
  * - 描述符集
  * - 纹理图集
  */
@@ -99,17 +115,19 @@ public:
 
     /**
      * @brief 初始化管线
+     * @param context Trident 上下文（用于访问统一暂存缓冲池 stagingPool()）
      * @param device Vulkan逻辑设备
      * @param physicalDevice Vulkan物理设备
      * @param graphicsQueue 图形队列
      * @param renderPass 渲染通道
      * @param cameraDescriptorLayout 相机描述符布局
      * @param descriptorPool 描述符池
-     * @param commandPool 命令池（用于缓冲区复制）
+     * @param commandPool 命令池（已不再用于单次复制，保留以兼容签名）
      * @param sampleCount MSAA 采样数
      * @param maxFramesInFlight 最大同时在飞帧数（用于 per-frame 描述符集与延迟销毁窗口）
      */
-    [[nodiscard]] Result<void> initialize(VkDevice device,
+    [[nodiscard]] Result<void> initialize(trident::TridentContext* context,
+        VkDevice device,
         VkPhysicalDevice physicalDevice,
         VkQueue graphicsQueue,
         VkRenderPass renderPass,
@@ -141,11 +159,11 @@ public:
     void beginFrame(u32 frameIndex);
 
     /**
-     * @brief 处理延迟销毁队列，释放足够久未被任何在飞帧引用的缓冲区
+     * @brief 处理延迟销毁队列，归还足够久未被任何在飞帧引用的子分配区间
      *
-     * 必须在每帧 vkQueueSubmit 完成且下一帧 fence 等待之后调用，保证待释放缓冲区
-     * 已不再被任何在飞命令缓冲区引用。通常在 FrameManager::acquireNextImage 之后、
-     * 录制新帧之前调用。
+     * 必须在每帧 vkQueueSubmit 完成且下一帧 fence 等待之后调用，保证待归还区间
+     * 已不再被任何在飞命令缓冲区引用。归还后区间交回 OffsetAllocator 复用，
+     * mega-buffer 段本身（VkBuffer/VkDeviceMemory）不销毁。
      */
     void processPendingDestroys();
 
@@ -235,6 +253,25 @@ public:
     [[nodiscard]] bool isInitialized() const { return m_initialized; }
 
 private:
+    /// mega-buffer 段：一个大 VkBuffer 内用 OffsetAllocator 子分配
+    struct MegaBufferSegment {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        VkDeviceSize capacity = 0;
+        std::unique_ptr<OffsetAllocator::Allocator> allocator;
+        u64 localUsedBytes = 0; // 本地记账，用于守恒断言
+        u64 localFreeBytes = 0;
+    };
+
+    /// 子分配对齐：满足顶点属性访问与 vkCmdBindVertexBuffers 偏移要求
+    static constexpr u64 kSubAllocAlign = 16;
+
+    /// 单个 vertex mega-buffer 段容量（32MB）
+    static constexpr VkDeviceSize kVertexSegmentCapacity = 32ull * 1024 * 1024;
+    /// 单个 index mega-buffer 段容量（8MB）
+    static constexpr VkDeviceSize kIndexSegmentCapacity = 8ull * 1024 * 1024;
+
+    trident::TridentContext* m_context = nullptr;
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
@@ -254,14 +291,24 @@ private:
     u32 m_maxFramesInFlight = 1; // 在飞帧数（延迟销毁保留窗口依据）
     u32 m_currentFrameIndex = 0; // 当前录制帧索引（beginFrame 设置）
 
-    // 延迟销毁队列：mesh 的 vertex/index buffer 不在 destroyMesh 时立即释放，
-    // 而是入队，等待足够多的帧数（>= maxFramesInFlight + 1）后再真正 vkDestroyBuffer，
-    // 保证仍被在飞命令缓冲区引用的 buffer 不会被提前释放（device-lost 根因之二）。
+    // vertex / index mega-buffer 段集合。OffsetAllocator 不可 resize，容量不足时
+    // 追加新段；段 VkBuffer/VkDeviceMemory 仅在 destroy() 释放，子分配区间由
+    // OffsetAllocator 复用。多段规避了数据迁移风险。
+    std::vector<MegaBufferSegment> m_vertexSegments;
+    std::vector<MegaBufferSegment> m_indexSegments;
+
+    // 延迟销毁队列：mesh 的子分配区间不在 destroyMesh 时立即归还，而是入队，
+    // 等待足够多帧数（>= maxFramesInFlight + 1）后再归还给对应段的 OffsetAllocator，
+    // 保证仍被在飞命令缓冲区引用的区间不被提前复用（device-lost 根因之二）。
     struct PendingDestroy {
-        VkBuffer vertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
-        VkBuffer indexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory indexMemory = VK_NULL_HANDLE;
+        OffsetAllocator::Allocation vertexAllocation{};
+        OffsetAllocator::Allocation indexAllocation{};
+        u64 vertexAlignedSize = 0;
+        u64 indexAlignedSize = 0;
+        u32 vertexSegmentIndex = 0;
+        u32 indexSegmentIndex = 0;
+        bool hasVertex = false;
+        bool hasIndex = false;
         u64 enqueueFrame = 0; // 入队时的帧计数器
     };
     std::vector<PendingDestroy> m_pendingDestroys;
@@ -295,20 +342,12 @@ private:
     [[nodiscard]] Result<void> _createDescriptorSets();
 
     /**
-     * @brief 将一个 mesh 的 GPU buffer 加入延迟销毁队列
+     * @brief 将一个 mesh 的子分配区间加入延迟归还队列
      *
-     * 不立即 vkDestroyBuffer，而是登记入队帧计数器，由 processPendingDestroys
-     * 在足够多帧后真正释放。调用后 mesh 的句柄被清零，调用方无需再处理。
+     * 不立即 free，而是登记入队帧计数器，由 processPendingDestroys 在足够多帧后
+     * 真正归还给 OffsetAllocator。调用后 mesh 的句柄被清零，调用方无需再处理。
      */
     void _enqueueDestroyMesh(EntityMesh& mesh);
-
-    /**
-     * @brief 立即释放 mesh 的 GPU buffer（vkDestroyBuffer/vkFreeMemory）
-     *
-     * 仅用于刚分配、尚未提交到任何命令缓冲区的 buffer（createMesh/updateMesh
-     * 失败回滚路径）。已提交过的 buffer 必须走 _enqueueDestroyMesh 延迟释放。
-     */
-    void _destroyMeshImmediate(EntityMesh& mesh);
 
     /**
      * @brief 创建图形管线
@@ -317,57 +356,44 @@ private:
         VkRenderPass renderPass, VkDescriptorSetLayout cameraDescriptorLayout, VkSampleCountFlagBits sampleCount);
 
     /**
-     * @brief 创建缓冲区
+     * @brief 在 segments 内子分配一段区间，必要时追加新段
+     * @param segments 段集合（vertex 或 index）
+     * @param segmentCapacity 单段容量
+     * @param alignedSize 需要的对齐大小
+     * @param outSegmentIndex 命中段索引
+     * @param outAllocation 分配器返回的 Allocation
+     * @return 成功或错误
      */
-    [[nodiscard]] Result<void> _createBuffer(VkDeviceSize size,
-        VkBufferUsageFlags usage,
-        VkMemoryPropertyFlags properties,
-        VkBuffer& buffer,
-        VkDeviceMemory& memory);
+    [[nodiscard]] Result<void> _subAllocate(std::vector<MegaBufferSegment>& segments,
+        VkDeviceSize segmentCapacity,
+        u64 alignedSize,
+        u32& outSegmentIndex,
+        OffsetAllocator::Allocation& outAllocation);
 
     /**
-     * @brief 确保复用暂存缓冲区容量满足需求
+     * @brief 创建一个新 mega-buffer 段（VkBuffer + 内存 + OffsetAllocator）
      */
-    [[nodiscard]] Result<void> _ensureReusableStagingBuffer(
-        VkDeviceSize requiredSize, VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize& capacity);
+    [[nodiscard]] Result<void> _createSegment(
+        MegaBufferSegment& segment, VkDeviceSize capacity, VkBufferUsageFlags usage);
 
     /**
-     * @brief 通过复用暂存缓冲区上传数据到设备本地缓冲区
+     * @brief 归还一段内的子分配区间（守恒断言）
      */
-    [[nodiscard]] Result<void> _uploadToDeviceBuffer(
-        const void* sourceData, VkDeviceSize size, VkBuffer destinationBuffer, bool useVertexStagingBuffer);
+    void _freeAllocation(MegaBufferSegment& segment, const OffsetAllocator::Allocation& alloc, u64 alignedSize);
 
     /**
-     * @brief 销毁复用暂存缓冲区
+     * @brief 通过统一暂存缓冲池上传一段数据到目标 buffer 指定偏移
+     *
+     * stage → memcpy → copyToBuffer（内部 submit+wait fence）→ release。
+     * 目标 buffer 为 mega-buffer 段，dstOffset 为段内子分配偏移。
      */
-    void _destroyReusableStagingBuffers();
+    [[nodiscard]] Result<void> _uploadViaStagingPool(
+        const void* sourceData, u64 size, VkBuffer dstBuffer, VkDeviceSize dstOffset);
 
     /**
-     * @brief 复制缓冲区
+     * @brief 将 size 向上对齐到 kSubAllocAlign
      */
-    void _copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
-    /**
-     * @brief 开始单次命令
-     */
-    VkCommandBuffer _beginSingleTimeCommands();
-
-    /**
-     * @brief 结束单次命令
-     */
-    void _endSingleTimeCommands(VkCommandBuffer cmd);
-
-    // 单次命令所需的资源
-    VkCommandPool m_commandPool = VK_NULL_HANDLE;
-
-    // 复用暂存缓冲区，避免每次网格更新都重新分配 staging memory
-    VkBuffer m_vertexStagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_vertexStagingMemory = VK_NULL_HANDLE;
-    VkDeviceSize m_vertexStagingCapacity = 0;
-
-    VkBuffer m_indexStagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_indexStagingMemory = VK_NULL_HANDLE;
-    VkDeviceSize m_indexStagingCapacity = 0;
+    [[nodiscard]] static u64 _alignUp(u64 size);
 };
 
 } // namespace mc::client::renderer::entity::pipeline

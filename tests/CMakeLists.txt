@@ -2289,6 +2289,7 @@ target_link_libraries(mc_tests
     PRIVATE
         mc_common
         mc_bedrock_addon
+        mc_offset_allocator
         GTest::gtest
         asio::asio
         nlohmann_json::nlohmann_json

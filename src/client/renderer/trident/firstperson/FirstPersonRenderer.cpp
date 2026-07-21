@@ -126,7 +126,8 @@ FirstPersonRenderer::~FirstPersonRenderer()
 // 初始化
 // ============================================================================
 
-Result<void> FirstPersonRenderer::initialize(VkDevice device,
+Result<void> FirstPersonRenderer::initialize(trident::TridentContext* context,
+    VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
@@ -164,7 +165,8 @@ Result<void> FirstPersonRenderer::initialize(VkDevice device,
     m_armPipeline = std::make_unique<EntityPipeline>();
     m_itemPipeline = std::make_unique<EntityPipeline>();
 
-    auto result = m_armPipeline->initialize(device,
+    auto result = m_armPipeline->initialize(context,
+        device,
         physicalDevice,
         graphicsQueue,
         renderPass,
@@ -179,7 +181,8 @@ Result<void> FirstPersonRenderer::initialize(VkDevice device,
         return result.error();
     }
 
-    result = m_itemPipeline->initialize(device,
+    result = m_itemPipeline->initialize(context,
+        device,
         physicalDevice,
         graphicsQueue,
         renderPass,
@@ -780,8 +783,7 @@ void FirstPersonRenderer::_cleanupRetiredItemMeshes()
 
 void FirstPersonRenderer::_retireItemMesh(EntityMesh& mesh)
 {
-    if (mesh.vertexBuffer == VK_NULL_HANDLE && mesh.vertexMemory == VK_NULL_HANDLE &&
-        mesh.indexBuffer == VK_NULL_HANDLE && mesh.indexMemory == VK_NULL_HANDLE) {
+    if (mesh.vertexBuffer == VK_NULL_HANDLE) {
         mesh = {};
         return;
     }

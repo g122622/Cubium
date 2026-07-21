@@ -22,8 +22,10 @@
  */
 
 #include "EntityPipeline.hpp"
+#include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <algorithm>
 #include <array>
@@ -73,20 +75,6 @@ Result<VkShaderModule> createShaderModule(VkDevice device, const std::vector<u8>
     return shaderModule;
 }
 
-u32 growCapacity(u32 currentCapacity, u32 requiredCapacity)
-{
-    if (currentCapacity >= requiredCapacity) {
-        return currentCapacity;
-    }
-
-    if (currentCapacity == 0) {
-        return requiredCapacity;
-    }
-
-    const u32 grownCapacity = currentCapacity + currentCapacity / 2;
-    return std::max(grownCapacity, requiredCapacity);
-}
-
 } // namespace
 
 // ============================================================================
@@ -134,7 +122,8 @@ std::vector<VkVertexInputAttributeDescription> EntityPipeline::getVertexAttribut
     return descs;
 }
 
-Result<void> EntityPipeline::initialize(VkDevice device,
+Result<void> EntityPipeline::initialize(trident::TridentContext* context,
+    VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkQueue graphicsQueue,
     VkRenderPass renderPass,
@@ -148,16 +137,20 @@ Result<void> EntityPipeline::initialize(VkDevice device,
         return Result<void>::ok();
     }
 
+    m_context = context;
     m_device = device;
     m_physicalDevice = physicalDevice;
 
     destroy();
-    // destroy() 会把 m_maxFramesInFlight 复位为 1，必须在 destroy 之后重新设置，
-    // 否则 _createDescriptorSets 只分配 1 个纹理描述符集。
-    m_maxFramesInFlight = std::max<u32>(1u, maxFramesInFlight);
+    // destroy() 会把 m_maxFramesInFlight 复位为 1，且会把 m_context 置空，
+    // 必须在 destroy 之后重新设置二者，否则 _createDescriptorSets 只分配 1 个
+    // 纹理描述符集，且 _uploadViaStagingPool 取不到 staging pool。
+    m_context = context;
+    m_device = device;
+    m_physicalDevice = physicalDevice;
     m_graphicsQueue = graphicsQueue;
     m_descriptorPool = descriptorPool;
-    m_commandPool = commandPool;
+    // commandPool 保留于签名兼容；mega-buffer 子分配走统一暂存缓冲池，不再需要单次命令池。
 
     // 创建描述符布局
     auto result = _createDescriptorLayouts();
@@ -198,25 +191,24 @@ void EntityPipeline::destroy()
         m_additiveBlendPipeline != VK_NULL_HANDLE || m_multiplyBlendPipeline != VK_NULL_HANDLE ||
         m_noneBlendPipeline != VK_NULL_HANDLE || m_linePipeline != VK_NULL_HANDLE ||
         m_pipelineLayout != VK_NULL_HANDLE || m_textureSampler != VK_NULL_HANDLE ||
-        m_textureDescriptorLayout != VK_NULL_HANDLE || m_vertexStagingBuffer != VK_NULL_HANDLE ||
-        m_indexStagingBuffer != VK_NULL_HANDLE;
+        m_textureDescriptorLayout != VK_NULL_HANDLE || !m_vertexSegments.empty() || !m_indexSegments.empty();
 
-    // 立即释放所有延迟销毁队列中的缓冲区（设备销毁前无需保留在飞窗口）
-    for (auto& pending : m_pendingDestroys) {
-        if (pending.vertexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device, pending.vertexBuffer, nullptr);
+    // 关闭阶段：强制归还所有仍在延迟队列中的子分配区间（绕过帧延迟窗口）。
+    // 此刻设备即将销毁，延迟窗口已无意义，但守恒断言要求段内 localUsedBytes 归零，
+    // 故先归还再销毁 VkBuffer。注意：仍存在"所有者从未调用 destroyMesh 的 live mesh"
+    // 的情况——其 localUsedBytes 无法在此归还，会触发下方守恒断言暴露泄漏。
+    for (const auto& pending : m_pendingDestroys) {
+        if (pending.hasVertex && pending.vertexSegmentIndex < m_vertexSegments.size()) {
+            _freeAllocation(
+                m_vertexSegments[pending.vertexSegmentIndex], pending.vertexAllocation, pending.vertexAlignedSize);
         }
-        if (pending.vertexMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device, pending.vertexMemory, nullptr);
-        }
-        if (pending.indexBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device, pending.indexBuffer, nullptr);
-        }
-        if (pending.indexMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device, pending.indexMemory, nullptr);
+        if (pending.hasIndex && pending.indexSegmentIndex < m_indexSegments.size()) {
+            _freeAllocation(
+                m_indexSegments[pending.indexSegmentIndex], pending.indexAllocation, pending.indexAlignedSize);
         }
     }
     m_pendingDestroys.clear();
+
     // 销毁管线
     if (m_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(m_device, m_pipeline, nullptr);
@@ -265,7 +257,42 @@ void EntityPipeline::destroy()
         m_textureDescriptorLayout = VK_NULL_HANDLE;
     }
 
-    _destroyReusableStagingBuffers();
+    // 关闭阶段清理：所有子分配区间随段 VkBuffer 一并销毁，无需再归还给 OffsetAllocator。
+    // 若某段仍有 localUsedBytes != 0，说明存在所有者在关闭时未调用 destroyMesh 的 live mesh
+    // （如 SpecialEntityRenderers 的 blockMeshCache 缓存）。设备已 idle 且整段 VkBuffer 即将
+    // 销毁，此为关闭期可接受的丢弃；记录泄漏量但不视为致命错误（运行期的真实泄漏由
+    // _freeAllocation 的守恒断言在渲染期间捕获）。
+    for (auto& seg : m_vertexSegments) {
+        if (seg.localUsedBytes != 0) {
+            spdlog::warn("EntityPipeline: vertex mega-buffer segment leaked {} bytes at shutdown "
+                         "(mesh owner did not destroyMesh before pipeline teardown)",
+                seg.localUsedBytes);
+        }
+        if (seg.buffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device, seg.buffer, nullptr);
+        }
+        if (seg.memory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device, seg.memory, nullptr);
+        }
+        seg.allocator.reset();
+    }
+    m_vertexSegments.clear();
+
+    for (auto& seg : m_indexSegments) {
+        if (seg.localUsedBytes != 0) {
+            spdlog::warn("EntityPipeline: index mega-buffer segment leaked {} bytes at shutdown "
+                         "(mesh owner did not destroyMesh before pipeline teardown)",
+                seg.localUsedBytes);
+        }
+        if (seg.buffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device, seg.buffer, nullptr);
+        }
+        if (seg.memory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device, seg.memory, nullptr);
+        }
+        seg.allocator.reset();
+    }
+    m_indexSegments.clear();
 
     // 描述符集随 descriptorPool 由所有者统一回收，这里只清空引用。
     m_textureDescriptorSets.clear();
@@ -273,6 +300,7 @@ void EntityPipeline::destroy()
     m_currentFrameIndex = 0;
     m_frameCounter = 0;
     m_maxFramesInFlight = 1;
+    m_context = nullptr;
 
     m_initialized = false;
 
@@ -295,23 +323,18 @@ void EntityPipeline::processPendingDestroys()
     }
 
     // 保留窗口：maxFramesInFlight + 1 帧。在飞帧最多为 maxFramesInFlight，
-    // 当前正在录制的帧再占 1 个槽位，故需等待 maxFramesInFlight + 1 帧后才可安全释放。
+    // 当前正在录制的帧再占 1 个槽位，故需等待 maxFramesInFlight + 1 帧后才可安全归还。
     const u64 safeRetention = static_cast<u64>(m_maxFramesInFlight) + 1;
 
     for (auto it = m_pendingDestroys.begin(); it != m_pendingDestroys.end();) {
         const u64 age = (m_frameCounter >= it->enqueueFrame) ? (m_frameCounter - it->enqueueFrame) : 0;
         if (age >= safeRetention) {
-            if (it->vertexBuffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_device, it->vertexBuffer, nullptr);
+            // 归还子分配区间给对应段的 OffsetAllocator，VkBuffer 段本身不销毁。
+            if (it->hasVertex && it->vertexSegmentIndex < m_vertexSegments.size()) {
+                _freeAllocation(m_vertexSegments[it->vertexSegmentIndex], it->vertexAllocation, it->vertexAlignedSize);
             }
-            if (it->vertexMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_device, it->vertexMemory, nullptr);
-            }
-            if (it->indexBuffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_device, it->indexBuffer, nullptr);
-            }
-            if (it->indexMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_device, it->indexMemory, nullptr);
+            if (it->hasIndex && it->indexSegmentIndex < m_indexSegments.size()) {
+                _freeAllocation(m_indexSegments[it->indexSegmentIndex], it->indexAllocation, it->indexAlignedSize);
             }
             it = m_pendingDestroys.erase(it);
         } else {
@@ -351,8 +374,6 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
     EntityMesh mesh;
     mesh.vertexCount = static_cast<u32>(vertices.size());
     mesh.indexCount = static_cast<u32>(indices.size());
-    mesh.vertexCapacity = mesh.vertexCount;
-    mesh.indexCapacity = mesh.indexCount;
 
     if (vertices.empty() || indices.empty()) {
         return mesh; // 隐式转换为Result<EntityMesh>
@@ -366,38 +387,45 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
         }
     }
 
-    // 创建设备本地顶点缓冲区
-    const VkDeviceSize vertexBufferSize = sizeof(ModelVertex) * vertices.size();
-    auto result = _createBuffer(vertexBufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mesh.vertexBuffer,
-        mesh.vertexMemory);
+    // vertex mega-buffer 段子分配
+    const u64 vertexUploadSize = sizeof(ModelVertex) * vertices.size();
+    const u64 vertexAlignedSize = _alignUp(vertexUploadSize);
+    auto result = _subAllocate(
+        m_vertexSegments, kVertexSegmentCapacity, vertexAlignedSize, mesh.vertexSegmentIndex, mesh.vertexAllocation);
     if (!result.success()) {
         return result.error();
     }
+    mesh.vertexBuffer = m_vertexSegments[mesh.vertexSegmentIndex].buffer;
+    mesh.vertexOffset = mesh.vertexAllocation.offset;
+    mesh.vertexAlignedSize = vertexAlignedSize;
 
-    result = _uploadToDeviceBuffer(vertices.data(), vertexBufferSize, mesh.vertexBuffer, true);
+    result = _uploadViaStagingPool(vertices.data(), vertexUploadSize, mesh.vertexBuffer, mesh.vertexOffset);
     if (!result.success()) {
-        _destroyMeshImmediate(mesh);
+        // 刚分配、尚未提交到任何命令缓冲区，立即归还区间。
+        _freeAllocation(m_vertexSegments[mesh.vertexSegmentIndex], mesh.vertexAllocation, vertexAlignedSize);
+        mesh = {};
         return result.error();
     }
 
-    // 创建设备本地索引缓冲区
-    const VkDeviceSize indexBufferSize = sizeof(u32) * indices.size();
-    result = _createBuffer(indexBufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mesh.indexBuffer,
-        mesh.indexMemory);
+    // index mega-buffer 段子分配
+    const u64 indexUploadSize = sizeof(u32) * indices.size();
+    const u64 indexAlignedSize = _alignUp(indexUploadSize);
+    result = _subAllocate(
+        m_indexSegments, kIndexSegmentCapacity, indexAlignedSize, mesh.indexSegmentIndex, mesh.indexAllocation);
     if (!result.success()) {
-        _destroyMeshImmediate(mesh);
+        _freeAllocation(m_vertexSegments[mesh.vertexSegmentIndex], mesh.vertexAllocation, vertexAlignedSize);
+        mesh = {};
         return result.error();
     }
+    mesh.indexBuffer = m_indexSegments[mesh.indexSegmentIndex].buffer;
+    mesh.indexOffset = mesh.indexAllocation.offset;
+    mesh.indexAlignedSize = indexAlignedSize;
 
-    result = _uploadToDeviceBuffer(indices.data(), indexBufferSize, mesh.indexBuffer, false);
+    result = _uploadViaStagingPool(indices.data(), indexUploadSize, mesh.indexBuffer, mesh.indexOffset);
     if (!result.success()) {
-        _destroyMeshImmediate(mesh);
+        _freeAllocation(m_vertexSegments[mesh.vertexSegmentIndex], mesh.vertexAllocation, vertexAlignedSize);
+        _freeAllocation(m_indexSegments[mesh.indexSegmentIndex], mesh.indexAllocation, indexAlignedSize);
+        mesh = {};
         return result.error();
     }
 
@@ -405,7 +433,7 @@ Result<EntityMesh> EntityPipeline::createMesh(const std::vector<ModelVertex>& ve
 }
 
 Result<void> EntityPipeline::updateMesh(
-    EntityMesh& mesh, const std::vector<ModelVertex>& vertices, const std::vector<u32>& indices)
+    EntityMesh& mesh, const std::vector<model::ModelVertex>& vertices, const std::vector<u32>& indices)
 {
     if (vertices.empty() || indices.empty()) {
         destroyMesh(mesh);
@@ -423,89 +451,76 @@ Result<void> EntityPipeline::updateMesh(
     const u32 requiredVertexCount = static_cast<u32>(vertices.size());
     const u32 requiredIndexCount = static_cast<u32>(indices.size());
 
-    const bool needsVertexRecreate = mesh.vertexBuffer == VK_NULL_HANDLE || mesh.vertexMemory == VK_NULL_HANDLE ||
-        mesh.vertexCapacity < requiredVertexCount;
-    const bool needsIndexRecreate = mesh.indexBuffer == VK_NULL_HANDLE || mesh.indexMemory == VK_NULL_HANDLE ||
-        mesh.indexCapacity < requiredIndexCount;
+    // mega-buffer 子分配大小在分配时固定。若新数据量超出当前区间容量，
+    // 释放旧区间（延迟）、子分配新区间；否则就地覆盖同一段区间。
+    const u64 vertexUploadSize = sizeof(ModelVertex) * vertices.size();
+    const u64 vertexAlignedSize = _alignUp(vertexUploadSize);
+    const u64 indexUploadSize = sizeof(u32) * indices.size();
+    const u64 indexAlignedSize = _alignUp(indexUploadSize);
 
-    VkBuffer replacementVertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory replacementVertexMemory = VK_NULL_HANDLE;
-    u32 replacementVertexCapacity = mesh.vertexCapacity;
+    const bool needsVertexReallocate =
+        mesh.vertexBuffer == VK_NULL_HANDLE || vertexAlignedSize > mesh.vertexAlignedSize;
+    const bool needsIndexReallocate = mesh.indexBuffer == VK_NULL_HANDLE || indexAlignedSize > mesh.indexAlignedSize;
 
-    VkBuffer replacementIndexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory replacementIndexMemory = VK_NULL_HANDLE;
-    u32 replacementIndexCapacity = mesh.indexCapacity;
+    // 旧区间延迟归还（仍可能被在飞命令缓冲区引用）
+    if (needsVertexReallocate && mesh.vertexBuffer != VK_NULL_HANDLE) {
+        PendingDestroy pending;
+        pending.vertexAllocation = mesh.vertexAllocation;
+        pending.vertexAlignedSize = mesh.vertexAlignedSize;
+        pending.vertexSegmentIndex = mesh.vertexSegmentIndex;
+        pending.hasVertex = true;
+        pending.enqueueFrame = m_frameCounter;
+        m_pendingDestroys.push_back(std::move(pending));
+    }
+    if (needsIndexReallocate && mesh.indexBuffer != VK_NULL_HANDLE) {
+        PendingDestroy pending;
+        pending.indexAllocation = mesh.indexAllocation;
+        pending.indexAlignedSize = mesh.indexAlignedSize;
+        pending.indexSegmentIndex = mesh.indexSegmentIndex;
+        pending.hasIndex = true;
+        pending.enqueueFrame = m_frameCounter;
+        m_pendingDestroys.push_back(std::move(pending));
+    }
 
-    if (needsVertexRecreate) {
-        replacementVertexCapacity = growCapacity(mesh.vertexCapacity, requiredVertexCount);
-        const VkDeviceSize replacementVertexSize =
-            sizeof(ModelVertex) * static_cast<VkDeviceSize>(replacementVertexCapacity);
-        auto result = _createBuffer(replacementVertexSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            replacementVertexBuffer,
-            replacementVertexMemory);
+    if (needsVertexReallocate) {
+        auto result = _subAllocate(m_vertexSegments,
+            kVertexSegmentCapacity,
+            vertexAlignedSize,
+            mesh.vertexSegmentIndex,
+            mesh.vertexAllocation);
         if (!result.success()) {
+            // 子分配失败：mesh 的旧区间已延迟归还，将 mesh 置空避免悬垂。
+            mesh = {};
             return result.error();
         }
+        mesh.vertexBuffer = m_vertexSegments[mesh.vertexSegmentIndex].buffer;
+        mesh.vertexOffset = mesh.vertexAllocation.offset;
+        mesh.vertexAlignedSize = vertexAlignedSize;
     }
 
-    if (needsIndexRecreate) {
-        replacementIndexCapacity = growCapacity(mesh.indexCapacity, requiredIndexCount);
-        const VkDeviceSize replacementIndexSize = sizeof(u32) * static_cast<VkDeviceSize>(replacementIndexCapacity);
-        auto result = _createBuffer(replacementIndexSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            replacementIndexBuffer,
-            replacementIndexMemory);
+    if (needsIndexReallocate) {
+        auto result = _subAllocate(
+            m_indexSegments, kIndexSegmentCapacity, indexAlignedSize, mesh.indexSegmentIndex, mesh.indexAllocation);
         if (!result.success()) {
-            if (replacementVertexBuffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_device, replacementVertexBuffer, nullptr);
+            // index 子分配失败：vertex 新区间刚分配且尚未提交，立即归还。
+            if (needsVertexReallocate) {
+                _freeAllocation(m_vertexSegments[mesh.vertexSegmentIndex], mesh.vertexAllocation, vertexAlignedSize);
             }
-            if (replacementVertexMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_device, replacementVertexMemory, nullptr);
-            }
+            mesh = {};
             return result.error();
         }
+        mesh.indexBuffer = m_indexSegments[mesh.indexSegmentIndex].buffer;
+        mesh.indexOffset = mesh.indexAllocation.offset;
+        mesh.indexAlignedSize = indexAlignedSize;
     }
 
-    if (needsVertexRecreate) {
-        // 旧 buffer 可能仍被在飞命令缓冲区引用，必须延迟销毁而非立即 vkDestroyBuffer，
-        // 否则 GPU 访问已释放显存会导致 VK_ERROR_DEVICE_LOST。
-        if (mesh.vertexBuffer != VK_NULL_HANDLE || mesh.vertexMemory != VK_NULL_HANDLE) {
-            PendingDestroy pending;
-            pending.vertexBuffer = mesh.vertexBuffer;
-            pending.vertexMemory = mesh.vertexMemory;
-            pending.enqueueFrame = m_frameCounter;
-            m_pendingDestroys.push_back(pending);
-        }
-        mesh.vertexBuffer = replacementVertexBuffer;
-        mesh.vertexMemory = replacementVertexMemory;
-        mesh.vertexCapacity = replacementVertexCapacity;
-    }
-
-    if (needsIndexRecreate) {
-        if (mesh.indexBuffer != VK_NULL_HANDLE || mesh.indexMemory != VK_NULL_HANDLE) {
-            PendingDestroy pending;
-            pending.indexBuffer = mesh.indexBuffer;
-            pending.indexMemory = mesh.indexMemory;
-            pending.enqueueFrame = m_frameCounter;
-            m_pendingDestroys.push_back(pending);
-        }
-        mesh.indexBuffer = replacementIndexBuffer;
-        mesh.indexMemory = replacementIndexMemory;
-        mesh.indexCapacity = replacementIndexCapacity;
-    }
-
-    const VkDeviceSize vertexUploadSize = sizeof(ModelVertex) * vertices.size();
-    auto result = _uploadToDeviceBuffer(vertices.data(), vertexUploadSize, mesh.vertexBuffer, true);
+    auto result = _uploadViaStagingPool(vertices.data(), vertexUploadSize, mesh.vertexBuffer, mesh.vertexOffset);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
     }
 
-    const VkDeviceSize indexUploadSize = sizeof(u32) * indices.size();
-    result = _uploadToDeviceBuffer(indices.data(), indexUploadSize, mesh.indexBuffer, false);
+    result = _uploadViaStagingPool(indices.data(), indexUploadSize, mesh.indexBuffer, mesh.indexOffset);
     if (!result.success()) {
         destroyMesh(mesh);
         return result.error();
@@ -519,61 +534,32 @@ Result<void> EntityPipeline::updateMesh(
 
 void EntityPipeline::destroyMesh(EntityMesh& mesh)
 {
-    // 公共销毁入口：mesh 可能已被某帧命令缓冲区引用，必须延迟释放。
+    // 公共销毁入口：mesh 可能已被某帧命令缓冲区引用，必须延迟归还子分配区间。
     _enqueueDestroyMesh(mesh);
 }
 
 void EntityPipeline::_enqueueDestroyMesh(EntityMesh& mesh)
 {
-    if (mesh.vertexBuffer != VK_NULL_HANDLE || mesh.vertexMemory != VK_NULL_HANDLE ||
-        mesh.indexBuffer != VK_NULL_HANDLE || mesh.indexMemory != VK_NULL_HANDLE) {
+    if (mesh.vertexBuffer != VK_NULL_HANDLE) {
         PendingDestroy pending;
-        pending.vertexBuffer = mesh.vertexBuffer;
-        pending.vertexMemory = mesh.vertexMemory;
-        pending.indexBuffer = mesh.indexBuffer;
-        pending.indexMemory = mesh.indexMemory;
+        pending.vertexAllocation = mesh.vertexAllocation;
+        pending.vertexAlignedSize = mesh.vertexAlignedSize;
+        pending.vertexSegmentIndex = mesh.vertexSegmentIndex;
+        pending.hasVertex = true;
+        pending.enqueueFrame = m_frameCounter;
+        m_pendingDestroys.push_back(std::move(pending));
+    }
+    if (mesh.indexBuffer != VK_NULL_HANDLE) {
+        PendingDestroy pending;
+        pending.indexAllocation = mesh.indexAllocation;
+        pending.indexAlignedSize = mesh.indexAlignedSize;
+        pending.indexSegmentIndex = mesh.indexSegmentIndex;
+        pending.hasIndex = true;
         pending.enqueueFrame = m_frameCounter;
         m_pendingDestroys.push_back(std::move(pending));
     }
 
-    mesh.vertexBuffer = VK_NULL_HANDLE;
-    mesh.vertexMemory = VK_NULL_HANDLE;
-    mesh.indexBuffer = VK_NULL_HANDLE;
-    mesh.indexMemory = VK_NULL_HANDLE;
-    mesh.vertexCount = 0;
-    mesh.indexCount = 0;
-    mesh.vertexCapacity = 0;
-    mesh.indexCapacity = 0;
-}
-
-void EntityPipeline::_destroyMeshImmediate(EntityMesh& mesh)
-{
-    VkDevice device = m_device;
-
-    if (mesh.vertexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, mesh.vertexBuffer, nullptr);
-        mesh.vertexBuffer = VK_NULL_HANDLE;
-    }
-
-    if (mesh.vertexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, mesh.vertexMemory, nullptr);
-        mesh.vertexMemory = VK_NULL_HANDLE;
-    }
-
-    if (mesh.indexBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(device, mesh.indexBuffer, nullptr);
-        mesh.indexBuffer = VK_NULL_HANDLE;
-    }
-
-    if (mesh.indexMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, mesh.indexMemory, nullptr);
-        mesh.indexMemory = VK_NULL_HANDLE;
-    }
-
-    mesh.vertexCount = 0;
-    mesh.indexCount = 0;
-    mesh.vertexCapacity = 0;
-    mesh.indexCapacity = 0;
+    mesh = {};
 }
 
 void EntityPipeline::drawMesh(VkCommandBuffer cmd,
@@ -590,13 +576,13 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
         return;
     }
 
-    // 绑定顶点缓冲区
+    // 绑定顶点缓冲区（mega-buffer 段内偏移）
     VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
-    VkDeviceSize offsets[] = {0};
+    VkDeviceSize offsets[] = {mesh.vertexOffset};
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
 
-    // 绑定索引缓冲区
-    vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    // 绑定索引缓冲区（mega-buffer 段内偏移）
+    vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, mesh.indexOffset, VK_INDEX_TYPE_UINT32);
 
     // 推送常量 - 与着色器保持一致
     // struct PushConstants {
@@ -1108,124 +1094,119 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::_createBuffer(VkDeviceSize size,
-    VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties,
-    VkBuffer& buffer,
-    VkDeviceMemory& memory)
+u64 EntityPipeline::_alignUp(u64 size)
 {
-    return ::mc::client::renderer::VulkanUtils::createBuffer(
-        m_device, m_physicalDevice, size, usage, properties, buffer, memory);
+    return (size + kSubAllocAlign - 1) & ~(kSubAllocAlign - 1);
 }
 
-Result<void> EntityPipeline::_ensureReusableStagingBuffer(
-    VkDeviceSize requiredSize, VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize& capacity)
+Result<void> EntityPipeline::_createSegment(MegaBufferSegment& segment, VkDeviceSize capacity, VkBufferUsageFlags usage)
 {
-    if (requiredSize == 0) {
-        return Result<void>::ok();
-    }
-
-    if (buffer != VK_NULL_HANDLE && capacity >= requiredSize) {
-        return Result<void>::ok();
-    }
-
-    if (buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, buffer, nullptr);
-        buffer = VK_NULL_HANDLE;
-    }
-    if (memory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device, memory, nullptr);
-        memory = VK_NULL_HANDLE;
-    }
-    capacity = 0;
-
-    auto result = _createBuffer(requiredSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        buffer,
-        memory);
+    segment.capacity = capacity;
+    auto result = ::mc::client::renderer::VulkanUtils::createBuffer(m_device,
+        m_physicalDevice,
+        capacity,
+        usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        segment.buffer,
+        segment.memory);
     if (!result.success()) {
         return result.error();
     }
 
-    capacity = requiredSize;
+    // OffsetAllocator 容量上限为 u32；段容量 32MB/8MB 远在范围内。
+    segment.allocator = std::make_unique<OffsetAllocator::Allocator>(static_cast<u32>(capacity));
+    segment.localUsedBytes = 0;
+    segment.localFreeBytes = capacity;
     return Result<void>::ok();
 }
 
-Result<void> EntityPipeline::_uploadToDeviceBuffer(
-    const void* sourceData, VkDeviceSize size, VkBuffer destinationBuffer, bool useVertexStagingBuffer)
+Result<void> EntityPipeline::_subAllocate(std::vector<MegaBufferSegment>& segments,
+    VkDeviceSize segmentCapacity,
+    u64 alignedSize,
+    u32& outSegmentIndex,
+    OffsetAllocator::Allocation& outAllocation)
 {
-    if (sourceData == nullptr || destinationBuffer == VK_NULL_HANDLE || size == 0) {
-        return Error(ErrorCode::InvalidArgument, "Invalid upload arguments for EntityPipeline::_uploadToDeviceBuffer");
+    if (alignedSize == 0) {
+        return Error(ErrorCode::InvalidArgument, "EntityPipeline::_subAllocate: zero size");
     }
 
-    VkBuffer& stagingBuffer = useVertexStagingBuffer ? m_vertexStagingBuffer : m_indexStagingBuffer;
-    VkDeviceMemory& stagingMemory = useVertexStagingBuffer ? m_vertexStagingMemory : m_indexStagingMemory;
-    VkDeviceSize& stagingCapacity = useVertexStagingBuffer ? m_vertexStagingCapacity : m_indexStagingCapacity;
+    // 在已有段中寻找可容纳的空闲区间
+    // 注：OffsetAllocator::allocate 仅接受 size，无 align 参数。因所有请求经 _alignUp
+    // 向上取整到 kSubAllocAlign=16，且段从对齐的偏移 0 起按 16 倍数切分，
+    // 返回 offset 保持 16 倍数对齐（满足顶点/索引绑定偏移要求）。
+    for (u32 i = 0; i < segments.size(); ++i) {
+        auto& seg = segments[i];
+        OffsetAllocator::Allocation alloc = seg.allocator->allocate(static_cast<u32>(alignedSize));
+        if (alloc.offset != OffsetAllocator::Allocation::NO_SPACE) {
+            outSegmentIndex = i;
+            outAllocation = alloc;
+            seg.localUsedBytes += alignedSize;
+            seg.localFreeBytes -= alignedSize;
+            return Result<void>::ok();
+        }
+    }
 
-    auto result = _ensureReusableStagingBuffer(size, stagingBuffer, stagingMemory, stagingCapacity);
+    // 所有段均无足够连续空间，追加新段
+    // 若单次请求超过段容量，按对齐大小向上取整作为新段容量（罕见，如巨型实体 mesh）
+    const VkDeviceSize newCapacity = std::max<VkDeviceSize>(segmentCapacity, alignedSize);
+    MegaBufferSegment newSeg;
+    const VkBufferUsageFlags usage =
+        (&segments == &m_vertexSegments) ? VK_BUFFER_USAGE_VERTEX_BUFFER_BIT : VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    auto result = _createSegment(newSeg, newCapacity, usage);
     if (!result.success()) {
         return result.error();
     }
+    segments.push_back(std::move(newSeg));
+    auto& seg = segments.back();
 
-    void* mappedData = nullptr;
-    const VkResult mapResult = vkMapMemory(m_device, stagingMemory, 0, size, 0, &mappedData);
-    if (mapResult != VK_SUCCESS) {
-        return Error(ErrorCode::OperationFailed, "Failed to map reusable staging buffer memory");
+    OffsetAllocator::Allocation alloc = seg.allocator->allocate(static_cast<u32>(alignedSize));
+    if (alloc.offset == OffsetAllocator::Allocation::NO_SPACE) {
+        return Error(ErrorCode::OutOfMemory, "EntityPipeline::_subAllocate: fresh segment rejected allocation");
     }
-
-    std::memcpy(mappedData, sourceData, static_cast<size_t>(size));
-    vkUnmapMemory(m_device, stagingMemory);
-
-    _copyBuffer(stagingBuffer, destinationBuffer, size);
+    outSegmentIndex = static_cast<u32>(segments.size() - 1);
+    outAllocation = alloc;
+    seg.localUsedBytes += alignedSize;
+    seg.localFreeBytes -= alignedSize;
     return Result<void>::ok();
 }
 
-void EntityPipeline::_destroyReusableStagingBuffers()
+void EntityPipeline::_freeAllocation(
+    MegaBufferSegment& segment, const OffsetAllocator::Allocation& alloc, u64 alignedSize)
 {
-    if (m_vertexStagingBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, m_vertexStagingBuffer, nullptr);
-        m_vertexStagingBuffer = VK_NULL_HANDLE;
+    if (alloc.offset == OffsetAllocator::Allocation::NO_SPACE) {
+        return;
     }
-    if (m_vertexStagingMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device, m_vertexStagingMemory, nullptr);
-        m_vertexStagingMemory = VK_NULL_HANDLE;
-    }
-    m_vertexStagingCapacity = 0;
+    segment.allocator->free(alloc);
+    segment.localUsedBytes -= alignedSize;
+    segment.localFreeBytes += alignedSize;
 
-    if (m_indexStagingBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, m_indexStagingBuffer, nullptr);
-        m_indexStagingBuffer = VK_NULL_HANDLE;
-    }
-    if (m_indexStagingMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device, m_indexStagingMemory, nullptr);
-        m_indexStagingMemory = VK_NULL_HANDLE;
-    }
-    m_indexStagingCapacity = 0;
+    // 守恒断言：OffsetAllocator 报告的空闲空间应与本地记账一致
+    const u64 reported = segment.allocator->storageReport().totalFreeSpace;
+    MC_ASSERT_RELEASE_MSG(reported == segment.localFreeBytes,
+        "EntityPipeline mega-buffer segment conservation mismatch: OffsetAllocator free space disagrees with local "
+        "bookkeeping");
 }
 
-void EntityPipeline::_copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+Result<void> EntityPipeline::_uploadViaStagingPool(
+    const void* sourceData, u64 size, VkBuffer dstBuffer, VkDeviceSize dstOffset)
 {
-    VkCommandBuffer cmd = _beginSingleTimeCommands();
+    if (sourceData == nullptr || dstBuffer == VK_NULL_HANDLE || size == 0) {
+        return Error(ErrorCode::InvalidArgument, "EntityPipeline::_uploadViaStagingPool: invalid arguments");
+    }
 
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = 0;
-    copyRegion.size = size;
-    vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
+    auto* pool = m_context ? m_context->stagingPool() : nullptr;
+    if (pool == nullptr) {
+        return Error(ErrorCode::NotInitialized, "EntityPipeline: staging pool not available");
+    }
 
-    _endSingleTimeCommands(cmd);
-}
-
-VkCommandBuffer EntityPipeline::_beginSingleTimeCommands()
-{
-    return ::mc::client::renderer::VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
-}
-
-void EntityPipeline::_endSingleTimeCommands(VkCommandBuffer cmd)
-{
-    // 使用 fence 版本，避免阻塞整个 GPU 队列
-    ::mc::client::renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
+    auto handle = pool->stage(size);
+    if (!handle.valid) {
+        return Error(ErrorCode::OutOfMemory, "EntityPipeline: staging pool out of space");
+    }
+    std::memcpy(handle.mappedPtr, sourceData, static_cast<size_t>(size));
+    auto result = pool->copyToBuffer(handle, dstBuffer, dstOffset);
+    pool->release(handle);
+    return result;
 }
 
 } // namespace mc::client::renderer::entity::pipeline
