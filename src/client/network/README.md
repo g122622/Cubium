@@ -175,3 +175,26 @@ std::function<void(const network::BlockEntityDataPacket& packet)> onBlockEntityD
 - NBT 反序列化失败时 `ClientWorld::onBlockEntityData` 会记录警告日志并跳过，不创建实体。
 - 未注册类型的 BlockEntity（如 `BlockEntityType::Count`）会因 `BlockEntityRegistry::create()` 返回 `nullptr` 而跳过创建。
 - 维度切换时 `ClientWorld::clearChunks()` 会一并清空所有客户端 BlockEntity 存储。
+
+### 10. 区块包零拷贝下沉与缓冲保活（onChunkData）
+
+`onChunkData` 回调携带的不是一份拷贝的 `vector<u8>`，而是**原始网络接收缓冲的视图** + 一个 `shared_ptr<vector<u8>>` 保活句柄：
+
+```cpp
+std::function<void(ChunkCoord x, ChunkCoord z, DimensionId dimension,
+                   const u8* data, size_t size,
+                   std::shared_ptr<std::vector<u8>> buffer)> onChunkData;
+```
+
+**为什么是视图而不是拷贝**：区块包 payload 平均 ~150KB，主线程每秒数百个。早期实现里 `ChunkDataPacket::deserialize` 的 `readBytes(size)` 会把 payload `malloc+memcpy` 进 `vector`（主线程 75ms 热点），随后 `ClientWorld::onChunkData` 又拷贝一次。现在 `_handleChunkData` 只手读包头（x/z/dimension/size，十几个字节），payload 直接以 `deser.currentPosition()` 视图交给回调，下沉到 worker 反序列化，两次拷贝全部消除。
+
+**保活机制（核心，UAF 风险）**：`_processIncomingData` 把 `m_packetBuffer` 搬进一个 `shared_ptr<vector<u8>>`，所有包的 body 视图都指向它的内部内存。区块包路径会把这个 `shared_ptr` 沿 `_processPacket → _handleChunkData → onChunkData → worker 任务 lambda` 一路 move 下去，引用计数保活到 worker 反序列化完成。**只有 `ChunkData` 包需要异步下沉 worker**，其他包类型同步处理完即随作用域释放自己的 `shared_ptr` 副本。
+
+**两条接收路径的保活差异**：
+- **TCP 模式**：`_processIncomingData` 一次性把整批 `m_packetBuffer` 搬进一个 `shared_ptr`，循环内多个包共用同一保活对象（各自 body 视图指向其内不同区间，只读共享安全）。
+- **本地连接模式**：`m_localEndpoint->receive(vector)` 每次 overwrite 入参 vector 的内容（非 append），故 `poll()` 里**每包新建独立 `shared_ptr`** 再 `receive(*buffer)`，使下沉到 worker 的 payload 视图不被后续包覆盖。
+
+**踩坑**：
+- 任何新增的「区块包路径」分支都必须把 `shared_ptr` 传到位，否则 `_processIncomingData`/`poll` 返回后原始缓冲析构，worker 读到的视图悬垂 → UAF。`_handleChunkData` 不再调用 `ChunkDataPacket::deserialize`（消除 `readBytes` 拷贝），改为手读 header + `currentPosition()` 视图。
+- 回调实现方（`ClientApplicationNetwork`）必须把 `buffer` `std::move` 进 `ClientWorld::onChunkData`，不能再像旧代码那样 `std::vector<u8>(data)` 拷贝一份（那会重新引入被消除的拷贝）。
+

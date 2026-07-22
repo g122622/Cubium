@@ -24,9 +24,9 @@
 #pragma once
 
 #include "../../core/Result.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../packet/ProtocolPackets.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -45,6 +45,8 @@ public:
 
     // 反序列化区块数据
     static Result<std::unique_ptr<ChunkData>> deserializeChunk(ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
+    /** 直接对原始字节缓冲反序列化（零拷贝视图，不拥有 data 生命周期，调用方负责保活）。 */
+    static Result<std::unique_ptr<ChunkData>> deserializeChunk(ChunkCoord x, ChunkCoord z, const u8* data, size_t size);
     static Result<std::unique_ptr<ChunkSection>> deserializeChunkSection(const u8* data, size_t size);
 
     // 计算序列化后的大小

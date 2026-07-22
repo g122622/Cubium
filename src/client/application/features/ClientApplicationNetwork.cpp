@@ -291,8 +291,13 @@ void ClientApplication::setupNetworkCallbacks()
         m_lastSentPitch = pitch;
     };
 
-    callbacks.onChunkData = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data) {
-        m_world.onChunkData(x, z, dimension, std::vector<u8>(data));
+    callbacks.onChunkData = [this](ChunkCoord x,
+                                ChunkCoord z,
+                                DimensionId dimension,
+                                const u8* data,
+                                size_t size,
+                                std::shared_ptr<std::vector<u8>> buffer) {
+        m_world.onChunkData(x, z, dimension, data, size, std::move(buffer));
     };
 
     callbacks.onChunkUnload = [this](ChunkCoord x, ChunkCoord z, DimensionId dimension) {

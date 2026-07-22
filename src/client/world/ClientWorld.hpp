@@ -239,7 +239,18 @@ public:
      */
     void resetWeather();
 
-    void onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data);
+    void onChunkData(ChunkCoord x,
+        ChunkCoord z,
+        DimensionId dimension,
+        const u8* data,
+        size_t size,
+        std::shared_ptr<std::vector<u8>> buffer);
+    /// vector 便捷重载（测试/同步路径用）：内部包成 shared_ptr 保活后转发到指针主版本。
+    void onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8> data)
+    {
+        auto buffer = std::make_shared<std::vector<u8>>(std::move(data));
+        onChunkData(x, z, dimension, buffer->data(), buffer->size(), std::move(buffer));
+    }
     void onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
     /**
@@ -594,7 +605,8 @@ private:
     /// 将反序列化完成的 ChunkData 应用到 ClientChunk 并调度网格重建（主线程）。
     void _applyChunkData(const ChunkId& id, std::shared_ptr<ChunkData> data);
     /// fallback 同步反序列化路径（m_computeWorkerPool 未注入时，测试/启动早期）。
-    void _applyDeserializedChunk(ChunkCoord x, ChunkCoord z, std::vector<u8> data);
+    /// data 指针由调用方保活（onChunkData 栈上的 shared_ptr buffer）。
+    void _applyDeserializedChunk(ChunkCoord x, ChunkCoord z, const u8* data, size_t size);
     /// 主线程 drain worker 反序列化续延队列，代际过滤后调 _applyChunkData。
     void _processPendingDeserializedChunks();
 

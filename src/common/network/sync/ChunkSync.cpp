@@ -177,11 +177,17 @@ std::vector<u8> ChunkSerializer::serializeSection(const ChunkSection& section)
 Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
 {
+    return deserializeChunk(x, z, data.data(), data.size());
+}
+
+Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
+    ChunkCoord x, ChunkCoord z, const u8* data, size_t size)
+{
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ChunkSerializer::deserializeChunk",
         [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
-    PacketDeserializer deser(data.data(), data.size());
+    PacketDeserializer deser(data, size);
 
     auto chunk = std::make_unique<ChunkData>(x, z);
 

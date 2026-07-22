@@ -97,7 +97,13 @@ struct NetworkClientCallbacks {
 
     // 游戏事件
     std::function<void(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)> onTeleport;
-    std::function<void(ChunkCoord x, ChunkCoord z, DimensionId dimension, const std::vector<u8>& data)> onChunkData;
+    std::function<void(ChunkCoord x,
+        ChunkCoord z,
+        DimensionId dimension,
+        const u8* data,
+        size_t size,
+        std::shared_ptr<std::vector<u8>> buffer)>
+        onChunkData;
     std::function<void(ChunkCoord x, ChunkCoord z, DimensionId dimension)> onChunkUnload;
     std::function<void(PlayerId playerId, const std::string& username, f64 x, f64 y, f64 z)> onPlayerSpawn;
     std::function<void(PlayerId playerId)> onPlayerDespawn;
@@ -461,7 +467,9 @@ private:
     // 内部方法
     void _receiveLoop();
     void _processIncomingData();
-    void _processPacket(const u8* data, size_t size);
+    /** @param buffer 保活原始接收缓冲的 shared_ptr；仅 ChunkData 包路径会随 payload 视图下沉
+     * worker，其他包类型同步处理完即释放。 */
+    void _processPacket(const u8* data, size_t size, std::shared_ptr<std::vector<u8>> buffer);
     void _sendRawData(const u8* data, size_t size);
     void _sendPacket(const std::vector<u8>& packetData);
     void _setState(ClientState state);
@@ -469,7 +477,7 @@ private:
     void _handleLoginResponse(network::PacketDeserializer& deser);
     void _handleCommandTree(const u8* data, size_t size);
     void _handleTeleport(network::PacketDeserializer& deser);
-    void _handleChunkData(network::PacketDeserializer& deser);
+    void _handleChunkData(network::PacketDeserializer& deser, std::shared_ptr<std::vector<u8>> buffer);
     void _handleUnloadChunk(network::PacketDeserializer& deser);
     void _handlePlayerSpawn(network::PacketDeserializer& deser);
     void _handlePlayerDespawn(network::PacketDeserializer& deser);

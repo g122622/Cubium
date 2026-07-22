@@ -521,10 +521,15 @@ void NetworkClient::poll()
     if (!m_running) return;
 
     if (m_localEndpoint) {
-        // 本地连接模式：直接从队列读取
-        std::vector<u8> data;
-        while (m_localEndpoint->receive(data)) {
-            _processPacket(data.data(), data.size());
+        // 本地连接模式：直接从队列读取。
+        // receive() 每次 overwrite 入参 vector 的内容（非 append），故每包新建独立 shared_ptr 保活，
+        // 使下沉到 worker 的 payload 视图不被后续包覆盖。TCP 模式则是整批共用一个 shared_ptr（见
+        // _processIncomingData）。
+        while (true) {
+            auto buffer = std::make_shared<std::vector<u8>>();
+            if (!m_localEndpoint->receive(*buffer)) break;
+
+            _processPacket(buffer->data(), buffer->size(), buffer);
             m_packetsReceived++;
         }
 
@@ -572,19 +577,22 @@ void NetworkClient::_processIncomingData()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_processIncomingData");
 
-    std::vector<u8> dataToProcess;
+    // 用 shared_ptr 持有接收缓冲：区块包路径会把 payload 视图下沉到 worker，
+    // worker 执行时本函数可能已返回，必须靠引用计数保活原始缓冲，避免 UAF。
+    // TCP 模式一次性把 m_packetBuffer 整体搬进 shared_ptr，循环内多个包共用同一保活对象。
+    auto dataToProcess = std::make_shared<std::vector<u8>>();
     {
         std::lock_guard<std::mutex> lock(m_receiveMutex);
-        dataToProcess = std::move(m_packetBuffer);
+        *dataToProcess = std::move(m_packetBuffer);
         m_packetBuffer.clear();
     }
 
     size_t offset = 0;
-    while (offset + network::PACKET_HEADER_SIZE <= dataToProcess.size()) {
+    while (offset + network::PACKET_HEADER_SIZE <= dataToProcess->size()) {
         // 读取包大小
-        u32 packetSize = (static_cast<u32>(dataToProcess[offset]) << 24) |
-            (static_cast<u32>(dataToProcess[offset + 1]) << 16) | (static_cast<u32>(dataToProcess[offset + 2]) << 8) |
-            static_cast<u32>(dataToProcess[offset + 3]);
+        u32 packetSize = (static_cast<u32>((*dataToProcess)[offset]) << 24) |
+            (static_cast<u32>((*dataToProcess)[offset + 1]) << 16) |
+            (static_cast<u32>((*dataToProcess)[offset + 2]) << 8) | static_cast<u32>((*dataToProcess)[offset + 3]);
 
         if (packetSize > mc::network::MAX_PACKET_SIZE) {
             spdlog::error("Packet too large: {} bytes (max: {})", packetSize, mc::network::MAX_PACKET_SIZE);
@@ -592,26 +600,26 @@ void NetworkClient::_processIncomingData()
             return;
         }
 
-        if (offset + packetSize > dataToProcess.size()) {
+        if (offset + packetSize > dataToProcess->size()) {
             // 数据不完整，等待更多数据
             break;
         }
 
-        // 处理完整数据包
-        _processPacket(dataToProcess.data() + offset, packetSize);
+        // 处理完整数据包（shared_ptr 副本随包下沉，仅区块包路径会用到，其他包类型同步处理完即随作用域释放）
+        _processPacket(dataToProcess->data() + offset, packetSize, dataToProcess);
         m_packetsReceived++;
 
         offset += packetSize;
     }
 
     // 保留未处理的数据
-    if (offset < dataToProcess.size()) {
+    if (offset < dataToProcess->size()) {
         std::lock_guard<std::mutex> lock(m_receiveMutex);
-        m_packetBuffer.insert(m_packetBuffer.begin(), dataToProcess.begin() + offset, dataToProcess.end());
+        m_packetBuffer.insert(m_packetBuffer.begin(), dataToProcess->begin() + offset, dataToProcess->end());
     }
 }
 
-void NetworkClient::_processPacket(const u8* data, size_t size)
+void NetworkClient::_processPacket(const u8* data, size_t size, std::shared_ptr<std::vector<u8>> buffer)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_processPacket", "size", size);
 
@@ -669,7 +677,7 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
         }
 
         case network::PacketType::ChunkData: {
-            _handleChunkData(bodyDeser);
+            _handleChunkData(bodyDeser, std::move(buffer));
             break;
         }
 
@@ -1052,25 +1060,63 @@ void NetworkClient::_handleTeleport(network::PacketDeserializer& deser)
     }
 }
 
-void NetworkClient::_handleChunkData(network::PacketDeserializer& deser)
+void NetworkClient::_handleChunkData(network::PacketDeserializer& deser, std::shared_ptr<std::vector<u8>> buffer)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network, "NetworkClient::_handleChunkData");
 
-    auto result = network::ChunkDataPacket::deserialize(deser);
-    if (result.failed()) {
+    // 手读 ChunkData 包头（x/z/dimension/size），不再走 ChunkDataPacket::deserialize，
+    // 避免其 readBytes(size) 把 payload malloc+memcpy 进 vector（75ms 热点根因）。
+    // payload 直接以原始网络缓冲的视图下沉 worker，由 shared_ptr buffer 保活。
+    auto xResult = deser.readI32();
+    if (xResult.failed()) {
+        spdlog::error("[NetworkClient::_handleChunkData] Failed to read chunk x: {}", xResult.error().message());
+        return;
+    }
+    ChunkCoord x = xResult.value();
+
+    auto zResult = deser.readI32();
+    if (zResult.failed()) {
+        spdlog::error("[NetworkClient::_handleChunkData] Failed to read chunk z: {}", zResult.error().message());
+        return;
+    }
+    ChunkCoord z = zResult.value();
+
+    auto dimResult = deser.readI32();
+    if (dimResult.failed()) {
+        spdlog::error("[NetworkClient::_handleChunkData] Failed to read dimension: {}", dimResult.error().message());
+        return;
+    }
+    DimensionId dimension = dimResult.value();
+
+    auto sizeResult = deser.readVarUInt();
+    if (sizeResult.failed()) {
         spdlog::error(
-            "[NetworkClient::_handleChunkData] Failed to deserialize chunk data packet: {}", result.error().message());
+            "[NetworkClient::_handleChunkData] Failed to read chunk data size: {}", sizeResult.error().message());
+        return;
+    }
+    u32 dataSize = sizeResult.value();
+
+    if (dataSize > network::protocol::MAX_CHUNK_DATA_SIZE) {
+        spdlog::error("[NetworkClient::_handleChunkData] Chunk data too large: {} bytes (max: {})",
+            dataSize,
+            network::protocol::MAX_CHUNK_DATA_SIZE);
         return;
     }
 
-    auto& packet = result.value();
+    if (dataSize > deser.remaining()) {
+        spdlog::error("[NetworkClient::_handleChunkData] Chunk data truncated: need {} bytes, only {} remaining",
+            dataSize,
+            deser.remaining());
+        return;
+    }
 
     if (m_callbacks.onChunkData) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
             "NetworkClient::_handleChunkDataCallback",
             "pos",
-            fmt::format("({}, {})", packet.x(), packet.z()));
-        m_callbacks.onChunkData(packet.x(), packet.z(), packet.dimension(), packet.data());
+            fmt::format("({}, {})", x, z));
+        // currentPosition() 指向 header 读完后的 payload 起点；buffer 随回调 move 入 worker 保活。
+        m_callbacks.onChunkData(x, z, dimension, deser.currentPosition(), dataSize, std::move(buffer));
     }
 }
 

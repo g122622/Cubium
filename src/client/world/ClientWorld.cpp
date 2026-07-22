@@ -606,7 +606,12 @@ void ClientWorld::_getNeighborChunks(const ChunkId& id, const ChunkData* neighbo
     neighbors[5] = nullptr;
 }
 
-void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8>&& data)
+void ClientWorld::onChunkData(ChunkCoord x,
+    ChunkCoord z,
+    DimensionId dimension,
+    const u8* data,
+    size_t size,
+    std::shared_ptr<std::vector<u8>> buffer)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
         "ClientWorld::onChunkData",
@@ -617,7 +622,7 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
         "dimension",
         static_cast<i32>(dimension),
         "dataSize",
-        data.size());
+        size);
 
     if (dimension != m_dimensionId) {
         spdlog::warn("Received chunk data for dimension {} but current dimension is {}, discarding chunk ({}, {})",
@@ -629,24 +634,27 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
     }
 
     // worker 池未注入（测试/启动早期）：主线程同步反序列化。
+    // buffer 此刻仍在栈上保活，直接传指针即可。
     if (m_computeWorkerPool == nullptr) {
-        _applyDeserializedChunk(x, z, std::move(data));
+        _applyDeserializedChunk(x, z, data, size);
         return;
     }
 
-    // 异步反序列化：raw 字节流 move 入 worker，产出全新 ChunkData（不读客户端现有数据，无共享写竞争，完全并行）。
+    // 异步反序列化：payload 以原始网络缓冲的视图下沉 worker，由 shared_ptr buffer 保活到 worker 完成。
+    // worker 产出全新 ChunkData（不读客户端现有数据，无共享写竞争，完全并行）。
     // 代际号用于丢弃过期结果（同坐标重发包时旧任务的结果不应覆盖新数据）。
     const ChunkId id(x, z, 0);
     const u64 generation = ++m_chunkDeserializeGeneration[id];
     auto task = std::make_unique<util::FunctionTask>(
         util::TaskType::Custom,
         fmt::format("DeserializeChunk({},{})", x, z),
-        [this, x, z, id, generation, data = std::move(data)](const std::atomic<bool>& abortSignal) -> bool {
+        [this, x, z, id, generation, dataPtr = data, dataSize = size, buffer = std::move(buffer)](
+            const std::atomic<bool>& abortSignal) -> bool {
             // 任务可能被取消（维度切换/关服），检查后安全跳过。
             if (abortSignal.load(std::memory_order_acquire)) {
                 return false;
             }
-            auto result = network::ChunkSerializer::deserializeChunk(x, z, data);
+            auto result = network::ChunkSerializer::deserializeChunk(x, z, dataPtr, dataSize);
             if (result.failed()) {
                 spdlog::error("Failed to deserialize chunk ({}, {}): {}", x, z, result.error().message());
                 return true;
@@ -666,9 +674,9 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
     m_computeWorkerPool->submit(std::move(task), /*callback=*/nullptr, util::TaskPriority::Normal);
 }
 
-void ClientWorld::_applyDeserializedChunk(ChunkCoord x, ChunkCoord z, std::vector<u8> data)
+void ClientWorld::_applyDeserializedChunk(ChunkCoord x, ChunkCoord z, const u8* data, size_t size)
 {
-    auto result = network::ChunkSerializer::deserializeChunk(x, z, data);
+    auto result = network::ChunkSerializer::deserializeChunk(x, z, data, size);
     if (result.failed()) {
         spdlog::error("Failed to deserialize chunk ({}, {}): {}", x, z, result.error().message());
         return;

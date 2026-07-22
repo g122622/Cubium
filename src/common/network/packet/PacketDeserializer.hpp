@@ -83,6 +83,8 @@ public:
     size_t size() const { return m_size; }
     size_t remaining() const { return m_size - m_readPos; }
     bool hasRemaining(size_t bytes) const { return remaining() >= bytes; }
+    /** 当前读取位置指针（已读 cursor 处），用于获取连续读取后的剩余数据视图。 */
+    const u8* currentPosition() const noexcept { return m_data + m_readPos; }
     void reset() { m_readPos = 0; }
 
 private:
