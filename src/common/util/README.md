@@ -67,7 +67,7 @@ util/
 │   └── README.md
 ├── thread/                        # 线程工具（详见 README.md）
 │   ├── ITask.hpp                  # 任务接口
-│   ├── ServerWorkerPool.hpp/cpp   # 服务端任务池
+│   ├── UniversalWorkerPool.hpp/cpp   # 服务端任务池
 │   └── README.md
 ├── AxisAlignedBB.hpp/cpp          # 轴对齐包围盒
 ├── CompressionUtils.hpp/cpp       # gzip 压缩/解压

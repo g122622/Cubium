@@ -26,7 +26,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -68,7 +68,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
-        m_workerPool = std::make_unique<util::ServerWorkerPool>(2, "RuntimeLightTestWorker");
+        m_workerPool = std::make_unique<util::UniversalWorkerPool>(2, "RuntimeLightTestWorker", 900);
 
         ServerWorldConfig config;
         config.seed = 12345;
@@ -118,7 +118,7 @@ protected:
         }
     }
 
-    std::unique_ptr<util::ServerWorkerPool> m_workerPool;
+    std::unique_ptr<util::UniversalWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
     ServerChunkManager* m_manager = nullptr;
     world::storage::SingleLevelStorageManager m_storage;

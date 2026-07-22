@@ -8,7 +8,7 @@
 loader/
 ├── SkinLoader.hpp           # ISkinLoader 接口和 SkinLoadResult 定义
 ├── SkinLoader.cpp           # ISkinLoader 实现
-├── FileSkinLoader.hpp       # 本地文件/资源包加载器（支持异步加载，可注入 ServerWorkerPool）
+├── FileSkinLoader.hpp       # 本地文件/资源包加载器（支持异步加载，可注入 UniversalWorkerPool）
 ├── FileSkinLoader.cpp       # 包含 PNG 解码（stb_image）、尺寸验证（64x64/64x32）、旧版转换和 PNG 编码（stb_image_write）
 ├── HttpSkinLoader.hpp       # HTTP 远程加载器（textures.minecraft.net，支持异步加载）
 └── HttpSkinLoader.cpp       # HTTP 加载器框架（下载功能待实现）
@@ -18,8 +18,8 @@ loader/
 
 ```
 ISkinLoader（接口）
-├── FileSkinLoader ── 依赖 stb_image / stb_image_write / Sha1 / ServerWorkerPool（可选注入）
-└── HttpSkinLoader ── 依赖 Sha1 / ServerWorkerPool（可选注入，_httpGet 待实现）
+├── FileSkinLoader ── 依赖 stb_image / stb_image_write / Sha1 / UniversalWorkerPool（可选注入）
+└── HttpSkinLoader ── 依赖 Sha1 / UniversalWorkerPool（可选注入，_httpGet 待实现）
 ```
 
 ## 上下游外部依赖关系
@@ -29,7 +29,7 @@ ISkinLoader（接口）
 - `common/skin/core` - SkinLoadResult、SkinTextures
 - `common/resource` - IResourcePack、ResourceLocation
 - `common/util/crypto` - Sha1（缓存键哈希）
-- `common/util/thread` - ServerWorkerPool、ITask、FunctionTask（异步加载）
+- `common/util/thread` - UniversalWorkerPool、ITask、FunctionTask（异步加载）
 - `stb_image` - PNG 解码
 - `stb_image_write` - PNG 编码
 - `spdlog` - 日志
@@ -51,7 +51,7 @@ ISkinLoader（接口）
 
 ### 异步加载与线程池注入
 
-`loadAsync` 通过注入的 `ServerWorkerPool` 实现真正的异步加载：
+`loadAsync` 通过注入的 `UniversalWorkerPool` 实现真正的异步加载：
 - 必须在 `initialize()` 之前调用 `setWorkerPool()` 注入线程池
 - 线程池由调用方拥有，生命周期必须长于加载器（或在 `shutdown()` 后释放）
 - 未注入线程池时，`loadAsync` 降级为同步执行后立即回调

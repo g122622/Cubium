@@ -129,7 +129,7 @@ void tick() {
 - **根 track descriptor（uuid=0）** 上设 `thread_ordering = THREAD_ORDERING_EXPLICIT`，由 `PerfettoBackend::startTracing` 用 `Track::Global(0)` 发出。**禁止用 `Track(0)`**——它会与 per-process 随机 cookie 异或得到非 0 uuid，根 track 失效。
 - 每个线程 track descriptor 上设 `sibling_order_rank`（`PerfettoBackend::setThreadName` 内部完成），值越小越靠前；未设默认 0（排最前），故命名线程显式给 1-100 避免意外排前。
 - 固定线程 rank：`MemoryTrace=1`、`ClientMainThread=2`、`IntegratedServerThread=3`、`AudioEngineWorker=4`、`ServerMainThread=5`。
-- worker 池用 `rankBase + workerId` 精确排序，三组分块排列、组内按 workerId 升序：`ServerCompute-N` = 100+N，`ServerIO-N` = 200+N，`ChunkMeshWorker-N` = 300+N。每组间隔 100，避免线程数 >10 时跨组相交。UI 顺序为 ServerCompute → ServerIO → ChunkMeshWorker。`ServerWorkerPool::workerThread` 按 `m_poolName`（`"ServerCompute"`/`"ServerIO"`）选 rankBase；`MeshWorkerPool` 固定 300。
+- worker 池用 `rankBase + workerId` 精确排序，三组分块排列、组内按 workerId 升序：`ServerCompute-N` = 100+N，`ServerIO-N` = 200+N，`ClientCompute-N` = 300+N。每组间隔 100，避免线程数 >10 时跨组相交。UI 顺序为 ServerCompute → ServerIO → ClientCompute。`UniversalWorkerPool` 的 `rankBase` 为构造参数（ServerCompute=100、ServerIO=200、ClientCompute=300），由各宿主显式指定。
 - trace processor 对同 uuid descriptor 是 first-proto-wins，重复发无副作用，但根 track 只在 startTracing 发一次。
 
 ### 根 track descriptor 必须直接写 packet（不能只用 SetTrackDescriptor）

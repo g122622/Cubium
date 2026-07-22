@@ -23,7 +23,7 @@
 
 #include "common/skin/loader/FileSkinLoader.hpp"
 #include "common/skin/loader/HttpSkinLoader.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -180,7 +180,7 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithoutPoolErrorPropagated)
 
 TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolCompletes)
 {
-    ServerWorkerPool pool(2, "SkinTestWorker");
+    UniversalWorkerPool pool(2, "SkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -211,7 +211,7 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolCompletes)
 
 TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsValidData)
 {
-    ServerWorkerPool pool(2, "SkinTestWorker");
+    UniversalWorkerPool pool(2, "SkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -246,7 +246,7 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsValidData)
 
 TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolErrorPropagated)
 {
-    ServerWorkerPool pool(2, "SkinTestWorker");
+    UniversalWorkerPool pool(2, "SkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -285,7 +285,7 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncWithPoolErrorPropagated)
 
 TEST_F(FileSkinLoaderAsyncTest, LoadAsyncMultipleConcurrent)
 {
-    ServerWorkerPool pool(4, "SkinTestWorker");
+    UniversalWorkerPool pool(4, "SkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -331,7 +331,7 @@ TEST_F(FileSkinLoaderAsyncTest, LoadAsyncMultipleConcurrent)
 
 TEST_F(FileSkinLoaderAsyncTest, CancelAllSetsAbortSignals)
 {
-    ServerWorkerPool pool(2, "SkinTestWorker");
+    UniversalWorkerPool pool(2, "SkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -366,7 +366,7 @@ TEST_F(FileSkinLoaderAsyncTest, CancelAllSetsAbortSignals)
 
 TEST_F(FileSkinLoaderAsyncTest, ShutdownWaitsForPendingTasks)
 {
-    ServerWorkerPool pool(2, "SkinTestWorker");
+    UniversalWorkerPool pool(2, "SkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -449,7 +449,7 @@ TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithoutPoolReturnsUnsupported)
 
 TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsUnsupported)
 {
-    ServerWorkerPool pool(2, "HttpSkinTestWorker");
+    UniversalWorkerPool pool(2, "HttpSkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 
@@ -499,7 +499,7 @@ TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncBeforeInitializeReturnsError)
 
 TEST_F(HttpSkinLoaderAsyncTest, ShutdownWaitsForPendingTasks)
 {
-    ServerWorkerPool pool(2, "HttpSkinTestWorker");
+    UniversalWorkerPool pool(2, "HttpSkinTestWorker", 900);
     pool.start();
     loader_->setWorkerPool(&pool);
 

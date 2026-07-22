@@ -43,7 +43,7 @@ class ServerWorld;
  * @brief 运行时方块变更在 worker 线程传播用的光照提供者
  *
  * ③-1 阶段：运行时方块变更的光照传播从主线程同步搬到 worker 线程
- * （经 ServerWorkerPool 区域互斥池 writeRadius=2 提交）。本 provider 是
+ * （经 UniversalWorkerPool 区域互斥池 writeRadius=2 提交）。本 provider 是
  * worker 任务执行期间访问区块数据的适配层，与 LIGHT 生成阶段用的
  * ChunkLightingProvider 同构，但职责不同：
  *

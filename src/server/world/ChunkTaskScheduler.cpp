@@ -49,8 +49,8 @@ using mc::world::chunk::SingleChunkLifecycleManager;
 
 ChunkTaskScheduler::ChunkTaskScheduler(ServerChunkManager& manager,
     ServerWorld* world,
-    util::ServerWorkerPool* parallelGenExecutor,
-    util::ServerWorkerPool* radiusAwareExecutor)
+    util::UniversalWorkerPool* parallelGenExecutor,
+    util::UniversalWorkerPool* radiusAwareExecutor)
     : m_manager(manager)
     , m_world(world)
     , m_parallelGenExecutor(parallelGenExecutor)
@@ -74,7 +74,7 @@ i32 ChunkTaskScheduler::getMaxAccessRadius()
     return getAccessRadius(ChunkStatuses::FULL);
 }
 
-util::ServerWorkerPool* ChunkTaskScheduler::selectExecutor(const ChunkStatus& status)
+util::UniversalWorkerPool* ChunkTaskScheduler::selectExecutor(const ChunkStatus& status)
 {
     const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
     const ChunkStep& step = pyramid.getStepTo(status);
@@ -275,7 +275,7 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
     std::shared_ptr<std::atomic<bool>> abortSignal,
     std::shared_ptr<SingleChunkLifecycleManager> holder)
 {
-    util::ServerWorkerPool* pool = selectExecutor(status);
+    util::UniversalWorkerPool* pool = selectExecutor(status);
     const ChunkCoord centerX = x;
     const ChunkCoord centerZ = z;
 

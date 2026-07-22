@@ -41,32 +41,35 @@
 namespace mc::util {
 
 /**
- * @brief 服务端通用任务池
+ * @brief 通用任务池
  *
- * 支持优先级调度、协作取消、Perfetto追踪的多线程任务池。
+ * 服务端与客户端共用的通用多线程任务池。支持优先级调度、协作取消、Perfetto追踪。
+ * 由各宿主（MinecraftServer 的 ServerCompute/ServerIO、ClientApplication 的 ClientCompute 等）
+ * 以值成员持有，生命周期绑定宿主。
  *
  * 特性：
  * - 优先级队列调度（数值越小优先级越高）
  * - 协作取消机制（通过 atomic<bool> 取消令牌）
+ * - 区域互斥（对齐 Moonrise 区域锁执行器，见带坐标的 submit 重载）
  * - Perfetto追踪集成
- * - 线程命名（用于调试）
+ * - 线程命名（用于调试；rankBase 决定 profiler 中线程排序分组）
  *
  * 使用方法：
  * @code
- * ServerWorkerPool pool(4, "ServerWorker");
+ * UniversalWorkerPool pool(4, "ServerWorker", 200);
  * pool.start();
  *
  * // 提交任务
  * auto task = std::make_unique<MyTask>();
  * pool.submit(std::move(task),
- *             [](bool success) {  },
+ *             [](bool success, ITask*) { },
  *             TaskPriority::Normal);
  *
  * // 关闭
  * pool.shutdown();
  * @endcode
  */
-class ServerWorkerPool {
+class UniversalWorkerPool {
 public:
     // ============================================================================
     // 构造与析构
@@ -77,14 +80,16 @@ public:
      *
      * @param threadCount 线程数量，-1 表示自动检测（硬件并发数的一半）
      * @param name 线程名称前缀（用于调试和追踪）
+     * @param rankBase profiler 线程排序基准（rankBase + workerId），各组间隔 100。
+     *                  约定：ServerCompute=100、ServerIO=200、ClientCompute=300。
      */
-    explicit ServerWorkerPool(i32 threadCount = -1, std::string name = "ServerWorker");
+    explicit UniversalWorkerPool(i32 threadCount, std::string name, i32 rankBase);
 
-    ~ServerWorkerPool();
+    ~UniversalWorkerPool();
 
     // 禁止拷贝
-    ServerWorkerPool(const ServerWorkerPool&) = delete;
-    ServerWorkerPool& operator=(const ServerWorkerPool&) = delete;
+    UniversalWorkerPool(const UniversalWorkerPool&) = delete;
+    UniversalWorkerPool& operator=(const UniversalWorkerPool&) = delete;
 
     // ============================================================================
     // 生命周期
@@ -339,6 +344,7 @@ private:
     std::vector<std::thread> m_workers;
     std::string m_poolName;
     i32 m_threadCount;
+    i32 m_rankBase;
 
     // 任务队列
     std::priority_queue<std::shared_ptr<InternalTask>, std::vector<std::shared_ptr<InternalTask>>, TaskComparator>

@@ -25,6 +25,8 @@
 
 #include "../renderer/MeshTypes.hpp"
 #include "../renderer/mesh/MeshBuildScheduler.hpp"
+#include "../renderer/mesh/MeshDataPool.hpp"
+#include "../renderer/mesh/MeshResultQueue.hpp"
 #include "../renderer/trident/particle/data/ParticleData.hpp"
 #include "ClientWeather.hpp"
 #include "common/core/Result.hpp"
@@ -36,6 +38,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/Block.hpp"
@@ -95,8 +98,6 @@ public:
     bool meshRebuildPending = false;
     bool isLoaded = false;
     u64 activeMeshTaskId = 0;
-    /// 构建该 chunk 最新网格的 worker 索引，上传后按此把 MeshData 归还对应 worker 桶复用 capacity。
-    i32 lastWorkerId = -1;
 };
 
 /**
@@ -289,12 +290,14 @@ public:
      */
     void setDifficultyLocked(bool locked) { m_difficultyLocked = locked; }
 
-    void initializeMeshSystem(i32 threadCount, const MeshSchedulerConfig& schedulerConfig);
+    void initializeMeshSystem(util::UniversalWorkerPool& workerPool,
+        std::shared_ptr<MeshDataPool> dataPool,
+        std::shared_ptr<MeshResultQueue> resultQueue,
+        const MeshSchedulerConfig& schedulerConfig);
     void shutdownMeshSystem();
     void processMeshBuildResults(u32 maxPerFrame);
 
-    [[nodiscard]] const MeshWorkerPool* meshWorkerPool() const { return m_meshWorkerPool.get(); }
-    [[nodiscard]] MeshWorkerPool* meshWorkerPool() { return m_meshWorkerPool.get(); }
+    [[nodiscard]] MeshDataPool* meshDataPool() const { return m_meshDataPool.get(); }
     [[nodiscard]] const MeshBuildScheduler* meshBuildScheduler() const { return m_meshBuildScheduler.get(); }
 
     [[nodiscard]] ClientEntityManager& entityManager() { return m_entityManager; }
@@ -595,7 +598,11 @@ private:
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)>
         m_playLocalSoundCallback;
 
-    std::unique_ptr<MeshWorkerPool> m_meshWorkerPool;
+    /// 客户端统一计算池（ClientCompute，进程级，由 ClientApplication 持有）。
+    /// 非拥有，initializeMeshSystem 注入；mesh 系统关停时不关池（池属 ClientApplication）。
+    util::UniversalWorkerPool* m_computeWorkerPool = nullptr;
+    std::shared_ptr<MeshDataPool> m_meshDataPool;
+    std::shared_ptr<MeshResultQueue> m_meshResultQueue;
     std::unique_ptr<MeshBuildScheduler> m_meshBuildScheduler;
 
     i32 m_renderDistance = 12;

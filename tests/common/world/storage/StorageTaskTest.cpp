@@ -22,7 +22,7 @@
  */
 
 #include "world/storage/task/StorageTask.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "world/storage/db/SectionKey.hpp"
 #include "world/storage/task/StorageTaskManager.hpp"
 #include <atomic>
@@ -72,7 +72,7 @@ TEST(StorageTaskTest, CreateAndExecuteSaveTask)
 
 TEST(StorageTaskTest, TaskManagerSubmitsToPool)
 {
-    util::ServerWorkerPool pool(1, "StorageTaskTest");
+    util::UniversalWorkerPool pool(1, "StorageTaskTest", 900);
     pool.start();
 
     StorageTaskManager manager(pool);

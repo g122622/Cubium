@@ -154,7 +154,7 @@ SkinCache 在初始化时从 `metadata.json` 加载缓存条目信息，在关�
 
 ### 异步加载
 
-FileSkinLoader 和 HttpSkinLoader 支持异步加载（`loadAsync`），通过注入的 `ServerWorkerPool` 实现真正的异步执行。回调在 worker 线程触发，如果回调中需要更新 UI 或渲染资源，需要切换到主线程。未注入线程池时，`loadAsync` 降级为同步执行后立即回调。
+FileSkinLoader 和 HttpSkinLoader 支持异步加载（`loadAsync`），通过注入的 `UniversalWorkerPool` 实现真正的异步执行。回调在 worker 线程触发，如果回调中需要更新 UI 或渲染资源，需要切换到主线程。未注入线程池时，`loadAsync` 降级为同步执行后立即回调。
 
 ## 命名空间
 

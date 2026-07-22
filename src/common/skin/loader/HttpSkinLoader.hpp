@@ -24,7 +24,7 @@
 #pragma once
 
 #include "SkinLoader.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -41,7 +41,7 @@ namespace mc::skin {
  * - http://textures.minecraft.net/texture/<hash>
  * - https://textures.minecraft.net/texture/<hash>
  *
- * 异步加载通过注入的 ServerWorkerPool 实现，回调在 worker 线程触发。
+ * 异步加载通过注入的 UniversalWorkerPool 实现，回调在 worker 线程触发。
  * 若未注入线程池，loadAsync 降级为同步执行后立即回调。
  *
  * 注意：_httpGet 当前未实现（返回 Unsupported），HTTP 下载功能待后续补充。
@@ -82,7 +82,7 @@ public:
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
+    void setWorkerPool(util::UniversalWorkerPool* workerPool) { m_workerPool = workerPool; }
 
 private:
     /**
@@ -120,7 +120,7 @@ private:
     bool m_initialized = false;
 
     // 异步加载基础设施
-    util::ServerWorkerPool* m_workerPool = nullptr;
+    util::UniversalWorkerPool* m_workerPool = nullptr;
 
     // 在途任务管理：url → 取消信号
     std::mutex m_pendingMutex;

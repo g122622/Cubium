@@ -53,10 +53,10 @@ for i, line in enumerate(algo_lines):
 ax.annotate('', xy=(5.5, 12.5), xytext=(4.5, 12.5),
             arrowprops=dict(arrowstyle='->', color='#1565C0', lw=2.5))
 
-# ============ MeshWorkerPool ============
+# ============ ClientCompute (UniversalWorkerPool) ============
 ax.add_patch(FancyBboxPatch((11.5, 10.5), 4, 3, boxstyle='round,pad=0.1',
                              facecolor='#FCE4EC', edgecolor='#C2185B', linewidth=2))
-ax.text(13.5, 13.0, 'MeshWorkerPool', ha='center', va='center', fontsize=14, fontweight='bold', color='#C2185B')
+ax.text(13.5, 13.0, 'ClientCompute', ha='center', va='center', fontsize=14, fontweight='bold', color='#C2185B')
 ax.text(13.5, 12.4, 'Thread 1: Build Mesh', ha='center', va='center', fontsize=11, color='#666666')
 ax.text(13.5, 11.9, 'Thread 2: Build Mesh', ha='center', va='center', fontsize=11, color='#666666')
 ax.text(13.5, 11.4, 'Thread N: Build Mesh', ha='center', va='center', fontsize=11, color='#666666')

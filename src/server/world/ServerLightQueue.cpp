@@ -26,7 +26,7 @@
 #include "RuntimeLightingProvider.hpp"
 #include "ServerWorld.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
@@ -89,7 +89,7 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
 
     // executor 未注入（启动早期/测试环境）：fallback 主线程同步经 TLS 引擎传播。
     // 构造 RuntimeLightingProvider 拿 5×5 keepalive，与 worker 路径同构。
-    util::ServerWorkerPool* executor = (cm != nullptr) ? cm->radiusAwareExecutor() : nullptr;
+    util::UniversalWorkerPool* executor = (cm != nullptr) ? cm->radiusAwareExecutor() : nullptr;
     if (executor == nullptr) {
         const std::vector<bool> changedSections; // 运行时方块变更不改段空状态
         for (auto& [chunkKey, task] : tasks) {

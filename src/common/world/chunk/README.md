@@ -43,7 +43,7 @@ flowchart LR
     A[显式ticket变化/玩家source变化] --> B[ChunkLoadTicketManager]
     B --> C[ServerChunkManager]
     C --> D[SingleChunkLifecycleManager]
-    D --> E[ServerWorkerPool]
+    D --> E[UniversalWorkerPool]
     E --> F[ChunkPrimer]
     F --> G[ChunkData]
 

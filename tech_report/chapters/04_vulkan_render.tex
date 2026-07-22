@@ -33,7 +33,7 @@ Java版Minecraft使用OpenGL渲染，主要问题包括：
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.95\linewidth]{images/vulkan_pipeline.png}
-\caption{Trident Vulkan渲染管线架构。游戏线程提交区块更新到MeshBuildScheduler，调度器按优先级分发任务到MeshWorkerPool。工作线程构建网格后，通过上传队列异步传输到GPU。Vulkan帧渲染流程使用信号量和栅栏实现CPU-GPU同步。}
+\caption{Trident Vulkan渲染管线架构。游戏线程提交区块更新到MeshBuildScheduler，调度器按优先级分发任务到ClientCompute统一计算池（\texttt{UniversalWorkerPool}）。工作线程构建网格后，通过上传队列异步传输到GPU。Vulkan帧渲染流程使用信号量和栅栏实现CPU-GPU同步。}
 \label{fig:vulkan_pipeline}
 \end{figure}
 
@@ -54,7 +54,7 @@ Java版Minecraft使用OpenGL渲染，主要问题包括：
 
 多线程网格构建流水线将CPU密集的网格生成与渲染分离：
 
-\textbf{工作线程池}：\texttt{MeshWorkerPool}管理多个工作线程，每个线程独立构建网格。线程数根据硬件自动配置，为$(n-1)/2$，预留资源给渲染主线程。
+\textbf{工作线程池}：客户端统一计算池\texttt{UniversalWorkerPool}（实例名 \texttt{ClientCompute}，由 \texttt{ClientApplication} 持有）管理多个工作线程，与皮肤加载等其它客户端计算任务共用。网格构建任务以 \texttt{MeshBuildTask}（\texttt{ITask} 子类）形式提交，每个任务独立构建网格。线程数根据硬件自动配置，为$(n-1)/2$，预留资源给渲染主线程。
 
 \textbf{视锥感知调度}：\texttt{MeshBuildScheduler}实现动态优先级调度。每帧检查相机移动，当移动超过阈值或固定帧数间隔时，重新计算所有待处理任务的优先级。优先级计算考虑三个因素：
 \begin{enumerate}

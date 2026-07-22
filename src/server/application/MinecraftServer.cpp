@@ -162,8 +162,8 @@ namespace {
 
 MinecraftServer::MinecraftServer(ServerSettings& settings)
     : m_settings(settings)
-    , m_computationWorkerPool(-1, "ServerCompute")
-    , m_ioWorkerPool(-1, "ServerIO")
+    , m_computationWorkerPool(-1, "ServerCompute", 100)
+    , m_ioWorkerPool(-1, "ServerIO", 200)
     , m_lootTableManager()
 {}
 

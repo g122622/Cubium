@@ -68,15 +68,15 @@ src/server/world/
          │                   │
          ▼                   ▼
 ┌─────────────────┐ ┌─────────────────┐
-│ ServerWorkerPool│ │BlockDropHandler │
+│ UniversalWorkerPool│ │BlockDropHandler │
 │  (区域互斥线程池)│ │  (方块掉落)      │
 └─────────────────┘ └─────────────────┘
 ```
 
 **核心依赖链**：
 - `ServerWorld` 持有所有子模块的实例或指针
-- `ServerChunkManager` 依赖 `ServerWorkerPool`（由 MinecraftServer 注入），委托 `ChunkTaskScheduler` 调度生成
-- `ChunkTaskScheduler` 持有 `ReentrantAreaLock`（调度区域锁）和两个 `ServerWorkerPool`（并行池 + 区域互斥池），协调 `SingleChunkLifecycleManager` 的状态推进
+- `ServerChunkManager` 依赖 `UniversalWorkerPool`（由 MinecraftServer 注入），委托 `ChunkTaskScheduler` 调度生成
+- `ChunkTaskScheduler` 持有 `ReentrantAreaLock`（调度区域锁）和两个 `UniversalWorkerPool`（并行池 + 区域互斥池），协调 `SingleChunkLifecycleManager` 的状态推进
 - `ChunkProgressionTask` 由 `ChunkTaskScheduler` 提交到 worker 池执行，构建 `WorldGenRegion`（邻居从 `StaticChunkCache2D<ChunkPrimer*>` 转换）并调用 `ServerChunkManager::_executeStepTask`
 - `EntityTracker` 与 `ItemPickupManager` 协同处理实体可见性和拾取
 - `NaturalSpawner` 依赖 `SpawnConditions` 进行生成位置检查
@@ -99,7 +99,7 @@ src/server/world/
 
 **共享资源**：
 - `SingleLevelStorageManager` - 由 MinecraftServer 创建，所有维度共享
-- `ServerWorkerPool` - 计算线程池，由 MinecraftServer 统一管理
+- `UniversalWorkerPool` - 计算线程池，由 MinecraftServer 统一管理
 
 ## 出生点管理
 
@@ -173,9 +173,9 @@ NoiseChunkGenerator::randomState()  →  RandomState
 - **`StaticChunkCache2D<T>`**（`StaticChunkCache2D.hpp`）：预分配二维缓存模板，构造时一次性填充 `(2*radius+1)²` 个条目，**不允许 nullptr**（loader 必须返回有效值）。替代旧的 `GenerationChunkCache`（增量填充、允许空洞），从根本上消除窗口内 nullptr。
 - **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，同线程重入仅限完全覆盖的子区域。`schedule` 持 `maxAccessRadius` 锁，`onChunkGenComplete` 持 `2*maxAccessRadius` 锁（覆盖邻居的邻居）。
 - **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`common/world/chunk/gen/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±neighbourReadRadius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
-- **`ServerWorkerPool` 区域互斥**（`common/util/thread/`）：`submit(task, callback, centerX, centerZ, writeRadius, priority, abortSignal)` 重载，保证同一时刻不存在两个 `writeRadius` 区域重叠的任务同时执行。`writeRadius ≤ 0` 的状态（EMPTY~INITIALIZE_LIGHT）走并行池；`writeRadius > 0`（FEATURES=1, LIGHT=2）走区域互斥池。
+- **`UniversalWorkerPool` 区域互斥**（`common/util/thread/`）：`submit(task, callback, centerX, centerZ, writeRadius, priority, abortSignal)` 重载，保证同一时刻不存在两个 `writeRadius` 区域重叠的任务同时执行。`writeRadius ≤ 0` 的状态（EMPTY~INITIALIZE_LIGHT）走并行池；`writeRadius > 0`（FEATURES=1, LIGHT=2）走区域互斥池。
 
-**并发模型**：邻居在任务执行期间可变（ChunkPrimer 累积式），但调度保证无并发写冲突——`checkNeighbour` 确保任务开始前所有邻居达所需状态，`ServerWorkerPool` 区域互斥串行化重叠写区域（等价 Moonrise `AreaDependentQueue`）。这使 FEATURES/LIGHT 跨区块写邻居成为设计预期，而非 bug。
+**并发模型**：邻居在任务执行期间可变（ChunkPrimer 累积式），但调度保证无并发写冲突——`checkNeighbour` 确保任务开始前所有邻居达所需状态，`UniversalWorkerPool` 区域互斥串行化重叠写区域（等价 Moonrise `AreaDependentQueue`）。这使 FEATURES/LIGHT 跨区块写邻居成为设计预期，而非 bug。
 
 详见 `docs/BUG-WorldGenRegion-Access-Window.md`（问题根因）。
 
@@ -196,9 +196,9 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 1. **`_drainPendingLightFlushes()`**（主线程）：取出上一 tick worker 完成后入队的 dirty section，逐项调真正的 `markLightChanged`（`_syncLightDataToChunk` 把 visible nibble 同步到 ChunkSection + `m_onLightChanged` 网络包）。
 2. **`_drainPendingChunkSends()`**（主线程）：取出上一 tick worker 完成光照的区块坐标，调 `ChunkSendManager::sendChunkToTrackingPlayers`（serialize 读已 flush 的 ChunkSection nibble）+ `removeLightTicket` 释放 LIGHT 票据。
-3. **`m_lightQueue.drainAndProcess(*this)`**（主线程入队 worker）：swap 出任务表，逐区块构造 `RuntimeLightTask` 提交到 `ServerWorkerPool` 区域互斥池（writeRadius=2）。executor 为 nullptr 时 fallback 同步经 TLS 引擎调 `blocksChangedInChunk`。
+3. **`m_lightQueue.drainAndProcess(*this)`**（主线程入队 worker）：swap 出任务表，逐区块构造 `RuntimeLightTask` 提交到 `UniversalWorkerPool` 区域互斥池（writeRadius=2）。executor 为 nullptr 时 fallback 同步经 TLS 引擎调 `blocksChangedInChunk`。
 
-引擎已无 `m_mutex`（③-2b）：`WorldLightManager` 改 `thread_local` 引擎池（`acquireSkyLightEngine`/`acquireBlockLightEngine`），每个 worker 线程独占一套引擎，无引擎级锁。所有光照写操作（区块加载光照、运行时方块变更、LIGHT 生成阶段）统一经同一 `ServerWorkerPool` 区域互斥池（writeRadius=2），重叠 5×5 区域的 nibble 写必被区域锁串行 → 满足 `SWMRNibbleArray` 更新侧非原子单写者语义。
+引擎已无 `m_mutex`（③-2b）：`WorldLightManager` 改 `thread_local` 引擎池（`acquireSkyLightEngine`/`acquireBlockLightEngine`），每个 worker 线程独占一套引擎，无引擎级锁。所有光照写操作（区块加载光照、运行时方块变更、LIGHT 生成阶段）统一经同一 `UniversalWorkerPool` 区域互斥池（writeRadius=2），重叠 5×5 区域的 nibble 写必被区域锁串行 → 满足 `SWMRNibbleArray` 更新侧非原子单写者语义。
 
 `RuntimeLightTask` / `ChunkLoadLightTask`（worker 线程）：持 `RuntimeLightingProvider`（5×5 `shared_ptr<ChunkData>` 保活防在途 UAF），经 TLS 引擎调 `blocksChangedInChunk` / `light` / `forceHandleEmptySectionChanges`+`checkChunkEdges`；`updateVisible` 内部的 `markLightChanged` 经 provider 收集到 `m_dirtySections` 而非触碰主线程独占回调；任务末尾 `_enqueueLightFlush` 把 dirty section 入主线程 flush 队列，`ChunkLoadLightTask` 还额外 `_enqueueChunkSend` 入区块发送续延队列。
 

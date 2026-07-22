@@ -39,7 +39,7 @@ ClientWorld ──────────────────────�
         │                                         │
         ├── onChunkData/onChunkUnload             ├── 天气/时间同步
         ▼                                         ▼
-MeshBuildScheduler ────→ MeshWorkerPool      ClientWeather
+MeshBuildScheduler ────→ UniversalWorkerPool(ClientCompute)  ClientWeather
         │
         ▼
 ChunkMesher ──→ BiomeColorBlender ──→ BiomeColorCache
@@ -62,7 +62,7 @@ ClientPlayerPredictor ◄──── LocalPlayerIdentity
 
 **核心流程**：
 1. 区块包 → `ClientWorld.onChunkData()` → 更新 `ChunkData` → 调度网格重建
-2. 网格任务 → `MeshBuildScheduler` → `MeshWorkerPool` → `ChunkMesher` → GPU 上传
+2. 网格任务 → `MeshBuildScheduler` → `UniversalWorkerPool`(ClientCompute) → `ChunkMesher` → GPU 上传
 3. 实体包 → `ClientEntityManager` → 创建/更新 `ClientEntity` → 渲染层读取插值位置
 4. 本地玩家 → `LocalPlayerIdentity` 识别 → `ClientPlayerPredictor` 预测位置
 
@@ -75,7 +75,7 @@ common/world/chunk/ChunkData.hpp           # 区块数据结构
 common/world/biome/BiomeRegistry.hpp       # 生物群系注册表
 common/network/sync/ChunkSync.hpp          # 区块同步协议
 client/renderer/mesh/MeshBuildScheduler.hpp  # 网格构建调度器
-client/renderer/mesh/MeshWorkerPool.hpp      # 网格工作线程池
+common/util/thread/UniversalWorkerPool.hpp   # 客户端统一计算池（ClientCompute，由 ClientApplication 持有）
 client/renderer/trident/chunk/ChunkMesher.hpp # 区块网格生成器
 ```
 

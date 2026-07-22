@@ -37,7 +37,7 @@ char* QuickJSModuleLoader::moduleNormalize(
         size_t len = strlen(module_name);
         char* result = static_cast<char*>(js_malloc(ctx, len + 1));
         if (result) {
-            memcpy(result, module_name, len + 1);
+            std::memcpy(result, module_name, len + 1);
         }
         return result;
     }
@@ -52,7 +52,7 @@ char* QuickJSModuleLoader::moduleNormalize(
             auto* rt = JS_GetRuntime(ctx);
             char* result = static_cast<char*>(js_malloc(ctx, name.size() + 1));
             if (result) {
-                memcpy(result, name.c_str(), name.size() + 1);
+                std::memcpy(result, name.c_str(), name.size() + 1);
             }
             return result;
         }
@@ -72,7 +72,7 @@ char* QuickJSModuleLoader::moduleNormalize(
 
         char* result = static_cast<char*>(js_malloc(ctx, resolved.size() + 1));
         if (result) {
-            memcpy(result, resolved.c_str(), resolved.size() + 1);
+            std::memcpy(result, resolved.c_str(), resolved.size() + 1);
         }
         return result;
     }
@@ -82,7 +82,7 @@ char* QuickJSModuleLoader::moduleNormalize(
     char* result = static_cast<char*>(js_malloc(ctx, len + 1));
     if (result) {
         if (module_name) {
-            memcpy(result, module_name, len + 1);
+            std::memcpy(result, module_name, len + 1);
         } else {
             result[0] = '\0';
         }

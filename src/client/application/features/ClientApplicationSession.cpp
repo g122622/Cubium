@@ -25,6 +25,8 @@
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
 #include "client/command/ClientCommandManager.hpp"
+#include "client/renderer/mesh/MeshDataPool.hpp"
+#include "client/renderer/mesh/MeshResultQueue.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
@@ -213,6 +215,9 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     // 身份注册表用于 getSkinRegionForEntity 按 entityId→UUID 反查皮肤区域。
     m_skinManager->setTextureAtlas(&m_renderer->entityTextureAtlas());
     m_skinManager->setIdentityRegistry(&m_identityRegistry);
+    // 注入 ClientCompute 池：皮肤异步加载走客户端统一计算池，避免主线程卡顿。
+    // 必须在 initialize() 之前调用（setWorkerPool 缓存指针，initialize 重建底层 SkinManager 时重新下发）。
+    m_skinManager->setWorkerPool(&m_clientComputeWorkerPool);
     // 必须在 initialize() 之前注入全部资源包，否则 DefaultSkinProvider 无法从
     // 资源包读取 18 种默认皮肤 PNG 纹理，回退到零像素占位数据。
     // 注入完整列表（而非仅首个 pack）是因为内置 vanilla InMemoryResourcePack
@@ -287,7 +292,12 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     schedulerConfig.cameraDirectionDotThreshold = 0.96f;
     schedulerConfig.behindCancelDotThreshold = -0.35f;
     schedulerConfig.behindCancelDistanceChunks = static_cast<f32>(std::max(6, m_settings.renderDistance.get() / 2));
-    m_world.initializeMeshSystem(-1, schedulerConfig);
+    // mesh 系统复用 ClientCompute 进程级计算池（由 ClientApplication 持有），dataPool/resultQueue
+    // 为会话级共享对象：scheduler 持引用+shared_ptr，MeshBuildTask 持 weak_ptr<MeshResultQueue>
+    // + shared_ptr<MeshDataPool> 作 UAF 纵深防护。
+    auto meshDataPool = std::make_shared<MeshDataPool>();
+    auto meshResultQueue = std::make_shared<MeshResultQueue>();
+    m_world.initializeMeshSystem(m_clientComputeWorkerPool, meshDataPool, meshResultQueue, schedulerConfig);
 
     // 设置区块卸载回调
     m_world.setChunkUnloadCallback([this](const ChunkId& chunkId) {

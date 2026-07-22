@@ -235,7 +235,7 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const i32 relZ = chunkZ - m_mainZ;
 
     // 检查写入是否落在访问窗口内（accumulatedRadius，而非 blockStateWriteRadius）。
-    // blockStateWriteRadius 仅用于 ServerWorkerPool 区域互斥调度（FEATURES=1 串行化重叠写区域），
+    // blockStateWriteRadius 仅用于 UniversalWorkerPool 区域互斥调度（FEATURES=1 串行化重叠写区域），
     // 不是写入边界——结构放置（placeFeatures）会跨越多个区块写入，写入距离可达 accumulatedRadius
     // （对齐 Moonrise：WorldGenRegion 不限制 setBlockState 距离，仅由 radiusAwareScheduler 保证并发安全）。
     // 访问窗口由 neighbourReadRadius(=accumulatedRadius) 构建，getIChunk 已校验该半径内的读取合法性，

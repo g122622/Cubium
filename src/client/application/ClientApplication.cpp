@@ -558,13 +558,13 @@ void ClientApplication::update(f32 deltaTime)
             if (result.success()) {
                 chunk.needsMeshUpdate = false;
 
-                // 上传成功后把 CPU 侧网格归还给原 worker 的回收桶，复用其 capacity，
+                // 上传成功后把 CPU 侧网格归还给回收池，复用其 capacity，
                 // 避免下次构建从 0 重新 reserve。仅 clear()(保留 capacity)即可入池；
-                // 回收桶内 _shrinkIfBloated 会对异常膨胀的 capacity 做 shrink。
+                // 回收池内 _shrinkIfBloated 会对异常膨胀的 capacity 做 shrink。
                 chunk.solidMesh.clear();
                 chunk.transparentMesh.clear();
-                m_world.meshWorkerPool()->recycle(
-                    chunk.lastWorkerId, std::move(chunk.solidMesh), std::move(chunk.transparentMesh));
+                m_world.meshDataPool()->recycle(false, std::move(chunk.solidMesh));
+                m_world.meshDataPool()->recycle(true, std::move(chunk.transparentMesh));
             } else {
                 spdlog::error("Failed to update chunk mesh: {}", result.error().toString());
             }
@@ -682,6 +682,15 @@ void ClientApplication::shutdown()
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::DestroyWorld");
         m_world.destroy();
+    }
+
+    // 关闭客户端统一计算池（ClientCompute）。此时 mesh 系统已随 m_world.destroy() 关停
+    // （shutdownMeshSystem 仅关 scheduler 并等在途归零，不关池），皮肤管理器已随
+    // releaseRendererDependentResources 销毁，池已无消费者。晚到的回调持 weak_ptr
+    // 到已 reset 的结果队列，lock 失败直接丢弃，安全。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::ShutdownComputePool");
+        m_clientComputeWorkerPool.shutdown();
     }
 
     {

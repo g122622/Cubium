@@ -36,7 +36,7 @@ class ServerWorld;
  * @brief 运行时方块变更光照传播 worker 任务
  *
  * ③-1 阶段：ServerLightQueue::drainAndProcess(ServerWorld&) 在主线程 tick 时
- * 对每个待处理区块构造本任务，提交到 ServerWorkerPool 区域互斥池
+ * 对每个待处理区块构造本任务，提交到 UniversalWorkerPool 区域互斥池
  * （writeRadius=2，与 LIGHT 生成阶段、ChunkLoadLightTask 同池同 writeRadius）。
  * worker 线程执行：
  *

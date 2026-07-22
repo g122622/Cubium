@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -144,10 +144,10 @@ public:
 };
 
 // ============================================================================
-// ServerWorkerPool 测试固件
+// UniversalWorkerPool 测试固件
 // ============================================================================
 
-class ServerWorkerPoolTest : public ::testing::Test {
+class UniversalWorkerPoolTest : public ::testing::Test {
 protected:
     void SetUp() override {}
     void TearDown() override {}
@@ -157,23 +157,23 @@ protected:
 // 构造和生命周期测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, DefaultConstructor)
+TEST_F(UniversalWorkerPoolTest, DefaultConstructor)
 {
-    ServerWorkerPool pool;
+    UniversalWorkerPool pool{-1, "TestWorker", 900};
     EXPECT_FALSE(pool.isRunning());
     EXPECT_GT(pool.threadCount(), 0); // 自动检测线程数
 }
 
-TEST_F(ServerWorkerPoolTest, CustomThreadCount)
+TEST_F(UniversalWorkerPoolTest, CustomThreadCount)
 {
-    ServerWorkerPool pool(4, "TestWorker");
+    UniversalWorkerPool pool(4, "TestWorker", 900);
     EXPECT_FALSE(pool.isRunning());
     EXPECT_EQ(pool.threadCount(), 4);
 }
 
-TEST_F(ServerWorkerPoolTest, StartStop)
+TEST_F(UniversalWorkerPoolTest, StartStop)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
 
     EXPECT_FALSE(pool.isRunning());
 
@@ -184,9 +184,9 @@ TEST_F(ServerWorkerPoolTest, StartStop)
     EXPECT_FALSE(pool.isRunning());
 }
 
-TEST_F(ServerWorkerPoolTest, DoubleStart)
+TEST_F(UniversalWorkerPoolTest, DoubleStart)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
 
     pool.start();
     EXPECT_TRUE(pool.isRunning());
@@ -198,9 +198,9 @@ TEST_F(ServerWorkerPoolTest, DoubleStart)
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, DoubleShutdown)
+TEST_F(UniversalWorkerPoolTest, DoubleShutdown)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
 
     pool.start();
     pool.shutdown();
@@ -215,9 +215,9 @@ TEST_F(ServerWorkerPoolTest, DoubleShutdown)
 // 任务提交测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, SubmitSimpleTask)
+TEST_F(UniversalWorkerPoolTest, SubmitSimpleTask)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
     pool.start();
 
     std::atomic<bool> completed{false};
@@ -243,9 +243,9 @@ TEST_F(ServerWorkerPoolTest, SubmitSimpleTask)
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, SubmitMultipleTasks)
+TEST_F(UniversalWorkerPoolTest, SubmitMultipleTasks)
 {
-    ServerWorkerPool pool(4, "TestWorker");
+    UniversalWorkerPool pool(4, "TestWorker", 900);
     pool.start();
 
     std::atomic<int> completedCount{0};
@@ -267,9 +267,9 @@ TEST_F(ServerWorkerPoolTest, SubmitMultipleTasks)
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning)
+TEST_F(UniversalWorkerPoolTest, SubmitTaskWhenNotRunning)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
     // 不启动
 
     std::atomic<bool> completed{false};
@@ -316,9 +316,9 @@ TEST_F(ServerWorkerPoolTest, SubmitTaskWhenNotRunning)
 // 优先级测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, PriorityOrdering)
+TEST_F(UniversalWorkerPoolTest, PriorityOrdering)
 {
-    ServerWorkerPool pool(1, "TestWorker"); // 单线程确保顺序执行
+    UniversalWorkerPool pool(1, "TestWorker", 900); // 单线程确保顺序执行
     pool.start();
 
     std::vector<int> executionOrder;
@@ -361,9 +361,9 @@ TEST_F(ServerWorkerPoolTest, PriorityOrdering)
     EXPECT_EQ(executionOrder[1], 1); // 高优先级第二个执行
 }
 
-TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest)
+TEST_F(UniversalWorkerPoolTest, CriticalPriorityHighest)
 {
-    ServerWorkerPool pool(1, "TestWorker");
+    UniversalWorkerPool pool(1, "TestWorker", 900);
     pool.start();
 
     std::vector<int> executionOrder;
@@ -401,9 +401,9 @@ TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest)
 // 取消测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, AbortSignalSkipsExecution)
+TEST_F(UniversalWorkerPoolTest, AbortSignalSkipsExecution)
 {
-    ServerWorkerPool pool(1, "TestWorker");
+    UniversalWorkerPool pool(1, "TestWorker", 900);
     pool.start();
 
     auto abortSignal = std::make_shared<std::atomic<bool>>(true);
@@ -430,9 +430,9 @@ TEST_F(ServerWorkerPoolTest, AbortSignalSkipsExecution)
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, PruneCancelledTasks)
+TEST_F(UniversalWorkerPoolTest, PruneCancelledTasks)
 {
-    ServerWorkerPool pool(1, "TestWorker");
+    UniversalWorkerPool pool(1, "TestWorker", 900);
     pool.start();
 
     std::atomic<bool> firstStarted{false};
@@ -459,9 +459,9 @@ TEST_F(ServerWorkerPoolTest, PruneCancelledTasks)
 // 异常处理测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, TaskException)
+TEST_F(UniversalWorkerPoolTest, TaskException)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
     pool.start();
 
     std::atomic<bool> completed{false};
@@ -490,9 +490,9 @@ TEST_F(ServerWorkerPoolTest, TaskException)
 // 统计测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, PendingTaskCount)
+TEST_F(UniversalWorkerPoolTest, PendingTaskCount)
 {
-    ServerWorkerPool pool(1, "TestWorker"); // 单线程
+    UniversalWorkerPool pool(1, "TestWorker", 900); // 单线程
     pool.start();
 
     std::atomic<bool> firstStarted{false};
@@ -522,9 +522,9 @@ TEST_F(ServerWorkerPoolTest, PendingTaskCount)
     EXPECT_EQ(pool.pendingTaskCount(), 0);
 }
 
-TEST_F(ServerWorkerPoolTest, RunningTaskCount)
+TEST_F(UniversalWorkerPoolTest, RunningTaskCount)
 {
-    ServerWorkerPool pool(4, "TestWorker");
+    UniversalWorkerPool pool(4, "TestWorker", 900);
     pool.start();
 
     std::atomic<int> runningCount{0};
@@ -560,9 +560,9 @@ TEST_F(ServerWorkerPoolTest, RunningTaskCount)
 // 等待完成测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, WaitForCompletion)
+TEST_F(UniversalWorkerPoolTest, WaitForCompletion)
 {
-    ServerWorkerPool pool(4, "TestWorker");
+    UniversalWorkerPool pool(4, "TestWorker", 900);
     pool.start();
 
     std::atomic<int> completedCount{0};
@@ -586,9 +586,9 @@ TEST_F(ServerWorkerPoolTest, WaitForCompletion)
 // 线程安全测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, ConcurrentSubmissions)
+TEST_F(UniversalWorkerPoolTest, ConcurrentSubmissions)
 {
-    ServerWorkerPool pool(4, "TestWorker");
+    UniversalWorkerPool pool(4, "TestWorker", 900);
     pool.start();
 
     std::atomic<int> completedCount{0};
@@ -614,9 +614,9 @@ TEST_F(ServerWorkerPoolTest, ConcurrentSubmissions)
     pool.shutdown();
 }
 
-TEST_F(ServerWorkerPoolTest, ShutdownWhileTasksRunning)
+TEST_F(UniversalWorkerPoolTest, ShutdownWhileTasksRunning)
 {
-    ServerWorkerPool pool(4, "TestWorker");
+    UniversalWorkerPool pool(4, "TestWorker", 900);
     pool.start();
 
     std::atomic<int> completedCount{0};
@@ -638,9 +638,9 @@ TEST_F(ServerWorkerPoolTest, ShutdownWhileTasksRunning)
 // 任务类型和描述测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, TaskTypeAndDescription)
+TEST_F(UniversalWorkerPoolTest, TaskTypeAndDescription)
 {
-    ServerWorkerPool pool(2, "TestWorker");
+    UniversalWorkerPool pool(2, "TestWorker", 900);
     pool.start();
 
     std::atomic<bool> completed{false};

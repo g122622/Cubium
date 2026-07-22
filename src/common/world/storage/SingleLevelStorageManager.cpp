@@ -101,7 +101,7 @@ SingleLevelStorageManager& SingleLevelStorageManager::operator=(SingleLevelStora
     return *this;
 }
 
-void SingleLevelStorageManager::setIoWorkerPool(util::ServerWorkerPool* workerPool)
+void SingleLevelStorageManager::setIoWorkerPool(util::UniversalWorkerPool* workerPool)
 {
     m_ioWorkerPool = workerPool;
 

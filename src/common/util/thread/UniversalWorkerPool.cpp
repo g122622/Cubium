@@ -21,7 +21,7 @@
  *
  */
 
-#include "ServerWorkerPool.hpp"
+#include "UniversalWorkerPool.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
@@ -36,17 +36,18 @@ namespace mc::util {
 // 构造与析构
 // ============================================================================
 
-ServerWorkerPool::ServerWorkerPool(i32 threadCount, std::string name)
+UniversalWorkerPool::UniversalWorkerPool(i32 threadCount, std::string name, i32 rankBase)
     : m_poolName(std::move(name))
     , m_threadCount(threadCount > 0 ? threadCount : getOptimalThreadCount())
+    , m_rankBase(rankBase)
 {}
 
-ServerWorkerPool::~ServerWorkerPool()
+UniversalWorkerPool::~UniversalWorkerPool()
 {
     shutdown();
 }
 
-i32 ServerWorkerPool::getOptimalThreadCount()
+i32 UniversalWorkerPool::getOptimalThreadCount()
 {
     // 使用硬件并发数的一半，至少 1 个，最多 114514 个
     const unsigned int hardwareConcurrency = std::thread::hardware_concurrency();
@@ -57,7 +58,7 @@ i32 ServerWorkerPool::getOptimalThreadCount()
 // 生命周期
 // ============================================================================
 
-void ServerWorkerPool::start()
+void UniversalWorkerPool::start()
 {
     if (m_running.exchange(true, std::memory_order::acq_rel)) {
         return; // 已经在运行
@@ -68,13 +69,13 @@ void ServerWorkerPool::start()
     // 创建工作线程
     m_workers.reserve(m_threadCount);
     for (i32 i = 0; i < m_threadCount; ++i) {
-        m_workers.emplace_back(&ServerWorkerPool::workerThread, this, i);
+        m_workers.emplace_back(&UniversalWorkerPool::workerThread, this, i);
     }
 
-    spdlog::info("[ServerWorkerPool] Started {} worker threads (name: {})", m_threadCount, m_poolName);
+    spdlog::info("[UniversalWorkerPool] Started {} worker threads (name: {})", m_threadCount, m_poolName);
 }
 
-void ServerWorkerPool::shutdown()
+void UniversalWorkerPool::shutdown()
 {
     if (!m_running.exchange(false, std::memory_order::acq_rel)) {
         return; // 已经停止
@@ -105,14 +106,14 @@ void ServerWorkerPool::shutdown()
         }
     }
 
-    spdlog::info("[ServerWorkerPool] Shutdown complete (name: {})", m_poolName);
+    spdlog::info("[UniversalWorkerPool] Shutdown complete (name: {})", m_poolName);
 }
 
 // ============================================================================
 // 任务提交
 // ============================================================================
 
-u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
+u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
     TaskCallback callback,
     TaskPriority priority,
     std::shared_ptr<std::atomic<bool>> abortSignal)
@@ -151,7 +152,7 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     return taskId;
 }
 
-u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
+u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
     TaskCallback callback,
     ChunkCoord centerX,
     ChunkCoord centerZ,
@@ -197,7 +198,7 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     return taskId;
 }
 
-bool ServerWorkerPool::canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const
+bool UniversalWorkerPool::canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const
 {
     if (writeRadius < 0) {
         writeRadius = 0;
@@ -218,7 +219,7 @@ bool ServerWorkerPool::canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32
 // 任务管理
 // ============================================================================
 
-bool ServerWorkerPool::cancel(u64 taskId)
+bool UniversalWorkerPool::cancel(u64 taskId)
 {
     std::lock_guard<std::mutex> lock(m_queueMutex);
 
@@ -253,7 +254,7 @@ bool ServerWorkerPool::cancel(u64 taskId)
     return found;
 }
 
-void ServerWorkerPool::pruneCancelledTasks()
+void UniversalWorkerPool::pruneCancelledTasks()
 {
     std::lock_guard<std::mutex> lock(m_queueMutex);
 
@@ -280,7 +281,7 @@ void ServerWorkerPool::pruneCancelledTasks()
     }
 }
 
-void ServerWorkerPool::waitForCompletion()
+void UniversalWorkerPool::waitForCompletion()
 {
     std::unique_lock<std::mutex> lock(m_completionMutex);
     m_completionCondition.wait(lock, [this] { return pendingTaskCount() == 0 && runningTaskCount() == 0; });
@@ -290,18 +291,18 @@ void ServerWorkerPool::waitForCompletion()
 // 统计
 // ============================================================================
 
-size_t ServerWorkerPool::pendingTaskCount() const
+size_t UniversalWorkerPool::pendingTaskCount() const
 {
     std::lock_guard<std::mutex> lock(m_queueMutex);
     return m_taskQueue.size();
 }
 
-size_t ServerWorkerPool::runningTaskCount() const
+size_t UniversalWorkerPool::runningTaskCount() const
 {
     return m_runningTaskCount.load(std::memory_order::acquire);
 }
 
-void ServerWorkerPool::debugDumpState()
+void UniversalWorkerPool::debugDumpState()
 {
     size_t queueSize = 0;
     size_t areaTaskCount = 0;
@@ -350,7 +351,7 @@ void ServerWorkerPool::debugDumpState()
     }
 }
 
-void ServerWorkerPool::debugDumpRunningTasks()
+void UniversalWorkerPool::debugDumpRunningTasks()
 {
     std::vector<std::pair<i32, RunningTaskInfo>> snapshot;
     {
@@ -381,15 +382,14 @@ void ServerWorkerPool::debugDumpRunningTasks()
 // 工作线程
 // ============================================================================
 
-void ServerWorkerPool::workerThread(i32 workerId)
+void UniversalWorkerPool::workerThread(i32 workerId)
 {
     // 设置线程名称
     std::string threadName = m_poolName + "-" + std::to_string(workerId);
     // sibling_order_rank = rankBase + workerId，让 worker-0 排最前（根 track thread_ordering=EXPLICIT 生效）。
-    // 按 pool 名区分 rankBase，使 UI 中三组 worker 分块排列、组内按 workerId 升序：
-    //   ServerCompute(100+) -> ServerIO(200+) -> ChunkMeshWorker(300+，见 MeshWorkerPool)。
-    // 每组间隔 100，避免线程数 >10 时跨组相交。
-    const int rankBase = (m_poolName == "ServerCompute") ? 100 : 200;
+    // rankBase 由构造方显式传入（ServerCompute=100、ServerIO=200、ClientCompute=300 等），
+    // 使 UI 中各组 worker 分块排列、组内按 workerId 升序；每组间隔 100，避免线程数 >10 时跨组相交。
+    const int rankBase = m_rankBase;
     mc::profiler::ProfilerManager::instance().setThreadName(threadName, rankBase + workerId);
 
     while (true) {
@@ -513,7 +513,7 @@ void ServerWorkerPool::workerThread(i32 workerId)
     }
 }
 
-void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
+void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
 {
     if (!task || !task->task) {
         return;
@@ -554,11 +554,11 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         success = task->task->execute(abortSignal);
     }
     catch (const std::exception& e) {
-        spdlog::error("[ServerWorkerPool] Task {} threw exception: {}", task->task->description(), e.what());
+        spdlog::error("[UniversalWorkerPool] Task {} threw exception: {}", task->task->description(), e.what());
         success = false;
     }
     catch (...) {
-        spdlog::error("[ServerWorkerPool] Task {} threw unknown exception", task->task->description());
+        spdlog::error("[UniversalWorkerPool] Task {} threw unknown exception", task->task->description());
         success = false;
     }
 
@@ -582,15 +582,15 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
             task->callback(success, taskPtr);
         }
         catch (const std::exception& e) {
-            spdlog::error("[ServerWorkerPool] Callback threw exception: {}", e.what());
+            spdlog::error("[UniversalWorkerPool] Callback threw exception: {}", e.what());
         }
         catch (...) {
-            spdlog::error("[ServerWorkerPool] Callback threw unknown exception");
+            spdlog::error("[UniversalWorkerPool] Callback threw unknown exception");
         }
     }
 }
 
-bool ServerWorkerPool::isTaskCancelled(const InternalTask& task)
+bool UniversalWorkerPool::isTaskCancelled(const InternalTask& task)
 {
     if (!task.abortSignal) {
         return false;
@@ -602,13 +602,13 @@ bool ServerWorkerPool::isTaskCancelled(const InternalTask& task)
 // 区域互斥（对齐 Moonrise 区域锁执行器）
 // ============================================================================
 
-u64 ServerWorkerPool::packChunkKey(ChunkCoord x, ChunkCoord z) noexcept
+u64 UniversalWorkerPool::packChunkKey(ChunkCoord x, ChunkCoord z) noexcept
 {
     // 高 32 位 X，低 32 位 Z（都转为 u32 以保留位模式）
     return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
 }
 
-bool ServerWorkerPool::hasAreaConflictLocked(const InternalTask& task) const
+bool UniversalWorkerPool::hasAreaConflictLocked(const InternalTask& task) const
 {
     // 调用者必须持有 m_runningRegionsMutex
     const i32 r = task.areaWriteRadius;
@@ -622,7 +622,7 @@ bool ServerWorkerPool::hasAreaConflictLocked(const InternalTask& task) const
     return false;
 }
 
-void ServerWorkerPool::markAreaRunningLocked(const InternalTask& task)
+void UniversalWorkerPool::markAreaRunningLocked(const InternalTask& task)
 {
     // 调用者必须持有 m_runningRegionsMutex
     const i32 r = task.areaWriteRadius;
@@ -633,7 +633,7 @@ void ServerWorkerPool::markAreaRunningLocked(const InternalTask& task)
     }
 }
 
-void ServerWorkerPool::unmarkAreaRunningLocked(const InternalTask& task)
+void UniversalWorkerPool::unmarkAreaRunningLocked(const InternalTask& task)
 {
     // 调用者必须持有 m_runningRegionsMutex
     const i32 r = task.areaWriteRadius;
@@ -644,7 +644,7 @@ void ServerWorkerPool::unmarkAreaRunningLocked(const InternalTask& task)
     }
 }
 
-std::vector<u64> ServerWorkerPool::computeAreaKeys(const InternalTask& task)
+std::vector<u64> UniversalWorkerPool::computeAreaKeys(const InternalTask& task)
 {
     const i32 r = task.areaWriteRadius;
     std::vector<u64> keys;

@@ -92,7 +92,7 @@ chunk 上（`IChunk::getSkyNibbles()`/`getBlockNibbles()`），chunk 被移除�
 主线程光照查询（`getLightSubtracted`/`getBlockLight`/`getSkyLight`/`getData`/`getDebugInfo`）
 **不经光照引擎、不持锁**，直接经 provider 取已加载区块的 nibble，读 `SWMRNibbleArray`
 的 **visible 侧**（`getVisible`，atomic acquire）。worker 传播时写 updating 侧经
-`ServerWorkerPool` 区域互斥池（writeRadius=2）串行（单写者），visible 侧由 `updateVisible`
+`UniversalWorkerPool` 区域互斥池（writeRadius=2）串行（单写者），visible 侧由 `updateVisible`
 原子发布，主线程无锁读安全——对齐 Moonrise `StarLightInterface.getSkyLightValue`/`getRawBrightness`。
 
 `getSkyLight`/`getLightSubtracted` 的天空光分支对 null nibble（未光照段）有完整处理：经
@@ -126,7 +126,7 @@ nibble 取该列天空光。这避免主线程读返回默认值（旧路径经�
 > 写方法（`checkBlock`/`lightChunk`/`updateSectionStatus`/`checkChunkEdges`/`updateEmptinessMap`/`blocksChangedInChunk`/`forceHandleEmptySectionChanges`）
 > 已**不在 `WorldLightManager` 上**——管理器只保留主线程无锁读路径 + TLS 引擎池。写操作由调用方
 > 经 `acquire*LightEngine` 取 TLS 引擎后直接调引擎方法（首参传 `StarLightLightingProvider*`），
-> 经 `ServerWorkerPool` 区域互斥池保证 nibble 单写者，无 `m_mutex`。
+> 经 `UniversalWorkerPool` 区域互斥池保证 nibble 单写者，无 `m_mutex`。
 
 #### BlockStarLightEngine / SkyStarLightEngine
 

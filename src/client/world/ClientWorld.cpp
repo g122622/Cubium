@@ -101,7 +101,6 @@ ClientChunk::ClientChunk(ClientChunk&& other) noexcept
     , meshRebuildPending(other.meshRebuildPending)
     , isLoaded(other.isLoaded)
     , activeMeshTaskId(other.activeMeshTaskId)
-    , lastWorkerId(other.lastWorkerId)
 {
     // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
     // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
@@ -122,7 +121,6 @@ ClientChunk& ClientChunk::operator=(ClientChunk&& other) noexcept
         meshRebuildPending = other.meshRebuildPending;
         isLoaded = other.isLoaded;
         activeMeshTaskId = other.activeMeshTaskId;
-        lastWorkerId = other.lastWorkerId;
 
         // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
         m_memTrack.unbind();
@@ -171,7 +169,7 @@ void ClientWorld::update(const MeshSchedulerViewState& viewState)
     m_frustum.extractFromMatrix(viewState.viewProjectionMatrix);
     m_frustum.setCameraPosition(viewState.cameraPosition);
 
-    if (m_meshBuildScheduler && m_meshWorkerPool && m_meshWorkerPool->isRunning()) {
+    if (m_meshBuildScheduler) {
         m_meshBuildScheduler->setViewState(viewState);
         m_meshBuildScheduler->tick();
 
@@ -468,7 +466,7 @@ void ClientWorld::_scheduleChunkMeshRebuild(const ChunkId& id)
     chunk->needsMeshUpdate = false;
     chunk->meshRebuildPending = false;
 
-    if (m_meshBuildScheduler && m_meshWorkerPool && m_meshWorkerPool->isRunning()) {
+    if (m_meshBuildScheduler) {
         MeshBuildRequest request;
         request.chunkId = id;
         request.chunkData = chunk->data;
@@ -520,7 +518,7 @@ void ClientWorld::_scheduleNeighborMeshRebuild(const ChunkId& id)
 
 void ClientWorld::_scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount)
 {
-    if (!m_meshBuildScheduler || !m_meshWorkerPool || !m_meshWorkerPool->isRunning()) {
+    if (!m_meshBuildScheduler) {
         return;
     }
 
@@ -747,19 +745,25 @@ f32 ClientWorld::getInterpolatedCelestialAngle(f32 partialTick) const
     return (d0 * 2.0f + d1) / 3.0f;
 }
 
-void ClientWorld::initializeMeshSystem(i32 threadCount, const MeshSchedulerConfig& schedulerConfig)
+void ClientWorld::initializeMeshSystem(util::UniversalWorkerPool& workerPool,
+    std::shared_ptr<MeshDataPool> dataPool,
+    std::shared_ptr<MeshResultQueue> resultQueue,
+    const MeshSchedulerConfig& schedulerConfig)
 {
-    if (m_meshWorkerPool) {
+    if (m_meshBuildScheduler) {
         spdlog::warn("ClientWorld: mesh system already initialized");
         return;
     }
 
-    m_meshWorkerPool = std::make_unique<MeshWorkerPool>(threadCount);
-    m_meshWorkerPool->start();
+    // 池由 ClientApplication 持有并已 start()，这里仅存注入指针与共享对象，构造 scheduler。
+    m_computeWorkerPool = &workerPool;
+    m_meshDataPool = std::move(dataPool);
+    m_meshResultQueue = std::move(resultQueue);
 
-    m_meshBuildScheduler = std::make_unique<MeshBuildScheduler>(*m_meshWorkerPool, schedulerConfig);
+    m_meshBuildScheduler =
+        std::make_unique<MeshBuildScheduler>(workerPool, m_meshDataPool, m_meshResultQueue, schedulerConfig);
 
-    spdlog::info("ClientWorld: mesh system initialized with {} worker threads", m_meshWorkerPool->threadCount());
+    spdlog::info("ClientWorld: mesh system initialized with {} compute threads", workerPool.threadCount());
 
     for (auto& [chunkId, chunk] : m_chunks) {
         if (!chunk || !chunk->data || !chunk->isLoaded) {
@@ -771,15 +775,16 @@ void ClientWorld::initializeMeshSystem(i32 threadCount, const MeshSchedulerConfi
 
 void ClientWorld::shutdownMeshSystem()
 {
+    // scheduler::shutdown 取消所有任务并等待在途归零，之后析构 scheduler。
+    // 不关池——池属 ClientApplication，其生命周期长于 ClientWorld（会话级）。
     if (m_meshBuildScheduler) {
-        m_meshBuildScheduler->cancelAll();
+        m_meshBuildScheduler->shutdown();
         m_meshBuildScheduler.reset();
     }
 
-    if (m_meshWorkerPool) {
-        m_meshWorkerPool->shutdown();
-        m_meshWorkerPool.reset();
-    }
+    m_computeWorkerPool = nullptr;
+    m_meshDataPool.reset();
+    m_meshResultQueue.reset();
 
     for (auto& [chunkId, chunk] : m_chunks) {
         (void)chunkId;
@@ -793,27 +798,27 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "ClientWorld::processMeshBuildResults");
 
-    if (!m_meshBuildScheduler || !m_meshWorkerPool || !m_meshWorkerPool->isRunning()) {
+    if (!m_meshBuildScheduler) {
         return;
     }
 
-    const u32 completedBacklog = static_cast<u32>(m_meshWorkerPool->completedTaskCount());
+    const u32 completedBacklog = static_cast<u32>(m_meshResultQueue->size());
     const u32 dynamicBudget = std::max(maxPerFrame, std::min(completedBacklog, 64u));
 
     m_meshBuildScheduler->drainCompleted(
         [this](MeshWorkerResult&& result) {
             ClientChunk* chunk = getChunk(result.chunkId);
             if (!chunk) {
-                // chunk 已卸载：结果网格未进入 chunk，归还 capacity 给原 worker 桶。
-                m_meshWorkerPool->recycle(
-                    result.workerId, std::move(result.solidMesh), std::move(result.transparentMesh));
+                // chunk 已卸载：结果网格未进入 chunk，归还 capacity 给回收池。
+                m_meshDataPool->recycle(false, std::move(result.solidMesh));
+                m_meshDataPool->recycle(true, std::move(result.transparentMesh));
                 return;
             }
 
             if (chunk->activeMeshTaskId != 0 && result.taskId != chunk->activeMeshTaskId) {
-                // 过期结果（已被更新的任务取代）：归还 capacity 给原 worker 桶。
-                m_meshWorkerPool->recycle(
-                    result.workerId, std::move(result.solidMesh), std::move(result.transparentMesh));
+                // 过期结果（已被更新的任务取代）：归还 capacity 给回收池。
+                m_meshDataPool->recycle(false, std::move(result.solidMesh));
+                m_meshDataPool->recycle(true, std::move(result.transparentMesh));
                 return;
             }
 
@@ -823,8 +828,8 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
                 chunk->meshRebuildPending = false;
                 chunk->activeMeshTaskId = 0;
                 // 取消/失败：结果网格未进入 chunk，归还 capacity（取消时空壳归还最有价值）。
-                m_meshWorkerPool->recycle(
-                    result.workerId, std::move(result.solidMesh), std::move(result.transparentMesh));
+                m_meshDataPool->recycle(false, std::move(result.solidMesh));
+                m_meshDataPool->recycle(true, std::move(result.transparentMesh));
                 if (shouldResubmit) {
                     _requestChunkMeshRebuild(result.chunkId);
                 }
@@ -840,7 +845,6 @@ void ClientWorld::processMeshBuildResults(u32 maxPerFrame)
 
             chunk->solidMesh = std::move(result.solidMesh);
             chunk->transparentMesh = std::move(result.transparentMesh);
-            chunk->lastWorkerId = result.workerId;
             chunk->meshRebuildPending = false;
             chunk->hasMeshResult = true;
             chunk->needsMeshUpdate = true;

@@ -275,7 +275,9 @@ add_executable(minecraft-client
     renderer/trident/firstperson/ItemInHandRenderer.cpp
     renderer/trident/firstperson/FirstPersonTransforms.cpp
     # 共享渲染组件
-    renderer/mesh/MeshWorkerPool.cpp
+    renderer/mesh/MeshDataPool.cpp
+    renderer/mesh/MeshResultQueue.cpp
+    renderer/mesh/MeshBuildTask.cpp
     renderer/mesh/MeshBuildScheduler.cpp
     renderer/MeshTypes.cpp
     renderer/Camera.cpp

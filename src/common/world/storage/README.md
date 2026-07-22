@@ -177,7 +177,7 @@ storage/
 7. **`close()` 不负责保存**：关闭存储前必须由上层显式调用 `flushAllDirty()` 或 `saveAll()`，析构/close 只做资源释放
 8. **外来格式 detect 不要下沉到 backend**：backend 只负责按门面层已确认的格式打开和读取
 9. **外来存档强制只读**：`saveChunk()`、`flushAllDirty()`、`saveAll()`、`saveLevelData()` 在外来格式下静默成功但不落盘
-10. **`StorageTaskManager` 不拥有线程池**：必须由外部注入 `ServerWorkerPool`
+10. **`StorageTaskManager` 不拥有线程池**：必须由外部注入 `UniversalWorkerPool`
 11. **缓存命中和批量读取必须分开处理**：先查缓存，只把 miss 交给数据库，不要把所有 key 都无脑送进 `MultiGet`
 12. **批量读取返回顺序必须稳定**：上层 `loadChunk()` 依赖返回顺序与 `sectionY` 顺序一致
 13. **`loadPlayer("~local_player")` 是约定**：本地玩家通过这个特殊字符串读取，Java 从 `Data.Player`，Bedrock 从 `~local_player` 键

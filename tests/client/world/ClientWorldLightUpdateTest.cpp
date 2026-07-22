@@ -31,11 +31,11 @@
 #include "client/world/ClientWorld.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
-
 
 using namespace mc;
 using namespace mc::client;
@@ -80,7 +80,15 @@ std::vector<u8> createLightData(u8 value)
 
 class ClientWorldLightUpdateTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        m_pool.start();
+    }
+
+    void TearDown() override { m_pool.shutdown(); }
+
+    util::UniversalWorkerPool m_pool{1, "TestCompute", 900};
 };
 
 TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMesh)
@@ -88,7 +96,9 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
     ClientWorld world;
     ASSERT_TRUE(world.initialize(12345).success());
 
-    world.initializeMeshSystem(1, createSchedulerConfig());
+    auto dataPool = std::make_shared<MeshDataPool>();
+    auto resultQueue = std::make_shared<MeshResultQueue>();
+    world.initializeMeshSystem(m_pool, dataPool, resultQueue, createSchedulerConfig());
 
     std::vector<u8> chunkBytes = createSerializedChunkData();
     ASSERT_FALSE(chunkBytes.empty());

@@ -91,7 +91,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 单机主机的命令权限由 `IntegratedServer::resolveOpLevel` 在 OP 列表之上叠加「主机 + `IntegratedServerParams::allowCommands` → Owner(4)」运行时判定（不写 `ops.json`）。`allowCommands` 由客户端 `WorldLaunchConfig.allowCommands` 透传（`ClientApplicationSession::initializeGameSession`）；未透传或未开作弊时主机权限为 0，`/tp`、`/gamemode` 等权限 2 命令会因节点被跳过而误报成其它字面量的 `Expected literal`。命令分发（`handleChatMessagePacket`）与登录（`handleLoginRequestPacket`）权限解析统一走 `resolveOpLevel`。
 
 ### 4. 线程池职责分离
-计算池和IO池职责不同，不能复用同一个 `ServerWorkerPool`。`ServerChunkManager` 只接受外部注入的池指针。
+计算池和IO池职责不同，不能复用同一个 `UniversalWorkerPool`。`ServerChunkManager` 只接受外部注入的池指针。
 
 ### 5. 生命周期管理
 `SingleLevelStorageManager` 的异步任务需要在 `open()` 之后才可使用。共享资源的保存/关闭由 `MinecraftServer` 顶层统一编排，析构函数只做兜底释放。

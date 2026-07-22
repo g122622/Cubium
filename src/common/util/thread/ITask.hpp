@@ -64,7 +64,7 @@ enum class TaskType : u8 {
 /**
  * @brief 任务基类
  *
- * 所有提交到 ServerWorkerPool 的任务必须继承此类。
+ * 所有提交到 UniversalWorkerPool 的任务必须继承此类。
  *
  * 使用方法：
  * @code
@@ -137,7 +137,7 @@ using TaskCallback = std::function<void(bool success, ITask* task)>;
  * @brief 通用 lambda 任务包装器
  *
  * 把任意 `bool(const std::atomic<bool>&)` 可调用对象包装为 ITask，
- * 用于向 ServerWorkerPool 提交一次性计算任务（如反序列化、组装）。
+ * 用于向 UniversalWorkerPool 提交一次性计算任务（如反序列化、组装）。
  * 与 StorageTask 不同，FunctionTask 不绑定存储键、不限定 traceCategory，
  * 适用于任意线程池（ServerCompute 等）。
  *

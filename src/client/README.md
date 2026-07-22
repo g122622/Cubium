@@ -72,12 +72,12 @@ src/client/
           ├──► ClientWorld         │
           │       │                │
           │       ├──► ClientEntityManager
-          │       ├──► MeshWorkerPool (异步网格构建)
+          │       ├──► UniversalWorkerPool/ClientCompute (异步网格构建+皮肤加载)
           │       └──► ClientWeather
           │                        │
           ├──► TridentEngine (渲染引擎)
           │       │
-          │       ├──► ChunkRenderer ◄── MeshWorkerPool
+          │       ├──► ChunkRenderer ◄── ClientCompute(UniversalWorkerPool)
           │       ├──► SkyRenderer
           │       ├──► CloudRenderer
           │       ├──► EntityRenderer
@@ -135,7 +135,7 @@ Vulkan 对象必须按正确顺序销毁，否则会导致崩溃。使用 `Tride
 
 ### 2. 区块网格构建阻塞主线程
 
-区块网格构建是 CPU 密集操作，在主线程执行会导致卡顿。使用 `MeshWorkerPool` 异步构建，每帧限制处理数量 (`maxPerFrame = 4`)。
+区块网格构建是 CPU 密集操作，在主线程执行会导致卡顿。使用 `UniversalWorkerPool`(ClientCompute) 异步构建，每帧限制处理数量 (`maxPerFrame = 4`)。
 
 ### 3. 纹理图集更新
 
@@ -155,7 +155,7 @@ GUI 元素渲染顺序错误导致遮挡。使用 `zIndex` 控制层级，按正
 
 ### 7. 线程安全
 
-多线程访问共享资源导致崩溃。`MeshWorkerPool` 使用 `shared_ptr<ChunkData>` 共享数据，主线程处理结果，Worker 只读取。
+多线程访问共享资源导致崩溃。`UniversalWorkerPool`(ClientCompute) 使用 `shared_ptr<ChunkData>` 共享数据，主线程处理结果，Worker 只读取。
 
 ### 8. 主循环 partialTick
 

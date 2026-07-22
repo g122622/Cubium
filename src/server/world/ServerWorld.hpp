@@ -1062,7 +1062,7 @@ public:
      * @brief 入队区块加载光照任务（主线程调用）
      *
      * 由 chunkLoadedCallback 调用。对中心区块 add LIGHT 票据（level=Full 保活）后，
-     * 构造 ChunkLoadLightTask 提交到 ServerWorkerPool 区域互斥池（writeRadius=2）。
+     * 构造 ChunkLoadLightTask 提交到 UniversalWorkerPool 区域互斥池（writeRadius=2）。
      * 区块加载光照与运行时方块变更、LIGHT 生成阶段同池同 writeRadius，重叠 5×5 区域
      * 的 nibble 写必被区域锁串行 → 满足 SWMRNibbleArray 单写者语义，可安全删 m_mutex。
      *

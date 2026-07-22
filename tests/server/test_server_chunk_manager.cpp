@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -58,7 +58,7 @@ protected:
         VanillaBlocks::initialize();
 
         // 创建工作线程池
-        m_workerPool = std::make_unique<mc::util::ServerWorkerPool>(2, "TestWorker");
+        m_workerPool = std::make_unique<mc::util::UniversalWorkerPool>(2, "TestWorker", 900);
 
         // 创建测试用的 ServerWorld
         ServerWorldConfig config;
@@ -122,7 +122,7 @@ protected:
         }
     }
 
-    std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
     // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
     ServerChunkManager* m_manager = nullptr;

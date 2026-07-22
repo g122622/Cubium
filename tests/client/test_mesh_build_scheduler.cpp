@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -22,7 +22,10 @@
  */
 
 #include "client/renderer/mesh/MeshBuildScheduler.hpp"
+#include "client/renderer/mesh/MeshDataPool.hpp"
+#include "client/renderer/mesh/MeshResultQueue.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <chrono>
@@ -33,6 +36,7 @@
 
 using namespace mc;
 using namespace mc::client;
+using namespace mc::util;
 
 namespace {
 
@@ -97,10 +101,12 @@ protected:
 
 TEST_F(MeshBuildSchedulerTest, LatestTaskForChunkWins)
 {
-    MeshWorkerPool pool(1);
+    UniversalWorkerPool pool{1, "TestCompute", 900};
     pool.start();
 
-    MeshBuildScheduler scheduler(pool, createSchedulerConfig(1));
+    auto dataPool = std::make_shared<MeshDataPool>();
+    auto resultQueue = std::make_shared<MeshResultQueue>();
+    MeshBuildScheduler scheduler(pool, dataPool, resultQueue, createSchedulerConfig(1));
     scheduler.setViewState(createViewState(12));
 
     const u64 firstTaskId = scheduler.submit(makeRequest(0, 0));
@@ -121,15 +127,18 @@ TEST_F(MeshBuildSchedulerTest, LatestTaskForChunkWins)
     ASSERT_EQ(completedTaskIds.size(), 1u);
     EXPECT_EQ(completedTaskIds.front(), secondTaskId);
 
+    scheduler.shutdown();
     pool.shutdown();
 }
 
 TEST_F(MeshBuildSchedulerTest, FrustumVisibleChunkHasHigherPriority)
 {
-    MeshWorkerPool pool(1);
+    UniversalWorkerPool pool{1, "TestCompute", 900};
     pool.start();
 
-    MeshBuildScheduler scheduler(pool, createSchedulerConfig(1));
+    auto dataPool = std::make_shared<MeshDataPool>();
+    auto resultQueue = std::make_shared<MeshResultQueue>();
+    MeshBuildScheduler scheduler(pool, dataPool, resultQueue, createSchedulerConfig(1));
     scheduler.setViewState(createViewState(12));
 
     const ChunkId behindChunk(0, -1, 0);
@@ -149,15 +158,18 @@ TEST_F(MeshBuildSchedulerTest, FrustumVisibleChunkHasHigherPriority)
     ASSERT_FALSE(completedChunks.empty());
     EXPECT_EQ(completedChunks.front(), frontChunk);
 
+    scheduler.shutdown();
     pool.shutdown();
 }
 
 TEST_F(MeshBuildSchedulerTest, OutOfRangePendingTaskCancelledBeforeDispatch)
 {
-    MeshWorkerPool pool(1);
+    UniversalWorkerPool pool{1, "TestCompute", 900};
     pool.start();
 
-    MeshBuildScheduler scheduler(pool, createSchedulerConfig(1));
+    auto dataPool = std::make_shared<MeshDataPool>();
+    auto resultQueue = std::make_shared<MeshResultQueue>();
+    MeshBuildScheduler scheduler(pool, dataPool, resultQueue, createSchedulerConfig(1));
     scheduler.setViewState(createViewState(2));
 
     const u64 taskId = scheduler.submit(makeRequest(32, 32));
@@ -169,8 +181,9 @@ TEST_F(MeshBuildSchedulerTest, OutOfRangePendingTaskCancelledBeforeDispatch)
     EXPECT_EQ(stats.trackedTaskCount, 0u);
     EXPECT_EQ(stats.pendingTaskCount, 0u);
     EXPECT_GE(stats.cancelledTaskCount, 1u);
-    EXPECT_EQ(pool.queuedTaskCount(), 0u);
+    EXPECT_EQ(pool.pendingTaskCount(), 0u);
     EXPECT_FALSE(scheduler.isTaskTracked(taskId));
 
+    scheduler.shutdown();
     pool.shutdown();
 }

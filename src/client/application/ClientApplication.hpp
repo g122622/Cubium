@@ -52,6 +52,7 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "server/application/IntegratedServer.hpp"
 
 #include <atomic>
@@ -174,6 +175,19 @@ public:
      */
     [[nodiscard]] ClientWorld& world() noexcept { return m_world; }
     [[nodiscard]] const ClientWorld& world() const noexcept { return m_world; }
+
+    /**
+     * @brief 获取客户端统一计算池（ClientCompute）
+     *
+     * 进程级计算池，承接 chunkmesh 构建、皮肤异步加载等客户端计算任务。
+     * 由 ClientApplication 持有，生命周期长于单个游戏会话；mesh 系统与皮肤管理器
+     * 均通过注入引用/指针消费此池。
+     */
+    [[nodiscard]] util::UniversalWorkerPool& clientComputeWorkerPool() noexcept { return m_clientComputeWorkerPool; }
+    [[nodiscard]] const util::UniversalWorkerPool& clientComputeWorkerPool() const noexcept
+    {
+        return m_clientComputeWorkerPool;
+    }
 
     /**
      * @brief 获取皮肤管理器
@@ -556,6 +570,11 @@ private:
 
     // 内存追踪线程（独立线程采样，避免阻塞主循环）
     MemoryTraceThread m_memoryTraceThread;
+
+    // 客户端统一计算池（ClientCompute）。进程级，承接 chunkmesh/皮肤等客户端计算任务。
+    // 由 ClientApplication 持有：initializeShell 阶段 start()，shutdown 阶段（销毁 mesh 系统/皮肤
+    // 管理器之后）shutdown()。生命周期间长于 ClientWorld（会话级），故不放在 ClientWorld。
+    util::UniversalWorkerPool m_clientComputeWorkerPool{-1, "ClientCompute", 300};
 };
 
 } // namespace mc::client

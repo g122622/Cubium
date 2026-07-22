@@ -20,8 +20,8 @@ manager/
 SkinManager
 ├── SkinCache ──── metadata.json 持久化 + 磁盘文件缓存
 ├── DefaultSkinProvider ──── 18种内置默认皮肤（通过 UUID 哈希选择）
-├── FileSkinLoader ──── 本地文件/资源包加载（可注入 ServerWorkerPool 异步加载）
-└── HttpSkinLoader ──── HTTP 远程下载（可注入 ServerWorkerPool 异步加载）
+├── FileSkinLoader ──── 本地文件/资源包加载（可注入 UniversalWorkerPool 异步加载）
+└── HttpSkinLoader ──── HTTP 远程下载（可注入 UniversalWorkerPool 异步加载）
 ```
 
 ## 默认皮肤系统
@@ -50,7 +50,7 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 - `common/skin/loader` - ISkinLoader、SkinLoadResult、FileSkinLoader、HttpSkinLoader
 - `common/skin/parser` - SkinMetadataParser
 - `common/resource` - ResourceLocation、IResourcePack（DefaultSkinProvider 加载默认皮肤 PNG 纹理）
-- `common/util/thread` - ServerWorkerPool（异步皮肤加载，可选注入）
+- `common/util/thread` - UniversalWorkerPool（异步皮肤加载，可选注入）
 - `stb_image` - PNG 解码（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
 - `nlohmann-json` - 元数据 JSON 序列化
 - `spdlog` - 日志

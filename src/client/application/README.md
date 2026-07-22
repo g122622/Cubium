@@ -64,6 +64,7 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 
 **下游依赖（该目录依赖的模块）：**
 - `common/entity`、`common/item`、`common/world`、`common/screen`
+- `common/util/thread/UniversalWorkerPool` - ClientCompute 客户端统一计算池（见下）
 - `client/input/InputManager`
 - `client/network/NetworkClient`
 - `client/resource/ResourceManager`
@@ -72,6 +73,20 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 - `client/renderer/trident/core/TridentEngine`
 - `client/ui/*`（ScreenManager、ChatWidget、InventoryCraftingScreen、CreativeScreen、DebugScreenWidget）
 - `server/application/IntegratedServer` - 内置服务端
+
+## 客户端统一计算池 ClientCompute
+
+`ClientApplication` 以值成员持有 `util::UniversalWorkerPool m_clientComputeWorkerPool{-1, "ClientCompute", 300}`，
+作为客户端进程级统一计算池，承接 chunkmesh 构建、皮肤异步加载等客户端计算任务。
+
+生命周期与关停顺序：
+- **start**：`initializeShell` 阶段（早于 mesh 系统/皮肤管理器等消费者初始化）`pool.start()`。
+- **shutdown**：`ClientApplication::shutdown()` 中，`m_world.destroy()`（已关停 mesh scheduler 并等在途归零）
+  之后、`m_window.destroy()` 之前 `pool.shutdown()`。此处保证 mesh scheduler 与 skin manager 均已销毁，
+  晚到的 mesh 回调走 `weak_ptr<MeshResultQueue>` 失败路径，安全。
+
+注入：mesh 系统经 `ClientWorld::initializeMeshSystem(pool, dataPool, resultQueue, config)` 注入池引用；
+皮肤管理器经 `ClientSkinManager::setWorkerPool(&pool)` 注入裸指针（填上既存缺口，皮肤加载异步化）。
 
 ## 容易踩的坑
 

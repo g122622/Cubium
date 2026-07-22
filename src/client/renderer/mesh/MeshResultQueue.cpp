@@ -21,45 +21,49 @@
  *
  */
 
-#include "StorageTaskManager.hpp"
+#include "MeshResultQueue.hpp"
 
-namespace mc::world::storage {
+namespace mc::client {
 
-StorageTaskManager::StorageTaskManager(util::UniversalWorkerPool& workerPool) noexcept
-    : m_workerPool(&workerPool)
-{}
+MeshResultQueue::MeshResultQueue() = default;
 
-void StorageTaskManager::setWorkerPool(util::UniversalWorkerPool* workerPool) noexcept
+MeshResultQueue::~MeshResultQueue() = default;
+
+void MeshResultQueue::push(MeshWorkerResult&& result)
 {
-    m_workerPool = workerPool;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_queue.push(std::move(result));
 }
 
-u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
-    util::TaskPriority priority,
-    util::TaskCallback callback,
-    std::shared_ptr<std::atomic<bool>> abortSignal)
+void MeshResultQueue::drain(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount)
 {
-    // 空指针检查：作为公共接口，需要验证外部输入
-    if (!m_workerPool || !task) {
-        if (callback) {
-            callback(false, nullptr);
+    if (!callback || maxCount == 0) {
+        return;
+    }
+
+    u32 drained = 0;
+
+    while (drained < maxCount) {
+        MeshWorkerResult result;
+
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_queue.empty()) {
+                break;
+            }
+            result = std::move(m_queue.front());
+            m_queue.pop();
         }
-        return 0;
-    }
 
-    return m_workerPool->submit(std::move(task), std::move(callback), priority, std::move(abortSignal));
-}
-
-bool StorageTaskManager::cancel(u64 taskId)
-{
-    return m_workerPool ? m_workerPool->cancel(taskId) : false;
-}
-
-void StorageTaskManager::waitForCompletion()
-{
-    if (m_workerPool) {
-        m_workerPool->waitForCompletion();
+        callback(std::move(result));
+        ++drained;
     }
 }
 
-} // namespace mc::world::storage
+size_t MeshResultQueue::size() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_queue.size();
+}
+
+} // namespace mc::client

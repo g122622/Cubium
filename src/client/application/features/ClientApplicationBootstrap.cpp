@@ -811,6 +811,10 @@ Result<void> ClientApplication::initializeShell(const ClientLaunchParams& params
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeShell");
 
+    // 启动客户端统一计算池（ClientCompute）。进程级池，承接 chunkmesh 构建、皮肤异步加载等
+    // 客户端计算任务；须在 mesh 系统/皮肤管理器等消费者初始化之前就绪。
+    m_clientComputeWorkerPool.start();
+
     // 初始化核心注册表
     initializeCoreRegistries();
 

@@ -38,7 +38,7 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `ChunkStatus`：生成阶段（EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HEIGHTMAPS → FULL）
 - `ChunkPrimer`：生成过程中的中间区块状态
 - `SingleChunkLifecycleManager`：管理区块加载状态和 future
-- `ChunkGenerateTask`：区块生成任务，提交到 ServerWorkerPool 执行
+- `ChunkGenerateTask`：区块生成任务，提交到 UniversalWorkerPool 执行
 - `IChunk`：生成的区块接口
 
 ### 生物群系类型

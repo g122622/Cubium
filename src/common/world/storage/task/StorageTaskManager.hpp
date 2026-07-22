@@ -24,7 +24,7 @@
 #pragma once
 
 #include "StorageTask.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <memory>
 
@@ -34,7 +34,7 @@ namespace mc::world::storage {
  * @brief 存储任务管理器
  *
  * 负责把存储任务提交到指定的 Worker 池，并保留任务 ID 以便后续取消。
- * 该类是对 ServerWorkerPool 的简单封装，专门用于存储相关任务的调度。
+ * 该类是对 UniversalWorkerPool 的简单封装，专门用于存储相关任务的调度。
  */
 class StorageTaskManager {
 public:
@@ -42,13 +42,13 @@ public:
      * @brief 构造函数
      * @param workerPool 工作线程池的引用
      */
-    explicit StorageTaskManager(util::ServerWorkerPool& workerPool) noexcept;
+    explicit StorageTaskManager(util::UniversalWorkerPool& workerPool) noexcept;
 
     /**
      * @brief 设置 Worker 池
      * @param workerPool 工作线程池指针，可为 nullptr
      */
-    void setWorkerPool(util::ServerWorkerPool* workerPool) noexcept;
+    void setWorkerPool(util::UniversalWorkerPool* workerPool) noexcept;
 
     /**
      * @brief 提交任务
@@ -76,7 +76,7 @@ public:
     void waitForCompletion();
 
 private:
-    util::ServerWorkerPool* m_workerPool = nullptr;
+    util::UniversalWorkerPool* m_workerPool = nullptr;
 };
 
 } // namespace mc::world::storage

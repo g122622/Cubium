@@ -7,15 +7,15 @@
 ```
 thread/
 ├── ITask.hpp              # 任务接口定义（优先级、类型、执行接口）
-├── ServerWorkerPool.hpp   # 服务端任务池头文件
-├── ServerWorkerPool.cpp   # 服务端任务池实现
+├── UniversalWorkerPool.hpp   # 通用任务池头文件（服务端/客户端共用）
+├── UniversalWorkerPool.cpp   # 通用任务池实现
 └── README.md              # 本文档
 ```
 
 ## 内部模块关系
 
 ```
-ServerWorkerPool
+UniversalWorkerPool
        │
        └── ITask (抽象接口)
                 │
@@ -24,7 +24,7 @@ ServerWorkerPool
 
 ## 区域互斥（对齐 Moonrise 区域锁执行器）
 
-`ServerWorkerPool` 提供两套 `submit` 重载：
+`UniversalWorkerPool` 提供两套 `submit` 重载：
 
 - **无坐标 `submit`**：任务可完全并行，不参与区域互斥。用于 EMPTY~INITIALIZE_LIGHT 等 parallelCapable 状态。
 - **带坐标 `submit(task, callback, centerX, centerZ, writeRadius, ...)`**：任务携带矩形写入区域
@@ -57,7 +57,8 @@ ServerWorkerPool
 |------|------|
 | `server/world/ServerChunkManager` | 区块生成任务调度 |
 | `common/world/storage/StorageTaskManager` | 存储 IO 任务调度 |
-| `server/application/MinecraftServer` | 服务器启动/关闭管理 |
+| `server/application/MinecraftServer` | 服务器持有 ServerCompute/ServerIO 池 |
+| `client/application/ClientApplication` | 客户端持有 ClientCompute 池（chunkmesh/皮肤等） |
 
 ## 容易踩的坑
 
@@ -65,11 +66,11 @@ ServerWorkerPool
 
 ```cpp
 // ❌ 错误：任务不会执行
-ServerWorkerPool pool(4);
+UniversalWorkerPool pool(4, "MyWorker", 300);
 pool.submit(task, callback);
 
 // ✅ 正确：先启动再提交
-ServerWorkerPool pool(4);
+UniversalWorkerPool pool(4, "MyWorker", 300);
 pool.start();  // 必须！
 pool.submit(task, callback);
 ```

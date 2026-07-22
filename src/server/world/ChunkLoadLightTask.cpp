@@ -23,6 +23,7 @@
 #include "ChunkLoadLightTask.hpp"
 
 #include "ServerWorld.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
@@ -33,6 +34,8 @@
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include <fmt/format.h>
+
+using namespace mc::trace;
 
 namespace mc::server {
 

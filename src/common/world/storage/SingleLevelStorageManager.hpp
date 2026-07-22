@@ -349,7 +349,7 @@ public:
      *
      * @param workerPool IO 线程池指针
      */
-    void setIoWorkerPool(util::ServerWorkerPool* workerPool);
+    void setIoWorkerPool(util::UniversalWorkerPool* workerPool);
 
     /**
      * @brief 注入反序列化线程池（ServerCompute）
@@ -360,7 +360,7 @@ public:
      *
      * @param workerPool 反序列化线程池指针，可为 nullptr（降级内联）
      */
-    void setComputeWorkerPool(util::ServerWorkerPool* workerPool) { m_computeWorkerPool = workerPool; }
+    void setComputeWorkerPool(util::UniversalWorkerPool* workerPool) { m_computeWorkerPool = workerPool; }
 
     /**
      * @brief 获取玩家数据管理器
@@ -569,12 +569,12 @@ private:
     std::unique_ptr<mc::scoreboard::ScoreboardDataManager> m_scoreboardDataManager;
     std::unique_ptr<AutoSave> m_autoSave;
     bool m_autoSaveInitialized = false;
-    util::ServerWorkerPool* m_ioWorkerPool = nullptr;
+    util::UniversalWorkerPool* m_ioWorkerPool = nullptr;
     std::unique_ptr<StorageTaskManager> m_taskManager;
 
     /// 反序列化线程池（ServerCompute）。loadChunkAsync 的 SectionCodec::toChunkSection +
     /// biomes 组装 + ChunkData 合并阶段在此池执行。nullptr 时降级为 IO worker 内联。
-    util::ServerWorkerPool* m_computeWorkerPool = nullptr;
+    util::UniversalWorkerPool* m_computeWorkerPool = nullptr;
 
     mutable std::mutex m_sectionManagersMutex;
     std::unordered_map<DimensionId, std::unique_ptr<SectionManager>> m_sectionManagers;

@@ -169,7 +169,7 @@ server/
 |---|---|
 | `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气、难度回调） |
 | `ServerChunkManager` | 区块生命周期（加载、生成、卸载、取消），统一调度 |
-| `ChunkGenerateTask` | 区块生成任务，提交到 ServerWorkerPool 执行 |
+| `ChunkGenerateTask` | 区块生成任务，提交到 UniversalWorkerPool 执行 |
 | `EntityTracker` | 实体可见性管理，基于距离追踪 |
 | `ItemPickupManager` | 物品拾取检测和处理 |
 | `WeatherManager` | 天气周期、闪电生成、天气命令 |
@@ -361,7 +361,7 @@ TCP 网络通信实现。
 
 6. **区块生成**：
    ```
-   ServerChunkManager.getChunkAsync() → ServerWorkerPool
+   ServerChunkManager.getChunkAsync() → UniversalWorkerPool
    → ChunkGenerateTask 执行 → 回调主线程 → 存入缓存
    ```
 
@@ -444,7 +444,7 @@ chunkManager.setChunkLoadedCallback([world](ChunkCoord x, ChunkCoord z) {
 });
 ```
 `enqueueChunkLoadLight` 对中心区块 add LIGHT 票据保活后，构造 `ChunkLoadLightTask` 提交到
-`ServerWorkerPool` 区域互斥池（writeRadius=2）。worker 完成后经 `ServerWorld` 续延队列回主线程
+`UniversalWorkerPool` 区域互斥池（writeRadius=2）。worker 完成后经 `ServerWorld` 续延队列回主线程
 flush（`markLightChanged` 同步 visible nibble 到 ChunkSection）+ send（`ChunkSendManager` 发包）。
 tick 顺序严格 flush → send → drain，保证客户端收到正确光照而非全黑区块。
 

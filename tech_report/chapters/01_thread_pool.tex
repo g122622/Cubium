@@ -23,7 +23,7 @@ Java版Minecraft使用单一的执行服务处理所有异步任务：
 
 \subsection{本项目架构}
 
-本项目采用任务分离的多线程池架构，如图\ref{fig:thread_pool_architecture}所示。服务端配置两个独立的\texttt{ServerWorkerPool}：计算池处理区块生成等CPU密集型任务，IO池处理存储操作。客户端使用\texttt{MeshWorkerPool}配合\texttt{MeshBuildScheduler}实现视锥感知的网格构建调度。
+本项目采用任务分离的多线程池架构，如图\ref{fig:thread_pool_architecture}所示。服务端配置两个独立的\texttt{UniversalWorkerPool}：计算池处理区块生成等CPU密集型任务，IO池处理存储操作。客户端配置一个进程级\texttt{UniversalWorkerPool}（ClientCompute），承接 chunkmesh 构建与皮肤异步加载等计算任务，网格调度由\texttt{MeshBuildScheduler}实现视锥感知的优先级与取消策略。
 
 \begin{figure}[h]
 \centering
@@ -36,7 +36,7 @@ Java版Minecraft使用单一的执行服务处理所有异步任务：
 
 \subsubsection{双池设计}
 
-服务端维护两个独立的\texttt{ServerWorkerPool}实例：
+服务端维护两个独立的\texttt{UniversalWorkerPool}实例：
 
 \begin{itemize}
     \item \textbf{计算池（ServerCompute）}：处理区块生成、光照计算等CPU密集型任务
@@ -47,7 +47,7 @@ Java版Minecraft使用单一的执行服务处理所有异步任务：
 
 \subsubsection{线程数量策略}
 
-\texttt{ServerWorkerPool}的线程数采用自动检测策略：
+\texttt{UniversalWorkerPool}的线程数采用自动检测策略：
 
 \begin{equation}
 n_{threads} = \min\left(\max\left(\frac{n_{hardware}}{2}, 1\right), 114514\right)
@@ -110,15 +110,15 @@ DBRead & 数据库读取 \\
 
 \subsection{客户端线程池}
 
-\subsubsection{MeshWorkerPool}
+\subsubsection{ClientCompute（客户端统一计算池）}
 
-客户端网格构建使用\texttt{MeshWorkerPool}，线程数策略为：
+客户端不设独立网格线程池，而是复用进程级统一计算池\texttt{UniversalWorkerPool}（命名为 ClientCompute，由\texttt{ClientApplication}持有），承接 chunkmesh 构建、皮肤异步加载等客户端计算任务。线程数策略为：
 
 \begin{equation}
 n_{threads} = \min\left(\max\left(\frac{n_{hardware} - 1}{2}, 1\right), 32\right)
 \end{equation}
 
-比服务端更保守，为渲染主线程预留更多资源。与\texttt{ServerWorkerPool}不同，\texttt{MeshWorkerPool}使用FIFO队列，不实现优先级调度。
+比服务端更保守，为渲染主线程预留更多资源。该池与服务端\texttt{ServerCompute}/\texttt{ServerIO}同构，共享优先级队列与区域互斥机制；网格任务以\texttt{TaskPriority::Normal}提交，池内优先级队列负责跨消费者（mesh/皮肤）仲裁。\texttt{rankBase}=300，profiler 中排列在 ServerCompute(100+)/ServerIO(200+) 之后。
 
 \subsubsection{MeshBuildScheduler}
 

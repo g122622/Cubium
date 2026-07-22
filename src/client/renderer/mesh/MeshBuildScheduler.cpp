@@ -23,6 +23,8 @@
 
 #include "MeshBuildScheduler.hpp"
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 #include <spdlog/spdlog.h>
@@ -31,8 +33,13 @@
 
 namespace mc::client {
 
-MeshBuildScheduler::MeshBuildScheduler(MeshWorkerPool& workerPool, const MeshSchedulerConfig& config)
+MeshBuildScheduler::MeshBuildScheduler(util::UniversalWorkerPool& workerPool,
+    std::shared_ptr<MeshDataPool> dataPool,
+    std::shared_ptr<MeshResultQueue> resultQueue,
+    const MeshSchedulerConfig& config)
     : m_workerPool(workerPool)
+    , m_dataPool(std::move(dataPool))
+    , m_resultQueue(std::move(resultQueue))
     , m_config(config)
 {
     if (m_config.maxDispatchedTaskCount <= 0) {
@@ -181,9 +188,21 @@ void MeshBuildScheduler::tick()
     _dispatchPendingTasks();
 }
 
+void MeshBuildScheduler::shutdown()
+{
+    cancelAll();
+
+    // 等待所有在途任务回调归零。回调在 worker 线程只做 m_inflightTaskCount 减法，
+    // 归零即所有在途任务已 push 结果（或 lock 结果队列失败丢弃）。cancelAll 已设置
+    // abortSignal，worker 会在 abortSignal 检查处短路 execute，归零不会久等。
+    while (m_inflightTaskCount.load(std::memory_order::acquire) > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
+
 void MeshBuildScheduler::drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount)
 {
-    m_workerPool.drainCompleted(
+    m_resultQueue->drain(
         [this, &callback](MeshWorkerResult&& result) {
             bool shouldDeliver = false;
 
@@ -419,18 +438,29 @@ void MeshBuildScheduler::_dispatchPendingTasks()
             continue;
         }
 
-        MeshWorkerTask workerTask;
-        workerTask.chunkId = task.chunkId;
-        workerTask.taskId = task.taskId;
-        workerTask.chunkData = task.request.chunkData;
-        workerTask.neighbors = task.request.neighbors;
-        workerTask.abortSignal = task.abortSignal;
+        // 必须在 submit 之前自增：回调可能在另一线程立即触发（任务被拒/秒完），
+        // 回调只做减法，归零责任全在回调侧。submit 拒绝任务时回调仍会被调用
+        // （见 UniversalWorkerPool.cpp 拒绝路径），故计数不会泄漏。
+        m_inflightTaskCount.fetch_add(1, std::memory_order::acq_rel);
+
+        auto buildTask = std::make_unique<MeshBuildTask>(task.chunkId,
+            task.taskId,
+            task.request.chunkData,
+            task.request.neighbors,
+            m_dataPool,
+            std::weak_ptr<MeshResultQueue>(m_resultQueue));
 
         task.state = TaskState::Dispatched;
         ++m_dispatchedTaskCount;
         --availableSlots;
 
-        m_workerPool.submit(std::move(workerTask));
+        // 取消令牌经 pool.submit 的 abortSignal 参数传入；execute 收到的即该令牌，
+        // 与原 MeshWorkerPool 检查 task.abortSignal 语义一致。
+        m_workerPool.submit(
+            std::move(buildTask),
+            [this](bool, ::mc::util::ITask*) { m_inflightTaskCount.fetch_sub(1, std::memory_order::acq_rel); },
+            ::mc::util::TaskPriority::Normal,
+            task.abortSignal);
         taskDispatched = true;
     }
 

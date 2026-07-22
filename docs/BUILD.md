@@ -98,7 +98,7 @@ cmake --build --preset windows-clang-relwithdebinfo
 # 运行测试
 # 强烈建议只运行特定测试并设置 brief，运行全部测试会更慢（测试用例有几千个）
 # 建议只在全部编码工作完成之后运行回归测试的时候才运行全部测试，且也要启用 brief
-./build/bin/RelWithDebInfo/mc_tests --gtest_filter=ServerWorkerPoolTest.* --gtest_brief=1
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter=UniversalWorkerPoolTest.* --gtest_brief=1
 
 # 运行服务端
 ./build/bin/RelWithDebInfo/minecraft-server --help

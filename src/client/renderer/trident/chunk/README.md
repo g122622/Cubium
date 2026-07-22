@@ -21,7 +21,7 @@ flowchart TD
     C --> D[ChunkRenderer]
     D --> E[Vulkan draw calls]
 
-    F[MeshWorkerPool abortSignal] --> B
+    F[ClientCompute abortSignal] --> B
     G[AmbientOcclusionCalculator] --> B
 
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#111
@@ -56,4 +56,4 @@ flowchart TD
 - **延迟归还与守恒断言**：旧子分配区间不在 `updateChunk`/`removeChunk`/`clearChunks` 时立即 free，而是入队等过 `framesToKeep` 帧（`TridentEngine` 传 32，远超 `MAX_FRAMES_IN_FLIGHT`）后由 `processPendingDestroys` 归还。`_freeAllocation` 内有守恒断言 `storageReport().totalFreeSpace == localFreeBytes`，运行期真实泄漏在此暴露（致命）。`destroy()` 先回收所有活跃区块区间再销毁段，关闭期零泄漏告警。
 - **统一暂存上传**：`_createChunkBuffer` 经 `m_context->stagingPool()` 同步上传（`stage`→`memcpy`→`copyToBuffer`→`release`），不再自建 staging buffer。`initialize` 首参为 `TridentContext*`，由 `TridentEngine` 注入 `context()`。池未就绪时报 `staging pool not available` 错误，无 fallback。
 - **Tracy GPU 内存追踪改段级**：不再按每个 `VkDeviceMemory` 成员追踪（旧 free-list 路径的句柄跨对象转移已移除），改为每段一次 `MC_TRACE_MEM_ALLOC`（`ChunkVtx`/`ChunkIdx` 池），与 `destroy()` 段销毁的 `MC_TRACE_MEM_FREE` 严格一对一（同一 `&segment.memory` 地址）。子分配级靠 OffsetAllocator 守恒断言覆盖。
-- **无需锁**：`updateChunk`/`processPendingDestroys`/`render` 均在主线程（CPU 网格构建在 `MeshWorkerPool`，但 GPU 上传在主线程 `forEachDirtyMesh`），故 mega-buffer 子分配路径无锁。旧的 `std::recursive_mutex` 已删除。
+- **无需锁**：`updateChunk`/`processPendingDestroys`/`render` 均在主线程（CPU 网格构建在 `UniversalWorkerPool`/ClientCompute，但 GPU 上传在主线程 `forEachDirtyMesh`），故 mega-buffer 子分配路径无锁。旧的 `std::recursive_mutex` 已删除。

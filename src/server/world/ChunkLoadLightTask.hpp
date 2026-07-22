@@ -38,7 +38,7 @@ class ServerWorld;
  * LightSyncManager::initializeChunkLighting 在主线程直接调引擎写 nibble，
  * 与 worker RuntimeLightTask 写同一区块 nibble 的 updating 侧竞争（SWMRNibbleArray
  * 非原子单写者语义）。效仿 Moonrise ThreadedLevelLightEngineMixin：所有光照写
- * 操作统一经同一 ServerWorkerPool 区域互斥池（writeRadius=2），重叠 5×5 区域
+ * 操作统一经同一 UniversalWorkerPool 区域互斥池（writeRadius=2），重叠 5×5 区域
  * 的 nibble 写必被区域锁串行 → 可安全删 m_mutex。
  *
  * 执行流程（对齐 Moonrise ChunkLightTask.java:154-165）：

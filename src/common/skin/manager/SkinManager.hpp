@@ -34,7 +34,7 @@
 #include "common/skin/manager/DefaultSkinProvider.hpp"
 #include "common/skin/manager/SkinCache.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -236,7 +236,7 @@ public:
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(util::ServerWorkerPool* workerPool)
+    void setWorkerPool(util::UniversalWorkerPool* workerPool)
     {
         m_workerPool = workerPool;
         m_fileLoader->setWorkerPool(workerPool);
@@ -284,7 +284,7 @@ private:
     std::unique_ptr<DefaultSkinProvider> m_defaultSkinProvider;
     std::unique_ptr<FileSkinLoader> m_fileLoader;
     std::unique_ptr<HttpSkinLoader> m_httpLoader;
-    util::ServerWorkerPool* m_workerPool = nullptr;
+    util::UniversalWorkerPool* m_workerPool = nullptr;
 
     mutable std::mutex m_playerInfosMutex;
     std::unordered_map<std::string, std::shared_ptr<PlayerSkinInfo>> m_playerInfos; // key: uuid string

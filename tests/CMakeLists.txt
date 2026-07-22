@@ -928,7 +928,7 @@ add_executable(mc_tests
     client/world/ClientWorldSkyAndHeightmapTest.cpp
     # ClientWeather 闪电闪烁测试
     client/world/ClientWeatherLightningFlashTest.cpp
-    client/test_mesh_worker_pool.cpp
+    client/test_mesh_build_task.cpp
     client/test_mesh_build_scheduler.cpp
     client/test_sound_handlers.cpp
     client/test_client_dimension_manager.cpp
@@ -1342,10 +1342,10 @@ add_executable(mc_tests
     # 鐜╁绉诲姩娴嬭瘯
     common/entity/PlayerMovementTest.cpp
     # Assert搴撴祴璇?    common/util/assert/AssertTest.cpp
-    # ServerWorkerPool 测试
-    common/util/thread/ServerWorkerPoolTest.cpp
-    # ServerWorkerPool 区域互斥测试（对齐 Moonrise 区域锁执行器）
-    common/util/thread/ServerWorkerPoolAreaMutexTest.cpp
+    # UniversalWorkerPool 测试
+    common/util/thread/UniversalWorkerPoolTest.cpp
+    # UniversalWorkerPool 区域互斥测试（对齐 Moonrise 区域锁执行器）
+    common/util/thread/UniversalWorkerPoolAreaMutexTest.cpp
     # ReentrantAreaLock 区域锁测试
     common/util/concurrent/ReentrantAreaLockTest.cpp
     # LockSupport park/unpark 原语测试
@@ -1546,7 +1546,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/thread/UniversalWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
@@ -2107,7 +2107,9 @@ target_sources(mc_tests
         # 维度管理
         ${CMAKE_SOURCE_DIR}/src/client/dimension/ClientDimensionManager.cpp
         # 网格构建线程池
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshDataPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshResultQueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildTask.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp
         # 鍖哄潡缃戞牸鐢熸垚
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
@@ -2599,7 +2601,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/thread/UniversalWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp

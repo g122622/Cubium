@@ -352,7 +352,7 @@ std::string captureStackTraceFromContext(EXCEPTION_POINTERS* exceptionInfo, i32 
 
     // 使用崩溃线程的真实上下文
     CONTEXT context{};
-    memcpy(&context, exceptionInfo->ContextRecord, sizeof(CONTEXT));
+    std::memcpy(&context, exceptionInfo->ContextRecord, sizeof(CONTEXT));
 
     STACKFRAME64 stackFrame{};
     stackFrame.AddrPC.Mode = AddrModeFlat;

@@ -34,7 +34,7 @@ namespace {
 /// TLS 天空光引擎池：每个 worker 线程独占一套引擎实例。
 /// 对齐 Moonrise StarLightInterface 的 thread_local 引擎池——引擎无跨 operation
 /// 持久状态（nibble/emptiness map 全挂 IChunk，引擎只有 per-op 缓存），故线程级
-/// 单例安全复用，无引擎级锁。nibble 写串行由 ServerWorkerPool 区域锁保证。
+/// 单例安全复用，无引擎级锁。nibble 写串行由 UniversalWorkerPool 区域锁保证。
 thread_local std::unique_ptr<mc::SkyStarLightEngine> _tlsSkyEngine;
 
 /// TLS 方块光引擎池（语义同 _tlsSkyEngine）。

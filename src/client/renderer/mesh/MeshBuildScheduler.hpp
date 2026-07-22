@@ -23,9 +23,13 @@
 
 #pragma once
 
-#include "MeshWorkerPool.hpp"
+#include "MeshBuildTask.hpp"
+#include "MeshDataPool.hpp"
+#include "MeshResultQueue.hpp"
+#include "MeshWorkerTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
 #include <atomic>
@@ -75,7 +79,10 @@ struct MeshSchedulerStats {
 
 class MeshBuildScheduler {
 public:
-    MeshBuildScheduler(MeshWorkerPool& workerPool, const MeshSchedulerConfig& config);
+    MeshBuildScheduler(util::UniversalWorkerPool& workerPool,
+        std::shared_ptr<MeshDataPool> dataPool,
+        std::shared_ptr<MeshResultQueue> resultQueue,
+        const MeshSchedulerConfig& config);
 
     MeshBuildScheduler(const MeshBuildScheduler&) = delete;
     MeshBuildScheduler& operator=(const MeshBuildScheduler&) = delete;
@@ -89,6 +96,16 @@ public:
     void tick();
 
     void drainCompleted(const std::function<void(MeshWorkerResult&&)>& callback, u32 maxCount);
+
+    /**
+     * @brief 关停调度器：cancelAll 后等待所有在途任务回调归零。
+     *
+     * m_inflightTaskCount 在 submit 之前自增、在回调中减一。归零即所有在途任务的回调
+     * 已落定，scheduler 析构顺序确定，避免池（生命周期长于 scheduler）晚到的回调访问
+     * 已析构的 scheduler（回调只做计数减法，不触碰 scheduler 其它成员，纵深防护在
+     * MeshBuildTask 侧用 weak_ptr<MeshResultQueue> 兜底）。
+     */
+    void shutdown();
 
     [[nodiscard]] bool isTaskTracked(u64 taskId) const;
 
@@ -133,7 +150,11 @@ private:
     [[nodiscard]] static f32 _chunkDistanceInChunks(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
     [[nodiscard]] static f32 _chunkForwardDot(const MeshSchedulerViewState& viewState, const ChunkId& chunkId);
 
-    MeshWorkerPool& m_workerPool;
+    util::UniversalWorkerPool& m_workerPool;
+    std::shared_ptr<MeshDataPool> m_dataPool;
+    std::shared_ptr<MeshResultQueue> m_resultQueue;
+    /// 在途任务数（submit 前自增、回调中减一）。shutdown() 等其归零保证析构安全。
+    std::atomic<size_t> m_inflightTaskCount{0};
     MeshSchedulerConfig m_config;
 
     std::unordered_map<u64, ScheduledTask> m_tasks;

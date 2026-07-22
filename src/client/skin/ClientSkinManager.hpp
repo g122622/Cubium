@@ -168,7 +168,7 @@ public:
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(::mc::util::ServerWorkerPool* workerPool)
+    void setWorkerPool(::mc::util::UniversalWorkerPool* workerPool)
     {
         m_workerPool = workerPool;
         m_skinManager->setWorkerPool(workerPool);
@@ -186,7 +186,7 @@ private:
 
     // initialize() 会用正确的 cacheDir 重建 m_skinManager，这里缓存注入的列表以便重建后重新下发
     std::vector<::mc::IResourcePack*> m_resourcePacks;
-    ::mc::util::ServerWorkerPool* m_workerPool = nullptr;
+    ::mc::util::UniversalWorkerPool* m_workerPool = nullptr;
 
     bool m_initialized = false;
 };

@@ -2312,7 +2312,7 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
         m_chunkManager->addLightTicket(x, z);
     }
 
-    util::ServerWorkerPool* executor = m_chunkManager ? m_chunkManager->radiusAwareExecutor() : nullptr;
+    util::UniversalWorkerPool* executor = m_chunkManager ? m_chunkManager->radiusAwareExecutor() : nullptr;
     if (executor == nullptr) {
         // 启动早期/测试环境：主线程同步执行（无 worker 池）。
         RuntimeLightingProvider provider(*this, x, z);

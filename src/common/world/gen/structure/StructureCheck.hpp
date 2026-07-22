@@ -169,7 +169,7 @@ private:
     /// 互斥锁：保护 m_loadedChunks 和 m_featureChecks 的并发访问
     /// 对齐 MC 1.21.11 中通过 server.execute() 将 onStructureLoad 调度到主线程的线程安全机制。
     /// MC 使用线程约束（main thread confinement）保证线程安全，
-    /// 而我们使用互斥锁，因为 chunk generation 在多线程的 ServerWorkerPool 中执行。
+    /// 而我们使用互斥锁，因为 chunk generation 在多线程的 UniversalWorkerPool 中执行。
     mutable std::mutex m_mutex;
 };
 

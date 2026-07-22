@@ -21,45 +21,28 @@
  *
  */
 
-#include "StorageTaskManager.hpp"
+#pragma once
 
-namespace mc::world::storage {
+#include "client/renderer/MeshTypes.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 
-StorageTaskManager::StorageTaskManager(util::UniversalWorkerPool& workerPool) noexcept
-    : m_workerPool(&workerPool)
-{}
+namespace mc::client {
 
-void StorageTaskManager::setWorkerPool(util::UniversalWorkerPool* workerPool) noexcept
-{
-    m_workerPool = workerPool;
-}
+/**
+ * @brief 网格执行结果
+ *
+ * chunkmesh 执行层（MeshBuildTask）产出，经 MeshResultQueue 回传主线程。
+ * 迁移到 UniversalWorkerPool 后不再携带 workerId（单桶 MeshDataPool 回收，
+ * 不需要按 worker 分桶路由）。
+ */
+struct MeshWorkerResult {
+    ChunkId chunkId;
+    u64 taskId = 0;
+    MeshData solidMesh;
+    MeshData transparentMesh;
+    bool success = false;
+    bool cancelled = false;
+};
 
-u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
-    util::TaskPriority priority,
-    util::TaskCallback callback,
-    std::shared_ptr<std::atomic<bool>> abortSignal)
-{
-    // 空指针检查：作为公共接口，需要验证外部输入
-    if (!m_workerPool || !task) {
-        if (callback) {
-            callback(false, nullptr);
-        }
-        return 0;
-    }
-
-    return m_workerPool->submit(std::move(task), std::move(callback), priority, std::move(abortSignal));
-}
-
-bool StorageTaskManager::cancel(u64 taskId)
-{
-    return m_workerPool ? m_workerPool->cancel(taskId) : false;
-}
-
-void StorageTaskManager::waitForCompletion()
-{
-    if (m_workerPool) {
-        m_workerPool->waitForCompletion();
-    }
-}
-
-} // namespace mc::world::storage
+} // namespace mc::client

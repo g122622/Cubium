@@ -29,8 +29,11 @@ src/client/renderer/
 ├── Camera.hpp/cpp                # 第一人称相机实现
 ├── MeshTypes.hpp/cpp             # 网格类型定义（顶点、面、图集）
 ├── mesh/
-│   ├── MeshWorkerPool.hpp/cpp    # 纯执行线程池
-│   └── MeshBuildScheduler.hpp/cpp # 独立调度器（视锥/距离优先 + 取消）
+│   ├── MeshBuildScheduler.hpp/cpp # 独立调度器（视锥/距离优先 + 取消）
+│   ├── MeshBuildTask.hpp/cpp      # ITask 子类：单区块网格构建
+│   ├── MeshDataPool.hpp/cpp       # MeshData 回收池（单桶 free-list）
+│   ├── MeshResultQueue.hpp/cpp    # 线程安全结果队列
+│   └── MeshWorkerTypes.hpp        # MeshWorkerResult 结构体
 ├── trident/                      # Trident Vulkan 渲染引擎实现
 │   ├── core/                     # 核心组件
 │   │   ├── Trident.hpp           # 引擎统一头文件
@@ -163,7 +166,7 @@ src/client/renderer/
 - `TridentEngine` 是渲染引擎主入口，协调所有子渲染器
 - `api/` 定义抽象接口，`trident/` 提供 Vulkan 实现
 - `ChunkMesher` 将 `ChunkData` 转换为 `MeshData`，`ChunkRenderer` 负责GPU上传和渲染
-- `MeshWorkerPool` + `MeshBuildScheduler` 实现异步网格构建，调度与执行解耦
+- `UniversalWorkerPool`(ClientCompute) + `MeshBuildScheduler` 实现异步网格构建，调度与执行解耦（计算池由 ClientApplication 持有）
 
 ## 上下游外部依赖关系
 
@@ -202,7 +205,7 @@ Debug 模式下验证层会显著降低性能。Release 构建应关闭验证层
 
 ### 3. 区块网格更新卡顿
 
-接收大量区块时主线程会卡顿。使用 `MeshWorkerPool` 异步构建网格，并限制每帧处理数量。
+接收大量区块时主线程会卡顿。使用 `UniversalWorkerPool`(ClientCompute) 异步构建网格，并限制每帧处理数量。
 
 ### 4. 多帧资源轮换
 
@@ -254,9 +257,9 @@ GUI 使用屏幕坐标系，左上角为 (0, 0)，Y 轴向下。
 
 将动画网格更新切换回每帧销毁+创建，会导致 `vkAllocateMemory` 回到渲染热路径。`EntityPipeline::updateMesh(...)` 必须保留 GPU 缓冲区并仅在需要时增长容量。
 
-### 16. MeshWorkerPool 职责边界
+### 16. MeshBuildScheduler 职责边界
 
-把优先级逻辑放回 `MeshWorkerPool` 会导致职责混乱。优先级和取消策略属于 `MeshBuildScheduler`；`MeshWorkerPool` 应保持仅执行。
+把优先级逻辑放回执行路径会导致职责混乱。优先级和取消策略属于 `MeshBuildScheduler`；`MeshBuildTask` 应只负责"构建并推结果"。计算池（`UniversalWorkerPool`/ClientCompute）仅提供通用算力。
 
 ### 17. ChunkMesher 预留策略
 

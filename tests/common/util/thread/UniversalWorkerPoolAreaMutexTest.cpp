@@ -20,7 +20,7 @@
  */
 
 // ============================================================================
-// ServerWorkerPool 区域互斥（area mutex）单元测试
+// UniversalWorkerPool 区域互斥（area mutex）单元测试
 //
 // 验证带 (centerX, centerZ, writeRadius) 的 submit 重载：
 //   - 同区域任务串行执行（写入区域重叠时不并发）
@@ -34,7 +34,7 @@
 // ============================================================================
 
 #include "common/util/thread/ITask.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -174,9 +174,9 @@ bool waitForMaxConcurrent(ConcurrencyTracker& tracker, int expected, std::chrono
 // canExecuteNow 基础测试
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, CanExecuteNowEmptyPoolReturnsTrue)
+TEST(UniversalWorkerPoolAreaMutexTest, CanExecuteNowEmptyPoolReturnsTrue)
 {
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     // 空池时任何区域都应可执行
@@ -187,9 +187,9 @@ TEST(ServerWorkerPoolAreaMutexTest, CanExecuteNowEmptyPoolReturnsTrue)
     pool.shutdown();
 }
 
-TEST(ServerWorkerPoolAreaMutexTest, CanExecuteNowNegativeRadiusTreatedAsZero)
+TEST(UniversalWorkerPoolAreaMutexTest, CanExecuteNowNegativeRadiusTreatedAsZero)
 {
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     // writeRadius < 0 视作 0（仅中心区块）
@@ -203,11 +203,11 @@ TEST(ServerWorkerPoolAreaMutexTest, CanExecuteNowNegativeRadiusTreatedAsZero)
 // 同区域任务串行执行（写入区域重叠 → 不并发）
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, OverlappingAreaTasksAreSerialized)
+TEST(UniversalWorkerPoolAreaMutexTest, OverlappingAreaTasksAreSerialized)
 {
     // 2 个工作线程，2 个区域重叠任务（都覆盖 (0,0)）
     // 区域互斥生效时 maxConcurrent == 1（串行）；失效时 == 2（并行，这是 bug）
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     ConcurrencyTracker tracker;
@@ -257,11 +257,11 @@ TEST(ServerWorkerPoolAreaMutexTest, OverlappingAreaTasksAreSerialized)
 // 不同区域任务并行执行（写入区域不重叠 → 可并发）
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, NonOverlappingAreaTasksAreParallel)
+TEST(UniversalWorkerPoolAreaMutexTest, NonOverlappingAreaTasksAreParallel)
 {
     // 2 个工作线程，2 个区域不重叠任务
     // 区域互斥不应阻止并行，maxConcurrent == 2
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     ConcurrencyTracker tracker;
@@ -301,11 +301,11 @@ TEST(ServerWorkerPoolAreaMutexTest, NonOverlappingAreaTasksAreParallel)
 // writeRadius=0 任务：仅中心区块，相邻区块不冲突
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, ZeroRadiusAdjacentChunksParallel)
+TEST(UniversalWorkerPoolAreaMutexTest, ZeroRadiusAdjacentChunksParallel)
 {
     // writeRadius=0 的两个任务，中心分别为 (0,0) 和 (1,0)
     // 区域不重叠（各只占一个区块），应可并行
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     ConcurrencyTracker tracker;
@@ -335,10 +335,10 @@ TEST(ServerWorkerPoolAreaMutexTest, ZeroRadiusAdjacentChunksParallel)
     EXPECT_EQ(tracker.maxConcurrent.load(), 2);
 }
 
-TEST(ServerWorkerPoolAreaMutexTest, ZeroRadiusSameChunkSerialized)
+TEST(UniversalWorkerPoolAreaMutexTest, ZeroRadiusSameChunkSerialized)
 {
     // writeRadius=0 的两个任务，中心都是 (0,0) —— 区域完全重叠，应串行
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     ConcurrencyTracker tracker;
@@ -378,11 +378,11 @@ TEST(ServerWorkerPoolAreaMutexTest, ZeroRadiusSameChunkSerialized)
 // 无区域任务不受区域互斥影响（可与区域任务并行）
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, NonAreaTaskDoesNotParticipateInAreaMutex)
+TEST(UniversalWorkerPoolAreaMutexTest, NonAreaTaskDoesNotParticipateInAreaMutex)
 {
     // 无区域任务（普通 submit）不进入 m_runningRegions，不影响 canExecuteNow，
     // 也不被区域任务阻塞。应可与区域任务并行执行。
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     ConcurrencyTracker tracker;
@@ -418,10 +418,10 @@ TEST(ServerWorkerPoolAreaMutexTest, NonAreaTaskDoesNotParticipateInAreaMutex)
 // 区域释放后被阻塞的任务恢复执行
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, BlockedTaskResumesAfterAreaReleased)
+TEST(UniversalWorkerPoolAreaMutexTest, BlockedTaskResumesAfterAreaReleased)
 {
     // A 占据 (0,0) 区域，B 等待（同区域），A 释放后 B 恢复执行
-    ServerWorkerPool pool(2, "AreaMutexTest");
+    UniversalWorkerPool pool(2, "AreaMutexTest", 900);
     pool.start();
 
     ConcurrencyTracker tracker;
@@ -463,11 +463,11 @@ TEST(ServerWorkerPoolAreaMutexTest, BlockedTaskResumesAfterAreaReleased)
 // 多个任务排队等待同一区域，全部完成（无死锁）
 // ============================================================================
 
-TEST(ServerWorkerPoolAreaMutexTest, MultipleTasksSameAreaAllComplete)
+TEST(UniversalWorkerPoolAreaMutexTest, MultipleTasksSameAreaAllComplete)
 {
     // 4 个工作线程，3 个同区域任务 —— 即使有 4 个线程，同区域任务也应串行，
     // 但最终全部完成（验证区域互斥不会导致任务饿死或死锁）。
-    ServerWorkerPool pool(4, "AreaMutexTest");
+    UniversalWorkerPool pool(4, "AreaMutexTest", 900);
     pool.start();
 
     std::atomic<int> completedCount{0};

@@ -22,7 +22,7 @@
  */
 
 #include "common/entity/registry/VanillaEntities.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/RandomState.hpp"
@@ -57,7 +57,7 @@ protected:
         mc::entity::VanillaEntities::registerAll();
 
         // 创建工作线程池
-        m_workerPool = std::make_unique<mc::util::ServerWorkerPool>(2, "TestWorker");
+        m_workerPool = std::make_unique<mc::util::UniversalWorkerPool>(2, "TestWorker", 900);
 
         // 创建区块生成器
         auto settings = mc::DimensionSettings::overworld();
@@ -84,7 +84,7 @@ protected:
         m_workerPool.reset();
     }
 
-    std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;
     std::unique_ptr<ServerChunkManager> m_manager;
 };
 

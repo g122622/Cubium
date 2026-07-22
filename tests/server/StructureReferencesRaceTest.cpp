@@ -32,7 +32,7 @@
 // 最大化 STRUCTURE_STARTS/STRUCTURE_REFERENCES/NOISE/FEATURES 并发读邻居 m_structureStarts 的概率。
 // 若崩溃为并发 race，本测试应能复现 ACCESS_VIOLATION 或 ASan/TSan 报告。
 
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -73,7 +73,7 @@ protected:
         mc::world::biome::BiomeTags::initialize();
 
         // 8 个 worker 线程，最大化 STRUCTURE_REFERENCES 等无区域互斥任务的并发度
-        m_workerPool = std::make_unique<mc::util::ServerWorkerPool>(8, "StructRaceWorker");
+        m_workerPool = std::make_unique<mc::util::UniversalWorkerPool>(8, "StructRaceWorker", 900);
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
         // 复用 ServerWorldTest 的模式，在临时目录中打开一个 RocksDB 存档。
@@ -128,7 +128,7 @@ protected:
         }
     }
 
-    std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
     // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
     ServerChunkManager* m_manager = nullptr;

@@ -1538,7 +1538,7 @@ add_library(mc_common STATIC
     util/CompressionUtils.cpp
 
     # Thread utilities
-    util/thread/ServerWorkerPool.cpp
+    util/thread/UniversalWorkerPool.cpp
 
     # Concurrency utilities
     util/concurrent/ReentrantAreaLock.cpp

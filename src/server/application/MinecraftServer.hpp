@@ -36,7 +36,7 @@
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
@@ -295,14 +295,14 @@ public:
     /**
      * @brief 获取计算型 Worker 池
      */
-    [[nodiscard]] util::ServerWorkerPool& computationWorkerPool() { return m_computationWorkerPool; }
-    [[nodiscard]] const util::ServerWorkerPool& computationWorkerPool() const { return m_computationWorkerPool; }
+    [[nodiscard]] util::UniversalWorkerPool& computationWorkerPool() { return m_computationWorkerPool; }
+    [[nodiscard]] const util::UniversalWorkerPool& computationWorkerPool() const { return m_computationWorkerPool; }
 
     /**
      * @brief 获取 IO Worker 池
      */
-    [[nodiscard]] util::ServerWorkerPool& ioWorkerPool() { return m_ioWorkerPool; }
-    [[nodiscard]] const util::ServerWorkerPool& ioWorkerPool() const { return m_ioWorkerPool; }
+    [[nodiscard]] util::UniversalWorkerPool& ioWorkerPool() { return m_ioWorkerPool; }
+    [[nodiscard]] const util::UniversalWorkerPool& ioWorkerPool() const { return m_ioWorkerPool; }
 
     /**
      * @brief 遍历所有玩家
@@ -1104,8 +1104,8 @@ protected:
     std::unique_ptr<interaction::MiningManager> m_miningManager;
     std::unique_ptr<interaction::ContainerManager> m_containerManager;
     std::unique_ptr<interaction::InventoryManager> m_inventoryManager;
-    util::ServerWorkerPool m_computationWorkerPool;
-    util::ServerWorkerPool m_ioWorkerPool;
+    util::UniversalWorkerPool m_computationWorkerPool;
+    util::UniversalWorkerPool m_ioWorkerPool;
 
     // 命令
     std::unique_ptr<mc::command::CommandRegistry> m_commandRegistry;

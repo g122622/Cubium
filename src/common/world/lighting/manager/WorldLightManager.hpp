@@ -42,7 +42,7 @@ namespace mc {
  * 引擎只有 per-op 缓存（setupCaches 建/destroyCaches 清）+ 构造后不变的
  * 配置常量。故引擎实例存 thread_local 池，每个 worker 线程独占一套，
  * acquire/release 配对使用，无引擎级锁。所有光照写操作（区块加载光照、
- * 运行时方块变更、LIGHT 生成阶段）统一经 ServerWorkerPool 区域互斥池
+ * 运行时方块变更、LIGHT 生成阶段）统一经 UniversalWorkerPool 区域互斥池
  * （writeRadius=2）串行——重叠 5×5 区域的 nibble 写必被区域锁串行，
  * 满足 SWMRNibbleArray 更新侧非原子单写者语义。
  */

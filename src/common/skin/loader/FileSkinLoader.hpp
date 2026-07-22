@@ -25,7 +25,7 @@
 
 #include "SkinLoader.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <filesystem>
@@ -45,7 +45,7 @@ namespace mc::skin {
  * - 相对路径：skins/player.png
  * - 资源位置：minecraft:textures/entity/steve.png
  *
- * 异步加载通过注入的 ServerWorkerPool 实现，回调在 worker 线程触发。
+ * 异步加载通过注入的 UniversalWorkerPool 实现，回调在 worker 线程触发。
  * 若未注入线程池，loadAsync 降级为同步执行后立即回调。
  */
 class FileSkinLoader : public ISkinLoader {
@@ -78,7 +78,7 @@ public:
      *
      * @param workerPool 工作线程池指针（非所有权）
      */
-    void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
+    void setWorkerPool(util::UniversalWorkerPool* workerPool) { m_workerPool = workerPool; }
 
     /**
      * @brief 设置资源包列表（用于从资源包加载皮肤）
@@ -129,7 +129,7 @@ private:
     bool m_initialized = false;
 
     // 异步加载基础设施
-    util::ServerWorkerPool* m_workerPool = nullptr;
+    util::UniversalWorkerPool* m_workerPool = nullptr;
 
     // 在途任务管理：url → 取消信号
     std::mutex m_pendingMutex;

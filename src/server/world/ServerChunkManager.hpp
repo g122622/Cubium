@@ -25,7 +25,7 @@
 
 #include "ChunkTaskScheduler.hpp"
 #include "SingleChunkLifecycleManager.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
@@ -174,7 +174,7 @@ public:
      *
      * @param workerPool 由服务器统一持有的工作线程池
      */
-    void setWorkerPool(util::ServerWorkerPool* workerPool)
+    void setWorkerPool(util::UniversalWorkerPool* workerPool)
     {
         m_workerPool = workerPool;
         // 调度器持有 worker 池指针。同一池既用于 parallelCapable 状态（无区域互斥 submit），
@@ -185,12 +185,12 @@ public:
     /**
      * @brief 获取区域互斥执行器（worker 池）
      *
-     * 返回注入的 ServerWorkerPool，供运行时光照等需要 writeRadius>0 区域互斥的
+     * 返回注入的 UniversalWorkerPool，供运行时光照等需要 writeRadius>0 区域互斥的
      * worker 任务提交（RuntimeLightTask 经 submit(writeRadius=2) 串行化重叠区域
      * nibble 写）。启动早期或测试环境未注入时返回 nullptr，调用方应 fallback 同步路径。
      */
-    [[nodiscard]] util::ServerWorkerPool* radiusAwareExecutor() noexcept { return m_workerPool; }
-    [[nodiscard]] const util::ServerWorkerPool* radiusAwareExecutor() const noexcept { return m_workerPool; }
+    [[nodiscard]] util::UniversalWorkerPool* radiusAwareExecutor() noexcept { return m_workerPool; }
+    [[nodiscard]] const util::UniversalWorkerPool* radiusAwareExecutor() const noexcept { return m_workerPool; }
 
     /**
      * @brief 获取当前已缓存的区块
@@ -1122,7 +1122,7 @@ private:
 
     mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
-    util::ServerWorkerPool* m_workerPool = nullptr;
+    util::UniversalWorkerPool* m_workerPool = nullptr;
 
     /// 关闭标志。shutdown() 置位后，异步存档加载完成回调（ServerCompute 线程）不再入队
     /// m_pendingLoadCompletes，避免 ServerChunkManager 析构后回调访问悬空 this。

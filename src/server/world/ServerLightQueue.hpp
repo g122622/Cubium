@@ -41,7 +41,7 @@ class ServerWorld;
  * tick 时按区块分组提交 worker 任务（RuntimeLightTask）异步传播，
  * 避免每次方块变更都触发一次完整的 setupCaches/destroyCaches。
  *
- * ③-2b：传播统一经 ServerWorkerPool 区域互斥池（writeRadius=2），与区块加载
+ * ③-2b：传播统一经 UniversalWorkerPool 区域互斥池（writeRadius=2），与区块加载
  * 光照、LIGHT 生成阶段同池同 writeRadius，重叠 5×5 区域串行 → 可安全删 m_mutex。
  */
 class ServerLightQueue {

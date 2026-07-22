@@ -22,7 +22,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/concurrent/ReentrantAreaLock.hpp"
-#include "common/util/thread/ServerWorkerPool.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/StaticChunkCache2D.hpp"
 
@@ -73,13 +73,13 @@ public:
      * @param parallelGenExecutor 并行执行器（无区域互斥，EMPTY~INITIALIZE_LIGHT 等）
      * @param radiusAwareExecutor 区域互斥执行器（FEATURES/LIGHT/SPAWN/FULL 等写方块状态）
      *
-     * 两个执行器可为同一个 ServerWorkerPool（区域互斥由 submit 的 writeRadius 重载保证）。
+     * 两个执行器可为同一个 UniversalWorkerPool（区域互斥由 submit 的 writeRadius 重载保证）。
      * 也可为 nullptr（同步降级：在线执行任务）。
      */
     ChunkTaskScheduler(ServerChunkManager& manager,
         ServerWorld* world,
-        util::ServerWorkerPool* parallelGenExecutor,
-        util::ServerWorkerPool* radiusAwareExecutor);
+        util::UniversalWorkerPool* parallelGenExecutor,
+        util::UniversalWorkerPool* radiusAwareExecutor);
 
     /**
      * @brief 主调度入口：把 (x, z) 推进到 targetStatus（一次一步）
@@ -249,7 +249,7 @@ private:
      *
      * 返回 nullptr 时调用方应在线执行任务（无 worker 池的同步降级模式）。
      */
-    [[nodiscard]] util::ServerWorkerPool* selectExecutor(const mc::world::chunk::ChunkStatus& status);
+    [[nodiscard]] util::UniversalWorkerPool* selectExecutor(const mc::world::chunk::ChunkStatus& status);
 
     /**
      * @brief 提交任务到执行器（无 worker 池时在线执行）
@@ -403,8 +403,8 @@ private:
 
     ServerChunkManager& m_manager;
     ServerWorld* m_world;
-    util::ServerWorkerPool* m_parallelGenExecutor;
-    util::ServerWorkerPool* m_radiusAwareExecutor;
+    util::UniversalWorkerPool* m_parallelGenExecutor;
+    util::UniversalWorkerPool* m_radiusAwareExecutor;
     util::ReentrantAreaLock m_schedulingLockArea;
     std::atomic<bool> m_shuttingDown{false};
 };
