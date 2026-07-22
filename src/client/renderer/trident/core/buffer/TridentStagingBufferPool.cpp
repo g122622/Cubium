@@ -61,7 +61,8 @@ Result<void> TridentStagingBufferPool::initialize(void* context, u64 initialCapa
         return Error(ErrorCode::NullPointer, "TridentStagingBufferPool::initialize: context is null");
     }
     if (initialCapacity == 0 || maxFramesInFlight == 0) {
-        return Error(ErrorCode::InvalidArgument, "TridentStagingBufferPool::initialize: capacity and maxFramesInFlight must be non-zero");
+        return Error(ErrorCode::InvalidArgument,
+            "TridentStagingBufferPool::initialize: capacity and maxFramesInFlight must be non-zero");
     }
 
     m_context = tridentContext;
@@ -79,7 +80,8 @@ Result<void> TridentStagingBufferPool::initialize(void* context, u64 initialCapa
 
     VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &m_buffer);
     if (result != VK_SUCCESS) {
-        return Error(ErrorCode::OutOfMemory, "TridentStagingBufferPool: failed to create backing buffer: " + std::to_string(result));
+        return Error(ErrorCode::OutOfMemory,
+            "TridentStagingBufferPool: failed to create backing buffer: " + std::to_string(result));
     }
 
     VkMemoryRequirements memRequirements{};
@@ -103,7 +105,8 @@ Result<void> TridentStagingBufferPool::initialize(void* context, u64 initialCapa
     if (result != VK_SUCCESS) {
         vkDestroyBuffer(device, m_buffer, nullptr);
         m_buffer = VK_NULL_HANDLE;
-        return Error(ErrorCode::OutOfMemory, "TridentStagingBufferPool: failed to allocate backing memory: " + std::to_string(result));
+        return Error(ErrorCode::OutOfMemory,
+            "TridentStagingBufferPool: failed to allocate backing memory: " + std::to_string(result));
     }
 
     vkBindBufferMemory(device, m_buffer, m_memory, 0);
@@ -115,7 +118,8 @@ Result<void> TridentStagingBufferPool::initialize(void* context, u64 initialCapa
         vkFreeMemory(device, m_memory, nullptr);
         m_buffer = VK_NULL_HANDLE;
         m_memory = VK_NULL_HANDLE;
-        return Error(ErrorCode::OperationFailed, "TridentStagingBufferPool: failed to map backing memory: " + std::to_string(result));
+        return Error(ErrorCode::OperationFailed,
+            "TridentStagingBufferPool: failed to map backing memory: " + std::to_string(result));
     }
 
     // OffsetAllocator 用 u32 offset，容量上限 4GB；这里显式截断校验
@@ -124,6 +128,23 @@ Result<void> TridentStagingBufferPool::initialize(void* context, u64 initialCapa
     m_localFreeBytes = initialCapacity;
 
     m_pendingAsyncBuckets.assign(maxFramesInFlight, {});
+
+    // 异步 copy 专用命令池：TRANSIENT + graphics family，与帧内单次命令池分离。
+    // submitAsyncCopy 由此分配命令缓冲，pollAsyncCopies 在 fence signaled 后归还。
+    VkCommandPoolCreateInfo asyncPoolInfo{};
+    asyncPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    asyncPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    asyncPoolInfo.queueFamilyIndex = tridentContext->queueFamilies().graphicsFamily.value();
+    result = vkCreateCommandPool(device, &asyncPoolInfo, nullptr, &m_asyncCopyCommandPool);
+    if (result != VK_SUCCESS) {
+        vkUnmapMemory(device, m_memory);
+        vkDestroyBuffer(device, m_buffer, nullptr);
+        vkFreeMemory(device, m_memory, nullptr);
+        m_buffer = VK_NULL_HANDLE;
+        m_memory = VK_NULL_HANDLE;
+        return Error(ErrorCode::OperationFailed,
+            "TridentStagingBufferPool: failed to create async copy command pool: " + std::to_string(result));
+    }
 
     return {};
 }
@@ -135,9 +156,14 @@ void TridentStagingBufferPool::destroy()
     VkDevice device = m_context ? m_context->device() : VK_NULL_HANDLE;
     if (device == VK_NULL_HANDLE) return;
 
+    // 兜底回收所有在飞异步 copy：调用方（TridentEngine::destroy）已 waitIdle，此刻所有
+    // fence 必然 signaled，pollAsyncCopies 会一次性清空队列、release 全部 staging 区间、
+    // 销毁 fence 与命令缓冲。确保下方守恒断言成立、命令池可安全销毁。
+    pollAsyncCopies();
+
     // 销毁前校验无泄漏（同步分配应已全部 release，异步分配应已全部 recycle）
-    MC_ASSERT_RELEASE_MSG(m_localUsedBytes == 0,
-                          "TridentStagingBufferPool destroyed with staging allocations still in use");
+    MC_ASSERT_RELEASE_MSG(
+        m_localUsedBytes == 0, "TridentStagingBufferPool destroyed with staging allocations still in use");
 
     if (m_persistentMapped) {
         vkUnmapMemory(device, m_memory);
@@ -147,10 +173,16 @@ void TridentStagingBufferPool::destroy()
     vkDestroyBuffer(device, m_buffer, nullptr);
     vkFreeMemory(device, m_memory, nullptr);
 
+    if (m_asyncCopyCommandPool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(device, m_asyncCopyCommandPool, nullptr);
+        m_asyncCopyCommandPool = VK_NULL_HANDLE;
+    }
+
     m_buffer = VK_NULL_HANDLE;
     m_memory = VK_NULL_HANDLE;
     m_allocator.reset();
     m_pendingAsyncBuckets.clear();
+    m_pendingAsyncCopies.clear();
     m_capacity = 0;
     m_localUsedBytes = 0;
     m_localFreeBytes = 0;
@@ -181,7 +213,7 @@ void TridentStagingBufferPool::_freeLocked(OffsetAllocator::Allocation alloc, u6
     // 守恒断言：OffsetAllocator 自报空闲量须与本地记账一致（防范 prototype bug）
     const u32 reported = m_allocator->storageReport().totalFreeSpace;
     MC_ASSERT_RELEASE_MSG(reported == static_cast<u32>(m_localFreeBytes),
-                          "TridentStagingBufferPool conservation mismatch: OffsetAllocator free space disagrees with local bookkeeping");
+        "TridentStagingBufferPool conservation mismatch: OffsetAllocator free space disagrees with local bookkeeping");
 }
 
 void TridentStagingBufferPool::_free(OffsetAllocator::Allocation alloc, u64 alignedSize)
@@ -301,6 +333,104 @@ void* TridentStagingBufferPool::backingBuffer(u32 segmentIndex) const
 {
     MC_UNUSED(segmentIndex); // 当前单段实现，segmentIndex 恒为 0
     return m_buffer;
+}
+
+Result<void> TridentStagingBufferPool::submitAsyncCopy(const api::StagingHandle& handle, void* dstBuffer, u64 dstOffset)
+{
+    if (!handle.valid) {
+        return Error(ErrorCode::InvalidArgument, "TridentStagingBufferPool::submitAsyncCopy: invalid handle");
+    }
+    auto dstVkBuffer = static_cast<VkBuffer>(dstBuffer);
+    if (dstVkBuffer == VK_NULL_HANDLE || m_buffer == VK_NULL_HANDLE) {
+        return Error(ErrorCode::InvalidArgument, "TridentStagingBufferPool::submitAsyncCopy: null buffer");
+    }
+    if (m_asyncCopyCommandPool == VK_NULL_HANDLE || m_context == nullptr) {
+        return Error(ErrorCode::NotInitialized, "TridentStagingBufferPool::submitAsyncCopy: pool not initialized");
+    }
+
+    VkDevice device = m_context->device();
+    VkQueue queue = m_context->graphicsQueue();
+
+    // 分配一次性命令缓冲（ONE_TIME_SUBMIT）
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_asyncCopyCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmd;
+    VkResult result = vkAllocateCommandBuffers(device, &allocInfo, &cmd);
+    if (result != VK_SUCCESS) {
+        return Error(ErrorCode::OperationFailed,
+            "TridentStagingBufferPool::submitAsyncCopy: vkAllocateCommandBuffers failed: " + std::to_string(result));
+    }
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = handle.offset;
+    copyRegion.dstOffset = dstOffset;
+    copyRegion.size = handle.size;
+    vkCmdCopyBuffer(cmd, m_buffer, dstVkBuffer, 1, &copyRegion);
+
+    vkEndCommandBuffer(cmd);
+
+    // 创建 fence，submit 不等待
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    VkFence fence = VK_NULL_HANDLE;
+    result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
+    if (result != VK_SUCCESS) {
+        vkFreeCommandBuffers(device, m_asyncCopyCommandPool, 1, &cmd);
+        return Error(ErrorCode::OperationFailed,
+            "TridentStagingBufferPool::submitAsyncCopy: vkCreateFence failed: " + std::to_string(result));
+    }
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+
+    result = vkQueueSubmit(queue, 1, &submitInfo, fence);
+    if (result != VK_SUCCESS) {
+        vkDestroyFence(device, fence, nullptr);
+        vkFreeCommandBuffers(device, m_asyncCopyCommandPool, 1, &cmd);
+        return Error(ErrorCode::OperationFailed,
+            "TridentStagingBufferPool::submitAsyncCopy: vkQueueSubmit failed: " + std::to_string(result));
+    }
+
+    // 入待回收队列：handle 的 staging 区间与 cmd/fence 由 pollAsyncCopies 在 fence
+    // signaled 后统一回收。调用方不再 release(handle)。
+    m_pendingAsyncCopies.push_back(PendingAsyncCopy{handle, cmd, fence});
+    return {};
+}
+
+u32 TridentStagingBufferPool::pollAsyncCopies()
+{
+    if (m_pendingAsyncCopies.empty() || m_context == nullptr) {
+        return 0;
+    }
+
+    VkDevice device = m_context->device();
+
+    // 就地回收 signaled 条目。pollAsyncCopies 与 submitAsyncCopy 均在主线程调用，
+    // m_pendingAsyncCopies 无需加锁；release 内部自取 m_allocatorMutex 保护 OffsetAllocator。
+    u32 reclaimed = 0;
+    for (auto it = m_pendingAsyncCopies.begin(); it != m_pendingAsyncCopies.end();) {
+        if (vkGetFenceStatus(device, it->fence) == VK_SUCCESS) {
+            release(it->handle);
+            vkDestroyFence(device, it->fence, nullptr);
+            vkFreeCommandBuffers(device, m_asyncCopyCommandPool, 1, &it->cmd);
+            it = m_pendingAsyncCopies.erase(it);
+            ++reclaimed;
+        } else {
+            ++it;
+        }
+    }
+    return reclaimed;
 }
 
 u64 TridentStagingBufferPool::totalFreeSpace() const

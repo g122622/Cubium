@@ -140,6 +140,38 @@ public:
     virtual void recycleFrame(u32 frameIndex) = 0;
 
     // ------------------------------------------------------------------------
+    // 异步 copy 提交（fence 回收，独立于帧命令缓冲）
+    // ------------------------------------------------------------------------
+    //
+    // 用于"调用点拿不到当前帧命令缓冲、又不想同步等待 fence"的上传场景
+    // （如 ChunkRenderer::updateChunk 跑在 update 阶段，先于 render 的 beginFrame）。
+    //
+    // 语义：submitAsyncCopy 内部分配一次性命令缓冲，录制 vkCmdCopyBuffer(staging→dst)，
+    // 创建 fence 后 submit 到 graphics queue 但不等待；handle + fence + cmd 入待回收队列。
+    // 调用方随后每帧调 pollAsyncCopies 推进：对每条 fence 调 vkGetFenceStatus，signaled
+    // 则 release(handle)、销毁 fence、归还命令缓冲。源数据在 submitAsyncCopy 返回后即可释放
+    // （memcpy 在 submit 前完成，是 CPU→CPU）。
+
+    /**
+     * @brief 异步把句柄数据复制到目标 buffer（submit 带 fence，不等待）
+     *
+     * @param handle stage 返回的有效句柄（调用方已 memcpy 完源数据）
+     * @param dstBuffer 目标 buffer 原生句柄
+     * @param dstOffset 目标 buffer 内偏移
+     * @return 成功或错误。成功后 handle 不再由调用方 release，由 pollAsyncCopies 回收。
+     */
+    [[nodiscard]] virtual Result<void> submitAsyncCopy(const StagingHandle& handle, void* dstBuffer, u64 dstOffset) = 0;
+
+    /**
+     * @brief 轮询异步 copy 的 fence，回收已完成的暂存区间与同步对象
+     *
+     * 每帧调用一次。signaled 的条目：release(handle) 归还 offset、销毁 fence、归还命令缓冲。
+     * 未 signaled 的保留到下一帧。设备 idle 时（如 destroy 前）调用会一次性回收全部。
+     * @return 本轮回收的条目数
+     */
+    virtual u32 pollAsyncCopies() = 0;
+
+    // ------------------------------------------------------------------------
     // 调试
     // ------------------------------------------------------------------------
 

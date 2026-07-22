@@ -64,6 +64,10 @@ public:
     [[nodiscard]] void* backingBuffer(u32 segmentIndex) const override;
     void recycleFrame(u32 frameIndex) override;
 
+    [[nodiscard]] Result<void> submitAsyncCopy(
+        const api::StagingHandle& handle, void* dstBuffer, u64 dstOffset) override;
+    u32 pollAsyncCopies() override;
+
     [[nodiscard]] u64 totalFreeSpace() const override;
 
 private:
@@ -75,6 +79,14 @@ private:
         OffsetAllocator::Allocation alloc; // 由调用方释放，此处仅记账
         u64 alignedSize = 0;
         u32 segmentIndex = 0;
+    };
+
+    /// 异步 copy 待回收条目：submit 后 fence 未 signaled 前，staging 区间与
+    /// 命令缓冲/fence 均存活，由 pollAsyncCopies 在 fence signaled 后统一回收。
+    struct PendingAsyncCopy {
+        api::StagingHandle handle;
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        VkFence fence = VK_NULL_HANDLE;
     };
 
     /// 将 size 向上对齐到 kStagingAlign
@@ -90,16 +102,24 @@ private:
     void _freeLocked(OffsetAllocator::Allocation alloc, u64 alignedSize);
 
     TridentContext* m_context = nullptr;
-    VkBuffer m_buffer = VK_NULL_HANDLE;        // 单段 backing buffer
+    VkBuffer m_buffer = VK_NULL_HANDLE; // 单段 backing buffer
     VkDeviceMemory m_memory = VK_NULL_HANDLE;
     VkDeviceSize m_capacity = 0;
-    void* m_persistentMapped = nullptr;        // 全程持久映射
+    void* m_persistentMapped = nullptr; // 全程持久映射
     u32 m_maxFramesInFlight = 2;
 
     std::unique_ptr<OffsetAllocator::Allocator> m_allocator;
 
     /// 异步回收桶：按 frameIndex % maxFramesInFlight 分桶
     std::vector<std::vector<AsyncAlloc>> m_pendingAsyncBuckets;
+
+    /// 异步 copy 专用命令池（TRANSIENT，graphics family）。与 beginSingleTimeCommands
+    /// 的池分离，避免与帧内单次命令争用。submitAsyncCopy 从此分配命令缓冲，
+    /// pollAsyncCopies 在 fence signaled 后归还。
+    VkCommandPool m_asyncCopyCommandPool = VK_NULL_HANDLE;
+
+    /// 异步 copy 待回收队列（fence 驱动，非按帧分桶）
+    std::vector<PendingAsyncCopy> m_pendingAsyncCopies;
 
     mutable std::mutex m_allocatorMutex; // 保护 m_allocator 与异步桶（OffsetAllocator 非线程安全）
 

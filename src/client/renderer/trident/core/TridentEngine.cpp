@@ -312,7 +312,10 @@ Result<void> TridentEngine::initialize(void* window, const api::RenderEngineConf
 
     // 7. 创建统一暂存缓冲池（OffsetAllocator 子分配），供所有上传路径复用
     m_stagingPool = std::make_unique<TridentStagingBufferPool>();
-    constexpr u64 kInitialStagingCapacity = 64 * 1024 * 1024; // 64MB 起步，溢出走 fallback
+    // 容量需容纳异步上传的在飞区间：ChunkRenderer 的 copy 提交后不等待，staging 区间
+    // 存活到 pollAsyncCopies 回收（跨约 1~2 帧）。高速移动批量重建时峰值显著高于同步
+    // 模式（同步模式每区间上传完即释放），故从 64MB 提升到 128MB。
+    constexpr u64 kInitialStagingCapacity = 128 * 1024 * 1024; // 128MB，溢出时上传点报错并下帧重试
     auto stagingResult = m_stagingPool->initialize(m_context.get(), kInitialStagingCapacity, config.maxFramesInFlight);
     if (stagingResult.failed()) {
         m_uniformManager.reset();
@@ -511,6 +514,9 @@ Result<void> TridentEngine::beginFrame()
     // 上一轮该帧提交的 GPU 命令已完成，回收其 staging 区间是安全的。
     if (m_stagingPool) {
         m_stagingPool->recycleFrame(m_frameContext.frameIndex);
+        // 推进 fence 驱动的异步 copy 回收：ChunkRenderer::updateChunk 在 update 阶段
+        // submit 的异步 copy，其 fence signaled 后由此回收 staging 区间与命令缓冲/fence。
+        m_stagingPool->pollAsyncCopies();
     }
 
     // 开始帧录制
