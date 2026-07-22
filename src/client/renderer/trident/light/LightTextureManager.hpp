@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/api/buffer/IStagingBufferPool.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <array>
@@ -87,12 +88,16 @@ public:
      *
      * @param device Vulkan 逻辑设备
      * @param physicalDevice Vulkan 物理设备
-     * @param commandPool 命令池（用于一次性上传命令）
+     * @param commandPool 命令池（用于初始化阶段的一次性上传命令）
      * @param graphicsQueue 图形队列
+     * @param stagingPool 统一暂存缓冲池（每帧像素上传经此 stageAsync 子分配，不可为空）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue);
+    [[nodiscard]] Result<void> initialize(VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        renderer::api::IStagingBufferPool* stagingPool);
 
     /**
      * @brief 销毁所有资源
@@ -100,13 +105,29 @@ public:
     void destroy();
 
     /**
-     * @brief 按输入参数重建光照贴图并上传 GPU
+     * @brief 按输入参数重建光照贴图（同步上传，仅初始化/重载用）
      *
-     * 使用独立一次性命令缓冲录制布局转换 + 拷贝，同步提交。每帧调用一次。
+     * CPU 计算 16×16 像素后，用 stagingPool 的同步 stage/release 路径上传（独立 submit+wait）。
+     * 仅用于 initialize 首帧；每帧热路径请用 updateLightTextureAsync。
      *
      * @param inputs 光照贴图输入参数
      */
     void updateLightTexture(const LightmapInputs& inputs);
+
+    /**
+     * @brief 按输入参数重建光照贴图并异步上传（每帧热路径）
+     *
+     * CPU 计算 16×16 像素后，用 stagingPool 的 stageAsync 子分配暂存区间（登记到 frameIndex
+     * 回收桶，由 recycleFrame 回收），把布局转换 + 拷贝录进传入的帧命令缓冲，随帧 submit、
+     * 用帧 fence 同步，不再独立 submit+wait 阻塞 CPU。
+     *
+     * 必须在 render pass 之前录制（vkCmdCopyBufferToImage 不能在 render pass 内）。
+     *
+     * @param inputs 光照贴图输入参数
+     * @param cmd 当前帧命令缓冲（由调用方在 beginFrame 后获取，不可为空）
+     * @param frameIndex 当前帧索引（用于 stageAsync 回收桶登记）
+     */
+    void updateLightTextureAsync(const LightmapInputs& inputs, VkCommandBuffer cmd, u32 frameIndex);
 
     /**
      * @brief 光照贴图图像视图（供 descriptor 绑定）
@@ -127,6 +148,12 @@ private:
     /// 计算单个 (blockLight, skyLight) 格点的光照颜色（对齐原版 getBrightness 曲线 + 调制）
     [[nodiscard]] static glm::vec3 _computePixel(u32 blockLight, u32 skyLight, const LightmapInputs& inputs);
 
+    /// 把 m_pixels 按输入重算（纯 CPU，无 Vulkan 调用）
+    void _computePixels(const LightmapInputs& inputs);
+
+    /// 把 staging 区间内的像素拷进光照贴图图像：布局转换 + copy + 转回采样布局，录进 cmd
+    void _recordUpload(VkCommandBuffer cmd, VkBuffer stagingBuffer, VkDeviceSize stagingOffset);
+
     /// 布局转换：SHADER_READ_ONLY ↔ TRANSFER_DST
     void _transitionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout);
 
@@ -134,17 +161,13 @@ private:
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+    renderer::api::IStagingBufferPool* m_stagingPool = nullptr;
     bool m_initialized = false;
 
     VkImage m_lightmapImage = VK_NULL_HANDLE;
     VkDeviceMemory m_lightmapMemory = VK_NULL_HANDLE;
     VkImageView m_lightmapView = VK_NULL_HANDLE;
     VkSampler m_sampler = VK_NULL_HANDLE;
-
-    // 持久 staging buffer（HOST_VISIBLE），每帧 memcpy 像素后上传
-    VkBuffer m_stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_stagingMemory = VK_NULL_HANDLE;
-    void* m_stagingMapped = nullptr;
 
     // 像素缓冲（CPU 端计算结果，16×16×4 字节）
     std::array<u8, LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4> m_pixels{};

@@ -611,16 +611,6 @@ Result<void> TridentEngine::render()
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
 
-    // GUI 纹理更新必须在渲染通道外执行
-    if (m_guiRendererInitialized && m_guiRendererPtr) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::GuiPrepare");
-        VkCommandBuffer prepareCmd = m_context->beginSingleTimeCommands();
-        if (prepareCmd != VK_NULL_HANDLE) {
-            m_guiRendererPtr->prepareFrame(prepareCmd);
-            m_context->endSingleTimeCommands(prepareCmd);
-        }
-    }
-
     // 1. 开始帧（acquire 图像 + 回收 staging + 开始命令缓冲录制，但不进入 render pass）
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::BeginFrame");
@@ -635,12 +625,48 @@ Result<void> TridentEngine::render()
         return Error(ErrorCode::InvalidState, "Command buffer is null");
     }
 
-    // 2. 上传动画纹理帧（异步热路径，必须在 render pass 之前录制）
-    //    所有 copy 录进帧命令缓冲、随帧 submit，用帧 fence 同步，不再独立 submit+wait 阻塞 CPU。
-    //    vkCmdCopyBufferToImage 不能在 render pass 内录制，故此处先于 _beginRenderPass。
+    // 2. 录制所有不能在 render pass 内执行的 transfer/upload（全部录进帧命令缓冲，
+    //    随帧 submit、用帧 fence 同步，不再独立 submit+vkWaitForFences 阻塞 CPU）：
+    //    a) 动画纹理帧上传；
+    //    b) GUI 字体/纹理布局更新（prepareFrame 录的是 barrier + vkCmdCopyBufferToImage）；
+    //    c) 光照贴图上传（先 SkyRenderer::update 算出天空色/太阳强度等 CPU 输入，
+    //       再把 staging memcpy + barrier + copy 录进帧 cmd）。
+    //    这些命令都必须先于 vkCmdBeginRenderPass 录制（VUID-vkCmdCopyBufferToImage-renderpass）。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::UploadAnimationFrames");
         uploadAnimationFrames(cmd, m_frameContext.frameIndex);
+    }
+
+    if (m_guiRendererInitialized && m_guiRendererPtr) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::GuiPrepare");
+        // 录进帧命令缓冲，不再独立 submit+wait。prepareFrame 常态录零条命令
+        // （仅首帧布局初始化/字体变更时录 barrier+copy），但即便如此也不该为同步付代价。
+        m_guiRendererPtr->prepareFrame(cmd);
+    }
+
+    // 天空 CPU 状态更新（纯计算，无 Vulkan 命令）+ 光照贴图上传，必须在 render pass 前完成：
+    // update 算出 skyColor/sunIntensity 供光照贴图取输入；光照贴图的 barrier+copy 不能在
+    // render pass 内录制，故与动画/GUI 上传并列录进帧 cmd 的 render-pass 外段。
+    if (m_skyRendererInitialized && m_skyRendererPtr) {
+        m_skyRendererPtr->update(m_dayTime, m_gameTime, m_partialTick, m_rainStrength, m_thunderStrength);
+
+        if (m_lightTextureManagerInitialized && m_lightTextureManager) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::UpdateLightTexture");
+            // 天空色/太阳强度来自 SkyRenderer，雨雷衰减降低天空光因子，
+            // 闪电闪烁通过 darkenWorldAmount 增亮，维度环境光作为亮度下限。
+            light::LightmapInputs inputs;
+            const glm::vec4& sky = m_skyRendererPtr->skyColor();
+            inputs.skyLightColor = glm::vec3(sky);
+            inputs.sunIntensity = static_cast<f32>(m_skyRendererPtr->sunIntensity());
+            // 天空光因子：太阳强度为主，雨/雷暴衰减天空光（对齐原版 rain/thunder 降亮）
+            const f32 weatherDim = static_cast<f32>(1.0 - 0.5 * m_rainStrength - 0.5 * m_thunderStrength);
+            inputs.skyLightFactor =
+                static_cast<f32>(m_skyRendererPtr->sunIntensity()) * std::clamp(weatherDim, 0.0f, 1.0f);
+            inputs.ambientLight = static_cast<f32>(m_ambientLight);
+            inputs.darkenWorldAmount = static_cast<f32>(m_lightningFlashBrightness);
+            // 异步路径：录进帧 cmd，不再独立 submit+wait。
+            m_lightTextureManager->updateLightTextureAsync(inputs, cmd, m_frameContext.frameIndex);
+        }
     }
 
     // 3. 进入渲染通道（视口/裁剪在此设置）
@@ -663,26 +689,9 @@ Result<void> TridentEngine::render()
         m_frustum.setCameraPosition(m_frameContext.camera->position());
     }
 
-    // 3. 渲染天空
+    // 3. 渲染天空（CPU update + 光照贴图上传已在 render pass 前完成，此处仅录制 draw）
     if (m_skyRendererInitialized && m_skyRendererPtr) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "TridentEngine::render::Sky");
-        m_skyRendererPtr->update(m_dayTime, m_gameTime, m_partialTick, m_rainStrength, m_thunderStrength);
-
-        // 更新光照贴图：天空色/太阳强度来自 SkyRenderer，雨雷衰减降低天空光因子，
-        // 闪电闪烁通过 darkenWorldAmount 增亮，维度环境光作为亮度下限。
-        if (m_lightTextureManagerInitialized && m_lightTextureManager) {
-            light::LightmapInputs inputs;
-            const glm::vec4& sky = m_skyRendererPtr->skyColor();
-            inputs.skyLightColor = glm::vec3(sky);
-            inputs.sunIntensity = static_cast<f32>(m_skyRendererPtr->sunIntensity());
-            // 天空光因子：太阳强度为主，雨/雷暴衰减天空光（对齐原版 rain/thunder 降亮）
-            const f32 weatherDim = static_cast<f32>(1.0 - 0.5 * m_rainStrength - 0.5 * m_thunderStrength);
-            inputs.skyLightFactor =
-                static_cast<f32>(m_skyRendererPtr->sunIntensity()) * std::clamp(weatherDim, 0.0f, 1.0f);
-            inputs.ambientLight = static_cast<f32>(m_ambientLight);
-            inputs.darkenWorldAmount = static_cast<f32>(m_lightningFlashBrightness);
-            m_lightTextureManager->updateLightTexture(inputs);
-        }
 
         glm::dvec3 cameraPos(0.0);
         glm::dvec3 cameraForward(0.0, 0.0, -1.0);
@@ -2430,7 +2439,8 @@ Result<void> TridentEngine::initializeLightTextureManager()
         m_lightTextureManager = std::make_unique<light::LightTextureManager>();
     }
 
-    auto result = m_lightTextureManager->initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
+    auto result = m_lightTextureManager->initialize(
+        device(), physicalDevice(), commandPool(), graphicsQueue(), m_context->stagingPool());
     if (result.failed()) {
         m_lightTextureManager.reset();
         return result.error();

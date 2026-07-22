@@ -23,6 +23,7 @@
 
 #include "LightTextureManager.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -41,8 +42,11 @@ LightTextureManager::~LightTextureManager()
     destroy();
 }
 
-Result<void> LightTextureManager::initialize(
-    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
+Result<void> LightTextureManager::initialize(VkDevice device,
+    VkPhysicalDevice physicalDevice,
+    VkCommandPool commandPool,
+    VkQueue graphicsQueue,
+    renderer::api::IStagingBufferPool* stagingPool)
 {
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "LightTextureManager already initialized");
@@ -52,6 +56,7 @@ Result<void> LightTextureManager::initialize(
     m_physicalDevice = physicalDevice;
     m_commandPool = commandPool;
     m_graphicsQueue = graphicsQueue;
+    m_stagingPool = stagingPool;
 
     // 创建 16×16 RGBA8 光照贴图图像（采样目标）
     auto imageResult = VulkanUtils::createImage(m_device,
@@ -93,22 +98,7 @@ Result<void> LightTextureManager::initialize(
         return Error(ErrorCode::InitializationFailed, "Failed to create lightmap sampler");
     }
 
-    // 持久 staging buffer（HOST_VISIBLE + 持久映射）
-    auto stagingResult = VulkanUtils::createBuffer(m_device,
-        m_physicalDevice,
-        STAGING_SIZE,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_stagingBuffer,
-        m_stagingMemory);
-    if (!stagingResult.success()) {
-        return stagingResult.error();
-    }
-    if (vkMapMemory(m_device, m_stagingMemory, 0, STAGING_SIZE, 0, &m_stagingMapped) != VK_SUCCESS) {
-        return Error(ErrorCode::InitializationFailed, "Failed to map lightmap staging memory");
-    }
-
-    // 首次上传：UNDEFINED → TRANSFER_DST → SHADER_READ_ONLY
+    // 首次上传：UNDEFINED → TRANSFER_DST → SHADER_READ_ONLY（同步路径，用 stagingPool 的 stage/release）
     LightmapInputs defaultInputs{};
     updateLightTexture(defaultInputs);
 
@@ -124,18 +114,6 @@ void LightTextureManager::destroy()
 
     vkDeviceWaitIdle(m_device);
 
-    if (m_stagingMapped != nullptr) {
-        vkUnmapMemory(m_device, m_stagingMemory);
-        m_stagingMapped = nullptr;
-    }
-    if (m_stagingBuffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(m_device, m_stagingBuffer, nullptr);
-        m_stagingBuffer = VK_NULL_HANDLE;
-    }
-    if (m_stagingMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device, m_stagingMemory, nullptr);
-        m_stagingMemory = VK_NULL_HANDLE;
-    }
     if (m_sampler != VK_NULL_HANDLE) {
         vkDestroySampler(m_device, m_sampler, nullptr);
         m_sampler = VK_NULL_HANDLE;
@@ -157,6 +135,7 @@ void LightTextureManager::destroy()
     m_physicalDevice = VK_NULL_HANDLE;
     m_commandPool = VK_NULL_HANDLE;
     m_graphicsQueue = VK_NULL_HANDLE;
+    m_stagingPool = nullptr;
     m_initialized = false;
 }
 
@@ -246,13 +225,8 @@ void LightTextureManager::_transitionLayout(VkCommandBuffer cmd, VkImageLayout o
     vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void LightTextureManager::updateLightTexture(const LightmapInputs& inputs)
+void LightTextureManager::_computePixels(const LightmapInputs& inputs)
 {
-    if (m_device == VK_NULL_HANDLE || m_stagingMapped == nullptr) {
-        return;
-    }
-
-    // CPU 计算 16×16 像素
     for (u32 sky = 0; sky < LIGHTMAP_SIZE; ++sky) {
         for (u32 block = 0; block < LIGHTMAP_SIZE; ++block) {
             const glm::vec3 color = _computePixel(block, sky, inputs);
@@ -263,21 +237,75 @@ void LightTextureManager::updateLightTexture(const LightmapInputs& inputs)
             m_pixels[idx + 3] = 255;
         }
     }
+}
 
-    // 拷贝到 staging
-    std::memcpy(m_stagingMapped, m_pixels.data(), STAGING_SIZE);
-
-    // 录制一次性命令：布局转换 + 拷贝 + 转回采样布局
-    VkCommandBuffer cmd = VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
-
-    // 首次（UNDEFINED）用 UNDEFINED→TRANSFER_DST；后续用 SHADER_READ_ONLY→TRANSFER_DST
+void LightTextureManager::_recordUpload(VkCommandBuffer cmd, VkBuffer stagingBuffer, VkDeviceSize stagingOffset)
+{
+    // 首次（m_initialized=false）用 UNDEFINED→TRANSFER_DST；后续用 SHADER_READ_ONLY→TRANSFER_DST
     const VkImageLayout oldLayout =
         m_initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
     _transitionLayout(cmd, oldLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    VulkanUtils::copyBufferToImage(cmd, m_stagingBuffer, m_lightmapImage, LIGHTMAP_SIZE, LIGHTMAP_SIZE);
-    _transitionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+    VkBufferImageCopy region{};
+    region.bufferOffset = stagingOffset;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {LIGHTMAP_SIZE, LIGHTMAP_SIZE, 1};
+
+    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_lightmapImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    _transitionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void LightTextureManager::updateLightTexture(const LightmapInputs& inputs)
+{
+    if (m_device == VK_NULL_HANDLE || m_stagingPool == nullptr) {
+        return;
+    }
+
+    _computePixels(inputs);
+
+    // 同步路径：stage 子分配 + memcpy + 独立命令缓冲 submit+wait + release。
+    // 仅 initialize 首帧使用；每帧热路径用 updateLightTextureAsync。
+    auto handle = m_stagingPool->stage(STAGING_SIZE);
+    if (!handle.valid) {
+        spdlog::warn("LightTextureManager::updateLightTexture: staging pool out of space");
+        return;
+    }
+    std::memcpy(handle.mappedPtr, m_pixels.data(), static_cast<size_t>(STAGING_SIZE));
+
+    VkCommandBuffer cmd = VulkanUtils::beginSingleTimeCommands(m_device, m_commandPool);
+    _recordUpload(cmd, static_cast<VkBuffer>(m_stagingPool->backingBuffer(0)), handle.offset);
     VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, cmd);
+
+    m_stagingPool->release(handle);
+}
+
+void LightTextureManager::updateLightTextureAsync(const LightmapInputs& inputs, VkCommandBuffer cmd, u32 frameIndex)
+{
+    if (m_device == VK_NULL_HANDLE || m_stagingPool == nullptr) {
+        return;
+    }
+    MC_ASSERT_RELEASE_MSG(cmd != VK_NULL_HANDLE, "LightTextureManager::updateLightTextureAsync: cmd must be valid");
+
+    _computePixels(inputs);
+
+    // 异步路径：stageAsync 子分配暂存区间（登记到 frameIndex 回收桶，由 recycleFrame 回收），
+    // memcpy 后把布局转换 + copy 录进帧命令缓冲，随帧 submit、用帧 fence 同步，不阻塞 CPU。
+    auto handle = m_stagingPool->stageAsync(STAGING_SIZE, frameIndex);
+    if (!handle.valid) {
+        spdlog::warn("LightTextureManager::updateLightTextureAsync: staging pool out of space, lightmap skipped");
+        return;
+    }
+    std::memcpy(handle.mappedPtr, m_pixels.data(), static_cast<size_t>(STAGING_SIZE));
+
+    _recordUpload(cmd, static_cast<VkBuffer>(m_stagingPool->backingBuffer(0)), handle.offset);
+    // 不 release：区间由 recycleFrame 在下一轮同 slot 回收
 }
 
 } // namespace mc::client::renderer::trident::light

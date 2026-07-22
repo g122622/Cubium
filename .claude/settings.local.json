@@ -1,34 +1,6 @@
 {
   "env":{
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
-  },
-  "permissions": {
-    "allow": [
-      "mcp__filesystems__list_directory",
-      "Bash(cmake:*)",
-      "Bash(export:*)",
-      "Bash(./bin/Debug/mc_tests.exe:*)",
-      "Bash(./bin/Debug/minecraft-server.exe:*)",
-      "Bash(sed:*)",
-      "Bash(./build/bin/Debug/mc_tests.exe:*)",
-      "Bash(D:/MiscProjects/minecraft-reborn/build/bin/Debug/mc_tests.exe:*)"
-    ]
-  },
-  "hooks": {
-    "Stop": [
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/cmake-hint.ps1",
-            "shell": "powershell"
-          }
-        ]
-      }
-    ]
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "300000"
   },
   "prefersReducedMotion": true
 }
