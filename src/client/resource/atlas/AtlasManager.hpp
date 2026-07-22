@@ -86,8 +86,13 @@ public:
      * @param physicalDevice 物理设备
      * @param commandPool 命令池（纹理上传用）
      * @param graphicsQueue 图形队列（纹理上传用）
+     * @param stagingPool 统一暂存缓冲池（所有图集像素上传经此子分配，不可为空）
      */
-    void initialize(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue);
+    void initialize(VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        VkCommandPool commandPool,
+        VkQueue graphicsQueue,
+        renderer::api::IStagingBufferPool* stagingPool);
 
     /// 销毁所有图集资源
     void destroy();
@@ -190,8 +195,15 @@ public:
     /// 聚合所有图集 ticker 的 tick
     void tickAnimations();
 
-    /// 上传所有图集 ticker 待上传的动画帧
-    void uploadPendingAnimationFrames();
+    /**
+     * @brief 上传所有图集 ticker 待上传的动画帧
+     *
+     * @param cmd 非 null 时走异步热路径：所有 copy 录进该帧命令缓冲，随帧 submit，
+     *            staging 区间登记到 frameIndex 回收桶，不阻塞 CPU（动画帧上传主路径）。
+     *            为 null 时回退同步路径：独立 submit+wait，用于非渲染上下文（如测试/重载）。
+     * @param frameIndex 当前帧索引（仅异步路径使用，用于 staging 回收桶登记）
+     */
+    void uploadPendingAnimationFrames(VkCommandBuffer cmd, u32 frameIndex);
 
     [[nodiscard]] bool isInitialized() const noexcept { return m_device != VK_NULL_HANDLE; }
 
@@ -212,6 +224,7 @@ private:
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+    renderer::api::IStagingBufferPool* m_stagingPool = nullptr;
 
     const std::vector<ResourcePackPtr>* m_packs = nullptr;
     static const std::vector<ResourcePackPtr> m_emptyPacks;

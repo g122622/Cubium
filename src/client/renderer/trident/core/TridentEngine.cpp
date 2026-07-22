@@ -528,6 +528,15 @@ Result<void> TridentEngine::beginFrame()
         return Error(ErrorCode::InvalidState, "Command buffer is null");
     }
 
+    m_frameStarted = true;
+    return {};
+}
+
+void TridentEngine::_beginRenderPass()
+{
+    VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
+    MC_ASSERT_RELEASE(cmd != VK_NULL_HANDLE);
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPassManager->renderPass();
@@ -559,9 +568,6 @@ Result<void> TridentEngine::beginFrame()
     scissor.offset = {0, 0};
     scissor.extent = m_swapchain->extent();
     vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-    m_frameStarted = true;
-    return {};
 }
 
 Result<void> TridentEngine::endFrame()
@@ -605,12 +611,6 @@ Result<void> TridentEngine::render()
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
 
-    // 上传动画纹理帧（在渲染通道之前执行）
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::UploadAnimationFrames");
-        uploadAnimationFrames();
-    }
-
     // GUI 纹理更新必须在渲染通道外执行
     if (m_guiRendererInitialized && m_guiRendererPtr) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::GuiPrepare");
@@ -621,7 +621,7 @@ Result<void> TridentEngine::render()
         }
     }
 
-    // 1. 开始帧
+    // 1. 开始帧（acquire 图像 + 回收 staging + 开始命令缓冲录制，但不进入 render pass）
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::BeginFrame");
         auto beginResult = beginFrame();
@@ -634,6 +634,17 @@ Result<void> TridentEngine::render()
     if (cmd == VK_NULL_HANDLE) {
         return Error(ErrorCode::InvalidState, "Command buffer is null");
     }
+
+    // 2. 上传动画纹理帧（异步热路径，必须在 render pass 之前录制）
+    //    所有 copy 录进帧命令缓冲、随帧 submit，用帧 fence 同步，不再独立 submit+wait 阻塞 CPU。
+    //    vkCmdCopyBufferToImage 不能在 render pass 内录制，故此处先于 _beginRenderPass。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::UploadAnimationFrames");
+        uploadAnimationFrames(cmd, m_frameContext.frameIndex);
+    }
+
+    // 3. 进入渲染通道（视口/裁剪在此设置）
+    _beginRenderPass();
 
     // 2. 每帧更新相机矩阵与 Uniform
     if (m_frameContext.camera && m_uniformManager) {
@@ -1942,7 +1953,8 @@ Result<void> TridentEngine::initializeAtlasManager(ResourceManager* resourceMana
     if (!m_atlasManager) {
         m_atlasManager = std::make_unique<AtlasManagerOwner>();
     }
-    m_atlasManager->manager.initialize(device(), physicalDevice(), commandPool(), graphicsQueue());
+    m_atlasManager->manager.initialize(
+        device(), physicalDevice(), commandPool(), graphicsQueue(), m_context->stagingPool());
     m_atlasManager->manager.setResourcePacks(&resourceManager->resourcePacks());
 
     // 加载 blocks/items 图集；blocks atlas 驱动方块网格/破坏叠加/手持方块渲染。
@@ -2564,13 +2576,14 @@ void TridentEngine::tickTextureAnimations()
     entity::effect::fire::FireEffect::tick();
 }
 
-void TridentEngine::uploadAnimationFrames()
+void TridentEngine::uploadAnimationFrames(VkCommandBuffer cmd, u32 frameIndex)
 {
     if (!m_atlasManagerInitialized || !m_atlasManager) {
         return;
     }
-    // 统一图集管理器把所有图集 ticker 待上传帧上传到各自 AtlasHandle
-    m_atlasManager->manager.uploadPendingAnimationFrames();
+    // 统一图集管理器把所有图集 ticker 待上传帧上传到各自 AtlasHandle。
+    // cmd 非 null 走异步路径（录进帧命令缓冲），null 走同步回退（独立 submit+wait）。
+    m_atlasManager->manager.uploadPendingAnimationFrames(cmd, frameIndex);
 }
 
 void TridentEngine::_bindBlockAtlasToChunkPipeline()

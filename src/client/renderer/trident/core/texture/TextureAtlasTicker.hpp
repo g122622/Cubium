@@ -24,7 +24,6 @@
 #pragma once
 
 #include "AnimatedSprite.hpp"
-#include "common/core/Result.hpp"
 #include <memory>
 #include <vector>
 
@@ -33,12 +32,8 @@ namespace mc::client::renderer::trident {
 /**
  * @brief 纹理图集动画管理器
  *
- * 管理所有动画精灵，每游戏tick调用tick()更新动画状态。
- *
- * 使用方式：
- * 1. 在资源加载时，通过registerAnimatedSprite()注册动画精灵
- * 2. 在客户端主循环中，每tick调用tick()
- * 3. 在渲染前，调用uploadPendingFrames()上传需要更新的帧
+ * 管理所有动画精灵，每游戏tick调用tick()更新帧状态。
+ * 待上传帧由 AtlasManager::uploadPendingAnimationFrames 经统一暂存池批量上传。
  *
  * @note 此类不是线程安全的。所有方法都应在主线程调用。
  */
@@ -83,16 +78,6 @@ public:
      * 此方法应在客户端主循环中每tick调用一次。
      */
     void tick();
-
-    /**
-     * @brief 上传所有待更新的帧
-     * @param context Trident上下文
-     * @param atlas 纹理图集
-     *
-     * 将所有需要更新的帧上传到GPU纹理。
-     * 此方法应在渲染前调用。
-     */
-    mc::Result<void> uploadPendingFrames(TridentContext* context, TridentTextureAtlas& atlas);
 
     /**
      * @brief 清除所有动画精灵

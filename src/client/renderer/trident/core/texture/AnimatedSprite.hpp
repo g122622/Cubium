@@ -31,20 +31,14 @@
 
 namespace mc::client::renderer::trident {
 
-class TridentContext;
-class TridentTextureAtlas;
-
 /**
  * @brief 动画精灵
  *
- * 管理动画纹理的帧数据和播放状态。
+ * 管理动画纹理的帧数据和播放状态。每游戏 tick 调用 tick() 推进帧状态，
+ * 由 AtlasManager::uploadPendingAnimationFrames 负责把待上传帧经统一暂存池
+ * 批量上传到图集（见 AtlasHandle::uploadRegionsBatch）。
  *
- * 动画精灵存储多帧纹理数据，并根据mcmeta配置进行帧切换。
- * 每个游戏tick调用tick()方法更新动画状态。
- * 在渲染时调用uploadCurrentFrame()将当前帧上传到纹理图集。
- *
- * @note 此类不是线程安全的。tick()应在主线程调用，
- *       uploadCurrentFrame()应在渲染线程调用。
+ * @note 此类不是线程安全的。tick() 应在主线程调用。
  */
 class AnimatedSprite {
 public:
@@ -89,17 +83,6 @@ public:
      * 此方法应在客户端主循环中每tick调用一次。
      */
     void tick();
-
-    /**
-     * @brief 上传当前帧到纹理图集
-     * @param context Trident上下文
-     * @param atlas 纹理图集
-     * @return 成功或错误
-     *
-     * 将当前帧的像素数据上传到纹理图集中的精灵位置。
-     * 如果启用了插值且处于帧切换过程中，会上传插值后的帧。
-     */
-    [[nodiscard]] mc::Result<void> uploadCurrentFrame(TridentContext* context, TridentTextureAtlas& atlas);
 
     /**
      * @brief 获取插值帧进度
@@ -219,23 +202,6 @@ public:
     void setLocation(const mc::ResourceLocation& loc) { m_location = loc; }
 
 private:
-    /**
-     * @brief 生成插值帧数据
-     * @param progress 进度（0.0-1.0）
-     * @return 插值后的帧数据
-     */
-    [[nodiscard]] FrameData _generateInterpolatedFrame(f32 progress) const;
-
-    /**
-     * @brief 上传帧数据到图集
-     * @param context Trident上下文
-     * @param atlas 纹理图集
-     * @param frame 帧数据
-     * @return 成功或错误
-     */
-    [[nodiscard]] mc::Result<void> _uploadFrame(
-        TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame);
-
     // ========== 成员变量 ==========
 
     mc::resource::metadata::AnimationMetadata m_metadata; ///< 动画元数据

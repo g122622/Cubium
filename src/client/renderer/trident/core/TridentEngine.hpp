@@ -739,10 +739,13 @@ public:
     /**
      * @brief 上传所有待更新的动画帧到 GPU
      *
-     * 将需要更新的帧上传到纹理图集。
-     * 应在渲染前（beginFrame 之前）调用。
+     * @param cmd 非 null 时走异步热路径：copy 录进该帧命令缓冲，随帧 submit，
+     *            用帧 fence 同步，不阻塞 CPU（必须在 beginFrame 之后、渲染通道开始前调用，
+     *            因为 vkCmdCopyBufferToImage 不能在 render pass 内录制）。
+     *            为 null 时回退同步路径：独立 submit+wait。
+     * @param frameIndex 当前帧索引（仅异步路径使用，用于 staging 回收桶登记）
      */
-    void uploadAnimationFrames();
+    void uploadAnimationFrames(VkCommandBuffer cmd, u32 frameIndex);
 
     /**
      * @brief 设置 GUI 缩放倍率
@@ -885,6 +888,17 @@ private:
 
     // 内部方法
     [[nodiscard]] Result<void> _recreateSwapchain();
+
+    /**
+     * @brief 在当前帧命令缓冲上开始渲染通道并设置视口/裁剪
+     *
+     * 从 beginFrame() 拆出：beginFrame() 只到 acquireNextImage + 回收 staging +
+     * 开始命令缓冲录制（不进入 render pass），把 render pass 的开始延后到这里。
+     * 这样调用方可在 beginFrame() 与 _beginRenderPass() 之间向帧命令缓冲录制
+     * vkCmdCopyBufferToImage 等不能在 render pass 内执行的 transfer 命令
+     * （如异步动画帧上传）。
+     */
+    void _beginRenderPass();
 
     /**
      * @brief 把 AtlasManager 拥有的 blocks atlas 的 imageView/sampler 写入

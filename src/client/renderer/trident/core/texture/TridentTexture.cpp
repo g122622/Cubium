@@ -830,25 +830,6 @@ Result<void> TridentTextureAtlas::upload(const api::AtlasBuildResult& result)
     return m_texture.upload(result.pixelData.data(), result.pixelData.size(), 0);
 }
 
-Result<void> TridentTextureAtlas::uploadRegion(
-    const void* data, u64 size, u32 offsetX, u32 offsetY, u32 width, u32 height, u32 rowLength)
-{
-    if (!isValid()) {
-        return Error(ErrorCode::OperationFailed, "Atlas not initialized");
-    }
-
-    if (!data || size == 0) {
-        return Error(ErrorCode::InvalidArgument, "Invalid data pointer or size");
-    }
-
-    // 验证区域边界
-    if (offsetX + width > m_width || offsetY + height > m_height) {
-        return Error(ErrorCode::OutOfRange, "Upload region out of atlas bounds");
-    }
-
-    return m_texture.uploadRegion(data, size, offsetX, offsetY, width, height, 0, rowLength);
-}
-
 void TridentTextureAtlas::destroy()
 {
     m_texture.destroy();

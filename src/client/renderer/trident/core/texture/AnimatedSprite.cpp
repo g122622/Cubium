@@ -22,8 +22,6 @@
  */
 
 #include "AnimatedSprite.hpp"
-#include "TridentTexture.hpp"
-#include "client/renderer/trident/core/TridentContext.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 
@@ -79,44 +77,7 @@ void AnimatedSprite::tick()
         if (oldFrameIndex != newFrameIndex) {
             m_needsUpload = true;
         }
-    } else if (m_metadata.interpolate) {
-        // 插值期间需要持续上传
-        m_needsUpload = true;
     }
-}
-
-mc::Result<void> AnimatedSprite::uploadCurrentFrame(TridentContext* context, TridentTextureAtlas& atlas)
-{
-    if (m_frames.empty()) {
-        return mc::Error(mc::ErrorCode::InvalidState, "AnimatedSprite has no frames");
-    }
-
-    // 如果不需要上传且未启用插值，跳过
-    if (!m_needsUpload && !m_metadata.interpolate) {
-        return {};
-    }
-
-    FrameData frameToUpload;
-
-    if (m_metadata.interpolate && isAnimated()) {
-        // 生成插值帧
-        const f32 progress = frameProgress();
-        frameToUpload = _generateInterpolatedFrame(progress);
-    } else {
-        // 使用当前帧
-        const i32 frameIdx = currentFrameIndex();
-        if (frameIdx < 0 || static_cast<mc::Size>(frameIdx) >= m_frames.size()) {
-            return mc::Error(mc::ErrorCode::OutOfRange, "Invalid frame index");
-        }
-        frameToUpload = m_frames[frameIdx];
-    }
-
-    auto result = _uploadFrame(context, atlas, frameToUpload);
-    if (result.success()) {
-        m_needsUpload = false;
-    }
-
-    return result;
 }
 
 f32 AnimatedSprite::getInterpolatedFrame(f32 partialTick) const
@@ -141,94 +102,6 @@ i32 AnimatedSprite::nextFrameIndex() const noexcept
 
     const mc::Size nextPos = (m_frameCounter + 1) % m_metadata.frames.size();
     return m_metadata.frames[nextPos].index;
-}
-
-AnimatedSprite::FrameData AnimatedSprite::_generateInterpolatedFrame(f32 progress) const
-{
-    if (m_frames.empty() || m_frameWidth == 0 || m_frameHeight == 0) {
-        return {};
-    }
-
-    const i32 currentIdx = currentFrameIndex();
-    const i32 nextIdx = nextFrameIndex();
-
-    if (currentIdx < 0 || static_cast<mc::Size>(currentIdx) >= m_frames.size() || nextIdx < 0 ||
-        static_cast<mc::Size>(nextIdx) >= m_frames.size()) {
-        return {};
-    }
-
-    const auto& currentFrame = m_frames[currentIdx];
-    const auto& nextFrame = m_frames[nextIdx];
-
-    // 确保两帧尺寸相同
-    if (currentFrame.pixels.size() != nextFrame.pixels.size()) {
-        return currentFrame;
-    }
-
-    FrameData result;
-    result.width = m_frameWidth;
-    result.height = m_frameHeight;
-    result.pixels.resize(currentFrame.pixels.size());
-
-    // 逐像素插值
-    const mc::Size pixelCount = currentFrame.pixels.size() / 4;
-    for (mc::Size i = 0; i < pixelCount; ++i) {
-        const mc::Size offset = i * 4;
-
-        // R通道
-        result.pixels[offset] = static_cast<u8>(mc::math::lerp(
-            static_cast<f32>(currentFrame.pixels[offset]), static_cast<f32>(nextFrame.pixels[offset]), progress));
-
-        // G通道
-        result.pixels[offset + 1] = static_cast<u8>(mc::math::lerp(static_cast<f32>(currentFrame.pixels[offset + 1]),
-            static_cast<f32>(nextFrame.pixels[offset + 1]),
-            progress));
-
-        // B通道
-        result.pixels[offset + 2] = static_cast<u8>(mc::math::lerp(static_cast<f32>(currentFrame.pixels[offset + 2]),
-            static_cast<f32>(nextFrame.pixels[offset + 2]),
-            progress));
-
-        // A通道（不插值，保持当前帧的alpha）
-        result.pixels[offset + 3] = currentFrame.pixels[offset + 3];
-    }
-
-    return result;
-}
-
-mc::Result<void> AnimatedSprite::_uploadFrame(
-    TridentContext* context, TridentTextureAtlas& atlas, const FrameData& frame)
-{
-    // context 参数保留用于将来可能的扩展（如需要直接访问 Vulkan 命令缓冲区）
-    MC_UNUSED(context);
-
-    if (frame.pixels.empty()) {
-        return mc::Error(mc::ErrorCode::InvalidData, "Frame has no pixel data");
-    }
-
-    // 计算上传区域
-    const u32 atlasWidth = atlas.width();
-    const u32 atlasHeight = atlas.height();
-
-    if (m_atlasX + m_frameWidth > atlasWidth || m_atlasY + m_frameHeight > atlasHeight) {
-        return mc::Error(mc::ErrorCode::OutOfRange, "Frame position out of atlas bounds");
-    }
-
-    // 验证帧数据尺寸
-    if (frame.width != m_frameWidth || frame.height != m_frameHeight) {
-        return mc::Error(mc::ErrorCode::InvalidData, "Frame size does not match sprite frame size");
-    }
-
-    // 验证像素数据大小 (RGBA = 4 字节/像素)
-    const u64 expectedSize = static_cast<u64>(frame.width) * frame.height * 4;
-    if (frame.pixels.size() != expectedSize) {
-        return mc::Error(mc::ErrorCode::InvalidData, "Frame pixel data size mismatch");
-    }
-
-    // 使用 uploadRegion 上传帧数据到图集的指定位置
-    // rowLength = 0 表示紧密排列（每行像素 = width）
-    return atlas.uploadRegion(
-        frame.pixels.data(), frame.pixels.size(), m_atlasX, m_atlasY, m_frameWidth, m_frameHeight, 0);
 }
 
 } // namespace mc::client::renderer::trident

@@ -1085,46 +1085,6 @@ TEST_F(TextureRegionUploadTest, TextureUploadRegion_InvalidParams)
     texture.destroy();
 }
 
-TEST_F(TextureRegionUploadTest, AtlasUploadRegion_Basic)
-{
-    // 测试纹理图集子区域上传
-    TridentTextureAtlas atlas;
-    ASSERT_TRUE(atlas.create(s_context, 64, 64, 16).success());
-
-    // 先上传完整图集数据
-    std::vector<u8> initialData(64 * 64 * 4, 0);
-    ASSERT_TRUE(atlas.uploadRegion(initialData.data(), initialData.size(), 0, 0, 64, 64, 0).success());
-
-    // 上传单个瓦片区域 (16x16，位于瓦片坐标 (1, 2))
-    std::vector<u8> tileData(16 * 16 * 4, 255);
-    auto result = atlas.uploadRegion(tileData.data(), tileData.size(), 16, 32, 16, 16, 0);
-    EXPECT_TRUE(result.success()) << result.error().message();
-
-    atlas.destroy();
-}
-
-TEST_F(TextureRegionUploadTest, AtlasUploadRegion_MultipleTiles)
-{
-    // 测试上传多个瓦片区域
-    TridentTextureAtlas atlas;
-    ASSERT_TRUE(atlas.create(s_context, 64, 64, 16).success());
-
-    // 初始化图集
-    std::vector<u8> initialData(64 * 64 * 4, 0);
-    ASSERT_TRUE(atlas.uploadRegion(initialData.data(), initialData.size(), 0, 0, 64, 64, 0).success());
-
-    // 上传多个瓦片
-    for (u32 y = 0; y < 4; ++y) {
-        for (u32 x = 0; x < 4; ++x) {
-            std::vector<u8> tileData(16 * 16 * 4, static_cast<u8>((x + y * 4) * 16));
-            auto result = atlas.uploadRegion(tileData.data(), tileData.size(), x * 16, y * 16, 16, 16, 0);
-            EXPECT_TRUE(result.success()) << "Upload at (" << x << ", " << y << ") should succeed";
-        }
-    }
-
-    atlas.destroy();
-}
-
 // ============================================================================
 // FrameManager 测试
 // ============================================================================

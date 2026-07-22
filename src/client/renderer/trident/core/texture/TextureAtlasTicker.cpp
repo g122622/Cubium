@@ -22,8 +22,6 @@
  */
 
 #include "TextureAtlasTicker.hpp"
-#include "TridentTexture.hpp"
-#include "client/renderer/trident/core/TridentContext.hpp"
 #include <algorithm>
 
 namespace mc::client::renderer::trident {
@@ -60,18 +58,6 @@ void TextureAtlasTicker::tick()
     for (auto& sprite : m_sprites) {
         sprite->tick();
     }
-}
-
-mc::Result<void> TextureAtlasTicker::uploadPendingFrames(TridentContext* context, TridentTextureAtlas& atlas)
-{
-    for (auto& sprite : m_sprites) {
-        auto result = sprite->uploadCurrentFrame(context, atlas);
-        if (!result.success()) {
-            // 记录错误但继续处理其他精灵
-        }
-    }
-
-    return {};
 }
 
 void TextureAtlasTicker::clear()

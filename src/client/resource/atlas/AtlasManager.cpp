@@ -44,13 +44,17 @@ AtlasManager::~AtlasManager()
 
 AtlasEntry::~AtlasEntry() = default;
 
-void AtlasManager::initialize(
-    VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
+void AtlasManager::initialize(VkDevice device,
+    VkPhysicalDevice physicalDevice,
+    VkCommandPool commandPool,
+    VkQueue graphicsQueue,
+    renderer::api::IStagingBufferPool* stagingPool)
 {
     m_device = device;
     m_physicalDevice = physicalDevice;
     m_commandPool = commandPool;
     m_graphicsQueue = graphicsQueue;
+    m_stagingPool = stagingPool;
 }
 
 void AtlasManager::destroy()
@@ -203,8 +207,14 @@ Result<void> AtlasManager::loadAtlas(const ResourceLocation& atlasId)
     entry->regions = atlas.regions;
 
     // 创建 Vulkan 资源并上传
-    auto createResult = entry->handle.create(
-        m_device, m_physicalDevice, m_commandPool, m_graphicsQueue, atlas.width, atlas.height, entry->filter);
+    auto createResult = entry->handle.create(m_device,
+        m_physicalDevice,
+        m_commandPool,
+        m_graphicsQueue,
+        m_stagingPool,
+        atlas.width,
+        atlas.height,
+        entry->filter);
     if (createResult.failed()) {
         return createResult;
     }
@@ -408,12 +418,20 @@ void AtlasManager::tickAnimations()
     }
 }
 
-void AtlasManager::uploadPendingAnimationFrames()
+void AtlasManager::uploadPendingAnimationFrames(VkCommandBuffer cmd, u32 frameIndex)
 {
+    const bool asyncPath = (cmd != VK_NULL_HANDLE);
     for (auto& [id, entry] : m_atlases) {
         if (!entry || !entry->ticker || !entry->handle.isValid()) {
             continue;
         }
+
+        // 同一图集内所有待上传 sprite 合并到一次录制/submit：收集区域描述符，
+        // 交由 AtlasHandle 在单命令缓冲内录制 N 次 copy + layout 转换。
+        // 异步路径随帧命令缓冲 submit、用帧 fence 同步；同步路径独立 submit+wait。
+        std::vector<AtlasHandle::RegionUpload> batch;
+        std::vector<renderer::trident::AnimatedSprite*> pendingSprites;
+
         const mc::Size count = entry->ticker->spriteCount();
         for (mc::Size i = 0; i < count; ++i) {
             auto* sprite = entry->ticker->getSprite(i);
@@ -425,17 +443,32 @@ void AtlasManager::uploadPendingAnimationFrames()
                 sprite->markUploaded();
                 continue;
             }
-            const u64 size = static_cast<u64>(sprite->frameWidth()) * sprite->frameHeight() * 4;
-            auto result = entry->handle.uploadRegion(framePixels.data(),
-                size,
+            batch.push_back({framePixels.data(),
+                static_cast<u64>(sprite->frameWidth()) * sprite->frameHeight() * 4,
                 sprite->atlasX(),
                 sprite->atlasY(),
                 sprite->frameWidth(),
                 sprite->frameHeight(),
-                sprite->frameWidth());
-            if (result.success()) {
+                sprite->frameWidth()});
+            pendingSprites.push_back(sprite);
+        }
+
+        if (batch.empty()) {
+            continue;
+        }
+
+        Result<void> result = asyncPath ? entry->handle.uploadRegionsBatchAsync(batch, cmd, frameIndex)
+                                        : entry->handle.uploadRegionsBatch(batch);
+        if (result.success()) {
+            // 整批上传成功，统一标记已上传
+            for (auto* sprite : pendingSprites) {
                 sprite->markUploaded();
             }
+        } else {
+            // 池容量不足等失败：不标记，待上传的 sprite 下帧重试
+            spdlog::warn("AtlasManager::uploadPendingAnimationFrames: batch upload failed for atlas {}: {}",
+                id.toString(),
+                result.error().message());
         }
     }
 }

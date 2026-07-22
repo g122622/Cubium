@@ -24,6 +24,7 @@
 #include "client/resource/atlas/AtlasHandle.hpp"
 
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -39,6 +40,7 @@ AtlasHandle::AtlasHandle(AtlasHandle&& other) noexcept
     , m_physicalDevice(other.m_physicalDevice)
     , m_commandPool(other.m_commandPool)
     , m_graphicsQueue(other.m_graphicsQueue)
+    , m_stagingPool(other.m_stagingPool)
     , m_image(other.m_image)
     , m_imageMemory(other.m_imageMemory)
     , m_imageView(other.m_imageView)
@@ -54,6 +56,7 @@ AtlasHandle::AtlasHandle(AtlasHandle&& other) noexcept
     other.m_physicalDevice = VK_NULL_HANDLE;
     other.m_commandPool = VK_NULL_HANDLE;
     other.m_graphicsQueue = VK_NULL_HANDLE;
+    other.m_stagingPool = nullptr;
     other.m_image = VK_NULL_HANDLE;
     other.m_imageMemory = VK_NULL_HANDLE;
     other.m_imageView = VK_NULL_HANDLE;
@@ -73,6 +76,7 @@ AtlasHandle& AtlasHandle::operator=(AtlasHandle&& other) noexcept
         m_physicalDevice = other.m_physicalDevice;
         m_commandPool = other.m_commandPool;
         m_graphicsQueue = other.m_graphicsQueue;
+        m_stagingPool = other.m_stagingPool;
         m_image = other.m_image;
         m_imageMemory = other.m_imageMemory;
         m_imageView = other.m_imageView;
@@ -88,6 +92,7 @@ AtlasHandle& AtlasHandle::operator=(AtlasHandle&& other) noexcept
         other.m_physicalDevice = VK_NULL_HANDLE;
         other.m_commandPool = VK_NULL_HANDLE;
         other.m_graphicsQueue = VK_NULL_HANDLE;
+        other.m_stagingPool = nullptr;
         other.m_image = VK_NULL_HANDLE;
         other.m_imageMemory = VK_NULL_HANDLE;
         other.m_imageView = VK_NULL_HANDLE;
@@ -105,6 +110,7 @@ Result<void> AtlasHandle::create(VkDevice device,
     VkPhysicalDevice physicalDevice,
     VkCommandPool commandPool,
     VkQueue graphicsQueue,
+    renderer::api::IStagingBufferPool* stagingPool,
     u32 width,
     u32 height,
     VkFilter filter)
@@ -118,6 +124,8 @@ Result<void> AtlasHandle::create(VkDevice device,
     if (graphicsQueue == VK_NULL_HANDLE) {
         return Error(ErrorCode::NullPointer, "AtlasHandle: graphics queue is null");
     }
+    // 暂存池是所有像素上传的唯一通道，缺失说明初始化顺序错误
+    MC_ASSERT_RELEASE_MSG(stagingPool != nullptr, "AtlasHandle::create: staging pool must be injected");
     if (width == 0 || height == 0) {
         return Error(ErrorCode::InvalidArgument, "AtlasHandle: dimensions must be non-zero");
     }
@@ -126,6 +134,7 @@ Result<void> AtlasHandle::create(VkDevice device,
     m_physicalDevice = physicalDevice;
     m_commandPool = commandPool;
     m_graphicsQueue = graphicsQueue;
+    m_stagingPool = stagingPool;
     m_width = width;
     m_height = height;
     m_filter = filter;
@@ -181,6 +190,7 @@ void AtlasHandle::destroy()
     m_physicalDevice = VK_NULL_HANDLE;
     m_commandPool = VK_NULL_HANDLE;
     m_graphicsQueue = VK_NULL_HANDLE;
+    m_stagingPool = nullptr;
     m_imageWidth = 0;
     m_imageHeight = 0;
     m_width = 0;
@@ -231,30 +241,10 @@ Result<void> AtlasHandle::upload(const void* pixels, u64 size, u32 width, u32 he
         }
     }
 
-    // Staging buffer
-    VkBuffer stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-
-    auto bufferResult = renderer::VulkanUtils::createBuffer(m_device,
-        m_physicalDevice,
-        static_cast<VkDeviceSize>(size),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingMemory);
-    if (bufferResult.failed()) {
-        return bufferResult;
-    }
-
-    void* mapped = nullptr;
-    if (vkMapMemory(m_device, stagingMemory, 0, static_cast<VkDeviceSize>(size), 0, &mapped) != VK_SUCCESS ||
-        mapped == nullptr) {
-        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-        vkFreeMemory(m_device, stagingMemory, nullptr);
-        return Error(ErrorCode::OperationFailed, "AtlasHandle::upload: failed to map staging memory");
-    }
-    std::memcpy(mapped, pixels, static_cast<size_t>(size));
-    vkUnmapMemory(m_device, stagingMemory);
+    // 经统一暂存池上传：stage → memcpy → 单次命令缓冲 buffer→image → release
+    auto handle = m_stagingPool->stage(size);
+    MC_ASSERT_RELEASE_MSG(handle.valid, "AtlasHandle::upload: staging pool out of space");
+    std::memcpy(handle.mappedPtr, pixels, static_cast<size_t>(size));
 
     const VkImageLayout uploadOldLayout =
         (needRecreateImage || !m_uploaded) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -267,7 +257,7 @@ Result<void> AtlasHandle::upload(const void* pixels, u64 size, u32 width, u32 he
         cmd, uploadOldLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, uploadSrcStage, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     VkBufferImageCopy region{};
-    region.bufferOffset = 0;
+    region.bufferOffset = handle.offset;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -277,7 +267,12 @@ Result<void> AtlasHandle::upload(const void* pixels, u64 size, u32 width, u32 he
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {m_width, m_height, 1};
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(cmd,
+        static_cast<VkBuffer>(m_stagingPool->backingBuffer(0)),
+        m_image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region);
 
     _transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -286,9 +281,8 @@ Result<void> AtlasHandle::upload(const void* pixels, u64 size, u32 width, u32 he
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     _endSingleTimeCommands(cmd);
-
-    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-    vkFreeMemory(m_device, stagingMemory, nullptr);
+    // submit+wait 已在 endSingleTimeCommands 内完成，staging 区间可安全归还
+    m_stagingPool->release(handle);
 
     m_uploaded = true;
     return {};
@@ -307,29 +301,10 @@ Result<void> AtlasHandle::uploadRegion(
         return Error(ErrorCode::InvalidArgument, "AtlasHandle::uploadRegion: dimensions must be non-zero");
     }
 
-    VkBuffer stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-
-    auto bufferResult = renderer::VulkanUtils::createBuffer(m_device,
-        m_physicalDevice,
-        static_cast<VkDeviceSize>(size),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingMemory);
-    if (bufferResult.failed()) {
-        return bufferResult;
-    }
-
-    void* mapped = nullptr;
-    if (vkMapMemory(m_device, stagingMemory, 0, static_cast<VkDeviceSize>(size), 0, &mapped) != VK_SUCCESS ||
-        mapped == nullptr) {
-        vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-        vkFreeMemory(m_device, stagingMemory, nullptr);
-        return Error(ErrorCode::OperationFailed, "AtlasHandle::uploadRegion: failed to map staging memory");
-    }
-    std::memcpy(mapped, pixelData, static_cast<size_t>(size));
-    vkUnmapMemory(m_device, stagingMemory);
+    // 经统一暂存池子分配，单次命令缓冲提交
+    auto handle = m_stagingPool->stage(size);
+    MC_ASSERT_RELEASE_MSG(handle.valid, "AtlasHandle::uploadRegion: staging pool out of space");
+    std::memcpy(handle.mappedPtr, pixelData, static_cast<size_t>(size));
 
     VkCommandBuffer cmd = _beginSingleTimeCommands();
 
@@ -340,7 +315,7 @@ Result<void> AtlasHandle::uploadRegion(
         VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     VkBufferImageCopy region{};
-    region.bufferOffset = 0;
+    region.bufferOffset = handle.offset;
     region.bufferRowLength = rowLength > 0 ? rowLength : width;
     region.bufferImageHeight = height;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -350,7 +325,91 @@ Result<void> AtlasHandle::uploadRegion(
     region.imageOffset = {static_cast<int32_t>(offsetX), static_cast<int32_t>(offsetY), 0};
     region.imageExtent = {width, height, 1};
 
-    vkCmdCopyBufferToImage(cmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(cmd,
+        static_cast<VkBuffer>(m_stagingPool->backingBuffer(0)),
+        m_image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region);
+
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    _endSingleTimeCommands(cmd);
+    m_stagingPool->release(handle);
+
+    return {};
+}
+
+Result<void> AtlasHandle::uploadRegionsBatch(const std::vector<RegionUpload>& regions)
+{
+    if (regions.empty()) {
+        return {};
+    }
+    if (m_image == VK_NULL_HANDLE) {
+        return Error(ErrorCode::InvalidState, "AtlasHandle::uploadRegionsBatch: atlas not initialized");
+    }
+
+    // 1. 先把所有区域子分配到同一 backing buffer，各自 memcpy 源像素
+    //    记录每个区域的 staging offset，供后续录制 vkCmdCopyBufferToImage 复用
+    struct StagedRegion {
+        renderer::api::StagingHandle handle;
+        const RegionUpload* desc;
+    };
+    std::vector<StagedRegion> staged;
+    staged.reserve(regions.size());
+
+    for (const auto& r : regions) {
+        if (r.pixelData == nullptr || r.width == 0 || r.height == 0) {
+            // 整批一致性要求：任一区域非法即放弃整批，先释放已分配的
+            for (const auto& s : staged) {
+                m_stagingPool->release(s.handle);
+            }
+            return Error(ErrorCode::InvalidArgument, "AtlasHandle::uploadRegionsBatch: invalid region in batch");
+        }
+        auto handle = m_stagingPool->stage(r.size);
+        if (!handle.valid) {
+            // 池容量不足：释放已分配区间，调用方应在下一帧重试或走降频
+            for (const auto& s : staged) {
+                m_stagingPool->release(s.handle);
+            }
+            return Error(ErrorCode::OutOfMemory, "AtlasHandle::uploadRegionsBatch: staging pool out of space");
+        }
+        std::memcpy(handle.mappedPtr, r.pixelData, static_cast<size_t>(r.size));
+        staged.push_back({handle, &r});
+    }
+
+    // 2. 单个命令缓冲：一次 layout 转入 + N 次 copy + 一次 layout 转出，一次 submit+wait
+    VkCommandBuffer cmd = _beginSingleTimeCommands();
+
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    for (const auto& s : staged) {
+        VkBufferImageCopy region{};
+        region.bufferOffset = s.handle.offset;
+        region.bufferRowLength = s.desc->rowLength > 0 ? s.desc->rowLength : s.desc->width;
+        region.bufferImageHeight = s.desc->height;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {static_cast<int32_t>(s.desc->offsetX), static_cast<int32_t>(s.desc->offsetY), 0};
+        region.imageExtent = {s.desc->width, s.desc->height, 1};
+
+        vkCmdCopyBufferToImage(cmd,
+            static_cast<VkBuffer>(m_stagingPool->backingBuffer(0)),
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region);
+    }
 
     _transitionImageLayout(cmd,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -360,9 +419,84 @@ Result<void> AtlasHandle::uploadRegion(
 
     _endSingleTimeCommands(cmd);
 
-    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-    vkFreeMemory(m_device, stagingMemory, nullptr);
+    // 3. submit+wait 完成，统一归还所有 staging 区间
+    for (const auto& s : staged) {
+        m_stagingPool->release(s.handle);
+    }
 
+    return {};
+}
+
+Result<void> AtlasHandle::uploadRegionsBatchAsync(
+    const std::vector<RegionUpload>& regions, VkCommandBuffer cmd, u32 frameIndex)
+{
+    if (regions.empty()) {
+        return {};
+    }
+    if (m_image == VK_NULL_HANDLE) {
+        return Error(ErrorCode::InvalidState, "AtlasHandle::uploadRegionsBatchAsync: atlas not initialized");
+    }
+    MC_ASSERT_RELEASE_MSG(cmd != VK_NULL_HANDLE, "AtlasHandle::uploadRegionsBatchAsync: cmd must be valid");
+
+    // 1. stageAsync 把所有区域子分配到同一 backing buffer，各自 memcpy 源像素
+    //    分配的区间登记到 frameIndex 回收桶，由 stagingPool 在下一轮同 slot 的
+    //    recycleFrame 回收，调用方不 release。失败区间不会登记（无需回滚）。
+    struct StagedRegion {
+        renderer::api::StagingHandle handle;
+        const RegionUpload* desc;
+    };
+    std::vector<StagedRegion> staged;
+    staged.reserve(regions.size());
+
+    for (const auto& r : regions) {
+        if (r.pixelData == nullptr || r.width == 0 || r.height == 0) {
+            return Error(ErrorCode::InvalidArgument, "AtlasHandle::uploadRegionsBatchAsync: invalid region in batch");
+        }
+        auto handle = m_stagingPool->stageAsync(r.size, frameIndex);
+        if (!handle.valid) {
+            // 池容量不足：已 stageAsync 成功的区间已登记到桶，由 recycleFrame 自动回收，不泄漏。
+            // 未上传成功的 sprite 由调用方下帧重试。
+            return Error(ErrorCode::OutOfMemory, "AtlasHandle::uploadRegionsBatchAsync: staging pool out of space");
+        }
+        std::memcpy(handle.mappedPtr, r.pixelData, static_cast<size_t>(r.size));
+        staged.push_back({handle, &r});
+    }
+
+    // 2. 录进调用方提供的帧命令缓冲：一次 layout 转入 + N 次 copy + 一次 layout 转出
+    //    atlas 长期处于 SHADER_READ_ONLY，oldLayout 恒为 SHADER_READ_ONLY_OPTIMAL。
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    for (const auto& s : staged) {
+        VkBufferImageCopy region{};
+        region.bufferOffset = s.handle.offset;
+        region.bufferRowLength = s.desc->rowLength > 0 ? s.desc->rowLength : s.desc->width;
+        region.bufferImageHeight = s.desc->height;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {static_cast<int32_t>(s.desc->offsetX), static_cast<int32_t>(s.desc->offsetY), 0};
+        region.imageExtent = {s.desc->width, s.desc->height, 1};
+
+        vkCmdCopyBufferToImage(cmd,
+            static_cast<VkBuffer>(m_stagingPool->backingBuffer(0)),
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region);
+    }
+
+    _transitionImageLayout(cmd,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    // 3. 不 submit、不 release：命令随帧命令缓冲 submit，区间由 recycleFrame 回收
     return {};
 }
 
@@ -471,7 +605,6 @@ VkCommandBuffer AtlasHandle::_beginSingleTimeCommands()
 
 void AtlasHandle::_endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
-    // 使用 fence 版本，避免阻塞整个 GPU 队列
     renderer::VulkanUtils::endSingleTimeCommands(m_device, m_commandPool, m_graphicsQueue, commandBuffer);
 }
 

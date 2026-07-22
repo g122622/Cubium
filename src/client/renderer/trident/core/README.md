@@ -76,7 +76,7 @@ TridentEngine（主入口）
 
 4. **MSAA 采样数**：创建管线时必须使用与渲染通道相同的 `rasterizationSamples`。
 
-5. **动画纹理生命周期**：动画纹理需要在主线程 tick 调用 `tickTextureAnimations()` 更新帧状态，在渲染帧调用 `uploadAnimationFrames()` 上传到 GPU。详见 [texture/README.md](texture/README.md)。
+5. **动画纹理生命周期**：动画纹理需要在主线程 tick 调用 `tickTextureAnimations()` 更新帧状态，在渲染帧的 `beginFrame()` 之后、render pass 之前调用 `uploadAnimationFrames(cmd, frameIndex)` 把帧 copy 录进帧命令缓冲（随帧 submit，不阻塞 CPU）。`vkCmdCopyBufferToImage` 不能在 render pass 内录制，故时序不可调换。详见 [texture/README.md](texture/README.md)。
 
 6. **Uniform 缓冲区帧轮换**：每帧前必须调用 `advanceFrame()` 切换到当前帧缓冲区，避免 GPU/CPU 竞争。
 
