@@ -48,6 +48,13 @@ ChunkLoadLightTask::ChunkLoadLightTask(ServerWorld& world, ChunkCoord chunkX, Ch
 
 bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "ChunkLoadLightTask::execute",
+        "chunk",
+        fmt::format("({}, {})", m_chunkX, m_chunkZ),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_chunkX, m_chunkZ).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     // 任务可能被取消（关服/区块卸载），检查后安全跳过。
     // onCancel 负责票据释放，此处不处理。
     if (abortSignal.load(std::memory_order_acquire)) {
@@ -67,13 +74,16 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
 
     // 计算空区块段标记（与原 LightSyncManager::initializeChunkLighting 同构，
     // 对齐 Moonrise ChunkLightTask 的 emptySections 计算）。
-    std::vector<bool> emptySections;
     const ChunkSection* const* sections = chunkData->getSections();
     constexpr i32 sectionCount = world::CHUNK_SECTIONS;
-    emptySections.resize(static_cast<size_t>(sectionCount), false);
-    for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-        const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
-        emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->isEmpty());
+    std::vector<bool> emptySections;
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::EmptySections");
+        emptySections.resize(static_cast<size_t>(sectionCount), false);
+        for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+            const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+            emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->isEmpty());
+        }
     }
 
     // 区分区块是否已正确光照（对齐 Moonrise ChunkLightTask.java:154-165）。
@@ -86,13 +96,16 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
 
     if (isLightCorrect && hasLightStatus) {
         // 区块已正确光照，只需重新加载光照数据到缓存并检查边缘（对齐 Moonrise forceLoadInChunk + checkChunkEdges）。
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::RelightEdges");
         if (lightManager->hasSkyLight()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::RelightEdges::Sky");
             auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
             skyEngine->forceHandleEmptySectionChanges(&m_provider, chunkData, emptySections);
             skyEngine->StarLightEngine::checkChunkEdges(&m_provider, m_chunkX, m_chunkZ);
             WorldLightManager::releaseSkyLightEngine(skyEngine);
         }
         if (lightManager->hasBlockLight()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::RelightEdges::Block");
             auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
             blockEngine->forceHandleEmptySectionChanges(&m_provider, chunkData, emptySections);
             blockEngine->StarLightEngine::checkChunkEdges(&m_provider, m_chunkX, m_chunkZ);
@@ -100,9 +113,11 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
         }
     } else {
         // 区块需完整光照计算：先更新空映射与段状态，再 light()，最后标记光照正确。
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::ComputeLight");
         chunkData->setLightCorrect(false);
 
         if (lightManager->hasBlockLight()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::ComputeLight::Block");
             auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
             blockEngine->updateEmptinessMap(m_chunkX, m_chunkZ, chunkData);
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
@@ -115,6 +130,7 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
         }
 
         if (lightManager->hasSkyLight()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::ComputeLight::Sky");
             auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
                 const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
@@ -131,9 +147,12 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
     // 取出 worker 收集的 dirty section，入主线程 flush 队列。
     // 主线程下一 tick _drainPendingLightFlushes 调真正的 markLightChanged
     // （_syncLightDataToChunk 把 visible nibble 同步到 ChunkSection + m_onLightChanged 网络包）。
-    auto dirtySections = m_provider.takeDirtySections();
-    if (!dirtySections.empty()) {
-        m_world->_enqueueLightFlush(std::move(dirtySections));
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::FlushDirtySections");
+        auto dirtySections = m_provider.takeDirtySections();
+        if (!dirtySections.empty()) {
+            m_world->_enqueueLightFlush(std::move(dirtySections));
+        }
     }
 
     // 入区块发送续延队列：主线程 _drainPendingChunkSends（在 flush 之后）调

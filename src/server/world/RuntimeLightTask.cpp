@@ -23,11 +23,14 @@
 #include "RuntimeLightTask.hpp"
 
 #include "ServerWorld.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include <fmt/format.h>
+
+using namespace mc::trace;
 
 namespace mc::server {
 
@@ -42,6 +45,15 @@ RuntimeLightTask::RuntimeLightTask(
 
 bool RuntimeLightTask::execute(const std::atomic<bool>& abortSignal)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
+        "RuntimeLightTask::execute",
+        "chunk",
+        fmt::format("({}, {})", m_chunkX, m_chunkZ),
+        "positions",
+        m_positions.size(),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_chunkX, m_chunkZ).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     // 任务可能被取消（关服/区块卸载），检查后安全跳过
     if (abortSignal.load(std::memory_order_acquire)) {
         return false;
