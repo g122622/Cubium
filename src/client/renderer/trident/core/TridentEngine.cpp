@@ -599,15 +599,21 @@ Result<void> TridentEngine::present()
 
 Result<void> TridentEngine::render()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render");
+
     if (!m_initialized) {
         return Error(ErrorCode::NotInitialized, "TridentEngine not initialized");
     }
 
     // 上传动画纹理帧（在渲染通道之前执行）
-    uploadAnimationFrames();
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::UploadAnimationFrames");
+        uploadAnimationFrames();
+    }
 
     // GUI 纹理更新必须在渲染通道外执行
     if (m_guiRendererInitialized && m_guiRendererPtr) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::GuiPrepare");
         VkCommandBuffer prepareCmd = m_context->beginSingleTimeCommands();
         if (prepareCmd != VK_NULL_HANDLE) {
             m_guiRendererPtr->prepareFrame(prepareCmd);
@@ -616,9 +622,12 @@ Result<void> TridentEngine::render()
     }
 
     // 1. 开始帧
-    auto beginResult = beginFrame();
-    if (beginResult.failed()) {
-        return beginResult.error();
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::BeginFrame");
+        auto beginResult = beginFrame();
+        if (beginResult.failed()) {
+            return beginResult.error();
+        }
     }
 
     VkCommandBuffer cmd = m_frameManager->currentCommandBuffer();
@@ -628,6 +637,7 @@ Result<void> TridentEngine::render()
 
     // 2. 每帧更新相机矩阵与 Uniform
     if (m_frameContext.camera && m_uniformManager) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::UpdateCameraUniform");
         m_frameContext.viewMatrix = m_frameContext.camera->viewMatrix();
         m_frameContext.projectionMatrix = m_frameContext.camera->projectionMatrix();
         m_frameContext.viewProjectionMatrix = m_frameContext.projectionMatrix * m_frameContext.viewMatrix;
@@ -644,6 +654,7 @@ Result<void> TridentEngine::render()
 
     // 3. 渲染天空
     if (m_skyRendererInitialized && m_skyRendererPtr) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Sky, "TridentEngine::render::Sky");
         m_skyRendererPtr->update(m_dayTime, m_gameTime, m_partialTick, m_rainStrength, m_thunderStrength);
 
         // 更新光照贴图：天空色/太阳强度来自 SkyRenderer，雨雷衰减降低天空光因子，
@@ -679,6 +690,7 @@ Result<void> TridentEngine::render()
 
     // 4. 更新雾效果（在渲染区块之前）
     if (m_fogManagerInitialized && m_fogManager && m_skyRendererInitialized && m_skyRendererPtr) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::Fog");
         glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
@@ -727,6 +739,7 @@ Result<void> TridentEngine::render()
     if (m_cloudRendererInitialized && m_cloudRenderer && m_skyRendererInitialized && m_skyRendererPtr) {
         // 检查当前维度是否有云
         if (m_hasClouds) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Cloud, "TridentEngine::render::Cloud");
             glm::dvec3 cameraPos(0.0);
             if (m_frameContext.camera) {
                 cameraPos = m_frameContext.camera->position();
@@ -751,6 +764,7 @@ Result<void> TridentEngine::render()
     // 5. 渲染区块
     if (m_chunkRendererInitialized && m_chunkRenderer && m_chunkPipeline && m_chunkPipeline->isValid() &&
         m_chunkTextureDescriptorSet != VK_NULL_HANDLE) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.ChunkMesh, "TridentEngine::render::Chunk");
 
         // 清理延迟销毁队列：在高负载时延长保留窗口，降低旧缓冲区被过早释放的风险。
         m_chunkRenderer->processPendingDestroys(32);
@@ -867,6 +881,7 @@ Result<void> TridentEngine::render()
 
     // 5.5 渲染破坏进度覆盖层
     if (m_breakProgressRendererInitialized && m_breakProgressRenderer) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::BreakProgress");
         // 更新网格数据
         glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
@@ -888,6 +903,7 @@ Result<void> TridentEngine::render()
 
     // 6. 调用实体渲染回调
     if (m_entityRenderCallback && m_entityRendererInitialized && m_entityRendererManager) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Entity, "TridentEngine::render::Entity");
         // 设置相机描述符集给实体渲染管理器
         VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
         m_entityRendererManager->setCameraDescriptorSet(cameraSet);
@@ -906,6 +922,7 @@ Result<void> TridentEngine::render()
 
     // 6.5 渲染天气效果（雨/雪）
     if (m_weatherRendererInitialized && m_weatherRenderer && m_rainStrength > 0.01f) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Weather, "TridentEngine::render::Weather");
         glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
@@ -922,6 +939,7 @@ Result<void> TridentEngine::render()
 
     // 6.6 渲染粒子
     if (m_particleManagerInitialized && m_particleManager && m_particleManager->particleCount() > 0) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::Particle");
         glm::dvec3 cameraPos(0.0);
         if (m_frameContext.camera) {
             cameraPos = m_frameContext.camera->position();
@@ -938,6 +956,7 @@ Result<void> TridentEngine::render()
 
     // 6.7 渲染第一人称手部
     if (m_firstPersonRendererInitialized && m_firstPersonRenderer && m_firstPersonRenderCallback) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::FirstPerson");
         VkDescriptorSet cameraSet = m_uniformManager->cameraDescriptorSet(m_frameContext.frameIndex);
         // 推进第一人称管线帧索引（per-frame 纹理描述符集 + 延迟销毁窗口）。
         // acquireNextImage 已等待上一帧 fence，此时释放到期缓冲区安全。
@@ -948,6 +967,7 @@ Result<void> TridentEngine::render()
 
     // 7. 渲染 GUI
     if (m_guiRendererInitialized && m_guiRendererPtr) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::Gui");
         const f64 guiScale = std::max(m_guiScaleFactor, 1.0);
         m_guiRendererPtr->setFontScale(guiScale);
         m_guiRendererPtr->beginFrame(
@@ -959,13 +979,19 @@ Result<void> TridentEngine::render()
     }
 
     // 8. 结束帧
-    auto endResult = endFrame();
-    if (endResult.failed()) {
-        return endResult.error();
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::EndFrame");
+        auto endResult = endFrame();
+        if (endResult.failed()) {
+            return endResult.error();
+        }
     }
 
     // 8. 呈现
-    return present();
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "TridentEngine::render::Present");
+        return present();
+    }
 }
 
 // ============================================================================

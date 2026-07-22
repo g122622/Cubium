@@ -298,7 +298,7 @@ void ClientApplication::mainLoop()
     m_lastFrameTime = glfwGetTime();
 
     while (m_running && !m_window.shouldClose()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Frame", "phase", "frame");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Frame");
 
         const auto frameStart = clock::now();
 
@@ -309,19 +309,19 @@ void ClientApplication::mainLoop()
 
         // 处理事件
         {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "HandleEvents", "phase", "handle_events");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "HandleEvents");
             handleEvents();
         }
 
         // 更新
         {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Update", "phase", "update");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Update");
             update(deltaTime);
         }
 
         // 渲染
         {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Render", "phase", "render");
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "Render");
             render();
         }
 
@@ -378,6 +378,8 @@ glm::mat4 ClientApplication::buildViewBobbingTransform(f32 partialTick) const
 
 void ClientApplication::update(f32 deltaTime)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update");
+
     // 根据状态决定更新逻辑
     if (!m_stateMachine.hasActiveGameSession()) {
         // 无活跃游戏会话：只更新 UI 和音频（无玩家物理，partialTick 为 0）
@@ -390,16 +392,19 @@ void ClientApplication::update(f32 deltaTime)
 
     // 更新网络客户端（处理服务端数据包）
     if (m_networkClient) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::NetworkPoll");
         m_networkClient->poll();
     }
 
     // 更新破坏进度管理器
     {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::BreakProgress");
         using namespace mc::client::renderer::trident::block;
         BreakProgressManager::instance().tick(deltaTime, static_cast<u64>(m_world.gameTime()));
     }
 
     if (m_renderer && m_renderer->isFirstPersonRendererInitialized()) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::FirstPersonTick");
         m_renderer->firstPersonRenderer().tick(m_player.get());
     }
 
@@ -407,6 +412,7 @@ void ClientApplication::update(f32 deltaTime)
     if (m_stateMachine.needsGameTick()) {
         // 更新玩家物理
         if (m_player) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::PlayerPhysics");
             m_playerPhysicsAccumulator += std::min(deltaTime, PLAYER_PHYSICS_INTERVAL * 5.0f);
             bool physicsUpdated = false;
             i32 physicsSteps = 0;
@@ -432,6 +438,7 @@ void ClientApplication::update(f32 deltaTime)
 
     // 更新相机（暂停时也更新，以便 UI 渲染）
     if (m_player) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::Camera");
         // 检查是否有旁观目标实体
         auto cameraTargetId = m_player->getCameraEntityId();
         if (cameraTargetId.has_value()) {
@@ -476,6 +483,7 @@ void ClientApplication::update(f32 deltaTime)
 
     // 只在非暂停状态下发送位置和更新游戏
     if (m_stateMachine.needsGameTick()) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::GameTick");
         // 发送玩家位置到服务端（物理 tick 后最多 20 TPS）
         if (m_networkClient && m_networkClient->isLoggedIn() && m_player) {
             m_positionSendAccumulator += deltaTime;
@@ -530,19 +538,22 @@ void ClientApplication::update(f32 deltaTime)
     }
 
     // 更新每帧 UI 状态（ScreenStackWidget、KageroEngine 等）
-    updateUiFrameState(deltaTime, partialTick);
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::UiFrame");
+        updateUiFrameState(deltaTime, partialTick);
 
-    // 更新射线检测结果（暂停时也更新，以便 UI 显示）
-    updateRaycastResult();
+        // 更新射线检测结果（暂停时也更新，以便 UI 显示）
+        updateRaycastResult();
 
-    updateTargetInfoUi();
+        updateTargetInfoUi();
 
-    // 更新声音系统暂停状态
-    updateAudioPauseState();
+        // 更新声音系统暂停状态
+        updateAudioPauseState();
+    }
 
     // 上传网格到 GPU（只处理已完成异步构建的网格）
     if (m_stateMachine.needsGameTick() && m_renderer->isChunkRendererInitialized()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "UploadMeshes");
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::UploadMeshes");
 
         auto& chunkRenderer = m_renderer->chunkRenderer();
         m_world.forEachDirtyMesh([&chunkRenderer, this](const ChunkId& id, ClientChunk& chunk) {
