@@ -27,6 +27,7 @@
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include <algorithm>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -51,15 +52,51 @@ void ChunkSendManager::sendChunkToPlayers(
     // 检查区块是否已加载
     if (m_chunkManager.hasChunkInMem(x, z)) {
         auto chunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
-        if (chunk) {
+        if (!chunk) {
+            return;
+        }
+
+        // 取 ServerCompute 池；启动早期/测试环境未注入时为 nullptr，走同步 fallback。
+        util::UniversalWorkerPool* executor = m_chunkManager.radiusAwareExecutor();
+        if (executor == nullptr) {
             auto result = network::ChunkSerializer::serializeChunk(*chunk);
             if (result.success()) {
                 submitChunkData(x, z, std::move(result.value()), players, validateTracking);
-                // spdlog::info("Chunk ({}, {}) serialized for {} players", x, z, players.size());
             } else {
                 spdlog::warn("Failed to serialize chunk ({}, {}): {}", x, z, result.error().message());
             }
+            return;
         }
+
+        // 异步序列化：shared_ptr 捕获保活，worker 在途期间即使主线程卸载区块，ChunkData 引用计数维持存活。
+        // writeRadius=0 区域互斥——与 RuntimeLightTask(writeRadius=2) 串行，保证 serialize 读
+        // ChunkSection nibble 不与光照写竞争。结果经已有的线程安全 submitChunkData 入 m_readyChunks，
+        // 主线程 processPendingSends drain 后真正发包。
+        auto task = std::make_unique<util::FunctionTask>(
+            util::TaskType::Custom,
+            fmt::format("SerializeChunk({},{})", x, z),
+            [this, x, z, chunk, players, validateTracking](const std::atomic<bool>& abortSignal) -> bool {
+                // 任务可能被取消（关服/区块卸载），检查后安全跳过。
+                // shared_ptr 随 lambda 析构释放，无需特殊清理。
+                if (abortSignal.load(std::memory_order_acquire)) {
+                    return false;
+                }
+                auto result = network::ChunkSerializer::serializeChunk(*chunk);
+                if (result.failed()) {
+                    spdlog::warn("Failed to serialize chunk ({}, {}): {}", x, z, result.error().message());
+                    return true;
+                }
+                submitChunkData(x, z, std::move(result.value()), players, validateTracking);
+                return true;
+            },
+            "server_chunk_serialize");
+
+        executor->submit(std::move(task),
+            /*callback=*/nullptr,
+            /*centerX=*/x,
+            /*centerZ=*/z,
+            /*writeRadius=*/0,
+            util::TaskPriority::Normal);
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中

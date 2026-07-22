@@ -151,6 +151,12 @@ void ClientWorld::destroy()
         return;
     }
 
+    // 等待在途反序列化任务归零，防止 worker 回调访问已析构的 this。
+    // 必须在 shutdownMeshSystem() 置空 m_computeWorkerPool 之前执行；池属 ClientApplication，此刻尚未关停。
+    if (m_computeWorkerPool != nullptr) {
+        m_computeWorkerPool->waitForCompletion();
+    }
+
     shutdownMeshSystem();
     m_chunks.clear();
 
@@ -160,6 +166,9 @@ void ClientWorld::destroy()
 
 void ClientWorld::update(const MeshSchedulerViewState& viewState)
 {
+    // 先 drain worker 反序列化续延队列，再处理 mesh；保证 mesh 调度读到最新 ChunkData。
+    _processPendingDeserializedChunks();
+
     m_cameraPosition = viewState.cameraPosition;
     m_renderDistance = viewState.renderDistanceChunks;
     m_minBuildHeight = viewState.minBuildHeight;
@@ -619,16 +628,57 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
         return;
     }
 
-    const ChunkId id(x, z, 0);
+    // worker 池未注入（测试/启动早期）：主线程同步反序列化。
+    if (m_computeWorkerPool == nullptr) {
+        _applyDeserializedChunk(x, z, std::move(data));
+        return;
+    }
 
+    // 异步反序列化：raw 字节流 move 入 worker，产出全新 ChunkData（不读客户端现有数据，无共享写竞争，完全并行）。
+    // 代际号用于丢弃过期结果（同坐标重发包时旧任务的结果不应覆盖新数据）。
+    const ChunkId id(x, z, 0);
+    const u64 generation = ++m_chunkDeserializeGeneration[id];
+    auto task = std::make_unique<util::FunctionTask>(
+        util::TaskType::Custom,
+        fmt::format("DeserializeChunk({},{})", x, z),
+        [this, x, z, id, generation, data = std::move(data)](const std::atomic<bool>& abortSignal) -> bool {
+            // 任务可能被取消（维度切换/关服），检查后安全跳过。
+            if (abortSignal.load(std::memory_order_acquire)) {
+                return false;
+            }
+            auto result = network::ChunkSerializer::deserializeChunk(x, z, data);
+            if (result.failed()) {
+                spdlog::error("Failed to deserialize chunk ({}, {}): {}", x, z, result.error().message());
+                return true;
+            }
+            PendingDeserializedChunk pending;
+            pending.id = id;
+            pending.generation = generation;
+            pending.data = std::shared_ptr<ChunkData>(result.value());
+            {
+                std::lock_guard<std::mutex> lock(m_pendingChunksMutex);
+                m_pendingDeserializedChunks.push_back(std::move(pending));
+            }
+            return true;
+        },
+        "client_chunk_deserialize");
+
+    m_computeWorkerPool->submit(std::move(task), /*callback=*/nullptr, util::TaskPriority::Normal);
+}
+
+void ClientWorld::_applyDeserializedChunk(ChunkCoord x, ChunkCoord z, std::vector<u8> data)
+{
     auto result = network::ChunkSerializer::deserializeChunk(x, z, data);
     if (result.failed()) {
         spdlog::error("Failed to deserialize chunk ({}, {}): {}", x, z, result.error().message());
         return;
     }
+    const ChunkId id(x, z, 0);
+    _applyChunkData(id, std::shared_ptr<ChunkData>(result.value()));
+}
 
-    auto chunkData = std::shared_ptr<ChunkData>(result.value());
-
+void ClientWorld::_applyChunkData(const ChunkId& id, std::shared_ptr<ChunkData> chunkData)
+{
     ClientChunk* chunk = getChunk(id);
     if (!chunk) {
         auto newChunk = std::make_unique<ClientChunk>();
@@ -651,6 +701,24 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
 
     _scheduleChunkMeshRebuild(id);
     _scheduleNeighborMeshRebuild(id);
+}
+
+void ClientWorld::_processPendingDeserializedChunks()
+{
+    std::vector<PendingDeserializedChunk> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingChunksMutex);
+        pending.swap(m_pendingDeserializedChunks);
+    }
+
+    for (auto& item : pending) {
+        // 代际过滤：同坐标若已有更新的反序列化提交，丢弃本次过期结果。
+        auto genIt = m_chunkDeserializeGeneration.find(item.id);
+        if (genIt == m_chunkDeserializeGeneration.end() || genIt->second != item.generation) {
+            continue;
+        }
+        _applyChunkData(item.id, std::move(item.data));
+    }
 }
 
 void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension)
@@ -682,6 +750,7 @@ void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimensio
     ChunkMesher::invalidateBiomeColorCache(x, z);
 
     m_chunks.erase(it);
+    m_chunkDeserializeGeneration.erase(id);
     ++m_chunksUnloaded;
 }
 
@@ -708,6 +777,7 @@ void ClientWorld::clearChunks()
 
     // 4. 清空区块映射
     m_chunks.clear();
+    m_chunkDeserializeGeneration.clear();
 
     // 5. 清空方块实体（维度切换时旧维度的方块实体不再有效）
     clearBlockEntities();

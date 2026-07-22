@@ -61,7 +61,7 @@ ClientPlayerPredictor ◄──── LocalPlayerIdentity
 ```
 
 **核心流程**：
-1. 区块包 → `ClientWorld.onChunkData()` → 更新 `ChunkData` → 调度网格重建
+1. 区块包 → `ClientWorld.onChunkData()` → 提交 `FunctionTask` 到 `m_computeWorkerPool` 异步 `deserializeChunk` → 续延队列回主线程 `update()` drain → `_applyChunkData` 更新 `ChunkData` → 调度网格重建
 2. 网格任务 → `MeshBuildScheduler` → `UniversalWorkerPool`(ClientCompute) → `ChunkMesher` → GPU 上传
 3. 实体包 → `ClientEntityManager` → 创建/更新 `ClientEntity` → 渲染层读取插值位置
 4. 本地玩家 → `LocalPlayerIdentity` 识别 → `ClientPlayerPredictor` 预测位置
@@ -96,6 +96,7 @@ EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲
 - **维度切换顺序不能乱**：正确顺序是先 `setDimensionId()`，再 `clearChunks()`，这样迟到的旧维度区块包才会被丢弃。
 - **区块卸载时要先取消调度任务**：已在 `onChunkUnload()` 中调用 `MeshBuildScheduler::cancelChunk`。
 - **不要假设每次 `onChunkData` 都是新建区块**：同一坐标重发时会替换 `ChunkData` 并触发新代际网格任务。
+- **`deserializeChunk` 在 worker 异步执行**：`onChunkData` 只把 raw 字节流入 `m_computeWorkerPool`，反序列化结果经 `m_pendingDeserializedChunks` 续延队列回主线程，`update()` 开头 `_processPendingDeserializedChunks` drain 后才 `_applyChunkData` + mesh 调度。同坐标重发用 `m_chunkDeserializeGeneration` 代际号丢弃过期结果。`destroy()` 必须在 `shutdownMeshSystem()` 之前 `waitForCompletion()`，否则在途任务回调会访问已析构的 `this`。`m_computeWorkerPool` 为 nullptr（测试/启动早期）时走 `_applyDeserializedChunk` 同步 fallback。
 - **`processMeshBuildResults()` 只处理最新任务结果**：旧结果会在调度器层丢弃。
 - **光照包不要直接当成"立即重建"事件处理**：`onLightUpdate()` 会先标记 `meshRebuildPending`，如果同一 chunk 的网格任务还在路上，就等当前任务结束后再补提，避免单个 chunk 被光照更新线性打爆。
 - **被取消的任务可能留下脏 `activeMeshTaskId`**：`ClientWorld::update()` 会用 `isTaskTracked()` 回收并补提，避免区块长期不出网格。

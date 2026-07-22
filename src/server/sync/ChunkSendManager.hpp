@@ -25,8 +25,12 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
+#include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include <atomic>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <vector>
 

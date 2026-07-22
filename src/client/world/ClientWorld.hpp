@@ -38,6 +38,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -49,6 +50,7 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -589,6 +591,13 @@ private:
     std::array<std::shared_ptr<const ChunkData>, 6> _getNeighborChunkData(const ChunkId& id);
     void _getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6]);
 
+    /// 将反序列化完成的 ChunkData 应用到 ClientChunk 并调度网格重建（主线程）。
+    void _applyChunkData(const ChunkId& id, std::shared_ptr<ChunkData> data);
+    /// fallback 同步反序列化路径（m_computeWorkerPool 未注入时，测试/启动早期）。
+    void _applyDeserializedChunk(ChunkCoord x, ChunkCoord z, std::vector<u8> data);
+    /// 主线程 drain worker 反序列化续延队列，代际过滤后调 _applyChunkData。
+    void _processPendingDeserializedChunks();
+
 private:
     std::unordered_map<ChunkId, std::unique_ptr<ClientChunk>> m_chunks;
 
@@ -600,10 +609,22 @@ private:
 
     /// 客户端统一计算池（ClientCompute，进程级，由 ClientApplication 持有）。
     /// 非拥有，initializeMeshSystem 注入；mesh 系统关停时不关池（池属 ClientApplication）。
+    /// 同时承载区块反序列化任务（onChunkData 提交，deserialize 在 worker、结果续延回主线程）。
     util::UniversalWorkerPool* m_computeWorkerPool = nullptr;
     std::shared_ptr<MeshDataPool> m_meshDataPool;
     std::shared_ptr<MeshResultQueue> m_meshResultQueue;
     std::unique_ptr<MeshBuildScheduler> m_meshBuildScheduler;
+
+    /// 区块反序列化续延队列：worker 完成 deserialize 后入队，主线程 update drain。
+    struct PendingDeserializedChunk {
+        ChunkId id;
+        u64 generation = 0; ///< 提交时的代际号，用于丢弃过期结果（同坐标重发包）
+        std::shared_ptr<ChunkData> data;
+    };
+    std::mutex m_pendingChunksMutex;
+    std::vector<PendingDeserializedChunk> m_pendingDeserializedChunks;
+    /// 每区块最新反序列化代际号（主线程读写，无锁）。onChunkUnload/clearChunks 清理。
+    std::unordered_map<ChunkId, u64> m_chunkDeserializeGeneration;
 
     i32 m_renderDistance = 12;
     u64 m_seed = 0;

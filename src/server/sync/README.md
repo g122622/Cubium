@@ -67,7 +67,9 @@ src/server/sync/
 
 ### 1. 线程安全问题
 
-`ChunkSendManager` 的区块序列化在 Worker 线程执行，**不能直接调用网络发送**。必须通过 `submitChunkData()` 提交到队列，主线程通过 `processPendingSends()` 处理。
+`ChunkSendManager` 的区块序列化**全部在 Worker 线程执行**（主路径提交 `FunctionTask` 到 ServerCompute 池，异步加载回调路径本就在 worker），**不能直接调用网络发送**。两条路径都通过 `submitChunkData()` 提交到加锁队列，主线程通过 `processPendingSends()` 处理。
+
+主路径（区块已在内存）经 `tryToGetChunkSharedInMem` 拷贝 `shared_ptr<ChunkData>` 捕获保活——worker 在途期间即使主线程卸载区块，引用计数维持存活，防 UAF。任务以 `submit(writeRadius=0)` 提交，与 `RuntimeLightTask(writeRadius=2)` 区域互斥串行，保证 serialize 读 `ChunkSection` nibble 不与光照写竞争。`radiusAwareExecutor()` 返回 nullptr（测试/启动早期）时走同步 fallback。
 
 ### 2. 回调未设置
 
@@ -79,7 +81,9 @@ src/server/sync/
 
 ### 4. 光照数据同步时机
 
-区块加载光照由 `ChunkLoadLightTask` 在 worker 线程完成，dirty section 经 `ServerWorld::_enqueueLightFlush` 入主线程 flush 队列。`ServerWorld::tick` 顺序严格 **flush → send → drain**：先 `_drainPendingLightFlushes`（`_syncLightDataToChunk` 把 visible nibble 同步到 ChunkSection），再 `_drainPendingChunkSends`（`ChunkSendManager` serialize 读已 flush 的 ChunkSection nibble）。顺序颠倒会导致客户端收到全黑区块。
+区块加载光照由 `ChunkLoadLightTask` 在 worker 线程完成，dirty section 经 `ServerWorld::_enqueueLightFlush` 入主线程 flush 队列。`ServerWorld::tick` 顺序严格 **flush → send → drain**：先 `_drainPendingLightFlushes`（`_syncLightDataToChunk` 把 visible nibble 同步到 ChunkSection），再 `_drainPendingChunkSends`（提交 serialize 任务，本 tick nibble 写已完成），最后 `processPendingSends` drain `m_readyChunks` 真正发包。
+
+serialize 改异步后，区块包发送延迟 ≤1 tick（~50ms）：`_drainPendingChunkSends` 仅提交 serialize 任务入 `m_readyChunks`，下一 tick `processPendingSends` 才 drain 发包。顺序颠倒或 serialize 读到未 flush 的 nibble 会导致客户端收到全黑区块。
 
 ### 5. 方块更新不要直接发包
 
