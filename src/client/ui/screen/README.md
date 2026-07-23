@@ -8,7 +8,6 @@
 src/client/ui/screen/
 ├── ScreenManager.hpp/cpp           # 旧版屏幕栈管理器（委托给 ScreenStackWidget）
 ├── AbstractContainerScreen.hpp     # 容器屏幕模板基类（槽位渲染、交互处理、拖拽、提示）
-├── CartographyScreen.hpp/cpp       # 制图台屏幕（地图复制、扩展、锁定）
 ├── MapScreen.hpp/cpp               # 地图查看屏幕（全屏显示已填充地图）
 └── tooltip/
     ├── BundleTooltipRenderer.hpp   # 收纳袋 tooltip 渲染器（独立工具类，被 AbstractContainerScreen 调用）
@@ -132,7 +131,7 @@ src/client/ui/screen/
 - **渲染器/尺寸必须先设置**：`MapScreen` 等必须先调用 `setRenderers()` 和 `setScreenSize()` 再进入渲染，否则不会绘制任何内容。
 - **MapScreen 需要地图数据缓存**：`MapScreen` 必须设置 `ClientMapDataCache` 才能显示地图内容。
 - **AbstractContainerScreen 模板参数**：继承时必须指定正确的 `Menu` 类型，槽位索引和点击逻辑由菜单定义。
-- **screen 目录是旧版兼容**：新屏幕应放在 `ui/minecraft/screens/`，本目录逐步迁移中。背包屏（InventoryScreen）、创造屏（CreativeScreen）、工作台屏（CraftingScreen）、箱子屏（ChestScreen）、熔炉屏（FurnaceScreen）已迁移到 kagero 体系，本目录仅余制图台/地图屏待迁移。
+- **screen 目录是旧版兼容**：新屏幕应放在 `ui/minecraft/screens/`，本目录逐步迁移中。背包屏（InventoryScreen）、创造屏（CreativeScreen）、工作台屏（CraftingScreen）、箱子屏（ChestScreen）、熔炉屏（FurnaceScreen）、制图台屏（CartographyScreen）已迁移到 kagero 体系，本目录仅余地图屏（MapScreen）待迁移。
 - **悬停提示渲染必须在最后**：所有屏幕的 `renderTooltip` / `_renderTooltip` 必须在 `render()` 末尾、`renderCarriedItem` / `_renderCarriedItem` 之后调用，因为 GuiRenderer 使用画家算法（后绘制覆盖先绘制），提示框必须渲染在所有其他元素之上。
 - **m_hoveredSlotIndex 自动更新**：在 `render()` 每帧中通过 `_updateHoveredSlot()` 更新，键盘操作（Q键丢弃、数字键交换）依赖此索引。
 - **拖拽分发需要 Player**：`_isValidDragMode` 检查 `m_playerInventory->getPlayer()` 是否非空，测试拖拽时必须用 `PlayerInventory(&player)` 构造。

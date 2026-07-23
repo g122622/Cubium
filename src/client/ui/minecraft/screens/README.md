@@ -21,6 +21,7 @@ src/client/ui/minecraft/screens/
 ├── CraftingScreen.hpp/cpp     # 工作台界面（3x3 合成，继承 ContainerScreenBase）
 ├── ChestScreen.hpp/cpp        # 箱子界面（单/双箱，动态高度，继承 ContainerScreenBase）
 ├── FurnaceScreen.hpp/cpp      # 熔炉界面（火焰/箭头动画，继承 ContainerScreenBase）
+├── CartographyScreen.hpp/cpp  # 制图台界面（地图复制/扩展/锁定，继承 ContainerScreenBase）
 ├── ContainerScreenBase.hpp    # 容器屏共享基类（槽位布局/渲染/交互转发/居中定位）
 ├── ContainerScreen.hpp/cpp    # 容器界面
 ├── LoomScreen.hpp/cpp         # 织布机界面
@@ -61,3 +62,5 @@ src/client/ui/minecraft/screens/
 - `Screen` 需要手动调用 `updateHover()` 更新子组件悬停状态。
 - 模态屏幕会阻止事件向下传播，如需事件穿透设置 `screen->setModal(false)`。
 - **熔炉进度同步**：客户端无熔炉方块实体（`FurnaceContainer::getFurnaceEntity()` 为 nullptr），火焰/箭头进度不能读实体。`FurnaceContainer` 把燃烧/熔炼进度绑到 tracked int 的独立存储成员，服务端每 tick 经 `syncProgressFromEntity()` + `detectAndSendChanges()` 经 `WindowPropertyPacket` 下推，客户端 `onWindowProperty` 回调 `setTrackedInt` 写入，`FurnaceScreen` 读 `getLitProgress()`/`getBurnProgress()` 驱动动画。火焰可见高度 = `ceil(litProgress × 13.0) + 1`，箭头可见宽度 = `ceil(burnProgress × 24.0)`。
+- **制图台结果槽由服务端计算**：客户端 `CartographyContainer` 构造时 `world=nullptr`，`updateResult()` 空操作，不计算地图缩放/锁定/复制结果。结果槽内容由服务端 `CartographyContainer::updateResult()` 计算后经 `ContainerSlotPacket` 下推到客户端，客户端 `onContainerSlot` 写入并 `syncSlots()`。制图台网络回调（`onOpenContainer`/`onContainerContent`/`onContainerSlot`/`onCloseContainer`）均走 kagero `CartographyScreen` 分支。
+- **制图台地图预览未注入**：`CartographyScreen` 结果槽为已填充地图时绘制 64×64 地图预览（`MapRenderer::renderMap`），但 `MapRenderer` 当前无所有者、`setMapRenderer` 未被调用，预览暂不渲染（与 `MapScreen` 同一缺口，待地图渲染器统一接入后修复）。`m_mapRenderer` 为 nullptr 时安全跳过。

@@ -38,6 +38,7 @@
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/minecraft/screens/CartographyScreen.hpp"
 #include "client/ui/minecraft/screens/ChestScreen.hpp"
 #include "client/ui/minecraft/screens/CraftingScreen.hpp"
 #include "client/ui/minecraft/screens/CreativeScreen.hpp"
@@ -47,8 +48,6 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
-#include "client/ui/screen/AbstractContainerScreen.hpp"
-#include "client/ui/screen/CartographyScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -89,12 +88,6 @@ using namespace mc::trace;
 namespace mc::client {
 
 namespace {
-
-template <typename Menu>
-AbstractContainerScreen<Menu>* asContainerScreen(IScreen* screen)
-{
-    return dynamic_cast<AbstractContainerScreen<Menu>*>(screen);
-}
 
 template <typename Menu>
 void applyContainerContent(Menu* menu, ContainerId containerId, const std::vector<ItemStack>& items)
@@ -527,36 +520,26 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        std::unique_ptr<IScreen> screen;
-
-        switch (type) {
-            case ContainerType::Cartography:
-                screen = std::make_unique<CartographyScreen>(packet.containerId(),
-                    &m_player->inventory(),
-                    makeContainerClickSender(m_networkClient.get()),
-                    makeContainerCloseSender(m_networkClient.get()));
-                break;
-
-            default:
-                spdlog::error("Ignored unsupported container type {}", static_cast<i32>(type));
-                break;
-        }
-
-        if (!screen) {
+        // 制图台屏走 kagero 体系（CartographyScreen 继承 ContainerScreenBase<CartographyContainer>）
+        // 客户端无制图台方块实体，world 传 nullptr：updateResult 空操作，结果槽由服务端经
+        // ContainerSlotPacket 下推。客户端不计算地图缩放/锁定/复制结果。
+        if (type == ContainerType::Cartography) {
+            auto cartographyContainer = std::make_unique<mc::CartographyContainer>(
+                packet.containerId(), &m_player->inventory(), BlockPos(0, 0, 0), nullptr);
+            auto screen = std::make_unique<ui::minecraft::CartographyScreen>(std::move(cartographyContainer),
+                makeContainerClickSender(m_networkClient.get()),
+                makeContainerCloseSender(m_networkClient.get()));
+            if (m_renderer && m_renderer->isGuiRendererInitialized()) {
+                screen->setRenderers(&m_renderer->guiRenderer(),
+                    m_guiTextureManager.get(),
+                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+                screen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+            }
+            ScreenManager::instance().openScreen(std::move(screen));
             return;
         }
 
-        if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-            if (auto* cartographyContainerScreen =
-                    dynamic_cast<AbstractContainerScreen<mc::CartographyContainer>*>(screen.get())) {
-                cartographyContainerScreen->setRenderers(&m_renderer->guiRenderer(),
-                    m_guiTextureManager.get(),
-                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
-                cartographyContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
-            }
-        }
-
-        ScreenManager::instance().openScreen(std::move(screen));
+        spdlog::error("Ignored unsupported container type {}", static_cast<i32>(type));
     };
 
     callbacks.onSignEditorOpen = [this](const network::OpenSignEditorPacket& packet) {
@@ -650,11 +633,12 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
-
-        if (auto* cartographyScreen = asContainerScreen<mc::CartographyContainer>(currentScreen)) {
+        if (auto* cartographyScreen =
+                dynamic_cast<ui::minecraft::CartographyScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
             applyContainerContentWithCarried(
                 cartographyScreen->getMenu(), packet.containerId(), packet.items(), packet.carriedItem());
+            cartographyScreen->syncSlots();
+            return;
         }
     };
 
@@ -701,12 +685,13 @@ void ClientApplication::setupNetworkCallbacks()
                 return;
             }
         }
-
-        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
-
-        if (auto* cartographyScreen = asContainerScreen<mc::CartographyContainer>(currentScreen)) {
-            (void)applyContainerSlot(
-                cartographyScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item());
+        if (auto* cartographyScreen =
+                dynamic_cast<ui::minecraft::CartographyScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
+            if (applyContainerSlot(
+                    cartographyScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item())) {
+                cartographyScreen->syncSlots();
+                return;
+            }
         }
     };
 
@@ -747,18 +732,12 @@ void ClientApplication::setupNetworkCallbacks()
             }
             return;
         }
-
-        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
-        if (!currentScreen) {
+        if (auto* cartographyScreen =
+                dynamic_cast<ui::minecraft::CartographyScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
+            if (cartographyScreen->getMenu() && cartographyScreen->getMenu()->getId() == containerId) {
+                ScreenManager::instance().closeScreen();
+            }
             return;
-        }
-
-        auto matches = [containerId](auto* screen) {
-            return screen && screen->getMenu() && screen->getMenu()->getId() == containerId;
-        };
-
-        if (matches(asContainerScreen<mc::CartographyContainer>(currentScreen))) {
-            ScreenManager::instance().closeScreen();
         }
     };
 
