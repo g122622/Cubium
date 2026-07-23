@@ -27,45 +27,6 @@
 
 namespace mc::network::transport {
 
-namespace {
-
-/**
- * @brief 把 VarInt 编码进字节缓冲（与 ByteBuf::writeVarUInt 一致的实现，避免环依赖 buffer）
- *
- * 帧长度前缀用 VarInt 编码，传输层独立实现避免引入 buffer 依赖。
- */
-void writeVarUInt(std::vector<u8>& out, u32 value)
-{
-    while (true) {
-        if ((value & ~static_cast<u32>(0x7F)) == 0) {
-            out.push_back(static_cast<u8>(value));
-            return;
-        }
-        out.push_back(static_cast<u8>((value & 0x7Fu) | 0x80u));
-        value >>= 7;
-    }
-}
-
-/**
- * @brief 从字节缓冲读 VarInt，返回 (值, 消费字节数)；不完整返回 false
- */
-[[nodiscard]] bool tryReadVarUInt(const u8* data, usize size, u32& outValue, usize& outConsumed)
-{
-    u32 value = 0;
-    for (usize i = 0; i < 5 && i < size; ++i) {
-        const u8 byte = data[i];
-        value |= static_cast<u32>(byte & 0x7Fu) << (7 * i);
-        if ((byte & 0x80u) == 0) {
-            outValue = value;
-            outConsumed = i + 1;
-            return true;
-        }
-    }
-    return false; // 数据不足或超过 5 字节
-}
-
-} // namespace
-
 TcpTransport::TcpTransport() = default;
 
 TcpTransport::~TcpTransport()
@@ -105,18 +66,13 @@ Result<void> TcpTransport::send(const u8* data, usize size, DeliveryHint /*hint*
     if (!isConnected() || m_socket == nullptr) {
         return Error(ErrorCode::InvalidState, "TCP 未连接", "TcpTransport::send");
     }
-
-    // 帧 = VarInt(长度) + payload
-    std::vector<u8> frame;
-    frame.reserve(size + 5);
-    writeVarUInt(frame, static_cast<u32>(size));
-    if (data != nullptr && size > 0) {
-        frame.insert(frame.end(), data, data + size);
+    if (data == nullptr || size == 0) {
+        return Result<void>::ok();
     }
 
     std::lock_guard<std::mutex> lock(m_sendMutex);
     try {
-        asio::write(*m_socket, asio::buffer(frame.data(), frame.size()));
+        asio::write(*m_socket, asio::buffer(data, size));
         return Result<void>::ok();
     }
     catch (const std::exception& e) {
@@ -124,10 +80,10 @@ Result<void> TcpTransport::send(const u8* data, usize size, DeliveryHint /*hint*
     }
 }
 
-void TcpTransport::onMessage(MessageCallback callback)
+void TcpTransport::onBytes(ByteCallback callback)
 {
     std::lock_guard<std::mutex> lock(m_callbackMutex);
-    m_messageCallback = std::move(callback);
+    m_byteCallback = std::move(callback);
 }
 
 void TcpTransport::onDisconnect(DisconnectCallback callback)
@@ -184,11 +140,14 @@ void TcpTransport::_receiveLoop()
             continue;
         }
 
+        ByteCallback callback;
         {
-            std::lock_guard<std::mutex> lock(m_receiveMutex);
-            m_receiveBuffer.insert(m_receiveBuffer.end(), chunk, chunk + bytesRead);
+            std::lock_guard<std::mutex> lock(m_callbackMutex);
+            callback = m_byteCallback;
         }
-        _tryFrameMessages();
+        if (callback) {
+            callback(chunk, bytesRead);
+        }
     }
 
     m_connected = false;
@@ -198,42 +157,6 @@ void TcpTransport::_receiveLoop()
             m_disconnectCallback();
             m_disconnectCallback = nullptr;
         }
-    }
-}
-
-void TcpTransport::_tryFrameMessages()
-{
-    MessageCallback callback;
-    {
-        std::lock_guard<std::mutex> lock(m_callbackMutex);
-        callback = m_messageCallback;
-    }
-    if (!callback) {
-        return;
-    }
-
-    std::lock_guard<std::mutex> lock(m_receiveMutex);
-    usize offset = 0;
-    while (offset < m_receiveBuffer.size()) {
-        u32 frameLength = 0;
-        usize varIntSize = 0;
-        if (!tryReadVarUInt(
-                m_receiveBuffer.data() + offset, m_receiveBuffer.size() - offset, frameLength, varIntSize)) {
-            break; // 长度 VarInt 不完整，等更多数据
-        }
-        const usize totalFrameSize = varIntSize + frameLength;
-        if (offset + totalFrameSize > m_receiveBuffer.size()) {
-            break; // payload 不完整，等更多数据
-        }
-
-        const u8* payload = m_receiveBuffer.data() + offset + varIntSize;
-        callback(payload, frameLength);
-        offset += totalFrameSize;
-    }
-
-    if (offset > 0) {
-        // 移除已消费的字节，保留残留
-        m_receiveBuffer.erase(m_receiveBuffer.begin(), m_receiveBuffer.begin() + static_cast<std::ptrdiff_t>(offset));
     }
 }
 

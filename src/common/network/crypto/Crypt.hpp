@@ -23,41 +23,33 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/protocol/PacketFlow.hpp"
 
-#include <cstdint>
-#include <functional>
-#include <string>
+#include <array>
+#include <vector>
 
-namespace mc::network::protocol {
+namespace mc::network::crypto {
 
 /**
- * @brief 包的逻辑类型标识（对应 Java PacketType）
+ * @brief Java 1.21.11 登录加密公共常量与共享密钥工具
  *
- * 逻辑标识：由 (flow, id 字符串) 唯一确定。整数 packet id 显式——由 IdDispatchCodec
- * addPacket 时指定（对齐 Java 注册顺序），不在此处硬编码。Java 后端在 addPacket 时把
- * PacketType 关联到表内位置。
+ * 对应 MC Java net.minecraft.util.Crypt 的共享密钥生成部分：
+ * - 共享密钥 16 字节（AES-128），客户端随机生成，用服务端 RSA 公钥加密回传。
+ * - 离线模式跳过加密握手，本工具仅提供密钥生成（真 Java 在线互通时用）。
  */
-struct PacketType {
-    PacketFlow flow;
-    std::string id; // 如 "client_intention"、"keep_alive"（逻辑名，非 wire id）
-
-    [[nodiscard]] bool operator==(const PacketType& other) const noexcept
-    {
-        return flow == other.flow && id == other.id;
-    }
-    [[nodiscard]] bool operator!=(const PacketType& other) const noexcept { return !(*this == other); }
-};
+inline constexpr usize kSharedSecretBytes = 16;
 
 /**
- * @brief PacketType 的哈希（用于 unordered_map 索引）
+ * @brief 生成 16 字节随机 AES 共享密钥
+ *
+ * 用 OpenSSL RAND_bytes 生成密码学安全随机字节。失败返回错误。
  */
-struct PacketTypeHash {
-    [[nodiscard]] usize operator()(const PacketType& type) const noexcept
-    {
-        return std::hash<u8>{}(static_cast<u8>(type.flow)) ^ (std::hash<std::string>{}(type.id) << 1);
-    }
-};
+[[nodiscard]] Result<std::array<u8, kSharedSecretBytes>> generateSharedSecret();
 
-} // namespace mc::network::protocol
+/**
+ * @brief 生成 n 字节密码学安全随机字节（verify token 等）
+ */
+[[nodiscard]] Result<std::vector<u8>> generateRandomBytes(usize n);
+
+} // namespace mc::network::crypto

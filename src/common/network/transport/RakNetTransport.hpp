@@ -61,9 +61,9 @@ public:
         return Error(ErrorCode::NotInitialized, "RakNet 传输未实现", "RakNetTransport::send");
     }
 
-    void onMessage(MessageCallback /*callback*/) override
+    void onBytes(ByteCallback /*callback*/) override
     {
-        // TODO(bedrock): 注册消息回调
+        // TODO(bedrock): 注册字节回调
     }
 
     void onDisconnect(DisconnectCallback /*callback*/) override

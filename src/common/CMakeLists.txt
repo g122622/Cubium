@@ -73,10 +73,19 @@ add_library(mc_common STATIC
     network/buffer/ByteBuf.cpp
     network/buffer/RegistryByteBuf.cpp
     network/buffer/NbtIo.cpp
+    network/crypto/Crypt.cpp
+    network/crypto/AesCfb8.cpp
+    network/crypto/RsaHandshake.cpp
+    network/crypto/ZlibCodec.cpp
     network/transport/TcpTransport.cpp
     network/transport/LocalTransport.cpp
+    network/pipeline/VarintFraming.cpp
+    network/pipeline/CompressionHandlers.cpp
+    network/pipeline/CipherHandlers.cpp
+    network/pipeline/ProtocolSwapHandler.cpp
     network/backend/java/JavaBackend.cpp
     network/backend/java/JavaProtocolTables.cpp
+    network/backend/java/handshake/JavaLoginHandshaker.cpp
 
     # Network - Sync
     network/sync/ChunkSync.cpp
@@ -1652,6 +1661,9 @@ target_include_directories(mc_common
         ${CMAKE_SOURCE_DIR}/src
 )
 
+# OpenSSL：新网络层 crypto（AesCfb8/RsaHandshake）用，真 Java 在线互通的 RSA+AES 握手。
+find_package(OpenSSL REQUIRED)
+
 target_link_libraries(mc_common
     PUBLIC
         glm::glm
@@ -1665,6 +1677,8 @@ target_link_libraries(mc_common
         zstd::libzstd
         leveldb::leveldb
         asio::asio
+        OpenSSL::Crypto
+        OpenSSL::SSL
 )
 
 # TcpTransport 用 asio 做 socket IO，Windows 须额外链接 winsock 库。

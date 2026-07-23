@@ -24,8 +24,13 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/network/crypto/Crypt.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/pipeline/CipherHandlers.hpp"
+#include "common/network/pipeline/CompressionHandlers.hpp"
+#include "common/network/pipeline/ProtocolSwapHandler.hpp"
 #include "common/network/pipeline/ProtocolTableSet.hpp"
+#include "common/network/pipeline/VarintFraming.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/network/transport/ITransport.hpp"
@@ -33,26 +38,32 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace mc::network::pipeline {
 
 /**
- * @brief 统一连接门面（持有传输 + 当前阶段包表 + 监听器；双模式 wire/local）
+ * @brief 统一连接门面（持有传输 + 流水线 handler + 当前阶段包表 + 监听器；双模式 wire/local）
  *
- * 游戏逻辑只见 Connection::send(ir::Packet) / Connection::onPacket(cb<ir::Packet>)，
+ * 游戏逻辑只见 Connection::send(ir::IrPacket) / Connection::onPacket(cb<ir::IrPacket>)，
  * 与 codec 完全解耦。内部按模式分流：
- * - Wire 模式（独立服/真 Java）：send → encode→bytes → pipeline[compress→encrypt] → ITransport
- *   recv → ITransport.onMessage → pipeline[decrypt→decompress] → decode→ir → cb
- * - Local 模式（集成服同进程）：send → 直传 ir::Packet 到对端 ILocalTransport
- *   recv → ILocalTransport.onPacket → cb（零序列化、零拷贝）
  *
- * terminal 包驱动阶段切换：发送/收到 terminal 包后按预设 nextPhase 切 ProtocolInfo。
+ * Wire 模式（独立服/真 Java），出站：
+ *   ir → ProtocolInfo.encode → [packetID+payload]
+ *      → CompressionEncoder → [VarInt(数据长度)+data]   （压缩层，threshold<0 跳过）
+ *      → VarintFraming        → [VarInt(帧长)+前述]      （帧层）
+ *      → CipherEncoder        → AES-CFB8 密文            （加密层，离线模式跳过）
+ *      → ITransport.send      → TCP 原始字节
+ * 入站反向：ITransport.onBytes → CipherDecoder → VarintFraming(切帧) → CompressionDecoder
+ *   → ProtocolInfo.decode → ir → 监听器 → ProtocolSwapHandler(terminal 切阶段)
+ *
+ * Local 模式（集成服同进程）：send → 直传 ir::Packet 到对端 ILocalTransport
+ *   recv → ILocalTransport.onPacket → cb（零序列化、零拷贝，不经任何流水线 handler）
+ *
+ * terminal 包驱动阶段切换：发送/收到 terminal 包后 ProtocolSwapHandler 给出下一阶段，
+ * setPhase 切 ProtocolInfo。压缩/加密在登录握手后由 setupCompression/setupEncryption 装入。
  *
  * @tparam B 缓冲类型（Java 后端用 buffer::RegistryByteBuf）
- *
- * TODO(Phase2): 接入加密/压缩 pipeline handler（CompressionEncoder/Decoder、CipherEncoder/Decoder）。
- * TODO(Phase3): 接入后端提供的 ProtocolTableSet（5 阶段包表）。
- * TODO(Phase7): Local 模式接入 + 端到端跑通。
  */
 template <typename B>
 class Connection {
@@ -61,6 +72,8 @@ public:
 
     /**
      * @brief Wire 模式构造：注入 ITransport + ProtocolTableSet
+     *
+     * @param localFlow 本端流向（客户端=Serverbound 发出，服务端=Clientbound 发出）
      */
     Connection(std::unique_ptr<transport::ITransport> wireTransport,
         std::shared_ptr<ProtocolTableSet<B>> tables,
@@ -92,7 +105,7 @@ public:
     /**
      * @brief 发送一个 IR 包
      *
-     * Wire 模式：encode 成 bytes 经 pipeline 走 ITransport。
+     * Wire 模式：encode → 压缩 → 帧编码 → 加密 → ITransport。
      * Local 模式：直传 IrPacket 到对端 ILocalTransport。
      */
     [[nodiscard]] Result<void> send(ir::IrPacket packet);
@@ -113,9 +126,45 @@ public:
     void setPhase(protocol::ConnectionProtocol phase) noexcept { m_phase = phase; }
 
     /**
+     * @brief 装入压缩层（收到 LoginCompression 后调用）
+     *
+     * threshold < 0 表示禁用压缩（移除压缩层）。Wire 模式专用；Local 模式无压缩。
+     */
+    void setupCompression(i32 threshold)
+    {
+        if (threshold < 0) {
+            m_compressionActive = false;
+            m_compressionEncoder.reset();
+            m_compressionDecoder.reset();
+        } else {
+            m_compressionActive = true;
+            m_compressionEncoder = std::make_unique<CompressionEncoder>(threshold);
+            m_compressionDecoder = std::make_unique<CompressionDecoder>(threshold);
+        }
+    }
+
+    /**
+     * @brief 装入加密层（登录握手双方确认共享密钥后调用）
+     *
+     * 离线模式默认不调本方法（明文 wire）。真 Java 在线互通时握手后装入。
+     */
+    [[nodiscard]] Result<void> setupEncryption(const std::array<u8, crypto::kSharedSecretBytes>& sharedSecret)
+    {
+        auto enc = m_cipherEncoder.init(sharedSecret);
+        if (!enc.success()) {
+            return enc;
+        }
+        auto dec = m_cipherDecoder.init(sharedSecret);
+        if (!dec.success()) {
+            return dec;
+        }
+        return Result<void>::ok();
+    }
+
+    /**
      * @brief Local 模式驱动：pump 对端投递的包回调监听器
      *
-     * Wire 模式由 ITransport.onMessage 异步驱动，无需调用本方法。
+     * Wire 模式由 ITransport.onBytes 异步驱动，无需调用本方法。
      */
     void pumpLocal();
 
@@ -130,6 +179,22 @@ private:
     void _installWireReceive();
     void _installLocalReceive();
     void _handleWireBytes(const u8* data, usize size);
+    [[nodiscard]] Result<void> _decodeAndDispatch(const std::vector<u8>& frameBytes);
+
+    // 按当前 (phase, flow) 取出站 ProtocolInfo（本端发出方向的表）。
+    // 客户端发出 = Serverbound 表；服务端发出 = Clientbound 表。
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::HandshakePacket>* _outboundHandshake() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::StatusPacket>* _outboundStatus() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::LoginPacket>* _outboundLogin() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::ConfigurationPacket>* _outboundConfiguration() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::PlayPacket>* _outboundPlay() const;
+
+    // 按当前 (phase, flow) 取入站 ProtocolInfo（对端发来的方向的表）。
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::HandshakePacket>* _inboundHandshake() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::StatusPacket>* _inboundStatus() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::LoginPacket>* _inboundLogin() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::ConfigurationPacket>* _inboundConfiguration() const;
+    [[nodiscard]] protocol::ProtocolInfo<B, ir::PlayPacket>* _inboundPlay() const;
 
     std::unique_ptr<transport::ITransport> m_wireTransport;
     std::unique_ptr<transport::ILocalTransport> m_localTransport;
@@ -138,6 +203,21 @@ private:
     protocol::PacketFlow m_flow;
     protocol::ConnectionProtocol m_phase;
     Mode m_mode;
+
+    // 流水线 handler（仅 Wire 模式用）
+    CipherEncoder m_cipherEncoder;
+    CipherDecoder m_cipherDecoder;
+    std::unique_ptr<CompressionEncoder> m_compressionEncoder;
+    std::unique_ptr<CompressionDecoder> m_compressionDecoder;
+    bool m_compressionActive = false;
+
+    // 入站缓冲：
+    // - m_encryptedIn：从 ITransport 收到的原始（可能加密）字节，喂给 CipherDecoder。
+    // - m_plainIn：解密后的明文字节，喂给 VarintFraming 切帧。
+    // 两缓冲分离：CFB8 流式状态要求加密字节按到达顺序逐字节喂入，而切帧后的明文残留
+    // 不能与新到的加密字节混存（否则解密器二次处理明文导致数据损坏）。
+    std::vector<u8> m_encryptedIn;
+    std::vector<u8> m_plainIn;
 };
 
 } // namespace mc::network::pipeline

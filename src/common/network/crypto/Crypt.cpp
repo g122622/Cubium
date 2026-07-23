@@ -21,30 +21,28 @@
  *
  */
 
-#pragma once
+#include "common/network/crypto/Crypt.hpp"
 
-#include "common/network/buffer/RegistryByteBuf.hpp"
-#include "common/network/pipeline/ProtocolTableSet.hpp"
+#include <openssl/rand.h>
 
-#include <memory>
+namespace mc::network::crypto {
 
-namespace mc::network::backend::java {
+Result<std::array<u8, kSharedSecretBytes>> generateSharedSecret()
+{
+    std::array<u8, kSharedSecretBytes> secret{};
+    if (RAND_bytes(secret.data(), static_cast<int>(secret.size())) != 1) {
+        return Error(ErrorCode::Unknown, "RAND_bytes 生成共享密钥失败", "crypto::generateSharedSecret");
+    }
+    return secret;
+}
 
-/**
- * @brief Java 1.21.11 五阶段包表构建器
- *
- * 用 ProtocolInfoBuilder 链式 addPacket 构建 5 阶段 × 2 流向共 10 张包表（握手 Cb 除外，
- * Java 握手只有 C→S）。addPacket 显式 id 严格对齐 GameProtocols.java 注册顺序；
- * 在用包子集只登记当前 IR 已有包，未登记 id 解码报错由调用方跳过。
- *
- * 各包的 StreamCodec<RegistryByteBuf, IrStruct> 见 codecs/JavaCodecs.hpp。
- */
-class JavaProtocolTables {
-public:
-    /**
-     * @brief 构建并返回完整的 5 阶段包表集合
-     */
-    [[nodiscard]] static std::shared_ptr<pipeline::ProtocolTableSet<buffer::RegistryByteBuf>> build();
-};
+Result<std::vector<u8>> generateRandomBytes(usize n)
+{
+    std::vector<u8> bytes(n);
+    if (n > 0 && RAND_bytes(bytes.data(), static_cast<int>(n)) != 1) {
+        return Error(ErrorCode::Unknown, "RAND_bytes 生成随机字节失败", "crypto::generateRandomBytes");
+    }
+    return bytes;
+}
 
-} // namespace mc::network::backend::java
+} // namespace mc::network::crypto

@@ -54,6 +54,15 @@ public:
     {}
 
     /**
+     * @brief 从外部字节序列构造（无注册表绑定，反序列化入口）
+     *
+     * 继承 ByteBuf 的字节视图构造；不绑注册表，需要查表的包 codec 须随后 bindRegistry。
+     */
+    explicit RegistryByteBuf(const u8* data, usize size)
+        : ByteBuf(data, size)
+    {}
+
+    /**
      * @brief 从外部字节序列构造并绑定注册表（反序列化入口）
      */
     RegistryByteBuf(const u8* data, usize size, const RegistryAccess& registry)

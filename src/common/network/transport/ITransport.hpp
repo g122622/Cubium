@@ -34,32 +34,35 @@
 namespace mc::network::transport {
 
 /**
- * @brief 字节传输抽象接口（消息边界感知）
+ * @brief 字节传输抽象接口（原始字节流，无消息边界）
  *
- * 上层 Connection 经本接口收发字节消息，不感知 TCP/UDP/Local 差异：
- * - send：投递一条完整消息（帧已由实现负责），DeliveryHint 仅 RakNet 用。
- * - onMessage：实现收到完整消息后回调（帧已解包）。
+ * 上层 Connection 经本接口收发原始字节，不感知 TCP/UDP/Local 差异：
+ * - send：投递原始字节（帧编解码由 Connection 流水线负责，不在本层）。
+ * - onBytes：实现收到任意字节块时回调（流式，无消息边界保证）。
+ *   Connection 内部的 VarintFraming 负责按 VarInt 长度前缀切帧。
  * - onDisconnect：连接断开回调。
  *
  * 注意：本接口是 Wire 模式（字节传输）的统一抽象。Local 模式（同进程零拷贝直传
  * ir::Packet）走独立的 ILocalTransport，不经本接口序列化——见 LocalTransport.hpp。
+ * 设计为原始字节流而非"完整消息"：TCP 是流无边界，分帧属 Java wire 格式细节，
+ * 由 pipeline/VarintFraming 处理；RakNet 数据报天然有边界，每个数据报作为一次 onBytes。
  */
 class ITransport {
 public:
-    using MessageCallback = std::function<void(const u8* data, usize size)>;
+    using ByteCallback = std::function<void(const u8* data, usize size)>;
     using DisconnectCallback = std::function<void()>;
 
     virtual ~ITransport() = default;
 
     /**
-     * @brief 投递一条消息字节
+     * @brief 投递原始字节（已由上层流水线完成帧编解码/压缩/加密）
      *
      * @return 失败返回错误（如未连接、底层写失败）
      */
     [[nodiscard]] virtual Result<void> send(const u8* data, usize size, DeliveryHint hint) = 0;
 
     /**
-     * @brief 投递一条消息字节（vector 便利重载）
+     * @brief 投递原始字节（vector 便利重载）
      */
     [[nodiscard]] Result<void> send(const std::vector<u8>& data, DeliveryHint hint)
     {
@@ -67,9 +70,9 @@ public:
     }
 
     /**
-     * @brief 注册消息到达回调
+     * @brief 注册字节到达回调（流式，多次调用，单次回调可能含部分帧或多个帧）
      */
-    virtual void onMessage(MessageCallback callback) = 0;
+    virtual void onBytes(ByteCallback callback) = 0;
 
     /**
      * @brief 注册断开回调

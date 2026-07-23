@@ -34,11 +34,14 @@
 namespace mc::network::codec {
 
 /**
- * @brief 按注册顺序分配整数 ID 的分发 codec
+ * @brief 按显式 ID 分配的分发 codec
  *
- * 对应 Java 1.21.11 的 IdDispatchCodec：注册顺序即 packet ID。addPacket 顺序加入，
- * build() 前不分配；encode 时按类型查 ID 写 VarInt(id)+payload，decode 时读 VarInt(id)
+ * 对应 Java 1.21.11 的 IdDispatchCodec：每个包显式指定 packet ID（对齐 GameProtocols.java
+ * 的 addPacket 顺序）。encode 时按类型查 ID 写 VarInt(id)+payload，decode 时读 VarInt(id)
  * 查 codec 解码成 variant。绝不硬编码 case 语句。
+ *
+ * 支持稀疏 ID：在用包子集可只登记部分包，ID 与 Java 一致；未登记的 ID 解码时报错
+ * （调用方按需跳过）。登记时同 ID 重复视为错误。
  *
  * @tparam B 缓冲类型
  * @tparam Variant 包变体类型（如 ir::PlayPacket = std::variant<...>）
@@ -57,6 +60,7 @@ public:
      * 避免"写 id 后发现不匹配需回滚"的脆弱性（VarInt id 字节数可变）。
      */
     struct Entry {
+        i32 id = 0;
         std::function<bool(const Variant& value)> matches;
         std::function<void(B& buf, const Variant& value)> encodePayload;
         std::function<Result<Variant>(B& buf)> decode;
@@ -69,17 +73,26 @@ public:
     IdDispatchCodec& operator=(IdDispatchCodec&&) noexcept = default;
 
     /**
-     * @brief 登记一个包（顺序即 id，0 起递增）
+     * @brief 登记一个包（显式指定 id，对齐 Java 注册顺序）
+     *
+     * 重复登记同 id 视为错误（返回 false，调用方可断言）。
      */
-    void addPacket(std::function<bool(const Variant& value)> matches,
+    bool addPacket(i32 id,
+        std::function<bool(const Variant& value)> matches,
         std::function<void(B& buf, const Variant& value)> encodePayload,
         std::function<Result<Variant>(B& buf)> decode)
     {
-        m_entries.push_back(Entry{std::move(matches), std::move(encodePayload), std::move(decode)});
+        for (const auto& e : m_entries) {
+            if (e.id == id) {
+                return false;
+            }
+        }
+        m_entries.push_back(Entry{id, std::move(matches), std::move(encodePayload), std::move(decode)});
+        return true;
     }
 
     /**
-     * @brief 当前已登记包数（= build 后的 id 上界）
+     * @brief 当前已登记包数
      */
     [[nodiscard]] usize size() const noexcept { return m_entries.size(); }
 
@@ -90,10 +103,10 @@ public:
      */
     [[nodiscard]] Result<void> encode(B& buf, const Variant& value) const
     {
-        for (usize id = 0; id < m_entries.size(); ++id) {
-            if (m_entries[id].matches(value)) {
-                buf.writeVarInt(static_cast<i32>(id));
-                m_entries[id].encodePayload(buf, value);
+        for (const auto& entry : m_entries) {
+            if (entry.matches(value)) {
+                buf.writeVarInt(entry.id);
+                entry.encodePayload(buf, value);
                 return Result<void>::ok();
             }
         }
@@ -102,15 +115,19 @@ public:
 
     /**
      * @brief 解码：读 VarInt(id)，查 entries 解码 payload 成 variant
+     *
+     * 未登记的 id 返回 ProtocolError（调用方可按需跳过该包，保留连接）。
      */
     [[nodiscard]] Result<Variant> decode(B& buf) const
     {
         i32 id = 0;
         MC_TRY_ASSIGN(id, buf.readVarInt());
-        if (id < 0 || static_cast<usize>(id) >= m_entries.size()) {
-            return Error(ErrorCode::ProtocolError, "未知 packet id", "IdDispatchCodec::decode");
+        for (const auto& entry : m_entries) {
+            if (entry.id == id) {
+                return entry.decode(buf);
+            }
         }
-        return m_entries[static_cast<usize>(id)].decode(buf);
+        return Error(ErrorCode::ProtocolError, "未知 packet id", "IdDispatchCodec::decode");
     }
 
     [[nodiscard]] const std::vector<Entry>& entries() const noexcept { return m_entries; }

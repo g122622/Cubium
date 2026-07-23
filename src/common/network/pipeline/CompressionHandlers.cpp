@@ -21,30 +21,28 @@
  *
  */
 
-#pragma once
+#include "common/network/pipeline/CompressionHandlers.hpp"
 
-#include "common/network/buffer/RegistryByteBuf.hpp"
-#include "common/network/pipeline/ProtocolTableSet.hpp"
+namespace mc::network::pipeline {
 
-#include <memory>
+Result<void> CompressionEncoder::encode(const std::vector<u8>& input, std::vector<u8>& output)
+{
+    return crypto::ZlibCodec::encode(m_threshold, input, output);
+}
 
-namespace mc::network::backend::java {
+Result<void> CompressionDecoder::decode(const std::vector<u8>& input, std::vector<u8>& output)
+{
+    // 输入是已解帧的完整压缩层字节（一个包），consumed 应等于 input 全长。
+    i32 dataLength = 0;
+    usize consumed = 0;
+    auto r = crypto::ZlibCodec::decode(input.data(), input.size(), m_threshold, dataLength, output, consumed);
+    if (!r.success()) {
+        return r;
+    }
+    if (consumed != input.size()) {
+        return Error(ErrorCode::InvalidData, "压缩层解压后仍有残余字节", "CompressionDecoder::decode");
+    }
+    return Result<void>::ok();
+}
 
-/**
- * @brief Java 1.21.11 五阶段包表构建器
- *
- * 用 ProtocolInfoBuilder 链式 addPacket 构建 5 阶段 × 2 流向共 10 张包表（握手 Cb 除外，
- * Java 握手只有 C→S）。addPacket 显式 id 严格对齐 GameProtocols.java 注册顺序；
- * 在用包子集只登记当前 IR 已有包，未登记 id 解码报错由调用方跳过。
- *
- * 各包的 StreamCodec<RegistryByteBuf, IrStruct> 见 codecs/JavaCodecs.hpp。
- */
-class JavaProtocolTables {
-public:
-    /**
-     * @brief 构建并返回完整的 5 阶段包表集合
-     */
-    [[nodiscard]] static std::shared_ptr<pipeline::ProtocolTableSet<buffer::RegistryByteBuf>> build();
-};
-
-} // namespace mc::network::backend::java
+} // namespace mc::network::pipeline

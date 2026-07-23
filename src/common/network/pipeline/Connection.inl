@@ -34,6 +34,60 @@ bool Connection<B>::isConnected() const noexcept
     return m_localTransport != nullptr && m_localTransport->isConnected();
 }
 
+// 出站表选择：本端发出方向。客户端(Serverbound 发) / 服务端(Clientbound 发)。
+template <typename B>
+protocol::ProtocolInfo<B, ir::HandshakePacket>* Connection<B>::_outboundHandshake() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->handshakeCb.get() : m_tables->handshakeSb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::StatusPacket>* Connection<B>::_outboundStatus() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->statusCb.get() : m_tables->statusSb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::LoginPacket>* Connection<B>::_outboundLogin() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->loginCb.get() : m_tables->loginSb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::ConfigurationPacket>* Connection<B>::_outboundConfiguration() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->configurationCb.get() : m_tables->configurationSb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::PlayPacket>* Connection<B>::_outboundPlay() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->playCb.get() : m_tables->playSb.get();
+}
+
+// 入站表选择：对端发来的方向。客户端收 Clientbound；服务端收 Serverbound。
+template <typename B>
+protocol::ProtocolInfo<B, ir::HandshakePacket>* Connection<B>::_inboundHandshake() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->handshakeSb.get() : m_tables->handshakeCb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::StatusPacket>* Connection<B>::_inboundStatus() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->statusSb.get() : m_tables->statusCb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::LoginPacket>* Connection<B>::_inboundLogin() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->loginSb.get() : m_tables->loginCb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::ConfigurationPacket>* Connection<B>::_inboundConfiguration() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->configurationSb.get() : m_tables->configurationCb.get();
+}
+template <typename B>
+protocol::ProtocolInfo<B, ir::PlayPacket>* Connection<B>::_inboundPlay() const
+{
+    return protocol::isClientbound(m_flow) ? m_tables->playSb.get() : m_tables->playCb.get();
+}
+
 template <typename B>
 Result<void> Connection<B>::send(ir::IrPacket packet)
 {
@@ -41,40 +95,36 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
         if (m_localTransport == nullptr) {
             return Error(ErrorCode::InvalidState, "Local 传输缺失", "Connection::send");
         }
-        // Local 模式：直传 IrPacket，不经序列化（零拷贝）。
+        // Local 模式：直传 IrPacket，不经序列化（零拷贝）。terminal 切换由对端收包时处理。
         return m_localTransport->send(std::move(packet));
     }
 
-    // Wire 模式：按当前阶段选 ProtocolInfo encode。
-    // TODO(Phase3): 各阶段 codec 表填充后启用；当前骨架阶段未接入真实 codec，
-    //               先按阶段分发到对应 ProtocolInfo.encode。
+    // Wire 模式：encode → 压缩 → 帧编码 → 加密 → ITransport。
     B buf;
     Result<void> encResult = Result<void>::ok();
-
     switch (m_phase) {
         case protocol::ConnectionProtocol::Handshaking:
-            if (auto* p = protocol::isClientbound(m_flow) ? m_tables->handshakeCb.get() : m_tables->handshakeSb.get()) {
+            if (auto* p = _outboundHandshake()) {
                 encResult = p->encode(buf, std::get<ir::HandshakePacket>(packet.packet));
             }
             break;
         case protocol::ConnectionProtocol::Status:
-            if (auto* p = protocol::isClientbound(m_flow) ? m_tables->statusCb.get() : m_tables->statusSb.get()) {
+            if (auto* p = _outboundStatus()) {
                 encResult = p->encode(buf, std::get<ir::StatusPacket>(packet.packet));
             }
             break;
         case protocol::ConnectionProtocol::Login:
-            if (auto* p = protocol::isClientbound(m_flow) ? m_tables->loginCb.get() : m_tables->loginSb.get()) {
+            if (auto* p = _outboundLogin()) {
                 encResult = p->encode(buf, std::get<ir::LoginPacket>(packet.packet));
             }
             break;
         case protocol::ConnectionProtocol::Configuration:
-            if (auto* p = protocol::isClientbound(m_flow) ? m_tables->configurationCb.get()
-                                                          : m_tables->configurationSb.get()) {
+            if (auto* p = _outboundConfiguration()) {
                 encResult = p->encode(buf, std::get<ir::ConfigurationPacket>(packet.packet));
             }
             break;
         case protocol::ConnectionProtocol::Play:
-            if (auto* p = protocol::isClientbound(m_flow) ? m_tables->playCb.get() : m_tables->playSb.get()) {
+            if (auto* p = _outboundPlay()) {
                 encResult = p->encode(buf, std::get<ir::PlayPacket>(packet.packet));
             }
             break;
@@ -82,12 +132,46 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
     if (!encResult.success()) {
         return encResult;
     }
-
-    // TODO(Phase2): encode 后的字节经压缩/加密 pipeline handler 处理再交给 transport。
     if (m_wireTransport == nullptr) {
         return Error(ErrorCode::InvalidState, "Wire 传输缺失", "Connection::send");
     }
-    return m_wireTransport->send(buf.bytes(), transport::DeliveryHint::ReliableOrdered);
+
+    // packetID+payload（buf.bytes()）→ 压缩层 → 帧层 → 加密层。
+    std::vector<u8> payload = buf.bytes();
+
+    std::vector<u8> compressed;
+    if (m_compressionActive && m_compressionEncoder != nullptr) {
+        auto r = m_compressionEncoder->encode(payload, compressed);
+        if (!r.success()) {
+            return r;
+        }
+    } else {
+        // 未启用压缩：压缩层格式仍要求 VarInt(0) 前缀？Java 中 threshold<0 时压缩层不装，
+        // payload 直接进帧层。故未激活时 payload 即帧内容，不加前缀。
+        compressed = payload;
+    }
+
+    std::vector<u8> framed;
+    framed.reserve(compressed.size() + 5);
+    VarintFraming::encodeFrame(compressed.data(), compressed.size(), framed);
+
+    std::vector<u8> encrypted;
+    auto cipherResult = m_cipherEncoder.encode(framed, encrypted);
+    if (!cipherResult.success()) {
+        return cipherResult;
+    }
+
+    // 发送侧 terminal 包：发送后切阶段（对齐 Java 出站 terminal 即 setupOutboundProtocol）。
+    const auto swap = ProtocolSwapHandler::check(packet, m_flow);
+    auto sendResult =
+        m_wireTransport->send(encrypted.data(), encrypted.size(), transport::DeliveryHint::ReliableOrdered);
+    if (!sendResult.success()) {
+        return sendResult;
+    }
+    if (swap.isTerminal) {
+        setPhase(swap.nextPhase);
+    }
+    return Result<void>::ok();
 }
 
 template <typename B>
@@ -96,8 +180,7 @@ void Connection<B>::_installWireReceive()
     if (m_wireTransport == nullptr) {
         return;
     }
-    // 注册字节到达回调：解帧后的 payload → 按 (phase,flow) decode 成阶段变体 → 包成 IrPacket → 监听器
-    m_wireTransport->onMessage([this](const u8* data, usize size) { _handleWireBytes(data, size); });
+    m_wireTransport->onBytes([this](const u8* data, usize size) { _handleWireBytes(data, size); });
 }
 
 template <typename B>
@@ -106,10 +189,14 @@ void Connection<B>::_installLocalReceive()
     if (m_localTransport == nullptr) {
         return;
     }
-    // Local 模式：对端 send 进来的 IrPacket 直接回调监听器（零序列化）。
     m_localTransport->onPacket([this](ir::IrPacket packet) {
+        // Local 模式收到包：terminal 切换 + 回调监听器。
+        const auto swap = ProtocolSwapHandler::check(packet, m_flow);
         if (m_listener) {
             m_listener(packet);
+        }
+        if (swap.isTerminal) {
+            setPhase(swap.nextPhase);
         }
     });
 }
@@ -136,15 +223,128 @@ void Connection<B>::close()
 template <typename B>
 void Connection<B>::_handleWireBytes(const u8* data, usize size)
 {
-    // TODO(Phase2): 字节先经解密/解压 pipeline handler 还原成 payload。
-
-    // TODO(Phase3): 各阶段 codec 表填充后，按 (phase, flow) decode 成阶段变体，包成 IrPacket
-    //               交给监听器；terminal 包触发 setPhase 切阶段。当前骨架仅占位。
-    (void)data;
-    (void)size;
-    if (m_listener) {
-        // 骨架阶段：无真实 decode，暂不回调（Phase3 接入 codec 后补全）。
+    if (data == nullptr || size == 0) {
+        return;
     }
+    // 入站：累积原始字节 → 解密 → 切帧 → 解压 → decode → 监听器。
+    // CFB8 流式：加密字节须按到达顺序逐字节喂入解密器，故先全部累积到 m_encryptedIn
+    // 再整体解密；切帧后的明文残留留在 m_plainIn，不与下次的加密字节混存。
+    m_encryptedIn.insert(m_encryptedIn.end(), data, data + size);
+
+    // 解密整段缓冲（CFB8 流式，跨包/跨帧连续）。未激活加密时直通（明文）。
+    std::vector<u8> decrypted;
+    auto decResult = m_cipherDecoder.decode(m_encryptedIn, decrypted);
+    if (!decResult.success()) {
+        // 解密失败：清缓冲断开（CFB8 状态已损坏，无法恢复）。
+        m_encryptedIn.clear();
+        m_plainIn.clear();
+        return;
+    }
+    m_encryptedIn.clear();
+    m_plainIn.insert(m_plainIn.end(), decrypted.begin(), decrypted.end());
+
+    // 切帧：m_plainIn 可能含多个完整帧 + 残留。残留留待下次。
+    std::vector<u8> frame;
+    while (VarintFraming::tryDecodeFrame(m_plainIn, frame)) {
+        std::vector<u8> decompressed;
+        if (m_compressionActive && m_compressionDecoder != nullptr) {
+            auto r = m_compressionDecoder->decode(frame, decompressed);
+            if (!r.success()) {
+                continue; // 单包解压失败：跳过该包，保留连接
+            }
+        } else {
+            decompressed = frame;
+        }
+        auto dispatchResult = _decodeAndDispatch(decompressed);
+        (void)dispatchResult;
+    }
+}
+
+template <typename B>
+Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes)
+{
+    // 压缩层解出后的 frameBytes = packetID + payload。按当前 (phase, 入站方向) decode。
+    B buf(frameBytes.data(), frameBytes.size());
+
+    ir::IrPacket packet;
+    packet.phase = m_phase;
+    switch (m_phase) {
+        case protocol::ConnectionProtocol::Handshaking: {
+            if (auto* p = _inboundHandshake()) {
+                auto r = p->decode(buf);
+                if (r.success()) {
+                    packet.packet = std::move(r).value();
+                } else {
+                    return r.error();
+                }
+            } else {
+                return Error(ErrorCode::InvalidState, "入站握手表缺失", "Connection::_decodeAndDispatch");
+            }
+            break;
+        }
+        case protocol::ConnectionProtocol::Status: {
+            if (auto* p = _inboundStatus()) {
+                auto r = p->decode(buf);
+                if (r.success()) {
+                    packet.packet = std::move(r).value();
+                } else {
+                    return r.error();
+                }
+            } else {
+                return Error(ErrorCode::InvalidState, "入站状态表缺失", "Connection::_decodeAndDispatch");
+            }
+            break;
+        }
+        case protocol::ConnectionProtocol::Login: {
+            if (auto* p = _inboundLogin()) {
+                auto r = p->decode(buf);
+                if (r.success()) {
+                    packet.packet = std::move(r).value();
+                } else {
+                    return r.error();
+                }
+            } else {
+                return Error(ErrorCode::InvalidState, "入站登录表缺失", "Connection::_decodeAndDispatch");
+            }
+            break;
+        }
+        case protocol::ConnectionProtocol::Configuration: {
+            if (auto* p = _inboundConfiguration()) {
+                auto r = p->decode(buf);
+                if (r.success()) {
+                    packet.packet = std::move(r).value();
+                } else {
+                    return r.error();
+                }
+            } else {
+                return Error(ErrorCode::InvalidState, "入站配置表缺失", "Connection::_decodeAndDispatch");
+            }
+            break;
+        }
+        case protocol::ConnectionProtocol::Play: {
+            if (auto* p = _inboundPlay()) {
+                auto r = p->decode(buf);
+                if (r.success()) {
+                    packet.packet = std::move(r).value();
+                } else {
+                    return r.error();
+                }
+            } else {
+                return Error(ErrorCode::InvalidState, "入站游戏表缺失", "Connection::_decodeAndDispatch");
+            }
+            break;
+        }
+    }
+
+    // terminal 切换 + 回调监听器。
+    const auto swap = ProtocolSwapHandler::check(packet, m_flow);
+    if (m_listener) {
+        m_listener(packet);
+    }
+    if (swap.isTerminal) {
+        setPhase(swap.nextPhase);
+    }
+    return Result<void>::ok();
 }
 
 } // namespace mc::network::pipeline

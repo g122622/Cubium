@@ -38,9 +38,10 @@ inline constexpr i32 kJavaProtocolVersion = 774;
  *
  * 把 ir::IrPacket 编解码成 Java 1.21.11 线协议字节（VarInt 长度前缀帧 + VarInt packet id
  * + payload，大端，经 RSA+AES-CFB8 加密、zlib 压缩）。provideProtocolTables 委托
- * JavaProtocolTables 构建 5 阶段包表（addPacket 顺序严格对齐 GameProtocols.java）。
+ * JavaProtocolTables 构建 5 阶段包表（addPacket 显式 id 严格对齐 GameProtocols.java）。
  *
- * TODO(Phase3): JavaProtocolTables 填充各阶段 addPacket 链 + 各包 codec。
+ * 加密/压缩由 pipeline/Connection 的 CipherHandler/CompressionHandler 负责（握手后装入）；
+ * 登录握手编排见 handshake/JavaLoginHandshaker。
  */
 class JavaBackend final : public IProtocolBackend<buffer::RegistryByteBuf> {
 public:

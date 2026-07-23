@@ -12,6 +12,7 @@
     "glfw3",
     "stb",
     "zlib",
+    "openssl",
     "libarchive",
     "openal-soft",
     "zstd",

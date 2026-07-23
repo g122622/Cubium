@@ -36,8 +36,9 @@ namespace mc::network::protocol {
 /**
  * @brief 构建一个 (阶段, 流向) 的 ProtocolInfo 包表
  *
- * 链式 addPacket：每包传入 PacketType + 该包的 codec + 该包在 Variant 中的备选项下标。
- * addPacket 顺序即 packet id（0 起递增）。对齐 Java GameProtocols 的注册顺序。
+ * 链式 addPacket：每包传入显式 packet id + PacketType + 该包的 codec + 该包在 Variant 中
+ * 的备选项下标。id 严格对齐 Java GameProtocols 的 addPacket 顺序（在用包子集可稀疏登记，
+ * 未登记 id 解码报错由调用方跳过）。
  *
  * @tparam B 缓冲类型
  * @tparam Variant 该阶段包变体
@@ -52,6 +53,7 @@ public:
     /**
      * @brief 登记一个包
      *
+     * @param id 显式 packet id（对齐 Java 注册顺序）
      * @param type 逻辑类型标识
      * @param altIndex 该包 struct 在 Variant 中的备选项下标（std::variant_alternative 索引）
      * @param codec 该包的 StreamCodec<B, PacketStruct>（按值持有）
@@ -59,7 +61,7 @@ public:
      * 调用方负责保证 altIndex 与 codec 的值类型一致。
      */
     template <typename PacketStruct, typename Codec>
-    void addPacket(PacketType type, usize altIndex, Codec codec)
+    bool addPacket(i32 id, PacketType type, usize altIndex, Codec codec)
     {
         static_assert(
             std::is_base_of_v<codec::StreamCodec<B, PacketStruct>, Codec> || codec::CodecFor<Codec, B, PacketStruct>,
@@ -84,8 +86,12 @@ public:
             return Variant{std::move(value)};
         };
 
-        m_info->dispatch().addPacket(std::move(matches), std::move(encodePayload), std::move(decode));
-        m_types.push_back(std::move(type));
+        const bool ok =
+            m_info->dispatch().addPacket(id, std::move(matches), std::move(encodePayload), std::move(decode));
+        if (ok) {
+            m_types.push_back(std::move(type));
+        }
+        return ok;
     }
 
     [[nodiscard]] std::unique_ptr<ProtocolInfo<B, Variant>> build() { return std::move(m_info); }
