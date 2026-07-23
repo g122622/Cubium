@@ -50,7 +50,7 @@
 #include <gtest/gtest.h>
 
 // GLFW 修饰键常量（与 GLFW 定义一致，避免测试依赖 GLFW）
-// 这些值在 AbstractContainerScreen 中用于检测 Shift/Ctrl 等修饰键
+// 这些值在 ContainerInteraction 中用于检测 Shift/Ctrl 等修饰键
 namespace TestGlfwConstants {
 constexpr int GLFW_MOD_SHIFT = static_cast<int>(mc::client::ui::kagero::KeyMods::Shift);
 constexpr int GLFW_MOD_CONTROL = static_cast<int>(mc::client::ui::kagero::KeyMods::Control);
@@ -62,7 +62,7 @@ using namespace mc;
 
 // ============================================================================
 // ClickAction/ClickType 映射测试
-// 验证 AbstractContainerScreen::_actionToClickType 的映射逻辑
+// 验证 ContainerInteraction::_actionToClickType 的映射逻辑
 // （此映射逻辑与 ContainerPacketHandler::toClickType 一致）
 // ============================================================================
 

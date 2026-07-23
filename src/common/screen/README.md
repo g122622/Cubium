@@ -23,18 +23,13 @@ src/common/screen/
 ┌──────────────────────────────────────────────────┐
 │           client/ui/screen/                       │
 │  ┌─────────────────────────────────────────────┐ │
-│  │   AbstractContainerScreen<Menu>             │ │
-│  │   - 模板基类，继承IScreen                    │ │
-│  │   - 管理容器菜单的客户端屏幕                 │ │
-│  └─────────────────────────────────────────────┘ │
-│  ┌─────────────────────────────────────────────┐ │
-│  │   CraftingScreen                            │ │
-│  │   - 具体屏幕实现                             │ │
-│  └─────────────────────────────────────────────┘ │
-│  ┌─────────────────────────────────────────────┐ │
 │  │   ScreenManager                             │ │
 │  │   - 管理屏幕栈                               │ │
 │  │   - 使用IScreen指针                          │ │
+│  └─────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────┐ │
+│  │   MapScreen                                 │ │
+│  │   - 继承IScreen的全屏地图查看屏              │ │
 │  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
 
@@ -131,7 +126,7 @@ src/common/screen/
 | 文件 | 说明 |
 |------|------|
 | `client/ui/screen/ScreenManager.hpp` | 屏幕管理器，管理屏幕栈 |
-| `client/ui/screen/AbstractContainerScreen.hpp` | 容器屏幕模板基类 |
+| `client/ui/minecraft/screens/ContainerScreenBase.hpp` | 容器屏幕共享基类（kagero 体系） |
 | `client/ui/minecraft/widgets/ScreenStackWidget.hpp` | Kagero UI屏幕栈组件 |
 | `client/ui/minecraft/screens/CraftingScreen.hpp` | 工作台屏幕实现（kagero 体系） |
 | `server/menu/CraftingMenu.hpp` | 服务端工作台菜单（使用ScreenType） |

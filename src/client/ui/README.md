@@ -84,8 +84,7 @@ ui/
 │   ├── screens/                      # 游戏屏幕
 │   │   ├── Screen.hpp/cpp            # 屏幕基类
 │   │   ├── ScreenManager.hpp/cpp     # 屏幕栈管理
-│   │   ├── AbstractContainerScreen.hpp # 容器屏幕基类
-│   │   ├── ContainerScreen.hpp/cpp   # 容器屏幕
+│   │   ├── ContainerScreenBase.hpp   # 容器屏幕共享基类（模板）
 │   │   ├── InventoryScreen.hpp/cpp   # 背包屏幕
 │   │   ├── MainMenuScreen.hpp/cpp    # 主菜单屏幕
 │   │   ├── OptionsScreen.hpp/cpp     # 选项屏幕
@@ -127,10 +126,7 @@ ui/
 │       ├── ScreenStackWidget.hpp/cpp # 屏幕栈组件
 │       ├── TitleWidget.hpp/cpp       # 标题组件
 │       └── Viewport3DWidget.hpp/cpp  # 3D视口
-└── screen/                           # 屏幕系统（旧版兼容，逐步迁移到minecraft/screens）
-    ├── AbstractContainerScreen.hpp
-    ├── FurnaceScreen.hpp/cpp
-    ├── CartographyScreen.hpp/cpp
+└── screen/                           # 屏幕系统（旧版兼容，仅余 ScreenManager + MapScreen，待 MapScreen 迁 kagero 后清空）
     ├── MapScreen.hpp/cpp
     └── ScreenManager.hpp/cpp
 ```

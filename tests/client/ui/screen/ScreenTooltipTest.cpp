@@ -34,12 +34,12 @@ namespace mc::client {
 // 工具提示触发逻辑所依赖的命中检测算法和位置计算算法。
 //
 // 命中检测逻辑与 CreativeScreen::_isMouseOver 和
-// AbstractContainerScreen::isMouseOverSlot 一致。
-// 位置计算逻辑与 CreativeScreen::_renderItemTooltip 和
-// AbstractContainerScreen::renderItemTooltip 一致。
+// ContainerScreenBase::slotAt 一致。
+// 位置计算逻辑与 CreativeScreen::renderTooltip 和
+// TooltipRenderer::positionTooltip 一致。
 // ============================================================================
 
-// 与 CreativeScreen::_isMouseOver 和 AbstractContainerScreen::isMouseOverSlot
+// 与 CreativeScreen::_isMouseOver 和 ContainerScreenBase::slotAt
 // 使用相同的边界检查逻辑
 static bool isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width, i32 height)
 {
@@ -52,7 +52,7 @@ static bool isMouseOver(i32 mouseX, i32 mouseY, i32 x, i32 y, i32 width, i32 hei
 
 class HitDetectionTest : public ::testing::Test {
 protected:
-    // 与 CreativeScreen / AbstractContainerScreen 相同的布局常量
+    // 与 CreativeScreen / ContainerScreenBase 相同的布局常量
     static constexpr i32 SLOT_SIZE = 16;
     static constexpr i32 SLOT_SPACING = 18;
     static constexpr i32 PALETTE_COLUMNS = 9;
@@ -281,7 +281,7 @@ TEST_F(TooltipPositionTest, SmallTooltipInCenter)
 }
 
 // ============================================================================
-// AbstractContainerScreen 槽位常量测试
+// 容器屏槽位常量测试
 // ============================================================================
 
 // 测试：SLOT_SIZE 和 SLOT_SPACING 之间的关系

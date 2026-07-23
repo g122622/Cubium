@@ -40,8 +40,8 @@ namespace mc::client::ui::kagero::widget {
 /**
  * @brief 容器交互引擎（无 IScreen 依赖）
  *
- * 从 AbstractContainerScreen 抽取的纯交互逻辑，不继承 IScreen、不依赖 GuiRenderer，
- * 仅供 kagero 体系的容器屏幕复用。行为与 AbstractContainerScreen 字节级对齐 MC
+ * 容器点击/拖拽的纯交互逻辑，不继承 IScreen、不依赖 GuiRenderer，
+ * 仅供 kagero 体系的容器屏幕复用。行为字节级对齐 MC
  * 容器点击/拖拽网络协议（ClickAction / DragConstants 编码）。
  *
  * 依赖：
@@ -67,7 +67,7 @@ public:
      * @brief 槽位命中检测回调
      *
      * 给定屏幕坐标，返回命中的槽位指针（未命中返回 nullptr）。
-     * 宿主屏幕基于自身槽位布局实现，替代原 AbstractContainerScreen::getSlotAt。
+     * 宿主屏幕基于自身槽位布局实现。
      */
     using SlotHitTest = std::function<mc::Slot*(i32 mouseX, i32 mouseY)>;
 
@@ -84,7 +84,6 @@ public:
     /**
      * @brief 处理鼠标点击
      *
-     * 与 AbstractContainerScreen::onClick 行为一致：
      * Shift+左键 QuickMove、双击 PickupAll、中键 Clone、左/右键 Pickup、
      * 光标有物品时启动拖拽分发。
      */

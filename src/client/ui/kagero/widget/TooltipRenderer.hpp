@@ -37,7 +37,7 @@ namespace mc::client::ui::kagero::widget {
  * 提供工具方法来渲染 Minecraft 风格的工具提示框。
  * 使用 PaintContext 的基本绘图原语绘制背景、边框和文本。
  *
- * 渲染风格与 AbstractContainerScreen::renderItemTooltip 一致：
+ * 渲染风格：
  * - 背景：半透明深色 (0xF0100010)
  * - 边框：紫色 (0x505000FF)
  * - 文本：白色带阴影 (0xFFFFFFFF)

@@ -27,7 +27,6 @@
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/screen/IScreen.hpp"
 #include "common/world/block/BlockState.hpp"
 
 #include "client/input/InputManager.hpp"
@@ -74,20 +73,6 @@ void applyContainerSlot(Menu* menu, i32 slotIndex, const ItemStack& item)
     if (slot != nullptr) {
         slot->set(item);
     }
-}
-
-/**
- * @brief 判断屏幕是否匹配指定容器
- */
-template <typename ScreenT>
-bool isMatchingContainerScreen(IScreen* screen, ContainerId containerId)
-{
-    auto* typedScreen = dynamic_cast<ScreenT*>(screen);
-    if (typedScreen == nullptr || typedScreen->getMenu() == nullptr) {
-        return false;
-    }
-
-    return typedScreen->getMenu()->getId() == containerId;
 }
 
 /**

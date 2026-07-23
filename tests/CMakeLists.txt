@@ -1319,9 +1319,6 @@ add_executable(mc_tests
     client/ui/screen/ScreenTooltipTest.cpp
     # 容器屏幕交互系统测试（Shift+click/数字键/Q键/中键/双击/拖拽/点击外部）
     client/ui/screen/ContainerScreenInteractionTest.cpp
-    # 收纳袋 tooltip 渲染器布局算法测试
-    client/ui/screen/tooltip/BundleTooltipRendererTest.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/screen/tooltip/BundleTooltipRenderer.cpp
     # ScreenStackWidget 屏幕栈回调与事件通知测试
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # CreateWorldScreen 创建世界界面配置选项与 buildRequest 测试

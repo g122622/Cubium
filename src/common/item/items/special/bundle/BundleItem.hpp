@@ -183,12 +183,9 @@ public:
      */
     [[nodiscard]] static f32 getFullnessDisplay(const ItemStack& stack);
 
-    // BundleTooltip 渲染已实现：见 src/client/ui/screen/tooltip/BundleTooltipRenderer
-    // 该渲染器由 AbstractContainerScreen::renderItemTooltip 和
-    // CreativeScreen::_renderItemTooltip 在检测到 BundleItem 时调用，
-    // 渲染内容物网格 + 选中项高亮 + 满度进度条 + 溢出 "+N" 指示。
-    // 上述 getNumberOfItemsToShow / getFullnessDisplay 仍保留为公共 API，
-    // 供其他模块（如 HUD、第三方插件）查询收纳袋状态使用。
+    // BundleTooltip 渲染：kagero 体系暂未实现收纳袋图像 tooltip（ItemTooltipBuilder
+    // 仅构建文本 tooltip）。上述 getNumberOfItemsToShow / getFullnessDisplay 仍保留为
+    // 公共 API，供其他模块（如 HUD、第三方插件）查询收纳袋状态使用。
 
     /**
      * @brief 判断物品堆是否为收纳袋（任意颜色变体）

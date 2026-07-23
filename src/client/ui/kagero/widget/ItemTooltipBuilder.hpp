@@ -38,8 +38,7 @@ namespace mc::client::ui::kagero::widget {
  * Item#appendHoverText）。
  *
  * 仅构建文本行（Tooltip 数据），渲染交给 kagero 的 TooltipRenderer /
- * Widget::refreshTooltip。收纳袋等需要图像 tooltip 的物品仍由各屏幕自行
- * 调用 BundleTooltipRenderer，不在此处处理。
+ * Widget::refreshTooltip。收纳袋等需要图像 tooltip 的物品暂未在此处处理。
  */
 class ItemTooltipBuilder {
 public:
