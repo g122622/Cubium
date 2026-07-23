@@ -74,8 +74,16 @@ protocol::ConnectionProtocol ProtocolSwapHandler::nextForTerminal(
             // FinishConfiguration（双向）→ Play。
             return ConnectionProtocol::Play;
         case ConnectionProtocol::Status:
-        case ConnectionProtocol::Play:
             return packet.phase;
+        case ConnectionProtocol::Play: {
+            // ConfigurationAcknowledged（C→S，terminal）→ 回 Configuration（服务端发
+            // StartConfiguration 后客户端确认，双方切回配置阶段）。其余 Play 包非 terminal。
+            const auto* play = std::get_if<ir::PlayPacket>(&packet.packet);
+            if (play != nullptr && std::holds_alternative<ir::play::ConfigurationAcknowledged>(*play)) {
+                return ConnectionProtocol::Configuration;
+            }
+            return ConnectionProtocol::Play;
+        }
     }
     return packet.phase;
 }

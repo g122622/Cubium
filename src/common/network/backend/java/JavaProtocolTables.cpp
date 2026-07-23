@@ -101,45 +101,170 @@ using B = buffer::RegistryByteBuf;
 [[nodiscard]] std::unique_ptr<protocol::ProtocolInfo<B, ir::ConfigurationPacket>> buildConfigurationSb()
 {
     ProtocolInfoBuilder<B, ir::ConfigurationPacket> b(ConnectionProtocol::Configuration, PacketFlow::Serverbound);
-    // ConfigurationPacket variant: RegistryData(0) FinishConfiguration(1)
-    // Java Sb: finish_configuration id=3（前面 client_information/cookie/custom_payload 跳过）。
+    // ConfigurationPacket variant: ClientInformation(0) CustomPayload(1) Disconnect(2) FinishConfiguration(3)
+    //                             KeepAlive(4) Ping(5) RegistryData(6) SelectKnownPacks(7)
+    //                             UpdateEnabledFeatures(8) UpdateTags(9)
+    // Java Sb id: client_information=0, custom_payload=2, finish_configuration=3, keep_alive=4,
+    //             pong=5, select_known_packs=7。
+    b.addPacket<ir::configuration::ClientInformation>(
+        0, PacketType{PacketFlow::Serverbound, "client_information"}, 0, codecs::clientInformationCodec());
+    b.addPacket<ir::configuration::CustomPayload>(
+        2, PacketType{PacketFlow::Serverbound, "custom_payload"}, 1, codecs::configurationCustomPayloadCodec());
     b.addPacket<ir::configuration::FinishConfiguration>(
-        3, PacketType{PacketFlow::Serverbound, "finish_configuration"}, 1, codecs::finishConfigurationCodec());
+        3, PacketType{PacketFlow::Serverbound, "finish_configuration"}, 3, codecs::finishConfigurationCodec());
+    b.addPacket<ir::configuration::KeepAlive>(
+        4, PacketType{PacketFlow::Serverbound, "keep_alive"}, 4, codecs::configurationKeepAliveCodec());
+    b.addPacket<ir::configuration::Ping>(
+        5, PacketType{PacketFlow::Serverbound, "pong"}, 5, codecs::configurationPingCodec());
+    b.addPacket<ir::configuration::SelectKnownPacks>(
+        7, PacketType{PacketFlow::Serverbound, "select_known_packs"}, 7, codecs::selectKnownPacksCodec());
     return b.build();
 }
 
 [[nodiscard]] std::unique_ptr<protocol::ProtocolInfo<B, ir::ConfigurationPacket>> buildConfigurationCb()
 {
     ProtocolInfoBuilder<B, ir::ConfigurationPacket> b(ConnectionProtocol::Configuration, PacketFlow::Clientbound);
-    // Java Cb: finish_configuration id=3, registry_data id=7。
+    // Java Cb id: custom_payload=1, disconnect=2, finish_configuration=3, keep_alive=4, ping=5,
+    //             registry_data=7, update_enabled_features=12, update_tags=13, select_known_packs=14。
+    b.addPacket<ir::configuration::CustomPayload>(
+        1, PacketType{PacketFlow::Clientbound, "custom_payload"}, 1, codecs::configurationCustomPayloadCodec());
+    b.addPacket<ir::configuration::Disconnect>(
+        2, PacketType{PacketFlow::Clientbound, "disconnect"}, 2, codecs::configurationDisconnectCodec());
     b.addPacket<ir::configuration::FinishConfiguration>(
-        3, PacketType{PacketFlow::Clientbound, "finish_configuration"}, 1, codecs::finishConfigurationCodec());
+        3, PacketType{PacketFlow::Clientbound, "finish_configuration"}, 3, codecs::finishConfigurationCodec());
+    b.addPacket<ir::configuration::KeepAlive>(
+        4, PacketType{PacketFlow::Clientbound, "keep_alive"}, 4, codecs::configurationKeepAliveCodec());
+    b.addPacket<ir::configuration::Ping>(
+        5, PacketType{PacketFlow::Clientbound, "ping"}, 5, codecs::configurationPingCodec());
     b.addPacket<ir::configuration::RegistryData>(
-        7, PacketType{PacketFlow::Clientbound, "registry_data"}, 0, codecs::registryDataCodec());
+        7, PacketType{PacketFlow::Clientbound, "registry_data"}, 6, codecs::registryDataCodec());
+    b.addPacket<ir::configuration::UpdateEnabledFeatures>(
+        12, PacketType{PacketFlow::Clientbound, "update_enabled_features"}, 8,
+        codecs::updateEnabledFeaturesCodec());
+    b.addPacket<ir::configuration::UpdateTags>(
+        13, PacketType{PacketFlow::Clientbound, "update_tags"}, 9, codecs::updateTagsCodec());
+    b.addPacket<ir::configuration::SelectKnownPacks>(
+        14, PacketType{PacketFlow::Clientbound, "select_known_packs"}, 7, codecs::selectKnownPacksCodec());
     return b.build();
 }
 
 [[nodiscard]] std::unique_ptr<protocol::ProtocolInfo<B, ir::PlayPacket>> buildPlaySb()
 {
     ProtocolInfoBuilder<B, ir::PlayPacket> b(ConnectionProtocol::Play, PacketFlow::Serverbound);
-    // PlayPacket variant: KeepAlive(0) Disconnect(1) MovePlayerPos(2) Chat(3)
-    // Java Sb id: chat=8, keep_alive=27, move_player_pos=29。
-    b.addPacket<ir::play::Chat>(8, PacketType{PacketFlow::Serverbound, "chat"}, 3, codecs::chatCodec());
+    // PlayPacket variant altIndex：AcceptTeleportation(0) ConfigurationAcknowledged(1) ContainerClick(2)
+    //   ContainerClose(3) Chat(4) KeepAlive(5) SetCarriedItem(6) MovePlayerPos(7) MovePlayerPosRot(8)
+    //   MovePlayerRot(9) MovePlayerStatusOnly(10) PlayerAction(11) PlayerCommand(12) PlayerInput(13)
+    //   UseItem(14) UseItemOn(15)
+    // Java Sb id（1.21.11）：accept_teleportation=0, configuration_acknowledged=15, container_click=17,
+    //   container_close=18, chat=8, keep_alive=27, set_carried_item=52, move_player_pos=29,
+    //   move_player_pos_rot=30, move_player_rot=31, move_player_status_only=32, player_action=40,
+    //   player_command=41, player_input=42, use_item=64, use_item_on=63。
+    b.addPacket<ir::play::AcceptTeleportation>(
+        0, PacketType{PacketFlow::Serverbound, "accept_teleportation"}, 0, codecs::acceptTeleportationCodec());
+    b.addPacket<ir::play::Chat>(8, PacketType{PacketFlow::Serverbound, "chat"}, 4, codecs::chatCodec());
     b.addPacket<ir::play::KeepAlive>(
-        27, PacketType{PacketFlow::Serverbound, "keep_alive"}, 0, codecs::keepAliveCodec());
+        27, PacketType{PacketFlow::Serverbound, "keep_alive"}, 5, codecs::keepAliveCodec());
     b.addPacket<ir::play::MovePlayerPos>(
-        29, PacketType{PacketFlow::Serverbound, "move_player_pos"}, 2, codecs::movePlayerPosCodec());
+        29, PacketType{PacketFlow::Serverbound, "move_player_pos"}, 7, codecs::movePlayerPosCodec());
+    b.addPacket<ir::play::MovePlayerPosRot>(
+        30, PacketType{PacketFlow::Serverbound, "move_player_pos_rot"}, 8, codecs::movePlayerPosRotCodec());
+    b.addPacket<ir::play::MovePlayerRot>(
+        31, PacketType{PacketFlow::Serverbound, "move_player_rot"}, 9, codecs::movePlayerRotCodec());
+    b.addPacket<ir::play::MovePlayerStatusOnly>(
+        32, PacketType{PacketFlow::Serverbound, "move_player_status_only"}, 10, codecs::movePlayerStatusOnlyCodec());
+    b.addPacket<ir::play::PlayerAction>(
+        40, PacketType{PacketFlow::Serverbound, "player_action"}, 11, codecs::playerActionCodec());
+    b.addPacket<ir::play::PlayerCommand>(
+        41, PacketType{PacketFlow::Serverbound, "player_command"}, 12, codecs::playerCommandCodec());
+    b.addPacket<ir::play::PlayerInput>(
+        42, PacketType{PacketFlow::Serverbound, "player_input"}, 13, codecs::playerInputCodec());
+    b.addPacket<ir::play::UseItemOn>(
+        63, PacketType{PacketFlow::Serverbound, "use_item_on"}, 15, codecs::useItemOnCodec());
+    b.addPacket<ir::play::UseItem>(
+        64, PacketType{PacketFlow::Serverbound, "use_item"}, 14, codecs::useItemCodec());
+    b.addPacket<ir::play::SetCarriedItem>(
+        52, PacketType{PacketFlow::Serverbound, "set_carried_item"}, 6, codecs::setCarriedItemCodec());
+    b.addPacket<ir::play::ContainerClick>(
+        17, PacketType{PacketFlow::Serverbound, "container_click"}, 2, codecs::containerClickCodec());
+    b.addPacket<ir::play::ContainerClose>(
+        18, PacketType{PacketFlow::Serverbound, "container_close"}, 3, codecs::containerCloseCodec());
+    b.addPacket<ir::play::ConfigurationAcknowledged>(
+        15, PacketType{PacketFlow::Serverbound, "configuration_acknowledged"}, 1,
+        codecs::configurationAcknowledgedCodec());
     return b.build();
 }
 
 [[nodiscard]] std::unique_ptr<protocol::ProtocolInfo<B, ir::PlayPacket>> buildPlayCb()
 {
     ProtocolInfoBuilder<B, ir::PlayPacket> b(ConnectionProtocol::Play, PacketFlow::Clientbound);
-    // Java Cb id: disconnect=31, keep_alive=42。
+    // PlayPacket variant altIndex：Disconnect(16) Login(17) PlayerPosition(18) SetTime(19)
+    //   PlayerAbilities(20) SetHeldSlot(21) SetDefaultSpawnPosition(22) ChangeDifficulty(23)
+    //   GameEvent(24) PlayerInfoUpdate(25) PlayerInfoRemove(26) SetEntityData(27) AddEntity(28)
+    //   RemoveEntities(29) TeleportEntity(30) MoveEntityPos(31) MoveEntityPosRot(32) MoveEntityRot(33)
+    //   SetEntityMotion(34) RotateHead(35) LevelChunkWithLight(36) LightUpdate(37) BlockUpdate(38)
+    //   ContainerSetContent(39) ContainerSetSlot(40) OpenScreen(41) ContainerSetData(42)
+    // Java Cb id（1.21.11）：add_entity=1, block_update=8, change_difficulty=10, game_event=38,
+    //   open_screen=57, keep_alive=42, remove_entities=75, level_chunk_with_light=44, light_update=47,
+    //   login=48, move_entity_pos=51, move_entity_pos_rot=52, move_entity_rot=54, rotate_head=81,
+    //   set_entity_data=97, set_entity_motion=99, player_info_remove=67, player_info_update=68,
+    //   player_position=70, teleport_entity=123, set_held_slot=103, set_default_spawn_position=95,
+    //   set_time=111, player_abilities=62, container_set_content=18, container_set_data=19,
+    //   container_set_slot=20, disconnect=31。
+    b.addPacket<ir::play::AddEntity>(1, PacketType{PacketFlow::Clientbound, "add_entity"}, 28, codecs::addEntityCodec());
+    b.addPacket<ir::play::BlockUpdate>(
+        8, PacketType{PacketFlow::Clientbound, "block_update"}, 38, codecs::blockUpdateCodec());
+    b.addPacket<ir::play::ChangeDifficulty>(
+        10, PacketType{PacketFlow::Clientbound, "change_difficulty"}, 23, codecs::changeDifficultyCodec());
+    b.addPacket<ir::play::ContainerSetContent>(
+        18, PacketType{PacketFlow::Clientbound, "container_set_content"}, 39, codecs::containerSetContentCodec());
+    b.addPacket<ir::play::ContainerSetData>(
+        19, PacketType{PacketFlow::Clientbound, "container_set_data"}, 42, codecs::containerSetDataCodec());
+    b.addPacket<ir::play::ContainerSetSlot>(
+        20, PacketType{PacketFlow::Clientbound, "container_set_slot"}, 40, codecs::containerSetSlotCodec());
     b.addPacket<ir::play::Disconnect>(
-        31, PacketType{PacketFlow::Clientbound, "disconnect"}, 1, codecs::playDisconnectCodec());
+        31, PacketType{PacketFlow::Clientbound, "disconnect"}, 16, codecs::playDisconnectCodec());
+    b.addPacket<ir::play::LevelChunkWithLight>(
+        44, PacketType{PacketFlow::Clientbound, "level_chunk_with_light"}, 36, codecs::levelChunkWithLightCodec());
+    b.addPacket<ir::play::LightUpdate>(
+        47, PacketType{PacketFlow::Clientbound, "light_update"}, 37, codecs::lightUpdateCodec());
+    b.addPacket<ir::play::Login>(48, PacketType{PacketFlow::Clientbound, "login"}, 17, codecs::loginCodec());
+    b.addPacket<ir::play::GameEvent>(
+        38, PacketType{PacketFlow::Clientbound, "game_event"}, 24, codecs::gameEventCodec());
+    b.addPacket<ir::play::OpenScreen>(
+        57, PacketType{PacketFlow::Clientbound, "open_screen"}, 41, codecs::openScreenCodec());
     b.addPacket<ir::play::KeepAlive>(
-        42, PacketType{PacketFlow::Clientbound, "keep_alive"}, 0, codecs::keepAliveCodec());
+        42, PacketType{PacketFlow::Clientbound, "keep_alive"}, 5, codecs::keepAliveCodec());
+    b.addPacket<ir::play::MoveEntityPos>(
+        51, PacketType{PacketFlow::Clientbound, "move_entity_pos"}, 31, codecs::moveEntityPosCodec());
+    b.addPacket<ir::play::MoveEntityPosRot>(
+        52, PacketType{PacketFlow::Clientbound, "move_entity_pos_rot"}, 32, codecs::moveEntityPosRotCodec());
+    b.addPacket<ir::play::MoveEntityRot>(
+        54, PacketType{PacketFlow::Clientbound, "move_entity_rot"}, 33, codecs::moveEntityRotCodec());
+    b.addPacket<ir::play::PlayerInfoRemove>(
+        67, PacketType{PacketFlow::Clientbound, "player_info_remove"}, 26, codecs::playerInfoRemoveCodec());
+    b.addPacket<ir::play::PlayerInfoUpdate>(
+        68, PacketType{PacketFlow::Clientbound, "player_info_update"}, 25, codecs::playerInfoUpdateCodec());
+    b.addPacket<ir::play::PlayerPosition>(
+        70, PacketType{PacketFlow::Clientbound, "player_position"}, 18, codecs::playerPositionCodec());
+    b.addPacket<ir::play::RemoveEntities>(
+        75, PacketType{PacketFlow::Clientbound, "remove_entities"}, 29, codecs::removeEntitiesCodec());
+    b.addPacket<ir::play::SetDefaultSpawnPosition>(
+        95, PacketType{PacketFlow::Clientbound, "set_default_spawn_position"}, 22,
+        codecs::setDefaultSpawnPositionCodec());
+    b.addPacket<ir::play::SetEntityData>(
+        97, PacketType{PacketFlow::Clientbound, "set_entity_data"}, 27, codecs::setEntityDataCodec());
+    b.addPacket<ir::play::SetEntityMotion>(
+        99, PacketType{PacketFlow::Clientbound, "set_entity_motion"}, 34, codecs::setEntityMotionCodec());
+    b.addPacket<ir::play::RotateHead>(
+        81, PacketType{PacketFlow::Clientbound, "rotate_head"}, 35, codecs::rotateHeadCodec());
+    b.addPacket<ir::play::TeleportEntity>(
+        123, PacketType{PacketFlow::Clientbound, "teleport_entity"}, 30, codecs::teleportEntityCodec());
+    b.addPacket<ir::play::SetHeldSlot>(
+        103, PacketType{PacketFlow::Clientbound, "set_held_slot"}, 21, codecs::setHeldSlotCodec());
+    b.addPacket<ir::play::SetTime>(
+        111, PacketType{PacketFlow::Clientbound, "set_time"}, 19, codecs::setTimeCodec());
+    b.addPacket<ir::play::PlayerAbilities>(
+        62, PacketType{PacketFlow::Clientbound, "player_abilities"}, 20, codecs::playerAbilitiesCodec());
     return b.build();
 }
 

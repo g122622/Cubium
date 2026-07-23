@@ -23,27 +23,15 @@
 
 #pragma once
 
-#include "common/network/buffer/RegistryByteBuf.hpp"
-#include "common/network/codec/StreamCodec.hpp"
-#include "common/network/codec/StreamCodecs.hpp"
-#include "common/network/ir/IrPacket.hpp"
+#include "common/network/backend/java/codecs/JavaCodecBase.hpp"
+#include "common/network/backend/java/codecs/JavaConfigurationCodecs.hpp"
+#include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 
 #include <array>
-#include <utility>
 
 namespace mc::network::backend::java::codecs {
 
-using B = buffer::RegistryByteBuf;
-
-// ============================================================================
-// 工具：用 lambda 构造 StreamCodec<B, V>（按值持有，可被 ProtocolInfoBuilder addPacket 接收）
-// ============================================================================
-
-template <typename V, typename EncodeFn, typename DecodeFn>
-[[nodiscard]] auto makeCodec(EncodeFn encodeFn, DecodeFn decodeFn)
-{
-    return codec::makeLambdaCodec<B, V>(std::move(encodeFn), std::move(decodeFn));
-}
+// B 与 makeCodec 定义在 JavaCodecBase.hpp（供各阶段 codec 头文件独立包含）。
 
 // ============================================================================
 // Handshake 阶段
@@ -301,116 +289,18 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
 
 // ============================================================================
 // Configuration 阶段
+//
+// 全部 codec 已迁移到 JavaConfigurationCodecs.hpp（对齐 1.21.11 在用包子集：
+// ClientInformation/CustomPayload/Disconnect/FinishConfiguration/KeepAlive/Ping/
+// RegistryData/SelectKnownPacks/UpdateEnabledFeatures/UpdateTags）。本文件不再重复定义。
 // ============================================================================
 
-/**
- * @brief RegistryData（S→C，id=7）
- *
- * 1.21.11 完整格式较复杂；当前 IR 暂存 registryKey + 原始 payload。
- * 线格式：Identifier(registryKey) + 流式 entry 列表。
- * TODO(Phase3): 对齐 1.21.11 RegistryData 完整字段（stream codec 的 registry entry 列表）。
- *               当前按 Identifier + 原始 payload 字节透传（VarInt 长度 + 字节）。
- */
-[[nodiscard]] inline auto registryDataCodec()
-{
-    return makeCodec<ir::configuration::RegistryData>(
-        [](B& buf, const ir::configuration::RegistryData& v) {
-            buf.writeString(v.registryKey);
-            buf.writeVarInt(static_cast<i32>(v.payload.size()));
-            buf.writeBytes(v.payload.data(), v.payload.size());
-        },
-        [](B& buf) -> Result<ir::configuration::RegistryData> {
-            ir::configuration::RegistryData v{};
-            MC_TRY_ASSIGN(v.registryKey, buf.readString());
-            i32 len = 0;
-            MC_TRY_ASSIGN(len, buf.readVarInt());
-            if (len < 0) {
-                return Error(ErrorCode::InvalidData, "RegistryData payload 长度为负", "registryDataCodec");
-            }
-            MC_TRY_ASSIGN(v.payload, buf.readBytes(static_cast<usize>(len)));
-            return v;
-        });
-}
-
-/**
- * @brief FinishConfiguration（S→C id=3 / C→S id=3）：无字段，空包。
- */
-[[nodiscard]] inline auto finishConfigurationCodec()
-{
-    return makeCodec<ir::configuration::FinishConfiguration>([](B&, const ir::configuration::FinishConfiguration&) {},
-        [](B&) -> Result<ir::configuration::FinishConfiguration> { return ir::configuration::FinishConfiguration{}; });
-}
-
 // ============================================================================
-// Play 阶段（在用包子集）
+// Play 阶段
+//
+// 全部 codec 已迁移到 JavaPlayCodecs.hpp（对齐 1.21.11 在用包子集，含 LpVec3/
+// packedDegrees/UUID 经 JavaWireHelpers.hpp 实现，以及 HashedStack/ItemStackView/
+// SpawnInfo/PlayerInfo 等子结构）。本文件不再重复定义。
 // ============================================================================
-
-/**
- * @brief KeepAlive（双向，S→C id=0 / C→S id=27）：VarLong(id)。
- */
-[[nodiscard]] inline auto keepAliveCodec()
-{
-    return makeCodec<ir::play::KeepAlive>([](B& buf, const ir::play::KeepAlive& v) { buf.writeVarLong(v.id); },
-        [](B& buf) -> Result<ir::play::KeepAlive> {
-            ir::play::KeepAlive v{};
-            MC_TRY_ASSIGN(v.id, buf.readVarLong());
-            return v;
-        });
-}
-
-/**
- * @brief Disconnect（S→C，id=1B）：Utf8(reason JSON)。
- * 注：play Disconnect 的 Java id 在 1.21.11 为 clientbound，由 JavaProtocolTables 显式指定。
- */
-[[nodiscard]] inline auto playDisconnectCodec()
-{
-    return makeCodec<ir::play::Disconnect>([](B& buf, const ir::play::Disconnect& v) { buf.writeString(v.reason); },
-        [](B& buf) -> Result<ir::play::Disconnect> {
-            ir::play::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, buf.readString());
-            return v;
-        });
-}
-
-/**
- * @brief MovePlayerPos（C→S，id=29）：F64(x)+F64(y)+F64(z)+Bool(onGround)。
- */
-[[nodiscard]] inline auto movePlayerPosCodec()
-{
-    return makeCodec<ir::play::MovePlayerPos>(
-        [](B& buf, const ir::play::MovePlayerPos& v) {
-            buf.writeF64(v.x);
-            buf.writeF64(v.y);
-            buf.writeF64(v.z);
-            buf.writeBool(v.onGround);
-        },
-        [](B& buf) -> Result<ir::play::MovePlayerPos> {
-            ir::play::MovePlayerPos v{};
-            MC_TRY_ASSIGN(v.x, buf.readF64());
-            MC_TRY_ASSIGN(v.y, buf.readF64());
-            MC_TRY_ASSIGN(v.z, buf.readF64());
-            MC_TRY_ASSIGN(v.onGround, buf.readBool());
-            return v;
-        });
-}
-
-/**
- * @brief Chat（C→S，id=8）：Utf8(message) + I64(timestamp)。
- * TODO(Phase3): 补 signature/salt/lastSeen 等聊天签名链字段（1.21.11）。
- */
-[[nodiscard]] inline auto chatCodec()
-{
-    return makeCodec<ir::play::Chat>(
-        [](B& buf, const ir::play::Chat& v) {
-            buf.writeString(v.message);
-            buf.writeI64(v.timestamp);
-        },
-        [](B& buf) -> Result<ir::play::Chat> {
-            ir::play::Chat v{};
-            MC_TRY_ASSIGN(v.message, buf.readString());
-            MC_TRY_ASSIGN(v.timestamp, buf.readI64());
-            return v;
-        });
-}
 
 } // namespace mc::network::backend::java::codecs
