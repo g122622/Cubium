@@ -88,7 +88,7 @@ minecraft/
 
 各子模块内部关系：
 - **screens/**：`Screen` 基类继承自 `ContainerWidget`，`ScreenManager` 管理屏幕栈生命周期，各具体屏幕（`MainMenuScreen`、`PauseScreen` 等）继承 `Screen`
-- **widgets/**：`HudWidget` 整合 `HotbarWidget`、`HealthBarWidget`、`HungerBarWidget`、`ExperienceBar`；`ScreenStackWidget` 桥接旧 `IScreen` 接口和新 `Screen` 体系
+- **widgets/**：`HudWidget` 整合 `HotbarWidget`、`HealthBarWidget`、`HungerBarWidget`、`ExperienceBar`；`ScreenStackWidget` 管理 kagero `Screen` 屏幕栈（push/pop/clear + 事件分发 + 屏幕变化回调）
 - **targetinfo/**：`TargetInfoResolver` 解析方块/实体目标 → `TargetInfoSnapshot` → `TargetInfoWidget` 渲染 HUD 覆盖层
 
 ## 上下游外部依赖关系

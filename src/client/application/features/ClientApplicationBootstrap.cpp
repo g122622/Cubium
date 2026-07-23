@@ -712,7 +712,6 @@ void ClientApplication::initializeUi()
 
                 // 层 Z=30: Screen 栈
                 auto screenStackWidget = std::make_unique<ui::minecraft::widgets::ScreenStackWidget>();
-                screenStackWidget->setGuiRenderer(&m_renderer->guiRenderer());
 
                 // 设置 ScreenManager 后端
                 ScreenManager::instance().setScreenStackWidget(screenStackWidget.get());

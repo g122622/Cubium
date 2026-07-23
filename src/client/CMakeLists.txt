@@ -351,7 +351,7 @@ add_executable(minecraft-client
     ui/GuiScale.cpp
     ui/TridentCanvas.cpp
     ui/screen/ScreenManager.cpp
-    ui/screen/MapScreen.cpp
+    ui/minecraft/screens/MapScreen.cpp
     ui/minecraft/screens/LoomScreen.cpp
     # UI Kagero模板系统
     ui/kagero/template/parser/Ast.cpp

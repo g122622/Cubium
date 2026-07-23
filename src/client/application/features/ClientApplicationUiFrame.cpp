@@ -23,24 +23,11 @@
 
 #include "client/application/ClientApplication.hpp"
 
-#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-
-#include <algorithm>
-
 namespace mc::client {
 
 void ClientApplication::updateUiFrameState(f32 deltaTime, f32 partialTick)
 {
-    // 更新 ScreenStackWidget 的 partialTick 和鼠标位置（用于 IScreen::render）
-    auto* screenStack = m_kageroEngine
-        ? static_cast<ui::minecraft::widgets::ScreenStackWidget*>(m_kageroEngine->getLayer(m_screenStackLayerId))
-        : nullptr;
-    if (screenStack) {
-        screenStack->setPartialTick(partialTick);
-        screenStack->setMousePosition(
-            static_cast<i32>(m_input.mouseX() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1))),
-            static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1))));
-    }
+    (void)partialTick;
 
     // 更新 KageroEngine
     if (m_kageroEngine) {

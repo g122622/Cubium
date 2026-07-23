@@ -34,25 +34,6 @@ ScreenManager& ScreenManager::instance() noexcept
 void ScreenManager::setScreenStackWidget(ui::minecraft::widgets::ScreenStackWidget* stackWidget)
 {
     m_stackWidget = stackWidget;
-
-    // 桥接 ScreenStackWidget 的屏幕变化回调到 ScreenManager 的 IScreen 回调
-    // 这样无论通过 ScreenStackWidget 还是 ScreenManager 操作屏幕，
-    // ScreenManager 的回调都能被正确触发
-    if (m_stackWidget) {
-        m_stackWidget->setScreenChangeCallback([this](const ui::minecraft::widgets::ScreenChangeInfo& info) {
-            if (m_onScreenChange) {
-                m_onScreenChange(info.newIScreen);
-            }
-        });
-    }
-}
-
-void ScreenManager::openScreen(std::unique_ptr<IScreen> screen)
-{
-    if (m_stackWidget && screen) {
-        m_stackWidget->pushIScreen(std::move(screen));
-        // 回调由 ScreenStackWidget 内部触发，无需在此重复触发
-    }
 }
 
 void ScreenManager::openScreen(std::unique_ptr<ui::minecraft::Screen> screen)

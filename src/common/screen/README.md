@@ -1,12 +1,11 @@
 # Screen 模块
 
-`common/screen` 模块定义了游戏屏幕系统的核心接口和类型，为客户端UI屏幕提供统一的抽象层。
+`common/screen` 模块定义屏幕类型标识（`ScreenType` 枚举及其与资源 ID 的映射），供服务端菜单（如 `CraftingMenu`）标记自身所属的屏幕/界面类型，用于序列化与跨端共享。
 
 ## 目录结构
 
 ```
 src/common/screen/
-├── IScreen.hpp        # 屏幕接口定义
 ├── ScreenType.hpp     # 屏幕类型枚举声明
 └── ScreenType.cpp     # 屏幕类型与资源ID映射实现
 ```
@@ -14,25 +13,6 @@ src/common/screen/
 ## 模块关系图
 
 ```
-                    ┌─────────────────┐
-                    │   IScreen.hpp   │
-                    │   (接口定义)     │
-                    └────────┬────────┘
-                             │ 继承
-                             ▼
-┌──────────────────────────────────────────────────┐
-│           client/ui/screen/                       │
-│  ┌─────────────────────────────────────────────┐ │
-│  │   ScreenManager                             │ │
-│  │   - 管理屏幕栈                               │ │
-│  │   - 使用IScreen指针                          │ │
-│  └─────────────────────────────────────────────┘ │
-│  ┌─────────────────────────────────────────────┐ │
-│  │   MapScreen                                 │ │
-│  │   - 继承IScreen的全屏地图查看屏              │ │
-│  └─────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────┘
-
                     ┌─────────────────┐
                     │ ScreenType.hpp  │
                     │   (类型枚举)     │
@@ -51,9 +31,8 @@ src/common/screen/
 
 ## 模块职责
 
-1. **定义屏幕抽象接口** - 为所有客户端UI屏幕提供统一的交互接口
-2. **定义屏幕类型标识** - 提供屏幕类型的标准化枚举和序列化
-3. **解耦客户端与服务端** - 客户端和服务端通过ScreenType共享屏幕类型信息
+1. **定义屏幕类型标识** - 提供屏幕类型的标准化枚举和序列化（`screenTypeToId` / `screenTypeFromId`）。
+2. **解耦客户端与服务端** - 客户端和服务端通过 ScreenType 共享屏幕类型信息。
 
 ## 依赖项
 
@@ -65,28 +44,7 @@ src/common/screen/
 
 ## 容易踩的坑
 
-### 1. 鼠标按钮编码
-
-鼠标按钮参数使用GLFW编码：
-- `0` = 左键
-- `1` = 右键
-- `2` = 中键
-
-不要与Minecraft协议中的按钮编码混淆。
-
-### 2. 键盘按键编码
-
-键盘按键使用GLFW键码：
-- `256` = ESC键
-- `69` = E键
-
-实现时需要引用GLFW常量或硬编码值。
-
-### 3. 屏幕暂停行为
-
-默认 `isPauseScreen()` 返回 `false`。菜单类屏幕应重写返回 `true`，容器类屏幕返回 `false`。
-
-### 4. 资源ID格式
+### 1. 资源ID格式
 
 `screenTypeFromId` 支持两种格式：
 - 完整格式：`minecraft:crafting_table`
@@ -94,30 +52,7 @@ src/common/screen/
 
 但 `screenTypeToId` 总是返回完整格式。若需要与其他系统对接，注意格式一致性。
 
-### 5. 事件消费机制
-
-所有事件处理方法返回 `bool`：
-- `true` = 事件已消费，不再传递
-- `false` = 事件未消费，继续传递
-
-未消费的事件可能被父级处理或传递到游戏世界。
-
-### 6. 纯虚函数必须实现
-
-`IScreen` 中的纯虚函数必须由派生类实现：
-- `init()`
-- `render()`
-- `onClick()`
-- `onKey()`
-- `onClose()`
-
-其他方法有默认实现，可根据需要重写。
-
-### 7. 屏幕尺寸初始化
-
-在 `render()` 前必须调用 `setScreenSize()` 或 `onResize()`，否则居中计算可能不正确。
-
-### 8. ScreenType映射不完整
+### 2. ScreenType映射不完整
 
 `idToTypeMap` 中的简写形式只覆盖了部分常用类型，不常用的屏幕类型（如`beacon`、`anvil`等）只能用完整格式解析。
 
@@ -125,8 +60,6 @@ src/common/screen/
 
 | 文件 | 说明 |
 |------|------|
-| `client/ui/screen/ScreenManager.hpp` | 屏幕管理器，管理屏幕栈 |
-| `client/ui/minecraft/screens/ContainerScreenBase.hpp` | 容器屏幕共享基类（kagero 体系） |
-| `client/ui/minecraft/widgets/ScreenStackWidget.hpp` | Kagero UI屏幕栈组件 |
-| `client/ui/minecraft/screens/CraftingScreen.hpp` | 工作台屏幕实现（kagero 体系） |
 | `server/menu/CraftingMenu.hpp` | 服务端工作台菜单（使用ScreenType） |
+| `client/ui/screen/ScreenManager.hpp` | 屏幕管理器（kagero 体系屏幕栈门面） |
+| `client/ui/minecraft/widgets/ScreenStackWidget.hpp` | kagero UI屏幕栈组件 |

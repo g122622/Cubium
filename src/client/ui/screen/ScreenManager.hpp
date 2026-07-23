@@ -24,8 +24,6 @@
 #pragma once
 
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "common/screen/IScreen.hpp"
-#include <functional>
 #include <memory>
 
 namespace mc::client {
@@ -44,9 +42,7 @@ namespace mc::client {
  * 使用示例：
  * @code
  * ScreenManager& manager = ScreenManager::instance();
- * manager.openScreen(std::make_unique<InventoryScreen>());
- * manager.tick(dt);
- * manager.render(mouseX, mouseY, partialTick);
+ * manager.openScreen(std::make_unique<InventoryScreen>(...));
  * manager.closeScreen();
  * @endcode
  */
@@ -65,17 +61,8 @@ public:
     void setScreenStackWidget(ui::minecraft::widgets::ScreenStackWidget* stackWidget);
 
     /**
-     * @brief 打开屏幕
-     * @param screen 屏幕实例
-     *
-     * 将屏幕推入栈顶并初始化。
-     */
-    void openScreen(std::unique_ptr<IScreen> screen);
-
-    /**
      * @brief 打开 kagero Screen（Widget 体系）
      *
-     * 与 openScreen(IScreen) 对应，接纳自研 kagero 引擎的 Screen。
      * 将屏幕推入栈顶并触发 onOpen。
      * @param screen kagero Screen 实例
      */
@@ -94,18 +81,8 @@ public:
     void closeAll();
 
     /**
-     * @brief 获取当前屏幕
-     * @return 栈顶屏幕，如果栈空返回nullptr
-     */
-    [[nodiscard]] IScreen* getCurrentScreen() noexcept { return m_stackWidget ? m_stackWidget->topIScreen() : nullptr; }
-    [[nodiscard]] const IScreen* getCurrentScreen() const noexcept
-    {
-        return m_stackWidget ? m_stackWidget->topIScreen() : nullptr;
-    }
-
-    /**
      * @brief 获取当前 kagero Screen（Widget 体系）
-     * @return 栈顶 kagero Screen，若栈空或栈顶是 IScreen 类型返回 nullptr
+     * @return 栈顶 kagero Screen，若栈空返回 nullptr
      */
     [[nodiscard]] ui::minecraft::Screen* getCurrentKageroScreen() noexcept
     {
@@ -212,15 +189,6 @@ public:
      */
     [[nodiscard]] bool shouldPauseGame() const noexcept;
 
-    /**
-     * @brief 设置屏幕变化回调
-     *
-     * 注意：回调的触发由 ScreenStackWidget 统一管理。
-     * 当通过本类设置回调后，ScreenStackWidget 的屏幕变化回调会桥接到此处。
-     * @param callback 回调函数，参数为变化后的栈顶 IScreen 指针（栈空时为 nullptr）
-     */
-    void setScreenChangeCallback(std::function<void(IScreen*)> callback) { m_onScreenChange = std::move(callback); }
-
 private:
     ScreenManager() = default;
     ~ScreenManager() = default;
@@ -228,7 +196,6 @@ private:
     ScreenManager& operator=(const ScreenManager&) = delete;
 
     ui::minecraft::widgets::ScreenStackWidget* m_stackWidget = nullptr;
-    std::function<void(IScreen*)> m_onScreenChange;
 };
 
 } // namespace mc::client

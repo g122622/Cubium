@@ -216,7 +216,6 @@ src/common/
 │   ├── VanillaResources.hpp  # 原版资源
 │
 ├── screen/                   # 屏幕类型
-│   ├── IScreen.hpp
 │   └── ScreenType.hpp
 │
 ├── stats/                    # 统计常量

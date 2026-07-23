@@ -39,10 +39,10 @@ flowchart TB
     Chat --> ChatMgr
     Chat --> CmdMgr
     HUD --> Player
-    Stack --> Screens[Screen / IScreen]
+    Stack --> Screens[Screen]
 ```
 
-Widgets 模块负责把游戏状态转换成玩家可见的 UI 表达。它既承担 HUD、聊天和准星这类常驻控件，也承担容器与屏幕切换所需的交互桥接。`HudWidget` 直接渲染快捷栏、生命值、饥饿值、经验条等元素；`ScreenStackWidget` 桥接旧 `IScreen` 接口和新 `Screen` 体系。
+Widgets 模块负责把游戏状态转换成玩家可见的 UI 表达。它既承担 HUD、聊天和准星这类常驻控件，也承担容器与屏幕切换所需的交互桥接。`HudWidget` 直接渲染快捷栏、生命值、饥饿值、经验条等元素；`ScreenStackWidget` 管理 kagero `Screen` 屏幕栈（push/pop/clear + 事件分发 + 屏幕变化回调）。
 
 ## HUD 渲染细节
 

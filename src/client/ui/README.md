@@ -126,8 +126,7 @@ ui/
 │       ├── ScreenStackWidget.hpp/cpp # 屏幕栈组件
 │       ├── TitleWidget.hpp/cpp       # 标题组件
 │       └── Viewport3DWidget.hpp/cpp  # 3D视口
-└── screen/                           # 屏幕系统（旧版兼容，仅余 ScreenManager + MapScreen，待 MapScreen 迁 kagero 后清空）
-    ├── MapScreen.hpp/cpp
+└── screen/                           # 屏幕系统（ScreenManager 单例门面，委托 ScreenStackWidget 管理屏幕栈）
     └── ScreenManager.hpp/cpp
 ```
 
@@ -278,9 +277,9 @@ Kagero框架的详细文档不在本文件中，请参考 `kagero/docs/` 目录�
 
 右键点击（button == 1）时，`onClick` 和 `onRightClick` **都会触发**，这是有意为之的设计。组件应在 `onClick` 中检查 `button` 参数来区分左右键，或仅处理左键点击（button == 0）。
 
-### 11. screen目录是旧版兼容
+### 11. screen目录仅余屏幕管理器门面
 
-`ui/screen/` 目录是旧版屏幕系统，正在逐步迁移到 `minecraft/screens/`，新代码应使用后者。
+`ui/screen/` 目录仅保留 `ScreenManager`（屏幕栈管理单例，委托 `minecraft/widgets/ScreenStackWidget`）。所有屏幕实现位于 `minecraft/screens/`，旧 IScreen 屏幕体系已删除。新屏幕一律放在 `minecraft/screens/` 并继承 `Screen`。
 
 ### 12. 混淆文字（§k）宽度索引
 

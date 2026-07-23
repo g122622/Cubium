@@ -22,7 +22,7 @@ MapRenderer 的核心流程：
 ## 上下游外部依赖关系
 
 **依赖方（上游）**：
-- `src/client/ui/screen/MapScreen.hpp` - 地图查看屏幕
+- `src/client/ui/minecraft/screens/MapScreen.hpp` - 地图查看屏幕（kagero 屏）
 - `src/client/ui/minecraft/screens/CartographyScreen.hpp` - 制图台GUI（地图预览）
 - `src/client/renderer/trident/firstperson/FirstPersonRenderer.hpp` - 手持地图渲染
 
