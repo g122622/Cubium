@@ -351,8 +351,6 @@ add_executable(minecraft-client
     ui/GuiScale.cpp
     ui/TridentCanvas.cpp
     ui/screen/ScreenManager.cpp
-    ui/screen/CraftingScreen.cpp
-    ui/screen/CreativeScreen.cpp
     ui/screen/ChestScreen.cpp
     ui/screen/FurnaceScreen.cpp
     ui/screen/CartographyScreen.cpp
@@ -385,6 +383,7 @@ add_executable(minecraft-client
     ui/kagero/widget/ContainerWidget.cpp
     ui/kagero/widget/ListWidget.cpp
     ui/kagero/widget/Widget.cpp
+    ui/kagero/widget/ItemTooltipBuilder.cpp
     # UI Kagero 引擎
     ui/kagero/KageroEngine.cpp
     # UI Kagero widgets
@@ -414,6 +413,8 @@ add_executable(minecraft-client
     ui/minecraft/screens/CreateWorldScreen.cpp
     ui/minecraft/screens/LoadingScreen.cpp
     ui/minecraft/screens/InventoryScreen.cpp
+    ui/minecraft/screens/CreativeScreen.cpp
+    ui/minecraft/screens/CraftingScreen.cpp
     ui/minecraft/screens/ContainerScreen.cpp
     ui/minecraft/screens/PauseScreen.cpp
     ui/minecraft/screens/ConfirmScreen.cpp

@@ -16,7 +16,10 @@ src/client/ui/minecraft/screens/
 ├── ConfirmScreen.hpp/cpp      # 通用确认对话框（双按钮：确认/取消）
 ├── MessageScreen.hpp/cpp      # 通用通知对话框（单按钮：OK）
 ├── LoadingScreen.hpp/cpp      # 加载界面
-├── InventoryScreen.hpp/cpp    # 物品栏界面
+├── InventoryScreen.hpp/cpp    # 物品栏界面（生存，继承 ContainerScreenBase）
+├── CreativeScreen.hpp/cpp     # 创造物品库界面（继承 ContainerScreenBase + ItemPickerMenu）
+├── CraftingScreen.hpp/cpp     # 工作台界面（3x3 合成，继承 ContainerScreenBase）
+├── ContainerScreenBase.hpp    # 容器屏共享基类（槽位布局/渲染/交互转发/居中定位）
 ├── ContainerScreen.hpp/cpp    # 容器界面
 ├── LoomScreen.hpp/cpp         # 织布机界面
 ├── OptionsScreen.hpp/cpp      # 设置界面

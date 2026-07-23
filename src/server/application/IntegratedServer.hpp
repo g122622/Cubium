@@ -159,6 +159,7 @@ protected:
     void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
     void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
+    void handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
     /**
@@ -230,6 +231,8 @@ private:
     [[nodiscard]] bool _openContainerMenu(ContainerType type, const BlockPos& pos);
     void _closeCurrentContainer(bool sendClosePacket);
     void _openCraftingTableMenu();
+    void _openPlayerInventoryMenu();
+    void _openItemPickerMenu();
 
     // ========== 远程 TCP 玩家支持（局域网发布后启用）==========
 

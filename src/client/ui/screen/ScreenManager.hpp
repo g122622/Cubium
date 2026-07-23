@@ -73,6 +73,15 @@ public:
     void openScreen(std::unique_ptr<IScreen> screen);
 
     /**
+     * @brief 打开 kagero Screen（Widget 体系）
+     *
+     * 与 openScreen(IScreen) 对应，接纳自研 kagero 引擎的 Screen。
+     * 将屏幕推入栈顶并触发 onOpen。
+     * @param screen kagero Screen 实例
+     */
+    void openScreen(std::unique_ptr<ui::minecraft::Screen> screen);
+
+    /**
      * @brief 关闭当前屏幕
      *
      * 关闭栈顶屏幕并恢复下层屏幕。
@@ -92,6 +101,19 @@ public:
     [[nodiscard]] const IScreen* getCurrentScreen() const noexcept
     {
         return m_stackWidget ? m_stackWidget->topIScreen() : nullptr;
+    }
+
+    /**
+     * @brief 获取当前 kagero Screen（Widget 体系）
+     * @return 栈顶 kagero Screen，若栈空或栈顶是 IScreen 类型返回 nullptr
+     */
+    [[nodiscard]] ui::minecraft::Screen* getCurrentKageroScreen() noexcept
+    {
+        return m_stackWidget ? m_stackWidget->top() : nullptr;
+    }
+    [[nodiscard]] const ui::minecraft::Screen* getCurrentKageroScreen() const noexcept
+    {
+        return m_stackWidget ? m_stackWidget->top() : nullptr;
     }
 
     /**

@@ -395,22 +395,6 @@ void NetworkClient::sendChatMessage(const std::string& message)
     _sendRawData(fullPacket.data(), fullPacket.size());
 }
 
-void NetworkClient::sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet)
-{
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    network::PacketSerializer fullPacket;
-    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + ser.size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::CreativeInventoryAction));
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeBytes(ser.buffer());
-
-    _sendRawData(fullPacket.data(), fullPacket.size());
-}
-
 void NetworkClient::sendContainerClick(const ContainerClickPacket& packet)
 {
     network::PacketSerializer ser;
@@ -437,6 +421,24 @@ void NetworkClient::sendCloseContainer(ContainerId containerId)
     network::PacketSerializer fullPacket;
     fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + ser.size()));
     fullPacket.writeU16(static_cast<u16>(network::PacketType::CloseContainer));
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeU16(0);
+    fullPacket.writeBytes(ser.buffer());
+
+    _sendRawData(fullPacket.data(), fullPacket.size());
+}
+
+void NetworkClient::sendOpenPlayerInventory()
+{
+    OpenPlayerInventoryPacket packet;
+
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    network::PacketSerializer fullPacket;
+    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + ser.size()));
+    fullPacket.writeU16(static_cast<u16>(network::PacketType::OpenPlayerInventory));
     fullPacket.writeU16(0);
     fullPacket.writeU16(0);
     fullPacket.writeU16(0);

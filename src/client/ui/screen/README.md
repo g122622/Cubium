@@ -8,14 +8,12 @@
 src/client/ui/screen/
 ├── ScreenManager.hpp/cpp           # 旧版屏幕栈管理器（委托给 ScreenStackWidget）
 ├── AbstractContainerScreen.hpp     # 容器屏幕模板基类（槽位渲染、交互处理、拖拽、提示）
-├── CraftingScreen.hpp/cpp          # 工作台屏幕（CraftingScreen 3x3）和玩家背包屏幕（InventoryCraftingScreen 2x2）
 ├── ChestScreen.hpp/cpp             # 箱子屏幕（支持多行箱子）
 ├── FurnaceScreen.hpp/cpp           # 熔炉屏幕（纹理背景、火焰指示器、进度箭头动画）
 ├── CartographyScreen.hpp/cpp       # 制图台屏幕（地图复制、扩展、锁定）
 ├── MapScreen.hpp/cpp               # 地图查看屏幕（全屏显示已填充地图）
-├── CreativeScreen.hpp/cpp          # 创造模式物品库屏幕（搜索、滚动、垃圾槽、背包编辑）
 └── tooltip/
-    ├── BundleTooltipRenderer.hpp   # 收纳袋 tooltip 渲染器（独立工具类，被 AbstractContainerScreen / CreativeScreen 调用）
+    ├── BundleTooltipRenderer.hpp   # 收纳袋 tooltip 渲染器（独立工具类，被 AbstractContainerScreen 调用）
     ├── BundleTooltipRenderer.cpp   # 布局算法（无 ItemRenderer 依赖，可链接到 mc_tests）
     ├── BundleTooltipRendererRender.cpp  # 渲染主入口（依赖 ItemRenderer，仅 mc_client 构建）
     └── README.md                   # tooltip 子模块说明
@@ -35,22 +33,21 @@ src/client/ui/screen/
 └─────────────────────────────────────────────────────────────────┘
                                  │
         ┌────────────────────────┼────────────────────────┐
-        ▼                        ▼                        ▼
-┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-│   CreativeScreen   │  │AbstractContainerScreen│ │    MapScreen      │
-│  (继承 IScreen)    │  │   (继承 IScreen)     │  │  (继承 IScreen)   │
-└───────────────────┘  └───────────────────┘  └───────────────────┘
-        │                        │
         ▼                        ▼
 ┌───────────────────┐  ┌───────────────────┐
-│  PlayerInventory   │  │   容器菜单系统     │
-│ CreativeInventory  │  │ AbstractContainerMenu│
+│AbstractContainerScreen│ │    MapScreen      │
+│   (继承 IScreen)     │  │  (继承 IScreen)   │
 └───────────────────┘  └───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│   容器菜单系统     │
+│ AbstractContainerMenu│
+└───────────────────┘
 ```
 
 - `ScreenManager`：单例，委托给 `ScreenStackWidget` 管理屏幕栈，不直接持有屏幕
 - `AbstractContainerScreen<Menu>`：容器屏幕模板基类，提供槽位渲染、交互处理、拖拽、悬停提示
-- `CreativeScreen`：直接继承 `IScreen`，不走容器点击流，直接编辑 `PlayerInventory` 并发送 `CreativeInventoryActionPacket`；拥有独立的 `_renderItemTooltip` 和 `_renderTooltip` 实现
 - `MapScreen`：全屏地图查看，依赖 `MapRenderer` 和 `ClientMapDataCache`
 
 ## 容器交互系统
@@ -117,7 +114,6 @@ src/client/ui/screen/
 |------|------|
 | `common/screen/IScreen.hpp` | 屏幕接口（onClick/onRelease/onDrag/onKey 签名含修饰键参数） |
 | `common/entity/inventory/PlayerInventory.hpp` | 玩家背包 |
-| `common/entity/inventory/CreativeInventory.hpp` | 创造物品列表 |
 | `common/entity/inventory/AbstractContainerMenu.hpp` | 容器菜单基类（槽位管理、点击逻辑、拖拽协议） |
 | `common/network/packet/InventoryPackets.hpp` | 容器点击包、关闭包、创造库存动作包 |
 | `client/renderer/trident/gui/GuiRenderer.hpp` | GUI 渲染器 |
@@ -135,19 +131,15 @@ src/client/ui/screen/
 
 ## 容易踩的坑
 
-- **渲染器/尺寸必须先设置**：`CreativeScreen`、`MapScreen` 等必须先调用 `setRenderers()` 和 `setScreenSize()` 再进入渲染，否则不会绘制任何内容。
-- **创造屏幕不暂停游戏**：`CreativeScreen.isPauseScreen()` 返回 `false`。
-- **E 键行为差异**：E 键在创造模式下不是”关闭背包”，而是进入创造库存界面；模式切换时要由上层决定应该打开哪个屏幕。
-- **滚轮事件必须显式转发**：滚轮事件需通过 `ScreenManager.onScroll()` 转发到当前屏幕，否则创造物品库的滚动区不会响应。
-- **创造库存依赖注册顺序**：创造库存条目依赖完整的方块和物品注册顺序，测试或启动时必须先初始化 `VanillaBlocks`，再初始化 `Items` 和 `BlockItemRegistry`。
+- **渲染器/尺寸必须先设置**：`MapScreen` 等必须先调用 `setRenderers()` 和 `setScreenSize()` 再进入渲染，否则不会绘制任何内容。
 - **MapScreen 需要地图数据缓存**：`MapScreen` 必须设置 `ClientMapDataCache` 才能显示地图内容。
 - **AbstractContainerScreen 模板参数**：继承时必须指定正确的 `Menu` 类型，槽位索引和点击逻辑由菜单定义。
-- **screen 目录是旧版兼容**：新屏幕应放在 `ui/minecraft/screens/`，本目录逐步迁移中。
+- **screen 目录是旧版兼容**：新屏幕应放在 `ui/minecraft/screens/`，本目录逐步迁移中。背包屏（InventoryScreen）、创造屏（CreativeScreen）、工作台屏（CraftingScreen）已迁移到 kagero 体系，本目录仅余箱子/熔炉/制图台/地图屏待迁移。
 - **FurnaceScreen 纹理渲染**：`renderContainerBackground()` 优先使用 `GuiTextureManager` 绘制纹理化背景（`drawFurnaceBackground`/`drawFurnaceLitProgress`/`drawFurnaceBurnProgress`），在纹理不可用时回退到纯色矩形。进度数据通过 `FurnaceContainer::getFurnaceEntity()` 读取熔炉实体的 `burnTime/burnTimeTotal/cookTime/cookTimeTotal`，在客户端侧实体为 nullptr 时返回 0。
 - **FurnaceScreen 动画公式**：火焰可见高度 = `ceil(litProgress × 13.0) + 1`（1~14px，底部向上填充），箭头可见宽度 = `ceil(burnProgress × 24.0)`（0~24px，左向右填充），与 MC Java `AbstractFurnaceScreen` 一致。
 - **悬停提示渲染必须在最后**：所有屏幕的 `renderTooltip` / `_renderTooltip` 必须在 `render()` 末尾、`renderCarriedItem` / `_renderCarriedItem` 之后调用，因为 GuiRenderer 使用画家算法（后绘制覆盖先绘制），提示框必须渲染在所有其他元素之上。
 - **m_hoveredSlotIndex 自动更新**：在 `render()` 每帧中通过 `_updateHoveredSlot()` 更新，键盘操作（Q键丢弃、数字键交换）依赖此索引。
 - **拖拽分发需要 Player**：`_isValidDragMode` 检查 `m_playerInventory->getPlayer()` 是否非空，测试拖拽时必须用 `PlayerInventory(&player)` 构造。
 - **IScreen 接口签名**：`onClick` 和 `onRelease` 含 `mods` 参数（GLFW 修饰键），`onDrag` 含 `button` 参数（鼠标按钮），所有 IScreen 子类必须匹配新签名。
-- **收纳袋 tooltip 委托**：`AbstractContainerScreen::renderItemTooltip` 和 `CreativeScreen::_renderItemTooltip` 在检测到 `BundleItem::isBundleItem(stack)` 时，委托给 `tooltip::BundleTooltipRenderer::render`（见 `tooltip/BundleTooltipRenderer.hpp`）。该渲染器复刻 MC 1.21.11 `ClientBundleTooltip` 的 4 列网格、进度条、"+N" 溢出指示等布局，使用 GuiRenderer 纯色矩形渲染（未来升级到纹理化渲染见 tooltip/README.md 中的 TODO）。
+- **收纳袋 tooltip 委托**：`AbstractContainerScreen::renderItemTooltip` 在检测到 `BundleItem::isBundleItem(stack)` 时，委托给 `tooltip::BundleTooltipRenderer::render`（见 `tooltip/BundleTooltipRenderer.hpp`）。该渲染器复刻 MC 1.21.11 `ClientBundleTooltip` 的 4 列网格、进度条、"+N" 溢出指示等布局，使用 GuiRenderer 纯色矩形渲染（未来升级到纹理化渲染见 tooltip/README.md 中的 TODO）。
 - **Item::addInformation 接入**：两条 tooltip 路径在渲染普通物品时调用 `Item::addInformation(stack, world, lines, false)` 附加物品自定义 tooltip。`world` 为 `IWorld*`（可空），对应 MC 1.21.11 `Item.TooltipContext.of(level)` 在 `level` 为 null 时返回 EMPTY 上下文——客户端 Player 的 `world()` 为 null（`ClientWorld` 不继承 `IWorld`），此时 `addInformation` 仍被调用，但子类需跳过依赖世界的逻辑（如 `FilledMapItem` 的缩放级别提示）。

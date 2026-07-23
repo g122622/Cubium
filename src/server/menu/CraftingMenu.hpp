@@ -147,6 +147,10 @@ public:
     static constexpr i32 GRID_SLOT_COUNT = 9;
     static constexpr i32 RESULT_SLOT = 9;
     static constexpr i32 PLAYER_INV_START = 10;
+    static constexpr i32 PLAYER_INV_COUNT = 27;
+    static constexpr i32 HOTBAR_START = 37;
+    static constexpr i32 HOTBAR_COUNT = 9;
+    static constexpr i32 TOTAL_SLOT_COUNT = 46; ///< 9 网格 + 1 结果 + 27 主背包 + 9 快捷栏
 
     /**
      * @brief 检查是否是合成网格槽位

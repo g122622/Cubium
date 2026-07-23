@@ -125,17 +125,17 @@ enum class PacketType : u16 {
     BlockEntityData = 237, // 同步方块实体数据（告示牌文本等）
 
     // 背包相关包 (双向)
-    ContainerContent = 300,        // 容器内容同步 (S->C)
-    ContainerSlot = 301,           // 单个槽位更新 (S->C)
-    ContainerClick = 302,          // 容器点击 (C->S)
-    CloseContainer = 303,          // 关闭容器 (双向)
-    OpenContainer = 304,           // 打开容器 (S->C)
-    PlayerInventory = 305,         // 玩家背包同步 (S->C)
-    HotbarSelect = 306,            // 快捷栏选择 (C->S)
-    HotbarSet = 307,               // 快捷栏设置 (S->C)
-    PlayerAbilities = 308,         // 玩家能力同步 (S->C)
-    CreativeInventoryAction = 309, // 创造模式背包动作 (C->S)
-    ServerDifficulty = 310,        // 难度同步 (S->C)
+    ContainerContent = 300,    // 容器内容同步 (S->C)
+    ContainerSlot = 301,       // 单个槽位更新 (S->C)
+    ContainerClick = 302,      // 容器点击 (C->S)
+    CloseContainer = 303,      // 关闭容器 (双向)
+    OpenContainer = 304,       // 打开容器 (S->C)
+    PlayerInventory = 305,     // 玩家背包同步 (S->C)
+    HotbarSelect = 306,        // 快捷栏选择 (C->S)
+    HotbarSet = 307,           // 快捷栏设置 (S->C)
+    PlayerAbilities = 308,     // 玩家能力同步 (S->C)
+    ServerDifficulty = 310,    // 难度同步 (S->C)
+    OpenPlayerInventory = 311, // 请求打开玩家背包容器 (C->S)
 
     // 声音相关包 (S->C)
     PlaySound = 400,       // 播放声音

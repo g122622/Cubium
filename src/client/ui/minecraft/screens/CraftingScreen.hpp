@@ -23,75 +23,67 @@
 
 #pragma once
 
-#include "ContainerScreenBase.hpp"
 #include "client/ui/kagero/widget/ContainerInteraction.hpp"
-#include "common/entity/inventory/ContainerTypes.hpp"
-#include "core/Types.hpp"
-#include <memory>
+#include "client/ui/minecraft/screens/ContainerScreenBase.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
 
 namespace mc {
-class InventoryCraftingMenu;
-} // namespace mc
+class CraftingMenu;
+}
 
 namespace mc::client::ui::minecraft {
 
 /**
- * @brief 玩家背包界面（kagero 体系）
+ * @brief 工作台屏幕（kagero 体系）
  *
- * 用 kagero 的 SlotWidget 组件化实现玩家背包：2x2 合成网格、护甲槽、副手槽、
- * 主背包 3x9、快捷栏 1x9。渲染与槽位/布局/居中定位由 ContainerScreenBase 提供，
- * 交互逻辑委托给 ContainerInteraction<InventoryCraftingMenu>（与 MC 容器协议字节级对齐）。
- *
- * 槽位布局采用绝对定位，坐标常量与 MC 原版背包一致（GUI 176×166）。
+ * 3x3 合成网格 + 结果槽 + 玩家背包（主背包 27 + 快捷栏 9），共 46 槽。
+ * 继承 ContainerScreenBase<mc::CraftingMenu>，交互统一走 ContainerInteraction。
+ * 结果槽点击 / Shift 合成由 CraftingMenu::clicked 在菜单层处理，屏幕层无特有逻辑。
  */
-class InventoryScreen : public ContainerScreenBase<mc::InventoryCraftingMenu> {
+class CraftingScreen : public ContainerScreenBase<mc::CraftingMenu> {
 public:
-    using ContainerClickSender =
-        typename kagero::widget::ContainerInteraction<mc::InventoryCraftingMenu>::ContainerClickSender;
-    using ContainerCloseSender =
-        typename kagero::widget::ContainerInteraction<mc::InventoryCraftingMenu>::ContainerCloseSender;
+    using ContainerClickSender = typename kagero::widget::ContainerInteraction<mc::CraftingMenu>::ContainerClickSender;
+    using ContainerCloseSender = typename kagero::widget::ContainerInteraction<mc::CraftingMenu>::ContainerCloseSender;
 
-    /**
-     * @brief 构造函数
-     * @param menu 玩家背包合成菜单（客户端本地构造，containerId=PLAYER_CONTAINER_ID）
-     * @param clickSender 容器点击事件发送器（网络/本地）
-     * @param closeSender 容器关闭事件发送器
-     */
-    InventoryScreen(std::unique_ptr<mc::InventoryCraftingMenu> menu,
-        ContainerClickSender clickSender,
-        ContainerCloseSender closeSender);
+    CraftingScreen(
+        std::unique_ptr<mc::CraftingMenu> menu, ContainerClickSender clickSender, ContainerCloseSender closeSender);
 
-    // ==================== 生命周期 ====================
+    // ==================== 事件（转发给 m_interaction） ====================
 
     void updateHover(i32 mouseX, i32 mouseY) override;
-
-    // ==================== 事件（转发给 ContainerInteraction） ====================
-
     bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
     bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
     bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override;
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
 
-private:
-    // ========== ContainerScreenBase 钩子实现 ==========
+protected:
+    // ==================== ContainerScreenBase 钩子 ====================
+
     [[nodiscard]] i32 guiWidth() const override { return GUI_WIDTH; }
     [[nodiscard]] i32 guiHeight() const override { return GUI_HEIGHT; }
     [[nodiscard]] std::pair<i32, i32> slotLocalPos(i32 slotIndex) const override;
     [[nodiscard]] const mc::ItemStack& getCarriedItem() const override;
     void renderContainerBackground(kagero::widget::PaintContext& ctx) override;
     void renderContainerForeground(kagero::widget::PaintContext& ctx) override;
+    void renderTooltip(kagero::widget::PaintContext& ctx) override;
 
-    // ========== GUI 尺寸与槽位坐标常量 ==========
+private:
+    // ==================== 布局常量（相对 GUI 左上角） ====================
+
     static constexpr i32 GUI_WIDTH = 176;
     static constexpr i32 GUI_HEIGHT = 166;
-    static constexpr i32 GRID_X = 98;
-    static constexpr i32 GRID_Y = 18;
-    static constexpr i32 RESULT_X = 154;
-    static constexpr i32 RESULT_Y = 28;
-    static constexpr i32 TITLE_X = 8;
+
+    static constexpr i32 GRID_X = 30; // 3x3 合成网格左上 X
+    static constexpr i32 GRID_Y = 17; // 3x3 合成网格左上 Y
+    static constexpr i32 GRID_COL_COUNT = 3;
+
+    static constexpr i32 RESULT_X = 123; // 结果槽 X
+    static constexpr i32 RESULT_Y = 35;  // 结果槽 Y
+
+    static constexpr i32 TITLE_X = 28;
     static constexpr i32 TITLE_Y = 6;
 
-    std::unique_ptr<kagero::widget::ContainerInteraction<mc::InventoryCraftingMenu>> m_interaction;
+    std::unique_ptr<kagero::widget::ContainerInteraction<mc::CraftingMenu>> m_interaction;
 };
 
 } // namespace mc::client::ui::minecraft

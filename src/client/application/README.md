@@ -71,7 +71,7 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 - `client/sound/AudioService`
 - `client/world/ClientWorld`
 - `client/renderer/trident/core/TridentEngine`
-- `client/ui/*`（ScreenManager、ChatWidget、InventoryCraftingScreen、CreativeScreen、DebugScreenWidget）
+- `client/ui/*`（ScreenManager、ChatWidget、InventoryScreen、CreativeScreen、CraftingScreen、DebugScreenWidget）
 - `server/application/IntegratedServer` - 内置服务端
 
 ## 客户端统一计算池 ClientCompute

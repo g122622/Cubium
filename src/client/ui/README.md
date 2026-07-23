@@ -129,7 +129,10 @@ ui/
 │       └── Viewport3DWidget.hpp/cpp  # 3D视口
 └── screen/                           # 屏幕系统（旧版兼容，逐步迁移到minecraft/screens）
     ├── AbstractContainerScreen.hpp
-    ├── CraftingScreen.hpp/cpp
+    ├── ChestScreen.hpp/cpp
+    ├── FurnaceScreen.hpp/cpp
+    ├── CartographyScreen.hpp/cpp
+    ├── MapScreen.hpp/cpp
     └── ScreenManager.hpp/cpp
 ```
 

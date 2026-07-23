@@ -614,11 +614,6 @@ protected:
     virtual void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) = 0;
 
     /**
-     * @brief 处理创造模式背包动作数据包（子类实现特定逻辑）
-     */
-    virtual void handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size);
-
-    /**
      * @brief 处理容器点击数据包（子类实现特定逻辑）
      */
     virtual void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) = 0;
@@ -627,6 +622,16 @@ protected:
      * @brief 处理关闭容器数据包（子类实现特定逻辑）
      */
     virtual void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+
+    /**
+     * @brief 处理请求打开玩家背包容器数据包（子类实现特定逻辑）
+     *
+     * 玩家按 E 打开生存背包时客户端发送，服务端在 containerId=0 上建立
+     * InventoryCraftingMenu 以受理后续 ContainerClickPacket。默认实现为空
+     * （StandaloneServer 远程 TCP 玩家路径暂未接入；IntegratedServer 本地
+     * 客户端路径覆写之）。
+     */
+    virtual void handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size);
 
     /**
      * @brief 处理告示牌文本更新数据包

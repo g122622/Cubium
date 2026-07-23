@@ -24,16 +24,17 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
-#include "client/ui/screen/CraftingScreen.hpp"
-#include "client/ui/screen/CreativeScreen.hpp"
-
+#include "client/ui/minecraft/screens/CreativeScreen.hpp"
+#include "client/ui/minecraft/screens/InventoryScreen.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "server/menu/CraftingMenu.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -76,16 +77,21 @@ void ClientApplication::openInventoryScreen()
         }
     };
 
-    auto inventoryScreen = std::make_unique<InventoryCraftingScreen>(
-        std::make_unique<mc::InventoryCraftingMenu>(inventory::PLAYER_CONTAINER_ID, &m_player->inventory()),
-        clickSender,
-        closeSender);
+    auto menu = std::make_unique<mc::InventoryCraftingMenu>(inventory::PLAYER_CONTAINER_ID, &m_player->inventory());
+
+    auto inventoryScreen = std::make_unique<ui::minecraft::InventoryScreen>(std::move(menu), clickSender, closeSender);
 
     if (m_renderer && m_renderer->isGuiRendererInitialized()) {
         inventoryScreen->setRenderers(&m_renderer->guiRenderer(),
             m_guiTextureManager.get(),
             m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
         inventoryScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+
+    // 通知服务端在 containerId=0 上建立 InventoryCraftingMenu，使后续
+    // ContainerClickPacket 能被正确受理（修复点击静默丢弃）。
+    if (m_networkClient) {
+        m_networkClient->sendOpenPlayerInventory();
     }
 
     ScreenManager::instance().openScreen(std::move(inventoryScreen));
@@ -97,18 +103,41 @@ void ClientApplication::openCreativeScreen()
         return;
     }
 
-    auto actionSender = [this](i32 slotIndex, const ItemStack& item) {
+    auto clickSender = [this](ContainerId containerId,
+                           i32 slotIndex,
+                           i32 button,
+                           i16 transactionId,
+                           ClickAction action,
+                           const ItemStack& cursorItem) {
         if (m_networkClient) {
-            m_networkClient->sendCreativeInventoryAction(CreativeInventoryActionPacket(slotIndex, item));
+            m_networkClient->sendContainerClick(
+                ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
         }
     };
 
-    auto creativeScreen = std::make_unique<CreativeScreen>(m_player->inventory(), actionSender);
+    auto closeSender = [this](ContainerId containerId) {
+        if (m_networkClient) {
+            m_networkClient->sendCloseContainer(containerId);
+        }
+    };
+
+    // 创造屏复用 containerId=0（PLAYER_CONTAINER_ID），客户端构造 ItemPickerMenu
+    // （不加载物品池：调色板渲染由 CreativeScreen 本地 buildCreativePaletteEntries 提供，
+    // clone 取物由服务端 ItemPickerMenu 处理，carried 经 ContainerContentPacket 回传）。
+    auto menu = std::make_unique<mc::ItemPickerMenu>(inventory::PLAYER_CONTAINER_ID, &m_player->inventory(), false);
+
+    auto creativeScreen = std::make_unique<ui::minecraft::CreativeScreen>(std::move(menu), clickSender, closeSender);
     if (m_renderer && m_renderer->isGuiRendererInitialized()) {
         creativeScreen->setRenderers(&m_renderer->guiRenderer(),
             m_guiTextureManager.get(),
             m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
         creativeScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+
+    // 通知服务端在 containerId=0 上建立 ItemPickerMenu（创造模式分流），使后续
+    // ContainerClickPacket（含调色板 Clone）能被正确受理。
+    if (m_networkClient) {
+        m_networkClient->sendOpenPlayerInventory();
     }
 
     ScreenManager::instance().openScreen(std::move(creativeScreen));
@@ -120,10 +149,10 @@ void ClientApplication::closeInventoryScreenIfModeMismatch()
         return;
     }
 
-    IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
+    ui::minecraft::Screen* currentKageroScreen = ScreenManager::instance().getCurrentKageroScreen();
     const bool creativeMode = isCreativeModeActive();
-    const bool isInventoryScreen = dynamic_cast<InventoryCraftingScreen*>(currentScreen) != nullptr;
-    const bool isCreativeScreen = dynamic_cast<CreativeScreen*>(currentScreen) != nullptr;
+    const bool isInventoryScreen = dynamic_cast<ui::minecraft::InventoryScreen*>(currentKageroScreen) != nullptr;
+    const bool isCreativeScreen = dynamic_cast<ui::minecraft::CreativeScreen*>(currentKageroScreen) != nullptr;
 
     if ((isCreativeScreen && !creativeMode) || (isInventoryScreen && creativeMode)) {
         ScreenManager::instance().closeScreen();

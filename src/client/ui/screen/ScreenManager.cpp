@@ -55,6 +55,14 @@ void ScreenManager::openScreen(std::unique_ptr<IScreen> screen)
     }
 }
 
+void ScreenManager::openScreen(std::unique_ptr<ui::minecraft::Screen> screen)
+{
+    if (m_stackWidget && screen) {
+        m_stackWidget->push(std::move(screen));
+        // 回调由 ScreenStackWidget 内部触发，无需在此重复触发
+    }
+}
+
 void ScreenManager::closeScreen()
 {
     if (m_stackWidget && m_stackWidget->hasScreen()) {

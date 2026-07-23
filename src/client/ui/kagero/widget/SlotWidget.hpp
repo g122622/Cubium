@@ -37,10 +37,17 @@ namespace mc::client::ui::kagero::widget {
  *
  * 显示物品槽的组件，支持物品显示、交互和背景。
  *
+ * 物品图标渲染采用回调注入（setItemPaintCallback），宿主屏幕注入一个
+ * 调用 ItemRenderer::renderItem 的回调。这样 SlotWidget 本身不依赖
+ * ItemRenderer/GuiRenderer 类型，保持 header-only 且无重渲染依赖。
+ *
  * 使用示例：
  * @code
  * auto slot = std::make_unique<SlotWidget>("slot_0", 10, 10);
  * slot->setItem(itemStack);
+ * slot->setItemPaintCallback([&](const ItemStack& it, i32 x, i32 y, i32 sz){
+ *     itemRenderer.renderItem(gui, it, x, y, sz);
+ * });
  * slot->setOnSlotClick([](i32 slotIndex, i32 button, bool shiftHeld) {
  *     // 处理点击
  * });
@@ -61,6 +68,15 @@ public:
      * @brief 槽位释放回调类型
      */
     using OnSlotReleaseCallback = std::function<void(SlotWidget&, i32)>;
+
+    /**
+     * @brief 物品图标绘制回调类型
+     *
+     * 宿主屏幕注入：给定物品与屏幕坐标/尺寸，绘制物品图标。
+     * 典型实现为调用 ItemRenderer::renderItem。
+     * 参数：item - 物品堆叠；x/y - 屏幕坐标；size - 绘制尺寸
+     */
+    using ItemPaintCallback = std::function<void(const mc::ItemStack& item, i32 x, i32 y, i32 size)>;
 
     /// 默认槽位尺寸（像素）
     static constexpr i32 DEFAULT_SLOT_SIZE = 16;
@@ -107,8 +123,20 @@ public:
             ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 100, 100, 100));
         }
 
-        // TODO: 绘制槽位中的物品（ItemStack渲染），需要ItemRenderer2D支持
-        // TODO: 当m_showCount为true时，绘制物品数量
+        // 绘制槽位中的物品图标（经宿主注入的回调，复刻 HudWidget 的 ItemRenderer 注入模式）
+        if (!m_item.isEmpty() && m_itemPaintCallback) {
+            m_itemPaintCallback(m_item, bounds().x, bounds().y, DEFAULT_SLOT_SIZE);
+
+            // 绘制物品数量（count > 1 时，右下角右对齐）
+            if (m_showCount && m_item.getCount() > 1) {
+                std::string countText = std::to_string(m_item.getCount());
+                const f32 textWidth = ctx.getTextWidth(countText);
+                ctx.drawText(countText,
+                    bounds().x + DEFAULT_SLOT_SIZE - static_cast<i32>(textWidth) - 1,
+                    bounds().y + DEFAULT_SLOT_SIZE - 8,
+                    m_countColor);
+            }
+        }
 
         if (isHovered()) {
             ctx.drawBorder(bounds(), 1.0f, m_highlightColor);
@@ -123,7 +151,7 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible() || !m_interactive) return false;
 
         if (m_onSlotClick) {
             m_onSlotClick(m_slotIndex, button, m_shiftHeld);
@@ -138,7 +166,7 @@ public:
         (void)mouseY;
         (void)mods;
 
-        if (!isActive() || !isVisible()) return false;
+        if (!isActive() || !isVisible() || !m_interactive) return false;
 
         if (m_onRelease) {
             m_onRelease(*this, button);
@@ -248,6 +276,22 @@ public:
      */
     [[nodiscard]] bool showCount() const { return m_showCount; }
 
+    // ==================== 渲染器注入（用于物品图标渲染） ====================
+
+    /**
+     * @brief 设置物品图标绘制回调
+     *
+     * 宿主屏幕注入一个调用 ItemRenderer::renderItem 的回调，使 SlotWidget 不直接依赖
+     * ItemRenderer/GuiRenderer 类型。回调未注入时，槽位仅绘制背景/边框/数量。
+     * @param callback 物品绘制回调
+     */
+    void setItemPaintCallback(ItemPaintCallback callback) { m_itemPaintCallback = std::move(callback); }
+
+    /**
+     * @brief 设置数量文本颜色（ARGB）
+     */
+    void setCountColor(u32 color) { m_countColor = color; }
+
     // ==================== 回调设置 ====================
 
     /**
@@ -274,6 +318,10 @@ protected:
     //       后续应考虑从输入系统直接查询修饰键状态
     bool m_shiftHeld = false;                                    ///< Shift键是否按下
     u32 m_highlightColor = Colors::fromARGB(128, 255, 255, 255); ///< 高亮颜色
+    u32 m_countColor = Colors::WHITE;                            ///< 数量文本颜色
+
+    // 物品图标绘制回调（宿主注入，内部调用 ItemRenderer::renderItem，参考 HudWidget）
+    ItemPaintCallback m_itemPaintCallback; ///< 物品绘制回调
 
     // 回调
     OnSlotClickCallback m_onSlotClick; ///< 槽位点击回调

@@ -2514,29 +2514,17 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* da
     }
 }
 
-void MinecraftServer::handleCreativeInventoryActionPacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size)
 {
-    auto* player = m_playerManager->getPlayer(playerId);
-    if (!player || !player->loggedIn || player->gameMode != GameMode::Creative) {
-        return;
-    }
-
+    // 默认实现：仅校验负载可解析。具体打开逻辑由 IntegratedServer（本地客户端）
+    // 覆写；StandaloneServer 远程 TCP 玩家路径暂未接入（沿用 ContainerManager
+    // 现有 Player 类型行为）。
+    (void)playerId;
     network::PacketDeserializer deser(data, size);
-    auto result = CreativeInventoryActionPacket::deserialize(deser);
+    auto result = OpenPlayerInventoryPacket::deserialize(deser);
     if (result.failed()) {
-        spdlog::error("Failed to parse creative inventory action packet: {}", result.error().message());
-        return;
+        spdlog::error("Failed to parse open player inventory packet: {}", result.error().message());
     }
-
-    const auto& packet = result.value();
-    const i32 slotIndex = packet.slotIndex();
-    if (slotIndex < 0 || slotIndex >= PlayerInventory::TOTAL_SIZE) {
-        spdlog::warn("Ignoring creative inventory action with invalid slot {}", slotIndex);
-        return;
-    }
-
-    setInventoryItem(playerId, slotIndex, packet.item());
-    syncPlayerInventory(playerId);
 }
 
 // ============================================================================
@@ -2824,20 +2812,6 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
             break;
         }
 
-        case network::PacketType::CreativeInventoryAction: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleCreativeInventoryActionPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleCreativeInventoryActionPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
         case network::PacketType::ContainerClick: {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
                 "HandleContainerClickPacket",
@@ -2862,6 +2836,20 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
             PlayerId playerId = getPlayerIdForSession(sessionId);
             if (playerId != 0) {
                 handleCloseContainerPacket(playerId, payload, payloadSize);
+            }
+            break;
+        }
+
+        case network::PacketType::OpenPlayerInventory: {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
+                "HandleOpenPlayerInventoryPacket",
+                "sessionId",
+                sessionId,
+                "payloadSize",
+                payloadSize);
+            PlayerId playerId = getPlayerIdForSession(sessionId);
+            if (playerId != 0) {
+                handleOpenPlayerInventoryPacket(playerId, payload, payloadSize);
             }
             break;
         }

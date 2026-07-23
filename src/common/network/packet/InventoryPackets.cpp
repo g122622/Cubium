@@ -89,10 +89,4 @@ Result<PlayerInventoryPacket> PlayerInventoryPacket::deserialize(network::Packet
     return packet;
 }
 
-// ============================================================================
-// CreativeInventoryActionPacket 实现
-// ============================================================================
-
-// 该包仅在头文件中实现序列化/反序列化逻辑。
-
 } // namespace mc

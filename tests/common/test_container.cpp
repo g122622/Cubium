@@ -277,7 +277,8 @@ TEST_F(ContainerPacketTest, ContainerContentPacket)
     items.emplace_back(*m_iron, 5);
     items.emplace_back(ItemStack::EMPTY);
 
-    ContainerContentPacket packet(1, std::move(items));
+    ItemStack carried(*m_iron, 7);
+    ContainerContentPacket packet(1, std::move(items), carried);
 
     // 序列化
     network::PacketSerializer ser;
@@ -297,6 +298,30 @@ TEST_F(ContainerPacketTest, ContainerContentPacket)
     EXPECT_EQ(decoded.items()[1].getItem(), m_iron);
     EXPECT_EQ(decoded.items()[1].getCount(), 5);
     EXPECT_TRUE(decoded.items()[2].isEmpty());
+    // 末尾光标物品（对齐 SPacketWindowItems）
+    EXPECT_EQ(decoded.carriedItem().getItem(), m_iron);
+    EXPECT_EQ(decoded.carriedItem().getCount(), 7);
+}
+
+TEST_F(ContainerPacketTest, ContainerContentPacketEmptyCarried)
+{
+    // 默认 carried（空堆）也能正确往返
+    std::vector<ItemStack> items;
+    items.emplace_back(*m_diamond, 1);
+
+    ContainerContentPacket packet(1, std::move(items));
+
+    network::PacketSerializer ser;
+    packet.serialize(ser);
+
+    network::PacketDeserializer deser(ser.data(), ser.size());
+    auto result = ContainerContentPacket::deserialize(deser);
+
+    ASSERT_TRUE(result.success()) << result.error().message();
+    ContainerContentPacket decoded = result.value();
+
+    EXPECT_EQ(decoded.size(), 1);
+    EXPECT_TRUE(decoded.carriedItem().isEmpty());
 }
 
 TEST_F(ContainerPacketTest, ContainerSlotPacket)
@@ -545,29 +570,6 @@ TEST_F(ContainerPacketTest, PlayerInventoryPacket)
     EXPECT_EQ(decoded.items()[0].getCount(), 10);
     EXPECT_EQ(decoded.items()[20].getItem(), m_iron);
     EXPECT_EQ(decoded.items()[20].getCount(), 32);
-}
-
-TEST_F(ContainerPacketTest, CreativeInventoryActionPacket)
-{
-    ItemStack item(*m_diamond, 32);
-    CreativeInventoryActionPacket packet(12, item);
-
-    EXPECT_EQ(packet.slotIndex(), 12);
-    EXPECT_EQ(packet.item().getItem(), m_diamond);
-    EXPECT_EQ(packet.item().getCount(), 32);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = CreativeInventoryActionPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    CreativeInventoryActionPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.slotIndex(), 12);
-    EXPECT_EQ(decoded.item().getItem(), m_diamond);
-    EXPECT_EQ(decoded.item().getCount(), 32);
 }
 
 // ============================================================================

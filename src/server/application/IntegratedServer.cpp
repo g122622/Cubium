@@ -30,6 +30,7 @@
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -851,6 +852,38 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
     _sendPlayerInventory();
 }
 
+void IntegratedServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleOpenPlayerInventory");
+
+    network::PacketDeserializer deser(data, size);
+    auto result = OpenPlayerInventoryPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to parse open player inventory packet: {}", result.error().message());
+        return;
+    }
+
+    // 远程 TCP 玩家：暂沿用 ContainerManager 现有行为（Player 类型未注册菜单工厂）
+    if (playerId != m_clientPlayerId) {
+        return;
+    }
+
+    // 本地客户端：在 containerId=0 上建立容器菜单，使后续
+    // ContainerClickPacket 能被正确受理（修复历史点击静默丢弃问题）。
+    // 创造模式建立 ItemPickerMenu（承载创造取物 clone 协议），生存/冒险模式建立
+    // InventoryCraftingMenu（普通背包合成）。
+    auto* player = _getPlayerData();
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    if (player->gameMode == GameMode::Creative) {
+        _openItemPickerMenu();
+    } else {
+        _openPlayerInventoryMenu();
+    }
+}
+
 // ============================================================================
 // 数据包发送
 // ============================================================================
@@ -1203,6 +1236,61 @@ void IntegratedServer::_closeCurrentContainer(bool sendClosePacket)
 void IntegratedServer::_openCraftingTableMenu()
 {
     (void)_openContainerMenu(ContainerType::Crafting, BlockPos());
+}
+
+void IntegratedServer::_openPlayerInventoryMenu()
+{
+    // 关闭任何已打开的容器（如箱子/工作台），避免菜单状态串扰
+    _closeCurrentContainer(true);
+
+    // 绑定菜单玩家到 m_clientInventory 并同步游戏模式（见 _openItemPickerMenu 说明），
+    // 避免 AbstractContainerMenu 点击逻辑解引用空玩家。
+    Player& menuPlayer = _getMenuPlayer();
+    if (auto* playerData = _getPlayerData()) {
+        menuPlayer.setGameMode(playerData->gameMode);
+    }
+    m_clientInventory.setPlayer(&menuPlayer);
+
+    // 玩家背包使用固定 containerId=0（PLAYER_CONTAINER_ID），不复用自增计数器
+    auto menu = std::make_unique<InventoryCraftingMenu>(mc::inventory::PLAYER_CONTAINER_ID, &m_clientInventory);
+
+    // 不发 OpenContainerPacket：客户端已本地构造 InventoryScreen。
+    // 仅同步容器内容 + 玩家背包，使客户端菜单槽位与服务端一致。
+    _sendContainerContent(*menu);
+    _sendPlayerInventory();
+
+    m_openContainerType = ContainerType::Player;
+    m_openContainerPos = BlockPos();
+    m_openMenu = std::move(menu);
+    menuPlayer.setOpenContainerMenu(m_openMenu.get());
+}
+
+void IntegratedServer::_openItemPickerMenu()
+{
+    // 关闭任何已打开的容器，避免菜单状态串扰
+    _closeCurrentContainer(true);
+
+    // 绑定菜单玩家到 m_clientInventory：AbstractContainerMenu 的点击逻辑经
+    // m_playerInventory->getPlayer() 取玩家（如 _handleClickPick 解引用玩家调
+    // ArmorSlot::mayPickup），m_clientInventory 默认构造 m_player 为空会导致空引用
+    // 崩溃。同时同步菜单玩家游戏模式为创造，使 ArmorSlot 等的 isCreative() 判定正确。
+    Player& menuPlayer = _getMenuPlayer();
+    menuPlayer.setGameMode(GameMode::Creative);
+    m_clientInventory.setPlayer(&menuPlayer);
+
+    // 创造模式背包复用 containerId=0（PLAYER_CONTAINER_ID），但建立 ItemPickerMenu
+    // 承载创造取物协议：调色板点击经 ContainerClickPacket(ClickAction::Clone) 进
+    // menu->clicked 的虚拟槽分支，服务端从本地创造物品池 clone 到光标，再经
+    // ContainerContentPacket 的 carried 字段回传客户端。
+    auto menu = std::make_unique<ItemPickerMenu>(mc::inventory::PLAYER_CONTAINER_ID, &m_clientInventory);
+
+    _sendContainerContent(*menu);
+    _sendPlayerInventory();
+
+    m_openContainerType = ContainerType::Player;
+    m_openContainerPos = BlockPos();
+    m_openMenu = std::move(menu);
+    menuPlayer.setOpenContainerMenu(m_openMenu.get());
 }
 
 void IntegratedServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory)

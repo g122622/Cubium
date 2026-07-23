@@ -57,7 +57,7 @@ ClientApplication.cpp
 - `client/sound/AudioService`
 - `client/world/ClientWorld`
 - `client/renderer/trident/core/TridentEngine`
-- `client/ui/*`（ScreenManager、ChatWidget、InventoryCraftingScreen、CreativeScreen、DebugScreenWidget）
+- `client/ui/*`（ScreenManager、ChatWidget、InventoryScreen、CreativeScreen、CraftingScreen、DebugScreenWidget）
 
 ## 容易踩的坑
 

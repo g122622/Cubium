@@ -108,7 +108,7 @@ struct ContainerTextureEntry {
 
 | 模块 | 用途 |
 |------|------|
-| `client/ui/screen` | 容器屏幕（FurnaceScreen、CraftingScreen 等） |
+| `client/ui/screen` | 容器屏幕（FurnaceScreen、ChestScreen 等） |
 | `client/application/ClientApplicationBootstrap` | 初始化时加载所有容器纹理 |
 
 ## 容易踩的坑

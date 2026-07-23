@@ -357,6 +357,15 @@ public:
      */
     [[nodiscard]] Player* getPlayer() const { return m_player; }
 
+    /**
+     * @brief 绑定拥有此背包的玩家
+     *
+     * 集成服务端的 m_clientInventory 默认构造时 m_player 为空；在为本地客户端建立
+     * 容器菜单前须绑定菜单玩家，使 AbstractContainerMenu 的点击逻辑（如
+     * _handleClickPick 经 m_playerInventory->getPlayer() 解引用玩家）不致空引用。
+     */
+    void setPlayer(Player* player) { m_player = player; }
+
     // ========== IInventory 接口扩展 ==========
 
     /**

@@ -397,9 +397,9 @@ public:
     void sendConfirmDimensionChange(DimensionId dimension);
     void sendKeepAlive(u64 id);
     void sendChatMessage(const std::string& message);
-    void sendCreativeInventoryAction(const CreativeInventoryActionPacket& packet);
     void sendContainerClick(const ContainerClickPacket& packet);
     void sendCloseContainer(ContainerId containerId);
+    void sendOpenPlayerInventory();
 
     /**
      * @brief 发送告示牌文本更新包

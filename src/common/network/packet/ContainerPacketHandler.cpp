@@ -79,7 +79,7 @@ ContainerContentPacket ContainerPacketHandler::createContentPacket(const Abstrac
         }
     }
 
-    return ContainerContentPacket(menu.getId(), std::move(items));
+    return ContainerContentPacket(menu.getId(), std::move(items), menu.getCarriedItem());
 }
 
 ContainerSlotPacket ContainerPacketHandler::createSlotPacket(const AbstractContainerMenu& menu, i32 slotIndex)

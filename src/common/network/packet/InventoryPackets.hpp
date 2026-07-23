@@ -62,8 +62,11 @@ constexpr ContainerId PLAYER_CONTAINER_ID = 0;
 /**
  * @brief 容器内容同步包
  *
- * 同步整个容器的所有槽位内容。
- * 参考: MC 1.16.5 SPacketWindowItems
+ * 同步整个容器的所有槽位内容 + 玩家光标携带物品（carried）。
+ * 参考: MC 1.16.5 SPacketWindowItems（末尾携带 carried ItemStack）。
+ *
+ * carried 字段用于服务端→客户端同步点击后的光标物品（拾取/创造 clone），
+ * 修复此前客户端 m_carried 从不回传导致光标显示为空的缺陷。
  */
 class ContainerContentPacket {
 public:
@@ -73,20 +76,24 @@ public:
      * @brief 构造容器内容包
      * @param containerId 容器ID
      * @param items 槽位物品列表
+     * @param carriedItem 玩家光标携带物品（末尾同步，默认空堆）
      */
-    ContainerContentPacket(ContainerId containerId, std::vector<ItemStack> items)
+    ContainerContentPacket(ContainerId containerId, std::vector<ItemStack> items, ItemStack carriedItem = {})
         : m_containerId(containerId)
         , m_items(std::move(items))
+        , m_carriedItem(std::move(carriedItem))
     {}
 
     // Getters
     [[nodiscard]] ContainerId containerId() const { return m_containerId; }
     [[nodiscard]] const std::vector<ItemStack>& items() const { return m_items; }
+    [[nodiscard]] const ItemStack& carriedItem() const { return m_carriedItem; }
     [[nodiscard]] size_t size() const { return m_items.size(); }
 
     // Setters
     void setContainerId(ContainerId id) { m_containerId = id; }
     void setItems(std::vector<ItemStack> items) { m_items = std::move(items); }
+    void setCarriedItem(ItemStack item) { m_carriedItem = std::move(item); }
 
     // 序列化
     void serialize(network::PacketSerializer& ser) const
@@ -98,6 +105,9 @@ public:
         for (const auto& item : m_items) {
             item.serialize(ser);
         }
+
+        // 末尾携带光标物品（对齐 SPacketWindowItems）
+        m_carriedItem.serialize(ser);
     }
 
     // 反序列化
@@ -125,12 +135,18 @@ public:
             packet.m_items.push_back(itemResult.value());
         }
 
+        // 末尾光标物品（对齐 SPacketWindowItems）
+        auto carriedResult = ItemStack::deserialize(deser);
+        if (carriedResult.failed()) return carriedResult.error();
+        packet.m_carriedItem = carriedResult.value();
+
         return packet;
     }
 
 private:
     ContainerId m_containerId = 0;
     std::vector<ItemStack> m_items;
+    ItemStack m_carriedItem;
 };
 
 // ============================================================================
@@ -240,68 +256,6 @@ public:
 private:
     i32 m_selectedSlot = 0;
     std::vector<ItemStack> m_items;
-};
-
-// ============================================================================
-// 创造模式背包动作包 (客户端 -> 服务端)
-// ============================================================================
-
-/**
- * @brief 创造模式背包动作包
- *
- * 用于在创造模式下将客户端的槽位编辑同步到服务端。
- * 仅承载"哪个槽位被改成了什么物品"，具体语义由服务端根据玩家模式判断。
- * 参考: MC 1.16.5 CCreativeInventoryActionPacket
- * 协议格式: slotId(i16) + item
- */
-class CreativeInventoryActionPacket {
-public:
-    CreativeInventoryActionPacket() = default;
-
-    /**
-     * @brief 构造创造模式动作包
-     * @param slotIndex 槽位索引
-     * @param item 目标物品
-     */
-    CreativeInventoryActionPacket(i32 slotIndex, ItemStack item)
-        : m_slotIndex(slotIndex)
-        , m_item(std::move(item))
-    {}
-
-    // Getters
-    [[nodiscard]] i32 slotIndex() const { return m_slotIndex; }
-    [[nodiscard]] const ItemStack& item() const { return m_item; }
-
-    // Setters
-    void setSlotIndex(i32 slotIndex) { m_slotIndex = slotIndex; }
-    void setItem(ItemStack item) { m_item = std::move(item); }
-
-    // 序列化 (MC 1.16.5: slotId 是 i16)
-    void serialize(network::PacketSerializer& ser) const
-    {
-        ser.writeI16(static_cast<i16>(m_slotIndex));
-        m_item.serialize(ser);
-    }
-
-    // 反序列化
-    [[nodiscard]] static Result<CreativeInventoryActionPacket> deserialize(network::PacketDeserializer& deser)
-    {
-        CreativeInventoryActionPacket packet;
-
-        auto slotResult = deser.readI16();
-        if (slotResult.failed()) return slotResult.error();
-        packet.m_slotIndex = static_cast<i32>(slotResult.value());
-
-        auto itemResult = ItemStack::deserialize(deser);
-        if (itemResult.failed()) return itemResult.error();
-        packet.m_item = itemResult.value();
-
-        return packet;
-    }
-
-private:
-    i32 m_slotIndex = 0;
-    ItemStack m_item;
 };
 
 // ============================================================================
@@ -451,6 +405,31 @@ public:
 
 private:
     ContainerId m_containerId = 0;
+};
+
+// ============================================================================
+// 打开玩家背包容器请求包 (客户端 -> 服务端)
+// ============================================================================
+
+/**
+ * @brief 请求服务端打开玩家背包容器（containerId = PLAYER_CONTAINER_ID）
+ *
+ * 玩家按 E 打开生存背包时，客户端本地构造 InventoryScreen，同时发送本包通知
+ * 服务端在 containerId=0 上建立 InventoryCraftingMenu，使后续 ContainerClickPacket
+ * 能被服务端正确受理（修复历史遗留：服务端此前对 containerId=0 无打开容器而
+ * 静默丢弃点击）。本包无负载。
+ */
+class OpenPlayerInventoryPacket {
+public:
+    OpenPlayerInventoryPacket() = default;
+
+    void serialize(network::PacketSerializer& ser) const { (void)ser; }
+
+    [[nodiscard]] static Result<OpenPlayerInventoryPacket> deserialize(network::PacketDeserializer& deser)
+    {
+        (void)deser;
+        return OpenPlayerInventoryPacket{};
+    }
 };
 
 // ============================================================================

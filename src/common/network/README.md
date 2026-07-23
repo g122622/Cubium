@@ -164,7 +164,7 @@ size_t actualSize = ser.size();
 
 ### 8. 创造模式物品库写回
 
-创造模式物品库写回必须使用 `CreativeInventoryActionPacket`，不要复用普通容器点击包。
+创造模式物品库取物统一走 `ContainerClickPacket`（`ClickAction::Clone`，虚拟槽 slotIndex = `ItemPickerMenu::PALETTE_VIRTUAL_BASE + visibleIndex`），服务端 `ItemPickerMenu::clicked` 拦截虚拟索引 clone 到光标，光标经 `ContainerContentPacket` 末尾 carried 字段回传。不再有独立的创造写回包。
 
 ### 9. LocalServerConnection 不持有端点所有权
 

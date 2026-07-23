@@ -132,6 +132,6 @@ src/common/screen/
 |------|------|
 | `client/ui/screen/ScreenManager.hpp` | 屏幕管理器，管理屏幕栈 |
 | `client/ui/screen/AbstractContainerScreen.hpp` | 容器屏幕模板基类 |
-| `client/ui/screen/CraftingScreen.hpp` | 工作台屏幕实现 |
 | `client/ui/minecraft/widgets/ScreenStackWidget.hpp` | Kagero UI屏幕栈组件 |
+| `client/ui/minecraft/screens/CraftingScreen.hpp` | 工作台屏幕实现（kagero 体系） |
 | `server/menu/CraftingMenu.hpp` | 服务端工作台菜单（使用ScreenType） |
