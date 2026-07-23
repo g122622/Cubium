@@ -1983,7 +1983,7 @@ TEST_F(FarmerCompostTest, ComposterLevelIncreasesAfterComposting)
     u32 wheatSeedsItemId = Items::WHEAT_SEEDS->itemId();
 
     // 验证 itemId 到 Item* 的映射正确
-    const Item* resolvedItem = Item::getItem(static_cast<ItemId>(wheatSeedsItemId));
+    const Item* resolvedItem = Item::getItem(wheatSeedsItemId);
     ASSERT_NE(resolvedItem, nullptr) << "Item::getItem should resolve WHEAT_SEEDS itemId";
     EXPECT_EQ(resolvedItem, Items::WHEAT_SEEDS) << "Resolved item should be WHEAT_SEEDS";
 

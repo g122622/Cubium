@@ -12,6 +12,9 @@ add_library(mc_common STATIC
     core/GameDirectory.cpp
     core/settings/SettingsBase.cpp
 
+    # Registry
+    registry/RegistryAccess.cpp
+
     # Input
     input/KeyBinding.cpp
 

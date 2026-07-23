@@ -322,6 +322,15 @@ public:
     [[nodiscard]] bool canSummon() const { return hasFlag(EntityFlags::CanSummon); }
 
     /**
+     * @brief 获取实体类型整数 ID
+     *
+     * 由 EntityRegistry::registerType 按注册顺序分配（0,1,2,...），用于网络层
+     * SpawnEntity 等包的 VarInt 类型 ID 编码。注册顺序由 VanillaEntities::doRegisterAll
+     * 的源码调用顺序冻结，确定且稳定。
+     */
+    [[nodiscard]] u32 id() const { return m_id; }
+
+    /**
      * @brief 获取名称
      */
     [[nodiscard]] const std::string& name() const { return m_name; }
@@ -363,14 +372,19 @@ private:
     friend class EntityRegistry;
 
     /**
-     * @brief 绑定实体类型的资源位置名
+     * @brief 绑定实体类型的资源位置名与整数 ID
      *
      * 仅由 EntityRegistry::registerType 在注册时调用，用于把权威的资源位置字符串
-     * 注入到 EntityType。封装写权，避免外部 const_cast。
+     * 与按注册顺序分配的整数 ID 注入到 EntityType。封装写权，避免外部 const_cast。
      *
      * @param name 资源位置（如 minecraft:pig）
+     * @param id 按注册顺序分配的整数 ID
      */
-    void bindIdentity(std::string name) { m_name = std::move(name); }
+    void bindIdentity(std::string name, u32 id)
+    {
+        m_name = std::move(name);
+        m_id = id;
+    }
 
     EntityFactory m_factory;
     EntityClassification m_classification = EntityClassification::Misc;
@@ -379,6 +393,7 @@ private:
     i32 m_updateInterval = 3;
     EntityFlags m_flags = EntityFlags::Serializable;
     std::string m_name;
+    u32 m_id = 0;
 };
 
 } // namespace entity

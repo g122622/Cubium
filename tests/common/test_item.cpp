@@ -331,7 +331,7 @@ TEST_F(ItemTest, NonExistentItem)
 
 TEST_F(ItemTest, NonExistentItemById)
 {
-    Item* item = ItemRegistry::instance().getItem(static_cast<ItemId>(9999));
+    Item* item = ItemRegistry::instance().getItem(9999);
     EXPECT_EQ(item, nullptr);
 }
 

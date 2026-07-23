@@ -24,6 +24,7 @@
 #include "world/blockentity/processing/BeaconEntity.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -34,7 +35,6 @@
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -309,11 +309,7 @@ void BeaconEntity::_applyEffects(IWorld& world)
 
 bool BeaconEntity::_isValidPayment(u32 itemId)
 {
-    if (itemId > static_cast<u32>(std::numeric_limits<ItemId>::max())) {
-        return false;
-    }
-
-    const Item* item = ItemRegistry::instance().getItem(static_cast<ItemId>(itemId));
+    const Item* item = ItemRegistry::instance().getItem(itemId);
     if (item == nullptr) {
         return false;
     }

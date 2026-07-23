@@ -153,7 +153,7 @@ BlockState ComposterBlock::attemptCompost(
     }
 
     // 从 CompostableItems 注册表获取堆肥概率
-    const Item* item = Item::getItem(static_cast<ItemId>(itemId));
+    const Item* item = Item::getItem(itemId);
     if (item == nullptr) {
         return state;
     }
@@ -235,13 +235,13 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
 
 bool ComposterBlock::isCompostable(u32 itemId)
 {
-    const Item* item = Item::getItem(static_cast<ItemId>(itemId));
+    const Item* item = Item::getItem(itemId);
     return CompostableItems::isCompostable(item);
 }
 
 f32 ComposterBlock::getCompostChance(u32 itemId)
 {
-    const Item* item = Item::getItem(static_cast<ItemId>(itemId));
+    const Item* item = Item::getItem(itemId);
     return CompostableItems::getCompostChance(item);
 }
 

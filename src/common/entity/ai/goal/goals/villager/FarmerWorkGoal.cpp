@@ -339,7 +339,7 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
 
     // 将作物产品放入村民背包
     if (cropItemId != 0) {
-        const Item* cropItem = Item::getItem(static_cast<ItemId>(cropItemId));
+        const Item* cropItem = Item::getItem(cropItemId);
         if (cropItem) {
             ItemStack cropStack(cropItem, 1);
             IInventory& inventory = m_villager->inventory();
@@ -354,7 +354,7 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
 
     // 种子掉落
     if (seedItemId != 0) {
-        const Item* seedItem = Item::getItem(static_cast<ItemId>(seedItemId));
+        const Item* seedItem = Item::getItem(seedItemId);
         if (seedItem) {
             ItemStack seedStack(seedItem, seedCount);
             IInventory& inventory = m_villager->inventory();

@@ -97,13 +97,15 @@ public:
             return Error(ErrorCode::AlreadyExists, "Entity type already registered: " + resourceLocation);
         }
 
-        // 绑定权威资源位置名
-        type.bindIdentity(resourceLocation);
+        // 按注册顺序分配整数 ID（= push_back 前的 size），用于网络层 VarInt 类型 ID
+        const u32 id = static_cast<u32>(m_types.size());
+
+        // 绑定权威资源位置名与整数 ID
+        type.bindIdentity(resourceLocation, id);
 
         // 存入 deque（地址稳定，不失效已有对象）
-        const size_t index = m_types.size();
         m_types.push_back(std::move(type));
-        m_nameToIndex[resourceLocation] = index;
+        m_nameToIndex[resourceLocation] = id;
 
         return {};
     }
@@ -120,6 +122,23 @@ public:
             return nullptr;
         }
         return &m_types[it->second];
+    }
+
+    /**
+     * @brief 通过整数 ID 获取实体类型
+     *
+     * ID 由 registerType 按注册顺序分配。用于网络层解码 SpawnEntity 等
+     * VarInt 类型 ID 后查回 EntityType。
+     *
+     * @param id 整数 ID
+     * @return 实体类型指针，越界返回 nullptr
+     */
+    [[nodiscard]] const EntityType* getTypeById(u32 id) const
+    {
+        if (id >= m_types.size()) {
+            return nullptr;
+        }
+        return &m_types[id];
     }
 
     /**

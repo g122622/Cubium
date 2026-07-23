@@ -76,7 +76,8 @@ clang-format -i src\common\xxx\Foo.hpp
 
 当前资源包路径：C:\Users\Administrator\minecraft_reborn\resourcepacks\Vanilla
 当前数据包路径：C:\Users\Administrator\minecraft_reborn\datapacks\Vanilla
-可供参考的MC源码路径：D:\Minecraft\MC研究\Minecraft1.21.11源码
+可供参考的MC Java版源码路径：D:\Minecraft\MC研究\Minecraft1.21.11源码
+可供参考的基岩版源码路径：E:\dev\MC\LeviLamina （注意，全是逆向出来的hpp文件，没有cpp文件）
 （如果项目中代码是参考1.16.5的，必须迁移到1.21.11）
 Moonrise优化模组路径：E:\dev\MC\Mods\Moonrise
 ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil

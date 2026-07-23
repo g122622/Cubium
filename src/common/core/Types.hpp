@@ -96,7 +96,8 @@ using EntityInstanceId = u64;
 inline constexpr EntityInstanceId INVALID_ENTITY_ID = 0;
 
 // 物品ID类型
-using ItemId = u16;
+// 网络层按 VarInt 编码，u32 容量足够且与注册表分配的下标类型一致。
+using ItemId = u32;
 
 // 生物群系ID类型
 using BiomeId = u16;

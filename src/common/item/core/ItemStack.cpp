@@ -606,7 +606,9 @@ void ItemStack::serialize(network::PacketSerializer& ser) const
     }
 
     ser.writeBool(true); // 表示有物品
-    ser.writeU16(m_item->itemId());
+    // TODO: 旧 packet 体系按 u16 写物品 ID，网络层重写后改为 1.21.11 VarInt+DataComponentPatch 格式。
+    //       ItemId 已扩为 u32，此处显式收窄到 u16 仅作过渡，物品 id >65535 会截断（当前原版物品数远低于此）。
+    ser.writeU16(static_cast<u16>(m_item->itemId()));
     ser.writeI32(m_count);
 
     // 耐久度
