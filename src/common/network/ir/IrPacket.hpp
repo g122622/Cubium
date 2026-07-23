@@ -28,6 +28,7 @@
 #include "common/network/ir/packets/handshake/HandshakePackets.hpp"
 #include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/ir/packets/status/StatusPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 
@@ -65,64 +66,116 @@ using LoginPacket = std::variant<login::Hello,
  * 备选项顺序即 altIndex（JavaProtocolTables 登记时按此下标）。
  */
 using ConfigurationPacket = std::variant<configuration::ClientInformation, // 0
-    configuration::CustomPayload,                                         // 1
-    configuration::Disconnect,                                            // 2
-    configuration::FinishConfiguration,                                   // 3
-    configuration::KeepAlive,                                             // 4
-    configuration::Ping,                                                  // 5
-    configuration::RegistryData,                                          // 6
-    configuration::SelectKnownPacks,                                      // 7
-    configuration::UpdateEnabledFeatures,                                 // 8
-    configuration::UpdateTags>;                                           // 9
+    configuration::CustomPayload,                                          // 1
+    configuration::Disconnect,                                             // 2
+    configuration::FinishConfiguration,                                    // 3
+    configuration::KeepAlive,                                              // 4
+    configuration::Ping,                                                   // 5
+    configuration::RegistryData,                                           // 6
+    configuration::SelectKnownPacks,                                       // 7
+    configuration::UpdateEnabledFeatures,                                  // 8
+    configuration::UpdateTags>;                                            // 9
 
 /**
  * @brief 游戏阶段包变体
  *
  * 备选项顺序即 altIndex（JavaProtocolTables 登记时按此下标）。
  */
-using PlayPacket = std::variant<play::AcceptTeleportation,   // 0
-    play::ConfigurationAcknowledged,                          // 1
-    play::ContainerClick,                                     // 2
-    play::ContainerClose,                                     // 3
-    play::Chat,                                               // 4
-    play::KeepAlive,                                          // 5
-    play::SetCarriedItem,                                     // 6
-    play::MovePlayerPos,                                      // 7
-    play::MovePlayerPosRot,                                   // 8
-    play::MovePlayerRot,                                      // 9
-    play::MovePlayerStatusOnly,                               // 10
-    play::PlayerAction,                                       // 11
-    play::PlayerCommand,                                      // 12
-    play::PlayerInput,                                        // 13
-    play::UseItem,                                            // 14
-    play::UseItemOn,                                          // 15
-    play::Disconnect,                                         // 16
-    play::Login,                                              // 17
-    play::PlayerPosition,                                     // 18
-    play::SetTime,                                            // 19
-    play::PlayerAbilities,                                    // 20
-    play::SetHeldSlot,                                        // 21
-    play::SetDefaultSpawnPosition,                            // 22
-    play::ChangeDifficulty,                                   // 23
-    play::GameEvent,                                          // 24
-    play::PlayerInfoUpdate,                                   // 25
-    play::PlayerInfoRemove,                                   // 26
-    play::SetEntityData,                                      // 27
-    play::AddEntity,                                          // 28
-    play::RemoveEntities,                                     // 29
-    play::TeleportEntity,                                     // 30
-    play::MoveEntityPos,                                      // 31
-    play::MoveEntityPosRot,                                   // 32
-    play::MoveEntityRot,                                      // 33
-    play::SetEntityMotion,                                    // 34
-    play::RotateHead,                                         // 35
-    play::LevelChunkWithLight,                                // 36
-    play::LightUpdate,                                        // 37
-    play::BlockUpdate,                                        // 38
-    play::ContainerSetContent,                                // 39
-    play::ContainerSetSlot,                                   // 40
-    play::OpenScreen,                                         // 41
-    play::ContainerSetData>;                                  // 42
+using PlayPacket = std::variant<play::AcceptTeleportation, // 0
+    play::ConfigurationAcknowledged,                       // 1
+    play::ContainerClick,                                  // 2
+    play::ContainerClose,                                  // 3
+    play::Chat,                                            // 4
+    play::KeepAlive,                                       // 5
+    play::SetCarriedItem,                                  // 6
+    play::MovePlayerPos,                                   // 7
+    play::MovePlayerPosRot,                                // 8
+    play::MovePlayerRot,                                   // 9
+    play::MovePlayerStatusOnly,                            // 10
+    play::PlayerAction,                                    // 11
+    play::PlayerCommand,                                   // 12
+    play::PlayerInput,                                     // 13
+    play::UseItem,                                         // 14
+    play::UseItemOn,                                       // 15
+    play::Disconnect,                                      // 16
+    play::Login,                                           // 17
+    play::PlayerPosition,                                  // 18
+    play::SetTime,                                         // 19
+    play::PlayerAbilities,                                 // 20
+    play::SetHeldSlot,                                     // 21
+    play::SetDefaultSpawnPosition,                         // 22
+    play::ChangeDifficulty,                                // 23
+    play::GameEvent,                                       // 24
+    play::PlayerInfoUpdate,                                // 25
+    play::PlayerInfoRemove,                                // 26
+    play::SetEntityData,                                   // 27
+    play::AddEntity,                                       // 28
+    play::RemoveEntities,                                  // 29
+    play::TeleportEntity,                                  // 30
+    play::MoveEntityPos,                                   // 31
+    play::MoveEntityPosRot,                                // 32
+    play::MoveEntityRot,                                   // 33
+    play::SetEntityMotion,                                 // 34
+    play::RotateHead,                                      // 35
+    play::LevelChunkWithLight,                             // 36
+    play::LightUpdate,                                     // 37
+    play::BlockUpdate,                                     // 38
+    play::ContainerSetContent,                             // 39
+    play::ContainerSetSlot,                                // 40
+    play::OpenScreen,                                      // 41
+    play::ContainerSetData,                                // 42
+    // ---- 以下为 Phase 4a 补全（altIndex 43..93，PlayPacketsExtended.hpp）----
+    play::PlaySound,                // 43
+    play::StopSound,                // 44
+    play::SoundEntity,              // 45
+    play::LevelEvent,               // 46
+    play::LevelParticles,           // 47
+    play::BossEvent,                // 48
+    play::UpdateAdvancements,       // 49
+    play::SelectAdvancementTab,     // 50
+    play::SeenAdvancements,         // 51
+    play::SetObjective,             // 52
+    play::SetScore,                 // 53
+    play::ResetScore,               // 54
+    play::SetDisplayObjective,      // 55
+    play::SetPlayerTeam,            // 56
+    play::SetTitleText,             // 57
+    play::SetSubtitleText,          // 58
+    play::SetActionBarText,         // 59
+    play::SetTitlesAnimation,       // 60
+    play::ClearTitles,              // 61
+    play::InitializeBorder,         // 62
+    play::SetBorderCenter,          // 63
+    play::SetBorderLerpSize,        // 64
+    play::SetBorderSize,            // 65
+    play::SetBorderWarningDelay,    // 66
+    play::SetBorderWarningDistance, // 67
+    play::MapItemData,              // 68
+    play::OpenSignEditor,           // 69
+    play::SignUpdate,               // 70
+    play::SetCamera,                // 71
+    play::SetEntityLink,            // 72
+    play::SetPassengers,            // 73
+    play::EntityEvent,              // 74
+    play::Animate,                  // 75
+    play::HurtAnimation,            // 76
+    play::TakeItemEntity,           // 77
+    play::BlockDestruction,         // 78
+    play::BlockEvent,               // 79
+    play::BlockEntityData,          // 80
+    play::Respawn,                  // 81
+    play::SetExperience,            // 82
+    play::Explosion,                // 83
+    play::ServerboundMoveVehicle,   // 84
+    play::ClientboundMoveVehicle,   // 85
+    play::PaddleBoat,               // 86
+    play::Interact,                 // 87
+    play::Commands,                 // 88
+    play::UpdateRecipes,            // 89
+    play::RecipeBookAdd,            // 90
+    play::RecipeBookRemove,         // 91
+    play::PlaceGhostRecipe,         // 92
+    play::PlaceRecipe>;             // 93
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

@@ -1,0 +1,1130 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "common/network/backend/java/codecs/JavaCodecBase.hpp"
+#include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
+#include "common/network/ir/IrPacket.hpp"
+
+namespace mc::network::backend::java::codecs {
+
+// ============================================================================
+// Play 阶段补全 codec（对齐 Java 1.21.11，Phase 4a）
+//
+// 复杂嵌套树（Holder<SoundEvent>/ParticleOptions/Component/NumberFormat/
+// Advancement 树/MapDecoration/MapPatch/Explosion 粒子表/命令树 Node/RecipeDisplay）
+// 以 VarInt(len)+bytes 透传，完整解析留待后续阶段（标 TODO(Phase6)）。
+// Resp 复用 JavaPlayCodecs.hpp 的 play_detail::writeSpawnInfo/readSpawnInfo。
+// ============================================================================
+
+namespace play_ext_detail {
+
+/**
+ * @brief 写 opaque 字节段（VarInt 长度 + 字节）
+ *
+ * 用于承载复杂嵌套结构（Component/ParticleOptions/Holder 等）的原始字节。
+ */
+inline void writeOpaque(B& buf, const std::vector<u8>& data)
+{
+    buf.writeVarInt(static_cast<i32>(data.size()));
+    buf.writeBytes(data.data(), data.size());
+}
+
+/**
+ * @brief 读 opaque 字节段（VarInt 长度 + 字节）
+ */
+[[nodiscard]] inline Result<std::vector<u8>> readOpaque(B& buf, std::string_view ctx)
+{
+    i32 len = 0;
+    MC_TRY_ASSIGN(len, buf.readVarInt());
+    if (len < 0) {
+        return Error(ErrorCode::InvalidData, "opaque length is negative", std::string{ctx});
+    }
+    return buf.readBytes(static_cast<usize>(len));
+}
+
+} // namespace play_ext_detail
+
+// ============================================================================
+// 声音（S→C）
+// ============================================================================
+
+/// PlaySound（S→C，id=115）
+[[nodiscard]] inline auto playSoundCodec()
+{
+    return makeCodec<ir::play::PlaySound>(
+        [](B& buf, const ir::play::PlaySound& v) {
+            play_ext_detail::writeOpaque(buf, v.soundHolder);
+            buf.writeVarInt(v.source);
+            buf.writeI32(v.x);
+            buf.writeI32(v.y);
+            buf.writeI32(v.z);
+            buf.writeF32(v.volume);
+            buf.writeF32(v.pitch);
+            buf.writeI64(v.seed);
+        },
+        [](B& buf) -> Result<ir::play::PlaySound> {
+            ir::play::PlaySound v{};
+            MC_TRY_ASSIGN(v.soundHolder, play_ext_detail::readOpaque(buf, "playSoundCodec"));
+            MC_TRY_ASSIGN(v.source, buf.readVarInt());
+            MC_TRY_ASSIGN(v.x, buf.readI32());
+            MC_TRY_ASSIGN(v.y, buf.readI32());
+            MC_TRY_ASSIGN(v.z, buf.readI32());
+            MC_TRY_ASSIGN(v.volume, buf.readF32());
+            MC_TRY_ASSIGN(v.pitch, buf.readF32());
+            MC_TRY_ASSIGN(v.seed, buf.readI64());
+            return v;
+        });
+}
+
+/// StopSound（S→C，id=117）
+[[nodiscard]] inline auto stopSoundCodec()
+{
+    return makeCodec<ir::play::StopSound>(
+        [](B& buf, const ir::play::StopSound& v) {
+            buf.writeU8(v.flags);
+            if (v.flags & 0x01) {
+                buf.writeVarInt(v.source);
+            }
+            if (v.flags & 0x02) {
+                buf.writeString(v.name);
+            }
+        },
+        [](B& buf) -> Result<ir::play::StopSound> {
+            ir::play::StopSound v{};
+            MC_TRY_ASSIGN(v.flags, buf.readU8());
+            if (v.flags & 0x01) {
+                MC_TRY_ASSIGN(v.source, buf.readVarInt());
+            }
+            if (v.flags & 0x02) {
+                MC_TRY_ASSIGN(v.name, buf.readString());
+            }
+            return v;
+        });
+}
+
+/// SoundEntity（S→C，id=114）
+[[nodiscard]] inline auto soundEntityCodec()
+{
+    return makeCodec<ir::play::SoundEntity>(
+        [](B& buf, const ir::play::SoundEntity& v) {
+            play_ext_detail::writeOpaque(buf, v.soundHolder);
+            buf.writeVarInt(v.source);
+            buf.writeVarInt(v.entityId);
+            buf.writeF32(v.volume);
+            buf.writeF32(v.pitch);
+            buf.writeI64(v.seed);
+        },
+        [](B& buf) -> Result<ir::play::SoundEntity> {
+            ir::play::SoundEntity v{};
+            MC_TRY_ASSIGN(v.soundHolder, play_ext_detail::readOpaque(buf, "soundEntityCodec"));
+            MC_TRY_ASSIGN(v.source, buf.readVarInt());
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.volume, buf.readF32());
+            MC_TRY_ASSIGN(v.pitch, buf.readF32());
+            MC_TRY_ASSIGN(v.seed, buf.readI64());
+            return v;
+        });
+}
+
+/// LevelEvent（S→C，id=45）
+[[nodiscard]] inline auto levelEventCodec()
+{
+    return makeCodec<ir::play::LevelEvent>(
+        [](B& buf, const ir::play::LevelEvent& v) {
+            buf.writeI32(v.type);
+            buf.writeI64(v.blockPosPacked);
+            buf.writeI32(v.data);
+            buf.writeBool(v.globalEvent);
+        },
+        [](B& buf) -> Result<ir::play::LevelEvent> {
+            ir::play::LevelEvent v{};
+            MC_TRY_ASSIGN(v.type, buf.readI32());
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.data, buf.readI32());
+            MC_TRY_ASSIGN(v.globalEvent, buf.readBool());
+            return v;
+        });
+}
+
+// ============================================================================
+// 粒子（S→C）
+// ============================================================================
+
+/// LevelParticles（S→C，id=46）
+[[nodiscard]] inline auto levelParticlesCodec()
+{
+    return makeCodec<ir::play::LevelParticles>(
+        [](B& buf, const ir::play::LevelParticles& v) {
+            buf.writeBool(v.overrideLimiter);
+            buf.writeBool(v.alwaysShow);
+            buf.writeF64(v.x);
+            buf.writeF64(v.y);
+            buf.writeF64(v.z);
+            buf.writeF32(v.xDist);
+            buf.writeF32(v.yDist);
+            buf.writeF32(v.zDist);
+            buf.writeF32(v.maxSpeed);
+            buf.writeI32(v.count);
+            play_ext_detail::writeOpaque(buf, v.particle);
+        },
+        [](B& buf) -> Result<ir::play::LevelParticles> {
+            ir::play::LevelParticles v{};
+            MC_TRY_ASSIGN(v.overrideLimiter, buf.readBool());
+            MC_TRY_ASSIGN(v.alwaysShow, buf.readBool());
+            MC_TRY_ASSIGN(v.x, buf.readF64());
+            MC_TRY_ASSIGN(v.y, buf.readF64());
+            MC_TRY_ASSIGN(v.z, buf.readF64());
+            MC_TRY_ASSIGN(v.xDist, buf.readF32());
+            MC_TRY_ASSIGN(v.yDist, buf.readF32());
+            MC_TRY_ASSIGN(v.zDist, buf.readF32());
+            MC_TRY_ASSIGN(v.maxSpeed, buf.readF32());
+            MC_TRY_ASSIGN(v.count, buf.readI32());
+            MC_TRY_ASSIGN(v.particle, play_ext_detail::readOpaque(buf, "levelParticlesCodec"));
+            return v;
+        });
+}
+
+// ============================================================================
+// Boss 条（S→C，id=9，单包 + operation 分发）
+// ============================================================================
+
+/// BossEvent（S→C，id=9）
+[[nodiscard]] inline auto bossEventCodec()
+{
+    return makeCodec<ir::play::BossEvent>(
+        [](B& buf, const ir::play::BossEvent& v) {
+            buf.writeBytes(v.uuid.data(), v.uuid.size());
+            buf.writeVarInt(v.operation);
+            switch (v.operation) {
+                case 0: // ADD
+                    play_ext_detail::writeOpaque(buf, v.name);
+                    buf.writeF32(v.progress);
+                    buf.writeVarInt(v.color);
+                    buf.writeVarInt(v.overlay);
+                    buf.writeU8(v.flags);
+                    break;
+                case 1: // REMOVE
+                    break;
+                case 2: // UPDATE_PROGRESS
+                    buf.writeF32(v.progress);
+                    break;
+                case 3: // UPDATE_NAME
+                    play_ext_detail::writeOpaque(buf, v.name);
+                    break;
+                case 4: // UPDATE_STYLE
+                    buf.writeVarInt(v.color);
+                    buf.writeVarInt(v.overlay);
+                    break;
+                case 5: // UPDATE_PROPERTIES
+                    buf.writeU8(v.flags);
+                    break;
+                default:
+                    break;
+            }
+        },
+        [](B& buf) -> Result<ir::play::BossEvent> {
+            ir::play::BossEvent v{};
+            MC_TRY(buf.readBytes(v.uuid.data(), v.uuid.size()));
+            MC_TRY_ASSIGN(v.operation, buf.readVarInt());
+            switch (v.operation) {
+                case 0:
+                    MC_TRY_ASSIGN(v.name, play_ext_detail::readOpaque(buf, "bossEventCodec.ADD"));
+                    MC_TRY_ASSIGN(v.progress, buf.readF32());
+                    MC_TRY_ASSIGN(v.color, buf.readVarInt());
+                    MC_TRY_ASSIGN(v.overlay, buf.readVarInt());
+                    MC_TRY_ASSIGN(v.flags, buf.readU8());
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    MC_TRY_ASSIGN(v.progress, buf.readF32());
+                    break;
+                case 3:
+                    MC_TRY_ASSIGN(v.name, play_ext_detail::readOpaque(buf, "bossEventCodec.UPDATE_NAME"));
+                    break;
+                case 4:
+                    MC_TRY_ASSIGN(v.color, buf.readVarInt());
+                    MC_TRY_ASSIGN(v.overlay, buf.readVarInt());
+                    break;
+                case 5:
+                    MC_TRY_ASSIGN(v.flags, buf.readU8());
+                    break;
+                default:
+                    break;
+            }
+            return v;
+        });
+}
+
+// ============================================================================
+// 进度（Advancements）
+// ============================================================================
+
+/// UpdateAdvancements（S→C，id=128，opaque）
+[[nodiscard]] inline auto updateAdvancementsCodec()
+{
+    return makeCodec<ir::play::UpdateAdvancements>(
+        [](B& buf, const ir::play::UpdateAdvancements& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::UpdateAdvancements> {
+            ir::play::UpdateAdvancements v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "updateAdvancementsCodec"));
+            return v;
+        });
+}
+
+/// SelectAdvancementTab（S→C，id=83）
+[[nodiscard]] inline auto selectAdvancementTabCodec()
+{
+    return makeCodec<ir::play::SelectAdvancementTab>(
+        [](B& buf, const ir::play::SelectAdvancementTab& v) {
+            buf.writeBool(v.present);
+            if (v.present) {
+                buf.writeString(v.tab);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SelectAdvancementTab> {
+            ir::play::SelectAdvancementTab v{};
+            MC_TRY_ASSIGN(v.present, buf.readBool());
+            if (v.present) {
+                MC_TRY_ASSIGN(v.tab, buf.readString());
+            }
+            return v;
+        });
+}
+
+/// SeenAdvancements（C→S，id=49）
+[[nodiscard]] inline auto seenAdvancementsCodec()
+{
+    return makeCodec<ir::play::SeenAdvancements>(
+        [](B& buf, const ir::play::SeenAdvancements& v) {
+            buf.writeVarInt(v.action);
+            if (v.action == 0) { // OPENED_TAB
+                buf.writeString(v.tab);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SeenAdvancements> {
+            ir::play::SeenAdvancements v{};
+            MC_TRY_ASSIGN(v.action, buf.readVarInt());
+            if (v.action == 0) {
+                MC_TRY_ASSIGN(v.tab, buf.readString());
+            }
+            return v;
+        });
+}
+
+// ============================================================================
+// 记分板（S→C）
+// ============================================================================
+
+/// SetObjective（S→C，id=104，单包 + method 分发）
+[[nodiscard]] inline auto setObjectiveCodec()
+{
+    return makeCodec<ir::play::SetObjective>(
+        [](B& buf, const ir::play::SetObjective& v) {
+            buf.writeString(v.objectiveName);
+            buf.writeU8(v.method);
+            if (v.method == 0 || v.method == 2) {
+                play_ext_detail::writeOpaque(buf, v.displayName);
+                buf.writeVarInt(v.renderType);
+                play_ext_detail::writeOpaque(buf, v.numberFormat);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SetObjective> {
+            ir::play::SetObjective v{};
+            MC_TRY_ASSIGN(v.objectiveName, buf.readString());
+            MC_TRY_ASSIGN(v.method, buf.readU8());
+            if (v.method == 0 || v.method == 2) {
+                MC_TRY_ASSIGN(v.displayName, play_ext_detail::readOpaque(buf, "setObjectiveCodec.displayName"));
+                MC_TRY_ASSIGN(v.renderType, buf.readVarInt());
+                MC_TRY_ASSIGN(v.numberFormat, play_ext_detail::readOpaque(buf, "setObjectiveCodec.numberFormat"));
+            }
+            return v;
+        });
+}
+
+/// SetScore（S→C，id=108）
+[[nodiscard]] inline auto setScoreCodec()
+{
+    return makeCodec<ir::play::SetScore>(
+        [](B& buf, const ir::play::SetScore& v) {
+            buf.writeString(v.owner);
+            buf.writeString(v.objectiveName);
+            buf.writeVarInt(v.score);
+            play_ext_detail::writeOpaque(buf, v.display);
+            play_ext_detail::writeOpaque(buf, v.numberFormat);
+        },
+        [](B& buf) -> Result<ir::play::SetScore> {
+            ir::play::SetScore v{};
+            MC_TRY_ASSIGN(v.owner, buf.readString());
+            MC_TRY_ASSIGN(v.objectiveName, buf.readString());
+            MC_TRY_ASSIGN(v.score, buf.readVarInt());
+            MC_TRY_ASSIGN(v.display, play_ext_detail::readOpaque(buf, "setScoreCodec.display"));
+            MC_TRY_ASSIGN(v.numberFormat, play_ext_detail::readOpaque(buf, "setScoreCodec.numberFormat"));
+            return v;
+        });
+}
+
+/// ResetScore（S→C，id=77）
+[[nodiscard]] inline auto resetScoreCodec()
+{
+    return makeCodec<ir::play::ResetScore>(
+        [](B& buf, const ir::play::ResetScore& v) {
+            buf.writeString(v.owner);
+            buf.writeBool(v.objectiveName.has_value());
+            if (v.objectiveName.has_value()) {
+                buf.writeString(*v.objectiveName);
+            }
+        },
+        [](B& buf) -> Result<ir::play::ResetScore> {
+            ir::play::ResetScore v{};
+            MC_TRY_ASSIGN(v.owner, buf.readString());
+            bool present = false;
+            MC_TRY_ASSIGN(present, buf.readBool());
+            if (present) {
+                std::string name;
+                MC_TRY_ASSIGN(name, buf.readString());
+                v.objectiveName = std::move(name);
+            }
+            return v;
+        });
+}
+
+/// SetDisplayObjective（S→C，id=96）
+[[nodiscard]] inline auto setDisplayObjectiveCodec()
+{
+    return makeCodec<ir::play::SetDisplayObjective>(
+        [](B& buf, const ir::play::SetDisplayObjective& v) {
+            buf.writeVarInt(v.slot);
+            buf.writeString(v.objectiveName);
+        },
+        [](B& buf) -> Result<ir::play::SetDisplayObjective> {
+            ir::play::SetDisplayObjective v{};
+            MC_TRY_ASSIGN(v.slot, buf.readVarInt());
+            MC_TRY_ASSIGN(v.objectiveName, buf.readString());
+            return v;
+        });
+}
+
+/// SetPlayerTeam（S→C，id=107，单包 + method 分发）
+[[nodiscard]] inline auto setPlayerTeamCodec()
+{
+    return makeCodec<ir::play::SetPlayerTeam>(
+        [](B& buf, const ir::play::SetPlayerTeam& v) {
+            buf.writeString(v.name);
+            buf.writeU8(v.method);
+            if (v.method == 0 || v.method == 2) {
+                play_ext_detail::writeOpaque(buf, v.parameters);
+            }
+            if (v.method == 0 || v.method == 3 || v.method == 4) {
+                buf.writeVarInt(static_cast<i32>(v.players.size()));
+                for (const auto& p : v.players) {
+                    buf.writeString(p);
+                }
+            }
+        },
+        [](B& buf) -> Result<ir::play::SetPlayerTeam> {
+            ir::play::SetPlayerTeam v{};
+            MC_TRY_ASSIGN(v.name, buf.readString());
+            MC_TRY_ASSIGN(v.method, buf.readU8());
+            if (v.method == 0 || v.method == 2) {
+                MC_TRY_ASSIGN(v.parameters, play_ext_detail::readOpaque(buf, "setPlayerTeamCodec.parameters"));
+            }
+            if (v.method == 0 || v.method == 3 || v.method == 4) {
+                i32 count = 0;
+                MC_TRY_ASSIGN(count, buf.readVarInt());
+                if (count < 0) {
+                    return Error(ErrorCode::InvalidData, "players count is negative", "setPlayerTeamCodec");
+                }
+                for (i32 i = 0; i < count; ++i) {
+                    std::string p;
+                    MC_TRY_ASSIGN(p, buf.readString());
+                    v.players.push_back(std::move(p));
+                }
+            }
+            return v;
+        });
+}
+
+// ============================================================================
+// 标题（S→C，1.21.11 拆 5 包）
+// ============================================================================
+
+/// SetTitleText（S→C，id=112）
+[[nodiscard]] inline auto setTitleTextCodec()
+{
+    return makeCodec<ir::play::SetTitleText>(
+        [](B& buf, const ir::play::SetTitleText& v) { play_ext_detail::writeOpaque(buf, v.text); },
+        [](B& buf) -> Result<ir::play::SetTitleText> {
+            ir::play::SetTitleText v{};
+            MC_TRY_ASSIGN(v.text, play_ext_detail::readOpaque(buf, "setTitleTextCodec"));
+            return v;
+        });
+}
+
+/// SetSubtitleText（S→C，id=110）
+[[nodiscard]] inline auto setSubtitleTextCodec()
+{
+    return makeCodec<ir::play::SetSubtitleText>(
+        [](B& buf, const ir::play::SetSubtitleText& v) { play_ext_detail::writeOpaque(buf, v.text); },
+        [](B& buf) -> Result<ir::play::SetSubtitleText> {
+            ir::play::SetSubtitleText v{};
+            MC_TRY_ASSIGN(v.text, play_ext_detail::readOpaque(buf, "setSubtitleTextCodec"));
+            return v;
+        });
+}
+
+/// SetActionBarText（S→C，id=85）
+[[nodiscard]] inline auto setActionBarTextCodec()
+{
+    return makeCodec<ir::play::SetActionBarText>(
+        [](B& buf, const ir::play::SetActionBarText& v) { play_ext_detail::writeOpaque(buf, v.text); },
+        [](B& buf) -> Result<ir::play::SetActionBarText> {
+            ir::play::SetActionBarText v{};
+            MC_TRY_ASSIGN(v.text, play_ext_detail::readOpaque(buf, "setActionBarTextCodec"));
+            return v;
+        });
+}
+
+/// SetTitlesAnimation（S→C，id=113）
+[[nodiscard]] inline auto setTitlesAnimationCodec()
+{
+    return makeCodec<ir::play::SetTitlesAnimation>(
+        [](B& buf, const ir::play::SetTitlesAnimation& v) {
+            buf.writeI32(v.fadeIn);
+            buf.writeI32(v.stay);
+            buf.writeI32(v.fadeOut);
+        },
+        [](B& buf) -> Result<ir::play::SetTitlesAnimation> {
+            ir::play::SetTitlesAnimation v{};
+            MC_TRY_ASSIGN(v.fadeIn, buf.readI32());
+            MC_TRY_ASSIGN(v.stay, buf.readI32());
+            MC_TRY_ASSIGN(v.fadeOut, buf.readI32());
+            return v;
+        });
+}
+
+/// ClearTitles（S→C，id=14）
+[[nodiscard]] inline auto clearTitlesCodec()
+{
+    return makeCodec<ir::play::ClearTitles>([](B& buf, const ir::play::ClearTitles& v) { buf.writeBool(v.resetTimes); },
+        [](B& buf) -> Result<ir::play::ClearTitles> {
+            ir::play::ClearTitles v{};
+            MC_TRY_ASSIGN(v.resetTimes, buf.readBool());
+            return v;
+        });
+}
+
+// ============================================================================
+// 世界边界（S→C，1.21.11 拆 6 包）
+// ============================================================================
+
+/// InitializeBorder（S→C，id=42）
+[[nodiscard]] inline auto initializeBorderCodec()
+{
+    return makeCodec<ir::play::InitializeBorder>(
+        [](B& buf, const ir::play::InitializeBorder& v) {
+            buf.writeF64(v.newCenterX);
+            buf.writeF64(v.newCenterZ);
+            buf.writeF64(v.oldSize);
+            buf.writeF64(v.newSize);
+            buf.writeVarLong(v.lerpTime);
+            buf.writeVarInt(v.newAbsoluteMaxSize);
+            buf.writeVarInt(v.warningBlocks);
+            buf.writeVarInt(v.warningTime);
+        },
+        [](B& buf) -> Result<ir::play::InitializeBorder> {
+            ir::play::InitializeBorder v{};
+            MC_TRY_ASSIGN(v.newCenterX, buf.readF64());
+            MC_TRY_ASSIGN(v.newCenterZ, buf.readF64());
+            MC_TRY_ASSIGN(v.oldSize, buf.readF64());
+            MC_TRY_ASSIGN(v.newSize, buf.readF64());
+            MC_TRY_ASSIGN(v.lerpTime, buf.readVarLong());
+            MC_TRY_ASSIGN(v.newAbsoluteMaxSize, buf.readVarInt());
+            MC_TRY_ASSIGN(v.warningBlocks, buf.readVarInt());
+            MC_TRY_ASSIGN(v.warningTime, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SetBorderCenter（S→C，id=86）
+[[nodiscard]] inline auto setBorderCenterCodec()
+{
+    return makeCodec<ir::play::SetBorderCenter>(
+        [](B& buf, const ir::play::SetBorderCenter& v) {
+            buf.writeF64(v.newCenterX);
+            buf.writeF64(v.newCenterZ);
+        },
+        [](B& buf) -> Result<ir::play::SetBorderCenter> {
+            ir::play::SetBorderCenter v{};
+            MC_TRY_ASSIGN(v.newCenterX, buf.readF64());
+            MC_TRY_ASSIGN(v.newCenterZ, buf.readF64());
+            return v;
+        });
+}
+
+/// SetBorderLerpSize（S→C，id=87）
+[[nodiscard]] inline auto setBorderLerpSizeCodec()
+{
+    return makeCodec<ir::play::SetBorderLerpSize>(
+        [](B& buf, const ir::play::SetBorderLerpSize& v) {
+            buf.writeF64(v.oldSize);
+            buf.writeF64(v.newSize);
+            buf.writeVarLong(v.lerpTime);
+        },
+        [](B& buf) -> Result<ir::play::SetBorderLerpSize> {
+            ir::play::SetBorderLerpSize v{};
+            MC_TRY_ASSIGN(v.oldSize, buf.readF64());
+            MC_TRY_ASSIGN(v.newSize, buf.readF64());
+            MC_TRY_ASSIGN(v.lerpTime, buf.readVarLong());
+            return v;
+        });
+}
+
+/// SetBorderSize（S→C，id=88）
+[[nodiscard]] inline auto setBorderSizeCodec()
+{
+    return makeCodec<ir::play::SetBorderSize>([](B& buf, const ir::play::SetBorderSize& v) { buf.writeF64(v.size); },
+        [](B& buf) -> Result<ir::play::SetBorderSize> {
+            ir::play::SetBorderSize v{};
+            MC_TRY_ASSIGN(v.size, buf.readF64());
+            return v;
+        });
+}
+
+/// SetBorderWarningDelay（S→C，id=89）
+[[nodiscard]] inline auto setBorderWarningDelayCodec()
+{
+    return makeCodec<ir::play::SetBorderWarningDelay>(
+        [](B& buf, const ir::play::SetBorderWarningDelay& v) { buf.writeVarInt(v.warningDelay); },
+        [](B& buf) -> Result<ir::play::SetBorderWarningDelay> {
+            ir::play::SetBorderWarningDelay v{};
+            MC_TRY_ASSIGN(v.warningDelay, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SetBorderWarningDistance（S→C，id=90）
+[[nodiscard]] inline auto setBorderWarningDistanceCodec()
+{
+    return makeCodec<ir::play::SetBorderWarningDistance>(
+        [](B& buf, const ir::play::SetBorderWarningDistance& v) { buf.writeVarInt(v.warningBlocks); },
+        [](B& buf) -> Result<ir::play::SetBorderWarningDistance> {
+            ir::play::SetBorderWarningDistance v{};
+            MC_TRY_ASSIGN(v.warningBlocks, buf.readVarInt());
+            return v;
+        });
+}
+
+// ============================================================================
+// 地图（S→C，opaque）
+// ============================================================================
+
+/// MapItemData（S→C，id=49，opaque）
+[[nodiscard]] inline auto mapItemDataCodec()
+{
+    return makeCodec<ir::play::MapItemData>(
+        [](B& buf, const ir::play::MapItemData& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::MapItemData> {
+            ir::play::MapItemData v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "mapItemDataCodec"));
+            return v;
+        });
+}
+
+// ============================================================================
+// 告示牌
+// ============================================================================
+
+/// OpenSignEditor（S→C，id=58）
+[[nodiscard]] inline auto openSignEditorCodec()
+{
+    return makeCodec<ir::play::OpenSignEditor>(
+        [](B& buf, const ir::play::OpenSignEditor& v) {
+            buf.writeI64(v.blockPosPacked);
+            buf.writeBool(v.isFrontText);
+        },
+        [](B& buf) -> Result<ir::play::OpenSignEditor> {
+            ir::play::OpenSignEditor v{};
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.isFrontText, buf.readBool());
+            return v;
+        });
+}
+
+/// SignUpdate（C→S，id=59）
+[[nodiscard]] inline auto signUpdateCodec()
+{
+    return makeCodec<ir::play::SignUpdate>(
+        [](B& buf, const ir::play::SignUpdate& v) {
+            buf.writeI64(v.blockPosPacked);
+            buf.writeBool(v.isFrontText);
+            for (const auto& line : v.lines) {
+                buf.writeString(line);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SignUpdate> {
+            ir::play::SignUpdate v{};
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.isFrontText, buf.readBool());
+            for (usize i = 0; i < v.lines.size(); ++i) {
+                std::string line;
+                MC_TRY_ASSIGN(line, buf.readString());
+                v.lines[i] = std::move(line);
+            }
+            return v;
+        });
+}
+
+// ============================================================================
+// 简单单包（S→C）
+// ============================================================================
+
+/// SetCamera（S→C，id=91）
+[[nodiscard]] inline auto setCameraCodec()
+{
+    return makeCodec<ir::play::SetCamera>([](B& buf, const ir::play::SetCamera& v) { buf.writeVarInt(v.cameraId); },
+        [](B& buf) -> Result<ir::play::SetCamera> {
+            ir::play::SetCamera v{};
+            MC_TRY_ASSIGN(v.cameraId, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SetEntityLink（S→C，id=98）
+[[nodiscard]] inline auto setEntityLinkCodec()
+{
+    return makeCodec<ir::play::SetEntityLink>(
+        [](B& buf, const ir::play::SetEntityLink& v) {
+            buf.writeI32(v.sourceId);
+            buf.writeI32(v.destId);
+        },
+        [](B& buf) -> Result<ir::play::SetEntityLink> {
+            ir::play::SetEntityLink v{};
+            MC_TRY_ASSIGN(v.sourceId, buf.readI32());
+            MC_TRY_ASSIGN(v.destId, buf.readI32());
+            return v;
+        });
+}
+
+/// SetPassengers（S→C，id=105）
+[[nodiscard]] inline auto setPassengersCodec()
+{
+    return makeCodec<ir::play::SetPassengers>(
+        [](B& buf, const ir::play::SetPassengers& v) {
+            buf.writeVarInt(v.vehicle);
+            buf.writeVarInt(static_cast<i32>(v.passengers.size()));
+            for (i32 p : v.passengers) {
+                buf.writeVarInt(p);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SetPassengers> {
+            ir::play::SetPassengers v{};
+            MC_TRY_ASSIGN(v.vehicle, buf.readVarInt());
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0) {
+                return Error(ErrorCode::InvalidData, "passengers count is negative", "setPassengersCodec");
+            }
+            for (i32 i = 0; i < count; ++i) {
+                i32 p = 0;
+                MC_TRY_ASSIGN(p, buf.readVarInt());
+                v.passengers.push_back(p);
+            }
+            return v;
+        });
+}
+
+/// EntityEvent（S→C，id=34）
+[[nodiscard]] inline auto entityEventCodec()
+{
+    return makeCodec<ir::play::EntityEvent>(
+        [](B& buf, const ir::play::EntityEvent& v) {
+            buf.writeI32(v.entityId);
+            buf.writeU8(v.eventId);
+        },
+        [](B& buf) -> Result<ir::play::EntityEvent> {
+            ir::play::EntityEvent v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readI32());
+            MC_TRY_ASSIGN(v.eventId, buf.readU8());
+            return v;
+        });
+}
+
+/// Animate（S→C，id=2）
+[[nodiscard]] inline auto animateCodec()
+{
+    return makeCodec<ir::play::Animate>(
+        [](B& buf, const ir::play::Animate& v) {
+            buf.writeVarInt(v.id);
+            buf.writeU8(v.action);
+        },
+        [](B& buf) -> Result<ir::play::Animate> {
+            ir::play::Animate v{};
+            MC_TRY_ASSIGN(v.id, buf.readVarInt());
+            MC_TRY_ASSIGN(v.action, buf.readU8());
+            return v;
+        });
+}
+
+/// HurtAnimation（S→C，id=41）
+[[nodiscard]] inline auto hurtAnimationCodec()
+{
+    return makeCodec<ir::play::HurtAnimation>(
+        [](B& buf, const ir::play::HurtAnimation& v) {
+            buf.writeVarInt(v.id);
+            buf.writeF32(v.yaw);
+        },
+        [](B& buf) -> Result<ir::play::HurtAnimation> {
+            ir::play::HurtAnimation v{};
+            MC_TRY_ASSIGN(v.id, buf.readVarInt());
+            MC_TRY_ASSIGN(v.yaw, buf.readF32());
+            return v;
+        });
+}
+
+/// TakeItemEntity（S→C，id=122）
+[[nodiscard]] inline auto takeItemEntityCodec()
+{
+    return makeCodec<ir::play::TakeItemEntity>(
+        [](B& buf, const ir::play::TakeItemEntity& v) {
+            buf.writeVarInt(v.itemId);
+            buf.writeVarInt(v.playerId);
+            buf.writeVarInt(v.amount);
+        },
+        [](B& buf) -> Result<ir::play::TakeItemEntity> {
+            ir::play::TakeItemEntity v{};
+            MC_TRY_ASSIGN(v.itemId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.playerId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.amount, buf.readVarInt());
+            return v;
+        });
+}
+
+/// BlockDestruction（S→C，id=5）
+[[nodiscard]] inline auto blockDestructionCodec()
+{
+    return makeCodec<ir::play::BlockDestruction>(
+        [](B& buf, const ir::play::BlockDestruction& v) {
+            buf.writeVarInt(v.id);
+            buf.writeI64(v.blockPosPacked);
+            buf.writeU8(v.progress);
+        },
+        [](B& buf) -> Result<ir::play::BlockDestruction> {
+            ir::play::BlockDestruction v{};
+            MC_TRY_ASSIGN(v.id, buf.readVarInt());
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.progress, buf.readU8());
+            return v;
+        });
+}
+
+/// BlockEvent（S→C，id=7）
+[[nodiscard]] inline auto blockEventCodec()
+{
+    return makeCodec<ir::play::BlockEvent>(
+        [](B& buf, const ir::play::BlockEvent& v) {
+            buf.writeI64(v.blockPosPacked);
+            buf.writeU8(v.b0);
+            buf.writeU8(v.b1);
+            buf.writeVarInt(v.blockId);
+        },
+        [](B& buf) -> Result<ir::play::BlockEvent> {
+            ir::play::BlockEvent v{};
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.b0, buf.readU8());
+            MC_TRY_ASSIGN(v.b1, buf.readU8());
+            MC_TRY_ASSIGN(v.blockId, buf.readVarInt());
+            return v;
+        });
+}
+
+/// BlockEntityData（S→C，id=6）
+[[nodiscard]] inline auto blockEntityDataCodec()
+{
+    return makeCodec<ir::play::BlockEntityData>(
+        [](B& buf, const ir::play::BlockEntityData& v) {
+            buf.writeI64(v.blockPosPacked);
+            buf.writeVarInt(v.blockEntityType);
+            play_ext_detail::writeOpaque(buf, v.tag);
+        },
+        [](B& buf) -> Result<ir::play::BlockEntityData> {
+            ir::play::BlockEntityData v{};
+            MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
+            MC_TRY_ASSIGN(v.blockEntityType, buf.readVarInt());
+            MC_TRY_ASSIGN(v.tag, play_ext_detail::readOpaque(buf, "blockEntityDataCodec.tag"));
+            return v;
+        });
+}
+
+// ============================================================================
+// 维度（S→C）
+// ============================================================================
+
+/// Respawn（S→C，id=80）
+[[nodiscard]] inline auto respawnCodec()
+{
+    return makeCodec<ir::play::Respawn>(
+        [](B& buf, const ir::play::Respawn& v) {
+            play_detail::writeSpawnInfo(buf, v.spawnInfo);
+            buf.writeU8(v.dataToKeep);
+        },
+        [](B& buf) -> Result<ir::play::Respawn> {
+            ir::play::Respawn v{};
+            MC_TRY_ASSIGN(v.spawnInfo, play_detail::readSpawnInfo(buf));
+            MC_TRY_ASSIGN(v.dataToKeep, buf.readU8());
+            return v;
+        });
+}
+
+// ============================================================================
+// 经验（S→C）
+// ============================================================================
+
+/// SetExperience（S→C，id=101）
+[[nodiscard]] inline auto setExperienceCodec()
+{
+    return makeCodec<ir::play::SetExperience>(
+        [](B& buf, const ir::play::SetExperience& v) {
+            buf.writeF32(v.experienceProgress);
+            buf.writeVarInt(v.experienceLevel);
+            buf.writeVarInt(v.totalExperience);
+        },
+        [](B& buf) -> Result<ir::play::SetExperience> {
+            ir::play::SetExperience v{};
+            MC_TRY_ASSIGN(v.experienceProgress, buf.readF32());
+            MC_TRY_ASSIGN(v.experienceLevel, buf.readVarInt());
+            MC_TRY_ASSIGN(v.totalExperience, buf.readVarInt());
+            return v;
+        });
+}
+
+// ============================================================================
+// 爆炸（S→C，opaque）
+// ============================================================================
+
+/// Explosion（S→C，id=36，opaque）
+[[nodiscard]] inline auto explosionCodec()
+{
+    return makeCodec<ir::play::Explosion>(
+        [](B& buf, const ir::play::Explosion& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::Explosion> {
+            ir::play::Explosion v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "explosionCodec"));
+            return v;
+        });
+}
+
+// ============================================================================
+// 载具 / 交互
+// ============================================================================
+
+/// ServerboundMoveVehicle（C→S，id=33）
+[[nodiscard]] inline auto serverboundMoveVehicleCodec()
+{
+    return makeCodec<ir::play::ServerboundMoveVehicle>(
+        [](B& buf, const ir::play::ServerboundMoveVehicle& v) {
+            buf.writeF64(v.x);
+            buf.writeF64(v.y);
+            buf.writeF64(v.z);
+            buf.writeF32(v.yRot);
+            buf.writeF32(v.xRot);
+            buf.writeBool(v.onGround);
+        },
+        [](B& buf) -> Result<ir::play::ServerboundMoveVehicle> {
+            ir::play::ServerboundMoveVehicle v{};
+            MC_TRY_ASSIGN(v.x, buf.readF64());
+            MC_TRY_ASSIGN(v.y, buf.readF64());
+            MC_TRY_ASSIGN(v.z, buf.readF64());
+            MC_TRY_ASSIGN(v.yRot, buf.readF32());
+            MC_TRY_ASSIGN(v.xRot, buf.readF32());
+            MC_TRY_ASSIGN(v.onGround, buf.readBool());
+            return v;
+        });
+}
+
+/// ClientboundMoveVehicle（S→C，id=55）
+[[nodiscard]] inline auto clientboundMoveVehicleCodec()
+{
+    return makeCodec<ir::play::ClientboundMoveVehicle>(
+        [](B& buf, const ir::play::ClientboundMoveVehicle& v) {
+            buf.writeF64(v.x);
+            buf.writeF64(v.y);
+            buf.writeF64(v.z);
+            buf.writeF32(v.yRot);
+            buf.writeF32(v.xRot);
+        },
+        [](B& buf) -> Result<ir::play::ClientboundMoveVehicle> {
+            ir::play::ClientboundMoveVehicle v{};
+            MC_TRY_ASSIGN(v.x, buf.readF64());
+            MC_TRY_ASSIGN(v.y, buf.readF64());
+            MC_TRY_ASSIGN(v.z, buf.readF64());
+            MC_TRY_ASSIGN(v.yRot, buf.readF32());
+            MC_TRY_ASSIGN(v.xRot, buf.readF32());
+            return v;
+        });
+}
+
+/// PaddleBoat（C→S，id=34）
+[[nodiscard]] inline auto paddleBoatCodec()
+{
+    return makeCodec<ir::play::PaddleBoat>(
+        [](B& buf, const ir::play::PaddleBoat& v) {
+            buf.writeBool(v.left);
+            buf.writeBool(v.right);
+        },
+        [](B& buf) -> Result<ir::play::PaddleBoat> {
+            ir::play::PaddleBoat v{};
+            MC_TRY_ASSIGN(v.left, buf.readBool());
+            MC_TRY_ASSIGN(v.right, buf.readBool());
+            return v;
+        });
+}
+
+/// Interact（C→S，id=25，分发 action）
+[[nodiscard]] inline auto interactCodec()
+{
+    return makeCodec<ir::play::Interact>(
+        [](B& buf, const ir::play::Interact& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeVarInt(v.action);
+            if (v.action == 0) { // INTERACT
+                buf.writeVarInt(v.hand);
+            } else if (v.action == 2) { // INTERACT_AT
+                buf.writeF32(v.hitX);
+                buf.writeF32(v.hitY);
+                buf.writeF32(v.hitZ);
+                buf.writeVarInt(v.hand);
+            }
+            // ATTACK(1) 无 action 专属字段
+            buf.writeBool(v.usingSecondaryAction);
+        },
+        [](B& buf) -> Result<ir::play::Interact> {
+            ir::play::Interact v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.action, buf.readVarInt());
+            if (v.action == 0) {
+                MC_TRY_ASSIGN(v.hand, buf.readVarInt());
+            } else if (v.action == 2) {
+                MC_TRY_ASSIGN(v.hitX, buf.readF32());
+                MC_TRY_ASSIGN(v.hitY, buf.readF32());
+                MC_TRY_ASSIGN(v.hitZ, buf.readF32());
+                MC_TRY_ASSIGN(v.hand, buf.readVarInt());
+            }
+            MC_TRY_ASSIGN(v.usingSecondaryAction, buf.readBool());
+            return v;
+        });
+}
+
+// ============================================================================
+// 命令树（S→C，opaque）
+// ============================================================================
+
+/// Commands（S→C，id=16，opaque）
+[[nodiscard]] inline auto commandsCodec()
+{
+    return makeCodec<ir::play::Commands>(
+        [](B& buf, const ir::play::Commands& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::Commands> {
+            ir::play::Commands v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "commandsCodec"));
+            return v;
+        });
+}
+
+// ============================================================================
+// 配方
+// ============================================================================
+
+/// UpdateRecipes（S→C，id=131，opaque）
+[[nodiscard]] inline auto updateRecipesCodec()
+{
+    return makeCodec<ir::play::UpdateRecipes>(
+        [](B& buf, const ir::play::UpdateRecipes& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::UpdateRecipes> {
+            ir::play::UpdateRecipes v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "updateRecipesCodec"));
+            return v;
+        });
+}
+
+/// RecipeBookAdd（S→C，id=72，opaque）
+[[nodiscard]] inline auto recipeBookAddCodec()
+{
+    return makeCodec<ir::play::RecipeBookAdd>(
+        [](B& buf, const ir::play::RecipeBookAdd& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::RecipeBookAdd> {
+            ir::play::RecipeBookAdd v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "recipeBookAddCodec"));
+            return v;
+        });
+}
+
+/// RecipeBookRemove（S→C，id=73，opaque）
+[[nodiscard]] inline auto recipeBookRemoveCodec()
+{
+    return makeCodec<ir::play::RecipeBookRemove>(
+        [](B& buf, const ir::play::RecipeBookRemove& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf) -> Result<ir::play::RecipeBookRemove> {
+            ir::play::RecipeBookRemove v{};
+            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "recipeBookRemoveCodec"));
+            return v;
+        });
+}
+
+/// PlaceGhostRecipe（S→C，id=61，opaque recipeDisplay）
+[[nodiscard]] inline auto placeGhostRecipeCodec()
+{
+    return makeCodec<ir::play::PlaceGhostRecipe>(
+        [](B& buf, const ir::play::PlaceGhostRecipe& v) {
+            buf.writeVarInt(v.containerId);
+            play_ext_detail::writeOpaque(buf, v.recipeDisplay);
+        },
+        [](B& buf) -> Result<ir::play::PlaceGhostRecipe> {
+            ir::play::PlaceGhostRecipe v{};
+            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.recipeDisplay, play_ext_detail::readOpaque(buf, "placeGhostRecipeCodec"));
+            return v;
+        });
+}
+
+/// PlaceRecipe（C→S，id=38）
+[[nodiscard]] inline auto placeRecipeCodec()
+{
+    return makeCodec<ir::play::PlaceRecipe>(
+        [](B& buf, const ir::play::PlaceRecipe& v) {
+            buf.writeVarInt(v.containerId);
+            buf.writeVarInt(v.recipe);
+            buf.writeBool(v.useMaxItems);
+        },
+        [](B& buf) -> Result<ir::play::PlaceRecipe> {
+            ir::play::PlaceRecipe v{};
+            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.recipe, buf.readVarInt());
+            MC_TRY_ASSIGN(v.useMaxItems, buf.readBool());
+            return v;
+        });
+}
+
+} // namespace mc::network::backend::java::codecs

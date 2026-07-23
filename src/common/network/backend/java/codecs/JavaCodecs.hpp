@@ -26,6 +26,7 @@
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaConfigurationCodecs.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
+#include "common/network/backend/java/codecs/JavaPlayCodecsExtended.hpp"
 
 #include <array>
 
