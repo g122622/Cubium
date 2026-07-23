@@ -33,14 +33,12 @@
  */
 
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
-#include "client/ui/screen/FurnaceScreen.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::client::renderer::trident::gui;
-using namespace mc::client;
 using namespace mc::blockentity;
 
 // ============================================================================
@@ -413,16 +411,6 @@ TEST(FurnaceScreenTextureTest, BurnProgressVisibleWidthCalculation)
 // ============================================================================
 // 熔炉屏幕和容器常量测试
 // ============================================================================
-
-/**
- * @brief 验证 FurnaceScreen 的 GUI 尺寸常量与 MC Java 一致
- */
-TEST(FurnaceScreenTextureTest, FurnaceScreen_Constants)
-{
-    // MC Java 中所有标准容器屏幕均为 176x166
-    EXPECT_EQ(FurnaceScreen::GUI_WIDTH, 176);
-    EXPECT_EQ(FurnaceScreen::GUI_HEIGHT, 166);
-}
 
 /**
  * @brief 验证 FurnaceContainer 槽位位置与 MC Java 一致

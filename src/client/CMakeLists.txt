@@ -351,7 +351,6 @@ add_executable(minecraft-client
     ui/GuiScale.cpp
     ui/TridentCanvas.cpp
     ui/screen/ScreenManager.cpp
-    ui/screen/FurnaceScreen.cpp
     ui/screen/CartographyScreen.cpp
     ui/screen/MapScreen.cpp
     ui/screen/tooltip/BundleTooltipRenderer.cpp
@@ -415,6 +414,7 @@ add_executable(minecraft-client
     ui/minecraft/screens/CreativeScreen.cpp
     ui/minecraft/screens/CraftingScreen.cpp
     ui/minecraft/screens/ChestScreen.cpp
+    ui/minecraft/screens/FurnaceScreen.cpp
     ui/minecraft/screens/ContainerScreen.cpp
     ui/minecraft/screens/PauseScreen.cpp
     ui/minecraft/screens/ConfirmScreen.cpp

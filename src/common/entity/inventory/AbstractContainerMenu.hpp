@@ -345,6 +345,21 @@ public:
     void setTrackedInt(i32 index, i32 value);
 
     /**
+     * @brief 注册整型数据变化监听器
+     * @param listener 回调（index, value），在 detectAndSendChanges 检测到 tracked int 变化时触发
+     * @return 监听器ID
+     *
+     * 用于服务端把熔炉燃烧/熔炼进度等数据经 WindowPropertyPacket 下推客户端。
+     */
+    i32 addIntListener(std::function<void(i32, i32)> listener);
+
+    /**
+     * @brief 移除整型数据变化监听器
+     * @param listenerId 监听器ID
+     */
+    void removeIntListener(i32 listenerId);
+
+    /**
      * @brief 获取当前事务ID并递增
      * @return 当前事务ID
      */

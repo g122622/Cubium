@@ -166,7 +166,11 @@ size_t actualSize = ser.size();
 
 创造模式物品库取物统一走 `ContainerClickPacket`（`ClickAction::Clone`，虚拟槽 slotIndex = `ItemPickerMenu::PALETTE_VIRTUAL_BASE + visibleIndex`），服务端 `ItemPickerMenu::clicked` 拦截虚拟索引 clone 到光标，光标经 `ContainerContentPacket` 末尾 carried 字段回传。不再有独立的创造写回包。
 
-### 9. LocalServerConnection 不持有端点所有权
+### 9. 容器窗口属性同步（WindowPropertyPacket）
+
+熔炉燃烧/熔炼进度等动态数据经 `WindowPropertyPacket`（windowId + property:i16 + value:i16）下推。服务端 `IntegratedServer::tick` 每 tick 对打开的熔炉菜单调 `FurnaceContainer::syncProgressFromEntity()` 把实体值刷进 tracked int 独立存储，再 `detectAndSendChanges()` 检测变化，经 `addIntListener` 注册的监听器发 `WindowPropertyPacket`。客户端 `NetworkClient::onWindowProperty` 回调 `FurnaceContainer::setTrackedInt(property, value)` 写入，`FurnaceScreen` 读 `getLitProgress()`/`getBurnProgress()` 驱动火焰/箭头动画。客户端无熔炉方块实体，进度只能走此通道，不能直接读实体。
+
+### 10. LocalServerConnection 不持有端点所有权
 
 `LocalServerConnection` 使用裸指针持有 `LocalEndpoint`，不管理其生命周期。确保 `LocalConnectionPair` 的生命周期长于 `LocalServerConnection`。
 

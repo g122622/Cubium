@@ -58,6 +58,12 @@ public:
     /// 熔炉槽位数量
     static constexpr i32 FURNACE_SLOTS = 3;
 
+    /// 窗口属性索引（对齐 vanilla AbstractFurnaceMenu，经 WindowPropertyPacket 同步）
+    static constexpr i16 DATA_LIT_TIME = 0;           ///< 剩余燃烧时间（驱动火焰指示器）
+    static constexpr i16 DATA_LIT_DURATION = 1;       ///< 总燃烧时间
+    static constexpr i16 DATA_COOKING_PROGRESS = 2;   ///< 当前熔炼进度（驱动箭头）
+    static constexpr i16 DATA_COOKING_TOTAL_TIME = 3; ///< 总熔炼时间
+
     /// 熔炉槽位起始Y位置
     static constexpr i32 FURNACE_SLOT_Y = 17;
     /// 玩家背包起始Y位置
@@ -114,6 +120,28 @@ public:
     [[nodiscard]] AbstractFurnaceEntity* getFurnaceEntity() const { return m_furnaceEntity; }
 
     /**
+     * @brief 燃烧进度（0.0~1.0），火焰指示器用
+     *
+     * 优先读 tracked int（客户端经 WindowPropertyPacket 同步），无 tracked int 时回退实体。
+     */
+    [[nodiscard]] f32 getLitProgress() const;
+    /**
+     * @brief 熔炼进度（0.0~1.0），箭头指示器用
+     *
+     * 优先读 tracked int（客户端经 WindowPropertyPacket 同步），无 tracked int 时回退实体。
+     */
+    [[nodiscard]] f32 getBurnProgress() const;
+
+    /**
+     * @brief 从熔炉实体刷新燃烧/熔炼进度到 tracked int 独立存储
+     *
+     * 服务端每 tick 在 broadcastChanges 前调用，把实体的 getBurnTime/getCookTime 等写入
+     * tracked int 绑定的独立存储成员，detectAndSendChanges 检测变化经 WindowPropertyPacket 下推。
+     * 客户端侧实体为 nullptr，调用为空操作。
+     */
+    void syncProgressFromEntity();
+
+    /**
      * @brief 设置玩家引用（用于经验发放）
      * @param player 玩家指针
      */
@@ -151,6 +179,16 @@ private:
     void _initSlots(PlayerInventory* playerInventory);
 
     /**
+     * @brief 绑定熔炉燃烧/熔炼进度到 tracked int
+     *
+     * tracked int 绑定到菜单内独立存储成员（m_dataXxx），不直接绑实体成员。
+     * 服务端每 tick 由 syncProgressFromEntity 从实体刷新这些成员，
+     * detectAndSendChanges 检测变化经 WindowPropertyPacket 下推；
+     * 客户端经 setTrackedInt 写入这些成员（实体为 nullptr 时仍可持久化）。
+     */
+    void _initTrackedInts();
+
+    /**
      * @brief 从输出槽取出物品时发放经验
      * @param extractedCount 取出的物品数量
      */
@@ -160,6 +198,13 @@ private:
     std::shared_ptr<IInventory> m_furnaceInventoryOwner; ///< 熔炉背包所有权（可选）
     AbstractFurnaceEntity* m_furnaceEntity;              ///< 熔炉实体（用于经验发放）
     Player* m_player = nullptr;                          ///< 玩家（用于经验发放）
+
+    // 燃烧/熔炼进度的独立存储（tracked int 绑定到此，不直接绑实体）。
+    // 服务端 tick 时由 syncProgressFromEntity 从实体刷新；客户端经 setTrackedInt 写入。
+    i32 m_dataLitTime = 0;
+    i32 m_dataLitDuration = 0;
+    i32 m_dataCookingProgress = 0;
+    i32 m_dataCookingTotalTime = 0;
 };
 
 } // namespace blockentity

@@ -136,6 +136,7 @@ enum class PacketType : u16 {
     PlayerAbilities = 308,     // 玩家能力同步 (S->C)
     ServerDifficulty = 310,    // 难度同步 (S->C)
     OpenPlayerInventory = 311, // 请求打开玩家背包容器 (C->S)
+    WindowProperty = 312,      // 容器属性同步（熔炉燃烧/熔炼进度等）(S->C)
 
     // 声音相关包 (S->C)
     PlaySound = 400,       // 播放声音

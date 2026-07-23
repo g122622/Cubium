@@ -117,6 +117,7 @@ struct NetworkClientCallbacks {
     std::function<void(const network::BlockEntityDataPacket& packet)> onBlockEntityData;
     std::function<void(const ContainerContentPacket& packet)> onContainerContent;
     std::function<void(const ContainerSlotPacket& packet)> onContainerSlot;
+    std::function<void(const WindowPropertyPacket& packet)> onWindowProperty;
     std::function<void(ContainerId containerId)> onCloseContainer;
 
     // 实体事件
@@ -488,6 +489,7 @@ private:
     void _handleOpenContainer(network::PacketDeserializer& deser);
     void _handleContainerContent(network::PacketDeserializer& deser);
     void _handleContainerSlot(network::PacketDeserializer& deser);
+    void _handleWindowProperty(network::PacketDeserializer& deser);
     void _handleCloseContainer(network::PacketDeserializer& deser);
     void _handleSignEditorOpen(network::PacketDeserializer& deser);
     void _handleBlockEntityData(network::PacketDeserializer& deser);

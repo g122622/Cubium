@@ -557,6 +557,14 @@ void IntegratedServer::pollNetwork()
     }
 }
 
+void IntegratedServer::tick()
+{
+    // 先驱动基类世界/实体/网络 tick（含熔炉方块实体 tick 更新燃烧/熔炼状态）
+    MinecraftServer::tick();
+    // 基类 tick 完成后同步打开容器的动态数据（熔炉进度下推客户端）
+    _tickOpenContainer();
+}
+
 void IntegratedServer::broadcastPacket(const u8* data, size_t size)
 {
     // 本地客户端（零拷贝优化）
@@ -1041,6 +1049,47 @@ void IntegratedServer::_sendBlockBreakAnim(EntityInstanceId breakerId, i32 x, i3
     _sendToClient(fullPacket.data(), fullPacket.size());
 }
 
+void IntegratedServer::_sendWindowProperty(ContainerId containerId, i16 property, i16 value)
+{
+    if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
+        return;
+    }
+
+    network::PacketSerializer payload;
+    WindowPropertyPacket packet(containerId, property, value);
+    packet.serialize(payload);
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WindowProperty, payload.buffer());
+    m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
+}
+
+i32 IntegratedServer::_registerFurnaceIntListener(AbstractContainerMenu& menu)
+{
+    auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(&menu);
+    if (furnaceMenu == nullptr) {
+        return -1;
+    }
+    const ContainerId containerId = furnaceMenu->getId();
+    return furnaceMenu->addIntListener([this, containerId](i32 property, i32 value) {
+        _sendWindowProperty(containerId, static_cast<i16>(property), static_cast<i16>(value));
+    });
+}
+
+void IntegratedServer::_tickOpenContainer()
+{
+    if (!m_openMenu) {
+        return;
+    }
+    auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(m_openMenu.get());
+    if (furnaceMenu == nullptr) {
+        return;
+    }
+    // 从熔炉方块实体刷新燃烧/熔炼进度到菜单 tracked int 的独立存储，
+    // detectAndSendChanges 检测变化经 int 监听器发 WindowPropertyPacket 下推客户端。
+    furnaceMenu->syncProgressFromEntity();
+    furnaceMenu->detectAndSendChanges();
+}
+
 i32 IntegratedServer::resolveOpLevel(const std::string& uuid) const noexcept
 {
     const i32 base = static_cast<i32>(m_opListManager->getLevel(uuid));
@@ -1190,6 +1239,14 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
     m_openContainerPos = pos;
     m_openMenu = std::move(menu);
     _getMenuPlayer().setOpenContainerMenu(m_openMenu.get());
+
+    // 熔炉菜单注册 tracked int 监听器：进度变化时发 WindowPropertyPacket 下推客户端
+    if (m_openMenu) {
+        m_furnaceIntListenerId = _registerFurnaceIntListener(*m_openMenu);
+        // 立即同步一次，使打开首帧火焰/箭头进度正确（不等首个 tick）
+        _tickOpenContainer();
+    }
+
     return true;
 }
 
@@ -1227,6 +1284,13 @@ void IntegratedServer::_closeCurrentContainer(bool sendClosePacket)
         _sendCloseContainer(m_openMenu->getId());
     }
     menuPlayer.clearOpenContainerMenu();
+
+    // 移除熔炉 tracked int 监听器（若已注册）
+    if (m_furnaceIntListenerId >= 0 && m_openMenu) {
+        m_openMenu->removeIntListener(m_furnaceIntListenerId);
+        m_furnaceIntListenerId = -1;
+    }
+
     m_openMenu.reset();
     m_openInventoryOwner.reset();
     m_openContainerType = ContainerType::Player;

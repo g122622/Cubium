@@ -203,6 +203,18 @@ void AbstractContainerMenu::removeListener(i32 listenerId)
     m_listeners.erase(listenerId);
 }
 
+i32 AbstractContainerMenu::addIntListener(std::function<void(i32, i32)> listener)
+{
+    i32 id = m_nextIntListenerId++;
+    m_intListeners[id] = std::move(listener);
+    return id;
+}
+
+void AbstractContainerMenu::removeIntListener(i32 listenerId)
+{
+    m_intListeners.erase(listenerId);
+}
+
 i32 AbstractContainerMenu::trackInt(std::unique_ptr<IntReferenceHolder> holder)
 {
     i32 index = static_cast<i32>(m_trackedInts.size());

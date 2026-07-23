@@ -20,6 +20,7 @@ src/client/ui/minecraft/screens/
 ├── CreativeScreen.hpp/cpp     # 创造物品库界面（继承 ContainerScreenBase + ItemPickerMenu）
 ├── CraftingScreen.hpp/cpp     # 工作台界面（3x3 合成，继承 ContainerScreenBase）
 ├── ChestScreen.hpp/cpp        # 箱子界面（单/双箱，动态高度，继承 ContainerScreenBase）
+├── FurnaceScreen.hpp/cpp      # 熔炉界面（火焰/箭头动画，继承 ContainerScreenBase）
 ├── ContainerScreenBase.hpp    # 容器屏共享基类（槽位布局/渲染/交互转发/居中定位）
 ├── ContainerScreen.hpp/cpp    # 容器界面
 ├── LoomScreen.hpp/cpp         # 织布机界面
@@ -59,3 +60,4 @@ src/client/ui/minecraft/screens/
 - `DebugScreenWidget` 本地难度计算使用 `DifficultyInstance`，其中 `chunkInhabitedTime` 暂传 0（客户端区块未实现此字段），后续需补全。
 - `Screen` 需要手动调用 `updateHover()` 更新子组件悬停状态。
 - 模态屏幕会阻止事件向下传播，如需事件穿透设置 `screen->setModal(false)`。
+- **熔炉进度同步**：客户端无熔炉方块实体（`FurnaceContainer::getFurnaceEntity()` 为 nullptr），火焰/箭头进度不能读实体。`FurnaceContainer` 把燃烧/熔炼进度绑到 tracked int 的独立存储成员，服务端每 tick 经 `syncProgressFromEntity()` + `detectAndSendChanges()` 经 `WindowPropertyPacket` 下推，客户端 `onWindowProperty` 回调 `setTrackedInt` 写入，`FurnaceScreen` 读 `getLitProgress()`/`getBurnProgress()` 驱动动画。火焰可见高度 = `ceil(litProgress × 13.0) + 1`，箭头可见宽度 = `ceil(burnProgress × 24.0)`。

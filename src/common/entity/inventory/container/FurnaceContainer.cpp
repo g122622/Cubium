@@ -27,6 +27,7 @@
 #include "entity/inventory/Slot.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc {
@@ -50,6 +51,7 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
 
     // 初始化槽位布局
     _initSlots(playerInventory);
+    _initTrackedInts();
 }
 
 FurnaceContainer::FurnaceContainer(ContainerId id,
@@ -67,6 +69,7 @@ FurnaceContainer::FurnaceContainer(ContainerId id,
     MC_ASSERT(m_furnaceInventory->getContainerSize() == FURNACE_SLOTS);
 
     _initSlots(playerInventory);
+    _initTrackedInts();
 }
 
 // ========== 经验相关 ==========
@@ -208,6 +211,53 @@ void FurnaceContainer::_initSlots(PlayerInventory* playerInventory)
 
         addSlot(std::make_unique<Slot>(playerInventory, slotIndex, x, y));
     }
+}
+
+void FurnaceContainer::_initTrackedInts()
+{
+    // tracked int 绑定到菜单内独立存储成员，与实体解耦：
+    // 服务端 syncProgressFromEntity 每 tick 把实体值刷进成员，detectAndSendChanges 检测变化下推；
+    // 客户端 setTrackedInt 直接写成员（实体为 nullptr 时仍持久化）。
+    trackInt([this]() { return m_dataLitTime; }, [this](i32 v) { m_dataLitTime = v; });         // DATA_LIT_TIME = 0
+    trackInt([this]() { return m_dataLitDuration; }, [this](i32 v) { m_dataLitDuration = v; }); // DATA_LIT_DURATION = 1
+    trackInt([this]() { return m_dataCookingProgress; },
+        [this](i32 v) { m_dataCookingProgress = v; }); // DATA_COOKING_PROGRESS = 2
+    trackInt([this]() { return m_dataCookingTotalTime; },
+        [this](i32 v) { m_dataCookingTotalTime = v; }); // DATA_COOKING_TOTAL_TIME = 3
+}
+
+void FurnaceContainer::syncProgressFromEntity()
+{
+    if (m_furnaceEntity == nullptr) {
+        return;
+    }
+    m_dataLitTime = m_furnaceEntity->getBurnTime();
+    m_dataLitDuration = m_furnaceEntity->getBurnTimeTotal();
+    m_dataCookingProgress = m_furnaceEntity->getCookTime();
+    m_dataCookingTotalTime = m_furnaceEntity->getCookTimeTotal();
+}
+
+f32 FurnaceContainer::getLitProgress() const
+{
+    const i32 burnTime = (getTrackedInt(DATA_LIT_TIME) != nullptr) ? getTrackedInt(DATA_LIT_TIME)->get() : 0;
+    const i32 burnTimeTotal =
+        (getTrackedInt(DATA_LIT_DURATION) != nullptr) ? getTrackedInt(DATA_LIT_DURATION)->get() : 0;
+    if (burnTimeTotal <= 0) {
+        return 0.0f;
+    }
+    return std::clamp(static_cast<f32>(burnTime) / static_cast<f32>(burnTimeTotal), 0.0f, 1.0f);
+}
+
+f32 FurnaceContainer::getBurnProgress() const
+{
+    const i32 cookTime =
+        (getTrackedInt(DATA_COOKING_PROGRESS) != nullptr) ? getTrackedInt(DATA_COOKING_PROGRESS)->get() : 0;
+    const i32 cookTimeTotal =
+        (getTrackedInt(DATA_COOKING_TOTAL_TIME) != nullptr) ? getTrackedInt(DATA_COOKING_TOTAL_TIME)->get() : 0;
+    if (cookTimeTotal <= 0 || cookTime <= 0) {
+        return 0.0f;
+    }
+    return std::clamp(static_cast<f32>(cookTime) / static_cast<f32>(cookTimeTotal), 0.0f, 1.0f);
 }
 
 } // namespace blockentity

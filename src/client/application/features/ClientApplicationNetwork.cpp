@@ -41,6 +41,7 @@
 #include "client/ui/minecraft/screens/ChestScreen.hpp"
 #include "client/ui/minecraft/screens/CraftingScreen.hpp"
 #include "client/ui/minecraft/screens/CreativeScreen.hpp"
+#include "client/ui/minecraft/screens/FurnaceScreen.hpp"
 #include "client/ui/minecraft/screens/InventoryScreen.hpp"
 #include "client/ui/minecraft/screens/SignEditScreen.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
@@ -48,9 +49,7 @@
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/AbstractContainerScreen.hpp"
 #include "client/ui/screen/CartographyScreen.hpp"
-#include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
-#include "client/world/entity/ClientEntity.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
@@ -59,7 +58,6 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
@@ -77,6 +75,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/blockentity/processing/FurnaceInventory.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "server/menu/CraftingMenu.hpp"
 
@@ -507,18 +506,30 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
+        // 熔炉屏走 kagero 体系（FurnaceScreen 继承 ContainerScreenBase<FurnaceContainer>）
+        // 客户端无熔炉方块实体，构造本地 FurnaceInventory 持有槽位，燃烧/熔炼进度经
+        // WindowPropertyPacket 同步到 FurnaceContainer 的 tracked int，再驱动火焰/箭头动画。
+        if (type == ContainerType::Furnace || type == ContainerType::BlastFurnace || type == ContainerType::Smoker) {
+            auto furnaceContainer = std::make_unique<mc::blockentity::FurnaceContainer>(packet.containerId(),
+                &m_player->inventory(),
+                std::shared_ptr<mc::IInventory>(std::make_shared<mc::blockentity::FurnaceInventory>()),
+                nullptr);
+            auto screen = std::make_unique<ui::minecraft::FurnaceScreen>(std::move(furnaceContainer),
+                makeContainerClickSender(m_networkClient.get()),
+                makeContainerCloseSender(m_networkClient.get()));
+            if (m_renderer && m_renderer->isGuiRendererInitialized()) {
+                screen->setRenderers(&m_renderer->guiRenderer(),
+                    m_guiTextureManager.get(),
+                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+                screen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+            }
+            ScreenManager::instance().openScreen(std::move(screen));
+            return;
+        }
+
         std::unique_ptr<IScreen> screen;
 
         switch (type) {
-            case ContainerType::Furnace:
-            case ContainerType::BlastFurnace:
-            case ContainerType::Smoker:
-                screen = std::make_unique<FurnaceScreen>(packet.containerId(),
-                    &m_player->inventory(),
-                    makeContainerClickSender(m_networkClient.get()),
-                    makeContainerCloseSender(m_networkClient.get()));
-                break;
-
             case ContainerType::Cartography:
                 screen = std::make_unique<CartographyScreen>(packet.containerId(),
                     &m_player->inventory(),
@@ -536,14 +547,8 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-            if (auto* furnaceContainerScreen =
-                    dynamic_cast<AbstractContainerScreen<mc::blockentity::FurnaceContainer>*>(screen.get())) {
-                furnaceContainerScreen->setRenderers(&m_renderer->guiRenderer(),
-                    m_guiTextureManager.get(),
-                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
-                furnaceContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
-            } else if (auto* cartographyContainerScreen =
-                           dynamic_cast<AbstractContainerScreen<mc::CartographyContainer>*>(screen.get())) {
+            if (auto* cartographyContainerScreen =
+                    dynamic_cast<AbstractContainerScreen<mc::CartographyContainer>*>(screen.get())) {
                 cartographyContainerScreen->setRenderers(&m_renderer->guiRenderer(),
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
@@ -637,13 +642,15 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
-        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
-
-        if (auto* furnaceScreen = asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen)) {
+        if (auto* furnaceScreen =
+                dynamic_cast<ui::minecraft::FurnaceScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
             applyContainerContentWithCarried(
                 furnaceScreen->getMenu(), packet.containerId(), packet.items(), packet.carriedItem());
+            furnaceScreen->syncSlots();
             return;
         }
+
+        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
 
         if (auto* cartographyScreen = asContainerScreen<mc::CartographyContainer>(currentScreen)) {
             applyContainerContentWithCarried(
@@ -687,11 +694,19 @@ void ClientApplication::setupNetworkCallbacks()
                 return;
             }
         }
+        if (auto* furnaceScreen =
+                dynamic_cast<ui::minecraft::FurnaceScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
+            if (applyContainerSlot(furnaceScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item())) {
+                furnaceScreen->syncSlots();
+                return;
+            }
+        }
 
         IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
 
-        if (auto* furnaceScreen = asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen)) {
-            (void)applyContainerSlot(furnaceScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item());
+        if (auto* cartographyScreen = asContainerScreen<mc::CartographyContainer>(currentScreen)) {
+            (void)applyContainerSlot(
+                cartographyScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item());
         }
     };
 
@@ -725,6 +740,13 @@ void ClientApplication::setupNetworkCallbacks()
             }
             return;
         }
+        if (auto* furnaceScreen =
+                dynamic_cast<ui::minecraft::FurnaceScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
+            if (furnaceScreen->getMenu() && furnaceScreen->getMenu()->getId() == containerId) {
+                ScreenManager::instance().closeScreen();
+            }
+            return;
+        }
 
         IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
         if (!currentScreen) {
@@ -735,9 +757,23 @@ void ClientApplication::setupNetworkCallbacks()
             return screen && screen->getMenu() && screen->getMenu()->getId() == containerId;
         };
 
-        if (matches(asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen))) {
+        if (matches(asContainerScreen<mc::CartographyContainer>(currentScreen))) {
             ScreenManager::instance().closeScreen();
         }
+    };
+
+    // 熔炉燃烧/熔炼进度同步：服务端经 WindowPropertyPacket 下推 tracked int 到客户端。
+    // 客户端按属性索引写入 FurnaceContainer 的 tracked int，FurnaceScreen 渲染时读取驱动火焰/箭头。
+    callbacks.onWindowProperty = [this](const WindowPropertyPacket& packet) {
+        auto* furnaceScreen =
+            dynamic_cast<ui::minecraft::FurnaceScreen*>(ScreenManager::instance().getCurrentKageroScreen());
+        if (furnaceScreen == nullptr || furnaceScreen->getMenu() == nullptr) {
+            return;
+        }
+        if (furnaceScreen->getMenu()->getId() != packet.containerId()) {
+            return;
+        }
+        furnaceScreen->getMenu()->setTrackedInt(packet.property(), packet.value());
     };
 
     callbacks.onSpawnEntity = [this](u32 entityId,

@@ -733,6 +733,11 @@ void NetworkClient::_processPacket(const u8* data, size_t size, std::shared_ptr<
             break;
         }
 
+        case network::PacketType::WindowProperty: {
+            _handleWindowProperty(bodyDeser);
+            break;
+        }
+
         case network::PacketType::CloseContainer: {
             _handleCloseContainer(bodyDeser);
             break;
@@ -1303,6 +1308,19 @@ void NetworkClient::_handleContainerSlot(network::PacketDeserializer& deser)
 
     if (m_callbacks.onContainerSlot) {
         m_callbacks.onContainerSlot(result.value());
+    }
+}
+
+void NetworkClient::_handleWindowProperty(network::PacketDeserializer& deser)
+{
+    auto result = WindowPropertyPacket::deserialize(deser);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize window property packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onWindowProperty) {
+        m_callbacks.onWindowProperty(result.value());
     }
 }
 
