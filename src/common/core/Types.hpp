@@ -46,6 +46,9 @@ using u16 = std::uint16_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 
+// 大小/字节计数类型（与 std::size_t 等价，统一项目内风格）
+using usize = std::size_t;
+
 // 浮点类型
 using f32 = float;
 using f64 = double;

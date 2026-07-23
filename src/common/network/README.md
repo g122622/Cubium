@@ -1,6 +1,14 @@
 # Network Module
 
-网络模块提供 Minecraft 客户端-服务器架构的网络通信基础设施，包括连接管理、数据包序列化和区块同步功能。
+网络模块提供 Minecraft 客户端-服务器架构的网络通信基础设施。
+
+> **架构演进中**：本目录正在从旧的自研 1.16.5 协议（`packet/`+`connection/`+`sync/`）迁移到
+> 基于"协议无关 IR + 多后端 codec"的新架构（`buffer/`+`codec/`+`protocol/`+`ir/`+`transport/`+
+> `pipeline/`+`backend/`）。新旧体系并存，新体系在 `sync/` 之外的新子目录下，旧 `packet/` 体系
+> 在调用方迁移完成后删除。详见各子目录 README。
+>
+> - 新架构（Java 1.21.11 线协议 + 基岩 stub）：`buffer/` `codec/` `protocol/` `ir/` `transport/` `pipeline/` `backend/`
+> - 旧体系（1.16.5 自研协议，待删）：`packet/` `connection/` `sync/`
 
 ## 目录结构
 

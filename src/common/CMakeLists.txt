@@ -68,6 +68,16 @@ add_library(mc_common STATIC
     network/packet/WorldBorderPacket.cpp
     network/packet/BossInfoPacket.cpp
 
+    # Network - 新网络层骨架（IR + 多后端，旧 packet 体系并存过渡）
+    network/buffer/Endian.cpp
+    network/buffer/ByteBuf.cpp
+    network/buffer/RegistryByteBuf.cpp
+    network/buffer/NbtIo.cpp
+    network/transport/TcpTransport.cpp
+    network/transport/LocalTransport.cpp
+    network/backend/java/JavaBackend.cpp
+    network/backend/java/JavaProtocolTables.cpp
+
     # Network - Sync
     network/sync/ChunkSync.cpp
 
@@ -1654,7 +1664,13 @@ target_link_libraries(mc_common
         RocksDB::rocksdb
         zstd::libzstd
         leveldb::leveldb
+        asio::asio
 )
+
+# TcpTransport 用 asio 做 socket IO，Windows 须额外链接 winsock 库。
+if(WIN32)
+    target_link_libraries(mc_common PRIVATE ws2_32 mswsock)
+endif()
 
 mc_set_compiler_warnings(mc_common)
 

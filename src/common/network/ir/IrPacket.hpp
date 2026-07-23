@@ -1,0 +1,91 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "common/network/ir/IrPacketBase.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/network/ir/packets/handshake/HandshakePackets.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/status/StatusPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+
+#include <variant>
+
+namespace mc::network::ir {
+
+/**
+ * @brief 握手阶段包变体
+ *
+ * TODO(Phase3): 当前仅 ClientIntention（握手阶段唯一包），已是完整集。
+ */
+using HandshakePacket = std::variant<handshake::ClientIntention>;
+
+/**
+ * @brief 状态阶段包变体
+ */
+using StatusPacket =
+    std::variant<status::StatusRequest, status::StatusResponse, status::PingRequest, status::PingResponse>;
+
+/**
+ * @brief 登录阶段包变体
+ */
+using LoginPacket = std::variant<login::Hello,
+    login::HelloBound,
+    login::Key,
+    login::LoginFinished,
+    login::LoginCompression,
+    login::LoginAcknowledged,
+    login::Disconnect>;
+
+/**
+ * @brief 配置阶段包变体
+ *
+ * TODO(Phase3): 补 UpdateTags/SelectKnownPacks/KnownPacks/CustomReportDetails/ServerLinks 等。
+ */
+using ConfigurationPacket = std::variant<configuration::RegistryData, configuration::FinishConfiguration>;
+
+/**
+ * @brief 游戏阶段包变体
+ *
+ * TODO(Phase3): 补全在用包子集（移动变体/容器/区块/实体同步等，见调研报告 play 包表）。
+ *              每个包 struct 预留 optional 基岩字段。
+ */
+using PlayPacket = std::variant<play::KeepAlive, play::Disconnect, play::MovePlayerPos, play::Chat>;
+
+/**
+ * @brief 顶层包标签：携带阶段信息 + 阶段变体
+ *
+ * pipeline 层解码出原始字节后，按当前阶段构造对应阶段变体，再包成 IrPacket。
+ * 游戏逻辑侧用 std::visit(visitor, packet) 消费，零虚函数开销。
+ *
+ * 设计为带阶段标签的 tagged union，而非单 mega-variant——避免一个 variant 含上百备选项
+ * 导致编译/调试困难，且阶段切换天然隔离。
+ */
+struct IrPacket {
+    protocol::ConnectionProtocol phase;
+    std::variant<HandshakePacket, StatusPacket, LoginPacket, ConfigurationPacket, PlayPacket> packet;
+};
+
+} // namespace mc::network::ir

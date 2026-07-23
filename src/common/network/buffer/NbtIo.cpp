@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "common/network/buffer/NbtIo.hpp"
+#include "common/network/buffer/ByteBuf.hpp"
+#include "common/util/nbt/Nbt.hpp"
+
+#include <sstream>
+
+namespace mc::network::buffer::nbt_io {
+
+namespace {
+
+/**
+ * @brief 把 ByteBuf 剩余可读字节拷成字符串（sstream 需连续内存）
+ */
+std::string remainingAsString(const ByteBuf& buf)
+{
+    return std::string(reinterpret_cast<const char*>(buf.bytes().data() + buf.readPosition()), buf.readableBytes());
+}
+
+} // namespace
+
+Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag)
+{
+    // 写时：tag → stringstream（带 java 上下文）→ 字节追加到 buf
+    std::ostringstream out;
+    out << mc::nbt::Contexts::java;
+    tag.write(out); // compound_tag::write(ostream) 虚函数，内部按 java 上下文大端二进制序列化
+    const std::string bytes = out.str();
+    buf.writeBytes(reinterpret_cast<const u8*>(bytes.data()), bytes.size());
+    return Result<void>::ok();
+}
+
+Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)
+{
+    // 读时：剩余字节 → istringstream（带 java 上下文）→ compound_tag::read
+    //       解析后按 tellg 差值推进 ByteBuf 游标。
+    std::istringstream in(remainingAsString(buf));
+    in >> mc::nbt::Contexts::java;
+
+    const std::streampos before = in.tellg();
+    std::unique_ptr<mc::nbt::tags::compound_tag> tag = mc::nbt::tags::compound_tag::read(in);
+    if (tag == nullptr) {
+        return Error(ErrorCode::InvalidData, "NBT 复合标签解析失败", "nbt_io::readCompound");
+    }
+    const std::streampos after = in.tellg();
+    const usize consumed = (after == std::streampos(-1) || before == std::streampos(-1))
+        ? buf.readableBytes()
+        : static_cast<usize>(after - before);
+
+    // 前进游标到 NBT 实际消耗位置；剩余字节留给后续读取。
+    buf.setReadPosition(buf.readPosition() + consumed);
+    return tag;
+}
+
+} // namespace mc::network::buffer::nbt_io
