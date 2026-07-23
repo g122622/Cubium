@@ -19,6 +19,7 @@ src/client/ui/minecraft/screens/
 ├── InventoryScreen.hpp/cpp    # 物品栏界面（生存，继承 ContainerScreenBase）
 ├── CreativeScreen.hpp/cpp     # 创造物品库界面（继承 ContainerScreenBase + ItemPickerMenu）
 ├── CraftingScreen.hpp/cpp     # 工作台界面（3x3 合成，继承 ContainerScreenBase）
+├── ChestScreen.hpp/cpp        # 箱子界面（单/双箱，动态高度，继承 ContainerScreenBase）
 ├── ContainerScreenBase.hpp    # 容器屏共享基类（槽位布局/渲染/交互转发/居中定位）
 ├── ContainerScreen.hpp/cpp    # 容器界面
 ├── LoomScreen.hpp/cpp         # 织布机界面

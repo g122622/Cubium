@@ -48,7 +48,6 @@
 #include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "client/ui/screen/ChestScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/core/GameDirectory.hpp"

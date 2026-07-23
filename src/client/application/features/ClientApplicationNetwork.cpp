@@ -38,6 +38,7 @@
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/minecraft/screens/ChestScreen.hpp"
 #include "client/ui/minecraft/screens/CraftingScreen.hpp"
 #include "client/ui/minecraft/screens/CreativeScreen.hpp"
 #include "client/ui/minecraft/screens/InventoryScreen.hpp"
@@ -47,7 +48,6 @@
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/AbstractContainerScreen.hpp"
 #include "client/ui/screen/CartographyScreen.hpp"
-#include "client/ui/screen/ChestScreen.hpp"
 #include "client/ui/screen/FurnaceScreen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/entity/ClientEntity.hpp"
@@ -75,6 +75,7 @@
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "server/menu/CraftingMenu.hpp"
@@ -456,53 +457,59 @@ void ClientApplication::setupNetworkCallbacks()
             return;
         }
 
+        // 箱子屏走 kagero 体系（ChestScreen 继承 ContainerScreenBase<ChestContainer>）
+        if (type == ContainerType::Generic9x1 || type == ContainerType::Generic9x2 ||
+            type == ContainerType::Generic9x3 || type == ContainerType::Generic9x4 ||
+            type == ContainerType::Generic9x5 || type == ContainerType::Generic9x6 ||
+            type == ContainerType::ShulkerBox) {
+            i32 rows = 3;
+            switch (type) {
+                case ContainerType::Generic9x1:
+                    rows = 1;
+                    break;
+                case ContainerType::Generic9x2:
+                    rows = 2;
+                    break;
+                case ContainerType::Generic9x3:
+                    rows = 3;
+                    break;
+                case ContainerType::Generic9x4:
+                    rows = 4;
+                    break;
+                case ContainerType::Generic9x5:
+                    rows = 5;
+                    break;
+                case ContainerType::Generic9x6:
+                    rows = 6;
+                    break;
+                case ContainerType::ShulkerBox:
+                    rows = 3;
+                    break;
+                default:
+                    rows = 3;
+                    break;
+            }
+            auto chestContainer = std::make_unique<mc::blockentity::ChestContainer>(packet.containerId(),
+                &m_player->inventory(),
+                std::shared_ptr<mc::IInventory>(std::make_shared<mc::blockentity::SimpleInventory>(
+                    rows * mc::blockentity::ChestContainer::SLOTS_PER_ROW)),
+                rows);
+            auto screen = std::make_unique<ui::minecraft::ChestScreen>(std::move(chestContainer),
+                makeContainerClickSender(m_networkClient.get()),
+                makeContainerCloseSender(m_networkClient.get()));
+            if (m_renderer && m_renderer->isGuiRendererInitialized()) {
+                screen->setRenderers(&m_renderer->guiRenderer(),
+                    m_guiTextureManager.get(),
+                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
+                screen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+            }
+            ScreenManager::instance().openScreen(std::move(screen));
+            return;
+        }
+
         std::unique_ptr<IScreen> screen;
 
         switch (type) {
-            case ContainerType::Generic9x1:
-            case ContainerType::Generic9x2:
-            case ContainerType::Generic9x3:
-            case ContainerType::Generic9x4:
-            case ContainerType::Generic9x5:
-            case ContainerType::Generic9x6:
-            case ContainerType::ShulkerBox: {
-                // 根据容器类型计算行数
-                const ContainerType containerType = static_cast<ContainerType>(packet.type());
-                i32 rows = 3; // 默认3行
-                switch (containerType) {
-                    case ContainerType::Generic9x1:
-                        rows = 1;
-                        break;
-                    case ContainerType::Generic9x2:
-                        rows = 2;
-                        break;
-                    case ContainerType::Generic9x3:
-                        rows = 3;
-                        break;
-                    case ContainerType::Generic9x4:
-                        rows = 4;
-                        break;
-                    case ContainerType::Generic9x5:
-                        rows = 5;
-                        break;
-                    case ContainerType::Generic9x6:
-                        rows = 6;
-                        break;
-                    case ContainerType::ShulkerBox:
-                        rows = 3;
-                        break;
-                    default:
-                        rows = 3;
-                        break;
-                }
-                screen = std::make_unique<ChestScreen>(packet.containerId(),
-                    &m_player->inventory(),
-                    rows,
-                    makeContainerClickSender(m_networkClient.get()),
-                    makeContainerCloseSender(m_networkClient.get()));
-                break;
-            }
-
             case ContainerType::Furnace:
             case ContainerType::BlastFurnace:
             case ContainerType::Smoker:
@@ -529,14 +536,8 @@ void ClientApplication::setupNetworkCallbacks()
         }
 
         if (m_renderer && m_renderer->isGuiRendererInitialized()) {
-            if (auto* chestContainerScreen =
-                    dynamic_cast<AbstractContainerScreen<mc::blockentity::ChestContainer>*>(screen.get())) {
-                chestContainerScreen->setRenderers(&m_renderer->guiRenderer(),
-                    m_guiTextureManager.get(),
-                    m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
-                chestContainerScreen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
-            } else if (auto* furnaceContainerScreen =
-                           dynamic_cast<AbstractContainerScreen<mc::blockentity::FurnaceContainer>*>(screen.get())) {
+            if (auto* furnaceContainerScreen =
+                    dynamic_cast<AbstractContainerScreen<mc::blockentity::FurnaceContainer>*>(screen.get())) {
                 furnaceContainerScreen->setRenderers(&m_renderer->guiRenderer(),
                     m_guiTextureManager.get(),
                     m_renderer->isItemRendererInitialized() ? &m_renderer->itemRenderer() : nullptr);
@@ -628,14 +629,15 @@ void ClientApplication::setupNetworkCallbacks()
             craftingScreen->syncSlots();
             return;
         }
-
-        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
-
-        if (auto* chestScreen = asContainerScreen<mc::blockentity::ChestContainer>(currentScreen)) {
+        if (auto* chestScreen =
+                dynamic_cast<ui::minecraft::ChestScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
             applyContainerContentWithCarried(
                 chestScreen->getMenu(), packet.containerId(), packet.items(), packet.carriedItem());
+            chestScreen->syncSlots();
             return;
         }
+
+        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
 
         if (auto* furnaceScreen = asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen)) {
             applyContainerContentWithCarried(
@@ -678,14 +680,15 @@ void ClientApplication::setupNetworkCallbacks()
                 return;
             }
         }
-
-        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
-
-        if (auto* chestScreen = asContainerScreen<mc::blockentity::ChestContainer>(currentScreen)) {
+        if (auto* chestScreen =
+                dynamic_cast<ui::minecraft::ChestScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
             if (applyContainerSlot(chestScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item())) {
+                chestScreen->syncSlots();
                 return;
             }
         }
+
+        IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
 
         if (auto* furnaceScreen = asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen)) {
             (void)applyContainerSlot(furnaceScreen->getMenu(), packet.containerId(), packet.slotIndex(), packet.item());
@@ -715,6 +718,13 @@ void ClientApplication::setupNetworkCallbacks()
             }
             return;
         }
+        if (auto* chestScreen =
+                dynamic_cast<ui::minecraft::ChestScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
+            if (chestScreen->getMenu() && chestScreen->getMenu()->getId() == containerId) {
+                ScreenManager::instance().closeScreen();
+            }
+            return;
+        }
 
         IScreen* currentScreen = ScreenManager::instance().getCurrentScreen();
         if (!currentScreen) {
@@ -725,8 +735,7 @@ void ClientApplication::setupNetworkCallbacks()
             return screen && screen->getMenu() && screen->getMenu()->getId() == containerId;
         };
 
-        if (matches(asContainerScreen<mc::blockentity::ChestContainer>(currentScreen)) ||
-            matches(asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen))) {
+        if (matches(asContainerScreen<mc::blockentity::FurnaceContainer>(currentScreen))) {
             ScreenManager::instance().closeScreen();
         }
     };
