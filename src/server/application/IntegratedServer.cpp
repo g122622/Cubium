@@ -25,13 +25,13 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
-#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -63,7 +63,6 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
-#include "server/network/TcpConnection.hpp"
 #include "server/network/TcpServer.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -187,14 +186,12 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     // 创建本地客户端握手状态机（离线模式，集成服禁用压缩 threshold=-1）
     m_clientHandshake = std::make_unique<mc::server::net::ServerHandshakeStateMachine>(
         *m_clientConnection, /*isOfflineMode=*/true, /*compressionThreshold=*/-1);
-    m_clientHandshake->onPlayerReady(
-        [this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
-            _onClientPlayerReady(username, offlineUuid);
-        });
+    m_clientHandshake->onPlayerReady([this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
+        _onClientPlayerReady(username, offlineUuid);
+    });
 
     // 创建本地客户端 Play 路由器（sessionId=0）
-    m_clientPlayRouter =
-        std::make_unique<mc::server::net::ServerPlayRouter>(*this, m_clientPlayerId, /*sessionId=*/0);
+    m_clientPlayRouter = std::make_unique<mc::server::net::ServerPlayRouter>(*this, m_clientPlayerId, /*sessionId=*/0);
 
     // 安装入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
     _installClientInboundListener();
@@ -997,8 +994,8 @@ void IntegratedServer::_sendLoginResponse(bool success,
     spawn.seaLevel = mc::world::SEA_LEVEL;
     login.enforcesSecureChat = false;
 
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(login)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(login)}});
     (void)uuid;
     (void)username;
 }
@@ -1028,8 +1025,8 @@ void IntegratedServer::_sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u3
     pp.yRot = yaw;
     pp.xRot = pitch;
     pp.relatives = 0;
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pp)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pp)}});
 }
 
 void IntegratedServer::_sendPlayerInventory()
@@ -1047,8 +1044,8 @@ void IntegratedServer::_sendPlayerInventory()
     }
     // carriedItem 为空
     content.carriedItem = mc::network::ir::play::ItemStackView{};
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(content)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(content)}});
 }
 
 void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
@@ -1075,8 +1072,8 @@ void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
         }
     }
     content.carriedItem = mc::network::ir::play::ItemStackView{};
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(content)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(content)}});
 }
 
 void IntegratedServer::_sendOpenContainer(
@@ -1099,8 +1096,8 @@ void IntegratedServer::_sendOpenContainer(
     screen.containerId = static_cast<i32>(containerId);
     screen.menuType = static_cast<i32>(ContainerTypes::toNetworkType(type));
     screen.title = title; // JSON 文本组件（客户端按 JSON 解析）
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(screen)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(screen)}});
 }
 
 void IntegratedServer::_sendCloseContainer(ContainerId containerId)
@@ -1115,8 +1112,8 @@ void IntegratedServer::_sendCloseContainer(ContainerId containerId)
     // play::ContainerClose（S→C，id=17）
     mc::network::ir::play::ContainerClose close;
     close.containerId = static_cast<i32>(containerId);
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(close)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(close)}});
 }
 
 void IntegratedServer::_sendToClientIr(mc::network::ir::IrPacket packet)
@@ -1147,8 +1144,8 @@ void IntegratedServer::_sendBlockBreakAnim(EntityInstanceId breakerId, i32 x, i3
     bd.id = static_cast<i32>(breakerId);
     bd.blockPosPacked = BlockPos(x, y, z).asLong();
     bd.progress = static_cast<u8>(stage);
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(bd)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(bd)}});
 }
 
 void IntegratedServer::_sendWindowProperty(ContainerId containerId, i16 property, i16 value)
@@ -1162,8 +1159,8 @@ void IntegratedServer::_sendWindowProperty(ContainerId containerId, i16 property
     data.containerId = static_cast<i32>(containerId);
     data.property = property;
     data.value = value;
-    _sendToClientIr(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(data)}});
+    _sendToClientIr(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(data)}});
 }
 
 i32 IntegratedServer::_registerFurnaceIntListener(AbstractContainerMenu& menu)

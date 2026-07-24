@@ -29,7 +29,6 @@ add_executable(mc_tests
     common/test_entity.cpp
     common/test_entity_physics.cpp
     common/test_chunksync.cpp
-    common/test_localconnection.cpp
     common/test_chunkloadticket.cpp
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp
@@ -1023,7 +1022,6 @@ add_executable(mc_tests
     network/ParticlePacketItemTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
-    network/LocalServerConnectionTest.cpp
     # 方块实体数据同步包序列化/反序列化测试（含 NBT 往返、错误路径）
     network/BlockEntityDataPacketTest.cpp
     common/entity/loot/LootTest.cpp
@@ -1524,7 +1522,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
@@ -1597,7 +1594,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
@@ -1704,8 +1700,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalConnection.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/connection/LocalServerConnection.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketDeserializer.cpp
@@ -2587,7 +2581,6 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp

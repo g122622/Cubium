@@ -46,7 +46,6 @@
 #include "server/core/GameModeManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
 #include "server/core/OpListManager.hpp"
-#include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
 #include "server/core/ServerPlayerData.hpp"
@@ -162,9 +161,6 @@ public:
 
     [[nodiscard]] core::PositionTracker& positionTracker() override { return *m_positionTracker; }
     [[nodiscard]] const core::PositionTracker& positionTracker() const override { return *m_positionTracker; }
-
-    [[nodiscard]] core::PacketHandler& packetHandler() override { return *m_packetHandler; }
-    [[nodiscard]] const core::PacketHandler& packetHandler() const override { return *m_packetHandler; }
 
     [[nodiscard]] core::GameModeManager& gameModeManager() override { return *m_gameModeManager; }
     [[nodiscard]] const core::GameModeManager& gameModeManager() const override { return *m_gameModeManager; }
@@ -1118,7 +1114,6 @@ protected:
     std::unique_ptr<core::TeleportManager> m_teleportManager;
     std::unique_ptr<core::KeepAliveManager> m_keepAliveManager;
     std::unique_ptr<core::PositionTracker> m_positionTracker;
-    std::unique_ptr<core::PacketHandler> m_packetHandler;
     std::unique_ptr<core::GameModeManager> m_gameModeManager;
     std::unique_ptr<core::WhitelistManager> m_whitelistManager;
     std::unique_ptr<core::BannedPlayerList> m_bannedPlayerList;

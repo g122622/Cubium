@@ -79,7 +79,6 @@ class TimeManager;
 class TeleportManager;
 class KeepAliveManager;
 class PositionTracker;
-class PacketHandler;
 class GameModeManager;
 class WhitelistManager;
 class BannedPlayerList;
@@ -145,9 +144,6 @@ public:
 
     [[nodiscard]] virtual core::PositionTracker& positionTracker() = 0;
     [[nodiscard]] virtual const core::PositionTracker& positionTracker() const = 0;
-
-    [[nodiscard]] virtual core::PacketHandler& packetHandler() = 0;
-    [[nodiscard]] virtual const core::PacketHandler& packetHandler() const = 0;
 
     [[nodiscard]] virtual core::GameModeManager& gameModeManager() = 0;
     [[nodiscard]] virtual const core::GameModeManager& gameModeManager() const = 0;

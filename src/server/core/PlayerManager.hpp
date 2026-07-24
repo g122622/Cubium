@@ -25,7 +25,6 @@
 
 #include "ServerPlayerData.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/connection/IServerConnection.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include <atomic>
 #include <functional>

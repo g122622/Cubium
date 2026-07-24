@@ -23,13 +23,6 @@ BaseTestServer::BaseTestServer()
     , m_teleportManager(m_playerManager)
     , m_keepAliveManager(m_playerManager, 15000, 30000)
     , m_positionTracker(m_playerManager, 10)
-    , m_packetHandler(m_playerManager,
-          m_connectionManager,
-          m_teleportManager,
-          m_keepAliveManager,
-          m_positionTracker,
-          m_timeManager,
-          GameMode::Survival)
     , m_gameModeManager(m_playerManager, m_connectionManager)
     , m_commandRegistry()
     , m_scoreboard(*this)
@@ -145,8 +138,8 @@ server::ServerPlayerData* BaseTestServer::addTestPlayer(PlayerId playerId, const
 {
     auto connection = std::make_shared<FakeServerConnection>();
     std::string uuid = util::uuidToString(util::generateOfflineUuid(username));
-    // 新网络层 addPlayer 接受 mc::server::net::ServerClientConnection*；测试桩 FakeServerConnection
-    // 仍为旧 IServerConnection 派生（Step5 删旧体系时统一重构测试桩），此处传 nullptr。
+    // 新网络层 addPlayer 接受 mc::server::net::ServerClientConnection*；测试不接入真实连接，
+    // 此处传 nullptr。FakeServerConnection 是纯测试桩，记录 send 的字节数供命令测试断言。
     // BaseTestServer 重写了 sendSoundToPlayer 等发送路径，不依赖 player.connection 真发包。
     auto* player = m_playerManager.addPlayer(playerId, uuid, username, nullptr);
     if (player != nullptr) {

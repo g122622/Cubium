@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/item/loot/LootPredicateManager.hpp"
-#include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -15,7 +14,6 @@
 #include "server/core/GameModeManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
 #include "server/core/OpListManager.hpp"
-#include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
 #include "server/core/TeleportManager.hpp"
@@ -31,14 +29,11 @@
 
 namespace mc::test {
 
-class FakeServerConnection : public network::IServerConnection {
+class FakeServerConnection {
 public:
-    void send(const u8* data, size_t size) override;
-    void disconnect(const std::string& reason = "") override;
-    [[nodiscard]] bool isConnected() const override { return m_connected; }
-    [[nodiscard]] std::string identifier() const override { return "FakeConnection"; }
-    [[nodiscard]] network::ConnectionType type() const override { return network::ConnectionType::Local; }
-    [[nodiscard]] std::string getAddress() const override { return ""; }
+    void send(const u8* data, size_t size);
+    void disconnect(const std::string& reason = "");
+    [[nodiscard]] bool isConnected() const noexcept { return m_connected; }
     [[nodiscard]] size_t sentBytes() const noexcept { return m_sentData.size(); }
     [[nodiscard]] const std::string& disconnectReason() const noexcept { return m_disconnectReason; }
 
@@ -76,8 +71,6 @@ public:
     [[nodiscard]] const server::core::KeepAliveManager& keepAliveManager() const override { return m_keepAliveManager; }
     [[nodiscard]] server::core::PositionTracker& positionTracker() override { return m_positionTracker; }
     [[nodiscard]] const server::core::PositionTracker& positionTracker() const override { return m_positionTracker; }
-    [[nodiscard]] server::core::PacketHandler& packetHandler() override { return m_packetHandler; }
-    [[nodiscard]] const server::core::PacketHandler& packetHandler() const override { return m_packetHandler; }
     [[nodiscard]] server::core::GameModeManager& gameModeManager() override { return m_gameModeManager; }
     [[nodiscard]] const server::core::GameModeManager& gameModeManager() const override { return m_gameModeManager; }
     [[nodiscard]] server::core::WhitelistManager& whitelistManager() override { return m_whitelistManager; }
@@ -205,7 +198,6 @@ protected:
     server::core::TeleportManager m_teleportManager;
     server::core::KeepAliveManager m_keepAliveManager;
     server::core::PositionTracker m_positionTracker;
-    server::core::PacketHandler m_packetHandler;
     server::core::GameModeManager m_gameModeManager;
     server::core::WhitelistManager m_whitelistManager;
     server::core::BannedPlayerList m_bannedPlayerList;

@@ -35,10 +35,6 @@ add_library(mc_common STATIC
     util/math/random/UniformRealDistribution.cpp
     util/math/random/RandomRanges.cpp
 
-    # Network - Connection
-    network/connection/LocalConnection.cpp
-    network/connection/LocalServerConnection.cpp
-
     # Network - Packet
     network/packet/Packet.cpp
     network/packet/PacketSerializer.cpp

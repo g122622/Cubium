@@ -42,7 +42,6 @@
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/GameModeManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
-#include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
 #include "server/core/TeleportManager.hpp"

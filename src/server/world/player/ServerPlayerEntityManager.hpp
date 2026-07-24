@@ -24,7 +24,6 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/network/connection/IServerConnection.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include <memory>
 #include <mutex>

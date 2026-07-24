@@ -24,7 +24,6 @@
 #include "server/world/ServerWorld.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -49,39 +48,6 @@
 using namespace mc;
 using namespace mc::server;
 using namespace mc::blockentity;
-
-// ============================================================================
-// Mock 连接用于测试
-// ============================================================================
-
-class MockConnection : public network::IServerConnection {
-public:
-    MockConnection()
-        : m_connected(true)
-    {}
-
-    void send(const u8* data, size_t size) override
-    {
-        (void)data;
-        (void)size;
-        m_sentData.insert(m_sentData.end(), data, data + size);
-    }
-
-    void disconnect(const std::string& reason = "") override
-    {
-        (void)reason;
-        m_connected = false;
-    }
-
-    [[nodiscard]] bool isConnected() const override { return m_connected; }
-
-    [[nodiscard]] std::string identifier() const override { return "MockConnection"; }
-
-    [[nodiscard]] network::ConnectionType type() const override { return network::ConnectionType::Local; }
-
-    std::vector<u8> m_sentData;
-    bool m_connected;
-};
 
 // ============================================================================
 // ServerWorld 测试固件

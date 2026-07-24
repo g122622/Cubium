@@ -447,13 +447,6 @@ void MinecraftServer::initializeCoreManagers()
     m_keepAliveManager = std::make_unique<core::KeepAliveManager>(
         *m_playerManager, m_settings.keepAliveInterval.get(), m_settings.keepAliveTimeout.get());
     m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_settings.viewDistance.get());
-    m_packetHandler = std::make_unique<core::PacketHandler>(*m_playerManager,
-        *m_connectionManager,
-        *m_teleportManager,
-        *m_keepAliveManager,
-        *m_positionTracker,
-        *m_timeManager,
-        static_cast<GameMode>(m_settings.defaultGameMode.get()));
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
 
     // 注册游戏模式变化回调：当从旁观者模式切换到其他模式时，重置旁观目标
@@ -1854,7 +1847,6 @@ void MinecraftServer::shutdownManagers()
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
                 "MinecraftServer::shutdownManagers::ResetCoreManagers::ResetRemainingManagers");
             m_gameModeManager.reset();
-            m_packetHandler.reset();
             m_positionTracker.reset();
             m_keepAliveManager.reset();
             m_teleportManager.reset();

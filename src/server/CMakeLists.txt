@@ -9,7 +9,6 @@ add_executable(minecraft-server
     settings/ServerSettings.cpp
     network/TcpServer.cpp
     network/TcpSession.cpp
-    network/TcpConnection.cpp
     # 新网络层（1.21.11 IR）：服务端门面 + 握手状态机 + 配置注册表 + Play 路由
     network/ServerNetwork.cpp
     network/ServerHandshake.cpp
@@ -22,7 +21,6 @@ add_executable(minecraft-server
     core/TeleportManager.cpp
     core/KeepAliveManager.cpp
     core/PositionTracker.cpp
-    core/PacketHandler.cpp
     core/GameModeManager.cpp
     core/WhitelistManager.cpp
     core/BannedPlayerList.cpp
