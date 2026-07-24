@@ -114,7 +114,7 @@ struct ServerDebugStats {
  * - 提供对 Manager 的直接访问
  *
  * 子类只需实现：
- * - 网络层（LocalConnection 或 TcpServer）
+ * - 网络层（经 ServerNetwork：Local 模式或 Wire/TCP accept）
  * - 特定的数据包处理
  */
 class MinecraftServer : public IServer {
@@ -534,7 +534,7 @@ protected:
      * @brief 轮询网络事件（子类实现）
      *
      * IntegratedServer 经 ServerNetwork + LocalTransport 收发 IR 包
-     * StandaloneServer 从 TcpServer 接收数据包
+     * StandaloneServer 经 ServerNetwork::startAccept 接收 TCP 连接
      */
     virtual void pollNetwork() = 0;
 

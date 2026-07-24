@@ -50,8 +50,7 @@ server/
 │   ├── ServerNetwork.hpp/cpp   # 服务端网络门面（accept + ServerClientConnection）
 │   ├── ServerHandshake.hpp/cpp # 握手状态机
 │   ├── ServerPlayRouter.hpp/cpp # 入站 Play 包分发器（std::visit over ir::PlayPacket）
-│   ├── TcpServer.hpp/cpp       # 【Phase6 保留】TCP 服务器
-│   └── TcpSession.hpp/cpp      # 【Phase6 保留】会话管理
+│   └── RegistryDataBuilder.hpp/cpp # Configuration 阶段 RegistryData 构造
 ├── command/              # 命令系统
 │   ├── CommandRegistry.hpp/cpp # 命令注册表
 │   ├── ServerCommandSource.hpp/cpp # 命令源
@@ -180,15 +179,14 @@ server/
 
 ### network/ - 网络层
 
-服务端网络通信。新 IR 层（ServerNetwork/ServerHandshake/ServerPlayRouter）为主架构；旧 TcpServer/TcpSession 保留用于远程 TCP 路径（Phase6 迁移中）。
+服务端网络通信。基于新 IR 层，统一门面 `ServerNetwork` 同时承载 Local（集成服同进程零拷贝）与 Wire（独立服/局域网发布 TCP accept）两种模式。
 
 | 类 | 职责 |
 |---|---|
-| `ServerNetwork` | 服务端网络门面，accept + 管理 ServerClientConnection |
-| `ServerHandshake` | 握手状态机 |
+| `ServerNetwork` | 服务端网络门面，`startAccept`（Wire）+ `createLocalClientSide`（Local）+ 管理 ServerClientConnection 集合 + 统一 tick |
+| `ServerHandshake` | 握手状态机（每连接一个，离线/在线模式） |
 | `ServerPlayRouter` | 入站 Play 包分发器（std::visit over ir::PlayPacket），替代旧 dispatchPacket |
-| `TcpServer` | 【Phase6 保留】TCP 监听、连接管理、事件轮询 |
-| `TcpSession` | 【Phase6 保留】单个客户端会话、数据包缓冲 |
+| `RegistryDataBuilder` | Configuration 阶段 RegistryData 构造（data=nullopt，标 TODO Phase6） |
 
 ### command/ - 命令系统
 
@@ -318,8 +316,10 @@ server/
          ▼                                    ▼
 ┌─────────────────────┐           ┌─────────────────────┐
 │   IntegratedServer   │           │   StandaloneServer   │
-│   (LocalTransport)   │           │   (TcpServer)        │
-│   单机模式            │           │   多人模式            │
+│  (LocalTransport +   │           │  (ServerNetwork::    │
+│   ServerNetwork::    │           │   startAccept/Wire)  │
+│   startAccept 可选)  │           │   多人模式            │
+│   单机模式            │           │                      │
 └─────────────────────┘           └─────────────────────┘
 ```
 

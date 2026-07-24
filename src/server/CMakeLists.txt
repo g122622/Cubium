@@ -7,8 +7,6 @@ add_executable(minecraft-server
     application/IntegratedServer.cpp
     application/MinecraftServer.cpp
     settings/ServerSettings.cpp
-    network/TcpServer.cpp
-    network/TcpSession.cpp
     # 新网络层（1.21.11 IR）：服务端门面 + 握手状态机 + 配置注册表 + Play 路由
     network/ServerNetwork.cpp
     network/ServerHandshake.cpp

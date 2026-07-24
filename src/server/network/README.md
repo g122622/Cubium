@@ -1,10 +1,13 @@
 # Server Network Module
 
-本目录包含服务端网络通信模块。当前为过渡状态：新 IR 层（`common/network/` 的 `pipeline/`+`transport/`+`ir/`+`backend/`）已落地并承载集成服务器的本地通信，旧的 `TcpServer`/`TcpSession` 仍保留用于独立服务器和局域网发布的远程 TCP 路径（Phase6 待迁移到 `ServerNetwork::startAccept` + `TcpTransport`）。
+本目录包含服务端网络通信模块。基于新 IR 层（`common/network/` 的 `pipeline/`+`transport/`+`ir/`+`backend/`），统一门面为 `ServerNetwork`，同时承载：
 
-> **已删除**：旧 `TcpConnection.hpp/.cpp`（IServerConnection 适配器）已删除，零生产引用。远程 TCP 玩家的连接封装由 `ServerClientConnection`（定义于 `ServerNetwork.hpp`）承担。
+- **Local 模式**（集成服务器同进程）：经 `createLocalClientSide` 建 `LocalTransportPair`，本地客户端与服务端 `ServerClientConnection` 配对，零拷贝直传 `ir::IrPacket`，不经过序列化。
+- **Wire 模式**（独立服务器 / 集成服务器局域网发布）：经 `startAccept(port, max)` 在专用线程 accept TCP 连接，每连接建 `TcpTransport`（asio + VarInt21 帧化）→ Wire 模式 `ServerClientConnection`。
+
+> **已删除**：旧 `TcpServer.hpp/.cpp`、`TcpSession.hpp/.cpp`（裸 Winsock/POSIX socket + 手动 poll + 12 字节头旧帧）已彻底删除，零生产引用。远程 TCP 玩家的连接封装由 `ServerClientConnection`（定义于 `ServerNetwork.hpp`）承担，传输底层为 `common/network/transport/TcpTransport`。
 >
-> **新层（主架构）**：`ServerNetwork.hpp/.cpp`（accept + 管理连接）、`ServerHandshake.hpp/.cpp`（握手状态机）、`ServerPlayRouter.hpp/.cpp`（入站 Play 分发器，`std::visit` over `ir::PlayPacket`）。
+> **已删除**：旧 `TcpConnection.hpp/.cpp`（IServerConnection 适配器）已删除。`IServerConnection`/`LocalConnection` 旧传输抽象一并清除。
 
 ## 目录结构
 
@@ -12,14 +15,12 @@
 src/server/network/
 ├── ServerNetwork.hpp       # 服务端网络门面（accept + 管理连接，定义 ServerClientConnection）
 ├── ServerNetwork.cpp       # 服务端网络门面实现
-├── ServerHandshake.hpp     # 握手状态机
+├── ServerHandshake.hpp     # 握手状态机（每连接一个，离线/在线模式）
 ├── ServerHandshake.cpp     # 握手状态机实现
 ├── ServerPlayRouter.hpp    # 入站 Play 包分发器（std::visit over ir::PlayPacket）
 ├── ServerPlayRouter.cpp    # 分发器实现
-├── TcpServer.hpp           # 【Phase6 保留】TCP 服务器核心，监听端口、接受连接、管理会话
-├── TcpServer.cpp           # TCP 服务器实现（跨平台：Windows Winsock2 / Linux POSIX）
-├── TcpSession.hpp          # 【Phase6 保留】单个客户端会话，管理状态、缓冲区、统计信息
-├── TcpSession.cpp          # 会话实现，数据包解析与状态流转
+├── RegistryDataBuilder.hpp # Configuration 阶段 RegistryData 构造（data=nullopt，标 TODO Phase6）
+├── RegistryDataBuilder.cpp # RegistryData 实现
 └── README.md               # 本文档
 ```
 
@@ -28,45 +29,46 @@ src/server/network/
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │            StandaloneServer / IntegratedServer              │
-│              (应用层，持有 ServerNetwork / TcpServer)        │
+│              (应用层，持有 ServerNetwork)                    │
 └─────────────────────────────────────────────────────────────┘
                             │
-              ┌─────────────┴─────────────┐
-              ▼                           ▼
-┌─────────────────────────┐   ┌─────────────────────────────┐
-│      ServerNetwork      │   │      TcpServer (Phase6)     │
-│  (新 IR 门面，accept +   │   │  (监听端口、管理会话、广播)  │
-│   管理 ServerClientConn) │   └────────────┬────────────────┘
-└────────────┬────────────┘                │
-              │                             ▼
-              ▼                    ┌─────────────────────┐
-┌─────────────────────────┐        │      TcpSession     │
-│ ServerClientConnection  │        │  (会话状态、数据缓冲) │
-│  (per-connection 包装)  │        └─────────────────────┘
-└────────────┬────────────┘
-              │
-              ▼
-┌─────────────────────────────────────┐
-│  common/network/transport/          │
-│   LocalTransport (同进程零拷贝 IR)   │
-│   TcpTransport   (asio + VarInt21)  │
-└─────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      ServerNetwork                          │
+│  (accept + 管理 ServerClientConnection 集合 + Local/Wire    │
+│   统一 tick：pumpLocal 主线程派发 / drainInbound 主线程派发)  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  ServerClientConnection                     │
+│  (per-connection 包装：ClientConn + sessionId + 握手状态)    │
+│  ┌─ Local 模式：LocalTransport 直传 ir::IrPacket             │
+│  └─ Wire  模式：TcpTransport → pipeline 解帧/解压/解密        │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  common/network/transport/                                  │
+│   LocalTransport (同进程零拷贝 IR)                           │
+│   TcpTransport   (asio + VarInt21 帧化)                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **数据流**：
-- **入站（新层）**：客户端 → transport 收字节 → `pipeline::Connection` 解帧/解压/解密 → `ir::IrPacket` → `ServerPlayRouter::handle()`（Play 阶段）按分支调 `MinecraftServer` 既有处理逻辑
-- **入站（旧 TcpServer，Phase6）**：客户端 → TcpServer.poll() → TcpSession.handleReceivedData() → 解析完整包 → onPacket 回调
-- **出站**：上层 → `ConnectionManager`（IR 门面）→ `pipeline::Connection::send(ir::IrPacket)` → transport 发送
+- **入站（Local）**：客户端 `Connection::send(ir)` → `LocalTransport` 直传 → 服务端 `ServerClientConnection::onPacket` → `pumpLocal()` 主线程派发 → 握手/`ServerPlayRouter::handle()`（Play 阶段）按分支调 `MinecraftServer` 既有处理逻辑
+- **入站（Wire）**：客户端字节 → `TcpTransport`（接收线程）→ `pipeline::Connection` 解帧/解压/解密 → `ir::IrPacket` → `enqueueInbound`（接收线程入队）→ `drainInbound`（主线程）→ 握手/`ServerPlayRouter::handle()`
+- **出站**：上层 → `ServerClientConnection::send(ir::IrPacket)` → `pipeline::Connection::send` → Local 直传 / Wire 编码+压缩+加密 → transport 发送
 
 ## 使用场景
 
 ### 1. StandaloneServer（独立服务器）
-`StandaloneServer` 在 `initialize()` 中创建网络层并监听 `serverPort`。所有玩家均通过 TCP 连接。当前走旧 `TcpServer`/`TcpSession` 基建（Phase6 迁移到 `ServerNetwork` + `TcpTransport` 进行中）。
+`StandaloneServer` 在 `initialize()` 中创建 `ServerNetwork` 并 `startAccept(serverPort, maxPlayers)`。所有玩家均通过 TCP 连接（Wire 模式）。每 accept 一个连接即建 `RemoteClientSession`（握手状态机 + Play 路由器），握手完成（进入 Play）后由 `onPlayerReady` 回调触发 `createPlayerForConnection` 创建玩家实体。
 
 ### 2. IntegratedServer（集成服务器局域网发布）
-`IntegratedServer` 默认使用 `LocalTransport` 与本地客户端同进程零拷贝直传 IR 包。当执行 `/publish [port] [allowCheats]` 命令时，`publishToLan()` 启动 TCP 监听器（旧 `TcpServer`/`TcpSession` 基建）接受远程玩家。
+`IntegratedServer` 默认使用 `LocalTransport` 与本地客户端同进程零拷贝直传 IR 包（`sessionId == 0`，`initialize()` 内联接线）。当执行 `/publish [port] [allowCheats]` 命令时，`publishToLan()` 调 `ServerNetwork::startAccept` 启动 TCP 监听，接受远程玩家（`sessionId != 0`，Wire 模式）。
 
-**双路径架构**：发布后，`IntegratedServer` 同时服务本地客户端（`sessionId == 0`，走 `LocalTransport`）与远程 TCP 玩家（`sessionId != 0`，走旧 `TcpServer`/`TcpSession`，Phase6 迁移后改为 `TcpTransport`）。详见 `src/server/application/README.md` 第 11 节。
+**双路径架构**：发布后，单 `ServerNetwork` 同时服务本地客户端（Local，`sessionId == 0`）与远程 TCP 玩家（Wire，`sessionId != 0`）。`startAccept` 触 `m_listenPort/m_ioContext/m_acceptor/m_acceptThread`；`createLocalClientSide` 触 `m_connections/m_onConnect`——成员不相交无冲突。单 `tick()` 经 `isLocalMode()` 分支同时 drain Local(pumpLocal)+Wire(drainInbound)。详见 `src/server/application/README.md` 第 11 节。
 
 **与 StandaloneServer 的差异**：
 - `IntegratedServer` 的本地客户端保留 `LocalTransport` 零拷贝优化路径，TCP 仅用于远程玩家。
@@ -84,72 +86,52 @@ src/server/network/
 | 连接管线 | `src/common/network/pipeline/Connection.hpp` | `pipeline::Connection<RegistryByteBuf>` 门面 |
 | 传输层 | `src/common/network/transport/LocalTransport.hpp` | 同进程零拷贝 IR 传输 |
 | 传输层 | `src/common/network/transport/TcpTransport.hpp` | asio TCP + VarInt21 帧化 |
-| 旧数据包（Phase6） | `src/common/network/packet/Packet.hpp` | 旧 Packet 基类（TcpSession 帧解析仍用） |
 | 日志 | `spdlog` (vcpkg) | 日志输出 |
-| 系统网络 | Winsock2 (Windows) / POSIX Socket (Linux) | 底层 socket API |
+| 系统网络 | Winsock2 (Windows) / POSIX Socket (Linux) | 底层 socket API（asio 封装） |
 
 ### 依赖本模块的外部模块
 
 | 模块 | 路径 | 用途 |
 |------|------|------|
-| StandaloneServer | `src/server/application/StandaloneServer.hpp` | 使用网络层接受远程玩家 |
-| IntegratedServer | `src/server/application/IntegratedServer.hpp` | `publishToLan()` 后使用 TcpServer 接受远程玩家 |
+| StandaloneServer | `src/server/application/StandaloneServer.hpp` | 使用 `ServerNetwork::startAccept` 接受远程玩家 |
+| IntegratedServer | `src/server/application/IntegratedServer.hpp` | `publishToLan()` 调 `ServerNetwork::startAccept` 接受远程玩家 |
+| RemoteClientSession | `src/server/application/RemoteClientSession.hpp` | 两子类共用：持握手状态机 + Play 路由器，值持有存入 unique_ptr 容器 |
 | ConnectionManager | `src/server/core/ConnectionManager.hpp` | 服务端 IR 发送门面，经 ServerClientConnection 发包 |
 | ServerPlayer | `src/server/player/ServerPlayer.hpp` | 通过 ServerClientConnection 发送数据 |
-| MinecraftServer | `src/server/application/MinecraftServer.hpp` | `routeInboundPlayPacket` 委托 ServerPlayRouter 分发 |
+| MinecraftServer | `src/server/application/MinecraftServer.hpp` | `routeInboundPlayPacket` 委托 ServerPlayRouter 分发；`createPlayerForConnection`/`sendLoginResponseForConnection` 共享登录序列 |
 
 ## 容易踩的坑
 
-### 1. Socket 句柄未存储到 TcpSession（Phase6 旧基建）
+### 1. Wire 入站线程安全（入站队列 + 主线程 drain）
 
-**问题**：当前实现中 `handleSessionData()` 和 `sendSessionData()` 标记为 TODO，TcpSession 没有存储 socket 句柄，导致无法实际收发数据。
+**问题**：`TcpTransport::_receiveLoop` 在接收线程同步调 `Connection::_handleWireBytes` → `_decodeAndDispatch` → `m_listener(packet)`。若直接在监听器里调 `routeInboundPlayPacket`，会在接收线程触碰非线程安全的世界状态。
 
-**解决方案**：需要扩展 TcpSession 存储 socket 句柄（Phase6 迁移时一并处理，或直接由 `TcpTransport` 取代）。
+**处理**：Wire 模式连接的 `onPacket` 监听器仅 `enqueueInbound`（接收线程，mutex 守 deque push），`ServerNetwork::tick()` 在主线程 `drainInbound`（锁内 swap 出本地 deque，锁外逐个调 `setInboundHandler` 装配的握手/Play 分支）。Local 模式不经队列，`pumpLocal()` 直接主线程派发。队列是 Wire-only 关注点。
 
-### 2. 非阻塞模式下的部分接收（Phase6 旧基建）
+### 2. 断开检测（onClientDisconnect + 延迟 sid 列表）
 
-**问题**：非阻塞 socket 可能只收到部分数据。
+**问题**：`TcpTransport::onDisconnect` 在接收线程触发。若跨线程直接改 session map 会与主线程 tick 竞争。
 
-**当前处理**：旧 `TcpSession` 实现了缓冲区和期望大小机制，会等待完整包才处理。新层 `TcpTransport` 走 VarInt21 长度前缀帧化。
+**处理**：`ServerNetwork` 有 `onClientDisconnect(cb)`；`_notifyDisconnect` 在接收线程锁内 push `sessionId` 到 `m_disconnectedSessions`（不碰 session map）。`tick()` 末尾锁内 swap 出 sid 列表，锁外逐 sid 调 `m_onDisconnect`，子类主线程做 session map 清理 + 移除玩家 + 清库存。所有 `RemoteClientSession` map 变动在主线程。
 
-### 3. 线程安全
+### 3. RemoteClientSession 生命周期（非拥有指针 + 销毁顺序）
 
-**问题**：`poll()` 在主线程调用，但回调可能修改共享状态。
+**问题**：`RemoteClientSession` 持 `ServerClientConnection&`（非拥有，所有权归 `ServerNetwork::m_connections`）。若连接先于 session 销毁则悬垂。
 
-**建议**：
-- 回调中避免阻塞操作
-- 使用 `std::mutex` 保护共享数据
-- 考虑使用消息队列解耦
+**处理**：子类 `stop()` 中 `m_remoteSessions.clear()` 须先于 `m_serverNetwork.reset()`。`ServerHandshakeStateMachine` 含引用成员不可重绑，故 `RemoteClientSession` 删除移动语义，经 `unique_ptr` 存入容器。
 
-### 4. 包大小限制（Phase6 旧基建）
+### 4. 包大小限制
 
-旧 `TcpSession` 最大包大小 64KB。新层 `TcpTransport`/`pipeline` 走 VarInt21 帧化 + 压缩，限制不同。迁移期间两套限制并存。
+`TcpTransport`/`pipeline` 走 VarInt21 帧化 + zlib 压缩（threshold=256）。解压后有最大包大小上限，超过判非法断开。
 
-### 5. Winsock 初始化
+### 5. 线程安全
 
-**问题**：Windows 需要初始化 Winsock。
+`tick()` 在主线程调用，采用快照-后-pump 模式（锁内收集连接/sid 列表，锁外回调），避免 handler 重入死锁。回调中避免阻塞操作。
 
-**当前处理**：使用全局 `WinsockInitializer` 自动管理初始化/清理，无需手动处理。
+### 6. Winsock 初始化
 
-### 6. 会话状态检查
+Windows 需要 Winsock。asio 在 `io_context` 运行时自动管理，无需手动 `WSAStartup`。`ws2_32` 链接库仍需在 CMake 中保留（`src/server/CMakeLists.txt`）。
 
-**问题**：在断开连接后继续使用会话会导致错误。
+### 7. RegistryData NBT（TODO Phase6）
 
-**建议**：使用前检查状态：
-```cpp
-if (session->state() != SessionState::Playing) {
-    return;  // 会话不可用
-}
-```
-
-### 7. 数据包序列化失败静默处理（Phase6 旧基建）
-
-**问题**：旧 `sendPacket()` 中序列化失败时只记录日志，不通知调用者。新层 `pipeline::Connection::send` 返回 `Result<void>`。
-
-### 8. 本地与远程路径区分
-
-旧 `TcpConnection`（已删除）与 `LocalConnection`（已删除）的双实现接口 `IServerConnection`（已删除）均已不复存在。当前：
-- 本地客户端走 `transport/LocalTransport`（同进程零拷贝 IR 包）
-- 远程 TCP 玩家走旧 `TcpServer`/`TcpSession`（Phase6 迁移到 `transport/TcpTransport`）
-
-上层代码通过 `ServerClientConnection`（定义于 `ServerNetwork.hpp`）统一操作，不要再引用已删除的 `IServerConnection`/`TcpConnection`/`LocalConnection` 类型。
+`RegistryDataBuilder` 当前以 `RegistryEntry{id, data=nullopt}` 发送所有条目（声明"客户端已知"），仅在我方互通双方均硬编码 vanilla registry 且 `SelectKnownPacks{minecraft:core}` 命中时合法。真实 NBT 推送标 `TODO(Phase6)`，卡在 Configuration 挂死先查此。真 Java 互通受此限制。

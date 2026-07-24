@@ -28,8 +28,8 @@ src/server/application/
 **继承关系：**
 - `IServer` 定义服务器接口契约（含 `publishToLan` 局域网发布接口）
 - `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/ServerPlayRouter` 分发
-- `IntegratedServer` 使用 `transport/LocalTransport` 实现同进程零拷贝 IR 通信；`publishToLan()` 后额外启动 `TcpServer` 接受远程玩家（双路径架构，详见下文第 11 节）
-- `StandaloneServer` 使用 `TcpServer` 实现多人网络；`publishToLan()` 返回 `Unsupported`
+- `IntegratedServer` 使用 `transport/LocalTransport` 实现同进程零拷贝 IR 通信；`publishToLan()` 调 `ServerNetwork::startAccept` 接受远程玩家（单 `ServerNetwork` 双模式架构，详见下文第 11 节）
+- `StandaloneServer` 使用 `ServerNetwork::startAccept`（Wire 模式 TCP）实现多人网络；`publishToLan()` 返回 `Unsupported`
 
 **Tick 执行流程：**
 1. `m_timeManager->tick()` - 更新时间
@@ -53,7 +53,7 @@ src/server/application/
 - `server/dimension/` - ServerDimension, ServerDimensionManager
 - `server/sync/` - EntitySyncManager, ChunkSendManager 等（由 ServerDimension 持有）
 - `server/world/` - ServerWorld, ServerChunkManager, WeatherManager
-- `server/network/` - ServerNetwork, ServerHandshake, ServerPlayRouter, TcpServer, TcpSession
+- `server/network/` - ServerNetwork, ServerHandshake, ServerPlayRouter, RegistryDataBuilder
 - `server/command/` - CommandRegistry, CommandStorage
 - `server/menu/` - CraftingMenu
 - `common/entity/inventory/container/` - 容器菜单实现
@@ -159,18 +159,18 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 - `IntegratedServer`：启动 TCP 监听器，运行时切换作弊开关。
 - `StandaloneServer`：返回 `ErrorCode::Unsupported`（已通过 TCP 对外服务，无法再次发布）。
 
-**双路径架构**：`IntegratedServer` 在发布前只有本地客户端一条路径（`transport/LocalTransport` 同进程零拷贝 IR 包 + `m_clientInventory` 单玩家优化）。发布后新增 TCP 监听器路径，同一局游戏同时服务本地与远程玩家。通过 `sessionId` 区分：
-- `sessionId == 0`：本地客户端，走 `LocalTransport`（`_sendToClient` 直接经 `pipeline::Connection` 发送 IR 包）。
-- `sessionId != 0`：远程 TCP 玩家，走 `PlayerManager` → `ServerPlayerData::send()` → `ServerClientConnection` → 旧 `TcpSession`（Phase6 迁移后改为 `transport/TcpTransport`）。
+**单网络双模式架构**：`IntegratedServer` 持有单一 `m_serverNetwork`，同时承载本地客户端（Local 模式，`createLocalClientSide` 在 `initialize()` 内联接线）与远程 TCP 玩家（Wire 模式，`publishToLan()` 调 `startAccept`）。`startAccept` 触 `m_listenPort/m_ioContext/m_acceptor/m_acceptThread`；`createLocalClientSide` 触 `m_connections/m_onConnect`——成员不相交无冲突。通过 `sessionId` 区分：
+- `sessionId == 0`：本地客户端，走 `LocalTransport`（`_sendToClientIr` 直接经 `pipeline::Connection` 发送 IR 包，零拷贝）。
+- `sessionId != 0`：远程 TCP 玩家，走 `PlayerManager` → `ServerPlayerData::send()` → `ServerClientConnection` → `transport/TcpTransport`（asio + VarInt21 帧化）。
 
 **需分支的虚函数**：以下方法在 `IntegratedServer` 中均按 `playerId == m_clientPlayerId` 或 `sessionId == 0` 分流到对应路径：
 | 方法 | 本地客户端路径 | 远程 TCP 玩家路径 |
 |------|---------------|------------------|
-| `pollNetwork()` | `pipeline::Connection` 入站回调 | `m_lanTcpServer->poll()` |
-| `broadcastPacket()` | `_sendToClient()` | `forEachPlayer` 过滤远程连接 |
-| `sendPacketToPlayer()` | `_sendToClient()` | `ServerPlayerData::send()` |
+| `pollNetwork()` | `m_serverNetwork->tick()`（pumpLocal 主线程派发） | 同一 `tick()`（drainInbound 主线程派发） |
+| `broadcastPacket()` | `_sendToClientIr()` | `forEachPlayer` 过滤本地 `m_clientPlayerId` |
+| `sendPacketToPlayer()` | `m_clientConnection->send()` | `ServerPlayerData::send()` |
 | `getPlayerIdForSession()` | 返回 `m_clientPlayerId` | `PlayerManager::getPlayerIdBySession()` |
-| `handleLoginRequestPacket()` | 本地登录流程 | `_handleRemoteLoginRequest()` |
+| 登录流程 | `_onClientPlayerReady`（本地握手回调） | `_onRemotePlayerReady`（远程握手回调），均调共享 `createPlayerForConnection` |
 | `handleHotbarSelectPacket()` | `m_clientInventory` | `InventoryManager::setSelectedSlot()` |
 | `handleContainerClickPacket()` | `ContainerPacketHandler` + `m_openMenu` | `ContainerManager::handleClick()` |
 | `handleCloseContainerPacket()` | `_closeCurrentContainer()` | `ContainerManager::closeContainer()` |
@@ -181,10 +181,10 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 | `syncPlayerInventory()` | `_sendPlayerInventory()` | `InventoryManager::syncToClient()` |
 | `tryOpenCraftingContainer()` | `_openCraftingTableMenu()` | `ContainerManager::openContainer(Crafting)` |
 
-**远程登录流程**（`_handleRemoteLoginRequest`）：与 `StandaloneServer::handleLoginRequestPacket` 基本一致——经 `ServerClientConnection` 建立连接、分配 `PlayerId`、生成离线 UUID、`addPlayer` + `mapSessionToPlayer`、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`inventoryManager().initializeInventory()` + 创造模式填充、发送登录响应 / 权限等级 / 初始游戏状态 / 物品栏同步。
+**远程登录流程**（`_onRemotePlayerReady`）：远程连接 accept 后建 `RemoteClientSession`（握手状态机 + Play 路由器），Wire 入站经 `enqueueInbound`/`drainInbound` 主线程派发。握手状态机完成 Configuration 进入 Play 时触发 `onPlayerReady` 回调，调共享的 `MinecraftServer::createPlayerForConnection`（与本地路径同体）——分配 `PlayerId`、生成离线 UUID、`addPlayer` + 关联连接、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`sendLoginResponseForConnection` / 权限等级 / 初始游戏状态。创造模式填充与背包初始化由子类按本地/远程分支补齐（远程走 `InventoryManager`，本地走 `m_clientInventory` + `_sendPlayerInventory`）。
 
 **作弊开关运行时切换**：`publishToLan(allowCheats)` 直接修改 `m_params.allowCommands`，`resolveOpLevel` 读取此字段判定主机是否提升为 Owner。此修改不落盘 level.dat，关闭局域网发布后作弊状态恢复到原始设置。
 
-**资源清理**（`stop()` 顺序）：`m_running=false` → `m_clientConnection` 断开 → join 主循环线程 → `savePlayerRuntimeState()`（含远程玩家）→ `clearAll()` → `stopCore()` → `m_lanTcpServer->stop()` + reset → 清理 `m_remotePlayerEntityIds` → reset `m_clientConnection` / 本地 transport。`requestStop()` 也会通知 `m_lanTcpServer->stop()` 停止接受新连接。
+**资源清理**（`stop()` 顺序）：`m_running=false` → `m_clientConnection` 断开 → join 主循环线程 → `savePlayerRuntimeState()`（含远程玩家）→ `clearAll()` → `stopCore()` → `m_remoteSessions.clear()`（session 持 `ServerClientConnection&` 非拥有，须先于连接销毁）→ `m_serverNetwork.reset()`（关 acceptor + join accept 线程 + 销毁所有连接）→ 清理 `m_remotePlayerEntityIds` → reset `m_clientConnection` / 本地 transport。
 
-**TODO（后续集成验证）**：远程玩家登录流程的运行时正确性目前仅通过编译验证，缺少端到端集成测试（需 mock TcpSession 或真实 TCP 连接验证远程玩家能加入并交互）。当前依赖 `StandaloneServer` 的同类流程作为正确性参考，后续应补充专门针对 `IntegratedServer` 远程路径的集成测试。
+**TODO（后续集成验证）**：远程玩家登录流程的运行时正确性目前仅通过编译验证，缺少端到端集成测试（需真实 TCP 连接验证远程玩家能加入并交互）。当前依赖 `StandaloneServer` 的同类流程作为正确性参考，后续应补充专门针对 `IntegratedServer` 远程路径的集成测试。

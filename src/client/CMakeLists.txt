@@ -437,9 +437,6 @@ add_executable(minecraft-client
     # 内置服务端支持
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
-    # 局域网发布所需的 TCP 网络模块（IntegratedServer::publishToLan 依赖）
-    ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
     # 新网络层服务端实现：IntegratedServer.cpp 引用 ServerNetwork/ServerHandshake/
     # ServerPlayRouter/RegistryDataBuilder，MinecraftServer.cpp 定义 routeInboundPlayPacket
     # 供 ServerPlayRouter 调用。客户端内置服需登记全部 4 个文件（与 server/CMakeLists.txt 一致）。
