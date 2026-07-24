@@ -53,8 +53,7 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `PacketHeader` - 12 字节数据包头
 - `Packet` - 数据包基类
 - `PacketSerializer/Deserializer` - 二进制序列化
-- `IServerConnection` - 服务器连接接口
-- `LocalEndpoint`, `LocalConnectionPair` - 集成服务器的本地 IPC
+- `transport/LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
 
 ### 错误处理
 - `Result<T>` - 可能失败操作的结果类型

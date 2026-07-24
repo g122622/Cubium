@@ -528,7 +528,7 @@ protected:
     /**
      * @brief 轮询网络事件（子类实现）
      *
-     * IntegratedServer 从 LocalEndpoint 接收数据包
+     * IntegratedServer 经 ServerNetwork + LocalTransport 收发 IR 包
      * StandaloneServer 从 TcpServer 接收数据包
      */
     virtual void pollNetwork() = 0;

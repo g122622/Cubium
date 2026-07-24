@@ -602,7 +602,7 @@ void IntegratedServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
 
     // 远程 TCP 玩家（局域网发布后）——暂沿用旧 TcpServer 路径的玩家。
     // 注：旧局域网客户端走 1.16.5 字节协议，与新 IR 不兼容；真互通留 Phase6。
-    //     当前仅本地客户端可达 Play；远程玩家 connection 为旧 TcpConnection 时跳过 IR 发送。
+    //     当前仅本地客户端可达 Play；远程玩家尚未迁新层，此处跳过 IR 发送。
     if (m_lanTcpServer) {
         // 远程玩家连接尚未迁新层，此处避免向旧字节连接发 IR；保留遍历以备后续迁移。
     }

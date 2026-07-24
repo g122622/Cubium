@@ -262,7 +262,7 @@ item/
 | `server/interaction/MiningManager.hpp` | 挖掘管理（工具耐久） |
 | `server/world/drop/BlockDropHandler.hpp` | 方块掉落物生成 |
 | `server/world/entity/ItemPickupManager.hpp` | 物品拾取 |
-| `server/core/PacketHandler.cpp` | 物品相关数据包处理 |
+| `server/network/ServerPlayRouter.cpp` | 物品相关入站数据包处理（UseEntity/UseItem 分支） |
 | `server/command/commands/` | GiveCommand、FillCommand 等命令 |
 | `client/world/entity/ClientEntity.hpp` | 客户端实体物品渲染 |
 | `common/world/blockentity/` | 方块实体物品交互（试炼机关等） |
@@ -355,7 +355,7 @@ item/
 
 `Item::itemInteractionForEntity()` 完整调用链路：
 ```
-客户端 UseEntityPacket → 服务端 PacketHandler::handleUseEntity()
+客户端 UseEntityPacket → 服务端 ServerPlayRouter 的 UseEntity 分支
     → Player::interactOn(entity, hand)
     → Item::itemInteractionForEntity() [BucketItem/ShearsItem/NameTagItem]
 ```

@@ -134,8 +134,8 @@ i32 value = ctx.getArgument<i32>("value");  // 正确
 **问题**：`CommandTreePacket` 只序列化包体，双重封装会导致内部头看起来像空 JSON 字符串。
 
 **解决**：
-- 服务器代码必须用 `ConnectionManager::encapsulatePacket()` 恰好包装一次
-- 客户端代码必须在调用 `handleCommandTree()` 之前剥离外部网络头
+- 旧 1.16.5 字节协议下服务器代码须用恰好一次包头封装；新网络层（IR + Java wire codec）已不再使用 12 字节头封装，命令树改走 `ir::play::Commands` codec
+- 客户端代码必须在调用 `handleCommandTree()` 之前剥离外部网络头（旧路径）
 
 ### 异常处理
 

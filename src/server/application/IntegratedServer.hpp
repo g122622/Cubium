@@ -290,11 +290,10 @@ private:
     /**
      * @brief 处理远程 TCP 玩家的登录请求
      *
-     * 与本地客户端登录流程不同：
-     * - 不使用 LocalServerConnection，而是创建 TcpConnection
-     * - 不使用 m_clientInventory，而是使用 InventoryManager
-     * - 不使用 m_openMenu 等单玩家容器字段，而是使用 ContainerManager
-     * - 通过 PlayerManager 建立会话映射
+     * 远程 LAN 玩家登录已迁出字节协议，统一由 ServerHandshake 的 onPlayerReady
+     * 回调驱动（与本地客户端同路径）。当前 LAN 发布路径（m_lanTcpServer）仍为
+     * 旧 TcpServer 字节协议，与新 IR 不兼容，真正的 LAN 远程互通留 Phase6。
+     * 此处仅作占位，避免误用。
      *
      * @param sessionId TCP 会话ID（非 0）
      * @param data 登录请求数据包载荷
@@ -385,7 +384,7 @@ private:
 
     // ========== 局域网发布（TCP 监听器）==========
     // publishToLan() 调用后创建，允许远程玩家通过 TCP 加入本局游戏。
-    // 本地客户端仍走 LocalConnection（m_connectionPair），不受此监听器影响。
+    // 本地客户端仍走 LocalTransport（m_clientConnection），不受此监听器影响。
     std::unique_ptr<TcpServer> m_lanTcpServer;
 
     // 远程玩家实体ID映射（PlayerId -> EntityInstanceId），用于快速查找

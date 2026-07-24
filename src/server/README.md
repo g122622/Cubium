@@ -14,12 +14,11 @@ server/
 ├── core/                 # 核心管理器
 │   ├── ServerPlayerData.hpp   # 玩家数据
 │   ├── PlayerManager.hpp/cpp  # 玩家生命周期管理
-│   ├── ConnectionManager.hpp/cpp  # 网络连接管理
+│   ├── ConnectionManager.hpp/cpp  # IR 发送门面（ir::IrPacket）
 │   ├── TimeManager.hpp/cpp    # 游戏时间管理
 │   ├── TeleportManager.hpp/cpp # 传送管理
 │   ├── KeepAliveManager.hpp/cpp # 心跳管理
 │   ├── PositionTracker.hpp/cpp # 位置追踪
-│   ├── PacketHandler.hpp/cpp  # 数据包处理
 │   └── GameModeManager.hpp/cpp # 游戏模式管理
 ├── interaction/          # 交互管理器
 │   ├── BlockInteractionManager.hpp/cpp # 方块交互
@@ -48,9 +47,11 @@ server/
 │   └── weather/          # 天气系统
 │       └── WeatherManager.hpp/cpp
 ├── network/              # 网络层
-│   ├── TcpServer.hpp/cpp      # TCP 服务器
-│   ├── TcpSession.hpp/cpp     # 会话管理
-│   └── TcpConnection.hpp/cpp  # 连接封装
+│   ├── ServerNetwork.hpp/cpp   # 服务端网络门面（accept + ServerClientConnection）
+│   ├── ServerHandshake.hpp/cpp # 握手状态机
+│   ├── ServerPlayRouter.hpp/cpp # 入站 Play 包分发器（std::visit over ir::PlayPacket）
+│   ├── TcpServer.hpp/cpp       # 【Phase6 保留】TCP 服务器
+│   └── TcpSession.hpp/cpp      # 【Phase6 保留】会话管理
 ├── command/              # 命令系统
 │   ├── CommandRegistry.hpp/cpp # 命令注册表
 │   ├── ServerCommandSource.hpp/cpp # 命令源
@@ -91,7 +92,7 @@ server/
 |---|---|
 | `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dimensionManager()`、`getPlayerWorld(PlayerId)`、`dataPackList()`、`lootTableManager()`、`functionManager()`、`functionTimerQueue()`）。`m_world` 及单世界访问器（`world()`、`chunkManager()` 等）已移除，世界访问通过维度管理器进行 |
 | `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理）。不再持有 `m_world`、同步管理器和刷怪管理器，这些已下沉到 `ServerDimension` |
-| `IntegratedServer` | 内置服务器，使用 LocalConnection 与客户端通信（单机模式） |
+| `IntegratedServer` | 内置服务器，使用 LocalTransport 与客户端同进程零拷贝直传 IR 包（单机模式） |
 | `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |
 
 ### core/ - 核心管理器
@@ -102,12 +103,11 @@ server/
 |---|---|
 | `ServerPlayerData` | 服务端玩家状态（位置、心跳、传送等） |
 | `PlayerManager` | 玩家生命周期（注册、移除、遍历），线程安全 |
-| `ConnectionManager` | 网络消息发送、广播、断开连接 |
+| `ConnectionManager` | IR 发送门面，封装 `ir::IrPacket` 发送/广播 |
 | `TimeManager` | 游戏时间、日光周期管理 |
 | `TeleportManager` | 传送请求、确认、ID 生成 |
 | `KeepAliveManager` | 心跳计时、超时检测、ping 计算 |
 | `PositionTracker` | 位置更新、区块订阅、移动验证 |
-| `PacketHandler` | 统一的数据包处理入口 |
 | `GameModeManager` | 游戏模式切换、能力同步 |
 
 ### interaction/ - 交互管理器
@@ -180,13 +180,15 @@ server/
 
 ### network/ - 网络层
 
-TCP 网络通信实现。
+服务端网络通信。新 IR 层（ServerNetwork/ServerHandshake/ServerPlayRouter）为主架构；旧 TcpServer/TcpSession 保留用于远程 TCP 路径（Phase6 迁移中）。
 
 | 类 | 职责 |
 |---|---|
-| `TcpServer` | TCP 监听、连接管理、事件轮询 |
-| `TcpSession` | 单个客户端会话、数据包缓冲 |
-| `TcpConnection` | 连接接口实现 |
+| `ServerNetwork` | 服务端网络门面，accept + 管理 ServerClientConnection |
+| `ServerHandshake` | 握手状态机 |
+| `ServerPlayRouter` | 入站 Play 包分发器（std::visit over ir::PlayPacket），替代旧 dispatchPacket |
+| `TcpServer` | 【Phase6 保留】TCP 监听、连接管理、事件轮询 |
+| `TcpSession` | 【Phase6 保留】单个客户端会话、数据包缓冲 |
 
 ### command/ - 命令系统
 
@@ -275,7 +277,7 @@ TCP 网络通信实现。
 │  │                    core/ 管理器                       │    │
 │  │  PlayerManager │ ConnectionManager │ TimeManager    │    │
 │  │  TeleportManager │ KeepAliveManager │ PositionTracker│    │
-│  │  PacketHandler │ GameModeManager                     │    │
+│  │  GameModeManager                                    │    │
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │                  interaction/ 管理器                  │    │
@@ -316,7 +318,7 @@ TCP 网络通信实现。
          ▼                                    ▼
 ┌─────────────────────┐           ┌─────────────────────┐
 │   IntegratedServer   │           │   StandaloneServer   │
-│   (LocalConnection)  │           │   (TcpServer)        │
+│   (LocalTransport)   │           │   (TcpServer)        │
 │   单机模式            │           │   多人模式            │
 └─────────────────────┘           └─────────────────────┘
 ```
@@ -325,7 +327,8 @@ TCP 网络通信实现。
 
 1. **入站数据包**：
    ```
-   网络 → MinecraftServer.pollNetwork() → dispatchPacket() → PacketHandler
+   网络 → transport 收字节 → pipeline::Connection 解帧
+   → MinecraftServer.routeInboundPlayPacket() → ServerPlayRouter (ir::PlayPacket std::visit)
    → 各 Manager 处理 → 世界状态更新
    ```
 

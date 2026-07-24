@@ -39,7 +39,7 @@ src/common/world/entity/
 | `ItemPickupManager` | `server/world/entity/ItemPickupManager.cpp` | 物品拾取管理器查询实体 |
 | `NaturalSpawner` | `server/world/spawn/NaturalSpawner.cpp` | 自然生成器统计实体数量 |
 | `DespawnManager` | `server/world/spawn/DespawnManager.cpp` | 消失管理器查询实体 |
-| `PacketHandler` | `server/core/PacketHandler.cpp` | 数据包处理时查询实体 |
+| `ServerPlayRouter` | `server/network/ServerPlayRouter.cpp` | 入站 Play 包分发时查询实体（替代已删除的 PacketHandler） |
 | 各种 Command | `server/command/commands/*.cpp` | 命令执行时查询实体 |
 | `TraderLlamaEntity` | `common/entity/entities/passive/horse/TraderLlamaEntity.cpp` | 通过 UUID 查找拴绳持有者 |
 | `EvokerFangsEntity` | `common/entity/entities/projectile/OtherProjectiles.cpp` | 通过 UUID 查找所有者 |

@@ -53,7 +53,7 @@ player/
 | `server/player/ServerPlayer.hpp` | ServerPlayer 实体类（携带服务端特有状态） |
 | `common/world/entity/EntityManager.hpp` | 实体管理器（分配 EntityId） |
 | `server/application/IServer.hpp` | 服务器接口（注入到 ServerPlayer） |
-| `common/network/connection/IServerConnection.hpp` | 网络连接（注入到 ServerPlayer） |
+| `server/network/ServerNetwork.hpp` | ServerClientConnection（网络连接，注入到 ServerPlayer） |
 | `server/world/ServerWorld.hpp` | 服务端世界（spawnEntity、removeEntity） |
 | `server/world/entity/EntityTracker.hpp` | 实体追踪器（trackEntity、untrackEntity） |
 
@@ -64,7 +64,7 @@ player/
 | `server/application/MinecraftServer` | 持有 ServerPlayerEntityManager |
 | `server/application/IntegratedServer` | 继承并实现 playerEntityManager() |
 | `server/application/StandaloneServer` | 继承并实现 playerEntityManager() |
-| `server/core/PacketHandler` | 通过 IServer 接口访问玩家实体 |
+| `server/network/ServerPlayRouter` | 入站 Play 包分发时通过 IServer 接口访问玩家实体 |
 | `server/command/commands/*` | 多个命令通过 IServer 访问玩家实体 |
 | `server/advancement/AdvancementEventHandler` | 通过 IServer 访问玩家实体 |
 | `server/interaction/BlockInteractionManager` | 通过 IServer 访问玩家实体 |

@@ -35,8 +35,8 @@ using namespace mc::server::core;
  * 本测试只验证 KeepAliveManager 的心跳时序/超时/ping 数据维护，不依赖连接真发包，
  * 故统一传 nullptr。原 KeepAlivePacketHandler.HandleFullPacket 用例依赖旧
  * KeepAlivePacket 字节序列化 + PacketHandler::handleKeepAlive 字节路径，新网络层
- * 该路径已由 ServerPlayRouter 的 KeepAlive 分支覆盖且 handleKeepAlive 已 stub 化，
- * 故移除该集成用例（Step5 删旧体系后由 ServerPlayRouter 集成测试替代）。
+ * 该路径已由 ServerPlayRouter 的 KeepAlive 分支覆盖（PacketHandler 已删除），
+ * 故移除该集成用例（由 ServerPlayRouter 集成测试替代）。
  */
 class KeepAliveManagerTest : public ::testing::Test {
 protected:

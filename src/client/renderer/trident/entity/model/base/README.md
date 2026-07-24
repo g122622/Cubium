@@ -157,8 +157,8 @@ BipedModel 通过 `setFallFlying(bool)` 与 `setSpeedValue(f32)` 接收鞘翅飞
 - `LivingEntity::travel` 开头根据 `isElytraFlying()` 分发到 `travelFallFlying()`
   处理滑翔物理（视线方向驱动、重力抵消、撞墙伤害）
 - `Player` 重写 `canGlide()`/`tryToStartFallFlying()` 排除创造飞行模式
-- `PacketHandler::handleEntityAction` 处理 `StartFallFlying` 分支
-  （客户端按下空格触发，服务端校验后设置 FallFlying 标志）
+- `ServerPlayRouter` 的 EntityAction 分支处理 `StartFallFlying`
+  （客户端按下空格触发，服务端校验后设置 FallFlying 标志；旧 `PacketHandler::handleEntityAction` 已删除，逻辑迁入 ServerPlayRouter）
 
 ### 命名空间
 

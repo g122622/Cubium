@@ -36,11 +36,11 @@ namespace mc::server::net {
 /**
  * @brief 入站 Play 包分发器：std::visit over ir::PlayPacket，按分支调 MinecraftServer 既有处理逻辑
  *
- * 替代旧 MinecraftServer::dispatchPacket 的 12 用例 switch + 死 PacketHandler::handlePacket 的
+ * 替代旧 MinecraftServer::dispatchPacket 的 12 用例 switch + 已删除的 PacketHandler::handlePacket 的
  * 10 用例。每个分支把 ir::play::* 字段转换为既有处理函数参数后调用；处理体保留，只替换分发。
  *
  * 本类在 Step1 仅以骨架存在（变体分发 + 各分支 TODO 占位），Step3 原子切换时填充各分支的
- * 处理调用（含从死 PacketHandler 迁入的 MoveVehicle/UseEntity/SteerBoat/EntityAction/PlayerInput
+ * 处理调用（含从已删除的 PacketHandler 迁入的 MoveVehicle/UseEntity/SteerBoat/EntityAction/PlayerInput
  * 五个独占处理体 + VehicleMove 纠正发送）。
  */
 class ServerPlayRouter {

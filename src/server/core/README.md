@@ -8,7 +8,7 @@
 src/server/core/
 ├── ServerPlayerData.hpp      # 服务端玩家数据结构
 ├── PlayerManager.hpp/cpp     # 玩家生命周期管理器
-├── ConnectionManager.hpp/cpp # 连接与消息管理器
+├── ConnectionManager.hpp/cpp # IR 发送门面（ir::IrPacket 发送/广播/断开）
 ├── TimeManager.hpp/cpp       # 游戏时间管理器
 ├── KeepAliveManager.hpp/cpp  # 心跳管理器
 ├── TeleportManager.hpp/cpp   # 传送管理器
@@ -17,9 +17,10 @@ src/server/core/
 ├── WhitelistManager.hpp/cpp  # 白名单管理器
 ├── BannedPlayerList.hpp/cpp  # 玩家封禁列表管理器
 ├── BannedIpList.hpp/cpp      # IP 封禁列表管理器
-├── OpListManager.hpp/cpp     # OP 权限列表管理器
-└── PacketHandler.hpp/cpp     # 统一数据包处理器
+└── OpListManager.hpp/cpp     # OP 权限列表管理器
 ```
+
+> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `MinecraftServer::routeInboundPlayPacket` + `src/server/network/ServerPlayRouter`（`std::visit` over `ir::PlayPacket`）。
 
 ## 模块关系图
 
@@ -30,8 +31,9 @@ src/server/core/
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                        PacketHandler                          │
-│  (统一数据包处理入口，协调所有管理器)                            │
+│              MinecraftServer::routeInboundPlayPacket          │
+│        + server/network/ServerPlayRouter (ir::PlayPacket)     │
+│  (入站数据包分发入口，协调各管理器；旧 PacketHandler 已删除)    │
 └────────┬─────────────────────────────────────────────────────┘
          │
          ├─────────────────────────────────────────────────────┐
@@ -76,7 +78,7 @@ src/server/core/
 ```
 
 **依赖关系：**
-- `PacketHandler` 依赖所有其他管理器
+- 入站包分发（`ServerPlayRouter` + `MinecraftServer::routeInboundPlayPacket`）依赖所有其他管理器
 - `ConnectionManager` 依赖 `PlayerManager`
 - `KeepAliveManager` 依赖 `PlayerManager`
 - `TeleportManager` 依赖 `PlayerManager`、`ConnectionManager`
@@ -88,7 +90,7 @@ src/server/core/
 | 模块 | 职责 |
 |------|------|
 | `PlayerManager` | 玩家注册、移除、查询、会话映射、线程安全访问 |
-| `ConnectionManager` | 消息发送、广播、连接断开、数据包封装 |
+| `ConnectionManager` | IR 发送门面：`ir::IrPacket` 发送、广播、连接断开 |
 | `TimeManager` | 游戏 tick、昼夜循环、时间流逝控制 |
 | `KeepAliveManager` | 心跳计时、超时检测、ping 计算 |
 | `TeleportManager` | 传送请求、确认、ID 生成 |
@@ -98,7 +100,6 @@ src/server/core/
 | `BannedPlayerList` | 玩家封禁条目管理、过期检查、文件持久化 |
 | `BannedIpList` | IP 封禁条目管理、过期检查、文件持久化 |
 | `OpListManager` | OP 权限管理、权限等级查询、文件持久化 |
-| `PacketHandler` | 统一入站数据包处理入口，协调各管理器 |
 | `ServerPlayerData` | 单个玩家的完整状态数据结构 |
 
 ## 上下游外部依赖关系
@@ -109,9 +110,9 @@ src/server/core/
 |------|------|
 | `common/core/Types.hpp` | 基础类型定义 |
 | `common/core/Constants.hpp` | 游戏常量 |
-| `common/network/connection/IServerConnection.hpp` | 连接接口 |
+| `common/network/ir/IrPacket.hpp` | IR 包定义（ConnectionManager 发送门面使用） |
 | `common/network/sync/ChunkSync.hpp` | 区块同步管理器 |
-| `common/network/packet/*` | 数据包定义 |
+| `common/network/packet/*` | 旧数据包定义（Phase6 桥接包，仅余 live 子集） |
 | `common/world/time/GameTime.hpp` | 游戏时间类 |
 | `common/entity/GameModeUtils.hpp` | 游戏模式工具 |
 | `common/entity/inventory/ContainerTypes.hpp` | 容器类型 |
@@ -165,12 +166,12 @@ if (!teleportManager.confirmTeleport(playerId, packet.teleportId())) {
 
 ### 6. 数据包处理顺序
 
-未登录玩家发送某些数据包会导致逻辑错误。在 `PacketHandler::handlePacket` 中需检查登录状态：
+未登录玩家发送某些数据包会导致逻辑错误。入站 Play 包在 `MinecraftServer::routeInboundPlayPacket` + `ServerPlayRouter::handle` 中分发，需检查登录状态：
 
 ```cpp
 PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
 if (playerId == 0) {
-    return PacketHandleResult::Ignore;  // 未登录
+    return;  // 未登录
 }
 ```
 
@@ -197,6 +198,6 @@ OpLevel 枚举参考 MC 1.16.5：
 
 单机主机作弊提升：`applyOwnerCheatsBoost` 在 OP 列表等级之上叠加「主机 + 开启作弊 → Owner」的运行时判定（不写 `ops.json`）。命令分发与登录权限解析统一走 `MinecraftServer::resolveOpLevel`，`IntegratedServer` override 之；专用服务器继承默认实现（仅读 OP 列表）。
 
-### 11. 载具移动速度验证（PacketHandler）
+### 11. 载具移动速度验证（ServerPlayRouter MoveVehicle 分支）
 
-`handleMoveVehicle` 中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `VehicleMovePacket` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。
+`ServerPlayRouter` 的 `MoveVehicle` 分支中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `VehicleMovePacket` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。（此逻辑从已删除的 `PacketHandler::handleMoveVehicle` 迁入。）

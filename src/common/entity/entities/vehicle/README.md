@@ -58,7 +58,7 @@ Entity (基类)
 | `item/items/vehicle/MinecartItem.hpp` | 放置矿车的物品 |
 | `world/block/dispense/` | 发射器行为（放置车辆） |
 | `client/renderer/trident/entity/renderer/vehicle/` | 车辆渲染器 |
-| `server/core/PacketHandler.cpp` | 骑乘网络包处理 |
+| `server/network/ServerPlayRouter.cpp` | 骑乘/载具网络包处理（PaddleBoat/MoveVehicle/SteerBoat 分支，替代已删除的 PacketHandler） |
 
 ## 容易踩的坑
 

@@ -6,11 +6,11 @@
 src/server/application/
 ├── IServer.hpp              # 服务器统一接口定义
 ├── MinecraftServer.hpp      # 服务器抽象基类声明
-├── MinecraftServer.cpp      # 服务器抽象基类实现（共享逻辑）
+├── MinecraftServer.cpp      # 服务器抽象基类实现（共享逻辑 + routeInboundPlayPacket）
 ├── IntegratedServer.hpp     # 内置服务器声明（单机模式）
-├── IntegratedServer.cpp     # 内置服务器实现（LocalConnection通信）
+├── IntegratedServer.cpp     # 内置服务器实现（LocalTransport 同进程零拷贝 IR 通信）
 ├── StandaloneServer.hpp     # 独立服务器声明（多人模式）
-└── StandaloneServer.cpp     # 独立服务器实现（TCP网络通信）
+└── StandaloneServer.cpp     # 独立服务器实现（TCP 网络通信）
 ```
 
 ## 内部模块关系
@@ -27,8 +27,8 @@ src/server/application/
 
 **继承关系：**
 - `IServer` 定义服务器接口契约（含 `publishToLan` 局域网发布接口）
-- `MinecraftServer` 实现共享逻辑，委托网络层给子类
-- `IntegratedServer` 使用 `LocalConnectionPair` 实现单机通信；`publishToLan()` 后额外启动 `TcpServer` 接受远程玩家（双路径架构，详见下文第 11 节）
+- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/ServerPlayRouter` 分发
+- `IntegratedServer` 使用 `transport/LocalTransport` 实现同进程零拷贝 IR 通信；`publishToLan()` 后额外启动 `TcpServer` 接受远程玩家（双路径架构，详见下文第 11 节）
 - `StandaloneServer` 使用 `TcpServer` 实现多人网络；`publishToLan()` 返回 `Unsupported`
 
 **Tick 执行流程：**
@@ -53,11 +53,11 @@ src/server/application/
 - `server/dimension/` - ServerDimension, ServerDimensionManager
 - `server/sync/` - EntitySyncManager, ChunkSendManager 等（由 ServerDimension 持有）
 - `server/world/` - ServerWorld, ServerChunkManager, WeatherManager
-- `server/network/` - TcpServer, TcpSession
+- `server/network/` - ServerNetwork, ServerHandshake, ServerPlayRouter, TcpServer, TcpSession
 - `server/command/` - CommandRegistry, CommandStorage
 - `server/menu/` - CraftingMenu
 - `common/entity/inventory/container/` - 容器菜单实现
-- `common/network/` - Packets, LocalConnection
+- `common/network/` - IR 包、pipeline/Connection、transport/LocalTransport、transport/TcpTransport、Phase6 桥接 packet/
 - `common/world/` - World, Chunk, Lighting, Generation
 - `common/entity/` - Player, Inventory, Loot
 - `common/item/` - Items, BlockItems, Recipes
@@ -159,15 +159,15 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 - `IntegratedServer`：启动 TCP 监听器，运行时切换作弊开关。
 - `StandaloneServer`：返回 `ErrorCode::Unsupported`（已通过 TCP 对外服务，无法再次发布）。
 
-**双路径架构**：`IntegratedServer` 在发布前只有本地客户端一条路径（`LocalConnectionPair` + `m_clientInventory` 零拷贝优化）。发布后新增 TCP 监听器路径，同一局游戏同时服务本地与远程玩家。通过 `sessionId` 区分：
-- `sessionId == 0`：本地客户端，走 `LocalEndpoint`（`_sendToClient` 直接写入队列）。
-- `sessionId != 0`：远程 TCP 玩家，走 `PlayerManager` → `ServerPlayerData::send()` → `TcpConnection` → `TcpSession`。
+**双路径架构**：`IntegratedServer` 在发布前只有本地客户端一条路径（`transport/LocalTransport` 同进程零拷贝 IR 包 + `m_clientInventory` 单玩家优化）。发布后新增 TCP 监听器路径，同一局游戏同时服务本地与远程玩家。通过 `sessionId` 区分：
+- `sessionId == 0`：本地客户端，走 `LocalTransport`（`_sendToClient` 直接经 `pipeline::Connection` 发送 IR 包）。
+- `sessionId != 0`：远程 TCP 玩家，走 `PlayerManager` → `ServerPlayerData::send()` → `ServerClientConnection` → 旧 `TcpSession`（Phase6 迁移后改为 `transport/TcpTransport`）。
 
 **需分支的虚函数**：以下方法在 `IntegratedServer` 中均按 `playerId == m_clientPlayerId` 或 `sessionId == 0` 分流到对应路径：
 | 方法 | 本地客户端路径 | 远程 TCP 玩家路径 |
 |------|---------------|------------------|
-| `pollNetwork()` | `m_serverEndpoint->receive()` | `m_lanTcpServer->poll()` |
-| `broadcastPacket()` | `_sendToClient()` | `forEachPlayer` 过滤 Tcp 连接 |
+| `pollNetwork()` | `pipeline::Connection` 入站回调 | `m_lanTcpServer->poll()` |
+| `broadcastPacket()` | `_sendToClient()` | `forEachPlayer` 过滤远程连接 |
 | `sendPacketToPlayer()` | `_sendToClient()` | `ServerPlayerData::send()` |
 | `getPlayerIdForSession()` | 返回 `m_clientPlayerId` | `PlayerManager::getPlayerIdBySession()` |
 | `handleLoginRequestPacket()` | 本地登录流程 | `_handleRemoteLoginRequest()` |
@@ -181,10 +181,10 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 | `syncPlayerInventory()` | `_sendPlayerInventory()` | `InventoryManager::syncToClient()` |
 | `tryOpenCraftingContainer()` | `_openCraftingTableMenu()` | `ContainerManager::openContainer(Crafting)` |
 
-**远程登录流程**（`_handleRemoteLoginRequest`）：与 `StandaloneServer::handleLoginRequestPacket` 基本一致——创建 `TcpConnection`、分配 `PlayerId`、生成离线 UUID、`addPlayer` + `mapSessionToPlayer`、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`inventoryManager().initializeInventory()` + 创造模式填充、发送登录响应 / 权限等级 / 初始游戏状态 / 物品栏同步。
+**远程登录流程**（`_handleRemoteLoginRequest`）：与 `StandaloneServer::handleLoginRequestPacket` 基本一致——经 `ServerClientConnection` 建立连接、分配 `PlayerId`、生成离线 UUID、`addPlayer` + `mapSessionToPlayer`、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`inventoryManager().initializeInventory()` + 创造模式填充、发送登录响应 / 权限等级 / 初始游戏状态 / 物品栏同步。
 
 **作弊开关运行时切换**：`publishToLan(allowCheats)` 直接修改 `m_params.allowCommands`，`resolveOpLevel` 读取此字段判定主机是否提升为 Owner。此修改不落盘 level.dat，关闭局域网发布后作弊状态恢复到原始设置。
 
-**资源清理**（`stop()` 顺序）：`m_running=false` → `m_connectionPair->disconnect()` → join 主循环线程 → `savePlayerRuntimeState()`（含远程玩家）→ `clearAll()` → `stopCore()` → `m_lanTcpServer->stop()` + reset → 清理 `m_remotePlayerEntityIds` → reset `m_clientConnection` / `m_connectionPair`。`requestStop()` 也会通知 `m_lanTcpServer->stop()` 停止接受新连接。
+**资源清理**（`stop()` 顺序）：`m_running=false` → `m_clientConnection` 断开 → join 主循环线程 → `savePlayerRuntimeState()`（含远程玩家）→ `clearAll()` → `stopCore()` → `m_lanTcpServer->stop()` + reset → 清理 `m_remotePlayerEntityIds` → reset `m_clientConnection` / 本地 transport。`requestStop()` 也会通知 `m_lanTcpServer->stop()` 停止接受新连接。
 
 **TODO（后续集成验证）**：远程玩家登录流程的运行时正确性目前仅通过编译验证，缺少端到端集成测试（需 mock TcpSession 或真实 TCP 连接验证远程玩家能加入并交互）。当前依赖 `StandaloneServer` 的同类流程作为正确性参考，后续应补充专门针对 `IntegratedServer` 远程路径的集成测试。

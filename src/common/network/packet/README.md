@@ -97,9 +97,9 @@ PacketModule.hpp (统一入口)
 
 | 使用模块 | 用途 |
 |---------|------|
-| `server/core/ConnectionManager.hpp` | 服务端连接管理，封装数据包发送 |
-| `server/core/PacketHandler.hpp` | 服务端数据包处理 |
-| `client/network/NetworkClient.hpp` | 客户端网络通信 |
+| `server/core/ConnectionManager.hpp` | 服务端 IR 发送门面（新网络层） |
+| `server/network/ServerPlayRouter.hpp` | 服务端入站 Play 包分发（替代旧 PacketHandler） |
+| `client/network/ClientNetwork.hpp` | 客户端网络通信（替代旧 NetworkClient） |
 | `server/player/ServerPlayer.hpp` | 服务端玩家数据包发送 |
 | `server/world/ServerWorld.hpp` | 服务端世界同步（区块、方块更新） |
 | `client/world/ClientWorld.hpp` | 客户端世界数据接收处理 |
@@ -148,7 +148,7 @@ PacketModule.hpp (统一入口)
 
 9. **包头封装**
    - `KeepAlivePacket` 和 `DisconnectPacket` 按完整包处理（包含12字节包头）
-   - 其余数据包只负责包体序列化，12字节包头由 `ConnectionManager::encapsulatePacket()` 统一添加
+   - 其余数据包只负责包体序列化，12字节包头封装属旧 1.16.5 协议；新网络层（IR + Java wire codec）已不再使用 12 字节头，这些 Phase6 桥接包仅在旧字节路径（局域网/独立服 TCP，待 Phase6 迁移）中沿用
 
 10. **SetCameraPacket 旁观者摄像机同步**
     - 方向：服务端→客户端 (S2C)

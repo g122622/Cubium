@@ -17,7 +17,7 @@ src/client/
 │   └── InputManager.hpp/cpp # 键盘/鼠标输入处理
 ├── main.cpp               # 程序入口点
 ├── network/               # 网络通信
-│   └── NetworkClient.hpp/cpp # TCP/本地连接客户端
+│   └── ClientNetwork.hpp/cpp # 客户端 Connection + IR 包 visitor（替代旧 NetworkClient）
 ├── sound/                 # 音频系统
 │   ├── AudioService.hpp/cpp  # 独立音频线程入口
 │   ├── SoundEngine.hpp/cpp   # 声音播放核心
@@ -64,7 +64,7 @@ src/client/
           ├──► Window (GLFW 窗口)
           ├──► InputManager (键盘/鼠标输入)
           ├──► ClientSettings (设置)
-          ├──► NetworkClient ◄─────┐
+          ├──► ClientNetwork ◄─────┐
           │       │                │
           │       ▼                │
           │   [服务端通信]          │
@@ -99,7 +99,7 @@ src/client/
           │       └──► Template 系统
           │
           └──► IntegratedServer (内置服务器)
-                  └──► LocalConnection ◄─────┘
+                  └──► LocalTransport ◄─────┘
 ```
 
 ## 上下游外部依赖关系
