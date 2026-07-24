@@ -50,6 +50,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -529,7 +530,7 @@ private:
     // 内置服务端
     std::unique_ptr<server::IntegratedServer> m_integratedServer;
     // 新网络层：ClientNetwork 持 Connection 驱动握手状态机 + 出站统一 send；
-    // ClientPlayVisitor 处理 Play 阶段入站包（替代旧 NetworkClient + 57 回调）。
+    // ClientPlayVisitor 处理 Play 阶段入站包。
     std::unique_ptr<net::ClientNetwork> m_network;
     std::unique_ptr<net::ClientPlayVisitor> m_playVisitor;
     std::unique_ptr<command::ClientCommandManager> m_commandManager;

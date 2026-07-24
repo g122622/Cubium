@@ -41,8 +41,6 @@ src/common/network/packet/
 ├── ExplosionPacket.cpp            # 爆炸事件包实现
 ├── TitlePacket.hpp                # 标题显示包
 ├── TitlePacket.cpp                # 标题显示包实现
-├── BossInfoPacket.hpp             # Boss 栏同步包
-├── BossInfoPacket.cpp             # Boss 栏同步包实现
 ├── SleepPacket.hpp                # 睡眠状态同步包
 ├── WorldBorderPacket.hpp          # 世界边界同步包
 ├── WorldBorderPacket.cpp          # 世界边界同步包实现

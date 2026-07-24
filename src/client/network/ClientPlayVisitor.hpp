@@ -47,10 +47,7 @@ namespace mc::client::net {
 /**
  * @brief 入站 Play/Configuration 包 visitor：std::visit over ir::PlayPacket / ConfigurationPacket
  *
- * 替代旧 NetworkClient 的 ~50 个 _handleX(PacketDeserializer&) switch + 旧
- * ClientApplicationNetwork.cpp::setupNetworkCallbacks 内 ~57 个内联 lambda 主体。
- * Step3 原子切换后：每个分支体 = 旧 lambda 主体逐字迁入，仅把旧 packet getter 换成
- * IR struct 字段，出站 m_networkClient->sendXxx 换成 m_app.m_network->send(ir::play::*)。
+ * 每个分支体处理一个 IR 包变体，出站经 m_app.m_network->send(ir::play::*)。
  *
  * 入站 57 旧用例 → ~73 IR visitor 分支（5 处拆分：SpawnMob→AddEntity+SetEntityData、
  * EntityAnimation→Animate+HurtAnimation、PlayerListItem→PlayerInfoUpdate+PlayerInfoRemove、

@@ -66,7 +66,7 @@ RaidManager
 - 庆祝/结束：状态非 Ongoing 时返回 0。
 
 ### Boss 栏网络同步尚未接入
-当前 `getBossBarProgress()` / `getBossBarTitle()` 是公共 API，但尚未被任何下游模块（命令系统、BossInfo 网络包、调试接口）消费。`_updateBossBar()` 仅写入本地 `m_cachedProgress`，未调用 `ServerBossInfo::setProgress()` 推送客户端。原因：Raid 位于 `src/common`，而 `ServerBossInfo` 位于 `src/server`，存在层级依赖约束；且客户端 `BossInfoPacket` 处理路径尚未实现。完整集成需要 `RaidManager` 持有 `ServerBossInfo` 引用、Raid 层通过回调转发进度、以及客户端 `BossInfoPacket` 处理器落地。相关位置见 `Raid.hpp` 中 `TODO(bossbar-network-sync)` 注释。
+当前 `getBossBarProgress()` / `getBossBarTitle()` 是公共 API，但尚未被任何下游模块（命令系统、BossInfo 网络包、调试接口）消费。`_updateBossBar()` 仅写入本地 `m_cachedProgress`，未调用 `ServerBossInfo::setProgress()` 推送客户端。原因：Raid 位于 `src/common`，而 `ServerBossInfo` 位于 `src/server`，存在层级依赖约束；且客户端 `ir::play::BossEvent` 处理路径尚未实现。完整集成需要 `RaidManager` 持有 `ServerBossInfo` 引用、Raid 层通过回调转发进度、以及客户端 `BossEvent` 处理器落地。相关位置见 `Raid.hpp` 中 `TODO(bossbar-network-sync)` 注释。
 
 ### 难度和平滑影响袭击行为
 - 和平难度下袭击会直接 `stop()`（`DifficultyHelper::allowsMobSpawning` 返回 false）

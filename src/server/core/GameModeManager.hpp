@@ -24,8 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/network/packet/GameStateChangePacket.hpp"
-#include "common/network/packet/PlayerAbilitiesPacket.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include <functional>
 
 namespace mc::server::core {

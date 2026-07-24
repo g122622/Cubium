@@ -20,8 +20,6 @@ scoreboard/
 │   ├── KillCountCriteria.hpp/cpp        # 击杀计数判据（playerKillCount/totalKillCount）
 │   ├── ReadOnlyCriteria.hpp/cpp         # 只读判据基类及实现（health/food/air/armor/xp/level）
 │   └── TeamKillCriteria.hpp/cpp         # 队伍击杀判据（teamkill.{color}/killedByTeam.{color}）
-├── network/                             # 网络同步
-│   └── ScoreboardPackets.hpp/cpp        # 记分板网络数据包（目标/分数/显示/队伍同步）
 └── storage/                             # 持久化
     ├── ScoreboardSaveData.hpp/cpp       # 数据序列化结构（ObjectiveData/ScoreData/TeamData）
     └── ScoreboardDataManager.hpp/cpp    # 数据管理器（缓存+脏标记，依赖 SingleLevelStorageManager）
@@ -83,7 +81,7 @@ ScoreCriteria.onPlayerDeath/onPlayerKill → Scoreboard.forAllObjectives → Sco
 | `common/util/text/ITextComponent.hpp` | 文本组件（显示名称、前缀后缀） | Team、ScoreObjective、ScorePlayerTeam |
 | `common/util/text/ComponentUtils.hpp` | wrapInSquareBrackets 方括号包裹工具 | ScoreObjective、ScorePlayerTeam |
 | `common/util/nbt/Nbt.hpp` | NBT 序列化 | ScoreboardSaveData |
-| `common/network/packet/PacketSerializer.hpp` | 网络序列化 | ScoreboardPackets |
+| `common/network/ir/packets/play/PlayPackets.hpp` | IR 网络包结构（SetObjective/SetScore/SetDisplayObjective/SetPlayerTeam） | ServerScoreboard 出站同步 |
 | `world/storage/SingleLevelStorageManager` | 世界存储门面 | ScoreboardDataManager |
 
 ### 被哪些模块依赖

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <unordered_map>

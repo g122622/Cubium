@@ -45,7 +45,7 @@ namespace mc::network::transport {
  * 压缩、加密都由 Connection 流水线负责。本类只把上层 send 的字节写进 socket，
  * 把 socket 读到的字节块回调给 onBytes。
  *
- * 线程模型沿用旧 NetworkClient 的成熟模式（已验证可工作）：
+ * 线程模型（同步 + 独立接收线程，已验证可工作）：
  * - 同步 connect（asio::connect）
  * - 独立接收线程跑同步 read_some 循环，每读到一块就回调 onBytes
  * - 发送在调用方线程同步 asio::write，mutex 保护并发 send

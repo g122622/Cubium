@@ -1027,7 +1027,6 @@ add_executable(mc_tests
     network/DimensionPacketsTest.cpp
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
-    network/BossInfoPacketTest.cpp
     # 旁观者摄像机同步包测试
     network/SetCameraPacketTest.cpp
     # 告示牌网络包序列化/反序列化测试
@@ -1583,7 +1582,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统
@@ -2740,7 +2738,6 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统

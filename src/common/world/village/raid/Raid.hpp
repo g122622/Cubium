@@ -85,9 +85,9 @@ struct RaidParticipant {
  * 当前实现保持接口稳定，后续可继续向更贴近 Java 版逻辑的波次配置演进。
  *
  * @note TODO(bossbar-network-sync): 当前 Raid 仅在内部计算并缓存 Boss 栏进度，
- *       尚未接入 ServerBossInfo / BossInfoPacket 网络同步层，因此 m_cachedProgress
+ *       尚未接入 ServerBossInfo 网络同步层，因此 m_cachedProgress
  *       不会真正推送到客户端。原因：Raid 位于 src/common，而 ServerBossInfo 位于
- *       src/server，且客户端 BossInfoPacket 处理路径尚未实现。待客户端 BossInfoPacket
+ *       src/server，且客户端 ir::play::BossEvent 处理路径尚未实现。待客户端 BossEvent
  *       处理器落地、且 BossInfo 系统能在 Raid 构造期注入后，再在 _updateBossBar()
  *       中追加 ServerBossInfo::setProgress() 调用，并由 RaidManager 持有
  *       ServerBossInfo 引用以同步 addPlayer/removePlayer。
@@ -369,12 +369,12 @@ private:
      * @note TODO(bossbar-network-sync): 当前仅写入本地缓存 m_cachedProgress，
      *       未调用 ServerBossInfo::setProgress() 推送到客户端。原因：Raid 位于
      *       src/common，无法直接依赖 src/server 的 ServerBossInfo；且客户端
-     *       BossInfoPacket 处理路径尚未实现。完整的网络同步集成需要：
+     *       ir::play::BossEvent 处理路径尚未实现。完整的网络同步集成需要：
      *       1) 在 RaidManager 中为每个 Raid 关联一个 ServerBossInfo 实例；
      *       2) 在 _updateBossBar() 末尾调用 serverBossInfo->setProgress(m_cachedProgress)；
      *       3) 实现 RaidCallbacks::onBossBarProgressChanged 回调或类似机制，
      *          由 RaidManager 转发到 ServerBossInfo；
-     *       4) 客户端实现 BossInfoPacket 处理器以渲染 Boss 栏 UI。
+     *       4) 客户端实现 BossEvent 处理器以渲染 Boss 栏 UI。
      */
     void _updateBossBar(IWorld& world);
 

@@ -34,6 +34,8 @@
 #include "common/entity/damage/tag/DamageTypeTagLoader.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/interfaces/IJumpingMount.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
@@ -58,20 +60,11 @@
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/BlockEntityDataPacket.hpp"
-#include "common/network/packet/BlockEventPacket.hpp"
-#include "common/network/packet/CommandTreePacket.hpp"
-#include "common/network/packet/ContainerPacketHandler.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/GameStateChangePacket.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
-#include "common/network/packet/ServerDifficultyPacket.hpp"
-#include "common/network/packet/SetEntityLinkPacket.hpp"
-#include "common/network/packet/SignPackets.hpp"
-#include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/network/packet/ExplosionPacket.hpp"
+#include "common/network/packet/ParticlePacket.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -144,6 +137,7 @@
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
@@ -2473,6 +2467,330 @@ void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const mc::networ
     spdlog::info("UpdateSign: player {} updated sign at ({}, {}, {})", playerId, signPos.x, signPos.y, signPos.z);
 }
 
+// ============================================================================
+// 骑乘 / 交互 / 载具移动（C→S）
+//
+// 以下 6 个处理体对应 MC Java 1.21.11 的 ServerboundPlayerInput /
+// ServerboundMoveVehicle / ServerboundPlayerCommand / ServerboundPaddleBoat /
+// ServerboundInteract / ServerboundUseItem。可完成项给出实现，依赖未实现
+// 子系统（载具物理/反飞行/物品使用）的标 TODO(Phase6)。
+// ============================================================================
+
+void MinecraftServer::handlePlayerInputPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // PlayerInput 位掩码：bit0=forward bit1=backward bit2=left bit3=right
+    // bit4=jump bit5=shift bit6=sprint（对齐 MC 1.21.11 net.minecraft.world.entity.player.Input）。
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::PlayerInput>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    const u8 input = evt->input;
+    const bool forward = (input & 0x01) != 0;
+    const bool backward = (input & 0x02) != 0;
+    const bool left = (input & 0x04) != 0;
+    const bool right = (input & 0x08) != 0;
+    const bool jump = (input & 0x10) != 0;
+    const bool shift = (input & 0x20) != 0;
+    const bool sprint = (input & 0x40) != 0;
+
+    // 疾跑状态由 PlayerCommand 维护，这里仅驱动载具。shift（潜行）在本项目
+    // 走 PlayerCommand/PlayerInput 之外的状态链路（见 handlePlayerCommandPacket），
+    // 载具侧忽略 shift。TODO(Phase6): 跳跃输入驱动 IJumpingMount 载具的蓄力跳跃。
+    (void)jump;
+    (void)shift;
+
+    auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    // 玩家骑乘载具时，输入转发给载具。仅 Boat 已实现 handleInput；其它载具
+    // （马/骆驼/羊驼等 IJumpingMount 载具）的输入链路 TODO(Phase6)。
+    const EntityInstanceId vehicleId = playerEntity->getVehicle();
+    if (vehicleId == INVALID_ENTITY_ID) {
+        return;
+    }
+
+    auto* vehicle = world->getEntity(vehicleId);
+    if (vehicle == nullptr) {
+        return;
+    }
+
+    auto* boat = dynamic_cast<mc::entity::BoatEntity*>(vehicle);
+    if (boat != nullptr) {
+        // 注意参数顺序：(left, right, forward, backward)（对齐 BoatEntity::handleInput）。
+        boat->handleInput(left, right, forward, backward);
+        return;
+    }
+
+    // 非船载具输入处理 TODO(Phase6)。
+    (void)sprint;
+}
+
+void MinecraftServer::handleMoveVehiclePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 最小实现：NaN 校验 + 写入载具位置 + 回送 ClientboundMoveVehicle 校正。
+    // 完整 moved-too-quickly/wrongly 反飞行检测 TODO(Phase6)。
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ServerboundMoveVehicle>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    // 对应 MC Java NetworkValidatorUtils.isInvalidValue：坐标/朝向含 NaN 即拒。
+    if (std::isnan(evt->x) || std::isnan(evt->y) || std::isnan(evt->z) || std::isnan(evt->yRot) ||
+        std::isnan(evt->xRot)) {
+        spdlog::warn("MoveVehicle: player {} sent NaN position, ignoring", playerId);
+        return;
+    }
+
+    auto* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    const EntityInstanceId vehicleId = playerEntity->getVehicle();
+    if (vehicleId == INVALID_ENTITY_ID) {
+        return;
+    }
+
+    auto* vehicle = world->getEntity(vehicleId);
+    if (vehicle == nullptr) {
+        return;
+    }
+
+    vehicle->setPosition(static_cast<f32>(evt->x), static_cast<f32>(evt->y), static_cast<f32>(evt->z));
+    vehicle->setRotation(evt->yRot, evt->xRot);
+    vehicle->setOnGround(evt->onGround);
+
+    // 回送校正：服务端权威位置回传客户端，使客户端载具与服务端对齐
+    // （对齐 MC Java ServerGamePacketListenerImpl.handleMoveVehicle 发 ClientboundMoveVehicle）。
+    mc::network::ir::play::ClientboundMoveVehicle correction;
+    correction.x = static_cast<f64>(vehicle->position().x);
+    correction.y = static_cast<f64>(vehicle->position().y);
+    correction.z = static_cast<f64>(vehicle->position().z);
+    correction.yRot = vehicle->yaw();
+    correction.xRot = vehicle->pitch();
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(correction)}});
+}
+
+void MinecraftServer::handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // PlayerCommand action（对齐 MC 1.21.11 ServerboundPlayerCommandPacket.Action）：
+    // 0=STOP_SLEEPING 1=START_SPRINTING 2=STOP_SPRINTING 3=START_RIDING_JUMP
+    // 4=STOP_RIDING_JUMP 5=OPEN_INVENTORY 6=START_FALL_FLYING。
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::PlayerCommand>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    switch (evt->action) {
+        case 0: { // STOP_SLEEPING
+            if (auto* serverPlayer = playerEntity->asServerPlayer()) {
+                serverPlayer->stopSleepInBed(true, true);
+            } else {
+                playerEntity->stopSleeping();
+            }
+            break;
+        }
+        case 1: // START_SPRINTING
+            playerEntity->setSprinting(true);
+            break;
+        case 2: // STOP_SPRINTING
+            playerEntity->setSprinting(false);
+            break;
+        case 3: { // START_RIDING_JUMP（data=跳跃强度）
+            const EntityInstanceId vehicleId = playerEntity->getVehicle();
+            if (vehicleId == INVALID_ENTITY_ID) {
+                break;
+            }
+            auto* vehicle = world->getEntity(vehicleId);
+            if (vehicle == nullptr) {
+                break;
+            }
+            auto* jumpingMount = dynamic_cast<mc::entity::IJumpingMount*>(vehicle);
+            if (jumpingMount != nullptr) {
+                jumpingMount->startJumping(evt->data);
+            }
+            break;
+        }
+        case 4: { // STOP_RIDING_JUMP
+            const EntityInstanceId vehicleId = playerEntity->getVehicle();
+            if (vehicleId == INVALID_ENTITY_ID) {
+                break;
+            }
+            auto* vehicle = world->getEntity(vehicleId);
+            if (vehicle == nullptr) {
+                break;
+            }
+            auto* jumpingMount = dynamic_cast<mc::entity::IJumpingMount*>(vehicle);
+            if (jumpingMount != nullptr) {
+                jumpingMount->stopJumping();
+            }
+            break;
+        }
+        case 5: // OPEN_INVENTORY
+            // 复用既有 Inventory 开包处理体（IntegratedServer 覆写打开菜单）。
+            handleOpenPlayerInventoryPacket(playerId, packet);
+            break;
+        case 6: // START_FALL_FLYING
+            if (!playerEntity->tryToStartFallFlying()) {
+                playerEntity->stopFallFlying();
+            }
+            break;
+        default:
+            spdlog::info("PlayerCommand: player {} sent unknown action {}", playerId, evt->action);
+            break;
+    }
+}
+
+void MinecraftServer::handlePaddleBoatPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::PaddleBoat>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    const EntityInstanceId vehicleId = playerEntity->getVehicle();
+    if (vehicleId == INVALID_ENTITY_ID) {
+        return;
+    }
+
+    auto* vehicle = world->getEntity(vehicleId);
+    if (vehicle == nullptr) {
+        return;
+    }
+
+    auto* boat = dynamic_cast<mc::entity::BoatEntity*>(vehicle);
+    if (boat == nullptr) {
+        // 非船载具无桨状态，忽略。
+        return;
+    }
+
+    boat->setPaddleState(evt->left, evt->right);
+}
+
+void MinecraftServer::handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // Interact action：0=INTERACT 1=ATTACK 2=INTERACT_AT。
+    // 成就 player_interacted_with_entity 与严格物品/距离校验 TODO(Phase6)。
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::Interact>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    auto* target = world->getEntity(static_cast<EntityInstanceId>(evt->entityId));
+    if (target == nullptr) {
+        return;
+    }
+
+    // 基本距离校验：超出追踪距离（6 块）拒绝，对齐 MC Java 的 maxInteractDistance 思路。
+    // 严格反作弊距离检测 TODO(Phase6)。
+    constexpr f32 kMaxInteractDistance = 6.0f;
+    if (playerEntity->distanceSqTo(*target) > kMaxInteractDistance * kMaxInteractDistance) {
+        return;
+    }
+
+    const Hand hand = (evt->hand == static_cast<i32>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+
+    switch (evt->action) {
+        case 0: // INTERACT
+            (void)playerEntity->interactOn(*target, hand);
+            break;
+        case 1: // ATTACK
+            playerEntity->attack(*target);
+            break;
+        case 2: { // INTERACT_AT（带命中点）
+            const Vector3 hitPosition(evt->hitX, evt->hitY, evt->hitZ);
+            (void)target->applyPlayerInteraction(*playerEntity, hitPosition, hand);
+            break;
+        }
+        default:
+            spdlog::info("Interact: player {} sent unknown action {}", playerId, evt->action);
+            break;
+    }
+}
+
+void MinecraftServer::handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 客户端暂无出站 UseItem 发送路径，处理骨架 TODO(Phase6)。
+    // 完整实现须：取手持物品 → 物品 useOn 空气分支 → 消耗/冷却/同步。
+    (void)playerId;
+    (void)packet;
+}
+
 void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -2580,7 +2898,8 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const mc::ne
         return;
     }
 
-    auto interactionResult = blockInteractionManager().handleBlockPlacement(playerId, pos, hitPosition, face, heldStack);
+    auto interactionResult =
+        blockInteractionManager().handleBlockPlacement(playerId, pos, hitPosition, face, heldStack);
 
     if (interactionResult.success() && interactionResult.value().blockPlaced &&
         interactionResult.value().itemConsumed) {
@@ -2712,9 +3031,9 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     mc::network::ir::play::SetDefaultSpawnPosition spawnPkt;
     spawnPkt.dimension = "minecraft:overworld";
     spawnPkt.blockPosPacked = BlockPos(static_cast<BlockCoord>(worldSpawn.x),
-                                    static_cast<BlockCoord>(worldSpawn.y),
-                                    static_cast<BlockCoord>(worldSpawn.z))
-                                 .asLong();
+        static_cast<BlockCoord>(worldSpawn.y),
+        static_cast<BlockCoord>(worldSpawn.z))
+                                  .asLong();
     spawnPkt.yaw = spawnAngle;
     spawnPkt.pitch = 0.0f;
     sendPacketToPlayer(playerId,
@@ -2839,8 +3158,7 @@ void MinecraftServer::routeInboundPlayPacket(PlayerId playerId, const mc::networ
     const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
     namespace irplay = mc::network::ir::play;
 
-    if (std::holds_alternative<irplay::MovePlayerPos>(play) ||
-        std::holds_alternative<irplay::MovePlayerPosRot>(play) ||
+    if (std::holds_alternative<irplay::MovePlayerPos>(play) || std::holds_alternative<irplay::MovePlayerPosRot>(play) ||
         std::holds_alternative<irplay::MovePlayerRot>(play) ||
         std::holds_alternative<irplay::MovePlayerStatusOnly>(play)) {
         handlePlayerMovePacket(playerId, packet);
@@ -2861,17 +3179,23 @@ void MinecraftServer::routeInboundPlayPacket(PlayerId playerId, const mc::networ
     } else if (std::holds_alternative<irplay::ContainerClose>(play)) {
         handleCloseContainerPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::PlayerCommand>(play)) {
-        // PlayerCommand{action=OPEN_INVENTORY(5)} 复用打开背包逻辑
-        const auto& cmd = std::get<irplay::PlayerCommand>(play);
-        if (cmd.action == 5) { // OPEN_INVENTORY
-            handleOpenPlayerInventoryPacket(playerId, packet);
-        }
+        // PlayerCommand 全 action 分发（疾跑/潜行/起床/骑乘跳跃/开背包/滑翔）
+        handlePlayerCommandPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::SignUpdate>(play)) {
         handleUpdateSignPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::PlayerInput>(play)) {
+        handlePlayerInputPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ServerboundMoveVehicle>(play)) {
+        handleMoveVehiclePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::PaddleBoat>(play)) {
+        handlePaddleBoatPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::Interact>(play)) {
+        handleInteractPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::UseItem>(play)) {
+        handleUseItemPacket(playerId, packet);
     } else {
-        // 其余 C→S 变体（UseItem/Interact/PaddleBoat/ServerboundMoveVehicle/PlayerInput 等）
-        // TODO(Step4): 对齐死 PacketHandler 迁入的处理体（MoveVehicle/UseEntity/SteerBoat/EntityAction/PlayerInput）。
-        spdlog::debug("routeInboundPlayPacket: unhandled C->S play variant (Step4 待填充)");
+        // 未覆盖的 C→S 变体（如 SetCreativeModeSlot 等创造模式/命令相关包）
+        spdlog::info("routeInboundPlayPacket: unhandled C->S play variant");
     }
 }
 
@@ -2885,14 +3209,13 @@ void MinecraftServer::broadcastSound(
     // 1.21.11 PlaySound：Holder<SoundEvent>(opaque) + source + 坐标×8 + volume + pitch + seed。
     // TODO(Phase6): soundHolder 仅以 ResourceLocation 字符串字节承载，未对齐 Holder<SoundEvent> wire；
     //   seed 暂用固定值 0。
-    glm::vec3 pos(position.x, position.y, position.z);
     mc::network::ir::play::PlaySound pkt;
     std::string idStr = soundEventId.toString();
     pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
     pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(pos.x * 8.0f);
-    pkt.y = static_cast<i32>(pos.y * 8.0f);
-    pkt.z = static_cast<i32>(pos.z * 8.0f);
+    pkt.x = static_cast<i32>(position.x * 8.0f);
+    pkt.y = static_cast<i32>(position.y * 8.0f);
+    pkt.z = static_cast<i32>(position.z * 8.0f);
     pkt.volume = volume;
     pkt.pitch = pitch;
     pkt.seed = 0;
@@ -2910,14 +3233,13 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
     f32 pitch)
 {
     // 1.21.11 PlaySound（同上），仅发送给范围内玩家。
-    glm::vec3 pos(position.x, position.y, position.z);
     mc::network::ir::play::PlaySound pkt;
     std::string idStr = soundEventId.toString();
     pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
     pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(pos.x * 8.0f);
-    pkt.y = static_cast<i32>(pos.y * 8.0f);
-    pkt.z = static_cast<i32>(pos.z * 8.0f);
+    pkt.x = static_cast<i32>(position.x * 8.0f);
+    pkt.y = static_cast<i32>(position.y * 8.0f);
+    pkt.z = static_cast<i32>(position.z * 8.0f);
     pkt.volume = volume;
     pkt.pitch = pitch;
     pkt.seed = 0;
@@ -2955,14 +3277,13 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
     f32 pitch)
 {
     // 1.21.11 PlaySound（同上），定向发送。
-    glm::vec3 pos(position.x, position.y, position.z);
     mc::network::ir::play::PlaySound pkt;
     std::string idStr = soundEventId.toString();
     pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
     pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(pos.x * 8.0f);
-    pkt.y = static_cast<i32>(pos.y * 8.0f);
-    pkt.z = static_cast<i32>(pos.z * 8.0f);
+    pkt.x = static_cast<i32>(position.x * 8.0f);
+    pkt.y = static_cast<i32>(position.y * 8.0f);
+    pkt.z = static_cast<i32>(position.z * 8.0f);
     pkt.volume = volume;
     pkt.pitch = pitch;
     pkt.seed = 0;
@@ -3398,26 +3719,25 @@ void MinecraftServer::broadcastBlockBreakProgressInRange(
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer(
-        [this, breakerPlayerId, &pos, rangeSq, &pkt](ServerPlayerData& player) {
-            if (!player.loggedIn || !player.hasConnection()) {
-                return;
-            }
+    m_playerManager->forEachPlayer([this, breakerPlayerId, &pos, rangeSq, &pkt](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
 
-            // 排除破坏者自身：MC Java 原版中 serverplayer.getId() != breakerId
-            if (breakerPlayerId != 0 && player.playerId == breakerPlayerId) {
-                return;
-            }
+        // 排除破坏者自身：MC Java 原版中 serverplayer.getId() != breakerId
+        if (breakerPlayerId != 0 && player.playerId == breakerPlayerId) {
+            return;
+        }
 
-            f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-            if (distSq <= rangeSq) {
-                sendPacketToPlayer(player.playerId,
-                    mc::network::ir::IrPacket{
-                        mc::network::protocol::ConnectionProtocol::Play,
-                        mc::network::ir::PlayPacket{pkt},
-                    });
-            }
-        });
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{pkt},
+                });
+        }
+    });
 }
 
 // ============================================================================

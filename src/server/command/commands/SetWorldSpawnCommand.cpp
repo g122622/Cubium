@@ -30,7 +30,6 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"

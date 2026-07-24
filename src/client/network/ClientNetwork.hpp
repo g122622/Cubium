@@ -48,7 +48,7 @@ class ClientPlayVisitor;
 using ClientConn = mc::network::pipeline::Connection<mc::network::buffer::RegistryByteBuf>;
 using ProtocolTables = mc::network::pipeline::ProtocolTableSet<mc::network::buffer::RegistryByteBuf>;
 
-/// 客户端连接状态（与旧 NetworkClient::ClientState 语义对齐，供 UI/调试读取）
+/// 客户端连接状态（供 UI/调试读取）
 enum class ClientConnState : u8 {
     Disconnected,
     Connecting,
@@ -65,8 +65,7 @@ using LoginReadyCallback =
 /**
  * @brief 客户端网络门面：持 Connection<RegistryByteBuf>，驱动握手状态机 + 出站统一 send
  *
- * 替代旧 NetworkClient（asio + 80 回调 + 50 _handleX switch）。游戏逻辑只见
- * connectLocal/connectTcp/send/tick/onPacket；握手由本类内部状态机驱动，
+ * 游戏逻辑只见 connectLocal/connectTcp/send/tick/onPacket；握手由本类内部状态机驱动，
  * Play 阶段入站包委托 ClientPlayVisitor::handle，Configuration 阶段委托
  * ClientPlayVisitor::handleConfiguration。
  *

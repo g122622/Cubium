@@ -44,29 +44,22 @@ add_library(mc_common STATIC
     network/packet/PacketSerializer.cpp
     network/packet/PacketDeserializer.cpp
     network/packet/CommandTreePacket.cpp
-    network/packet/AdvancementPackets.cpp
     network/packet/InventoryPackets.cpp
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp
     network/packet/EntityMetadataSerializer.cpp
     network/packet/GameStateChangePacket.cpp
-    network/packet/PlayerAbilitiesPacket.cpp
     network/packet/ServerDifficultyPacket.cpp
-    network/packet/BlockBreakAnimPacket.cpp
     network/packet/BlockEventPacket.cpp
     network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
     network/packet/ParticlePacket.cpp
     network/packet/ExplosionPacket.cpp
-    network/packet/SleepPacket.cpp
     network/packet/SpawnPositionPacket.cpp
     network/packet/MapDataPacket.cpp
     network/packet/SetCameraPacket.cpp
-    network/packet/SetPassengersPacket.cpp
     network/packet/SetEntityLinkPacket.cpp
     network/packet/TitlePacket.cpp
-    network/packet/WorldBorderPacket.cpp
-    network/packet/BossInfoPacket.cpp
 
     # Network - 新网络层骨架（IR + 多后端，旧 packet 体系并存过渡）
     network/buffer/Endian.cpp
@@ -1655,8 +1648,6 @@ add_library(mc_common STATIC
     scoreboard/criteria/KillCountCriteria.cpp
     scoreboard/criteria/ReadOnlyCriteria.cpp
     scoreboard/criteria/TeamKillCriteria.cpp
-    # Scoreboard System - Network
-    scoreboard/network/ScoreboardPackets.cpp
     # Scoreboard System - Storage
     scoreboard/storage/ScoreboardSaveData.cpp
     scoreboard/storage/ScoreboardDataManager.cpp

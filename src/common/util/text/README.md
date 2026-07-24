@@ -56,7 +56,7 @@ TextParser.hpp (依赖 ITextComponent, TextStyle)
 - **common/world/map/** - MapBanner、MapData、MapDecoration 地图标记文本
 - **common/scoreboard/** - ScorePlayerTeam 队伍名称格式化、ScoreObjective 显示名称
 - **common/advancement/** - 进度显示名称和描述
-- **common/network/packet/** - TitlePacket、BossInfoPacket、MapDataPacket 网络包
+- **common/network/packet/** - TitlePacket、MapDataPacket 网络包
 - **common/skin/** - SkinPackets 皮肤文本
 - **server/command/** - TellRawCommand、TeamCommand、ScoreboardCommand、BossBarCommand 等命令
 - **server/bossbar/** - BossInfo 血条显示

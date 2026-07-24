@@ -26,7 +26,6 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"

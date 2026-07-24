@@ -26,7 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"

@@ -27,6 +27,7 @@
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -448,8 +449,6 @@ private:
 // ============================================================================
 // 方块交互包 (客户端 -> 服务端)
 // ============================================================================
-
-enum class BlockInteractionAction : u8 { StartDestroyBlock = 0, AbortDestroyBlock = 1, StopDestroyBlock = 2 };
 
 class BlockInteractionPacket {
 public:

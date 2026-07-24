@@ -40,7 +40,6 @@ network/
 │   ├── SpawnPositionPacket.hpp/cpp      # 世界出生点数据包
 │   ├── ExplosionPacket.hpp/cpp          # 爆炸事件数据包
 │   ├── TitlePacket.hpp/cpp              # 标题显示包
-│   ├── BossInfoPacket.hpp/cpp           # Boss 栏同步包
 │   ├── SetPassengersPacket.hpp/cpp      # 乘客列表同步包（骑乘关系）
 │   ├── SleepPacket.hpp/cpp              # 睡眠状态同步包
 │   ├── WorldBorderPacket.hpp/cpp        # 世界边界同步包

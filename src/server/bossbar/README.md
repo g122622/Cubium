@@ -27,7 +27,7 @@ BossInfo (基类)
 
 IDragonBossBar (common 层抽象接口，见 src/common/world/dimension/end/)
     │
-    └── ServerDragonBossBar (本模块：直接通过 BossInfoPacket 同步)
+    └── ServerDragonBossBar (本模块：直接通过 ir::play::BossEvent 同步)
 ```
 
 - **BossInfo**：定义核心属性（UUID、名称、百分比、颜色、样式、标志位）
@@ -42,7 +42,7 @@ IDragonBossBar (common 层抽象接口，见 src/common/world/dimension/end/)
 
 ### 为什么不继承 ServerBossInfo？
 
-`ServerBossInfo` 的 `broadcastUpdate`/`sendAddPacket`/`sendRemovePacket` 是空实现（只有 `CustomServerBossInfo` 通过其 Manager 覆写才生效）。`ServerDragonBossBar` 不需要持久化、`/bossbar` 命令管理等功能，只需要将状态变更直接发送给追踪玩家，因此直接持有 Boss 栏状态并通过 `BossInfoPacket` 发送网络包，而非继承 `ServerBossInfo`。
+`ServerBossInfo` 的 `broadcastUpdate`/`sendAddPacket`/`sendRemovePacket` 是空实现（只有 `CustomServerBossInfo` 通过其 Manager 覆写才生效）。`ServerDragonBossBar` 不需要持久化、`/bossbar` 命令管理等功能，只需要将状态变更直接发送给追踪玩家，因此直接持有 Boss 栏状态并通过 `ir::play::BossEvent` 发送网络包，而非继承 `ServerBossInfo`。
 
 ### 生命周期
 
@@ -84,15 +84,15 @@ IDragonBossBar (common 层抽象接口，见 src/common/world/dimension/end/)
 
 ### UUID 生成
 
-`CustomServerBossInfo` 使用 `util::generateRandomUuid()` 生成 128 位随机 UUID v4，与 MC Java 的 `Mth.createInsecureUUID()` 一致。UUID 在 `BossInfo` 中存储为 `Uuid`（即 `std::array<u8, 16>`），在 `BossInfoPacket` 中以两个 i64（MSB + LSB）序列化到网络。
+`CustomServerBossInfo` 使用 `util::generateRandomUuid()` 生成 128 位随机 UUID v4，与 MC Java 的 `Mth.createInsecureUUID()` 一致。UUID 在 `BossInfo` 中存储为 `Uuid`（即 `std::array<u8, 16>`），在 `ir::play::BossEvent` 中以两个 i64（MSB + LSB）序列化到网络。
 
 `ServerDragonBossBar` 在构造时由 `MinecraftServer::setupDragonFightBossBar()` 通过 `util::generateRandomUuid()` 生成一个随机 UUID，用于在客户端标识此 Boss 栏。
 
 ### 网络包
 
-`BossInfoPacket` 已实现完整的序列化/反序列化，支持六种操作（Add、Remove、UpdatePercent、UpdateName、UpdateStyle、UpdateProperties）。UUID 以 128 位（两个 i64）格式在网络包中传输，与 MC Java 协议一致。
+`ir::play::BossEvent` 是 1.21.11 单包 ID + u8 operation 的 Boss 栏同步包，支持六种操作（Add、Remove、UpdatePercent、UpdateName、UpdateStyle、UpdateProperties）。UUID 以 128 位（两个 i64）格式在网络包中传输。
 
-`ServerDragonBossBar` 内部构建 `BossInfoPacket` 并通过 `IServer::connectionManager().sendPacketToPlayer()` 直接发送，不经过 `ServerBossInfo` 的（空）广播方法。
+`ServerDragonBossBar` 内部构建 `ir::play::BossEvent` 并通过 `IServer::connectionManager().sendPacketToPlayer()` 直接发送，不经过 `ServerBossInfo` 的（空）广播方法。
 
 ### 玩家登出处理
 

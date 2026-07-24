@@ -126,11 +126,11 @@ void DebugScreenWidget::_buildLeftDebugText()
     m_leftLines.push_back(oss.str());
 
     // 服务器信息
-    if (m_networkClient != nullptr) {
+    if (m_clientNetwork != nullptr) {
         oss.str("");
         oss << "Integrated server @ " << std::fixed << std::setprecision(1) << m_serverTickTimeMs << "/"
-            << std::setprecision(1) << m_serverTargetMsPerTick << " ms, " << m_networkClient->packetsSent() << " tx, "
-            << m_networkClient->packetsReceived() << " rx";
+            << std::setprecision(1) << m_serverTargetMsPerTick << " ms, " << m_clientNetwork->packetsSent() << " tx, "
+            << m_clientNetwork->packetsReceived() << " rx";
         m_leftLines.push_back(oss.str());
     } else {
         m_leftLines.push_back("Server: local (integrated)");

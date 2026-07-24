@@ -27,6 +27,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/Block.hpp"
 

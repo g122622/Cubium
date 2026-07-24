@@ -24,7 +24,6 @@
 #include "ServerCommandSource.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"

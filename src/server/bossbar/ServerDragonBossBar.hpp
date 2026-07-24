@@ -25,7 +25,7 @@
 
 #include "ServerBossInfo.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/packet/BossInfoPacket.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
 #include "common/world/dimension/end/IDragonBossBar.hpp"
 #include <memory>
@@ -41,7 +41,7 @@ class IServer;
  * @brief 服务端末影龙 Boss 栏
  *
  * 实现 common 层的 IDragonBossBar 接口，内部持有 ServerBossInfo 并通过
- * IServer::connectionManager() 直接发送 BossInfoPacket 实现网络同步。
+ * IServer::connectionManager() 发送 ir::play::BossEvent 实现网络同步。
  *
  * 与 CustomServerBossInfo 的区别：
  * - 不持有 ResourceLocation ID（龙 Boss 栏不是 /bossbar 命令创建的）

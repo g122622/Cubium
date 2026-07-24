@@ -26,9 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/Packet.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
-#include "common/scoreboard/network/ScoreboardPackets.hpp"
 #include <memory>
 #include <set>
 

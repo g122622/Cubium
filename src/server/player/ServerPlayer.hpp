@@ -26,10 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/player/SleepResult.hpp"
 #include "common/item/crafting/RecipeBook.hpp"
-#include "common/network/connection/IServerConnection.hpp"
 #include "common/network/ir/IrPacket.hpp"
-#include "common/network/packet/ExperiencePackets.hpp"
-#include "common/network/packet/SetCameraPacket.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <memory>

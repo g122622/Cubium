@@ -28,14 +28,9 @@
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/network/ir/IrPacket.hpp"
-#include "common/network/packet/ExplosionPacket.hpp"
-#include "common/network/packet/GameStateChangePacket.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/ParticlePacket.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/resource/repository/PackRepository.hpp"
-#include "common/sound/network/SoundPackets.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -644,6 +639,46 @@ protected:
      * @brief 处理告示牌文本更新数据包
      */
     void handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /**
+     * @brief 处理玩家骑乘输入数据包（PlayerInput，u8 位掩码）
+     *
+     * 骑乘时客户端发送输入位掩码驱动载具。Boat 走 handleInput；马匹等骑乘跳跃载具
+     * 的输入链路待补，标 TODO(Phase6)。
+     */
+    void handlePlayerInputPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /**
+     * @brief 处理载具移动数据包（ServerboundMoveVehicle）
+     *
+     * 客户端骑乘时同步载具位置。完整 moved-too-quickly/wrongly 校正与反飞行检测
+     * 依赖未实现的状态字段，标 TODO(Phase6)；本轮做最小实现：NaN 校验 + setPosition + 回送校正。
+     */
+    void handleMoveVehiclePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /**
+     * @brief 处理玩家命令数据包（PlayerCommand，疾跑/潜行/起床/骑乘跳跃/滑翔）
+     */
+    void handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /**
+     * @brief 处理船桨数据包（PaddleBoat，左右桨状态）
+     */
+    void handlePaddleBoatPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /**
+     * @brief 处理实体交互数据包（Interact，INTERACT/ATTACK/INTERACT_AT）
+     *
+     * 成就触发 player_interacted_with_entity 与严格距离/物品校验标 TODO(Phase6)。
+     */
+    void handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /**
+     * @brief 处理物品使用数据包（UseItem）
+     *
+     * 客户端暂无出站，处理骨架标 TODO(Phase6)。
+     */
+    void handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     // 注：登录请求不再经 dispatchPacket 入站。新网络层登录全由 ServerHandshakeStateMachine
     // 驱动（ClientIntention→Hello→LoginFinished→LoginAcknowledged→Configuration→Play），

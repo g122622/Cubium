@@ -25,7 +25,6 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/network/packet/BossInfoPacket.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
