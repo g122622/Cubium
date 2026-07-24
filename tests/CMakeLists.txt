@@ -1023,14 +1023,8 @@ add_executable(mc_tests
     network/ParticlePacketItemTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
-    network/SpawnPositionPacketTest.cpp
-    network/DimensionPacketsTest.cpp
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
-    # 旁观者摄像机同步包测试
-    network/SetCameraPacketTest.cpp
-    # 告示牌网络包序列化/反序列化测试
-    network/SignPacketsTest.cpp
     # 方块实体数据同步包序列化/反序列化测试（含 NBT 往返、错误路径）
     network/BlockEntityDataPacketTest.cpp
     common/entity/loot/LootTest.cpp

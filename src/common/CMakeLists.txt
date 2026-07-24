@@ -43,22 +43,14 @@ add_library(mc_common STATIC
     network/packet/Packet.cpp
     network/packet/PacketSerializer.cpp
     network/packet/PacketDeserializer.cpp
-    network/packet/CommandTreePacket.cpp
     network/packet/InventoryPackets.cpp
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp
     network/packet/EntityMetadataSerializer.cpp
-    network/packet/GameStateChangePacket.cpp
-    network/packet/ServerDifficultyPacket.cpp
-    network/packet/BlockEventPacket.cpp
-    network/packet/DimensionPackets.cpp
     network/packet/ExperiencePackets.cpp
     network/packet/ParticlePacket.cpp
     network/packet/ExplosionPacket.cpp
-    network/packet/SpawnPositionPacket.cpp
     network/packet/MapDataPacket.cpp
-    network/packet/SetCameraPacket.cpp
-    network/packet/SetEntityLinkPacket.cpp
     network/packet/TitlePacket.cpp
 
     # Network - 新网络层骨架（IR + 多后端，旧 packet 体系并存过渡）

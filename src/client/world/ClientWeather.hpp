@@ -60,7 +60,7 @@ public:
     /**
      * @brief 更新降雨强度
      *
-     * 由 GameStateChangePacket (RainStrengthChange) 调用
+     * 由 ir::play::GameStateChange (RainStrengthChange) 调用
      * 同时设置 prev 和 current 为相同值
      *
      * @param strength 目标降雨强度 (0.0 - 1.0)
@@ -74,7 +74,7 @@ public:
     /**
      * @brief 更新雷暴强度
      *
-     * 由 GameStateChangePacket (ThunderStrengthChange) 调用
+     * 由 ir::play::GameStateChange (ThunderStrengthChange) 调用
      * 同时设置 prev 和 current 为相同值
      *
      * @param strength 目标雷暴强度 (0.0 - 1.0)
@@ -88,7 +88,7 @@ public:
     /**
      * @brief 开始下雨
      *
-     * 由 GameStateChangePacket (BeginRaining) 调用
+     * 由 ir::play::GameStateChange (BeginRaining) 调用
      * 服务端会随后发送 RainStrengthChange 包来设置具体强度
      */
     void beginRain() noexcept
@@ -99,7 +99,7 @@ public:
     /**
      * @brief 雨停
      *
-     * 由 GameStateChangePacket (EndRaining) 调用
+     * 由 ir::play::GameStateChange (EndRaining) 调用
      */
     void endRain() noexcept
     {

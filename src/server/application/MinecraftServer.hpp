@@ -853,7 +853,7 @@ protected:
     /**
      * @brief 向范围内玩家广播实体拴绳链接变更
      *
-     * 创建 SetEntityLinkPacket 并发送给指定位置附近的玩家，
+     * 创建 ir::play::SetEntityLink 并发送给指定位置附近的玩家，
      * 用于客户端拴绳绳索的渲染同步。
      *
      * @param entityId 被拴实体的ID

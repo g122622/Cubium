@@ -25,7 +25,6 @@
 
 #include "../../item/crafting/RecipeManager.hpp"
 #include "InventoryPackets.hpp"
-#include "RecipePackets.hpp"
 #include <functional>
 #include <memory>
 
@@ -92,21 +91,6 @@ public:
      * @return 打开包
      */
     static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, i32 type, const std::string& title);
-
-    /**
-     * @brief 创建配方列表同步包
-     * @return 配方列表包
-     */
-    static RecipeListSyncPacket createRecipeListPacket();
-
-    /**
-     * @brief 创建合成结果预览包
-     * @param containerId 容器ID
-     * @param menu 合成菜单
-     * @return 预览包
-     */
-    static CraftResultPreviewPacket createCraftResultPreview(
-        ContainerId containerId, const AbstractContainerMenu& menu);
 };
 
 /**

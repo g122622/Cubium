@@ -40,8 +40,8 @@ class ConnectionManager;
  *
  * 职责:
  * - 设置玩家游戏模式并更新能力
- * - 发送 GameStateChangePacket(ChangeGameMode) 到客户端
- * - 发送 PlayerAbilitiesPacket 到客户端
+ * - 发送 ir::play::GameStateChange(ChangeGameMode) 到客户端
+ * - 发送 ir::play::PlayerAbilities 到客户端
  * - 广播游戏模式变化给其他玩家（多人模式）
  *
  * 使用示例：
@@ -76,8 +76,8 @@ public:
      * 此方法会：
      * 1. 更新玩家数据的游戏模式
      * 2. 更新玩家能力（飞行、无敌等）
-     * 3. 发送 GameStateChangePacket 到客户端
-     * 4. 发送 PlayerAbilitiesPacket 到客户端
+     * 3. 发送 ir::play::GameStateChange 到客户端
+     * 4. 发送 ir::play::PlayerAbilities 到客户端
      * 5. 调用注册的回调
      *
      * @param playerId 玩家ID

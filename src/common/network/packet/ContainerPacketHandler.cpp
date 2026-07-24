@@ -27,7 +27,6 @@
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
-#include "common/item/crafting/RecipeNetworkSerializer.hpp"
 
 namespace mc {
 
@@ -93,52 +92,6 @@ OpenContainerPacket ContainerPacketHandler::createOpenContainerPacket(
     ContainerId containerId, i32 type, const std::string& title)
 {
     return OpenContainerPacket(containerId, type, title);
-}
-
-RecipeListSyncPacket ContainerPacketHandler::createRecipeListPacket()
-{
-    std::vector<RecipeSyncPacket> recipes;
-
-    // 从 RecipeManager 获取所有合成配方
-    const auto allRecipes = crafting::RecipeManager::instance().getAllRecipes();
-    recipes.reserve(allRecipes.size());
-
-    for (const auto* recipe : allRecipes) {
-        if (recipe != nullptr) {
-            // 配方ID和类型
-            ResourceLocation id = recipe->getId();
-            std::string typeStr = recipeTypeToString(recipe->getType());
-
-            // 序列化配方数据到 PacketSerializer
-            network::PacketSerializer ser;
-            crafting::RecipeNetworkSerializer::serialize(*recipe, ser);
-
-            // 将字节数组转换为字符串
-            std::string recipeData(reinterpret_cast<const char*>(ser.data()), ser.size());
-
-            recipes.emplace_back(id, typeStr, std::move(recipeData));
-        }
-    }
-
-    return RecipeListSyncPacket(std::move(recipes));
-}
-
-CraftResultPreviewPacket ContainerPacketHandler::createCraftResultPreview(
-    ContainerId containerId, const AbstractContainerMenu& menu)
-{
-    // 查找合成结果槽位
-    // 对于 CraftingMenu，结果槽位是 RESULT_SLOT
-    // 对于 InventoryCraftingMenu，结果槽位也是 RESULT_SLOT
-
-    // 尝试获取结果槽位
-    const i32 resultSlotIndex = menu.getResultSlotIndex();
-    const Slot* resultSlot = (resultSlotIndex >= 0) ? menu.getSlot(resultSlotIndex) : nullptr;
-    ItemStack resultItem = (resultSlot != nullptr) ? resultSlot->getItem() : ItemStack::EMPTY;
-
-    // 获取当前匹配的配方ID
-    ResourceLocation recipeId = menu.getCurrentRecipeId();
-
-    return CraftResultPreviewPacket(containerId, resultItem, recipeId);
 }
 
 // ============================================================================

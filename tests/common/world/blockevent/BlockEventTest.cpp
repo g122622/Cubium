@@ -22,7 +22,6 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/packet/BlockEventPacket.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -130,32 +129,6 @@ TEST(BlockEventDataTest, Hash_CanBeUsedInUnorderedSet)
     set.insert(b); // 重复，不应增加大小
     set.insert(c);
     EXPECT_EQ(set.size(), 2u);
-}
-
-// ============================================================================
-// BlockEventPacket 测试
-// ============================================================================
-
-TEST(BlockEventPacketTest, Create_SetsFields)
-{
-    auto packet = network::BlockEventPacket::create(BlockPos(10, 20, 30), 1, 5, 42);
-    EXPECT_EQ(packet.position().x, 10);
-    EXPECT_EQ(packet.position().y, 20);
-    EXPECT_EQ(packet.position().z, 30);
-    EXPECT_EQ(packet.paramA(), 1);
-    EXPECT_EQ(packet.paramB(), 5);
-    EXPECT_EQ(packet.blockStateId(), 42u);
-}
-
-TEST(BlockEventPacketTest, Create_ZeroParams)
-{
-    auto packet = network::BlockEventPacket::create(BlockPos(0, 0, 0), 0, 0, 0);
-    EXPECT_EQ(packet.position().x, 0);
-    EXPECT_EQ(packet.position().y, 0);
-    EXPECT_EQ(packet.position().z, 0);
-    EXPECT_EQ(packet.paramA(), 0);
-    EXPECT_EQ(packet.paramB(), 0);
-    EXPECT_EQ(packet.blockStateId(), 0u);
 }
 
 // ============================================================================
@@ -313,64 +286,6 @@ TEST(MobSpawnerBlockEntityTriggerEventTest, UnknownEvent_ReturnsFalse)
     MobSpawnerBlockEntity spawner(BlockPos(0, 0, 0));
     bool result = spawner.triggerEvent(99, 0);
     EXPECT_FALSE(result);
-}
-
-// ============================================================================
-// BlockEventPacket 序列化往返测试
-// ============================================================================
-
-TEST(BlockEventPacketTest, SerializeDeserialize_RoundTrip)
-{
-    // 创建一个包，序列化后再反序列化，验证字段一致
-    auto original = network::BlockEventPacket::create(BlockPos(100, -64, 200), 1, 3, 12345);
-
-    // 序列化
-    auto serializeResult = original.serialize();
-    ASSERT_TRUE(serializeResult.success());
-    const auto& data = serializeResult.value();
-
-    // 反序列化
-    network::BlockEventPacket deserialized;
-    auto deserializeResult = deserialized.deserialize(data.data(), data.size());
-    ASSERT_TRUE(deserializeResult.success());
-
-    // 验证字段
-    EXPECT_EQ(deserialized.position().x, 100);
-    EXPECT_EQ(deserialized.position().y, -64);
-    EXPECT_EQ(deserialized.position().z, 200);
-    EXPECT_EQ(deserialized.paramA(), 1);
-    EXPECT_EQ(deserialized.paramB(), 3);
-    EXPECT_EQ(deserialized.blockStateId(), 12345u);
-}
-
-TEST(BlockEventPacketTest, SerializeDeserialize_LargeValues)
-{
-    // 测试边界值和大值
-    auto original = network::BlockEventPacket::create(BlockPos(30000000, 319, -30000000), 255, 255, 0xFFFFFFFF);
-
-    auto serializeResult = original.serialize();
-    ASSERT_TRUE(serializeResult.success());
-    const auto& data = serializeResult.value();
-
-    network::BlockEventPacket deserialized;
-    auto deserializeResult = deserialized.deserialize(data.data(), data.size());
-    ASSERT_TRUE(deserializeResult.success());
-
-    EXPECT_EQ(deserialized.position().x, 30000000);
-    EXPECT_EQ(deserialized.position().y, 319);
-    EXPECT_EQ(deserialized.position().z, -30000000);
-    EXPECT_EQ(deserialized.paramA(), 255);
-    EXPECT_EQ(deserialized.paramB(), 255);
-    EXPECT_EQ(deserialized.blockStateId(), 0xFFFFFFFFu);
-}
-
-TEST(BlockEventPacketTest, Deserialize_InsufficientData_ReturnsError)
-{
-    // 数据不足时应返回错误
-    network::BlockEventPacket deserialized;
-    u8 smallData[] = {0x01, 0x02, 0x03}; // 远不够
-    auto result = deserialized.deserialize(smallData, sizeof(smallData));
-    EXPECT_FALSE(result.success());
 }
 
 // ============================================================================

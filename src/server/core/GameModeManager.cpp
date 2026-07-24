@@ -149,7 +149,7 @@ u8 GameModeManager::getAbilitiesForGameMode(GameMode mode) noexcept
 
 bool GameModeManager::_sendGameModeChangePacket(PlayerId playerId, GameMode mode)
 {
-    // 对应旧 GameStateChangePacket::gameModeChange：reason=ChangeGameMode(3)，value=mode
+    // 对应 ir::play::GameEvent：event=ChangeGameMode(3)，value=mode
     mc::network::ir::play::GameEvent evt;
     evt.event = 3; // ChangeGameMode
     evt.value = static_cast<f32>(mode);

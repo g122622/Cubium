@@ -25,7 +25,6 @@
 
 #include "client/command/ClientCommandManager.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
-#include "common/network/packet/CommandTreePacket.hpp"
 
 using namespace mc;
 using namespace mc::command;
@@ -75,31 +74,6 @@ CommandTreeSnapshot buildSnapshot()
 }
 
 } // namespace
-
-TEST(ClientCommandManagerTest, CommandTreePacketRoundTrip)
-{
-    const auto snapshot = buildSnapshot();
-    const auto json = snapshot.toJsonString();
-
-    CommandTreePacket packet(json);
-    auto serializedResult = packet.serialize();
-    ASSERT_TRUE(serializedResult.success());
-
-    const auto& serialized = serializedResult.value();
-    ASSERT_EQ(serialized.size(), json.size() + sizeof(u16));
-
-    const u16 encodedLength =
-        static_cast<u16>((static_cast<u16>(serialized[0]) << 8) | static_cast<u16>(serialized[1]));
-    EXPECT_EQ(encodedLength, json.size());
-
-    const std::string encodedJson(reinterpret_cast<const char*>(serialized.data() + sizeof(u16)), encodedLength);
-    EXPECT_EQ(encodedJson, json);
-
-    CommandTreePacket decodedPacket;
-    auto deserializeResult = decodedPacket.deserialize(serialized.data(), serialized.size());
-    ASSERT_TRUE(deserializeResult.success());
-    EXPECT_EQ(decodedPacket.treeJson(), json);
-}
 
 TEST(ClientCommandManagerTest, AppliesTreeAndBuildsSuggestions)
 {

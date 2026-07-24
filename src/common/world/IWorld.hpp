@@ -1547,7 +1547,7 @@ public:
     /**
      * @brief 广播实体拴绳链接变更事件
      *
-     * 向所有追踪该实体的玩家发送 SetEntityLinkPacket，
+     * 向所有追踪该实体的玩家发送 ir::play::SetEntityLink，
      * 用于客户端拴绳绳索的渲染同步。
      *
      * @param entityId 被拴实体的ID
