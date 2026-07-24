@@ -79,7 +79,6 @@ network/
 │   ├── EntityMetadataSerializer.hpp/cpp # 实体元数据序列化（MC 1.16.5 格式）
 │   ├── InventoryPackets.hpp/cpp         # 背包/容器包（含 WindowPropertyPacket、ContainerClickPacket）
 │   ├── ContainerPacketHandler.hpp/cpp   # 容器包处理器（live，IntegratedServer/ContainerManager 使用）
-│   ├── BlockEntityDataPacket.hpp        # 方块实体数据包（NBT 字节流）
 │   ├── ExplosionPacket.hpp/cpp          # 爆炸事件包
 │   ├── MapDataPacket.hpp/cpp            # 地图数据包
 │   ├── ParticlePacket.hpp/cpp           # 粒子效果包

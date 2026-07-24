@@ -124,9 +124,9 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 - **回调实现**（`MinecraftServer::attachWorldBindings()` 中注册）：
   1. `ServerWorld::getBlockEntity(pos)` 获取方块实体
   2. `entity->getUpdateTag()` 生成 NBT 复合标签（默认实现调用 `saveToNBT()` 写入完整状态）
-  3. `BlockEntityDataPacket::serializeNbtToBytes(tag)` 序列化为 Java 版大端序字节流
-  4. 调用 `MinecraftServer::broadcastBlockEntityInRange(pos, type, nbtData, 64.0f)`
-- **范围过滤**：`broadcastBlockEntityInRange` 默认范围 64 格，遍历 `playerEntityManager()` 中所有已登录且有连接的玩家，通过 `math::distanceSq` 计算玩家与方块的距离平方，跳过超出 `rangeSq` 的玩家。封装的 `BlockEntityDataPacket`（PacketType=237）通过 `sendPacketToPlayer` 发送。
+  3. 包装为 `shared_ptr<nbt::CompoundTag>`
+  4. 调用 `MinecraftServer::broadcastBlockEntityInRange(pos, type, shared_ptr<CompoundTag>, 64.0f)`
+- **范围过滤**：`broadcastBlockEntityInRange` 默认范围 64 格，遍历 `playerEntityManager()` 中所有已登录且有连接的玩家，通过 `math::distanceSq` 计算玩家与方块的距离平方，跳过超出 `rangeSq` 的玩家。构造 `ir::play::BlockEntityData`（blockPosPacked + blockEntityType + CompoundTag，无长度前缀）通过 `sendPacketToPlayer` 发送。
 - **使用场景**：
   - `ServerPlayer::handleUpdateSignPacket()` — 告示牌编辑完成后广播新文本
   - `ServerPlayer::openSignEditor()` — 打开告示牌编辑器前先发送当前内容（避免编辑器打开时覆盖已有内容）

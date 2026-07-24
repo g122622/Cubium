@@ -26,9 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -510,13 +512,18 @@ struct BlockEvent {
 /**
  * @brief BlockEntityData（S→C，id=6）
  *
- * 线格式：BlockPos(long)+Holder<BlockEntityType>(VarInt id)+CompoundTag。
- * tag 为标准 NBT，opaque 透传。
+ * 线格式：BlockPos(long)+Holder<BlockEntityType>(VarInt id)+CompoundTag（无长度前缀，
+ * NBT 自定界，读取器通过解析复合标签的 TAG_End 判定结束，对齐 1.21.11
+ * ClientboundBlockEntityDataPacket.STREAM_CODEC）。
+ *
+ * tag 用 shared_ptr 承载：compound_tag 持有 map<unique_ptr>，仅复制构造（无移动），
+ * 直接按值存入 variant 会破坏 variant 的移动语义；shared_ptr 在 IR 零拷贝 Local 直传与
+ * 变体迁移之间均为廉价指针拷贝。空 NBT 用 nullptr 表示。
  */
 struct BlockEntityData {
     i64 blockPosPacked;
-    i32 blockEntityType; // VarInt registry id
-    std::vector<u8> tag; // opaque：CompoundTag
+    i32 blockEntityType;                   // VarInt registry id
+    std::shared_ptr<nbt::CompoundTag> tag; // Java 大端二进制 CompoundTag
     BedrockMeta bedrock{};
 };
 

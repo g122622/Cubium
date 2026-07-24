@@ -38,12 +38,14 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "entity/ClientEntityManager.hpp"
@@ -558,11 +560,13 @@ public:
      * 收到 BlockEntityData 包后，根据类型在本地查找或创建对应的 BlockEntity，
      * 并通过 loadFromNBT() 更新其状态。
      *
+     * 1.21.11 线格式：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
+     *
      * @param pos 方块位置
      * @param type 方块实体类型
-     * @param nbtData NBT 字节流（Java 版大端序二进制格式）
+     * @param tag NBT 复合标签快照（Java 版大端二进制）
      */
-    void onBlockEntityData(const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData);
+    void onBlockEntityData(const BlockPos& pos, BlockEntityType type, const nbt::CompoundTag& tag);
 
     /**
      * @brief 获取指定位置的方块实体

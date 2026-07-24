@@ -60,7 +60,6 @@
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/packet/ExplosionPacket.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -621,9 +620,9 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
             return;
         }
 
-        nbt::CompoundTag tag = entity->getUpdateTag();
-        std::vector<u8> nbtData = network::BlockEntityDataPacket::serializeNbtToBytes(tag);
-        broadcastBlockEntityInRange(pos, entity->getType(), nbtData);
+        // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
+        auto tag = std::make_shared<nbt::CompoundTag>(entity->getUpdateTag());
+        broadcastBlockEntityInRange(pos, entity->getType(), std::move(tag));
     });
     world.setOnDestroyBlockProgress([this](EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress) {
         broadcastBlockBreakProgressInRange(breakerId, x, y, z, progress);
@@ -3664,17 +3663,16 @@ void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA,
 }
 
 void MinecraftServer::broadcastBlockEntityInRange(
-    const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData, f32 range)
+    const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range)
 {
     // 参考 MC Java: PlayerList.broadcast(null, x, y, z, 64.0, dimension,
     //   new ClientboundBlockEntityDataPacket(pos, type, tag))
-    // 方块实体数据变化后，将最新 NBT 快照发送给附近客户端
-    // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + tag(NBT opaque)。
-    // TODO(Phase6): tag 当前透传旧 NBT 字节，未对齐 1.21.11 CompoundTag codec。
+    // 方块实体数据变化后，将最新 NBT 快照发送给附近客户端。
+    // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
     mc::network::ir::play::BlockEntityData pkt;
     pkt.blockPosPacked = pos.asLong();
     pkt.blockEntityType = static_cast<i32>(type);
-    pkt.tag = nbtData;
+    pkt.tag = std::move(tag);
     mc::network::ir::IrPacket packet{
         mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{pkt},

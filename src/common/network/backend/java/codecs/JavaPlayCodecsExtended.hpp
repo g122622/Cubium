@@ -25,6 +25,7 @@
 
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 
 namespace mc::network::backend::java::codecs {
@@ -867,13 +868,25 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
         [](B& buf, const ir::play::BlockEntityData& v) {
             buf.writeI64(v.blockPosPacked);
             buf.writeVarInt(v.blockEntityType);
-            play_ext_detail::writeOpaque(buf, v.tag);
+            // 1.21.11 ClientboundBlockEntityDataPacket：CompoundTag 无长度前缀（NBT 自定界）。
+            // 空 NBT 仍需写一个 TAG_End（空复合标签），与 Java 行为一致。
+            const nbt::CompoundTag empty{};
+            const nbt::CompoundTag& tag = v.tag ? *v.tag : empty;
+            // encode 返回 void，无法向上传播 Result；有效 CompoundTag 的 NBT 序列化只会在
+            // 输出流错误时失败（实际不会发生），失败即丢弃——与其它 encode lambda 的容错约定一致。
+            (void)buffer::nbt_io::writeCompound(buf, tag);
         },
         [](B& buf) -> Result<ir::play::BlockEntityData> {
             ir::play::BlockEntityData v{};
             MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
             MC_TRY_ASSIGN(v.blockEntityType, buf.readVarInt());
-            MC_TRY_ASSIGN(v.tag, play_ext_detail::readOpaque(buf, "blockEntityDataCodec.tag"));
+            // readCompound 返回 Result<unique_ptr<CompoundTag>> 特化，其 value() 按值返回右值，
+            // MC_TRY_ASSIGN 内的 std::move 会触发 -Wpessimizing-move；手动取值。
+            auto tagResult = buffer::nbt_io::readCompound(buf);
+            if (tagResult.failed()) {
+                return tagResult.error();
+            }
+            v.tag = tagResult.value(); // value() 按值返回右值 unique_ptr，无需 std::move
             return v;
         });
 }

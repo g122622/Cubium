@@ -1120,7 +1120,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             else if constexpr (std::is_same_v<T, irplay::BlockEntityData>) {
                 const auto& p = pkt;
                 const BlockPos pos = BlockPos::fromLong(p.blockPosPacked);
-                m_app.m_world.onBlockEntityData(pos, static_cast<BlockEntityType>(p.blockEntityType), p.tag);
+                // 1.21.11 BlockEntityData 直携 CompoundTag；nullptr 视为空 NBT。
+                static const nbt::CompoundTag kEmpty{};
+                m_app.m_world.onBlockEntityData(
+                    pos, static_cast<BlockEntityType>(p.blockEntityType), p.tag ? *p.tag : kEmpty);
                 return Result<void>::ok();
             }
             // ---- 打开告示牌编辑器 ----

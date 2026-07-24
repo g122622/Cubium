@@ -32,6 +32,7 @@
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/TimeUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -926,13 +927,15 @@ protected:
      * 附近客户端。对应 MC Java: PlayerList.broadcast(null, x, y, z, 64.0,
      * dimension, new ClientboundBlockEntityDataPacket(pos, type, tag))。
      *
+     * 1.21.11 线格式：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
+     *
      * @param pos 方块位置
      * @param type 方块实体类型
-     * @param nbtData NBT 字节流（Java 版大端序二进制格式）
+     * @param tag NBT 复合标签快照（Java 版大端二进制；nullptr 表示空 NBT）
      * @param range 广播范围（格），默认 64 格
      */
     void broadcastBlockEntityInRange(
-        const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData, f32 range = 64.0f);
+        const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range = 64.0f);
 
     /**
      * @brief 发送粒子给指定玩家

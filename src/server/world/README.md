@@ -315,10 +315,9 @@ data/end_dragon_fight.json
 2. `ServerWorld` 通过 `m_onBroadcastBlockEntity` 回调转发给上层（避免直接依赖 `MinecraftServer`）
 3. `MinecraftServer::attachWorldBindings()` 中注册的回调：
    - 通过 `ServerWorld::getBlockEntity(pos)` 获取方块实体
-   - 调用 `entity->getUpdateTag()` 生成 NBT 复合标签
-   - 通过 `BlockEntityDataPacket::serializeNbtToBytes()` 序列化为 Java 版大端序字节流
-   - 调用 `MinecraftServer::broadcastBlockEntityInRange(pos, type, nbtData, 64.0f)` 广播
-4. `broadcastBlockEntityInRange` 将 `BlockEntityDataPacket`（PacketType=237）封装后发送给 64 格范围内的所有已登录玩家
+   - 调用 `entity->getUpdateTag()` 生成 NBT 复合标签，包装为 `shared_ptr<nbt::CompoundTag>`
+   - 调用 `MinecraftServer::broadcastBlockEntityInRange(pos, type, shared_ptr<CompoundTag>, 64.0f)` 广播
+4. `broadcastBlockEntityInRange` 构造 `ir::play::BlockEntityData`（blockPosPacked + blockEntityType + CompoundTag，无长度前缀）发送给 64 格范围内的所有已登录玩家
 
 **使用场景**：
 - `ServerPlayer::handleUpdateSignPacket()` — 告示牌编辑完成后广播新文本

@@ -35,7 +35,6 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/util/Direction.hpp"
@@ -133,20 +132,15 @@ void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
     if (m_world != nullptr) {
         const BlockEntity* entity = m_world->getBlockEntity(pos);
         if (entity != nullptr) {
-            nbt::CompoundTag tag = entity->getUpdateTag();
-            std::vector<u8> nbtData = network::BlockEntityDataPacket::serializeNbtToBytes(tag);
-            if (!nbtData.empty()) {
-                // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + tag(NBT opaque)。
-                // TODO(Phase6): tag 透传旧 NBT 字节，未对齐 1.21.11 CompoundTag codec。
-                mc::network::ir::play::BlockEntityData bePkt;
-                bePkt.blockPosPacked = pos.asLong();
-                bePkt.blockEntityType = static_cast<i32>(entity->getType());
-                bePkt.tag = std::move(nbtData);
-                if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-                        mc::network::ir::PlayPacket{std::move(bePkt)}})) {
-                    spdlog::warn(
-                        "ServerPlayer: block entity data packet not sent (player={}, no connection)", username());
-                }
+            // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
+            auto tag = std::make_shared<nbt::CompoundTag>(entity->getUpdateTag());
+            mc::network::ir::play::BlockEntityData bePkt;
+            bePkt.blockPosPacked = pos.asLong();
+            bePkt.blockEntityType = static_cast<i32>(entity->getType());
+            bePkt.tag = std::move(tag);
+            if (!_sendIrPacket(mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(bePkt)}})) {
+                spdlog::warn("ServerPlayer: block entity data packet not sent (player={}, no connection)", username());
             }
         }
     }
@@ -155,8 +149,8 @@ void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
     mc::network::ir::play::OpenSignEditor pkt;
     pkt.blockPosPacked = pos.asLong();
     pkt.isFrontText = isFrontSide;
-    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)}})) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: open sign editor packet not sent (player={}, no connection)", username());
     }
 }
@@ -176,8 +170,8 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
         // TODO(Phase6): text 仅以 JSON 字符串字节承载，未对齐 1.21.11 ComponentType codec。
         mc::network::ir::play::SetActionBarText pkt;
         pkt.text = std::vector<u8>(message.begin(), message.end());
-        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)}}));
+        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
     } else {
         // 发送到聊天区域
         sendSystemMessage(message);
@@ -192,8 +186,8 @@ void ServerPlayer::syncExperience()
     pkt.experienceLevel = experienceLevel();
     pkt.totalExperience = totalExperience();
 
-    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)}})) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: experience sync skipped (player={}, no connection)", username());
     }
 }
@@ -213,8 +207,8 @@ bool ServerPlayer::sendVelocityPacket()
     pkt.y = static_cast<f64>(vel.y);
     pkt.z = static_cast<f64>(vel.z);
 
-    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)}})) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: velocity packet not sent (player={}, no connection)", username());
         return false;
     }
@@ -599,8 +593,8 @@ void ServerPlayer::_sendSleepPacket(const BlockPos& bedPos)
     mc::network::ir::play::EntityEvent pkt;
     pkt.entityId = static_cast<i32>(id());
     pkt.eventId = 46; // 自定义：玩家开始睡觉（MC Java EntityEvent 无此值，仅我方互通用）
-    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)}}));
+    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
 }
 
 void ServerPlayer::_sendWakeUpPacket()
@@ -614,8 +608,8 @@ void ServerPlayer::_sendWakeUpPacket()
     mc::network::ir::play::EntityEvent pkt;
     pkt.entityId = static_cast<i32>(id());
     pkt.eventId = 47; // 自定义：玩家起床（仅我方互通用）
-    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)}}));
+    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
 }
 
 bool ServerPlayer::_sendIrPacket(mc::network::ir::IrPacket packet) const
@@ -991,8 +985,8 @@ void ServerPlayer::_sendSetCameraPacket(u32 cameraEntityId)
     mc::network::ir::play::SetCamera pkt;
     pkt.cameraId = static_cast<i32>(cameraEntityId);
 
-    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)}})) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: SetCamera packet not sent (player={}, no connection)", username());
     }
 }

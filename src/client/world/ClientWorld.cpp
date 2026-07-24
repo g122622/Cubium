@@ -37,7 +37,6 @@
 #include "../renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "common/core/Constants.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -1239,19 +1238,8 @@ void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 rang
 //
 // 详见 ClientWorld.hpp 中「方块实体」小节的 TODO 注释。
 
-void ClientWorld::onBlockEntityData(const BlockPos& pos, BlockEntityType type, const std::vector<u8>& nbtData)
+void ClientWorld::onBlockEntityData(const BlockPos& pos, BlockEntityType type, const nbt::CompoundTag& tag)
 {
-    // 反序列化 NBT 字节流
-    auto nbtResult = network::BlockEntityDataPacket::deserializeNbtFromBytes(nbtData);
-    if (nbtResult.failed()) {
-        spdlog::warn("ClientWorld: failed to parse BlockEntity NBT at ({}, {}, {}): {}",
-            pos.x,
-            pos.y,
-            pos.z,
-            nbtResult.error().message());
-        return;
-    }
-
     const i64 key = pos.asLong();
 
     // 查找或创建对应的 BlockEntity
@@ -1270,8 +1258,8 @@ void ClientWorld::onBlockEntityData(const BlockPos& pos, BlockEntityType type, c
         it = m_blockEntities.emplace(key, std::move(entity)).first;
     }
 
-    // 加载 NBT 数据更新状态
-    it->second->loadFromNBT(nbtResult.value());
+    // 加载 NBT 数据更新状态（1.21.11 BlockEntityData 直接携 CompoundTag，无需字节反序列化）
+    it->second->loadFromNBT(tag);
 }
 
 BlockEntity* ClientWorld::getBlockEntity(const BlockPos& pos)

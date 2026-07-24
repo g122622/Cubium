@@ -263,11 +263,10 @@
 1. 方块实体数据变化后，服务端调用 `ServerWorld::broadcastBlockEntity(pos)`
 2. `MinecraftServer::broadcastBlockEntityInRange()` 回调触发：
    - 通过 `ServerWorld::getBlockEntity(pos)` 获取方块实体
-   - 调用 `entity->getUpdateTag()` 生成 NBT 复合标签
-   - 通过 `BlockEntityDataPacket::serializeNbtToBytes()` 序列化为 Java 版大端序字节流
-   - 封装为 `BlockEntityDataPacket`（PacketType=237）广播给 64 格范围内玩家
-3. 客户端 `NetworkClient::_handleBlockEntityData()` 接收，转发给 `ClientWorld::onBlockEntityData()`
-4. `ClientWorld` 反序列化 NBT，通过 `BlockEntityRegistry` 查找/创建实例，调用 `loadFromNBT()` 更新状态
+   - 调用 `entity->getUpdateTag()` 生成 NBT 复合标签，包装为 `shared_ptr<nbt::CompoundTag>`
+   - 构造 `ir::play::BlockEntityData`（blockPosPacked + blockEntityType + CompoundTag，无长度前缀）广播给 64 格范围内玩家
+3. 客户端 `ClientPlayVisitor::_handleBlockEntityData` 接收，转发给 `ClientWorld::onBlockEntityData(pos, type, const CompoundTag&)`
+4. `ClientWorld` 通过 `BlockEntityRegistry` 查找/创建实例，调用 `loadFromNBT()` 更新状态
 
 **默认实现：**
 ```cpp

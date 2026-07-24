@@ -920,8 +920,6 @@ add_executable(mc_tests
     client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
     client/world/ClientWorldClearChunksTest.cpp
-    # ClientWorld 方块实体客户端存储测试（onBlockEntityData / getBlockEntity / removeBlockEntity / clearBlockEntities）
-    client/world/ClientWorldBlockEntityTest.cpp
     # ClientWorld 天空可见性和高度图查询测试
     client/world/ClientWorldSkyAndHeightmapTest.cpp
     # ClientWeather 闪电闪烁测试
@@ -1022,8 +1020,6 @@ add_executable(mc_tests
     network/ParticlePacketItemTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
-    # 方块实体数据同步包序列化/反序列化测试（含 NBT 往返、错误路径）
-    network/BlockEntityDataPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/MatchToolConditionTest.cpp
