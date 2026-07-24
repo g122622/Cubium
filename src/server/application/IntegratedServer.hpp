@@ -24,6 +24,7 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
+#include "RemoteClientSession.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
@@ -33,7 +34,6 @@
 #include "server/network/ServerHandshake.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/network/ServerPlayRouter.hpp"
-#include "server/network/TcpServer.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <memory>
@@ -262,39 +262,29 @@ private:
     // ========== 远程 TCP 玩家支持（局域网发布后启用）==========
 
     /**
-     * @brief TCP 客户端连接事件回调
-     */
-    void _onRemoteClientConnect(TcpSession* session);
-
-    /**
-     * @brief TCP 客户端断开事件回调
-     */
-    void _onRemoteClientDisconnect(TcpSession* session, const std::string& reason);
-
-    /**
-     * @brief 向远程 TCP 玩家发送登录响应
-     */
-    void _sendLoginResponseToSession(TcpSession* session,
-        bool success,
-        PlayerId playerId,
-        EntityInstanceId entityId,
-        const Uuid& uuid,
-        const std::string& username,
-        const std::string& message);
-
-    /**
-     * @brief 处理远程 TCP 玩家的登录请求
+     * @brief 远程 TCP 客户端连接事件回调（accept 线程触发）
      *
-     * 远程 LAN 玩家登录已迁出字节协议，统一由 ServerHandshake 的 onPlayerReady
-     * 回调驱动（与本地客户端同路径）。当前 LAN 发布路径（m_lanTcpServer）仍为
-     * 旧 TcpServer 字节协议，与新 IR 不兼容，真正的 LAN 远程互通留 Phase6。
-     * 此处仅作占位，避免误用。
-     *
-     * @param sessionId TCP 会话ID（非 0）
-     * @param data 登录请求数据包载荷
-     * @param size 数据大小
+     * 建 RemoteClientSession + 装配握手/Play 入站派发 + onPlayerReady 回调。
      */
-    void _handleRemoteLoginRequest(u32 sessionId, const u8* data, size_t size);
+    void _onRemoteClientConnect(mc::server::net::ServerClientConnection& conn);
+
+    /**
+     * @brief 远程 TCP 客户端断开事件回调（主线程 tick 内派发）
+     *
+     * 移除 session + 玩家实体 + PlayerManager 会话 + 库存清理。
+     */
+    void _onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn);
+
+    /**
+     * @brief 远程玩家握手完成回调（主线程 drainInbound 内触发）
+     *
+     * 调 createPlayerForConnection（复用本地路径 helper）+ 回填 router playerId。
+     */
+    void _onRemotePlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
+
+    /// 主线程清理已断开连接的 session（ServerNetwork::tick 已回调 _onRemoteClientDisconnect，
+    /// 此处仅做 session map 一致性兜底；Local 客户端由 sessionId=0 标识不在此处理）。
+    void _drainDisconnectedSessions();
 
     /**
      * @brief 本地客户端握手完成回调（ServerHandshake Configuration 结束后触发）
@@ -378,9 +368,17 @@ private:
     mutable std::mutex m_clientDataMutex;
 
     // ========== 局域网发布（TCP 监听器）==========
-    // publishToLan() 调用后创建，允许远程玩家通过 TCP 加入本局游戏。
-    // 本地客户端仍走 LocalTransport（m_clientConnection），不受此监听器影响。
-    std::unique_ptr<TcpServer> m_lanTcpServer;
+    // publishToLan() 调用 m_serverNetwork->startAccept 启动 TCP 监听，允许远程玩家通过
+    // TCP 加入本局游戏。本地客户端仍走 LocalTransport（m_clientConnection，sessionId=0，
+    // 经 createLocalClientSide 在 initialize() 内联接线），与 Wire 连接共用同一
+    // m_serverNetwork：startAccept 触 m_listenPort/m_ioContext/m_acceptor/m_acceptThread；
+    // createLocalClientSide 触 m_connections/m_onConnect——成员不相交无冲突。
+    // 单 tick()（pollNetwork 内）经 isLocalMode() 分支同时 drain Local(pumpLocal)+Wire。
+    // 远程会话簿记：sessionId → {握手状态机, Play 路由器}。session 持 ServerClientConnection&
+    // （非拥有，所有权归 m_serverNetwork），故 stop() 中 m_remoteSessions.clear() 须先于
+    // m_serverNetwork.reset()。
+    std::unordered_map<u32, std::unique_ptr<mc::server::net::RemoteClientSession>> m_remoteSessions;
+    std::mutex m_remoteSessionsMutex;
 
     // 远程玩家实体ID映射（PlayerId -> EntityInstanceId），用于快速查找
     std::unordered_map<PlayerId, EntityInstanceId> m_remotePlayerEntityIds;
