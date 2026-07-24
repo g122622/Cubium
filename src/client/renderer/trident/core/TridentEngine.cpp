@@ -514,8 +514,8 @@ Result<void> TridentEngine::beginFrame()
     // 上一轮该帧提交的 GPU 命令已完成，回收其 staging 区间是安全的。
     if (m_stagingPool) {
         m_stagingPool->recycleFrame(m_frameContext.frameIndex);
-        // 推进 fence 驱动的异步 copy 回收：ChunkRenderer::updateChunk 在 update 阶段
-        // submit 的异步 copy，其 fence signaled 后由此回收 staging 区间与命令缓冲/fence。
+        // pollAsyncCopies 当前无生产调用方（ChunkRenderer 已改回同步上传路径），
+        // 保留以驱动潜在的 fence 异步 copy 回收，空队列下为 no-op。
         m_stagingPool->pollAsyncCopies();
     }
 

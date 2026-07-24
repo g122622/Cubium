@@ -216,6 +216,12 @@ Result<void> FrameManager::submitAndPresent(TridentSwapchain* swapchain)
     VkResult result = vkQueueSubmit(m_context->graphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
 
     if (result != VK_SUCCESS) {
+        // 提交失败（典型为 VK_ERROR_DEVICE_LOST=-4）。设备已不可用，后续帧不可能成功。
+        // 仍须推进帧簿记并清 m_frameStarted：否则下一帧 beginFrame 因 m_frameStarted=true
+        // 早退、acquireNextImage 在刚 reset 但永不会 signaled 的 fence 上无限等待。
+        // 真正的设备丢失恢复/关闭由上层（TridentEngine/ClientApplication）处理。
+        m_currentFrame = (m_currentFrame + 1) % m_maxFramesInFlight;
+        m_frameStarted = false;
         return Error(ErrorCode::OperationFailed, "Failed to submit draw command buffer: " + std::to_string(result));
     }
 

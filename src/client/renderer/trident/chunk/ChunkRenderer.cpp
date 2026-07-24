@@ -314,16 +314,8 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     auto uploadResult =
         _uploadViaStagingPool(meshData.vertices.data(), vertexUploadSize, buffer.vertexBuffer, buffer.vertexOffset);
     if (!uploadResult.success()) {
-        // vertex 区间已子分配，但上传失败（staging OOM 或 submit 失败）。submitAsyncCopy
-        // 失败时已自行 release staging 句柄，无在飞 copy；但若 stage 成功后 submit 链路某步
-        // 失败已留下在飞命令，waitIdle 兜底确保复制完成后才归还 mega-buffer 区间，避免
-        // 归还的区间被异步 copy 覆写。
-        if (m_context) {
-            m_context->waitIdle();
-            if (auto* pool = m_context->stagingPool()) {
-                pool->pollAsyncCopies();
-            }
-        }
+        // vertex 区间已子分配，但上传失败（staging OOM 或 submit 失败）。同步路径下
+        // copyToBuffer 失败时 staging 句柄已归还、无在飞 copy，直接归还 vertex 区间即可。
         _freeAllocation(m_vertexSegments[buffer.vertexSegmentIndex], buffer.vertexAllocation, vertexAlignedSize);
         buffer = {};
         return uploadResult.error();
@@ -333,13 +325,7 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     auto idxResult = _subAllocate(
         m_indexSegments, kIndexSegmentCapacity, indexAlignedSize, buffer.indexSegmentIndex, buffer.indexAllocation);
     if (!idxResult.success()) {
-        // vertex 上传已异步 submit（在飞），归还其 mega-buffer 区间前须等 copy 完成。
-        if (m_context) {
-            m_context->waitIdle();
-            if (auto* pool = m_context->stagingPool()) {
-                pool->pollAsyncCopies();
-            }
-        }
+        // vertex 上传已同步完成（无在飞 copy），直接归还 vertex 区间。
         _freeAllocation(m_vertexSegments[buffer.vertexSegmentIndex], buffer.vertexAllocation, vertexAlignedSize);
         buffer = {};
         return idxResult.error();
@@ -351,13 +337,7 @@ Result<void> ChunkRenderer::_createChunkBuffer(ChunkGpuBuffer& buffer, const Mes
     uploadResult =
         _uploadViaStagingPool(meshData.indices.data(), indexUploadSize, buffer.indexBuffer, buffer.indexOffset);
     if (!uploadResult.success()) {
-        // vertex/index 区间均有在飞 copy，waitIdle 兜底后再归还。
-        if (m_context) {
-            m_context->waitIdle();
-            if (auto* pool = m_context->stagingPool()) {
-                pool->pollAsyncCopies();
-            }
-        }
+        // vertex/index 区间均已同步完成（无在飞 copy），直接归还。
         _freeAllocation(m_vertexSegments[buffer.vertexSegmentIndex], buffer.vertexAllocation, vertexAlignedSize);
         _freeAllocation(m_indexSegments[buffer.indexSegmentIndex], buffer.indexAllocation, indexAlignedSize);
         buffer = {};
@@ -666,22 +646,22 @@ Result<void> ChunkRenderer::_uploadViaStagingPool(
         return Error(ErrorCode::NotInitialized, "ChunkRenderer: staging pool not available");
     }
 
-    // 异步上传：stage→memcpy→submitAsyncCopy。submitAsyncCopy 内部分配一次性命令缓冲
-    // 录制 vkCmdCopyBuffer 并 submit 带 fence 但不等待，handle+fence+cmd 入池的待回收队列。
-    // staging 区间由 stagingPool->pollAsyncCopies() 在 fence signaled 后回收（每帧由
-    // TridentEngine::render 推进），调用方不 release。源数据 memcpy 在 submit 前完成
-    // （CPU→CPU），submitAsyncCopy 返回后调用方即可释放源 MeshData。
+    // 同步上传：stage→memcpy→copyToBuffer→release。copyToBuffer 内部用
+    // endSingleTimeCommands(submit+vkWaitForFences) 等待 GPU 完成复制后返回。
+    //
+    // 此前曾用 submitAsyncCopy（独立 fence、不等待）追求零阻塞，但异步 copy 与帧绘制命令
+    // 缓冲分属两次 vkQueueSubmit、之间无 VkBufferMemoryBarrier，存在 TRANSFER_WRITE→
+    // VERTEX_INPUT_READ 的内存可见性/执行依赖缺口；mega-buffer 区间在 32 帧延迟归还窗口内
+    // 复用时更触发写-读并发，导致驱动 VK_ERROR_DEVICE_LOST（device-lost，运行约 19s 后崩）。
+    // 改回同步路径以根除该 device-lost：与 EntityPipeline::_uploadViaStagingPool 一致。
+    // 性能代价（每块 submit+wait）可接受：区块上传本就是稀疏更新，且正确性优先。
     auto handle = pool->stage(size);
     if (!handle.valid) {
         return Error(ErrorCode::OutOfMemory, "ChunkRenderer: staging pool out of space");
     }
     std::memcpy(handle.mappedPtr, sourceData, static_cast<size_t>(size));
-    auto result = pool->submitAsyncCopy(handle, dstBuffer, dstOffset);
-    if (!result.success()) {
-        // submit 失败（命令缓冲/fence 分配或 submit 出错）：staging 区间尚未入队，
-        // 由调用方立即归还避免泄漏。
-        pool->release(handle);
-    }
+    auto result = pool->copyToBuffer(handle, dstBuffer, dstOffset);
+    pool->release(handle);
     return result;
 }
 
