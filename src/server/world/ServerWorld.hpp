@@ -833,7 +833,7 @@ public:
     /**
      * @brief 添加方块粒子（携带方块状态 ID）
      *
-     * 服务端通过 ParticlePacket.createBlock 编码 blockStateId 到可选数据中，
+     * 服务端通过 LevelParticles 的 ParticleOptions(Block) 编码 blockStateId，
      * 广播给附近玩家。客户端解码后调用 ClientWorld::addBlockParticle 生成粒子。
      *
      * @param type 粒子类型（必须为 requiresBlockState 返回 true 的类型）
@@ -849,7 +849,7 @@ public:
     /**
      * @brief 添加物品粒子（携带物品堆）
      *
-     * 服务端通过 ParticlePacket.createItem 编码 ItemStack 到可选数据中，
+     * 服务端通过 LevelParticles 的 ParticleOptions(Item) 编码 ItemStack，
      * 广播给附近玩家。客户端解码后通过粒子数据管线生成物品粒子。
      *
      * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）

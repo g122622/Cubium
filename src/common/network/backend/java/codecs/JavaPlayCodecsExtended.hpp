@@ -27,6 +27,7 @@
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/particle/ParticleTypes.hpp"
 
 namespace mc::network::backend::java::codecs {
 
@@ -173,6 +174,118 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
 // 粒子（S→C）
 // ============================================================================
 
+namespace play_ext_detail {
+
+/**
+ * @brief 写 ParticleOptions（1.21.11，对齐 ParticleTypes.STREAM_CODEC）
+ *
+ * VarInt(registryId=toProtocolId(type)) + 各类型专属 payload。
+ */
+inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
+{
+    using namespace mc::particle;
+    buf.writeVarInt(toProtocolId(v.type));
+
+    if (requiresBlockState(v.type)) {
+        // BlockParticleOption：VarInt(blockStateId)
+        buf.writeVarInt(static_cast<i32>(v.blockStateId));
+    } else if (requiresItemData(v.type)) {
+        // ItemParticleOption：完整 ItemStack wire
+        play_detail::writeItemStack(buf, v.item);
+    } else if (v.type == ParticleTypeId::Dust || v.type == ParticleTypeId::Redstone) {
+        // DustParticleOptions：INT color(ARGB) + FLOAT scale
+        buf.writeI32(static_cast<i32>(v.color));
+        buf.writeF32(v.scale);
+    } else if (v.type == ParticleTypeId::DustColorTransition) {
+        // DustColorTransitionOptions：INT fromColor + INT toColor + FLOAT scale
+        buf.writeI32(static_cast<i32>(v.fromColor));
+        buf.writeI32(static_cast<i32>(v.toColor));
+        buf.writeF32(v.scale);
+    } else if (v.type == ParticleTypeId::EntityEffect || v.type == ParticleTypeId::Flash ||
+        v.type == ParticleTypeId::TintedLeaves) {
+        // ColorParticleOption：INT color（ARGB 大端）
+        buf.writeI32(static_cast<i32>(v.color));
+    } else if (v.type == ParticleTypeId::Vibration) {
+        // VibrationParticleOption：PositionSource + VAR_INT arrivalInTicks
+        buf.writeVarInt(static_cast<i32>(v.vibrationSourceKind));
+        if (v.vibrationSourceKind == 0) {
+            buf.writeI64(v.vibrationBlockPosPacked);
+        } else {
+            buf.writeVarInt(v.vibrationEntityId);
+            buf.writeF32(v.vibrationYOffset);
+        }
+        buf.writeVarInt(v.arrivalInTicks);
+    } else if (v.type == ParticleTypeId::Trail) {
+        // TrailParticleOption：Vec3(3×F64) + INT color + VAR_INT duration
+        buf.writeF64(v.trailTargetX);
+        buf.writeF64(v.trailTargetY);
+        buf.writeF64(v.trailTargetZ);
+        buf.writeI32(static_cast<i32>(v.color));
+        buf.writeVarInt(v.trailDuration);
+    }
+    // SimpleParticleType 及其余无 options 类型：无额外字节
+}
+
+/**
+ * @brief 读 ParticleOptions
+ */
+[[nodiscard]] inline Result<ir::play::ParticleOptions> readParticleOptions(B& buf)
+{
+    using namespace mc::particle;
+    ir::play::ParticleOptions v{};
+    i32 protoId = 0;
+    MC_TRY_ASSIGN(protoId, buf.readVarInt());
+    v.type = fromProtocolId(protoId);
+
+    if (requiresBlockState(v.type)) {
+        i32 bsid = 0;
+        MC_TRY_ASSIGN(bsid, buf.readVarInt());
+        v.blockStateId = static_cast<u32>(bsid);
+    } else if (requiresItemData(v.type)) {
+        MC_TRY_ASSIGN(v.item, play_detail::readItemStack(buf));
+    } else if (v.type == ParticleTypeId::Dust || v.type == ParticleTypeId::Redstone) {
+        i32 c = 0;
+        MC_TRY_ASSIGN(c, buf.readI32());
+        v.color = static_cast<u32>(c);
+        MC_TRY_ASSIGN(v.scale, buf.readF32());
+    } else if (v.type == ParticleTypeId::DustColorTransition) {
+        i32 fc = 0;
+        i32 tc = 0;
+        MC_TRY_ASSIGN(fc, buf.readI32());
+        MC_TRY_ASSIGN(tc, buf.readI32());
+        v.fromColor = static_cast<u32>(fc);
+        v.toColor = static_cast<u32>(tc);
+        MC_TRY_ASSIGN(v.scale, buf.readF32());
+    } else if (v.type == ParticleTypeId::EntityEffect || v.type == ParticleTypeId::Flash ||
+        v.type == ParticleTypeId::TintedLeaves) {
+        i32 c = 0;
+        MC_TRY_ASSIGN(c, buf.readI32());
+        v.color = static_cast<u32>(c);
+    } else if (v.type == ParticleTypeId::Vibration) {
+        i32 kind = 0;
+        MC_TRY_ASSIGN(kind, buf.readVarInt());
+        v.vibrationSourceKind = static_cast<u8>(kind);
+        if (v.vibrationSourceKind == 0) {
+            MC_TRY_ASSIGN(v.vibrationBlockPosPacked, buf.readI64());
+        } else {
+            MC_TRY_ASSIGN(v.vibrationEntityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.vibrationYOffset, buf.readF32());
+        }
+        MC_TRY_ASSIGN(v.arrivalInTicks, buf.readVarInt());
+    } else if (v.type == ParticleTypeId::Trail) {
+        MC_TRY_ASSIGN(v.trailTargetX, buf.readF64());
+        MC_TRY_ASSIGN(v.trailTargetY, buf.readF64());
+        MC_TRY_ASSIGN(v.trailTargetZ, buf.readF64());
+        i32 c = 0;
+        MC_TRY_ASSIGN(c, buf.readI32());
+        v.color = static_cast<u32>(c);
+        MC_TRY_ASSIGN(v.trailDuration, buf.readVarInt());
+    }
+    return v;
+}
+
+} // namespace play_ext_detail
+
 /// LevelParticles（S→C，id=46）
 [[nodiscard]] inline auto levelParticlesCodec()
 {
@@ -188,7 +301,7 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
             buf.writeF32(v.zDist);
             buf.writeF32(v.maxSpeed);
             buf.writeI32(v.count);
-            play_ext_detail::writeOpaque(buf, v.particle);
+            play_ext_detail::writeParticleOptions(buf, v.particle);
         },
         [](B& buf) -> Result<ir::play::LevelParticles> {
             ir::play::LevelParticles v{};
@@ -202,7 +315,7 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
             MC_TRY_ASSIGN(v.zDist, buf.readF32());
             MC_TRY_ASSIGN(v.maxSpeed, buf.readF32());
             MC_TRY_ASSIGN(v.count, buf.readI32());
-            MC_TRY_ASSIGN(v.particle, play_ext_detail::readOpaque(buf, "levelParticlesCodec"));
+            MC_TRY_ASSIGN(v.particle, play_ext_detail::readParticleOptions(buf));
             return v;
         });
 }

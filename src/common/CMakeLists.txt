@@ -43,7 +43,6 @@ add_library(mc_common STATIC
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp
     network/packet/EntityMetadataSerializer.cpp
-    network/packet/ParticlePacket.cpp
     network/packet/ExplosionPacket.cpp
     network/packet/MapDataPacket.cpp
 

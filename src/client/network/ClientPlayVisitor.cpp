@@ -31,6 +31,7 @@
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/data/BlockParticleData.hpp"
 #include "client/renderer/trident/particle/data/DustParticleData.hpp"
 #include "client/renderer/trident/particle/data/EntityEffectParticleData.hpp"
 #include "client/renderer/trident/particle/data/ItemParticleData.hpp"
@@ -1713,11 +1714,70 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 }
                 return Result<void>::ok();
             }
-            // ---- 粒子（opaque，TODO Phase6 全解析）----
+            // ---- 粒子（1.21.11 LevelParticles，ParticleOptions 已结构化）----
             else if constexpr (std::is_same_v<T, irplay::LevelParticles>) {
-                // TODO(Phase6): 解析 1.21.11 ParticleOptions 前缀树，分流到 8 个粒子回调。
-                // 当前 IR LevelParticles 仅透传 opaque 字节，无法还原粒子参数。
-                (void)pkt;
+                using namespace mc::particle;
+                using namespace mc::client::renderer::trident::particle::data;
+                const auto& p = pkt;
+                const ParticleTypeId type = p.particle.type;
+                if (type == ParticleTypeId::Invalid) {
+                    return Result<void>::ok();
+                }
+
+                // 位置/偏移/count 直接取自外层字段；速度由粒子管理器按偏移+maxSpeed 自决，
+                // 故 velocity 传零（与 Java 客户端 level.addParticle(...,xd,yd,zd,speed) 语义一致）。
+                const Vector3 pos(static_cast<f32>(p.x), static_cast<f32>(p.y), static_cast<f32>(p.z));
+                const Vector3 offset(p.xDist, p.yDist, p.zDist);
+                const Vector3 zeroVel(0.0f, 0.0f, 0.0f);
+
+                auto& world = m_app.m_world;
+                if (requiresBlockState(type)) {
+                    // BlockParticleOption：blockStateId → BlockState → BlockParticleData
+                    const BlockState* state = BlockRegistry::instance().getBlockState(p.particle.blockStateId);
+                    if (state != nullptr) {
+                        auto data = std::make_unique<BlockParticleData>(type, *state);
+                        world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                    }
+                } else if (requiresItemData(type)) {
+                    // ItemParticleOption：ItemStack wire → ItemStack → ItemParticleData
+                    auto stackResult = mc::network::ir::fromItemStackView(p.particle.item);
+                    if (stackResult.success()) {
+                        auto data = std::make_unique<ItemParticleData>(type, stackResult.value());
+                        world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                    }
+                } else if (type == ParticleTypeId::Dust || type == ParticleTypeId::Redstone) {
+                    auto data = std::make_unique<DustParticleData>(p.particle.color, p.particle.scale);
+                    world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                } else if (type == ParticleTypeId::DustColorTransition) {
+                    auto data = std::make_unique<DustColorTransitionParticleData>(
+                        p.particle.fromColor, p.particle.toColor, p.particle.scale);
+                    world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                } else if (type == ParticleTypeId::EntityEffect || type == ParticleTypeId::Flash ||
+                    type == ParticleTypeId::TintedLeaves) {
+                    auto data = std::make_unique<EntityEffectParticleData>(p.particle.color);
+                    world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                } else if (type == ParticleTypeId::Vibration) {
+                    if (p.particle.vibrationSourceKind == 0) {
+                        // 方块目标：packed 坐标 → 方块中心 Vector3d
+                        const BlockPos bp = BlockPos::fromLong(p.particle.vibrationBlockPosPacked);
+                        const Vector3d target(bp.x + 0.5, bp.y + 0.5, bp.z + 0.5);
+                        auto data = std::make_unique<VibrationParticleData>(target, p.particle.arrivalInTicks);
+                        world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                    } else {
+                        auto data = std::make_unique<VibrationParticleData>(
+                            static_cast<EntityInstanceId>(p.particle.vibrationEntityId),
+                            p.particle.vibrationYOffset,
+                            p.particle.arrivalInTicks);
+                        world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                    }
+                } else if (type == ParticleTypeId::Trail) {
+                    const Vector3d target(p.particle.trailTargetX, p.particle.trailTargetY, p.particle.trailTargetZ);
+                    auto data = std::make_unique<TrailParticleData>(target, p.particle.color, p.particle.trailDuration);
+                    world.addParticleWithData(type, pos, zeroVel, std::move(data));
+                } else {
+                    // SimpleParticleType（无 options）：走普通粒子批量生成（按 count/offset 扇出）
+                    world.addParticle(type, pos, zeroVel, offset, static_cast<u32>(p.count));
+                }
                 return Result<void>::ok();
             }
             // ---- 爆炸（opaque，TODO Phase6）----

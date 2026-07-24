@@ -1235,7 +1235,7 @@ public:
      * @brief 生成方块粒子（携带方块状态）
      *
      * 用于 Block/Breaking/FallingDust 等需要方块纹理的粒子。
-     * 服务端：广播 ParticlePacket（携带 blockStateId）给附近玩家
+     * 服务端：广播 LevelParticles（ParticleOptions(Block) 携带 blockStateId）给附近玩家
      * 客户端：调用 ClientWorld::addBlockParticle 直接生成
      *
      * @param type 粒子类型（必须为 requiresBlockState 返回 true 的类型）
@@ -1256,7 +1256,7 @@ public:
      * @brief 生成物品粒子（携带物品堆）
      *
      * 用于 Item/ItemSlime/ItemCobweb/ItemSnowball 等需要物品纹理的粒子。
-     * 服务端：广播 ParticlePacket（携带 ItemStack）给附近玩家
+     * 服务端：广播 LevelParticles（ParticleOptions(Item) 携带 ItemStack）给附近玩家
      * 客户端：通过粒子数据管线调用 ItemParticle::createWithItemStack 生成
      *
      * @param type 粒子类型（必须为 requiresItemData 返回 true 的类型）

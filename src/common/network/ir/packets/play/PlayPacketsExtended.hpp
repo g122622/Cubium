@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 #include <array>
@@ -114,9 +115,58 @@ struct LevelEvent {
 // ----------------------------------------------------------------------------
 
 /**
+ * @brief ParticleOptions（1.21.11 粒子选项，对齐 ParticleTypes.STREAM_CODEC）
+ *
+ * 线格式：VarInt(registryId) + 各类型专属 payload。registryId 取自
+ * particle::toProtocolId(type)——本项目的 ParticleTypeId(0..114) 即 Java 注册顺序，
+ * 内部扩展类型(115..123)经 toProtocolId 映射到对应协议类型（如 Breaking→Block）。
+ *
+ * 各类型 payload（对齐 net.minecraft.core.particles 各 *ParticleOption.STREAM_CODEC）：
+ * - SimpleParticleType（无 options）：无额外字节
+ * - BlockParticleOption（Block/BlockMarker/FallingDust/DustPillar/BlockCrumble）：VarInt(blockStateId)
+ * - ItemParticleOption（Item/ItemSlime/ItemSnowball/ItemCobweb）：完整 ItemStack wire
+ * - ColorParticleOption（EntityEffect/Flash/TintedLeaves）：INT color（ARGB 大端）
+ * - DustParticleOptions（Dust/Redstone）：INT color（ARGB）+ FLOAT scale
+ * - DustColorTransitionOptions：INT fromColor + INT toColor + FLOAT scale
+ * - VibrationParticleOption：PositionSource + VAR_INT arrivalInTicks
+ *     PositionSource = VarInt(kind: 0=Block 1=Entity)
+ *       kind=0: i64 packedBlockPos（BlockPos.asLong）
+ *       kind=1: VarInt entityId + FLOAT yOffset
+ * - TrailParticleOption：Vec3(3×F64 target) + INT color（ARGB）+ VAR_INT duration
+ *
+ * 本结构为扁平 POD（与既有 IR 风格一致）：仅对应 type 的字段有效，codec 按 type 分支读写。
+ */
+struct ParticleOptions {
+    particle::ParticleTypeId type = particle::ParticleTypeId::Invalid;
+
+    // ColorParticleOption / Dust / DustColorTransition / Trail 共用 color 字段（ARGB）
+    u32 color = 0;
+    f32 scale = 1.0f;  // Dust / DustColorTransition
+    u32 fromColor = 0; // DustColorTransition
+    u32 toColor = 0;   // DustColorTransition
+
+    u32 blockStateId = 0; // BlockParticleOption
+    ItemStackView item;   // ItemParticleOption（完整 ItemStack wire）
+
+    // VibrationParticleOption
+    u8 vibrationSourceKind = 0;      // 0=Block, 1=Entity
+    i64 vibrationBlockPosPacked = 0; // kind=0 时有效（BlockPos.asLong）
+    i32 vibrationEntityId = 0;       // kind=1 时有效
+    f32 vibrationYOffset = 0.0f;     // kind=1 时有效
+    i32 arrivalInTicks = 0;
+
+    // TrailParticleOption
+    f64 trailTargetX = 0.0;
+    f64 trailTargetY = 0.0;
+    f64 trailTargetZ = 0.0;
+    i32 trailDuration = 0; // color 字段重用为 trail 颜色
+};
+
+/**
  * @brief LevelParticles（S→C，id=46）
  *
- * ParticleOptions 为 registry id + 粒子专属 options，暂 opaque 透传。
+ * 线格式对齐 ClientboundLevelParticlesPacket：overrideLimiter/alwaysShow(bool×2) +
+ * x/y/z(double×3) + xDist/yDist/zDist(float×3) + maxSpeed(float) + count(int) + particle(ParticleOptions)。
  */
 struct LevelParticles {
     bool overrideLimiter;
@@ -129,7 +179,7 @@ struct LevelParticles {
     f32 zDist;
     f32 maxSpeed;
     i32 count;
-    std::vector<u8> particle; // opaque：ParticleOptions
+    ParticleOptions particle;
     BedrockMeta bedrock{};
 };
 

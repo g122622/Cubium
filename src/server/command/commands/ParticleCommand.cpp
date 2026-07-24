@@ -91,7 +91,7 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
 
     // 广播粒子效果
     // 默认速度为 0，数量为 1，偏移为 0
-    // 粒子广播范围为 256 格（与 ParticlePacket 默认范围一致）
+    // 粒子广播范围为 256 格（与 LevelParticles 默认范围一致）
     server->broadcastParticleInRange(static_cast<u32>(particleType.value()),
         pos.x,
         pos.y,

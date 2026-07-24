@@ -61,7 +61,6 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/packet/ExplosionPacket.hpp"
-#include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -166,26 +165,25 @@ void appendVarUInt(std::vector<u8>& out, u32 value)
     out.push_back(static_cast<u8>(value & 0x7F));
 }
 
-/// 把旧 ParticlePacket 转为 1.21.11 LevelParticles IR。
-/// TODO(Phase6): ParticleOptions opaque 未对齐 1.21.11 ParticleTypes codec。
-///   particle 字段透传旧 ParticlePacket::serialize() 全量字节，客户端按同格式反解（我方互通成立）。
-[[nodiscard]] mc::network::ir::IrPacket buildParticleIr(const network::ParticlePacket& packet)
+/// 构造 LevelParticles IR（1.21.11，对齐 ClientboundLevelParticlesPacket）。
+///
+/// 外层字段取自广播参数：位置/偏移/count；maxSpeed 沿用旧实现固定 0（客户端按
+/// 偏移扇出，不消费该字段）。ParticleOptions 由调用方按粒子类型预先填充。
+[[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
+    const Vector3& pos, const Vector3& offset, u32 count, mc::network::ir::play::ParticleOptions options)
 {
-    auto result = packet.serialize();
     mc::network::ir::play::LevelParticles pkt;
     pkt.overrideLimiter = false;
     pkt.alwaysShow = false;
-    pkt.x = packet.x();
-    pkt.y = packet.y();
-    pkt.z = packet.z();
-    pkt.xDist = packet.offsetX();
-    pkt.yDist = packet.offsetY();
-    pkt.zDist = packet.offsetZ();
+    pkt.x = pos.x;
+    pkt.y = pos.y;
+    pkt.z = pos.z;
+    pkt.xDist = offset.x;
+    pkt.yDist = offset.y;
+    pkt.zDist = offset.z;
     pkt.maxSpeed = 0.0f;
-    pkt.count = static_cast<i32>(packet.count());
-    if (result.success()) {
-        pkt.particle = std::move(result.value());
-    }
+    pkt.count = static_cast<i32>(count);
+    pkt.particle = std::move(options);
     return mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{std::move(pkt)},
@@ -3296,8 +3294,9 @@ void MinecraftServer::broadcastParticleInRange(particle::ParticleTypeId type,
     u32 count,
     f32 range)
 {
-    network::ParticlePacket packet(type, pos, velocity, offset, count);
-    auto irPacket = buildParticleIr(packet);
+    mc::network::ir::play::ParticleOptions options;
+    options.type = type;
+    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
@@ -3326,31 +3325,35 @@ void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
     const Vector3& offset,
     u32 count)
 {
-    network::ParticlePacket packet(type, pos, velocity, offset, count);
-    auto irPacket = buildParticleIr(packet);
+    mc::network::ir::play::ParticleOptions options;
+    options.type = type;
+    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
     sendPacketToPlayer(playerId, irPacket);
 }
 
 void MinecraftServer::broadcastVibrationParticleInRange(
     const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks, f32 range)
 {
-    // 根据 PositionSource 类型选择对应的 createVibration 重载，
-    // 以确保网络序列化格式与 MC Java 1.21.11 VibrationParticleOption.STREAM_CODEC 一致：
-    // - BlockPositionSource -> VarInt(0) + i64 packedBlockPos
-    // - EntityPositionSource -> VarInt(1) + VarInt entityId + f32 yOffset
-    network::ParticlePacket packet;
+    // VibrationParticleOption.STREAM_CODEC = PositionSource + VAR_INT arrivalInTicks
+    // PositionSource = VarInt(kind: 0=Block 1=Entity)
+    //   kind=0: i64 packedBlockPos；kind=1: VarInt entityId + FLOAT yOffset
+    mc::network::ir::play::ParticleOptions options;
+    options.type = particle::ParticleTypeId::Vibration;
+    options.arrivalInTicks = arrivalInTicks;
     const std::string sourceType = targetSource.type();
     if (sourceType == "entity") {
         const auto& entitySource = static_cast<const gameevent::EntityPositionSource&>(targetSource);
-        packet = network::ParticlePacket::createVibration(
-            pos, entitySource.entityId(), entitySource.yOffset(), arrivalInTicks);
+        options.vibrationSourceKind = 1;
+        options.vibrationEntityId = static_cast<i32>(entitySource.entityId());
+        options.vibrationYOffset = entitySource.yOffset();
     } else {
         // 默认按方块位置源处理（"block" 或任何未知类型）
         const auto& blockSource = static_cast<const gameevent::BlockPositionSource&>(targetSource);
-        packet = network::ParticlePacket::createVibration(pos, blockSource.pos(), arrivalInTicks);
+        options.vibrationSourceKind = 0;
+        options.vibrationBlockPosPacked = blockSource.pos().asLong();
     }
 
-    auto irPacket = buildParticleIr(packet);
+    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
 
     // 只发送给范围内的玩家
     m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -3373,8 +3376,15 @@ void MinecraftServer::broadcastVibrationParticleInRange(
 void MinecraftServer::broadcastTrailParticleInRange(
     const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks, f32 range)
 {
-    network::ParticlePacket packet = network::ParticlePacket::createTrail(pos, targetPosition, color, durationInTicks);
-    auto irPacket = buildParticleIr(packet);
+    // TrailParticleOption.STREAM_CODEC = Vec3(3×F64 target) + INT color(ARGB) + VAR_INT duration
+    mc::network::ir::play::ParticleOptions options;
+    options.type = particle::ParticleTypeId::Trail;
+    options.trailTargetX = targetPosition.x;
+    options.trailTargetY = targetPosition.y;
+    options.trailTargetZ = targetPosition.z;
+    options.color = color;
+    options.trailDuration = durationInTicks;
+    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
 
     // 只发送给范围内的玩家
     m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -3397,8 +3407,11 @@ void MinecraftServer::broadcastTrailParticleInRange(
 void MinecraftServer::broadcastEntityEffectParticleInRange(
     const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color, f32 range)
 {
-    network::ParticlePacket packet = network::ParticlePacket::createEntityEffect(pos, velocity, offset, count, color);
-    auto irPacket = buildParticleIr(packet);
+    // ColorParticleOption(ENTITY_EFFECT).STREAM_CODEC = INT color（ARGB 大端）
+    mc::network::ir::play::ParticleOptions options;
+    options.type = particle::ParticleTypeId::EntityEffect;
+    options.color = color;
+    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
 
     // 只发送给范围内的玩家
     m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -3421,9 +3434,11 @@ void MinecraftServer::broadcastEntityEffectParticleInRange(
 void MinecraftServer::broadcastBlockParticleInRange(
     particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, u32 blockStateId, f32 range)
 {
-    network::ParticlePacket packet =
-        network::ParticlePacket::createBlock(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1, blockStateId);
-    auto irPacket = buildParticleIr(packet);
+    // BlockParticleOption.STREAM_CODEC = VarInt(blockStateId)
+    mc::network::ir::play::ParticleOptions options;
+    options.type = type;
+    options.blockStateId = blockStateId;
+    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
 
     // 只发送给范围内的玩家
     m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -3446,9 +3461,11 @@ void MinecraftServer::broadcastBlockParticleInRange(
 void MinecraftServer::broadcastItemParticleInRange(
     particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack, f32 range)
 {
-    network::ParticlePacket packet =
-        network::ParticlePacket::createItem(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1, itemStack);
-    auto irPacket = buildParticleIr(packet);
+    // ItemParticleOption.STREAM_CODEC = 完整 ItemStack wire（VarInt count + Item holder + DataComponentPatch）
+    mc::network::ir::play::ParticleOptions options;
+    options.type = type;
+    options.item = mc::network::ir::toItemStackView(itemStack);
+    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
 
     // 只发送给范围内的玩家
     m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {

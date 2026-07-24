@@ -987,7 +987,7 @@ protected:
      * @brief 广播振动粒子给指定范围内的玩家
      *
      * 振动粒子需要携带目标位置来源和到达时间信息，与普通粒子包不同。
-     * 使用 ParticlePacket 的振动粒子扩展格式，按 PositionSource 类型序列化：
+     * 使用 LevelParticles 的 ParticleOptions(Vibration) 编码，按 PositionSource 类型序列化：
      * - BlockPositionSource: VarInt(0) + i64 packedBlockPos
      * - EntityPositionSource: VarInt(1) + VarInt entityId + f32 yOffset
      *

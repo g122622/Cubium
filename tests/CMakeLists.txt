@@ -1006,18 +1006,6 @@ add_executable(mc_tests
     client/resource/AnimationTextureTest.cpp
     client/resource/test_resource_manager_cloud_texture.cpp
     network/EntityPacketsTest.cpp
-    network/ParticlePacketTest.cpp
-    network/ParticlePacketVibrationTest.cpp
-    # DustParticleData 粒子数据包测试
-    network/ParticlePacketDustTest.cpp
-    # TrailParticleData 粒子数据包测试
-    network/ParticlePacketTrailTest.cpp
-    # EntityEffect 粒子数据包测试
-    network/ParticlePacketEntityEffectTest.cpp
-    # Block 方块粒子数据包测试（携带方块状态 ID）
-    network/ParticlePacketBlockTest.cpp
-    # Item 物品粒子数据包测试（携带物品堆）
-    network/ParticlePacketItemTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     common/entity/loot/LootTest.cpp
