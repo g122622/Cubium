@@ -47,11 +47,9 @@ add_library(mc_common STATIC
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp
     network/packet/EntityMetadataSerializer.cpp
-    network/packet/ExperiencePackets.cpp
     network/packet/ParticlePacket.cpp
     network/packet/ExplosionPacket.cpp
     network/packet/MapDataPacket.cpp
-    network/packet/TitlePacket.cpp
 
     # Network - 新网络层骨架（IR + 多后端，旧 packet 体系并存过渡）
     network/buffer/Endian.cpp

@@ -1024,7 +1024,6 @@ add_executable(mc_tests
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/LocalServerConnectionTest.cpp
-    network/TitlePacketTest.cpp
     # 方块实体数据同步包序列化/反序列化测试（含 NBT 往返、错误路径）
     network/BlockEntityDataPacketTest.cpp
     common/entity/loot/LootTest.cpp

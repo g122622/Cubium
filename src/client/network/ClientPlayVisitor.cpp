@@ -62,7 +62,7 @@
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/packet/EntityPackets.hpp" // EntityAnimationPacket::Animation / EntityStatusPacket::Status 枚举（Step5 删旧体系时迁出）
 #include "common/network/packet/InventoryPackets.hpp" // ClickAction 枚举
-#include "common/network/packet/TitlePacket.hpp"      // TitleAction 枚举（TitleWidget::handleTitlePacket 仍用）
+#include "common/network/protocol/TitleActions.hpp"   // TitleAction 枚举（TitleWidget::handleTitlePacket 用）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"

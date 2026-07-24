@@ -57,7 +57,6 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/resource/ResourceLocation.hpp"
