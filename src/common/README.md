@@ -174,7 +174,7 @@ src/common/
 │   ├── pipeline/             # 连接管线（Connection 门面 + cipher/compress/framing handler）
 │   ├── backend/              # 协议后端（java/1.21.11 线协议 + bedrock/ stub）
 │   ├── crypto/               # 加密原语
-│   ├── packet/               # 【Phase6 桥接包】旧 1.16.5 数据包残留（Packet/PacketSerializer/EntityPackets/InventoryPackets/ContainerPacketHandler/ExplosionPacket/ParticlePacket/...）
+│   ├── packet/               # 【Phase6 桥接包】旧 1.16.5 数据包残留（Packet/PacketSerializer/EntityPackets/InventoryPackets/ContainerPacketHandler/...）
 │   └── sync/                 # 同步系统（ChunkSync）
 │
 ├── profiler/                 # 性能追踪（Perfetto + Tracy 双轨）

@@ -1780,11 +1780,42 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 }
                 return Result<void>::ok();
             }
-            // ---- 爆炸（opaque，TODO Phase6）----
+            // ---- 爆炸（1.21.11 结构化：center/radius/blockCount/knockback/particle/sound）----
             else if constexpr (std::is_same_v<T, irplay::Explosion>) {
-                // TODO(Phase6): 解析 1.21.11 Explosion（explosionData+particle+sound），
-                // 还原 position/affectedBlocks/motion 喂 onExplosion 逻辑。
-                (void)pkt;
+                const auto& p = pkt;
+                const Vector3 center(
+                    static_cast<f32>(p.centerX), static_cast<f32>(p.centerY), static_cast<f32>(p.centerZ));
+                const Vector3 zeroVel(0.0f, 0.0f, 0.0f);
+                const Vector3 zeroOffset(0.0f, 0.0f, 0.0f);
+
+                // 1. 生成爆炸主粒子（对应 Java level.addParticle(EXPLOSION, x,y,z,...)）
+                auto& world = m_app.m_world;
+                const ::mc::particle::ParticleTypeId particleType = p.explosionParticle.type;
+                if (particleType != ::mc::particle::ParticleTypeId::Invalid) {
+                    world.addParticle(particleType, center, zeroVel, zeroOffset, 1u);
+                }
+
+                // 2. 播放爆炸音效（对应 Java level.playLocalSound(x,y,z, GENERIC_EXPLODE, ...)）
+                // 服务端用内联 SoundEvent 发送 "minecraft:entity.generic.explode"，此处复现。
+                if (m_app.m_audioService && p.explosionSound.direct) {
+                    auto sound =
+                        mc::client::sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_GENERIC_EXPLODE,
+                            mc::sound::SoundCategory::Blocks,
+                            center.x,
+                            center.y,
+                            center.z,
+                            4.0f, // 爆炸音效默认音量（MC Java GENERIC_EXPLODE 衰减因子 4.0）
+                            1.0f);
+                    m_app.m_audioService->play(std::make_unique<mc::client::sound::SoundInstance>(std::move(sound)));
+                }
+
+                // 3. 应用本地玩家击退（对应 Java player.addDeltaMovement(knockback)）。
+                //    击退仅对本地玩家生效（服务端已按 targetPlayerId 过滤），客户端累加到现有速度。
+                if (p.hasPlayerKnockback && m_app.m_player) {
+                    m_app.m_player->addVelocity(
+                        static_cast<f32>(p.knockbackX), static_cast<f32>(p.knockbackY), static_cast<f32>(p.knockbackZ));
+                }
+
                 return Result<void>::ok();
             }
             // ---- 地图数据（opaque，TODO Phase6）----

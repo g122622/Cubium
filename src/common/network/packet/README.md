@@ -36,8 +36,6 @@ src/common/network/packet/
 ├── DimensionPackets.cpp           # 维度数据包实现
 ├── SpawnPositionPacket.hpp        # 世界出生点数据包
 ├── SpawnPositionPacket.cpp        # 世界出生点包实现
-├── ExplosionPacket.hpp            # 爆炸事件数据包
-├── ExplosionPacket.cpp            # 爆炸事件包实现
 ├── TitlePacket.hpp                # 标题显示包
 ├── TitlePacket.cpp                # 标题显示包实现
 ├── SleepPacket.hpp                # 睡眠状态同步包
@@ -47,8 +45,7 @@ src/common/network/packet/
 ├── AdvancementPackets.cpp         # 成就数据包实现
 ├── SetCameraPacket.hpp            # 旁观者摄像机同步包 (S2C)
 ├── SetCameraPacket.cpp            # 旁观者摄像机同步包实现
-├── ParticlePacket.hpp             # 粒子同步包 (S2C)（普通/方块/物品/EntityEffect/Vibration/Trail）
-└── ParticlePacket.cpp             # 粒子同步包实现
+└── ParticlePacket.hpp             # （已删除，迁入 ir::play::LevelParticles 的 ParticleOptions）
 ```
 
 ## 内部模块关系

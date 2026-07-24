@@ -1047,17 +1047,134 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 }
 
 // ============================================================================
-// 爆炸（S→C，opaque）
+// 爆炸（S→C）
 // ============================================================================
 
-/// Explosion（S→C，id=36，opaque）
+namespace play_ext_detail {
+
+/**
+ * @brief 写 Holder<SoundEvent>（1.21.11，对齐 ByteBufCodecs.holder）
+ *
+ * 内联模式（direct=true）：VarInt(0) + Identifier(string) + Optional<Float>(bool + f32)
+ * 引用模式（direct=false）：VarInt(referenceId + 1)
+ */
+inline void writeSoundEventHolder(B& buf, const ir::play::SoundEventHolder& v)
+{
+    if (v.direct) {
+        buf.writeVarInt(0);
+        buf.writeString(v.identifier);
+        buf.writeBool(v.hasFixedRange);
+        if (v.hasFixedRange) {
+            buf.writeF32(v.fixedRange);
+        }
+    } else {
+        buf.writeVarInt(v.referenceId + 1);
+    }
+}
+
+/**
+ * @brief 读 Holder<SoundEvent>
+ *
+ * 引用模式（mode>0）：仅 holder id（mode-1），本项目无 sound registry id 表，
+ * 保留 referenceId 供后续对齐真 Java 时查表；当前我方互通统一用内联模式。
+ */
+[[nodiscard]] inline Result<ir::play::SoundEventHolder> readSoundEventHolder(B& buf)
+{
+    ir::play::SoundEventHolder v{};
+    i32 mode = 0;
+    MC_TRY_ASSIGN(mode, buf.readVarInt());
+    if (mode == 0) {
+        v.direct = true;
+        MC_TRY_ASSIGN(v.identifier, buf.readString());
+        MC_TRY_ASSIGN(v.hasFixedRange, buf.readBool());
+        if (v.hasFixedRange) {
+            MC_TRY_ASSIGN(v.fixedRange, buf.readF32());
+        }
+    } else {
+        v.direct = false;
+        v.referenceId = mode - 1;
+    }
+    return v;
+}
+
+/**
+ * @brief 写 WeightedList<ExplosionParticleInfo>
+ *
+ * 线格式：INT(count) + count×{ ExplosionParticleInfo + INT(weight) }
+ */
+inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::ExplosionParticleInfo>& v)
+{
+    buf.writeI32(static_cast<i32>(v.size()));
+    for (const auto& e : v) {
+        writeParticleOptions(buf, e.particle);
+        buf.writeF32(e.scaling);
+        buf.writeF32(e.speed);
+        buf.writeI32(1); // weight（我方互通统一权重 1）
+    }
+}
+
+[[nodiscard]] inline Result<std::vector<ir::play::ExplosionParticleInfo>> readExplosionParticleList(B& buf)
+{
+    std::vector<ir::play::ExplosionParticleInfo> out;
+    i32 count = 0;
+    MC_TRY_ASSIGN(count, buf.readI32());
+    if (count < 0) {
+        return Error(ErrorCode::InvalidData, "ExplosionParticleInfo count is negative", "readExplosionParticleList");
+    }
+    out.reserve(static_cast<usize>(count));
+    for (i32 i = 0; i < count; ++i) {
+        ir::play::ExplosionParticleInfo e{};
+        MC_TRY_ASSIGN(e.particle, readParticleOptions(buf));
+        MC_TRY_ASSIGN(e.scaling, buf.readF32());
+        MC_TRY_ASSIGN(e.speed, buf.readF32());
+        i32 weight = 0;
+        MC_TRY_ASSIGN(weight, buf.readI32());
+        (void)weight; // 我方互通统一权重，读侧丢弃
+        out.push_back(std::move(e));
+    }
+    return out;
+}
+
+} // namespace play_ext_detail
+
+/// Explosion（S→C，id=36，1.21.11 结构化）
 [[nodiscard]] inline auto explosionCodec()
 {
     return makeCodec<ir::play::Explosion>(
-        [](B& buf, const ir::play::Explosion& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf, const ir::play::Explosion& v) {
+            // Vec3 center
+            buf.writeF64(v.centerX);
+            buf.writeF64(v.centerY);
+            buf.writeF64(v.centerZ);
+            buf.writeF32(v.radius);
+            buf.writeI32(v.blockCount);
+            // Optional<Vec3> playerKnockback
+            buf.writeBool(v.hasPlayerKnockback);
+            if (v.hasPlayerKnockback) {
+                buf.writeF64(v.knockbackX);
+                buf.writeF64(v.knockbackY);
+                buf.writeF64(v.knockbackZ);
+            }
+            play_ext_detail::writeParticleOptions(buf, v.explosionParticle);
+            play_ext_detail::writeSoundEventHolder(buf, v.explosionSound);
+            play_ext_detail::writeExplosionParticleList(buf, v.blockParticles);
+        },
         [](B& buf) -> Result<ir::play::Explosion> {
             ir::play::Explosion v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "explosionCodec"));
+            MC_TRY_ASSIGN(v.centerX, buf.readF64());
+            MC_TRY_ASSIGN(v.centerY, buf.readF64());
+            MC_TRY_ASSIGN(v.centerZ, buf.readF64());
+            MC_TRY_ASSIGN(v.radius, buf.readF32());
+            MC_TRY_ASSIGN(v.blockCount, buf.readI32());
+            MC_TRY_ASSIGN(v.hasPlayerKnockback, buf.readBool());
+            if (v.hasPlayerKnockback) {
+                MC_TRY_ASSIGN(v.knockbackX, buf.readF64());
+                MC_TRY_ASSIGN(v.knockbackY, buf.readF64());
+                MC_TRY_ASSIGN(v.knockbackZ, buf.readF64());
+            }
+            MC_TRY_ASSIGN(v.explosionParticle, play_ext_detail::readParticleOptions(buf));
+            MC_TRY_ASSIGN(v.explosionSound, play_ext_detail::readSoundEventHolder(buf));
+            MC_TRY_ASSIGN(v.blockParticles, play_ext_detail::readExplosionParticleList(buf));
             return v;
         });
 }

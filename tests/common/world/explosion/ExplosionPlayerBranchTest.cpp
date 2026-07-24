@@ -120,7 +120,7 @@ protected:
 
 TEST_F(ExplosionPlayerBranchTest, PlayerVelocity_UnchangedAfterExplosion)
 {
-    // 验证修复后：爆炸中玩家服务端速度不变（击退通过 ExplosionPacket 由客户端应用）
+    // 验证修复后：爆炸中玩家服务端速度不变（击退通过 Explosion IR 由客户端应用）
     Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
@@ -136,7 +136,7 @@ TEST_F(ExplosionPlayerBranchTest, PlayerVelocity_UnchangedAfterExplosion)
     explosion.explode();
 
     const Vector3 velocityAfter = player.velocity();
-    // 服务端玩家速度完全不变（击退由客户端通过 ExplosionPacket 累加）
+    // 服务端玩家速度完全不变（击退由客户端通过 Explosion IR 累加）
     EXPECT_FLOAT_EQ(velocityAfter.x, velocityBefore.x);
     EXPECT_FLOAT_EQ(velocityAfter.y, velocityBefore.y);
     EXPECT_FLOAT_EQ(velocityAfter.z, velocityBefore.z);
@@ -301,7 +301,7 @@ TEST_F(ExplosionPlayerBranchTest, PlayerKnockback_UsesEPFReducedVector)
     Explosion explosion(m_world, m_explosionPos, 4.0f, ExplosionMode::None);
     explosion.explode();
 
-    // 玩家击退向量（将通过 ExplosionPacket 发送）
+    // 玩家击退向量（将通过 Explosion IR 发送）
     const auto& knockback = explosion.playerKnockback();
     ASSERT_EQ(knockback.size(), 1u);
     const Vector3& playerKnockbackVec = knockback.at(static_cast<u64>(player.id()));

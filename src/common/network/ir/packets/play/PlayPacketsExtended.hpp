@@ -608,19 +608,60 @@ struct SetExperience {
 };
 
 // ----------------------------------------------------------------------------
-// 爆炸（S→C，opaque）
+// 爆炸（S→C）
 // ----------------------------------------------------------------------------
 
 /**
- * @brief Explosion（S→C，id=36，1.21.11 结构，opaque）
+ * @brief Holder<SoundEvent>（1.21.11，对齐 ByteBufCodecs.holder）
  *
- * 1.21.11 已无 BlockInteraction 枚举与 affectedBlocks 列表，改为 blockCount:int +
- * WeightedList<ExplosionParticleInfo> + ParticleOptions explosionParticle +
- * Holder<SoundEvent> explosionSound。整体 opaque。
- * TODO(Phase6): 完整爆炸粒子表解析。
+ * 线格式：VarInt(mode)——0=内联（DIRECT），>0=引用（registry holder id = mode-1）。
+ * - 内联：Identifier(VarInt len + UTF-8) + Optional<Float>(bool present + f32 fixedRange)
+ * - 引用：仅 VarInt id（本项目无 sound registry 整数 id 表，引用模式不可还原，
+ *   故我方互通统一用内联模式编码；解码兼容两种模式但引用模式无资源可查）。
+ */
+struct SoundEventHolder {
+    bool direct = true;        // true=内联，false=引用
+    std::string identifier;    // direct=true 时有效（如 "minecraft:entity.generic.explode"）
+    bool hasFixedRange = false;
+    f32 fixedRange = 0.0f;
+    i32 referenceId = 0;       // direct=false 时有效（Java holder id - 1）
+};
+
+/**
+ * @brief ExplosionParticleInfo（1.21.11 爆炸粒子表条目）
+ *
+ * 线格式：ParticleOptions + FLOAT scaling + FLOAT speed。
+ */
+struct ExplosionParticleInfo {
+    ParticleOptions particle;
+    f32 scaling = 1.0f;
+    f32 speed = 1.0f;
+};
+
+/**
+ * @brief Explosion（S→C，id=36，1.21.11 结构化）
+ *
+ * 对齐 ClientboundExplodePacket.STREAM_CODEC：
+ * Vec3 center + FLOAT radius + INT blockCount + Optional<Vec3> playerKnockback +
+ * ParticleOptions explosionParticle + Holder<SoundEvent> explosionSound +
+ * WeightedList<ExplosionParticleInfo> blockParticles。
+ *
+ * 1.21.11 已无 affectedBlocks 列表（改为 blockCount:int + blockParticles 粒子表）；
+ * 客户端击退由 playerKnockback(Optional<Vec3>) 承载。
  */
 struct Explosion {
-    std::vector<u8> payload; // opaque
+    f64 centerX;
+    f64 centerY;
+    f64 centerZ;
+    f32 radius;
+    i32 blockCount;
+    bool hasPlayerKnockback;   // Optional<Vec3>
+    f64 knockbackX;
+    f64 knockbackY;
+    f64 knockbackZ;
+    ParticleOptions explosionParticle;
+    SoundEventHolder explosionSound;
+    std::vector<ExplosionParticleInfo> blockParticles; // WeightedList（权重在 codec 侧读写，IR 不承载）
     BedrockMeta bedrock{};
 };
 

@@ -79,9 +79,7 @@ network/
 │   ├── EntityMetadataSerializer.hpp/cpp # 实体元数据序列化（MC 1.16.5 格式）
 │   ├── InventoryPackets.hpp/cpp         # 背包/容器包（含 WindowPropertyPacket、ContainerClickPacket）
 │   ├── ContainerPacketHandler.hpp/cpp   # 容器包处理器（live，IntegratedServer/ContainerManager 使用）
-│   ├── ExplosionPacket.hpp/cpp          # 爆炸事件包
 │   ├── MapDataPacket.hpp/cpp            # 地图数据包
-│   ├── ParticlePacket.hpp/cpp           # 粒子效果包
 │   └── README.md
 └── sync/                                # 同步层（旧，区块序列化）
     ├── Sync.hpp
@@ -121,14 +119,14 @@ network/
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │            packet/ (Phase6 桥接包，旧 1.16.5 协议残留，仍接 live)            │
 │   Packet / PacketSerializer / ProtocolPackets / EntityPackets /             │
-│   InventoryPackets / ContainerPacketHandler / ExplosionPacket / ...         │
+│   InventoryPackets / ContainerPacketHandler / ...         │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **模块交互**：
 - 新架构主路径：业务代码 → `pipeline::Connection::send(ir::IrPacket)` → codec 编码 → transport 发送
 - `ir/` 是协议无关的包数据模型；`backend/` 提供 Java/基岩 wire codec；`transport/` 负责实际字节流收发
-- `packet/` 是 Phase6 桥接层，仍被 `ContainerPacketHandler`、`ExplosionPacket`、`ParticlePacket` 等 live 路径使用，新代码不应再依赖
+- `packet/` 是 Phase6 桥接层，仍被 `ContainerPacketHandler` 等 live 路径使用，新代码不应再依赖
 - `sync/` 依赖 `packet/` 进行区块数据序列化（Phase6 待迁移）
 
 ## 上下游外部依赖关系

@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/network/packet/ExplosionPacket.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -197,43 +196,4 @@ TEST_F(ServerWorldExplosionCallbackTest, ResetCallback_OverwritesPrevious)
 
     EXPECT_EQ(firstCallbackCount, 1u);
     EXPECT_EQ(secondCallbackCount, 1u);
-}
-
-TEST_F(ServerWorldExplosionCallbackTest, ExplosionPacket_UsesCollectedKnockbackForTargetPlayer)
-{
-    // 端到端验证：广播时传入的 playerKnockback 映射可被 ExplosionPacket 用于
-    // 按 targetPlayerId 提取对应玩家的击退向量
-    // 这验证了 ServerWorld::broadcastExplosion 传入的 knockback 与 ExplosionPacket 的对接契约
-    std::unordered_map<u64, Vector3> capturedKnockback;
-    m_world->setOnBroadcastExplosion(
-        [&](const Vector3&,
-            f32,
-            const std::vector<BlockPos>&,
-            const std::unordered_map<u64, Vector3>& playerKnockback) { capturedKnockback = playerKnockback; });
-
-    std::unordered_map<u64, Vector3> expectedKnockback = {
-        {1ULL, Vector3(0.5f, 1.0f, 0.2f)},
-        {2ULL, Vector3(-0.3f, 0.8f, 0.1f)},
-        {3ULL, Vector3(0.0f, 0.5f, -0.4f)},
-    };
-
-    m_world->broadcastExplosion(Vector3(0.0f, 64.0f, 0.0f), 2.0f, {}, expectedKnockback);
-
-    // 模拟 MinecraftServer::sendExplosionToPlayer 的行为：
-    // 为每个玩家构造 ExplosionPacket，从 capturedKnockback 中按 ID 取击退
-    network::ExplosionPacket packet1({}, 2.0f, {}, capturedKnockback, 1ULL);
-    EXPECT_FLOAT_EQ(packet1.motionX(), 0.5f);
-    EXPECT_FLOAT_EQ(packet1.motionY(), 1.0f);
-    EXPECT_FLOAT_EQ(packet1.motionZ(), 0.2f);
-
-    network::ExplosionPacket packet2({}, 2.0f, {}, capturedKnockback, 2ULL);
-    EXPECT_FLOAT_EQ(packet2.motionX(), -0.3f);
-    EXPECT_FLOAT_EQ(packet2.motionY(), 0.8f);
-    EXPECT_FLOAT_EQ(packet2.motionZ(), 0.1f);
-
-    // 不在映射中的玩家收到零击退
-    network::ExplosionPacket packet999({}, 2.0f, {}, capturedKnockback, 999ULL);
-    EXPECT_FLOAT_EQ(packet999.motionX(), 0.0f);
-    EXPECT_FLOAT_EQ(packet999.motionY(), 0.0f);
-    EXPECT_FLOAT_EQ(packet999.motionZ(), 0.0f);
 }

@@ -1564,7 +1564,7 @@ public:
     /**
      * @brief 广播爆炸事件给附近玩家
      *
-     * 向爆炸点附近（默认 64 格）的玩家发送 ExplosionPacket，
+     * 向爆炸点附近（默认 64 格）的玩家发送 1.21.11 Explosion IR，
      * 包含爆炸位置、威力、受影响方块列表以及每个玩家的击退向量。
      *
      * ServerWorld 重写此方法，通过 `m_onBroadcastExplosion` 回调委托给

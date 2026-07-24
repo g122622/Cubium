@@ -60,7 +60,6 @@
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/ExplosionPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -3787,16 +3786,25 @@ void MinecraftServer::sendExplosionToPlayer(PlayerId playerId,
     const std::vector<BlockPos>& affectedBlocks,
     const std::unordered_map<u64, Vector3>& playerKnockback)
 {
-    // 创建爆炸包，包含该玩家的击退向量
-    network::ExplosionPacket packet(position, strength, affectedBlocks, playerKnockback, static_cast<u64>(playerId));
-
-    // 1.21.11 Explosion：opaque payload。透传旧 ExplosionPacket 序列化字节，客户端按同格式反解。
-    // TODO(Phase6): 对齐 1.21.11 ClientboundExplosionPacket 的 explosionData + particle + sound。
-    auto result = packet.serialize();
+    // 构造 1.21.11 Explosion IR（结构化：中心/半径/方块数/击退/粒子/声音）
     mc::network::ir::play::Explosion pkt;
-    if (result.success()) {
-        pkt.payload = std::move(result.value());
+    pkt.centerX = position.x;
+    pkt.centerY = position.y;
+    pkt.centerZ = position.z;
+    pkt.radius = strength;
+    pkt.blockCount = static_cast<i32>(affectedBlocks.size());
+    const auto kbIt = playerKnockback.find(static_cast<u64>(playerId));
+    pkt.hasPlayerKnockback = (kbIt != playerKnockback.end());
+    if (pkt.hasPlayerKnockback) {
+        pkt.knockbackX = kbIt->second.x;
+        pkt.knockbackY = kbIt->second.y;
+        pkt.knockbackZ = kbIt->second.z;
     }
+    pkt.explosionParticle.type = particle::ParticleTypeId::Explosion;
+    pkt.explosionSound.direct = true;
+    pkt.explosionSound.identifier = "minecraft:entity.generic.explode";
+    pkt.explosionSound.hasFixedRange = false;
+
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,

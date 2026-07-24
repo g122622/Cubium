@@ -186,7 +186,7 @@ void WindChargeEntity::applyWindBurst()
     const f32 knockbackMultiplier = getKnockbackMultiplier();
     const f32 range = radius * ENTITY_RANGE_MULTIPLIER;
 
-    // 收集每个受影响玩家的击退向量，用于广播 ExplosionPacket
+    // 收集每个受影响玩家的击退向量，用于广播 Explosion IR
     // 对应 MC Java ServerExplosion.hitPlayers 映射
     std::unordered_map<u64, Vector3> playerKnockback;
 
@@ -271,9 +271,9 @@ void WindChargeEntity::applyWindBurst()
             continue;
         }
 
-        // ========== 4. 玩家分支：仅通过 ExplosionPacket 应用击退 ==========
+        // ========== 4. 玩家分支：仅通过 Explosion IR 应用击退 ==========
         // 玩家速度由客户端权威管理（对应 MC Java ServerPlayer 的 client-authoritative motion）。
-        // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 ExplosionPacket 双重应用。
+        // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 Explosion IR 双重应用。
         // 同时清除 LivingEntity::hurt 设置的 hurtMarked，防止 EntityTracker 发送
         // EntityVelocityPacket 覆盖客户端速度。
         Player* player = dynamic_cast<Player*>(entity);
@@ -296,10 +296,10 @@ void WindChargeEntity::applyWindBurst()
             player->hurt(damageSource, PLAYER_DAMAGE);
 
             // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
-            // （玩家速度由客户端通过 ExplosionPacket 应用）
+            // （玩家速度由客户端通过 Explosion IR 应用）
             player->clearHurtMarked();
 
-            // 记录玩家击退向量，将通过 ExplosionPacket 发送给客户端
+            // 记录玩家击退向量，将通过 Explosion IR 发送给客户端
             // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度
             playerKnockback[static_cast<u64>(player->id())] =
                 Vector3(dx * finalImpact, dy * finalImpact, dz * finalImpact);

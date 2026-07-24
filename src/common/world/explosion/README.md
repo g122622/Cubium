@@ -71,7 +71,7 @@ ExplosionContext ◄─────────── Explosion
 `IWorld::broadcastExplosion(position, strength, affectedBlocks, playerKnockback)` 是 common 层访问爆炸同步网络的统一入口：
 
 - 默认空实现，`WorldGenRegion` 等非服务端实现继承空实现
-- `ServerWorld` 重写后委托给 `m_onBroadcastExplosion` 回调（由 `MinecraftServer::attachWorldBindings` 注册），最终调用 `MinecraftServer::broadcastExplosionInRange` 在 64 格范围内逐个发送 `ExplosionPacket`
+- `ServerWorld` 重写后委托给 `m_onBroadcastExplosion` 回调（由 `MinecraftServer::attachWorldBindings` 注册），最终调用 `MinecraftServer::broadcastExplosionInRange` 在 64 格范围内逐个发送 `Explosion IR`
 - `Explosion` 类在 `explode()` 完成后由 `ServerWorld::createExplosion*` 系列方法调用此接口；`WindChargeEntity` 因不破坏方块而独立调用
 
 对应 MC Java 的 `ServerLevel.explode()`：爆炸完成后遍历 64 格（`distanceToSqr < 4096.0`）内玩家发送 `ClientboundExplodePacket`，每个玩家收到的是属于自己的 `Optional<Vec3>` 击退向量（来自 `ServerExplosion.hitPlayers` 映射），客户端 `handleExplosion` 调用 `player.addDeltaMovement(vec)` 累加到现有速度上。
@@ -141,21 +141,21 @@ ExplosionContext ◄─────────── Explosion
 
 ### #10. 玩家击退的双重应用防范
 
-**背景**：`Explosion::_calculateAffectedEntities` 与 `WindChargeEntity::applyWindBurst` 都通过 `IWorld::broadcastExplosion` 把玩家击退向量以 `ExplosionPacket` 形式发给客户端。`ExplosionPacket` 在客户端通过 `addVelocity`（累加）应用击退，对应 MC Java `ClientPacketListener.handleExplosion` 调用 `player.addDeltaMovement(vec)`。
+**背景**：`Explosion::_calculateAffectedEntities` 与 `WindChargeEntity::applyWindBurst` 都通过 `IWorld::broadcastExplosion` 把玩家击退向量以 `Explosion IR` 形式发给客户端。`Explosion IR` 在客户端通过 `addVelocity`（累加）应用击退，对应 MC Java `ClientPacketListener.handleExplosion` 调用 `player.addDeltaMovement(vec)`。
 
 **关键约束**：玩家分支**不能**在服务端调用 `addVelocity` 修改玩家速度，否则：
 
 1. 服务端 `addVelocity` 修改玩家速度 → `LivingEntity::hurt` 已设置 `hurtMarked` → `EntityTracker::tick` 通过 `EntityVelocityPacket`（"AndSelf" 模式）把更新后的速度同步给客户端 → 客户端 `setVelocity` 覆盖本地速度
-2. `ExplosionPacket` 随后到达 → 客户端 `addVelocity` 累加击退 → 双重应用（先被覆盖，再累加，最终速度 = 服务端速度 + 击退，而非 客户端原速度 + 击退）
+2. `Explosion IR` 随后到达 → 客户端 `addVelocity` 累加击退 → 双重应用（先被覆盖，再累加，最终速度 = 服务端速度 + 击退，而非 客户端原速度 + 击退）
 
 **修复方案**（已实施）：玩家分支采用「客户端权威速度」模型，与 MC Java `ServerPlayer` 速度由客户端发包同步回来的设计一致：
 
 1. 玩家分支调用 `hurt()` 造成伤害（`hurt` 内部会设置 `hurtMarked`）
 2. 立即调用 `clearHurtMarked()` 清除标记，阻止 `EntityTracker` 发送 `EntityVelocityPacket`
 3. **不**调用 `addVelocity`（服务端玩家速度保持不变，等待客户端通过 `ServerboundMovePlayerPacket` 同步回来）
-4. 把击退向量写入 `playerKnockback` 映射，通过 `ExplosionPacket` 发送给客户端
+4. 把击退向量写入 `playerKnockback` 映射，通过 `Explosion IR` 发送给客户端
 5. 客户端 `onExplosion` 回调调用 `addVelocity` 累加击退到本地玩家速度
 
 **非玩家实体**（生物、掉落物等）仍由服务端权威同步速度：调用 `addVelocity` 修改服务端速度，依赖 `LivingEntity::hurt` 设置的 `hurtMarked` 通过 `EntityVelocityPacket` 同步给追踪此实体的客户端。
 
-**EPF 一致性**：玩家分支与非玩家生物分支都使用 EPF 衰减后的 `knockback` 值（`impact * (1 - EPF * 0.15)`），保证 `ExplosionPacket` 中的击退向量与服务端（若有）应用的一致。对应 MC Java `ServerExplosion.hurtEntities` 第 197 行：`Vec3 vec32 = vec31.scale(d2)` 计算一次，`entity.push(vec32)` 与 `hitPlayers.put(player, vec32)` 共用同一向量。
+**EPF 一致性**：玩家分支与非玩家生物分支都使用 EPF 衰减后的 `knockback` 值（`impact * (1 - EPF * 0.15)`），保证 `Explosion IR` 中的击退向量与服务端（若有）应用的一致。对应 MC Java `ServerExplosion.hurtEntities` 第 197 行：`Vec3 vec32 = vec31.scale(d2)` 计算一次，`entity.push(vec32)` 与 `hitPlayers.put(player, vec32)` 共用同一向量。

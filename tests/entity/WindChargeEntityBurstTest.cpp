@@ -263,7 +263,7 @@ TEST_F(WindChargeEntityBurstTest, KnockbackVector_MatchesAppliedVelocity)
     //
     // 对应 MC Java: ServerPlayer 的 motion 是 client-authoritative，服务端不通过 SetEntityMotionPacket
     // 把自身速度同步给自己。Cubium 的 EntityTracker 采用 "AndSelf" 模式，因此玩家分支必须显式
-    // 跳过 addVelocity 并 clearHurtMarked，让击退仅通过 ExplosionPacket 在客户端应用。
+    // 跳过 addVelocity 并 clearHurtMarked，让击退仅通过 Explosion IR 在客户端应用。
     Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(1.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
@@ -279,7 +279,7 @@ TEST_F(WindChargeEntityBurstTest, KnockbackVector_MatchesAppliedVelocity)
     const Vector3 velocityAfter = player.velocity();
     const Vector3 appliedDelta = velocityAfter - velocityBefore;
 
-    // 修复后：服务端玩家速度不变（击退通过 ExplosionPacket 由客户端应用）
+    // 修复后：服务端玩家速度不变（击退通过 Explosion IR 由客户端应用）
     EXPECT_FLOAT_EQ(appliedDelta.x, 0.0f);
     EXPECT_FLOAT_EQ(appliedDelta.y, 0.0f);
     EXPECT_FLOAT_EQ(appliedDelta.z, 0.0f);
@@ -299,7 +299,7 @@ TEST_F(WindChargeEntityBurstTest, KnockbackVector_MatchesAppliedVelocity)
 TEST_F(WindChargeEntityBurstTest, PlayerVelocity_UnchangedAfterBurst)
 {
     // 额外验证：生存模式玩家被风弹击中后，服务端速度保持不变
-    // （击退仅通过 ExplosionPacket 在客户端应用）
+    // （击退仅通过 Explosion IR 在客户端应用）
     Player player(EntityInstanceId(2), "SurvivalPlayer");
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
@@ -315,7 +315,7 @@ TEST_F(WindChargeEntityBurstTest, PlayerVelocity_UnchangedAfterBurst)
     accessor.applyWindBurst();
 
     const Vector3 velocityAfter = player.velocity();
-    // 服务端玩家速度完全不变（击退由客户端通过 ExplosionPacket 累加）
+    // 服务端玩家速度完全不变（击退由客户端通过 Explosion IR 累加）
     EXPECT_FLOAT_EQ(velocityAfter.x, velocityBefore.x);
     EXPECT_FLOAT_EQ(velocityAfter.y, velocityBefore.y);
     EXPECT_FLOAT_EQ(velocityAfter.z, velocityBefore.z);

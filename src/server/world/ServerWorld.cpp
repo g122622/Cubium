@@ -2673,7 +2673,7 @@ void ServerWorld::broadcastExplosion(const Vector3& position,
     const std::vector<BlockPos>& affectedBlocks,
     const std::unordered_map<u64, Vector3>& playerKnockback)
 {
-    // 委托给 MinecraftServer 注册的回调，按 64 格范围筛选玩家并逐个发送 ExplosionPacket
+    // 委托给 MinecraftServer 注册的回调，按 64 格范围筛选玩家并逐个发送 1.21.11 Explosion IR
     if (m_onBroadcastExplosion) {
         m_onBroadcastExplosion(position, strength, affectedBlocks, playerKnockback);
     }

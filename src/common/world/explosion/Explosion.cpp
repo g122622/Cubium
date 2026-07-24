@@ -333,8 +333,8 @@ void Explosion::_calculateAffectedEntities()
             }
 
             // ========== 玩家分支 ==========
-            // 玩家的击退完全由客户端通过 ExplosionPacket 应用（client-authoritative），
-            // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 ExplosionPacket 双重应用。
+            // 玩家的击退完全由客户端通过 Explosion IR 应用（client-authoritative），
+            // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 Explosion IR 双重应用。
             // 同时清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket 覆盖客户端速度。
             // 对应 MC Java: ServerExplosion.hurtEntities 中 entity.push(vec32) 对所有实体调用，
             // 但 ServerPlayer 的 motion 是 client-authoritative，server 不会通过 SetEntityMotionPacket
@@ -367,9 +367,9 @@ void Explosion::_calculateAffectedEntities()
 
                 if (!creativeFlying) {
                     // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
-                    // （玩家速度由客户端通过 ExplosionPacket 应用，服务端不应同步速度）
+                    // （玩家速度由客户端通过 Explosion IR 应用，服务端不应同步速度）
                     player->clearHurtMarked();
-                    // 记录玩家击退向量，将通过 ExplosionPacket 发送给客户端
+                    // 记录玩家击退向量，将通过 Explosion IR 发送给客户端
                     // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度
                     m_playerKnockback[player->id()] =
                         Vector3(dx * playerKnockback, dy * playerKnockback, dz * playerKnockback);
