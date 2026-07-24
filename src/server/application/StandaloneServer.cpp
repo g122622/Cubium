@@ -67,6 +67,8 @@
 #include "server/world/ServerWorld.hpp"
 #include "minecraft-reborn/version.h"
 
+#include <array>
+#include <mutex>
 #include <thread>
 #include <spdlog/spdlog.h>
 
@@ -206,6 +208,343 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             "Failed to initialize shared world storage: " + storageInitResult.error().message());
     }
 
+    // 容器回调装配延迟到 initializeInteractionManagers() 之后（见 _setupContainerCallbacks），
+    // 因 containerManager() 依赖 m_containerManager 在该处创建。
+
+    // 初始化维度管理器
+    WorldType overworldType = WorldType::Default;
+    switch (m_settings.levelType.get()) {
+        case LevelType::Flat:
+            overworldType = WorldType::Flat;
+            break;
+        case LevelType::LargeBiomes:
+            overworldType = WorldType::LargeBiomes;
+            break;
+        case LevelType::Amplified:
+            overworldType = WorldType::Amplified;
+            break;
+        case LevelType::Debug:
+            overworldType = WorldType::Debug;
+            break;
+        case LevelType::Default:
+        default:
+            overworldType = WorldType::Default;
+            break;
+    }
+
+    auto dimInitResult = m_dimensionManager->initialize(m_settings.parseSeed(),
+        m_settings.viewDistance.get(),
+        overworldType,
+        resource::ResourceLocation("minecraft", "normal"));
+    if (dimInitResult.failed()) {
+        return Error(ErrorCode::InitializationFailed,
+            "Failed to initialize dimension manager: " + dimInitResult.error().message());
+    }
+
+    auto* overworld = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr);
+
+    m_dimensionManager->forEachDimension([this](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world) {
+            attachWorldBindings(*world);
+            attachWorldCommandBindings(*world);
+        }
+    });
+
+    auto worldResult = initializeWorld();
+    if (worldResult.failed()) {
+        return Error(ErrorCode::InitializationFailed, "Failed to initialize world: " + worldResult.error().message());
+    }
+
+    if (overworld->world() && overworld->world()->isDebugWorld()) {
+        spdlog::info("Configuring debug world special settings...");
+        m_settings.defaultGameMode.set(static_cast<i32>(GameMode::Spectator));
+        if (m_timeManager) {
+            m_timeManager->setDayTime(6000);
+            m_timeManager->setDaylightCycleEnabled(false);
+            spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
+        }
+        if (overworld->world()->weatherManager()) {
+            overworld->world()->weatherManager()->setClear(999999999);
+            spdlog::info("Debug world: Weather set to clear");
+        }
+    }
+
+    setupRaidManagerCallbacks();
+    setupDragonFightBossBar();
+    initializeInteractionManagers();
+
+    // 装配容器回调：须在 initializeInteractionManagers() 创建 m_containerManager 之后，
+    // 否则 containerManager() 解引用空指针崩溃。
+    _setupContainerCallbacks();
+
+    // 初始化同步管理器
+    initializeSyncManagers();
+
+    // 初始化区块同步管理器
+    initializeChunkSyncManagers();
+
+    // 设置世界回调（包括光照变化回调）
+    setupWorldCallbacks();
+
+    // 初始化网络门面：TCP accept → Wire 模式 ServerClientConnection → 新 pipeline::Connection。
+    // 远程 TCP 入站经接收线程 enqueueInbound，主线程 pollNetwork→tick→drainInbound 派发，
+    // 消除跨线程进入非线程安全世界状态的隐患。
+    m_serverNetwork = std::make_unique<mc::server::net::ServerNetwork>();
+    m_serverNetwork->onClientConnect(
+        [this](mc::server::net::ServerClientConnection& conn) { _onRemoteClientConnect(conn); });
+    m_serverNetwork->onClientDisconnect(
+        [this](mc::server::net::ServerClientConnection& conn) { _onRemoteClientDisconnect(conn); });
+
+    auto acceptResult = m_serverNetwork->startAccept(
+        static_cast<u16>(m_settings.serverPort.get()), static_cast<u32>(m_settings.maxPlayers.get()));
+    if (acceptResult.failed()) {
+        return Error(ErrorCode::InitializationFailed, "Failed to start server: " + acceptResult.error().message());
+    }
+
+    spdlog::info("Server initialized successfully");
+    spdlog::info("Port: {}", m_settings.serverPort.get());
+    spdlog::info("Max players: {}", m_settings.maxPlayers.get());
+    spdlog::info("World: {}", m_settings.worldName.get());
+
+    m_initialized = true;
+    return Result<void>::ok();
+}
+
+void StandaloneServer::shutdown()
+{
+    stop();
+}
+
+void StandaloneServer::savePlayerRuntimeState()
+{
+    // 外来只读存档不写盘，直接跳过
+    if (isSharedStorageReadonlyForeignWorld()) {
+        return;
+    }
+
+    auto* storage = sharedStorage();
+    if (storage == nullptr || !storage->isOpen()) {
+        return;
+    }
+    auto* pdm = storage->playerDataManager();
+    if (pdm == nullptr) {
+        return;
+    }
+
+    // 遍历所有维度，对每个在线 Player 实体回写运行时状态到 PlayerDataManager 缓存
+    // 注意：必须在 stopCore()（含 shutdownManagers）之前调用，
+    // 否则维度已被卸载、玩家实体已被销毁
+    size_t savedCount = 0;
+    m_dimensionManager->forEachDimension([&](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world == nullptr) {
+            return;
+        }
+
+        const auto playerIds = m_playerEntityManager.getPlayerIds();
+        for (PlayerId playerId : playerIds) {
+            Player* player = m_playerEntityManager.getPlayerEntity(playerId, *world);
+            if (player == nullptr) {
+                continue;
+            }
+
+            // fromPlayer() 提取位置、生命、饥饿、经验、背包、效果等运行时状态
+            // savePlayer() 同时更新缓存并标记脏，后续 saveAllWorldData() 会落盘
+            auto saveData = world::storage::PlayerDataManager::fromPlayer(*player);
+
+            // Player 实体的 m_uuid 由登录流程（handleLoginRequestPacket）计算离线
+            // UUID 后存入 ServerPlayerData，但未回写到实体本身。这里用 PlayerManager
+            // 中的权威 UUID 覆盖 saveData.uuid，避免以空字符串作为键落盘导致数据丢失。
+            if (auto* playerData = m_playerManager->getPlayer(playerId)) {
+                if (!playerData->uuid.empty()) {
+                    saveData.uuid = playerData->uuid;
+                }
+            }
+
+            auto result = pdm->savePlayer(saveData);
+            if (result.success()) {
+                ++savedCount;
+            } else {
+                spdlog::warn(
+                    "Failed to save player runtime state for playerId={}: {}", playerId, result.error().message());
+            }
+        }
+    });
+
+    if (savedCount > 0) {
+        spdlog::info("Saved runtime state for {} player(s) before shutdown", savedCount);
+    }
+}
+
+void StandaloneServer::stop()
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    spdlog::info("Stopping server...");
+    m_running = false;
+
+    // 先 join 主循环线程，确保 tick() 已完全退出，再回写玩家状态或清理核心组件。
+    // 否则 savePlayerRuntimeState() 遍历玩家实体时可能与正在执行的 tick() 并发，
+    // 造成数据竞争（玩家位置、生命、背包等被同时读写）。
+    if (m_serverThread && m_serverThread->joinable()) {
+        m_serverThread->join();
+    }
+    m_serverThread.reset();
+
+    // 回写在线玩家运行时状态到 PlayerDataManager 缓存
+    // 此时主循环已退出，玩家实体不再被 tick() 修改，可安全遍历。
+    // 必须在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
+    savePlayerRuntimeState();
+
+    // 停止核心组件
+    stopCore();
+
+    // 关闭网络门面：先清 session（持 ServerClientConnection& 引用，须先于连接销毁），
+    // 再 reset ServerNetwork（关 acceptor + join accept 线程 + 析构各 ServerClientConnection
+    // 含 join 接收线程）。
+    m_remoteSessions.clear();
+    m_serverNetwork.reset();
+
+    // 保存设置
+    const auto savePath =
+        m_settingsPath.empty() ? GameDirectory::defaultDirectory().serverOptionsPath() : m_settingsPath;
+    auto saveResult = m_settings.saveSettings(savePath);
+    if (saveResult.failed()) {
+        spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
+    }
+
+    // 关闭性能追踪
+    mc::profiler::ProfilerManager::instance().stopTracing();
+    mc::profiler::ProfilerManager::instance().shutdown();
+    spdlog::info("Perfetto tracing stopped");
+
+    m_initialized = false;
+    spdlog::info("Server stopped.");
+}
+
+void StandaloneServer::pollNetwork()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "PollNetwork");
+    // 主线程驱动：tick pump Local（无）+ drain Wire 入站队列 + 派发延迟断开。
+    if (m_serverNetwork) {
+        m_serverNetwork->tick();
+        _drainDisconnectedSessions();
+    }
+}
+
+void StandaloneServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
+{
+    m_playerManager->forEachPlayer([&packet](ServerPlayerData& player) {
+        if (player.loggedIn && player.hasConnection()) {
+            player.send(mc::network::ir::IrPacket{packet});
+        }
+    });
+}
+
+Result<void> StandaloneServer::run()
+{
+    if (!m_initialized) {
+        return Error(ErrorCode::InvalidArgument, "Server not initialized");
+    }
+
+    if (m_running) {
+        return Error(ErrorCode::AlreadyExists, "Server already running");
+    }
+
+    spdlog::info("Starting server main loop...");
+    m_running = true;
+
+    // 在内部线程中运行主循环，stop() 会先 join 再清理，避免与 tick() 产生数据竞争
+    m_serverThread = std::make_unique<std::thread>([this]() {
+        try {
+            _mainLoop();
+        }
+        catch (const std::exception& e) {
+            spdlog::critical("Server crashed: {}", e.what());
+            m_running = false;
+        }
+    });
+
+    return Result<void>::ok();
+}
+
+void StandaloneServer::_mainLoop()
+{
+    using clock = std::chrono::steady_clock;
+    using namespace std::chrono_literals;
+
+    constexpr f64 targetTickTime = 1.0 / 20.0; // 20 TPS
+    constexpr auto tickDuration =
+        std::chrono::duration_cast<clock::duration>(std::chrono::duration<f64>(targetTickTime));
+
+    auto lastTickTime = clock::now();
+
+    // 平滑 tick 耗时的指数移动平均因子
+    constexpr f32 SMOOTH_FACTOR = 0.2f;
+    f32 smoothedTickTimeMs = 0.0f;
+
+    // 更新目标每tick毫秒数
+    m_debugStats.targetMsPerTick.store(
+        static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order::relaxed);
+
+    spdlog::info("Server is now running!");
+    spdlog::info("Connect with port: {}", m_settings.serverPort.get());
+
+    while (m_running) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MainLoopIteration");
+
+        const auto currentTime = clock::now();
+        const auto deltaTime = currentTime - lastTickTime;
+
+        if (deltaTime >= tickDuration) {
+            // 执行游戏刻
+            auto tickStart = clock::now();
+            tick();
+            auto tickElapsed = clock::now() - tickStart;
+
+            lastTickTime = currentTime;
+
+            // 追踪 TPS
+            const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", static_cast<i64>(tps));
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
+
+            // 更新调试统计
+            const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(tickElapsed).count();
+            if (smoothedTickTimeMs == 0.0f) {
+                smoothedTickTimeMs = tickTimeMs;
+            } else {
+                smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
+            }
+            m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order::relaxed);
+
+            // 更新强制区块计数
+            if (m_dimensionManager != nullptr) {
+                if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
+                    if (auto* world = overworld->world(); world != nullptr) {
+                        if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
+                            const auto& ticketManager = chunkMgr->ticketManager();
+                            m_debugStats.forcedChunkCount.store(
+                                static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
+                        }
+                    }
+                }
+            }
+        } else {
+            // 等待下一刻
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+}
+
+void StandaloneServer::_setupContainerCallbacks()
+{
     containerManager().setMenuFactory([this](ContainerId containerId,
                                           mc::ContainerType type,
                                           const BlockPos& pos,
@@ -405,347 +744,6 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 mc::network::ir::PlayPacket{std::move(pkt)},
             });
     });
-
-    // 初始化维度管理器
-    WorldType overworldType = WorldType::Default;
-    switch (m_settings.levelType.get()) {
-        case LevelType::Flat:
-            overworldType = WorldType::Flat;
-            break;
-        case LevelType::LargeBiomes:
-            overworldType = WorldType::LargeBiomes;
-            break;
-        case LevelType::Amplified:
-            overworldType = WorldType::Amplified;
-            break;
-        case LevelType::Debug:
-            overworldType = WorldType::Debug;
-            break;
-        case LevelType::Default:
-        default:
-            overworldType = WorldType::Default;
-            break;
-    }
-
-    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(std::stoll(m_settings.levelSeed.get())),
-        m_settings.viewDistance.get(),
-        overworldType,
-        resource::ResourceLocation("minecraft", "normal"));
-    if (dimInitResult.failed()) {
-        return Error(ErrorCode::InitializationFailed,
-            "Failed to initialize dimension manager: " + dimInitResult.error().message());
-    }
-
-    auto* overworld = m_dimensionManager->getOverworld();
-    MC_ASSERT_RELEASE(overworld != nullptr);
-
-    m_dimensionManager->forEachDimension([this](Dimension& dim) {
-        auto* serverDim = static_cast<ServerDimension*>(&dim);
-        auto* world = serverDim->world();
-        if (world) {
-            attachWorldBindings(*world);
-            attachWorldCommandBindings(*world);
-        }
-    });
-
-    auto worldResult = initializeWorld();
-    if (worldResult.failed()) {
-        return Error(ErrorCode::InitializationFailed, "Failed to initialize world: " + worldResult.error().message());
-    }
-
-    if (overworld->world() && overworld->world()->isDebugWorld()) {
-        spdlog::info("Configuring debug world special settings...");
-        m_settings.defaultGameMode.set(static_cast<i32>(GameMode::Spectator));
-        if (m_timeManager) {
-            m_timeManager->setDayTime(6000);
-            m_timeManager->setDaylightCycleEnabled(false);
-            spdlog::info("Debug world: Time set to noon (6000), daylight cycle disabled");
-        }
-        if (overworld->world()->weatherManager()) {
-            overworld->world()->weatherManager()->setClear(999999999);
-            spdlog::info("Debug world: Weather set to clear");
-        }
-    }
-
-    setupRaidManagerCallbacks();
-    setupDragonFightBossBar();
-    initializeInteractionManagers();
-
-    // 初始化同步管理器
-    initializeSyncManagers();
-
-    // 初始化区块同步管理器
-    initializeChunkSyncManagers();
-
-    // 设置世界回调（包括光照变化回调）
-    setupWorldCallbacks();
-
-    // 初始化网络服务器
-    m_tcpServer = std::make_unique<TcpServer>();
-
-    // 设置网络回调
-    m_tcpServer->setOnConnect([this](TcpSession* session) { _onClientConnect(session); });
-
-    m_tcpServer->setOnDisconnect(
-        [this](TcpSession* session, const std::string& reason) { _onClientDisconnect(session, reason); });
-
-    m_tcpServer->setOnPacket([this](TcpSession* session, const u8* data, size_t size) {
-        // TODO(Phase6): 远程 TCP 入站字节应经新 pipeline::Connection 解码为 ir::IrPacket，
-        //   再交 dispatchPacket(sessionId, IrPacket) / ServerHandshake 路由。
-        //   当前新网络层尚未接 TCP 入站，旧字节协议已废，直接丢弃并告警。
-        (void)this;
-        (void)data;
-        (void)size;
-        spdlog::warn("StandaloneServer: remote TCP inbound dropped (TODO Phase6), session={}", session->id());
-    });
-
-    // 启动服务器
-    TcpServerConfig serverConfig;
-    serverConfig.port = static_cast<u16>(m_settings.serverPort.get());
-    serverConfig.maxConnections = static_cast<u32>(m_settings.maxPlayers.get());
-
-    auto serverResult = m_tcpServer->start(serverConfig);
-    if (serverResult.failed()) {
-        return Error(ErrorCode::InitializationFailed, "Failed to start server: " + serverResult.error().message());
-    }
-
-    spdlog::info("Server initialized successfully");
-    spdlog::info("Port: {}", m_settings.serverPort.get());
-    spdlog::info("Max players: {}", m_settings.maxPlayers.get());
-    spdlog::info("World: {}", m_settings.worldName.get());
-
-    m_initialized = true;
-    return Result<void>::ok();
-}
-
-void StandaloneServer::shutdown()
-{
-    stop();
-}
-
-void StandaloneServer::savePlayerRuntimeState()
-{
-    // 外来只读存档不写盘，直接跳过
-    if (isSharedStorageReadonlyForeignWorld()) {
-        return;
-    }
-
-    auto* storage = sharedStorage();
-    if (storage == nullptr || !storage->isOpen()) {
-        return;
-    }
-    auto* pdm = storage->playerDataManager();
-    if (pdm == nullptr) {
-        return;
-    }
-
-    // 遍历所有维度，对每个在线 Player 实体回写运行时状态到 PlayerDataManager 缓存
-    // 注意：必须在 stopCore()（含 shutdownManagers）之前调用，
-    // 否则维度已被卸载、玩家实体已被销毁
-    size_t savedCount = 0;
-    m_dimensionManager->forEachDimension([&](Dimension& dim) {
-        auto* serverDim = static_cast<ServerDimension*>(&dim);
-        auto* world = serverDim->world();
-        if (world == nullptr) {
-            return;
-        }
-
-        const auto playerIds = m_playerEntityManager.getPlayerIds();
-        for (PlayerId playerId : playerIds) {
-            Player* player = m_playerEntityManager.getPlayerEntity(playerId, *world);
-            if (player == nullptr) {
-                continue;
-            }
-
-            // fromPlayer() 提取位置、生命、饥饿、经验、背包、效果等运行时状态
-            // savePlayer() 同时更新缓存并标记脏，后续 saveAllWorldData() 会落盘
-            auto saveData = world::storage::PlayerDataManager::fromPlayer(*player);
-
-            // Player 实体的 m_uuid 由登录流程（handleLoginRequestPacket）计算离线
-            // UUID 后存入 ServerPlayerData，但未回写到实体本身。这里用 PlayerManager
-            // 中的权威 UUID 覆盖 saveData.uuid，避免以空字符串作为键落盘导致数据丢失。
-            if (auto* playerData = m_playerManager->getPlayer(playerId)) {
-                if (!playerData->uuid.empty()) {
-                    saveData.uuid = playerData->uuid;
-                }
-            }
-
-            auto result = pdm->savePlayer(saveData);
-            if (result.success()) {
-                ++savedCount;
-            } else {
-                spdlog::warn(
-                    "Failed to save player runtime state for playerId={}: {}", playerId, result.error().message());
-            }
-        }
-    });
-
-    if (savedCount > 0) {
-        spdlog::info("Saved runtime state for {} player(s) before shutdown", savedCount);
-    }
-}
-
-void StandaloneServer::stop()
-{
-    if (!m_initialized) {
-        return;
-    }
-
-    spdlog::info("Stopping server...");
-    m_running = false;
-
-    // 先 join 主循环线程，确保 tick() 已完全退出，再回写玩家状态或清理核心组件。
-    // 否则 savePlayerRuntimeState() 遍历玩家实体时可能与正在执行的 tick() 并发，
-    // 造成数据竞争（玩家位置、生命、背包等被同时读写）。
-    if (m_serverThread && m_serverThread->joinable()) {
-        m_serverThread->join();
-    }
-    m_serverThread.reset();
-
-    // 回写在线玩家运行时状态到 PlayerDataManager 缓存
-    // 此时主循环已退出，玩家实体不再被 tick() 修改，可安全遍历。
-    // 必须在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
-    savePlayerRuntimeState();
-
-    // 停止核心组件
-    stopCore();
-
-    // 关闭网络服务器
-    if (m_tcpServer) {
-        m_tcpServer->stop();
-        m_tcpServer.reset();
-    }
-
-    // 保存设置
-    const auto savePath =
-        m_settingsPath.empty() ? GameDirectory::defaultDirectory().serverOptionsPath() : m_settingsPath;
-    auto saveResult = m_settings.saveSettings(savePath);
-    if (saveResult.failed()) {
-        spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
-    }
-
-    // 关闭性能追踪
-    mc::profiler::ProfilerManager::instance().stopTracing();
-    mc::profiler::ProfilerManager::instance().shutdown();
-    spdlog::info("Perfetto tracing stopped");
-
-    m_initialized = false;
-    spdlog::info("Server stopped.");
-}
-
-void StandaloneServer::pollNetwork()
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "PollNetwork");
-    // TODO(Phase6): 远程 TCP 玩家经新 ServerNetwork::tick() 路由握手/Play。
-    //   当前独立服仅保证编译通过 + 集成服跑通，真 Java 互通在 Phase6 接入。
-    if (m_tcpServer) {
-        m_tcpServer->poll();
-    }
-}
-
-void StandaloneServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
-{
-    m_playerManager->forEachPlayer([&packet](ServerPlayerData& player) {
-        if (player.loggedIn && player.hasConnection()) {
-            player.send(mc::network::ir::IrPacket{packet});
-        }
-    });
-}
-
-Result<void> StandaloneServer::run()
-{
-    if (!m_initialized) {
-        return Error(ErrorCode::InvalidArgument, "Server not initialized");
-    }
-
-    if (m_running) {
-        return Error(ErrorCode::AlreadyExists, "Server already running");
-    }
-
-    spdlog::info("Starting server main loop...");
-    m_running = true;
-
-    // 在内部线程中运行主循环，stop() 会先 join 再清理，避免与 tick() 产生数据竞争
-    m_serverThread = std::make_unique<std::thread>([this]() {
-        try {
-            _mainLoop();
-        }
-        catch (const std::exception& e) {
-            spdlog::critical("Server crashed: {}", e.what());
-            m_running = false;
-        }
-    });
-
-    return Result<void>::ok();
-}
-
-void StandaloneServer::_mainLoop()
-{
-    using clock = std::chrono::steady_clock;
-    using namespace std::chrono_literals;
-
-    constexpr f64 targetTickTime = 1.0 / 20.0; // 20 TPS
-    constexpr auto tickDuration =
-        std::chrono::duration_cast<clock::duration>(std::chrono::duration<f64>(targetTickTime));
-
-    auto lastTickTime = clock::now();
-
-    // 平滑 tick 耗时的指数移动平均因子
-    constexpr f32 SMOOTH_FACTOR = 0.2f;
-    f32 smoothedTickTimeMs = 0.0f;
-
-    // 更新目标每tick毫秒数
-    m_debugStats.targetMsPerTick.store(
-        static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order::relaxed);
-
-    spdlog::info("Server is now running!");
-    spdlog::info("Connect with port: {}", m_settings.serverPort.get());
-
-    while (m_running) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MainLoopIteration");
-
-        const auto currentTime = clock::now();
-        const auto deltaTime = currentTime - lastTickTime;
-
-        if (deltaTime >= tickDuration) {
-            // 执行游戏刻
-            auto tickStart = clock::now();
-            tick();
-            auto tickElapsed = clock::now() - tickStart;
-
-            lastTickTime = currentTime;
-
-            // 追踪 TPS
-            const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
-            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", static_cast<i64>(tps));
-            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
-
-            // 更新调试统计
-            const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(tickElapsed).count();
-            if (smoothedTickTimeMs == 0.0f) {
-                smoothedTickTimeMs = tickTimeMs;
-            } else {
-                smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
-            }
-            m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order::relaxed);
-
-            // 更新强制区块计数
-            if (m_dimensionManager != nullptr) {
-                if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
-                    if (auto* world = overworld->world(); world != nullptr) {
-                        if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
-                            const auto& ticketManager = chunkMgr->ticketManager();
-                            m_debugStats.forcedChunkCount.store(
-                                static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
-                        }
-                    }
-                }
-            }
-        } else {
-            // 等待下一刻
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-    }
 }
 
 Result<void> StandaloneServer::_loadSettings(const std::string& path)
@@ -816,19 +814,124 @@ void StandaloneServer::_applySettings()
     });
 }
 
-void StandaloneServer::_onClientConnect(TcpSession* session)
+void StandaloneServer::_onRemoteClientConnect(mc::server::net::ServerClientConnection& conn)
 {
-    spdlog::info("Client connected: {}:{}", session->address(), session->port());
+    const u32 sessionId = conn.sessionId();
+    spdlog::info("Remote client connected: sessionId={}", sessionId);
+
+    // 建会话簿记：握手状态机（离线模式 + 独立服压缩阈值）+ Play 路由器（playerId 占位 0）。
+    // 路由器 playerId 在 _onRemotePlayerReady 握手完成后回填。
+    auto session = std::make_unique<mc::server::net::RemoteClientSession>(
+        conn, /*isOfflineMode=*/true, kStandaloneCompressionThreshold, *this, /*playerId=*/0, sessionId);
+
+    // 握手完成回调：进入 Play 时创建玩家实体并回填 playerId。
+    session->handshake().onPlayerReady(
+        [this, sessionId](const std::string& username, const std::array<u8, 16>& offlineUuid) {
+            _onRemotePlayerReady(sessionId, username, offlineUuid);
+        });
+
+    // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：
+    //   handshake.handleInbound 返回 true=握手/Configuration 已消费；false=Play 包交路由器。
+    mc::server::net::RemoteClientSession* sessionRaw = session.get();
+    conn.setInboundHandler([sessionRaw](const mc::network::ir::IrPacket& packet) {
+        auto hResult = sessionRaw->handshake().handleInbound(packet);
+        if (!hResult.success()) {
+            spdlog::error("StandaloneServer: handshake inbound failed: {}", hResult.error().toString());
+            return;
+        }
+        if (hResult.value()) {
+            return; // 握手/Configuration 包已消费
+        }
+        auto pResult = sessionRaw->playRouter().handle(packet);
+        if (!pResult.success()) {
+            spdlog::error("StandaloneServer: play router failed: {}", pResult.error().toString());
+        }
+    });
+
+    // 接收线程仅入队，不跑游戏逻辑（跨线程安全）。
+    mc::server::net::ServerClientConnection* connPtr = &conn;
+    conn.onPacket([connPtr](const mc::network::ir::IrPacket& packet) { connPtr->enqueueInbound(packet); });
+
+    {
+        std::lock_guard<std::mutex> lock(m_remoteSessionsMutex);
+        m_remoteSessions[sessionId] = std::move(session);
+    }
 }
 
-void StandaloneServer::_onClientDisconnect(TcpSession* session, const std::string& reason)
+void StandaloneServer::_onRemotePlayerReady(
+    u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid)
 {
-    spdlog::info("Client disconnected: {}:{} - {}", session->address(), session->port(), reason);
+    // 查 session 取连接；session 在 _onRemoteClientConnect 已登记。
+    mc::server::net::ServerClientConnection* conn = nullptr;
+    mc::server::net::RemoteClientSession* session = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(m_remoteSessionsMutex);
+        auto it = m_remoteSessions.find(sessionId);
+        if (it == m_remoteSessions.end()) {
+            spdlog::warn("StandaloneServer: onPlayerReady for unknown sessionId={}", sessionId);
+            return;
+        }
+        session = it->second.get();
+        conn = session->connection();
+    }
+    if (conn == nullptr) {
+        return;
+    }
 
-    // 移除玩家
-    PlayerId playerId = m_playerManager->getPlayerIdBySession(static_cast<u32>(session->id()));
+    // 远程玩家世界参数从 m_settings 取（独立服无 m_params）：hardcore、seed(parseSeed)、isFlat。
+    const bool isFlat = (m_settings.levelType.get() == LevelType::Flat);
+    const i64 seed = static_cast<i64>(m_settings.parseSeed());
+    const bool hardcore = m_settings.hardcore.get();
+    auto creation = createPlayerForConnection(*conn, username, offlineUuid, hardcore, seed, isFlat);
+    if (!creation.success) {
+        spdlog::warn("StandaloneServer: failed to create player entity for '{}'", username);
+        return;
+    }
+    // 回填路由器 playerId（构造时占位 0），此后 Play 包按真实 playerId 派发。
+    session->playRouter().setPlayerId(creation.playerId);
+    m_playerEntityIds[creation.playerId] = creation.entityId;
+}
+
+void StandaloneServer::_drainDisconnectedSessions()
+{
+    // 断开的连接已由 ServerNetwork::tick() 在主线程回调 _onRemoteClientDisconnect。
+    // 此处无额外延迟队列需处理（与 IntegratedServer LAN 不同，独立服单网络无本地连接）。
+}
+
+void StandaloneServer::_onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn)
+{
+    const u32 sessionId = conn.sessionId();
+    spdlog::info("Remote client disconnected: sessionId={}", sessionId);
+
+    // 移除会话簿记
+    mc::server::net::RemoteClientSession* session = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(m_remoteSessionsMutex);
+        auto it = m_remoteSessions.find(sessionId);
+        if (it != m_remoteSessions.end()) {
+            session = it->second.get();
+            m_remoteSessions.erase(it);
+        }
+    }
+    (void)session;
+
+    // 移除玩家（若已创建实体）：按 sessionId 查 playerId。
+    PlayerId playerId = m_playerManager->getPlayerIdBySession(sessionId);
     if (playerId != 0) {
+        // 清理实体ID映射
+        m_playerEntityIds.erase(playerId);
+
+        // 清理玩家实体
+        auto* world = getPlayerWorld(playerId);
+        if (world != nullptr) {
+            m_playerEntityManager.removePlayerEntity(playerId, *world);
+        }
+
+        // 移除玩家会话信息
         m_playerManager->removePlayer(playerId);
+
+        // 清理物品栏
+        inventoryManager().cleanupInventory(playerId);
     }
 }
 

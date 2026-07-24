@@ -24,14 +24,16 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
+#include "RemoteClientSession.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/GameDirectory.hpp"
-#include "server/network/TcpServer.hpp"
+#include "server/network/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <atomic>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <unordered_map>
 
@@ -50,9 +52,9 @@ struct StandaloneServerParams {
  * @brief 独立服务器（多人模式）
  *
  * 继承 MinecraftServer，提供：
- * - TCP 网络通信
- * - 多玩家支持
- * - 完整的数据包处理
+ * - TCP 网络通信（经 ServerNetwork::startAccept → Wire 模式 ServerClientConnection）
+ * - 多玩家支持（每连接一个 RemoteClientSession：握手状态机 + Play 路由器）
+ * - 完整的数据包处理（Wire 入站经接收线程 enqueueInbound，主线程 drainInbound 派发）
  */
 class StandaloneServer : public MinecraftServer {
 public:
@@ -174,19 +176,34 @@ private:
     [[nodiscard]] Result<void> _loadSettings(const std::string& path);
     void _applySettings();
 
-    // 网络事件处理
-    void _onClientConnect(TcpSession* session);
-    void _onClientDisconnect(TcpSession* session, const std::string& reason);
+    /// 装配 ContainerManager 回调（菜单工厂 + 开/关/更新事件→客户端协议包）。
+    /// 必须在 initializeInteractionManagers()（创建 m_containerManager）之后调用，
+    /// 否则 containerManager() 返回空指针解引用崩溃。
+    void _setupContainerCallbacks();
 
-    // TODO(Phase6): 远程 TCP 登录响应（_sendLoginResponse）将在真 Java 互通接入时
-    //   迁移到新网络层 play::Login + Configuration 编排，当前未实现。
+    // 网络事件处理（主线程派发，见 ServerNetwork::onClientConnect/onClientDisconnect）
+    void _onRemoteClientConnect(mc::server::net::ServerClientConnection& conn);
+    void _onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn);
+    /// 握手完成（进入 Play）回调：创建玩家实体并回填 playerId 到路由器
+    void _onRemotePlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
+    /// 主线程清理已断开连接的 session + 玩家（镜像 IntegratedServer 远程断开清理）
+    void _drainDisconnectedSessions();
+
+    /// 独立服压缩阈值（Java 默认 256）。离线模式（跳过 RSA），真 Java 在线模式为 TODO(Phase6)。
+    static constexpr i32 kStandaloneCompressionThreshold = 256;
 
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
     std::filesystem::path m_settingsPath;
     // 游戏目录管理器（统一管理数据包、存档等路径）
     GameDirectory m_gameDirectory;
-    std::unique_ptr<TcpServer> m_tcpServer;
+    // 服务端网络门面：TCP accept + Wire 模式 ServerClientConnection 集合 + Local/Wire 统一 tick
+    std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
+    // 远程 TCP 客户端会话簿记：sessionId → {握手状态机, Play 路由器}。
+    // session 持 ServerClientConnection&（非拥有，所有权归 m_serverNetwork），故须先于
+    // m_serverNetwork 销毁（stop() 中 clear() 先于 reset()）。
+    std::unordered_map<u32, std::unique_ptr<mc::server::net::RemoteClientSession>> m_remoteSessions;
+    std::mutex m_remoteSessionsMutex;
 
     // 服务端主循环线程（由 StandaloneServer 自身持有，stop() 中先 join 再清理，
     // 避免与 tick() 产生数据竞争）
