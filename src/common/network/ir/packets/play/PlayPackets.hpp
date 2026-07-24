@@ -580,8 +580,8 @@ struct RotateHead {
 /**
  * @brief SetEntityData（S→C，id=97，实体元数据）
  *
- * 元数据为序列化的 DataValue 字节流（byte index + VarInt serializerId + value）+ EOF 0xFF。
- * TODO(Phase6): 完整 DataValue serializer 注册表对齐 1.21.11。当前 payload 透传。
+ * 元数据为序列化的 DataValue 字节流（byte index + VarInt serializerId + value）+ EOF 0xFF，
+ * 由 EntityMetadataSerializer（1.21.11 格式）生成/解析。packedItems 透传该完整字节段。
  */
 struct SetEntityData {
     i32 entityId;

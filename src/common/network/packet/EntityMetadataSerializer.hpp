@@ -33,32 +33,28 @@ namespace mc::network {
  * @brief 实体元数据序列化器
  *
  * 将 EntityDataManager 中的数据参数序列化为网络格式，
- * 用于 EntityMetadataPacket 和 SpawnMobPacket。
+ * 用于 EntityMetadataPacket（ir::play::SetEntityData）与 SpawnMob 的元数据段。
  *
- * MC 1.16.5 元数据格式：
- * - 每个条目：索引(1字节) + 类型ID(1字节) + 数据(变长)
- * - 结束标记：0xFF
+ * MC 1.21.11 元数据格式（对齐 net.minecraft.network.syncher.SynchedEntityData.DataValue）：
+ * - 每个条目：index(1 字节) + serializerId(VarInt) + value(codec 编码)
+ * - 结束标记：0xFF（ClientboundSetEntityDataPacket.EOF_MARKER）
+ * - serializerId 取自 EntityDataSerializers 静态注册顺序（注册序即整数 ID）
  *
- * 类型ID映射：
- * 0: Byte (i8)
- * 1: VarInt (i32)
- * 2: Float (f32)
- * 3: std::string (UTF-8)
- * 4: TextComponent (JSON)
- * 5: OptChat (Optional JSON)
- * 6: Slot (ItemStack)
- * 7: Boolean (bool)
- * 8: Rotation (f32, f32, f32)
- * 9: Position (BlockPos)
- * 10: OptPosition (Optional BlockPos)
- * 11: Direction (u8)
- * 12: OptUUID (Optional UUID)
- * 13: OptBlockID (Optional VarInt)
- * 14: NBT (CompoundTag)
- * 15: Particle
- * 16: VillagerData (VarInt x3)
- * 17: OptVarInt (Optional VarInt)
- * 18: Pose (u8)
+ * 本项目 DataValue 变体 → 1.21.11 serializerId 映射：
+ *   i8       → 0  BYTE
+ *   i32      → 1  INT (VAR_INT)
+ *   i64      → 2  LONG (VAR_LONG)
+ *   f32      → 3  FLOAT（大端）
+ *   string   → 4  STRING (VarInt len + UTF-8)
+ *   bool     → 8  BOOLEAN
+ *   Vector3i → 10 BLOCK_POS（i64 packed，X26/Z26/Y12，BlockPos.asLong）
+ *   Vector2f → 9  ROTATIONS（f32×3，z 补 0）
+ *   Vector3f → 9  ROTATIONS（f32×3，大端）
+ *
+ * 注：1.16.5 用单字节 typeId 且编号不同（Boolean=7/Rotation=8/Position=9）；
+ *     1.21.11 改 VarInt serializerId 且 BOOLEAN=8/ROTATIONS=9/BLOCK_POS=10，
+ *     BlockPos 由 VarInt×3 改为单 i64 packed。本项目仅 i8/i32/i64/f32/string/bool
+ *     有活元数据参数，Vector3f/Vector2f/Vector3i 当前无注册参数，仅为完备性保留。
  */
 class EntityMetadataSerializer {
 public:
@@ -98,6 +94,12 @@ private:
     // 写入字符串
     static void _writeString(const std::string& str, std::vector<u8>& output) noexcept;
     static std::string _readString(const u8* data, size_t size, size_t& offset) noexcept;
+
+    // 大端序定长读写（对齐 Java FriendlyByteBuf：FLOAT/i64 均大端）
+    static void _writeBigEndianF32(f32 value, std::vector<u8>& output) noexcept;
+    static void _writeBigEndianI64(i64 value, std::vector<u8>& output) noexcept;
+    static bool _readBigEndianF32(const u8* data, size_t size, size_t& offset, f32& out) noexcept;
+    static bool _readBigEndianI64(const u8* data, size_t size, size_t& offset, i64& out) noexcept;
 };
 
 } // namespace mc::network

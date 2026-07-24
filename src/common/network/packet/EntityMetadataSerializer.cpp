@@ -24,62 +24,66 @@
 #include "EntityMetadataSerializer.hpp"
 #include "PacketSerializer.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <cstring>
 
 namespace mc::network {
 
 // ============================================================================
-// 类型ID映射
+// 1.21.11 数据序列化器 ID（对齐 net.minecraft.network.syncher.EntityDataSerializers
+// 静态初始化块的注册顺序——注册顺序即整数 ID，wire 上以 VarInt 传输）
 // ============================================================================
-
 namespace {
-// MC 1.16.5 数据类型ID
-enum class MetadataTypeId : u8 {
-    Byte = 0,
-    VarInt = 1,
-    Float = 2,
-    String = 3,
-    TextComponent = 4,
-    OptChat = 5,
-    Slot = 6,
-    Boolean = 7,
-    Rotation = 8,
-    Position = 9,
-    OptPosition = 10,
-    Direction = 11,
-    OptUUID = 12,
-    OptBlockID = 13,
-    NBT = 14,
-    Particle = 15,
-    VillagerData = 16,
-    OptVarInt = 17,
-    Pose = 18
+// MC 1.21.11 EntityDataSerializers 注册顺序（EntityDataSerializers.java:153-193）
+enum class MetadataSerializerId : i32 {
+    Byte = 0,              // i8              (ByteBufCodecs.BYTE)
+    Int = 1,               // i32             (VAR_INT)
+    Long = 2,              // i64             (VAR_LONG)
+    Float = 3,             // f32             (FLOAT)
+    String = 4,            // std::string     (STRING_UTF8)
+    Component = 5,         // 文本组件（本项目暂用 String 承载）
+    OptionalComponent = 6, // 可选文本组件
+    ItemStack = 7,         // 物品堆
+    Boolean = 8,           // bool            (BOOL)
+    Rotations = 9,         // Vector3f / Vector2f (ROTATIONS，f32×3)
+    BlockPos = 10,         // Vector3i        (BlockPos.STREAM_CODEC = i64 packed)
+    OptionalBlockPos = 11, // 可选 BlockPos
+    Direction = 12,        // 方向
+    OptionalLivingEntityRef = 13,
+    BlockState = 14,
+    OptionalBlockState = 15,
+    Particle = 16,
+    Particles = 17,
+    VillagerData = 18,
+    OptionalUnsignedInt = 19, // OptionalInt
+    Pose = 20,                // 姿态（本项目以 i8 承载枚举值，走 Byte）
 };
 
-// DataValue 索引到类型ID映射
-MetadataTypeId getTypeId(const entity::DataValue& value)
+// DataValue 变体索引 → 1.21.11 序列化器 ID
+// 变体顺序（EntityDataManager::DataValue::ValueType）：
+//   0:i8 1:i32 2:i64 3:f32 4:string 5:bool 6:Vector3i 7:Vector2f 8:Vector3f
+MetadataSerializerId getSerializerId(const entity::DataValue& value)
 {
     switch (value.index()) {
-        case 0: // i8
-            return MetadataTypeId::Byte;
-        case 1: // i32
-            return MetadataTypeId::VarInt;
-        case 2:                            // i64
-            return MetadataTypeId::VarInt; // 使用 VarInt 近似
-        case 3:                            // f32
-            return MetadataTypeId::Float;
-        case 4: // std::string
-            return MetadataTypeId::String;
-        case 5: // bool
-            return MetadataTypeId::Boolean;
-        case 6: // Vector3i
-            return MetadataTypeId::Position;
-        case 7: // Vector2f
-            return MetadataTypeId::Rotation;
-        case 8: // Vector3f
-            return MetadataTypeId::Rotation;
+        case 0:
+            return MetadataSerializerId::Byte;
+        case 1:
+            return MetadataSerializerId::Int;
+        case 2:
+            return MetadataSerializerId::Long;
+        case 3:
+            return MetadataSerializerId::Float;
+        case 4:
+            return MetadataSerializerId::String;
+        case 5:
+            return MetadataSerializerId::Boolean;
+        case 6:
+            return MetadataSerializerId::BlockPos;
+        case 7: // Vector2f → Rotations（z 补 0）
+        case 8:
+            return MetadataSerializerId::Rotations; // Vector3f → Rotations
         default:
-            return MetadataTypeId::Byte;
+            return MetadataSerializerId::Byte;
     }
 }
 } // namespace
@@ -111,81 +115,60 @@ std::vector<u8> EntityMetadataSerializer::serialize(const entity::EntityDataMana
 
 void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& value, std::vector<u8>& output)
 {
-    // 参数ID (u8，因为MC使用单字节索引)
+    // 1.21.11 wire：byte(index) + VarInt(serializerId) + value
+    // （对齐 SynchedEntityData.DataValue.write：writeByte(id) + writeVarInt(serializerId) + codec.encode）
     output.push_back(static_cast<u8>(id & 0xFF));
+    _writeVarInt(static_cast<i32>(getSerializerId(value)), output);
 
-    // 类型ID
-    MetadataTypeId typeId = getTypeId(value);
-    output.push_back(static_cast<u8>(typeId));
-
-    // 数据
+    // 数据（按 1.21.11 序列化器 codec 编码）
     switch (value.index()) {
-        case 0: { // i8
+        case 0: { // i8 → BYTE
             output.push_back(static_cast<u8>(value.get<i8>()));
             break;
         }
-        case 1: { // i32
+        case 1: { // i32 → INT (VAR_INT)
             _writeVarInt(value.get<i32>(), output);
             break;
         }
-        case 2: { // i64
+        case 2: { // i64 → LONG (VAR_LONG)
             _writeVarLong(value.get<i64>(), output);
             break;
         }
-        case 3: { // f32
+        case 3: { // f32 → FLOAT（大端，Java friendly buf）
             f32 val = value.get<f32>();
-            u8* bytes = reinterpret_cast<u8*>(&val);
-            for (size_t i = 0; i < sizeof(f32); ++i) {
-                output.push_back(bytes[i]);
-            }
+            _writeBigEndianF32(val, output);
             break;
         }
-        case 4: { // std::string
+        case 4: { // std::string → STRING (VarInt len + UTF-8)
             _writeString(value.get<std::string>(), output);
             break;
         }
-        case 5: { // bool
+        case 5: { // bool → BOOLEAN
             output.push_back(value.get<bool>() ? 1 : 0);
             break;
         }
-        case 6: { // Vector3i (BlockPos)
+        case 6: { // Vector3i → BLOCK_POS（i64 packed，X26/Z26/Y12，对齐 BlockPos.asLong）
             auto pos = value.get<Vector3i>();
-            // BlockPos 编码为 VarInt (x, y, z)
-            _writeVarInt(pos.x, output);
-            _writeVarInt(pos.y, output);
-            _writeVarInt(pos.z, output);
+            const i64 packed = BlockPos(pos.x, pos.y, pos.z).asLong();
+            _writeBigEndianI64(packed, output);
             break;
         }
-        case 7: { // Vector2f (Rotation - pitch, yaw)
+        case 7: { // Vector2f → ROTATIONS（f32×3，z 补 0）
             auto rot = value.get<Vector2f>();
-            u8* bytesX = reinterpret_cast<u8*>(&rot.x);
-            u8* bytesY = reinterpret_cast<u8*>(&rot.y);
-            for (size_t i = 0; i < sizeof(f32); ++i) {
-                output.push_back(bytesX[i]);
-            }
-            for (size_t i = 0; i < sizeof(f32); ++i) {
-                output.push_back(bytesY[i]);
-            }
+            _writeBigEndianF32(rot.x, output);
+            _writeBigEndianF32(rot.y, output);
+            _writeBigEndianF32(0.0f, output);
             break;
         }
-        case 8: { // Vector3f (Rotation - x, y, z)
+        case 8: { // Vector3f → ROTATIONS（f32×3）
             auto rot = value.get<Vector3f>();
-            u8* bytesX = reinterpret_cast<u8*>(&rot.x);
-            u8* bytesY = reinterpret_cast<u8*>(&rot.y);
-            u8* bytesZ = reinterpret_cast<u8*>(&rot.z);
-            for (size_t i = 0; i < sizeof(f32); ++i) {
-                output.push_back(bytesX[i]);
-            }
-            for (size_t i = 0; i < sizeof(f32); ++i) {
-                output.push_back(bytesY[i]);
-            }
-            for (size_t i = 0; i < sizeof(f32); ++i) {
-                output.push_back(bytesZ[i]);
-            }
+            _writeBigEndianF32(rot.x, output);
+            _writeBigEndianF32(rot.y, output);
+            _writeBigEndianF32(rot.z, output);
             break;
         }
         default:
-            // 未知类型，写入0
+            // 未知类型：写空字节占位（不应发生——getSerializerId 已兜底 Byte）
             output.push_back(0);
             break;
     }
@@ -200,6 +183,7 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
     size_t offset = 0;
 
     while (offset < data.size()) {
+        // 1.21.11 wire：byte(index) + VarInt(serializerId) + value，0xFF 结束
         u8 index = data[offset++];
 
         // 检查结束标记
@@ -207,70 +191,78 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             break;
         }
 
-        if (offset >= data.size()) {
-            return false; // 数据不完整
-        }
+        // 序列化器 ID（VarInt，对齐 DataValue.read）
+        i32 serializerId = _readVarInt(data.data(), data.size(), offset);
+        const auto sid = static_cast<MetadataSerializerId>(serializerId);
 
-        u8 typeId = data[offset++];
-
-        switch (static_cast<MetadataTypeId>(typeId)) {
-            case MetadataTypeId::Byte: {
+        switch (sid) {
+            case MetadataSerializerId::Byte: {
                 if (offset >= data.size()) return false;
                 const i8 value = static_cast<i8>(data[offset++]);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::VarInt: {
+            case MetadataSerializerId::Int: {
                 i32 value = _readVarInt(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::Float: {
-                if (offset + sizeof(f32) > data.size()) return false;
+            case MetadataSerializerId::Long: {
+                i64 value = _readVarLong(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(value));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::Float: {
                 f32 val;
-                std::memcpy(&val, data.data() + offset, sizeof(f32));
-                offset += sizeof(f32);
+                if (!_readBigEndianF32(data.data(), data.size(), offset, val)) return false;
                 (void)manager.setRaw(index, entity::DataValue(val));
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::String: {
+            case MetadataSerializerId::String:
+            case MetadataSerializerId::Component:
+            case MetadataSerializerId::OptionalComponent: {
+                // Component 暂以字符串承载；1.21.11 真组件 codec 留 TODO(Phase6+)
                 std::string value = _readString(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::Boolean: {
+            case MetadataSerializerId::Boolean: {
                 if (offset >= data.size()) return false;
                 bool value = data[offset++] != 0;
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::Position: {
-                i32 x = _readVarInt(data.data(), data.size(), offset);
-                i32 y = _readVarInt(data.data(), data.size(), offset);
-                i32 z = _readVarInt(data.data(), data.size(), offset);
-                (void)manager.setRaw(index, entity::DataValue(entity::Vector3i(x, y, z)));
+            case MetadataSerializerId::BlockPos: {
+                i64 packed;
+                if (!_readBigEndianI64(data.data(), data.size(), offset, packed)) return false;
+                const BlockPos pos = BlockPos::fromLong(packed);
+                (void)manager.setRaw(index, entity::DataValue(entity::Vector3i(pos.x, pos.y, pos.z)));
                 manager.clearDirty(index);
                 break;
             }
-            case MetadataTypeId::Rotation: {
-                if (offset + sizeof(f32) * 2 > data.size()) return false;
+            case MetadataSerializerId::Rotations: {
+                // 1.21.11 ROTATIONS = f32×3。本项目 DataValue 无独立 Rotations 类型，
+                // 反序列化为 Vector3f（覆盖 x/y/z）。Vector2f 写入端补 z=0，读端仍得 Vector3f——
+                // 因 Vector2f/Vector3f 当前无活元数据参数，此对称差异不影响线上行为。
                 f32 x;
                 f32 y;
-                std::memcpy(&x, data.data() + offset, sizeof(f32));
-                offset += sizeof(f32);
-                std::memcpy(&y, data.data() + offset, sizeof(f32));
-                offset += sizeof(f32);
-                (void)manager.setRaw(index, entity::DataValue(entity::Vector2f(x, y)));
+                f32 z;
+                if (!_readBigEndianF32(data.data(), data.size(), offset, x)) return false;
+                if (!_readBigEndianF32(data.data(), data.size(), offset, y)) return false;
+                if (!_readBigEndianF32(data.data(), data.size(), offset, z)) return false;
+                (void)manager.setRaw(index, entity::DataValue(entity::Vector3f(x, y, z)));
                 manager.clearDirty(index);
                 break;
             }
             default:
-                // 未知类型，无法继续解析
+                // 未实现的序列化器（ItemStack/Particle/VillagerData 等）：无法跳过变长值，停止解析。
+                // 本项目元数据仅用 Byte/Int/Long/Float/String/Boolean，故正常路径不会落到此分支。
                 return false;
         }
     }
@@ -372,6 +364,47 @@ std::string EntityMetadataSerializer::_readString(const u8* data, size_t size, s
     std::string result(reinterpret_cast<const char*>(data + offset), static_cast<size_t>(length));
     offset += static_cast<size_t>(length);
     return result;
+}
+
+void EntityMetadataSerializer::_writeBigEndianF32(f32 value, std::vector<u8>& output) noexcept
+{
+    // Java FriendlyByteBuf.writeFloat 大端；按字节序无关方式拼装
+    u32 bits;
+    std::memcpy(&bits, &value, sizeof(f32));
+    output.push_back(static_cast<u8>((bits >> 24) & 0xFF));
+    output.push_back(static_cast<u8>((bits >> 16) & 0xFF));
+    output.push_back(static_cast<u8>((bits >> 8) & 0xFF));
+    output.push_back(static_cast<u8>(bits & 0xFF));
+}
+
+void EntityMetadataSerializer::_writeBigEndianI64(i64 value, std::vector<u8>& output) noexcept
+{
+    u64 bits = static_cast<u64>(value);
+    for (int shift = 56; shift >= 0; shift -= 8) {
+        output.push_back(static_cast<u8>((bits >> shift) & 0xFF));
+    }
+}
+
+bool EntityMetadataSerializer::_readBigEndianF32(const u8* data, size_t size, size_t& offset, f32& out) noexcept
+{
+    if (offset + sizeof(f32) > size) return false;
+    u32 bits = (static_cast<u32>(data[offset]) << 24) | (static_cast<u32>(data[offset + 1]) << 16) |
+        (static_cast<u32>(data[offset + 2]) << 8) | static_cast<u32>(data[offset + 3]);
+    std::memcpy(&out, &bits, sizeof(f32));
+    offset += sizeof(f32);
+    return true;
+}
+
+bool EntityMetadataSerializer::_readBigEndianI64(const u8* data, size_t size, size_t& offset, i64& out) noexcept
+{
+    if (offset + sizeof(i64) > size) return false;
+    u64 bits = 0;
+    for (int i = 0; i < 8; ++i) {
+        bits = (bits << 8) | static_cast<u64>(data[offset + i]);
+    }
+    out = static_cast<i64>(bits);
+    offset += sizeof(i64);
+    return true;
 }
 
 } // namespace mc::network

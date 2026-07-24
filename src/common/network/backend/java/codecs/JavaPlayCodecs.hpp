@@ -890,7 +890,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 
 /// SetEntityData（S→C，id=97）
 /// 线格式：VarInt(entityId) + packedItems 字节（含 EOF 0xFF）。
-/// TODO(Phase6): 完整 DataValue serializer 注册表对齐 1.21.11。当前 packedItems 透传。
+/// packedItems 由 EntityMetadataSerializer 按 1.21.11 格式（byte idx + VarInt serializerId + value）生成。
 [[nodiscard]] inline auto setEntityDataCodec()
 {
     return makeCodec<ir::play::SetEntityData>(
