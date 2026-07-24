@@ -220,18 +220,6 @@ public:
     bool operator==(const GameProfile& other) const noexcept { return m_uuid == other.m_uuid; }
     bool operator!=(const GameProfile& other) const noexcept { return m_uuid != other.m_uuid; }
 
-    // ========== 序列化 ==========
-
-    /**
-     * @brief 序列化到网络包
-     */
-    void serialize(network::PacketSerializer& ser) const;
-
-    /**
-     * @brief 从网络包反序列化
-     */
-    [[nodiscard]] static Result<GameProfile> deserialize(network::PacketDeserializer& deser);
-
     // ========== JSON 序列化（用于 ItemStack NBT）==========
 
     /**

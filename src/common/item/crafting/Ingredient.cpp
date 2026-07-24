@@ -24,7 +24,6 @@
 #include "item/crafting/Ingredient.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/tag/ItemTags.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include <algorithm>
 #include <set>
 
@@ -314,63 +313,6 @@ size_t Ingredient::hash() const
     }
 
     return h;
-}
-
-void Ingredient::serialize(network::PacketSerializer& ser) const
-{
-    // 序列化匹配物品数量
-    ser.writeVarUInt(static_cast<u32>(m_matchingStacks.size()));
-
-    // 序列化每个匹配物品
-    for (const ItemStack& stack : m_matchingStacks) {
-        stack.serialize(ser);
-    }
-
-    // 序列化标签（如果有）
-    ser.writeBool(m_hasTag);
-    if (m_hasTag) {
-        ser.writeString(m_tag);
-    }
-}
-
-Result<Ingredient> Ingredient::deserialize(network::PacketDeserializer& deser)
-{
-    // 读取匹配物品数量
-    auto countResult = deser.readVarUInt();
-    if (countResult.failed()) {
-        return countResult.error();
-    }
-    u32 count = countResult.value();
-
-    // 读取匹配物品
-    std::vector<ItemStack> stacks;
-    stacks.reserve(count);
-    for (u32 i = 0; i < count; ++i) {
-        auto stackResult = ItemStack::deserialize(deser);
-        if (stackResult.failed()) {
-            return stackResult.error();
-        }
-        stacks.push_back(std::move(stackResult.value()));
-    }
-
-    // 读取标签标志
-    auto hasTagResult = deser.readBool();
-    if (hasTagResult.failed()) {
-        return hasTagResult.error();
-    }
-    bool hasTag = hasTagResult.value();
-
-    // 如果有标签，从标签创建原料
-    if (hasTag) {
-        auto tagResult = deser.readString();
-        if (tagResult.failed()) {
-            return tagResult.error();
-        }
-        return fromTag(tagResult.value());
-    }
-
-    // 否则从物品列表创建原料
-    return fromStacks(std::move(stacks));
 }
 
 } // namespace crafting

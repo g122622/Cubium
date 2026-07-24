@@ -234,64 +234,6 @@ bool GameProfile::hasValidUUID() const noexcept
     return std::any_of(m_uuid.begin(), m_uuid.end(), [](u8 byte) { return byte != 0; });
 }
 
-void GameProfile::serialize(network::PacketSerializer& ser) const
-{
-    // UUID: 16字节
-    for (size_t i = 0; i < 16; ++i) {
-        ser.writeU8(m_uuid[i]);
-    }
-
-    // 名称: VarInt长度前缀字符串
-    ser.writeString(m_name);
-
-    // 属性数量: VarInt
-    ser.writeVarInt(static_cast<i32>(m_properties.size()));
-
-    // 属性列表
-    for (const auto& prop : m_properties) {
-        prop.serialize(ser);
-    }
-}
-
-Result<GameProfile> GameProfile::deserialize(network::PacketDeserializer& deser)
-{
-    GameProfile profile;
-
-    // UUID: 16字节
-    for (size_t i = 0; i < 16; ++i) {
-        auto byteResult = deser.readU8();
-        if (byteResult.failed()) {
-            return byteResult.error();
-        }
-        profile.m_uuid[i] = byteResult.value();
-    }
-
-    // 名称: VarInt长度前缀字符串
-    auto nameResult = deser.readString();
-    if (nameResult.failed()) {
-        return nameResult.error();
-    }
-    profile.m_name = nameResult.value();
-
-    // 属性数量: VarInt
-    auto countResult = deser.readVarInt();
-    if (countResult.failed()) {
-        return countResult.error();
-    }
-    i32 propCount = countResult.value();
-
-    // 属性列表
-    for (i32 i = 0; i < propCount; ++i) {
-        auto propResult = GameProfileProperty::deserialize(deser);
-        if (propResult.failed()) {
-            return propResult.error();
-        }
-        profile.m_properties.push_back(propResult.value());
-    }
-
-    return profile;
-}
-
 // ============================================================================
 // JSON 序列化
 // ============================================================================

@@ -26,7 +26,6 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -240,35 +239,6 @@ void FoodStats::_handlePeacefulMode(Player& player)
             m_foodLevel++;
         }
     }
-}
-
-void FoodStats::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeI32(m_foodLevel);
-    ser.writeF32(m_saturationLevel);
-    ser.writeF32(m_exhaustionLevel);
-}
-
-Result<FoodStats> FoodStats::deserialize(network::PacketDeserializer& deser)
-{
-    FoodStats stats;
-
-    auto foodResult = deser.readI32();
-    if (foodResult.failed()) return foodResult.error();
-    stats.m_foodLevel = std::clamp(foodResult.value(), 0, MAX_FOOD_LEVEL);
-
-    auto satResult = deser.readF32();
-    if (satResult.failed()) return satResult.error();
-    stats.m_saturationLevel = std::max(0.0f, satResult.value());
-
-    auto exhResult = deser.readF32();
-    if (exhResult.failed()) return exhResult.error();
-    stats.m_exhaustionLevel = std::min(MAX_EXHAUSTION, std::max(0.0f, exhResult.value()));
-
-    // prevFoodLevel 初始化为当前 foodLevel
-    stats.m_prevFoodLevel = stats.m_foodLevel;
-
-    return stats;
 }
 
 } // namespace mc

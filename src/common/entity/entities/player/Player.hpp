@@ -76,50 +76,6 @@ struct PlayerAbilities {
     bool allowEdit = true;     // 允许编辑方块
     f32 flySpeed = 0.05f;      // 飞行速度
     f32 walkSpeed = 0.1f;      // 行走速度
-
-    void serialize(network::PacketSerializer& ser) const
-    {
-        u8 flags = 0;
-        if (invulnerable) flags |= 0x01;
-        if (flying) flags |= 0x02;
-        if (canFly) flags |= 0x04;
-        if (creativeMode) flags |= 0x08;
-        ser.writeU8(flags);
-        ser.writeF32(flySpeed);
-        ser.writeF32(walkSpeed);
-    }
-
-    [[nodiscard]] static Result<PlayerAbilities> deserialize(network::PacketDeserializer& deser)
-    {
-        PlayerAbilities abilities;
-
-        auto flagsResult = deser.readU8();
-        if (flagsResult.failed()) return flagsResult.error();
-
-        u8 flags = flagsResult.value();
-        abilities.invulnerable = (flags & 0x01) != 0;
-        abilities.flying = (flags & 0x02) != 0;
-        abilities.canFly = (flags & 0x04) != 0;
-        abilities.creativeMode = (flags & 0x08) != 0;
-
-        auto flySpeedResult = deser.readF32();
-        if (flySpeedResult.failed()) return flySpeedResult.error();
-        abilities.flySpeed = flySpeedResult.value();
-
-        auto walkSpeedResult = deser.readF32();
-        if (walkSpeedResult.failed()) return walkSpeedResult.error();
-        abilities.walkSpeed = walkSpeedResult.value();
-        spdlog::info("[PlayerAbilities::deserialize] invulnerable={}, flying={}, canFly={}, creativeMode={}, "
-                     "flySpeed={}, walkSpeed={}",
-            abilities.invulnerable,
-            abilities.flying,
-            abilities.canFly,
-            abilities.creativeMode,
-            abilities.flySpeed,
-            abilities.walkSpeed);
-
-        return abilities;
-    }
 };
 
 // FoodStats 类已移至 food/FoodStats.hpp
@@ -1912,11 +1868,6 @@ public:
      * 覆盖 LivingEntity::registerAttributes()，注册玩家特有属性。
      */
     void registerAttributes() override;
-
-    // ========== 序列化 ==========
-
-    void serialize(network::PacketSerializer& ser) const;
-    [[nodiscard]] static Result<std::unique_ptr<Player>> deserialize(network::PacketDeserializer& deser);
 
     /**
      * @brief 序列化玩家额外数据到 NBT

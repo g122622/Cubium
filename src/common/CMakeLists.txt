@@ -612,7 +612,6 @@ add_library(mc_common STATIC
     item/crafting/StonecuttingRecipe.cpp
     item/crafting/SmithingRecipe.cpp
     item/crafting/TransmuteRecipe.cpp
-    item/crafting/RecipeNetworkSerializer.cpp
     item/crafting/special/RepairItemRecipe.cpp
     item/crafting/special/ArmorDyeRecipe.cpp
     item/crafting/special/BookCloningRecipe.cpp

@@ -29,7 +29,6 @@
 #include "entity/food/FoodStats.hpp"
 #include "entity/serialization/EntityNbtKeys.hpp"
 #include "entity/serialization/NbtHelper.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "world/GlobalPos.hpp"
 
 using namespace mc;
@@ -406,26 +405,6 @@ TEST(FoodStats, ExhaustionCap)
     EXPECT_FLOAT_EQ(player.foodStats().exhaustionLevel(), 40.0f);
 }
 
-TEST(FoodStats, Serialization)
-{
-    Player original(1, "TestPlayer");
-    original.foodStats().setFoodLevel(15);
-    original.foodStats().setSaturationLevel(3.5f);
-    original.foodStats().addExhaustion(2.0f);
-
-    network::PacketSerializer ser;
-    original.foodStats().serialize(ser);
-
-    network::PacketDeserializer deser(ser.buffer());
-    auto result = FoodStats::deserialize(deser);
-    ASSERT_TRUE(result.success());
-
-    FoodStats& loaded = result.value();
-    EXPECT_EQ(loaded.foodLevel(), 15);
-    EXPECT_FLOAT_EQ(loaded.saturationLevel(), 3.5f);
-    EXPECT_FLOAT_EQ(loaded.exhaustionLevel(), 2.0f);
-}
-
 TEST(FoodStats, FastRegeneration)
 {
     // 快速恢复条件：foodLevel >= 20 且 saturation > 0，每 10 ticks 恢复 saturation/6 生命
@@ -667,37 +646,6 @@ TEST(Player, Respawn)
     EXPECT_FALSE(player.isDead());
     EXPECT_FLOAT_EQ(player.health(), 20.0f);
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
-}
-
-TEST(Player, SerializeDeserialize)
-{
-    Player original(1, "TestPlayer");
-    original.setPlayerId(12345);
-    original.setPosition(100.5, 64.0, -200.25);
-    original.setRotation(90.0f, 45.0f);
-    original.setHealth(15.0f);
-    original.setGameMode(GameMode::Creative);
-    original.setExperienceLevel(10);
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    network::PacketDeserializer deser(ser.buffer());
-    auto result = Player::deserialize(deser);
-
-    EXPECT_TRUE(result.success());
-
-    auto restored = result.value();
-    EXPECT_EQ(restored->playerId(), 12345u);
-    EXPECT_EQ(restored->username(), "TestPlayer");
-    EXPECT_FLOAT_EQ(static_cast<float>(restored->x()), 100.5f);
-    EXPECT_FLOAT_EQ(static_cast<float>(restored->y()), 64.0f);
-    EXPECT_FLOAT_EQ(static_cast<float>(restored->z()), -200.25f);
-    EXPECT_FLOAT_EQ(restored->yaw(), 90.0f);
-    EXPECT_FLOAT_EQ(restored->pitch(), 45.0f);
-    EXPECT_FLOAT_EQ(restored->health(), 15.0f);
-    EXPECT_EQ(restored->gameMode(), GameMode::Creative);
-    EXPECT_EQ(restored->experienceLevel(), 10);
 }
 
 TEST(Player, LastDeathLocationDieSetsPosition)

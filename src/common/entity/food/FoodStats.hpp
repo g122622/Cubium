@@ -32,11 +32,6 @@ namespace mc {
 // 前向声明
 class Player;
 
-namespace network {
-class PacketSerializer;
-class PacketDeserializer;
-} // namespace network
-
 /**
  * @brief 饥饿/饱食度系统
  *
@@ -146,16 +141,6 @@ public:
      * @brief 设置食物计时器
      */
     void setFoodTimer(i32 timer) { m_foodTimer = timer; }
-
-    /**
-     * @brief 序列化
-     */
-    void serialize(class network::PacketSerializer& ser) const;
-
-    /**
-     * @brief 反序列化
-     */
-    [[nodiscard]] static Result<FoodStats> deserialize(class network::PacketDeserializer& deser);
 
 private:
     /**
