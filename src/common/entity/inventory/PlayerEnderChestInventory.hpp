@@ -84,7 +84,6 @@ public:
     void clear() override;
     void setChanged() override;
     [[nodiscard]] bool isUsableByPlayer(const Player& player) const override;
-    void serialize(network::PacketSerializer& ser) const override;
 
     // ========== IInventory 打开/关闭重写 ==========
 

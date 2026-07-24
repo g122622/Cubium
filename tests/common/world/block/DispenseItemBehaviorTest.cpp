@@ -51,7 +51,6 @@
 #include "item/items/weapon/ThrowableItems.hpp"
 #include "item/potion/PotionUtils.hpp"
 #include "item/potion/Potions.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "util/Direction.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/property/Properties.hpp"
@@ -1656,12 +1655,6 @@ public:
             }
         }
         return -1;
-    }
-
-    void serialize(network::PacketSerializer&) const override {}
-    [[nodiscard]] static Result<std::unique_ptr<IInventory>> deserialize(network::PacketDeserializer&)
-    {
-        return Error(ErrorCode::Unsupported, "MockInventory does not support deserialization");
     }
 
 private:

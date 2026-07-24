@@ -129,69 +129,6 @@ void PlayerInventory::setChanged()
     m_timesChanged++;
 }
 
-void PlayerInventory::serialize(network::PacketSerializer& ser) const
-{
-    // 写入选中的槽位
-    ser.writeI32(m_selectedSlot);
-
-    // 写入物品数量
-    i32 itemCount = 0;
-    for (const auto& item : m_items) {
-        if (!item.isEmpty()) {
-            itemCount++;
-        }
-    }
-    ser.writeI32(itemCount);
-
-    // 写入非空物品
-    for (i32 i = 0; i < TOTAL_SIZE; ++i) {
-        if (!m_items[static_cast<size_t>(i)].isEmpty()) {
-            ser.writeI32(i); // 槽位索引
-            m_items[static_cast<size_t>(i)].serialize(ser);
-        }
-    }
-}
-
-Result<PlayerInventory> PlayerInventory::deserialize(network::PacketDeserializer& deser)
-{
-    PlayerInventory inventory(nullptr);
-
-    // 读取选中的槽位
-    auto selectedResult = deser.readI32();
-    if (selectedResult.failed()) {
-        return selectedResult.error();
-    }
-    inventory.m_selectedSlot = std::clamp(selectedResult.value(), 0, static_cast<i32>(HOTBAR_SIZE - 1));
-
-    // 读取物品数量
-    auto countResult = deser.readI32();
-    if (countResult.failed()) {
-        return countResult.error();
-    }
-    i32 itemCount = countResult.value();
-
-    // 读取物品
-    for (i32 i = 0; i < itemCount; ++i) {
-        auto slotResult = deser.readI32();
-        if (slotResult.failed()) {
-            return slotResult.error();
-        }
-        i32 slot = slotResult.value();
-
-        if (slot < 0 || slot >= TOTAL_SIZE) {
-            return Error(ErrorCode::OutOfRange, "Invalid inventory slot index");
-        }
-
-        auto stackResult = ItemStack::deserialize(deser);
-        if (stackResult.failed()) {
-            return stackResult.error();
-        }
-        inventory.m_items[static_cast<size_t>(slot)] = stackResult.value();
-    }
-
-    return inventory;
-}
-
 // ============================================================================
 // 快捷栏操作
 // ============================================================================

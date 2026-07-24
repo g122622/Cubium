@@ -450,52 +450,6 @@ TEST_F(PlayerInventoryTest, OffhandSlot)
     EXPECT_EQ(m_inventory->getItem(InventorySlots::OFFHAND).getCount(), 5);
 }
 
-TEST_F(PlayerInventoryTest, SerializationEmpty)
-{
-    network::PacketSerializer ser;
-    m_inventory->serialize(ser);
-
-    const std::vector<u8>& data = ser.buffer();
-    EXPECT_GT(data.size(), 0);
-
-    network::PacketDeserializer deser(data);
-    auto result = PlayerInventory::deserialize(deser);
-    EXPECT_TRUE(result.success());
-
-    PlayerInventory& loaded = result.value();
-    EXPECT_TRUE(loaded.isEmpty());
-    EXPECT_EQ(loaded.getSelectedSlot(), 0);
-}
-
-TEST_F(PlayerInventoryTest, SerializationWithItems)
-{
-    ASSERT_NE(m_diamond, nullptr);
-    ASSERT_NE(m_stick, nullptr);
-
-    // 设置一些物品
-    m_inventory->setItem(0, ItemStack(*m_diamond, 32));
-    m_inventory->setItem(5, ItemStack(*m_stick, 16));
-    m_inventory->setItem(40, ItemStack(*m_diamond, 8));
-    m_inventory->setSelectedSlot(3);
-
-    // 序列化
-    network::PacketSerializer ser;
-    m_inventory->serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.buffer());
-    auto result = PlayerInventory::deserialize(deser);
-    EXPECT_TRUE(result.success());
-
-    PlayerInventory& loaded = result.value();
-    EXPECT_EQ(loaded.getSelectedSlot(), 3);
-    EXPECT_EQ(loaded.getItem(0).getCount(), 32);
-    EXPECT_EQ(loaded.getItem(0).getItem(), m_diamond);
-    EXPECT_EQ(loaded.getItem(5).getCount(), 16);
-    EXPECT_EQ(loaded.getItem(5).getItem(), m_stick);
-    EXPECT_EQ(loaded.getItem(40).getCount(), 8);
-}
-
 TEST_F(PlayerInventoryTest, DamageableItemStacking)
 {
     ASSERT_NE(m_diamondSword, nullptr);

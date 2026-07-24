@@ -245,18 +245,6 @@ TEST_F(PlayerEnderChestInventoryTest, NbtRoundTripWithItems)
     EXPECT_TRUE(loaded.getItem(14).isEmpty());
 }
 
-// ========== 序列化测试 ==========
-
-TEST_F(PlayerEnderChestInventoryTest, SerializeEmpty)
-{
-    network::PacketSerializer ser;
-    inventory.serialize(ser);
-
-    // 验证序列化的槽位数量
-    auto data = ser.buffer();
-    EXPECT_GT(data.size(), 0u);
-}
-
 // ========== setActiveChest / isActiveChestValid 测试 ==========
 
 TEST_F(PlayerEnderChestInventoryTest, ActiveChestInitiallyNull)

@@ -362,11 +362,6 @@ bool ComposterBlock::EmptyContainer::canExtractItem(i32 slot, const ItemStack& s
     return false;
 }
 
-void ComposterBlock::EmptyContainer::serialize(network::PacketSerializer& ser) const
-{
-    MC_UNUSED(ser);
-}
-
 // ========== InputContainer 实现 ==========
 
 ComposterBlock::InputContainer::InputContainer(const BlockState& state, IWorld& world, const BlockPos& pos)
@@ -468,11 +463,6 @@ bool ComposterBlock::InputContainer::canExtractItem(i32 slot, const ItemStack& s
     MC_UNUSED(direction);
     // 输入容器不允许提取
     return false;
-}
-
-void ComposterBlock::InputContainer::serialize(network::PacketSerializer& ser) const
-{
-    MC_UNUSED(ser);
 }
 
 // ========== OutputContainer 实现 ==========
@@ -582,11 +572,6 @@ bool ComposterBlock::OutputContainer::canExtractItem(i32 slot, const ItemStack& 
         return true;
     }
     return false;
-}
-
-void ComposterBlock::OutputContainer::serialize(network::PacketSerializer& ser) const
-{
-    MC_UNUSED(ser);
 }
 
 } // namespace blocks

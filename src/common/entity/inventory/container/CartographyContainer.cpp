@@ -27,7 +27,6 @@
 #include "entity/inventory/Slot.hpp"
 #include "item/Items.hpp"
 #include "item/items/map/FilledMapItem.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "world/IWorld.hpp"
 #include "world/map/MapData.hpp"
 
@@ -104,14 +103,6 @@ public:
     {
         if (m_changeCallback) {
             m_changeCallback();
-        }
-    }
-
-    void serialize(network::PacketSerializer& ser) const override
-    {
-        ser.writeVarInt(SIZE);
-        for (const auto& item : m_items) {
-            item.serialize(ser);
         }
     }
 

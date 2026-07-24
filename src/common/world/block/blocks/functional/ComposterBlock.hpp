@@ -184,7 +184,6 @@ private:
         [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
         [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
         [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
-        void serialize(network::PacketSerializer& ser) const override;
     };
 
     /**
@@ -213,7 +212,6 @@ private:
         [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
         [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
         [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
-        void serialize(network::PacketSerializer& ser) const override;
 
     private:
         const BlockState& m_state;
@@ -248,7 +246,6 @@ private:
         [[nodiscard]] std::vector<i32> getSlotsForFace(Direction side) const override;
         [[nodiscard]] bool canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const override;
         [[nodiscard]] bool canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const override;
-        void serialize(network::PacketSerializer& ser) const override;
 
     private:
         const BlockState& m_state;

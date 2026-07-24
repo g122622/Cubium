@@ -81,11 +81,6 @@ public:
     [[nodiscard]] bool isUsableByPlayer(const Player& player) const override;
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override;
 
-    /**
-     * @brief 序列化容器内容
-     */
-    void serialize(network::PacketSerializer& ser) const override;
-
     // ========== 交易特定方法 ==========
 
     /**

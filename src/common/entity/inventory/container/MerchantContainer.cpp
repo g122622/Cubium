@@ -120,14 +120,6 @@ bool MerchantContainer::canPlaceItem(i32 slot, const ItemStack& stack) const
     return _isPaymentSlot(slot);
 }
 
-void MerchantContainer::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeVarInt(CONTAINER_SIZE);
-    for (const auto& item : m_items) {
-        item.serialize(ser);
-    }
-}
-
 // ========== 交易特定方法 ==========
 
 void MerchantContainer::updateSellItem()

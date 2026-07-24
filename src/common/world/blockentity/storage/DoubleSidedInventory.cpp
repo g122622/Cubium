@@ -116,14 +116,6 @@ bool DoubleSidedInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
     return false;
 }
 
-void DoubleSidedInventory::serialize(network::PacketSerializer& ser) const
-{
-    // 先序列化上半部分
-    m_upper->serialize(ser);
-    // 再序列化下半部分
-    m_lower->serialize(ser);
-}
-
 bool DoubleSidedInventory::isPartOfLargeChest(const IInventory* inventory) const
 {
     return inventory == m_upper || inventory == m_lower;

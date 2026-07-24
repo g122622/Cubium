@@ -98,7 +98,6 @@ public:
         return m_inventory.canPlaceItem(slot, stack);
     }
     void setChanged() override { LootableContainerBlockEntity::setChanged(); }
-    void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
     // ========== IInventory 接口实现（带战利品表延迟填充）==========
 

@@ -284,18 +284,6 @@ public:
      * 默认实现：检查是否有空槽位或可堆叠物品
      */
     [[nodiscard]] virtual bool canAddItem(const ItemStack& stack) const;
-
-    // ========== 序列化 ==========
-
-    /**
-     * @brief 序列化背包数据
-     */
-    virtual void serialize(network::PacketSerializer& ser) const = 0;
-
-    /**
-     * @brief 反序列化背包数据
-     */
-    [[nodiscard]] static Result<std::unique_ptr<IInventory>> deserialize(network::PacketDeserializer& deser);
 };
 
 } // namespace mc

@@ -93,7 +93,6 @@ public:
     void clear() override { m_inventory.clear(); }
     void setChanged() override { ContainerBlockEntity::setChanged(); }
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override;
-    void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
     // ========== ISidedInventory 接口实现 ==========
 

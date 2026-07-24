@@ -101,7 +101,6 @@ public:
     {
         return m_inventory.canPlaceItem(slot, stack);
     }
-    void serialize(network::PacketSerializer& ser) const override { m_inventory.serialize(ser); }
 
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
     [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }

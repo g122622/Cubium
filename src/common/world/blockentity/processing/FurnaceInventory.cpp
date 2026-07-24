@@ -22,7 +22,6 @@
  */
 
 #include "world/blockentity/processing/FurnaceInventory.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
@@ -134,14 +133,6 @@ bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
 
     const i32 maxCount = existing.getMaxStackSize();
     return existing.getCount() + stack.getCount() <= maxCount;
-}
-
-void FurnaceInventory::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeVarInt(SLOT_COUNT);
-    for (const auto& item : m_items) {
-        item.serialize(ser);
-    }
 }
 
 ItemStack FurnaceInventory::addToOutput(const ItemStack& stack)

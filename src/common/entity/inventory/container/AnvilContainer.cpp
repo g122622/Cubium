@@ -31,7 +31,6 @@
 #include "item/enchantment/Enchantment.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -134,15 +133,6 @@ public:
     }
 
     void setChanged() override { m_changed = true; }
-
-    void serialize(network::PacketSerializer& ser) const override
-    {
-        // 简单序列化：写入槽位数量和每个物品
-        ser.writeVarInt(SIZE);
-        for (const auto& item : m_items) {
-            item.serialize(ser);
-        }
-    }
 
     bool isChanged() const { return m_changed; }
     void clearChanged() { m_changed = false; }

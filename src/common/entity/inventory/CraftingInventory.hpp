@@ -100,8 +100,6 @@ public:
     void clear() override;
     void setChanged() override;
 
-    void serialize(network::PacketSerializer& ser) const override;
-
     // ========== 网格特定方法 ==========
 
     /**
@@ -253,8 +251,6 @@ public:
     ItemStack removeItemNoUpdate(i32 slot) override;
     void clear() override;
     void setChanged() override;
-
-    void serialize(network::PacketSerializer& ser) const override;
 
     // ========== 结果特定方法 ==========
 

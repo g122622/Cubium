@@ -30,7 +30,6 @@
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/items/special/EnchantedBookItem.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockTags.hpp"
@@ -98,14 +97,6 @@ public:
     }
 
     void setChanged() override { m_changed = true; }
-
-    void serialize(network::PacketSerializer& ser) const override
-    {
-        ser.writeVarInt(SIZE);
-        for (const auto& item : m_items) {
-            item.serialize(ser);
-        }
-    }
 
     bool isChanged() const { return m_changed; }
     void clearChanged() { m_changed = false; }

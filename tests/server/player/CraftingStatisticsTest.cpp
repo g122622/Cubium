@@ -116,13 +116,6 @@ public:
         return true;
     }
 
-    // 实现序列化方法
-    void serialize(network::PacketSerializer& ser) const override
-    {
-        (void)ser;
-        // 测试用，不需要实际序列化
-    }
-
 private:
     i32 m_size;
     std::vector<ItemStack> m_slots;

@@ -25,7 +25,6 @@
 #include "entity/entities/player/Player.hpp"
 #include "item/crafting/IRecipe.hpp"
 #include "item/crafting/RecipeManager.hpp"
-#include "network/packet/PacketSerializer.hpp"
 
 namespace mc {
 
@@ -107,14 +106,6 @@ void CraftingInventory::setChanged()
     IInventory::setChanged();
     if (m_onContentChanged) {
         m_onContentChanged();
-    }
-}
-
-void CraftingInventory::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeVarInt(static_cast<i32>(m_items.size()));
-    for (const ItemStack& stack : m_items) {
-        stack.serialize(ser);
     }
 }
 
@@ -267,11 +258,6 @@ void CraftResultInventory::clear()
 void CraftResultInventory::setChanged()
 {
     IInventory::setChanged();
-}
-
-void CraftResultInventory::serialize(network::PacketSerializer& ser) const
-{
-    m_result.serialize(ser);
 }
 
 void CraftResultInventory::onCrafting(Player& player)

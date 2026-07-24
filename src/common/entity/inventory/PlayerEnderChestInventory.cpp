@@ -26,7 +26,6 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
@@ -134,14 +133,6 @@ bool PlayerEnderChestInventory::isUsableByPlayer(const Player& player) const
     }
     // 没有关联的方块实体时，始终允许访问（用于命令等）
     return true;
-}
-
-void PlayerEnderChestInventory::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeVarInt(ENDER_CHEST_SIZE);
-    for (const auto& item : m_items) {
-        item.serialize(ser);
-    }
 }
 
 // ============================================================================

@@ -70,7 +70,6 @@ public:
         MC_UNUSED(stack);
         return direction == Direction::Down;
     }
-    void serialize(network::PacketSerializer& ser) const override { MC_UNUSED(ser); }
 
 private:
     blockentity::SimpleInventory m_inventory;

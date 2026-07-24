@@ -113,8 +113,6 @@ public:
 
     void setChanged() override;
 
-    void serialize(network::PacketSerializer& ser) const override;
-
     // ========== 快捷栏操作 ==========
 
     /**
@@ -482,13 +480,6 @@ public:
      * @return 变更次数
      */
     [[nodiscard]] i32 getTimesChanged() const { return m_timesChanged; }
-
-    // ========== 序列化 ==========
-
-    /**
-     * @brief 从反序列化器创建背包
-     */
-    [[nodiscard]] static Result<PlayerInventory> deserialize(network::PacketDeserializer& deser);
 
     /**
      * @brief 将背包数据序列化到 NBT 标签

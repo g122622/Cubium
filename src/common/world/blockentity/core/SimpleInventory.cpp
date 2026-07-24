@@ -23,7 +23,6 @@
 
 #include "SimpleInventory.hpp"
 #include "common/core/Constants.hpp"
-#include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
@@ -182,14 +181,6 @@ bool SimpleInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
     // 检查堆叠数量限制
     const i32 maxCount = std::min(m_maxStackSize, existing.getMaxStackSize());
     return existing.getCount() + stack.getCount() <= maxCount;
-}
-
-void SimpleInventory::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeVarInt(static_cast<i32>(m_items.size()));
-    for (const auto& item : m_items) {
-        item.serialize(ser);
-    }
 }
 
 ItemStack SimpleInventory::addItem(const ItemStack& stack)

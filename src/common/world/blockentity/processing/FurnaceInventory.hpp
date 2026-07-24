@@ -79,7 +79,6 @@ public:
     void clear() override;
     void setChanged() override;
     [[nodiscard]] bool canPlaceItem(i32 slot, const ItemStack& stack) const override;
-    void serialize(network::PacketSerializer& ser) const override;
 
     // ========== 便捷方法 ==========
 
