@@ -41,7 +41,9 @@ namespace mc::client {
 class Camera;
 class ClientWorld;
 class ClientEntityManager;
-class NetworkClient;
+namespace net {
+class ClientNetwork;
+} // namespace net
 } // namespace mc::client
 
 namespace mc::client::ui::minecraft {
@@ -84,7 +86,7 @@ public:
     /**
      * @brief 设置网络客户端
      */
-    void setNetworkClient(const mc::client::NetworkClient* client) { m_networkClient = client; }
+    void setNetworkClient(const mc::client::net::ClientNetwork* client) { m_networkClient = client; }
 
     /**
      * @brief 设置目标方块
@@ -193,7 +195,7 @@ private:
     const mc::client::Camera* m_camera = nullptr;
     const mc::client::ClientWorld* m_world = nullptr;
     const mc::client::ClientEntityManager* m_entityManager = nullptr;
-    const mc::client::NetworkClient* m_networkClient = nullptr;
+    const mc::client::net::ClientNetwork* m_networkClient = nullptr;
     const mc::BlockRaycastResult* m_targetBlock = nullptr;
     const mc::Player* m_player = nullptr;
     const mc::ClientDimensionManager* m_dimensionManager = nullptr;

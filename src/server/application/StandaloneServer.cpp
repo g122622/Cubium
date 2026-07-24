@@ -35,9 +35,10 @@
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -55,9 +56,7 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
-#include "server/core/PacketHandler.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
 #include "server/core/TeleportManager.hpp"
@@ -334,13 +333,16 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         (void)slotCount; // slotCount 不再发送到客户端
         const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
 
-        network::PacketSerializer ser;
-        auto packet = ContainerPacketHandler::createOpenContainerPacket(
-            containerId, ContainerTypes::toNetworkType(type), resolvedTitle);
-        packet.serialize(ser);
-
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::OpenContainer, ser.buffer());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+        // 1.21.11 OpenScreen：containerId + menuType + title(JSON 文本)。
+        mc::network::ir::play::OpenScreen pkt;
+        pkt.containerId = static_cast<i32>(containerId);
+        pkt.menuType = ContainerTypes::toNetworkType(type);
+        pkt.title = resolvedTitle;
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(pkt)},
+            });
     });
 
     containerManager().setOnContainerClose(
@@ -372,23 +374,37 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 }
             }
 
-            network::PacketSerializer ser;
-            CloseContainerPacket packet(containerId);
-            packet.serialize(ser);
-
-            auto fullPacket =
-                core::ConnectionManager::encapsulatePacket(network::PacketType::CloseContainer, ser.buffer());
-            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+            // 1.21.11 ContainerClose：containerId（服务端确认关闭）。
+            mc::network::ir::play::ContainerClose pkt;
+            pkt.containerId = static_cast<i32>(containerId);
+            sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{std::move(pkt)},
+                });
         });
 
     containerManager().setOnContainerUpdate([this](PlayerId playerId, const AbstractContainerMenu& menu) {
-        network::PacketSerializer ser;
-        auto packet = ContainerPacketHandler::createContentPacket(menu);
-        packet.serialize(ser);
-
-        auto fullPacket =
-            core::ConnectionManager::encapsulatePacket(network::PacketType::ContainerContent, ser.buffer());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+        // 1.21.11 ContainerSetContent：containerId + stateId + items + carriedItem。
+        mc::network::ir::play::ContainerSetContent pkt;
+        pkt.containerId = static_cast<i32>(menu.getId());
+        pkt.stateId = 0;
+        const i32 slotCount = menu.getSlotCount();
+        pkt.items.reserve(static_cast<size_t>(slotCount));
+        for (i32 slot = 0; slot < slotCount; ++slot) {
+            const auto* slotPtr = menu.getSlot(slot);
+            if (slotPtr != nullptr) {
+                pkt.items.push_back(mc::network::ir::toItemStackView(slotPtr->getItem()));
+            } else {
+                pkt.items.push_back(mc::network::ir::play::ItemStackView{});
+            }
+        }
+        pkt.carriedItem = mc::network::ir::play::ItemStackView{};
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(pkt)},
+            });
     });
 
     // 初始化维度管理器
@@ -475,7 +491,13 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         [this](TcpSession* session, const std::string& reason) { _onClientDisconnect(session, reason); });
 
     m_tcpServer->setOnPacket([this](TcpSession* session, const u8* data, size_t size) {
-        dispatchPacket(static_cast<u32>(session->id()), data, size);
+        // TODO(Phase6): 远程 TCP 入站字节应经新 pipeline::Connection 解码为 ir::IrPacket，
+        //   再交 dispatchPacket(sessionId, IrPacket) / ServerHandshake 路由。
+        //   当前新网络层尚未接 TCP 入站，旧字节协议已废，直接丢弃并告警。
+        (void)this;
+        (void)data;
+        (void)size;
+        spdlog::warn("StandaloneServer: remote TCP inbound dropped (TODO Phase6), session={}", session->id());
     });
 
     // 启动服务器
@@ -615,14 +637,18 @@ void StandaloneServer::stop()
 void StandaloneServer::pollNetwork()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "PollNetwork");
-    m_tcpServer->poll();
+    // TODO(Phase6): 远程 TCP 玩家经新 ServerNetwork::tick() 路由握手/Play。
+    //   当前独立服仅保证编译通过 + 集成服跑通，真 Java 互通在 Phase6 接入。
+    if (m_tcpServer) {
+        m_tcpServer->poll();
+    }
 }
 
-void StandaloneServer::broadcastPacket(const u8* data, size_t size)
+void StandaloneServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
 {
-    m_playerManager->forEachPlayer([data, size](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([&packet](ServerPlayerData& player) {
         if (player.loggedIn && player.hasConnection()) {
-            player.send(data, size);
+            player.send(mc::network::ir::IrPacket{packet});
         }
     });
 }
@@ -811,212 +837,53 @@ void StandaloneServer::_onClientDisconnect(TcpSession* session, const std::strin
 // 数据包处理
 // ============================================================================
 
-void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size)
-{
-    auto session = m_tcpServer->getSession(sessionId);
-    if (!session) {
-        spdlog::warn("Session {} not found for login request", sessionId);
-        return;
-    }
-
-    network::PacketDeserializer deser(data, size);
-    auto result = network::LoginRequestPacket::deserialize(deser);
-
-    if (result.failed()) {
-        spdlog::warn("Failed to parse login request from session {}", sessionId);
-        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, "", "Invalid login request");
-        session->disconnect("Invalid login request");
-        return;
-    }
-
-    auto& packet = result.value();
-    std::string username = packet.username();
-
-    spdlog::info("Player '{}' attempting to join from {}:{}", username, session->address(), session->port());
-
-    // 封禁检查（在白名单检查之前执行）
-    // 1. 检查玩家名封禁
-    if (m_bannedPlayerList->isNameBanned(username)) {
-        auto banEntry = m_bannedPlayerList->getEntryByName(username);
-        std::string banReason = banEntry.has_value() ? banEntry->reason : "You are banned from this server!";
-        spdlog::info("Player '{}' rejected: name banned", username);
-        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, username, banReason);
-        session->disconnect("Name banned");
-        return;
-    }
-
-    // 2. 检查 IP 封禁
-    const std::string& ipAddress = session->address();
-    if (m_bannedIpList->isBanned(ipAddress)) {
-        auto banEntry = m_bannedIpList->getEntry(ipAddress);
-        std::string banReason = banEntry.has_value() ? banEntry->reason : "Your IP is banned from this server!";
-        spdlog::info("Player '{}' rejected: IP {} banned", username, ipAddress);
-        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, username, banReason);
-        session->disconnect("IP banned");
-        return;
-    }
-
-    // 白名单检查
-    if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
-        spdlog::info("Player '{}' rejected: not in whitelist", username);
-        _sendLoginResponse(
-            session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, username, "You are not whitelisted on this server!");
-        session->disconnect("Not in whitelist");
-        return;
-    }
-
-    // 检查玩家数量限制
-    if (m_playerManager->isFull()) {
-        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, Uuid{}, username, "Server is full");
-        session->disconnect("Server is full");
-        return;
-    }
-
-    // 创建连接
-    auto connection = std::make_shared<TcpConnection>(session);
-
-    // 分配玩家ID
-    PlayerId playerId = m_playerManager->nextPlayerId();
-
-    // 生成离线模式 UUID（基于用户名）
-    Uuid offlineUuid = util::generateOfflineUuid(username);
-    std::string uuidStr = util::uuidToString(offlineUuid);
-
-    // 添加玩家会话信息
-    auto* playerData = m_playerManager->addPlayer(playerId, uuidStr, username, connection);
-    if (!playerData) {
-        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, offlineUuid, username, "Failed to add player");
-        session->disconnect("Failed to add player");
-        return;
-    }
-
-    // 设置会话ID并建立映射
-    playerData->sessionId = sessionId;
-    m_playerManager->mapSessionToPlayer(sessionId, playerId);
-
-    // 更新会话状态
-    session->setState(SessionState::Playing);
-
-    // 设置玩家初始状态
-    setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
-
-    // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
-    auto* overworldDim = m_dimensionManager->getOverworld();
-    MC_ASSERT_RELEASE(overworldDim != nullptr && overworldDim->world() != nullptr);
-    Player* playerEntity = m_playerEntityManager.createPlayerEntity(playerId,
-        username,
-        *overworldDim->world(),
-        this,
-        connection,
-        static_cast<f32>(playerData->x),
-        static_cast<f32>(playerData->y),
-        static_cast<f32>(playerData->z));
-
-    if (!playerEntity) {
-        spdlog::error("Failed to create player entity for {}", username);
-        m_playerManager->removePlayer(playerId);
-        _sendLoginResponse(
-            session.get(), false, 0, INVALID_ENTITY_ID, offlineUuid, username, "Failed to create player entity");
-        session->disconnect("Failed to create player entity");
-        return;
-    }
-
-    // 记录 entityId
-    EntityInstanceId entityId = playerEntity->id();
-    m_playerEntityIds[playerId] = entityId;
-
-    // 从 OP 列表设置玩家权限等级
-    i32 playerPermissionLevel = resolveOpLevel(playerData->uuid);
-    playerEntity->setPermissionLevel(playerPermissionLevel);
-
-    // 从存档加载玩家数据并恢复到实体
-    auto* storage = sharedStorage();
-    if (storage) {
-        auto loadResult = storage->loadPlayer(uuidStr);
-        if (loadResult.success() && loadResult.value().has_value()) {
-            // 已有存档：用保存的数据恢复玩家状态
-            const auto& saveData = loadResult.value().value();
-            world::storage::PlayerDataManager::applyToPlayer(*playerEntity, saveData);
-            spdlog::info("Player '{}' loaded saved data (level {}, gameMode {})",
-                username,
-                saveData.experienceLevel,
-                static_cast<i32>(saveData.gameMode));
-        } else {
-            // 新玩家：使用默认初始状态（setupInitialPlayerState 已设置）
-            spdlog::info("Player '{}' is new, using default state", username);
-        }
-    }
-
-    // 初始化玩家物品栏
-    inventoryManager().initializeInventory(playerId);
-
-    if (playerData->gameMode == GameMode::Creative) {
-        if (auto* inventory = inventoryManager().getInventory(playerId)) {
-            fillCreativeModeInventory(*inventory);
-        }
-    }
-
-    // 发送登录成功响应（包含 playerId 和 entityId 和 uuid）
-    _sendLoginResponse(session.get(), true, playerId, entityId, offlineUuid, username, "Welcome!");
-
-    // 同步玩家权限等级到客户端（同时发送 EntityStatusPacket 和命令树）
-    sendPermissionLevelChange(playerId, playerPermissionLevel);
-
-    // 发送初始游戏状态
-    sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
-
-    // 同步物品栏到客户端
-    inventoryManager().syncToClient(playerId);
-
-    spdlog::info("Player '{}' (ID: {}) joined the game", username, playerId);
-}
-
-void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size)
+void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) return;
 
-    network::PacketDeserializer deser(data, size);
-    auto result = HotbarSelectPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse hotbar select packet: {}", result.error().message());
+    // 1.21.11 SetCarriedItem（C→S）：玩家切换快捷栏选中槽位。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::SetCarriedItem>(&play);
+    if (evt == nullptr) {
         return;
     }
+    const i32 slot = evt->slot;
 
-    const i32 slot = result.value().slot();
-
-    // 使用 InventoryManager 设置选中槽位
     inventoryManager().setSelectedSlot(playerId, slot);
 
-    // 服务端回送确认包
-    HotbarSetPacket response(slot);
-    network::PacketSerializer ser;
-    response.serialize(ser);
-
-    const auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::HotbarSet, ser.buffer());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    // 服务端回送确认包（1.21.11 SetHeldSlot）。
+    mc::network::ir::play::SetHeldSlot resp;
+    resp.slot = slot;
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(resp)},
+        });
 }
 
-void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size)
+void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) return;
 
-    network::PacketDeserializer deser(data, size);
-    auto result = ContainerClickPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse container click packet: {}", result.error().message());
+    // 1.21.11 ContainerClick（C→S）：stateId + slot + button + clickType + carriedItem(HashedStack)。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ContainerClick>(&play);
+    if (evt == nullptr) {
         return;
     }
 
-    // 使用 ContainerManager 处理容器点击
-    const auto& packet = result.value();
+    // TODO(Phase6): carriedItem 当前是 HashedStack，多玩家远程路径下需桥接回 ItemStack。
+    //   集成服本地路径已有 hashedStackToItemStack；此处独立服暂用空 cursor。
+    ItemStack cursorItem;
+
     auto clickResult = containerManager().handleClick(playerId,
-        packet.containerId(),
-        packet.slotIndex(),
-        static_cast<u8>(packet.button()),
-        static_cast<u8>(packet.action()),
-        packet.cursorItem());
+        static_cast<mc::ContainerId>(evt->containerId),
+        evt->slotNum,
+        static_cast<u8>(evt->buttonNum),
+        static_cast<u8>(evt->clickType),
+        cursorItem);
 
     if (clickResult.success()) {
         // 同步物品栏到客户端
@@ -1024,15 +891,15 @@ void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const u8* d
     }
 }
 
-void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size)
+void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) return;
 
-    network::PacketDeserializer deser(data, size);
-    auto result = CloseContainerPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse close container packet: {}", result.error().message());
+    // 1.21.11 ContainerClose（C→S）：containerId。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ContainerClose>(&play);
+    if (evt == nullptr) {
         return;
     }
 
@@ -1043,26 +910,20 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
     inventoryManager().syncToClient(playerId);
 }
 
-// ============================================================================
-// 数据包发送
-// ============================================================================
-
-void StandaloneServer::_sendLoginResponse(TcpSession* session,
-    bool success,
-    PlayerId playerId,
-    EntityInstanceId entityId,
-    const Uuid& uuid,
-    const std::string& username,
-    const std::string& message)
+void StandaloneServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    bool isDebugWorld = m_dimensionManager->getOverworld() && m_dimensionManager->getOverworld()->world() &&
-        m_dimensionManager->getOverworld()->world()->isDebugWorld();
-    network::LoginResponsePacket response(success, playerId, entityId, uuid, username, message, isDebugWorld);
-    network::PacketSerializer ser;
-    response.serialize(ser);
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (!player || !player->loggedIn) return;
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LoginResponse, ser.buffer());
-    session->send(fullPacket.data(), fullPacket.size());
+    // 1.21.11 PlayerCommand{action=OPEN_INVENTORY}（C→S）。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::PlayerCommand>(&play);
+    if (evt == nullptr || evt->action != 5) { // OPEN_INVENTORY
+        return;
+    }
+
+    // TODO(Phase6): 独立服远程玩家打开背包的菜单建立（Player 类型未注册菜单工厂）。
+    //   集成服本地路径有 _openItemPickerMenu/_openPlayerInventoryMenu，远程路径暂留空。
 }
 
 // ============================================================================

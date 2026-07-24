@@ -28,6 +28,9 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -60,7 +63,7 @@ sound::SoundCategory parseSoundCategory(const std::string& name)
 }
 
 /**
- * @brief 发送 PlaySoundPacket 给指定玩家
+ * @brief 发送 PlaySound IR 包给指定玩家
  */
 void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
     PlayerId playerId,
@@ -70,15 +73,27 @@ void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
     f32 volume,
     f32 pitch)
 {
-    sound::PlaySoundPacket packet(soundId, category, position, volume, pitch);
+    // 1.21.11 ClientboundSoundPackets：Holder<SoundEvent> + source + 坐标(×8 整数) +
+    //   volume + pitch + seed。坐标按 ×8 截断（Java writeInt）。
+    // TODO(Phase6): soundHolder 当前仅以 ResourceLocation 字符串字节承载，未对齐
+    //   1.21.11 Holder<SoundEvent> wire（可选引用 vs 内联 SoundEvent），真互通需补完整 codec。
+    //   seed 暂用固定值 0，后续应接入确定性种子源。
+    mc::network::ir::play::PlaySound pkt;
+    std::string idStr = soundId.toString();
+    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.source = static_cast<i32>(category);
+    pkt.x = static_cast<i32>(position.x * 8.0f);
+    pkt.y = static_cast<i32>(position.y * 8.0f);
+    pkt.z = static_cast<i32>(position.z * 8.0f);
+    pkt.volume = volume;
+    pkt.pitch = pitch;
+    pkt.seed = 0;
 
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
-        return;
-    }
-
-    connMgr.sendPacketToPlayer(playerId, network::PacketType::PlaySound, result.value());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
+    connMgr.sendToPlayer(playerId, packet);
 }
 } // namespace
 

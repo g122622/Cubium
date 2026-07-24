@@ -32,8 +32,6 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -107,16 +105,14 @@ protected:
         auto worldInit = m_world->initialize();
         ASSERT_TRUE(worldInit.success());
 
-        m_connectionPair = std::make_unique<network::LocalConnectionPair>();
-        m_connectionPair->connect();
-
         m_server = std::make_unique<BlockInteractionTestServer>(*m_world);
         m_playerManager = std::make_unique<server::core::PlayerManager>();
-        auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
+        // 新网络层 addPlayer 第4参为 ServerClientConnection*；本测试只验证方块交互逻辑，
+        // 不依赖连接真发包，故传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
         m_player = m_playerManager->addPlayer(m_playerId,
             mc::util::uuidToString(mc::util::generateOfflineUuid("PlacementTester")),
             "PlacementTester",
-            connection);
+            nullptr);
         ASSERT_NE(m_player, nullptr);
         m_player->x = 0.5f;
         m_player->y = 64.0f;
@@ -139,7 +135,6 @@ protected:
         m_blockInteractionManager.reset();
         m_inventoryManager.reset();
         m_playerManager.reset();
-        m_connectionPair.reset();
 
         if (m_world) {
             m_world->shutdown();
@@ -169,7 +164,6 @@ protected:
 
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<BlockInteractionTestServer> m_server;
-    std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::BlockInteractionManager> m_blockInteractionManager;

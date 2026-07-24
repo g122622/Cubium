@@ -30,15 +30,15 @@
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/ExperiencePackets.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -50,6 +50,19 @@
 using namespace mc::trace;
 
 namespace mc::server {
+
+namespace {
+
+// 构造 Play 阶段 IR 包的统一包装（所有实体同步 S→C 包均为 Play 阶段）。
+mc::network::ir::IrPacket makePlayPacket(mc::network::ir::PlayPacket play)
+{
+    return mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        std::move(play),
+    };
+}
+
+} // namespace
 
 EntityTracker::EntityTracker()
     : m_trackingDistance(10)
@@ -389,110 +402,45 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
-    // 判断是 Mob 还是普通实体
-    // MobEntity 继承自 LivingEntity，使用 SpawnMobPacket
-    // 其他实体使用 SpawnEntityPacket
+    // 1.21.11 统一用 AddEntity 生成实体（含经验球/掉落物/Mob），
+    // 元数据走独立的 SetEntityData 包。MobEntity 的 headYaw 经 AddEntity.yHeadRot 透传。
     auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
+    const auto* entityType = entity->entityType();
+    const i32 entityTypeId = entityType ? static_cast<i32>(entityType->id()) : 0;
 
-    if (livingEntity != nullptr) {
-        // 使用 SpawnMobPacket（包含 headYaw）
-        network::SpawnMobPacket packet;
-        packet.setEntityId(static_cast<u32>(entity->id()));
+    mc::network::ir::play::AddEntity spawn;
+    spawn.entityId = static_cast<i32>(entity->id());
+    spawn.uuid = util::uuidFromString(entity->uuid());
+    spawn.entityTypeId = entityTypeId;
+    spawn.x = entity->x();
+    spawn.y = entity->y();
+    spawn.z = entity->z();
+    // 1.21.11 movement 用 LpVec3（低精度 m/tick），此处直接填 m/tick 值。
+    auto velocity = entity->velocity();
+    spawn.movementX = static_cast<f64>(velocity.x);
+    spawn.movementY = static_cast<f64>(velocity.y);
+    spawn.movementZ = static_cast<f64>(velocity.z);
+    spawn.yRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(entity->yaw()));
+    spawn.xRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(entity->pitch()));
+    spawn.yHeadRot = livingEntity != nullptr
+        ? static_cast<i8>(mc::network::backend::java::wire::packDegrees(livingEntity->rotationYawHead()))
+        : spawn.yRot;
+    spawn.data = 0; // 无实体特定 data（如抛掷物 owner）
 
-        // 使用实体的真实 UUID（MC 1.16.5 行为：UUID 在实体构造时随机生成）
-        packet.setUuid(util::uuidFromString(entity->uuid()));
+    player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
-        packet.setEntityTypeId(entity->getTypeId());
-        packet.setPosition(entity->x(), entity->y(), entity->z());
-        // 使用身体的yaw和头部的yaw
-        packet.setRotation(entity->yaw(), entity->pitch(), livingEntity->rotationYawHead());
-
-        // 转换速度（m/tick -> 1/8000 block/tick）
-        auto velocity = entity->velocity();
-        packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
-            static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-            static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
-
-        packet.setMetadata(network::EntityMetadataSerializer::serialize(entity->dataManager(), false));
-
-        auto result = packet.serialize();
-        if (result.success()) {
-            // 封装为完整数据包
-            network::PacketSerializer fullPacket;
-            fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-            fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnMob));
-            fullPacket.writeU16(0);
-            fullPacket.writeU16(0);
-            fullPacket.writeU16(0);
-            fullPacket.writeBytes(result.value());
-
-            player->send(fullPacket.data(), fullPacket.size());
-            entity->dataManager().clearDirty();
-            // spdlog::info("Sent SpawnMob packet for entity {} (type: {}) to player {}",
-            //               entity->id(), entity->getTypeId(), playerId);
-        }
-    } else {
-        // 非生物实体，检查是否是 ExperienceOrbEntity
-        ExperienceOrbEntity* xpOrb = dynamic_cast<ExperienceOrbEntity*>(entity);
-        if (xpOrb != nullptr) {
-            // 经验球使用 SpawnExperienceOrbPacket
-            network::SpawnExperienceOrbPacket packet(static_cast<i32>(entity->id()),
-                entity->x(),
-                entity->y(),
-                entity->z(),
-                static_cast<i16>(xpOrb->getXpValue()));
-
-            auto result = packet.serialize();
-            if (result.success()) {
-                network::PacketSerializer fullPacket;
-                fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-                fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnExperienceOrb));
-                fullPacket.writeU16(0);
-                fullPacket.writeU16(0);
-                fullPacket.writeU16(0);
-                fullPacket.writeBytes(result.value());
-
-                player->send(fullPacket.data(), fullPacket.size());
-            }
-        } else {
-            // 其他非生物实体，使用 SpawnEntityPacket
-            network::SpawnEntityPacket packet;
-            packet.setEntityId(static_cast<u32>(entity->id()));
-
-            // 使用实体的真实 UUID（MC 1.16.5 行为：UUID 在实体构造时随机生成）
-            packet.setUuid(util::uuidFromString(entity->uuid()));
-
-            packet.setEntityTypeId(entity->getTypeId());
-            packet.setPosition(entity->x(), entity->y(), entity->z());
-            packet.setRotation(entity->yaw(), entity->pitch());
-
-            // 转换速度（m/tick -> 1/8000 block/tick）
-            auto velocity = entity->velocity();
-            packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
-                static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-                static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
-
-            // 检查是否是 ItemEntity，如果是则序列化 ItemStack 数据
-            ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
-            if (itemEntity != nullptr) {
-                packet.setItemStack(itemEntity->getItemStack());
-            }
-
-            auto result = packet.serialize();
-            if (result.success()) {
-                // 封装为完整数据包
-                network::PacketSerializer fullPacket;
-                fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-                fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
-                fullPacket.writeU16(0);
-                fullPacket.writeU16(0);
-                fullPacket.writeU16(0);
-                fullPacket.writeBytes(result.value());
-
-                player->send(fullPacket.data(), fullPacket.size());
-            }
-        }
+    // 紧随其后发送元数据（spawn 时刻的完整快照，dirtyOnly=false）。
+    // ItemEntity 的 ItemStack 等关键状态都走元数据，客户端收到 AddEntity 后必须再收一次
+    // SetEntityData 才能正确渲染（1.21.11 AddEntity 不携带 metadata）。
+    std::vector<u8> metadata =
+        network::EntityMetadataSerializer::serialize(entity->dataManager(), false);
+    if (metadata.size() > 1) { // >1 表示除 0xFF 结束符外还有实际条目
+        mc::network::ir::play::SetEntityData meta;
+        meta.entityId = static_cast<i32>(entity->id());
+        meta.packedItems = std::move(metadata);
+        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
     }
+    entity->dataManager().clearDirty();
 }
 
 void EntityTracker::_sendMetadataPacket(
@@ -503,22 +451,11 @@ void EntityTracker::_sendMetadataPacket(
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
-    network::EntityMetadataPacket packet;
-    packet.setEntityId(static_cast<u32>(entity->id()));
-    packet.setMetadata(metadata);
-
-    auto result = packet.serialize();
-    if (result.success()) {
-        network::PacketSerializer fullPacket;
-        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityMetadata));
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeBytes(result.value());
-
-        player->send(fullPacket.data(), fullPacket.size());
-    }
+    // 1.21.11 SetEntityData：entityId + 已序列化的元数据字节（含 EOF 0xFF）。
+    mc::network::ir::play::SetEntityData pkt;
+    pkt.entityId = static_cast<i32>(entity->id());
+    pkt.packedItems = metadata;
+    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, EntityInstanceId entityId)
@@ -526,21 +463,10 @@ void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, Entit
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
-    network::EntityDestroyPacket packet;
-    packet.addEntityId(static_cast<u32>(entityId)); // EntityInstanceId 转 u32（协议限制）
-
-    auto result = packet.serialize();
-    if (result.success()) {
-        network::PacketSerializer fullPacket;
-        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityDestroy));
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeBytes(result.value());
-
-        player->send(fullPacket.data(), fullPacket.size());
-    }
+    // 1.21.11 RemoveEntities：VarInt(count) + count×VarInt(entityId)。
+    mc::network::ir::play::RemoveEntities pkt;
+    pkt.entityIds.push_back(static_cast<i32>(entityId));
+    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendDestroyPacket(
@@ -558,25 +484,21 @@ void EntityTracker::_sendMovePacket(IServer& server, PlayerId playerId, Entity* 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
-    // 发送传送包（完整位置）
-    network::EntityTeleportPacket packet;
-    packet.setEntityId(static_cast<u32>(entity->id())); // EntityInstanceId 转 u32（协议限制）
-    packet.setPosition(entity->x(), entity->y(), entity->z());
-    packet.setRotation(entity->yaw(), entity->pitch());
-    packet.setOnGround(entity->onGround());
-
-    auto result = packet.serialize();
-    if (result.success()) {
-        network::PacketSerializer fullPacket;
-        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityTeleport));
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeBytes(result.value());
-
-        player->send(fullPacket.data(), fullPacket.size());
-    }
+    // 1.21.11 TeleportEntity：完整绝对位置（与 PlayerPosition 同构）。
+    // delta 置 0、relatives 置 0 表示纯绝对传送。
+    mc::network::ir::play::TeleportEntity pkt;
+    pkt.entityId = static_cast<i32>(entity->id());
+    pkt.x = static_cast<f64>(entity->x());
+    pkt.y = static_cast<f64>(entity->y());
+    pkt.z = static_cast<f64>(entity->z());
+    pkt.deltaX = 0.0;
+    pkt.deltaY = 0.0;
+    pkt.deltaZ = 0.0;
+    pkt.yRot = entity->yaw();
+    pkt.xRot = entity->pitch();
+    pkt.relatives = 0;
+    pkt.onGround = entity->onGround();
+    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Entity* entity)
@@ -586,27 +508,15 @@ void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Enti
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
-    // 发送实体速度同步包
-    // 速度单位：1/8000 block/tick（与 SpawnMobPacket/SpawnEntityPacket 一致）
-    network::EntityVelocityPacket packet;
-    packet.setEntityId(static_cast<u32>(entity->id()));
+    // 1.21.11 SetEntityMotion：entityId + LpVec3 速度（m/tick）。
+    // 旧路径用 1/8000 i16；1.21.11 codec 用 LpVec3 直接承载 double。
     const auto velocity = entity->velocity();
-    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
-
-    auto result = packet.serialize();
-    if (result.success()) {
-        network::PacketSerializer fullPacket;
-        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityVelocity));
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeBytes(result.value());
-
-        player->send(fullPacket.data(), fullPacket.size());
-    }
+    mc::network::ir::play::SetEntityMotion pkt;
+    pkt.entityId = static_cast<i32>(entity->id());
+    pkt.x = static_cast<f64>(velocity.x);
+    pkt.y = static_cast<f64>(velocity.y);
+    pkt.z = static_cast<f64>(velocity.z);
+    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity)
@@ -621,32 +531,36 @@ void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId player
         return;
     }
 
-    network::SpawnEntityPacket packet;
-    packet.setEntityId(static_cast<u32>(itemEntity->id()));
-    packet.setUuid(util::uuidFromString(itemEntity->uuid()));
-    packet.setEntityTypeId(itemEntity->getTypeId());
-    packet.setPosition(itemEntity->x(), itemEntity->y(), itemEntity->z());
-    packet.setRotation(itemEntity->yaw(), itemEntity->pitch());
+    // 重同步：重新发一次 AddEntity + SetEntityData 全量快照（与 _sendSpawnPacket 同构），
+    // ItemEntity 的 ItemStack 状态由元数据承载，重新序列化即可刷新到最新。
+    const auto* entityType = itemEntity->entityType();
+    const i32 entityTypeId = entityType ? static_cast<i32>(entityType->id()) : 0;
 
+    mc::network::ir::play::AddEntity spawn;
+    spawn.entityId = static_cast<i32>(itemEntity->id());
+    spawn.uuid = util::uuidFromString(itemEntity->uuid());
+    spawn.entityTypeId = entityTypeId;
+    spawn.x = static_cast<f64>(itemEntity->x());
+    spawn.y = static_cast<f64>(itemEntity->y());
+    spawn.z = static_cast<f64>(itemEntity->z());
     const auto velocity = itemEntity->velocity();
-    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
-    packet.setItemStack(itemEntity->getItemStack());
+    spawn.movementX = static_cast<f64>(velocity.x);
+    spawn.movementY = static_cast<f64>(velocity.y);
+    spawn.movementZ = static_cast<f64>(velocity.z);
+    spawn.yRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(itemEntity->yaw()));
+    spawn.xRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(itemEntity->pitch()));
+    spawn.yHeadRot = spawn.yRot;
+    spawn.data = 0;
+    player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
-    auto result = packet.serialize();
-    if (result.failed()) {
-        return;
+    std::vector<u8> metadata =
+        network::EntityMetadataSerializer::serialize(itemEntity->dataManager(), false);
+    if (metadata.size() > 1) {
+        mc::network::ir::play::SetEntityData meta;
+        meta.entityId = static_cast<i32>(itemEntity->id());
+        meta.packedItems = std::move(metadata);
+        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
     }
-
-    network::PacketSerializer fullPacket;
-    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::SpawnEntity));
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeBytes(result.value());
-    player->send(fullPacket.data(), fullPacket.size());
 }
 
 } // namespace mc::server

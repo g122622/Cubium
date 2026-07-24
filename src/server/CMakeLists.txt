@@ -10,6 +10,11 @@ add_executable(minecraft-server
     network/TcpServer.cpp
     network/TcpSession.cpp
     network/TcpConnection.cpp
+    # 新网络层（1.21.11 IR）：服务端门面 + 握手状态机 + 配置注册表 + Play 路由
+    network/ServerNetwork.cpp
+    network/ServerHandshake.cpp
+    network/RegistryDataBuilder.cpp
+    network/ServerPlayRouter.cpp
     # 核心模块
     core/PlayerManager.cpp
     core/ConnectionManager.cpp

@@ -73,6 +73,7 @@ add_library(mc_common STATIC
     network/buffer/ByteBuf.cpp
     network/buffer/RegistryByteBuf.cpp
     network/buffer/NbtIo.cpp
+    network/ir/ItemStackBridge.cpp
     network/crypto/Crypt.cpp
     network/crypto/AesCfb8.cpp
     network/crypto/RsaHandshake.cpp
@@ -473,6 +474,12 @@ add_library(mc_common STATIC
     entity/inventory/container/MerchantContainer.cpp
     entity/inventory/container/MerchantContainerMenu.cpp
     entity/inventory/container/MerchantResultSlot.cpp
+
+    # Item System - Component（1.21.11 数据组件：DataComponentType/Map/Patch + NBT/wire codec）
+    item/component/DataComponentType.cpp
+    item/component/DataComponentPayloadCodec.cpp
+    item/component/DataComponentPatchNbt.cpp
+    item/component/DataComponentPatchWire.cpp
 
     # Item System - Core
     item/core/AdventureModePredicate.cpp

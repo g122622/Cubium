@@ -27,6 +27,9 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -40,22 +43,30 @@ namespace command {
 
 namespace {
 /**
- * @brief 发送 StopSoundPacket 给指定玩家
+ * @brief 发送 StopSound IR 包给指定玩家
  */
 void sendStopSoundPacket(server::core::ConnectionManager& connMgr,
     PlayerId playerId,
     const std::optional<ResourceLocation>& soundId,
     const std::optional<sound::SoundCategory>& category)
 {
-    sound::StopSoundPacket packet(soundId, category);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize StopSoundPacket: {}", result.error().message());
-        return;
+    // 1.21.11 StopSound：flags bit0=HAS_SOURCE bit1=HAS_SOUND
+    mc::network::ir::play::StopSound pkt;
+    pkt.flags = 0;
+    if (category.has_value()) {
+        pkt.flags |= 0x01;
+        pkt.source = static_cast<i32>(*category);
+    }
+    if (soundId.has_value()) {
+        pkt.flags |= 0x02;
+        pkt.name = soundId->toString();
     }
 
-    connMgr.sendPacketToPlayer(playerId, network::PacketType::StopSound, result.value());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
+    connMgr.sendToPlayer(playerId, packet);
 }
 
 /**

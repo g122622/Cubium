@@ -27,7 +27,7 @@ namespace mc::network::buffer {
 
 void RegistryByteBuf::writeItemHolder(const Item* item)
 {
-    // VarInt itemId，空气/空 = 0。完整 1.21.11 物品格式（count + 组件 patch）见 TODO。
+    // 1.21.11 Item holder 仅 VarInt itemId（空气/空 = 0）；count 与组件 patch 属 ItemStack codec。
     writeVarUInt(item != nullptr ? item->itemId() : 0);
 }
 
@@ -39,7 +39,8 @@ Result<const Item*> RegistryByteBuf::readItemHolder()
         return static_cast<const Item*>(nullptr);
     }
     if (!hasRegistry()) {
-        return Error(ErrorCode::InvalidState, "RegistryByteBuf 未绑定注册表", "RegistryByteBuf::readItemHolder");
+        return Error(
+            ErrorCode::InvalidState, "RegistryByteBuf has no bound registry", "RegistryByteBuf::readItemHolder");
     }
     return registry().itemById(id);
 }

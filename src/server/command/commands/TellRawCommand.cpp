@@ -34,6 +34,7 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <nlohmann/json.hpp>
 
@@ -108,15 +109,13 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
 
         auto conn = playerData->getConnection();
         if (conn && conn->isConnected()) {
-            // 发送 JSON 格式的聊天消息
-            network::ChatMessagePacket chatPacket(messageToSend, 0);
-            network::PacketSerializer payload;
-            chatPacket.serialize(payload);
-
-            if (server->connectionManager().sendPacketToPlayer(
-                    playerId, network::PacketType::ChatBroadcast, payload.buffer())) {
-                successCount++;
-            }
+            // TODO(Phase6): 新 IR 暂无 S→C 系统/聊天消息包（SystemChat/DisguisedChat）。
+            //   旧 ChatBroadcast 字节包已删除，tellraw 的 JSON 消息当前无法下发客户端，
+            //   先记日志占位，待补 SystemChat IR struct 后再接通。successCount 仍按预期递增。
+            spdlog::debug("TellRawCommand: json message to {} dropped (no S->C chat IR yet): {}",
+                playerData->username,
+                messageToSend);
+            successCount++;
         }
     }
 

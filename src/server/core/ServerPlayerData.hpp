@@ -27,10 +27,11 @@
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
-#include "common/network/connection/IServerConnection.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "server/network/ServerNetwork.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -72,8 +73,9 @@ struct ServerPlayerData {
     /// 用户名
     std::string username;
 
-    /// 连接接口（可以是 TcpConnection 或 LocalServerConnection）
-    network::ConnectionWeakPtr connection;
+    /// 连接（新网络层 ServerClientConnection，非拥有；由 ServerNetwork/PlayerManager 持有）
+    /// nullptr 表示本地玩家（IntegratedServer 单玩家优化：连接由 IntegratedServer 直接持有）
+    mc::server::net::ServerClientConnection* connection = nullptr;
 
     /// 会话ID（用于 TCP 连接标识）
     u32 sessionId = 0;
@@ -138,32 +140,29 @@ struct ServerPlayerData {
 
     /**
      * @brief 获取连接（如果有效）
-     * @return 连接共享指针，如果已断开则返回 nullptr
+     * @return 连接指针，如果无连接返回 nullptr
      */
-    [[nodiscard]] network::ConnectionPtr getConnection() const noexcept { return connection.lock(); }
+    [[nodiscard]] mc::server::net::ServerClientConnection* getConnection() const noexcept { return connection; }
 
     /**
      * @brief 检查连接是否有效
-     * @return true 如果连接有效
+     * @return true 如果连接非空且未断开
      */
     [[nodiscard]] bool hasConnection() const
     {
-        auto conn = connection.lock();
-        return conn && conn->isConnected();
+        return connection != nullptr && connection->isConnected();
     }
 
     /**
-     * @brief 发送数据到玩家
-     * @param data 数据指针
-     * @param size 数据大小
-     * @return true 如果发送成功
+     * @brief 发送 IR 包到玩家
+     * @param packet IR 包（按值移动）
+     * @return true 如果发送成功（连接有效且 send 成功）
      */
-    bool send(const u8* data, size_t size) const
+    bool send(mc::network::ir::IrPacket packet) const
     {
-        auto conn = connection.lock();
-        if (conn && conn->isConnected()) {
-            conn->send(data, size);
-            return true;
+        if (connection != nullptr && connection->isConnected()) {
+            auto r = connection->send(std::move(packet));
+            return r.success();
         }
         return false;
     }

@@ -23,8 +23,6 @@
 
 #include "server/core/PositionTracker.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -33,19 +31,21 @@
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
-using namespace mc::network;
 using mc::ChunkCoord;
 using mc::ChunkPos;
 
 /**
  * @brief PositionTracker 单元测试
+ *
+ * 新网络层 addPlayer 第4参为 mc::server::net::ServerClientConnection*（裸指针）。
+ * 本测试只验证 PositionTracker/PlayerManager 的位置数据维护，不依赖连接真发包，
+ * 故统一传 nullptr（与 BaseTestServer::addTestPlayer 一致，Step5 删旧体系后
+ * 统一重构测试桩）。
  */
 class PositionTrackerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_connectionPair = std::make_unique<LocalConnectionPair>();
-        m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
         m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, 10);
     }
@@ -54,23 +54,15 @@ protected:
     {
         m_positionTracker.reset();
         m_playerManager.reset();
-        m_connectionPair.reset();
     }
 
-    ConnectionPtr createConnection()
-    {
-        return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
-    }
-
-    std::unique_ptr<LocalConnectionPair> m_connectionPair;
     std::unique_ptr<PlayerManager> m_playerManager;
     std::unique_ptr<PositionTracker> m_positionTracker;
 };
 
 TEST_F(PositionTrackerTest, UpdatePosition)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     bool result = m_positionTracker->updatePosition(1, 100.5, 64.0, 200.5, 90.0f, 45.0f, true);
     EXPECT_TRUE(result);
@@ -93,8 +85,7 @@ TEST_F(PositionTrackerTest, UpdatePositionNonexistentPlayer)
 
 TEST_F(PositionTrackerTest, UpdatePositionOnly)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->updatePosition(1, 100.0, 64.0, 200.0);
 
@@ -107,8 +98,7 @@ TEST_F(PositionTrackerTest, UpdatePositionOnly)
 
 TEST_F(PositionTrackerTest, UpdateRotation)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->updateRotation(1, 180.0f, 30.0f);
 
@@ -120,8 +110,7 @@ TEST_F(PositionTrackerTest, UpdateRotation)
 
 TEST_F(PositionTrackerTest, GetPosition)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->updatePosition(1, 100.0, 64.0, 200.0, 90.0f, 45.0f, true);
 
@@ -137,8 +126,7 @@ TEST_F(PositionTrackerTest, GetPosition)
 
 TEST_F(PositionTrackerTest, GetRotation)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->updateRotation(1, 180.0f, 30.0f);
 
@@ -149,8 +137,7 @@ TEST_F(PositionTrackerTest, GetRotation)
 
 TEST_F(PositionTrackerTest, GetChunkPosition)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->updatePosition(1, 100.0, 64.0, 200.0);
 
@@ -161,8 +148,7 @@ TEST_F(PositionTrackerTest, GetChunkPosition)
 
 TEST_F(PositionTrackerTest, IsOnGround)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->updatePosition(1, 100.0, 64.0, 200.0, 0.0f, 0.0f, true);
     EXPECT_TRUE(m_positionTracker->isOnGround(1));
@@ -173,8 +159,7 @@ TEST_F(PositionTrackerTest, IsOnGround)
 
 TEST_F(PositionTrackerTest, SetViewDistance)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->setViewDistance(1, 12);
     EXPECT_EQ(m_positionTracker->getViewDistance(1), 12);
@@ -185,8 +170,7 @@ TEST_F(PositionTrackerTest, CalculateChunkUpdates)
     m_playerManager = std::make_unique<PlayerManager>(20);
     m_positionTracker = std::make_unique<PositionTracker>(*m_playerManager, 2);
 
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     // 设置初始位置
     m_positionTracker->updatePosition(1, 0.0, 64.0, 0.0);
@@ -215,8 +199,7 @@ TEST_F(PositionTrackerTest, CalculateChunkUpdates)
 
 TEST_F(PositionTrackerTest, MarkChunkSent)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->markChunkSent(1, 5, 10);
 
@@ -227,8 +210,7 @@ TEST_F(PositionTrackerTest, MarkChunkSent)
 
 TEST_F(PositionTrackerTest, MarkChunkUnloaded)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_positionTracker->markChunkSent(1, 5, 10);
     EXPECT_TRUE(m_positionTracker->getViewDistance(1) >= 0); // just check it's valid

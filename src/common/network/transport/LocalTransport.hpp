@@ -70,6 +70,15 @@ public:
 
     [[nodiscard]] virtual bool isConnected() const noexcept = 0;
     virtual void close() = 0;
+
+    /**
+     * @brief 把队列中待投递的包依次回调 onPacket
+     *
+     * 由持有方（如集成服 tick）在合适时机调用，驱动包到达。
+     * Local 模式必由外部 pump 驱动（push 模型）：send 仅入对端队列，不触发回调。
+     * Wire 模式的 ITransport 由接收线程异步驱动，无对应方法。
+     */
+    virtual void pump() = 0;
 };
 
 /**
@@ -95,13 +104,7 @@ public:
     void onDisconnect(DisconnectCallback callback) override;
     [[nodiscard]] bool isConnected() const noexcept override;
     void close() override;
-
-    /**
-     * @brief 把队列中待投递的包依次回调 onPacket
-     *
-     * 由对端 Connection 在 tick 中调用，驱动包到达。
-     */
-    void pump();
+    void pump() override;
 
     /**
      * @brief 绑定对端（由 LocalTransportPair 在配对时调用）

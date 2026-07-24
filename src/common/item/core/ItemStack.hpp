@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
@@ -700,6 +701,21 @@ public:
      */
     void setRepairCost(i32 cost) { m_repairCost = cost; }
 
+    // ========== 药水（potion_contents 组件） ==========
+
+    /**
+     * @brief 获取药水 ID（对应 1.21.11 potion_contents 组件的 potion 字段）
+     * @return 药水资源位置字符串，空串表示无药水
+     */
+    [[nodiscard]] const std::string& getPotionId() const { return m_potionId; }
+
+    /**
+     * @brief 设置药水 ID
+     * @param potionId 药水资源位置字符串，空串表示清除
+     */
+    void setPotionId(const std::string& potionId) { m_potionId = potionId; }
+    void setPotionId(std::string&& potionId) { m_potionId = std::move(potionId); }
+
     // ========== 容器物品 ==========
 
     /**
@@ -742,32 +758,54 @@ public:
     [[nodiscard]] static Result<ItemStack> fromJson(const nlohmann::json& json);
 
     /**
-     * @brief 序列化到 NBT
+     * @brief 序列化到 NBT（1.21.11 数据组件格式）
      * @param tag NBT 复合标签（输出参数）
-     * @return NBT 复合标签引用
      *
-     * NBT 格式：
+     * NBT 格式（对齐 MC Java 1.21.11）：
      * - id (string): 物品资源位置
-     * - Count (byte): 数量
-     * - tag (compound, 可选): 物品标签
-     *   - Damage (int): 耐久度
-     *   - Enchantments (list): 附魔
-     *   - display (compound): 显示数据
-     *     - Name: 自定义名称
-     *     - Lore: 描述
-     *   - RepairCost (int): 修复成本
-     *   - Potion (string): 药水ID
-     *   - CanPlaceOn (list<string>): 冒险模式可放置方块列表
-     *   - CanDestroy (list<string>): 冒险模式可破坏方块列表
+     * - count (int): 数量（1..99，0=空）
+     * - components (compound, 可选): 数据组件补丁
+     *   键为组件资源位置名（如 "minecraft:damage"），值为该组件的 NBT；
+     *   以 '!' 前缀的键表示移除该组件。
+     *
+     * 对应字段：
+     * - minecraft:damage           —— m_damage
+     * - minecraft:repair_cost      —— m_repairCost
+     * - minecraft:custom_name      —— m_customName
+     * - minecraft:lore             —— m_lore
+     * - minecraft:enchantments     —— m_enchantments
+     * - minecraft:potion_contents  —— m_potionId
+     * - minecraft:can_place_on     —— m_canPlaceOn
+     * - minecraft:can_break        —— m_canDestroy
+     * - minecraft:custom_data      —— m_customData（JSON↔NBT 转换）
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
 
     /**
-     * @brief 从 NBT 反序列化
+     * @brief 从 NBT 反序列化（1.21.11 数据组件格式）
      * @param tag NBT 复合标签
      * @return 物品堆或错误
+     *
+     * 同时兼容旧版 {id, Count(byte), tag{...}} 格式：若检测到 "tag" 复合键且无
+     * "components" 键，按旧 1.16.5 格式解析（用于读旧存档），否则按 1.21.11 组件格式解析。
      */
     [[nodiscard]] static Result<ItemStack> fromNbt(const nbt::tags::compound_tag& tag);
+
+    // ========== 数据组件补丁转换（NBT/wire 序列化用） ==========
+
+    /**
+     * @brief 将当前物品堆的非默认组件字段导出为 DataComponentPatch
+     *
+     * 仅当字段非默认值时加入 added 列表。供 toNbt 的 components 段与 wire 编码使用。
+     */
+    [[nodiscard]] item::component::DataComponentPatch toComponentPatch() const;
+
+    /**
+     * @brief 从 DataComponentPatch 应用组件到本物品堆
+     *
+     * added 字段覆盖对应成员；removed 字段重置为默认。供 fromNbt 与 wire 解码使用。
+     */
+    void applyComponentPatch(const item::component::DataComponentPatch& patch);
 
     // ========== 比较操作符 ==========
 
@@ -793,6 +831,9 @@ private:
     nlohmann::json m_customData;                               // 自定义数据（用于display等扩展标签）
     AdventureModePredicate m_canPlaceOn;                       // 冒险模式可放置方块谓词
     AdventureModePredicate m_canDestroy;                       // 冒险模式可破坏方块谓词
+
+    /// 旧 1.16.5 {tag{...}} 格式回退读取（fromNbt 读旧存档用）
+    static void applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compound_tag& tagCompound);
 
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;

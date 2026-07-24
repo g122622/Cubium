@@ -118,6 +118,7 @@ public:
     [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_phase; }
     [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_flow; }
     [[nodiscard]] bool isWireMode() const noexcept { return m_mode == Mode::Wire; }
+    [[nodiscard]] bool isLocalMode() const noexcept { return m_mode == Mode::Local; }
     [[nodiscard]] bool isConnected() const noexcept;
 
     /**

@@ -24,6 +24,9 @@
 #include "client/application/ClientApplication.hpp"
 #include "client/application/features/ClientApplicationHelpers.hpp"
 
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/Block.hpp"
 
@@ -353,7 +356,7 @@ void ClientApplication::handleBlockPlacementInput(f32 deltaTime)
 
 void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, const Vector3& hitPos)
 {
-    if (!m_networkClient || !m_networkClient->isLoggedIn()) {
+    if (!m_network || !m_network->isPlaying()) {
         spdlog::info("[Place] Skip sending block placement because client is not logged in");
         return;
     }
@@ -367,13 +370,27 @@ void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, 
         hitPos.y,
         hitPos.z);
 
-    m_networkClient->sendBlockPlacement(pos.x, pos.y, pos.z, face, hitPos.x, hitPos.y, hitPos.z);
+    // 1.21.11 UseItemOn：hand(0=MAIN_HAND) + BlockHitResult + sequence。
+    // inside=true（命中点在方块内），worldBorderHit=false。
+    namespace irplay = mc::network::ir::play;
+    irplay::UseItemOn useItemOn;
+    useItemOn.hand = 0; // MAIN_HAND
+    useItemOn.blockHit.blockPosPacked = pos.asLong();
+    useItemOn.blockHit.direction = static_cast<i32>(face);
+    useItemOn.blockHit.hitX = hitPos.x;
+    useItemOn.blockHit.hitY = hitPos.y;
+    useItemOn.blockHit.hitZ = hitPos.z;
+    useItemOn.blockHit.inside = true;
+    useItemOn.blockHit.worldBorderHit = false;
+    useItemOn.sequence = 0;
+    (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::UseItemOn{std::move(useItemOn)}}});
 }
 
 void ClientApplication::sendBlockInteraction(
     network::BlockInteractionAction action, const BlockPos& pos, Direction face)
 {
-    if (!m_networkClient || !m_networkClient->isLoggedIn()) {
+    if (!m_network || !m_network->isPlaying()) {
         return;
     }
 
@@ -387,12 +404,21 @@ void ClientApplication::sendBlockInteraction(
         static_cast<i32>(face),
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
-    m_networkClient->sendBlockInteraction(action, pos.x, pos.y, pos.z, face);
+    // 1.21.11 PlayerAction：action 值与旧 BlockInteractionAction 完全一致
+    // （0=START_DESTROY 1=ABORT_DESTROY 2=STOP_DESTROY）。
+    namespace irplay = mc::network::ir::play;
+    irplay::PlayerAction playerAction;
+    playerAction.action = static_cast<i32>(action);
+    playerAction.blockPosPacked = pos.asLong();
+    playerAction.direction = static_cast<i32>(face);
+    playerAction.sequence = 0;
+    (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::PlayerAction{std::move(playerAction)}}});
 }
 
 void ClientApplication::sendPlayerPosition()
 {
-    if (!m_networkClient || !m_networkClient->isLoggedIn() || !m_player) {
+    if (!m_network || !m_network->isPlaying() || !m_player) {
         return;
     }
 
@@ -403,14 +429,6 @@ void ClientApplication::sendPlayerPosition()
 
     bool rotationChanged =
         std::abs(m_player->yaw() - m_lastSentYaw) > 0.01f || std::abs(m_player->pitch() - m_lastSentPitch) > 0.01f;
-
-    network::PlayerPosition playerPos;
-    playerPos.x = pos.x;
-    playerPos.y = pos.y;
-    playerPos.z = pos.z;
-    playerPos.yaw = m_player->yaw();
-    playerPos.pitch = m_player->pitch();
-    playerPos.onGround = m_player->onGround();
 
     network::PlayerMovePacket::MoveType type;
     if (positionChanged && rotationChanged) {
@@ -423,7 +441,32 @@ void ClientApplication::sendPlayerPosition()
         type = network::PlayerMovePacket::MoveType::GroundOnly;
     }
 
-    m_networkClient->sendPlayerMove(playerPos, type);
+    // 1.21.11 四个 MovePlayer 变体：PosRot/Pos/Rot/StatusOnly，共用 MovePlayerFlags。
+    namespace irplay = mc::network::ir::play;
+    const irplay::MovePlayerFlags flags{m_player->onGround(), false};
+    mc::network::ir::PlayPacket pkt;
+    switch (type) {
+        case network::PlayerMovePacket::MoveType::Full:
+            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerPosRot{static_cast<f64>(pos.x),
+                static_cast<f64>(pos.y),
+                static_cast<f64>(pos.z),
+                m_player->yaw(),
+                m_player->pitch(),
+                flags}};
+            break;
+        case network::PlayerMovePacket::MoveType::Position:
+            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerPos{
+                static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z), flags}};
+            break;
+        case network::PlayerMovePacket::MoveType::Rotation:
+            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerRot{m_player->yaw(), m_player->pitch(), flags}};
+            break;
+        case network::PlayerMovePacket::MoveType::GroundOnly:
+        default:
+            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerStatusOnly{flags}};
+            break;
+    }
+    (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play, std::move(pkt)});
 
     m_lastSentX = pos.x;
     m_lastSentY = pos.y;

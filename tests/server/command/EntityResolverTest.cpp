@@ -468,20 +468,20 @@ TEST_F(EntityResolverTest, TagFilterMixedPositiveAndNegative)
 
 TEST_F(EntityResolverTest, DistanceFilterBasicRange)
 {
-    auto near = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(near, nullptr);
-    near->setPosition(5.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(near));
+    auto nearEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(nearEntity, nullptr);
+    nearEntity->setPosition(5.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(nearEntity));
 
     auto mid = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(mid, nullptr);
     mid->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(mid));
 
-    auto far = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(far, nullptr);
-    far->setPosition(50.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(far));
+    auto farEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(farEntity, nullptr);
+    farEntity->setPosition(50.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(farEntity));
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::allEntities();
@@ -764,20 +764,20 @@ TEST_F(EntityResolverTest, VolumeFilterNegativeDeltasReversedAABB)
 
 TEST_F(EntityResolverTest, SortNearest)
 {
-    auto near = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(near, nullptr);
-    near->setPosition(5.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(near));
+    auto nearEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(nearEntity, nullptr);
+    nearEntity->setPosition(5.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(nearEntity));
 
     auto mid = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(mid, nullptr);
     mid->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(mid));
 
-    auto far = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(far, nullptr);
-    far->setPosition(50.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(far));
+    auto farEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(farEntity, nullptr);
+    farEntity->setPosition(50.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(farEntity));
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::allEntities();
@@ -792,20 +792,20 @@ TEST_F(EntityResolverTest, SortNearest)
 
 TEST_F(EntityResolverTest, SortFurthest)
 {
-    auto near = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(near, nullptr);
-    near->setPosition(5.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(near));
+    auto nearEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(nearEntity, nullptr);
+    nearEntity->setPosition(5.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(nearEntity));
 
     auto mid = createEntityByType(EntityTypeKeys::PIG);
     ASSERT_NE(mid, nullptr);
     mid->setPosition(15.0f, 0.0f, 0.0f);
     m_server.spawnEntity(std::move(mid));
 
-    auto far = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(far, nullptr);
-    far->setPosition(50.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(far));
+    auto farEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(farEntity, nullptr);
+    farEntity->setPosition(50.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(farEntity));
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::allEntities();
@@ -926,15 +926,15 @@ TEST_F(EntityResolverTest, LimitLargerThanResultReturnsAll)
 
 TEST_F(EntityResolverTest, LimitOneWithSortFurthest)
 {
-    auto near = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(near, nullptr);
-    near->setPosition(5.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(near));
+    auto nearEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(nearEntity, nullptr);
+    nearEntity->setPosition(5.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(nearEntity));
 
-    auto far = createEntityByType(EntityTypeKeys::ZOMBIE);
-    ASSERT_NE(far, nullptr);
-    far->setPosition(50.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(far));
+    auto farEntity = createEntityByType(EntityTypeKeys::ZOMBIE);
+    ASSERT_NE(farEntity, nullptr);
+    farEntity->setPosition(50.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(farEntity));
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::allEntities();
@@ -1083,15 +1083,15 @@ TEST_F(EntityResolverTest, AllEntitiesIncludesAllTypes)
 
 TEST_F(EntityResolverTest, CustomPositionOverridesSourcePosition)
 {
-    auto near = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(near, nullptr);
-    near->setPosition(100.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(near));
+    auto nearEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(nearEntity, nullptr);
+    nearEntity->setPosition(100.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(nearEntity));
 
-    auto far = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(far, nullptr);
-    far->setPosition(200.0f, 0.0f, 0.0f);
-    m_server.spawnEntity(std::move(far));
+    auto farEntity = createEntityByType(EntityTypeKeys::PIG);
+    ASSERT_NE(farEntity, nullptr);
+    farEntity->setPosition(200.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(farEntity));
 
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::allEntities();

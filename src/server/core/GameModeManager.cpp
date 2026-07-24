@@ -27,6 +27,9 @@
 #include "ServerPlayerData.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {
@@ -146,28 +149,30 @@ u8 GameModeManager::getAbilitiesForGameMode(GameMode mode) noexcept
 
 bool GameModeManager::_sendGameModeChangePacket(PlayerId playerId, GameMode mode)
 {
-    network::GameStateChangePacket packet = network::GameStateChangePacket::gameModeChange(mode);
+    // 对应旧 GameStateChangePacket::gameModeChange：reason=ChangeGameMode(3)，value=mode
+    mc::network::ir::play::GameEvent evt;
+    evt.event = 3; // ChangeGameMode
+    evt.value = static_cast<f32>(mode);
 
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error("GameModeManager: Failed to serialize GameStateChangePacket: {}", result.error().message());
-        return false;
-    }
-
-    return m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::GameStateChange, result.value());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(evt)},
+    };
+    return m_connectionManager.sendToPlayer(playerId, packet);
 }
 
 bool GameModeManager::_sendAbilitiesPacket(PlayerId playerId, GameMode mode)
 {
-    network::PlayerAbilitiesPacket packet = network::PlayerAbilitiesPacket::fromGameMode(mode);
+    mc::network::ir::play::PlayerAbilities abilities;
+    abilities.flags = getAbilitiesForGameMode(mode);
+    abilities.flyingSpeed = 0.05f; // MC 默认飞行速度
+    abilities.walkingSpeed = 0.1f; // MC 默认行走速度
 
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error("GameModeManager: Failed to serialize PlayerAbilitiesPacket: {}", result.error().message());
-        return false;
-    }
-
-    return m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::PlayerAbilities, result.value());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(abilities)},
+    };
+    return m_connectionManager.sendToPlayer(playerId, packet);
 }
 
 } // namespace mc::server::core

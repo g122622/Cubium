@@ -32,6 +32,9 @@
 #include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
@@ -39,6 +42,7 @@
 #include "common/network/packet/SignPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -114,30 +118,18 @@ void ServerPlayer::setupInventoryCallback()
 
 void ServerPlayer::sendChatMessage(const std::string& message)
 {
-    network::ChatMessagePacket chatPacket(message, static_cast<PlayerId>(id()));
-    network::PacketSerializer payload;
-    chatPacket.serialize(payload);
-
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
-
-    if (!_sendFullPacket(fullPacket)) {
-        spdlog::warn("ServerPlayer: chat message not sent (player={}, no connection)", username());
-    }
+    // 1.21.11 无独立 S→C chat IR 包（玩家聊天经 PlayerChatMessage/SystemChat）。
+    // TODO(Phase6): 对齐 1.21.11 PlayerChatMessage/SystemChat codec 后再发送。
+    (void)message;
+    spdlog::debug("ServerPlayer: S->C chat dropped (no chat IR yet, player={})", username());
 }
 
 void ServerPlayer::sendSystemMessage(const std::string& message)
 {
-    network::ChatMessagePacket chatPacket(message, 0);
-    network::PacketSerializer payload;
-    chatPacket.serialize(payload);
-
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
-
-    if (!_sendFullPacket(fullPacket)) {
-        spdlog::warn("ServerPlayer: system message not sent (player={}, no connection)", username());
-    }
+    // 1.21.11 无独立 S→C chat IR 包。
+    // TODO(Phase6): 对齐 1.21.11 SystemChat codec 后再发送。
+    (void)message;
+    spdlog::debug("ServerPlayer: S->C system message dropped (no chat IR yet, player={})", username());
 }
 
 void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
@@ -150,12 +142,14 @@ void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
             nbt::CompoundTag tag = entity->getUpdateTag();
             std::vector<u8> nbtData = network::BlockEntityDataPacket::serializeNbtToBytes(tag);
             if (!nbtData.empty()) {
-                network::BlockEntityDataPacket bePacket(pos, entity->getType(), std::move(nbtData));
-                network::PacketSerializer bePayload;
-                bePacket.serialize(bePayload);
-                const auto beFullPacket = server::core::ConnectionManager::encapsulatePacket(
-                    network::PacketType::BlockEntityData, bePayload.buffer());
-                if (!_sendFullPacket(beFullPacket)) {
+                // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + tag(NBT opaque)。
+                // TODO(Phase6): tag 透传旧 NBT 字节，未对齐 1.21.11 CompoundTag codec。
+                mc::network::ir::play::BlockEntityData bePkt;
+                bePkt.blockPosPacked = pos.asLong();
+                bePkt.blockEntityType = static_cast<i32>(entity->getType());
+                bePkt.tag = std::move(nbtData);
+                if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                        mc::network::ir::PlayPacket{std::move(bePkt)}})) {
                     spdlog::warn(
                         "ServerPlayer: block entity data packet not sent (player={}, no connection)", username());
                 }
@@ -163,15 +157,12 @@ void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
         }
     }
 
-    // 向客户端发送 OpenSignEditorPacket，通知其打开告示牌编辑界面
-    network::OpenSignEditorPacket packet(pos, isFrontSide);
-    network::PacketSerializer payload;
-    packet.serialize(payload);
-
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::OpenSignEditor, payload.buffer());
-
-    if (!_sendFullPacket(fullPacket)) {
+    // 1.21.11 OpenSignEditor：blockPosPacked + isFrontText。
+    mc::network::ir::play::OpenSignEditor pkt;
+    pkt.blockPosPacked = pos.asLong();
+    pkt.isFrontText = isFrontSide;
+    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: open sign editor packet not sent (player={}, no connection)", username());
     }
 }
@@ -187,18 +178,12 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
     }
 
     if (actionBar) {
-        // 使用 TitlePacket 的 Actionbar 类型显示在 Action Bar 区域
-        network::TitlePacket packet = network::TitlePacket::createActionbar(message);
-        auto payloadResult = packet.serialize();
-        if (payloadResult.failed()) {
-            spdlog::warn("ServerPlayer: failed to serialize actionbar packet (player={})", username());
-            return;
-        }
-
-        const auto fullPacket =
-            server::core::ConnectionManager::encapsulatePacket(network::PacketType::Title, payloadResult.value());
-
-        if (!_sendFullPacket(fullPacket)) {}
+        // 1.21.11 SetActionBarText：text 为 Component opaque。
+        // TODO(Phase6): text 仅以 JSON 字符串字节承载，未对齐 1.21.11 ComponentType codec。
+        mc::network::ir::play::SetActionBarText pkt;
+        pkt.text = std::vector<u8>(message.begin(), message.end());
+        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)}}));
     } else {
         // 发送到聊天区域
         sendSystemMessage(message);
@@ -207,16 +192,14 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
 
 void ServerPlayer::syncExperience()
 {
-    const auto payloadResult = network::SetExperiencePacket::fromPlayer(*this).serialize();
-    if (payloadResult.failed()) {
-        spdlog::warn("ServerPlayer: failed to serialize experience packet (player={})", username());
-        return;
-    }
+    // 1.21.11 SetExperience：experienceProgress + experienceLevel + totalExperience。
+    mc::network::ir::play::SetExperience pkt;
+    pkt.experienceProgress = experienceProgress();
+    pkt.experienceLevel = experienceLevel();
+    pkt.totalExperience = totalExperience();
 
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::SetExperience, payloadResult.value());
-
-    if (!_sendFullPacket(fullPacket)) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: experience sync skipped (player={}, no connection)", username());
     }
 }
@@ -227,26 +210,17 @@ bool ServerPlayer::sendVelocityPacket()
         return false;
     }
 
-    // 构建速度同步包，发送此实体的当前速度到玩家客户端
-    // 对应 MC Java 的 ServerPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity))
-    // 速度单位转换：m/tick -> 1/8000 block/tick
-    network::EntityVelocityPacket packet;
-    packet.setEntityId(static_cast<u32>(id()));
+    // 1.21.11 SetEntityMotion：entityId + LpVec3(速度)。
+    // 速度单位：IR 直接用 m/tick（f64），codec 内做 LpVec3 编码；旧协议用 1/8000 截断，此处不再截断。
+    mc::network::ir::play::SetEntityMotion pkt;
+    pkt.entityId = static_cast<i32>(id());
     const auto vel = velocity();
-    packet.setVelocity(static_cast<i16>(std::clamp(vel.x * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(vel.y * 8000.0f, -32768.0f, 32767.0f)),
-        static_cast<i16>(std::clamp(vel.z * 8000.0f, -32768.0f, 32767.0f)));
+    pkt.x = static_cast<f64>(vel.x);
+    pkt.y = static_cast<f64>(vel.y);
+    pkt.z = static_cast<f64>(vel.z);
 
-    auto payloadResult = packet.serialize();
-    if (payloadResult.failed()) {
-        spdlog::warn("ServerPlayer: failed to serialize velocity packet (player={})", username());
-        return false;
-    }
-
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::EntityVelocity, payloadResult.value());
-
-    if (!_sendFullPacket(fullPacket)) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: velocity packet not sent (player={}, no connection)", username());
         return false;
     }
@@ -624,17 +598,15 @@ void ServerPlayer::_sendSleepPacket(const BlockPos& bedPos)
         return;
     }
 
-    network::SleepPacket sleepPacket(static_cast<u32>(id()), bedPos);
-    auto payloadResult = sleepPacket.serialize();
-    if (payloadResult.failed()) {
-        spdlog::warn("ServerPlayer: failed to serialize sleep packet (player={})", username());
-        return;
-    }
-
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::Sleep, payloadResult.value());
-
-    static_cast<void>(_sendFullPacket(fullPacket));
+    // 1.21.11 睡眠走实体元数据 Pose 序列号（无独立 Sleep 包）。
+    // TODO(Phase6): 对齐 1.21.11 EntityMetadata（SynchedEntityData）后用 Pose=SLEEPING 同步；
+    //   当前无元数据 IR，暂以 EntityEvent 自定义 event 字节承载（我方互通）。
+    MC_UNUSED(bedPos);
+    mc::network::ir::play::EntityEvent pkt;
+    pkt.entityId = static_cast<i32>(id());
+    pkt.eventId = 46; // 自定义：玩家开始睡觉（MC Java EntityEvent 无此值，仅我方互通用）
+    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)}}));
 }
 
 void ServerPlayer::_sendWakeUpPacket()
@@ -643,26 +615,26 @@ void ServerPlayer::_sendWakeUpPacket()
         return;
     }
 
-    network::SleepPacket wakeUpPacket = network::SleepPacket::createWakeUp(static_cast<u32>(id()));
-    auto payloadResult = wakeUpPacket.serialize();
-    if (payloadResult.failed()) {
-        spdlog::warn("ServerPlayer: failed to serialize wake up packet (player={})", username());
-        return;
-    }
-
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::Sleep, payloadResult.value());
-
-    static_cast<void>(_sendFullPacket(fullPacket));
+    // 1.21.11 起床走实体元数据 Pose 还原（无独立 Sleep 包）。
+    // TODO(Phase6): 对齐 1.21.11 EntityMetadata 后用 Pose=STANDING 同步。
+    mc::network::ir::play::EntityEvent pkt;
+    pkt.entityId = static_cast<i32>(id());
+    pkt.eventId = 47; // 自定义：玩家起床（仅我方互通用）
+    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)}}));
 }
 
-bool ServerPlayer::_sendFullPacket(const std::vector<u8>& packet) const
+bool ServerPlayer::_sendIrPacket(mc::network::ir::IrPacket packet) const
 {
     if (!hasConnection()) {
         return false;
     }
 
-    m_connection->send(packet.data(), packet.size());
+    auto result = m_connection->send(std::move(packet));
+    if (!result.success()) {
+        spdlog::warn("ServerPlayer: IR packet send failed (player={}): {}", username(), result.error().message());
+        return false;
+    }
     return true;
 }
 
@@ -1021,17 +993,12 @@ void ServerPlayer::_sendSetCameraPacket(u32 cameraEntityId)
         return;
     }
 
-    network::SetCameraPacket packet(cameraEntityId);
-    auto payloadResult = packet.serialize();
-    if (payloadResult.failed()) {
-        spdlog::warn("ServerPlayer: failed to serialize SetCamera packet (player={})", username());
-        return;
-    }
+    // 1.21.11 SetCamera：cameraId（VarInt）。
+    mc::network::ir::play::SetCamera pkt;
+    pkt.cameraId = static_cast<i32>(cameraEntityId);
 
-    const auto fullPacket =
-        server::core::ConnectionManager::encapsulatePacket(network::PacketType::SetCamera, payloadResult.value());
-
-    if (!_sendFullPacket(fullPacket)) {
+    if (!_sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)}})) {
         spdlog::warn("ServerPlayer: SetCamera packet not sent (player={}, no connection)", username());
     }
 }

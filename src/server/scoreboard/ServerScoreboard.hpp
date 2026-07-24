@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/packet/Packet.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/network/ScoreboardPackets.hpp"
@@ -106,21 +108,19 @@ public:
     // ========== 网络同步 ==========
 
     /**
-     * @brief 向所有玩家发送数据包
+     * @brief 向所有玩家发送 IR 包
      *
-     * @param type 数据包类型
-     * @param payload 数据包载荷
+     * @param packet IR 包
      */
-    void sendToAllPlayers(mc::network::PacketType type, const std::vector<u8>& payload);
+    void sendToAllPlayers(const mc::network::ir::IrPacket& packet);
 
     /**
-     * @brief 向指定玩家发送数据包
+     * @brief 向指定玩家发送 IR 包
      *
      * @param playerId 玩家 ID
-     * @param type 数据包类型
-     * @param payload 数据包载荷
+     * @param packet IR 包
      */
-    void sendToPlayer(PlayerId playerId, mc::network::PacketType type, const std::vector<u8>& payload);
+    void sendToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 发送目标创建包给玩家
@@ -229,27 +229,29 @@ protected:
 private:
     /**
      * @brief 创建目标数据包
+     * @param method 0=Add 1=Remove 2=Change
      */
-    [[nodiscard]] mc::network::ScoreboardObjectivePacket _createObjectivePacket(
-        mc::scoreboard::ScoreObjective& objective, mc::network::ObjectiveAction action);
+    [[nodiscard]] mc::network::ir::play::SetObjective _createObjectivePacket(
+        mc::scoreboard::ScoreObjective& objective, u8 method);
 
     /**
      * @brief 创建分数数据包
+     * @param change true=变更(填 score)，false=占位
      */
-    [[nodiscard]] mc::network::UpdateScorePacket _createScorePacket(
-        mc::scoreboard::Score& score, mc::network::ScoreAction action);
+    [[nodiscard]] mc::network::ir::play::SetScore _createSetScorePacket(mc::scoreboard::Score& score, bool change);
 
     /**
      * @brief 创建显示目标数据包
      */
-    [[nodiscard]] mc::network::DisplayObjectivePacket _createDisplayObjectivePacket(
+    [[nodiscard]] mc::network::ir::play::SetDisplayObjective _createDisplayObjectivePacket(
         mc::scoreboard::DisplaySlot slot, mc::scoreboard::ScoreObjective* objective);
 
     /**
      * @brief 创建队伍数据包
+     * @param method 0=Create 1=Remove 2=Change 3=Join 4=Leave
      */
-    [[nodiscard]] mc::network::TeamsPacket _createTeamPacket(
-        mc::scoreboard::ScorePlayerTeam& team, mc::network::TeamAction action);
+    [[nodiscard]] mc::network::ir::play::SetPlayerTeam _createTeamPacket(
+        mc::scoreboard::ScorePlayerTeam& team, u8 method);
 
     mc::server::IServer& m_server;
 

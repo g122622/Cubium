@@ -148,6 +148,7 @@ add_executable(mc_tests
     common/item/TrailsItemsRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
+    common/item/core/ItemStackComponentRoundTripTest.cpp
     common/item/core/ProjectileItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
@@ -864,12 +865,10 @@ add_executable(mc_tests
     server/core/BannedIpListTest.cpp
     server/core/OpListManagerTest.cpp
     server/core/PermissionResolverTest.cpp
-    # PacketHandler 测试（载具输入、位置验证、实体交互、实体动作）
-    server/core/PacketHandlerTest.cpp
-    # PacketHandler 载具校正辅助函数单元测试
-    server/core/PacketHandlerMoveVehicleHelpersTest.cpp
-    # PacketHandler handleMoveVehicle 集成测试（moved wrongly / 回退 / 正常接受）
-    server/core/PacketHandlerMoveVehicleIntegrationTest.cpp
+    # PacketHandler 测试已删除：handleMoveVehicle/handlePlayerInput/handleEntityAction/
+    # handleSteerBoat/handleUseEntity 在新网络层已 stub 化（迁入 ServerPlayRouter），
+    # sendVehicleMoveCorrection/isEntityCollidingWithAnythingNew 的 cpp 实现已删除。
+    # 旧字节 handler 行为测试整体失效，Step5 由 ServerPlayRouter 集成测试替代。
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # ServerPlayer PvP 保护机制测试
@@ -1721,6 +1720,13 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketDeserializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/Packet.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/EntityPackets.cpp
+        # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
+        # 它们引用 ServerNetwork/ServerHandshake/ServerPlayRouter/RegistryDataBuilder 的符号，
+        # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）
+        ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/ServerHandshake.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp
@@ -2582,6 +2588,12 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
+        # 新网络层服务端实现：ConnectionManager.cpp/TeleportManager.cpp/ServerPlayer.cpp
+        # 经 ServerPlayerData::send / ConnectionManager::disconnectPlayer 调用
+        # ServerClientConnection::send/close，须登记 ServerNetwork.cpp 提供符号。
+        # 注意：mc_command_tests 不编译 IntegratedServer.cpp/MinecraftServer.cpp，故不登记
+        # ServerPlayRouter.cpp（它引用 MinecraftServer::routeInboundPlayPacket）。
+        ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PacketHandler.cpp

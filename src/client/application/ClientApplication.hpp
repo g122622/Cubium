@@ -27,7 +27,8 @@
 #include "client/application/features/MemoryTraceThread.hpp"
 #include "client/dimension/ClientDimensionManager.hpp"
 #include "client/input/InputManager.hpp"
-#include "client/network/NetworkClient.hpp"
+#include "client/network/ClientNetwork.hpp"
+#include "client/network/ClientPlayVisitor.hpp"
 #include "client/renderer/Camera.hpp"
 #include "client/renderer/trident/core/TridentEngine.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
@@ -295,6 +296,9 @@ public:
     // 友元声明，用于屏幕操作辅助函数
     friend ui::minecraft::widgets::ScreenStackWidget* getScreenStackWidget(ClientApplication* app);
 
+    // 友元声明，用于新网络层 visitor 直接操作私有成员（替代旧 setupNetworkCallbacks lambda 捕获 this）
+    friend class ::mc::client::net::ClientPlayVisitor;
+
 private:
     void mainLoop();
     void handleEvents();
@@ -524,7 +528,10 @@ private:
 
     // 内置服务端
     std::unique_ptr<server::IntegratedServer> m_integratedServer;
-    std::unique_ptr<NetworkClient> m_networkClient;
+    // 新网络层：ClientNetwork 持 Connection 驱动握手状态机 + 出站统一 send；
+    // ClientPlayVisitor 处理 Play 阶段入站包（替代旧 NetworkClient + 57 回调）。
+    std::unique_ptr<net::ClientNetwork> m_network;
+    std::unique_ptr<net::ClientPlayVisitor> m_playVisitor;
     std::unique_ptr<command::ClientCommandManager> m_commandManager;
     std::unique_ptr<skin::ClientSkinManager> m_skinManager;
     bool m_useIntegratedServer = true;

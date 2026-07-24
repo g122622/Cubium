@@ -27,6 +27,7 @@
 #include "common/item/loot/LootPredicateManager.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/packet/ExplosionPacket.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
 #include "common/network/packet/InventoryPackets.hpp"
@@ -337,6 +338,14 @@ public:
     [[nodiscard]] mc::resource::DataPackRepository& dataPackList() override { return m_dataPackList; }
     [[nodiscard]] const mc::resource::DataPackRepository& dataPackList() const override { return m_dataPackList; }
 
+    /**
+     * @brief 路由入站 Play IR 包到对应处理方法（供 ServerPlayRouter 调用）
+     *
+     * 按 ir::PlayPacket 变体分发到 handle*Packet；playerId 为该连接绑定的本地玩家ID。
+     * 与 dispatchPacket(sessionId,...) 共用同一分发逻辑，后者额外解析远程 sessionId。
+     */
+    void routeInboundPlayPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
 protected:
     void attachWorldBindings(ServerWorld& world);
     void attachWorldCommandBindings(ServerWorld& world);
@@ -433,9 +442,9 @@ protected:
 
     /**
      * @brief 序列化难度同步包
-     * @return 封装后的完整数据包，失败时返回空vector
+     * @return 难度同步 IR 包
      */
-    [[nodiscard]] std::vector<u8> serializeDifficultyPacket();
+    [[nodiscard]] mc::network::ir::IrPacket serializeDifficultyPacket();
 
     /**
      * @brief 关闭所有管理器
@@ -534,9 +543,12 @@ protected:
     virtual void pollNetwork() = 0;
 
     /**
-     * @brief 广播数据包给所有连接的玩家（子类实现）
+     * @brief 广播 IR 包给所有连接的玩家（子类实现）
+     *
+     * 新网络层（1.21.11 IR）：游戏逻辑直接构造 ir::IrPacket 交由本方法，
+     * 经各 ServerClientConnection::send 出站，不再有 12 字节头封装。
      */
-    virtual void broadcastPacket(const u8* data, size_t size) = 0;
+    virtual void broadcastPacket(const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 将会话ID转换为玩家ID（子类实现）
@@ -546,9 +558,9 @@ protected:
     [[nodiscard]] virtual PlayerId getPlayerIdForSession(u32 sessionId) const = 0;
 
     /**
-     * @brief 向指定玩家发送数据包（子类实现）
+     * @brief 向指定玩家发送 IR 包（子类实现）
      */
-    virtual void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) = 0;
+    virtual void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 向指定玩家同步命令树
@@ -571,84 +583,71 @@ protected:
     // ========== 数据包处理方法 ==========
 
     /**
-     * @brief 分派数据包到对应的处理方法
-     * @param sessionId 会话ID（用于获取玩家ID）
-     * @param data 数据包数据（包含包头）
-     * @param size 数据大小
+     * @brief 分派入站 Play IR 包到对应处理方法
+     *
+     * 新网络层：入站包由 ServerPlayRouter::handle 解码 IR 后按变体调用下列 handleXxxPacket。
+     * 本方法保留为兼容入口（sessionId 用于远程玩家路由），Local 模式直连 router。
      */
-    void dispatchPacket(u32 sessionId, const u8* data, size_t size);
+    void dispatchPacket(u32 sessionId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理玩家移动数据包
      */
-    void handlePlayerMovePacket(PlayerId playerId, const u8* data, size_t size);
+    void handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理传送确认数据包
      */
-    void handleTeleportConfirmPacket(PlayerId playerId, const u8* data, size_t size);
+    void handleTeleportConfirmPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理心跳响应数据包
      */
-    void handleKeepAlivePacket(PlayerId playerId, const u8* data, size_t size);
+    void handleKeepAlivePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理聊天消息数据包
      */
-    void handleChatMessagePacket(PlayerId playerId, const u8* data, size_t size);
+    void handleChatMessagePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理方块交互数据包
      */
-    void handleBlockInteractionPacket(PlayerId playerId, const u8* data, size_t size);
+    void handleBlockInteractionPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理方块放置数据包（子类实现特定逻辑）
      */
-    virtual void handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size);
+    virtual void handleBlockPlacementPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理快捷栏选择数据包（子类实现特定逻辑）
      */
-    virtual void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+    virtual void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 处理容器点击数据包（子类实现特定逻辑）
      */
-    virtual void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+    virtual void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 处理关闭容器数据包（子类实现特定逻辑）
      */
-    virtual void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) = 0;
+    virtual void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 处理请求打开玩家背包容器数据包（子类实现特定逻辑）
-     *
-     * 玩家按 E 打开生存背包时客户端发送，服务端在 containerId=0 上建立
-     * InventoryCraftingMenu 以受理后续 ContainerClickPacket。默认实现为空
-     * （StandaloneServer 远程 TCP 玩家路径暂未接入；IntegratedServer 本地
-     * 客户端路径覆写之）。
      */
-    virtual void handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size);
+    virtual void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理告示牌文本更新数据包
-     *
-     * 客户端在告示牌编辑器关闭时发送 UpdateSignPacket。
-     * 服务端解析后更新对应 SignEntity 的文本，并清除编辑锁。
-     *
-     * @param playerId 玩家ID
-     * @param data 数据包体
-     * @param size 数据包体大小
      */
-    void handleUpdateSignPacket(PlayerId playerId, const u8* data, size_t size);
+    void handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
-    /**
-     * @brief 处理登录请求（子类实现特定逻辑）
-     */
-    virtual void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) = 0;
+    // 注：登录请求不再经 dispatchPacket 入站。新网络层登录全由 ServerHandshakeStateMachine
+    // 驱动（ClientIntention→Hello→LoginFinished→LoginAcknowledged→Configuration→Play），
+    // 玩家创建在各子类注册的 onPlayerReady 回调中完成（Configuration 结束后触发）。
 
     // ========== 数据包发送辅助方法 ==========
 

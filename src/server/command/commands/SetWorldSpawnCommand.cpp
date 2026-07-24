@@ -27,8 +27,12 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -179,19 +183,23 @@ i32 SetWorldSpawnCommand::_setPositionWithAngle(CommandContext<ServerCommandSour
 
 void SetWorldSpawnCommand::_broadcastSpawnPosition(server::IServer* server, const Vector3d& pos, f32 angle)
 {
-    // 创建出生点数据包（包含朝向）
-    network::SpawnPositionPacket spawnPosPacket(
-        BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z)),
-        angle);
+    // 1.21.11 SetDefaultSpawnPosition：dimension(ResourceKey) + blockPosPacked + yaw + pitch
+    // TODO(Phase6): dimension 当前固定主世界，命令只作用于主世界出生点；多维度出生点需补。
+    mc::network::ir::play::SetDefaultSpawnPosition pkt;
+    pkt.dimension = "minecraft:overworld";
+    pkt.blockPosPacked = BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y),
+                                static_cast<BlockCoord>(pos.z))
+                             .asLong();
+    pkt.yaw = angle;
+    pkt.pitch = 0.0f;
 
-    auto spawnPosResult = spawnPosPacket.serialize();
-    if (spawnPosResult.failed()) {
-        spdlog::warn("SetWorldSpawnCommand: Failed to serialize SpawnPositionPacket");
-        return;
-    }
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
 
     // 通过 ConnectionManager 广播给所有玩家
-    server->connectionManager().broadcastPacket(network::PacketType::SpawnPosition, spawnPosResult.value());
+    server->connectionManager().broadcast(packet);
 }
 
 } // namespace command

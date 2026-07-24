@@ -36,8 +36,6 @@
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -97,17 +95,12 @@ protected:
         auto worldInit = m_world->initialize();
         ASSERT_TRUE(worldInit.success());
 
-        // 创建连接
-        m_connectionPair = std::make_unique<network::LocalConnectionPair>();
-        m_connectionPair->connect();
-
         // 创建玩家管理器
         m_playerManager = std::make_unique<server::core::PlayerManager>();
-        auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
-        m_player = m_playerManager->addPlayer(m_playerId,
-            mc::util::uuidToString(mc::util::generateOfflineUuid("MiningTester")),
-            "MiningTester",
-            connection);
+        // 新网络层 addPlayer 第4参为 ServerClientConnection*；本测试只验证挖矿逻辑，
+        // 不依赖连接真发包，故传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
+        m_player = m_playerManager->addPlayer(
+            m_playerId, mc::util::uuidToString(mc::util::generateOfflineUuid("MiningTester")), "MiningTester", nullptr);
         ASSERT_NE(m_player, nullptr);
 
         // 设置玩家位置
@@ -137,7 +130,6 @@ protected:
         m_inventoryManager.reset();
         m_connectionManager.reset();
         m_playerManager.reset();
-        m_connectionPair.reset();
 
         if (m_world) {
             m_world->shutdown();
@@ -184,7 +176,6 @@ protected:
     static constexpr PlayerId m_inventoryId = m_playerId; // 同一个 ID
 
     std::unique_ptr<server::ServerWorld> m_world;
-    std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
     std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;

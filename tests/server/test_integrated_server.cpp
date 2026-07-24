@@ -24,7 +24,6 @@
 #include <gtest/gtest.h>
 
 #include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/network/connection/LocalConnection.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include <atomic>
 #include <chrono>
@@ -34,8 +33,8 @@
 #include <vector>
 
 using namespace mc::server;
-using namespace mc::network;
 using namespace mc;
+using namespace std::chrono_literals;
 
 // ============================================================================
 // 测试夹具基类：使用临时目录避免污染用户存档，并预先创建 saves/<worldName>/
@@ -121,22 +120,6 @@ TEST_F(IntegratedServerTest, InitializeServer)
 
     server.stop();
     EXPECT_FALSE(server.isRunning());
-}
-
-TEST_F(IntegratedServerTest, GetClientEndpoint)
-{
-    IntegratedServer server;
-    auto config = makeConfig();
-    config.seed = 1;
-
-    auto result = server.initialize(config);
-    ASSERT_TRUE(result.success()) << result.error().message();
-
-    auto* endpoint = server.getClientEndpoint();
-    EXPECT_NE(endpoint, nullptr);
-    EXPECT_TRUE(endpoint->isConnected());
-
-    server.stop();
 }
 
 TEST_F(IntegratedServerTest, DoubleInitializeFails)
@@ -245,195 +228,6 @@ TEST_F(IntegratedServerTest, TickCountIncreases)
     server.stop();
 }
 
-TEST_F(IntegratedServerTest, RequestStopDisconnectsClientEndpoint)
-{
-    IntegratedServer server;
-    auto config = makeConfig();
-    config.tickRate = 100;
-
-    auto result = server.initialize(config);
-    ASSERT_TRUE(result.success()) << result.error().message();
-
-    auto* endpoint = server.getClientEndpoint();
-    ASSERT_NE(endpoint, nullptr);
-    EXPECT_TRUE(endpoint->isConnected());
-
-    server.requestStop();
-
-    EXPECT_FALSE(server.isRunning());
-    EXPECT_FALSE(endpoint->isConnected());
-
-    server.stop();
-}
-
-// ============================================================================
-// 本地连接通信测试
-// ============================================================================
-
-class IntegratedServerCommunicationTest : public IntegratedServerTestBase {
-protected:
-    void SetUp() override
-    {
-        IntegratedServerTestBase::SetUp();
-
-        auto config = makeConfig();
-        config.seed = 12345;
-        config.viewDistance = 3;
-        config.tickRate = 100; // Faster ticks for testing
-
-        auto result = server.initialize(config);
-        ASSERT_TRUE(result.success()) << result.error().message();
-
-        clientEndpoint = server.getClientEndpoint();
-        ASSERT_NE(clientEndpoint, nullptr);
-    }
-
-    void TearDown() override
-    {
-        server.stop();
-        IntegratedServerTestBase::TearDown();
-    }
-
-    // 辅助函数：等待接收数据包
-    bool waitForPacket(std::vector<u8>& outData, int timeoutMs = 500)
-    {
-        auto start = std::chrono::steady_clock::now();
-        while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() <
-            timeoutMs) {
-            if (clientEndpoint->receive(outData)) {
-                return true;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-        return false;
-    }
-
-    IntegratedServer server;
-    LocalEndpoint* clientEndpoint = nullptr;
-};
-
-TEST_F(IntegratedServerCommunicationTest, ReceivePacketAfterStart)
-{
-    // 服务端启动后应该能够通信
-    std::vector<u8> data;
-
-    // 发送一些数据
-    std::vector<u8> testData = {1, 2, 3, 4, 5};
-    clientEndpoint->send(testData.data(), testData.size());
-
-    // 等待服务端处理
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // 服务端应该正常运行
-    EXPECT_TRUE(server.isRunning());
-}
-
-TEST_F(IntegratedServerCommunicationTest, BidirectionalCommunication)
-{
-    // 客户端发送数据到服务端
-    std::vector<u8> sendData = {0x01, 0x02, 0x03};
-    clientEndpoint->send(sendData.data(), sendData.size());
-
-    // 等待处理
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // 服务端应该还在运行
-    EXPECT_TRUE(server.isRunning());
-}
-
-TEST_F(IntegratedServerCommunicationTest, MultipleSends)
-{
-    // 发送多个数据包
-    for (int i = 0; i < 10; ++i) {
-        std::vector<u8> data = {static_cast<u8>(i)};
-        clientEndpoint->send(data.data(), data.size());
-    }
-
-    // 等待处理
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // 服务端应该还在运行
-    EXPECT_TRUE(server.isRunning());
-}
-
-TEST_F(IntegratedServerCommunicationTest, LargePacket)
-{
-    // 发送大数据包
-    std::vector<u8> largeData(1024, 0xAB);
-    clientEndpoint->send(largeData.data(), largeData.size());
-
-    // 等待处理
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // 服务端应该还在运行
-    EXPECT_TRUE(server.isRunning());
-}
-
-TEST_F(IntegratedServerCommunicationTest, ServerTicksWhileWaiting)
-{
-    u64 initialTick = server.currentTick();
-
-    // 等待一段时间。注意：启动初期区块生成等开销使实际 TPS 低于配置的 100，
-    // 故等待窗口取 1000ms 并用宽松阈值，避免对调度抖动/启动开销过度敏感。
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    u64 finalTick = server.currentTick();
-
-    // 服务端应持续 tick（阈值宽松，仅验证仍在推进）
-    EXPECT_GT(finalTick - initialTick, 5);
-}
-
-// ============================================================================
-// 断开连接测试
-// ============================================================================
-
-class IntegratedServerDisconnectTest : public IntegratedServerTestBase {};
-
-TEST_F(IntegratedServerDisconnectTest, ClientDisconnect)
-{
-    IntegratedServer server;
-    auto config = makeConfig();
-
-    auto result = server.initialize(config);
-    ASSERT_TRUE(result.success()) << result.error().message();
-
-    LocalEndpoint* client = server.getClientEndpoint();
-    ASSERT_NE(client, nullptr);
-
-    // 断开客户端连接
-    client->disconnect();
-
-    // 等待处理
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // 服务端应该还在运行
-    EXPECT_TRUE(server.isRunning());
-
-    server.stop();
-}
-
-TEST_F(IntegratedServerDisconnectTest, ServerStopClosesEndpoint)
-{
-    LocalEndpoint* client = nullptr;
-
-    {
-        IntegratedServer server;
-        auto config = makeConfig();
-
-        auto result = server.initialize(config);
-        ASSERT_TRUE(result.success()) << result.error().message();
-
-        client = server.getClientEndpoint();
-        ASSERT_NE(client, nullptr);
-        EXPECT_TRUE(client->isConnected());
-
-        server.stop();
-    }
-
-    // 服务端销毁后，端点应该断开
-    // 注意：这是未定义行为，但测试可以验证
-}
-
 // ============================================================================
 // 服务器类型检查测试
 // ============================================================================
@@ -474,3 +268,13 @@ TEST_F(IntegratedServerTypeTest, TypeMethodsWorkAfterInitialization)
 
     server.stop();
 }
+
+// ============================================================================
+// 注：原 GetClientEndpoint / RequestStopDisconnectsClientEndpoint /
+// IntegratedServerCommunicationTest / ClientDisconnect / ServerStopClosesEndpoint
+// 等用例依赖旧 LocalEndpoint 字节队列（getClientEndpoint()->send/receive/isConnected/
+// disconnect）。新网络层 getClientEndpoint 已删除，替换为 takeClientTransport()
+// （一次性取出 ILocalTransport，IR 包队列非字节队列）。这些连接生命周期/字节通信
+// 用例需基于新 ServerClientConnection + LocalTransportPair 重写，
+// TODO(Phase6): 由 ClientNetwork/ServerHandshake 集成测试覆盖端到端通信链路。
+// ============================================================================

@@ -24,7 +24,9 @@
 #include "TeleportManager.hpp"
 #include "ConnectionManager.hpp"
 #include "PlayerManager.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {
@@ -53,13 +55,24 @@ u32 TeleportManager::requestTeleport(PlayerId playerId, f64 x, f64 y, f64 z, f32
     player->pendingTeleportId = teleportId;
     player->waitingTeleportConfirm = true;
 
-    // 发送传送包
-    network::TeleportPacket teleportPacket(x, y, z, yaw, pitch, teleportId);
-    network::PacketSerializer ser;
-    teleportPacket.serialize(ser);
+    // 发送传送包（绝对传送：relatives=0、deltas=0）
+    mc::network::ir::play::PlayerPosition pos;
+    pos.teleportId = static_cast<i32>(teleportId);
+    pos.x = x;
+    pos.y = y;
+    pos.z = z;
+    pos.deltaX = 0.0;
+    pos.deltaY = 0.0;
+    pos.deltaZ = 0.0;
+    pos.yRot = yaw;
+    pos.xRot = pitch;
+    pos.relatives = 0;
 
-    auto packet = ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
-    player->send(packet.data(), packet.size());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pos)},
+    };
+    player->send(mc::network::ir::IrPacket{packet});
 
     return teleportId;
 }

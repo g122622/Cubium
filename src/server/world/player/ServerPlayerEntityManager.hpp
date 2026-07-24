@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/connection/IServerConnection.hpp"
+#include "server/network/ServerNetwork.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -117,7 +118,7 @@ public:
         const std::string& username,
         ServerWorld& world,
         IServer* server,
-        network::ConnectionPtr connection,
+        mc::server::net::ServerClientConnection* connection,
         f32 spawnX,
         f32 spawnY,
         f32 spawnZ);

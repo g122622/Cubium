@@ -22,9 +22,13 @@
  */
 
 #include "ServerDragonBossBar.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/packet/BossInfoPacket.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include <vector>
@@ -32,6 +36,36 @@
 
 namespace mc {
 namespace server {
+
+namespace {
+
+/// 打包 BossEvent flags：bit0=DARKEN bit1=MUSIC bit2=FOG
+u8 packBossFlags(bool darkenSky, bool playEndBossMusic, bool createFog)
+{
+    u8 flags = 0;
+    if (darkenSky) flags |= 0x01;
+    if (playEndBossMusic) flags |= 0x02;
+    if (createFog) flags |= 0x04;
+    return flags;
+}
+
+/// 把 ITextComponent 序列化为 1.21.11 组件 opaque 字节（JSON 文本）。
+/// TODO(Phase6): 未对齐 1.21.11 ComponentType 前缀树，真互通需补完整 Component codec。
+std::vector<u8> bossNameToBytes(const text::ITextComponent& name)
+{
+    std::string json = name.toJson().dump();
+    return std::vector<u8>(json.begin(), json.end());
+}
+
+mc::network::ir::IrPacket makePlayPacket(mc::network::ir::play::BossEvent evt)
+{
+    return mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(evt)},
+    };
+}
+
+} // namespace
 
 ServerDragonBossBar::ServerDragonBossBar(IServer& server,
     Uuid uuid,
@@ -173,36 +207,25 @@ void ServerDragonBossBar::_sendAddPacket(PlayerId playerId)
 {
     MC_ASSERT_RELEASE(m_name != nullptr);
 
-    auto nameCopy = m_name->deepCopy();
-    network::BossInfoPacket packet = network::BossInfoPacket::add(m_uuid,
-        std::move(nameCopy),
-        m_percent,
-        static_cast<u8>(m_color),
-        static_cast<u8>(m_overlay),
-        m_darkenSky,
-        m_playEndBossMusic,
-        m_createFog);
+    mc::network::ir::play::BossEvent evt;
+    evt.uuid = m_uuid;
+    evt.operation = 0; // ADD
+    evt.name = bossNameToBytes(*m_name);
+    evt.progress = m_percent;
+    evt.color = static_cast<i32>(m_color);
+    evt.overlay = static_cast<i32>(m_overlay);
+    evt.flags = packBossFlags(m_darkenSky, m_playEndBossMusic, m_createFog);
 
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error("ServerDragonBossBar: Failed to serialize BossInfoPacket (Add): {}", result.error().message());
-        return;
-    }
-
-    m_server.connectionManager().sendPacketToPlayer(playerId, network::PacketType::BossInfo, result.value());
+    m_server.connectionManager().sendToPlayer(playerId, makePlayPacket(std::move(evt)));
 }
 
 void ServerDragonBossBar::_sendRemovePacket(PlayerId playerId)
 {
-    network::BossInfoPacket packet = network::BossInfoPacket::remove(m_uuid);
+    mc::network::ir::play::BossEvent evt;
+    evt.uuid = m_uuid;
+    evt.operation = 1; // REMOVE
 
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error("ServerDragonBossBar: Failed to serialize BossInfoPacket (Remove): {}", result.error().message());
-        return;
-    }
-
-    m_server.connectionManager().sendPacketToPlayer(playerId, network::PacketType::BossInfo, result.value());
+    m_server.connectionManager().sendToPlayer(playerId, makePlayPacket(std::move(evt)));
 }
 
 void ServerDragonBossBar::_broadcastUpdate(network::BossInfoAction action)
@@ -212,33 +235,42 @@ void ServerDragonBossBar::_broadcastUpdate(network::BossInfoAction action)
     }
 
     // 根据操作类型构建不同的更新包
-    network::BossInfoPacket packet = [&]() {
-        switch (action) {
-            case network::BossInfoAction::UpdatePercent:
-                return network::BossInfoPacket::updatePercent(m_uuid, m_percent);
+    mc::network::ir::play::BossEvent evt;
+    evt.uuid = m_uuid;
+    switch (action) {
+        case network::BossInfoAction::UpdatePercent:
+            evt.operation = 2; // UPDATE_PROGRESS
+            evt.progress = m_percent;
+            break;
 
-            case network::BossInfoAction::UpdateName: {
-                MC_ASSERT_RELEASE(m_name != nullptr);
-                auto nameCopy = m_name->deepCopy();
-                return network::BossInfoPacket::updateName(m_uuid, std::move(nameCopy));
-            }
-
-            case network::BossInfoAction::UpdateProperties:
-                return network::BossInfoPacket::updateProperties(m_uuid, m_darkenSky, m_playEndBossMusic, m_createFog);
-
-            default:
-                return network::BossInfoPacket::updatePercent(m_uuid, m_percent);
+        case network::BossInfoAction::UpdateName: {
+            MC_ASSERT_RELEASE(m_name != nullptr);
+            evt.operation = 3; // UPDATE_NAME
+            evt.name = bossNameToBytes(*m_name);
+            break;
         }
-    }();
 
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error("ServerDragonBossBar: Failed to serialize BossInfoPacket (Update): {}", result.error().message());
-        return;
+        case network::BossInfoAction::UpdateStyle:
+            evt.operation = 4; // UPDATE_STYLE
+            evt.color = static_cast<i32>(m_color);
+            evt.overlay = static_cast<i32>(m_overlay);
+            break;
+
+        case network::BossInfoAction::UpdateProperties:
+            evt.operation = 5; // UPDATE_PROPERTIES
+            evt.flags = packBossFlags(m_darkenSky, m_playEndBossMusic, m_createFog);
+            break;
+
+        default:
+            // 旧行为：default 回退到 UpdatePercent
+            evt.operation = 2; // UPDATE_PROGRESS
+            evt.progress = m_percent;
+            break;
     }
 
+    auto packet = makePlayPacket(std::move(evt));
     for (PlayerId playerId : m_players) {
-        m_server.connectionManager().sendPacketToPlayer(playerId, network::PacketType::BossInfo, result.value());
+        m_server.connectionManager().sendToPlayer(playerId, packet);
     }
 }
 

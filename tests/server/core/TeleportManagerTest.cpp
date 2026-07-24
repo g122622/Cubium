@@ -23,53 +23,40 @@
 
 #include "server/core/TeleportManager.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
-using namespace mc::network;
 
 /**
  * @brief TeleportManager 单元测试
+ *
+ * 新网络层 addPlayer 第4参为 mc::server::net::ServerClientConnection*（裸指针）。
+ * 本测试只验证 TeleportManager 的传送请求/确认/状态数据维护，不依赖连接真发包，
+ * 故统一传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
  */
 class TeleportManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_connectionPair = std::make_unique<LocalConnectionPair>();
-        m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
-        m_connectionManager = std::make_unique<ConnectionManager>(*m_playerManager);
         m_teleportManager = std::make_unique<TeleportManager>(*m_playerManager);
     }
 
     void TearDown() override
     {
         m_teleportManager.reset();
-        m_connectionManager.reset();
         m_playerManager.reset();
-        m_connectionPair.reset();
     }
 
-    ConnectionPtr createConnection()
-    {
-        return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
-    }
-
-    std::unique_ptr<LocalConnectionPair> m_connectionPair;
     std::unique_ptr<PlayerManager> m_playerManager;
-    std::unique_ptr<ConnectionManager> m_connectionManager;
     std::unique_ptr<TeleportManager> m_teleportManager;
 };
 
 TEST_F(TeleportManagerTest, RequestTeleport)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     mc::u32 teleportId = m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0, 90.0f, 45.0f);
     EXPECT_NE(teleportId, 0u);
@@ -96,8 +83,7 @@ TEST_F(TeleportManagerTest, RequestTeleportNonexistentPlayer)
 
 TEST_F(TeleportManagerTest, ConfirmTeleport)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     mc::u32 teleportId = m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0);
 
@@ -109,8 +95,7 @@ TEST_F(TeleportManagerTest, ConfirmTeleport)
 
 TEST_F(TeleportManagerTest, ConfirmTeleportWrongId)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0);
 
@@ -122,8 +107,7 @@ TEST_F(TeleportManagerTest, ConfirmTeleportWrongId)
 
 TEST_F(TeleportManagerTest, ConfirmTeleportWithoutRequest)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     // 没有传送请求时确认
     bool result = m_teleportManager->confirmTeleport(1, 1);
@@ -138,8 +122,7 @@ TEST_F(TeleportManagerTest, ConfirmTeleportNonexistentPlayer)
 
 TEST_F(TeleportManagerTest, MultipleTeleports)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     mc::u32 id1 = m_teleportManager->requestTeleport(1, 100.0, 64.0, 200.0);
     mc::u32 id2 = m_teleportManager->requestTeleport(1, 200.0, 64.0, 300.0);

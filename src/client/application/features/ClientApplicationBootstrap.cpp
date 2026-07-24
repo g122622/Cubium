@@ -730,7 +730,7 @@ void ClientApplication::initializeUi()
                 debugWidget->setCamera(&m_camera);
                 debugWidget->setWorld(&m_world);
                 debugWidget->setEntityManager(&m_world.entityManager());
-                debugWidget->setNetworkClient(m_networkClient.get());
+                debugWidget->setNetworkClient(m_network.get());
                 debugWidget->setDimensionManager(&m_dimensionManager);
                 debugWidget->setRenderDistance(m_settings.renderDistance.get());
                 if (m_player) {

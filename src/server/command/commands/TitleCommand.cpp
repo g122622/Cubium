@@ -27,7 +27,9 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
-#include "common/network/packet/TitlePacket.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
@@ -38,35 +40,69 @@ namespace mc {
 namespace command {
 
 namespace {
-/**
- * @brief 发送 TitlePacket 给指定玩家
- *
- * @param connMgr 连接管理器
- * @param playerId 目标玩家ID
- * @param packet 标题包
- * @return 是否发送成功
- */
-bool sendTitlePacket(server::core::ConnectionManager& connMgr, PlayerId playerId, const network::TitlePacket& packet)
-{
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize TitlePacket: {}", result.error().message());
-        return false;
-    }
 
-    return connMgr.sendPacketToPlayer(playerId, network::PacketType::Title, result.value());
+/// 把文本（JSON 字符串）转为 1.21.11 组件 opaque 字节。
+/// TODO(Phase6): 未对齐 1.21.11 ComponentType 前缀树，真互通需补完整 Component codec。
+std::vector<u8> titleTextToBytes(const std::string& text)
+{
+    return std::vector<u8>(text.begin(), text.end());
 }
 
-/**
- * @brief 广播 TitlePacket 给所有指定玩家
- *
- * @param source 命令源
- * @param playerIds 目标玩家ID列表
- * @param packet 标题包
- * @return 成功发送的玩家数量
- */
-i32 broadcastTitlePacket(
-    ServerCommandSource& source, const std::vector<PlayerId>& playerIds, const network::TitlePacket& packet)
+/// 构造一个 SetTitleText IR 包
+mc::network::ir::IrPacket makeTitleTextPacket(const std::string& jsonText)
+{
+    namespace irplay = mc::network::ir::play;
+    irplay::SetTitleText evt;
+    evt.text = titleTextToBytes(jsonText);
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::SetTitleText{std::move(evt)}}};
+}
+
+/// 构造一个 SetSubtitleText IR 包
+mc::network::ir::IrPacket makeSubtitleTextPacket(const std::string& jsonText)
+{
+    namespace irplay = mc::network::ir::play;
+    irplay::SetSubtitleText evt;
+    evt.text = titleTextToBytes(jsonText);
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::SetSubtitleText{std::move(evt)}}};
+}
+
+/// 构造一个 SetActionBarText IR 包
+mc::network::ir::IrPacket makeActionBarTextPacket(const std::string& jsonText)
+{
+    namespace irplay = mc::network::ir::play;
+    irplay::SetActionBarText evt;
+    evt.text = titleTextToBytes(jsonText);
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::SetActionBarText{std::move(evt)}}};
+}
+
+/// 构造一个 SetTitlesAnimation IR 包
+mc::network::ir::IrPacket makeTitlesAnimationPacket(i32 fadeIn, i32 stay, i32 fadeOut)
+{
+    namespace irplay = mc::network::ir::play;
+    irplay::SetTitlesAnimation evt;
+    evt.fadeIn = fadeIn;
+    evt.stay = stay;
+    evt.fadeOut = fadeOut;
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::SetTitlesAnimation{std::move(evt)}}};
+}
+
+/// 构造一个 ClearTitles IR 包
+mc::network::ir::IrPacket makeClearTitlesPacket(bool resetTimes)
+{
+    namespace irplay = mc::network::ir::play;
+    irplay::ClearTitles evt;
+    evt.resetTimes = resetTimes;
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::ClearTitles{std::move(evt)}}};
+}
+
+/// 广播一个 IR 包给所有指定玩家，返回成功投递数。
+i32 broadcastIrPacket(
+    ServerCommandSource& source, const std::vector<PlayerId>& playerIds, const mc::network::ir::IrPacket& packet)
 {
     auto* server = source.server();
     if (!server) {
@@ -75,13 +111,11 @@ i32 broadcastTitlePacket(
 
     auto& connMgr = server->connectionManager();
     i32 successCount = 0;
-
     for (PlayerId playerId : playerIds) {
-        if (sendTitlePacket(connMgr, playerId, packet)) {
+        if (connMgr.sendToPlayer(playerId, packet)) {
             successCount++;
         }
     }
-
     return successCount;
 }
 } // namespace
@@ -166,8 +200,8 @@ i32 TitleCommand::_clearTitle(CommandContext<ServerCommandSource>& context)
     }
 
     // 创建并广播清除标题包
-    auto packet = network::TitlePacket::createClear();
-    return broadcastTitlePacket(source, playerIds, packet);
+    auto packet = makeClearTitlesPacket(false);
+    return broadcastIrPacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::_resetTitle(CommandContext<ServerCommandSource>& context)
@@ -182,8 +216,8 @@ i32 TitleCommand::_resetTitle(CommandContext<ServerCommandSource>& context)
     }
 
     // 创建并广播重置标题包
-    auto packet = network::TitlePacket::createReset();
-    return broadcastTitlePacket(source, playerIds, packet);
+    auto packet = makeClearTitlesPacket(true);
+    return broadcastIrPacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
@@ -201,8 +235,8 @@ i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
     const std::string& jsonText = context.getArgument<std::string>("json");
 
     // 创建并广播主标题包
-    auto packet = network::TitlePacket::createTitle(jsonText);
-    return broadcastTitlePacket(source, playerIds, packet);
+    auto packet = makeTitleTextPacket(jsonText);
+    return broadcastIrPacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
@@ -220,8 +254,8 @@ i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
     const std::string& jsonText = context.getArgument<std::string>("json");
 
     // 创建并广播副标题包
-    auto packet = network::TitlePacket::createSubtitle(jsonText);
-    return broadcastTitlePacket(source, playerIds, packet);
+    auto packet = makeSubtitleTextPacket(jsonText);
+    return broadcastIrPacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
@@ -239,8 +273,8 @@ i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
     const std::string& jsonText = context.getArgument<std::string>("json");
 
     // 创建并广播动作栏包
-    auto packet = network::TitlePacket::createActionbar(jsonText);
-    return broadcastTitlePacket(source, playerIds, packet);
+    auto packet = makeActionBarTextPacket(jsonText);
+    return broadcastIrPacket(source, playerIds, packet);
 }
 
 i32 TitleCommand::_setTimes(CommandContext<ServerCommandSource>& context)
@@ -260,8 +294,8 @@ i32 TitleCommand::_setTimes(CommandContext<ServerCommandSource>& context)
     i32 fadeOut = context.getArgument<i32>("fadeOut");
 
     // 创建并广播时间设置包
-    auto packet = network::TitlePacket::createTimes(fadeIn, stay, fadeOut);
-    return broadcastTitlePacket(source, playerIds, packet);
+    auto packet = makeTitlesAnimationPacket(fadeIn, stay, fadeOut);
+    return broadcastIrPacket(source, playerIds, packet);
 }
 
 } // namespace command

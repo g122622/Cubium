@@ -28,17 +28,16 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -218,24 +217,22 @@ void ItemPickupManager::_sendInventoryUpdate(IServer& server, Player& player)
     // 获取玩家背包
     PlayerInventory& inventory = player.inventory();
 
-    // 创建玩家背包包
-    PlayerInventoryPacket inventoryPacket(inventory);
+    // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
+    // TODO(Phase6): 玩家物品栏的 stateId/动态槽位语义需对齐 1.21.11 PlayerInventoryContents 同步。
+    mc::network::ir::play::ContainerSetContent pkt;
+    pkt.containerId = 0; // 玩家物品栏
+    pkt.stateId = 0;
+    const i32 totalSlots = inventory.getContainerSize();
+    pkt.items.reserve(static_cast<size_t>(totalSlots));
+    for (i32 slot = 0; slot < totalSlots; ++slot) {
+        pkt.items.push_back(mc::network::ir::toItemStackView(inventory.getItem(slot)));
+    }
+    pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
 
-    // 序列化数据包
-    network::PacketSerializer payload;
-    inventoryPacket.serialize(payload);
-
-    // 创建完整数据包（包含头部）
-    network::PacketSerializer fullPacket;
-    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + payload.size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::PlayerInventory));
-    fullPacket.writeU16(0); // flags
-    fullPacket.writeU16(0); // reserved
-    fullPacket.writeU16(0); // padding
-    fullPacket.writeBytes(payload.buffer());
-
-    // 发送给玩家
-    playerData->send(fullPacket.buffer().data(), fullPacket.buffer().size());
+    playerData->send(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    });
 }
 
 // ============================================================================
@@ -264,23 +261,14 @@ void ItemPickupManager::_sendItemEntityUpdate(ServerWorld& world, IServer& serve
             return;
         }
 
-        network::EntityMetadataPacket packet;
-        packet.setEntityId(static_cast<u32>(itemEntity.id()));
-        packet.setMetadata(metadata);
-
-        auto result = packet.serialize();
-        if (result.failed()) {
-            return;
-        }
-
-        network::PacketSerializer fullPacket;
-        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
-        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityMetadata));
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeU16(0);
-        fullPacket.writeBytes(result.value());
-        playerData.send(fullPacket.buffer().data(), fullPacket.buffer().size());
+        // 1.21.11 SetEntityData：entityId + 已序列化的元数据字节（含 EOF 0xFF）。
+        mc::network::ir::play::SetEntityData pkt;
+        pkt.entityId = static_cast<i32>(itemEntity.id());
+        pkt.packedItems = metadata;
+        playerData.send(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
     });
 
     const_cast<Entity*>(entity)->dataManager().clearDirty();
@@ -293,25 +281,23 @@ void ItemPickupManager::_sendItemEntityUpdate(ServerWorld& world, IServer& serve
 void ItemPickupManager::_sendCollectItem(
     IServer& server, EntityInstanceId entityId, EntityInstanceId collectorId, i32 pickupItemCount)
 {
-    network::CollectItemPacket collectPacket;
-    collectPacket.setCollectedEntityId(static_cast<u32>(entityId));
-    collectPacket.setCollectorEntityId(static_cast<u32>(collectorId));
-    collectPacket.setPickupItemCount(pickupItemCount);
+    // 1.21.11 TakeItemEntity：itemId（被拾取实体）+ playerId（拾取者）+ amount。
+    // 旧路径用 connectionManager().broadcast 向所有玩家广播；新网络层无 IServer 级
+    // IR 广播接口，改为遍历在线玩家逐一发送（与 _sendItemEntityUpdate 同模式）。
+    mc::network::ir::play::TakeItemEntity pkt;
+    pkt.itemId = static_cast<i32>(entityId);
+    pkt.playerId = static_cast<i32>(collectorId);
+    pkt.amount = pickupItemCount;
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
-    auto collectResult = collectPacket.serialize();
-    if (collectResult.failed()) {
-        return;
-    }
-
-    network::PacketSerializer fullPacket;
-    fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + collectResult.value().size()));
-    fullPacket.writeU16(static_cast<u16>(network::PacketType::CollectItem));
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeU16(0);
-    fullPacket.writeBytes(collectResult.value());
-
-    server.connectionManager().broadcast(fullPacket.buffer().data(), fullPacket.buffer().size());
+    server.playerManager().forEachPlayer([&packet](ServerPlayerData& playerData) {
+        if (playerData.hasConnection()) {
+            playerData.send(packet);
+        }
+    });
 }
 
 } // namespace mc::server

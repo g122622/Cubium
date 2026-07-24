@@ -36,7 +36,7 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     const std::string& username,
     ServerWorld& world,
     IServer* server,
-    network::ConnectionPtr connection,
+    mc::server::net::ServerClientConnection* connection,
     f32 spawnX,
     f32 spawnY,
     f32 spawnZ)
@@ -78,7 +78,7 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     // - setConnection：网络发包方法依赖 m_connection
     player->setServer(server);
     player->setWorld(&world);
-    player->setConnection(std::move(connection));
+    player->setConnection(connection);
 
     // 加入世界实体池（EntityManager 会分配 EntityInstanceId）
     EntityInstanceId entityId = world.spawnEntity(std::move(player));

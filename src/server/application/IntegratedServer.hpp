@@ -28,8 +28,11 @@
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/network/connection/LocalConnection.hpp"
+#include "common/network/transport/LocalTransport.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "server/network/ServerHandshake.hpp"
+#include "server/network/ServerNetwork.hpp"
+#include "server/network/ServerPlayRouter.hpp"
 #include "server/network/TcpServer.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -109,7 +112,7 @@ public:
 
 protected:
     void pollNetwork() override;
-    void broadcastPacket(const u8* data, size_t size) override;
+    void broadcastPacket(const mc::network::ir::IrPacket& packet) override;
 
     /**
      * @brief 主循环 tick：先驱动基类世界/实体/网络 tick，再同步打开容器的动态数据。
@@ -138,36 +141,38 @@ protected:
     }
 
     /**
-     * @brief 向指定玩家发送数据包
+     * @brief 向指定玩家发送 IR 包
      *
      * 双路径架构：
-     * - 本地客户端（playerId == m_clientPlayerId）：直接走 LocalEndpoint（零拷贝优化）
-     * - 远程 TCP 玩家：通过 ServerPlayerData::send() 走 TcpConnection
+     * - 本地客户端（playerId == m_clientPlayerId）：直接走 m_clientConnection（LocalTransport 零拷贝）
+     * - 远程 TCP 玩家：通过 ServerPlayerData::send() 走其 ServerClientConnection
      *
      * @param playerId 玩家ID
-     * @param data 数据指针
-     * @param size 数据大小
+     * @param packet IR 包（按值移动）
      */
-    void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override
+    void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) override
     {
         if (playerId == m_clientPlayerId) {
-            _sendToClient(data, size);
+            if (m_clientConnection != nullptr) {
+                (void)m_clientConnection->send(mc::network::ir::IrPacket{packet}); // 拷贝（本地玩家单拷贝可接受）
+            }
             return;
         }
 
         auto* player = m_playerManager->getPlayer(playerId);
         if (player != nullptr) {
-            player->send(data, size);
+            (void)player->send(mc::network::ir::IrPacket{packet});
         }
     }
 
     // ========== 数据包处理（特有逻辑） ==========
 
-    void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) override;
-    void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size) override;
+    // 注：handleLoginRequestPacket 已移除——登录全由 ServerHandshake 驱动，
+    // 玩家创建在 _onClientPlayerReady 回调中完成。
+    void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
     /**
@@ -194,11 +199,13 @@ public:
     void stop();
 
     /**
-     * @brief 获取客户端连接端点
+     * @brief 取出客户端侧 LocalTransport（交 ClientNetwork::connectLocal 持有）
      *
-     * 客户端通过此端点发送/接收数据
+     * 新网络层：本地客户端经 LocalTransportPair 与服务端 ServerClientConnection 配对，
+     * 零拷贝直传 ir::IrPacket。客户端在 connectLocal 前调用本方法取出对端 transport。
+     * 仅可调用一次（所有权转移）；二次调用返回 nullptr。
      */
-    [[nodiscard]] network::LocalEndpoint* getClientEndpoint();
+    [[nodiscard]] std::unique_ptr<mc::network::transport::ILocalTransport> takeClientTransport();
 
     /**
      * @brief 获取初始化参数
@@ -222,7 +229,7 @@ public:
 private:
     void _mainLoop();
 
-    // 发送数据包
+    // 发送数据包（新网络层：构 ir::IrPacket 经 m_clientConnection->send 出站）
     void _sendLoginResponse(bool success,
         PlayerId playerId,
         EntityInstanceId entityId,
@@ -234,7 +241,8 @@ private:
     void _sendContainerContent(const AbstractContainerMenu& menu);
     void _sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
     void _sendCloseContainer(ContainerId containerId);
-    void _sendToClient(const u8* data, size_t size);
+    /// 向本地客户端发送 IR 包（封装 m_clientConnection->send 的连接有效性检查）
+    void _sendToClientIr(mc::network::ir::IrPacket packet);
     void _sendBlockBreakAnim(EntityInstanceId breakerId, i32 x, i32 y, i32 z, i8 stage);
     /**
      * @brief 发送 WindowPropertyPacket（熔炉燃烧/熔炼进度等 tracked int 下推客户端）
@@ -294,6 +302,23 @@ private:
      */
     void _handleRemoteLoginRequest(u32 sessionId, const u8* data, size_t size);
 
+    /**
+     * @brief 本地客户端握手完成回调（ServerHandshake Configuration 结束后触发）
+     *
+     * 在此执行玩家创建序列（迁自旧 handleLoginRequestPacket）：
+     * addPlayer/setupInitialPlayerState/createPlayerEntity/playerJoinDimension/
+     * OP-level/saved-data-load/inventory-init/sendLoginResponse/play::Login。
+     *
+     * @param username 登录用户名
+     * @param offlineUuid 离线模式 UUID
+     */
+    void _onClientPlayerReady(const std::string& username, const std::array<u8, 16>& offlineUuid);
+
+    /**
+     * @brief 安装本地客户端连接的入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
+     */
+    void _installClientInboundListener();
+
     void onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory) override;
     [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
     [[nodiscard]] i32 getSelectedHotbarSlot(PlayerId playerId) override;
@@ -323,9 +348,20 @@ private:
     // 服务端线程
     std::unique_ptr<std::thread> m_serverThread;
 
-    // 本地连接
-    std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
-    network::LocalEndpoint* m_serverEndpoint = nullptr;
+    // 服务端网络门面（管理所有 ServerClientConnection + LocalTransportPair + 协议表）
+    std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
+
+    // 本地客户端侧 transport（取出交 ClientNetwork::connectLocal 前暂存）
+    std::unique_ptr<mc::network::transport::ILocalTransport> m_pendingClientTransport;
+
+    // 本地客户端连接（所有权归 m_serverNetwork，此处非拥有指针）
+    mc::server::net::ServerClientConnection* m_clientConnection = nullptr;
+
+    // 本地客户端握手状态机（Configuration 完成后触发玩家创建）
+    std::unique_ptr<mc::server::net::ServerHandshakeStateMachine> m_clientHandshake;
+
+    // 本地客户端 Play 路由器（sessionId=0）
+    std::unique_ptr<mc::server::net::ServerPlayRouter> m_clientPlayRouter;
 
     // 客户端玩家ID
     PlayerId m_clientPlayerId = 0;
@@ -335,9 +371,6 @@ private:
 
     // 玩家实体管理器
     ServerPlayerEntityManager m_playerEntityManager;
-
-    // 客户端连接（持有 shared_ptr 防止 weak_ptr 失效）
-    network::ConnectionPtr m_clientConnection;
 
     // 客户端物品栏（单玩家特有）
     PlayerInventory m_clientInventory;

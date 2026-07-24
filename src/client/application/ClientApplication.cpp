@@ -387,9 +387,9 @@ void ClientApplication::update(f32 deltaTime)
     // 有活跃游戏会话：更新网络、玩家、世界等
 
     // 更新网络客户端（处理服务端数据包）
-    if (m_networkClient) {
+    if (m_network) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::NetworkPoll");
-        m_networkClient->poll();
+        m_network->tick();
     }
 
     // 更新破坏进度管理器
@@ -481,7 +481,7 @@ void ClientApplication::update(f32 deltaTime)
     if (m_stateMachine.needsGameTick()) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame, "ClientApplication::update::GameTick");
         // 发送玩家位置到服务端（物理 tick 后最多 20 TPS）
-        if (m_networkClient && m_networkClient->isLoggedIn() && m_player) {
+        if (m_network && m_network->isPlaying() && m_player) {
             m_positionSendAccumulator += deltaTime;
             if (m_positionSendAccumulator >= POSITION_SEND_INTERVAL) {
                 m_positionSendAccumulator = std::fmod(m_positionSendAccumulator, POSITION_SEND_INTERVAL);
@@ -654,10 +654,11 @@ void ClientApplication::shutdown()
     }
 
     // 断开网络连接（如果在主菜单但有残留连接）
-    if (m_networkClient) {
+    if (m_network) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ClientApplication::shutdown::DisconnectNetwork");
-        m_networkClient->disconnect("Client shutdown");
-        m_networkClient.reset();
+        m_network->disconnect("Client shutdown");
+        m_network.reset();
+        m_playVisitor.reset();
     }
 
     // 停止内置服务端（如果有残留）

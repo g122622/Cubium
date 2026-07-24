@@ -3,8 +3,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * in the Software without restriction, including limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -22,15 +22,21 @@
  */
 
 #include "ServerScoreboard.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/scoreboard/storage/ScoreboardDataManager.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -43,6 +49,35 @@ using ::mc::scoreboard::Score;
 using ::mc::scoreboard::Scoreboard;
 using ::mc::scoreboard::ScoreObjective;
 using ::mc::scoreboard::ScorePlayerTeam;
+
+namespace {
+
+/// 把 ITextComponent（或字符串名）序列化为 1.21.11 组件 opaque 字节（JSON 文本）。
+/// TODO(Phase6): 当前仅以 JSON 字符串字节承载，未对齐 1.21.11 ComponentType 前缀树，
+///   真互通需补完整 Component codec。我方互通客户端按相同约定解析即可。
+std::vector<u8> componentToBytes(const ::mc::text::ITextComponent* component, const std::string& fallback)
+{
+    std::string json = component ? component->toJson().dump() : fallback;
+    return std::vector<u8>(json.begin(), json.end());
+}
+
+/// 渲染类型字符串→1.21.11 整数序号（0=integer,1=hearts）
+i32 renderTypeToOrdinal(::mc::scoreboard::RenderType type)
+{
+    switch (type) {
+    case ::mc::scoreboard::RenderType::Hearts: return 1;
+    case ::mc::scoreboard::RenderType::Integer: return 0;
+    default: return 0;
+    }
+}
+
+/// 构造一个 Play 阶段的 IrPacket
+mc::network::ir::IrPacket makePlayPacket(mc::network::ir::PlayPacket pkt)
+{
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play, std::move(pkt)};
+}
+
+} // namespace
 
 ServerScoreboard::ServerScoreboard(IServer& server)
     : m_server(server)
@@ -85,90 +120,60 @@ void ServerScoreboard::onPlayerLeave(PlayerId playerId, const std::string& playe
     markDirty();
 }
 
-void ServerScoreboard::sendToAllPlayers(network::PacketType type, const std::vector<u8>& payload)
+void ServerScoreboard::sendToAllPlayers(const mc::network::ir::IrPacket& packet)
 {
     auto& playerManager = m_server.playerManager();
     auto& connectionManager = m_server.connectionManager();
 
     playerManager.forEachPlayer([&](ServerPlayerData& data) {
         if (data.hasConnection()) {
-            connectionManager.sendPacketToPlayer(data.playerId, type, payload);
+            connectionManager.sendToPlayer(data.playerId, packet);
         }
     });
 }
 
-void ServerScoreboard::sendToPlayer(PlayerId playerId, network::PacketType type, const std::vector<u8>& payload)
+void ServerScoreboard::sendToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    m_server.connectionManager().sendPacketToPlayer(playerId, type, payload);
+    m_server.connectionManager().sendToPlayer(playerId, packet);
 }
 
 void ServerScoreboard::sendObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)
 {
-    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Add);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::ScoreboardObjective, ser.buffer());
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{_createObjectivePacket(objective, 0)}));
 }
 
 void ServerScoreboard::sendRemoveObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)
 {
-    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::ScoreboardObjective, ser.buffer());
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{_createObjectivePacket(objective, 1)}));
 }
 
 void ServerScoreboard::sendScoreToPlayer(Score& score, PlayerId playerId)
 {
-    auto packet = _createScorePacket(score, network::ScoreAction::Change);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::UpdateScore, ser.buffer());
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{_createSetScorePacket(score, true)}));
 }
 
 void ServerScoreboard::sendRemoveScoreToPlayer(
     const std::string& playerName, const std::string& objectiveName, PlayerId playerId)
 {
-    network::UpdateScorePacket packet;
-    packet.setPlayerName(playerName);
-    packet.setObjectiveName(objectiveName);
-    packet.setAction(network::ScoreAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::UpdateScore, ser.buffer());
+    mc::network::ir::play::ResetScore pkt;
+    pkt.owner = playerName;
+    pkt.objectiveName = objectiveName;
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void ServerScoreboard::sendDisplayObjectiveToPlayer(DisplaySlot slot, ScoreObjective* objective, PlayerId playerId)
 {
-    network::DisplayObjectivePacket packet;
-    packet.setPosition(static_cast<i32>(slot));
-    packet.setObjectiveName(objective ? objective->getName() : "");
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::DisplayObjective, ser.buffer());
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{_createDisplayObjectivePacket(slot, objective)}));
 }
 
 void ServerScoreboard::sendTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId)
 {
-    auto packet = _createTeamPacket(team, network::TeamAction::Create);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::Teams, ser.buffer());
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{_createTeamPacket(team, 0)}));
 }
 
 void ServerScoreboard::sendRemoveTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId)
 {
-    auto packet = _createTeamPacket(team, network::TeamAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToPlayer(playerId, network::PacketType::Teams, ser.buffer());
+    sendToPlayer(playerId, makePlayPacket(mc::network::ir::PlayPacket{_createTeamPacket(team, 1)}));
 }
 
 void ServerScoreboard::save()
@@ -205,11 +210,7 @@ void ServerScoreboard::onObjectiveAdded(ScoreObjective& objective)
     m_addedObjectives.insert(&objective);
 
     // 广播给所有玩家
-    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Add);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::ScoreboardObjective, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createObjectivePacket(objective, 0)}));
 
     markDirty();
 }
@@ -219,11 +220,7 @@ void ServerScoreboard::onObjectiveRemoved(ScoreObjective& objective)
     m_addedObjectives.erase(&objective);
 
     // 广播给所有玩家
-    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::ScoreboardObjective, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createObjectivePacket(objective, 1)}));
 
     markDirty();
 }
@@ -231,11 +228,7 @@ void ServerScoreboard::onObjectiveRemoved(ScoreObjective& objective)
 void ServerScoreboard::onObjectiveChanged(ScoreObjective& objective)
 {
     // 广播给所有玩家
-    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Update);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::ScoreboardObjective, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createObjectivePacket(objective, 2)}));
 
     markDirty();
 }
@@ -243,23 +236,18 @@ void ServerScoreboard::onObjectiveChanged(ScoreObjective& objective)
 void ServerScoreboard::onScoreChanged(Score& score)
 {
     // 广播给所有玩家
-    auto packet = _createScorePacket(score, network::ScoreAction::Change);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::UpdateScore, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createSetScorePacket(score, true)}));
 
     markDirty();
 }
 
 void ServerScoreboard::onScoreRemoved(Score& score)
 {
-    // 广播给所有玩家
-    auto packet = _createScorePacket(score, network::ScoreAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::UpdateScore, ser.buffer());
+    // 广播给所有玩家（移除分数 → ResetScore）
+    mc::network::ir::play::ResetScore pkt;
+    pkt.owner = score.getPlayerName();
+    pkt.objectiveName = score.getObjective().getName();
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 
     markDirty();
 }
@@ -269,14 +257,10 @@ void ServerScoreboard::onPlayerRemoved(const std::string& playerName)
     // 广播移除玩家的所有分数
     auto objectives = getPlayerObjectives(playerName);
     for (const auto& objName : objectives) {
-        network::UpdateScorePacket packet;
-        packet.setPlayerName(playerName);
-        packet.setObjectiveName(objName);
-        packet.setAction(network::ScoreAction::Remove);
-
-        network::PacketSerializer ser;
-        packet.serialize(ser);
-        sendToAllPlayers(network::PacketType::UpdateScore, ser.buffer());
+        mc::network::ir::play::ResetScore pkt;
+        pkt.owner = playerName;
+        pkt.objectiveName = objName;
+        sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
     }
 
     markDirty();
@@ -285,14 +269,10 @@ void ServerScoreboard::onPlayerRemoved(const std::string& playerName)
 void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, ScoreObjective& objective)
 {
     // 广播移除特定分数
-    network::UpdateScorePacket packet;
-    packet.setPlayerName(playerName);
-    packet.setObjectiveName(objective.getName());
-    packet.setAction(network::ScoreAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::UpdateScore, ser.buffer());
+    mc::network::ir::play::ResetScore pkt;
+    pkt.owner = playerName;
+    pkt.objectiveName = objective.getName();
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 
     markDirty();
 }
@@ -300,11 +280,7 @@ void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, Score
 void ServerScoreboard::onTeamAdded(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
-    auto packet = _createTeamPacket(team, network::TeamAction::Create);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::Teams, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createTeamPacket(team, 0)}));
 
     markDirty();
 }
@@ -312,11 +288,7 @@ void ServerScoreboard::onTeamAdded(ScorePlayerTeam& team)
 void ServerScoreboard::onTeamChanged(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
-    auto packet = _createTeamPacket(team, network::TeamAction::Update);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::Teams, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createTeamPacket(team, 2)}));
 
     markDirty();
 }
@@ -324,11 +296,7 @@ void ServerScoreboard::onTeamChanged(ScorePlayerTeam& team)
 void ServerScoreboard::onTeamRemoved(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
-    auto packet = _createTeamPacket(team, network::TeamAction::Remove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::Teams, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createTeamPacket(team, 1)}));
 
     markDirty();
 }
@@ -336,104 +304,79 @@ void ServerScoreboard::onTeamRemoved(ScorePlayerTeam& team)
 void ServerScoreboard::onDisplaySlotChanged(DisplaySlot slot, ScoreObjective* objective)
 {
     // 广播给所有玩家
-    network::DisplayObjectivePacket packet;
-    packet.setPosition(static_cast<i32>(slot));
-    packet.setObjectiveName(objective ? objective->getName() : "");
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    sendToAllPlayers(network::PacketType::DisplayObjective, ser.buffer());
+    sendToAllPlayers(makePlayPacket(mc::network::ir::PlayPacket{_createDisplayObjectivePacket(slot, objective)}));
 
     markDirty();
 }
 
-network::ScoreboardObjectivePacket ServerScoreboard::_createObjectivePacket(
-    ScoreObjective& objective, network::ObjectiveAction action)
+mc::network::ir::play::SetObjective ServerScoreboard::_createObjectivePacket(
+    ScoreObjective& objective, u8 method)
 {
-    network::ScoreboardObjectivePacket packet;
+    // method: 0=Add 1=Remove 2=Change
+    mc::network::ir::play::SetObjective pkt;
+    pkt.objectiveName = objective.getName();
+    pkt.method = method;
 
-    packet.setObjectiveName(objective.getName());
-    packet.setAction(action);
-
-    if (action == network::ObjectiveAction::Add || action == network::ObjectiveAction::Update) {
-        // 获取显示名称的 JSON 表示
-        if (auto* displayName = objective.getDisplayName()) {
-            // 将 ITextComponent 序列化为 JSON 字符串
-            packet.setDisplayName(displayName->toJson().dump());
-        } else {
-            packet.setDisplayName(objective.getName());
-        }
-
-        packet.setRenderType(scoreboard::renderTypeToString(objective.getRenderType()));
+    if (method == 0 || method == 2) {
+        pkt.displayName = componentToBytes(objective.getDisplayName(), objective.getName());
+        pkt.renderType = renderTypeToOrdinal(objective.getRenderType());
+        // numberFormat 留空（TODO(Phase6): 1.21.11 NumberFormat 编码）
     }
 
-    return packet;
+    return pkt;
 }
 
-network::UpdateScorePacket ServerScoreboard::_createScorePacket(Score& score, network::ScoreAction action)
+mc::network::ir::play::SetScore ServerScoreboard::_createSetScorePacket(Score& score, bool change)
 {
-    network::UpdateScorePacket packet;
-
-    packet.setPlayerName(score.getPlayerName());
-    packet.setObjectiveName(score.getObjective().getName());
-    packet.setAction(action);
-
-    if (action == network::ScoreAction::Change) {
-        packet.setScore(score.getScorePoints());
-    }
-
-    return packet;
+    mc::network::ir::play::SetScore pkt;
+    pkt.owner = score.getPlayerName();
+    pkt.objectiveName = score.getObjective().getName();
+    pkt.score = change ? score.getScorePoints() : 0;
+    // display/numberFormat 留空（TODO(Phase6): 1.21.11 组件/NumberFormat 编码）
+    return pkt;
 }
 
-network::DisplayObjectivePacket ServerScoreboard::_createDisplayObjectivePacket(
+mc::network::ir::play::SetDisplayObjective ServerScoreboard::_createDisplayObjectivePacket(
     DisplaySlot slot, ScoreObjective* objective)
 {
-    network::DisplayObjectivePacket packet;
-
-    packet.setPosition(static_cast<i32>(slot));
-    packet.setObjectiveName(objective ? objective->getName() : "");
-
-    return packet;
+    mc::network::ir::play::SetDisplayObjective pkt;
+    pkt.slot = static_cast<i32>(slot);
+    pkt.objectiveName = objective ? objective->getName() : "";
+    return pkt;
 }
 
-network::TeamsPacket ServerScoreboard::_createTeamPacket(ScorePlayerTeam& team, network::TeamAction action)
+mc::network::ir::play::SetPlayerTeam ServerScoreboard::_createTeamPacket(ScorePlayerTeam& team, u8 method)
 {
-    network::TeamsPacket packet;
+    // method: 0=Create 1=Remove 2=Change 3=Join 4=Leave
+    mc::network::ir::play::SetPlayerTeam pkt;
+    pkt.name = team.getName();
+    pkt.method = method;
 
-    packet.setTeamName(team.getName());
-    packet.setAction(action);
-
-    if (action == network::TeamAction::Create || action == network::TeamAction::Update) {
-        // 获取显示名称
-        if (auto* displayName = team.getDisplayName()) {
-            // 将 ITextComponent 序列化为 JSON 字符串
-            packet.setDisplayName(displayName->toJson().dump());
-        } else {
-            packet.setDisplayName(team.getName());
-        }
-
-        // 获取前缀和后缀
+    if (method == 0 || method == 2) {
+        // 1.21.11 将 displayName/prefix/suffix/visibility/collision/color/friendlyFlags
+        // 打包进一个 opaque parameters blob。当前以 JSON 字符串承载，未完整对齐
+        // 1.21.11 序列化格式。TODO(Phase6): 补完整 TeamParameters codec。
+        nlohmann::json params;
+        params["displayName"] = componentToBytes(team.getDisplayName(), team.getName());
         if (auto* prefix = team.getPrefix()) {
-            // 将 ITextComponent 序列化为 JSON 字符串
-            packet.setPrefix(prefix->toJson().dump());
+            params["prefix"] = componentToBytes(prefix, "");
         }
         if (auto* suffix = team.getSuffix()) {
-            // 将 ITextComponent 序列化为 JSON 字符串
-            packet.setSuffix(suffix->toJson().dump());
+            params["suffix"] = componentToBytes(suffix, "");
         }
-
-        packet.setNameTagVisibility(scoreboard::teamVisibilityToString(team.getNameTagVisibility()));
-        packet.setCollisionRule(scoreboard::teamCollisionRuleToString(team.getCollisionRule()));
-        packet.setColor(text::toName(team.getColor()));
-        packet.setFriendlyFlags(team.getFriendlyFlags());
+        params["nameTagVisibility"] = scoreboard::teamVisibilityToString(team.getNameTagVisibility());
+        params["collisionRule"] = scoreboard::teamCollisionRuleToString(team.getCollisionRule());
+        params["color"] = text::toName(team.getColor());
+        params["friendlyFlags"] = team.getFriendlyFlags();
+        std::string dumped = params.dump();
+        pkt.parameters = std::vector<u8>(dumped.begin(), dumped.end());
     }
 
-    if (action == network::TeamAction::Create || action == network::TeamAction::AddMember ||
-        action == network::TeamAction::RemoveMember) {
-        packet.setPlayers(std::vector<std::string>(team.getMembers().begin(), team.getMembers().end()));
+    if (method == 0 || method == 3 || method == 4) {
+        pkt.players = std::vector<std::string>(team.getMembers().begin(), team.getMembers().end());
     }
 
-    return packet;
+    return pkt;
 }
 
 } // namespace server

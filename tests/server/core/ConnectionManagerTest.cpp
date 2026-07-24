@@ -23,25 +23,32 @@
 
 #include "server/core/ConnectionManager.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
-#include "common/network/packet/Packet.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "server/core/PlayerManager.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
-using namespace mc::network;
 
 /**
- * @brief ConnectionManager 单元测试
+ * @brief ConnectionManager 单元测试（新网络层 IR 版本）
+ *
+ * 新 ConnectionManager 是薄门面：sendToPlayer/broadcast/broadcastExcept 委托
+ * ServerPlayerData::send(ir::IrPacket) → ServerClientConnection::send。本测试
+ * 不构造真实 ServerClientConnection（需 LocalTransportPair + ProtocolTables，
+ * 属集成测试范畴），统一传 nullptr 连接：
+ * - 发送类用例：nullptr 连接下 ServerPlayerData::send 返回 false，可断言返回值。
+ * - 玩家管理类用例（disconnect/cleanup/disconnectAll）：验证 PlayerManager 侧状态。
+ *
+ * 注意：conn=nullptr 时 ServerPlayerData::hasConnection() 返回 false，故
+ * cleanupDisconnectedPlayers 会把所有 nullptr 连接玩家视为已断开并清理。
  */
 class ConnectionManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_connectionPair = std::make_unique<LocalConnectionPair>();
-        m_connectionPair->connect();
         m_playerManager = std::make_unique<PlayerManager>();
         m_connectionManager = std::make_unique<ConnectionManager>(*m_playerManager);
     }
@@ -50,77 +57,51 @@ protected:
     {
         m_connectionManager.reset();
         m_playerManager.reset();
-        m_connectionPair.reset();
     }
 
-    ConnectionPtr createConnection()
+    /// 构造一个最小 IR 包（Play 阶段 KeepAlive）用于发送类用例
+    static mc::network::ir::IrPacket makeKeepAlivePacket()
     {
-        return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
+        return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{mc::network::ir::play::KeepAlive{}}};
     }
 
-    std::unique_ptr<LocalConnectionPair> m_connectionPair;
     std::unique_ptr<PlayerManager> m_playerManager;
     std::unique_ptr<ConnectionManager> m_connectionManager;
 };
 
-TEST_F(ConnectionManagerTest, SendToPlayer)
+TEST_F(ConnectionManagerTest, SendToPlayerReturnsFalseWhenConnectionIsNull)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
-    std::vector<mc::u8> data = {1, 2, 3, 4, 5};
-    EXPECT_TRUE(m_connectionManager->sendToPlayer(1, data.data(), data.size()));
+    // nullptr 连接下 send 返回 false（不崩溃）
+    EXPECT_FALSE(m_connectionManager->sendToPlayer(1, makeKeepAlivePacket()));
 
     // 发送给不存在的玩家应返回 false
-    EXPECT_FALSE(m_connectionManager->sendToPlayer(999, data.data(), data.size()));
+    EXPECT_FALSE(m_connectionManager->sendToPlayer(999, makeKeepAlivePacket()));
 }
 
-TEST_F(ConnectionManagerTest, SendPacketToPlayer)
+TEST_F(ConnectionManagerTest, BroadcastDoesNotCrashWithNullConnections)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
-    std::vector<mc::u8> payload = {1, 2, 3};
-    EXPECT_TRUE(m_connectionManager->sendPacketToPlayer(1, PacketType::KeepAlive, payload));
+    // 广播应不会崩溃（各玩家 send 返回 false 被忽略）
+    m_connectionManager->broadcast(makeKeepAlivePacket());
 }
 
-TEST_F(ConnectionManagerTest, Broadcast)
+TEST_F(ConnectionManagerTest, BroadcastExceptDoesNotCrashWithNullConnections)
 {
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
-    std::vector<mc::u8> data = {1, 2, 3};
-    // 广播应不会崩溃
-    m_connectionManager->broadcast(data.data(), data.size());
-}
-
-TEST_F(ConnectionManagerTest, BroadcastExcept)
-{
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
-
-    std::vector<mc::u8> data = {1, 2, 3};
-    // 广播给除玩家1以外的所有玩家
-    m_connectionManager->broadcastExcept(1, data.data(), data.size());
-}
-
-TEST_F(ConnectionManagerTest, BroadcastPacket)
-{
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
-
-    std::vector<mc::u8> payload = {1, 2, 3};
-    m_connectionManager->broadcastPacket(PacketType::KeepAlive, payload);
+    // 广播给除玩家1以外的所有玩家应不会崩溃
+    m_connectionManager->broadcastExcept(1, makeKeepAlivePacket());
 }
 
 TEST_F(ConnectionManagerTest, DisconnectPlayer)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     EXPECT_TRUE(m_playerManager->hasPlayer(1));
 
@@ -131,10 +112,8 @@ TEST_F(ConnectionManagerTest, DisconnectPlayer)
 
 TEST_F(ConnectionManagerTest, DisconnectAll)
 {
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
     EXPECT_EQ(m_playerManager->playerCount(), 2u);
 
@@ -143,36 +122,12 @@ TEST_F(ConnectionManagerTest, DisconnectAll)
     EXPECT_EQ(m_playerManager->playerCount(), 0u);
 }
 
-TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayers)
+TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayersTreatsNullConnectionAsDisconnected)
 {
-    auto conn = createConnection();
-    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
-    // 手动断开连接
-    conn->disconnect("Test");
-
-    // 清理断开连接的玩家
+    // nullptr 连接 hasConnection() 返回 false，被视为已断开
     size_t cleaned = m_connectionManager->cleanupDisconnectedPlayers();
     EXPECT_EQ(cleaned, 1u);
     EXPECT_EQ(m_playerManager->playerCount(), 0u);
-}
-
-TEST_F(ConnectionManagerTest, EncapsulatePacket)
-{
-    std::vector<mc::u8> payload = {1, 2, 3, 4, 5};
-    auto packet = ConnectionManager::encapsulatePacket(PacketType::KeepAlive, payload);
-
-    // 验证包头
-    EXPECT_GE(packet.size(), PACKET_HEADER_SIZE);
-
-    // 解析包头
-    PacketDeserializer deser(packet.data(), packet.size());
-    auto sizeResult = deser.readU32();
-    auto typeResult = deser.readU16();
-
-    ASSERT_TRUE(sizeResult.success());
-    ASSERT_TRUE(typeResult.success());
-
-    EXPECT_EQ(sizeResult.value(), PACKET_HEADER_SIZE + payload.size());
-    EXPECT_EQ(typeResult.value(), static_cast<mc::u16>(PacketType::KeepAlive));
 }

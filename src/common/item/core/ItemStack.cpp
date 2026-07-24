@@ -28,6 +28,8 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/component/DataComponentPatchNbt.hpp"
+#include "common/item/component/DataComponentType.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -45,8 +47,13 @@ namespace mc {
 namespace {
 // NBT key constants
 namespace nbt_keys {
+// 1.21.11 数据组件格式键
 constexpr const char* ID = "id";
-constexpr const char* COUNT = "Count";
+constexpr const char* COUNT = "count";           // 1.21.11：int（旧 1.16.5 为 "Count" byte）
+constexpr const char* COMPONENTS = "components"; // 1.21.11 数据组件补丁 compound
+
+// 旧 1.16.5 格式键（仅 fromNbt 旧存档回退读取用）
+constexpr const char* LEGACY_COUNT = "Count";
 constexpr const char* TAG = "tag";
 constexpr const char* DAMAGE = "Damage";
 constexpr const char* ENCHANTMENTS = "Enchantments";
@@ -873,102 +880,188 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
 }
 
 // ============================================================================
-// NBT 序列化
+// 数据组件补丁转换（NBT/wire 序列化用）
+// ============================================================================
+
+item::component::DataComponentPatch ItemStack::toComponentPatch() const
+{
+    using namespace item::component;
+    DataComponentPatch patch;
+
+    if (m_damage > 0) {
+        patch.add(DataComponentType::Damage, DataComponentPayload{std::in_place_index<1>, m_damage});
+    }
+    if (m_repairCost > 0) {
+        patch.add(DataComponentType::RepairCost, DataComponentPayload{std::in_place_index<1>, m_repairCost});
+    }
+    if (m_customName) {
+        patch.add(DataComponentType::CustomName,
+            DataComponentPayload{std::in_place_index<2>, m_customName ? m_customName->deepCopy() : nullptr});
+    }
+    if (!m_lore.empty()) {
+        std::vector<std::unique_ptr<text::ITextComponent>> loreCopy;
+        loreCopy.reserve(m_lore.size());
+        for (const auto& line : m_lore) {
+            loreCopy.push_back(line ? line->deepCopy() : nullptr);
+        }
+        patch.add(DataComponentType::Lore, DataComponentPayload{std::in_place_index<3>, std::move(loreCopy)});
+    }
+    if (hasEnchantments()) {
+        patch.add(DataComponentType::Enchantments, DataComponentPayload{std::in_place_index<4>, m_enchantments});
+    }
+    if (!m_potionId.empty()) {
+        patch.add(DataComponentType::PotionContents,
+            DataComponentPayload{std::in_place_index<5>, PotionContentsPayload{m_potionId}});
+    }
+    if (hasCanPlaceOn()) {
+        patch.add(DataComponentType::CanPlaceOn, DataComponentPayload{std::in_place_index<6>, m_canPlaceOn});
+    }
+    if (hasCanDestroy()) {
+        patch.add(DataComponentType::CanBreak, DataComponentPayload{std::in_place_index<6>, m_canDestroy});
+    }
+    if (hasTag()) {
+        patch.add(DataComponentType::CustomData, DataComponentPayload{std::in_place_index<7>, m_customData});
+    }
+    return patch;
+}
+
+void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& patch)
+{
+    using namespace item::component;
+    for (const auto& entry : patch.added()) {
+        auto type = componentTypeById(entry.typeId);
+        if (!type.has_value()) {
+            continue;
+        }
+        switch (*type) {
+            case DataComponentType::Damage: {
+                if (const auto* p = std::get_if<i32>(&entry.value)) {
+                    m_damage = *p;
+                }
+                break;
+            }
+            case DataComponentType::RepairCost: {
+                if (const auto* p = std::get_if<i32>(&entry.value)) {
+                    m_repairCost = *p;
+                }
+                break;
+            }
+            case DataComponentType::CustomName: {
+                const auto& p = std::get<std::unique_ptr<text::ITextComponent>>(entry.value);
+                m_customName = p ? p->deepCopy() : nullptr;
+                break;
+            }
+            case DataComponentType::Lore: {
+                const auto& lines = std::get<std::vector<std::unique_ptr<text::ITextComponent>>>(entry.value);
+                m_lore.clear();
+                for (const auto& line : lines) {
+                    m_lore.push_back(line ? line->deepCopy() : nullptr);
+                }
+                break;
+            }
+            case DataComponentType::Enchantments: {
+                m_enchantments = std::get<item::enchant::EnchantmentContainer>(entry.value);
+                break;
+            }
+            case DataComponentType::PotionContents: {
+                m_potionId = std::get<PotionContentsPayload>(entry.value).potionId;
+                break;
+            }
+            case DataComponentType::CanPlaceOn: {
+                m_canPlaceOn = std::get<AdventureModePredicate>(entry.value);
+                break;
+            }
+            case DataComponentType::CanBreak: {
+                m_canDestroy = std::get<AdventureModePredicate>(entry.value);
+                break;
+            }
+            case DataComponentType::CustomData: {
+                m_customData = std::get<nlohmann::json>(entry.value);
+                break;
+            }
+            case DataComponentType::MaxStackSize:
+            case DataComponentType::MaxDamage:
+            case DataComponentType::Enchantable:
+            case DataComponentType::Unbreakable:
+            case DataComponentType::ItemName:
+            case DataComponentType::ItemModel:
+            case DataComponentType::Rarity:
+                // TODO: 未落地组件不映射到 ItemStack 字段。
+                break;
+        }
+    }
+    for (i32 typeId : patch.removed()) {
+        auto type = componentTypeById(typeId);
+        if (!type.has_value()) {
+            continue;
+        }
+        switch (*type) {
+            case DataComponentType::Damage:
+                m_damage = 0;
+                break;
+            case DataComponentType::RepairCost:
+                m_repairCost = 0;
+                break;
+            case DataComponentType::CustomName:
+                m_customName = nullptr;
+                break;
+            case DataComponentType::Lore:
+                m_lore.clear();
+                break;
+            case DataComponentType::Enchantments:
+                m_enchantments.clear();
+                break;
+            case DataComponentType::PotionContents:
+                m_potionId.clear();
+                break;
+            case DataComponentType::CanPlaceOn:
+                m_canPlaceOn = AdventureModePredicate{};
+                break;
+            case DataComponentType::CanBreak:
+                m_canDestroy = AdventureModePredicate{};
+                break;
+            case DataComponentType::CustomData:
+                m_customData = nlohmann::json{};
+                break;
+            case DataComponentType::MaxStackSize:
+            case DataComponentType::MaxDamage:
+            case DataComponentType::Enchantable:
+            case DataComponentType::Unbreakable:
+            case DataComponentType::ItemName:
+            case DataComponentType::ItemModel:
+            case DataComponentType::Rarity:
+                // TODO: 未落地组件不映射到 ItemStack 字段。
+                break;
+        }
+    }
+}
+
+// ============================================================================
+// NBT 序列化（1.21.11 数据组件格式：{id, count:int, components}）
 // ============================================================================
 
 void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 {
     if (isEmpty()) {
         tag.put(nbt_keys::ID, std::string("minecraft:air"));
-        tag.put(nbt_keys::COUNT, static_cast<i8>(0));
+        tag.put(nbt_keys::COUNT, static_cast<i32>(0));
         return;
     }
 
     // 物品ID
     tag.put(nbt_keys::ID, m_item->itemLocation().toString());
 
-    // 数量
-    tag.put(nbt_keys::COUNT, static_cast<i8>(m_count));
+    // 数量（1.21.11：int）
+    tag.put(nbt_keys::COUNT, static_cast<i32>(m_count));
 
-    // 检查是否需要 tag
-    bool needTag = m_damage > 0 || hasEnchantments() || m_customName || !m_lore.empty() || m_repairCost > 0 ||
-        !m_potionId.empty() || hasTag() || hasCanPlaceOn() || hasCanDestroy();
-
-    if (!needTag) {
+    // 组件补丁：仅当有非默认组件时写出 components 段
+    auto patch = toComponentPatch();
+    if (patch.isEmpty()) {
         return;
     }
-
-    // 创建 tag 复合标签
-    auto tagCompound = std::make_unique<nbt::tags::compound_tag>();
-
-    // 耐久度
-    if (m_damage > 0) {
-        tagCompound->put(nbt_keys::DAMAGE, static_cast<i32>(m_damage));
-    }
-
-    // 附魔
-    if (hasEnchantments()) {
-        auto enchList = m_enchantments.toNbt();
-        tagCompound->value.emplace(nbt_keys::ENCHANTMENTS, std::move(enchList));
-    }
-
-    // 显示名称和描述
-    if (m_customName || !m_lore.empty()) {
-        auto display = std::make_unique<nbt::tags::compound_tag>();
-
-        if (m_customName) {
-            display->put(nbt_keys::NAME, m_customName->toJson().dump());
-        }
-
-        if (!m_lore.empty()) {
-            auto loreList = std::make_unique<nbt::tags::string_list_tag>();
-            for (const auto& line : m_lore) {
-                if (line) {
-                    loreList->value.push_back(line->toJson().dump());
-                }
-            }
-            display->value.emplace(nbt_keys::LORE, std::move(loreList));
-        }
-
-        tagCompound->value.emplace(nbt_keys::DISPLAY, std::move(display));
-    }
-
-    // 修复成本
-    if (m_repairCost > 0) {
-        tagCompound->put(nbt_keys::REPAIR_COST, static_cast<i32>(m_repairCost));
-    }
-
-    // 药水ID
-    if (!m_potionId.empty()) {
-        tagCompound->put(nbt_keys::POTION, m_potionId);
-    }
-
-    // CanPlaceOn（冒险模式可放置方块列表）
-    if (hasCanPlaceOn()) {
-        auto canPlaceOnList = std::make_unique<nbt::tags::string_list_tag>();
-        for (const auto& predicate : m_canPlaceOn.getPredicates()) {
-            canPlaceOnList->value.push_back(predicate);
-        }
-        tagCompound->value.emplace(nbt_keys::CAN_PLACE_ON, std::move(canPlaceOnList));
-    }
-
-    // CanDestroy（冒险模式可破坏方块列表）
-    if (hasCanDestroy()) {
-        auto canDestroyList = std::make_unique<nbt::tags::string_list_tag>();
-        for (const auto& predicate : m_canDestroy.getPredicates()) {
-            canDestroyList->value.push_back(predicate);
-        }
-        tagCompound->value.emplace(nbt_keys::CAN_DESTROY, std::move(canDestroyList));
-    }
-
-    // 自定义数据
-    if (hasTag()) {
-        // 将 JSON 转换为字符串存储
-        // 注意：MC 使用嵌套 NBT，但我们这里使用 JSON 字符串作为简化
-        tagCompound->put("custom_data", m_customData.dump());
-    }
-
-    tag.value.emplace(nbt_keys::TAG, std::move(tagCompound));
+    auto componentsTag = std::make_unique<nbt::tags::compound_tag>();
+    item::component::writePatchToNbt(*componentsTag, patch);
+    tag.value.emplace(nbt_keys::COMPONENTS, std::move(componentsTag));
 }
 
 Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
@@ -985,14 +1078,17 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
 
-    // 获取数量
+    // 数量：1.21.11 用 "count"(int/byte)，旧格式用 "Count"(byte)
     i32 count = 1;
-    it = tag.value.find(nbt_keys::COUNT);
-    if (it != tag.value.end()) {
-        if (it->second->id() == nbt::TagId::Byte) {
-            count = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value;
-        } else if (it->second->id() == nbt::TagId::Int) {
-            count = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+    auto countIt = tag.value.find(nbt_keys::COUNT);
+    if (countIt == tag.value.end()) {
+        countIt = tag.value.find(nbt_keys::LEGACY_COUNT);
+    }
+    if (countIt != tag.value.end()) {
+        if (countIt->second->id() == nbt::TagId::Byte) {
+            count = dynamic_cast<const nbt::tags::byte_tag&>(*countIt->second).value;
+        } else if (countIt->second->id() == nbt::TagId::Int) {
+            count = dynamic_cast<const nbt::tags::int_tag&>(*countIt->second).value;
         }
     }
 
@@ -1003,16 +1099,29 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
 
     ItemStack stack(item, count);
 
-    // 解析 tag
+    // 优先按 1.21.11 组件格式解析；若无 components 但有 "tag"，回退旧 1.16.5 格式
+    auto componentsIt = tag.value.find(nbt_keys::COMPONENTS);
+    if (componentsIt != tag.value.end() && componentsIt->second->id() == nbt::TagId::Compound) {
+        const auto& componentsCompound = dynamic_cast<const nbt::tags::compound_tag&>(*componentsIt->second);
+        stack.applyComponentPatch(item::component::readPatchFromNbt(componentsCompound));
+        return stack;
+    }
+
     auto tagIt = tag.value.find(nbt_keys::TAG);
     if (tagIt == tag.value.end() || tagIt->second->id() != nbt::TagId::Compound) {
         return stack;
     }
+    applyLegacyTagCompound(stack, dynamic_cast<const nbt::tags::compound_tag&>(*tagIt->second));
+    return stack;
+}
 
-    const auto& tagCompound = dynamic_cast<const nbt::tags::compound_tag&>(*tagIt->second);
+// ============================================================================
+// 旧 1.16.5 {tag{...}} 格式回退读取（读旧存档用）
+// ============================================================================
 
-    // 耐久度
-    it = tagCompound.value.find(nbt_keys::DAMAGE);
+void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compound_tag& tagCompound)
+{
+    auto it = tagCompound.value.find(nbt_keys::DAMAGE);
     if (it != tagCompound.value.end()) {
         if (it->second->id() == nbt::TagId::Int) {
             stack.m_damage = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
@@ -1021,26 +1130,22 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // 附魔
     it = tagCompound.value.find(nbt_keys::ENCHANTMENTS);
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
         auto& enchList = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
         stack.m_enchantments = item::enchant::EnchantmentContainer::fromNbt(enchList);
     }
 
-    // 显示数据
     it = tagCompound.value.find(nbt_keys::DISPLAY);
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Compound) {
         const auto& display = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
 
-        // 自定义名称
         auto nameIt = display.value.find(nbt_keys::NAME);
         if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::String) {
             std::string nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
             stack.m_customName = text::TextParser::parse(nameJson);
         }
 
-        // Lore
         auto loreIt = display.value.find(nbt_keys::LORE);
         if (loreIt != display.value.end() && loreIt->second->id() == nbt::TagId::List) {
             auto& loreList = dynamic_cast<const nbt::tags::list_tag&>(*loreIt->second);
@@ -1053,21 +1158,16 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // 修复成本
     it = tagCompound.value.find(nbt_keys::REPAIR_COST);
-    if (it != tagCompound.value.end()) {
-        if (it->second->id() == nbt::TagId::Int) {
-            stack.m_repairCost = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
-        }
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Int) {
+        stack.m_repairCost = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
     }
 
-    // 药水ID
     it = tagCompound.value.find(nbt_keys::POTION);
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
         stack.m_potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
     }
 
-    // CanPlaceOn（冒险模式可放置方块列表）
     it = tagCompound.value.find(nbt_keys::CAN_PLACE_ON);
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
         auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
@@ -1082,7 +1182,6 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // CanDestroy（冒险模式可破坏方块列表）
     it = tagCompound.value.find(nbt_keys::CAN_DESTROY);
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
         auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
@@ -1097,7 +1196,7 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // 自定义数据
+    // 旧格式 custom_data 存为 JSON 字符串
     it = tagCompound.value.find("custom_data");
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
         std::string customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
@@ -1106,8 +1205,6 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
             stack.m_customData = parsed;
         }
     }
-
-    return stack;
 }
 
 // ============================================================================

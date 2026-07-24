@@ -85,8 +85,9 @@ public:
     /**
      * @brief 写物品 holder：VarInt itemId（空气/空 = 0）
      *
-     * TODO(Phase3/Phase5): 当前仅写 itemId，1.21.11 完整格式为
-     * VarInt(count) + Item holder + DataComponentPatch，待 ItemStack 组件模型落地后补全。
+     * 1.21.11 的 Item holder 仅承载 itemId（不含 count/组件 patch）——后者属于
+     * ItemStack 的 OPTIONAL_STREAM_CODEC（VarInt(count)+Item holder+DataComponentPatch），
+     * 由 JavaPlayCodecs::writeItemStack 承载，本方法只写裸 itemId。
      */
     void writeItemHolder(const Item* item);
 

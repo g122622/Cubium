@@ -81,27 +81,29 @@ public:
 
 protected:
     void pollNetwork() override;
-    void broadcastPacket(const u8* data, size_t size) override;
+    void broadcastPacket(const mc::network::ir::IrPacket& packet) override;
 
     [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
     {
         return m_playerManager->getPlayerIdBySession(sessionId);
     }
 
-    void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override
+    void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) override
     {
         auto* player = m_playerManager->getPlayer(playerId);
-        if (player && player->hasConnection()) {
-            player->send(data, size);
+        if (player != nullptr) {
+            player->send(mc::network::ir::IrPacket{packet});
         }
     }
 
     // ========== 数据包处理（特有逻辑） ==========
 
-    void handleLoginRequestPacket(u32 sessionId, const u8* data, size_t size) override;
-    void handleHotbarSelectPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleContainerClickPacket(PlayerId playerId, const u8* data, size_t size) override;
-    void handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size) override;
+    // 注：远程 TCP 登录的真 Java 互通为 TODO(Phase6)。新网络层登录由
+    // ServerHandshakeStateMachine 驱动，handleLoginRequestPacket 已从基类移除。
+    void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
 
     /**
      * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
@@ -176,14 +178,8 @@ private:
     void _onClientConnect(TcpSession* session);
     void _onClientDisconnect(TcpSession* session, const std::string& reason);
 
-    // 数据包发送
-    void _sendLoginResponse(TcpSession* session,
-        bool success,
-        PlayerId playerId,
-        EntityInstanceId entityId,
-        const Uuid& uuid,
-        const std::string& username,
-        const std::string& message);
+    // TODO(Phase6): 远程 TCP 登录响应（_sendLoginResponse）将在真 Java 互通接入时
+    //   迁移到新网络层 play::Login + Configuration 编排，当前未实现。
 
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）

@@ -33,6 +33,11 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "server/menu/CraftingMenu.hpp"
 
@@ -43,6 +48,81 @@
 using namespace mc::trace;
 
 namespace mc::client {
+
+namespace {
+
+namespace irplay = mc::network::ir::play;
+
+/// ItemStack → 1.21.11 HashedStack（仅 itemId+count，组件哈希留 TODO(Phase6)）。
+/// 空栈 present=false。出站 ContainerClick 的 carriedItem 用。
+irplay::HashedStack toHashedStack(const ItemStack& stack)
+{
+    irplay::HashedStack hs{};
+    if (stack.isEmpty() || stack.getItem() == nullptr) {
+        hs.present = false;
+        hs.itemId = 0;
+        hs.count = 0;
+        return hs;
+    }
+    hs.present = true;
+    hs.itemId = stack.getItem()->itemId();
+    hs.count = stack.getCount();
+    return hs;
+}
+
+/// 构造 ContainerClick IR 包。stateId 由调用方传入（取自最近 ContainerSetContent/SetSlot）；
+/// changedSlots 客户端发送点击时为空（服务端回算）。cursorItem→carriedItem。
+mc::network::ir::IrPacket makeContainerClickPacket(
+    ContainerId containerId, i32 stateId, i32 slotIndex, i32 button, ClickAction action, const ItemStack& cursorItem)
+{
+    irplay::ContainerClick click;
+    click.containerId = static_cast<i32>(containerId);
+    click.stateId = stateId;
+    click.slotNum = static_cast<i16>(slotIndex);
+    click.buttonNum = static_cast<i8>(button);
+    click.clickType = static_cast<i32>(action); // ClickAction 值与 1.21.11 clickType 一致
+    click.changedSlots = {};
+    click.carriedItem = toHashedStack(cursorItem);
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::ContainerClick{std::move(click)}}};
+}
+
+/// 构造 ContainerClose IR 包。
+mc::network::ir::IrPacket makeContainerClosePacket(ContainerId containerId)
+{
+    irplay::ContainerClose close;
+    close.containerId = static_cast<i32>(containerId);
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::ContainerClose{std::move(close)}}};
+}
+
+/// 构造 PlayerCommand（OPEN_INVENTORY，action=5）IR 包。entityId 取本地玩家。
+/// 旧 sendOpenPlayerInventory 等价：通知服务端在 containerId=0 建菜单。
+mc::network::ir::IrPacket makeOpenPlayerInventoryPacket(i32 playerId)
+{
+    irplay::PlayerCommand cmd;
+    cmd.entityId = playerId;
+    cmd.action = 5; // OPEN_INVENTORY
+    cmd.data = 0;
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::PlayerCommand{std::move(cmd)}}};
+}
+
+/// 1.21.11 PlayerInput 位掩码：bit0=forward bit1=backward bit2=left bit3=right
+/// bit4=jump bit5=shift bit6=sprint。旧 sendPlayerInput(strafe,forward,jumping,sneaking) 映射。
+u8 packPlayerInput(f32 strafe, f32 forward, bool jumping, bool sneaking)
+{
+    u8 v = 0;
+    if (forward > 0.0f) v |= 0x01; // forward
+    if (forward < 0.0f) v |= 0x02; // backward
+    if (strafe < 0.0f) v |= 0x04;  // left（A）
+    if (strafe > 0.0f) v |= 0x08;  // right（D）
+    if (jumping) v |= 0x10;        // jump
+    if (sneaking) v |= 0x20;       // shift
+    return v;
+}
+
+} // namespace
 
 [[nodiscard]] bool ClientApplication::isCreativeModeActive() const
 {
@@ -65,15 +145,16 @@ void ClientApplication::openInventoryScreen()
                            i16 transactionId,
                            ClickAction action,
                            const ItemStack& cursorItem) {
-        if (m_networkClient) {
-            m_networkClient->sendContainerClick(
-                ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
+        MC_UNUSED(transactionId);
+        if (m_network) {
+            // TODO(Phase6): stateId 需取自最近 ContainerSetContent/SetSlot，当前填 0。
+            (void)m_network->send(makeContainerClickPacket(containerId, 0, slotIndex, button, action, cursorItem));
         }
     };
 
     auto closeSender = [this](ContainerId containerId) {
-        if (m_networkClient) {
-            m_networkClient->sendCloseContainer(containerId);
+        if (m_network) {
+            (void)m_network->send(makeContainerClosePacket(containerId));
         }
     };
 
@@ -90,8 +171,8 @@ void ClientApplication::openInventoryScreen()
 
     // 通知服务端在 containerId=0 上建立 InventoryCraftingMenu，使后续
     // ContainerClickPacket 能被正确受理（修复点击静默丢弃）。
-    if (m_networkClient) {
-        m_networkClient->sendOpenPlayerInventory();
+    if (m_network && m_player) {
+        (void)m_network->send(makeOpenPlayerInventoryPacket(m_player->playerId()));
     }
 
     ScreenManager::instance().openScreen(std::move(inventoryScreen));
@@ -109,15 +190,16 @@ void ClientApplication::openCreativeScreen()
                            i16 transactionId,
                            ClickAction action,
                            const ItemStack& cursorItem) {
-        if (m_networkClient) {
-            m_networkClient->sendContainerClick(
-                ContainerClickPacket(containerId, slotIndex, button, transactionId, action, cursorItem));
+        MC_UNUSED(transactionId);
+        if (m_network) {
+            // TODO(Phase6): stateId 需取自最近 ContainerSetContent/SetSlot，当前填 0。
+            (void)m_network->send(makeContainerClickPacket(containerId, 0, slotIndex, button, action, cursorItem));
         }
     };
 
     auto closeSender = [this](ContainerId containerId) {
-        if (m_networkClient) {
-            m_networkClient->sendCloseContainer(containerId);
+        if (m_network) {
+            (void)m_network->send(makeContainerClosePacket(containerId));
         }
     };
 
@@ -136,8 +218,8 @@ void ClientApplication::openCreativeScreen()
 
     // 通知服务端在 containerId=0 上建立 ItemPickerMenu（创造模式分流），使后续
     // ContainerClickPacket（含调色板 Clone）能被正确受理。
-    if (m_networkClient) {
-        m_networkClient->sendOpenPlayerInventory();
+    if (m_network && m_player) {
+        (void)m_network->send(makeOpenPlayerInventoryPacket(m_player->playerId()));
     }
 
     ScreenManager::instance().openScreen(std::move(creativeScreen));
@@ -333,13 +415,24 @@ void ClientApplication::handleMouseAndMovementInput()
     if (m_input.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) sneaking = true;
 
     // 检查玩家是否正在骑乘
-    if (m_player->isRiding() && m_networkClient && m_networkClient->isLoggedIn()) {
-        // 骑乘状态：发送 PlayerInputPacket 到服务器
-        m_networkClient->sendPlayerInput(strafe, forward, jumping, sneaking);
+    if (m_player->isRiding() && m_network && m_network->isPlaying()) {
+        // 骑乘状态：发送 PlayerInput（u8 位掩码）到服务器
+        irplay::PlayerInput playerInput;
+        playerInput.input = packPlayerInput(strafe, forward, jumping, sneaking);
+        (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{irplay::PlayerInput{std::move(playerInput)}}});
 
-        // 同时发送 MoveVehiclePacket 同步载具位置
+        // 同时发送 ServerboundMoveVehicle 同步载具位置
         const auto& pos = m_player->position();
-        m_networkClient->sendMoveVehicle(pos.x, pos.y, pos.z, m_player->yaw(), m_player->pitch());
+        irplay::ServerboundMoveVehicle moveVehicle;
+        moveVehicle.x = static_cast<f64>(pos.x);
+        moveVehicle.y = static_cast<f64>(pos.y);
+        moveVehicle.z = static_cast<f64>(pos.z);
+        moveVehicle.yRot = m_player->yaw();
+        moveVehicle.xRot = m_player->pitch();
+        moveVehicle.onGround = m_player->onGround();
+        (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{irplay::ServerboundMoveVehicle{std::move(moveVehicle)}}});
 
         // 如果骑乘的是船，发送划桨状态
         // 划桨状态：左桨 = 左移或前进，右桨 = 右移或前进
@@ -349,7 +442,11 @@ void ClientApplication::handleMouseAndMovementInput()
             if (vehicle != nullptr && vehicle->entityType() == mc::entity::VanillaEntityTypeKeys::BOAT) {
                 bool leftPaddle = (strafe < 0.0f) || (forward > 0.0f);  // A or W
                 bool rightPaddle = (strafe > 0.0f) || (forward > 0.0f); // D or W
-                m_networkClient->sendSteerBoat(leftPaddle, rightPaddle);
+                irplay::PaddleBoat paddle;
+                paddle.left = leftPaddle;
+                paddle.right = rightPaddle;
+                (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{irplay::PaddleBoat{std::move(paddle)}}});
             }
         }
     } else {
@@ -364,8 +461,12 @@ void ClientApplication::handleMouseAndMovementInput()
         i32 delta = scrollDelta > 0.0 ? -1 : 1;
         selectedSlot = (selectedSlot + delta + PlayerInventory::HOTBAR_SIZE) % PlayerInventory::HOTBAR_SIZE;
         m_player->inventory().setSelectedSlot(selectedSlot);
-        if (m_networkClient && m_networkClient->isLoggedIn()) {
-            m_networkClient->sendHotbarSelect(selectedSlot);
+        if (m_network && m_network->isPlaying()) {
+            // 1.21.11 SetCarriedItem：切热栏槽（slot 0..8）
+            irplay::SetCarriedItem carried;
+            carried.slot = static_cast<i16>(selectedSlot);
+            (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{irplay::SetCarriedItem{std::move(carried)}}});
         }
     }
 }

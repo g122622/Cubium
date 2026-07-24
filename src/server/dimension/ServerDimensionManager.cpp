@@ -29,8 +29,9 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/network/packet/DimensionPackets.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/crypto/Sha256.hpp"
@@ -575,62 +576,80 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
         return;
     }
 
-    // 使用 RespawnPacket 进行维度切换
-    network::RespawnPacket packet;
-
-    // 设置维度类型
-    // 0 = minecraft:overworld
-    // 1 = minecraft:the_nether
-    // 2 = minecraft:the_end
+    // 1.21.11 Respawn：复用 CommonPlayerSpawnInfo + u8 dataToKeep。
+    // TODO(Phase6): dimensionType 应走维度 registry holder（整数 id），当前沿用旧
+    //   0=overworld/1=nether/2=end 映射；dimension 为维度 ResourceKey 字符串。
     i32 dimensionTypeId = 0;
+    std::string dimensionKey = "minecraft:overworld";
     switch (newDim) {
         case 0: // Overworld
             dimensionTypeId = 0;
+            dimensionKey = "minecraft:overworld";
             break;
         case -1: // Nether
             dimensionTypeId = 1;
+            dimensionKey = "minecraft:the_nether";
             break;
         case 1: // The End
             dimensionTypeId = 2;
+            dimensionKey = "minecraft:the_end";
             break;
         default:
             dimensionTypeId = 0;
+            dimensionKey = "minecraft:overworld";
             break;
     }
-    packet.setDimensionType(dimensionTypeId);
-    packet.setDimension(newDim);
 
-    // 计算世界种子的哈希值（SHA-256 前 8 字节）
-    packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
+    mc::network::ir::play::Respawn pkt;
+    pkt.spawnInfo.dimensionType = dimensionTypeId;
+    pkt.spawnInfo.dimension = dimensionKey;
+    pkt.spawnInfo.seed = static_cast<i64>(util::crypto::Sha256::hashWorldSeed(m_seed));
 
     // 设置游戏模式（从玩家数据获取）
     auto* playerData = m_server->playerManager().getPlayer(playerId);
     if (playerData) {
-        packet.setGameMode(playerData->gameMode);
-        packet.setPreviousGameMode(GameMode::NotSet);
+        pkt.spawnInfo.gameType = playerData->gameMode;
+        pkt.spawnInfo.previousGameType = -1; // NotSet → null（1.21.11 用 -1 表 null）
     }
 
-    // 维度切换时保留数据
-    packet.setKeepData(true);
+    // 维度切换时保留数据（KEEP_ALL_DATA = 3）
+    pkt.dataToKeep = 3;
+
+    // isDebug/isFlat 从目标维度世界获取
+    if (auto* world = targetDim->world()) {
+        pkt.spawnInfo.isDebug = world->isDebugWorld();
+    }
+    // TODO(Phase6): isFlat 应从维度世界生成器类型推导（WorldType::Flat），
+    //   当前 ServerWorld 未暴露该标志，暂置 false。
 
     // 设置上次死亡位置（从玩家实体获取）
     auto& playerEntityManager = m_server->playerEntityManager();
     if (auto* dimension = getPlayerDimensionWorld(playerId)) {
         if (auto* world = dimension->world()) {
             if (Player* player = playerEntityManager.getPlayerEntity(playerId, *world)) {
-                packet.setLastDeathLocation(player->getLastDeathLocation());
+                auto lastDeath = player->getLastDeathLocation();
+                if (lastDeath.has_value()) {
+                    // GlobalPos → (dimension ResourceKey, BlockPos.asLong)
+                    std::string deathDimKey;
+                    switch (lastDeath->getDimensionId()) {
+                        case 0: deathDimKey = "minecraft:overworld"; break;
+                        case -1: deathDimKey = "minecraft:the_nether"; break;
+                        case 1: deathDimKey = "minecraft:the_end"; break;
+                        default: deathDimKey = "minecraft:overworld"; break;
+                    }
+                    pkt.spawnInfo.lastDeathLocation =
+                        std::make_pair(deathDimKey, lastDeath->getPos().asLong());
+                }
             }
         }
     }
 
-    // 序列化包
-    auto result = packet.serialize();
-    if (result.failed()) {
-        return;
-    }
-
-    // 通过服务器发送给玩家
-    m_server->sendPacketToPlayer(playerId, result.value().data(), result.value().size());
+    (void)pos; // 旧 RespawnPacket 不携带坐标；1.21.11 Respawn 后由 PlayerPosition 单独传送
+    m_server->sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 void ServerDimensionManager::_unloadPlayerChunks(PlayerId playerId)

@@ -145,7 +145,10 @@ server::ServerPlayerData* BaseTestServer::addTestPlayer(PlayerId playerId, const
 {
     auto connection = std::make_shared<FakeServerConnection>();
     std::string uuid = util::uuidToString(util::generateOfflineUuid(username));
-    auto* player = m_playerManager.addPlayer(playerId, uuid, username, connection);
+    // 新网络层 addPlayer 接受 mc::server::net::ServerClientConnection*；测试桩 FakeServerConnection
+    // 仍为旧 IServerConnection 派生（Step5 删旧体系时统一重构测试桩），此处传 nullptr。
+    // BaseTestServer 重写了 sendSoundToPlayer 等发送路径，不依赖 player.connection 真发包。
+    auto* player = m_playerManager.addPlayer(playerId, uuid, username, nullptr);
     if (player != nullptr) {
         m_connections.push_back(connection);
         m_inventoryManager.initializeInventory(playerId);

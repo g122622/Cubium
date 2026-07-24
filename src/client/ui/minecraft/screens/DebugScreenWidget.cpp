@@ -23,7 +23,7 @@
 
 #include "DebugScreenWidget.hpp"
 #include "client/dimension/ClientDimensionManager.hpp"
-#include "client/network/NetworkClient.hpp"
+#include "client/network/ClientNetwork.hpp"
 #include "client/renderer/Camera.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/sky/CelestialCalculations.hpp"

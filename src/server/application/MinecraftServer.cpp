@@ -54,6 +54,11 @@
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/BlockEntityDataPacket.hpp"
 #include "common/network/packet/BlockEventPacket.hpp"
@@ -158,6 +163,42 @@ namespace {
     return storage != nullptr && storage->isOpen() && storage->config().readonly && storage->isForeignFormat();
 }
 
+/// 向字节流追加 VarUInt 编码（与 MC Java VarInt 长度前缀一致）。
+void appendVarUInt(std::vector<u8>& out, u32 value)
+{
+    while ((value & ~0x7Fu) != 0) {
+        out.push_back(static_cast<u8>((value & 0x7F) | 0x80));
+        value >>= 7;
+    }
+    out.push_back(static_cast<u8>(value & 0x7F));
+}
+
+/// 把旧 ParticlePacket 转为 1.21.11 LevelParticles IR。
+/// TODO(Phase6): ParticleOptions opaque 未对齐 1.21.11 ParticleTypes codec。
+///   particle 字段透传旧 ParticlePacket::serialize() 全量字节，客户端按同格式反解（我方互通成立）。
+[[nodiscard]] mc::network::ir::IrPacket buildParticleIr(const network::ParticlePacket& packet)
+{
+    auto result = packet.serialize();
+    mc::network::ir::play::LevelParticles pkt;
+    pkt.overrideLimiter = false;
+    pkt.alwaysShow = false;
+    pkt.x = packet.x();
+    pkt.y = packet.y();
+    pkt.z = packet.z();
+    pkt.xDist = packet.offsetX();
+    pkt.yDist = packet.offsetY();
+    pkt.zDist = packet.offsetZ();
+    pkt.maxSpeed = 0.0f;
+    pkt.count = static_cast<i32>(packet.count());
+    if (result.success()) {
+        pkt.particle = std::move(result.value());
+    }
+    return mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
+}
+
 } // namespace
 
 MinecraftServer::MinecraftServer(ServerSettings& settings)
@@ -180,25 +221,20 @@ void MinecraftServer::setDifficulty(Difficulty difficulty)
 
 void MinecraftServer::broadcastDifficultyChange()
 {
-    auto fullPacket = serializeDifficultyPacket();
-    if (fullPacket.empty()) {
-        return;
-    }
-
-    broadcastPacket(fullPacket.data(), fullPacket.size());
+    broadcastPacket(serializeDifficultyPacket());
     spdlog::info("Difficulty changed to {}", static_cast<i32>(m_difficulty));
 }
 
-std::vector<u8> MinecraftServer::serializeDifficultyPacket()
+mc::network::ir::IrPacket MinecraftServer::serializeDifficultyPacket()
 {
-    network::ServerDifficultyPacket packet(m_difficulty, false);
-    auto serializeResult = packet.serialize();
-    if (serializeResult.failed()) {
-        spdlog::error("Failed to serialize ServerDifficultyPacket");
-        return {};
-    }
+    mc::network::ir::play::ChangeDifficulty pkt;
+    pkt.difficulty = static_cast<i32>(m_difficulty);
+    pkt.locked = false;
 
-    return core::ConnectionManager::encapsulatePacket(network::PacketType::ServerDifficulty, serializeResult.value());
+    return mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
 }
 
 void MinecraftServer::setDefaultGameMode(GameMode mode)
@@ -511,12 +547,15 @@ void MinecraftServer::initializeCoreManagers()
                 const auto& time = timeManager().gameTimeObj();
                 i64 dayTime = targetDim->world()->dayTime();
 
-                network::TimeUpdatePacket timePacket(time.gameTime(), dayTime, time.daylightCycleEnabled());
-                network::PacketSerializer timeSer;
-                timePacket.serialize(timeSer);
-                auto fullTimePacket =
-                    core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, timeSer.buffer());
-                sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
+                mc::network::ir::play::SetTime timePkt;
+                timePkt.gameTime = time.gameTime();
+                timePkt.dayTime = dayTime;
+                timePkt.tickDayTime = time.daylightCycleEnabled();
+                sendPacketToPlayer(playerId,
+                    mc::network::ir::IrPacket{
+                        mc::network::protocol::ConnectionProtocol::Play,
+                        mc::network::ir::PlayPacket{std::move(timePkt)},
+                    });
             }
         });
 
@@ -841,13 +880,23 @@ void MinecraftServer::initializeInteractionManagers()
     m_inventoryManager = std::make_unique<interaction::InventoryManager>(*m_playerManager);
 
     m_inventoryManager->setOnInventoryUpdate([this](PlayerId playerId, const PlayerInventory& inventory) {
-        PlayerInventoryPacket packet(inventory);
-        network::PacketSerializer payload;
-        packet.serialize(payload);
+        // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏
+        // TODO(Phase6): 玩家物品栏的 stateId/动态槽位语义需对齐 1.21.11 PlayerInventoryContents 同步。
+        mc::network::ir::play::ContainerSetContent pkt;
+        pkt.containerId = 0; // 玩家物品栏
+        pkt.stateId = 0;
+        const i32 totalSlots = inventory.getContainerSize();
+        pkt.items.reserve(static_cast<size_t>(totalSlots));
+        for (i32 slot = 0; slot < totalSlots; ++slot) {
+            pkt.items.push_back(mc::network::ir::toItemStackView(inventory.getItem(slot)));
+        }
+        pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
 
-        const auto fullPacket =
-            core::ConnectionManager::encapsulatePacket(network::PacketType::PlayerInventory, payload.buffer());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(pkt)},
+            });
     });
 
     // 设置 InventoryManager 到其他管理器
@@ -1542,13 +1591,14 @@ void MinecraftServer::setupWorldCallbacks()
         // 设置方块同步回调
         if (auto* bus = serverDim->blockUpdateSyncManager()) {
             bus->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
-                network::BlockUpdatePacket packet(x, y, z, blockStateId);
-                network::PacketSerializer ser;
-                packet.serialize(ser);
-
-                auto fullPacket =
-                    core::ConnectionManager::encapsulatePacket(network::PacketType::BlockUpdate, ser.buffer());
-                sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+                mc::network::ir::play::BlockUpdate pkt;
+                pkt.blockPosPacked = BlockPos(x, y, z).asLong();
+                pkt.blockStateId = static_cast<i32>(blockStateId);
+                sendPacketToPlayer(playerId,
+                    mc::network::ir::IrPacket{
+                        mc::network::protocol::ConnectionProtocol::Play,
+                        mc::network::ir::PlayPacket{std::move(pkt)},
+                    });
             });
         }
 
@@ -1587,13 +1637,11 @@ void MinecraftServer::setupWorldCallbacks()
             });
 
             cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
-                network::UnloadChunkPacket packet(x, z, 0); // dimension will be set per-context
-                network::PacketSerializer ser;
-                packet.serialize(ser);
-
-                auto fullPacket =
-                    core::ConnectionManager::encapsulatePacket(network::PacketType::UnloadChunk, ser.buffer());
-                sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+                // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按距离启发式自行回收。
+                // TODO(Phase6): 若需强制卸载远端区块，需补客户端距离判据或自定义信令。
+                MC_UNUSED(playerId);
+                MC_UNUSED(x);
+                MC_UNUSED(z);
             });
         }
     });
@@ -1887,15 +1935,20 @@ void MinecraftServer::sendTimeUpdate()
         // dayTimeOfDay() 对于下界/末地会返回固定时间
         i64 tod = dim->world()->dayTimeOfDay();
 
-        network::TimeUpdatePacket packet(gameTime, tod, daylightCycleEnabled);
-        network::PacketSerializer ser;
-        packet.serialize(ser);
+        // 1.21.11 SetTime：gameTime + dayTime + tickDayTime(是否推进昼夜)
+        mc::network::ir::play::SetTime pkt;
+        pkt.gameTime = gameTime;
+        pkt.dayTime = tod;
+        pkt.tickDayTime = daylightCycleEnabled;
 
-        auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, ser.buffer());
+        mc::network::ir::IrPacket packet{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        };
 
         // 发送给该维度的所有玩家
         for (PlayerId playerId : playerIds) {
-            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(playerId, packet);
         }
     }
 }
@@ -1917,45 +1970,45 @@ void MinecraftServer::sendWeatherUpdate()
     bool thunderChanged = std::abs(thunderStrength - m_lastSentThunderStrength) > STRENGTH_THRESHOLD;
 
     if (rainChanged) {
-        auto packet = network::GameStateChangePacket::rainStrength(rainStrength);
-        auto result = packet.serialize();
-        if (result.success()) {
-            auto fullPacket =
-                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
-            broadcastPacket(fullPacket.data(), fullPacket.size());
-        }
+        mc::network::ir::play::GameEvent evt;
+        evt.event = 7; // RainStrengthChange
+        evt.value = rainStrength;
+        broadcastPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(evt)},
+        });
         m_lastSentRainStrength = rainStrength;
     }
 
     if (thunderChanged) {
-        auto packet = network::GameStateChangePacket::thunderStrength(thunderStrength);
-        auto result = packet.serialize();
-        if (result.success()) {
-            auto fullPacket =
-                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
-            broadcastPacket(fullPacket.data(), fullPacket.size());
-        }
+        mc::network::ir::play::GameEvent evt;
+        evt.event = 8; // ThunderStrengthChange
+        evt.value = thunderStrength;
+        broadcastPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(evt)},
+        });
         m_lastSentThunderStrength = thunderStrength;
     }
 
     if (weatherMgr.hasWeatherChanged()) {
         auto weatherType = weatherMgr.weatherType();
         if (weatherType == weather::WeatherType::Clear) {
-            auto packet = network::GameStateChangePacket::endRain();
-            auto result = packet.serialize();
-            if (result.success()) {
-                auto fullPacket =
-                    core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
-                broadcastPacket(fullPacket.data(), fullPacket.size());
-            }
+            mc::network::ir::play::GameEvent evt;
+            evt.event = 1; // EndRaining
+            evt.value = 0.0f;
+            broadcastPacket(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(evt)},
+            });
         } else if (weatherType == weather::WeatherType::Rain || weatherType == weather::WeatherType::Thunder) {
-            auto packet = network::GameStateChangePacket::beginRain();
-            auto result = packet.serialize();
-            if (result.success()) {
-                auto fullPacket =
-                    core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
-                broadcastPacket(fullPacket.data(), fullPacket.size());
-            }
+            mc::network::ir::play::GameEvent evt;
+            evt.event = 2; // BeginRaining
+            evt.value = 0.0f;
+            broadcastPacket(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(evt)},
+            });
         }
     }
 }
@@ -1973,23 +2026,25 @@ void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
     f32 thunderStrength = weatherMgr.thunderStrength();
 
     {
-        auto packet = network::GameStateChangePacket::rainStrength(rainStrength);
-        auto result = packet.serialize();
-        if (result.success()) {
-            auto fullPacket =
-                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
-            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-        }
+        mc::network::ir::play::GameEvent evt;
+        evt.event = 7; // RainStrengthChange
+        evt.value = rainStrength;
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(evt)},
+            });
     }
 
     {
-        auto packet = network::GameStateChangePacket::thunderStrength(thunderStrength);
-        auto result = packet.serialize();
-        if (result.success()) {
-            auto fullPacket =
-                core::ConnectionManager::encapsulatePacket(network::PacketType::GameStateChange, result.value());
-            sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-        }
+        mc::network::ir::play::GameEvent evt;
+        evt.event = 8; // ThunderStrengthChange
+        evt.value = thunderStrength;
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(evt)},
+            });
     }
 }
 
@@ -1997,13 +2052,7 @@ void MinecraftServer::sendInitialDifficultyToPlayer(PlayerId playerId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendInitialDifficulty", "phase", "difficulty_sync");
 
-    auto fullPacket = serializeDifficultyPacket();
-    if (fullPacket.empty()) {
-        spdlog::error("Failed to serialize ServerDifficultyPacket for player {}", playerId);
-        return;
-    }
-
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    sendPacketToPlayer(playerId, serializeDifficultyPacket());
 }
 
 void MinecraftServer::sendKeepAliveToAll()
@@ -2015,13 +2064,14 @@ void MinecraftServer::sendKeepAliveToAll()
 
     m_playerManager->forEachPlayer([this, timestamp, tick](ServerPlayerData& player) {
         if (player.loggedIn && player.hasConnection()) {
-            network::KeepAlivePacket packet;
-            packet.setTimestamp(timestamp);
-
-            auto result = packet.serialize();
-            if (result.success()) {
-                sendPacketToPlayer(player.playerId, result.value().data(), result.value().size());
-            }
+            // 1.21.11 KeepAlive：服务端发 id，客户端原样回 id。用时间戳作为 id。
+            mc::network::ir::play::KeepAlive pkt;
+            pkt.id = static_cast<i64>(timestamp);
+            sendPacketToPlayer(player.playerId,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{std::move(pkt)},
+                });
 
             m_keepAliveManager->recordKeepAliveSent(player.playerId, timestamp, tick);
         }
@@ -2037,38 +2087,28 @@ void MinecraftServer::initializeCreativeInventory(PlayerInventory& inventory)
 
 void MinecraftServer::sendChunkDataToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
 {
-    DimensionId dimension = 0;
-    if (m_dimensionManager) {
-        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(playerId);
-        if (resolvedDimension >= 0) {
-            dimension = resolvedDimension;
-        }
-    }
-
-    network::ChunkDataPacket packet(x, z, dimension, data);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::ChunkData, ser.buffer());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    // 1.21.11 LevelChunkWithLight：chunkData(heightmaps+buffer+blockEntities) + lightData。
+    // TODO(Phase6): 旧路径只产生单 blob，光照随 LightUpdate 单独发；此处 lightData 暂空，
+    //   后续 ChunkSerializer 应产出分离的 chunk/light buffer 以完整对齐 1.21.11。
+    MC_UNUSED(m_dimensionManager);
+    mc::network::ir::play::LevelChunkWithLight pkt;
+    pkt.x = static_cast<i32>(x);
+    pkt.z = static_cast<i32>(z);
+    pkt.chunkData = data;
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
-    DimensionId dimension = 0;
-    if (m_dimensionManager) {
-        const DimensionId resolvedDimension = m_dimensionManager->getPlayerDimension(playerId);
-        if (resolvedDimension >= 0) {
-            dimension = resolvedDimension;
-        }
-    }
-
-    network::UnloadChunkPacket packet(x, z, dimension);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::UnloadChunk, ser.buffer());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按距离启发式自行回收。
+    // TODO(Phase6): 若需强制卸载远端区块，需补客户端距离判据或自定义信令。
+    MC_UNUSED(playerId);
+    MC_UNUSED(x);
+    MC_UNUSED(z);
 }
 
 void MinecraftServer::broadcastLightUpdate(ChunkCoord x,
@@ -2089,15 +2129,45 @@ void MinecraftServer::broadcastLightUpdate(ChunkCoord x,
         [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 
-    network::LightUpdatePacket packet(
-        x, z, sectionY, std::vector<u8>(skyLight), std::vector<u8>(blockLight), trustEdges);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
+    // 1.21.11 LightUpdate：仅 chunkX/chunkZ + opaque lightData。
+    // TODO(Phase6): 真正对齐 1.21.11 ClientboundLightUpdatePacket 的 masks/arrays 编码。
+    //   当前 lightData 透传自研格式：sectionY(i32)+flags(u8)+[VarInt len+skyLight]+[VarInt len+blockLight]，
+    //   客户端 _handleLightUpdate 按同格式反解（我方互通成立，真 Java 不通）。
+    u8 flags = 0;
+    if (!skyLight.empty()) flags |= 0x01;
+    if (!blockLight.empty()) flags |= 0x02;
+    if (trustEdges) flags |= 0x04;
 
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LightUpdate, ser.buffer());
-    m_playerManager->forEachPlayer([&fullPacket](ServerPlayerData& player) {
+    std::vector<u8> lightData;
+    lightData.reserve(sizeof(i32) + sizeof(u8) + skyLight.size() + blockLight.size() + 16);
+    // sectionY (i32, 大端)
+    {
+        i32 sy = sectionY;
+        lightData.push_back(static_cast<u8>((sy >> 24) & 0xFF));
+        lightData.push_back(static_cast<u8>((sy >> 16) & 0xFF));
+        lightData.push_back(static_cast<u8>((sy >> 8) & 0xFF));
+        lightData.push_back(static_cast<u8>(sy & 0xFF));
+    }
+    lightData.push_back(flags);
+    // VarUInt 长度前缀的 skyLight
+    appendVarUInt(lightData, static_cast<u32>(skyLight.size()));
+    lightData.insert(lightData.end(), skyLight.begin(), skyLight.end());
+    // VarUInt 长度前缀的 blockLight
+    appendVarUInt(lightData, static_cast<u32>(blockLight.size()));
+    lightData.insert(lightData.end(), blockLight.begin(), blockLight.end());
+
+    mc::network::ir::play::LightUpdate pkt;
+    pkt.x = static_cast<i32>(x);
+    pkt.z = static_cast<i32>(z);
+    pkt.lightData = std::move(lightData);
+
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
+    m_playerManager->forEachPlayer([&packet](ServerPlayerData& player) {
         if (player.loggedIn && player.hasConnection()) {
-            player.send(fullPacket.data(), fullPacket.size());
+            player.send(mc::network::ir::IrPacket{packet});
         }
     });
 }
@@ -2121,57 +2191,70 @@ ServerWorld* MinecraftServer::getPlayerWorld(PlayerId playerId)
 // 数据包处理方法
 // ============================================================================
 
-void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) {
         return;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::PlayerMovePacket::deserialize(deser);
+    namespace irplay = mc::network::ir::play;
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
 
-    if (result.failed()) {
-        spdlog::error("Failed to parse player move from player {}", playerId);
+    // 解析四个 MovePlayer 变体之一，统一出位置/朝向/onGround 与"是否含位置变更"
+    f64 posX = player->x;
+    f64 posY = player->y;
+    f64 posZ = player->z;
+    f32 yaw = player->yaw;
+    f32 pitch = player->pitch;
+    bool onGround = player->onGround;
+    bool hasPosChange = false;
+    bool hasRotOnly = false;
+
+    if (auto* p = std::get_if<irplay::MovePlayerPosRot>(&play)) {
+        posX = p->x;
+        posY = p->y;
+        posZ = p->z;
+        yaw = p->yRot;
+        pitch = p->xRot;
+        onGround = p->flags.onGround;
+        hasPosChange = true;
+    } else if (auto* p = std::get_if<irplay::MovePlayerPos>(&play)) {
+        posX = p->x;
+        posY = p->y;
+        posZ = p->z;
+        onGround = p->flags.onGround;
+        hasPosChange = true;
+    } else if (auto* p = std::get_if<irplay::MovePlayerRot>(&play)) {
+        yaw = p->yRot;
+        pitch = p->xRot;
+        onGround = p->flags.onGround;
+        hasRotOnly = true;
+    } else if (auto* p = std::get_if<irplay::MovePlayerStatusOnly>(&play)) {
+        onGround = p->flags.onGround;
+    } else {
         return;
     }
-
-    auto& packet = result.value();
-    const auto& pos = packet.position();
 
     // 保存旧位置用于村庄进入检测
     BlockPos prevPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
 
+    player->x = static_cast<f32>(posX);
+    player->y = static_cast<f32>(posY);
+    player->z = static_cast<f32>(posZ);
+    player->yaw = yaw;
+    player->pitch = pitch;
+    player->onGround = onGround;
+
     // 计算新区块坐标
-    ChunkCoord newChunkX = math::floorTo<ChunkCoord>(pos.x / static_cast<f64>(world::CHUNK_WIDTH));
-    ChunkCoord newChunkZ = math::floorTo<ChunkCoord>(pos.z / static_cast<f64>(world::CHUNK_WIDTH));
+    ChunkCoord newChunkX = math::floorTo<ChunkCoord>(posX / static_cast<f64>(world::CHUNK_WIDTH));
+    ChunkCoord newChunkZ = math::floorTo<ChunkCoord>(posZ / static_cast<f64>(world::CHUNK_WIDTH));
 
     // 检查玩家是否移动到了新区块
     ChunkCoord oldChunkX = math::floorTo<ChunkCoord>(player->x / static_cast<f32>(world::CHUNK_WIDTH));
     ChunkCoord oldChunkZ = math::floorTo<ChunkCoord>(player->z / static_cast<f32>(world::CHUNK_WIDTH));
     bool chunkChanged = (newChunkX != oldChunkX || newChunkZ != oldChunkZ);
-
-    switch (packet.type()) {
-        case network::PlayerMovePacket::MoveType::Full:
-            player->x = static_cast<f32>(pos.x);
-            player->y = static_cast<f32>(pos.y);
-            player->z = static_cast<f32>(pos.z);
-            player->yaw = pos.yaw;
-            player->pitch = pos.pitch;
-            break;
-        case network::PlayerMovePacket::MoveType::Position:
-            player->x = static_cast<f32>(pos.x);
-            player->y = static_cast<f32>(pos.y);
-            player->z = static_cast<f32>(pos.z);
-            break;
-        case network::PlayerMovePacket::MoveType::Rotation:
-            player->yaw = pos.yaw;
-            player->pitch = pos.pitch;
-            break;
-        case network::PlayerMovePacket::MoveType::GroundOnly:
-            player->onGround = pos.onGround;
-            break;
-    }
+    (void)chunkChanged;
 
     auto* world = getPlayerWorld(playerId);
     if (world) {
@@ -2202,8 +2285,7 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     // 村庄进入检测（用于触发袭击）
     // 仅在位置实际改变时检测，村庄/袭击仅存在于主世界
     auto* overworld = m_dimensionManager->getOverworld();
-    if (overworld && overworld->world() && packet.type() != network::PlayerMovePacket::MoveType::Rotation &&
-        packet.type() != network::PlayerMovePacket::MoveType::GroundOnly) {
+    if (overworld && overworld->world() && hasPosChange && !hasRotOnly) {
         auto* villageManager = overworld->world()->villageManager();
         auto* raidManager = overworld->world()->raidManager();
         if (villageManager && raidManager) {
@@ -2231,19 +2313,15 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     }
 }
 
-void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    network::PacketDeserializer deser(data, size);
-    auto result = network::TeleportConfirmPacket::deserialize(deser);
-
-    if (result.failed()) {
-        spdlog::error("Failed to parse teleport confirm from player {}", playerId);
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::AcceptTeleportation>(&play);
+    if (evt == nullptr) {
         return;
     }
 
-    auto& packet = result.value();
-
-    if (m_teleportManager->confirmTeleport(playerId, packet.teleportId())) {
+    if (m_teleportManager->confirmTeleport(playerId, evt->teleportId)) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (!player) {
             return;
@@ -2261,36 +2339,32 @@ void MinecraftServer::handleTeleportConfirmPacket(PlayerId playerId, const u8* d
     }
 }
 
-void MinecraftServer::handleKeepAlivePacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleKeepAlivePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    network::KeepAlivePacket packet;
-    auto result = packet.deserialize(data, size);
-
-    if (result.success()) {
-        u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
-        m_keepAliveManager->handleKeepAliveResponse(playerId, packet.timestamp(), currentTimeMs);
-    } else {
-        spdlog::error("Failed to parse keep alive packet from player {}: {}", playerId, result.error().message());
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::KeepAlive>(&play);
+    if (evt == nullptr) {
+        return;
     }
+
+    u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
+    m_keepAliveManager->handleKeepAliveResponse(playerId, static_cast<u64>(evt->id), currentTimeMs);
 }
 
-void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) {
         return;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::ChatMessagePacket::deserialize(deser);
-
-    if (result.failed()) {
-        spdlog::error("Failed to parse chat message packet from player {}: {}", playerId, result.error().message());
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::Chat>(&play);
+    if (evt == nullptr) {
         return;
     }
 
-    auto& packet = result.value();
-    std::string message = packet.message();
+    const std::string& message = evt->message;
 
     if (!message.empty() && message[0] == '/') {
         // 执行命令
@@ -2327,22 +2401,20 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
     spdlog::info("[Chat] {}: {}", player->username, message);
 }
 
-void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) {
         return;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::UpdateSignPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse update sign packet from player {}: {}", playerId, result.error().message());
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::SignUpdate>(&play);
+    if (evt == nullptr) {
         return;
     }
 
-    const auto& packet = result.value();
-    const BlockPos& signPos = packet.pos();
+    const BlockPos signPos = BlockPos::fromLong(evt->blockPosPacked);
 
     // 获取玩家所在维度的世界
     ServerWorld* world = getPlayerWorld(playerId);
@@ -2384,8 +2456,8 @@ void MinecraftServer::handleUpdateSignPacket(PlayerId playerId, const u8* data, 
     }
 
     // 更新4行文本
-    for (i32 i = 0; i < network::UpdateSignPacket::LINE_COUNT; ++i) {
-        signEntity->setLineFromLegacy(i, packet.lines()[static_cast<std::size_t>(i)]);
+    for (i32 i = 0; i < 4; ++i) {
+        signEntity->setLineFromLegacy(i, evt->lines[static_cast<std::size_t>(i)]);
     }
 
     // 清除编辑锁
@@ -2428,17 +2500,17 @@ void MinecraftServer::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f6
         *this, *world, playerId, Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)));
 }
 
-void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    network::PacketDeserializer deser(data, size);
-    auto result = network::BlockInteractionPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse block interaction packet: {}", result.error().message());
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::PlayerAction>(&play);
+    if (evt == nullptr) {
         return;
     }
 
-    const auto& packet = result.value();
-    BlockPos pos(packet.x(), packet.y(), packet.z());
+    // 1.21.11 PlayerAction：action 0/1/2 对应 Start/Abort/StopDestroy，与旧 BlockInteractionAction 序数一致。
+    //   action 3..6（DROP_ALL/DROP_ITEM/SWAP_HANDS 等）由物品逻辑路径单独处理，此处仅转发挖掘相关。
+    const BlockPos pos = BlockPos::fromLong(evt->blockPosPacked);
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "MinecraftServer::handleBlockInteractionPacket",
@@ -2448,35 +2520,42 @@ void MinecraftServer::handleBlockInteractionPacket(PlayerId playerId, const u8* 
         playerId,
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
-    // 处理挖掘状态
-    miningManager().handleBlockInteraction(playerId, pos, packet.action());
+    // 仅挖掘相关 action 走 MiningManager
+    if (evt->action < 0 || evt->action > 2) {
+        return;
+    }
+    const auto action = static_cast<network::BlockInteractionAction>(evt->action);
 
-    if (packet.action() == network::BlockInteractionAction::StopDestroyBlock) {
+    // 处理挖掘状态
+    miningManager().handleBlockInteraction(playerId, pos, action);
+
+    if (action == network::BlockInteractionAction::StopDestroyBlock) {
         if (!miningManager().tryCompleteMining(playerId, pos)) {
             spdlog::warn("Ignored premature StopDestroyBlock from player {} at {}", playerId, pos.toString());
         }
     }
 }
 
-void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);
     if (!player || !player->loggedIn) {
         return;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto result = network::PlayerTryUseItemOnBlockPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse block placement packet: {}", result.error().message());
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::UseItemOn>(&play);
+    if (evt == nullptr) {
         return;
     }
 
-    const auto& packet = result.value();
-    const BlockPos pos(packet.x(), packet.y(), packet.z());
+    const auto& hit = evt->blockHit;
+    const BlockPos pos = BlockPos::fromLong(hit.blockPosPacked);
     auto* playerWorld = getPlayerWorld(playerId);
     const BlockState* clickedState = playerWorld ? playerWorld->getBlockState(pos) : nullptr;
-    const Hand hand = (packet.hand() == static_cast<u8>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+    const Hand hand = (evt->hand == static_cast<i32>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+    const Direction face = static_cast<Direction>(hit.direction);
+    const Vector3 hitPosition(hit.hitX, hit.hitY, hit.hitZ);
 
     const auto tryOpenCrafting = [this, playerId, pos, clickedState]() {
         return isCraftingTableState(clickedState) && tryOpenCraftingContainer(playerId, pos);
@@ -2485,7 +2564,7 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* da
     ItemStack heldStack = getHeldItemForPlacement(playerId);
     if (heldStack.isEmpty()) {
         if (!tryOpenCrafting()) {
-            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, packet.hitPosition(), packet.face());
+            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
         }
         return;
     }
@@ -2496,13 +2575,12 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* da
 
     if (!holdingBlockItem) {
         if (!tryOpenCrafting()) {
-            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, packet.hitPosition(), packet.face());
+            (void)blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
         }
         return;
     }
 
-    auto interactionResult =
-        blockInteractionManager().handleBlockPlacement(playerId, pos, packet.hitPosition(), packet.face(), heldStack);
+    auto interactionResult = blockInteractionManager().handleBlockPlacement(playerId, pos, hitPosition, face, heldStack);
 
     if (interactionResult.success() && interactionResult.value().blockPlaced &&
         interactionResult.value().itemConsumed) {
@@ -2514,17 +2592,17 @@ void MinecraftServer::handleBlockPlacementPacket(PlayerId playerId, const u8* da
     }
 }
 
-void MinecraftServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const u8* data, size_t size)
+void MinecraftServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    // 默认实现：仅校验负载可解析。具体打开逻辑由 IntegratedServer（本地客户端）
-    // 覆写；StandaloneServer 远程 TCP 玩家路径暂未接入（沿用 ContainerManager
-    // 现有 Player 类型行为）。
-    (void)playerId;
-    network::PacketDeserializer deser(data, size);
-    auto result = OpenPlayerInventoryPacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("Failed to parse open player inventory packet: {}", result.error().message());
+    // 默认实现：仅校验包为 PlayerCommand{action=OPEN_INVENTORY}。具体打开逻辑由
+    // IntegratedServer（本地客户端）覆写；StandaloneServer 远程 TCP 玩家路径暂未接入。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::PlayerCommand>(&play);
+    if (evt == nullptr) {
+        return;
     }
+    (void)playerId;
+    (void)evt;
 }
 
 // ============================================================================
@@ -2533,12 +2611,23 @@ void MinecraftServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const u
 
 void MinecraftServer::sendTeleportPacket(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
 {
-    network::TeleportPacket packet(x, y, z, yaw, pitch, teleportId);
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    // 1.21.11 PlayerPosition（S→C 传送）：teleportId + 坐标 + delta + 旋转 + relatives flag。
+    mc::network::ir::play::PlayerPosition pkt;
+    pkt.teleportId = static_cast<i32>(teleportId);
+    pkt.x = x;
+    pkt.y = y;
+    pkt.z = z;
+    pkt.deltaX = 0.0;
+    pkt.deltaY = 0.0;
+    pkt.deltaZ = 0.0;
+    pkt.yRot = yaw;
+    pkt.xRot = pitch;
+    pkt.relatives = 0;
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 void MinecraftServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory)
@@ -2601,13 +2690,18 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
         dayTime = playerDim->world()->dayTime();
     }
 
-    network::TimeUpdatePacket timePacket(time.gameTime(), dayTime, time.daylightCycleEnabled());
-    network::PacketSerializer timeSer;
-    timePacket.serialize(timeSer);
-    auto fullTimePacket = core::ConnectionManager::encapsulatePacket(network::PacketType::TimeUpdate, timeSer.buffer());
-    sendPacketToPlayer(playerId, fullTimePacket.data(), fullTimePacket.size());
+    mc::network::ir::play::SetTime timePkt;
+    timePkt.gameTime = time.gameTime();
+    timePkt.dayTime = dayTime;
+    timePkt.tickDayTime = time.daylightCycleEnabled();
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(timePkt)},
+        });
 
     // 发送世界出生点（指南针指向位置，从主世界维度获取）
+    // 1.21.11 SetDefaultSpawnPosition：dimension + blockPosPacked + yaw + pitch
     Vector3d worldSpawn(0.0, 64.0, 0.0);
     f32 spawnAngle = 0.0f;
     auto* overworld = m_dimensionManager->getOverworld();
@@ -2615,16 +2709,19 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
         worldSpawn = overworld->world()->worldSpawnPoint();
         spawnAngle = overworld->world()->spawnAngle();
     }
-    network::SpawnPositionPacket spawnPosPacket(BlockPos(static_cast<BlockCoord>(worldSpawn.x),
-                                                    static_cast<BlockCoord>(worldSpawn.y),
-                                                    static_cast<BlockCoord>(worldSpawn.z)),
-        spawnAngle);
-    auto spawnPosResult = spawnPosPacket.serialize();
-    if (spawnPosResult.success()) {
-        auto fullSpawnPacket =
-            core::ConnectionManager::encapsulatePacket(network::PacketType::SpawnPosition, spawnPosResult.value());
-        sendPacketToPlayer(playerId, fullSpawnPacket.data(), fullSpawnPacket.size());
-    }
+    mc::network::ir::play::SetDefaultSpawnPosition spawnPkt;
+    spawnPkt.dimension = "minecraft:overworld";
+    spawnPkt.blockPosPacked = BlockPos(static_cast<BlockCoord>(worldSpawn.x),
+                                    static_cast<BlockCoord>(worldSpawn.y),
+                                    static_cast<BlockCoord>(worldSpawn.z))
+                                 .asLong();
+    spawnPkt.yaw = spawnAngle;
+    spawnPkt.pitch = 0.0f;
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(spawnPkt)},
+        });
 
     // 发送初始天气状态
     sendInitialWeatherStateToPlayer(playerId);
@@ -2641,13 +2738,16 @@ void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
 
     MC_ASSERT_RELEASE(m_commandRegistry != nullptr);
 
-    network::CommandTreePacket packet(m_commandRegistry->getCommandTreeJson());
-    auto serializeResult = packet.serialize();
-    MC_ASSERT_RELEASE(serializeResult.success());
-
-    auto fullPacket =
-        core::ConnectionManager::encapsulatePacket(network::PacketType::CommandTree, serializeResult.value());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    // 1.21.11 Commands：命令树 NBT。当前以 registry 产出的 JSON 文本字节透传。
+    // TODO(Phase6): 对齐 1.21.11 ClientboundCommandsPacket 的 CommandNode[] NBT 编码。
+    mc::network::ir::play::Commands pkt;
+    const std::string& json = m_commandRegistry->getCommandTreeJson();
+    pkt.payload = std::vector<u8>(json.begin(), json.end());
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 void MinecraftServer::sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel)
@@ -2670,17 +2770,16 @@ void MinecraftServer::sendPermissionLevelChange(PlayerId playerId, i32 permissio
         return;
     }
 
-    // 通过 EntityStatusPacket 通知客户端权限等级变更（status byte = 24 + level）
-    network::EntityStatusPacket packet;
-    packet.setEntityId(static_cast<u32>(player->id()));
-    packet.setStatus(network::EntityStatusPacket::permissionLevel(permissionLevel));
-
-    auto payloadResult = packet.serialize();
-    if (payloadResult.success()) {
-        auto fullPacket =
-            core::ConnectionManager::encapsulatePacket(network::PacketType::EntityStatus, payloadResult.value());
-        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
-    }
+    // 通过 EntityEvent 通知客户端权限等级变更（status byte = 24 + level）。
+    // 1.21.11 权限等级走 EntityEvent(OP_PERMISSION_LEVEL_0..3 = 24..27)。
+    mc::network::ir::play::EntityEvent pkt;
+    pkt.entityId = static_cast<i32>(player->id());
+    pkt.eventId = static_cast<u8>(24 + permissionLevel);
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 
     // 同步更新后的命令树到客户端，以便刷新可用命令列表
     sendCommandTreePacket(playerId);
@@ -2715,204 +2814,64 @@ void MinecraftServer::stopCore()
     spdlog::info("Server core stopped.");
 }
 
-void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
+void MinecraftServer::dispatchPacket(u32 sessionId, const mc::network::ir::IrPacket& packet)
 {
-    if (size < network::PACKET_HEADER_SIZE) {
-        spdlog::warn("Packet too small: {} bytes", size);
+    // 新网络层：packet 已是解码后的 IrPacket。解析 PlayerId 后交统一路由入口。
+    // sessionId 仅用于解析远程玩家 PlayerId（Local 模式直连 router，不走此入口）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "DispatchPacketToHandler", "sessionId", sessionId);
+
+    if (packet.phase != mc::network::protocol::ConnectionProtocol::Play) {
+        spdlog::warn("dispatchPacket: non-Play packet in dispatch (phase={})", static_cast<int>(packet.phase));
         return;
     }
 
-    network::PacketDeserializer deser(data, size);
-    auto sizeResult = deser.readU32();
-    auto typeResult = deser.readU16();
-
-    if (sizeResult.failed() || typeResult.failed()) {
-        spdlog::warn("Failed to read packet header");
+    PlayerId playerId = getPlayerIdForSession(sessionId);
+    if (playerId == 0) {
         return;
     }
+    routeInboundPlayPacket(playerId, packet);
+}
 
-    network::PacketType packetType = static_cast<network::PacketType>(typeResult.value());
-    const u8* payload = data + network::PACKET_HEADER_SIZE;
-    size_t payloadSize = size - network::PACKET_HEADER_SIZE;
+void MinecraftServer::routeInboundPlayPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 新网络层：按 ir::PlayPacket 变体分发到既有 handle*Packet。
+    MC_ASSERT_RELEASE(packet.phase == mc::network::protocol::ConnectionProtocol::Play);
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    namespace irplay = mc::network::ir::play;
 
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-        "DispatchPacketToHandler",
-        "sessionId",
-        sessionId,
-        "packetType",
-        static_cast<int>(packetType),
-        "payloadSize",
-        payloadSize);
-
-    switch (packetType) {
-        case network::PacketType::LoginRequest: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleLoginRequestPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            handleLoginRequestPacket(sessionId, payload, payloadSize);
-            break;
+    if (std::holds_alternative<irplay::MovePlayerPos>(play) ||
+        std::holds_alternative<irplay::MovePlayerPosRot>(play) ||
+        std::holds_alternative<irplay::MovePlayerRot>(play) ||
+        std::holds_alternative<irplay::MovePlayerStatusOnly>(play)) {
+        handlePlayerMovePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::AcceptTeleportation>(play)) {
+        handleTeleportConfirmPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::KeepAlive>(play)) {
+        handleKeepAlivePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::Chat>(play)) {
+        handleChatMessagePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::PlayerAction>(play)) {
+        handleBlockInteractionPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::UseItemOn>(play)) {
+        handleBlockPlacementPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::SetCarriedItem>(play)) {
+        handleHotbarSelectPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ContainerClick>(play)) {
+        handleContainerClickPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ContainerClose>(play)) {
+        handleCloseContainerPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::PlayerCommand>(play)) {
+        // PlayerCommand{action=OPEN_INVENTORY(5)} 复用打开背包逻辑
+        const auto& cmd = std::get<irplay::PlayerCommand>(play);
+        if (cmd.action == 5) { // OPEN_INVENTORY
+            handleOpenPlayerInventoryPacket(playerId, packet);
         }
-
-        case network::PacketType::PlayerMove: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandlePlayerMovePacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handlePlayerMovePacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::BlockInteraction: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleBlockInteractionPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleBlockInteractionPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::PlayerTryUseItemOnBlock: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandlePlayerTryUseItemOnBlockPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleBlockPlacementPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::HotbarSelect: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleHotbarSelectPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleHotbarSelectPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::ContainerClick: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleContainerClickPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleContainerClickPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::CloseContainer: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleCloseContainerPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleCloseContainerPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::OpenPlayerInventory: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleOpenPlayerInventoryPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleOpenPlayerInventoryPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::TeleportConfirm: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleTeleportConfirmPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleTeleportConfirmPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::KeepAlive: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleKeepAlivePacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleKeepAlivePacket(playerId, data, size);
-            }
-            break;
-        }
-
-        case network::PacketType::ChatMessage: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleChatMessagePacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleChatMessagePacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        case network::PacketType::UpdateSign: {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-                "HandleUpdateSignPacket",
-                "sessionId",
-                sessionId,
-                "payloadSize",
-                payloadSize);
-            PlayerId playerId = getPlayerIdForSession(sessionId);
-            if (playerId != 0) {
-                handleUpdateSignPacket(playerId, payload, payloadSize);
-            }
-            break;
-        }
-
-        default:
-            spdlog::warn("Unhandled packet type: {}", static_cast<int>(packetType));
-            break;
+    } else if (std::holds_alternative<irplay::SignUpdate>(play)) {
+        handleUpdateSignPacket(playerId, packet);
+    } else {
+        // 其余 C→S 变体（UseItem/Interact/PaddleBoat/ServerboundMoveVehicle/PlayerInput 等）
+        // TODO(Step4): 对齐死 PacketHandler 迁入的处理体（MoveVehicle/UseEntity/SteerBoat/EntityAction/PlayerInput）。
+        spdlog::debug("routeInboundPlayPacket: unhandled C->S play variant (Step4 待填充)");
     }
 }
 
@@ -2923,17 +2882,24 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
 void MinecraftServer::broadcastSound(
     const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
+    // 1.21.11 PlaySound：Holder<SoundEvent>(opaque) + source + 坐标×8 + volume + pitch + seed。
+    // TODO(Phase6): soundHolder 仅以 ResourceLocation 字符串字节承载，未对齐 Holder<SoundEvent> wire；
+    //   seed 暂用固定值 0。
     glm::vec3 pos(position.x, position.y, position.z);
-    sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::warn("Failed to serialize PlaySoundPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlaySound, result.value());
-    broadcastPacket(fullPacket.data(), fullPacket.size());
+    mc::network::ir::play::PlaySound pkt;
+    std::string idStr = soundEventId.toString();
+    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.source = static_cast<i32>(category);
+    pkt.x = static_cast<i32>(pos.x * 8.0f);
+    pkt.y = static_cast<i32>(pos.y * 8.0f);
+    pkt.z = static_cast<i32>(pos.z * 8.0f);
+    pkt.volume = volume;
+    pkt.pitch = pitch;
+    pkt.seed = 0;
+    broadcastPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    });
 }
 
 void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId,
@@ -2943,20 +2909,27 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
     f32 volume,
     f32 pitch)
 {
+    // 1.21.11 PlaySound（同上），仅发送给范围内玩家。
     glm::vec3 pos(position.x, position.y, position.z);
-    sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
+    mc::network::ir::play::PlaySound pkt;
+    std::string idStr = soundEventId.toString();
+    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.source = static_cast<i32>(category);
+    pkt.x = static_cast<i32>(pos.x * 8.0f);
+    pkt.y = static_cast<i32>(pos.y * 8.0f);
+    pkt.z = static_cast<i32>(pos.z * 8.0f);
+    pkt.volume = volume;
+    pkt.pitch = pitch;
+    pkt.seed = 0;
 
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlaySound, result.value());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
-    m_playerManager->forEachPlayer([this, &position, range, &fullPacket, &playersNotified](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &position, range, &packet, &playersNotified](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -2968,7 +2941,7 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
             playersNotified++;
         }
     });
@@ -2981,17 +2954,23 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
     f32 volume,
     f32 pitch)
 {
+    // 1.21.11 PlaySound（同上），定向发送。
     glm::vec3 pos(position.x, position.y, position.z);
-    sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize PlaySoundPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlaySound, result.value());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    mc::network::ir::play::PlaySound pkt;
+    std::string idStr = soundEventId.toString();
+    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.source = static_cast<i32>(category);
+    pkt.x = static_cast<i32>(pos.x * 8.0f);
+    pkt.y = static_cast<i32>(pos.y * 8.0f);
+    pkt.z = static_cast<i32>(pos.z * 8.0f);
+    pkt.volume = volume;
+    pkt.pitch = pitch;
+    pkt.seed = 0;
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 // ============================================================================
@@ -3006,18 +2985,11 @@ void MinecraftServer::broadcastParticleInRange(particle::ParticleTypeId type,
     f32 range)
 {
     network::ParticlePacket packet(type, pos, velocity, offset, count);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize ParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+    auto irPacket = buildParticleIr(packet);
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
-    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket, &playersNotified](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, range, &irPacket, &playersNotified](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -3029,7 +3001,7 @@ void MinecraftServer::broadcastParticleInRange(particle::ParticleTypeId type,
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, irPacket);
             playersNotified++;
         }
     });
@@ -3043,15 +3015,8 @@ void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
     u32 count)
 {
     network::ParticlePacket packet(type, pos, velocity, offset, count);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize ParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    auto irPacket = buildParticleIr(packet);
+    sendPacketToPlayer(playerId, irPacket);
 }
 
 void MinecraftServer::broadcastVibrationParticleInRange(
@@ -3073,16 +3038,10 @@ void MinecraftServer::broadcastVibrationParticleInRange(
         packet = network::ParticlePacket::createVibration(pos, blockSource.pos(), arrivalInTicks);
     }
 
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize VibrationParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+    auto irPacket = buildParticleIr(packet);
 
     // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -3094,7 +3053,7 @@ void MinecraftServer::broadcastVibrationParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, irPacket);
         }
     });
 }
@@ -3103,17 +3062,10 @@ void MinecraftServer::broadcastTrailParticleInRange(
     const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks, f32 range)
 {
     network::ParticlePacket packet = network::ParticlePacket::createTrail(pos, targetPosition, color, durationInTicks);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize TrailParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+    auto irPacket = buildParticleIr(packet);
 
     // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -3125,7 +3077,7 @@ void MinecraftServer::broadcastTrailParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, irPacket);
         }
     });
 }
@@ -3134,17 +3086,10 @@ void MinecraftServer::broadcastEntityEffectParticleInRange(
     const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color, f32 range)
 {
     network::ParticlePacket packet = network::ParticlePacket::createEntityEffect(pos, velocity, offset, count, color);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize EntityEffectParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+    auto irPacket = buildParticleIr(packet);
 
     // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -3156,7 +3101,7 @@ void MinecraftServer::broadcastEntityEffectParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, irPacket);
         }
     });
 }
@@ -3166,17 +3111,10 @@ void MinecraftServer::broadcastBlockParticleInRange(
 {
     network::ParticlePacket packet =
         network::ParticlePacket::createBlock(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1, blockStateId);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize BlockParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+    auto irPacket = buildParticleIr(packet);
 
     // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -3188,7 +3126,7 @@ void MinecraftServer::broadcastBlockParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, irPacket);
         }
     });
 }
@@ -3198,17 +3136,10 @@ void MinecraftServer::broadcastItemParticleInRange(
 {
     network::ParticlePacket packet =
         network::ParticlePacket::createItem(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1, itemStack);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize ItemParticlePacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+    auto irPacket = buildParticleIr(packet);
 
     // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -3220,7 +3151,7 @@ void MinecraftServer::broadcastItemParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, irPacket);
         }
     });
 }
@@ -3249,27 +3180,24 @@ void MinecraftServer::broadcastParticleInRange(u32 type,
 
 void MinecraftServer::broadcastEntityStatusInRange(EntityInstanceId entityId, u8 status, const Vector3& pos, f32 range)
 {
-    network::EntityStatusPacket packet;
-    packet.setEntityId(static_cast<u32>(entityId));
-    packet.setStatus(static_cast<network::EntityStatusPacket::Status>(status));
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize EntityStatusPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityStatus, result.value());
+    // 1.21.11 EntityEvent：entityId + eventId(status)。
+    mc::network::ir::play::EntityEvent pkt;
+    pkt.entityId = static_cast<i32>(entityId);
+    pkt.eventId = status;
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3277,27 +3205,24 @@ void MinecraftServer::broadcastEntityStatusInRange(EntityInstanceId entityId, u8
 void MinecraftServer::broadcastEntityAnimationInRange(
     EntityInstanceId entityId, u8 animation, const Vector3& pos, f32 range)
 {
-    network::EntityAnimationPacket packet;
-    packet.setEntityId(static_cast<u32>(entityId));
-    packet.setAnimation(static_cast<network::EntityAnimationPacket::Animation>(animation));
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize EntityAnimationPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
+    // 1.21.11 Animate：entityId + action(animation)。
+    mc::network::ir::play::Animate pkt;
+    pkt.id = static_cast<i32>(entityId);
+    pkt.action = animation;
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3305,30 +3230,25 @@ void MinecraftServer::broadcastEntityAnimationInRange(
 void MinecraftServer::broadcastHurtAnimationInRange(
     EntityInstanceId entityId, f32 hurtDir, const Vector3& pos, f32 range)
 {
-    // 复用 EntityAnimationPacket 的 TakeDamage 动画通道，附加 hurtDir
-    // （ClientboundHurtAnimationPacket(id, yaw)，受害者自身与范围内追踪者均会收到）。
-    network::EntityAnimationPacket packet;
-    packet.setEntityId(static_cast<u32>(entityId));
-    packet.setAnimation(network::EntityAnimationPacket::Animation::TakeDamage);
-    packet.setHurtDir(hurtDir);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize hurt animation packet: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
+    // 1.21.11 HurtAnimation：entityId + yaw(hurtDir)。
+    // 受害者自身与范围内追踪者均会收到。
+    mc::network::ir::play::HurtAnimation pkt;
+    pkt.id = static_cast<i32>(entityId);
+    pkt.yaw = hurtDir;
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3336,25 +3256,24 @@ void MinecraftServer::broadcastHurtAnimationInRange(
 void MinecraftServer::broadcastSetEntityLinkInRange(
     EntityInstanceId entityId, EntityInstanceId linkedEntityId, const Vector3& pos, f32 range)
 {
-    network::SetEntityLinkPacket packet(static_cast<u32>(entityId), static_cast<u32>(linkedEntityId));
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize SetEntityLinkPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::SetEntityLink, result.value());
+    // 1.21.11 SetEntityLink：sourceId + destId（leash/riding 关系）。
+    mc::network::ir::play::SetEntityLink pkt;
+    pkt.sourceId = static_cast<i32>(entityId);
+    pkt.destId = static_cast<i32>(linkedEntityId);
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3365,40 +3284,40 @@ void MinecraftServer::broadcastSetEntityLinkInRange(
 
 void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
 {
-    sound::WorldEventPacket packet(eventId, x, y, z, data);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize WorldEventPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WorldEvent, result.value());
-    broadcastPacket(fullPacket.data(), fullPacket.size());
+    // 1.21.11 LevelEvent：type + blockPosPacked + data + globalEvent。
+    mc::network::ir::play::LevelEvent pkt;
+    pkt.type = eventId;
+    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
+    pkt.data = data;
+    pkt.globalEvent = false;
+    broadcastPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    });
 }
 
 void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
 {
-    sound::WorldEventPacket packet(eventId, x, y, z, data);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize WorldEventPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WorldEvent, result.value());
+    mc::network::ir::play::LevelEvent pkt;
+    pkt.type = eventId;
+    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
+    pkt.data = data;
+    pkt.globalEvent = false;
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3406,27 +3325,27 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
 void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range)
 {
     // 参考 MC Java: ServerPlayerList.broadcast(null, x, y, z, 64.0, dimension, new ClientboundBlockEventPacket)
-    network::BlockEventPacket packet =
-        network::BlockEventPacket::create(BlockPos(x, y, z), paramA, paramB, blockStateId);
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize BlockEventPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockEvent, result.value());
+    // 1.21.11 BlockEvent：blockPosPacked + b0 + b1 + blockId(此处用 blockStateId)。
+    mc::network::ir::play::BlockEvent pkt;
+    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
+    pkt.b0 = paramA;
+    pkt.b1 = paramB;
+    pkt.blockId = static_cast<i32>(blockStateId);
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3437,23 +3356,27 @@ void MinecraftServer::broadcastBlockEntityInRange(
     // 参考 MC Java: PlayerList.broadcast(null, x, y, z, 64.0, dimension,
     //   new ClientboundBlockEntityDataPacket(pos, type, tag))
     // 方块实体数据变化后，将最新 NBT 快照发送给附近客户端
-    network::BlockEntityDataPacket packet(pos, type, nbtData);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockEntityData, ser.buffer());
+    // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + tag(NBT opaque)。
+    // TODO(Phase6): tag 当前透传旧 NBT 字节，未对齐 1.21.11 CompoundTag codec。
+    mc::network::ir::play::BlockEntityData pkt;
+    pkt.blockPosPacked = pos.asLong();
+    pkt.blockEntityType = static_cast<i32>(type);
+    pkt.tag = nbtData;
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{pkt},
+    };
 
     f32 rangeSq = range * range;
     Vector3 fpos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
-    m_playerManager->forEachPlayer([this, &fpos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, &fpos, rangeSq, &packet](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, fpos.x, fpos.y, fpos.z);
         if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+            sendPacketToPlayer(player.playerId, packet);
         }
     });
 }
@@ -3462,44 +3385,39 @@ void MinecraftServer::broadcastBlockBreakProgressInRange(
     EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range)
 {
     // 对应 MC Java: ServerLevel.destroyBlockProgress()
-    // 发送 BlockBreakAnimPacket 给范围内的玩家
+    // 1.21.11 BlockDestruction：breakerId + blockPosPacked + progress(0-9)。
     // MC Java 原版行为：排除破坏者自身（serverplayer.getId() != breakerId），
-    // 只向同维度、32格范围内的其他玩家发送 ClientboundBlockDestructionPacket。
-    // 破坏者自身的动画由客户端本地直接驱动，不需要服务端发包。
-
-    network::BlockBreakAnimPacket packet;
-    packet.setBreakerEntityId(breakerId);
-    packet.setPosition(BlockPos(x, y, z));
-    packet.setStage(static_cast<i8>(progress));
-
-    auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize BlockBreakAnimPacket: {}", result.error().message());
-        return;
-    }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockBreakAnim, result.value());
+    // 只向同维度、32格范围内的其他玩家发送。破坏者自身的动画由客户端本地直接驱动。
+    mc::network::ir::play::BlockDestruction pkt;
+    pkt.id = static_cast<i32>(breakerId);
+    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
+    pkt.progress = static_cast<u8>(progress);
 
     // 将 breakerId (EntityInstanceId) 转换为 PlayerId，用于排除破坏者自身
     PlayerId breakerPlayerId = playerEntityManager().getPlayerIdByEntityId(breakerId);
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, breakerPlayerId, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
+    m_playerManager->forEachPlayer(
+        [this, breakerPlayerId, &pos, rangeSq, &pkt](ServerPlayerData& player) {
+            if (!player.loggedIn || !player.hasConnection()) {
+                return;
+            }
 
-        // 排除破坏者自身：MC Java 原版中 serverplayer.getId() != breakerId
-        if (breakerPlayerId != 0 && player.playerId == breakerPlayerId) {
-            return;
-        }
+            // 排除破坏者自身：MC Java 原版中 serverplayer.getId() != breakerId
+            if (breakerPlayerId != 0 && player.playerId == breakerPlayerId) {
+                return;
+            }
 
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
-        }
-    });
+            f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+            if (distSq <= rangeSq) {
+                sendPacketToPlayer(player.playerId,
+                    mc::network::ir::IrPacket{
+                        mc::network::protocol::ConnectionProtocol::Play,
+                        mc::network::ir::PlayPacket{pkt},
+                    });
+            }
+        });
 }
 
 // ============================================================================
@@ -3545,14 +3463,18 @@ void MinecraftServer::sendExplosionToPlayer(PlayerId playerId,
     // 创建爆炸包，包含该玩家的击退向量
     network::ExplosionPacket packet(position, strength, affectedBlocks, playerKnockback, static_cast<u64>(playerId));
 
+    // 1.21.11 Explosion：opaque payload。透传旧 ExplosionPacket 序列化字节，客户端按同格式反解。
+    // TODO(Phase6): 对齐 1.21.11 ClientboundExplosionPacket 的 explosionData + particle + sound。
     auto result = packet.serialize();
-    if (result.failed()) {
-        spdlog::error("Failed to serialize ExplosionPacket: {}", result.error().message());
-        return;
+    mc::network::ir::play::Explosion pkt;
+    if (result.success()) {
+        pkt.payload = std::move(result.value());
     }
-
-    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Explosion, result.value());
-    sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 } // namespace mc::server

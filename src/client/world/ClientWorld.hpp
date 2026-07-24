@@ -533,7 +533,7 @@ public:
     // TODO: 渲染层集成待实现（数据同步层已完成）
     //
     // 当前 ClientWorld 已实现方块实体数据同步的完整链路：
-    //   NetworkClient::_handleBlockEntityData → onBlockEntityData → BlockEntityRegistry::create
+    //   ClientPlayVisitor::handle(BlockEntityData) → onBlockEntityData → BlockEntityRegistry::create
     //   → BlockEntity::loadFromNBT → m_blockEntities 存储
     //
     // 但渲染层尚有缺失，需后续实现：

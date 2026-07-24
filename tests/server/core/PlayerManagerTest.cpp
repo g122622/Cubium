@@ -3,10 +3,10 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * in the Software without restriction the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to the
+ * following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -23,35 +23,25 @@
 
 #include "server/core/PlayerManager.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
-using namespace mc::network;
 
 /**
  * @brief PlayerManager 单元测试
+ *
+ * 新网络层 addPlayer 第4参为 mc::server::net::ServerClientConnection*（裸指针）。
+ * 本测试只验证 PlayerManager 的玩家生命周期/查询/映射数据维护，不依赖连接真发包，
+ * 故统一传 nullptr（与 BaseTestServer::addTestPlayer 一致，Step5 删旧体系后
+ * 统一重构测试桩）。
  */
 class PlayerManagerTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        // 创建本地连接对用于测试
-        m_connectionPair = std::make_unique<LocalConnectionPair>();
-        m_connectionPair->connect();
-    }
+    void SetUp() override {}
 
-    void TearDown() override { m_connectionPair.reset(); }
-
-    ConnectionPtr createConnection()
-    {
-        return std::make_shared<LocalServerConnection>(&m_connectionPair->serverEndpoint());
-    }
-
-    std::unique_ptr<LocalConnectionPair> m_connectionPair;
+    void TearDown() override {}
 };
 
 TEST_F(PlayerManagerTest, DefaultConstruction)
@@ -70,9 +60,9 @@ TEST_F(PlayerManagerTest, ConstructionWithConfig)
 TEST_F(PlayerManagerTest, AddPlayer)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    auto* player = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     ASSERT_NE(player, nullptr);
     EXPECT_EQ(player->playerId, 1u);
     EXPECT_EQ(player->username, "Steve");
@@ -84,13 +74,14 @@ TEST_F(PlayerManagerTest, AddPlayer)
 TEST_F(PlayerManagerTest, AddPlayerDuplicate)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    auto* player1 = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player1 =
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     ASSERT_NE(player1, nullptr);
 
     // 添加重复ID应返回 nullptr
-    auto* player2 = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn);
+    auto* player2 =
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
     EXPECT_EQ(player2, nullptr);
     EXPECT_EQ(manager.playerCount(), 1u);
 }
@@ -99,17 +90,16 @@ TEST_F(PlayerManagerTest, AddPlayerWhenFull)
 {
     PlayerManager manager(2);
 
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
-    auto conn3 = createConnection();
-
-    ASSERT_NE(manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Player1")), "Player1", conn1),
+    ASSERT_NE(
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Player1")), "Player1", nullptr),
         nullptr);
-    ASSERT_NE(manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Player2")), "Player2", conn2),
+    ASSERT_NE(
+        manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Player2")), "Player2", nullptr),
         nullptr);
 
     // 已满时应返回 nullptr
-    EXPECT_EQ(manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Player3")), "Player3", conn3),
+    EXPECT_EQ(
+        manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Player3")), "Player3", nullptr),
         nullptr);
     EXPECT_TRUE(manager.isFull());
 }
@@ -117,9 +107,8 @@ TEST_F(PlayerManagerTest, AddPlayerWhenFull)
 TEST_F(PlayerManagerTest, RemovePlayer)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     EXPECT_EQ(manager.playerCount(), 1u);
 
     manager.removePlayer(1);
@@ -138,9 +127,8 @@ TEST_F(PlayerManagerTest, RemoveNonexistentPlayer)
 TEST_F(PlayerManagerTest, GetPlayer)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
     auto* player = manager.getPlayer(1);
     ASSERT_NE(player, nullptr);
@@ -156,9 +144,8 @@ TEST_F(PlayerManagerTest, GetPlayer)
 TEST_F(PlayerManagerTest, SessionMapping)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     manager.mapSessionToPlayer(100, 1);
 
     EXPECT_EQ(manager.getPlayerIdBySession(100), 1u);
@@ -171,9 +158,8 @@ TEST_F(PlayerManagerTest, SessionMapping)
 TEST_F(PlayerManagerTest, RemovePlayerBySessionId)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     manager.mapSessionToPlayer(100, 1);
     EXPECT_EQ(manager.playerCount(), 1u);
 
@@ -185,11 +171,9 @@ TEST_F(PlayerManagerTest, RemovePlayerBySessionId)
 TEST_F(PlayerManagerTest, ForEachPlayer)
 {
     PlayerManager manager;
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
     std::vector<mc::PlayerId> ids;
     manager.forEachPlayer([&ids](mc::server::ServerPlayerData& player) { ids.push_back(player.playerId); });
@@ -202,11 +186,9 @@ TEST_F(PlayerManagerTest, ForEachPlayer)
 TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall)
 {
     PlayerManager manager;
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
     size_t nestedLookupSuccess = 0;
     manager.forEachPlayer([&](mc::server::ServerPlayerData& player) {
@@ -222,13 +204,10 @@ TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall)
 TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration)
 {
     PlayerManager manager;
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
-    auto conn3 = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
-    manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", conn3);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
+    manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", nullptr);
 
     manager.forEachPlayer([&](mc::server::ServerPlayerData& player) {
         if (player.playerId == 2) {
@@ -243,11 +222,9 @@ TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration)
 TEST_F(PlayerManagerTest, GetPlayerIds)
 {
     PlayerManager manager;
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
     auto ids = manager.getPlayerIds();
     EXPECT_EQ(ids.size(), 2u);
@@ -289,30 +266,25 @@ TEST_F(PlayerManagerTest, SetMaxPlayers)
 TEST_F(PlayerManagerTest, LocalConnectionHasEmptyIpAddress)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    // 本地连接应返回空 IP 地址
-    EXPECT_EQ(conn->getAddress(), "");
-    EXPECT_EQ(conn->type(), mc::network::ConnectionType::Local);
-
-    auto* player = manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
+    auto* player =
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     ASSERT_NE(player, nullptr);
 
-    // 本地连接的玩家 IP 地址应为空
+    // 新网络层：Local 模式下 addPlayer 始终将 ipAddress 置空（PlayerManager.cpp 注释明示）。
+    // 旧 LocalServerConnection::getAddress()/type() 断言随旧连接体系删除而移除。
     EXPECT_EQ(player->ipAddress, "");
 }
 
 TEST_F(PlayerManagerTest, GetPlayerIdsByAddress)
 {
     PlayerManager manager;
-    auto conn1 = createConnection();
-    auto conn2 = createConnection();
-    auto conn3 = createConnection();
 
     auto* player1 =
-        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn1);
-    auto* player2 = manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn2);
-    auto* player3 = manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", conn3);
+        manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    auto* player2 =
+        manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
+    auto* player3 = manager.addPlayer(3, mc::util::uuidToString(mc::util::generateOfflineUuid("Eve")), "Eve", nullptr);
 
     ASSERT_NE(player1, nullptr);
     ASSERT_NE(player2, nullptr);
@@ -346,10 +318,9 @@ TEST_F(PlayerManagerTest, GetPlayerIdsByAddress)
 TEST_F(PlayerManagerTest, FindByUsername)
 {
     PlayerManager manager;
-    auto conn = createConnection();
 
-    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", conn);
-    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", conn);
+    manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
+    manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
     // 精确匹配
     auto* player = manager.findByUsername("Steve");

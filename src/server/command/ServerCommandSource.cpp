@@ -83,14 +83,11 @@ void ServerCommandSource::sendMessage(const std::string& message, const std::opt
         return;
     } else if (m_playerId != 0) {
         if (m_server != nullptr) {
-            network::ChatMessagePacket chatPacket(message, 0);
-            network::PacketSerializer payload;
-            chatPacket.serialize(payload);
-
-            if (m_server->connectionManager().sendPacketToPlayer(
-                    m_playerId, network::PacketType::ChatBroadcast, payload.buffer())) {
-                return;
-            }
+            // TODO(Phase6): 新 IR 暂无 S→C 系统/聊天消息包（SystemChat/DisguisedChat）。
+            //   旧 ChatBroadcast 字节包已删除，无实体 player 时的系统消息当前无法下发，
+            //   降级为日志输出。
+            spdlog::info("[System -> {}] {}", m_name, message);
+            return;
         }
 
         spdlog::info("[System -> {}] {}", m_name, message);

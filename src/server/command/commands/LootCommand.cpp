@@ -45,7 +45,10 @@
 #include "common/item/loot/context/LootParameterSet.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -93,12 +96,22 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
         return;
     }
 
-    PlayerInventoryPacket packet(inventory);
-    network::PacketSerializer payload;
-    packet.serialize(payload);
+    // 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏
+    mc::network::ir::play::ContainerSetContent pkt;
+    pkt.containerId = 0; // 玩家物品栏
+    pkt.stateId = 0;
+    const i32 totalSlots = inventory.getContainerSize();
+    pkt.items.reserve(static_cast<size_t>(totalSlots));
+    for (i32 slot = 0; slot < totalSlots; ++slot) {
+        pkt.items.push_back(mc::network::ir::toItemStackView(inventory.getItem(slot)));
+    }
+    pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
 
-    (void)server->connectionManager().sendPacketToPlayer(
-        playerId, network::PacketType::PlayerInventory, payload.buffer());
+    mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
+    (void)server->connectionManager().sendToPlayer(playerId, packet);
 }
 
 /**

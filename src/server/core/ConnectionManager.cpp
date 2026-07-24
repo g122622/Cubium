@@ -3,8 +3,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * in the Software without restriction, including limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -31,51 +31,28 @@ ConnectionManager::ConnectionManager(PlayerManager& playerManager)
     : m_playerManager(playerManager)
 {}
 
-bool ConnectionManager::sendToPlayer(PlayerId playerId, const u8* data, size_t size)
+bool ConnectionManager::sendToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
     }
-    return player->send(data, size);
+    // 复制一份：单玩家发送直接移动，但仍需保留原包供调用方
+    return player->send(mc::network::ir::IrPacket{packet});
 }
 
-bool ConnectionManager::sendPacketToPlayer(PlayerId playerId, network::PacketType type, const std::vector<u8>& payload)
+void ConnectionManager::broadcast(const mc::network::ir::IrPacket& packet)
 {
-    auto packet = encapsulatePacket(type, payload);
-    return sendSerializedPacket(playerId, packet);
+    m_playerManager.forEachPlayer([&](ServerPlayerData& player) { player.send(mc::network::ir::IrPacket{packet}); });
 }
 
-bool ConnectionManager::sendSerializedPacket(PlayerId playerId, const std::vector<u8>& serializedPacket)
-{
-    return sendToPlayer(playerId, serializedPacket.data(), serializedPacket.size());
-}
-
-void ConnectionManager::broadcast(const u8* data, size_t size)
-{
-    m_playerManager.forEachPlayer([&](ServerPlayerData& player) { player.send(data, size); });
-}
-
-void ConnectionManager::broadcastPacket(network::PacketType type, const std::vector<u8>& payload)
-{
-    auto packet = encapsulatePacket(type, payload);
-    broadcast(packet.data(), packet.size());
-}
-
-void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const u8* data, size_t size)
+void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const mc::network::ir::IrPacket& packet)
 {
     m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
         if (player.playerId != excludePlayerId) {
-            player.send(data, size);
+            player.send(mc::network::ir::IrPacket{packet});
         }
     });
-}
-
-void ConnectionManager::broadcastPacketExcept(
-    PlayerId excludePlayerId, network::PacketType type, const std::vector<u8>& payload)
-{
-    auto packet = encapsulatePacket(type, payload);
-    broadcastExcept(excludePlayerId, packet.data(), packet.size());
 }
 
 void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& reason)
@@ -83,9 +60,9 @@ void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& r
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
-    auto conn = player->getConnection();
+    auto* conn = player->getConnection();
     if (conn) {
-        conn->disconnect(reason);
+        conn->close();
     }
 
     if (reason.empty()) {
@@ -108,9 +85,9 @@ void ConnectionManager::disconnectAll(const std::string& reason)
         auto* player = m_playerManager.getPlayer(playerId);
         if (!player) continue;
 
-        auto conn = player->getConnection();
+        auto* conn = player->getConnection();
         if (conn) {
-            conn->disconnect(reason);
+            conn->close();
         }
 
         if (reason.empty()) {
@@ -146,24 +123,6 @@ size_t ConnectionManager::cleanupDisconnectedPlayers(std::vector<PlayerId>* remo
     }
 
     return toRemove.size();
-}
-
-std::vector<u8> ConnectionManager::encapsulatePacket(network::PacketType type, const std::vector<u8>& payload)
-{
-    network::PacketSerializer packet;
-    encapsulatePacket(type, payload, packet);
-    return packet.buffer();
-}
-
-void ConnectionManager::encapsulatePacket(
-    network::PacketType type, const std::vector<u8>& payload, network::PacketSerializer& out)
-{
-    out.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + payload.size()));
-    out.writeU16(static_cast<u16>(type));
-    out.writeU16(0); // flags
-    out.writeU16(0); // reserved
-    out.writeU16(0); // padding
-    out.writeBytes(payload);
 }
 
 } // namespace mc::server::core

@@ -75,8 +75,10 @@ public:
      * @return 玩家数据指针，如果ID已存在则返回 nullptr
      * @note 线程安全
      */
-    ServerPlayerData* addPlayer(
-        PlayerId playerId, const std::string& uuid, const std::string& username, network::ConnectionPtr connection);
+    ServerPlayerData* addPlayer(PlayerId playerId,
+        const std::string& uuid,
+        const std::string& username,
+        mc::server::net::ServerClientConnection* connection);
 
     /**
      * @brief 移除玩家

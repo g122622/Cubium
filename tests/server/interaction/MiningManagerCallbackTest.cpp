@@ -32,8 +32,6 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/network/connection/LocalConnection.hpp"
-#include "common/network/connection/LocalServerConnection.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -57,17 +55,14 @@ protected:
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
-        // 创建连接
-        m_connectionPair = std::make_unique<network::LocalConnectionPair>();
-        m_connectionPair->connect();
-
         // 创建玩家管理器
+        // 新网络层 addPlayer 第4参为 ServerClientConnection*；本测试只验证回调/解析器逻辑，
+        // 不依赖连接真发包，故传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
         m_playerManager = std::make_unique<server::core::PlayerManager>();
-        auto connection = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
         m_player = m_playerManager->addPlayer(m_playerId,
             mc::util::uuidToString(mc::util::generateOfflineUuid("CallbackTester")),
             "CallbackTester",
-            connection);
+            nullptr);
         ASSERT_NE(m_player, nullptr);
 
         // 设置玩家位置
@@ -97,13 +92,11 @@ protected:
         m_inventoryManager.reset();
         m_connectionManager.reset();
         m_playerManager.reset();
-        m_connectionPair.reset();
     }
 
 protected:
     static constexpr PlayerId m_playerId = 1;
 
-    std::unique_ptr<network::LocalConnectionPair> m_connectionPair;
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
     std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
@@ -172,12 +165,11 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsDifferentIdsForDifferen
 {
     // 验证解析器能为不同玩家返回不同的 EntityInstanceId
     // 添加第二个玩家
-    auto connection2 = std::make_shared<network::LocalServerConnection>(&m_connectionPair->serverEndpoint());
     constexpr PlayerId player2Id = 2;
     auto* player2 = m_playerManager->addPlayer(player2Id,
         mc::util::uuidToString(mc::util::generateOfflineUuid("CallbackTester2")),
         "CallbackTester2",
-        connection2);
+        nullptr);
     ASSERT_NE(player2, nullptr);
     player2->x = 10.0f;
     player2->y = 64.0f;

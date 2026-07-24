@@ -340,7 +340,9 @@ add_executable(minecraft-client
     dimension/ClientDimensionManager.cpp
     # 命令补全
     command/ClientCommandManager.cpp
-    network/NetworkClient.cpp
+    # 新网络层（1.21.11 IR）：客户端门面 + Play/Configuration visitor
+    network/ClientNetwork.cpp
+    network/ClientPlayVisitor.cpp
     # 聊天系统
     chat/ChatHistory.cpp
     # UI (平台无关)
@@ -439,6 +441,13 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/TcpServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/TcpSession.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/TcpConnection.cpp
+    # 新网络层服务端实现：IntegratedServer.cpp 引用 ServerNetwork/ServerHandshake/
+    # ServerPlayRouter/RegistryDataBuilder，MinecraftServer.cpp 定义 routeInboundPlayPacket
+    # 供 ServerPlayRouter 调用。客户端内置服需登记全部 4 个文件（与 server/CMakeLists.txt 一致）。
+    ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/ServerHandshake.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp

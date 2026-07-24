@@ -40,16 +40,17 @@ namespace mc::network::ir::play {
 // ============================================================================
 
 /**
- * @brief 物品栈（网络层暂用简化表示：itemId + count + 原始 NBT 字节）
+ * @brief 物品栈（网络层视角：itemId + count + 组件补丁原始字节）
  *
- * TODO(Phase5): 迁移到 1.21.11 数据组件模型（VarInt count + Item holder +
- *               DataComponentPatch）。当前仅承载 itemId/count，NBT 字段透传，
- *               网络 codec 在 Phase5 替换为组件 patch 编码。
+ * 1.21.11 数据组件模型：count<=0 即空；否则 itemId(VarInt) + DataComponentPatch wire。
+ * componentsPatch 承载 DataComponentPatch 的 1.21.11 wire 序列化字节（见
+ * item/component/DataComponentPatchWire.hpp）；与业务侧 ItemStack 的双向转换由
+ * network/ir/ItemStackBridge.hpp 提供。
  */
 struct ItemStackView {
-    u32 itemId = 0;   // 0=空
+    u32 itemId = 0; // 0=空
     i32 count = 0;
-    std::vector<u8> componentsPatch; // 暂存组件 patch 原始字节（Phase5 细化）
+    std::vector<u8> componentsPatch; // DataComponentPatch 的 1.21.11 wire 字节
 };
 
 /**
@@ -73,10 +74,7 @@ struct MovePlayerFlags {
         return v;
     }
 
-    static MovePlayerFlags unpack(u8 v) noexcept
-    {
-        return MovePlayerFlags{(v & 0x01) != 0, (v & 0x02) != 0};
-    }
+    static MovePlayerFlags unpack(u8 v) noexcept { return MovePlayerFlags{(v & 0x01) != 0, (v & 0x02) != 0}; }
 };
 
 /**
@@ -129,10 +127,10 @@ struct Chat {
     std::string message;
     i64 timestamp; // epoch 毫秒
     i64 salt;
-    std::optional<std::vector<u8>> signature;     // 256 字节签名，离线模式 nullopt
-    i32 lastSeenOffset;                           // LastSeenMessages.Update.offset
-    std::array<u8, 3> lastSeenAcknowledged;       // 20 位 fixedBitSet → 3 字节
-    u8 lastSeenChecksum;                          // LastSeenMessages.Update.checksum
+    std::optional<std::vector<u8>> signature; // 256 字节签名，离线模式 nullopt
+    i32 lastSeenOffset;                       // LastSeenMessages.Update.offset
+    std::array<u8, 3> lastSeenAcknowledged;   // 20 位 fixedBitSet → 3 字节
+    u8 lastSeenChecksum;                      // LastSeenMessages.Update.checksum
     BedrockMeta bedrock{};
 };
 
@@ -222,7 +220,7 @@ struct PlayerInput {
  * @brief UseItemOn（C→S，id=63，右键方块）
  */
 struct UseItemOn {
-    i32 hand;             // 0=MAIN_HAND 1=OFF_HAND
+    i32 hand; // 0=MAIN_HAND 1=OFF_HAND
     BlockHitResult blockHit;
     i32 sequence;
     BedrockMeta bedrock{};
@@ -282,7 +280,7 @@ struct SetCarriedItem {
  */
 struct HashedStack {
     bool present;
-    u32 itemId;                       // present=false 时无意义
+    u32 itemId; // present=false 时无意义
     i32 count;
     BedrockMeta bedrock{};
 };
@@ -346,11 +344,11 @@ struct ConfigurationAcknowledged {
  * TODO(Phase6): dimensionType holder 编码对齐 registry。
  */
 struct CommonPlayerSpawnInfo {
-    i32 dimensionType;      // 维度类型 id（registry holder，Phase6 细化）
-    std::string dimension;  // 维度 ResourceKey，如 "minecraft:overworld"
+    i32 dimensionType;     // 维度类型 id（registry holder，Phase6 细化）
+    std::string dimension; // 维度 ResourceKey，如 "minecraft:overworld"
     i64 seed;
-    GameMode gameType;      // 0..3
-    i8 previousGameType;    // 0..3 或 -1 表 null
+    GameMode gameType;   // 0..3
+    i8 previousGameType; // 0..3 或 -1 表 null
     bool isDebug;
     bool isFlat;
     std::optional<std::pair<std::string, i64>> lastDeathLocation; // dimension + BlockPos(long)
@@ -479,10 +477,10 @@ struct AddEntity {
     f64 movementX;
     f64 movementY;
     f64 movementZ;
-    i8 yRot;      // packed degrees
-    i8 xRot;      // packed degrees
-    i8 yHeadRot;  // packed degrees
-    i32 data;     // 实体特定 data（如抛掷物 owner id）
+    i8 yRot;     // packed degrees
+    i8 xRot;     // packed degrees
+    i8 yHeadRot; // packed degrees
+    i32 data;    // 实体特定 data（如抛掷物 owner id）
     BedrockMeta bedrock{};
 };
 

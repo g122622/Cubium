@@ -37,10 +37,12 @@ namespace mc::network::backend::java::codecs {
 namespace play_detail {
 
 /**
- * @brief 写 ItemStackView（optional 物品）
+ * @brief 写 ItemStackView（optional 物品，1.21.11 数据组件格式）
  *
- * TODO(Phase5): 完整 1.21.11 物品格式 = VarInt(count) + Item holder + DataComponentPatch。
- *               当前 count<=0 写 VarInt(0)（空），否则 VarInt(count) + VarInt(itemId)。
+ * 线格式：VarInt(count) —— count<=0 即空（停止）；否则
+ *         VarInt(itemId) + DataComponentPatch wire（view.componentsPatch 的原始字节）。
+ * componentsPatch 由 ItemStack↔ItemStackView 桥接（ItemStackBridge.hpp）预先序列化，
+ * 本 codec 只透传其字节，保持 IR 对线格式中立。
  */
 inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
 {
@@ -50,7 +52,10 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
     }
     buf.writeVarInt(v.count);
     buf.writeVarInt(static_cast<i32>(v.itemId));
-    // 组件 patch：暂不写（Phase5 落地 DataComponentPatch 后补全）
+    buf.writeVarInt(static_cast<i32>(v.componentsPatch.size()));
+    if (!v.componentsPatch.empty()) {
+        buf.writeBytes(v.componentsPatch.data(), v.componentsPatch.size());
+    }
 }
 
 [[nodiscard]] inline Result<ir::play::ItemStackView> readItemStack(B& buf)
@@ -65,6 +70,14 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
     i32 id = 0;
     MC_TRY_ASSIGN(id, buf.readVarInt());
     v.itemId = static_cast<u32>(id);
+    i32 patchLen = 0;
+    MC_TRY_ASSIGN(patchLen, buf.readVarInt());
+    if (patchLen < 0) {
+        return Error(ErrorCode::InvalidData, "ItemStack componentsPatch length is negative", "readItemStack");
+    }
+    if (patchLen > 0) {
+        MC_TRY_ASSIGN(v.componentsPatch, buf.readBytes(static_cast<usize>(patchLen)));
+    }
     return v;
 }
 

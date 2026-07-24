@@ -199,8 +199,16 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     m_stateMachine.reportLoadingProgress("Connecting to server", 0.3f);
 
-    // 初始化网络客户端
-    m_networkClient = std::make_unique<NetworkClient>();
+    // 初始化网络客户端（新网络层：ClientNetwork 驱动握手状态机 + 出站统一 send）
+    m_network = std::make_unique<net::ClientNetwork>();
+    m_playVisitor = std::make_unique<net::ClientPlayVisitor>(*this);
+    m_network->setPlayVisitor(m_playVisitor.get());
+    // onLoginReady：ClientNetwork 收 play::Login 时触发，仅作状态通知。
+    // 本地玩家实体生成由 visitor 的 Login 分支完成（friend 访问 m_player/m_world 等）。
+    m_network->onLoginReady([this](i32 playerId, const std::string& dimension, const std::array<u8, 16>& uuid) {
+        spdlog::info(
+            "[Session] Login ready: playerId={}, dimension={}, uuid-set={}", playerId, dimension, !uuid.empty());
+    });
     m_commandManager = std::make_unique<command::ClientCommandManager>();
     m_commandManager->setPlayerNameProvider([this]() { return collectPlayerCompletionCandidates(); });
     m_commandManager->setEntityNameProvider([this]() { return collectEntityCompletionCandidates(); });
@@ -253,15 +261,15 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
 
     m_stateMachine.reportLoadingProgress("Logging in", 0.4f);
 
-    // 连接到内置服务端
-    NetworkClientConfig clientConfig;
-    clientConfig.username = m_settings.username.get();
-    auto clientResult = m_networkClient->connectLocal(m_integratedServer->getClientEndpoint(), clientConfig);
+    // 连接到内置服务端（新网络层：LocalTransport 零拷贝直传 IR 包对象）
+    const std::string username = m_settings.username.get();
+    auto clientResult = m_network->connectLocal(m_integratedServer->takeClientTransport(), username);
     if (clientResult.failed()) {
         spdlog::error("[Session] Failed to connect to integrated server: {}", clientResult.error().toString());
         m_integratedServer->stop();
         m_integratedServer.reset();
-        m_networkClient.reset();
+        m_network.reset();
+        m_playVisitor.reset();
         m_commandManager.reset();
         return clientResult.error();
     }
@@ -277,7 +285,8 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         spdlog::error("[Session] Failed to initialize world: {}", worldResult.error().toString());
         m_integratedServer->stop();
         m_integratedServer.reset();
-        m_networkClient.reset();
+        m_network.reset();
+        m_playVisitor.reset();
         m_commandManager.reset();
         return worldResult.error();
     }
@@ -480,9 +489,10 @@ void ClientApplication::destroyGameSession()
     }
 
     // 7. 清理网络客户端
-    if (m_networkClient) {
-        m_networkClient->disconnect("Session destroyed");
-        m_networkClient.reset();
+    if (m_network) {
+        m_network->disconnect("Session destroyed");
+        m_network.reset();
+        m_playVisitor.reset();
     }
 
     // 8. 清理命令管理器

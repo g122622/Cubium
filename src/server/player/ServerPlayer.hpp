@@ -27,8 +27,10 @@
 #include "common/entity/player/SleepResult.hpp"
 #include "common/item/crafting/RecipeBook.hpp"
 #include "common/network/connection/IServerConnection.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
 #include "common/network/packet/SetCameraPacket.hpp"
+#include "server/network/ServerNetwork.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <memory>
 #include <utility>
@@ -175,22 +177,22 @@ public:
 
     /**
      * @brief 绑定网络连接。
-     * @param connection 玩家连接（可为 nullptr）。
+     * @param connection 玩家连接（非拥有，可为 nullptr）。
      */
-    void setConnection(network::ConnectionPtr connection) { m_connection = std::move(connection); }
+    void setConnection(mc::server::net::ServerClientConnection* connection) { m_connection = connection; }
 
     /**
      * @brief 获取网络连接。
-     * @return 网络连接共享指针的常量引用。
-     * @note 返回值可能为 nullptr，调用方需结合 hasConnection() 使用。
+     * @return 网络连接指针（非拥有，可能为 nullptr）。
+     * @note 调用方需结合 hasConnection() 使用。
      */
-    [[nodiscard]] const network::ConnectionPtr& connection() const { return m_connection; }
+    [[nodiscard]] mc::server::net::ServerClientConnection* connection() const { return m_connection; }
 
     /**
      * @brief 检查网络连接是否可用。
      * @return true 表示连接存在且仍处于连接状态。
      */
-    [[nodiscard]] bool hasConnection() const { return m_connection && m_connection->isConnected(); }
+    [[nodiscard]] bool hasConnection() const { return m_connection != nullptr && m_connection->isConnected(); }
 
     // ========== 世界相关 ==========
 
@@ -550,12 +552,12 @@ private:
     void _sendWakeUpPacket();
 
     /**
-     * @brief 发送完整封包到当前玩家连接。
-     * @param packet 已包含协议头的完整封包字节流。
+     * @brief 发送 IR 包到当前玩家连接。
+     * @param packet IR 包（按值移动）。
      * @return true 表示已成功投递到底层连接。
      * @note 当玩家连接不存在或已断开时返回 false，不抛出异常。
      */
-    [[nodiscard]] bool _sendFullPacket(const std::vector<u8>& packet) const;
+    [[nodiscard]] bool _sendIrPacket(mc::network::ir::IrPacket packet) const;
 
     /**
      * @brief 发送 SetCameraPacket 给客户端
@@ -564,7 +566,7 @@ private:
     void _sendSetCameraPacket(u32 cameraEntityId);
 
 private:
-    network::ConnectionPtr m_connection;
+    mc::server::net::ServerClientConnection* m_connection = nullptr;
     server::ServerWorld* m_world = nullptr;
     server::IServer* m_server = nullptr;
     std::shared_ptr<server::PlayerAdvancements> m_advancements;

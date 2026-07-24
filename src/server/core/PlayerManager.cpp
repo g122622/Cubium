@@ -31,8 +31,10 @@ PlayerManager::PlayerManager(i32 maxPlayers)
     : m_maxPlayers(maxPlayers)
 {}
 
-ServerPlayerData* PlayerManager::addPlayer(
-    PlayerId playerId, const std::string& uuid, const std::string& username, network::ConnectionPtr connection)
+ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
+    const std::string& uuid,
+    const std::string& username,
+    mc::server::net::ServerClientConnection* connection)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -59,10 +61,8 @@ ServerPlayerData* PlayerManager::addPlayer(
     player.loggedIn = true;
     player.chunkTracker = std::make_shared<network::PlayerChunkTracker>(playerId);
 
-    // 从连接获取 IP 地址
-    if (connection) {
-        player.ipAddress = connection->getAddress();
-    }
+    // IP 地址：Local 模式为空（本地客户端）；Wire 模式暂留空（TODO(Phase6): 从 TcpTransport 取对端地址）
+    player.ipAddress = "";
 
     // 更新区块同步管理器
     (void)m_chunkSyncManager.getTracker(playerId);

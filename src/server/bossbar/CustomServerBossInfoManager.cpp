@@ -22,7 +22,11 @@
  */
 
 #include "CustomServerBossInfoManager.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/packet/BossInfoPacket.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -32,6 +36,36 @@
 
 namespace mc {
 namespace server {
+
+namespace {
+
+/// 打包 BossEvent flags：bit0=DARKEN bit1=MUSIC bit2=FOG
+u8 packBossFlags(bool darkenSky, bool playEndBossMusic, bool createFog)
+{
+    u8 flags = 0;
+    if (darkenSky) flags |= 0x01;
+    if (playEndBossMusic) flags |= 0x02;
+    if (createFog) flags |= 0x04;
+    return flags;
+}
+
+/// 把 ITextComponent 序列化为 1.21.11 组件 opaque 字节（JSON 文本）。
+/// TODO(Phase6): 未对齐 1.21.11 ComponentType 前缀树，真互通需补完整 Component codec。
+std::vector<u8> bossNameToBytes(const text::ITextComponent& name)
+{
+    std::string json = name.toJson().dump();
+    return std::vector<u8>(json.begin(), json.end());
+}
+
+mc::network::ir::IrPacket makePlayPacket(mc::network::ir::play::BossEvent evt)
+{
+    return mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(evt)},
+    };
+}
+
+} // namespace
 
 CustomServerBossInfoManager::CustomServerBossInfoManager(IServer& server)
     : m_server(server)
@@ -136,27 +170,16 @@ void CustomServerBossInfoManager::onPlayerLogout(::mc::ServerPlayer& player)
 
 void CustomServerBossInfoManager::sendAddPacket(CustomServerBossInfo& bossInfo, ::mc::ServerPlayer& player)
 {
-    // 创建 Boss 栏添加包
-    auto nameCopy = bossInfo.name().deepCopy();
-    mc::network::BossInfoPacket packet = mc::network::BossInfoPacket::add(bossInfo.uuid(),
-        std::move(nameCopy),
-        bossInfo.percent(),
-        static_cast<u8>(bossInfo.color()),
-        static_cast<u8>(bossInfo.overlay()),
-        bossInfo.darkenSky(),
-        bossInfo.playEndBossMusic(),
-        bossInfo.createFog());
+    mc::network::ir::play::BossEvent evt;
+    evt.uuid = bossInfo.uuid();
+    evt.operation = 0; // ADD
+    evt.name = bossNameToBytes(bossInfo.name());
+    evt.progress = bossInfo.percent();
+    evt.color = static_cast<i32>(bossInfo.color());
+    evt.overlay = static_cast<i32>(bossInfo.overlay());
+    evt.flags = packBossFlags(bossInfo.darkenSky(), bossInfo.playEndBossMusic(), bossInfo.createFog());
 
-    // 序列化并发送
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error(
-            "CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Add): {}", result.error().message());
-        return;
-    }
-
-    m_server.connectionManager().sendPacketToPlayer(
-        player.playerId(), mc::network::PacketType::BossInfo, result.value());
+    m_server.connectionManager().sendToPlayer(player.playerId(), makePlayPacket(std::move(evt)));
 
     // 标记数据需要保存
     markDirty();
@@ -164,19 +187,11 @@ void CustomServerBossInfoManager::sendAddPacket(CustomServerBossInfo& bossInfo, 
 
 void CustomServerBossInfoManager::sendRemovePacket(CustomServerBossInfo& bossInfo, ::mc::ServerPlayer& player)
 {
-    // 创建 Boss 栏移除包
-    mc::network::BossInfoPacket packet = mc::network::BossInfoPacket::remove(bossInfo.uuid());
+    mc::network::ir::play::BossEvent evt;
+    evt.uuid = bossInfo.uuid();
+    evt.operation = 1; // REMOVE
 
-    // 序列化并发送
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error(
-            "CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Remove): {}", result.error().message());
-        return;
-    }
-
-    m_server.connectionManager().sendPacketToPlayer(
-        player.playerId(), mc::network::PacketType::BossInfo, result.value());
+    m_server.connectionManager().sendToPlayer(player.playerId(), makePlayPacket(std::move(evt)));
 
     // 标记数据需要保存
     markDirty();
@@ -200,41 +215,41 @@ void CustomServerBossInfoManager::broadcastUpdate(CustomServerBossInfo& bossInfo
     }
 
     // 根据更新类型创建不同的更新包
-    mc::network::BossInfoPacket packet = [&]() {
-        switch (updateType) {
-            case BossInfoUpdateType::UpdatePercent:
-                return mc::network::BossInfoPacket::updatePercent(bossInfo.uuid(), bossInfo.percent());
+    mc::network::ir::play::BossEvent evt;
+    evt.uuid = bossInfo.uuid();
+    switch (updateType) {
+        case BossInfoUpdateType::UpdatePercent:
+            evt.operation = 2; // UPDATE_PROGRESS
+            evt.progress = bossInfo.percent();
+            break;
 
-            case BossInfoUpdateType::UpdateName: {
-                auto nameCopy = bossInfo.name().deepCopy();
-                return mc::network::BossInfoPacket::updateName(bossInfo.uuid(), std::move(nameCopy));
-            }
+        case BossInfoUpdateType::UpdateName:
+            evt.operation = 3; // UPDATE_NAME
+            evt.name = bossNameToBytes(bossInfo.name());
+            break;
 
-            case BossInfoUpdateType::UpdateStyle:
-                return mc::network::BossInfoPacket::updateStyle(
-                    bossInfo.uuid(), static_cast<u8>(bossInfo.color()), static_cast<u8>(bossInfo.overlay()));
+        case BossInfoUpdateType::UpdateStyle:
+            evt.operation = 4; // UPDATE_STYLE
+            evt.color = static_cast<i32>(bossInfo.color());
+            evt.overlay = static_cast<i32>(bossInfo.overlay());
+            break;
 
-            case BossInfoUpdateType::UpdateProperties:
-                return mc::network::BossInfoPacket::updateProperties(
-                    bossInfo.uuid(), bossInfo.darkenSky(), bossInfo.playEndBossMusic(), bossInfo.createFog());
+        case BossInfoUpdateType::UpdateProperties:
+            evt.operation = 5; // UPDATE_PROPERTIES
+            evt.flags = packBossFlags(bossInfo.darkenSky(), bossInfo.playEndBossMusic(), bossInfo.createFog());
+            break;
 
-            default:
-                // 其他类型默认使用百分比更新
-                return mc::network::BossInfoPacket::updatePercent(bossInfo.uuid(), bossInfo.percent());
-        }
-    }();
-
-    // 序列化
-    auto result = packet.serialize();
-    if (!result.success()) {
-        spdlog::error(
-            "CustomServerBossInfoManager: Failed to serialize BossInfoPacket (Update): {}", result.error().message());
-        return;
+        default:
+            // 其他类型默认使用百分比更新
+            evt.operation = 2; // UPDATE_PROGRESS
+            evt.progress = bossInfo.percent();
+            break;
     }
 
     // 广播给所有可见玩家
+    auto packet = makePlayPacket(std::move(evt));
     for (PlayerId playerId : playerIds) {
-        m_server.connectionManager().sendPacketToPlayer(playerId, mc::network::PacketType::BossInfo, result.value());
+        m_server.connectionManager().sendToPlayer(playerId, packet);
     }
 
     // 标记数据需要保存
