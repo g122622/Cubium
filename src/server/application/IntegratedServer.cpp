@@ -618,9 +618,6 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
 
     spdlog::info("Player '{}' attempting to join (handshake complete)", username);
 
-    // Uuid 数组 → Uuid 类型（Uuid = std::array<u8,16>，直接构造）
-    const Uuid offlineUuid = offlineUuidArr;
-
     // 白名单检查（白名单启用时拒绝不在名单中的玩家）
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
@@ -629,86 +626,23 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
         return;
     }
 
-    // 分配玩家ID（握手完成后玩家才真正存在）
-    m_clientPlayerId = m_playerManager->nextPlayerId();
+    // 共享玩家创建逻辑（分配 playerId、addPlayer、createPlayerEntity、权限、存档、play::Login、
+    // 初始游戏状态）。本地客户端特有：路由器 setPlayerId + 创造背包初始化 + 物品栏同步。
+    const bool isFlat = (m_params.worldType == WorldType::Flat);
+    auto creation = createPlayerForConnection(
+        *m_clientConnection, username, offlineUuidArr, m_params.hardcore, m_params.seed, isFlat);
+    if (!creation.success) {
+        return;
+    }
+    m_clientPlayerId = creation.playerId;
+    m_clientEntityId = creation.entityId;
     if (m_clientPlayRouter != nullptr) {
         m_clientPlayRouter->setPlayerId(m_clientPlayerId);
     }
 
-    std::string uuidStr = util::uuidToString(offlineUuid);
-
-    // 添加玩家会话信息（连接为本地客户端 ServerClientConnection，非拥有指针）
-    auto* playerData = m_playerManager->addPlayer(m_clientPlayerId, uuidStr, username, m_clientConnection);
-    if (!playerData) {
-        spdlog::error("Failed to add player '{}' to PlayerManager", username);
-        return;
-    }
-
-    // 设置玩家初始状态
-    setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
-
-    // 创建玩家实体并加入世界（关键：玩家实体纳入 EntityManager 和 EntityTracker）
-    // 玩家始终在主世界生成
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-            "IntegratedServer::_onClientPlayerReady::CreatePlayerEntity",
-            "username",
-            username,
-            "playerId",
-            m_clientPlayerId);
-
-        auto* overworld = m_dimensionManager->getOverworld();
-        MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
-        Player* playerEntity = m_playerEntityManager.createPlayerEntity(m_clientPlayerId,
-            username,
-            *overworld->world(),
-            this,
-            m_clientConnection,
-            static_cast<f32>(playerData->x),
-            static_cast<f32>(playerData->y),
-            static_cast<f32>(playerData->z));
-
-        if (!playerEntity) {
-            spdlog::error("Failed to create player entity for {}", username);
-            m_playerManager->removePlayer(m_clientPlayerId);
-            return;
-        }
-
-        // 登录阶段必须先建立玩家维度映射，否则 TeleportConfirm 回来后无法解析玩家所在世界，
-        // 首次区块票据和区块包维度也会失去上下文。
-        m_dimensionManager->playerJoinDimension(m_clientPlayerId, overworld->id());
-
-        // 记录实体ID
-        m_clientEntityId = playerEntity->id();
-    }
-
-    // 从 OP 列表设置玩家权限等级（集成服务器中单机玩家默认拥有完整权限）
-    i32 playerPermissionLevel = resolveOpLevel(playerData->uuid);
-    {
-        auto* world = getPlayerWorld(m_clientPlayerId);
-        if (world != nullptr) {
-            if (Player* player = playerEntityManager().getPlayerEntity(m_clientPlayerId, *world)) {
-                player->setPermissionLevel(playerPermissionLevel);
-
-                // 从存档加载玩家数据并恢复到实体
-                auto* storage = sharedStorage();
-                if (storage) {
-                    auto loadResult = storage->loadPlayer(playerData->uuid);
-                    if (loadResult.success() && loadResult.value().has_value()) {
-                        const auto& saveData = loadResult.value().value();
-                        world::storage::PlayerDataManager::applyToPlayer(*player, saveData);
-                        spdlog::info("Player '{}' loaded saved data (level {}, gameMode {})",
-                            playerData->username,
-                            saveData.experienceLevel,
-                            static_cast<i32>(saveData.gameMode));
-                    }
-                }
-            }
-        }
-    }
-
-    // 初始化物品栏
-    {
+    // 初始化物品栏（本地客户端特有：创造模式给镐+全方块；生存留空）
+    auto* playerData = m_playerManager->getPlayer(m_clientPlayerId);
+    if (playerData != nullptr) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "IntegratedServer::_onClientPlayerReady::InitInventory");
 
         m_clientInventory.clear();
@@ -727,23 +661,8 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
                 ++slot;
             });
         }
+        _sendPlayerInventory();
     }
-
-    // 发送 play::Login（post-Configuration S→C，携带本地玩家 id + 维度信息）
-    // 旧 _sendLoginResponse 已被 play::Login 取代（见 _sendLoginResponse 实现）。
-    _sendLoginResponse(
-        true, m_clientPlayerId, m_clientEntityId, offlineUuid, username, "Welcome to singleplayer world!");
-
-    // 同步玩家权限等级到客户端（同时发送 EntityEvent 和命令树）
-    sendPermissionLevelChange(m_clientPlayerId, playerPermissionLevel);
-
-    // 发送初始游戏状态
-    sendInitialGameState(
-        m_clientPlayerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
-    _sendPlayerInventory();
-
-    spdlog::info(
-        "Player '{}' (PlayerId={}, EntityInstanceId={}) joined the game", username, m_clientPlayerId, m_clientEntityId);
 }
 
 void IntegratedServer::_installClientInboundListener()
@@ -939,66 +858,6 @@ void IntegratedServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const 
 // ============================================================================
 // 数据包发送
 // ============================================================================
-
-void IntegratedServer::_sendLoginResponse(bool success,
-    PlayerId playerId,
-    EntityInstanceId entityId,
-    const Uuid& uuid,
-    const std::string& username,
-    const std::string& message)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network,
-        "IntegratedServer::_sendLoginResponse",
-        "success",
-        success,
-        "playerId",
-        playerId,
-        "entityId",
-        entityId);
-    (void)entityId;
-    (void)message;
-
-    // 失败路径：握手已完成（onPlayerReady 仅在 Configuration 成功后触发），不存在失败响应。
-    //     保留 success 参数仅为兼容旧调用点；失败时不发包。
-    if (!success) {
-        spdlog::warn("IntegratedServer::_sendLoginResponse: success=false ignored (handshake already complete)");
-        return;
-    }
-
-    // 发送 play::Login（post-Configuration S→C，id=48）
-    auto* overworldForLogin = m_dimensionManager->getOverworld();
-    bool isDebugWorld = overworldForLogin && overworldForLogin->world() && overworldForLogin->world()->isDebugWorld();
-
-    mc::network::ir::play::Login login;
-    login.playerId = static_cast<i32>(playerId);
-    login.hardcore = m_params.hardcore;
-    // levels：维度 ResourceKey 列表（主世界/下界/末地）
-    login.levels = {"minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"};
-    login.maxPlayers = m_settings.maxPlayers.get();
-    login.chunkRadius = m_settings.viewDistance.get();
-    login.simulationDistance = m_settings.simulationDistance.get();
-    login.reducedDebugInfo = false;
-    login.showDeathScreen = true;
-    login.doLimitedCrafting = false;
-
-    auto& spawn = login.spawnInfo;
-    spawn.dimensionType = 0; // overworld registry id（TODO(Phase6): 真实 holder）
-    spawn.dimension = "minecraft:overworld";
-    spawn.seed = m_params.seed;
-    spawn.gameType = static_cast<GameMode>(m_settings.defaultGameMode.get());
-    spawn.previousGameType = -1;
-    spawn.isDebug = isDebugWorld;
-    spawn.isFlat = (m_params.worldType == WorldType::Flat);
-    spawn.lastDeathLocation = std::nullopt;
-    spawn.portalCooldown = 0;
-    spawn.seaLevel = mc::world::SEA_LEVEL;
-    login.enforcesSecureChat = false;
-
-    _sendToClientIr(mc::network::ir::IrPacket{
-        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(login)}});
-    (void)uuid;
-    (void)username;
-}
 
 void IntegratedServer::_sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
 {

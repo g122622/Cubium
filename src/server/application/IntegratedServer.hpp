@@ -230,12 +230,7 @@ private:
     void _mainLoop();
 
     // 发送数据包（新网络层：构 ir::IrPacket 经 m_clientConnection->send 出站）
-    void _sendLoginResponse(bool success,
-        PlayerId playerId,
-        EntityInstanceId entityId,
-        const Uuid& uuid,
-        const std::string& username,
-        const std::string& message);
+    // 注：play::Login 已下沉到 MinecraftServer::sendLoginResponseForConnection（共享 Local+Wire）
     void _sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void _sendPlayerInventory();
     void _sendContainerContent(const AbstractContainerMenu& menu);

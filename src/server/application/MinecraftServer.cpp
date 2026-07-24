@@ -112,6 +112,7 @@
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "common/world/storage/save/AutoSave.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
@@ -125,6 +126,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
+#include "server/network/ServerNetwork.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -133,6 +135,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -3037,6 +3040,138 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     sendInitialDifficultyToPlayer(playerId);
 
     updateEntityTrackingForPlayer(playerId, x, y, z);
+}
+
+MinecraftServer::PlayerCreationResult MinecraftServer::createPlayerForConnection(
+    mc::server::net::ServerClientConnection& connection,
+    const std::string& username,
+    const std::array<u8, 16>& offlineUuid,
+    bool hardcore,
+    i64 seed,
+    bool isFlat)
+{
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Network, "MinecraftServer::createPlayerForConnection", "username", username);
+
+    PlayerCreationResult result{};
+    result.playerId = 0;
+    result.entityId = 0;
+    result.success = false;
+
+    spdlog::info("Player '{}' attempting to join (handshake complete)", username);
+
+    // 分配玩家ID（握手完成后玩家才真正存在）
+    const PlayerId playerId = m_playerManager->nextPlayerId();
+    result.playerId = playerId;
+
+    const std::string uuidStr = util::uuidToString(offlineUuid);
+
+    // 添加玩家会话信息（连接为该玩家的出站通道，非拥有指针）
+    auto* playerData = m_playerManager->addPlayer(playerId, uuidStr, username, &connection);
+    if (playerData == nullptr) {
+        spdlog::error("Failed to add player '{}' to PlayerManager", username);
+        return result;
+    }
+
+    // 设置玩家初始状态
+    setupInitialPlayerState(playerData, static_cast<GameMode>(m_settings.defaultGameMode.get()));
+
+    // 创建玩家实体并加入世界（玩家始终在主世界生成）
+    auto* overworld = m_dimensionManager->getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+    Player* playerEntity = playerEntityManager().createPlayerEntity(playerId,
+        username,
+        *overworld->world(),
+        this,
+        &connection,
+        static_cast<f32>(playerData->x),
+        static_cast<f32>(playerData->y),
+        static_cast<f32>(playerData->z));
+
+    if (playerEntity == nullptr) {
+        spdlog::error("Failed to create player entity for {}", username);
+        m_playerManager->removePlayer(playerId);
+        return result;
+    }
+
+    // 登录阶段必须先建立玩家维度映射，否则 TeleportConfirm 回来后无法解析玩家所在世界。
+    m_dimensionManager->playerJoinDimension(playerId, overworld->id());
+    result.entityId = playerEntity->id();
+
+    // 从 OP 列表设置玩家权限等级 + 从存档加载玩家数据恢复到实体
+    const i32 playerPermissionLevel = resolveOpLevel(playerData->uuid);
+    if (auto* world = getPlayerWorld(playerId)) {
+        if (Player* player = playerEntityManager().getPlayerEntity(playerId, *world)) {
+            player->setPermissionLevel(playerPermissionLevel);
+
+            auto* storage = sharedStorage();
+            if (storage != nullptr) {
+                auto loadResult = storage->loadPlayer(playerData->uuid);
+                if (loadResult.success() && loadResult.value().has_value()) {
+                    const auto& saveData = loadResult.value().value();
+                    world::storage::PlayerDataManager::applyToPlayer(*player, saveData);
+                    spdlog::info("Player '{}' loaded saved data (level {}, gameMode {})",
+                        playerData->username,
+                        saveData.experienceLevel,
+                        static_cast<i32>(saveData.gameMode));
+                }
+            }
+        }
+    }
+
+    // 发送 play::Login（post-Configuration S→C，经 sendPacketToPlayer 按 playerId 路由）
+    sendLoginResponseForConnection(playerId, hardcore, seed, isFlat);
+
+    // 同步玩家权限等级到客户端（同时发送 EntityEvent 和命令树）
+    sendPermissionLevelChange(playerId, playerPermissionLevel);
+
+    // 发送初始游戏状态
+    sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
+
+    result.success = true;
+    spdlog::info("Player '{}' (PlayerId={}, EntityInstanceId={}) joined the game", username, playerId, result.entityId);
+    return result;
+}
+
+void MinecraftServer::sendLoginResponseForConnection(PlayerId playerId, bool hardcore, i64 seed, bool isFlat)
+{
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Network, "MinecraftServer::sendLoginResponseForConnection", "playerId", playerId);
+
+    // 发送 play::Login（post-Configuration S→C，id=48），经 sendPacketToPlayer 按 playerId 路由
+    // （本地→m_clientConnection，远程→player->send）。world 参数由调用方提供。
+    auto* overworldForLogin = m_dimensionManager->getOverworld();
+    const bool isDebugWorld =
+        overworldForLogin && overworldForLogin->world() && overworldForLogin->world()->isDebugWorld();
+
+    mc::network::ir::play::Login login;
+    login.playerId = static_cast<i32>(playerId);
+    login.hardcore = hardcore;
+    // levels：维度 ResourceKey 列表（主世界/下界/末地）
+    login.levels = {"minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"};
+    login.maxPlayers = m_settings.maxPlayers.get();
+    login.chunkRadius = m_settings.viewDistance.get();
+    login.simulationDistance = m_settings.simulationDistance.get();
+    login.reducedDebugInfo = false;
+    login.showDeathScreen = true;
+    login.doLimitedCrafting = false;
+
+    auto& spawn = login.spawnInfo;
+    spawn.dimensionType = 0; // overworld registry id（TODO(Phase6): 真实 holder）
+    spawn.dimension = "minecraft:overworld";
+    spawn.seed = seed;
+    spawn.gameType = static_cast<GameMode>(m_settings.defaultGameMode.get());
+    spawn.previousGameType = -1;
+    spawn.isDebug = isDebugWorld;
+    spawn.isFlat = isFlat;
+    spawn.lastDeathLocation = std::nullopt;
+    spawn.portalCooldown = 0;
+    spawn.seaLevel = mc::world::SEA_LEVEL;
+    login.enforcesSecureChat = false;
+
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(login)}});
 }
 
 void MinecraftServer::sendCommandTreePacket(PlayerId playerId)

@@ -88,6 +88,10 @@ class ServerWorld;
 class ServerChunkManager;
 class ServerScriptManager;
 
+namespace net {
+class ServerClientConnection;
+} // namespace net
+
 /**
  * @brief 服务端调试统计信息
  *
@@ -747,6 +751,44 @@ protected:
      * 子类在登录处理中调用此方法。
      */
     void sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch);
+
+    /**
+     * @brief 握手完成（onPlayerReady）后创建玩家并初始化游戏状态（共享逻辑）
+     *
+     * 集成服本地客户端与独立服/LAN 远程 TCP 客户端共用。封装：分配 playerId、
+     * addPlayer、setupInitialPlayerState、createPlayerEntity、playerJoinDimension、
+     * OP 权限、存档加载、play::Login 发送、sendPermissionLevelChange、sendInitialGameState。
+     *
+     * 不含：路由器 setPlayerId（子类/session 责任）、物品栏初始化（Local 用 m_clientInventory、
+     * 远程用 InventoryManager）——调用方在返回后自行处理。
+     *
+     * @param connection 玩家所属连接（出站包经此发送）
+     * @param username 玩家名
+     * @param offlineUuid 离线模式 UUID（16 字节，转字符串后入 PlayerManager）
+     * @param hardcore/isFlat/seed play::Login 所需世界参数（由子类按自身 settings/params 提供）
+     * @return PlayerCreationResult{playerId, entityId, success}
+     */
+    struct PlayerCreationResult {
+        PlayerId playerId;
+        EntityInstanceId entityId;
+        bool success;
+    };
+    PlayerCreationResult createPlayerForConnection(mc::server::net::ServerClientConnection& connection,
+        const std::string& username,
+        const std::array<u8, 16>& offlineUuid,
+        bool hardcore,
+        i64 seed,
+        bool isFlat);
+
+    /**
+     * @brief 发送 play::Login（post-Configuration S→C）给指定玩家
+     *
+     * 由 createPlayerForConnection 内部调用，亦可供子类单独调用。经 sendPacketToPlayer
+     * 按 playerId 路由（本地→m_clientConnection，远程→player->send），故无需 connection 参数。
+     * world 参数（hardcore/seed/isFlat）由调用方提供，避免基类耦合
+     * IntegratedServerParams 或 settings 子集。
+     */
+    void sendLoginResponseForConnection(PlayerId playerId, bool hardcore, i64 seed, bool isFlat);
 
     // ========== 声音广播方法 ==========
 
