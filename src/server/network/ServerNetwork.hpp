@@ -36,6 +36,7 @@
 #include <asio.hpp>
 
 #include <atomic>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -88,7 +89,33 @@ public:
     [[nodiscard]] Result<void> send(mc::network::ir::IrPacket packet);
 
     /// 注册入站监听器（收到任意阶段包都回调，由调用方分流握手/Play）
+    ///
+    /// Local 模式：监听器由 pumpLocal() 在主线程直接触发，跑游戏逻辑即可。
+    /// Wire 模式：transport 接收线程触发该监听器；若直接跑游戏逻辑会跨线程进入
+    /// 非线程安全的 MinecraftServer 世界状态。Wire 连接应改为注册一个仅入队的
+    /// 监听器（enqueueInbound），并经 setInboundHandler 设置游戏逻辑，由
+    /// ServerNetwork::tick() 在主线程 drainInbound 派发。详见下三方法。
     void onPacket(ClientConn::PacketListener listener);
+
+    /// 设置 Wire 模式入站游戏逻辑处理器（握手/Play 分流），由 onClientConnect 回调装配。
+    /// 仅 drainInbound() 在主线程调用；Wire 连接的 onPacket 监听器只 enqueueInbound。
+    void setInboundHandler(std::function<void(const mc::network::ir::IrPacket&)> handler)
+    {
+        std::lock_guard<std::mutex> lock(m_inboundQueueMutex);
+        m_inboundHandler = std::move(handler);
+    }
+
+    /// Wire 模式入站：仅由 transport 接收线程调用，把解码后的 IR 包入队，不跑游戏逻辑。
+    void enqueueInbound(mc::network::ir::IrPacket packet)
+    {
+        std::lock_guard<std::mutex> lock(m_inboundQueueMutex);
+        m_inboundQueue.push_back(std::move(packet));
+    }
+
+    /// Wire 模式入站出队：仅由 ServerNetwork::tick() 在主线程调用。
+    /// 锁内快照整个队列后清空，锁外逐个调 m_inboundHandler，避免 handler 重入死锁
+    /// （镜像 tick() 现有 Local 快照-后-pump 模式）。Local 连接不调用本方法。
+    void drainInbound();
 
     /// Local 模式 tick 驱动：pump 对端投递的包（Wire 模式由接收线程异步驱动，无需调用）
     void pumpLocal();
@@ -120,6 +147,12 @@ private:
     ClientConn m_conn;
     u32 m_sessionId;
     HandshakeState m_state = HandshakeState::Handshaking;
+
+    // Wire 模式入站队列：transport 接收线程 enqueueInbound，主线程 drainInbound 派发。
+    // Local 模式不使用（pumpLocal 主线程直驱）。消除跨线程游戏逻辑隐患。
+    std::deque<mc::network::ir::IrPacket> m_inboundQueue;
+    std::mutex m_inboundQueueMutex;
+    std::function<void(const mc::network::ir::IrPacket&)> m_inboundHandler;
 };
 
 /**
@@ -130,7 +163,9 @@ private:
  * 独立服（StandaloneServer）用 startAccept 监听 TCP，accept 出 socket 经
  * TcpTransport::attachConnectedSocket 注入，包成 Wire 模式 ServerClientConnection。
  *
- * tick() 在服务端主循环调用：pump 所有 Local 模式连接（Wire 由各自接收线程驱动）。
+ * tick() 在服务端主循环调用：pump 所有 Local 模式连接（Wire 由各自接收线程驱动），
+ * 并对 Wire 模式连接主线程 drain 入站队列（接收线程仅 enqueueInbound，游戏逻辑
+ * 在此派发，避免跨线程进入非线程安全的 MinecraftServer 状态）。
  * 重要：handler 内禁止递归调用 tick/pumpLocal——会造成 inbox 重入死循环。
  */
 class ServerNetwork {
@@ -141,11 +176,16 @@ public:
     ServerNetwork(const ServerNetwork&) = delete;
     ServerNetwork& operator=(const ServerNetwork&) = delete;
 
-    /// 启动 TCP 监听（独立服）；集成服不调用
+    /// 启动 TCP 监听（独立服/LAN 发布）；集成服本地客户端不调用本方法。
     [[nodiscard]] Result<void> startAccept(u16 port, u32 maxConnections);
 
     /// 新连接进入握手时回调（含 Local 与 TCP 两种来源）
     void onClientConnect(std::function<void(ServerClientConnection&)> cb) { m_onConnect = std::move(cb); }
+
+    /// 连接断开时回调（由主线程在 tick() 内派发，非接收线程）。
+    /// TcpTransport 接收线程检测到断开后只把 sessionId 入延迟队列，
+    /// tick() 在主线程 swap 后回调本函数——所有 session map / 玩家清理在主线程进行。
+    void onClientDisconnect(std::function<void(ServerClientConnection&)> cb) { m_onDisconnect = std::move(cb); }
 
     /**
      * @brief Local 模式：创建一对 LocalTransport，服务端侧包成 ServerClientConnection 并登记
@@ -172,6 +212,10 @@ private:
     /// TCP accept 异步循环：accept 出 socket → 包成 Wire 模式 ServerClientConnection → 回调 onConnect
     void _beginAccept();
 
+    /// Wire 连接 transport 断开时回调（接收线程触发）：仅把 sessionId 入延迟队列，
+    /// 不跨线程碰连接/session map。tick() 在主线程 swap 后回调 m_onDisconnect。
+    void _notifyDisconnect(u32 sessionId);
+
     std::shared_ptr<ProtocolTables> m_tables;
     std::vector<std::unique_ptr<ServerClientConnection>> m_connections;
     std::mutex m_connectionsMutex;
@@ -185,6 +229,10 @@ private:
     u32 m_maxConnections = 0;
 
     std::function<void(ServerClientConnection&)> m_onConnect;
+    std::function<void(ServerClientConnection&)> m_onDisconnect;
+    // 接收线程 push、主线程 tick() drain 的延迟断开 sessionId 队列。
+    std::vector<u32> m_disconnectedSessions;
+    std::mutex m_disconnectedSessionsMutex;
     std::atomic<u32> m_nextSessionId{1}; // sessionId 0 保留给集成服本地客户端
 };
 

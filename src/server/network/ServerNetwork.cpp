@@ -70,6 +70,27 @@ void ServerClientConnection::pumpLocal()
     m_conn.pumpLocal();
 }
 
+void ServerClientConnection::drainInbound()
+{
+    // 锁内一次性快照整队 + 取 handler 引用，锁外派发：handler 可能递归触发入站
+    // （如回包）或增删连接，锁外执行避免重入死锁。镜像 ServerNetwork::tick() 的
+    // Local 快照-后-pump 模式。handler 仅由 onClientConnect 装配一次后不再改，
+    // 拷贝一份本地副本后即可锁外安全调用。
+    std::deque<mc::network::ir::IrPacket> local;
+    decltype(m_inboundHandler) handler;
+    {
+        std::lock_guard<std::mutex> lock(m_inboundQueueMutex);
+        local.swap(m_inboundQueue);
+        handler = m_inboundHandler;
+    }
+    if (!handler || local.empty()) {
+        return;
+    }
+    for (auto& pkt : local) {
+        handler(pkt);
+    }
+}
+
 void ServerClientConnection::close()
 {
     m_conn.close();
@@ -98,6 +119,14 @@ ServerNetwork::~ServerNetwork()
     }
     if (m_acceptThread && m_acceptThread->joinable()) {
         m_acceptThread->join();
+    }
+    // 显式先清空所有连接：每个 ServerClientConnection 析构会 close 其 TcpTransport 并
+    // join 接收线程，而接收线程在关闭时可能触发 onDisconnect→_notifyDisconnect（锁
+    // m_disconnectedSessionsMutex）。此处所有 mutex 仍存活，安全。若交由成员按声明逆序
+    // 销毁，m_connections 会在 m_disconnectedSessionsMutex 之后析构，触发已析构 mutex。
+    {
+        std::lock_guard<std::mutex> lock(m_connectionsMutex);
+        m_connections.clear();
     }
 }
 
@@ -134,6 +163,9 @@ void ServerNetwork::_beginAccept()
         const u32 sessionId = m_nextSessionId.fetch_add(1);
         auto transport = std::make_unique<mc::network::transport::TcpTransport>();
         transport->attachConnectedSocket(std::move(socket));
+        // 接收线程检测到对端断开时仅把 sessionId 入延迟队列，主线程 tick() 再回调清理。
+        // 在 transport move 进 Connection 前安装（move 后无法再触及 transport）。
+        transport->onDisconnect([this, sessionId] { _notifyDisconnect(sessionId); });
 
         auto conn = std::make_unique<ServerClientConnection>(std::move(transport), m_tables, sessionId);
         ServerClientConnection* raw = conn.get();
@@ -145,6 +177,13 @@ void ServerNetwork::_beginAccept()
             m_onConnect(*raw);
         }
     }
+}
+
+void ServerNetwork::_notifyDisconnect(u32 sessionId)
+{
+    // 接收线程调用：仅入队 sessionId，不碰连接/session map（跨线程不安全）。
+    std::lock_guard<std::mutex> lock(m_disconnectedSessionsMutex);
+    m_disconnectedSessions.push_back(sessionId);
 }
 
 ServerClientConnection* ServerNetwork::createLocalClientSide(
@@ -195,20 +234,63 @@ ServerClientConnection* ServerNetwork::find(u32 sessionId)
 
 void ServerNetwork::tick()
 {
-    // 仅 pump Local 模式连接（Wire 模式由各 TcpTransport 接收线程异步驱动 onBytes）。
-    // 取快照后在锁外 pump，避免 handler 回调内增删连接时死锁。
+    // 取快照后在锁外处理，避免 handler 回调内增删连接时死锁。
     std::vector<ServerClientConnection*> locals;
+    std::vector<ServerClientConnection*> wires;
     {
         std::lock_guard<std::mutex> lock(m_connectionsMutex);
         locals.reserve(m_connections.size());
+        wires.reserve(m_connections.size());
         for (auto& c : m_connections) {
-            if (c->isLocalMode() && c->isConnected()) {
+            if (!c->isConnected()) {
+                continue;
+            }
+            if (c->isLocalMode()) {
                 locals.push_back(c.get());
+            } else {
+                wires.push_back(c.get()); // Wire 模式：接收线程已 enqueueInbound，此处主线程出队派发
             }
         }
     }
+    // Local：pump 对端投递的包（主线程直接触发监听器）。
     for (auto* c : locals) {
         c->pumpLocal();
+    }
+    // Wire：主线程 drain 入站队列（消除接收线程跨线程跑游戏逻辑的隐患）。
+    for (auto* c : wires) {
+        c->drainInbound();
+    }
+
+    // 处理延迟断开：接收线程已把断开的 sessionId 入队，此处主线程回调 m_onDisconnect
+    // 做玩家/session 清理，再从 m_connections 移除连接。快照-后-处理避免持锁回调死锁。
+    std::vector<u32> disconnected;
+    {
+        std::lock_guard<std::mutex> lock(m_disconnectedSessionsMutex);
+        disconnected.swap(m_disconnectedSessions);
+    }
+    if (!disconnected.empty() && m_onDisconnect) {
+        std::vector<ServerClientConnection*> toNotify;
+        {
+            std::lock_guard<std::mutex> lock(m_connectionsMutex);
+            for (auto& c : m_connections) {
+                if (std::find(disconnected.begin(), disconnected.end(), c->sessionId()) != disconnected.end()) {
+                    toNotify.push_back(c.get());
+                }
+            }
+        }
+        for (auto* c : toNotify) {
+            m_onDisconnect(*c);
+        }
+    }
+    if (!disconnected.empty()) {
+        std::lock_guard<std::mutex> lock(m_connectionsMutex);
+        m_connections.erase(std::remove_if(m_connections.begin(),
+                                m_connections.end(),
+                                [&disconnected](const std::unique_ptr<ServerClientConnection>& c) {
+                                    return std::find(disconnected.begin(), disconnected.end(), c->sessionId()) !=
+                                        disconnected.end();
+                                }),
+            m_connections.end());
     }
 }
 
