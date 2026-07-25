@@ -33,6 +33,8 @@
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/registry/RegistryAccess.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "server/network/ServerHandshake.hpp"
+#include "server/network/ServerNetwork.hpp"
 
 #include <gtest/gtest.h>
 
@@ -160,5 +162,102 @@ template <typename Codec, typename V>
     }
     return ::testing::AssertionSuccess();
 }
+
+/**
+ * @brief Local 模式服务端夹具：一对 LocalTransport 互连服务端 ServerClientConnection
+ *        与客户端侧 ILocalTransport，无 socket 无线程，纯进程内驱动。
+ *
+ * 用于 ServerHandshakeStateMachine / ServerNetwork Local 路径的单元测试。
+ * - serverConn()：服务端侧连接（ServerNetwork 拥有，返回裸指针），其 onPacket 监听器
+ *   由测试自行装配（典型：handshake.handleInbound 分流）。
+ * - clientTransport()：客户端侧 ILocalTransport，测试用它 send 包到服务端，再调
+ *   serverConn()->pumpLocal() 驱动到达。
+ * - pumpServer()：便捷封装，等价于 serverConn()->pumpLocal()。
+ *
+ * 复用 NetworkTestBase 的注册表/表初始化（VanillaBlocks::initialize 等）。
+ */
+class LocalServerFixture : public NetworkTestBase {
+protected:
+    using PlayerReadySignature = void(const std::string& username, const std::array<u8, 16>& offlineUuid);
+
+    void SetUp() override
+    {
+        NetworkTestBase::SetUp();
+        m_serverNetwork = std::make_unique<mc::server::net::ServerNetwork>();
+        std::unique_ptr<mc::network::transport::ILocalTransport> clientSide;
+        m_serverConn = m_serverNetwork->createLocalClientSide(&clientSide);
+        m_clientTransport = std::move(clientSide);
+    }
+
+    void TearDown() override
+    {
+        // 先关客户端侧 transport 再销毁 ServerNetwork，避免对端 pump 到已析构连接。
+        m_clientTransport.reset();
+        m_serverNetwork.reset();
+    }
+
+    /// 在服务端连接上装配离线握手状态机 + onPlayerReady 捕获回调 + onPacket 分流监听器。
+    /// 返回握手状态机引用（测试可断言 playReady() 等状态）。
+    mc::server::net::ServerHandshakeStateMachine& installOfflineHandshake(i32 compressionThreshold = -1)
+    {
+        m_handshake = std::make_unique<mc::server::net::ServerHandshakeStateMachine>(
+            *m_serverConn, /*isOfflineMode=*/true, compressionThreshold);
+        m_handshake->onPlayerReady([this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
+            ++m_playerReadyCount;
+            m_readyUsername = username;
+            m_readyUuid = offlineUuid;
+        });
+        m_serverConn->onPacket([this](const mc::network::ir::IrPacket& packet) {
+            if (m_handshake != nullptr) {
+                auto r = m_handshake->handleInbound(packet);
+                if (!r.success()) {
+                    // 记录而非 ADD_FAILURE：握手失败是否预期由各测试自行断言
+                    // （如 UnsupportedIntentionRejected 故意触发错误）。
+                    ++m_inboundErrorCount;
+                    m_lastInboundError = r.error().toString();
+                    return;
+                }
+                if (r.value()) {
+                    return; // 握手/Configuration 包已消费
+                }
+            }
+            // Play 包：本夹具不接路由器，仅计数（握手测试不驱动 Play 逻辑）。
+            ++m_playPacketCount;
+        });
+        return *m_handshake;
+    }
+
+    /// 客户端侧发一个包到服务端入站队列（不触发回调，须 pumpServer 驱动）。
+    void clientSend(mc::network::ir::IrPacket packet)
+    {
+        ASSERT_NE(m_clientTransport, nullptr);
+        auto r = m_clientTransport->send(std::move(packet));
+        ASSERT_TRUE(r.success()) << "client transport send failed: " << r.error().toString();
+    }
+
+    /// 驱动服务端连接 pump 一次（主线程派发对端投递的包）。
+    void pumpServer() { m_serverConn->pumpLocal(); }
+
+    [[nodiscard]] mc::server::net::ServerClientConnection* serverConn() const noexcept { return m_serverConn; }
+    [[nodiscard]] int playerReadyCount() const noexcept { return m_playerReadyCount; }
+    [[nodiscard]] int playPacketCount() const noexcept { return m_playPacketCount; }
+    [[nodiscard]] int inboundErrorCount() const noexcept { return m_inboundErrorCount; }
+    [[nodiscard]] const std::string& lastInboundError() const noexcept { return m_lastInboundError; }
+    [[nodiscard]] const std::string& readyUsername() const noexcept { return m_readyUsername; }
+    [[nodiscard]] const std::array<u8, 16>& readyUuid() const noexcept { return m_readyUuid; }
+
+private:
+    std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
+    mc::server::net::ServerClientConnection* m_serverConn = nullptr;
+    std::unique_ptr<mc::network::transport::ILocalTransport> m_clientTransport;
+    std::unique_ptr<mc::server::net::ServerHandshakeStateMachine> m_handshake;
+
+    int m_playerReadyCount = 0;
+    int m_playPacketCount = 0;
+    int m_inboundErrorCount = 0;
+    std::string m_lastInboundError;
+    std::string m_readyUsername;
+    std::array<u8, 16> m_readyUuid{};
+};
 
 } // namespace mc::network::test
