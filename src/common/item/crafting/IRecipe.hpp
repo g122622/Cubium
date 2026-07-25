@@ -266,21 +266,6 @@ public:
     virtual Result<std::unique_ptr<IRecipe<C>>> fromJson(const ResourceLocation& id, const nlohmann::json& json) = 0;
 
     /**
-     * @brief 从网络数据包解析配方
-     * @param buffer 数据包缓冲区
-     * @return 解析的配方，或错误
-     */
-    virtual Result<std::unique_ptr<IRecipe<C>>> fromNetwork(
-        const ResourceLocation& id, class network::PacketDeserializer& buffer) = 0;
-
-    /**
-     * @brief 将配方序列化为网络数据包
-     * @param recipe 配方
-     * @param buffer 数据包缓冲区
-     */
-    virtual void toNetwork(const IRecipe<C>& recipe, class network::PacketSerializer& buffer) = 0;
-
-    /**
      * @brief 获取序列化器ID
      * @return 序列化器的资源位置
      */
