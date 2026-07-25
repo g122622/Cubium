@@ -28,7 +28,6 @@
 
 #include "Enchantment.hpp"
 #include "common/core/Result.hpp"
-#include "common/network/codec/PacketSerializer.hpp"
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -156,18 +155,6 @@ public:
      * @return 如果与现有附魔兼容返回true
      */
     [[nodiscard]] bool canAdd(std::string_view enchantmentId) const;
-
-    // ========== 序列化 ==========
-
-    /**
-     * @brief 序列化到网络包
-     */
-    void serialize(network::PacketSerializer& ser) const;
-
-    /**
-     * @brief 从网络包反序列化
-     */
-    [[nodiscard]] static Result<EnchantmentContainer> deserialize(network::PacketDeserializer& deser);
 
     /**
      * @brief 序列化到 JSON

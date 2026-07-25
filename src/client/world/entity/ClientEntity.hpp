@@ -27,7 +27,6 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/codec/PacketSerializer.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -872,8 +871,6 @@ public:
      */
     void setItemStack(const ItemStack& stack);
     void clearItemStack();
-    [[nodiscard]] const std::optional<ItemStack>& metadataItemStack() const { return m_metadataItemStack; }
-    [[nodiscard]] bool hasMetadataItemStack() const { return m_metadataItemStack.has_value(); }
     [[nodiscard]] u32 itemRenderStateVersion() const { return m_itemRenderStateVersion; }
     [[nodiscard]] std::optional<i32> metadataPickupDelay() const { return m_metadataPickupDelay; }
     [[nodiscard]] std::optional<i32> metadataAge() const { return m_metadataAge; }
@@ -1571,7 +1568,6 @@ private:
 
     // ItemEntity 物品数据
     std::unique_ptr<ItemStack> m_itemStack;
-    std::optional<ItemStack> m_metadataItemStack;
     std::optional<i32> m_metadataPickupDelay;
     std::optional<i32> m_metadataAge;
     u32 m_itemRenderStateVersion = 0;
@@ -1687,9 +1683,6 @@ private:
     entity::EntityDataManager m_dataManager;
 
     void _updateItemRenderStateVersion();
-    void _syncItemEntityMetadataFromRawBytes();
-    bool _tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset);
-    bool _tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const;
 
     // 类型安全地按参数 ID 读取元数据值。
     // 客户端 m_dataManager 的槽位索引来自服务端数据包字节索引，与服务端 C++ DataParameter::id()

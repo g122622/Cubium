@@ -40,7 +40,6 @@
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
-#include "common/network/codec/PacketSerializer.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -52,29 +51,6 @@
 using namespace mc::trace;
 
 namespace mc::client {
-
-namespace {
-constexpr u8 METADATA_END_MARKER = 0xFF;
-constexpr u8 METADATA_TYPE_VAR_INT = 1;
-constexpr u8 METADATA_TYPE_SLOT = 6;
-
-i32 readVarIntRaw(const u8* data, size_t size, size_t& offset)
-{
-    i32 result = 0;
-    i32 shift = 0;
-
-    while (offset < size) {
-        const u8 byte = data[offset++];
-        result |= static_cast<i32>(byte & 0x7F) << shift;
-        if ((byte & 0x80) == 0) {
-            return result;
-        }
-        shift += 7;
-    }
-
-    return result;
-}
-} // namespace
 
 ClientEntity::ClientEntity(EntityInstanceId id, const std::string& typeId)
     : m_id(id)
@@ -243,6 +219,11 @@ void ClientEntity::setVelocity(f32 x, f32 y, f32 z)
 
 void ClientEntity::setMetadata(const std::vector<u8>& metadata)
 {
+    // TODO(Phase6): ItemEntity 物品本体（ItemStack）未上线——服务端 AddEntity 与 SetEntityData 均不
+    // 携带 ItemStack（EntityMetadataSerializer 的 DataValue 无 ItemStack 变体，ItemEntity 仅注册
+    // DATA_ITEM_COUNT_PARAM）。旧的 1.16.5 SLOT 元数据解析链已删；count 仍经 m_dataManager 同步
+    // （见 syncMetadataFromDataManager 的 item 分支）。物品本体渲染需待注册 ItemStack DataParameter
+    // + serializerId 7 的 1.21.11 codec 后在 syncMetadataFromDataManager 重建。
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Client.Entity, "ClientEntity::setMetadata", "entityId", m_id, "size", metadata.size());
 
@@ -265,7 +246,6 @@ void ClientEntity::syncMetadataFromDataManager()
             }
         }
 
-        _syncItemEntityMetadataFromRawBytes();
         return;
     }
 
@@ -732,179 +712,6 @@ bool ClientEntity::isAngry() const
 void ClientEntity::_updateItemRenderStateVersion()
 {
     ++m_itemRenderStateVersion;
-}
-
-void ClientEntity::_syncItemEntityMetadataFromRawBytes()
-{
-    if (m_metadata.empty()) {
-        return;
-    }
-
-    size_t offset = 0;
-    bool itemStackChanged = false;
-
-    while (offset < m_metadata.size()) {
-        const u8 index = m_metadata[offset++];
-        if (index == METADATA_END_MARKER) {
-            break;
-        }
-
-        if (offset >= m_metadata.size()) {
-            break;
-        }
-
-        const u8 typeId = m_metadata[offset++];
-
-        if (index == ItemEntity::DATA_ITEM_COUNT_PARAM.id() && typeId == METADATA_TYPE_VAR_INT) {
-            const i32 count = readVarIntRaw(m_metadata.data(), m_metadata.size(), offset);
-            if (offset <= m_metadata.size() && m_itemStack != nullptr && m_itemStack->getCount() != count) {
-                ItemStack updated = *m_itemStack;
-                updated.setCount(count);
-                m_itemStack = std::make_unique<ItemStack>(updated);
-                itemStackChanged = true;
-            }
-            continue;
-        }
-
-        if (index == 3 && typeId == METADATA_TYPE_SLOT) {
-            ItemStack stack;
-            if (_tryReadMetadataSlot(m_metadata.data(), m_metadata.size(), offset, stack)) {
-                if (stack.isEmpty()) {
-                    if (m_metadataItemStack.has_value()) {
-                        m_metadataItemStack.reset();
-                        itemStackChanged = true;
-                    }
-                } else if (!m_metadataItemStack.has_value() || m_metadataItemStack.value() != stack) {
-                    m_metadataItemStack = stack;
-                    itemStackChanged = true;
-                }
-            }
-            continue;
-        }
-
-        if (!_tryReadMetadataEntry(typeId, m_metadata.data(), m_metadata.size(), offset)) {
-            break;
-        }
-    }
-
-    if (m_metadataItemStack.has_value()) {
-        if (m_itemStack == nullptr || *m_itemStack != m_metadataItemStack.value()) {
-            m_itemStack = std::make_unique<ItemStack>(m_metadataItemStack.value());
-            itemStackChanged = true;
-        }
-    }
-
-    if (itemStackChanged) {
-        _updateItemRenderStateVersion();
-    }
-}
-
-bool ClientEntity::_tryReadMetadataEntry(u8 typeId, const u8* data, size_t size, size_t& offset)
-{
-    switch (typeId) {
-        case 0: // Byte
-        case 7: // Boolean
-            if (offset >= size) {
-                return false;
-            }
-            ++offset;
-            return true;
-        case METADATA_TYPE_VAR_INT:
-        case 17: // OptVarInt
-        case 13: // OptBlockID
-            (void)readVarIntRaw(data, size, offset);
-            return offset <= size;
-        case 2: // Float
-            if (offset + sizeof(f32) > size) {
-                return false;
-            }
-            offset += sizeof(f32);
-            return true;
-        case 3: // String
-        case 4: // TextComponent
-        case 5: // OptChat
-        {
-            const i32 length = readVarIntRaw(data, size, offset);
-            if (length < 0 || offset + static_cast<size_t>(length) > size) {
-                return false;
-            }
-            offset += static_cast<size_t>(length);
-            return true;
-        }
-        case METADATA_TYPE_SLOT: {
-            ItemStack ignored;
-            return _tryReadMetadataSlot(data, size, offset, ignored);
-        }
-        case 8: // Rotation
-            if (offset + sizeof(f32) * 3 > size) {
-                return false;
-            }
-            offset += sizeof(f32) * 3;
-            return true;
-        case 9: // Position
-            if (offset + sizeof(i64) > size) {
-                return false;
-            }
-            offset += sizeof(i64);
-            return true;
-        case 10: // OptPosition
-            if (offset >= size) {
-                return false;
-            }
-            if (data[offset++] != 0) {
-                if (offset + sizeof(i64) > size) {
-                    return false;
-                }
-                offset += sizeof(i64);
-            }
-            return true;
-        case 11: // Direction
-        case 18: // Pose
-            (void)readVarIntRaw(data, size, offset);
-            return offset <= size;
-        case 12: // OptUUID
-            if (offset >= size) {
-                return false;
-            }
-            if (data[offset++] != 0) {
-                if (offset + 16 > size) {
-                    return false;
-                }
-                offset += 16;
-            }
-            return true;
-        case 14: // NBT
-            if (offset >= size) {
-                return false;
-            }
-            if (data[offset] == 0) {
-                ++offset;
-                return true;
-            }
-            return false;
-        case 15: // Particle
-        case 16: // VillagerData
-            return false;
-        default:
-            return false;
-    }
-}
-
-bool ClientEntity::_tryReadMetadataSlot(const u8* data, size_t size, size_t& offset, ItemStack& outStack) const
-{
-    if (offset >= size) {
-        return false;
-    }
-
-    network::PacketDeserializer deser(data + offset, size - offset);
-    auto stackResult = ItemStack::deserialize(deser);
-    if (stackResult.failed()) {
-        return false;
-    }
-
-    outStack = stackResult.value();
-    offset = size - deser.remaining();
-    return true;
 }
 
 void ClientEntity::refreshEyeHeight()

@@ -116,44 +116,6 @@ bool EnchantmentContainer::canAdd(std::string_view enchantmentId) const
     return true;
 }
 
-void EnchantmentContainer::serialize(network::PacketSerializer& ser) const
-{
-    // 格式: VarInt count, 然后每个附魔: std::string id, VarInt level
-    ser.writeVarInt(static_cast<i32>(m_enchantments.size()));
-    for (const auto& instance : m_enchantments) {
-        ser.writeString(instance.enchantmentId);
-        ser.writeVarInt(instance.level);
-    }
-}
-
-Result<EnchantmentContainer> EnchantmentContainer::deserialize(network::PacketDeserializer& deser)
-{
-    EnchantmentContainer container;
-
-    auto countResult = deser.readVarInt();
-    if (countResult.failed()) {
-        return countResult.error();
-    }
-    i32 count = countResult.value();
-
-    container.m_enchantments.reserve(static_cast<size_t>(count));
-    for (i32 i = 0; i < count; ++i) {
-        auto idResult = deser.readString();
-        if (idResult.failed()) {
-            return idResult.error();
-        }
-
-        auto levelResult = deser.readVarInt();
-        if (levelResult.failed()) {
-            return levelResult.error();
-        }
-
-        container.m_enchantments.emplace_back(idResult.value(), levelResult.value());
-    }
-
-    return container;
-}
-
 nlohmann::json EnchantmentContainer::toJson() const
 {
     nlohmann::json json = nlohmann::json::array();

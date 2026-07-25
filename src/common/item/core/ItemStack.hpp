@@ -28,7 +28,6 @@
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
-#include "common/network/codec/PacketSerializer.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -731,18 +730,6 @@ public:
      * @return 如果物品有容器物品返回true
      */
     [[nodiscard]] bool hasContainerItem() const;
-
-    // ========== 序列化 ==========
-
-    /**
-     * @brief 序列化到网络包
-     */
-    void serialize(network::PacketSerializer& ser) const;
-
-    /**
-     * @brief 从网络包反序列化
-     */
-    [[nodiscard]] static Result<ItemStack> deserialize(network::PacketDeserializer& deser);
 
     /**
      * @brief 序列化到 JSON

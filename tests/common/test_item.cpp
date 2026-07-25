@@ -637,67 +637,6 @@ TEST_F(ItemStackTest, Equality)
     EXPECT_EQ(empty1, empty2);
 }
 
-TEST_F(ItemStackTest, SerializationEmpty)
-{
-    ItemStack empty;
-
-    network::PacketSerializer ser;
-    empty.serialize(ser);
-
-    const std::vector<u8>& data = ser.buffer();
-    EXPECT_GT(data.size(), 0);
-
-    // 反序列化
-    network::PacketDeserializer deser(data);
-    auto result = ItemStack::deserialize(deser);
-    EXPECT_TRUE(result.success());
-    EXPECT_TRUE(result.value().isEmpty());
-}
-
-TEST_F(ItemStackTest, SerializationNormal)
-{
-    ASSERT_NE(m_diamond, nullptr);
-
-    ItemStack original(*m_diamond, 32);
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    const std::vector<u8>& data = ser.buffer();
-    EXPECT_GT(data.size(), 0);
-
-    // 反序列化
-    network::PacketDeserializer deser(data);
-    auto result = ItemStack::deserialize(deser);
-    EXPECT_TRUE(result.success());
-
-    ItemStack& deserialized = result.value();
-    EXPECT_EQ(deserialized.getItem(), m_diamond);
-    EXPECT_EQ(deserialized.getCount(), 32);
-    EXPECT_EQ(deserialized, original);
-}
-
-TEST_F(ItemStackTest, SerializationDamaged)
-{
-    ASSERT_NE(m_diamondSword, nullptr);
-
-    ItemStack original(*m_diamondSword, 1);
-    original.setDamage(500);
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    const std::vector<u8>& data = ser.buffer();
-
-    network::PacketDeserializer deser(data);
-    auto result = ItemStack::deserialize(deser);
-    EXPECT_TRUE(result.success());
-
-    ItemStack& deserialized = result.value();
-    EXPECT_EQ(deserialized.getDamage(), 500);
-    EXPECT_EQ(deserialized, original);
-}
-
 // ============================================================================
 // ItemRegistry 测试
 // ============================================================================
