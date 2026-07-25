@@ -1683,7 +1683,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/codec/Packet.cpp
         # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
         # 它们引用 ServerNetwork/ServerHandshake/ServerPlayRouter/RegistryDataBuilder 的符号，
         # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）

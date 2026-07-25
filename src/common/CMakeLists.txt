@@ -43,7 +43,6 @@ add_library(mc_common STATIC
     network/codec/EntityMetadataSerializer.cpp
     network/codec/PacketSerializer.cpp
     network/codec/PacketDeserializer.cpp
-    network/codec/Packet.cpp
     network/ir/ItemStackBridge.cpp
     network/crypto/Crypt.cpp
     network/crypto/AesCfb8.cpp
