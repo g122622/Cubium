@@ -941,6 +941,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                                                                           : nullptr);
                         screen->setScreenSize(m_app.m_guiScaleState.width, m_app.m_guiScaleState.height);
                     }
+                    // 注入地图渲染器（制图台预览结果槽的地图内容）
+                    if (m_app.m_mapRenderer) {
+                        screen->setMapRenderer(m_app.m_mapRenderer.get());
+                    }
                     ScreenManager::instance().openScreen(std::move(screen));
                     return Result<void>::ok();
                 }
@@ -1816,10 +1820,15 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
 
                 return Result<void>::ok();
             }
-            // ---- 地图数据（opaque，TODO Phase6）----
+            // ---- 地图数据（结构化，对齐 1.21.11 ClientboundMapItemDataPacket）----
             else if constexpr (std::is_same_v<T, irplay::MapItemData>) {
-                // TODO(Phase6): 解析 MapItemData 还原 MapData。
-                (void)pkt;
+                const auto& p = pkt;
+                // 还原 MapData 到客户端缓存，再刷新 MapRenderer 纹理。
+                if (m_app.m_mapDataCache != nullptr && m_app.m_mapRenderer != nullptr) {
+                    if (m_app.m_mapDataCache->apply(p)) {
+                        m_app.m_mapRenderer->updateMapTexture(p.mapId, *m_app.m_mapDataCache->getMapData(p.mapId));
+                    }
+                }
                 return Result<void>::ok();
             }
             // ---- 睡眠（走 SetEntityData metadata，无独立包）----

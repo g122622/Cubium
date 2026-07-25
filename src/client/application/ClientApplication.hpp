@@ -30,6 +30,7 @@
 #include "client/network/ClientNetwork.hpp"
 #include "client/network/ClientPlayVisitor.hpp"
 #include "client/renderer/Camera.hpp"
+#include "client/renderer/map/MapRenderer.hpp"
 #include "client/renderer/trident/core/TridentEngine.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
@@ -41,6 +42,7 @@
 #include "client/ui/TridentCanvas.hpp"
 #include "client/ui/kagero/KageroEngine.hpp"
 #include "client/window/Window.hpp"
+#include "client/world/ClientMapDataCache.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "client/world/player/LocalPlayerIdentity.hpp"
@@ -336,6 +338,13 @@ private:
     void completeBreakingBlock(bool instantBreak);
     void openInventoryScreen();
     void openCreativeScreen();
+    /**
+     * @brief 打开地图查看屏（纯客户端本地开屏）
+     *
+     * 玩家右键手持已填充地图时调用。1.21.11 原版 MapScreen 是客户端本地开，
+     * 不走服务端 OpenScreen 下推（地图屏无容器菜单）。
+     */
+    void openMapScreen(i32 mapId);
     void closeInventoryScreenIfModeMismatch();
     [[nodiscard]] bool isCreativeModeActive() const;
     void sendBlockInteraction(network::BlockInteractionAction action, const BlockPos& pos, Direction face);
@@ -463,6 +472,11 @@ private:
     std::unique_ptr<renderer::trident::gui::GuiSpriteAtlas> m_iconsAtlas;           // 心形、饥饿、盔甲、经验条等
     std::unique_ptr<renderer::trident::gui::GuiSpriteAtlas> m_widgetsAtlas;         // 快捷栏、按钮等
     std::unique_ptr<renderer::trident::gui::GuiTextureManager> m_guiTextureManager; // GUI容器纹理管理器
+
+    // 地图渲染：MapRenderer 把 MapData 转 RGBA 纹理并逐像素绘制；ClientMapDataCache
+    // 存储服务端下发的 MapData（客户端 ClientWorld 无 MapDataManager，只能由网络包还原）。
+    std::unique_ptr<MapRenderer> m_mapRenderer;
+    std::unique_ptr<ClientMapDataCache> m_mapDataCache;
 
     // 相机
     Camera m_camera;

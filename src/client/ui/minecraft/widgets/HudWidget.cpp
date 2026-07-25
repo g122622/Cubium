@@ -22,15 +22,19 @@
  */
 
 #include "HudWidget.hpp"
+#include "client/renderer/map/MapRenderer.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "client/world/ClientMapDataCache.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/food/FoodStats.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/map/FilledMapItem.hpp"
+#include "common/world/map/MapData.hpp"
 
 namespace mc::client::ui::minecraft::widgets {
 
@@ -104,6 +108,43 @@ void HudWidget::paint(kagero::widget::PaintContext& ctx)
 
     // 渲染饥饿值
     _renderHunger(ctx);
+
+    // 渲染手持地图内容（屏幕层，玩家手持已填充地图时）
+    _renderHeldMap();
+}
+
+void HudWidget::_renderHeldMap()
+{
+    // 手持地图内容由 GuiRenderer 在屏幕层绘制（双手举起姿态由 FirstPersonRenderer 负责）。
+    if (m_mapRenderer == nullptr || m_mapDataCache == nullptr || m_player == nullptr) {
+        return;
+    }
+
+    // 优先主手，其次副手（Java 仅主手持握时双手举起，副手地图不展开）
+    const ItemStack mainHand = m_player->getHeldItem(Hand::MainHand);
+    if (!item::items::FilledMapItem::isFilledMap(mainHand)) {
+        return;
+    }
+
+    const i32 mapId = item::items::FilledMapItem::getMapId(mainHand);
+    if (mapId < 0) {
+        return;
+    }
+
+    // 缓存中无该 mapId 的数据则跳过（服务端尚未下发或地图物品无数据）
+    const mc::world::map::MapData* mapData = m_mapDataCache->getMapData(mapId);
+    if (mapData == nullptr) {
+        return;
+    }
+
+    // 地图居中偏上绘制，尺寸取屏幕短边的 45%（对齐 Java 手持地图屏幕占比）
+    const f32 screenWidth = static_cast<f32>(width());
+    const f32 screenHeight = static_cast<f32>(height());
+    const f32 mapSize = std::min(screenWidth, screenHeight) * 0.45f;
+    const f64 mapX = static_cast<f64>((screenWidth - mapSize) / 2.0f);
+    const f64 mapY = static_cast<f64>((screenHeight - mapSize) / 2.0f - screenHeight * 0.08f);
+
+    m_mapRenderer->renderMap(mapId, mapX, mapY, static_cast<f64>(mapSize), true, mapData);
 }
 
 void HudWidget::_renderHotbar(kagero::widget::PaintContext& ctx, renderer::trident::gui::GuiRenderer& gui)

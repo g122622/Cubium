@@ -26,6 +26,7 @@
 #include "client/application/features/ClientApplicationHelpers.hpp"
 #include "client/ui/minecraft/screens/CreativeScreen.hpp"
 #include "client/ui/minecraft/screens/InventoryScreen.hpp"
+#include "client/ui/minecraft/screens/MapScreen.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
@@ -223,6 +224,22 @@ void ClientApplication::openCreativeScreen()
     }
 
     ScreenManager::instance().openScreen(std::move(creativeScreen));
+}
+
+void ClientApplication::openMapScreen(i32 mapId)
+{
+    // 纯客户端本地开屏：地图屏无容器菜单，不需服务端 OpenScreen 下推。
+    auto screen = std::make_unique<ui::minecraft::MapScreen>(mapId);
+    if (m_renderer && m_renderer->isGuiRendererInitialized()) {
+        screen->setScreenSize(m_guiScaleState.width, m_guiScaleState.height);
+    }
+    if (m_mapRenderer) {
+        screen->setMapRenderer(m_mapRenderer.get());
+    }
+    if (m_mapDataCache) {
+        screen->setMapDataCache(m_mapDataCache.get());
+    }
+    ScreenManager::instance().openScreen(std::move(screen));
 }
 
 void ClientApplication::closeInventoryScreenIfModeMismatch()

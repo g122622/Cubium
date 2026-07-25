@@ -327,6 +327,7 @@ add_executable(minecraft-client
     sound/handler/WeatherSoundHandler.cpp
     # 世界
     world/ClientWorld.cpp
+    world/ClientMapDataCache.cpp
     # 地图渲染
     renderer/map/MapRenderer.cpp
     world/player/LocalPlayerIdentity.cpp
@@ -413,6 +414,7 @@ add_executable(minecraft-client
     ui/minecraft/screens/ChestScreen.cpp
     ui/minecraft/screens/FurnaceScreen.cpp
     ui/minecraft/screens/CartographyScreen.cpp
+    ui/minecraft/screens/MapScreen.cpp
     ui/minecraft/screens/ContainerScreen.cpp
     ui/minecraft/screens/PauseScreen.cpp
     ui/minecraft/screens/ConfirmScreen.cpp

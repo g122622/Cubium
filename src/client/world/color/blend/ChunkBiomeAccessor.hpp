@@ -59,8 +59,8 @@ public:
         const std::array<const ChunkData*, 4>& neighbors,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        i32 minBuildHeight = world::MIN_BUILD_HEIGHT,
-        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT);
+        i32 minBuildHeight = mc::world::MIN_BUILD_HEIGHT,
+        i32 maxBuildHeight = mc::world::MAX_BUILD_HEIGHT);
 
     /**
      * @brief 从单个区块构造简化访问器
@@ -70,8 +70,8 @@ public:
     ChunkBiomeAccessor(const ChunkData& chunk,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        i32 minBuildHeight = world::MIN_BUILD_HEIGHT,
-        i32 maxBuildHeight = world::MAX_BUILD_HEIGHT);
+        i32 minBuildHeight = mc::world::MIN_BUILD_HEIGHT,
+        i32 maxBuildHeight = mc::world::MAX_BUILD_HEIGHT);
 
     // ========================================================================
     // IBiomeAccessor 接口实现

@@ -34,6 +34,7 @@
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "common/item/items/map/FilledMapItem.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -339,6 +340,22 @@ void ClientApplication::handleBlockPlacementInput(f32 deltaTime)
     }
 
     if (m_raycastResult.isMiss()) {
+        // 右键空挥：若主手持已填充地图，纯客户端本地打开地图查看屏
+        // （1.21.11 原版 MapScreen 是客户端本地开，不走服务端 OpenScreen 下推）。
+        const ItemStack mainHand = m_player->getHeldItem(Hand::MainHand);
+        if (item::items::FilledMapItem::isFilledMap(mainHand)) {
+            const i32 mapId = item::items::FilledMapItem::getMapId(mainHand);
+            if (mapId >= 0) {
+                // 释放鼠标光标，使 ScreenStackWidget 能接收点击/键盘
+                if (m_mouseCaptured) {
+                    m_input.setMouseLocked(false);
+                    m_mouseCaptured = false;
+                }
+                openMapScreen(mapId);
+                m_placeCooldown = PLACE_COOLDOWN_TIME;
+                return;
+            }
+        }
         setPlaceState(PlaceInputState::RaycastMiss, "raycast miss on use");
         return;
     }

@@ -51,8 +51,8 @@ namespace client {
  */
 class BiomeColorCacheEntry {
 public:
-    static constexpr i32 CACHE_SIZE = world::CHUNK_WIDTH; // 每个区块宽度
-    static constexpr size_t COLOR_RESOLVER_COUNT = 4;     // 颜色解析器数量（草/树叶/水/干枯植被）
+    static constexpr i32 CACHE_SIZE = mc::world::CHUNK_WIDTH; // 每个区块宽度
+    static constexpr size_t COLOR_RESOLVER_COUNT = 4;         // 颜色解析器数量（草/树叶/水/干枯植被）
 
     BiomeColorCacheEntry() = default;
 

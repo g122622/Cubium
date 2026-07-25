@@ -288,6 +288,15 @@ Result<void> ClientApplication::initializeRenderer()
             }
         }
 
+        // 初始化地图渲染器与客户端地图数据缓存
+        // MapRenderer 依赖 GuiRenderer（逐像素 fillRect 绘制），须在 GUI 渲染器就绪后创建。
+        if (m_renderer->isGuiRendererInitialized()) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::MapRenderer");
+            m_mapRenderer = std::make_unique<MapRenderer>();
+            m_mapRenderer->setGuiRenderer(&m_renderer->guiRenderer());
+            m_mapDataCache = std::make_unique<ClientMapDataCache>();
+        }
+
         // 实体渲染器必须先初始化（创建 EntityPipeline）
         {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeTridentSubRenderers::EntityRenderer");
@@ -673,6 +682,12 @@ void ClientApplication::initializeUi()
                 }
                 if (m_player) {
                     hudWidget->setPlayer(m_player.get());
+                }
+                if (m_mapRenderer) {
+                    hudWidget->setMapRenderer(m_mapRenderer.get());
+                }
+                if (m_mapDataCache) {
+                    hudWidget->setMapDataCache(m_mapDataCache.get());
                 }
                 m_hudLayerId = m_kageroEngine->addLayer(std::move(hudWidget), 10);
 

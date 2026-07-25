@@ -33,6 +33,11 @@ class Player;
 class ItemStack;
 } // namespace mc
 
+namespace mc::client {
+class MapRenderer;
+class ClientMapDataCache;
+} // namespace mc::client
+
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;
 class GuiSpriteAtlas;
@@ -123,6 +128,16 @@ public:
     void setPlayer(Player* player) { m_player = player; }
 
     /**
+     * @brief 设置地图渲染器（用于手持地图内容的屏幕层绘制）
+     */
+    void setMapRenderer(MapRenderer* renderer) { m_mapRenderer = renderer; }
+
+    /**
+     * @brief 设置客户端地图数据缓存（手持地图内容来源）
+     */
+    void setMapDataCache(ClientMapDataCache* cache) { m_mapDataCache = cache; }
+
+    /**
      * @brief 绘制HUD
      */
     void paint(kagero::widget::PaintContext& ctx) override;
@@ -159,6 +174,15 @@ private:
      * @brief 渲染经验条
      */
     void _renderExperience(kagero::widget::PaintContext& ctx);
+
+    /**
+     * @brief 渲染手持地图内容（屏幕层）
+     *
+     * 玩家主手持已填充地图时，在屏幕中央偏上绘制地图内容。
+     * 双手举起姿态由 FirstPersonRenderer 负责，地图内容在此绘制（对齐 Java：
+     * MapItemSavedData 内容由 GuiRendering 在屏幕层渲染）。
+     */
+    void _renderHeldMap();
 
     /**
      * @brief 绘制心形图标
@@ -207,6 +231,8 @@ private:
     renderer::trident::gui::GuiSpriteAtlas* m_iconsAtlas = nullptr;   // 心形、饥饿、盔甲、经验条
     renderer::trident::gui::GuiSpriteAtlas* m_widgetsAtlas = nullptr; // 快捷栏、按钮
     Player* m_player = nullptr;
+    MapRenderer* m_mapRenderer = nullptr;         // 手持地图内容渲染
+    ClientMapDataCache* m_mapDataCache = nullptr; // 地图数据来源
 
     // 动画状态
     mutable mc::math::Random m_random; ///< 确定性随机数生成器（用于饥饿条抖动偏移，每帧重设种子）
