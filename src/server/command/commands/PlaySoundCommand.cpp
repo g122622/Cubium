@@ -31,13 +31,13 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/sound/network/SoundPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include <sstream>
+#include <glm/glm.hpp>
 
 namespace mc {
 namespace command {

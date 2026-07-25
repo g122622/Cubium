@@ -33,7 +33,7 @@ skin/
 └── network/                    # 网络同步
     ├── PlayerSkinInfo.hpp      # 客户端玩家皮肤信息（加载状态、纹理引用、签名安全状态、部件可见性）
     ├── PlayerSkinInfo.cpp
-    ├── SkinPackets.hpp         # PlayerListItemPacket（玩家列表+皮肤属性）
+    ├── SkinPackets.hpp         # PlayerListEntry 结构 + PlayerListAction 枚举 + 工厂（作为 IR PlayerInfoUpdate/Remove 的逻辑载荷）
     └── SkinPackets.cpp
 ```
 
@@ -109,7 +109,7 @@ index = Math.floorMod(UUID.hashCode(), 18)
 ### 下游依赖（依赖本模块）
 
 - `client/skin/ClientSkinManager` - 客户端皮肤管理器
-- `client/network/NetworkClient` - 处理玩家列表包
+- `client/network/ClientPlayVisitor` - 处理 IR PlayerInfoUpdate/Remove（玩家列表+皮肤属性）
 - `client/application/ClientApplication` - 初始化皮肤系统
 
 ## 容易踩的坑

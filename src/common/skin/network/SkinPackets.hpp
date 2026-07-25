@@ -24,7 +24,6 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/network/packet/Packet.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
@@ -48,7 +47,8 @@ enum class PlayerListAction : u8 {
 /**
  * @brief 玩家列表条目
  *
- * 存储单个玩家的信息，用于 PlayerListItemPacket。
+ * 存储单个玩家的信息，作为 IR ir::play::PlayerInfoUpdate / PlayerInfoRemove 的逻辑载荷。
+ * （旧 PlayerListItemPacket 类已随 Phase8 删除。）
  *
  * displayName 字段说明：
  * - 存储 JSON 格式的 ITextComponent 序列化结果
@@ -128,63 +128,6 @@ struct PlayerListEntry {
      * @return JSON字符串
      */
     static std::string serializeText(const text::ITextComponent& text);
-
-    // 序列化辅助方法
-    void serialize(network::PacketSerializer& ser, PlayerListAction action) const;
-    static Result<PlayerListEntry> deserialize(network::PacketDeserializer& deser, PlayerListAction action);
-};
-
-/**
- * @brief 玩家列表包
- *
- * 用于：
- * - 添加玩家（包含皮肤属性）
- * - 更新玩家信息（游戏模式、延迟、显示名）
- * - 移除玩家
- *
- * 网络格式（MC 1.16.5）：
- * - action: VarInt
- * - count: VarInt
- * - entries: [entry data based on action]
- *
- * AddPlayer 条目格式：
- * - UUID: 16 bytes
- * - Name: std::string (max 16)
- * - Properties count: VarInt
- * - Properties: [name, value, hasSignature, signature?]
- * - GameMode: VarInt
- * - Ping: VarInt
- * - HasDisplayName: Boolean
- * - DisplayName?: Chat (optional)
- */
-class PlayerListItemPacket : public network::Packet {
-public:
-    PlayerListItemPacket() noexcept;
-    explicit PlayerListItemPacket(PlayerListAction action) noexcept;
-
-    // 移动构造和赋值
-    PlayerListItemPacket(PlayerListItemPacket&&) noexcept = default;
-    PlayerListItemPacket& operator=(PlayerListItemPacket&&) noexcept = default;
-    PlayerListItemPacket(const PlayerListItemPacket&) = default;
-    PlayerListItemPacket& operator=(const PlayerListItemPacket&) = default;
-
-    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
-    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
-
-    // 访问器
-    [[nodiscard]] PlayerListAction action() const noexcept { return m_action; }
-    void setAction(PlayerListAction action) noexcept { m_action = action; }
-
-    [[nodiscard]] const std::vector<PlayerListEntry>& entries() const noexcept { return m_entries; }
-    std::vector<PlayerListEntry>& entries() noexcept { return m_entries; }
-
-    void addEntry(const PlayerListEntry& entry) { m_entries.push_back(entry); }
-    void addEntry(PlayerListEntry&& entry) noexcept { m_entries.push_back(std::move(entry)); }
-    void clearEntries() noexcept { m_entries.clear(); }
-
-private:
-    PlayerListAction m_action = PlayerListAction::AddPlayer;
-    std::vector<PlayerListEntry> m_entries;
 };
 
 } // namespace mc::skin

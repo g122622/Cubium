@@ -1564,9 +1564,6 @@ add_library(mc_common STATIC
     sound/jukebox/JukeboxSongs.cpp
     sound/jukebox/JukeboxSongPlayer.cpp
 
-    # Sound system - Network
-    sound/network/SoundPackets.cpp
-
     # Skin System - Core
     skin/core/SkinTypes.cpp
     skin/core/GameProfile.cpp

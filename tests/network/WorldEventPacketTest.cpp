@@ -21,122 +21,17 @@
  *
  */
 
-#include "common/sound/network/SoundPackets.hpp"
+// 原 WorldEventPacketTest.cpp 的 WorldEventPacket（旧 Packet 子类）测试已随
+// SoundPackets 删除（阶段5）：WorldEvent 已由 IR ir::play::LevelEvent 承载。
+// 保留 WorldEvents 常量唯一性/取值测试（WorldEvents.hpp 是活的协议常量）。
+
 #include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
-using namespace mc::sound;
-using namespace mc::world;
-using mc::BlockPos;
+#include <set>
+
 using mc::i32;
-
-// ==================== WorldEventPacket 基础测试 ====================
-
-class WorldEventPacketTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        testEventId = WorldEvents::IRON_DOOR_OPEN_SOUND;
-        testPos = BlockPos(100, 64, -200);
-        testData = 0;
-    }
-
-    i32 testEventId;
-    BlockPos testPos;
-    i32 testData;
-};
-
-TEST_F(WorldEventPacketTest, DefaultConstruction)
-{
-    WorldEventPacket packet;
-    EXPECT_EQ(packet.getEventId(), 0);
-    EXPECT_EQ(packet.getX(), 0);
-    EXPECT_EQ(packet.getY(), 0);
-    EXPECT_EQ(packet.getZ(), 0);
-    EXPECT_EQ(packet.getData(), 0);
-}
-
-TEST_F(WorldEventPacketTest, ParameterizedConstruction)
-{
-    WorldEventPacket packet(testEventId, testPos.x, testPos.y, testPos.z, testData);
-
-    EXPECT_EQ(packet.getEventId(), testEventId);
-    EXPECT_EQ(packet.getX(), testPos.x);
-    EXPECT_EQ(packet.getY(), testPos.y);
-    EXPECT_EQ(packet.getZ(), testPos.z);
-    EXPECT_EQ(packet.getData(), testData);
-}
-
-TEST_F(WorldEventPacketTest, BlockPosConstruction)
-{
-    WorldEventPacket packet(testEventId, testPos, testData);
-
-    EXPECT_EQ(packet.getEventId(), testEventId);
-    EXPECT_EQ(packet.getX(), testPos.x);
-    EXPECT_EQ(packet.getY(), testPos.y);
-    EXPECT_EQ(packet.getZ(), testPos.z);
-    EXPECT_EQ(packet.getData(), testData);
-}
-
-TEST_F(WorldEventPacketTest, SerializeDeserialize)
-{
-    WorldEventPacket original(testEventId, testPos, testData);
-
-    auto serializeResult = original.serialize();
-    ASSERT_TRUE(serializeResult.success());
-
-    WorldEventPacket deserialized;
-    auto deserializeResult = deserialized.deserialize(serializeResult.value().data(), serializeResult.value().size());
-    ASSERT_TRUE(deserializeResult.success());
-
-    EXPECT_EQ(deserialized.getEventId(), original.getEventId());
-    EXPECT_EQ(deserialized.getX(), original.getX());
-    EXPECT_EQ(deserialized.getY(), original.getY());
-    EXPECT_EQ(deserialized.getZ(), original.getZ());
-    EXPECT_EQ(deserialized.getData(), original.getData());
-}
-
-TEST_F(WorldEventPacketTest, SerializeDeserializeWithNegativeCoords)
-{
-    BlockPos negativePos(-100, -64, -300);
-    WorldEventPacket original(WorldEvents::BREAK_BLOCK_EFFECTS, negativePos, 42);
-
-    auto serializeResult = original.serialize();
-    ASSERT_TRUE(serializeResult.success());
-
-    WorldEventPacket deserialized;
-    auto deserializeResult = deserialized.deserialize(serializeResult.value().data(), serializeResult.value().size());
-    ASSERT_TRUE(deserializeResult.success());
-
-    EXPECT_EQ(deserialized.getEventId(), WorldEvents::BREAK_BLOCK_EFFECTS);
-    EXPECT_EQ(deserialized.getX(), -100);
-    EXPECT_EQ(deserialized.getY(), -64);
-    EXPECT_EQ(deserialized.getZ(), -300);
-    EXPECT_EQ(deserialized.getData(), 42);
-}
-
-TEST_F(WorldEventPacketTest, SerializeDeserializePlayRecord)
-{
-    // 测试播放唱片事件（data 为唱片物品ID）
-    WorldEventPacket original(WorldEvents::PLAY_RECORD_SOUND, BlockPos(50, 60, 70), 500);
-
-    auto serializeResult = original.serialize();
-    ASSERT_TRUE(serializeResult.success());
-
-    WorldEventPacket deserialized;
-    auto deserializeResult = deserialized.deserialize(serializeResult.value().data(), serializeResult.value().size());
-    ASSERT_TRUE(deserializeResult.success());
-
-    EXPECT_EQ(deserialized.getEventId(), WorldEvents::PLAY_RECORD_SOUND);
-    EXPECT_EQ(deserialized.getData(), 500);
-}
-
-TEST_F(WorldEventPacketTest, ExpectedSize)
-{
-    WorldEventPacket packet;
-    EXPECT_GT(packet.expectedSize(), 0u);
-}
+using namespace mc::world;
 
 // ==================== WorldEvents 常量测试 ====================
 

@@ -2210,7 +2210,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvents.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/sound/network/SoundPackets.cpp
         # Jukebox
         ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSong.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSongs.cpp

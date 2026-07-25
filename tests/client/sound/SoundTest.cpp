@@ -30,7 +30,6 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundTypes.hpp"
-#include "common/sound/network/SoundPackets.hpp"
 
 #include <array>
 #include <limits>
@@ -428,64 +427,4 @@ TEST(SoundLoaderTest, DecodeRejectsTooLargeInput)
 
     auto result = SoundLoader::decode(dummy.data(), static_cast<size_t>(std::numeric_limits<int>::max()) + 1ull);
     EXPECT_FALSE(result.success());
-}
-
-// ============================================================================
-// SoundPackets 网络包测试
-// ============================================================================
-
-TEST(SoundPacketsTest, PlaySoundPacketRoundTrip)
-{
-    const ResourceLocation id("minecraft:block.stone.break");
-    const glm::vec3 pos(12.375f, 64.5f, -7.25f);
-
-    sound::PlaySoundPacket packet(id, SoundCategory::Blocks, pos, 0.8f, 1.1f);
-    auto serialized = packet.serialize();
-    ASSERT_TRUE(serialized.success());
-
-    sound::PlaySoundPacket decoded;
-    auto decodeResult = decoded.deserialize(serialized.value().data(), serialized.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    EXPECT_EQ(decoded.getSoundEventId(), id);
-    EXPECT_EQ(decoded.getCategory(), SoundCategory::Blocks);
-    EXPECT_FLOAT_EQ(decoded.getVolume(), 0.8f);
-    EXPECT_FLOAT_EQ(decoded.getPitch(), 1.1f);
-
-    const glm::vec3 decodedPos = decoded.getPosition();
-    EXPECT_NEAR(decodedPos.x, pos.x, 0.125f);
-    EXPECT_NEAR(decodedPos.y, pos.y, 0.125f);
-    EXPECT_NEAR(decodedPos.z, pos.z, 0.125f);
-}
-
-TEST(SoundPacketsTest, StopSoundPacketRoundTripWithBothFilters)
-{
-    const std::optional<ResourceLocation> id(ResourceLocation("minecraft:block.grass.break"));
-    const std::optional<SoundCategory> category(SoundCategory::Blocks);
-
-    sound::StopSoundPacket packet(id, category);
-    auto serialized = packet.serialize();
-    ASSERT_TRUE(serialized.success());
-
-    sound::StopSoundPacket decoded;
-    auto decodeResult = decoded.deserialize(serialized.value().data(), serialized.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    ASSERT_TRUE(decoded.getSoundEventId().has_value());
-    ASSERT_TRUE(decoded.getCategory().has_value());
-    EXPECT_EQ(*decoded.getSoundEventId(), *id);
-    EXPECT_EQ(*decoded.getCategory(), *category);
-}
-
-TEST(SoundPacketsTest, StopSoundPacketRoundTripStopAll)
-{
-    sound::StopSoundPacket packet;
-    auto serialized = packet.serialize();
-    ASSERT_TRUE(serialized.success());
-
-    sound::StopSoundPacket decoded;
-    auto decodeResult = decoded.deserialize(serialized.value().data(), serialized.value().size());
-    ASSERT_TRUE(decodeResult.success());
-
-    EXPECT_TRUE(decoded.isStopAll());
 }
