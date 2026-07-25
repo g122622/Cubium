@@ -34,6 +34,7 @@ add_executable(mc_tests
     common/network/test_connection_local.cpp
     common/network/JavaCodecNonPlayTest.cpp
     common/network/JavaCodecPlayMovementTest.cpp
+    common/network/JavaCodecPlayContainerTest.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp
