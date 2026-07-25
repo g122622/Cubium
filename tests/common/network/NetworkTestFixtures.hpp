@@ -239,6 +239,7 @@ protected:
     void pumpServer() { m_serverConn->pumpLocal(); }
 
     [[nodiscard]] mc::server::net::ServerClientConnection* serverConn() const noexcept { return m_serverConn; }
+    [[nodiscard]] mc::server::net::ServerNetwork& net() const noexcept { return *m_serverNetwork; }
     [[nodiscard]] int playerReadyCount() const noexcept { return m_playerReadyCount; }
     [[nodiscard]] int playPacketCount() const noexcept { return m_playPacketCount; }
     [[nodiscard]] int inboundErrorCount() const noexcept { return m_inboundErrorCount; }
