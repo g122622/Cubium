@@ -26,6 +26,7 @@
 #include "DataParameter.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include <mutex>
 #include <unordered_map>
 #include <variant>
@@ -52,7 +53,11 @@ using mc::Vector3i;
 class DataValue {
 public:
     // 支持的数据类型
-    using ValueType = std::variant<i8, i32, i64, f32, std::string, bool, Vector3i, Vector2f, Vector3f>;
+    // 注：ItemStackView（index 9）承载掉落物等实体的物品本体，经 EntityMetadataSerializer
+    // 的 serializerId 7（ITEM_STACK）双向 codec 同步。variant 备选项顺序即 index，
+    // EntityMetadataSerializer::getSerializerId/serializeEntry/deserialize 按 index 分支。
+    using ValueType = std::
+        variant<i8, i32, i64, f32, std::string, bool, Vector3i, Vector2f, Vector3f, network::ir::play::ItemStackView>;
 
     DataValue() = default;
 

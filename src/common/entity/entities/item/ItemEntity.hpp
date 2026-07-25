@@ -29,6 +29,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include <random>
 
 namespace mc {
@@ -51,7 +52,9 @@ class World;
  */
 class ItemEntity : public Entity {
 public:
-    static entity::DataParameter<i32> DATA_ITEM_COUNT_PARAM;
+    // 物品本体（含 itemId/count/componentsPatch），经元数据 serializerId 7（ITEM_STACK）同步。
+    // 对应 Java 1.21.11 ItemEntity.DATA_ITEM（EntityDataSerializers.ITEM_STACK）。
+    static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_PARAM;
 
     // ========== 常量 ==========
 

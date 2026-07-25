@@ -22,6 +22,7 @@
  */
 
 #include "common/network/codec/EntityMetadataSerializer.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <cstring>
@@ -66,7 +67,7 @@ enum class MetadataSerializerId : i32 {
 
 // DataValue 变体索引 → 1.21.11 序列化器 ID
 // 变体顺序（EntityDataManager::DataValue::ValueType）：
-//   0:i8 1:i32 2:i64 3:f32 4:string 5:bool 6:Vector3i 7:Vector2f 8:Vector3f
+//   0:i8 1:i32 2:i64 3:f32 4:string 5:bool 6:Vector3i 7:Vector2f 8:Vector3f 9:ItemStackView
 MetadataSerializerId getSerializerId(const entity::DataValue& value)
 {
     switch (value.index()) {
@@ -87,6 +88,8 @@ MetadataSerializerId getSerializerId(const entity::DataValue& value)
         case 7: // Vector2f → Rotations（z 补 0）
         case 8:
             return MetadataSerializerId::Rotations; // Vector3f → Rotations
+        case 9:
+            return MetadataSerializerId::ItemStack; // ItemStackView → ITEM_STACK（serializerId 7）
         default:
             return MetadataSerializerId::Byte;
     }
@@ -170,6 +173,20 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             _writeBigEndianF32(rot.x, output);
             _writeBigEndianF32(rot.y, output);
             _writeBigEndianF32(rot.z, output);
+            break;
+        }
+        case 9: { // ItemStackView → ITEM_STACK（1.21.11 OPTIONAL_STREAM_CODEC：
+            // count<=0 即空（仅 VarInt(0)）；否则 VarInt(count) + VarInt(itemId)
+            // + VarInt(componentsPatch.size()) + patch 字节。与 JavaPlayCodecs::writeItemStack 同源。）
+            auto view = value.get<network::ir::play::ItemStackView>();
+            if (view.count <= 0 || view.itemId == 0) {
+                _writeVarInt(0, output);
+            } else {
+                _writeVarInt(view.count, output);
+                _writeVarInt(static_cast<i32>(view.itemId), output);
+                _writeVarInt(static_cast<i32>(view.componentsPatch.size()), output);
+                output.insert(output.end(), view.componentsPatch.begin(), view.componentsPatch.end());
+            }
             break;
         }
         default:
@@ -265,9 +282,34 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 manager.clearDirty(index);
                 break;
             }
+            case MetadataSerializerId::ItemStack: {
+                // 1.21.11 ITEM_STACK = OPTIONAL_STREAM_CODEC：VarInt(count)；count<=0 即空；
+                // 否则 VarInt(itemId) + VarInt(patchLen) + patchLen 字节。patch 是
+                // DataComponentPatch 的 1.21.11 wire 字节，元数据层透传存入 ItemStackView，
+                // 由客户端 fromItemStackView 还原为业务侧 ItemStack。
+                const i32 count = _readVarInt(data.data(), data.size(), offset);
+                network::ir::play::ItemStackView view;
+                if (count <= 0) {
+                    view.itemId = 0;
+                    view.count = 0;
+                } else {
+                    const i32 itemId = _readVarInt(data.data(), data.size(), offset);
+                    const i32 patchLen = _readVarInt(data.data(), data.size(), offset);
+                    if (patchLen < 0 || offset + static_cast<size_t>(patchLen) > data.size()) {
+                        return false;
+                    }
+                    view.itemId = static_cast<u32>(itemId);
+                    view.count = count;
+                    view.componentsPatch.assign(data.data() + offset, data.data() + offset + patchLen);
+                    offset += static_cast<size_t>(patchLen);
+                }
+                (void)manager.setRaw(index, entity::DataValue(view));
+                manager.clearDirty(index);
+                break;
+            }
             default:
-                // 未实现的序列化器（ItemStack/Particle/VillagerData 等）：无法跳过变长值，停止解析。
-                // 本项目元数据仅用 Byte/Int/Long/Float/String/Boolean，故正常路径不会落到此分支。
+                // 未实现的序列化器（Particle/VillagerData 等）：无法跳过变长值，停止解析。
+                // 本项目元数据仅用 Byte/Int/Long/Float/String/Boolean/ItemStack，故正常路径不会落到此分支。
                 return false;
         }
     }

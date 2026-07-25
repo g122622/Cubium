@@ -31,6 +31,7 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -56,7 +57,8 @@ using namespace entity::serialization;
 // 静态数据参数
 // ============================================================================
 
-entity::DataParameter<i32> ItemEntity::DATA_ITEM_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<network::ir::play::ItemStackView> ItemEntity::DATA_ITEM_PARAM =
+    entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
 
 // ============================================================================
 // 静态工厂方法
@@ -79,7 +81,7 @@ ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y
     : Entity(id)
     , m_itemStack(stack)
 {
-    m_dataManager.registerParam(DATA_ITEM_COUNT_PARAM, stack.getCount());
+    m_dataManager.registerParam(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
 
@@ -95,7 +97,7 @@ ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y
     : Entity(id)
     , m_itemStack(stack)
 {
-    m_dataManager.registerParam(DATA_ITEM_COUNT_PARAM, stack.getCount());
+    m_dataManager.registerParam(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
     setVelocity(vx, vy, vz);
@@ -108,7 +110,7 @@ ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y
 void ItemEntity::setItemStack(const ItemStack& stack)
 {
     m_itemStack = stack;
-    m_dataManager.set(DATA_ITEM_COUNT_PARAM, stack.getCount());
+    m_dataManager.set(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
 }
 
 // ============================================================================
@@ -584,8 +586,8 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
         auto stackResult = ItemStack::fromNbt(*itemTag);
         if (stackResult.success()) {
             m_itemStack = stackResult.value();
-            // 同步数量到数据管理器
-            m_dataManager.set(DATA_ITEM_COUNT_PARAM, m_itemStack.getCount());
+            // 同步物品本体（含 itemId/count/componentsPatch）到数据管理器
+            m_dataManager.set(DATA_ITEM_PARAM, network::ir::toItemStackView(m_itemStack));
         }
     }
 

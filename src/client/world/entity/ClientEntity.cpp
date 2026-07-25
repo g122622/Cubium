@@ -40,6 +40,7 @@
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -219,11 +220,10 @@ void ClientEntity::setVelocity(f32 x, f32 y, f32 z)
 
 void ClientEntity::setMetadata(const std::vector<u8>& metadata)
 {
-    // TODO(Phase6): ItemEntity 物品本体（ItemStack）未上线——服务端 AddEntity 与 SetEntityData 均不
-    // 携带 ItemStack（EntityMetadataSerializer 的 DataValue 无 ItemStack 变体，ItemEntity 仅注册
-    // DATA_ITEM_COUNT_PARAM）。旧的 1.16.5 SLOT 元数据解析链已删；count 仍经 m_dataManager 同步
-    // （见 syncMetadataFromDataManager 的 item 分支）。物品本体渲染需待注册 ItemStack DataParameter
-    // + serializerId 7 的 1.21.11 codec 后在 syncMetadataFromDataManager 重建。
+    // ItemEntity 物品本体经元数据 serializerId 7（ITEM_STACK）同步：服务端 ItemEntity 注册
+    // DATA_ITEM_PARAM（ItemStackView），EntityMetadataSerializer 序列化为 1.21.11 Slot 字节，
+    // 此处反序列化进 m_dataManager，再由 syncMetadataFromDataManager 的 item 分支经
+    // fromItemStackView 还原为业务侧 ItemStack 并 setItemStack 触发渲染。
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Client.Entity, "ClientEntity::setMetadata", "entityId", m_id, "size", metadata.size());
 
@@ -236,13 +236,13 @@ void ClientEntity::setMetadata(const std::vector<u8>& metadata)
 
 void ClientEntity::syncMetadataFromDataManager()
 {
-    // 物品实体特殊处理
+    // 物品实体特殊处理：从 DATA_ITEM_PARAM（ItemStackView）还原物品本体并刷新渲染。
     if (m_typeId == entity::EntityTypeKeys::ITEM || m_typeId == "minecraft:item") {
-        if (const auto count = _readMetadata<i32>(ItemEntity::DATA_ITEM_COUNT_PARAM.id()); count.has_value()) {
-            if (m_itemStack != nullptr && m_itemStack->getCount() != *count) {
-                ItemStack updated = *m_itemStack;
-                updated.setCount(*count);
-                setItemStack(updated);
+        if (const auto view = _readMetadata<network::ir::play::ItemStackView>(ItemEntity::DATA_ITEM_PARAM.id());
+            view.has_value()) {
+            auto stackResult = network::ir::fromItemStackView(*view);
+            if (stackResult.success()) {
+                setItemStack(stackResult.value());
             }
         }
 

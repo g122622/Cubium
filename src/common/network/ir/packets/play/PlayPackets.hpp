@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 
 #include <array>
 #include <cstdint>
@@ -39,19 +40,7 @@ namespace mc::network::ir::play {
 // 公共子结构
 // ============================================================================
 
-/**
- * @brief 物品栈（网络层视角：itemId + count + 组件补丁原始字节）
- *
- * 1.21.11 数据组件模型：count<=0 即空；否则 itemId(VarInt) + DataComponentPatch wire。
- * componentsPatch 承载 DataComponentPatch 的 1.21.11 wire 序列化字节（见
- * item/component/DataComponentPatchWire.hpp）；与业务侧 ItemStack 的双向转换由
- * network/ir/ItemStackBridge.hpp 提供。
- */
-struct ItemStackView {
-    u32 itemId = 0; // 0=空
-    i32 count = 0;
-    std::vector<u8> componentsPatch; // DataComponentPatch 的 1.21.11 wire 字节
-};
+// ItemStackView 定义见 ItemStackView.hpp（独立成头供 entity/core 复用）。
 
 /**
  * @brief 玩家移动位掩码（1.21.11 ServerboundMovePlayer 的 flags 字节）
