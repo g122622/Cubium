@@ -43,10 +43,6 @@ namespace scoreboard {
 class ScoreboardDataManager;
 }
 
-namespace network {
-class PacketSerializer;
-}
-
 namespace server {
 
 /**
