@@ -19,6 +19,19 @@ add_executable(mc_tests
     common/test_math.cpp
     common/test_network.cpp
     common/network/test_bytebuf.cpp
+    common/network/test_registry_bytebuf.cpp
+    common/network/test_nbt_io.cpp
+    common/network/test_stream_codecs.cpp
+    common/network/test_id_dispatch_codec.cpp
+    common/network/test_aes_cfb8.cpp
+    common/network/test_zlib_codec.cpp
+    common/network/test_rsa_handshake.cpp
+    common/network/test_local_transport.cpp
+    common/network/test_varint_framing.cpp
+    common/network/test_compression_handlers.cpp
+    common/network/test_cipher_handlers.cpp
+    common/network/test_protocol_swap_handler.cpp
+    common/network/test_connection_local.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp
