@@ -25,6 +25,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypeUtils.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
@@ -38,8 +39,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/ContainerPacketHandler.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
+#include "common/network/packet/InventoryPackets.hpp" // mc::inventory::PLAYER_CONTAINER_ID（创造/合成菜单构造用）
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -762,24 +762,21 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
         return;
     }
 
-    // 本地客户端：用 IR 字段重建旧 ContainerClickPacket 复用既有容器点击逻辑
-    // TODO(Phase6): 容器点击协议应直接对齐 1.21.11 ContainerClick(stateId+changedSlots)，
-    //   消除重建旧包的中间步骤。
+    // 本地客户端：内联容器点击三突变（与 ContainerPacketHandler::handleContainerClick 等价），
+    // 不再重建旧 ContainerClickPacket。本地路径用 m_openMenu（非 ContainerManager 的多玩家 map）。
+    // TODO(Phase6): 容器点击协议应直接对齐 1.21.11 ContainerClick(stateId+changedSlots)。
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
     }
 
-    ContainerClickPacket legacyPacket(static_cast<mc::ContainerId>(evt->containerId),
-        evt->slotNum,
-        evt->buttonNum,
-        0, // transactionId：1.21.11 用 stateId 替代，旧路径不校验
-        static_cast<ClickAction>(evt->clickType),
-        cursorItem);
-    Player& menuPlayer = _getMenuPlayer();
-    if (!ContainerPacketHandler::handleContainerClick(menuPlayer, legacyPacket)) {
+    if (!m_openMenu || evt->containerId != m_openMenu->getId()) {
         return;
     }
+    m_openMenu->setCarriedItem(cursorItem);
+    const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(evt->clickType), evt->buttonNum);
+    Player& menuPlayer = _getMenuPlayer();
+    m_openMenu->clicked(evt->slotNum, evt->buttonNum, clickType, menuPlayer);
 
     _sendContainerContent(*m_openMenu);
     _sendPlayerInventory();
