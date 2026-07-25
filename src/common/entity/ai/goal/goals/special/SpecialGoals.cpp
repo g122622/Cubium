@@ -23,7 +23,6 @@
 
 #include "SpecialGoals.hpp"
 #include "../../../../../core/Types.hpp"
-#include "../../../../../network/packet/EntityPackets.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
@@ -47,6 +46,7 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
 #include "../../GoalFlag.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include <cmath>
 #include <limits>
 
@@ -241,8 +241,7 @@ void RunAroundLikeCrazyGoal::tick()
 
         // 发送驯服失败状态包（烟雾粒子效果）
         if (worldPtr != nullptr) {
-            worldPtr->broadcastEntityStatus(
-                m_horse->id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+            worldPtr->broadcastEntityStatus(m_horse->id(), static_cast<u8>(network::EntityStatus::TamingFailed));
         }
     }
 }

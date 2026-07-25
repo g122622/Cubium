@@ -26,7 +26,7 @@
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
@@ -122,9 +122,9 @@ void VillagerBreedGoal::tick()
     // MC原版 VillagerMakeLove.tick: 繁殖过程中双方每隔约35tick随机显示爱心粒子
     if (m_villager->world() != nullptr && m_villager->getRandom().nextInt(35) == 0) {
         m_villager->world()->broadcastEntityStatus(
-            m_villager->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
+            m_villager->id(), static_cast<u8>(network::EntityStatus::VillagerHeart));
         m_villager->world()->broadcastEntityStatus(
-            partner->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
+            partner->id(), static_cast<u8>(network::EntityStatus::VillagerHeart));
     }
 
     // 检查距离，足够接近时繁殖
@@ -243,12 +243,12 @@ void VillagerBreedGoal::_spawnChild()
         // 无空床位，繁殖失败，双方显示愤怒粒子
         if (m_villager->world()) {
             m_villager->world()->broadcastEntityStatus(
-                m_villager->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
+                m_villager->id(), static_cast<u8>(network::EntityStatus::VillagerAngry));
 
             Entity* entity = m_villager->world()->getEntity(m_partnerId);
             if (entity != nullptr && entity->isAlive()) {
                 m_villager->world()->broadcastEntityStatus(
-                    entity->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
+                    entity->id(), static_cast<u8>(network::EntityStatus::VillagerAngry));
 
                 // MC原版在tryToGiveBirth之前就对双方调用eatAndDigestFood()消耗食物意愿。
                 // 本项目使用布尔标志m_willingToBreed替代食物点数系统，
@@ -268,8 +268,7 @@ void VillagerBreedGoal::_spawnChild()
             EntityInstanceId childId = m_villager->world()->spawnEntity(std::move(child));
 
             // MC原版 VillagerMakeLove.breed: 幼年村民出生后对其广播爱心粒子 (byte)12
-            m_villager->world()->broadcastEntityStatus(
-                childId, static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
+            m_villager->world()->broadcastEntityStatus(childId, static_cast<u8>(network::EntityStatus::VillagerHeart));
         }
     }
 

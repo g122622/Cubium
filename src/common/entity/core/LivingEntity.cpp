@@ -42,7 +42,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -532,7 +532,7 @@ void LivingEntity::broadcastBreakEvent(EquipmentSlot slot)
 {
     if (m_world != nullptr) {
         u8 slotIndex = static_cast<u8>(slot);
-        auto status = network::EntityStatusPacket::equipmentBreakStatus(slotIndex);
+        auto status = network::equipmentBreakStatus(slotIndex);
         m_world->broadcastEntityStatus(m_id, static_cast<u8>(status));
     }
 }
@@ -914,10 +914,8 @@ void LivingEntity::swing(Hand hand)
         // 发送 ClientboundAnimatePacket 的逻辑。客户端收到后通过
         // ClientEntity::triggerSwingAnimation 启动本地 6 tick 挥动动画。
         if (m_world != nullptr && !m_world->isClientSide()) {
-            using network::EntityAnimationPacket;
-            const u8 animation = (hand == Hand::MainHand)
-                ? static_cast<u8>(EntityAnimationPacket::Animation::SwingMainHand)
-                : static_cast<u8>(EntityAnimationPacket::Animation::SwingOffHand);
+            const u8 animation = (hand == Hand::MainHand) ? static_cast<u8>(network::EntityAnimation::SwingMainHand)
+                                                          : static_cast<u8>(network::EntityAnimation::SwingOffHand);
             m_world->broadcastEntityAnimation(m_id, animation);
         }
     }

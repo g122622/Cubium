@@ -32,7 +32,6 @@
 #include "../../../../../entity/registry/VanillaEntityTypeKeys.hpp"
 #include "../../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../network/packet/EntityPackets.hpp"
 #include "../../../../../resource/ResourceLocation.hpp"
 #include "../../../../../util/Direction.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
@@ -42,6 +41,7 @@
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -294,8 +294,7 @@ void SwimToTreasureGoal::startExecuting()
     if (treasurePos.has_value()) {
         m_dolphin->setTreasurePos(treasurePos.value());
         // 广播实体状态 38（Dolphin），触发客户端播放 HAPPY_VILLAGER 粒子效果
-        world->broadcastEntityStatus(
-            m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
+        world->broadcastEntityStatus(m_dolphin->id(), static_cast<u8>(mc::network::EntityStatus::Dolphin));
     } else {
         m_failed = true;
     }
@@ -377,8 +376,7 @@ void SwimToTreasureGoal::tick()
     // 随机播放粒子效果
     math::Random& rng = m_dolphin->getRandom();
     if (rng.nextInt(80) == 0) {
-        world->broadcastEntityStatus(
-            m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
+        world->broadcastEntityStatus(m_dolphin->id(), static_cast<u8>(mc::network::EntityStatus::Dolphin));
     }
 }
 

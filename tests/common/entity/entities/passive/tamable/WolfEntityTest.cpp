@@ -36,7 +36,7 @@
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -932,8 +932,8 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_ReturnsSuccessAnd
     EXPECT_EQ(world.getBroadcastCount(), 1);
     EXPECT_EQ(world.getLastBroadcastEntityId(), EntityInstanceId(1));
     u8 status = world.getLastBroadcastStatus();
-    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
-        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatus::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatus::TamingFailed));
     EXPECT_TRUE(isValidStatus);
 }
 
@@ -1101,8 +1101,8 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessO
     // 应该有广播
     EXPECT_EQ(world.getBroadcastCount(), 1);
     u8 status = world.getLastBroadcastStatus();
-    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
-        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatus::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatus::TamingFailed));
     EXPECT_TRUE(isValidStatus);
 }
 
@@ -2734,7 +2734,7 @@ TEST_F(WolfEntityTestFixture, Shake_Tick_TriggersShakeWhenWetAndOnGround)
 
     // 应该广播 ShakeOffWater (8)
     EXPECT_EQ(world.getBroadcastCount(), 1);
-    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::ShakeOffWater));
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatus::ShakeOffWater));
     EXPECT_TRUE(wolf.isShaking());
     EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.0f); // shakeAnimO=0
 }
@@ -2818,7 +2818,7 @@ TEST_F(WolfEntityTestFixture, Shake_Tick_CancelWhenReenteringWater)
 
     EXPECT_FALSE(wolf.isShaking());
     EXPECT_EQ(world.getBroadcastCount(), 1);
-    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::WolfStopShaking));
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatus::WolfStopShaking));
 }
 
 TEST_F(WolfEntityTestFixture, Shake_Die_ResetsShakeState)

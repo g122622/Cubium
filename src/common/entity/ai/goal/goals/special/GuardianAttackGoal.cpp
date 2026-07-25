@@ -34,7 +34,7 @@
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -164,7 +164,7 @@ void GuardianAttackGoal::tick()
         // 触发客户端播放守卫者攻击音效
         if (!m_guardian->isSilent() && m_guardian->world() != nullptr) {
             m_guardian->world()->broadcastEntityStatus(
-                m_guardian->id(), static_cast<u8>(network::EntityStatusPacket::Status::GuardianAttack));
+                m_guardian->id(), static_cast<u8>(network::EntityStatus::GuardianAttack));
         }
     } else if (m_tickCounter >= ATTACK_DURATION) {
         // 攻击完成，造成伤害

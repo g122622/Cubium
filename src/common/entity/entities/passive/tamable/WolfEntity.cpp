@@ -61,7 +61,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
@@ -401,10 +401,10 @@ void WolfEntity::_tryToTame(Player& player)
         m_world->onTameAnimal(player.playerId(), this);
 
         // 广播驯服成功状态（心形粒子）
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingSucceeded));
     } else {
         // 驯服失败，广播烟雾粒子
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingFailed));
     }
 }
 
@@ -599,7 +599,7 @@ void WolfEntity::tick()
             m_isShaking = true;
             m_shakeAnim = 0.0f;
             m_shakeAnimO = 0.0f;
-            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::ShakeOffWater));
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::ShakeOffWater));
         }
     }
 
@@ -609,7 +609,7 @@ void WolfEntity::tick()
         m_isWet = true;
         // 已在甩水时再次接触水：取消甩水并广播 byte 56
         if (m_isShaking && m_world != nullptr && !m_world->isClientSide()) {
-            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::WolfStopShaking));
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::WolfStopShaking));
             _cancelShake();
         }
     } else if ((m_isWet || m_isShaking) && m_isShaking) {

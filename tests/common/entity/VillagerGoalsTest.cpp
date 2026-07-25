@@ -2852,7 +2852,7 @@ TEST_F(LookForJobSitePOITest, ResetTaskClearsSearchState)
 // ============================================================================
 
 #include "common/entity/entities/player/Player.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 
 namespace mc {
@@ -2986,7 +2986,7 @@ TEST_F(VillagerSetLastHurtByTest, PlayerAttackBroadcastsAngryParticles)
     m_villager->setLastHurtBy(&player);
 
     // 验证广播了 VillagerAngry 状态码 13
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
     EXPECT_TRUE(m_world->hasBroadcastForEntity(m_villager->id(), angryStatus))
         << "Villager should broadcast VillagerAngry (13) when attacked by player";
     EXPECT_EQ(m_world->countBroadcastsWithStatus(angryStatus), 1) << "VillagerAngry should be broadcast exactly once";
@@ -3001,7 +3001,7 @@ TEST_F(VillagerSetLastHurtByTest, NonPlayerAttackDoesNotBroadcastAngryParticles)
 
     m_villager->setLastHurtBy(attacker.get());
 
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
     EXPECT_FALSE(m_world->hasBroadcastForEntity(m_villager->id(), angryStatus))
         << "VillagerAngry should NOT be broadcast when attacked by non-player";
 }
@@ -3019,7 +3019,7 @@ TEST_F(VillagerSetLastHurtByTest, SelfAttackDoesNotBroadcast)
     // 自己攻击自己不应触发广播
     m_villager->setLastHurtBy(m_villager.get());
 
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
     EXPECT_FALSE(m_world->hasBroadcastForEntity(m_villager->id(), angryStatus))
         << "VillagerAngry should NOT be broadcast when attacked by self";
 }
@@ -3042,7 +3042,7 @@ TEST_F(VillagerSetLastHurtByTest, PlayerAttackBroadcastsCorrectEntityId)
 
     m_villager->setLastHurtBy(&player);
 
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
     EXPECT_TRUE(m_world->hasBroadcastForEntity(m_villager->id(), angryStatus))
         << "Broadcast should target the villager's entity ID";
 }
@@ -3093,7 +3093,7 @@ TEST_F(VillagerBreedParticleTest, NoBedBreedFailureBroadcastsAngryForBoth)
 
     // 注意：此测试验证VillagerBreedGoal在无床位时广播愤怒粒子
     // 由于测试世界中没有POI（床位），_hasEnoughBeds()返回false
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
 
     // 手动模拟_spawnChild的失败路径
     // 使用goal->shouldExecute() -> startExecuting() -> tick() 直至繁殖
@@ -3202,14 +3202,14 @@ TEST_F(VillagerRaidPanicTest, RaidManagerExistsButNoRaidDoesNotCrash)
 TEST_F(VillagerRaidPanicTest, VillagerSplashStatusValue)
 {
     // 验证VillagerSplash状态码的正确值
-    u8 splashStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerSplash);
+    u8 splashStatus = static_cast<u8>(network::EntityStatus::VillagerSplash);
     EXPECT_EQ(splashStatus, 42) << "VillagerSplash status should be 42";
 }
 
 TEST_F(VillagerRaidPanicTest, VillagerAngryStatusValue)
 {
     // 验证VillagerAngry状态码的正确值
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
     EXPECT_EQ(angryStatus, 13) << "VillagerAngry status should be 13";
 }
 
@@ -3246,7 +3246,7 @@ TEST_F(VillagerVirtualMethodTest, SetLastHurtByIsVirtualAndDispatchesCorrectly)
     // 应该正确分发到VillagerEntity::setLastHurtBy
     livingEntity->setLastHurtBy(&player);
 
-    u8 angryStatus = static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry);
+    u8 angryStatus = static_cast<u8>(network::EntityStatus::VillagerAngry);
     EXPECT_TRUE(m_world->hasBroadcastForEntity(villager->id(), angryStatus))
         << "Virtual dispatch should reach VillagerEntity::setLastHurtBy and broadcast VillagerAngry";
 }

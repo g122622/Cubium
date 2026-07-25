@@ -23,7 +23,7 @@
 
 /**
  * @file LivingEntitySwingBroadcastTest.cpp
- * @brief LivingEntity::swing() 服务端广播 EntityAnimationPacket 单元测试
+ * @brief LivingEntity::swing() 服务端广播 EntityAnimation(SwingMainHand/SwingOffHand) 单元测试
  *
  * 验证服务端调用 LivingEntity::swing(Hand) 时通过 IWorld::broadcastEntityAnimation
  * 广播挥动动画事件，对应 MC 1.21.11 LivingEntity.swing() 中发送
@@ -48,7 +48,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 using namespace mc;
@@ -138,8 +138,7 @@ TEST(LivingEntitySwingBroadcastTest, Swing_MainHand_BroadcastsSwingMainHand)
 
     ASSERT_TRUE(world.hasAnimationRecord()) << "服务端 swing(MainHand) 应广播动画事件";
     EXPECT_EQ(world.lastAnimation().entityId, entity.id()) << "广播的 entityId 应为挥动实体自身 ID";
-    EXPECT_EQ(
-        world.lastAnimation().animation, static_cast<u8>(network::EntityAnimationPacket::Animation::SwingMainHand))
+    EXPECT_EQ(world.lastAnimation().animation, static_cast<u8>(network::EntityAnimation::SwingMainHand))
         << "swing(MainHand) 应广播 SwingMainHand=0";
 }
 
@@ -170,7 +169,7 @@ TEST(LivingEntitySwingBroadcastTest, Swing_OffHand_BroadcastsSwingOffHand)
 
     ASSERT_TRUE(world.hasAnimationRecord()) << "服务端 swing(OffHand) 应广播动画事件";
     EXPECT_EQ(world.lastAnimation().entityId, entity.id());
-    EXPECT_EQ(world.lastAnimation().animation, static_cast<u8>(network::EntityAnimationPacket::Animation::SwingOffHand))
+    EXPECT_EQ(world.lastAnimation().animation, static_cast<u8>(network::EntityAnimation::SwingOffHand))
         << "swing(OffHand) 应广播 SwingOffHand=3";
 }
 
@@ -260,6 +259,5 @@ TEST(LivingEntitySwingBroadcastTest, SwingArm_EquivalentToSwingMainHand)
     entity.swingArm();
 
     ASSERT_TRUE(world.hasAnimationRecord()) << "swingArm() 应通过 swing(MainHand) 广播动画事件";
-    EXPECT_EQ(
-        world.lastAnimation().animation, static_cast<u8>(network::EntityAnimationPacket::Animation::SwingMainHand));
+    EXPECT_EQ(world.lastAnimation().animation, static_cast<u8>(network::EntityAnimation::SwingMainHand));
 }

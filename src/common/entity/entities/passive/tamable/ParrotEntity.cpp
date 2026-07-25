@@ -27,7 +27,6 @@
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ActionResult.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../network/packet/EntityPackets.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
@@ -43,6 +42,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 
 namespace mc {
 
@@ -149,7 +149,7 @@ void ParrotEntity::onTamed(bool tamed)
     // 驯服状态改变时触发。
     // interactMob 喂食路径已在调用 setTamed 前播放 ENTITY_PARROT_EAT，此处不再重复播放，
     // 否则 1/10 驯服成功时会产生两次 eat 音效（与 MC 行为不符且导致测试 flaky）。
-    // 驯服成功粒子通过 EntityStatusPacket::TamingSucceeded 广播，由客户端生成心形粒子。
+    // 驯服成功粒子通过 network::EntityStatus::TamingSucceeded 广播，由客户端生成心形粒子。
     MC_UNUSED(tamed);
 }
 
@@ -185,12 +185,10 @@ ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
                 m_world->onTameAnimal(player.playerId(), this);
 
                 // 广播驯服成功状态（心形粒子）
-                m_world->broadcastEntityStatus(
-                    id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingSucceeded));
             } else {
                 // 驯服失败，广播烟雾粒子
-                m_world->broadcastEntityStatus(
-                    id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingFailed));
             }
         }
 

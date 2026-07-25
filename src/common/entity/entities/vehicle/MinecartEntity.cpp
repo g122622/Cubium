@@ -35,7 +35,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -1365,7 +1365,7 @@ void TNTMinecartEntity::_ignite(const DamageSource* source)
     if (worldPtr && !worldPtr->isClientSide()) {
         // 广播实体状态 10，通知客户端 TNT 矿车已被引燃
         // 客户端收到 status 10 后设置 fuse 值以渲染闪烁效果
-        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::EatBlock));
 
         // 播放 TNT 引燃音效
         playSound(SoundEvents::ENTITY_TNT_PRIMED, 1.0f, 1.0f);
@@ -1892,7 +1892,7 @@ void SpawnerMinecartEntity::tick()
             // 成功生成实体后广播刷怪笼粒子事件
             // 对应 MC Java BaseSpawner.serverTick() 中成功生成后调用
             // level.broadcastEntityEvent(MinecartSpawner.this, (byte)1)
-            // 参考 EntityStatusPacket::Status::SpawnerEvent(1)
+            // 参考 network::EntityStatus byte 1（刷怪笼生成事件，本枚举未收录，直接用字面量）
             w.broadcastEntityStatus(id(), static_cast<u8>(1));
         });
     }

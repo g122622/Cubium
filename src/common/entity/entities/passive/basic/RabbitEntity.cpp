@@ -53,7 +53,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -333,7 +333,7 @@ void RabbitEntity::startJumping()
     // 注意：MC 中广播发生在 jumpFromGround() 内（物理跳跃时刻），此处略早一个 tick，
     // 但客户端位置插值会平滑过渡，视觉上无差异。
     if (auto* worldPtr = world(); worldPtr != nullptr) {
-        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump));
+        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::RabbitJump));
     }
 }
 

@@ -50,7 +50,7 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "spdlog/spdlog.h"
 
@@ -2137,8 +2137,7 @@ bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects)
         // 播放传送粒子效果
         // 客户端收到后会播放末影人传送粒子
         if (m_world != nullptr) {
-            m_world->broadcastEntityStatus(
-                m_id, static_cast<u8>(network::EntityStatusPacket::Status::TeleportParticles));
+            m_world->broadcastEntityStatus(m_id, static_cast<u8>(network::EntityStatus::TeleportParticles));
         }
 
         // 播放传送音效

@@ -34,7 +34,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -150,15 +150,13 @@ void IronGolemEntity::setHoldingRose(bool holding)
         m_holdRoseTick = 400; // 400 ticks = 20秒
         // 广播实体状态到客户端：开始持花
         if (m_world != nullptr) {
-            m_world->broadcastEntityStatus(
-                id(), static_cast<u8>(network::EntityStatusPacket::Status::IronGolemHoldRose));
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::IronGolemHoldRose));
         }
     } else {
         m_holdRoseTick = 0;
         // 广播实体状态到客户端：停止持花
         if (m_world != nullptr) {
-            m_world->broadcastEntityStatus(
-                id(), static_cast<u8>(network::EntityStatusPacket::Status::IronGolemStopRose));
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::IronGolemStopRose));
         }
     }
 }
@@ -171,7 +169,7 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
 
     // 广播攻击动画到客户端
     if (m_world != nullptr) {
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::IronGolemAttack));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::IronGolemAttack));
     }
 
     // 计算伤害：随机化伤害值

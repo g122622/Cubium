@@ -53,13 +53,13 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -143,8 +143,7 @@ void VillagerEntity::tick()
             BlockPos villagerPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
             auto* raid = raidManager->getRaidAt(villagerPos);
             if (raid != nullptr && raid->status() == world::village::raid::RaidStatus::Ongoing) {
-                m_world->broadcastEntityStatus(
-                    id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerSplash));
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::VillagerSplash));
             }
         }
     }
@@ -272,8 +271,7 @@ void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
 
             // 只有被玩家攻击时才广播愤怒粒子效果
             if (isAlive()) {
-                m_world->broadcastEntityStatus(
-                    id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::VillagerAngry));
             }
         }
     }
@@ -1040,7 +1038,7 @@ void VillagerEntity::_handleTradeReputation()
     }
 
     // 播放开心村民粒子效果
-    m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHappy));
+    m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::VillagerHappy));
 }
 
 void VillagerEntity::_increaseMerchantCareer()

@@ -24,7 +24,7 @@
 #include "AgeableEntity.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -117,8 +117,7 @@ void AgeableEntity::updateAge()
 
             // MC原版 AgeableMob.aiStep: 幼体被喂食加速成长时，每4tick显示开心村民粒子
             if (m_forcedAgeTimer % 4 == 0 && m_world != nullptr) {
-                m_world->broadcastEntityStatus(
-                    id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHappy));
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::VillagerHappy));
             }
         }
 

@@ -26,7 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -577,7 +577,7 @@ TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEatBlockStatus)
     // 验证广播了 EatBlock(10) 状态
     EXPECT_EQ(world.getBroadcastCount(), 1);
     EXPECT_EQ(mob.id(), world.getLastBroadcastEntityId());
-    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatus::EatBlock));
 }
 
 TEST_F(EatGrassGoalGameRuleTest, BroadcastsCorrectEntityId)
@@ -615,7 +615,7 @@ TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEvenWithoutGrass)
 
     // startExecuting 总是广播 EatBlock 状态
     EXPECT_EQ(world.getBroadcastCount(), 1);
-    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatus::EatBlock));
 }
 
 // ============================================================================

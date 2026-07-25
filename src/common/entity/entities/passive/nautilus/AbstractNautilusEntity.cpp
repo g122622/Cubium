@@ -48,7 +48,7 @@
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -641,12 +641,12 @@ void AbstractNautilusEntity::tryToTame(Player& player)
 
         // 广播驯服成功事件（爱心粒子）
         if (m_world != nullptr) {
-            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingSucceeded));
         }
     } else {
         // 驯服失败（烟雾粒子）
         if (m_world != nullptr) {
-            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+            m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingFailed));
         }
     }
 

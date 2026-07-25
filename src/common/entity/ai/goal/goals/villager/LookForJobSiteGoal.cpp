@@ -28,7 +28,7 @@
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -125,7 +125,7 @@ void LookForJobSiteGoal::tick()
             // MC原版 AssignProfessionFromJobSite：绑定工作站后播放开心村民粒子
             if (m_villager->world() != nullptr) {
                 m_villager->world()->broadcastEntityStatus(
-                    m_villager->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHappy));
+                    m_villager->id(), static_cast<u8>(network::EntityStatus::VillagerHappy));
             }
 
             m_targetSite = std::nullopt;

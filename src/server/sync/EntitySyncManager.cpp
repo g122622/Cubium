@@ -22,8 +22,6 @@
  */
 
 #include "EntitySyncManager.hpp"
-#include "common/network/packet/EntityPackets.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>

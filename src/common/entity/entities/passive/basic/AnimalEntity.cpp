@@ -40,7 +40,7 @@
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -153,7 +153,7 @@ void AnimalEntity::setInLove(u64 playerUuid)
 
     // 广播状态更新（用于客户端繁殖爱心粒子效果）
     if (world() != nullptr) {
-        world()->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::LoveHeart));
+        world()->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::LoveHeart));
     }
 }
 

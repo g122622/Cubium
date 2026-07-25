@@ -61,9 +61,9 @@
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/EntityPackets.hpp" // EntityAnimationPacket::Animation / EntityStatusPacket::Status 枚举（Step5 删旧体系时迁出）
 #include "common/network/packet/InventoryPackets.hpp" // ClickAction 枚举
-#include "common/network/protocol/TitleActions.hpp"   // TitleAction 枚举（TitleWidget::handleTitlePacket 用）
+#include "common/network/protocol/EntityEvents.hpp" // EntityAnimation / EntityStatus 枚举（客户端入站动画/状态字节分流用）
+#include "common/network/protocol/TitleActions.hpp" // TitleAction 枚举（TitleWidget::handleTitlePacket 用）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
@@ -1013,7 +1013,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 if (!entity) {
                     return Result<void>::ok();
                 }
-                using Animation = mc::network::EntityAnimationPacket::Animation;
+                using Animation = mc::network::EntityAnimation;
                 switch (static_cast<Animation>(p.action)) {
                     case Animation::SwingMainHand:
                         entity->triggerSwingAnimation(0);
@@ -1444,13 +1444,13 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     entityPos = glm::vec3(entity->x(), entity->y(), entity->z());
                 }
                 switch (status) {
-                    case static_cast<u8>(EntityStatusPacket::Status::GuardianAttack): {
+                    case static_cast<u8>(EntityStatus::GuardianAttack): {
                         if (m_app.m_audioService) {
                             m_app.m_audioService->onGuardianAttack(entityId);
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::TamingSucceeded): {
+                    case static_cast<u8>(EntityStatus::TamingSucceeded): {
                         if (m_app.m_world.particleManager() != nullptr) {
                             f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
                             f32 entityHeight = entity != nullptr ? entity->height() : 1.8f;
@@ -1468,7 +1468,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::TamingFailed): {
+                    case static_cast<u8>(EntityStatus::TamingFailed): {
                         if (m_app.m_world.particleManager() != nullptr) {
                             f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
                             f32 entityHeight = entity != nullptr ? entity->height() : 1.8f;
@@ -1486,7 +1486,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::LoveHeart): {
+                    case static_cast<u8>(EntityStatus::LoveHeart): {
                         if (m_app.m_world.particleManager() != nullptr) {
                             glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                             m_app.m_world.particleManager()->addPendingParticle(::mc::particle::ParticleTypeId::Heart,
@@ -1496,7 +1496,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::EatBlock): {
+                    case static_cast<u8>(EntityStatus::EatBlock): {
                         if (entity != nullptr) {
                             if (entity->entityType() == mc::entity::VanillaEntityTypeKeys::TNT_MINECART) {
                                 entity->setFuseTimer(80);
@@ -1506,7 +1506,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::ShakeOffWater): {
+                    case static_cast<u8>(EntityStatus::ShakeOffWater): {
                         if (entity != nullptr) {
                             const std::string& typeId = entity->getTypeId();
                             if (typeId == "minecraft:wolf" || typeId == "wolf") {
@@ -1518,7 +1518,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::WolfStopShaking): {
+                    case static_cast<u8>(EntityStatus::WolfStopShaking): {
                         if (entity != nullptr) {
                             const std::string& typeId = entity->getTypeId();
                             if (typeId == "minecraft:wolf" || typeId == "wolf") {
@@ -1529,7 +1529,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::RabbitJump): {
+                    case static_cast<u8>(EntityStatus::RabbitJump): {
                         if (entity != nullptr) {
                             const std::string& typeId = entity->getTypeId();
                             if (typeId == "minecraft:rabbit" || typeId == "rabbit") {
@@ -1538,13 +1538,12 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::OcelotTrustSucceeded):
-                    case static_cast<u8>(EntityStatusPacket::Status::OcelotTrustFailed): {
+                    case static_cast<u8>(EntityStatus::OcelotTrustSucceeded):
+                    case static_cast<u8>(EntityStatus::OcelotTrustFailed): {
                         if (m_app.m_world.particleManager() != nullptr) {
                             f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
                             f32 entityHeight = entity != nullptr ? entity->height() : 0.7f;
-                            const auto particleType =
-                                (status == static_cast<u8>(EntityStatusPacket::Status::OcelotTrustSucceeded))
+                            const auto particleType = (status == static_cast<u8>(EntityStatus::OcelotTrustSucceeded))
                                 ? ::mc::particle::ParticleTypeId::Heart
                                 : ::mc::particle::ParticleTypeId::Smoke;
                             for (i32 i = 0; i < 7; ++i) {
@@ -1561,7 +1560,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::TeleportParticles): {
+                    case static_cast<u8>(EntityStatus::TeleportParticles): {
                         if (m_app.m_world.particleManager() != nullptr) {
                             for (i32 i = 0; i < 16; ++i) {
                                 f32 rx = m_app.m_random.nextFloat(-1.0f, 1.0f);
@@ -1577,7 +1576,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::IronGolemAttack): {
+                    case static_cast<u8>(EntityStatus::IronGolemAttack): {
                         if (entity != nullptr) {
                             const std::string& typeId = entity->getTypeId();
                             if (typeId == "minecraft:hoglin" || typeId == "hoglin" || typeId == "minecraft:zoglin" ||
@@ -1627,29 +1626,29 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::IronGolemHoldRose): {
+                    case static_cast<u8>(EntityStatus::IronGolemHoldRose): {
                         if (entity != nullptr) {
                             entity->setIronGolemHoldingRose(true);
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::IronGolemStopRose): {
+                    case static_cast<u8>(EntityStatus::IronGolemStopRose): {
                         if (entity != nullptr) {
                             entity->setIronGolemHoldingRose(false);
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::VillagerHeart):
-                    case static_cast<u8>(EntityStatusPacket::Status::VillagerAngry):
-                    case static_cast<u8>(EntityStatusPacket::Status::VillagerHappy):
-                    case static_cast<u8>(EntityStatusPacket::Status::VillagerSplash): {
+                    case static_cast<u8>(EntityStatus::VillagerHeart):
+                    case static_cast<u8>(EntityStatus::VillagerAngry):
+                    case static_cast<u8>(EntityStatus::VillagerHappy):
+                    case static_cast<u8>(EntityStatus::VillagerSplash): {
                         if (m_app.m_world.particleManager() != nullptr) {
                             ::mc::particle::ParticleTypeId ptype = ::mc::particle::ParticleTypeId::Heart;
-                            if (status == static_cast<u8>(EntityStatusPacket::Status::VillagerAngry)) {
+                            if (status == static_cast<u8>(EntityStatus::VillagerAngry)) {
                                 ptype = ::mc::particle::ParticleTypeId::AngryVillager;
-                            } else if (status == static_cast<u8>(EntityStatusPacket::Status::VillagerHappy)) {
+                            } else if (status == static_cast<u8>(EntityStatus::VillagerHappy)) {
                                 ptype = ::mc::particle::ParticleTypeId::HappyVillager;
-                            } else if (status == static_cast<u8>(EntityStatusPacket::Status::VillagerSplash)) {
+                            } else if (status == static_cast<u8>(EntityStatus::VillagerSplash)) {
                                 ptype = ::mc::particle::ParticleTypeId::Splash;
                             }
                             for (i32 i = 0; i < 5; ++i) {
@@ -1666,12 +1665,12 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                         break;
                     }
-                    case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakMainHand):
-                    case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakOffHand):
-                    case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakHead):
-                    case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakChest):
-                    case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakLegs):
-                    case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakFeet): {
+                    case static_cast<u8>(EntityStatus::EquipmentBreakMainHand):
+                    case static_cast<u8>(EntityStatus::EquipmentBreakOffHand):
+                    case static_cast<u8>(EntityStatus::EquipmentBreakHead):
+                    case static_cast<u8>(EntityStatus::EquipmentBreakChest):
+                    case static_cast<u8>(EntityStatus::EquipmentBreakLegs):
+                    case static_cast<u8>(EntityStatus::EquipmentBreakFeet): {
                         if (m_app.m_audioService) {
                             auto sound =
                                 mc::client::sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_ITEM_BREAK,
@@ -1700,7 +1699,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         break;
                     }
                     default: {
-                        i32 permLevel = EntityStatusPacket::toPermissionLevel(status);
+                        i32 permLevel = toPermissionLevel(status);
                         if (permLevel >= 0) {
                             if (m_app.m_localIdentity.isLocalPlayerEntity(static_cast<EntityInstanceId>(entityId))) {
                                 if (m_app.m_player) {

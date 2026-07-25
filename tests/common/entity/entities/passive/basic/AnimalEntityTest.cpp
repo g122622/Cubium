@@ -27,7 +27,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -326,7 +326,7 @@ TEST(AnimalEntitySetInLoveTest, BroadcastsLoveHeartStatus)
     // 验证广播了正确状态
     EXPECT_EQ(world.getBroadcastCount(), 1);
     EXPECT_EQ(world.getLastBroadcastEntityId(), EntityInstanceId(42));
-    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::LoveHeart));
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatus::LoveHeart));
 }
 
 TEST(AnimalEntitySetInLoveTest, SetInLoveWithoutWorldDoesNotCrash)

@@ -47,7 +47,7 @@
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -831,7 +831,7 @@ bool AbstractHorseEntity::setTamedBy(Player* player)
     // MC 1.21.11: this.level().broadcastEntityEvent(this, (byte)7);
     // 发送实体状态包，让客户端显示爱心粒子
     if (m_world != nullptr) {
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingSucceeded));
     }
 
     return true;

@@ -37,7 +37,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -725,8 +725,8 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_WithCod_ReturnsSuccessAndPla
     EXPECT_EQ(world.getBroadcastCount(), 1);
     EXPECT_EQ(world.getLastBroadcastEntityId(), EntityInstanceId(1));
     u8 status = world.getLastBroadcastStatus();
-    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
-        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatus::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatus::TamingFailed));
     EXPECT_TRUE(isValidStatus);
 }
 
@@ -880,8 +880,8 @@ TEST_F(CatEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessOr
     // 应该有广播
     EXPECT_EQ(world.getBroadcastCount(), 1);
     u8 status = world.getLastBroadcastStatus();
-    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
-        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatus::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatus::TamingFailed));
     EXPECT_TRUE(isValidStatus);
 }
 

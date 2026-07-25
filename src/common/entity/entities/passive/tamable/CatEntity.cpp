@@ -47,7 +47,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -525,10 +525,10 @@ void CatEntity::_tryToTame(Player& player)
         m_world->onTameAnimal(player.playerId(), this);
 
         // 广播驯服成功状态（心形粒子）
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingSucceeded));
     } else {
         // 驯服失败，广播烟雾粒子
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::TamingFailed));
     }
 }
 

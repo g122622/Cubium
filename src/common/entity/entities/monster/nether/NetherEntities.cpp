@@ -51,7 +51,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
@@ -771,7 +771,7 @@ bool HoglinEntity::attackLivingTarget(LivingEntity& target)
 
     // 广播攻击动画到客户端（MC 原版使用 entity event 4，与铁傀儡共用状态码）
     if (m_world != nullptr) {
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::HoglinAttack));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::HoglinAttack));
     }
 
     return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
@@ -923,7 +923,7 @@ bool ZoglinEntity::attackLivingTarget(LivingEntity& target)
 
     // 广播攻击动画到客户端（MC 原版使用 entity event 4，与铁傀儡共用状态码）
     if (m_world != nullptr) {
-        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::HoglinAttack));
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::HoglinAttack));
     }
 
     return entity::IFlinging::attackWithFling(*this, target, m_isBaby);

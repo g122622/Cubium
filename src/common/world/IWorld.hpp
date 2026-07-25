@@ -1504,7 +1504,7 @@ public:
      * 用于触发客户端的动画、音效等效果。
      *
      * @param entityId 实体ID
-     * @param status 状态码（如 EntityStatusPacket::Status::GuardianAttack）
+     * @param status 状态码（如 network::EntityStatus::GuardianAttack）
      */
     virtual void broadcastEntityStatus(EntityInstanceId entityId, u8 status)
     {
@@ -1519,7 +1519,7 @@ public:
      * 用于触发客户端的动画效果，如暴击粒子、挥动手臂等。
      *
      * @param entityId 实体ID
-     * @param animation 动画类型（如 EntityAnimationPacket::Animation::CriticalEffect）
+     * @param animation 动画类型（如 network::EntityAnimation::CriticalEffect）
      */
     virtual void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation)
     {

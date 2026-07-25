@@ -25,7 +25,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -146,48 +146,42 @@ TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventMainHand)
     m_living->broadcastBreakEvent(EquipmentSlot::MainHand);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
     EXPECT_EQ(m_world->statusRecords()[0].entityId, EntityInstanceId(42));
-    EXPECT_EQ(m_world->statusRecords()[0].status,
-        static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakMainHand));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakMainHand));
 }
 
 TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventOffHand)
 {
     m_living->broadcastBreakEvent(EquipmentSlot::OffHand);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(m_world->statusRecords()[0].status,
-        static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakOffHand));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakOffHand));
 }
 
 TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventHead)
 {
     m_living->broadcastBreakEvent(EquipmentSlot::Head);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(
-        m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakHead));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakHead));
 }
 
 TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventChest)
 {
     m_living->broadcastBreakEvent(EquipmentSlot::Chest);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(
-        m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakChest));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakChest));
 }
 
 TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventLegs)
 {
     m_living->broadcastBreakEvent(EquipmentSlot::Legs);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(
-        m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakLegs));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakLegs));
 }
 
 TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventFeet)
 {
     m_living->broadcastBreakEvent(EquipmentSlot::Feet);
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
-    EXPECT_EQ(
-        m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakFeet));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakFeet));
 }
 
 TEST_F(LivingEntityBreakEventTest, BroadcastBreakEventNoWorld)
@@ -224,8 +218,7 @@ TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenBroadcastsStatus)
     // 应广播装备破损状态码
     ASSERT_EQ(m_world->statusRecords().size(), 1u);
     EXPECT_EQ(m_world->statusRecords()[0].entityId, EntityInstanceId(42));
-    EXPECT_EQ(
-        m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatusPacket::Status::EquipmentBreakHead));
+    EXPECT_EQ(m_world->statusRecords()[0].status, static_cast<u8>(network::EntityStatus::EquipmentBreakHead));
 }
 
 TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenBothBroadcastAndSound)
@@ -267,16 +260,16 @@ TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenAllSlotsCorrectStatus)
     // 验证每个装备槽位对应的正确状态码
     struct TestCase {
         EquipmentSlot slot;
-        network::EntityStatusPacket::Status expectedStatus;
+        network::EntityStatus expectedStatus;
     };
 
     const TestCase testCases[] = {
-        {EquipmentSlot::MainHand, network::EntityStatusPacket::Status::EquipmentBreakMainHand},
-        {EquipmentSlot::OffHand, network::EntityStatusPacket::Status::EquipmentBreakOffHand},
-        {EquipmentSlot::Head, network::EntityStatusPacket::Status::EquipmentBreakHead},
-        {EquipmentSlot::Chest, network::EntityStatusPacket::Status::EquipmentBreakChest},
-        {EquipmentSlot::Legs, network::EntityStatusPacket::Status::EquipmentBreakLegs},
-        {EquipmentSlot::Feet, network::EntityStatusPacket::Status::EquipmentBreakFeet},
+        {EquipmentSlot::MainHand, network::EntityStatus::EquipmentBreakMainHand},
+        {EquipmentSlot::OffHand, network::EntityStatus::EquipmentBreakOffHand},
+        {EquipmentSlot::Head, network::EntityStatus::EquipmentBreakHead},
+        {EquipmentSlot::Chest, network::EntityStatus::EquipmentBreakChest},
+        {EquipmentSlot::Legs, network::EntityStatus::EquipmentBreakLegs},
+        {EquipmentSlot::Feet, network::EntityStatus::EquipmentBreakFeet},
     };
 
     for (const auto& tc : testCases) {
@@ -296,18 +289,18 @@ TEST_F(LivingEntityBreakEventTest, OnEquippedItemBrokenAllSlotsCorrectStatus)
 
 TEST_F(LivingEntityBreakEventTest, EquipmentBreakStatusMapping)
 {
-    // 验证 EntityStatusPacket::equipmentBreakStatus 的槽位到状态码映射
-    using Status = network::EntityStatusPacket::Status;
+    // 验证 equipmentBreakStatus 的槽位到状态码映射
+    using Status = network::EntityStatus;
 
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(0), Status::EquipmentBreakMainHand);
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(1), Status::EquipmentBreakOffHand);
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(5), Status::EquipmentBreakHead);
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(4), Status::EquipmentBreakChest);
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(3), Status::EquipmentBreakLegs);
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(2), Status::EquipmentBreakFeet);
+    EXPECT_EQ(network::equipmentBreakStatus(0), Status::EquipmentBreakMainHand);
+    EXPECT_EQ(network::equipmentBreakStatus(1), Status::EquipmentBreakOffHand);
+    EXPECT_EQ(network::equipmentBreakStatus(5), Status::EquipmentBreakHead);
+    EXPECT_EQ(network::equipmentBreakStatus(4), Status::EquipmentBreakChest);
+    EXPECT_EQ(network::equipmentBreakStatus(3), Status::EquipmentBreakLegs);
+    EXPECT_EQ(network::equipmentBreakStatus(2), Status::EquipmentBreakFeet);
 
     // 无效槽位应回退到 MainHand
-    EXPECT_EQ(network::EntityStatusPacket::equipmentBreakStatus(99), Status::EquipmentBreakMainHand);
+    EXPECT_EQ(network::equipmentBreakStatus(99), Status::EquipmentBreakMainHand);
 }
 
 // ============================================================================
@@ -319,7 +312,7 @@ TEST_F(LivingEntityBreakEventTest, EquipmentBreakStatusValuesMatchMC)
     // 验证状态码值与 MC 原版一致
     // MC 原版 LivingEntity.entityEventForEquipmentBreak 映射：
     // MainHand=47, OffHand=48, Head=49, Chest=50, Legs=51, Feet=52
-    using Status = network::EntityStatusPacket::Status;
+    using Status = network::EntityStatus;
 
     EXPECT_EQ(static_cast<u8>(Status::EquipmentBreakMainHand), 47);
     EXPECT_EQ(static_cast<u8>(Status::EquipmentBreakOffHand), 48);

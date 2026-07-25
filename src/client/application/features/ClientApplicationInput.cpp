@@ -431,41 +431,25 @@ void ClientApplication::sendPlayerPosition()
     bool rotationChanged =
         std::abs(m_player->yaw() - m_lastSentYaw) > 0.01f || std::abs(m_player->pitch() - m_lastSentPitch) > 0.01f;
 
-    network::PlayerMovePacket::MoveType type;
-    if (positionChanged && rotationChanged) {
-        type = network::PlayerMovePacket::MoveType::Full;
-    } else if (positionChanged) {
-        type = network::PlayerMovePacket::MoveType::Position;
-    } else if (rotationChanged) {
-        type = network::PlayerMovePacket::MoveType::Rotation;
-    } else {
-        type = network::PlayerMovePacket::MoveType::GroundOnly;
-    }
-
     // 1.21.11 四个 MovePlayer 变体：PosRot/Pos/Rot/StatusOnly，共用 MovePlayerFlags。
+    // 直接按 positionChanged/rotationChanged 选择变体，无需旧 PlayerMovePacket::MoveType 判别枚举。
     namespace irplay = mc::network::ir::play;
     const irplay::MovePlayerFlags flags{m_player->onGround(), false};
     mc::network::ir::PlayPacket pkt;
-    switch (type) {
-        case network::PlayerMovePacket::MoveType::Full:
-            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerPosRot{static_cast<f64>(pos.x),
-                static_cast<f64>(pos.y),
-                static_cast<f64>(pos.z),
-                m_player->yaw(),
-                m_player->pitch(),
-                flags}};
-            break;
-        case network::PlayerMovePacket::MoveType::Position:
-            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerPos{
-                static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z), flags}};
-            break;
-        case network::PlayerMovePacket::MoveType::Rotation:
-            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerRot{m_player->yaw(), m_player->pitch(), flags}};
-            break;
-        case network::PlayerMovePacket::MoveType::GroundOnly:
-        default:
-            pkt = mc::network::ir::PlayPacket{irplay::MovePlayerStatusOnly{flags}};
-            break;
+    if (positionChanged && rotationChanged) {
+        pkt = mc::network::ir::PlayPacket{irplay::MovePlayerPosRot{static_cast<f64>(pos.x),
+            static_cast<f64>(pos.y),
+            static_cast<f64>(pos.z),
+            m_player->yaw(),
+            m_player->pitch(),
+            flags}};
+    } else if (positionChanged) {
+        pkt = mc::network::ir::PlayPacket{
+            irplay::MovePlayerPos{static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z), flags}};
+    } else if (rotationChanged) {
+        pkt = mc::network::ir::PlayPacket{irplay::MovePlayerRot{m_player->yaw(), m_player->pitch(), flags}};
+    } else {
+        pkt = mc::network::ir::PlayPacket{irplay::MovePlayerStatusOnly{flags}};
     }
     (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play, std::move(pkt)});
 

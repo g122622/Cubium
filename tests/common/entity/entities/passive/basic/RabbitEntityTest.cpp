@@ -32,7 +32,7 @@
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -664,7 +664,7 @@ TEST_F(RabbitEntityTest, Jump_StartJumping_BroadcastsRabbitJumpStatus)
 
     EXPECT_EQ(m_world.broadcastCount(), 1);
     EXPECT_EQ(m_world.lastBroadcastEntityId(), EntityInstanceId(42));
-    EXPECT_EQ(m_world.lastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump));
+    EXPECT_EQ(m_world.lastBroadcastStatus(), static_cast<u8>(network::EntityStatus::RabbitJump));
 }
 
 TEST_F(RabbitEntityTest, Jump_StartJumping_IdempotentWhileJumping)
@@ -865,7 +865,7 @@ TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_PartialTickRange)
 TEST_F(RabbitEntityTest, Jump_RabbitJumpStatusConstant_IsOne)
 {
     // 验证 RabbitJump 状态码 = 1（对应 MC byte 1）
-    EXPECT_EQ(static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump), 1);
+    EXPECT_EQ(static_cast<u8>(network::EntityStatus::RabbitJump), 1);
 }
 
 // ========== RabbitJumpControl 控制器测试 ==========
@@ -924,7 +924,7 @@ TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_TriggersStartJumping)
     EXPECT_TRUE(rabbit.isJumping());
     EXPECT_FALSE(rabbitJumpCtrl->wantJump()); // wantJump 应被清除
     EXPECT_EQ(m_world.broadcastCount(), 1);
-    EXPECT_EQ(m_world.lastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::RabbitJump));
+    EXPECT_EQ(m_world.lastBroadcastStatus(), static_cast<u8>(network::EntityStatus::RabbitJump));
 }
 
 TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_IdempotentWhenAlreadyJumping)

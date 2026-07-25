@@ -31,7 +31,6 @@
 #include "../../../item/items/armor/ArmorItem.hpp"
 #include "../../../item/items/tool/SwordItem.hpp"
 #include "../../../item/items/trial/MaceItem.hpp"
-#include "../../../network/packet/EntityPackets.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../sound/SoundCategory.hpp"
@@ -66,6 +65,7 @@
 #include "GameModeUtils.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "spdlog/spdlog.h"
@@ -2551,7 +2551,7 @@ void Player::attack(Entity& target)
             // 发送暴击动画包，在目标实体周围生成暴击粒子
             if (m_world) {
                 m_world->broadcastEntityAnimation(
-                    target.id(), static_cast<u8>(network::EntityAnimationPacket::Animation::CriticalEffect));
+                    target.id(), static_cast<u8>(network::EntityAnimation::CriticalEffect));
             }
         } else if (canSweep && !playedAttackSound) {
             // 横扫音效已在上面播放
@@ -2561,7 +2561,7 @@ void Player::attack(Entity& target)
         // 附魔暴击：附魔额外伤害大于 0 时，发送魔法暴击动画包
         if (enchantDamage > 0.0f && m_world) {
             m_world->broadcastEntityAnimation(
-                target.id(), static_cast<u8>(network::EntityAnimationPacket::Animation::MagicCriticalEffect));
+                target.id(), static_cast<u8>(network::EntityAnimation::MagicCriticalEffect));
         }
 
         // 如果没有播放特殊音效，根据冷却强度播放普通攻击音效

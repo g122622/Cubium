@@ -30,7 +30,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/EntityPackets.hpp"
+#include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -704,8 +704,8 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
 
     // 广播状态应该是 TamingSucceeded(7) 或 TamingFailed(6)
     u8 status = world.getLastBroadcastStatus();
-    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
-        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatus::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatus::TamingFailed));
     EXPECT_TRUE(isValidStatus);
 }
 
