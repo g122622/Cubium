@@ -759,7 +759,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
         return;
     }
 
-    // 本地客户端：内联容器点击三突变（与 ContainerPacketHandler::handleContainerClick 等价），
+    // 本地客户端：内联容器点击三突变（与 ContainerManager::handleClick 等价），
     // 不再重建旧 ContainerClickPacket。本地路径用 m_openMenu（非 ContainerManager 的多玩家 map）。
     // TODO(Phase6): 容器点击协议应直接对齐 1.21.11 ContainerClick(stateId+changedSlots)。
     auto* player = _getPlayerData();
@@ -832,7 +832,7 @@ void IntegratedServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const 
     }
 
     // 本地客户端：在 containerId=0 上建立容器菜单，使后续
-    // ContainerClickPacket 能被正确受理（修复历史点击静默丢弃问题）。
+    // ContainerClick 包能被正确受理（修复历史点击静默丢弃问题）。
     // 创造模式建立 ItemPickerMenu（承载创造取物 clone 协议），生存/冒险模式建立
     // InventoryCraftingMenu（普通背包合成）。
     auto* player = _getPlayerData();
@@ -1294,9 +1294,9 @@ void IntegratedServer::_openItemPickerMenu()
     m_clientInventory.setPlayer(&menuPlayer);
 
     // 创造模式背包复用 containerId=0（PLAYER_CONTAINER_ID），但建立 ItemPickerMenu
-    // 承载创造取物协议：调色板点击经 ContainerClickPacket(ClickAction::Clone) 进
+    // 承载创造取物协议：调色板点击经 ContainerClick(ClickAction::Clone) 进
     // menu->clicked 的虚拟槽分支，服务端从本地创造物品池 clone 到光标，再经
-    // ContainerContentPacket 的 carried 字段回传客户端。
+    // ContainerSetContent 包的 carried 字段回传客户端。
     auto menu = std::make_unique<ItemPickerMenu>(mc::inventory::PLAYER_CONTAINER_ID, &m_clientInventory);
 
     _sendContainerContent(*menu);

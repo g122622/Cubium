@@ -170,7 +170,7 @@ void ClientApplication::openInventoryScreen()
     }
 
     // 通知服务端在 containerId=0 上建立 InventoryCraftingMenu，使后续
-    // ContainerClickPacket 能被正确受理（修复点击静默丢弃）。
+    // ContainerClick 包能被正确受理（修复点击静默丢弃）。
     if (m_network && m_player) {
         (void)m_network->send(makeOpenPlayerInventoryPacket(m_player->playerId()));
     }
@@ -217,7 +217,7 @@ void ClientApplication::openCreativeScreen()
     }
 
     // 通知服务端在 containerId=0 上建立 ItemPickerMenu（创造模式分流），使后续
-    // ContainerClickPacket（含调色板 Clone）能被正确受理。
+    // ContainerClick 包（含调色板 Clone）能被正确受理。
     if (m_network && m_player) {
         (void)m_network->send(makeOpenPlayerInventoryPacket(m_player->playerId()));
     }

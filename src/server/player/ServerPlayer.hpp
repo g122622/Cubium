@@ -256,7 +256,7 @@ public:
      * @brief 记录受伤方向并广播受伤动画包给追踪者（含受害者自己）
      *
      * ServerPlayer.indicateDamage：设置 hurtDir 后发送
-     * ClientboundHurtAnimationPacket（本项目复用 EntityAnimationPacket::TakeDamage + hurtDir）。
+     * ir::play::HurtAnimation（entityId + hurtDir）。
      * 客户端据此驱动 damageTilt（bobHurt）屏幕倾斜。
      */
     void indicateDamage(f64 d0, f64 d1) override;

@@ -256,7 +256,7 @@ public:
     /**
      * @brief 向指定玩家发送权限等级变更通知
      *
-     * 通过 EntityStatusPacket 通知客户端玩家的权限等级已变更，
+     * 通过 IR ir::play::EntityEvent 通知客户端玩家的权限等级已变更，
      * 客户端收到后会更新本地玩家的 m_permissionLevel。
      * 应在 /op、/deop 命令执行后以及玩家登录时调用。
      *

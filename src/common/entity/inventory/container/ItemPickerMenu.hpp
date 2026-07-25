@@ -107,7 +107,7 @@ public:
      * @brief 虚拟调色板槽索引基址
      *
      * slotIndex >= 此值的点击被 `clicked` 识别为创造调色板取物（Clone 语义）。
-     * 取值远大于真实槽位数，避免与背包槽冲突；`ContainerPacketHandler` 不预检
+     * 取值远大于真实槽位数，避免与背包槽冲突；`ContainerManager` 不预检
      * slotIndex 范围，故虚拟索引安全。
      */
     static constexpr i32 PALETTE_VIRTUAL_BASE = 10000;

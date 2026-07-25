@@ -62,7 +62,7 @@ using namespace mc;
 // ============================================================================
 // ClickAction/ClickType 映射测试
 // 验证 ContainerInteraction::_actionToClickType 的映射逻辑
-// （此映射逻辑与 ContainerPacketHandler::toClickType 一致）
+// （此映射逻辑与 ContainerTypes::toClickType 一致）
 // ============================================================================
 
 class ContainerScreenInteractionTest : public ::testing::Test {

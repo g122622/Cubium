@@ -3201,7 +3201,7 @@ void MinecraftServer::sendPermissionLevelChange(PlayerId playerId, i32 permissio
         "permissionLevel",
         permissionLevel);
 
-    // 获取玩家实体 ID 用于 EntityStatusPacket
+    // 获取玩家实体 ID 用于 ir::play::EntityEvent
     auto* world = getPlayerWorld(playerId);
     if (world == nullptr) {
         return;

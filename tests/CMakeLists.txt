@@ -659,7 +659,7 @@ add_executable(mc_tests
     # Player LUCK 属性测试
     entity/PlayerLuckAttributeTest.cpp
     entity/LivingEntityTests.cpp
-    # LivingEntity::swing(Hand) 服务端广播 EntityAnimationPacket 测试
+    # LivingEntity::swing(Hand) 服务端广播 ir::play::Animate 测试
     entity/LivingEntitySwingBroadcastTest.cpp
     entity/HurtMarkedTest.cpp
     entity/AnimalSoundTests.cpp

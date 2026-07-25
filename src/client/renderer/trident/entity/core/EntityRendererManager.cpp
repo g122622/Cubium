@@ -1492,7 +1492,7 @@ void EntityRendererManager::_applyZombieState(
     //
     // attackTime（对应 m_swingProgress）：挥手进度，由 getInterpolatedSwingProgress
     //   提供（基于 LivingEntity 的 m_swingProgressInt 与 partialTicks 插值）。
-    //   服务端触发路径：LivingEntity::swing() 广播 EntityAnimationPacket(SwingMainHand)，
+    //   服务端触发路径：LivingEntity::swing() 广播 ir::play::Animate(SwingMainHand)，
     //     客户端收到后调用 LivingEntity::swing() 重置 m_swingProgressInt = -1 并启动挥手。
     //
     // ZombieModel::setAngles 读取 m_swingProgress 计算 f2/f3 攻击动画因子，并按

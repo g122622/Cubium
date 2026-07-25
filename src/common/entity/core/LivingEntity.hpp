@@ -874,7 +874,7 @@ public:
      * @brief 挥动手臂（攻击动画）- 主手
      *
      * 触发攻击动画，持续6 tick。
-     * 在服务端调用时，会广播 EntityAnimationPacket(SwingMainHand) 给所有追踪玩家，
+     * 在服务端调用时，会广播 ir::play::Animate(SwingMainHand) 给所有追踪玩家，
      * 客户端收到后通过 triggerSwingAnimation 启动本地挥动动画。
      */
     void swingArm() { swing(Hand::MainHand); }
@@ -883,7 +883,7 @@ public:
      * @brief 挥动手臂（攻击动画）- 指定手
      *
      * 触发攻击动画，持续6 tick。
-     * 在服务端调用时，会广播 EntityAnimationPacket(SwingMainHand/SwingOffHand) 给所有追踪玩家，
+     * 在服务端调用时，会广播 ir::play::Animate(SwingMainHand/SwingOffHand) 给所有追踪玩家，
      * 对应 MC 1.21.11 LivingEntity.swing() 中发送 ClientboundAnimatePacket 的逻辑。
      *
      * @param hand 挥动的手（主手或副手）

@@ -432,7 +432,7 @@ void ClientApplication::sendPlayerPosition()
         std::abs(m_player->yaw() - m_lastSentYaw) > 0.01f || std::abs(m_player->pitch() - m_lastSentPitch) > 0.01f;
 
     // 1.21.11 四个 MovePlayer 变体：PosRot/Pos/Rot/StatusOnly，共用 MovePlayerFlags。
-    // 直接按 positionChanged/rotationChanged 选择变体，无需旧 PlayerMovePacket::MoveType 判别枚举。
+    // 直接按 positionChanged/rotationChanged 选择变体，无需额外判别枚举。
     namespace irplay = mc::network::ir::play;
     const irplay::MovePlayerFlags flags{m_player->onGround(), false};
     mc::network::ir::PlayPacket pkt;
