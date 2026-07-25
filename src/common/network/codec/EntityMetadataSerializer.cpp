@@ -21,8 +21,7 @@
  *
  */
 
-#include "EntityMetadataSerializer.hpp"
-#include "PacketSerializer.hpp"
+#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <cstring>
@@ -34,6 +33,12 @@ namespace mc::network {
 // 静态初始化块的注册顺序——注册顺序即整数 ID，wire 上以 VarInt 传输）
 // ============================================================================
 namespace {
+// 字符串长度上限（2^21 - 1，VarInt 3 字节能表示的最大值）。
+// MC 协议字符串长度限制为 32767（Short.MAX_VALUE），但命令树等数据可能超过此限制；
+// 使用 VarInt 编码可支持更大的字符串。原借自 packet/PacketSerializer.hpp::MAX_STRING_LENGTH，
+// 迁出 packet/ 后在此内联，避免跨模块借常量。
+constexpr u32 kMaxStringLength = 2097151u;
+
 // MC 1.21.11 EntityDataSerializers 注册顺序（EntityDataSerializers.java:153-193）
 enum class MetadataSerializerId : i32 {
     Byte = 0,              // i8              (ByteBufCodecs.BYTE)
@@ -339,7 +344,7 @@ i64 EntityMetadataSerializer::_readVarLong(const u8* data, size_t size, size_t& 
 void EntityMetadataSerializer::_writeString(const std::string& str, std::vector<u8>& output) noexcept
 {
     // 截断过长的字符串
-    size_t writeLen = std::min(str.size(), static_cast<size_t>(MAX_STRING_LENGTH));
+    size_t writeLen = std::min(str.size(), static_cast<size_t>(kMaxStringLength));
     // 字符串长度 (VarInt)
     _writeVarInt(static_cast<i32>(writeLen), output);
     // 字符串内容
@@ -354,7 +359,7 @@ std::string EntityMetadataSerializer::_readString(const u8* data, size_t size, s
     if (length < 0) {
         return "";
     }
-    if (static_cast<size_t>(length) > MAX_STRING_LENGTH) {
+    if (static_cast<size_t>(length) > kMaxStringLength) {
         return ""; // 字符串过长，返回空字符串
     }
     if (offset + static_cast<size_t>(length) > size) {

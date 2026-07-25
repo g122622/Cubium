@@ -33,7 +33,7 @@
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
-#include "common/network/packet/EntityMetadataSerializer.hpp"
+#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"

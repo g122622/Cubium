@@ -31,7 +31,7 @@
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/EntityMetadataSerializer.hpp"
+#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/SoundEvents.hpp"

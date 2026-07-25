@@ -42,7 +42,6 @@ add_library(mc_common STATIC
     network/packet/InventoryPackets.cpp
     network/packet/ContainerPacketHandler.cpp
     network/packet/EntityPackets.cpp
-    network/packet/EntityMetadataSerializer.cpp
     network/packet/MapDataPacket.cpp
 
     # Network - 新网络层骨架（IR + 多后端，旧 packet 体系并存过渡）
@@ -50,6 +49,7 @@ add_library(mc_common STATIC
     network/buffer/ByteBuf.cpp
     network/buffer/RegistryByteBuf.cpp
     network/buffer/NbtIo.cpp
+    network/codec/EntityMetadataSerializer.cpp
     network/ir/ItemStackBridge.cpp
     network/crypto/Crypt.cpp
     network/crypto/AesCfb8.cpp
@@ -430,6 +430,7 @@ add_library(mc_common STATIC
     entity/ai/util/PiglinAi.cpp
     entity/ai/util/RandomPositionGenerator.cpp
     entity/inventory/IInventory.cpp
+    entity/inventory/ContainerTypeUtils.cpp
     entity/inventory/InventoryRef.cpp
     entity/inventory/Slot.cpp
     entity/inventory/PlayerInventory.cpp

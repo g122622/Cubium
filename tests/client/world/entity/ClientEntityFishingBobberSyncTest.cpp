@@ -48,7 +48,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
-#include "common/network/packet/EntityMetadataSerializer.hpp"
+#include "common/network/codec/EntityMetadataSerializer.hpp"
 
 using namespace mc;
 using namespace mc::client;

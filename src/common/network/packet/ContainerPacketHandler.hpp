@@ -25,6 +25,7 @@
 
 #include "../../item/crafting/RecipeManager.hpp"
 #include "InventoryPackets.hpp"
+#include "common/entity/inventory/ContainerTypeUtils.hpp"
 #include <functional>
 #include <memory>
 
@@ -92,48 +93,5 @@ public:
      */
     static OpenContainerPacket createOpenContainerPacket(ContainerId containerId, i32 type, const std::string& title);
 };
-
-/**
- * @brief 容器类型工具函数
- */
-namespace ContainerTypes {
-
-/**
- * @brief 获取容器类型的槽位数
- * @param type 容器类型
- * @return 槽位数
- */
-[[nodiscard]] i32 getSlotCount(ContainerType type);
-
-/**
- * @brief 获取容器类型的标题
- * @param type 容器类型
- * @return 默认标题
- */
-[[nodiscard]] const char* getDefaultTitle(ContainerType type);
-
-/**
- * @brief 将容器类型转换为网络传输的u8值
- * @param type 容器类型
- * @return 网络值
- */
-[[nodiscard]] u8 toNetworkType(ContainerType type);
-
-/**
- * @brief 将网络点击动作转换为菜单点击类型
- * @param action 网络点击动作
- * @param button 鼠标按钮或快捷栏索引
- * @return 对应的菜单点击类型
- */
-[[nodiscard]] ClickType toClickType(ClickAction action, i32 button);
-
-/**
- * @brief 将菜单点击类型转换为网络点击动作
- * @param clickType 菜单点击类型
- * @return 对应的网络点击动作
- */
-[[nodiscard]] ClickAction toClickAction(ClickType clickType);
-
-} // namespace ContainerTypes
 
 } // namespace mc
