@@ -74,4 +74,14 @@ Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)
     return tag;
 }
 
+Result<void> skipCompound(ByteBuf& buf)
+{
+    // 复用 readCompound 的定界逻辑推进游标，丢弃解析结果。
+    auto tag = readCompound(buf);
+    if (tag.failed()) {
+        return tag.error();
+    }
+    return Result<void>::ok();
+}
+
 } // namespace mc::network::buffer::nbt_io

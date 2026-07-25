@@ -265,7 +265,8 @@ struct SetCarriedItem {
  * @brief 容器点击槽位变更（1.21.11 用 HashedStack）
  *
  * 对应 Java HashedStack：present=false 空；true 则 itemId+count+组件哈希 patch。
- * TODO(Phase6): 完整 HashedPatchMap（added/removed 组件哈希），当前仅承载 itemId/count。
+ * IR 仅承载 itemId/count；HashedPatchMap（added/removed 组件哈希）在 codec 层双端写空、
+ * 读侧按定界跳过——我方互通自洽，真 Java 互通因哈希值为空而不做组件校验（可接受降级）。
  */
 struct HashedStack {
     bool present;
@@ -330,10 +331,13 @@ struct ConfigurationAcknowledged {
  *
  * 对应 Java ClientboundLoginPacket。commonPlayerSpawnInfo 内联。
  * 线格式见 JavaCodecs（严格对齐 1.21.11 字段顺序）。
- * TODO(Phase6): dimensionType holder 编码对齐 registry。
+ *
+ * dimensionType：我方互通用简单 VarInt(维度 id) 双端透传（客户端 Login 分支不消费该字段）；
+ * Java 1.21.11 用 Holder<DimensionType>（VarInt mode：0=内联 NBT，>0=registry 引用），
+ * 真内联模式未支持——仅影响真 Java 互通，不影响我方互通。
  */
 struct CommonPlayerSpawnInfo {
-    i32 dimensionType;     // 维度类型 id（registry holder，Phase6 细化）
+    i32 dimensionType;     // 维度类型 id（我方互通 VarInt 透传；真 Java holder 编码见 struct 注释）
     std::string dimension; // 维度 ResourceKey，如 "minecraft:overworld"
     i64 seed;
     GameMode gameType;   // 0..3
@@ -454,7 +458,11 @@ struct GameEvent {
  *
  * movement 用 1.21.11 LpVec3 低精度变长格式（codec 实现 LpVec3）。
  * 旋转为 packed degrees（byte）。
- * TODO(Phase6): type 走 EntityType registry holder，当前用 entityTypeId。
+ *
+ * entityTypeId：我方互通用 EntityRegistry 内部 id（VarInt）双端透传，客户端经
+ * EntityRegistry::getTypeById 反查类型。Java 1.21.11 用 Holder<EntityType>
+ * （VarInt mode：0=内联 ResourceLocation，>0=registry 引用）；引用模式与我方 id 语义
+ * 自然对应，内联模式未支持——仅影响真 Java 互通，不影响我方互通。
  */
 struct AddEntity {
     i32 entityId;
@@ -586,7 +594,10 @@ struct SetEntityData {
  * @brief LevelChunkWithLight（S→C，id=44，区块数据 + 光照）
  *
  * 线格式：Int(x)+Int(z)+[heightmaps + buffer + blockEntities]+[光照 masks/updates]。
- * TODO(Phase6): chunk section palette 与 DataValue 对齐 1.21.11。当前 chunkData 透传。
+ *
+ * chunkData/lightData 承载项目内部 ChunkSerializer 自定义格式（非 Java PalettedContainer wire），
+ * 服务端 serializeChunk 产出、客户端 deserializeChunk 消费，双端自洽。真 Java 互通需另起
+ * 1.21.11 wire 适配层（PalettedContainer + BlockEntityInfo 列表），属独立大项，不在本层范围。
  */
 struct LevelChunkWithLight {
     i32 x;
@@ -696,8 +707,9 @@ struct PlayerInfoEntry {
     std::optional<bool> listed;
     // UPDATE_LATENCY
     std::optional<i32> latency;
-    // UPDATE_DISPLAY_NAME
-    std::optional<std::string> displayName; // JSON 组件，nullopt=清空
+    // UPDATE_DISPLAY_NAME：我方不生产/不消费显示名（客户端分支为扩展点），IR 不承载该字段；
+    // codec 读侧遇真 Java 服务端的 displayName 时按 NBT compound 跳过（nbt_io::readCompound），
+    // 写侧固定 Bool(false)。上层接入 ITextComponent NBT codec 后如需展示再补字段。
     // UPDATE_LIST_ORDER
     std::optional<i32> listOrder;
     // UPDATE_HAT

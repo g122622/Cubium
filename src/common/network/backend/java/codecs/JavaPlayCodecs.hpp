@@ -25,6 +25,7 @@
 
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 
 namespace mc::network::backend::java::codecs {
@@ -86,7 +87,8 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
  *
  * 对应 Java HashedStack：present=false 写 Bool(false)；true 写 Bool(true)+ActualItem
  * { VarInt(itemId) + VarInt(count) + HashedPatchMap }。
- * TODO(Phase6): HashedPatchMap（added/removed 组件哈希），当前省略。
+ * HashedPatchMap 我方双端均写空（added=VarInt(0) + removed=VarInt(0)），帧格式完整、
+ * 双端自洽；真 Java 客户端能解析（哈希值为空表示无组件校验）。
  */
 inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
 {
@@ -97,7 +99,9 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     buf.writeBool(true);
     buf.writeVarInt(static_cast<i32>(v.itemId));
     buf.writeVarInt(v.count);
-    // HashedPatchMap 暂省（Phase5）
+    // HashedPatchMap：added(Map) 与 removed(Set) 各以 VarInt(size) 起始。我方写空。
+    buf.writeVarInt(0); // addedComponents size
+    buf.writeVarInt(0); // removedComponents size
 }
 
 [[nodiscard]] inline Result<ir::play::HashedStack> readHashedStack(B& buf)
@@ -113,6 +117,26 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     MC_TRY_ASSIGN(id, buf.readVarInt());
     v.itemId = static_cast<u32>(id);
     MC_TRY_ASSIGN(v.count, buf.readVarInt());
+    // 跳过 HashedPatchMap：added(Map<DataComponentType,Int>) + removed(Set<DataComponentType>)。
+    // 每项以 VarInt(registryId) 标识组件类型；Map 项多一个 Int 哈希值。我方不消费哈希，仅按定界跳过，
+    // 保证真 Java 服务端发来的带组件哈希的 HashedStack 不错位。
+    i32 addedCount = 0;
+    MC_TRY_ASSIGN(addedCount, buf.readVarInt());
+    if (addedCount < 0) {
+        return Error(ErrorCode::InvalidData, "HashedPatchMap added 数为负", "readHashedStack");
+    }
+    for (i32 i = 0; i < addedCount; ++i) {
+        MC_TRY(buf.readVarInt()); // componentType registryId
+        MC_TRY(buf.readI32());    // hash value
+    }
+    i32 removedCount = 0;
+    MC_TRY_ASSIGN(removedCount, buf.readVarInt());
+    if (removedCount < 0) {
+        return Error(ErrorCode::InvalidData, "HashedPatchMap removed 数为负", "readHashedStack");
+    }
+    for (i32 i = 0; i < removedCount; ++i) {
+        MC_TRY(buf.readVarInt()); // componentType registryId
+    }
     return v;
 }
 
@@ -121,7 +145,8 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
  */
 inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 {
-    // dimensionType holder：TODO(Phase6) 对齐 registry holder；当前写 VarInt(dimensionType)
+    // dimensionType：我方互通 VarInt(维度 id) 透传（客户端 Login 不消费该字段）。
+    // Java 1.21.11 Holder<DimensionType> 的内联模式（mode=0 NBT）未支持，仅影响真 Java 互通。
     buf.writeVarInt(s.dimensionType);
     buf.writeString(s.dimension);
     buf.writeI64(s.seed);
@@ -914,7 +939,8 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 
 /// LevelChunkWithLight（S→C，id=44）
 /// 线格式：Int(x)+Int(z)+VarInt(chunkData 长度)+chunkData+VarInt(lightData 长度)+lightData。
-/// TODO(Phase6): chunk section palette / 光照 masks 拆解对齐 1.21.11。当前整体透传。
+/// chunkData/lightData 承载项目内部 ChunkSerializer 格式（非 Java PalettedContainer wire），
+/// 双端透传自洽；真 Java 互通需独立 1.21.11 wire 适配层，不在本层范围。
 [[nodiscard]] inline auto levelChunkWithLightCodec()
 {
     return makeCodec<ir::play::LevelChunkWithLight>(
@@ -1097,9 +1123,46 @@ inline constexpr u16 kActionUpdateHat = 1u << 7;         // UPDATE_HAT(7)
 // 注：1.21.11 还可能有第 9 位 INITIALIZE_CHAT 之外的位；按 9 位 fixedBitSet，当前 8 位够用。
 
 /**
+ * @brief 跳过 VarInt 长度前缀的字节串（ByteArray）
+ *
+ * 对齐 Java FriendlyByteBuf.readByteArray：VarInt(len) + len 字节。仅消费不解析。
+ */
+[[nodiscard]] inline Result<void> skipByteArray(B& buf)
+{
+    i32 length = 0;
+    MC_TRY_ASSIGN(length, buf.readVarInt());
+    if (length < 0) {
+        return Error(ErrorCode::InvalidData, "ByteArray 长度为负", "player_info_detail::skipByteArray");
+    }
+    MC_TRY(buf.readBytesView(static_cast<usize>(length))); // 零拷贝消费
+    return Result<void>::ok();
+}
+
+/**
+ * @brief 安全跳过 RemoteChatSession.Data（INITIALIZE_CHAT 携带的 chat session）
+ *
+ * Java 线格式（RemoteChatSession.Data + ProfilePublicKey.Data）：
+ *   UUID sessionId + Instant expiresAt(i64 epochMilli 大端)
+ *   + PublicKey key(VarInt derLen + der 字节) + byte[] keySignature(VarInt len + 字节)
+ *
+ * 本函数仅按定界跳过字节，不解析语义——我方不消费 chat session，只需保证真 Java
+ * 服务端发来的 PlayerInfoUpdate(INITIALIZE_CHAT) 不因 hasSession=true 而整体解析失败。
+ */
+[[nodiscard]] inline Result<void> skipChatSessionData(B& buf)
+{
+    MC_TRY(wire::readUuid(buf)); // sessionId
+    MC_TRY(buf.readI64());       // expiresAt (Instant, i64 epochMilli 大端)
+    MC_TRY(skipByteArray(buf));  // key (PublicKey der)
+    MC_TRY(skipByteArray(buf));  // keySignature
+    return Result<void>::ok();
+}
+
+/**
  * @brief 写 entries 的 action 负载（按 actions 中 set 的位顺序）
  *
- * INITIALIZE_CHAT 当前未承载（写 0 表示无 chat session），TODO(Phase6) 对齐 RemoteChatSession.Data。
+ * INITIALIZE_CHAT：我方双端均不携带 chat session（写 Bool(false)），自洽；
+ * 读侧若对端（真 Java 服务端）发来 hasSession=true，则按 RemoteChatSession.Data
+ * 定界安全跳过（见 skipChatSessionData），不解析语义、不拖垮整个 PlayerInfoUpdate。
  */
 inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 {
@@ -1126,12 +1189,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         buf.writeVarInt(e.latency.value_or(0));
     }
     if ((actions & kActionUpdateDisplayName) != 0) {
-        if (e.displayName.has_value()) {
-            buf.writeBool(true);
-            buf.writeString(*e.displayName); // TODO(Phase6): Component NBT
-        } else {
-            buf.writeBool(false);
-        }
+        // 我方不生产显示名（IR PlayerInfoEntry 不承载 displayName 字段），写 Bool(false)。
+        // 真实 Component NBT 写入（nbt_io::writeCompound）待上层接入 ITextComponent NBT codec 后补。
+        buf.writeBool(false);
     }
     if ((actions & kActionUpdateListOrder) != 0) {
         buf.writeVarInt(e.listOrder.value_or(0));
@@ -1172,10 +1232,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         bool hasSession = false;
         MC_TRY_ASSIGN(hasSession, buf.readBool());
         if (hasSession) {
-            // RemoteChatSession.Data 暂跳过：profileId(UUID)+sessionPublicKey(ByteArray)。
-            // 当前无法在不解析子结构的情况下安全跳过；TODO(Phase6) 完整实现。
-            return Error(
-                ErrorCode::InvalidData, "INITIALIZE_CHAT chat session 暂未支持解析", "player_info_detail::readEntry");
+            // 我方不消费 chat session，但对端（真 Java 服务端）可能携带 RemoteChatSession.Data。
+            // 按定界安全跳过，避免拖垮整个 PlayerInfoUpdate 包解析。
+            MC_TRY(skipChatSessionData(buf));
         }
     }
     if ((actions & kActionUpdateGameMode) != 0) {
@@ -1197,9 +1256,9 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         bool hasName = false;
         MC_TRY_ASSIGN(hasName, buf.readBool());
         if (hasName) {
-            std::string dn;
-            MC_TRY_ASSIGN(dn, buf.readString());
-            e.displayName = std::move(dn);
+            // 真实 Component NBT（Java ComponentSerialization.STREAM_CODEC，NBT compound 自定界）。
+            // 我方不消费显示名，按 NBT compound 跳过以保证真 Java 服务端包不错位。
+            MC_TRY(buffer::nbt_io::skipCompound(buf));
         }
     }
     if ((actions & kActionUpdateListOrder) != 0) {

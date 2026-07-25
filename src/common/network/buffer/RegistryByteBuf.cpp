@@ -47,10 +47,9 @@ Result<const Item*> RegistryByteBuf::readItemHolder()
 
 void RegistryByteBuf::writeBlockStateHolder(const BlockState* state)
 {
-    // TODO(Phase6): BlockState 在项目内尚无统一整数 stateId getter，此处先用占位。
-    //               区块 palette 与 BlockUpdate 的 stateId 编码待 Phase6 对齐 1.21.11 时补全。
-    writeVarUInt(0);
-    (void)state;
+    // 1.21.11 BlockState holder：VarInt(stateId)，0=空气。stateId 由 BlockRegistry 注册时分配，
+    // 与 readBlockStateHolder 的 registry().blockStateById(id) 对称。
+    writeVarUInt(state != nullptr ? state->stateId() : 0);
 }
 
 Result<const BlockState*> RegistryByteBuf::readBlockStateHolder()

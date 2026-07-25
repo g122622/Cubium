@@ -50,7 +50,8 @@ namespace nbt_io {
 /**
  * @brief 将复合标签以 Java 大端二进制写入 buf
  *
- * TODO(Phase6): 1.21.11 物品组件用 DataComponentPatch，其内嵌 NBT 走本桥接。
+ * 已落地并投入使用（调用方：item/component/DataComponentPatchWire、
+ * backend/java/codecs/JavaPlayCodecsExtended 的 NBT payload 透传）。
  */
 [[nodiscard]] Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag);
 
@@ -58,6 +59,14 @@ namespace nbt_io {
  * @brief 从 buf 当前游标读取一个 Java 大端二进制复合标签
  */
 [[nodiscard]] Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf);
+
+/**
+ * @brief 跳过 buf 当前游标处的一个 Java 大端二进制复合标签（仅推进游标，不解析语义）
+ *
+ * 供仅需按 NBT 定界跳过字节的 codec 使用（如 PlayerInfoUpdate 的 displayName 字段：
+ * 我方不消费 Component，但需跳过真 Java 对端发来的 NBT compound 以免后续字段错位）。
+ */
+[[nodiscard]] Result<void> skipCompound(ByteBuf& buf);
 
 } // namespace nbt_io
 

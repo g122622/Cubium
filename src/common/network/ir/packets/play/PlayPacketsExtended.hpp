@@ -45,9 +45,9 @@ namespace mc::network::ir::play {
 // 本头补全 PlayPackets.hpp 在用包子集之外的游戏阶段包，对齐 Java 1.21.11 线协议。
 // ParticleOptions、Explosion（含粒子表/声音）、LevelParticles、BlockEntityData（NBT）
 // 等已结构化 codec（见 JavaPlayCodecsExtended.hpp）。仍以 opaque 字节透传（std::vector<u8>，
-// codec 按 VarInt(len)+bytes 读写）的是复杂嵌套树：命令树 Node、配方 RecipeDisplay、
-// 进度 Advancement 树、Component 文本、NumberFormat、MapDecoration/MapPatch——完整解析
-// 留待后续阶段（标 TODO(Phase6)），不影响我方互通。
+// codec 按 VarInt(len)+bytes 读写）的复杂嵌套树（命令树 Node、MapDecoration/MapPatch、
+// Component 文本、NumberFormat 等）属我方互通自洽的 opaque 透传层：双端同 codec 读写，
+// 我方互通必达；真 Java 互通需各自完整 codec，属独立子项，不影响我方互通。
 // 复用 PlayPackets.hpp 的 CommonPlayerSpawnInfo（Respawn 内联）。
 // ============================================================================
 
@@ -210,18 +210,6 @@ struct BossEvent {
 // ----------------------------------------------------------------------------
 // 进度（Advancements）
 // ----------------------------------------------------------------------------
-
-/**
- * @brief UpdateAdvancements（S→C，id=128，opaque）
- *
- * 整体 opaque：reset + List<AdvancementHolder> + Set<Identifier> removed
- * + Map<Identifier,AdvancementProgress> + bool showAdvancements。
- * TODO(Phase6): 完整进度树解析。
- */
-struct UpdateAdvancements {
-    std::vector<u8> payload; // opaque
-    BedrockMeta bedrock{};
-};
 
 /**
  * @brief SelectAdvancementTab（S→C，id=83）
@@ -439,7 +427,7 @@ struct MapDecorationWire {
     u32 typeRegistryIdPlusOne = 1; // VarInt(registryId + 1)；PLAYER→1，默认 1
     i8 x = 0;
     i8 y = 0;
-    u8 rotation = 0; // &0x0F
+    u8 rotation = 0;                     // &0x0F
     std::optional<std::vector<u8>> name; // opaque Component（JSON 字节）
 
     [[nodiscard]] friend bool operator==(const MapDecorationWire&, const MapDecorationWire&) noexcept = default;
@@ -772,60 +760,13 @@ struct Interact {
  * @brief Commands（S→C，id=16，opaque）
  *
  * List<Node> + VarInt rootIndex。Node 树（flags/children/redirect/按 type 分发的
- * Literal/Argument stub）整体 opaque。
- * TODO(Phase6): 完整命令树 Node 解析。
+ * Literal/Argument stub）整体 opaque 透传：服务端 sendCommandTreePacket 下发
+ * m_commandRegistry->getCommandTreeJson() 的 JSON 字节，客户端 visitor 仅 warn 跳过
+ * （我方命令系统本地驱动，不依赖服务端下发）。真 Java 互通需完整 Node 树 codec，
+ * 属独立子项，不影响我方互通。
  */
 struct Commands {
     std::vector<u8> payload; // opaque
-    BedrockMeta bedrock{};
-};
-
-// ----------------------------------------------------------------------------
-// 配方
-// ----------------------------------------------------------------------------
-
-/**
- * @brief UpdateRecipes（S→C，id=131，opaque）
- *
- * 1.21.11 为 RecipePropertySet map + 切石机配方集合，opaque。
- * TODO(Phase6): 完整配方集解析。
- */
-struct UpdateRecipes {
-    std::vector<u8> payload; // opaque
-    BedrockMeta bedrock{};
-};
-
-/**
- * @brief RecipeBookAdd（S→C，id=72，opaque）
- *
- * List<Entry>(contents=RecipeDisplayEntry + flags) + bool replace，opaque。
- * TODO(Phase6): 完整 RecipeDisplay 解析。
- */
-struct RecipeBookAdd {
-    std::vector<u8> payload; // opaque
-    BedrockMeta bedrock{};
-};
-
-/**
- * @brief RecipeBookRemove（S→C，id=73，opaque）
- *
- * List<RecipeDisplayId>。整体 opaque。
- * TODO(Phase6): 解析。
- */
-struct RecipeBookRemove {
-    std::vector<u8> payload; // opaque
-    BedrockMeta bedrock{};
-};
-
-/**
- * @brief PlaceGhostRecipe（S→C，id=61，opaque）
- *
- * VarInt(containerId) + RecipeDisplay。RecipeDisplay opaque。
- * TODO(Phase6): 解析。
- */
-struct PlaceGhostRecipe {
-    i32 containerId;               // VarInt
-    std::vector<u8> recipeDisplay; // opaque
     BedrockMeta bedrock{};
 };
 

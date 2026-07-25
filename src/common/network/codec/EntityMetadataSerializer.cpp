@@ -247,7 +247,8 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             case MetadataSerializerId::String:
             case MetadataSerializerId::Component:
             case MetadataSerializerId::OptionalComponent: {
-                // Component 暂以字符串承载；1.21.11 真组件 codec 留 TODO(Phase6+)
+                // Component 暂以字符串承载。1.21.11 真组件 NBT codec 依赖 ITextComponent 的 NBT
+                // 序列化（对齐 ComponentSerialization.CODEC），属独立大项；落地后此处改读 NBT compound。
                 std::string value = _readString(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);

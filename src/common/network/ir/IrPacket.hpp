@@ -124,58 +124,53 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ContainerSetSlot,                                // 40
     play::OpenScreen,                                      // 41
     play::ContainerSetData,                                // 42
-    // ---- 以下为 Phase 4a 补全（altIndex 43..93，PlayPacketsExtended.hpp）----
+    // ---- 以下为 Phase 4a 补全（altIndex 43..88，PlayPacketsExtended.hpp）----
     play::PlaySound,                // 43
     play::StopSound,                // 44
     play::SoundEntity,              // 45
     play::LevelEvent,               // 46
     play::LevelParticles,           // 47
     play::BossEvent,                // 48
-    play::UpdateAdvancements,       // 49
-    play::SelectAdvancementTab,     // 50
-    play::SeenAdvancements,         // 51
-    play::SetObjective,             // 52
-    play::SetScore,                 // 53
-    play::ResetScore,               // 54
-    play::SetDisplayObjective,      // 55
-    play::SetPlayerTeam,            // 56
-    play::SetTitleText,             // 57
-    play::SetSubtitleText,          // 58
-    play::SetActionBarText,         // 59
-    play::SetTitlesAnimation,       // 60
-    play::ClearTitles,              // 61
-    play::InitializeBorder,         // 62
-    play::SetBorderCenter,          // 63
-    play::SetBorderLerpSize,        // 64
-    play::SetBorderSize,            // 65
-    play::SetBorderWarningDelay,    // 66
-    play::SetBorderWarningDistance, // 67
-    play::MapItemData,              // 68
-    play::OpenSignEditor,           // 69
-    play::SignUpdate,               // 70
-    play::SetCamera,                // 71
-    play::SetEntityLink,            // 72
-    play::SetPassengers,            // 73
-    play::EntityEvent,              // 74
-    play::Animate,                  // 75
-    play::HurtAnimation,            // 76
-    play::TakeItemEntity,           // 77
-    play::BlockDestruction,         // 78
-    play::BlockEvent,               // 79
-    play::BlockEntityData,          // 80
-    play::Respawn,                  // 81
-    play::SetExperience,            // 82
-    play::Explosion,                // 83
-    play::ServerboundMoveVehicle,   // 84
-    play::ClientboundMoveVehicle,   // 85
-    play::PaddleBoat,               // 86
-    play::Interact,                 // 87
-    play::Commands,                 // 88
-    play::UpdateRecipes,            // 89
-    play::RecipeBookAdd,            // 90
-    play::RecipeBookRemove,         // 91
-    play::PlaceGhostRecipe,         // 92
-    play::PlaceRecipe>;             // 93
+    play::SelectAdvancementTab,     // 49
+    play::SeenAdvancements,         // 50
+    play::SetObjective,             // 51
+    play::SetScore,                 // 52
+    play::ResetScore,               // 53
+    play::SetDisplayObjective,      // 54
+    play::SetPlayerTeam,            // 55
+    play::SetTitleText,             // 56
+    play::SetSubtitleText,          // 57
+    play::SetActionBarText,         // 58
+    play::SetTitlesAnimation,       // 59
+    play::ClearTitles,              // 60
+    play::InitializeBorder,         // 61
+    play::SetBorderCenter,          // 62
+    play::SetBorderLerpSize,        // 63
+    play::SetBorderSize,            // 64
+    play::SetBorderWarningDelay,    // 65
+    play::SetBorderWarningDistance, // 66
+    play::MapItemData,              // 67
+    play::OpenSignEditor,           // 68
+    play::SignUpdate,               // 69
+    play::SetCamera,                // 70
+    play::SetEntityLink,            // 71
+    play::SetPassengers,            // 72
+    play::EntityEvent,              // 73
+    play::Animate,                  // 74
+    play::HurtAnimation,            // 75
+    play::TakeItemEntity,           // 76
+    play::BlockDestruction,         // 77
+    play::BlockEvent,               // 78
+    play::BlockEntityData,          // 79
+    play::Respawn,                  // 80
+    play::SetExperience,            // 81
+    play::Explosion,                // 82
+    play::ServerboundMoveVehicle,   // 83
+    play::ClientboundMoveVehicle,   // 84
+    play::PaddleBoat,               // 85
+    play::Interact,                 // 86
+    play::Commands,                 // 87
+    play::PlaceRecipe>;             // 88
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

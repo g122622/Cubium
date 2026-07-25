@@ -153,8 +153,8 @@ using B = buffer::RegistryByteBuf;
     // PlayPacket variant altIndex：AcceptTeleportation(0) ConfigurationAcknowledged(1) ContainerClick(2)
     //   ContainerClose(3) Chat(4) KeepAlive(5) SetCarriedItem(6) MovePlayerPos(7) MovePlayerPosRot(8)
     //   MovePlayerRot(9) MovePlayerStatusOnly(10) PlayerAction(11) PlayerCommand(12) PlayerInput(13)
-    //   UseItem(14) UseItemOn(15) ... SignUpdate(70) ServerboundMoveVehicle(84) ClientboundMoveVehicle(85)
-    //   PaddleBoat(86) Interact(87) ... PlaceRecipe(93)。
+    //   UseItem(14) UseItemOn(15) ... SignUpdate(69) ServerboundMoveVehicle(83) ClientboundMoveVehicle(84)
+    //   PaddleBoat(85) Interact(86) ... PlaceRecipe(88)。
     // Java Sb id（1.21.11 权威表，serverbound 从 0 起）：accept_teleportation=0, chat=8,
     //   keep_alive=27, set_carried_item=52, move_player_pos=29, move_player_pos_rot=30,
     //   move_player_rot=31, move_player_status_only=32, player_action=40, player_command=41,
@@ -194,17 +194,17 @@ using B = buffer::RegistryByteBuf;
         1,
         codecs::configurationAcknowledgedCodec());
     // ---- Phase 4a 补全 serverbound ----
-    b.addPacket<ir::play::Interact>(25, PacketType{PacketFlow::Serverbound, "interact"}, 87, codecs::interactCodec());
+    b.addPacket<ir::play::Interact>(25, PacketType{PacketFlow::Serverbound, "interact"}, 86, codecs::interactCodec());
     b.addPacket<ir::play::ServerboundMoveVehicle>(
-        33, PacketType{PacketFlow::Serverbound, "move_vehicle"}, 84, codecs::serverboundMoveVehicleCodec());
+        33, PacketType{PacketFlow::Serverbound, "move_vehicle"}, 83, codecs::serverboundMoveVehicleCodec());
     b.addPacket<ir::play::PaddleBoat>(
-        34, PacketType{PacketFlow::Serverbound, "paddle_boat"}, 86, codecs::paddleBoatCodec());
+        34, PacketType{PacketFlow::Serverbound, "paddle_boat"}, 85, codecs::paddleBoatCodec());
     b.addPacket<ir::play::PlaceRecipe>(
-        38, PacketType{PacketFlow::Serverbound, "place_recipe"}, 93, codecs::placeRecipeCodec());
+        38, PacketType{PacketFlow::Serverbound, "place_recipe"}, 88, codecs::placeRecipeCodec());
     b.addPacket<ir::play::SeenAdvancements>(
-        49, PacketType{PacketFlow::Serverbound, "seen_advancements"}, 51, codecs::seenAdvancementsCodec());
+        49, PacketType{PacketFlow::Serverbound, "seen_advancements"}, 50, codecs::seenAdvancementsCodec());
     b.addPacket<ir::play::SignUpdate>(
-        59, PacketType{PacketFlow::Serverbound, "sign_update"}, 70, codecs::signUpdateCodec());
+        59, PacketType{PacketFlow::Serverbound, "sign_update"}, 69, codecs::signUpdateCodec());
     return b.build();
 }
 
@@ -285,90 +285,80 @@ using B = buffer::RegistryByteBuf;
     b.addPacket<ir::play::PlayerAbilities>(
         62, PacketType{PacketFlow::Clientbound, "player_abilities"}, 20, codecs::playerAbilitiesCodec());
     // ---- Phase 4a 补全 clientbound ----
-    b.addPacket<ir::play::Animate>(2, PacketType{PacketFlow::Clientbound, "animate"}, 75, codecs::animateCodec());
+    b.addPacket<ir::play::Animate>(2, PacketType{PacketFlow::Clientbound, "animate"}, 74, codecs::animateCodec());
     b.addPacket<ir::play::BlockDestruction>(
-        5, PacketType{PacketFlow::Clientbound, "block_destruction"}, 78, codecs::blockDestructionCodec());
+        5, PacketType{PacketFlow::Clientbound, "block_destruction"}, 77, codecs::blockDestructionCodec());
     b.addPacket<ir::play::BlockEntityData>(
-        6, PacketType{PacketFlow::Clientbound, "block_entity_data"}, 80, codecs::blockEntityDataCodec());
+        6, PacketType{PacketFlow::Clientbound, "block_entity_data"}, 79, codecs::blockEntityDataCodec());
     b.addPacket<ir::play::BlockEvent>(
-        7, PacketType{PacketFlow::Clientbound, "block_event"}, 79, codecs::blockEventCodec());
+        7, PacketType{PacketFlow::Clientbound, "block_event"}, 78, codecs::blockEventCodec());
     b.addPacket<ir::play::BossEvent>(
         9, PacketType{PacketFlow::Clientbound, "boss_event"}, 48, codecs::bossEventCodec());
     b.addPacket<ir::play::ClearTitles>(
-        14, PacketType{PacketFlow::Clientbound, "clear_titles"}, 61, codecs::clearTitlesCodec());
-    b.addPacket<ir::play::Commands>(16, PacketType{PacketFlow::Clientbound, "commands"}, 88, codecs::commandsCodec());
-    b.addPacket<ir::play::Explosion>(36, PacketType{PacketFlow::Clientbound, "explode"}, 83, codecs::explosionCodec());
+        14, PacketType{PacketFlow::Clientbound, "clear_titles"}, 60, codecs::clearTitlesCodec());
+    b.addPacket<ir::play::Commands>(16, PacketType{PacketFlow::Clientbound, "commands"}, 87, codecs::commandsCodec());
+    b.addPacket<ir::play::Explosion>(36, PacketType{PacketFlow::Clientbound, "explode"}, 82, codecs::explosionCodec());
     b.addPacket<ir::play::HurtAnimation>(
-        41, PacketType{PacketFlow::Clientbound, "hurt_animation"}, 76, codecs::hurtAnimationCodec());
+        41, PacketType{PacketFlow::Clientbound, "hurt_animation"}, 75, codecs::hurtAnimationCodec());
     b.addPacket<ir::play::InitializeBorder>(
-        42, PacketType{PacketFlow::Clientbound, "initialize_border"}, 62, codecs::initializeBorderCodec());
+        42, PacketType{PacketFlow::Clientbound, "initialize_border"}, 61, codecs::initializeBorderCodec());
     b.addPacket<ir::play::LevelEvent>(
         45, PacketType{PacketFlow::Clientbound, "level_event"}, 46, codecs::levelEventCodec());
     b.addPacket<ir::play::LevelParticles>(
         46, PacketType{PacketFlow::Clientbound, "level_particles"}, 47, codecs::levelParticlesCodec());
     b.addPacket<ir::play::MapItemData>(
-        49, PacketType{PacketFlow::Clientbound, "map_item_data"}, 68, codecs::mapItemDataCodec());
+        49, PacketType{PacketFlow::Clientbound, "map_item_data"}, 67, codecs::mapItemDataCodec());
     b.addPacket<ir::play::ClientboundMoveVehicle>(
-        55, PacketType{PacketFlow::Clientbound, "move_vehicle"}, 85, codecs::clientboundMoveVehicleCodec());
+        55, PacketType{PacketFlow::Clientbound, "move_vehicle"}, 84, codecs::clientboundMoveVehicleCodec());
     b.addPacket<ir::play::OpenSignEditor>(
-        58, PacketType{PacketFlow::Clientbound, "open_sign_editor"}, 69, codecs::openSignEditorCodec());
-    b.addPacket<ir::play::PlaceGhostRecipe>(
-        61, PacketType{PacketFlow::Clientbound, "place_ghost_recipe"}, 92, codecs::placeGhostRecipeCodec());
-    b.addPacket<ir::play::RecipeBookAdd>(
-        72, PacketType{PacketFlow::Clientbound, "recipe_book_add"}, 90, codecs::recipeBookAddCodec());
-    b.addPacket<ir::play::RecipeBookRemove>(
-        73, PacketType{PacketFlow::Clientbound, "recipe_book_remove"}, 91, codecs::recipeBookRemoveCodec());
+        58, PacketType{PacketFlow::Clientbound, "open_sign_editor"}, 68, codecs::openSignEditorCodec());
     b.addPacket<ir::play::ResetScore>(
-        77, PacketType{PacketFlow::Clientbound, "reset_score"}, 54, codecs::resetScoreCodec());
-    b.addPacket<ir::play::Respawn>(80, PacketType{PacketFlow::Clientbound, "respawn"}, 81, codecs::respawnCodec());
+        77, PacketType{PacketFlow::Clientbound, "reset_score"}, 53, codecs::resetScoreCodec());
+    b.addPacket<ir::play::Respawn>(80, PacketType{PacketFlow::Clientbound, "respawn"}, 80, codecs::respawnCodec());
     b.addPacket<ir::play::SelectAdvancementTab>(
-        83, PacketType{PacketFlow::Clientbound, "select_advancement_tab"}, 50, codecs::selectAdvancementTabCodec());
+        83, PacketType{PacketFlow::Clientbound, "select_advancement_tab"}, 49, codecs::selectAdvancementTabCodec());
     b.addPacket<ir::play::SetActionBarText>(
-        85, PacketType{PacketFlow::Clientbound, "set_action_bar_text"}, 59, codecs::setActionBarTextCodec());
+        85, PacketType{PacketFlow::Clientbound, "set_action_bar_text"}, 58, codecs::setActionBarTextCodec());
     b.addPacket<ir::play::SetBorderCenter>(
-        86, PacketType{PacketFlow::Clientbound, "set_border_center"}, 63, codecs::setBorderCenterCodec());
+        86, PacketType{PacketFlow::Clientbound, "set_border_center"}, 62, codecs::setBorderCenterCodec());
     b.addPacket<ir::play::SetBorderLerpSize>(
-        87, PacketType{PacketFlow::Clientbound, "set_border_lerp_size"}, 64, codecs::setBorderLerpSizeCodec());
+        87, PacketType{PacketFlow::Clientbound, "set_border_lerp_size"}, 63, codecs::setBorderLerpSizeCodec());
     b.addPacket<ir::play::SetBorderSize>(
-        88, PacketType{PacketFlow::Clientbound, "set_border_size"}, 65, codecs::setBorderSizeCodec());
+        88, PacketType{PacketFlow::Clientbound, "set_border_size"}, 64, codecs::setBorderSizeCodec());
     b.addPacket<ir::play::SetBorderWarningDelay>(
-        89, PacketType{PacketFlow::Clientbound, "set_border_warning_delay"}, 66, codecs::setBorderWarningDelayCodec());
+        89, PacketType{PacketFlow::Clientbound, "set_border_warning_delay"}, 65, codecs::setBorderWarningDelayCodec());
     b.addPacket<ir::play::SetBorderWarningDistance>(90,
         PacketType{PacketFlow::Clientbound, "set_border_warning_distance"},
-        67,
+        66,
         codecs::setBorderWarningDistanceCodec());
     b.addPacket<ir::play::SetCamera>(
-        91, PacketType{PacketFlow::Clientbound, "set_camera"}, 71, codecs::setCameraCodec());
+        91, PacketType{PacketFlow::Clientbound, "set_camera"}, 70, codecs::setCameraCodec());
     b.addPacket<ir::play::SetDisplayObjective>(
-        96, PacketType{PacketFlow::Clientbound, "set_display_objective"}, 55, codecs::setDisplayObjectiveCodec());
+        96, PacketType{PacketFlow::Clientbound, "set_display_objective"}, 54, codecs::setDisplayObjectiveCodec());
     b.addPacket<ir::play::SetEntityLink>(
-        98, PacketType{PacketFlow::Clientbound, "set_entity_link"}, 72, codecs::setEntityLinkCodec());
+        98, PacketType{PacketFlow::Clientbound, "set_entity_link"}, 71, codecs::setEntityLinkCodec());
     b.addPacket<ir::play::SetExperience>(
-        101, PacketType{PacketFlow::Clientbound, "set_experience"}, 82, codecs::setExperienceCodec());
+        101, PacketType{PacketFlow::Clientbound, "set_experience"}, 81, codecs::setExperienceCodec());
     b.addPacket<ir::play::SetObjective>(
-        104, PacketType{PacketFlow::Clientbound, "set_objective"}, 52, codecs::setObjectiveCodec());
+        104, PacketType{PacketFlow::Clientbound, "set_objective"}, 51, codecs::setObjectiveCodec());
     b.addPacket<ir::play::SetPassengers>(
-        105, PacketType{PacketFlow::Clientbound, "set_passengers"}, 73, codecs::setPassengersCodec());
+        105, PacketType{PacketFlow::Clientbound, "set_passengers"}, 72, codecs::setPassengersCodec());
     b.addPacket<ir::play::SetPlayerTeam>(
-        107, PacketType{PacketFlow::Clientbound, "set_player_team"}, 56, codecs::setPlayerTeamCodec());
-    b.addPacket<ir::play::SetScore>(108, PacketType{PacketFlow::Clientbound, "set_score"}, 53, codecs::setScoreCodec());
+        107, PacketType{PacketFlow::Clientbound, "set_player_team"}, 55, codecs::setPlayerTeamCodec());
+    b.addPacket<ir::play::SetScore>(108, PacketType{PacketFlow::Clientbound, "set_score"}, 52, codecs::setScoreCodec());
     b.addPacket<ir::play::SetSubtitleText>(
-        110, PacketType{PacketFlow::Clientbound, "set_subtitle_text"}, 58, codecs::setSubtitleTextCodec());
+        110, PacketType{PacketFlow::Clientbound, "set_subtitle_text"}, 57, codecs::setSubtitleTextCodec());
     b.addPacket<ir::play::SetTitleText>(
-        112, PacketType{PacketFlow::Clientbound, "set_title_text"}, 57, codecs::setTitleTextCodec());
+        112, PacketType{PacketFlow::Clientbound, "set_title_text"}, 56, codecs::setTitleTextCodec());
     b.addPacket<ir::play::SetTitlesAnimation>(
-        113, PacketType{PacketFlow::Clientbound, "set_titles_animation"}, 60, codecs::setTitlesAnimationCodec());
+        113, PacketType{PacketFlow::Clientbound, "set_titles_animation"}, 59, codecs::setTitlesAnimationCodec());
     b.addPacket<ir::play::SoundEntity>(
         114, PacketType{PacketFlow::Clientbound, "sound_entity"}, 45, codecs::soundEntityCodec());
     b.addPacket<ir::play::PlaySound>(115, PacketType{PacketFlow::Clientbound, "sound"}, 43, codecs::playSoundCodec());
     b.addPacket<ir::play::StopSound>(
         117, PacketType{PacketFlow::Clientbound, "stop_sound"}, 44, codecs::stopSoundCodec());
     b.addPacket<ir::play::TakeItemEntity>(
-        122, PacketType{PacketFlow::Clientbound, "take_item_entity"}, 77, codecs::takeItemEntityCodec());
-    b.addPacket<ir::play::UpdateAdvancements>(
-        128, PacketType{PacketFlow::Clientbound, "update_advancements"}, 49, codecs::updateAdvancementsCodec());
-    b.addPacket<ir::play::UpdateRecipes>(
-        131, PacketType{PacketFlow::Clientbound, "update_recipes"}, 89, codecs::updateRecipesCodec());
+        122, PacketType{PacketFlow::Clientbound, "take_item_entity"}, 76, codecs::takeItemEntityCodec());
     return b.build();
 }
 

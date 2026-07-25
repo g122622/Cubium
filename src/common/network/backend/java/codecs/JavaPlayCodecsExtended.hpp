@@ -36,9 +36,9 @@ namespace mc::network::backend::java::codecs {
 //
 // Holder<SoundEvent>、ParticleOptions、Explosion（含粒子表）、LevelParticles、BlockEntityData
 // 等已结构化（见 writeSoundEventHolder/writeParticleOptions/explosionCodec/levelParticlesCodec/
-// blockEntityDataCodec）。仍以 VarInt(len)+bytes 透传的复杂嵌套树：Component/NumberFormat/
-// Advancement 树/MapDecoration/MapPatch/命令树 Node/RecipeDisplay——完整解析留待后续阶段
-// （标 TODO(Phase6)）。
+// blockEntityDataCodec）。仍以 VarInt(len)+bytes 透传的复杂嵌套树（Component/NumberFormat/
+// MapDecoration/MapPatch/命令树 Node 等）属我方互通自洽的 opaque 透传层：双端同 codec 读写，
+// 我方互通必达；真 Java 互通需各自完整 codec，属独立子项，不在本层范围（各 codec 内联注释标明）。
 // Resp 复用 JavaPlayCodecs.hpp 的 play_detail::writeSpawnInfo/readSpawnInfo。
 // ============================================================================
 
@@ -397,18 +397,6 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 // ============================================================================
 // 进度（Advancements）
 // ============================================================================
-
-/// UpdateAdvancements（S→C，id=128，opaque）
-[[nodiscard]] inline auto updateAdvancementsCodec()
-{
-    return makeCodec<ir::play::UpdateAdvancements>(
-        [](B& buf, const ir::play::UpdateAdvancements& v) { play_ext_detail::writeOpaque(buf, v.payload); },
-        [](B& buf) -> Result<ir::play::UpdateAdvancements> {
-            ir::play::UpdateAdvancements v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "updateAdvancementsCodec"));
-            return v;
-        });
-}
 
 /// SelectAdvancementTab（S→C，id=83）
 [[nodiscard]] inline auto selectAdvancementTabCodec()
@@ -1398,62 +1386,6 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         [](B& buf) -> Result<ir::play::Commands> {
             ir::play::Commands v{};
             MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "commandsCodec"));
-            return v;
-        });
-}
-
-// ============================================================================
-// 配方
-// ============================================================================
-
-/// UpdateRecipes（S→C，id=131，opaque）
-[[nodiscard]] inline auto updateRecipesCodec()
-{
-    return makeCodec<ir::play::UpdateRecipes>(
-        [](B& buf, const ir::play::UpdateRecipes& v) { play_ext_detail::writeOpaque(buf, v.payload); },
-        [](B& buf) -> Result<ir::play::UpdateRecipes> {
-            ir::play::UpdateRecipes v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "updateRecipesCodec"));
-            return v;
-        });
-}
-
-/// RecipeBookAdd（S→C，id=72，opaque）
-[[nodiscard]] inline auto recipeBookAddCodec()
-{
-    return makeCodec<ir::play::RecipeBookAdd>(
-        [](B& buf, const ir::play::RecipeBookAdd& v) { play_ext_detail::writeOpaque(buf, v.payload); },
-        [](B& buf) -> Result<ir::play::RecipeBookAdd> {
-            ir::play::RecipeBookAdd v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "recipeBookAddCodec"));
-            return v;
-        });
-}
-
-/// RecipeBookRemove（S→C，id=73，opaque）
-[[nodiscard]] inline auto recipeBookRemoveCodec()
-{
-    return makeCodec<ir::play::RecipeBookRemove>(
-        [](B& buf, const ir::play::RecipeBookRemove& v) { play_ext_detail::writeOpaque(buf, v.payload); },
-        [](B& buf) -> Result<ir::play::RecipeBookRemove> {
-            ir::play::RecipeBookRemove v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "recipeBookRemoveCodec"));
-            return v;
-        });
-}
-
-/// PlaceGhostRecipe（S→C，id=61，opaque recipeDisplay）
-[[nodiscard]] inline auto placeGhostRecipeCodec()
-{
-    return makeCodec<ir::play::PlaceGhostRecipe>(
-        [](B& buf, const ir::play::PlaceGhostRecipe& v) {
-            buf.writeVarInt(v.containerId);
-            play_ext_detail::writeOpaque(buf, v.recipeDisplay);
-        },
-        [](B& buf) -> Result<ir::play::PlaceGhostRecipe> {
-            ir::play::PlaceGhostRecipe v{};
-            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
-            MC_TRY_ASSIGN(v.recipeDisplay, play_ext_detail::readOpaque(buf, "placeGhostRecipeCodec"));
             return v;
         });
 }
