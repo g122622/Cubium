@@ -90,7 +90,7 @@ src/common/item/crafting/
 └──────────────────┘
 ```
 
-> 注：原 `IRecipe::toNetwork/fromNetwork` 虚函数与 `RecipeNetworkSerializer.{hpp,cpp}` 已在 Phase4 网络重写中删除，配方不再走旧的 PacketSerializer 网络序列化路径。配方同步改由 IR `ir::play::*`（如 `RecipeBookAdd/Remove`）承担。
+> 注：原 `IRecipe::toNetwork/fromNetwork` 虚函数与 `RecipeNetworkSerializer.{hpp,cpp}` 已在 Phase4 网络重写中删除，配方不再走旧的 PacketSerializer 网络序列化路径。配方/配方书的网络同步（Java 1.21.11 UpdateRecipes/RecipeBookAdd/RecipeBookRemove）尚未实现，按需接入时在 IR 层新建对应 struct + codec。
 
 ## 上下游外部依赖关系
 

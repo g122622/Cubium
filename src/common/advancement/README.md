@@ -123,7 +123,7 @@ advancement/
   - `PlayerAdvancements` - 玩家进度管理
   - `AdvancementEventHandler` - 事件处理器
   - `TriggerInstantiation` - 触发器实例化工具
-- `common/network/ir/packets/play/PlayPacketsExtended.hpp` - 成就 IR 网络包（`UpdateAdvancements`/`SelectAdvancementTab`/`SeenAdvancements`，旧 `common/network/packet/AdvancementPackets.hpp` 已删除）
+- `common/network/ir/packets/play/PlayPacketsExtended.hpp` - 成就 IR 网络包（`SelectAdvancementTab`/`SeenAdvancements`；`UpdateAdvancements` 的完整进度树同步尚未实现，旧 `common/network/packet/AdvancementPackets.hpp` 已删除）
 - `common/item/loot/conditions/` - 战利品条件复用谓词
   - `EntityPropertiesCondition` - 复用 EntityPredicate
   - `LocationCheckCondition` - 复用 LocationPredicate
