@@ -44,6 +44,8 @@ add_executable(mc_tests
     common/network/test_server_handshake.cpp
     common/network/test_itemstack_bridge_extra.cpp
     common/network/test_server_network_local.cpp
+    common/network/test_client_network_local.cpp
+    common/network/ClientPlayVisitorStub.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp
@@ -2092,6 +2094,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/network/ClientNetwork.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
