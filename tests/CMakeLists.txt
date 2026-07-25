@@ -18,6 +18,7 @@ add_executable(mc_tests
     main.cpp
     common/test_math.cpp
     common/test_network.cpp
+    common/network/test_bytebuf.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp
