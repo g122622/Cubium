@@ -33,11 +33,6 @@ namespace mc::text {
 class ITextComponent;
 }
 
-namespace mc::network {
-class PacketSerializer;
-class PacketDeserializer;
-} // namespace mc::network
-
 namespace mc::world::map {
 
 /**
@@ -148,16 +143,6 @@ public:
      * @brief 写入NBT
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
-
-    /**
-     * @brief 序列化到网络包
-     */
-    void serialize(network::PacketSerializer& ser) const;
-
-    /**
-     * @brief 从网络包反序列化
-     */
-    static MapDecoration deserialize(network::PacketDeserializer& deser);
 
     [[nodiscard]] DecorationType type() const noexcept { return m_type; }
     [[nodiscard]] i8 x() const noexcept { return m_x; }

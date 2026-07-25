@@ -81,7 +81,7 @@ ItemActionResult FilledMapItem::onItemRightClick(IWorld& world, Player& player, 
     auto* mapData = getMapData(player.getHeldItem(hand), world);
     if (mapData != nullptr) {
         // 服务端：更新玩家追踪装饰后返回成功
-        // 客户端在收到成功后打开MapScreen
+        // TODO(Phase6): 客户端地图渲染链尚未上线，map-data 解析已删，待重建后在此打开地图屏幕
     }
     return ItemActionResult::success(player.getHeldItem(hand));
 }

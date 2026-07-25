@@ -23,12 +23,9 @@
 
 #include "MapDecoration.hpp"
 #include "entity/serialization/NbtHelper.hpp"
-#include "network/codec/PacketDeserializer.hpp"
-#include "network/codec/PacketSerializer.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
-#include <algorithm>
 #include <nlohmann/json.hpp>
 
 namespace mc::world::map {
@@ -309,55 +306,6 @@ void MapDecoration::toNbt(nbt::tags::compound_tag& tag) const
     if (m_customName) {
         tag.put("name", m_customName->toJson().dump());
     }
-}
-
-void MapDecoration::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeU8(static_cast<u8>(m_type));
-    ser.writeI8(m_x);
-    ser.writeI8(m_y);
-    ser.writeU8(m_rotation & 0x0F);
-
-    if (m_customName) {
-        ser.writeBool(true);
-        // 将 ITextComponent 序列化为 JSON 字符串后写入网络包，
-        // 与 MC Java 版 ComponentSerialization.OPTIONAL_STREAM_CODEC 一致
-        ser.writeString(m_customName->toJson().dump());
-    } else {
-        ser.writeBool(false);
-    }
-}
-
-MapDecoration MapDecoration::deserialize(network::PacketDeserializer& deser)
-{
-    auto typeResult = deser.readU8();
-    auto xResult = deser.readI8();
-    auto yResult = deser.readI8();
-    auto rotationResult = deser.readU8();
-
-    auto type = decorationTypeByIcon(typeResult.valueOr(0));
-    i8 x = xResult.valueOr(0);
-    i8 y = yResult.valueOr(0);
-    u8 rotation = rotationResult.valueOr(0) & 0x0F;
-
-    std::unique_ptr<text::ITextComponent> name;
-    auto hasNameResult = deser.readBool();
-    bool hasName = hasNameResult.valueOr(false);
-    if (hasName) {
-        auto nameStrResult = deser.readString();
-        if (nameStrResult.success()) {
-            try {
-                auto json = nlohmann::json::parse(nameStrResult.value());
-                name = text::ITextComponent::fromJson(json);
-            }
-            catch (const nlohmann::json::exception&) {
-                // JSON 解析失败，回退为纯文本组件
-                name = std::make_unique<text::StringTextComponent>(nameStrResult.value());
-            }
-        }
-    }
-
-    return MapDecoration(type, x, y, rotation, std::move(name));
 }
 
 } // namespace mc::world::map

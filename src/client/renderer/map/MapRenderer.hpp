@@ -31,8 +31,6 @@
 
 namespace mc::client {
 
-class ClientMapDataCache;
-
 namespace renderer::trident::gui {
 class GuiRenderer;
 }

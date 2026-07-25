@@ -38,8 +38,6 @@
 #include "common/world/map/MapFrame.hpp"
 #include "common/world/map/MapIdTracker.hpp"
 #include "common/world/map/MaterialColor.hpp"
-#include "network/codec/PacketDeserializer.hpp"
-#include "network/codec/PacketSerializer.hpp"
 #include <memory>
 
 using namespace mc;
@@ -672,91 +670,6 @@ TEST_F(MapDataTest, UpdateDecoration_NonPlayerOffMap)
     // 非玩家类型的装饰物超出范围应直接移除
     data.updateDecoration(DecorationType::BANNER_RED, nullptr, "banner-1", 200.0, 0.0, 0.0, nullptr);
     EXPECT_TRUE(data.decorations().find("banner-1") == data.decorations().end());
-}
-
-// ============================================================================
-// MapDecoration 网络序列化测试
-// ============================================================================
-
-TEST_F(MapDecorationTest, NetworkRoundTrip_WithoutCustomName)
-{
-    MapDecoration original(DecorationType::PLAYER, 10, -20, 5, nullptr);
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
-    auto restored = MapDecoration::deserialize(deser);
-
-    EXPECT_EQ(restored.type(), DecorationType::PLAYER);
-    EXPECT_EQ(restored.x(), 10);
-    EXPECT_EQ(restored.y(), -20);
-    EXPECT_EQ(restored.rotation(), 5u);
-    EXPECT_EQ(restored.customName(), nullptr);
-}
-
-TEST_F(MapDecorationTest, NetworkRoundTrip_WithCustomName)
-{
-    auto name = std::make_unique<text::StringTextComponent>("Test Banner");
-    MapDecoration original(DecorationType::BANNER_RED, 5, 10, 3, std::move(name));
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
-    auto restored = MapDecoration::deserialize(deser);
-
-    EXPECT_EQ(restored.type(), DecorationType::BANNER_RED);
-    EXPECT_EQ(restored.x(), 5);
-    EXPECT_EQ(restored.y(), 10);
-    EXPECT_EQ(restored.rotation(), 3u);
-    ASSERT_NE(restored.customName(), nullptr);
-    EXPECT_EQ(restored.customName()->getUnformattedText(), "Test Banner");
-}
-
-TEST_F(MapDecorationTest, NetworkRoundTrip_TranslationComponent)
-{
-    auto name = std::make_unique<text::TranslationTextComponent>("item.banner.red.name");
-    MapDecoration original(DecorationType::BANNER_RED, 0, 0, 0, std::move(name));
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
-    auto restored = MapDecoration::deserialize(deser);
-
-    ASSERT_NE(restored.customName(), nullptr);
-    auto* translation = dynamic_cast<const text::TranslationTextComponent*>(restored.customName());
-    ASSERT_NE(translation, nullptr);
-}
-
-TEST_F(MapDecorationTest, NetworkRoundTrip_RotationMasking)
-{
-    // 旋转值在网络序列化中应被掩码到0-15范围
-    MapDecoration original(DecorationType::PLAYER, 0, 0, 20, nullptr); // 20 & 0x0F = 4
-
-    network::PacketSerializer ser;
-    original.serialize(ser);
-
-    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
-    auto restored = MapDecoration::deserialize(deser);
-
-    EXPECT_EQ(restored.rotation(), 4u);
-}
-
-TEST_F(MapDecorationTest, NetworkRoundTrip_InvalidIcon)
-{
-    // 无效图标值应回退为PLAYER
-    network::PacketSerializer ser;
-    ser.writeU8(200); // 无效的装饰类型
-    ser.writeI8(0);
-    ser.writeI8(0);
-    ser.writeU8(0);
-    ser.writeBool(false);
-
-    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
-    auto restored = MapDecoration::deserialize(deser);
-    EXPECT_EQ(restored.type(), DecorationType::PLAYER);
 }
 
 // ============================================================================
