@@ -48,7 +48,7 @@ src/client/ui/screen/
 | 模块 | 用途 |
 |------|------|
 | `client/application/ClientApplication.hpp` | 决定打开哪个屏幕，转发输入和滚轮事件 |
-| `client/ui/minecraft/screens/` | kagero 屏幕系统，全部屏幕（含 MapScreen）位于此 |
+| `client/ui/minecraft/screens/` | kagero 屏幕系统，全部屏幕位于此 |
 
 ## 容易踩的坑
 

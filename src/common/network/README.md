@@ -7,11 +7,11 @@
 > `transport/`+`pipeline/`+`backend/`）是主架构；旧的 `connection/` 子目录已**整体删除**，
 > 旧的 `packet/` 子目录也已**整体删除**（Phase8 终态：零旧 packet 代码）。
 > 原 `packet/` 中仍被 live 代码引用的工具类（`PacketSerializer`/`PacketDeserializer`/
-> `Packet`/`MapDataPacket`/`EntityMetadataSerializer`）已 `git mv` 到 `codec/`，继续可用。
+> `EntityMetadataSerializer`）已 `git mv` 到 `codec/`，继续可用。
 >
 > - 新架构（主）：`buffer/` `codec/` `protocol/` `ir/` `transport/` `pipeline/` `backend/`
 > - 旧 `connection/` 子目录：**已删除**
-> - 旧 `packet/` 子目录：**已删除**（工具类已迁入 `codec/`）
+> - 旧 `packet/` 子目录：**已删除**（工具类已迁入 `codec/`，死代码已清零）
 
 ## 目录结构
 
@@ -27,11 +27,9 @@ network/
 │   ├── StreamCodec.hpp                  # codec 概念/接口
 │   ├── StreamCodecs.hpp                 # 基础 codec（VarInt、字节数组等）
 │   ├── IdDispatchCodec.hpp              # 按 ID 分发的 codec 路由
-│   ├── Packet.hpp/cpp                   # 旧数据包基类（自 packet/ 迁入，供 MapDataPacket 继承）
 │   ├── PacketSerializer.hpp/cpp         # 二进制序列化（VarInt/VarLong，自 packet/ 迁入，sync/ 区块序列化仍在用）
 │   ├── PacketDeserializer.hpp/cpp       # 二进制反序列化（自 packet/ 迁入）
-│   ├── MapDataPacket.hpp/cpp            # 地图数据包（自 packet/ 迁入）
-│   ├── EntityMetadataSerializer.hpp/cpp # 实体元数据序列化（MC 1.16.5 格式，自 packet/ 迁入）
+│   ├── EntityMetadataSerializer.hpp/cpp # 实体元数据序列化（MC 1.21.11 格式，自 packet/ 迁入，产出 ir::play::SetEntityData 的 packedItems）
 │   └── README.md
 ├── protocol/                            # 协议元数据（新架构）
 │   ├── ConnectionProtocol.hpp           # 协议枚举（Handshake/Login/Status/Configuration/Play）

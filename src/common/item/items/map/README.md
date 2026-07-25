@@ -40,7 +40,6 @@ Item
 - `MapExtendingRecipe` - 地图扩展配方
 - `CartographyMenu` - 制图台菜单
 - `ExplorationMapFunction` - 战利品表中的探险地图生成
-- `MapDataPacket` - 网络同步（服务端→客户端，已迁至 `common/network/codec/MapDataPacket.hpp`）
 
 ## 容易踩的坑
 
@@ -54,7 +53,7 @@ Item
 
 ### 3. inventoryTick 仅在服务端更新地形
 
-`FilledMapItem::inventoryTick()` 在客户端直接返回，地形更新和玩家追踪仅在服务端执行。客户端通过 `MapDataPacket` 接收更新。
+`FilledMapItem::inventoryTick()` 在客户端直接返回，地形更新和玩家追踪仅在服务端执行。客户端地图同步走 IR `ir::play::MapItemData`（当前 Phase6 TODO，opaque no-op）。
 
 ### 4. 锁定地图创建新副本
 

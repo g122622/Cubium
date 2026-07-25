@@ -33,10 +33,8 @@ using namespace mc::server::core;
  *
  * 新网络层 addPlayer 第4参为 mc::server::net::ServerClientConnection*（裸指针）。
  * 本测试只验证 KeepAliveManager 的心跳时序/超时/ping 数据维护，不依赖连接真发包，
- * 故统一传 nullptr。原 KeepAlivePacketHandler.HandleFullPacket 用例依赖旧
- * KeepAlivePacket 字节序列化 + PacketHandler::handleKeepAlive 字节路径，新网络层
- * 该路径已由 ServerPlayRouter 的 KeepAlive 分支覆盖（PacketHandler 已删除），
- * 故移除该集成用例（由 ServerPlayRouter 集成测试替代）。
+ * 故统一传 nullptr。旧字节序列化心跳路径已由 ServerPlayRouter 的 KeepAlive 分支
+ * 覆盖（旧 PacketHandler 已删除），相关集成用例移至 ServerPlayRouter 集成测试。
  */
 class KeepAliveManagerTest : public ::testing::Test {
 protected:

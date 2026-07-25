@@ -98,7 +98,6 @@ ui/
 │   │   ├── LoomScreen.hpp/cpp        # 织布机屏幕
 │   │   ├── CartographyScreen.hpp/cpp # 制图台屏幕
 │   │   ├── FurnaceScreen.hpp/cpp     # 熔炉屏幕
-│   │   ├── MapScreen.hpp/cpp         # 地图屏幕
 │   │   └── TemplateScreen.hpp/cpp    # 模板屏幕基类
 │   ├── targetinfo/                   # 准星目标信息覆盖层
 │   │   ├── TargetInfo.hpp/cpp        # 目标快照和格式化辅助

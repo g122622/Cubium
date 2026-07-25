@@ -58,9 +58,11 @@ entity/serialization/NbtHelper.hpp - NBT辅助读取
 ServerWorld                 - 持有MapDataManager实例，每tick调用更新
 FilledMapItem               - 创建/更新地图数据，更新地形像素、旗帜交互
 ItemFrameEntity             - 添加/移除MapFrame标记
-MapDataPacket               - 读取MapData发送给客户端（位于 `common/network/codec/MapDataPacket.hpp`）
 存档系统                    - 通过NBT持久化地图数据
 ```
+
+> 注：地图数据的服务端→客户端网络同步走 IR `ir::play::MapItemData`，当前为 Phase6 TODO（opaque no-op），
+> 旧的 `MapDataPacket` 死链已删。
 
 ## 容易踩的坑
 

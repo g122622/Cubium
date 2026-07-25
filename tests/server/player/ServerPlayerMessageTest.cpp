@@ -30,8 +30,8 @@
  * 等 IR 包，无连接时直接 return（不抛）。
  *
  * 本测试聚焦无连接路径的核心契约（canReceiveMessages=false、sendStatusMessage 不抛）。
- * 原"有连接 + 字节解析 PacketType::Title/ChatBroadcast"用例依赖旧 12 字节头 + 旧 packet
- * 枚举，新层为 IR 包无字节头，已移除。TODO(Phase6): 有连接发包路径由 ServerClientConnection
+ * 旧"有连接 + 字节解析标题/聊天广播"用例依赖旧 12 字节头 + 旧 packet 枚举，新层为
+ * IR 包无字节头，已移除。TODO(Phase6): 有连接发包路径由 ServerClientConnection
  * + ClientPlayVisitor 集成测试覆盖。
  */
 

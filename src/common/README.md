@@ -167,7 +167,7 @@ src/common/
 │
 ├── network/                  # 网络系统（新 IR 架构为主）
 │   ├── buffer/               # 字节缓冲（ByteBuf/RegistryByteBuf/NbtIo）
-│   ├── codec/                # 流式 codec（StreamCodec/IdDispatchCodec）+ 自 packet/ 迁入的工具类（PacketSerializer/PacketDeserializer/Packet/MapDataPacket/EntityMetadataSerializer）
+│   ├── codec/                # 流式 codec（StreamCodec/IdDispatchCodec）+ 自 packet/ 迁入的工具类（PacketSerializer/PacketDeserializer/EntityMetadataSerializer）
 │   ├── protocol/             # 协议元数据（ProtocolInfo/PacketFlow/GameActions/TitleActions/EntityEvents）
 │   ├── ir/                   # 协议无关 IR 包（IrPacket + 各阶段 packets/）
 │   ├── transport/            # 传输层（LocalTransport 同进程零拷贝 / TcpTransport）

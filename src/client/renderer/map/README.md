@@ -22,16 +22,16 @@ MapRenderer 的核心流程：
 ## 上下游外部依赖关系
 
 **依赖方（上游）**：
-- `src/client/ui/minecraft/screens/MapScreen.hpp` - 地图查看屏幕（kagero 屏）
 - `src/client/ui/minecraft/screens/CartographyScreen.hpp` - 制图台GUI（地图预览）
 - `src/client/renderer/trident/firstperson/FirstPersonRenderer.hpp` - 手持地图渲染
+
+> 注：原 `MapScreen`（地图查看屏）已删（死代码，零构造），地图屏幕入口待 Phase6 重建。
 
 **被依赖方（下游）**：
 - `src/common/world/map/MapData.hpp` - 地图数据
 - `src/common/world/map/MaterialColor.hpp` - 颜色转换
 - `src/common/world/map/MapDecoration.hpp` - 装饰物定义
 - `src/client/renderer/trident/gui/GuiRenderer.hpp` - GUI渲染器
-- `src/client/world/ClientMapDataCache.hpp` - 客户端地图数据缓存
 
 ## 容易踩的坑
 

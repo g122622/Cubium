@@ -85,7 +85,6 @@ enchantment/
 - `mc::core::Types` - 基础类型（i32, u8, f32 等）
 - `mc::math::Random` - 随机数生成
 - `mc::nbt` - NBT 序列化
-- `mc::network::PacketSerializer/Deserializer`（头文件位于 `common/network/codec/`）- wire 网络序列化（`EnchantmentContainer::serialize/deserialize` 仍保留）
 - `nlohmann::json` - JSON 序列化
 - `ItemStack` - 物品堆（canApply、canApplyAtEnchantingTable 参数）
 - `LivingEntity/Entity/Player` - 回调方法参数

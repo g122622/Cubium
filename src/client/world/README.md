@@ -8,7 +8,6 @@
 src/client/world/
 ├── ClientWorld.hpp/cpp                 # 客户端世界核心管理器（区块同步、网格调度、天气时间、高度图查询）
 ├── ClientWeather.hpp                   # 天气插值状态（雨强、雷强、闪电闪烁）
-├── ClientMapDataCache.hpp/cpp          # 地图数据缓存
 ├── color/                              # 生物群系颜色解析与混合
 │   ├── BiomeColors.hpp/cpp             # 颜色解析器实现（草、树叶、水）
 │   ├── ColorResolver.hpp               # 颜色解析器抽象接口
@@ -129,5 +128,5 @@ EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲
 - **`getTopBlockY()` 支持按类型查询高度图**：`getTopBlockY(HeightmapType, x, z)` 支持按高度图类型（如 `MotionBlocking`、`WorldSurface`）查询，如果指定类型高度图不存在会回退到基本高度图。客户端高度图数据来自网络同步和存档加载。
 - **`getHeight()` 与 `getTopBlockY()` 语义差异**：`getHeight(x, z)` 使用基本高度图（WorldSurface 语义），`getTopBlockY(MotionBlocking, x, z)` 使用运动阻挡高度图，两者结果可能不同（如树叶上方有水时）。
 - **粒子生成接口**：`ClientWorld` 提供编程式粒子生成入口（`addParticle` / `addBlockParticle` / `addItemParticle` / `addEntityEffectParticle` 等），供客户端本地逻辑（方块动画 `animateTick`、命令系统等）直接调用。其中 `addBlockParticle` 调用 `DiggingParticle::createWithBlock()`，`addItemParticle` 调用 `ItemParticle::createWithItemStack()`（双路径纹理解析：方块物品走 `BlockModelCache`，非方块物品走 `ItemModelCache` + `ItemTextureAtlas`）。这些方法通过 `shouldSpawnParticleAt()` 做距离裁剪（默认 256 格）并受 `ParticleMode` 质量过滤控制。网络层粒子同步包不经过这些方法，而是通过 `ClientApplicationNetwork` 的回调走 `ParticleManager::addPendingParticle()` 数据管线。
-- **方块实体客户端存储**：`ClientWorld` 维护 `m_blockEntities`（key 为 `BlockPos::asLong()`），由 `onBlockEntityData()` 回调（对应 `PacketType::BlockEntityData` 包）更新。告示牌编辑器打开时通过 `getBlockEntity()` 读取当前文本，避免覆盖已有内容。维度切换时 `clearChunks()` 会一并清空方块实体。
+- **方块实体客户端存储**：`ClientWorld` 维护 `m_blockEntities`（key 为 `BlockPos::asLong()`），由 `onBlockEntityData()` 回调（对应 IR `ir::play::BlockEntityData` 包）更新。告示牌编辑器打开时通过 `getBlockEntity()` 读取当前文本，避免覆盖已有内容。维度切换时 `clearChunks()` 会一并清空方块实体。
 - **方块实体渲染层缺失（TODO）**：当前仅完成数据同步层，渲染层尚有缺失：`SignRenderer`（告示牌渲染器）尚未实现；`BlockEntityRendererDispatcher`（位于 `src/client/renderer/trident/blockentity/`）已存在但尚未集成到 `TridentEngine::render()` 主渲染循环。现状是方块实体数据可正确同步到客户端，告示牌编辑器等 UI 可读取数据，但客户端不会在世界中渲染方块实体外观。详见 `ClientWorld.hpp` 方块实体小节的 TODO 注释。

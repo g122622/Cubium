@@ -35,8 +35,8 @@ namespace mc::network {
 namespace {
 // 字符串长度上限（2^21 - 1，VarInt 3 字节能表示的最大值）。
 // MC 协议字符串长度限制为 32767（Short.MAX_VALUE），但命令树等数据可能超过此限制；
-// 使用 VarInt 编码可支持更大的字符串。原借自 packet/PacketSerializer.hpp::MAX_STRING_LENGTH，
-// 迁出 packet/ 后在此内联，避免跨模块借常量。
+// 使用 VarInt 编码可支持更大的字符串。本模块自用内联常量，与 PacketSerializer 的
+// MAX_STRING_LENGTH 同值但独立定义，避免跨模块借常量。
 constexpr u32 kMaxStringLength = 2097151u;
 
 // MC 1.21.11 EntityDataSerializers 注册顺序（EntityDataSerializers.java:153-193）
