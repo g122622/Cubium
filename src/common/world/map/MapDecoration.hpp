@@ -38,7 +38,9 @@ namespace mc::world::map {
 /**
  * @brief 地图装饰类型
  *
- * 定义地图上显示的各种标记图标类型，与MC 1.16.5的MapDecoration.Type对应。
+ * 定义地图上显示的各种标记图标类型，对齐 MC 1.21.11 MAP_DECORATION_TYPE 注册表
+ * （MapDecorationTypes.java 声明顺序即 registry id，0-based）。枚举值与 registry id 一致，
+ * 网络层 holderRegistry 编码为 VarInt(registryId + 1)。
  * 部分类型只在展示框中渲染(renderedOnFrame=true)，
  * 部分类型有地图颜色(hasMapColor=true)用于物品栏显示。
  */
@@ -51,8 +53,8 @@ enum class DecorationType : u8 {
     TARGET_POINT = 5,       // 目标点标记
     PLAYER_OFF_MAP = 6,     // 地图范围外的玩家
     PLAYER_OFF_LIMITS = 7,  // 远离地图的玩家（无限追踪）
-    MANSION = 8,            // 林地府邸标记
-    MONUMENT = 9,           // 海底神殿标记
+    MANSION = 8,            // 林地府邸标记（Java: woodland_mansion）
+    MONUMENT = 9,           // 海底神殿标记（Java: ocean_monument）
     BANNER_WHITE = 10,      // 白色旗帜
     BANNER_ORANGE = 11,     // 橙色旗帜
     BANNER_MAGENTA = 12,    // 品红色旗帜
@@ -70,8 +72,16 @@ enum class DecorationType : u8 {
     BANNER_RED = 24,        // 红色旗帜
     BANNER_BLACK = 25,      // 黑色旗帜
     RED_X = 26,             // 红色X标记
+    DESERT_VILLAGE = 27,    // 沙漠村庄（Java: village_desert）
+    PLAINS_VILLAGE = 28,    // 平原村庄（Java: village_plains）
+    SAVANNA_VILLAGE = 29,   // 稀树草原村庄（Java: village_savanna）
+    SNOWY_VILLAGE = 30,     // 雪地村庄（Java: village_snowy）
+    TAIGA_VILLAGE = 31,     // 针叶林村庄（Java: village_taiga）
+    JUNGLE_TEMPLE = 32,     // 丛林神庙
+    SWAMP_HUT = 33,         // 沼泽小屋（女巫小屋）
+    TRIAL_CHAMBERS = 34,    // 试炼密室
 
-    COUNT = 27
+    COUNT = 35
 };
 
 /**

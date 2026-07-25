@@ -424,17 +424,60 @@ struct SetBorderWarningDistance {
 };
 
 // ----------------------------------------------------------------------------
-// 地图（S→C，opaque）
+// 地图（S→C，结构化，对齐 1.21.11 ClientboundMapItemDataPacket）
 // ----------------------------------------------------------------------------
 
 /**
- * @brief MapItemData（S→C，id=49，opaque）
+ * @brief 地图装饰 wire 表示（对应 Java MapDecoration）
  *
- * mapId+scale+locked+Optional<List<MapDecoration>>+Optional<MapPatch>。整体 opaque。
- * TODO(Phase6): 完整地图装饰/色块解析。
+ * type 字段是 MAP_DECORATION_TYPE 注册表的 Holder：1.21.11 holderRegistry 编码为
+ * VarInt(registryId + 1)（REFERENCE holder，DIRECT=0 本仓不用）。registryId 即
+ * DecorationType 枚举值（PLAYER=0 … TRIAL_CHAMBERS=34，与 Java 注册顺序一致）。
+ * name 是 Optional<Component>，Component 暂以 JSON 字节 opaque 透传（nullopt=无名称）。
+ */
+struct MapDecorationWire {
+    u32 typeRegistryIdPlusOne = 1; // VarInt(registryId + 1)；PLAYER→1，默认 1
+    i8 x = 0;
+    i8 y = 0;
+    u8 rotation = 0; // &0x0F
+    std::optional<std::vector<u8>> name; // opaque Component（JSON 字节）
+
+    [[nodiscard]] friend bool operator==(const MapDecorationWire&, const MapDecorationWire&) noexcept = default;
+};
+
+/**
+ * @brief 地图色块 wire 表示（对应 Java MapItemSavedData.MapPatch）
+ *
+ * 1.21.11 wire 顺序：width, height, startX, startY, ByteArray(colors)。
+ * absent 用 width==0 哨兵表示（colorPatch 整体为 nullopt 时 codec 写 width=0）。
+ * colors 为 width*height 字节，行优先索引 colors[i + j*width] ↔ mapData[startX+i + (startY+j)*128]。
+ */
+struct MapPatchWire {
+    u8 startX = 0;
+    u8 startY = 0;
+    u8 width = 0;
+    u8 height = 0;
+    std::vector<u8> colors; // width*height 字节
+
+    [[nodiscard]] friend bool operator==(const MapPatchWire&, const MapPatchWire&) noexcept = default;
+};
+
+/**
+ * @brief MapItemData（S→C，id=49）
+ *
+ * 对齐 Java 1.21.11 ClientboundMapItemDataPacket STREAM_CODEC（composite）：
+ * VarInt(mapId) + byte(scale) + bool(locked) +
+ * Optional<List<MapDecoration>>（bool present + VarInt count + 项）+
+ * Optional<MapPatch>（width==0 哨兵表 absent）。
  */
 struct MapItemData {
-    std::vector<u8> payload; // opaque
+    i32 mapId = 0; // VarInt
+    u8 scale = 0;
+    bool locked = false;
+    std::optional<std::vector<MapDecorationWire>> decorations;
+    std::optional<MapPatchWire> colorPatch;
+
+    [[nodiscard]] friend bool operator==(const MapItemData&, const MapItemData&) noexcept = default;
     BedrockMeta bedrock{};
 };
 

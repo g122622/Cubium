@@ -68,6 +68,14 @@ static constexpr DecorationTypeInfo DECORATION_TYPE_INFOS[] = {
     /* BANNER_RED */ {true, -1},
     /* BANNER_BLACK */ {true, -1},
     /* RED_X */ {true, -1},
+    /* DESERT_VILLAGE */ {true, 10066329},  // MapColor.COLOR_LIGHT_GRAY.col
+    /* PLAINS_VILLAGE */ {true, 10066329},
+    /* SAVANNA_VILLAGE */ {true, 10066329},
+    /* SNOWY_VILLAGE */ {true, 10066329},
+    /* TAIGA_VILLAGE */ {true, 10066329},
+    /* JUNGLE_TEMPLE */ {true, 10066329},
+    /* SWAMP_HUT */ {true, 10066329},
+    /* TRIAL_CHAMBERS */ {true, 12741452}, // COPPER_COLOR
 };
 
 static_assert(sizeof(DECORATION_TYPE_INFOS) / sizeof(DecorationTypeInfo) == static_cast<size_t>(DecorationType::COUNT),
@@ -193,6 +201,31 @@ std::optional<DecorationType> decorationTypeFromString(const std::string& str) n
     if (name == "red_x") {
         return DecorationType::RED_X;
     }
+    // 村庄/神庙/小屋/试炼密室：同时接受 registry key（village_desert 等）与 assetId（desert_village 等）
+    if (name == "desert_village" || name == "village_desert") {
+        return DecorationType::DESERT_VILLAGE;
+    }
+    if (name == "plains_village" || name == "village_plains") {
+        return DecorationType::PLAINS_VILLAGE;
+    }
+    if (name == "savanna_village" || name == "village_savanna") {
+        return DecorationType::SAVANNA_VILLAGE;
+    }
+    if (name == "snowy_village" || name == "village_snowy") {
+        return DecorationType::SNOWY_VILLAGE;
+    }
+    if (name == "taiga_village" || name == "village_taiga") {
+        return DecorationType::TAIGA_VILLAGE;
+    }
+    if (name == "jungle_temple") {
+        return DecorationType::JUNGLE_TEMPLE;
+    }
+    if (name == "swamp_hut") {
+        return DecorationType::SWAMP_HUT;
+    }
+    if (name == "trial_chambers") {
+        return DecorationType::TRIAL_CHAMBERS;
+    }
 
     return std::nullopt;
 }
@@ -254,6 +287,22 @@ const char* decorationTypeToString(DecorationType type) noexcept
             return "banner_black";
         case DecorationType::RED_X:
             return "red_x";
+        case DecorationType::DESERT_VILLAGE:
+            return "desert_village";
+        case DecorationType::PLAINS_VILLAGE:
+            return "plains_village";
+        case DecorationType::SAVANNA_VILLAGE:
+            return "savanna_village";
+        case DecorationType::SNOWY_VILLAGE:
+            return "snowy_village";
+        case DecorationType::TAIGA_VILLAGE:
+            return "taiga_village";
+        case DecorationType::JUNGLE_TEMPLE:
+            return "jungle_temple";
+        case DecorationType::SWAMP_HUT:
+            return "swamp_hut";
+        case DecorationType::TRIAL_CHAMBERS:
+            return "trial_chambers";
         default:
             return "player";
     }

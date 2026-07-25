@@ -189,6 +189,22 @@ public:
     void removeDecoration(const std::string& decorationName);
 
     /**
+     * @brief 应用客户端装饰（对齐 Java MapItemSavedData.addClientSideDecorations）
+     *
+     * 清空当前装饰，按 "icon-"+index 加入网络下发的装饰列表。仅客户端使用——
+     * 服务端的 tracking 装饰由 updateDecoration 维护，不由此方法覆盖。
+     */
+    void applyClientDecorations(std::vector<MapDecoration> decorations);
+
+    /**
+     * @brief 应用色块补丁（对齐 Java MapPatch.applyToMap）
+     *
+     * 将 width×height 的 colors 子区域写入 (startX, startY) 起的像素，行优先索引
+     * colors[i + j*width] ↔ (startX+i, startY+j)。越界坐标被裁剪。
+     */
+    void applyColorPatch(i32 startX, i32 startY, i32 width, i32 height, const std::vector<u8>& colors);
+
+    /**
      * @brief 从另一地图数据复制内容（用于锁定）
      */
     void lockFrom(const MapData& source);

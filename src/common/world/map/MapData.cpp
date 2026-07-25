@@ -183,6 +183,38 @@ void MapData::removeDecoration(const std::string& decorationName)
     m_decorations.erase(decorationName);
 }
 
+void MapData::applyClientDecorations(std::vector<MapDecoration> decorations)
+{
+    m_decorations.clear();
+    for (usize i = 0; i < decorations.size(); ++i) {
+        m_decorations.emplace("icon-" + std::to_string(i), std::move(decorations[i]));
+    }
+    m_dirty = true;
+}
+
+void MapData::applyColorPatch(i32 startX, i32 startY, i32 width, i32 height, const std::vector<u8>& colors)
+{
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+    // colors 行优先索引 colors[i + j*width] ↔ (startX+i, startY+j)，对齐 Java MapPatch.applyToMap
+    for (i32 j = 0; j < height; ++j) {
+        for (i32 i = 0; i < width; ++i) {
+            const i32 x = startX + i;
+            const i32 y = startY + j;
+            if (x < 0 || x >= MAP_SIZE || y < 0 || y >= MAP_SIZE) {
+                continue;
+            }
+            const usize colorIndex = static_cast<usize>(i + j * width);
+            if (colorIndex >= colors.size()) {
+                continue;
+            }
+            m_colors[static_cast<usize>(x + y * MAP_SIZE)] = colors[colorIndex];
+        }
+    }
+    m_dirty = true;
+}
+
 bool MapData::tryAddBanner(IWorld& world, const BlockPos& pos)
 {
     f64 worldX = static_cast<f64>(pos.x) + 0.5;

@@ -754,17 +754,121 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 }
 
 // ============================================================================
-// 地图（S→C，opaque）
+// 地图（S→C，结构化，对齐 1.21.11 ClientboundMapItemDataPacket）
 // ============================================================================
 
-/// MapItemData（S→C，id=49，opaque）
+namespace play_ext_detail {
+
+/// 写 MapDecoration wire：VarInt(registryId+1) + byte x + byte y + byte rot + Optional<Component>(opaque)
+inline void writeMapDecoration(B& buf, const ir::play::MapDecorationWire& d)
+{
+    buf.writeVarInt(static_cast<i32>(d.typeRegistryIdPlusOne));
+    buf.writeI8(d.x);
+    buf.writeI8(d.y);
+    buf.writeU8(d.rotation);
+    if (d.name.has_value()) {
+        buf.writeBool(true);
+        writeOpaque(buf, *d.name);
+    } else {
+        buf.writeBool(false);
+    }
+}
+
+/// 读 MapDecoration wire
+[[nodiscard]] inline Result<ir::play::MapDecorationWire> readMapDecoration(B& buf)
+{
+    ir::play::MapDecorationWire d{};
+    MC_TRY_ASSIGN(d.typeRegistryIdPlusOne, buf.readVarInt());
+    d.typeRegistryIdPlusOne = static_cast<u32>(std::max(0, static_cast<i32>(d.typeRegistryIdPlusOne)));
+    MC_TRY_ASSIGN(d.x, buf.readI8());
+    MC_TRY_ASSIGN(d.y, buf.readI8());
+    MC_TRY_ASSIGN(d.rotation, buf.readU8());
+    d.rotation &= 0x0F;
+    bool hasName = false;
+    MC_TRY_ASSIGN(hasName, buf.readBool());
+    if (hasName) {
+        MC_TRY_ASSIGN(d.name, readOpaque(buf, "mapDecorationName"));
+    }
+    return d;
+}
+
+/// 写 Optional<MapPatch> wire：present 则 width,height,startX,startY,ByteArray；absent 则 writeByte(0)
+inline void writeMapPatch(B& buf, const std::optional<ir::play::MapPatchWire>& patch)
+{
+    if (patch.has_value() && patch->width > 0) {
+        buf.writeU8(patch->width);
+        buf.writeU8(patch->height);
+        buf.writeU8(patch->startX);
+        buf.writeU8(patch->startY);
+        writeOpaque(buf, patch->colors);
+    } else {
+        buf.writeU8(0); // width=0 哨兵表 absent
+    }
+}
+
+/// 读 Optional<MapPatch> wire：先读 width，>0 才读 height/startX/startY/ByteArray
+[[nodiscard]] inline Result<std::optional<ir::play::MapPatchWire>> readMapPatch(B& buf)
+{
+    u8 width = 0;
+    MC_TRY_ASSIGN(width, buf.readU8());
+    if (width == 0) {
+        return std::optional<ir::play::MapPatchWire>{};
+    }
+    ir::play::MapPatchWire patch{};
+    patch.width = width;
+    MC_TRY_ASSIGN(patch.height, buf.readU8());
+    MC_TRY_ASSIGN(patch.startX, buf.readU8());
+    MC_TRY_ASSIGN(patch.startY, buf.readU8());
+    MC_TRY_ASSIGN(patch.colors, readOpaque(buf, "mapPatchColors"));
+    return std::optional<ir::play::MapPatchWire>{std::move(patch)};
+}
+
+} // namespace play_ext_detail
+
+/// MapItemData（S→C，id=49）
 [[nodiscard]] inline auto mapItemDataCodec()
 {
     return makeCodec<ir::play::MapItemData>(
-        [](B& buf, const ir::play::MapItemData& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf, const ir::play::MapItemData& v) {
+            buf.writeVarInt(v.mapId);
+            buf.writeU8(v.scale);
+            buf.writeBool(v.locked);
+            // Optional<List<MapDecoration>>：bool present + VarInt(count) + 项
+            if (v.decorations.has_value()) {
+                buf.writeBool(true);
+                buf.writeVarInt(static_cast<i32>(v.decorations->size()));
+                for (const auto& d : *v.decorations) {
+                    play_ext_detail::writeMapDecoration(buf, d);
+                }
+            } else {
+                buf.writeBool(false);
+            }
+            // Optional<MapPatch>：width==0 哨兵
+            play_ext_detail::writeMapPatch(buf, v.colorPatch);
+        },
         [](B& buf) -> Result<ir::play::MapItemData> {
             ir::play::MapItemData v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "mapItemDataCodec"));
+            MC_TRY_ASSIGN(v.mapId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.scale, buf.readU8());
+            MC_TRY_ASSIGN(v.locked, buf.readBool());
+            bool hasDecorations = false;
+            MC_TRY_ASSIGN(hasDecorations, buf.readBool());
+            if (hasDecorations) {
+                i32 count = 0;
+                MC_TRY_ASSIGN(count, buf.readVarInt());
+                if (count < 0) {
+                    return Error(ErrorCode::InvalidData, "map decorations count is negative", "mapItemDataCodec");
+                }
+                std::vector<ir::play::MapDecorationWire> decos;
+                decos.reserve(static_cast<usize>(count));
+                for (i32 i = 0; i < count; ++i) {
+                    ir::play::MapDecorationWire d{};
+                    MC_TRY_ASSIGN(d, play_ext_detail::readMapDecoration(buf));
+                    decos.push_back(std::move(d));
+                }
+                v.decorations = std::move(decos);
+            }
+            MC_TRY_ASSIGN(v.colorPatch, play_ext_detail::readMapPatch(buf));
             return v;
         });
 }
