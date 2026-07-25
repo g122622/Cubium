@@ -50,9 +50,6 @@ namespace mc::network::transport {
  * - 独立接收线程跑同步 read_some 循环，每读到一块就回调 onBytes
  * - 发送在调用方线程同步 asio::write，mutex 保护并发 send
  * io_context 仅作 resolver/socket 工厂，不调 run()。
- *
- * TODO(Phase7): 若需高并发可改 io_context.run() + async_read/write；当前同步模型
- *              足以支撑我方互通必达目标。
  */
 class TcpTransport : public ITransport {
 public:
@@ -68,9 +65,8 @@ public:
     [[nodiscard]] Result<void> connect(const Endpoint& endpoint);
 
     /**
-     * @brief 服务端：从已 accept 的 socket 接管（ServerNetwork 创建后注入）
-     *
-     * TODO(Phase7): ServerNetwork accept 出 socket 后用本接口注入，省去 TcpTransport 自行 accept。
+     * @brief 服务端：从已 accept 的 socket 接管（ServerNetwork::startAccept accept 出
+     *        socket 后经此接口注入，省去 TcpTransport 自行 accept）
      */
     void attachConnectedSocket(asio::ip::tcp::socket socket);
 

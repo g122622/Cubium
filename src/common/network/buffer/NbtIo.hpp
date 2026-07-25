@@ -50,7 +50,7 @@ namespace nbt_io {
 /**
  * @brief 将复合标签以 Java 大端二进制写入 buf
  *
- * TODO(Phase3/Phase5): 1.21.11 物品组件用 DataComponentPatch，其内嵌 NBT 走本桥接。
+ * TODO(Phase6): 1.21.11 物品组件用 DataComponentPatch，其内嵌 NBT 走本桥接。
  */
 [[nodiscard]] Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag);
 

@@ -47,7 +47,7 @@ Result<const Item*> RegistryByteBuf::readItemHolder()
 
 void RegistryByteBuf::writeBlockStateHolder(const BlockState* state)
 {
-    // TODO(Phase3): BlockState 在项目内尚无统一整数 stateId getter，此处先用占位。
+    // TODO(Phase6): BlockState 在项目内尚无统一整数 stateId getter，此处先用占位。
     //               区块 palette 与 BlockUpdate 的 stateId 编码待 Phase6 对齐 1.21.11 时补全。
     writeVarUInt(0);
     (void)state;

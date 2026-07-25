@@ -265,7 +265,7 @@ struct SetCarriedItem {
  * @brief 容器点击槽位变更（1.21.11 用 HashedStack）
  *
  * 对应 Java HashedStack：present=false 空；true 则 itemId+count+组件哈希 patch。
- * TODO(Phase5): 完整 HashedPatchMap（added/removed 组件哈希），当前仅承载 itemId/count。
+ * TODO(Phase6): 完整 HashedPatchMap（added/removed 组件哈希），当前仅承载 itemId/count。
  */
 struct HashedStack {
     bool present;

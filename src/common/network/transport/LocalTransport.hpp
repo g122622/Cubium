@@ -44,7 +44,8 @@ namespace mc::network::transport {
  * 实现是一对互连的 LocalTransport（pair）：A.send 把 IrPacket push 到 B 的入队，
  * B.pollFromQueue 取出回调 onPacket。零序列化、零拷贝（IrPacket 按值移动）。
  *
- * TODO(Phase7): 接入 Connection 双模式，IntegratedServer 用 LocalTransportPair。
+ * 已接入 Connection 双模式（Connection.inl 内 Local 分支按模式分流）；
+ * IntegratedServer 经 LocalTransportPair::create() 建本地客户端零拷贝通道。
  */
 class ILocalTransport {
 public:

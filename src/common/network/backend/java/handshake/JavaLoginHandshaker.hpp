@@ -54,7 +54,8 @@ namespace mc::network::backend::java {
  *     服务端: Hello → HelloBound(publicKey, verifyToken) → [收 Key] →
  *             解密校验 verifyToken → 装加密层 → ...
  *
- * TODO(Phase7): 接入 Connection 端到端跑通（离线模式我方互通必达；在线模式尽力）。
+ * 已接入 Connection 端到端：离线模式我方互通已跑通；在线模式 RSA 握手见
+ * JavaCodecs.hpp 的 helloCodec 在线模式 TODO（profile 公钥 + keySignature）。
  */
 class JavaLoginHandshaker {
 public:

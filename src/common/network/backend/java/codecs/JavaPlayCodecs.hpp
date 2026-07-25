@@ -86,7 +86,7 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
  *
  * 对应 Java HashedStack：present=false 写 Bool(false)；true 写 Bool(true)+ActualItem
  * { VarInt(itemId) + VarInt(count) + HashedPatchMap }。
- * TODO(Phase5): HashedPatchMap（added/removed 组件哈希），当前省略。
+ * TODO(Phase6): HashedPatchMap（added/removed 组件哈希），当前省略。
  */
 inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
 {
