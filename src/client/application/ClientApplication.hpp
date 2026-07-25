@@ -553,6 +553,9 @@ private:
 
     std::unordered_map<PlayerId, std::string> m_knownPlayerNames;
 
+    // 服务端品牌（Configuration 阶段 CustomPayload{minecraft:brand} 下发），供调试/UI 展示。
+    std::string m_serverBrand;
+
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_initialized{false};
 

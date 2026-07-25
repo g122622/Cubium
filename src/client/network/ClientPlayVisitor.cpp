@@ -128,8 +128,10 @@ DimensionId dimensionKeyToId(const std::string& key) noexcept
     return DimensionManager::OVERWORLD;
 }
 
-/// ItemStack → 1.21.11 HashedStack（仅 itemId+count，组件哈希留 TODO(Phase6)）。
+/// ItemStack → 1.21.11 HashedStack（降级：仅 itemId+count，组件哈希 patch 双端写空）。
 /// 空栈 present=false。出站 ContainerClick 的 carriedItem 用。
+/// 完整 1.21.11 HashedStack 需 HashedPatchMap（added/removed 组件哈希），依赖组件哈希体系
+/// （DataComponentPatch→哈希），与 PlayPackets.hpp:293 的 IR 降级约定一致，待组件哈希落地后统一升级。
 irplay::HashedStack toHashedStack(const ItemStack& stack)
 {
     irplay::HashedStack hs{};
@@ -222,6 +224,31 @@ std::vector<ItemStack> viewsToStacks(const std::vector<mc::network::ir::play::It
     }
 }
 
+/// PlaySound/SoundEntity 的 soundHolder 是服务端降级编码：opaque 字节 = ResourceLocation::toString()
+/// 的 UTF-8（与服务端 MinecraftServer::broadcastSound 的填充对称，我方互通自洽）。
+/// 真正的 1.21.11 Holder<SoundEvent>（VarInt mode + 内联/引用分支）待真 Java 互通时统一升级。
+[[nodiscard]] std::optional<ResourceLocation> parseSoundHolder(const std::vector<u8>& holder)
+{
+    if (holder.empty()) {
+        return std::nullopt;
+    }
+    std::string idStr(holder.begin(), holder.end());
+    auto rl = ResourceLocation::parse(idStr);
+    if (!rl.isValid()) {
+        return std::nullopt;
+    }
+    return rl;
+}
+
+/// IR source(i32) → SoundCategory（与服务端 static_cast<i32>(category) 对称），越界返回 nullopt。
+[[nodiscard]] std::optional<mc::sound::SoundCategory> sourceToCategory(i32 source)
+{
+    if (source < 0 || source >= static_cast<i32>(mc::sound::SoundCategory::Count)) {
+        return std::nullopt;
+    }
+    return static_cast<mc::sound::SoundCategory>(source);
+}
+
 } // namespace
 
 // ============================================================================
@@ -252,7 +279,7 @@ ClientPlayVisitor::makeContainerClickSender()
         pkt.slotNum = slotIndex;
         pkt.buttonNum = button;
         pkt.clickType = static_cast<i32>(action);
-        // TODO(Phase6): carriedItem 完整 HashedPatchMap（组件哈希），当前仅 itemId+count。
+        // carriedItem 降级为 itemId+count（与 toHashedStack 的 HashedPatchMap 缺省一致）。
         pkt.carriedItem = toHashedStack(cursorItem);
         (void)transactionId;
         if (m_app.m_network) {
@@ -287,10 +314,43 @@ Result<void> ClientPlayVisitor::handleConfiguration(const mc::network::ir::IrPac
     }
 
     // Configuration 阶段包由 ClientNetwork 内部状态机处理（SelectKnownPacks/FinishConfiguration
-    // 回包、RegistryData/UpdateTags/UpdateEnabledFeatures 忽略），本 visitor 仅占位。
-    // TODO(Step3): ClientInformation 发送、CustomPayload(brand) 存储、Ping 回 Pong
-    (void)packet;
-    return Result<void>::ok();
+    // 回包、RegistryData/UpdateTags/UpdateEnabledFeatures 忽略），余下入站包在此 visitor 处理：
+    // KeepAlive/Ping 回对称包、CustomPayload(brand) 存储、Disconnect 记日志。
+    // 注：ClientInformation 是 C→S 出站包（客户端设置），属 ClientNetwork 出站职责，不在此。
+    return std::visit(
+        [this](const auto& cfg) -> Result<void> {
+            using C = std::decay_t<decltype(cfg)>;
+            if constexpr (std::is_same_v<C, mc::network::ir::configuration::KeepAlive>) {
+                // S→C KeepAlive：回 C→S KeepAlive 同 id（心跳对称）。
+                if (m_app.m_network) {
+                    (void)m_app.m_network->send(
+                        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Configuration,
+                            mc::network::ir::ConfigurationPacket{mc::network::ir::configuration::KeepAlive{cfg.id}}});
+                }
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<C, mc::network::ir::configuration::Ping>) {
+                // S→C Ping：回 C→S Pong（复用 Ping struct 同 parameter）。
+                if (m_app.m_network) {
+                    (void)m_app.m_network->send(
+                        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Configuration,
+                            mc::network::ir::ConfigurationPacket{mc::network::ir::configuration::Ping{cfg.parameter}}});
+                }
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<C, mc::network::ir::configuration::CustomPayload>) {
+                // S→C CustomPayload：minecraft:brand 存 m_serverBrand；其余 payload 暂不消费。
+                if (cfg.identifier == "minecraft:brand") {
+                    m_app.m_serverBrand = std::string(cfg.payload.begin(), cfg.payload.end());
+                }
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<C, mc::network::ir::configuration::Disconnect>) {
+                spdlog::warn("[Configuration] Disconnected by server: {}", cfg.reason);
+                return Result<void>::ok();
+            } else {
+                // RegistryData/UpdateTags/UpdateEnabledFeatures/ClientInformation(不应收到)：忽略。
+                return Result<void>::ok();
+            }
+        },
+        *cfg);
 }
 
 // ============================================================================
@@ -386,6 +446,13 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 if (!m_app.m_player) {
                     return Result<void>::ok();
                 }
+                // 1.21.11：服务端发起传送（PlayerPosition/PlayerPosRot），客户端须回
+                // AcceptTeleportation{teleportId} 确认，否则服务端会重发或判定未确认。
+                if (m_app.m_network) {
+                    (void)m_app.m_network->send(
+                        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                            mc::network::ir::PlayPacket{irplay::AcceptTeleportation{p.teleportId}}});
+                }
                 if (m_app.m_predictor) {
                     m_app.m_predictor->reset(
                         Vector3(static_cast<f32>(p.x), static_cast<f32>(p.y), static_cast<f32>(p.z)), p.yRot, p.xRot);
@@ -407,10 +474,8 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     p.x, p.z, m_app.m_dimensionManager.currentDimension(), buffer->data(), buffer->size(), buffer);
                 return Result<void>::ok();
             }
-            // ---- 区块卸载（无独立 IR，TODO）----
-            else if constexpr (false) {
-                return Result<void>::ok();
-            }
+            // 1.21.11 已删 UnloadChunk 包：区块卸载由客户端按距离自行管理
+            // （ClientWorld::onChunkUnload 已就绪，待接距离判据），无入站信令。
             // ---- 方块更新 ----
             else if constexpr (std::is_same_v<T, irplay::BlockUpdate>) {
                 const auto& p = pkt;
@@ -1136,11 +1201,17 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 }
                 return Result<void>::ok();
             }
-            // ---- 方块事件（箱子开合等，客户端暂无 BlockEntity 系统）----
+            // ---- 方块事件（箱子开合、音符盒、活塞等，委托 BlockEntity::triggerEvent）----
             else if constexpr (std::is_same_v<T, irplay::BlockEvent>) {
                 const auto& p = pkt;
-                (void)p;
-                // TODO(Phase6): 客户端 BlockEntity 渲染系统就绪后实现 triggerEvent
+                const BlockPos pos = BlockPos::fromLong(p.blockPosPacked);
+                // 1.21.11 BlockEvent: blockPos + b0(action) + b1(param) + blockId。
+                // 客户端按位置取 BlockEntity 调 triggerEvent(action, param) 触发客户端侧动画
+                // （BellBlockEntity/DecoratedPotBlockEntity/EndGatewayEntity 等已实现该虚函数）。
+                // 无 BlockEntity 的方块（活塞/音符盒）当前无客户端表现，静默忽略。
+                if (auto* be = m_app.m_world.getBlockEntity(pos)) {
+                    (void)be->triggerEvent(static_cast<i32>(p.b0), static_cast<i32>(p.b1));
+                }
                 return Result<void>::ok();
             }
             // ---- 方块实体数据 ----
@@ -1318,9 +1389,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     }
                     std::optional<GlobalPos> lastDeath;
                     if (p.spawnInfo.lastDeathLocation) {
-                        // optional<pair<string,i64>> → GlobalPos
-                        // TODO(Phase6): GlobalPos 完整构造（dimension string + BlockPos）
-                        lastDeath = std::nullopt;
+                        // optional<pair<string,i64>> → GlobalPos(dimension, BlockPos)
+                        // pair.first=维度 ResourceKey，pair.second=BlockPos asLong。
+                        const auto& [dimKey, packedPos] = *p.spawnInfo.lastDeathLocation;
+                        lastDeath = GlobalPos(dimensionKeyToId(dimKey), BlockPos::fromLong(packedPos));
                     }
                     m_app.m_player->setLastDeathLocation(std::move(lastDeath));
                 }
@@ -1331,8 +1403,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         m_app.m_player->yaw(),
                         m_app.m_player->pitch());
                 }
-                // 1.21.11 维度切换确认：服务端经 play::Login/Respawn 隐式确认，客户端无需显式发包。
-                // TODO(Phase6): 若独立服需要 ConfigurationAcknowledged/AcceptTeleportation 确认再补。
+                // 1.21.11 维度切换：Respawn 不重新进入 Configuration 阶段，客户端无需发
+                // ConfigurationAcknowledged（该 C→S terminal 仅在 Configuration→Play 切换时发，
+                // 我方以 FinishConfiguration 为 terminal，已由 ClientNetwork 处理）。
+                // AcceptTeleportation 由 PlayerPosition 分支按 teleportId 回确认。
                 return Result<void>::ok();
             }
             // ---- 载具移动（回发确认）----
@@ -1408,21 +1482,68 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 m_app.m_world.onLightUpdate(p.x, p.z, sectionY, skyLight, blockLight, trustEdges);
                 return Result<void>::ok();
             }
-            // ---- 声音（opaque Holder<SoundEvent>，TODO Phase6 解析）----
+            // ---- 声音 ----
             else if constexpr (std::is_same_v<T, irplay::PlaySound>) {
-                // TODO(Phase6): 1.21.11 PlaySound 的 soundHolder 是 Holder<SoundEvent>（registry id
-                // 或内联 SoundEvent），需完整解析才能还原 ResourceLocation + SoundCategory 喂
-                // AudioService::play。坐标为 ×8 取整的 int，需 /8.0f 还原。
-                (void)pkt;
+                // 1.21.11 PlaySound：soundHolder(opaque=ResourceLocation 降级编码) + source + 坐标(×8) +
+                // volume + pitch + seed。坐标需 /8.0f 还原。
+                const auto& p = pkt;
+                if (m_app.m_audioService == nullptr) {
+                    return Result<void>::ok();
+                }
+                auto soundId = parseSoundHolder(p.soundHolder);
+                auto category = sourceToCategory(p.source);
+                if (!soundId || !category) {
+                    return Result<void>::ok(); // 降级编码失败/越界，静默丢弃
+                }
+                const f32 x = static_cast<f32>(p.x) / 8.0f;
+                const f32 y = static_cast<f32>(p.y) / 8.0f;
+                const f32 z = static_cast<f32>(p.z) / 8.0f;
+                auto sound =
+                    mc::client::sound::SoundInstance::createLocated(*soundId, *category, x, y, z, p.volume, p.pitch);
+                m_app.m_audioService->play(std::make_unique<mc::client::sound::SoundInstance>(std::move(sound)));
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::StopSound>) {
-                // TODO(Phase6): StopSound 的 source(i32)/name(string) 需映射到
-                // SoundCategory/ResourceLocation 才能调 AudioService::stop。当前忽略。
-                (void)pkt;
+                // 1.21.11 StopSound：flags(0x01=按 source,0x02=按 name) + source + name。
+                const auto& p = pkt;
+                if (m_app.m_audioService == nullptr) {
+                    return Result<void>::ok();
+                }
+                if ((p.flags & 0x01) != 0) {
+                    if (auto category = sourceToCategory(p.source)) {
+                        m_app.m_audioService->stop(*category);
+                    }
+                }
+                if ((p.flags & 0x02) != 0) {
+                    auto rl = ResourceLocation::parse(p.name);
+                    if (rl.isValid()) {
+                        m_app.m_audioService->stop(rl);
+                    }
+                }
+                if (p.flags == 0) {
+                    m_app.m_audioService->stopAll();
+                }
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::SoundEntity>) {
-                // TODO(Phase6): SoundEntity 同样依赖 Holder<SoundEvent> 解析。
-                (void)pkt;
+                // 1.21.11 SoundEntity：soundHolder + source + entityId + volume + pitch + seed。
+                // 用实体当前位置播放（playMovingSound 跟随实体，但需实体存在且非本地玩家）。
+                const auto& p = pkt;
+                if (m_app.m_audioService == nullptr) {
+                    return Result<void>::ok();
+                }
+                auto soundId = parseSoundHolder(p.soundHolder);
+                auto category = sourceToCategory(p.source);
+                if (!soundId || !category) {
+                    return Result<void>::ok();
+                }
+                ClientEntity* entity =
+                    m_app.m_world.entityManager().getEntity(static_cast<EntityInstanceId>(p.entityId));
+                if (entity == nullptr) {
+                    return Result<void>::ok(); // 实体未加载，静默丢弃
+                }
+                const auto pos = entity->position();
+                auto sound = mc::client::sound::SoundInstance::createLocated(
+                    *soundId, *category, pos.x, pos.y, pos.z, p.volume, p.pitch);
+                m_app.m_audioService->play(std::make_unique<mc::client::sound::SoundInstance>(std::move(sound)));
                 return Result<void>::ok();
             }
             // ---- 标题（5 拆，映射回 TitleAction 喂 TitleWidget）----
