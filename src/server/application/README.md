@@ -57,7 +57,7 @@ src/server/application/
 - `server/command/` - CommandRegistry, CommandStorage
 - `server/menu/` - CraftingMenu
 - `common/entity/inventory/container/` - 容器菜单实现
-- `common/network/` - IR 包、pipeline/Connection、transport/LocalTransport、transport/TcpTransport、Phase6 桥接 packet/
+- `common/network/` - IR 包、pipeline/Connection、transport/LocalTransport、transport/TcpTransport、codec/（PacketSerializer 等自 packet/ 迁入的工具类）
 - `common/world/` - World, Chunk, Lighting, Generation
 - `common/entity/` - Player, Inventory, Loot
 - `common/item/` - Items, BlockItems, Recipes
@@ -104,16 +104,16 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 
 ### 8. 方块破坏动画广播链路
 方块破坏动画通过以下链路广播：
-- **服务端挖掘**：`MiningManager.tick()` → `setOnBreakAnimBroadcast` 回调 → `ServerWorld::destroyBlockProgress()` → `MinecraftServer::broadcastBlockBreakProgressInRange()` → `BlockBreakAnimPacket` 广播
+- **服务端挖掘**：`MiningManager.tick()` → `setOnBreakAnimBroadcast` 回调 → `ServerWorld::destroyBlockProgress()` → `MinecraftServer::broadcastBlockBreakProgressInRange()` → `ir::play::BlockDestruction`（旧 `BlockBreakAnimPacket` 已删除）广播
 - **实体破门**：`BreakDoorGoal` 直接调用 `IWorld::destroyBlockProgress()` → 同上链路
 - **排除破坏者**：`broadcastBlockBreakProgressInRange()` 通过 `playerEntityManager().getPlayerIdByEntityId()` 将 breakerId 转为 PlayerId，在遍历玩家时跳过破坏者自身。对应 MC Java `ServerLevel.destroyBlockProgress()` 中 `serverplayer.getId() != breakerId` 的过滤逻辑。
 - **PlayerId↔EntityId 映射**：`ServerPlayerEntityManager` 维护双向映射，`getPlayerEntityId(PlayerId)` 和 `getPlayerIdByEntityId(EntityId)` 用于两个方向的转换。
 
 ### 8a. 粒子广播链路
 携带附加数据的粒子通过 `IWorld` 虚接口 + `ServerWorld` 广播回调 + `MinecraftServer::broadcastXxxParticleInRange` 路径广播给附近玩家：
-- **方块粒子**：`IWorld::addBlockParticle()` → `ServerWorld::m_onBroadcastBlockParticle` 回调 → `MinecraftServer::broadcastBlockParticleInRange()` → `ParticlePacket::createBlock()`（携带 BlockState ID）
-- **物品粒子**：`IWorld::addItemParticle()` → `ServerWorld::m_onBroadcastItemParticle` 回调 → `MinecraftServer::broadcastItemParticleInRange()` → `ParticlePacket::createItem()`（携带 `ItemStack` 序列化字节流）
-- **实体效果粒子**：`IWorld::addEntityEffectParticle()` → `ServerWorld::m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange()` → `ParticlePacket::createEntityEffect()`（携带 ARGB 颜色）
+- **方块粒子**：`IWorld::addBlockParticle()` → `ServerWorld::m_onBroadcastBlockParticle` 回调 → `MinecraftServer::broadcastBlockParticleInRange()` → 构造 `ir::play::LevelParticles`（携带 BlockState ID）
+- **物品粒子**：`IWorld::addItemParticle()` → `ServerWorld::m_onBroadcastItemParticle` 回调 → `MinecraftServer::broadcastItemParticleInRange()` → 构造 `ir::play::LevelParticles`（携带 `ItemStack` 经 codec 序列化字节流）
+- **实体效果粒子**：`IWorld::addEntityEffectParticle()` → `ServerWorld::m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange()` → 构造 `ir::play::LevelParticles`（携带 ARGB 颜色）
 - **范围过滤**：各 `broadcastXxxParticleInRange` 默认范围 256 格，遍历 `playerEntityManager()` 中所有在线玩家，跳过距离超出的玩家。对应 MC Java `ServerLevel.sendParticles()` 的距离裁剪逻辑。
 - **回调注册**：`MinecraftServer::attachWorldBindings()` 中通过 `world->setOnBroadcastXxxParticle()` 注册回调，将 `ServerWorld` 与 `MinecraftServer` 的广播方法绑定。
 
@@ -172,7 +172,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 | `getPlayerIdForSession()` | 返回 `m_clientPlayerId` | `PlayerManager::getPlayerIdBySession()` |
 | 登录流程 | `_onClientPlayerReady`（本地握手回调） | `_onRemotePlayerReady`（远程握手回调），均调共享 `createPlayerForConnection` |
 | `handleHotbarSelectPacket()` | `m_clientInventory` | `InventoryManager::setSelectedSlot()` |
-| `handleContainerClickPacket()` | `ContainerPacketHandler` + `m_openMenu` | `ContainerManager::handleClick()` |
+| `handleContainerClickPacket()` | 内联处理（guard + setCarriedItem + toClickType + clicked）+ `m_openMenu` | `ContainerManager::handleClick()` |
 | `handleCloseContainerPacket()` | `_closeCurrentContainer()` | `ContainerManager::closeContainer()` |
 | `openContainerRequest()` | `_openContainerMenu()` | `ContainerManager::openContainer()` |
 | `getHeldItemForPlacement()` | `m_clientInventory.getSelectedStack()` | `InventoryManager::getHeldItem()` |

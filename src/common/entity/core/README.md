@@ -1082,7 +1082,7 @@
 
 ## #swing(Hand) 挥动动画广播
 
-对应 MC 1.21.11 `LivingEntity.swing(InteractionHand)`，在服务端调用时通过 `IWorld::broadcastEntityAnimation` 广播 `EntityAnimationPacket`，客户端收到后启动本地 6 tick 挥动动画。
+对应 MC 1.21.11 `LivingEntity.swing(InteractionHand)`，在服务端调用时通过 `IWorld::broadcastEntityAnimation` 广播挥动动画事件（经 IR `ir::play::Animate` 传输），客户端收到后启动本地 6 tick 挥动动画。
 
 ### 核心方法
 
@@ -1104,8 +1104,8 @@ void LivingEntity::swing(Hand hand)
         // 服务端广播挥动动画事件
         if (m_world != nullptr && !m_world->isClientSide()) {
             const u8 animation = (hand == Hand::MainHand)
-                ? static_cast<u8>(EntityAnimationPacket::Animation::SwingMainHand)  // 0
-                : static_cast<u8>(EntityAnimationPacket::Animation::SwingOffHand); // 3
+                ? static_cast<u8>(network::EntityAnimation::SwingMainHand)  // 0
+                : static_cast<u8>(network::EntityAnimation::SwingOffHand); // 3
             m_world->broadcastEntityAnimation(m_id, animation);
         }
     }
@@ -1114,10 +1114,12 @@ void LivingEntity::swing(Hand hand)
 
 ### 动画值映射
 
-| Hand | Animation 枚举 | 网络值 |
+| Hand | `network::EntityAnimation` 枚举 | 网络值 |
 |------|----------------|--------|
 | MainHand | `SwingMainHand` | 0 |
 | OffHand | `SwingOffHand` | 3 |
+
+`network::EntityAnimation` 枚举定义在 `common/network/protocol/EntityEvents.hpp`，动画事件经 IR `ir::play::Animate` 包传输。
 
 ### 边界条件
 
@@ -1131,8 +1133,8 @@ void LivingEntity::swing(Hand hand)
 服务端 LivingEntity::swing(Hand::MainHand)
   → 检测 !m_world->isClientSide()
   → m_world->broadcastEntityAnimation(entityId, SwingMainHand=0)
-  → 客户端收到 EntityAnimationPacket
-  → ClientEntity::triggerSwingAnimation 启动本地 6 tick 挥动动画
+  → IR ir::play::Animate 传输到客户端
+  → ClientPlayVisitor 分流到 ClientEntity::triggerSwingAnimation 启动本地 6 tick 挥动动画
   → ClientEntity::tick 推进 swingProgress
   → BipedModel::setSwingProgress(swingProgress) 应用到手臂旋转
 ```

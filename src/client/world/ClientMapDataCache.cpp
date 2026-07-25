@@ -22,7 +22,7 @@
  */
 
 #include "ClientMapDataCache.hpp"
-#include "common/network/packet/MapDataPacket.hpp"
+#include "common/network/codec/MapDataPacket.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
 namespace mc::client {

@@ -167,15 +167,15 @@ src/common/
 │
 ├── network/                  # 网络系统（新 IR 架构为主）
 │   ├── buffer/               # 字节缓冲（ByteBuf/RegistryByteBuf/NbtIo）
-│   ├── codec/                # 流式 codec（StreamCodec/IdDispatchCodec）
-│   ├── protocol/             # 协议元数据（ProtocolInfo/PacketFlow）
+│   ├── codec/                # 流式 codec（StreamCodec/IdDispatchCodec）+ 自 packet/ 迁入的工具类（PacketSerializer/PacketDeserializer/Packet/MapDataPacket/EntityMetadataSerializer）
+│   ├── protocol/             # 协议元数据（ProtocolInfo/PacketFlow/GameActions/TitleActions/EntityEvents）
 │   ├── ir/                   # 协议无关 IR 包（IrPacket + 各阶段 packets/）
 │   ├── transport/            # 传输层（LocalTransport 同进程零拷贝 / TcpTransport）
 │   ├── pipeline/             # 连接管线（Connection 门面 + cipher/compress/framing handler）
 │   ├── backend/              # 协议后端（java/1.21.11 线协议 + bedrock/ stub）
 │   ├── crypto/               # 加密原语
-│   ├── packet/               # 【Phase6 桥接包】旧 1.16.5 数据包残留（Packet/PacketSerializer/EntityPackets/InventoryPackets/ContainerPacketHandler/...）
 │   └── sync/                 # 同步系统（ChunkSync）
+│   # 注：旧 packet/ 子目录已整体删除（Phase8 终态），活件已迁入 codec/ 与 protocol/
 │
 ├── profiler/                 # 性能追踪（Perfetto + Tracy 双轨）
 │   ├── ProfilerManager.hpp   # 门面单例（管理两套后端）

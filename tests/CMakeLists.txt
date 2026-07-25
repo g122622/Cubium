@@ -1005,7 +1005,6 @@ add_executable(mc_tests
     client/resource/TextureAtlasBuilderTest.cpp
     client/resource/AnimationTextureTest.cpp
     client/resource/test_resource_manager_cloud_texture.cpp
-    network/EntityPacketsTest.cpp
     network/WorldEventPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
@@ -1682,10 +1681,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketSerializer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketDeserializer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/packet/Packet.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/packet/EntityPackets.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/network/codec/Packet.cpp
         # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
         # 它们引用 ServerNetwork/ServerHandshake/ServerPlayRouter/RegistryDataBuilder 的符号，
         # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）

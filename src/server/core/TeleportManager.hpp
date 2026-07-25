@@ -24,7 +24,6 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/network/packet/Packet.hpp"
 #include <atomic>
 #include <vector>
 

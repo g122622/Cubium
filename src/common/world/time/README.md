@@ -39,7 +39,7 @@ GameTime.cpp（实现）
 | `server/core/TimeManager` | 服务端时间管理器，封装 GameTime |
 | `client/renderer/trident/sky/CelestialCalculations` | 天体计算（太阳位置、月相、天空颜色等） |
 | `server/command/commands/TimeCommand` | /time 命令实现 |
-| `common/network/packet/ProtocolPackets` | TimeUpdatePacket 网络同步 |
+| `common/network/ir/packets/play/PlayPackets.hpp` | `ir::play::SetTime` 网络同步（旧 `TimeUpdatePacket`/`ProtocolPackets.hpp` 已删除，统一走 IR） |
 | `common/world/lighting/InternalLightUtils` | 内部光照计算（天空减暗等） |
 
 ## 模块整体职责

@@ -115,10 +115,10 @@ Arrow、Boat、Minecart、FishingBobber 等实体的自定义几何体通过 Pip
 `HuskModel`/`DrownedModel`/`ZombieVillagerModel`/`GiantModel` 均继承 `ZombieModel`，因此 `dynamic_cast<ZombieModel*>` 对这些变体模型同样命中，无需为每个变体单独编写分支。
 
 **兔子跳跃分支数据流**（参考 MC 1.21.11 `Rabbit.getJumpCompletion` + `RabbitModel.setupAnim`）：
-1. 服务端 `RabbitEntity::startJumping()` 广播 `EntityStatusPacket::RabbitJump(1)`
+1. 服务端 `RabbitEntity::startJumping()` 广播 `mc::network::EntityStatus::RabbitJump(1)`（经 `ir::play::EntityEvent`；旧 `EntityStatusPacket` 已删除）
 2. 客户端 `onEntityStatus` 调用 `ClientEntity::setRabbitJumpStart()`（`m_rabbitJumpDuration=10`）
 3. `ClientEntity::tick()` 中 `tickRabbitJump()` 推进 `m_rabbitJumpTicks`
 4. 此处读取 `entity.rabbitJumpCompletion(partialTick)` 计算 `jumpRotation = sin(completion * PI)`
 5. 调用 `RabbitModel::setJumpRotation(jumpRotation)`，`setAngles` 中据此计算 thigh/foot/arm 旋转角度
 
-新增实体动画时，优先复用此"状态包触发 → 客户端镜像字段 → tick 推进 → 渲染器读取"模式，与狼甩水、兔子跳跃保持一致。激怒状态走的是"元数据包触发 → `syncMetadataFromDataManager` 镜像 → 渲染器读取"模式，与骷髅拉弓同步模式一致。
+新增实体动画时，优先复用此"状态包触发 → 客户端镜像字段 → tick 推进 → 渲染器读取"模式，与狼甩水、兔子跳跃保持一致。激怒状态走的是"元数据包（`ir::play::SetEntityData`）触发 → `syncMetadataFromDataManager` 镜像 → 渲染器读取"模式，与骷髅拉弓同步模式一致。

@@ -1263,16 +1263,6 @@ void Player::_applyMovementSpeed(f32& speed, bool sneaking) const
     }
 }
 
-network::PlayerPosition Player::playerPosition() const
-{
-    return network::PlayerPosition(static_cast<f64>(m_position.x),
-        static_cast<f64>(m_position.y),
-        static_cast<f64>(m_position.z),
-        m_yaw,
-        m_pitch,
-        m_onGround);
-}
-
 i32 Player::armorValue() const
 {
     // 计算总护甲值

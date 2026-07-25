@@ -18,28 +18,21 @@ std::string ResourcePackList::normalizePath(const std::filesystem::path& path)
     return result;
 }
 
-void NetworkClient::handleBlockUpdate(network::PacketDeserializer& deser)
+void ClientPlayVisitor::handleBlockUpdate(const irplay::BlockUpdate& pkt)
 {
-    auto result = network::BlockUpdatePacket::deserialize(deser);
-    if (result.failed()) {
-        spdlog::error("[NetworkClient::handleBlockUpdate] Failed to deserialize block update packet");
-        return;
-    }
-
-    auto& packet = result.value();
+    const BlockPos pos = BlockPos::fromLong(pkt.blockPosPacked);
 
     MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Lighting,
         "ReceiveBlockUpdate",
         "pos",
-        fmt::format("({}, {}, {})", packet.x(), packet.y(), packet.z()),
+        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
         "stateId",
-        packet.blockStateId(),
-        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(packet.x(), packet.y(), packet.z()).toId())](
+        pkt.blockStateId,
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 
-    if (m_callbacks.onBlockUpdate) {
-        m_callbacks.onBlockUpdate(packet.x(), packet.y(), packet.z(), packet.blockStateId());
-    }
+    m_app.m_world.setBlockState(
+        pos.x, pos.y, pos.z, BlockRegistry::instance().getBlockState(pkt.blockStateId));
 }
 
 void ClientWorld::onLightUpdate(i32 chunkX,

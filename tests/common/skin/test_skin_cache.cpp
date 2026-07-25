@@ -23,7 +23,6 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/manager/SkinCache.hpp"

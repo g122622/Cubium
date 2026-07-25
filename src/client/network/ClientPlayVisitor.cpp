@@ -61,7 +61,6 @@
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/InventoryPackets.hpp" // ClickAction 枚举
 #include "common/network/protocol/EntityEvents.hpp" // EntityAnimation / EntityStatus 枚举（客户端入站动画/状态字节分流用）
 #include "common/network/protocol/TitleActions.hpp" // TitleAction 枚举（TitleWidget::handleTitlePacket 用）
 #include "common/resource/ResourceLocation.hpp"

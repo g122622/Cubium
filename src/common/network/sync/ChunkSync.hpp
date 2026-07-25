@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../../core/Result.hpp"
-#include "../packet/ProtocolPackets.hpp"
+#include "../codec/PacketSerializer.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <memory>

@@ -67,7 +67,7 @@ src/server/interaction/
 - `common/world/block/BlockPos.hpp`, `common/world/block/Block.hpp`
 - `common/entity/inventory/PlayerInventory.hpp`, `common/entity/inventory/AbstractContainerMenu.hpp`
 - `common/item/ItemStack.hpp`, `common/item/BlockItemRegistry.hpp`
-- `common/network/packet/ProtocolPackets.hpp`
+- `common/entity/inventory/ContainerTypeUtils.hpp` - 容器点击类型转换工具（`toClickType` 等，从旧 `ContainerTypes::` 迁出）
 - `common/loot/LootTableManager.hpp`
 
 ## 容易踩的坑

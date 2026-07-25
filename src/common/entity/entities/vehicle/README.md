@@ -100,8 +100,8 @@ Entity (基类)
 - **伤害判断**：`_damageSourceIgnitesTnt()` 判断伤害源是否能点燃TNT（着火投射物 / IS_FIRE / IS_EXPLOSION）
 - **shouldSourceDestroy**：`hurt()` 中当 `_damageSourceIgnitesTnt()` 返回 true 时，即使伤害未超过阈值也触发 `dropItem()`
 - **服务端**：`_ignite()` 设置 `m_fuse = 80`，调用 `broadcastEntityStatus(EatBlock)` 通知客户端，调用 `playSound(ENTITY_TNT_PRIMED)` 播放音效
-- **网络**：`EntityStatusPacket` 使用 status code 10 (`EatBlock`)，此状态码被羊吃草和TNT矿车引燃共用
-- **客户端**：`onEntityStatus` 回调根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+- **网络**：实体状态经 IR `ir::play::EntityEvent` 传输，`network::EntityStatus::EatBlock(10)` 此状态码被羊吃草和TNT矿车引燃共用
+- **客户端**：`ClientPlayVisitor` 的 `onEntityStatus` 回调根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
 - `Entity::playSound()` 自动检查 `isSilent()`，无需手动判断
 - 修改引燃或新增实体状态处理时，三端（服务端实体、网络包、客户端回调）必须同步更新
 
@@ -164,11 +164,11 @@ Entity (基类)
 
 **问题**：骑乘相关网络包需要在正确的时机发送。
 
-**要点**：
-- `PlayerInputPacket`：客户端→服务端，发送玩家输入
-- `MoveVehiclePacket`：客户端→服务端，发送载具位置
-- `VehicleMovePacket`：服务端→客户端，校正载具位置
-- `SetPassengersPacket`：服务端→客户端，同步乘客列表
+**要点**（均走 IR `ir::play::*`）：
+- `ir::play::PlayerInput`：客户端→服务端，发送玩家输入（骑乘/转向）
+- `ir::play::ServerboundMoveVehicle`：客户端→服务端，发送载具位置
+- `ir::play::ClientboundMoveVehicle`：服务端→客户端，校正载具位置
+- `ir::play::SetPassengers`：服务端→客户端，同步乘客列表
 
 ### 11. 矿车比较器信号
 

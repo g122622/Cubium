@@ -48,7 +48,7 @@ CooldownTracker.hpp      ← 独立冷却追踪
 - `server/player/ServerPlayer.hpp` - 服务端玩家（重生点验证）
 - `server/world/ServerWorld.hpp` - 服务端世界（全员睡眠检测）
 - `world/block/blocks/functional/BedBlock.cpp` - 床方块（睡眠检测）
-- `network/packet/SleepPacket.hpp` - 睡眠状态网络同步
+- `network/codec/Packet.hpp` - 睡眠状态网络同步（Sleep 包 ID 231，S→C）
 
 ## 容易踩的坑
 

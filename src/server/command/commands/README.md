@@ -57,7 +57,7 @@
             ** 下游依赖（这个目录依赖了谁）：* *
         -内部依赖：`server / command / CommandRegistry`、`server / command / ServerCommandSource`、`server / command
         / support/*`、`server/application/IServer`、`server/core/*`、`server/player/ServerPlayer`
-- 共享依赖：`common/command/*`、`common/entity/inventory/*`、`common/item/*`、`common/network/packet/*`
+- 共享依赖：`common/command/*`、`common/entity/inventory/*`、`common/item/*`、`common/network/ir/*`（命令反馈/广播走 `ir::play::SystemChat`/`SetActionBarText` 等 IR 包，经 `connection.send(ir::IrPacket{...})` 发送；旧 `common/network/packet/*` 已删除）
 - 外部依赖：`spdlog`、`GTest`（测试场景）
 
 ## 容易踩的坑

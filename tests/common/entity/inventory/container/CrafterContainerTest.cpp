@@ -23,6 +23,7 @@
 
 #include "entity/inventory/container/CrafterContainer.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/inventory/ContainerTypeUtils.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
@@ -32,7 +33,6 @@
 #include "item/core/ItemStack.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/ShapedRecipe.hpp"
-#include "network/packet/ContainerPacketHandler.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"

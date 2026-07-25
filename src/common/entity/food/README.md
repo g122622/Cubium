@@ -20,12 +20,11 @@ src/common/entity/food/
 ### 上游依赖（本模块依赖）
 
 - `common/core/Types.hpp` - 基础类型定义（i32, f32, Difficulty）
-- `common/core/Result.hpp` - 结果类型（用于序列化）
+- `common/core/Result.hpp` - 结果类型（用于 NBT 序列化）
 - `entity/entities/player/Player.hpp` - 玩家实体（前向声明）
 - `entity/combat/DifficultyHelper.hpp` - 难度辅助（饥饿伤害最小生命值）
 - `entity/damage/DamageSource.hpp` - 伤害来源（饥饿伤害）
 - `entity/effect/EffectType.hpp` - 效果类型（饥饿效果检查）
-- `network/packet/PacketSerializer.hpp` - 网络序列化
 
 ### 下游依赖（依赖本模块）
 

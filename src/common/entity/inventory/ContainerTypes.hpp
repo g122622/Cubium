@@ -41,6 +41,16 @@ using ContainerId = i32;
 constexpr ContainerId INVALID_CONTAINER_ID = -1;
 
 /**
+ * @brief 玩家背包容器ID
+ *
+ * 玩家背包在网络同步中固定使用 containerId=0（不复用自增计数器），
+ * 用于创造/合成菜单构造与容器点击路由判别。
+ */
+namespace inventory {
+constexpr ContainerId PLAYER_CONTAINER_ID = 0;
+} // namespace inventory
+
+/**
  * @brief 容器ID的网络传输类型
  *
  * 网络包中使用 u8 传输容器ID。

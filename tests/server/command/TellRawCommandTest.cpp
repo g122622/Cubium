@@ -31,8 +31,6 @@
 #include <gtest/gtest.h>
 
 #include "common/BaseTestServer.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/world/dimension/DimensionManager.hpp"

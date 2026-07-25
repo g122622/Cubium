@@ -19,7 +19,6 @@
 #include "client/settings/ClientSettings.hpp"
 #include "common/core/DefaultValues.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/network/packet/EntityPackets.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -164,49 +163,6 @@ TEST(LivingEntityHurtDirTest, ZeroDamageDoesNotIndicateDamage)
     f.victim->hurt(src, 0.0f);
     // hurtDir 保持 0（未进入 indicateDamage 路径，或 atan2(0,0)=0 结果同 0）。
     EXPECT_NEAR(f.victim->getHurtDir(), 0.0f, 0.01f);
-}
-
-// ============================================================================
-// EntityAnimationPacket hurtDir 序列化测试
-// ============================================================================
-
-TEST(EntityAnimationPacketHurtDirTest, TakeDamageRoundTripsHurtDir)
-{
-    EntityAnimationPacket packet;
-    packet.setEntityId(42);
-    packet.setAnimation(EntityAnimationPacket::Animation::TakeDamage);
-    packet.setHurtDir(-123.5f);
-
-    auto ser = packet.serialize();
-    ASSERT_TRUE(ser.success());
-
-    EntityAnimationPacket decoded;
-    auto res = decoded.deserialize(ser.value().data(), ser.value().size());
-    ASSERT_TRUE(res.success());
-
-    EXPECT_EQ(decoded.entityId(), 42u);
-    EXPECT_EQ(decoded.animation(), EntityAnimationPacket::Animation::TakeDamage);
-    EXPECT_FLOAT_EQ(decoded.hurtDir(), -123.5f);
-}
-
-TEST(EntityAnimationPacketHurtDirTest, NonTakeDamageDoesNotCarryHurtDir)
-{
-    // 非 TakeDamage 动画保持两字段布局，反序列化不应读取 hurtDir。
-    EntityAnimationPacket packet;
-    packet.setEntityId(7);
-    packet.setAnimation(EntityAnimationPacket::Animation::SwingMainHand);
-    packet.setHurtDir(999.0f); // 即便设置了也不应写入
-
-    auto ser = packet.serialize();
-    ASSERT_TRUE(ser.success());
-
-    EntityAnimationPacket decoded;
-    auto res = decoded.deserialize(ser.value().data(), ser.value().size());
-    ASSERT_TRUE(res.success());
-
-    EXPECT_EQ(decoded.entityId(), 7u);
-    EXPECT_EQ(decoded.animation(), EntityAnimationPacket::Animation::SwingMainHand);
-    EXPECT_FLOAT_EQ(decoded.hurtDir(), 0.0f); // 未读取，保持默认
 }
 
 // ============================================================================

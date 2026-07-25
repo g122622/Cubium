@@ -48,7 +48,7 @@ Item (抽象基类)
 **本目录依赖：**
 - `common/core/Types.hpp` - 基础类型定义
 - `common/resource/ResourceLocation.hpp` - 资源位置标识
-- `common/network/packet/PacketSerializer.hpp` - ItemStack网络序列化
+- `common/network/codec/PacketSerializer.hpp` - ItemStack 网络序列化（PacketSerializer/Deserializer 已迁至 codec/，ItemStack 仍保留 `serialize(PacketSerializer&)`/`deserialize(PacketDeserializer&)` 方法用于 wire 编码）
 - `item/enchantment/EnchantmentContainer.hpp` - 附魔容器
 - `common/util/math/Vector3.hpp` - 向量类型（ProjectileItem::asProjectile 参数）
 - `entity/projectile/ProjectileEntity.hpp` - 弹射物实体（ProjectileItem::shoot 参数）

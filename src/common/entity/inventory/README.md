@@ -75,7 +75,8 @@ inventory/
 - `core/Result.hpp` - 错误处理
 - `item/ItemStack.hpp` - 物品堆类型
 - `item/Item.hpp` - 物品基类
-- `network/packet/PacketSerializer.hpp` - 网络序列化
+- `network/codec/PacketSerializer.hpp` - 网络序列化（PacketSerializer/Deserializer 已迁至 codec/）
+- `entity/inventory/ContainerTypeUtils.hpp` - 容器类型工具（ClickAction↔ClickType 映射等，从旧 `ContainerPacketHandler` 迁出）
 - `entity/Player.hpp` - 玩家实体
 
 ### 被依赖
@@ -83,7 +84,7 @@ inventory/
 - `entity/player/` - 玩家实体持有 PlayerInventory 和 PlayerEnderChestInventory
 - `world/level/block/entity/` - 方块实体（箱子、熔炉等）实现 IInventory
 - `client/gui/` - GUI 系统使用 AbstractContainerMenu
-- `server/` - 服务端处理容器交互和数据包
+- `server/` - 服务端处理容器交互：`IntegratedServer::handleContainerClickPacket` / `StandaloneServer::handleContainerClickPacket` 内联处理 IR `ir::play::ContainerClick`，委托 `ContainerManager::handleClick()`
 
 ## 容易踩的坑
 

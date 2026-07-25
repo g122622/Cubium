@@ -111,7 +111,7 @@ using ParticleTypeId = mc::particle::ParticleTypeId;
 **下游**（依赖本模块）：
 - `common/world/IWorld.hpp` — `addParticle()` 接口使用 `ParticleTypeId` 作为参数类型
 - `common/world/block/IBlockAnimateContext.hpp` — `addAnimateParticle()` 接口
-- `common/network/packet/ParticlePacket.hpp` — 网络包使用 `ParticleTypeId`
+- `common/network/ir/packets/play/PlayPacketsExtended.hpp` — `ir::play::LevelParticles` IR 包使用 `ParticleTypeId`（旧 `common/network/packet/ParticlePacket.hpp` 已删除）
 - `common/entity/` — 实体类生成粒子
 - `common/world/block/` — 方块 animateTick 生成粒子
 - `client/renderer/trident/particle/` — 客户端粒子渲染系统
@@ -126,4 +126,4 @@ using ParticleTypeId = mc::particle::ParticleTypeId;
 1. **枚举值分配**：0~114 为 MC 协议 ID，不可修改。项目内部扩展粒子使用 115+，新增内部扩展粒子时需在 Count 之前追加。
 2. **命名空间**：common 层使用 `mc::particle::ParticleTypeId`，客户端兼容层仍可使用 `mc::client::renderer::trident::particle::ParticleTypeId`
 3. **前向声明**：如需前向声明，使用 `namespace mc::particle { enum class ParticleTypeId : u16; }`
-4. **网络序列化**：`ParticlePacket` 序列化时使用 `toProtocolId()` 将内部扩展粒子映射为协议 ID，反序列化时使用 `fromProtocolId()` 将协议 ID 转换为枚举值。
+4. **网络序列化**：`ir::play::LevelParticles`（旧 `ParticlePacket` 已删除）序列化时使用 `toProtocolId()` 将内部扩展粒子映射为协议 ID，反序列化时使用 `fromProtocolId()` 将协议 ID 转换为枚举值。

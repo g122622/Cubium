@@ -51,7 +51,7 @@ src/common/network/sync/
 #include "../../world/chunk/ChunkData.hpp"      // ChunkData, ChunkSection
 #include "../../world/chunk/ChunkPos.hpp"       // ChunkPos, ChunkCoord, SectionPos
 #include "../../world/chunk/ChunkId.hpp"        // ChunkId
-#include "../packet/ProtocolPackets.hpp"        // PacketSerializer, PacketDeserializer
+#include "../codec/PacketSerializer.hpp"     // PacketSerializer, PacketDeserializer
 #include "../../core/Result.hpp"                // Result<T>
 ```
 

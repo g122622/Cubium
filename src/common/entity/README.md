@@ -212,7 +212,9 @@ src/common/entity/
 - `src/common/util/math/` - 数学工具（Vector3, Random）
 - `src/common/util/AxisAlignedBB.hpp` - 碰撞箱
 - `src/common/item/ItemStack.hpp` - 物品堆
-- `src/common/network/packet/` - 网络包
+- `src/common/network/protocol/` - 协议事件枚举（EntityAnimation/EntityStatus 等）
+- `src/common/network/codec/` - PacketSerializer/Deserializer（仍在 codec/ 下）
+- `src/common/network/ir/` - IR 包定义（实体状态/动画/同步走 IR）
 - `src/common/world/IWorld.hpp` - 世界接口
 - `src/common/physics/PhysicsEngine.hpp` - 物理引擎
 
@@ -308,9 +310,9 @@ if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
 
 **注意**：`VanillaEntityTypeKeys` 指针在 `VanillaEntities::registerAll()` 后由 `initialize()` 填充。`entityType()` 懒查询注册表并缓存，返回的指针与 `VanillaEntityTypeKeys::*` 同源（均来自 `EntityRegistry::m_types`），可安全指针比较。
 
-### 14. EntityMetadataPacket 同步
+### 14. 实体元数据同步
 
-`EntityTracker` 负责 spawn 内联 metadata 和 dirty metadata packet，`ClientEntity::setMetadata()` 负责把原始数据写进本地数据管理器。新增字段时三处必须一起改。
+`EntityTracker` 负责 spawn 内联 metadata 和 dirty metadata 同步（通过 IR `ir::play::EntityMetadata`），`ClientEntity::setMetadata()` 负责把原始数据写进本地数据管理器。新增字段时三处必须一起改。`EntityMetadataSerializer` 已迁至 `network/codec/`。
 
 ### 15. CactusBlock 碰撞伤害
 
@@ -382,18 +384,18 @@ if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
 ### 27. 铁傀儡攻击/持花状态同步
 
 铁傀儡的攻击动画（举臂）和持花状态涉及服务端、网络包、客户端三端同步，修改时三处必须一起改：
-- **服务端**：`IronGolemEntity::attackEntityAsMob()` 通过 `IWorld::broadcastEntityStatus()` 广播 `EntityStatusPacket::Status::IronGolemAttack(4)` / `IronGolemHoldRose(11)` / `IronGolemStopRose(34)`；`setHoldingRose()` 同理
-- **网络包**：`EntityPackets.hpp` 中 `EntityStatusPacket::Status` 枚举必须包含这三个值
-- **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调必须处理这三个状态值，分别设置 `ClientEntity` 的 `ironGolemAttackTimer`、`ironGolemArmsRaised`、`ironGolemHoldingRose`
+- **服务端**：`IronGolemEntity::attackEntityAsMob()` 通过 `IWorld::broadcastEntityStatus()` 广播 `network::EntityStatus::IronGolemAttack(4)` / `IronGolemHoldRose(11)` / `IronGolemStopRose(34)`；`setHoldingRose()` 同理
+- **网络**：状态经 IR `ir::play::EntityEvent` 传输，状态枚举定义在 `network/protocol/EntityEvents.hpp`（`network::EntityStatus`）
+- **客户端**：`ClientPlayVisitor` 按 `EntityEvent` 的 byte 分流到 `onEntityStatus` 回调，分别设置 `ClientEntity` 的 `ironGolemAttackTimer`、`ironGolemArmsRaised`、`ironGolemHoldingRose`
 
 新增或修改铁傀儡的任何动画/状态时，三端缺一不可。
 
 ### 28. TNT矿车引燃状态同步
 
 TNT矿车引燃涉及服务端、网络包、客户端三端同步，与铁傀儡状态同步模式一致：
-- **服务端**：`TNTMinecartEntity::_ignite()` 通过 `IWorld::broadcastEntityStatus()` 广播 `EntityStatusPacket::Status::EatBlock(10)`，并调用 `Entity::playSound(ENTITY_TNT_PRIMED)` 播放音效
-- **网络包**：`EntityPackets.hpp` 中 `EntityStatusPacket::Status::EatBlock` 被羊吃草和TNT矿车引燃共用（status code 10）
-- **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+- **服务端**：`TNTMinecartEntity::_ignite()` 通过 `IWorld::broadcastEntityStatus()` 广播 `network::EntityStatus::EatBlock(10)`，并调用 `Entity::playSound(ENTITY_TNT_PRIMED)` 播放音效
+- **网络**：状态经 IR `ir::play::EntityEvent` 传输，`network::EntityStatus::EatBlock(10)` 被羊吃草和TNT矿车引燃共用
+- **客户端**：`ClientPlayVisitor` 的 `onEntityStatus` 回调根据 `entityType() == VanillaEntityTypeKeys::TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
 
 修改引燃逻辑或新增共用 status code 的实体状态时，三端必须同步更新。
 

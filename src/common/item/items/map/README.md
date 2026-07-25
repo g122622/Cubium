@@ -40,7 +40,7 @@ Item
 - `MapExtendingRecipe` - 地图扩展配方
 - `CartographyMenu` - 制图台菜单
 - `ExplorationMapFunction` - 战利品表中的探险地图生成
-- `MapDataPacket` - 网络同步（服务端→客户端）
+- `MapDataPacket` - 网络同步（服务端→客户端，已迁至 `common/network/codec/MapDataPacket.hpp`）
 
 ## 容易踩的坑
 

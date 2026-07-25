@@ -23,8 +23,8 @@
 
 #include "MapDecoration.hpp"
 #include "entity/serialization/NbtHelper.hpp"
-#include "network/packet/PacketDeserializer.hpp"
-#include "network/packet/PacketSerializer.hpp"
+#include "network/codec/PacketDeserializer.hpp"
+#include "network/codec/PacketSerializer.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"

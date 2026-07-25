@@ -28,7 +28,6 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/InventoryPackets.hpp"
 #include "core/Types.hpp"
 #include <chrono>
 #include <functional>

@@ -23,14 +23,14 @@
 
 #include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/entity/inventory/AbstractContainerMenu.hpp"
+#include "../src/common/entity/inventory/ContainerTypeUtils.hpp"
+#include "../src/common/entity/inventory/ContainerTypes.hpp"
 #include "../src/common/entity/inventory/CreativeInventory.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
 #include "../src/common/entity/inventory/Slot.hpp"
 #include "../src/common/item/Items.hpp"
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/items/block/BlockItemRegistry.hpp"
-#include "../src/common/network/packet/ContainerPacketHandler.hpp"
-#include "../src/common/network/packet/InventoryPackets.hpp"
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/server/menu/CraftingMenu.hpp"
 #include <gtest/gtest.h>
@@ -254,7 +254,7 @@ TEST_F(AbstractContainerMenuTest, CloneInCreativeMode)
 }
 
 // ============================================================================
-// 容器包测试
+// ContainerTypes 点击映射测试
 // ============================================================================
 
 class ContainerPacketTest : public ::testing::Test {
@@ -269,119 +269,6 @@ protected:
     Item* m_diamond = nullptr;
     Item* m_iron = nullptr;
 };
-
-TEST_F(ContainerPacketTest, ContainerContentPacket)
-{
-    std::vector<ItemStack> items;
-    items.emplace_back(*m_diamond, 10);
-    items.emplace_back(*m_iron, 5);
-    items.emplace_back(ItemStack::EMPTY);
-
-    ItemStack carried(*m_iron, 7);
-    ContainerContentPacket packet(1, std::move(items), carried);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerContentPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    ContainerContentPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.containerId(), 1);
-    EXPECT_EQ(decoded.size(), 3);
-    EXPECT_EQ(decoded.items()[0].getItem(), m_diamond);
-    EXPECT_EQ(decoded.items()[0].getCount(), 10);
-    EXPECT_EQ(decoded.items()[1].getItem(), m_iron);
-    EXPECT_EQ(decoded.items()[1].getCount(), 5);
-    EXPECT_TRUE(decoded.items()[2].isEmpty());
-    // 末尾光标物品（对齐 SPacketWindowItems）
-    EXPECT_EQ(decoded.carriedItem().getItem(), m_iron);
-    EXPECT_EQ(decoded.carriedItem().getCount(), 7);
-}
-
-TEST_F(ContainerPacketTest, ContainerContentPacketEmptyCarried)
-{
-    // 默认 carried（空堆）也能正确往返
-    std::vector<ItemStack> items;
-    items.emplace_back(*m_diamond, 1);
-
-    ContainerContentPacket packet(1, std::move(items));
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerContentPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    ContainerContentPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.size(), 1);
-    EXPECT_TRUE(decoded.carriedItem().isEmpty());
-}
-
-TEST_F(ContainerPacketTest, ContainerSlotPacket)
-{
-    ItemStack item(*m_diamond, 32);
-    ContainerSlotPacket packet(2, 5, item);
-
-    EXPECT_EQ(packet.containerId(), 2);
-    EXPECT_EQ(packet.slotIndex(), 5);
-    EXPECT_EQ(packet.item().getItem(), m_diamond);
-    EXPECT_EQ(packet.item().getCount(), 32);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerSlotPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    ContainerSlotPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.containerId(), 2);
-    EXPECT_EQ(decoded.slotIndex(), 5);
-    EXPECT_EQ(decoded.item().getItem(), m_diamond);
-    EXPECT_EQ(decoded.item().getCount(), 32);
-}
-
-TEST_F(ContainerPacketTest, ContainerClickPacket)
-{
-    ItemStack cursor(*m_iron, 64);
-    ContainerClickPacket packet(3, 10, 0, 1, ClickAction::Pickup, cursor);
-
-    EXPECT_EQ(packet.containerId(), 3);
-    EXPECT_EQ(packet.slotIndex(), 10);
-    EXPECT_EQ(packet.button(), 0);
-    EXPECT_EQ(packet.transactionId(), 1);
-    EXPECT_EQ(packet.action(), ClickAction::Pickup);
-    EXPECT_EQ(packet.cursorItem().getItem(), m_iron);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    ContainerClickPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.containerId(), 3);
-    EXPECT_EQ(decoded.slotIndex(), 10);
-    EXPECT_EQ(decoded.button(), 0);
-    EXPECT_EQ(decoded.transactionId(), 1);
-    EXPECT_EQ(decoded.action(), ClickAction::Pickup);
-    EXPECT_EQ(decoded.cursorItem().getItem(), m_iron);
-    EXPECT_EQ(decoded.cursorItem().getCount(), 64);
-}
 
 TEST_F(ContainerPacketTest, ClickTypeMapping)
 {
@@ -413,163 +300,6 @@ TEST_F(ContainerPacketTest, ClickActionMapping)
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Clone), ClickAction::Clone);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Pickup), ClickAction::Pickup);
     EXPECT_EQ(ContainerTypes::toClickAction(ClickType::Swap), ClickAction::Swap);
-}
-
-TEST_F(ContainerPacketTest, HandleContainerClickUsesOpenMenu)
-{
-    ASSERT_NE(m_diamond, nullptr);
-
-    Player player(1, "TestPlayer");
-    PlayerInventory inventory;
-    inventory.setItem(9, ItemStack(*m_diamond, 4));
-
-    CraftingMenu menu(7, &inventory, nullptr);
-    player.setOpenContainerMenu(&menu);
-
-    ContainerClickPacket packet(7, 10, 0, 1, ClickAction::Pickup, ItemStack::EMPTY);
-    EXPECT_TRUE(ContainerPacketHandler::handleContainerClick(player, packet));
-    EXPECT_TRUE(menu.getSlot(10)->isEmpty());
-    EXPECT_FALSE(menu.getCarriedItem().isEmpty());
-    EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
-    EXPECT_EQ(menu.getCarriedItem().getCount(), 4);
-}
-
-TEST_F(ContainerPacketTest, HandleCloseContainerClearsOpenMenu)
-{
-    Player player(1, "TestPlayer");
-    PlayerInventory inventory;
-    CraftingMenu menu(7, &inventory, nullptr);
-    player.setOpenContainerMenu(&menu);
-
-    CloseContainerPacket packet(7);
-    ContainerPacketHandler::handleCloseContainer(player, packet);
-
-    EXPECT_EQ(player.openContainerMenu(), nullptr);
-}
-
-TEST_F(ContainerPacketTest, CloseContainerPacket)
-{
-    CloseContainerPacket packet(5);
-
-    EXPECT_EQ(packet.containerId(), 5);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = CloseContainerPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    EXPECT_EQ(result.value().containerId(), 5);
-}
-
-TEST_F(ContainerPacketTest, OpenContainerPacket)
-{
-    // 使用 ContainerType 枚举值构造（Generic9x3 = 2）
-    OpenContainerPacket packet(1, static_cast<i32>(ContainerType::Generic9x3), "Chest");
-
-    EXPECT_EQ(packet.containerId(), 1);
-    EXPECT_EQ(packet.type(), static_cast<i32>(ContainerType::Generic9x3));
-    EXPECT_EQ(packet.title(), "Chest");
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = OpenContainerPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    OpenContainerPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.containerId(), 1);
-    EXPECT_EQ(decoded.type(), static_cast<i32>(ContainerType::Generic9x3));
-    EXPECT_EQ(decoded.title(), "Chest");
-}
-
-TEST_F(ContainerPacketTest, HotbarSelectPacket)
-{
-    HotbarSelectPacket packet(5);
-
-    EXPECT_EQ(packet.slot(), 5);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = HotbarSelectPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    EXPECT_EQ(result.value().slot(), 5);
-}
-
-TEST_F(ContainerPacketTest, HotbarSelectPacketInvalidSlot)
-{
-    // 测试无效槽位
-    HotbarSelectPacket packet(10); // 超出范围
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = HotbarSelectPacket::deserialize(deser);
-
-    // 应该失败
-    EXPECT_FALSE(result.success());
-}
-
-TEST_F(ContainerPacketTest, HotbarSetPacket)
-{
-    HotbarSetPacket packet(3);
-
-    EXPECT_EQ(packet.slot(), 3);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = HotbarSetPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    EXPECT_EQ(result.value().slot(), 3);
-}
-
-TEST_F(ContainerPacketTest, PlayerInventoryPacket)
-{
-    PlayerInventory inventory;
-    inventory.setItem(0, ItemStack(*m_diamond, 10));
-    inventory.setItem(20, ItemStack(*m_iron, 32));
-    inventory.setSelectedSlot(5);
-
-    PlayerInventoryPacket packet(inventory);
-
-    EXPECT_EQ(packet.selectedSlot(), 5);
-    EXPECT_EQ(packet.items().size(), 41);
-
-    // 序列化
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-
-    // 反序列化
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = PlayerInventoryPacket::deserialize(deser);
-
-    ASSERT_TRUE(result.success()) << result.error().message();
-    PlayerInventoryPacket decoded = result.value();
-
-    EXPECT_EQ(decoded.selectedSlot(), 5);
-    EXPECT_EQ(decoded.items().size(), 41);
-    EXPECT_EQ(decoded.items()[0].getItem(), m_diamond);
-    EXPECT_EQ(decoded.items()[0].getCount(), 10);
-    EXPECT_EQ(decoded.items()[20].getItem(), m_iron);
-    EXPECT_EQ(decoded.items()[20].getCount(), 32);
 }
 
 // ============================================================================

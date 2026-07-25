@@ -40,7 +40,7 @@
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/codec/PacketSerializer.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"

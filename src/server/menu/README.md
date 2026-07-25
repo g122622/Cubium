@@ -96,8 +96,8 @@ graph TB
 | 使用者 | 用途 |
 |-------|------|
 | ContainerManager | 创建和管理容器菜单 |
-| IntegratedServer | 处理玩家打开工作台的请求 |
-| ContainerPacketHandler | 处理容器相关的网络包 |
+| IntegratedServer | 处理玩家打开工作台的请求；本地容器点击路径内联处理（guard + setCarriedItem + toClickType + clicked），不再经 `ContainerPacketHandler`（该类已删除） |
+| ContainerManager::handleClick | 远程玩家容器点击处理入口 |
 
 ## 容易踩的坑
 

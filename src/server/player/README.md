@@ -31,7 +31,7 @@ ServerPlayer 继承自 `Player` 基类，是服务端玩家实体的核心实现
 |------|------|
 | `common/entity/entities/player/Player.hpp` | 玩家基类 |
 | `server/network/ServerNetwork.hpp` | ServerClientConnection（网络连接接口） |
-| `common/network/packet/*` | 各类网络包（ChatMessage、SetExperience、Sleep、Title、SetCamera） |
+| `common/network/ir/packets/play/*` | IR 网络包（`SystemChat`/`SetActionBarText`/`SetExperience`/`SetTitleText`/`SetSubtitleText`/`SetCamera` 等，经 `connection.send(ir::IrPacket{...})` 发送） |
 | `common/entity/player/SleepManager.hpp` | 睡眠管理器 |
 | `common/entity/player/SpawnPointValidator.hpp` | 重生点验证 |
 | `common/world/dimension/teleport/Teleporter.hpp` | 传送器 |
@@ -112,7 +112,7 @@ if (player->canReceiveMessages()) {
 
 ### 10. sendVelocityPacket 速度同步
 
-`ServerPlayer::sendVelocityPacket()` 重写 Player 基类版本（返回 false），实际发送 `EntityVelocityPacket` 给玩家客户端并返回 true。用于两个场景：
+`ServerPlayer::sendVelocityPacket()` 重写 Player 基类版本（返回 false），实际发送 `ir::play::SetEntityMotion`（旧 `EntityVelocityPacket` 已删除，统一走 IR）给玩家客户端并返回 true。用于两个场景：
 1. `Player::causeExtraKnockback()` 中对 ServerPlayer 目标立即发送速度包，避免 EntityTracker::tick() 重复发送导致击退速度重复应用
 2. `EntityTracker::tick()` 中对自身发送速度包（"AndSelf" 模式，ServerPlayer 不在自身追踪列表中）
 
@@ -124,15 +124,15 @@ if (player->canReceiveMessages()) {
 |------|------|
 | `setCamera(Entity* target)` | 设置旁观目标，委托 `setCameraEntityId()` 触发 `onCameraEntityChanged()` |
 | `resetCamera()` | 停止旁观，恢复自身视角（调用 `setCamera(nullptr)`） |
-| `onCameraEntityChanged(oldId, newId)` | 重写 Player 基类虚方法：传送玩家到目标位置 + 发送 SetCameraPacket |
+| `onCameraEntityChanged(oldId, newId)` | 重写 Player 基类虚方法：传送玩家到目标位置 + 发送 `ir::play::SetCamera` |
 | `tickSpectator()` | 每 tick 同步旁观者位置到目标；目标消失或玩家潜行时自动停止 |
 | `attack(Entity& target)` 重写 | 旁观者模式下攻击实体 = 设置旁观目标 |
 
 **数据流**：
-1. SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket + 传送到目标
-2. `setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket
+1. SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 `ir::play::SetCamera` + 传送到目标
+2. `setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 `ir::play::SetCamera`
 3. `ServerPlayer::tick()` → `tickSpectator()` → 同步位置、检查有效性、潜行退出
-4. 客户端收到 SetCameraPacket → 设置 `Player::m_cameraEntityId` → 渲染循环跟随目标实体
+4. 客户端收到 `ir::play::SetCamera` → 设置 `Player::m_cameraEntityId` → 渲染循环跟随目标实体
 
 **注意**：
 - `setCameraEntityId()` 内含相等性检查，值未变化时不触发 `onCameraEntityChanged()`，避免重复发包
@@ -150,4 +150,5 @@ PvP 保护机制的单元测试位于：
 | `tests/common/world/gamerule/PvpGameRuleTest.cpp` | PVP 游戏规则默认值、设置、重置、序列化（17 个测试） |
 | `tests/server/player/ServerPlayerPvpTest.cpp` | `ServerPlayer::canHarmPlayer()` PvP 规则 + 队友友伤组合检查（14 个测试）、`ServerPlayer::hurt()` PvP 拦截检查（12 个测试） |
 | `tests/common/entity/player/PlayerSpectatorTest.cpp` | Player 旁观者模式状态、noclip、camera 清除、旁观攻击（13 个测试） |
-| `tests/network/SetCameraPacketTest.cpp` | SetCameraPacket 序列化/反序列化、VarInt 边界值、错误处理（16 个测试） |
+
+> 旧的 `tests/network/SetCameraPacketTest.cpp` 随 `SetCameraPacket` 类删除已移除；SetCamera 现走 IR `ir::play::SetCamera`，序列化由 IR codec 统一覆盖。

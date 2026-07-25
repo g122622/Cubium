@@ -78,7 +78,7 @@ AbstractCriterionTrigger<T>（监听器管理基类）
   - `AdvancementEventHandler` - 订阅 ServerTickEvent 驱动 TickTrigger
   - `TriggerInstantiation` - 触发器实例化工具
 - `server/application/MinecraftServer.cpp` - 启动时调用 `registerBuiltinTriggers()`
-- `common/network/packet/AdvancementPackets.hpp` - 成就网络数据包
+- `common/network/ir/packets/play/PlayPacketsExtended.hpp` - 成就 IR 网络包（`UpdateAdvancements` 等，旧 `common/network/packet/AdvancementPackets.hpp` 已删除）
 - `common/item/loot/conditions/` - 战利品条件复用谓词（EntityPropertiesCondition、LocationCheckCondition、DamageSourcePropertiesCondition）
 
 ## 容易踩的坑

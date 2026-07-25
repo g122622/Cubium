@@ -35,21 +35,16 @@ add_library(mc_common STATIC
     util/math/random/UniformRealDistribution.cpp
     util/math/random/RandomRanges.cpp
 
-    # Network - Packet
-    network/packet/Packet.cpp
-    network/packet/PacketSerializer.cpp
-    network/packet/PacketDeserializer.cpp
-    network/packet/InventoryPackets.cpp
-    network/packet/ContainerPacketHandler.cpp
-    network/packet/EntityPackets.cpp
-    network/packet/MapDataPacket.cpp
-
-    # Network - 新网络层骨架（IR + 多后端，旧 packet 体系并存过渡）
+    # Network - 新网络层骨架（IR + 多后端）
     network/buffer/Endian.cpp
     network/buffer/ByteBuf.cpp
     network/buffer/RegistryByteBuf.cpp
     network/buffer/NbtIo.cpp
     network/codec/EntityMetadataSerializer.cpp
+    network/codec/PacketSerializer.cpp
+    network/codec/PacketDeserializer.cpp
+    network/codec/Packet.cpp
+    network/codec/MapDataPacket.cpp
     network/ir/ItemStackBridge.cpp
     network/crypto/Crypt.cpp
     network/crypto/AesCfb8.cpp

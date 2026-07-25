@@ -65,7 +65,7 @@ Goal (基类)
 - `ItemDropHelper` - 物品掉落工具（生成掉落物实体）
 - `BlockRegistry` - 方块注册表（获取空气方块状态）
 - `BlockTags` - 方块标签系统（可替换方块判断）
-- `broadcastEntityStatus` / EntityPackets - 实体状态广播（VillagerBreedGoal无床位时广播VillagerAngry粒子）
+- `broadcastEntityStatus` - 实体状态广播（`VillagerBreedGoal` 无床位时广播 `VillagerAngry` 粒子，经 IR `ir::play::EntityEvent` 传输，状态枚举见 `network/protocol/EntityEvents.hpp`）
 
 ## 容易踩的坑
 
@@ -94,4 +94,4 @@ Goal (基类)
 12. **VillagerBreedGoal 无床位失败处理**：当繁殖条件满足但没有可用床位时：
     - **双亲愤怒粒子**：对**两个**亲代村民都广播 `VillagerAngry` 粒子（status 13），而非仅广播一个。这是因为繁殖失败对双方都是负面反馈。
     - **伙伴繁殖意愿重置**：在无床位分支中，除了重置当前村民的繁殖意愿外，还必须重置伙伴的繁殖意愿（调用 `setWillingToMate(false)`），否则伙伴会持续尝试繁殖导致 AI 循环。
-    - 依赖 `broadcastEntityStatus()` 发送粒子状态，客户端通过 `EntityPackets` 接收并渲染。
+    - 依赖 `broadcastEntityStatus()` 发送粒子状态，客户端通过 `ClientPlayVisitor` 的 `onEntityStatus` 回调接收并渲染。

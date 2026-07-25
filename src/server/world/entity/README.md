@@ -27,7 +27,7 @@ src/server/world/entity/
 - `server/core/PlayerManager`, `ConnectionManager`, `ServerPlayerData` - 玩家/连接管理
 - `common/entity/core/Entity`, `LivingEntity`, `MobEntity`, `ItemEntity`, `Player` - 实体类型
 - `common/world/entity/EntityManager` - 实体管理器
-- `common/network/packet/EntityPackets`, `InventoryPackets` - 网络包
+- `common/network/ir/packets/play/*` - IR 网络包（`AddEntity` 生成、`SetEntityData` 元数据、`SetEntityMotion` 速度、`RemoveEntities` 销毁等；旧 `EntityPackets`/`InventoryPackets` 已删除）
 - `common/entity/core/Entity`（hurtMarked 标记） - 实体受伤标记驱动速度同步
 
 **依赖方（下游）**：
@@ -47,7 +47,7 @@ src/server/world/entity/
 刚丢弃的物品有 10 tick 的拾取延迟（`DEFAULT_THROWER_PICKUP_DELAY`），防止玩家立即拾取自己丢弃的物品。
 
 ### 4. 实体类型判断
-`sendSpawnPacket` 根据实体类型选择不同的包：`LivingEntity` 使用 `SpawnMobPacket`（包含 headYaw），其他使用 `SpawnEntityPacket`。
+`sendSpawnPacket` 在 1.21.11 IR 下统一发送 `ir::play::AddEntity`（不再区分 `SpawnMobPacket`/`SpawnEntityPacket`）。`MobEntity` 的 headYaw 通过 `AddEntity.yHeadRot` 透传；元数据（含 `ItemEntity` 的 `ItemStack`）走独立的 `ir::play::SetEntityData`——客户端收 `AddEntity` 后必须再收一次 `SetEntityData` 才能正确渲染。
 
 ### 5. UUID 处理
 Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包需要 `std::array<u8, 16>` 格式，使用 `util::uuidFromString()` 进行转换。
@@ -61,7 +61,7 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 
 ### 8. hurtMarked 速度同步机制
 - EntityTracker::tick() 遍历追踪实体时检查 `entity->isHurtMarked()`
-- 当 hurtMarked 为 true 时，调用 `_sendVelocityPacket()` 向所有追踪玩家发送 EntityVelocityPacket，然后调用 `clearHurtMarked()` 清除标记
+- 当 hurtMarked 为 true 时，调用 `_sendVelocityPacket()` 向所有追踪玩家发送 `ir::play::SetEntityMotion`（旧 `EntityVelocityPacket` 已删除，统一走 IR），然后调用 `clearHurtMarked()` 清除标记
 - 该机制确保实体受伤/击退后客户端速度立即同步，避免客户端预测与服务器不一致
 - `_sendVelocityPacket()` 是新增的私有方法，封装速度包的构建和广播逻辑
 

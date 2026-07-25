@@ -38,8 +38,8 @@
 #include "common/world/map/MapFrame.hpp"
 #include "common/world/map/MapIdTracker.hpp"
 #include "common/world/map/MaterialColor.hpp"
-#include "network/packet/PacketDeserializer.hpp"
-#include "network/packet/PacketSerializer.hpp"
+#include "network/codec/PacketDeserializer.hpp"
+#include "network/codec/PacketSerializer.hpp"
 #include <memory>
 
 using namespace mc;

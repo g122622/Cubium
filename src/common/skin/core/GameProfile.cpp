@@ -31,55 +31,6 @@
 namespace mc::skin {
 
 // ============================================================================
-// GameProfileProperty 实现
-// ============================================================================
-
-void GameProfileProperty::serialize(network::PacketSerializer& ser) const
-{
-    ser.writeString(name);
-    ser.writeString(value);
-
-    if (signature.has_value()) {
-        ser.writeBool(true);
-        ser.writeString(*signature);
-    } else {
-        ser.writeBool(false);
-    }
-}
-
-Result<GameProfileProperty> GameProfileProperty::deserialize(network::PacketDeserializer& deser)
-{
-    GameProfileProperty prop;
-
-    auto nameResult = deser.readString();
-    if (nameResult.failed()) {
-        return nameResult.error();
-    }
-    prop.name = nameResult.value();
-
-    auto valueResult = deser.readString();
-    if (valueResult.failed()) {
-        return valueResult.error();
-    }
-    prop.value = valueResult.value();
-
-    auto hasSigResult = deser.readBool();
-    if (hasSigResult.failed()) {
-        return hasSigResult.error();
-    }
-
-    if (hasSigResult.value()) {
-        auto sigResult = deser.readString();
-        if (sigResult.failed()) {
-            return sigResult.error();
-        }
-        prop.signature = sigResult.value();
-    }
-
-    return prop;
-}
-
-// ============================================================================
 // GameProfile 实现
 // ============================================================================
 

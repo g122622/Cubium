@@ -112,7 +112,7 @@ src/server/core/
 | `common/core/Constants.hpp` | 游戏常量 |
 | `common/network/ir/IrPacket.hpp` | IR 包定义（ConnectionManager 发送门面使用） |
 | `common/network/sync/ChunkSync.hpp` | 区块同步管理器 |
-| `common/network/packet/*` | 旧数据包定义（Phase6 桥接包，仅余 live 子集） |
+| `common/network/codec/PacketSerializer.hpp`<br>`common/network/codec/PacketDeserializer.hpp` | 编解码器（从旧 packet/ 迁出后的存活件，供 IR codec 与残余 wire 桥接使用） |
 | `common/world/time/GameTime.hpp` | 游戏时间类 |
 | `common/entity/GameModeUtils.hpp` | 游戏模式工具 |
 | `common/entity/inventory/ContainerTypes.hpp` | 容器类型 |
@@ -140,7 +140,7 @@ src/server/core/
 ```cpp
 auto* player = playerManager.getPlayer(playerId);
 if (player && player->hasConnection()) {
-    player->send(data, size);
+    player->send(ir::IrPacket{ ir::play::SetTime{...} });  // 走 IR，旧 send(u8*,size) 12 字节头漏斗已删除
 }
 ```
 
@@ -150,7 +150,7 @@ if (player && player->hasConnection()) {
 
 ```cpp
 u32 teleportId = teleportManager.requestTeleport(playerId, x, y, z);
-// 收到 TeleportConfirmPacket 时验证
+// 收到 ir::play::AcceptTeleportation 时验证
 if (!teleportManager.confirmTeleport(playerId, packet.teleportId())) {
     // 可能是过期或伪造的确认
 }
@@ -198,6 +198,6 @@ OpLevel 枚举参考 MC 1.16.5：
 
 单机主机作弊提升：`applyOwnerCheatsBoost` 在 OP 列表等级之上叠加「主机 + 开启作弊 → Owner」的运行时判定（不写 `ops.json`）。命令分发与登录权限解析统一走 `MinecraftServer::resolveOpLevel`，`IntegratedServer` override 之；专用服务器继承默认实现（仅读 OP 列表）。
 
-### 11. 载具移动速度验证（ServerPlayRouter MoveVehicle 分支）
+### 11. 载具移动速度验证（ServerPlayRouter ServerboundMoveVehicle 分支）
 
-`ServerPlayRouter` 的 `MoveVehicle` 分支中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `VehicleMovePacket` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。（此逻辑从已删除的 `PacketHandler::handleMoveVehicle` 迁入。）
+`ServerPlayRouter` 的 `ServerboundMoveVehicle` 分支中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `ir::play::ClientboundMoveVehicle` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。（此逻辑从已删除的 `PacketHandler::handleMoveVehicle` 迁入，旧 `VehicleMovePacket` 已由 IR `ServerboundMoveVehicle`/`ClientboundMoveVehicle` 取代。）

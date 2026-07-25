@@ -28,7 +28,7 @@
 
 #include "Enchantment.hpp"
 #include "common/core/Result.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/codec/PacketSerializer.hpp"
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>

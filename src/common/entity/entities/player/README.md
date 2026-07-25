@@ -35,14 +35,14 @@
     - `entity / inventory / PlayerInventory.hpp` - 玩家背包 - `entity / food / FoodStats.hpp` - 饥饿系统
     - `entity / movement / AutoJump.hpp` - 自动跳跃 - `physics / PhysicsConstants.hpp` - 物理常量
     - `world / IWorld.hpp` - 世界接口 - `world / block / BlockPos.hpp`、`world / block / BlockState.hpp` - 方块相关
-    - `network / packet / ProtocolPackets.hpp` -
-    网络同步
+    - `network / protocol / EntityEvents.hpp` - 实体状态/动画枚举（权限等级、装备破损等经 EntityEvent 广播）
+    - `network / ir / packets / play / PlayPackets.hpp` - 玩家能力/重生等 IR 包定义
 
     ## #下游依赖（依赖本模块）
 
     - `server / world / player / ServerPlayer.hpp` - 服务端玩家实体
     - `client / world / player / LocalPlayer.hpp` - 客户端本地玩家 - `client / ClientApplication.hpp` - 客户端主循环
-    - `network / NetworkClient.hpp` - 网络同步 -
+    - `network / NetworkClient.hpp` - 已删除（网络同步改走 IR `pipeline::Connection` + `ClientPlayVisitor`） -
     各种实体交互系统（攻击、物品使用等）
 
     ##容易踩的坑
@@ -78,7 +78,7 @@
         20TPS 调用 `updatePhysics()` 消费输入。测试或逻辑里调用 `handleMovementInput()` 后，需要执行一次 `updatePhysics()` 才会看到速度和位置变化。
     -
     **能力同步来源 *
-        *：能力同步以 `Player::abilities()` 为运行时事实来源；`PlayerAbilitiesPacket::fromPlayer()` 不会再根据 GameMode
+        *：能力同步以 `Player::abilities()` 为运行时事实来源；构造 IR `ir::play::PlayerAbilities` 时不会根据 GameMode
         重新推导，避免覆盖飞行状态或自定义 walk
         / fly speed。
     - ** 挖掘速度公式**：最终挖掘速度 =
@@ -86,8 +86,8 @@
         **攻击冷却判定 * *：横扫攻击需要玩家 "几乎静止"（`distanceWalkedModified - prevDistanceWalkedModified <
     aiMoveSpeed()`），否则不会触发横扫效果。 - **权限等级与游戏模式分离 * *：`m_permissionLevel`（0 -
         4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel
-    >= 2`。 - ** 权限等级网络同步**：服务端 `/ op`/`/ deop` 后会通过 `EntityStatusPacket`（status byte = 24 +
-            level）通知客户端权限等级变更，客户端收到后在 `ClientApplicationNetwork` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。 -
+    >= 2`。 - ** 权限等级网络同步**：服务端 `/ op`/`/ deop` 后会通过 `ir::play::EntityEvent`（携带 `network::EntityStatus::permissionLevel(level)`，status byte = 24 +
+            level）通知客户端权限等级变更，客户端收到后在 `ClientPlayVisitor` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。 -
             **冒险模式mayInteract检查双手**
                 *：`Player::mayInteract()` 在冒险模式下会同时检查主手和副手物品的 CanPlaceOn
                  标签，任一只手的物品匹配即允许交互。参考 MC Java 的 `Player
@@ -195,13 +195,13 @@ Player 实现了 MC Java `Player` 中的最后死亡位置记录系统，用于�
 
 ### 网络同步
 
-维度切换时，`RespawnPacket` 携带 `lastDeathLocation` 字段同步到客户端，客户端在 `ClientApplicationNetwork::onRespawn` 回调中更新本地玩家状态。
+维度切换时，IR `ir::play::Respawn` 携带 `lastDeathLocation` 字段同步到客户端，客户端在 `ClientPlayVisitor` 的 `onRespawn` 回调中更新本地玩家状态。
 
 ### 注意事项
 
 - 反序列化同时支持字符串维度名（`"minecraft:overworld"`）和整数维度ID（向后兼容）
 - 项目不重新创建 Player 实体（与 MC Java 的 `restoreFrom` 不同），因此无需 `restoreFrom` 逻辑
-- 同维度重生的 RespawnPacket 发送属于尚未实现的死亡重生基础设施，超出 LastDeathLocation TODO 范围
+- 同维度重生的 Respawn IR 包发送属于尚未实现的死亡重生基础设施，超出 LastDeathLocation TODO 范围
 
 ---
 
@@ -220,7 +220,7 @@ Player 基类中包含旁观者模式摄像机跟踪的核心状态字段，由 
 - `getCameraEntityId()` — 获取旁观目标实体 ID（optional）
 - `isSpectating()` — 是否正在旁观某个实体（`m_cameraEntityId.has_value()`）
 - `setCameraEntityId(std::optional<EntityId>)` — 设置/清除旁观目标，值变化时触发 `onCameraEntityChanged()` 虚方法通知
-- `onCameraEntityChanged(oldId, newId)` — 摄像机目标变更通知虚方法，基类空操作，ServerPlayer 重写以发送 SetCameraPacket 和传送
+- `onCameraEntityChanged(oldId, newId)` — 摄像机目标变更通知虚方法，基类空操作，ServerPlayer 重写以发送 IR `ir::play::SetCamera` 和传送
 - `isInputSneaking()` — 获取潜行输入状态（用于 ServerPlayer::tickSpectator 检测退出旁观）
 - `attack(Entity&)` 虚方法 — 旁观者模式下调用 `setCameraEntityId()` 设置旁观目标，通过 `onCameraEntityChanged()` 自动同步网络
 
@@ -228,14 +228,14 @@ Player 基类中包含旁观者模式摄像机跟踪的核心状态字段，由 
 
 `Player::setGameMode()` 中：
 - 切换到旁观者模式 → `setNoClip(true)`
-- 离开旁观者模式 → `setNoClip(false)` + `setCameraEntityId(std::nullopt)`（触发 `onCameraEntityChanged()` 通知 ServerPlayer 发送 SetCameraPacket）
+- 离开旁观者模式 → `setNoClip(false)` + `setCameraEntityId(std::nullopt)`（触发 `onCameraEntityChanged()` 通知 ServerPlayer 发送 `ir::play::SetCamera`）
 
 ### 数据流
 
-1. **设置旁观**：SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket + 传送到目标
+1. **设置旁观**：SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 `ir::play::SetCamera` + 传送到目标
 2. **每 tick 同步**：`ServerPlayer::tick()` → `tickSpectator()` → 同步位置到目标、检查有效性、潜行退出
-3. **模式切换**：`setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket
-4. **客户端**：收到 SetCameraPacket → 设置 `m_cameraEntityId` → 渲染循环跟随目标 ClientEntity
+3. **模式切换**：`setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 `ir::play::SetCamera`
+4. **客户端**：收到 `ir::play::SetCamera` → 设置 `m_cameraEntityId` → 渲染循环跟随目标 ClientEntity
 
 ### 注意事项
 

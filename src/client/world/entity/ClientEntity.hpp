@@ -27,7 +27,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/codec/PacketSerializer.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"

@@ -39,9 +39,6 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/packet/InventoryPackets.hpp" // mc::inventory::PLAYER_CONTAINER_ID（创造/合成菜单构造用）
-#include "common/network/packet/Packet.hpp"
-#include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceEvents.hpp"

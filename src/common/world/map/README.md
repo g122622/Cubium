@@ -47,8 +47,8 @@ world/block/BlockPos.hpp    - 方块坐标 (旗帜/展示框位置)
 world/dimension/MapDimensionId.hpp - 维度ID (地图所属维度)
 world/IWorld.hpp            - 世界接口 (下界旋转、旗帜验证)
 world/blockentity/interactive/BannerEntity.hpp - 旗帜方块实体 (fromWorld)
-network/packet/PacketSerializer.hpp - 网络序列化
-network/packet/PacketDeserializer.hpp - 网络反序列化
+network/codec/PacketSerializer.hpp - 网络序列化（已迁至 codec/）
+network/codec/PacketDeserializer.hpp - 网络反序列化（已迁至 codec/）
 entity/serialization/NbtHelper.hpp - NBT辅助读取
 ```
 
@@ -58,7 +58,7 @@ entity/serialization/NbtHelper.hpp - NBT辅助读取
 ServerWorld                 - 持有MapDataManager实例，每tick调用更新
 FilledMapItem               - 创建/更新地图数据，更新地形像素、旗帜交互
 ItemFrameEntity             - 添加/移除MapFrame标记
-MapDataPacket               - 读取MapData发送给客户端
+MapDataPacket               - 读取MapData发送给客户端（位于 `common/network/codec/MapDataPacket.hpp`）
 存档系统                    - 通过NBT持久化地图数据
 ```
 

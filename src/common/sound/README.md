@@ -16,7 +16,7 @@
 │   ├── JukeboxSongPlayer.hpp / cpp #歌曲播放器（播放 / 停止 / 自动停止 / 粒子）
 │   └── README.md #唱片机子系统文档
 ```
-（原 `network/SoundPackets.{hpp,cpp}` 旧 Packet 子类已随 Phase8 删除：音效与世界事件现由 IR `ir::play::PlaySound` / `StopSound` / `SoundEntity` / `LevelEvent` 承载。）
+（原 `network/SoundPackets.{hpp,cpp}` 旧 Packet 子类已随 Phase5 删除：音效与世界事件现由 IR `ir::play::PlaySound` / `StopSound` / `SoundEntity` / `LevelEvent` 承载。）
 
         ##内部模块关系
 

@@ -37,6 +37,7 @@
 #include "../src/client/ui/kagero/Types.hpp"
 #include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/entity/inventory/AbstractContainerMenu.hpp"
+#include "../src/common/entity/inventory/ContainerTypeUtils.hpp"
 #include "../src/common/entity/inventory/ContainerTypes.hpp"
 #include "../src/common/entity/inventory/PlayerInventory.hpp"
 #include "../src/common/entity/inventory/Slot.hpp"
@@ -44,8 +45,6 @@
 #include "../src/common/item/core/ItemRegistry.hpp"
 #include "../src/common/item/items/block/BlockItemRegistry.hpp"
 #include "../src/common/item/items/special/bundle/BundleContents.hpp"
-#include "../src/common/network/packet/ContainerPacketHandler.hpp"
-#include "../src/common/network/packet/InventoryPackets.hpp"
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
@@ -1155,12 +1154,12 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDoesNothingWhenCarriedEmpty)
 
 // ============================================================================
 // ClickAction/ClickType 映射正确性测试
-// 验证屏幕层映射与 ContainerPacketHandler::toClickType 一致
+// 验证屏幕层映射与 ContainerTypes::toClickType 一致
 // ============================================================================
 
 TEST_F(ContainerScreenInteractionTest, ClickActionMappingMatchesContainerTypes)
 {
-    // 验证所有 ClickAction -> ClickType 映射与 ContainerPacketHandler 一致
+    // 验证所有 ClickAction -> ClickType 映射与 ContainerTypes::toClickType 一致
     using ContainerTypes::toClickType;
 
     // Pickup + button 0 = Pick
@@ -1236,112 +1235,6 @@ TEST_F(ContainerScreenInteractionTest, GlfwModifierConstants)
     EXPECT_EQ(GLFW_MOD_CONTROL, 0x0002);
     EXPECT_EQ(GLFW_MOD_ALT, 0x0004);
     EXPECT_EQ(GLFW_MOD_SUPER, 0x0008);
-}
-
-// ============================================================================
-// ContainerClickPacket 序列化测试（扩展：验证所有交互类型的网络包）
-// ============================================================================
-
-class ContainerClickPacketInteractionTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        Items::initialize();
-        m_diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    }
-
-    Item* m_diamond = nullptr;
-};
-
-TEST_F(ContainerClickPacketInteractionTest, ShiftClickPacket)
-{
-    ItemStack cursor;
-    ContainerClickPacket packet(1, 5, 0, 1, ClickAction::QuickMove, cursor);
-    EXPECT_EQ(packet.action(), ClickAction::QuickMove);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().action(), ClickAction::QuickMove);
-}
-
-TEST_F(ContainerClickPacketInteractionTest, SwapPacket)
-{
-    ItemStack cursor;
-    ContainerClickPacket packet(1, 10, 3, 1, ClickAction::Swap, cursor);
-    EXPECT_EQ(packet.action(), ClickAction::Swap);
-    EXPECT_EQ(packet.button(), 3);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().action(), ClickAction::Swap);
-    EXPECT_EQ(result.value().button(), 3);
-}
-
-TEST_F(ContainerClickPacketInteractionTest, ClonePacket)
-{
-    ItemStack cursor;
-    ContainerClickPacket packet(1, 5, 2, 1, ClickAction::Clone, cursor);
-    EXPECT_EQ(packet.action(), ClickAction::Clone);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().action(), ClickAction::Clone);
-}
-
-TEST_F(ContainerClickPacketInteractionTest, ThrowPacket)
-{
-    ItemStack cursor;
-    ContainerClickPacket packet(1, 5, 0, 1, ClickAction::Throw, cursor);
-    EXPECT_EQ(packet.action(), ClickAction::Throw);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().action(), ClickAction::Throw);
-}
-
-TEST_F(ContainerClickPacketInteractionTest, QuickCraftPacket)
-{
-    ItemStack cursor(*m_diamond, 64);
-    // 模拟拖拽ADD_SLOT按钮
-    const i32 addButton = DragConstants::EVENT_ADD_SLOT | (DragConstants::MODE_EVEN << DragConstants::MODE_SHIFT);
-    ContainerClickPacket packet(1, 3, addButton, 1, ClickAction::QuickCraft, cursor);
-
-    EXPECT_EQ(packet.action(), ClickAction::QuickCraft);
-    EXPECT_EQ(packet.button(), addButton);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().action(), ClickAction::QuickCraft);
-    EXPECT_EQ(result.value().button(), addButton);
-}
-
-TEST_F(ContainerClickPacketInteractionTest, PickupAllPacket)
-{
-    ItemStack cursor;
-    ContainerClickPacket packet(1, 5, 0, 1, ClickAction::PickupAll, cursor);
-    EXPECT_EQ(packet.action(), ClickAction::PickupAll);
-
-    network::PacketSerializer ser;
-    packet.serialize(ser);
-    network::PacketDeserializer deser(ser.data(), ser.size());
-    auto result = ContainerClickPacket::deserialize(deser);
-    ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().action(), ClickAction::PickupAll);
 }
 
 // ============================================================================

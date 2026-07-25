@@ -24,7 +24,6 @@
 #pragma once
 
 #include "../../../item/core/ActionResult.hpp"
-#include "../../../network/packet/ProtocolPackets.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../../../world/GlobalPos.hpp"
@@ -1387,10 +1386,6 @@ public:
      * @return 修正后的移动向量
      */
     [[nodiscard]] Vector3 maybeBackOffFromEdge(const Vector3& movement) const;
-
-    // ========== 网络同步 ==========
-
-    [[nodiscard]] network::PlayerPosition playerPosition() const;
 
     // ========== 背包 ==========
 

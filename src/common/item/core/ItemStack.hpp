@@ -28,7 +28,7 @@
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
+#include "common/network/codec/PacketSerializer.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"

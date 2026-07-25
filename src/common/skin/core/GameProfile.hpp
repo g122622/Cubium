@@ -25,7 +25,6 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/packet/PacketSerializer.hpp"
 #include <array>
 #include <optional>
 #include <string>
@@ -69,16 +68,6 @@ struct GameProfileProperty {
      * @brief 检查是否有签名
      */
     [[nodiscard]] bool hasSignature() const noexcept { return signature.has_value(); }
-
-    /**
-     * @brief 序列化到网络包
-     */
-    void serialize(network::PacketSerializer& ser) const;
-
-    /**
-     * @brief 从网络包反序列化
-     */
-    [[nodiscard]] static Result<GameProfileProperty> deserialize(network::PacketDeserializer& deser);
 };
 
 /**

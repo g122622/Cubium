@@ -30,8 +30,6 @@ src/common/item/crafting/
 ├── RecipeLoader.cpp
 ├── RecipeBook.hpp                # 配方书基类和服务端配方书
 ├── RecipeBook.cpp
-├── RecipeNetworkSerializer.hpp   # 配方网络序列化器
-├── RecipeNetworkSerializer.cpp
 └── special/                      # 特殊配方子模块
     ├── README.md
     ├── RepairItemRecipe.hpp      # 物品修复配方
@@ -90,11 +88,9 @@ src/common/item/crafting/
 ┌──────────────────┐
 │   Ingredient     │ 原料匹配器（被所有配方使用）
 └──────────────────┘
-
-┌──────────────────┐
-│RecipeNetworkSerializer│ 网络同步（独立模块）
-└──────────────────┘
 ```
+
+> 注：原 `IRecipe::toNetwork/fromNetwork` 虚函数与 `RecipeNetworkSerializer.{hpp,cpp}` 已在 Phase4 网络重写中删除，配方不再走旧的 PacketSerializer 网络序列化路径。配方同步改由 IR `ir::play::*`（如 `RecipeBookAdd/Remove`）承担。
 
 ## 上下游外部依赖关系
 
@@ -111,7 +107,6 @@ src/common/item/crafting/
 | `core/Result.hpp` | 错误处理 |
 | `core/Types.hpp` | 基础类型 |
 | `nlohmann/json` | JSON 解析 |
-| `network/packet/PacketSerializer.hpp` | 网络序列化 |
 
 **下游依赖（使用本模块的模块）**:
 

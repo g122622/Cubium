@@ -49,11 +49,25 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `LayerBiomeProvider` - 基于层的生物群系生成（MC 1.16.5）
 
 ### 网络类型
-- `PacketType` - 数据包类型枚举
-- `PacketHeader` - 12 字节数据包头
-- `Packet` - 数据包基类
-- `PacketSerializer/Deserializer` - 二进制序列化
-- `transport/LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
+- `protocol::ConnectionProtocol` - 连接协议阶段枚举（Handshake/Login/Configuration/Play），位于 `network/protocol/ConnectionProtocol.hpp`
+- `protocol::PacketFlow` - 数据包流向（Clientbound/Serverbound），位于 `network/protocol/PacketFlow.hpp`
+- `protocol::PacketType` - 数据包类型标识（`{PacketFlow flow; std::string id;}` + `PacketTypeHash`），位于 `network/protocol/PacketType.hpp`
+- `ir::IrPacket` - IR 数据包根类型（variant-of-variants，阶段变体 → 叶子包），位于 `network/ir/IrPacket.hpp`
+- `ir::play::*` - Play 阶段叶子包结构体（如 `BlockUpdate`、`KeepAlive`、`LevelChunkWithLight`、`AddEntity`），位于 `network/ir/packets/play/`
+- `buffer::RegistryByteBuf` - IR 编解码所用的字节缓冲区，位于 `network/buffer/RegistryByteBuf.hpp`
+- `codec::StreamCodec` / `codec::IdDispatchCodec` - IR 编解码器框架，位于 `network/codec/`
+- `Packet` - 数据包基类（位于 `network/codec/Packet.hpp`，仅残留给 `MapDataPacket` 等少量非 IR 数据模型）
+- `PacketSerializer` / `PacketDeserializer` - 二进制序列化（位于 `network/codec/`）
+- Java wire 编解码器 - 位于 `network/backend/java/codecs/`（如 `JavaPlayCodecs.hpp`）
+- `pipeline::Connection<RegistryByteBuf>` - 网络管道连接，对外 API 为 `send(ir::IrPacket)` / `onPacket(listener)`，位于 `network/pipeline/Connection.hpp`
+- `transport::LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
+
+**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `ConnectionManager::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除，入站分发改为 `ServerPlayRouter`（服务端）和客户端 `ClientPlayVisitor`，均通过 `std::visit` 遍历 `ir::PlayPacket`。
+
+**业务枚举**（已从旧 `packet/` 目录迁出，位于 `network/protocol/`）：
+- `EntityAnimation` / `EntityStatus` → `protocol/EntityEvents.hpp`
+- `BlockInteractionAction` / `BossInfoAction` / `PlayerAbilityFlags` → `protocol/GameActions.hpp`
+- `TitleAction` → `protocol/TitleActions.hpp`
 
 ### 错误处理
 - `Result<T>` - 可能失败操作的结果类型
