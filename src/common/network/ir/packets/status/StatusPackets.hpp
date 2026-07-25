@@ -37,6 +37,7 @@ namespace mc::network::ir::status {
  */
 struct StatusRequest {
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const StatusRequest&, const StatusRequest&) noexcept = default;
 };
 
 /**
@@ -47,6 +48,7 @@ struct StatusRequest {
 struct StatusResponse {
     std::string json;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const StatusResponse&, const StatusResponse&) noexcept = default;
 };
 
 /**
@@ -57,6 +59,7 @@ struct StatusResponse {
 struct PingRequest {
     i64 payload;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PingRequest&, const PingRequest&) noexcept = default;
 };
 
 /**
@@ -65,6 +68,7 @@ struct PingRequest {
 struct PingResponse {
     i64 payload;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PingResponse&, const PingResponse&) noexcept = default;
 };
 
 } // namespace mc::network::ir::status

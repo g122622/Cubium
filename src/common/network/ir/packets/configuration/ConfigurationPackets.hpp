@@ -45,6 +45,7 @@ struct KnownPack {
     std::string ns;      // 命名空间，如 "minecraft"
     std::string id;      // 标识，如 "core"
     std::string version; // 版本字符串
+    [[nodiscard]] friend bool operator==(const KnownPack&, const KnownPack&) noexcept = default;
 };
 
 /**
@@ -55,8 +56,9 @@ struct KnownPack {
  * 已知（命中 KnownPacks），无 NBT；非 nullopt 则带完整 NBT。
  */
 struct RegistryEntry {
-    std::string id;                  // 资源位置
+    std::string id;                      // 资源位置
     std::optional<std::vector<u8>> data; // NBT（已序列化的任意 tag 字节）；nullopt=已知无 NBT
+    [[nodiscard]] friend bool operator==(const RegistryEntry&, const RegistryEntry&) noexcept = default;
 };
 
 /**
@@ -69,6 +71,7 @@ struct RegistryData {
     std::string registryKey;            // 如 "minecraft:dimension_type"
     std::vector<RegistryEntry> entries; // 条目列表
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const RegistryData&, const RegistryData&) noexcept = default;
 };
 
 /**
@@ -81,14 +84,17 @@ struct RegistryData {
 struct TagListEntry {
     std::string tagName;
     std::vector<i32> elementIds;
+    [[nodiscard]] friend bool operator==(const TagListEntry&, const TagListEntry&) noexcept = default;
 };
 struct TagRegistry {
     std::string registryKey;
     std::vector<TagListEntry> tags;
+    [[nodiscard]] friend bool operator==(const TagRegistry&, const TagRegistry&) noexcept = default;
 };
 struct UpdateTags {
     std::vector<TagRegistry> registries;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const UpdateTags&, const UpdateTags&) noexcept = default;
 };
 
 /**
@@ -99,6 +105,7 @@ struct UpdateTags {
 struct UpdateEnabledFeatures {
     std::vector<std::string> features;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const UpdateEnabledFeatures&, const UpdateEnabledFeatures&) noexcept = default;
 };
 
 /**
@@ -110,6 +117,7 @@ struct UpdateEnabledFeatures {
 struct SelectKnownPacks {
     std::vector<KnownPack> knownPacks;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SelectKnownPacks&, const SelectKnownPacks&) noexcept = default;
 };
 
 /**
@@ -121,16 +129,17 @@ struct SelectKnownPacks {
  * Bool(allowsListing) + VarInt(particleStatus)。
  */
 struct ClientInformation {
-    std::string language;     // 如 "en_us"
-    u8 viewDistance;          // 渲染距离（chunk）
-    i32 chatVisibility;       // 0=FULL 1=SYSTEM 2=HIDDEN
+    std::string language; // 如 "en_us"
+    u8 viewDistance;      // 渲染距离（chunk）
+    i32 chatVisibility;   // 0=FULL 1=SYSTEM 2=HIDDEN
     bool chatColors;
-    u8 modelCustomisation;    // 位掩码
-    i32 mainHand;             // 0=LEFT 1=RIGHT
+    u8 modelCustomisation; // 位掩码
+    i32 mainHand;          // 0=LEFT 1=RIGHT
     bool textFilteringEnabled;
     bool allowsListing;
     i32 particleStatus; // 0=ALL 1=MINIMAL 2=DECREASED
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ClientInformation&, const ClientInformation&) noexcept = default;
 };
 
 /**
@@ -140,9 +149,10 @@ struct ClientInformation {
  * payload 按原始字节透传。BrandPayload(minecraft:brand) 是常见子类型。
  */
 struct CustomPayload {
-    std::string identifier;          // 资源位置，如 "minecraft:brand"
-    std::vector<u8> payload;         // 原始 payload 字节
+    std::string identifier;  // 资源位置，如 "minecraft:brand"
+    std::vector<u8> payload; // 原始 payload 字节
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const CustomPayload&, const CustomPayload&) noexcept = default;
 };
 
 /**
@@ -153,6 +163,7 @@ struct CustomPayload {
 struct KeepAlive {
     i64 id;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const KeepAlive&, const KeepAlive&) noexcept = default;
 };
 
 /**
@@ -163,6 +174,7 @@ struct KeepAlive {
 struct Disconnect {
     std::string reason; // JSON 文本组件
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const Disconnect&, const Disconnect&) noexcept = default;
 };
 
 /**
@@ -173,6 +185,7 @@ struct Disconnect {
 struct Ping {
     i32 parameter;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const Ping&, const Ping&) noexcept = default;
 };
 
 /**
@@ -185,6 +198,7 @@ struct FinishConfiguration {
     static constexpr bool kTerminal = true;
 
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const FinishConfiguration&, const FinishConfiguration&) noexcept = default;
 };
 
 } // namespace mc::network::ir::configuration

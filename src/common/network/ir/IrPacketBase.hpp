@@ -56,6 +56,11 @@ struct BedrockMeta {
      * @brief 基岩版运行时方块 ID（Java 用方块状态 ID，基岩用 runtime id，需查表）
      */
     std::optional<i32> runtimeBlockId;
+
+    // 默认 ==：三个 std::optional 成员均可比较，故默认 == 可用。本结构被大量 IR 包 struct
+    // 作为 bedrock 预留成员嵌入——若不声明 ==，则外层 struct 的 `= default` == 会被隐式
+    // 删除（无法比较 BedrockMeta），导致测试端 EXPECT_EQ 编译失败。
+    [[nodiscard]] friend bool operator==(const BedrockMeta&, const BedrockMeta&) noexcept = default;
 };
 
 } // namespace mc::network::ir

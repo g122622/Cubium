@@ -32,6 +32,7 @@ add_executable(mc_tests
     common/network/test_cipher_handlers.cpp
     common/network/test_protocol_swap_handler.cpp
     common/network/test_connection_local.cpp
+    common/network/JavaCodecNonPlayTest.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp

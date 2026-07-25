@@ -47,6 +47,7 @@ struct ClientIntention {
 
     /** 基岩预留：握手在基岩版走 RakNet offline/online 消息，不走此包，预留字段恒 nullopt */
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ClientIntention&, const ClientIntention&) noexcept = default;
 };
 
 } // namespace mc::network::ir::handshake

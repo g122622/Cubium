@@ -64,6 +64,8 @@ struct MovePlayerFlags {
     }
 
     static MovePlayerFlags unpack(u8 v) noexcept { return MovePlayerFlags{(v & 0x01) != 0, (v & 0x02) != 0}; }
+
+    [[nodiscard]] friend bool operator==(const MovePlayerFlags&, const MovePlayerFlags&) noexcept = default;
 };
 
 /**
@@ -81,6 +83,8 @@ struct BlockHitResult {
     f32 hitZ;
     bool inside;
     bool worldBorderHit;
+
+    [[nodiscard]] friend bool operator==(const BlockHitResult&, const BlockHitResult&) noexcept = default;
 };
 
 // ============================================================================
@@ -95,6 +99,8 @@ struct BlockHitResult {
 struct KeepAlive {
     i64 id;
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const KeepAlive&, const KeepAlive&) noexcept = default;
 };
 
 /**
@@ -105,6 +111,8 @@ struct KeepAlive {
 struct Disconnect {
     std::string reason; // JSON 文本组件
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const Disconnect&, const Disconnect&) noexcept = default;
 };
 
 /**
@@ -121,6 +129,8 @@ struct Chat {
     std::array<u8, 3> lastSeenAcknowledged;   // 20 位 fixedBitSet → 3 字节
     u8 lastSeenChecksum;                      // LastSeenMessages.Update.checksum
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const Chat&, const Chat&) noexcept = default;
 };
 
 // ============================================================================
@@ -138,6 +148,8 @@ struct MovePlayerPos {
     f64 z;
     MovePlayerFlags flags;
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const MovePlayerPos&, const MovePlayerPos&) noexcept = default;
 };
 
 /**
@@ -151,6 +163,8 @@ struct MovePlayerPosRot {
     f32 xRot;
     MovePlayerFlags flags;
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const MovePlayerPosRot&, const MovePlayerPosRot&) noexcept = default;
 };
 
 /**
@@ -161,6 +175,8 @@ struct MovePlayerRot {
     f32 xRot;
     MovePlayerFlags flags;
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const MovePlayerRot&, const MovePlayerRot&) noexcept = default;
 };
 
 /**
@@ -169,6 +185,8 @@ struct MovePlayerRot {
 struct MovePlayerStatusOnly {
     MovePlayerFlags flags;
     BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const MovePlayerStatusOnly&, const MovePlayerStatusOnly&) noexcept = default;
 };
 
 /**
@@ -179,6 +197,7 @@ struct MovePlayerStatusOnly {
 struct AcceptTeleportation {
     i32 teleportId;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const AcceptTeleportation&, const AcceptTeleportation&) noexcept = default;
 };
 
 /**
@@ -192,6 +211,7 @@ struct PlayerCommand {
     i32 action;
     i32 data;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerCommand&, const PlayerCommand&) noexcept = default;
 };
 
 /**
@@ -203,6 +223,7 @@ struct PlayerCommand {
 struct PlayerInput {
     u8 input;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerInput&, const PlayerInput&) noexcept = default;
 };
 
 /**
@@ -213,6 +234,7 @@ struct UseItemOn {
     BlockHitResult blockHit;
     i32 sequence;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const UseItemOn&, const UseItemOn&) noexcept = default;
 };
 
 /**
@@ -226,6 +248,7 @@ struct UseItem {
     f32 yRot;
     f32 xRot;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const UseItem&, const UseItem&) noexcept = default;
 };
 
 /**
@@ -241,6 +264,7 @@ struct PlayerAction {
     i32 direction;      // Direction ordinal
     i32 sequence;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerAction&, const PlayerAction&) noexcept = default;
 };
 
 // ============================================================================
@@ -255,6 +279,7 @@ struct PlayerAction {
 struct SetCarriedItem {
     i16 slot;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetCarriedItem&, const SetCarriedItem&) noexcept = default;
 };
 
 // ============================================================================
@@ -273,6 +298,7 @@ struct HashedStack {
     u32 itemId; // present=false 时无意义
     i32 count;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const HashedStack&, const HashedStack&) noexcept = default;
 };
 
 /**
@@ -285,6 +311,7 @@ struct HashedStack {
 struct ChangedSlot {
     i16 slot;
     HashedStack stack;
+    [[nodiscard]] friend bool operator==(const ChangedSlot&, const ChangedSlot&) noexcept = default;
 };
 struct ContainerClick {
     i32 containerId;
@@ -295,6 +322,7 @@ struct ContainerClick {
     std::vector<ChangedSlot> changedSlots;
     HashedStack carriedItem;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ContainerClick&, const ContainerClick&) noexcept = default;
 };
 
 /**
@@ -305,6 +333,7 @@ struct ContainerClick {
 struct ContainerClose {
     i32 containerId;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ContainerClose&, const ContainerClose&) noexcept = default;
 };
 
 // ============================================================================
@@ -320,6 +349,8 @@ struct ConfigurationAcknowledged {
     static constexpr bool kTerminal = true;
 
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(
+        const ConfigurationAcknowledged&, const ConfigurationAcknowledged&) noexcept = default;
 };
 
 // ============================================================================
@@ -347,6 +378,7 @@ struct CommonPlayerSpawnInfo {
     std::optional<std::pair<std::string, i64>> lastDeathLocation; // dimension + BlockPos(long)
     i32 portalCooldown;
     i32 seaLevel;
+    [[nodiscard]] friend bool operator==(const CommonPlayerSpawnInfo&, const CommonPlayerSpawnInfo&) noexcept = default;
 };
 
 struct Login {
@@ -362,6 +394,7 @@ struct Login {
     CommonPlayerSpawnInfo spawnInfo;
     bool enforcesSecureChat;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const Login&, const Login&) noexcept = default;
 };
 
 /**
@@ -382,6 +415,7 @@ struct PlayerPosition {
     f32 xRot;
     u32 relatives; // 9 位位掩码
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerPosition&, const PlayerPosition&) noexcept = default;
 };
 
 /**
@@ -394,6 +428,7 @@ struct SetTime {
     i64 dayTime;
     bool tickDayTime;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetTime&, const SetTime&) noexcept = default;
 };
 
 /**
@@ -406,6 +441,7 @@ struct PlayerAbilities {
     f32 flyingSpeed;
     f32 walkingSpeed;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerAbilities&, const PlayerAbilities&) noexcept = default;
 };
 
 /**
@@ -414,6 +450,7 @@ struct PlayerAbilities {
 struct SetHeldSlot {
     i32 slot;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetHeldSlot&, const SetHeldSlot&) noexcept = default;
 };
 
 /**
@@ -427,6 +464,8 @@ struct SetDefaultSpawnPosition {
     f32 yaw;
     f32 pitch;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(
+        const SetDefaultSpawnPosition&, const SetDefaultSpawnPosition&) noexcept = default;
 };
 
 /**
@@ -436,6 +475,7 @@ struct ChangeDifficulty {
     i32 difficulty; // 0..3
     bool locked;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ChangeDifficulty&, const ChangeDifficulty&) noexcept = default;
 };
 
 /**
@@ -447,6 +487,7 @@ struct GameEvent {
     u8 event;
     f32 value;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const GameEvent&, const GameEvent&) noexcept = default;
 };
 
 // ============================================================================
@@ -479,6 +520,7 @@ struct AddEntity {
     i8 yHeadRot; // packed degrees
     i32 data;    // 实体特定 data（如抛掷物 owner id）
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const AddEntity&, const AddEntity&) noexcept = default;
 };
 
 /**
@@ -489,6 +531,7 @@ struct AddEntity {
 struct RemoveEntities {
     std::vector<i32> entityIds;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const RemoveEntities&, const RemoveEntities&) noexcept = default;
 };
 
 /**
@@ -509,6 +552,7 @@ struct TeleportEntity {
     u32 relatives;
     bool onGround;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const TeleportEntity&, const TeleportEntity&) noexcept = default;
 };
 
 /**
@@ -523,6 +567,7 @@ struct MoveEntityPos {
     i16 deltaZ;
     bool onGround;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const MoveEntityPos&, const MoveEntityPos&) noexcept = default;
 };
 
 /**
@@ -537,6 +582,7 @@ struct MoveEntityPosRot {
     i8 xRot; // packed degrees
     bool onGround;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const MoveEntityPosRot&, const MoveEntityPosRot&) noexcept = default;
 };
 
 /**
@@ -548,6 +594,7 @@ struct MoveEntityRot {
     i8 xRot;
     bool onGround;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const MoveEntityRot&, const MoveEntityRot&) noexcept = default;
 };
 
 /**
@@ -561,6 +608,7 @@ struct SetEntityMotion {
     f64 y;
     f64 z;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetEntityMotion&, const SetEntityMotion&) noexcept = default;
 };
 
 /**
@@ -572,6 +620,7 @@ struct RotateHead {
     i32 entityId;
     i8 yHeadRot;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const RotateHead&, const RotateHead&) noexcept = default;
 };
 
 /**
@@ -584,6 +633,7 @@ struct SetEntityData {
     i32 entityId;
     std::vector<u8> packedItems; // 已序列化的元数据字节（含 EOF 0xFF）
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetEntityData&, const SetEntityData&) noexcept = default;
 };
 
 // ============================================================================
@@ -605,6 +655,7 @@ struct LevelChunkWithLight {
     std::vector<u8> chunkData; // heightmaps+buffer+blockEntities 原始字节
     std::vector<u8> lightData; // 光照 masks/updates 原始字节
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LevelChunkWithLight&, const LevelChunkWithLight&) noexcept = default;
 };
 
 /**
@@ -617,6 +668,7 @@ struct LightUpdate {
     i32 z;
     std::vector<u8> lightData;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LightUpdate&, const LightUpdate&) noexcept = default;
 };
 
 /**
@@ -628,6 +680,7 @@ struct BlockUpdate {
     i64 blockPosPacked; // BlockPos.asLong
     i32 blockStateId;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const BlockUpdate&, const BlockUpdate&) noexcept = default;
 };
 
 // ============================================================================
@@ -646,6 +699,7 @@ struct ContainerSetContent {
     std::vector<ItemStackView> items;
     ItemStackView carriedItem;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ContainerSetContent&, const ContainerSetContent&) noexcept = default;
 };
 
 /**
@@ -659,6 +713,7 @@ struct ContainerSetSlot {
     i16 slot;
     ItemStackView item;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ContainerSetSlot&, const ContainerSetSlot&) noexcept = default;
 };
 
 /**
@@ -671,6 +726,7 @@ struct OpenScreen {
     i32 menuType;
     std::string title; // JSON 文本组件
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const OpenScreen&, const OpenScreen&) noexcept = default;
 };
 
 /**
@@ -683,6 +739,7 @@ struct ContainerSetData {
     i16 property;
     i16 value;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ContainerSetData&, const ContainerSetData&) noexcept = default;
 };
 
 // ============================================================================
@@ -714,12 +771,14 @@ struct PlayerInfoEntry {
     std::optional<i32> listOrder;
     // UPDATE_HAT
     std::optional<bool> showHat;
+    [[nodiscard]] friend bool operator==(const PlayerInfoEntry&, const PlayerInfoEntry&) noexcept = default;
 };
 
 struct PlayerInfoUpdate {
     u16 actions; // 9 位位掩码
     std::vector<PlayerInfoEntry> entries;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerInfoUpdate&, const PlayerInfoUpdate&) noexcept = default;
 };
 
 /**
@@ -730,6 +789,7 @@ struct PlayerInfoUpdate {
 struct PlayerInfoRemove {
     std::vector<std::array<u8, 16>> uuids;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerInfoRemove&, const PlayerInfoRemove&) noexcept = default;
 };
 
 } // namespace mc::network::ir::play

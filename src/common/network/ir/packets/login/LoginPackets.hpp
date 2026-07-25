@@ -42,6 +42,7 @@ struct Hello {
     std::optional<std::array<u8, 32>> publicKey; // 在线模式玩家 profile 公钥；离线模式 nullopt
     std::optional<u64> keySignature;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const Hello&, const Hello&) noexcept = default;
 };
 
 /**
@@ -56,6 +57,7 @@ struct HelloBound {
     std::vector<u8> verifyToken;
     bool shouldAuthenticate;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const HelloBound&, const HelloBound&) noexcept = default;
 };
 
 /**
@@ -70,6 +72,7 @@ struct Key {
     std::vector<u8> encryptedSharedSecret;
     std::vector<u8> encryptedVerifyToken;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const Key&, const Key&) noexcept = default;
 };
 
 /**
@@ -84,6 +87,7 @@ struct LoginFinished {
     std::string username;
     std::vector<std::pair<std::string, std::string>> properties; // name→value（省略 signature）
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LoginFinished&, const LoginFinished&) noexcept = default;
 };
 
 /**
@@ -95,6 +99,7 @@ struct LoginFinished {
 struct LoginCompression {
     i32 threshold;
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LoginCompression&, const LoginCompression&) noexcept = default;
 };
 
 /**
@@ -106,6 +111,7 @@ struct LoginAcknowledged {
     static constexpr bool kTerminal = true;
 
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LoginAcknowledged&, const LoginAcknowledged&) noexcept = default;
 };
 
 /**
@@ -114,6 +120,7 @@ struct LoginAcknowledged {
 struct Disconnect {
     std::string reason; // JSON 文本组件
     BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const Disconnect&, const Disconnect&) noexcept = default;
 };
 
 } // namespace mc::network::ir::login
