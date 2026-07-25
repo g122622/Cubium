@@ -888,6 +888,13 @@ void ServerPlayer::tick()
 {
     Player::tick();
     tickSpectator();
+
+    // 对齐 Java Inventory.tick(this)：每 tick 驱动所有携带物品的 inventoryTick。
+    // 这是 FilledMapItem::inventoryTick → _updateMapData → MapData::setColor/markDirty
+    // 这条地形上色+置脏链的唯一活驱动点；不接此线，MapData::m_colors 永远全零、
+    // isDirty() 首个 tick 后永假，ServerWorld::_pushMapDataToHolders 无真实数据可推。
+    // 客户端侧由 FilledMapItem::inventoryTick 的 world.isClientSide() 守卫兜底。
+    inventory().tick();
 }
 
 bool ServerPlayer::setCamera(Entity* target)

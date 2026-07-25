@@ -1530,6 +1530,11 @@ private:
     /// 主线程 fallback 路径（executor 为空）同步调用，与 ChunkLoadLightTask::execute 同构。
     void _executeChunkLoadLight(RuntimeLightingProvider& provider, ChunkCoord x, ChunkCoord z);
 
+    /// 在 m_mapDataManager->tick 之后调用：遍历所有 MapData，对每个持有该图的在线玩家，
+    /// 若其 MapInfo 处于脏状态则构造 ir::play::MapItemData（colorPatch 每 tick，
+    /// decorations 每 5 tick）经 ConnectionManager 下推，对齐 Java HoldingPlayer.nextUpdatePacket。
+    void _pushMapDataToHolders();
+
     [[nodiscard]] std::vector<std::reference_wrapper<Entity>> _collectLoadedEntitiesForSave();
     [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> _collectLoadedBlockEntitiesForSave() const;
 
