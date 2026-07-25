@@ -83,6 +83,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <variant>
 
 namespace mc::client::net {
@@ -197,6 +198,28 @@ std::vector<ItemStack> viewsToStacks(const std::vector<mc::network::ir::play::It
         out.push_back(r.failed() ? ItemStack{} : std::move(r.value()));
     }
     return out;
+}
+
+/// 从字节流偏移处读取一个 VarUInt（与 MinecraftServer::appendVarUInt 对称），返回值并推进 offset。
+/// 失败（越界/溢出）返回 nullopt。
+[[nodiscard]] std::optional<u32> readVarUInt(const std::vector<u8>& data, usize& offset)
+{
+    u32 result = 0;
+    int shift = 0;
+    while (true) {
+        if (offset >= data.size()) {
+            return std::nullopt;
+        }
+        const u8 byte = data[offset++];
+        result |= static_cast<u32>(byte & 0x7F) << shift;
+        if ((byte & 0x80) == 0) {
+            return result;
+        }
+        shift += 7;
+        if (shift >= 35) { // VarUInt 最多 5 字节
+            return std::nullopt;
+        }
+    }
 }
 
 } // namespace
@@ -1347,9 +1370,42 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             // ---- 光照更新 ----
             else if constexpr (std::is_same_v<T, irplay::LightUpdate>) {
                 const auto& p = pkt;
-                // TODO(Phase6): 解析 p.lightData 为 skyLight/blockLight/trustEdges。
-                // 当前 LightUpdate IR 只透传 lightData 字节，客户端光照管线需完整解析后接入。
-                (void)p;
+                // 服务端 MinecraftServer::broadcastLightUpdate 自研格式（我方互通）：
+                //   i32 sectionY(大端) + u8 flags + VarUInt(skyLen) + skyLight +
+                //   VarUInt(blockLen) + blockLight
+                //   flags: 0x01=有 skyLight, 0x02=有 blockLight, 0x04=trustEdges
+                // 解析后写入对应 ChunkSection 的 nibble 并触发网格重建（onLightUpdate 末尾 _requestChunkMeshRebuild）。
+                const std::vector<u8>& data = p.lightData;
+                usize offset = 0;
+                if (data.size() < sizeof(i32) + sizeof(u8)) {
+                    return Result<void>::ok(); // 残包，静默丢弃
+                }
+                const i32 sectionY = static_cast<i32>((static_cast<u32>(data[0]) << 24) |
+                    (static_cast<u32>(data[1]) << 16) | (static_cast<u32>(data[2]) << 8) | static_cast<u32>(data[3]));
+                const u8 flags = data[4];
+                offset = sizeof(i32) + sizeof(u8);
+
+                const bool trustEdges = (flags & 0x04) != 0;
+                std::vector<u8> skyLight;
+                std::vector<u8> blockLight;
+                if ((flags & 0x01) != 0) {
+                    auto len = readVarUInt(data, offset);
+                    if (!len || offset + *len > data.size()) {
+                        return Result<void>::ok();
+                    }
+                    skyLight.assign(data.data() + offset, data.data() + offset + *len);
+                    offset += *len;
+                }
+                if ((flags & 0x02) != 0) {
+                    auto len = readVarUInt(data, offset);
+                    if (!len || offset + *len > data.size()) {
+                        return Result<void>::ok();
+                    }
+                    blockLight.assign(data.data() + offset, data.data() + offset + *len);
+                    offset += *len;
+                }
+
+                m_app.m_world.onLightUpdate(p.x, p.z, sectionY, skyLight, blockLight, trustEdges);
                 return Result<void>::ok();
             }
             // ---- 声音（opaque Holder<SoundEvent>，TODO Phase6 解析）----
