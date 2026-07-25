@@ -54,8 +54,8 @@ namespace mc::client::net {
  * EntityMove→MoveEntityPos/PosRot/Rot、Title→5 title struct；2 处内部分流：GameEvent 1→5
  * 回调、LevelParticles 1→8 回调）。出站 17 send 方法 → ir::play serverbound struct。
  *
- * 复杂 opaque 包（Commands/Explosion/MapItemData/LevelParticles/UpdateRecipes 等）IR 字段
- * 不足支撑原逻辑时，分支保留但标 TODO(Phase6) 并 return，不破坏编译。
+ * 复杂 opaque 包（Commands/Explosion/MapItemData/LevelParticles 等）IR 字段
+ * 不足支撑原逻辑时，分支保留并 return（真 Java 互通的完整 codec 属独立子项），不破坏编译。
  *
  * 非拥有 m_app：由 ClientApplication 持有本 visitor 与 ClientNetwork。friend 访问
  * ClientApplication 私有成员。

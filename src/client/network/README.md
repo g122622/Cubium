@@ -75,4 +75,4 @@ graph TB
 
 ### 5. 复杂 opaque 包
 
-`Commands`/`MapItemData`/`UpdateRecipes`/`RecipeBookAdd`/`RecipeBookRemove`/`PlaceGhostRecipe`/`UpdateAdvancements` 等 IR 字段为 opaque `vector<u8>`（透传序列化字节），未对齐 1.21.11 完整 codec，标 `TODO(Phase6)`（`Explosion`/`LevelParticles`/`BlockEntityData` 已结构化）。新接入的包类型应在 `ClientPlayVisitor` 加分支，不要回退到旧 packet 反序列化。
+`Commands`/`MapItemData` 等 IR 字段为 opaque `vector<u8>`（透传序列化字节），属我方互通自洽的 opaque 透传层，真 Java 互通需各自完整 codec（独立子项，不在本层范围）；`Explosion`/`LevelParticles`/`BlockEntityData` 已结构化。新接入的包类型应在 `ClientPlayVisitor` 加分支，不要回退到旧 packet 反序列化。

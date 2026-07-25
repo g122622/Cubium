@@ -351,10 +351,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             }
             // ---- 命令树 ----
             else if constexpr (std::is_same_v<T, irplay::Commands>) {
-                // TODO(Phase6): 1.21.11 Commands 是 opaque Node 树，需完整解析为 treeJson。
-                // 旧 onCommandTree 接收 treeJson string。当前 IR Commands 仅 opaque bytes，
-                // 暂无法还原 treeJson，跳过命令树同步。
-                spdlog::warn("[ClientPlayVisitor] Commands packet received but Node-tree parsing is TODO(Phase6)");
+                // 1.21.11 Commands 是 opaque Node 树，需完整解析为 treeJson。我方命令系统本地驱动、
+                // 不依赖服务端下发，故此处仅 warn 跳过。真 Java 互通的 Node 树 codec 属独立子项。
+                spdlog::warn("[ClientPlayVisitor] Commands packet received; Node-tree parsing not implemented (local "
+                             "command system)");
                 return Result<void>::ok();
             }
             // ---- 玩家传送 ----
