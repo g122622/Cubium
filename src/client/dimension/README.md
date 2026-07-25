@@ -30,8 +30,8 @@ client/dimension/
 ### 被下游模块依赖
 
 本模块被客户端网络层使用：
-- `NetworkClient` 接收 `DimensionInfoPacket` 后调用 `initialize()` 初始化可用维度列表
-- `NetworkClient` 接收 `ChangeDimensionPacket` 后调用 `beginDimensionChange()` 开始维度切换
+- `ClientPlayVisitor` 接收 `ir::play::Login`（含 `spawnInfo.dimension`）后调用 `initialize()` 初始化可用维度列表
+- `ClientPlayVisitor` 接收 `ir::play::Respawn` 后调用 `beginDimensionChange()` 开始维度切换
 
 ### 与服务端的对应关系
 
@@ -39,8 +39,8 @@ client/dimension/
 |--------|--------|
 | `ServerDimensionManager` | `ClientDimensionManager` |
 | 持有 `Dimension` 实例，管理多维度世界 | 只持有 `DimensionType` 信息，管理当前维度状态 |
-| 发送 `ChangeDimensionPacket` | 接收并处理维度切换 |
-| 接收 `ConfirmDimensionChangePacket` | 发送确认包 |
+| 广播维度切换（`ir::play::Respawn`） | 接收并处理维度切换 |
+| 接收切换确认 | 回送确认 |
 
 ## 容易踩的坑
 

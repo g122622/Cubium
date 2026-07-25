@@ -127,7 +127,7 @@ auto entityData = std::make_unique<VibrationParticleData>(
 | `client/renderer/trident/particle/particles/` | 具体粒子实现（如 DiggingParticle 使用 BlockParticleData） |
 | `client/world/ClientWorld.cpp` | `addEntityEffectParticle` 在客户端通过 `EntityEffectParticleData` 走数据管线 |
 | `common/world/blockentity/interactive/BellBlockEntity.cpp` | 共振粒子发射使用 `IWorld::addEntityEffectParticle` |
-| 服务端粒子包序列化 | 网络同步粒子效果（`ParticlePacket::createEntityEffect`） |
+| 服务端粒子包序列化 | 网络同步粒子效果（`ir::play::LevelParticles`） |
 | `/particle` 命令解析 | 命令行参数解析 |
 
 ## 容易踩的坑
@@ -147,6 +147,6 @@ auto entityData = std::make_unique<VibrationParticleData>(
 5. **数据工厂回退**：当 `createParticleWithData()` 传入的 `ParticleData` 为 nullptr 或类型不匹配（dynamic_cast 失败）时，自动回退到普通 `create()` 工厂，使用默认值创建粒子
 
 6. **EntityEffect 的两种调用路径**：
-   - 编程式调用（如 `BellBlockEntity`）：`IWorld::addEntityEffectParticle()` → 客户端 `ClientWorld` 通过 `EntityEffectParticleData` 走数据管线；服务端 `ServerWorld` 广播 `ParticlePacket::createEntityEffect` 给附近玩家
+   - 编程式调用（如 `BellBlockEntity`）：`IWorld::addEntityEffectParticle()` → 客户端 `ClientWorld` 通过 `EntityEffectParticleData` 走数据管线；服务端 `ServerWorld` 广播 `ir::play::LevelParticles` 给附近玩家
    - 旧式 velocity 编码（如 `WitherEntity`、`SpellcastingIllagerEntity`）：`addParticle(EntityEffect, pos, colorVector)`，颜色编码在速度向量中（[0,1] 范围），由 `EntityEffectParticle::create()` 解码。仅支持 RGB，不支持完整 ARGB
 

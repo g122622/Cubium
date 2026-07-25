@@ -102,7 +102,7 @@ ParticleManager
 | `client/world/ClientWorld` | 光照采样、碰撞检测、流体状态 |
 | `client/renderer/trident/core` | Vulkan 设备、命令池、渲染通道 |
 | `client/renderer/trident/chunk` | ChunkMesher::modelCache() 获取 BlockModelCache（方块/方块物品粒子纹理） |
-| `client/network` | ParticlePacket 粒子同步（含 createItem / createBlock / createEntityEffect） |
+| `client/network` | ir::play::LevelParticles 粒子同步 |
 
 ### 下游依赖（使用粒子系统的模块）
 

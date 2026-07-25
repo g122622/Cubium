@@ -45,7 +45,7 @@ src/client/ui/minecraft/screens/
 - `src/client/ui/kagero/` - Kagero UI 框架（ContainerWidget、PaintContext、TemplateCompiler 等）
 - `src/client/world/` - ClientWorld、ClientEntityManager
 - `src/client/dimension/` - ClientDimensionManager（维度信息显示）
-- `src/client/network/` - NetworkClient（调试屏幕网络状态）
+- `src/client/network/` - ClientNetwork（调试屏幕网络状态）
 - `src/client/renderer/` - Camera、GpuInfo、CelestialCalculations、ParticleManager
 - `src/common/entity/` - Player、Container、LoomContainer、DifficultyInstance
 - `src/common/world/` - WorldConfig、WorldConstants、BiomeRegistry、Block

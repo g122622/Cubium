@@ -973,8 +973,9 @@ public:
      * 对应 MC 1.21.11 Player.tryToStartFallFlying()。
      * Player 不沿用 LivingEntity 基类的通用实现，而是显式重写：
      * - 仅当未在飞行、canGlide() 返回 true、不在水中时调用 startFallFlying()
-     * - 由 PacketHandler 在收到 START_FALL_FLYING 包时调用
-     * - 若返回 false，PacketHandler 会调用 stopFallFlying() 强制收起鞘翅
+     * - 由 MinecraftServer::handlePlayerCommandPacket 在收到 ir::play::PlayerCommand
+     *   （action=START_FALL_FLYING）时调用
+     * - 若返回 false，该方法会调用 stopFallFlying() 强制收起鞘翅
      *
      * @return 如果成功开始滑翔返回 true
      */

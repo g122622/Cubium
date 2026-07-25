@@ -274,4 +274,4 @@ m_goalSelector.addGoal(4,
 
 **重要**：`resetTask()` **不再** 标记为 `noexcept`。原因：`setAggroed → setAggressive → m_dataManager.set` 涉及互斥锁，理论上可抛异常。继承 `MeleeAttackGoal` 的子类（如 `PolarBearMeleeAttackGoal`）重写 `resetTask` 时也必须移除 `noexcept`，否则在异常传播时会导致 `std::terminate`。
 
-**数据流**：`resetTask` 调用 `setAggroed(false)` → `DATA_MOB_FLAGS_PARAM` 位 2 清除 → `EntityMetadataPacket` 广播 → 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 → `m_isAggressive=false` → `EntityRendererManager::_applyZombieState` 推送到 `ZombieModel::setAggressive(false)` → 手臂从 `-PI/1.5`（攻击抬臂）切换到 `-PI/2.25`（自然站立）。
+**数据流**：`resetTask` 调用 `setAggroed(false)` → `DATA_MOB_FLAGS_PARAM` 位 2 清除 → `ir::play::SetEntityData` 广播 → 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 → `m_isAggressive=false` → `EntityRendererManager::_applyZombieState` 推送到 `ZombieModel::setAggressive(false)` → 手臂从 `-PI/1.5`（攻击抬臂）切换到 `-PI/2.25`（自然站立）。

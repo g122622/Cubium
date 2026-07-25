@@ -33,7 +33,7 @@ namespace mc::network {
  * @brief 实体元数据序列化器
  *
  * 将 EntityDataManager 中的数据参数序列化为网络格式，
- * 用于 EntityMetadataPacket（ir::play::SetEntityData）与 SpawnMob 的元数据段。
+ * 用于 ir::play::SetEntityData 与 SpawnMob 的元数据段。
  *
  * MC 1.21.11 元数据格式（对齐 net.minecraft.network.syncher.SynchedEntityData.DataValue）：
  * - 每个条目：index(1 字节) + serializerId(VarInt) + value(codec 编码)
@@ -41,20 +41,22 @@ namespace mc::network {
  * - serializerId 取自 EntityDataSerializers 静态注册顺序（注册序即整数 ID）
  *
  * 本项目 DataValue 变体 → 1.21.11 serializerId 映射：
- *   i8       → 0  BYTE
- *   i32      → 1  INT (VAR_INT)
- *   i64      → 2  LONG (VAR_LONG)
- *   f32      → 3  FLOAT（大端）
- *   string   → 4  STRING (VarInt len + UTF-8)
- *   bool     → 8  BOOLEAN
- *   Vector3i → 10 BLOCK_POS（i64 packed，X26/Z26/Y12，BlockPos.asLong）
- *   Vector2f → 9  ROTATIONS（f32×3，z 补 0）
- *   Vector3f → 9  ROTATIONS（f32×3，大端）
+ *   i8            → 0  BYTE
+ *   i32           → 1  INT (VAR_INT)
+ *   i64           → 2  LONG (VAR_LONG)
+ *   f32           → 3  FLOAT（大端）
+ *   string        → 4  STRING (VarInt len + UTF-8)
+ *   bool          → 8  BOOLEAN
+ *   Vector3i      → 10 BLOCK_POS（i64 packed，X26/Z26/Y12，BlockPos.asLong）
+ *   Vector2f      → 9  ROTATIONS（f32×3，z 补 0）
+ *   Vector3f      → 9  ROTATIONS（f32×3，大端）
+ *   ItemStackView → 7  ITEM_STACK（OPTIONAL_STREAM_CODEC：VarInt(count)，
+ *                  count<=0 即空；否则 VarInt(itemId)+VarInt(patchLen)+patch 字节）
  *
  * 注：1.16.5 用单字节 typeId 且编号不同（Boolean=7/Rotation=8/Position=9）；
  *     1.21.11 改 VarInt serializerId 且 BOOLEAN=8/ROTATIONS=9/BLOCK_POS=10，
- *     BlockPos 由 VarInt×3 改为单 i64 packed。本项目仅 i8/i32/i64/f32/string/bool
- *     有活元数据参数，Vector3f/Vector2f/Vector3i 当前无注册参数，仅为完备性保留。
+ *     BlockPos 由 VarInt×3 改为单 i64 packed。ItemStackView 经 ItemEntity.DATA_ITEM_PARAM
+ *     注册（掉落物物品本体同步）；Vector3f/Vector2f/Vector3i 当前无注册参数，仅为完备性保留。
  */
 class EntityMetadataSerializer {
 public:

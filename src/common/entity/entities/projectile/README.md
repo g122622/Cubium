@@ -241,7 +241,7 @@ lifeTime = flightTime * 10 + nextInt(6) + nextInt(7)
 ```
 服务端 m_dataManager.set() → 标记脏数据
   → EntityTracker::tick() 检测 hasDirtyData()
-  → EntityMetadataSerializer 序列化 → EntityMetadataPacket 广播
+  → EntityMetadataSerializer 序列化 → ir::play::SetEntityData 广播
   → 客户端 ClientEntity::setMetadata() 反序列化到 m_dataManager
   → syncMetadataFromDataManager() 按 typeId 分发
   → fishing_bobber 分支：读取参数写入 m_fishingHookedEntityId / m_fishingBiting 镜像

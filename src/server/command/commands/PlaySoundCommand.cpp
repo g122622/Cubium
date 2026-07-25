@@ -73,7 +73,7 @@ void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
     f32 volume,
     f32 pitch)
 {
-    // 1.21.11 ClientboundSoundPackets：Holder<SoundEvent> + source + 坐标(×8 整数) +
+    // 1.21.11 ClientboundSoundPacket：Holder<SoundEvent> + source + 坐标(×8 整数) +
     //   volume + pitch + seed。坐标按 ×8 截断（Java writeInt）。
     // TODO(Phase6): soundHolder 当前仅以 ResourceLocation 字符串字节承载，未对齐
     //   1.21.11 Holder<SoundEvent> wire（可选引用 vs 内联 SoundEvent），真互通需补完整 codec。

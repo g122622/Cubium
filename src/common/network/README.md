@@ -197,7 +197,7 @@ size_t actualSize = ser.size();
 
 ### 8. 实体元数据序列化
 
-实体元数据使用 MC 1.16.5 格式（`codec/EntityMetadataSerializer.hpp/cpp`，自 `packet/` 迁入），结束时必须写入 **0xFF 结束标记**，否则客户端解析失败。
+实体元数据使用 MC 1.21.11 格式（`codec/EntityMetadataSerializer.hpp/cpp`）：每个条目 `byte(index) + VarInt(serializerId) + value`，结束时写 **0xFF 结束标记**，否则客户端解析失败。serializerId 取值对齐 `SynchedEntityData`（Byte=0/Int=1/Long=2/Float=3/String=4/ItemStack=7/Boolean=8/Rotations=9/BlockPos=10）。
 
 ### 9. 区块视图距离计算
 

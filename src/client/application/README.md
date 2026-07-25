@@ -66,7 +66,7 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 - `common/entity`、`common/item`、`common/world`、`common/screen`
 - `common/util/thread/UniversalWorkerPool` - ClientCompute 客户端统一计算池（见下）
 - `client/input/InputManager`
-- `client/network/NetworkClient`
+- `client/network/ClientNetwork`
 - `client/resource/ResourceManager`
 - `client/sound/AudioService`
 - `client/world/ClientWorld`

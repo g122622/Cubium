@@ -1052,7 +1052,7 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
 
         // 愤怒状态（对应 MC 1.21.11 Wolf.isAngry()，由 NeutralMob 默认方法计算 angerTime > 0）
         // 数据流：服务端 WolfEntity::setAngry/setAngerTime 写入 DATA_ANGER_TIME_PARAM
-        //   → EntityTracker 广播 EntityMetadataPacket
+        //   → EntityTracker 广播 ir::play::SetEntityData
         //   → ClientEntity::syncMetadataFromDataManager 调用 setWolfIsAngry
         //   → 此处读取 entity.wolfIsAngry() 写入 context.isAngry
         //   → WolfModel::setAnimState 读取以决定尾巴 Y 旋转（愤怒时锁 1.539f ≈ 88°）

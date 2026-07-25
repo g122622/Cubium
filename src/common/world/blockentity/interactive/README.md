@@ -230,8 +230,8 @@ BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `t
 
 ### 数据管线
 1. **客户端**：`IWorld::addEntityEffectParticle` → `ClientWorld::addEntityEffectParticle` → 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle` → 数据工厂 `EntityEffectParticle::createWithColor`
-2. **服务端**（虽 `_showBellParticles` 仅在客户端调用，但 `addEntityEffectParticle` 接口可被其他场景复用）：`ServerWorld::addEntityEffectParticle` → `m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange` → `ParticlePacket::createEntityEffect` 发送给范围内玩家
-3. **客户端接收**：`NetworkClient::_handleParticle` → `isEntityEffectParticle` 分支 → `onEntityEffectParticle` 回调 → `ClientApplicationNetwork` 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle`
+2. **服务端**（虽 `_showBellParticles` 仅在客户端调用，但 `addEntityEffectParticle` 接口可被其他场景复用）：`ServerWorld::addEntityEffectParticle` → `m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange` → 广播 `ir::play::LevelParticles` 发送给范围内玩家
+3. **客户端接收**：`ClientPlayVisitor` 处理 `ir::play::LevelParticles` → `onEntityEffectParticle` 回调 → `ClientApplicationNetwork` 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle`
 
 ## #17. CopperGolemStatueBlockEntity 雕像复活与身体/头部朝向同步
 

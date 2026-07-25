@@ -384,7 +384,7 @@ world/
 
 | 虚方法 | 用途 | 服务端行为 | 客户端行为 |
 |--------|------|-----------|-----------|
-| `addParticle(type, pos, velocity)` | 普通粒子 | 广播 `ParticlePacket::create()` | 直接生成 |
+| `addParticle(type, pos, velocity)` | 普通粒子 | 广播 `ir::play::LevelParticles` | 直接生成 |
 | `addParticle(type, pos, velocity, offset, count)` | 批量普通粒子 | 广播 | 直接生成 |
 | `addBlockParticle(type, pos, velocity, blockState)` | 方块粒子（Block/Breaking/FallingDust） | 广播 `createBlock()`（携带 BlockState ID） | `ClientWorld` 直接调用 `DiggingParticle::createWithBlock()` |
 | `addItemParticle(type, pos, velocity, itemStack)` | 物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball） | 广播 `createItem()`（携带 ItemStack 序列化字节流） | `ClientWorld` 直接调用 `ItemParticle::createWithItemStack()` |
@@ -393,4 +393,4 @@ world/
 
 **默认实现**：所有粒子虚方法在 `IWorld` 中提供默认空实现（no-op），`ClientWorld` 和 `ServerWorld` 按需覆写。`WorldGenRegion` 等只读快照实现继承默认空行为。
 
-**服务端广播链路**：`ServerWorld::addXxxParticle()` → `m_onBroadcastXxxParticle` 回调 → `MinecraftServer::broadcastXxxParticleInRange()` → `ParticlePacket::createXxx()`。回调在 `MinecraftServer::attachWorldBindings()` 中注册。详见 `src/server/application/README.md` 的「粒子广播链路」章节。
+**服务端广播链路**：`ServerWorld::addXxxParticle()` → `m_onBroadcastXxxParticle` 回调 → `MinecraftServer::broadcastXxxParticleInRange()` → 构造 `ir::play::LevelParticles` 广播给范围内玩家。回调在 `MinecraftServer::attachWorldBindings()` 中注册。详见 `src/server/application/README.md` 的「粒子广播链路」章节。

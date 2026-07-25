@@ -43,10 +43,11 @@ namespace mc::network::ir::play {
 // 说明
 //
 // 本头补全 PlayPackets.hpp 在用包子集之外的游戏阶段包，对齐 Java 1.21.11 线协议。
-// 复杂嵌套树（命令树 Node、配方 RecipeDisplay、进度 Advancement 树、Component 文本、
-// ParticleOptions、NumberFormat、MapDecoration/MapPatch、Explosion 粒子表、WeightedList）
-// 暂以 opaque 字节透传承载（std::vector<u8>），codec 仅按 VarInt(len)+bytes 读写，
-// 完整解析留待后续阶段（标 TODO(Phase6)），不影响我方互通。
+// ParticleOptions、Explosion（含粒子表/声音）、LevelParticles、BlockEntityData（NBT）
+// 等已结构化 codec（见 JavaPlayCodecsExtended.hpp）。仍以 opaque 字节透传（std::vector<u8>，
+// codec 按 VarInt(len)+bytes 读写）的是复杂嵌套树：命令树 Node、配方 RecipeDisplay、
+// 进度 Advancement 树、Component 文本、NumberFormat、MapDecoration/MapPatch——完整解析
+// 留待后续阶段（标 TODO(Phase6)），不影响我方互通。
 // 复用 PlayPackets.hpp 的 CommonPlayerSpawnInfo（Respawn 内联）。
 // ============================================================================
 
@@ -620,11 +621,11 @@ struct SetExperience {
  *   故我方互通统一用内联模式编码；解码兼容两种模式但引用模式无资源可查）。
  */
 struct SoundEventHolder {
-    bool direct = true;        // true=内联，false=引用
-    std::string identifier;    // direct=true 时有效（如 "minecraft:entity.generic.explode"）
+    bool direct = true;     // true=内联，false=引用
+    std::string identifier; // direct=true 时有效（如 "minecraft:entity.generic.explode"）
     bool hasFixedRange = false;
     f32 fixedRange = 0.0f;
-    i32 referenceId = 0;       // direct=false 时有效（Java holder id - 1）
+    i32 referenceId = 0; // direct=false 时有效（Java holder id - 1）
 };
 
 /**
@@ -655,7 +656,7 @@ struct Explosion {
     f64 centerZ;
     f32 radius;
     i32 blockCount;
-    bool hasPlayerKnockback;   // Optional<Vec3>
+    bool hasPlayerKnockback; // Optional<Vec3>
     f64 knockbackX;
     f64 knockbackY;
     f64 knockbackZ;

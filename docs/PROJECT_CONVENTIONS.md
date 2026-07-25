@@ -42,11 +42,11 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `IChunk`：生成的区块接口
 
 ### 生物群系类型
-- `BiomeId` - 生物群系标识符（170 个生物群系，兼容 MC 1.16.5）
+- `BiomeId` - 生物群系标识符（含主世界/下界/末界，对齐 MC 1.21.11）
 - `Biome` - 生物群系定义，包含气候、特性、雕刻器
 - `BiomeContainer` - 4x4x4 采样生物群系存储
 - `BiomeProvider` - 生物群系分布基类
-- `LayerBiomeProvider` - 基于层的生物群系生成（MC 1.16.5）
+- `MultiNoiseBiomeSource` - 多噪声生物群系生成（对齐 MC 1.18+，取代旧版 LayerBiomeProvider）
 
 ### 网络类型
 - `protocol::ConnectionProtocol` - 连接协议阶段枚举（Handshake/Login/Configuration/Play），位于 `network/protocol/ConnectionProtocol.hpp`
@@ -56,8 +56,7 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `ir::play::*` - Play 阶段叶子包结构体（如 `BlockUpdate`、`KeepAlive`、`LevelChunkWithLight`、`AddEntity`），位于 `network/ir/packets/play/`
 - `buffer::RegistryByteBuf` - IR 编解码所用的字节缓冲区，位于 `network/buffer/RegistryByteBuf.hpp`
 - `codec::StreamCodec` / `codec::IdDispatchCodec` - IR 编解码器框架，位于 `network/codec/`
-- `Packet` - 数据包基类（位于 `network/codec/Packet.hpp`，仅残留给 `MapDataPacket` 等少量非 IR 数据模型）
-- `PacketSerializer` / `PacketDeserializer` - 二进制序列化（位于 `network/codec/`）
+- `PacketSerializer` / `PacketDeserializer` - 二进制序列化原语（位于 `network/codec/`，ChunkSync 等仍在用，非 Packet 基类）
 - Java wire 编解码器 - 位于 `network/backend/java/codecs/`（如 `JavaPlayCodecs.hpp`）
 - `pipeline::Connection<RegistryByteBuf>` - 网络管道连接，对外 API 为 `send(ir::IrPacket)` / `onPacket(listener)`，位于 `network/pipeline/Connection.hpp`
 - `transport::LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
@@ -342,7 +341,7 @@ inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ)
 - `spawnItemEntities()` - 批量生成物品实体
 - `DEFAULT_PICKUP_DELAY = 10` - 默认拾取延迟（ticks）
 - `DEFAULT_LIFETIME = 6000` - 默认存活时间（ticks）
-- 参考 MC 1.16.5 `InventoryHelper.spawnItemStack()`, `Entity.entityDropItem()`
+- 参考 MC Java `InventoryHelper.spawnItemStack()`、`Entity.entityDropItem()`（对齐 1.21.11）
 
 ### NBT 系统 (`src/common/util/nbt/`)
 
@@ -481,7 +480,7 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 ## 重要说明
 
 ### MC Java 源码参考
-你可以在 `D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft` 访问 MC Java 1.16.5 源码作为参考。本项目旨在尽可能复制 Java 版游戏玩法。
+你可以在 `D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft` 访问 MC Java 1.21.11 源码作为参考。本项目旨在尽可能复制 Java 版游戏玩法。
 
 ### 代码质量
 - 必须有断言和单元测试

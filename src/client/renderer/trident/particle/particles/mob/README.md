@@ -52,7 +52,7 @@ TotemParticle              → 独立粒子类，金色粒子效果
 - 鱿鱼/发光鱿鱼 - 受攻击时创建 SquidInkParticle/GlowSquidInkParticle
 - 羊驼 - 攻击时创建 SpitParticle
 - 不死图腾 - 玩家复活时创建 TotemParticle
-- 网络同步 - 通过 `ParticlePacket` 接收服务端粒子事件
+- 网络同步 - 通过 `ir::play::LevelParticles` 接收服务端粒子事件
 
 ## 容易踩的坑
 

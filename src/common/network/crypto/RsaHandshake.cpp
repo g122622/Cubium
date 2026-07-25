@@ -93,7 +93,7 @@ Result<RsaHandshake::KeyPair> RsaHandshake::generateKeyPair()
     if (EVP_PKEY_keygen_init(ctx.get()) <= 0) {
         return Error(ErrorCode::Unknown, "EVP_PKEY_keygen_init 失败", "RsaHandshake::generateKeyPair");
     }
-    // 1024 位，对齐 MC Java ASYMMETRIC_BITS。
+    // 1024 位，对齐 MC Java NetworkEncryptionUtils 的 RSA key size。
     if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx.get(), 1024) <= 0) {
         return Error(ErrorCode::Unknown, "set_rsa_keygen_bits 失败", "RsaHandshake::generateKeyPair");
     }

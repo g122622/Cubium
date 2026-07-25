@@ -32,16 +32,16 @@ LocalPlayerIdentity ←→ ClientPlayerPredictor
 
 **下游依赖（使用本模块的）**：
 - `ClientApplication` - 持有 `LocalPlayerIdentity` 和 `ClientPlayerPredictor` 实例
-- `NetworkClient` - 登录成功后设置身份，接收服务端位置确认时调用预测器
+- `ClientNetwork` - 登录成功后设置身份，接收服务端位置确认时调用预测器
 - `ClientWorld` / `ClientEntityManager` - 通过身份判断本地玩家实体
 
 **数据流向**：
 ```
-NetworkClient.onLoginSuccess(playerId, entityId)
+ClientNetwork.onLoginSuccess(playerId, entityId)
     → LocalPlayerIdentity.setIdentity()
     → ClientPlayerPredictor.reset()
 
-NetworkClient.onEntityTeleport()/onPlayerPosition()
+ClientNetwork.onEntityTeleport()/onPlayerPosition()
     → LocalPlayerIdentity.isLocalPlayerEntity() 判断
     → ClientPlayerPredictor.receiveServerPosition()（仅本地玩家）
 

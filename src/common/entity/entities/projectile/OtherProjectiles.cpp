@@ -815,7 +815,7 @@ void FishingBobberEntity::_syncCaughtEntityId()
     m_caughtEntityId = syncedId;
 
     // 通过 EntityDataManager 同步到客户端
-    // EntityTracker 会在 tick() 中检测脏数据并广播 EntityMetadataPacket
+    // EntityTracker 会在 tick() 中检测脏数据并广播 ir::play::SetEntityData
     m_dataManager.set(DATA_HOOKED_ENTITY_PARAM, syncedId);
 }
 

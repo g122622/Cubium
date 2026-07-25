@@ -327,4 +327,4 @@ data/end_dragon_fight.json
 **注意事项**：
 - 未注册 `m_onBroadcastBlockEntity` 回调时调用 `broadcastBlockEntity()` 不会崩溃（空回调检查）。
 - 回调注册通过 `setOnBroadcastBlockEntity()` 完成，由 `MinecraftServer::attachWorldBindings()` 在世界加载时统一注册。
-- 对应的客户端接收路径：`NetworkClient::_handleBlockEntityData()` → `ClientWorld::onBlockEntityData()` → `BlockEntity::loadFromNBT()`。
+- 对应的客户端接收路径：`ClientPlayVisitor` 处理 `ir::play::BlockEntityData` → `ClientWorld::onBlockEntityData()` → `BlockEntity::loadFromNBT()`。

@@ -31,9 +31,9 @@ Particle (基类)
 | VaultConnectionParticle | `VibrationParticleData` | 无独立回调（MC Java 中为 SimpleParticleType） | ✅ 已注册 | 编程方式创建时使用 VibrationParticleData |
 | TrailParticle | `TrailParticleData` | `onTrailParticle` | ✅ 已注册 | 目标位置 + ARGB 颜色 + 持续时间 |
 
-- **VibrationSignalParticle**：通过网络回调 `onVibrationParticle` 接收 `ParticlePacket` 中解码的目标位置和到达时间，创建 `VibrationParticleData` 并通过数据管线传递给 `createWithTarget()`。
+- **VibrationSignalParticle**：通过网络回调 `onVibrationParticle` 接收 `ir::play::LevelParticles` 中解码的目标位置和到达时间，创建 `VibrationParticleData` 并通过数据管线传递给 `createWithTarget()`。
 - **VaultConnectionParticle**：MC Java 中为 SimpleParticleType，velocity 字段传递目标偏移，`create()` 工厂方法直接处理。编程方式创建可通过 `addParticleWithData()` 使用 `VibrationParticleData`。
-- **TrailParticle**：通过网络回调 `onTrailParticle` 接收 `ParticlePacket` 中解码的目标位置、颜色和持续时间，创建 `TrailParticleData` 并通过数据管线传递给 `createWithTarget()`。
+- **TrailParticle**：通过网络回调 `onTrailParticle` 接收 `ir::play::LevelParticles` 中解码的目标位置、颜色和持续时间，创建 `TrailParticleData` 并通过数据管线传递给 `createWithTarget()`。
 
 ## 上下游外部依赖关系
 
@@ -50,7 +50,7 @@ Particle (基类)
 - 振动系统 - 幽匿感测体、幽匿尖啸体、监守者振动信号（VibrationSignalParticle）
 - 宝库系统 - 宝库解锁连接光束（VaultConnectionParticle）
 - 诡异橡树/嘎枝 - 眼球花和心声方块轨迹效果（TrailParticle）
-- 网络同步 - 通过 `ParticlePacket` 接收服务端粒子事件
+- 网络同步 - 通过 `ir::play::LevelParticles` 接收服务端粒子事件
 - `ClientApplicationNetwork` - 振动/轨迹粒子回调处理
 
 ## 容易踩的坑

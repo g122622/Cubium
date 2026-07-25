@@ -132,7 +132,7 @@ WitherEntity::aiStep()
 - `sideHeadPitch/Yaw(index)` / `prevSideHeadPitch/Yaw(index)`：返回当前/上一 tick 的侧头角度（度，不包装）。
 - `getHeadTarget1/2/3ParamId()` / `getInvulTimeParamId()`：静态方法，返回 `DataParameter` 的 ID，供 `ClientEntity::syncMetadataFromDataManager` 读取网络同步的 `HEAD_TARGET` 值。
 
-**客户端镜像**：由于 `ClientEntity` 不继承 `Entity`/`WitherEntity` 且 `WitherEntity::aiStep()` 不在客户端运行，客户端在 `ClientEntity::tickWitherSideHeads()` 中独立镜像此计算（详见 `src/client/world/entity/README.md`）。侧头角度本身**不**网络同步——只有 `HEAD_TARGET_1/2/3`（目标实体 ID）通过 `EntityMetadataPacket` 同步，客户端根据目标 ID 本地重算朝向。
+**客户端镜像**：由于 `ClientEntity` 不继承 `Entity`/`WitherEntity` 且 `WitherEntity::aiStep()` 不在客户端运行，客户端在 `ClientEntity::tickWitherSideHeads()` 中独立镜像此计算（详见 `src/client/world/entity/README.md`）。侧头角度本身**不**网络同步——只有 `HEAD_TARGET_1/2/3`（目标实体 ID）通过 `ir::play::SetEntityData` 同步，客户端根据目标 ID 本地重算朝向。
 
 **与 MC 原版的一致性**：
 - yaw 限速 10°/tick、pitch 限速 40°/tick（MC `rotlerp(xRotHeads[j], f2, 40)` / `rotlerp(yRotHeads[j], f1, 10)`）

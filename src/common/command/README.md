@@ -66,7 +66,7 @@ EntityArgument.hpp / GameModeArgument.hpp / ItemArgument.hpp
 - `server/command/commands/` - 所有具体命令实现（gamemode、tp、give 等）
 - `server/command/support/` - 命令支持类（PlayerResolver、CommandMetadata 等）
 - `server/interaction/SignCommandHelper.cpp` - 告示牌命令交互
-- `client/network/ClientPacketHandler.cpp` - 客户端命令树处理
+- `client/network/ClientPlayVisitor.cpp` - 客户端命令树处理（`ir::play::Commands` 分支，当前为 opaque TODO(Phase6)）
 
 **依赖了谁（上游）：**
 - 无外部依赖，仅依赖标准库和项目基础类型

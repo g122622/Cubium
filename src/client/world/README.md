@@ -31,7 +31,7 @@ src/client/world/
 ## 内部模块关系
 
 ```
-NetworkClient callbacks
+ClientNetwork callbacks
         │
         ▼
 ClientWorld ─────────────────────────────────────┐
@@ -49,7 +49,7 @@ ClientChunk.solidMesh/transparentMesh
         ▼
 ChunkRenderer GPU upload
 
-ClientEntityManager ◄──── NetworkClient (实体包)
+ClientEntityManager ◄──── ClientNetwork (实体包)
         │
         ├── 管理所有 ClientEntity
         └── 特殊处理本地玩家（跳过网络位置更新）
@@ -82,7 +82,7 @@ client/renderer/trident/chunk/ChunkMesher.hpp # 区块网格生成器
 
 ```
 ClientApplication      # 持有 ClientWorld、ClientEntityManager 实例
-NetworkClient          # 网络回调时调用 onChunkData/onChunkUnload 等
+ClientNetwork          # 网络回调时调用 onChunkData/onChunkUnload 等
 ChunkRenderer          # 读取 ClientChunk 的网格数据进行 GPU 上传
 EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲染实体
 ```

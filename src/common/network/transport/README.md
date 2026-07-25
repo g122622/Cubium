@@ -9,7 +9,7 @@ src/common/network/transport/
 ├── DeliveryHint.hpp       # enum{Unreliable,UnreliableSequenced,Reliable,ReliableOrdered}（RakNet reliability 等级，TCP/Local 忽略）
 ├── Endpoint.hpp           # struct{host,port} 网络端点
 ├── ITransport.hpp         # 字节传输抽象（原始字节流，无消息边界）：send/onBytes/onDisconnect/isConnected/close
-├── TcpTransport.hpp/cpp   # asio TCP 原始字节管道（同步 socket + 独立接收线程，沿用旧 NetworkClient 成熟模式；不做任何帧编解码）
+├── TcpTransport.hpp/cpp   # asio TCP 原始字节管道（同步 socket + 独立接收线程；不做任何帧编解码）
 ├── LocalTransport.hpp/cpp # 同进程零拷贝：实现独立 ILocalTransport 接口直传 ir::IrPacket 对象不经序列化（LocalTransportPair 配对）
 └── RakNetTransport.hpp    # 基岩 UDP stub：全部操作返回 NotInitialized，待基岩后端落地
 ```

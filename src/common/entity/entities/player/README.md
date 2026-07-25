@@ -20,7 +20,7 @@
     - `Player` 继承自 `LivingEntity`，复用通用的位置、旋转、碰撞和数据管理能力。 - `Player` 在退出蹲伏、游泳和睡眠姿态时，会通过 `IWorld` 的碰撞查询判断当前空间是否允许切回站立。 - `ClientApplication` 使用 `Player` 的 `distanceWalkedModified` 等价累计值和 `cameraYaw /
         prevCameraYaw` 来驱动原版 `GameRenderer.applyBobbing()` 风格的视图矩阵变换，并读取脚步声
         / 游泳声标志来播放本地音效。
-    - `NetworkClient` 和玩家序列化逻辑负责把服务器传来的传送、位置和状态同步到本地玩家。
+    - `ClientNetwork` 和玩家序列化逻辑负责把服务器传来的传送、位置和状态同步到本地玩家。
     - 服务端玩家管理由 `server / world / player / ServerPlayerEntityManager` 负责。
     - 客户端本地玩家身份由 `client / world / player / LocalPlayerIdentity` 管理。
     - `GameModeUtils` 负责把游戏模式转换为玩家能力，避免重复实现。提供 `getAbilitiesForGameMode()`（能力映射）、`isBlockPlacingRestricted()`（冒险/旁观模式放置限制）等工具方法。

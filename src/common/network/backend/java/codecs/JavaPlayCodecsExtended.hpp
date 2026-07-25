@@ -34,9 +34,11 @@ namespace mc::network::backend::java::codecs {
 // ============================================================================
 // Play 阶段补全 codec（对齐 Java 1.21.11，Phase 4a）
 //
-// 复杂嵌套树（Holder<SoundEvent>/ParticleOptions/Component/NumberFormat/
-// Advancement 树/MapDecoration/MapPatch/Explosion 粒子表/命令树 Node/RecipeDisplay）
-// 以 VarInt(len)+bytes 透传，完整解析留待后续阶段（标 TODO(Phase6)）。
+// Holder<SoundEvent>、ParticleOptions、Explosion（含粒子表）、LevelParticles、BlockEntityData
+// 等已结构化（见 writeSoundEventHolder/writeParticleOptions/explosionCodec/levelParticlesCodec/
+// blockEntityDataCodec）。仍以 VarInt(len)+bytes 透传的复杂嵌套树：Component/NumberFormat/
+// Advancement 树/MapDecoration/MapPatch/命令树 Node/RecipeDisplay——完整解析留待后续阶段
+// （标 TODO(Phase6)）。
 // Resp 复用 JavaPlayCodecs.hpp 的 play_detail::writeSpawnInfo/readSpawnInfo。
 // ============================================================================
 

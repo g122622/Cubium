@@ -15,9 +15,9 @@ src/client/command/
 
 ```mermaid
 flowchart LR
-    Server[服务端命令树] --> Packet[CommandTreePacket]
-    Packet --> NetworkClient[NetworkClient]
-    NetworkClient --> App[ClientApplication]
+    Server[服务端命令树] --> Packet[ir::play::Commands]
+    Packet --> Visitor[ClientPlayVisitor]
+    Visitor --> App[ClientApplication]
     App --> Manager[ClientCommandManager]
     Manager --> Chat[ChatWidget]
     Manager --> Snapshot[CommandTreeSnapshot]
@@ -25,7 +25,7 @@ flowchart LR
 
     style Server fill:#d0f0ff,stroke:#2b6cb0,color:#000
     style Packet fill:#e6ffed,stroke:#2f855a,color:#000
-    style NetworkClient fill:#fff5d6,stroke:#b7791f,color:#000
+    style Visitor fill:#fff5d6,stroke:#b7791f,color:#000
     style App fill:#f0e7ff,stroke:#6b46c1,color:#000
     style Manager fill:#ffe4e6,stroke:#c53030,color:#000
     style Chat fill:#e2e8f0,stroke:#4a5568,color:#000

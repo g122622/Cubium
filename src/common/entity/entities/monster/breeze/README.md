@@ -162,7 +162,7 @@ AnimationState 字段说明：
 
 6. **Pose 转换必须带条件守卫**：`resetTask` 中切换回 `Standing` 前必须检查当前 Pose 是否仍为该 Goal 拥有的姿态（如 `Shooting`/`LongJumping`/`Inhaling`/`Sliding`），避免误覆盖其他 Goal 设置的 Pose。这与 MC 原版 `Shoot.stop`、`LongJump.stop` 的实现保持一致。
 
-7. **粒子携带方块状态**：`emitGroundParticles` 和 `emitJumpTrailParticles` 都发射 `ParticleTypeId::Block` 类型粒子，需要携带方块状态用于纹理渲染。这通过 `IWorld::addBlockParticle` → `ServerWorld` 广播回调 → `MinecraftServer::broadcastBlockParticleInRange` → `ParticlePacket::createBlock` → `NetworkClient::onBlockParticle` → `ClientApplicationNetwork` 调用 `BlockRegistry::getBlockState(stateId)` 还原 → 客户端世界 `addBlockParticle` 的链路完成。
+7. **粒子携带方块状态**：`emitGroundParticles` 和 `emitJumpTrailParticles` 都发射 `ParticleTypeId::Block` 类型粒子，需要携带方块状态用于纹理渲染。这通过 `IWorld::addBlockParticle` → `ServerWorld` 广播回调 → `MinecraftServer::broadcastBlockParticleInRange` → 构造 `ir::play::LevelParticles` → `ClientPlayVisitor` → `ClientApplicationNetwork` 调用 `BlockRegistry::getBlockState(stateId)` 还原 → 客户端世界 `addBlockParticle` 的链路完成。
 
 8. **呼啸音效随机间隔**：`m_soundTick == 0` 时触发并重新随机化（1-80 ticks），否则每 tick 递减。音量 = `0.8 + 0.2 * nextFloat`，音调 = `0.7 + 0.4 * nextFloat`。
 

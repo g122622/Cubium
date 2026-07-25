@@ -52,7 +52,7 @@ ClientApplication.cpp
 **下游依赖（该目录依赖的模块）：**
 - `common/entity`、`common/item`、`common/world`、`common/screen`
 - `client/input/InputManager`
-- `client/network/NetworkClient`
+- `client/network/ClientNetwork`
 - `client/resource/ResourceManager`
 - `client/sound/AudioService`
 - `client/world/ClientWorld`
@@ -68,4 +68,4 @@ ClientApplication.cpp
 - UI 事件分发文件要保留”为什么要这样分发”的注释
 - `ClientApplicationHelpers` 中的辅助函数位于 `mc::client::application::features` 命名空间，调用处要显式限定或引入对应作用域
 - `ClientApplication` 主文件已经不再保留 `setupInputBindings()` / `setupCamera()` 的实现，相关逻辑以 `features/` 内的同名成员函数为准
-- 粒子网络回调（`onParticle` / `onBlockParticle` / `onItemParticle` / `onVibrationParticle` / `onTrailParticle` / `onEntityEffectParticle`）在 `ClientApplicationNetwork.cpp` 中注册。携带附加数据的粒子（方块/物品/EntityEffect/Vibration/Trail）通过对应的 `ParticleData` 子类走 `ParticleManager::addPendingParticle()` 数据管线创建粒子，而非直接调用 `ClientWorld::addXxxParticle()`。物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball）从 `ParticlePacket::decodeItemStack()` 解码 `ItemStack`，封装为 `ItemParticleData` 后按 count 重复投递
+- 粒子网络回调（`onParticle` / `onBlockParticle` / `onItemParticle` / `onVibrationParticle` / `onTrailParticle` / `onEntityEffectParticle`）在 `ClientApplicationNetwork.cpp` 中注册。携带附加数据的粒子（方块/物品/EntityEffect/Vibration/Trail）通过对应的 `ParticleData` 子类走 `ParticleManager::addPendingParticle()` 数据管线创建粒子，而非直接调用 `ClientWorld::addXxxParticle()`。物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball）从 `ir::play::LevelParticles` 的物品粒子分支解码 `ItemStack`，封装为 `ItemParticleData` 后按 count 重复投递

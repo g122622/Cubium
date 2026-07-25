@@ -285,7 +285,7 @@ void ClientEntity::syncMetadataFromDataManager()
 
     // 狼状态同步（驯服状态、颈圈颜色、兴趣状态、愤怒状态）
     // 服务端 WolfEntity/TameableEntity 通过 DataParameter 写入，
-    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
     // 客户端在此处读取并调用 setWolfTamed/setWolfCollarColor/setWolfIsInterested/setWolfIsAngry 更新镜像状态。
     if (m_typeId == "minecraft:wolf" || m_typeId == "wolf") {
         // 驯服状态（通过 TameableEntity::DATA_TAMED_PARAM 同步）
@@ -315,7 +315,7 @@ void ClientEntity::syncMetadataFromDataManager()
 
     // 末影人状态同步（搬方块状态、注视状态）
     // 服务端 EndermanEntity 通过 DataParameter 写入，
-    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
     // 客户端在此处读取并调用 setEndermanHeldBlockState/setEndermanScreaming 更新镜像状态。
     if (m_typeId == "minecraft:enderman" || m_typeId == "enderman") {
         // 搬方块状态（通过 EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM 同步）
@@ -343,7 +343,7 @@ void ClientEntity::syncMetadataFromDataManager()
 
     // 下落方块状态同步
     // 服务端 FallingBlockEntity 通过 DataParameter 写入 DATA_BLOCK_STATE_ID_PARAM，
-    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
     // 客户端在此处读取并调用 setFallingBlockState 更新镜像状态。
     // 对应 MC 1.21.11 FallingBlockEntity.getBlockState()（项目通过 stateId 同步）。
     if (m_typeId == "minecraft:falling_block" || m_typeId == "falling_block") {
@@ -362,7 +362,7 @@ void ClientEntity::syncMetadataFromDataManager()
 
     // TNT 实体状态同步（引信、方块状态）
     // 服务端 TNTEntity 通过 DataParameter 写入 DATA_FUSE_PARAM 和 DATA_BLOCK_STATE_ID_PARAM，
-    // 由 EntityTracker 广播 EntityMetadataPacket 到客户端，
+    // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
     // 客户端在此处读取并调用 setTntFuse/setTntBlockState 更新镜像状态。
     // 对应 MC 1.21.11 PrimedTnt.getFuse() / getBlockState()。
     if (m_typeId == "minecraft:tnt" || m_typeId == "tnt") {

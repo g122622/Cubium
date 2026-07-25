@@ -139,7 +139,7 @@ struct AnimationContext {
      * DrownedModel::setAngles 读取此值驱动手臂/腿部的游泳覆盖动画。
      *
      * 数据流：服务端 DrownedEntity::updateSwimming 设置 Swimming 标志位
-     * → EntityTracker 广播 EntityMetadataPacket
+     * → EntityTracker 广播 ir::play::SetEntityData
      * → ClientEntity::syncMetadataFromDataManager 调用 setSwimming
      * → ClientEntity::tick 推进 m_swimAmount/m_swimAmountO（±0.09/tick）
      * → EntityRendererManager::updateAnimationContext 插值写入此字段
@@ -221,7 +221,7 @@ struct AnimationContext {
      * WolfModel 将此值加到头部 Z 旋转上。
      *
      * 数据流：服务端 WolfEntity::setInterested 写入 DATA_INTERESTED_PARAM
-     * → EntityTracker 广播 EntityMetadataPacket
+     * → EntityTracker 广播 ir::play::SetEntityData
      * → ClientEntity::syncMetadataFromDataManager 调用 setWolfIsInterested
      * → ClientEntity::tick 推进 wolfInterestedAngle 向 1.0/0.0 插值
      * → EntityRendererManager::updateAnimationContext 写入此字段
@@ -245,7 +245,7 @@ struct AnimationContext {
      * 由 EntityRendererManager 从 ClientEntity::wolfIsAngry() 读取填充。
      *
      * 数据流：服务端 WolfEntity::setAngry/setAngerTime 写入 DATA_ANGER_TIME_PARAM
-     * → EntityTracker 广播 EntityMetadataPacket
+     * → EntityTracker 广播 ir::play::SetEntityData
      * → ClientEntity::syncMetadataFromDataManager 调用 setWolfIsAngry
      * → EntityRendererManager::updateAnimationContext 写入此字段
      * → WolfModel::setAnimState 读取以决定尾巴 Y 旋转（愤怒时锁 0）。

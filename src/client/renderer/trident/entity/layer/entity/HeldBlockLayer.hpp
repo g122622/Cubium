@@ -56,7 +56,7 @@ namespace mc::client::renderer::entity::layer::entity {
  *
  * 数据来源：
  * - 服务端 `EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM`（i32 stateId）
- * - `EntityTracker` 自动广播 `EntityMetadataPacket`
+ * - `EntityTracker` 自动广播 `ir::play::SetEntityData`
  * - 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 stateId，
  *   通过 `BlockRegistry::getBlockState(stateId)` 解析为 `BlockState*`，
  *   缓存到 `m_endermanHeldBlockState` 镜像字段

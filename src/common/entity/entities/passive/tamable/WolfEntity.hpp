@@ -270,7 +270,7 @@ public:
      * @brief 设置愤怒时间（ticks）
      *
      * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
-     * EntityMetadataPacket 到所有观察者客户端。
+     * ir::play::SetEntityData 到所有观察者客户端。
      *
      * @param time 愤怒时间（ticks）
      */
@@ -310,7 +310,7 @@ public:
      * @brief 设置感兴趣状态
      *
      * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
-     * EntityMetadataPacket 到所有观察者客户端。
+     * ir::play::SetEntityData 到所有观察者客户端。
      *
      * @param interested 是否感兴趣
      */
@@ -342,7 +342,7 @@ public:
      * @brief 设置颈圈颜色
      *
      * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
-     * EntityMetadataPacket 到所有观察者客户端。
+     * ir::play::SetEntityData 到所有观察者客户端。
      *
      * @param color 染料颜色
      */

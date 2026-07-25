@@ -1057,7 +1057,7 @@
 ```
 服务端 MobEntity::setAggressive(true)
   → DATA_MOB_FLAGS_PARAM |= 0x04（位 2 置位）
-  → EntityTracker 广播 EntityMetadataPacket
+  → EntityTracker 广播 ir::play::SetEntityData
   → 客户端 ClientEntity::setMetadata → EntityMetadataSerializer::deserialize
   → 写入 ClientEntity::m_dataManager
   → syncMetadataFromDataManager 读取 DATA_MOB_FLAGS_PARAM & 0x04

@@ -61,7 +61,7 @@ block/
 - `ParticleFactories` - 注册 `Item`/`ItemSlime`/`ItemCobweb`/`ItemSnowball` 的数据工厂，从 `ItemParticleData` 提取 `ItemStack`
 - `ParticleManager` - 管理粒子生命周期和渲染
 - 方块破坏逻辑 - 通过 `DiggingParticle::createWithBlock()` 创建粒子
-- 物品破碎逻辑 - 通过 `ItemParticle::createWithItemStack()` 创建粒子（数据管线：`ParticlePacket::createItem` → `NetworkClient::onItemParticle` → `ClientApplicationNetwork` → `ItemParticleData` → 数据工厂）
+- 物品破碎逻辑 - 通过 `ItemParticle::createWithItemStack()` 创建粒子（数据管线：`ir::play::LevelParticles` → `ClientPlayVisitor` → `ClientApplicationNetwork` → `ItemParticleData` → 数据工厂）
 
 ## 容易踩的坑
 
@@ -79,4 +79,4 @@ block/
 
 7. **ItemParticle 双路径纹理解析**：`ItemParticle::_initializeItemTexture()` 先通过 `BlockItemRegistry::isBlockItem()` 判断是否为方块物品。方块物品走 `_initializeFromBlockItem()`（BlockModelCache 路径，与 DiggingParticle 一致），非方块物品走 `_initializeFromPlainItem()`（ItemModelCache + ItemTextureAtlas 路径）。两条路径任一成功即返回，都失败则使用占位纹理 `minecraft:particle/generic`。`ItemTextureAtlas` 必须通过 `setItemTextureAtlas()` 注入后才能解析非方块物品纹理，否则会输出 warning 并回退到占位纹理。
 
-8. **ItemParticle 数据管线**：物品粒子通过 `ParticleData` 管线创建。`ParticleFactories` 为 Item/ItemSlime/ItemCobweb/ItemSnowball 注册共享的 `itemDataFactory`，从 `ItemParticleData` 提取 `ItemStack` 调用 `createWithItemStack()`。网络层通过 `ParticlePacket::createItem()` 序列化 `ItemStack`，客户端 `NetworkClient::_handleParticle()` 检测 `isItemParticle()` 后调用 `onItemParticle` 回调，由 `ClientApplicationNetwork` 封装为 `ItemParticleData` 投递到 `ParticleManager::addPendingParticle()`。
+8. **ItemParticle 数据管线**：物品粒子通过 `ParticleData` 管线创建。`ParticleFactories` 为 Item/ItemSlime/ItemCobweb/ItemSnowball 注册共享的 `itemDataFactory`，从 `ItemParticleData` 提取 `ItemStack` 调用 `createWithItemStack()`。网络层通过 `ir::play::LevelParticles` 序列化 `ItemStack`，客户端 `ClientPlayVisitor` 处理 `ir::play::LevelParticles` 的物品粒子分支后调用 `onItemParticle` 回调，由 `ClientApplicationNetwork` 封装为 `ItemParticleData` 投递到 `ParticleManager::addPendingParticle()`。
