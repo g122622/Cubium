@@ -40,6 +40,7 @@ add_executable(mc_tests
     common/network/JavaCodecPlayPlayerSoundTest.cpp
     common/network/JavaCodecPlayScoreboardTitleTest.cpp
     common/network/JavaCodecPlayAdvancementCmdTest.cpp
+    common/network/test_registry_data_builder.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp
