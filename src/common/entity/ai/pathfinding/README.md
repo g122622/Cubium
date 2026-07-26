@@ -138,6 +138,15 @@ PathPoint 的 `m_distanceToNext` 字段存储的是 `启发式值 * 1.5`（MC 1.
 
 自定义 Region 时，`getBlockStateId()`、`isLoaded()` 和 `canSeeSky()` 是核心方法，必须正确实现。默认的 `getBlockState()` 依赖 `getBlockStateId()`。`canSeeSky()` 用于阳光避让路径截断，返回位置上方是否有遮挡方块（天空光照>=15）。
 
+### 10.5. getNodeType 节点位置语义：脚部空间，支撑在下方
+
+`getNodeType(x,y,z)` 描述的是**实体脚部所在的空间**（空气或可穿过方块），不是实心方块本身——对应 MC Java `WalkNodeEvaluator.getPathTypeStatic` 的"OPEN 节点 + 下方实心 → WALKABLE"语义。判定顺序：
+1. 实心方块（`Region::isWalkable` 为 true）→ `Blocked`（实体无法站进实心方块）。
+2. 可穿过空间且正下方 `(x,y-1,z)` 实心 → `Walkable`（可站立节点）。
+3. 可穿过空间但下方无直接支撑：向下搜地面，超出 `m_maxFallDistance` → `DangerFall`（Cubium 扩展类型，MC 1.21.11 无此类型，跌落限制本应在 `getNeighbors` 处理）；否则 → `Open`。
+
+`Region::isWalkable(x,y,z)` 的契约是"该位置方块是实心可站立支撑"（空气为 false，石头为 true），勿与按 `PathNodeType` 取值的自由函数 `isWalkable(PathNodeType)` 混淆。
+
 ### 11. 阳光避让路径截断
 
 `PathNavigator::_trimPath()` 实现了阳光避让逻辑（对应 MC Java 的 `GroundPathNavigation.trimPath()`）。当 `m_avoidSun` 为 true 时（由 `RestrictSunGoal` 通过 `setAvoidSunPathing(true)` 设置），路径计算完成后会遍历所有节点，在第一个暴露在阳光下的节点处截断路径。如果实体当前已在阳光下，则保留完整路径（实体需要移动来逃离阳光）。此逻辑不修改 WalkNodeProcessor 的节点代价，而是通过路径后处理实现阳光避让。

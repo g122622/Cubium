@@ -650,7 +650,7 @@ void ClientWorld::onChunkData(ChunkCoord x,
         [this, x, z, id, generation, dataPtr = data, dataSize = size, buffer = std::move(buffer)](
             const std::atomic<bool>& abortSignal) -> bool {
             // 任务可能被取消（维度切换/关服），检查后安全跳过。
-            if (abortSignal.load(std::memory_order_acquire)) {
+            if (abortSignal.load(std::memory_order::acquire)) {
                 return false;
             }
             auto result = network::ChunkSerializer::deserializeChunk(x, z, dataPtr, dataSize);

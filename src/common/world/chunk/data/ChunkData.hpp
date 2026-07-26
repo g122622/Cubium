@@ -242,12 +242,12 @@ public:
      * 主线程不再读（initializeChunkLighting 已搬 worker），但 SkyLightEngine::canTickChunk
      * 在 worker 读。atomic 防御未来主线程读路径，IChunk 虚签名不变（仍 bool）。
      */
-    [[nodiscard]] bool isLightCorrect() const override { return m_lightCorrect.load(std::memory_order_acquire); }
+    [[nodiscard]] bool isLightCorrect() const override { return m_lightCorrect.load(std::memory_order::acquire); }
 
     /**
      * @brief 设置区块光照正确状态
      */
-    void setLightCorrect(bool correct) override { m_lightCorrect.store(correct, std::memory_order_release); }
+    void setLightCorrect(bool correct) override { m_lightCorrect.store(correct, std::memory_order::release); }
 
     // Starlight 光照数据存储（内部使用）
     /**

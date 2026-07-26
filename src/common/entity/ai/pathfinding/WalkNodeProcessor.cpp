@@ -113,26 +113,23 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
         }
     }
 
-    // 检查是否可行走
+    // 节点位置语义：查询的是实体脚部所在的空间（空气或可穿过方块），支撑来自下方方块。
+    // 实心方块本身不可作为节点（实体无法站进实心方块内）→ Blocked。
     if (m_region->isWalkable(x, y, z)) {
-        // 检查下方是否有支撑
-        if (_canStandOn(x, y - 1, z)) {
-            return PathNodeType::Walkable;
-        }
-        return PathNodeType::Open;
+        return PathNodeType::Blocked;
     }
 
-    // 检查是否可以穿过（空气）
-    if (_isPassable(x, y, z)) {
-        // 向下寻找地面
-        i32 groundY = _getGroundHeight(x, y, z);
-        if (groundY < y - m_maxFallDistance) {
-            return PathNodeType::DangerFall;
-        }
-        return PathNodeType::Open;
+    // 此处位置为可穿过（空气等）：脚下(x,y-1,z)实心 → 可站立 → Walkable。
+    if (y > world::MIN_BUILD_HEIGHT && m_region->isWalkable(x, y - 1, z)) {
+        return PathNodeType::Walkable;
     }
 
-    return PathNodeType::Blocked;
+    // 脚下无可站立支撑：向下搜索地面，按最大跌落距离判定。
+    i32 groundY = _getGroundHeight(x, y, z);
+    if (groundY < y - m_maxFallDistance) {
+        return PathNodeType::DangerFall;
+    }
+    return PathNodeType::Open;
 }
 
 PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)

@@ -78,7 +78,7 @@ void ChunkSendManager::sendChunkToPlayers(
             [this, x, z, chunk, players, validateTracking](const std::atomic<bool>& abortSignal) -> bool {
                 // 任务可能被取消（关服/区块卸载），检查后安全跳过。
                 // shared_ptr 随 lambda 析构释放，无需特殊清理。
-                if (abortSignal.load(std::memory_order_acquire)) {
+                if (abortSignal.load(std::memory_order::acquire)) {
                     return false;
                 }
                 auto result = network::ChunkSerializer::serializeChunk(*chunk);

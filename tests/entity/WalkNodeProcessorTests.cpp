@@ -273,27 +273,20 @@ TEST_F(WalkNodeProcessorNodeTypeTest, LavaReturnsLava)
 
 TEST_F(WalkNodeProcessorNodeTypeTest, OpenGroundReturnsWalkable)
 {
-    // 查询位置为空气，脚下(0,63,0)有可行走的地面支撑。
-    // MC Java WalkNodeEvaluator.getPathTypeStatic：OPEN 节点 + 下方 WALKABLE → WALKABLE。
-    // 但 Cubium getNodeType 的 WALKABLE 分支要求 isWalkable(x,y,z)=true 且
-    // _canStandOn(x,y-1,z)=true；而 _canStandOn 内部 _isPassable(x,y,z)=!isWalkable(x,y,z)，
-    // 故当查询位置 isWalkable=true 时 _isPassable=false，_canStandOn 必为 false，
-    // WALKABLE 分支实际不可达。空气节点最终走 _isPassable 分支：groundHeight=y-1，
-    // 未超出 m_maxFallDistance → 返回 Open。
-    // TODO: getNodeType 的 WALKABLE 语义与 MC Java 不一致（应"空气+下方实心→WALKABLE"），
-    //       需重构 _canStandOn/_isPassable 逻辑，此处先断言源码当前真实行为。
+    // 查询位置(0,64,0)为空气，脚下(0,63,0)有可行走的地面支撑 → Walkable。
+    // 对应 MC Java WalkNodeEvaluator.getPathTypeStatic：OPEN 节点 + 下方实心(实心→BLOCKED，属 default 支撑臂)
+    // → 经 checkNeighbourBlocks 后返回 WALKABLE。Cubium 抽象下 isWalkable(脚下方块)=true 即"实心可站立支撑"。
     m_region.setWalkable(0, 63, 0, true); // 脚下有可行走的地面支撑
 
-    EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Open);
+    EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Walkable);
 }
 
 TEST_F(WalkNodeProcessorNodeTypeTest, OpenAirReturnsOpen)
 {
-    // 空气位置且脚下有支撑，但查询位置本身不可行走 → 返回 Open
-    // 对应 MC Java WalkNodeEvaluator.getPathTypeStatic: OPEN + 下方 WALKABLE → OPEN
-    // Cubium getNodeType: isWalkable(x,y,z)=false → _isPassable=true → groundHeight=y-1
-    //                     groundHeight(y-1) >= y-maxFallDistance → Open
-    m_region.setWalkable(0, 63, 0, true); // 脚下有地面，跌落距离=1 <= maxFallDistance(3)
+    // 查询位置为空气，脚下(0,63,0)也是空气，但更下方(0,62,0)有地面且在最大跌落距离内 → Open。
+    // 对应 MC Java getPathTypeStatic：OPEN + 下方 OPEN → OPEN；跌落距离限制由 getNeighbors 处理。
+    // Cubium 扩展：_getGroundHeight 向下找到 y=62，跌落距离=2 <= m_maxFallDistance(3) → Open（非 DangerFall）。
+    m_region.setWalkable(0, 62, 0, true); // 地面在脚下 2 格，跌落距离=2 <= maxFallDistance(3)
 
     EXPECT_EQ(m_processor->getNodeType(0, 64, 0), PathNodeType::Open);
 }
