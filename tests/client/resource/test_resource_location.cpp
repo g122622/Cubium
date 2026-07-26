@@ -43,7 +43,9 @@ std::filesystem::path makeTempPackDir()
     std::filesystem::create_directories(dir / "assets/minecraft/blockstates");
 
     std::ofstream mcmeta(dir / "pack.mcmeta", std::ios::binary);
-    mcmeta << R"({"pack":{"pack_format":6,"description":"test"}})";
+    // pack_format = 75：MC 1.21.11 客户端资源包版本（resource_pack_version，
+    // 见 resourcepacks/Vanilla/version.json）。原值为 6（1.16.x 遗留），与断言不一致。
+    mcmeta << R"({"pack":{"pack_format":75,"description":"test"}})";
     mcmeta.close();
 
     std::ofstream blockstate(dir / "assets/minecraft/blockstates/oak_log.json", std::ios::binary);
@@ -154,7 +156,9 @@ TEST(FolderResourcePackTest, LoadPackMetadata)
 
     auto result = pack.initialize();
     if (result.success()) {
-        EXPECT_EQ(pack.metadata().packFormat(), 3);
+        // pack_format = 75：MC 1.21.11 客户端资源包版本（resource_pack_version）。
+        // 原断言为 3（1.16.x 遗留），与 fixture 写入值不一致——纯测试代码 bug。
+        EXPECT_EQ(pack.metadata().packFormat(), 75);
         EXPECT_FALSE(pack.metadata().description().empty());
     }
 }
