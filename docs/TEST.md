@@ -12,6 +12,7 @@ cd build
 ctest --build-config RelWithDebInfo --output-on-failure -j8
 
 # 方式 B：直接运行可执行文件（不经过 CTest，无单用例限时）
+# 不推荐，由于测试用例众多（数万），直接运行大概率会严重超时
 ./build/bin/RelWithDebInfo/mc_tests
 ```
 
