@@ -142,7 +142,7 @@ flowchart LR
 4. **光照初始化** — 天空光照默认 15（全亮），方块光照默认 0（无光）
 5. **level 语义** — 级别越小优先级越高；级别 ≤ 33 的区块应该被加载
 6. **ChunkStatus 比较** — 使用 `isAtLeast()` 和 `isBefore()`，不要直接比较 ordinal
-7. **高度图内部存储** — `Heightmap` 内部存储 `y + 1`，不是实际方块 Y
+7. **高度图内部存储** — `Heightmap` 内部存储 `y + 1`，不是实际方块 Y。`getTopBlockY` 返回方块本身 Y（内部值 -1），但**空列回退为 `MIN_BUILD_HEIGHT`**（与"minY 处有方块"无法区分）；需精确识别空列的调用方（如 `HeightmapPlacement`）改用 `getHeightmapFirstAvailable` 拿原始值（`y+1` 或 `NO_BLOCK_SENTINEL`），对齐 MC `Heightmap.getFirstAvailable`
 8. **WorldGenRegion 阶段校验** — 生成期区块访问按当前 `ChunkStep::directDependencies()` 校验距离对应的允许状态；调用点需要传递实际请求的 `ChunkStatus`
 9. **ChunkStatus 根状态自引用 parent** — `ChunkStatus` 构造函数将 `nullptr` parent 转为 `this`，因此 `EMPTY.parent() == &EMPTY`（非 nullptr）。遍历 parent 链时必须用 `*status != EMPTY` 而非 `status != nullptr` 作为终止条件（见 `ChunkStep::buildRequiredStatusByRadius`）
 10. **getRadiusOf 返回最后覆盖半径** — `ChunkDependencies::getRadiusOf(status)` 返回覆盖该 status ordinal 的**最大**半径 j（前向循环覆盖），不是最小半径。例如 FULL 的累积依赖中 `getRadiusOf(STRUCTURE_STARTS) = 11`（外圈），而非 4（首次出现）。`byRadius[]` 构建依赖此语义：高状态先填小半径，低状态填剩余空隙，最终 `byRadius[r] == accumulatedDependencies.get(r)`

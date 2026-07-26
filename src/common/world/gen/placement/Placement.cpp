@@ -304,18 +304,22 @@ std::vector<BlockPos> HeightmapPlacement::getPositions(
     //   int k = ctx.getHeight(this.heightmap, x, z);
     //   return k > ctx.getMinY() ? Stream.of(new BlockPos(x, k, z)) : Stream.of();
     //
-    // 关键语义：生成期间 ctx.getHeight 走 WorldGenRegion.getHeight，其实现为
+    // 生成期间 ctx.getHeight 走 WorldGenRegion.getHeight，其实现为
     //   chunk.getHeight(...) + 1   （WorldGenRegion.java:404-407）
-    // 即返回"最高方块上方一格空气的 Y"（blockY + 1），而非方块本身 Y。
-    // 项目的 WorldGenRegion::getTopBlockY 转发 ChunkPrimer::getTopBlockY，返回的是
-    // 方块本身 Y（blockY，等价 MC ChunkAccess.getHeight 的 getFirstAvailable-1），
-    // 因此这里必须 +1 才能与 MC 一致。
+    // 而 chunk.getHeight = Heightmap.getFirstAvailable - 1，故 ctx.getHeight 恰等于
+    // Heightmap.getFirstAvailable（即 Heightmap 内部存储值：最高方块 Y+1）。
     //
-    // 若漏掉这个 +1，HeightmapPlacement 返回草方块本身的 Y，TreeFeature 的 startPos
-    // 落在草方块上，_calculateAvailableHeight 在 i=0 检查草方块（不可替换）立即返回 -2，
-    // 所有依赖 heightmap 的 feature（含全部树木）都会因"空间不足"而生成失败。
-    const i32 blockY = region.getTopBlockY(basePos.x, basePos.z, heightmapConfig.heightmap);
-    const i32 k = blockY + 1;
+    // 因此这里直接取高度图原始值（getHeightmapFirstAvailable）作为 k，与 MC 完全一致：
+    //   - 有方块列：k = blockY + 1（最高方块上方一格空气的 Y），k > minY → 返回 (x, k, z)
+    //   - 空列：k = NO_BLOCK_SENTINEL（= minY - 1），k > minY 为假 → 返回空
+    //
+    // 不能用 getTopBlockY(...) + 1：项目 getTopBlockY 把空列（NO_BLOCK_SENTINEL）回退为
+    // MIN_BUILD_HEIGHT，使空列 k = minY + 1 误判为非空；且空列与"minY 处有方块"无法区分。
+    // 取原始值可精确识别空列。漏掉这个 +1（退回 blockY）会让 HeightmapPlacement 返回草方块
+    // 本身的 Y，TreeFeature 的 startPos 落在草方块上，_calculateAvailableHeight 在 i=0
+    // 检查草方块（不可替换）立即返回 -2，所有依赖 heightmap 的 feature（含全部树木）都会
+    // 因"空间不足"而生成失败。
+    const i32 k = region.getHeightmapFirstAvailable(basePos.x, basePos.z, heightmapConfig.heightmap);
     if (k <= region.getMinBuildHeight()) {
         return {};
     }

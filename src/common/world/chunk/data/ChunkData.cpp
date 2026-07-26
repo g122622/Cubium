@@ -274,6 +274,24 @@ BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord 
     return height != Heightmap::NO_BLOCK_SENTINEL ? height - 1 : mc::world::MIN_BUILD_HEIGHT;
 }
 
+BlockCoord ChunkData::getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const
+{
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
+        return Heightmap::NO_BLOCK_SENTINEL;
+    }
+
+    const size_t typeIndex = static_cast<size_t>(type);
+    // 未被显式填充的类型回退到 WorldSurface 槽位（与 getTopBlockY 一致）
+    const Heightmap& heightmap = m_heightmapInitialized[typeIndex]
+        ? m_heightmaps[typeIndex]
+        : m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];
+
+    // 直接返回内部存储值（最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示空列），
+    // 不做空列→MIN_BUILD_HEIGHT 的合并，供 HeightmapPlacement 等需要精确识别空列的
+    // 调用方使用（对齐 MC Heightmap.getFirstAvailable）。
+    return heightmap.getHeight(x, z);
+}
+
 void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {

@@ -415,6 +415,19 @@ i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const
     return chunk->getTopBlockY(type, localX, localZ);
 }
 
+i32 WorldGenRegion::getHeightmapFirstAvailable(i32 x, i32 z, HeightmapType type) const
+{
+    const ChunkCoord chunkX = world::toChunkCoord(x);
+    const ChunkCoord chunkZ = world::toChunkCoord(z);
+
+    const IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
+    MC_ASSERT_RELEASE(chunk);
+
+    const i32 localX = world::toLocalCoord(x);
+    const i32 localZ = world::toLocalCoord(z);
+    return chunk->getHeightmapFirstAvailable(type, localX, localZ);
+}
+
 i32 WorldGenRegion::_centerIndex() const
 {
     return m_chunkRadius * m_chunkDiameter + m_chunkRadius;

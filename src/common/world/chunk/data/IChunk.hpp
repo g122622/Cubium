@@ -105,6 +105,27 @@ public:
     virtual void updateHeightmap(
         HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) = 0;
 
+    /**
+     * @brief 获取高度图原始值（getFirstAvailable 语义）
+     *
+     * 返回 Heightmap 内部存储值（最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示该列无方块），
+     * 不做"空列与 MIN_BUILD_HEIGHT 处有方块"的歧义合并。
+     *
+     * getTopBlockY 为了对外提供"方块本身 Y"语义，把空列（NO_BLOCK_SENTINEL）回退为
+     * MIN_BUILD_HEIGHT，这使空列与"最低层 Y=MIN_BUILD_HEIGHT 处有方块"无法区分。
+     * 需要精确识别空列的调用方（如 HeightmapPlacement，对齐 MC HeightmapPlacement 中
+     * k > ctx.getMinY() 的判据）应使用本方法拿到原始值，而非 getTopBlockY+1。
+     *
+     * 默认返回 NO_BLOCK_SENTINEL（视为空列），具体子类按高度图数据返回。
+     */
+    [[nodiscard]] virtual BlockCoord getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const
+    {
+        (void)type;
+        (void)x;
+        (void)z;
+        return Heightmap::NO_BLOCK_SENTINEL;
+    }
+
     // === 状态 ===
     [[nodiscard]] virtual ChunkLoadStatus getStatus() const = 0;
     virtual void setStatus(ChunkLoadStatus status) = 0;

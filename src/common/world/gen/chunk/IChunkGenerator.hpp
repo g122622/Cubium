@@ -571,6 +571,15 @@ public:
     [[nodiscard]] i32 getTopBlockY(i32 x, i32 z, HeightmapType type) const;
 
     /**
+     * @brief 获取高度图原始值（getFirstAvailable 语义，指定高度图类型）
+     *
+     * 返回 Heightmap 内部存储值（最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示空列），
+     * 不做"空列与 MIN_BUILD_HEIGHT 处有方块"的歧义合并。供 HeightmapPlacement 等
+     * 需精确识别空列的调用方使用（对齐 MC WorldGenRegion.getHeight = getFirstAvailable）。
+     */
+    [[nodiscard]] i32 getHeightmapFirstAvailable(i32 x, i32 z, HeightmapType type) const;
+
+    /**
      * @brief 设置种子（用于生成）
      */
     void setSeed(u64 seed) { m_seed = seed; }

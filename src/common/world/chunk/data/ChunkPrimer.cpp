@@ -199,6 +199,18 @@ BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoor
     MC_ASSERT_RELEASE(false);
 }
 
+BlockCoord ChunkPrimer::getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const
+{
+    // 直接返回 Heightmap 内部存储值（最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示空列），
+    // 不做空列→MIN_BUILD_HEIGHT 的合并，供 HeightmapPlacement 等需要精确识别空列的
+    // 调用方使用（对齐 MC Heightmap.getFirstAvailable）。
+    auto it = m_heightmaps.find(type);
+    if (it != m_heightmaps.end()) {
+        return it->second.getHeight(x, z);
+    }
+    MC_ASSERT_RELEASE(false);
+}
+
 void ChunkPrimer::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
     auto& heightmap = getHeightmap(type);

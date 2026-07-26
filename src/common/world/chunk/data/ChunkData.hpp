@@ -111,6 +111,11 @@ public:
     void updateHeightmap(
         HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
 
+    // 高度图原始值（getFirstAvailable 语义）：最高方块 Y+1 或 NO_BLOCK_SENTINEL（空列）。
+    // 未初始化的类型回退到 WorldSurface 槽位（与 getTopBlockY 一致），供需精确识别空列的
+    // 调用方使用。
+    [[nodiscard]] BlockCoord getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const override;
+
     /**
      * @brief 从存档数据直接恢复指定类型的高度图（绕过 _isOpaque 判定）
      *

@@ -245,13 +245,18 @@ chain->setNext(heightRange);
 
 **解决**：新版配置支持更灵活的分布（均匀、三角形、正态等），建议迁移到 Provider 模式。
 
-### 9. HeightmapPlacement 必须对 getTopBlockY 结果 +1
+### 9. HeightmapPlacement 用高度图原始值，其它 +1 placement 用 getTopBlockY+1
 
 **问题**：`HeightmapPlacement::getPositions` 若直接返回 `region.getTopBlockY(...)`（= 最高方块本身 Y，草方块 Y），则依赖 heightmap 的 feature（含全部树木）全部生成失败——`TreeFeature` 的 `startPos` 落在草方块上，`_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2，判定"空间不足"。
 
-**根因**：MC 1.21.11 中生成期间 `ctx.getHeight(...)` 走 `WorldGenRegion.getHeight`，其实现为 `chunk.getHeight(...) + 1`（`WorldGenRegion.java:404-407`），即返回"最高方块上方一格空气的 Y"（blockY+1），而非方块本身。而 `ChunkAccess.getHeight` 返回 blockY（`getFirstAvailable-1`）。项目的 `WorldGenRegion::getTopBlockY` 转发 `ChunkPrimer::getTopBlockY`，返回 blockY（等价 MC `ChunkAccess.getHeight`），**缺这个 +1**。
+**根因**：MC 1.21.11 中生成期间 `ctx.getHeight(...)` 走 `WorldGenRegion.getHeight`，其实现为 `chunk.getHeight(...) + 1`（`WorldGenRegion.java:404-407`），而 `chunk.getHeight = Heightmap.getFirstAvailable - 1`，故 `ctx.getHeight` 恰等于 `Heightmap.getFirstAvailable`（即 Heightmap 内部存储值：最高方块 Y+1，空列为哨兵）。判据 `k > ctx.getMinY()` 借此天然区分空列（哨兵 = minY-1 不大于 minY）与"minY 处有方块"。
 
-**解决**：所有对应 MC `ctx.getHeight(...)` 的 placement，必须对 `getTopBlockY` 结果 +1。目前 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement` 均已 +1；新增同类 placement 时务必核对 MC 源码中 `ctx.getHeight` 的调用方是否走 `WorldGenRegion.getHeight`（+1 语义），若是则必须 +1。
+**坑**：项目 `getTopBlockY` 把空列（`NO_BLOCK_SENTINEL`）回退为 `MIN_BUILD_HEIGHT`，使空列与"minY 处有方块"无法区分；用 `getTopBlockY+1` 当 k 会让空列 k=minY+1 误判为非空、错误返回 `(x, minY+1, z)`。
+
+**解决**：
+- `HeightmapPlacement` 直接取高度图原始值（`WorldGenRegion::getHeightmapFirstAvailable`，对齐 MC `getFirstAvailable`）作为 k，配 `k <= getMinBuildHeight()` 判空——既得 blockY+1 语义，又能精确识别空列。
+- `SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement` 仍用 `getTopBlockY + 1` 拿 blockY+1 基准（它们对空列有各自的处理，不依赖此判据区分空列）。
+- 新增对应 MC `ctx.getHeight(...)` 的 placement 时，优先用 `getHeightmapFirstAvailable`；若用 `getTopBlockY+1`，须单独确认空列路径不依赖 k>minY 判据。
 
 ---
 

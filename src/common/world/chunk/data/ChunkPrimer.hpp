@@ -127,6 +127,10 @@ public:
     void updateHeightmap(
         HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
 
+    // 高度图原始值（getFirstAvailable 语义）：最高方块 Y+1 或 NO_BLOCK_SENTINEL（空列）。
+    // 供需精确识别空列的调用方使用，避免 getTopBlockY 把空列合并为 MIN_BUILD_HEIGHT。
+    [[nodiscard]] BlockCoord getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const override;
+
     // 状态
     [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
     void setStatus(ChunkLoadStatus status) override { m_status = status; }

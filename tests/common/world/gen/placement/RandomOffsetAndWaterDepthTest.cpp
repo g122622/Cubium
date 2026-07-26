@@ -253,9 +253,11 @@ TEST_F(RandomOffsetAndWaterDepthTest, RarityFilterLargeChanceRarelyPasses)
 
 TEST_F(RandomOffsetAndWaterDepthTest, HeightmapReturnsColumnTopY)
 {
-    // 在 (8,*,8) 列放一个 stone@70。HeightmapPlacement(WORLD_SURFACE) 应返回 (8, 70, 8)
-    // （getTopBlockY 返回最高方块 Y）。fixture persistedStatus=FEATURES，维护 POST_FEATURES
-    // 高度图（WORLD_SURFACE/OCEAN_FLOOR/MOTION_BLOCKING/...），故用 WORLD_SURFACE 而非 WG 变体。
+    // 在 (8,*,8) 列放一个 stone@70。HeightmapPlacement(WORLD_SURFACE) 应返回 (8, 71, 8)：
+    // 生成期间 ctx.getHeight 走 WorldGenRegion.getHeight = Heightmap.getFirstAvailable
+    // = 最高方块 Y+1（即上方一格空气的 Y），对齐 MC 1.21.11 HeightmapPlacement。
+    // fixture persistedStatus=FEATURES，维护 POST_FEATURES 高度图
+    // （WORLD_SURFACE/OCEAN_FLOOR/MOTION_BLOCKING/...），故用 WORLD_SURFACE 而非 WG 变体。
     const i32 bx = 8, bz = 8;
     placeBlock(bx, 70, bz, &VanillaBlocks::STONE->defaultState());
 
@@ -267,18 +269,19 @@ TEST_F(RandomOffsetAndWaterDepthTest, HeightmapReturnsColumnTopY)
     ASSERT_EQ(positions.size(), 1u);
     EXPECT_EQ(positions[0].x, bx);
     EXPECT_EQ(positions[0].z, bz);
-    EXPECT_EQ(positions[0].y, 70) << "应返回最高方块 Y";
+    EXPECT_EQ(positions[0].y, 71) << "应返回最高方块上方一格空气 Y（blockY+1，对齐 MC）";
 }
 
 TEST_F(RandomOffsetAndWaterDepthTest, HeightmapEmptyColumnReturnsEmpty)
 {
-    // 空列（无方块）→ getTopBlockY 返回 <= minY → 返回空。
+    // 空列（无方块）→ Heightmap.getFirstAvailable 返回 NO_BLOCK_SENTINEL（= minY-1），
+    // k = minY-1 <= minY → 返回空（对齐 MC HeightmapPlacement 的 k > minY 判据）。
     HeightmapPlacementConfig config(HeightmapType::WorldSurface);
     HeightmapPlacement placement;
     math::Random random(1);
     const std::vector<BlockPos> positions = placement.getPositions(*m_region, random, config, BlockPos(8, 64, 8));
 
-    EXPECT_TRUE(positions.empty()) << "空列应返回空（k <= minY）";
+    EXPECT_TRUE(positions.empty()) << "空列应返回空（k = NO_BLOCK_SENTINEL <= minY）";
 }
 
 // ============================================================================
