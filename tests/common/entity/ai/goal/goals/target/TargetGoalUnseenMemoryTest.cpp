@@ -27,6 +27,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/core/EntityRegistry.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
 #include "entity/registry/VanillaEntities.hpp"
 #include "entity/registry/VanillaEntityTypeKeys.hpp"
@@ -117,6 +118,12 @@ protected:
         attacker = std::make_unique<TestPigEntity>(EntityInstanceId(2));
         attacker->setWorld(world.get());
         attacker->setPosition(5.0f, 64.0f, 0.0f);
+
+        // 直接构造的实体不经过 EntityType::create()，typeId 默认空，entityType() 返回 nullptr，
+        // 会让 isSuitableTarget 的 canAttackType 检查提前失败。补 setTypeId 对齐生产路径
+        // （注册表工厂 EntityType::create() 会调 setTypeId(m_name)），使行为测试反映真实实体。
+        pig->setTypeId(entity::EntityTypeKeys::PIG);
+        attacker->setTypeId(entity::EntityTypeKeys::PIG);
 
         // 推进 tick 使 ticksExisted > 0
         for (int i = 0; i < 10; ++i) {

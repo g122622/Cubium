@@ -357,3 +357,12 @@ void DrownedEntity::registerGoals()
 - `unseenMemoryTicks`（`setUnseenMemoryTicks` 方法）控制失去视线后继续追踪的时间
 
 两者语义完全不同：`chance` 影响目标获取，`unseenMemoryTicks` 影响目标保持。
+
+### 13. 测试中直接构造的实体必须补 setTypeId
+
+**问题**: 单元测试里 `std::make_unique<TestPigEntity>(...)` 直接构造实体后，`HurtByTargetGoal::shouldExecute()` 返回 false，`isSuitableTarget()` 也拒绝目标，但目标存活、非自身、非同盟、非创造模式，原因不明显。
+
+**原因**: `isSuitableTarget()` 调 `target->entityType()`，若返回 `nullptr` 则直接判失败。`entityType()` 是懒查询，依赖 `m_typeId` 非空——而 `m_typeId` 仅在 `EntityType::create()`（注册表工厂）里通过 `setTypeId(m_name)` 设置。直接 `make_unique` 绕过工厂，`m_typeId` 默认空，`entityType()` 返回 `nullptr`，`canAttackType` 检查提前失败。生产路径下实体都经工厂创建，无此问题。
+
+**解决**: 测试夹具里直接构造的实体，构造后补一句 `entity->setTypeId(entity::EntityTypeKeys::PIG);`（按实际类型）对齐生产路径。`alertAllies` 的同类匹配 `ally->entityType() == m_mob->entityType()` 同样依赖此点，盟友实体也需补。
+

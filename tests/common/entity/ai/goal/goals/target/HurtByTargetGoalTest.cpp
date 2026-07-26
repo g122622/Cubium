@@ -27,6 +27,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/core/EntityRegistry.hpp"
 #include "entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
 #include "entity/registry/VanillaEntities.hpp"
@@ -190,6 +191,12 @@ protected:
         attacker->setWorld(world.get());
         attacker->setPosition(5.0f, 64.0f, 0.0f);
 
+        // 直接构造的实体不经过 EntityType::create()，typeId 默认空，entityType() 返回 nullptr，
+        // 会让 isSuitableTarget 的 canAttackType 检查提前失败。这里补 setTypeId 对齐生产路径
+        // （注册表工厂 EntityType::create() 会调 setTypeId(m_name)），使行为测试反映真实实体。
+        pig->setTypeId(entity::EntityTypeKeys::PIG);
+        attacker->setTypeId(entity::EntityTypeKeys::PIG);
+
         // 推进 tick 使 ticksExisted > 0
         // setLastHurtBy 将 lastHurtByTimestamp 设为 ticksExisted()
         // HurtByTargetGoal::shouldExecute() 在 timestamp != m_timestamp 时才返回 true
@@ -341,6 +348,8 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_NearbySameTypeGetTar
     auto ally = std::make_unique<TestPigEntity>(EntityInstanceId(3));
     ally->setWorld(world.get());
     ally->setPosition(2.0f, 64.0f, 0.0f);
+    // 盟友同样需 setTypeId，否则 entityType() 为空，alertAllies 的同类匹配会跳过它。
+    ally->setTypeId(entity::EntityTypeKeys::PIG);
 
     // 将盟友放入世界的实体列表
     world->setEntities({ally.get()});
@@ -367,6 +376,7 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_IgnoreAlertPredicate
     auto ally = std::make_unique<TestPigEntity>(EntityInstanceId(3));
     ally->setWorld(world.get());
     ally->setPosition(2.0f, 64.0f, 0.0f);
+    ally->setTypeId(entity::EntityTypeKeys::PIG);
 
     // 将盟友放入世界的实体列表
     world->setEntities({ally.get()});
@@ -398,6 +408,7 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_NoAlertAllies_NearbySameTypeNotT
     auto ally = std::make_unique<TestPigEntity>(EntityInstanceId(3));
     ally->setWorld(world.get());
     ally->setPosition(2.0f, 64.0f, 0.0f);
+    ally->setTypeId(entity::EntityTypeKeys::PIG);
 
     // 将盟友放入世界的实体列表
     world->setEntities({ally.get()});
