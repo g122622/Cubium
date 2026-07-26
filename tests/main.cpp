@@ -33,6 +33,7 @@
 #include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
 #include "common/world/gen/settings/NoiseSettingsLoader.hpp"
 #include "common/world/gen/settings/WorldPresetLoader.hpp"
+#include "server/world/ChunkTaskScheduler.hpp"
 
 #include <gtest/gtest.h>
 
@@ -81,6 +82,21 @@ public:
 
 } // namespace
 
+/// 跨用例隔离监听器：每用例结束后重置 ChunkTaskScheduler 的 thread_local 同步调度上下文。
+///
+/// 全二进制直跑（`mc_tests --gtest_filter=...`）时同 worker 线程跨用例复用 thread_local
+/// SyncSchedulingContext，若上一用例残留 pending 队列，下一用例首次 runInlineAndDrain 会
+/// 多一次虚假调度，是 GameEventServerTest 等用例全二进制 flaky 的污染源之一。
+/// 生产路径下 depth 出口必归零、pending 必空，故重置对生产无影响。
+/// 监听器挂默认事件转发器之后，仅 OnTestEnd 做清理，不干扰断言/输出。
+class TestIsolationListener : public ::testing::EmptyTestEventListener {
+public:
+    void OnTestEnd(const ::testing::TestInfo& /*test_info*/) override
+    {
+        mc::server::ChunkTaskScheduler::resetThreadLocalContext();
+    }
+};
+
 int main(int argc, char* argv[])
 {
     // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用、std::terminate 等，
@@ -90,6 +106,9 @@ int main(int argc, char* argv[])
     ::testing::InitGoogleTest(&argc, argv);
     // 注册全局环境：在 RUN_ALL_TESTS 之前加载世界生成注册表。
     ::testing::AddGlobalTestEnvironment(new WorldGenRegistryEnvironment());
+    // 注册跨用例隔离监听器：每用例结束重置 thread_local 调度上下文，根除全二进制
+    // 直跑时的跨用例共享状态污染（详见 docs/TEST.md「跨测试隔离模型」）。
+    ::testing::UnitTest::GetInstance()->listeners().Append(new TestIsolationListener());
     const int result = RUN_ALL_TESTS();
 
     // CrashHandler 不需要 uninstall：进程即将退出，操作系统回收所有资源。

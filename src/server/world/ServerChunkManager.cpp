@@ -1411,11 +1411,12 @@ void ServerChunkManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 void ServerChunkManager::addLightTicket(ChunkCoord x, ChunkCoord z)
 {
     // 主线程调用：LIGHT 票据 + Full(33) 保活区块，覆盖 worker 在途窗口。
-    // 对齐 forceChunk 风格——registerTicket 后立即 processUpdates 让距离图生效。
+    // 经 processTicketUpdatesSync 让距离图生效并出队存档加载完成回调，对齐
+    // MC Java addTicketAndLoadWithRadius→runDistanceManagerUpdates（ServerChunkCache.java:494）。
     const ChunkPos pos(x, z);
     const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
     m_ticketManager.registerTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
-    m_ticketManager.processUpdates();
+    processTicketUpdatesSync();
 }
 
 void ServerChunkManager::removeLightTicket(ChunkCoord x, ChunkCoord z)
@@ -1425,7 +1426,7 @@ void ServerChunkManager::removeLightTicket(ChunkCoord x, ChunkCoord z)
     const ChunkPos pos(x, z);
     const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
     m_ticketManager.releaseTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
-    m_ticketManager.processUpdates();
+    processTicketUpdatesSync();
 }
 
 void ServerChunkManager::setViewDistance(i32 distance)
@@ -1436,16 +1437,14 @@ void ServerChunkManager::setViewDistance(i32 distance)
 void ServerChunkManager::tick()
 {
     ++m_currentTick;
+    // processTicketUpdatesSync 内部已出队异步存档加载完成回调（_drainPendingLoadCompletes），
+    // 对齐 MC Java runDistanceManagerUpdates 把票据更新与完成交接合到同一步。
     processTicketUpdatesSync();
-
-    // 出队并处理异步存档加载完成回调（ServerCompute 线程入队的结果）。
-    // 必须在 _drainPendingPostProcess 之前：加载完成把区块存入内存缓存并推进状态机，
-    // 后处理（onChunkLoaded/callback）依赖区块已在缓存中。
-    _drainPendingLoadCompletes();
 
     // 出队并执行 worker 线程入队的主线程后处理任务（onChunkLoaded / m_chunkLoadedCallback /
     // spawnEntitiesFromChunkGeneration / _postProcessChunk）。这些触及主线程独占状态
     // （ServerTickList、EntityManager、setBlockState、POI、光照），必须在主线程执行。
+    // 必须在 _drainPendingLoadCompletes 之后：后处理依赖区块已存入内存缓存。
     _drainPendingPostProcess();
 
     // 出队并执行异步卸载保存完成回调（ServerIO 线程入队的 stage3 收尾）。

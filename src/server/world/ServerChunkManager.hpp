@@ -448,8 +448,24 @@ public:
 
     /**
      * @brief 显式处理票据系统积压更新
+     *
+     * 对齐 MC Java 1.21.11 ServerChunkCache.runDistanceManagerUpdates
+     * （ServerChunkCache.java:282）：处理票据距离图更新后立即出队异步存档加载
+     * 完成回调（_drainPendingLoadCompletes），消除“processUpdates 已推进票据级别
+     * 但存档完成回调尚未出队”的 TOCTOU 窗口——否则后续 requestChunkSync/状态查询
+     * 会看到 holder 仍处 ResolvingStorage。
+     *
+     * 无重入：_drainPendingLoadCompletes→_onChunkLoadComplete 下游
+     * （_advanceChunkState/_storeChunkInMemorySync/_completeReadyWaiters/
+     * ChunkTaskScheduler::onLoadedFromStorageReady）均不调 processUpdates 或
+     * registerTicket/releaseTicket；_onTicketLevelChanged 经 processUpdates 同步触发，
+     * 但其 _submitChunkRequest 仅触发异步 I/O 或调度器 schedule，不重入 processUpdates。
      */
-    void processTicketUpdatesSync() { m_ticketManager.processUpdates(); }
+    void processTicketUpdatesSync()
+    {
+        m_ticketManager.processUpdates();
+        _drainPendingLoadCompletes();
+    }
 
     /**
      * @brief 获取票据管理器

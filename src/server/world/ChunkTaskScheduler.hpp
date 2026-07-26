@@ -243,6 +243,17 @@ public:
      */
     [[nodiscard]] static i32 getMaxAccessRadius();
 
+    /**
+     * @brief 重置当前线程的 thread_local 同步调度上下文
+     *
+     * 测试专用：全二进制直跑时同 worker 线程跨用例复用 thread_local SyncSchedulingContext，
+     * 上一用例若异常中断或残留，pending 队列可能持有过期 PendingReschedule（虽 target 指向
+     * 静态 ChunkStatus 常量不悬垂，但会致下一用例首次 runInlineAndDrain 多一次虚假调度）。
+     * 在每用例结束后调本方法把 depth 归零、pending 清空，根除跨用例残留。
+     * 生产路径无意义（depth 在 runInlineAndDrain 出口必归零，pending 必空），仅测试调用。
+     */
+    static void resetThreadLocalContext();
+
 private:
     /**
      * @brief 选择执行器：parallelCapable 状态走并行池，其他走区域互斥池

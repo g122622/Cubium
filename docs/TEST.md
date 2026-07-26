@@ -60,6 +60,36 @@ ctest --build-config RelWithDebInfo --rerun-failed --output-on-failure
 
 Windows 采用 `DISCOVERY_MODE PRE_TEST`（见下文），用例列表在 CTest **实际运行时**才探测生成，预览（`ctest -N`）阶段看不到。直接去掉 `-N` 运行即可。
 
+## 跨测试隔离模型
+
+测试有两种运行形态，隔离强度与代价不同，需按场景选择：
+
+| 形态 | 命令 | 隔离强度 | 代价 | 适用 |
+|---|---|---|---|---|
+| **CTest per-case** | `ctest -R '...'` | 强：每用例独立进程，物理隔离全部全局状态 | 慢：每进程重载原版数据包注册表（`WorldGenRegistryEnvironment::SetUp`） | 单用例/小批定位、CI |
+| **全二进制直跑** | `mc_tests --gtest_filter='...'` | 弱：单进程内顺序跑，共享进程级全局状态 | 快：注册表只载一次 | 大批量本地回归、验顺序敏感性 |
+
+全二进制直跑更快，但单进程内跨用例共享状态可能互相污染（典型表现：某用例隔离跑稳定、全二进制偶发 flaky）。已知的污染源与治理：
+
+- **生产时序**：`ServerChunkManager::processTicketUpdatesSync()` 现已出队 `m_pendingLoadCompletes`（对齐 MC Java `ServerChunkCache.runDistanceManagerUpdates`），消除了“票据已推进但存档完成回调未出队”的 TOCTOU 窗口——这是 `GameEventServerTest` 全二进制 flaky 的根因。
+- **thread_local 调度上下文**：`tests/main.cpp` 注册了 `TestIsolationListener`，每用例结束重置 `ChunkTaskScheduler` 的 thread_local `SyncSchedulingContext`（depth/pending），根除同 worker 线程跨用例的残留。
+
+经验上**不是污染源**、无需重置的进程级状态：`VanillaBlocks`/`BlockTags`/`BlockRegistry`/`Items` 等原版基线注册表——它们幂等初始化，每个用例都期望以相同方式加载，重置反而要重解析数据包（全量 per-case 跑 ×27000 用例不可接受）。`::testing::Environment::TearDown` 在进程末尾才跑一次，对进程内隔离无帮助，故 `WorldGenRegistryEnvironment` 不设 TearDown。
+
+### 顺序敏感性回归
+
+验证某用例不受顺序影响（flaky 根治后必跑）：
+
+```bash
+# 重复 20 次（捕偶发）
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter='GameEventServerTest.*' --gtest_repeat=20
+
+# 打乱顺序重复 10 次（捕顺序依赖）
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter='GameEventServerTest.*' --gtest_shuffle --gtest_repeat=10
+```
+
+`--gtest_shuffle` 默认以当前时间为种子；复现某次 shuffle 顺序可用 `--gtest_random_seed=N`（N 见上次输出末尾）。
+
 ## 单用例限时机制
 
 每个 gtest 用例（`TestSuite.TestCase`）都被 `gtest_discover_tests` 拆成**独立的 CTest 条目**，并附带独立的 `TIMEOUT`。超时即判失败，用于及早暴露区块生成/光照等长耗时用例的 hang/flake。
@@ -142,3 +172,4 @@ CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job �
 4. **想看崩溃栈却拿到 "SEH exception ... 不带栈"**：gtest 抢了 SEH，加 `--gtest_catch_exceptions=0` 交给 CrashHandler。
 5. **`--gtest_break_on_failure` 与崩溃调试混用**：它抛的是 `BREAKPOINT`，不是原始崩溃点，定位根因时不要用。
 6. **慢用例 hang 看不到失败**：单用例 `TIMEOUT` 默认 300s，超时会判失败并输出；若整体卡住可加 `ctest --timeout` 全局兜底。
+7. **用例隔离跑通过、全二进制偶发 flaky**：典型跨用例共享状态污染。先用 `--gtest_repeat=20`/`--gtest_shuffle` 复现，再排查 thread_local 残留或生产时序窗口（见「跨测试隔离模型」）。已知污染源已治理，新增疑似污染源时优先补 `TestIsolationListener` 的 `OnTestEnd` 清理而非给原版基线注册表加重置。

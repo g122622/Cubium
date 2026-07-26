@@ -945,6 +945,13 @@ ChunkTaskScheduler::SyncSchedulingContext& ChunkTaskScheduler::currentSyncContex
     return ctx;
 }
 
+void ChunkTaskScheduler::resetThreadLocalContext()
+{
+    auto& ctx = currentSyncContext();
+    ctx.depth = 0;
+    ctx.pending.clear();
+}
+
 void ChunkTaskScheduler::rescheduleChunk(ChunkCoord x, ChunkCoord z, const ChunkStatus& target)
 {
     SyncSchedulingContext& ctx = currentSyncContext();
