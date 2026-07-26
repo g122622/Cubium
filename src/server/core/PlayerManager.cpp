@@ -34,7 +34,7 @@ PlayerManager::PlayerManager(i32 maxPlayers)
 ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     const std::string& uuid,
     const std::string& username,
-    mc::server::net::ServerClientConnection* connection)
+    mc::server::net::IServerClientConnection* connection)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 

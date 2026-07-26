@@ -31,7 +31,7 @@
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/IServerClientConnection.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -73,9 +73,10 @@ struct ServerPlayerData {
     /// 用户名
     std::string username;
 
-    /// 连接（新网络层 ServerClientConnection，非拥有；由 ServerNetwork/PlayerManager 持有）
+    /// 连接（业务侧仅依赖 IServerClientConnection 接口；非拥有，由
+    /// ServerNetwork/PlayerManager 持有具体 ServerClientConnection）。
     /// nullptr 表示本地玩家（IntegratedServer 单玩家优化：连接由 IntegratedServer 直接持有）
-    mc::server::net::ServerClientConnection* connection = nullptr;
+    mc::server::net::IServerClientConnection* connection = nullptr;
 
     /// 会话ID（用于 TCP 连接标识）
     u32 sessionId = 0;
@@ -142,16 +143,13 @@ struct ServerPlayerData {
      * @brief 获取连接（如果有效）
      * @return 连接指针，如果无连接返回 nullptr
      */
-    [[nodiscard]] mc::server::net::ServerClientConnection* getConnection() const noexcept { return connection; }
+    [[nodiscard]] mc::server::net::IServerClientConnection* getConnection() const noexcept { return connection; }
 
     /**
      * @brief 检查连接是否有效
      * @return true 如果连接非空且未断开
      */
-    [[nodiscard]] bool hasConnection() const
-    {
-        return connection != nullptr && connection->isConnected();
-    }
+    [[nodiscard]] bool hasConnection() const { return connection != nullptr && connection->isConnected(); }
 
     /**
      * @brief 发送 IR 包到玩家

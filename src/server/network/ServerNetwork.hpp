@@ -32,6 +32,7 @@
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/network/transport/TcpTransport.hpp"
+#include "server/network/IServerClientConnection.hpp"
 
 #include <asio.hpp>
 
@@ -68,7 +69,7 @@ enum class HandshakeState : u8 {
  * 不持有玩家数据——玩家在握手完成（onPlayerReady）时由 IntegratedServer/StandaloneServer
  * 创建并回填 playerId；Play 路由器据此分发。
  */
-class ServerClientConnection {
+class ServerClientConnection : public IServerClientConnection {
 public:
     /// Local 模式构造（集成服）：注入一对 LocalTransport 的服务端侧
     ServerClientConnection(std::unique_ptr<mc::network::transport::ILocalTransport> localTransport,
@@ -80,13 +81,13 @@ public:
         std::shared_ptr<ProtocolTables> tables,
         u32 sessionId);
 
-    ~ServerClientConnection();
+    ~ServerClientConnection() override;
 
     ServerClientConnection(const ServerClientConnection&) = delete;
     ServerClientConnection& operator=(const ServerClientConnection&) = delete;
 
     /// 出站发送（线程安全：Local 走队列 mutex，Wire 走 socket send mutex）
-    [[nodiscard]] Result<void> send(mc::network::ir::IrPacket packet);
+    [[nodiscard]] Result<void> send(mc::network::ir::IrPacket packet) override;
 
     /// 注册入站监听器（收到任意阶段包都回调，由调用方分流握手/Play）
     ///
@@ -120,14 +121,18 @@ public:
     /// Local 模式 tick 驱动：pump 对端投递的包（Wire 模式由接收线程异步驱动，无需调用）
     void pumpLocal();
 
-    void close();
+    void close() override;
+
+    /// IServerClientConnection::disconnect：发当前阶段 Clientbound Disconnect 包后 close()。
+    /// reason 为纯文本，内部包成 JSON 文本组件。已断开时为幂等 no-op。
+    void disconnect(const std::string& reason) override;
 
     [[nodiscard]] HandshakeState state() const noexcept { return m_state; }
     void setState(HandshakeState s) noexcept { m_state = s; }
 
     [[nodiscard]] u32 sessionId() const noexcept { return m_sessionId; }
     [[nodiscard]] bool isLocalMode() const noexcept { return m_conn.isLocalMode(); }
-    [[nodiscard]] bool isConnected() const noexcept { return m_conn.isConnected(); }
+    [[nodiscard]] bool isConnected() const noexcept override { return m_conn.isConnected(); }
     [[nodiscard]] mc::network::protocol::ConnectionProtocol phase() const noexcept { return m_conn.phase(); }
     void setPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setPhase(p); }
 

@@ -22,18 +22,31 @@
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
 #include "server/interaction/InventoryManager.hpp"
+#include "server/network/IServerClientConnection.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::test {
 
-class FakeServerConnection {
+/**
+ * @brief 测试桩连接：实现 IServerClientConnection，记录发送字节数与断连原因。
+ *
+ * 网络重写后 ServerPlayerData.connection 收窄为 IServerClientConnection*，
+ * 测试桩无需再构造真实 transport/协议表即可注入玩家连接，使 KickCommand
+ * 的 disconnect(reason)、ClearCommand 的 sendToPlayer 等出站路径在命令测试
+ * 中可被断言。send(IrPacket) 累积每包一个哨兵字节（值=play 变体下标），
+ * 仅供 sentBytes()>0 断言，不还原包内容。
+ */
+class FakeServerConnection : public mc::server::net::IServerClientConnection {
 public:
-    void send(const u8* data, size_t size);
-    void disconnect(const std::string& reason = "");
-    [[nodiscard]] bool isConnected() const noexcept { return m_connected; }
+    [[nodiscard]] Result<void> send(mc::network::ir::IrPacket packet) override;
+    void close() override { m_connected = false; }
+    [[nodiscard]] bool isConnected() const noexcept override { return m_connected; }
+    void disconnect(const std::string& reason) override;
+
     [[nodiscard]] size_t sentBytes() const noexcept { return m_sentData.size(); }
     [[nodiscard]] const std::string& disconnectReason() const noexcept { return m_disconnectReason; }
 

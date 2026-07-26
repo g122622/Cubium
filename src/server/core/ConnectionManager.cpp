@@ -62,7 +62,7 @@ void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& r
 
     auto* conn = player->getConnection();
     if (conn) {
-        conn->close();
+        conn->disconnect(reason);
     }
 
     if (reason.empty()) {
@@ -87,7 +87,7 @@ void ConnectionManager::disconnectAll(const std::string& reason)
 
         auto* conn = player->getConnection();
         if (conn) {
-            conn->close();
+            conn->disconnect(reason);
         }
 
         if (reason.empty()) {

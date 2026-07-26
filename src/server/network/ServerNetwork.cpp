@@ -24,6 +24,11 @@
 #include "server/network/ServerNetwork.hpp"
 
 #include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -95,6 +100,37 @@ void ServerClientConnection::close()
 {
     m_conn.close();
     m_state = HandshakeState::Disconnected;
+}
+
+void ServerClientConnection::disconnect(const std::string& reason)
+{
+    // 幂等：已断开的连接不再发 Disconnect 包。
+    if (!isConnected()) {
+        return;
+    }
+
+    // 对齐 MC Java：reason 纯文本包成 JSON 文本组件（Component.literal(reason)）。
+    // Phase6 后可改为接收完整 ITextComponent。
+    const std::string jsonReason = mc::text::StringTextComponent(reason).toJson().dump();
+
+    // 按当前阶段发对应 Clientbound Disconnect 包。Handshaking/Status 阶段无
+    // Disconnect 包定义（协议未规定），直接跳过发包仅断连。
+    const auto phase = m_conn.phase();
+    if (phase == mc::network::protocol::ConnectionProtocol::Login) {
+        mc::network::ir::login::Disconnect dc;
+        dc.reason = jsonReason;
+        (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::LoginPacket{std::move(dc)}});
+    } else if (phase == mc::network::protocol::ConnectionProtocol::Configuration) {
+        mc::network::ir::configuration::Disconnect dc;
+        dc.reason = jsonReason;
+        (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::ConfigurationPacket{std::move(dc)}});
+    } else if (phase == mc::network::protocol::ConnectionProtocol::Play) {
+        mc::network::ir::play::Disconnect dc;
+        dc.reason = jsonReason;
+        (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::PlayPacket{std::move(dc)}});
+    }
+
+    close();
 }
 
 // ============================================================================

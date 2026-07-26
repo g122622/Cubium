@@ -77,7 +77,7 @@ public:
     ServerPlayerData* addPlayer(PlayerId playerId,
         const std::string& uuid,
         const std::string& username,
-        mc::server::net::ServerClientConnection* connection);
+        mc::server::net::IServerClientConnection* connection);
 
     /**
      * @brief 移除玩家

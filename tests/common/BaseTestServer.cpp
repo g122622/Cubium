@@ -2,11 +2,14 @@
 
 namespace mc::test {
 
-void FakeServerConnection::send(const u8* data, size_t size)
+Result<void> FakeServerConnection::send(mc::network::ir::IrPacket packet)
 {
-    if (data != nullptr && size > 0) {
-        m_sentData.insert(m_sentData.end(), data, data + size);
-    }
+    // 仅记录"发送了一包"：写入阶段 + play 变体下标各一字节，供 sentBytes()>0 断言。
+    // 不还原包内容——命令测试只关心是否触发了出站同步。
+    m_sentData.push_back(static_cast<u8>(packet.phase));
+    m_sentData.push_back(static_cast<u8>(packet.packet.index()));
+    (void)packet;
+    return Result<void>::ok();
 }
 
 void FakeServerConnection::disconnect(const std::string& reason)
@@ -138,10 +141,10 @@ server::ServerPlayerData* BaseTestServer::addTestPlayer(PlayerId playerId, const
 {
     auto connection = std::make_shared<FakeServerConnection>();
     std::string uuid = util::uuidToString(util::generateOfflineUuid(username));
-    // 新网络层 addPlayer 接受 mc::server::net::ServerClientConnection*；测试不接入真实连接，
-    // 此处传 nullptr。FakeServerConnection 是纯测试桩，记录 send 的字节数供命令测试断言。
-    // BaseTestServer 重写了 sendSoundToPlayer 等发送路径，不依赖 player.connection 真发包。
-    auto* player = m_playerManager.addPlayer(playerId, uuid, username, nullptr);
+    // 注入测试桩连接：FakeServerConnection 实现 IServerClientConnection，记录
+    // send 的字节数与 disconnect 的原因，使 KickCommand/ClearCommand 等出站
+    // 路径在命令测试中可断言。桩所有权由 BaseTestServer 持有，addPlayer 仅存裸指针。
+    auto* player = m_playerManager.addPlayer(playerId, uuid, username, connection.get());
     if (player != nullptr) {
         m_connections.push_back(connection);
         m_inventoryManager.initializeInventory(playerId);
