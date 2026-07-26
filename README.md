@@ -63,6 +63,20 @@ build/bin/RelWithDebInfo/minecraft-client
 >
 > MoltenVK 经 Homebrew 安装时，ICD 清单路径为 `/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json`；若改用 Vulkan SDK 安装，路径见 SDK 目录下的 `share/vulkan/icd.d/`。
 
+## 测试
+
+项目测试基于 GoogleTest，通过 CTest 编排运行，支持单用例限时（默认 300 秒）、并行、按名筛选。完整指南见 [docs/TEST.md](docs/TEST.md)。
+
+```bash
+cd build
+# Windows（多配置生成器，须带 --build-config）
+ctest --build-config RelWithDebInfo --output-on-failure -j8
+# 按用例名筛选
+ctest --build-config RelWithDebInfo -R 'ServerChunkManagerTest' --output-on-failure
+```
+
+测试 target 共 5 个（`mc_tests` / `mc_resource_tests` / `mc_trident_tests` / `mc_command_tests` / `mc_village_tests`），均注册到 CTest。单用例超时由 `MC_TEST_TIMEOUT`（`tests/CMakeLists.txt`）控制，改值需重新 configure。
+
 ## 测试崩溃时查看完整调用栈
 
 `mc_tests` 在 `main` 中安装了 `mc::assert::CrashHandler`（参考 `src/client/main.cpp`、`src/server/main.cpp`），崩溃（SEH 访问违例、除零、栈溢出、纯虚调用、`std::terminate`、`MC_ASSERT_RELEASE` 触发的 `abort`）时输出调用栈和寄存器到 stderr。

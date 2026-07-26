@@ -5,17 +5,36 @@ description: 运行测试，认领并收敛项目代码中的一个测试错误
 
 ## 任务简介
 
-```bash
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_break_on_failure 2>&1 | tail -70
-```
-
-运行测试（通过命令行参数，让测试套件遇到第一个测试失败就停下来），认领并收敛项目代码中的一个测试错误。项目中的测试错误产生原因多种多样，可能是因为：
+运行测试，认领并收敛项目代码中的一个测试错误。项目中的测试错误产生原因多种多样，可能是因为：
 
 - 被测试代码中存在bug
 - 测试代码中存在bug
 - 测试代码过时了，没有跟上被测试代码的变更
 - 被测试代码中存在一些边界情况没有被覆盖到，导致测试代码在这些边界情况上失败了
 等等。
+
+### 运行测试的两种方式
+
+项目已接入 CTest，**优先用 CTest 运行**（支持单用例限时、并行、按名筛选）。完整的测试体系说明见 [docs/TEST.md](../../../docs/TEST.md)，下面是常用命令速查：
+
+```bash
+cd build
+
+# 推荐：通过 CTest 全量运行（Windows 多配置生成器须带 --build-config）
+ctest --build-config RelWithDebInfo --output-on-failure -j8
+
+# 按用例名筛选（正则匹配 TestSuite.TestCase）
+ctest --build-config RelWithDebInfo -R 'ServerChunkManagerTest.GetChunkSync_MultipleChunks' --output-on-failure -V
+
+# 直接运行可执行文件（不经 CTest；遇到第一个失败就停下，适合快速定位）
+./build/bin/RelWithDebInfo/mc_tests --gtest_break_on_failure 2>&1 | tail -70
+```
+
+**单用例限时**：每个 gtest 用例都被 `gtest_discover_tests` 拆成独立 CTest 条目并附 `TIMEOUT`，默认 300 秒（`MC_TEST_TIMEOUT` CACHE 变量，`tests/CMakeLists.txt:2380`）。超时即判失败，用于及早暴露区块生成/光照等长耗时用例的 hang/flake。改超时：`cmake -B build -DMC_TEST_TIMEOUT=120 ...` 重配，或单次 `ctest --timeout 60` 临时覆盖。
+
+> Windows 下 `ctest -N` 列不出用例是正常的（`DISCOVERY_MODE PRE_TEST`，运行期才探测），直接运行即可。详见 [docs/TEST.md](../../../docs/TEST.md)。
+
+测试 target 共 5 个（`mc_tests` / `mc_resource_tests` / `mc_trident_tests` / `mc_command_tests` / `mc_village_tests`），均通过 `mc_register_gtests` 注册到 CTest。
 
 ## 任务详细流程
 
