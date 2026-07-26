@@ -380,13 +380,14 @@ TEST_F(PlayerMovementTest, Walking_HorizontalMovement_AddsToVelocity)
     f32 speed =
         std::sqrt(m_player->velocity().x * m_player->velocity().x + m_player->velocity().z * m_player->velocity().z);
 
-    // 地面行走应产生正向水平速度（forward=1 输入应加到 velocity）。
-    // TODO: 精确量纲待核定。理论上 speed 应为
-    //   getGroundMoveFactor(WALK_SPEED, SLIPPERINESS_DEFAULT) * (SLIPPERINESS_DEFAULT * DRAG_GROUND)
-    //   = 0.1 * 0.546 = 0.0546，但实测约为 0.01。Sneaking_ReducesSpeed 用相同机制比较
-    //   潜行/正常速度比仍通过（0.3 比率一致），说明源码行为自洽，疑似地面移动公式或
-    //   getBlockSpeedFactor 在本测试世界环境下存在未对齐项，需独立排查后再收紧断言。
-    EXPECT_GT(speed, 0.0f);
+    // 地面行走单 tick 水平速度（yaw=0，forward=1，STONE 默认 slipperiness=0.6、speedFactor=1.0）：
+    //   speedFactor = getGroundMoveFactor(MOVEMENT_SPEED=0.1, slip=0.6) * getBlockSpeedFactor()
+    //               = (0.1 * 0.21600002 / 0.6^3) * 1.0 = 0.1
+    //   m_velocity.z += 0.1 后，水平阻力 = slip * DRAG_GROUND = 0.6 * 0.91 = 0.546
+    //   speed = 0.1 * 0.546 = 0.0546
+    // 对齐 MC Java LivingEntity.travelInAir：地面分支末段衰减 slipperiness*0.91，
+    // 速度标量经 getFrictionInfluencedSpeed = speed*0.216/slip^3（默认 slip 下退化为 speed）。
+    EXPECT_NEAR(speed, 0.0546f, 0.001f);
 }
 
 TEST_F(PlayerMovementTest, Sneaking_ReducesSpeed)

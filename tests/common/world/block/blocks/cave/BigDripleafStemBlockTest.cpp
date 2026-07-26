@@ -32,6 +32,7 @@
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/cave/BigDripleafStemBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -104,7 +105,7 @@ public:
                 return fluidState;
             }
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override

@@ -37,6 +37,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "server/command/support/SpreadAlgorithm.hpp"
 
 #include <cmath>
@@ -74,7 +75,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         const BlockState* state = getBlockState(x, y, z);
-        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+        return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override

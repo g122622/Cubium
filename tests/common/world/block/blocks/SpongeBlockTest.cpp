@@ -42,6 +42,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
+#include "world/fluid/Fluids.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -115,7 +116,7 @@ public:
             }
         }
 
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] DimensionId dimension() const override { return m_ultraWarm ? DimensionId(-1) : DimensionId(0); }

@@ -33,6 +33,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include <cmath>
 
 using namespace mc;
@@ -81,12 +82,12 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         if (m_inWater) {
-            return fluid::Fluid::getFluidState(1); // Water
+            return &fluid::Fluids::WATER()->defaultState(); // Water
         }
         if (m_inLava) {
-            return fluid::Fluid::getFluidState(2); // Lava
+            return &fluid::Fluids::LAVA()->defaultState(); // Lava
         }
-        return fluid::Fluid::getFluidState(0); // Empty
+        return &fluid::Fluids::EMPTY()->defaultState(); // Empty
     }
 
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override

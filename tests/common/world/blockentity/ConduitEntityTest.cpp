@@ -29,6 +29,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
@@ -640,7 +641,7 @@ public:
             return it->second;
         }
         // 默认返回空流体
-        return fluid::Fluid::getFluidState(fluid::FluidRegistry::EMPTY_ID);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override

@@ -38,6 +38,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "physics/collision/CollisionShape.hpp"
 #include <unordered_map>
@@ -69,7 +70,7 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }

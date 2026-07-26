@@ -179,7 +179,7 @@ public:
                 return fluidState;
             }
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override

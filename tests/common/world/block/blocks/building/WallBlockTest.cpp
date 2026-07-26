@@ -43,6 +43,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
+#include "world/fluid/Fluids.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -93,7 +94,7 @@ public:
                 return fluidState;
             }
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] u64 seed() const override { return m_seed; }

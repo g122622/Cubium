@@ -49,6 +49,7 @@
 #include "common/item/items/food/FoodItem.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -80,7 +81,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         const BlockState* state = getBlockState(x, y, z);
-        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+        return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override

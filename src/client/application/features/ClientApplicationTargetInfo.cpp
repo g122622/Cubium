@@ -28,6 +28,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc::client {
@@ -60,7 +61,8 @@ public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
-        return fluid::Fluid::getFluidState(0);
+        // 射线检测桩：无方块流体处返回空流体默认状态（走 fluidId 路径，EMPTY()->defaultState()）。
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }

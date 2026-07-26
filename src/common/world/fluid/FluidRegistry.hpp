@@ -24,7 +24,6 @@
 #pragma once
 
 #include "Fluid.hpp"
-#include <functional>
 #include <memory>
 
 namespace mc::fluid {
@@ -94,29 +93,9 @@ public:
     [[nodiscard]] Fluid* getFluid(const ResourceLocation& id) const;
 
     /**
-     * @brief 根据状态ID获取流体状态
-     */
-    [[nodiscard]] FluidState* getFluidState(u32 stateId) const;
-
-    /**
      * @brief 获取流体数量
      */
     [[nodiscard]] size_t fluidCount() const { return m_fluids.size(); }
-
-    /**
-     * @brief 获取流体状态数量
-     */
-    [[nodiscard]] size_t fluidStateCount() const { return m_statesById.size(); }
-
-    /**
-     * @brief 遍历所有流体
-     */
-    void forEachFluid(std::function<void(Fluid&)> callback);
-
-    /**
-     * @brief 遍历所有流体状态
-     */
-    void forEachFluidState(std::function<void(const FluidState&)> callback);
 
     // ========== 内置流体ID ==========
 
@@ -145,7 +124,6 @@ private:
     std::vector<std::unique_ptr<Fluid>> m_fluids;
     std::unordered_map<ResourceLocation, Fluid*> m_fluidsById;
     std::unordered_map<u32, Fluid*> m_fluidsByNumericId;
-    std::unordered_map<u32, FluidState*> m_statesById;
 
     bool m_initialized = false;
 

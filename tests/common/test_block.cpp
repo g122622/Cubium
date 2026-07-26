@@ -48,6 +48,7 @@
 #include "../src/common/world/border/WorldBorder.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
 #include "../src/common/world/fluid/FluidRegistry.hpp"
+#include "../src/common/world/fluid/Fluids.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
 #include <atomic>
 #include <memory>
@@ -193,7 +194,7 @@ public:
                 return fluidState;
             }
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }

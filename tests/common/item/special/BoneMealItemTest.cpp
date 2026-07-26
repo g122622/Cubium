@@ -46,6 +46,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <map>
@@ -121,7 +122,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         const BlockState* state = getBlockState(x, y, z);
-        if (state == nullptr) return fluid::Fluid::getFluidState(0);
+        if (state == nullptr) return &fluid::Fluids::EMPTY()->defaultState();
         return state->getFluidState();
     }
 

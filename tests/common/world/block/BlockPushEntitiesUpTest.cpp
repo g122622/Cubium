@@ -50,6 +50,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -95,7 +96,7 @@ public:
         MC_UNUSED(x);
         MC_UNUSED(y);
         MC_UNUSED(z);
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     /// 注入 getEntitiesInAABB 返回的实体列表（测试控制）

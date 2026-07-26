@@ -54,6 +54,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <gmock/gmock.h>
@@ -104,7 +105,7 @@ public:
                 return fs;
             }
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     void setFluidAt(i32 x, i32 y, i32 z, const fluid::FluidState* state)

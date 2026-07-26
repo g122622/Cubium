@@ -22,6 +22,7 @@
  */
 
 #include "FluidRegistry.hpp"
+#include "Fluids.hpp"
 #include "fluids/EmptyFluid.hpp"
 #include "fluids/LavaFluid.hpp"
 #include "fluids/WaterFluid.hpp"
@@ -68,6 +69,12 @@ void FluidRegistry::initialize()
     m_fluids.push_back(std::move(flowingLava));
 
     m_initialized = true;
+
+    // 注册表填充完成后，刷新 Fluids 命名空间下的内置访问器指针缓存
+    // （EMPTY/WATER/...）。把这一步收敛进 initialize()，使得"注册表已初始化"
+    // 与"Fluids::EMPTY() 可用"成为同一个不变量——调用方无需再单独调
+    // Fluids::initialize()，从而避免拿注册表却忘了刷缓存导致访问器返回空指针。
+    Fluids::initialize();
 }
 
 Fluid* FluidRegistry::getFluid(u32 fluidId) const
@@ -82,30 +89,6 @@ Fluid* FluidRegistry::getFluid(const ResourceLocation& id) const
     return it != m_fluidsById.end() ? it->second : nullptr;
 }
 
-FluidState* FluidRegistry::getFluidState(u32 stateId) const
-{
-    auto it = m_statesById.find(stateId);
-    return it != m_statesById.end() ? it->second : nullptr;
-}
-
-void FluidRegistry::forEachFluid(std::function<void(Fluid&)> callback)
-{
-    for (auto& fluid : m_fluids) {
-        callback(*fluid);
-    }
-}
-
-void FluidRegistry::forEachFluidState(std::function<void(const FluidState&)> callback)
-{
-    // 遍历所有流体的所有状态
-    for (const auto& fluid : m_fluids) {
-        const auto& container = fluid->stateContainer();
-        for (size_t i = 0; i < container.stateCount(); ++i) {
-            callback(*container.getStateById(static_cast<u32>(i)));
-        }
-    }
-}
-
 void FluidRegistry::_registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId)
 {
     // 设置流体属性
@@ -115,18 +98,6 @@ void FluidRegistry::_registerFluidInternal(Fluid* fluid, const ResourceLocation&
     // 注册到ID映射
     m_fluidsByNumericId[fluidId] = fluid;
     m_fluidsById[id] = fluid;
-
-    // 注册所有状态
-    if (fluid->m_stateContainer) {
-        auto& container = *fluid->m_stateContainer;
-        for (size_t i = 0; i < container.stateCount(); ++i) {
-            // 注意：StateHolder的stateId在StateContainer创建时已分配
-            // 这里我们需要更新statesById映射
-            const FluidState* state = container.getStateById(static_cast<u32>(i));
-            u32 stateId = state->stateId();
-            m_statesById[stateId] = const_cast<FluidState*>(state);
-        }
-    }
 }
 
 } // namespace mc::fluid

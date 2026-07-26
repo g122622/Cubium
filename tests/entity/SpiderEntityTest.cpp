@@ -38,6 +38,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 #include <memory>
 
@@ -72,7 +73,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         const BlockState* state = getBlockState(x, y, z);
-        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+        return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }

@@ -41,6 +41,7 @@
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "world/fluid/Fluids.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -90,7 +91,7 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }

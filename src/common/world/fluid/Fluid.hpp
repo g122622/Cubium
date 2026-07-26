@@ -27,7 +27,6 @@
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../util/property/StateContainer.hpp"
-#include <functional>
 #include <memory>
 
 namespace mc {
@@ -241,21 +240,6 @@ public:
      * @brief 根据资源位置获取流体
      */
     [[nodiscard]] static Fluid* getFluid(const ResourceLocation& id);
-
-    /**
-     * @brief 根据状态ID获取流体状态
-     */
-    [[nodiscard]] static FluidState* getFluidState(u32 stateId);
-
-    /**
-     * @brief 遍历所有流体
-     */
-    static void forEachFluid(std::function<void(Fluid&)> callback);
-
-    /**
-     * @brief 遍历所有流体状态
-     */
-    static void forEachFluidState(std::function<void(const FluidState&)> callback);
 
     // ========== 流体属性 ==========
 

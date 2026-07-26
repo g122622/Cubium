@@ -39,6 +39,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 using namespace mc;
@@ -96,10 +97,10 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         if (m_inWater) {
-            // 返回水流体状态（使用 FluidRegistry 获取）
-            return fluid::Fluid::getFluidState(fluid::FluidRegistry::WATER_ID);
+            // 返回水流体默认状态（走 fluidId 路径）
+            return &fluid::Fluids::WATER()->defaultState();
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     void playSound(const ResourceLocation& soundEvent,

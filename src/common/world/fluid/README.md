@@ -167,3 +167,9 @@ FluidTags ←── Fluid（标签分类）
 
 **解决方案**：岩浆时序是世界相关的。`ServerWorld::setBlockState()` 和流体 tick 调度要继续使用 `fluid.getTickDelay(*this)`，不要把主世界/下界差异重新硬编码回固定常量。
 
+### 12. 取流体默认状态必须走 fluidId 路径
+
+**问题**：`FluidState::stateId` 在各 Fluid 的 `StateContainer` 内**独立从 0 分配、不全局唯一**。曾经存在的 `Fluid::getFluidState(u32 stateId)` / `FluidRegistry::m_statesById` 按 stateId 反查，后注册流体会覆盖先注册的，`getFluidState(0)` 实际返回 flowing_lava 而非调用者以为的 EMPTY，是陷阱式 API。曾被 `PlayerMovementTest` 等大量测试桩误用，掩盖了"空流体处返回岩浆"的系统性 latent bug。
+
+**解决方案**：取空/水/岩浆默认状态一律走 fluidId 路径：`&Fluids::EMPTY()->defaultState()` / `&Fluids::WATER()->defaultState()` / `&Fluids::LAVA()->defaultState()`。stateId 反查 API（`Fluid::getFluidState(u32)` / `FluidRegistry::getFluidState(u32)` / `m_statesById` / `fluidStateCount()`）已删除，按 stateId 反查会编译失败。
+

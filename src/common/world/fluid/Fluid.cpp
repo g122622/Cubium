@@ -136,21 +136,6 @@ Fluid* Fluid::getFluid(const ResourceLocation& id)
     return FluidRegistry::instance().getFluid(id);
 }
 
-FluidState* Fluid::getFluidState(u32 stateId)
-{
-    return FluidRegistry::instance().getFluidState(stateId);
-}
-
-void Fluid::forEachFluid(std::function<void(Fluid&)> callback)
-{
-    FluidRegistry::instance().forEachFluid(callback);
-}
-
-void Fluid::forEachFluidState(std::function<void(const FluidState&)> callback)
-{
-    FluidRegistry::instance().forEachFluidState(callback);
-}
-
 void Fluid::createFluidState(std::unique_ptr<StateContainer<Fluid, FluidState>> container)
 {
     m_stateContainer = std::move(container);

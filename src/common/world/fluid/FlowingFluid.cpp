@@ -22,8 +22,8 @@
  */
 
 #include "common/world/fluid/FlowingFluid.hpp"
-#include "common/profiler/TraceEvents.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
@@ -494,7 +494,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(
     IWorld& world, const BlockPos& pos, const BlockState* blockState) const
 {
     if (blockState == nullptr) {
-        return *Fluid::getFluidState(FluidRegistry::EMPTY_ID);
+        return emptyFluidState();
     }
 
     i32 maxLevel = 0;
@@ -542,7 +542,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(
     }
 
     i32 nextLevel = maxLevel - getLevelDecrease(world);
-    return nextLevel <= 0 ? *Fluid::getFluidState(FluidRegistry::EMPTY_ID) : getFlowingState(nextLevel, false);
+    return nextLevel <= 0 ? emptyFluidState() : getFlowingState(nextLevel, false);
 }
 
 bool FlowingFluid::canFlow(IWorld& world,

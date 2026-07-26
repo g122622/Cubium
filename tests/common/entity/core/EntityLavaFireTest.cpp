@@ -52,12 +52,9 @@ public:
 
     // 流体覆盖：测试可让世界在某坐标返回指定流体状态，
     // 这样 Entity::updateEnvironmentState()（baseTick 火焰处理之前调用）
-    // 会自然设置 m_inWater/m_inLava，对齐 MC Java 由世界流体驱动环境状态的语义。
-    // 默认 nullptr 表示该坐标无流体。
-    // 注意：不能复用 BaseTestWorld::getFluidState()（它返回 Fluid::getFluidState(0)），
-    // 因为全局流体 stateId 由各 Fluid 的 StateContainer 独立从 0 分配，
-    // m_statesById[0] 会被后续注册的流体覆盖，最终指向岩浆状态而非空流体——
-    // 会使 updateEnvironmentState 误判实体"在岩浆中"。这里直接返回 nullptr 表示无流体。
+    // 会自然设置 m_inWater/m_inLava，由世界流体驱动环境状态的语义。
+    // 默认 nullptr 表示该坐标无流体。直接返回 nullptr 而非 EMPTY 状态，
+    // 使 updateEnvironmentState 视该坐标为无流体。
     void setFluidOverride(const fluid::FluidState* state) { m_fluidOverride = state; }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override

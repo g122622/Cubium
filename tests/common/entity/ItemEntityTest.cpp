@@ -81,10 +81,8 @@ public:
         m_gameEventCount++;
     }
 
-    // 测试世界为纯空气环境（无方块、无流体）。基类 BaseTestWorld::getFluidState
-    // 返回 Fluid::getFluidState(0)，由于流体状态 ID 在各流体 StateContainer 内独立
-    // 从 0 分配、FluidRegistry 按 stateId 覆盖式注册，stateId 0 实际指向流动岩浆，
-    // 会导致落体物品误判为浸入岩浆并被 lavaHurt 销毁。此处显式返回 nullptr 表示无流体。
+    // 测试世界为纯空气环境（无方块、无流体）。显式返回 nullptr 表示无流体，
+    // 避免 updateEnvironmentState 把落体物品误判为浸入岩浆而被 lavaHurt 销毁。
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
 
     [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }

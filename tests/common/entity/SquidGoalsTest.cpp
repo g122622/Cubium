@@ -42,6 +42,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include <vector>
 #include <gtest/gtest.h>
 
@@ -92,13 +93,11 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         if (m_targetFluidWater) {
-            // 注意：不能使用 Fluid::getFluidState(FluidRegistry::WATER_ID)，
-            // 因为该函数按状态 ID 查找，而 WATER_ID 是流体 ID，两者不是同一个命名空间。
-            // 正确方式：通过流体注册表获取水的默认流体状态。
+            // 走 fluidId 路径取水默认状态。
             auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
             return waterFluid != nullptr ? &waterFluid->defaultState() : nullptr;
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override

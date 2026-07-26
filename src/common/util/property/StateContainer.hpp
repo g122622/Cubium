@@ -190,12 +190,6 @@ public:
         return it != m_properties.end() ? it->second : nullptr;
     }
 
-    [[nodiscard]] const State* getStateById(u32 id) const
-    {
-        if (id >= m_states.size()) return nullptr;
-        return m_states[id].get();
-    }
-
     [[nodiscard]] std::string toString() const
     {
         std::ostringstream ss;
@@ -267,10 +261,6 @@ private:
             m_states.push_back(std::move(state));
             stateId++;
         }
-
-        for (const auto& state : m_states) {
-            m_stateIdMap[state->stateId()] = state.get();
-        }
     }
 
     Owner& m_owner;
@@ -279,7 +269,6 @@ private:
     std::vector<std::unique_ptr<State>> m_states;
     std::vector<State*> m_statePointers;
     std::vector<PropertyLayout> m_propertyLayouts;
-    std::unordered_map<u32, State*> m_stateIdMap;
 };
 
 } // namespace mc

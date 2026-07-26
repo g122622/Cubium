@@ -32,6 +32,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/fluid/fluids/EmptyFluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <gtest/gtest.h>
@@ -69,7 +70,7 @@ public:
                 return fluidState;
             }
         }
-        return Fluid::getFluidState(FluidRegistry::EMPTY_ID);
+        return &Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
@@ -242,27 +243,46 @@ TEST(FluidRegistryTest, GetFluidByInvalidResourceLocationReturnsNull)
     EXPECT_EQ(fluid, nullptr);
 }
 
-TEST(FluidRegistryTest, FluidStateCountAfterInitialization)
+// 取内置流体的默认状态必须走 fluidId 路径（Fluids::XXX()->defaultState()）。
+// 历史上存在一个陷阱式 API Fluid::getFluidState(u32 stateId)：stateId 在各 Fluid 的
+// StateContainer 内独立从 0 分配、不全局唯一，按 stateId 反查会错乱（stateId=0 实际指向
+// flowing_lava 而非 EMPTY）。该反查 API 与底层 m_statesById 表已删除，此处回归断言
+// fluidId 路径的正确性：EMPTY/WATER/LAVA 等内置访问器返回的默认状态语义正确。
+TEST(FluidRegistryTest, BuiltinFluidDefaultStatesViaFluidIdPath)
 {
     FluidRegistry& registry = FluidRegistry::instance();
+    // registry.initialize() 现已内含 Fluids::initialize()——注册表就绪即保证
+    // Fluids::EMPTY() 等内置访问器指针缓存可用，调用方无需单独刷缓存。
     registry.initialize();
 
-    // After initialization, fluidStateCount() should return a non-zero value
-    // that matches the actual number of registered fluid states.
-    // The registry registers 5 fluids (empty, water, flowing_water, lava, flowing_lava),
-    // each with at least one state, so the count must be >= 5.
-    size_t stateCount = registry.fluidStateCount();
-    EXPECT_GT(stateCount, 0u);
+    // EMPTY 默认状态：isEmpty() 为 true，owner 是 EmptyFluid。
+    const FluidState& emptyState = Fluids::EMPTY()->defaultState();
+    EXPECT_TRUE(emptyState.isEmpty());
+    EXPECT_EQ(emptyState.getFluid().fluidLocation(), ResourceLocation("minecraft:empty"));
 
-    // fluidStateCount() should equal m_statesById.size(), which we can verify
-    // by checking that getFluidState returns valid pointers for all IDs < stateCount
-    // and nullptr for IDs >= stateCount.
-    for (u32 i = 0; i < static_cast<u32>(stateCount); ++i) {
-        EXPECT_NE(registry.getFluidState(i), nullptr)
-            << "getFluidState(" << i << ") should not be null when i < fluidStateCount()";
-    }
-    EXPECT_EQ(registry.getFluidState(static_cast<u32>(stateCount)), nullptr)
-        << "getFluidState(stateCount) should be null";
+    // WATER 默认状态：是源头、非空、owner 是 water。
+    const FluidState& waterState = Fluids::WATER()->defaultState();
+    EXPECT_FALSE(waterState.isEmpty());
+    EXPECT_TRUE(waterState.isSource());
+    EXPECT_EQ(waterState.getFluid().fluidLocation(), ResourceLocation("minecraft:water"));
+
+    // LAVA 默认状态：是源头、非空、owner 是 lava。
+    const FluidState& lavaState = Fluids::LAVA()->defaultState();
+    EXPECT_FALSE(lavaState.isEmpty());
+    EXPECT_TRUE(lavaState.isSource());
+    EXPECT_EQ(lavaState.getFluid().fluidLocation(), ResourceLocation("minecraft:lava"));
+
+    // FLOWING_WATER / FLOWING_LAVA 默认状态：非源头（流动版本）。
+    EXPECT_FALSE(Fluids::FLOWING_WATER()->defaultState().isSource());
+    EXPECT_FALSE(Fluids::FLOWING_LAVA()->defaultState().isSource());
+
+    // fluidId 与 ResourceLocation 双路径查找必须返回同一流体指针。
+    EXPECT_EQ(registry.getFluid(FluidRegistry::EMPTY_ID), Fluids::EMPTY());
+    EXPECT_EQ(registry.getFluid(FluidRegistry::WATER_ID), Fluids::WATER());
+    EXPECT_EQ(registry.getFluid(FluidRegistry::LAVA_ID), Fluids::LAVA());
+    EXPECT_EQ(registry.getFluid(ResourceLocation("minecraft:empty")), Fluids::EMPTY());
+    EXPECT_EQ(registry.getFluid(ResourceLocation("minecraft:water")), Fluids::WATER());
+    EXPECT_EQ(registry.getFluid(ResourceLocation("minecraft:lava")), Fluids::LAVA());
 }
 
 TEST(FluidRegistryTest, FluidCountAfterInitialization)

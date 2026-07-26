@@ -44,6 +44,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
+#include "world/fluid/Fluids.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -118,7 +119,7 @@ public:
                 return fluidState;
             }
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override

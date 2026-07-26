@@ -47,6 +47,7 @@
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 
@@ -141,7 +142,7 @@ public:
                 return fluidState;
             }
         }
-        return Fluid::getFluidState(0);
+        return &mc::fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override

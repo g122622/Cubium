@@ -29,6 +29,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -66,7 +67,8 @@ public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
-        return fluid::Fluid::getFluidState(0);
+        // 走 fluidId 路径取 EMPTY 流体默认状态（Fluids::EMPTY()->defaultState()）。
+        return fluid::Fluids::EMPTY() != nullptr ? &fluid::Fluids::EMPTY()->defaultState() : nullptr;
     }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }

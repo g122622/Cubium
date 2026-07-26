@@ -36,6 +36,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/effect/EffectType.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -1082,7 +1083,7 @@ public:
         if (it != m_fluidStateMap.end()) {
             return it->second;
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     // --- playEvent: 记录事件 ---

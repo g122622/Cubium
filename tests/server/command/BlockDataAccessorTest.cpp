@@ -30,6 +30,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "server/command/data/DataAccessor.hpp"
 
 using namespace mc;
@@ -50,7 +51,7 @@ public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
     {
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }

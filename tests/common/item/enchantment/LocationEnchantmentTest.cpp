@@ -40,6 +40,7 @@
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 #include <map>
 #include <memory>
@@ -591,7 +592,7 @@ public:
             }
         }
 
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] bool isWaterAt(const BlockPos& pos) const override

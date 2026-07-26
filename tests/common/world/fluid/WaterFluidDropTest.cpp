@@ -44,6 +44,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/fluid/fluids/WaterFluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -125,7 +126,7 @@ public:
                 return fluidState;
             }
         }
-        return fluid::Fluid::getFluidState(fluid::FluidRegistry::EMPTY_ID);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }

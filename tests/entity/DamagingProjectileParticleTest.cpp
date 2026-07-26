@@ -30,6 +30,7 @@
 #include "common/entity/entities/projectile/DamagingProjectileEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -70,9 +71,9 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         if (m_inWater) {
-            return fluid::Fluid::getFluidState(fluid::FluidRegistry::WATER_ID);
+            return &fluid::Fluids::WATER()->defaultState();
         }
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     void addParticle(ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override

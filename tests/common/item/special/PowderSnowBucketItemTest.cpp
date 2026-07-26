@@ -32,6 +32,7 @@
 #include "common/world/block/blocks/cave/PowderSnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 namespace mc {
 using item::PowderSnowBucketItem;
@@ -71,7 +72,7 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
 
     void playSound(const ResourceLocation& soundId, sound::SoundCategory, const Vector3&, f32, f32) override

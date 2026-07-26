@@ -42,6 +42,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 using namespace mc;
@@ -816,7 +817,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         // 返回空流体状态
-        return fluid::Fluid::getFluidState(0);
+        return &fluid::Fluids::EMPTY()->defaultState();
     }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }

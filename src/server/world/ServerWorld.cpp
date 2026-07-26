@@ -72,6 +72,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/FeaturePlacer.hpp"
@@ -1654,7 +1655,8 @@ const fluid::FluidState* ServerWorld::getFluidState(i32 x, i32 y, i32 z) const
 {
     const BlockState* blockState = getBlockState(x, y, z);
     if (blockState == nullptr) {
-        return fluid::Fluid::getFluidState(0);
+        // 无方块处返回空流体默认状态（走 fluidId 路径，EMPTY()->defaultState()）。
+        return fluid::Fluids::EMPTY() != nullptr ? &fluid::Fluids::EMPTY()->defaultState() : nullptr;
     }
     return blockState->getFluidState();
 }
