@@ -15,26 +15,7 @@ description: 运行测试，认领并收敛项目代码中的一个测试错误
 
 ### 运行测试的两种方式
 
-项目已接入 CTest，**优先用 CTest 运行**（支持单用例限时、并行、按名筛选）。完整的测试体系说明见 [docs/TEST.md](../../../docs/TEST.md)，下面是常用命令速查：
-
-```bash
-cd build
-
-# 推荐：通过 CTest 全量运行（Windows 多配置生成器须带 --build-config）
-ctest --build-config RelWithDebInfo --output-on-failure -j8
-
-# 按用例名筛选（正则匹配 TestSuite.TestCase）
-ctest --build-config RelWithDebInfo -R 'ServerChunkManagerTest.GetChunkSync_MultipleChunks' --output-on-failure -V
-
-# 直接运行可执行文件（不经 CTest；遇到第一个失败就停下，适合快速定位）
-./build/bin/RelWithDebInfo/mc_tests --gtest_break_on_failure 2>&1 | tail -70
-```
-
-**单用例限时**：每个 gtest 用例都被 `gtest_discover_tests` 拆成独立 CTest 条目并附 `TIMEOUT`，默认 300 秒（`MC_TEST_TIMEOUT` CACHE 变量，`tests/CMakeLists.txt:2380`）。超时即判失败，用于及早暴露区块生成/光照等长耗时用例的 hang/flake。改超时：`cmake -B build -DMC_TEST_TIMEOUT=120 ...` 重配，或单次 `ctest --timeout 60` 临时覆盖。
-
-> Windows 下 `ctest -N` 列不出用例是正常的（`DISCOVERY_MODE PRE_TEST`，运行期才探测），直接运行即可。详见 [docs/TEST.md](../../../docs/TEST.md)。
-
-测试 target 共 5 个（`mc_tests` / `mc_resource_tests` / `mc_trident_tests` / `mc_command_tests` / `mc_village_tests`），均通过 `mc_register_gtests` 注册到 CTest。
+项目已接入 CTest，**优先用 CTest 运行**（支持单用例限时、并行、按名筛选）。完整的测试体系说明见 [docs/TEST.md](../../../docs/TEST.md)，你必须先阅读这个文件。
 
 ## 任务详细流程
 
@@ -53,22 +34,6 @@ ctest --build-config RelWithDebInfo -R 'ServerChunkManagerTest.GetChunkSync_Mult
 3. 是否闭环、是否完整集成到游戏逻辑当中，没有形成无法被调用的“孤岛代码”
 
 注意本项目基建已经相当完善（代码量已经100w+行），各种常数、常用工具函数、音频系统、粒子系统、资源包系统、命令系统、实体系统、物品系统、物理系统、碰撞、tick调度、存档等都已经有了相当完善的实现(另外world对象上面也挂了相当多的工具方法以便访问世界、操作世界等)，务必充分探索以实现复用，避免重复实现。
-
-## 测试崩溃时查看完整调用栈
-
-`mc_tests` 在 `main` 中安装了 `mc::assert::CrashHandler`（参考 `src/client/main.cpp`、`src/server/main.cpp`），崩溃（SEH 访问违例、除零、栈溢出、纯虚调用、`std::terminate`、`MC_ASSERT_RELEASE` 触发的 `abort`）时输出调用栈和寄存器到 stderr。
-
-但 GoogleTest 默认安装自己的 SEH 处理器（`--gtest_catch_exceptions=1`），会抢先捕获 SEH 并打印 `unknown file: error: SEH exception with code 0x... thrown in the test body.` **不带栈**，CrashHandler 拿不到崩溃现场。要看到完整栈，必须禁用 gtest 的 SEH 捕获，让 CrashHandler 接管：
-
-```bash
-# 禁用 gtest SEH 捕获，崩溃时由 CrashHandler 输出完整调用栈
-./build/bin/RelWithDebInfo/mc_tests --gtest_filter='ServerChunkManagerTest.GetChunkSync_MultipleChunks' --gtest_catch_exceptions=0
-```
-
-- `--gtest_catch_exceptions=0`：关闭 gtest 的 SEH 捕获，SEH 直接传给 CrashHandler。
-- 崩溃时输出 `Reason: ACCESS_VIOLATION - Read/Write access at address 0x...`、寄存器转储、`Stack trace:`（帧序号 + 函数名 + 文件:行号）。
-- 仅 Windows 需要 `--gtest_catch_exceptions=0`（Linux/macOS 用信号处理，gtest 默认不捕获 SIGSEGV）。
-- 配合 `--gtest_filter` 定位到单个用例，栈最干净。`--gtest_break_on_failure` 会让 gtest 抛 `BREAKPOINT`（被 CrashHandler 当作断点，不是原始崩溃点），调试时不要混用。
 
 ## 实现要求
 
