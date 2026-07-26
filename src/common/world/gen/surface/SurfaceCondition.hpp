@@ -26,7 +26,6 @@
 #include "common/world/gen/surface/CaveSurface.hpp"
 #include "common/world/gen/surface/VerticalAnchor.hpp"
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -172,9 +171,12 @@ private:
 /**
  * @brief 噪声阈值条件（MC: NoiseThresholdConditionSource）
  *
- * MC 1.21: 存储噪声名称，原版在 apply(context) 时一次性解析 NormalNoise。
- * 本项目规则树跨线程共享，无法在构造时解析（RandomState 可能尚未就绪），
- * 改用 std::call_once 在首次 compute 时线程安全地解析并缓存 NormalNoise*。
+ * MC 1.21: 存储噪声名称，原版在 apply(context) 时一次性解析 NormalNoise，且 Condition
+ * 生命周期绑定 Context（随 RandomState 一起销毁）。本项目规则树跨 RandomState/线程共享，
+ * 不能在 Condition 上缓存解析后的 NormalNoise*（RandomState 销毁后即悬垂，见下），
+ * 故每次 compute() 通过 ctx.randomState()->getOrCreateNoise() 现解析。布尔结果已由
+ * SurfaceRuleContext::cachedXZ 按 XZ 戳缓存（每列只 compute 一次），解析仅在缓存未命中
+ * 时发生，getOrCreateNoise 内部走 shared_lock 哈希命中快路径，性能无忧。
  * 属 XZ-only 条件（getValue(blockX, 0, blockZ) 不依赖 Y），继承 LazyXZCondition。
  */
 class NoiseThresholdCondition final : public LazyXZCondition {
@@ -191,16 +193,14 @@ private:
     std::string m_noiseName;
     f64 m_minThreshold;
     f64 m_maxThreshold;
-    // 首次 compute 时解析 NormalNoise* 并缓存（共享 const 对象，跨线程只读，需同步）
-    mutable std::once_flag m_resolveOnce;
-    mutable const noise::NormalNoise* m_cachedNoise = nullptr;
 };
 
 /**
  * @brief 垂直梯度条件（MC: VerticalGradientConditionSource）
  *
- * 用于基岩层等（随机梯度过渡），MC 1.21 中存储随机工厂名称。
- * 与 NoiseThresholdCondition 同理用 std::call_once 缓存 PositionalRandomFactory*。
+ * 用于基岩层等（随机梯度过渡），MC 1.21 中存储随机工厂名称。与 NoiseThresholdCondition
+ * 同理：不在共享 Condition 上缓存 PositionalRandomFactory*（会随首个 RandomState 销毁而
+ * 悬垂），每次 compute() 通过 ctx.randomState()->getOrCreateRandomFactory() 现解析。
  * 依赖 blockY（每 Y 步不同），继承 LazyYCondition。
  */
 class VerticalGradientCondition final : public LazyYCondition {
@@ -217,8 +217,6 @@ private:
     std::string m_randomName;
     VerticalAnchor m_trueAtAndBelow;
     VerticalAnchor m_falseAtAndAbove;
-    mutable std::once_flag m_resolveOnce;
-    mutable const math::PositionalRandomFactory* m_cachedFactory = nullptr;
 };
 
 /** 陡峭条件 — XZ-only（MC: SteepMaterialCondition） */

@@ -1399,6 +1399,8 @@ add_executable(mc_tests
     common/world/gen/chunk/SurfaceRuleParityTest.cpp
     # 区块内X轴高度不对称性测试
     common/world/gen/chunk/ChunkXAxisHeightTest.cpp
+    # 表面条件生命周期回归测试（VerticalGradient/NoiseThreshold 跨 RandomState 悬垂 UAF）
+    common/world/gen/SurfaceConditionLifecycleTest.cpp
     # 生成设置单元测试（NoiseSettings, DimensionSettings, FlatLayerInfo, FlatLevelGeneratorSettings等）
     common/world/gen/settings/SettingsTest.cpp
     # spawnTarget 数据流集成测试（NoiseChunk/RandomState/ServerWorld）

@@ -277,3 +277,11 @@ Jigsaw 模板在方块注册前加载会失败。初始化顺序（`MinecraftSer
 ### 13. 区块生成阶段与访问范围
 
 每个 `ChunkStatus` 阶段通过 `ChunkStep` 定义需要访问的邻居区块范围和各距离允许的依赖状态。`FEATURES`、`NOISE` 等阶段使用更大的动态方阵窗口，越界、缺失或请求状态不匹配会在热路径上断言失败。生成代码必须确保在正确的阶段访问正确范围内、正确状态的区块。
+
+### 14. 表面规则树跨 RandomState 共享，Condition 上禁止缓存 RandomState 私有对象
+
+`DimensionSettings::m_surfaceRule` 是一个 `shared_ptr<SurfaceRule>`，由 `NoiseSettingsRegistry` 单例持有，**跨同一维度的所有 RandomState 共享同一棵规则树**（含 `VerticalGradientCondition`/`NoiseThresholdCondition` 等节点）。而 `PositionalRandomFactory`/`NormalNoise` 的所有权在 `RandomState`（`m_randomFactoryCache`/`m_noiseCache`），随 RandomState 销毁而释放。
+
+曾经 `VerticalGradientCondition`/`NoiseThresholdCondition` 用 `std::call_once` 在共享 Condition 节点上缓存 `PositionalRandomFactory*`/`NormalNoise*` 原始指针。首个 RandomState 销毁后该缓存指针即悬垂；下一个 RandomState 复用同一规则树时 `compute()` 解引用已释放内存 → UAF（`ACCESS_VIOLATION`，崩在 `PositionalRandomFactory::at`/`NormalNoise::getValue`）。该 bug 仅在"同维度创建第二个 RandomState"时触发，单区块单 RandomState 用例永远命中不到，极具隐蔽性。
+
+**正确做法（对齐 MC 1.21 `SurfaceRules`）**：Condition 节点上**不缓存**任何 RandomState 私有对象指针，每次 `compute()` 经 `ctx.randomState()->getOrCreate*()` 现解析。布尔结果仍由 `SurfaceRuleContext::cachedXZ/cachedY` 按 XZ/Y 戳缓存（这才是 MC `LazyCondition` 的语义，缓存的是结果而非依赖指针）。回归测试见 `tests/common/world/gen/SurfaceConditionLifecycleTest.cpp`。

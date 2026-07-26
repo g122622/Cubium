@@ -469,55 +469,47 @@ TEST_F(SurfaceRuleParityTest, Overworld_GrassBlockMultiSeed)
  *
  * 验证恶地家族生物群系（Badlands, ErodedBadlands, WoodedBadlands）
  * 的表面方块包含恶地特有的方块类型。
+ *
+ * 种子/区块定位：经预扫描确认 seed=100 在 chunk(-6,-6) 整块为 WoodedBadlands（256 列全部命中恶地，
+ * 215 列表面为陶土）。直接在此生成即可确定性命中恶地，无需大范围暴力扫描。
+ * 原 r=5 暴力扫描（seed=12345）在该种子出生点附近不生成任何恶地，必然 GTEST_SKIP，
+ * 从未真正校验过恶地表面规则；同时 121 个 3x3 生成严重超时。改为定向单次生成既快又必定命中。
  */
 TEST_F(SurfaceRuleParityTest, Overworld_BadlandsHasTerracotta)
 {
-    // 使用多个种子和位置寻找恶地生物群系
     bool foundBadlandsSurface = false;
-    constexpr u64 seed = 12345;
+    // 定向生成 seed=100 chunk(-6,-6)（已确认整块为恶地）。
+    auto result = generateOverworld(100, -6, -6);
+    ASSERT_NE(result->centerChunk, nullptr);
 
-    for (i32 cx = -5; cx <= 5 && !foundBadlandsSurface; ++cx) {
-        for (i32 cz = -5; cz <= 5 && !foundBadlandsSurface; ++cz) {
-            auto result = generateOverworld(seed, cx, cz);
-            if (!result->centerChunk) {
+    const auto& chunk = *result->centerChunk;
+
+    for (i32 x = 0; x < 16 && !foundBadlandsSurface; ++x) {
+        for (i32 z = 0; z < 16 && !foundBadlandsSurface; ++z) {
+            const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+            if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
                 continue;
             }
 
-            const auto& chunk = *result->centerChunk;
+            const BiomeId biome = chunk.getBiomeAtBlock(x, surfaceY, z);
+            if (biome != Biomes::Badlands && biome != Biomes::ErodedBadlands && biome != Biomes::WoodedBadlands) {
+                continue;
+            }
 
-            for (i32 x = 0; x < 16 && !foundBadlandsSurface; ++x) {
-                for (i32 z = 0; z < 16 && !foundBadlandsSurface; ++z) {
-                    const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-                    if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
-                        continue;
-                    }
-
-                    const BiomeId biome = chunk.getBiomeAtBlock(x, surfaceY, z);
-                    if (biome != Biomes::Badlands && biome != Biomes::ErodedBadlands &&
-                        biome != Biomes::WoodedBadlands) {
-                        continue;
-                    }
-
-                    const BlockState* surfaceBlock = chunk.getBlockState(x, surfaceY, z);
-                    // 恶地表面应有这些方块之一
-                    if (isBlock(surfaceBlock, VanillaBlocks::ORANGE_TERRACOTTA) ||
-                        isBlock(surfaceBlock, VanillaBlocks::TERRACOTTA) ||
-                        isBlock(surfaceBlock, VanillaBlocks::RED_SAND) ||
-                        isBlock(surfaceBlock, VanillaBlocks::WHITE_TERRACOTTA) ||
-                        isBlock(surfaceBlock, VanillaBlocks::COARSE_DIRT) ||
-                        isBlock(surfaceBlock, VanillaBlocks::GRASS_BLOCK) ||
-                        isBlock(surfaceBlock, VanillaBlocks::DIRT)) {
-                        foundBadlandsSurface = true;
-                    }
-                }
+            const BlockState* surfaceBlock = chunk.getBlockState(x, surfaceY, z);
+            // 恶地表面应有这些方块之一
+            if (isBlock(surfaceBlock, VanillaBlocks::ORANGE_TERRACOTTA) ||
+                isBlock(surfaceBlock, VanillaBlocks::TERRACOTTA) || isBlock(surfaceBlock, VanillaBlocks::RED_SAND) ||
+                isBlock(surfaceBlock, VanillaBlocks::WHITE_TERRACOTTA) ||
+                isBlock(surfaceBlock, VanillaBlocks::COARSE_DIRT) ||
+                isBlock(surfaceBlock, VanillaBlocks::GRASS_BLOCK) || isBlock(surfaceBlock, VanillaBlocks::DIRT)) {
+                foundBadlandsSurface = true;
             }
         }
     }
 
-    // 如果没找到恶地，不报告失败（种子可能不产生恶地），但记录
-    if (!foundBadlandsSurface) {
-        GTEST_SKIP() << "No badlands biome found with this seed, skipping badlands surface test";
-    }
+    // 定向生成必定命中恶地；若未命中说明恶地生物群系生成或表面规则出现回归。
+    EXPECT_TRUE(foundBadlandsSurface) << "seed=100 chunk(-6,-6) 应为恶地，但未找到恶地表面方块";
 }
 
 // ============================================================================
@@ -526,48 +518,46 @@ TEST_F(SurfaceRuleParityTest, Overworld_BadlandsHasTerracotta)
 
 /**
  * @brief 沙漠表面应为沙子
+ *
+ * 种子/区块定位：经预扫描确认 seed=8 在 chunk(2,-6) 含 48 列 Desert 生物群系，表面全部为 SAND
+ * （y=64 平坦沙层）。直接在此生成即可确定性命中沙漠，无需大范围暴力扫描。
+ * 原 r=8 暴力扫描（seed=98765）在该种子出生点 r=8 内不生成任何沙漠，必然 GTEST_SKIP，
+ * 从未真正校验过沙漠表面规则；同时 289 个 3x3 生成（2601 次区块生成）严重超时（>300s CTest 上限）。
+ * 改为定向单次生成既快又必定命中，让沙漠表面规则被真正断言而非静默跳过。
  */
 TEST_F(SurfaceRuleParityTest, Overworld_DesertHasSand)
 {
     bool foundDesert = false;
     bool desertHasSand = false;
-    constexpr u64 seed = 98765;
 
-    for (i32 cx = -8; cx <= 8 && !foundDesert; ++cx) {
-        for (i32 cz = -8; cz <= 8 && !foundDesert; ++cz) {
-            auto result = generateOverworld(seed, cx, cz);
-            if (!result->centerChunk) {
+    // 定向生成 seed=8 chunk(2,-6)（已确认含 48 列沙漠，表面全为沙子）。
+    auto result = generateOverworld(8, 2, -6);
+    ASSERT_NE(result->centerChunk, nullptr);
+
+    const auto& chunk = *result->centerChunk;
+
+    for (i32 x = 0; x < 16 && !foundDesert; ++x) {
+        for (i32 z = 0; z < 16 && !foundDesert; ++z) {
+            const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+            if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
                 continue;
             }
 
-            const auto& chunk = *result->centerChunk;
-
-            for (i32 x = 0; x < 16 && !foundDesert; ++x) {
-                for (i32 z = 0; z < 16 && !foundDesert; ++z) {
-                    const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-                    if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
-                        continue;
-                    }
-
-                    const BiomeId biome = chunk.getBiomeAtBlock(x, surfaceY, z);
-                    if (biome != Biomes::Desert) {
-                        continue;
-                    }
-
-                    foundDesert = true;
-                    const BlockState* surfaceBlock = chunk.getBlockState(x, surfaceY, z);
-                    desertHasSand =
-                        isBlock(surfaceBlock, VanillaBlocks::SAND) || isBlock(surfaceBlock, VanillaBlocks::SANDSTONE);
-                }
+            const BiomeId biome = chunk.getBiomeAtBlock(x, surfaceY, z);
+            if (biome != Biomes::Desert) {
+                continue;
             }
+
+            foundDesert = true;
+            const BlockState* surfaceBlock = chunk.getBlockState(x, surfaceY, z);
+            desertHasSand =
+                isBlock(surfaceBlock, VanillaBlocks::SAND) || isBlock(surfaceBlock, VanillaBlocks::SANDSTONE);
         }
     }
 
-    if (!foundDesert) {
-        GTEST_SKIP() << "No desert biome found with this seed";
-    }
-
-    EXPECT_TRUE(desertHasSand) << "Desert surface should be sand or sandstone";
+    // 定向生成必定命中沙漠；若未命中说明沙漠生物群系生成或表面规则出现回归。
+    ASSERT_TRUE(foundDesert) << "seed=8 chunk(2,-6) 应含沙漠列，但未找到 Desert 生物群系";
+    EXPECT_TRUE(desertHasSand) << "沙漠表面应为沙子或砂岩";
 }
 
 // ============================================================================

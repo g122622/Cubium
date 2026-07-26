@@ -37,6 +37,9 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+#include <vector>
+
 #include "common/BaseTestServer.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
@@ -274,8 +277,11 @@ TEST_F(TeamCommandTest, EmptyTeam)
 
     EXPECT_EQ(team->getMembers().size(), 3u);
 
-    // 清空队伍
-    for (const auto& member : team->getMembers()) {
+    // 清空队伍。getMembers() 返回内部 std::set 的 const 引用，removePlayerFromTeam 会
+    // erase 当前迭代器，直接对 set 跑 range-for 边删边遍历会解引用已销毁节点 → SEH。
+    // 先把成员名快照到 vector 再逐个移除，对齐 MC Java 的 empty 命令逐个移除语义。
+    const std::vector<std::string> membersToEmpty(team->getMembers().begin(), team->getMembers().end());
+    for (const auto& member : membersToEmpty) {
         scoreboard.removePlayerFromTeam(member, *team);
     }
 

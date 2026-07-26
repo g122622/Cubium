@@ -169,7 +169,9 @@ private:
     const math::PositionalRandomFactory& m_positionalRandom;
 
     /// RandomState 引用，用于噪声名称查找和随机工厂查找（MC 1.21）
-    /// NoiseThresholdCondition/VerticalGradientCondition 通过 call_once 缓存解析后的指针。
+    /// NoiseThresholdCondition/VerticalGradientCondition 每次 compute() 经此现解析
+    /// NormalNoise/PositionalRandomFactory（不缓存指针：规则树跨 RandomState 共享，
+    /// 缓存会随首个 RandomState 销毁而悬垂）。
     world::gen::RandomState* m_randomState;
 
     /// 高度查询回调（用于 steep 条件）

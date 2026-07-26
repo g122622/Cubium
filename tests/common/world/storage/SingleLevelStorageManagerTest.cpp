@@ -1,9 +1,12 @@
 #include "world/storage/SingleLevelStorageManager.hpp"
 #include "core/Types.hpp"
 #include "world/storage/db/SectionKey.hpp"
+#include <chrono>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
+#include <thread>
 #include <gtest/gtest.h>
 
 namespace mc::world::storage {
@@ -19,7 +22,17 @@ protected:
 
     void SetUp() override
     {
-        testDir = std::filesystem::temp_directory_path() / "mc_storage_test" / std::to_string(std::time(nullptr));
+        // CTest 并行（-j8）下，多个用例可能在同一秒启动；testDir 仅用 std::time(nullptr)
+        // （秒级精度）做唯一化会导致同秒用例共享目录、互相覆盖文件而竞态失败。
+        // 这里把测试名 + 线程号 + steady_clock 计数组合进路径，保证并行用例目录互不冲突。
+        // steady_clock 单调递增且精度远高于秒，进程级隔离下每个用例的值都不同。
+        const ::testing::TestInfo* const info = ::testing::UnitTest::GetInstance()->current_test_info();
+        const std::string testSuffix = std::string(info->test_suite_name()) + "_" + std::string(info->name());
+        const auto steadyNs = std::chrono::steady_clock::now().time_since_epoch().count();
+        std::ostringstream threadOss;
+        threadOss << std::this_thread::get_id();
+        testDir = std::filesystem::temp_directory_path() / "mc_storage_test" / testSuffix /
+            (std::to_string(steadyNs) + "_" + threadOss.str());
         std::filesystem::create_directories(testDir);
     }
 

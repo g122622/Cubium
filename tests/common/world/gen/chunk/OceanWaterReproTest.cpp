@@ -27,6 +27,14 @@
 // 在已知会生成海洋群系的种子下，验证海洋列在海平面附近是否确实存在水方块。
 //
 // 如果断言失败（海洋列在海平面处没有水），则证明水域生成问题真实存在。
+//
+// 种子选择：曾经用 114514，但该种子在出生点附近的 5x5 区块范围内不生成任何海洋群系
+// （海洋群系落在大陆性噪声低值区，114514 出生点属内陆），导致 ASSERT_TRUE(foundAnyOcean)
+// 始终失败。注意 114514 时期本测试因 buildSurface 阶段 VerticalGradientCondition 的
+// 跨 RandomState 悬垂 UAF 而崩溃（在海洋检测断言之前），掩盖了“无海洋”这一事实；
+// 该 UAF 已修复（见 SurfaceConditionLifecycleTest），本测试才得以真正运行并暴露种子选错。
+// 现改用 987654321：该种子在出生点 5x5 范围内海洋列充足，且海平面下方水方块 100% 命中，
+// 可稳定验证水域生成不变量。
 // ============================================================================
 
 #include "common/world/WorldConstants.hpp"
@@ -200,7 +208,7 @@ protected:
 };
 
 // ============================================================================
-// 测试 1：种子 114514 在 (0,0) 生成海洋，海洋列必须有水（回归测试）
+// 测试 1：种子 987654321 在出生点 5x5 范围内生成海洋，海洋列必须有水（回归测试）
 //
 // 曾经的 bug：generateBiomes 阶段先创建 NoiseChunk 并缓存，导致 generateNoise 阶段
 // 的 getOrCreateNoiseChunk factory 不执行，含水层（Aquifer）和方块状态规则链
@@ -208,9 +216,9 @@ protected:
 // 修复后：海洋列海平面以下（Y=seaLevel-1 及更低）应有水方块。
 // ============================================================================
 
-TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_Seed114514)
+TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_Seed987654321)
 {
-    const u64 seed = 114514ULL;
+    const u64 seed = 987654321ULL;
     bool foundAnyOcean = false;
     i32 totalOceanColumns = 0;
     i32 totalOceanColumnsWithWater = 0;
@@ -232,11 +240,11 @@ TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_Seed114514)
         }
     }
 
-    std::cout << "[OceanWaterRepro] Seed 114514: totalOceanColumns=" << totalOceanColumns
+    std::cout << "[OceanWaterRepro] Seed 987654321: totalOceanColumns=" << totalOceanColumns
               << " oceanColumnsWithWater=" << totalOceanColumnsWithWater
               << " oceanColumnsWithSurfaceWater=" << totalOceanColumnsWithSurfaceWater << std::endl;
 
-    ASSERT_TRUE(foundAnyOcean) << "在 seed=114514 的 5x5 区块范围内未找到任何海洋群系列，"
+    ASSERT_TRUE(foundAnyOcean) << "在 seed=987654321 的 5x5 区块范围内未找到任何海洋群系列，"
                                   "无法验证水域生成。";
 
     // 核心断言：海洋列在海平面下方（Y=seaLevel-1）应有水方块
@@ -250,9 +258,9 @@ TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_Seed114514)
 // 测试 2：详细诊断——输出海洋列的垂直方块分布
 // ============================================================================
 
-TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_Seed114514)
+TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_Seed987654321)
 {
-    const u64 seed = 114514ULL;
+    const u64 seed = 987654321ULL;
     bool foundOcean = false;
 
     for (ChunkCoord cx = -2; cx <= 2 && !foundOcean; ++cx) {
@@ -288,11 +296,11 @@ TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_Seed114514)
 // 同时验证修复后含水层（Aquifer）已被正确设置且海平面下方有水方块。
 // ============================================================================
 
-TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed114514)
+TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed987654321)
 {
-    const u64 seed = 114514ULL;
+    const u64 seed = 987654321ULL;
 
-    // 生成区块 (-2,-2)（已知包含海洋列，世界 -32,-32 附近）
+    // 生成区块 (-2,-2)（seed 987654321 下该区块含海洋列，世界 -32,-32 附近）
     auto result = generateOverworldTerrain(seed, -2, -2);
     ASSERT_NE(result.centerChunk, nullptr);
     ASSERT_TRUE(result.centerChunk->hasNoiseChunk());

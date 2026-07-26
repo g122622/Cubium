@@ -27,7 +27,6 @@
 #include <algorithm>
 #include <climits>
 #include <limits>
-#include <mutex>
 
 namespace mc::world::gen::surface {
 
@@ -102,20 +101,23 @@ bool BiomeCondition::compute(const SurfaceRuleContext& ctx) const
 
 // ============================================================================
 // NoiseThresholdCondition — MC: NoiseThresholdConditionSource (LazyXZCondition)
-// 首次 compute 时通过 std::call_once 解析 NormalNoise* 并缓存，消除热路径字符串查找。
+// 不缓存 NormalNoise*：规则树跨 RandomState 共享，缓存会随首个 RandomState 销毁而悬垂。
+// 每次 compute 现解析，结果已由 SurfaceRuleContext::cachedXZ 按 XZ 戳缓存。
 // ============================================================================
 
 bool NoiseThresholdCondition::compute(const SurfaceRuleContext& ctx) const
 {
-    std::call_once(
-        m_resolveOnce, [this, &ctx]() { m_cachedNoise = &ctx.randomState()->getOrCreateNoise(m_noiseName); });
-    const f64 value = m_cachedNoise->getValue(static_cast<f64>(ctx.blockX()), 0.0, static_cast<f64>(ctx.blockZ()));
+    const f64 value = ctx.randomState()
+                          ->getOrCreateNoise(m_noiseName)
+                          .getValue(static_cast<f64>(ctx.blockX()), 0.0, static_cast<f64>(ctx.blockZ()));
     return value >= m_minThreshold && value <= m_maxThreshold;
 }
 
 // ============================================================================
 // VerticalGradientCondition — MC: VerticalGradientConditionSource (LazyYCondition)
-// 用于基岩层等（随机梯度过渡）。首次 compute 时缓存 PositionalRandomFactory*。
+// 用于基岩层等（随机梯度过渡）。不缓存 PositionalRandomFactory*（规则树跨 RandomState
+// 共享，缓存会随首个 RandomState 销毁而悬垂 → UAF）。每次 compute 现解析，结果已由
+// SurfaceRuleContext::cachedY 按 Y 戳缓存。
 // ============================================================================
 
 bool VerticalGradientCondition::compute(const SurfaceRuleContext& ctx) const
@@ -131,10 +133,8 @@ bool VerticalGradientCondition::compute(const SurfaceRuleContext& ctx) const
         return false;
     }
 
-    std::call_once(m_resolveOnce,
-        [this, &ctx]() { m_cachedFactory = &ctx.randomState()->getOrCreateRandomFactory(m_randomName); });
     // MC 1.21: 使用 PositionalRandomFactory.at(x, y, z).nextFloat()
-    auto rng = m_cachedFactory->at(ctx.blockX(), blockY, ctx.blockZ());
+    auto rng = ctx.randomState()->getOrCreateRandomFactory(m_randomName).at(ctx.blockX(), blockY, ctx.blockZ());
     const f64 chance = static_cast<f64>(rng->nextFloat());
     const f64 threshold = static_cast<f64>(falseY - blockY) / static_cast<f64>(falseY - trueY);
     return chance < threshold;
