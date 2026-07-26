@@ -338,14 +338,18 @@ void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z)
         HeightmapType::LightBlocking,
     };
 
-    // 重置各 final 槽位为"无方块"哨兵，并标记已初始化
+    // 仅重置目标列（x,z）的各 final 槽位为"无方块"哨兵，并标记已初始化。
+    // 注意：必须只清目标列，不能用 setAll 清全部 256 列——否则连续多次 setBlockState
+    // 改不同列时，后一次会把先前列已算好的高度图擦除（dc56ebc90 引入的回归）。
     for (HeightmapType type : FINAL_TYPES) {
         const size_t typeIndex = static_cast<size_t>(type);
-        m_heightmaps[typeIndex].setAll(Heightmap::NO_BLOCK_SENTINEL);
+        m_heightmaps[typeIndex].setHeight(x, z, Heightmap::NO_BLOCK_SENTINEL);
         m_heightmapInitialized[typeIndex] = true;
     }
 
-    // 自顶向下扫描，每个非空气方块交给各 Heightmap::update（内部 _isOpaque 决定是否计入）
+    // 自顶向下扫描目标列，每个非空气方块交给各 Heightmap::update（内部 _isOpaque 决定是否计入）。
+    // update 仅在 y >= currentHeight 且 _isOpaque 时存 y+1，首次命中即最高方块，后续更低方块被跳过，
+    // 故每种 final 类型都能正确得到该列最高 qualifying 方块的 Y+1。
     for (BlockCoord y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = getBlockState(x, y, z);
         if (!state || state->isAir()) {
