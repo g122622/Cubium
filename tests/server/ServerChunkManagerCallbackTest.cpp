@@ -108,22 +108,50 @@ TEST_F(ServerChunkManagerCallbackTest, SetEntitySpawnCallback)
 
 TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities)
 {
+    // 实体生成回调在 worker 线程执行(无 ServerWorld 模式下,_finalizeGeneratedChunkSync
+    // 行 992 else 分支直接在 worker 线程调 m_entitySpawnCallback)。且 promise->set_value
+    // 在回调之前完成,故 getChunkSync 返回时 worker 可能仍在跑回调。回调内写 receivedEntities
+    // 与主线程读 receivedEntities.empty() 须互斥,否则负载下 worker/主线程抢占拉长 set_value
+    // 与回调间的窗口,主线程读到撕裂的 vector 控制块 → SEH 0xc0000005(实测 -j8 稳定复现)。
+    // 同 fixture 的 MultipleChunksGenerate 用 atomic<int> 不崩,印证根因是测试侧 data race
+    // 非生产 bug(生产 EntitySpawnCallback 契约本就要求调用方提供线程安全回调)。
     std::vector<mc::SpawnedEntityData> receivedEntities;
+    std::mutex receivedMutex;
 
     m_manager->setEntitySpawnCallback(
-        [&receivedEntities](const std::vector<mc::SpawnedEntityData>& entities) { receivedEntities = entities; });
+        [&receivedEntities, &receivedMutex](const std::vector<mc::SpawnedEntityData>& entities) {
+            std::lock_guard<std::mutex> lock(receivedMutex);
+            receivedEntities = entities;
+        });
 
     // 同步生成一个区块（会触发实体生成）
     ChunkData* chunk = m_manager->getChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
-    // 等待处理完成
-    for (int i = 0; i < 100 && receivedEntities.empty(); ++i) {
+    // 持 shared_ptr 保活区块:fixture 未注册 ticket/玩家,(0,0) 默认 level=MaxLevel(46)>Border(34),
+    // shouldLoad()=false。tick() 每 20 次触发 _checkChunkUnloading,生成完成且 isSafeToUnload()=true
+    // 时会 unloadChunkSync→m_chunks.erase,使裸 chunk 悬垂。-j8 负载下 worker 回调慢,主线程 tick
+    // 循环跑满~1s 触发多次卸载判定,erase 后 chunk->x()/chunk->z() 解悬垂 → SEH 0xc0000005。
+    // 生产契约要求调用方持票(ticket/forceChunk)保活裸指针;测试用 tryToGetChunkSharedInMem 拿
+    // shared_ptr 等价保活,不依赖 ticket。内存引用计数保护与 mutex 互斥各自独立解决两类问题。
+    std::shared_ptr<ChunkData> chunkRef = m_manager->tryToGetChunkSharedInMem(0, 0);
+    ASSERT_NE(chunkRef, nullptr);
+
+    // 等待回调完成(互斥读取 receivedEntities,避免与 worker 回调竞争)
+    for (int i = 0; i < 100; ++i) {
+        bool done = false;
+        {
+            std::lock_guard<std::mutex> lock(receivedMutex);
+            done = !receivedEntities.empty();
+        }
+        if (done) {
+            break;
+        }
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    // 验证区块已生成
+    // 验证区块已生成(shared_ptr 保活,chunk 不会因 tick 卸载悬垂)
     EXPECT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
