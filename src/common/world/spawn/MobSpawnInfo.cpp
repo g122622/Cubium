@@ -340,10 +340,11 @@ MobSpawnInfo MobSpawnInfo::createDeepLukewarmOcean()
     info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
 
-    // 水生生物：squid + dolphin（深水版本 squid 权重 8、minCount 4）
+    // 水生生物：squid + dolphin + nautilus（1.21.11 与浅水版本共享 nautilus 条目）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 8, 1, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
 
     // 水生环境生物：cod + pufferfish + tropical_fish（深水版本 cod 权重 8）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
@@ -383,10 +384,9 @@ MobSpawnInfo MobSpawnInfo::createColdOcean()
     info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
 
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
+    // 水生生物：squid + nautilus（1.21.11 cold_ocean 无 dolphin，仅 squid + nautilus）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 2, 1, 1));
 
     // 水生环境生物：cod + salmon（原版归 WaterAmbient）
@@ -476,10 +476,11 @@ MobSpawnInfo MobSpawnInfo::createDeepOcean()
     info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
 
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
+    // 水生生物：squid + dolphin + nautilus（1.21.11 deep_ocean 与 ocean 生成表完全一致）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 1, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
 
     // 水生环境生物：cod（原版归 WaterAmbient）
     info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);

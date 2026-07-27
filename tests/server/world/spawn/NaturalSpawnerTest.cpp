@@ -452,7 +452,7 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_SoulSandValley_SpawnCosts)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244234_c(false)（浅水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244234_c(false)（浅水版本）
     auto info = world::spawn::MobSpawnInfo::createOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
@@ -469,9 +469,9 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
     }
     EXPECT_TRUE(hasDrowned);
 
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
-    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
-    bool hasSquid = false, hasDolphin = false;
+    // 水生生物：squid + dolphin + nautilus（1.21.11 原版归 WaterCreature）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 3u);
+    bool hasSquid = false, hasDolphin = false, hasNautilus = false;
     for (const auto& entry : info.getWaterCreatureSpawns()) {
         if (entry.entityTypeId == "minecraft:squid") {
             hasSquid = true;
@@ -485,9 +485,16 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
             EXPECT_EQ(entry.minCount, 1);
             EXPECT_EQ(entry.maxCount, 2);
         }
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
     }
     EXPECT_TRUE(hasSquid);
     EXPECT_TRUE(hasDolphin);
+    EXPECT_TRUE(hasNautilus);
 
     // 水生环境生物：cod（原版归 WaterAmbient，非 WaterCreature）
     ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
@@ -499,16 +506,16 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_Ocean)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_LukewarmOcean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244237_d(false)（浅水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244237_d(false)（浅水版本）
     auto info = world::spawn::MobSpawnInfo::createLukewarmOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
     // 怪物：8 条标准陆地怪物 + drowned
     EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
 
-    // 水生生物：squid(10,1,2) + dolphin(2,1,2)（原版归 WaterCreature）
-    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
-    bool hasSquid = false, hasDolphin = false;
+    // 水生生物：squid(10,1,2) + dolphin(2,1,2) + nautilus(5,1,1)（1.21.11 原版归 WaterCreature）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 3u);
+    bool hasSquid = false, hasDolphin = false, hasNautilus = false;
     for (const auto& entry : info.getWaterCreatureSpawns()) {
         if (entry.entityTypeId == "minecraft:squid") {
             hasSquid = true;
@@ -520,9 +527,16 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_LukewarmOcean)
             hasDolphin = true;
             EXPECT_EQ(entry.weight, 2);
         }
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
     }
     EXPECT_TRUE(hasSquid);
     EXPECT_TRUE(hasDolphin);
+    EXPECT_TRUE(hasNautilus);
 
     // 水生环境生物：cod(15,3,6) + pufferfish(5,1,3) + tropical_fish(25,8,8)
     EXPECT_EQ(info.getWaterAmbientSpawns().size(), 3u);
@@ -548,18 +562,24 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_LukewarmOcean)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepLukewarmOcean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244237_d(true)（深水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244237_d(true)（深水版本）
     auto info = world::spawn::MobSpawnInfo::createDeepLukewarmOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
     // 与浅水版本差异：squid 权重 8（非 10）、minCount 4（非 2）；cod 权重 8（非 15）
-    bool hasSquid = false, hasCod = false;
+    bool hasSquid = false, hasCod = false, hasNautilus = false;
     for (const auto& entry : info.getWaterCreatureSpawns()) {
         if (entry.entityTypeId == "minecraft:squid") {
             hasSquid = true;
             EXPECT_EQ(entry.weight, 8);
             EXPECT_EQ(entry.minCount, 1);
             EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
         }
     }
     for (const auto& entry : info.getWaterAmbientSpawns()) {
@@ -572,25 +592,26 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepLukewarmOcean)
     }
     EXPECT_TRUE(hasSquid);
     EXPECT_TRUE(hasCod);
+    EXPECT_TRUE(hasNautilus);
 
     // 其余条目与浅水版本相同
     EXPECT_EQ(info.getMonsterSpawns().size(), 9u);       // 8 标准怪物 + drowned
-    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u); // squid + dolphin
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 3u); // squid + dolphin + nautilus
     EXPECT_EQ(info.getWaterAmbientSpawns().size(), 3u);  // cod + pufferfish + tropical_fish
 }
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_ColdOcean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244230_b(false)（浅水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244230_b(false)（浅水版本）
     auto info = world::spawn::MobSpawnInfo::createColdOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
     // 怪物：8 条标准陆地怪物 + drowned
     EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
 
-    // 水生生物：squid(3,1,4) + dolphin(2,1,2)
+    // 水生生物：squid(3,1,4) + nautilus(2,1,1)（1.21.11 无 dolphin）
     EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
-    bool hasSquid = false;
+    bool hasSquid = false, hasNautilus = false;
     for (const auto& entry : info.getWaterCreatureSpawns()) {
         if (entry.entityTypeId == "minecraft:squid") {
             hasSquid = true;
@@ -598,8 +619,15 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_ColdOcean)
             EXPECT_EQ(entry.minCount, 1);
             EXPECT_EQ(entry.maxCount, 4);
         }
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 2);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
     }
     EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasNautilus);
 
     // 水生环境生物：cod(15,3,6) + salmon(15,1,5)
     EXPECT_EQ(info.getWaterAmbientSpawns().size(), 2u);
@@ -622,17 +650,32 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_ColdOcean)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_FrozenOcean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244239_e(false)（浅水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244239_e(false)（浅水版本）
     auto info = world::spawn::MobSpawnInfo::createFrozenOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
     // 怪物：8 条标准陆地怪物 + drowned
     EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
 
-    // 水生生物：仅 squid(1,1,4)（无 dolphin）
-    ASSERT_EQ(info.getWaterCreatureSpawns().size(), 1u);
-    EXPECT_EQ(info.getWaterCreatureSpawns()[0].entityTypeId, "minecraft:squid");
-    EXPECT_EQ(info.getWaterCreatureSpawns()[0].weight, 1);
+    // 水生生物：squid + nautilus（1.21.11 无 dolphin）
+    ASSERT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    bool hasSquid = false, hasNautilus = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:squid") {
+            hasSquid = true;
+            EXPECT_EQ(entry.weight, 1);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 4);
+        }
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 2);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
+    }
+    EXPECT_TRUE(hasSquid);
+    EXPECT_TRUE(hasNautilus);
 
     // 水生环境生物：仅 salmon(15,1,5)（无 cod、无 tropical_fish、无 pufferfish）
     ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
@@ -653,7 +696,7 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_FrozenOcean)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepOcean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244234_c(true)（深水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244234_c(true)（深水版本）
     //   spawn list 与普通 Ocean 完全一致
     auto info = world::spawn::MobSpawnInfo::createDeepOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
@@ -661,8 +704,18 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepOcean)
     // 怪物：8 条标准陆地怪物 + drowned
     EXPECT_EQ(info.getMonsterSpawns().size(), 9u);
 
-    // 水生生物：squid + dolphin（与 Ocean 一致）
-    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
+    // 水生生物：squid + dolphin + nautilus（与 Ocean 一致）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 3u);
+    bool hasNautilus = false;
+    for (const auto& entry : info.getWaterCreatureSpawns()) {
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
+    }
+    EXPECT_TRUE(hasNautilus);
 
     // 水生环境生物：cod（与 Ocean 一致）
     ASSERT_EQ(info.getWaterAmbientSpawns().size(), 1u);
@@ -677,7 +730,7 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_DeepOcean)
 
 TEST_F(NaturalSpawnerTest, MobSpawnInfo_WarmOcean)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244249_o()（warmOcean 浅水版本）
+    // 对应 MC 1.21.11 BiomeMaker.func_244249_o()（warmOcean 浅水版本）
     auto info = world::spawn::MobSpawnInfo::createWarmOcean();
     EXPECT_FLOAT_EQ(info.getCreatureSpawnProbability(), 0.1f);
 
@@ -717,9 +770,9 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_WarmOcean)
     EXPECT_EQ(info.getAmbientSpawns()[0].minCount, 8);
     EXPECT_EQ(info.getAmbientSpawns()[0].maxCount, 8);
 
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
-    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 2u);
-    bool hasSquid = false, hasDolphin = false;
+    // 水生生物：squid + dolphin + nautilus（1.21.11 原版归 WaterCreature）
+    EXPECT_EQ(info.getWaterCreatureSpawns().size(), 3u);
+    bool hasSquid = false, hasDolphin = false, hasNautilus = false;
     for (const auto& entry : info.getWaterCreatureSpawns()) {
         if (entry.entityTypeId == "minecraft:squid") {
             hasSquid = true;
@@ -733,9 +786,16 @@ TEST_F(NaturalSpawnerTest, MobSpawnInfo_WarmOcean)
             EXPECT_EQ(entry.minCount, 1);
             EXPECT_EQ(entry.maxCount, 2);
         }
+        if (entry.entityTypeId == "minecraft:nautilus") {
+            hasNautilus = true;
+            EXPECT_EQ(entry.weight, 5);
+            EXPECT_EQ(entry.minCount, 1);
+            EXPECT_EQ(entry.maxCount, 1);
+        }
     }
     EXPECT_TRUE(hasSquid);
     EXPECT_TRUE(hasDolphin);
+    EXPECT_TRUE(hasNautilus);
 
     // 水生环境生物：pufferfish + tropical_fish（原版归 WaterAmbient）
     EXPECT_EQ(info.getWaterAmbientSpawns().size(), 2u);

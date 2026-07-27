@@ -32,7 +32,15 @@ using namespace mc::world::gen::structure;
 // StructureSetRegistry::findByStructure 测试
 // ============================================================================
 
-TEST(StructureSetRegistryTest, FindByStructure_KnownStructures)
+// 注册表是 Meyers 单例,默认空,需显式 initialize() 填充原版 20 个结构集;
+// 否则 findByStructure 一律返回 nullptr。用例间 clear() 避免相互污染。
+class StructureSetRegistryTest : public ::testing::Test {
+protected:
+    void SetUp() override { StructureSetRegistry::instance().initialize(); }
+    void TearDown() override { StructureSetRegistry::instance().clear(); }
+};
+
+TEST_F(StructureSetRegistryTest, FindByStructure_KnownStructures)
 {
     auto& registry = StructureSetRegistry::instance();
 
@@ -62,7 +70,7 @@ TEST(StructureSetRegistryTest, FindByStructure_KnownStructures)
     EXPECT_EQ(fortress->id().toString(), "minecraft:nether_complexes");
 }
 
-TEST(StructureSetRegistryTest, FindByStructure_UnknownStructure)
+TEST_F(StructureSetRegistryTest, FindByStructure_UnknownStructure)
 {
     auto& registry = StructureSetRegistry::instance();
 
@@ -71,7 +79,7 @@ TEST(StructureSetRegistryTest, FindByStructure_UnknownStructure)
     EXPECT_EQ(unknown, nullptr);
 }
 
-TEST(StructureSetRegistryTest, FindByStructure_MultiEntrySet)
+TEST_F(StructureSetRegistryTest, FindByStructure_MultiEntrySet)
 {
     auto& registry = StructureSetRegistry::instance();
 
@@ -90,7 +98,7 @@ TEST(StructureSetRegistryTest, FindByStructure_MultiEntrySet)
     EXPECT_EQ(villagePlains->id().toString(), "minecraft:villages");
 }
 
-TEST(StructureSetRegistryTest, FindByStructure_PlacementTypes)
+TEST_F(StructureSetRegistryTest, FindByStructure_PlacementTypes)
 {
     auto& registry = StructureSetRegistry::instance();
 
