@@ -259,8 +259,15 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
 
     auto future = m_manager->getChunkAsync(0, 0, &ChunkStatuses::FULL);
 
-    // 等待完成
-    auto status = future.wait_for(std::chrono::seconds(10));
+    // getChunkAsync 仅入队异步存档加载请求；完成回调由 ServerCompute 线程入队到
+    // m_pendingLoadCompletes,需主线程 tick() 出队(_drainPendingLoadCompletes→_onChunkLoadComplete
+    // →调度生成→worker 完成→_drainPendingPostProcess→fulfill promise)。生产环境由服务端主循环
+    // 每 tick 驱动;此处等待期间持续 tick() 推进管线,对齐生产契约。否则 future 永不 ready。
+    auto status = std::future_status::timeout;
+    for (int i = 0; i < 1000 && status == std::future_status::timeout; ++i) {
+        m_manager->tick();
+        status = future.wait_for(std::chrono::milliseconds(10));
+    }
     EXPECT_NE(status, std::future_status::timeout);
 
     ChunkData* chunk = future.get();
@@ -290,8 +297,11 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
         },
         &ChunkStatuses::FULL);
 
-    // 等待完成
+    // getChunkAsync 回调重载与 future 重载同路径:完成回调由 worker 线程经主线程
+    // _drainPendingPostProcess 触发(_completeReadyWaiters→_fulfillWaiters)。生产环境由
+    // 服务端主循环 tick 驱动;此处轮询期间持续 tick() 推进管线,对齐生产契约。
     for (int i = 0; i < 200 && !completed; ++i) {
+        m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
@@ -334,6 +344,13 @@ TEST_F(ServerChunkManagerTest, UnloadChunk)
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
     m_manager->unloadChunkSync(0, 0);
+    // getChunkSync 生成的区块是脏块(m_dirty=true),unloadChunkSync 走异步存档保存路径
+    // (saveChunkAsyncCallback 后 early-return),实际 m_chunks.erase 推迟到 stage3
+    // _finalizeUnloadAfterSave,由主线程 tick() 的 _drainPendingUnloadFinishes 出队完成。
+    // 生产环境由服务端主循环 tick 驱动;此处 tick() 推进 stage3 收尾,对齐生产契约。
+    for (int i = 0; i < 100 && m_manager->hasChunkInMem(0, 0); ++i) {
+        m_manager->tick();
+    }
     EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
 }
 
