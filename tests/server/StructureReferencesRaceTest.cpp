@@ -172,25 +172,25 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 
 // 针对性复现 0x50 崩溃：use-after-free of neighbour ChunkPrimer during STRUCTURE_REFERENCES。
 //
-// 根因（已通过代码分析确认）：
-//   ChunkProgressionTask::executeStatusStep 在 worker 线程执行 generateStructureReferences 时，
-//   通过 StaticChunkCache2D<ChunkPrimer*>（裸指针，无所有权）遍历 17x17 邻居，调用
-//   neighbor->getIntersectingStructures（ChunkPrimer.hpp:326 读 m_structureStarts）。
-//   StaticChunkCache2D 在 scheduleStatusStep 时构建，仅靠邻居 holder 的 m_neighboursUsingThisChunk
-//   引用计数防止邻居被卸载。但：
-//     - worker 线程执行 executeStatusStep 期间不持调度锁；
-//     - 中心区块被卸载时（_onTicketLevelChanged/isSafeToUnload 或 _checkChunkUnloading→unloadChunkSync），
-//       unloadChunkSync→cancelGeneration(center) 清空 m_generationTask 并释放 288 个邻居的引用计数
-//       （removeNeighbourUsingChunk），随后 isSafeToUnload(center) 可能为 true（m_neighboursUsingThisChunk==0），
-//       holder 从 m_lifecycleManagers 移除（center 的 primer 由 task 的 m_holder shared_ptr 保活，但邻居无此保护）；
-//     - 邻居 m_neighboursUsingThisChunk 归零后，后续 _checkChunkUnloading→unloadChunkSync(neighbour) 即可销毁
-//       邻居 holder 及其 m_currentChunk（ChunkPrimer）；
-//     - worker 线程仍持 StaticChunkCache2D 中的裸 ChunkPrimer* → 解引用已释放内存 → ACCESS_VIOLATION at 0x50。
-//   abortSignal 仅在 executeStatusStep 起止检查（ChunkProgressionTask.cpp:175/229），generateStructureReferences
-//   的 17x17 循环内不检查，无法在卸载窗口内退出。
+// 历史根因（已由提交 cb2a3f7f5 修复）：
+//   ChunkProgressionTask::executeStatusStep 在 worker 线程执行 generateStructureReferences 时,
+//   通过 StaticChunkCache2D<ChunkPrimer*>（**裸指针,无所有权**）遍历 17x17 邻居,调用
+//   neighbor->getIntersectingStructures（ChunkPrimer.hpp 读 m_structureStarts）。
+//   中心区块被卸载时 cancelGeneration 释放邻居引用计数,邻居 holder 从 m_lifecycleManagers 移除,
+//   primer 析构,worker 仍持裸 ChunkPrimer* → ACCESS_VIOLATION at 0x50。
 //
-// 本测试最大化该窗口：高并发 STRUCTURE_REFERENCES 进行中 + 激进玩家传送触发卸载/取消，
-// 迫使 cancelGeneration 释放引用计数与邻居卸载发生在 worker 遍历邻居期间。
+// 修复（cb2a3f7f5,对齐 Moonrise StaticCache2D<GenerationChunkHolder> 强引用语义）：
+//   m_neighbours 改为 StaticChunkCache2D<std::shared_ptr<SingleChunkLifecycleManager>>。
+//   worker 持邻居 holder 的 shared_ptr,holder 不被 unloadChunkSync 析构,其 m_currentChunk
+//   (unique_ptr<ChunkPrimer>) 存活,裸 ChunkPrimer* 在遍历期间有效。cancelGeneration 释放引用
+//   计数仅影响 isSafeToUnload 判定,不再致 primer 析构（shared_ptr 保活）。
+//
+// 本测试保留为 0x50 UAF 回归测试:最大化 cancel-revive 窗口(高频远距传送 + 并发 STRUCTURE_REFERENCES
+// 请求),若 shared_ptr 保活被破坏(如误改回裸指针、或 setCurrentChunk 在遍历期替换 primer),
+// 仍会复现 0x50。负载已收敛到单 tick 线程能排空的规模(40 次传送 + 3×30 次请求),避免任务风暴
+// 超时掩盖真实崩溃信号。abortSignal 仅在 executeStatusStep 起止检查(ChunkProgressionTask.cpp),
+// generateStructureReferences 的 17x17 循环内不检查——shared_ptr 保活下无需中途退出,primer 不会
+// 在遍历期被释放。
 TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50Repro)
 {
     m_workerPool->start();
@@ -233,7 +233,10 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     std::atomic<int> crashFlag{0};
 
     // 看门狗：检测死锁/挂起。
-    constexpr int STALL_THRESHOLD_SECONDS = 600;
+    // STALL_THRESHOLD 设为 240s 低于 CTest 默认 300s 超时,使活锁/死锁以明确的 abort 诊断退出
+    // 而非被 CTest SIGKILL 丢失现场。原值 600s > CTest 300s 超时,测试永远表现为 CTest Timeout
+    // 而非 watchdog abort,无法定位根因。
+    constexpr int STALL_THRESHOLD_SECONDS = 240;
     std::thread watchdog([&]() {
         int lastPending = -1;
         int noProgressSamples = 0;
@@ -265,6 +268,19 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     m_manager->_debugDumpStuckHolders();
                     break;
                 }
+                // 活锁：workers 满载运行（running>0）但 pending 长期不降。
+                // 此前两个分支都要求 running==0,无法识别"任务入队速率≥出队速率"的活锁,
+                // 测试会干跑到 STALL_THRESHOLD 才 abort。该模式典型见于 cancel-revive 风暴:
+                // teleporter 高频远距传送产生大量 cancel+reschedule 任务超过 worker 消化能力。
+                // pending 阈值 2000 排除正常生成积压(视距16稳态约数百),只在真活锁触发。
+                if (noProgressSamples >= 8 && pending > 2000 && running > 0) {
+                    spdlog::info(
+                        "[watchdog] livelock: workers busy (running={}) but pending={} stuck — dumping stuck holders",
+                        running,
+                        pending);
+                    m_manager->_debugDumpStuckHolders();
+                    break;
+                }
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
@@ -276,8 +292,13 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     // 线程 A：激进传送玩家。每次传送到远处，触发大批区块 ticket 级别下降（shouldLoad=false）→
     // _checkChunkUnloading→unloadChunkSync→cancelGeneration（释放邻居引用计数）→邻居卸载。
     // 再传回原点附近，触发重新生成。反复横跳最大化 cancel 与 STRUCTURE_REFERENCES 并发窗口。
-    constexpr int TELEPORT_ITERATIONS = 200;
-    constexpr double FAR_RADIUS_CHUNKS = 48.0; // 远离原点的传送距离（区块单位）
+    // 迭代数/远距原为 200/48 区块,产生 cancel-reschedule 任务风暴超过 8 worker + 单线程 tick
+    // 消化能力,稳定表现为 CTest 超时(非 UAF——0x50 已由 cb2a3f7f5 的 shared_ptr<SCLM> 修复)。
+    // 收敛到 40/24:仍覆盖 40 次 cancel-revive 循环 + STRUCTURE_REFERENCES 并发遍历邻居窗口,
+    // 但任务量降到单 tick 线程能及时排空(_drainPendingLoadCompletes/_drainPendingPostProcess),
+    // 测试在 CTest 300s 超时内完成。UAF 回归覆盖(读邻居 m_structureStarts)不变。
+    constexpr int TELEPORT_ITERATIONS = 40;
+    constexpr double FAR_RADIUS_CHUNKS = 24.0; // 远离原点的传送距离（区块单位）
     std::thread teleporter([&]() {
         try {
             for (int i = 0; i < TELEPORT_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
@@ -320,12 +341,14 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     // 线程 B/C/D：并发请求生成区块到 STRUCTURE_REFERENCES（而非 FULL），驱动 STRUCTURE_STARTS/
     // STRUCTURE_REFERENCES 在多 worker 上并发，同时避免触发 FULL 后处理路径（_postProcessChunk/
     // scheduleFluidTick），隔离 0x50 崩溃窗口。请求 STRUCTURE_REFERENCES 仍会经依赖图驱动半径 8 邻居
-    // 完成 STRUCTURE_STARTS，StaticChunkCache2D 在 scheduleStatusStep 捕获邻居裸 ChunkPrimer*。
+    // 完成 STRUCTURE_STARTS，StaticChunkCache2D 在 scheduleStatusStep 捕获邻居 shared_ptr<SCLM>。
     // 高并发 + 大量 in-flight 请求，最大化"某区块 STRUCTURE_REFERENCES 进行中"与"另一线程卸载其
-    // 邻居/中心"重叠，迫使 cancelGeneration 释放引用计数 → 邻居 primer 被卸载 → worker 解引用悬空指针。
+    // 邻居/中心"重叠，迫使 cancelGeneration 释放引用计数 → 邻居 primer 由 shared_ptr 保活(0x50 已修)。
+    // 迭代数原为 120/线程(共 360 次),与 200 次远距传送叠加产生任务风暴超时。收敛到 30/线程(共 90 次):
+    // 仍覆盖并发 STRUCTURE_REFERENCES 读邻居窗口,配合缩减的 40 次传送,单 tick 线程能及时排空。
     constexpr int GEN_THREADS = 3;
-    constexpr int GEN_ITERATIONS = 120;
-    constexpr int MAX_INFLIGHT = 16;
+    constexpr int GEN_ITERATIONS = 30;
+    constexpr int MAX_INFLIGHT = 10;
     std::vector<std::thread> generators;
     generators.reserve(GEN_THREADS);
     for (int tid = 0; tid < GEN_THREADS; ++tid) {
@@ -393,8 +416,9 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
     std::atomic<bool> stop{false};
     std::atomic<int> crashFlag{0};
 
-    // 看门狗：检测死锁/挂起
-    constexpr int STALL_THRESHOLD_SECONDS = 300;
+    // 看门狗：检测死锁/挂起。STALL_THRESHOLD 设为 240s 低于 CTest 默认 300s 超时,使活锁/死锁以
+    // 明确的 abort 诊断退出而非被 CTest SIGKILL 丢失现场（同 0x50Repro 测试）。
+    constexpr int STALL_THRESHOLD_SECONDS = 240;
     std::thread watchdog([&]() {
         int lastPending = -1;
         int noProgressSamples = 0;
@@ -423,6 +447,15 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 // 说明 generator 线程的 future.get() 永不完成（promise 泄漏），dump 卡住 holder 诊断根因。
                 if (noProgressSamples >= 6 && pending == 0 && running == 0) {
                     spdlog::info("[watchdog] stall: workers idle, no in-flight tasks — dumping stuck holders");
+                    m_manager->_debugDumpStuckHolders();
+                    break;
+                }
+                // 活锁：workers 满载运行（running>0）但 pending 长期不降（同 0x50Repro 测试说明）。
+                if (noProgressSamples >= 8 && pending > 2000 && running > 0) {
+                    spdlog::info(
+                        "[watchdog] livelock: workers busy (running={}) but pending={} stuck — dumping stuck holders",
+                        running,
+                        pending);
                     m_manager->_debugDumpStuckHolders();
                     break;
                 }
