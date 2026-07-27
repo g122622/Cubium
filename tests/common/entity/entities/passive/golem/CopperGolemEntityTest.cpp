@@ -245,11 +245,15 @@ TEST_F(CopperGolemEntityTest, IsShearable_FalseWhenAntennaSlotEmpty)
 
 TEST_F(CopperGolemEntityTest, IsShearable_TrueWhenAntennaSlotHasPoppy)
 {
-    // 装备罂粟花到天线槽后可剪切
-    ItemTags::initialize();
+    // 初始化顺序必须对齐生产(MinecraftServer::initializeRegistries / ClientApplicationBootstrap):
+    // VanillaBlocks → Items → BlockItemRegistry → ItemTags。ItemTags::initialize 内部会从
+    // ItemRegistry 取 poppy 指针快照加入 SHEARABLE_FROM_COPPER_GOLEM 标签(ItemTags.cpp:1016),
+    // 若早于 Items::initialize 调用,getItem 返回 nullptr,add 静默丢弃(ItemTag.cpp:41),
+    // 标签永久为空且 s_initialized 幂等锁死,isShearable 必返回 false。原顺序写反致本用例失败。
     VanillaBlocks::initialize();
     Items::initialize();
     BlockItemRegistry::instance().initializeVanillaBlockItems();
+    ItemTags::initialize();
 
     ASSERT_NE(Items::POPPY, nullptr);
     golem_->setEquipment(CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA, ItemStack(Items::POPPY, 1));
@@ -258,10 +262,11 @@ TEST_F(CopperGolemEntityTest, IsShearable_TrueWhenAntennaSlotHasPoppy)
 
 TEST_F(CopperGolemEntityTest, Shear_PlaysShearSoundAndDropsAntenna)
 {
-    ItemTags::initialize();
+    // 同 IsShearable_TrueWhenAntennaSlotHasPoppy:ItemTags 必须在 Items 之后初始化。
     VanillaBlocks::initialize();
     Items::initialize();
     BlockItemRegistry::instance().initializeVanillaBlockItems();
+    ItemTags::initialize();
 
     CopperGolemTestWorld world;
     golem_->setWorld(&world);
