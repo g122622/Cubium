@@ -221,63 +221,78 @@ bool UniversalWorkerPool::canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, 
 
 bool UniversalWorkerPool::cancel(u64 taskId)
 {
-    std::lock_guard<std::mutex> lock(m_queueMutex);
-
-    // 遍历队列查找任务
-    std::vector<std::shared_ptr<InternalTask>> temp;
     bool found = false;
+    std::vector<std::shared_ptr<InternalTask>> temp;
 
-    while (!m_taskQueue.empty()) {
-        auto task = m_taskQueue.top();
-        m_taskQueue.pop();
+    {
+        std::lock_guard<std::mutex> lock(m_queueMutex);
 
-        if (task && task->id == taskId) {
-            // 找到任务，设置取消标志
-            if (task->abortSignal) {
-                task->abortSignal->store(true, std::memory_order::release);
+        // 遍历队列查找任务
+        while (!m_taskQueue.empty()) {
+            auto task = m_taskQueue.top();
+            m_taskQueue.pop();
+
+            if (task && task->id == taskId) {
+                // 找到任务，设置取消标志
+                if (task->abortSignal) {
+                    task->abortSignal->store(true, std::memory_order::release);
+                }
+                if (task->callback) {
+                    task->callback(false, task->task.get());
+                }
+                found = true;
+                // 不放回队列
+            } else {
+                temp.push_back(std::move(task));
             }
-            if (task->callback) {
-                task->callback(false, task->task.get());
-            }
-            found = true;
-            // 不放回队列
-        } else {
-            temp.push_back(std::move(task));
+        }
+
+        // 放回队列
+        for (auto& task : temp) {
+            m_taskQueue.push(std::move(task));
         }
     }
 
-    // 放回队列
-    for (auto& task : temp) {
-        m_taskQueue.push(std::move(task));
+    // 取消可能使队列排空,唤醒等待方(同 notifyIfIdle 的 lost-wakeup 修复理由)。
+    if (found) {
+        notifyIfIdle();
     }
-
     return found;
 }
 
 void UniversalWorkerPool::pruneCancelledTasks()
 {
-    std::lock_guard<std::mutex> lock(m_queueMutex);
+    bool removedAny = false;
+    {
+        std::lock_guard<std::mutex> lock(m_queueMutex);
 
-    if (m_taskQueue.empty()) {
-        return;
-    }
+        if (m_taskQueue.empty()) {
+            return;
+        }
 
-    std::vector<std::shared_ptr<InternalTask>> retained;
-    retained.reserve(m_taskQueue.size());
+        std::vector<std::shared_ptr<InternalTask>> retained;
+        retained.reserve(m_taskQueue.size());
 
-    while (!m_taskQueue.empty()) {
-        auto task = m_taskQueue.top();
-        m_taskQueue.pop();
+        while (!m_taskQueue.empty()) {
+            auto task = m_taskQueue.top();
+            m_taskQueue.pop();
 
-        if (task && !isTaskCancelled(*task)) {
-            retained.push_back(std::move(task));
-        } else if (task && task->callback) {
-            task->callback(false, task->task.get()); // 通知取消
+            if (task && !isTaskCancelled(*task)) {
+                retained.push_back(std::move(task));
+            } else if (task && task->callback) {
+                task->callback(false, task->task.get()); // 通知取消
+                removedAny = true;
+            }
+        }
+
+        for (auto& task : retained) {
+            m_taskQueue.push(std::move(task));
         }
     }
 
-    for (auto& task : retained) {
-        m_taskQueue.push(std::move(task));
+    // 裁剪可能使队列排空,唤醒等待方(同 notifyIfIdle 的 lost-wakeup 修复理由)。
+    if (removedAny) {
+        notifyIfIdle();
     }
 }
 
@@ -285,6 +300,21 @@ void UniversalWorkerPool::waitForCompletion()
 {
     std::unique_lock<std::mutex> lock(m_completionMutex);
     m_completionCondition.wait(lock, [this] { return pendingTaskCount() == 0 && runningTaskCount() == 0; });
+}
+
+void UniversalWorkerPool::notifyIfIdle()
+{
+    // fast-path:仍有任务在跑则必非空闲,直接返回不抢锁(任务执行期间 worker 高频调用此点,
+    // 避免无谓的 m_completionMutex 竞争)。
+    if (m_runningTaskCount.load(std::memory_order::acquire) != 0) {
+        return;
+    }
+    // 持 m_completionMutex 重检谓词并 notify,与 waitForCompletion 的"谓词检查+wait"串行化,
+    // 杜绝 worker 在等待方 pred()=false 与 release+block 之间发 notify 致丢失唤醒。
+    std::lock_guard<std::mutex> lock(m_completionMutex);
+    if (pendingTaskCount() == 0 && runningTaskCount() == 0) {
+        m_completionCondition.notify_all();
+    }
 }
 
 // ============================================================================
@@ -419,9 +449,7 @@ void UniversalWorkerPool::workerThread(i32 workerId)
             // m_generationTask 永不清除 → isSafeToUnload 永假 → holder 永久卡住 → 测试挂起）。
             if (isTaskCancelled(*taskCopy)) {
                 executeTask(std::move(taskCopy)); // executeTask 开头检测取消 → onCancel + callback(false)
-                if (pendingTaskCount() == 0 && runningTaskCount() == 0) {
-                    m_completionCondition.notify_all();
-                }
+                notifyIfIdle();
                 continue;
             }
 
@@ -507,9 +535,7 @@ void UniversalWorkerPool::workerThread(i32 workerId)
         }
 
         // 检查是否所有任务都完成了
-        if (pendingTaskCount() == 0 && runningTaskCount() == 0) {
-            m_completionCondition.notify_all();
-        }
+        notifyIfIdle();
     }
 }
 

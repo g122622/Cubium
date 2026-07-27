@@ -336,6 +336,21 @@ private:
      */
     [[nodiscard]] static std::vector<u64> computeAreaKeys(const InternalTask& task);
 
+    /**
+     * @brief 若队列空且无运行任务则唤醒所有 waitForCompletion 等待方
+     *
+     * waitForCompletion 的谓词状态（m_taskQueue.size 在 m_queueMutex 下、m_runningTaskCount
+     * 是 atomic）变更与原实现 notify_all 均不持 m_completionMutex,worker 可能在等待方
+     * "谓词检查=false 与原子 release+block"之间完成状态变更并 notify,该 notify 落在无人
+     * 阻塞时丢失,等待方永久挂起(CTest 超时,-j16 抢占下偶发)。修:持 m_completionMutex
+     * 重检谓词再 notify,把 worker 的 notify 与等待方的"谓词检查+wait"串行化。
+     *
+     * fast-path:m_runningTaskCount≠0 时必然非空闲,直接返回不抢锁(任务执行期间高频调用,
+     * 避免无谓锁竞争);仅 runningTaskCount==0 才抢锁做权威判定。pendingTaskCount() 内部
+     * 自带 m_queueMutex,与 m_completionMutex 锁序固定(completion→queue)无死锁。
+     */
+    void notifyIfIdle();
+
     // ============================================================================
     // 成员变量
     // ============================================================================
