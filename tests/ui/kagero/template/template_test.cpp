@@ -4031,6 +4031,10 @@ TEST_F(DocumentationExampleTest, FullCompileWorkflow)
 TEST_F(DocumentationExampleTest, UpdateSchedulerWorkflow)
 {
     runtime::UpdateScheduler scheduler;
+    // 默认 m_deferredUpdate=true + m_batchDelayMs=16,任务到期时间 = now(0) + 16,
+    // 不推进 tick() 则 m_nowMs 恒为 0,任务永不到期。本示例演示立即执行语义,
+    // 关闭延迟更新使 _isDue 总返回 true,executeHighPriority/executePending 立即执行。
+    scheduler.setDeferredUpdate(false);
 
     std::vector<std::string> executedPaths;
 
