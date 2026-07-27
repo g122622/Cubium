@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -30,6 +31,7 @@
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
@@ -57,6 +59,15 @@ protected:
         config.seed = 42;
 
         m_world = std::make_unique<ServerWorld>(config);
+
+        // 打开存档:ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
+        // 复用 ServerWorldTest 模式,临时目录由 TempDirHelper 生成(PID 分量跨进程唯一)。
+        m_testDir = mc::test::makeUniqueTestDir("mc_tick_precip_test");
+        world::storage::SingleLevelStorageConfig storageConfig;
+        auto openResult = m_storage.open(m_testDir, storageConfig);
+        ASSERT_TRUE(openResult.success()) << openResult.error().message();
+        m_world->setSharedStorage(&m_storage);
+
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, config.seed);
         auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
@@ -69,12 +80,20 @@ protected:
         auto weatherManager = std::make_unique<WeatherManager>();
         weatherManager->setRain(10000);
         m_world->setWeatherManager(std::move(weatherManager));
+
+        // initialize() 创建 m_tickManager / m_lightManager 等:tickPrecipitation 触发冰/雪生成时
+        // 调 setBlockState,其内 MC_ASSERT_RELEASE 要求 m_lightManager/m_tickManager 非空(光线更新 +
+        // 流体 tick 调度),否则断言崩溃。不 initialize() 会在冷生物群系降水时 SEH 0xc0000005。
+        ASSERT_TRUE(m_world->initialize().success()) << "ServerWorld::initialize failed";
     }
 
     void TearDown() override
     {
         m_world->shutdown();
         m_world.reset();
+        m_storage.close();
+        // TempDirHelper 内置 10 次重试,覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
+        mc::test::removeTestDir(m_testDir);
     }
 
     /**
@@ -83,6 +102,8 @@ protected:
     ChunkData* ensureChunk(i32 x, i32 z) { return m_world->chunkManager()->getChunkSync(x, z); }
 
     std::unique_ptr<ServerWorld> m_world;
+    world::storage::SingleLevelStorageManager m_storage;
+    std::filesystem::path m_testDir;
     static constexpr i32 SEA_LEVEL = 63;
 };
 
