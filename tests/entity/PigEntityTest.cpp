@@ -28,6 +28,7 @@
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::math;
@@ -40,7 +41,15 @@ namespace {
 
 class PigEntityEquipableTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    // Items::CARROT/SADDLE 等指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
+    // 致 isBreedingItem/canEquip 误判;需 Items::initialize() 注册原版物品。
+    // Items::initialize 依赖 VanillaBlocks,故一并初始化。
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+    }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -223,7 +232,14 @@ TEST_F(PigEntityRideableTest, SaddleSyncRequiresWorldContext)
 
 class PigEntityBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    // Items::CARROT/POTATO/BEETROOT 指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
+    // 致 isBreedingItem(carrot) 误判为 false;需 Items::initialize() 注册原版物品。
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+    }
 
     std::unique_ptr<PigEntity> pig;
 };

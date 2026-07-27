@@ -340,7 +340,14 @@ TEST_F(StriderEntityMountedYOffsetTest, WaveTermBounded)
 
 class StriderEntityBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(1)); }
+    // Items::SADDLE 等指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
+    // 致装备相关断言误判;需 Items::initialize() 注册原版物品。
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        strider = std::make_unique<StriderEntity>(EntityInstanceId(1));
+    }
 
     std::unique_ptr<StriderEntity> strider;
 };
@@ -452,7 +459,15 @@ TEST_F(StriderEntityBasicTest, HeightAccessorWorks)
 
 class StriderEntityEquipableTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(1)); }
+    // Items::SADDLE/DIAMOND 指针默认 nullptr,ItemStack(nullptr,1) 退化为空,
+    // 致 canEquip(钻石/剑) 走"清槽"分支误返 true、setEquipment 装鞍失败;
+    // 需 Items::initialize() 注册原版物品。对齐同文件 StriderInteractTestFixture。
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        strider = std::make_unique<StriderEntity>(EntityInstanceId(1));
+    }
 
     std::unique_ptr<StriderEntity> strider;
 };
