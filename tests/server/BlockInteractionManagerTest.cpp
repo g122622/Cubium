@@ -314,6 +314,9 @@ TEST_F(BlockInteractionManagerPlacementTest, GetHeldToolReturnsCorrectItem)
 TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersectsPlayer)
 {
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    // 地形(seed=114514)在 (0,64,0) 生成了泥土,会使 canPlace 走"目标不可替换"分支
+    // 提前命中拒绝,而非预期的玩家碰撞拒绝。显式清成空气以校验碰撞拒绝路径。
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
@@ -343,6 +346,9 @@ TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersects
 TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision)
 {
     m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    // 地形(seed=114514)在 (0,64,0) 生成了泥土,致放置目标不可替换、canPlace 失败。
+    // 显式清成空气,使放置目标可替换,真实校验"无玩家碰撞则成功放置"路径。
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     m_player->x = 3.5f;
