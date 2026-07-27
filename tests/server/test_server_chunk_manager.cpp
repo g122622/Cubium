@@ -607,7 +607,9 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
     // unloadChunkSync 重试会级联阻塞邻居，导致 stall。
     // STALL_THRESHOLD_SECONDS 为硬超时（真正死锁时 running==0 触发提前 abort；纯吞吐量不足时
     // running>0 持续下降，硬超时给 worker 足够时间消化级联生成任务）。
-    constexpr int STALL_THRESHOLD_SECONDS = 300;
+    // 设 280s 低于 CTest 默认 300s：活锁/死锁/holder 泄漏以明确 std::abort() 诊断退出，
+    // 而非被 CTest SIGKILL 丢失现场（对齐 StructureReferencesRaceTest 的 watchdog 趋势判据设计）。
+    constexpr int STALL_THRESHOLD_SECONDS = 280;
     std::thread watchdog([&]() {
         int lastPending = -1;
         int noProgressSamples = 0; // 连续 pending 未下降的 5 秒采样数（6 次=30 秒=死锁）
@@ -643,6 +645,17 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                 // worker 空闲说明队列中的任务因区域互斥/依赖图缺陷无法执行。
                 if (noProgressSamples >= 6 && pending > 0 && running == 0) {
                     spdlog::info("[watchdog] 检测到真正死锁：worker 全空闲但 pending={} 不下降", pending);
+                    break;
+                }
+                // holder 级泄漏：worker 全空闲、队列空、但 holder 数高位不降（>0）且 30s 无进展。
+                // 典型信号：异步存档加载完成回调（m_pendingLoadCompletes）无人出队 → holder 卡在
+                // ResolvingStorage → 依赖图 m_blockingNeighbours 非空 → 中心 holder 永不就绪 →
+                // generator 的 inflight.front().get() 永久挂起。此分支给出明确 abort 诊断，
+                // 避免干跑到 STALL_THRESHOLD 被 CTest SIGKILL 丢失现场。
+                // （测试正常完成时 stop 先置位，watchdog 经循环条件退出，不会误判。）
+                if (noProgressSamples >= 6 && pending == 0 && running == 0 && holders > 0) {
+                    spdlog::info(
+                        "[watchdog] 检测到 holder 级泄漏：pending=0 running=0 但 holders={} 高位不降", holders);
                     break;
                 }
                 // 诊断：200s 时 dump 一次卡住的 holder（不 abort），定位依赖图泄漏/isSafeToUnload 永假。
@@ -687,6 +700,15 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                 m_manager->tick(); // tick 处理票据更新 + _checkChunkUnloading
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
+            // 移动循环结束后继续驱动 tick() 直到 generator 完成（stop 置位），避免 generator 的
+            // in-flight future 因异步存档加载完成回调（m_pendingLoadCompletes）无人出队而永久挂起。
+            // processTicketUpdatesSync（tick 内）与 updatePlayerPosition 共享 m_ticketManager 无锁状态，
+            // 二者必须同线程串行——mover 同时负责二者，满足单线程不变量。
+            // 对齐 StructureReferencesRaceTest::MovePlayerAndGenerate_RaceRepro 的后循环模式。
+            while (!stop.load(std::memory_order::acquire)) {
+                m_manager->tick();
+                std::this_thread::sleep_for(std::chrono::microseconds(200));
+            }
         }
         catch (...) {
             crashFlag.store(1, std::memory_order::release);
@@ -697,6 +719,9 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
     // 用 MAX_INFLIGHT 限制未完成 future 数量，避免 inflight 任务堆积导致的级联阻塞
     // （旧版本无限制地创建 future，大量 inflight 请求在卸载竞态下级联阻塞）。
     // 坐标范围缩小到 ±12（24x24），与 mover 移动范围重叠，复用已生成区块减少总工作量。
+    // 注意:本线程不调 tick()——tick 内 processTicketUpdatesSync 与 mover 的 updatePlayerPosition
+    // 共享 m_ticketManager 无锁状态,二者必须同线程串行(见 mover 注释)。本线程的 inflight.front().get()
+    // 阻塞期间由 mover 线程持续 tick 推进管线(_drainPendingLoadCompletes/_drainPendingPostProcess)。
     constexpr int GEN_ITERATIONS = 20;
     constexpr int MAX_INFLIGHT = 6;
     std::thread generator([&]() {
@@ -713,10 +738,6 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                     inflight.front().get(); // 等待最旧的 future 完成（释放 holder 引用）
                     inflight.erase(inflight.begin());
                 }
-                if (i % 10 == 0) {
-                    // 偶尔同步请求，增加 worker 与主线程的交错
-                    (void)m_manager->getChunkSync(x, z);
-                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             // 回收剩余 inflight
@@ -731,9 +752,12 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
         }
     });
 
-    mover.join();
+    // 先 join generator：其 f.get() 排空依赖 mover 持续 tick() 驱动异步存档加载完成。
+    // generator 完成后置位 stop，mover 的 tick 后循环才退出，最后 join mover。
+    // （若先 join mover，mover 退出后无人调 tick()，generator 的 inflight.front().get() 永久挂起 → 死锁。）
     generator.join();
     stop.store(true, std::memory_order::release);
+    mover.join();
     watchdog.join();
 
     // 若任何线程捕获到异常，标记失败
