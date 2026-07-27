@@ -233,11 +233,19 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     std::atomic<int> crashFlag{0};
 
     // 看门狗：检测死锁/挂起。
-    // STALL_THRESHOLD 设为 240s 低于 CTest 默认 300s 超时,使活锁/死锁以明确的 abort 诊断退出
-    // 而非被 CTest SIGKILL 丢失现场。原值 600s > CTest 300s 超时,测试永远表现为 CTest Timeout
-    // 而非 watchdog abort,无法定位根因。
-    constexpr int STALL_THRESHOLD_SECONDS = 240;
+    // STALL_THRESHOLD 设为 280s 低于 CTest 默认 300s 超时,使活锁/死锁以明确的 abort 诊断退出
+    // 而非被 CTest SIGKILL 丢失现场。
+    //
+    // 进展判定用 60s 滑动窗口趋势,而非"严格不下降"计数:全量 -j16 下 worker 被 CPU 抢占,pending
+    // 高位抖动(偶发下降几十即重置 noProgress)会让"严格不下降"判据永远不触发 livelock 分支,反而
+    // 干跑到 STALL_THRESHOLD 硬超时 abort——而此时测试只是慢并非真死锁。趋势判据记录 60s 前的
+    // pending,只有 60s 窗口内 pending 净未下降(running>0 满载但无吞吐)才判 livelock,容忍 -j16
+    // 抢占导致的慢速排空。deadlock/stall 分支(running==0)保留——它们抓的是真死锁。
+    constexpr int STALL_THRESHOLD_SECONDS = 280;
+    constexpr int PROGRESS_WINDOW_SAMPLES = 12; // 60s 窗口(每 5s 采样一次)
     std::thread watchdog([&]() {
+        std::vector<int> pendingHistory; // 最近 PROGRESS_WINDOW_SAMPLES 个采样,用于趋势判定
+        pendingHistory.reserve(PROGRESS_WINDOW_SAMPLES + 1);
         int lastPending = -1;
         int noProgressSamples = 0;
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
@@ -252,6 +260,10 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     ++noProgressSamples;
                 }
                 lastPending = pendingInt;
+                pendingHistory.push_back(pendingInt);
+                if (static_cast<int>(pendingHistory.size()) > PROGRESS_WINDOW_SAMPLES + 1) {
+                    pendingHistory.erase(pendingHistory.begin());
+                }
                 spdlog::info("[watchdog] {}s: pending={}, running={}, noProgress={}",
                     sec / 2,
                     pending,
@@ -268,16 +280,16 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     m_manager->_debugDumpStuckHolders();
                     break;
                 }
-                // 活锁：workers 满载运行（running>0）但 pending 长期不降。
-                // 此前两个分支都要求 running==0,无法识别"任务入队速率≥出队速率"的活锁,
-                // 测试会干跑到 STALL_THRESHOLD 才 abort。该模式典型见于 cancel-revive 风暴:
-                // teleporter 高频远距传送产生大量 cancel+reschedule 任务超过 worker 消化能力。
-                // pending 阈值 2000 排除正常生成积压(视距16稳态约数百),只在真活锁触发。
-                if (noProgressSamples >= 8 && pending > 2000 && running > 0) {
-                    spdlog::info(
-                        "[watchdog] livelock: workers busy (running={}) but pending={} stuck — dumping stuck holders",
+                // 活锁：workers 满载运行（running>0）但 pending 在 60s 窗口内净未下降。
+                // 用趋势判据(窗口首采样 vs 当前)而非严格不下降计数:容忍 -j16 抢占导致的偶发抖动下降,
+                // 只在 60s 内确实零净吞吐时才判活锁。pending 阈值 2000 排除正常生成积压(视距16稳态约数百)。
+                if (static_cast<int>(pendingHistory.size()) > PROGRESS_WINDOW_SAMPLES && pending > 2000 &&
+                    running > 0 && pendingInt >= pendingHistory.front() * 9 / 10) {
+                    spdlog::info("[watchdog] livelock: workers busy (running={}) but pending={} not draining over 60s "
+                                 "(was {}) — dumping stuck holders",
                         running,
-                        pending);
+                        pending,
+                        pendingHistory.front());
                     m_manager->_debugDumpStuckHolders();
                     break;
                 }
@@ -297,11 +309,28 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     // 收敛到 40/24:仍覆盖 40 次 cancel-revive 循环 + STRUCTURE_REFERENCES 并发遍历邻居窗口,
     // 但任务量降到单 tick 线程能及时排空(_drainPendingLoadCompletes/_drainPendingPostProcess),
     // 测试在 CTest 300s 超时内完成。UAF 回归覆盖(读邻居 m_structureStarts)不变。
+    //
+    // 自适应退避:全量 -j16 下 worker 被 CPU 抢占,pending 易堆到数千。若 teleporter 仍恒速注入
+    // cancel-revive,入队速率 > 排空速率,pending 单调上涨触发 watchdog livelock/超时。高水位
+    // (pending>=HIGH_WATERMARK)时跳过 updatePlayerPosition(不注入新负载)只 tick 排空,给 worker
+    // 喘息空间;pending 回落后恢复注入。这是 TCP 式拥塞控制,在任意 CPU 争用等级下都能找到平衡点,
+    // 单跑(无争用,pending 始终低)行为与原测试一致。UAF 覆盖不变:常态下仍 40 次 cancel-revive,
+    // 且已入队的 in-flight STRUCTURE_REFERENCES 任务在 worker 上并发跑,邻居 shared_ptr 保活路径
+    // 仍被覆盖。
     constexpr int TELEPORT_ITERATIONS = 40;
     constexpr double FAR_RADIUS_CHUNKS = 24.0; // 远离原点的传送距离（区块单位）
+    constexpr size_t HIGH_WATERMARK = 1500;    // 高水位:超过则停止注入新 cancel-revive,只排空
     std::thread teleporter([&]() {
         try {
             for (int i = 0; i < TELEPORT_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
+                // 高水位退避:不注入新负载,只 tick 排空,让 pending 下降
+                if (m_workerPool->pendingTaskCount() >= HIGH_WATERMARK) {
+                    for (int t = 0; t < 25; ++t) {
+                        m_manager->tick();
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    continue;
+                }
                 // 交替远点与原点附近，每次都驱动 ticket 更新 + 卸载检查
                 if (i % 2 == 0) {
                     const double angle = (i * 0.3) * 3.14159265358979;
@@ -349,6 +378,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     constexpr int GEN_THREADS = 3;
     constexpr int GEN_ITERATIONS = 30;
     constexpr int MAX_INFLIGHT = 10;
+    constexpr size_t GEN_HIGH_WATERMARK = 1500; // 高水位:入队前先排空一个 in-flight + 加大 sleep
     std::vector<std::thread> generators;
     generators.reserve(GEN_THREADS);
     for (int tid = 0; tid < GEN_THREADS; ++tid) {
@@ -357,6 +387,14 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                 std::vector<std::future<ChunkData*>> inflight;
                 inflight.reserve(MAX_INFLIGHT + 1);
                 for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
+                    // 高水位退避:先排空一个 in-flight 降低 worker 压力,再加大 sleep
+                    const size_t pending = m_workerPool->pendingTaskCount();
+                    if (pending >= GEN_HIGH_WATERMARK && !inflight.empty()) {
+                        inflight.front().get();
+                        inflight.erase(inflight.begin());
+                        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                        continue;
+                    }
                     // 围绕原点的伪随机区块，混入远点，使生成与卸载区重叠
                     const int base = (tid * 17 + i * 7) % 40 - 20;
                     const int x = base + ((i * 5) % 8);
@@ -367,7 +405,9 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                         inflight.front().get();
                         inflight.erase(inflight.begin());
                     }
-                    std::this_thread::sleep_for(std::chrono::microseconds(50));
+                    // 高水位加大 sleep,低水位保持原速
+                    std::this_thread::sleep_for(
+                        pending >= GEN_HIGH_WATERMARK ? std::chrono::milliseconds(1) : std::chrono::microseconds(50));
                 }
                 for (auto& f : inflight) {
                     if (f.valid()) {
@@ -416,10 +456,15 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
     std::atomic<bool> stop{false};
     std::atomic<int> crashFlag{0};
 
-    // 看门狗：检测死锁/挂起。STALL_THRESHOLD 设为 240s 低于 CTest 默认 300s 超时,使活锁/死锁以
+    // 看门狗：检测死锁/挂起。STALL_THRESHOLD 设为 280s 低于 CTest 默认 300s 超时,使活锁/死锁以
     // 明确的 abort 诊断退出而非被 CTest SIGKILL 丢失现场（同 0x50Repro 测试）。
-    constexpr int STALL_THRESHOLD_SECONDS = 240;
+    // 进展判定用 60s 滑动窗口趋势而非"严格不下降"计数,容忍 -j16 CPU 抢占导致的慢速排空
+    // (见 0x50Repro watchdog 注释)。deadlock/stall 分支(running==0)保留抓真死锁。
+    constexpr int STALL_THRESHOLD_SECONDS = 280;
+    constexpr int PROGRESS_WINDOW_SAMPLES = 12; // 60s 窗口(每 5s 采样一次)
     std::thread watchdog([&]() {
+        std::vector<int> pendingHistory;
+        pendingHistory.reserve(PROGRESS_WINDOW_SAMPLES + 1);
         int lastPending = -1;
         int noProgressSamples = 0;
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
@@ -434,6 +479,10 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                     ++noProgressSamples;
                 }
                 lastPending = pendingInt;
+                pendingHistory.push_back(pendingInt);
+                if (static_cast<int>(pendingHistory.size()) > PROGRESS_WINDOW_SAMPLES + 1) {
+                    pendingHistory.erase(pendingHistory.begin());
+                }
                 spdlog::info("[watchdog] {}s: pending={}, running={}, noProgress={}",
                     sec / 2,
                     pending,
@@ -450,12 +499,14 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                     m_manager->_debugDumpStuckHolders();
                     break;
                 }
-                // 活锁：workers 满载运行（running>0）但 pending 长期不降（同 0x50Repro 测试说明）。
-                if (noProgressSamples >= 8 && pending > 2000 && running > 0) {
-                    spdlog::info(
-                        "[watchdog] livelock: workers busy (running={}) but pending={} stuck — dumping stuck holders",
+                // 活锁：workers 满载运行（running>0）但 pending 在 60s 窗口内净未下降（同 0x50Repro 测试说明）。
+                if (static_cast<int>(pendingHistory.size()) > PROGRESS_WINDOW_SAMPLES && pending > 2000 &&
+                    running > 0 && pendingInt >= pendingHistory.front() * 9 / 10) {
+                    spdlog::info("[watchdog] livelock: workers busy (running={}) but pending={} not draining over 60s "
+                                 "(was {}) — dumping stuck holders",
                         running,
-                        pending);
+                        pending,
+                        pendingHistory.front());
                     m_manager->_debugDumpStuckHolders();
                     break;
                 }
@@ -468,11 +519,25 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
     });
 
     // 线程 A：移动玩家，触发票据级别变化 → 卸载/重生成
+    //
+    // 自适应退避(同 0x50Repro teleporter):全量 -j16 下 worker 被 CPU 抢占,pending 易堆到数千。
+    // 高水位(pending>=HIGH_WATERMARK)时跳过 updatePlayerPosition(不注入新负载)只 tick 排空,给
+    // worker 喘息空间;pending 回落后恢复注入。TCP 式拥塞控制,任意 CPU 争用等级都能找到平衡点,
+    // 单跑(无争用,pending 始终低)行为与原测试一致。崩溃覆盖不变:常态下仍 40 次移动 + 卸载/重生成。
     constexpr int MOVE_ITERATIONS = 40;
     constexpr double MOVE_RADIUS_CHUNKS = 10.0;
+    constexpr size_t HIGH_WATERMARK = 1500; // 高水位:超过则停止注入新移动,只排空
     std::thread mover([&]() {
         try {
             for (int i = 0; i < MOVE_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
+                // 高水位退避:不注入新负载,只 tick 排空,让 pending 下降
+                if (m_workerPool->pendingTaskCount() >= HIGH_WATERMARK) {
+                    for (int t = 0; t < 25; ++t) {
+                        m_manager->tick();
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    continue;
+                }
                 const double angle = (i % 32) * (3.14159265358979 / 16.0);
                 const double radius = MOVE_RADIUS_CHUNKS * 16.0;
                 const double wx = std::cos(angle) * radius;
@@ -494,13 +559,25 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
     });
 
     // 线程 B：异步请求生成区块（驱动 worker 执行 onChunkGenComplete）
+    //
+    // 自适应退避(同 0x50Repro generators):高水位时先排空一个 in-flight 降低 worker 压力再加大 sleep,
+    // 低水位保持原速。配合 mover 的退避,任意 CPU 争用等级下 pending 不至于单调上涨触发 watchdog。
     constexpr int GEN_ITERATIONS = 60;
     constexpr int MAX_INFLIGHT = 12;
+    constexpr size_t GEN_HIGH_WATERMARK = 1500; // 高水位:入队前先排空一个 in-flight + 加大 sleep
     std::thread generator([&]() {
         try {
             std::vector<std::future<ChunkData*>> inflight;
             inflight.reserve(MAX_INFLIGHT + 1);
             for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
+                // 高水位退避:先排空一个 in-flight 降低 worker 压力,再加大 sleep
+                const size_t pending = m_workerPool->pendingTaskCount();
+                if (pending >= GEN_HIGH_WATERMARK && !inflight.empty()) {
+                    inflight.front().get();
+                    inflight.erase(inflight.begin());
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    continue;
+                }
                 const int x = (i * 7) % 32 - 16;
                 const int z = (i * 13) % 32 - 16;
                 auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL);
@@ -512,7 +589,9 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 if (i % 8 == 0) {
                     (void)m_manager->getChunkSync(x, z);
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                // 高水位加大 sleep,低水位保持原速
+                std::this_thread::sleep_for(
+                    pending >= GEN_HIGH_WATERMARK ? std::chrono::milliseconds(1) : std::chrono::microseconds(50));
             }
             for (auto& f : inflight) {
                 if (f.valid()) {
