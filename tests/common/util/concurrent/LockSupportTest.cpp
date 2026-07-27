@@ -53,11 +53,15 @@ TEST(LockSupportTest, ParkWithNoPermitBlocksUntilUnpark)
 
     std::thread t([&] {
         // 确保主线程已进入 park（至少设置 parked 标志后再 unpark，但这不保证 park 已阻塞，
-        // 所以 unpark 的 permit 会被 park 消费——permit 持久性保证不丢唤醒）
+        // 所以 unpark 的 permit 会被 park 消费——permit 持久性保证不丢唤醒）。
+        // 注意 unparked 必须在 unpark 之前置位:unpark 的 permit exchange(seq_cst) 与
+        // park 内对 permit 的 exchange/load(seq_cst) 建立 happens-before,park 返回时
+        // unparked.store 必可见;若 store 在 unpark 之后,park 可能在 unpark 唤醒后、
+        // store 传播前返回,读到 false(负载下偶发)。
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         parked = true;
-        LockSupport::unpark(parkedHandle);
         unparked = true;
+        LockSupport::unpark(parkedHandle);
     });
 
     LockSupport::park(); // 无 permit，阻塞
@@ -129,8 +133,10 @@ TEST(LockSupportTest, MultipleUnparksCoalesceToOnePermit)
     std::atomic<bool> unparked{false};
     std::thread t([&] {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        LockSupport::unpark(handle);
+        // unparked 必须在 unpark 之前置位(见 ParkWithNoPermitBlocksUntilUnpark 同类说明),
+        // 否则 park 可能在 unpark 唤醒后、store 传播前返回读到 false。
         unparked = true;
+        LockSupport::unpark(handle);
     });
     LockSupport::park();
     EXPECT_TRUE(unparked.load());
