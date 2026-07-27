@@ -34,6 +34,7 @@
  */
 
 #include "world/storage/list/WorldNameSanitizer.hpp"
+#include "common/TempDirHelper.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -210,17 +211,11 @@ protected:
 
     void SetUp() override
     {
-        // 创建临时目录
-        m_tempDir = std::filesystem::temp_directory_path() / "WorldNameSanitizerTest";
-        std::filesystem::create_directories(m_tempDir);
+        // PID + 纳秒 + 计数器组合，跨进程唯一，避免 CTest -j16 同名目录撞锁
+        m_tempDir = mc::test::makeUniqueTestDir("mc_world_name_sanitizer_test");
     }
 
-    void TearDown() override
-    {
-        // 清理临时目录
-        std::error_code ec;
-        std::filesystem::remove_all(m_tempDir, ec);
-    }
+    void TearDown() override { mc::test::removeTestDir(m_tempDir); }
 
     void createDirectory(const std::string& name) { std::filesystem::create_directories(m_tempDir / name); }
 };

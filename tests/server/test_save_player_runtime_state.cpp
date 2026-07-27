@@ -39,11 +39,11 @@
 // 登录→落盘链路。
 // ============================================================================
 
+#include "common/TempDirHelper.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <thread>
 #include <gtest/gtest.h>
@@ -66,20 +66,15 @@ protected:
 
     void SetUp() override
     {
-        // 使用带时间戳的临时目录避免并行测试冲突
-        m_gameRoot = std::filesystem::temp_directory_path() / "mc_prs_test" / std::to_string(std::time(nullptr));
+        // helper 通过 PID + 纳秒时间戳 + 计数器组合保证 CTest -j16 并行进程间唯一
+        m_gameRoot = mc::test::makeUniqueTestDir("mc_prs_test");
         std::filesystem::create_directories(m_gameRoot / "saves" / m_worldName);
     }
 
     void TearDown() override
     {
-        // 重试几次删除（Windows 上 RocksDB 后台线程可能延迟释放句柄）
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_gameRoot, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // Windows 上 RocksDB 后台线程可能延迟释放句柄，helper 内置 10 次重试
+        mc::test::removeTestDir(m_gameRoot);
     }
 
     // 构造一份指向临时目录的非新世界配置（既有世界，不写 level.dat）

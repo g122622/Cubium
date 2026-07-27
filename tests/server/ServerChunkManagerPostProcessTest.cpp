@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -30,9 +31,7 @@
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include <atomic>
 #include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <future>
 #include <thread>
@@ -69,10 +68,8 @@ protected:
         // m_tickManager 仅由 world->initialize() 创建；不初始化时为空 → 解引用空指针
         // ACCESS_VIOLATION at 0x10（scheduleFluidTick 内 m_fluidTicks）。与 ServerChunkManagerTest
         // 同一修复模式（镜像 ServerWorldTest/StructureReferencesRaceTest）。
-        static std::atomic<std::uint64_t> s_counter{0};
-        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
-        m_testDir = std::filesystem::temp_directory_path() / "mc_scm_postprocess_test" / token;
-        std::filesystem::create_directories(m_testDir);
+        // TempDirHelper 的 token 含 PID，跨进程天然唯一，避免 CTest -j16 下多进程同秒同计数器碰撞。
+        m_testDir = mc::test::makeUniqueTestDir("mc_scm_postprocess_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -107,12 +104,8 @@ protected:
         m_world.reset();
         m_workerPool.reset();
         m_storage.close();
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // TempDirHelper 内置 10 次重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
+        mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;

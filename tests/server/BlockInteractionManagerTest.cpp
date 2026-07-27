@@ -28,6 +28,7 @@
 #include "server/world/ServerWorld.hpp"
 
 #include "common/BaseTestServer.hpp"
+#include "common/TempDirHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootTable.hpp"
@@ -42,7 +43,6 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
-#include <ctime>
 #include <filesystem>
 #include <utility>
 using namespace mc;
@@ -77,9 +77,8 @@ protected:
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
-        m_testDir =
-            std::filesystem::temp_directory_path() / "mc_block_interaction_test" / std::to_string(std::time(nullptr));
-        std::filesystem::create_directories(m_testDir);
+        // 跨进程唯一目录由 helper 用 PID 组合 token 生成，避免 CTest -j16 同秒目录撞车
+        m_testDir = mc::test::makeUniqueTestDir("mc_block_interaction_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -141,10 +140,7 @@ protected:
             m_world.reset();
         }
         m_storage.close();
-        if (std::filesystem::exists(m_testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-        }
+        mc::test::removeTestDir(m_testDir);
     }
 
     void setHeldBlockItem(const Block& block, i32 count)

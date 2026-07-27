@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
@@ -34,7 +35,6 @@
 #include "server/world/ServerWorld.hpp"
 #include <gtest/gtest.h>
 
-#include <ctime>
 #include <filesystem>
 #include <utility>
 
@@ -53,9 +53,8 @@ protected:
         VanillaBlocks::initialize();
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
-        m_testDir =
-            std::filesystem::temp_directory_path() / "mc_world_collision_test" / std::to_string(std::time(nullptr));
-        std::filesystem::create_directories(m_testDir);
+        // TempDirHelper 的 token 含 PID，跨进程天然唯一，避免 CTest -j16 下多进程同秒碰撞。
+        m_testDir = mc::test::makeUniqueTestDir("mc_world_collision_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -88,10 +87,8 @@ protected:
             world.reset();
         }
         m_storage.close();
-        if (std::filesystem::exists(m_testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-        }
+        // TempDirHelper 内置 10 次重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
+        mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<ServerWorld> world;

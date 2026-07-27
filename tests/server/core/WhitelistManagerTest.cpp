@@ -22,6 +22,7 @@
  */
 
 #include "server/core/WhitelistManager.hpp"
+#include "common/TempDirHelper.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -32,18 +33,15 @@ class WhitelistManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 创建临时测试目录
-        testDir_ = std::filesystem::temp_directory_path() / "whitelist_test";
-        std::filesystem::create_directories(testDir_);
+        // 助手以 PID 组合 token 保证跨进程唯一，避免 CTest -j16 并发覆盖
+        testDir_ = mc::test::makeUniqueTestDir("mc_whitelist_test");
         testFile_ = testDir_ / "whitelist.json";
     }
 
     void TearDown() override
     {
         // 清理临时目录
-        if (std::filesystem::exists(testDir_)) {
-            std::filesystem::remove_all(testDir_);
-        }
+        mc::test::removeTestDir(testDir_);
     }
 
     std::filesystem::path testDir_;

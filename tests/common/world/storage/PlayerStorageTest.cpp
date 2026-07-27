@@ -21,16 +21,15 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "world/storage/db/ColumnFamilies.hpp"
 #include "world/storage/db/RocksDBDatabase.hpp"
 #include "world/storage/player/PlayerDataManager.hpp"
 #include "world/storage/player/PlayerSaveData.hpp"
-#include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <thread>
 #include <gtest/gtest.h>
 
 namespace mc::world::storage {
@@ -43,18 +42,11 @@ protected:
 
     void SetUp() override
     {
-        // 创建临时测试目录
-        m_testDir = std::filesystem::temp_directory_path() / "player_storage_test";
-        std::filesystem::create_directories(m_testDir);
+        // PID + 纳秒 + 计数器组合，跨进程唯一，避免 CTest -j16 同名目录撞锁
+        m_testDir = mc::test::makeUniqueTestDir("mc_player_storage_test");
     }
 
-    void TearDown() override
-    {
-        // 清理临时目录
-        if (std::filesystem::exists(m_testDir)) {
-            std::filesystem::remove_all(m_testDir);
-        }
-    }
+    void TearDown() override { mc::test::removeTestDir(m_testDir); }
 };
 
 // ============================================================================
@@ -1393,9 +1385,8 @@ TEST_F(FromPlayerTest, RoundTripPersistsThroughStorage)
     PlayerSaveData extracted = PlayerDataManager::fromPlayer(*player);
     EXPECT_EQ(extracted.uuid, "roundtrip-storage-uuid");
 
-    // 创建独立存储管理器
-    std::filesystem::path testDir = std::filesystem::temp_directory_path() / "player_from_player_storage_test";
-    std::filesystem::create_directories(testDir);
+    // 创建独立存储管理器（PID + 纳秒跨进程唯一，避免并行用例撞锁）
+    std::filesystem::path testDir = mc::test::makeUniqueTestDir("mc_player_from_player_storage_test");
     auto dbResult = RocksDBDatabase::open((testDir / "players.db").string());
     ASSERT_TRUE(dbResult.success());
     auto db = std::move(dbResult.value());
@@ -1421,13 +1412,8 @@ TEST_F(FromPlayerTest, RoundTripPersistsThroughStorage)
     manager.clearCache();
     db.reset();
 
-    // 重试几次删除（Windows 上 RocksDB 后台线程可能延迟释放句柄）
-    for (int i = 0; i < 5; ++i) {
-        std::error_code ec;
-        std::filesystem::remove_all(testDir, ec);
-        if (!ec) break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
+    // helper 内置 10× 重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄
+    mc::test::removeTestDir(testDir);
 }
 
 } // namespace

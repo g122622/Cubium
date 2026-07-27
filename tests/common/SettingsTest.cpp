@@ -26,6 +26,7 @@
 #include <gtest/gtest.h>
 
 #include "client/settings/ClientSettings.hpp"
+#include "common/TempDirHelper.hpp"
 #include "common/core/settings/SettingsBase.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
 #include "common/input/KeyBinding.hpp"
@@ -43,17 +44,14 @@ class SettingsTypesTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 每个测试使用临时目录
-        testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_test";
-        std::filesystem::create_directories(testDir);
+        // 助手以 PID 组合 token 保证跨进程唯一，避免 CTest -j16 并发覆盖
+        testDir = mc::test::makeUniqueTestDir("mc_settings_test");
     }
 
     void TearDown() override
     {
         // 清理临时目录
-        if (std::filesystem::exists(testDir)) {
-            std::filesystem::remove_all(testDir);
-        }
+        mc::test::removeTestDir(testDir);
     }
 
     std::filesystem::path testDir;
@@ -335,16 +333,11 @@ class SettingsBaseTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_settings_test";
-        std::filesystem::create_directories(testDir);
+        // 助手以 PID 组合 token 保证跨进程唯一，避免 CTest -j16 并发覆盖
+        testDir = mc::test::makeUniqueTestDir("mc_settings_settings_test");
     }
 
-    void TearDown() override
-    {
-        if (std::filesystem::exists(testDir)) {
-            std::filesystem::remove_all(testDir);
-        }
-    }
+    void TearDown() override { mc::test::removeTestDir(testDir); }
 
     std::filesystem::path testDir;
 };
@@ -533,16 +526,11 @@ class ClientSettingsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_client_test";
-        std::filesystem::create_directories(testDir);
+        // 助手以 PID 组合 token 保证跨进程唯一，避免 CTest -j16 并发覆盖
+        testDir = mc::test::makeUniqueTestDir("mc_settings_client_test");
     }
 
-    void TearDown() override
-    {
-        if (std::filesystem::exists(testDir)) {
-            std::filesystem::remove_all(testDir);
-        }
-    }
+    void TearDown() override { mc::test::removeTestDir(testDir); }
 
     std::filesystem::path testDir;
 };
@@ -624,16 +612,11 @@ class ServerSettingsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        testDir = std::filesystem::temp_directory_path() / "minecraft_reborn_server_test";
-        std::filesystem::create_directories(testDir);
+        // 助手以 PID 组合 token 保证跨进程唯一，避免 CTest -j16 并发覆盖
+        testDir = mc::test::makeUniqueTestDir("mc_settings_server_test");
     }
 
-    void TearDown() override
-    {
-        if (std::filesystem::exists(testDir)) {
-            std::filesystem::remove_all(testDir);
-        }
-    }
+    void TearDown() override { mc::test::removeTestDir(testDir); }
 
     std::filesystem::path testDir;
 };

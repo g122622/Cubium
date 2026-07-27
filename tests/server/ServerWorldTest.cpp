@@ -22,6 +22,7 @@
  */
 
 #include "server/world/ServerWorld.hpp"
+#include "common/TempDirHelper.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -38,9 +39,6 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
-#include <atomic>
-#include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <thread>
 #include <gtest/gtest.h>
@@ -79,12 +77,9 @@ protected:
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
         // 复用 ServerWorldPersistenceTest 的模式，在临时目录中打开一个 RocksDB 存档。
-        // 用时间戳 + 进程内自增计数器生成唯一目录，避免同秒内多个测试共享目录
-        // 导致 WorldSessionLock 残留句柄引发 ERROR_SHARING_VIOLATION。
-        static std::atomic<std::uint64_t> s_counter{0};
-        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
-        m_testDir = std::filesystem::temp_directory_path() / "mc_server_world_test" / token;
-        std::filesystem::create_directories(m_testDir);
+        // 由 TempDirHelper 生成唯一目录：token 含 PID，跨进程天然唯一，避免 CTest -j16 下
+        // 多进程同秒同计数器碰撞导致 WorldSessionLock 残留句柄引发 ERROR_SHARING_VIOLATION。
+        m_testDir = mc::test::makeUniqueTestDir("mc_server_world_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -102,14 +97,8 @@ protected:
     {
         world.reset();
         m_storage.close();
-        // 重试删除：Windows 上 RocksDB 后台线程可能延迟释放文件句柄，
-        // 单次 remove_all 可能因 ERROR_SHARING_VIOLATION 失败。
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // TempDirHelper 内置 10 次重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
+        mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<ServerWorld> world;

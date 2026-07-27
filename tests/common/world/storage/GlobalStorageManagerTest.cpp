@@ -27,6 +27,7 @@
  */
 
 #include "world/storage/GlobalStorageManager.hpp"
+#include "common/TempDirHelper.hpp"
 #include "world/storage/core/LevelDatCodec.hpp"
 #include "world/storage/core/WorldSessionLock.hpp"
 #include "world/storage/core/WorldStoragePaths.hpp"
@@ -47,8 +48,8 @@ protected:
 
     void SetUp() override
     {
-        testDir =
-            std::filesystem::temp_directory_path() / "mc_global_storage_test" / std::to_string(std::time(nullptr));
+        // PID + 纳秒 + 计数器组合，跨进程唯一，避免 CTest -j16 同名目录撞锁
+        testDir = mc::test::makeUniqueTestDir("mc_global_storage_test");
         savesDir = testDir / "saves";
         std::filesystem::create_directories(savesDir);
 
@@ -59,10 +60,7 @@ protected:
     void TearDown() override
     {
         storage.reset();
-        if (std::filesystem::exists(testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(testDir, ec);
-        }
+        mc::test::removeTestDir(testDir);
     }
 
     /**

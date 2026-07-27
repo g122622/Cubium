@@ -23,11 +23,10 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "server/application/IntegratedServer.hpp"
-#include <atomic>
 #include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <thread>
 #include <vector>
@@ -46,9 +45,9 @@ using namespace std::chrono_literals;
 // 若不预创建 saves/<worldName>，所有依赖 initialize 的测试都会连锁失败。
 //
 // 该夹具复用 test_save_player_runtime_state.cpp 的同款模式：
-//  - 每个测试实例独占一个临时 gameRoot（按时间戳 + 自增计数保证唯一）
+//  - 每个测试实例独占一个临时 gameRoot（helper 通过 PID 等分量跨进程唯一）
 //  - SetUp 中 create_directories(<gameRoot>/saves/<worldName>)
-//  - TearDown 中重试 remove_all（Windows 上 RocksDB 后台线程可能延迟释放句柄）
+//  - TearDown 中 helper 内置 10 次重试 remove_all（Windows 上 RocksDB 句柄释放滞后）
 // ============================================================================
 class IntegratedServerTestBase : public ::testing::Test {
 protected:
@@ -57,22 +56,15 @@ protected:
 
     void SetUp() override
     {
-        // 用时间戳 + 进程内自增计数器生成唯一目录，避免并行测试污染
-        static std::atomic<std::uint64_t> s_counter{0};
-        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
-        m_gameRoot = std::filesystem::temp_directory_path() / "mc_is_test" / token;
+        // helper 通过 PID + 纳秒时间戳 + 计数器组合保证 CTest -j16 并行进程间唯一
+        m_gameRoot = mc::test::makeUniqueTestDir("mc_is_test");
         std::filesystem::create_directories(m_gameRoot / "saves" / m_worldName);
     }
 
     void TearDown() override
     {
-        // 重试几次删除（Windows 上 RocksDB 后台线程可能延迟释放句柄）
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_gameRoot, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // Windows 上 RocksDB 后台线程可能延迟释放句柄，helper 内置 10 次重试
+        mc::test::removeTestDir(m_gameRoot);
     }
 
     // 构造一份指向临时目录的非新世界配置（既有世界，不写 level.dat）

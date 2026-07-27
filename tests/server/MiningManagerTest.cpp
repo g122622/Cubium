@@ -30,6 +30,7 @@
 #include "server/interaction/MiningManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include "common/TempDirHelper.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -45,7 +46,6 @@
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 
-#include <ctime>
 #include <filesystem>
 #include <utility>
 
@@ -66,9 +66,8 @@ protected:
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
-        m_testDir =
-            std::filesystem::temp_directory_path() / "mc_mining_manager_test" / std::to_string(std::time(nullptr));
-        std::filesystem::create_directories(m_testDir);
+        // 跨进程唯一目录由 helper 用 PID 组合 token 生成，避免 CTest -j16 同秒目录撞车
+        m_testDir = mc::test::makeUniqueTestDir("mc_mining_manager_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -136,10 +135,7 @@ protected:
             m_world.reset();
         }
         m_storage.close();
-        if (std::filesystem::exists(m_testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-        }
+        mc::test::removeTestDir(m_testDir);
     }
 
     /**

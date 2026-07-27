@@ -32,6 +32,7 @@
 // 最大化 STRUCTURE_STARTS/STRUCTURE_REFERENCES/NOISE/FEATURES 并发读邻居 m_structureStarts 的概率。
 // 若崩溃为并发 race，本测试应能复现 ACCESS_VIOLATION 或 ASan/TSan 报告。
 
+#include "common/TempDirHelper.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTags.hpp"
@@ -47,7 +48,6 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
-#include <ctime>
 #include <filesystem>
 #include <future>
 #include <thread>
@@ -77,12 +77,9 @@ protected:
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
         // 复用 ServerWorldTest 的模式，在临时目录中打开一个 RocksDB 存档。
-        // 用时间戳 + 进程内自增计数器生成唯一目录，避免同秒内多个测试共享目录
-        // 导致 WorldSessionLock 残留句柄引发 ERROR_SHARING_VIOLATION。
-        static std::atomic<std::uint64_t> s_counter{0};
-        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
-        m_testDir = std::filesystem::temp_directory_path() / "mc_struct_race_test" / token;
-        std::filesystem::create_directories(m_testDir);
+        // 由 TempDirHelper 生成唯一目录：token 含 PID，跨进程天然唯一，避免 CTest -j16 下
+        // 多进程同秒同计数器碰撞导致 WorldSessionLock 残留句柄引发 ERROR_SHARING_VIOLATION。
+        m_testDir = mc::test::makeUniqueTestDir("mc_struct_race_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -118,14 +115,8 @@ protected:
         m_world.reset();
         m_workerPool.reset();
         m_storage.close();
-        // 重试删除：Windows 上 RocksDB 后台线程可能延迟释放文件句柄，
-        // 单次 remove_all 可能因 ERROR_SHARING_VIOLATION 失败。
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // TempDirHelper 内置 10 次重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
+        mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;

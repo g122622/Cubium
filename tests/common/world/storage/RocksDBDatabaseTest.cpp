@@ -22,6 +22,7 @@
  */
 
 #include "world/storage/db/RocksDBDatabase.hpp"
+#include "common/TempDirHelper.hpp"
 #include "world/storage/db/ColumnFamilies.hpp"
 #include <filesystem>
 #include <vector>
@@ -40,16 +41,11 @@ protected:
 
     void SetUp() override
     {
-        m_testDir = std::filesystem::temp_directory_path() / ("rocksdb_test_" + std::to_string(::getpid()));
-        std::filesystem::create_directories(m_testDir);
+        // PID + 纳秒 + 计数器组合，跨进程唯一；每个 TEST_F 独立子目录，避免并行抢锁
+        m_testDir = mc::test::makeUniqueTestDir("mc_rocksdb_test");
     }
 
-    void TearDown() override
-    {
-        if (std::filesystem::exists(m_testDir)) {
-            std::filesystem::remove_all(m_testDir);
-        }
-    }
+    void TearDown() override { mc::test::removeTestDir(m_testDir); }
 
     /// 获取本次测试的数据库路径（每个测试用例独立路径）
     std::filesystem::path getDbPath(const std::string& name) const { return m_testDir / name; }

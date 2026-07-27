@@ -26,6 +26,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -46,7 +47,6 @@
 #include "server/world/ServerWorld.hpp"
 #include <atomic>
 #include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <thread>
 
@@ -75,10 +75,8 @@ protected:
         config.viewDistance = 8;
         m_world = std::make_unique<ServerWorld>(config);
 
-        static std::atomic<std::uint64_t> sCounter{0};
-        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(sCounter.fetch_add(1));
-        m_testDir = std::filesystem::temp_directory_path() / "mc_runtime_light_test" / token;
-        std::filesystem::create_directories(m_testDir);
+        // 用 helper 生成跨进程唯一目录（token 含 PID），避免 CTest 并行下同秒进程目录撞车。
+        m_testDir = mc::test::makeUniqueTestDir("mc_runtime_light_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -108,14 +106,7 @@ protected:
         m_world.reset();
         m_workerPool.reset();
         m_storage.close();
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-            if (!ec) {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<util::UniversalWorkerPool> m_workerPool;

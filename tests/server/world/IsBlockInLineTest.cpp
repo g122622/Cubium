@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -34,7 +35,6 @@
 #include "server/world/ServerWorld.hpp"
 
 #include <cmath>
-#include <ctime>
 #include <filesystem>
 
 using namespace mc;
@@ -61,9 +61,7 @@ protected:
 
     void SetUp() override
     {
-        m_testDir =
-            std::filesystem::temp_directory_path() / "mc_isblockinline_test" / std::to_string(std::time(nullptr));
-        std::filesystem::create_directories(m_testDir);
+        m_testDir = mc::test::makeUniqueTestDir("mc_isblockinline_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -90,10 +88,7 @@ protected:
             m_world.reset();
         }
         m_storage.close();
-        if (std::filesystem::exists(m_testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-        }
+        mc::test::removeTestDir(m_testDir);
     }
 
     ServerWorld& world() { return *m_world; }

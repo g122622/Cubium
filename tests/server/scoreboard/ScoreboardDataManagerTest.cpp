@@ -23,13 +23,13 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/storage/ScoreboardDataManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
-#include <ctime>
 #include <filesystem>
 
 using namespace mc;
@@ -50,13 +50,12 @@ class ScoreboardDataManagerTest : public ::testing::Test {
 protected:
     std::filesystem::path testDir;
     std::unique_ptr<SingleLevelStorageManager> storage;
-    ScoreboardDataManager* dataManager {nullptr};
+    ScoreboardDataManager* dataManager{nullptr};
 
     void SetUp() override
     {
-        testDir = std::filesystem::temp_directory_path() / "mc_sbdm_test" /
-                  (std::to_string(std::time(nullptr)) + "_" + std::to_string(::getpid()));
-        std::filesystem::create_directories(testDir);
+        // PID + 纳秒 + 计数器组合，跨进程唯一，避免 CTest -j16 同名目录撞锁
+        testDir = mc::test::makeUniqueTestDir("mc_sbdm_test");
 
         storage = std::make_unique<SingleLevelStorageManager>();
         SingleLevelStorageConfig config;
@@ -74,15 +73,14 @@ protected:
         storage.reset();
         dataManager = nullptr;
 
-        if (std::filesystem::exists(testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(testDir, ec);
-        }
+        mc::test::removeTestDir(testDir);
     }
 
     // 辅助方法：保存一个目标
-    void saveObjective(const std::string& name, const std::string& criteria = "dummy",
-        const std::string& displayName = "", const std::string& renderType = "integer")
+    void saveObjective(const std::string& name,
+        const std::string& criteria = "dummy",
+        const std::string& displayName = "",
+        const std::string& renderType = "integer")
     {
         ScoreboardSaveData::ObjectiveData data;
         data.name = name;
@@ -141,8 +139,7 @@ protected:
     {
         auto result = dataManager->loadScoresForObjective(objectiveName);
         ASSERT_TRUE(result.success()) << "loadScoresForObjective failed: " << result.error().message();
-        EXPECT_TRUE(result.value().empty())
-            << "There should be no scores for objective '" << objectiveName << "'";
+        EXPECT_TRUE(result.value().empty()) << "There should be no scores for objective '" << objectiveName << "'";
     }
 };
 

@@ -35,6 +35,7 @@
  * ServerWorld 层的回调触发契约。
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/RandomState.hpp"
@@ -45,11 +46,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "world/block/BlockPos.hpp"
 
-#include <atomic>
-#include <chrono>
-#include <ctime>
 #include <filesystem>
-#include <thread>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -75,10 +72,8 @@ protected:
     {
         VanillaBlocks::initialize();
 
-        static std::atomic<std::uint64_t> s_counter{0};
-        const auto token = std::to_string(std::time(nullptr)) + "_" + std::to_string(s_counter.fetch_add(1));
-        m_testDir = std::filesystem::temp_directory_path() / "mc_server_world_broadcast_be_test" / token;
-        std::filesystem::create_directories(m_testDir);
+        // PID + 纳秒时间戳保证 CTest -j16 跨进程唯一，避免同秒 token 碰撞
+        m_testDir = mc::test::makeUniqueTestDir("mc_server_world_broadcast_be_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -95,12 +90,8 @@ protected:
     {
         world.reset();
         m_storage.close();
-        for (int i = 0; i < 10; ++i) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-            if (!ec) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        // RocksDB 后台线程可能延迟释放文件句柄，helper 内置 10 次重试覆盖句柄释放窗口
+        mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<ServerWorld> world;

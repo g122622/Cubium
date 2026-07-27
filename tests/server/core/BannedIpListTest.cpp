@@ -22,6 +22,7 @@
  */
 
 #include "server/core/BannedIpList.hpp"
+#include "common/TempDirHelper.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -35,18 +36,15 @@ class BannedIpListTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 创建临时测试目录
-        testDir_ = std::filesystem::temp_directory_path() / "banned_ips_test";
-        std::filesystem::create_directories(testDir_);
+        // 助手以 PID 组合 token 保证跨进程唯一，避免 CTest -j16 并发覆盖
+        testDir_ = mc::test::makeUniqueTestDir("mc_banned_ips_test");
         testFile_ = testDir_ / "banned-ips.json";
     }
 
     void TearDown() override
     {
         // 清理临时目录
-        if (std::filesystem::exists(testDir_)) {
-            std::filesystem::remove_all(testDir_);
-        }
+        mc::test::removeTestDir(testDir_);
     }
 
     std::filesystem::path testDir_;

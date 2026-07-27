@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/world/storage/backend/JavaAnvilBackend.hpp"
 #include "common/world/storage/core/SaveFormat.hpp"
 #include <filesystem>
@@ -34,11 +35,11 @@ class SaveFormatDetectorTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_tmpDir = std::filesystem::temp_directory_path() / "mc_saveformat_test";
-        std::filesystem::create_directories(m_tmpDir);
+        // PID + 纳秒 + 计数器组合，跨进程唯一，避免 CTest -j16 同名目录撞锁
+        m_tmpDir = mc::test::makeUniqueTestDir("mc_saveformat_test");
     }
 
-    void TearDown() override { std::filesystem::remove_all(m_tmpDir); }
+    void TearDown() override { mc::test::removeTestDir(m_tmpDir); }
 
     void createFile(const std::filesystem::path& path, const std::vector<u8>& data = {})
     {

@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -30,7 +31,6 @@
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include <array>
-#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -42,8 +42,8 @@ class SkinCacheTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 使用临时目录
-        testDir_ = "./test_skin_cache_" + std::to_string(std::time(nullptr));
+        // PID + 纳秒时间戳保证 CTest -j16 跨进程唯一，避免同秒 token 碰撞
+        testDir_ = mc::test::makeUniqueTestDir("mc_skin_cache_test").string();
         cache_ = std::make_unique<SkinCache>(testDir_);
     }
 
@@ -51,9 +51,7 @@ protected:
     {
         cache_.reset();
 
-        // 清理临时目录
-        std::error_code ec;
-        std::filesystem::remove_all(testDir_, ec);
+        mc::test::removeTestDir(std::filesystem::path(testDir_));
     }
 
     std::string testDir_;

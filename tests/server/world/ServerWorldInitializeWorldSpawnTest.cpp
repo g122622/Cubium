@@ -31,11 +31,11 @@
 // - 出生点坐标是否落在合理范围内
 // ============================================================================
 
-#include <ctime>
 #include <filesystem>
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/RandomState.hpp"
@@ -123,8 +123,8 @@ protected:
     {
         VanillaBlocks::initialize();
 
-        m_testDir = std::filesystem::temp_directory_path() / "mc_spawn_init_test" / std::to_string(std::time(nullptr));
-        std::filesystem::create_directories(m_testDir);
+        // PID + 纳秒时间戳保证 CTest -j16 跨进程唯一，避免同秒 token 碰撞
+        m_testDir = mc::test::makeUniqueTestDir("mc_spawn_init_test");
 
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
@@ -134,10 +134,8 @@ protected:
     void TearDown() override
     {
         m_storage.close();
-        if (std::filesystem::exists(m_testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(m_testDir, ec);
-        }
+        // RocksDB 后台线程可能延迟释放文件句柄，helper 内置 10 次重试覆盖句柄释放窗口
+        mc::test::removeTestDir(m_testDir);
     }
 
     world::storage::SingleLevelStorageManager m_storage;

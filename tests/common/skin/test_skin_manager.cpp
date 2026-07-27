@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/manager/DefaultSkinProvider.hpp"
 #include "common/skin/manager/SkinManager.hpp"
@@ -34,7 +35,8 @@ class SkinManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        testDir_ = "./test_skin_manager_" + std::to_string(std::time(nullptr));
+        // PID + 纳秒时间戳保证 CTest -j16 跨进程唯一，避免同秒 token 碰撞
+        testDir_ = mc::test::makeUniqueTestDir("mc_skin_manager_test").string();
         manager_ = std::make_unique<SkinManager>(testDir_);
     }
 
@@ -42,9 +44,7 @@ protected:
     {
         manager_.reset();
 
-        // 清理临时目录
-        std::error_code ec;
-        std::filesystem::remove_all(testDir_, ec);
+        mc::test::removeTestDir(std::filesystem::path(testDir_));
     }
 
     std::string testDir_;

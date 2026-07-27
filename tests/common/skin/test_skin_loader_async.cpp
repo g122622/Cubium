@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TempDirHelper.hpp"
 #include "common/skin/loader/FileSkinLoader.hpp"
 #include "common/skin/loader/HttpSkinLoader.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
@@ -96,8 +97,8 @@ class FileSkinLoaderAsyncTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        testDir_ = "./test_file_skin_loader_async_" + std::to_string(std::time(nullptr));
-        std::filesystem::create_directories(testDir_);
+        // PID + 纳秒时间戳保证 CTest -j16 跨进程唯一，避免同秒 token 碰撞
+        testDir_ = mc::test::makeUniqueTestDir("mc_skin_loader_async_test").string();
 
         // 生成测试用 PNG
         validPng_ = makeSolidColorPng(255, 0, 0, 255);
@@ -112,8 +113,7 @@ protected:
         loader_->shutdown();
         loader_.reset();
 
-        std::error_code ec;
-        std::filesystem::remove_all(testDir_, ec);
+        mc::test::removeTestDir(std::filesystem::path(testDir_));
     }
 
     std::string testDir_;
