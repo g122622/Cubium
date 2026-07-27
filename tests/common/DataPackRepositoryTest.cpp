@@ -1,23 +1,14 @@
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/TempDirHelper.hpp"
 
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <filesystem>
 #include <fstream>
 
 using namespace mc::resource;
 
 namespace {
-
-std::filesystem::path makeUniqueTempDir(const std::string& prefix)
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / (prefix + std::to_string(static_cast<long long>(now)));
-    std::filesystem::create_directories(dir);
-    return dir;
-}
 
 void writeTextFile(const std::filesystem::path& path, const std::string& text)
 {
@@ -35,7 +26,7 @@ void cleanupTempDir(const std::filesystem::path& dir)
 /// 创建包含单个数据包的临时目录
 std::filesystem::path createSinglePackDir()
 {
-    const auto dir = makeUniqueTempDir("mc_datapack_list_test_");
+    const auto dir = mc::test::makeUniqueTestDir("mc_datapack_list_test_");
     auto packDir = dir / "example_pack";
     std::filesystem::create_directories(packDir / "data" / "minecraft" / "loot_tables" / "blocks");
 
@@ -51,7 +42,7 @@ std::filesystem::path createSinglePackDir()
 /// 使用显式优先级设置来确保确定性排序（不依赖文件系统迭代顺序）
 std::filesystem::path createMultiPackDir()
 {
-    const auto dir = makeUniqueTempDir("mc_datapack_multi_test_");
+    const auto dir = mc::test::makeUniqueTestDir("mc_datapack_multi_test_");
 
     // 低优先级数据包（将设置较低的 priority 值）
     auto lowPackDir = dir / "low_priority_pack";

@@ -1,12 +1,9 @@
 #include "world/storage/SingleLevelStorageManager.hpp"
+#include "common/TempDirHelper.hpp"
 #include "core/Types.hpp"
 #include "world/storage/db/SectionKey.hpp"
-#include <chrono>
-#include <ctime>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
-#include <thread>
 #include <gtest/gtest.h>
 
 namespace mc::world::storage {
@@ -22,27 +19,15 @@ protected:
 
     void SetUp() override
     {
-        // CTest 并行（-j8）下，多个用例可能在同一秒启动；testDir 仅用 std::time(nullptr)
-        // （秒级精度）做唯一化会导致同秒用例共享目录、互相覆盖文件而竞态失败。
-        // 这里把测试名 + 线程号 + steady_clock 计数组合进路径，保证并行用例目录互不冲突。
-        // steady_clock 单调递增且精度远高于秒，进程级隔离下每个用例的值都不同。
+        // 复用 mc::test 共享 helper：token 含 PID + steady_clock 纳秒 + 线程 ID + 计数器，
+        // 跨进程 / 跨线程 / 同 tick 都唯一，根治 CTest -j16 并行下秒级时间戳撞目录的竞态。
+        // 前缀带上用例名便于人工排查目录归属。
         const ::testing::TestInfo* const info = ::testing::UnitTest::GetInstance()->current_test_info();
-        const std::string testSuffix = std::string(info->test_suite_name()) + "_" + std::string(info->name());
-        const auto steadyNs = std::chrono::steady_clock::now().time_since_epoch().count();
-        std::ostringstream threadOss;
-        threadOss << std::this_thread::get_id();
-        testDir = std::filesystem::temp_directory_path() / "mc_storage_test" / testSuffix /
-            (std::to_string(steadyNs) + "_" + threadOss.str());
-        std::filesystem::create_directories(testDir);
+        const std::string prefix = "mc_storage_test/" + std::string(info->test_suite_name()) + "_" + info->name();
+        testDir = mc::test::makeUniqueTestDir(prefix);
     }
 
-    void TearDown() override
-    {
-        if (std::filesystem::exists(testDir)) {
-            std::error_code ec;
-            std::filesystem::remove_all(testDir, ec);
-        }
-    }
+    void TearDown() override { mc::test::removeTestDir(testDir); }
 
     SectionData createTestSectionData(ChunkCoord x, ChunkCoord z, i8 sectionY, DimensionId dim, u32 fillBlockId = 1)
     {

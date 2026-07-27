@@ -23,24 +23,15 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 
-#include <chrono>
 #include <filesystem>
 #include <fstream>
 
 using namespace mc::resource;
 
 namespace {
-
-std::filesystem::path makeUniqueTempDir()
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / ("mc_resource_pack_repository_test_" + std::to_string(static_cast<long long>(now)));
-    std::filesystem::create_directories(dir);
-    return dir;
-}
 
 void writeTextFile(const std::filesystem::path& path, const std::string& text)
 {
@@ -53,7 +44,7 @@ void writeTextFile(const std::filesystem::path& path, const std::string& text)
 
 TEST(PackRepositorySelfContainedTest, ScanAndReadResourceFromFolderPack)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_resource_pack_repository_test");
     const auto packDir = tempRoot / "packA";
 
     // pack.mcmeta 是 PackRepository 判断"资源包目录"的关键文件

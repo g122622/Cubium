@@ -1,11 +1,11 @@
 #include "item/loot/LootTableLoader.hpp"
+#include "common/TempDirHelper.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "item/Items.hpp"
 #include "item/loot/LootTable.hpp"
 #include "resource/pack/FolderResourcePack.hpp"
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <filesystem>
 #include <fstream>
 
@@ -13,15 +13,6 @@ using namespace mc;
 using namespace mc::loot;
 
 namespace {
-
-std::filesystem::path makeUniqueTempDir()
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / ("mc_loot_table_loader_test_" + std::to_string(static_cast<long long>(now)));
-    std::filesystem::create_directories(dir);
-    return dir;
-}
 
 void writeTextFile(const std::filesystem::path& path, const std::string& text)
 {
@@ -68,7 +59,7 @@ TEST_F(LootTableLoaderTest, PathToLootTableId_StandardPath)
 
 TEST_F(LootTableLoaderTest, LoadFromDirectory_LoadsJsonFiles)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_loot_table_loader_test");
     writeTextFile(tempRoot / "data/minecraft/loot_tables/blocks/test_block.json", kSimpleLootTableJson);
 
     LootTableManager manager;
@@ -99,7 +90,7 @@ TEST_F(LootTableLoaderTest, LoadFromResourcePacks_EmptyPackRepositoryReturnsSucc
 
 TEST_F(LootTableLoaderTest, FolderResourcePack_ListResourcesAndReadTextForLootTables)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_loot_table_loader_test");
     const auto packDir = tempRoot / "pack_dir";
 
     writeTextFile(packDir / "pack.mcmeta", R"({"pack":{"pack_format":6,"description":"pack"}})");

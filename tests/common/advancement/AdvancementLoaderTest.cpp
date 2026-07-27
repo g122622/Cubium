@@ -20,6 +20,7 @@
  */
 
 #include "common/advancement/AdvancementLoader.hpp"
+#include "common/TempDirHelper.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/impl/ImpossibleTrigger.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -33,15 +34,6 @@ using namespace mc;
 using namespace mc::advancement;
 
 namespace {
-
-std::filesystem::path makeUniqueTempDir()
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / ("mc_advancement_loader_test_" + std::to_string(static_cast<long long>(now)));
-    std::filesystem::create_directories(dir);
-    return dir;
-}
 
 void writeTextFile(const std::filesystem::path& path, const std::string& text)
 {
@@ -256,7 +248,7 @@ TEST_F(AdvancementLoaderTest, LoadJson_MissingCriteria)
 
 TEST_F(AdvancementLoaderTest, LoadFile_ValidAdvancement)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     writeTextFile(tempRoot / "data/minecraft/advancements/story/root.json", kSimpleAdvancementJson);
 
     AdvancementLoader loader;
@@ -284,7 +276,7 @@ TEST_F(AdvancementLoaderTest, LoadFile_NonExistentFile)
 
 TEST_F(AdvancementLoaderTest, LoadFromDirectory_LoadsAdvancements)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     writeTextFile(tempRoot / "data/minecraft/advancements/story/root.json", kSimpleAdvancementJson);
     writeTextFile(tempRoot / "data/minecraft/advancements/story/mine_stone.json", kFullAdvancementJson);
 
@@ -310,7 +302,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDirectory_NonExistentDirectory)
 
 TEST_F(AdvancementLoaderTest, LoadFromDirectory_EmptyDirectory)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
 
     AdvancementLoader loader;
     auto result = loader.loadFromDirectory(tempRoot.string());
@@ -325,7 +317,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDirectory_EmptyDirectory)
 
 TEST_F(AdvancementLoaderTest, LoadFromDirectory_MixedSuccessAndFailure)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     writeTextFile(tempRoot / "data/minecraft/advancements/story/good.json", kSimpleAdvancementJson);
     writeTextFile(tempRoot / "data/minecraft/advancements/story/bad.json", kInvalidJsonSyntax);
 
@@ -355,7 +347,7 @@ TEST_F(AdvancementLoaderTest, ClearBeforeLoad_DefaultClears)
     EXPECT_TRUE(AdvancementManager::instance().contains(ResourceLocation("minecraft", "pre_existing")));
 
     // loadFromDirectory 默认 clearBeforeLoad=true，应清空已有成就
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     writeTextFile(tempRoot / "data/minecraft/advancements/test/adv.json", kSimpleAdvancementJson);
 
     AdvancementLoader loader;
@@ -381,7 +373,7 @@ TEST_F(AdvancementLoaderTest, ClearBeforeLoad_FalsePreserves)
     EXPECT_TRUE(AdvancementManager::instance().contains(ResourceLocation("minecraft", "pre_existing")));
 
     // clearBeforeLoad=false，应保留已有成就
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     writeTextFile(tempRoot / "data/minecraft/advancements/test/adv.json", kSimpleAdvancementJson);
 
     AdvancementLoader loader;
@@ -413,7 +405,7 @@ TEST_F(AdvancementLoaderTest, LoadResult_InitialState)
 
 TEST_F(AdvancementLoaderTest, ResetResult_ClearsState)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     writeTextFile(tempRoot / "data/minecraft/advancements/test/bad.json", kInvalidJsonSyntax);
 
     AdvancementLoader loader;
@@ -478,7 +470,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_PluralDirName)
 TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_EmptyDataPack)
 {
     // 空数据包（没有成就文件）
-    const auto dir = makeUniqueTempDir();
+    const auto dir = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     std::filesystem::create_directories(dir / "empty_pack/data/minecraft");
     writeTextFile(dir / "empty_pack/pack.mcmeta", R"({"pack":{"pack_format":41,"description":"empty"}})");
 
@@ -498,7 +490,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_EmptyDataPack)
 
 TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_WithInvalidJson)
 {
-    const auto dir = makeUniqueTempDir();
+    const auto dir = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     std::filesystem::create_directories(dir / "test_pack/data/minecraft/advancement/test");
 
     writeTextFile(dir / "test_pack/pack.mcmeta", R"({"pack":{"pack_format":41,"description":"test"}})");
@@ -523,7 +515,7 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_WithInvalidJson)
 TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_DuplicateIdSecondFails)
 {
     // 两个成就文件使用相同的 ID，第二个应失败
-    const auto dir = makeUniqueTempDir();
+    const auto dir = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
     std::filesystem::create_directories(dir / "test_pack/data/minecraft/advancement/dup");
 
     writeTextFile(dir / "test_pack/pack.mcmeta", R"({"pack":{"pack_format":41,"description":"test"}})");

@@ -22,6 +22,7 @@
  */
 
 #include "server/function/FunctionLoader.hpp"
+#include "common/TempDirHelper.hpp"
 #include "server/function/FunctionManager.hpp"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -583,15 +584,6 @@ TEST_F(FunctionLoaderTest, FunctionManager_CascadingTagReference)
 
 namespace {
 
-std::filesystem::path makeUniqueTempDir()
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / ("mc_func_loader_test_" + std::to_string(static_cast<long long>(now)));
-    std::filesystem::create_directories(dir);
-    return dir;
-}
-
 void writeTextFile(const std::filesystem::path& path, const std::string& text)
 {
     std::filesystem::create_directories(path.parent_path());
@@ -619,7 +611,7 @@ protected:
     /// 创建一个基本的数据包目录，包含 pack.mcmeta
     std::filesystem::path createBaseDataPack()
     {
-        m_tempDir = makeUniqueTempDir();
+        m_tempDir = mc::test::makeUniqueTestDir("mc_func_loader_test");
         auto packDir = m_tempDir / "test_pack";
         std::filesystem::create_directories(packDir / "data" / "minecraft" / "functions");
         std::filesystem::create_directories(packDir / "data" / "minecraft" / "tags" / "functions");
@@ -938,7 +930,7 @@ protected:
     /// 创建两个数据包的临时目录
     void createMultiPackDir()
     {
-        m_tempDir = makeUniqueTempDir();
+        m_tempDir = mc::test::makeUniqueTestDir("mc_func_loader_test");
 
         // 低优先级数据包
         m_lowPackDir = m_tempDir / "low_pack";
@@ -1135,7 +1127,7 @@ TEST_F(FunctionLoaderMultiPackTest, ReplaceTrue_ThreePacks)
     // 测试：三个数据包，中间优先级设置 replace=true
     // 预期行为：低优先级条目先累积，中间优先级 replace=true 清空后追加，
     // 高优先级 replace=false 追加到中间优先级的条目后
-    m_tempDir = makeUniqueTempDir();
+    m_tempDir = mc::test::makeUniqueTestDir("mc_func_loader_test");
 
     // 低优先级包 (priority=0)
     auto lowPackDir = m_tempDir / "low_pack";

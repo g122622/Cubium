@@ -22,12 +22,12 @@
  */
 
 #include "item/loot/LootPredicateLoader.hpp"
+#include "common/TempDirHelper.hpp"
 #include "item/Items.hpp"
 #include "item/loot/LootPredicateManager.hpp"
 #include "item/loot/conditions/LootConditions.hpp"
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <filesystem>
 #include <fstream>
 
@@ -35,15 +35,6 @@ using namespace mc;
 using namespace mc::loot;
 
 namespace {
-
-std::filesystem::path makeUniqueTempDir()
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / ("mc_predicate_loader_test_" + std::to_string(static_cast<long long>(now)));
-    std::filesystem::create_directories(dir);
-    return dir;
-}
 
 void writeTextFile(const std::filesystem::path& path, const std::string& text)
 {
@@ -196,7 +187,7 @@ TEST_F(LootPredicateLoaderTest, LoadJson_MultiplePredicates)
 TEST_F(LootPredicateLoaderTest, LoadFromDirectory_LoadsJsonFiles)
 {
     // 使用 data/<namespace>/predicates/ 目录结构，确保 pathToPredicateId 能正确解析
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
     writeTextFile(tempRoot / "data/minecraft/predicates/gameplay/test_predicate.json", kRandomChancePredicateJson);
 
     LootPredicateManager manager;
@@ -223,7 +214,7 @@ TEST_F(LootPredicateLoaderTest, LoadFromDirectory_NonExistentDirectory)
 
 TEST_F(LootPredicateLoaderTest, LoadFromDirectory_EmptyDirectory)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
 
     LootPredicateManager manager;
     LootPredicateLoader loader(manager);
@@ -239,7 +230,7 @@ TEST_F(LootPredicateLoaderTest, LoadFromDirectory_EmptyDirectory)
 
 TEST_F(LootPredicateLoaderTest, LoadFromDirectory_MultipleFilesWithFailure)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
     writeTextFile(tempRoot / "data/minecraft/predicates/good/valid.json", kRandomChancePredicateJson);
     writeTextFile(tempRoot / "data/minecraft/predicates/bad/invalid.json", kInvalidConditionJson);
 
@@ -279,7 +270,7 @@ TEST_F(LootPredicateLoaderTest, ClearBeforeLoad_DefaultTrue)
 
 TEST_F(LootPredicateLoaderTest, ClearBeforeLoad_DirectoryLoad)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
     writeTextFile(tempRoot / "data/minecraft/predicates/gameplay/test.json", kRandomChancePredicateJson);
 
     LootPredicateManager manager;
@@ -305,7 +296,7 @@ TEST_F(LootPredicateLoaderTest, ClearBeforeLoad_DirectoryLoad)
 
 TEST_F(LootPredicateLoaderTest, ClearBeforeLoad_False)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
     writeTextFile(tempRoot / "data/minecraft/predicates/gameplay/test.json", kRandomChancePredicateJson);
 
     LootPredicateManager manager;
@@ -351,7 +342,7 @@ TEST_F(LootPredicateLoaderTest, ResetResult)
 
     // loadFromDirectory 会填充 m_lastResult，但我们需要先有文件
     // 使用 loadFromDirectory 来测试 resetResult
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
     writeTextFile(tempRoot / "data/minecraft/predicates/test/reset.json", kRandomChancePredicateJson);
 
     auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/predicates").string());
@@ -375,7 +366,7 @@ TEST_F(LootPredicateLoaderTest, ResetResult)
 
 TEST_F(LootPredicateLoaderTest, LoadFromDirectory_ProgressCallback)
 {
-    const auto tempRoot = makeUniqueTempDir();
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_predicate_loader_test");
     writeTextFile(tempRoot / "data/minecraft/predicates/gameplay/a.json", kRandomChancePredicateJson);
     writeTextFile(tempRoot / "data/minecraft/predicates/gameplay/b.json", kSurvivesExplosionPredicateJson);
 
