@@ -254,5 +254,12 @@ TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount)
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 
     static_cast<void>(m_manager->getChunkSync(0, 0));
-    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 1u);
+    // FULL 区块请求会为依赖区域创建多个 SCLM:STRUCTURE_STARTS 累积半径 11 → 23×23=529 个
+    // 生命周期管理器(对齐 Moonrise,见 ChunkPyramid/ChunkTaskScheduler)。m_lifecycleManagers
+    // 含 FULL 目标本块 + 中间状态的依赖邻居,而 m_chunks 仅 FULL 发布块。故
+    // singleChunkLifecycleManagerCount(=lifecycleManagerCount,数 m_lifecycleManagers) >> loadedChunkCount(数
+    // m_chunks)。 此处仅断言"请求至少创建一个 SCLM"(非 fast-path 静默 no-op),并显式记录 SCLM 数 > loadedChunkCount
+    // 的依赖区域语义。
+    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1u);
+    EXPECT_GT(m_manager->singleChunkLifecycleManagerCount(), m_manager->loadedChunkCount());
 }
