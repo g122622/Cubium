@@ -559,21 +559,23 @@ void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     // 保存原始任务指针用于回调
     ITask* taskPtr = task->task.get();
 
-    // 追踪事件
-    MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic,
-        "ExecuteTask",
-        "type",
-        static_cast<u8>(task->task->type()),
-        "description",
-        task->task->description(),
-        "priority",
-        static_cast<i8>(task->priority));
-
     bool success = false;
 
     try {
+        // 追踪事件须置于 try 块内：Perfetto/Tracy 的 RAII zone 在构造/析构时可能抛 C++ 异常
+        // （例如未初始化 backend 下访问全局注册表），若在 try 外抛出会逃逸 catch(...) 致
+        // std::terminate → 进程崩溃。整段任务执行（含追踪）包进 try/catch 是 worker 健壮性兜底。
         static const std::atomic<bool> neverAbort{false};
         const std::atomic<bool>& abortSignal = task->abortSignal ? *task->abortSignal : neverAbort;
+
+        MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic,
+            "ExecuteTask",
+            "type",
+            static_cast<u8>(task->task->type()),
+            "description",
+            task->task->description(),
+            "priority",
+            static_cast<i8>(task->priority));
 
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.WorkerPool.Generic, "TaskExecution", "description", task->task->description());

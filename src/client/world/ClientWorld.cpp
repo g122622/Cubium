@@ -859,6 +859,15 @@ void ClientWorld::shutdownMeshSystem()
         m_meshBuildScheduler.reset();
     }
 
+    // drain 在途反序列化任务：异步 onChunkData 把 lambda 投递到 worker，lambda 捕获 this
+    // 并写 m_pendingDeserializedChunks / m_pendingChunksMutex。本对象析构前必须确保这些
+    // lambda 全部完成，否则 worker 会在 ClientWorld 析构后访问悬垂 this（SEH 0xC0000005，
+    // /EHsc 下 catch(...) 抓不住）。一旦置空 m_computeWorkerPool，destroy() 的
+    // waitForCompletion 守卫即失效，故必须在置空之前在此显式等待。
+    if (m_computeWorkerPool != nullptr) {
+        m_computeWorkerPool->waitForCompletion();
+    }
+
     m_computeWorkerPool = nullptr;
     m_meshDataPool.reset();
     m_meshResultQueue.reset();
