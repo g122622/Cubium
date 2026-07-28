@@ -251,7 +251,10 @@ public:
     void onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension, std::vector<u8> data)
     {
         auto buffer = std::make_shared<std::vector<u8>>(std::move(data));
-        onChunkData(x, z, dimension, buffer->data(), buffer->size(), std::move(buffer));
+        // 先取出裸指针/长度再 move，避免参数求值顺序导致 std::move(buffer) 先执行使 buffer 置空。
+        const u8* dataPtr = buffer->data();
+        const size_t dataSize = buffer->size();
+        onChunkData(x, z, dimension, dataPtr, dataSize, std::move(buffer));
     }
     void onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 

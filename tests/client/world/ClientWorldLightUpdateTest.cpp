@@ -28,6 +28,8 @@
 
 #include <gtest/gtest.h>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "client/world/ClientWorld.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -52,6 +54,25 @@ MeshSchedulerConfig createSchedulerConfig()
     config.behindCancelDotThreshold = -0.4f;
     config.behindCancelDistanceChunks = 0.0f;
     return config;
+}
+
+// 构造能看到区块 (0,0) 的最小视图状态。onChunkData 异步反序列化后需 update() drain 续延队列
+// 才会调度网格任务（_scheduleChunkMeshRebuild），update() 内部还会按 viewState 做可见性剔除。
+MeshSchedulerViewState createViewState(i32 renderDistanceChunks)
+{
+    MeshSchedulerViewState viewState;
+    viewState.cameraPosition = glm::vec3(8.0f, 64.0f, 8.0f);
+    viewState.cameraForward = glm::vec3(0.0f, 0.0f, 1.0f);
+
+    const glm::mat4 projection = glm::perspective(glm::radians(70.0f), 1.0f, 0.1f, 1024.0f);
+    const glm::mat4 view = glm::lookAt(
+        viewState.cameraPosition, viewState.cameraPosition + viewState.cameraForward, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    viewState.viewProjectionMatrix = projection * view;
+    viewState.renderDistanceChunks = renderDistanceChunks;
+    viewState.minBuildHeight = world::MIN_BUILD_HEIGHT;
+    viewState.maxBuildHeight = world::MAX_BUILD_HEIGHT;
+    return viewState;
 }
 
 std::vector<u8> createSerializedChunkData()
@@ -103,7 +124,13 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
     std::vector<u8> chunkBytes = createSerializedChunkData();
     ASSERT_FALSE(chunkBytes.empty());
 
+    // onChunkData 在异步路径下只把反序列化任务投递到 worker 池，不直接调度网格任务。
     world.onChunkData(0, 0, 0, std::move(chunkBytes));
+
+    // 等 worker 完成反序列化（结果进 m_pendingDeserializedChunks 续延队列），
+    // 再 update() drain → _applyChunkData → _scheduleChunkMeshRebuild 真正提交网格任务。
+    m_pool.waitForCompletion();
+    world.update(createViewState(8));
 
     const MeshBuildScheduler* scheduler = world.meshBuildScheduler();
     ASSERT_NE(scheduler, nullptr);
@@ -121,6 +148,8 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
     const std::vector<u8> skyLight = createLightData(0xFF);
     const std::vector<u8> blockLight = createLightData(0x00);
 
+    // 连续 8 次光照更新应走 _requestChunkMeshRebuild：发现 activeMeshTaskId != 0 即早退，
+    // 不得重复提交网格任务（meshRebuildPending 仅置标记，等当前任务完成后由调度器复跑）。
     for (i32 i = 0; i < 8; ++i) {
         world.onLightUpdate(0, 0, 0, skyLight, blockLight, false);
     }
