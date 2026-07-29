@@ -23,6 +23,8 @@
 
 #include "server/network/EnchantmentNbtBuilder.hpp"
 
+#include "common/entity/tag/EntityTypeTag.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTag.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -31,6 +33,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
+#include "common/world/block/BlockTags.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -41,6 +44,8 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_set>
+#include <vector>
 
 namespace mc::server::net {
 
@@ -200,6 +205,209 @@ std::vector<std::string> flattenHolderSet(const mc::resource::DataPackRepository
     return result;
 }
 
+/// 把 "#minecraft:soul_speed_blocks" → "minecraft/tags/block/soul_speed_blocks.json"
+// 同 enchantmentTagRefToResourcePath：不含 "data/" 前缀（FolderResourcePack 预置）。
+std::string blockTagRefToResourcePath(std::string_view tagRef)
+{
+    std::string_view ref = tagRef;
+    if (!ref.empty() && ref[0] == '#') {
+        ref = ref.substr(1);
+    }
+    const auto colon = ref.find(':');
+    std::string ns = (colon == std::string_view::npos) ? std::string("minecraft") : std::string(ref.substr(0, colon));
+    std::string path = (colon == std::string_view::npos) ? std::string(ref) : std::string(ref.substr(colon + 1));
+    return ns + "/tags/block/" + path + ".json";
+}
+
+/// 直读 datapack 的 BLOCK 标签 JSON，取 values 数组中的纯方块名。
+/// vanilla 3 个所需 BLOCK 标签（lightning_rods/soul_speed_blocks/blocks_wind_charge_explosions）均仅含
+/// 纯名字无嵌套 #（已核对）；遇嵌套 # 记 warn 跳过（完整 BLOCK 标签加载器不在本任务范围）。
+std::vector<std::string> flattenBlockTagToNames(const mc::resource::DataPackRepository& repo, const std::string& tagRef)
+{
+    std::vector<std::string> result;
+    const std::string tagPath = blockTagRefToResourcePath(tagRef);
+    const std::string text = readDataPackText(repo, tagPath);
+    if (text.empty()) {
+        spdlog::warn("EnchantmentNbtBuilder: block tag {} datapack file missing ({})", tagRef, tagPath);
+        return result;
+    }
+    try {
+        const auto j = nlohmann::json::parse(text);
+        if (j.contains("values") && j["values"].is_array()) {
+            for (const auto& v : j["values"]) {
+                if (v.is_string()) {
+                    const std::string s = v.get<std::string>();
+                    if (!s.empty() && s[0] == '#') {
+                        spdlog::warn("EnchantmentNbtBuilder: nested tag ref {} in {} not resolved", s, tagPath);
+                        continue;
+                    }
+                    result.push_back(s);
+                }
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        spdlog::warn("EnchantmentNbtBuilder: parse block tag json {} failed: {}", tagPath, e.what());
+    }
+    return result;
+}
+
+/// effects 树内静态注册表 #tag 引用所属注册表的提示。
+///
+/// effects 谓词/效果 HolderSet 字段引用 BLOCK/ITEM/ENTITY_TYPE 标签（均静态注册表，客户端无法
+/// lookupTag）。所属注册表由**消费字段的 key** 决定（非标签名）：predicate.type→ENTITY_TYPE，
+/// predicate.blocks / effect.immune_blocks→BLOCK，predicate.items→ITEM（见 Java
+/// EntityTypePredicate/BlockPredicate/ItemPredicate/ExplodeEffect 的 homogeneousList 参数）。
+///
+/// 关键：标签名可能跨注册表撞名——vanilla `#minecraft:arrows` 同时是 ITEM 标签（arrow/tipped_arrow/
+/// spectral_arrow）与 ENTITY_TYPE 标签（arrow/spectral_arrow）。若不按 key 区分而盲目先查 ItemTags，
+/// 会把 ITEM 列表（含 tipped_arrow）发给 predicate.type（ENTITY_TYPE HolderSet），客户端按名解码
+/// tipped_arrow 在 ENTITY_TYPE 注册表中不存在→"Failed to parse value"（disconnect-...15.46.43）。
+/// 故必须按消费字段 key 选定注册表，不能按标签名猜。
+enum class EffectsTagRegistry {
+    Unknown, ///< 未知字段 key（按安全顺序回退：ENTITY_TYPE→BLOCK→ITEM，绝不让 ITEM 优先）。
+    Item,
+    EntityType,
+    Block,
+};
+
+/// 把 key 名映射为注册表提示（仅对已知 HolderSet 字段 key 命中，其余返回 Unknown）。
+EffectsTagRegistry registryHintForKey(std::string_view key)
+{
+    if (key == "type") {
+        return EffectsTagRegistry::EntityType; // EntityTypePredicate.type
+    }
+    if (key == "blocks" || key == "immune_blocks") {
+        return EffectsTagRegistry::Block; // BlockPredicate.blocks / ExplodeEffect.immune_blocks
+    }
+    if (key == "items") {
+        return EffectsTagRegistry::Item; // ItemPredicate.items
+    }
+    return EffectsTagRegistry::Unknown;
+}
+
+/// 把 effects 树内的静态注册表 #tag 引用展平为元素名列表（HolderSetCodec 名字列表形式）。
+///
+/// effects 谓词/效果字段引用 BLOCK/ITEM/ENTITY_TYPE 标签（均静态注册表，客户端无法 lookupTag）。
+/// 三类底层全 HolderSetCodec，#tag 走 Either.left→lookupTag 会失败；展平为名字列表走
+/// Either.right→HolderSet.direct→RegistryFixedCodec 按 name 解码，无 lookupTag、无未绑定 Named。
+///
+/// registryHint 指定标签所属注册表（由消费字段 key 决定，见 EffectsTagRegistry）。命中时**仅**从
+/// 该注册表解析，避免跨注册表撞名（如 #arrows 同名 ITEM/ENTITY_TYPE 标签）误选。Unknown 时按安全
+/// 顺序 ENTITY_TYPE→BLOCK→ITEM 回退（绝不让 ITEM 优先，因 predicate.type 字段最易与 ITEM 撞名）。
+/// 全失败返回空（调用方保留原 # 串 + 记 warn，让客户端报错定位）。
+std::vector<std::string> flattenTagToNames(
+    const mc::resource::DataPackRepository& repo, const std::string& tagRef, EffectsTagRegistry registryHint)
+{
+    std::vector<std::string> result;
+    if (tagRef.empty() || tagRef[0] != '#') {
+        return result; // 非 #tag 引用，不处理
+    }
+    const std::string refStr = tagRef.substr(1);
+    const mc::ResourceLocation loc = mc::ResourceLocation::parse(refStr);
+
+    // 按注册表尝试顺序：hint 已知则只查该注册表；Unknown 按 ENTITY_TYPE→BLOCK→ITEM 安全回退
+    // （不让 ITEM 优先，规避 #arrows 跨注册表撞名）。
+    const bool tryItem = (registryHint == EffectsTagRegistry::Item || registryHint == EffectsTagRegistry::Unknown);
+    const bool tryEntity =
+        (registryHint == EffectsTagRegistry::EntityType || registryHint == EffectsTagRegistry::Unknown);
+    const bool tryBlock = (registryHint == EffectsTagRegistry::Block || registryHint == EffectsTagRegistry::Unknown);
+
+    // ENTITY_TYPE 标签（启动期 EntityTypeTagLoader 已递归解析嵌套 #）
+    if (tryEntity) {
+        if (auto* entityTag = mc::EntityTypeTags::getTag(loc)) {
+            for (const mc::ResourceLocation& id : entityTag->getEntityTypeIds()) {
+                result.push_back(id.toString());
+            }
+            return result;
+        }
+    }
+    // BLOCK 标签（BlockTags::initialize 硬编码的，如 lightning_rods）
+    if (tryBlock) {
+        if (auto* blockTag = mc::BlockTags::getTag(loc)) {
+            for (const mc::ResourceLocation& id : blockTag->getBlockIds()) {
+                result.push_back(id.toString());
+            }
+            return result;
+        }
+        // 回退：直读 BLOCK 标签 JSON（覆盖未硬编码的 soul_speed_blocks/blocks_wind_charge_explosions）
+        auto blockNames = flattenBlockTagToNames(repo, tagRef);
+        if (!blockNames.empty()) {
+            return blockNames;
+        }
+    }
+    // ITEM 标签（启动期 ItemTagLoader 已递归解析嵌套 #）
+    if (tryItem) {
+        if (auto* itemTag = mc::item::tag::ItemTags::getTag(loc)) {
+            for (const mc::Item* item : itemTag->getItems()) {
+                result.push_back(item->itemLocation().toString());
+            }
+            return result;
+        }
+    }
+
+    spdlog::warn(
+        "EnchantmentNbtBuilder: effects #tag {} not resolved (hint={})", tagRef, static_cast<int>(registryHint));
+    return result;
+}
+
+/// 递归遍历 effects JSON 子树，原地展平所有静态注册表 #tag 引用为元素名列表。
+///
+/// 判据：值以 '#' 开头的字符串即静态注册表 HolderSet 标签引用（effect type/sound/entity/attribute
+/// 等非标签字段用纯 ResourceLocation 串，从不以 # 开头，自然排除）。所属注册表由**父 key** 决定
+/// （type→ENTITY_TYPE，blocks/immune_blocks→BLOCK，items→ITEM），避免跨注册表撞名误选。展平后由
+/// jsonToNbt 把名字数组转为 string_list_tag（HolderSetCodec 名字列表线格式）。
+///
+/// 仅作用于 effects 子树——顶层 supported_items/primary_items/exclusive_set（含 networkable ENCHANTMENT
+/// 标签）由现有 flattenHolderSet 处理，本函数不触及。visited 防标签自环（vanilla 无，兜底）。
+void flattenEffectsTagRefsInPlace(const mc::resource::DataPackRepository& repo,
+    nlohmann::json& node,
+    EffectsTagRegistry parentHint,
+    std::unordered_set<std::string>& visited)
+{
+    if (node.is_object()) {
+        // 先收集 key（迭代中改 value 不触发增删 key，但用 key 索引重赋值最稳）。
+        std::vector<std::string> keys;
+        keys.reserve(node.size());
+        for (auto& [key, value] : node.items()) {
+            keys.push_back(key);
+        }
+        for (const auto& key : keys) {
+            auto& value = node[key];
+            // 子节点的注册表提示由当前 key 决定（消费字段 key → 注册表）。
+            const EffectsTagRegistry childHint = registryHintForKey(key);
+            if (value.is_string()) {
+                const std::string s = value.get<std::string>();
+                if (!s.empty() && s[0] == '#') {
+                    if (visited.count(s) != 0) {
+                        spdlog::warn("EnchantmentNbtBuilder: tag ref cycle detected at {}, skipping", s);
+                        continue;
+                    }
+                    visited.insert(s);
+                    auto names = flattenTagToNames(repo, s, childHint);
+                    visited.erase(s);
+                    if (!names.empty()) {
+                        nlohmann::json arr = nlohmann::json::array();
+                        for (auto& name : names) {
+                            arr.push_back(std::move(name));
+                        }
+                        value = std::move(arr);
+                    } else {
+                        spdlog::warn("EnchantmentNbtBuilder: effects #tag {} flatten failed, leaving as-is", s);
+                    }
+                }
+            } else {
+                flattenEffectsTagRefsInPlace(repo, value, childHint, visited);
+            }
+        }
+    } else if (node.is_array()) {
+        for (auto& elem : node) {
+            // 数组元素继承父 hint（如 terms[]/predicate 链下，子元素仍属同一注册表上下文）。
+            flattenEffectsTagRefsInPlace(repo, elem, parentHint, visited);
+        }
+    }
+}
+
 /// 构造字符串列表 tag（HolderSet 名字列表 / slots 列表的线格式）。
 std::unique_ptr<mc::nbt::tags::tag_list_tag> makeStringList(const std::vector<std::string>& names)
 {
@@ -300,10 +508,14 @@ std::optional<std::vector<u8>> buildEnchantmentEntryData(
         }
     }
 
-    // effects 树：jsonToNbt 透传。该树无 enchantment/dialog HolderSet #tag 引用（仅含
-    // block/damage_type 谓词标签 TagPredicate.id，存为 TagKey 运行时判定，不创建未绑定
-    // Named）。Java FloatCodec/NumberProvider 接受任意数值 tag，类型安全。
+    // effects 树：先把静态注册表 #tag 引用（predicate.type/blocks/items、effect.immune_blocks 等
+    // HolderSetCodec 字段）原地展平为名字列表，再 jsonToNbt 透传。BLOCK/ITEM/ENTITY_TYPE 标签客户端
+    // 无法 lookupTag（静态注册表），不展平会被 Enchantment.DIRECT_CODEC 拒收（"Failed to parse value"，
+    // disconnect-2026-07-29_14.13.16-client.txt）。展平后名字数组 → string_list_tag（HolderSetCodec
+    // 名字列表线格式），effects 数值子树仍走 jsonToNbt（Java FloatCodec/NumberProvider 接受任意数值 tag）。
     if (j.contains("effects")) {
+        std::unordered_set<std::string> visited;
+        flattenEffectsTagRefsInPlace(repo, j["effects"], EffectsTagRegistry::Unknown, visited);
         auto effectsTag = mc::nbt::jsonToNbt(j["effects"]);
         if (effectsTag) {
             root->value.emplace("effects", std::move(effectsTag));

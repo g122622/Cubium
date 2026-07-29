@@ -42,6 +42,8 @@
 #include "server/network/EnchantmentNbtBuilder.hpp"
 
 #include "common/TempDirHelper.hpp"
+#include "common/entity/tag/EntityTypeTagLoader.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/buffer/NbtIo.hpp"
@@ -100,6 +102,8 @@ protected:
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
+        // effects 谓词 type 字段走 EntityTypeTags::getTag 展平（见 BaneOfArthropods... 测试）。
+        mc::EntityTypeTags::initialize();
     }
 
     // 构造测试 datapack：tempDir/data/{pack.mcmeta, minecraft/enchantment/sharpness.json,
@@ -145,11 +149,76 @@ protected:
             "data/minecraft/tags/enchantment/exclusive_set/damage.json",
             R"({"values": ["minecraft:sharpness", "minecraft:smite", "minecraft:bane_of_arthropods"]})");
 
+        // bane_of_arthropods：effects.requirements.predicate.type 引用 ENTITY_TYPE 标签 #arrows，
+        // 验证 effects 树内 type 字段的 #tag 展平（走 EntityTypeTags::getTag 路径）。
+        writeTextFile(dir, "data/minecraft/enchantment/bane_of_arthropods.json", R"({
+            "anvil_cost": 2,
+            "description": {"translate": "enchantment.minecraft.bane_of_arthropods"},
+            "effects": {
+                "minecraft:damage": [
+                    {"effect": {"type": "minecraft:add", "value": {"type": "minecraft:linear", "base": 2.5, "per_level_above_first": 2.5}},
+                     "requirements": {"condition": "minecraft:entity_properties", "entity": "this", "predicate": {"type": "#minecraft:arrows"}}}
+                ]
+            },
+            "exclusive_set": "#minecraft:exclusive_set/damage",
+            "max_cost": {"base": 25, "per_level_above_first": 8},
+            "max_level": 5,
+            "min_cost": {"base": 5, "per_level_above_first": 8},
+            "primary_items": "#minecraft:enchantable/melee_weapon",
+            "slots": ["mainhand"],
+            "supported_items": "#minecraft:enchantable/sharp_weapon",
+            "weight": 5
+        })");
+
+        // wind_burst：effect.immune_blocks 引用 BLOCK 标签 #blocks_wind_charge_explosions（顶层效果
+        // HolderSet 字段，非谓词），验证直读 BLOCK 标签 JSON 展平路径。supported_items 复用已加载的
+        // ITEM 标签 sharp_weapon（避免空 supported_items 噪声 warn）。
+        writeTextFile(dir, "data/minecraft/enchantment/wind_burst.json", R"({
+            "anvil_cost": 4,
+            "description": {"translate": "enchantment.minecraft.wind_burst"},
+            "effects": {
+                "minecraft:post_attack": [
+                    {"affected": "attacker",
+                     "effect": {"type": "minecraft:explode", "immune_blocks": "#minecraft:blocks_wind_charge_explosions", "radius": 3.5},
+                     "enchanted": "attacker",
+                     "requirements": {"condition": "minecraft:entity_properties", "entity": "direct_attacker", "predicate": {"flags": {"is_flying": false}, "movement": {"fall_distance": {"min": 1.5}}}}}
+                ]
+            },
+            "max_cost": {"base": 65, "per_level_above_first": 9},
+            "max_level": 3,
+            "min_cost": {"base": 15, "per_level_above_first": 9},
+            "slots": ["mainhand"],
+            "supported_items": "#minecraft:enchantable/sharp_weapon",
+            "weight": 2
+        })");
+
+        // BLOCK 标签（wind_burst.immune_blocks 用；纯名字无嵌套 #，走直读 JSON 路径）。
+        writeTextFile(dir,
+            "data/minecraft/tags/block/blocks_wind_charge_explosions.json",
+            R"({"values": ["minecraft:barrier", "minecraft:bedrock"]})");
+
         return dir;
+    }
+
+    // 用与临时 datapack 相同的 ENTITY_TYPE 标签内容构造 InMemoryResourcePack，加载进 EntityTypeTags
+    // （bane_of_arthropods 的 effects predicate.type:#arrows 走 EntityTypeTags::getTag 解析）。
+    static void loadEntityTypeTagsIntoRegistry()
+    {
+        auto pack = std::make_unique<mc::InMemoryResourcePack>("ench_nbt_et_pack");
+        pack->addServerDataResource(
+            "minecraft/tags/entity_type/arrows.json", R"({"values": ["minecraft:arrow", "minecraft:spectral_arrow"]})");
+        auto r = mc::EntityTypeTagLoader::loadFromResourcePack(*pack);
+        ASSERT_TRUE(r.success()) << "EntityTypeTagLoader::loadFromResourcePack failed";
     }
 
     // 用与临时 datapack 相同的 ITEM 标签内容构造 InMemoryResourcePack，并加载进 ItemTags
     // （buildEnchantmentRegistryEntriesUncached 的 supported_items 走 ItemTags::getTag 解析）。
+    //
+    // 同时注入一个【与 ENTITY_TYPE 标签同名】的 ITEM 标签 #minecraft:arrows（含 tipped_arrow，对齐
+    // vanilla item/arrows.json）。这是 effects #tag 跨注册表撞名的回归桩：bane_of_arthropods 的
+    // predicate.type:#arrows 须按消费字段 key=type 走 ENTITY_TYPE（arrow/spectral_arrow），**不能**
+    // 误选 ITEM 列表（含 tipped_arrow）——后者会让客户端按 ENTITY_TYPE 名解码 tipped_arrow 失败
+    // （disconnect-2026-07-29_15.46.43-client.txt 的 power/punch "Failed to parse value" 根因）。
     static void loadItemTagsIntoRegistry()
     {
         auto pack = std::make_unique<mc::InMemoryResourcePack>("ench_nbt_test_pack");
@@ -157,6 +226,9 @@ protected:
             R"({"values": ["minecraft:diamond_sword", "minecraft:netherite_sword"]})");
         pack->addServerDataResource(
             "minecraft/tags/item/enchantable/melee_weapon.json", R"({"values": ["minecraft:diamond_sword"]})");
+        // 跨注册表撞名桩：ITEM #arrows 含 tipped_arrow（vanilla item/arrows.json 实态）。
+        pack->addServerDataResource("minecraft/tags/item/arrows.json",
+            R"({"values": ["minecraft:arrow", "minecraft:tipped_arrow", "minecraft:spectral_arrow"]})");
         auto r = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
         ASSERT_TRUE(r.success()) << "ItemTagLoader::loadFromResourcePack failed";
     }
@@ -309,4 +381,116 @@ TEST_F(EnchantmentNbtBuilderTest, MissingEnchantmentFileYieldsNullopt)
     const auto* sharpness = findEntry(entries, "minecraft:sharpness");
     ASSERT_NE(sharpness, nullptr);
     EXPECT_TRUE(sharpness->data.has_value());
+}
+
+// effects 树内 predicate.type 的 ENTITY_TYPE #tag 展平（走 EntityTypeTags::getTag 路径）。
+// bane_of_arthropods 的 requirements.predicate.type:"#minecraft:arrows" 须展平为名字列表
+// ["minecraft:arrow","minecraft:spectral_arrow"]，无残留 #。验证 effects 递归展平命中谓词 type 字段。
+TEST_F(EnchantmentNbtBuilderTest, BaneOfArthropodsPredicateTypeFlattened)
+{
+    loadItemTagsIntoRegistry();
+    loadEntityTypeTagsIntoRegistry();
+
+    const auto dir = buildTestDatapack();
+    mc::resource::DataPackRepository repo;
+    ASSERT_TRUE(repo.addPack(dir, true, 0).success());
+
+    const auto entries = buildEnchantmentRegistryEntriesUncached(repo);
+    mc::test::removeTestDir(dir);
+
+    const auto* boa = findEntry(entries, "minecraft:bane_of_arthropods");
+    ASSERT_NE(boa, nullptr);
+    ASSERT_TRUE(boa->data.has_value()) << "bane_of_arthropods 应有内联 NBT";
+    auto root = parseRootNbtBytes(*boa->data);
+    ASSERT_NE(root, nullptr);
+
+    // effects."minecraft:damage"[0].requirements.predicate.type 须为 string list（非 # 串）。
+    ASSERT_TRUE(root->value.count("effects"));
+    auto& effects = dynamic_cast<compound_tag&>(*root->value.at("effects"));
+    ASSERT_TRUE(effects.value.count("minecraft:damage"));
+    auto& damageList = dynamic_cast<list_tag&>(*effects.value.at("minecraft:damage"));
+    ASSERT_GE(damageList.size(), 1u);
+    // list_tag::operator[] 按值返回 unique_ptr 副本，须先具名捕获再取引用（见 WindBurst 测试注释）。
+    auto dmgElem0 = damageList[0];
+    auto& entry0 = dynamic_cast<compound_tag&>(*dmgElem0);
+    ASSERT_TRUE(entry0.value.count("requirements"));
+    auto& req = dynamic_cast<compound_tag&>(*entry0.value.at("requirements"));
+    ASSERT_TRUE(req.value.count("predicate"));
+    auto& pred = dynamic_cast<compound_tag&>(*req.value.at("predicate"));
+    ASSERT_TRUE(pred.value.count("type"));
+    // type 须已展平为 string list（id()==List，element_id()==String），非残留 # 字符串。
+    auto& typeField = *pred.value.at("type");
+    EXPECT_EQ(typeField.id(), mc::nbt::TagId::List) << "predicate.type 应展平为列表（非 # 字符串）";
+    auto& typeList = dynamic_cast<list_tag&>(typeField);
+    EXPECT_EQ(typeList.element_id(), mc::nbt::TagId::String);
+    EXPECT_EQ(typeList.size(), 2u) << "arrows ENTITY_TYPE 标签含 arrow + spectral_arrow（非 ITEM 标签的 3 个）";
+    // 收集名字，验证含 minecraft:arrow 且无 # 残留；且【不含 tipped_arrow】——后者是同名 ITEM 标签
+    // 的成员，若误选 ITEM 列表会混入，致客户端按 ENTITY_TYPE 名解码失败（撞名回归断言）。
+    std::vector<std::string> names;
+    for (usize i = 0; i < typeList.size(); ++i) {
+        names.push_back(dynamic_cast<string_tag&>(*typeList[i]).value);
+    }
+    bool hasArrow = false;
+    for (const auto& n : names) {
+        EXPECT_EQ(n.find('#'), std::string::npos) << "展平后不应残留 # tag 引用: " << n;
+        EXPECT_NE(n, "minecraft:tipped_arrow") << "tipped_arrow 是 ITEM 标签成员，不应出现在 ENTITY_TYPE 列表";
+        if (n == "minecraft:arrow") {
+            hasArrow = true;
+        }
+    }
+    EXPECT_TRUE(hasArrow) << "predicate.type 应含 minecraft:arrow";
+}
+
+// effects 树内 effect.immune_blocks 的 BLOCK #tag 展平（走直读 BLOCK 标签 JSON 路径）。
+// wind_burst 的 effect.immune_blocks:"#minecraft:blocks_wind_charge_explosions" 须展平为名字列表
+// ["minecraft:barrier","minecraft:bedrock"]，无残留 #。验证 effects 递归展平命中【顶层效果 HolderSet
+// 字段】（immune_blocks 非 type/blocks/items 谓词字段，按 # 开头值盲展平判据覆盖）。
+TEST_F(EnchantmentNbtBuilderTest, WindBurstImmuneBlocksFlattened)
+{
+    loadItemTagsIntoRegistry();
+
+    const auto dir = buildTestDatapack();
+    mc::resource::DataPackRepository repo;
+    ASSERT_TRUE(repo.addPack(dir, true, 0).success());
+
+    const auto entries = buildEnchantmentRegistryEntriesUncached(repo);
+    mc::test::removeTestDir(dir);
+
+    const auto* wb = findEntry(entries, "minecraft:wind_burst");
+    ASSERT_NE(wb, nullptr);
+    ASSERT_TRUE(wb->data.has_value()) << "wind_burst 应有内联 NBT";
+    auto root = parseRootNbtBytes(*wb->data);
+    ASSERT_NE(root, nullptr);
+
+    // effects."minecraft:post_attack"[0].effect.immune_blocks 须为 string list（非 # 串）。
+    ASSERT_TRUE(root->value.count("effects"));
+    auto& effects = dynamic_cast<compound_tag&>(*root->value.at("effects"));
+    ASSERT_TRUE(effects.value.count("minecraft:post_attack"));
+    auto& paList = dynamic_cast<list_tag&>(*effects.value.at("minecraft:post_attack"));
+    ASSERT_GE(paList.size(), 1u);
+    // list_tag::operator[] 返回 std::unique_ptr<tag>（按值副本），须先捕获到具名变量再取引用，
+    // 否则 dynamic_cast 绑定到临时 unique_ptr 的对象，表达式结束即销毁→悬垂引用 UB。
+    auto elem0 = paList[0];
+    auto& entry0 = dynamic_cast<compound_tag&>(*elem0);
+    ASSERT_TRUE(entry0.value.count("effect"));
+    auto& effect = dynamic_cast<compound_tag&>(*entry0.value.at("effect"));
+    ASSERT_TRUE(effect.value.count("immune_blocks")) << "effect 应含 immune_blocks 字段";
+    // immune_blocks 须已展平为 string list（id()==List，element_id()==String），非残留 # 字符串。
+    auto& ibField = *effect.value.at("immune_blocks");
+    EXPECT_EQ(ibField.id(), mc::nbt::TagId::List) << "immune_blocks 应展平为列表（非 # 字符串）";
+    auto& ibList = dynamic_cast<list_tag&>(ibField);
+    EXPECT_EQ(ibList.element_id(), mc::nbt::TagId::String);
+    EXPECT_EQ(ibList.size(), 2u) << "blocks_wind_charge_explosions 含 barrier + bedrock";
+    std::vector<std::string> names;
+    for (usize i = 0; i < ibList.size(); ++i) {
+        names.push_back(dynamic_cast<string_tag&>(*ibList[i]).value);
+    }
+    bool hasBarrier = false;
+    for (const auto& n : names) {
+        EXPECT_EQ(n.find('#'), std::string::npos) << "展平后不应残留 # tag 引用: " << n;
+        if (n == "minecraft:barrier") {
+            hasBarrier = true;
+        }
+    }
+    EXPECT_TRUE(hasBarrier) << "immune_blocks 应含 minecraft:barrier";
 }
