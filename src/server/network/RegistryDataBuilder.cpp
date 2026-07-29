@@ -69,8 +69,16 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     registries.push_back(makeKnownRegistry("minecraft:dimension_type",
         {"minecraft:overworld", "minecraft:overworld_caves", "minecraft:the_nether", "minecraft:the_end"}));
 
-    // 2. biome（worldgen/biome，65）。
-    registries.push_back(makeKnownRegistry("minecraft:biome",
+    // 2. biome（worldgen/biome，65）。registryKey 须为 vanilla Registries.BIOME 的完整 key
+    // "minecraft:worldgen/biome"（Registries.java:251 createRegistryKey("worldgen/biome")）。
+    // 客户端 RegistryDataLoader.loadContentsFromNetwork 按 SYNCHRONIZED_REGISTRIES 里 biome
+    // 的 key（即 worldgen/biome）去 RegistryDataCollector 的 map 查收到的 registry；若发
+    // "minecraft:biome" 则 key 不匹配→biome 注册表整个被跳过、从不填充→客户端 biome 注册表
+    // 为空→Play 阶段构造 ClientLevel 时 ClientChunkCache 硬编码 getOrThrow(Biomes.PLAINS) 抛
+    // "Missing element ResourceKey[minecraft:worldgen/biome / minecraft:plains]"
+    // （disconnect-2026-07-29_16.41.16-client.txt）。23 个同步注册表里仅 biome 带 worldgen/
+    // 前缀，其余 22 个 vanilla key 均无此前缀。
+    registries.push_back(makeKnownRegistry("minecraft:worldgen/biome",
         {"minecraft:badlands",
             "minecraft:bamboo_jungle",
             "minecraft:basalt_deltas",

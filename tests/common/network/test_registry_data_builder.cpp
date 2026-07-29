@@ -57,7 +57,7 @@ TEST(RegistryDataBuilder, SendsAllSynchronizedRegistries)
     // 对齐 Java 1.21.11 RegistryDataLoader.SYNCHRONIZED_REGISTRIES：23 个动态注册表。
     ASSERT_EQ(registries.size(), 23u);
     EXPECT_EQ(registries[0].registryKey, "minecraft:dimension_type");
-    EXPECT_EQ(registries[1].registryKey, "minecraft:biome");
+    EXPECT_EQ(registries[1].registryKey, "minecraft:worldgen/biome");
     // 关键注册表存在性（enchantment/dialog/timeline 是本任务修复目标）。
     EXPECT_TRUE(hasRegistry(registries, "minecraft:enchantment"));
     EXPECT_TRUE(hasRegistry(registries, "minecraft:dialog"));
