@@ -527,6 +527,13 @@ public:
         return {"Player", "0123", "@p", "@a", "@e", "@r", "@s"};
     }
 
+    /// 序列化 entity 参数的 properties（供 clientbound/minecraft:commands 二进制编码）。
+    /// 对齐 Java 1.21.11 minecraft:entity ArgumentType 的 flags 字节：bit0=single, bit1=playersOnly。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"single", isSingle()}, {"playersOnly", isPlayersOnly()}};
+    }
+
     [[nodiscard]] static std::shared_ptr<EntityArgumentType> entity()
     {
         return std::make_shared<EntityArgumentType>(Mode::SingleEntity);

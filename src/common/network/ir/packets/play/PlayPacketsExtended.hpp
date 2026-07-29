@@ -809,10 +809,10 @@ struct Interact {
  * @brief Commands（S→C，id=16，opaque）
  *
  * List<Node> + VarInt rootIndex。Node 树（flags/children/redirect/按 type 分发的
- * Literal/Argument stub）整体 opaque 透传：服务端 sendCommandTreePacket 下发
- * m_commandRegistry->getCommandTreeJson() 的 JSON 字节，客户端 visitor 仅 warn 跳过
- * （我方命令系统本地驱动，不依赖服务端下发）。真 Java 互通需完整 Node 树 codec，
- * 属独立子项，不影响我方互通。
+ * Literal/Argument stub）由服务端 sendCommandTreePacket 经
+ * mc::network::java::codecs::encodeCommandTree(snapshot) 编码为 1.21.11 二进制
+ * CommandNode 树字节后填入 payload 透传（见 CommandTreeEncoder.hpp）。IR 层保持
+ * opaque 是项目既有模式（复杂嵌套结构独立子项）；codec 层仅做 opaque 透传。
  */
 struct Commands {
     std::vector<u8> payload; // opaque

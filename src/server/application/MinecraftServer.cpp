@@ -56,6 +56,7 @@
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/backend/java/codecs/CommandTreeEncoder.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
@@ -3185,11 +3186,18 @@ void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
 
     MC_ASSERT_RELEASE(m_commandRegistry != nullptr);
 
-    // 1.21.11 Commands：命令树 NBT。当前以 registry 产出的 JSON 文本字节透传。
-    // TODO(Phase6): 对齐 1.21.11 ClientboundCommandsPacket 的 CommandNode[] NBT 编码。
+    // 1.21.11 ClientboundCommandsPacket：二进制 CommandNode 树。对齐 Java 线格式
+    // （VarInt(nodeCount) + nodes + VarInt(rootIndex)，每节点 flags/children/redirect/stub）。
+    // 旧实现把命令树 JSON 文本当 opaque payload 透传，真 Java 客户端按二进制解码必崩
+    // （disconnect-2026-07-29_17.24.34 "Non [a-z0-9_.-] character in namespace"）。
     mc::network::ir::play::Commands pkt;
-    const std::string& json = m_commandRegistry->getCommandTreeJson();
-    pkt.payload = std::vector<u8>(json.begin(), json.end());
+    auto snapshot = m_commandRegistry->getCommandTreeSnapshot();
+    auto encoded = mc::network::java::codecs::encodeCommandTree(snapshot);
+    if (!encoded.success()) {
+        spdlog::error("CommandTreeEncoder: failed to encode command tree: {}", encoded.error().toString());
+        return;
+    }
+    pkt.payload = std::move(encoded.value());
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,

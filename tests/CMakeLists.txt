@@ -872,6 +872,7 @@ add_executable(mc_tests
     server/test_save_player_runtime_state.cpp
     server/BlockDropHandlerTest.cpp
     server/network/test_enchantment_nbt_builder.cpp
+    server/network/test_command_tree_encoder.cpp
     server/BlockInteractionManagerTest.cpp
     server/interaction/SignCommandHelperTest.cpp
     server/interaction/MiningManagerCallbackTest.cpp

@@ -52,6 +52,16 @@ namespace {
         snapshot.redirect = json.at("redirect").get<u32>();
     }
 
+    // 二进制 CommandNode 编码字段（向后兼容：缺失时取默认值）。
+    if (json.contains("argumentNetworkId") && !json.at("argumentNetworkId").is_null()) {
+        snapshot.argumentNetworkId = json.at("argumentNetworkId").get<i32>();
+    }
+    snapshot.argumentProperties = json.value("argumentProperties", nlohmann::json::object());
+    if (json.contains("suggestionProviderId") && !json.at("suggestionProviderId").is_null()) {
+        snapshot.suggestionProviderId = json.at("suggestionProviderId").get<std::string>();
+    }
+    snapshot.restricted = json.value("restricted", false);
+
     return snapshot;
 }
 
@@ -78,6 +88,13 @@ nlohmann::json CommandTreeSnapshot::toJson() const
         nodeJson["executable"] = node.executable;
         nodeJson["suggestionKind"] = detail::toString(node.suggestionKind);
         nodeJson["suggestionCandidates"] = node.suggestionCandidates;
+        // 二进制 CommandNode 编码字段。
+        nodeJson["argumentNetworkId"] =
+            node.argumentNetworkId ? nlohmann::json(*node.argumentNetworkId) : nlohmann::json(nullptr);
+        nodeJson["argumentProperties"] = node.argumentProperties;
+        nodeJson["suggestionProviderId"] =
+            node.suggestionProviderId ? nlohmann::json(*node.suggestionProviderId) : nlohmann::json(nullptr);
+        nodeJson["restricted"] = node.restricted;
         json["nodes"].push_back(std::move(nodeJson));
     }
 

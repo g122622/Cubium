@@ -29,7 +29,9 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include <initializer_list>
+#include <optional>
 #include <queue>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -64,6 +66,20 @@ struct CommandTreeNodeSnapshot {
     bool executable = false;
     CommandTreeSuggestionKind suggestionKind = CommandTreeSuggestionKind::None;
     std::vector<std::string> suggestionCandidates;
+
+    // ---- 以下字段供 clientbound/minecraft:commands 二进制 CommandNode 编码使用 ----
+    // ArgumentType 在 Java 1.21.11 COMMAND_ARGUMENT_TYPE 注册表中的数值 id（ArgumentTypeInfos.bootstrap
+    // 注册顺序）。仅 Argument 节点有值；未知 typeName（如 "enum"）为 nullopt，编码器据此报错。
+    std::optional<i32> argumentNetworkId;
+    // ArgumentType 的类型特定 properties 中间表示（JSON）。来自 ArgumentType::serializeMetadata()
+    // （Integer/Float 的 min/max、String 的 mode、Time 的 min、Entity 的 single/playersOnly）。
+    // 编码器按 argumentNetworkId 分发解析此 JSON 写二进制。
+    nlohmann::json argumentProperties = nlohmann::json::object();
+    // 自定义建议提供器的 Java Identifier（如 "minecraft:ask_server"）。仅 hasCustomSuggestions 节点有值。
+    // vanilla SuggestionProviders 对未注册 provider 默认返回 minecraft:ask_server。
+    std::optional<std::string> suggestionProviderId;
+    // 1.21.x flags bit5 restricted。项目无此信息，保守 false。
+    bool restricted = false;
 };
 
 /**
@@ -240,6 +256,48 @@ template <typename NodeT>
     return CommandTreeSuggestionKind::None;
 }
 
+/// ArgumentType 内部 typeName → Java 1.21.11 COMMAND_ARGUMENT_TYPE 数值注册表 id
+/// （ArgumentTypeInfos.bootstrap 注册顺序，0-based）。对齐 vanilla ClientboundCommandsPacket
+/// serializeCap 写 VarInt(numericId)（非 Identifier 字符串）。未知 typeName（如 "enum"）返回
+/// nullopt，编码器据此报错。本项目命令注册实际用到的 typeName 全在此表内（enum 不使用）。
+[[nodiscard]] inline std::optional<i32> argumentNetworkIdForTypeName(std::string_view typeName)
+{
+    static const std::unordered_map<std::string_view, i32> kMap = {
+        {"bool", 0},
+        {"float", 1},
+        {"integer", 3},
+        {"word", 5},
+        {"phrase", 5},
+        {"greedy_string", 5},
+        {"string", 5},
+        {"entity", 6},
+        {"entities", 6},
+        {"player", 6},
+        {"players", 6},
+        {"block_pos", 8},
+        {"vec3", 10},
+        {"vec2", 11},
+        {"block_state", 12},
+        {"item", 14},
+        {"item_predicate", 15},
+        {"nbt_compound", 21},
+        {"nbt_tag", 22},
+        {"nbt_path", 23},
+        {"rotation", 29},
+        {"item_slot", 34},
+        {"resource_location", 36},
+        {"function", 37},
+        {"dimension", 41},
+        {"gamemode", 42},
+        {"time", 43},
+    };
+    auto it = kMap.find(typeName);
+    if (it == kMap.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
+
 } // namespace detail
 
 /**
@@ -347,6 +405,20 @@ template <typename S>
         snapshotNode.suggestionKind =
             detail::inferSuggestionKind(dispatcher.getPath(node), *node, suggestionCandidates);
         snapshotNode.suggestionCandidates = std::move(suggestionCandidates);
+
+        // 二进制 CommandNode 编码所需字段（见 CommandTreeEncoder）。
+        // restricted：项目无 NodeInspector 等价信息，保守 false（默认值，不赋）。
+        if (node->hasCustomSuggestions()) {
+            // vanilla SuggestionProviders 对未注册 provider 默认返回 minecraft:ask_server；
+            // 项目自定义 provider（Function/Dimension）未在客户端注册表登记，统一回落到此 Identifier。
+            snapshotNode.suggestionProviderId = "minecraft:ask_server";
+        }
+        if (node->getType() == NodeType::Argument) {
+            snapshotNode.argumentNetworkId = detail::argumentNetworkIdForTypeName(node->getTypeName());
+            // argumentProperties 来自 ArgumentType::serializeMetadata()（含 Entity 的 single/playersOnly、
+            // Integer/Float 的 min/max、String 的 mode、Time 的 min）。
+            snapshotNode.argumentProperties = node->getMetadata();
+        }
     }
 
     return snapshot;
